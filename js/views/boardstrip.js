@@ -36,7 +36,8 @@
    data-hb-own, so a Board repaint keeps what is typed in them.
    ============================================================ */
 
-const BS_PAGES = ['ov', 'where', 'hist', 'details'];
+/* the Details page RETIRED (owner's yes, 22 Oct 2026): its parts are Key terms, the Obligations tab and the Dossier */
+const BS_PAGES = ['ov', 'where', 'hist'];
 /* the pages ⋯ lists — Details too since 15 Oct 2026 (owner: "go with your
    suggestions"), beside Key terms' own "Edit these details ›" */
 /* 4b (owner picked "The Dossier" with its Board card, 20 Oct 2026): the ⋯
@@ -82,13 +83,15 @@ function bsStrips(){
   const s = (typeof hbS === 'function') ? hbS() : null;
   if (!s) return [];
   if (!Array.isArray(s.strips)) s.strips = [];
+  /* a strip kept on a page that is gone (the Details page, retired 22 Oct 2026) opens on its Overview */
+  s.strips.forEach(x => { if (x && !BS_PAGES.includes(x.page)) x.page = 'ov'; });
   return s.strips;
 }
 function bsStrip(id){ return bsStrips().find(x => String(x.id) === String(id)) || null; }
 /* one History and one Details on the Board at a time: their builders own
    fixed ids (#hist-q, #kt-ov-terms), so a second would answer for the first */
 function bsOnePage(st){
-  if (st.page !== 'hist' && st.page !== 'details') return;
+  if (st.page !== 'hist') return;
   bsStrips().forEach(x => { if (x !== st && x.page === st.page) x.page = 'ov'; });
 }
 
@@ -224,7 +227,7 @@ function bsStripLetGo(id){
 function roomRetiredLand(id, tab){
   if (bsPhone()) return false;
   if (typeof hbS !== 'function' || typeof hbPaintBoard !== 'function') return false;
-  const page = tab === 'stands' ? 'where' : tab === 'details' ? 'details' : tab === 'history' ? 'hist' : 'ov';
+  const page = tab === 'stands' ? 'where' : tab === 'history' ? 'hist' : 'ov';
   return hbStripBring(id, page);
 }
 
@@ -715,7 +718,6 @@ function bsStripHtml(st, o){
   pill += bsPrivatePillHtml(c);
   const body = page === 'where' ? `<div class="bs-sec bs-host bs-where" data-hb-own data-bs-host="where" data-bs-cid="${id}" data-ds-cid="${id}"></div>`
     : page === 'hist' ? `<div class="bs-sec bs-host bs-hist" data-hb-own data-bs-host="hist" data-bs-cid="${id}"></div>`
-    : page === 'details' ? `<div class="bs-sec bs-host bs-details" data-hb-own data-bs-host="details" data-bs-cid="${id}"></div>`
     : bsLifeHtml(c, st);
   /* ONE ⋯ ON HISTORY (pass 3, round 12 as drawn): the History page's own
      toolbar ends with its ⋯ (Verify · Export · Print · the whole trail), so
@@ -1178,7 +1180,7 @@ function bsTermsHtml(D){
     const owedNow = cell[3] === 'amber' && !val;
     terms.push(row(String(cell[0] || '').replace(/<[^>]*>/g, ''), val ? bsE(val) : bsE(bsT(owedNow ? 'bs_t_owed' : 'bs_t_notin')), owedNow ? 'is-owed' : (val ? '' : 'is-none')));
   });
-  const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-kt-open="${bsE(c.id)}">${bsE(bsT('bs_t_edit_beside'))}</button>` : `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
+  const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-kt-open="${bsE(c.id)}">${bsE(bsT('bs_t_edit_beside'))}</button>` : `<button type="button" class="hb-link" data-bs-kt-open="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
   return `<div class="bs-sec bs-terms"><div class="bs-sec-h"><h5>${bsE(bsT('bs_terms'))}</h5></div><dl class="bs-dl">${terms.join('')}</dl>${edit}</div>`;
 }
 function bsTermsObsHtml(D){
@@ -1201,7 +1203,7 @@ function bsTermsObsHtml(D){
   });
   /* THE BOARD READS (owner, 20 Oct 2026, the Legora way): its Edit opens the
      paper with the Key terms unfolded beside it (pdKtOpen); a reader keeps More › */
-  const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-kt-open="${bsE(c.id)}">${bsE(bsT('bs_t_edit_beside'))}</button>` : `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
+  const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-kt-open="${bsE(c.id)}">${bsE(bsT('bs_t_edit_beside'))}</button>` : `<button type="button" class="hb-link" data-bs-kt-open="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
   const O = D.O;
   const obRows = O.rows.map(r => `<tr${r === O.next ? ' class="is-next"' : ''}${r.st === 'done' ? ' data-done' : ''}><td>${bsE(r.what)}${''/* LATE FIRST, THEN NEXT (pass 3, round 7 as drawn: "Check the September invoice [Late]", [Next] under it) */}${r.st === 'overdue' ? `<span class="bs-late">${bsE(bsT('bs_ob_late'))}</span>` : ''}${r === O.next ? `<span class="bs-nx">${bsE(bsT('bs_ob_next'))}</span>` : ''}${r.st === 'done' ? `<span class="bs-done">${bsE(bsT('bs_ob_done'))}</span>` : ''}</td>
     <td class="bs-who"><i class="bs-dot ${r.theirs ? 'is-theirs' : 'is-ours'}" aria-hidden="true"></i>${bsE(bsWho(c, r))}</td><td class="bs-d">${r.due ? bsE(bsDay(r.due)) : bsE(bsT('bs_ob_nodue'))}</td></tr>`).join('');
@@ -1298,7 +1300,6 @@ function bsPaintHosts(){
     try {
       if (k === 'where') bsPaintWhere(host, c);
       else if (k === 'hist') bsPaintHist(host, c);
-      else if (k === 'details') bsPaintDetails(host, c);
       else if (k === 'pay') bsPaintPay(host, c);
       else if (k === 'nda') bsPaintNda(host, c);
     } catch (e){ try { console.error('[hati] the strip\'s ' + k + ' did not paint', e); } catch (_){} }
@@ -1326,24 +1327,6 @@ function bsPaintHist(host, c){
   const keep = host.querySelector('.hist-trail'), top = keep ? keep.scrollTop : 0;
   roomPaintHistory(c, f, host);
   const tr = host.querySelector('.hist-trail'); if (tr && top) tr.scrollTop = top;
-}
-/* THE SHEET FOLLOWS THE RECORD: drawn again when what it shows moved (a
-   save from Fill in, a colleague's save arriving, a reading landing, the
-   language), never while the reader is typing in one of its boxes */
-function bsDetailsSig(c){
-  try { return JSON.stringify([String(c.id), c._v, c.version, c.updatedAt, c.lastAction, c.status, c.name, c.counterparty, c.expiry, c.value,
-    c.fields || null, c.metadata || null, c.nda || null, c.parties || null, c.signerPlan || null, c.participants || null, (c.obligations || []).length,
-    !!c._brief, c.triage && c.triage.at, c.renewal || null, (typeof langId === 'function') ? langId() : '']); }
-  catch (_){ return String(Math.random()); }
-}
-function bsPaintDetails(host, c){
-  if (typeof ovSheetPaint !== 'function') return;
-  const sig = bsDetailsSig(c);
-  if (host._bsSig === sig && host.querySelector('#kt-ov-terms')) return;
-  const a = document.activeElement;
-  if (host.querySelector('#kt-ov-terms') && a && host.contains(a) && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
-  host._bsSig = sig;
-  ovSheetPaint(c, host);
 }
 /* ---- THE PAY SECTION: a table at rest, the same table as boxes in Edit ----
    Drawn again when what it shows moved, never while the reader is typing in

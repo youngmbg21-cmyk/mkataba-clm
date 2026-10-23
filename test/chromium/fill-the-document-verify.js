@@ -253,9 +253,10 @@ const owed = (page, id) => page.evaluate(x => {
     if (!ov2) {
       /* Fill from document rides the Details tab (12 Oct 2026); RE-POINTED 20 Oct
          2026 (the Legora way): it is the Overview sheet's, on the Board's card */
-      await page.evaluate(() => { const s = hbS(); s.face = 'board'; hbSave(); setView('dashboard'); hbStripBring('MK-FD2', 'details'); });
+      /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED): Fill from document is Key terms' "Read all from the paper" */
+      await page.evaluate(() => pdKtOpen('MK-FD2'));
       await waitFor(page, () => !!document.getElementById('kt-fill'));
-      ov2 = await page.evaluate(() => {
+      const read = () => page.evaluate(() => {
         const b = document.getElementById('kt-fill');
         if (!b) return null;
         const probe = document.createElement('span');
@@ -263,8 +264,10 @@ const owed = (page, id) => page.evaluate(x => {
         const want = getComputedStyle(probe).backgroundColor; probe.remove();
         return { bg: getComputedStyle(b).backgroundColor, want };
       });
+      /* the button's colour eases in (a transition): asked again, bounded, until it settles */
+      for (let t0 = Date.now(); Date.now() - t0 < 3000; await page.waitForTimeout(120)) { ov2 = await read(); if (ov2 && ov2.bg === ov2.want) break; }
     }
-    check('6 the Details tab\'s Fill from document is light blue', !!ov2 && ov2.bg === ov2.want, ov2 && `${ov2.bg} vs ${ov2.want}`);
+    check('6 Key terms\' Read all from the paper (the Details\' Fill from document) is light blue', !!ov2 && ov2.bg === ov2.want, ov2 && `${ov2.bg} vs ${ov2.want}`);
     if (process.env.HATI_SHOT_DIR) await page.screenshot({ path: process.env.HATI_SHOT_DIR + '/fill-overview.png' });
 
     check('7 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

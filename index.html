@@ -10026,6 +10026,35 @@
   [data-pd-mid-kt] .pd-og-ok{border:0;background:none;padding:2px 0;font:inherit;font-size:13px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer}
   [data-pd-mid-kt] .pd-og-ok:hover{text-decoration:underline}
   [data-pd-mid-kt] .pd-og-ok:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
+  /* KEY TERMS, THE LEGORA WAY, ON A WHITE CARD (owner picked it by name, 22 Oct 2026): Term · What it says ·
+     Where on the paper · act, one quiet list; the parties under "Who it is between"; the filing one line under the title */
+  [data-pd-mid-kt] .pd-kt-lg td.pd-og-f{width:24%}
+  [data-pd-mid-kt] .pd-kt-lg td.pd-og-v{width:26%;color:var(--color-text)}
+  [data-pd-mid-kt] .pd-kt-lg td.pd-kt-where{padding:10px 16px 10px 0;vertical-align:top;border-bottom:1px solid var(--color-divider)}
+  [data-pd-mid-kt] .pd-kt-lg td.pd-kt-where .pd-og-src{margin-top:0}
+  [data-pd-mid-kt] .pd-kt-lg .pd-og-src.is-none{color:var(--color-neutral-600)}
+  [data-pd-mid-kt] .pd-kt-lg thead th{padding:0 12px 6px 0;text-align:left;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-600);border-bottom:1px solid var(--rule-strong)}
+  [data-pd-mid-kt] .pd-kt-lg .pd-kt-lg-sub th{padding:18px 0 4px;text-align:left;font-size:12px;font-weight:var(--w-strong);color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider)}
+  [data-pd-mid-kt] .pd-kt-lg tbody:first-of-type tr:last-child td{border-bottom:1px solid var(--color-divider)}
+  [data-pd-mid-kt] .pd-kt-add{display:inline-block;margin-top:12px;font-size:13px;font-weight:var(--w-strong)}
+  [data-pd-mid] .pd-kt-file{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-top:6px;font-size:13px;color:var(--color-neutral-700)}
+  [data-pd-mid] .pd-kt-file .pd-kt-sep{color:var(--rule-strong)}
+  [data-pd-mid] .pd-kt-file .ui-link{min-height:0;font-size:13px;font-weight:var(--w-strong)}
+  [data-pd-mid] .pd-kt-file .pd-kt-folder{height:var(--ctl-h-sm,28px);max-width:260px;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:0 8px;font:inherit;font-size:13px}
+  /* KEY TERMS' HEAD, THE SAP WAY (owner, 22 Oct 2026): the name as the title, Rename beside it; the record as labelled facts */
+  [data-pd-mid] .pd-kt-mid-h[data-pd-kt-title]{display:flex;align-items:center;gap:10px;min-width:0}
+  [data-pd-mid] .pd-kt-mid-h span.pd-kt-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit;color:inherit}
+  [data-pd-mid] .pd-kt-mid-h .pd-kt-ren{flex:none;font-family:var(--font-body);font-size:12.5px;font-weight:var(--w-strong)}
+  [data-pd-mid] .pd-kt-name-in{min-width:0;width:28rem;max-width:100%;height:var(--ctl-h,32px);border:1px solid var(--accent-ink);border-radius:var(--radius);background:var(--color-surface);padding:0 8px;font:inherit;font-size:18px;color:var(--color-text)}
+  [data-pd-mid] .pd-kt-rec{display:flex;flex-wrap:wrap;gap:6px 28px;margin-top:10px}
+  [data-pd-mid] .pd-kt-fact{display:flex;flex-direction:column;gap:2px;min-width:0}
+  [data-pd-mid] .pd-kt-fact > span{font-size:12px;color:var(--color-neutral-600)}
+  [data-pd-mid] .pd-kt-fact > b{font-weight:var(--w-label);font-size:13.5px;color:var(--color-text);white-space:nowrap}
+  [data-pd-mid] .pd-kt-file .pd-kt-cat{color:var(--color-neutral-600)}
+  [data-pd-mid] .pd-kt-file .pd-kt-cat-box{display:inline-flex;min-width:160px}
+  /* Read all from the paper wears the Details' Fill from document's light wash, as drawn */
+  [data-pd-mid] .dlg-pg-acts .pd-kt-read{background:var(--color-accent-50)}
+  [data-pd-mid] .pd-kt-cost{align-self:center;font-size:12px;color:var(--color-neutral-600);white-space:nowrap}
   #ig-dock .ds-owed .pd-gl-h .ds-when{flex:1}
   #ig-dock .ds-go{flex:none;border:0;background:none;padding:2px 0;font:inherit;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   #ig-dock .ds-go:hover:not(:disabled){text-decoration:underline}
@@ -10204,6 +10233,22 @@
   .pd-fill .pd-fill-done summary::-webkit-details-marker{display:none}
   .pd-acts-c{justify-content:center}
   .pd-ob .pd-acts{margin-top:8px}
+  /* THE RENEWAL AND THE SIDES, THE LEGORA WAY (owner, 22 Oct 2026): quiet lines, nothing boxed; the words quoted with §; tabs with counts */
+  .pd-rn{margin:2px 0 12px}
+  .pd-rn-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;padding:8px 0;border-bottom:1px solid var(--color-neutral-200);font-size:13px}
+  .pd-rn-row > span{color:var(--color-neutral-600);font-size:12.5px}
+  .pd-rn-row > b{font-weight:var(--w-label);color:var(--color-text);min-width:0}
+  .pd-rn-by.is-a{color:var(--st-amber-fg)} .pd-rn-by.is-r{color:var(--st-ruby-fg,#b3261e)}
+  .pd-rn-q{padding-top:8px}
+  .pd-rn-q .pd-og-src{display:block;font-size:12.5px;line-height:1.45;color:var(--color-neutral-600)}
+  .pd-rn-q .pd-og-src q{font-style:italic;color:var(--color-text);quotes:none}
+  .pd-rn-q .pd-og-cl{border:0;border-radius:3px;padding:0 4px;background:var(--accent-wash,var(--surface-2));font:inherit;font-size:12px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .pd-rn-decide{margin-top:10px}
+  .pd-obs-tabs{display:flex;gap:16px;border-bottom:1px solid var(--color-neutral-200);margin:0 0 8px}
+  .pd-obs-tab{border:0;background:none;padding:6px 0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .pd-obs-tab[aria-selected="true"]{color:var(--color-text);border-bottom-color:var(--color-text)}
+  .pd-obs-tab > span{margin-left:5px;color:var(--accent-ink)}
+  .pd-obs-tab:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
   .pd-note{font-size:11.5px;color:var(--cap-ink);margin:12px 0 0}
   .pd-empty{padding:14px 8px 4px}
   .pd-deal{font-size:12.5px}
@@ -14260,6 +14305,9 @@
   .jb-card > textarea::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:6px}
   .jb-card > textarea::-webkit-scrollbar-track{background:transparent}
   .jb-card > textarea::placeholder{color:var(--color-neutral-500)}
+  /* an empty box is one line: a hint too long for it ends in … (jamboCardGrow; owner, 22 Oct 2026) */
+  .jb-card > textarea:placeholder-shown{overflow:hidden}
+  .jb-card > textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .jb-card > textarea:focus,.jb-card > textarea:focus-visible{outline:none;box-shadow:none;border:0}
   .jb-card > textarea[disabled]{background:transparent;cursor:default}
   .jb-row{display:flex;align-items:center;gap:4px;min-width:0;margin:0 0 0 -4px}

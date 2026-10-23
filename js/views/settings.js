@@ -1787,7 +1787,7 @@ function stHeldOpen(id){
     if(typeof landOn==='function') landOn(()=>{ const r=document.querySelector(sel); if(r){ const d=r.closest('details'); if(d&&!d.open) d.open=true; } return r; },
       { focus:false, block:'center', missing:i18t('st_swp_hold_missing') });
     return; }
-  if(typeof hbStripBring==='function'&&hbStripBring(id,'details')) return;
+  if(typeof hbStripBring==='function'&&hbStripBring(id,'ov')) return;
   if(typeof regOpenContract==='function') regOpenContract(id); else if(typeof openWorkspace==='function') openWorkspace(id);
 }
 function stDataTabsHtml(){

@@ -247,6 +247,9 @@ const ok = (name, good, detail) => {
         /* step 8: the contract's strip on the Board (its id and page) */
         strip: (() => { const t = document.querySelector('#bs-strips > .bs-strip'); return t ? t.getAttribute('data-bs-id') + ':' + t.getAttribute('data-bs-on') : null; })(),
         renewal: !!document.querySelector('#bs-strips [data-bs-host="details"] #renewal-host'),
+        /* RE-POINTED 22 Oct 2026 (the Details page RETIRED): the renewal is the Obligations tab beside the paper */
+        paper: (window.intel && intel.paper) ? String(intel.paper.id) : null, ptab: (typeof pdTab === 'function') ? pdTab() : null, hface: (typeof hbFace === 'function' && state.view === 'dashboard') ? hbFace() : null,
+        rn: !!document.querySelector('#pd-body [data-pd-rn]'),
         room: !!document.getElementById('ws-tabs'),
         sheet: !!document.getElementById('dk-close') }));
     };
@@ -272,6 +275,9 @@ const ok = (name, good, detail) => {
         tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
         strip: (() => { const t = document.querySelector('#bs-strips > .bs-strip'); return t ? t.getAttribute('data-bs-id') + ':' + t.getAttribute('data-bs-on') : null; })(),
         renewal: !!document.querySelector('#bs-strips [data-bs-host="details"] #renewal-host'),
+        /* RE-POINTED 22 Oct 2026 (the Details page RETIRED): the renewal is the Obligations tab beside the paper */
+        paper: (window.intel && intel.paper) ? String(intel.paper.id) : null, ptab: (typeof pdTab === 'function') ? pdTab() : null, hface: (typeof hbFace === 'function' && state.view === 'dashboard') ? hbFace() : null,
+        rn: !!document.querySelector('#pd-body [data-pd-rn]'),
         room: !!document.getElementById('ws-tabs'),
         sheet: !!document.getElementById('dk-close') })); };
     const g3 = await door('MK-158', 'sign');
@@ -283,7 +289,9 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
        sheet, renewal card and all, is the contract strip's Details page on
        Home's Board — Decide opens it there, the room not drawn */
-    ok('3d Decide (the checklist\'s one door) opens that contract on its Overview, where the renewal card records the decision', g4.view === 'dashboard' && g4.id === 'MK-143' && g4.strip === 'MK-143:details' && g4.renewal && !g4.room, JSON.stringify(g4));
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED; round 3, the Legora way): Decide opens that
+       contract's paper on its Obligations tab, where the renewal stands with its decision card */
+    ok('3d Decide (the checklist\'s one door) opens that contract\'s Obligations tab, where the renewal stands', g4.view === 'dashboard' && g4.hface === 'paper' && g4.paper === 'MK-143' && g4.ptab === 'oblig' && g4.rn && !g4.room, JSON.stringify(g4));
 
     /* ================= 4 · A COLLEAGUE ASKING TO JOIN — A THIRD ROW, AND ITS DOOR ================= */
     await page.evaluate(() => { const d = deskOf(getContract('MK-149')); d.joinRequests = (d.joinRequests || []).concat([{ id: 'u-peter', name: 'Peter Kamau', email: 'peter@example.co.ke',
@@ -364,14 +372,16 @@ const ok = (name, good, detail) => {
        there, and the claim would pass on the fault. */
     /* step 8: a landing names the contract's strip (id:page) too, so two
        doors agree only where they open the same strip on the same page */
-    const landOf = g => g.view === 'redline' ? 'negotiate:' + g.held
+    const landOf = g => (g.ptab === 'oblig' && g.hface === 'paper') ? 'oblig:' + g.paper : g.view === 'redline' ? 'negotiate:' + g.held
       : g.view + ':' + g.id + ':' + g.tab + (g.sheet ? ':sheet' : '') + (g.strip ? ':strip=' + g.strip : '');
-    const want = (g, id) => landOf(Object.assign({}, g, { id, held: id, strip: g.strip ? String(g.strip).replace(/^[^:]*/, id) : g.strip }));
+    const want = (g, id) => landOf(Object.assign({}, g, { id, held: id, paper: g.paper ? id : g.paper, strip: g.strip ? String(g.strip).replace(/^[^:]*/, id) : g.strip }));
     const elsewhere = async () => {
       await page.evaluate(() => { try { closeModal(); } catch (_) {} openWorkspace('MK-150', { room: true }); });
       await page.waitForTimeout(700);
     };
     const landing = () => page.evaluate(() => ({ view: state.view, id: state.activeId,
+      /* RE-POINTED 22 Oct 2026 (the Details page RETIRED): the paper and its tab, where a renewal is decided now */
+      paper: (window.intel && intel.paper) ? String(intel.paper.id) : null, ptab: (typeof pdTab === 'function') ? pdTab() : null, hface: (typeof hbFace === 'function' && state.view === 'dashboard') ? hbFace() : null,
       held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null,
       tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
       /* step 8: the contract's strip on the Board (its id and page) */
@@ -438,7 +448,7 @@ const ok = (name, good, detail) => {
         at: new Date(Date.now() - 2 * 864e5).toISOString(), why: 'I handle the Kabras account', status: 'pending' }];
     });
     const b1 = await pressBell('renewal', 'MK-143');
-    ok('8f the bell\'s renewal-decision row opens that contract on its Overview — where the checklist\'s Decide button went',
+    ok('8f the bell\'s renewal-decision row opens that contract where the checklist\'s Decide button went (its Obligations tab)',
       !!b1.row && landOf(b1.g) === want(g4, 'MK-143'), b1.row ? `${b1.row} → ${landOf(b1.g)} · button went ${landOf(g4)}` : 'no bell row for MK-143');
     const b2 = await pressBell('desk-join', 'MK-131');
     ok('8g the bell\'s request-to-join row opens the contract with the sheet where the lead lets them in',
@@ -452,7 +462,7 @@ const ok = (name, good, detail) => {
       deskOf(getContract('MK-131')).joinRequests = [];
     });
     const b3 = await pressBell('renewal', 'MK-143');
-    ok('8h the bell\'s "ends in N days" row goes to the same place — the Overview, where the renewal card is',
+    ok('8h the bell\'s "ends in N days" row goes to the same place — the Obligations tab, where the renewal is',
       !!b3.row && /20 days/.test(b3.row) && landOf(b3.g) === want(g4, 'MK-143'), b3.row ? `${b3.row} → ${landOf(b3.g)}` : 'no bell row for MK-143');
     await page.evaluate(() => { delete getContract('MK-149').archived; });
 

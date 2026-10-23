@@ -4621,8 +4621,12 @@ function focusKeyTerms(c, field){
      landed on there, beside the paper; every other box is the Overview's
      Edit, in the room. */
   if(window.pdFillOpen&&!(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)){
+    /* a fact this table does not name (governing law, disputes, payment terms …) is its own Key terms row, never the other party's */
+    if(field&&!KT_FIELD_HOME[String(field)]&&state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,String(field||''))!==false) return;
     let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt)); }catch(_){ asks=false; }
     if(asks){ pdFillOpen(c.id,{ key:home.kt }); return; }
+    /* THE DETAILS PAGE IS RETIRED (owner, 22 Oct 2026): every other box is Key terms in the middle, ready on it */
+    if(state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,home.kt)!==false) return;
   }
   /* Posture BEFORE the tab change: both are plain in-memory reads that the
      next paint obeys, so the reader sees one render rather than a grid that
@@ -4703,6 +4707,9 @@ function focusKeyTerms(c, field){
    From the negotiate page it goes to the room's Overview first (roomGoTab). */
 function ovOpenFiling(c){
   if(!c) return;
+  /* THE DETAILS PAGE IS RETIRED (owner, 22 Oct 2026): on a computer, outside the room opened by name, the
+     filing is Key terms' line, with Move open (the one re-filer, ktFolderMove) */
+  if(state.view!=='workspace'&&!(window.innerWidth&&window.innerWidth<768)&&window.pdKtFocus&&pdKtFocus(c.id,'stream')!==false) return;
   ovSetEditing(OV_KEY(c,'record'), true);
   /* the More menu stands over Home's paper too since stage 5 of the one-page
      Home plan: the filing rows are the Overview's, so the room is opened
@@ -4748,6 +4755,12 @@ function ovSheetPaint(c,host){
      roomReadAgainDue waits for the whole record — so the sheet asks for it
      here and spends the reading once it lands (the room did the same through
      its own load before its paint). */
+  roomReadAgainSpend(c);
+}
+/* THE ONE SPENDER of a Decide's "read it all again" (roomReadOnArrival): the sheet above, and since the
+   Details page retired (22 Oct 2026) the Obligations tab beside the paper, where the renewal is decided now */
+function roomReadAgainSpend(c){
+  if(!c) return;
   if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true });
   else if(_wsReadAgain.has(String(c.id)) && c._light && !c._loaded && window.ensureFull)
     ensureFull(c).then(()=>{ if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true }); }).catch(()=>{});
@@ -4885,19 +4898,15 @@ function ovRecordOpen(c){ if(c) ovSetEditing(OV_KEY(c,'record'), true); }
 function roomOverviewOpen(c){
   if(!c) return false;
   if(state.view==='workspace'&&String(state.activeId)===String(c.id)){ roomGoTab(c,'terms'); return true; }
-  if(window.roomRetiredLand&&roomRetiredLand(c.id,'details')){
-    /* the strip's host is filled after its paint; asked again so a posture
-       set just now (Edit, the filing rows) is the one drawn */
-    const host=document.querySelector(`[data-bs-host="details"][data-bs-cid="${CSS.escape(String(c.id))}"]`);
-    if(host) ovSheetPaint(getContract(c.id)||c,host);
-    return true;
-  }
+  /* THE DETAILS PAGE IS RETIRED (owner's yes, 22 Oct 2026, after its three rounds): on a computer the
+     contract's details are Key terms in the middle (pdKtOpen); the phone keeps the room's own sheet */
+  if(!(window.innerWidth&&window.innerWidth<768)&&window.pdKtOpen&&pdKtOpen(c.id)!==false) return true;
   if(window.openWorkspace) openWorkspace(c.id);
   roomGoTab(c,'terms');
   return true;
 }
 /* published beside their definitions (the file's export list stays the one at its end) */
-Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells, ovEssKeys, uploadPartyOptions, cnEditOpen, cnRowPaint });
+Object.assign(window, { roomReadAgainSpend, ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells, ovEssKeys, uploadPartyOptions, cnEditOpen, cnRowPaint, cnMaySet, ktFactReads });
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
    Insert clause → Copilot Contract Scan, with a "Next: Signing" button. Signing
@@ -16578,6 +16587,8 @@ async function fillKeyTermsFromDocument(c){
   const btn=document.getElementById('kt-fill');
   const text=(isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'';
   if(text.length<200){ toast(i18t('ct_no_readable_text'),'err'); return; }
+  /* the button's own words come back after (the Details' "Fill from document", Key terms' "Read all from the paper") */
+  const was=btn?btn.innerHTML:'';
   if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_reading')}</span>`; }
   try{
     const meta=await extractMetadata(text, null);
@@ -16638,7 +16649,7 @@ async function fillKeyTermsFromDocument(c){
   }catch(e){
     toast(i18t('ct_could_not_read_doc')+(e.message||'try again'),'err');
   }finally{
-    if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=`${icon('sparkle','w-3 h-3')} Fill from document`; }
+    if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=was||`${icon('sparkle','w-3 h-3')} Fill from document`; }
   }
 }
 function updateStatusUI(c){

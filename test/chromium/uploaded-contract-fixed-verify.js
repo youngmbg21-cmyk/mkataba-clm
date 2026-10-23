@@ -253,8 +253,10 @@ const BODY =
     /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
        sheet — its Edit and its parties — is the contract strip's Details page
        on Home's Board, opened by its one door (roomOverviewOpen) */
-    await page.evaluate(() => roomOverviewOpen(getContract(window.__cid)));
-    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector(`[data-bs-host="details"][data-bs-cid="${window.__cid}"] #kt-ov-terms`), null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the Overview's sheet still
+       stands in the room opened by name (openWorkspace(id,{room:true})), and its parties are measured there */
+    await page.evaluate(() => { openWorkspace(window.__cid, { room: true }); roomOverviewOpen(getContract(window.__cid)); });
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('#kt-ov-terms'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1200);
     /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, so every
        section is open as drawn — found by its head's words, not pressed. */
@@ -284,8 +286,8 @@ const BODY =
       return out;
     });
     await page.evaluate(() => { if (window.closeModal) closeModal(); });
-    await page.evaluate(() => roomOverviewOpen(getContract(window.__cid)));
-    await page.waitForTimeout(800);
+    await page.evaluate(() => { openWorkspace(window.__cid, { room: true }); roomOverviewOpen(getContract(window.__cid)); });
+    await page.waitForFunction(() => !!document.querySelector('#ov-parties .ov-ess-h'), null, { timeout: 8000 }).catch(() => {});
     const rest = await page.evaluate(() => {
       const col = document.getElementById('ov-parties'); const hd = col && col.querySelector('.ov-ess-h');
       if (!hd) return { lines: -1 };
