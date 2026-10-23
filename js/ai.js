@@ -3004,7 +3004,9 @@ async function aiLocalClaude(messages, context){
     const content=d.content||[];
     const toolUses=content.filter(b=>b.type==='tool_use');
     working.push({role:'assistant',content});
-    if(!toolUses.length){
+    /* a deliver_answer call typed as plain text is read as the call (the server's copilotTextDeliver) */
+    const writ=toolUses.length?null:aiTextDeliver(content.filter(b=>b.type==='text').map(b=>b.text).join(''));
+    if(!toolUses.length&&!writ){
       const txt=content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();
       /* NEVER a bare "could not produce an answer": say what to try instead.
          The blank version taught a real user that reports were impossible. */
@@ -3015,7 +3017,7 @@ async function aiLocalClaude(messages, context){
         continue; }
       final={answer:txt||AI_EMPTY_ANSWER,citations:[],compare:null,empty:!txt,retry:!txt}; break;
     }
-    const deliver=toolUses.find(t=>t.name==='deliver_answer');
+    const deliver=writ?{ input:writ }:toolUses.find(t=>t.name==='deliver_answer');
     if(deliver){
       const inp=deliver.input||{};
       final={ answer:String(inp.answer||'').trim()||AI_EMPTY_ANSWER,
@@ -3199,30 +3201,48 @@ function aiContractByRef(ref){
   if(!r) return null;
   return getContract(r)||((state.contracts||[]).find(x=>x&&x.contractNo&&String(x.contractNo).toUpperCase()===r)||null);
 }
+/* A TOOL CALL WRITTEN AS PLAIN TEXT (23 Oct 2026; twin of the server's copilotTextDeliver): the model typed
+   `<parameter name="answer">…</parameter><parameter name="citations">[…]` as words instead of calling
+   deliver_answer. Its fields are read back so the reader never sees the markup. Null when it is not such a call. */
+function aiTextDeliver(txt){
+  const t=String(txt||'');
+  if(!/<parameter name="answer">/.test(t)) return null;
+  const out={};
+  for(const m of t.matchAll(/<parameter name="(\w+)">([\s\S]*?)(?:<\/parameter>|(?=<parameter name="|<\/invoke>|<\/deliver_answer>|$))/g)){
+    const k=m[1]; if(out[k]!=null) continue;
+    const v=m[2].trim();
+    if(k==='answer'){ out.answer=v.replace(/<\/?(?:parameter|invoke|deliver_answer|function_calls|antml:[a-z_]+)\b[^>]*>/g,'').trim(); continue; }
+    try{ out[k]=JSON.parse(v); }catch(_){ out[k]=v; }
+  }
+  return out.answer?out:null;
+}
 /* Deterministic side-by-side from live fields — works with NO Copilot at all, so
    "compare" always does something. The Copilot path layers judgement on top. */
 function localCompareData(ids){
   const cs=ids.map(id=>aiContractByRef(id)).filter(Boolean).slice(0,4);
   if(cs.length<2) return null;
+  /* EVERY WORD IN BOTH BOOKS (owner, 23 Oct 2026: "some of its words are English only") */
+  const T=(k,v)=>(typeof i18t==='function')?i18t(k,v):k;
+  const ref=c=>window.contractRef?contractRef(c):c.id;
   const open=c=>(c.scan&&typeof openFindings==='function')?openFindings(c):[];
-  const fmtVal=c=>c.valueType==='none'?'Non-monetary':(Number(c.value)>0?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'Not set');
-  const exp=c=>{ if(!c.expiry) return '—'; const d=_daysTo(c.expiry); return c.expiry+(d!=null?(d>=0?` (in ${d}d)`:' (lapsed)'):''); };
+  const fmtVal=c=>c.valueType==='none'?T('cmp_non_monetary'):(Number(c.value)>0?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):T('cmp_not_set'));
+  const exp=c=>{ if(!c.expiry) return '—'; const d=_daysTo(c.expiry); return c.expiry+(d!=null?(d>=0?` (${T('int_in_days',{n:d})})`:` (${T('int_lapsed')})`):''); };
   const rows=[
-    { label:'Name', cells:cs.map(c=>c.name||(window.contractRef?contractRef(c):c.id)) },
-    { label:'Type', cells:cs.map(c=>typeof cKind==='function'?cKind(c):'—') },
-    { label:'Counterparty', cells:cs.map(c=>c.counterparty||'—') },
-    { label:'Value', cells:cs.map(fmtVal) },
-    { label:'Status', cells:cs.map(c=>typeof statusLabel==='function'?statusLabel(c.status):c.status) },
-    { label:'Effective', cells:cs.map(c=>(c.fields&&c.fields.effDate)||'—') },
-    { label:'Expiry', cells:cs.map(exp) },
-    { label:'Open findings', cells:cs.map(c=>{ const o=open(c); return o.length?`${o.length} (worst: ${typeof worstSevOf==='function'?worstSevOf(o):'—'})`:(c.scan?'None':'Not scanned'); }) },
+    { label:T('cmp_row_name'), cells:cs.map(c=>c.name||ref(c)) },
+    { label:T('cmp_row_type'), cells:cs.map(c=>typeof cKind==='function'?cKind(c):'—') },
+    { label:T('cmp_row_cp'), cells:cs.map(c=>c.counterparty||'—') },
+    { label:T('cmp_row_value'), cells:cs.map(fmtVal) },
+    { label:T('cmp_row_status'), cells:cs.map(c=>typeof statusLabel==='function'?statusLabel(c.status):c.status) },
+    { label:T('cmp_row_effective'), cells:cs.map(c=>(c.fields&&c.fields.effDate)||'—') },
+    { label:T('cmp_row_expiry'), cells:cs.map(exp) },
+    { label:T('cmp_row_findings'), cells:cs.map(c=>{ const o=open(c); return o.length?T('cmp_findings_n',{ n:o.length, worst:typeof worstSevOf==='function'?worstSevOf(o):'—' }):(c.scan?T('cmp_findings_none'):T('cmp_not_scanned')); }) },
   ];
-  let verdict='';
+  const said=[];
   const monetary=cs.filter(c=>c.valueType!=='none'&&Number(c.value)>0);
-  if(monetary.length>=2){ const top=monetary.slice().sort((a,b)=>Number(b.value)-Number(a.value))[0]; verdict+=`${window.contractRef?contractRef(top):top.id} is the larger commitment (${fmtMoneyShort(top.value)}). `; }
+  if(monetary.length>=2){ const top=monetary.slice().sort((a,b)=>Number(b.value)-Number(a.value))[0]; said.push(T('cmp_verdict_larger',{ ref:ref(top), value:window.fmtMoneyShortOf?fmtMoneyShortOf(top):fmtMoneyShort(top.value) })); }
   const dated=cs.filter(c=>c.expiry&&_daysTo(c.expiry)!=null&&_daysTo(c.expiry)>=0);
-  if(dated.length>=2){ const soon=dated.slice().sort((a,b)=>_daysTo(a.expiry)-_daysTo(b.expiry))[0]; verdict+=`${window.contractRef?contractRef(soon):soon.id} expires first (in ${_daysTo(soon.expiry)} days).`; }
-  return { columns:cs.map(c=>({id:c.id,label:(window.contractRef?contractRef(c):c.id)})), rows, verdict:verdict.trim() };
+  if(dated.length>=2){ const soon=dated.slice().sort((a,b)=>_daysTo(a.expiry)-_daysTo(b.expiry))[0]; said.push(T('cmp_verdict_first',{ ref:ref(soon), n:_daysTo(soon.expiry) })); }
+  return { columns:cs.map(c=>({id:c.id,label:ref(c)})), rows, verdict:said.join(' ') };
 }
 
 /* ============================================================

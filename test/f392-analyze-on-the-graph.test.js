@@ -70,20 +70,22 @@ function hosts(win) {
     <aside id="ig-dock"></aside></div>`;
 }
 
-describe('f392 (1) the card carries three doors', () => {
-  test('Analyze contract leads and is the filled one; Open workspace is unfilled; Compare is untouched', () => {
+describe('f392 (1) the card carries ONE door and Compare (owner, 23 Oct 2026: Analyze and Workspace merged into Open)', () => {
+  test('Open is the filled door, the Workspace door; Analyze contract is gone; Compare is its own builder', () => {
     const card = region(IG, 'igExplainCard');
-    assert.match(card, /data-ig-analyze="\$\{c\.id\}" class="ui-btn ui-btn-sm ui-btn-primary"/, 'Analyze contract is the filled door');
-    assert.match(card, /data-ig-ws="\$\{c\.id\}" class="ui-btn ui-btn-sm"/, 'Open workspace lost the fill');
-    assert.ok(card.indexOf('data-ig-analyze') < card.indexOf('data-ig-ws') && card.indexOf('data-ig-ws') < card.indexOf('data-ig-cmp'), 'in that order');
-    assert.match(card, /data-ig-cmp="\$\{c\.id\}"/, 'Compare kept');
+    assert.match(card, /data-ig-ws="\$\{c\.id\}" class="ui-btn ui-btn-sm ui-btn-primary"/, 'Open is the filled door');
+    assert.match(card, /i18t\('int_open_contract'\)/);
+    assert.ok(!/data-ig-analyze/.test(code(card)), 'no Analyze contract on the card');
+    assert.ok(card.indexOf('data-ig-ws') < card.indexOf('igCmpBtnHtml(c)'), 'Open, then Compare');
+    assert.match(region(IG, 'igCmpBtnHtml'), /data-ig-cmp="\$\{c\.id\}"/, 'Compare kept');
   });
-  test('the row wraps rather than cutting the third door at the panel\'s width', () => {
+  test('the row wraps rather than cutting a door at the panel\'s width', () => {
     assert.match(region(IG, 'igExplainCard'), /flex-wrap:wrap/);
   });
-  test('the dock wires the door to igAnalyze, and every passage chip to igLight', () => {
+  test('the dock wires Open to the Workspace door, and every passage chip to igLight', () => {
     const d = code(region(IG, 'renderIntelDock'));
-    assert.match(d, /\[data-ig-analyze\][\s\S]*?igAnalyze\(/);
+    assert.match(d, /\[data-ig-ws\][\s\S]*?roomHomeLand\(id\)/);
+    assert.ok(!/\[data-ig-analyze\]/.test(d));
     /* 8 Oct 2026: through igCiteGo, which first puts the passage's own paper up, then calls igLight */
     assert.match(d, /\[data-ig-cite\][\s\S]*?igCiteGo\(/);
     assert.match(code(region(IG, 'igCiteGo')), /igLight\(turn,k\)/);
