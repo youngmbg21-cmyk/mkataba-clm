@@ -21498,3 +21498,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (23 Oct 2026, Spine round): chambers-verify 3d "the bell's count is the ink, not amber" reads null — red at unmodified main too (no bell count drawn in its stage); left red.
 
 - 23 Oct 2026 — Noticed, not fixed: the playbook editor's Save (openPlaybookEditor, js/views/settings.js) ends with a bare `toast(i18t('set_t_playbook_saved'))`, which prints nothing (TOAST_KINDS) — a saved book says nothing on screen.
+- 23 Oct 2026 — Noticed, not fixed: paper-actions-verify 2a fails on main too — pressing Actions on the paper's line opens the Dossier's list of acts but the list is not brought into view ({"open":true,"inView":false,"n":19}).
