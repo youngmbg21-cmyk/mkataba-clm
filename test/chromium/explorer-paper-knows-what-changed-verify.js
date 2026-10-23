@@ -83,8 +83,8 @@ const WAITING = 'Either party may end this agreement on ninety (90) days written
     await page.waitForFunction(() => !!document.getElementById('ig-paper'), null, { timeout: 20000 });
     await page.evaluate(() => igExplain('MK-A2'));
     await settled();
-    await page.waitForSelector('#ig-dock [data-ig-analyze]', { timeout: 20000 });
-    await page.click('#ig-dock [data-ig-analyze]');
+    /* the card's Analyze left it (owner, 23 Oct 2026); the map's paper is still igAnalyze's */
+    await page.evaluate(() => igAnalyze('MK-A2'));
     await page.waitForFunction(() => { const cv = document.getElementById('ig-canvas'); return cv && cv.textContent.trim().length > 200; }, null, { timeout: 20000 });
 
     /* ================= 1. THE PAPER IS THE AGREED WORDING ================ */

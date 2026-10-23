@@ -3207,25 +3207,28 @@ function aiTextDeliver(txt){
 function localCompareData(ids){
   const cs=ids.map(id=>aiContractByRef(id)).filter(Boolean).slice(0,4);
   if(cs.length<2) return null;
+  /* EVERY WORD IN BOTH BOOKS (owner, 23 Oct 2026: "some of its words are English only") */
+  const T=(k,v)=>(typeof i18t==='function')?i18t(k,v):k;
+  const ref=c=>window.contractRef?contractRef(c):c.id;
   const open=c=>(c.scan&&typeof openFindings==='function')?openFindings(c):[];
-  const fmtVal=c=>c.valueType==='none'?'Non-monetary':(Number(c.value)>0?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'Not set');
-  const exp=c=>{ if(!c.expiry) return '—'; const d=_daysTo(c.expiry); return c.expiry+(d!=null?(d>=0?` (in ${d}d)`:' (lapsed)'):''); };
+  const fmtVal=c=>c.valueType==='none'?T('cmp_non_monetary'):(Number(c.value)>0?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):T('cmp_not_set'));
+  const exp=c=>{ if(!c.expiry) return '—'; const d=_daysTo(c.expiry); return c.expiry+(d!=null?(d>=0?` (${T('int_in_days',{n:d})})`:` (${T('int_lapsed')})`):''); };
   const rows=[
-    { label:'Name', cells:cs.map(c=>c.name||(window.contractRef?contractRef(c):c.id)) },
-    { label:'Type', cells:cs.map(c=>typeof cKind==='function'?cKind(c):'—') },
-    { label:'Counterparty', cells:cs.map(c=>c.counterparty||'—') },
-    { label:'Value', cells:cs.map(fmtVal) },
-    { label:'Status', cells:cs.map(c=>typeof statusLabel==='function'?statusLabel(c.status):c.status) },
-    { label:'Effective', cells:cs.map(c=>(c.fields&&c.fields.effDate)||'—') },
-    { label:'Expiry', cells:cs.map(exp) },
-    { label:'Open findings', cells:cs.map(c=>{ const o=open(c); return o.length?`${o.length} (worst: ${typeof worstSevOf==='function'?worstSevOf(o):'—'})`:(c.scan?'None':'Not scanned'); }) },
+    { label:T('cmp_row_name'), cells:cs.map(c=>c.name||ref(c)) },
+    { label:T('cmp_row_type'), cells:cs.map(c=>typeof cKind==='function'?cKind(c):'—') },
+    { label:T('cmp_row_cp'), cells:cs.map(c=>c.counterparty||'—') },
+    { label:T('cmp_row_value'), cells:cs.map(fmtVal) },
+    { label:T('cmp_row_status'), cells:cs.map(c=>typeof statusLabel==='function'?statusLabel(c.status):c.status) },
+    { label:T('cmp_row_effective'), cells:cs.map(c=>(c.fields&&c.fields.effDate)||'—') },
+    { label:T('cmp_row_expiry'), cells:cs.map(exp) },
+    { label:T('cmp_row_findings'), cells:cs.map(c=>{ const o=open(c); return o.length?T('cmp_findings_n',{ n:o.length, worst:typeof worstSevOf==='function'?worstSevOf(o):'—' }):(c.scan?T('cmp_findings_none'):T('cmp_not_scanned')); }) },
   ];
-  let verdict='';
+  const said=[];
   const monetary=cs.filter(c=>c.valueType!=='none'&&Number(c.value)>0);
-  if(monetary.length>=2){ const top=monetary.slice().sort((a,b)=>Number(b.value)-Number(a.value))[0]; verdict+=`${window.contractRef?contractRef(top):top.id} is the larger commitment (${fmtMoneyShort(top.value)}). `; }
+  if(monetary.length>=2){ const top=monetary.slice().sort((a,b)=>Number(b.value)-Number(a.value))[0]; said.push(T('cmp_verdict_larger',{ ref:ref(top), value:window.fmtMoneyShortOf?fmtMoneyShortOf(top):fmtMoneyShort(top.value) })); }
   const dated=cs.filter(c=>c.expiry&&_daysTo(c.expiry)!=null&&_daysTo(c.expiry)>=0);
-  if(dated.length>=2){ const soon=dated.slice().sort((a,b)=>_daysTo(a.expiry)-_daysTo(b.expiry))[0]; verdict+=`${window.contractRef?contractRef(soon):soon.id} expires first (in ${_daysTo(soon.expiry)} days).`; }
-  return { columns:cs.map(c=>({id:c.id,label:(window.contractRef?contractRef(c):c.id)})), rows, verdict:verdict.trim() };
+  if(dated.length>=2){ const soon=dated.slice().sort((a,b)=>_daysTo(a.expiry)-_daysTo(b.expiry))[0]; said.push(T('cmp_verdict_first',{ ref:ref(soon), n:_daysTo(soon.expiry) })); }
+  return { columns:cs.map(c=>({id:c.id,label:ref(c)})), rows, verdict:said.join(' ') };
 }
 
 /* ============================================================

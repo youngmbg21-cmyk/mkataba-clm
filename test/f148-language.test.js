@@ -34,7 +34,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
-const SAME_IN_BOTH = new Set([ 'bs_rd_risks_one', 'wt_mail_subject', 'st_jb_c_need', 'st_cf_trail_last', 'st_tr_as_csv', 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'pd_tab_guide', 'ca_w_guide', 'stk_by_jambo', 'pd_doc_pdf',
+const SAME_IN_BOTH = new Set([ 'cmp_row_status', 'bs_rd_risks_one', 'wt_mail_subject', 'st_jb_c_need', 'st_cf_trail_last', 'st_tr_as_csv', 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'pd_tab_guide', 'ca_w_guide', 'stk_by_jambo', 'pd_doc_pdf',
   /* Jambo's words (stage 1 of the one-page Home plan, 14 Oct 2026): "3×", how often a place was used, is a number */
   'hb_pop_used',
   /* the list head's "+ Filter" (21 Oct 2026, js/views/listhead.js): the word is the same in Swedish */
