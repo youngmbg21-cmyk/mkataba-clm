@@ -126,6 +126,7 @@ const HELPERS = `(() => {
     await load(); await rest();
     await page.screenshot({ path: path.join(OUT, '01-overview-tab.png') });
     const negoEdge = await page.evaluate(() => { const b = window.__b; return b.edge([...document.querySelectorAll('#ws-to-nego')].find(b.vis) || null); });
+    const negoFill = await page.evaluate(() => { const b = window.__b, e = [...document.querySelectorAll('#ws-to-nego')].find(b.vis); return e ? getComputedStyle(e).backgroundColor : null; });
     await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
     await page.waitForFunction(() => !!document.querySelector('#ig-paper .rl-type-step') && document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => { if (!document.querySelector('#pd-thread .doc-th-row.is-open')) { const g = document.querySelector('#pd-thread [data-th-go]'); if (g) g.click(); } });
@@ -150,11 +151,17 @@ const HELPERS = `(() => {
          was): the stepper is the paper's instrument, not an act, and reads
          the hairline (--chip-edge); Open Negotiate keeps the accent edge. */
       return { want, hair: b.tok('--chip-edge'), rule: b.tok('--rule-strong'), field: b.tok('--field-line'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
-        nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
+        nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), thFill: thStep ? getComputedStyle(thStep).backgroundColor : null,
+        grey: (() => { const p = document.createElement('i'); p.style.background = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
+        switchGone: !document.querySelector('[data-doc-read]') };
     }, negoEdge);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, the owner's own drawing): an ACT is a grey pill with
+       NO edge (--surface-2), product-wide; the stepper is still the paper's instrument and keeps its
+       hairline (--chip-edge, owner 13 Oct 2026). "ONE edge" now reads: every act one face. */
+    const NONE = /rgba\(0, 0, 0, 0\)|transparent/;
     ok('3a the controls the owner photographed paint ONE edge — Open Negotiate and the stepper; the switch is gone',
-      !!(row.nego && row.step) && row.switchGone && row.nego === row.want && row.step === row.hair,
-      `Open Negotiate ${row.nego} (want ${row.want}) · stepper ${row.step} (want the hairline ${row.hair})${row.switchGone ? '' : ' · a switch is still drawn'}`);
+      !!(row.nego && row.step) && row.switchGone && NONE.test(row.nego) && negoFill === row.grey && row.step === row.hair,
+      `Open Negotiate ${row.nego} / ${negoFill} (want no edge, the grey ${row.grey}) · stepper ${row.step} (want the hairline ${row.hair})${row.switchGone ? '' : ' · a switch is still drawn'}`);
     /* RE-POINTED 9 Oct 2026 (Ink Wash: light mode has no grey; the light edge
        is the ramp's divider step, black + the theme colour). Same claim, as a
        RELATION: the edge is the LIGHT step, not a darker one. */
@@ -169,7 +176,7 @@ const HELPERS = `(() => {
     ok('3b and it is the light grey RULE, the strong hairline — not a text box\'s edge, not the ink',
       !!row.rule && row.want === row.rule && row.want !== row.accent && row.want !== row.field,
       `${row.want} vs --rule-strong ${row.rule} · --field-line ${row.field} · ink ${row.accent}`);
-    ok('3c the open row\'s Plain English takes the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
+    ok('3c the open row\'s Plain English takes the same face (the grey pill, no edge)', !!row.thStep && NONE.test(row.thStep) && row.thFill === row.grey, `step ${row.thStep} / ${row.thFill}`);
 
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
        onto Negotiate lands on Jambo's Redlines face on Home, which has no
@@ -235,12 +242,13 @@ const HELPERS = `(() => {
     const night = await page.evaluate(() => {
       const b = window.__b; const want = b.tok('--btn-edge');
       const el = [...document.querySelectorAll('.ui-btn:not(.ui-btn-primary)')].find(b.vis);
-      return { want, btn: b.edge(el), rule: b.tok('--rule-strong'),
+      return { want, btn: b.edge(el), btnFill: el ? getComputedStyle(el).backgroundColor : null, rule: b.tok('--rule-strong'),
+        grey: (() => { const p = document.createElement('i'); p.style.background = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
         switches: ['setDark', 'toggleDark', 'applyAppearance', 'setTheme', 'setBrand'].filter(n => typeof window[n] === 'function'),
         dark: document.documentElement.classList.contains('dark') || document.body.classList.contains('dark') || document.documentElement.hasAttribute('data-brand') }; });
     ok('3g no night theme is left to follow — no switch published, no dark class, and the edge stays the one rule',
-      night.switches.length === 0 && !night.dark && !!night.btn && night.btn === night.want && night.want === night.rule,
-      `switches ${night.switches.join(',') || 'none'} · dark ${night.dark} · button ${night.btn} · edge ${night.want}`);
+      night.switches.length === 0 && !night.dark && !!night.btn && NONE.test(night.btn) && night.btnFill === night.grey && night.want === night.rule,
+      `switches ${night.switches.join(',') || 'none'} · dark ${night.dark} · button ${night.btn} / ${night.btnFill} · edge token ${night.want}`);
 
     const wall = await page.evaluate(i => { try { openShareModal(getContract(i)); } catch (e) {} return i; }, id);
     await page.waitForTimeout(1500); await load();

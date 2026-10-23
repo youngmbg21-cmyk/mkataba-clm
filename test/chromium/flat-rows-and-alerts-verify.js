@@ -316,8 +316,13 @@ const SEED_UNSENT = async () => {
        The claim is unchanged: no act on the row leads by a fill. */
     const surfaceBg = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--color-surface)';
       document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; });
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the plain face is the control grey pill
+       (--surface-2), product-wide — flat, not a lead; a fill is still the ink or a tint, and
+       every act on the row wears ONE face. */
+    const plainBg = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--surface-2)';
+      document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; });
     check('3b and nothing on it is filled — the row leads by position',
-      Array.isArray(acts) && acts.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg),
+      Array.isArray(acts) && acts.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg || b.bg === plainBg) && new Set(acts.map(b => b.bg)).size === 1,
       Array.isArray(acts) ? acts.map(b => [b.text, b.bg]) : acts);
     /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it):
        "not bold" was measured as "at most 400", which was the row's weight that
@@ -340,9 +345,11 @@ const SEED_UNSENT = async () => {
     /* RE-POINTED with 3a: the claim was about the one act, and it holds of every
        control left on the row — each still reads as a button, by an outline
        rather than by a fill. */
-    check('3e every act still reads as one — an outline, never a bare word',
-      Array.isArray(acts) && acts.every(b => b.border !== 'rgba(0, 0, 0, 0)'),
-      Array.isArray(acts) ? acts.map(b => [b.text, b.border]) : acts);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): an act reads as one by its grey pill now — an
+       outline OR a fill, never a bare word (no edge and no fill) */
+    check('3e every act still reads as one — a pill or an outline, never a bare word',
+      Array.isArray(acts) && acts.every(b => b.border !== 'rgba(0, 0, 0, 0)' || (b.bg !== 'rgba(0, 0, 0, 0)' && b.bg !== surfaceBg)),
+      Array.isArray(acts) ? acts.map(b => [b.text, b.border, b.bg]) : acts);
 
     /* ---- the control bar's own buttons keep their weight (the fold ladder) ---- */
     const bar = await page.evaluate(() => {

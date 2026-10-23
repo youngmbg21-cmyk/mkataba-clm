@@ -139,7 +139,7 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       await page.waitForTimeout(150);
       const fit = await page.evaluate(() => { const s = document.getElementById('mig-side'), m = document.querySelector('.mig-list');
         const R = s.getBoundingClientRect(), M = m.getBoundingClientRect(), P = document.getElementById('page-head').getBoundingClientRect();
-        return { beside: R.left >= M.right - 1 && Math.abs(R.top - P.top) < 4, inWin: R.right <= innerWidth && R.bottom <= innerHeight + 1 && R.top >= 0,
+        return { beside: R.left >= M.right - 1 && Math.abs(R.top - P.top) < 12 /* the floating panel stands 8px in (THE LEGORA LOOK, 23 Oct 2026) */, inWin: R.right <= innerWidth && R.bottom <= innerHeight + 1 && R.top >= 0,
           sx: document.scrollingElement.scrollWidth > innerWidth, w: Math.round(R.width) }; });
       check(`5 at ${w}×${hh}: the panel beside the list, in the window, nothing sideways`, fit.beside && fit.inWin && !fit.sx, JSON.stringify(fit));
       await shot(page, `import-jambo-${w}x${hh}`);

@@ -153,8 +153,13 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     const bar = await page.evaluate(() => { const R = e => e.getBoundingClientRect();
       const s = document.getElementById('ig-strip'), hd = document.querySelector('#ig-dock > .igd-head'), sh = document.querySelector('#ig-paper .pg-sheet');
       const a = R(s), b = R(hd); return { st: Math.round(a.top), sb: Math.round(a.bottom), ht: Math.round(b.top), hb: Math.round(b.bottom), gap: Math.round(b.left - a.right),
-        same: getComputedStyle(s).backgroundColor === getComputedStyle(hd).backgroundColor, sheet: Math.round(R(sh).top - a.top) }; });
-    ok('3f the strip and the symbols are one bar, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && Math.abs(bar.gap) <= 1 && bar.same && bar.sheet === 87, JSON.stringify(bar));
+        same: getComputedStyle(s).backgroundColor === getComputedStyle(hd).backgroundColor, sheet: Math.round(R(sh).top - a.top), sheetTop: Math.round(R(sh).top),
+        barH: Math.round(R(document.getElementById('top-header')).height) }; });
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the paper's half and Jambo's panel are two white cards
+       floating 8px in, 12px apart (the drawing's gap), so the strip and the panel's head no longer touch;
+       they still stand at ONE height, top and bottom. The wording has not moved: the sheet still starts
+       87px under the bar (the card's 8px inset is taken back from the paper's own top padding). */
+    ok('3f the strip and the symbols stand at one height, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && bar.gap >= 0 && bar.gap <= 12 && bar.sheetTop - bar.barH === 87, JSON.stringify(bar));
     await page.screenshot({ path: path.join(OUT, '3-desk.png') });
     await page.click('#ig-dock [data-pd-tab="copilot"]');
     ok('3e Copilot\'s symbol brings the conversation back', await page.evaluate(() => !!document.querySelector('#igd-feed:not([hidden])') && !document.getElementById('pd-body')));

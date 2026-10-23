@@ -260,8 +260,12 @@ const drive = async (page, fn, arg, fallback) => {
       const bw = parseFloat(getComputedStyle(wrap).borderTopWidth) || 0;
       return { gapTop: +(s.top - (w.top + bw)).toFixed(2), gapBot: +((w.bottom - bw) - s.bottom).toFixed(2) };
     }, undefined, { err: 'blocked' });
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): HaTi's own switches are a grey pill holding pills,
+       the lit half 3px in (the owner's drawing, padding:3px) — measured the same way, it sits EVENLY
+       inside, top and bottom alike, never more than the drawn 3px. The Negotiate page's seat switch
+       keeps its own square box (3b–3d) until stage 2 matches that page. */
     check('3e CONTROL — the segmented control it is matched TO (Calendar: Month · Horizon) measures the same way',
-      !ref.err && Math.abs(ref.gapTop) < 0.6 && Math.abs(ref.gapBot) < 0.6,
+      !ref.err && Math.abs(ref.gapTop - ref.gapBot) < 0.6 && ref.gapTop <= 3.6,
       ref.err || `gap ${ref.gapTop} / ${ref.gapBot}`);
 
     /* ═══════════ 4 · FOCUS MODE ON THE NEGOTIATE PAGE ═══════════
