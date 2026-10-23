@@ -2681,8 +2681,9 @@ function buildAlerts(){
        and then it stops. The two hosts state this rule once each and in the
        same words; see runReminders. */
     const lapsed=c=>{ try{ const d=window.renewalDecisionOf&&renewalDecisionOf(c); return !!(d&&d.answer==='lapse'); }catch(_){ return false; } };
-    (D.expiring||[]).filter(x=>x.d<=30&&!lapsed(x.c)).forEach(x=>push('renewal',x.c,
-      i18tn('al_expiring_in',x.d,{n:x.d}),()=>bellGo('renewal',x.c), renewHint));
+    /* `ends` tells this row from the decision's (the one desk reads it: ndAlCovered) */
+    (D.expiring||[]).filter(x=>x.d<=30&&!lapsed(x.c)).forEach(x=>{ push('renewal',x.c,
+      i18tn('al_expiring_in',x.d,{n:x.d}),()=>bellGo('renewal',x.c), renewHint); out[out.length-1].ends=true; });
   }
   /* ---- NO LINK TO SIGN, ON THE BELL (27 Sep 2026) ----
      BORROWED, NEVER DERIVED: agLinkItems is the agent's own reading, off the
@@ -2771,7 +2772,8 @@ function buildAlerts(){
         : o.days===0 ? i18t('al_ob_today',{desc})
         : i18tn('al_ob_due',o.days,{n:o.days,desc});
       push('obligation',c,text,
-        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'oblig'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} } });
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'oblig'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} } },
+        { obId:o.id||null, late:o.days<0 });
     });
   }
   /* ---- A REQUIRED DOCUMENT HAS LAPSED (S8) ----
@@ -2803,7 +2805,7 @@ function buildAlerts(){
         ? i18tn('al_cert_more',lapsed.length-1,{desc,n:lapsed.length-1})
         : i18t('al_cert_single',{desc});
       push('cert-lapsed',c,text,
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} });
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} }, { late:true });
     });
   }
   /* A COLLEAGUE ASKED FOR A CONTRACT (see the kind). The door is the
@@ -2826,7 +2828,7 @@ function buildAlerts(){
       push('request',c,i18t('al_lane_draft',{title:String(r.title||'')}),
         ()=>{ if(c && window.openWorkspace){ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} }
           else if(window.intakeGoTo) intakeGoTo(r.id); else setView('intake'); },
-        { sub:[i18t('al_lane_draft_sub',{lane:String(r.lane||'')}), who?i18t('al_request_by',{who}):''].filter(Boolean).join(' \u00b7 ') });
+        { sub:[i18t('al_lane_draft_sub',{lane:String(r.lane||'')}), who?i18t('al_request_by',{who}):''].filter(Boolean).join(' \u00b7 '), lane:true, rid:r.id });
     });
   }catch(e){}
   /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----
@@ -2857,7 +2859,7 @@ function buildAlerts(){
   try{
     if(typeof window.watchesFired==='function') watchesFired().forEach(w=>{
       const c=(w.fired&&w.fired.cid||w.contractId)&&typeof getContract==='function'?getContract(w.fired.cid||w.contractId):null;
-      push('watch',c,watchFiredWords(w),()=>watchGo(w.id),{ sub:i18t('wt_bell_sub',{ what:watchWords(w) }) });
+      push('watch',c,watchFiredWords(w),()=>watchGo(w.id),{ sub:i18t('wt_bell_sub',{ what:watchWords(w) }), fired:true });
     });
   }catch(e){}
   try{
@@ -2908,7 +2910,7 @@ function buildAlerts(){
    the underlying thing is actually dealt with — an answer given, an approval
    made, a signature taken — because that is what keeps the number worth
    reading. Nothing anywhere marks an alert as seen. */
-function alertCount(){ try{ return buildAlerts().length; }catch(e){ return 0; } }
+function alertCount(){ try{ return window.counterNeedsCount?counterNeedsCount():0; }catch(e){ return 0; } }
 /* ---- INSIGHTS NO LONGER SUPPRESSES THIS PANEL (owner-reported, 13 Aug 2026)
    It used to answer true on 'intel', which DISABLED both header buttons there.
    The reason was real when it was written and is not any more: the panel was a
@@ -3696,7 +3698,9 @@ function renderContextPanel(){
     return; }
   body.innerHTML=alerts?alertsPanelHtml():activityPanelHtml();
   if(alerts){
-    const rows=buildAlerts();
+    /* the News tab's rows, the same list alertsPanelHtml drew (Needs you's rows press the one desk's own doors) */
+    let rows=[]; try{ rows=(window.ndRead?ndRead().news:[])||[]; }catch(_){ rows=[]; }
+    body.querySelectorAll('[data-al-tab]').forEach(b=>b.addEventListener('click',()=>{ _alTab=b.getAttribute('data-al-tab'); renderContextPanel(); }));
     body.querySelectorAll('[data-alert-i]').forEach(el=>el.addEventListener('click',()=>{
       const a=rows[Number(el.getAttribute('data-alert-i'))];
       closeContextPanel();
@@ -3720,7 +3724,7 @@ function renderContextPanel(){
        panel's standing rule. */
     if(window.rlMarkReadySeen && window.getContract){
       let marked=false;
-      rows.forEach(a=>{ if(!a.news||!a.id) return;
+      buildAlerts().forEach(a=>{ if(!a.news||!a.id) return;
         try{ const c=getContract(a.id); if(c){ rlMarkReadySeen(c); marked=true; } }catch(_){} });
       /* AND THE BELL HANDS ITSELF BACK. Marking the news seen changes what
          updateAlertBadge would answer, and nothing was re-asking it — so the
@@ -3918,14 +3922,17 @@ function alertRowHtml(a, i, inGroup){
             </span>
           </button>`;
 }
-function alertsPanelHtml(given){
-  const rows=given||buildAlerts();   /* rows may be handed in (a check drawing a known set) */
-  return `
-      <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
-          <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
-        </div>
-        ${rows.length?alertGroupsOf(rows).map(g=>{
+/* ---- THE BELL'S PANEL, THE LEGORA WAY (owner, 23 Oct 2026: artifact
+   WPfQyLgvpcjbTswNtGzwth) ----
+   Two tabs. NEEDS YOU is the one desk (ndRead), drawn with Home's own rows —
+   every row, both groups, the same one-word buttons and the same doors — so
+   the bell, Home and the Board can never say different things. NEWS is what
+   the bell hears that asks nothing of you (ndIsNews): grouped as before, never
+   counted. A News tab with nothing in it is not drawn. Rows may be handed in
+   (a check drawing a known set): they draw as the grouped list alone. */
+let _alTab='need';
+function alertsListHtml(rows){
+  return alertGroupsOf(rows).map(g=>{
           /* ---- ONE GROUP, ONE COUNT (SAP's notifications, owner's go 10 Oct
              2026) ----
              Eleven identical "Waiting on your approval" lines read as eleven
@@ -3945,13 +3952,27 @@ function alertsPanelHtml(given){
             ${g.rows.slice(0,ALERT_GROUP_SHOW).map(r=>alertRowHtml(r.a, r.i, true)).join('')}
             ${more>0?`<div data-al-folded hidden>${g.rows.slice(ALERT_GROUP_SHOW).map(r=>alertRowHtml(r.a, r.i, true)).join('')}</div>`:''}
             ${more>0?`<button type="button" class="ui-link" data-al-more style="margin:6px 0 8px 2px;font-size:var(--t-label)">${esc(i18tn('al_show_more',more,{n:more}))}</button>`:''}
-          </div>`; }).join(''):`
+          </div>`; }).join('');
+}
+function alertsPanelHtml(given){
+  if(given) return `<div style="padding:10px var(--s-3);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
+          <span style="width:6px;height:6px;border-radius:50%;background:${given.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
+        </div>${given.length?alertsListHtml(given):''}</div>`;
+  let D=null; try{ D=window.ndRead?ndRead():null; }catch(_){ D=null; }
+  const news=(D&&D.news)||[], n=D?D.n:0;
+  if(_alTab==='news'&&!news.length) _alTab='need';
+  const tab=(k,word,num)=>`<button type="button" role="tab" class="al-tab${_alTab===k?' on':''}" data-al-tab="${k}" aria-selected="${_alTab===k}">${esc(word)} <span class="al-tab-n">${num}</span></button>`;
+  const none=`
           <div style="padding:26px 6px;text-align:center;">
             <div style="width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);">&#10003;</div>
             <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);">${i18t('ap_nothing_needs_you')}</div>
             <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:var(--s-1);line-height:1.5;">${i18t('ap_nothing_needs_you_sub')}</div>
-          </div>`}
-      </div>`;
+          </div>`;
+  const body=_alTab==='news'
+    ? `<div class="al-news" style="padding:2px var(--s-3) 10px;">${alertsListHtml(news)}</div>`
+    : (n&&window.ndPanelHtml ? `<div class="nd-pan" aria-label="${esc(i18t('ap_scope_you'))}">${ndPanelHtml(D)}</div>` : none);
+  return `<div class="al-tabs" role="tablist">${tab('need',i18t('al_tab_need'),n)}${news.length?tab('news',i18t('al_tab_news'),news.length):''}</div>${body}`;
 }
 
 /* ============================================================ JURISDICTION (shell header) */

@@ -9841,6 +9841,8 @@
   /* a row's line is read whole, wrapped (round 3 as drawn: "Prepared overnight: a counter on each redline" on two lines) */
   #ig-dock .pd-needs .pd-nd-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   #ig-dock .pd-nd-row small .late{color:var(--st-amber-fg);font-weight:var(--w-label)}
+  /* the one desk's row on the Dossier (23 Oct 2026): its step tag stands off the title */
+  #ig-dock .pd-nd-row.is-jw b .nd-step{margin-left:6px}
   #ig-dock .pd-nd-row.is-jw{margin:-4px -8px;padding:6px 8px;border-radius:var(--radius);background:var(--color-accent-50)}
   /* ROWS RULED APART, as rounds 3 and 6 draw both cards (18 Oct 2026): a hairline between one owed thing and the next */
   #ig-dock .pd-glance .pd-gl-b>.pd-gl-row+.pd-gl-row{border-top:1px solid var(--color-divider);padding-top:8px}
@@ -16007,6 +16009,17 @@
   .nd-when{flex:none;width:96px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nd-when.cn-late{color:var(--st-ruby-fg)}
   .nd-btn{flex:none;width:76px;justify-content:center}
+  /* THE BELL'S PANEL, THE LEGORA WAY (23 Oct 2026): two tabs, then Home's own rows; the button keeps the one width */
+  .al-tabs{display:flex;gap:18px;padding:0 16px;border-bottom:1px solid var(--color-divider)}
+  .al-tab{padding:8px 0;border:0;background:none;font:inherit;font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer}
+  .al-tab.on{color:var(--color-text);font-weight:var(--w-strong);box-shadow:inset 0 -2px 0 var(--color-text)}
+  .al-tab-n{font-variant-numeric:tabular-nums}
+  .nd-pan-sum{padding:10px 16px 8px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .nd-pan .nd-r{padding:7px 16px;gap:10px}
+  .nd-pan .nd-when{width:auto;max-width:72px}
+  .nd-pan .nd-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nd-pan .cn-pill{flex:0 1 auto;min-width:0;max-width:104px;display:inline-block;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nd-pan .cn-pill .cn-pill-ic{display:none}
   .nd-read{font-style:normal;font-weight:var(--w-strong);color:var(--accent-ink)}
   .nd-step,.nd-tag{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 5px;border:1px solid currentColor;border-radius:var(--radius);font-size:var(--t-micro);font-weight:var(--w-strong);line-height:1;white-space:nowrap}
   .nd-step{color:var(--accent-ink)}

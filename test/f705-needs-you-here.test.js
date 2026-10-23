@@ -58,7 +58,11 @@ function pdStage({ work = [], needs = [], left = 0, all = 7, paper = 'MK-1', cou
     igHomePaperFace: () => !!paper, hbFace: () => 'paper', canEdit: () => true, mayReFile: () => true, PORTAL_MODE: false,
     detailsOf: () => ({ left, all: 4, live: true, items: [] }),
     signBlockers: () => [], negoMayStartLine: () => '', contractStatusTextHtml: () => '<span class="room-stat">In review</span>',
-    hbAgentsData: () => ({ ready: work.length, rows: work.length ? [{ k: 'round', items: work }] : [] }),
+    /* RE-POINTED 23 Oct 2026 (the rest of Round A, the owner's pick as drawn): Jambo's pieces
+       here are the one desk's (ndRead), each worded by its one builder (ndParts) */
+    ndRead: () => ({ jambo: work.map(w => ({ g: 'jambo', agent: 'round', it: { key: w.key, kind: w.kind || 'answer', cid: w.cid }, n: 1, late: 0, age: null })), you: [] }),
+    ND_MERGE: { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details'] },
+    ndParts: r => ({ title: 'Piece ' + r.it.key, read: 'their changes', when: '', late: false, step: null }),
     needsYouOf: () => needs.slice(),
     insNeedWords: (cc, it) => ({ title: 'title:' + it.kind, sub: '<span class="late">sub:' + it.kind + '</span>', plain: 'sub:' + it.kind }),
     INS_NEED_VERB: { quiet: 'home_verb_answer', details: 'det_need_verb', note: 'home_verb_answer' },
@@ -75,25 +79,31 @@ function pdStage({ work = [], needs = [], left = 0, all = 7, paper = 'MK-1', cou
 }
 
 describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
+  /* RE-POINTED 23 Oct 2026 (the rest of Round A as drawn: "Nordvik Logistik's answer" is ONE row
+     where "Jambo's work · Nordvik's answer" and "Answer their 2 redlines" stood): the piece stands
+     for the redlines it answers (ND_MERGE), as on Home and the Board */
   test('1a this contract\'s prepared work first, then the checklist\'s items; other contracts\' pieces are not here', () => {
     const { ctx, c } = pdStage({
-      work: [{ cid: 'MK-1', key: 'round:MK-1', sum: '2 changes', urg: 'Arrived today' }, { cid: 'MK-2', key: 'round:MK-2', sum: 'other' }],
+      work: [{ cid: 'MK-1', key: 'round:MK-1' }, { cid: 'MK-2', key: 'round:MK-2' }],
       needs: [{ kind: 'quiet', urgent: true, n: 2 }, { kind: 'note', urgent: false, n: 1 }] });
     const rows = J(ctx.pdNeedsRows(c));
-    assert.equal(rows.length, 3, 'one piece on this contract + two owed items');
-    assert.deepEqual(rows[0], { jw: true, k: 'round', key: 'round:MK-1', sum: '2 changes', urg: 'Arrived today' });
-    assert.deepEqual(rows.slice(1).map(r => r.it.kind), ['quiet', 'note'], 'the checklist\'s own order');
+    assert.equal(rows.length, 2, 'one piece on this contract (it stands for their redlines) + the note');
+    assert.equal(rows[0].jw, true); assert.equal(rows[0].k, 'round'); assert.equal(rows[0].key, 'round:MK-1'); assert.equal(rows[0].pk, 'answer');
+    assert.deepEqual(rows.slice(1).map(r => r.it.kind), ['note'], 'their redlines are the piece\'s, never a second row');
+    const bare = J(pdStage({ needs: [{ kind: 'quiet', urgent: true, n: 2 }, { kind: 'note', urgent: false, n: 1 }] }).ctx.pdNeedsRows(c));
+    assert.deepEqual(bare.map(r => r.it.kind), ['quiet', 'note'], 'with no piece prepared, the checklist\'s own order');
   });
   test('1b the card: its name, how many, "All N" from the Counter\'s own number, each row its one door', () => {
-    const { ctx, c } = pdStage({ work: [{ cid: 'MK-1', key: 'round:MK-1', sum: '2 changes' }], needs: [{ kind: 'quiet', urgent: true, n: 2 }], all: 7 });
+    const { ctx, c } = pdStage({ work: [{ cid: 'MK-1', key: 'round:MK-1' }], needs: [{ kind: 'quiet', urgent: true, n: 2 }, { kind: 'note', n: 1 }], all: 7 });
     const html = ctx.pdNeedsHtml(c);
     assert.match(html, /id="pd-needs"[^>]*data-pd-needs-for="MK-1"/);
     assert.match(html, /pd_nd_title[\s\S]*class="pd-pill is-quiet"><i><\/i>2</, 'two rows, said once in the head');
     assert.match(html, /data-pd-nd-all[^>]*>pd_nd_all\[7\]/, 'All 7 — the Counter\'s own number');
-    assert.match(html, /is-jw[\s\S]*cn_jw · ag_round[\s\S]*data-pd-nd-jw="round" data-pd-nd-key="round:MK-1">pd_nd_see</);
-    /* round 3 as drawn (18 Oct 2026): their waiting redlines open with "Open redlines" */
-    assert.match(html, /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">pd_nd_open_red</);
-    assert.ok(html.indexOf('data-pd-nd-jw') < html.indexOf('data-pd-nd="quiet"'), 'Jambo\'s work leads');
+    assert.match(html, /is-jw[\s\S]*<b>Piece round:MK-1<\/b>[\s\S]*nd_read<\/i> their changes[\s\S]*data-pd-nd-jw="round" data-pd-nd-key="round:MK-1">nd_btn_look</, 'the one desk\'s words, and Look');
+    assert.ok(!/data-pd-nd="quiet"/.test(html), 'their redlines are not said a second time');
+    /* round 3 as drawn (18 Oct 2026): their waiting redlines, where no piece answers them, open with "Open redlines" */
+    const bare = pdStage({ needs: [{ kind: 'quiet', urgent: true, n: 2 }] });
+    assert.match(bare.ctx.pdNeedsHtml(bare.c), /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">pd_nd_open_red</);
   });
   test('1c nothing owed here: no card at all', () => {
     const { ctx, c } = pdStage();

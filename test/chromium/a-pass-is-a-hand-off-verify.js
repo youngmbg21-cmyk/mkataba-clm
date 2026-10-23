@@ -56,9 +56,11 @@ const check = (name, ok, detail) => {
     await until(() => !!window.state && Array.isArray(state.contracts) && state.contracts.some(k => k.id === 'MK-HO1'), null, 15000);
 
     /* ===== 1. WHERE IT LANDS: THE BELL'S ROW SAYS WHO AND THE NOTE ===== */
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's Needs you tab draws the one
+       desk's own rows (.nd-pan .nd-r); the hand-off's row still names who and carries the note */
     await page.click('#hdr-notify');
-    const shown = await until(() => [...document.querySelectorAll('#context-panel [data-alert-i]')].some(b => /asked you to review/.test(b.textContent)));
-    const row = await page.evaluate(() => { const r = [...document.querySelectorAll('#context-panel [data-alert-i]')].find(b => /asked you to review/.test(b.textContent));
+    const shown = await until(() => [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].some(b => /asked you to review/.test(b.textContent)));
+    const row = await page.evaluate(() => { const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].find(b => /asked you to review/.test(b.textContent));
       if (!r) return null; const rc = r.getBoundingClientRect(); return { text: r.textContent.replace(/\s+/g, ' ').trim(), h: Math.round(rc.height) }; });
     check('1 the bell\'s row names who sent it for review', shown && row && /Amina Otieno asked you to review/.test(row.text), row && row.text);
     check('1b and carries the note', !!row && /Please check the term/.test(row.text));
