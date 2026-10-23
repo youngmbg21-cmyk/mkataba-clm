@@ -331,6 +331,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ONE SEARCH OVER HaTi (Jambo works like Copilot, stage 1)
 - test/f866-one-search-over-hati.test.js (21): the words (both hosts), a passage found and where it sits, kept current by the triggers, the walls (stream, values, own notes, requests, private stream, code name), Jambo's tool. With the tool list touched also run f305 (the two hosts' tool names) and f561/f564 (the Brain).
+- Stage 2, every door as a tool: test/f867-every-door-as-a-tool.test.js (12: the door offered, cleaned, and walled — another stream, a code name, an admin's setting, a request) and test/chromium/jambo-doors-verify.js (21 doors, each landed in a real browser through aiGotoRun, judged by test/nav-read.js). With navmap.js touched also run test/chromium/nav-exam-verify.js (its ratchet) and f738.
+
 ## THE FIRST-TIMER ROUNDS (22 Oct 2026)
 - test/f866-first-timer-rounds.test.js (13 of 13 red at origin/main 2aba169; 23 green on the branch): the wall's words and press, stems and families, the one question, Use when, Who pays whom, Jambo's first words on a draft, the empty Redlines column, the plain reason, Ask a colleague, Accept unsent, Counter's figures, both books.
 - test/chromium/first-timer-rounds-verify.js (5 passed / 46 failed at 2aba169; 51 / 0 on the branch): the viewer's card and Ask at the three screens, the sentence's sheet, Who pays whom stored as customer, Jambo speaks once and Fill them in lands, the empty Redlines and its Send, their rows, Counter, Accept, Ask a colleague.

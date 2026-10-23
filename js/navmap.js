@@ -420,7 +420,7 @@ function navGoClause(n){
     }
     if (++tries < NAV_LAND_TRIES) { setTimeout(look, NAV_LAND_BEAT_MS); return; }
     _navLanding = false;
-    navSayLate(n.num ? _nvT('nav_no_clause_here', { n: n.num, ref: navRef(c) }) : _nvT('nav_no_topic_here', { topic: (n.words || [n.topic])[0], ref: navRef(c) }));
+    navSayLate(n.num ? _nvT('nav_no_clause_here', { n: n.num, ref: navRef(c) }) : _nvT('nav_no_topic_here', { topic: (n.words || [n.topic])[0] || n.head || '', ref: navRef(c) }));
   };
   setTimeout(look, 0);
   return true;
@@ -435,9 +435,17 @@ function navClauseEl(n){
     const re = new RegExp('^(?:clause\\s+|§\\s*)?' + n.num + '(?:[.)\\s]|$)');
     return els.find(el => re.test(head(el))) || null;
   }
+  /* the passage Jambo found, by its own first words (a passage is not a clause: the clause that holds them) */
+  if (n.quote){ const q = navQuoteKey(n.quote); const hit = q && els.find(el => navQuoteKey(el.textContent).includes(q)); if (hit) return hit; }
   const words = n.words || [n.topic];
+  if (!words || !words[0]) return null;
   const inHead = el => { const h = head(el).slice(0, 48); return words.some(w => h.includes(w)); };
   return els.find(inHead) || els.find(el => words.some(w => head(el).includes(w))) || null;
+}
+/* the words of a passage to look for on the paper: letters and digits, spaced once, its first forty-odd characters */
+function navQuoteKey(s){
+  const t = String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  return t.length < 12 ? '' : t.slice(0, 48).replace(/\s\S*$/, '');
 }
 /* a contract and its face, each through its own door */
 function navGoAct(n){
@@ -450,6 +458,10 @@ function navGoAct(n){
     dossier: () => pdOpenOnHome(id, 'copilot'),
     oblig: () => pdOpenOnHome(id, 'oblig'),
     hist: () => (typeof hbOpenView === 'function') ? hbOpenView(id, 'hist') : pdOpenOnHome(id, 'copilot'),
+    /* Jambo's doors (stage 2): Before you sign, Redlines and the brief, each its own face's door; nothing pressed */
+    sign: () => (typeof pdSignOpen === 'function') ? pdSignOpen(id) : false,
+    redlines: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
+    brief: () => (typeof caBriefOpen === 'function' && typeof getContract === 'function') ? caBriefOpen(getContract(id)) : false,
     open: () => pdOpenOnHome(id, 'open'),
   }[n.act];
   if (typeof go !== 'function' || typeof pdOpenOnHome !== 'function') return false;
@@ -467,7 +479,14 @@ function navClauseRow(n){
   const rows = [...document.querySelectorAll('#ig-dock .doc-th-row[data-th-row]')]; if (!rows.length) return null;
   const head = el => String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120).toLowerCase();
   if (n.num){ const re = new RegExp('^(?:clause\\s+|§\\s*)?' + n.num + '(?:[.)\\s]|$)'); return rows.find(el => re.test(head(el))) || null; }
+  /* a passage begins with its clause's heading: the row whose heading the passage's first words are */
+  if (n.quote){
+    const q = String(n.quote).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    const hit = rows.find(el => { const k = head(el).replace(/[^\p{L}\p{N}]+/gu, ' ').trim().slice(0, 40); return k.length >= 6 && q.startsWith(k); });
+    if (hit) return hit;
+  }
   const words = n.words || [n.topic];
+  if (!words || !words[0]) return null;
   return rows.find(el => words.some(w => head(el).slice(0, 48).includes(w))) || rows.find(el => words.some(w => head(el).includes(w))) || null;
 }
 /* a line said after the move, where the last turn is (Home's panel) */
@@ -639,7 +658,8 @@ function navGoStage2(n){
     if (typeof caOpenStandards !== 'function') return false;
     caOpenStandards(n.book);
     if (!n.row) return true;
-    const re = NAV_STD_ROW_RE[n.row];
+    /* a standard named in Jambo's own words: the row that says them */
+    const re = NAV_STD_ROW_RE[n.row] || new RegExp(String(n.row).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).slice(0, 3).join('.*'), 'i');
     return navLandWhen(() => {
       const host = document.querySelector('#ins-panel') || document.querySelector('.sd-ins'); if (!host) return null;
       const all = [...host.querySelectorAll('li, tr, dt, dd, p, [class*="row"]')].filter(x => re.test(x.textContent || ''));
@@ -649,6 +669,13 @@ function navGoStage2(n){
   if (n.k === 'template'){
     if (typeof setView !== 'function') return false;
     setView('templates');
+    /* a template named by its id (Jambo's door): its own card, chosen by its own press */
+    if (n.id) return navLandWhen(() => {
+      const b = [...document.querySelectorAll('[data-tpl-pf]')].find(x => String(x.getAttribute('data-tpl-pf')).endsWith(':' + n.id));
+      if (!b) return null;
+      if (b.getAttribute('aria-pressed') !== 'true') b.click();
+      return [...document.querySelectorAll('[data-tpl-pf]')].find(x => String(x.getAttribute('data-tpl-pf')).endsWith(':' + n.id)) || b;
+    }, _nvT('nav_no_template'));
     const re = NAV_TPL_RE[n.key];
     return navLandWhen(() => {
       const b = [...document.querySelectorAll('[data-tpl-pf]')].find(x => re.test((x.querySelector('b') || x).textContent || ''));
@@ -722,6 +749,11 @@ function navGoStage3(n){
     };
     setTimeout(pick, 0);
     return true;
+  }
+  if (n.k === 'requestid'){
+    if (typeof setView !== 'function' || typeof intakeGoTo !== 'function') return false;
+    intakeGoTo(n.id);
+    return navLandWhen(() => document.querySelector(`tr[data-ik-row="${String(n.id).replace(/"/g, '')}"]`), _nvT('nav_no_request'));
   }
   if (n.k === 'personrow'){ if (typeof dirOpenPerson !== 'function') return false; dirOpenPerson(n.id); return true; }
   return false;
@@ -804,7 +836,82 @@ function navGoCompare(n){
   return true;
 }
 
-Object.assign(window, { navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
+/* ---------- EVERY DOOR AS A TOOL (Jambo works like Copilot, stage 2, 22 Oct 2026) ----------
+   The exact thing Jambo named (goto.door, checked on the server by aiDoorOf) turned into the move this
+   file already makes (navGo): the same doors, the same landings, the same "not there" lines. The book
+   is asked again here: a contract this browser does not hold is no door (null), never a guess. */
+function navDoorOf(d){
+  if (!d || typeof d !== 'object') return null;
+  const book = navBook(), want = String(d.contractId || '').trim().toUpperCase();
+  const byId = () => book.find(c => String(c.id).toUpperCase() === want || String(c.contractNo || '').toUpperCase() === want) || null;
+  const go = (nav, say, sayVars, cid) => ({ kind: 'go', place: 'nav', nav, say, sayVars: sayVars || {}, ...(cid ? { cid } : {}) });
+  const cKey = n => (typeof cuKeyOf === 'function') ? cuKeyOf(n) : String(n || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  if (d.kind === 'contract' || d.kind === 'clause' || d.kind === 'obligation'){
+    const c = byId(); if (!c) return null;
+    const v = { ref: navRef(c), name: c.name || '' };
+    if (d.kind === 'obligation') return go({ k: 'duty', cid: c.id, oid: d.obligationId }, 'nav_go_duty', { what: ((c.obligations || []).find(o => o && String(o.id) === String(d.obligationId)) || {}).desc || '', ref: v.ref });
+    if (d.kind === 'clause'){
+      const words = d.head ? [navNorm(d.head).trim()].filter(Boolean) : null;
+      return go({ k: 'clause', cid: c.id, num: d.num || null, quote: d.quote || null, head: d.head || null, topic: words ? words[0] : null, words }, d.num ? 'nav_go_clause' : 'nav_go_clause_topic',
+        { n: d.num || '', topic: d.head || '', ...v }, c.id);
+    }
+    if (d.tab === 'compare') return go({ k: 'compare', cid: c.id }, 'nav_go_compare', v, c.id);
+    const act = (NAV_ACTS.some(([k]) => k === d.tab) || ['sign', 'redlines', 'brief'].includes(d.tab)) ? d.tab : 'open';
+    if (act === 'amend'){ let shut = ''; try { shut = (typeof amendmentShutWhy === 'function') ? amendmentShutWhy(c) : ''; } catch (_){ shut = ''; } if (shut) return { kind: 'navsay', text: shut }; }
+    return go({ k: 'cact', cid: c.id, act }, 'nav_go_act_' + act, v, c.id);
+  }
+  if (d.kind === 'contracts'){
+    const stream = d.stream ? (navStreamWords().find(x => x.fid === d.stream) || { fid: d.stream, name: d.stream }) : null;
+    const party = d.party ? (navParties().find(p => p.key === cKey(d.party)) || { key: cKey(d.party), name: d.party }) : null;
+    const f = { stage: d.stage || null, stream: stream ? stream.fid : null, ending: d.ending || null, party: party ? party.key : null };
+    const span = f.ending ? navEndingSpan(f.ending) : null, only = Array.isArray(d.ids) && d.ids.length ? new Set(d.ids) : null;
+    const ids = book.filter(c => {
+      if (only && !only.has(c.id)) return false;
+      if (f.stage && c.status !== f.stage) return false;
+      if (f.stream && c.folder !== f.stream) return false;
+      if (f.party && cKey(c.counterparty) !== f.party) return false;
+      if (span){
+        if (c.parentId) return false;
+        let e = ''; try { e = (typeof effectiveExpiry === 'function' && effectiveExpiry(c)) || c.expiry || ''; } catch (_){ e = c.expiry || ''; }
+        e = String(e || '').slice(0, 10); if (!(e >= span.from && e <= span.to)) return false;
+      }
+      return true;
+    }).map(c => c.id);
+    const label = navContractsLabel(f, stream, party);
+    return go({ k: 'contracts', ids, label, f }, ids.length ? 'nav_go_contracts' : 'nav_go_contracts_none', { n: ids.length, what: label });
+  }
+  if (d.kind === 'party'){
+    const key = cKey(d.name), p = navParties().find(x => x.key === key);
+    return p ? go({ k: 'party', key: p.key, name: p.name }, 'nav_go_party', { name: p.name }) : null;
+  }
+  if (d.kind === 'you') return go(Object.assign({ k: 'you', key: d.key }, (d.key === 'safety' || d.key === 'password') ? { card: 'safety' } : {}), 'nav_go_you');
+  if (d.kind === 'company'){
+    if (!navIsAdmin()) return { kind: 'navsay', text: _nvT(NAV_ADMIN_SAYS) };
+    const page = ['team', 'streams', 'sheet', 'roles'].includes(d.key);
+    return go({ k: 'company', kind: page ? 'page' : 'panel', key: d.key }, 'nav_go_setting');
+  }
+  if (d.kind === 'person'){
+    let U = []; try { U = (typeof getUsers === 'function' && getUsers()) || []; } catch (_){ U = []; }
+    const u = U.find(x => String(x.id) === String(d.userId)); if (!u) return null;
+    if (d.row === 'cap' || d.row === 'access'){
+      if (!navIsAdmin()) return { kind: 'navsay', text: _nvT(NAV_ADMIN_SAYS) };
+      return go({ k: 'person', id: d.userId, row: d.row }, d.row === 'cap' ? 'nav_go_cap' : 'nav_go_access', { name: u.name || '' });
+    }
+    return go({ k: 'personrow', id: d.userId }, 'nav_go_person', { name: u.name || '' });
+  }
+  if (d.kind === 'stream'){
+    if (!navIsAdmin()) return { kind: 'navsay', text: _nvT(NAV_ADMIN_SAYS) };
+    const st = navStreamWords().find(x => x.fid === d.streamId);
+    return go({ k: 'stream', fid: d.streamId, keep: !!d.keep }, d.keep ? 'nav_go_keep' : 'nav_go_stream', { stream: st ? st.name : d.streamId });
+  }
+  if (d.kind === 'standard') return go({ k: 'std', book: d.book || '_default', row: d.row || null }, 'nav_go_std');
+  if (d.kind === 'template') return go({ k: 'template', id: d.templateId }, 'nav_go_template');
+  if (d.kind === 'request') return go({ k: 'requestid', id: d.requestId }, 'nav_go_request');
+  if (d.kind === 'duties') return d.due === '7' ? go({ k: 'duties', due: '7' }, 'nav_go_duties_week') : { kind: 'go', place: 'oblig' };
+  return null;
+}
+
+Object.assign(window, { navDoorOf, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
   navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,

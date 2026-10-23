@@ -2460,7 +2460,7 @@ const AI_GOVERNANCE_RULE="THE COMPANY'S RULES ARE GONE THROUGH, NEVER AROUND. Ha
 /* THE AI TAKES YOU THERE (owner, 22 Oct 2026; on by default, an admin's
    switch in Settings → Jambo engine): the browser twin of the server's
    AI_GOTO_RULE / AI_GOTO_OFF_RULE, word for word (f738 pins them equal) */
-const AI_GOTO_RULE="TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, or asks to be taken somewhere, set deliver_answer's goto to the one place, and say in one short sentence where you are taking them. Our standards (the negotiation playbook, book by book) is task standards; HaTi picks the book from the words asked. When they name one thing inside a place (a contract, a clause, a party's folder, a person's setting, a duty, a request), also set goto's spot to a short phrase naming it in their words. Never set goto for a question about what a contract says.";
+const AI_GOTO_RULE="TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, asks to be taken somewhere, or asks to see, show, open or find ONE thing (a contract or one of its tabs, a clause, a list of contracts, a party's folder, a setting, a person, a template, a standard, a duty, a request), set deliver_answer's goto and say in one short sentence where you are taking them. Name the EXACT thing in goto's door with the ids your tools returned (a clause: its contract id and the passage's quote from search_hati, or its number), and set task to the place it sits in. Our standards (the negotiation playbook, book by book) is task standards. When you cannot name the door, set goto's spot to a short phrase naming the thing in their words. A question about what a contract says is answered in words with its source; when it asks WHERE the contract says it (“where does it say…”, “show me the bit about…”, “find the clause…”), also open that clause with goto.";
 const AI_GOTO_OFF_RULE="YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.";
 /* A CONTRACT'S BRIEF IS KEPT (owner, 22 Oct 2026: "sometimes hati writes a brief instead of bringing the brief
    from the side panel"): the browser twin of the server's AI_BRIEF_RULE / AI_BRIEF_OFF_RULE, word for word (f862) */
@@ -2479,7 +2479,9 @@ function aiGotoRun(g, q){
      free map a typed ask is (navRead) — its walls, its "which did you mean", its "there is no such" — and
      the task is the fallback when the map cannot place them */
   let a=null;
-  if(typeof g.spot==='string'&&g.spot&&typeof window.navRead==='function'){ try{ a=navRead(g.spot); }catch(_){ a=null; } }
+  /* THE EXACT DOOR first (stage 2): the thing Jambo named by its ids, landed by the same mover; the spot's words, then the task, are its fallbacks */
+  if(g.door&&typeof window.navDoorOf==='function'){ try{ a=navDoorOf(g.door); }catch(_){ a=null; } }
+  if(!a&&typeof g.spot==='string'&&g.spot&&typeof window.navRead==='function'){ try{ a=navRead(g.spot); }catch(_){ a=null; } }
   if(a&&a.kind==='navsay'){
     const onH=typeof state!=='undefined'&&state&&state.view==='dashboard'&&typeof intel!=='undefined';
     if(onH){ try{ intel.history.push(Object.assign({ role:'assistant', text:_aiEsc(a.text) }, a.choices?{ choices:a.choices }:{})); }catch(_){} if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){} return true; }
