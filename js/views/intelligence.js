@@ -9535,12 +9535,19 @@ function igRedThumbAt(){
   const t=document.querySelector('#ig-strip .ig-red-th'); if(!t||!t.offsetWidth) return null;
   return { x: t.offsetLeft, w: t.offsetWidth };
 }
+/* placed on the next frame, never inside the paint: a layout read straight after the strip's write
+   would lay the page out twice on every Board -> paper switch (THE BOOK IS WALKED ONCE). Until then the
+   chosen word wears the pill itself (CSS, .ig-red:not(.is-th)), so nothing flashes. */
 function igRedThumb(){
   const from=_igRedFrom; _igRedFrom=null;
+  const go=()=>igRedThumbPlace(from);
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(go); else go();
+}
+function igRedThumbPlace(from){
   const wrap=document.querySelector('#ig-strip .ig-red'), t=wrap&&wrap.querySelector('.ig-red-th');
   const on=wrap&&wrap.querySelector('button[aria-pressed="true"]');
   if(!t||!on){ if(t) t.style.width='0px'; return; }
-  t.style.left=on.offsetLeft+'px'; t.style.width=on.offsetWidth+'px';
+  t.style.left=on.offsetLeft+'px'; t.style.width=on.offsetWidth+'px'; wrap.classList.add('is-th');
   const still=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(!from||still||typeof t.animate!=='function'||(from.x===on.offsetLeft&&from.w===on.offsetWidth)) return;
   t.animate([{ transform:`translateX(${from.x-on.offsetLeft}px) scaleX(${from.w/on.offsetWidth})` },{ transform:'none' }],
