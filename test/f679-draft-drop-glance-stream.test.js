@@ -326,6 +326,8 @@ function pdStage({ left = 0, risks = 0, unsent = 0, nego = true, signers = false
     rlUnsentCount: () => { asked.push('unsent'); return unsent; },
     riskMayAct: () => act,
     signBlockers: () => (signers ? [{ key: 'signers' }] : []),
+    /* 23 Oct 2026 (THE ONE DESK, the speed fix): signerOwed asks the one condition, not the whole list */
+    signingRouteMissing: () => (signers ? 'both' : null),
     negoMayStartLine: () => shut, contractStatusTextHtml: () => '<span class="room-stat">Drafting</span>',
     FOLDERS: { proc: { id: 'proc', name: 'Procurement' }, sales: { id: 'sales', name: 'Sales' }, corp: { id: 'corp', name: 'Corporate' } },
     visibleFolders: () => [{ id: 'proc', name: 'Procurement' }, { id: 'sales', name: 'Sales' }],
