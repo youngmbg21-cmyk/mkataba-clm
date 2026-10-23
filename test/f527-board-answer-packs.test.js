@@ -90,7 +90,8 @@ describe('f527 (2) top risks', () => {
     assert.match(html, /data-hb-dig="c:MK-100"/, 'each row a door to its contract');
     assert.match(html, /class="hb-how"/); assert.match(html, /How HaTi worked this out/);
     assert.match(html, /data-hb-next=/);
-    assert.match(html, /data-hb-why="pk:risks"/, 'the summary is a press');
+    /* RE-POINTED 23 Oct 2026: the card's one ask is Dig deeper */
+    assert.match(html, /data-hb-dd-on="pk:risks"/, 'the summary is a press');
   });
 });
 

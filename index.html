@@ -14576,6 +14576,9 @@
   .obw-wk .ins-c2 > b{font-weight:var(--w-label);}
   .obw-act-c{overflow:visible;}
   .obw-act{white-space:nowrap;color:var(--accent-ink);}
+  /* ONE WIDTH FOR THE ROW'S ACT (owner, 23 Oct 2026: "the buttons are not the same size" — Review 1 beside Review 15):
+     every act in the week list stands one width, its word centred; the widest word in either book fits it */
+  .obw-act.ui-btn{min-width:112px;justify-content:center;box-sizing:border-box;}
   .obw-chase-on{font-size:var(--t-micro);}
   .obw-lock{display:inline-flex;vertical-align:-1px;margin-left:6px;color:var(--color-neutral-600);}
   .obw-priv{flex:none;display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border:1px solid var(--color-divider);border-radius:999px;
@@ -16322,6 +16325,28 @@
   #ig-dock .redline-page .rl-pile .rl-card-d, #ig-dock .redline-page .rl-pile .rl-band + .rl-card-d{padding:8px 0 12px;border-bottom:0}
   #ig-dock .rk-pile.rk-pile{border-top:0;margin-left:var(--jb-g);margin-right:var(--jb-g)}
   #ig-dock .rk-row.rk-row{border:0;border-radius:0;background:transparent;padding-left:0;padding-right:0}
+  /* ONE SHADE, ONE CARD AT A TIME (owner, 23 Oct 2026: "do not underline the words but at least shade the card a
+     different color … remove the outline around the card … only highlight one at a time"): a redline row and a
+     risk card wear the same shade on hover and once pressed (.is-linked), never a ring; while another card is
+     under the pointer the pressed one lets its shade go, so one card is lit. :is(#ig-dock, body) gives both
+     hosts (the face beside the paper, the page by name) one weight over the face's own unboxed rows. */
+  :is(#ig-dock, body) .redline-page :is(.rl-card.is-linked, .rk-row.is-linked){box-shadow:none}
+  :is(#ig-dock, body) .redline-page :is(.rl-card-d, .rk-row:not(.is-none):not(.is-gone)):is(:hover, .is-linked){background:var(--color-neutral-100)}
+  :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) :is(.rl-card-d, .rk-row).is-linked:not(:hover){background:transparent}
+  :is(#ig-dock, body) .redline-page:not(.rl-face):has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover){background:var(--color-surface)}
+  /* the reason's own box turns white on a shaded card, so it still reads as a box */
+  :is(#ig-dock, body) .redline-page .rk-row:is(:hover, .is-linked) .rk-why{background:var(--color-surface)}
+  :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover) .rk-why{background:var(--color-neutral-100)}
+  /* SETTLED THIS ROUND, DRAWN AS "COVERED BY YOUR REDLINES" (owner, 23 Oct 2026): the fold is an accent link —
+     "Settled this round (N) ▾" — not a grey pile head */
+  :is(#ig-dock, body) .redline-page .rl-pile.rl-pile-quiet > button.rl-band-fold{display:inline-flex;align-items:center;gap:0;width:auto;min-height:var(--tap-min);
+    padding:0 4px;margin:16px -4px 4px;border:0;border-radius:var(--radius);background:none;font-family:var(--font-heading);font-size:var(--t-body);
+    font-weight:var(--w-label);line-height:var(--lh-tight);color:var(--accent-ink);text-transform:none;letter-spacing:0;cursor:pointer;white-space:nowrap}
+  :is(#ig-dock, body) .redline-page .rl-pile.rl-pile-quiet > button.rl-band-fold:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
+  :is(#ig-dock, body) .redline-page .rl-pile.rl-pile-quiet > button.rl-band-fold > b{font:inherit;color:inherit;margin:0;padding:0;background:none;border:0}
+  :is(#ig-dock, body) .redline-page .rl-pile.rl-pile-quiet > button.rl-band-fold > b::before{content:'\00a0('}
+  :is(#ig-dock, body) .redline-page .rl-pile.rl-pile-quiet > button.rl-band-fold > b::after{content:')'}
+  :is(#ig-dock, body) .redline-page .rl-pile.rl-pile-quiet > button.rl-band-fold > i{display:inline;font-style:normal;margin-left:4px}
   /* BESIDE THE LISTS: the head facts, then labelled sections; no rule between them, no card round a list */
   #content .ins-panel.is-jambo .ins-h{padding:16px var(--jb-g) 0;border-bottom:0}
   #content .ins-panel.is-jambo .ins-facts{padding:0 var(--jb-g);border-bottom:0;gap:8px 16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}

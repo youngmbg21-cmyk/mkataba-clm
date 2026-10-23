@@ -215,7 +215,8 @@ describe('f528 (4) a press, never by itself', () => {
        deeper is the same act, so it is called from two places — the answer's
        press and the story's (hbStoryDeeper) — and the story's runs only from
        its own press too */
-    assert.equal(calls, 3, 'defined once, called twice: from the answer\'s press and the story\'s');
+    /* 23 Oct 2026 (owner: "make them one"): a card's own Dig deeper (hbDdOnPress) is the third caller */
+    assert.equal(calls, 4, 'defined once, called three times: from the answer\'s press, a card\'s and the story\'s');
     assert.equal((hb.match(/hbStoryDeeper\(/g) || []).length, 2, 'the story\'s: defined once, called once, from its press');
     assert.match(hb, /if \(\(el = on\('\[data-hb-sy-deeper\]'\)\)\)\{ if \(!el\.disabled\) hbStoryDeeper\(/);
   });

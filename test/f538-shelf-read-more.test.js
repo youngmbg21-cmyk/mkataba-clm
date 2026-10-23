@@ -64,7 +64,8 @@ describe('f538 (2) the card\'s own reading, in the card', () => {
     w.hbReadMoreToggle('ins:' + c.id);
     const open = w.hbShelfHtml([c]);
     assert.match(open, /class="hb-read"/);
-    assert.match(open, /data-hb-why="ins:/, 'What could explain this? is in the card');
+    /* RE-POINTED 23 Oct 2026: the card's one ask is Dig deeper */
+    assert.match(open, /data-hb-dd-on="ins:/, 'Dig deeper is in the card');
     assert.match(open, />Show less</);
     assert.ok(textOf(open).includes(textOf(src.reading.lines[0])), 'it is that reading');
     w.hbReadMoreToggle('ins:' + c.id);
