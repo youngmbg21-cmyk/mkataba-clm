@@ -4018,7 +4018,7 @@ function pdOgHtml(c, o){
     const route = (!held && may && f.kind === 'signer' && typeof openSignerPlanEditor === 'function')
       ? `<button type="button" class="ui-btn ui-btn-sm pd-og-order" data-pd-og-route="${E(c.id)}">${E(_pdT('og_sg_order'))}</button>` : '';
     const act = held ? `<button type="button" class="pd-go ds-go" data-pd-og-go="${E(f.key)}" title="${E(_pdT('og_fill_beside'))}">${E(_pdT('dos_go_fill_in'))}${PD_GO_TXT}</button>`
-      : `<span class="pd-ck-src">${pdOgFromHtml(c, f)}${isPaper(f) && paper.length > 1 ? step(f) : ''}</span><span class="pd-ck-acts">${route}${(may && !f.pay) ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary pd-og-ok" data-pd-og-ok="${E(f.key)}">${E(_pdT('og_confirm'))}</button>` : ''}</span>`;
+      : `<span class="pd-ck-src">${pdOgFromHtml(c, f)}${isPaper(f) && paper.length > 1 ? step(f) : ''}</span><span class="pd-ck-acts">${route}${(may && !f.pay) ? `<button type="button" class="ui-btn ui-btn-sm pd-og-ok is-word" data-pd-og-ok="${E(f.key)}">${E(_pdT('og_confirm'))}</button>` : ''}</span>`;
     return `<tr class="pd-og-row${f.read ? ' is-read' : ' is-amb'}${open ? ' is-open' : ''}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"${isPaper(f) ? ' data-pd-og-paper' : ''}><td class="pd-og-f">${hd}</td><td class="pd-og-v">${box}</td><td class="pd-og-a">${act}</td></tr>`;
   };
   const one = (key, label, words) => `<tr class="pd-og-row is-saved" data-pd-og-row="${E(key)}"><td class="pd-og-f"><div class="pd-ck-hd">${pdCkRing('done')}<b>${E(label)}</b><span class="pd-ck-v pd-og-done">${E(words)}</span></div></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
