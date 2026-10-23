@@ -390,14 +390,15 @@ const VISIBLE = `(el) => {
        Run line sits on the Clauses tab's open row. */
     const obTab = async () => {
       await page.evaluate(id => pdOpenOnHome(id, 'oblig'), cid);
-      await page.waitForFunction(() => window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock [data-pd-tab="oblig"]'),
+      /* RE-POINTED 23 Oct 2026 (Spine): Obligations is its own panel, no tab — the trail over it names it */
+      await page.waitForFunction(() => window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock .pd-trail'),
         null, { timeout: 8000 }).catch(() => {});
       return page.evaluate(`(() => {
         const vis = ${VISIBLE};
         /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the link says "Find more in the wording" */
         const want = i18t('pd_ob_find_mq');
         const b = [...document.querySelectorAll('#ig-dock button')].find(x => x.textContent.trim() === want);
-        const tab = document.querySelector('#ig-dock [data-pd-tab="oblig"]');
+        const tab = document.querySelector('#ig-dock .pd-trail');
         return { find: vis(b), live: !!(b && !b.disabled), tab: tab ? tab.textContent.replace(/\\s+/g, ' ').trim() : '' };
       })()`);
     };

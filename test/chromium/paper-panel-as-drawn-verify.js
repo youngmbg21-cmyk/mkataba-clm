@@ -171,7 +171,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       const row = k => rows.filter(r => r.getAttribute('data-pd-gl') === k).map(r => ({ say: r.querySelector('span').firstChild.textContent.trim(), sub: ((r.querySelector('small') || {}).textContent || '').trim(), btn: ((r.querySelector('button') || {}).textContent || '').trim() }));
       const rk = g.querySelector('[data-pd-ds="risks"]');
       const D = dossierOf(getContract('MK-0382')), want = D.stages.find(x => x.k === 'nego').n;
-      return { nego: (g.querySelector('.ds-st[data-ds-st="nego"]') || {}).className || '', negoN: (/^\D*(\d+)/.exec(((g.querySelector('.ds-st[data-ds-st="nego"]') || {}).title || '').split('·')[1] || '') || [])[1] || '', want,
+      /* RE-POINTED 23 Oct 2026 (Spine): the stage is a line down the spine; its number on its hover as before */
+      return { nego: (g.querySelector('.ds-sp-st[data-ds-sp="nego"]') || {}).className || '', negoN: (/^\D*(\d+)/.exec(((g.querySelector('.ds-sp-st[data-ds-sp="nego"]') || {}).title || '').split('·')[1] || '') || [])[1] || '', want,
         /* RE-POINTED 21 Oct 2026 (the Legora way): the signer is a row of Still owed's grid, answered there;
            the grid stands above the list, so the order reads the grid's rows first */
         order: [...owed.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)')].map(r => r.getAttribute('data-pd-og-kind') === 'signer' ? 'sign' : 'fact').concat(rows.map(r => r.getAttribute('data-pd-gl'))),
@@ -179,7 +180,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         sign: [...owed.querySelectorAll('#pd-og tr.pd-og-row[data-pd-og-kind="signer"]')].map(r => ({ say: ((r.querySelector('.pd-og-f b') || {}).textContent || '').trim(),
           box: !!r.querySelector('input'), door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]') })),
         scan: rk ? { say: ((rk.querySelector('.ds-nm') || {}).textContent || '').replace(/\s+/g, ' ').trim(), val: ((rk.querySelector('.ds-val') || {}).textContent || '').trim(), btn: ((rk.querySelector('[data-pd-gl-scan]') || {}).textContent || '').trim(), tip: ((rk.querySelector('[data-pd-gl-scan]') || {}).title || '') } : null }; });
-    check('2a the spine: Negotiate lit, its number the owed rows filed under it (their two asks among them)', /is-on/.test(gl.nego) && gl.negoN === String(gl.want) && gl.want >= 2, JSON.stringify({ nego: gl.nego, n: gl.negoN, want: gl.want }));
+    check('2a the spine: Negotiate lit, its number the owed rows filed under it (their two asks among them)', /is-(?:cur|owed)/.test(gl.nego) && gl.negoN === String(gl.want) && gl.want >= 2, JSON.stringify({ nego: gl.nego, n: gl.negoN, want: gl.want }));
     check('2c one row per ask, in its own words — what the number is of, which way it moved · waits · Reply ›',
       gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days to pay, up from 30.')
       && gl.asks.every(a => /^waits /.test(a.sub) && a.btn === 'Reply ›'), JSON.stringify(gl.asks));
@@ -198,7 +199,9 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       pdGlanceRepaint(); await new Promise(r => setTimeout(r, 300));
       /* RE-POINTED 22 Oct 2026 (the Checklist): the figure leads the row's grey value */
       const rd = k => { const r = document.querySelector(`#pd-glance [data-pd-ds="${k}"]`); return r ? { fig: (/^\d+/.exec(r.querySelector('.ds-val').textContent.trim()) || [''])[0], nm: r.querySelector('.ds-nm').textContent.replace(/\s+/g, ' ').trim() + ' ' + r.querySelector('.ds-val').textContent.trim() } : null; };
-      const out = { risks: rd('risks'), oblig: rd('oblig'), want: riskOpenOf(c).length };
+      /* RE-POINTED 23 Oct 2026 (Spine): the record's duties are the Obligations line under Sign */
+      const ob = document.querySelector('#pd-glance .ds-ob-line');
+      const out = { risks: rd('risks'), oblig: ob ? { fig: (/^\d+/.exec(ob.querySelector('.ds-this-v').textContent.trim()) || [''])[0], nm: ob.querySelector('b').textContent.trim() + ' ' + ob.querySelector('.ds-this-v').textContent.trim() } : null, want: riskOpenOf(c).length };
       Object.assign(c, { _brief: keep.b, obligations: keep.o, triage: keep.t }); pdGlanceRepaint(); return out; });
     check('2g What Jambo read counts the brief\'s watch-outs as the Board does, and the record\'s obligations without a "0 found"',
       !!g2.risks && g2.risks.fig === String(g2.want) && g2.want >= 1 && !/not read yet/i.test(g2.risks.nm) && !!g2.oblig && g2.oblig.fig === '2' && /^Obligations\b/.test(g2.oblig.nm), JSON.stringify(g2));
@@ -336,7 +339,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       await page.setViewportSize({ width: w, height: ht });
       await onPaper(); await settled();
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
-        nd = document.getElementById('pd-needs'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
+        /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box; the dossier's first stage line is measured */
+        nd = document.querySelector('#ig-dock .ds-sp-st'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !gl || !box) return null;
         const d = dock.getBoundingClientRect(), b = box.getBoundingClientRect(), n = nd ? nd.getBoundingClientRect() : null;
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *, [data-ig-chips] *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > d.right + 1; }).length;

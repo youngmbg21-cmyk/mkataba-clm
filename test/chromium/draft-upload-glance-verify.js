@@ -257,7 +257,8 @@ const pastFirstWords = async page => {
       const fillRows = [...el.querySelectorAll('#pd-og [data-pd-og-kind]')].filter(r => !['signer', 'people'].includes(r.getAttribute('data-pd-og-kind'))).map(() => 1);
       /* RE-POINTED 22 Oct 2026 (the Checklist): the number leads the risks row's grey value */
       const rk = el.querySelector('[data-pd-ds="risks"] .ds-val');
-      return { title: [...el.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!el.querySelector('.ds-spine .ds-st.is-on, .ds-spine .ds-st.is-now'), rows,
+      /* RE-POINTED 23 Oct 2026 (Spine): no section heads; the stages stand down the spine, one current */
+      return { title: [...el.querySelectorAll('.ds-sp-st b')].map(b => b.textContent).join(' | '), pill: !!el.querySelector('.ds-spine .ds-sp-st.is-cur'), rows,
         fillN: fillRows.reduce((a, b) => a + b, 0), riskN: rk ? Number((/^\d+/.exec(rk.textContent.trim()) || [0])[0]) : 0,
         left: detailsOf(c).left, risks: (c.scan && riskMayAct(c, {})) ? riskOpenOf(c).length : 0, nobody: signBlockers(c).some(b => b.key === 'signers'),
         unsent: c.negotiation ? rlUnsentCount(c, {}) : 0, nego: !!c.negotiation,
@@ -267,7 +268,7 @@ const pastFirstWords = async page => {
         above: (() => { const chips = document.querySelector('#ig-dock [data-ig-chips]'); const sc = el.closest('.overflow-y-auto') || el;
           return !!chips && sc.getBoundingClientRect().bottom <= chips.getBoundingClientRect().top + 1; })() }; });
     const num = k => { const r = g.rows.find(x => x[0] === k); return r ? Number((/(\d+)/.exec(r[1]) || [])[1] || (k === 'sign' ? 1 : 0)) : 0; };
-    check('6a Jambo\'s tab opens on the dossier: the stage on the spine, What Jambo read, Still owed', gl && /^Needs you \| Jambo read/.test(g.title) && g.pill, g.title);
+    check('6a Jambo\'s tab opens on the dossier: the stage on the spine, What Jambo read, Still owed', gl && /^Arrived \| Read \| Fill in \| Negotiate \| Sign \| Live$/.test(g.title) && g.pill, g.title);
     check('6b each count is the reading its own face uses', g.fillN === g.left && g.riskN === g.risks && num('share') === g.unsent && g.ogSign === g.nobody, g);
     check('6c reading it starts no negotiation', !g.nego);
     check('6d the card sits above the chips and the box', g.above);

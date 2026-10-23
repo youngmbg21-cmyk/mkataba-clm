@@ -100,7 +100,8 @@ const BOXES = sel => {
             nAfter: n && !n.hidden && n.getBoundingClientRect().width > 0 ? n.getBoundingClientRect().left >= w.getBoundingClientRect().right - 1 : null,
             sameLine: g && w && gs.display !== 'none' ? Math.abs((g.getBoundingClientRect().top + g.getBoundingClientRect().bottom) / 2 - (w.getBoundingClientRect().top + w.getBoundingClientRect().bottom) / 2) < 4 : true };
         });
-        const labels = [...d.querySelectorAll('.pd-glance > .pd-gl-h')].filter(x => x.getBoundingClientRect().height > 0);
+        /* RE-POINTED 23 Oct 2026 (Spine): the sections are the six stage lines down the spine, no section labels */
+        const labels = [...d.querySelectorAll('.ds-sp-st')].filter(x => x.getBoundingClientRect().height > 0);
         const lab = labels[0], ls = lab && getComputedStyle(lab), lb = lab && getComputedStyle(lab.querySelector('b') || lab);
         const th = d.querySelector('.pd-og th');
         return { w: Math.round(dr.width), headH: Math.round(head.getBoundingClientRect().height), stripH: strip ? Math.round(strip.getBoundingClientRect().height) : null,
@@ -121,7 +122,7 @@ const BOXES = sel => {
       const B2 = Array.isArray(B) ? B.filter(x => !CK_DRAWN.test(x)) : B;
       check('1e nothing is boxed inside the Dossier: no edge, band or shadow on a section, row or table cell', Array.isArray(B2) && B2.length === 0, JSON.stringify(B2 && B2.slice(0, 8)));
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a section's label is in small capitals, 11px, still 16 in from the edge */
-      check('1f a section is a small-capital label 16 in from the edge', D.labels >= 2 && D.labLeft === 16 && D.labCase === 'uppercase' && D.labSize === '11px', JSON.stringify(D));
+      check('1f the stages are six lines, each 16 in from the edge, named in sentence case', D.labels === 6 && D.labLeft === 16 && D.labCase === 'none', JSON.stringify(D));
       check('1g Still owed\'s head row takes no room (no band over the grid)', D.thH === 0, D.thH);
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-dossier-1440x780.png') });
     }

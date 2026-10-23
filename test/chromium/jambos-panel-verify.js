@@ -177,7 +177,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       await page.setViewportSize({ width: w, height: ht });
       await open(); await settled();
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
-        nd = document.getElementById('pd-needs'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
+        /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box (its rows stand under their stages); the dossier's top is its first stage line */
+        nd = document.querySelector('#ig-dock .ds-sp-st'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !nd || !gl || !box) return null;
         const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), n = nd.getBoundingClientRect();
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;
