@@ -174,6 +174,8 @@ const LAND = () => {
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
     /* the clause editor open on its Risks tab (the glance's risks row, joined at the integration, 19 Oct 2026) */
     ceRisks: !!document.getElementById('ce-tab-risks') && !!document.querySelector('#clause-editor'),
+    /* RE-POINTED (owner, 23 Oct 2026): the risks row lands ON the Redlines face's "Risks to look at" list */
+    rkLanded: (() => { const r = document.querySelector('#ig-dock #rl-risks'); return !!(r && r.classList.contains('is-landed')); })(),
     /* the contract's Lifeline strip on top of the Board (step 8), and its page */
     strip: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-id') : null; })(),
     stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
@@ -182,7 +184,7 @@ const LAND = () => {
     ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks, L.kt, L.ktMove].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks, L.rkLanded, L.kt, L.ktMove].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
   + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.kt ? ' KEY-TERMS' + (L.ktMove ? ' (Move open)' : '') : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
@@ -768,7 +770,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
          "redline" row is its RISKS row, and round 9 as drawn left the Redlines
          face beside Home's paper with no risk list — so that row's door opens
          the clause editor's Risks tab (data-pd-gl-risks), where they are */
-      const GL = { fill: [E.fill(gid), SAYS.fill], redline: [L => L.ceRisks, 'the clause editor, on its Risks tab'],
+      /* RE-POINTED (owner, 23 Oct 2026: "when you press on risk to look at it should take you to where risks
+         are … and place you there"): the risks row opens the Redlines face, landed on its risks list */
+      const GL = { fill: [E.fill(gid), SAYS.fill], redline: [L => E.red(gid)(L) && L.rkLanded, 'Redlines beside the paper, landed on Risks to look at'],
         share: [L => E.paper(gid)(L) && L.shareCard, 'the paper, Jambo\'s Share card'], sign: [E.signing(gid), SAYS.signing] };
       /* the card stands where no face is open: the face the last press opened is put away first */
       /* RE-POINTED (19 Oct 2026, owner: "you land on the page and if you want

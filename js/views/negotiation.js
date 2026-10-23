@@ -8108,6 +8108,77 @@ function dealBoardHtml(c, side){
     </div>
   </div>`;
 }
+/* ---- THE DEAL, IN THE MIDDLE (owner picked "The Legora Way", 23 Oct 2026) ----
+   The Negotiate page's deal board, simpler, standing where the paper was
+   (pdDealOpen): nothing boxed, one list of every point argued, each with
+   their words and yours quoted under its §, the playbook's verdict as a dot
+   and its words, and the clause as its one door. ONE reading (dealBoardFacts),
+   so the tabs, the head and the Deal button's number say the same. Still no
+   Accept / Counter / Reject and no walk-away (the owner, 3 Oct). The tab is
+   per sitting, in memory. */
+let _dealTab = null;
+const DEAL_TABS = ['all', 'you', 'them', 'done'];
+function dealTabSet(k){ _dealTab = DEAL_TABS.includes(k) ? k : null; }
+/* the paragraphs a move touches, as plain words: `drop` names the ops left
+   out (what it proposes: drop its deletions; what stood before it: drop its
+   insertions) */
+function dealWordsOf(ch, drop){
+  if (!ch || typeof window.redlineShownBlocks !== 'function') return '';
+  const blocks = redlineShownBlocks(rlChangeOps(ch), { changedOnly: true });
+  return blocks.map(g => g.filter(o => o.op !== drop).map(o => o.text).join('')).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' ');
+}
+/* what we hold on a point: the agreed wording once agreed, our last standing
+   move, else the wording as it stood before anybody moved */
+function dealHeldWords(r){
+  if (r.state === 'settled' && r.accepted) return dealWordsOf(r.accepted.ch, 'del');
+  if (r.ours) return dealWordsOf(r.ours.ch, 'del');
+  const ref = r.theirs || r.top || (r.rungs || [])[r.rungs.length - 1];
+  return ref ? dealWordsOf(ref.ch, 'ins') : '';
+}
+/* "5. Limitation of Liability" → § 5 and its name; a label with no number keeps its name */
+function dealSecOf(r){
+  const m = String(r.label || r.clauseId || '').match(/^\s*(\d+(?:\.\d+)*)\.?\s+(.+)$/);
+  return m ? { sec: '§' + m[1], name: m[2] } : { sec: '', name: String(r.label || r.clauseId || '') };
+}
+function dealViewHtml(c, side){
+  side = side || 'owner';
+  const { rows, facts, n } = dealBoardFacts(c, side);
+  const cp = rlLegendNames(c, side).them;
+  const memo = `<button type="button" class="ui-btn" id="deal-memo" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
+  const id = _nea(String(c.id));
+  if (!rows.length){
+    return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}"><h2 class="deal-h">${_ne(i18t('ng_deal'))}</h2>${memo}
+      <p class="deal-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
+  }
+  /* the tab shown: the one chosen while it still has points, else Needs you where any wait, else All */
+  const tab = (_dealTab && (_dealTab === 'all' || n[_dealTab])) ? _dealTab : (n.you ? 'you' : 'all');
+  const round = (c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0) ? c.negotiation.round : 1;
+  const head = n.you ? i18tn('ng_deal_head_you', n.you, { n: n.you }) : i18t('ng_deal_head_none');
+  const sub = i18tn('ng_deal_sub', n.all, { n: n.all, r: round });
+  const word = { all: i18t('ng_deal_tab_all'), you: i18t('ng_board_g_you'), them: i18t('ng_board_g_them', { cp }), done: i18t('ng_board_g_done') };
+  /* a tab with nothing behind it stays out, unless it is All or the one lit (THE LIST HEAD's rule) */
+  const tabs = DEAL_TABS.filter(k => k === 'all' || k === tab || n[k]).map(k =>
+    `<button type="button" role="tab" class="deal-tab" data-deal-tab="${k}" aria-selected="${k === tab}">${_ne(word[k])}<b>${n[k]}</b></button>`).join('');
+  const shown = facts.filter(x => tab === 'all' || x.g === tab);
+  const quote = t => `<em>\u201c${_ne(t)}\u201d</em>`;
+  const list = shown.map(({ r, v }) => {
+    const s = dealSecOf(r);
+    const theirs = r.theirs ? dealWordsOf(r.theirs.ch, 'del') : '';
+    const held = dealHeldWords(r);
+    return `<div class="deal-it" data-deal-row="${_nea(r.clauseId)}">
+      <div class="deal-nm">${s.sec ? `<span class="deal-sec">${_ne(s.sec)}</span>` : ''}${_ne(s.name)}</div>
+      <div class="deal-vd db-vd-${v.k}"><i aria-hidden="true"></i>${_ne(v.text)}</div>
+      <div class="deal-q"><span>${_ne(i18t('ng_deal_they'))}</span>${r.theirs ? quote(theirs || '\u2014') : `<span class="deal-none">${_ne(i18t('ng_deal_not_asked'))}</span>`}
+        <span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}</div>
+      <button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button>
+    </div>`;
+  }).join('') || `<p class="deal-empty">${_ne(i18t('ng_board_f_none'))}</p>`;
+  return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}">
+    <h2 class="deal-h">${_ne(head)}<span class="deal-sub">${_ne(sub)}</span></h2>${memo}
+    <div class="deal-tabs" role="tablist" aria-label="${_nea(i18t('ng_board_list_label'))}">${tabs}</div>
+    <div class="deal-list">${list}</div>
+  </div>`;
+}
 /* ONE POINT, WHOLE. Every piece is a reading the negotiate page already
    draws somewhere — the scale (rlScaleHtml), the wording (rlChangeWordingHtml),
    the precedent sentence (rlPrecedentSay), the note count (negoNoteCounts) —
@@ -10603,6 +10674,15 @@ function rlReviewDoor(c, after){
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
+  /* ---- ON A COMPUTER THIS PAGE IS NOT DRAWN OVER ANOTHER ONE (owner, 23 Oct
+     2026: "a duplicate redline page … get rid of it") ---- every door lands on
+     Jambo's Redlines face beside Home's paper; a repaint asked while another
+     page stands (a reply landing, a save, a list's own refresh) draws nothing
+     rather than painting the Negotiate page over Home. The phone, and a
+     harness without Home's paper (no pdRedLand), are left as they were. */
+  const onComputer = typeof window !== 'undefined' && window.innerWidth >= 768 && typeof window.pdRedLand === 'function'
+    && !(typeof window.mPhone === 'function' && window.mPhone());
+  if (onComputer && window.state && state.view !== 'redline') return;
   /* ---- THE SCROLL SURVIVES THE REPAINT ----
      Saving a redline, adding a tag, answering a card — every one of them
      repaints this page whole, and a rebuilt scroller starts at the top:
@@ -10674,6 +10754,12 @@ function renderRedline(){
     if (typeof toast === 'function') toast(negoMayStartLine(c), 'warn');
     if (typeof selectContract === 'function'){ selectContract(c.id); return; }
     renderNegotiationsList(host);
+    return;
+  }
+  /* and a contract resolved here that was not asked for BY NAME (opts.page)
+     goes to the face, as openRedlineWorkbench and rlHomeTakesIt send it */
+  if (c && onComputer && String(c.id) !== _rlPageFor && pdRedLand(c.id)){
+    if (window.state) state.activeId = c.id;
     return;
   }
   if (c && window.state) state.activeId = c.id;
@@ -22340,6 +22426,16 @@ function rlHeadNotesHtml(c, opts = {}){
   const on = rlFaceNotesOn(c, opts);
   return `<button type="button" class="rl-head-notes${on ? ' is-on' : ''}" data-rl-notes-all="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t(on ? 'ng_fn_notes_on' : 'ng_chat_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg><span>${_ne(i18t('ig_line_notes'))}</span>${n ? `<b>${n}</b>` : ''}</button>`;
 }
+/* DEAL (owner, 23 Oct 2026: the Negotiate page's "Deal board" tab, brought
+   into the Redlines face beside Notes and called Deal): drawn only where the
+   host asks (Jambo's face, opts.dealDoor), our seat only; it opens the Deal
+   in the middle (pdDealOpen) and, pressed again while it stands, puts the
+   paper back */
+function rlHeadDealHtml(c, opts = {}){
+  if (!c || !opts.dealDoor || !rlHeadOurs(opts)) return '';
+  const on = typeof window.pdMidUp === 'function' && pdMidUp('deal:' + c.id);
+  return `<button type="button" class="rl-head-deal${on ? ' is-on' : ''}" data-rl-deal="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_deal_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><path d="M2 5h10M9.5 2.5 12 5 9.5 7.5M14 11H4M6.5 8.5 4 11l2.5 2.5"/></svg><span>${_ne(i18t('ng_deal'))}</span></button>`;
+}
 function rlHeadHereHtml(c, opts = {}){
   if (!c || !rlHeadOurs(opts)) return '';
   return `<span class="rl-head-here"><span class="rl-head-here-w">${_ne(i18t('ng_here_now'))}</span><span data-pz-slot="redlines"></span></span>`;
@@ -22669,7 +22765,7 @@ function rlColumnHtml(c, opts = {}){
                      under it; then Send all with Ask for review beside it.
                      One flex row that breaks (.rl-idx-br), so every part is
                      still inside .rl-idx-top where the checks look for it. */}
-              ${rlHeadNotesHtml(c, opts)}${rlHeadHereHtml(c, opts)}
+              ${rlHeadNotesHtml(c, opts)}${rlHeadDealHtml(c, opts)}${rlHeadHereHtml(c, opts)}
               <span class="rl-idx-br" aria-hidden="true"></span>
               ${rlRoundLabelHtml(c, opts)}
               <span class="rl-idx-br" aria-hidden="true"></span>
@@ -23058,7 +23154,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
-  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
+  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealTabSet, DEAL_TABS,
   dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

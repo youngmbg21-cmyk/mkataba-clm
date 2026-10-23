@@ -10053,6 +10053,38 @@
   [data-pd-mid] .pd-kt-name-in{min-width:0;width:28rem;max-width:100%;height:var(--ctl-h,32px);border:1px solid var(--accent-ink);border-radius:var(--radius);background:var(--color-surface);padding:0 8px;font:inherit;font-size:18px;color:var(--color-text)}
   [data-pd-mid] .pd-kt-rec{display:flex;flex-wrap:wrap;gap:6px 28px;margin-top:10px}
   [data-pd-mid] .pd-kt-fact{display:flex;flex-direction:column;gap:2px;min-width:0}
+  /* THE DEAL IN THE MIDDLE (owner picked "The Legora Way", 23 Oct 2026): ‹ Dossier in the head as on the
+     Obligations card; nothing boxed; one list, each point's words and yours quoted under its §; the verdict a dot */
+  [data-pd-mid] .dlg-pg-crumb .pd-trail{display:flex;align-items:center;gap:10px;min-width:0}
+  [data-pd-mid] .dlg-pg-crumb .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  [data-pd-mid] .dlg-pg-crumb .pd-back:hover{border-color:var(--accent-ink)}
+  [data-pd-mid] .dlg-pg-crumb .pd-trail-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-neutral-600)}
+  [data-pd-mid] .dlg-pg-crumb .pd-trail-w b{font-weight:var(--w-label);color:var(--color-text)}
+  [data-pd-mid] .dlg-pg-crumb .pd-trail-w i{font-style:normal}
+  [data-pd-mid] .deal-h .deal-sub{margin-left:12px;font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);white-space:nowrap}
+  /* as drawn: the middle is one white page, no sheet on the desk (Key terms and Jambo's work keep theirs) */
+  [data-pd-mid^="deal:"] .dlg-pg-body{background:var(--color-surface);padding:8px 28px 32px}
+  [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:1040px;margin:0;background:transparent;border:0;padding:0}
+  .deal-tabs{display:flex;gap:24px;border-bottom:1px solid var(--color-divider);margin-top:12px}
+  .deal-tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:0 0 10px;font:inherit;font-size:var(--t-body);color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  .deal-tab[aria-selected="true"]{color:var(--color-text);font-weight:var(--w-strong);border-bottom-color:var(--color-text)}
+  .deal-tab b{margin-left:5px;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
+  .deal-it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 24px;padding:16px 0;border-bottom:1px solid var(--color-divider)}
+  .deal-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:var(--w-strong)}
+  .deal-sec{margin-right:6px;font-family:var(--font-title)}
+  .deal-vd{justify-self:end;display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);white-space:nowrap;color:var(--color-neutral-600)}
+  .deal-vd i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--rule-strong)}
+  .deal-vd.db-vd-std,.deal-vd.db-vd-in{color:var(--st-green-fg)}
+  .deal-vd.db-vd-std i,.deal-vd.db-vd-in i{background:var(--st-green-fg)}
+  .deal-vd.db-vd-agreed i{background:var(--color-text)}
+  .deal-vd.db-vd-out{color:var(--st-ruby-fg)}
+  .deal-vd.db-vd-out i{background:var(--st-ruby-fg)}
+  .deal-q{grid-column:1;min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;gap:2px 12px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .deal-q em{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font-family:var(--font-doc);font-size:14px;color:var(--color-text)}
+  .deal-none{color:var(--color-neutral-500)}
+  .deal-go{grid-column:2;grid-row:2;align-self:end;justify-self:end;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .deal-go:hover{text-decoration:underline}
+  .deal-empty{padding:16px 0;color:var(--color-neutral-600)}
   [data-pd-mid] .pd-kt-fact > span{font-size:12px;color:var(--color-neutral-600)}
   [data-pd-mid] .pd-kt-fact > b{font-weight:var(--w-label);font-size:13.5px;color:var(--color-text);white-space:nowrap}
   [data-pd-mid] .pd-kt-file .pd-kt-cat{color:var(--color-neutral-600)}
@@ -16314,6 +16346,7 @@
      piles are labels over their rows, the risk cards under them unboxed */
   #ig-dock .redline-page .rl-idx-title{font-family:var(--font-title);font-size:18px;line-height:24px;font-weight:var(--w-title-serif)}
   #ig-dock .redline-page .rl-idx-top > .rl-head-notes{order:8}
+  #ig-dock .redline-page .rl-idx-top > .rl-head-deal{order:9}
   #ig-dock .redline-page #rl-changes:has(> .rl-pile){padding:0 var(--jb-g) 16px}
   #ig-dock .redline-page .rl-pile{border:0;border-radius:0;background:transparent;margin:0;overflow:visible}
   #ig-dock .redline-page .rl-pile > .rl-band, #ig-dock .redline-page .rl-pile > .rl-band:first-child{padding:0;margin:24px 0 8px;background:transparent;border:0;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}

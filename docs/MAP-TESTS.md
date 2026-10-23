@@ -196,6 +196,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f705 (the jw row's door).
+- deal-in-the-middle-verify (23 Oct 2026: Deal in the Redlines face at the three screens; the deal in the middle, Needs you lit, rows quoted under their §; All; ‹ Dossier and Esc back to the Dossier; Deal again and Open clause keep Redlines). Red at the parent (10 of 11).
 
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
 - 21 Oct 2026 (overnight): where-we-are-verify 10a (the journey on the page's line; .ds-st spine rules scoped to .ds-spine).
@@ -235,6 +236,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## NEGOTIATE — FOLDED INTO HOME, AND ITS PAGE (the engine)
 - 21 Oct 2026 (overnight): f36-negotiation-tab (--n-del-fg is --st-ruby-fg, about 7:1).
 - f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline, parity, negotiations-door, focus-*, edit-clause-door, negotiate-as-drawn verify.
+- deal-in-the-middle-verify 8 (23 Oct 2026: a stray renderRedline paints no Negotiate page over Home; at the parent it did). one-copilot-editor-verify re-pointed to the face (it relied on that stray repaint).
 
 ## THE TRACKED-CHANGES COLUMN
 - f37, f93, f246, f570 (2), f674, f711, f734, f756, f759, redline, flat-rows-and-alerts, send-after-refusal, copilot-answer-on-paper, redlines-beside-the-paper, piles, piles-as-drawn verify.
@@ -247,6 +249,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## EDIT WITH COPILOT — THE CLAUSE EDITOR (js/views/clauseeditor.js)
 - f245, f249, f250, f287, f289, f304, f505, f508, f523, f537, f640, f756 8j, f759 (5), clause-editor, clause-door, one-copilot-editor verify.
+- File / Save prominent (23 Oct 2026): deal-in-the-middle-verify 10; one-copilot-editor-verify 5a/5b re-pointed (rows read by their middles; ‹ › small, Save ≥30 tall and ≥110 wide).
 
 ## NOTES AND COMMENTS
 - f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments, notes-two-rooms verify.
@@ -291,6 +294,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js)
 - WHY FIRST (21 Oct 2026): f506 (C) and f522 (6) re-pointed; `risk-card-titles-verify.js`, `one-door-for-edits-verify.js`.
 - f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify.
+- Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.

@@ -1241,7 +1241,8 @@ function pdRedOpts(c){
   /* …and no review banner over the head for what is out with a colleague:
      the "Out for review" pile says it, with Remind and Cancel on its head
      (waitingInPile, round 9's gaps, third pass) */
-  return Object.assign({}, base, { cpPanel: false, noProgress: true, waitingInPile: true });
+  /* …and the Deal button beside Notes (owner, 23 Oct 2026: the Negotiate page's Deal board, simpler, in the middle) */
+  return Object.assign({}, base, { cpPanel: false, noProgress: true, waitingInPile: true, dealDoor: true });
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -1292,6 +1293,7 @@ function pdRedScrollOf(){
 /* the host's repaint: the paper (its marks moved) and the face, same spot */
 function pdRedRepaint(){
   if (!pdRedShows()) return;
+  if (pdMidUp('deal:' + _pdRed)) pdDealRepaint();
   const top = pdRedScrollOf();
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   _pdRedTop = top;
@@ -4431,6 +4433,48 @@ function pdKtMid(id, key){
   }, 0);
   return true;
 }
+/* ---- THE DEAL IN THE MIDDLE (owner picked "The Legora Way", 23 Oct 2026) ----
+   The Redlines face's Deal button (rlHeadDealHtml) brings the deal, as the
+   Negotiate page's board read it (dealViewHtml), to where the paper was, beside
+   the panel. Its way back is "‹ Dossier" in its head, as on the Obligations
+   card: the middle closes and the panel returns to the Dossier; Esc and the
+   bar's ‹ do the same. Deal pressed again, or a point's "Open clause", closes
+   it and keeps the Redlines face (the clause then lit on the paper). */
+let _pdDealStay = false;
+function pdDealCrumbHtml(){
+  const dos = _pdT('pd_tab_dossier');
+  return (typeof jamboTrailHtml === 'function')
+    ? jamboTrailHtml({ back: 'deal', up: dos, path: [dos, _pdT('pd_face_w_red'), _pdT('ng_deal')], attr: 'data-pd-deal-back' }, { inHead: true }) : '';
+}
+function pdDealOpen(id){
+  const mk = 'deal:' + String(id);
+  if (pdMidUp(mk)){ _pdDealStay = true; return pdMidClose(); }
+  const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdMidMay() || typeof dealViewHtml !== 'function') return false;
+  const word = _pdT('ng_deal');
+  openModal(dealViewHtml(c, 'owner'), { maxWidth: 'none', label: word, page: Object.assign(pdMidPage(word), { crumb: '', crumbHtml: pdDealCrumbHtml(), acts: ['deal-memo'] }),
+    onClose: () => { const stay = _pdDealStay; _pdDealStay = false; pdMidOff();
+      if (!stay && _pdRed === String(id)) pdRedClose(); else pdRedRepaint(); } });
+  pdMidOn(mk);
+  pdRedRepaint();
+  return true;
+}
+/* drawn again from the record while it stands (a decision taken in the panel beside it) */
+function pdDealRepaint(){
+  if (typeof document === 'undefined' || typeof dealViewHtml !== 'function') return;
+  const root = document.querySelector('#modal-root [data-deal-mid]'); if (!root) return;
+  const c = (typeof getContract === 'function') ? getContract(root.getAttribute('data-deal-mid')) : null; if (!c) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = dealViewHtml(c, 'owner');
+  const now = tmp.querySelector('[data-deal-mid]'); if (!now) return;
+  [['.deal-tabs'], ['.deal-list']].forEach(([s]) => { const a = root.querySelector(s), b = now.querySelector(s); if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; });
+  const h = document.querySelector('#modal-root [data-dlg-page] .deal-h'), h2 = now.querySelector('.deal-h');
+  if (h && h2 && h.innerHTML !== h2.innerHTML) h.innerHTML = h2.innerHTML;
+}
+/* a point's "Open clause ›": the middle shuts, the face stays, the clause lit on the paper */
+function pdDealGoClause(id, gid){
+  const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return;
+  _pdDealStay = true; pdMidClose();
+  if (typeof rlBoardGoOnHome === 'function') rlBoardGoOnHome(c, gid);
+}
 /* the table in the middle drawn again from the record (never under a hand, unless asked) */
 function pdKtMidRepaint(force){
   const host = document.querySelector('[data-pd-mid-kt] #pd-kt'); if (!host) return;
@@ -5385,6 +5429,14 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const back = t.closest('[data-pd-back]');
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
     if (t.closest('[data-pd-send-back]')){ e.preventDefault(); pdSendBack(); return; }
+    /* THE DEAL (owner, 23 Oct 2026): the face's button, its tabs, a point's clause, its way back */
+    const dl = t.closest('[data-rl-deal]');
+    if (dl){ e.preventDefault(); pdDealOpen(dl.getAttribute('data-rl-deal')); return; }
+    const dt = t.closest('[data-deal-tab]');
+    if (dt){ e.preventDefault(); if (typeof dealTabSet === 'function') dealTabSet(dt.getAttribute('data-deal-tab')); pdDealRepaint(); return; }
+    const dgo = t.closest('[data-deal-open]');
+    if (dgo){ e.preventDefault(); const h = dgo.closest('[data-deal-mid]'); if (h) pdDealGoClause(h.getAttribute('data-deal-mid'), dgo.getAttribute('data-deal-open')); return; }
+    if (t.closest('[data-pd-deal-back]')){ e.preventDefault(); pdMidClose(); return; }
     if (t.closest('#ig-dock [data-pd-talk]')){ e.preventDefault(); if (pdTalkShows()) pdTalkBack(); else pdTalkReopen(); return; }
     /* "all N": Home's Needs you, landed on (hbNeedsOpen → landOn) */
     if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof hbNeedsOpen === 'function') hbNeedsOpen(); else if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
@@ -5401,9 +5453,11 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       if (typeof myNotesOpen === 'function') myNotesOpen(nid);
       if (nid && typeof landOn === 'function') landOn(() => document.querySelector(`[data-mn-row="${CSS.escape(nid)}"]`), { block: 'nearest', focus: false });
       return; }
-    if (t.closest('[data-pd-gl-risks]')){ e.preventDefault(); const cc = pdContract(); const full = cc && ((typeof getContract === 'function' && getContract(cc.id)) || cc);
-      let first = null; try { first = (full && typeof riskOpenOf === 'function') ? riskOpenOf(full)[0] : null; } catch (_){ first = null; }
-      if (first && typeof riskEditStart === 'function') riskEditStart(full, first.key); return; }
+    /* Risks to look at › Open: the Redlines face, landed ON its "Risks to look at" list (owner,
+       23 Oct 2026; it opened the clause editor on the first risk) — the list's own Edit opens a risk */
+    if (t.closest('[data-pd-gl-risks]')){ e.preventDefault(); const cc = pdContract(); if (!cc) return;
+      if (pdRedOpen(cc.id) && typeof landOn === 'function') landOn('#ig-dock #rl-risks', { block: 'start', focus: false });
+      return; }
     const gg = t.closest('[data-pd-gl-go]');
     if (gg){ e.preventDefault(); pdGlGoTo(gg.getAttribute('data-pd-gl-go')); return; }
     /* Read it: the press that spends — the Clauses tab's own deep read
@@ -6113,7 +6167,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

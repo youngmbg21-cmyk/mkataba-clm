@@ -21492,3 +21492,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - "what now" and "vad nu" are listed as the next-steps card's own phrases, but `caPlaceOf` strips a trailing "now"/"nu" first, so they never match the card.
 - `home-speed-verify` 2 (the second Explorer arrival's longest freeze under half of the first's) has a thin margin on GitHub's runner. There the first arrival is ~270 ms, so the second must be under ~135 ms, while main's second arrival measures 128–209 ms with GitHub's headless shell. The longest task is a forced layout of the whole page: `igTurnFace` → `updateIntelNote` → `igNoteMeasure` → `getBoundingClientRect` straight after the face's writes. It went red twice on youngmbg21-cmyk/mkataba-clm#434 (52cc4e1), with identical timings on main.
 - Noticed, not fixed (23 Oct 2026, Spine round): chambers-verify 3d "the bell's count is the ink, not amber" reads null — red at unmodified main too (no bell count drawn in its stage); left red.
+
+## Noticed, not fixed — 23 Oct 2026 (Deal in the middle, the duplicate Negotiate page)
+- The Board's own "Deal board" view (Your book · Deal board · Obligations · History, `hbCvPaint` → `dealBoardHtml`, also `pdOpenOnHome(id,'deal')`) still draws the old deal inspector, so the deal has two looks: the Board's and the new Deal in the middle (`dealViewHtml`). Both read `dealBoardFacts`, so the numbers agree; the look does not. Not asked; told to the owner.
+- CLAUDE.md is about 82 KB, over its own "about 80 KB" line; a trim needs the owner's yes.

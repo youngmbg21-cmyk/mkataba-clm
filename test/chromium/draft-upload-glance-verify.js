@@ -291,16 +291,16 @@ const pastFirstWords = async page => {
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);
     const rkRow = await page.evaluate(() => { const r = document.querySelector('#pd-glance [data-pd-ds="risks"] .ds-val'); return r ? Number((/^\d+/.exec(r.textContent.trim()) || [0])[0]) : 0; });
-    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026; red on lane C2 alone): round
-       9 as drawn leaves the Redlines face beside Home's paper with nothing
-       under its piles, so the risks row's door is where the risks ARE listed —
-       the clause editor's Risks tab, on the first open one — and its count is
-       the row's number. Pressed, never called; a missing door is reported. */
+    /* RE-POINTED (owner, 23 Oct 2026: "when you press on risk to look at it
+       should take you to where risks are … and place you there"): the risks
+       row's door opens the Redlines face beside the paper, landed on its
+       "Risks to look at" list, whose count is the row's number. Pressed, never
+       called; a missing door is reported. */
     const rkPressed = await page.click('#pd-glance [data-pd-gl-risks]', { timeout: 3000 }).then(() => true).catch(() => false);
-    await waitFor(page, () => !!document.getElementById('ce-tab-risks'), 8000);
-    const rkFace = await page.evaluate(() => { const n = document.getElementById('ce-rk-n'); const tab = document.getElementById('ce-tab-risks');
-      return { tab: !!tab, n: n && n.style.display !== 'none' ? Number(n.textContent || 0) : 0 }; });
-    check('6g the risk count on the glance is the count its door lists (the clause editor\'s Risks tab)', rkPressed && rkFace.tab && rkRow > 0 && rkRow === rkFace.n, { pressed: rkPressed, glance: rkRow, editor: rkFace });
+    await waitFor(page, () => { const r = document.querySelector('#ig-dock #rl-risks'); return !!(r && r.classList.contains('is-landed')); }, 8000);
+    const rkFace = await page.evaluate(() => { const r = document.querySelector('#ig-dock #rl-risks');
+      return { list: !!r, landed: !!(r && r.classList.contains('is-landed')), n: r ? r.querySelectorAll(':scope > .rk-row[data-rk-key]:not(.is-gone)').length : 0, editor: !!document.querySelector('#clause-editor') }; });
+    check('6g the risk count on the glance is the count its door lands on (the Redlines face\'s Risks to look at)', rkPressed && rkFace.list && rkFace.landed && !rkFace.editor && rkRow > 0 && rkRow === rkFace.n, { pressed: rkPressed, glance: rkRow, face: rkFace });
     await page.evaluate(() => { if (typeof rlCloseClauseEditor === 'function') try { rlCloseClauseEditor(); } catch (_){} });
     await page.waitForTimeout(400);
     /* an executed contract: signing is behind it */
