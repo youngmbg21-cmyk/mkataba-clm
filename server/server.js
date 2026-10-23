@@ -3071,10 +3071,20 @@ function aiRates() {
   return out;
 }
 const aiRatesEdited = () => !!getSetting('aiRates');
+/* A DATED MODEL ID IS PRICED AS ITS MODEL (owner, 23 Oct 2026: "yes" to fixing the meter). The fast
+   tier's default is `claude-haiku-4-5-20251001` while the table names `claude-haiku-4-5`; an exact-only
+   lookup fell through to 'default' ($10/$50), so every fast call was booked at about ten times its price.
+   An exact row still wins (an admin may price a dated id on its own); else the id without its date. The
+   browser's twin is migAiRate (js/views/migration.js). */
+const AI_MODEL_DATE_RE = /-\d{8}$/;
+function aiRateFor(rates, model) {
+  const m = String(model || '');
+  return rates[m] || rates[m.replace(AI_MODEL_DATE_RE, '')] || rates['default'] || AI_RATE_DEFAULTS['default'];
+}
 // Price one Anthropic response's usage block. Returns USD.
 function priceUsage(model, usage) {
   const rates = aiRates();
-  const r = rates[model] || rates['default'] || AI_RATE_DEFAULTS['default'];
+  const r = aiRateFor(rates, model);
   const u = usage || {};
   const inT = Number(u.input_tokens || 0);
   const outT = Number(u.output_tokens || 0);
@@ -8053,6 +8063,9 @@ const boardAnalystHandler = async (req, res) => {
   if (!question) return res.status(400).json({ error: 'question is required' });
   const guide = String(b.guide || '').slice(0, 6000), board = String(b.board || '').slice(0, 4000);
   const story = String(b.story || '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').slice(0, BOARD_ANALYST_STORY_MAX);
+  /* DIG DEEPER ON ONE CARD (owner, 23 Oct 2026: one press with What could
+     explain this?): the card's own fact sheet goes with the question */
+  const chart = story ? '' : String(b.chart || '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').slice(0, BOARD_ANALYST_RESULT_MAX);
   const maxSteps = story ? BOARD_ANALYST_STORY_STEPS : BOARD_ANALYST_STEPS;
   const steps = (Array.isArray(b.steps) ? b.steps : []).slice(0, maxSteps).map(s => {
     if (!s || typeof s !== 'object' || !['calculate', 'pack'].includes(s.name)) return null;
@@ -8079,7 +8092,7 @@ const boardAnalystHandler = async (req, res) => {
   ];
   const lang = String(b.lang || '').replace(/[^\p{L} ]/gu, '').slice(0, 30) || 'English';
   const storyJob = story ? `\nThis is DIG DEEPER on a story already on the board; its chapters and their fact sheets are below. Find out WHY the story looks the way it does: put forward an idea (what drove it, who drove it, what helped), test it with one calculation, and keep going with the next idea. Take at most ${maxSteps} steps, usually six to ten. In finish: summary says why, in three to five sentences; chapters are the steps that explain it (each a step number, a short title and two or three sentences); watch lists what is coming up that the reader should act on, each tied to the step whose contracts it names; aside lists the ideas that did not hold and why. In the summary, the chapters and watch, ${BOARD_SAY_RULE}\n\nTHE STORY:\n${story}\n` : '';
-  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${maxSteps} steps — ${story ? 'as many as the story needs' : 'usually two or three'} — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\n${AI_GOVERNANCE_RULE}\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}${storyJob}\nThe reader's question: "${question}"`;
+  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${maxSteps} steps — ${story ? 'as many as the story needs' : 'usually two or three'} — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\n${AI_GOVERNANCE_RULE}\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}${storyJob}${chart ? `\nThe reader pressed Dig deeper on ONE card of the board. Find out what could explain what it shows and what is worth checking next; do not repeat what its fact sheet already says.\n\nTHE CARD:\n${chart}\n` : ''}\nThe reader's question: "${question}"`;
   const messages = [{ role: 'user', content: prompt }];
   steps.forEach((s, n) => {
     const id = 'step_' + n;
@@ -12979,6 +12992,38 @@ const COPILOT_EMPTY_ANSWER = "I couldn't finish an answer to that one. Try a sma
    search finds are offered as 2-4 doors, with a retry (copilotWayForward). */
 /* said as HaTi's, never the person's: a bare "Call deliver_answer now" after their question was read as their words ("You've asked me to call deliver_answer, but there's no question", stage 3d) */
 const COPILOT_NUDGE = '[From HaTi, not the person] Answer the person\'s question above. Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
+/* ---- A QUESTION OF JUDGEMENT IS WEIGHED BY THE STRONGER MODEL (owner, 23 Oct 2026: "yes" to
+   moving Jambo's judgement questions to the stronger model, the cost shown) ----
+   The chat ran every question on the FAST tier and only stepped up once compare_contracts had run,
+   so "is this indemnity fair to us?" or "what happens if they terminate early?" was weighed by the
+   model meant for sorting and lookups. A question that asks for advice, risk, meaning, drafting or a
+   comparison now runs on the DEEP tier from its first step; finding, counting and opening stay fast.
+   Read WITHOUT AI off the person's own words (the last message, so a long whole-contract prompt is
+   read by its question too). Where an admin pinned one model for both tiers there is nothing
+   stronger to step up to, and the answer says nothing about it. */
+const COPILOT_JUDGE_RE = new RegExp([
+  /* English: advice, risk, meaning, drafting, comparison (not "counterparty", not "my drafts") */
+  String.raw`\b(should|shall) (i|we|they)\b`, String.raw`\b(advi[cs]e|recommend\w*|suggest\w*|opinion|assess\w*|evaluat\w*|judg\w*)\b`,
+  String.raw`\b(risk\w*|danger\w*|exposure|exposed|liab\w*|indemn\w*|breach\w*|penalt\w*|enforce\w*|loophole\w*|ambigu\w*|unfair|fair|reasonable|favou?rable|one[- ]sided|protect\w*|safe to|ok(ay)? to sign)\b`,
+  String.raw`\b(negotiat\w*|push back|counter-?(offer|propos)\w*|rewrite|re-?word\w*|rephrase\w*|draft (a|an|the|me|us|some)|write (a|an|me|us) (clause|counter|reply|response|letter|email)|improve|strengthen|tighten|soften)\b`,
+  String.raw`\b(explain\w*|why|interpret\w*|implication\w*|consequence\w*|what does .{1,80} mean|what happens (if|when)|what if)\b`,
+  String.raw`\b(compar\w*|versus|vs\.?|differ\w*|better|worse|weakest|strongest|market standard)\b`,
+  /* Swedish: the same questions in the other book's words */
+  String.raw`(?<!\p{L})(borde|bör|ska (jag|vi)|råd\p{L}*|rekommender\p{L}*|föreslå\p{L}*|bedöm\p{L}*|risk\p{L}*|ansvarsbegräns\p{L}*|skadestånd\p{L}*|vite\p{L}*|rimlig\p{L}*|skälig\p{L}*|förhandl\p{L}*|motbud\p{L}*|skriv om|formulera om|förklara\p{L}*|varför|vad betyder|vad händer om|jämför\p{L}*|skillnad\p{L}*|bättre|sämre|skydd\p{L}*)(?!\p{L})`,
+].join('|'), 'iu');
+function copilotNeedsJudgement(question) {
+  return COPILOT_JUDGE_RE.test(String(question || '').slice(-1200));
+}
+/* the step up is real only where the deep tier is another model */
+const copilotDeepDiffers = () => aiModelForTier('deep') !== aiModelForTier('fast');
+/* WHAT THE STRONGER MODEL COST, said on the answer: the turn's own booked spend (the same
+   recordAiSpend figures the budget page adds), the dollars to an admin only — money is the
+   company's, and /api/ai/spend is an admin's page */
+function copilotDeepOf(req, cost) {
+  const out = { model: aiModelForTier('deep') };
+  if (req.user && req.user.role === 'admin') out.cost = Math.round(Number(cost || 0) * 10000) / 10000;
+  return out;
+}
 function copilotNudge(working, words) {
   const say = words || COPILOT_NUDGE;
   /* an empty assistant turn is not sent back; the nudge rides the last user turn (a tool result) or stands alone */
@@ -13379,17 +13424,22 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  /* a question of judgement is weighed by the stronger model from its first step (copilotNeedsJudgement) */
+  const judge = copilotNeedsJudgement(question) && copilotDeepDiffers();
+  let turnCost = 0, wentDeep = false;
   const turn = { read: new Map(), list: null };
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) });
+      const resp = await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) });
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
         return res.status(502).json({ error: err, kind: 'provider' });
       }
       usedModel = resp.model || usedModel;
+      turnCost += Number((resp.spend && resp.spend.cost) || 0);
+      if ((compared || judge) && copilotDeepDiffers()) wentDeep = true;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
       if (resp.truncated) truncated = true;
       const content = resp.data.content || [];
@@ -13435,7 +13485,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Jambo request failed: ' + e.message });
@@ -13718,6 +13768,9 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  /* a question of judgement is weighed by the stronger model from its first step (copilotNeedsJudgement) */
+  const judge = copilotNeedsJudgement(question) && copilotDeepDiffers();
+  let turnCost = 0, wentDeep = false;
   const turn = { read: new Map(), list: null };
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
@@ -13726,7 +13779,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          route comment above) — progress events flow, the answer arrives
          whole in `final`. To re-enable, pass
          onToken: text => { if (text) send('token', { text }); } */
-      const resp = await anthropicMessagesStream(key, compared ? 'deep' : 'fast',
+      const resp = await anthropicMessagesStream(key, (compared || judge) ? 'deep' : 'fast',
         { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) },
         { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal });
@@ -13737,6 +13790,8 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         return res.end();
       }
       usedModel = resp.model || usedModel;
+      turnCost += Number((resp.spend && resp.spend.cost) || 0);
+      if ((compared || judge) && copilotDeepDiffers()) wentDeep = true;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
       if (resp.truncated) truncated = true;
       const content = resp.data.content || [];
@@ -13780,7 +13835,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {

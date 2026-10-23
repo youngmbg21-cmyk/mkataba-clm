@@ -3,7 +3,7 @@
    The navigation exam's readers (test/chromium/nav-exam-verify.js), shared
    with the Jambo exam (test/chromium/jambo-exam-measure.js) so both judge a
    landing the same way. Moved here unchanged, 22 Oct 2026. */
-/* global state, hbS, pdContract, pdTab, pdFaceNow, pdSendShows, hbCvNow, regPlaceUp, regFiltered, regScope, insSelected,
+/* global state, hbS, pdContract, pdTab, pdFaceNow, pdSendShows, hbCvNow, regPlaceUp, regFiltered, regScope, insSelected, panelFace, regState,
    settingsTab, settingsPlace, SET_PANELS, obwPlace, intel, ai, tplPlace, tplPfChosen, tplOverviewData,
    mPhone, mS, bsCardId, bsStrip, pdSendFor, deskPageName */
 const { navContracts, quarterEnd } = require('./nav-world');
@@ -108,6 +108,22 @@ function navWhereSrc(){
     if (!S.row && youCard) S.row = (youCard.closest('[data-st-you-card]') || youCard).getAttribute('data-st-you-card');
     W.settings = S;
   }
+  /* WHAT ELSE STANDS ON THE SCREEN (the door exam, 23 Oct 2026): a dialog a door opened, the slide-out panel's
+     face, Key terms in the middle, a Dossier line opened, a line landed, the strip's page, the archive, Present,
+     Recent, Explorer's Findings, the watch list, a new tab opened (window.__popups, counted by the exam) */
+  W.dialog = document.querySelector('#sr-say') ? 'signers' : document.querySelector('#cn-code') ? 'codename' : document.querySelector('#pd-ppl') ? 'people' : null;
+  W.panel = (state.panelOpen && typeof panelFace === 'function') ? panelFace() : null;
+  W.kt = !!document.querySelector('[data-pd-kt-file]');
+  W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold')).join(',') || null;
+  { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null; }
+  { const id = (typeof bsCardId === 'function') ? bsCardId() : null, st = id && typeof bsStrip === 'function' ? bsStrip(id) : null; W.strip = st ? (st.page || 'ov') : null; }
+  try { W.archived = typeof regState === 'function' && regState().view === 'archived'; } catch (_){ W.archived = false; }
+  W.present = !!document.querySelector('.hb-presenting');
+  { const r = document.getElementById('dk-recent'); W.recent = !!(r && r.getClientRects().length); }
+  W.fdTab = !!(typeof intel === 'object' && intel && intel.fdTab);
+  { const H2 = [].concat((typeof ai === 'object' && ai && ai.history) || [], (typeof intel === 'object' && intel && intel.history) || []);
+    W.watchList = H2.some(m => m && m.watchList); }
+  W.popups = Number(window.__popups || 0);
   /* what he SAID, when he did not move: the last assistant turn of the one conversation */
   const H = (typeof ai === 'object' && ai && Array.isArray(ai.history)) ? ai.history : ((typeof intel === 'object' && intel && intel.history) || []);
   const last = [...H].reverse().find(m => m && m.role === 'assistant');
@@ -121,7 +137,7 @@ function navWhereSrc(){
 
 /* DOES THE APP STAND WHERE THE SENTENCE SAID — every part of the spot */
 const PAGE_ALIAS = { people: ['team', 'directory'], streams: ['streams', 'folders'], approvals: ['approvals', 'rules'], ai: ['copilot', 'engine'],
-  links: ['linkcode'], review: ['review'], desk: ['desk'], fx: ['company', 'fx'], filing: ['company', 'filing', 'folders'], keeping: ['streams', 'keeping'] };
+  links: ['linkcode'], review: ['review'], desk: ['desk'], fx: ['company', 'fx'], filing: ['company', 'filing', 'folders'], keeping: ['streams', 'keeping'], backup: ['backup', 'data'] };
 function judge(spot, W, before){
   const why = [];
   if (spot.reply){
@@ -133,6 +149,11 @@ function judge(spot, W, before){
     return why;
   }
   if (spot.page && W.page !== spot.page) why.push(`page ${W.page} ≠ ${spot.page}`);
+  /* the door exam's own parts of a spot (each true only where the app itself draws it) */
+  for (const k of ['dialog', 'panel', 'strip', 'landedDs']) if (spot[k] && W[k] !== spot[k]) why.push(`${k} ${W[k] || '—'} ≠ ${spot[k]}`);
+  for (const k of ['kt', 'archived', 'present', 'recent', 'fdTab', 'watchList']) if (spot[k] && !W[k]) why.push(`${k} not shown`);
+  if (spot.fold && !String(W.fold || '').split(',').includes(spot.fold)) why.push(`fold ${W.fold || '—'} ≠ ${spot.fold}`);
+  if (spot.popup && !(W.popups > (before.popups || 0))) why.push('no new tab opened');
   if (spot.cid && W.cid !== spot.cid) why.push(`contract ${W.cid || '—'} ≠ ${spot.cid}`);
   if (spot.pane && W.pane !== spot.pane) why.push(`beside ${W.pane || '—'} ≠ ${spot.pane}`);
   if (spot.clause && W.clause !== spot.clause) why.push(`clause ${W.clause || '—'} ≠ ${spot.clause}`);

@@ -178,9 +178,10 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
         if (!row) return null;
         row.scrollIntoView({ block: 'center' });
         const hit = el => { if (!el) return false; const r = el.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + r.height / 2; const e = document.elementFromPoint(x, y); return !!(e && (e === el || el.contains(e))); };
-        return { sev: hit(row.querySelector('.rk-sev')), why: hit(row.querySelector('.rk-why-btn')) };
+        /* RE-POINTED 23 Oct 2026 (owner: no Hide why): the reason itself is painted, open */
+        return { sev: hit(row.querySelector('.rk-sev')), why: hit(row.querySelector('.rk-why')) };
       }, kDeliv);
-      check(!!(painted && painted.sev && painted.why), `1c (${width}) severity and Why are painted on a long-title card`, JSON.stringify(painted));
+      check(!!(painted && painted.sev && painted.why), `1c (${width}) severity and the open reason are painted on a long-title card`, JSON.stringify(painted));
     }
     await page.setViewportSize({ width: 1366, height: 900 });
     await page.evaluate(() => { if (document.getElementById('view-redline') && window.renderRedline) renderRedline(); });
@@ -236,10 +237,11 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
         const row = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"]');
         const cl = [...document.querySelectorAll('#view-redline #rl-doc [data-clause]')].find(x => /Termination/.test(x.textContent));
         const cs = cl ? getComputedStyle(cl) : null;
-        return { linked: !!(row && row.classList.contains('is-linked')), ring: row ? getComputedStyle(row).boxShadow : '',
+        return { linked: !!(row && row.classList.contains('is-linked')), ring: row ? getComputedStyle(row).boxShadow : '', bg: row ? getComputedStyle(row).backgroundColor : '',
           outline: cs ? (cs.outlineStyle === 'none' || cs.outlineWidth === '0px') : true };
       }, kTerm);
-      check(ring.linked && ring.ring && ring.ring !== 'none', '4c the card wears the faint ring (is-linked)', ring.ring);
+      /* RE-POINTED 23 Oct 2026 (owner: "remove the outline around the card"): the pressed card is shaded, never ringed */
+      check(ring.linked && ring.ring === 'none' && ring.bg !== 'rgba(0, 0, 0, 0)', '4c the card is shaded (is-linked), no ring', ring.ring + ' · ' + ring.bg);
       check(ring.outline, '4d the paper draws no outline on the clause');
       await shot(page, '3-went-to-its-clause.png');
 
@@ -247,10 +249,10 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       /* the press above scrolls smoothly; read the paper once it has come to rest (bounded) */
       let top0 = await page.evaluate(`(${scroller})().scrollTop`);
       for (let i = 0; i < 20; i++){ await new Promise(r => setTimeout(r, 150)); const t = await page.evaluate(`(${scroller})().scrollTop`); if (t === top0) break; top0 = t; }
-      await page.evaluate(k => document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] [data-rk-act="why"]').click(), kPapers);
-      await new Promise(r => setTimeout(r, 500));
+      /* RE-POINTED 23 Oct 2026 (owner: "delete the hide why feature"): there is no Why press left to move the paper */
+      const whyPress = await page.evaluate(k => !!document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] [data-rk-act="why"]'), kPapers);
       const top1 = await page.evaluate(`(${scroller})().scrollTop`);
-      check(Math.abs(top1 - top0) < 2, '4e Why does not move the paper', `${top0} → ${top1}`);
+      check(!whyPress && Math.abs(top1 - top0) < 2, '4e no Why press on the card, and the paper stays where it came to rest', `${top0} → ${top1}`);
 
       /* Enter on the focused head of the delivery risk */
       await page.evaluate(() => { document.querySelectorAll('.anchor-flash').forEach(n => n.classList.remove('anchor-flash')); });

@@ -277,7 +277,8 @@ function migAiRate(tier){
   const c=state.aiCfg||{};
   const model=(c.models&&c.models[tier])||'';
   const rates=c.rates||{};
-  return rates[model]||rates['default']||{in:10,out:50};
+  /* a dated id is priced as its model, as the server's aiRateFor does */
+  return rates[model]||rates[String(model).replace(/-\d{8}$/,'')]||rates['default']||{in:10,out:50};
 }
 // A page of a contract is roughly 1,800 characters of text; a PDF page is
 // roughly 40 KB on disk. Both are rules of thumb — the estimate says so.
