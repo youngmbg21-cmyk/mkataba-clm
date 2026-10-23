@@ -117,7 +117,10 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
     const al = await page.evaluate(box => ({
       panel: eval(box)('#context-panel'), title: eval(box)('#panel-title'),
       body: (document.getElementById('panel-body') || {}).textContent,
-      face: panelFace(), rows: document.querySelectorAll('[data-alert-i]').length,
+      /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the Needs you tab draws the one desk's
+         own rows, one per row of the reading (a bundle is one row counting its contracts) */
+      face: panelFace(), rows: document.querySelectorAll('#panel-body .nd-pan .nd-r').length,
+      want: (() => { const D = ndRead(); return D.jambo.length + D.you.length; })(),
       panels: document.querySelectorAll('#context-panel').length,
     }), BOX);
     check('pressing the bell SWAPS the content rather than opening a second panel',
@@ -128,17 +131,23 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       `${act.panel.w}x${act.panel.h} at ${act.panel.x} → ${al.panel.w}x${al.panel.h} at ${al.panel.x}`);
     check('the panel SAYS which it is showing', /Alerts/i.test(al.title.text || ''), al.title.text);
     check('and its scope is the person, not the workspace',
-      /waiting on you/i.test(al.body || '') && !/whole workspace/i.test(al.body || ''),
+      /Needs you/.test(al.body || '') && !/whole workspace/i.test(al.body || ''),
       (al.body || '').slice(0, 60));
     check('the contents genuinely differ', al.body !== act.body);
-    check('and every alert is a row you can press', al.rows === some.n, `${al.rows} rows`);
+    check('and every alert is a row you can press', al.rows > 0 && al.rows === al.want, `${al.rows} rows of ${al.want}`);
     await page.screenshot({ path: path.join(OUT, '02-alerts.png') });
 
     /* ---- 4. AN ALERT IS A DOOR ---- */
-    await page.evaluate(() => {
-      const b = [...document.querySelectorAll('[data-alert-kind="negotiation"]')][0];
-      if (b) b.click();
-    });
+    /* the negotiation's row: the bell's own (its door) or, once the desk has gone quiet, the checklist's */
+    const via = await page.evaluate(id => {
+      const b = document.querySelector(`#panel-body [data-nd-al^="al:negotiation:${id}:"], #panel-body [data-cn-need="quiet"][data-cn-id="${id}"]`);
+      if (b){ b.click(); return 'row'; }
+      /* or Jambo's answer to it: Look opens the piece on the Board, its "Answer on Redlines" the face */
+      const l = document.querySelector(`#panel-body [data-nd-look="answer:${id}"]`);
+      if (l){ l.click(); return 'look'; }
+      return null;
+    }, cid);
+    if (via === 'look'){ await page.waitForTimeout(1200); await page.click('#hm-agents .nd-br.is-look [data-ag-act="nego"]').catch(() => {}); }
     await page.waitForTimeout(1600);
     /* ---- WALKING PAST THE FIELDS QUESTION (17 Sep 2026) ----
        An alert row is a door onto the negotiation, so since the owner's

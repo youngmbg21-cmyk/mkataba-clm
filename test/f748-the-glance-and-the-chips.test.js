@@ -77,6 +77,8 @@ function glance({ asks = [ask('a', '7. Limitation of liability', SWAP), ask('b',
     igHomePaperFace: () => true, hbFace: () => 'paper', canEdit: () => may, PORTAL_MODE: false,
     detailsOf: () => ({ left: 0, all: 4, live: true, items: [] }),
     signBlockers: () => signers ? [] : [{ key: 'signers' }], negoMayStartLine: () => '',
+    /* 23 Oct 2026 (THE ONE DESK, the speed fix): signerOwed asks the one condition, not the whole list */
+    signingRouteMissing: () => (signers ? null : 'both'),
     contractStatusTextHtml: (cc, more) => `<span class="room-stat">In Review${more ? ' · ' + more : ''}</span>`,
     igLineRound: cc => (cc.status === 'Under Review' && cc.negotiation ? cc.negotiation.round : 0),
     negoNeedsYouIds: cc => (cc.changes || []).filter(x => x.status === 'pending' && x.authorSide === 'counterparty').map(x => x.id),

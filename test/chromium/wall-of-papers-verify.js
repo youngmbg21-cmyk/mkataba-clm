@@ -80,7 +80,14 @@ const check = (name, pass, detail) => {
        since 18 Oct 2026 (round 13 as drawn), so Show more brings it — the
        shared list foot's "Show N more" since Part 8 (21 Oct 2026, the owner
        picked "the Legora way"; it was [data-ig-wall-more]) */
-    while (!(await page.$('#ig-wall .igw-card[data-ig-pick="MK-0412"]')) && await page.$('#ig-wall [data-lh-more="wall"]')) { await page.click('#ig-wall [data-lh-more="wall"]'); await page.waitForTimeout(250); }
+    /* the press resolves the LIVE button at press time: a repaint between finding it and pressing it
+       detached the one found (GitHub, 23 Oct 2026), so it is pressed in the page, bounded */
+    for (let i = 0; i < 40 && !(await page.$('#ig-wall .igw-card[data-ig-pick="MK-0412"]')); i++) {
+      const n0 = await page.evaluate(() => { const b = document.querySelector('#ig-wall [data-lh-more="wall"]'); if (!b) return -1;
+        const n = document.querySelectorAll('#ig-wall .igw-card').length; b.click(); return n; });
+      if (n0 < 0) break;
+      await page.waitForFunction(n => document.querySelectorAll('#ig-wall .igw-card').length > n, n0, { timeout: 4000 }).catch(() => {});
+    }
     const C = await page.evaluate(CARD, 'MK-0412');
     check('2b a deal kept to its list: a hatched paper with its code name, its stream for a value, "Kept to its list"',
       !!C && C.coded && /repeating-linear-gradient/.test(C.bg) && /Project Falcon/.test(C.t) && C.ref === `MK-0412 · ${folder}` && C.nm === 'Kept to its list' && !C.lock, JSON.stringify(C));

@@ -238,7 +238,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       JSON.stringify(rows.map(p => [p.key, p.title, p.who, p.look, p.h])).slice(0, 900));
     const ans = rows.find(p => p.key === 'answer:MK-0382');
     check('11b their answer reads as drawn: "Nordvik Logistik\'s answer" · the agreement and its reference · step 5 of 6, what Jambo found on the hover',
-      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^Master services agreement · Nordvik Logistik · MK-0382$/.test(ans.deal) && ans.who === 'Jambo · step 5 of 6' && /^Answers to their 2 redlines, read against our standards: /.test(ans.hover), JSON.stringify(ans));
+      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^MK-0382·Master services agreement · Nordvik Logistik$/.test(ans.deal) && ans.who === 'Jambo · step 5 of 6' && /^Answers to their 2 redlines, read against our standards: /.test(ans.hover), JSON.stringify(ans));
     const heads = await page.evaluate(() => ({ board: (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '', n: ndRead().n }));
     check('11c the card\'s head says Home\'s count: "N things · …"', new RegExp('^' + heads.n + ' things?( · |$)').test(heads.board), JSON.stringify(heads));
     if (await openAgent('late')) {
@@ -375,7 +375,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     check('11i three of your own rows in sight, the approval answered for an away colleague first, as drawn', needs.length === 3 && /^Answer an approval for /.test(needs[0].title), JSON.stringify(needs.map(n => n.title)));
     const ap = needs.find(n => /^Answer an approval for /.test(n.title));
     check('7a "Answer an approval for Unrestricted" · "for Unrestricted · away until <day>" · name · party · value · Decide',
-      !!ap && /Answer an approval for Unrestricted\s*for Unrestricted · away until \S+/.test(ap.title.replace(/\n/g, ' ')) && /^Power purchase agreement · Helio Energy AB · KES/.test(ap.sub) && ap.btn === 'Decide',
+      !!ap && /Answer an approval for Unrestricted\s*for Unrestricted · away until \S+/.test(ap.title.replace(/\n/g, ' ')) && /^MK-\S+ · Power purchase agreement · Helio Energy AB · KES/.test(ap.sub) && ap.btn === 'Decide',
       JSON.stringify(ap));
     const D7 = await page.evaluate(() => { const D = ndRead(); return { you: D.you.map(r => r.bundle ? 'bundle:' + r.n : r.y ? r.y.k + ':' + r.y.kind : r.key), jambo: D.jambo.map(r => r.it.kind), n: D.n,
       all: (document.querySelector('[data-nd-all="you"]') || {}).textContent || '' }; });

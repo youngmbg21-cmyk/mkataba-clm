@@ -90,7 +90,8 @@ describe('f866 (4) the walls, asked off the live record', () => {
   test('a reader restricted to one stream finds nothing of another', async () => {
     const r = await find(W.restricted, 'Naivas modern trade listing retail');
     assert.deepEqual(mentionsFolderB(JSON.stringify(r)), []);
-    assert.equal(r.hits.length, 0);
+    /* HaTi's own templates are on everyone's shelf (stage 3d): only they may answer */
+    assert.deepEqual(r.hits.filter(h => !(h.kind === 'template' && /^builtin:/.test(h.ref))), []);
   });
   test('without the right to see values, a hit carries no snippet and no passage words', async () => {
     const r = await find(W.novalues, 'payable thirty days');

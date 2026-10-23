@@ -143,11 +143,16 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('1e2 (pass 3) four days on: still none — the standard is five quiet days', !q4, JSON.stringify(q4));
     await page.evaluate(() => { const at = new Date(Date.now() - 9 * 864e5).toISOString();
       (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
-    const q9 = await until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]'); if (!r) return null; const sm = r.querySelector('small');
-      return { title: r.querySelector('b').textContent.trim(), sub: sm.textContent.trim(), late: !!sm.querySelector('.late'), btn: (r.querySelector('[data-pd-nd]') || {}).textContent.trim() }; }, null, 6000);
+    /* RE-POINTED 23 Oct 2026 (the rest of Round A, as drawn: "Nordvik Logistik's answer · 5 of 6 /
+       Jambo read … · waiting 8 days · Look"): past the standard, their redlines are the answer
+       Jambo prepared for them — ONE row carrying their wait, late — never a second row */
+    const q9 = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r) return null; const sm = r.querySelector('small');
+      if (!sm || !sm.querySelector('.late')) return null;
+      return { title: r.querySelector('b').textContent.trim(), sub: sm.textContent.trim(), late: !!sm.querySelector('.late'), btn: (r.querySelector('[data-pd-nd-jw]') || {}).textContent.trim(),
+        quietRow: !!document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]') }; }, null, 6000);
     const c9 = await counts();
     check('1f (pass 3) past the standard: "Answer Nordvik Logistik AB’s 2 redlines" · Waiting N days · clauses 7 and 11 · Open redlines, counted with the rows',
-      !!q9 && q9.title === 'Answer Nordvik Logistik AB’s 2 redlines' && /^Waiting \d+ days · .*clauses 7 and 11$/.test(q9.sub) && q9.late && q9.btn === 'Open redlines' && c9.quietOwed && c9.pill === c9.rows, JSON.stringify({ q9, c9 }));
+      !!q9 && /^Nordvik Logistik AB’s answer/.test(q9.title) && /waiting 9 days/.test(q9.sub) && q9.late && q9.btn === 'Look' && !q9.quietRow && c9.quietOwed && c9.pill === c9.rows, JSON.stringify({ q9, c9 }));
     await shot(page, '3-panel-asks-past-the-standard-1440x780');
     await page.evaluate(() => { const at = new Date().toISOString();
       (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
@@ -155,7 +160,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     console.log('\n1g · Jambo\'s work here, in the drawing\'s words');
     const jw = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r) return null; const sm = r.querySelector('small');
       return { title: r.querySelector('b').textContent.trim(), sub: sm ? sm.textContent.trim() : '', cut: sm ? sm.scrollWidth > sm.clientWidth + 1 : null, lines: sm ? Math.round(sm.getBoundingClientRect().height / parseFloat(getComputedStyle(sm).lineHeight)) : 0 }; }, null, 6000);
-    check('1g "Jambo’s work · Nordvik’s answer", its line said whole (never cut)', !!jw && jw.title === 'Jambo’s work · Nordvik’s answer' && /^(Prepared|Read) (overnight|today|yesterday|on .+): .+/.test(jw.sub) && jw.cut === false, JSON.stringify(jw));
+    /* RE-POINTED 23 Oct 2026 (as drawn): the one desk's row — its title and step, what Jambo read */
+    check('1g "Jambo’s work · Nordvik’s answer", its line said whole (never cut)', !!jw && /^Nordvik Logistik AB’s answer\d+ of \d+$/.test(jw.title) && /^Jambo read .+/.test(jw.sub) && jw.cut === false, JSON.stringify(jw));
 
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance became the dossier — the spine for the stage,
        What Jambo read, and Still owed as one list (each empty detail, the signer, their asks · Reply ›) */

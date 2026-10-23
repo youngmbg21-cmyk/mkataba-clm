@@ -1602,7 +1602,11 @@ function needsYouOf(c){
      the Details tab's own count (detailsOf). Never urgent: nothing is late. */
   take(()=>{ if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))) return;
     const d=window.detailsOf?detailsOf(c):null;
-    if(d&&d.left) out.push({ kind:'details', urgent:false, n:d.left }); });
+    /* AND NOBODY NAMED TO SIGN IS A DETAIL OWED (owner, 23 Oct 2026: "count
+       signer in both") — the Dossier's own reading, signerOwed */
+    const sg=(window.signerOwed&&signerOwed(c))?1:0;
+    const n=((d&&d.left)||0)+sg;
+    if(n) out.push({ kind:'details', urgent:false, n }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))

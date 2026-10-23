@@ -608,20 +608,67 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const roomRow = a => BELL_ROOM.includes(a.kind) || (a.kind === 'request' && !!a.id);
     const stripRow = a => a.kind === 'renewal' ? E.obTab(a.id) : E.strip(a.id);
     /* one row of every kind the bell draws on this book, and every approval row (step 2's own door) */
-    const alerts = await page.evaluate(() => buildAlerts().map((a, i) => ({ i, kind: a.kind, id: a.id })));
+    const alerts = await page.evaluate(() => buildAlerts().map((a, i) => ({ i, kind: a.kind, id: a.id, obId: a.obId || null, ends: !!a.ends, rid: a.rid || null })));
+    /* RE-POINTED 23 Oct 2026 (THE ONE DESK, the bell the Legora way): the bell's panel draws the one
+       desk's rows (ndPanelHtml) and News apart. A bell signal is pressed on the row that stands for it
+       there: its own row (data-nd-al, the bell's own door), the row of your move it would double
+       (ND_AL_ROWS's kinds, the checklist's door), the piece Jambo prepared for it (Look → the Board's
+       card), the bundle of details, the company's row; News on its own tab, the old rows. */
+    const rowFor = a => page.evaluate(a => {
+      const D = ndRead(), rows = D.jambo.concat(D.you), id = String(a.id || '');
+      const AL = { 'review-mine': ['review'], suggest: ['suggest'], look: ['look'], details: ['details'], 'note-mine': ['note'], approval: ['approval', 'refused'], 'ap-refused': ['refused'], 'desk-quiet': ['quiet'], 'desk-join': ['join'], negotiation: ['quiet'], renewal: ['renewal'], signature: ['sign'] };
+      const PK = { negotiation: ['answer'], 'desk-quiet': ['answer'], renewal: ['renewal', 'notice'], details: ['read'] };
+      const cid = it => String((it && (it.cid || (it.c && it.c.id))) || '');
+      if (ndIsNews(a)) { const i = D.news.findIndex(x => x.kind === a.kind && String(x.id || '') === id); return i >= 0 ? { type: 'news', i } : null; }
+      let r = rows.find(x => x.al && x.al.kind === a.kind && String(x.al.id || '') === id);
+      if (r) return { type: 'al', key: r.key };
+      if (['settings-ask', 'access-review', 'email-off'].includes(a.kind)) { r = rows.find(x => x.company || x.setup); return r ? { type: r.company ? 'company' : 'setup', key: r.key } : null; }
+      if (a.kind === 'note-due') { r = rows.find(x => x.y && x.y.k === 'note'); return r ? { type: 'note', key: r.key } : null; }
+      if (a.kind === 'request' && !a.rid) { r = rows.find(x => x.y && x.y.k === 'req'); return r ? { type: 'req', key: r.key } : null; }
+      const ks = a.ends ? [] : (AL[a.kind] || []);
+      r = rows.find(x => x.y && x.y.k === 'c' && String(x.y.x.c.id) === id && ks.includes(x.y.x.it.kind));
+      if (r) return { type: 'c', key: r.key, ck: r.y.x.it.kind };
+      r = rows.find(x => x.bundle && x.bundle.some(d => String(d.x.c.id) === id && ks.includes(d.x.it.kind)));
+      if (r) return { type: 'bundle', key: r.key };
+      r = rows.find(x => x.it && ((cid(x.it) === id && ((PK[a.kind] || []).includes(x.it.kind) || (ND_MERGE[x.it.kind] || []).some(k => ks.includes(k))))
+        || (a.kind === 'request' && a.rid && x.it.kind === 'lane' && x.it.r && String(x.it.r.id) === String(a.rid))
+        || (x.it.kind === 'week' && (x.it.evs || []).some(e => e && ((a.obId && e.type === 'obligation' && String(e.obId) === String(a.obId)) || (a.ends && e.type === 'expiry' && String(e.cid) === id))))));
+      return r ? { type: 'piece', key: r.key } : null;
+    }, a);
+    const ROW_SAYS = { piece: 'the Board, Jambo\'s piece open on the one desk\'s card', bundle: 'Home\'s Contracts place, narrowed to the contracts owing details', company: 'Settings, the company\'s card', setup: 'the setup door' };
     const seen = new Set();
     for (const a of alerts) {
       const k = a.kind === 'approval' ? a.kind + ':' + a.id : a.kind; if (seen.has(k)) continue; seen.add(k);
       const want = BELL[a.kind] ? BELL[a.kind](a) : null;
-      await door(C, `${a.kind} (${a.id || '—'})`, { start: atStart,
+      const hit = await rowFor(a);
+      const own = !hit || hit.type === 'al' || hit.type === 'news';
+      const need = hit && hit.type === 'c' ? (hit.ck === 'look' ? { expect: E.paper(a.id), says: SAYS.paper } : NEED[hit.ck] ? NEED[hit.ck](a.id, 'dashboard') : null) : null;
+      const expect = own ? (roomRow(a) ? stripRow(a) : (want || (L => !L.room && !L.negPage)))
+        : need ? need.expect
+        : hit.type === 'piece' ? E.boardFace
+        : hit.type === 'bundle' ? (L => L.view === 'dashboard' && L.place && !!L.only)
+        : hit.type === 'company' ? E.page('team')
+        : (L => !L.room && !L.negPage);
+      const says = own ? (roomRow(a) ? (a.kind === 'renewal' ? SAYS.obTab : SAYS.strip) : want ? 'its place on Home' : 'anywhere but the room')
+        : need ? need.says : (ROW_SAYS[hit.type] || 'anywhere but the room');
+      await door(C, `${a.kind} (${a.id || '—'})${hit && !own ? ' · as the one desk\'s ' + hit.type + ' row' : ''}`, { start: atStart,
         press: async () => {
+          if (!hit) return false;
           await page.click('#hdr-notify');
-          if (!(await waitFor(page, () => !!document.querySelector('#context-panel [data-alert-i]'), 5000))) return false;
-          return page.evaluate(x => { const rows = buildAlerts(); const i = rows.findIndex(r => r.kind === x.kind && r.id === x.id);
-            const b = i >= 0 ? document.querySelector(`#context-panel [data-alert-i="${i}"]`) : null; if (!b) return false; b.click(); return true; }, a);
+          if (hit.type === 'news') {
+            if (!(await waitFor(page, () => !!document.querySelector('#context-panel [data-al-tab="news"]'), 5000))) return false;
+            await page.evaluate(() => document.querySelector('#context-panel [data-al-tab="news"]').click());
+            if (!(await waitFor(page, i => !!document.querySelector(`#context-panel [data-alert-i="${i}"]`), 5000, hit.i))) return false;
+            return page.evaluate(i => { const b = document.querySelector(`#context-panel [data-alert-i="${i}"]`); if (!b) return false; b.click(); return true; }, hit.i);
+          }
+          /* the panel keeps the tab last chosen: Needs you first */
+          if (await waitFor(page, () => !!document.querySelector('#context-panel [data-al-tab="need"]'), 5000))
+            await page.evaluate(() => { const t = document.querySelector('#context-panel [data-al-tab="need"]'); if (t && !t.classList.contains('on')) t.click(); });
+          const sel = `#context-panel [data-nd-row="${hit.key}"]`;
+          if (!(await waitFor(page, s => !!document.querySelector(s), 5000, sel))) return false;
+          return page.evaluate(s => { const b = document.querySelector(s + ' .nd-btn'); if (!b) return false; b.click(); return true; }, sel);
         },
-        expect: roomRow(a) ? stripRow(a) : (want || (L => !L.room && !L.negPage)),
-        says: roomRow(a) ? (a.kind === 'renewal' ? SAYS.obTab : SAYS.strip) : want ? 'its place on Home' : 'anywhere but the room' });
+        expect, says });
     }
     if (!alerts.some(a => a.kind === 'approval')) record(C, 'approval row present', false, 'no approval row on this book', 'the fixture lost its approval');
     /* EVERY ROOM-BOUND KIND IS DRAWN AND PRESSED (step 8 seeded the three

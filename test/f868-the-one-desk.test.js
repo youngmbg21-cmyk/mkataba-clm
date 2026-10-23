@@ -45,9 +45,9 @@ const BOOKS = (() => {
 const fill = (s, v) => String(s || '').replace(/\{(\w+)\}/g, (_, k) => (v && k in v) ? v[k] : '{' + k + '}');
 const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
 
-const NAMES = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnNeedDoorAttrs', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts',
+const NAMES = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnNeedDoorAttrs', 'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts',
   'ndHomeRowHtml', 'ndHomeHtml', 'ndKindsOf', 'ndOnBoard', 'ndInTab', 'ndBoardList', 'ndBoardRowHtml', 'ndBoardRowsHtml', 'ndBoardHtml', 'ndShow', 'ndPlace', 'ndPlacePut'];
-const CONSTS = ['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED',
+const CONSTS = ['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', 'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey',
   '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'];
 function world(rows, pieces, extra){
   const ctx = {
@@ -120,7 +120,7 @@ describe('f868 (2) Home', () => {
     const w = world([], [chase]);
     const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
     assert.match(html, /<span class="nd-step" title="Step 3 of 4 · yours">3 of 4<\/span>/);
-    assert.match(html, /<i class="nd-read">Jambo read<\/i> the duty and the address on the contract · MK-3/);
+    assert.match(html, /MK-3 · <i class="nd-read">Jambo read<\/i> the duty and the address on the contract/);
     assert.match(html, /<span class="nd-when cn-late">5 days late<\/span><button type="button" class="ui-btn ui-btn-sm nd-btn" data-nd-look="late:MK-3">Look<\/button>/);
   });
   test('2c Home\'s presses: Show all and Look land on the Board through the one opener', () => {
@@ -166,6 +166,14 @@ describe('f868 (3) the Board', () => {
     const look = fnBody(HB, 'hbNdLookHtml');
     assert.match(look, /agRowActOf/);
     assert.match(look, /data-ag-act="away"/, 'Put away, last');
+  });
+  test('3c2 the contract\'s number leads the Agreement cell and is never cut; the name gives way (owner, 23 Oct 2026)', () => {
+    const w = world([row('MK-101', 'sign', { who: 'Sara Lind' })], [chase]);
+    const html = w.ndBoardRowsHtml(w.ndRead(), {});
+    assert.match(html, /<span class="nd-c nd-c-deal" title="MK-3 · [^"]+">(?:<span class="hati-ref">)?MK-3(?:<\/span>)?<i class="nd-dot" aria-hidden="true">·<\/i><span class="nd-deal-t">/);
+    assert.match(html, /<span class="nd-c nd-c-deal" title="MK-101 · [^"]+">(?:<span class="hati-ref">)?MK-101(?:<\/span>)?<i class="nd-dot"/);
+    assert.match(CSS, /\.nd-c-deal \.hati-ref,\.nd-c-deal \.nd-dot\{flex:none;/);
+    assert.match(CSS, /\.nd-deal-t\{min-width:0;overflow:hidden;text-overflow:ellipsis\}/);
   });
   test('3d it stands under Your book, never folds or closes, and keeps its place', () => {
     const board = HB.slice(HB.indexOf('function hbBoardHtml('), HB.indexOf('function hbBoardHtml(') + 6000);

@@ -420,7 +420,10 @@ function cnRows(){
   /* a watch Jambo kept for you that has fired (the bell's 'watch' rows, js/jambopress.js) */
   let wts = []; try { wts = (typeof watchesFired === 'function') ? (watchesFired() || []) : []; } catch (_){ wts = []; }
   wts.forEach(w => out.push({ k: 'watch', kind: 'watch', urgent: false, w }));
-  return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(!!b.y.fw) - Number(!!a.y.fw)) || (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
+  /* your own signature leads Your move, under only a colleague's approval held while they are away
+     (the bell's own order, owner-reported: "your own signature ranks first of all") */
+  const sig = y => Number(y.k === 'c' && y.kind === 'sign');
+  return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(!!b.y.fw) - Number(!!a.y.fw)) || (sig(b.y) - sig(a.y)) || (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
 }
 /* WHAT WAITS FOR YOU, BY AGENT — the Jambo rows of the one desk (ndRead),
    counted by agent: one per piece, the rows the Board's "Jambo prepared" tab
@@ -527,7 +530,7 @@ const ND_PAGE = 12;
 const ND_BUNDLE_MIN = 4;
 const ND_MERGE = { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details'] };
 const ND_KIND_OF = { approval: 'approval', refused: 'approval', sign: 'sign', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'details', renewal: 'renewal' };
-const ND_KINDS = ['approval', 'sign', 'review', 'details', 'renewal', 'ask', 'jambo'];
+const ND_KINDS = ['approval', 'sign', 'review', 'details', 'renewal', 'duty', 'ask', 'jambo'];
 const ND_BTN = { approval: 'decide', refused: 'decide', renewal: 'decide', sign: 'sign', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'fill', join: 'answer', request: 'answer' };
 /* the kinds whose `days` count forward to a day, not how long they waited */
 const ND_NOT_WAITED = ['renewal', 'notice', 'soon', 'soon-sign', 'week', 'ours'];
@@ -545,6 +548,50 @@ function ndPieces(){
     (D.agents[k].ready || []).forEach(it => { if (it && it.key) out.push({ it, agent: it.agent || k }); }); });
   return out;
 }
+/* THE BELL'S OWN SIGNALS, SPLIT IN TWO (the rest of Round A: the owner
+   picked "The Legora Way" for the bell, 23 Oct 2026, artifact
+   WPfQyLgvpcjbTswNtGzwth). buildAlerts stays the one sweep of what the bell
+   hears. What asks nothing of you is NEWS (ND_NEWS): drawn under the bell's
+   News tab, never counted. Everything else is work: work the one desk already
+   holds is not drawn twice (the row of that kind on that contract, ND_AL_ROWS,
+   or the piece Jambo prepared for it, ND_AL_PIECES), and the rest joins the
+   one desk as a row of its own ('al'), so nothing the bell rang about is lost
+   now that it counts what Home counts. */
+const ND_NEWS = ['review-out', 'ap-cleared', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self'];
+const ND_AL_ROWS = { 'review-mine': ['review'], suggest: ['suggest'], look: ['look'], details: ['details'], 'note-mine': ['note'], approval: ['approval', 'refused'], 'ap-refused': ['refused'], 'desk-quiet': ['quiet'], 'desk-join': ['join'], negotiation: ['quiet'], renewal: ['renewal'], signature: ['sign'] };
+const ND_AL_PIECES = { negotiation: ['answer'], 'desk-quiet': ['answer'], renewal: ['renewal', 'notice'], details: ['read'] };
+/* the admin's own list (stNeedsAll) already holds these: the setup or company row stands for them, last of
+   Your move. The mail warning (the owner moved it off the page onto the bell) leads that row's line */
+const ND_AL_ADMIN = ['settings-ask', 'access-review', 'email-off'];
+const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
+const ND_AL_BTN = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'desk-quiet': 'review', 'review-mine': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', signature: 'sign', approval: 'decide', 'ap-refused': 'decide', renewal: 'decide', mailroom: 'look', details: 'fill', 'finding-ask': 'answer', 'settings-ask': 'answer', 'desk-join': 'answer' };
+function ndIsNews(a){ return !!a && (ND_NEWS.includes(a.kind) || (a.kind === 'watch' && !a.fired)); }
+function ndAlerts(){
+  let L = []; try { L = (typeof buildAlerts === 'function') ? (buildAlerts() || []) : []; } catch (_){ L = []; }
+  return { work: L.filter(a => a && !ndIsNews(a)), news: L.filter(ndIsNews) };
+}
+const _ndCid = it => (it && (it.cid || (it.c && it.c.id))) || '';
+function ndAlCovered(a, rows, P, admin){
+  /* the same sources Home's own rows read: a note due, a request nobody holds, a watch Jambo kept */
+  if (a.kind === 'note-due' || (a.kind === 'request' && !a.lane) || (a.kind === 'watch' && a.fired)) return true;
+  if (ND_AL_ADMIN.includes(a.kind)) return admin;
+  const cid = String(a.id || '');
+  if (a.kind === 'request' && a.lane) return P.some(p => p.it.kind === 'lane' && p.it.r && String(p.it.r.id) === String(a.rid));
+  if (!cid) return false;
+  /* an ending is not the decision: it keeps ringing after the decision (the bell's two renewal rows), so only
+     the week's own date stands for it */
+  const ends = a.kind === 'renewal' && !!a.ends;
+  const kinds = ends ? [] : (ND_AL_ROWS[a.kind] || []), pk = ends ? [] : (ND_AL_PIECES[a.kind] || []);
+  if (rows.some(y => y.k === 'c' && String(y.x.c.id) === cid && kinds.includes(y.x.it.kind))) return true;
+  if (P.some(p => String(_ndCid(p.it)) === cid && (pk.includes(p.it.kind) || (a.kind === 'link' && p.agent === 'link')))) return true;
+  /* a duty or an ending this week is in the week's piece (agWeekItems, the Calendar's own reading) */
+  const wk = P.find(p => p.it.kind === 'week'), evs = (wk && Array.isArray(wk.it.evs)) ? wk.it.evs : [];
+  if (a.kind === 'obligation' && a.obId) return evs.some(e => e && e.type === 'obligation' && String(e.obId) === String(a.obId));
+  if (a.kind === 'renewal' && a.ends) return evs.some(e => e && e.type === 'expiry' && String(e.cid) === cid);
+  return false;
+}
+const _ndHash = t => { let h = 0; const x = String(t || ''); for (let i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+const ndAlKey = a => 'al:' + a.kind + ':' + (a.id || '') + ':' + _ndHash(a.text);
 const _ndAge = iso => { const t = Date.parse(String(iso || '')); return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null; };
 function ndAgeOf(y){
   if (y.k === 'c') return y.x && y.x.age != null ? y.x.age : null;
@@ -568,7 +615,9 @@ function ndRead(){
   };
   P.forEach(p => { p.cov = coverOf(p.it); });
   const covered = new Set(P.flatMap(p => p.cov));
-  const Y = rows.filter(y => !covered.has(y));
+  /* a document the Mailroom gave you says it once, as its own line: reading it IS filling its details in (the bell's own rule) */
+  const AL = ndAlerts(), mail = new Set(AL.work.filter(a => a.kind === 'mailroom').map(a => String(a.id)));
+  const Y = rows.filter(y => !covered.has(y) && !(y.k === 'c' && y.x.it.kind === 'details' && mail.has(String(y.x.c.id))));
   const det = Y.filter(y => y.k === 'c' && y.x.it.kind === 'details');
   const bundle = det.length >= ND_BUNDLE_MIN;
   const ages = L => L.map(ndAgeOf).filter(a => a != null);
@@ -584,9 +633,15 @@ function ndRead(){
     const id = y.k === 'c' ? y.x.c.id + ':' + y.x.it.kind : y.k === 'note' ? y.n.id : y.k === 'req' ? (y.r && y.r.id) : (y.w && y.w.id);
     you.push({ g: 'you', key: y.k + ':' + id, kind: ndKindOf(y), y, n: 1, late: y.urgent ? 1 : 0, age: ndAgeOf(y) });
   });
-  const S = cnSetup(), R = cnCompany();
+  const S = cnSetup(), R0 = cnCompany();
+  const seen = new Set();
+  AL.work.forEach(a => { if (ndAlCovered(a, rows, P, !!(S || R0.length))) return;
+    const key = ndAlKey(a); if (seen.has(key)) return; seen.add(key);
+    you.push({ g: 'you', key, kind: ND_AL_KIND[a.kind] || 'ask', al: a, n: 1, late: a.late ? 1 : 0, age: null }); });
+  const mailOff = AL.work.find(a => a.kind === 'email-off') || null;
+  const R = mailOff ? R0.filter(x => !(x && x.key === 'panel:mail')) : R0;
   if (S) you.push({ g: 'you', key: 'setup', kind: 'ask', setup: S, n: 1, late: 0, age: null });
-  else if (R.length) you.push({ g: 'you', key: 'company', kind: 'ask', company: R, n: 1, late: 0, age: null });
+  else if (R0.length) you.push({ g: 'you', key: 'company', kind: 'ask', company: R, mail: mailOff, n: 1, late: 0, age: null });
   const tone = it => it.tone === 'ruby' ? 2 : it.tone === 'amber' ? 1 : 0;
   const jambo = P.map(({ it, agent, cov }, i) => {
     const a = [ndPieceAge(it)].concat(ages(cov)).filter(x => x != null);
@@ -594,12 +649,24 @@ function ndRead(){
   }).sort((a, b) => (b.late - a.late) || (tone(b.it) - tone(a.it)) || (a.i - b.i));
   const all = jambo.concat(you);
   const A = all.map(r => r.age).filter(a => a != null);
-  const D = { jambo, you, n: all.reduce((s, r) => s + r.n, 0), late: all.reduce((s, r) => s + r.late, 0), oldest: A.length ? Math.max(...A) : null };
+  const D = { jambo, you, n: all.reduce((s, r) => s + r.n, 0), late: all.reduce((s, r) => s + r.late, 0), oldest: A.length ? Math.max(...A) : null, news: AL.news };
   _ndMemo = D;
   setTimeout(() => { _ndMemo = null; }, 0);
   return D;
 }
 const ndThings = L => (L || []).reduce((s, r) => s + r.n, 0);
+/* THE ONE DESK'S JAMBO ROWS FOR ONE CONTRACT (the Dossier, beside its paper): the same pieces and the
+   same merge as ndRead (ND_MERGE: a piece carries the wait and the red of the rows it stands for), read
+   off that contract's own checklist (L, needsYouOf) — never the whole book on a paper's paint */
+function ndJamboFor(c, L){
+  const cid = String((c && c.id) || ''); if (!cid) return [];
+  const age = it => (typeof hbNyAge === 'function') ? hbNyAge(it) : null;
+  return ndPieces().filter(p => String(_ndCid(p.it)) === cid).map((p, i) => {
+    const ks = ND_MERGE[p.it.kind] || [], cov = (L || []).filter(it => it && ks.includes(it.kind));
+    const a = [ndPieceAge(p.it)].concat(cov.map(age)).filter(x => x != null);
+    return { g: 'jambo', key: 'p:' + p.it.key, kind: 'jambo', it: p.it, agent: p.agent, n: 1, late: (p.it.tone === 'ruby' || cov.some(it => it.urgent)) ? 1 : 0, age: a.length ? Math.max(...a) : null, i };
+  });
+}
 /* "2 late · the oldest has waited 8 days" — said only where there is something to say */
 function ndSumWords(D){
   const days = n => (typeof hbNyDays === 'function') ? hbNyDays(n) : String(n);
@@ -646,10 +713,24 @@ function ndParts(r){
     P.btn = 'fill'; P.attrs = 'data-nd-bundle="details"';
     return P;
   }
+  if (r.al){
+    /* a bell signal of its own: its words, its contract, its own door (a.go) */
+    const a = r.al, c = (a.id && typeof getContract === 'function') ? getContract(a.id) : null;
+    P.title = String(a.text || '');
+    /* its own line first — what came back, who asked, the note (owner, 13 Sep 2026: "what the other side did, in one line") — then the agreement */
+    P.deal = [String(a.sub || ''), c ? [c.name, c.counterparty].filter(Boolean).join(' · ') : [a.name, a.ref].filter(Boolean).join(' · ')].filter(Boolean).join(' · ');
+    /* good news stays green and flashes once on the sitting it is first seen (owner, 23 Aug 2026; the bell's own `news`) */
+    P.good = a.tone === 'green'; P.news = !!a.news;
+    if (a.hint) P.tip = String(a.hint);
+    P.ref = (c && typeof refHtml === 'function') ? refHtml(c) : '';
+    P.btn = ND_AL_BTN[a.kind] || 'open';
+    P.attrs = `data-nd-al="${_cnE(r.key)}"`;
+    return P;
+  }
   if (r.setup){ P.title = _cnTn('hb_setup_left', r.setup, { n: r.setup }); P.attrs = 'data-cn-setup'; return P; }
   if (r.company){
-    P.title = _cnT('cn_company') + ' · ' + r.company.length;
-    P.deal = r.company.slice(0, 3).map(x => String(x.text || '').trim()).filter(Boolean).join(' · ');
+    P.title = _cnT('cn_company') + ' · ' + (r.company.length + (r.mail ? 1 : 0));
+    P.deal = [r.mail ? String(r.mail.text || '').trim() : ''].concat(r.company.slice(0, r.mail ? 2 : 3).map(x => String(x.text || '').trim())).filter(Boolean).join(' · ');
     P.attrs = 'data-cn-co'; return P;
   }
   const y = r.y;
@@ -682,11 +763,15 @@ function ndParts(r){
   const pay = typeof fxIsPay === 'function' && fxIsPay(c);
   const party = String((pay && c.metadata && c.metadata.jobTitle) || c.counterparty || '').trim();
   P.deal = [c.name, party && !String(P.title).includes(party) ? party : '', (it.kind === 'approval' || it.kind === 'sign') && cnMayMoney(c) ? fmtMoneyShortOf(c) : ''].filter(Boolean).join(' · ');
+  /* a colleague's hand-off carries their note first (the bell's own row did: "A pass is a hand-off") */
+  if (it.kind === 'look' && it.note) P.deal = '\u201c' + String(it.note) + '\u201d · ' + P.deal;
   P.who = y.fw ? _cnT('cn_need_for', { who: _cnFirst(y.fw.name) }) : String(it.who || '');
   if (x.age != null) P.when = days(x.age);
   else if (it.kind === 'renewal' && it.d != null) P.when = it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
   else { const due = String(it.due || '').slice(0, 10); P.when = /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : ''; }
   P.btn = ND_BTN[it.kind] || 'open';
+  /* a renewal's Decide says it reads the contract again (the renewal's one door, needsYouGo) */
+  if (it.kind === 'renewal') P.tip = _cnT('ins_need_go_terms');
   const priv = c.folder && typeof streamIsPrivate === 'function' && streamIsPrivate(c.folder)
     ? _cnPill('lock', _cnT('cn_private', { stream: ((typeof FOLDERS !== 'undefined' && FOLDERS[c.folder]) || {}).name || '' })) : '';
   const away = y.fw ? _cnPill('users', y.fw.until ? _cnT('cn_need_away', { who: _cnFirst(y.fw.name), day: cnDayWords(y.fw.until) }) : _cnT('cn_need_for', { who: _cnFirst(y.fw.name) })) : '';
@@ -695,7 +780,7 @@ function ndParts(r){
   P.ref = (typeof refHtml === 'function') ? refHtml(c) : _cnE((typeof contractRef === 'function') ? contractRef(c) : c.id);
   return P;
 }
-const _ndBtnHtml = (P, attrs) => `<button type="button" class="ui-btn ui-btn-sm nd-btn" ${attrs != null ? attrs : P.attrs}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
+const _ndBtnHtml = (P, attrs) => `<button type="button" class="ui-btn ui-btn-sm nd-btn" ${attrs != null ? attrs : P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
 const _ndStepHtml = P => P.step ? `<span class="nd-step" title="${_cnE(_cnT('nd_step_title', P.step))}">${_cnE(_cnT('nd_step', P.step))}</span>` : '';
 const _ndTagHtml = P => P.tag ? `<span class="nd-tag">${_cnE(P.tag)}</span>` : '';
 
@@ -704,11 +789,14 @@ const _ndTagHtml = P => P.tag ? `<span class="nd-tag">${_cnE(P.tag)}</span>` : '
    holding more than three says "Show all N", which lands on the Board. */
 function ndHomeRowHtml(r){
   const P = ndParts(r);
+  /* the contract's number LEADS the line, so a long name never cuts it off (owner, 23 Oct 2026:
+     "A user needs to know the contract number") */
+  const lead = P.ref ? P.ref + ' · ' : '';
   const sub = r.g === 'jambo'
-    ? `<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}${P.ref ? ' · ' + P.ref : ''}`
-    : _cnE(P.deal);
+    ? `${lead}<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}`
+    : lead + _cnE(P.deal);
   const hover = r.g === 'jambo' ? P.line : [_ndText(P.ref), P.deal].filter(Boolean).join(' · ');
-  return `<div class="cn-r nd-r" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(P.title)}</span>${_ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
+  return `<div class="cn-r nd-r${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(P.title)}</span>${_ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
     + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${_ndBtnHtml(P)}</div>`;
 }
 function ndHomeHtml(D){
@@ -719,6 +807,16 @@ function ndHomeHtml(D){
     return `<div class="nd-g" data-nd-g="${g}"><span class="nd-g-t">${_cnE(_cnT('nd_g_' + g))}</span><span class="cn-n">· ${n}</span>${all}</div>${L.slice(0, CN_ROWS).map(ndHomeRowHtml).join('')}`;
   };
   return group('jambo', D.jambo) + group('you', D.you);
+}
+
+/* ---- THE BELL'S PANEL: ALL OF IT, IN HOME'S OWN ROWS ----
+   The Alerts panel's Needs you tab (alertsPanelHtml, js/app.js): how many are
+   late and how long the oldest has waited, then both groups whole, every row
+   Home's own (ndHomeRowHtml) — no "Show all": the panel scrolls. */
+function ndPanelHtml(D){
+  const group = (g, L) => L.length ? `<div class="nd-g" data-nd-g="${g}"><span class="nd-g-t">${_cnE(_cnT('nd_g_' + g))}</span><span class="cn-n">· ${ndThings(L)}</span></div>${L.map(ndHomeRowHtml).join('')}` : '';
+  const sum = ndSumWords(D);
+  return (sum ? `<div class="nd-pan-sum">${_cnE(sum)}</div>` : '') + group('jambo', D.jambo) + group('you', D.you);
 }
 
 /* ---- THE BOARD: ALL OF IT, UNDER YOUR BOOK ----
@@ -750,9 +848,10 @@ function ndBoardRowHtml(r, opts){
   const btn = piece
     ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
     : _ndBtnHtml(P);
-  return `<div class="nd-br${look ? ' is-look' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
+  return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
     + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
-    + `<span class="nd-c nd-c-deal" title="${_cnE([P.deal, _ndText(P.ref)].filter(Boolean).join(' · '))}">${_cnE(P.deal)}${P.ref ? (P.deal ? ' · ' : '') + P.ref : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
+    /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
+    + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
 }
 function ndBoardRowsHtml(D, opts){
@@ -953,15 +1052,24 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-dk-present]'))){ _dkMenuOpen = false; deskBarPaint(); if (typeof hbPresent === 'function') hbPresent(true); return; }
     if ((el = t.closest('[data-dk-recent]'))){ deskRecentToggle(); return; }
     if (_dkMenuOpen && !t.closest('#dk-pg-w')){ _dkMenuOpen = false; deskBarPaint(); }
-    /* THE ONE DESK's own presses, on Home and on the Board's card */
+    /* THE ONE DESK's own presses, on Home, on the Board's card and in the bell's panel
+       (a row pressed in the panel steps the panel aside before its door is taken) */
+    const inPanel = !!t.closest('#panel-body .nd-pan');
+    const step = () => { if (inPanel && typeof closeContextPanel === 'function') try { closeContextPanel(); } catch (_){} };
     if ((el = t.closest('[data-nd-all]'))){ ndOpenBoard(el.getAttribute('data-nd-all')); return; }
-    if ((el = t.closest('[data-nd-look]'))){ ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
-    if ((el = t.closest('[data-nd-bundle]'))){ ndBundleGo(); return; }
+    if ((el = t.closest('[data-nd-look]'))){ step(); ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
+    if ((el = t.closest('[data-nd-bundle]'))){ step(); ndBundleGo(); return; }
+    /* a bell signal's row presses the bell's own door; from the slide-out panel the panel steps aside first */
+    if ((el = t.closest('[data-nd-al]'))){ const k = el.getAttribute('data-nd-al');
+      let r = null; try { r = ndRead().you.find(x => x.key === k) || null; } catch (_){ r = null; }
+      step();
+      if (r && r.al && typeof r.al.go === 'function') r.al.go(); return; }
     if ((el = t.closest('[data-nd-tab]'))){ _nd = { ..._nd, tab: el.getAttribute('data-nd-tab'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-kind]'))){ _nd = { ..._nd, kind: el.getAttribute('data-nd-kind'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-more]'))){ _nd = { ..._nd, more: (_nd.more || 0) + 1 }; ndRowsRepaint(); return; }
     /* a row of your move on the Board's card presses the same door as on Home */
-    if (!t.closest('#cn-page') && !t.closest('#hm-agents.nd-card')) return;
+    if (!t.closest('#cn-page') && !t.closest('#hm-agents.nd-card') && !inPanel) return;
+    if (inPanel && t.closest('[data-cn-note],[data-cn-watch],[data-cn-req],[data-cn-need],[data-cn-setup],[data-cn-co]')) step();
     if ((el = t.closest('[data-cn-pop]'))){ counterPopTake(Number(el.getAttribute('data-cn-pop'))); return; }
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
     if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterBoxFit(q); counterPopClose(); counterAsk(v); } return; }
@@ -1010,5 +1118,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ndPieces, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

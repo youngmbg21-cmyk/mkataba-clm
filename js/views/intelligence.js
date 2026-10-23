@@ -1205,6 +1205,7 @@ const IG_TIME_KEYS=['decision','expiry','signed','created'];
    the map CAN do in that role (ask back, step 4). */
 const IG_NEAREST={ group:['folder','counterparty','status'], floors:['status','payterms','valueBand'], columns:['folder','counterparty','kind'], colour:['status','risk','payterms'], size:['value','obligations','same'], label:['counterparty','owner','payterms'], time:['decision','expiry','signed'] };
 const IG_UNDO_MAX=30, IG_VIEWS_KEY='hati.v1.igViews', IG_VIEWS_MAX=12, IG_TOP_DEFAULT=10;
+const IG_TOP_ONE_RE=/\b(?:biggest|largest|highest|smallest|lowest|most valuable|least valuable|största|minsta|högsta|lägsta)(?:\s+(?:one|dot|contract|deal|agreement|customer|supplier|party|counterparty|avtalet|kontraktet|affären|kunden|leverantören|pricken))?\s*\??\s*$/;
 const IG_NUM_WORDS={ one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12,
   en:1, ett:1, 'två':2, tre:3, fyra:4, fem:5, sex:6, sju:7, 'åtta':8, nio:9, tio:10, elva:11, tolv:12 };
 function igRecipeNow(){
@@ -1851,7 +1852,9 @@ function igRecipeParse(qRaw){
     /* a number in words counts too: "the top two by value" (bug log, 5 Oct 2026) */
     const nw=rest.match(/\b(?:top|topp|de|bottom|biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)(?![\wåäö])/);
     const nw2=nw||rest.match(/(?:^|\s)(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:biggest|largest|highest|smallest|lowest|least valuable|slowest|största|högsta|minsta|lägsta|långsammaste)\b/);
-    const n=Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
+    /* "what is the biggest dot", "the largest deal": ONE asked for, said by name (stage 3d) — a plural or a number keeps the top ten */
+    const one=!/\b\d+\b/.test(rest)&&!nw2&&IG_TOP_ONE_RE.test(rest);
+    const n=one?1:Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
     const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':'value';
     const perM=rest.match(/\b(?:in each|per|for each|within each|by each|i varje|för varje|per)\s+(.+)$/); const per=perM?igFactFind(perM[1]):null;
     acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by, per:per?per.key:null }, up&&by==='value'?{ dir:'up' }:{}) });
@@ -2115,6 +2118,8 @@ function igRecipeRun(parsed, opts){
       const ids=igTopIds(t.n,t.by,t.per,base,t.dir), label=i18t(t.dir==='up'?'int_bottom_label':'int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter' });
       intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label; list=ids; listTitle=label; changed=true;
+      /* one asked for is named: the dot left is said by its name and number, not only counted */
+      if(t.n===1&&ids.length===1){ const c1=getContract(ids[0]); if(c1) lensNote+=': '+[c1.name,c1.counterparty].filter(Boolean).join(' · ')+' ('+((typeof caRef==='function'&&caRef(c1))||c1.id)+')'; }
       /* CHART FIRST on the board (Young, 3 Oct 2026): the list arrives in its
          ranked order, so the List picture reads biggest (or smallest) first */
       continue; }
@@ -2283,6 +2288,9 @@ async function intelAsk(qRaw, opts){
      front reads it whole: the map or the Contracts place (caHereRead), the
      Board's own list (hbParse). */
   let und=null; try{ und=(typeof window.caUnderstand==='function')?caUnderstand(q,{ box:'home' }):null; }catch(_){ und=null; }
+  /* a question naming a contract several share ("how many contracts do we have with Juno", "hur många…") asks
+     something of them all: Jambo answers it, rather than "which did you mean" (AI first, stage 3b) */
+  try{ if(und&&und.kind==='cpick'&&window.CA_WH_Q&&CA_WH_Q.test(q)&&window.caAiFirst&&caAiFirst()) und=null; }catch(_){}
   if(und&&und.here){
     let mine=false;
     try{ mine=!!(typeof window.caHereRead==='function'&&caHereRead(q)); }catch(_){ mine=false; }
@@ -2391,7 +2399,18 @@ async function intelAsk(qRaw, opts){
     let said=null; if(br){ try{ said=hbAsk(q); }catch(_){ said=null; } }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
   }
-  if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && typeof window.hbAsk==='function'){
+  /* AI FIRST ON THE BOARD (stage 3b): a QUESTION ("what ends this quarter", "which customer is worth the most")
+     is the Board's Jambo's (the graph route, with the Board's own actions); commands stay the free reader's */
+  /* …but a question the Board's own reader knows by name ("how many contracts are waiting on us": its "waiting on
+     us" figure) is answered by the Board, free; a lens is no answer to "worth the most" (stage 3c) */
+  let boardKnows=false;
+  try{ const pz=(typeof window.hbParse==='function')?hbParse(q):null;
+    /* …and so is one it reads WHOLE (a q: card: "which stalled deals are waiting on us, by counterparty", "how much
+       is signed", a value range, a date): the free reader is sure of every word, so it is not a guess to hand on
+       (stage 3d; deal-facts 4, board-answers-the-question 3, home-board 13f/13g) */
+    boardKnows=!!pz&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
+  const boardQ=!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
+  if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
@@ -2426,7 +2445,9 @@ async function intelAsk(qRaw, opts){
        board — or, with no key, to the map's filter reader, whose list the
        board draws */
     let mapListy=false;
-    if(igBoardNow()){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
+    /* …but a QUESTION handed to the Board's Jambo (boardQ, AI first) is his: the map's word reader read "which
+       customer is worth the most" as a lens and lit nothing (stage 3d) */
+    if(igBoardNow()&&!boardQ){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
     /* …and beside a page brought up on the desk (heldId) the Board is up too:
        its question goes with that contract's wording, never to the map */
     const boardUp=(!!igBoardNow()&&!IG_WALK_RE.test(q)&&!IG_OUTLIER_RE.test(q)&&!mapListy)||!!heldId;
@@ -2437,9 +2458,9 @@ async function intelAsk(qRaw, opts){
     const mapRest=(igPaperUp()||boardUp||tplAsk)?null:await intelMapLocal(q);
     if(mapRest!=null){ if(mapRest) await intelGraphAsk(mapRest); }
     else if(tplAsk&&!igPaperUp())                       await intelTemplateAsk(q);
-    else if(igPaperUp()&&igAsksOtherThan(q,intel.paper.id)) await intelChatAsk(q);
+    else if(igPaperUp()&&!igAsksThisPaper(q,intel.paper.id)) await intelChatAsk(q);
     else if(igPaperUp())                                await igPaperAsk(q);
-    else if(heldId&&igAsksOtherThan(q,heldId))          await intelChatAsk(q);
+    else if(heldId&&!igAsksThisPaper(q,heldId))         await intelChatAsk(q);
     else if(heldId)                                     await igPaperAsk(q,heldId);
     else if(idHits>=2)                                  await intelChatAsk(q);
     else if(IG_COMPLIANCE_RE.test(q)&&!idHits)          await intelComplianceScan(q);
@@ -2472,7 +2493,7 @@ async function intelAsk(qRaw, opts){
     const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
     if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null);
       /* the reply is written from what the board now draws (the honest reply) */
-      if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
+      if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(q); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
     /* the Copilot reply that drew or changed the open chart carries its reading too */
     const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
     if(last&&!last.reading){ const r=rdOf(); if(r.reading){ last.reading=r.reading; renderIntelDock(); } }
@@ -2785,6 +2806,10 @@ function intelGraphApply(q, res, opts){
   if(!line&&lookDid){ if(!ownHtml||!graphSaysMore(own,res.note,'')) return { refused:false, groupBy, ids, look:true }; line=ownHtml; }
   /* asked on the Board, the map is not the screen: "Nothing changed on the
      map" is not said over an answer about the board */
+  /* A COUNT ASKED OF THE MAP AS IT STANDS ("how many contracts are on the map", stage 3d) is answered with
+     HaTi's own count of what it shows — never "Nothing changed on the map" over a question that asked no change */
+  else if(!line&&!didHere&&!onBoard&&/^\s*(?:how many|hur många)\b/i.test(String(q||''))){ const act=intelActive(); const shown=act.ids&&act.action==='filter'?act.ids.size:total;
+    line=igEsc(i18t('int_did_showing',{ n:shown, t:total })+'.')+(ownHtml?(rich?'':'<br>')+ownHtml:''); }
   else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
   /* THE ANSWER FIRST (Young, 8 Oct 2026, "Home first"): where Copilot wrote a
      sentence that says more than the counts, the sentence IS the answer and
@@ -3188,8 +3213,11 @@ const IGB_SPIN_KEY=['rot',null,'rotL',null,null];   // which angle each view tur
 const IGB_SWAY=.12, IGB_SWAY_S=36;
 /* THE GRID STANDS STILL (Young, 23 Oct 2026: "make the grid just a straight
    grid that does not move left to right or spin ... if you want to move it
-   around with your mouse then you can do so"). No sway, no turn, no jiggle;
-   a drag still turns and tips it. Turning is greyed there with the reason. */
+   around with your mouse then you can do so"). No sway, no turn; a drag still
+   turns and tips it. Turning is greyed there with the reason. ITS DOTS STILL
+   JIGGLE (Young, 23 Oct 2026: "the stars should not be static ... the grid is
+   the one that should stop moving") — even when Turning was left on in
+   another view (igbMoves, not cam.spin, stills the jiggle). */
 const IGB_STILL_VIEW=3;
 function igbMoves(){ return igbSpinning()&&igbCam().view!==IGB_STILL_VIEW; }
 /* STILL UNTIL PRESSED (Young, 10 Oct 2026: "clicking play when on screen
@@ -3730,7 +3758,7 @@ const IG_EDGE_PARTY_KEYS=['counterparty'];
 function igEdgeNamesShow(key){ return !IG_EDGE_PARTY_KEYS.includes(key)||intel.edgeNames===true; }
 function igHubNamed(h,R){ if(!R) return true; if(R.none) return false; return (h.kids||[]).some(n=>igNameShows(n.id,R)); }
 function igbJig(n,w){
-  const j=(igbCam().jig||0)*(1-w[1]-w[IGB_STILL_VIEW]); if(j<=.001) return null;
+  const j=(igbCam().jig||0)*(1-w[1]); if(j<=.001) return null;
   if(!n._jp){ const h=igbHash(n.id); n._jp=[h%628/100,(h>>>10)%628/100,(h>>>20)%628/100,.75+(h%50)/100]; }
   const t=(IG&&IG._jt||0)*2*Math.PI/IGB_JIG_S*n._jp[3], a=IGB_JIG*j;
   return [a*Math.sin(t+n._jp[0]),a*Math.sin(t*1.3+n._jp[1]),a*Math.sin(t*.8+n._jp[2])];
@@ -3772,7 +3800,7 @@ function igbStep(G,dt){
   /* Turning / Still (the bar's own button, `cam.spin`; a reader who asked for
      less motion starts Still). Holding or pointing at the map holds it. */
   const spin=!!cam.spin;
-  cam.jig=(cam.jig||0)+(((spin||rm)?0:1)-(cam.jig||0))*(rm?1:Math.min(1,dt*2));
+  cam.jig=(cam.jig||0)+(((igbMoves()||rm)?0:1)-(cam.jig||0))*(rm?1:Math.min(1,dt*2));
   G._jt=(G._jt||0)+dt;
   if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; else if(cam.view===4) cam.swayT=(cam.swayT||0)+dt; }
   /* Still holds the swing where it is (a pressed Still is still at once) */
@@ -8659,6 +8687,9 @@ function igHeldAskId(){
 const IG_HELD_TIME_RE=/\b(?:this|next|last|denna|nästa|förra|det här|den här)\s+(?:week|month|quarter|year|vecka|veckan|månad|månaden|kvartal|kvartalet|år|året)\b|\bi\s+(?:år|dag)\b|\b(?:in|within|inom)\s+\d+\s*\p{L}+/giu;
 const IG_HELD_THIS_RE=/(?<!\p{L})(?:this|it|its|it's|denna|detta|dess|det)(?!\p{L})/iu;
 const IG_HELD_BOOK_RE=/(?<!\p{L})(?:contracts|agreements|deals|drafts|negotiations|renewals|counterparties|suppliers|customers|vendors|portfolio|board|top\s+\d+|(?:alla|vilka|våra|visa)\s+avtal|avtal\s+som|avtalen|utkasten|förhandlingar|förhandlingarna|förnyelser|motparter|motparterna|leverantörer|leverantörerna|kunder|kunderna|portföljen|tavlan)(?!\p{L})/iu;
+/* "search for…", "look for…": a search is of everything, not the paper in front (stage 3d) */
+const IG_SEARCH_ASK_RE=/^\s*(?:please\s+)?(?:search|look)\s+(?:for|up|through)\b|^\s*(?:sök|leta)\s+(?:efter|upp)?/i;
+const IG_BOOK_OURS_RE=/(?<!\p{L})(?:our|all|every|any|all of our|våra|alla)\s+(?:duties|obligations|requests|notes|templates|standards|colleagues|people|åtaganden|förfrågningar|anteckningar|mallar|kollegor)(?!\p{L})/iu;
 function igHeldAsksBook(q, heldId){
   const t=String(q||'');
   const refs=t.match(/\b(?:mk|rl)[- ]?\d+\b/gi)||[];
@@ -8680,6 +8711,9 @@ function igAsksOtherThan(q, id){
   if(refs.some(r=>!me.has(r))) return true;
   if(!refs.length&&IG_HELD_BOOK_RE.test(t.replace(IG_HELD_TIME_RE,' '))){ IG_HELD_TIME_RE.lastIndex=0; return true; }
   IG_HELD_TIME_RE.lastIndex=0;
+  /* "which of OUR duties are due soon", "all our requests": the whole of ours, unless it says "this" (stage 3d) */
+  { const u=t.replace(IG_HELD_TIME_RE,' '); IG_HELD_TIME_RE.lastIndex=0;
+    if(!refs.length&&(IG_BOOK_OURS_RE.test(u)||IG_SEARCH_ASK_RE.test(u))&&!IG_HELD_THIS_RE.test(u)) return true; }
   try{ const n=(typeof window.navNorm==='function')?navNorm(t):' '+t.toLowerCase()+' ';
     const P=(typeof window.navPartiesIn==='function')?navPartiesIn(n):[];
     const mine=String(c.counterparty||'').trim().toLowerCase();
@@ -8689,8 +8723,44 @@ function igAsksOtherThan(q, id){
     const byName=(typeof window.navContractByName==='function')?navContractByName(t,{ loose }):null;
     if(byName&&byName.c&&byName.c.id!==c.id) return true;
     if(byName&&Array.isArray(byName.picks)&&byName.picks.some(x=>x.id!==c.id)) return true;
+    /* a stream named that is not this contract's ("show only the marketing stream") */
+    const st=(typeof window.navStreamOf==='function')?navStreamOf(n):null;
+    if(st&&st.fid&&st.fid!==c.folder) return true;
+    /* A CONTRACT NAMED BY WHAT IT IS ("sockeravtalet", "the milk contract", "hyresavtalet"): a word that names a
+       kind of contract which this one's name and party do not hold is another contract's (stage 3c) */
+    { const own=String([c.name,c.counterparty,c.type].join(' ')).toLowerCase();
+      const kinds=[...n.matchAll(/(?:^|\s)(\p{L}{3,})(?:avtal(?:et|en)?|kontraktet)(?=\s|$)|(?:^|\s)(?:the|a|our|their) (\p{L}{3,}) (?:contract|deal|agreement|lease)(?=\s|$)/gu)].map(m=>m[1]||m[2]).filter(w=>!['this','that','same','current','open','other','first','last','new','signed'].includes(w));
+      if(kinds.some(w=>!own.includes(w.slice(0,Math.min(5,w.length))))) return true; }
+    /* MISSPELT NAMES ("kabbras", "the nandi diary contract", "suger"): a word one slip from a word of ANOTHER
+       contract's name or party, and not this contract's own (hsEdit, the one search's words) */
+    if(typeof window.hsEdit==='function'){
+      const words=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').split(/[^\p{L}\p{N}]+/u).filter(w=>w.length>=5);
+      const mine=new Set(words([c.name,c.counterparty].join(' ')));
+      /* …never a word Jambo already reads as his own: a meaningless one ("please" is not "lease": the one search's
+         stop words, hsTerms) or a place or act word ("share" is not "spare": CA_PLACES) */
+      const own=new Set(words((window.CA_PLACES||[]).flatMap(p=>p.w||[]).join(' ')));
+      const asked=words(t).filter(w=>!mine.has(w)&&!own.has(w)&&!(typeof window.hsTerms==='function'&&!hsTerms(w).length));
+      const others=new Set((state.contracts||[]).filter(x=>x&&x.id!==c.id).flatMap(x=>words([x.name,x.counterparty].join(' '))).filter(w=>!mine.has(w)&&!['agreement','contract','services','supply','limited'].includes(w)));
+      if(asked.some(w=>[...others].some(o=>hsEdit(w,o,w.length<8?1:2)<=(w.length<8?1:2)))) return true;
+    }
   }catch(_){}
   return false;
+}
+/* IS THE QUESTION ABOUT THE OPEN PAPER (stage 3b, 22 Oct 2026)? Only when it names nothing else AND says so —
+   "this", "it", the contract's own name or number — or asks after what a contract says (its terms, its
+   clauses, its money, its dates). "who works here", "aprovals", "what do we owe this week", "Grace" are not
+   about the paper beside them and go to Jambo with all of HaTi. A time ("this week") is not "this". Free. */
+/* …and its negotiation: "what changed in round 1", their redlines, our counter (home-held-contract 3f) */
+const IG_PAPER_TOPIC_RE=/(?<!\p{L})(round|rounds|chang\p{L}*|redlin\p{L}*|counter|countered|propos\p{L}*|omgång\p{L}*|clause|clauses|section|article|term|terms|payment|pay|paid|invoice|price|value|worth|fee|fees|liab\p{L}*|indemn\p{L}*|terminat\p{L}*|renew\p{L}*|expir\p{L}*|end|ends|notice|confidential\p{L}*|law|govern\p{L}*|dispute\p{L}*|arbitrat\p{L}*|warrant\p{L}*|deliver\p{L}*|quantit\p{L}*|obligation\p{L}*|dut(y|ies)|part(y|ies)|sign\p{L}*|amend\p{L}*|scope|defin\p{L}*|insurance|penalt\p{L}*|breach|assign\p{L}*|reject\p{L}*|quality|specification|wording|say|says|said|mean|means|summar\p{L}*|brief|risk\p{L}*|klausul\p{L}*|villkor\p{L}*|betal\p{L}*|pris\p{L}*|värde|ansvar\p{L}*|uppsäg\p{L}*|förläng\p{L}*|löper|sekretess|lag|leverans\p{L}*|parter\p{L}*|underskrift\p{L}*|ändring\p{L}*)(?!\p{L})/iu;
+function igAsksThisPaper(q, id){
+  const c=id?getContract(id):null; if(!c) return false;
+  if(igAsksOtherThan(q,id)) return false;
+  const t=String(q||'').replace(IG_HELD_TIME_RE,' '); IG_HELD_TIME_RE.lastIndex=0;
+  if(IG_HELD_THIS_RE.test(t)||IG_PAPER_TOPIC_RE.test(t)) return true;
+  const n=t.toLowerCase();
+  const own=[c.id,c.contractNo].filter(Boolean).map(x=>String(x).toLowerCase());
+  if(own.some(r=>n.includes(r))) return true;
+  return String([c.name,c.counterparty].join(' ')).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w=>w.length>=4&&!['agreement','contract','services','supply'].includes(w)).some(w=>n.includes(w));
 }
 function igAskPlaceholder(){
   /* beside the one sheet the box asks as drawn (the gaps, round 4) */
@@ -10026,7 +10096,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
-Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
+Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});

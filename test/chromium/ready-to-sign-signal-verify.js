@@ -233,15 +233,17 @@ let REST_BG = null;    /* the resting count: --color-text */
     check('the head says it instead — no card, no press, no floating box',
       /ready to sign/i.test(headSays), headSays);
 
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's rows are the one desk's
+       (.nd-pan .nd-r); the ready-to-sign row is still green (nd-good) and flashes once (nd-news) */
     await page.evaluate(() => document.getElementById('hdr-notify').click());
     await page.waitForTimeout(900);
     const opened = await page.evaluate(() => {
       const panel = document.getElementById('context-panel');
       const open = !!(panel && panel.classList.contains('open'));
-      const rows = panel ? [...panel.querySelectorAll('[data-alert-i]')] : [];
+      const rows = panel ? [...panel.querySelectorAll('.nd-pan .nd-r')] : [];
       const mine = rows.find(r => /ready to sign/i.test(r.innerText || ''));
       return { open, title: (document.getElementById('panel-title') || {}).textContent || '',
-        hit: !!mine, good: !!(mine && mine.classList.contains('al-good')),
+        hit: !!mine, good: !!(mine && mine.classList.contains('nd-good')),
         anim: mine ? getComputedStyle(mine).animationName : null,
         vis: mine ? Math.round(mine.getBoundingClientRect().height) : 0 };
     });
@@ -272,9 +274,9 @@ let REST_BG = null;    /* the resting count: --color-text */
     await page.evaluate(() => document.getElementById('hdr-notify').click());
     await page.waitForTimeout(800);
     const again = await page.evaluate(() => {
-      const r = [...document.querySelectorAll('#context-panel [data-alert-i]')]
+      const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')]
         .find(x => /ready to sign/i.test(x.innerText || ''));
-      return r ? { good: r.classList.contains('al-good'), news: r.classList.contains('al-news'),
+      return r ? { good: r.classList.contains('nd-good'), news: r.classList.contains('nd-news'),
         anim: getComputedStyle(r).animationName } : null;
     });
     check('reopening it: still green, no longer flashing',
@@ -298,7 +300,7 @@ let REST_BG = null;    /* the resting count: --color-text */
     await page.waitForTimeout(900);
     const inPanel = await page.evaluate(() => {
       const panel = document.getElementById('context-panel');
-      const rows = panel ? [...panel.querySelectorAll('[data-alert-i]')] : [];
+      const rows = panel ? [...panel.querySelectorAll('.nd-pan .nd-r')] : [];
       const mine = rows.find(r => /ready to sign/i.test(r.innerText || ''));
       return { title: (document.getElementById('panel-title') || {}).textContent || '',
         hit: !!mine, doors: rows.length,
