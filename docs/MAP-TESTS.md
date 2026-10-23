@@ -84,7 +84,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING
-- f867 (new, red at the parent df2a3e3: no ndRead) — one reading, the merge keeping the wait and the red, the bundle, Home's groups, the Board's tabs/kinds/find/twelve, one button width, both books.
+- f868 (new, red at the parent df2a3e3: no ndRead) — one reading, the merge keeping the wait and the red, the bundle, Home's groups, the Board's tabs/kinds/find/twelve, one button width, both books.
 - Re-pointed 22 Oct 2026: f803 (2)–(8) to ndParts/ndHomeRowHtml; f450 (1), f724 (1), f745 (3), f800 (10), f801 3h, f458 (11), f603 D12. Browser: counter-as-drawn (2, 3, 7, 8, 10a, 10h), agents-page (a piece read with its Look open), board-as-drawn 3, board-strip 1a, board-walkthrough-fixes 2/3, button-consistency 2, desk-comes-back, five-images 1, name-tag-horizon 1, waiting-on-us-no-desk 2, jambos-work-open, open-in-place, home-one-list, home-prepared-by-copilot, board-agent-work, copilot-jobs 4, home-and-recent 2a, home-first 5, needs-you-card 1b/4b/4c, settings-overnight-fixes D12, tidy-sweep (its "Jambo's work" place waits for `#hm-agents .nd-br`).
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)

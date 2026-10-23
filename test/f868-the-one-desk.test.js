@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   f867 — THE ONE DESK (Round A; the owner picked "The Legora Way" by name,
+   f868 — THE ONE DESK (Round A; the owner picked "The Legora Way" by name,
    22 Oct 2026, then: "Why don't you just move them to board?", "the card
    still has to go below the KPIs card", "make all of the buttons the same
    size", "Yes, go ahead and build it and merge to main")
@@ -74,7 +74,7 @@ const redlines = { ...row('MK-2', 'quiet', { title: 'Answer their redlines' }), 
 const answer = { key: 'round:MK-2', kind: 'answer', agent: 'round', c: C('MK-2', 'Nordvik Logistik'), days: 1, tone: 'amber' };
 const chase = { key: 'late:MK-3', kind: 'chase', agent: 'late', c: C('MK-3', 'Kettle & Co'), days: 5, tone: 'ruby' };
 
-describe('f867 (1) one reading', () => {
+describe('f868 (1) one reading', () => {
   test('1a a waiting thing and the piece prepared for it are ONE row, the piece\'s, with the wait and the red', () => {
     const w = world([redlines, row('MK-1', 'approval')], [answer, chase]);
     const D = w.ndRead();
@@ -106,7 +106,7 @@ describe('f867 (1) one reading', () => {
   });
 });
 
-describe('f867 (2) Home', () => {
+describe('f868 (2) Home', () => {
   test('2a Jambo\'s group first, three rows of each, "Show all N" onto the Board', () => {
     const pieces = [answer, chase, { ...chase, key: 'late:MK-4', c: C('MK-4', 'Atlas') }, { ...chase, key: 'late:MK-8', c: C('MK-8', 'Rania') }];
     const w = world([row('MK-1', 'approval'), row('MK-11', 'sign')], pieces);
@@ -130,7 +130,7 @@ describe('f867 (2) Home', () => {
   });
 });
 
-describe('f867 (3) the Board', () => {
+describe('f868 (3) the Board', () => {
   const many = n => Array.from({ length: n }, (_, i) => row('MK-' + (100 + i), i % 2 ? 'sign' : 'review', { who: 'Sara Lind' }));
   test('3a tabs with counts, the kinds there are, a find box, five columns, twelve rows', () => {
     const w = world(many(14), [chase]);
@@ -182,7 +182,7 @@ describe('f867 (3) the Board', () => {
   });
 });
 
-describe('f867 (4) one button width, one word', () => {
+describe('f868 (4) one button width, one word', () => {
   test('4a every Next button wears one width on both drawings', () => {
     assert.match(CSS, /\.nd-btn\{flex:none;width:76px;justify-content:center\}/);
     assert.match(CSS, /\.nd-cols,\.nd-br\{display:grid;grid-template-columns:minmax\(0,2\.2fr\) minmax\(0,1\.6fr\) minmax\(0,1\.1fr\) 104px 76px;/);
