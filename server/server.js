@@ -8053,6 +8053,9 @@ const boardAnalystHandler = async (req, res) => {
   if (!question) return res.status(400).json({ error: 'question is required' });
   const guide = String(b.guide || '').slice(0, 6000), board = String(b.board || '').slice(0, 4000);
   const story = String(b.story || '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').slice(0, BOARD_ANALYST_STORY_MAX);
+  /* DIG DEEPER ON ONE CARD (owner, 23 Oct 2026: one press with What could
+     explain this?): the card's own fact sheet goes with the question */
+  const chart = story ? '' : String(b.chart || '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').slice(0, BOARD_ANALYST_RESULT_MAX);
   const maxSteps = story ? BOARD_ANALYST_STORY_STEPS : BOARD_ANALYST_STEPS;
   const steps = (Array.isArray(b.steps) ? b.steps : []).slice(0, maxSteps).map(s => {
     if (!s || typeof s !== 'object' || !['calculate', 'pack'].includes(s.name)) return null;
@@ -8079,7 +8082,7 @@ const boardAnalystHandler = async (req, res) => {
   ];
   const lang = String(b.lang || '').replace(/[^\p{L} ]/gu, '').slice(0, 30) || 'English';
   const storyJob = story ? `\nThis is DIG DEEPER on a story already on the board; its chapters and their fact sheets are below. Find out WHY the story looks the way it does: put forward an idea (what drove it, who drove it, what helped), test it with one calculation, and keep going with the next idea. Take at most ${maxSteps} steps, usually six to ten. In finish: summary says why, in three to five sentences; chapters are the steps that explain it (each a step number, a short title and two or three sentences); watch lists what is coming up that the reader should act on, each tied to the step whose contracts it names; aside lists the ideas that did not hold and why. In the summary, the chapters and watch, ${BOARD_SAY_RULE}\n\nTHE STORY:\n${story}\n` : '';
-  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${maxSteps} steps — ${story ? 'as many as the story needs' : 'usually two or three'} — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\n${AI_GOVERNANCE_RULE}\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}${storyJob}\nThe reader's question: "${question}"`;
+  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${maxSteps} steps — ${story ? 'as many as the story needs' : 'usually two or three'} — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\n${AI_GOVERNANCE_RULE}\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}${storyJob}${chart ? `\nThe reader pressed Dig deeper on ONE card of the board. Find out what could explain what it shows and what is worth checking next; do not repeat what its fact sheet already says.\n\nTHE CARD:\n${chart}\n` : ''}\nThe reader's question: "${question}"`;
   const messages = [{ role: 'user', content: prompt }];
   steps.forEach((s, n) => {
     const id = 'step_' + n;

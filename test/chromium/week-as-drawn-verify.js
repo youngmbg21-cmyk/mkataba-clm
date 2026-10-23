@@ -299,6 +299,18 @@ const weekOf = () => {
       });
       check(`5 ${w}×${ht}: Obligations whole — nothing sideways, no card under the panel, the head's acts and Jambo's box in view`,
         fitO.side && !fitO.under && fitO.acts && fitO.box, fitO);
+      /* ONE WIDTH FOR THE ROW'S ACT (owner, 23 Oct 2026: "the buttons are not the same size"):
+         every act drawn stands the same width, its word inside it — and so would the
+         widest word of either book (Review 31, Mark done, Påminn igen, Markera klart) */
+      const actW = await page.evaluate(() => {
+        const bs = [...document.querySelectorAll('.obw-wk [data-obw-act]')].filter(b => b.getBoundingClientRect().width > 0);
+        const ws = bs.map(b => Math.round(b.getBoundingClientRect().width)), fit = bs.every(b => { const r = document.createRange(); r.selectNodeContents(b); const t = r.getBoundingClientRect(), o = b.getBoundingClientRect(); return t.left >= o.left && t.right <= o.right; });
+        const host = bs[0] && bs[0].parentElement, words = ['Review 31', 'Granska 31', 'Mark done', 'Markera klart', 'Chase again', 'Påminn igen', 'Decide', 'Besluta'];
+        const probe = words.map(t => { if (!host) return 0; const x = bs[0].cloneNode(false); x.textContent = t; host.appendChild(x); const r = Math.round(x.getBoundingClientRect().width); x.remove(); return r; });
+        return { n: bs.length, ws: [...new Set(ws)], fit, probe: [...new Set(probe)] };
+      });
+      check(`5 ${w}×${ht}: every act in the week list is one width, its word inside it, and the widest word of either book fits that width`,
+        actW.n >= 2 && actW.ws.length === 1 && actW.fit && actW.probe.length === 1 && actW.probe[0] === actW.ws[0], actW);
       if (OUT) await page.screenshot({ path: path.join(OUT, `16-obligations-${w}x${ht}.png`) });
       await page.evaluate(() => setView('calendar'));
       await until(() => !!document.querySelector('#cal-wk-more'));

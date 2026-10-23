@@ -76,7 +76,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       await page.evaluate(q => hbAsk(q), q);
       const P = await until(k => { const p = document.querySelector('#hb-focus .hb-pack[data-hb-pack="' + k + '"]'); if (!p) return null;
         return { cards: p.querySelectorAll('.hb-pack-card').length, rows: p.querySelectorAll('.hb-pk-t tbody tr').length,
-          how: !!p.querySelector('.hb-how'), next: p.querySelectorAll('[data-hb-next]').length, ask: !!p.querySelector('[data-hb-why="pk:' + k + '"]'),
+          how: !!p.querySelector('.hb-how'), next: p.querySelectorAll('[data-hb-next]').length, ask: !!p.querySelector('.hb-why-ask [data-hb-dd-on="pk:' + k + '"]'),
           read: ((p.querySelector('.hb-read') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160) }; }, k);
       check(`1 ${k}: the pack opens with cards, a ranked list, how it was worked out, next questions and the summary press`,
         !!P && P.cards >= 1 && P.rows >= 1 && P.how && P.next === 3 && P.ask, JSON.stringify(P));
@@ -93,8 +93,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
 
     /* 3 — the pack's summary */
     await page.evaluate(q => hbAsk(q), Q.risks);
-    await until(() => !!document.querySelector('#hb-focus [data-hb-why="pk:risks"]'));
-    await page.evaluate(() => document.querySelector('#hb-focus [data-hb-why="pk:risks"]').click());
+    /* RE-POINTED 23 Oct 2026 (owner: two depths): the pack's press is Dig deeper; its first answer is the quick read */
+    await until(() => !!document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on="pk:risks"]'));
+    await page.evaluate(() => document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on="pk:risks"]').click());
     const sum = await until(() => { const b = document.querySelector('#hb-focus .hb-pack .hb-why .hb-why-b'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : null; });
     const sent = await page.evaluate(() => window._asked.slice(-1)[0] || '');
     check('3a the summary is written from the pack\'s fact sheet', /^FACT SHEET — /.test(sent) && /- Coverage: /.test(sent), sent.slice(0, 80));

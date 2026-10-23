@@ -14576,6 +14576,9 @@
   .obw-wk .ins-c2 > b{font-weight:var(--w-label);}
   .obw-act-c{overflow:visible;}
   .obw-act{white-space:nowrap;color:var(--accent-ink);}
+  /* ONE WIDTH FOR THE ROW'S ACT (owner, 23 Oct 2026: "the buttons are not the same size" — Review 1 beside Review 15):
+     every act in the week list stands one width, its word centred; the widest word in either book fits it */
+  .obw-act.ui-btn{min-width:112px;justify-content:center;box-sizing:border-box;}
   .obw-chase-on{font-size:var(--t-micro);}
   .obw-lock{display:inline-flex;vertical-align:-1px;margin-left:6px;color:var(--color-neutral-600);}
   .obw-priv{flex:none;display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border:1px solid var(--color-divider);border-radius:999px;
