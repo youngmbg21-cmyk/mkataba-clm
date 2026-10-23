@@ -33797,6 +33797,9 @@ Carried so nothing was lost: Category on the filing line (`_pdKtCatting`, `ktFie
 Found while photographing: on a contract with no duties the Obligations tab drew "No obligations are recorded yet" ABOVE the renewal lines; the renewal now stands first as drawn (obligations-renewal-legora-way-verify 3b). every-door-lands-on-home: a renewal row lands on the Obligations tab, the menu's "Filing and stream" on Key terms with Move open.
 Red at the parent 81d5988: key-terms-legora-way-verify 3a (Category), 7a, 8a–8f. Pictures at the three screens; the drawn-vs-built page was shown to the owner before the merge.
 
+## THE SHELL — RAIL, BAR, PANELS · A BOOKING IN THE ✦'S WINDOW STILL GOES TO THE CALENDAR (23 Oct 2026)
+Asked after "The old chat window" (21 Oct): the window answers what is typed in it, so should a booking ("book a meeting on Tuesday") stay there too? The owner: "keep bookings going to the Calendar". The 18 Oct ruling stands: from every box, the ✦'s window included, a booking or a question about one's own calendar is the Calendar's Jambo's (`caAskAnywhere` → `igBookAsk` → `calHandOff`, asked before the window's `win` flag stops any other hand-off); the window says it went there (`ig_cal_handoff`). Do not ask again. Test: f735 (3).
+
 ## AI FIRST, NEVER A DEAD END · SAID ANOTHER WAY (Jambo works like Copilot, stage 3d, 23 Oct 2026)
 - THE ASK: "Continue 'Jambo works like Copilot' Stage 3c from branch claude/magical-gates-2dffuc-stage3b: re-run the live exam and keep fixing toward 95%." The branch was merged with stage 3's newer commits and with main first (two places kept both sides: the brief rule and the clarify rule both stand, in both hosts).
 - MEASURED FIRST (stage 3c merged with main, live AI): 215 of 240 (90%), 0 dead ends, 302 calls (1.26 per ask). The exam was run four sections at a time (four processes, the same measure script and relay) — a whole run in about twenty minutes instead of seventy.
