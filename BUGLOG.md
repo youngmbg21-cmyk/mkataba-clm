@@ -21485,3 +21485,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The server has no copy of HaTi's default playbook (DEFAULT_PLAYBOOK lives only in js/playbook.js): until a workspace saves its own, check_against_playbook says "No playbook is configured" and the one search finds no standards, while Our standards shows the built-in books. Asked "the standard we use for how many days to pay", the AI said there was none.
 - The clause editor's Jambo, asked about another contract ("what are the payment terms in MK-A1" from MK-A2's clause), answers about the clause in front and does not name the contract it read.
 - CLAUDE.md is 87.7 KB, over its ~80 KB rule (it was 87.3 KB at the start of this round); a trim needs the owner's yes.
+
+## Noticed, not fixed — 23 Oct 2026 (stage 3d, making the pull request green)
+- `caReadSend` (and `caReadDraft`) start their act from inside the reader (a setTimeout to `caSummaryOpen` / `caDraftRun`), so when `caActOf` later drops the reading (another contract named, a question), the send screen or the form still opens while the ask also goes to the AI.
+- "what now" and "vad nu" are listed as the next-steps card's own phrases, but `caPlaceOf` strips a trailing "now"/"nu" first, so they never match the card.

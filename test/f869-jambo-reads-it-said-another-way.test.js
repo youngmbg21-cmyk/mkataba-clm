@@ -187,9 +187,8 @@ describe('f869 (7) the free reader reads it said another way', () => {
   test('a question in Swedish is answered, never a trip', () => {
     assert.equal(N.navRead('vad är betalningsvillkoren i MK-A1'), null);
   });
-  test('"make an amendment to …" is an act on a contract that exists', () => {
-    const a = N.navRead('make an amendment to the Westlands lease');
-    assert.deepEqual([a.cid, a.nav.act], ['MK-D2', 'amend']);
+  test('"make an amendment to …" is never a trip: the amend card waits for a press (copilot-jobs 3b)', () => {
+    assert.equal(N.navRead('make an amendment to the Westlands lease'), null);
   });
   test('a clause of the party\'s one contract, the party misspelt', () => {
     const a = N.navRead('clause 7 of kabbras');

@@ -176,8 +176,8 @@ function navRead(q, opts = {}){
      place) it answers there; only "take me to …" moves past it */
   /* a new paper asked for ("draft an NDA with Volvo") is the one form's, never a trip to an old one */
   try { if (!NAV_MOVE.test(t) && typeof caIsDraftAsk === 'function' && caIsDraftAsk(raw)) return null; } catch (_){}
-  /* …but "make an amendment to the Westlands lease" is an act on a contract that exists (stage 3d) */
-  if (/^ (draft|write|create|make|prepare|skriv|skapa|gör|upprätta) /.test(t) && !NAV_MOVE.test(t) && !/ (amendment|amend|ändring|tillägg) /.test(t)) return null;
+  /* (an amendment asked for — "make an amendment to …" — is the amend card's, which waits for a press: caReadDoor) */
+  if (/^ (draft|write|create|make|prepare|skriv|skapa|gör|upprätta) /.test(t) && !NAV_MOVE.test(t)) return null;
   /* a yes-or-no or a why ("Can I send MK-A2 without the review?", "Why can't Legal sign the Naivas
      deal?") is answered where it is asked, never a trip */
   if (/^ (why|can|could|should|may|might|must|will|would|do|does|did|is|are|am|was|varför|kan|får|ska|måste|är) /.test(t) && !NAV_MOVE.test(t)) return null;

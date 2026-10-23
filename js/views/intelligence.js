@@ -2405,10 +2405,10 @@ async function intelAsk(qRaw, opts){
      us" figure) is answered by the Board, free; a lens is no answer to "worth the most" (stage 3c) */
   let boardKnows=false;
   try{ const pz=(typeof window.hbParse==='function')?hbParse(q):null;
-    /* …and an AMOUNT it reads whole ("how much is signed", "how much is in drafts") is drawn by value and said with
-       its money, free (board-answers-the-question 3; stage 3d) */
-    const amount=!!(window.HB_AMOUNT_Q&&HB_AMOUNT_Q.test(q));
-    boardKnows=!!pz&&!(pz.act==='dig'&&/^q:/.test(String(pz.key||''))&&!amount)&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
+    /* …and so is one it reads WHOLE (a q: card: "which stalled deals are waiting on us, by counterparty", "how much
+       is signed", a value range, a date): the free reader is sure of every word, so it is not a guess to hand on
+       (stage 3d; deal-facts 4, board-answers-the-question 3, home-board 13f/13g) */
+    boardKnows=!!pz&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
   const boardQ=!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
@@ -8717,7 +8717,10 @@ function igAsksOtherThan(q, id){
     if(typeof window.hsEdit==='function'){
       const words=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').split(/[^\p{L}\p{N}]+/u).filter(w=>w.length>=5);
       const mine=new Set(words([c.name,c.counterparty].join(' ')));
-      const asked=words(t).filter(w=>!mine.has(w));
+      /* …never a word Jambo already reads as his own: a meaningless one ("please" is not "lease": the one search's
+         stop words, hsTerms) or a place or act word ("share" is not "spare": CA_PLACES) */
+      const own=new Set(words((window.CA_PLACES||[]).flatMap(p=>p.w||[]).join(' ')));
+      const asked=words(t).filter(w=>!mine.has(w)&&!own.has(w)&&!(typeof window.hsTerms==='function'&&!hsTerms(w).length));
       const others=new Set((state.contracts||[]).filter(x=>x&&x.id!==c.id).flatMap(x=>words([x.name,x.counterparty].join(' '))).filter(w=>!mine.has(w)&&!['agreement','contract','services','supply','limited'].includes(w)));
       if(asked.some(w=>[...others].some(o=>hsEdit(w,o,w.length<8?1:2)<=(w.length<8?1:2)))) return true;
     }
@@ -8728,7 +8731,8 @@ function igAsksOtherThan(q, id){
    "this", "it", the contract's own name or number — or asks after what a contract says (its terms, its
    clauses, its money, its dates). "who works here", "aprovals", "what do we owe this week", "Grace" are not
    about the paper beside them and go to Jambo with all of HaTi. A time ("this week") is not "this". Free. */
-const IG_PAPER_TOPIC_RE=/(?<!\p{L})(clause|clauses|section|article|term|terms|payment|pay|paid|invoice|price|value|worth|fee|fees|liab\p{L}*|indemn\p{L}*|terminat\p{L}*|renew\p{L}*|expir\p{L}*|end|ends|notice|confidential\p{L}*|law|govern\p{L}*|dispute\p{L}*|arbitrat\p{L}*|warrant\p{L}*|deliver\p{L}*|quantit\p{L}*|obligation\p{L}*|dut(y|ies)|part(y|ies)|sign\p{L}*|amend\p{L}*|scope|defin\p{L}*|insurance|penalt\p{L}*|breach|assign\p{L}*|reject\p{L}*|quality|specification|wording|say|says|said|mean|means|summar\p{L}*|brief|risk\p{L}*|klausul\p{L}*|villkor\p{L}*|betal\p{L}*|pris\p{L}*|värde|ansvar\p{L}*|uppsäg\p{L}*|förläng\p{L}*|löper|sekretess|lag|leverans\p{L}*|parter\p{L}*|underskrift\p{L}*|ändring\p{L}*)(?!\p{L})/iu;
+/* …and its negotiation: "what changed in round 1", their redlines, our counter (home-held-contract 3f) */
+const IG_PAPER_TOPIC_RE=/(?<!\p{L})(round|rounds|chang\p{L}*|redlin\p{L}*|counter|countered|propos\p{L}*|omgång\p{L}*|clause|clauses|section|article|term|terms|payment|pay|paid|invoice|price|value|worth|fee|fees|liab\p{L}*|indemn\p{L}*|terminat\p{L}*|renew\p{L}*|expir\p{L}*|end|ends|notice|confidential\p{L}*|law|govern\p{L}*|dispute\p{L}*|arbitrat\p{L}*|warrant\p{L}*|deliver\p{L}*|quantit\p{L}*|obligation\p{L}*|dut(y|ies)|part(y|ies)|sign\p{L}*|amend\p{L}*|scope|defin\p{L}*|insurance|penalt\p{L}*|breach|assign\p{L}*|reject\p{L}*|quality|specification|wording|say|says|said|mean|means|summar\p{L}*|brief|risk\p{L}*|klausul\p{L}*|villkor\p{L}*|betal\p{L}*|pris\p{L}*|värde|ansvar\p{L}*|uppsäg\p{L}*|förläng\p{L}*|löper|sekretess|lag|leverans\p{L}*|parter\p{L}*|underskrift\p{L}*|ändring\p{L}*)(?!\p{L})/iu;
 function igAsksThisPaper(q, id){
   const c=id?getContract(id):null; if(!c) return false;
   if(igAsksOtherThan(q,id)) return false;

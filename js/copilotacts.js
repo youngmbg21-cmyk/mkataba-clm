@@ -406,10 +406,19 @@ function caActOf(q){
   /* AI FIRST (stage 3b): a question ("which…", "how many…", "vilka…") is answered, not met with a door or a
      card read off one of its words; sending and drafting stay the readers' own */
   /* "how do I get them to sign?" asks for the way to do a thing: the task's own card answers it, free */
-  if (CA_WH_Q.test(t) && !/^\s*(how (do|can|should) (i|we)|hur (gör|kan) (jag|vi))\b/i.test(t) && !['send', 'draft'].includes(r.kind) && !(r.kind === 'go' && !r.cid && CA_WH_WORKLISTS.includes(r.place))) return null;
+  /* …and a named door that is itself a question ("what is still open on MK-J2": the deal's open points) is that door,
+     never a guess (stage 3d; copilot-jobs 2a) */
+  /* …and a question that IS one of a place's own phrases, read word for word ("what's next", "what can you do",
+     "vad nu"), is that card: nothing in it is guessed (next-step-chips 2) */
+  const ownPhrase = () => { try { const p = caPlaceOf(t); return !!(p && r.kind === 'go' && p.place === r.place); } catch (_){ return false; } };
+  if (CA_WH_Q.test(t) && !/^\s*(how (do|can|should) (i|we)|hur (gör|kan) (jag|vi))\b/i.test(t) && !['send', 'draft', 'door'].includes(r.kind) && !(r.kind === 'go' && !r.cid && CA_WH_WORKLISTS.includes(r.place)) && !ownPhrase()) return null;
   /* …and an act read for the contract open beside the reader is not done when the words name ANOTHER one
      ("make an amendment to the Westlands lease" with the courier contract open) */
-  if (r.cid && typeof igAsksOtherThan === 'function'){ let other = false; try { other = igAsksOtherThan(t, r.cid); } catch (_){ other = false; } if (other) return null; }
+  /* (a colleague picked with @ is a person, never another contract's name: "@Unrestricted Legal" holds "legal") */
+  if (r.cid && typeof igAsksOtherThan === 'function'){ let other = false;
+    const pn = (r.person && r.person.name) ? String(r.person.name) : '';
+    const tw = pn ? t.replace(new RegExp('@?' + pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ') : t;
+    try { other = igAsksOtherThan(tw, r.cid); } catch (_){ other = false; } if (other) return null; }
   return r;
 }
 /* a question whose answer IS a worklist ("what is waiting for my approval") still opens it: answered where the list is */
