@@ -145,6 +145,16 @@ describe('f868 (5) the quote opens its clause; markup typed into an answer is re
     assert.equal(r.answer, 'In Article 1 of MK-A1.');
     assert.deepEqual(r.cards.map(c => c.id), ['MK-A1']);
   });
+  test('the whole deliver_answer call typed as plain text is read as the call, on both routes (owner, 23 Oct 2026)', async () => {
+    const typed = '<deliver_answer>\n<parameter name="answer">**MK-A1** is under review.\n</parameter>\n<parameter name="citations">[{"id": "MK-A1"}]</parameter>\n</invoke>';
+    for (const go of [ask, askStream]) {
+      ai.reset(); ai.script([{ type: 'text', text: typed }]);
+      const r = await go(W.admin, 'tell me about MK-A1');
+      assert.equal(r.answer, '**MK-A1** is under review.', go.name);
+      assert.ok(!/parameter|invoke|deliver_answer/.test(r.answer), go.name);
+      assert.deepEqual(r.cards.map(c => c.id), ['MK-A1'], go.name);
+    }
+  });
 });
 
 describe('f868 (6) a contract named and not asked about opens', () => {
