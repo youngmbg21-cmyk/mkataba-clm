@@ -16,6 +16,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE OVERVIEW — READ DOWN, ONE SHEET
 - f176, f178, f280, f325, f351, f352, f359 (10), f361, f362, f442, duties-map, edit-keeps-the-card, overview-as-drawn, refile-a-contract, overview-and-obligations-polish verify.
+- THE DETAILS PAGE RETIRED (22 Oct 2026): key-terms-legora-way-verify parts 7 (Category on the filing line) and 8 (every old door: Overview, name, an unnamed term, filing, a renewal, a kept 'details' page) — red at 81d5988. Re-pointed to the room by name: duties-map, edit-keeps-the-card (Edit keeps the card's height), details-owes-overview-edits 4, signing-without-the-facts 2, uploaded-contract-fixed 4; to Key terms: code-names 1–4, contract-page 5, pay-section 4, nda-tail 4, home-held-contract 6l–6u, fill-the-document 6; board-strip 6a–10c; inspector-checklist 3d, 8f, 8h (the Obligations tab).
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f193, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
@@ -79,11 +80,17 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - jambo-chat-window-verify (the ✦ opens the floating window on Home, Approvals and Settings, typed words answered in it, the one conversation shown there and Home pointing to it, the edge tab still slides the side panel in, three screens; 12 red at db763d0); jambo-slides-in 3, 4, 10, jambo-pill-and-window 4a and 5d, jambos-list-panel 10h, every-jambo-box 1b re-pointed to the window; f735 (a booking still goes to the Calendar).
 - jambo-slides-in-verify (the side panel, the ✦ ask bar (now the window), plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
 - jambo-watches-and-presses-verify (here names the page, Show me › lands and lights, the press sends nothing, a watch card stores only on Start watching, Your watches pause/delete; 8 red at e332b81b); f860 (watches: the wall, only mine, CRUD, the sweep fires once).
+- AN EMPTY JAMBO BOX IS ONE LINE (22 Oct 2026): every-jambo-box-verify's `oneLine` (each of the nine boxes, a hint far too long for it, three screens; 30 red at 2a39d1b). THE BRIEF IS BROUGHT, NEVER WRITTEN AGAIN (22 Oct 2026): f862 (a follow-up carries the last read act; "summarise this contract" is the brief place; AI_BRIEF_RULE twins; 8 red at 2a39d1b).
 
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.
 
+## THE ONE DESK — NEEDS YOU, ONE READING
+- f868 (new, red at the parent df2a3e3: no ndRead) — one reading, the merge keeping the wait and the red, the bundle, Home's groups, the Board's tabs/kinds/find/twelve, one button width, both books.
+- Re-pointed 22 Oct 2026: f803 (2)–(8) to ndParts/ndHomeRowHtml; f450 (1), f724 (1), f745 (3), f800 (10), f801 3h, f458 (11), f603 D12. Browser: counter-as-drawn (2, 3, 7, 8, 10a, 10h), agents-page (a piece read with its Look open), board-as-drawn 3, board-strip 1a, board-walkthrough-fixes 2/3, button-consistency 2, desk-comes-back, five-images 1, name-tag-horizon 1, waiting-on-us-no-desk 2, jambos-work-open, open-in-place, home-one-list, home-prepared-by-copilot, board-agent-work, copilot-jobs 4, home-and-recent 2a, home-first 5, needs-you-card 1b/4b/4c, settings-overnight-fixes D12, tidy-sweep (its "Jambo's work" place waits for `#hm-agents .nd-br`).
+
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
 - Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
 - 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
 - What Jambo read as four rows, no grey line under an owed fact (21 Oct 2026): f748 2b re-pointed; `owed-first-verify.js`, `nda-tail-verify.js`. The paper's line without the party: f708 1a, `paper-line-verify.js` 1a, `the-road-as-drawn-verify.js` 12d re-pointed. `piles-as-drawn-verify.js` 3b (piles unboxed). List before Wall: f687.
@@ -113,6 +120,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## OBLIGATIONS
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 
+- THE TAB BESIDE THE PAPER, THE LEGORA WAY (22 Oct 2026): `test/chromium/obligations-renewal-legora-way-verify.js` (renewal lines and quote, the tabs, the decision card while due, three screens; 13 red at 6fb5d85).
 ## THE LIST INSPECTOR
 - f387, f390, f391, f395, f664, f678, f804, f810, inspector, inspector-checklist, jambos-list-panel verify.
 - Answered beside the list (22 Oct 2026, Part 8 question 3 = A): f804 8b–8b4 (red at e10e3af6); jambos-list-panel-verify 10g re-pointed (answered in the panel, the draft form still a door).
@@ -176,6 +184,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - RE-POINTED 21 Oct 2026 for that row: still-owed-sap-way-verify's labelOver reads the box's .pd-og-sb wrapper; f748 5a/5b and paper-panel-as-drawn-verify 5a now assert the chip is gone and "sign" is not offered while nobody is named (its 5b went with the chip); fill-the-document-verify scrolls to the "Fill the document" line before pressing it.
 - checklist-as-drawn-verify (the owner's "1 · Checklist", 22 Oct 2026: the stage line with ONE current; "Needs you N"; every owed row one line of 40, ONE open, a press opens another and again closes it; Confirm N read writes a closed row; Jambo read's two rows; Next acts equal on one line, All acts N › opens and folds; the only signer button is "Add or order signers ›"; four signers named → green "4 named · 4 steps", opened 1–4, the route editor at the XL rung with no sideways scroll and a person's ⋯ menu whole; nothing past the panel at all three screens; 21 red at f0cd4b3).
 - RE-POINTED 22 Oct 2026 for the Checklist: `ckOpenRowOf(page, sel)` (test/helpers.js) opens a fact's row before a check types in it (blanks-panel, fill-in-beside-the-paper, fill-the-document, owed-first, owed-first-as-drawn, signer-row-as-drawn, still-owed-sap-way); the count is read off `.ds-ck-n`; "Needs you" sits above "Jambo read"; the risks row says "Not read · free" and Read; the acts wear short words (whole name on hover); the-brief 1e allows only the Checklist's rings and the Missing tag (the owner said no lines); f312 pins the route at the XL rung; f705 4a, jambos-panel 1f and checklist-as-drawn 2a2 pin the Dossier tab's number to this contract's Needs you; checklist-as-drawn 2a3 finds no line between sections or rows.
+- KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f705 (the jw row's door).
 
@@ -253,6 +262,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f244, f306, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
+- "the closest" on one line, the name shortened (22 Oct 2026): `tidy-sweep-verify.js` draft place (owner-length standard names seeded; red at e05849a at 1440 and 1366).
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
 - Every door opens beside Jambo (22 Oct 2026): draft-beside-jambo verify 1–3 (red at the parent), requests-and-notes-as-drawn 3d.
 
@@ -292,6 +302,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - nda-carries-no-money-verify.
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
+- The house no wider than the page (22 Oct 2026): `tidy-sweep-verify.js` jambo place (the door's count badge; 3px sideways at e05849a).
 - jambos-work-open-verify (Home's Jambo's work · Open, and the house's door, land on the Board's Jambo's work card even when a contract's report was held there: bsCardLeave first; never "nothing prepared" over waiting work; three screens).
 - f667, f724, f790, f800–f803, jambo-agents, open-in-place, counter-as-drawn verify.
 
@@ -307,6 +318,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A STILL MAP MOVES ONLY ITS DOTS (22 Oct 2026): home-speed verify 3 (red at 234b2ef: 1,000–1,200 ms busy of 4000 here, 612–804 on GitHub; 263–296 after). RE-POINTED: explorer-magnitude verify 4a2 reads the dot where the canvas draws it (`n.q`), f425 the rest guard in `igRender`.
 - The Board → Paper switch (22 Oct 2026): home-speed-verify check 1 at a real 430 book (check 3 red on purpose, BUGLOG); every-door-lands-on-home, counter-as-drawn, page-jumps, legora-lists, board-keeps-your-place, keeps-your-place, refresh-keeps-your-spot, wall-of-papers, open-in-place.
 - f356, f357, f656, home-speed, long-contract-moves verify.
+- A resting map redraws only its dots (22 Oct 2026): home-speed 3 (red at the parent, 25–40% busy), f425 (1), explorer-magnitude 4a2/4f (the painted dot, n.q), explorer-stage-one 8c (the stamped glow, data-igb-glow).
 
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
 - f393, f401–f421, their-markers, review-keeps-typed-terms, discard-keeps-sent, paper-terms-frozen, opening-keeps-your-edit, waiting-on-us-no-desk, narrow-pages verify.
@@ -325,3 +337,11 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - test/f866-one-search-over-hati.test.js (21): the words (both hosts), a passage found and where it sits, kept current by the triggers, the walls (stream, values, own notes, requests, private stream, code name), Jambo's tool. With the tool list touched also run f305 (the two hosts' tool names) and f561/f564 (the Brain).
 - Stage 2, every door as a tool: test/f867-every-door-as-a-tool.test.js (12: the door offered, cleaned, and walled — another stream, a code name, an admin's setting, a request) and test/chromium/jambo-doors-verify.js (21 doors, each landed in a real browser through aiGotoRun, judged by test/nav-read.js). With navmap.js touched also run test/chromium/nav-exam-verify.js (its ratchet) and f738.
 - Stage 3, AI first and never a dead end: test/f868-never-a-dead-end.test.js (the nudge, the last step, the way on, the choices walled, the quote's clause, the named contract, the rules twinned). Touched there and re-pinned: f132 (the gave-up row says "I ran out of steps"), test/chromium/board-says-it-plain-verify.js A3e (words asking for no picture are answered by Jambo). With the Settings box touched run every-jambo-box-verify and settings-as-drawn-3-verify; with the window, phone-verify and jambo-chat-window-verify.
+
+
+## THE FIRST-TIMER ROUNDS (22 Oct 2026)
+- test/f866-first-timer-rounds.test.js (13 of 13 red at origin/main 2aba169; 23 green on the branch): the wall's words and press, stems and families, the one question, Use when, Who pays whom, Jambo's first words on a draft, the empty Redlines column, the plain reason, Ask a colleague, Accept unsent, Counter's figures, both books.
+- test/chromium/first-timer-rounds-verify.js (5 passed / 46 failed at 2aba169; 51 / 0 on the branch): the viewer's card and Ask at the three screens, the sentence's sheet, Who pays whom stored as customer, Jambo speaks once and Fill them in lands, the empty Redlines and its Send, their rows, Counter, Accept, Ask a colleague.
+- RE-POINTED (each green at the parent, red after the change, green again): f246 (8) adds data-rl-ask-colleague to the engine's verbs; f480 (1) the side field through payWhoHtml; f679 2a2 the wall's words; f707 1b draftWallToast; f756 7a Counter's options carry the figures.
+- RE-POINTED after CI (22 Oct 2026): f36 "accept merges that clause" reads the new Accept message (an ask of theirs on our seat). CI's other three were faults of this change, fixed in the code: words named like plurals (f148; now fr_draft_open / fr_draft_whole / fr_draft_next, tf_cp_company), the refusal's fallback where the wall is not loaded (f270), the published list's head kept (f676).
+- RE-POINTED after CI's browser checks (22 Oct 2026): a new draft now opens on Jambo's first words, so create-lands-clean, newcontract, fill-in-beside-the-paper and draft-upload-glance count his words as a landing and press the trail's ‹ back to the Dossier (`pastFirstWords`); form-nextup-and-draft-chip 1b–1d read the Who pays whom buttons. Fixed in the code: a fill-in door (`pdFillOpen`) turns his conversation back to the Dossier and drops his still-owed words (`firstDraftDrop`) — term-and-fields and signing-without-the-facts 5c went green with no test change.

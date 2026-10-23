@@ -57,28 +57,26 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
        page and discard the current 2 cards"): the desk row and its kind tag
        left Home. The row that took its place names its AGENT at the left —
        the agent's own icon on a tinted square, on the sentence's line. */
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk — the owner picked "The Legora Way"): the renewal is one row of
+       Needs you; who prepared it is said on the row's own line ("Jambo · step N of M" on the Board), and on Home its
+       step is a drawn mark beside the title, at the left of the row's tail, never a bare number. */
     const tag = await page.evaluate(() => {
-      const row = document.querySelector('[data-hm-agent-row="renew"]');
+      const row = document.querySelector('#hm-agents [data-nd-agent="renew"]');
       if (!row) return null;
-      /* RE-POINTED IN PLACE 3 Oct 2026: the row is the board's own now */
-      /* RE-POINTED 11 Oct 2026 (the Board as drawn, owner's go): one row per
-         item, its agent's mark the drawn dot */
-      const t = row.querySelector('.hb-ag-dot, .hb-ag-ic, .hm-ag-ic');
-      if (!t) return { drawn: false };
-      const rr = row.getBoundingClientRect(), tr = t.getBoundingClientRect();
-      const head = row.querySelector('.hb-ag-b, .hm-rb').getBoundingClientRect();
-      const cs = getComputedStyle(t);
-      return { drawn: true, name: (row.querySelector('.hb-ag-t, .hm-rt') || {}).textContent,
-        atLeft: Math.round(tr.left - rr.left) <= 16 && tr.right <= head.left + 1,
-        bg: cs.backgroundColor,
-        sameLine: Math.abs((tr.top + tr.height / 2) - (head.top + head.height / 2)) < 12 };
+      const who = row.querySelector('.nd-c-who'), head = row.querySelector('.nd-c-what b');
+      const wr = who.getBoundingClientRect(), hr = head.getBoundingClientRect();
+      return { drawn: true, name: who.textContent, sameLine: Math.abs((wr.top + wr.height / 2) - (hr.top + hr.height / 2)) < 12 };
     });
-    ok('1 the row names its agent', !!tag && tag.drawn && /Renewals/.test(tag.name || ''), JSON.stringify(tag));
-    ok('1b its mark sits at the LEFT, on the sentence\'s own line',
-      !!tag && tag.atLeft && tag.sameLine, JSON.stringify(tag && { l: tag.atLeft, s: tag.sameLine }));
+    ok('1 the row names who prepared it', !!tag && tag.drawn && /^Jambo · step \d+ of \d+$/.test(tag.name || ''), JSON.stringify(tag));
+    ok('1b on the sentence\'s own line', !!tag && tag.sameLine, JSON.stringify(tag));
+    await page.evaluate(() => setView('counter'));
+    await page.waitForTimeout(900);
+    const mark = await page.evaluate(() => { const s = document.querySelector('#cn-needs .nd-r .nd-step'); if (!s) return null;
+      const cs = getComputedStyle(s), b = s.closest('b').querySelector('.nd-t').getBoundingClientRect(), r = s.getBoundingClientRect();
+      return { edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0, afterTitle: r.left >= b.right - 1, t: s.textContent }; });
     /* GATED on the mark really being drawn, or an absence satisfies it. */
-    ok('1c it is a filled mark, not a bare glyph',
-      !!tag && tag.drawn && tag.bg !== 'rgba(0, 0, 0, 0)', tag && tag.bg);
+    ok('1c on Home its step is a drawn mark beside the title, not a bare number', !!mark && mark.edge && mark.afterTitle && /^\d+ of \d+$/.test(mark.t), JSON.stringify(mark));
+    await page.evaluate(() => setView('dashboard'));
 
     /* ════ 2. THE DROPDOWN'S CHOICES ════ */
     await page.evaluate(() => setView('register'));

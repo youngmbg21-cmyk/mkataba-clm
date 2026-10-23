@@ -191,7 +191,8 @@ const openSettings = async (page, tab) => {
       return !!(r && /Finish setting up — \d+ left/.test(r.textContent)); }, null, 10000);
     const doorText = door ? await p2.evaluate(() => document.querySelector('[data-cn-setup]').closest('.cn-r').querySelector('.cn-w').textContent.trim()) : '';
     check('D12 a brand-new workspace lands on the Counter, whose admin row is "Finish setting up — N left"', !!door, doorText);
-    const inSlot = await p2.evaluate(() => !!document.querySelector('#cn-needs [data-cn-setup]') && document.querySelectorAll('#cn-needs .cn-co').length === 1);
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the admin's row is a row of your move, its door data-cn-setup */
+    const inSlot = await p2.evaluate(() => !!document.querySelector('#cn-needs [data-cn-setup]') && document.querySelectorAll('#cn-needs [data-cn-setup], #cn-needs [data-cn-co]').length === 1);
     check('D12 and it is the one admin row inside Needs you (no band)', inSlot);
     const n = Number((/(\d+)/.exec(doorText) || [])[1] || -1);
     await p2.click('[data-cn-setup]');

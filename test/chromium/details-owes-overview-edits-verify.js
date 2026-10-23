@@ -111,8 +111,9 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's sheet
        is the contract strip's Details page on Home's Board, opened by its one
        door (roomOverviewOpen) — and it reads what Details just saved */
-    await page.evaluate(() => { roomOverviewOpen(getContract('MK-DO1')); });
-    await until(() => !!document.querySelector('[data-bs-host="details"][data-bs-cid="MK-DO1"] #kt-ov-terms #ov-ess'));
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the Overview's sheet still stands in the room opened by name (openWorkspace(id,{room:true})) and is checked there */
+    await page.evaluate(() => { openWorkspace('MK-DO1', { room: true }); roomOverviewOpen(getContract('MK-DO1')); });
+    await until(() => state.view === 'workspace' && !!document.querySelector('#kt-ov-terms #ov-ess'));
     const ov = await page.evaluate(() => ({ edit: !!document.querySelector('#kt-ov-terms [data-ov-edit="all"]'),
       add: !!document.querySelector('#kt-ov-terms [data-py-add]'), door: !!document.querySelector('#kt-ov-terms [data-ov-go-details]'),
       reads: /Nordic Bites AB/.test((document.getElementById('ov-ess') || {}).textContent || '') }));
@@ -121,12 +122,12 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     /* RE-POINTED 20 Oct 2026 (the owner: "we should not be entering information in the board"): the
        Board's Edit opens the paper with its Key terms unfolded — the end date and the other terms, a Change on each line */
     await page.click('#kt-ov-terms [data-ov-edit="all"]'); await pause(600);
-    /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms' table stands in the middle beside the Dossier */
-    const ed = await until(() => { const k = document.querySelector('[data-pd-mid-kt] #pd-kt'); if (!k) return null;
-      return { face: hbS().face, email: !!k.querySelector('tr[data-pd-og-row="cpEmail"] [data-pd-kt-change]'),
-        expiry: !!k.querySelector('tr[data-pd-og-row="expiry"] [data-pd-kt-change]'), law: !!k.querySelector('tr[data-pd-og-row="governingLaw"] [data-pd-kt-change]') }; }, null, 6000);
-    await page.screenshot({ path: path.join(OUT, '03-overview-edit.png') });
-    check('4c Edit opens the paper\'s Key terms: the end date and the other terms, each with Change', !!ed && ed.face === 'paper' && ed.expiry && ed.law, JSON.stringify(ed));
+    /* RE-POINTED 22 Oct 2026 (the Details page RETIRED on a computer): the room opened by name keeps the
+       sheet's own Edit — it opens the boxes for the end date and the other terms, as on 13 Oct */
+    const ed = await until(() => { const e = document.getElementById('ov-ess'); if (!e) return null;
+      const keys = [...e.querySelectorAll('[data-kt], [data-ktm]')].map(x => x.getAttribute('data-kt') || x.getAttribute('data-ktm'));
+      return keys.length ? { keys, expiry: keys.includes('expiry') || keys.includes('expiryDate'), law: keys.includes('governingLaw') } : null; }, null, 6000);
+    check('4c Edit opens the boxes for the end date and the other terms', !!ed && ed.expiry && ed.law, JSON.stringify(ed));
 
     check('9 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) { fail++; console.log('FAIL  the run threw — ' + e.message); }

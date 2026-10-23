@@ -189,10 +189,11 @@ const OBS = [
     const typed = await S('#igd-input');
     if (typed){ await page.fill('#igd-input', ''); await page.type('#igd-input', 'bring up MK-L1', { delay: 8 }); await page.keyboard.press('Enter'); }
     const up1 = await waitFor(page, s => !!document.querySelector(s), 8000, strip('MK-L1'));
-    const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-prep, #hb-board .hb-note, #hb-board .hb-grid'), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })() }));   /* no Present on a computer's head since the SAP way (18 Oct 2026) */
+    const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board #hm-agents, #hb-board .hb-note, #hb-board .hb-grid'), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })() }));   /* no Present on a computer's head since the SAP way (18 Oct 2026) */
     check('1a0 on the desk it is a page of its own: its contract\'s tab in front, none of the Board\'s furniture (round 7)', onDesk.card === 'MK-L1' && onDesk.key === 'c:MK-L1' && !onDesk.furniture && onDesk.present, JSON.stringify(onDesk));
     await allOnBoard();
-    const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board .hb-prep'), st = document.getElementById('bs-strips');
+    /* RE-POINTED 22 Oct 2026 (Round A): the card under Your book is Needs you (#hm-agents), no longer .hb-prep */
+    const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board #hm-agents'), st = document.getElementById('bs-strips');
       return { prep: !!prep, after: !!(prep && st && (prep.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING)), focus: !!document.querySelector('#hb-focus .hb-dig'), face: hbFace(), view: state.view }; });
     check('1a and on the Board tab it stands as a strip below Today\'s insights; no old card', typed && up1 && order.after && !order.focus && order.face === 'board' && order.view === 'dashboard', JSON.stringify(order));
     /* RE-POINTED 19 Oct 2026 (owner: "you land on the page and if you want to chat with jambo it takes you
@@ -368,9 +369,12 @@ const OBS = [
     /* RE-POINTED 21 Oct 2026 (owner, THE REPORT SIMPLIFIED: Key terms' door is "Change beside the
        paper ›" and the ⋯ keeps only Where we are · History · Show on the map): the Details page is
        reached by its own door (roomOverviewOpen, THE OVERVIEW — READ DOWN, ONE SHEET) */
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED after its three rounds): the
+       Overview's door is Key terms in the middle beside the Dossier; no Details page is drawn */
     await page.evaluate(() => roomOverviewOpen(getContract('MK-L1')));
-    const det = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #kt-ov-terms #ov-ess'), 8000);
-    check('6a the Details door opens the Overview\'s own sheet inside the strip (its Edit, its parties, its renewal)', det && !(await roomSeen()));
+    const det = await waitFor(page, () => !!document.querySelector('[data-dlg-page][data-pd-mid] [data-pd-mid-kt] #pd-kt') && !document.querySelector('[data-bs-host="details"]'), 8000);
+    check('6a the Overview\'s door opens Key terms in the middle (no Details page, never the room)', det && !(await roomSeen()));
+    await page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); });
     await page.evaluate(() => pdOpenOnHome('MK-L1', 'copilot'));
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows are the dossier's All acts fold */
     await waitFor(page, () => !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'), 8000);
@@ -382,34 +386,42 @@ const OBS = [
     check('6b All acts carries the room\'s own acts: Create an amendment, Add a signed document — and no second "Add signers"',
       !rows.includes('ws-m-signers') && rows.includes('ws-m-amend') && rows.includes('ws-m-link') && rows.includes('ws-filing'), rows.join(' '));
     await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-filing'); b.closest('details').open = true; b.click(); });
-    const filing = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'board' && !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #ov-record'), 8000);
-    check('6c "Filing and stream" lands on the filing rows in the strip, never the room', filing && !(await roomSeen()));
+    /* RE-POINTED 22 Oct 2026 (the Details page retired): the filing is Key terms' line, Move open */
+    const filing = await waitFor(page, () => !!document.querySelector('[data-dlg-page][data-pd-mid] [data-pd-kt-file] [data-pd-kt-folder]'), 8000);
+    check('6c "Filing and stream" lands on Key terms\' filing line with Move open, never the room', filing && !(await roomSeen()));
+    await page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); });
 
     /* ===== 10. THE CHECKERS' ROUND (15 Oct 2026) ===== */
-    /* 10a Details follows the record: a save elsewhere is read on the next paint */
+    /* 10a Key terms follows the record: a save elsewhere is read on the next paint
+       (RE-POINTED 22 Oct 2026: the Details page retired; its sheet's promise is Key terms' now) */
+    await page.evaluate(() => pdKtOpen('MK-L1'));
+    await waitFor(page, () => !!document.querySelector('[data-pd-mid-kt] tr[data-pd-og-row="governingLaw"]'), 8000);
     const lawWas = await page.evaluate(() => (getContract('MK-L1').metadata || {}).governingLaw);
     /* (the reader is not typing in it: a box with the cursor is never drawn under their hands) */
     await page.evaluate(async () => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       const c = getContract('MK-L1'); c.metadata = Object.assign({}, c.metadata, { governingLaw: 'Kenyan law' }); persist(c); await flushSaves(); renderWorkspace(); });
-    const fresh = await waitFor(page, () => /Kenyan law/.test((document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #ov-ess') || {}).textContent || ''), 6000);
-    check('10a the strip\'s Details follows the record: a save made elsewhere is read on the next paint, not after leaving Home', fresh);
+    const fresh = await waitFor(page, () => /Kenyan law/.test((document.querySelector('[data-pd-mid-kt] tr[data-pd-og-row="governingLaw"]') || {}).textContent || ''), 6000);
+    check('10a Key terms follows the record: a save made elsewhere is read on the next paint, not after leaving it', fresh);
+    await page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); });
     await page.evaluate(async law => { const c = getContract('MK-L1'); c.metadata = Object.assign({}, c.metadata, { governingLaw: law }); persist(c); await flushSaves(); renderWorkspace(); }, lawWas);
     /* 10b Write the brief on the strip's Details: an open brief, and a second press costs nothing */
     await page.evaluate(() => { window.__rcb = window.runContractBrief; window.__briefCalls = [];
       window.runContractBrief = async (c, o) => { window.__briefCalls.push(!!(o && o.force)); c._brief = { v: 1, at: new Date().toISOString(), data: { overview: 'Mombasa Pallets hires pallets to Highland by the month.', watchouts: [], unusual: [] } }; return c._brief; };
-      hbStripBring('MK-L2', 'details'); });
-    const btn0 = await waitFor(page, () => { const c = getContract('MK-L2'); return !!(c && (c._loaded || !c._light)) && !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="details"] [data-kt-brief="run"]'); }, 8000);
-    if (btn0) await page.click('#bs-strip-MK-L2 [data-bs-host="details"] [data-kt-brief="run"]');
-    const opened1 = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="details"] [data-kt-brief="open"]'), 6000);
+      /* RE-POINTED 22 Oct 2026 (the Details page retired): the brief is written in its own panel, the one
+         the Dossier's "Jambo read · Brief" and Jambo's "brief" open (caBriefOpen → openCheckPanel) */
+      openCheckPanel(getContract('MK-L2'), 'brief'); });
+    const btn0 = await waitFor(page, () => !!document.querySelector('#brief-section [data-br-write]'), 8000);
+    if (btn0) await page.click('#brief-section [data-br-write]');
+    const opened1 = await waitFor(page, () => /Mombasa Pallets hires pallets/.test((document.querySelector('#brief-section') || {}).textContent || ''), 6000);
     const pan = await page.evaluate(() => !!document.querySelector('#brief-section'));
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
-    const b2 = await page.$('#bs-strip-MK-L2 [data-bs-host="details"] [data-kt-brief]');
-    if (b2) await b2.click();
+    await page.evaluate(() => openCheckPanel(getContract('MK-L2'), 'brief'));
     await pause(500);
     const calls = await page.evaluate(() => window.__briefCalls.slice());
-    check('10b Write the brief on the strip\'s Details lands as an open brief (Read the brief, its panel open); a second press opens it and pays nothing',
+    check('10b Write the brief in its panel lands as an open brief; opening it again pays nothing',
       btn0 && opened1 && pan && JSON.stringify(calls) === '[false]', JSON.stringify({ btn0, opened1, pan, calls }));
-    await page.evaluate(() => { try { closeModal(); } catch (_) {} bsStripPage('MK-L2', 'ov'); });
+    /* RE-POINTED 22 Oct 2026: the brief was written in its panel, so the strip is brought up here, on its Overview */
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} hbStripBring('MK-L2', 'ov'); });
     const band = await waitFor(page, () => /Mombasa Pallets hires pallets/.test((document.querySelector('#bs-strip-MK-L2 .bs-brief') || {}).textContent || ''), 5000);
     check('10c the strip\'s own band then reads the brief written there', band);
     /* 10l READ THE BRIEF beside what Jambo read (owner, 15 Oct 2026): over a brief on file, it opens THAT

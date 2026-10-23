@@ -124,17 +124,19 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       await toBoard();
     }
 
-    console.log('\n3 · Needs you is not on the Board; Jambo\'s work is (the owner\'s answer 14)');
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk; reverses the owner's answer 14): the card under Your book
+       is ALL of Needs you — Jambo's prepared pieces and your move — and the old Needs you card stays gone */
+    console.log('\n3 · Needs you, whole, under Your book (Round A)');
     const gone = await page.evaluate(() => { const book = document.getElementById('hb-book'), work = document.getElementById('hm-agents'), ins = document.querySelector('#hb-board .hb-ins-head');
-      return { needs: !!document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny'), work: !!work,
+      return { old: !!document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny'), work: !!work, nd: !!(work && work.classList.contains('nd-card')),
         order: !!(book && work && ins && (book.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING) && (work.compareDocumentPosition(ins) & Node.DOCUMENT_POSITION_FOLLOWING)),
-        rows: work ? [...work.querySelectorAll('[data-hm-agent-row]')].map(r => r.getAttribute('data-hm-agent-row')) : [] }; });
-    check('3a no Needs you card on the Board', !gone.needs, JSON.stringify(gone));
-    check('3b Jambo\'s work stays on the Board, under Your book, above Today\'s insights, its rows the agents\'', gone.work && gone.order && gone.rows.includes('late'), JSON.stringify(gone));
+        rows: work ? [...work.querySelectorAll('[data-nd-agent]')].map(r => r.getAttribute('data-nd-agent')) : [] }; });
+    check('3a the old Needs you card is not drawn', !gone.old, JSON.stringify(gone));
+    check('3b Needs you stands on the Board, under Your book, above Today\'s insights, Jambo\'s pieces among its rows', gone.work && gone.nd && gone.order && gone.rows.includes('late'), JSON.stringify(gone));
     await page.evaluate(() => { const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; hbOpenAgent(); });
     const lit = await until(() => { const w = document.getElementById('hm-agents'); if (!w || !w.classList.contains('is-landed')) return null;
       const r = w.getBoundingClientRect(); return { top: Math.round(r.top), inView: r.top >= 0 && r.top < innerHeight }; }, null, 8000);
-    check('3c Home\'s "Jambo\'s work" door (hbOpenAgent) lands ON the card: in view and lit, through landOn', !!lit && lit.inView, JSON.stringify(lit));
+    check('3c every door onto Jambo\'s work (hbOpenAgent) lands ON the card: in view and lit, through landOn', !!lit && lit.inView, JSON.stringify(lit));
     await shot(page, '17-board-jambos-work-landed-1440x780');
     await page.evaluate(() => { if (typeof landOff === 'function') landOff(); const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; });
 

@@ -277,10 +277,16 @@ describe('f800 (9) Look opens the piece under its row; pressed again it folds', 
 });
 
 describe('f800 (10) the card\'s head says Home\'s words', () => {
-  test('10a "N prepared · nothing sent or filed until you press" — one wording one press apart', () => {
-    assert.match(fnBody(HB, 'hbPrepHtml'), /i18tn\('cn_jw_n', A\.ready, \{ n: _hbN\(A\.ready\) \}\) \+ ' · ' \+ i18t\('cn_jw_said'\)/);
-    assert.doesNotMatch(fnBody(HB, 'hbPrepHtml'), /hm_ag_sub/);
-    assert.equal(BOOKS.en.cn_jw_n_other, '{n} prepared');
-    assert.equal(BOOKS.sv.cn_jw_n_other, '{n} förberedda');
+  /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the Board's card and Home's card are both Needs you,
+     drawn from ONE reading — the same title, the same count, the same "N late · the oldest has waited" */
+  test('10a one reading, one wording, one press apart', () => {
+    const CN = R('js/views/counter.js');
+    const board = fnBody(CN, 'ndBoardHtml'), home = fnBody(CN, 'counterHtml');
+    for (const f of [board, home]){
+      assert.match(f, /_cnT\('hb_ny_title'\)/, 'the title is Needs you');
+      assert.match(f, /ndSumWords\(D\)/, 'the same line under it');
+      assert.match(f, /const D = ndRead\(\);/, 'the one reading');
+    }
+    assert.match(fnBody(HB, 'hbPrepHtml'), /ndBoardHtml\(hbNdOpts\(A, since\)\)/);
   });
 });

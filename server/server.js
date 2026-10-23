@@ -12576,7 +12576,7 @@ function aiDoorOf(d, cx) {
   }
   return null;
 }
-const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the person asks WHERE something is in HaTi, to be taken somewhere, or to see, show, open or find one thing. The ONE place to open for them (task), and the exact thing in it (door) when your tools named it; HaTi opens it and says so. Leave it out for a question only about what contracts say.',
+const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the person asks WHERE something is in HaTi, to be taken somewhere, or to see, show, open or find one thing. The ONE place to open for them (task), and the exact thing in it (door) when your tools named it; HaTi opens it and says so. Also when they ask for a contract\'s brief or summary (task brief). Leave it out for any other question only about what contracts say.',
   properties: { task: { type: 'string', enum: JM_TASK_KEYS, description: 'The place: needs (what waits on me), contracts, expiring, upload, draft, fill (a contract\'s details), redline, sign, signlink, share, approval (ask for one), approvals (to decide), oblig, history, calendar, amend, export, end, parties, people, requests, ourpaper (templates), standards (our standards / the negotiation playbook), import, board, insights, askcol, explorer, brief, team, signcap, folders (who sees which stream), lang, away, jamboset (my own Jambo settings), jambopts (my Jambo points).' },
     book: { type: 'string', description: 'For task standards only, when a contract type or value stream is named: the playbook book key (e.g. supply, nda, services, lease). Leave out otherwise.' },
     door: AI_DOOR_SCHEMA,
@@ -12586,6 +12586,10 @@ const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is
 /* NEVER A GUESS BETWEEN TWO (stage 3); the browser twin is word for word (js/ai.js) */
 const AI_CLARIFY_RULE = 'UNSURE WHICH ONE: when the person\'s words fit two or more contracts, parties, people or places and nothing on screen settles it, do not guess: ask ONE short question in the answer and give 2-4 choices in deliver_answer\'s choices, each the exact door it opens. When their words fit one thing, answer or open it.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
+/* A CONTRACT'S BRIEF IS KEPT (owner, 22 Oct 2026): the chat opens the kept brief (goto task brief), never writes
+   one again; the browser's twins in js/ai.js, word for word (f862) */
+const AI_BRIEF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief and shows it in the panel beside the paper: set deliver_answer\'s goto to task brief and say in one short sentence that you are opening its brief.';
+const AI_BRIEF_OFF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief beside the paper: say in one short sentence that the words “brief” and the contract\'s reference (as in “brief MK-458”) open it.';
 function aiGotoOf(g, cx) {
   if (!aiNavigateOn() || !g || typeof g !== 'object') return null;
   const task = String(g.task || '');
@@ -12877,6 +12881,7 @@ SCOPE & SAFETY:
 - Be concise and direct. Reference specific numbers and clauses from the fetched data.
 - ${AI_GOVERNANCE_RULE} When a rule stops them and the proper next step is one of HaTi's own doors, name it in deliver_answer's ruleDoor.
 - ${aiNavigateOn() ? AI_GOTO_RULE : AI_GOTO_OFF_RULE}
+- ${aiNavigateOn() ? AI_BRIEF_RULE : AI_BRIEF_OFF_RULE}
 - ${AI_CLARIFY_RULE}
 - ${AI_CALENDAR_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
@@ -12962,6 +12967,7 @@ function hsDoorOf(h) {
    ("how much…", "when…") is answered where it was asked. */
 const COPILOT_SHOW_RE = /\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
 const COPILOT_ASKS_RE = /^\s*(what|when|who|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
+const COPILOT_TELL_RE = /^\s*(?:please\s+|can you\s+|could you\s+)?(summari[sz]e|explain|describe|list|tell|compare|outline|sammanfatta|förklara|beskriv|lista|jämför|berätta)\b/i;
 function copilotQuoteDoor(cx, question, final) {
   /* a goto that only opens the contract the quote is from is sharpened to the clause (stage 3b) */
   const g0 = final && final.goto && final.goto.door;
@@ -12970,6 +12976,8 @@ function copilotQuoteDoor(cx, question, final) {
   /* the person's own words: a board note before them and the paper's wording after them are not theirs */
   const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
   if (!COPILOT_SHOW_RE.test(q) && COPILOT_ASKS_RE.test(q)) return null;
+  /* a summary, an explanation or a list asked for is answered where it was asked, never a trip */
+  if (COPILOT_TELL_RE.test(q)) return null;
   const cited = (final.citations || []).filter(c => c && c.id && c.quote && !c.quoteDropped);
   const ids = [...new Set((final.citations || []).map(c => c && c.id).filter(Boolean))];
   if (ids.length !== 1) return null;

@@ -171,15 +171,14 @@ const untilServer = async (page, ok, ms = 8000) => {
     await P.setViewportSize({ width: 1440, height: 780 });
     { const s = await P.$('#bs-strip-MK-E1'); if (s) await s.screenshot({ path: path.join(OUT, 'panel-1440x780.png') }); }
 
-    /* ============ 4. DETAILS: THE PAY CELL, AND ITS ONE DOOR ============ */
-    await P.evaluate(() => bsStripPage('MK-E1', 'details'));
-    const det = await until(P, () => /Pay/.test((document.querySelector('#bs-strip-MK-E1 .bs-details') || {}).innerText || ''), null, 10000);
-    const cells = await P.evaluate(() => (document.querySelector('#bs-strip-MK-E1 .bs-details') || {}).innerText || '');
-    check(det && /KES 450,000 · Monthly/.test(cells), '4a the terms say Pay: base pay and how often', '');
-    check(/Role/.test(cells) && /Probation \(months\)/.test(cells) && !/Payment terms/.test(cells) && !/Liability capped/i.test(cells), '4b Role and Probation stand in for payment terms and the liability cap; still eight');
-    /* RE-POINTED 21 Oct 2026 (THE BOARD READS, owner 20 Oct 2026, the Legora way): the card's Edit brings
-       Key terms to the middle beside the paper (pdKtOpen); the Pay row there is no box, its door Edit pay */
-    await P.click('#bs-strip-MK-E1 [data-ov-edit="all"]').catch(() => {});
+    /* ============ 4. KEY TERMS: THE PAY ROW, AND ITS ONE DOOR ============ */
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the terms are Key terms' rows
+       in the middle (pdKtOpen) — Pay with base pay and how often; Role and Probation in place of payment terms and the cap */
+    await P.evaluate(() => pdKtOpen('MK-E1'));
+    const det = await until(P, () => /Pay/.test((document.querySelector('[data-pd-mid-kt] #pd-kt') || {}).innerText || ''), null, 10000);
+    const cells = await P.evaluate(() => (document.querySelector('[data-pd-mid-kt] #pd-kt') || {}).innerText || '');
+    check(det && /KES 450,000 · Monthly/.test(cells), '4a the terms say Pay: base pay and how often', cells.replace(/\s+/g, ' ').slice(0, 300));
+    check(/Role/.test(cells) && /Probation \(months\)/.test(cells) && !/Payment terms/.test(cells) && !/Liability capped/i.test(cells), '4b Role and Probation stand in for payment terms and the liability cap');
     await until(P, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt [data-pd-kt-change="value"]'), null, 6000);
     await P.click('[data-pd-mid-kt] #pd-kt [data-pd-kt-change="value"]').catch(() => {});
     const door = await until(P, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt [data-ov-pay-edit="MK-E1"]'), null, 6000);

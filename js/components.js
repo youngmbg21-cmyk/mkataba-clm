@@ -473,7 +473,7 @@ function jamboSendHtml(attrs, label, o = {}){
 }
 function jamboCardHtml(o = {}){
   const may = typeof window === 'undefined' || typeof window.pdDropMay !== 'function' || window.pdDropMay();
-  const plusT = may ? _jbT('jb_add_file') : _jbT('ct_viewers_no_add');
+  const plusT = may ? _jbT('jb_add_file') : _jbT('ca_wall_head');
   const plus = o.noFile ? '' : `<button type="button" class="jb-plus" data-jb-file aria-label="${esc(plusT)}" title="${esc(plusT)}"${may ? '' : ' disabled aria-disabled="true"'}>${JB_PLUS_ICON}</button>`;
   return `<div class="jb-card${o.cls ? ' ' + o.cls : ''}"${o.id ? ` id="${o.id}"` : ''}>${o.lead || ''}${o.field || ''}<div class="jb-row">${plus}${o.ctx || ''}<span class="jb-sp"></span>${o.send || ''}</div>${o.tail || ''}</div>`;
 }
@@ -509,6 +509,16 @@ function jamboCardGrow(t){
     }
     t.style.height = 'auto';
     if (!t.scrollHeight) return;
+  }
+  /* AN EMPTY BOX IS ONE LINE (owner, 22 Oct 2026): its height is never the
+     placeholder's — Chrome counts a wrapped placeholder in scrollHeight, so a
+     narrow panel's hint used to stand the empty box two or more lines tall */
+  if (!String(t.value || '').length){
+    const cs = getComputedStyle(t);
+    const one = (parseFloat(cs.lineHeight) || 21) + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0)
+      + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+    t.style.height = Math.ceil(Math.max(one, parseFloat(cs.minHeight) || 0)) + 'px';
+    return;
   }
   const max = parseFloat(getComputedStyle(t).maxHeight);
   t.style.height = Math.min(t.scrollHeight, max && isFinite(max) ? max : Infinity) + 'px';
