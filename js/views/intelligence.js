@@ -9085,7 +9085,11 @@ function igStripActsHtml(c){
      next to obligation called Menu", and yes to one door): its rows are Jambo's
      Menu tab now (pdMenuHtml), wired there (pdMenuWire) */
   const notes=window.roomChatDoorHtml?roomChatDoorHtml({ word:true }):'';
-  return `<span class="ig-acts">${notes}${share}</span>`;
+  /* ACTIONS (owner, 23 Oct 2026: "the all button is hidden and impossible to know what is there.
+     Please add it to the right of share"): the door onto the Dossier's whole list of acts, the
+     same list "All N ›" folds open (pdActsToggle) — never a second copy of it */
+  const acts=window.pdActsToggle?`<button type="button" id="ig-actions" class="ui-btn ui-btn-sm" aria-expanded="false" title="${igEsc(i18t('ig_actions_title'))}" aria-label="${igEsc(i18t('ig_actions'))}">${icon('list','w-3.5 h-3.5')}<span class="ig-actions-w">${igEsc(i18t('ig_actions'))}</span></button>`:'';
+  return `<span class="ig-acts">${notes}${share}${acts}</span>`;
 }
 /* THE NEGOTIATE PAGE'S OWN ROWS, for the Menu tab (they rode in the ⋯ before
    15 Oct 2026): Ask for review (rlReviewDoor), Review vs Playbook and the
@@ -9110,6 +9114,7 @@ function igStripActsWire(c){
   if(strip.querySelector('[data-ig-sc]')){ try{ if(window.scApplyZoom) scApplyZoom(); if(window.scPaintPage) scPaintPage(); }catch(_){ } }
   strip.querySelector('#ws-walk')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(getContract(c.id)||c); });
   strip.querySelector('#ws-share')?.addEventListener('click',()=>{ if(window.openShareModal) openShareModal(getContract(c.id)||c); });
+  strip.querySelector('#ig-actions')?.addEventListener('click',()=>{ if(window.pdActsToggle) pdActsToggle(c.id); });
   if(window.paintChatDoor) try{ paintChatDoor(); }catch(_){ }
 }
 /* ---- ONE LINE (round 6 of the redesign; the owner picked "One line" by

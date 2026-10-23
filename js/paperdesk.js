@@ -2960,6 +2960,38 @@ function pdMenuPress(id, sel){
   return true;
 }
 
+/* ---- ACTIONS ON THE PAPER'S LINE (owner, 23 Oct 2026) ----
+   The button right of Share opens the Dossier's whole list of acts — the very fold "All N ›"
+   opens, its rows wired once by pdMenuWire — and lands on it; pressed again it folds the list.
+   A face or a conversation over the Dossier is put away first, as a tab press does. */
+const PD_ACTS_TRIES = 40;
+function pdActsFold(id){
+  if (typeof document === 'undefined') return null;
+  const m = document.querySelector(`#ig-dock .pd-nx[data-pd-menu="${CSS.escape(String(id))}"]`);
+  const f = m && m.querySelector('[data-ds-fold="acts"]');
+  return f && f.getClientRects().length ? f : null;
+}
+function pdActsSay(id, open){
+  const m = document.querySelector(`#ig-dock .pd-nx[data-pd-menu="${CSS.escape(String(id))}"]`);
+  m?.querySelector('[data-pd-acts-all]')?.setAttribute('aria-expanded', open ? 'true' : 'false');
+  document.getElementById('ig-actions')?.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function pdActsToggle(id){
+  if (!id) return false;
+  const here = pdActsFold(id);
+  if (here && here.open){ here.open = false; pdActsSay(id, false); return true; }
+  const land = f => { f.open = true; pdActsSay(id, true);
+    if (typeof landOn === 'function') landOn(f, { block: 'start', focus: false }); else try { f.scrollIntoView({ block: 'start' }); } catch (_){} };
+  if (here){ land(here); return true; }
+  ['pdFillAway', 'pdRedAway', 'pdSignAway'].forEach(f => { if (typeof window !== 'undefined' && typeof window[f] === 'function') try { window[f](); } catch (_){} });
+  if (pdTalkShows()) try { pdTalkBack(); } catch (_){}
+  if (typeof pdOpenOnHome !== 'function' || pdOpenOnHome(id, 'copilot') === false) return false;
+  let n = 0;
+  const tryLand = () => { const f = pdActsFold(id); if (f){ land(f); return; } if (++n < PD_ACTS_TRIES) setTimeout(tryLand, 50); };
+  setTimeout(tryLand, 0);
+  return true;
+}
+
 const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml, menu: pdMenuHtml };
 /* THE TITLE ROW: one button per tab, the lit one carrying its name. `brain`
    is the engine's own words (copilotBrainInfo), said on Copilot's hover. */
@@ -4920,7 +4952,7 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     /* ALL ACTS N ›: the room's whole list, folded under the stage's acts; pressed again it folds */
     const aa = t.closest('#ig-dock [data-pd-acts-all]');
     if (aa && !t.closest('[data-pd-held-dossier]')){ e.preventDefault(); const m = aa.closest('.pd-nx'); const f = m && m.querySelector('[data-ds-fold="acts"]'); if (!f) return;
-      f.open = !f.open; aa.setAttribute('aria-expanded', f.open ? 'true' : 'false'); return; }
+      f.open = !f.open; pdActsSay(m.getAttribute('data-pd-menu'), f.open); return; }
     /* FILL ALL IN ORDER (Marquee): the first blank still owed on the paper opens, landed on, its box in the hand */
     const wk = t.closest('#pd-og [data-pd-og-walk]');
     if (wk){ e.preventDefault(); const host = pdOgHostOf(wk), c = pdOgContract(host); if (!c) return;
@@ -6167,7 +6199,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdActsToggle, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
