@@ -84,7 +84,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('2a the Overview carries the Next up cards, on screen', !!nx && nx.cards.length >= 1 && nx.shown, JSON.stringify(nx));
     check('2b … under the paper\'s "at a glance"', !!nx && nx.under);
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the act's short word; its whole name is its label (and its why on hover) */
-    check('2c … led by Draft from our standards on a draft', !!nx && nx.cards[0] === 'Draft' && nx.tips[0] === 'Draft from our standards', nx && JSON.stringify([nx.cards[0], nx.tips[0]]));
+    /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the first act stands in its whole name, the next in its short word */
+    check('2c … led by Draft from our standards on a draft', !!nx && nx.cards[0] === 'Draft from our standards' && nx.tips[0] === 'Draft from our standards', nx && JSON.stringify([nx.cards[0], nx.tips[0]]));
     await shot(page, '2-overview-next-up');
     await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-nx [data-pd-mn-go]'); if (b) b.click(); });
     const ask = await until(page, () => !!document.getElementById('cf-ok'), null, 6000);
