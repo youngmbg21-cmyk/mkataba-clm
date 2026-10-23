@@ -146,7 +146,8 @@ describe('f742 (2) the page itself, as drawn', () => {
     s.book['MK-0382'] = { id: 'MK-0382', name: 'Master services agreement', counterparty: 'Nordvik', status: 'Under Review' };
     const h = s.bsStripHtml({ id: 'MK-0382', page: 'hist' }, { desk: true });
     /* RE-POINTED 21 Oct 2026 (the report simplified): the title over "party · ref" (role where it is known), then the stage */
-    assert.match(h, /<span class="bs-ref">Nordvik · <span class="hati-ref">MK-0382<\/span><\/span><\/span><span class="bs-stage"><span class="room-stat">In Review · round 2<\/span><\/span>/);
+    /* RE-POINTED 23 Oct 2026 (owner: the other side's name is the bar's): the line keeps the ref alone */
+    assert.match(h, /<span class="bs-ref"><span class="hati-ref">MK-0382<\/span><\/span><\/span><span class="bs-stage"><span class="room-stat">In Review · round 2<\/span><\/span>/);
   });
   test('2e the foot\'s first act is "Open the paper" (Svenska: "Öppna papperet")', () => {
     assert.equal(BOOKS.en.bs_open, 'Open the paper'); assert.equal(BOOKS.sv.bs_open, 'Öppna papperet');

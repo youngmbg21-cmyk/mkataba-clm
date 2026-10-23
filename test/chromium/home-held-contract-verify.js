@@ -262,7 +262,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const P7 = await until(() => { const g = document.querySelector('#ig-dock .pd-held-dos'); const st = document.getElementById('bs-strip-MK-0377');
       if (!g || !st || !st.querySelector('.bs-deal')) return null;
       return { card: window.bsCardId && bsCardId(), word: ((document.querySelector('#ig-dock .igd-head-w') || {}).textContent || '').trim(), ph: (document.getElementById('igd-input') || {}).placeholder,
-        head: [...g.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!g.querySelector('.ds-spine .ds-st[data-ds-st="live"]'),
+        /* RE-POINTED 23 Oct 2026 (Spine): no section heads; the stage lines down the spine, Live the one we are in */
+        head: [...g.querySelectorAll('.ds-sp-st b')].map(b => b.textContent).join(' | '), pill: !!g.querySelector('.ds-spine .ds-sp-st.is-cur[data-ds-sp="live"]'),
         rows: [...g.querySelectorAll('[data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-gl'), t: (r.querySelector('span') || {}).textContent.replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
         fam: ((g.querySelector('[data-ds-fold="family"] summary') || {}).textContent || '').trim(),
         chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()),
@@ -277,7 +278,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         value: ((st.querySelector('[data-bs-kpi="value"] span') || {}).textContent || ''),
         /* RE-POINTED 20 Oct 2026 (4b): Open stands in the head as "Open in Workspace ›" */
         sfoot: ((st.querySelector('.bs-head [data-bs-open]') || {}).textContent || '').trim() }; }, null, 15000);
-    check('2a Life line and details brings up its page, and Jambo says "MK-0377 · Dossier" beside it, its spine at Live', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 · Dossier' && /^Needs you \| Jambo read/.test(P7.head) && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
+    check('2a Life line and details brings up its page, and Jambo says "MK-0377 · Dossier" beside it, its spine at Live', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 · Dossier' && /^Arrived \| Read \| Fill in \| Negotiate \| Sign \| Live$/.test(P7.head) && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
     const rk = P7 ? P7.rows.map(r => r.k) : [];
     check('2b Still owed: the obligation late (→ Open ›); the signed amendment in the Family fold',
       rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].b === 'Open ›'
@@ -521,10 +522,11 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       ['13-chosen-paper', async () => { await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); /* the Wall, picked (20 Oct 2026: the place lands on the List) */ hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); }); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
         await bring('MK-0382'); await press('#ig-wall .igw-card[data-ig-pick="MK-0382"]');
         await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000); return '#ig-dock #pd-chosen'; }],
-      ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos') && !!document.querySelector('#bs-strip-MK-0377 .bs-deal'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],
+      /* RE-POINTED 23 Oct 2026 (Spine): the held Dossier's spine takes no box (display:contents); its first stage line is measured */
+      ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos') && !!document.querySelector('#bs-strip-MK-0377 .bs-deal'), null, 8000); return '#ig-dock .pd-held-dos .ds-sp-st'; }],
       ['12-history-panel', async () => { await page.evaluate(() => hbStripBring('MK-0382', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
       /* pass 4: the private contract's page and History, the signed one's Details, a second round's History */
-      ['pass4-7-page-private', async () => { await page.evaluate(() => hbStripBring('MK-0399')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strip-MK-0399'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],
+      ['pass4-7-page-private', async () => { await page.evaluate(() => hbStripBring('MK-0399')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strip-MK-0399'), null, 8000); return '#ig-dock .pd-held-dos .ds-sp-st'; }],
       /* 'pass4-7-details' RETIRED 22 Oct 2026 with the Details page: Key terms in the middle is photographed at the three screens by key-terms-legora-way-verify */
       ['pass4-12-history-two-rounds', async () => { await page.evaluate(() => hbStripBring('MK-0390', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0390"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
       ['pass4-12-history-private', async () => { await page.evaluate(() => hbStripBring('MK-0399', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],

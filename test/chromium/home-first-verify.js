@@ -99,14 +99,23 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        13 Oct 2026 ("delete the overview tab from document page") */
     /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
     ok('3a0 the title row is the tabs: the Dossier then two; no Overview, Signing, Deal, History or Menu, no "Intelligence panel", no column beside the paper',
-      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,oblig', JSON.stringify(head));
+      /* RE-POINTED 23 Oct 2026 (Spine): Redlines after Clauses; Obligations left the row for its line under Sign */
+      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,red', JSON.stringify(head));
     const tabs = {};
-    for (const t of ['doc', 'oblig']) {
+    /* Redlines first, then Clauses, so the panel ends on a tab's body as it did (the face put away) */
+    for (const t of ['red', 'doc']) {
       const b = await page.$(`#ig-dock [data-pd-tab="${t}"]`); if (b) await b.click();
       await page.waitForSelector(`#ig-dock [data-pd-tab="${t}"].on`, { timeout: 3000 }).catch(() => {});
-      tabs[t] = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
+      /* Redlines is a face of the panel (no tab body): its words are the face's own (#pd-redface) — or, where the Negotiate door asks
+         first (its walls, negoBlanksAsk), that question's; it is answered with Esc */
+      if (t === 'red') await page.waitForFunction(() => (window.pdFaceNow && pdFaceNow() === 'red') || !!document.querySelector('#modal-root [role="dialog"]'), null, { timeout: 4000 }).catch(() => {});
+      tabs[t] = await page.evaluate(k => ((k === 'red' ? (document.querySelector('#modal-root [role="dialog"]') || document.getElementById('pd-redface')) : document.getElementById('pd-body')) || {}).innerText || '', t);
+      if (t === 'red' && await page.$('#modal-root [role="dialog"]')) await page.keyboard.press('Escape');
     }
-    ok('3a two contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
+    /* Redlines on a contract nobody may negotiate yet is grey with its reason (a dead button never wears a live one's clothes) */
+    const redShut = await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="red"]'); return b && b.getAttribute('aria-disabled') === 'true' ? (b.title || '') : ''; });
+    if (redShut) tabs.red = redShut;
+    ok('3a two contract tabs, each drawn (Redlines\' face, or its grey with the reason)', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
     /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
        carries its word, whole — a word cut to "Docu…" is not a word */
     /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel", PR #372): the Jambo tab now always stands beside the four; they are counted without it, and it wears his face */
@@ -117,7 +126,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        you want to chat with jambo it takes you to a new jambo tab but you can go back to the landing side
        panel"; "Jambo" names only the conversation. The face stays its mark.
        RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦. */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Dossier|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u21C4' && sym.map(s => s.txt).join('|') === 'Dossier|Clauses|Redlines' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
       return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });

@@ -9128,7 +9128,8 @@ function igLineIdHtml(c,ref){
      the line keeps the ref and the kind of contract (bsShortName, the Board
      head's own reading; the stored name is never rewritten) */
   const kind=(typeof bsShortName==='function')?bsShortName(c):(c.name||'');
-  return `<span class="ig-strip-ref ig-line-id" title="${igEsc([c.name,party].filter(Boolean).join(' · '))}"><b class="hati-ref">${igEsc(ref)}</b><span class="ig-line-t">${igEsc(kind)}</span></span>${mark}${pill?`<span class="ig-line-st">${pill}</span>`:''}`;
+  /* THE REF ONCE (owner, 23 Oct 2026: "yes" to taking it off the line — the bar above carries it) */
+  return `<span class="ig-strip-ref ig-line-id" title="${igEsc([ref,c.name,party].filter(Boolean).join(' · '))}"><span class="ig-line-t">${igEsc(kind)}</span></span>${mark}${pill?`<span class="ig-line-st">${pill}</span>`:''}`;
 }
 function igStripHtml(c,p){
   const up=p.mode==='paper';
