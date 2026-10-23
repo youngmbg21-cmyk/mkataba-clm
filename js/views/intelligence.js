@@ -2942,7 +2942,7 @@ function intelPushChatResult(res, q){
   const rich=igFmtRich(res.answer||'');
   /* never a dead end (stage 3): what the one search found, and Ask again */
   const choices=(typeof window.aiWayChoicesOf==='function')?aiWayChoicesOf(res, q):[];
-  intel.history.push(Object.assign({ role:'assistant', text:rich.html+igNoticeHtml(res.notice), compare:res.compare||null, cardIds, blocks:rich.blocks }, choices.length?{ choices }:{}));
+  intel.history.push(Object.assign({ role:'assistant', text:rich.html+igNoticeHtml(res.notice)+(typeof window.aiDeepLineHtml==='function'?aiDeepLineHtml(res):''), compare:res.compare||null, cardIds, blocks:rich.blocks }, choices.length?{ choices }:{}));
   if(cardIds.length) igPaintIds(cardIds);
 }
 
@@ -6377,7 +6377,7 @@ async function intelFrictionAsk(){
   try{
     const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'}, null, IG_QUIET);
     const rich=igFmtRich(res.answer||'');
-    intel.frictionAI={busy:false,key,html:rich.html+igNoticeHtml(res.notice),
+    intel.frictionAI={busy:false,key,html:rich.html+igNoticeHtml(res.notice)+(typeof window.aiDeepLineHtml==='function'?aiDeepLineHtml(res):''),
       at:new Date().toLocaleTimeString(jxLocale(),{hour:'2-digit',minute:'2-digit'})};
   }catch(e){
     intel.frictionAI={busy:false,key,

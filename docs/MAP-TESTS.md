@@ -294,6 +294,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE AI'S READING RULES
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
+- f870 (judgement on the stronger model: the reader's exam, both chat routes, admin-only dollars, one pinned model says nothing; f133/f134's compare-escalation tests re-worded as lookups), judgement-line-verify (the line painted under the answer in the Jambo window and Home's panel, one line, at the three screens; a lookup draws none).
 
 ## THE POP-UPS, THE SAP WAY
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
