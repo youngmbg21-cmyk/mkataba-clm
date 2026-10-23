@@ -13,12 +13,13 @@ test('a chart card: Make bigger, Full screen, then the rest; Remove last', () =>
   const b = body('hbEdgeHtml');
   const at = s => b.indexOf(s);
   assert.ok(at("'hb_p_big'") > 0 && at("'hb_full_screen'") > at("'hb_p_big'"), 'bigger then full screen');
-  assert.ok(at("'hb_full_screen'") < at("'hb_cx_btn'"), 'both above the first reading row');
+  /* RE-POINTED 23 Oct 2026: the first reading row is Dig deeper (What could explain this? folded into it) */
+  assert.ok(at("'hb_full_screen'") < at("'hb_dd_btn'"), 'both above the first reading row');
   assert.ok(at("'hb_p_x'") > at("'hb_wi_btn'") && at("'hb_p_x'") > at("'hb_ver_menu'"), 'Remove after every other row');
 });
 
 test('a ready-made panel: Make bigger first, Remove last', () => {
   const b = body('hbKindToolsHtml');
-  assert.ok(b.indexOf("'hb_p_big'") < b.indexOf("'hb_cx_btn'"));
+  assert.ok(b.indexOf("'hb_p_big'") < b.indexOf("'hb_dd_btn'"));
   assert.ok(b.indexOf("'hb_p_x'") > b.indexOf("'hb_p_give'"));
 });

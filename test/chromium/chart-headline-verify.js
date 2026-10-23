@@ -58,7 +58,7 @@ const check = (name, pass, detail) => {
     const lead = d.querySelector('.hb-chart-lead');
     return { big: d.classList.contains('is-big'), line: hl ? (hl.querySelector('p') || {}).textContent.replace(/\s+/g, ' ').trim() : null,
       more: more ? more.textContent.trim() : null, expanded: more ? more.getAttribute('aria-expanded') : null,
-      read: !!d.querySelector('.hb-read'), why: !!d.querySelector('[data-hb-why]'),
+      read: !!d.querySelector('.hb-read'), why: !!d.querySelector('.hb-why-ask [data-hb-dd-on]'),
       cost: ((d.querySelector('.hb-why-ask .hb-quiet') || {}).textContent || '').trim(),
       /* RE-POINTED 11 Oct 2026 (the Board as drawn): the notes sit under the
          chart, the point first, then the totals */
@@ -109,8 +109,9 @@ const check = (name, pass, detail) => {
     const c3 = await until(() => { const d = document.querySelector('#hb-focus .hb-dig'); return d && d.querySelector('.hb-read') ? true : null; }) && await card();
     check('3a Read more opens the whole reading inside the same card, which stays its size', !!c3 && c3.read && !c3.big, JSON.stringify(c3 && { read: c3.read, big: c3.big }));
     check('3b the label turns to Show less', !!c3 && c3.more === 'Show less' && c3.expanded === 'true', c3 && c3.more);
-    check('3c "What could explain this?" is in it with its cost, and nothing has been asked',
-      !!c3 && c3.why && /contracts|kontrakt/i.test(c3.cost) && (await page.evaluate(() => window._asked.length)) === 0, c3 && c3.cost);
+    /* RE-POINTED 23 Oct 2026 (owner: "make them one"): the press in it is Dig deeper */
+    check('3c "Dig deeper" is in it with its cost, and nothing has been asked',
+      !!c3 && c3.why && /steps|steg/i.test(c3.cost) && (await page.evaluate(() => window._asked.length)) === 0, c3 && c3.cost);
     await page.screenshot({ path: path.join(OUT, '3-read-more.png') });
 
     /* 4 — Show less */

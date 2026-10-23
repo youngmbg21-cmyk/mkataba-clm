@@ -97,6 +97,13 @@ const check = (name, pass, detail) => {
       window.copilotAvailable = () => true;
       window.copilotAsk = async (msgs) => { window._asked.push(msgs[0].content); await new Promise(r => setTimeout(r, 300));
         return { answer: 'Signing came in a late burst: 25 contracts landed in two months. 22 contracts were imported in one day. Worth checking which of the open ones are close to signing.' }; };
+      /* RE-POINTED 23 Oct 2026 (owner: "make them one"): a card's one ask is
+         Dig deeper, the analyst's run; its answer is a finish, checked against
+         the fact sheets (37 is on none of them) */
+      const realApi = window.api;
+      window.api = async (p, m, body) => { if (p !== 'board/analyst') return realApi(p, m, body);
+        window._asked.push(String((body && body.chart) || '')); await new Promise(r => setTimeout(r, 300));
+        return { step: { name: 'finish', input: { summary: 'Signing came in a late burst: 25 contracts landed in two months. 37 contracts were imported in one day. Worth checking which of the open ones are close to signing.' } } }; };
       const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.why = {}; s.digBig = false; s.path = [k];
       /* (Chambers, 21 Oct 2026: the Board has no Dark screen to start on; stage 7 stores an old Dark press and asks that it is not read) */
       s.recipe = s.recipe || {}; s.recipe[k] = { which: 'all', pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'count', trend: true };
@@ -138,31 +145,39 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { const s = hbS(); s.path = s.path.slice(0, 1); hbSave(); hbPaintBoard(); });
     await until(() => !!document.querySelector('#hb-focus .hb-read'));
 
-    /* ================= 4. THEN ASK ================= */
-    const ask = await page.evaluate(() => { const b = document.querySelector('#hb-focus [data-hb-why]'); return b ? { word: b.textContent.trim(), cost: (b.parentElement.querySelector('.hb-quiet') || {}).textContent } : null; });
-    check('4a one press, its cost said beside it', !!ask && ask.word === 'What could explain this?' && /Nothing is spent until you press/.test(ask.cost || ''), JSON.stringify(ask));
-    await page.click('#hb-focus [data-hb-why]');
-    const busy = await until(() => { const w = document.querySelector('#hb-focus .hb-why'); return w && /Jambo is reading this chart/.test(w.textContent) ? true : null; }, null, 3000);
-    check('4b while Copilot reads, the box says so', !!busy);
-    const s4 = await until(() => { const w = document.querySelector('#hb-focus .hb-why:not(.is-err)'); if (!w || !w.querySelector('.hb-why-b')) return null;
-      const r = document.querySelector('#hb-focus .hb-read');
-      return { t: w.textContent.replace(/\s+/g, ' '), bg: getComputedStyle(w).backgroundColor, border: getComputedStyle(w).borderTopColor, readBorder: getComputedStyle(r).borderTopColor,
-        again: !!document.querySelector('#hb-focus [data-hb-why]'), follow: !!w.querySelector('[data-hb-why-follow]'), below: !!(r.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING), asked: window._asked.length, prompt: window._asked[0] || '' }; });
-    check('4c the answer lands under the reading, in Copilot\'s box', !!s4 && s4.below && /Jambo’s read/.test(s4.t) && /late burst: 25 contracts landed in two months/.test(s4.t), s4 && s4.t.slice(0, 200));
+    /* ================= 4. THEN ASK: DIG DEEPER, IN THE CARD ================= */
+    const ASK = '#hb-focus .hb-why-ask [data-hb-dd-on]';
+    const ask = await page.evaluate(sel => { const b = document.querySelector(sel); return b ? { word: b.textContent.trim(), cost: (b.parentElement.querySelector('.hb-quiet') || {}).textContent } : null; }, ASK);
+    check('4a one press, Dig deeper, its cost said beside it', !!ask && ask.word === 'Dig deeper' && /up to 5 steps/.test(ask.cost || ''), JSON.stringify(ask));
+    if (ask) await page.click(ASK);
+    const busy = await until(() => document.querySelector('#hb-focus .hb-dd.is-on') ? true : null, null, 3000);
+    check('4b while Jambo works, the card says so in place', !!busy);
+    const s4 = await until(() => { const w = document.querySelector('#hb-focus .hb-dd.is-on .hb-why:not(.is-err)'); if (!w || !w.querySelector('.hb-why-b')) return null;
+      const r = document.querySelector('#hb-focus .hb-read'), chart = document.querySelector('#hb-focus .hb-dig svg');
+      return { t: w.textContent.replace(/\s+/g, ' '), border: getComputedStyle(w).borderTopColor, readBorder: getComputedStyle(r).borderTopColor,
+        again: !!document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on]'), below: !!(r.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING),
+        belowChart: !!chart && w.getBoundingClientRect().top >= chart.getBoundingClientRect().bottom - 1, path: (hbS().path || []).length, asked: window._asked.length, prompt: window._asked[0] || '' }; });
+    check('4c the answer lands inside the card, under the chart and its reading', !!s4 && s4.below && s4.belowChart && /What the steps show/.test(s4.t) && /late burst: 25 contracts landed in two months/.test(s4.t), s4 && s4.t.slice(0, 200));
     check('4d it wears amber, not the reading\'s teal', !!s4 && s4.border !== s4.readBorder && isAmber(s4.border), s4 && `${s4.border} vs ${s4.readBorder}`);
-    check('4e a count this chart does not hold is left out, and the box says so', !!s4 && !/22 contracts were imported/.test(s4.t) && /1 sentence was left out: its number was not on HaTi’s fact sheet\./.test(s4.t), s4 && s4.t.slice(-160));
-    check('4f asked once, not offered again; a follow-up goes to the panel', !!s4 && s4.asked === 1 && !s4.again && s4.follow, JSON.stringify({ asked: s4 && s4.asked, again: s4 && s4.again }));
-    check('4g Copilot was shown the columns and the contracts behind them', !!s4 && /Columns \(label: value, contracts\):/.test(s4.prompt) && /MK-J0/.test(s4.prompt), s4 && s4.prompt.slice(0, 120));
+    check('4e a number on no fact sheet is left out, and the box says so', !!s4 && !/37 contracts were imported/.test(s4.t) && /1 sentence was left out: its number was not on HaTi’s fact sheet\./.test(s4.t), s4 && s4.t.slice(-160));
+    check('4f asked once, not offered again, and no second card opened', !!s4 && s4.asked === 1 && !s4.again && s4.path === 1, JSON.stringify({ asked: s4 && s4.asked, again: s4 && s4.again, path: s4 && s4.path }));
+    check('4g Jambo was shown the card\'s columns and the contracts behind them', !!s4 && /Columns \(label: value, contracts\):/.test(s4.prompt) && /MK-J0/.test(s4.prompt), s4 && s4.prompt.slice(0, 120));
     await page.screenshot({ path: path.join(OUT, '4-asked.png') });
-    const kept = await page.evaluate(() => { hbPaintBoard(); return !!document.querySelector('#hb-focus .hb-why .hb-why-b') && window._asked.length === 1; });
+    const kept = await page.evaluate(() => { hbPaintBoard(); return !!document.querySelector('#hb-focus .hb-dd.is-on .hb-why-b') && window._asked.length === 1; });
     check('4h kept with its chart: a repaint shows it again without asking', kept);
+    /* the menu has ONE of them: Dig deeper, and no "What could explain this?" */
+    await page.click('#hb-focus [data-hb-tools-more]');
+    const m4 = await until(() => { const m = document.querySelector('#hb-focus .hb-tools-menu'); return m ? m.textContent : null; });
+    await page.keyboard.press('Escape');
+    check('4i the ⋯ menu offers Dig deeper once, and not "What could explain this?"', !!m4 && (m4.match(/Dig deeper/g) || []).length === 1 && !/What could explain this/.test(m4), m4 && m4.slice(0, 200));
 
     /* ================= 5. MAKE SMALLER ================= */
     await pressBig('#hb-focus');
-    const s5 = await until(() => !document.querySelector('#hb-focus .hb-dig.is-big') ? { read: !!document.querySelector('#hb-focus .hb-read'), dock: getComputedStyle(document.getElementById('ig-dock') || document.body).display } : null);
+    const s5 = await until(() => !document.querySelector('#hb-focus .hb-dig.is-big') ? { read: !!document.querySelector('#hb-focus .hb-read'), dd: !!document.querySelector('#hb-focus .hb-dd.is-on .hb-why-b'), dock: getComputedStyle(document.getElementById('ig-dock') || document.body).display } : null);
     const b5 = await itemOf('#hb-focus');
     await page.keyboard.press('Escape');
-    check('5a Make smaller brings the card back and the panel returns', !!s5 && !s5.read && s5.dock !== 'none' && b5 && b5.title === 'Make bigger', JSON.stringify({ s5, b5 }));
+    /* RE-POINTED 23 Oct 2026: a card that was dug deeper keeps its answer inside it, small or big */
+    check('5a Make smaller brings the card back, its Dig deeper answer still inside it, and the panel returns', !!s5 && s5.read && s5.dd && s5.dock !== 'none' && b5 && b5.title === 'Make bigger', JSON.stringify({ s5, b5 }));
 
     /* ================= 6. A KEPT VIEW WEARS THE SAME BUTTON ================= */
     await page.evaluate(k => { const s = hbS(); s.path = []; s.panels = [{ id: 'p1', kind: 'view', key: k, title: 'Signed by month', shape: '', recipe: s.recipe[k], split: false, big: false }]; s.seq = 1; hbSave(); hbPaintBoard(); }, KEY);
@@ -173,8 +188,9 @@ const check = (name, pass, detail) => {
     await until(() => document.querySelector('.hb-view.is-big') ? true : null);
     const bv1 = await itemOf('.hb-view');
     await page.keyboard.press('Escape');
-    const vr = await page.evaluate(() => !!document.querySelector('.hb-view.is-big .hb-read'));
-    check('6a a kept view: Make bigger at rest, Make smaller enlarged, and the card stays clean', bv0 && bv0.title === 'Make bigger' && bv1 && bv1.title === 'Make smaller' && !vr, JSON.stringify({ bv0, bv1, vr }));
+    const vr = await page.evaluate(() => !!document.querySelector('.hb-view.is-big .hb-dd.is-on .hb-why-b'));
+    /* RE-POINTED 23 Oct 2026: the same chart, dug deeper in stage 4, carries its answer here too */
+    check('6a a kept view: Make bigger at rest, Make smaller enlarged, and the chart\'s Dig deeper answer comes with it', bv0 && bv0.title === 'Make bigger' && bv1 && bv1.title === 'Make smaller' && vr, JSON.stringify({ bv0, bv1, vr }));
 
     /* ================= 8. EVERY ENLARGED CARD READS =================
        Young, 4 Oct 2026: "i do not see the options in the dashboard" →
@@ -187,9 +203,9 @@ const check = (name, pass, detail) => {
     if (fv) await page.evaluate(() => hbDig('f:value'));
     const v8 = await until(() => document.querySelector('#hb-focus [data-hb-digbig]') ? true : null);
     if (v8) await page.click('#hb-focus [data-hb-digbig]');
-    const s8a = await until(() => { const r = document.querySelector('#hb-focus .hb-dig.is-big .hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!document.querySelector('#hb-focus [data-hb-why="f:value"]') } : null; });
+    const s8a = await until(() => { const r = document.querySelector('#hb-focus .hb-dig.is-big .hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on="f:value"]') } : null; });
     /* the ask wears one line: the star beside the words, the words inside the frame */
-    const fit = await page.evaluate(() => { const b = document.querySelector('#hb-focus [data-hb-why]'); if (!b) return null; const r = b.getBoundingClientRect(), i = b.querySelector('svg').getBoundingClientRect();
+    const fit = await page.evaluate(() => { const b = document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on]'); if (!b) return null; const r = b.getBoundingClientRect(), i = b.querySelector('svg').getBoundingClientRect();
       const t = document.createRange(); t.selectNodeContents(b.lastChild); const tr = t.getBoundingClientRect();
       return { h: Math.round(r.height), over: b.scrollHeight - b.clientHeight, sideBySide: i.right <= tr.left + 1 && Math.abs((i.top + i.bottom) / 2 - (tr.top + tr.bottom) / 2) < 4, inside: tr.bottom <= r.bottom + 0.5 }; });
     check('8e the ask button is one line: the star beside its words, inside its frame', !!fit && fit.sideBySide && fit.inside && fit.over <= 0, JSON.stringify(fit));
@@ -208,10 +224,10 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { const s = hbS(); s.path = []; s.digBig = false; s.panels = [{ id: 'p8', kind: 'ren', split: false, big: false }]; s.seq = 8; hbSave(); hbPaintBoard(); });
     const p0 = await until(() => document.querySelector('.hb-panel[data-hb-pid="p8"] [data-hb-tools-more]') ? { read: !!document.querySelector('.hb-panel[data-hb-pid="p8"] .hb-read') } : null);
     if (p0) await pressBig('.hb-panel[data-hb-pid="p8"]');
-    const s8c = await until(() => { const P = document.querySelector('.hb-panel.is-big[data-hb-pid="p8"]'); const r = P && P.querySelector('.hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!P.querySelector('[data-hb-why="hp:ren"]') } : null; });
+    const s8c = await until(() => { const P = document.querySelector('.hb-panel.is-big[data-hb-pid="p8"]'); const r = P && P.querySelector('.hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!P.querySelector('.hb-why-ask [data-hb-dd-on="hp:ren"]') } : null; });
     check('8c a ready-made panel: nothing extra at normal size; made bigger, it reads and offers the ask', !!p0 && !p0.read && !!s8c && s8c.ask && s8c.lines.some(l => /^The first to end is MK-S0 \(Nordkraft AB\), in \d+ days/.test(l)), JSON.stringify({ p0, s8c }));
-    if (s8c) await page.click('.hb-panel[data-hb-pid="p8"] [data-hb-why="hp:ren"]');
-    const s8d = await until(() => { const P = document.querySelector('.hb-panel[data-hb-pid="p8"]'); const w = P && P.querySelector('.hb-why:not(.is-err) .hb-why-b'); const r = P && P.querySelector('.hb-read');
+    if (s8c) await page.click('.hb-panel[data-hb-pid="p8"] .hb-why-ask [data-hb-dd-on="hp:ren"]');
+    const s8d = await until(() => { const P = document.querySelector('.hb-panel[data-hb-pid="p8"]'); const w = P && P.querySelector('.hb-dd.is-on .hb-why:not(.is-err) .hb-why-b'); const r = P && P.querySelector('.hb-read');
       return w ? { t: w.textContent.replace(/\s+/g, ' ').trim(), border: getComputedStyle(w.parentElement).borderTopColor, readBorder: r ? getComputedStyle(r).borderTopColor : '', prompt: window._asked[0] || '' } : null; });
     check('8d asked from the panel, the answer lands in the panel\'s own amber box', !!s8d && /Worth checking which of the open ones/.test(s8d.t) && isAmber(s8d.border) && s8d.border !== s8d.readBorder && /^FACT SHEET — Ending in the next 90 days\nA panel on the HaTi Home board: "Ending in the next 90 days"\./.test(s8d.prompt), JSON.stringify(s8d && { t: s8d.t, border: s8d.border, p: s8d.prompt.slice(0, 90) }));
     await page.waitForTimeout(600);
