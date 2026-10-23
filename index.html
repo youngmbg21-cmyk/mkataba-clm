@@ -16897,6 +16897,14 @@
   #ig-strip .ig-red button + button{border-left:0}
   #ig-strip .ig-red button:hover{color:var(--color-text)}
   #ig-strip .ig-red button[aria-pressed="true"]{background:transparent;color:var(--color-text);font-weight:var(--w-strong)}
+  /* THE WAY BACK AND THE COLUMN'S HEAD ACTS ARE PILLS TOO (the drawing's "‹ Dossier", "Ask for review",
+     "Notes 1"): the soft grey, no edge. The Board's kind chips keep their outline, as drawn. */
+  :is(#ig-dock, .jt-trail, .jl-head) .pd-back, .redline-page :is(.rl-head-notes, .rl-head-review){border-color:transparent;background:var(--surface-2);border-radius:999px}
+  :is(#ig-dock, .jt-trail, .jl-head) .pd-back:hover, .redline-page :is(.rl-head-notes, .rl-head-review):hover:not(:disabled){border-color:transparent;background:var(--color-neutral-200)}
+  /* EACH CHANGE IN THE COLUMN IS ITS OWN SOFT GREY CARD (the drawing's Redlines: #F5F5F7, 16px corners), on
+     both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
+  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:12px 14px;margin-bottom:8px;border-bottom:0}
+  :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
   /* -- below 1100px wide (narrower than any of the owner's three screens) the two halves stand docked
      as they did: there every pixel is the page's (swedish-verify caught the Calendar cut by 7px at 800) -- */
   @media (max-width:1100px){
