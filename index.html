@@ -1905,7 +1905,7 @@
      base class, which is the point — the base IS the outlined level since 22
      Aug 2026. Kept as a name because ~40 call sites use it and a class that
      agrees with the base is cheaper than a sweep that might miss one. */
-  .ui-btn-secondary{color:var(--accent-ink-700);border-color:transparent;}
+  .ui-btn-secondary{color:var(--accent-ink-700);border-color:var(--btn-edge);}
   .ui-btn-secondary:hover{background:color-mix(in srgb,var(--accent-solid) 9%,transparent);border-color:var(--accent-solid);}
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
 
