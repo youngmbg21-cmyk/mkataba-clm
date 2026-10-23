@@ -167,7 +167,9 @@ const check = (name, pass, detail) => {
         || await page.evaluate(() => { const r = document.getElementById('ig-gwrap').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       const c0 = await page.evaluate(ks => ks.map(k => intel.cam[k]), keys);
       await page.mouse.move(at.x, at.y); await page.waitForTimeout(250);
-      await page.mouse.down(); await page.mouse.move(at.x + 140, at.y + 70, { steps: 12 }); await page.mouse.up();
+      /* THE GRID STANDS UP (23 Oct 2026): it already faces the screen, so it tips only one way —
+         leaning back, an upward drag; a downward one stops at upright */
+      await page.mouse.down(); await page.mouse.move(at.x + 140, at.y + (v === 3 ? -70 : 70), { steps: 12 }); await page.mouse.up();
       await page.waitForTimeout(300);
       return page.evaluate(({ ks, c0 }) => ({ moved: ks.map((k, i) => Math.abs(intel.cam[k] - c0[i]) > 0.05), hover: IG.hover ? IG.hover.id : null, turning: IG.svg.classList.contains('is-turning'), dim: IG.nodes.filter(n => n.g.classList.contains('dim')).length }), { ks: keys, c0 });
     };
