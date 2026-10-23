@@ -1243,7 +1243,7 @@ const CA_MENU = [
   /* the sealed record as a FILE; "show me the audit trail" is History (22 Oct 2026) */
   ['record', /\b(?:sealed|audit)\s+(?:record|copy)\b|\bsealed\s+trail\b|\b(?:download|export|print|pdf|save)\b[^.?!]*\baudit\s+trail\b|\baudit\s+trail\b[^.?!]*\b(?:pdf|download|export|file)\b/i, ['#ws-pdf-record']],
   ['signed', /\b(?:add|attach|link|upload|lägg till|bifoga)\b[^.?!]*\b(?:signed|undertecknat)\b|\bsigned (?:document|copy|agreement)\b/i, ['#ws-m-link']],
-  ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$/i, ['#ws-advice']],
+  ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$|\b(?:adviser|advisor|rådgivar)(?:e|en)?\s*(?:link|länk)|\b(?:send|share|skicka|dela)\b[^.?!]*\bto (?:our|an?|the) (?:adviser|advisor|lawyer|counsel|outside counsel)\b/i, ['#ws-advice']],
   ['import', /\bimport\b|\bimportera\b|\btheir (?:word )?(?:file|response|markup)\b/i, ['#ws-import']],
   ['compare', /\bcompare\b|\bjämför\b/i, ['#ws-compare']],
   ['filing', /\bfiling\b|\barkivering\b|\bstream\b/i, ['#ws-filing']],
@@ -1254,7 +1254,7 @@ const CA_MENU = [
   ['end', /\barchive\b|\barkivera\b|\bhold\b|\bpausa\b|\bfreeze\b|\bfrys\b|\bdecline\b|\bavböj\b|\bend or pause\b|\bclose (?:this|it|the deal|the contract)\b|\bstäng (?:det|avtalet|affären)\b/i, ['#ws-end']],
   ['reopen', /\bre-?open\b|\böppna igen\b/i, ['#ws-reopen']],
   ['delete', /\bdelete\b|\bradera\b|\bta bort utkastet\b/i, ['#ws-delete']],
-  ['review', /\b(?:ask for|internal|request a?)\s*review\b|\bgranskning\b/i, ['[data-ig-review]']],
+  ['review', /\b(?:ask for|internal|request a?)\s*(?:a\s+)?review\b|\breview by (?:a |our )?(?:colleague|legal|someone)\b|\b(?:ask|get) (?:a colleague|someone|legal) to review\b|\bgranskning\b/i, ['[data-ig-review]']],
   ['playbook', /\bplaybook\b|\bcheck\b[^.?!]*\bstandards\b/i, ['[data-ig-pbreview]']],
   ['prepare', /\bdraft from (?:our )?standards\b|\bprepare (?:the )?redlines\b/i, ['[data-rl-prepare]']],
   ['addclause', /\badd (?:a |new |another )?clause\b|\blägg till (?:en )?klausul\b/i, ['[data-rl-add-clause]']],
@@ -1264,7 +1264,7 @@ const CA_MENU_MAX = 140;
 /* THE ROWS READ OFF ONE LOOSE WORD ("stream", "check", "hold", "compare"…):
    where the map is sure the sentence means something else, it is not a
    press (jmOverrules, 22 Oct 2026). The file rows read what the file is. */
-const CA_MENU_LOOSE = ['filing', 'playbook', 'compare', 'restore', 'release', 'end', 'reopen', 'delete', 'review', 'mynote'];
+const CA_MENU_LOOSE = ['filing', 'playbook', 'compare', 'restore', 'release', 'end', 'reopen', 'delete', 'mynote'];
 /* a question about the thing ("who are the signers?") is for Jambo to answer, not a press */
 const CA_MENU_ASKS = /^\s*(?:what|who|whom|why|how|when|which|where|vad|vem|varför|hur|när|vilken|vilka)\b/i;   // a longer question is a question for the model, not a press
 /* A QUESTION OF WHERE IS NEVER A PRESS (owner, 22 Oct 2026: "show me where i
