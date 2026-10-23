@@ -91,14 +91,18 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
       state.aiConfigured = true;
       window.copilotAsk = async () => ({ answer: JSON.stringify({ proposedText: LIAB_NEW, advice: 'Raise the cap and carve out the usual exceptions.' }) });
     }, LIAB_NEW);
-    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+    /* RE-POINTED (owner, 23 Oct 2026, "get rid of this duplicate page"): the Redlines face beside Home's
+       paper, where every door to the negotiation lands; the contract is in the browser before its door
+       is pressed (a stray repaint no longer catches it up by drawing the old page over Home) */
+    await until(page, id => !!(window.getContract && getContract(id)), ID);
+    await page.evaluate(id => openRedlineWorkbench(id), ID);
+    await page.evaluate(() => { const b = document.querySelector('#confirm-overlay #cf-cancel'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     /* a redline on the table, as the Negotiate page holds one before its risks list shows */
     await page.evaluate(async id => { const c = getContract(id);
       const cl = negoClauseList(c).find(x => /Supply/.test(x.headingText || x.title || ''));
       await negoEditClause(c, cl.clauseId, '<p>The Supplier shall supply the goods to the agreed specification, quality and delivery dates.</p>', { side: 'owner' });
-      renderRedline(); }, ID);
+      if (window.pdRedRepaint) pdRedRepaint(); }, ID);
     await until(page, () => !!document.querySelector('#rl-risks [data-rk-key="s:t-liab"]'), null, 12000);
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const up = await until(page, () => !!document.querySelector('#clause-editor #ce-lane .ce-card .pv') && document.querySelector('[data-ce-tab="risks"].is-on'), null, 12000);

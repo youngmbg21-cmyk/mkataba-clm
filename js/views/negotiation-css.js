@@ -6384,13 +6384,13 @@ function redlineLayoutCss(){
   .redline-page .rl-idx-top > .rl-head-here{order:5}
   .redline-page .rl-idx-top > .rl-idx-br:not(.rl-idx-br ~ .rl-idx-br){display:none}
   .redline-page .rl-idx-top > .rl-idx-br ~ .rl-idx-br{order:6}
-  .redline-page .rl-head-notes,.redline-page .rl-head-review{flex:none;display:inline-flex;align-items:center;gap:5px;
+  .redline-page .rl-head-notes,.redline-page .rl-head-review,.redline-page .rl-head-deal{flex:none;display:inline-flex;align-items:center;gap:5px;
     height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--btn-edge);border-radius:var(--radius);
     background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);
     white-space:nowrap;cursor:pointer}
-  .redline-page .rl-head-notes:hover,.redline-page .rl-head-review:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
+  .redline-page .rl-head-notes:hover,.redline-page .rl-head-deal:hover,.redline-page .rl-head-review:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
   .redline-page .rl-head-review:disabled{opacity:.5;cursor:not-allowed}
-  .redline-page .rl-head-notes svg,.redline-page .rl-head-review svg{width:13px;height:13px;flex:none}
+  .redline-page .rl-head-notes svg,.redline-page .rl-head-review svg,.redline-page .rl-head-deal svg{width:13px;height:13px;flex:none}
   .redline-page .rl-head-notes b{font-weight:var(--w-body);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)}
   ${''/* "Redlines 4": the count beside the name, as the piles' heads and Notes
          carry theirs (round 9's gaps, second pass) — CHAMBERS (21 Oct 2026):
@@ -6473,7 +6473,7 @@ function redlineLayoutCss(){
          row (a lock on Internal, a count pill on each, ‹ Redlines at its end),
          the notes as face · line · bubble, and the box with Post. The verbs
          under a note show on hover or focus, and always on a touch screen. */}
-  .redline-page .rl-head-notes.is-on{border-color:var(--accent-ink);color:var(--accent-ink)}
+  .redline-page .rl-head-notes.is-on,.redline-page .rl-head-deal.is-on{border-color:var(--accent-ink);color:var(--accent-ink)}
   ${''/* "Here now", as drawn (round 9's gaps, third pass): filled circles, one
          colour per person (the face's pz-t-N, the house's avatar tone),
          overlapping, white initials; following wears a ring */}

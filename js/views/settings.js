@@ -9197,7 +9197,7 @@ function renderClauseLibrary(){
             i18t('std_hist_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</p>`:''}
         ${canEditLib?`<div class="std-acts">
           <button data-cl-edit="${i}">${esc(i18t('std_edit_wording'))}</button>
-          <button data-std-pos="1">${esc(i18t('std_change_position'))}</button>
+          <button data-std-pos="${i}">${esc(i18t('std_change_position'))}</button>
           <span style="flex:1"></span>
           <button data-cl-del="${i}" class="warn">${esc(i18t('set_remove_lower'))}</button>
         </div>`:''}
@@ -9212,11 +9212,9 @@ function renderClauseLibrary(){
     stdSetOpenClause(stdOpenClauseId()===id?null:id);
     renderClauseLibrary();
   }));
-  /* A PROXY ONTO THE TAB THAT ALREADY EXISTS, never a second door: the
-     position lives on the Negotiation playbook tab and that tab's own button
-     is what moves the reader there. */
-  host.querySelectorAll('[data-std-pos]').forEach(b=>b.addEventListener('click',()=>
-    document.querySelector('[data-pb-tab="playbook"]')?.click()));
+  /* onto the standard's own row in its book's editor (stdPositionOpen) */
+  host.querySelectorAll('[data-std-pos]').forEach(b=>b.addEventListener('click',()=>{
+    const cl=clauseLibrary()[Number(b.getAttribute('data-std-pos'))]; if(cl) stdPositionOpen(cl.category); }));
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
   /* ONE REMOVE, AND IT ASKS (the owner's list, 27 Sep 2026): this row deleted
      at once — with a bare toast that printed nothing — while the side panel's
@@ -9325,7 +9323,19 @@ async function stdRemoveClause(i){
 /* Modal editor for one playbook entry (key='_default' edits the baseline,
    null adds a new contract type). Positions and numeric limits are edited live
    on a working copy, then committed with Save. */
-function openPlaybookEditor(key){
+/* ---- "SET HOW FIRM WE ARE" LANDS ON THE STANDARD ITSELF (owner, 20 Oct
+   2026: "make the button open straight onto the rule you clicked, ready to
+   change, and make it work for every rule") ----
+   One door from both drawings of a standard (the list's panel and the plain
+   list): the editor of the book that holds the standard opens with its row
+   lit and in view. A standard no book names yet gets a row in the baseline,
+   ready to set — nothing is kept until Save, as every row in this editor. */
+function stdPositionOpen(category){
+  const cat=String(category||'').trim();
+  const key=(typeof stdBookFor==='function')?stdBookFor(cat):'_default';
+  return openPlaybookEditor(key, { focus:cat });
+}
+function openPlaybookEditor(key, opts={}){
   const pb=JSON.parse(JSON.stringify(playbook()));
   const isNew=!key, isBase=key==='_default';
   if(isNew){ key='t_'+Math.random().toString(36).slice(2,7); pb[key]={label:'',extends:'_default',positions:[],ranges:[],match:[]}; }
@@ -9384,7 +9394,19 @@ function openPlaybookEditor(key){
     rl.querySelectorAll('[data-pb-resc]').forEach(el=>el.addEventListener('change',()=>{ e.ranges[+el.dataset.pbResc].escalate=el.checked; }));
     rl.querySelectorAll('[data-pb-rmrng]').forEach(el=>el.addEventListener('click',()=>{ e.ranges.splice(+el.dataset.pbRmrng,1); paint(); }));
   };
+  /* the standard asked for: its own row lit (a position, or a numeric limit
+     by its label); none in this book yet → a new row named for it */
+  const focus=String(opts.focus||'').trim(), same=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
+  let at=null;
+  if(focus){
+    const pi=e.positions.findIndex(p=>p&&same(p.category,focus)), ri=e.ranges.findIndex(r=>r&&same(r.label,focus));
+    if(pi>=0) at=`[data-pb-cat="${pi}"]`;
+    else if(ri>=0) at=`[data-pb-rlabel="${ri}"]`;
+    else { e.positions.push({ category:focus, pos:'preferred', escalate:false }); at=`[data-pb-cat="${e.positions.length-1}"]`; }
+  }
   paint();
+  if(at){ const row=()=>{ const el=document.querySelector('#pb-pos-list '+at+', #pb-rng-list '+at); return el?el.parentElement:null; };
+    if(typeof landOn==='function') landOn(row, { block:'center' }); else { const r=row(); if(r) r.scrollIntoView({ block:'center' }); } }
   document.getElementById('pb-add-pos').addEventListener('click',()=>{ e.positions.push({category:'',pos:'preferred',escalate:false}); paint(); });
   document.getElementById('pb-add-rng').addEventListener('click',()=>{ e.ranges.push({key:'',label:'',op:'<=',value:30,escalate:true}); paint(); });
   document.getElementById('pb-cancel').addEventListener('click',closeModal);
@@ -9810,7 +9832,7 @@ async function loadSessions(){
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
 Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
-  renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
+  renderPlaybookView,openPlaybookEditor,stdPositionOpen,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,

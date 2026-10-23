@@ -133,12 +133,16 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
         return { answer: JSON.stringify({ proposedText: words, advice: 'Drafted.' }) };
       };
     }, { QUAL_NEW, SUPPLY_NEW, NEW_CL });
-    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+    /* RE-POINTED (owner, 23 Oct 2026, "get rid of this duplicate page"): the Redlines face beside Home's
+       paper, where every door to the negotiation lands; the contract is in the browser before its door
+       is pressed (a stray repaint no longer catches it up by drawing the old page over Home) */
+    await until(page, id => !!(window.getContract && getContract(id)), ID);
+    await page.evaluate(id => openRedlineWorkbench(id), ID);
+    await page.evaluate(() => { const b = document.querySelector('#confirm-overlay #cf-cancel'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     const titles = await page.evaluate(id => templateClauseTitles(getContract(id)), ID);
     check(titles && titles.c3 === 'Quality & Rejection' && titles.c2 === 'Price & Contract Value', '0 the template\'s own paper names its tagged clauses', JSON.stringify(titles));
-    const row = await until(page, () => { if (!document.getElementById('rl-risks') && window.renderRedline) renderRedline();
+    const row = await until(page, () => { if (!document.getElementById('rl-risks') && window.pdRedRepaint) pdRedRepaint();
       return !!document.querySelector('#rl-risks [data-rk-key="s:rm-kebs"] [data-rk-act="edit-ce"]'); });
     check(!!row, '0 the Redlines card lists "Product standard not cited"');
 

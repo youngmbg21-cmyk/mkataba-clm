@@ -264,9 +264,12 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     await page.click('[data-sd-row="cl-pay"]').catch(() => {}); await page.waitForTimeout(300);
     await page.click('#ins-panel [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
-    const pos = await page.evaluate(() => ({ tab: (document.querySelector('[data-pb-tab].on') || {}).getAttribute ? document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab') : null,
-      book: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
-    ok('3d "Change the position" lands on the book that holds it', pos.tab === 'playbook' && /baseline/i.test(pos.book), pos);
+    /* RE-POINTED 23 Oct 2026 (owner: "open straight onto the rule you clicked, ready to change"): the
+       button — now "Set how firm we are" — opens the book's editor ON the standard's row (set-how-firm verify) */
+    const pos = await page.evaluate(() => { const el = document.querySelector('#pb-rng-list .is-landed, #pb-rng-list .is-landed-held, #pb-pos-list .is-landed, #pb-pos-list .is-landed-held');
+      const inp = el && el.querySelector('[data-pb-cat],[data-pb-rlabel]'); return { editor: !!document.getElementById('pb-save'), row: inp ? inp.value : '' }; });
+    ok('3d "Set how firm we are" opens the book\'s editor on its standard\'s row', pos.editor && /payment/i.test(pos.row), pos);
+    await page.evaluate(() => { const c = document.getElementById('pb-cancel'); if (c) c.click(); }); await page.waitForTimeout(300);
     await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     const godev = await page.$('#ins-panel [data-sd-godev]');
     let gd = null;
