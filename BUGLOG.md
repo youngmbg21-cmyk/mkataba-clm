@@ -21497,6 +21497,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - FIXED 23 Oct 2026 with the owner's yes (f871): the line above about `claude-haiku-4-5-20251001` being priced at the 'default' rate. `aiRateFor` now prices a dated id as its model. Spend already booked is left as recorded.
 - Noticed, not fixed (23 Oct 2026, Spine round): chambers-verify 3d "the bell's count is the ink, not amber" reads null — red at unmodified main too (no bell count drawn in its stage); left red.
 
+## Noticed, not fixed — 23 Oct 2026 (Deal in the middle, the duplicate Negotiate page)
+- The Board's own "Deal board" view (Your book · Deal board · Obligations · History, `hbCvPaint` → `dealBoardHtml`, also `pdOpenOnHome(id,'deal')`) still draws the old deal inspector, so the deal has two looks: the Board's and the new Deal in the middle (`dealViewHtml`). Both read `dealBoardFacts`, so the numbers agree; the look does not. Not asked; told to the owner.
+- CLAUDE.md is about 82 KB, over its own "about 80 KB" line; a trim needs the owner's yes.
 - 23 Oct 2026 — Noticed, not fixed: the playbook editor's Save (openPlaybookEditor, js/views/settings.js) ends with a bare `toast(i18t('set_t_playbook_saved'))`, which prints nothing (TOAST_KINDS) — a saved book says nothing on screen.
 - 23 Oct 2026 — Noticed, not fixed: paper-actions-verify 2a fails on main too — pressing Actions on the paper's line opens the Dossier's list of acts but the list is not brought into view ({"open":true,"inView":false,"n":19}).
 - Noticed, not fixed (23 Oct 2026, the Legora look PR #447): paper-actions-verify.js is red on GitHub at main 4733092 (shard 1/4) and passes locally on both main and the branch; and home-held-contract-verify.js is red on GitHub at main (shard 3/4). Neither is this change's.

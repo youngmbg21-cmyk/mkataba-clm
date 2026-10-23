@@ -494,6 +494,13 @@ function clauseEditorCss(){
   .ce-railfoot button.p{background:var(--accent-fill); border-color:var(--accent-fill);
     color:#fff}
   .ce-railfoot button[disabled]{opacity:.45}
+  /* THE FILE / SAVE BUTTON STANDS OUT (owner, 23 Oct 2026: "make them
+     prominent slightly longer buttons so they do not seem hidden"): the
+     panel's one filled act is a full-height control, wider than its word,
+     and greyed it stays SOLID (its hover says why) rather than fading out. */
+  .ce-railfoot#ce-railfoot button.p{height:var(--ctl-h-lg); min-width:120px; padding:0 16px;
+    font-size:var(--t-body); font-weight:var(--w-strong)}
+  .ce-railfoot#ce-railfoot button.p[disabled]{opacity:1; background:var(--color-neutral-200); border-color:var(--rule-strong); color:var(--color-neutral-600)}
   /* ONE FOOTER: the suggestion's row takes the whole width over the walk's */
   .ce-feet > .ce-rksug{flex:1 1 100%; justify-content:flex-start; padding-bottom:8px;
     border-bottom:1px solid var(--color-divider)}

@@ -116,6 +116,8 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       fullBtns: vis(full) ? [...full.querySelectorAll('button')].map(b => b.textContent.trim() || b.getAttribute('aria-label')) : [],
       feet: [...pg.querySelectorAll('.ce-railfoot:not(.ce-rksug)')].filter(vis).map(f => [...f.querySelectorAll('button')].map(b => b.textContent.trim()).join(' · ')),
       footTops: [...pg.querySelectorAll('.ce-railfoot:not(.ce-rksug) button')].filter(vis).map(b => Math.round(b.getBoundingClientRect().top)),
+      footMids: [...pg.querySelectorAll('.ce-railfoot:not(.ce-rksug) button')].filter(vis).map(b => { const r = b.getBoundingClientRect(); return Math.round(r.top + r.height / 2); }),
+      footSave: (() => { const b = pg.querySelector('.ce-railfoot [data-ce-act="save"]'); if (!b || !vis(b)) return null; const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; })(),
       footH: [...pg.querySelectorAll('.ce-railfoot:not(.ce-rksug) button')].filter(vis).map(b => Math.round(b.getBoundingClientRect().height)),
       col: r ? [Math.round(r.left), Math.round(r.width)] : null,
       box: ceBoxWords(),
@@ -139,10 +141,16 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
         return { answer: JSON.stringify({ proposedText: words, advice: 'I raised the cap and carved out the losses a cap should never cover.' }) };
       };
     }, { LIAB_NEW, QUAL_NEW });
-    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+    /* RE-POINTED (owner, 23 Oct 2026, "get rid of this duplicate page"): the Redlines face beside Home's
+       paper, where every door to the negotiation lands; its column is the one builder the page drew */
+    /* the contract is in the browser before its door is pressed (a repaint no longer catches it up) */
+    await until(page, id => !!(window.getContract && getContract(id)), ID);
+    await page.evaluate(id => openRedlineWorkbench(id), ID);
+    await page.evaluate(() => { const b = document.querySelector('#confirm-overlay #cf-cancel'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
-    const row = await until(page, id => { if (!document.getElementById('rl-risks') && window.renderRedline) renderRedline();
+    /* RE-POINTED (owner, 23 Oct 2026, "get rid of this duplicate page"): a repaint no longer draws the
+       Negotiate page over Home, so the list is asked of the Redlines face beside the paper it lands on */
+    const row = await until(page, id => { if (!document.getElementById('rl-risks') && window.pdRedRepaint) pdRedRepaint();
       return !!document.querySelector('#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]'); }, ID);
     check(!!row, '0 the Redlines card lists the liability risk with Edit with Jambo');
 
@@ -164,8 +172,11 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     check(!!R && R.scope, '1f with the clause card over it, as from a clause');
     check(!!R && !/twelve \(12\)/.test(R.box), '1g the box is untouched until Apply');
     check(!!R && R.feet.length === 1 && /^‹ · › · (File|Save)/.test(R.feet[0]), '1h one foot: ‹ k of n › and Save — no Skip, no Save & next, no Discard', R && R.feet.join(' | '));
-    check(!!R && R.footTops.length === 3 && new Set(R.footTops).size === 1, '5a all three on ONE row', R && R.footTops.join(','));
-    check(!!R && R.footH.every(h => h <= 24), '5b on the small rung', R && R.footH.join(','));
+    /* RE-POINTED (owner, 23 Oct 2026: File / Save "prominent, slightly longer buttons so they do not seem
+       hidden"): one row read by the buttons' MIDDLES (Save is taller now); the walk's ‹ › stay on the small
+       rung, Save is a full-height control 110px or wider */
+    check(!!R && R.footMids.length === 3 && Math.max(...R.footMids) - Math.min(...R.footMids) <= 1, '5a all three on ONE row', R && R.footMids.join(','));
+    check(!!R && R.footH.length === 3 && R.footH.slice(0, 2).every(h => h <= 24) && !!R.footSave && R.footSave.h >= 30 && R.footSave.w >= 110, '5b the walk on the small rung, Save prominent', R && (R.footH.join(',') + ' save ' + JSON.stringify(R.footSave)));
     const face = await page.evaluate(() => {
       const p = [...document.querySelectorAll('#ce-doc .rl-clause p, #ce-doc p')].find(x => x.textContent.trim().length > 20);
       const pv = document.querySelector('#ce-lane .ce-card .pv'), ins = pv && pv.querySelector('ins'), del = pv && pv.querySelector('del');

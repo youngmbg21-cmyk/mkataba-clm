@@ -116,13 +116,16 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
         return { answer: JSON.stringify({ proposedText: words, advice: 'Drafted.' }) };
       };
     }, { LIAB_NEW });
-    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+    /* RE-POINTED (owner, 23 Oct 2026, "get rid of this duplicate page"): the Redlines face beside Home's
+       paper, once the contract is in the browser; a stray renderRedline no longer draws the old page */
+    await until(page, id => !!(window.getContract && getContract(id)), ID);
+    await page.evaluate(id => openRedlineWorkbench(id), ID);
+    await page.evaluate(() => { const b = document.querySelector('#confirm-overlay #cf-cancel'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
 
     /* ============ 1. ADVICE IS NOT A REDLINE ============ */
     const list = await until(page, () => {
-      if (!document.getElementById('rl-risks') && window.renderRedline) renderRedline();
+      if (!document.getElementById('rl-risks') && window.pdRedRepaint) pdRedRepaint();
       const p = document.getElementById('rl-risks'); if (!p) return null;
       const rows = [...p.querySelectorAll('.rk-row[data-rk-key]:not(.is-covered):not(.is-gone)')];
       return { head: (p.querySelector('.rk-h b') || {}).textContent || '', keys: rows.map(r => r.getAttribute('data-rk-key')),
