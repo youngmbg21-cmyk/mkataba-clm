@@ -16851,6 +16851,15 @@
      and the sheet its 40px under the line, as on every other paper (one-zoom 6, one-paper-everywhere 1) */
   #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:39px}
   body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark) #ig-paper-scroll{padding-top:9px}
+  /* -- below 1100px wide (narrower than any of the owner's three screens) the two halves stand docked
+     as they did: there every pixel is the page's (swedish-verify caught the Calendar cut by 7px at 800) -- */
+  @media (max-width:1100px){
+    #app-shell #ig-page:not(.hb-dark) #ig-dock{margin:0;border-radius:0;box-shadow:none;border-left:1px solid var(--color-neutral-300)}
+    #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:0;border-radius:0;box-shadow:none}
+    #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:47px}
+    #content .ins-panel.is-jambo{right:0;top:var(--jl-top,88px);bottom:0;border-radius:0;box-shadow:none;border-left:1px solid var(--color-neutral-300)}
+    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:var(--jl-w,384px)}
+  }
 </style>
 
 
