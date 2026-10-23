@@ -40,7 +40,8 @@ const ID = 'MK-WE1';
     'WAREHOUSE LEASE\n\n1. Premises\n\nThe Landlord lets the warehouse.\n\n2. Rent\n\nRent is payable monthly.'), {
     counterpartyEmail: 'legal@mombasa-storage.example' });
   const put = await W.admin.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
-  const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
+  /* real scrollbars, as on Windows: a hidden one takes no room and hides the sideways fault (4b) */
+  const browser = await chromium.launch({ executablePath: EXEC, ignoreDefaultArgs: ['--hide-scrollbars'], args: ['--no-sandbox'] });
   const page = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -110,6 +111,17 @@ const ID = 'MK-WE1';
       await page.screenshot({ path: path.join(OUT, `popup-${w}x${hh}.png`) });
       await page.evaluate(() => closeModal());
     }
+    /* 4b NEVER SIDEWAYS (owner, 23 Oct 2026: "pop ups should never be narrow that you have to scroll left or right"):
+       a short window, the add form open, so the pop-up scrolls up and down with a scrollbar that takes room. Red at the
+       parent: the pinned foot reached under that scrollbar and the pop-up was 10px too wide. */
+    await page.setViewportSize({ width: 1280, height: 520 });
+    await page.evaluate(id => pdPeopleOpen(id, 'dossier'), ID);
+    await waitFor(page, () => !!document.querySelector('[role="dialog"] #pd-ppl [data-pt-add]'), 4000);
+    await click('#pd-ppl [data-pt-add]');
+    const sw = await waitFor(page, () => { const d = document.querySelector('[role="dialog"]');
+      return d && d.querySelector('#pd-ppl .pt-dir-form') && d.scrollHeight > d.clientHeight ? { sw: d.scrollWidth, cw: d.clientWidth } : null; }, 4000);
+    check('4b a pop-up that scrolls up and down never scrolls sideways', !!sw && sw.sw <= sw.cw, JSON.stringify(sw));
+    await page.evaluate(() => closeModal());
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
     check('the run finished', false, e && e.stack);
