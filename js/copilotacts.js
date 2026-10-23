@@ -410,9 +410,16 @@ function caActOf(q){
   /* JAMBO'S MAP (18 Oct 2026, js/jambomap.js): last of all, a sentence in
      everyday words ("where are the contracts ending soon?") reaches the same
      doors as the exact words; what it does not know goes on to the model */
-  if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return m; }
+  /* a bare word or two ("approval") keeps its "which did you mean?" card; a sentence's close match is Jambo's */
+  /* …and a close match that STARTS WORK ("upload a contract") keeps its card, where it can be pressed (JM_STARTS_WORK) */
+  if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return (m.kind === 'map' && caAiFirst() && t.trim().split(/\s+/).length >= 3
+    && !((m.picks || []).some(k => typeof JM_STARTS_WORK !== 'undefined' && JM_STARTS_WORK.has(k)))) ? null : m; }
   return null;
 }
+/* AI FIRST (Jambo works like Copilot, stage 3, 22 Oct 2026): a free reading that is only a guess ("which of
+   these did you mean", the map's close matches) gives way to Jambo wherever he can answer; with no engine
+   the free reading stays, so nothing is ever left with no answer at all */
+function caAiFirst(){ try { return typeof copilotAvailable === 'function' && !!copilotAvailable(); } catch (_){ return false; } }
 
 /* ---- THE SEND CARD ---- */
 function caSendBlock(a){
@@ -1597,7 +1604,7 @@ async function caDraftReply(prompt, cid){
     return (e && e.needsKey) ? { why: 'nokey' } : { why: 'failed', msg: (e && e.message) || '' };
   }
 }
-Object.assign(window, { caDraftReply, DRAFT_WALL_PANEL, draftWallAdmins, draftWallAsked, draftWallSay, draftWallWhen, draftWallWhyHtml, draftWallActHtml, draftWallSend, draftWallToast });
+Object.assign(window, { caDraftReply, caAiFirst, DRAFT_WALL_PANEL, draftWallAdmins, draftWallAsked, draftWallSay, draftWallWhen, draftWallWhyHtml, draftWallActHtml, draftWallSend, draftWallToast });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_SUMMARY_RE, CA_WRITE_MAIL_RE, caFindPersonNamed, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,

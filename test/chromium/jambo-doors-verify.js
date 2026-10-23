@@ -81,6 +81,10 @@ const EXEC = process.env.CHROMIUM_BIN
     await check('18 one duty', { kind: 'obligation', contractId: 'MK-C1', obligationId: 'ob-count' }, { page: 'obligations', item: 'ob-count' });
     await check('19 this week\'s duties', { kind: 'duties', due: '7' }, { page: 'obligations', filters: { window: 'week' } });
     await check('20 a request', { kind: 'request', requestId: ids.request }, { page: 'requests', item: 'NDA for a new distributor' });
+    {
+      const nid = await P.evaluate(async () => { const r = await api('me/items', 'POST', { kind: 'note', item: { body: 'Call Kabras about the rebate' } }); return (r.item || r).id; });
+      await check('22 one of my own notes', { kind: 'mynote', noteId: nid }, { page: 'notes' });
+    }
     /* a contract this browser does not hold is no door: nothing moves, and the task (none here) is the fallback */
     {
       const ran = await P.evaluate(() => aiGotoRun({ task: '', door: { kind: 'contract', contractId: 'MK-NOPE' } }, ''));

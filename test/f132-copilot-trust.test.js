@@ -313,7 +313,8 @@ describe('F-C — every Copilot exchange leaves a record', () => {
     await ask(W.admin, q);
     const rows = await entriesFor(q);
     assert.equal(rows.length, 1);
-    assert.match(rows[0].answer, /wasn't able to finish/);
+    /* NEVER A DEAD END (Jambo works like Copilot, stage 3, 22 Oct 2026): the reason, then the way on */
+    assert.match(rows[0].answer, /^I ran out of steps before I could finish that\./);
     assert.equal(rows[0].steps, STEPS);
     assert.deepEqual(rows[0].toolsUsed, ['search_contracts']);
   });

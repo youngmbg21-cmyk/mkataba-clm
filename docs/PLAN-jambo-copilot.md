@@ -51,7 +51,7 @@ Questions and the Nine Flow Rules still apply.
 | 0 | THE EXAM: 240 held-out asks (test/jambo-exam.js) over test/jambo-world.js, typed into real boxes (test/chromium/jambo-exam-measure.js), dead ends and calls counted | built |
 | 1 | ONE SEARCH OVER HaTi: the permission-aware index | built |
 | 2 | EVERY DOOR AS A TOOL | built |
-| 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END | — |
+| 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END | built |
 | 4 | MEASURE AGAIN: before/after, calls per ask, the three screens | — |
 
 ## 4. The scores
@@ -66,3 +66,11 @@ score; the exam is re-run live after stage 2 as well as at stage 4.
 | Before, no AI key (free readers alone), 22 Oct 2026 | 102 of 240 (43%) | 2 | 0 |
 | Before, live AI (the app as at 1881323), 22 Oct 2026 | 139 of 240 (58%) | 0 | 0.75 (180 calls) |
 | After stages 1–2, live AI, 22 Oct 2026 | 142 of 240 (59%) | 1 | 0.80 (193 calls) |
+| Stage 3 part-built (dcd407d), live AI, 22 Oct 2026 | 178 of 240 (74%) | 1 | 1.56 (374 calls) |
+| **After stage 3** (7c0d1c0, reader fixed), live AI, 22 Oct 2026 | **183 of 240 (76%)** | **0** | **1.20 (287 calls)** |
+
+THE READER'S OWN FAULT (found in stage 3, 22 Oct 2026): the exam's reader threw on
+an answer whose contract cards are drawn markup (the chat window's and the list
+panel's), so those answers read as "no answer" in every run above. Only the
+"every box" section asks there; re-measured on the original code with the fixed
+reader it is 6 of 13, not 3 — so the fair "before" is about **142 of 240 (59%)**.

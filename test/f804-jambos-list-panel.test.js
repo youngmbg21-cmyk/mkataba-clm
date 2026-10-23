@@ -157,7 +157,8 @@ describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () =
     assert.ok(at('caReadPlace(t)') > 0 && at('caAskAnywhere(t)') > at('caReadPlace(t)') && at('jmRead(t)') > at('caAskAnywhere(t)')
       && at('jlBoardReads(t)') > at('jmRead(t)') && at('aiAskWords(t)') > at('jlBoardReads(t)'), 'held row, the one reader, the map, the Board, then the question');
     assert.match(f, /if \(a && a\.kind === 'go' && a\.missing\)\{\s*const held = jlHeldContract\(\);\s*if \(held\)\{\s*a\.cid = held\.id; a\.missing = false;/, 'the held row is the open contract');
-    assert.match(f, /if \(m && m\.kind === 'map'\)\{ jlMapCard\(t, m\); return 'card'; \}/, '"which did you mean?" is said in the panel');
+    /* a sentence's close match gives way to Jambo where he can answer (AI first, stage 3); a bare word keeps the card */
+    assert.match(f, /if \(m && m\.kind === 'map'[^{]*\)\)\{ jlMapCard\(t, m\); return 'card'; \}/, '"which did you mean?" is said in the panel');
     /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): the row the panel
        holds stays held; the panel turns to the conversation, then asks */
     assert.match(f, /jlTalkOpen\(\);\s*if \(typeof aiAskWords === 'function'\)\{ aiAskWords\(t\); return 'model'; \}/, 'a question turns the panel to the conversation, then asks');

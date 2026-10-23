@@ -213,6 +213,9 @@ function navReadContractAct(raw, t){
   if (act === 'send' && (/ (for signing|to sign|for signature|for review|to review|för underskrift|för granskning) /.test(t))) return null;
   if (hit.picks && hit.picks.length > 1) return navWhich(hit.picks.map(c => ({ c, nav: { k: 'cact', cid: c.id, act } })));
   const c = hit.c; if (!c) return null;
+  /* AI FIRST (stage 3): "open" is sure only when the sentence names the contract and nothing more — "when does
+     the Westlands lease end", "cap on damages in the sugar deal" ask something OF it, and go to Jambo */
+  if (act === 'open' && navLeftover(rest, c).length) return null;
   if (act === 'amend'){
     let shut = ''; try { shut = (typeof amendmentShutWhy === 'function') ? amendmentShutWhy(c) : ''; } catch (_){ shut = ''; }
     if (shut) return { kind: 'navsay', text: shut };
@@ -220,6 +223,15 @@ function navReadContractAct(raw, t){
   return { kind: 'go', place: 'nav', cid: c.id, nav: { k: 'cact', cid: c.id, act }, say: 'nav_go_act_' + act, sayVars: { ref: navRef(c), name: c.name || '' } };
 }
 
+/* what a sentence says beyond the contract it names: the words left once the contract's own name, its party,
+   the words of opening and the small words are taken out */
+const NAV_OPEN_SKIP = new Set(['the', 'a', 'an', 'and', 'of', 'for', 'with', 'to', 'me', 'my', 'our', 'up', 'pull', 'bring', 'open', 'show', 'see', 'take', 'go', 'please', 'now',
+  'contract', 'contracts', 'agreement', 'deal', 'one', 'file', 'paper', 'document', 'draft', 'signed', 'avtal', 'utkast', 'avtalet', 'kontrakt', 'kontraktet', 'öppna', 'visa', 'det', 'den', 'med']);
+function navLeftover(rest, c){
+  const own = new Set(navNorm([c.name, c.counterparty, c.id, c.contractNo, c.type].filter(Boolean).join(' ')).trim().split(' '));
+  return navNorm(rest).trim().split(' ').filter(w => w && w.length > 1 && !NAV_OPEN_SKIP.has(w) && !own.has(w) && !NAV_NAME_SKIP.has(w)
+    && ![...own].some(o => o.length >= 4 && (w.startsWith(o) || o.startsWith(w))));
+}
 /* A CLAUSE OF A CONTRACT: "clause 7 of the Kabras supply deal", "the payment
    clause in MK-A1", "governing law in MK-A1", "where does MK-A1 talk about
    rejection", "klausul 7 i MK-A1" */
@@ -750,6 +762,10 @@ function navGoStage3(n){
     setTimeout(pick, 0);
     return true;
   }
+  if (n.k === 'mynote'){
+    if (n.id && typeof myNotesOpen === 'function'){ myNotesOpen(n.id); return navLandWhen(() => document.querySelector(`[data-ins-key="${String(n.id).replace(/"/g, '')}"], [data-mn-row="${String(n.id).replace(/"/g, '')}"]`)); }
+    if (typeof setView !== 'function') return false; setView('mynotes'); return true;
+  }
   if (n.k === 'requestid'){
     if (typeof setView !== 'function' || typeof intakeGoTo !== 'function') return false;
     intakeGoTo(n.id);
@@ -852,7 +868,9 @@ function navDoorOf(d){
     if (d.kind === 'obligation') return go({ k: 'duty', cid: c.id, oid: d.obligationId }, 'nav_go_duty', { what: ((c.obligations || []).find(o => o && String(o.id) === String(d.obligationId)) || {}).desc || '', ref: v.ref });
     if (d.kind === 'clause'){
       const words = d.head ? [navNorm(d.head).trim()].filter(Boolean) : null;
-      return go({ k: 'clause', cid: c.id, num: d.num || null, quote: d.quote || null, head: d.head || null, topic: words ? words[0] : null, words }, d.num ? 'nav_go_clause' : 'nav_go_clause_topic',
+      /* a passage that begins with its clause's number ("6. Quality and rejection") lands as that number does */
+      const lead = /^\s*(?:clause|section|article|§|klausul|artikel)?\s*(\d{1,3})(?:[.)]|\s)/i.exec(String(d.head || d.quote || ''));
+      return go({ k: 'clause', cid: c.id, num: d.num || (lead ? lead[1] : null), quote: d.quote || null, head: d.head || null, topic: words ? words[0] : null, words }, d.num ? 'nav_go_clause' : 'nav_go_clause_topic',
         { n: d.num || '', topic: d.head || '', ...v }, c.id);
     }
     if (d.tab === 'compare') return go({ k: 'compare', cid: c.id }, 'nav_go_compare', v, c.id);
@@ -908,10 +926,12 @@ function navDoorOf(d){
   if (d.kind === 'template') return go({ k: 'template', id: d.templateId }, 'nav_go_template');
   if (d.kind === 'request') return go({ k: 'requestid', id: d.requestId }, 'nav_go_request');
   if (d.kind === 'duties') return d.due === '7' ? go({ k: 'duties', due: '7' }, 'nav_go_duties_week') : { kind: 'go', place: 'oblig' };
+  /* My notes, or one of them: its own page's door (myNotesOpen); private, so only ever the reader's own */
+  if (d.kind === 'mynote') return go({ k: 'mynote', id: d.noteId || null }, 'nav_go_mynote');
   return null;
 }
 
-Object.assign(window, { navDoorOf, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
+Object.assign(window, { navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
   navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,

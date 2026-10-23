@@ -178,7 +178,9 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     const none = await ask('tell me something clever about the grumpy suppliers');
     const calls = await page.evaluate(() => window._bpCalls) - calls0;
     check(calls === 2, 'A3d with nothing to draw Jambo is asked ONCE more for board actions', calls);
-    check(/could not draw/i.test(none.said) && !none.moved, 'A3e then one plain line, and nothing is drawn', none.said);
+    /* NEVER A DEAD END (Jambo works like Copilot, stage 3, 22 Oct 2026; was "then one plain line": "the board
+       could not draw that"): words that asked for no picture go on to Jambo's chat, which answers in words */
+    check(!/could not draw/i.test(none.said) && String(none.said || '').trim().length > 0 && !none.moved, 'A3e then Jambo answers it in words, and nothing is drawn', none.said);
     check(!/bubble chart|plots/i.test(none.said), 'A4 no sentence names a chart when no card landed', none.said);
     check((await mapNow()) === mapBefore, 'A3f the hidden map is still exactly as it was', await mapNow());
     await shot('2-plain-line.png');
