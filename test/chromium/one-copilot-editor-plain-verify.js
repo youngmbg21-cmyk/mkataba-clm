@@ -103,10 +103,14 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
             whatItDoes: 'It raises the cap to twelve months and keeps the losses a cap should never cover outside it.', proposedText: words }) };
       };
     }, { LIAB_NEW, QUAL_NEW });
-    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+    /* RE-POINTED (owner, 23 Oct 2026, "get rid of this duplicate page"): the Redlines face beside Home's
+       paper, where every door to the negotiation lands; the contract is in the browser before its door
+       is pressed (a stray repaint no longer catches it up by drawing the old page over Home) */
+    await until(page, id => !!(window.getContract && getContract(id)), ID);
+    await page.evaluate(id => openRedlineWorkbench(id), ID);
+    await page.evaluate(() => { const b = document.querySelector('#confirm-overlay #cf-cancel'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
-    const row = await until(page, id => { if (!document.getElementById('rl-risks') && window.renderRedline) renderRedline();
+    const row = await until(page, id => { if (!document.getElementById('rl-risks') && window.pdRedRepaint) pdRedRepaint();
       return !!document.querySelector('#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]'); }, ID);
     check(!!row, '0 the Redlines card lists the liability risk with Edit with Jambo');
 
