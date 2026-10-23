@@ -21480,6 +21480,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Jambo's greeting on the Board still says "What needs you is on Home: N things" (hb_jb_*): true (Home has it), but the whole list now stands on the Board under Your book too.
 - CLAUDE.md is 84.5 KB (over its ~80 KB rule) after this round's one-desk section; a trim needs the owner's yes.
 - Noticed, not fixed (23 Oct 2026, the one desk): every-door-lands-on-home's "Obligations row, a later one (MK-A1)" times out on its double-click on unmodified main too (run at main 68680ec); the row is not pressable when the check reaches it.
+- Noticed, not fixed (23 Oct 2026, Marquee PR #437): alerts-on-your-phone-verify 1a ("Alerts on this device" painted) failed once on GitHub (browser checks 2/4, run 39937451593) with the row present but measured unpainted; the same file passed on the previous run and 15/15 twice locally. It reads the paint before Settings has finished drawing — its wait should ask for the painted state, bounded.
 
 ## Noticed, not fixed — 23 Oct 2026 (Jambo works like Copilot, stage 3d)
 - The server has no copy of HaTi's default playbook (DEFAULT_PLAYBOOK lives only in js/playbook.js): until a workspace saves its own, check_against_playbook says "No playbook is configured" and the one search finds no standards, while Our standards shows the built-in books. Asked "the standard we use for how many days to pay", the AI said there was none.

@@ -88,7 +88,7 @@ function bdBusyHtml(){ return window.busyHtml ? busyHtml(i18t('bd_reading')) : _
    own door, "Ask Jambo about this" only fills Jambo's ask box. */
 /* `missShut`: the not-in-the-contract groups the reader has closed, this
    sitting, this contract (the group's own key — see stkDecorate) */
-const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null, diveBusy: {}, diveErr: {}, marking: {}, missShut: new Set() };
+const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, more: false, rows: null, nums: null, diveBusy: {}, diveErr: {}, marking: {}, missShut: new Set() };
 const STK_REGION_TONES = 10;
 const stkOf = c => { const b = bdOf(c); return b && Array.isArray(b.points) ? b : null; };
 const stkNum = s => { const m = /^\s*(?:clause\s+|§\s*)?(\d+(?:\.\d+)*)/i.exec(String(s || '')); return m ? m[1] : ''; };
@@ -265,7 +265,7 @@ function stkNeedCount(c){
   }
   return stkCounts(stkReview(c, b, ctx)).need;
 }
-const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev || p.status === f.sev) && (!f.by || (p.bys || [p.by]).includes(f.by));
+const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev || (f.sev !== 'fine' && p.status === f.sev)) && (!f.by || (p.bys || [p.by]).includes(f.by));
 const stkFiltering = () => !!(_stk.f.reg || _stk.f.sev || _stk.f.by);
 /* what is on screen: the points the filters keep, in the list's order — the deep dive walks these */
 function stkShown(c, b){ return stkReview(c, b).filter(p => stkKeep(p, _stk.f)); }
@@ -315,14 +315,67 @@ function stkHeadHtml(c, b, all){
     const why = err || (noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_read_sub'));
     return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="${err ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
   }
-  /* AS DRAWN (owner said yes, 21 Oct 2026, "the Legora way"; the count line
-     removed on their word the same day): the name, then the three filters */
+  /* MARQUEE (owner picked it by name, 23 Oct 2026; the navigation kept as it was, the owner's own words):
+     a serif headline — how many clauses need you — one sentence naming where to start, and the clauses
+     as tabs with counts (All · Needs you · Worth a look · Fine) in place of the three filter boxes */
   all = all || stkReview(c, b);
-  return `<div class="stk-head">
-    ${stkViewHtml(busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : '')}
-    ${all.length ? stkFiltersHtml(b, all) : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
+  return `<div class="stk-head is-mq">
+    ${stkMarqueeHtml(c, all, busy)}
+    ${all.length ? '' : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
     ${b.truncated ? `<p class="stk-sub">${_bdE(i18t('stk_cut'))}</p>` : ''}
     ${err ? `<p class="stk-err" role="alert">${_bdE(err)}</p>` : ''}</div>`;
+}
+/* ---- MARQUEE'S HEAD FOR THE CLAUSES TAB ----
+   Every count is of CLAUSES on the list (the rows that carry a number), read off the one reading
+   (stkReview) as the rows' own words are: a clause needs you where a live point of its own, or one it
+   leaves out, needs you; worth a look likewise; fine where nothing live stands on it. A tab whose
+   count is 0 stays out unless it is the one chosen, as every list head's does. */
+function stkClauseTally(all){
+  const nums = _stk.nums || [], live = {};
+  (all || []).forEach(p => { if (p.done || p.status === 'fine') return;
+    const at = p.at >= 0 ? p.at : (p.missing && p.afterAt >= 0 ? p.afterAt : -1); if (at < 0) return;
+    (live[at] = live[at] || new Set()).add(p.status); });
+  const rows = nums.map((n, at) => n ? at : -1).filter(at => at >= 0);
+  const t = { all: rows.length, need: 0, look: 0, fine: 0, live };
+  rows.forEach(at => { const L = live[at]; if (!L || !L.size) t.fine++; else { if (L.has('need')) t.need++; if (L.has('look')) t.look++; } });
+  return t;
+}
+/* the clause's name as its heading says it, the number left off */
+function stkClauseName(at){
+  const x = (_stk.rows || [])[at], h = String((x && x.row && (x.row.heading || x.row.title)) || '').trim();
+  return h.replace(/^\s*(?:clause\s+|§\s*)?[0-9IVXLCivxlc]+(?:\.\d+)*[.)]?\s+/, '').trim() || h;
+}
+function stkMarqueeHtml(c, all, busy){
+  const T = stkClauseTally(all), E = _bdE;
+  const title = T.need ? i18tn('stk_mq_title', T.need, { n: T.need }) : i18t('stk_mq_title_none');
+  /* where to start: the first point that needs you, in the list's own order */
+  const first = (all || []).find(p => !p.done && p.status === 'need') || null;
+  const fAt = first ? (first.at >= 0 ? first.at : first.afterAt) : -1;
+  const what = first ? String(first.title || first.stake || '').trim().replace(/[.\s]+$/, '') : '';
+  const lc = what && /^[A-Z][a-z]/.test(what) ? what.charAt(0).toLowerCase() + what.slice(1) : what;
+  const start = (first && fAt >= 0 && lc) ? ' ' + E(i18t('stk_mq_start', { clause: '\u0001', what: lc })).replace('\u0001', `<b>${E(stkClauseName(fAt))}</b>`) : '';
+  const read = T.all ? E(i18tn('stk_mq_read', T.all, { n: T.all })) : '';
+  const tab = (k, word, n) => (n || k === '' || _stk.f.sev === k)
+    ? `<button type="button" role="tab" class="stk-tab" data-stk-tab="${k}" aria-selected="${_stk.f.sev === k}">${E(word)}<span>${n}</span></button>` : '';
+  return `<h3 class="stk-mq-t">${E(title)}</h3>${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}`
+    + ((read || start) ? `<p class="stk-mq-s">${read}${start}</p>` : '')
+    + `<div class="stk-tabs" role="tablist">${tab('', i18t('stk_f_all'), T.all)}${tab('need', i18t('bd_st_need'), T.need)}${tab('look', i18t('bd_st_look'), T.look)}${tab('fine', i18t('stk_tab_fine'), T.fine)}${stkMoreHtml(all)}</div>`
+    + (stkMoreOpen() ? stkMoreBoxesHtml(all) : '');
+}
+/* SECTION AND FOUND BY, BEHIND THE TABS (the Marquee drawing's note: "would move behind the tabs"): a quiet
+   "Filter" at the tabs' end opens the two boxes under them, and stays open while either is set; each box
+   offers only what this contract's points hold (stkFiltersHtml's own rule) */
+const stkMoreOpen = () => !!(_stk.more || _stk.f.reg || _stk.f.by);
+function stkMoreHtml(all){
+  if (!(all || []).length) return '';
+  const on = stkMoreOpen(), n = (_stk.f.reg ? 1 : 0) + (_stk.f.by ? 1 : 0);
+  return `<button type="button" class="stk-more" data-stk-more aria-expanded="${on}">${_bdE(i18t('lh_add'))}${n ? ` <span>${n}</span>` : ''}</button>`;
+}
+function stkMoreBoxesHtml(all){
+  const b = { regions: (stkOf(stkContract()) || {}).regions || [] };
+  const html = stkFiltersHtml(b, all || []);
+  /* the Severity box is the tabs now: only Section and Found by stand here */
+  return html.replace(/<label class="stk-flt"><span>[^<]*<\/span><select data-stk-f="sev">[\s\S]*?<\/select><\/label>/, '').replace('class="stk-flts"', 'class="stk-flts is-mq"');
 }
 /* the row a standard's finding sits on: the row whose wording holds its quote */
 function stkRowForQuote(q, rows){
@@ -349,12 +402,15 @@ function stkCardHtml(c, p, i, redWhy){
     ? `<span class="stk-mk is-done"><i class="stk-ring is-on" aria-hidden="true"></i>${_bdE(i18t('stk_reviewed_by', { who: String(p.done.name || '').trim().split(/\s+/)[0] || i18t('stk_someone') }))}</span><button type="button" class="stk-a stk-undo" data-stk-unreview="${i}"${dis(markWhy)}${busy ? ' disabled' : ''}>${_bdE(i18t('stk_review_undo'))}</button>`
     : `<button type="button" class="stk-a stk-mk" data-stk-review="${i}"${dis(markWhy)}${busy ? ' disabled' : ''}><i class="stk-ring" aria-hidden="true"></i>${_bdE(i18t('stk_mark_reviewed'))}</button>`;
   const stake = String(p.stake || '').trim();
-  return `<div class="stk-line stk-card is-${p.status}${p.done ? ' is-done' : ''}" data-stk-key="${_bdE(p.key)}">
-    <div class="stk-c1"><i class="stk-d8 is-${p.status}" aria-hidden="true"></i><span class="stk-verd">${_bdE(i18t('bd_st_' + p.status))}</span><span class="stk-by">${_bdE(i18t('stk_found_by', { who: by }))}</span></div>
-    <div class="stk-ct">${_bdE(p.title || stake)}</div>
+  /* MARQUEE (23 Oct 2026): the verdict is the dot's colour (its word and who found it are read aloud, not
+     drawn). No quoted sentence under the point (owner, 23 Oct 2026: "Build the dot but without the quote"):
+     NO WORDING IN THE PANEL (igQuoteGo) stands */
+  return `<div class="stk-line stk-card is-mq is-${p.status}${p.done ? ' is-done' : ''}" data-stk-key="${_bdE(p.key)}">
+    <div class="stk-c1 sr-only"><span class="stk-verd">${_bdE(i18t('bd_st_' + p.status))}</span><span class="stk-by">${_bdE(i18t('stk_found_by', { who: by }))}</span></div>
+    <div class="stk-ct"><i class="stk-d8 is-${p.status}" aria-hidden="true"></i><span>${_bdE(p.title || stake)}</span></div>
     ${stake && stake !== p.title ? `<p class="stk-st">${_bdE(stake)}</p>` : ''}
     ${p.stdPos && p.by !== 'std' ? `<div class="stk-std" title="${_bdE(p.stdPos)}">${_bdE(i18t('stk_our_std', { pos: p.stdPos }))}</div>` : ''}
-    <div class="stk-cacts"><button type="button" class="stk-a is-go" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))} ›</button><button type="button" class="stk-a" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))} ›</button><span class="stk-mks">${mark}</span></div></div>`;
+    <div class="stk-cacts"><button type="button" class="stk-a is-go" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))}</button><span class="stk-mks">${mark}</span></div></div>`;
 }
 /* the words at a row's right: the worst live verdict and how many, in its ink */
 function stkRowWords(live){
@@ -367,7 +423,7 @@ function stkRowWords(live){
 /* painted after the list's own paint, on Home only */
 function stkDecorate(c, card, rows){
   if (!c || !card) return;
-  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; _stk.missShut = new Set(); }
+  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; _stk.more = false; _stk.missShut = new Set(); }
   const b = stkOf(c);
   _stk.rows = rows || null;
   _stk.nums = stkNumsOf(rows || []);
@@ -410,7 +466,9 @@ function stkDecorate(c, card, rows){
         st.querySelectorAll('.th-marks, .stk-n, .doc-th-dot').forEach(el => el.remove());
         const rest = [...st.children];
         rest.forEach(el => { if (el.classList.contains('is-read') && words){ el.classList.add('stk-read'); el.textContent = i18t('stk_read_after'); } });
-        const parts = (words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : []).concat(rest.map(el => el.outerHTML));
+        /* MARQUEE: a clause with nothing live on it says so ("Fine") */
+        const fine = !words && !mine.some(p => !p.done && p.status !== 'fine');
+        const parts = (words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : fine ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
         st.innerHTML = parts.join('<span class="doc-th-dot"> · </span>');
       }
       /* the open clause's cards, in the one order (stkReview), drawn once — UNDER its Plain English
@@ -449,12 +507,14 @@ function stkDecorate(c, card, rows){
        "Worth a look" list with nothing worth a look under it); the paper's
        track is untouched */
     if (stkFiltering()){
+      const fineTab = _stk.f.sev === 'fine', T = fineTab ? stkClauseTally(all) : null;
       list.querySelectorAll('.doc-th-row, .doc-th-sec').forEach(el => {
         const at = Number(el.getAttribute('data-th-row'));
+        if (fineTab && el.classList.contains('doc-th-row') && nums[at] && !(T.live[at] && T.live[at].size)) return;
         if (el.classList.contains('doc-th-row') && (byRow[at] || missByRow[at])) return;
         el.classList.add('stk-hide');
       });
-      if (!shown.length) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
+      if (!shown.length && !(fineTab && T.fine)) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
     }
   }
   stkDivePaint(c, card);
@@ -652,6 +712,14 @@ if (typeof document !== 'undefined' && !document._stkWired){
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#pd-thread')) return;
     const c = stkContract(); if (!c) return;
     if (t.closest('[data-stk-run]')){ stkRun(c); return; }
+    if (t.closest('[data-stk-more]')){ e.preventDefault(); _stk.more = !stkMoreOpen(); if (!_stk.more){ _stk.f.reg = ''; _stk.f.by = ''; } stkRepaint(c);
+      const again = document.querySelector('#pd-thread [data-stk-more]'); if (again) try { again.focus({ preventScroll: true }); } catch (_){}
+      return; }
+    /* MARQUEE'S TABS: one choice of clauses for the sitting; the list repaints, the tab keeps the hand */
+    const tb = t.closest('[data-stk-tab]');
+    if (tb){ e.preventDefault(); _stk.f.sev = tb.getAttribute('data-stk-tab') || ''; _stk.dive = -1; stkRepaint(c);
+      const again = document.querySelector(`#pd-thread [data-stk-tab="${CSS.escape(_stk.f.sev)}"]`); if (again) try { again.focus({ preventScroll: true }); } catch (_){}
+      return; }
     const da = t.closest('[data-stk-dive-again]');
     if (da){ const b0 = stkOf(c), p = b0 ? stkShown(c, b0)[Number(da.getAttribute('data-stk-dive-again'))] : null;
       if (p){ delete _stk.diveErr[stkDiveKey(c, p)]; stkDivePaint(c); stkDiveFetch(c, p); } return; }
