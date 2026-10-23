@@ -236,7 +236,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## NEGOTIATE — FOLDED INTO HOME, AND ITS PAGE (the engine)
 - 21 Oct 2026 (overnight): f36-negotiation-tab (--n-del-fg is --st-ruby-fg, about 7:1).
 - f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline, parity, negotiations-door, focus-*, edit-clause-door, negotiate-as-drawn verify.
-- deal-in-the-middle-verify 8 (23 Oct 2026: a stray renderRedline paints no Negotiate page over Home; at the parent it did). one-copilot-editor-verify re-pointed to the face (it relied on that stray repaint).
+- deal-in-the-middle-verify 8 (23 Oct 2026: a stray renderRedline paints no Negotiate page over Home; at the parent it did). Re-pointed to the face (they relied on that stray repaint): one-copilot-editor, one-copilot-editor-plain, a-risk-finds-its-clause, panel-tidy-and-risk-footer, one-door-for-edits, selected-card-and-advice; tracked-changes-scroll opens the page by name.
 
 ## THE TRACKED-CHANGES COLUMN
 - f37, f93, f246, f570 (2), f674, f711, f734, f756, f759, redline, flat-rows-and-alerts, send-after-refusal, copilot-answer-on-paper, redlines-beside-the-paper, piles, piles-as-drawn verify.

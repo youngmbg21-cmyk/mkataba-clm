@@ -62,7 +62,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await pause(2400);
-    await page.evaluate(() => openRedlineWorkbench('MK-S1'));
+    /* BY NAME (23 Oct 2026): this file measures the Negotiate page's own scrolling, which on a computer is
+       drawn only when asked for by name — a stray repaint no longer paints it over Home */
+    await page.evaluate(() => openRedlineWorkbench('MK-S1', { page: true }));
     await pause(1800);
 
     /* THE COLUMN HAS TO OVERFLOW OR THERE IS NOTHING TO SCROLL — a fixture

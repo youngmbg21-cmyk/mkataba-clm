@@ -130,8 +130,12 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         return { answer: JSON.stringify({ proposedText: words, advice: 'Drafted.' }) };
       };
     }, { LIAB_NEW, LIAB_FIRM });
-    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+    /* RE-POINTED (owner, 23 Oct 2026, "get rid of this duplicate page"): the Redlines face beside Home's
+       paper, where every door to the negotiation lands, once the contract is in the browser; a stray
+       renderRedline no longer draws the old page over Home, so the face's own repaint is asked */
+    await until(page, id => !!(window.getContract && getContract(id)), ID);
+    await page.evaluate(id => openRedlineWorkbench(id), ID);
+    await page.evaluate(() => { const b = document.querySelector('#confirm-overlay #cf-cancel'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     /* OUR STANDARDS' REDLINE ON PAYMENT, filed through the funnel as
        "Draft from our standards" files it */
@@ -140,7 +144,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const cl = negoClauseList(c).find(x => /Payment/.test(x.headingText || x.title || ''));
       const ch = await negoEditClause(c, cl.clauseId, '<p>The Buyer shall pay each undisputed invoice within 30 days of receipt of the invoice.</p>',
         { side: 'owner', note: 'Playbook — Payment terms: 30 days' });
-      renderRedline();
+      if (window.pdRedRepaint) pdRedRepaint();
       return ch ? ch.id : null;
     }, ID);
     check(!!pb, '0 a standards redline on Payment is on the record', pb);
@@ -206,7 +210,8 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     await page.evaluate(id => { const c = getContract(id); const ch = (c.changes || [])[0];
       if (ch && window.rlLinkFocus) rlLinkFocus(c, ch.id, 'card');
       else { const card = ch && document.querySelector('#rl-changes [data-nego-card="' + ch.id + '"]'); if (card) card.click(); } }, ID);
-    const ring = await until(page, () => { const cl = document.querySelector('.redline-page .rl-clause.is-linked'); return cl ? getComputedStyle(cl).outlineStyle : null; });
+    /* RE-POINTED (23 Oct 2026): beside the face the paper is Home's own (#ig-paper), where rlLinkFocus lights the clause */
+    const ring = await until(page, () => { const cl = document.querySelector('#ig-paper .is-linked, .redline-page .rl-clause.is-linked'); return cl ? getComputedStyle(cl).outlineStyle : null; });
     check(ring === 'none', '1m a linked clause carries no dotted line on the paper', ring);
     await shot('1-the-list.png');
 
@@ -368,9 +373,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     await shot('7-thread.png');
 
     /* ============ 8. SAFETY NET ============ */
-    await page.evaluate(id => openWorkspace(id, { room: true }), ID);   /* back from Home (section 7) */
-    await until(page, () => !!document.getElementById('ws-tabs'));
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+    await page.evaluate(id => openRedlineWorkbench(id), ID);   /* back from Home's thread (section 7): the face */
     await until(page, () => !!document.getElementById('rl-risks'));
     /* THE REST THE SAFETY NET CATCHES: a risk of no known topic whose words
        are not the clause's own (so nothing marks it covered), placed by HaTi on
@@ -383,7 +386,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         what: 'The ceiling on what either side pays is low.', why: 'It may not cover a real loss.', fix: 'Raise it.' });
       const ch = c.changes.find(x => x.id === chId);
       ch.roundN = (ch.roundN || 1) - 1;
-      renderRedline();
+      if (window.pdRedRepaint) pdRedRepaint();
     }, { id: ID, chId: filed && filed.id });
     await until(page, () => !!document.querySelector('#rl-risks [data-rk-key="s:t-cap"]'));
     await press(page, '#rl-risks [data-rk-key="s:t-cap"] [data-rk-act="edit-ce"]');
