@@ -16,6 +16,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE OVERVIEW — READ DOWN, ONE SHEET
 - f176, f178, f280, f325, f351, f352, f359 (10), f361, f362, f442, duties-map, edit-keeps-the-card, overview-as-drawn, refile-a-contract, overview-and-obligations-polish verify.
+- THE DETAILS PAGE RETIRED (22 Oct 2026): key-terms-legora-way-verify parts 7 (Category on the filing line) and 8 (every old door: Overview, name, an unnamed term, filing, a renewal, a kept 'details' page) — red at 81d5988. Re-pointed to the room by name: duties-map, edit-keeps-the-card (Edit keeps the card's height), details-owes-overview-edits 4, signing-without-the-facts 2, uploaded-contract-fixed 4; to Key terms: code-names 1–4, contract-page 5, pay-section 4, nda-tail 4, home-held-contract 6l–6u, fill-the-document 6; board-strip 6a–10c; inspector-checklist 3d, 8f, 8h (the Obligations tab).
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f193, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
@@ -79,9 +80,14 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - jambo-chat-window-verify (the ✦ opens the floating window on Home, Approvals and Settings, typed words answered in it, the one conversation shown there and Home pointing to it, the edge tab still slides the side panel in, three screens; 12 red at db763d0); jambo-slides-in 3, 4, 10, jambo-pill-and-window 4a and 5d, jambos-list-panel 10h, every-jambo-box 1b re-pointed to the window; f735 (a booking still goes to the Calendar).
 - jambo-slides-in-verify (the side panel, the ✦ ask bar (now the window), plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
 - jambo-watches-and-presses-verify (here names the page, Show me › lands and lights, the press sends nothing, a watch card stores only on Start watching, Your watches pause/delete; 8 red at e332b81b); f860 (watches: the wall, only mine, CRUD, the sweep fires once).
+- AN EMPTY JAMBO BOX IS ONE LINE (22 Oct 2026): every-jambo-box-verify's `oneLine` (each of the nine boxes, a hint far too long for it, three screens; 30 red at 2a39d1b). THE BRIEF IS BROUGHT, NEVER WRITTEN AGAIN (22 Oct 2026): f862 (a follow-up carries the last read act; "summarise this contract" is the brief place; AI_BRIEF_RULE twins; 8 red at 2a39d1b).
 
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.
+
+## THE ONE DESK — NEEDS YOU, ONE READING
+- f868 (new, red at the parent df2a3e3: no ndRead) — one reading, the merge keeping the wait and the red, the bundle, Home's groups, the Board's tabs/kinds/find/twelve, one button width, both books.
+- Re-pointed 22 Oct 2026: f803 (2)–(8) to ndParts/ndHomeRowHtml; f450 (1), f724 (1), f745 (3), f800 (10), f801 3h, f458 (11), f603 D12. Browser: counter-as-drawn (2, 3, 7, 8, 10a, 10h), agents-page (a piece read with its Look open), board-as-drawn 3, board-strip 1a, board-walkthrough-fixes 2/3, button-consistency 2, desk-comes-back, five-images 1, name-tag-horizon 1, waiting-on-us-no-desk 2, jambos-work-open, open-in-place, home-one-list, home-prepared-by-copilot, board-agent-work, copilot-jobs 4, home-and-recent 2a, home-first 5, needs-you-card 1b/4b/4c, settings-overnight-fixes D12, tidy-sweep (its "Jambo's work" place waits for `#hm-agents .nd-br`).
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
 - THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
@@ -114,6 +120,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## OBLIGATIONS
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 
+- THE TAB BESIDE THE PAPER, THE LEGORA WAY (22 Oct 2026): `test/chromium/obligations-renewal-legora-way-verify.js` (renewal lines and quote, the tabs, the decision card while due, three screens; 13 red at 6fb5d85).
 ## THE LIST INSPECTOR
 - f387, f390, f391, f395, f664, f678, f804, f810, inspector, inspector-checklist, jambos-list-panel verify.
 - Answered beside the list (22 Oct 2026, Part 8 question 3 = A): f804 8b–8b4 (red at e10e3af6); jambos-list-panel-verify 10g re-pointed (answered in the panel, the draft form still a door).
@@ -177,6 +184,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - RE-POINTED 21 Oct 2026 for that row: still-owed-sap-way-verify's labelOver reads the box's .pd-og-sb wrapper; f748 5a/5b and paper-panel-as-drawn-verify 5a now assert the chip is gone and "sign" is not offered while nobody is named (its 5b went with the chip); fill-the-document-verify scrolls to the "Fill the document" line before pressing it.
 - checklist-as-drawn-verify (the owner's "1 · Checklist", 22 Oct 2026: the stage line with ONE current; "Needs you N"; every owed row one line of 40, ONE open, a press opens another and again closes it; Confirm N read writes a closed row; Jambo read's two rows; Next acts equal on one line, All acts N › opens and folds; the only signer button is "Add or order signers ›"; four signers named → green "4 named · 4 steps", opened 1–4, the route editor at the XL rung with no sideways scroll and a person's ⋯ menu whole; nothing past the panel at all three screens; 21 red at f0cd4b3).
 - RE-POINTED 22 Oct 2026 for the Checklist: `ckOpenRowOf(page, sel)` (test/helpers.js) opens a fact's row before a check types in it (blanks-panel, fill-in-beside-the-paper, fill-the-document, owed-first, owed-first-as-drawn, signer-row-as-drawn, still-owed-sap-way); the count is read off `.ds-ck-n`; "Needs you" sits above "Jambo read"; the risks row says "Not read · free" and Read; the acts wear short words (whole name on hover); the-brief 1e allows only the Checklist's rings and the Missing tag (the owner said no lines); f312 pins the route at the XL rung; f705 4a, jambos-panel 1f and checklist-as-drawn 2a2 pin the Dossier tab's number to this contract's Needs you; checklist-as-drawn 2a3 finds no line between sections or rows.
+- KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f705 (the jw row's door).
 

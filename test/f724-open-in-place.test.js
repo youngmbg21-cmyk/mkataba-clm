@@ -41,31 +41,20 @@ const BOOKS = (() => {
 })();
 const fill = (s, v) => String(s || '').replace(/\{(\w+)\}/g, (_, k) => (v && k in v) ? v[k] : '{' + k + '}');
 
-function counter(){
-  const ctx = {
-    i18t: (k, v) => fill(BOOKS.en[k] || k, v), i18tn: (k, n, v) => fill(BOOKS.en[k] || k, v),
-    jamboFaceHtml: () => '<i class="face"></i>',
-  };
-  vm.createContext(ctx);
-  const src = ['_cnE', '_cnT', '_cnTn'].map(n => constLine(CN, n)).join('\n') + '\n'
-    + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml');
-  vm.runInContext(src, ctx);
-  return ctx;
-}
-const A = n => ({ ready: n, rows: [{ who: 'Nandi Dairy', items: Array.from({ length: n }, (_, i) => ({ key: 'k' + i })) }] });
 const HB = R('js/views/homeboard.js');
 
 describe('f724 (1) Jambo\'s work lands on the Board\'s card (LAND ON IT, reverses Open in place)', () => {
-  test('1a one row with Open, and no list drawn in place', () => {
-    const w = counter();
-    const row = w.cnJwRowHtml(A(2));
-    assert.match(row, /data-cn-jw>Open</);
-    assert.doesNotMatch(row, /cn-jw-list|data-cn-ag-item|data-cn-look|aria-expanded/);
-    assert.doesNotMatch(w.cnJwRowHtml(A(0)), /data-cn-jw/, 'no Open where Jambo has nothing prepared');
+  /* RE-POINTED 22 Oct 2026 (Round A, the one desk): no "Jambo's work" row on Home; each piece is a row of
+     its own, and its Look opens that piece ON the Board's card (ndOpenBoard → hbOpenAgent, the one opener) */
+  test('1a each piece is a row with Look, and no list drawn in place', () => {
+    assert.doesNotMatch(CN, /function cnJwRowHtml\(|data-cn-jw/, 'the one "Jambo\'s work" row is gone');
+    assert.match(CN, /data-nd-look="\$\{_cnE\(it\.key\)\}"/, 'a piece\'s Look names it');
   });
-  test('1b Open goes to the Board\'s card through the one opener', () => {
-    const wire = CN.slice(CN.indexOf("if ((el = t.closest('[data-cn-jw]')))"), CN.indexOf("if ((el = t.closest('[data-cn-need]')))"));
-    assert.match(wire, /hbOpenAgent\(\)/);
+  test('1b Look and Show all go to the Board\'s card through the one opener', () => {
+    const wire = CN.slice(CN.indexOf("if ((el = t.closest('[data-nd-all]')))"), CN.indexOf("if ((el = t.closest('[data-nd-bundle]')))"));
+    assert.match(wire, /ndOpenBoard\(el\.getAttribute\('data-nd-all'\)\)/);
+    assert.match(wire, /ndOpenBoard\('jambo', el\.getAttribute\('data-nd-look'\)\)/);
+    assert.match(fnBody(CN, 'ndOpenBoard'), /hbOpenAgent\(null, key \|\| null\)/);
     assert.doesNotMatch(CN, /cnJwPiecesHtml|_cnJwOpen|data-cn-look|data-cn-house/, 'the in-place list is gone');
   });
   test('1c the opener lands on the card and lights it, saying so when there is nothing', () => {

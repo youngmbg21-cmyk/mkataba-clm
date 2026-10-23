@@ -348,18 +348,20 @@ const HELPERS = `(() => {
        card, Prepared by Copilot, carries one Review per row: asked here that
        each is the ladder's ordinary button (--ctl-h) and none is filled —
        one filled button per area, never one per row. */
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk; the owner: "make all of the buttons the same size"):
+       the Board's card is Needs you, every row's Next button the small control (--ctl-h-sm), ONE width, none
+       filled — one filled button per area, never one per row */
     const home = await page.evaluate(() => { const b = window.__b;
       const m = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
-        return { t: b.label(el), h: +r.height.toFixed(1), bg: cs.backgroundColor }; };
-      const probe = document.createElement('div'); probe.style.height = 'var(--ctl-h)'; document.body.appendChild(probe);
+        return { t: b.label(el), h: +r.height.toFixed(1), w: Math.round(r.width), bg: cs.backgroundColor }; };
+      const probe = document.createElement('div'); probe.style.height = 'var(--ctl-h-sm)'; document.body.appendChild(probe);
       const ctl = +probe.getBoundingClientRect().height.toFixed(1); probe.remove();
-      /* the board's rows since 3 Oct 2026: Review digs in (data-hb-dig) */
-      const rev = [...document.querySelectorAll('[data-hm-agent-row] [data-hm-agent], [data-hm-agent-row] .hb-btn')].filter(b.vis).map(m);
+      const rev = [...document.querySelectorAll('#hm-agents .nd-br .nd-btn')].filter(b.vis).map(m);
       return { rev, ctl, fill: b.bg('--accent-fill') }; });
-    ok('2-stage Home\'s Prepared by Copilot card draws a row with its Review', !!staged && home.rev.length > 0,
-      `${home.rev.length} Review buttons`);
-    ok('2a every Review is the ladder\'s ordinary button height',
-      home.rev.length > 0 && home.rev.every(x => Math.abs(x.h - home.ctl) <= 0.6), JSON.stringify({ ctl: home.ctl, rev: home.rev.map(x => x.h) }));
+    ok('2-stage the Board\'s Needs you card draws its rows, each with its Next button', !!staged && home.rev.length > 0,
+      `${home.rev.length} Next buttons`);
+    ok('2a every Next button is the small control\'s height and ONE width',
+      home.rev.length > 0 && home.rev.every(x => Math.abs(x.h - home.ctl) <= 0.6) && new Set(home.rev.map(x => x.w)).size === 1, JSON.stringify({ ctl: home.ctl, rev: home.rev.map(x => x.h + 'x' + x.w) }));
     ok('2b none of them is filled — one filled button per area, never one per row',
       home.rev.length > 0 && home.rev.every(x => x.bg !== home.fill), JSON.stringify(home.rev.map(x => x.t + ':' + x.bg)));
 

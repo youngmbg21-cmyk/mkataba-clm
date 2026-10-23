@@ -123,14 +123,14 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     check('4c the line carries its dates: Today and Ends', L.marks.some(m => /^Today/.test(m)) && L.marks.some(m => /^Ends/.test(m)), JSON.stringify(L.marks));
 
     /* 5 Details reads the value as amended */
-    await page.evaluate(() => bsStripPage('MK-0377', 'details'));
-    const V = await until(() => { const dd = [...document.querySelectorAll('#bs-strip-MK-0377 [data-bs-host="details"] #ov-ess .sec-f, #bs-strip-MK-0377 [data-bs-host="details"] #ov-ess dl > div, #bs-strip-MK-0377 [data-bs-host="details"] #ov-ess [class*="sec-f"]')]
-      .map(x => x.textContent.replace(/\s+/g, ' ').trim()).find(t => /^Value/.test(t)); return dd || null; });
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED): the value is read on Key terms in the middle */
+    await page.evaluate(() => pdKtOpen('MK-0377'));
+    const V = await until(() => { const r = document.querySelector('[data-pd-mid-kt] tr[data-pd-og-row="value"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
     /* RE-POINTED (B1 pass 4, round 7 as drawn: "SEK 7.1 M as amended (6.4 M signed)", the checker found the full figures cut in the
        card): the short figures (fmtMoneyShortOf, the house's one shortener), so both read whole */
     const want = await page.evaluate(() => ({ now: fmtMoneyShortOf(effectiveValueView(getContract('MK-0377'))), signed: fmtMoneyShortOf(getContract('MK-0377')) }));
-    check('5 Details reads the value as amended, the signed figure beside it', !!V && V.includes(want.now) && /as amended/.test(V) && V.includes(want.signed + ' signed'), JSON.stringify({ V, want }));
-    await page.evaluate(() => bsStripPage('MK-0377', 'ov'));
+    check('5 Key terms reads the value as amended, the signed figure beside it', !!V && V.includes(want.now) && /as amended/.test(V) && V.includes(want.signed + ' signed'), JSON.stringify({ V, want }));
+    await page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); bsStripPage('MK-0377', 'ov'); });
 
     /* 6 a refresh */
     await page.reload({ waitUntil: 'networkidle' });

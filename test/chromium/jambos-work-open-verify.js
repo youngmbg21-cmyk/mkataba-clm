@@ -67,8 +67,9 @@ const WHERE = () => {
   page.on('pageerror', e => errors.push(e.message));
   /* a press on a control that is not there reports, it does not time out */
   const click = sel => page.click(sel, { timeout: 3000 }).then(() => true, () => false);
-  const home = async () => { await page.evaluate(() => setView('counter')); return waitFor(page, () => !!document.querySelector('[data-cn-jw]'), 8000); };
-  const openFromHome = async () => { if (!(await home())) return null; if (!(await click('[data-cn-jw]'))) return null;
+  /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Home's door onto Jambo's work is his group's "Show all N" */
+  const home = async () => { await page.evaluate(() => setView('counter')); return waitFor(page, () => !!document.querySelector('[data-nd-all="jambo"]'), 8000); };
+  const openFromHome = async () => { if (!(await home())) return null; if (!(await click('[data-nd-all="jambo"]'))) return null;
     return waitFor(page, () => { const t = document.getElementById('hm-agents'); return t && t.classList.contains('is-landed') ? true : null; }, 6000); };
   try {
     check('0 six contracts read on arrival are staged', staged);

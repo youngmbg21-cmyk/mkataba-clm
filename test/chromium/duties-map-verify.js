@@ -62,8 +62,9 @@ const BOOK = [['MK-D0', 0], ['MK-D1', 1], ['MK-D9', 9]];
         /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the duties map
            is drawn in the Overview's sheet, the contract strip's Details page
            on Home's Board — where the reader sees it now (roomOverviewOpen) */
-        await page.evaluate(id => { roomOverviewOpen(getContract(id)); }, id);
-        const up = await until(id => { const m = document.querySelector(`[data-bs-host="details"][data-bs-cid="${id}"] #ov-map svg`); return m && m.getBoundingClientRect().width > 100 ? true : null; }, id);
+        /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the Overview's sheet still stands in the room opened by name (openWorkspace(id,{room:true})) and is checked there */
+        await page.evaluate(id => { openWorkspace(id, { room: true }); roomOverviewOpen(getContract(id)); }, id);
+        const up = await until(id => { const m = state.view === 'workspace' && String(state.activeId) === id ? document.querySelector('#kt-ov-terms #ov-map svg') : null; return m && m.getBoundingClientRect().width > 100 ? true : null; }, id);
         if (!up) { check(`0. ${tag}: the map is drawn`, false); continue; }
         await page.evaluate(() => document.getElementById('ov-map').scrollIntoView({ block: 'start' }));
         await page.waitForTimeout(800);

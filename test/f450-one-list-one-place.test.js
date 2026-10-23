@@ -50,10 +50,14 @@ const ITEMS = HOME.slice(HOME.indexOf('function hmDecisionItems'),
 const code = s => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 const BOARD_CODE = code(BOARD);
 
-describe('f450 (1) — the Board keeps Jambo\'s work and draws no Needs you card; Home draws Needs you (round 17, 18 Oct 2026)', () => {
+describe('f450 (1) — one list in one place: the Board\'s card is all of Needs you (Round A, 22 Oct 2026; reverses round 17), Home its top three', () => {
   const BOARD_FN = BOARD_CODE.slice(BOARD_CODE.indexOf('function hbBoardHtml('), BOARD_CODE.indexOf('function hbSetupLeft('));
-  test('Jambo\'s work is Copilot\'s, and it is the only name over it', () => {
-    assert.match(CARD, /i18t\('hm_ag_title'\)/, 'the heading stays Copilot\'s own');
+  /* RE-POINTED 22 Oct 2026 (Round A, the one desk; the owner: "Why don't you just move them to board?"):
+     the card under Your book is ALL of Needs you — Jambo's prepared work and your move, one reading
+     (ndBoardHtml); Home draws the top three of each */
+  test('the card under Your book is Needs you, the one desk\'s, and Your work stays gone', () => {
+    assert.match(CARD, /ndBoardHtml\(hbNdOpts\(A, since\)\)/, 'the Board draws the one desk');
+    assert.match(code(read('js/views/counter.js').slice(read('js/views/counter.js').indexOf('function ndBoardHtml('))), /_cnT\('hb_ny_title'\)/, 'its heading is Needs you');
     assert.doesNotMatch(code(CARD), /hb_work_title/,
       'Your work was the name of the merged list and goes with it');
   });
@@ -85,16 +89,12 @@ describe('f450 (1) — the Board keeps Jambo\'s work and draws no Needs you card
     assert.ok(!/negoChanges\(|negoRound\(|negoProgress\(|api\(|fetch\(/.test(NY), 'reading writes nothing and spends nothing');
   });
 
-  test('the card is still drawn for Copilot\'s own work, and still closes', () => {
-    assert.match(CARD, /!A\.rows\.length && !A\.done\.length/,
-      'it stands down only when Copilot has nothing ready and did nothing while you were away');
-    assert.match(CARD, /data-hb-prep="closed"/, 'and the x that closes it stays');
+  test('the card never folds or closes: work owed is not hidden (Round A, 22 Oct 2026)', () => {
+    assert.ok(!/data-hb-prep/.test(code(CARD)), 'no fold, no x');
   });
 
-  test('the count on the way back counts Copilot\'s work alone', () => {
-    const back = BOARD.slice(BOARD.indexOf('data-hb-prep="open"'), BOARD.indexOf('data-hb-prep="open"') + 300);
-    assert.match(back, /hbAgentsData\(null\)\.ready/, 'the pill is the agents\' count');
-    assert.ok(!/hbNeedsData|hbNeedsCount/.test(back), 'and nothing is added to it');
+  test('nothing closes it, so there is no way back to draw (Round A, 22 Oct 2026)', () => {
+    assert.ok(!BOARD.includes('data-hb-prep="open"'), 'Your book\'s head draws no way back to a closed card');
   });
 
   test('"needs me" lands on Home\'s Needs you, and Jambo on the Board says so', () => {

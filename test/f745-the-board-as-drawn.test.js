@@ -121,34 +121,40 @@ describe('f745 (2) saved views are chips with their counts', () => {
   });
 });
 
-describe('f745 (3) Needs you left the Board; Jambo\'s work stays on it', () => {
+describe('f745 (3) the Board\'s card is all of Needs you (Round A, 22 Oct 2026)', () => {
   test('3a no Needs you card on the Board, its builder gone', () => {
     const { w } = world();
     assert.equal(typeof w.hbNeedsHtml, 'undefined');
     const body = code(HB.slice(HB.indexOf('function hbBoardHtml('), HB.indexOf('function hbSetupLeft(')));
     assert.ok(!/hbNeedsHtml|hb-needs|hb-ny/.test(body));
   });
-  test('3b (pass 3) the Board keeps Jambo\'s work (the owner\'s answer 14): drawn under Your book, with its fold, its x and its way back', () => {
+  /* RE-POINTED 22 Oct 2026 (Round A, the one desk; the owner: "Why don't you just move them to board?" and
+     "the card still has to go below the KPIs card"): the card under Your book is ALL of Needs you, drawn by
+     the one desk (ndBoardHtml, js/views/counter.js) with the Board's parts (hbNdOpts); it never folds or closes */
+  test('3b the card under Your book is the one desk\'s, with no fold, no x and no way back', () => {
     const { w } = world();
     assert.equal(typeof w.hbPrepHtml, 'function');
-    const A = { ready: 1, rows: [{ k: 'late', n: 1, pill: 1, who: 'Naivas', sum: 'Send the certificate', urg: '', tone: 'ruby', items: [] }], done: [] };
+    const A = { ready: 1, rows: [], done: [] };
+    let got = null;
+    w.ndBoardHtml = o => { got = o; return '<section class="hb-card nd-card" id="hm-agents"></section>'; };
+    w.ndPieces = () => [];
     const html = w.hbPrepHtml(A, null);
-    assert.match(html, /^<section class="hb-card hb-prep" id="hm-agents">/);
-    assert.match(html, /data-hm-agent-row="late"/);
-    assert.match(html, /data-hb-prep="closed"/);
+    assert.match(html, /^<section class="hb-card nd-card" id="hm-agents">/);
+    assert.equal(typeof got.look, 'function', 'a piece opens in place');
+    assert.match(got.foot, /data-hb-agents-page/, 'the house\'s door at its foot');
     w.hbS().prep = 'closed';
-    assert.ok(!/id="hm-agents"/.test(w.hbPrepHtml(A, null)), 'closed, it stands down');
-    assert.match(w.hbBookHtml(w.hbBookData('all'), null, null), /data-hb-prep="open"/, 'and Your book\'s head carries the way back');
+    assert.match(w.hbPrepHtml(A, null), /id="hm-agents"/, 'nothing closes it');
+    assert.ok(!/data-hb-prep/.test(w.hbPrepHtml(A, null) + w.hbBookHtml(w.hbBookData('all'), null, null)), 'no fold, no x, no way back');
   });
-  test('3c (pass 3) Home\'s "Jambo\'s work" row lands ON the card, lit, through the one lander', () => {
+  test('3c every door onto Jambo\'s work lands ON the card, through the one lander', () => {
     const { w } = world();
     const landed = []; w.landOn = (t, o) => { landed.push([typeof t, o && o.block]); return Promise.resolve(null); };
     w.setView = () => {};
-    w.hbS().prep = 'closed';
     w.hbOpenAgent();
     assert.deepEqual(landed, [['function', 'start']]);
-    assert.equal(w.hbS().prep, 'open', 'a closed card opens to be landed on');
-    assert.match(code(HB.slice(HB.indexOf('function hbOpenAgent('), HB.indexOf('function hbWatchFormHtml('))), /document\.getElementById\('hm-agents'\)/);
+    const f = code(HB.slice(HB.indexOf('function hbOpenAgent('), HB.indexOf('function hbWatchFormHtml(')));
+    assert.match(f, /document\.getElementById\('hm-agents'\)/);
+    assert.match(f, /\[data-nd-agent="\$\{CSS\.escape\(k\)\}"\]/, 'an agent named: its first row');
   });
   test('3d "needs me" lands on Home\'s Needs you', () => {
     const { w, pressed } = world();

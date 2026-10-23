@@ -21,6 +21,11 @@
    open piece's buttons sit in its row, never sticky, no band; (3a) the list
    has a painted edge; (3b) rows are divided by a painted hairline (style AND
    width), not a gap.
+   RE-POINTED 22 Oct 2026 (Round A, the one desk): the pieces are rows of the
+   Board's Needs you card (data-nd-agent), each opened in place by its Look
+   (the same body and acts); so (1) reads the rows' words and the opened
+   piece's, (2) the open piece's buttons, (3a) the card's painted edge, (3b)
+   the painted hairline between rows.
    Waits ask for the state, bounded.
    Screenshots: test/chromium/shots/board-agent-work/ (or HATI_SHOT_DIR).
    Run: node test/chromium/board-agent-work-verify.js */
@@ -71,12 +76,12 @@ const check = (name, pass, detail) => {
        and the Brain stay dark). */
     for (const scr of ['light']) {
       await page.evaluate(scr => { const s = hbS(); s.screen = scr; hbSave(); hbOpenAgent('late'); try { hbApplyScreen(); } catch (_) {} }, scr);
-      const ready = await until(scr => { const pg = document.querySelector('#hb-page, #ig-page'); return !!pg && pg.classList.contains('hb-' + scr) && document.querySelectorAll('.hb-ag-work').length >= 3; }, scr);
-      check(`${scr} 0. the packs are drawn below the card`, !!ready);
+      const ready = await until(scr => { const pg = document.querySelector('#hb-page, #ig-page'); return !!pg && pg.classList.contains('hb-' + scr) && document.querySelectorAll('#hm-agents .nd-br[data-nd-agent="late"]').length >= 3; }, scr);
+      check(`${scr} 0. the pieces are rows of the Board's Needs you card`, !!ready);
       if (!ready) continue;
       /* the first piece opened with its own Look, as a reader would */
-      await page.evaluate(() => { const p = document.querySelector('.hb-ag-work'); if (p && !p.classList.contains('is-look')) { const b = p.querySelector('[data-hb-ag-look]'); if (b) b.click(); } });
-      await until(() => !!document.querySelector('.hb-ag-work.is-look .hb-pc-body'), null, 4000);
+      await page.evaluate(() => { const p = document.querySelector('#hm-agents .nd-br[data-nd-agent="late"]'); if (p && !p.classList.contains('is-look')) { const b = p.querySelector('[data-hb-ag-look]'); if (b) b.click(); } });
+      await until(() => !!document.querySelector('#hm-agents .nd-br.is-look .nd-body'), null, 4000);
       const m = await page.evaluate(() => {
         const rgb = s => { const v = (s.match(/[\d.]+/g) || []).map(Number); return { r: v[0], g: v[1], b: v[2], a: v.length > 3 ? v[3] : 1 }; };
         const over = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
@@ -85,22 +90,22 @@ const check = (name, pass, detail) => {
           let g = { r: 255, g: 255, b: 255, a: 1 }; for (const c of stack.reverse()) g = over(c, g); return g; };
         const lum = c => { const f = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
         const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-        const w = [...document.querySelectorAll('.hb-ag-work')];
+        const w = [...document.querySelectorAll('#hm-agents .nd-br[data-nd-agent="late"]')];
         const first = w[0]; first.scrollIntoView({ block: 'start' });
-        const words = [...document.querySelectorAll('.hb-ag-work .hb-pc-tag, .hb-ag-work .hb-pc-name, .hb-ag-work .hb-pc-ref, .hb-ag-work .hb-pc-line, .hb-ag-work .hb-pc-body dd, .hb-ag-work .hb-pc-body strong, .hb-ag-work .hb-pc-body p, .hb-ag-work .ag-mail-b')].filter(e => e.textContent.trim());
+        const words = [...document.querySelectorAll('#hm-agents .nd-br .nd-c, #hm-agents .nd-body dd, #hm-agents .nd-body strong, #hm-agents .nd-body p, #hm-agents .ag-mail-b')].filter(e => e.textContent.trim());
         const worst = words.reduce((lo, e) => { const r = ratio(over(rgb(getComputedStyle(e).color), ground(e)), ground(e)); return r < lo.r ? { r, t: e.textContent.trim().slice(0, 30) } : lo; }, { r: 99, t: '' });
-        const open = document.querySelector('.hb-ag-work.is-look');
-        const acts = open && open.querySelector('.hb-pc-acts'), fs = acts ? getComputedStyle(acts) : { position: '?' };
+        const open = document.querySelector('#hm-agents .nd-br.is-look');
+        const acts = open && open.querySelector('.nd-body .hb-pc-more'), fs = acts ? getComputedStyle(acts) : { position: '?' };
         const actsG = acts ? ground(acts) : null, cardG = ground(open || first);
-        const list = document.querySelector('.hb-ag-works.is-lines'), ls = list ? getComputedStyle(list) : null;
+        const list = document.getElementById('hm-agents'), ls = list ? getComputedStyle(list) : null;
         const second = w[1] ? getComputedStyle(w[1]) : null;
         return { worst, n: words.length, open: !!open, footPos: fs.position, footBand: !!actsG && Math.abs(lum(actsG) - lum(cardG)) > 0.1,
           edge: ls ? ls.borderTopStyle + ' ' + ls.borderTopWidth : '',
-          rule: second ? second.borderTopStyle + ' ' + second.borderTopWidth : '',
+          rule: second ? second.borderBottomStyle + ' ' + second.borderBottomWidth : '',
           /* Look and Put away: the opener and the setter-aside are not one dress (21 Oct 2026) */
           lookC: (() => { const b = first.querySelector('[data-hb-ag-look]'); return b ? getComputedStyle(b).color : ''; })(),
-          awayC: (() => { const b = first.querySelector('[data-ag-act="away"]'); return b ? getComputedStyle(b).color : ''; })(),
-          awayR: (() => { const b = first.querySelector('[data-ag-act="away"]'); return b ? ratio(over(rgb(getComputedStyle(b).color), ground(b)), ground(b)) : 0; })() };
+          awayC: (() => { const b = (open || first).querySelector('[data-ag-act="away"]'); return b ? getComputedStyle(b).color : ''; })(),
+          awayR: (() => { const b = (open || first).querySelector('[data-ag-act="away"]'); return b ? ratio(over(rgb(getComputedStyle(b).color), ground(b)), ground(b)) : 0; })() };
       });
       check(`${scr} 1. the pieces' words, folded and opened, read against their ground (worst ≥ 4.5)`, m.open && m.n > 6 && m.worst.r >= 4.5, `${m.worst.r.toFixed(2)} on "${m.worst.t}" of ${m.n}`);
       check(`${scr} 2a. the open piece's buttons sit in its row, not sticky`, m.footPos !== 'sticky' && m.footPos !== 'fixed', m.footPos);

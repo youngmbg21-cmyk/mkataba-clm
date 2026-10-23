@@ -7,6 +7,13 @@
  * card draws none of it, and the 4 Oct merged card's rows and reading
  * ([data-hb-need], .hb-need, hbNeedsData) stay gone.
  *
+ * RE-POINTED 22 Oct 2026 (Round A, the one desk; the owner: "Why don't you
+ * just move them to board?"): the card under Your book is ALL of Needs you —
+ * Jambo's pieces AND what waits on this reader, ONE list, one reading
+ * (ndRead) — so this stage now proves the waiting rows ARE on it, drawn by the
+ * one desk, while the 4 Oct merged card's own markup and reading stay gone; the
+ * card never closes (work owed is not hidden).
+ *
  * This stage used to drive the opposite, and keeps its name because it guards
  * the same ruling, reversed. Young picked **One list, one place** by name on
  * the morning of 4 Oct 2026; the same day, having looked at it:
@@ -122,29 +129,23 @@ const CONTRACTS = [
         agents: document.querySelectorAll('#hm-agents .hb-ag').length,
         reading: typeof window.hbNeedsData };
     });
-    ok('1c it is called Prepared by Copilot again',
-      !!A.title && /jambo/i.test(A.title), JSON.stringify(A.title));
-    ok('1d not one waiting row is drawn anywhere on the board',
-      A.needs === 0 && A.needCls === 0, `${A.needs} doors, ${A.needCls} rows`);
-    ok('1e and the reading behind them is not published either',
-      A.reading === 'undefined', A.reading);
+    const ND = await page.evaluate(() => ({ nd: !!document.querySelector('#hm-agents.nd-card'),
+      you: document.querySelectorAll('#hm-agents .nd-br:not([data-hb-ag-item])').length, mine: ndRead().you.length,
+      renewals: ndRead().you.filter(r => r.y && r.y.kind === 'renewal').length + ndRead().jambo.filter(r => r.it.kind === 'renewal').length }));
+    ok('1c it is called Needs you: the one desk\'s card', !!A.title && A.title === 'Needs you' && ND.nd, JSON.stringify(A.title));
+    ok('1d what waits on this reader IS drawn on it, as rows of the one list (Round A)', ND.you > 0 && ND.you === Math.min(12, ND.mine) && ND.renewals >= 2, JSON.stringify(ND));
+    ok('1e the 4 Oct merged card\'s rows and reading stay gone',
+      A.needs === 0 && A.needCls === 0 && A.reading === 'undefined', `${A.needs} doors, ${A.needCls} rows, ${A.reading}`);
 
     /* ===== 2. THE CARD STILL DOES ITS OWN JOB ===== */
-    ok('2a Copilot\'s own rows are still drawn', A.agents > 0, String(A.agents));
-    await page.click('#hm-agents [data-hb-prep="closed"]').catch(() => {});
-    const gone = await until(page, () => !document.getElementById('hm-agents'));
-    const back = await page.evaluate(() => {
-      const b = document.querySelector('[data-hb-prep="open"]');
-      const n = b && b.querySelector('.hb-pill');
-      let ready = null; try { ready = hbAgentsData(null).ready; } catch (_){}
-      return { label: b ? b.textContent.replace(/\s+/g, ' ').trim() : null,
-        pill: n ? n.textContent.trim() : null, ready: ready == null ? null : String(ready) };
-    });
-    ok('2b the x closes it and leaves a way back', gone && !!back.label, JSON.stringify(back.label));
-    ok('2c whose count is Copilot\'s work alone',
-      back.pill != null && back.ready != null && back.pill === back.ready, JSON.stringify(back));
-    await page.click('[data-hb-prep="open"]').catch(() => {});
-    ok('2d and it comes back', await until(page, () => !!document.getElementById('hm-agents')));
+    const J = await page.evaluate(() => ({ rows: document.querySelectorAll('#hm-agents .nd-br[data-hb-ag-item]').length, n: ndRead().jambo.length,
+      x: !!document.querySelector('#hm-agents [data-hb-prep], #hm-agents .hb-x'), back: !!document.querySelector('[data-hb-prep="open"]') }));
+    ok('2a Copilot\'s own rows are still drawn, one per piece', J.rows > 0 && J.rows === Math.min(12, J.n), JSON.stringify(J));
+    ok('2b it never closes: no x on it, and so no way back to draw', !J.x && !J.back, JSON.stringify(J));
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('#hm-agents .nd-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()));
+    const sum = await page.evaluate(() => { const D = ndRead(); return { n: D.n, you: D.you.reduce((s, r) => s + r.n, 0), jambo: D.jambo.length }; });
+    ok('2c its tabs count the one list: All = Your move + Jambo prepared', tabs.join('|') === `All ${sum.n}|Your move ${sum.you}|Jambo prepared ${sum.jambo}`, JSON.stringify({ tabs, sum }));
+    ok('2d and it stays on the Board', await until(page, () => !!document.getElementById('hm-agents')));
 
     /* ===== 3. THE X IS IN THE CARD'S RIGHT CORNER =====
        EVERY CARD THAT CLOSES, not whichever one happened to be open: a dig-in
@@ -169,9 +170,9 @@ const CONTRACTS = [
     });
     ok('3a every card that closes puts its x at the right edge, last in the row',
       /* RE-POINTED 11 Oct 2026 (the Board as drawn): a kept chart is removed from
-         its ⋯ ("Remove from the board"), so the cards with a corner × are
-         Copilot's work and the opened card */
-      corners.length >= 2 && corners.every(c => c.last && c.gap <= 14), JSON.stringify(corners));
+         its ⋯ ("Remove from the board"); RE-POINTED 22 Oct 2026 (Round A): Needs you never closes, so the
+         opened card is the one with a corner × */
+      corners.length >= 1 && corners.every(c => c.last && c.gap <= 14) && !corners.some(c => c.card === 'hm-agents'), JSON.stringify(corners));
     await page.evaluate(() => { try { hbDig(null); } catch (_){} const s = hbS(); s.path = []; s.panels = []; hbSave(); hbPaintBoard(); });
     await until(page, () => !document.querySelector('.hb-dig'));
 
