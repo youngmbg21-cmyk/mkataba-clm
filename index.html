@@ -10827,8 +10827,8 @@
   .hb-pc-acts .ui-btn{height:var(--ctl-h-sm);padding:0 10px;font-size:var(--t-label)}
   .hb-pc-look.is-on{background:rgba(var(--hb-gw),.12)}
   /* PUT AWAY IS NOT LOOK (21 Oct 2026: the control that opens and the one that sets aside wore one dress): the quiet grey ink, its own colour on a hover */
-  .hb-pc-acts .ui-link.hb-pc-away{color:var(--color-neutral-600)}
-  .hb-pc-acts .ui-link.hb-pc-away:hover{color:var(--color-text)}
+  .hb-pc-acts .ui-link.hb-pc-away,.nd-body .ui-link.hb-pc-away{color:var(--color-neutral-600)}
+  .hb-pc-acts .ui-link.hb-pc-away:hover,.nd-body .ui-link.hb-pc-away:hover{color:var(--color-text)}
   .hb-pc-body{margin-top:8px;padding:12px;background:var(--hb-fig);border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
   .hb-pc-body.is-mail{padding:0;border:0;border-radius:0;background:none}
   .hb-pc-body .ag-mail-foot{margin-top:8px}
@@ -15995,9 +15995,61 @@
   .cn-w > span{display:block;color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cn-n{font-weight:400;color:var(--color-neutral-500)}
   .cn-late{color:var(--st-ruby-fg)}
-  .cn-jw{background:var(--color-accent-50)}
-  /* "· 5 prepared · nothing sent or filed until you press": small and grey after the bold name, as drawn */
-  .cn-jw .cn-w b .cn-n{font-size:var(--t-meta)}
+  /* THE ONE DESK (Round A, the owner picked "The Legora Way", 22 Oct 2026): Needs you as one reading.
+     HOME: two groups (Jambo prepared it · Your move), the top three each, a row two lines that never
+     grows (its words end in "…"), a Waited column, then ONE button width with a one-word label. */
+  .nd-sum{margin-left:auto;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .nd-g{display:flex;align-items:baseline;gap:6px;padding:7px 16px 5px;background:var(--surface-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-label)}
+  .nd-g-t{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap}
+  .nd-g .nd-all{margin-left:auto;font-size:var(--t-label);white-space:nowrap}
+  .nd-r .cn-w b{flex-wrap:nowrap;min-width:0}
+  .nd-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nd-when{flex:none;width:96px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nd-when.cn-late{color:var(--st-ruby-fg)}
+  .nd-btn{flex:none;width:76px;justify-content:center}
+  .nd-read{font-style:normal;font-weight:var(--w-strong);color:var(--accent-ink)}
+  .nd-step,.nd-tag{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 5px;border:1px solid currentColor;border-radius:var(--radius);font-size:var(--t-micro);font-weight:var(--w-strong);line-height:1;white-space:nowrap}
+  .nd-step{color:var(--accent-ink)}
+  .nd-tag{color:var(--color-neutral-600);border-color:var(--rule-strong)}
+  /* THE BOARD: all of it under Your book — tabs and a find box, the kinds there are, five columns, twelve rows at a time */
+  .nd-card .nd-home-shows{font-size:var(--t-label)}
+  .nd-bar{display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--color-divider);min-height:44px}
+  .nd-tabs{display:flex;gap:20px;align-self:stretch}
+  .nd-tab{border:0;background:none;padding:0;font:inherit;font-size:var(--t-body);color:var(--color-neutral-600);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  .nd-tab.on{color:var(--color-text);font-weight:var(--w-strong);border-bottom-color:var(--nav-bg,var(--color-text))}
+  .nd-tab-n{font-variant-numeric:tabular-nums}
+  .nd-find{margin-left:auto;width:240px;max-width:40%;height:var(--ctl-h-sm,28px);border:1px solid var(--btn-edge,var(--rule-strong));border-radius:var(--radius);padding:0 10px;font:inherit;font-size:var(--t-label);background:var(--color-surface);color:var(--color-text)}
+  .nd-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
+  .nd-chip{border:1px solid var(--rule-strong);background:var(--color-surface);border-radius:12px;height:24px;padding:0 10px;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  .nd-chip.on{background:var(--accent-fill,var(--color-text));border-color:var(--accent-fill,var(--color-text));color:var(--color-surface)}
+  .nd-cols,.nd-br{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) minmax(0,1.1fr) 104px 76px;gap:14px;align-items:center;padding:8px 16px}
+  .nd-cols{padding-top:6px;padding-bottom:6px;background:var(--surface-2);border-bottom:1px solid var(--rule-strong);font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
+  .nd-cols > :last-child{text-align:right}
+  .nd-br{border-bottom:1px solid var(--color-divider)}
+  .nd-c{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .nd-c-what{display:flex;align-items:center;gap:6px}
+  .nd-c-what b{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:var(--w-strong);color:var(--color-text)}
+  .nd-c-when.cn-late{color:var(--st-ruby-fg)}
+  .nd-c-next{text-align:right;overflow:visible}
+  .nd-br.is-look{background:var(--color-accent-50)}
+  .nd-br > .nd-body{grid-column:1 / -1;margin:2px 0 4px}
+  .nd-none{padding:14px 16px;color:var(--color-neutral-600);font-size:var(--t-label)}
+  .nd-more{display:flex;align-items:baseline;gap:12px;padding:10px 16px;border-bottom:1px solid var(--color-divider)}
+  .nd-more span{min-width:0;color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nd-foot-r{display:flex;align-items:center;gap:12px;padding:8px 16px}
+  .nd-foot-r .hb-ag-lv{flex:1;min-width:0;border:0;padding:0}
+  /* A NARROW BOARD (a small tablet with Jambo's panel open): the box drops under the tabs, and the row keeps
+     what waits, how long, and its button — as the Contracts list keeps its loudest columns; nothing pans sideways */
+  .nd-card{container:ndcard / inline-size}
+  .nd-bar{flex-wrap:wrap}
+  .nd-tabs{flex:none}
+  @container ndcard (max-width:640px){
+    .nd-bar{padding-bottom:8px}
+    .nd-find{flex:1 1 100%;width:auto;max-width:none;margin-left:0}
+    .nd-cols,.nd-br{grid-template-columns:minmax(0,1fr) 88px 76px}
+    .nd-cols > :nth-child(2),.nd-cols > :nth-child(3),.nd-br > .nd-c-deal,.nd-br > .nd-c-who{display:none}
+    .nd-card .nd-home-shows{display:none}
+  }
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
   .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}

@@ -189,10 +189,11 @@ const OBS = [
     const typed = await S('#igd-input');
     if (typed){ await page.fill('#igd-input', ''); await page.type('#igd-input', 'bring up MK-L1', { delay: 8 }); await page.keyboard.press('Enter'); }
     const up1 = await waitFor(page, s => !!document.querySelector(s), 8000, strip('MK-L1'));
-    const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-prep, #hb-board .hb-note, #hb-board .hb-grid'), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })() }));   /* no Present on a computer's head since the SAP way (18 Oct 2026) */
+    const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board #hm-agents, #hb-board .hb-note, #hb-board .hb-grid'), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })() }));   /* no Present on a computer's head since the SAP way (18 Oct 2026) */
     check('1a0 on the desk it is a page of its own: its contract\'s tab in front, none of the Board\'s furniture (round 7)', onDesk.card === 'MK-L1' && onDesk.key === 'c:MK-L1' && !onDesk.furniture && onDesk.present, JSON.stringify(onDesk));
     await allOnBoard();
-    const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board .hb-prep'), st = document.getElementById('bs-strips');
+    /* RE-POINTED 22 Oct 2026 (Round A): the card under Your book is Needs you (#hm-agents), no longer .hb-prep */
+    const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board #hm-agents'), st = document.getElementById('bs-strips');
       return { prep: !!prep, after: !!(prep && st && (prep.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING)), focus: !!document.querySelector('#hb-focus .hb-dig'), face: hbFace(), view: state.view }; });
     check('1a and on the Board tab it stands as a strip below Today\'s insights; no old card', typed && up1 && order.after && !order.focus && order.face === 'board' && order.view === 'dashboard', JSON.stringify(order));
     /* RE-POINTED 19 Oct 2026 (owner: "you land on the page and if you want to chat with jambo it takes you

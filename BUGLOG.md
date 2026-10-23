@@ -21472,3 +21472,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (22 Oct 2026): this cloud environment holds the AI key as HATI_ANTHROPIC_API_KEY, while the server and the Jambo exam read ANTHROPIC_API_KEY; the live exam ran by handing it across by hand.
 - Fixed (22 Oct 2026): home-speed-verify check 3 (owner had said "Explorer later") — a still, settled Explorer now 5–6% busy at 430 contracts (was 25–50%): at rest only the dots are redrawn; the background and halos are kept and the words placed once.
 - Noticed, not fixed (22 Oct 2026, PR #416): home-speed-verify check 3 ("a still, settled Explorer keeps the browser busy under 10%") is red on main itself since PR #417 (main's run 39840314177: 612 ms busy of 4000; with document-wall-verify also red there). Not the first-timer rounds' change; left for its own fix.
+
+## Noticed, not fixed — 22 Oct 2026 (the one desk, Round A)
+- The Board's agent-work view below the card (hbDig 'ag:k' → hbAgentWorkHtml, HB_AG_WORK_MAX) is reached by nothing since the one desk: a press on a piece opens it in place. Its chase-many box is drawn on the card's Jambo tab instead (hbChaseManyHtml via hbNdOpts). The old path's code is left for the round that finishes the rest.
+- Jambo's greeting on the Board still says "What needs you is on Home: N things" (hb_jb_*): true (Home has it), but the whole list now stands on the Board under Your book too.
+- CLAUDE.md is 84.5 KB (over its ~80 KB rule) after this round's one-desk section; a trim needs the owner's yes.
+- Noticed, not fixed (23 Oct 2026, the one desk): every-door-lands-on-home's "Obligations row, a later one (MK-A1)" times out on its double-click on unmodified main too (run at main 68680ec); the row is not pressable when the check reaches it.

@@ -55,35 +55,39 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
-    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q') && !!document.querySelector('#cn-needs .cn-jw')); };
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Home draws each piece as a row of its own, its Look the door onto the Board */
+    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q') && !!document.querySelector('#cn-needs')); };
     const signIn = async () => {
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length === 2, null, { timeout: 20000 });
     };
-    const landed = () => page.evaluate(() => { const c = document.getElementById('hm-agents'); const r = c ? c.getBoundingClientRect() : null;
-      return { view: state.view, face: window.hbFace ? hbFace() : null, card: !!c, lit: !!(c && c.classList.contains('is-landed')),
+    /* the card, or the piece's own row on it, wherever the door landed */
+    const landed = () => page.evaluate(() => { const c = document.getElementById('hm-agents'); const t = c && (c.classList.contains('is-landed') ? c : c.querySelector('.is-landed'));
+      const r = t ? t.getBoundingClientRect() : null;
+      return { view: state.view, face: window.hbFace ? hbFace() : null, card: !!c, lit: !!t, open: !!(c && c.querySelector('.nd-br.is-look')),
         inView: !!r && r.top >= -2 && r.top < innerHeight - 40, focus: !!(c && document.activeElement && c.contains(document.activeElement)),
-        list: !!document.getElementById('cn-jw-list'), ring: c ? getComputedStyle(c).outlineStyle + ' ' + getComputedStyle(c).outlineWidth : '' }; });
+        list: !!document.getElementById('cn-jw-list'), ring: t ? getComputedStyle(t).outlineStyle + ' ' + getComputedStyle(t).outlineWidth : '' }; });
+    const isLit = () => { const c = document.getElementById('hm-agents'); return c && (c.classList.contains('is-landed') || c.querySelector('.is-landed')) ? true : null; };
 
     await signIn();
     await toCounter();
 
-    console.log('\n1 · Open lands on the Board\'s card');
+    console.log('\n1 · Look lands on the piece, on the Board\'s card');
     const ready = await page.evaluate(() => hbAgentsData(null).ready);
     check('1 (setup) Jambo has the lease\'s renewal prepared', ready >= 1, String(ready));
-    check('1a the row is one row with Open, nothing drawn in place', await page.evaluate(() => !document.getElementById('cn-jw-list')
-      && ((document.querySelector('[data-cn-jw]') || {}).textContent || '').trim() === 'Open'));
-    if (await press('[data-cn-jw]', '1b Open')) {
-      const L = await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
+    check('1a the piece is a row of its own with Look, nothing drawn in place', await page.evaluate(() => !document.getElementById('cn-jw-list')
+      && ((document.querySelector('#cn-needs [data-nd-look]') || {}).textContent || '').trim() === 'Look'));
+    if (await press('#cn-needs [data-nd-look]', '1b Look')) {
+      const L = await until(isLit, null, 6000);
       const s = await landed();
-      check('1b Open lands on the Board\'s Jambo\'s work card', L === true && s.view === 'dashboard' && s.face === 'board' && s.card, JSON.stringify(s));
+      check('1b Look lands on the piece on the Board\'s card, opened', L === true && s.view === 'dashboard' && s.face === 'board' && s.card && s.open, JSON.stringify(s));
       /* RE-POINTED 21 Oct 2026 (owner: no light on arrival): in sight and marked, no ring drawn */
       check('1c the card is in sight, no ring drawn', s.inView && s.lit && /^none/.test(s.ring), JSON.stringify(s));
       check('1d a button on it is ready for Enter', s.focus, JSON.stringify(s));
       await shot(page, 'land-on-work-1440x780');
       await page.mouse.click(5, 300);
-      const out = await until(() => { const c = document.getElementById('hm-agents'); return c && !c.classList.contains('is-landed') ? true : null; }, null, 3000);
+      const out = await until(() => { const c = document.getElementById('hm-agents'); return c && !c.classList.contains('is-landed') && !c.querySelector('.is-landed') ? true : null; }, null, 3000);
       check('1e the light goes out at the reader\'s next press', !!out);
     }
 
@@ -91,8 +95,8 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: hh });
       await toCounter();
-      await press('[data-cn-jw]', '5 Open');
-      await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
+      await press('#cn-needs [data-nd-look]', '5 Look');
+      await until(isLit, null, 6000);
       const s = await landed();
       check(`5 at ${w}×${hh}: the card is in sight and lit, no sideways scroll`, s.inView && s.lit
         && !(await page.evaluate(() => document.scrollingElement.scrollWidth > innerWidth)), JSON.stringify(s));
@@ -122,8 +126,9 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       const kept = await until(() => (currentUser().prefs.agentLevels || {}).renew === 'mine' && agLevelOf('renew') === 'mine', null, 5000);
       check('3c Leave it to me is kept for this person', !!kept);
       await toCounter();
-      const s = await page.evaluate(() => ({ ready: hbAgentsData(null).ready, row: (document.querySelector('#cn-needs .cn-jw') || {}).innerText || '' }));
-      check('3d the renewal agent prepares nothing on this person\'s Counter', s.ready === 0 && /nothing waiting/.test(s.row), JSON.stringify(s));
+      const s = await page.evaluate(() => ({ ready: hbAgentsData(null).ready, jambo: ndRead().jambo.length, look: !!document.querySelector('#cn-needs [data-nd-look]'),
+        mine: ndRead().you.some(r => r.y && r.y.kind === 'renewal') }));
+      check('3d the renewal agent prepares nothing on this person\'s Home: the renewal is their own row', s.ready === 0 && s.jambo === 0 && !s.look && s.mine, JSON.stringify(s));
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length === 2, null, { timeout: 20000 });
       const fresh = await until(() => (currentUser().prefs.agentLevels || {}).renew === 'mine' ? 'mine' : null, null, 6000);
@@ -138,8 +143,10 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
 
     console.log('\n4 · Put away');
     await page.evaluate(() => hbOpenAgent('renew'));
-    const before = await until(() => document.querySelector('.hb-ag-works [data-ag-act="away"]') ? hbAgentsData(null).ready : null, null, 6000);
-    if (before && await press('.hb-ag-works [data-ag-act="away"]', '4 Put away')) {
+    await until(() => !!document.querySelector('#hm-agents [data-nd-agent="renew"] [data-hb-ag-look]'), null, 6000);
+    await press('#hm-agents [data-nd-agent="renew"] [data-hb-ag-look]', '4 Look');
+    const before = await until(() => document.querySelector('#hm-agents [data-ag-act="away"]') ? hbAgentsData(null).ready : null, null, 6000);
+    if (before && await press('#hm-agents [data-ag-act="away"]', '4 Put away')) {
       const after = await until(n => hbAgentsData(null).ready < n ? hbAgentsData(null).ready : null, before, 5000);
       check('4 Put away takes the piece off the Board\'s list', after === before - 1, JSON.stringify({ before, after }));
     } else check('4 Put away (no piece with Put away on the Board)', false, String(before));

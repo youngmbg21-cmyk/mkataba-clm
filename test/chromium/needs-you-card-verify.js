@@ -25,6 +25,11 @@
  *      quiet;
  *   8. none of it costs a model.
  *
+ * RE-POINTED 22 Oct 2026 (Round A, the one desk): Needs you is ONE reading
+ * (ndRead) — Jambo's prepared pieces and your move. A thing Jambo prepared
+ * for (the urgent renewal's memo) is HIS row, first while late; Home draws
+ * three of each group; the whole of it stands on the Board under Your book.
+ *
  * Every driven half is guarded, so a missing feature REPORTS rather than
  * times out (the house rule). Run at the owner's shortest screen. */
 const fs = require('node:fs');
@@ -89,12 +94,13 @@ const CONTRACTS = [
     await page.evaluate(() => setView('counter'));
     const drawn = await until(page, () => !!document.querySelector('#cn-needs [data-cn-need]'));
     const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#cn-needs [data-cn-need]').length, list: hbNeedsList().length, n: counterNeedsCount(),
+      mine: ndRead().you.filter(r => r.y && r.y.k === 'c').length, all: ndRead().n,
       shown: window.CN_ROWS, cnt: Number((document.querySelector('#cn-needs .cn-cnt') || {}).textContent || 0) }));
     ok('1a the Counter lists what is owed', drawn && one.rows > 0, JSON.stringify(one));
     /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): Home draws CN_ROWS rows
        (3, round 23 as drawn by lane G — "Show 3 more · …" holds the rest),
        not seven; the number is still the Counter's and the list the book's */
-    ok('1b its rows are the checklist\'s own reading over the book, its number the Counter\'s', book >= 4 && one.list === book && one.cnt === one.n && typeof one.shown === 'number' && one.rows === Math.min(one.list, one.shown), JSON.stringify({ book, ...one }));
+    ok('1b its rows are the checklist\'s own reading over the book (what Jambo prepared for is his row), its number the one reading\'s', book >= 4 && one.list === book && one.cnt === one.n && one.n === one.all && typeof one.shown === 'number' && one.rows === Math.min(one.mine, one.shown), JSON.stringify({ book, ...one }));
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
 
     /* ===== 2. JAMBO ON THE BOARD SAYS WHERE IT IS ===== */
@@ -128,11 +134,13 @@ const CONTRACTS = [
     const looked = asked === 'ok' && await until(page, () => !!document.querySelector('#cn-needs [data-cn-need="look"]'));
     const four = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('#cn-needs [data-cn-need]')].map(b => ({ kind: b.getAttribute('data-cn-need'), id: b.getAttribute('data-cn-id') }));
-      return { rows: rows.slice(0, 3), n: counterNeedsCount() }; });
+      const D = ndRead();
+      return { rows: rows.slice(0, 3), n: counterNeedsCount(), jambo0: D.jambo[0] ? { kind: D.jambo[0].it.kind, id: D.jambo[0].it.cid || (D.jambo[0].it.c && D.jambo[0].it.c.id), late: D.jambo[0].late } : null }; });
     ok('4a the look is on the Counter', looked, asked);
-    const r0 = four.rows[0] || {}, r1 = four.rows[1] || {};
-    ok('4b the urgent renewal stays first', r0.kind === 'renewal' && r0.id === 'MK-W2', JSON.stringify(four.rows));
-    ok('4c the look, having waited longest, comes next', r1.kind === 'look' && r1.id === 'MK-W1', JSON.stringify(four.rows));
+    const r0 = four.rows[0] || {};
+    /* RE-POINTED 22 Oct 2026 (Round A): the urgent renewal is Jambo's memo, first of his group while late; the look leads your move */
+    ok('4b the urgent renewal stays first: Jambo\'s memo for it leads his group, late', !!four.jambo0 && four.jambo0.kind === 'renewal' && four.jambo0.id === 'MK-W2' && four.jambo0.late === 1, JSON.stringify(four));
+    ok('4c the look, having waited longest, leads your move', r0.kind === 'look' && r0.id === 'MK-W1', JSON.stringify(four.rows));
     if (looked){
       /* beside its paper the look's own button is Done (needsYouGo → lookDone) */
       await page.evaluate(() => pdOpenOnHome('MK-W1', 'copilot'));

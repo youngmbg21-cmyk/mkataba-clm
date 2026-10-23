@@ -85,6 +85,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.
 
+## THE ONE DESK — NEEDS YOU, ONE READING
+- f868 (new, red at the parent df2a3e3: no ndRead) — one reading, the merge keeping the wait and the red, the bundle, Home's groups, the Board's tabs/kinds/find/twelve, one button width, both books.
+- Re-pointed 22 Oct 2026: f803 (2)–(8) to ndParts/ndHomeRowHtml; f450 (1), f724 (1), f745 (3), f800 (10), f801 3h, f458 (11), f603 D12. Browser: counter-as-drawn (2, 3, 7, 8, 10a, 10h), agents-page (a piece read with its Look open), board-as-drawn 3, board-strip 1a, board-walkthrough-fixes 2/3, button-consistency 2, desk-comes-back, five-images 1, name-tag-horizon 1, waiting-on-us-no-desk 2, jambos-work-open, open-in-place, home-one-list, home-prepared-by-copilot, board-agent-work, copilot-jobs 4, home-and-recent 2a, home-first 5, needs-you-card 1b/4b/4c, settings-overnight-fixes D12, tidy-sweep (its "Jambo's work" place waits for `#hm-agents .nd-br`).
+
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
 - THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
 - Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).

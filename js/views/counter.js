@@ -379,22 +379,14 @@ function deskTabClose(k){
 function deskGoCounter(){ _dkMenuOpen = false; if (dkLeavePageThen(deskGoCounter)) return; if (dkLeaveSendThen(null, deskGoCounter)) return; if (typeof setView === 'function') setView('counter'); }
 
 /* ---------------- THE COUNTER ---------------- */
-/* THREE ROWS IN SIGHT, AS DRAWN (round 23: Jambo's work, then three owed
-   rows, then "Show 3 more · a note due today · Baltic Freight's 3 details ·
-   Sara's NDA request"); "Show N more" brings the rest, by name */
+/* THREE ROWS OF EACH GROUP IN SIGHT (Round A, the one desk): "Show all N"
+   lands on the Board, where the whole of it stands */
 const CN_ROWS = 3;
 const CN_POP_MAX = 40;      // every place; the list scrolls, and typing narrows it
 const CN_PICK_UP = 3;       // open pages offered on a quiet day
-let _cnAll = false;
-/* JAMBO'S WORK LANDS ON THE BOARD'S CARD (LAND ON IT, owner 18 Oct 2026:
-   "when you click on jambos work, it should take you to the jambos work card
-   in the board"; and "remove the in-place list") — reverses round 23's Open
-   in place: one list of Jambo's work, the Board's, and the row's Open is the
-   door to it (hbOpenAgent, which lands on the card, lit). */
 let _cnPop = null;          // { rows, on }
 
 function cnNeeds(){ try { return (typeof hbNeedsList === 'function') ? (hbNeedsList() || []) : []; } catch (_){ return []; } }
-function cnWork(){ try { return (typeof hbAgentsData === 'function') ? (hbAgentsData(null) || { ready: 0, rows: [] }) : { ready: 0, rows: [] }; } catch (_){ return { ready: 0, rows: [] }; } }
 function cnCompany(){ try { return (typeof stNeedsAll === 'function') ? (stNeedsAll() || []) : []; } catch (_){ return []; } }
 /* A BRAND-NEW WORKSPACE (no contract yet, the go-live list not done): the
    admin's one row is Home's own "Finish setting up — N left" door, the same
@@ -430,48 +422,28 @@ function cnRows(){
   wts.forEach(w => out.push({ k: 'watch', kind: 'watch', urgent: false, w }));
   return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(!!b.y.fw) - Number(!!a.y.fw)) || (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
 }
-/* WHAT WAITS FOR YOU, BY AGENT — the count of Jambo's work Home's row and
-   the Board's Jambo's work card both draw (cnWork = hbAgentsData: the pieces
-   each agent's pill counts) for anybody else who says it. Jambo's house says
-   it on Your desk ("5 waiting for you") and in each room ("1 waiting for
-   you"), and those words land on the Board's card (hbOpenAgent, LAND ON IT) —
-   one reading, so the house, Home and the Board never disagree (round 23's
-   gaps: the house counted its own record and the approvals desk, which the
-   card never lists). */
+/* WHAT WAITS FOR YOU, BY AGENT — the Jambo rows of the one desk (ndRead),
+   counted by agent: one per piece, the rows the Board's "Jambo prepared" tab
+   lists. Jambo's house says it on Your desk ("5 waiting for you") and in each
+   room, and those words land on the Board's card (hbOpenAgent, LAND ON IT) —
+   one reading, so the house, Home and the Board never disagree. */
 function counterWorkByAgent(){
-  const A = cnWork(), by = {};
-  (A.rows || []).forEach(r => { if (r && r.k) by[r.k] = Number(r.pill != null ? r.pill : r.n) || 0; });
-  return { ready: Number(A.ready) || 0, by };
+  const by = {}; let ready = 0;
+  try { ndRead().jambo.forEach(r => { by[r.agent] = (by[r.agent] || 0) + 1; ready++; }); } catch (_){ /* no reading, nothing said */ }
+  return { ready, by };
 }
 /* A ROW'S DOOR LANDS ON ITS TARGET (LAND ON IT): the page opens, then the one
    lander brings the row named into view and lights it; it presses nothing */
 const cnSel = v => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(v)) : String(v).replace(/["\\]/g, '\\$&');
 function cnLand(sel, gone){ if (typeof landOn === 'function') try { landOn(sel, { missing: _cnT(gone) }); } catch (_){} }
-/* the number on "Needs you" is the rows under it: Jambo's work while he has
-   prepared any, each owed row, and the admin's one row */
-function counterNeedsCount(){ return (cnWork().ready ? 1 : 0) + cnRows().length + ((cnSetup() || cnCompany().length) ? 1 : 0); }
+/* the number on "Needs you" is the things in the one reading (ndRead): Jambo's
+   prepared pieces, each owed thing (a bundle counts its contracts) and the
+   admin's one row */
+function counterNeedsCount(){ try { return ndRead().n; } catch (_){ return 0; } }
 
 function cnFace(size, cls){ return (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', size, cls) : ''; }
-function cnJwRowHtml(A){
-  const n = A.ready || 0;
-  const who = [...new Set((A.rows || []).map(r => r.who || r.sum).filter(Boolean))].slice(0, 4);
-  /* its head says what the drawing says: "· 5 prepared · nothing sent or
-     filed until you press" (round 23); the line under it, whose work it is */
-  return `<div class="cn-r cn-jw">${''/* no mark in the row (Chambers, as drawn, 20 Oct 2026) */}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}${n ? ' · ' + _cnE(_cnT('cn_jw_said')) : ''}</span></b><span>${_cnE(n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div>${n ? `<button type="button" class="ui-btn ui-btn-sm" data-cn-jw>${_cnE(_cnT('cn_open'))}</button>` : ''}</div>`;
-}
-/* ---- A ROW OF NEEDS YOU, AS DRAWN (round 23's gaps) ----
-   "Answer an approval for Jonas" (for Jonas · away until Friday) / "Power
-   purchase agreement · Helio Energy AB · SEK 8.1 M" / Open approval. The
-   title says the act, the line the agreement — its name, the party unless the
-   title already names it (a salary's job title, as the Pay section reads it),
-   the value where an approval or a signature turns on it, and how long it
-   has waited; the reference rides the hover. The button opens its page. */
-const CN_NEED_GO = { approval: 'cn_need_go_approval', refused: 'cn_need_go_approval', quiet: 'cn_need_go_redlines', review: 'cn_need_go_redlines',
-  suggest: 'cn_need_go_redlines', details: 'det_need_verb', look: 'cn_open' };
-function cnNeedVerb(kind){
-  if (CN_NEED_GO[kind]) return _cnT(CN_NEED_GO[kind]);
-  return (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[kind]) ? _cnT(INS_NEED_VERB[kind]) : _cnT('cn_open');
-}
+/* A ROW'S TITLE SAYS THE ACT ("Answer an approval for Jonas"); the rest of
+   the row is the one desk's (ndParts) */
 function cnNeedTitle(y){
   const x = y.x, it = x.it;
   if (it.kind === 'approval') return y.fw ? _cnT('cn_need_approval_for', { who: _cnFirst(y.fw.name) }) : _cnT('cn_need_approval');
@@ -480,16 +452,6 @@ function cnNeedTitle(y){
      words (ag_a_renewal), not the checklist's heading */
   if (it.kind === 'renewal') return _cnT('ag_a_renewal');
   return (typeof hbNyWhat === 'function') ? hbNyWhat(x) : '';
-}
-/* TIME IN WORDS, NEVER AN ABBREVIATION (round 23 as drawn: "waiting 4 days";
-   the renewal said "in 40d"): how long a row has waited, else how long until
-   its day ("in 40 days"), else its day the way a person says it ("due Friday") */
-function cnWhenWords(x){
-  const it = x.it;
-  if (x.age != null) return x.age > 0 ? _cnT('cn_waiting', { days: (typeof hbNyDays === 'function') ? hbNyDays(x.age) : x.age }) : '';
-  if (it.kind === 'renewal' && it.d != null) return it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
-  const due = String(it.due || '').slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : '';
 }
 /* a day said the way a person says it: its weekday within the week, else the date */
 function cnDayWords(iso){
@@ -505,53 +467,7 @@ function cnMayMoney(c){
   if (typeof isMonetary === 'function' && !isMonetary(c)) return false;
   return !(typeof fxIsPay === 'function' && fxIsPay(c));
 }
-function cnNeedSub(y, title){
-  const x = y.x, c = x.c, it = x.it;
-  const bits = [];
-  if (c.name) bits.push(_cnE(c.name));
-  const pay = typeof fxIsPay === 'function' && fxIsPay(c);
-  const party = String((pay && c.metadata && c.metadata.jobTitle) || c.counterparty || '').trim();
-  if (party && !String(title).includes(party)) bits.push(_cnE(party));
-  if ((it.kind === 'approval' || it.kind === 'sign') && cnMayMoney(c)) bits.push(_cnE(fmtMoneyShortOf(c)));
-  const when = cnWhenWords(x);
-  if (when) bits.push(it.urgent ? `<span class="cn-late">${_cnE(when)}</span>` : _cnE(when));
-  return bits.join(' · ');
-}
 const _cnPill = (ic, words) => ` <span class="cn-pill">${(typeof icon === 'function') ? icon(ic, 'cn-pill-ic') : ''}${_cnE(words)}</span>`;
-function cnNeedRowHtml(y){
-  if (y.k === 'note') return cnNoteRowHtml(y);
-  if (y.k === 'req') return cnReqRowHtml(y);
-  if (y.k === 'watch') return cnWatchRowHtml(y);
-  const x = y.x, c = x.c, it = x.it;
-  const title = cnNeedTitle(y);
-  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
-  const priv = c.folder && typeof streamIsPrivate === 'function' && streamIsPrivate(c.folder)
-    ? _cnPill('lock', _cnT('cn_private', { stream: ((typeof FOLDERS !== 'undefined' && FOLDERS[c.folder]) || {}).name || '' })) : '';
-  const away = y.fw ? _cnPill('users', y.fw.until ? _cnT('cn_need_away', { who: _cnFirst(y.fw.name), day: cnDayWords(y.fw.until) }) : _cnT('cn_need_for', { who: _cnFirst(y.fw.name) })) : '';
-  return `<div class="cn-r" title="${_cnE([ref, c.name].filter(Boolean).join(' · '))}"><div class="cn-w"><b>${_cnE(title)}${away}${priv}</b><span>${cnNeedSub(y, title)}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-need="${_cnE(it.kind)}" data-cn-id="${_cnE(c.id)}">${_cnE(cnNeedVerb(it.kind))}</button></div>`;
-}
-/* a note of yours that is due: only you see it (My notes are private) */
-function cnNoteRowHtml(y){
-  const n = y.n, late = y.urgent;
-  const text = String(n.title || n.body || '').replace(/\s+/g, ' ').trim();
-  const c = n.contractId && typeof getContract === 'function' ? getContract(n.contractId) : null;
-  const sub = [text ? `“${_cnE(text.length > 90 ? text.slice(0, 89).replace(/\s+\S*$/, '') + '…' : text)}”` : '', c ? _cnE(c.name || '') : '', _cnE(_cnT('cn_need_note_only'))].filter(Boolean).join(' · ');
-  return `<div class="cn-r"><div class="cn-w"><b>${_cnE(late ? _cnT('cn_need_note_late', { day: cnDayWords(n.reviewBy) }) : _cnT('cn_need_note'))}</b><span>${sub}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-note="${_cnE(n.id)}">${_cnE(_cnT('cn_need_go_note'))}</button></div>`;
-}
-/* a watch of yours that fired: what happened, what you asked to be told; the press lands on it (watchGo) */
-function cnWatchRowHtml(y){
-  const w = y.w || {};
-  const said = (typeof watchFiredWords === 'function') ? watchFiredWords(w) : '';
-  const asked = (typeof watchWords === 'function') ? _cnT('wt_bell_sub', { what: watchWords(w) }) : '';
-  return `<div class="cn-r"><div class="cn-w"><b>${_cnE(said)}</b>${asked ? `<span>${_cnE(asked)}</span>` : ''}</div><button type="button" class="ui-btn ui-btn-sm" data-cn-watch="${_cnE(String(w.id || ''))}">${_cnE(_cnT('cn_open'))}</button></div>`;
-}
-/* a request nobody holds yet (the bell's), opened on Requests */
-function cnReqRowHtml(y){
-  const r = y.r || {}, who = (r.by && r.by.name) || '';
-  const t = Date.parse(String(r.createdAt || '')), age = isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null;
-  const sub = [r.counterparty ? _cnE(r.counterparty) : '', age ? _cnE(_cnT('cn_waiting', { days: (typeof hbNyDays === 'function') ? hbNyDays(age) : age })) : ''].filter(Boolean).join(' · ');
-  return `<div class="cn-r" title="${_cnE(String(r.id || ''))}"><div class="cn-w"><b>${_cnE(_cnT('cn_need_request', { ..._cnWho(_cnFirst(who)), title: r.title || '' }))}</b>${sub ? `<span>${sub}</span>` : ''}</div><button type="button" class="ui-btn ui-btn-sm" data-cn-req="${_cnE(String(r.id || ''))}">${_cnE(_cnT('cn_need_go_request'))}</button></div>`;
-}
 /* WHAT A REQUEST IS FOR, IN A WORD OR THREE ("Sara's NDA request"): the kind
    of agreement its own title names first — "NDA with Kettle & Co" → "NDA",
    "New supply agreement for Baltic" → "supply agreement" — read off the words
@@ -565,8 +481,7 @@ function cnReqWhat(r){
   /* a word the asker capitalised for the sentence is lowered; an acronym keeps its letters */
   return /^\p{Lu}[\p{Ll}'’-]*(\s|$)/u.test(w) ? w.charAt(0).toLowerCase() + w.slice(1) : w;
 }
-/* THE SHORT NAME OF A ROW — the lead chip, and the names "Show 3 more" says
-   ("a note due today · Baltic Freight's 3 details · Sara's NDA request") */
+/* THE SHORT NAME OF A ROW — the lead chip ("Jonas's approval") */
 function cnNeedShort(y){
   if (y.k === 'note') return y.urgent ? _cnT('cn_sh_mynote_late') : _cnT('cn_sh_mynote');
   if (y.k === 'watch') return _cnT('wt_sh');
@@ -589,12 +504,321 @@ function cnNeedDoorAttrs(y){
   if (y.k === 'watch') return `data-cn-watch="${_cnE(String((y.w && y.w.id) || ''))}"`;
   return `data-cn-need="${_cnE(y.x.it.kind)}" data-cn-id="${_cnE(y.x.c.id)}"`;
 }
-function cnCompanyRowHtml(R){
-  const sub = R.slice(0, 3).map(r => String(r.text || '').trim()).filter(Boolean).join(' · ');
-  return `<div class="cn-r cn-co"><span class="cn-co-ic" aria-hidden="true">${(typeof icon === 'function') ? icon('building', 'cn-pill-ic') : ''}</span><div class="cn-w"><b>${_cnE(_cnT('cn_company'))} <span class="cn-n">· ${R.length}</span></b><span title="${_cnE(sub)}">${_cnE(sub)}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-co>${_cnE(_cnT('cn_company_go'))}</button></div>`;
+/* ============================================================
+   THE ONE DESK — NEEDS YOU, ONE READING (Round A; the owner picked "The
+   Legora Way" by name, 22 Oct 2026: artifact 4ULFepJn9VYKh98XgJjnTA, pictures
+   QyvWJ1giHgyhWKuFF9bhG5)
+   ============================================================
+   ONE list of what waits, and whose move it is: what Jambo has prepared
+   (the agents' own ready pieces, agentsData) and what only you can do (Home's
+   own rows, cnRows, and the admin's one row). A waiting thing and the piece
+   Jambo prepared for it are ONE row, the piece's (ND_MERGE): their redlines
+   and his drafted answer, a renewal and its memo, a new contract's details
+   and his read, a request and the paper he found. More than three contracts
+   owing details read as one row (ND_BUNDLE_MIN). It reads, never writes, and
+   is walked once per task (_ndMemo, as hbNeedsList).
+   TWO DRAWINGS OF IT, ONE READING: Home draws the top three of each group
+   (ndHomeHtml) and "Show all N" lands on the Board, where the whole of it
+   stands under Your book (ndBoardHtml, inside hbPrepHtml's card). Each row's
+   words come from ONE builder (ndParts), so the two never say different
+   things; every button is ONE word on ONE width and presses a door that
+   already exists. */
+const ND_PAGE = 12;
+const ND_BUNDLE_MIN = 4;
+const ND_MERGE = { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details'] };
+const ND_KIND_OF = { approval: 'approval', refused: 'approval', sign: 'sign', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'details', renewal: 'renewal' };
+const ND_KINDS = ['approval', 'sign', 'review', 'details', 'renewal', 'ask', 'jambo'];
+const ND_BTN = { approval: 'decide', refused: 'decide', renewal: 'decide', sign: 'sign', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'fill', join: 'answer', request: 'answer' };
+/* the kinds whose `days` count forward to a day, not how long they waited */
+const ND_NOT_WAITED = ['renewal', 'notice', 'soon', 'soon-sign', 'week', 'ours'];
+let _ndMemo = null;
+/* the Board card's own choices, for the sitting; a refresh keeps them through the Board's place (ndPlace) */
+let _nd = { tab: 'all', kind: 'any', q: '', more: 0 };
+
+function ndPieces(){
+  let D = null; try { D = (typeof agentsData === 'function') ? agentsData() : null; } catch (_){ D = null; }
+  if (!D || !D.agents) return [];
+  const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
+  const off = Array.isArray(window.HB_OFF_BOARD) ? HB_OFF_BOARD : ['approve', 'ours'];
+  const out = [];
+  keys.forEach(k => { if (off.includes(k) || !D.agents[k]) return;
+    (D.agents[k].ready || []).forEach(it => { if (it && it.key) out.push({ it, agent: it.agent || k }); }); });
+  return out;
 }
-function cnSetupRowHtml(n){
-  return `<div class="cn-r cn-co"><span class="cn-co-ic" aria-hidden="true">${(typeof icon === 'function') ? icon('building', 'cn-pill-ic') : ''}</span><div class="cn-w"><b>${_cnE(_cnTn('hb_setup_left', n, { n }))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-cn-setup>${_cnE(_cnT('cn_open'))}</button></div>`;
+const _ndAge = iso => { const t = Date.parse(String(iso || '')); return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null; };
+function ndAgeOf(y){
+  if (y.k === 'c') return y.x && y.x.age != null ? y.x.age : null;
+  if (y.k === 'req') return _ndAge(y.r && y.r.createdAt);
+  return null;
+}
+function ndPieceAge(it){
+  if (!it || ND_NOT_WAITED.includes(it.kind)) return null;
+  const d = Number(it.days); return isFinite(d) && d >= 0 ? d : null;
+}
+function ndKindOf(y){ return y.k === 'c' ? (ND_KIND_OF[y.x.it.kind] || 'ask') : 'ask'; }
+function ndRead(){
+  if (_ndMemo) return _ndMemo;
+  const P = ndPieces();
+  const rows = cnRows();
+  /* the rows a piece stands for: its row carries their lateness and their wait */
+  const coverOf = it => {
+    const cid = it.cid || (it.c && it.c.id), ks = ND_MERGE[it.kind] || [];
+    const rq = (it.kind === 'request' || it.kind === 'lane') && it.r && it.r.id;
+    return rows.filter(y => (y.k === 'c' && cid && y.x.c.id === cid && ks.includes(y.x.it.kind)) || (rq && y.k === 'req' && y.r && y.r.id === rq));
+  };
+  P.forEach(p => { p.cov = coverOf(p.it); });
+  const covered = new Set(P.flatMap(p => p.cov));
+  const Y = rows.filter(y => !covered.has(y));
+  const det = Y.filter(y => y.k === 'c' && y.x.it.kind === 'details');
+  const bundle = det.length >= ND_BUNDLE_MIN;
+  const ages = L => L.map(ndAgeOf).filter(a => a != null);
+  const you = [];
+  let bundled = false;
+  Y.forEach(y => {
+    if (bundle && y.k === 'c' && y.x.it.kind === 'details'){
+      if (bundled) return; bundled = true;
+      const a = ages(det);
+      you.push({ g: 'you', key: 'b:details', kind: 'details', bundle: det, n: det.length, late: det.filter(d => d.urgent).length, age: a.length ? Math.max(...a) : null });
+      return;
+    }
+    const id = y.k === 'c' ? y.x.c.id + ':' + y.x.it.kind : y.k === 'note' ? y.n.id : y.k === 'req' ? (y.r && y.r.id) : (y.w && y.w.id);
+    you.push({ g: 'you', key: y.k + ':' + id, kind: ndKindOf(y), y, n: 1, late: y.urgent ? 1 : 0, age: ndAgeOf(y) });
+  });
+  const S = cnSetup(), R = cnCompany();
+  if (S) you.push({ g: 'you', key: 'setup', kind: 'ask', setup: S, n: 1, late: 0, age: null });
+  else if (R.length) you.push({ g: 'you', key: 'company', kind: 'ask', company: R, n: 1, late: 0, age: null });
+  const tone = it => it.tone === 'ruby' ? 2 : it.tone === 'amber' ? 1 : 0;
+  const jambo = P.map(({ it, agent, cov }, i) => {
+    const a = [ndPieceAge(it)].concat(ages(cov)).filter(x => x != null);
+    return { g: 'jambo', key: 'p:' + it.key, kind: 'jambo', it, agent, n: 1, late: (it.tone === 'ruby' || cov.some(y => y.urgent)) ? 1 : 0, age: a.length ? Math.max(...a) : null, i };
+  }).sort((a, b) => (b.late - a.late) || (tone(b.it) - tone(a.it)) || (a.i - b.i));
+  const all = jambo.concat(you);
+  const A = all.map(r => r.age).filter(a => a != null);
+  const D = { jambo, you, n: all.reduce((s, r) => s + r.n, 0), late: all.reduce((s, r) => s + r.late, 0), oldest: A.length ? Math.max(...A) : null };
+  _ndMemo = D;
+  setTimeout(() => { _ndMemo = null; }, 0);
+  return D;
+}
+const ndThings = L => (L || []).reduce((s, r) => s + r.n, 0);
+/* "2 late · the oldest has waited 8 days" — said only where there is something to say */
+function ndSumWords(D){
+  const days = n => (typeof hbNyDays === 'function') ? hbNyDays(n) : String(n);
+  return [D.late ? _cnTn('nd_late', D.late, { n: D.late }) : '', D.oldest ? _cnT('nd_oldest', { days: days(D.oldest) }) : ''].filter(Boolean).join(' · ');
+}
+function ndStepOf(r){
+  const def = (window.AG_DEF && AG_DEF[r.agent]) || null;
+  return def && Array.isArray(def.steps) && def.review != null ? { n: def.review + 1, of: def.steps.length } : null;
+}
+const _ndCall = (fn, it, d) => { try { return (typeof window[fn] === 'function') ? window[fn](it) : d; } catch (_){ return d; } };
+const _ndText = h => String(h || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+/* WHAT A ROW SAYS — the one builder both drawings read: its title, the
+   agreement, who or what asked, how long it has waited, its one-word button
+   and the door it presses (attrs: the door's own data attribute). */
+function ndParts(r){
+  const P = { title: '', deal: '', who: '', when: '', late: !!r.late, btn: 'open', attrs: '', step: null, read: '', ref: '', line: '', tag: '', pills: '', priv: '' };
+  const days = n => (typeof hbNyDays === 'function') ? hbNyDays(n) : String(n);
+  if (r.g === 'jambo'){
+    const it = r.it, c = it.c || null;
+    const parts = _ndCall('agCardParts', it, {}) || {};
+    P.title = _ndCall('agPieceTitle', it, '') || _ndCall('agPanelTitle', it, '');
+    /* a piece about no one contract says its own sum there ("8 dates · 3 duties") */
+    P.deal = c ? [c.name, c.counterparty].filter(Boolean).join(' · ') : (it.r && it.r.title) || parts.sum || _ndText(_ndCall('agPieceRefHtml', it, ''));
+    P.step = ndStepOf(r);
+    P.who = P.step ? _cnT('nd_who_jambo', P.step) : _cnT('nd_read');
+    /* a chase says how late, a renewal how long until its day, the rest how long they waited */
+    const d = Number(it.days);
+    P.when = (it.kind === 'chase' || it.kind === 'chase-firm') ? String(parts.urg || '').split(' · ')[0]
+      : (it.kind === 'renewal' || it.kind === 'notice') && isFinite(d) ? (d <= 0 ? String(parts.urg || '').split(' · ')[0] : _cnTn('ins_need_in', d, { n: d }))
+      : r.age != null ? days(r.age) : String(parts.urg || '').split(' · ')[0];
+    P.read = _cnT('nd_read_' + r.agent);
+    P.ref = _ndCall('agPieceRefHtml', it, '');
+    P.line = _ndCall('agPieceLine', it, '');
+    P.btn = 'look';
+    P.attrs = `data-nd-look="${_cnE(it.key)}"`;
+    return P;
+  }
+  if (r.bundle){
+    const names = [...new Set(r.bundle.map(y => String(y.x.c.counterparty || y.x.c.name || '').trim()).filter(Boolean))];
+    P.title = _cnTn('nd_bundle_details', r.n, { n: r.n });
+    P.deal = names.slice(0, 3).join(' · ') + (names.length > 3 ? ' · ' + _cnT('nd_and_more', { n: names.length - 3 }) : '');
+    P.when = r.age != null ? days(r.age) : '';
+    P.tag = _cnT('nd_bundle_tag', { n: r.n });
+    P.btn = 'fill'; P.attrs = 'data-nd-bundle="details"';
+    return P;
+  }
+  if (r.setup){ P.title = _cnTn('hb_setup_left', r.setup, { n: r.setup }); P.attrs = 'data-cn-setup'; return P; }
+  if (r.company){
+    P.title = _cnT('cn_company') + ' · ' + r.company.length;
+    P.deal = r.company.slice(0, 3).map(x => String(x.text || '').trim()).filter(Boolean).join(' · ');
+    P.attrs = 'data-cn-co'; return P;
+  }
+  const y = r.y;
+  P.attrs = cnNeedDoorAttrs(y);
+  if (y.k === 'note'){
+    const n = y.n, text = String(n.title || n.body || '').replace(/\s+/g, ' ').trim();
+    P.title = y.urgent ? _cnT('cn_need_note_late', { day: cnDayWords(n.reviewBy) }) : _cnT('cn_need_note');
+    P.deal = text ? '“' + (text.length > 90 ? text.slice(0, 89).replace(/\s+\S*$/, '') + '…' : text) + '”' : '';
+    P.who = _cnT('cn_need_note_only');
+    P.when = y.urgent ? '' : _cnT('ins_days_today');
+    return P;
+  }
+  if (y.k === 'req'){
+    const R = y.r || {}, who = (R.by && R.by.name) || '';
+    P.title = _cnT('cn_need_request', { ..._cnWho(_cnFirst(who)), title: R.title || '' });
+    P.deal = R.counterparty || '';
+    P.who = who;
+    P.when = r.age != null ? days(r.age) : '';
+    P.btn = 'answer';
+    return P;
+  }
+  if (y.k === 'watch'){
+    const w = y.w || {};
+    P.title = (typeof watchFiredWords === 'function') ? watchFiredWords(w) : '';
+    P.deal = (typeof watchWords === 'function') ? _cnT('wt_bell_sub', { what: watchWords(w) }) : '';
+    return P;
+  }
+  const x = y.x, c = x.c, it = x.it;
+  P.title = cnNeedTitle(y);
+  const pay = typeof fxIsPay === 'function' && fxIsPay(c);
+  const party = String((pay && c.metadata && c.metadata.jobTitle) || c.counterparty || '').trim();
+  P.deal = [c.name, party && !String(P.title).includes(party) ? party : '', (it.kind === 'approval' || it.kind === 'sign') && cnMayMoney(c) ? fmtMoneyShortOf(c) : ''].filter(Boolean).join(' · ');
+  P.who = y.fw ? _cnT('cn_need_for', { who: _cnFirst(y.fw.name) }) : String(it.who || '');
+  if (x.age != null) P.when = days(x.age);
+  else if (it.kind === 'renewal' && it.d != null) P.when = it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
+  else { const due = String(it.due || '').slice(0, 10); P.when = /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : ''; }
+  P.btn = ND_BTN[it.kind] || 'open';
+  const priv = c.folder && typeof streamIsPrivate === 'function' && streamIsPrivate(c.folder)
+    ? _cnPill('lock', _cnT('cn_private', { stream: ((typeof FOLDERS !== 'undefined' && FOLDERS[c.folder]) || {}).name || '' })) : '';
+  const away = y.fw ? _cnPill('users', y.fw.until ? _cnT('cn_need_away', { who: _cnFirst(y.fw.name), day: cnDayWords(y.fw.until) }) : _cnT('cn_need_for', { who: _cnFirst(y.fw.name) })) : '';
+  P.pills = away + priv; P.priv = priv;
+  /* the contract's number in its one dress (refHtml) — the owner's "there is no contract number in the card", 8 Oct 2026 */
+  P.ref = (typeof refHtml === 'function') ? refHtml(c) : _cnE((typeof contractRef === 'function') ? contractRef(c) : c.id);
+  return P;
+}
+const _ndBtnHtml = (P, attrs) => `<button type="button" class="ui-btn ui-btn-sm nd-btn" ${attrs != null ? attrs : P.attrs}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
+const _ndStepHtml = P => P.step ? `<span class="nd-step" title="${_cnE(_cnT('nd_step_title', P.step))}">${_cnE(_cnT('nd_step', P.step))}</span>` : '';
+const _ndTagHtml = P => P.tag ? `<span class="nd-tag">${_cnE(P.tag)}</span>` : '';
+
+/* ---- HOME: THE TOP THREE OF EACH GROUP, EACH ROW TWO LINES ----
+   Jambo's work first (his rows say what he read), then your move; a group
+   holding more than three says "Show all N", which lands on the Board. */
+function ndHomeRowHtml(r){
+  const P = ndParts(r);
+  const sub = r.g === 'jambo'
+    ? `<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}${P.ref ? ' · ' + P.ref : ''}`
+    : _cnE(P.deal);
+  const hover = r.g === 'jambo' ? P.line : [_ndText(P.ref), P.deal].filter(Boolean).join(' · ');
+  return `<div class="cn-r nd-r" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(P.title)}</span>${_ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
+    + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${_ndBtnHtml(P)}</div>`;
+}
+function ndHomeHtml(D){
+  const group = (g, L) => {
+    if (!L.length) return '';
+    const n = ndThings(L);
+    const all = L.length > CN_ROWS ? `<button type="button" class="ui-link nd-all" data-nd-all="${g}">${_cnE(_cnT('cn_show_all', { n }))}</button>` : '';
+    return `<div class="nd-g" data-nd-g="${g}"><span class="nd-g-t">${_cnE(_cnT('nd_g_' + g))}</span><span class="cn-n">· ${n}</span>${all}</div>${L.slice(0, CN_ROWS).map(ndHomeRowHtml).join('')}`;
+  };
+  return group('jambo', D.jambo) + group('you', D.you);
+}
+
+/* ---- THE BOARD: ALL OF IT, UNDER YOUR BOOK ----
+   Tabs (All · Your move · Jambo prepared), the kinds there are (a kind with
+   nothing in the tab is not listed), a find box, five columns, twelve rows at
+   a time. Jambo's rows open his piece IN PLACE under the row (Look, the
+   piece's own body and acts: opts.look); every other row presses its door. */
+function ndKindsOf(L){
+  const by = {}; L.forEach(r => { by[r.kind] = (by[r.kind] || 0) + r.n; });
+  return ND_KINDS.filter(k => by[k]).map(k => ({ k, n: by[k] }));
+}
+/* the Board's own share of the reading: a brand-new workspace's "Finish setting up" row stays Home's — the empty
+   Board stands its own setup door (hbSetupDoorHtml), never a second one */
+function ndOnBoard(D){ const you = D.you.filter(r => !r.setup); return { jambo: D.jambo, you, n: ndThings(D.jambo) + ndThings(you) }; }
+function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'you' ? B.you : B.jambo.concat(B.you); }
+function ndBoardList(D){
+  let L = ndInTab(D);
+  if (_nd.kind !== 'any') L = L.filter(r => r.kind === _nd.kind);
+  const q = String(_nd.q || '').trim().toLowerCase();
+  if (q) L = L.filter(r => { const P = ndParts(r); return [P.title, P.deal, P.who, _ndText(P.ref)].join(' ').toLowerCase().includes(q); });
+  /* All: the late first, then Jambo's, then yours — each in its own order */
+  if (_nd.tab === 'all') L = L.map((r, i) => ({ r, i })).sort((a, b) => (Number(!!b.r.late) - Number(!!a.r.late)) || (a.i - b.i)).map(o => o.r);
+  return L;
+}
+function ndBoardRowHtml(r, opts){
+  const P = ndParts(r);
+  const piece = r.g === 'jambo';
+  const look = piece && opts && typeof opts.look === 'function' ? opts.look(r.it) : '';
+  const btn = piece
+    ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
+    : _ndBtnHtml(P);
+  return `<div class="nd-br${look ? ' is-look' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
+    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
+    + `<span class="nd-c nd-c-deal" title="${_cnE([P.deal, _ndText(P.ref)].filter(Boolean).join(' · '))}">${_cnE(P.deal)}${P.ref ? (P.deal ? ' · ' : '') + P.ref : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
+    + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
+}
+function ndBoardRowsHtml(D, opts){
+  const L = ndBoardList(D);
+  if (!L.length) return `<div class="nd-none">${_cnE(_cnT(ndInTab(D).length ? 'nd_none_found' : 'cn_nothing'))}</div>`;
+  const cap = ND_PAGE * (1 + (_nd.more || 0));
+  const shown = L.slice(0, cap), rest = L.slice(cap);
+  let foot = '';
+  if (rest.length){
+    const by = ndKindsOf(rest).map(x => (x.k === 'jambo' ? _cnT('nd_k_jambo') : _cnT('nd_k_' + x.k)).toLowerCase() + ' ' + x.n);
+    foot = `<div class="nd-more"><button type="button" class="ui-link" data-nd-more>${_cnE(_cnTn('cn_show_more', Math.min(ND_PAGE, rest.length), { n: Math.min(ND_PAGE, rest.length) }))}</button><span>${_cnE(_cnT('nd_next', { list: by.join(' · ') }))}</span></div>`;
+  }
+  return shown.map(r => ndBoardRowHtml(r, opts)).join('') + foot;
+}
+function ndBoardHtml(opts){
+  const o = opts || {};
+  const D = ndRead();
+  const B = ndOnBoard(D);
+  /* nothing waits: no card (the least attention), unless the foot has news of what was done */
+  if (!B.n && !o.keep) return '';
+  const inTab = ndInTab(D);
+  const kinds = ndKindsOf(inTab);
+  if (_nd.kind !== 'any' && !kinds.some(x => x.k === _nd.kind)) _nd.kind = 'any';
+  const sum = [_cnTn('nd_things', B.n, { n: B.n }), ndSumWords(D)].filter(Boolean).join(' · ');
+  const home = Math.min(CN_ROWS, B.jambo.length) + Math.min(CN_ROWS, B.you.length);
+  const tab = (k, n) => `<button type="button" class="nd-tab${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${_cnE(_cnT('nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
+  const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
+  const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
+  return `<section class="hb-card nd-card" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${B.n ? `<span class="hb-cs nd-home-shows">${_cnE(_cnT('nd_home_shows', { n: home }))}</span>` : ''}</header>`
+    + `<div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndThings(B.you))}${tab('jambo', ndThings(B.jambo))}</div>`
+    + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
+    + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
+    + (jamboOn && o.chase ? o.chase : '')
+    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_who'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
+    + `<div class="nd-rows" id="nd-rows">${ndBoardRowsHtml(D, o)}</div>${o.foot || ''}</section>`;
+}
+/* the find box narrows the rows only: the box being typed in is never redrawn */
+function ndRowsRepaint(){
+  const el = document.getElementById('nd-rows'); if (!el) return;
+  const o = (typeof window.hbNdOpts === 'function') ? hbNdOpts() : {};
+  el.innerHTML = ndBoardRowsHtml(ndRead(), o);
+}
+function ndBoardRepaint(){ if (typeof hbPaintBoard === 'function') try { hbPaintBoard(); } catch (_){} }
+/* "Show all N" and Look from Home, and every door onto the card: the Board,
+   the tab named, the row named in view (twelve more at a time until it is) */
+function ndShow(tab, key){
+  _nd = { tab: ['all', 'you', 'jambo'].includes(tab) ? tab : 'all', kind: 'any', q: '', more: 0 };
+  if (key){ const L = ndBoardList(ndRead()); const i = L.findIndex(r => r.key === key || (r.it && r.it.key === key)); if (i >= ND_PAGE) _nd.more = Math.floor(i / ND_PAGE); }
+}
+function ndOpenBoard(tab, key){
+  ndShow(tab, key ? 'p:' + key : null);
+  if (key && typeof window.hbAgLookSet === 'function') hbAgLookSet(key);
+  if (typeof hbOpenAgent === 'function') return hbOpenAgent(null, key || null);
+  return false;
+}
+function ndPlace(){ return { tab: _nd.tab, kind: _nd.kind, q: _nd.q }; }
+function ndPlacePut(p){
+  if (!p || typeof p !== 'object') return;
+  _nd = { tab: ['all', 'you', 'jambo'].includes(p.tab) ? p.tab : 'all', kind: ND_KINDS.includes(p.kind) ? p.kind : 'any', q: String(p.q || '').slice(0, 120), more: 0 };
+}
+/* the bundled details: the very contracts the row counted, on the Contracts list */
+function ndBundleGo(){
+  const r = ndRead().you.find(x => x.bundle); if (!r) return false;
+  const ids = r.bundle.map(y => y.x.c.id);
+  if (typeof regShowOnly === 'function'){ regShowOnly(ids, _cnT('nd_bundle_said')); return true; }
+  return false;
 }
 /* THE CHIPS, AS DRAWN ("Jonas's approval · contracts · calendar · draft a new
    agreement"): what is owed first leads — the first row's short name, its
@@ -615,29 +839,24 @@ const _cnJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamb
 function counterHtml(){
   const me = (typeof currentUser === 'function') ? currentUser() : null;
   const name = String((me && me.name) || '').trim().split(/\s+/)[0] || _cnT('home_greet_there');
-  const A = cnWork(), N = cnRows(), R = cnCompany(), S = cnSetup();
-  const n = (A.ready ? 1 : 0) + N.length + ((S || R.length) ? 1 : 0);
-  const shown = _cnAll ? N : N.slice(0, CN_ROWS);
-  const quiet = !N.length && !R.length && !S;
-  const rows = cnJwRowHtml(A) + shown.map(cnNeedRowHtml).join('');
-  const after = (S ? cnSetupRowHtml(S) : R.length ? cnCompanyRowHtml(R) : '')
-    + (quiet ? `<div class="cn-r"><div class="cn-w"><b>${_cnE(_cnT('cn_nothing'))}</b></div></div>` : '');
-  /* "Show 3 more · a note due today · Baltic Freight's 3 details · Sara's NDA
-     request": what waits behind the press, by name (A CAP IS A FACT) — the
-     card's LAST line, as drawn, under the admin's own row */
-  const hid = N.slice(CN_ROWS);
-  const names = hid.slice(0, 3).map(cnNeedShort).filter(Boolean);
-  const said = names.join(' · ') + (hid.length > 3 ? ' · ' + _cnT('cn_and_more', { n: hid.length - 3 }) : '');
-  const more = N.length > CN_ROWS ? `<div class="cn-foot"><button type="button" class="ui-link" data-cn-all aria-expanded="${_cnAll}">${_cnE(_cnAll ? _cnT('cn_show_fewer') : _cnTn('cn_show_more', hid.length, { n: hid.length }))}</button>${_cnAll ? '' : `<span class="cn-foot-said">${_cnE(said)}</span>`}</div>` : '';
+  /* THE ONE DESK (Round A): Needs you is ONE reading (ndRead) — Jambo's
+     prepared work and your move, the top three of each, "Show all N" onto
+     the Board where the whole of it stands */
+  const D = ndRead();
+  const quiet = !D.n;
+  const rows = quiet ? `<div class="cn-r"><div class="cn-w"><b>${_cnE(_cnT('cn_nothing'))}</b></div></div>` : ndHomeHtml(D);
+  const sum = ndSumWords(D);
+  /* the lead chip: the first of your own rows that names one contract's act */
+  const lead = D.you.find(r => r.y);
   const open = quiet ? dkTabs().slice().sort((a, b) => (b.at || 0) - (a.at || 0)).filter(t => deskTabLabel(t.k)).slice(0, CN_PICK_UP) : [];
   const pick = open.length ? `<section class="cn-card"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('cn_pick_up'))}</span></header>${open.map(t =>
     `<div class="cn-r"><div class="cn-w"><b>${_cnE(deskTabLabel(t.k))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-dk-go="${_cnE(t.k)}">${_cnE(_cnT('cn_open'))}</button></div>`).join('')}</section>` : '';
-  _cnSig = cnSig(N, A);
+  _cnSig = ndSig(D);
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
     <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
       <div class="cn-wrap">${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */}${_cnJbCard({ cls: 'cn-card-box', field: `<textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea>`, send: _cnJbSend('data-cn-send', _cnT('cn_ask')) })}<div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
-      <div class="cn-chips" id="cn-chips">${cnChipsHtml(N)}</div></section>
-    <section class="cn-card cn-needs" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${n}</span></header>${rows}${after}${more}</section>
+      <div class="cn-chips" id="cn-chips">${cnChipsHtml(lead ? [lead.y] : [])}</div></section>
+    <section class="cn-card cn-needs nd-home" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${D.n}</span>${sum ? `<span class="nd-sum">${_cnE(sum)}</span>` : ''}</header>${rows}</section>
     ${pick}</div></div>`;
 }
 /* what the card was drawn from, so a list that arrives later redraws it once */
@@ -651,8 +870,9 @@ function counterBoxFit(q){
   q.style.height = 'auto';
   q.style.height = q.value ? Math.min(q.scrollHeight, 120) + 'px' : '';
 }
-function cnSig(N, A){
-  return [(A && A.ready) || 0, (A && A.rows || []).map(r => (r.items || []).map(i => i.key).join(',')).join(';'), N.map(y => y.k + ':' + y.kind + ':' + (y.x ? y.x.c.id : y.n ? y.n.id : y.r ? y.r.id : y.w ? y.w.id : '')).join(',')].join('|');
+function ndSig(D){
+  /* the admin's row carries its own number (how much is left to set up, what the company needs): a change in it redraws */
+  return D.jambo.concat(D.you).map(r => r.key + ':' + r.n + ':' + r.late + ':' + (r.setup || (r.company ? r.company.length : ''))).join(',');
 }
 function renderCounter(){
   const host = document.getElementById('content'); if (!host) return;
@@ -678,7 +898,7 @@ function counterRepaint(){
    My notes arrive: the Counter is drawn again only where what it lists moved */
 function counterFollow(){
   if (typeof state === 'undefined' || !state || state.view !== 'counter' || !document.getElementById('cn-needs')) return;
-  let sig = ''; try { sig = cnSig(cnRows(), cnWork()); } catch (_){ return; }
+  let sig = ''; try { sig = ndSig(ndRead()); } catch (_){ return; }
   if (sig !== _cnSig) counterRepaint();
 }
 
@@ -733,12 +953,19 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-dk-present]'))){ _dkMenuOpen = false; deskBarPaint(); if (typeof hbPresent === 'function') hbPresent(true); return; }
     if ((el = t.closest('[data-dk-recent]'))){ deskRecentToggle(); return; }
     if (_dkMenuOpen && !t.closest('#dk-pg-w')){ _dkMenuOpen = false; deskBarPaint(); }
-    if (!t.closest('#cn-page')) return;
+    /* THE ONE DESK's own presses, on Home and on the Board's card */
+    if ((el = t.closest('[data-nd-all]'))){ ndOpenBoard(el.getAttribute('data-nd-all')); return; }
+    if ((el = t.closest('[data-nd-look]'))){ ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
+    if ((el = t.closest('[data-nd-bundle]'))){ ndBundleGo(); return; }
+    if ((el = t.closest('[data-nd-tab]'))){ _nd = { ..._nd, tab: el.getAttribute('data-nd-tab'), more: 0 }; ndBoardRepaint(); return; }
+    if ((el = t.closest('[data-nd-kind]'))){ _nd = { ..._nd, kind: el.getAttribute('data-nd-kind'), more: 0 }; ndBoardRepaint(); return; }
+    if ((el = t.closest('[data-nd-more]'))){ _nd = { ..._nd, more: (_nd.more || 0) + 1 }; ndRowsRepaint(); return; }
+    /* a row of your move on the Board's card presses the same door as on Home */
+    if (!t.closest('#cn-page') && !t.closest('#hm-agents.nd-card')) return;
     if ((el = t.closest('[data-cn-pop]'))){ counterPopTake(Number(el.getAttribute('data-cn-pop'))); return; }
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
     if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterBoxFit(q); counterPopClose(); counterAsk(v); } return; }
     if ((el = t.closest('[data-cn-ask]'))){ counterAsk(el.getAttribute('data-cn-ask')); return; }
-    if ((el = t.closest('[data-cn-jw]'))){ if (typeof hbOpenAgent === 'function') hbOpenAgent(); return; }
     /* a note of yours and a request nobody holds: their own pages, landing ON
        the row (LAND ON IT — My notes' row, Requests' row), lit */
     if ((el = t.closest('[data-cn-note]'))){ const id = el.getAttribute('data-cn-note'); if (typeof myNotesOpen === 'function') myNotesOpen(id); cnLand('[data-mn-row="' + cnSel(id) + '"]', 'cn_land_note_gone'); return; }
@@ -747,9 +974,9 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
     if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }
     if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
-    if ((el = t.closest('[data-cn-all]'))){ _cnAll = !_cnAll; counterRepaint(); }
   });
-  document.addEventListener('input', e => { if (e.target && e.target.id === 'cn-q'){ counterBoxFit(e.target); counterPopRead(e.target); } });
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'cn-q'){ counterBoxFit(e.target); counterPopRead(e.target); }
+    if (e.target && e.target.id === 'nd-q'){ _nd = { ..._nd, q: e.target.value, more: 0 }; ndRowsRepaint(); } });
   document.addEventListener('keydown', e => {
     const t = e.target;
     if (t && t.id === 'cn-q'){
@@ -781,6 +1008,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnWhenWords, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
+Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ndPieces, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

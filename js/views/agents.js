@@ -2503,7 +2503,9 @@ async function agRunAct(key, act){
   if (act === 'ikdraft'){ if (it.r && typeof intakeDraft === 'function'){ intakeDraft(it.r.id); said('used', it.r.id); } return; }
   if (act === 'draftreply'){ const was = _agReplies.get(key); if (was && was.state === 'done') said('changed', key); return agDraftReply(key); }
   if (act === 'usereply'){ said('used', key); return agUseReply(key); }
-  if (act === 'ikopen'){ if (it.r && typeof intakeGoTo === 'function') intakeGoTo(it.r.id); return; }
+  /* LAND ON IT: the request's own row on Requests, lit — the door Home's request row was before the one desk merged them */
+  if (act === 'ikopen'){ if (it.r && typeof intakeGoTo === 'function'){ intakeGoTo(it.r.id);
+    if (typeof landOn === 'function') try { landOn('[data-ik-row="' + (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(String(it.r.id)) : String(it.r.id)) + '"]', { missing: _agT('cn_land_req_gone') }); } catch (_){} } return; }
   if (act === 'calendar'){ if (typeof setView === 'function') setView('calendar'); return; }
   if (act === 'ics'){
     if (typeof calIcsFor !== 'function' || typeof downloadFile !== 'function' || !it.evs) return;
