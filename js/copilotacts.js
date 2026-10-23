@@ -1243,7 +1243,7 @@ const CA_MENU = [
   /* the sealed record as a FILE; "show me the audit trail" is History (22 Oct 2026) */
   ['record', /\b(?:sealed|audit)\s+(?:record|copy)\b|\bsealed\s+trail\b|\b(?:download|export|print|pdf|save)\b[^.?!]*\baudit\s+trail\b|\baudit\s+trail\b[^.?!]*\b(?:pdf|download|export|file)\b/i, ['#ws-pdf-record']],
   ['signed', /\b(?:add|attach|link|upload|lägg till|bifoga)\b[^.?!]*\b(?:signed|undertecknat)\b|\bsigned (?:document|copy|agreement)\b/i, ['#ws-m-link']],
-  ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$/i, ['#ws-advice']],
+  ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$|\b(?:adviser|advisor|rådgivar)(?:e|en)?\s*(?:link|länk)|\b(?:send|share|skicka|dela)\b[^.?!]*\bto (?:our|an?|the) (?:adviser|advisor|lawyer|counsel|outside counsel)\b/i, ['#ws-advice']],
   ['import', /\bimport\b|\bimportera\b|\btheir (?:word )?(?:file|response|markup)\b/i, ['#ws-import']],
   ['compare', /\bcompare\b|\bjämför\b/i, ['#ws-compare']],
   ['filing', /\bfiling\b|\barkivering\b|\bstream\b/i, ['#ws-filing']],
@@ -1254,7 +1254,7 @@ const CA_MENU = [
   ['end', /\barchive\b|\barkivera\b|\bhold\b|\bpausa\b|\bfreeze\b|\bfrys\b|\bdecline\b|\bavböj\b|\bend or pause\b|\bclose (?:this|it|the deal|the contract)\b|\bstäng (?:det|avtalet|affären)\b/i, ['#ws-end']],
   ['reopen', /\bre-?open\b|\böppna igen\b/i, ['#ws-reopen']],
   ['delete', /\bdelete\b|\bradera\b|\bta bort utkastet\b/i, ['#ws-delete']],
-  ['review', /\b(?:ask for|internal|request a?)\s*review\b|\bgranskning\b/i, ['[data-ig-review]']],
+  ['review', /\b(?:ask for|internal|request a?)\s*(?:a\s+)?review\b|\breview by (?:a |our )?(?:colleague|legal|someone)\b|\b(?:ask|get) (?:a colleague|someone|legal) to review\b|\bgranskning\b/i, ['[data-ig-review]']],
   ['playbook', /\bplaybook\b|\bcheck\b[^.?!]*\bstandards\b/i, ['[data-ig-pbreview]']],
   ['prepare', /\bdraft from (?:our )?standards\b|\bprepare (?:the )?redlines\b/i, ['[data-rl-prepare]']],
   ['addclause', /\badd (?:a |new |another )?clause\b|\blägg till (?:en )?klausul\b/i, ['[data-rl-add-clause]']],
@@ -1264,7 +1264,7 @@ const CA_MENU_MAX = 140;
 /* THE ROWS READ OFF ONE LOOSE WORD ("stream", "check", "hold", "compare"…):
    where the map is sure the sentence means something else, it is not a
    press (jmOverrules, 22 Oct 2026). The file rows read what the file is. */
-const CA_MENU_LOOSE = ['filing', 'playbook', 'compare', 'restore', 'release', 'end', 'reopen', 'delete', 'review', 'mynote'];
+const CA_MENU_LOOSE = ['filing', 'playbook', 'compare', 'restore', 'release', 'end', 'reopen', 'delete', 'mynote'];
 /* a question about the thing ("who are the signers?") is for Jambo to answer, not a press */
 const CA_MENU_ASKS = /^\s*(?:what|who|whom|why|how|when|which|where|vad|vem|varför|hur|när|vilken|vilka)\b/i;   // a longer question is a question for the model, not a press
 /* A QUESTION OF WHERE IS NEVER A PRESS (owner, 22 Oct 2026: "show me where i
@@ -1896,7 +1896,8 @@ function caHomeFace(f){
 function caHomeWall(){ caHomeFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); return true; }
 function caRoomTab(c, k){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, k); } catch (_){} return true; }
 const CA_GO = {
-  board: () => caHomeFace('board'),
+  /* a contract named with it: its strip on the Board, on its Overview (the strip's one door) */
+  board: c => (c && typeof hbStripBring === 'function') ? (hbStripBring(c.id, 'ov') !== false || caHomeFace('board')) : caHomeFace('board'),
   needs: () => (typeof hbNeedsOpen === 'function') ? hbNeedsOpen() : caHomeFace('board'),
   document: c => (c && typeof pdOpenOnHome === 'function') ? pdOpenOnHome(c.id, 'copilot') : caHomeFace('paper'),
   calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
@@ -1972,6 +1973,7 @@ function caGoSay(a){
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
   if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()){ const W = draftWallSay(); return W.head + ' ' + W.body; }
+  if (a.place === 'board' && c) return _caT('ca_go_board_for', { ref: caRef(c) });
   const p = CA_PLACES.find(x => x.k === a.place) || {};
   return _caT('ca_go_' + a.place + (p.need === 'any' && !c ? '_all' : ''), { ref: c ? caRef(c) : '' });
 }
@@ -2450,10 +2452,14 @@ const CA_CONTRACT_ACTS = [
   ['fill', /(?<!\p{L})(?:details|fill(?:\s+in)?|uppgifter(?:na)?|fyll\s+i)(?!\p{L})/iu],
   ['share', /(?<!\p{L})(?:share|send|dela|skicka)(?!\p{L})/iu],
   ['amend', /(?<!\p{L})(?:amend|amendment|ändra avtalet|tillägg)(?!\p{L})/iu],
+  /* "take me to the board and show me the overview of MK-382" (owner, 23 Oct 2026, from Settings' box):
+     a contract on the Board is its strip, on its Overview (hbStripBring's 'ov'); read last, so a named
+     page ("its history on the board") keeps its own */
+  ['board', /(?<!\p{L})(?:overview|översikt(?:en)?|board|tavlan?|lifeline)(?!\p{L})/iu],
 ];
 function caContractActOf(s){ const hit = CA_CONTRACT_ACTS.find(([, re]) => re.test(String(s || ''))); return hit ? hit[0] : null; }
 /* the words that only frame an ask about a named contract ("show me", "for", "the") */
-const CA_CONTRACT_FRAME = /(?<!\p{L})(?:please|can|could|would|will|you|i|we|me|my|our|us|the|a|an|this|that|its|it|of|for|on|in|about|to|from|with|show|see|view|open|bring|take|go|get|give|read|let|want|need|like|just|look|at|up|contract|contracts|agreement|agreements|deal|no|number|nr|för|på|i|om|till|av|med|visa|öppna|se|läs|ta|mig|gå|avtal|avtalet|avtalen|kontrakt|kontraktet|den|det|dess|vill|jag|kan|du|tack|snälla|now|thanks)(?!\p{L})/giu;
+const CA_CONTRACT_FRAME = /(?<!\p{L})(?:please|can|could|would|will|you|i|we|me|my|our|us|the|a|an|and|this|that|its|it|of|for|on|in|about|to|from|with|show|see|view|open|bring|take|go|get|give|read|let|want|need|like|just|look|at|up|contract|contracts|agreement|agreements|deal|no|number|nr|för|på|i|om|till|av|med|och|visa|öppna|se|läs|ta|mig|gå|avtal|avtalet|avtalen|kontrakt|kontraktet|den|det|dess|vill|jag|kan|du|tack|snälla|now|thanks)(?!\p{L})/giu;
 /* a question about what a contract SAYS: asked of that contract, never dropped */
 const CA_CONTRACT_ASKS = /^\s*(?:what|which|who|whom|whose|why|when|where|how|is|are|was|were|does|do|did|has|have|can|could|should|would|will|tell me|explain|vad|vilken|vilka|vem|varför|när|var|hur|är|finns|har|kan|ska|förklara)(?!\p{L})/iu;
 /* "bring up MK-…" is the Board's strip (hbBringOf), its own door */
@@ -2500,7 +2506,8 @@ function caReadContract(q, opts = {}){
   /* what is left of the words once the contract is named */
   let left = ' ' + String(f.said || q) + ' ';
   if (f.how === 'name') (f.hit || []).forEach(w => { left = left.replace(new RegExp('(?<![\\p{L}\\p{N}])' + String(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\p{L}*(?![\\p{L}\\p{N}])', 'giu'), ' '); });
-  else left = left.split(f.hit).join(' ');
+  /* "contact MK-382" is a slip for "contract MK-382": the word right before the number is read as the noun it meant */
+  else left = left.replace(new RegExp('(?<!\\p{L})contacts?\\s+(?=' + String(f.hit).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'giu'), ' ').split(f.hit).join(' ');
   left = left.replace(/\s+/g, ' ').trim();
   if (CA_CONTRACT_BRING.test(left)) return { kind: 'hand', cid: c.id, state: 'ready' };
   const act = caContractActOf(left);
@@ -2508,7 +2515,9 @@ function caReadContract(q, opts = {}){
     const k = caFollowAct(q); if (k) return { kind: 'go', place: k, cid: c.id, follow: true, state: 'ready' };
   }
   const actRe = act ? (CA_CONTRACT_ACTS.find(x => x[0] === act) || [])[1] : null;
-  const bare = left.replace(actRe ? new RegExp(actRe.source, 'giu') : /$^/, ' ').replace(new RegExp(CA_FIND_NOUN.source, 'giu'), ' ').replace(CA_CONTRACT_FRAME, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  /* "…on the board" beside a named page ("its history on the board") is where that page already opens: framing */
+  const boardRe = act && act !== 'board' ? new RegExp((CA_CONTRACT_ACTS.find(x => x[0] === 'board') || [])[1].source, 'giu') : /$^/;
+  const bare = left.replace(actRe ? new RegExp(actRe.source, 'giu') : /$^/, ' ').replace(boardRe, ' ').replace(new RegExp(CA_FIND_NOUN.source, 'giu'), ' ').replace(CA_CONTRACT_FRAME, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
   const asks = CA_CONTRACT_ASKS.test(left);
   /* a question with words of its own is asked of the contract ("what does it say about termination") */
   const words = bare.replace(CA_CONTRACT_ASKS, ' ').replace(/(?<!\p{L})(?:what|which|who|why|when|where|how|is|are|does|do|did|there|vad|vilka|vem|hur|är|finns|about|om)(?!\p{L})/giu, ' ').trim();

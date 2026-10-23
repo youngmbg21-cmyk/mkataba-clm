@@ -374,7 +374,8 @@ describe('F-A — the verdict is written by the smart model', () => {
         compare: { columns: [{ id: 'MK-A1', label: 'Sugar' }, { id: 'MK-A2', label: 'Milk' }],
           rows: [{ label: 'Value', cells: ['48M', '36M'] }], verdict: 'MK-A1, on price.' } }),
     );
-    const r = await ask(W.admin, 'compare MK-A1 and MK-A2 — which is better for us?');
+    /* worded as a lookup: a question of judgement now runs deep from its first step (f870) */
+    const r = await ask(W.admin, 'put MK-A1 and MK-A2 side by side');
     assert.equal(ai.calls[0].body.model, FAST_MODEL, 'routing/tool selection stays on the fast tier');
     assert.equal(ai.calls[1].body.model, DEEP_MODEL, 'the synthesis AFTER a compare is the legal-adjacent verdict — deep');
     assert.equal(r.compare.verdict, 'MK-A1, on price.');

@@ -2460,6 +2460,18 @@ function aiFailWhy(e, transport){
     : kind==='provider' ? i18t('ai_engine_provider')
     : transport ? i18t('ai_engine_unavailable') : i18t('ai_answer_unreadable');
 }
+/* WEIGHED BY THE STRONGER MODEL, AND WHAT IT COST (owner, 23 Oct 2026): a question of judgement runs on
+   the server's deep tier (copilotNeedsJudgement); the answer says so in one quiet line under it, the
+   turn's own booked dollars beside it for an admin (the server sends `cost` to admins only). ONE
+   builder for every host that draws a chat answer. */
+function aiDeepLineHtml(res){
+  const d=res&&res.deep; if(!d) return '';
+  const c=Number(d.cost);
+  const words=Number.isFinite(c)&&d.cost!=null
+    ? i18t('ai_deep_line_cost',{cost:c<0.001?'<$0.001':'$'+c.toFixed(c<0.1?3:2)})
+    : i18t('ai_deep_line');
+  return `<div class="jb-deep" data-ai-deep>${_aiEsc(words)}</div>`;
+}
 function aiRenderServerAnswer(res, q){
   /* A malformed or empty body must not throw a TypeError into the message the
      customer reads — see aiDegrade. */
@@ -2471,6 +2483,7 @@ function aiRenderServerAnswer(res, q){
   extra+=aiRuleDoorHtml(res.ruleDoor, q);
   let text=aiFmt(res.answer||'');
   if(res.notice) text+=`<div class="text-[11px] text-amber-700 mt-2 leading-relaxed">${_aiEsc(res.notice)}</div>`;
+  text+=aiDeepLineHtml(res);
   const choices=aiWayChoicesOf(res, q);
   return choices.length?{ text, cards:extra, choices }:{ text, cards:extra };
 }
@@ -5855,4 +5868,4 @@ Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,a
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiDeepLineHtml,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

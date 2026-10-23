@@ -130,6 +130,21 @@ describe('f811 (B) a contract named any way, and what is asked of it', () => {
     assert.equal(U(w, 'sign mk 345').place, 'sign');
     assert.equal(U(w, 'obligations of mk 345').place, 'oblig');
   });
+  test('B4b the overview or the Board, with a contract named: its strip on the Board, on its Overview (owner, 23 Oct 2026)', () => {
+    for (const box of ['settings', 'page', 'window']){
+      for (const q of ['take me to the board and show me the overview of contact mk 345', 'take me to the board and show me the overview of contract mk 345',
+        'show me the overview of mk 345', 'show me mk 345 on the board', 'go to the board and show mk 345']){
+        const a = U(w, q, box); assert.equal(a && a.place, 'board', box + ': ' + q); assert.equal(a.cid, 'MK-345', box + ': ' + q);
+      }
+    }
+    assert.equal(U(w, 'history of mk 345 on the board').place, 'history', 'a named page keeps its own');
+    assert.equal(U(w, 'who is the contact for mk 345').kind, 'ask', '"contact" not before the number stays the word it is');
+    assert.match(w.caGoSay(w.caUnderstand('show me the overview of mk 345')), /Here is MK-345 on the Board, on its Overview/);
+    const { w: w2, calls } = stage({ view: 'team' });
+    w2.eval("window.hbStripBring = function(id, pg){ __calls.push(['strip', id, pg]); return true; };");
+    assert.ok(w2.caGo(w2.caUnderstand('take me to the board and show me the overview of contact mk 345', { box: 'settings' })));
+    assert.deepEqual(JSON.parse(JSON.stringify(calls.filter(c => c[0] === 'strip'))), [['strip', 'MK-345', 'ov']]);
+  });
   test('B5 a party with one contract is that contract; a party with several is the Contracts place narrowed', () => {
     assert.equal(U(w, 'take me to the siginon contract').cid, 'MK-1');
     const a = U(w, 'nordfrakt contracts'); assert.equal(a.place, 'contracts'); assert.equal(a.narrow.n, 2); assert.equal(a.narrow.party, true);
@@ -191,6 +206,16 @@ describe('f811 (C) what stays a box\'s own, and what only settings stop', () => 
     assert.match(APP, /function commandPaletteResults\(q\)\{[\s\S]*?caContractOf\(q\)/);
     assert.match(APP, /caUnderstand\(q,\{ box:'bar' \}\)/);
     const { w } = stage(); assert.equal(w.caContractOf('mk 345').c.id, 'MK-345');
+  });
+});
+
+describe('f811 (C2) Settings hands Jambo what is no setting', () => {
+  test('C6b a contract named, or "take me" that no setting answers, is Jambo\'s, never "I could not find a setting" (owner, 23 Oct 2026)', () => {
+    const S = R('js/views/settings.js');
+    const sub = S.slice(S.indexOf("if(!f || f.id!=='st-jb-form') return;"), S.indexOf('stJbAsk(q);', S.indexOf("if(!f || f.id!=='st-jb-form') return;")));
+    assert.match(sub, /named=typeof caContractOf==='function'&&!!caContractOf\(q\)/);
+    assert.match(sub, /const asks=!rules&&\(ST_JB_ASK_RE\.test\(q\)\|\|named\|\|\(!hits\.length&&ST_JB_GO_RE\.test\(q\)\)/);
+    assert.match(sub, /if\(!hits\.length&&asks&&typeof caAiFirst==='function'&&caAiFirst\(\)&&typeof aiAskWords==='function'\)\{ stJbAskJambo\(q\); return; \}/);
   });
 });
 

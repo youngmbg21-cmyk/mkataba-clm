@@ -95,6 +95,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
 - ACTIONS ON THE PAPER'S LINE (23 Oct 2026): paper-actions-verify (right of Share, lands on the whole list, again folds, from another tab, Swedish, three screens; 7: Edit clause and Add a clause from the list open the editor with no Redlines open first); f754 9j; edit-clause-door-verify.
+- ONE ASK ON A CARD, TWO DEPTHS (23 Oct 2026): f461 (C)/(D), f538, f527, f528, f665; browser read-then-ask-verify 4a–4i (answer inside the card under the chart, the menu has Dig deeper once and no "What could explain this?"), charts-that-explain-verify 1/3, chart-headline-verify 3c, insights-shelf-verify 6a/6c.
 - THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
 - Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
 - 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
@@ -126,6 +127,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f730; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
 - MARQUEE (23 Oct 2026): obligations-renewal-legora-way-verify 1a re-pointed (three columns, labels in small capitals; how far off on the date's hover); obligations-tab-verify green.
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 
@@ -295,6 +297,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE AI'S READING RULES
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
+- f870 (judgement on the stronger model: the reader's exam, both chat routes, admin-only dollars, one pinned model says nothing; f133/f134's compare-escalation tests re-worded as lookups), judgement-line-verify (the line painted under the answer in the Jambo window and Home's panel, one line, at the three screens; a lookup draws none).
+- f871 (the meter prices a dated model id as its model: a fast call booked at Haiku's price, an admin's exact row still wins, the import estimate the same; 2 of 3 red at the parent).
 
 ## THE POP-UPS, THE SAP WAY
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
@@ -340,6 +344,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f252, f288, keeps-your-place-verify.
 
 ## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
+- THE DOOR EXAM (23 Oct 2026; owner: "do what is necessary for jambo to get things right"): test/door-exam.js + test/chromium/door-exam-verify.js — reads HaTi's own lists off the running app (NAV_ACTS, NAV_PLACES, CA_MENU, CA_PLACES, every Settings page and card by its title via `navStTitles`) and FAILS when a door has no sentence; every sentence typed into the Board's, a list's and Settings' box and landed (test/nav-read.js reads dialog, panel, Key terms, folds, strip page, archive, Present, Recent, Findings, watches, new tabs). Required green, no ratchet. One list: `DOOR_EXAM_ONLY=act|place|menu|ca|st`. Red at the parent: every new act and place, 42 Settings titles.
+- THE OVERVIEW OR THE BOARD WITH A CONTRACT NAMED (23 Oct 2026): f811 B4b (new; "take me to the board and show me the overview of contact mk 345" from Settings, a list or the window → its strip on the Board, on Overview; "contact" before the number read as "contract"; a named page keeps its own) and C6b (Settings hands a contract named, or "take me" no setting answers, to Jambo). nav-exam 201/202.
 - The exam: test/nav-exam.js (194 asks) over test/nav-world.js, typed by test/chromium/nav-exam-verify.js into the real boxes; a measurement with a ratchet (`NAV_EXAM_FLOOR`). Before anything was built: 81 of 194.
 - After stages 1–4 (js/navmap.js): 188 of 194; the ratchet stands at 194 (201 of 202 with the compare section); after a change to the compare reader also run sap-popups, grey-not-dead, counterparty-reading-and-more. Run one section with `NAV_EXAM_ONLY=<section>`. A change to how Jambo reads words also runs: answer-where-you-stand, board-says-it-plain, board-words, choices-when-unclear, every-door-lands-on-home, jambo-everywhere, jambo-finds-the-way, jambo-map, jambo-moves-and-opens, jambo-words, ref-in-my-question, show-it-here-first, held-contract-asks, jambo-follows-the-ask, home-board, jambo-chat-window, one-recipe-language, jambos-list-panel.
 
@@ -361,3 +367,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Node: f707 9a (Redlines grey both ways) and 9b (the Obligations panel and its back), f563 2a (PD_TABS_SHOWN), f676 10f, f705 3a (oblig back), f707 2a (the Obligations line), f708 1a (no ref), f742 2d (the strip head keeps the ref alone), f748 3 (the current stage line).
 - Browser, re-pointed after CI: upload-blanks 3a–3c/3g (the Fill in line), jambo-box-every-panel 1 and ask-box-on-copilot-only 2 (Obligations opened from its line), analyze-on-the-graph 1d, home-and-recent 5a, one-reference-face (Negotiate prints no ref of its own), piles-as-drawn 1a, home-paper-clauses 3a/3b, negotiations-door 7 (Redlines lit while its face is up).
 - Browser, re-pointed: checklist-as-drawn 1a (six lines, one current, no headline/sentence/party, no Needs you head), blanks-panel PANEL (the Fill in line), jambos-panel 6 and paper-panel-as-drawn 7 (the first stage line), paper-panel-as-drawn 2a/2g, owed-first-as-drawn 1a/8a (Confirm N read on the Fill in line), draft-upload-glance 6a, home-held-contract 2a/4, home-first 3a0/3a2, stakes 8, the-brief-and-sap-history 1f, amendment-journey (the Obligations trail), clauses-legora-way 1 (no sentence), board-strip 2a, paper-line 1a.
+
+## THE TRACKED-CHANGES COLUMN — ONE SHADE (23 Oct 2026)
+- test/chromium/one-shade-verify.js (new; red at unmodified main 1–5): a pressed row shaded, no ring; a hovered risk card takes the shade, no underline; a pressed risk card takes it from the row; no Why/Hide why; the settled fold dressed as the Covered fold.
+- Node re-pointed: f506 (C) (no Why press), f522 (6) (the reason always open) and (10) (the stub document answers querySelectorAll).

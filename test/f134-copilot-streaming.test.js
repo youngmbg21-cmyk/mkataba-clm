@@ -141,7 +141,7 @@ describe('the protocol, and the parity that matters', () => {
   test('deep-tier escalation carries over: after a compare, the next streamed call runs deep', async () => {
     ai.reset();
     ai.script(toolCall('compare_contracts', { ids: ['MK-A1', 'MK-A2'] }), deliver({ answer: 'v', citations: [] }));
-    await askStream(W.admin, 'which is better?');
+    await askStream(W.admin, 'MK-A1 and MK-A2 side by side');   // a lookup's words: judgement runs deep from the start (f870)
     assert.equal(ai.calls[0].body.model, FAST_MODEL);
     assert.equal(ai.calls[0].body.stream, true, 'the provider call itself is streamed');
     assert.equal(ai.calls[1].body.model, DEEP_MODEL, 'work order #2\'s escalation applies to the stream route too');
