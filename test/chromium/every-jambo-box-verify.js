@@ -21,6 +21,8 @@
        up as a page and its History, a paper with and without rows still
        owed, Before you sign and the Board — draws no line and no keys
      3 the phone: the floating window draws no line (the phone stays untouched)
+   and in 1 and 2, every EMPTY box stands one line tall whatever its hint
+   (owner, 22 Oct 2026)
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/every-jambo-box-verify.js
    Photographs: HATI_SHOT_DIR=<dir> node test/chromium/every-jambo-box-verify.js */
@@ -89,11 +91,27 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
       const hs = host ? document.querySelector(host) : null, h = hs || (b.parentElement && b.parentElement.parentElement) || document.body;
       const br = b.getBoundingClientRect();
       const drawn = [...h.querySelectorAll(sel)].filter(e => e.getClientRects().length && e.getBoundingClientRect().height > 0);
-      return { lines: drawn.length, words: (h.textContent || '').includes(line),
+      /* AN EMPTY BOX IS ONE LINE (owner, 22 Oct 2026): given a hint far too
+         long for its line, the empty box keeps one line's height — the hint
+         is never measured (red at 2a39d1b: the hint's wrapped lines stood it
+         two and more lines tall in a narrow panel) */
+      const t = b.matches('textarea') ? b : b.querySelector('textarea');
+      let oneLine = null;
+      if (t && !t.value && typeof jamboCardGrow === 'function'){
+        const ph = t.placeholder, cs = getComputedStyle(t);
+        const one = (parseFloat(cs.lineHeight) || 21) + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+        t.placeholder = 'Ask about this contract, a number, a list, a person, a date or anything else you would like to know today';
+        jamboCardGrow(t);
+        const th = t.getBoundingClientRect().height, card = t.closest('.jb-card');
+        oneLine = { h: Math.round(th), one: Math.round(one), tall: !!(card && card.classList.contains('is-tall')) };
+        oneLine.ok = th <= Math.max(one, parseFloat(cs.minHeight) || 0) + 1.5 && !oneLine.tall;
+        t.placeholder = ph; jamboCardGrow(t);
+      }
+      return { lines: drawn.length, words: (h.textContent || '').includes(line), oneLine,
         inView: br.top >= 0 && br.bottom <= innerHeight + 1, side: document.documentElement.scrollWidth <= innerWidth + 1 };
     };
     const ARG = (box, host) => ({ box, host, sel: HINT_SEL, line: LINE });
-    const ok = L => !!L && L.lines === 0 && !L.words && L.inView && L.side;
+    const ok = L => !!L && L.lines === 0 && !L.words && L.inView && L.side && (!L.oneLine || L.oneLine.ok);
 
     /* the builders of the line and its keys are gone, not merely uncalled */
     const gone = await page.evaluate(() => ['jamboHintHtml', 'igHintKeys', 'igHintPaint', 'aiHintPaint'].filter(n => typeof window[n] === 'function'));

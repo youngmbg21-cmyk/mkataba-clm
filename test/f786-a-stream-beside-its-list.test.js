@@ -195,7 +195,8 @@ describe('f786 (7) a held contract\'s Open goes where its hold is placed and rel
     const g = streams({ before: sb => { sb.hbStripBring = (id, page) => { brought.push([id, page]); return true; }; } });
     pick(g, 'sales');
     g.click(g.q('#st-jb-feed [data-st-swp-open="MK-S3"]'));
-    assert.deepEqual(brought.map(x => [...x]), [['MK-S3', 'details']]);
+    /* RE-POINTED 22 Oct 2026 (the strip's Details page RETIRED): where Home's paper cannot open, the strip comes up on its Overview */
+    assert.deepEqual(brought.map(x => [...x]), [['MK-S3', 'ov']]);
     assert.equal(g.log.opened.length, 0, 'not the paper');
   });
 });

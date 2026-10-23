@@ -81,27 +81,29 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     /* 3 the week's pill, 4 the value tile */
     /* the value's line is the value row's own (round 17 as drawn, 18 Oct 2026);
        Jambo's work card stays on the Board (the owner's answer of 18 Oct) */
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the week ahead is one row of Needs you; its agreement column says its dates */
     const fig = await page.evaluate(() => ({
-      week: (document.querySelector('[data-hm-agent-row="week"] .hb-pill') || {}).textContent || null,
+      week: (() => { const r = ndRead().jambo.find(x => x.agent === 'week'); const m = r && /^(\d+) dates?\b/.exec(ndParts(r).deal); return m ? m[1] : null; })(),
       left: (document.querySelector('#hb-board [data-hb-fig="value"] .hb-fig-left') || {}).textContent || null }));
-    check('3 the Week ahead pill counts its dates', fig.week != null && Number(fig.week) > 1, JSON.stringify(fig));
+    check('3 the Week ahead row counts its dates', fig.week != null && Number(fig.week) > 1, JSON.stringify(fig));
     check('4 the value tile names the currency it leaves out', /USD/.test(fig.left || ''), JSON.stringify(fig));
 
     /* 8 the late duties, one job each (owner, 16 Oct 2026) */
-    const late = await page.evaluate(() => ({ ours: !!document.querySelector('[data-hm-agent-row="ours"]'),
+    const late = await page.evaluate(() => ({ ours: !!document.querySelector('#hm-agents [data-nd-agent="ours"]'),
       split: (document.querySelector('#hb-board [data-hb-fig="overdue"] .hb-fig-left') || {}).textContent || null }));
     check('8a Our promises is no longer a row on the Board', !late.ours, JSON.stringify(late));
     check('8b the Obligations overdue figure says how it splits, ours and theirs', /^\s*20 ours · 20 theirs\s*$/.test(late.split || ''), JSON.stringify(late));
 
-    /* 2 a long agent list: eight, then the rest (Late promises, since Our promises left the Board) */
-    await page.locator('#hb-board [data-hm-agent-row="late"] .hb-ag-w').first().tap();
-    await waitFor(page, () => document.querySelectorAll('#hb-focus .hb-ag-work').length > 0, 8000);
-    const before = await page.evaluate(() => document.querySelectorAll('#hb-focus .hb-ag-work').length);
-    const more = page.locator('#hb-focus [data-hb-ag-more]');
+    /* 2 a long list: twelve, then the rest (RE-POINTED 22 Oct 2026, Round A: every piece is a row of Needs you,
+       twelve at a time; was Late promises' eight below the card) */
+    await page.locator('#hm-agents [data-nd-tab="jambo"]').first().tap();
+    await waitFor(page, () => document.querySelectorAll('#hm-agents .nd-br').length > 0, 8000);
+    const before = await page.evaluate(() => document.querySelectorAll('#hm-agents .nd-br').length);
+    const more = page.locator('#hm-agents [data-nd-more]');
     let after = before;
-    if (await more.count()){ await more.first().tap(); await waitFor(page, n => document.querySelectorAll('#hb-focus .hb-ag-work').length > n, 6000, before);
-      after = await page.evaluate(() => document.querySelectorAll('#hb-focus .hb-ag-work').length); }
-    check('2 Late promises opens eight and Show more brings the rest', before === 8 && after > 8, `${before} → ${after}`);
+    if (await more.count()){ await more.first().tap(); await waitFor(page, n => document.querySelectorAll('#hm-agents .nd-br').length > n, 6000, before);
+      after = await page.evaluate(() => document.querySelectorAll('#hm-agents .nd-br').length); }
+    check('2 Jambo\'s pieces open twelve at a time and Show 12 more brings the next', before === 12 && after > 12, `${before} → ${after}`);
 
     /* 8c asking Jambo for late duties opens the figure's own list, no second panel */
     const panelsBefore = await page.evaluate(() => (hbS().panels || []).length);

@@ -6,7 +6,7 @@
      1 signing in on a computer lands on Home: Jambo's box, no left menu, no
        row of tabs; the bar reads ‹ · HaTi · "Home" (the mark reads "HaTi"
        since Chambers, 20 Oct 2026)
-     2 Needs you: Jambo's work is the first row; each contract's owed item is
+     2 Needs you: Jambo's prepared work is the first group; each contract's owed item is
        a row (the Board's own reading) whose button opens its door; an admin
        has one row onto Settings; the number is the rows that owe something
      3 the box: a place opens and the bar names it; "/" lists every page and
@@ -94,14 +94,15 @@ const CONTRACTS = [
 
     console.log('\n2 · Needs you');
     const needs = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#cn-needs .cn-r')];
       const L = hbNeedsList();
-      return { first: rows[0] ? rows[0].classList.contains('cn-jw') : false, jwText: rows[0] ? rows[0].innerText.replace(/\s+/g, ' ') : '',
+      /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Jambo's group comes first while he has prepared anything */
+      const groups = [...document.querySelectorAll('#cn-needs .nd-g')].map(g => g.getAttribute('data-nd-g'));
+      return { first: ndRead().jambo.length ? groups[0] === 'jambo' : groups[0] === 'you', jwText: JSON.stringify({ groups, jambo: ndRead().jambo.length }),
         cnt: Number((document.querySelector('#cn-needs .cn-cnt') || {}).textContent), needRows: document.querySelectorAll('#cn-needs [data-cn-need]').length,
         book: L.length, ready: hbAgentsData(null).ready, co: document.querySelectorAll('#cn-needs [data-cn-co]').length, company: stNeedsAll().length, rowsMax: CN_ROWS,
         owed: L.map(x => x.c.id + ':' + x.it.kind) };
     });
-    check('2a Jambo\'s work is the first row', needs.first, needs.jwText);
+    check('2a Jambo\'s prepared work is the first group, while he has any', needs.first, needs.jwText);
     check('2b every owed item of the book is a row', needs.book > 0 && needs.needRows === Math.min(needs.book, needs.rowsMax), JSON.stringify(needs.owed));
     check('2c the admin has one row onto Settings', needs.company > 0 ? needs.co === 1 : needs.co === 0, `${needs.company} things in Settings`);
     check('2d the number is the rows that owe something', needs.cnt === (needs.ready ? 1 : 0) + needs.book + (needs.company ? 1 : 0), JSON.stringify(needs));

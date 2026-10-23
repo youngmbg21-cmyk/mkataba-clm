@@ -170,9 +170,11 @@ describe('f442 (1) the essentials card holds every term, once', () => {
        retired; the Overview's sheet is the contract strip's Details page on
        the Board, reached through its one door (roomOverviewOpen) */
     const door = strip(fnBody(CONTRACT, 'roomOverviewOpen'));
-    assert.ok(/ovSetEditing\(OV_KEY\(c,'record'\), true\)/.test(open) && /roomOverviewOpen\(c\)/.test(open)
-      && /roomRetiredLand\(c\.id,'details'\)/.test(door) && /roomGoTab\(c,'terms'\)/.test(door),
-      'the ⋯ row turns the same posture on and goes to the Overview');
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED): on a computer the ⋯ row is Key terms'
+       filing line with Move open (pdKtFocus 'stream'); in the room by name and on the phone the posture as before */
+    assert.ok(/pdKtFocus\(c\.id,'stream'\)/.test(open) && /ovSetEditing\(OV_KEY\(c,'record'\), true\)/.test(open) && /roomOverviewOpen\(c\)/.test(open)
+      && /pdKtOpen\(c\.id\)/.test(door) && /roomGoTab\(c,'terms'\)/.test(door),
+      'the ⋯ row goes to Key terms\' filing on a computer, the Overview in the room');
     assert.ok(/id="ws-filing"/.test(CONTRACT) && /ws-filing'\)\?\.addEventListener\('click',\(\)=>ovOpenFiling\(c\)\)/.test(CONTRACT),
       'the row is on the room\'s ⋯ menu');
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): one wiring for

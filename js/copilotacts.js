@@ -1639,7 +1639,14 @@ const CA_PLACES = [
   /* A CONTRACT'S BRIEF (owner, 19 Oct 2026: "briefing for contracts mk 345"):
      the paper's own "Read the brief" door (caBriefOpen → openCheckPanel), a
      kept brief free, none kept says Write the brief and its cost */
-  { k: 'brief', need: 'one', w: ['brief', 'briefing', 'the brief', 'its brief', 'read the brief', 'summary', 'summarise', 'summarize', 'sammanfattning', 'sammanfattningen', 'sammanfatta', 'briefen', 'läs sammanfattningen'] },
+  /* "summarise this contract", "what is it about" (owner, 22 Oct 2026: "sometimes hati writes a brief instead of
+     bringing the brief from the side panel"): the paper's kept brief, never one the chat writes again */
+  { k: 'brief', need: 'one', w: ['brief', 'briefing', 'the brief', 'its brief', 'read the brief', 'summary', 'summarise', 'summarize', 'sammanfattning', 'sammanfattningen', 'sammanfatta', 'briefen', 'läs sammanfattningen',
+    'a summary', 'its summary', 'the summary', 'give me a summary', 'give me the summary', 'give me the brief', 'give me its brief',
+    'summarise it', 'summarize it', 'summarise this', 'summarize this', 'summarise this contract', 'summarize this contract', 'summarise this agreement', 'summarize this agreement',
+    'summary of this contract', 'summary of this agreement', 'brief of this contract', 'the brief of this contract',
+    'what is it about', "what's it about", 'what is this about', "what's this about", 'what is this contract about', "what's this contract about", 'what is this agreement about', "what's this agreement about",
+    'sammanfatta det', 'sammanfatta avtalet', 'sammanfatta detta avtal', 'vad handlar det om', 'vad handlar avtalet om', 'vad handlar detta avtal om'] },
   { k: 'board', w: ['board', 'tavla', 'tavlan'] },
   /* "needs me" (Jambo's note, 15 Oct 2026): the Board's Needs you card, every item */
   { k: 'needs', w: ['needs me', 'what needs me', 'needs you', 'what needs you', 'waiting on me', 'what is waiting on me', "what's waiting on me", 'väntar på mig', 'vad väntar på mig', 'behöver mig', 'vad behöver mig'] },
@@ -2400,6 +2407,35 @@ const CA_CONTRACT_FRAME = /(?<!\p{L})(?:please|can|could|would|will|you|i|we|me|
 const CA_CONTRACT_ASKS = /^\s*(?:what|which|who|whom|whose|why|when|where|how|is|are|was|were|does|do|did|has|have|can|could|should|would|will|tell me|explain|vad|vilken|vilka|vem|varför|när|var|hur|är|finns|har|kan|ska|förklara)(?!\p{L})/iu;
 /* "bring up MK-…" is the Board's strip (hbBringOf), its own door */
 const CA_CONTRACT_BRING = /^\s*(?:(?:can|could|would)\s+you\s+|please\s+)*(?:bring\s+up|pull\s+up|ta\s+fram)(?!\p{L})/iu;
+/* A FOLLOW-UP CARRIES THE LAST ACT (owner, 22 Oct 2026: after "show me the brief
+   for MK-382", "what about for mk 380" was written as a brief by the chat
+   instead of opening MK-380's kept one). "what about X", "and X?", "same for
+   X" with nothing else asked repeats what the conversation last did for a
+   contract — read off the ONE conversation (intel.history: an act Jambo
+   carried out, else the words of the last ask), never stored apart. Only the
+   acts that open something to read; nothing is pressed or sent. */
+const CA_FOLLOW_LEAD = /^\s*(?:(?:and|so|ok(?:ay)?|och|okej)[\s,]+)?(?:(?:what|how)\s+about|and|same(?:\s+thing)?|now|then|also|vad\s+sägs\s+om|hur\s+är\s+det\s+med|och|samma|nu|sen)(?:\s+(?:for|with|on|för|med|på))?(?!\p{L})/iu;
+const CA_FOLLOW_ACTS = ['brief', 'history', 'oblig', 'redline', 'sign', 'fill'];
+function caFollowAct(q){
+  let H = []; try { H = (typeof intel !== 'undefined' && intel && Array.isArray(intel.history)) ? intel.history : []; } catch (_){ H = []; }
+  const cur = String(q || '').trim(); let skipped = false;
+  for (let i = H.length - 1, n = 0; i >= 0 && n < 6; i--, n++){
+    const m = H[i]; if (!m) continue;
+    if (m.role === 'assistant'){
+      const a = m.act;
+      if (a && a.kind === 'go' && a.cid && CA_FOLLOW_ACTS.includes(a.place)) return a.place;
+      if (a) return null;          // the conversation last did something else
+      continue;                    // the chat's answer: the ask before it says what was wanted
+    }
+    if (m.role === 'user'){
+      const t = String(m.text || '').trim();
+      if (!skipped && t === cur){ skipped = true; continue; }   // the ask being read, where already written down
+      const k = caContractActOf(t);
+      return k && CA_FOLLOW_ACTS.includes(k) ? k : null;
+    }
+  }
+  return null;
+}
 function caReadContract(q, opts = {}){
   const f = caContractOf(q); if (!f) return null;
   if (f.miss) return { kind: 'noref', ref: f.miss, state: 'ready' };
@@ -2417,6 +2453,9 @@ function caReadContract(q, opts = {}){
   left = left.replace(/\s+/g, ' ').trim();
   if (CA_CONTRACT_BRING.test(left)) return { kind: 'hand', cid: c.id, state: 'ready' };
   const act = caContractActOf(left);
+  if (!act && CA_FOLLOW_LEAD.test(left) && !left.replace(CA_FOLLOW_LEAD, ' ').replace(CA_CONTRACT_FRAME, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()){
+    const k = caFollowAct(q); if (k) return { kind: 'go', place: k, cid: c.id, follow: true, state: 'ready' };
+  }
   const actRe = act ? (CA_CONTRACT_ACTS.find(x => x[0] === act) || [])[1] : null;
   const bare = left.replace(actRe ? new RegExp(actRe.source, 'giu') : /$^/, ' ').replace(new RegExp(CA_FIND_NOUN.source, 'giu'), ' ').replace(CA_CONTRACT_FRAME, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
   const asks = CA_CONTRACT_ASKS.test(left);

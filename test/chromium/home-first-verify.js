@@ -159,25 +159,29 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     const r = await page.evaluate(() => ({ id: intel.paper && intel.paper.id, walk: !!intel.walk }));
     ok('4b pressing it opens that contract on Paper, outside the walk', r.id === 'MK-HF3' && !r.walk, JSON.stringify(r));
 
-    /* ===== 5. REVIEW ON LATE PROMISES OPENS THE PAPER AT OBLIGATIONS ===== */
-    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
-    await page.waitForSelector('[data-hb-review-paper="late"]', { timeout: 8000 }).catch(() => {});
-    const late = await page.$('[data-hb-review-paper="late"]');
-    ok('5a the Late promises row\'s Review is a door onto the Paper', !!late);
+    /* ===== 5. THE LATE PROMISE OPENS THE PAPER AT OBLIGATIONS =====
+       RE-POINTED 22 Oct 2026 (Round A, the one desk): no per-agent Review row; the late promise is a row of the
+       Board's Needs you card, its Look opens it in place, and its "Open the obligations" act lands on the paper */
+    await page.evaluate(() => hbOpenAgent('late'));
+    await page.waitForSelector('#hm-agents [data-nd-agent="late"] [data-hb-ag-look]', { timeout: 8000 }).catch(() => {});
+    await page.evaluate(() => { const r = [...document.querySelectorAll('#hm-agents [data-nd-agent="late"]')].find(x => /MK-HF4/.test(x.getAttribute('data-hb-ag-item')));
+      if (r && !r.classList.contains('is-look')) r.querySelector('[data-hb-ag-look]').click(); });
+    await page.waitForSelector('#hm-agents .nd-br.is-look [data-ag-act="oblig"]', { timeout: 8000 }).catch(() => {});
+    const late = await page.$('#hm-agents .nd-br.is-look [data-ag-act="oblig"]');
+    ok('5a the late promise, opened, carries its door onto the obligations', !!late);
     if (late) await late.click();
-    await page.waitForFunction(() => intel.paper && intel.paper.id === 'MK-HF4' && !!document.getElementById('pd-body'), null, { timeout: 8000 }).catch(() => {});
-    const l = await page.evaluate(() => ({ face: hbFace(), id: intel.paper && intel.paper.id, tab: pdTab(),
-      chase: [...document.querySelectorAll('#pd-body button')].some(b => /Chase/.test(b.textContent)) }));
-    ok('5b it lands on the contract at Obligations, with the chase there', l.face === 'paper' && l.id === 'MK-HF4' && l.tab === 'oblig' && l.chase, JSON.stringify(l));
+    /* the act's own door (agRunAct 'oblig' → agGo): the Obligations worklist, where the late promise is a row with its chase */
+    await page.waitForFunction(() => state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
+    const l = await page.evaluate(() => ({ view: state.view, named: /MK-HF4/.test((document.getElementById('content') || {}).innerText || '') }));
+    ok('5b it lands on the Obligations worklist, the late promise\'s contract among its rows', l.view === 'obligations' && l.named, JSON.stringify(l));
     await page.screenshot({ path: path.join(OUT, '5-late.png') });
 
-    /* ===== 5c. A WORK CARD NAMES ITS CONTRACT (Young, 8 Oct 2026: "no contract number in the card") ===== */
+    /* ===== 5c. A WORK ROW NAMES ITS CONTRACT (Young, 8 Oct 2026: "no contract number in the card") ===== */
     await page.evaluate(() => hbOpenAgent('late'));
-    /* RE-POINTED 19 Oct 2026 (the owner's answer (18), "Fold to one line"): the
-       reference rides each piece's own one-line row, beside what it is */
-    await page.waitForSelector('.hb-ag-work .hb-pc-ref', { timeout: 8000 }).catch(() => {});
-    const refd = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-work .hb-pc-ref')].map(e => (e.querySelector('.hati-ref') || {}).textContent || ''));
-    ok('5c Copilot\'s work card leads its contract line with the reference', refd.length > 0 && refd[0] === 'MK-HF4', JSON.stringify(refd));
+    /* RE-POINTED 22 Oct 2026 (Round A): the reference stands in the row's Agreement column, in its one dress */
+    await page.waitForSelector('#hm-agents [data-nd-agent="late"] .nd-c-deal .hati-ref', { timeout: 8000 }).catch(() => {});
+    const refd = await page.evaluate(() => [...document.querySelectorAll('#hm-agents [data-nd-agent="late"] .nd-c-deal')].map(e => (e.querySelector('.hati-ref') || {}).textContent || ''));
+    ok('5c a late promise\'s row names its contract by reference', refd.length > 0 && refd.includes('MK-HF4'), JSON.stringify(refd));
 
     /* ===== 6. THE ANSWER FIRST ===== */
     const src = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'views', 'intelligence.js'), 'utf8');

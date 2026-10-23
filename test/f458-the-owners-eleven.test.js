@@ -311,10 +311,12 @@ describe('f458 (11) — the x that closes a card is in its right corner', () => 
        chart kept on the board closes from its ⋯ — "Remove from the board", in
        red, last — like the artifact's cards; the corner x stays on the two
        cards that are not kept charts (Copilot's work, the opened card). */
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the card under Your book is all of Needs you and
+       never closes (work owed is not hidden), so the opened card's x is the one corner x left */
     const xs = (BOARD.match(/class="hb-ib hb-x"/g) || []).length;
-    assert.equal(xs, 2, 'expected two corner x buttons, found ' + xs);
+    assert.equal(xs, 1, 'expected one corner x button, found ' + xs);
     assert.equal((BOARD.match(/_hbMi\('data-hb-act="x"'/g) || []).length, 2, 'both kinds of kept card remove from their ⋯');
-    for (const door of ['data-hb-prep="closed"', 'data-hb-crumb="-1"'])
+    for (const door of ['data-hb-crumb="-1"'])
       assert.ok(new RegExp('class="hb-ib hb-x"[^>]*' + door.replace(/"/g, '"')).test(BOARD)
         || new RegExp(door.replace(/"/g, '"') + '[^>]*class="hb-ib hb-x"').test(BOARD),
         door + ' is not the one wearing hb-x');

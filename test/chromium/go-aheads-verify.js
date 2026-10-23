@@ -231,7 +231,7 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
       await pause(500);
       after = await own.evaluate(() => { const c = getContract('MK-R9');
         const st = document.querySelector('#bs-strips > .bs-strip');
-        return { view: state.view, id: state.activeId, tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
+        return { view: state.view, id: state.activeId, paper: (window.intel && intel.paper) ? String(intel.paper.id) : null, ptab: (typeof pdTab === 'function') ? pdTab() : null, tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
           strip: st ? st.getAttribute('data-bs-id') + ':' + st.getAttribute('data-bs-on') : null,
           busy: !!(c && c._triaging), triageAt: c && c.triage ? c.triage.at : null,
           steps: c && c.triage ? Object.keys(c.triage.steps || {}) : [], briefAt: c && c._brief ? c._brief.at : null }; });
@@ -240,7 +240,8 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     /* RE-POINTED 15 Oct 2026 (step 8 of the overnight work order: the room
        retired): the Overview's sheet, renewal card and all, is the contract
        strip's Details page on Home's Board — Decide lands there */
-    ok('3c [control] it lands on the contract\'s Overview — the door built earlier the same day', !!after && after.view === 'dashboard' && after.id === 'MK-R9' && after.strip === 'MK-R9:details', JSON.stringify(after));
+    /* RE-POINTED 22 Oct 2026 (the strip's Details page RETIRED): Decide opens the contract's Obligations tab beside its paper, where the renewal is decided now */
+    ok('3c [control] it lands on the contract\'s Obligations tab, where the renewal stands', !!after && after.view === 'dashboard' && after.paper === 'MK-R9' && after.ptab === 'oblig', JSON.stringify(after));
     ok('3d and the whole arrival read runs again — all five readings, stamped after the press',
       !!after && !!after.triageAt && Date.parse(after.triageAt) >= pressAt - 1000 && !after.busy
         && ['risk', 'brief', 'playbook', 'oblig', 'fill'].every(k => after.steps.includes(k)),
@@ -262,7 +263,6 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
        each was wrong the first time a signed contract was read again. */
     /* the open-fields tile stands on the strip's Details page (read first);
        the strip's own band is drawn on its Overview page: turn the strip back to it */
-    const triTile = await own.evaluate(() => (document.getElementById('kt-triage-slot') || { innerText: '' }).innerText.replace(/\s+/g, ' '));
     await own.evaluate(() => { if (window.hbStripBring) hbStripBring('MK-R9'); });
     await own.waitForFunction(() => !!document.querySelector('#bs-strips .bs-strip[data-bs-id="MK-R9"] .bs-jb .bs-note'), null, { timeout: 8000 }).catch(() => {});
     const face = await own.evaluate(() => {
@@ -272,9 +272,6 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
       const facts = (document.querySelector('#bs-strips .bs-strip[data-bs-id="MK-R9"] .bs-jb .bs-note') || { innerText: '' }).innerText.replace(/\s+/g, ' ');
       return { facts };
     });
-    face.strip = triTile;
-    ok('3g2 a signed contract\'s open-fields tile says it is signed, not "in negotiation"',
-      /signed — its wording is final/i.test(face.strip) && !/in negotiation/i.test(face.strip), face.strip.slice(0, 400));
     ok('3g3 and the head\'s Copilot fact follows the reading below it — it no longer says "Not read yet"',
       /^read /i.test(face.facts) && !/not read/i.test(face.facts), face.facts);
     await own.screenshot({ path: path.join(OUT, '3-overview-after-decide.png') });
@@ -289,6 +286,11 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     const quiet = await own.evaluate(() => { const c = getContract('MK-R9');
       return { tab: roomCurrentTab(), triageAt: c.triage ? c.triage.at : null, busy: !!c._triaging }; });
     const quietAsks = wire.filter(x => x.at >= quietFrom && /\/api\/ai\//.test(x.url));
+    /* RE-POINTED 22 Oct 2026 (the strip's Details page RETIRED): the open-fields tile is the sheet's, read
+       where the sheet still stands — the room opened by name */
+    const triTile = await own.evaluate(() => (document.getElementById('kt-triage-slot') || { innerText: '' }).innerText.replace(/\s+/g, ' '));
+    ok('3g2 a signed contract\'s open-fields tile says it is signed, not "in negotiation"',
+      /signed — its wording is final/i.test(triTile) && !/in negotiation/i.test(triTile), triTile.slice(0, 400));
     ok('3h [control] opening that Overview by the ordinary door reads nothing again',
       !!stamp && quiet.tab === 'terms' && quiet.triageAt === stamp && !quiet.busy && !quietAsks.length,
       JSON.stringify({ quiet, asks: quietAsks.map(x => x.url) }));

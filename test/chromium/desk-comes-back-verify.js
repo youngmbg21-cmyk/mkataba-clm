@@ -84,9 +84,9 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
     };
     /* What the reader can see, read off the page. */
     const look = () => page.evaluate(ids => {
-      /* Home's card draws a Renewals row while that agent holds anything; its
-         items are Copilot's work's own list. */
-      const onHome = !!document.querySelector('[data-hm-agent-row="renew"]');
+      /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the Board's Needs you card draws each renewal piece as a
+         row of its own (data-nd-agent="renew"); its items are Copilot's work's own list. */
+      const onHome = !!document.querySelector('#hm-agents [data-nd-agent="renew"]');
       const rows = onHome && typeof agentsData === 'function'
         ? agentsData().agents.renew.ready.map(x => x.cid + ':' + x.kind) : [];
       const items = (typeof deskItems === 'function' ? deskItems() : []).map(x => x.cid + ':' + x.kind);

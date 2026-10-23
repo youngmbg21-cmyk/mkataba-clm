@@ -172,14 +172,17 @@ const ND5 = nda('ND-5', 'Mutual NDA — Retail Pilot', 'Naivas Supermarkets', 'U
     const s4 = await strip('ND-4');
     check(!!s4 && /^Secret until —/.test(s4.tile) && s4.mark === 'Not in the wording · set it' && s4.markBtn, '4a no period in the wording: a dash and "set it", never a guess', s4 && s4.tile);
     check(!!s4 && !s4.tail && /The wording does not say when secrecy ends\./.test(s4.cap), '4b no tail is drawn, and the sentence says why', s4 && s4.cap);
-    await P.evaluate(() => bsStripPage('ND-4', 'details'));
-    const det = await until(P, () => !!document.querySelector('#bs-strip-ND-4 #ov-ess'), null, 10000);
-    const D4 = await P.evaluate(() => { const e = document.querySelector('#bs-strip-ND-4 #ov-ess'); return e ? { t: e.innerText.replace(/\s+/g, ' '), door: !!e.querySelector('[data-ov-nda-edit]') } : null; });
-    check(det && !!D4 && /Secret until/.test(D4.t) && /Who keeps it secret Both sides \(mutual\)/.test(D4.t) && D4.door && !/Payment terms/.test(D4.t),
-      '4c the Details sheet\'s eight carry the two facts in place of value and payment terms, with the door', D4 && D4.t.slice(0, 260));
-    /* RE-POINTED 20 Oct 2026 (the Legora way): owed, the facts are the paper's grid rows */
-    await press(P, '#bs-strip-ND-4 #ov-ess [data-ov-nda-edit]');
-    check(await until(P, () => !!document.querySelector('#pd-og[data-pd-og-for="ND-4"] tr[data-pd-og-row="ndaDir"]') && hbS().face === 'paper'), '4d the cell\'s door opens the paper, the facts on the grid\'s rows');
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): Key terms carries no value or
+       payment terms on an NDA; while the two facts are owed Key terms leaves them to the Dossier's checklist (pdKtFacts),
+       which asks them on its rows */
+    await P.evaluate(() => pdKtOpen('ND-4'));
+    await until(P, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt tr[data-pd-og-row]'), null, 10000);
+    const D4 = await P.evaluate(() => { const k = document.querySelector('[data-pd-mid-kt] #pd-kt'); if (!k) return null;
+      return { rows: [...k.querySelectorAll('tr[data-pd-og-row]')].map(r => r.getAttribute('data-pd-og-row')) }; });
+    check(!!D4 && !D4.rows.includes('paymentTerms') && !D4.rows.includes('value') && !D4.rows.includes('ndaDir') && !D4.rows.includes('ndaEnds'),
+      '4c Key terms on an NDA carries no value or payment terms, and leaves the owed two facts to the checklist', JSON.stringify(D4));
+    await P.evaluate(() => { if (window.pdMidClose) pdMidClose(); pdFillOpen('ND-4', { key: 'ndaDir' }); });
+    check(await until(P, () => !!document.querySelector('#pd-og[data-pd-og-for="ND-4"] tr[data-pd-og-row="ndaDir"]') && !!document.querySelector('#pd-og[data-pd-og-for="ND-4"] tr[data-pd-og-row="ndaEnds"]') && hbS().face === 'paper'), '4d the Dossier\'s checklist asks the two facts on its rows, beside the paper');
     /* RE-POINTED 21 Oct 2026 (owner: the grey "not in the wording" line was noise): the row's amber box says it, and no grey line under the fact */
     const unsaid = await P.evaluate(() => { const r = document.querySelector('#pd-og tr[data-pd-og-row="ndaEnds"]'); return r ? { amb: r.classList.contains('is-amb'), src: !!r.querySelector('.pd-og-src.is-none') } : null; });
     check(!!unsaid && unsaid.amb && !unsaid.src, '4e the grid row is amber where the wording does not say, with no grey line under it', JSON.stringify(unsaid));
