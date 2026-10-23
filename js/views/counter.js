@@ -789,9 +789,12 @@ const _ndTagHtml = P => P.tag ? `<span class="nd-tag">${_cnE(P.tag)}</span>` : '
    holding more than three says "Show all N", which lands on the Board. */
 function ndHomeRowHtml(r){
   const P = ndParts(r);
+  /* the contract's number LEADS the line, so a long name never cuts it off (owner, 23 Oct 2026:
+     "A user needs to know the contract number") */
+  const lead = P.ref ? P.ref + ' · ' : '';
   const sub = r.g === 'jambo'
-    ? `<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}${P.ref ? ' · ' + P.ref : ''}`
-    : _cnE(P.deal);
+    ? `${lead}<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}`
+    : lead + _cnE(P.deal);
   const hover = r.g === 'jambo' ? P.line : [_ndText(P.ref), P.deal].filter(Boolean).join(' · ');
   return `<div class="cn-r nd-r${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(P.title)}</span>${_ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
     + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${_ndBtnHtml(P)}</div>`;
@@ -847,7 +850,8 @@ function ndBoardRowHtml(r, opts){
     : _ndBtnHtml(P);
   return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
     + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
-    + `<span class="nd-c nd-c-deal" title="${_cnE([P.deal, _ndText(P.ref)].filter(Boolean).join(' · '))}">${_cnE(P.deal)}${P.ref ? (P.deal ? ' · ' : '') + P.ref : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
+    /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
+    + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
 }
 function ndBoardRowsHtml(D, opts){

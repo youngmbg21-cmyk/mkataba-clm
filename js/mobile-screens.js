@@ -183,7 +183,7 @@ function mHomeHtml(){
           <span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:6px;background:${n.dot}"></span>
           <span style="flex:1;min-width:0">
             <span class="m-row-name">${mEsc(n.c.name||(window.contractRef?contractRef(n.c):n.c.id))}</span>
-            <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(n.c):n.c.counterparty)||'No counterparty yet')}</span>
+            <span class="m-row-sub">${window.refHtml?refHtml(n.c)+' · ':''}${mEsc((typeof cParty==='function'?cParty(n.c):n.c.counterparty)||'No counterparty yet')}</span>
             <span style="display:block;font-size:var(--t-card);margin-top:5px;line-height:1.45;color:${n.tone}">${mEsc(n.reason)}</span>
           </span>
           <span style="flex:none;margin-top:var(--s-3)">${M_CHEV}</span>

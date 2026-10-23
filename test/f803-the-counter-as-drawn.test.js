@@ -128,18 +128,18 @@ describe('f803 (2) the rows', () => {
   test('2a "Answer an approval for Jonas" · "for Jonas · away until <day>" · name · party · value · Decide', () => {
     const html = row(counter([]), approval);
     assert.match(html, /<b><span class="nd-t">Answer an approval for Jonas<\/span> <span class="cn-pill"><svg data-ic="users"><\/svg>for Jonas · away until [A-Z][a-z]+day<\/span><\/b>/);
-    assert.match(html, /<span>Power purchase agreement · Helio Energy AB · KES 8\.10M<\/span>/);
+    assert.match(html, /<span>MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M<\/span>/);
     assert.match(html, /data-cn-need="approval" data-cn-id="MK-1">Decide<\/button>/);
     assert.match(html, /title="MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M"/, 'the reference rides the hover');
   });
   test('2b their redlines: the party is in the title, so the line does not repeat it; how long, in red', () => {
     const html = row(counter([]), redlines);
-    assert.match(html, /<span>Master services agreement<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
+    assert.match(html, /<span>MK-2 · Master services agreement<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
     assert.match(html, />Review<\/button>/);
   });
   test('2c "Fill in 2 details", a salary\'s job title in place of the person', () => {
     const html = row(counter([]), pay);
-    assert.match(html, /<b><span class="nd-t">Fill in 2 details<\/span><\/b><span>Employment agreement · Chief financial officer<\/span>/);
+    assert.match(html, /<b><span class="nd-t">Fill in 2 details<\/span><\/b><span>MK-3 · Employment agreement · Chief financial officer<\/span>/);
     assert.match(html, />Fill in<\/button>/);
   });
   test('2d whom an approval is answered for: the step\'s own approver, read through the away rule', () => {
@@ -235,7 +235,7 @@ describe('f803 (5) Jambo\'s rows, and the words', () => {
     const w = world([]);
     const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
     assert.match(html, /<span class="nd-t">Nordvik Logistik’s answer<\/span><span class="nd-step" title="Step 5 of 6 · yours">5 of 6<\/span>/);
-    assert.match(html, /<i class="nd-read">Jambo read<\/i> their changes, your standards and past deals · <span class="hati-ref">MK-2<\/span>/);
+    assert.match(html, /<span class="hati-ref">MK-2<\/span> · <i class="nd-read">Jambo read<\/i> their changes, your standards and past deals<\/span>/);
     assert.match(html, /data-nd-look="round:MK-2">Look<\/button>/);
     assert.match(html, /title="Two changes: take one, push back on one\."/, 'what he found rides the hover');
   });
