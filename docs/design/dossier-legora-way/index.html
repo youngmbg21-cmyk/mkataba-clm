@@ -1,0 +1,249 @@
+<title>The Dossier, the Legora Way</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: switcher · one 1440×780 frame scaled to fit · the words. The frame is HaTi (fixed light); the page around it follows the viewer's theme. */
+:root{--bg:#FBFAF7;--fg:#161512;--mut:#5E5A51;--rule:#E4E0D7;--card:#ffffff;--acc:#1F4D3B;--sans:'Geist',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;--serif:'Source Serif 4','IBM Plex Serif',Georgia,serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1C1B18;--fg:#EDE9E0;--mut:#A9A397;--rule:#36332D;--card:#242320;--acc:#8FC1A9;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1C1B18;--fg:#EDE9E0;--mut:#A9A397;--rule:#36332D;--card:#242320;--acc:#8FC1A9;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--sans);margin:0;padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font:500 26px/1.2 var(--serif);margin:28px 0 4px;text-wrap:balance}
+.lede{color:var(--mut);max-width:72ch;margin:0 0 18px}
+.sw{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;margin:0 0 14px}
+.sw .grp{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.sw .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-right:4px}
+.sw button{font:500 13px var(--sans);color:var(--fg);background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:6px 12px;cursor:pointer}
+.sw button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.sw button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.stage{border:1px solid var(--rule);background:var(--card);border-radius:3px;overflow:hidden;width:100%}
+.stage-in{position:relative;width:1440px;height:780px;transform-origin:0 0}
+.words{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px 40px;margin-top:20px}
+@media (max-width:860px){.words{grid-template-columns:1fr}}
+.words h2{font:500 20px/1.25 var(--serif);margin:0 0 6px}
+.words h3{font:600 12px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:18px 0 6px}
+.words p{margin:0 0 10px;max-width:68ch}
+.words ul{margin:0 0 10px;padding-left:18px}.words li{margin:0 0 5px}
+table.cmp{border-collapse:collapse;width:100%;font-size:13px}
+table.cmp th,table.cmp td{text-align:left;vertical-align:top;padding:8px 10px 8px 0;border-bottom:1px solid var(--rule)}
+table.cmp th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.foot{margin-top:32px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--rule);padding-top:12px;max-width:80ch}
+
+/* ===== THE FRAME (HaTi, one appearance) ===== */
+.fr{--ink:#161512;--m:#5E5A51;--m2:#6F6A5E;--r:#E4E0D7;--r2:#CFC9BC;--gnd:#EFECE5;--soft:#F0EDE6;--ac:#1F4D3B;--ac50:#EEF3F0;--am:#B07A1E;--rd:#B3261E;--ok:#2E6B4F;--rad:3px;--rad-s:2px;
+  width:1440px;height:780px;background:#fff;color:var(--ink);font:13px/1.4 var(--sans);display:flex;flex-direction:column;overflow:hidden;text-align:left}
+.fr.legora-corners{--rad:10px;--rad-s:6px}
+.fr.grey-ground .dock{background:var(--gnd)}
+.fr *{box-sizing:border-box}
+.fr b{font-weight:600}
+.fr .g{color:var(--m)}.fr .g2{color:var(--m2)}.fr .am{color:var(--am)}.fr .rd{color:var(--rd)}.fr .ac{color:var(--ac)}
+.fr .num{font-variant-numeric:tabular-nums}
+.fr .bar{height:48px;border-bottom:1px solid var(--r);display:flex;align-items:center;gap:18px;padding:0 18px;flex:none;background:#fff}
+.fr .bar .bk{font-size:20px;width:14px}.fr .bar .logo{font:600 20px var(--serif)}.fr .bar .pg{font-weight:500}.fr .bar .pg i{font-style:normal;color:var(--m);font-size:10px;margin-left:4px}
+.fr .srch{margin:0 auto;width:360px;height:28px;background:var(--soft);border:1px solid var(--r);border-radius:var(--rad-s);display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--m);font-size:12.5px}
+.fr .srch kbd{margin-left:auto;font:11px var(--sans);border:1px solid var(--r2);border-radius:2px;padding:0 4px;background:#fff}
+.fr .ic{display:flex;gap:18px;align-items:center}.fr .ic .bell{background:var(--ink);color:#fff;font-size:10px;font-weight:600;padding:1px 4px;border-radius:2px}.fr .ic .av{width:26px;height:26px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:11px;font-weight:600}
+.fr .fb{flex:1;display:flex;min-height:0}
+.fr .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.fr .ptop{height:46px;border-bottom:1px solid var(--r);display:flex;align-items:center;gap:14px;padding:0 14px;flex:none;background:#fff}
+.fr .ptop .t{font-weight:600;font-size:14px}
+.fr .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px}
+.fr .seg{display:inline-flex;border:1px solid var(--r2);border-radius:var(--rad-s);overflow:hidden;height:26px}
+.fr .seg span{padding:0 10px;display:flex;align-items:center;font-weight:500;font-size:12.5px;border-left:1px solid var(--r2)}.fr .seg span:first-child{border-left:0}.fr .seg span.on{background:var(--ac50);color:var(--ac)}
+.fr .b{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--r2);border-radius:var(--rad-s);background:#fff;font:500 12.5px var(--sans);color:var(--ink);white-space:nowrap}
+.fr .b.fill{background:var(--ink);color:#fff;border-color:var(--ink)}.fr .b.sm{height:24px;padding:0 9px;font-size:12px}.fr .b.off{color:var(--m2);border-color:var(--r)}
+.fr .lnk{color:var(--ac);font-weight:500;white-space:nowrap}
+.fr .gnd{flex:1;background:var(--gnd);position:relative;overflow:hidden;padding-top:40px}
+.fr .zoom{position:absolute;top:8px;right:18px;height:26px;border:1px solid var(--r2);background:#fff;border-radius:var(--rad-s);display:flex;align-items:center;gap:12px;padding:0 10px;font-size:12.5px}
+.fr .sheet{width:720px;margin:0 auto;background:#fff;padding:52px 50px 40px;font:15px/1.65 var(--serif);min-height:720px;box-shadow:0 0 0 1px var(--r)}
+.fr .sheet h1{font:500 21px/1.35 var(--serif);text-align:center;margin:0 0 6px}.fr .sheet .sub{text-align:center;color:var(--m);font-size:14px;margin:0 0 10px}.fr .sheet hr{width:48px;border:0;border-top:1px solid var(--r2);margin:0 auto 36px}.fr .sheet h4{font:600 14.5px var(--serif);margin:22px 0 2px}.fr .sheet p{margin:0}
+.fr ins{text-decoration:none;color:var(--ok);border-bottom:1.5px solid var(--ok);background:#EEF3F0}.fr del{color:var(--rd);text-decoration:line-through;text-decoration-thickness:1.5px}
+.fr .dock{width:400px;flex:none;border-left:1px solid var(--r);display:flex;flex-direction:column;min-height:0;background:#fff}
+.fr .tabs{height:46px;border-bottom:1px solid var(--r);display:flex;align-items:stretch;gap:24px;padding:0 16px;flex:none;background:#fff}
+.fr .tabs span{display:flex;align-items:center;gap:6px;font-weight:500;position:relative}.fr .tabs span em{font-style:normal;color:var(--ac);font-size:12px}.fr .tabs span.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink)}.fr .tabs .more{margin-left:auto;color:var(--m)}
+.fr .body{flex:1;min-height:0;overflow:hidden;padding:14px 16px 0;display:flex;flex-direction:column;gap:12px}
+.fr .foot{flex:none;padding:10px 16px 14px;border-top:1px solid var(--r);background:#fff}
+.fr .ask{height:40px;border:1px solid var(--r2);border-radius:calc(var(--rad) + 2px);display:flex;align-items:center;gap:12px;padding:0 8px 0 12px;color:var(--m);font-size:13px;background:#fff}
+.fr .ask .plus{font-size:18px;color:var(--ink);line-height:1}.fr .ask .go{margin-left:auto;width:26px;height:26px;border-radius:50%;background:var(--ink);display:grid;place-items:center;color:#fff;font-size:12px}
+/* LEGORA'S GRAMMAR, in HaTi's ink */
+.fr .pill{align-self:flex-end;max-width:300px;background:var(--soft);border-radius:calc(var(--rad) + 6px);padding:8px 12px;font-size:13px;display:flex;align-items:center;gap:8px}
+.fr .chips{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.fr .chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 6px;background:var(--soft);border-radius:var(--rad);font-size:12px;max-width:150px;white-space:nowrap}
+.fr .chip span{overflow:hidden;text-overflow:ellipsis}
+.fr .chip.ink{background:#fff;border:1px solid var(--r)}
+.fr .fi{width:14px;height:16px;flex:none;position:relative;border:1.5px solid var(--m2);border-radius:2px;background:#fff}
+.fr .fi::after{content:attr(data-k);position:absolute;left:-2px;bottom:-3px;font:700 6px/1 var(--sans);color:#fff;background:var(--rd);padding:1px 2px;border-radius:1px}
+.fr .fi.docx::after{background:#2B5797}
+.fr .star{width:26px;height:26px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:13px;flex:none}
+.fr .card{background:#fff;border:1px solid var(--r);border-radius:var(--rad);overflow:hidden;flex:none}
+.fr .ch{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-bottom:1px solid var(--r)}
+.fr .ch .k{color:var(--m);font-weight:500;white-space:nowrap}.fr .ch .n{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.fr .ch .meta{margin-left:auto;color:var(--m);white-space:nowrap;font-size:12.5px}.fr .ch .meta b{font-weight:500;color:var(--ink)}
+.fr .ci{width:18px;height:18px;border-radius:var(--rad-s);display:grid;place-items:center;font-size:11px;flex:none;color:var(--ink);background:var(--soft)}
+.fr .ci.am{background:#F2E3C4;color:#7A5410}.fr .ci.ac{background:var(--ac50);color:var(--ac)}
+.fr .steps{padding:4px 12px 6px}
+.fr .step{display:flex;align-items:center;gap:10px;height:30px;font-size:12.5px}
+.fr .step .st{margin-left:auto;color:var(--m);white-space:nowrap}
+.fr .tick{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--r2);display:grid;place-items:center;font-size:9px;flex:none;color:#fff}
+.fr .tick.on{background:var(--ac);border-color:var(--ac)}.fr .tick.run{border-color:var(--ink);border-top-color:transparent}
+.fr table.tab{border-collapse:collapse;width:100%;font-size:12.5px;table-layout:fixed}
+.fr table.tab th{font-weight:500;color:var(--m);font-size:11.5px;text-align:left;padding:0 8px;height:30px;border-bottom:1px solid var(--r);background:#FBFAF7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr table.tab th i{font-style:normal;margin-right:6px;color:var(--m2)}
+.fr table.tab td{padding:0 10px;height:36px;border-bottom:1px solid var(--r);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fr table.tab tr:last-child td{border-bottom:0}
+.fr table.tab td.n{color:var(--m2);font-size:11px;width:26px;padding-right:0}
+.fr table.tab td.q{font-family:var(--serif);font-style:italic;color:var(--m)}
+.fr .field{height:28px;border:1px solid var(--r2);border-radius:var(--rad-s);background:#FFFBEF;display:flex;align-items:center;padding:0 8px;color:var(--m);font-size:12px;justify-content:space-between}
+.fr .task{display:flex;align-items:center;gap:10px;height:42px;padding:0 12px;border-bottom:1px solid var(--r);font-size:12.5px}
+.fr .task:last-of-type{border-bottom:0}
+.fr .task .tl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fr .task .tl .two{display:block;font-size:11.5px;color:var(--m)}
+.fr .cfoot{height:34px;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--r);color:var(--ink);font-weight:500;font-size:12.5px}
+.fr .report h5{font:600 14px var(--sans);margin:0 0 4px}.fr .report p{margin:0;color:var(--m);font-size:13px;line-height:1.5}
+.fr .dotm{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--r2);flex:none;display:inline-block}.fr .dotm.am{border-color:var(--am)}.fr .dotm.ok{border-color:var(--ac);background:var(--ac)}
+.fr .pseg{display:inline-flex;border:1px solid var(--r2);border-radius:var(--rad-s);overflow:hidden;height:24px}
+.fr .pseg span{padding:0 6px;display:flex;align-items:center;font-size:11px;font-weight:500;border-left:1px solid var(--r2);color:var(--m)}.fr .pseg span:first-child{border-left:0}.fr .pseg span.on{background:var(--ink);color:#fff}
+/* the grammar sheet */
+.fr .sheet-g{flex:1;overflow:hidden;padding:28px 40px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px 36px;background:#fff}
+.fr .sheet-g h6{font:600 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--m);margin:0 0 10px}
+.fr .sheet-g .ex{display:flex;flex-direction:column;gap:10px}
+.fr .sheet-g p{margin:0;font-size:12.5px;color:var(--m);line-height:1.45}
+</style>
+
+<h1>The Dossier, the Legora Way</h1>
+<p class="lede">One concept for the panel beside the paper, in Legora's grammar and HaTi's ink. Legora's screens are a conversation that leaves artefacts behind: the ask as a grey pill, files as chips, a workflow card that says "4 steps · Completed", a tabular review whose columns carry an icon and whose rows cite the document, then the words. The Dossier already holds these readings; this draws them that way. The frame is the laptop at 1440×780. Three moments in a contract's life, then the grammar sheet.</p>
+
+<div class="sw">
+  <div class="grp" id="moments"><span class="lbl">Moment</span></div>
+  <div class="grp" id="knobs"><span class="lbl">Two choices</span></div>
+</div>
+<div class="stage"><div class="stage-in" id="stage"></div></div>
+<div class="words" id="words"></div>
+<p class="foot">Nothing here needs a new fact stored. Every card is a reading HaTi already has (dossierOf, detailsOf, the Key terms rows, the first read's steps, the Negotiate rows); only the clothes change. The paper, the bar, the tabs and the ask box at the foot stay where they are.</p>
+
+<script>
+const MAG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.5-4.5"/></svg>';
+const bar = () => `<div class="bar"><span class="bk">‹</span><span class="logo">HaTi</span><span class="pg">Nordvane Consumer Brands AB · MK-400<i>▾</i></span><div class="srch">${MAG} Search contracts, clauses, counterparties…<kbd>⌘K</kbd></div><div class="ic"><span>✦</span><span class="bell">9+</span><span>◷</span><span class="av">AO</span><span>⇥</span></div></div>`;
+const PAPER = `<h1>Master Supply and Distribution Agreement — Nordvane Consumer Brands AB</h1><p class="sub">Mutual Non-Disclosure Agreement</p><hr>
+<h4>1. Purpose</h4><p>The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.</p>
+<h4>2. Confidential Information</h4><p>"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.</p>
+<h4>3. Term</h4><p>This Agreement shall remain in force for 3 years from the effective date, unless terminated earlier by written notice to the other Party's registered office.</p>
+<h4>4. Termination</h4><p>Either party may terminate for material breach not remedied within thirty (30) days of notice, or for convenience on ninety (90) days' written notice.</p>`;
+const paper = (stage, redline) => `<div class="main"><div class="ptop"><span class="t">Master Supply and Distribution Agreement</span><span class="${stage === 'Drafting' ? 'g2' : 'am'}"><i class="dot"></i>${stage}</span>
+  <span style="margin-left:auto" class="seg"><span class="${redline ? '' : 'on'}">Clean</span><span class="${redline ? 'on' : ''}">Redline${redline ? ' · 4' : ''}</span><span>Their view</span></span><span class="b">Notes</span><span class="b">Share</span></div>
+  <div class="gnd"><div class="zoom"><span>−</span><span>100%</span><span>+</span></div><div class="sheet">${redline ? PAPER.replace('ninety (90) days', '<del>ninety (90)</del> <ins>one hundred and eighty (180)</ins> days') : PAPER}</div></div></div>`;
+const tabs = (n) => `<div class="tabs"><span class="on">Dossier${n ? ` <em>${n}</em>` : ''}</span><span>Clauses</span><span>Redlines</span><span>✦ Jambo</span><span class="more">›</span></div>`;
+const foot = (hint) => `<div class="foot"><div class="ask"><span class="plus">+</span>${hint || 'Ask about MK-400…'}<span class="go">↑</span></div></div>`;
+const chip = (k, name, ink) => `<span class="chip ${ink ? 'ink' : ''}"><i class="fi ${k}" data-k="${k.toUpperCase()}"></i><span>${name}</span></span>`;
+const card = (icon, k, n, meta, inner) => `<div class="card"><div class="ch"><span class="ci ${icon.c || ''}">${icon.g}</span><span class="k">${k}</span><span class="n">${n}</span><span class="meta">${meta}</span></div>${inner}</div>`;
+const step = (st, name, right) => `<div class="step"><i class="tick ${st}">${st === 'on' ? '✓' : ''}</i><span>${name}</span><span class="st">${right}</span></div>`;
+const frame = (inner, extra) => `<div class="fr ${extra || ''}">${inner}</div>`;
+
+/* MOMENT 1 — it has just arrived */
+const M1 = (x) => frame(bar() + '<div class="fb">' + paper('Drafting') + `<div class="dock">${tabs('')}<div class="body">
+  <div class="pill"><span class="g">You</span> uploaded a file · 16:21</div>
+  <div class="chips">${chip('docx', 'MK-400_Master_Supply_Nordvane.docx')}</div>
+  <span class="star">✦</span>
+  ${card({ g: '≡' }, 'First read', 'Master Supply and Distribution Agreement', '<b>4 steps</b> · Running', `<div class="steps">
+    ${step('on', 'Read the paper', '11 clauses · free')}
+    ${step('on', 'Blanks found', '3 · 2 filled')}
+    ${step('run', 'Risks to look at', 'reading · free')}
+    ${step('', 'Brief', 'about 3 calls · <span class="lnk">Run</span>')}
+  </div>`)}
+  ${card({ g: '▦', c: 'am' }, 'Fill in', '3 to do', '<b>2 filled</b> · 1 owed', `<table class="tab"><colgroup><col style="width:26px"><col style="width:118px"><col><col style="width:66px"></colgroup>
+    <tr><th></th><th><i>☰</i>Term</th><th><i>◆</i>What it says</th><th><i>§</i>Where</th></tr>
+    <tr><td class="n">1</td><td><span class="dotm am"></span> Effective</td><td><div class="field">Pick a date <span>▦</span></div></td><td class="g2">—</td></tr>
+    <tr><td class="n">2</td><td><span class="dotm ok"></span> Who keeps it secret</td><td>Both sides (mutual)</td><td class="g">§2</td></tr>
+    <tr><td class="n">3</td><td><span class="dotm ok"></span> Value stream</td><td>Corporate &amp; Compliance</td><td class="g2">filing</td></tr>
+  </table><div class="cfoot">Confirm 2 read</div>`)}
+  <div class="report"><h5>What I read</h5><p>A mutual NDA on their paper, 3 years from an effective date that is not written in. Both sides keep each other's information. Two of three blanks were on the paper; the date is not.</p></div>
+</div>${foot('Ask about MK-400, or drop their Word file…')}</div></div>`, x);
+
+/* MOMENT 2 — needs you (today) */
+const M2 = (x) => frame(bar() + '<div class="fb">' + paper('In Review · round 1') + `<div class="dock">${tabs(6)}<div class="body">
+  ${card({ g: '▤' }, 'Agreement', 'Master Supply and Distribution', '<b>Stage 3 of 6</b> · Negotiate', `
+    <div class="task"><span class="dotm am"></span><span class="tl">Effective date<span class="two">not on the paper · fill it in</span></span><span class="b sm">Fill</span></div>
+    <div class="task"><span class="dotm am"></span><span class="tl">Secret until<span class="two">§3 · "3 years from the effective date"</span></span><span class="b sm">Fill</span></div>
+    <div class="task"><span class="dotm ok"></span><span class="tl">Nordvane's answer · 5 of 6<span class="two">Jambo read their changes, your standards, past deals · <span class="rd">7 days</span></span></span><span class="b sm fill">Look</span></div>
+    <div class="task"><span class="dotm ok"></span><span class="tl">Your approval is asked for<span class="two">the pack is in Before you sign</span></span><span class="b sm">Decide</span></div>
+    <div class="task"><span class="dotm"></span><span class="tl">Signer · Amina O.<span class="two">nobody else is named yet</span></span><span class="b sm">Edit</span></div>
+    <div class="cfoot">All 18 acts</div>`)}
+  ${card({ g: '▦', c: 'am' }, 'Key terms', '10 terms', '<b>8 read</b> · 2 owed', `<table class="tab"><colgroup><col style="width:26px"><col style="width:104px"><col><col style="width:64px"></colgroup>
+    <tr><th></th><th><i>☰</i>Term</th><th><i>◆</i>What it says</th><th><i>§</i>Where</th></tr>
+    <tr><td class="n">1</td><td>Parties</td><td>Highland Corporate · Nordvane AB</td><td class="g">§1</td></tr>
+    <tr><td class="n">2</td><td>Secret</td><td>Both sides (mutual)</td><td class="g">§2</td></tr>
+    <tr><td class="n">3</td><td>Term</td><td>3 years from the effective date</td><td class="g">§3</td></tr>
+    <tr><td class="n">4</td><td>Notice</td><td>90 days · for convenience</td><td class="g">§4</td></tr>
+    <tr><td class="n">5</td><td>Value</td><td>SEK 185M · no pay under it</td><td class="g2">filing</td></tr>
+  </table><div class="cfoot">Show all 10 · Rename · Move</div>`)}
+  ${card({ g: '≡' }, 'First read', '16:21 today', '<b>4 steps</b> · Completed', `<div class="steps">${step('on', 'Brief', '3 calls · <span class="lnk">Read</span>')}${step('on', 'Risks to look at', '2 · <span class="lnk">Read</span>')}</div>`)}
+</div>${foot()}</div></div>`, x);
+
+/* MOMENT 3 — their answer, as a tabular review */
+const M3 = (x) => frame(bar() + '<div class="fb">' + paper('In Review · round 1', true) + `<div class="dock">${tabs(6)}<div class="body">
+  <div class="pill"><span class="g">Nordvane</span> sent round 1 · 7 days ago</div>
+  <div class="chips">${chip('docx', 'MK-400_r1_Nordvane_comments.docx')}</div>
+  <span class="star">✦</span>
+  ${card({ g: '≡' }, 'Read their answer', 'against your standards and past deals', '<b>3 steps</b> · Completed', '')}
+  ${card({ g: '▦', c: 'am' }, 'Their asks', 'Round 1 · 4 changes', '<b>0 of 4</b> answered', `<table class="tab"><colgroup><col style="width:24px"><col style="width:82px"><col><col style="width:154px"></colgroup>
+    <tr><th></th><th><i>☰</i>Clause</th><th><i>◆</i>What they ask · Jambo's read</th><th><i>✓</i>Your answer</th></tr>
+    <tr><td class="n">1</td><td>20 · Liability</td><td>cap → 50% of 6 months' fees<span style="display:block;font-size:11.5px" class="g">no standard to measure it</span></td><td><span class="pseg"><span>Accept</span><span>Counter</span><span>Reject</span></span></td></tr>
+    <tr><td class="n">2</td><td>7 · Payment</td><td>30 → 60 days<span style="display:block;font-size:11.5px" class="g">past deals settled at 45 · 2 of 3</span></td><td><span class="pseg"><span>Accept</span><span class="on">Counter</span><span>Reject</span></span></td></tr>
+    <tr><td class="n">3</td><td>12 · Notice</td><td>90 → 180 days<span style="display:block;font-size:11.5px" class="g">your standard is 90</span></td><td><span class="pseg"><span>Accept</span><span>Counter</span><span>Reject</span></span></td></tr>
+    <tr><td class="n">4</td><td>3 · Minimum</td><td>KES 40M → 25M a year<span style="display:block;font-size:11.5px" class="g">worth a look · no rule decides it</span></td><td><span class="pseg"><span>Accept</span><span>Counter</span><span>Reject</span></span></td></tr>
+  </table><div class="cfoot">Open in Redlines · Send all (0)</div>`)}
+  <div class="report"><h5>What I read</h5><p>Three of four move money or time against you; the notice ask is the one your standard answers outright. Counter on payment is the one past deals support.</p></div>
+</div>${foot('Ask about their round, or "counter 7 at 45 days"…')}</div></div>`, x);
+
+/* THE GRAMMAR SHEET */
+const G = (x) => frame(bar() + `<div class="sheet-g">
+  <div><h6>Borrowed from Legora</h6><div class="ex">
+    <div class="pill" style="align-self:flex-start"><span class="g">You</span> uploaded a file · 16:21</div><p>The ask or the act as a grey pill: who, what, when. Read-only; it is the trail's own line.</p>
+    <div class="chips" style="justify-content:flex-start">${chip('docx', 'MK-400_Master_Supply.docx')}${chip('pdf', '4.2.8_Customer.pdf')}</div><p>A file is a chip with its kind. One line, "…" never the kind.</p>
+    <span class="star">✦</span><p>Jambo's face before his artefacts; his words after them, in grey.</p>
+  </div></div>
+  <div><h6>The two artefacts</h6><div class="ex">
+    ${card({ g: '≡' }, 'First read', 'Master Supply and Distribution', '<b>4 steps</b> · Completed', `<div class="steps">${step('on', 'Read the paper', 'free')}${step('', 'Brief', '3 calls · <span class="lnk">Run</span>')}</div>`)}
+    <p>A WORKFLOW card: an icon, the kind in grey, the name in ink, "n steps · state" at the right. Each step a line with its cost or its door. This is Jambo's reading of a contract, drawn as the steps it took.</p>
+    ${card({ g: '▦', c: 'am' }, 'Key terms', '10 terms', '<b>8 read</b> · 2 owed', `<table class="tab"><colgroup><col style="width:26px"><col style="width:90px"><col><col style="width:52px"></colgroup><tr><th></th><th><i>☰</i>Term</th><th><i>◆</i>What it says</th><th><i>§</i>Where</th></tr><tr><td class="n">1</td><td>Term</td><td>3 years</td><td class="g">§3</td></tr></table>`)}
+    <p>A TABULAR card: numbered rows, columns that carry an icon, every fact with where on the paper it was read. The owed cell IS the field. Its foot is one quiet door.</p>
+  </div></div>
+  <div><h6>What HaTi keeps</h6><div class="ex">
+    <p><b>The ink.</b> #161512 on warm white, Geist 13, Source Serif 4 on the paper. Legora's cool grey ramp becomes HaTi's warm one.</p>
+    <p><b>The page.</b> The paper in the middle, the Dossier beside it, the bar's ‹ · HaTi · the page's name. Nothing becomes a chat page; the cards stand still in a fixed order, newest moment at the top.</p>
+    <p><b>The doors.</b> Every button is an existing door (Fill → pdFillOpen, Look → the one desk's row, Confirm → the old writers). A card never writes.</p>
+    <p><b>The rules.</b> No band, no sentence that names the other side, six stages, the ask box at the foot, one filled button per area, "sent" means sent.</p>
+    <div style="display:flex;gap:8px;align-items:center"><span class="b" style="border-radius:3px">Chambers · 3px</span><span class="b" style="border-radius:10px">Legora · 10px</span></div>
+    <p><b>The one open choice:</b> the corners. HaTi's rule is 2–3px (Chambers). Legora's cards are about 10px. The switch above shows both on every moment.</p>
+  </div></div>
+</div>`, x);
+
+const MOMENTS = { arrived: { t: 'Just arrived', f: M1 }, today: { t: 'Needs you (today)', f: M2 }, answer: { t: 'Their answer', f: M3 }, grammar: { t: 'The grammar sheet', f: G } };
+const WORDS = {
+  arrived: `<div><h2>Just arrived</h2><p>The upload is the first line of the conversation: a grey pill says who and when, the file is a chip. Jambo's face follows, then what he did, as a workflow card with four steps, each with its cost or its door (the Brief costs about 3 calls, so it waits for a press). The three blanks come as a small table whose owed cell is the date field itself, with "Where" saying which clause answered the other two. His words come last, in grey, short.</p><h3>Why it reads better than today</h3><ul><li>Today the same facts stand as six rows of three different shapes. Here they are two artefacts and one paragraph.</li><li>The cost of the Brief is said where the press is, not in a hint line.</li><li>Nothing is lit but the field that needs you.</li></ul></div>
+  <div><h3>What it maps to</h3><table class="cmp"><tr><th>Legora</th><th>HaTi today</th><th>In the concept</th></tr><tr><td>The ask pill</td><td>"Arrived 16:21" stage line</td><td>the pill, with the uploader</td></tr><tr><td>File chips</td><td>the paper's line</td><td>the file as a chip</td></tr><tr><td>Workflow card, n steps</td><td>Read: Brief · Risks · Blanks rows</td><td>First read, 4 steps · Running</td></tr><tr><td>Tabular review</td><td>Fill in rows with inline forms</td><td>Fill in table, the owed cell is the field</td></tr><tr><td>Report text</td><td>Jambo speaks first (firstReadDue)</td><td>What I read, grey</td></tr></table></div>`,
+  today: `<div><h2>Needs you, today's Dossier</h2><p>The top card is the agreement itself, with the stage as Legora writes a state ("Stage 3 of 6 · Negotiate"). Its rows are the one desk's rows for this contract, each with its reason under it in grey and its one verb at the right; only the row Jambo prepared is filled. "All 18 acts" is the card's one foot. Under it, Key terms as the tabular artefact, Term · What it says · Where, which is exactly the Legora-way rows the Key terms already draw in the middle. The first read's card has shrunk to two lines because its work is done.</p><h3>Why it reads better than today</h3><ul><li>Balance: three cards of one grammar, every value at one right edge.</li><li>Structure: what needs you, what was read, what Jambo did. In that order, always.</li><li>Clarity: one filled Look; the stage is a state at the right, never a title.</li></ul></div>
+  <div><h3>What it maps to</h3><table class="cmp"><tr><th>Legora</th><th>HaTi today</th><th>In the concept</th></tr><tr><td>"4 steps · Completed"</td><td>the six-stage spine</td><td>"Stage 3 of 6 · Negotiate" on the agreement card</td></tr><tr><td>Task list with Run</td><td>Needs you rows + the 18-act menu</td><td>rows with one verb; All 18 acts as the foot</td></tr><tr><td>Tabular review</td><td>Key terms in the middle</td><td>Key terms card, 5 rows shown, Show all 10</td></tr><tr><td>Completed workflow</td><td>Brief · Risks rows</td><td>First read, folded to two lines</td></tr></table><h3>Rulings this touches</h3><ul><li>"Nothing boxed in the body": here a box is an artefact Jambo made (a table, a run), never a plain reading. The report text and the pill are not boxed. Say if the rule should read that way.</li><li>The spine's six stages are not drawn as a line; the stage is said on the agreement card. The owed rows still carry the stage's order.</li></ul></div>`,
+  answer: `<div><h2>Their answer</h2><p>Their round arrives like an upload: a pill with who and when, their Word file as a chip, Jambo's face, a one-line workflow card for what he read it against, then THE table: four rows, Clause · What they ask with Jambo's read under it · Your answer as a three-way switch. Answering in the row is Legora's whole idea; HaTi's rule is the same ("work answered in its row"). The card's foot opens the Redlines face for the wording itself and shows Send all with its count. His words close it: which one your standard answers outright, which one past deals support.</p><h3>Why it reads better than today</h3><ul><li>Four changes fit the column with their verbs; today the fourth is cut.</li><li>The reason is one grey line under the ask, not a two-line sentence repeated four times.</li><li>Counter is lit on the row past deals support, so the next press is obvious.</li></ul></div>
+  <div><h3>What it maps to</h3><table class="cmp"><tr><th>Legora</th><th>HaTi today</th><th>In the concept</th></tr><tr><td>Tabular review</td><td>the Redlines column's cards</td><td>Their asks, 4 rows, answer in the row</td></tr><tr><td>Workflow card</td><td>"Jambo read their changes, your standards and past deals"</td><td>Read their answer, 3 steps · Completed</td></tr><tr><td>Report text</td><td>rlRowReadHtml under each row</td><td>What I read, once</td></tr></table><h3>Rulings this touches</h3><ul><li>The Redlines face stays the one door to the wording and to Counter's editor; the switch in the row files through the same funnel the row's verbs use today.</li><li>"Send all · N not sent" stays the one send door; here it is the card's foot.</li></ul></div>`,
+  grammar: `<div><h2>The grammar sheet</h2><p>Left: the three small pieces borrowed from Legora's conversation (the pill, the chip, the face). Middle: the two artefacts everything is drawn with (a workflow card, a tabular card). Right: what HaTi keeps, and the one open choice.</p><h3>What I refused</h3><ul><li><b>A chat page.</b> Legora's canvas is a conversation; HaTi's is the paper with the Dossier beside it. The cards stand in a fixed order and the ask box stays at the foot. The conversation lives on the Jambo tab, as today.</li><li><b>Legora's cool greys and rounded everything.</b> The ink and the warm ramp are HaTi's. The corner radius is the one thing shown both ways, because it changes the feel more than any other single value.</li><li><b>A dark sidebar.</b> Explorer and the Brain stay the only dark places.</li></ul></div>
+  <div><h3>Two choices for you</h3><table class="cmp"><tr><th>Choice</th><th>Chambers</th><th>Legora</th></tr><tr><td>Corners</td><td>2–3px, as every button and card today</td><td>10px on cards and the ask box, 6px on buttons</td></tr><tr><td>The panel's ground</td><td>white, cards drawn by a hairline</td><td>the paper's warm grey, cards white on it</td></tr></table><p class="note">Both switches sit above the frame and apply to every moment, so you can see each pair on the same page before choosing.</p></div>`,
+};
+let m = 'today', corners = false, grey = false;
+try { const h = (location.hash || '').slice(1); if (MOMENTS[h]) m = h; } catch (_) {}
+const $ = s => document.querySelector(s);
+function paint() {
+  $('#moments').innerHTML = '<span class="lbl">Moment</span>' + Object.keys(MOMENTS).map(k => `<button type="button" data-m="${k}" aria-pressed="${k === m}">${MOMENTS[k].t}</button>`).join('');
+  $('#knobs').innerHTML = `<span class="lbl">Two choices</span><button type="button" data-k="corners" aria-pressed="${corners}">${corners ? 'Corners: Legora 10px' : 'Corners: Chambers 3px'}</button><button type="button" data-k="grey" aria-pressed="${grey}">${grey ? 'Ground: warm grey' : 'Ground: white'}</button>`;
+  $('#stage').innerHTML = MOMENTS[m].f((corners ? 'legora-corners ' : '') + (grey ? 'grey-ground' : ''));
+  $('#words').innerHTML = WORDS[m];
+  fit();
+}
+function fit() { const w = $('.stage').clientWidth; const s = Math.min(1, w / 1440); $('#stage').style.transform = `scale(${s})`; $('.stage').style.height = Math.round(780 * s) + 'px'; }
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-m],button[data-k]'); if (!b) return;
+  if (b.dataset.m) { m = b.dataset.m; try { history.replaceState(null, '', '#' + m); } catch (_) {} }
+  if (b.dataset.k === 'corners') corners = !corners;
+  if (b.dataset.k === 'grey') grey = !grey;
+  paint();
+});
+addEventListener('resize', fit);
+paint();
+</script>
