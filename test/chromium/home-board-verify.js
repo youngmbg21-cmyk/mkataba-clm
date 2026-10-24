@@ -358,7 +358,7 @@ const CONTRACTS = [
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await ask(page, 'how many contracts have value between 2 million and 40 million?');
     ok('13f a value range is answered free, as the Blocks sized by value, with the count in the panel', await until(page, () =>
-      /^q:/.test((hbS().path || []).slice(-1)[0] || '') && !!document.querySelector('#hb-focus .hb-blocks [data-hb-dig^="qg:"]') /* RE-POINTED 11 Oct 2026: Squarified, a block is a group */ && /between 2M and 40M/.test((intel.history.slice(-1)[0] || {}).text || '') && !intel.busy));
+      /^q:/.test((hbS().path || []).slice(-1)[0] || '') && !!document.querySelector('#hb-focus .hb-blocks [data-hb-dig^="qg:"]') /* RE-POINTED 11 Oct 2026: Squarified, a block is a group */ && /between 2M and 40M/.test(intel.history.slice(-2).map(m => m.text || '').join(' ')) /* RE-POINTED 24 Oct 2026: a question the Board drew is then explained by the brain (one Jambo) */ && !intel.busy));
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     /* long partner names on short bars (the owner's "MK-R90 · AIT Worldwide Logist…", 20 Oct 2026) */
     await page.evaluate(() => { const iso = d => { const t = new Date(); t.setDate(t.getDate() + d); return t.toISOString().slice(0, 10); };

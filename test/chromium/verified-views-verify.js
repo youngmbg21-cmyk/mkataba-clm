@@ -50,7 +50,8 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.screenshot({ path: path.join(OUT, '2-set.png') });
     check('2 saved through the route; the card head wears VERIFIED', !!s2 && s2.badge === 'VERIFIED' && s2.title === 'Stages for the board pack' && s2.phrases.length === 2 && s2.by === 'Amina Otieno', JSON.stringify(s2));
     await page.evaluate(async () => { intel.history = []; await intelAsk('Where do deals stand?'); });
-    const s3 = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant').pop(); const s = hbS(); const k = (s.path || []).slice(-1)[0]; const p = s.panels.find(x => x.key === k);
+    /* RE-POINTED 24 Oct 2026 (one Jambo): a question the Board drew is then explained by the brain, so the VERIFIED line is one of the last two turns */
+    const s3 = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant').slice(-2).find(m => /VERIFIED/.test(String(m.text))); const s = hbS(); const k = (s.path || []).slice(-1)[0]; const p = s.panels.find(x => x.key === k);
       return a && /VERIFIED/.test(String(a.text)) && p && p.verified ? { free: /Free/.test(String(a.text)), by: /set by Amina Otieno/.test(String(a.text)), cards: s.panels.filter(x => x.verified).length } : null; });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(OUT, '3-answer.png') });

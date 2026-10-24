@@ -2257,16 +2257,16 @@ function intelAskReady(q){
 /* a question the Board answered by DRAWING (a q: card or a follow-up over one), with Jambo available: his words go
    under it; a figure's own answer ("how many live contracts": the number), a verified view, a pack or a story
    already say it, and a command asks nothing */
+/* ONE RULE (owner, 24 Oct 2026, "give all the jambos the ability"): a COMMAND is acted on and said in one line, nothing
+   more; a QUESTION the Board could draw is drawn and then ALWAYS explained by the brain — counts included, the brain
+   has the drawn numbers in its context; a question the Board cannot draw, and any "tell me…"/"create…", is the
+   brain's alone (boardQ → intelChatAsk). hbCommandAsk / hbDrawAsk, js/views/homeboard.js. */
 function igAskThenExplain(q, A){
   if(!A||A.road!=='free') return false;
   if(!(window.caAiFirst&&caAiFirst())) return false;
-  const t=String(q||'').trim();
-  const asks=!!(window.CA_WH_Q&&CA_WH_Q.test(t))||/\?\s*$/.test(t);
-  if(!asks) return false;
-  /* a count or an amount the Board drew IS the answer ("how many … between 2M and 40M": the card says the number) */
-  if(/^\s*(?:how many|how much|hur många|hur mycket)\b/i.test(t)) return false;
-  if(A.kind==='follow') return true;
-  return A.kind==='dig'&&!!(A.r&&/^q:/.test(String(A.r.key||'')));
+  if(typeof window.hbCommandAsk==='function'&&hbCommandAsk(q)) return false;
+  if(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q)&&!(typeof window.hbChartWords==='function'&&hbChartWords(q))) return false;
+  return (typeof window.hbDrawsSomething==='function')?hbDrawsSomething(A):(A.kind==='follow'||(A.kind==='dig'&&!!(A.r&&/^q:/.test(String(A.r.key||'')))));
 }
 async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
@@ -2430,18 +2430,23 @@ async function intelAsk(qRaw, opts){
      is the Board's Jambo's (the graph route, with the Board's own actions); commands stay the free reader's */
   /* …but a question the Board's own reader knows by name ("how many contracts are waiting on us": its "waiting on
      us" figure) is answered by the Board, free; a lens is no answer to "worth the most" (stage 3c) */
-  let boardKnows=false;
-  try{ const pz=(typeof window.hbParse==='function')?hbParse(q):null;
-    /* …and so is one it reads WHOLE (a q: card: "which stalled deals are waiting on us, by counterparty", "how much
-       is signed", a value range, a date): the free reader is sure of every word, so it is not a guess to hand on
-       (stage 3d; deal-facts 4, board-answers-the-question 3, home-board 13f/13g) */
-    boardKnows=!!pz&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
+  /* A COMMAND ACTS, EVERYTHING ELSE IS THE BRAIN'S (owner, 24 Oct 2026; hbCommandAsk, js/views/homeboard.js): the
+     Board's free reader answers only a command; a question, "tell me…", "create a table…" goes to the chat with
+     the Board's numbers in its context, never a flat answer pack. (Was: anything the Board "knew", stage 3c.) */
+  const boardCmd=(typeof window.hbCommandAsk==='function')?hbCommandAsk(q):false;
+  /* …a question the Board can DRAW ("what ends this quarter", "how much is signed", a value range, a date) is drawn
+     first and then explained by the brain (hbDrawAsk, igAskThenExplain); one it would only answer with a flat
+     figure or pack is the brain's alone */
+  const boardDraw=!boardCmd&&(typeof window.hbDrawAsk==='function')&&hbDrawAsk(q);
   /* …a question about the Board ITSELF ("why does the dashboard say 851 SEK…") keeps the Board's own checked
      answer (hbWhyCheck over its numbers; the board that answers right, Part 4), never a guess from the book */
   let boardWhy=false; try{ const A0=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; boardWhy=!!(A0&&A0.why); }catch(_){ boardWhy=false; }
   /* …only with the Board IN FRONT: on Explorer a question keeps the map's route, whose model hands wording to the chat itself (res.kind 'wording'); imported-on-the-map 1d, explorer-stage-three 4 */
-  const boardQ=igBoardNow()&&!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
-  if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
+  /* …a QUESTION or a brain-verb sentence ("tell me…", "create a table…") is the chat's; a plain phrase the free
+     reader could not read ("top 2 by value", "the deals our CFO cares about") keeps the Board's drawing model */
+  const boardWords=!!((typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q))||(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q)));
+  const boardQ=igBoardNow()&&!boardCmd&&!boardDraw&&boardWords&&!!(window.caAiFirst&&caAiFirst())&&!(typeof window.hbBringOf==='function'&&hbBringOf(q));
+  if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && (boardCmd||boardDraw) && typeof window.hbAsk==='function'){
     let A=null; try{ A=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; }catch(_){ A=null; }
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock();
@@ -7932,6 +7937,8 @@ function igSyncDockWidth(){
     setTimeout(()=>dock.classList.remove('ig-dock-in'),400); }
   // the canvas flexes — re-measure and re-settle once the width transition lands
   setTimeout(()=>{ if(igMapUp()) rebuildIntelGraph(); },280);
+  /* the ✦'s window, if nobody moved it, stands beside the panel's new width (aiFloatBeside, js/ai.js) */
+  if(typeof window.aiFloatBeside==='function'){ try{ aiFloatBeside(); }catch(_){} setTimeout(()=>{ try{ aiFloatBeside(); }catch(_){} },300); }
 }
 function igMiniCard(id, extra){
   const c=getContract(id); if(!c) return '';

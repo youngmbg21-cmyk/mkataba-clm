@@ -173,8 +173,17 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('#ins-panel .ins-sub [data-cu-pr-edit]');
       const F = await until(() => { const f = document.getElementById('cu-pr-form'); return f ? { sug: (f.querySelector('[data-cu-pr-sug]') || {}).textContent || '', use: (f.querySelector('[data-cu-pr-use]') || {}).getAttribute ? f.querySelector('[data-cu-pr-use]').getAttribute('data-cu-pr-use') : '' } : null; });
       check('3a two boxes in the panel; the parties clause\'s address is offered, its city to use', !!F && /P\.O\. Box 30, Kisumu, Kenya/.test(F.sug) && F.use === 'Kisumu', JSON.stringify(F));
-      await page.click('[data-cu-pr-use]');
-      await page.fill('#cu-pr-org', 'PVT-AB12CD');
+      /* RE-POINTED 24 Oct 2026 (flaky on CI: the server kept city ""): opening the
+         form paints the panel, and on a slow runner it is painted once more a moment
+         later, wiping a city pressed in during that instant. Fill, then confirm both
+         boxes hold their words before Save, filling again if a repaint took them. */
+      for (let i = 0; i < 6; i++) {
+        await page.click('[data-cu-pr-use]');
+        await page.fill('#cu-pr-org', 'PVT-AB12CD');
+        await page.waitForTimeout(250);
+        const held = await page.evaluate(() => ((document.getElementById('cu-pr-city') || {}).value === 'Kisumu') && ((document.getElementById('cu-pr-org') || {}).value === 'PVT-AB12CD'));
+        if (held) break;
+      }
       await shot('19-party-city-form-1440x780.png');
       await page.click('[data-cu-pr-save]');
       const S = await until(() => { const td = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] td.cu-city'); return td && td.textContent.trim() === 'Kisumu' ? {

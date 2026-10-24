@@ -89,7 +89,20 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(150);
     const pick = await page.evaluate(s => { const all = [...document.querySelectorAll(s)]; const g = all.find(x => x.hasAttribute('data-hb-py')) || all[all.length - 1];
       const p = g.querySelector('path'), r = p.getBoundingClientRect(); return { dig: g.getAttribute('data-hb-dig'), x: r.left + r.width / 2, y: r.top + r.height / 2 + 2 }; }, colSel);
-    await page.mouse.move(pick.x, pick.y);
+    /* RE-POINTED 24 Oct 2026 (flaky on CI): on a slow runner the page settled
+       between measuring the column and moving the mouse, so the pointer rested on
+       a NEIGHBOUR (lit false, the card's "Open these 9" another column's). Aim at
+       the column by its door, re-measured each try, until that very column is lit. */
+    const aimAt = dig => page.evaluate(({ s, d }) => { const g = [...document.querySelectorAll(s)].find(x => x.getAttribute('data-hb-dig') === d);
+      const p = g && g.querySelector('path'); if (!p) return null; const r = p.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 + 2 }; }, { s: colSel, d: dig });
+    for (let i = 0; i < 6; i++) {
+      const at = (await aimAt(pick.dig)) || pick;
+      await page.mouse.move(5, 5);
+      await page.mouse.move(at.x, at.y);
+      const lit = await until(({ s, d }) => { const g = [...document.querySelectorAll(s)].find(x => x.getAttribute('data-hb-dig') === d);
+        const t = document.getElementById('hb-tip'); return !!(g && g.classList.contains('is-lit') && t && !t.hidden); }, { s: colSel, d: pick.dig }, 1500);
+      if (lit) break;
+    }
     await until(() => { const t = document.getElementById('hb-tip'); return t && !t.hidden; });
     /* the fade is .16s — SLOW-RUNNER WAIT (10 Oct 2026, "get main to green"):
        a fixed 400 ms once read the other columns still at full strength on

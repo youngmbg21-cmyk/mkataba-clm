@@ -177,7 +177,8 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     const calls0 = await page.evaluate(() => window._bpCalls);
     const none = await ask('tell me something clever about the grumpy suppliers');
     const calls = await page.evaluate(() => window._bpCalls) - calls0;
-    check(calls === 2, 'A3d with nothing to draw Jambo is asked ONCE more for board actions', calls);
+    /* RE-POINTED 24 Oct 2026 (one Jambo: "tell me…" is the brain's): the words go to Jambo's chat, never the graph route */
+    check(calls === 0, 'A3d "tell me…" is never the Board\'s: no graph call, the chat answers', calls);
     /* NEVER A DEAD END (Jambo works like Copilot, stage 3, 22 Oct 2026; was "then one plain line": "the board
        could not draw that"): words that asked for no picture go on to Jambo's chat, which answers in words */
     check(!/could not draw/i.test(none.said) && String(none.said || '').trim().length > 0 && !none.moved, 'A3e then Jambo answers it in words, and nothing is drawn', none.said);

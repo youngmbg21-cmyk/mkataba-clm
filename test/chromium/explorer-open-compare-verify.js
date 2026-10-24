@@ -85,8 +85,13 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
     await explorerCard(B);
     const c3 = await cardOf(B);
     check('3b another card\'s button reads "Compare with ' + refA + '"', !!c3 && c3.cmp === `Compare with ${refA}`, JSON.stringify(c3));
-    ai.reset();
-    await page.click(`#ig-dock [data-ig-hoverid="${B}"] [data-ig-cmp]`);
+    /* RE-POINTED 24 Oct 2026 (flaky on CI): opening B's card asks Jambo for its
+       briefing; on a slow runner that call reached the stand-in AFTER the reset and
+       was counted against Compare. Wait for B's briefing to arrive and finish first. */
+    { const end = Date.now() + 10000;
+      while (Date.now() < end && !ai.calls.some(c => JSON.stringify(c.body.messages || '').includes(`contract ${B} `))) await pause(100); }
+    await waitFor(page, () => !(window.intel && intel.busy), 10000);
+    ai.reset();    await page.click(`#ig-dock [data-ig-hoverid="${B}"] [data-ig-cmp]`);
 
     console.log('\n4 · the table, free');
     const table = await waitFor(page, () => { const t = [...document.querySelectorAll('#ig-dock table')].pop(); if (!t) return null;

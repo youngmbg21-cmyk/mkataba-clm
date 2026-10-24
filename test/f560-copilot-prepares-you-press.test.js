@@ -229,7 +229,7 @@ describe('f560 (5) — every point is a door onto the paper (Young, 8 Oct 2026)'
     const body = IG.slice(IG.indexOf('async function intelAsk'), IG.indexOf('C-1 · THE CARD CARRIES'));
     assert.match(body, /const onPaperSide=igHomePaperFace\(\)===true&&igPaperUp\(\);/);
     /* …and a question the Board hands to its Jambo (boardQ, AI first, Jambo works like Copilot stage 3b) steps past it too */
-    assert.match(body, /state\.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window\.hbAsk==='function'/);
+    assert.match(body, /state\.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && \(boardCmd\|\|boardDraw\) && typeof window\.hbAsk==='function'/);
   });
   test('5f a point in an answer is tied to the passage whose words it carries', () => {
     const fn = IG.slice(IG.indexOf('function igCiteNorm'), IG.indexOf('function igCiteRowsMark'));
