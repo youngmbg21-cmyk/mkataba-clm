@@ -1211,6 +1211,8 @@ function viewPaint(what, fn){
 }
 let _roomByName=null;   /* the contract whose room was opened BY NAME (openWorkspace's opts.room, step 8) */
 function setView(view){
+  /* a figure's list on the Board goes with the page it lay over (hbSheetLetGo) */
+  if(typeof window!=='undefined' && typeof window.hbSheetLetGo==='function') try{ window.hbSheetLetGo(); }catch(_){ }
   /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */
   if(typeof window!=='undefined' && window._cnSignedIn && view!=='counter') window._cnSignedIn=false;
   /* THE COUNTER IS THE COMPUTER'S (Round 1, 17 Oct 2026): the phone draws its own Home */
@@ -1424,7 +1426,8 @@ function setView(view){
   viewPaint('updateCommandBar', ()=>updateCommandBar(view));
   viewPaint('updateSidebarCounts', ()=>updateSidebarCounts());
   viewPaint('applyPanelLayout', ()=>applyPanelLayout());
-  viewPaint('renderContextPanel', ()=>renderContextPanel());
+  /* a closed side panel is drawn when it is opened (openPanel, openNotesPanel), not on every page move (the glitch audit, 24 Oct 2026) */
+  viewPaint('renderContextPanel', ()=>{ if(state.panelOpen) renderContextPanel(); });
   /* the page just drawn is a tab on the desk (Round 2, 17 Oct 2026) */
   viewPaint('deskTabsSync', ()=>{ if(window.deskTabsSync) deskTabsSync(); });
   /* Opening a contract that is out with the other side is the moment to start
@@ -4174,7 +4177,7 @@ function wireShell(){
       /* and the list head's box on the page says the same (Q1, "keep both boxes") */
       if(window.lhBoxSet) lhBoxSet();
       if(window.regPlaceUp&&regPlaceUp()&&window.renderRegisterBody) try{ renderRegisterBody(); }catch(_){}
-      if(u){ if(u.kind==='go'&&!u.missing&&!u.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(u.place)&&window.caGo&&caGo(u)) return;
+      if(u){ if(u.kind==='go'&&!u.missing&&!u.narrowOff&&!(window.caIsCardWord&&caIsCardWord(u.place))&&window.caGo&&caGo(u)) return;
         if(window.caHandHome) caHandHome(q,u); return; }
       if(window.jmRunAct) jmRunAct(a,q);
     });

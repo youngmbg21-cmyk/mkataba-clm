@@ -2296,6 +2296,44 @@ function portalNotesAfterPost(){
   const x=_ptNotes; const host=document.getElementById('pt-nego');
   try{ if(x&&x.c&&host&&window.rlPaintNoteMarks) rlPaintNoteMarks(host, x.c, portalNotesOpts()); }catch(_){}
 }
+/* ---- THE BOX AT THE FOOT OF THEIR CHANGES (owner picked "The Legora Way" for the other side's page,
+   24 Oct 2026) ----
+   "Write to Highland Corporate…" where Jambo's box stands on our side. It is not a second way to write a
+   note: what is typed is handed to the Notes drawer's own composer and that composer's own send is pressed
+   (rlNotesSend, the one funnel), so the drawer opens on the note as it lands. Drawn only where the link
+   may write notes at all (the drawer's own rule). */
+function portalWriteFootHtml(opts){
+  if(!PORTAL_OPTS.token||PORTAL_OPTS.superseded) return '';
+  const who=String((opts&&opts.org)||window.FIRST_PARTY||'').trim();
+  const ph=who?i18t('po_write_to',{ who }):i18t('po_notes');
+  return `<div class="pt-write" data-pt-write>
+    <input type="text" id="pt-write-in" class="pt-write-in" placeholder="${esc(ph)}" aria-label="${esc(ph)}" autocomplete="off">
+    ${typeof window.jamboSendHtml==='function'?window.jamboSendHtml('data-pt-write-go',i18t('ng_card_note_add'),{ cls:'pt-write-go' }):`<button type="button" class="pt-write-go" data-pt-write-go>${esc(i18t('ng_card_note_add'))}</button>`}
+  </div>`;
+}
+function portalWriteSend(){
+  const box=document.getElementById('pt-write-in');
+  const words=String((box&&box.value)||'').trim();
+  const panel=document.getElementById('pt-notes');
+  if(!panel||!panel.classList.contains('open')) portalOpenNotes({});
+  if(!words) return false;
+  const ta=document.querySelector('#pt-notes-body .rl-np-in'), send=document.querySelector('#pt-notes-body [data-rl-chat-send]');
+  if(!ta||!send) return false;
+  ta.value=words; ta.dispatchEvent(new Event('input',{ bubbles:true }));
+  send.click();
+  if(box) box.value='';
+  return true;
+}
+if(typeof document!=='undefined'){
+  document.addEventListener('click', ev => {
+    const b=ev.target&&ev.target.closest&&ev.target.closest('[data-pt-write-go]'); if(!b) return;
+    ev.preventDefault(); portalWriteSend();
+  });
+  document.addEventListener('keydown', ev => {
+    if(ev.key!=='Enter'||ev.shiftKey||ev.isComposing||!ev.target||ev.target.id!=='pt-write-in') return;
+    ev.preventDefault(); portalWriteSend();
+  });
+}
 let _ptNotesWired=false;
 function wirePortalNotes(){
   if(_ptNotesWired) return;
@@ -6247,6 +6285,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

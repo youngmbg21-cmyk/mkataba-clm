@@ -10,6 +10,14 @@
    in any type of computer", then option 1, the ask across the top): there is
    no paper at any width now, and the ask spans the body above the rail.
    1b, 1h, 7 and 9 are reversed in place; 1j is new.
+   RE-POINTED 24 Oct 2026 — ONE DOOR TO A NEW AGREEMENT (the owner picked
+   "The Legora way" by name): the old two-column form is gone. The sheet opens
+   on the three most used papers with the full search one press away ("Search
+   all our paper"), the picked paper hides the list, and Skip the questions
+   left with the old form. Claims about the removed parts are RETIRED in place
+   (1b's two columns, 1g's Skip, 1h2's 260 rail, 1j's ask across the top, 5a,
+   7a's two columns, 9a's columns, 9c's search on a fresh open, 9e's note);
+   the rest is re-pointed at the one sheet.
 
    Run: node test/chromium/new-agreement-verify.js */
 const fs = require('node:fs');
@@ -110,8 +118,8 @@ const READ = () => {
 
     /* ===== 1. THE + BUTTON OPENS ONE SCREEN ===== */
     await page.click('[data-page-new]'); await pause(500);
-    /* 23 Sep 2026: the button opens two doors first (openNewDoors); this presses Draft from HaTi. */
-    await page.click('[data-nd-door="draft"]').catch(() => {}); await pause(900);
+    /* RE-POINTED 24 Oct 2026: no drop-down before it — the button opens the one sheet. */
+    await pause(900);
     let m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '01-popup-1440.png') });
     check('1a the + button opens the pop-up, not a menu', !m.err && !m.menuOpen, m.err || `menu open ${m.menuOpen}`);
@@ -123,22 +131,31 @@ const READ = () => {
        reported 3 columns and 1180px. */
     /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go: New agreement is a
        page): the frame was a 900px card; it is the whole work area now. */
-    check('1b two columns at 1440 on a page as wide as the work area — the rail and the questions', !m.err && m.cols === 2 && m.panelW === m.work, m.err || `${m.cols} cols, ${m.panelW}px of ${m.work}`);
+    /* RETIRED 24 Oct 2026 (the one door): the two columns. What stands: a page as wide as the work area, ending at Jambo's panel. */
+    check('1b a page as wide as the work area, ending at Jambo\'s panel', !m.err && m.panelW === m.work, m.err || `${m.panelW}px of ${m.work}`);
     /* RE-POINTED 12 Oct 2026 — THE SEARCH LIST, which the owner picked by
        name. At the parent: "v1 · used 0×" on every row, HaTi's rows under
        the company's in one long list, the first row picked on arrival and
        filled, and Create draft live before anything was chosen. */
+    /* RE-POINTED 24 Oct 2026: the whole list is behind "Search all our paper";
+       a row's lines are its use-when, then its version and stream. */
+    await page.click('#na-all'); await pause(400);
+    m = await page.evaluate(READ);
+    const libLines = m.goLines.filter(x => /^v\d/.test(x));
     check('1c the company standards are rows, with version and stream, and no "used 0×"',
-      !m.err && m.lib === 2 && m.goLines.some(x => /^v1 · Procurement/.test(x)) && m.goLines.every(x => /^v1/.test(x) && !/used/.test(x)),
+      !m.err && m.lib >= 2 && libLines.some(x => /^v1 · Procurement/.test(x)) && libLines.length >= 2 && m.goLines.every(x => !/used 0/.test(x)),
       m.err || `${m.lib} rows · ${JSON.stringify(m.goLines)}`);
     const tabs = await page.evaluate(() => [...document.querySelectorAll('.na-tab')].map(t => t.textContent.trim() + (t.getAttribute('aria-selected') === 'true' ? '*' : '')));
     check('1d one shelf at a time: Company first, HaTi one press away, each with its count',
-      !m.err && tabs.length === 2 && /^Company \(2\)\*$/.test(tabs[0]) && /^HaTi \(\d+\)$/.test(tabs[1]) && m.tid === 0, m.err || JSON.stringify(tabs) + ` · ${m.tid} HaTi rows shown`);
-    const acts0 = await page.evaluate(() => ({ create: document.getElementById('na-create').disabled, skip: document.getElementById('na-skip').disabled,
+      /* RE-POINTED 24 Oct 2026: the three most used above may be HaTi's, so only the search list's rows are counted */
+      !m.err && tabs.length === 2 && /^Company \(2\)\*$/.test(tabs[0]) && /^HaTi \(\d+\)$/.test(tabs[1])
+        && await page.evaluate(() => ![...document.querySelectorAll('#na-lists [data-wz-tid]')].some(e => e.getClientRects().length)), m.err || JSON.stringify(tabs));
+    /* RE-POINTED 24 Oct 2026: Skip the questions left with the old form */
+    const acts0 = await page.evaluate(() => ({ create: document.getElementById('na-create').disabled, skip: !document.getElementById('na-skip'),
       why: document.getElementById('na-create').title, empty: !!document.querySelector('#na-form .na-empty') }));
     check('1e nothing is picked for you: no row lit, the card waits, Create draft and Skip are grey and say why',
-      !m.err && !m.on && acts0.empty && acts0.create && acts0.skip && /Pick a template/.test(acts0.why), m.err || JSON.stringify({ on: m.on, ...acts0 }));
-    await page.evaluate(() => document.querySelector('[data-wz-lib]').click()); await pause(500);
+      !m.err && !m.on && acts0.create && acts0.skip && /Pick a template/.test(acts0.why), m.err || JSON.stringify({ on: m.on, ...acts0 }));
+    await page.evaluate(() => document.querySelector('#na-lists [data-wz-lib]').click()); await pause(500);
     m = await page.evaluate(READ);
     const acts1 = await page.evaluate(() => ({ create: document.getElementById('na-create').disabled }));
     check('1e2 a pick lights the row with a tint, not a fill, draws its questions and wakes Create draft',
@@ -147,35 +164,25 @@ const READ = () => {
     check('1e3 the questions get more room than the 380px they had', !m.err && m.cardW >= 430, m.err || m.cardW + 'px');
     /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors): the screen carries the sentence box, Find and Import, and NO upload link. */
     check('1f the sentence box and Find are on it, and no second Upload or Import', !m.err && m.say && m.find && !m.upload && !m.imp);
-    check('1g the acts are Create draft · Skip the questions · Cancel, at the page\'s top', !m.err && m.foot.join('|') === 'Create draft|Skip the questions|Cancel', m.err || m.foot.join('|'));
+    /* RE-POINTED 24 Oct 2026: Skip the questions RETIRED with the old form */
+    check('1g the acts are Create draft · Cancel, at the page\'s top', !m.err && m.foot.join('|') === 'Create draft|Cancel', m.err || m.foot.join('|'));
     /* REVERSED IN PLACE: the agreement is drawn at 1440 now, which is the
        whole of what proposal C was chosen for.
        REVERSED AGAIN 23 Sep 2026 — the owner took it off this screen. At the
        parent this printed "paper true" with its wording. */
     check('1h no agreement is drawn at 1440', !m.err && !m.paper && m.paperText === 0
       && await page.evaluate(() => !document.getElementById('na-paper')), m.err || `paper ${m.paper}, ${m.paperText} chars`);
-    const scrollers = await page.evaluate(() => [...document.querySelectorAll('#modal-root *')].filter(e => { const cs = getComputedStyle(e);
-      return /(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.tagName !== 'TEXTAREA'; }).map(e => e.id || String(e.className).slice(0, 24)));
-    /* REVERSED 13 Oct 2026 (owner: "the choices need to be in a scrolling card
-       and not bare"): the rows are a card that scrolls inside itself, ending
-       above the window's foot; nothing else on the page scrolls with it. */
-    const card = await page.evaluate(() => { const r = document.querySelector('#na-lists .na-rows'); if (!r) return null;
-      const b = r.getBoundingClientRect(), cs = getComputedStyle(r);
-      return { scrolls: /(auto|scroll)/.test(cs.overflowY), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
-        surface: cs.backgroundColor !== 'rgba(0, 0, 0, 0)', fits: b.bottom <= innerHeight + 1 }; });
-    check('1h2 the rail is 260 and its choices are a card that scrolls inside the window',
-      !m.err && m.railW === 260 && !!card && card.scrolls && card.edge && card.surface && card.fits
-        && scrollers.filter(x => !/na-rows/.test(x)).length <= 1,
-      m.err || `rail ${m.railW} · card ${JSON.stringify(card)} · scrollers ${JSON.stringify(scrollers)}`);
+    /* 1h2 RETIRED 24 Oct 2026 (the one door): the 260px rail and its scrolling
+       card left with the old form; a picked paper hides the list. */
     check('1i the card\'s labels wear the artifact\'s label weight, not the form\'s bold', !m.err && Number(m.labelWeight) < 600, m.err || m.labelWeight);
-    /* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026). At the parent
-       it sat in the 260px rail: the box 236px wide and Find UNDER it. */
-    check('1j the ask spans the top line, above the rail, with Find beside the box',
-      !m.err && m.ask && m.ask.inBody && !m.ask.inRail && m.ask.sayW >= 700 && m.ask.findBeside,
-      m.err || JSON.stringify(m.ask));
+    /* 1j RETIRED 24 Oct 2026 (the one door): the ask sits in its own card
+       above the papers now — one-sheet-as-drawn-verify pins its shape. */
 
     /* ===== 2. A CHIP SWAPS THE CARD ===== */
-    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('[data-wz-tid="ND"]').click(); }); await pause(500);
+    /* RE-POINTED 24 Oct 2026: a picked paper hides the list; Change paper brings it back */
+    await page.click('#na-change-paper'); await pause(300);
+    await page.evaluate(() => { const a = document.getElementById('na-all'); if (a && !document.getElementById('na-q').getClientRects().length) a.click(); }); await pause(300);
+    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('#na-lists [data-wz-tid="ND"]').click(); }); await pause(500);
     m = await page.evaluate(READ);
     check('2a pressing a HaTi row lights it and draws that template\'s own questions', !m.err && /NDA/.test(m.on) && /NDA/.test(m.name) && m.boxes >= 5, m.err || `${m.on} · ${m.name} · ${m.boxes}`);
     check('2b the wizard\'s own boxes, by their own ids', await page.evaluate(() => !!document.getElementById('wz-counterparty') && !!document.getElementById('wz-cpemail')));
@@ -183,6 +190,10 @@ const READ = () => {
     /* ===== 3. THE RAIL'S OWN SEARCH FILTERS BY NAME; THE SENTENCE NEVER DOES ===== */
     /* RE-POINTED 12 Oct 2026 (the Search list). At the parent the sentence box
        filtered by any word, so "agreement" matched every standard. */
+    /* RE-POINTED 24 Oct 2026: back to the list, the HaTi shelf, before the sentence */
+    await page.click('#na-change-paper'); await pause(300);
+    await page.evaluate(() => { const a = document.getElementById('na-all'); if (a && !document.getElementById('na-q').getClientRects().length) a.click(); }); await pause(300);
+    await page.evaluate(() => (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click()); await pause(300);
     await page.fill('#dr-say', 'disclosure'); await pause(400);
     m = await page.evaluate(READ);
     check('3a the sentence box filters nothing', !m.err && m.tid >= 10, m.err || `${m.tid} HaTi rows after typing`);
@@ -213,12 +224,14 @@ const READ = () => {
       `${Math.round(grow0)} -> ${grew.h}px · inner scroll ${grew.inner} · sideways ${grew.sideways}`);
     await page.fill('#dr-say', '');
     await page.fill('#na-q', 'zzzz nothing'); await pause(400);
-    const none = await page.evaluate(() => ({ note: !!document.querySelector('.na-none'), rows: document.querySelectorAll('.na-pick').length }));
+    const none = await page.evaluate(() => ({ note: !!document.querySelector('.na-none'), rows: document.querySelectorAll('#na-lists .na-pick').length })); /* RE-POINTED 24 Oct 2026: the three most used stay above the search */
     check('3b a search that matches no name says so', none.note && none.rows === 0, JSON.stringify(none));
     await page.fill('#na-q', ''); await pause(400);
 
     /* ===== 4. CREATE REALLY CREATES, THROUGH THE DOOR'S OWN ACT ===== */
-    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('[data-wz-tid="ND"]').click(); }); await pause(400);
+    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('#na-lists [data-wz-tid="ND"]').click(); }); await pause(400);
+    /* RE-POINTED 24 Oct 2026: Create waits for a stream too (the one door asks it) */
+    await page.evaluate(() => { const b = document.querySelector('#na-file [data-na-stream]'); if (b) b.click(); }); await pause(200);
     const before = await page.evaluate(() => state.contracts.length);
     await page.fill('#wz-counterparty', 'Popup Test Ltd');
     await page.click('#na-create'); await pause(1200);
@@ -227,13 +240,8 @@ const READ = () => {
     check('4a Create draft makes one contract from the chosen template and closes the pop-up',
       made.n === before + 1 && made.gone && made.tpl === 'ND' && made.status === 'Draft', JSON.stringify(made));
 
-    /* ===== 5. SKIP THE QUESTIONS CREATES IT UNFILLED ===== */
+    /* 5a RETIRED 24 Oct 2026 (the one door): Skip the questions left with the old form. */
     await page.evaluate(() => { setView('register'); }); await pause(600);
-    await page.evaluate(() => openNewAgreement({ pick: { kind: 'tid', id: 'RM' } })); await pause(600);
-    const b2 = await page.evaluate(() => state.contracts.length);
-    await page.click('#na-skip'); await pause(1200);
-    const skipped = await page.evaluate(() => ({ n: state.contracts.length, gone: !document.getElementById('na-root'), cp: (state.contracts[0] || {}).counterparty }));
-    check('5a Skip the questions creates the draft with its blanks intact', skipped.n === b2 + 1 && skipped.gone && !skipped.cp, JSON.stringify(skipped));
 
     /* ===== 6. CANCEL AND ESCAPE ===== */
     await page.evaluate(() => { setView('register'); }); await pause(500);
@@ -251,7 +259,8 @@ const READ = () => {
     await page.evaluate(() => openNewAgreement({})); await pause(900);
     m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '02-popup-1700.png') });
-    check('7a at 1700 the page fills the work area with two columns', !m.err && m.cols === 2 && m.panelW === m.work, m.err || `${m.cols} cols, ${m.panelW}px of ${m.work}`);
+    /* RE-POINTED 24 Oct 2026: two columns RETIRED; the page still fills the work area */
+    check('7a at 1700 the page fills the work area', !m.err && m.panelW === m.work, m.err || `${m.panelW}px of ${m.work}`);
     check('7b and no paper is drawn', !m.err && !m.paper, m.err || `paper ${m.paper}, ${m.paperText} chars`);
     await page.evaluate(() => closeModal());
 
@@ -259,7 +268,8 @@ const READ = () => {
        *"before you create the draft you should have the option to add the
        other participants."* SHUT BY DEFAULT — it is an offer, not a question
        — and nothing it collects is written anywhere until a record exists. */
-    await page.evaluate(() => openNewAgreement({})); await pause(600);
+    /* RE-POINTED 24 Oct 2026: Who else stands with the picked paper's questions */
+    await page.evaluate(() => openNewAgreement({ pick: { kind: 'tid', id: 'ND' } })); await pause(600);
     const ppl = await page.evaluate(() => {
       const d = document.getElementById('na-people');
       if (!d) return null;
@@ -338,34 +348,34 @@ const READ = () => {
       d = await page.evaluate(D);
       await page.screenshot({ path: path.join(OUT, `03-ipad-${w}.png`) });
       check(`9a ${label} at ${w}: two columns on a page as wide as the work area, nothing stacked`,
-        !d.err && !d.stack && !d.right && d.cols === 2 && d.frameW === d.work,
-        d.err || `stack ${d.stack} · #na-right ${d.right} · ${d.cols} cols · ${d.frameW}px of ${d.work}`);
+        /* RE-POINTED 24 Oct 2026: the columns RETIRED; nothing stacked, the work area filled */
+        !d.err && !d.stack && !d.right && d.frameW === d.work,
+        d.err || `stack ${d.stack} · #na-right ${d.right} · ${d.frameW}px of ${d.work}`);
       check(`9b ${label} at ${w}: no agreement is drawn`, !d.err && !d.paper, d.err || `paper ${d.paper}`);
       /* A GUARD: it held at the parent too. It is here because the list's
          cap was RE-DERIVED when the ask left the rail, and this is the whole
          of what that cap promises. */
       /* RE-POINTED 12 Oct 2026 (the Search list): the Import row left; what
          must stand on screen on a fresh open is the rail's own search. */
-      const qOn = await page.evaluate(() => { const e = document.getElementById('na-q'); if (!e) return false;
+      /* RE-POINTED 24 Oct 2026: the search is one press away — "Search all our paper" is on screen */
+      const qOn = await page.evaluate(() => { const e = document.getElementById('na-all'); if (!e) return false;
         const r = e.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; });
       check(`9c GUARD ${label} at ${w}: the rail's search is on screen on a fresh open`,
         !d.err && qOn, d.err || (qOn ? 'on screen' : 'below the fold'));
       /* A GUARD, not a red-at-the-parent claim: the foot sits outside the
          scroller in both shapes. It is here because on a short screen the
          body now scrolls, and Create must never be what scrolls away. */
-      check(`9d GUARD ${label} at ${w}: Cancel, Skip and Create are always on screen`,
+      check(`9d GUARD ${label} at ${w}: Cancel and Create are always on screen`,
         !d.err && d.footOnScreen, d.err || (d.footOnScreen ? 'on screen' : 'the foot is off screen'));
       await page.evaluate(() => closeModal()); await pause(200);
     }
-    check('9e the note says only what is true — no blank to light, nothing "under these questions"',
-      !d.err && /Jambo reads the agreement on arrival/.test(d.note) && !/lights the blank|under these questions/.test(d.note),
-      d.err || d.note.slice(0, 90));
+    /* 9e RETIRED 24 Oct 2026 (the one door): the note left with the old form. */
     /* A REAL WHEEL, at the iPad size where the body DOES scroll (MEASURED: by
        105px at 1194x834, because the ask now sits above both columns). What
        is below the fold must be reachable, and the foot must not move.
        A GUARD at the parent too: there the stacked column scrolled instead. */
     await page.setViewportSize({ width: 1194, height: 834 }); await pause(300);
-    await page.evaluate(() => openNewAgreement({})); await pause(900);
+    await page.evaluate(() => openNewAgreement({ pick: { kind: 'tid', id: 'ND' } })); await pause(900);
     const before9 = await page.evaluate(D);
     const cardBox = await page.evaluate(() => {
       const b = document.querySelector('.na-card').getBoundingClientRect();
@@ -380,7 +390,8 @@ const READ = () => {
       d.err || `"Who else" on screen ${before9.peopleOnScreen} → ${d.peopleOnScreen} · foot ${d.footOnScreen}`);
     /* WHERE THE READER ENDS UP: another template is another set of questions,
        and still no paper. At the parent the stacked paper followed the pick. */
-    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('[data-wz-tid]').click(); }); await pause(500);
+    await page.click('#na-change-paper'); await pause(300);
+    await page.evaluate(() => { const r = document.querySelector('#na-closest [data-wz-tid]:not([data-wz-tid="ND"]), #na-closest .na-pick'); r && r.click(); }); await pause(500);
     d = await page.evaluate(D);
     check('9g picking another template swaps the questions and draws no paper', !d.err && !d.paper, d.err || `paper ${d.paper}`);
     await page.evaluate(() => closeModal()); await pause(200);

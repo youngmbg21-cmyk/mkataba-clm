@@ -52,6 +52,7 @@ Questions and the Nine Flow Rules still apply.
 | 1 | ONE SEARCH OVER HaTi: the permission-aware index | built |
 | 2 | EVERY DOOR AS A TOOL | built |
 | 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END (3, then 3b–3d: the live exam's misses read by what they mean) | built |
+| 3e | ONE JAMBO, TWO LAYERS (owner, 24 Oct 2026): every box the free readers first, then the brain; the screen told to the brain; act first, then explain; "show them on the board" | built |
 | 4 | MEASURE AGAIN: before/after, calls per ask, the three screens | — |
 
 ## 4. The scores

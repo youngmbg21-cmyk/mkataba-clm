@@ -6175,7 +6175,15 @@ function rlCloseRoundHtml(){
    row (portalNegoFacts), from the same number. Read RAW — a label drawn on
    every paint must not start a negotiation. */
 function rlRoundLabelHtml(c, opts = {}){
-  if ((opts.side === 'counterparty' ? 'counterparty' : 'owner') !== 'owner') return '';
+  /* THEIR PAGE NAMES THE ROUND AND WHO IT IS WITH ("Round 1 · from Highland Corporate"; owner picked "The
+     Legora Way" for the other side's page, 24 Oct 2026); our preview of their seat keeps none */
+  if (opts.side === 'counterparty'){
+    if (!(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return '';
+    const nn = c && c.negotiation;
+    const r = (nn && typeof nn.round === 'number' && nn.round > 0) ? nn.round : 1;
+    const who = String(opts.org || window.FIRST_PARTY || '').trim();
+    return `<span class="rl-round-at">${_ne(who ? i18t('ng_round_from', { n: r, who }) : i18t('ng_round_n', { n: r }))}</span>`;
+  }
   const n = c && c.negotiation;
   if (!n) return '';
   const round = (typeof n.round === 'number' && n.round > 0) ? n.round : 1;
@@ -10304,17 +10312,23 @@ function renderNegotiationsList(host){
 function rlBenchCatchUp(c, again){
   if (!c) return;
   const redo = () => { if (typeof again === 'function') again(); };
+  /* ONE REPAINT FOR BOTH LOADS (the glitch audit, 24 Oct 2026: the thread and
+     the share list each repainted the paper and Jambo's panel as they landed —
+     three paints for one press of Redlines). The host is drawn again once,
+     when every load asked for here has answered, and only if one brought news. */
+  const loads = [];
   if (window.API_MODE && API_MODE() && window.api && !Array.isArray(c._messages) && !c._msgFetch){
     c._msgFetch = true;
-    api('contracts/' + c.id + '/messages')
-      .then(r => { c._messages = (r && r.messages) || []; redo(); })
-      .catch(() => { c._messages = c._messages || []; });
+    loads.push(api('contracts/' + c.id + '/messages')
+      .then(r => { c._messages = (r && r.messages) || []; return true; })
+      .catch(() => { c._messages = c._messages || []; return false; }));
   }
   if (window.API_MODE && API_MODE() && window.ensureSharesCached
       && window.sharesKnown && !sharesKnown(c) && !c._shareFetch){
     c._shareFetch = true;
-    ensureSharesCached(c).then(() => redo()).catch(() => {});
+    loads.push(ensureSharesCached(c).then(() => true).catch(() => false));
   }
+  if (loads.length) Promise.all(loads).then(got => { if (got.some(Boolean)) redo(); });
 }
 function rlBenchOpts(c, o = {}){
   const side = o.side === 'counterparty' ? 'counterparty' : 'owner';
@@ -19781,12 +19795,8 @@ function redlineChangeCardsHtml(c, opts = {}){
     }
     return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)}${sum ? ` · ${_ne(sum)}` : ''}</div>`;
   };
-  const bandHead = ch => {
-    if (!banded) return '';
-    const b = rlCardBand(ch, side, unsent, heldIds, c);
-    if (b === lastBand) return '';
-    lastBand = b;
-    const n = shown.filter(x => rlCardBand(x, side, unsent, heldIds, c) === b).length;
+  /* a pile's name: ONE reading for its heading and, on their page, its chip */
+  const bandLabel = b => {
     /* "With …" names the OTHER side of this seat's table: on their page that
        is the sender, never the counterparty they themselves are. */
     const otherSide = side === 'counterparty'
@@ -19798,12 +19808,21 @@ function redlineChangeCardsHtml(c, opts = {}){
        none named, keep the generic word */
     const many = side !== 'counterparty' && typeof window.partiesMulti === 'function' && window.partiesMulti(c);
     const named = side === 'counterparty' || (!many && !!String(c.counterparty || '').trim());
-    const label = b === 'with'
+    return b === 'with'
       ? i18t(named ? 'ng_band_with_named' : 'ng_band_with', { who: otherSide })
       /* the pile names its colleague, and the settled fold its round (round 9's gaps) */
       : b === 'suggest' ? rlSuggestPileLabel(c, inBand())
       : b === 'accepted' ? rlSettledPileLabel(c, inBand())
       : i18t('ng_band_' + b);
+  };
+  const bandHead = ch => {
+    if (!banded) return '';
+    const b = rlCardBand(ch, side, unsent, heldIds, c);
+    if (b === lastBand) return '';
+    lastBand = b;
+    const n = shown.filter(x => rlCardBand(x, side, unsent, heldIds, c) === b).length;
+    const inBand = () => shown.filter(x => rlCardBand(x, side, unsent, heldIds, c) === b);
+    const label = bandLabel(b);
     /* SETTLED, FOLDED (round 9, "Piles"): what is finished this round stands
        behind its own heading, a press opens it and a press again shuts it */
     if (RL_QUIET_BANDS.includes(b)) return `<button type="button" class="rl-band rl-band-fold" data-rl-band="${_nea(b)}" data-rl-settled-fold aria-expanded="${_rlSettledOpen ? 'true' : 'false'}"><span>${
@@ -20735,11 +20754,20 @@ function redlineChangeCardsHtml(c, opts = {}){
      and its rows inside one frame, as drawn. The heading and the rows are the
      same markup; only the frame around them is new. */
   if (!banded) return shown.map(ch => bandHead(ch) + oneCard(ch)).join('');
-  let out = '', open = false;
+  let out = '', open = false, pileOn = 'all';
+  /* ON THEIR PAGE THE PILES ARE CHIPS TOO (owner picked "The Legora Way" for the other side's page,
+     24 Oct 2026): one chip per pile that holds a change, named and counted as its heading, then All; a
+     press shows that pile alone (rlPileChipsHtml, nothing repainted). Our seat is unchanged. */
+  if (side === 'counterparty' && typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE){
+    const order = [], n = {};
+    for (const ch of shown){ const b = rlCardBand(ch, side, unsent, heldIds, c); if (!(b in n)){ n[b] = 0; order.push(b); } n[b]++; }
+    out += rlPileChipsHtml(order.map(b => ({ b, label: bandLabel(b), n: n[b] })), shown.length);
+    pileOn = order.includes(_rlPilePick) ? _rlPilePick : 'all';
+  }
   for (const ch of shown){
     const h = bandHead(ch);
     if (h){ if (open) out += '</section>';
-      out += `<section class="rl-pile${RL_QUIET_BANDS.includes(lastBand) ? ' rl-pile-quiet' : ''}" data-rl-pile="${_nea(lastBand)}">${h}`; open = true; }
+      out += `<section class="rl-pile${RL_QUIET_BANDS.includes(lastBand) ? ' rl-pile-quiet' : ''}" data-rl-pile="${_nea(lastBand)}"${pileOn !== 'all' && pileOn !== lastBand ? ' hidden' : ''}>${h}`; open = true; }
     out += oneCard(ch);
   }
   return out + (open ? '</section>' : '');
@@ -22297,7 +22325,18 @@ function rlRowLineHtml(ch, sub, fromRisk){
   if (!ex) return sub || '';
   const arg = _rlPlain(sub);
   const tag = fromRisk ? ` <span class="rl-card-ex-tag">${_ne(i18t('rk_from_scan'))}</span>` : '';
-  return ex.replace('<div class="rl-card-ex">', `<div class="rl-card-sum rl-card-ex"${arg ? ` title="${_nea(arg)}"` : ''}>`).replace(/<\/div>$/, tag + '</div>');
+  /* ON THEIR PAGE THE WORDS SAY WHERE THEY SIT (owner picked "The Legora Way" for the other side's page,
+     24 Oct 2026): "§2 · “…the changed words…”", the clause's own number off its label; our side unchanged */
+  const sec = (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) ? rlRowSecOf(ch) : '';
+  const quoted = sec ? ex.replace('<div class="rl-card-ex">', `<div class="rl-card-ex"><span class="rl-card-sec">${_ne(sec)}</span> · “`).replace(/<\/div>$/, '”</div>') : ex;
+  return quoted.replace('<div class="rl-card-ex">', `<div class="rl-card-sum rl-card-ex"${arg ? ` title="${_nea(arg)}"` : ''}>`).replace(/<\/div>$/, tag + '</div>');
+}
+/* the clause's number as its § ("2. Price & Contract Value" → "§2"; "4.1 Fees" → "§4.1"), read off the
+   row's own name (rlRowClauseName, what the row shows above it); '' where it carries none, and the line
+   then reads as before */
+function rlRowSecOf(ch){
+  const m = String(rlRowClauseName(ch) || '').match(/^\s*(\d+(?:\.\d+)*)[.)]?\s/);
+  return m ? '§' + m[1] : '';
 }
 /* ---- WHO IS HOLDING THIS CLAUSE, ON ITS OWN ROW (round 9's gaps: "Erik is
    editing this clause · Ask for it") ----
@@ -22669,6 +22708,35 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
     if (c) rlReviewDoor(c, rlHeadRepaint);
   }
 });
+/* ---- THEIR PAGE'S PILE CHIPS (owner picked "The Legora Way" for the other side's page, 24 Oct 2026) ----
+   Waiting on you N · … · All N: the piles that hold a change, each named and counted by its own heading's
+   reading, then All. The pick is kept for the sitting; the builder draws the other piles [hidden] and a
+   press flips them in place (nothing repainted); a pick whose pile has emptied falls back to All. */
+let _rlPilePick = 'all';
+function rlPileChipsHtml(piles, total){
+  if (!Array.isArray(piles) || !piles.length) return '';
+  const on = piles.some(p => p.b === _rlPilePick) ? _rlPilePick : 'all';
+  const chip = (k, label, n) => `<button type="button" class="rl-pile-chip" data-rl-pile-chip="${_nea(k)}" aria-pressed="${on === k ? 'true' : 'false'}">${_ne(label)} <b>${n}</b></button>`;
+  return `<div class="rl-pile-chips" role="group" aria-label="${_nea(i18t('ng_pile_chips'))}" data-on="${_nea(on)}">${
+    piles.map(p => chip(p.b, p.label, p.n)).join('')}${chip('all', i18t('ng_pile_all'), total)}</div>`;
+}
+function rlPilePickSet(k){
+  _rlPilePick = String(k || 'all');
+  document.querySelectorAll('.rl-pile-chips').forEach(row => {
+    const has = k === 'all' || !!row.querySelector(`[data-rl-pile-chip="${window.CSS && CSS.escape ? CSS.escape(_rlPilePick) : _rlPilePick}"]`);
+    const on = has ? _rlPilePick : 'all';
+    row.setAttribute('data-on', on);
+    row.querySelectorAll('[data-rl-pile-chip]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-rl-pile-chip') === on)));
+    const list = row.parentElement;
+    if (list) list.querySelectorAll(':scope > .rl-pile').forEach(p => { p.hidden = on !== 'all' && p.getAttribute('data-rl-pile') !== on; });
+  });
+  /* the settled pile stands folded; picking it opens it */
+  if (k !== 'all' && RL_QUIET_BANDS.includes(k) && !_rlSettledOpen) rlSettledToggle();
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('[data-rl-pile-chip]'); if (!b) return;
+  e.preventDefault(); rlPilePickSet(b.getAttribute('data-rl-pile-chip'));
+});
 function rlSettledToggle(){
   _rlSettledOpen = !_rlSettledOpen;
   document.querySelectorAll('#rl-changes-col').forEach(col => col.classList.toggle('rl-settled-open', _rlSettledOpen));
@@ -22960,7 +23028,7 @@ function rlColumnHtml(c, opts = {}){
                Jambo's Redlines face draws none — its head says the round and
                each pile its own count, as drawn; the Negotiate page by name
                and their page keep theirs */
-            (opts.noProgress || notesOn) ? '' : rlProgressPileHtml(c, p, side)}${
+            (opts.noProgress || notesOn || (side === 'counterparty' && typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) ? '' : rlProgressPileHtml(c, p, side)}${
             /* RISKS TO LOOK AT (Young picked it 4 Oct 2026): the risk scan's
                findings and the brief's watchouts, read here one by one. Our
                seat only — js/risks.js decides, and draws nothing elsewhere. */
@@ -22968,6 +23036,10 @@ function rlColumnHtml(c, opts = {}){
                face ends with the settled fold, as drawn; the risk list is the
                clause editor's Risks tab and Home's own glance row */
             (!opts.noRisks && !notesOn && typeof window.rlRisksPileHtml === 'function') ? window.rlRisksPileHtml(c, { ...opts, side }) : ''}</div>
+          ${''/* THEIR PAGE'S BOX AT THE FOOT (owner picked "The Legora Way" for the other side's page, 24 Oct
+                 2026): where Jambo's box stands on our side, a box that writes to us — through the Notes
+                 drawer's own composer and send (portalWriteFootHtml, js/views/portal.js) */}
+          ${(side === 'counterparty' && typeof window.portalWriteFootHtml === 'function') ? window.portalWriteFootHtml(opts) : ''}
         </div>
       </aside>`;
 }

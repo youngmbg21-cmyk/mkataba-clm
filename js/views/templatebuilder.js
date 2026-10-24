@@ -2604,7 +2604,7 @@ function tbSend() {
   let goTo = null; try {
     goTo = ((typeof caLeavesFor === 'function') ? caLeavesFor(said, 'builder') : null) || ((typeof caReadPlace === 'function') ? caReadPlace(said) : null);
   } catch (_) { goTo = null; }
-  if (goTo && goTo.kind === 'go' && !(window.CA_CARD_WORDS || []).includes(goTo.place) && typeof caGo === 'function') {
+  if (goTo && goTo.kind === 'go' && !(window.caIsCardWord && caIsCardWord(goTo.place)) && typeof caGo === 'function') {
     if (box) box.value = '';
     tbLeave(() => caGo(goTo)); return;
   }

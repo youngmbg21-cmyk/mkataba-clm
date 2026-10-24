@@ -1420,6 +1420,17 @@ function aiHereSays(){
     if(page) out.push(i18t('ai_here_on',{ page }));
   } else if(page) out.push(i18t('ai_here_page',{ page }));
   else out.push(i18t('ai_here_none'));
+  if(P.face){
+    if(P.face==='explorer'&&typeof igMapNow==='function'){
+      let M=null; try{ M=igMapNow(); }catch(_){ M=null; }
+      if(M){ if(typeof M.shown==='number'&&typeof M.total==='number') out.push(M.by?i18t('ai_here_map_by',{ n:M.shown, t:M.total, by:M.by }):i18t('ai_here_map',{ n:M.shown, t:M.total }));
+        if(Array.isArray(M.says)&&M.says.length) out.push(i18t('ai_here_map_says',{ says:M.says.join(', ') })); }
+    }
+    if(P.face==='board'){
+      let key=null, D=null, crumb=''; try{ key=(typeof hbOpenListKey==='function')?hbOpenListKey():null; D=key&&typeof hbDigData==='function'?hbDigData(key, hbS().lens):null; crumb=key&&typeof hbCrumbOf==='function'?hbCrumbOf(key, hbS().lens):''; }catch(_){ D=null; }
+      out.push(D?i18t('ai_here_board_card',{ what:crumb, n:D.n }):i18t('ai_here_board_none'));
+    }
+  }
   if(typeof P.matching==='number') out.push(typeof P.ofBook==='number'?i18t('ai_here_rows_of',{ n:P.matching, of:P.ofBook }):i18t('ai_here_rows',{ n:P.matching }));
   if(Array.isArray(P.filters)&&P.filters.length) out.push(i18t('ai_here_filters',{ n:P.filters.length }));
   if(P.searchBox) out.push(i18t('ai_here_search',{ q:P.searchBox }));
@@ -1428,7 +1439,9 @@ function aiHereSays(){
 }
 /* THE SAME QUESTION TYPED (21 Oct 2026): "what am I looking at?" in any box is
    the chip's own free reading, never a model call that has to guess the page */
-const AI_HERE_ASK_RE=/^\s*(?:jambo,?\s+)?(?:what\s+am\s+i\s+looking\s+at|what(?:'s|\s+is)\s+(?:on\s+)?(?:this\s+(?:page|screen)|the\s+screen)|where\s+am\s+i|vad\s+tittar\s+jag\s+på|vad\s+är\s+(?:det\s+här|den\s+här\s+sidan)|var\s+är\s+jag)\s*[?.!]*\s*$/i;
+/* …and SAID ANOTHER WAY (owner, 24 Oct 2026: "what am i seeing on screen" went to the model): looking at / seeing /
+   on (the|my) screen / this page or view / describe this page / where am I — never "explain …", the map's own tour */
+const AI_HERE_ASK_RE=/^\s*(?:jambo,?\s+)?(?:(?:so\s+)?what\s+(?:am\s+i|are\s+we)\s+(?:looking\s+at|seeing)(?:\s+(?:on|in)\s+(?:the\s+|my\s+|this\s+)?(?:screen|page|view))?|what(?:'s|\s+is)\s+(?:on\s+)?(?:this\s+(?:page|screen|view)|the\s+screen|my\s+screen|here)|what\s+(?:does|is)\s+(?:this|the)\s+(?:page|screen|view)\s+(?:show|showing)|(?:describe|tell\s+me\s+about)\s+(?:this|the)\s+(?:page|screen|view)|where\s+am\s+i|vad\s+(?:tittar|ser)\s+jag\s+på(?:\s+(?:på\s+)?skärmen)?|vad\s+(?:visas|syns)\s+på\s+skärmen|vad\s+är\s+(?:det\s+här|den\s+här\s+sidan)|var\s+är\s+jag)\s*[?.!]*\s*$/i;
 const aiHereAsked=q=>AI_HERE_ASK_RE.test(String(q||''));
 function aiHereExplain(asked){
   const lines=aiHereSays();
@@ -1508,6 +1521,7 @@ function aiMsgHtml(m,i){
         ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
         ${proposal}
         ${m.cards?m.cards:''}
+        ${(Array.isArray(m.cardIds)&&m.cardIds.length>=2&&typeof window.hbShowFound==='function'&&typeof window.caHomeFace==='function'&&!(typeof window.mPhone==='function'&&mPhone()))?`<div class="igd-doors"><button type="button" class="ui-btn ui-btn-sm" data-ai-board-go="${i}">${_aiEsc(i18t('int_show_on_board'))}</button></div>`:''}
         ${''/* THE PREPARED PRESS AND SHOW ME › (js/jambopress.js, 21 Oct 2026); a watch Jambo proposes, and Your watches, drawn live from the store */}
         ${m.press&&typeof jpHtml==='function'?jpHtml(m.press,'ai:'+i):''}
         ${m.watchAsk&&typeof watchAskHtml==='function'?watchAskHtml(m,'ai:'+i):''}
@@ -1516,6 +1530,20 @@ function aiMsgHtml(m,i){
         ${m.read&&m.read.text?`<div class="ai-read" data-ai-read>${_aiEsc(m.read.text)}</div>`:''}
       </div>
     </div>`;
+}
+/* "Show on the Board" under a window answer that names a set (24 Oct 2026): the Board's found card, the one door
+   for a named set (hbShowFound); delegated, bound once */
+if(typeof document!=='undefined'&&!document._aiBoardGoWired){
+  document._aiBoardGoWired=true;
+  document.addEventListener('click',e=>{
+    const b=e.target&&e.target.closest&&e.target.closest('[data-ai-board-go]'); if(!b) return;
+    e.stopPropagation();
+    const m=ai.history[Number(b.getAttribute('data-ai-board-go'))]; if(!m||!Array.isArray(m.cardIds)) return;
+    const ids=m.cardIds.filter(id=>typeof getContract==='function'&&getContract(id)); if(!ids.length) return;
+    const title=String(m.listTitle||(m.read&&m.read.text)||'').slice(0,120);
+    caHomeFace('board');
+    setTimeout(()=>{ try{ hbShowFound(ids, title); if(typeof hbPaintBoard==='function') hbPaintBoard(); }catch(_){} },0);
+  });
 }
 /* a choice under an answer in the window: a door through the one mover, or the words asked again (delegated, bound once) */
 if(typeof document!=='undefined'&&!document._aiChoiceWired){
@@ -2238,6 +2266,8 @@ function aiInsightsBrief(panels, tab){
 
    AND IT WRITES NOTHING. No state moves, nothing is persisted, nothing is
    rendered; asked twice it answers twice the same. */
+/* Home's faces by name, for the model (the person's own word for each comes from the bar) */
+const AI_HOME_FACE_NAMES = { board: 'Home (the Board)', paper: 'Home (the paper side)', calendar: 'Home (the Calendar)', explorer: 'Explorer (the map of the book)' };
 const AI_PAGE_NAMES = {
   dashboard: 'Home', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract', intel: 'Insights',
@@ -2281,6 +2311,27 @@ function aiPageContext(){
     }
   }catch(_){}
 
+  /* ---- HOME'S FOUR FACES (owner, 24 Oct 2026: asked "what am I seeing on screen" on Explorer, Jambo said
+     "the Home page"): the Board, the paper, the Calendar or Explorer — and what the Board or the map shows, each
+     through its own reading (hbBoardNow, igMapNow), never counted here ---- */
+  if (view === 'dashboard'){
+    try{
+      const face = (typeof hbFace === 'function') ? hbFace() : '';
+      if (face){
+        page.face = face;
+        page.name = AI_HOME_FACE_NAMES[face] || page.name;
+        if (face === 'board' && typeof hbBoardNow === 'function'){ const b = hbBoardNow(); if (b) page.board = b; }
+        if (face === 'explorer' && typeof igMapNow === 'function'){
+          const M = igMapNow();
+          const bits = [];
+          if (typeof M.shown === 'number') bits.push(`${M.shown}${typeof M.total === 'number' ? ' of ' + M.total : ''} contracts drawn`);
+          if (M.by) bits.push(`grouped by ${M.by}`);
+          if (Array.isArray(M.says) && M.says.length) bits.push(M.says.join('; '));
+          if (bits.length) page.map = bits.join('; ');
+        }
+      }
+    }catch(_){}
+  }
   /* ---- THE TWO LISTS, THROUGH THE REGISTER'S OWN READINGS ---- */
   if (view === 'register' || view === 'folder'){
     try{
@@ -2883,6 +2934,8 @@ function aiPageSays(p){
   if(label && label!==name) t+=` (they see it labelled "${label}")`;
   t+='. ';
   if(p.tab) t+=`They are on its "${cut(p.tab)}" tab. `;
+  if(p.map) t+=`The map shows: ${cut(p.map, 400)}. `;
+  if(p.board) t+=`The Board as it stands:\n${cut(p.board, 4000)}\nAnswer from these numbers when the question is about the Board. `;
   if(p.valueStream) t+=`It is filtered to the "${cut(p.valueStream)}" value stream. `;
   if(p.showing) t+=`It is showing ${cut(p.showing, 80)}. `;
   if(p.searchBox) t+=`Its search box reads "${cut(p.searchBox)}". `;
@@ -4820,6 +4873,33 @@ async function aiSubmit(asked){
      is proposed as a card (js/jambopress.js) — both before any other reader */
   if(!cardOwns && aiHereAsked(q)){ aiHereExplain(q); return; }
   if(!cardOwns && typeof window.watchAskHere==='function' && watchAskHere(q)) return;
+  /* ONE JAMBO, TWO LAYERS (owner, 24 Oct 2026: "act first, then explain"): on Home the window hands its words to
+     Home's own box (intelAsk) — the same free readers the side panel has (the Board's, the map's, the places, the
+     follow-up "them"), then the brain for a question — and the one conversation shows the turn here too */
+  if(!cardOwns && window.state && state.view==='dashboard' && typeof window.intelAsk==='function' && document.getElementById('igd-input')){
+    renderAIFeed(true);
+    try{ await intelAsk(q, { fromWindow:true }); }catch(_){}
+    renderAIFeed(); return;
+  }
+  /* …off Home, a Board command ("chart value by stream", "show me juno llc on the board") turns to the Board and
+     draws, free, and is said here; a question the Board only drew is then explained (aiAskWords, no echo) */
+  if(!cardOwns && typeof window.hbAskReadingOf==='function' && typeof window.hbAsk==='function' && typeof window.caHomeFace==='function' && !(typeof window.mPhone==='function'&&mPhone())){
+    let A=null; try{ A=hbAskReadingOf(q,'board'); }catch(_){ A=null; }
+    const asksQ=!!(window.CA_WH_Q&&CA_WH_Q.test(q))||/\?\s*$/.test(q);
+    if(!asksQ&&A&&A.road==='free'&&['dig','panel','split','card','verified','pack','follow'].includes(A.kind)){
+      aiPush('user',{text:esc(q), raw:q}); renderAIFeed(true);
+      caHomeFace('board');
+      await new Promise(r=>setTimeout(r,0));
+      let said=''; try{ said=hbAsk(q)||''; }catch(_){ said=''; }
+      if(said){
+        aiPush('assistant',Object.assign({ text:said }, window.hbTakeMeta?hbTakeMeta():{}, window.hbBoardReplyMeta?hbBoardReplyMeta():{}));
+        renderAIFeed();
+        if(typeof window.igAskThenExplain==='function'&&igAskThenExplain(q,A)){ _aiNoEchoOnce=true; return aiAskWords(q); }
+        return;
+      }
+      renderAIFeed();
+    }
+  }
   if(!cardOwns && typeof window.caAskAnywhere==='function'){
     /* ONE READER FOR EVERY JAMBO BOX (19 Oct 2026): what the one reading read
        is what the window says it did — a place with its narrowing, a
@@ -4846,7 +4926,7 @@ async function aiSubmit(asked){
       /* a booking or a question about their own calendar went to the Calendar's Jambo (18 Oct 2026) */
       const say=took==='cal'?i18t('ig_cal_handoff')
         :took==='said'?said
-        :(go&&go.kind==='go'&&!go.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(go.place)&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
+        :(go&&go.kind==='go'&&!go.narrowOff&&!(window.caIsCardWord&&caIsCardWord(go.place))&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
       aiPush('user',{text:esc(q), raw:q});
       /* a short list counted says which, as cards (caAnswerIds, stage 3b) */
       const ids=(go&&typeof window.caAnswerIds==='function')?(caAnswerIds(go).cardIds||[]):[];
@@ -4861,9 +4941,13 @@ async function aiSubmit(asked){
 /* THE ONE TURN, from the window's box or from Jambo's panel beside a list
    (jlAsk, js/views/inspector.js): asked once, said where the feed is
    (aiFeedEl). The caller has already taken the words out of its box. */
+/* the explain under a Board's drawing (aiSubmit) asks the same words again without writing them down twice:
+   a latch read once by the next aiAskWords, never a second signature (f810, f862 pin the one door) */
+let _aiNoEchoOnce=false;
 async function aiAskWords(qRaw){
   const q=String(qRaw||'').trim(); if(!q) return;
   if(ai.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiAskWords(w)); return; }
+  const noEcho=_aiNoEchoOnce; _aiNoEchoOnce=false;
   /* the same reading aiSubmit makes: an open rewrite owns the sentence only
      when it is not a question or a booking (aiAsksPastCard) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);
@@ -4877,7 +4961,7 @@ async function aiAskWords(qRaw){
      here went in raw, so "<img onerror=…>" ran in the reader's own page and a
      question about "<b>X</b>" lost its words. Escaped for the feed; the raw
      question is kept beside it and is what goes to the model. */
-  aiPush('user',{text:esc(q), raw:q});
+  if(!noEcho) aiPush('user',{text:esc(q), raw:q});
   ai.busy=true;
   /* A live proposal owns the next sentence that asks for a change: it goes back
      to the model with the passage and the exchange attached. A QUESTION no

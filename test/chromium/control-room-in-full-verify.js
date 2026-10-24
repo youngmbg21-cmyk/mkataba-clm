@@ -204,8 +204,12 @@ const signIn = async (page, base, email, pass) => {
         return state.view === 'dashboard' && t.includes(q) ? t.slice(t.lastIndexOf(q)) : null; }, q, 8000); };
     const up = await askIn('upload a contract');
     check('7b. "upload a contract" in Settings\' box goes to Home\'s Jambo, who offers Upload a document', !!up && /Upload a document/.test(up), up);
-    const nw = await askIn('new contract');
-    check('7c. "new contract" in Settings\' box goes to Home\'s Jambo, who starts the new agreement', !!nw && /paper/i.test(nw), nw);
+    const nw = await (async () => { await inSettings(); await page.fill('#st-jb-q', 'new contract'); await page.press('#st-jb-q', 'Enter'); return 'new contract'; })();
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): "new contract" is no longer a card in the chat —
+       it opens the one New agreement sheet on Home, beside Jambo's panel */
+    const nwSheet = await until(() => state.view === 'dashboard' && document.getElementById('na-root') && document.getElementById('ig-dock') ? true : null, null, 8000);
+    check('7c. "new contract" in Settings\' box goes to Home, where the New agreement sheet opens beside Jambo', !!nwSheet, nw);
+    await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); if (b) b.click(); });
 
     check('8. no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'clean');
   } catch (e) {

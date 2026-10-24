@@ -21513,3 +21513,21 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (24 Oct 2026, Legora stage 2): home-first-verify line 186 clicks the late promise's "Open the obligations" by a stored handle; under load the Board card repaints and the click lands on a detached element (main itself: 3 of 6 parallel runs fail this way).
 
 - Noticed, not fixed (24 Oct 2026, pill-height round): beside a paper at 1366×950 a "Look" button in the Dossier's Negotiate row (ui-btn ui-btn-sm, 46px wide) clips its own word.
+## Noticed, not fixed — 24 Oct 2026 (the glitch fixes)
+- Explorer's first opening on a 400-contract book still freezes about 330 ms (the map built and laid out once, `rebuildIntelGraph`); a later visit reuses the map. Deferring the build past the first paint would need the map's arrival redesigned.
+- The Contracts place is drawn again while the reader scrolls when the book changes underneath it (`hbRender` → `regHomeStale` → `igPlacePaint`), as designed; on a book where arrival readings keep saving, that can be several redraws in the first seconds.
+- jambo-tab-and-back-verify 1i/1m/2a and home-first-verify failed once each when run three browsers at a time on one machine and pass alone, on the branch and on main; a load-sensitive wait, not a fault.
+- Noticed, not fixed (24 Oct 2026): a pin in Home's paper margin (`igPaperWire`) only finds its answer when Jambo's conversation is the panel's face; pressed while Dossier, Clauses or Redlines shows, it lights the paper and nothing in the panel moves. The Track's new press leaves the panel on Clauses, so this is met more often now.
+- Removed on purpose (24 Oct 2026, the owner's one door, "The Legora way"): on a computer the chat's Draft card, the "Draft from HaTi · Upload a contract" drop-down, the older two-column New agreement form with its note and Skip the questions are no longer drawn; the phone keeps its own screens.
+
+## Noticed, not fixed — 24 Oct 2026 (one Jambo, two layers)
+- The Calendar's own box (`calPlanAsk`) is not on the two layers: a question typed there goes to the planner, not the chat; commands still move through `caAskAnywhere`.
+- "where is …" is not among `CA_WH_Q`'s question words (navmap's "where is X" reads a trip), so a "where" question beside the Board is explained only when it ends with "?".
+- On the Board, a "top N by …" sentence the Board's reader cannot read is drawn as a MAP lens behind the Board by the mapListy path ("Showing 0 of 4 · Top 10 by days to pay" in the test world, from "where is my biggest concern as far as payment terms?"); the owner's book reads it as the Board's own Top 10 card.
+- CLAUDE.md is about 88 KB after the one-Jambo line, over its ~80 KB rule; a trim needs the owner's yes.
+
+## Noticed, not fixed — 24 Oct 2026 (PR #456, the stand-in on Home)
+- Nine other AI routes (brief, OCR, breakdown, column, memo …) answer a provider failure with 502 and no `kind`, so the browser's stand-in there says "could not be reached" for a provider error. Only the graph route was given `kind: 'provider'` (the chat route already had it). Not this job's.
+- 24 Oct 2026 (Noticed, not fixed — the glitch audit's second walk): the audit's "Place: … scrolled, open a row, ‹ back" step looks for `tr[data-ins-row]`, which the Approvals list's rows do not carry, so it opens nothing and measures no return; Negotiations and Our paper rows are also out of the walk's reach (an instrument limit, not a HaTi fault).
+- Noticed, not fixed (24 Oct 2026): jambo-asks-in-turn-verify 2a/2a2 are red on main since PR #456 ("One Jambo, two layers"): with the ✦ chat window open, a second question typed while Jambo answers is sent at once instead of waiting with "Jambo will answer that next" (main's run 40089710154 failed on it; reproduced at 7028e04 without the one-door work).
+- Correction (24 Oct 2026): the "jambo-asks-in-turn 2a/2a2 red on main since #456" line above was a stale check, not an app fault: the window's second question does wait its turn; the check held only /api/ai/chat while Explorer's questions go to /api/ai/graph. Check re-pointed.

@@ -198,7 +198,12 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     check('4a the window\'s question is answered in the window\'s one conversation', !!A && A.floating && A.n >= 2, JSON.stringify(A));
     check('4b the answer says what it read', !!A && /^Read from /.test(A.read), JSON.stringify(A));
     ai.length = 0;
+    /* RE-POINTED 24 Oct 2026 (one Jambo, two layers): on Home the window's words are Home's own box's, so a bare
+       "obligations" is the Board's obligations figure, free, as it is beside the Board; the page is asked by name */
     await typeIn('#ai-input', 'obligations');
+    const V0 = await until(() => { const m = (window.ai && ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0]; return m && /obligations/i.test(String(m.text || '')) ? { view: state.view, said: String(m.text || '').replace(/<[^>]+>/g, ' ').slice(0, 80) } : null; }, null, 6000);
+    check('4c1 a bare "obligations" in the window on Home is the Board\'s own reading, nothing spent', !!V0 && V0.view === 'dashboard' && !ai.length, JSON.stringify({ V0, ai }));
+    await typeIn('#ai-input', 'obligations page');
     const V = await until(() => state.view === 'obligations' ? state.view : null, null, 6000);
     check('4c a page\'s name in the window moves there (the one reader), nothing spent', V === 'obligations' && !ai.length, JSON.stringify({ view: V, ai }));
     await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });

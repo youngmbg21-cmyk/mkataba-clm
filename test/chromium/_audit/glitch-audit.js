@@ -27,6 +27,8 @@
    a trailing t presses with a finger).
      node test/chromium/_audit/glitch-audit.js
      HATI_GA_OUT=/some/file.json node test/chromium/_audit/glitch-audit.js
+   HATI_GA_WHO=1 adds, for each redraw of a big part, the code that drew it
+   (the stack of the innerHTML write), as "who" in the JSON and the line.
    ============================================================ */
 /* global PerformanceObserver */
 'use strict';
@@ -72,6 +74,13 @@ const INSTRUMENT = () => {
     const id = el.id ? '#' + el.id : ''; const cl = typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
     return (el.tagName.toLowerCase() + id + cl).slice(0, 60); };
   const holderOf = el => { let e = el; while (e && e.nodeType === 1 && !e.id && e.parentElement) e = e.parentElement; return e; };
+  /* WHO DREW IT (HATI_GA_WHO): the innerHTML write's stack, for a big part */
+  G.who = [];
+  if (window.__gaWho){ const d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+    Object.defineProperty(Element.prototype, 'innerHTML', { configurable: true, get: d.get, set(v){
+      const big = this.nodeType === 1 && this.getElementsByTagName('*').length >= 60; const r = d.set.call(this, v);
+      if (G.on && (big || this.getElementsByTagName('*').length >= 60)) G.who.push(nameOf(holderOf(this)) + ' ⟵ ' + new Error().stack.split('\n').slice(2, 8).map(x => x.trim().replace(/^at /, '').replace(/\(?https?:\/\/[^/]+\//, '').replace(/\)$/, '')).join(' < '));
+      return r; } }); }
   new MutationObserver(list => { if (!G.on) return; const t = performance.now();
     for (const m of list){
       let removed = 0, added = 0;
@@ -106,7 +115,7 @@ const INSTRUMENT = () => {
   G.wrapToast = () => { if (window.toast && !window.toast.__ga){ const o = window.toast;
       const w = function (m, k){ if (G.on && k) G.toasts.push((k || '') + ': ' + String(m).replace(/\s+/g, ' ').slice(0, 110) + '  ⟵ ' + (new Error().stack.split('\n').slice(2, 5).map(x => x.trim().replace(/^at /, '').replace(/\(?https?:\/\/[^/]+\//, '').replace(/\)$/, '')).join(' < '))); return o.apply(this, arguments); };
       w.__ga = true; window.toast = w; } };
-  G.start = () => { G.wrapToast(); G.toasts = []; G.muts = []; G.lt = []; G.gaps = []; G.anim = new Set(); G.on = true; G.t0 = performance.now(); G.s0 = G.sig();
+  G.start = () => { G.wrapToast(); G.toasts = []; G.who = []; G.muts = []; G.lt = []; G.gaps = []; G.anim = new Set(); G.on = true; G.t0 = performance.now(); G.s0 = G.sig();
     const sc = document.getElementById('content-scroll'); G.sc0 = sc ? sc.scrollTop : 0; };
   G.quietFor = () => { const lm = G.muts.length ? G.muts[G.muts.length - 1].t : G.t0; return performance.now() - lm; };
   G.since = () => performance.now() - G.t0;
@@ -128,7 +137,7 @@ const INSTRUMENT = () => {
       gaps: G.gaps.length, gapWorst: Math.round(Math.max(0, ...G.gaps.map(x => x.d))),
       redraws: big.length, twice: Object.entries(by).filter(([, n]) => n > 1).map(([k, n]) => k + '×' + n),
       redrawn: Object.keys(by).slice(0, 6),
-      toasts, banned: [...G.anim],
+      toasts, banned: [...G.anim], who: G.who.slice(0, 12),
       scroll: (() => { const sc = document.getElementById('content-scroll'); return sc ? [G.sc0, sc.scrollTop] : null; })(),
     };
   };
@@ -314,6 +323,7 @@ async function keepsPlace(page, scr, name, view){
   try {
     for (const scr of SCREENS){
       const ctx = await browser.newContext({ viewport: { width: scr.w, height: scr.h }, hasTouch: scr.touch, isMobile: false, reducedMotion: 'no-preference' });
+      if (process.env.HATI_GA_WHO) await ctx.addInitScript('window.__gaWho = true');
       await ctx.addInitScript(INSTRUMENT);
       const page = await ctx.newPage();
       const errs = []; page.on('pageerror', e => errs.push(e.message.split('\n')[0]));
@@ -354,6 +364,7 @@ function line(r){
   f.push('lt ' + r.longTasks + '/' + r.ltWorst + 'ms', 'gaps ' + r.gaps + '/' + r.gapWorst + 'ms', 'redraws ' + r.redraws);
   if (r.twice && r.twice.length) f.push('TWICE ' + r.twice.join(','));
   if (r.saidNotShown) f.push('SAID-NOT-SHOWN');
+  if (r.who && r.who.length) f.push('\n      WHO ' + r.who.join('\n      WHO '));
   if (r.toasts && r.toasts.length) f.push('toast ' + JSON.stringify(r.toasts));
   if (r.banned && r.banned.length) f.push('BANNED ' + r.banned.join('; '));
   if (r.error) f.push('err ' + r.error);

@@ -152,7 +152,9 @@ function hbStripBring(id, page, opts){
     /* the face turns through its own door (it repaints what it shows, and
        turning to the Board is the Board: hbSetFace lets a page go), then
        on the desk it is the page in front (round 7), then the Board paints */
-    if (s.face !== 'board' && typeof hbSetFace === 'function') hbSetFace('board');
+    /* …and the Board is painted once, with the contract on it (the glitch audit, 24 Oct 2026) */
+    if (s.face !== 'board' && typeof hbSetFace === 'function'){
+      if (typeof window.hbArrive === 'function') window.hbArrive('card', () => hbSetFace('board')); else hbSetFace('board'); }
     s.card = bsCardOn() ? st.id : null; hbSave();
     if (typeof hbPaintBoard === 'function') hbPaintBoard();
   } else { s.face = 'board'; s.card = bsCardOn() ? st.id : null; hbSave(); if (typeof setView === 'function') setView('dashboard'); }

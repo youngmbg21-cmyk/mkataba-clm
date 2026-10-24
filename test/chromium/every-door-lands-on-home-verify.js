@@ -825,11 +825,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       if (cp && !(await cp.inputValue())) await cp.fill('Census Draft Ltd');
       await page.click('#na-create'); return true; };
     ids = await known();
-    await door(D, 'the wall\'s chip "draft a new agreement", Open the form, Create', { start: onWall,
+    await door(D, 'the wall\'s chip "draft a new agreement", the sheet, Create', { start: onWall,
       press: async () => { if (!(await waitFor(page, () => !!document.querySelector('[data-ig-chips] [data-ca-chip="draft"]'), 8000))) return false;
         if (!(await domClick('[data-ig-chips] [data-ca-chip="draft"]'))) return false;
-        if (!(await waitFor(page, () => !!document.querySelector('[data-ca-act="draftform"]'), 5000))) return false;
-        await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ca-act="draftform"]')].pop(); b.click(); }); return createIn(); },
+        /* RE-POINTED 24 Oct 2026 (one door, the Legora way): no card in the chat — the chip opens the sheet itself */
+        return createIn(); },
       expect: isNew(ids), says: NEWSAYS });
     ids = await known();
     /* ONE SHEET (round 4, the owner picked "One sheet", 17 Oct 2026): the

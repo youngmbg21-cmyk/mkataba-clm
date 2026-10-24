@@ -135,17 +135,24 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     /* 6 a refresh */
     await page.reload({ waitUntil: 'networkidle' });
     await until(() => window.state && state.contracts && state.contracts.length > 0, null, 15000);
-    const again = await until(() => state.view === 'dashboard' && window.bsCardId && bsCardId() === 'MK-0377' && !!document.querySelector('#bs-strip-MK-0377.bs-on-desk'), null, 10000);
+    /* RE-POINTED 24 Oct 2026 (the glitch audit: a hidden Board is no longer
+       drawn): the strip's details page is retired (22 Oct 2026), so what came
+       back was always the contract's paper with its Dossier beside it; the
+       strip this asked for stood in the hidden Board at zero size. The claim
+       is now what a person sees: the same contract in front again. */
+    const again = await until(() => state.view === 'dashboard' && window.bsCardId && bsCardId() === 'MK-0377' && window.intel && intel.paper && intel.paper.id === 'MK-0377' && !!document.querySelector('#ig-dock'), null, 10000);
     check('6 a refresh comes back to the page', !!again);
 
     /* 7 the three screens, and the phone */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });
-      await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-deal'));
+      /* RE-POINTED 24 Oct 2026 with 6: measured on the Dossier a person sees
+         beside the paper, not the hidden strip (it measured width 0) */
+      await until(() => !!document.querySelector('#ig-dock'));
       await page.waitForTimeout(400);
-      const F = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-0377'); const r = el.getBoundingClientRect(), head = el.querySelector('.bs-head').getBoundingClientRect();
-        return { side: document.documentElement.scrollWidth <= window.innerWidth + 1 && el.scrollWidth <= el.clientWidth + 1, headIn: head.top >= 0 && head.bottom <= window.innerHeight, kpis: !!el.querySelector('.bs-facts') && el.querySelector('.bs-facts').getBoundingClientRect().bottom <= window.innerHeight, w: Math.round(r.width) }; });
-      check(`7 ${w}×${ht}: nothing sideways; the head and the figures in view`, F.side && F.headIn && F.kpis, JSON.stringify(F));
+      const F = await page.evaluate(() => { const el = document.getElementById('ig-dock'); const r = el.getBoundingClientRect();
+        return { side: document.documentElement.scrollWidth <= window.innerWidth + 1 && el.scrollWidth <= el.clientWidth + 1, headIn: r.width > 0 && r.top >= 0 && r.top < window.innerHeight, inView: r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1, w: Math.round(r.width) }; });
+      check(`7 ${w}×${ht}: nothing sideways; the Dossier in view`, F.side && F.headIn && F.inView, JSON.stringify(F));
       await shot(page, `contract-page-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 390, height: 844 });

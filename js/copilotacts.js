@@ -594,12 +594,35 @@ function caIsDraftAsk(q){
   const t = String(q || '');
   if (CA_DRAFT_NOT.test(t)) return false;
   if (CA_DRAFT_RE.test(t) && CA_DRAFT_NOUN.test(t)) return true;
-  return !CA_DRAFT_ASKING.test(t) && CA_DRAFT_BARE.test(t) && !!caDraftWith(t);
+  return !CA_DRAFT_ASKING.test(t) && CA_DRAFT_BARE.test(t) && (!!caDraftWith(t) || caDraftTheirs(t));
+}
+/* THEIR PAPER, READ FROM THE WORDS (one door, owner picked "The Legora way", 24 Oct
+   2026; the work order: "'they sent' or a dropped file means their paper, anything
+   else ours"): the sheet opens on its Their paper tab. A reading of words, never a guess. */
+const CA_DRAFT_THEIRS = /\b(?:sent (?:us|over|it|me)|(?:they|they've|they have|has|have) sent|their (?:own )?(?:paper|contract|template|draft|agreement|nda)|skickade (?:oss|över|till oss)|har skickat|deras (?:eget? )?(?:avtal|papper|mall|utkast))\b/i;
+function caDraftTheirs(sentence){ return CA_DRAFT_THEIRS.test(String(sentence || '')); }
+/* who sent it: the words between the agreement's name and "sent" ("Distribution agreement Nordkap sent us" → Nordkap) */
+function caDraftSender(sentence){
+  const t = String(sentence || '').trim(), SENT = '\\s+(?:has\\s+|have\\s+|just\\s+)?(?:sent|skickade|har skickat)\\b';
+  /* after the agreement's own word first; else from the start ("Nordkap sent us an NDA") */
+  const m = new RegExp('\\b(?:agreement|contract|nda|paper|draft|avtal|avtalet|kontrakt|that|which|som)\\s+(.+?)' + SENT, 'i').exec(t) || new RegExp('^(.+?)' + SENT, 'i').exec(t);
+  if (!m) return '';
+  let who = m[1].replace(/^["“'‘]+|["”'’.,!?]+$/g, '').replace(/\s+/g, ' ').trim().slice(0, CA_DRAFT_WITH_MAX);
+  if (!who || /^(?:they|they've|we|i|he|she|it|dem|de|vi|jag|han|hon)$/i.test(who) || CA_DRAFT_NOT_PARTY.test(who.split(' ')[0]) || CA_DRAFT_TERM_WORD.test(who)) return '';
+  if (who === who.toLowerCase()) who = who.replace(/(^|[\s-])(\p{L})/gu, (_, p, ch) => p + ch.toUpperCase());
+  return who;
+}
+/* the kind as they sent it: the words before who sent it ("Distribution agreement Nordkap sent us" → Distribution agreement) */
+function caDraftTheirKind(sentence){
+  const t = String(sentence || '').trim(), who = caDraftSender(t); if (!who) return '';
+  const at = t.toLowerCase().indexOf(who.toLowerCase()); if (at <= 0) return '';
+  const k = t.slice(0, at).replace(CA_DRAFT_RE, '').replace(/^\s*(?:please|snälla|vänligen)\s+/i, '').replace(/[\s,:;-]+$/, '').trim();
+  return k && CA_DRAFT_NOUN.test(k) && k.split(/\s+/).length <= CA_DRAFT_WHAT_MAX ? k : '';
 }
 function caReadDraft(q){
   if (!caIsDraftAsk(q)) return null;
   if (typeof draftCandidates !== 'function') return null;
-  return { kind: 'draft', sentence: String(q).slice(0, (typeof DRAFT_SENTENCE_MAX === 'number') ? DRAFT_SENTENCE_MAX : 2000), state: 'reading', options: null, prefill: {}, why: '', ai: false };
+  return { kind: 'draft', sentence: String(q).slice(0, (typeof DRAFT_SENTENCE_MAX === 'number') ? DRAFT_SENTENCE_MAX : 2000), state: 'reading', options: null, prefill: {}, why: '', ai: false, paper: caDraftTheirs(q) ? 'theirs' : '' };
 }
 /* ---- A WORD AND ITS FAMILY (round 2 of the first-timer rounds, owner picked
    "One question", 22 Oct 2026) ----
@@ -820,7 +843,7 @@ function caDraftTitleOf(o){
   if (o.kind === 'builtin' && typeof TEMPLATES === 'object' && TEMPLATES && TEMPLATES[o.id]) return String(TEMPLATES[o.id].name || '');
   return String(o.name || '');
 }
-function caDraftWho(a){ return String((a && a.prefill && a.prefill.counterparty) || '').trim() || caDraftWith(a && a.sentence); }
+function caDraftWho(a){ return String((a && a.prefill && a.prefill.counterparty) || '').trim() || caDraftWith(a && a.sentence) || caDraftSender(a && a.sentence); }
 /* THE ONE FORM, with what the card read already in it. The values reach only
    the boxes the chosen paper declares (draftApplyPrefill's wall); the
    counterparty is a box every one of the three forms declares, so it waits in
@@ -833,7 +856,12 @@ function caDraftForm(a){
      starts on none (streamAsk), and the person's choice is the stream */
   if (!a){ openNewAgreement({ streamAsk: true }); return true; }
   const best = caDraftBest(a);
-  const prefill = Object.assign({}, (best && typeof draftPrefillFor === 'function') ? draftPrefillFor(best.fields, a.prefill || {}) : {});
+  /* THE DETAILS IN THE WORDS, READ WITHOUT AI (owner, 24 Oct 2026: "Free reader"): every value
+     the sentence states goes in the prefill under every name the forms use; each form keeps
+     only the boxes it declares (draftApplyPrefill's wall), so whichever paper is picked takes them */
+  const facts = (typeof draftWordsRead === 'function') ? draftWordsRead(a.sentence) : [];
+  const prefill = Object.assign({}, (best && typeof draftPrefillFor === 'function') ? draftPrefillFor(best.fields, a.prefill || {}) : {},
+    (typeof draftWordsPrefill === 'function') ? draftWordsPrefill(facts) : {});
   const who = caDraftWho(a); if (who) prefill.counterparty = who;
   /* what it is for, read from the words: it reaches a paper's own purpose box, where one is declared */
   const purpose = caDraftForOf(a.sentence); if (purpose && !prefill.purpose) prefill.purpose = purpose;
@@ -843,10 +871,26 @@ function caDraftForm(a){
   const key = o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id });
   const norm = x => String(x || '').trim().toLowerCase();
   const known = !!who && ((typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : []).some(c => c && norm(c.counterparty) === norm(who));
-  openNewAgreement({ pick: null, prefill, asked: a.sentence, streamAsk: true,
-    closest: (a.options || []).map(key), best: best ? key(best) : null,
-    words: { what: caDraftKindOf(a.sentence) || (best ? (caDraftTitleOf(best) || best.name) : ''), who, known, purpose } });
+  /* PICKED WHEN CLEAR (owner, 24 Oct 2026: "Pick it when clear"; replaces "nothing is picked for
+     you" of 18 Oct): the closest paper is chosen only when it shares more of the words than any
+     other and no pair of easily confused papers needs its one question; a close call picks nothing */
+  const opts = a.options || [];
+  const sc = o => caDraftScore(a.sentence, o);
+  /* their paper is a file to drop, so none of ours is picked for it */
+  const clear = a.paper !== 'theirs' && !!best && !caDraftPairOf(opts.map(key)) && sc(best) > 0 && opts.every(o => o === best || sc(o) < sc(best));
+  a.picked = clear;
+  openNewAgreement({ pick: clear ? key(best) : null, prefill, asked: a.sentence, streamAsk: true, paper: a.paper || '',
+    closest: opts.map(key), best: best ? key(best) : null,
+    words: { what: caDraftKindOf(a.sentence) || (a.paper === 'theirs' ? caDraftTheirKind(a.sentence) : '') || (best ? (caDraftTitleOf(best) || best.name) : ''), who, known, purpose, facts } });
   return true;
+}
+/* READ MY WORDS AGAIN (the sheet's arrow, the Legora way): the same reading as a sentence to Jambo, no model */
+function caDraftAgain(sentence, o){
+  const t = String(sentence || '').trim(); if (!t) return null;
+  /* words that say they sent it move the sheet to Their paper; otherwise the tab stays as chosen */
+  const a = { kind: 'draft', sentence: t.slice(0, (typeof DRAFT_SENTENCE_MAX === 'number') ? DRAFT_SENTENCE_MAX : 2000), state: 'reading', options: null, prefill: {}, why: '', ai: false, paper: caDraftTheirs(t) ? 'theirs' : ((o && o.paper) || '') };
+  caDraftRun(a);
+  return a;
 }
 /* ---- A "NO" THAT HELPS (owner picked "On the card", 22 Oct 2026) ----
    A read-only account may not start a contract. Every door that refuses says so
@@ -931,7 +975,10 @@ function caDraftCardHtml(a, i){
     const bo = t => '\u0001' + t + '\u0002';
     const read = what && who ? _caT('ca_dr_opened_what_with', { what, who: bo(who) }) : what ? _caT('ca_dr_opened_what', { what })
       : who ? _caT('ca_dr_opened_with', { who: bo(who) }) : _caT('ca_dr_opened');
-    const said = [read, best ? _caT('ca_dr_opened_best', { name: bo(best.name) }) : '', _caT('ca_dr_opened_tail')].filter(Boolean).join(' ');
+    /* picked when clear (24 Oct 2026): said as picked, with its way back on the sheet (Change paper) */
+    /* their paper (24 Oct 2026, as drawn): said as the tab he opened, and what is left to do */
+    const said = a.paper === 'theirs' ? _caT('ca_dr_opened_theirs')
+      : [read, best ? _caT(a.picked ? 'ca_dr_opened_picked' : 'ca_dr_opened_best', { name: bo(best.name) }) : '', _caT('ca_dr_opened_tail')].filter(Boolean).join(' ');
     const html = _caE(said).replace(/\u0001/g, '<b>').replace(/\u0002/g, '</b>');
     return `<div class="ca-card ca-dr-said" data-ca-card="${i}"><p class="ca-say">${html}</p><div class="ca-acts">${B('form', _caT('ca_dr_open_again'), false)}${B('ask', _caT('ca_dr_change'), false)}</div></div>`;
   }
@@ -1650,7 +1697,7 @@ Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU,
 Object.assign(window, { CA_SUMMARY_RE, CA_WRITE_MAIL_RE, caFindPersonNamed, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
-  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftWords, caDraftScore, caDraftMatched, CA_DRAFT_PAIRS, caDraftPairOf, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
+  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, CA_DRAFT_THEIRS, caDraftTheirs, caDraftSender, caDraftTheirKind, caReadDraft, caDraftWords, caDraftScore, caDraftMatched, CA_DRAFT_PAIRS, caDraftPairOf, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, caDraftAgain, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
   CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caChipShut, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO, caOwedSteps, caSignerOwed, CA_OWED_FOR,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
@@ -1761,7 +1808,9 @@ function caPlaceOf(q){
   /* ON THE BOARD ITS OWN READER KEEPS ITS WORDS: "obligations" is its
      obligations panel, "MK-458" the contract's card, a saved view its name.
      Only a move between faces ("board", "explorer") is the same either way. */
-  if (caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
+  /* …a page asked by name ("obligations page", "the people tab") is that page from the Board too (24 Oct 2026) */
+  const tailed = CA_PLACE_TAIL.test(String(q || '').trim().toLowerCase().replace(/[?.!]+\s*$/, ''));
+  if (!tailed && caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
   /* a reference on its own ("MK-458", "open #MK-458") is that contract's paper */
   if (!t && cid) return { kind: 'go', place: 'document', cid, slash, state: 'ready' };
   const p = CA_PLACES.find(x => x.w.includes(whole)) || CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
@@ -1888,12 +1937,29 @@ function caBackRowHtml(){
    stages bring the work into the panel, docs/PLAN-one-page-home.md §7) ---- */
 function caHomeFace(f){
   if (typeof hbS !== 'function') return false;
-  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbSetFace === 'function'){ hbSetFace(f); return true; }
+  /* THE BOARD ASKED FOR IS THE BOARD (the glitch audit, 24 Oct 2026: "board"
+     typed on Home after a contract's History showed that History again): a
+     contract brought up on the Board face is let go first, as the Recent
+     row's Board does (deskTabOpen 'home:board') */
+  const left = f === 'board' && typeof window !== 'undefined' && typeof window.bsCardLeave === 'function' && window.bsCardLeave();
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbSetFace === 'function'){
+    if (left && typeof hbFace === 'function' && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace(f);
+    if (left && typeof deskTabsSync === 'function') try { deskTabsSync(); } catch (_){}
+    return true; }
   const s = hbS(); s.face = f; if (typeof hbSave === 'function') hbSave();
   if (typeof setView === 'function') setView('dashboard');
   return true;
 }
-function caHomeWall(){ caHomeFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); return true; }
+function caHomeWall(){
+  /* THE WALL, DRAWN ONCE (the glitch audit, 24 Oct 2026: Home set up on the
+     paper side drew the last paper, then the Contracts place again): the
+     paper is put down first, so the face's own paint is the wall */
+  const up = typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper';
+  if (typeof igPaperDown === 'function') igPaperDown();
+  caHomeFace('paper');
+  if (up && typeof igPickAgain === 'function') igPickAgain();
+  else if (typeof igPaintIds === 'function') try { igPaintIds(null); } catch (_){}
+  return true; }
 function caRoomTab(c, k){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, k); } catch (_){} return true; }
 const CA_GO = {
   /* a contract named with it: its strip on the Board, on its Overview (the strip's one door) */
@@ -1973,6 +2039,7 @@ function caGoSay(a){
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
   if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()){ const W = draftWallSay(); return W.head + ' ' + W.body; }
+  if (a.place === 'draft' && typeof canEdit === 'function' && !canEdit()) return draftWallSay().head;
   if (a.place === 'board' && c) return _caT('ca_go_board_for', { ref: caRef(c) });
   const p = CA_PLACES.find(x => x.k === a.place) || {};
   return _caT('ca_go_' + a.place + (p.need === 'any' && !c ? '_all' : ''), { ref: c ? caRef(c) : '' });
@@ -1980,14 +2047,18 @@ function caGoSay(a){
 /* THE ONE PLACE A WORD MOVES THE READER: intelAsk calls it after the line is
    said; the top bar's search calls it with no conversation. */
 function caGo(a){
+  /* one press, one panel (igDockBatch, js/views/intelligence.js) */
+  if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !caGo._in){
+    caGo._in = true; try { return window.igDockBatch(() => caGo(a)); } finally { caGo._in = false; } }
   if (!a || a.kind !== 'go') return false;
   if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
   if (a.place === 'help') return true;
   caUseBump(a.place);
   /* "paper" asked while a page stands in the middle: the paper comes back (the middle, 21 Oct 2026) */
   if (a.place === 'document' && typeof pdMidClose === 'function') pdMidClose();
-  /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
-  if (a.place !== 'help' && CA_CARD_WORDS.includes(a.place)) return true;
+  /* share answers with a card in the panel (caGoCardHtml) and moves nothing; "new agreement"
+     opens the one sheet beside Jambo (owner, 24 Oct 2026: one door, the Legora way) */
+  if (a.place !== 'help' && caIsCardWord(a.place)) return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   /* A CODE-NAMED DEAL STAYS SHUT for somebody outside its list: the door
      asks first and says why (codeNameStop), whoever's words reached it */
@@ -2032,7 +2103,10 @@ function caGoRepaint(){ try {
        counts them as heard, and the destination lands fresh (19 Oct 2026) */
     const k = (typeof jamboTalkKey === 'function') ? String(jamboTalkKey() || '') : '';
     if (((typeof pdTalkShows === 'function' && pdTalkShows()) || k.indexOf('dock:') === 0) && typeof pdTalkClose === 'function') pdTalkClose(); } catch (_){}
-  setTimeout(() => { try { if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
+  /* …and only if the move itself did not draw the panel already (one press, one panel) */
+  const n0 = (typeof window !== 'undefined' && typeof window.igDockPaintCount === 'function') ? window.igDockPaintCount() : -1;
+  setTimeout(() => { try { if (n0 >= 0 && window.igDockPaintCount() !== n0) return;
+    if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
 /* the top bar's search: the same words, and the same move */
 function caPlaceRows(q){
   const t = String(q || '').trim().toLowerCase().replace(/^\//, '');
@@ -2049,7 +2123,7 @@ function caPlaceRun(k){
      as "/" says it (caHereRead leaves a "/" word to the page) */
   if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(caHereRead(word) ? '/' + caSlashWord(k) : word);
   const a = caReadPlace(word); if (!a) return false;
-  if (CA_CARD_WORDS.includes(a.place)){ caUseBump(a.place); return caHandHome(word, a); }
+  if (caIsCardWord(a.place)){ caUseBump(a.place); return caHandHome(word, a); }
   return caGo(a);
 }
 
@@ -2066,7 +2140,13 @@ function caPlaceRun(k){
    words; only then does a page's own job run (the Calendar plans time,
    Settings finds a setting, the window answers a question). Spends nothing:
    no reader here calls a model. */
-const CA_CARD_WORDS = ['share', 'draft', 'help', 'next'];
+const CA_CARD_WORDS = ['share', 'help', 'next'];
+/* THE ONE READING of "this word answers with a card": the card words, and a read-only
+   account's "new agreement" (its card is the refusal with Ask an admin, owner picked
+   "On the card", 22 Oct 2026); everyone else's "new agreement" opens the one sheet */
+function caIsCardWord(place){
+  return CA_CARD_WORDS.includes(place) || (place === 'draft' && typeof canEdit === 'function' && !canEdit());
+}
 function caTakesWords(t){
   try { if (caReadSend(t) || caReadJob(t) || caReadDoor(t) || caReadMenu(t)) return true; } catch (_){}
   try { if (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t)) return true; } catch (_){}
@@ -2551,6 +2631,8 @@ function caUnderstand(q, opts = {}){
   /* THE THINGS INSIDE THE PLACES (navigable by typing, 22 Oct 2026; js/navmap.js): a clause of a
      contract, a party's folder, Contracts narrowed by stream, stage, party and end — read first, as
      the most exact reading the words have; what it does not read falls through to the readers below */
+  /* "show them on the board": the last answer's set, before any reader that has no "them" (24 Oct 2026) */
+  { let th = null; try { th = caReadThese(t); } catch (_){ th = null; } if (th) return th; }
   { let nv = null; try { nv = (typeof navRead === 'function') ? navRead(t, { box }) : null; } catch (_){ nv = null; } if (nv) return nv; }
   /* SAID ANOTHER WAY (AI first, stage 3c): a place's name misspelt ("aprovals", "teh board") is put right to the
      one place word a slip away, and an act said as a wish ("start negotiating the milk contract", "let's get
@@ -2620,7 +2702,7 @@ Object.assign(window, { caTypoFix, CA_TYPO_GLUE, caPhraseFix });
    likely to be words for the work itself ("NDA for a supplier") */
 function caLeavesFor(q, box){
   let u = null; try { u = caUnderstand(q, { box: box || 'editor' }); } catch (_){ u = null; }
-  if (!u || u.kind !== 'go' || u.missing || u.narrowOff || u.here || CA_CARD_WORDS.includes(u.place)) return null;
+  if (!u || u.kind !== 'go' || u.missing || u.narrowOff || u.here || caIsCardWord(u.place)) return null;
   let t = String(q || ''); try { t = caRefFix(t); } catch (_){}
   return (CA_GO_LEAD.test(t) || /#?\b[A-Za-z]{2,4}-[A-Za-z0-9]*\d/.test(t)) ? u : null;
 }
@@ -2636,6 +2718,39 @@ function caUnderstandSay(a){
   return '';
 }
 /* THE PLACE, THEN ITS OWN APPLIER (caGo with a.narrow) */
+/* THE BOARD'S OWN LINE for a move the Board carried out (caGoNarrowed): taken once by the host that asked */
+let _caBoardSaid = '';
+function caBoardSaidTake(){ const h = _caBoardSaid; _caBoardSaid = ''; return h; }
+/* ---- "SHOW THEM ON THE BOARD" — THE LAST ANSWER'S SET (owner, 24 Oct 2026) ----
+   A sentence that says "them", "these" or "those" (dem, dessa, de där) and names a place that draws a set — the
+   Board, the map, Contracts — means the contracts the conversation last found: the newest assistant turn carrying
+   a set (the chat's cardIds, a list it drew, a narrowing's ids, a card's set). Read before every other reader,
+   because every other reader has no "them". The one conversation is read (intel.history = ai.history). */
+const CA_THESE_RE = /(?<![\p{L}])(?:them|these|those|these ones|those ones|dem|dessa|de där|de)(?![\p{L}])/iu;
+const CA_THESE_PLACE = [
+  ['board', /(?<![\p{L}])(?:board|dashboard|tavlan)(?![\p{L}])/iu],
+  ['explorer', /(?<![\p{L}])(?:map|explorer|kartan|utforskaren)(?![\p{L}])/iu],
+  ['contracts', /(?<![\p{L}])(?:contracts page|contracts list|the list|as a list|avtalslistan|listan)(?![\p{L}])/iu],
+];
+function caLastSet(){
+  let H = []; try { H = (typeof intel !== 'undefined' && intel && Array.isArray(intel.history)) ? intel.history : []; } catch (_){ H = []; }
+  for (let i = H.length - 1, n = 0; i >= 0 && n < 8; i--, n++){
+    const m = H[i]; if (!m || m.role !== 'assistant') continue;
+    const ids = Array.isArray(m.listIds) && m.listIds.length ? m.listIds
+      : Array.isArray(m.cardIds) && m.cardIds.length ? m.cardIds
+      : (m.act && m.act.narrow && Array.isArray(m.act.narrow.ids) && m.act.narrow.ids.length) ? m.act.narrow.ids
+      : (m.nav && Array.isArray(m.nav.ids) && m.nav.ids.length) ? m.nav.ids : null;
+    if (ids) return { ids: ids.filter(id => typeof getContract === 'function' && getContract(id)), what: String(m.listTitle || (m.act && m.act.narrow && m.act.narrow.what) || '').trim() };
+  }
+  return null;
+}
+function caReadThese(q){
+  const t = ' ' + String(q || '').trim() + ' ';
+  if (!CA_THESE_RE.test(t)) return null;
+  const hit = CA_THESE_PLACE.find(([, re]) => re.test(t)); if (!hit) return null;
+  const last = caLastSet(); if (!last || !last.ids.length) return null;
+  return { kind: 'go', place: hit[0], narrow: { rest: '', what: last.what || _caT('ca_these_what', { n: last.ids.length }), ids: last.ids.slice(), n: last.ids.length, these: true }, state: 'ready' };
+}
 function caGoNarrowed(a){
   const N = a.narrow || {}, rest = String(N.rest || '');
   const ids = Array.isArray(N.ids) ? N.ids.slice() : null;
@@ -2653,8 +2768,21 @@ function caGoNarrowed(a){
     return CA_GO.contracts();
   }
   if (a.place === 'board'){
+    const onHomeNow = typeof state !== 'undefined' && state && state.view === 'dashboard';
     caHomeFace('board');
-    if (rest && typeof hbAsk === 'function') setTimeout(() => { try { hbAsk(rest); } catch (_){} }, 0);
+    /* "SHOW THEM ON THE BOARD" (owner, 24 Oct 2026): a set the last answer found is drawn as the Board's found
+       card (hbShowFound), the Board's own door for a named set */
+    if (!rest && ids && ids.length && typeof hbShowFound === 'function'){
+      const draw = () => { try { hbShowFound(ids, N.what || ''); if (typeof hbPaintBoard === 'function') hbPaintBoard(); } catch (_){} };
+      if (onHomeNow) draw(); else setTimeout(draw, 0);
+      return true;
+    }
+    /* the Board's own reader does the rest and SAYS what it drew: kept for the host that asked (caBoardSaidTake),
+       so a box says "Juno LLC · 5 contracts" rather than a folder's or a place's line */
+    if (rest && typeof hbAsk === 'function'){
+      const ask = () => { try { _caBoardSaid = hbAsk(rest) || ''; } catch (_){ _caBoardSaid = ''; } };
+      if (onHomeNow) ask(); else setTimeout(ask, 0);
+    }
     return true;
   }
   if (a.place === 'negotiations'){
@@ -2693,6 +2821,7 @@ function caNarrowSay(a){
   const N = a.narrow || {};
   const page = _caT('ca_w_' + a.place);
   if (a.narrowOff) return _caT('ca_and_off', { page: page.charAt(0).toUpperCase() + page.slice(1), what: N.what || '' });
+  if (N.these) return _caT('ca_and_these', { n: N.n, page });
   if (N.party) return _caT('ca_and_party', { who: N.what, n: N.n });
   if (N.ids && !N.ids.length) return _caT('ca_and_none', { what: N.what, page });
   if (a.place === 'explorer') return N.n != null ? _caT('ca_and_explorer', { what: N.what, n: N.n }) : _caT('ca_and_explorer_recipe', { what: N.what });
@@ -2758,12 +2887,12 @@ function caAskAnywhere(text, opts = {}){
     if (u.kind === 'noref' && typeof opts.say === 'function'){ opts.say(caUnderstandSay(u)); return 'said'; }
     /* a plain "it is not there" is said where it was asked; "which did you mean?" goes to Home's Jambo, where its choices are presses */
     if (u.kind === 'navsay' && !u.choices && typeof opts.say === 'function'){ opts.say(u.text); return 'said'; }
-    if (u.kind === 'go' && !u.missing && !u.narrowOff && !CA_CARD_WORDS.includes(u.place) && caGo(u)) return true;
+    if (u.kind === 'go' && !u.missing && !u.narrowOff && !caIsCardWord(u.place) && caGo(u)) return true;
     /* a card, a question asked of a contract, "which contract?": Jambo's, beside the Board */
     return win ? false : caHandHome(t, u);
   }
   let a = null; try { a = caReadPlace(t); } catch (_){ a = null; }
-  if (a && a.kind === 'go' && !CA_CARD_WORDS.includes(a.place) && caGo(a)) return true;
+  if (a && a.kind === 'go' && !caIsCardWord(a.place) && caGo(a)) return true;
   /* JAMBO'S MAP (js/jambomap.js) IN EVERY BOX (19 Oct 2026; was Home's box
      only): everyday words for a page open it as a place word does. What a box
      is FOR stays its own: a Settings section asked in Settings is the
@@ -2772,13 +2901,13 @@ function caAskAnywhere(text, opts = {}){
     const own = !!m && ((box === 'settings' && (!!m.st || m.place === 'settings')) || (box === 'cal' && m.place === 'calendar')
       /* the Portfolio Health Report asked by name is the chat's own document (aiWantsHealthReport → openHealthReport) */
       || (box !== 'counter' && typeof aiWantsHealthReport === 'function' && aiWantsHealthReport(t)));
-    if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true;
+    if (m && !own && m.kind === 'go' && !m.missing && !caIsCardWord(m.place) && caGo(m)) return true;
     /* "WHICH DID YOU MEAN" FOR WORK (21 Oct 2026: "upload a contract" asked in Settings found a mail-in setting):
        a close match that starts work (JM_STARTS_WORK) is Home's Jambo's card, where it can be drawn and pressed */
     if (m && !own && !win && m.kind === 'map' && Array.isArray(m.picks) && typeof JM_STARTS_WORK !== 'undefined'
       && m.picks.some(k => JM_STARTS_WORK.has(k))) return caHandHome(t, m);
     /* …and a sure one that is a CARD word ("new contract" → the draft form) is Home's too, as a place word's is */
-    if (m && !own && !win && m.kind === 'go' && !m.missing && CA_CARD_WORDS.includes(m.place)) return caHandHome(t, m); }
+    if (m && !own && !win && m.kind === 'go' && !m.missing && caIsCardWord(m.place)) return caHandHome(t, m); }
   if (win) return false;
   if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
   return false;
@@ -2873,8 +3002,10 @@ function caGoCardHtml(a, i){
      an option to choose between that and an uploaded paper"): the card asks
      which, and each answer is the existing door — the form (caDraftForm) or
      the file picker the wall's "upload" uses (CA_GO.upload) */
-  if (a.place === 'draft'){
-    const may = (typeof canEdit !== 'function') || canEdit(), no = _caT('ca_wall_head');
+  /* A READ-ONLY ACCOUNT'S "new agreement" keeps its card: the refusal, who lifts it and Ask an
+     admin (owner picked "On the card", 22 Oct 2026); everyone else gets the one sheet (caGo) */
+  if (a.place === 'draft' && !((typeof canEdit !== 'function') || canEdit())){
+    const may = false, no = _caT('ca_wall_head');
     /* A "NO" THAT HELPS: greyed, the reason under the words and the ask as the one filled button (draftWallActHtml) */
     const B = (act, label, lead) => may ? `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`
       : `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_caE(no)}">${_caE(label)}</button>`;
@@ -2985,10 +3116,12 @@ function caHomeRun(q, a){
     return true;
   }
   if (a.kind !== 'go') return false;
-  const card = (CA_CARD_WORDS.includes(a.place) || !!a.narrowOff) && !a.missing;
+  const card = (caIsCardWord(a.place) || !!a.narrowOff) && !a.missing;
   intel.history.push({ role: 'user', text: q }, Object.assign({ role: 'assistant', text: _caE(caGoSay(a)), act: a }, caAnswerIds(a)));
   paint();
   caGo(a);
+  /* the Board drew it and said what (caGoNarrowed → hbAsk): its own line stands, as the Board's box would say it */
+  { const said = caBoardSaidTake(); if (said){ const m = intel.history[intel.history.length - 1]; if (m && m.act === a){ m.text = said; Object.assign(m, typeof hbTakeMeta === 'function' ? hbTakeMeta() : {}, typeof hbBoardReplyMeta === 'function' ? hbBoardReplyMeta() : {}); paint(); } } }
   if (card) land(intel.history.length - 1);
   return true;
 }
@@ -2997,9 +3130,12 @@ Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
 Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
-  caPlaceRows, caPlaceRun, CA_CARD_WORDS, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
+  caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
 Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, CA_HERE_ALL_RE, CA_HERE_EXTRA_RE, CA_HERE_GROUP_PLACES, CA_HERE_OTHER_RE, CA_HERE_CONTRACT_RE, CA_HERE_MAX, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
+
+/* the last answer's set, and the Board's own line (24 Oct 2026) */
+Object.assign(window, { CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });

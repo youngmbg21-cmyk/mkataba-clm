@@ -1263,6 +1263,17 @@ function igRecipeUndo(){
   igRecipeSet(st.pop()); return true;
 }
 /* THE HEAD LINE READS THE RECIPE BACK — every setting that is not at rest. */
+/* WHAT THE MAP SHOWS, ONE READING (owner, 24 Oct 2026: the window said "the Home page" of Explorer): how many
+   of how many dots, the grouping, and the recipe's own words — borrowed by every Jambo box's screen context
+   (aiPageContext) and by "what am I looking at" (aiHereSays). Counts nothing of its own: the drawn model's. */
+function igMapNow(){
+  const out={ shown:null, total:null, by:'', says:[] };
+  try{ const model=buildGraphModel(); out.shown=model.shown; }catch(_){ out.shown=null; }
+  try{ out.total=igBookTotal(); }catch(_){ out.total=null; }
+  try{ out.by=intel.groupBy?graphGroupingWord(intel.groupBy):''; }catch(_){ out.by=''; }
+  try{ out.says=igRecipeSays(); }catch(_){ out.says=[]; }
+  return out;
+}
 function igRecipeSays(){
   const out=[], w=k=>graphGroupingWord(k);
   if(intel.floorsBy) out.push(i18t('int_says_floors',{ x:w(intel.floorsBy) }));
@@ -2243,6 +2254,20 @@ function intelAskReady(q){
   try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
   return true;
 }
+/* a question the Board answered by DRAWING (a q: card or a follow-up over one), with Jambo available: his words go
+   under it; a figure's own answer ("how many live contracts": the number), a verified view, a pack or a story
+   already say it, and a command asks nothing */
+function igAskThenExplain(q, A){
+  if(!A||A.road!=='free') return false;
+  if(!(window.caAiFirst&&caAiFirst())) return false;
+  const t=String(q||'').trim();
+  const asks=!!(window.CA_WH_Q&&CA_WH_Q.test(t))||/\?\s*$/.test(t);
+  if(!asks) return false;
+  /* a count or an amount the Board drew IS the answer ("how many … between 2M and 40M": the card says the number) */
+  if(/^\s*(?:how many|how much|hur många|hur mycket)\b/i.test(t)) return false;
+  if(A.kind==='follow') return true;
+  return A.kind==='dig'&&!!(A.r&&/^q:/.test(String(A.r.key||'')));
+}
 async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
   if(!q) return;
@@ -2336,7 +2361,7 @@ async function intelAsk(qRaw, opts){
          share, what's next, help) is drawn ONCE per conversation — a second
          ask lands on the one already there, lit, its main button ready —
          and the first is landed on too, so the eye goes straight to it */
-      const cardWord=act.kind==='go'&&Array.isArray(window.CA_CARD_WORDS)&&CA_CARD_WORDS.includes(act.place)&&!act.missing;
+      const cardWord=act.kind==='go'&&typeof window.caIsCardWord==='function'&&caIsCardWord(act.place)&&!act.missing;
       const had=cardWord?intel.history.findIndex(m=>m&&m.act&&m.act.kind==='go'&&m.act.place===act.place&&String(m.act.cid||'')===String(act.cid||'')&&!m.act.missing):-1;
       /* …ON SCREEN (owner, 20 Oct 2026: "some times when i press on the draft
          new agreement it does not work"): once the panel had gone back to its
@@ -2361,8 +2386,8 @@ async function intelAsk(qRaw, opts){
          message's own quotes, so each row is a door onto the paper */
       if(Array.isArray(act.quotes)&&act.quotes.length&&act.cid){ m.paperId=act.cid; m.quotes=act.quotes; m.citesInline=true; }
       intel.history.push(m);
-      renderIntelDock();
-      if(act.kind==='go'&&typeof window.caGo==='function') caGo(act);
+      /* the words said and the move they ask for are ONE paint of the panel (igDockBatch) */
+      igDockBatch(()=>{ renderIntelDock(); if(act.kind==='go'&&typeof window.caGo==='function') caGo(act); });
       if(cardWord&&typeof window.landOn==='function'){ const at=intel.history.length-1;
         landOn(()=>document.querySelector(`#ig-dock [data-ca-card="${at}"]`)); }
       return;
@@ -2411,10 +2436,20 @@ async function intelAsk(qRaw, opts){
        is signed", a value range, a date): the free reader is sure of every word, so it is not a guess to hand on
        (stage 3d; deal-facts 4, board-answers-the-question 3, home-board 13f/13g) */
     boardKnows=!!pz&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
-  const boardQ=!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
+  /* …a question about the Board ITSELF ("why does the dashboard say 851 SEK…") keeps the Board's own checked
+     answer (hbWhyCheck over its numbers; the board that answers right, Part 4), never a guess from the book */
+  let boardWhy=false; try{ const A0=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; boardWhy=!!(A0&&A0.why); }catch(_){ boardWhy=false; }
+  /* …only with the Board IN FRONT: on Explorer a question keeps the map's route, whose model hands wording to the chat itself (res.kind 'wording'); imported-on-the-map 1d, explorer-stage-three 4 */
+  const boardQ=igBoardNow()&&!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
+    let A=null; try{ A=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; }catch(_){ A=null; }
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
-    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock();
+      /* ACT FIRST, THEN EXPLAIN (owner, 24 Oct 2026): a question the Board read as a card to DRAW ("what ends this
+         quarter", "which customers are worth the most") is drawn, free, and then Jambo says what it shows, under
+         the Board's line — one call, only where the words ask something and the Board only drew */
+      if(igAskThenExplain(q, A)){ intel.busy=true; renderIntelDock(); try{ await intelChatAsk(q, { explain:true }); }catch(_){} intel.busy=false; renderIntelDock(); }
+      return; }
   }
   const h0=intel.history.length;
   /* THE AI TAKES YOU THERE (owner, 22 Oct 2026): an answer that names a place
@@ -2465,6 +2500,9 @@ async function intelAsk(qRaw, opts){
     else if(heldId&&!igAsksThisPaper(q,heldId))         await intelChatAsk(q);
     else if(heldId)                                     await igPaperAsk(q,heldId);
     else if(idHits>=2)                                  await intelChatAsk(q);
+    /* A QUESTION ON THE BOARD IS JAMBO'S WHOLE ANSWER (owner, 24 Oct 2026: "the full brain in every box"): the
+       chat, with what the Board shows in its context; a set it names is a door to the Board (igDoorsHtml) */
+    else if(boardQ&&!boardWhy)                          await intelChatAsk(q);
     else if(IG_COMPLIANCE_RE.test(q)&&!idHits)          await intelComplianceScan(q);
     else                                                await intelGraphAsk(q);
   }catch(e){
@@ -2616,6 +2654,8 @@ async function intelGraphAsk(q){
       res=await api('ai/graph','POST',payload);
       if(typeof window.aiGotoNote==='function') aiGotoNote(res);
     }catch(e){
+      /* a whole-book ask has nothing for the built-in interpreter to match: the stand-in answers it (igFailTurn) */
+      if(typeof window.aiWholeBookAsk==='function'&&aiWholeBookAsk(q)){ intel.history.push(igFailTurn(e, q)); return; }
       intel.history.push({role:'assistant', err:true,
         text:(/key|configure|401|model/i.test(e.message)?'Jambo engine needs an API key — using the built-in interpreter instead.':igEsc(typeof window.aiFailWhy==='function'?aiFailWhy(e, true):String(e.message))+' — using the built-in interpreter instead.')});
     }
@@ -2951,7 +2991,7 @@ function intelPushChatResult(res, q){
 // General Copilot Q&A in the Intel dock (used for compare + typed questions).
 // With no Copilot key, comparisons still work via the deterministic local table;
 // other free-form questions get a clear nudge instead of silence.
-async function intelChatAsk(q){
+async function intelChatAsk(q, opts){
   const ids=(String(q).match(/(?:MK|RL)-\d+/gi)||[]).map(s=>s.toUpperCase())
     .map(r=>{ const x=(state.contracts||[]).find(y=>y.id===r||y.contractNo===r); return x?x.id:r; }).filter((v,i,a)=>a.indexOf(v)===i);
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){
@@ -2965,10 +3005,16 @@ async function intelChatAsk(q){
   }
   try{
     const msgs=intelChatMessages();
+    /* the explain under the Board's drawing (act first, then explain): the Board's line was written down before
+       this call, so the question is put last again for the model — never stored twice */
+    if(opts&&opts.explain&&(!msgs.length||msgs[msgs.length-1].role!=='user')) msgs.push({ role:'user', content:String(q) });
     const board=igBoardNow();
     if(board&&msgs.length&&msgs[msgs.length-1].role==='user')
       msgs[msgs.length-1]={ role:'user', content:'[The reader is on the Home board. What the board shows now:\n'+board+'\nAnswer from these numbers when the question is about the board.]\n\n'+msgs[msgs.length-1].content };
-    const res=await copilotAsk(msgs, { view:'intel' }, null, IG_QUIET);
+    /* ONE JAMBO (24 Oct 2026): the same context the ✦'s window sends — the page in front, the Board or the map as
+       they stand, the book's snapshot — so an answer beside Home knows the screen as the window's does */
+    let ctx={ view:'intel' }; try{ if(typeof window.aiChatContext==='function') ctx=Object.assign(aiChatContext(), { view:'intel' }); }catch(_){ ctx={ view:'intel' }; }
+    const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
     intelPushChatResult(res, q);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
@@ -2980,9 +3026,18 @@ async function intelChatAsk(q){
   }
 }
 /* A FAILED TURN SAYS WHY AND OFFERS THE SAME WORDS AGAIN (stage 3: never a dead end) */
+/* ONE STAND-IN ON EVERY HOST (24 Oct 2026; the window's aiDegrade): a whole-book ask ("list all the contracts",
+   "how many do we have") is answered with HaTi's own live count and the door onto the Contracts page, the cause
+   named under it — never a keyword match dressed as an answer */
 function igFailTurn(e, q){
   const why=(typeof window.aiFailWhy==='function')?aiFailWhy(e, true):String((e&&e.message)||e);
-  return Object.assign({ role:'assistant', err:true, text:igEsc(why) }, q?{ choices:[{ label:i18t('ai_ask_again'), retry:String(q) }] }:{});
+  const again=q?{ choices:[{ label:i18t('ai_ask_again'), retry:String(q) }] }:{};
+  if(q&&typeof window.aiWholeBookAsk==='function'&&aiWholeBookAsk(q)&&typeof window.aiPortfolioFigures==='function'){
+    const f=aiPortfolioFigures();
+    return Object.assign({ role:'assistant', wholeBook:true,
+      text:`<strong>${f.live}</strong> ${igEsc(i18t('ai_book_count', { live:'', total:f.total }).trim())}${igNoticeHtml(why)}` }, again);
+  }
+  return Object.assign({ role:'assistant', err:true, text:igEsc(why) }, again);
 }
 
 /* Portfolio-wide clause review. Reads every live contract through the
@@ -7973,6 +8028,7 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.tour)?igTourHtml(i):''}
       ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t('int_tour_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}${igTourOffered()||igPinOffered()?`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`:''}</div>`):''}
       ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
+      ${(m.wholeBook&&typeof window.aiWorklistHtml==='function')?aiWorklistHtml(null,{ wholeBook:true }):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
@@ -8112,8 +8168,24 @@ function igDockFaceKey(){
       intel.fdTab?'fd':'', intel.gdTab?'gd':'', intel.paper?String(intel.paper.id):''].join('|'); }catch(_){ return null; }
 }
 let _igDockSwap=false;
+/* ONE PRESS, ONE PANEL (the glitch audit, 24 Oct 2026: opening a contract drew
+   Jambo's panel three to five times — the page's mount, the face's turn, the
+   paper's paint and the door each asked for it). A door runs inside
+   igDockBatch: the paints it asks for are owed, and paid ONCE when the
+   outermost door returns. A batch never swallows a paint: what is owed is
+   always drawn. */
+let _igDockHold=0, _igDockOwed=false, _igDockPaints=0;
+/* how many times the panel has been drawn: a late "repaint to be sure" asks it first */
+function igDockPaintCount(){ return _igDockPaints; }
+function igDockBatch(fn){
+  _igDockHold++;
+  try{ return fn(); }
+  finally{ if(--_igDockHold===0&&_igDockOwed){ _igDockOwed=false; try{ renderIntelDock(); }catch(e){ console.error(e); } } }
+}
 function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
+  if(_igDockHold>0){ _igDockOwed=true; return; }
+  if(!_igDockSwap) _igDockPaints++;
   /* the crossfade wraps this very paint once (faceSwap calls back in here) */
   if(!_igDockSwap&&typeof window.faceSwap==='function'){
     _igDockSwap=true;
@@ -8413,6 +8485,8 @@ function renderIntelDock(){
   });
   /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
   dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
+  /* the whole-book door (igFailTurn's stand-in): the Contracts page with nothing narrowing it, as the window's press */
+  dock.querySelectorAll('[data-ai-worklist-all]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(typeof window.regShowOnly==='function') regShowOnly([], ''); }));
   /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
@@ -8573,7 +8647,9 @@ const IG_PAPER_RULE='Answer from THE WORDING below (and THE NEGOTIATION RECORD a
 const IG_QUOTE_LABEL_WORDS=7;
 /* BACK TO THE WALL OF PAPER: "Another contract" on the strip, and Jambo's
    "another contract" (caHomeWall), are this one function */
-function igPickAgain(){ igOpenNewer(); intel.paper=null; intel.walk=null; igPaintPaper(); renderIntelDock(); igPaintIds(null); }
+function igPickAgain(){ igPaperDown(); igPaintPaper(); renderIntelDock(); igPaintIds(null); }
+/* the paper put down without drawing (the door that turns the face draws it) */
+function igPaperDown(){ igOpenNewer(); intel.paper=null; intel.walk=null; }
 /* ---- YOUR NEWEST CHOICE WINS (owner, 16 Oct 2026: "sometimes when I move
    to this wall of paper, HaTi moves me to a contract page without me pressing
    anything") ----
@@ -8866,9 +8942,12 @@ async function igAnalyze(id){
   else intel.paper.mode='paper';
   if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
   /* ON HOME THE PAPER HAS ITS OWN SIDE (Young, 7 Oct 2026): analysing a
-     contract turns Home to Paper, which draws it; Explorer keeps the map. */
-  if(igHomePaperFace()===false&&typeof hbSetFace==='function'){ hbSetFace('paper'); renderIntelDock(); igPaintIds([id]); return; }
-  igPaintPaper(); renderIntelDock(); igPaintIds([id]);
+     contract turns Home to Paper, which draws it; Explorer keeps the map.
+     The panel is drawn ONCE for all of it (igDockBatch). */
+  igDockBatch(()=>{
+    if(igHomePaperFace()===false&&typeof hbSetFace==='function'){ hbSetFace('paper'); renderIntelDock(); igPaintIds([id]); return; }
+    igPaintPaper(); renderIntelDock(); igPaintIds([id]);
+  });
 }
 /* null off Home; true on Home's Paper side; false on Home's other sides. */
 function igHomePaperFace(){
@@ -9353,7 +9432,32 @@ function igWallShown(rows,o){
 function igWallMoreReset(){ _igWallMore=0; }
 function igWallShowMore(){
   _igWallMore++;
+  if(igWallAppend()) return;
   if(typeof regRepaint==='function') regRepaint();
+}
+/* THE NEXT TWELVE ARE ADDED, THE WALL IS NOT DRAWN AGAIN (the glitch audit's
+   second walk, 24 Oct 2026: each scroll to the foot rebuilt the whole
+   Contracts place, four times in one long scroll). The papers come from the
+   very list the wall was drawn from (_igWallLast); the foot changes in place
+   (lhFootPut). Anything that does not line up — another narrowing, a wall
+   not on the page, papers out of step — draws the place again as before. */
+let _igWallLast=null;
+function igWallAppend(){
+  if(typeof document==='undefined'||typeof document.getElementById!=='function') return false;
+  const wall=document.getElementById('ig-wall'), grid=wall&&wall.querySelector('.igw-grid'), L=_igWallLast;
+  if(!grid||!L||igWallKeyOf()!==_igWallKey) return false;
+  const cards=grid.querySelectorAll('.igw-card[data-ig-pick]');
+  const S=igWallShown(L.rows,L.opts), have=cards.length;
+  if(S.shown.length<have) return false;
+  for(let i=0;i<have;i++) if(String(S.shown[i].id)!==cards[i].getAttribute('data-ig-pick')) return false;
+  const need=L.need||igWallNeed();
+  if(S.shown.length>have) grid.insertAdjacentHTML('beforeend',S.shown.slice(have).map(c=>igWallCardHtml(c,need.has(String(c.id)))).join(''));
+  const footEl=wall.querySelector('[data-lh-foot="wall"]');
+  const footHtml=(S.n>IG_WALL_STEP||S.shown.length<L.rows.length)&&typeof lhFootHtml==='function'?lhFootHtml('wall',S.k,S.n,IG_WALL_STEP,{ cls:'igw-foot' }):'';
+  if(footEl&&typeof lhFootPut==='function') lhFootPut(footEl,footHtml);
+  _igWallScrollAsked=false;
+  if(typeof placeSave==='function') try{ placeSave(); }catch(_){ }
+  return true;
 }
 /* ---- THE NEXT PAPERS FOLLOW AS YOU SCROLL (round 13 as drawn, pass 4: "In
    the full version the next papers follow as you scroll") ----
@@ -9392,6 +9496,7 @@ function igWallBodyHtml(rows,o){
   const key=igWallKeyOf(); if(_igWallKey!==null&&key!==_igWallKey) _igWallMore=0; _igWallKey=key;
   _igWallScrollAsked=false;
   const S=igWallShown(list,opts), shown=S.shown;
+  _igWallLast={ rows:list, opts:{ only:opts.only }, need };
   /* a choice the list no longer draws is let go: the panel never says a paper the reader cannot see */
   const ch=igWallChosenId();
   if(ch&&!shown.some(c=>String(c.id)===ch)){ _igChosen=null;
@@ -9853,16 +9958,17 @@ function igStrandPaint(c){
   if(!sp.dataset.igBound){ sp.dataset.igBound='1';
     sp.addEventListener('click',e=>{ const b=e.target.closest('[data-xr-seg]'); if(!b) return;
       const i=Number(b.getAttribute('data-xr-seg'));
-      const el=_igStrandRows[i]; const s=document.getElementById('ig-paper-scroll');
-      if(el&&s){ const r=el.getBoundingClientRect(), sr=s.getBoundingClientRect(); s.scrollTo({ top:Math.max(0,s.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); }
       igStrandTip(null);
-      igStrandPress(sp, b, i); });
+      /* the Clauses list glides the paper itself (docThreadGoTo); only where it cannot take the press does the Track */
+      if(igStrandPress(sp, b, i)) return;
+      const el=_igStrandRows[i]; const s=document.getElementById('ig-paper-scroll');
+      if(el&&s){ const r=el.getBoundingClientRect(), sr=s.getBoundingClientRect(); s.scrollTo({ top:Math.max(0,s.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); } });
     /* THE HOVER CARD: which clause, how serious, and why — the reason this
        page never said anywhere before. Keyboard focus shows it too. */
     const tipFor=e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]'); igStrandTip(b||null); };
     sp.addEventListener('mouseover',tipFor);
     sp.addEventListener('focusin',tipFor);
-    sp.addEventListener('mouseleave',()=>igStrandTip(null));
+    sp.addEventListener('mouseleave',()=>{ _igTipQuiet=null; igStrandTip(null); });
     sp.addEventListener('focusout',()=>igStrandTip(null));
     sp.addEventListener('scroll',()=>igStrandTip(null),{passive:true}); }
 }
@@ -9880,8 +9986,13 @@ function igStrandPaint(c){
    the model reads the wording, not our scan, playbook or brief.
 
    IT NEVER OVERWRITES WHAT THE READER TYPED: the box is filled only when it is
-   empty or still holds the strip's own last question. */
-let _igStrandData=[], _igStrandLastAsk='';
+   empty or still holds the strip's own last question.
+
+   RETIRED 24 Oct 2026 (owner: "Simply stop asking the question"): a press now
+   opens the clause in Clauses and writes nothing (igStrandPress). The
+   question's builder (igStrandQuestion) is no longer called; the hover card
+   keeps the clause, its grade and why it is flagged. */
+let _igStrandData=[], _igStrandLastAsk='', _igTipQuiet=null;
 const IG_GRADE_RANK=['ruby','amber','steel'];
 function igStrandTopMark(row){
   const ms=((row&&row.marks)||[]).filter(Boolean).slice();
@@ -9904,28 +10015,48 @@ function igStrandPress(sp, b, i){
   const el=_igStrandRows[i];
   if(el&&el.classList){ el.classList.remove('ig-flash'); void el.offsetWidth; el.classList.add('ig-flash');
     clearTimeout(el._igFlash); el._igFlash=setTimeout(()=>el.classList.remove('ig-flash'),1700); }
-  const row=_igStrandData[i]; if(!row) return;
+  const row=_igStrandData[i]; if(!row) return false;
   if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
-  /* the Track's press puts a question ready in the box (under every tab since
-     22 Oct 2026); on Clauses it opens the clause in the list and asks nothing */
-  const onClauses=typeof window.pdTab==='function'&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk();
-  const inp=onClauses?null:igAskBox(); if(!inp) return;
-  const had=String(inp.value||'');
-  if(had.trim() && had!==_igStrandLastAsk) return;
-  const q=igStrandQuestion(row);
-  inp.value=q; _igStrandLastAsk=q;
-  if(window.chatFieldGrow) chatFieldGrow(inp);
-  try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
+  /* A PRESS OPENS THE CLAUSE IN CLAUSES AND ASKS NOTHING (owner, 24 Oct 2026:
+     "Simply stop asking the question and move me to where image 2 is so i can
+     read there and deepdive"; reverses the 22 Oct question in the box). The
+     answer already stands on the Clauses tab, so the press takes the reader
+     there: the tab switches as its own press does, the clause's row opens
+     and the paper glides to it (docThreadLandOn / docThreadWantClause).
+     Jambo's box is never written. True when Clauses took the press. */
+  const c=_igStrandC, label=typeof docXrayLabel==='function'?docXrayLabel(row):String(row.name||'');
+  if(!c||typeof window.docThreadLandOn!=='function'||!(window.pdOnPaper&&pdOnPaper())) return false;
+  if(window.pdTab&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk()) return docThreadLandOn(c,row.el,label);
+  docThreadWantClause(c,row.el,label);
+  if(window.pdTalkShows&&pdTalkShows()&&window.pdTalkClose) pdTalkClose();
+  if(window.pdRedShows&&pdRedShows()&&window.pdRedClose) pdRedClose();
+  pdSetTab('doc');
+  renderIntelDock();
+  if(typeof igPaintPaper==='function') try{ igPaintPaper(); }catch(_){}
+  /* the repaint drew the Track afresh: the pressed block is marked again and the card put away */
+  { const sp2=document.getElementById('ig-spine'), b2=sp2&&sp2.querySelector(`[data-xr-seg="${i}"]`);
+    if(b2){ b2.classList.add('is-on'); b2.setAttribute('aria-pressed','true'); } _igTipQuiet=String(i); igStrandTip(null); }
+  /* a paint that could not draw the list leaves the want: let it go, the Track glides the paper itself */
+  if(docThreadWantPending()){ docThreadWantDrop(); return false; }
+  return true;
 }
 /* The hover card, for the Track on any paper (owner, 10 Oct 2026: the Track
    on the Document tab too): `h` is the paper it stands on — igTrackHostHome()
    by default — carrying the margin it sits in (wrap) and the rows it reads. */
+/* opening Clauses would start its reading for this contract (stkAutoRun's own conditions) */
+function igStrandOpensRead(c){
+  if(!c||typeof window.stkOf!=='function'||stkOf(c)) return false;
+  if(typeof jamboOnPress==='function'&&jamboOnPress(c)) return false;
+  return !!(typeof API_MODE==='function'&&API_MODE()&&state.aiConfigured);
+}
 function igStrandTip(b, h){
   h=h||igTrackHostHome();
   const wrap=h.wrap;
   const tipId=h.tipId||'ig-spine-tip';
   let tip=document.getElementById(tipId);
   if(!b||!wrap){ if(tip) tip.hidden=true; return; }
+  /* the block just pressed keeps its card away while the pointer rests on it: the press redraws the Track under the pointer */
+  if(tipId==='ig-spine-tip'){ const k=b.getAttribute('data-xr-seg'); if(_igTipQuiet===k){ if(tip) tip.hidden=true; return; } _igTipQuiet=null; }
   const row=(h.data||[])[Number(b.getAttribute('data-xr-seg'))]; if(!row){ if(tip) tip.hidden=true; return; }
   if(!tip||tip.parentNode!==wrap){ if(tip) tip.remove(); tip=document.createElement('div'); tip.id=tipId; tip.className='ig-spine-tip'; tip.setAttribute('role','tooltip'); wrap.appendChild(tip); }
   const g=IG_GRADE_RANK.includes(row.tone)?row.tone:'steel';
@@ -9935,7 +10066,10 @@ function igStrandTip(b, h){
     +`<span class="ig-tip-g is-${g}">${igEsc(i18t('int_grade_'+g))}</span>`
     +(lines||(row.asked?`<span class="ig-tip-m">${igEsc(i18t('int_strip_asked'))}</span>`:''))
     +(ms.length>2?`<span class="ig-tip-m ig-tip-more">${igEsc(i18tn('int_strip_more',ms.length-2,{ n:ms.length-2 }))}</span>`:'')
-    +`<span class="ig-tip-go">${igEsc(i18t('int_strip_go'))}</span>`;
+    +`<span class="ig-tip-go">${igEsc(i18t('int_strip_open'))}</span>`
+    /* COST BEFORE THE PRESS (rule 7): on Home the press opens Clauses, and opening Clauses reads a
+       contract not read yet (stkAutoRun, the owner's 13 Oct ruling) — the card says so first */
+    +(tipId==='ig-spine-tip'&&igStrandOpensRead(_igStrandC)?`<span class="ig-tip-m ig-tip-more">${igEsc(i18t('int_strip_open_read'))}</span>`:'');
   tip.hidden=false;
   const sp=b.closest('.ig-spine'); const wr=wrap.getBoundingClientRect(), br=b.getBoundingClientRect();
   tip.style.left=((sp?sp.getBoundingClientRect().right:br.right)-wr.left+8)+'px';
@@ -10170,8 +10304,8 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
-Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
+Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
+Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockBatch,igDockPaintCount,igPaperDown,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
@@ -10183,3 +10317,6 @@ Object.assign(window,{igDockStepAside});
 Object.assign(window,{igFramesDrawn,igKeptKey,igWake,igTurnFace,igLoopStart,IG_SETTLE_ROUNDS,IG_SETTLE_SLICE,IG_AWAKE_MS});
 Object.assign(window,{igTrackLayout,igTrackBodyEnd,igTrackFold,igTrackAt,IG_TRACK_TAIL,igTrackFits,igTrackSize,IG_TRACK_WIDTHS,IG_TRACK_GEOM,igTrackHtml,igTrackPlace,igTrackWindow,igTrackFollow,igTrackHostHome,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
+
+/* what the map shows, one reading (24 Oct 2026) */
+Object.assign(window,{ igMapNow, igAskThenExplain });

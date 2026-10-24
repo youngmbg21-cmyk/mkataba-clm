@@ -113,3 +113,44 @@ The walk counted drawings, not saves. It found no sign of an act running twice, 
 ## Part B, built in this round
 
 **The Board's own helpers stay on the Board** (`docs/WORKORDER-board-helpers-stay-on-the-board.md`). With a contract in front on the Board, Jambo's empty box now shows nothing, "/" lists the places only, there is no Split by or Period list, and Ctrl+Z and Esc do nothing. On the Board itself all of these work as before. A gallery pick on the Board now scrolls its new chart into view, so "Added to the board" matches what you see. Its check fails on main (14 of 38) and passes on the branch (38 of 38).
+
+---
+
+## Round two — fixed on 24 Oct 2026
+
+The owner asked: "Fix the five that hurt most", then "fix all the bugs in the list". Each fix is checked in a real browser by `test/chromium/glitch-fixes-verify.js` (36 checks; 13 of them fail on main before the fixes).
+
+| Finding | What was done | Now |
+|---|---|---|
+| "board" brought back the last contract | Asking for the Board, by word or by its tab, puts the contract away | Fixed |
+| ‹ needed two presses after opening a contract from a list | A panel view that came with the page is part of that page, so one ‹ goes back. A view you opened yourself is still one step. The ‹ now says where it goes, for example "Back to Approvals & signing" | Fixed |
+| Opening a contract from Approvals froze 450–900 ms | Jambo's panel is drawn once per press instead of 3–5 times. The hidden Board is no longer built on the way | Whole press 862 → 268 ms of work |
+| Every page move froze 100–300 ms | The hidden Board is not drawn. The closed right-hand panel is not drawn. "What still needs filling in" is remembered per wording instead of re-read on every count | Home → Contracts 530 → 244 ms; ‹ to Home 178 → 54 ms; a contract from Home's box ~600 → 177 ms |
+| Red "Jambo limit reached" on presses that did not ask Jambo | A limit hit by a reading HaTi started by itself no longer shows a red box. That reading says it in its own place | Fixed |
+| Things drawn twice | Redlines, a list row's panel on a double press, the "history" link, a word in Jambo's box that moves you, My notes, the Contracts wall | Fixed |
+| "Overvi…" cut beside 99+ | Panel tabs are as wide as their words. The name gives way before the count only when space truly runs out | Fixed at all three screens, both languages |
+
+**Measured, and left as they are:**
+- **The Dossier's last line at 1440×780** is the end of a list that scrolls, not words over words. Scrolling shows it whole.
+- **Share draws twice** on purpose. The screen opens at once on the press, then fills in when the details arrive.
+- **The Board and Explorer at rest** are quiet now. Explorer uses about 25 ms every 4 seconds for its designed jiggle.
+- **The Contracts list** no longer redraws while you scroll. It is redrawn only when the book changes underneath it, and your scroll position is kept. *(Corrected in round three: this was true of the List view only. On the Wall it still redrew; fixed then.)*
+- **Explorer's first opening** still costs about a third of a second to build the map. Its 3.5 s "settle" is the designed settling animation.
+
+**Still the owner's call:** on the lists, one press chooses a row and a double press opens it.
+
+---
+
+## Round three — the second walk, fixed on 24 Oct 2026
+
+The owner asked for the audit to be run again on main, then: "Fix all five and merge when green". The fixes are checked by `test/chromium/glitch-fixes-verify.js` part 9 (7 of its 8 checks fail on main before these fixes).
+
+| Finding in the second walk | What was wrong | Now |
+|---|---|---|
+| Scrolling Contracts redrew the whole list 4 times (both laptops) | On the **Wall** view, every 12 more papers rebuilt the whole page | The next 12 are added; nothing else is drawn again |
+| The Redlines tab drew the paper and Jambo's panel twice | Two small loads landed after the paint and the face was drawn again even when they changed nothing | Drawn once, and again only when the loads bring something to show |
+| A figure's list on the Board covered the Needs you buttons | The list stayed open after going Home, asking for the Board, or visiting another page | Any page move, or asking for the Board, puts it away. × and Esc still close it |
+| Explorer and Approvals looked 80–100 ms slower | Measured three times each, same machine, before and after round two: they are faster (Explorer's worst freeze 720–800 → 440–550 ms; Approvals 390–620 → 300–335 ms) | No change needed. The rest is the page's own layout and the bell's count |
+| ‹ back from Activity redrew the Brain's steps 5 times | ‹ went back to the Brain, as it should; the Brain's playing flow rebuilt its list of steps at every step | Each step now marks its own row |
+
+The audit tool gained `HATI_GA_WHO=1`, which names the code that drew each redraw.

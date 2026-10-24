@@ -372,6 +372,9 @@ function pdOpenTabOf(c){
   return 'copilot';
 }
 function pdOpenOnHome(id, tab){
+  /* one press, one panel (igDockBatch, js/views/intelligence.js) */
+  if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !pdOpenOnHome._in){
+    pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab)); } finally { pdOpenOnHome._in = false; } }
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   if (tab === 'open') tab = pdOpenTabOf(c);
   /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
@@ -484,7 +487,14 @@ function pdOpenOnHome(id, tab){
     if (typeof renderIntelDock === 'function') renderIntelDock();
     return true;
   }
-  if (!(window.state && state.view === 'dashboard') && typeof setView === 'function') setView('dashboard');
+  if (!(window.state && state.view === 'dashboard') && typeof setView === 'function'){
+    /* A DOOR FROM ANOTHER PAGE LANDS ON THE PANEL'S CONTENT, not on a conversation
+       left open beside this paper earlier (JAMBO AS A TAB YOU FLIP TO; caGoRepaint
+       does the same for a go ask) — the conversation itself is kept, one tab away */
+    try { const k = (typeof jamboTalkKey === 'function') ? String(jamboTalkKey() || '') : '';
+      if (k.indexOf('dock:') === 0) pdTalkClose(); } catch (_){}
+    /* Home is set up for the paper: the Board it is leaving is not drawn first */
+    if (typeof window.hbArrive === 'function') window.hbArrive('paper', () => setView('dashboard')); else setView('dashboard'); }
   igWalk([id], 0, { tab: tab || 'copilot' });
   /* the chosen obligation is brought into sight once the tab is drawn (bounded) */
   if (tab === 'oblig' && typeof document !== 'undefined'){ let n = 0; const go = () => { const r = document.querySelector('#pd-body .pd-ob.is-chosen');
@@ -1266,7 +1276,22 @@ function pdRedFaceHtml(c){
   if (!/id="nego-send"/.test(col) && typeof negoTurnBannerHtml === 'function'){
     try { const m = String(negoTurnBannerHtml(c, o) || '').match(/<button id="nego-send"[\s\S]*?<\/button>/); if (m) send = `<div hidden data-pd-rf-send>${m[0]}</div>`; } catch (_){ send = ''; }
   }
-  return `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
+  const html = `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
+  _pdRedDrawn = { id: String(c.id), html };
+  return html;
+}
+/* WHAT THE FACE LAST DREW, so a load landing after the paint repaints only
+   when it changed something (the glitch audit's second walk, 24 Oct 2026: the
+   thread and the share list landed and the paper and the panel were drawn
+   again with nothing new on them) */
+let _pdRedDrawn = null;
+function pdRedLoadsMoved(c){
+  if (!c) return false;
+  /* a thread with messages in it marks the paper (rlPaintNoteMarks) */
+  if (Array.isArray(c._messages) && c._messages.length) return true;
+  const was = _pdRedDrawn && _pdRedDrawn.id === String(c.id) ? _pdRedDrawn.html : null;
+  if (was == null) return true;
+  return pdRedFaceHtml(c) !== was;
 }
 /* THE FOOT IS NOT DRAWN (owner, 15 Oct 2026): with changes on the table the
    face shows only them; Draft from our standards, Edit a clause and Add a
@@ -1325,7 +1350,7 @@ function pdRedFacePaint(c, top){
   pdChipsRepaint();
   /* what the Negotiate page loads after it paints — the thread from their
      page and the share list (Send all in one press needs their address) */
-  try { if (typeof rlBenchCatchUp === 'function') rlBenchCatchUp(c, () => { if (pdRedShows() && String(pdRedFor()) === String(c.id)) pdRedRepaint(); }); } catch (_){}
+  try { if (typeof rlBenchCatchUp === 'function') rlBenchCatchUp(c, () => { if (pdRedShows() && String(pdRedFor()) === String(c.id) && pdRedLoadsMoved(c)) pdRedRepaint(); }); } catch (_){}
   const keep = _pdRedTop != null ? _pdRedTop : top; _pdRedTop = null;
   const sc = host.querySelector('#nego-cards');
   if (sc && keep){ if (typeof rlRestoreScroll === 'function') rlRestoreScroll(sc, keep); else sc.scrollTop = keep; }
@@ -1650,9 +1675,19 @@ function pdTalkSync(dock){
      a turn to the conversation (explorer-guide-tab-verify 3b) */
   if (k.slice(-6) === ':guide'){ _pdTalk.seen = len; _pdTalk.quiet = false; return false; }
   if (_pdTalk.quiet && len > _pdTalk.seen){ const H2 = H.slice(_pdTalk.seen); if (!H2.some(m => m && (m.role === 'user' || m.role === 'st'))){ _pdTalk.seen = len; if (!(intel && intel.busy)) _pdTalk.quiet = false; } }
+  /* A NEW AGREEMENT LANDS ON ITS DOSSIER (owner, 24 Oct 2026: "once created it should drop in the
+     workspace window with dossier"): the words said while it was made, and his first words after, are
+     kept in his tab for the next flip, never turned to over the Dossier (pdLandOnDossier) */
+  if (_pdLandDossier && pdOnPaper()){ _pdTalk.seen = _pdTalk.last = len; _pdTalk.quiet = false;
+    /* held until his first words for it are said (firstDraftOwed), so they too wait in his tab */
+    { const c0 = pdContract(); if (!(c0 && typeof firstDraftOwed === 'function' && firstDraftOwed(c0))) _pdLandDossier = false; }
+    if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
   if (len > _pdTalk.seen){ _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
   return jamboTalkShows(k);
 }
+/* the next paper to land on Home opens on its Dossier, not on the conversation (the one sheet's Create) */
+let _pdLandDossier = false;
+function pdLandOnDossier(on){ _pdLandDossier = on !== false; if (_pdLandDossier) pdSetTab('copilot'); }
 /* where this page's conversation begins in the one conversation */
 function pdTalkFrom(){ return _pdTalk.from; }
 /* the view closed, its words seen; the landing's scrolls handed back */
@@ -3180,6 +3215,9 @@ function pdWallHelloHtml(){
   const first = String((me && me.name) || '').trim().split(/\s+/)[0] || _pdT('home_greet_there');
   const say = _pdT(pdDropMay() ? 'pd_wall_hello' : 'pd_wall_hello_view', { greet, name: first });
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
+  /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for, never the wall's greeting */
+  if (typeof naSheetUp === 'function' && naSheetUp())
+    return `<div class="ai-msg flex gap-2 pd-sheet-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(_pdT('ca_go_draft'))}</div></div></div>`;
   return `<div class="ai-msg flex gap-2 pd-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(say)}</div></div></div>`;
 }
 function pdDropInner(){
@@ -3296,7 +3334,7 @@ function pdDropToastOff(msg){
   if (typeof document === 'undefined') return;
   document.querySelectorAll('#toast-root [data-toast-msg]').forEach(el => { if (el.dataset.toastMsg === msg) el.remove(); });
 }
-async function pdDropTake(file){
+async function pdDropTake(file, o){
   if (!file || typeof uploadFromDrop !== 'function') return null;
   if (pdDropBusyNow()){ if (typeof toast === 'function') toast(_pdT('ca_drop_busy'), 'warn'); return { refused: _pdT('ca_drop_busy') }; }
   _pdDrop = { state: 'reading', name: file.name, note: '' };
@@ -3306,7 +3344,8 @@ async function pdDropTake(file){
   if (away && typeof toast === 'function') toast(said, 'ok', { busy: true, dwell: PD_DROP_TOAST_MS });
   let r = null;
   try {
-    r = await uploadFromDrop(file, { folder: pdDropStreamNow(), step: (n, note) => { if (_pdDrop && _pdDrop.state === 'reading'){ _pdDrop.note = note || ''; pdDropPaint(); } } });
+    /* the one sheet's Their paper names its own stream (o.folder); the drop area its own */
+    r = await uploadFromDrop(file, { folder: (o && o.folder) || pdDropStreamNow(), counterparty: (o && o.counterparty) || '', step: (n, note) => { if (_pdDrop && _pdDrop.state === 'reading'){ _pdDrop.note = note || ''; pdDropPaint(); } } });
   } catch (e){ r = { refused: (e && e.message) || String(e) }; }
   if (away) pdDropToastOff(said);
   if (r && r.refused){
@@ -6200,7 +6239,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdActsToggle, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

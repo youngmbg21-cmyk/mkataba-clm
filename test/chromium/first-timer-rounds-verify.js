@@ -127,9 +127,10 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     check(!!(sheet && /^No paper is called “warehouse partnership”\. One question decides it\.$/.test(sheet.hint)), '2a the sheet says no paper is called that', sheet && sheet.hint);
     check(!!(sheet && sheet.q === 'Will Kilifi Haulage store your goods, move them, or both?'), '2b and asks the one question', sheet && sheet.q);
     const wh = sheet && sheet.cards.find(c => c.n === 'Warehousing'), ff = sheet && sheet.cards.find(c => /Logistics|Freight/.test(c.n));
-    check(!!(wh && wh.best && /shares “warehouse”/.test(wh.m) && /^Use when another company keeps our goods/.test(wh.use)), '2c Warehousing is the closest, says what it shares and when to use it', wh);
-    check(!!(ff && /shares “haulage”/.test(ff.m) && /^Use when another company moves our goods/.test(ff.use)), '2d Freight answers to "haulage", with its own line', ff);
-    check(!!(sheet && sheet.cards.every(c => c.use) && sheet.cards.every(c => c.on === 'false')), '2e every card has its line; nothing is picked', sheet && sheet.cards.map(c => [c.n, c.on]));
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): a row's one quiet line is "Matched “…” in your words · Use when …" */
+    check(!!(wh && wh.best && /Matched “warehouse”/.test(wh.m) && /Use when another company keeps our goods/.test(wh.m)), '2c Warehousing is the closest, says what it shares and when to use it', wh);
+    check(!!(ff && /Matched “haulage”/.test(ff.m) && /Use when another company moves our goods/.test(ff.m)), '2d Freight answers to "haulage", with its own line', ff);
+    check(!!(sheet && sheet.cards.every(c => /Use when/.test(c.m + c.use)) && sheet.cards.every(c => c.on === 'false')), '2e every card has its line; nothing is picked', sheet && sheet.cards.map(c => [c.n, c.on]));
     await press(P, '#na-dq [data-na-dq="move"]');
     const moved = await drive(P, () => [...document.querySelectorAll('#na-closest .na-pick')].map(b => [b.querySelector('.na-pick-n').innerText, !!b.querySelector('.na-best'), b.getAttribute('aria-checked')]), null, []);
     check(/Logistics|Freight/.test((moved[0] || [])[0]) && moved[0][1] === true && moved.every(x => x[2] === 'false'), '2f "They move them" moves Freight first and marks it; still nothing picked', moved);
@@ -151,7 +152,8 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
       cp: document.getElementById('wz-counterparty').closest('label').innerText.replace(/\s+/g, ' ') }), null, null);
     check(!!(before && before.label === 'Who pays whom?' && before.words.join(' · ') === 'We pay them · They pay us · No money' && before.v === '' && before.say === ''),
       '3a "Who pays whom?" as three presses, none chosen, nothing said', before);
-    check(!!(before && /^The other company \* .*As on their invoices or letterhead$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
+    /* RE-POINTED 24 Oct 2026: the row now ends with where its answer came from — the words quoted */
+    check(!!(before && /^The other company \* .*As on their invoices or letterhead( “Kilifi Haulage”)?$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
     await press(P, '[data-pw-for="wz-side"] [data-pw-v="customer"]');
     const after = await drive(P, () => ({ v: document.getElementById('wz-side').value, say: document.querySelector('[data-pw-for="wz-side"] [data-pw-say]').textContent }), null, null);
     check(!!(after && after.v === 'customer' && /^So we are the customer\./.test(after.say)), '3c "We pay them" stores customer and says so', after);
@@ -167,12 +169,19 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     await press(P, '[data-na-stream="dist"]');
     await until(P, () => { const b = document.getElementById('na-create'); return !!(b && !b.disabled); }, null, 6000);
     await press(P, '#na-create');
+    /* RE-POINTED 24 Oct 2026 (one door, the owner: "once created it should
+       drop in the workspace window with dossier"; this reverses the 22 Oct
+       landing on his words): Create lands on the Dossier, and his first words
+       wait in his tab, said there once — the reader flips to it */
+    const onDossier = await until(P, () => !!document.querySelector('#ig-dock .ds-sp-st') && !document.querySelector('#ig-dock .jb-turn') && pdTab() === 'copilot', null, 15000);
+    check(!!onDossier, '4a0 Create lands on the Dossier, not on his words');
+    await drive(P, () => { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); });
     const spoke = await until(P, () => [...document.querySelectorAll('#ig-dock .jb-turn')].some(t => /A few things are still open/.test(t.innerText)), null, 15000);
     const id = await drive(P, () => pdContract() && pdContract().id, null, null);
     const said = await drive(P, () => { const T = [...document.querySelectorAll('#ig-dock .jb-turn')].map(t => t.innerText.replace(/\s+/g, ' '));
       const box = [...document.querySelectorAll('#ig-dock .igd-choices')].pop();
       return { T: T.slice(-2), choices: box ? [...box.querySelectorAll('button')].map(b => [b.innerText.trim(), b.classList.contains('ui-btn-primary')]) : [] }; }, null, null);
-    check(spoke && !!id, '4a Create: Jambo speaks beside the new paper', id);
+    check(spoke && !!id, '4a his tab: Jambo speaks beside the new paper', id);
     check(!!(said && /^This is our Warehousing & Cold-Chain Agreement with Kilifi Haulage\. A few things are still open: /.test(said.T[0])), '4b what is still open, read off what the paper owes', said && said.T[0]);
     check(!!(said && /^Fill those in, then send it to Kilifi Haulage so they can mark it up\./.test(said.T[1])), '4c and what comes after', said && said.T[1]);
     check(!!(said && said.choices.length === 2 && said.choices[0][0] === 'Fill them in' && said.choices[0][1] && !said.choices[1][1] && /^Send it to Kilifi Haulage to mark up$/.test(said.choices[1][0])), '4d Fill them in leads, the one filled button', said && said.choices);
@@ -221,15 +230,10 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     const liab = rows.find(r => r && r.id === 'K2'), pay = rows.find(r => r && r.id === 'K1');
     check(!!(liab && liab.read === 'look' && /^This adds “Liability of either party is limited to one month's fees”\. Your paper says nothing like it\.$/.test(liab.w)), '5a no rule written: "Worth a look", with what the ask adds', liab);
     check(!!(liab && liab.clamp !== '2'), '5b the plain reason is read whole', liab && liab.clamp);
-    /* 24 Oct 2026 (owner, second word): the CARD holding "Worth a look" is itself the soft card in a very light
-       amber (red over green over blue: amber), with no box inside it; the card beside it keeps the grey ground;
-       pressed, it deepens one amber step and stays amber (never the grey ONE SHADE) */
-    const amb = c => { const k = /^color\(srgb/.test(String(c || '')) ? 255 : 1;   /* a color-mix reads back as color(srgb 0–1 …) */
-      const v = (String(c || '').match(/[\d.]+/g) || []).map(Number).map((x, i) => i < 3 ? x * k : x); return v.length >= 3 && (v.length < 4 || v[3] > 0) && v[0] > v[1] && v[1] > v[2] && v[0] > 240; };
-    check(!!(liab && amb(liab.card) && /rgba\(0, 0, 0, 0\)/.test(liab.bg) && pay && !amb(pay.card)), '5a2 the card holding "Worth a look" is very light amber, with no box inside; the Escalate card keeps the grey', { look: liab && [liab.card, liab.bg], esc: pay && pay.card });
-    const lit = await drive(P, () => { const c = document.querySelector('#ig-dock [data-nego-card="K2"]'); if (!c) return null;
-      const rest = getComputedStyle(c).backgroundColor; c.classList.add('is-linked'); const on = getComputedStyle(c).backgroundColor; c.classList.remove('is-linked'); return { rest, on }; }, null, null);
-    check(!!(lit && amb(lit.on) && lit.on !== lit.rest), '5a3 pressed, the "Worth a look" card deepens one amber step and stays amber', lit);
+    /* 24 Oct 2026 (owner, third word): "i am only talking about the cards that are under risks to look at …
+       Anything above them should have the grey color they always had" — the change card holding "Worth a
+       look" is the grey card like its neighbour, and its read has no box of its own */
+    check(!!(liab && pay && liab.card === pay.card && /rgba\(0, 0, 0, 0\)/.test(liab.bg)), '5a2 the change card holding "Worth a look" keeps the grey of the cards above the risks, no box inside', { look: liab && [liab.card, liab.bg], esc: pay && pay.card });
     check(!!(pay && pay.read === 'escalate'), '5c where a rule is written, its verdict still stands (the workspace\'s payment range)', pay && pay.read);
     check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 4).join(' · ') === 'Accept · Reject · Counter · Ask a colleague')), '5d Ask a colleague sits after Counter on each of their asks', rows.map(r => r && r.verbs));
     for (const [w, hgt] of SCREENS){

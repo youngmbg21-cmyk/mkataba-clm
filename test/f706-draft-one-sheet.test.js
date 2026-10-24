@@ -96,14 +96,16 @@ describe('f706 (2) asking brings the page, read without AI', () => {
     assert.ok(!calls.some(c => c[0] === 'api'), 'nothing is spent on reading the sentence');
     const form = calls.find(c => c[0] === 'form'); assert.ok(form, 'the form came');
     const o = form[1];
-    assert.equal(o.pick, null, 'nothing is picked for you');
+    /* RE-POINTED 24 Oct 2026 (owner: "Pick it when clear"; replaces "nothing is picked for you"): the NDA
+       shares the words and nothing else does, so it is picked; a close call still picks nothing (f706 2c) */
+    assert.deepEqual(o.pick, { kind: 'tid', id: 'NDA' }, 'picked, being clearly the closest');
     /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the three closest always — those sharing a word
        first, then the next by shelf (here the only other paper there is) */
     assert.deepEqual(o.closest, [{ kind: 'tid', id: 'NDA' }, { kind: 'tid', id: 'lease' }]);
     assert.deepEqual(o.best, { kind: 'tid', id: 'NDA' });
     /* RE-POINTED (the gaps, round 4, pass 2, 18 Oct 2026): What is the kind the words ask for, written
        out ("A non-disclosure agreement"), and What it is for is read from the words ("a pilot") */
-    assert.deepEqual(o.words, { what: o.words.what, who: 'Volvo Cars', known: false, purpose: 'a pilot' });
+    assert.deepEqual(o.words, { what: o.words.what, who: 'Volvo Cars', known: false, purpose: 'a pilot', facts: [] });
     assert.notEqual(o.words.what, 'Mutual Non-Disclosure Agreement', 'never the closest paper\'s title');
     assert.equal(o.prefill.counterparty, 'Volvo Cars'); assert.equal(o.asked, 'NDA with Volvo Cars for a pilot'); assert.equal(o.streamAsk, true);
     assert.equal(a.state, 'opened');
@@ -127,23 +129,27 @@ describe('f706 (2) asking brings the page, read without AI', () => {
 });
 
 describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
-  test('3a only a sentence\'s form is the sheet; every other door keeps the form as it was', () => {
-    assert.match(WZ, /const one=!!\(o\.asked && Array\.isArray\(o\.closest\)\);/);
+  /* RE-POINTED 24 Oct 2026 (one door, the Legora way): every door on a computer opens the one sheet;
+     only the phone keeps the older form */
+  test('3a every door on a computer is the sheet; the phone keeps the form as it was', () => {
+    assert.match(WZ, /const one=!\(typeof mPhone==='function'&&mPhone\(\)\);/);
     assert.match(WZ, /<div id="na-root" class="na-root\$\{one\?' na-one':''\}">/);
-    assert.match(WZ, /\$\{one\?naWordsHtml\(\):`<div class="na-field"><label for="dr-say">/, 'the describe box elsewhere');
+    assert.match(WZ, /\$\{one\?naAskHtml\(\):`<div class="na-field"><label for="dr-say">/, 'the describe box on the phone');
   });
-  test('3b From your words: the sentence, What, With (amber where new), Change the ask, and Find as Jambo\'s one spend, its cost on it', () => {
-    const w = WZ.slice(WZ.indexOf('const naWordsHtml=()=>'), WZ.indexOf('openModal(`<div id="na-root"'));
-    assert.match(w, /i18t\('na_words_title'\)/); assert.match(w, /<q>\$\{esc\(asked\)\}<\/q>/); assert.match(w, /i18t\('na_words_noai'\)/);
-    assert.match(w, /id="na-ask-again"/);
-    assert.match(w, /i18t\('na_words_new_party'\)/); assert.match(w, /'is-owed'/);
+  /* RE-POINTED 24 Oct 2026 (the Legora way): the words sit in one ask box under Our paper · Their paper,
+     read again by its arrow (still no AI); what was read stands in rows, each with the words it came from */
+  test('3b the ask box: the sentence, the tabs, read again without AI, what was read with its words, and Jambo\'s one spend, its cost on it', () => {
+    const w = WZ.slice(WZ.indexOf('const naAskHtml=()=>'), WZ.indexOf('openModal(`<div id="na-root"'));
+    assert.match(w, /<textarea id="dr-say" class="na-say"[^>]*>\$\{esc\(asked\)\}<\/textarea>/); assert.match(w, /i18t\('na_ask_noai'\)/);
+    assert.match(w, /id="na-reask"/); assert.match(w, /data-na-paper="\$\{k\}"/);
+    assert.match(w, /i18t\('na_words_new_party'\)/); assert.match(w, /i18t\('na_rd_head'\)/); assert.match(w, /<mark>\$\{esc\(q\)\}<\/mark>/);
     /* RE-POINTED (the gaps' third pass, 18 Oct 2026; the owner's answer (4): Jambo's costs stay in
        CALLS, never money) — the cost is its count of Jambo calls */
-    assert.match(w, /id="dr-read"[\s\S]*i18t\('na_words_fill'\)[\s\S]*id="na-w-cost">· \$\{esc\(naFillCost\(\)\)\}/, 'the form\'s own Find, its cost said');
+    /* RE-POINTED 24 Oct 2026 (one door): the button is always drawn — "fill the rest" with words, "fill it" without */
+    assert.match(w, /id="dr-read"[\s\S]*'na_words_fill_rest':'na_words_fill'[\s\S]*id="na-w-cost">· \$\{esc\(naFillCost\(\)\)\}/, 'the form\'s own Find, its cost said');
     assert.match(WZ, /const naFillCost=\(\)=>i18t\('na_words_cost'\);/);
     assert.doesNotMatch(WZ, /aiCostWords/, 'no cost in money');
-    assert.match(w, /<textarea id="dr-say" class="na-say" hidden>\$\{esc\(asked\)\}<\/textarea>/, 'Find reads the sentence as it always has');
-    assert.match(WZ, /if\(say && !one && String\(say\.value\|\|''\)\.trim\(\)\) return true;/, 'the ask is not something typed here: leaving asks nothing');
+    assert.match(WZ, /if\(!formOnly && say && String\(say\.value\|\|''\)\.trim\(\) && String\(say\.value\|\|''\)\.trim\(\)!==asked\.trim\(\)\) return true;/, 'the words as asked are not something typed here: leaving asks nothing');
   });
   test('3c 1 Start from: the closest, the best marked, nothing picked, the whole list one press away, Ask Legal', () => {
     assert.match(WZ, /const closestHtml=\(\)=>/);
@@ -156,7 +162,9 @@ describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
     assert.match(WZ, /root\.querySelectorAll\(`\[data-wz-\$\{sel\.kind\}=/, 'every row of the chosen paper lights, in either list');
   });
   test('3d 2 its questions, under the paper\'s name; the card\'s own note not said twice', () => {
-    assert.match(WZ, /nm\.textContent=one\?i18t\('na_asks',\{name\}\):name;/);
+    /* RE-POINTED 24 Oct 2026: the card's head is the paper's own name, its shelf and Change paper beside it */
+    assert.match(WZ, /if\(nm\) nm\.textContent=name;/);
+    assert.match(WZ, /id="na-change-paper"/);
     assert.match(WZ, /\$\{one\?'':`<div class="na-note">\$\{i18t\('na_note'\)\}<\/div>`\}/);
   });
   test('3e 3 File it in: the form\'s own stream box drawn as buttons, its field not drawn twice, a choice made before the pick kept', () => {

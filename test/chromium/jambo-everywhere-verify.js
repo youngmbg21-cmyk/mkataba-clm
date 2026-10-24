@@ -8,7 +8,7 @@
    first (caAskAnywhere); only what it does not take goes to the page's own
    job. Driven in a real browser:
      1  the Calendar's box: a page's name moves there, a contract's number opens
-        its paper, "draft a new agreement" lands on the one Draft card — and
+        its paper, "draft a new agreement" opens the one New agreement sheet (re-pointed 24 Oct 2026) — and
         none of them is sent to the planner (no /api/ai/plan); a planning
         question still goes to the planner
      2  "/" in the Calendar's box lists the places; Enter on one goes there
@@ -77,9 +77,11 @@ const CONTRACTS = [
     check('1b a contract\'s number opens its paper', !!p1, JSON.stringify(await page.evaluate(() => ({ view: state.view, paper: window.intel && intel.paper && intel.paper.id }))));
     await toCal();
     await typeIn('#cal-plan-in', 'draft a new agreement');
-    const d1 = await until(() => { const c = document.querySelector('#ig-dock .ca-dr'); const card = c && c.closest('[data-ca-card]');
-      return card && card.classList.contains('is-landed') ? document.querySelectorAll('#ig-dock .ca-dr').length : null; }, null, 8000);
-    check('1c "draft a new agreement" lands on the one Draft card, lit', d1 === 1, String(d1));
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the words open the ONE New agreement sheet, no card */
+    const d1 = await until(() => document.getElementById('na-root') ? document.querySelectorAll('#na-root').length : null, null, 8000);
+    check('1c "draft a new agreement" opens the one New agreement sheet', d1 === 1, String(d1));
+    await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); if (b) b.click(); });
+    await until(() => !document.getElementById('na-root'), null, 4000);
     check('1d none of them was sent to the planner or any model', !ai.length, ai.join(', '));
     await toCal();
     ai.length = 0;
@@ -136,7 +138,9 @@ const CONTRACTS = [
       const v4 = await until(() => state.view !== 'brain' ? state.view : null, null, 6000);
       const said = await page.evaluate(() => [...document.querySelectorAll('#ai-feed .ai-msg, #ai-feed > *')].map(x => x.textContent.trim()).filter(Boolean).slice(-2));
       check('4a a page\'s name in the window moves there', !!v4 && v4 !== 'brain', String(v4));
-      check('4b and he says so in one line', said.length >= 1 && /obligations/i.test(said.join(' ')), JSON.stringify(said));
+      /* RE-POINTED 24 Oct 2026: since the one door, Cancel on 1c's sheet keeps the paper 1b opened
+         (before, the chat's Draft card let it go), so the line may name that contract's duties */
+      check('4b and he says so in one line', said.length >= 1 && /obligations|duties/i.test(said.join(' ')), JSON.stringify(said));
       check('4c nothing spent', !ai.length, ai.join(', '));
       await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
     }

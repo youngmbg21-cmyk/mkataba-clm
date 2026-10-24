@@ -138,7 +138,7 @@ describe('f707 (2) what Jambo found, at a glance', () => {
 
 describe('f707 (3) a private stream\'s drop is read at once, as today (the owner kept it)', () => {
   test('3a [control] the drop still asks the reading: contractArrived passes asked for the drop area', () => {
-    assert.match(CT, /submitUpload\(\{ drop:true, folder:uploadDropFolder\(h\.folder\), route:uploadRouteDefault\(\), read:true \}\)/);
+    assert.match(CT, /submitUpload\(\{ drop:true, folder:uploadDropFolder\(h\.folder\), route:uploadRouteDefault\(\), read:true, counterparty:h\.counterparty\|\|'' \}\)/); /* re-pointed 24 Oct 2026: a name from the one sheet's words rides along */
   });
 });
 
