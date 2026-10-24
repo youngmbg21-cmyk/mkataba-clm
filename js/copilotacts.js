@@ -330,6 +330,12 @@ function caSummaryText(before){
 /* "WRITE AN EMAIL TO YOUNG SUMMARISING THE ABOVE" is the same ask in other words (21 Oct 2026: the model
    answered it "Email drafted above…" with no email anywhere): it opens the ONE send screen, never the model */
 const CA_WRITE_MAIL_RE = /^\s*(?:please\s+)?(?:(?:write|draft|compose|prepare)\s+(?:an?\s+|the\s+)?(?:e-?mail|mail|message|note)|e-?mail)\b/i;
+/* "@<your own name>": you are never in your own list, so it is said, not taken for nobody */
+function caNamesMe(q){
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const m = String(q).match(/@([A-Za-zÀ-ÿ'’.\- ]{2,40})/);
+  return !!(me && me.name && m && m[1].trim().toLowerCase().startsWith(String(me.name).toLowerCase()));
+}
 function caFindPersonNamed(q){
   const m = String(q).match(/\bto\s+([A-Za-zÀ-ÿ'’.\-]{2,40})/i); if (!m) return null;
   const w = m[1].toLowerCase();
@@ -342,6 +348,7 @@ function caReadSend(q){
   const person = caFindPerson(q) || (mail ? caFindPersonNamed(q) : null);
   const c = caFindContract(q);
   const a = { kind: 'send', person, cid: c ? c.id : null, note: caNoteOf(q), review: /\breview\b/i.test(q), state: 'ready' };
+  if (!person) a.self = caNamesMe(q);
   if (CA_SUMMARY_RE.test(q) && !a.note){
     a.screen = true; a.note = caSummaryText();
     if (person && person.kind === 'colleague' && c && a.note && !caSendBlock(a)) setTimeout(() => caSummaryOpen(a), 0);
@@ -474,7 +481,7 @@ function caAiFirst(){ try { return typeof copilotAvailable === 'function' && !!c
 /* ---- THE SEND CARD ---- */
 function caSendBlock(a){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
-  if (!a.person) return { why: _caT('ca_send_who'), fix: '' };
+  if (!a.person) return { why: _caT(a.self ? 'ca_send_self' : 'ca_send_who'), fix: '' };
   if (!c) return { why: _caT('ca_send_which'), fix: '' };
   if (a.person.kind === 'theirs') return { why: _caT('ca_send_theirs', { who: a.person.name }), fix: 'sendscreen' };
   if (typeof canEdit === 'function' && !canEdit()) return { why: _caT('ca_send_viewer'), fix: '' };
