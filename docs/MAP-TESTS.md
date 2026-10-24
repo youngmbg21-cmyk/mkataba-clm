@@ -219,6 +219,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)
 - f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-drawer, home-paper-clauses, runway-and-xray, reading-in-the-background, xray-who-does-what verify.
+- 24 Oct 2026: Home's Track opens Clauses — f424 (2), track-on-the-paper-verify 4a–4d, analyze-on-the-graph-verify 2s4–2s8, document-tab-track-verify.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
 - 21 Oct 2026 (overnight): the-road-as-drawn-verify 14b/14c (the head and the road's first stop never give two totals: "n of the N").
@@ -283,6 +284,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - "the closest" on one line, the name shortened (22 Oct 2026): `tidy-sweep-verify.js` draft place (owner-length standard names seeded; red at e05849a at 1440 and 1366).
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
 - Every door opens beside Jambo (22 Oct 2026): draft-beside-jambo verify 1–3 (red at the parent), requests-and-notes-as-drawn 3d.
+- ONE DOOR, THE LEGORA WAY (24 Oct 2026): test/chromium/one-door-verify.js (1a–8d; 8 = "… Nordkap sent us" opens Their paper and files their file under Nordkap; the word, the + button, a sentence lands picked with its details quoted, Their paper, Create lands on the Dossier, the three screens; red at the parent 1, 2, 3, 4, 5). Re-pointed the same day: one-sheet-as-drawn, new-agreement (old-form claims retired in place), draft-beside-jambo 2–3, create-lands-clean 1c, new-agreement-keeps-answers C3, draft-upload-glance 2–3, form-nextup-and-draft-chip 3, long-contract Nb–Nd, requests-and-notes-as-drawn 3–3d, every-door-lands-on-home D, first-timer-rounds 2c–2e, 3b, 4a0–4h, land-on-it 2 (5a–5b moved to the work card), jambo-everywhere 1c, 4b, five-images-two 2b, nine-off-five-images 1, counterparty-leads 3b–3c, next-step-chips 6, sap-popups 6, control-room-in-full 7c, form-and-picker 4d–5f, held-contract-asks 3, compact-ladder 7, details-owes-overview-edits 1 (retired: no two cards to end level), f707 3a, f148, f672, f679, f706, f750, f345; tidy-sweep draft and new places.
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
 - f273, f327, f342, f343, f697, auto-triage, blanks-panel, upload-blanks, jambo-behind-the-wall verify.

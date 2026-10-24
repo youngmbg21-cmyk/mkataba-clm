@@ -111,8 +111,10 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       await page.waitForTimeout(1500);
       const r = await page.evaluate(() => {
         const said = (intel.history || []).filter(m => m.role === 'assistant').map(m => String(m.text || '') + ' ' + (m.act ? (m.act.kind || '') + ':' + (m.act.place || '') : ''));
-        return { form: said.some(s => /What should we draft|go:draft/i.test(s)), said: said.join(' | ').slice(0, 160), view: state.view };
+        /* RE-POINTED 24 Oct 2026 (one door): "new contract" opens the one sheet itself, no card in the chat */
+        return { form: !!document.getElementById('na-root') || said.some(s => /What should we draft|go:draft/i.test(s)), said: said.join(' | ').slice(0, 160), view: state.view };
       });
+      await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); if (b) b.click(); });
       check(`3 from the Approvals box, "${q}" ${wantForm ? 'opens' : 'never opens'} the draft form`, r.form === wantForm, JSON.stringify(r));
     }
 

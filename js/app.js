@@ -4177,7 +4177,7 @@ function wireShell(){
       /* and the list head's box on the page says the same (Q1, "keep both boxes") */
       if(window.lhBoxSet) lhBoxSet();
       if(window.regPlaceUp&&regPlaceUp()&&window.renderRegisterBody) try{ renderRegisterBody(); }catch(_){}
-      if(u){ if(u.kind==='go'&&!u.missing&&!u.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(u.place)&&window.caGo&&caGo(u)) return;
+      if(u){ if(u.kind==='go'&&!u.missing&&!u.narrowOff&&!(window.caIsCardWord&&caIsCardWord(u.place))&&window.caGo&&caGo(u)) return;
         if(window.caHandHome) caHandHome(q,u); return; }
       if(window.jmRunAct) jmRunAct(a,q);
     });

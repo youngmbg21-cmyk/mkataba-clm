@@ -14,8 +14,9 @@
         (within 2%)
      3. the window's top and height match the paper's visible part, and move
         when the paper scrolls
-     4. hovering a label shows the card; pressing one glides the paper to that
-        clause and fills Copilot's box without sending anything
+     4. hovering a label shows the card; pressing one opens that clause on the
+        Clauses tab and glides the paper there, writing nothing to Jambo
+        (owner, 24 Oct 2026)
      5. the sheet's left edge is where it is with the Track hidden (the paper
         does not move for it)
      6. where the margin is narrower than the Track, today's strip is drawn
@@ -123,13 +124,35 @@ const check = (name, pass, detail) => {
       /* 4. hover and press */
       const lab = await page.evaluate(() => { const b = document.querySelectorAll('#ig-spine .ig-trk-lab')[2]; return b && b.getAttribute('data-xr-seg'); });
       await page.hover(`#ig-spine .ig-trk-lab[data-xr-seg="${lab}"]`);
-      const tip = await until(() => { const t = document.getElementById('ig-spine-tip'); return t && !t.hidden ? t.textContent.trim().slice(0, 60) : null; }, null, 4000);
-      check(`4a. ${tag}: hovering a label shows the card`, !!tip, tip);
-      const before = await page.evaluate(() => ({ s: document.getElementById('ig-paper-scroll').scrollTop, sent: (intel.history || []).length }));
+      const tip = await until(() => { const t = document.getElementById('ig-spine-tip'); return t && !t.hidden ? { text: t.textContent.trim().slice(0, 60), head: (t.querySelector('.ig-tip-h') || {}).textContent || '', go: (t.querySelector('.ig-tip-go') || {}).textContent || '' } : null; }, null, 4000);
+      check(`4a. ${tag}: hovering a label shows the card, and it says the press opens Clauses`, !!tip && /open it in Clauses/.test(tip.go) && !/ask Jambo/.test(tip.text), JSON.stringify(tip));
+      const before = await page.evaluate(() => ({ s: document.getElementById('ig-paper-scroll').scrollTop, sent: (intel.history || []).length, tab: pdTab() }));
       await page.click(`#ig-spine .ig-trk-lab[data-xr-seg="${lab}"]`);
-      const after = await until(({ s }) => { const sc = document.getElementById('ig-paper-scroll'); const inp = document.getElementById('igd-input');
-        return sc.scrollTop > s + 20 && inp && inp.value ? { s: sc.scrollTop, q: inp.value.slice(0, 50), sent: (intel.history || []).length } : null; }, before, 6000);
-      check(`4b. ${tag}: pressing glides the paper and fills Jambo's box, sending nothing`, !!after && after.sent === before.sent, JSON.stringify(after));
+      /* RE-POINTED 24 Oct 2026 (owner: "Simply stop asking the question and move me to where image 2 is"):
+         the press opens the clause in Clauses and writes nothing into Jambo's box */
+      const after = await until(({ s, head }) => { const sc = document.getElementById('ig-paper-scroll'); const inp = document.getElementById('igd-input');
+        const open = document.querySelector('#ig-dock .doc-th-row.is-open .doc-th-name');
+        return pdTab() === 'doc' && open && open.textContent.trim() === head.trim() && sc.scrollTop > s + 20
+          ? { s: sc.scrollTop, open: open.textContent.trim(), box: inp ? inp.value : '', sent: (intel.history || []).length } : null; }, { s: before.s, head: (tip && tip.head) || '' }, 6000);
+      check(`4b. ${tag}: pressing opens that clause on the Clauses tab and glides the paper there, writing nothing to Jambo`,
+        !!after && after.sent === before.sent && !after.box, JSON.stringify({ before: before.tab, after }));
+      /* 4c. already on Clauses: another label opens ITS row there, in the list's view */
+      const lab2 = await page.evaluate(() => { const b = document.querySelectorAll('#ig-spine .ig-trk-lab')[4]; return b && b.getAttribute('data-xr-seg'); });
+      const head2 = await page.evaluate(i => { const b = document.querySelector(`#ig-spine .ig-trk-lab[data-xr-seg="${i}"]`); return b ? b.textContent.trim() : ''; }, lab2);
+      await page.click(`#ig-spine .ig-trk-lab[data-xr-seg="${lab2}"]`);
+      const second = await until(n => { const o = document.querySelector('#ig-dock .doc-th-row.is-open');
+        const name = o && o.querySelector('.doc-th-name'); if (!name || !name.textContent.trim().startsWith(n)) return null;
+        const list = o.closest('.doc-th-rows') || o.parentElement, r = o.getBoundingClientRect(), lr = list.getBoundingClientRect();
+        const inp = document.getElementById('igd-input');
+        return { open: name.textContent.trim(), inView: r.top >= lr.top - 2 && r.top < lr.bottom, tab: pdTab(), box: inp ? inp.value : '' }; }, head2, 6000);
+      check(`4c. ${tag}: on Clauses, another label opens its own row there, in view, still writing nothing`,
+        !!second && second.inView && second.tab === 'doc' && !second.box, JSON.stringify(second));
+      const paperAt = await until(n => { const sc = document.getElementById('ig-paper-scroll'), sr = sc.getBoundingClientRect();
+        const h = [...document.querySelectorAll('#ig-canvas h1,#ig-canvas h2,#ig-canvas h3,#ig-canvas h4,#ig-canvas p,#ig-canvas strong')].find(e => e.textContent.trim().startsWith(n.replace(/\s.*$/, '')) && e.textContent.includes(n.replace(/^\S+\s*/, '')));
+        if (!h) return null; const r = h.getBoundingClientRect(); return r.top >= sr.top - 2 && r.top < sr.bottom - 40 ? Math.round(r.top - sr.top) : null; }, head2, 6000);
+      check(`4d. ${tag}: and the paper glides to that clause`, paperAt != null, String(paperAt));
+      await until(() => { const o = document.querySelector('#ig-dock .doc-th-row.is-open'); return o && o.getBoundingClientRect().height > 80 ? true : null; }, null, 4000);
+      await page.screenshot({ path: path.join(OUT, `04-press-opens-clauses-${tag}.png`) });
 
       /* 5. the paper does not move for it */
       const edge = () => page.evaluate(() => Math.round((document.getElementById('ig-canvas').closest('.pg-sheet') || document.getElementById('ig-canvas')).getBoundingClientRect().left));

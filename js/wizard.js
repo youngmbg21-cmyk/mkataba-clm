@@ -740,6 +740,9 @@ function naCardTitle(r){
    upload door is openUploadModal — the one dialog every upload already uses. */
 function openNewDoors(){
   if(typeof canEdit==='function' && !canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('wz_viewers_no_create'),'err'); return; }
+  /* ONE DOOR (owner picked the Legora way, 24 Oct 2026): on a computer the drop-down is gone —
+     the one sheet's own two tabs, Our paper · Their paper, are the choice. The phone keeps it. */
+  if(!(typeof mPhone==='function'&&mPhone())) return openNewAgreement({ door:true });
   const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const ic=(n)=>(typeof icon==='function')?icon(n,'w-4 h-4'):'';
   const go=k=>{
@@ -841,22 +844,37 @@ function openNewAgreement(o){
      search list one press away; "Ask Legal with a request"), 2 the paper's
      questions, 3 FILE IT IN (the stream as buttons — a mirror of the form's own
      stream box, the one writer). Every other door keeps the form as it was. */
-  const one=!!(o.asked && Array.isArray(o.closest));
-  const asked=one?String(o.asked).slice(0,(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000):'';
+  /* ---- ONE DOOR, THE LEGORA WAY (owner picked it by name, 24 Oct 2026: "When i
+     want a contract i get 2 different doors"; "go with the Legora way") ----
+     EVERY DOOR ON A COMPUTER OPENS THIS ONE SHEET — a sentence to Jambo, "new
+     agreement", the + button, a template's "Use this", a request's "Start the
+     draft", a customer's "New contract". Your words sit at the top in one ask
+     box, Our paper · Their paper are its two tabs, the closest papers (or, with
+     no words yet, the most used) are one quiet list, what was read from the
+     words is shown with the words it came from, and the paper's questions are
+     answered in their rows. The older form (template list on the left, "Or
+     describe what you need", Skip the questions) is drawn only on the phone. */
+  const one=!(typeof mPhone==='function'&&mPhone());
+  const asked=String(o.asked||'').slice(0,(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000);
+  /* OUR PAPER OR THEIRS, on the sheet's own two tabs (never a card or a menu before it) */
+  let paper=(o.paper==='theirs')?'theirs':'ours', theirFile=null;
+  /* what the free reader found in the words (draftWordsRead), each with the words it came from */
+  const facts=(o.words&&Array.isArray(o.words.facts))?o.words.facts:[];
   /* The answers typed in this sitting, by the box's key — see pick. */
   const kept={};
   /* ---- NOTHING TYPED IS LOST WITHOUT A QUESTION (9 Oct 2026) ----
      Cancel, the ✕, Escape and the scrim all closed the pop-up and threw away
      every answer typed into the card and the sentence above it. Each way out
      asks first while anything holds text; nothing typed, nothing asked. */
-  const naTyped=()=>{
+  const naTyped=formOnly=>{
     const say=document.getElementById('dr-say');
-    if(say && !one && String(say.value||'').trim()) return true;
+    if(!formOnly && say && String(say.value||'').trim() && String(say.value||'').trim()!==asked.trim()) return true;
     const host=document.getElementById('na-form');
     return !!host && Object.keys(naCarryRead(host, {})).length>0;
   };
-  const naAskLeave=async()=>{
-    if(!naTyped()) return true;
+  /* formOnly: the sheet's own re-read keeps the new words, so only the form's answers are asked about */
+  const naAskLeave=async formOnly=>{
+    if(!naTyped(formOnly===true)) return true;
     return !!(await confirmDialog({ title:i18t('na_leave_q'), message:i18t('na_leave_body'),
       confirmLabel:i18t('na_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true, leave:true }));
   };
@@ -889,8 +907,13 @@ function openNewAgreement(o){
       :[r.go||'', r.stream||'']).filter(Boolean).join(' · ');
     /* WHEN TO USE IT, one everyday line: HaTi's own papers carry theirs (tpl_use_*), ours their description */
     const use=card===true?naUseWhen(r):'';
-    return `<button type="button" class="na-pick${card===true?' na-close':''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>
-      ${card===true?'<span class="na-radio" aria-hidden="true"></span>':''}<span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}${use?`<span class="na-use">${esc(use)}</span>`:''}</button>`; };
+    /* THE LEGORA WAY'S ROW (24 Oct 2026): the name, then one line — what it matched in your words
+       and when to use it (else its shelf) — and how often it was used at the right */
+    const why=card===true?[shares.length?i18t('na_matched',{ w:shares.slice(0,2).map(w=>'“'+w+'”').join(', ') }):'', use||[shelfOf(r), r.kind==='tid'?'':(r.go||'')].filter(Boolean).join(' · ')].filter(Boolean).join(' · '):'';
+    const inner=card===true
+      ? `<span class="na-radio" aria-hidden="true"></span><span class="na-lr-t"><span class="na-lr-top"><span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}</span>${why?`<span class="na-pick-m">${esc(why)}</span>`:''}</span><span class="na-lr-used">${used?esc(i18tn('na_used_n',used,{n:used})):''}</span>`
+      : `<span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}${use?`<span class="na-use">${esc(use)}</span>`:''}`;
+    return `<button type="button" class="na-pick${card===true?' na-close':''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>${inner}</button>`; };
   /* ONE SHEET'S FIRST STEP: the closest rows, in the reading's order — drawn as
      cards (the gaps, round 4, 18 Oct 2026): a radio, the name, the best marked,
      and the shelf's own facts — "Company standard · v3 · Sales · used 14 times",
@@ -906,7 +929,11 @@ function openNewAgreement(o){
      the reader still presses the card. */
   let dqAns='';
   const dqPair=()=>(one&&typeof caDraftPairOf==='function')?caDraftPairOf(closestBase()):null;
-  const closestBase=()=>{ const all=rows(); return (o.closest||[]).map(k=>all.find(r=>r.kind===k.kind&&String(r.id)===String(k.id))).filter(Boolean); };
+  const closestBase=()=>{ const all=rows();
+    if(Array.isArray(o.closest)&&o.closest.length) return o.closest.map(k=>all.find(r=>r.kind===k.kind&&String(r.id)===String(k.id))).filter(Boolean);
+    /* NO WORDS YET: the three of our paper used most (each shelf's own count) */
+    return all.map((r,i)=>({ r, i, n:usedOf(r) })).sort((a,b)=>b.n-a.n||a.i-b.i).slice(0,3).map(x=>x.r); };
+  const naMost=!(Array.isArray(o.closest)&&o.closest.length);
   const dqId=()=>{ const P=dqPair(); const a=P&&dqAns?P.a.find(x=>x[0]===dqAns):null; return a?a[1]:''; };
   const closestRows=()=>{ const L=closestBase(), id=dqId(); if(!id) return L;
     const at=L.findIndex(r=>r.kind==='tid'&&String(r.id)===id); return at>0?[L[at]].concat(L.slice(0,at),L.slice(at+1)):L; };
@@ -929,20 +956,39 @@ function openNewAgreement(o){
   const naFillCost=()=>i18t('na_words_cost');
   const naReadCost=()=>i18t('na_file_read');
   const naCap=t=>{ const x=String(t||'').trim(); return x?x.charAt(0).toUpperCase()+x.slice(1):''; };
-  const naWordsHtml=()=>{ const w=o.words||{};
+  /* THE ASK BOX AND ITS TWO TABS (the Legora way): the words as said, editable; the
+     arrow (or Enter) reads them again, still without AI (naReask); the tabs are
+     whose paper it is */
+  const naAskHtml=()=>`<section class="na-field na-ask" id="na-words">
+      <div class="na-ask-top"><div class="na-ptabs" role="tablist" aria-label="${esc(i18t('na_ptabs'))}">${['ours','theirs'].map(k=>
+        `<button type="button" role="tab" class="na-ptab" data-na-paper="${k}" aria-selected="${paper===k}">${esc(i18t('na_tab_'+k))}</button>`).join('')}</div>
+        <span class="na-ask-r"><span class="na-hint">${esc(i18t('na_ask_noai'))}</span><button type="button" id="dr-read" class="ui-link na-fill"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t(asked?'na_words_fill_rest':'na_words_fill'))} <em id="na-w-cost">· ${esc(naFillCost())}</em></button></span></div>
+      <div class="na-askbox"><textarea id="dr-say" class="na-say" rows="1" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('na_say_ph'))}" autocomplete="off" aria-label="${esc(i18t('na_say_ph'))}">${esc(asked)}</textarea>
+        ${typeof jamboSendHtml==='function'?jamboSendHtml('id="na-reask"', i18t('na_ask_go')):`<button type="button" id="na-reask" class="ui-btn ui-btn-sm">${esc(i18t('na_ask_go'))}</button>`}</div></section>`;
+  /* WHAT I READ FROM YOUR WORDS: each fact, what it says and the words it came from
+     (the Legora way: every fact shows where it was read). With, the kind and what it
+     is for are the old readings (caDraftWith, caDraftKindOf, caDraftForOf); the rest
+     the free reader's (draftWordsRead). Jambo's fill stays one press, its cost on it. */
+  const naQuoteOf=v=>{ const t=String(v||'').trim(); if(!t||!asked) return ''; const at=asked.toLowerCase().indexOf(t.toLowerCase()); return at<0?'':asked.slice(at, at+t.length); };
+  const naReadRows=()=>{ const w=o.words||{}, L=[];
     const who=String(w.who||'').trim(), what=String(w.what||'').trim(), purpose=String(w.purpose||'').trim();
-    const cell=(k,v,cls)=>`<div class="na-w-c${cls?' '+cls:''}"><span>${k}</span><b>${v}</b></div>`;
-    return `<section class="na-field na-words" id="na-words">
-      <div class="na-w-h"><b>${esc(i18t('na_words_title'))}</b><q>${esc(asked)}</q><span class="na-hint">· ${esc(i18t('na_words_noai'))}</span><span class="na-grow"></span>
-        <button type="button" class="ui-btn ui-btn-sm" id="na-ask-again">${esc(i18t('ca_dr_change'))}</button></div>
-      <div class="na-w-read">${cell(esc(i18t('na_words_what')), what?esc(what):`<i>${esc(i18t('na_words_none'))}</i>`)}${
-        cell(esc(i18t('na_words_with'))+(who&&!w.known?` · ${esc(i18t('na_words_new_party'))}`:''), who?esc(who):`<i>${esc(i18t('na_words_none'))}</i>`, (!who||!w.known)?'is-owed':'')}${
-        /* WHAT IT IS FOR (the gaps, round 4): read from the words without AI as "with" is
-           ("… for a pilot", caDraftForOf), else the paper's own question mirrored as it is
-           filled; where neither says, said so */
-        cell(esc(i18t('na_words_for')), `<i id="na-w-for"${purpose?' class="is-said"':''}>${esc(purpose?naCap(purpose):i18t('na_words_unread'))}</i>`, 'is-for')}
-        <div class="na-w-ai"><button type="button" id="dr-read" class="ui-btn ui-btn-sm"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t('na_words_fill'))} <em id="na-w-cost">· ${esc(naFillCost())}</em></button></div></div>
-      <textarea id="dr-say" class="na-say" hidden>${esc(asked)}</textarea></section>`; };
+    if(who) L.push({ k:'with', t:i18t('na_rd_k_with'), say:who, quote:naQuoteOf(who), owed:!w.known });
+    /* the kind as asked, without its article ("A two-year supply agreement" → "Two-year supply agreement") */
+    if(what){ const bare=what.replace(/^(?:an?|the|en|ett)\s+/i,''); L.push({ k:'kind', t:i18t('na_rd_k_kind'), say:naCap(bare), quote:naQuoteOf(bare)||naQuoteOf(bare.split(/\s+/).slice(-2).join(' ')) }); }
+    facts.forEach(f=>L.push({ k:f.k, t:i18t('na_rd_k_'+f.k), say:f.say, quote:f.quote }));
+    if(purpose) L.push({ k:'for', t:i18t('na_rd_k_for'), say:naCap(purpose), quote:naQuoteOf(purpose) });
+    return L; };
+  const naQuoteHtml=q=>q?`<span class="na-q1">“<mark>${esc(q)}</mark>”</span>`:`<span class="na-src-m">${esc(i18t('na_rd_from_words'))}</span>`;
+  const naReadHtml=()=>{ const L=naReadRows(); if(!L.length) return '';
+    return `<section class="na-field na-read" id="na-read"><div class="na-read-h"><b>${esc(i18t('na_rd_head'))}</b></div>
+      <div class="na-kt" role="table"><div class="na-kt-h" role="row"><span role="columnheader">${esc(i18t('na_kt_term'))}</span><span role="columnheader">${esc(i18t('na_kt_says'))}</span><span role="columnheader">${esc(i18t('na_kt_where_words'))}</span></div>
+      ${L.map(x=>`<div class="na-kt-r" role="row" data-na-rd="${esc(x.k)}"><span>${esc(x.t)}</span><span>${x.owed?`${esc(x.say)} <small class="na-new">${esc(i18t('na_words_new_party'))}</small>`:esc(x.say)}</span><span>${naQuoteHtml(x.quote)}</span></div>`).join('')}</div></section>`; };
+  /* THEIR PAPER: the drop zone, read by the drop's own reader (pdDropTake → uploadFromDrop) at Create */
+  const naTheirsHtml=()=>`<section class="na-field na-theirs" id="na-theirs" hidden>
+      <div class="na-drop" id="na-drop" data-na-drop><span class="na-drop-ic" aria-hidden="true">${icon('import','w-5 h-5')}</span>
+        <b>${esc(i18t('na_theirs_drop'))} <button type="button" class="ui-link" id="na-theirs-pick">${esc(i18t('na_theirs_choose'))}</button></b>
+        <span class="na-hint">${esc(i18t('na_theirs_sub'))}</span><span class="na-theirs-file" id="na-theirs-file" hidden></span></div>
+      <input type="file" id="na-theirs-input" hidden tabindex="-1" aria-hidden="true" accept="${esc((typeof PD_DROP_ACCEPT==='string'&&PD_DROP_ACCEPT)||'.docx,.pdf,.doc,.txt')}"></section>`;
   /* ---- THE SEARCH LIST (the owner picked it by name, 12 Oct 2026, from One
      field · Search list · Shelf first · The SAP way) ----
      The rail has its OWN search, which reads template NAMES only — the
@@ -966,7 +1012,7 @@ function openNewAgreement(o){
   };
   /* THE QUESTIONS CARD — one string, placed once, beside the rail. */
   const naCard=`<div class="na-card" id="na-card">
-        <div class="na-card-h">${one?'<span class="na-n">2</span>':''}<h3 id="na-card-name">${one?esc(i18t('na_q_head')):''}</h3><span class="na-card-sub" id="na-card-sub"></span></div>
+        <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span>${one?`<button type="button" class="ui-link" id="na-change-paper">${esc(i18t('na_change_paper'))}</button><span class="na-grow"></span><span class="na-card-count" id="na-card-count"></span>`:''}</div>
         <div class="na-card-b"><div id="na-form"><div class="na-empty"><b>${esc(i18t('na_pick_hint'))}</b>${esc(i18t('na_pick_hint_sub'))}</div></div>
           ${one?'':`<div class="na-note">${i18t('na_note')}</div>`}
           ${/* ---- WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ----
@@ -1001,7 +1047,7 @@ function openNewAgreement(o){
              rail's own "Find drops under the box" rules stop applying by
              construction, because they are scoped to .na-rail. Every handler
              finds these by id, so nothing was rewired. */}
-      ${one?naWordsHtml():`<div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
+      ${one?naAskHtml():`<div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
         <div class="na-row">${''/* A TEXTAREA, BECAUSE THE ASK IS A SENTENCE (Young ruled 21 Sep 2026:
            "Describe what you need area should be able to wrap text"). A
            single-line input scrolls sideways and shows a reader the last
@@ -1018,7 +1064,7 @@ function openNewAgreement(o){
                pop-up. MEASURED at the parent: the frame was already at its
                own ceiling (88vh) and opening the people panel pushed the body
                into scrolling at every window height tried. */}
-        ${one?`<div class="na-step"><span class="na-n">1</span><b>${esc(i18t('na_start'))}</b><span class="na-hint">${esc((dqPair()&&naNoneCalled())?i18t('na_dq_none_called',{ w:naNoneCalled() }):i18t(closestRows().length===3?'na_start_sub_3':closestRows().length===2?'na_start_sub_2':'na_start_sub'))}</span>
+        ${one?`<div class="na-step"><b>${esc(i18t(naMost?'na_most_h':'na_close_h'))}</b>${(dqPair()&&naNoneCalled())?`<span class="na-hint">${esc(i18t('na_dq_none_called',{ w:naNoneCalled() }))}</span>`:''}
           <span class="na-more na-one-more"><button type="button" class="ui-link" id="na-all" aria-expanded="false">${esc(i18t('na_all_paper',{n:rows().length}))}</button><span>· ${esc(i18t('na_none_fits'))}</span>${typeof openIntakeForm==='function'?`<button type="button" class="ui-link" id="na-legal">${esc(i18t(naNoTeam()?'na_ask_admin_choose':'na_ask_legal'))}</button>`:''}</span></div>
         ${dqHtml()}<div class="na-closest" id="na-closest" role="radiogroup" aria-label="${esc(i18t('na_start'))}">${closestHtml()}</div>
         <div id="na-search" hidden>`:''}
@@ -1030,10 +1076,11 @@ function openNewAgreement(o){
                this screen now (openNewDoors), and a second way to one dialog is
                two doors. na_upload / na_received are inert in both books. */}
       </div>
+      ${one?naReadHtml()+naTheirsHtml():''}
       ${naCard}
-      ${one?`<section class="na-field na-file" id="na-file"><div class="na-step"><span class="na-n">3</span><b>${esc(i18t('na_file'))}</b><span class="na-hint">${esc(i18t('na_file_sub'))}</span></div>
-        <div class="na-file-b"><div class="na-seg" id="na-file-seg" role="group" aria-label="${esc(i18t('na_file'))}"></div><span class="na-need" id="na-file-need">${esc(i18t('na_file_need'))}</span>
-        <span class="na-hint na-file-cost" id="na-file-cost">${esc(ready?naReadCost():i18t('na_file_read_noai'))}</span></div></section>`:''}
+      ${one?`<section class="na-field na-file" id="na-file">
+        <div class="na-file-b"><span class="na-file-l">${esc(i18t('na_filed_in'))}</span><div class="na-seg" id="na-file-seg" role="group" aria-label="${esc(i18t('na_filed_in'))}"></div><span class="na-need" id="na-file-need">${esc(i18t('na_file_need'))}</span></div>
+        <p class="na-hint na-file-cost" id="na-file-cost">${esc(ready?naReadCost():i18t('na_file_read_noai'))}</p></section>`:''}
     </div>
     ${''/* ONE FOOTER ORDER (the Compact ladder, 26 Sep 2026 — rule 8 of the
            button review): the buttons sit together at the right, Cancel
@@ -1137,10 +1184,16 @@ function openNewAgreement(o){
     if(sb){ sb.setAttribute('data-need','1'); sb.classList.toggle('need-empty', noStream);
       const lab=sb.closest('label'), cap=lab&&lab.querySelector('span');
       if(cap&&!cap.querySelector('[data-na-req]')) cap.insertAdjacentHTML('beforeend',' <span data-na-req style="color:var(--st-ruby-fg)">*</span>'); }
-    const on=!!api&&!noStream;
-    const why=!api?i18t('na_pick_first'):i18t('na_stream_first');
+    let on=!!api&&!noStream;
+    let why=!api?i18t('na_pick_first'):i18t('na_stream_first');
+    /* THEIR PAPER: Create needs their file and a stream (the drop's own two) */
+    if(one&&paper==='theirs'){ on=!!theirFile&&!!streamPicked; why=!theirFile?i18t('na_theirs_need'):i18t('na_stream_first'); }
+    if(one){ root.setAttribute('data-paper',paper); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===paper)));
+      const th=document.getElementById('na-theirs'); if(th) th.hidden=paper!=='theirs'; }
     ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
       b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):why; });
+    /* their paper is created as theirs, not drafted (as drawn: "Create") — never while the press turns */
+    if(one){ const cb=document.getElementById('na-create'); if(cb&&!cb.querySelector('.ob-spin')) cb.textContent=i18t(paper==='theirs'?'act_create':'tl_create_draft'); }
     /* as drawn, the reason is said beside Create, not only on its hover */
     const wy=document.getElementById('na-why'); if(wy) wy.textContent=on?'':String(why).replace(/\.\s*$/,'');
     naForPaint(); };
@@ -1200,7 +1253,7 @@ function openNewAgreement(o){
      stream wears its lock. The box itself is not drawn a second time. */
   const naFilePaint=()=>{
     const seg=document.getElementById('na-file-seg'); if(!seg) return;
-    const sb=api?naStreamBox(document.getElementById('na-form')):null;
+    const sb=(api&&paper!=='theirs')?naStreamBox(document.getElementById('na-form')):null;
     /* the field's own inline display would win over a hidden attribute */
     if(sb){ const f=sb.closest('label')||sb.parentElement; if(f){ f.hidden=true; f.style.display='none'; } }
     const opts=sb?[...sb.options].filter(x=>x.value&&x.value!=='__new__'&&!x.disabled).map(x=>({ id:x.value, name:x.textContent.trim() }))
@@ -1236,7 +1289,7 @@ function openNewAgreement(o){
     naCarryWrite(host, kept);
     naStreamAsk(host);
     const nm=document.getElementById('na-card-name'), sb=document.getElementById('na-card-sub');
-    if(nm) nm.textContent=one?i18t('na_asks',{name}):name;
+    if(nm) nm.textContent=name;
     /* A COMPANY STANDARD'S BOXES HERE ARE THE ESSENTIALS, and its own
        questions follow on the Document tab — so the card says both rather
        than calling the essentials "questions" (9 Oct 2026). */
@@ -1245,11 +1298,14 @@ function openNewAgreement(o){
     const needed=one?naNeeded(host):[];
     /* the sheet asks the stream at step 3, so step 2 neither draws nor counts it */
     const n=(one&&naStreamBox(host))?Math.max(0,nAll-1):nAll;
-    if(one) naQuestionsLay(host);
-    if(sb) sb.textContent=`${ver&&!one?ver+' · ':''}${kind==='lib'
+    if(one){ naRowsLay(host); if(root.classList) root.classList.add('is-picked'); }
+    if(one&&sb){ sb.textContent=[i18t(kind==='lib'?'na_shelf_lib':kind==='mine'?'na_shelf_mine':'na_shelf_tid'), ver].filter(Boolean).join(' · ');
+      naCountPaint(host); }
+    else if(sb) sb.textContent=`${ver&&!one?ver+' · ':''}${kind==='lib'
       ? i18tn('na_details', n, {n})+(follow?' · '+i18tn('na_tpl_q_follow', follow, {n:follow}):'')
       : i18tn('na_questions', n, {n})}${needed.length?' · '+i18tn('na_only_needed', needed.length, { names:needed.join(i18t('sa_and')) }):''}`;
-    if(one) naFromWordsMark(host);
+    /* the Legora way says where a value came from in its own column, so the label carries no mark */
+    if(!one) naFromWordsMark(host);
     light();
   };
   /* STEP 2 AS DRAWN (the gaps, round 4, 18 Oct 2026): three columns, who we are ·
@@ -1264,6 +1320,65 @@ function openNewAgreement(o){
     const party=lab('party'), cp=lab('counterparty'), mail=lab('cpemail');
     [party, cp, mail].filter(Boolean).reverse().forEach(l=>{ if(l.parentElement===grid) grid.insertBefore(l, grid.firstChild); });
     grid.classList.add('na-three'); };
+  /* ---- THE PAPER'S QUESTIONS AS ROWS (the Legora way, 24 Oct 2026) ----
+     Term · What it says · Where it came from: the form's own boxes, MOVED into
+     rows and never redrawn (each keeps its id, so the forms' acts read them as
+     before), the term its label, the third column what filled the box — the
+     words of your sentence quoted, "You typed it", the paper's own default, or
+     amber "Not said yet" where a needed box is empty. */
+  const NA_FACT_OF={ counterparty:'with', payDays:'pay', paymentDays:'pay', creditDays:'pay', noticeDays:'notice', value:'value', effDate:'start', expiry:'term', purpose:'for' };
+  const naFactFor=k=>{ const fk=NA_FACT_OF[k]; if(!fk) return null;
+    if(fk==='with'){ const who=String((o.words&&o.words.who)||'').trim(); return who?{ val:who, quote:naQuoteOf(who) }:null; }
+    if(fk==='for'){ const p=String((o.words&&o.words.purpose)||'').trim(); return p?{ val:p, quote:naQuoteOf(p) }:null; }
+    if(fk==='term'&&naExpiryAuto&&naTerm) return { val:naExpiryAuto, quote:naTerm.quote };
+    const f=facts.find(x=>x.k===fk); return (f&&f.put&&f.put[k]!=null)?{ val:String(f.put[k]), quote:f.quote }:null; };
+  /* HOW LONG IT RUNS, READ FROM THE WORDS, ENDS IT: the end date is the start the form holds plus the
+     term, less a day, written only while the end box is empty or still holds that same reading */
+  const naTerm=facts.find(f=>f.k==='term'&&f.months)||null;
+  let naExpiryAuto='';
+  const naTermFill=host=>{ if(!naTerm||!host) return;
+    const box=k=>[...host.querySelectorAll(NA_CARRY_SEL)].find(x=>naCarryKey(x.id)===k);
+    const st=box('effDate'), ex=box('expiry'); if(!st||!ex||!/^\d{4}-\d{2}-\d{2}$/.test(String(st.value||''))) return;
+    if(ex.value&&ex.value!==naExpiryAuto) return;
+    const d=new Date(st.value+'T00:00:00Z'); if(isNaN(d)) return;
+    d.setUTCMonth(d.getUTCMonth()+naTerm.months); d.setUTCDate(d.getUTCDate()-1);
+    naExpiryAuto=d.toISOString().slice(0,10); ex.value=naExpiryAuto; };
+  const naRowsLay=host=>{
+    const grid=host.querySelector('.field-grid'); if(!grid) return;
+    naQuestionsLay(host);
+    grid.classList.remove('na-three'); grid.classList.add('na-kt-grid');
+    grid.style.removeProperty('display'); grid.style.removeProperty('grid-template-columns'); grid.style.removeProperty('gap');
+    if(!grid.querySelector(':scope > .na-kt-h')) grid.insertAdjacentHTML('afterbegin', `<div class="na-kt-h" role="row"><span>${esc(i18t('na_kt_term'))}</span><span>${esc(i18t('na_kt_says'))}</span><span>${esc(i18t('na_kt_from'))}</span></div>`);
+    [...grid.children].forEach(el=>{ if(el.classList.contains('na-kt-h')) return;
+      el.classList.add('na-kt-r');
+      const box=el.querySelector('input[id],select[id],textarea[id]');
+      if(box&&!box.hasAttribute('data-na-drawn')) box.setAttribute('data-na-drawn', String(box.value||''));
+      if(el.style.display==='block') el.style.removeProperty('display');
+      const term=el.querySelector(':scope > span:first-child'); if(term) term.style.marginBottom='0';
+      if(!el.querySelector(':scope > .na-src')) el.insertAdjacentHTML('beforeend','<span class="na-src" data-na-src></span>'); });
+    naTermFill(host); naSrcPaint(host); };
+  const naSrcPaint=host=>{
+    (host||document).querySelectorAll('.na-kt-r').forEach(el=>{
+      const src=el.querySelector(':scope > .na-src'); if(!src) return;
+      const box=el.querySelector('input[id],select[id],textarea[id]');
+      const pw=el.classList.contains('pw-field');
+      const k=box?naCarryKey(box.id):'', v=box?String(box.value||'').trim():'', drawn=box?String(box.getAttribute('data-na-drawn')||'').trim():'';
+      /* needed to Create (the label's star) is owed and counted; owed later (data-need, the details) is said, not counted */
+      const need=!!el.querySelector('span[style*="ruby"]'), later=!!(box&&box.hasAttribute('data-need'));
+      const f=naFactFor(k);
+      let html='', owed=false;
+      if(f&&v&&v===String(f.val).trim()) html=naQuoteHtml(f.quote);
+      else if(v&&v!==drawn) html=`<span class="na-src-m">${esc(i18t(box&&box.tagName==='SELECT'?'na_src_picked':'na_src_typed'))}</span>`;
+      else if(v||pw) html=`<span class="na-src-m">${esc(i18t('na_src_paper'))}</span>`;
+      else if(need||later){ html=`<span class="na-src-need">${esc(i18t('na_src_not_said'))}</span>`; owed=true; }
+      else html=`<span class="na-src-m">${esc(i18t('na_src_later'))}</span>`;
+      if(src.innerHTML!==html) src.innerHTML=html;
+      el.classList.toggle('is-owed', owed); }); };
+  /* "7 details · all answered", or how many still to answer (the needed boxes still empty) */
+  const naCountPaint=host=>{ const el=document.getElementById('na-card-count'); if(!el||!host) return;
+    const rowsN=[...host.querySelectorAll('.na-kt-r')].filter(r=>!r.hidden&&r.style.display!=='none');
+    const owed=rowsN.filter(r=>r.classList.contains('is-owed')).length;
+    el.textContent=i18tn('na_details', rowsN.length, { n:rowsN.length })+' · '+(owed?i18tn('na_to_answer', owed, { n:owed }):i18t('na_all_answered')); };
   /* the boxes the paper's form marks required (the star its label carries, the one the dress keeps) */
   const naNeeded=host=>[...host.querySelectorAll('label > span:first-child')].filter(sp=>sp.querySelector('span[style*="ruby"]'))
     .map(sp=>{ const t=sp.cloneNode(true); t.querySelectorAll('span').forEach(x=>x.remove()); return t.textContent.replace(/\s*\*\s*$/,'').trim(); }).filter(Boolean);
@@ -1364,11 +1479,20 @@ function openNewAgreement(o){
     _naClaimed=true; _naBusy=true;
     acts.forEach(b=>{ b.disabled=true; });
     if(btn&&typeof busySet==='function') busySet(btn,i18t('na_creating'));
+    /* made from the one sheet, it lands on its Dossier (pdLandOnDossier) */
+    if(one&&typeof pdLandOnDossier==='function') pdLandOnDossier(true);
     try{ await fn(); }catch(_){ /* the act says its own refusal */ }
     _naBusy=false;
-    if(document.getElementById('na-root')){ _naClaimed=false;
+    if(document.getElementById('na-root')){ _naClaimed=false; if(one&&typeof pdLandOnDossier==='function') pdLandOnDossier(false);
       if(btn) btn.innerHTML=was; acts.forEach(b=>{ b.disabled=false; }); light(); } };
-  document.getElementById('na-create')?.addEventListener('click', goCreate(()=>api.create()));
+  const createOurs=goCreate(()=>api.create());
+  document.getElementById('na-create')?.addEventListener('click', ev=>{
+    if(!(one&&paper==='theirs')) return createOurs(ev);
+    if(!theirFile||!streamPicked) return;
+    /* your words, if any, still name the other company (as drawn, 24 Oct 2026) */
+    const f=theirFile, who=String((o.words&&o.words.who)||'').trim(); _naClaimed=true; closeModal();
+    if(typeof pdDropTake==='function') pdDropTake(f, { folder:streamPicked, counterparty:who });
+    else if(typeof uploadFromDrop==='function') uploadFromDrop(f, { folder:streamPicked, counterparty:who }); });
   document.getElementById('na-skip')?.addEventListener('click', goCreate(()=>api.skip()));
   root.querySelector('#wz-pick')?.addEventListener('click',e=>{
     const tb=e.target.closest('[data-na-tab]'); if(!tb||!root.contains(tb)) return;
@@ -1402,7 +1526,35 @@ function openNewAgreement(o){
       t.setAttribute('tabindex','-1'); try{ t.focus({ preventScroll:true }); }catch(_){ } },0);
     /* what it is for, and the counterparty's mark, follow the reader's typing */
     document.getElementById('na-form')?.addEventListener('input',e=>{ const k=naCarryKey(e.target&&e.target.id);
-      if(k==='purpose') naForPaint(); if(k==='counterparty') naFromWordsMark(document.getElementById('na-form')); });
+      if(k==='purpose') naForPaint(); if(k==='counterparty') naFromWordsMark(document.getElementById('na-form'));
+      const h=document.getElementById('na-form'); naSrcPaint(h); naCountPaint(h); });
+    document.getElementById('na-form')?.addEventListener('change',()=>{ const h=document.getElementById('na-form'); naTermFill(h); naSrcPaint(h); naCountPaint(h); });
+    /* CHANGE PAPER: the list again, the answers kept for the next paper (naCarryRead at the next pick) */
+    document.getElementById('na-change-paper')?.addEventListener('click',()=>{ root.classList.remove('is-picked');
+      const l=document.getElementById('na-closest'); if(l) try{ l.scrollIntoView({ block:'nearest' }); }catch(_){} });
+    /* OUR PAPER · THEIR PAPER: the tab is whose paper it is */
+    root.querySelector('.na-ptabs')?.addEventListener('click',e=>{ const b=e.target.closest('[data-na-paper]'); if(!b) return;
+      paper=b.getAttribute('data-na-paper'); light(); naFilePaint();
+      if(paper==='theirs'){ const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
+    /* THEIR FILE: chosen or dropped, one at a time, read only at Create */
+    const tIn=document.getElementById('na-theirs-input');
+    const tSet=f=>{ theirFile=f||null; const el=document.getElementById('na-theirs-file');
+      if(el){ el.hidden=!theirFile; el.textContent=theirFile?i18t('na_theirs_file',{ name:theirFile.name }):''; } light(); };
+    document.getElementById('na-theirs-pick')?.addEventListener('click',()=>{ if(tIn) tIn.click(); });
+    tIn?.addEventListener('change',()=>{ const f=tIn.files&&tIn.files[0]; tIn.value=''; if(f) tSet(f); });
+    const dz=document.getElementById('na-drop');
+    if(dz){ dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('is-over'); });
+      dz.addEventListener('dragleave',()=>dz.classList.remove('is-over'));
+      dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('is-over'); const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) tSet(f); }); }
+    root._naTheirSet=tSet;
+    /* READ MY WORDS AGAIN (the arrow, or Enter): the sentence is read afresh, still without AI */
+    const reask=async()=>{ const sayEl=document.getElementById('dr-say'); const t=String((sayEl&&sayEl.value)||'').trim();
+      if(!t){ if(sayEl) try{ sayEl.focus(); }catch(_){} return; }
+      if(!(await naAskLeave(true))) return;
+      dropHeld(); _naClaimed=true; closeModal();
+      setTimeout(()=>{ if(typeof caDraftAgain==='function') caDraftAgain(t, { paper }); else openNewAgreement({ asked:t, streamAsk:true, paper }); },0); };
+    document.getElementById('na-reask')?.addEventListener('click', reask);
+    root._naReask=reask;
     /* the whole search list, one press away (pressed again it folds) */
     document.getElementById('na-all')?.addEventListener('click',e=>{ const box=document.getElementById('na-search'); if(!box) return;
       box.hidden=!box.hidden; e.currentTarget.setAttribute('aria-expanded',String(!box.hidden));
@@ -1432,7 +1584,9 @@ function openNewAgreement(o){
   say?.addEventListener('input',()=>naSayFit(say));
   /* ENTER STILL PRESSES FIND, and Shift+Enter is a newline — the box wraps
      now, so a reader who wants a second line has a way to ask for one. */
-  say?.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(read&&!read.disabled) read.click(); } });
+  say?.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault();
+    if(one&&typeof root._naReask==='function'){ root._naReask(); return; }
+    if(read&&!read.disabled) read.click(); } });
   if(read && ready) read.addEventListener('click',()=>{ if(typeof draftRead==='function') draftRead(); });
   paintLists();
   /* NOTHING IS CHOSEN FOR THE READER (the Search list, 12 Oct 2026; this
@@ -1440,6 +1594,8 @@ function openNewAgreement(o){
      draft with it, unless the caller named a template. */
   const want=o.pick&&rows().find(r=>r.kind===o.pick.kind&&String(r.id)===String(o.pick.id));
   if(want) pick(want.kind, want.id, o.prefill); else light();
+  if(one&&o.file&&typeof root._naTheirSet==='function') root._naTheirSet(o.file);
+  if(one) naFilePaint();
   naSayFit(say);
   if(o.say && say) say.focus();
   /* The company standards may still be in flight (the same race the draft

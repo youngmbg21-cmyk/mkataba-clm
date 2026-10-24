@@ -142,7 +142,13 @@ const ok = (name, good, detail) => {
     });
     ok('2 the describe box wraps its text', !!say && say.tag === 'TEXTAREA' && /wrap/.test(say.wrap),
       JSON.stringify(say));
-    ok('2b and it is taller than one line', !!say && say.h > 36, say && say.h + 'px');
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the ask box is one line while empty, like
+       Jambo's own box, and grows once its words wrap — so the claim types a long sentence first */
+    const grown = await page.evaluate(() => { const el = document.getElementById('dr-say'); if (!el) return null;
+      el.value = 'a two-year packaging supply agreement with Kenafric Industries where we are the supplier, payment forty five days from invoice, ninety days notice to terminate, prices reviewed every six months';
+      el.dispatchEvent(new Event('input', { bubbles: true })); return Math.round(el.getBoundingClientRect().height); });
+    ok('2b and it is taller than one line once the words wrap', !!grown && grown > 36, grown + 'px');
+    await page.evaluate(() => { const el = document.getElementById('dr-say'); if (el){ el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } });
 
     /* THE CARDS: staged, because a seeded workspace publishes no company
        standard and the report is about those cards. A row is fed straight to

@@ -137,18 +137,15 @@ describe('f679 (2) the wall\'s two ways in are Jambo\'s words, in both books', (
     assert.equal(BOOKS.en.ca_wall_upload, 'upload a document');
     assert.equal(BOOKS.en.ca_wall_draft, 'draft a new agreement');
   });
-  test('2c "draft" answers with the Draft card and moves nothing; Open the form is the one form', () => {
+  /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the word opens the one sheet straight away —
+     no card in the chat for an editor; the sheet's own tabs are our paper or theirs */
+  test('2c "draft" opens the one form straight away, never a card or the two-door menu', () => {
     const { ctx, calls } = caStage();
     const a = ctx.caActOf('draft');
     assert.equal(a.place, 'draft');
     assert.equal(ctx.caGo(a), true);
-    assert.deepEqual(J(calls), [], 'no menu, no form, no move on the word');
-    const html = ctx.caGoCardHtml(a, 0);
-    assert.match(html, /Draft a new agreement/);
-    assert.match(html, /data-ca-act="draftform"/);
-    assert.match(html, /draft an NDA with Volvo/);
-    ctx.caGoPress(a, 'draftform');
     assert.deepEqual(J(calls), [['form', { streamAsk: true }]], 'openNewAgreement with options — never the two-door menu; the stream asked');
+    assert.doesNotMatch(String(ctx.caGoCardHtml(a, 0) || ''), /data-ca-act="draftform"/, 'no card for an editor');
     assert.ok(!calls.some(c => c[0] === 'two-doors'));
   });
   test('2d a viewer sees Open the form grey, with the reason', () => {
@@ -157,10 +154,12 @@ describe('f679 (2) the wall\'s two ways in are Jambo\'s words, in both books', (
     assert.match(html, /disabled aria-disabled="true" title="[^"]+"/);
     assert.ok(!/data-ca-act="draftform"/.test(html));
   });
-  test('2e the top bar and ⌘K answer "draft" with the card too (caPlaceRun)', () => {
-    /* RE-POINTED 18 Oct 2026: the card words are one list (CA_CARD_WORDS), handed to Home's Jambo */
-    assert.match(fnBody(CA, 'caPlaceRun'), /if \(CA_CARD_WORDS\.includes\(a\.place\)\)\{ caUseBump\(a\.place\); return caHandHome\(word, a\); \}/);
-    assert.match(CA, /const CA_CARD_WORDS = \['share', 'draft', 'help', 'next'\];/);
+  test('2e the top bar and ⌘K open the one form on "draft" too (caPlaceRun → caGo)', () => {
+    /* RE-POINTED 18 Oct 2026: the card words are one list (CA_CARD_WORDS), handed to Home's Jambo;
+       24 Oct 2026 (one door): "draft" is no card word — caPlaceRun moves through caGo to the one form */
+    /* RE-POINTED 24 Oct 2026: one reading of "answers with a card" (caIsCardWord: the list, and a viewer's "draft") */
+    assert.match(fnBody(CA, 'caPlaceRun'), /if \(caIsCardWord\(a\.place\)\)\{ caUseBump\(a\.place\); return caHandHome\(word, a\); \}/);
+    assert.match(CA, /const CA_CARD_WORDS = \['share', 'help', 'next'\];/);
     assert.match(strip(CA), /draft: \(\) => caDraftForm\(null\)/, 'a caller moving straight on gets the one form');
   });
 });
@@ -228,15 +227,17 @@ describe('f679 (3) a sentence answers with the New agreement card', () => {
     const a = { kind: 'draft', sentence: 'draft an NDA with Volvo', state: 'ready', options: ctx.caDraftRank('draft an NDA with Volvo', cands, null), prefill: { purpose: 'A promotion', ignored: 'x' }, ai: false };
     ctx.caDraftForm(a);
     const best = { kind: 'tid', id: 'NDA' };
-    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { purpose: 'A promotion', counterparty: 'Volvo' }, asked: 'draft an NDA with Volvo', streamAsk: true,
-      closest: J(a.options).map(o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id })), best, words: { what: J(calls)[0][1].words.what, who: 'Volvo', known: false, purpose: '' } }]]);
+    /* RE-POINTED 24 Oct 2026 (owner: "Pick it when clear"): the NDA is clearly the closest, so it is picked;
+       the free reader's facts ride with the words (none in this sentence), the tab unnamed */
+    assert.deepEqual(J(calls), [['form', { pick: best, prefill: { purpose: 'A promotion', counterparty: 'Volvo' }, asked: 'draft an NDA with Volvo', streamAsk: true, paper: '',
+      closest: J(a.options).map(o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id })), best, words: { what: J(calls)[0][1].words.what, who: 'Volvo', known: false, purpose: '', facts: [] } }]]);
     /* RE-POINTED (the gaps, round 4, 18 Oct 2026): What is the KIND the words ask for
        ("A non-disclosure agreement"), not the closest paper's title, and What it is for
        is read from the words where they say it ("… for a pilot"; here they do not) */
     assert.ok(J(calls)[0][1].words.what, 'What is the kind the words ask for');
     calls.length = 0;
     ctx.caDraftForm({ sentence: 'draft a lease with Mumias', options: [], prefill: {} });
-    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true, closest: [], best: null, words: { what: 'A lease', who: 'Mumias', known: false, purpose: '' } }]], 'no paper named: the counterparty waits for the pick');
+    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true, paper: '', closest: [], best: null, words: { what: 'A lease', who: 'Mumias', known: false, purpose: '', facts: [] } }]], 'no paper named: the counterparty waits for the pick');
   });
   test('3e the one form greys Create until a stream is in its box, and says where the answers came from', () => {
     const light = WZ.slice(WZ.indexOf('const light=()=>'), WZ.indexOf('const dress=host=>'));
@@ -264,7 +265,7 @@ describe('f679 (4) the drop area: the upload\'s own path, no pop-up', () => {
   test('4b the drop door reads with the dialog\'s reader and files with its creator', () => {
     const drop = fnBody(CONTRACT, 'uploadFromDrop');
     assert.match(drop, /uploadReadFile\(file,\{ step:h\.step, meta:false \}\)/, 'one reader; no unconfirmed facts');
-    assert.match(drop, /submitUpload\(\{ drop:true, folder:uploadDropFolder\(h\.folder\), route:uploadRouteDefault\(\), read:true \}\)/, 'the stream the drop area asked');
+    assert.match(drop, /submitUpload\(\{ drop:true, folder:uploadDropFolder\(h\.folder\), route:uploadRouteDefault\(\), read:true, counterparty:h\.counterparty\|\|'' \}\)/, 'the stream the drop area asked'); /* re-pointed 24 Oct 2026: a name from the one sheet's words rides along */
     assert.match(fnBody(CONTRACT, 'uploadDropFolder'), /if\(want && vis\.some\(f=>f&&f\.id===want\)\) return want;/, 'held to the streams this person may see');
     assert.match(drop, /outsideMatchUpload/, 'a signed copy of a file out for signature is still asked');
     assert.match(drop, /ct_viewers_no_add/);
@@ -293,7 +294,8 @@ describe('f679 (4) the drop area: the upload\'s own path, no pop-up', () => {
     assert.match(ctx.pdDropHtml(), /data-pd-drop-stream/, 'drawn in the drop area');
     ctx.visibleFolders = () => [{ id: 'proc', name: 'Procurement' }];
     assert.equal(ctx.pdDropStreamHtml(), '');
-    assert.match(fnBody(PD, 'pdDropTake'), /uploadFromDrop\(file, \{ folder: pdDropStreamNow\(\)/);
+    /* RE-POINTED 24 Oct 2026: the one sheet's Their paper names its own stream; the drop area its own */
+    assert.match(fnBody(PD, 'pdDropTake'), /uploadFromDrop\(file, \{ folder: \(o && o\.folder\) \|\| pdDropStreamNow\(\)/);
     assert.match(strip(PD), /closest\('\[data-pd-drop-stream\]'\)[^\n]*_pdDropStream = s\.value/, 'the choice is kept for the sitting');
   });
   test('4d3 a read with no drop area on screen turns in a toast; two files dropped say one at a time', () => {

@@ -296,13 +296,15 @@ describe('f672 (4) the chips lead with the checklist', () => {
     assert.match(html, /ca-why">This agreement has expired/);
     assert.doesNotMatch(html, /data-ca-act="door"/);
   });
-  test('4j "draft" asks our paper or theirs: the form, or the file picker', () => {
-    const { ctx, calls } = stage();
+  /* RE-POINTED 24 Oct 2026 (owner: "When i want a contract i get 2 different doors"; picked the Legora
+     way): "draft" opens the one sheet beside Jambo, whose own tabs are our paper or theirs — no card in
+     the chat for an editor (a read-only account keeps its card with the refusal and Ask an admin) */
+  test('4j "draft" opens the one sheet: no card in the chat, and it is no card word', () => {
+    const { ctx } = stage();
     const a = ctx.caActOf('draft');
-    const html = ctx.caGoCardHtml(a, 0);
-    assert.match(html, /data-ca-act="draftform"/); assert.match(html, /data-ca-act="draftupload"/);
-    ctx.caGoPress(a, 'draftupload');
-    assert.deepEqual(calls.at(-1), ['upload']);
+    const html = String(ctx.caGoCardHtml(a, 0) || '');
+    assert.doesNotMatch(html, /data-ca-act="draftform"|data-ca-act="draftupload"/);
+    assert.ok(!ctx.CA_CARD_WORDS.includes('draft'));
   });
   test('4d a chip is the word in the reader\'s language, and asks it', () => {
     const { ctx } = stage({ lang: 'sv', need: ['details'] });

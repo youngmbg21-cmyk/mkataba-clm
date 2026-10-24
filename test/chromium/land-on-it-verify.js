@@ -8,6 +8,7 @@
      1  "jambo's work" lands on the Board's Jambo's work card, lit
      2  "draft a new agreement" lands on the ONE Draft card in Jambo's panel,
         lit, "Use our template" ready; asked again, still one card, lit again
+        (RE-POINTED 24 Oct 2026: the ONE New agreement sheet beside Jambo)
      3  "upload a document" lands on Jambo's drop area, lit, Choose files
         ready — and opens no file picker by itself (it presses nothing)
      4  a Needs you row ("Answer … redline") lands on the first row waiting
@@ -117,28 +118,37 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       await shot('1-work-1440x780');
     }
 
-    /* ===== 2 · DRAFT A NEW AGREEMENT ===== */
+    /* ===== 2 · DRAFT A NEW AGREEMENT =====
+       RE-POINTED 24 Oct 2026 (one door, the owner picked "The Legora way"):
+       there is no Draft card in the chat any more — the word opens the ONE
+       New agreement sheet beside Jambo; asked again, still one sheet. The
+       light-follows-a-repaint claims (5a, 5b) moved to the Jambo's work card
+       of section 1, the one landing left that a repaint redraws. */
     await toCounter();
     if (await chip('draft a new agreement')) {
-      const L = await until(() => { const c = document.querySelector('#ig-dock .ca-dr'); const card = c && c.closest('[data-ca-card]');
-        return card && card.classList.contains('is-landed') ? true : null; }, null, 8000);
-      const s = await page.evaluate(LIT);
-      const n1 = await page.evaluate(() => document.querySelectorAll('#ig-dock .ca-dr').length);
-      check('2a it lands on the Draft card in Jambo\'s panel, lit', !!L && n1 === 1, JSON.stringify({ s, n1 }));
-      check('2b in sight, no light drawn, "Use our template" ready', s.inView && /^none/.test(s.ring) && s.focus && /Use our template/.test(s.focusText), JSON.stringify(s));
+      const L = await until(() => { const r = document.getElementById('na-root'), d = document.getElementById('ig-dock');
+        return r && d && d.getClientRects().length ? true : null; }, null, 8000);
+      const s = await page.evaluate(() => { const r = document.getElementById('na-root'), b = r && r.getBoundingClientRect(), a = document.activeElement;
+        return { inView: !!(b && b.top >= 0 && b.top < innerHeight), sheets: document.querySelectorAll('#na-root').length, card: !!document.querySelector('#ig-dock .ca-dr [data-ca-act="draftform"]'),
+          ring: getComputedStyle(r).boxShadow || 'none', create: !!document.getElementById('na-create') }; });
+      check('2a it opens the ONE New agreement sheet beside Jambo, no card in his panel', !!L && s.sheets === 1 && !s.card, JSON.stringify(s));
+      check('2b in sight, Create on it', s.inView && s.create, JSON.stringify(s));
       await shot('2-draft-1440x780');
-      /* asked again from the panel itself: the same card, lit again, never a second */
-      await page.mouse.click(5, 400);
       await page.evaluate(() => intelAsk('draft a new agreement'));
-      const L2 = await until(() => { const c = document.querySelector('#ig-dock .ca-dr'); const card = c && c.closest('[data-ca-card]');
-        return card && card.classList.contains('is-landed') ? true : null; }, null, 6000);
-      const n2 = await page.evaluate(() => document.querySelectorAll('#ig-dock .ca-dr').length);
-      check('2c asked again, still ONE Draft card, and it is lit again', !!L2 && n2 === 1, 'cards ' + n2);
-      /* THE LIGHT FOLLOWS A REPAINT: the panel draws the card again */
+      await page.waitForTimeout(600);
+      const n2 = await page.evaluate(() => document.querySelectorAll('#na-root').length);
+      check('2c asked again, still ONE sheet', n2 === 1, 'sheets ' + n2);
+      await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); if (b) b.click(); });
+      await until(() => !document.getElementById('na-root'), null, 4000);
+    }
+    /* 5a, 5b on the Jambo's work card (moved 24 Oct 2026, see above) */
+    await toCounter();
+    if (await chip("jambo's work")) {
+      await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
       await page.waitForTimeout(2300);
-      await page.evaluate(() => renderIntelDock());
-      const held = await until(() => { const c = document.querySelector('#ig-dock .ca-dr'); const card = c && c.closest('[data-ca-card]');
-        return card && card.classList.contains('is-landed') ? { held: card.classList.contains('is-landed-held') } : null; }, null, 3000);
+      await page.evaluate(() => { if (typeof hbPaintBoard === 'function') hbPaintBoard({ force: true }); else if (typeof hbRender === 'function') hbRender(); });
+      const held = await until(() => { const c = document.getElementById('hm-agents');
+        return c && c.classList.contains('is-landed') ? { held: c.classList.contains('is-landed-held') } : null; }, null, 3000);
       check('5a the light follows a repaint, without pulsing again', !!held && held.held, JSON.stringify(held));
       await page.mouse.click(5, 400);
       const out = await until(() => !document.querySelector('.is-landed'), null, 3000);

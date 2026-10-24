@@ -4923,7 +4923,7 @@ async function aiSubmit(asked){
       /* a booking or a question about their own calendar went to the Calendar's Jambo (18 Oct 2026) */
       const say=took==='cal'?i18t('ig_cal_handoff')
         :took==='said'?said
-        :(go&&go.kind==='go'&&!go.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(go.place)&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
+        :(go&&go.kind==='go'&&!go.narrowOff&&!(window.caIsCardWord&&caIsCardWord(go.place))&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
       aiPush('user',{text:esc(q), raw:q});
       /* a short list counted says which, as cards (caAnswerIds, stage 3b) */
       const ids=(go&&typeof window.caAnswerIds==='function')?(caAnswerIds(go).cardIds||[]):[];
