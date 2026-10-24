@@ -21522,3 +21522,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - "where is …" is not among `CA_WH_Q`'s question words (navmap's "where is X" reads a trip), so a "where" question beside the Board is explained only when it ends with "?".
 - On the Board, a "top N by …" sentence the Board's reader cannot read is drawn as a MAP lens behind the Board by the mapListy path ("Showing 0 of 4 · Top 10 by days to pay" in the test world, from "where is my biggest concern as far as payment terms?"); the owner's book reads it as the Board's own Top 10 card.
 - CLAUDE.md is about 88 KB after the one-Jambo line, over its ~80 KB rule; a trim needs the owner's yes.
+
+## Noticed, not fixed — 24 Oct 2026 (PR #456, the stand-in on Home)
+- Nine other AI routes (brief, OCR, breakdown, column, memo …) answer a provider failure with 502 and no `kind`, so the browser's stand-in there says "could not be reached" for a provider error. Only the graph route was given `kind: 'provider'` (the chat route already had it). Not this job's.

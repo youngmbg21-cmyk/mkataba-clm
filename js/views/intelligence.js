@@ -2651,6 +2651,8 @@ async function intelGraphAsk(q){
       res=await api('ai/graph','POST',payload);
       if(typeof window.aiGotoNote==='function') aiGotoNote(res);
     }catch(e){
+      /* a whole-book ask has nothing for the built-in interpreter to match: the stand-in answers it (igFailTurn) */
+      if(typeof window.aiWholeBookAsk==='function'&&aiWholeBookAsk(q)){ intel.history.push(igFailTurn(e, q)); return; }
       intel.history.push({role:'assistant', err:true,
         text:(/key|configure|401|model/i.test(e.message)?'Jambo engine needs an API key — using the built-in interpreter instead.':igEsc(typeof window.aiFailWhy==='function'?aiFailWhy(e, true):String(e.message))+' — using the built-in interpreter instead.')});
     }
@@ -3021,9 +3023,18 @@ async function intelChatAsk(q, opts){
   }
 }
 /* A FAILED TURN SAYS WHY AND OFFERS THE SAME WORDS AGAIN (stage 3: never a dead end) */
+/* ONE STAND-IN ON EVERY HOST (24 Oct 2026; the window's aiDegrade): a whole-book ask ("list all the contracts",
+   "how many do we have") is answered with HaTi's own live count and the door onto the Contracts page, the cause
+   named under it — never a keyword match dressed as an answer */
 function igFailTurn(e, q){
   const why=(typeof window.aiFailWhy==='function')?aiFailWhy(e, true):String((e&&e.message)||e);
-  return Object.assign({ role:'assistant', err:true, text:igEsc(why) }, q?{ choices:[{ label:i18t('ai_ask_again'), retry:String(q) }] }:{});
+  const again=q?{ choices:[{ label:i18t('ai_ask_again'), retry:String(q) }] }:{};
+  if(q&&typeof window.aiWholeBookAsk==='function'&&aiWholeBookAsk(q)&&typeof window.aiPortfolioFigures==='function'){
+    const f=aiPortfolioFigures();
+    return Object.assign({ role:'assistant', wholeBook:true,
+      text:`<strong>${f.live}</strong> ${igEsc(i18t('ai_book_count', { live:'', total:f.total }).trim())}<div class="text-[11px] text-amber-700 mt-2">${igEsc(why)}</div>` }, again);
+  }
+  return Object.assign({ role:'assistant', err:true, text:igEsc(why) }, again);
 }
 
 /* Portfolio-wide clause review. Reads every live contract through the
@@ -8014,6 +8025,7 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.tour)?igTourHtml(i):''}
       ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t('int_tour_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}${igTourOffered()||igPinOffered()?`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`:''}</div>`):''}
       ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
+      ${(m.wholeBook&&typeof window.aiWorklistHtml==='function')?aiWorklistHtml(null,{ wholeBook:true }):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
@@ -8470,6 +8482,8 @@ function renderIntelDock(){
   });
   /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
   dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
+  /* the whole-book door (igFailTurn's stand-in): the Contracts page with nothing narrowing it, as the window's press */
+  dock.querySelectorAll('[data-ai-worklist-all]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(typeof window.regShowOnly==='function') regShowOnly([], ''); }));
   /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
