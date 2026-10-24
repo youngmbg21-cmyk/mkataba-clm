@@ -16944,6 +16944,12 @@
   /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
   :is(#ig-dock, body) .redline-page .rl-card-d:is(:hover, .is-linked){background:var(--color-neutral-200)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
+  /* JAMBO'S "WORTH A LOOK" ON THEIR ROW IS SHADED THE CARDS' WAY, IN A VERY LIGHT AMBER (owner, 24 Oct 2026):
+     its own soft rounded box inside the card; the other readings (Take it, Escalate…) keep their dot only */
+  :is(#ig-dock, body) .redline-page .rl-card-read[data-rl-row-read="look"]{margin-top:6px;padding:8px 10px;border-radius:12px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  /* YOUR WORDS TO JAMBO WEAR HIS ANSWERS' ROUNDING (owner, 24 Oct 2026): the generated sheet zeroes
+     .rounded-2xl, so every "you" bubble (Home's panel, the chat window) takes the answer bubble's 18px here */
+  .ai-msg.justify-end > .ai-bub{border-radius:var(--radius-lg)}
   /* THE LISTS' TABLE, AS DRAWN (Contracts): the column heads on a faint grey band (#FAFAFC), the foot the same,
      a party's initials a rounded square on white. The row height stays the reader's own density choice. */
   #app-shell .reg-card .reg-table thead th{background:#FAFAFC}
