@@ -255,7 +255,8 @@ describe('f864 (6) the Dossier\'s "On the web" line', () => {
     /* the Dossier is not on this stage: its builder, read out of the file, with the file's own helpers */
     const src = read('js/paperdesk.js'), i = src.indexOf('function pdCkWebRowHtml(c){');
     assert.ok(i > 0, 'pdCkWebRowHtml is there');
-    const helpers = ['const _pdT ', 'const _pdTn ', 'const _pdE '].map(h => { const j = src.indexOf(h); assert.ok(j >= 0, h); return src.slice(j, src.indexOf('\n', j)); }).join('\n');
+    /* the door row's "Open ›" (pdCkGo, the attention-to-detail round of 24 Oct 2026) is one of those helpers */
+    const helpers = ['const _pdT ', 'const _pdTn ', 'const _pdE ', 'const PD_GO_TXT ', 'function pdCkGo('].map(h => { const j = src.indexOf(h); assert.ok(j >= 0, h); return src.slice(j, src.indexOf('\n', j)); }).join('\n');
     win.eval(helpers.replace(/^const /gm, 'var ') + '\n' + src.slice(i, src.indexOf('\n}\n', i) + 3) + '\nwindow.pdCkWebRowHtml = pdCkWebRowHtml;');
     win.cuKeyOf = n => String(n || '').trim().toLowerCase();
     let kept = null, may = true;
