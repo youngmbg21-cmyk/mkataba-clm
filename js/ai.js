@@ -2592,6 +2592,20 @@ const AI_GOTO_OFF_RULE="YOU CANNOT OPEN PAGES: when asked where something is in 
 const AI_BRIEF_RULE="A CONTRACT'S BRIEF IS KEPT: when the person asks for a contract's brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract's brief and shows it in the panel beside the paper: set deliver_answer's goto to task brief and say in one short sentence that you are opening its brief.";
 const AI_BRIEF_OFF_RULE="A CONTRACT'S BRIEF IS KEPT: when the person asks for a contract's brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract's brief beside the paper: say in one short sentence that the words “brief” and the contract's reference (as in “brief MK-458”) open it.";
 const aiNavigateLocalOn=()=>!(typeof state!=='undefined'&&state&&state.settings&&state.settings.aiNavigate===false);
+/* A PAGE TO LOOK AT IS NO TRIP FOR A PLAIN QUESTION (owner, 24 Oct 2026, "fix the other pages too"): the
+   server's copilotQuestionStays for a trip with no exact door, word for word, for the local-mode chat */
+const AI_LOOK_TASKS=['needs','contracts','expiring','oblig','history','calendar','approvals','parties','people','requests','board','insights','explorer'];
+const AI_ASKS_RE=/^\s*(what|whats|when|who|whos|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
+const AI_SHOW_RE=/\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
+const AI_WAY_RE=/\b(how (do|can|would|should) (i|we) (get|go|reach|find)|get to|go to|navigate|bring me|hur (kommer|hittar) (jag|vi)|gå till|ta mig)\b/i;
+function aiLocalQuestionStays(messages, final){
+  const g=final&&final.goto; if(!g||g.door||g.spot||!AI_LOOK_TASKS.includes(g.task)) return;
+  const u=(Array.isArray(messages)?messages:[]).filter(m=>m&&m.role==='user'&&typeof m.content==='string').slice(-1)[0];
+  const q=String(u?u.content:'').split('\n\n')[0].slice(0,400);
+  if(!AI_ASKS_RE.test(q)||AI_SHOW_RE.test(q)||AI_WAY_RE.test(q)) return;
+  if(!String(final.answer||'').trim()||final.answer===AI_EMPTY_ANSWER||(final.choices&&final.choices.length)) return;
+  final.goto=null;
+}
 /* the answer's goto, kept for the one ask that is waiting on it (aiGotoTake) */
 let _aiGoto=null;
 function aiGotoNote(res){ _aiGoto=(res&&typeof res==='object'&&res.goto&&typeof res.goto==='object')?{ g:res.goto, at:Date.now() }:null; }
@@ -3108,6 +3122,7 @@ async function aiLocalClaude(messages, context){
         wholeBook:inp.wholeBook===true, ruleDoor:aiRuleDoorOf(inp.ruleDoor), goto:(aiNavigateLocalOn()&&inp.goto&&typeof inp.goto==='object')?inp.goto:null,
         /* "which did you mean?" (stage 3): the doors are asked of this browser's own book when drawn (navDoorOf) */
         choices:(Array.isArray(inp.choices)?inp.choices:[]).filter(c=>c&&c.label&&c.door).slice(0,4) };
+      aiLocalQuestionStays(messages, final);
       break;
     }
     working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:JSON.stringify(_localToolRun(t.name,t.input))}))});
