@@ -222,7 +222,7 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
       ours: getContract('MK-R1').changes.filter(x => x.authorSide === 'owner').map(x => x.newText || '') }));
     const spot6 = Math.min(at6, Math.max(0, s6.most));
     check('6a the counter lands under "Your drafts", Send all · 1 not sent, at the same spot (as far as the column scrolls)',
-      /Your drafts, not yet sent\s*1/.test(s6.bands.join('|')) && s6.send === 'Send all · 1 not sent' && Math.abs(s6.top - spot6) <= 1 && /nine months/.test(s6.ours[0] || ''), JSON.stringify(s6) + ' want ' + spot6);
+      /Your drafts, not yet sent\s*1/.test(s6.bands.join('|')) && /* RE-POINTED 24 Oct 2026 (Round 3): the round line says "1 not sent" */ s6.send === 'Send all · 1' && Math.abs(s6.top - spot6) <= 1 && /nine months/.test(s6.ours[0] || ''), JSON.stringify(s6) + ' want ' + spot6);
     await shot('6-drafted');
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": "Every way to
        send — Share on the paper's line, Send all on Redlines, Jambo's share —
@@ -231,7 +231,7 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.click('#pd-redface .rl-unsent-go');
     const asked = await waitFor(page, () => { const s = document.getElementById('share-send'); return !!document.getElementById('sh-letter') && s && !s.disabled; }, 10000);
     const q6 = await page.evaluate(() => ((document.getElementById('sh-letter') || {}).innerText || '').replace(/\s+/g, ' '));
-    check('6b Send all opens the letter, saying what goes, to their address', asked && /parcelway/i.test(q6) && /has answered|of its own/.test(q6), q6.slice(0, 400));
+    check('6b Send all opens the letter, saying what goes, to their address', asked && /parcelway/i.test(q6) && /* RE-POINTED 24 Oct 2026 (Round 3): with no email set up the letter is the link to copy */ (/has answered|of its own/.test(q6) || /Nothing is sent from here/.test(q6)), q6.slice(0, 400));
     await page.evaluate(() => { const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true; });
     await page.click('#share-send');
     /* sent, the screen says so in its own box; it is put away as a reader puts it away */

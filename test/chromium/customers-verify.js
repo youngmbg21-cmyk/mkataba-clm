@@ -111,9 +111,11 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.waitForFunction(() => document.querySelectorAll('tr[data-cu-cust]').length === 3, null, { timeout: 4000 }).catch(() => {});
     const list = await readList();
     const nv = list.find(r => r.key === 'naivas supermarkets');
-    ok('2b Naivas: 3 live and 1 ended (a term that ran out has ended)', !!nv && nv.cells[2] === '3' && nv.cells[3] === '1', nv && nv.cells.join(' | '));
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): City is empty for every party here, so its column steps out and
+       Live · Ended are the cells right after the party */
+    ok('2b Naivas: 3 live and 1 ended (a term that ran out has ended)', !!nv && nv.cells[1] === '3' && nv.cells[2] === '1', nv && nv.cells.join(' | '));
     const sg = list.find(r => r.key === 'siginon logistics');
-    ok('2c a declined contract sits with Ended', !!sg && sg.cells[2] === '—' && sg.cells[3] === '1', sg && sg.cells.join(' | '));
+    ok('2c a declined contract sits with Ended', !!sg && sg.cells[1] === '—' && sg.cells[2] === '1', sg && sg.cells.join(' | '));
     await page.click('tr[data-cu-cust="naivas supermarkets"]').catch(() => {});
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const panelText = () => page.evaluate(() => ((document.querySelector('#ins-panel') || {}).textContent || '').replace(/\s+/g, ' ').trim());
