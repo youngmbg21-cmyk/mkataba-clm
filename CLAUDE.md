@@ -81,7 +81,9 @@ For a DESIGN QUESTION (an exact instruction is just built): ONE part of a page p
 
 
 ## HOW TO TEST ECONOMICALLY (owner-asked 16 and 24 Aug 2026)
-**"Do not run the full test suite during incremental edits. Only run the specific test file directly related to the changed code."** Run the affected files together in ONE command (`node --test --test-reporter=dot test/<a>.test.js test/<b>.test.js`). **NEVER RUN THE FULL SUITE IN A CHAT SESSION UNLESS THE OWNER ASKS IN THE CHAT** (a work order's line does not count): run `npm run lint` and the changed area's tests, push, and let GitHub's check (.github/workflows/tests.yml) run everything.
+**"Do not run the full test suite during incremental edits. Only run the specific test file directly related to the changed code."** Run the affected files together in ONE command (`node --test --test-reporter=dot test/<a>.test.js test/<b>.test.js`). **NEVER RUN THE FULL SUITE IN A CHAT SESSION UNLESS THE OWNER ASKS IN THE CHAT** (a work order's line does not count): run `npm run lint` and the changed area's tests, then push.
+- **GITHUB RUNS ITS TESTS ONLY WHEN THE OWNER SAYS SO** (owner-asked 24 Oct 2026; reverses "push and let GitHub's check run everything"): EVERY commit message carries `[skip ci]`, on every branch, every time.
+- Leave `[skip ci]` out ONLY when the owner asks IN THE CHAT for GitHub to run the tests (a work order's line does not count); the owner's other way to say so is the Run workflow button on .github/workflows/tests.yml (`workflow_dispatch`).
 - `npm run lint` FIRST, whole repo — zero errors; it is the only check that asks "does every called name exist".
 - Browser files start a real Chrome: only the ones for the screen you changed. `node test/chromium/run-all.js` is CI's set; KNOWN_RED lists expected failures with reasons — take a file off the day it goes green.
 - **A TEST WHOSE ANSWER DEPENDS ON THE DAY IT RUNS IS WORSE THAN NO TEST.** Build dates with `monthSpan(off)` or quarter boundaries. Faking node's clock does not move jsdom's.

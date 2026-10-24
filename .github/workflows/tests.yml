@@ -41,8 +41,14 @@ name: tests
 # THE EXCEPTION: every merge keeps its own check (one group per commit),
 # because main's record is what "red on the base branch too" is measured
 # against.
+# WHEN THIS RUNS (owner-asked 24 Oct 2026): only when the owner says so.
+# Every commit carries [skip ci], which GitHub honours on push, so this
+# workflow sits still until the owner asks for it — either by saying so in
+# the chat (that commit goes up without the marker) or by pressing
+# "Run workflow" here, which is what workflow_dispatch is for.
 on:
   push:
+  workflow_dispatch:
 
 concurrency:
   group: tests-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
