@@ -9116,8 +9116,10 @@ function roomHistoryHtml(c,f={},opts={}){
        proposed, countered or decided — only its wording with the marks, cut
        around the edit in a long clause (histWordingHtml); the fingerprint
        rides the time's hover, never printed here */
+    /* THE WORDING TAKES THE WHOLE WIDTH (Round 2, owner's yes 24 Oct 2026): under its row, from the Time
+       column to the right edge, in the paper's own type, never squeezed into What happened */
     const body=(_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch)
-      ? `<div class="hist-redline">${histWordingHtml(e.ch)}</div>` : '';
+      ? `<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${histWordingHtml(e.ch)}</div></div>` : '';
     const why=e.note?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';
     const reply=(e._k==='decided'&&e.reply)?`<div class="hist-note">${i18t('ct_reply_prefix',{text:esc(e.reply)})}</div>`:'';
     /* The system twin this row absorbed — its fingerprint and its actor kept on
@@ -9172,13 +9174,16 @@ function roomHistoryHtml(c,f={},opts={}){
     /* an entry nobody can place (HaTi's own) or only we can see carries no initials and no outcome (as drawn; round 12's rule kept) */
     const ocW=oc&&lane!=='mid'?`<span class="hist-ocw is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'';
     const mark=e._k==='opened'?dot:e._k==='access'?`<span class="hist-lock" aria-hidden="true">${icon('lock','w-3 h-3')}</span>`:'';
-    const whoCell=lane==='mid'?`<span class="hist-who">${mark}${e.actor?`<span>${esc(e.actor)}</span>`:''}</span>`:whoH;
+    /* WHO IS FILLED FROM THE SIDE (Round 2): their entry with no person named says their party */
+    const theirName=lane==='theirs'&&!e.actor?String(e.partyName||c.counterparty||'').trim():'';
+    const whoCell=lane==='mid'?`<span class="hist-who">${mark}${e.actor?`<span>${esc(e.actor)}</span>`:''}</span>`
+      :theirName?`<span class="hist-who is-party">${typeof window.regAvatarHtml==='function'?regAvatarHtml(theirName):''}<span title="${esc(theirName)}">${esc(theirName)}</span></span>`:whoH;
     const said=histSaysOf(e), named=said!==String(e.text||'');
     const whatT=inside&&e.actor?esc(said.charAt(0).toLocaleLowerCase()+said.slice(1)):esc(said);
     return `<div class="hist-ev hist-tr is-${lane}${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}" role="row">
       <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span><span class="hist-c hist-c-side" role="cell">${sideW}</span>
-      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${body}${why}${reply}</div>
-      <span class="hist-c hist-c-oc hist-oc" role="cell">${ocW}</span></div>`;
+      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${why}${reply}</div>
+      <span class="hist-c hist-c-oc hist-oc" role="cell">${ocW}</span></div>${body}`;
   };
   const ours=_histOurPeople();
   /* the table's column head (the SAP way): the words above the columns */
@@ -9188,7 +9193,8 @@ function roomHistoryHtml(c,f={},opts={}){
   /* THE DAY'S PILL, AS DRAWN (round 12): the day a person would say it —
      "Thu 15 Oct", the year only where it is not this one — over its entries;
      how many a day holds is the lanes' to show, the head counts them all */
-  const dayLabel=e=>{ const d=new Date(e.at); if(isNaN(d)) return dayKey(e)||'\u2014';
+  /* an entry with no day is grouped under "Earlier", never a bare dash (Round 2) */
+  const dayLabel=e=>{ const d=new Date(e.at); if(isNaN(d)) return dayKey(e)||i18t('ct_hist_earlier');
     const o=d.getFullYear()===new Date().getFullYear()?{weekday:'short',day:'numeric',month:'short'}:{weekday:'short',day:'numeric',month:'short',year:'numeric'};
     /* the parts with spaces between, no comma ("Thu 15 Oct", as drawn) */
     let said=dayKey(e);
@@ -9198,7 +9204,8 @@ function roomHistoryHtml(c,f={},opts={}){
     return (window.todayISO&&loc===todayISO())?i18t('ct_hist_day_today',{ d:said }):said; };
   const grouped=()=>{ let out='', k=null, buf=[];
     const flush=()=>{ if(!buf.length) return;
-      out+=`<div class="hist-day-h" role="row"><b>${esc(dayLabel(buf[0]))}</b><small>${esc(i18tn('ct_hist_events',buf.length,{n:buf.length}))}</small></div>${buf.map(row).join('')}`; buf=[]; };
+      /* a day holding one entry says no "1 event" (Round 2): the count only where it adds something */
+      out+=`<div class="hist-day-h" role="row"><b>${esc(dayLabel(buf[0]))}</b>${buf.length>1?`<small>${esc(i18tn('ct_hist_events',buf.length,{n:buf.length}))}</small>`:''}</div>${buf.map(row).join('')}`; buf=[]; };
     evs.forEach(e=>{ const kk=dayKey(e); if(kk!==k){ flush(); k=kk; } buf.push(e); }); flush(); return out; };
   /* ---- ONE SWITCH, ONE HANDLE, AND NO LID OVER IT ----
      "Whose asks am I looking at" used to be answered TWICE on this head: a
@@ -17291,9 +17298,10 @@ function signCheckCardHtml(c){
           acts.push(`<button type="button" data-kt-brief="open">${esc(i18t('br_open'))}</button>`); }
         break;
       case 'standards-read':
-        why=i18t('sc_std_read_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); break;
+        /* ONE DOOR FOR THE READINGS (Round 3): the stage's own "Run all N" box; a row keeps its link only where none stands */
+        why=i18t('sc_std_read_w'); if(!(rc&&rc.ready)) acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); break;
       case 'obligations':
-        if(r.never){ why=i18t('sc_ob_never_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); }
+        if(r.never){ why=i18t('sc_ob_never_w'); if(!(rc&&rc.ready)) acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); }
         else { why=i18t('sc_ob_moved_w'); acts.push(verb('data-sc-oblig','1','sc_ob_btn')); }
         break;
       case 'oblig-gaps':
@@ -17463,8 +17471,13 @@ function signCheckCardHtml(c){
           width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-file"/></svg>${
           esc(i18t(briefStands?'br_open':'br_write'))}</button>`
       : '';
+    /* THE CHECKS THAT HAVE NOT RUN, SAID ONCE WITH ONE BUTTON (Round 3, owner's yes 24 Oct 2026): a grey box under
+       the heading — "Three checks have not run on this wording yet · Run all 3" — in place of the heading's button
+       and a "Run the check" on every row; the press is the same (#sc-run, data-sc-run) */
+    const box=(st==='read'&&rc&&rc.ready&&willN&&!busy)
+      ? `<div class="sc-run-box"><span>${esc(i18tn('sc_run_box',willN,{n:willN}))}</span><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" id="sc-run" data-sc-run="1"${rc.waiting?' disabled':''} title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}">${esc(i18tn('sc_run_all',willN,{n:willN}))}</button></div>` : '';
     return `<div class="sc-stage" data-sc-stage="${esc(st)}">
-      <div class="sc-stage-h"><span class="sc-stage-t">${esc(i18t('sc_stage_'+st))}</span>${act}</div>
+      <div class="sc-stage-h"><span class="sc-stage-t">${esc(i18t('sc_stage_'+st))}</span>${box?'':act}</div>${box}
       ${mine.map(row).join('')}
     </div>`;
   }).join('');

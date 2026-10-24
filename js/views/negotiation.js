@@ -6134,7 +6134,7 @@ function rlUnsentSendHtml(c, opts = {}){
   const promise = side === 'counterparty' ? i18t('po_wall_live') + ' ' : '';
   return `<button type="button" class="rl-unsent-go" data-redline-proxy="${target}"
     title="${_nea(promise + i18t('ng_unsent_full', { n, who }) + ' ' + i18t('ng_unsent_send_title', { n, who }))}">${
-      i18t('ng_unsent_send', { n })}</button>`;
+      i18t(opts.dealDoor ? 'ng_unsent_send_short' : 'ng_unsent_send', { n })}</button>`;
 }
 
 /* ---- CLOSE ROUND, IN THE COLUMN HEAD (owner-asked 27 Aug 2026) ----
@@ -6209,7 +6209,10 @@ function rlRoundLabelHtml(c, opts = {}){
   const ago = came ? rlAgoWords(came) : '';
   const words = ago ? i18t('ng_round_asks_came', { n: round, ago })
     : day ? i18t('ng_round_since', { n: round, day }) : i18t('ng_round_n', { n: round });
-  return `<span class="rl-round-at" title="${_nea(i18t('ng_round_since_title'))}">${_ne(words)}</span>`;
+  /* BESIDE THE PAPER THE HEAD SAYS WHAT NEEDS YOU (owner picked "The SAP Way" for the two heads, 24 Oct 2026):
+     "4 not sent · Round 1 · since 10 Sept" — the count leaves Send all, which says "Send all · 4" */
+  const un = opts.dealDoor ? rlUnsentCount(c, opts) : 0;
+  return `<span class="rl-round-at" title="${_nea(i18t('ng_round_since_title'))}">${un ? `<b class="rl-round-un">${_ne(i18t('ng_unsent_n', { n: un }))}</b> \u00b7 ` : ''}${_ne(words)}</span>`;
 }
 
 /* ============================================================
@@ -8162,23 +8165,27 @@ function dealViewHtml(c, side){
   const tab = (_dealTab && (_dealTab === 'all' || n[_dealTab])) ? _dealTab : (n.you ? 'you' : 'all');
   const round = (c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0) ? c.negotiation.round : 1;
   const head = n.you ? i18tn('ng_deal_head_you', n.you, { n: n.you }) : i18t('ng_deal_head_none');
-  const sub = i18tn('ng_deal_sub', n.all, { n: n.all, r: round });
+  /* THE LEGORA WAY (owner's pick, 23 Oct 2026, built 24 Oct): the one fact once, then how the rest stand —
+     "6 argued in round 1 · 1 with AIT · 1 closed" */
+  const sub = [i18t('ng_deal_argued', { n: n.all, r: round }), n.them ? i18t('ng_deal_with', { n: n.them, cp }) : '', n.done ? i18t('ng_deal_closed', { n: n.done }) : ''].filter(Boolean).join(' \u00b7 ');
   const word = { all: i18t('ng_deal_tab_all'), you: i18t('ng_board_g_you'), them: i18t('ng_board_g_them', { cp }), done: i18t('ng_board_g_done') };
   /* a tab with nothing behind it stays out, unless it is All or the one lit (THE LIST HEAD's rule) */
   const tabs = DEAL_TABS.filter(k => k === 'all' || k === tab || n[k]).map(k =>
     `<button type="button" role="tab" class="deal-tab" data-deal-tab="${k}" aria-selected="${k === tab}">${_ne(word[k])}<b>${n[k]}</b></button>`).join('');
   const shown = facts.filter(x => tab === 'all' || x.g === tab);
   const quote = t => `<em>\u201c${_ne(t)}\u201d</em>`;
+  /* EACH POINT A QUIET ROW: its name, where it sits on the paper (§N), Send and Open clause on its own line; what
+     you hold quoted in the paper's type, then what they ask. The verdict is the dot's colour and its hover —
+     said once, never the same sentence on every row. Send presses the card's own Send in the column beside it. */
   const list = shown.map(({ r, v }) => {
     const s = dealSecOf(r);
     const theirs = r.theirs ? dealWordsOf(r.theirs.ch, 'del') : '';
     const held = dealHeldWords(r);
-    return `<div class="deal-it" data-deal-row="${_nea(r.clauseId)}">
-      <div class="deal-nm">${s.sec ? `<span class="deal-sec">${_ne(s.sec)}</span>` : ''}${_ne(s.name)}</div>
-      <div class="deal-vd db-vd-${v.k}"><i aria-hidden="true"></i>${_ne(v.text)}</div>
-      <div class="deal-q"><span>${_ne(i18t('ng_deal_they'))}</span>${r.theirs ? quote(theirs || '\u2014') : `<span class="deal-none">${_ne(i18t('ng_deal_not_asked'))}</span>`}
-        <span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}</div>
-      <button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button>
+    const unsent = side !== 'counterparty' && r.ours && r.ours.ch && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.ours, side) ? r.ours.ch.id : '';
+    return `<div class="deal-it is-lg" data-deal-row="${_nea(r.clauseId)}">
+      <div class="deal-top"><span class="deal-dot db-vd-${v.k}" title="${_nea(v.text)}" aria-label="${_nea(v.text)}"><i aria-hidden="true"></i></span><b class="deal-nm">${_ne(s.name)}</b>${s.sec ? `<span class="deal-sec">${_ne(i18t('ng_deal_on_paper', { s: s.sec }))}</span>` : ''}<span class="deal-sp"></span>${unsent ? `<button type="button" class="deal-send" data-deal-send="${_nea(unsent)}">${_ne(i18t('ng_send'))}</button>` : ''}<button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button></div>
+      <div class="deal-q"><span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}
+        <span>${_ne(i18t('ng_deal_they'))}</span>${r.theirs ? (theirs ? quote(theirs) : '<span class="deal-none">\u2014</span>') : `<span class="deal-none">${_ne(i18t('ng_deal_nothing_yet'))}</span>`}</div>
     </div>`;
   }).join('') || `<p class="deal-empty">${_ne(i18t('ng_board_f_none'))}</p>`;
   return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}">

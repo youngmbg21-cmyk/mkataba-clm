@@ -198,7 +198,8 @@ describe('f773 (5) tabs, the head, the empty page, the words', () => {
     assert.equal(api.migShowPass({ st:{ k:'check' } }, 'decide'), false);
     const bar = fn('migTabsHtml'); assert.match(fn('migCheckBarHtml'), /migTabsHtml\('check'/); assert.match(fn('migDecideBarHtml'), /migTabsHtml\('decide'\)/);
     for (const k of ['mig_ck_tab_check', 'mig_ck_tab_decide', 'mig_ck_tab_filed']) assert.match(bar, new RegExp(k));
-    assert.match(fn('migPaintHead'), /_migCheck \? 'mig_new_batch'/);
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): one Choose files door, the strip's; the head's press only while checking, "New batch" */
+    assert.match(fn('migPaintHead'), /canEdit\(\) && _migCheck \? `<button[^`]*id="mig-choose">\$\{esc\(i18t\('mig_new_batch'\)\)\}/);
   });
   test('5b nothing brought in: Jambo\'s chip is the page\'s own door', () => {
     const { api } = stage();

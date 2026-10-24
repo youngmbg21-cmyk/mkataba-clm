@@ -182,8 +182,8 @@ const weekOf = () => {
     await until(() => !document.querySelector('.modal-in'));
     await page.click('tr[data-ob-key="MK-A2::o6"] td:nth-child(2)');
     const chosen = await until(() => { const w = (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent; const b = document.querySelector('#ins-panel [data-jl-back]');
-      return w === 'Obligation' && b && !b.hidden ? w : null; });
-    await page.click('#ins-panel [data-jl-back]');
+      return w === 'Obligation' && !b ? w : null; });
+    await page.click('#ins-panel [data-jl-home]');
     const back = await until(() => (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent === 'Your week' && !document.querySelector('.obw-wk tr.is-sel'));
     check('3c a row press: the panel says "Obligation"; ‹ Jambo goes back to the week', !!chosen && !!back, { chosen, back });
     await page.click('[data-obw-add]');

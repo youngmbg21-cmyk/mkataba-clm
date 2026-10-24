@@ -340,7 +340,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       await onPaper(); await settled();
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
         /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box; the dossier's first stage line is measured */
-        nd = document.querySelector('#ig-dock .ds-sp-st'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
+        /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the stage line across */
+        nd = document.querySelector('#ig-dock .ds-ln-st') || document.querySelector('#ig-dock .ds-sp-st'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !gl || !box) return null;
         const d = dock.getBoundingClientRect(), b = box.getBoundingClientRect(), n = nd ? nd.getBoundingClientRect() : null;
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *, [data-ig-chips] *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > d.right + 1; }).length;

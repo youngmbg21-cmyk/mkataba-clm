@@ -98,7 +98,8 @@ const iso = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.to
       if (b.closest('.nego-pane.index, #rl-cp')) return false; const r = b.getBoundingClientRect(); return r.width > 1 && r.right > vw + 1 && getComputedStyle(b).visibility !== 'hidden'; }).map(b => b.textContent.trim().slice(0, 20) || b.id); });
     check('8 the workbench\'s controls are all on the screen', off.length === 0, off.join(', '));
     await page.evaluate(() => { setView('workspace'); mGo('home'); });
-    await page.evaluate(() => document.querySelector('.m-ai-fab').click());
+    /* RE-POINTED 24 Oct 2026 (Round 6): Home has no floating button (its ask box is Jambo); the panel is opened as the box opens it */
+    await page.evaluate(() => openAI());
     await page.waitForSelector('#ai-panel .ai-chip', { timeout: 5000 }).catch(() => {});
     const chips = await page.evaluate(() => Array.from(document.querySelectorAll('#ai-panel .ai-chip, #ai-style button')).map(b => Math.round(b.getBoundingClientRect().height)));
     check('9 Copilot\'s questions and toggle are 44px', chips.length > 0 && chips.every(x => x >= 44), JSON.stringify(chips));

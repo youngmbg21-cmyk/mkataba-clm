@@ -99,7 +99,12 @@ function deskKeyNow(){
   const v = state.view;
   /* the letter in front names the page; while it waits (Go to clause N) the
      paper is in front and the letter is Recent's first row */
-  if (v === 'dashboard'){ const sk = dkSendNow(); if (sk && !dkSendWaiting()) return sk; }
+  /* THE BAR NAMES THE PAGE YOU ARE ON (Round 2, owner's yes 24 Oct 2026): the letter names it only while it
+     stands in front, on the paper's face; gone to the Calendar, Explorer or a contract's History, the bar
+     says that page, never "Send" (the letter still waits, Recent's first row) */
+  if (v === 'dashboard'){ const sk = dkSendNow(); const onPaper = (typeof hbFace !== 'function') || hbFace() === 'paper';
+    const card = typeof window.bsCardId === 'function' && !!window.bsCardId();
+    if (sk && !dkSendWaiting() && onPaper && !card) return sk; }
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
@@ -709,8 +714,10 @@ const _ndText = h => String(h || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '
    agreement, who or what asked, how long it has waited, its one-word button
    and the door it presses (attrs: the door's own data attribute). */
 function ndParts(r){
-  const P = { title: '', deal: '', who: '', when: '', late: !!r.late, btn: 'open', attrs: '', step: null, read: '', ref: '', line: '', tag: '', pills: '', priv: '' };
+  const P = { title: '', deal: '', who: '', when: '', late: !!r.late, btn: 'open', attrs: '', step: null, read: '', ref: '', line: '', tag: '', pills: '', priv: '', name: '', party: '' };
   const days = n => (typeof hbNyDays === 'function') ? hbNyDays(n) : String(n);
+  /* the agreement's own name, without a trailing " — <the other side>" (bsShortName's reading) */
+  const _ndName = c => { if (!c) return ''; try { if (typeof bsShortName === 'function') return String(bsShortName(c) || ''); } catch (_){} return String(c.name || ''); };
   if (r.g === 'jambo'){
     const it = r.it, c = it.c || null;
     const parts = _ndCall('agCardParts', it, {}) || {};
@@ -729,6 +736,7 @@ function ndParts(r){
     P.line = _ndCall('agPieceLine', it, '');
     P.btn = 'look';
     P.attrs = `data-nd-look="${_cnE(it.key)}"`;
+    if (c){ P.name = _ndName(c); P.party = String(c.counterparty || '').trim(); }
     return P;
   }
   if (r.bundle){
@@ -750,6 +758,7 @@ function ndParts(r){
     P.good = a.tone === 'green'; P.news = !!a.news;
     if (a.hint) P.tip = String(a.hint);
     P.ref = (c && typeof refHtml === 'function') ? refHtml(c) : '';
+    if (c){ P.name = _ndName(c); P.party = String(c.counterparty || '').trim(); P.note = String(a.sub || ''); }
     P.btn = ND_AL_BTN[a.kind] || 'open';
     P.attrs = `data-nd-al="${_cnE(r.key)}"`;
     return P;
@@ -792,11 +801,16 @@ function ndParts(r){
   P.deal = [c.name, party && !String(P.title).includes(party) ? party : '', (it.kind === 'approval' || it.kind === 'sign') && cnMayMoney(c) ? fmtMoneyShortOf(c) : ''].filter(Boolean).join(' · ');
   /* a colleague's hand-off carries their note first (the bell's own row did: "A pass is a hand-off") */
   if (it.kind === 'look' && it.note) P.deal = '\u201c' + String(it.note) + '\u201d · ' + P.deal;
+  if (it.kind === 'look' && it.note) P.note = '\u201c' + String(it.note) + '\u201d';
   P.who = y.fw ? _cnT('cn_need_for', { who: _cnFirst(y.fw.name) }) : String(it.who || '');
   if (x.age != null) P.when = days(x.age);
   else if (it.kind === 'renewal' && it.d != null) P.when = it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
   else { const due = String(it.due || '').slice(0, 10); P.when = /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : ''; }
   P.btn = ND_BTN[it.kind] || 'open';
+  /* the button says what happens (Round 2, 24 Oct 2026): an approval asked of you is "Approve…" */
+  if (it.kind === 'approval') P.btn = 'approve';
+  P.name = _ndName(c); P.party = party;
+  P.money = (it.kind === 'approval' || it.kind === 'sign') && cnMayMoney(c) ? fmtMoneyShortOf(c) : '';
   /* a renewal's Decide says it reads the contract again (the renewal's one door, needsYouGo) */
   if (it.kind === 'renewal') P.tip = _cnT('ins_need_go_terms');
   const priv = c.folder && typeof streamIsPrivate === 'function' && streamIsPrivate(c.folder)
@@ -816,22 +830,27 @@ const _ndTagHtml = P => P.tag ? `<span class="nd-tag">${_cnE(P.tag)}</span>` : '
    holding more than three says "Show all N", which lands on the Board. */
 function ndHomeRowHtml(r){
   const P = ndParts(r);
-  /* the contract's number LEADS the line, so a long name never cuts it off (owner, 23 Oct 2026:
-     "A user needs to know the contract number") */
-  const lead = P.ref ? P.ref + ' · ' : '';
-  const sub = r.g === 'jambo'
-    ? `${lead}<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}`
-    : lead + _cnE(P.deal);
+  /* THE AGREEMENT LEADS (Round 2, owner's yes 24 Oct 2026; reverses "the contract's number LEADS the line"):
+     the name in black, then the number, the other side and the ask in grey. A row about no one
+     contract keeps its own words first. Jambo's prepared piece says "Review", the act it opens. */
+  const named = !!P.name;
+  const head = named ? P.name : P.title;
+  const party = P.party && ![P.name, P.title].some(t => String(t).toLowerCase().includes(P.party.toLowerCase())) ? P.party : '';
+  const sub = named
+    ? [P.ref, _cnE(party), _cnE(P.title), _cnE(P.note || ''), _cnE(P.money || '')].filter(Boolean).join(' · ')
+    : (P.ref ? P.ref + ' · ' : '') + (r.g === 'jambo' ? `<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}` : _cnE(P.deal));
   const hover = r.g === 'jambo' ? P.line : [_ndText(P.ref), P.deal].filter(Boolean).join(' · ');
-  return `<div class="cn-r nd-r${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(P.title)}</span>${_ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
-    + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${_ndBtnHtml(P)}</div>`;
+  const btn = r.g === 'jambo' ? _ndBtnHtml(Object.assign({}, P, { btn: 'review' })) : _ndBtnHtml(P);
+  return `<div class="cn-r nd-r${named ? ' nd-named' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(head)}</span>${named ? '' : _ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
+    + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${btn}</div>`;
 }
 function ndHomeHtml(D){
   const group = (g, L) => {
     if (!L.length) return '';
     const n = ndThings(L);
     const all = L.length > CN_ROWS ? `<button type="button" class="ui-link nd-all" data-nd-all="${g}">${_cnE(_cnT('cn_show_all', { n }))}</button>` : '';
-    return `<div class="nd-g" data-nd-g="${g}"><span class="nd-g-t">${_cnE(_cnT('nd_g_' + g))}</span><span class="cn-n">· ${n}</span>${all}</div>${L.slice(0, CN_ROWS).map(ndHomeRowHtml).join('')}`;
+    /* the count is said once, in the card's head (Round 2): a group row carries none */
+    return `<div class="nd-g" data-nd-g="${g}"><span class="nd-g-t">${_cnE(_cnT('nd_g_' + g))}</span>${all}</div>${L.slice(0, CN_ROWS).map(ndHomeRowHtml).join('')}`;
   };
   return group('jambo', D.jambo) + group('you', D.you);
 }
@@ -878,7 +897,8 @@ function ndBoardRowHtml(r, opts){
   return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
     + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
     /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
-    + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
+    + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span>`
+    /* no "Who or what asked" column (owner, 24 Oct 2026): empty on most rows; the search still reads it */
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
 }
 function ndBoardRowsHtml(D, opts){
@@ -912,7 +932,7 @@ function ndBoardHtml(opts){
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
     + (jamboOn && o.chase ? o.chase : '')
-    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_who'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
+    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
     + `<div class="nd-rows" id="nd-rows">${ndBoardRowsHtml(D, o)}</div>${o.foot || ''}</section>`;
 }
 /* the find box narrows the rows only: the box being typed in is never redrawn */

@@ -1199,14 +1199,14 @@ function jlHeadHtml(){
      "Overview", as beside a contract; "Jambo" names only the conversation the
      panel flips to (jlTalk*) */
   const name = i18t('pd_tab_overview');
-  const back = i18t('pd_trail_back', { to: name });
   const fold = i18t('int_collapse_panel');
   return `<div class="jl-head">
     <button type="button" class="pd-tab on jl-tab" data-jl-home title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span><span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="pd-tab-w">${esc(name)}</span></button>
     <button type="button" class="pd-tab jl-tab jl-talk-tab" data-jl-talk title="${esc(i18t('pd_tab_copilot'))}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : esc(i18t('pd_tab_copilot'))}</button>
     <span class="jl-word" data-jl-word></span>
     <span class="jl-sp"></span>
-    <button type="button" class="pd-back jl-back" data-jl-back title="${esc(back)}" aria-label="${esc(back)}" hidden><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
+    ${''/* NO "‹ Overview" BESIDE THE OVERVIEW TAB (Round 2, owner's yes 24 Oct 2026): it said what the tab
+        says and squeezed the page's own word to one letter; the tab is the way back */}
     <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-jl-fold aria-expanded="true" title="${esc(fold)}" aria-label="${esc(fold)}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
   </div>`;
 }

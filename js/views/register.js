@@ -1425,7 +1425,9 @@ const REG_CMP={
     if(A[0]!==B[0]) return A[0]<B[0]?-1:1;
     return A[1]-B[1]; },
   party:(a,b)=>{
-    const A=String(a.counterparty||'').trim(), B=String(b.counterparty||'').trim();
+    /* ON THE CONTRACTS PLACE THE COLUMN LEADS WITH THE AGREEMENT (Round 2), so its sort reads what it says */
+    const byName=typeof regHome==='function'&&regHome()&&!(typeof regScope==='function'&&regScope()==='negotiations');
+    const A=String(byName?regShortTitle(a):(a.counterparty||'')).trim(), B=String(byName?regShortTitle(b):(b.counterparty||'')).trim();
     const e=regBlanksLast(A,B); if(e!==null) return e;
     return A.localeCompare(B); },
   stream:(a,b)=>{
@@ -1907,10 +1909,14 @@ function regCtFootHtml(cs){
   if(typeof window.lhFootHtml!=='function') return '';
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
   const B=x=>`<b>${x}</b>`;
-  const total=n!==Number(countAll)?` <span class="lh-extra">${i18t('reg_of_total',{n:Number(countAll).toLocaleString(jxLocale())})}</span>`:'';
+  /* ONE COUNT, SAID PLAINLY (Round 2, owner's yes 24 Oct 2026): the whole list says "31 contracts · 30 live"
+     (live = the head's own reading); "(of N total)" only while the list is narrowed */
+  const total=n!==Number(countAll)&&regNarrowed()?` <span class="lh-extra">${i18t('reg_of_total',{n:Number(countAll).toLocaleString(jxLocale())})}</span>`:'';
+  const live=list.filter(c=>!c.archived&&c.status!=='Declined'&&!c.parentId).length;
+  const say=esc(i18tn('reg_foot_n',n,{n:n.toLocaleString(jxLocale())}))+(live!==n&&!regNarrowed()?' · '+esc(i18tn('ngl_n_live',live,{n:live.toLocaleString(jxLocale())})):'');
   const fam=familyCounts(list);
   const famNote=fam.amendments?`<span class="lh-extra"> · ${i18tn('reg_agreements',fam.agreements,{n:B(fam.agreements.toLocaleString(jxLocale()))})} · ${i18t('reg_documents',{n:B(fam.documents.toLocaleString(jxLocale()))})}</span>`:'';
-  return lhFootHtml(REG_CT_SEAT, shown, n, REG_PAGE, { id:'reg-showing', extra:total+famNote });
+  return lhFootHtml(REG_CT_SEAT, shown, n, REG_PAGE, { id:'reg-showing', extra:total+famNote, say });
 }
 /* THE PLACE'S WIDTHS, BY KEY (Part 8): the seat's own shares — the place's
    full set, its narrow set, or the answers' shape while Ask a column stands
@@ -2510,6 +2516,12 @@ function regOpenContract(id){
    Counterparty as two separate columns, so reusing cPrimary here printed the
    same company twice on every row. cPrimary is left alone — the Queue board,
    the calendar and the cards are all still party-led and correct. */
+/* THE AGREEMENT LEADS ON THE CONTRACTS PLACE (Round 2, owner's yes 24 Oct 2026): its own name, without a
+   trailing " — <the other side>" (bsShortName's reading); the party and the number go under it */
+function regShortTitle(c){
+  try { if (typeof window.bsShortName === 'function'){ const n = String(window.bsShortName(c) || '').trim(); if (n) return n; } } catch (_){}
+  return String((c && c.name && c.name.trim()) || cParty(c) || i18t('reg_untitled'));
+}
 function regTitleOf(c){
   return esc((c && c.name && c.name.trim()) || cParty(c) || i18t('reg_untitled'));
 }
@@ -2735,8 +2747,8 @@ function regRowsHtml(cs){
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
         <span class="reg-id">${regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        </span><span class="reg-sub">${placeRows?`${esc(coded?i18t('igw_kept_list'):cKind(c))} · ${refLine}`:`${regTitleOf(c)}`}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        </span><span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}`:`${regTitleOf(c)}`}</span>
         </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,

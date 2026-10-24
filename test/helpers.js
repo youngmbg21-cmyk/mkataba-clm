@@ -501,6 +501,18 @@ const ckOpenRowOf = (page, sel) => page.evaluate(s => {
   if (hd && !tr.classList.contains('is-open')) hd.click();
 }, sel).catch(() => {});
 
+/* RE-POINTED 24 Oct 2026 (Round 4, the owner's "mix": "labelled fields at full width ... One Save"): a fact is
+   confirmed by its row's own Confirm where one is drawn (the held Dossier, Key terms), else by the grid's ONE Save,
+   which confirms every field that holds a value through the same writer (pdOgConfirm via pdOgSaveIn) */
+const ckConfirm = async (page, key) => {
+  const own = `#pd-og [data-pd-og-ok="${key}"]`;
+  if (await page.isVisible(own).catch(() => false)) return page.click(own);
+  /* a long list folds into groups: the open group's own "Save" / "Save · next" */
+  for (const sel of ['#pd-og [data-pd-og-saveall]', '#pd-og tbody.is-open [data-pd-og-g-save]'])
+    if (await page.isVisible(sel).catch(() => false)) return page.click(sel);
+  return page.click('#pd-og [data-pd-og-saveall]');
+};
+
 module.exports = { startHati, startAiStub, startScriptedAi, startMailStub, startHatiWithMail,
   seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
-  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client, CAL_TODAY_ASIDE, ckOpenRowOf };
+  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client, CAL_TODAY_ASIDE, ckOpenRowOf, ckConfirm };

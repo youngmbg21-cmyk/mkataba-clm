@@ -7829,7 +7829,8 @@ function shareLetterPage(c){
   /* Send, then Cancel (Cancel last), in the page's head */
   const acts=panel.querySelector('.sh-hd-acts');
   const send=document.getElementById('share-send'), cancel=document.getElementById('share-close');
-  if(acts){ if(send && send.parentElement!==acts) acts.appendChild(send); if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); }
+  const off=document.getElementById('share-send-off');
+  if(acts){ if(send && send.parentElement!==acts) acts.appendChild(send); if(off && off.parentElement!==acts) acts.appendChild(off); if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); }
   /* "Before you send" goes beside it, as a face of Jambo's panel */
   /* the panel's own column (a fill draws a new one; the face lets the old go) */
   const side=panel.querySelector('#share-step-1');
@@ -7910,7 +7911,8 @@ async function openShareModal(c, opts={}){
   /* THE CHANNEL CHOICE IS ONE ROW OF SEGMENTS (the Compact ladder, 26 Sep
      2026; words only since the SAP pop-ups, 10 Oct 2026 — the drawing's
      segments carry no marks, and four marks in a half-width row crowd it). */
-  const tab=(k,label,active)=>`<button type="button" class="sh-seg" data-share-ch="${k}" aria-pressed="${active?'true':'false'}" style="${shareSegStyle(active)}">${label}</button>`;
+  const tab=(k,label,active0)=>{ const active=emailOff()?k==='link':active0;
+    return `<button type="button" class="sh-seg" data-share-ch="${k}" aria-pressed="${active?'true':'false'}" style="${shareSegStyle(active)}">${label}</button>`; };
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   /* ---- ONE BUILDER, TWO PAINTS ---- (13 Sep 2026). The send form is built
      here, before anything is fetched, so the frame that opens at once and the
@@ -8070,7 +8072,8 @@ async function openShareModal(c, opts={}){
       ${''/* EMAIL OFF: one line and the way forward. The four-line version said
              what else could not be delivered on this workspace, which is the
              mail panel's job, not this dialog's. */}
-      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${i18t('co_email_off_line')}</div>`:''}
+      ${''/* (Round 3) one plain line, not an amber strip: email is not set up, so this goes as a link */}
+      ${emailOff()?`<p id="sh-noemail" class="sh-noemail">${i18t('co_email_off_line')}</p>`:''}
       ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
         <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
         <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
@@ -8090,7 +8093,8 @@ async function openShareModal(c, opts={}){
       <div class="dlg-foot">
         <button id="share-back" class="ui-btn hidden">${icon('arrowLeft','w-3.5 h-3.5')}Back</button>
         <button data-dlg-cancel id="share-close" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="share-send" class="ui-btn ui-btn-primary"${o.opening?' disabled':''}>${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
+        <button id="share-send" class="ui-btn ui-btn-primary"${o.opening?' disabled':''}>${icon(emailOff()?'copy':'send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t(emailOff()?'co_copy_the_link':'co_send_by_email')}</span></button>
+        ${emailOff()?`<button type="button" id="share-send-off" class="ui-btn" disabled aria-disabled="true" title="${esc(i18t('co_email_off_title'))}">${esc(i18t('co_send_by_email'))}</button>`:''}
       </div>
 `;
   /* THE LETTER'S SCREEN (round 11): the title across the top, the letter on
@@ -8219,7 +8223,9 @@ async function openShareModal(c, opts={}){
      is the round send's business (reshareToLastRecipient reads it there); a
      dialog the reader opened by hand starts where it drew, and the reader
      moves it. `pre.channel` is deliberately not read here. */
-  let ch='email';
+  /* EMAIL NOT SET UP: THE LINK IS THE SEND (Round 3, owner's yes 24 Oct 2026): the letter opens on "a link you
+     copy", its filled button "Copy the link", from the first frame (no jump under the reader's eyes) */
+  let ch=emailOff()?'link':'email';
   /* The opening handler stands down the instant the real one is about to go
      in — both live long enough to overlap otherwise. */
   if (_openAbort) _openAbort.abort();
@@ -8530,7 +8536,7 @@ async function openShareModal(c, opts={}){
     document.getElementById('sh-email-wrap').classList.toggle('hidden',k==='whatsapp');
     document.getElementById('sh-phone-wrap').classList.toggle('hidden',k!=='whatsapp');
     document.getElementById('sh-send-lbl').textContent=k==='email'?i18t('co_send_by_email')
-      :k==='whatsapp'?'Open WhatsApp':word?i18t('co_send_the_file'):'Create link';
+      :k==='whatsapp'?'Open WhatsApp':word?i18t('co_send_the_file'):i18t('co_copy_the_link');
     /* ---- THE SCREEN ONLY ASKS WHAT THE CHOICE MAKES REAL ----
        A file has no link, so "keep this link open" and an expiry are questions
        about nothing. They are hidden rather than greyed: a greyed control says
@@ -9020,6 +9026,8 @@ async function openShareModal(c, opts={}){
             emailSent:!!r.emailSent, emailConfigured:!!r.emailConfigured }); }catch(e){}
       };
       if(reached){
+        /* "Copy the link" copies it: the link channel puts the made link in the reader's hands (Round 3) */
+        if(ch==='link'&&r.link){ try{ await navigator.clipboard.writeText(r.link); }catch(_){} }
         /* what the confirmation after Send says (round 11's gaps, second pass) */
         _shSent={ ch, name, email, msg, purpose:payloadObj.purpose, payload:payloadObj, mailed:!!(r.emailSent||r.alreadySentAt) };
         await handOver(`${reuse?`Published to ${rcptLabel}'s existing link`:`Sent to ${rcptLabel}`}${addr} via ${ch==='link'?'link':ch}${purposeSel==='sign'?' (signing link)':''}${msg?' with a message':''}`);

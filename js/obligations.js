@@ -3972,6 +3972,9 @@ function obYourWeekOffer(){
    Calendar's own setting under them. The chips hand the ask to the Calendar,
    where its planner — the one writer of his blocks — answers. */
 function obYourWeekSay(){
+  /* nothing owed anywhere: one sentence about obligations; the calendar's own controls stay on the Calendar (Round 2) */
+  const any = (typeof obwBook === 'function') ? obwBook().length : 1;
+  if(!any) return { lines: [ { html: _obEsc(i18t('ob_yw_none')), src: '' } ], src: '', chips: [], after: '' };
   return {
     lines: [ { html: obYourWeekSentence(), src: i18t('ob_yw_src') }, { html: _obEsc(obYourWeekOffer()), src: '' } ],
     src: i18t('ob_yw_src'),
@@ -3989,19 +3992,21 @@ function obYourWeekSay(){
    contract (a short list the reader can open, find box on top), then opens
    that contract's own Add form (openObligationForm) — the one door an
    obligation is added through. Nothing else writes. */
-function obwAddOpen(){
+function obwAddOpen(mode){
+  /* mode 'find': the same picker, then that contract's own finder (runFindObligations, one Jambo call) */
+  const find = mode === 'find';
   if(typeof canEdit === 'function' && !canEdit()){ toast(i18t('ob_viewers_no_change'), 'err'); return; }
   const list = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined' && !c._codeNamed
     && (!window.canAccessFolder || canAccessFolder(c.folder)))
     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
   const row = c => `<button type="button" class="obw-pick-r" data-obw-pick="${_obEsc(c.id)}"><span class="hati-ref">${_obEsc((typeof contractRef === 'function') ? contractRef(c) : c.id)}</span><b>${_obEsc(c.name || '')}</b><span>${_obEsc(c.counterparty || '')}</span></button>`;
   openModal(`<div class="obw-pick">
-    <div class="dlg-h"><h3>${_obEsc(i18t('ob_add_title'))}</h3><p>${_obEsc(i18t('ob_add_lead'))}</p></div>
+    <div class="dlg-h"><h3>${_obEsc(i18t(find ? 'ob_find_title' : 'ob_add_title'))}</h3><p>${_obEsc(i18t(find ? 'ob_find_lead' : 'ob_add_lead'))}</p></div>
     <div class="obw-pick-b"><input id="obw-pick-q" type="search" autocomplete="off" placeholder="${_obEsc(i18t('ob_add_find'))}" aria-label="${_obEsc(i18t('ob_add_find'))}">
       <div class="obw-pick-l" id="obw-pick-l">${list.map(row).join('')}</div>
       <p class="obw-pick-none" id="obw-pick-none" hidden>${_obEsc(i18t('ob_add_nomatch'))}</p></div>
     <div class="dlg-f"><button type="button" class="ui-btn" data-dlg-cancel>${_obEsc(i18t('act_cancel'))}</button></div>
-  </div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('ob_add_title') });
+  </div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t(find ? 'ob_find_title' : 'ob_add_title') });
   const q = document.getElementById('obw-pick-q');
   const L = document.getElementById('obw-pick-l');
   if(q && L) q.addEventListener('input', () => {
@@ -4013,6 +4018,7 @@ function obwAddOpen(){
     const b = e.target.closest && e.target.closest('[data-obw-pick]'); if(!b) return;
     const c = window.getContract ? getContract(b.getAttribute('data-obw-pick')) : null; if(!c) return;
     closeModal();
+    if(find){ if(typeof runFindObligations === 'function') runFindObligations(c); return; }
     openObligationForm(c);
   });
   document.querySelector('.obw-pick [data-dlg-cancel]')?.addEventListener('click', () => closeModal());
@@ -4144,7 +4150,13 @@ function renderObligationsInspector(host, o){
   const weeksFold = obWeekGroups(rows).some(W => W.fold || obwWeekShut(W));
   if(want){ const wk = obWeekKeyOf(want); if(obWeekGroups([want]).some(W => W.fold) && !obwWeekOpen(wk)) _obwWeeksOpen.add(wk); _obwWeeksShut.delete(wk); }
   const { cols, html } = obListHtml(rows, 'page');
-  const empty = `<section class="obw-wk obw-empty"><p>${_obEsc(i18t(narrowing.length ? 'ob_none_match_short' : 'ob_none_here'))}</p>${
+  /* A REAL EMPTY STATE (Round 2, owner's yes 24 Oct 2026): with no obligation in the book, what they are, where
+     they come from, and two doors — find them in a contract (the per-contract finder, its cost said) and add one */
+  const mayEdit = (typeof canEdit !== 'function') || canEdit();
+  const empty = (!book.length && !narrowing.length)
+    ? `<section class="obw-wk obw-empty obw-none"><b class="obw-none-t">${_obEsc(i18t('ob_none_yet_t'))}</b><p>${_obEsc(i18t('ob_none_yet'))}</p>${mayEdit
+      ? `<div class="obw-none-acts"><button type="button" class="ui-btn ui-btn-primary" data-obw-find>${_obEsc(i18t('ob_none_find'))}</button><button type="button" class="ui-btn" data-obw-add>${_obEsc(i18t('ob_none_add'))}</button></div>` : ''}</section>`
+    : `<section class="obw-wk obw-empty"><p>${_obEsc(i18t(narrowing.length ? 'ob_none_match_short' : 'ob_none_here'))}</p>${
     narrowing.length ? `<button type="button" class="ui-link" data-obw-clear>${_obEsc(i18t('ob_clear_filters'))}</button>` : ''}</section>`;
   /* THE FOOT, UNDER THE LAST WEEK, COUNTS WHAT THE TAB COUNTS: every row
      behind it, a folded week's too (its line says what it holds); Jambo's
@@ -4176,6 +4188,8 @@ function renderObligationsInspector(host, o){
   }
   obwPaintHead();
   /* "Clear the filters" under an empty list: every cut, the words too */
+  host.querySelectorAll('#obw-scroll [data-obw-add]').forEach(b => b.addEventListener('click', () => obwAddOpen()));
+  host.querySelectorAll('[data-obw-find]').forEach(b => b.addEventListener('click', () => obwAddOpen('find')));
   host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; f.q = ''; obwRepaint(); }));
   host.querySelectorAll('[data-obw-week]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); obwWeekToggle(b.getAttribute('data-obw-week')); obwRepaint(); obwPlaceKeep(); }));
   /* A FOLDED WEEK IS ONE LINE, pressed anywhere (round 16: "a folded week

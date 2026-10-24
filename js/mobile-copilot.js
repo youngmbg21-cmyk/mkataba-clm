@@ -33,7 +33,9 @@
    those three are a different root entirely.
    ============================================================================ */
 
-const M_AI_SCREENS = ['home','contracts','approvals','portfolio'];
+/* ROUND 6 (owner's yes, 24 Oct 2026): Home and Contracts carry Jambo's own box (Home's ask, Contracts' "or ask
+   Jambo"), so no floating button covers their lists; Approvals and Portfolio keep it as their door to him */
+const M_AI_SCREENS = ['approvals','portfolio'];
 
 /* ------------------------------------------------------------------ CSS ----*/
 const M_AI_CSS = `

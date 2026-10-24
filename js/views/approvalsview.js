@@ -676,6 +676,22 @@ function apTurnHtml(r){
   if(!fw) return esc(t);
   return `${esc(i18t('ap_wl_you'))} <span class="ap-for" title="${esc(t)}">${typeof icon==='function'?icon('user','ap-for-ic'):''}${esc(i18t('jl_for',{who:String(fw.name).split(/\s+/)[0]}))}</span>`;
 }
+/* which of Kind · Why it waits · Whose turn say the same in every row on screen (two rows or more) */
+function apSameCols(rows){
+  const L=rows||[];
+  if(L.length<2) return { kind:false, why:false, turn:false };
+  const one=f=>new Set(L.map(f)).size===1;
+  return { kind:one(r=>r.type), why:one(r=>apWhyLines(r).join(' \u00b7 ')), turn:one(r=>apTurnText(r)) };
+}
+/* the one line above the table that says, once, what every row shares: "All 16 wait on you. Each: an
+   approval · Value ≥ KES 5M · an Admin approves." Nothing is drawn when no column stepped out. */
+function apSameLineHtml(rows, same){
+  const L=rows||[], r=L[0];
+  if(!r||!(same.kind||same.why||same.turn)) return '';
+  const lead=same.turn?(L.every(x=>x.mine&&!x.done)?i18t('ap_same_you',{n:L.length}):i18t('ap_same_turn',{n:L.length,turn:apTurnText(r)})):i18t('ap_same_all',{n:L.length});
+  const each=[same.kind?i18t(r.type==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr'):'',same.why?apWhyLines(r).filter(Boolean).join(' \u00b7 '):''].filter(Boolean).join(' \u00b7 ');
+  return `<div class="ap-same" data-ap-same><b>${esc(lead)}</b>${each?` ${esc(i18t('ap_same_each',{what:each}))}`:''}</div>`;
+}
 function apKindHtml(r){
   return `<span class="ap-kind${r.type==='signature'?' is-sig':''}">${esc(i18t(r.type==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr'))}</span>`;
 }
@@ -824,7 +840,11 @@ function renderApprovalsPage(o){
   /* 1366 beside Jambo's panel (check A1 #2): Ref gives the party 4px, and a
      party's name takes a second line rather than be cut */
   /* Value 112 so a sum is never cut (Round 1, 24 Oct 2026); the 24 come out of Why, whose words wrap */
-  const head=[{t:i18t('reg_col_ref'),w:72},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:100},{t:i18t('ap_wl_why'),w:166},{t:i18t('ap_wl_turn'),w:188},{t:i18t('ap_pg_waiting'),w:120},
+  /* A COLUMN THAT SAYS THE SAME IN EVERY ROW STEPS OUT (Round 2, owner's yes 24 Oct 2026): Kind, Why it
+     waits and Whose turn are asked of the rows on screen; where two or more rows all say one thing, the
+     column goes and the fact is said once, in one line above the table (apSameLineHtml) */
+  const same=apSameCols(W.rows);
+  const head=[{t:i18t('reg_col_ref'),w:72},{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),...(same.why?[]:[{t:i18t('ap_wl_why'),w:166}]),...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('ap_pg_waiting'),w:120},
     ...(money?[{t:i18t('reg_col_value'),right:true,w:112}]:[]),...(INS?[]:[{t:'',w:220}])];
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
@@ -834,16 +854,16 @@ function renderApprovalsPage(o){
   };
   const row=r=>`<tr data-ap-row="${esc(r.c.id)}" data-ap-kind="${r.type}"${INS?' tabindex="-1"':''}>
       <td class="mono">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>${ident(r.c)}
-      <td>${apKindHtml(r)}</td>
-      <td>${apWhyHtml(r)}</td>
-      <td class="ap-turn" title="${esc(apTurnText(r))}">${apTurnHtml(r)}</td>
-      <td class="${r.done?'done':apLate(r)?'late':''}">${esc(r.done?i18t('ap_pg_approved'):r.idle==null?'—':apWaitingText(r.idle)+(apLate(r)?' \u00b7 '+i18t('jl_late'):''))}</td>
+      ${same.kind?'':`<td>${apKindHtml(r)}</td>`}
+      ${same.why?'':`<td>${apWhyHtml(r)}</td>`}
+      ${same.turn?'':`<td class="ap-turn" title="${esc(apTurnText(r))}">${apTurnHtml(r)}</td>`}
+      <td class="${r.done?'done':apLate(r)?'late':''}"${apLate(r)&&!r.done?` title="${esc(i18t('jl_late'))}"`:''}>${esc(r.done?i18t('ap_pg_approved'):r.idle==null?'—':apWaitingText(r.idle))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
       ${INS?'':`<td class="r">${acts(r)}</td>`}
     </tr>`;
   const n=W.rows.length, total=W.all.rows.length;
   const table=n
-    ? `<table class="ap-table${INS?' ap-ins':''}"><colgroup>${head.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${
+    ? `${apSameLineHtml(W.rows, same)}<table class="ap-table${INS?' ap-ins':''}"><colgroup>${head.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${
         W.rows.map(row).join('')}</tbody></table>`
     : `<div class="ap-empty">${esc(i18t(total?'ap_wl_none_match':'ap_wl_none'))}</div>`;
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */

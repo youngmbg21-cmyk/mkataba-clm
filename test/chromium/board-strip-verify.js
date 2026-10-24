@@ -207,14 +207,17 @@ const OBS = [
     await waitFor(page, () => !!document.getElementById('cp-input'), 4000);
     await page.type('#cp-input', 'Pallet', { delay: 8 });
     const pressed = await page.evaluate(() => { const i = commandPaletteResults('Pallet').findIndex(r => r.kind === 'contract'); const b = i >= 0 ? document.getElementById('cp-opt-' + i) : null; if (!b) return false; b.click(); return true; });
-    const up2 = pressed && await waitFor(page, s => !!document.querySelector(s), 8000, strip('MK-L2'));
-    /* RE-POINTED (round 7): the page shows the one brought up; the order is the strips' own */
-    const stack = await page.evaluate(() => hbS().strips.map(x => x.id).concat(bsCardId() === 'MK-L2' ? [] : ['not on the page']));
-    check('1c ⌘K\'s contract row brings it up too, and the newest strip stands first', up2 && JSON.stringify(stack) === JSON.stringify(['MK-L2', 'MK-L1']), JSON.stringify(stack));
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): a door that opened the room — ⌘K's
+       contract row, openWorkspace — lands on the paper with its Dossier (roomHomeLand), not on a strip; the
+       strip is still brought up by words and by hbStripBring, the one door, which the rest of this file uses */
+    const onPaper = id => waitFor(page, i => state.view === 'dashboard' && hbFace() === 'paper' && window.intel && intel.paper && intel.paper.id === i, 8000, id);
+    const up2 = pressed && await onPaper('MK-L2');
+    check('1c ⌘K\'s contract row lands on the paper with its Dossier', up2 && !(await roomSeen()), JSON.stringify(await page.evaluate(() => ({ face: hbFace(), id: window.intel && intel.paper && intel.paper.id }))));
     await page.evaluate(() => openWorkspace('MK-L1'));
+    const up3 = await onPaper('MK-L1');
+    check('1d the room\'s old door (openWorkspace) lands on the paper with its Dossier too, never the room', up3 && !(await roomSeen()), JSON.stringify(await page.evaluate(() => ({ face: hbFace(), id: window.intel && intel.paper && intel.paper.id }))));
+    await page.evaluate(() => { hbStripBring('MK-L2', 'ov'); hbStripBring('MK-L1', 'ov'); });
     await waitFor(page, () => document.querySelector('#bs-strips > .bs-strip') && document.querySelector('#bs-strips > .bs-strip').getAttribute('data-bs-id') === 'MK-L1', 6000);
-    const stack2 = await page.evaluate(() => hbS().strips.map(x => x.id).concat(bsCardId() === 'MK-L1' ? [] : ['not on the page']));
-    check('1d the room\'s old door (openWorkspace) brings the strip up instead, to the top, never twice', JSON.stringify(stack2) === JSON.stringify(['MK-L1', 'MK-L2']) && !(await roomSeen()), JSON.stringify(stack2));
     /* the whole record is fetched behind it (the brief rides it) */
     await waitFor(page, () => { const c = getContract('MK-L1'); return !!(c && c._brief) && !!document.querySelector('#bs-strip-MK-L1 .bs-brief') && !document.querySelector('#bs-strip-MK-L1 .bs-brief .ob-spin'); }, 10000);
     await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); const host = document.getElementById('hb-board'); host.scrollTop += el.getBoundingClientRect().top - host.getBoundingClientRect().top - 8; });
@@ -263,7 +266,7 @@ const OBS = [
     /* RE-POINTED 18 Oct 2026 (round 7 as drawn): "Open the paper" */
     /* RE-POINTED 20 Oct 2026 (4b, owner picked it): Open stands in the head as "Open in Workspace ›" */
     const headOpen = await page.evaluate(() => ((document.querySelector('#bs-strip-MK-L1 .bs-head [data-bs-open]') || {}).textContent || '').trim());
-    check('2s the foot: Keep · Ask why · Let it go; Open in Workspace › in the head', JSON.stringify(R.foot) === JSON.stringify(['Keep', 'Ask why', 'Let it go']) && headOpen === 'Open in Workspace ›', JSON.stringify({ foot: R.foot, headOpen }));
+    check('2s the foot: Keep · Ask why · Let it go; Open in Workspace › in the head', JSON.stringify(R.foot) === JSON.stringify(['Keep', 'Ask why', 'Let it go']) && headOpen === 'Open the paper ›' /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): it opens the paper, and says so */, JSON.stringify({ foot: R.foot, headOpen }));
     /* the doors land where they say, nothing spent */
     await page.click(`${strip('MK-L1')} [data-bs-go="oblig"]`);
     /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "obligations has its own panel") */
@@ -331,7 +334,8 @@ const OBS = [
     await page.click(M('#hist-detail'));
     await pause(300);
     const H3 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
-      return { red: host.querySelectorAll('.hist-ev.is-theirs .hist-redline').length, btn: (host.querySelector('#hist-detail') || {}).textContent }; });
+      /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the wording takes the whole width, on its own row under its event */
+      return { red: host.querySelectorAll('.hist-ev.is-theirs + .hist-wfull .hist-redline, .hist-ev.is-theirs .hist-redline').length, btn: (host.querySelector('#hist-detail') || {}).textContent }; });
     check('3i Show the wording puts each proposal\'s words under it, in its lane', H3.red >= 1 && /Hide the wording/.test(H3.btn), JSON.stringify(H3));
     await shot('3-history-theirs-wording');
     await page.click(M('#hist-detail'));
@@ -475,8 +479,9 @@ const OBS = [
     await page.evaluate(() => { openWorkspace('MK-L1', { room: true }); });
     await waitFor(page, () => state.view === 'workspace', 6000);
     await page.evaluate(() => { setView('dashboard'); state.activeId = 'MK-L1'; setView('workspace'); });
-    const forgot = await waitFor(page, () => state.view === 'dashboard' && document.querySelector('#bs-strips > .bs-strip') && document.querySelector('#bs-strips > .bs-strip').getAttribute('data-bs-id') === 'MK-L1', 6000);
-    check('10f once the room opened by name is left, a later door to that contract opens its strip, not the room', forgot);
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): the later door lands on the paper with its Dossier */
+    const forgot = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'paper' && window.intel && intel.paper && intel.paper.id === 'MK-L1', 6000);
+    check('10f once the room opened by name is left, a later door to that contract opens its paper and Dossier, not the room', forgot);
     /* 10g a signed contract: who signed, its value as amended
        RE-POINTED 21 Oct 2026 (the report simplified): no dots or chart on the card; the line is Today · Ends */
     await page.evaluate(() => hbStripBring('MK-L3'));
@@ -508,16 +513,19 @@ const OBS = [
     check('7a a door that named Where we are opens the strip on Where we are', st && !(await roomSeen()));
     await roomReset();
     await page.goto(`${h.base}/?n=1#contract=MK-L1`, { waitUntil: 'networkidle' });
-    const link = await waitFor(page, () => window.state && state.view === 'dashboard' && !/contract=/.test(location.hash) && document.querySelector('#bs-strips > .bs-strip') && document.querySelector('#bs-strips > .bs-strip').getAttribute('data-bs-id') === 'MK-L1', 15000);
-    check('7b an email link with no tab opens the strip, the room never drawn', link && !(await roomSeen()));
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes): an email link with no tab lands on the paper with its Dossier */
+    const link = await waitFor(page, () => window.state && state.view === 'dashboard' && !/contract=/.test(location.hash) && hbFace() === 'paper' && window.intel && intel.paper && intel.paper.id === 'MK-L1', 15000);
+    check('7b an email link with no tab opens the paper with its Dossier, the room never drawn', link && !(await roomSeen()));
     await page.evaluate(() => openWorkspace('MK-L1', { room: true }));
     const byName = await waitFor(page, () => state.view === 'workspace' && !!document.getElementById('ws-tabs'), 8000);
     check('7c the room is still drawn by name (openWorkspace(id, { room: true })), for the checks that test its insides', byName);
     await roomReset();
     await page.reload({ waitUntil: 'networkidle' });
     await waitFor(page, () => window.state && state.contracts && state.contracts.length > 0, 15000);
-    const rf = await waitFor(page, () => state.view === 'dashboard' && !!document.getElementById('bs-strip-MK-L1'), 10000);
-    check('7d a refresh standing on the room opens the strip instead', rf && !(await page.evaluate(() => state.view === 'workspace' || !!document.getElementById('ws-tabs'))));
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes): a refresh standing on the room comes back as the paper with its Dossier */
+    const rf = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'paper' && window.intel && intel.paper && intel.paper.id === 'MK-L1', 10000);
+    check('7d a refresh standing on the room opens the paper and its Dossier instead', rf && !(await page.evaluate(() => state.view === 'workspace' || !!document.getElementById('ws-tabs'))));
+    await page.evaluate(() => hbStripBring('MK-L1', 'ov'));
 
     /* ===== 8. SVENSKA ===== */
     await toBoard();

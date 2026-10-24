@@ -9159,7 +9159,7 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
         kind: BREAKDOWN_KINDS.includes(r.kind) ? r.kind : 'protect', headline: str(r.headline, 140), sentence: str(r.sentence, 400),
         meaning: str(r.meaning, 500), fix: str(r.fix, 300), ours: str(r.ours, 240), here: str(r.here, 240), stake: str(r.stake, 240), quotes, items };
     }).filter(Boolean);
-    if (!regions.length) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before it could cut the contract into regions. Try again.' : 'Jambo found no regions in this wording.' });
+    if (!regions.length) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before it could cut the contract into regions. Try again.' : 'Jambo could not split this wording into clauses this time.' });
     const links = (Array.isArray(block.input.links) ? block.input.links : []).map(l => ({ a: Math.round(Number(l && l.a)), b: Math.round(Number(l && l.b)), why: str(l && l.why, 120) }))
       .filter(l => l.a >= 1 && l.b >= 1 && l.a <= regions.length && l.b <= regions.length && l.a !== l.b && l.why).slice(0, 6);
     const rawPts = (Array.isArray(block.input.points) ? block.input.points : []).filter(p => p && p.title && p.stake).slice(0, BREAKDOWN_POINTS_MAX);

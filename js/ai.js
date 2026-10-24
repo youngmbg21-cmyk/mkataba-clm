@@ -3207,6 +3207,9 @@ function updateAiBrainPill(){
   const el=document.getElementById('ai-brain-sub'); if(!el) return;
   const b=copilotBrainInfo();
   el.title=b.hint;
+  /* NO MODEL NAME UNDER HIS NAME WHILE ALL IS WELL (Round 3, owner's yes 24 Oct 2026: it was cut to "✦ Claude Jam…");
+     a missing key still says so where the reader looks — the basic brain keeps its line */
+  el.hidden=!!b.live;
   el.innerHTML=b.live
     ? `<span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span>✦ ${b.label}`
     : `<span class="h-1.5 w-1.5 rounded-full" style="background:#c79a3e;"></span>${b.label}`;

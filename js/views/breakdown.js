@@ -312,8 +312,11 @@ function stkHeadHtml(c, b, all){
        with the same press and its cost (jamboOnPress) */
     const waits = !_bd.tried[stkKey(c)] && typeof jamboOnPress === 'function' && jamboOnPress(c);
     if (busy || (!err && !noKey && !waits && !_bd.tried[stkKey(c)])) return `<div class="stk-head is-empty">${view}<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${bdBusyHtml()}</span><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div></div>`;
-    const why = err || (noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_read_sub'));
-    return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="${err ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
+    /* NOTHING KEPT YET, SAID PLAINLY (Round 3, owner's yes 24 Oct 2026): "Not read yet. Plain English for each clause,
+       and what to watch, in one reading." in grey; a reading that failed still says why, under it, never in red;
+       the button says what it does — "Read the clauses" — and its cost beside it, "1 Jambo call" */
+    const why = noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_not_read');
+    return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="stk-sub" role="status">${_bdE(why)}</p>${err ? `<p class="stk-sub stk-why" role="status">${_bdE(err)}</p>` : ''}${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_read_clauses'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost_one'))}</span></div>`}</div>`;
   }
   /* MARQUEE (owner picked it by name, 23 Oct 2026; the navigation kept as it was, the owner's own words):
      a serif headline — how many clauses need you — one sentence naming where to start, and the clauses
@@ -347,12 +350,15 @@ function stkClauseName(at){
 }
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
-  const title = T.need ? i18tn('stk_mq_title', T.need, { n: T.need }) : i18t('stk_mq_title_none');
+  /* THE SAME HEAD AS REDLINES (owner picked "The SAP Way", 24 Oct 2026): the name in the serif, its count, then a
+     grey line of what needs you — "Clauses 9 · 3 need you · 5 worth a look" — then the tabs */
+  const said = [T.need ? i18t('stk_mq_need', { n: T.need }) : '', T.look ? i18t('stk_mq_look', { n: T.look }) : ''].filter(Boolean).join(' \u00b7 ');
+  const title = `<span class="stk-mq-name">${E(i18t('pd_tab_clauses'))}</span>${T.all ? ` <i class="stk-mq-n">${T.all}</i>` : ''}${said ? `<span class="stk-mq-s">\u00b7 ${E(said)}</span>` : ''}`;
   /* SPINE ROUND (owner, 23 Oct 2026: "below '3 clauses need you', remove all the other supporting words"):
      the headline alone, then the tabs; stk_mq_read and stk_mq_start are inert */
   const tab = (k, word, n) => (n || k === '' || _stk.f.sev === k)
     ? `<button type="button" role="tab" class="stk-tab" data-stk-tab="${k}" aria-selected="${_stk.f.sev === k}">${E(word)}<span>${n}</span></button>` : '';
-  return `<h3 class="stk-mq-t">${E(title)}</h3>${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}`
+  return `<h3 class="stk-mq-t">${title}</h3>${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}`
     + `<div class="stk-tabs" role="tablist">${tab('', i18t('stk_f_all'), T.all)}${tab('need', i18t('bd_st_need'), T.need)}${tab('look', i18t('bd_st_look'), T.look)}${tab('fine', i18t('stk_tab_fine'), T.fine)}${stkMoreHtml(all)}</div>`
     + (stkMoreOpen() ? stkMoreBoxesHtml(all) : '');
 }

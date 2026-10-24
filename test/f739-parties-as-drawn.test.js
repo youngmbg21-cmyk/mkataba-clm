@@ -127,8 +127,10 @@ describe('f739 (2) the list as drawn', () => {
     assert.equal(doc.querySelector('.cu-table thead th').getAttribute('title'), 'sorted by name');
     assert.ok(doc.querySelector('[data-lh-seat="customers"] .lh-chips [data-lc-btn="customers"]'));
   });
-  test('the columns as drawn, City after the party', () => {
-    assert.deepEqual([...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent), ['Party', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA']);
+  /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): a column empty for every party steps out — no party here has a
+     city or an NDA, so City and NDA are not drawn (f739 (3) draws City the day one has) */
+  test('the columns as drawn, a column empty for everyone left out', () => {
+    assert.deepEqual([...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent), ['Party', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you']);
     const kf = doc.querySelector('[data-cu-cust="kenya freight ltd"]');
     assert.equal(kf.querySelector('.cu-ps').textContent, '2 agreements · Procurement');
     assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] .cu-ps').textContent, '1 agreement · Procurement');
@@ -149,7 +151,7 @@ describe('f739 (2) the list as drawn', () => {
     sb.localStorage.setItem('hati.v1.cols.customers', JSON.stringify({ order: ['nda', 'city'], hidden: ['paper'] }));
     sb.renderCustomers();
     const th = [...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent);
-    assert.deepEqual(th, ['Party', 'NDA', 'City', 'Live', 'Ended', 'Next to end', 'Waiting on you']);
+    assert.deepEqual(th, ['Party', 'Live', 'Ended', 'Next to end', 'Waiting on you'], 'City and NDA, empty for everyone, stay out; On paper hidden by the reader');
     assert.equal(doc.querySelector('#cu-tbody tr').children.length, th.length, 'every row draws the columns the head does');
     sb.localStorage.removeItem('hati.v1.cols.customers');
   });
@@ -312,7 +314,9 @@ describe('f739 (7) check #1\'s differences, built', () => {
     const td = sb.cuCellHtml('waiting', { key: 'k' }, { needs: [{ c: { id: 'A' }, it: { kind: 'details' } }, { c: { id: 'B' }, it: { kind: 'details' } }] }, new Map());
     assert.match(td, /<span class="cu-wait-t">[^<]+<\/span><span class="cu-wait-more">\+1 more<\/span>/);
     const w = sb.cuColDefs().find(c => c.k === 'waiting').w;
-    assert.ok(w >= 184, `the column is ${w}px`);
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): 166 pays for Ended reading whole in Swedish and On paper's sum;
+       parties-and-people-verify 9e measures that nothing on the page is cut, in both languages */
+    assert.ok(w >= 166, `the column is ${w}px`);
   });
   test('7d a fact with nothing in it is left out of the panel, as drawn for Kettle & Co', () => {
     const { sb, doc } = stage();

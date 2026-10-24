@@ -129,7 +129,7 @@ describe('f869 (2) the bell\'s signals: news apart, work never lost, never twice
     assert.equal(sub.deal, 'They asked for 2 changes · Agreement MK-3 · Helio Energy AB', 'what came back leads its line');
     const good = w.ndParts({ g: 'you', key: 'k', al: al('cp-ready', 'MK-1', 'Ready', { tone: 'green', news: true }) });
     assert.ok(good.good && good.news, 'good news is green and flashes');
-    assert.match(w.ndHomeRowHtml({ g: 'you', key: 'k', al: al('cp-ready', 'MK-1', 'Ready', { tone: 'green', news: true }) }), /class="cn-r nd-r nd-good nd-news"/);
+    assert.match(w.ndHomeRowHtml({ g: 'you', key: 'k', al: al('cp-ready', 'MK-1', 'Ready', { tone: 'green', news: true }) }), /class="cn-r nd-r nd-named nd-good nd-news"/);
     assert.equal(P.btn, 'sign');
     assert.match(P.attrs, /^data-nd-al="al:cp-ready:MK-1:[a-z0-9]+"$/);
     assert.equal(w.ndParts(A[2]).btn, 'review');
@@ -168,7 +168,7 @@ describe('f869 (3) the bell\'s panel, the Legora way', () => {
       alerts: [al('cp-ready', 'MK-3', 'Ready'), al('handover', 'MK-2', 'Out for signature')] });
     const html = w.ndPanelHtml(w.ndRead());
     assert.match(html, /^<div class="nd-pan-sum">1 late<\/div>/);
-    assert.equal((html.match(/class="cn-r nd-r"/g) || []).length, 6, 'all of it: no "Show all" in the panel');
+    assert.equal((html.match(/class="cn-r nd-r[ "]/g) || []).length, 6, 'all of it: no "Show all" in the panel');
     assert.ok(!/data-nd-all/.test(html));
     assert.ok(html.indexOf('data-nd-g="jambo"') < html.indexOf('data-nd-g="you"'), 'Jambo\'s group first');
   });

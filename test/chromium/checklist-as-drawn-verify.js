@@ -63,7 +63,11 @@ const MEASURE = () => {
         lines: [...s.querySelectorAll('.ds-sp-st')].filter(vis).map(x => ((x.querySelector('b') || {}).textContent || '').trim()),
         spCur: [...s.querySelectorAll('.ds-sp-st.is-cur')].map(x => ((x.querySelector('b') || {}).textContent || '').trim()),
         words: !!dock.querySelector('.ds-mq-t, .ds-mq-s'), party: /Bamburi/.test(s.textContent || ''),
-        needsHead: vis(dock.querySelector('#pd-needs > .pd-gl-h')) }; })(),
+        needsHead: vis(dock.querySelector('#pd-needs > .pd-gl-h')),
+        /* ROUND 4 (owner's "mix", 24 Oct 2026): the six stages one line across, the one in focus ringed */
+        ln: [...dock.querySelectorAll('.ds-ln-st')].filter(vis).map(x => ((x.querySelector('b') || {}).textContent || '').trim()),
+        lnCur: [...dock.querySelectorAll('.ds-ln-st.is-cur')].filter(vis).length }; })(),
+    saveAll: vis(dock.querySelector('[data-pd-og-saveall]')),
     head: ((dock.querySelector('#pd-needs .pd-gl-h') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
     rows: rows.map(r => ({ key: r.getAttribute('data-pd-og-row'), open: r.classList.contains('is-open'),
       h: Math.round((r.querySelector('.pd-ck-hd') || r).getBoundingClientRect().height),
@@ -118,8 +122,10 @@ const MEASURE = () => {
        which stage and how many things need you, then six bars with ONE current */
     /* RE-POINTED 23 Oct 2026 (owner picked "Spine"): no headline, no sentence, no name of the other side; the six
        stages down the line, ONE current (Negotiate), and no "Needs you" head over the rows */
-    check('1a six stage lines down the spine, ONE current (Negotiate), no headline, sentence or party, no Needs you head', !!m0.stage
-      && m0.stage.lines.join('|') === 'Arrived|Read|Fill in|Negotiate|Sign|Live' && m0.stage.spCur.join('|') === 'Negotiate'
+    /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the six stages are ONE line across with ticks and dates, the
+       one in focus ringed; still no headline, sentence or party, no Needs you head */
+    check('1a six stages on one line across, ONE in focus, no headline, sentence or party, no Needs you head', !!m0.stage
+      && m0.stage.ln.join('|') === 'Arrive|Read|Fill|Negotiate|Sign|Live' && m0.stage.lnCur === 1
       && !m0.stage.words && !m0.stage.party && !m0.stage.needsHead, JSON.stringify(m0.stage));
 
     console.log('\n2 · Needs you, one line a fact, one open');
@@ -131,8 +137,10 @@ const MEASURE = () => {
       .every(e => { const s = getComputedStyle(e); return ['Top', 'Bottom'].every(k => !(parseFloat(s['border' + k + 'Width']) > 0 && s['border' + k + 'Style'] !== 'none')); })));
     const owed = m0.rows.filter(r => r.key !== 'stream');
     /* RE-POINTED 23 Oct 2026 (Marquee): one height, 44 */
-    check('2b every row\'s line is one height (44)', owed.length >= 4 && owed.every(r => r.h === 44), JSON.stringify(owed.map(r => [r.key, r.h])));
-    check('2c exactly one row is open and only it shows its box', owed.filter(r => r.open).length === 1 && owed.every(r => r.box === r.open), JSON.stringify(owed.map(r => [r.key, r.open, r.box])));
+    /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix", "the entry is the SAP way: labelled fields at full width ...
+       One Save"): every owed fact shows its field (a door row, the signers, keeps its button), and ONE Save stands */
+    check('2b every owed fact shows its field, labelled above it', owed.length >= 4 && owed.filter(r => r.key !== 'signers').every(r => r.box), JSON.stringify(owed.map(r => [r.key, r.box])));
+    check('2c one Save for them all, no Confirm on each row', m0.saveAll && owed.filter(r => r.key !== 'signers').every(r => !r.ok), JSON.stringify({ save: m0.saveAll, ok: owed.map(r => [r.key, r.ok]) }));
     check('2d a missing fact says "Missing" on its line', owed.some(r => /Missing/.test(r.words)), JSON.stringify(owed.map(r => r.words)));
     check('2e the order: stage, Needs you, Jambo read, Next acts, then Key terms and the folds',
       m0.order.indexOf('stage') < m0.order.indexOf('owed') && m0.order.indexOf('owed') < m0.order.indexOf('read')
@@ -145,7 +153,7 @@ const MEASURE = () => {
     const m1 = await page.evaluate(MEASURE);
     const r1 = k => m1.rows.find(r => r.key === k) || {};
     check('3a the row pressed is open, the one open before is closed', r1(other.key).open && r1(other.key).box && !r1(first.key).open, JSON.stringify({ was: first.key, now: other.key }));
-    check('3b its Confirm stands with it', r1(other.key).ok === true);
+    check('3b its field and the one Save stand with it (RE-POINTED 24 Oct 2026, Round 4: one Save)', r1(other.key).box === true && m1.saveAll === true);
     await page.click(`#ig-dock #pd-og [data-pd-ck-row="${other.key}"]`); await pause(150);
     const m2 = await page.evaluate(MEASURE);
     check('3c pressed again it closes, and none is open', m2.rows.every(r => !r.open), JSON.stringify(m2.rows.map(r => [r.key, r.open])));
@@ -164,9 +172,11 @@ const MEASURE = () => {
       a0.length === 3 && /^Import their Word file$/.test(a0[0].t) && /^All \d+ ›$/.test(a0[2].t) && Math.abs(a0[0].top - a0[2].top) <= 4, JSON.stringify(a0));
     await page.click('#ig-dock [data-pd-acts-all]'); await pause(150);
     const m3 = await page.evaluate(MEASURE);
-    check('6b "All acts N ›" opens the room\'s whole list', m3.allOpen === true);
+    /* RE-POINTED 24 Oct 2026 (Round 3, "The SAP Way"): All N › drops the same menu card as Actions; the Dossier never moves */
+    const pop1 = await page.evaluate(() => !!document.getElementById('pd-acts-pop'));
+    check('6b "All N ›" drops the room\'s whole list as its own menu card, the Dossier untouched', pop1 && m3.allOpen === false, JSON.stringify({ pop1, fold: m3.allOpen }));
     await page.click('#ig-dock [data-pd-acts-all]'); await pause(150);
-    check('6c pressed again it folds', (await page.evaluate(MEASURE)).allOpen === false);
+    check('6c pressed again it goes', !(await page.evaluate(() => !!document.getElementById('pd-acts-pop'))));
 
     console.log('\n7 · one signer button');
     /* RE-POINTED 22 Oct 2026 (owner: the signer boxes and their buttons went; "the use for it is in the pop up"):

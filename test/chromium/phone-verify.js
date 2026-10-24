@@ -123,11 +123,13 @@ const PROBE = () => {
         rootShown: !document.getElementById('m-root').hidden,
         tabs: !!document.querySelector('.m-tabs'),
         fab: !!document.querySelector('.m-ai-fab'),
+        ask: !!document.querySelector('#m-ask'),
       }));
       check(`${P.name}/${theme}: the desktop shell is gone`, shell.shellHidden);
       check(`${P.name}/${theme}: the phone root is the page`, shell.rootShown);
       check(`${P.name}/${theme}: the tab bar is there`, shell.tabs);
-      check(`${P.name}/${theme}: Jambo launcher is there`, shell.fab);
+      /* RE-POINTED 24 Oct 2026 (Round 6, owner's yes): Home's ask box IS Jambo, so no floating button covers the list */
+      check(`${P.name}/${theme}: Jambo is Home's ask box, no floating button`, shell.ask && !shell.fab, JSON.stringify(shell));
 
       const SCREENS = [
         ['home', () => window.mGo('home')],

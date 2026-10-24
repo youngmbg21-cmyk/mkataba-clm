@@ -256,7 +256,8 @@ describe('f861 (6) the box', () => {
     const inp = head.querySelector('input[data-lh-q]');
     assert.equal(inp.value, evil);
     assert.equal(head.querySelector('img'), null);
-    assert.equal(inp.getAttribute('placeholder'), 'Search, or ask across 189 contracts');
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Contracts says its count once, at the foot */
+    assert.equal(inp.getAttribute('placeholder'), 'Search contracts, or ask Jambo');
     assert.equal(inp.getAttribute('type'), 'search');
   });
   test('plain words narrow through the page\'s own query; Enter spends nothing', () => {
@@ -326,7 +327,8 @@ describe('f861 (8) both books carry every lh_ word', () => {
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], `${k} in ${lang}`);
       assert.equal((src.match(new RegExp(`\\n    ${k}:`, 'g')) || []).length, 2, `${k} once in each book`);
     }
-    for (const n of NOUNS) assert.match(EN['lh_ph_' + n + '_other'], /\{n\}/, n + ' counts its book');
+    for (const n of NOUNS) if (n !== 'contracts') assert.match(EN['lh_ph_' + n + '_other'], /\{n\}/, n + ' counts its book');
+    assert.equal(EN.lh_ph_contracts_other, 'Search contracts, or ask Jambo', 'Contracts says its count once, at the foot (Round 2)');
     assert.equal(EN.lh_range, '{a}–{b} of {n}');
     assert.equal(EN.lh_more, 'Show {n} more');
     assert.ok(!/⌘K|—/.test(EN.lh_ph_contracts_other), 'no example after a dash, no ⌘K hint');

@@ -285,8 +285,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the fold's line is "Family" and what stands, a row like the rest */
       && /^Family\s*Original and 1 more in its family/.test(P7.fam), JSON.stringify(P7 && { rows: P7.rows, fam: P7.fam }));
     check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask Jambo about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));
-    check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open in Workspace ›"',
-      !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /^7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open in Workspace ›',
+    check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open the paper ›" (RE-POINTED 24 Oct 2026, Round 2: it opens the paper and says so)',
+      !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /^7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open the paper ›',
       JSON.stringify(P7 && { stage: P7.stage, idline: P7.idline, value: P7.value, next: P7.next, foot: P7.sfoot }));
     check('5d a page\'s chips sit right under its card, none in the panel\'s foot row', !!P7 && P7.under != null && P7.under >= 0 && P7.under <= 24 && P7.foot === 0, JSON.stringify(P7 && { under: P7.under, foot: P7.foot }));
     check('5e the late obligation is a Needs you row saying how late (the report simplified, 21 Oct 2026)', !!P7 && /Check the September invoice/.test(P7.cap) && /7 days late/.test(P7.cap), JSON.stringify(P7 && { cap: P7.cap }));

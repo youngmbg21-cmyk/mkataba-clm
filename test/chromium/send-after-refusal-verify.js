@@ -98,7 +98,10 @@ const DOC = ['RAW MATERIAL SUPPLY AGREEMENT', '', '1. Supply', '', 'The Supplier
        our answers are; its own Send hands the round back */
     const letter = await page.waitForFunction(() => { const L = document.getElementById('sh-letter'), b = document.getElementById('share-send');
       return L && b && !b.disabled ? L.textContent.replace(/\s+/g, ' ').trim() : null; }, null, { timeout: 10000 }).then(x => x.jsonValue(), () => null);
-    ok('4a the press opens the letter, saying our answer goes back', !!letter && /has answered/.test(letter), (letter || '').slice(0, 900));
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): this stage has no email set up, so the letter opens on the
+       link (its button "Copy the link"); the email's "has answered" body is not drawn for a link nobody mails */
+    const btnWord = await page.evaluate(() => (document.getElementById('share-send') || {}).textContent || '');
+    ok('4a the press opens the letter; with no email set up it offers the link to copy', !!letter && /Nothing is emailed from here/.test(letter) && /Copy the link/.test(btnWord), (letter || '').slice(0, 900) + ' · ' + btnWord);
     if (letter) await page.evaluate(() => document.getElementById('share-send').click());
     const handed = await page.waitForFunction(() => { const c = getContract('MK-SR1'); return c.negotiation && c.negotiation.turn === 'counterparty'; }, null, { timeout: 10000 }).then(() => true, () => false);
     await page.waitForTimeout(600);
