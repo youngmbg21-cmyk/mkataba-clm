@@ -5289,7 +5289,7 @@ function shareLetterOf(c, st){
     const p=_shCol.picks[0];
     return { ...passMailOf({ t:(k,v)=>i18t(k,v), sender:me.name||'', title:me.title||'', org:FIRST_PARTY, recName:p?p.name:'',
       ref:(typeof contractRef==='function')?contractRef(c):c.id, cName:c.name, code:cn.code, note:base.message, link:null,
-      fromJambo:_shCol.fromJambo }), head:true, letter:true, colleague:true };
+      fromJambo:_shCol.fromJambo, review:_shCol.review }), head:true, letter:true, colleague:true };
   }
   if(ch==='link') return { none:true, parts:[] };
   if(ch==='whatsapp') return { ...shareWaTextOf({ ...base, expires:API_MODE()?shareLetterExpires():null }), wa:true };
@@ -5459,11 +5459,11 @@ function shareLetterToPaint(ch){
    What belongs to the other side stands down while it is chosen, by one
    attribute on the page (data-sh-col) the screen's rules read, so a painter
    that shows a row again cannot bring it back under "a colleague". */
-let _shCol = { cid:null, picks:[], fromJambo:false, onSent:null, on:0, open:false };
+let _shCol = { cid:null, picks:[], fromJambo:false, review:false, onSent:null, on:0, open:false };
 function shareColReset(c, o){
   const x=o||{};
   _shCol = { cid:c?String(c.id):null, picks:(Array.isArray(x.colleagues)?x.colleagues:[]).filter(p=>p&&p.id).map(p=>({ id:String(p.id), name:String(p.name||'') })),
-    fromJambo:!!x.fromJambo, onSent:typeof x.onColleagueSent==='function'?x.onColleagueSent:null, on:0, open:false };
+    fromJambo:!!x.fromJambo, review:!!x.review, onSent:typeof x.onColleagueSent==='function'?x.onColleagueSent:null, on:0, open:false };
   shareColAttr(false);
 }
 function shareColOn(){ return typeof document!=='undefined' && document.documentElement.hasAttribute('data-sh-col'); }
@@ -8623,7 +8623,7 @@ async function openShareModal(c, opts={}){
     if(note.length>max){ toast(i18t('sh_col_note_cap', { n:note.length, max }),'err'); return false; }
     if(typeof caPassSend!=='function'){ toast(i18t('ca_failed', { who:picks.map(p=>p.name).join(', ') }),'err'); return 'failed'; }
     const outs=[];
-    for(const p of picks) outs.push(Object.assign({ name:p.name }, await caPassSend(c, p, note, { fromJambo:_shCol.fromJambo, door:'send' })));
+    for(const p of picks) outs.push(Object.assign({ name:p.name }, await caPassSend(c, p, note, { fromJambo:_shCol.fromJambo, review:_shCol.review, door:'send' })));
     persist(c); try{ renderAuditSection(c); }catch(_){}
     const bad=outs.filter(o=>o.state==='failed');
     if(bad.length===outs.length){ toast(bad.map(o=>o.said||o.why).filter(Boolean).join(' ')||i18t('ca_failed', { who:picks.map(p=>p.name).join(', ') }),'err'); return 'failed'; }

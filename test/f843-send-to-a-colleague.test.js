@@ -93,7 +93,7 @@ describe('f843 (3) — the screen presses the one door', () => {
     assert.ok(send.indexOf("if(purposeSel==='colleague') return shareColSend(c);") >= 0);
     assert.ok(send.indexOf("if(purposeSel==='colleague') return shareColSend(c);") < send.indexOf('linkRefusal('));
     const col = CORE.slice(CORE.indexOf('const shareColSend=async(c)=>{'), CORE.indexOf('const doSend=async()=>{'));
-    assert.match(col, /await caPassSend\(c, p, note, \{ fromJambo:_shCol\.fromJambo, door:'send' \}\)/);
+    assert.match(col, /await caPassSend\(c, p, note, \{ fromJambo:_shCol\.fromJambo, review:_shCol\.review, door:'send' \}\)/);
     assert.ok(!/api\(/.test(col), 'no second route');
   });
   test('3c the browser\'s note cap is the route\'s', () => {
@@ -101,7 +101,8 @@ describe('f843 (3) — the screen presses the one door', () => {
     assert.equal(Number(CA.match(/const CA_NOTE_MAX = (\d+);/)[1]), SM.PASS_NOTE_MAX);
   });
   test('3d "send the above summary to @…" opens the screen on "a colleague", Jambo\'s words as the note', () => {
-    assert.match(CA, /openShareModal\(c, \{ purpose: 'colleague', colleagues: \[\{ id: a\.person\.id, name: a\.person\.name \}\], note: a\.note, fromJambo: true/);
+    /* a summary is Jambo's (its subject says so); Share inside the company's send is not (24 Oct 2026) */
+    assert.match(CA, /openShareModal\(c, \{ purpose: 'colleague', colleagues: \[\{ id: a\.person\.id, name: a\.person\.name \}\], note: a\.note, fromJambo: !a\.share/);
   });
 });
 
