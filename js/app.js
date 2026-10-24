@@ -1211,6 +1211,8 @@ function viewPaint(what, fn){
 }
 let _roomByName=null;   /* the contract whose room was opened BY NAME (openWorkspace's opts.room, step 8) */
 function setView(view){
+  /* a figure's list on the Board goes with the page it lay over (hbSheetLetGo) */
+  if(typeof window!=='undefined' && typeof window.hbSheetLetGo==='function') try{ window.hbSheetLetGo(); }catch(_){ }
   /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */
   if(typeof window!=='undefined' && window._cnSignedIn && view!=='counter') window._cnSignedIn=false;
   /* THE COUNTER IS THE COMPUTER'S (Round 1, 17 Oct 2026): the phone draws its own Home */
