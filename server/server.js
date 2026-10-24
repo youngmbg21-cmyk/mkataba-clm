@@ -7983,7 +7983,8 @@ const graphAskHandler = async (req, res) => {
       choices: onBoard ? graphBoardChoicesClean(out.choices) : null,
       ask: Array.isArray(out.ask) ? out.ask.slice(0, 3).map(o => ({ role: String((o && o.role) || '').slice(0, 20), fact: String((o && o.fact) || '').slice(0, 40) })) : null,
       look: graphLookClean(out.look),
-      goto: aiGotoOf(out.goto, copilotCtx(req)),
+      /* the map's answer keeps the chat's rule: a plain question answered in words is no trip to a page to look at */
+      goto: (() => { const f = { goto: aiGotoOf(out.goto, copilotCtx(req)), answer: typeof out.answer === 'string' ? out.answer : '' }; copilotQuestionStays(query, f); return f.goto || null; })(),
       ...aiNotice(req, resp) }, onBoard && !graphMapAsked(query)));
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 };
@@ -13221,12 +13222,21 @@ function copilotNotNewPaper(question, final) {
   const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
   if (/^\s*(?:the|this|that|these|those|our|their|my|its|den|det|dessa|vårt|vår|våra|mitt|min)\s/i.test(q)) delete final.goto;
 }
+/* …AND A PAGE TO LOOK AT IS NO TRIP EITHER (owner, 24 Oct 2026: "i am kicked out and dropped to the home page";
+   "fix the other pages too"): "what should i be concerned with today" answered in words is not also a move to
+   what needs you, the calendar or a list — the answer stays in the box it was asked in, on every page. A trip
+   with no exact door to one of these places is dropped; "how do I get to…", "where / show me" still go, and a
+   place that is an ACT (draft, upload, share, sign, a setting, the brief, our paper, our standards) keeps its trip */
+const COPILOT_LOOK_TASKS = ['needs', 'contracts', 'expiring', 'oblig', 'history', 'calendar', 'approvals', 'parties', 'people', 'requests', 'board', 'insights', 'explorer'];
+const COPILOT_WAY_RE = /\b(how (do|can|would|should) (i|we) (get|go|reach|find)|get to|go to|navigate|bring me|hur (kommer|hittar) (jag|vi)|gå till|ta mig)\b/i;
 function copilotQuestionStays(question, final) {
-  const d = final && final.goto && final.goto.door; if (!d) return;
+  const g = final && final.goto; if (!g) return;
+  const d = g.door;
   const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
   if (!COPILOT_ASKS_RE.test(q) || COPILOT_SHOW_RE.test(q)) return;
   const said = String(final.answer || '').trim();
   if (!said || said === COPILOT_EMPTY_ANSWER || final.choices) return;
+  if (!d){ if (COPILOT_LOOK_TASKS.includes(g.task) && !g.spot && !COPILOT_WAY_RE.test(q)) delete final.goto; return; }
   if (!(d.kind === 'clause' || (d.kind === 'contract' && (!d.tab || d.tab === 'open' || d.tab === 'dossier')))) return;
   if (d.contractId && !(final.citations || []).some(c => c && c.id === d.contractId)) final.citations = (final.citations || []).concat([{ id: d.contractId, quote: '' }]);
   delete final.goto;
