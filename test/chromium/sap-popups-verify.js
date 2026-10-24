@@ -156,13 +156,15 @@ const CONTRACTS = [
     }
     if (newBtn) {
       await newBtn.click();
-      const m = await wait(page, () => !!document.querySelector('#nd-menu [data-nd-door="draft"]'));
-      const md = m ? await page.evaluate(() => ({ dlg: !!document.querySelector('#modal-root [role="dialog"]'),
-        n: document.querySelectorAll('#nd-menu [data-nd-door]').length })) : null;
-      ok('6 the doors drop as a menu, with no dialog behind them', md && !md.dlg && md.n === 2, JSON.stringify(md));
+      /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the two-door menu is gone on a computer —
+         the + opens the one New agreement sheet straight away, with Our paper · Their paper on it */
+      const m = await wait(page, () => !!document.getElementById('na-root'));
+      const md = m ? await page.evaluate(() => ({ menu: !!document.getElementById('nd-menu'),
+        tabs: document.querySelectorAll('#na-root [data-na-paper]').length })) : null;
+      ok('6 the + opens the one sheet, no menu before it, both papers on it', md && !md.menu && md.tabs === 2, JSON.stringify(md));
       await page.keyboard.press('Escape');
-      ok('6b Escape folds the menu away', await wait(page, () => !document.getElementById('nd-menu')));
-    } else ok('6 the pages\' two-door menu (openNewDoors) is there', false);
+      ok('6b Escape closes it', await wait(page, () => !document.getElementById('na-root')));
+    } else ok('6 the pages\' + button is there', false);
 
     /* ---- 7. THEIR RESPONSE ON TWO TABS ---- */
     console.log('\n7 · their response');
