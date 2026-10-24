@@ -1276,7 +1276,22 @@ function pdRedFaceHtml(c){
   if (!/id="nego-send"/.test(col) && typeof negoTurnBannerHtml === 'function'){
     try { const m = String(negoTurnBannerHtml(c, o) || '').match(/<button id="nego-send"[\s\S]*?<\/button>/); if (m) send = `<div hidden data-pd-rf-send>${m[0]}</div>`; } catch (_){ send = ''; }
   }
-  return `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
+  const html = `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
+  _pdRedDrawn = { id: String(c.id), html };
+  return html;
+}
+/* WHAT THE FACE LAST DREW, so a load landing after the paint repaints only
+   when it changed something (the glitch audit's second walk, 24 Oct 2026: the
+   thread and the share list landed and the paper and the panel were drawn
+   again with nothing new on them) */
+let _pdRedDrawn = null;
+function pdRedLoadsMoved(c){
+  if (!c) return false;
+  /* a thread with messages in it marks the paper (rlPaintNoteMarks) */
+  if (Array.isArray(c._messages) && c._messages.length) return true;
+  const was = _pdRedDrawn && _pdRedDrawn.id === String(c.id) ? _pdRedDrawn.html : null;
+  if (was == null) return true;
+  return pdRedFaceHtml(c) !== was;
 }
 /* THE FOOT IS NOT DRAWN (owner, 15 Oct 2026): with changes on the table the
    face shows only them; Draft from our standards, Edit a clause and Add a
@@ -1335,7 +1350,7 @@ function pdRedFacePaint(c, top){
   pdChipsRepaint();
   /* what the Negotiate page loads after it paints — the thread from their
      page and the share list (Send all in one press needs their address) */
-  try { if (typeof rlBenchCatchUp === 'function') rlBenchCatchUp(c, () => { if (pdRedShows() && String(pdRedFor()) === String(c.id)) pdRedRepaint(); }); } catch (_){}
+  try { if (typeof rlBenchCatchUp === 'function') rlBenchCatchUp(c, () => { if (pdRedShows() && String(pdRedFor()) === String(c.id) && pdRedLoadsMoved(c)) pdRedRepaint(); }); } catch (_){}
   const keep = _pdRedTop != null ? _pdRedTop : top; _pdRedTop = null;
   const sc = host.querySelector('#nego-cards');
   if (sc && keep){ if (typeof rlRestoreScroll === 'function') rlRestoreScroll(sc, keep); else sc.scrollTop = keep; }
