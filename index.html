@@ -16941,9 +16941,10 @@
   :is(#ig-dock, .jt-trail, .jl-head) .pd-back:hover, .redline-page :is(.rl-head-notes, .rl-head-review):hover:not(:disabled){border-color:transparent;background:var(--color-neutral-200)}
   /* EACH CHANGE IN THE COLUMN IS ITS OWN SOFT GREY CARD (the drawing's Redlines: #F5F5F7, 16px corners), on
      both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
-  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:0 14px 12px;margin-bottom:8px;border-bottom:0}
+  /* ROOM INSIDE (owner, 24 Oct 2026: the clause name "too close to the edge"): 18 at the sides, 16 above and below */
+  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:0 18px 16px;margin-bottom:8px;border-bottom:0}
   /* the card's top room belongs to its head, which is what a press lands on (it takes the paper to the clause) */
-  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:12px}
+  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:16px}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
   /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
   :is(#ig-dock, body) .redline-page .rl-card-d:is(:hover, .is-linked){background:var(--color-neutral-200)}
@@ -16953,7 +16954,7 @@
      Anything above them should have the grey color they always had"): one rounded box, the reason inside it
      with no box of its own (it read as white in the middle once the card was pressed); the ONE SHADE deepens
      it one amber step on hover and once pressed, and gives it back its amber when another card takes it */
-  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:12px 14px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:16px 18px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone) .rk-why{background:transparent;padding:0}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone):is(:hover, .is-linked){background:var(--st-amber-bg)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover):not(.is-none):not(.is-gone){background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}

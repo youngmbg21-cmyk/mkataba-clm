@@ -20733,7 +20733,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                and full shapes below, which keep their own Open onto the clause
                panel (.rl-open-btn[data-rl-cp-open] — a different control with a
                different job). */}
-        <div class="rl-card-side">${deaden(face)}</div>
+        <div class="rl-card-side">${(() => { const f = deaden(face), more = rlRowReadMoreHtml(c, ch, side); return more && /<\/span>\s*$/.test(f) ? f.replace(/<\/span>\s*$/, more + '</span>') : f + more; })()}</div>
         ${''/* ---- THE STRIPS ARE ON THE ROW (15 Sep 2026) ----
                Conditional and nearly always absent — a colleague's "drafted
                by", who typed it on whose behalf, who rewrote it, the reviewer's
@@ -22216,21 +22216,44 @@ function rlPlainReasonOf(ch){
   }
   return '';
 }
-function rlRowReadHtml(c, ch, side){
-  if (side === 'counterparty' || PORTAL_MODE || !c || !ch) return '';
-  if (ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded) return '';
-  if (typeof rlpJudge !== 'function' || typeof precedentTopicOf !== 'function') return '';
+/* ADVICE OR NO ADVICE (owner picked it, 24 Oct 2026): the card says what to do and why, in plain words, on the
+   card. A verdict (Take it · Push back · Escalate · Worth a look) is bold with its dot, its reason under it, and
+   "Ask Jambo more" sits at the foot of the verbs (rlRowReadMoreHtml). Where Jambo has nothing to judge by (the
+   playbook is silent, the past is split) it says "No advice yet" and which rule is missing — no button: there is
+   nothing more to explain, and setting a rule is an admin's act, so no door to it either (owner). */
+function rlRowReadOf(c, ch, side){
+  if (side === 'counterparty' || PORTAL_MODE || !c || !ch) return null;
+  if (ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded) return null;
+  if (typeof rlpJudge !== 'function' || typeof precedentTopicOf !== 'function') return null;
   let j = null; try { j = rlpJudge(c, ch); } catch (_) { j = null; }
+  if (!j) return null;
   /* no rule and no past answers: "Worth a look", with what the ask does in plain words */
-  const plain = (j && j.verdict === 'review') ? rlPlainReasonOf(ch) : '';
-  if (plain) j = Object.assign({}, j, { verdict: 'look', why: [plain] });
-  const V = plain ? { key: 'look', tone: 'amber', label: i18t('rp_v_look') }
-    : (j && typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
-  if (!V) return '';
-  const why = String((j.why || [])[0] || '').trim();
-  const cost = i18t('rl_read_why_cost');
-  return `<div class="rl-card-read is-${_nea(V.tone)}" data-rl-row-read="${_nea(j.verdict)}"><span class="rl-card-read-v"><i aria-hidden="true"></i>${_ne(V.label)}</span>${
-    why ? `<span class="rl-card-read-w">${_ne(why)}</span>` : ''}<button type="button" class="rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(cost)}">${_ne(i18t('rl_read_why'))}</button></div>`;
+  const plain = (j.verdict === 'review') ? rlPlainReasonOf(ch) : '';
+  if (plain) return { key: 'look', tone: 'amber', label: i18t('rp_v_look'), why: plain, more: true };
+  if (j.verdict === 'review'){
+    let why = String((j.why || [])[0] || '').trim();
+    if (!j.past){
+      let t = null; try { t = precedentTopicOf(ch); } catch (_) { t = null; }
+      /* the category mid-sentence in lower case ("no rule for liability cap"), an acronym kept ("VAT") */
+      const cat = (t && t.category) ? String(t.category) : '';
+      const said = /^[A-ZÅÄÖ][a-zåäö]/.test(cat) ? cat.charAt(0).toLowerCase() + cat.slice(1) : cat;
+      why = said ? i18t('rl_read_none_cat', { category: said }) : i18t('rl_read_none_w');
+    }
+    return { key: 'none', tone: 'none', label: i18t('rl_read_none'), why, more: false };
+  }
+  const V = (typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
+  if (!V) return null;
+  return { key: j.verdict, tone: V.tone, label: V.label, why: String((j.why || [])[0] || '').trim(), more: true };
+}
+function rlRowReadHtml(c, ch, side){
+  const R = rlRowReadOf(c, ch, side); if (!R) return '';
+  return `<div class="rl-card-read is-${_nea(R.tone)}" data-rl-row-read="${_nea(R.key)}"><span class="rl-card-read-v">${R.tone === 'none' ? '' : '<i aria-hidden="true"></i>'}${_ne(R.label)}</span>${
+    R.why ? `<span class="rl-card-read-w">${_ne(R.why)}</span>` : ''}</div>`;
+}
+/* "Ask Jambo more", the last of the card's verbs, at its right: only where there is advice to explain */
+function rlRowReadMoreHtml(c, ch, side){
+  const R = rlRowReadOf(c, ch, side); if (!R || !R.more) return '';
+  return `<button type="button" class="rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(i18t('rl_read_why_cost'))}">${_ne(i18t('rl_read_more'))}</button>`;
 }
 /* "Why?" asks Jambo in the conversation beside the paper: the words go through
    his box's one door (intelAsk), which spends the one call the title says */
@@ -23227,7 +23250,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      ending on every screen that draws a document — which is what the shared
      builder was for. */
   rlPaperFootHtml,
-  rlRowReadHtml, rlRowReadAsk, redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  rlRowReadHtml, rlRowReadOf, rlRowReadMoreHtml, rlRowReadAsk, redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
   negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,

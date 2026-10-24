@@ -232,10 +232,12 @@ describe('f866 (5) answering their changes', () => {
     assert.equal(ctx.F({ oldText: '30 days and 10 days', newText: '60 days and 20 days' }), null, 'two figures moved: no single reading');
   });
   test('5c only where no rule and no past answer decide: "Worth a look", read whole', () => {
-    const S = strip(decl(NG, 'rlRowReadHtml'));
-    assert.match(S, /const plain = \(j && j\.verdict === 'review'\) \? rlPlainReasonOf\(ch\) : '';/);
-    assert.match(S, /\{ key: 'look', tone: 'amber', label: i18t\('rp_v_look'\) \}/);
-    assert.match(read('js/views/negotiation-css.js'), /\.rl-card-read\[data-rl-row-read="look"\] \.rl-card-read-w\{display:block;-webkit-line-clamp:unset;overflow:visible\}/);
+    /* RE-POINTED 24 Oct 2026 (owner picked "Advice or no advice"): the reading moved into rlRowReadOf; "Worth a look" and
+       "No advice yet" are read whole, only the playbook's verdicts keep two lines */
+    const S = strip(decl(NG, 'rlRowReadOf'));
+    assert.match(S, /const plain = \(j\.verdict === 'review'\) \? rlPlainReasonOf\(ch\) : '';/);
+    assert.match(S, /\{ key: 'look', tone: 'amber', label: i18t\('rp_v_look'\), why: plain, more: true \}/);
+    assert.match(read('js/views/negotiation-css.js'), /\.rl-card-read:not\(\[data-rl-row-read="look"\]\):not\(\.is-none\) \.rl-card-read-w\{display:-webkit-box;-webkit-line-clamp:2;/);
   });
   test('5d Ask a colleague on a live ask of theirs, our seat only, through the one send screen set to a colleague', () => {
     const S = strip(NG);

@@ -93,9 +93,10 @@ const THIRTY = 'Invoices are payable within thirty (30) days.';
       r.scrollIntoView({ block: 'center' });
       const b = r.getBoundingClientRect(); const at = document.elementFromPoint(b.left + 10, b.top + Math.min(8, b.height / 2));
       return { verdict: r.getAttribute('data-rl-row-read'), text: r.innerText.replace(/\s+/g, ' '), painted: !!(at && r.contains(at)),
-        why: !!r.querySelector('[data-rl-read-why]') };
+        /* RE-POINTED 24 Oct 2026 (owner picked "Advice or no advice"): "Ask Jambo more" is the last verb of the same card */
+        why: !!(r.closest('.rl-card') || r).querySelector('.rl-card-side [data-rl-read-why]') };
     }, null, null);
-    check(!!(read && read.painted && read.why), '1b it is painted, with Why? beside it', read);
+    check(!!(read && read.painted && read.why), '1b it is painted, with Ask Jambo more on its card', read);
     check(!!(read && /Escalate|Push back|Take it|Read it/.test(read.text) && read.text.length > 20), '1c it says the verdict and its reason', read && read.text);
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-row-read.png') });
     const n0 = await drive(() => intel.history.length, null, 0);
