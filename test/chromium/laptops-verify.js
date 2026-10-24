@@ -174,6 +174,11 @@ const PROBE = () => {
        matters: nothing may be CLIPPED, and the page must never scroll
        SIDEWAYS. A vertical scroll on a short laptop is the page working. */
     await page.evaluate(x => window.setView(x), 'dashboard');
+    /* RE-POINTED 24 Oct 2026 (the glitch audit: a hidden Board is no longer
+       drawn): Home keeps the Calendar tab the stage before left it on, so the
+       Board is turned to first — the claim is about the Board a person sees,
+       which the old run measured while it stood hidden at zero size. */
+    await page.evaluate(() => { if (window.hbS && hbS().face !== 'board' && typeof window.hbSetFace === 'function') hbSetFace('board'); });
     await page.waitForTimeout(500);
     const fill = await page.evaluate(() => {
       /* RE-POINTED IN PLACE 3 Oct 2026 (Young: Home is the board and the

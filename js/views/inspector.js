@@ -945,6 +945,10 @@ function insListWire(tbody, o){
     const L = live(); if (!L) return;
     const row = rowOf(L, e.target); if (!row || onControl(row, e.target)) return;
     row.focus({ preventScroll: true });
+    /* the second press of a double press: the row is chosen already and the
+       open follows (dblclick) — its panel is not drawn a second time first
+       (the glitch audit, 24 Oct 2026) */
+    if (e.detail >= 2 && row.classList.contains('is-sel')) return;
     L.onSelect(String(L.idOf(row)), row);
   });
   tbody.addEventListener('dblclick', e => {

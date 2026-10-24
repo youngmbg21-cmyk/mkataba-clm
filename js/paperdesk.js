@@ -372,6 +372,9 @@ function pdOpenTabOf(c){
   return 'copilot';
 }
 function pdOpenOnHome(id, tab){
+  /* one press, one panel (igDockBatch, js/views/intelligence.js) */
+  if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !pdOpenOnHome._in){
+    pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab)); } finally { pdOpenOnHome._in = false; } }
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   if (tab === 'open') tab = pdOpenTabOf(c);
   /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
@@ -484,7 +487,14 @@ function pdOpenOnHome(id, tab){
     if (typeof renderIntelDock === 'function') renderIntelDock();
     return true;
   }
-  if (!(window.state && state.view === 'dashboard') && typeof setView === 'function') setView('dashboard');
+  if (!(window.state && state.view === 'dashboard') && typeof setView === 'function'){
+    /* A DOOR FROM ANOTHER PAGE LANDS ON THE PANEL'S CONTENT, not on a conversation
+       left open beside this paper earlier (JAMBO AS A TAB YOU FLIP TO; caGoRepaint
+       does the same for a go ask) — the conversation itself is kept, one tab away */
+    try { const k = (typeof jamboTalkKey === 'function') ? String(jamboTalkKey() || '') : '';
+      if (k.indexOf('dock:') === 0) pdTalkClose(); } catch (_){}
+    /* Home is set up for the paper: the Board it is leaving is not drawn first */
+    if (typeof window.hbArrive === 'function') window.hbArrive('paper', () => setView('dashboard')); else setView('dashboard'); }
   igWalk([id], 0, { tab: tab || 'copilot' });
   /* the chosen obligation is brought into sight once the tab is drawn (bounded) */
   if (tab === 'oblig' && typeof document !== 'undefined'){ let n = 0; const go = () => { const r = document.querySelector('#pd-body .pd-ob.is-chosen');

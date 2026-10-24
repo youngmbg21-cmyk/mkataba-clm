@@ -255,7 +255,8 @@ describe('f758 (5) the letter that waits, in main\'s bar', () => {
     assert.deepEqual(did, ['wait:false'], 'Recent\'s row brings it back');
     ctx.dkLeaveSend('v:approvals');
     assert.deepEqual(did, ['wait:false', 'close'], 'another page puts it away, its guard asked by the screen');
-    assert.match(fnBody(CN, 'deskTabsSync'), /if \(!\(k && k\.startsWith\(DK_SEND\)\)\) dkTrailNote\(/, 'never on the trail ‹ walks');
+    /* RE-POINTED 24 Oct 2026 (the glitch audit): the same guard now also notes the face the page came with */
+    assert.match(fnBody(CN, 'deskTabsSync'), /if \(!\(k && k\.startsWith\(DK_SEND\)\)\)\{[\s\S]*?dkTrailNote\(nk\);\s*\}/, 'never on the trail ‹ walks');
   });
   test('5c the screen waits whole: out of sight, what is typed kept, its face in the panel saying Back', () => {
     const { ctx, painted } = pdStage();

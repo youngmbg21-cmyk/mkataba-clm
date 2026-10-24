@@ -10312,17 +10312,23 @@ function renderNegotiationsList(host){
 function rlBenchCatchUp(c, again){
   if (!c) return;
   const redo = () => { if (typeof again === 'function') again(); };
+  /* ONE REPAINT FOR BOTH LOADS (the glitch audit, 24 Oct 2026: the thread and
+     the share list each repainted the paper and Jambo's panel as they landed —
+     three paints for one press of Redlines). The host is drawn again once,
+     when every load asked for here has answered, and only if one brought news. */
+  const loads = [];
   if (window.API_MODE && API_MODE() && window.api && !Array.isArray(c._messages) && !c._msgFetch){
     c._msgFetch = true;
-    api('contracts/' + c.id + '/messages')
-      .then(r => { c._messages = (r && r.messages) || []; redo(); })
-      .catch(() => { c._messages = c._messages || []; });
+    loads.push(api('contracts/' + c.id + '/messages')
+      .then(r => { c._messages = (r && r.messages) || []; return true; })
+      .catch(() => { c._messages = c._messages || []; return false; }));
   }
   if (window.API_MODE && API_MODE() && window.ensureSharesCached
       && window.sharesKnown && !sharesKnown(c) && !c._shareFetch){
     c._shareFetch = true;
-    ensureSharesCached(c).then(() => redo()).catch(() => {});
+    loads.push(ensureSharesCached(c).then(() => true).catch(() => false));
   }
+  if (loads.length) Promise.all(loads).then(got => { if (got.some(Boolean)) redo(); });
 }
 function rlBenchOpts(c, o = {}){
   const side = o.side === 'counterparty' ? 'counterparty' : 'owner';

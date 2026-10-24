@@ -100,9 +100,11 @@ const check = (name, pass, detail) => {
         configurable: true,
         get() { throw new Error('staged: one record in an unexpected shape'); },
       });
-      /* So "the later paints still ran" is observable: renderContextPanel is
-         the LAST of the six and writes this heading on every view change. */
-      const t = document.getElementById('panel-title');
+      /* So "the later paints still ran" is observable. RE-POINTED 24 Oct 2026
+         (the glitch audit): renderContextPanel no longer draws a SHUT panel on a
+         page move, so the observable is the paint after it, deskTabsSync, which
+         names the page in the bar on every view change. */
+      const t = document.querySelector('#dk-page .dk-page-w');
       if (t) t.textContent = 'CLEARED';
       return true;
     });
@@ -122,7 +124,7 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(1000);
     const live2 = await liveView();
     const s2 = await stored();
-    const painted = await page.evaluate(() => (document.getElementById('panel-title') || {}).textContent || '');
+    const painted = await page.evaluate(() => (document.querySelector('#dk-page .dk-page-w') || {}).textContent || '');
     check('2a the page still draws — the render itself is fine', live2 === 'templates',
       live2 + (threw2 ? ` (setView threw: ${threw2})` : ''));
     check('2b and the navigation IS recorded even though a panel threw — the fault',
@@ -130,7 +132,7 @@ const check = (name, pass, detail) => {
       s2 ? `stored "${s2.view}"` : 'nothing stored');
     check('2c the paints AFTER the failing one still ran — each is guarded on its own',
       painted !== 'CLEARED' && painted !== '',
-      painted === 'CLEARED' ? 'renderContextPanel never ran' : `panel says "${painted}"`);
+      painted === 'CLEARED' ? 'deskTabsSync never ran' : `the bar says "${painted}"`);
     check('2d a failing paint reaches the console rather than vanishing',
       logged.some(t => /failed after a view change/i.test(t)),
       logged.slice(0, 2).join(' | ') || 'nothing logged');

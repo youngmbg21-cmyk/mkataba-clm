@@ -152,6 +152,7 @@ function deskPageName(){
    as a browser's back does. */
 const DK_TRAIL_MAX = 50;
 let _dkTrail = [];
+let _dkLand = null;   // { k, back }: the page last arrived on and the panel face it came with
 function dkTrailNote(k){
   if (!k || _dkTrail[_dkTrail.length - 1] === k) return;
   _dkTrail.push(k); if (_dkTrail.length > DK_TRAIL_MAX) _dkTrail.shift();
@@ -173,7 +174,17 @@ function deskStepBack(press){
     if (typeof w.ceTrailOn === 'function' && w.ceTrailOn() && typeof w.ceRowBack === 'function'){ if (press) w.ceRowBack(); return true; }
     return false;
   }
-  if (typeof w.pdTrail === 'function' && w.pdTrail()){ if (press) w.pdTrailBack(); return true; }
+  if (typeof w.pdTrail === 'function' && w.pdTrail()){
+    /* A FACE THAT CAME WITH THE PAGE IS NOT A STEP (the glitch audit, 24 Oct
+       2026: a contract opened from Approvals landed on Before you sign, and
+       the first ‹ only turned the panel back to the Dossier — "I press twice
+       to go back"). The face the door opened is part of the page it opened:
+       ‹ goes back to the page before. A face the reader opened here is still
+       one step up (One trail, 19 Oct 2026); the panel's own back and Esc are
+       unchanged. */
+    const t = w.pdTrail();
+    if (_dkLand && t && _dkLand.k === deskKeyNow() && _dkLand.back === t.back && deskBackTarget()) return false;
+    if (press) w.pdTrailBack(); return true; }
   /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): a conversation beside a
      list, Import, Settings or the Calendar is one step up from its landing */
   if (typeof w.jamboTalkUp === 'function' && w.jamboTalkUp()){ if (press) w.jamboTalkBack(); return true; }
@@ -230,7 +241,12 @@ function deskTabsSync(){
       if (k.startsWith('c:')) t.view = (typeof window.bsCardId === 'function' && window.bsCardId() && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? 'card' : 'paper';
       dkSave(L);
     }
-    if (!(k && k.startsWith(DK_SEND))) dkTrailNote(k || ((typeof state !== 'undefined' && state && state.view === 'counter') ? 'home' : null));
+    if (!(k && k.startsWith(DK_SEND))){
+      const nk = k || ((typeof state !== 'undefined' && state && state.view === 'counter') ? 'home' : null);
+      /* the panel's face the page arrived with (deskStepBack) */
+      if (nk && _dkTrail[_dkTrail.length - 1] !== nk){ let tb = null; try { const t = typeof window.pdTrail === 'function' ? window.pdTrail() : null; tb = t ? t.back : null; } catch (_){ tb = null; } _dkLand = { k: nk, back: tb }; }
+      dkTrailNote(nk);
+    }
     deskBarPaint();
   }, DK_SETTLE_MS);
 }
@@ -294,7 +310,18 @@ function deskBarPaint(){
     back.hidden = !on;
     const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
     back.disabled = !can;
-    const tip = can ? _cnT('dk_back') : _cnT('dk_back_none');
+    /* ‹ SAYS WHERE IT GOES (the glitch audit, 24 Oct 2026: it said only "Back", and a press that
+       stepped the panel looked like one that did nothing) */
+    let where = '';
+    if (can && !deskSheetUp()){
+      try {
+        const w = typeof window !== 'undefined' ? window : {};
+        const t = (deskStepBack(false) && typeof w.pdTrail === 'function') ? w.pdTrail() : null;
+        if (t && t.up) where = String(t.up);
+        else if (!deskStepBack(false)){ const bt = deskBackTarget(); if (bt) where = deskTabLabel(bt.k); }
+      } catch (_){ where = ''; }
+    }
+    const tip = can ? (where ? _cnT('dk_back_to', { where }) : _cnT('dk_back')) : _cnT('dk_back_none');
     if (back.title !== tip){ back.title = tip; back.setAttribute('aria-label', tip); }
   }
   if (w) w.hidden = !on;

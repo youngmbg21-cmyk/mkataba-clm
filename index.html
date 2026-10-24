@@ -16830,7 +16830,11 @@
   .pd-tab.on::after, .jl-head .pd-tab.on::after, #ig-dock:has(> .igd-head[data-pd-head="paper"]) .pd-tab.on::after{content:none;display:none}
   .st-tab, .room-tab{border-radius:999px;border-bottom-color:transparent}
   .st-tab.on, .room-tab.on{background:var(--surface-2);border-bottom-color:transparent}
-  #app-shell .pd-tab{border-radius:999px;height:30px;align-self:center;padding:0 8px;max-width:96px}
+  #app-shell .pd-tab{border-radius:999px;height:30px;align-self:center;padding:0 8px;max-width:none;flex:0 1 auto;min-width:0}
+  /* THE TAB IS AS WIDE AS ITS WORDS (the glitch audit, 24 Oct 2026: a 96px cap cut "Overview" to
+     "Overvi…" beside its 99+); only when the head truly runs out does the NAME give way, never the count */
+  #app-shell .pd-tab .pd-tab-i{flex-shrink:0}
+  #app-shell .pd-tab .pd-tab-w{min-width:0;overflow:hidden;text-overflow:ellipsis}
   /* the pill's 8px each side comes out of the 24px between tabs, so every word stands where it stood
      and the head never grows (inspector-checklist 1h caught the fold button pushed 4px past the panel) */
   #ig-dock > .igd-head.igd-head > .pd-tab + .pd-tab, #app-shell .jl-head.jl-head > .pd-tab + .pd-tab{margin-left:8px}

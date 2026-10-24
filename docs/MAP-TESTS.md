@@ -62,6 +62,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- One ‹ leaves a contract a list opened; ONE PRESS, ONE PANEL; a tab as wide as its words: glitch-fixes-verify 2, 3, 7.
 - JAMBO'S BOX ON EVERY SIDE PANEL (22 Oct 2026): jambo-box-every-panel verify (Dossier, Clauses and Obligations at the three screens, asked from Clauses and back, the slide-out panel's Guide, Alerts and Activity, Notes keeps its own box; 5/17 at c5aa0c2). RE-POINTED with the owner's words: ask-box-on-copilot-only verify 2 and 3 (the box under every tab), home-first verify 3d, explorer-guide-tab verify 2a, f840 2e (the Guide keeps the box).
 - Words sent while Jambo is still answering wait their turn (22 Oct 2026): f862 (red at the parent), jambo-asks-in-turn verify (red at the parent 1a–1c, 2a–2b), f804 8b4 re-pointed.
 - 21 Oct 2026 (overnight): send-to-a-colleague-verify 1i ("write an email to X summarising the above" opens the send screen, no model); jambo-slides-in-verify 6c (Home's box answers "What am I looking at?" free); control-room-in-full-verify 7b/7c ("upload a contract" / "new contract" in Settings go to Home's Jambo).
@@ -94,6 +95,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NUMBER LEADS THE ROW (23 Oct 2026): f868 3c2 (new; the Board's Agreement cell is number · name, the name in `.nd-deal-t` gives way, the number never cut); f803 2a–2c/5a and f868 2b re-pointed (Home's line leads with the number); counter-as-drawn 11b re-pointed.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- THE BOARD IS DRAWN WHEN IT SHOWS; "board" lets a brought-up contract go: glitch-fixes-verify 1, 4 (24 Oct 2026).
 - THE BOARD'S OWN HELPERS STAY ON THE BOARD (23 Oct 2026): board-helpers-stay-on-the-board-verify (a contract in front on History · Overview · Where we are: no gallery, no Board moves in "/", no Split by / Period, Ctrl+Z silent, a gallery pick adds nothing, Esc keeps the chart path; on the Board all four pop-ups, Ctrl+Z answers, a pick adds one chart in view with no light; three screens; red at the parent 14/38).
 - ACTIONS ON THE PAPER'S LINE (23 Oct 2026): paper-actions-verify (right of Share, lands on the whole list, again folds, from another tab, Swedish, three screens; 7: Edit clause and Add a clause from the list open the editor with no Redlines open first); f754 9j; edit-clause-door-verify.
 - ONE ASK ON A CARD, TWO DEPTHS (23 Oct 2026): f461 (C)/(D), f538, f527, f528, f665; browser read-then-ask-verify 4a–4i (answer inside the card under the chart, the menu has Dig deeper once and no "What could explain this?"), charts-that-explain-verify 1/3, chart-headline-verify 3c, insights-shelf-verify 6a/6c.
@@ -337,6 +339,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- THE GLITCH FIXES (24 Oct 2026): glitch-fixes-verify (1 "board" is the Board; 2 one ‹ leaves a contract a list opened, a face opened here is a step; 3 one press one panel; 4 hidden parts not drawn; 5 a double press draws the row's panel once; 6 a quiet 429 says no red box; 7 tabs whole beside 99+, three screens, both books; 8 the Dossier's foot scrolls whole; red at the parent 8c8de55: 13 of 35). Instrument: `test/chromium/_audit/glitch-audit.js`. Re-pointed: f709 1b (hbArrive), f758 5b (the trail's guard notes the landing face).
 - A STILL MAP MOVES ONLY ITS DOTS (22 Oct 2026): home-speed verify 3 (red at 234b2ef: 1,000–1,200 ms busy of 4000 here, 612–804 on GitHub; 263–296 after). RE-POINTED: explorer-magnitude verify 4a2 reads the dot where the canvas draws it (`n.q`), f425 the rest guard in `igRender`.
 - The Board → Paper switch (22 Oct 2026): home-speed-verify check 1 at a real 430 book (check 3 red on purpose, BUGLOG); every-door-lands-on-home, counter-as-drawn, page-jumps, legora-lists, board-keeps-your-place, keeps-your-place, refresh-keeps-your-spot, wall-of-papers, open-in-place.
 - f356, f357, f656, home-speed, long-contract-moves verify.

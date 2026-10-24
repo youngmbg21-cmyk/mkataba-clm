@@ -416,6 +416,8 @@ function blankLabel(key, declared){
    and a reader can see which sentence they are answering. A blank in the
    recital has no anchor and is grouped first under no heading, which is what
    the page does with it too. */
+const BLANK_READ_MEMO_MAX = 1500;
+const _blankReadMemo = new Map();
 function contractBlanks(c){
   if(!contractHasBlanks(c)) return [];
   /* AN UPLOAD'S BLANKS ARE IN ITS OWN WORDING and are read there — off the
@@ -429,10 +431,20 @@ function contractBlanks(c){
   }catch(_){ return []; }
   if(ownBlanksOn(c)) return ownBlanksRead(c);
   if(typeof document === 'undefined' || typeof docBody !== 'function') return [];
+  let html;
+  try{ html = docBody(c); }catch(_){ return []; }
+  /* READ ONCE PER WORDING (the glitch audit, 24 Oct 2026: every count of what
+     needs you — the bell, the panel's tab, Home — laid each contract's page
+     out again to find its boxes, about 100 ms a page move at 400 contracts).
+     The same markup and template give the same boxes, so the answer is kept
+     against the markup itself and handed out as a fresh copy. */
+  const memoKey = String(c.template || '') + '\u0001' + html;
+  const hit = _blankReadMemo.get(memoKey);
+  if(hit) return hit.map(b => ({ ...b }));
   let host;
   try{
     host = document.createElement('div');
-    host.innerHTML = docBody(c);
+    host.innerHTML = html;
   }catch(_){ return []; }
   let declared = [];
   try{ declared = (typeof builtinTemplateFields==='function') ? builtinTemplateFields(c.template) : []; }catch(_){ declared = []; }
@@ -463,8 +475,11 @@ function contractBlanks(c){
       declared: !!(declared||[]).find(f => f && f.key === key),
     });
   });
+  if(_blankReadMemo.size >= BLANK_READ_MEMO_MAX) _blankReadMemo.delete(_blankReadMemo.keys().next().value);
+  _blankReadMemo.set(memoKey, out.map(b => ({ ...b })));
   return out;
 }
+
 
 /* Which of them are still OPEN — the panel's count, the reading's worklist,
    and the one arithmetic behind both so they cannot report different numbers.

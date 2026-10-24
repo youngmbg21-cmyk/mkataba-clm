@@ -35,7 +35,11 @@ async function api(path, method='GET', body, opts){
      on the server can never break this. Read through window: js/api.js loads
      before js/i18n.js on some stages, and a bare cross-module read throws. */
   const _sm = m => (typeof window!=='undefined' && typeof window.srvMsg==='function') ? srvMsg(m) : m;
-  if(res.status===429&&data&&data.error&&typeof toast==='function') toast(_sm(data.error),'err');
+  /* …except for a QUIET caller (the glitch audit, 24 Oct 2026: the readings a
+     contract's arrival starts by itself hit the limit, and the red box landed
+     on whatever the reader pressed next). A quiet caller is handed the error
+     and says it where the reader looks, as its `quiet` promises. */
+  if(res.status===429&&data&&data.error&&typeof toast==='function'&&!(opts&&opts.quiet)) toast(_sm(data.error),'err');
   if(!res.ok){
     // Carry the structured flags onto the Error so callers can tell "wait a
     // few minutes" (rate limit) from "an admin has to raise a budget"

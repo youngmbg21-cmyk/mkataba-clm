@@ -71,6 +71,10 @@ const ID = 'MK-PA1';
     console.log('\n2 · the press');
     if (l1.actions){
       await click('#ig-actions');
+      /* the wait asks for the landed state, bounded (24 Oct 2026: on CI the
+         landing's scroll came a frame after the fold opened) */
+      await waitFor(page, async id => { const f = typeof pdActsFold === 'function' ? pdActsFold(id) : null; const b = f && f.open && f.querySelector('.pd-mn-rows button'); if (!b) return false;
+        const r = b.getBoundingClientRect(), at = document.elementFromPoint(r.left + 20, r.top + r.height / 2); return r.top >= 0 && r.bottom <= innerHeight && !!(at && f.contains(at)); }, 5000, ID);
       const f2 = await waitFor(page, async id => { const f = typeof pdActsFold === 'function' ? pdActsFold(id) : null; return f && f.open; }, 5000, ID) ? await fold() : null;
       check('2a Actions opens the Dossier\'s whole list of acts and lands on it', !!f2 && f2.open && f2.inView && f2.rows.length > 3, JSON.stringify(f2 && { open: f2.open, inView: f2.inView, n: f2.rows.length }));
       check('2b a draft\'s list ends in "Delete this draft"', !!f2 && /Delete this draft/.test(f2.rows[f2.rows.length - 1] || ''), f2 && f2.rows.slice(-2).join(' | '));
