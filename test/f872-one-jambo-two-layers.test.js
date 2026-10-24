@@ -145,7 +145,7 @@ describe('f872 (5) "what am I looking at", said another way', () => {
 
 describe('f872 (6) act first, then explain', () => {
   /* ONE RULE (owner, 24 Oct 2026): a command is never explained, a brain-verb sentence never drawn; a question the Board drew is always explained */
-  const rule = (ai, wh) => fnOf(IG, 'igAskThenExplain', { caAiFirst: () => ai, CA_WH_Q: wh, hbCommandAsk: q => !wh.test(q) && !/\?\s*$/.test(q) && !/^tell/i.test(q), hbBrainVerb: q => /^tell/i.test(q) });
+  const rule = (ai, wh) => fnOf(IG, 'igAskThenExplain', { caAiFirst: () => ai, CA_WH_Q: wh, hbCommandAsk: q => !wh.test(q) && !/\?\s*$/.test(q) && !/^tell/i.test(q), hbBrainVerb: q => /^tell/i.test(q), hbChartWords: () => false, hbDrawsSomething: A => !!(A && A.road === 'free' && A.kind !== 'pack') });
   const WH = /^\s*(which|what|whats|who|whos|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
   test('a question the Board only DREW (a q: card, a follow-up) gets Jambo\'s words', () => {
     const r = rule(true, WH);
@@ -156,10 +156,11 @@ describe('f872 (6) act first, then explain', () => {
   test('a command, a figure\'s own answer, a verified view, no engine: the Board\'s line is the answer; a count the Board drew is explained too', () => {
     const r = rule(true, WH);
     assert.equal(r('chart value by stream', { road: 'free', kind: 'dig', r: { key: 'q:chart value by stream' } }), false);
-    assert.equal(r('how many live contracts do we have', { road: 'free', kind: 'dig', r: { key: 'f:live' } }), false);
+    assert.equal(r('how many live contracts do we have', { road: 'free', kind: 'dig', r: { key: 'f:live' } }), true, 'a figure\'s list opened is explained too');
+    assert.equal(r('what is our exposure', { road: 'free', kind: 'pack' }), false, 'a flat answer pack is never the answer to a question');
     assert.equal(r('how many contracts have value between 2 million and 40 million?', { road: 'free', kind: 'dig', r: { key: 'q:…' } }), true);
     assert.equal(r('tell me where we have the highest risk', { road: 'free', kind: 'dig', r: { key: 'q:…' } }), false);
-    assert.equal(r('what is our exposure', { road: 'free', kind: 'verified' }), false);
+    assert.equal(r('what is our exposure', { road: 'free', kind: 'verified' }), true, 'a verified view is drawn, then explained');
     assert.equal(rule(false, WH)('what ends this quarter', { road: 'free', kind: 'dig', r: { key: 'q:x' } }), false);
   });
   test('the explain call puts the question last again, never stored twice', () => {
@@ -216,6 +217,9 @@ describe('f872 (9) one rule in every box (owner, 24 Oct 2026, "give all the jamb
     const VERB = reOf(HB, 'HB_BRAIN_VERB_RE'), AN = reOf(CA, 'CA_DRAFT_ANALYSIS');
     for (const q of ['tell me where we have the highest risk', 'create a table for juno llc payment terms', 'explain the payment terms', 'berätta var risken är störst']) assert.ok(VERB.test(q), q);
     for (const q of ['show value by stream on the board', 'chart value by stream', 'open contracts', 'what ends this quarter?']) assert.ok(!VERB.test(q), q);
+    const CHART = reOf(HB, 'HB_CHART_WORD_RE');
+    for (const q of ['build me a renewals dashboard', 'make a chart of renewals', 'bubble chart of value for the grumpy suppliers', 'build me a story of our negotiation friction over the last year']) assert.ok(CHART.test(q), q + ' is an ask to draw');
+    for (const q of ['create a table for juno llc payment terms', 'tell me where we have the highest risk']) assert.ok(!CHART.test(q), q + ' is the brain\'s');
     for (const q of ['create a table for juno llc payment terms', 'make me a chart of renewals', 'build a quick list of the late ones', 'skapa en tabell över betalningsvillkor']) assert.ok(AN.test(q), q);
     for (const q of ['draft an NDA with Volvo', 'create a distributor agreement with Juno']) assert.ok(!AN.test(q), q);
   });

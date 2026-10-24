@@ -2263,9 +2263,8 @@ function igAskThenExplain(q, A){
   if(!A||A.road!=='free') return false;
   if(!(window.caAiFirst&&caAiFirst())) return false;
   if(typeof window.hbCommandAsk==='function'&&hbCommandAsk(q)) return false;
-  if(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q)) return false;
-  if(A.kind==='follow') return true;
-  return A.kind==='dig'&&!!(A.r&&/^q:/.test(String(A.r.key||'')));
+  if(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q)&&!(typeof window.hbChartWords==='function'&&hbChartWords(q))) return false;
+  return (typeof window.hbDrawsSomething==='function')?hbDrawsSomething(A):(A.kind==='follow'||(A.kind==='dig'&&!!(A.r&&/^q:/.test(String(A.r.key||'')))));
 }
 async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
@@ -2441,7 +2440,10 @@ async function intelAsk(qRaw, opts){
      answer (hbWhyCheck over its numbers; the board that answers right, Part 4), never a guess from the book */
   let boardWhy=false; try{ const A0=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; boardWhy=!!(A0&&A0.why); }catch(_){ boardWhy=false; }
   /* …only with the Board IN FRONT: on Explorer a question keeps the map's route, whose model hands wording to the chat itself (res.kind 'wording'); imported-on-the-map 1d, explorer-stage-three 4 */
-  const boardQ=igBoardNow()&&!boardCmd&&!boardDraw&&!!(window.caAiFirst&&caAiFirst())&&!(typeof window.hbBringOf==='function'&&hbBringOf(q));
+  /* …a QUESTION or a brain-verb sentence ("tell me…", "create a table…") is the chat's; a plain phrase the free
+     reader could not read ("top 2 by value", "the deals our CFO cares about") keeps the Board's drawing model */
+  const boardWords=!!((typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q))||(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q)));
+  const boardQ=igBoardNow()&&!boardCmd&&!boardDraw&&boardWords&&!!(window.caAiFirst&&caAiFirst())&&!(typeof window.hbBringOf==='function'&&hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && (boardCmd||boardDraw) && typeof window.hbAsk==='function'){
     let A=null; try{ A=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; }catch(_){ A=null; }
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }

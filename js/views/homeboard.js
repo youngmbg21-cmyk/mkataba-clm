@@ -9438,31 +9438,42 @@ const HB_BRAIN_VERB_RE = /^\s*(?:please\s+|snälla\s+|can you\s+|could you\s+|ka
 function hbBrainVerb(q){ return HB_BRAIN_VERB_RE.test(String(q || '')); }
 /* words that ask for a PICTURE the free reader could not read whole ("bubble chart of value for the grumpy
    suppliers"): the Board's drawing model (the graph route) reads them, never the chat */
-const HB_CHART_WORD_RE = /\b(chart|graph|plot|bubbles?|pie|bars?|columns?|timeline|blocks|ring|donut|heat ?map|diagram|stapl\w*|cirkel\w*|tidslinje|kurva)\b/i;
+const HB_CHART_WORD_RE = /\b(chart|graph|plot|bubbles?|pie|bars?|columns?|timeline|blocks|ring|donut|heat ?map|diagram|dashboard|board|cards?|picture|visual\w*|stor(?:y|ies)|berättelse\w*|stapl\w*|cirkel\w*|tidslinje|kurva|tavla\w*|kort)\b/i;
 function hbChartWords(q){ return HB_CHART_WORD_RE.test(String(q || '')); }
 function hbQuestionAsk(q){ const t = String(q || '').trim(); return /\?\s*$/.test(t) || !!(window.CA_WH_Q && CA_WH_Q.test(t)); }
 function hbCommandAsk(qRaw){
   const t = String(qRaw || '').trim();
-  if (!t) return false;
-  if (hbQuestionAsk(t) || hbBrainVerb(t)) return false;
-  /* chart words are an ask to draw even where the reader cannot read the rest ("bubble chart of value for the grumpy
-     suppliers"): the Board's reader keeps the picture it read (_hbPendingRecipe) and its drawing model fills the rest */
+  if (!t || hbQuestionAsk(t)) return false;
+  /* an imperative, or chart words even where the rest is unread ("bubble chart of value for the grumpy suppliers",
+     "build me a renewals dashboard"): the Board's reader keeps the picture it read (_hbPendingRecipe) and its
+     drawing model fills the rest */
   if (HB_CMD_RE.test(t) || hbChartWords(t)) return true;
-  /* a chart ask without a verb ("bubble chart of value against time left", "contracts by stage as a pie", "top 10",
-     "1M to 5M", a picture's words): the Board reads it whole, so it is an ask to draw */
+  /* the Board's own extra readers ("my saved views") act too */
+  if (HB_VIEWS_ASK_RE.test(t)) return true;
   let A = null; try { A = hbAskReadingOf(t); } catch (_) { A = null; }
-  return !!(A && A.road === 'free');
+  /* "make it monthly", "make this look like a league table" follow the OPEN chart: a command; "create a table for
+     juno llc payment terms" (a brain verb, nothing open it points at, no chart word) is the brain's, whatever the
+     reader thought it could add */
+  /* …and a STORY the Board reads ("build our quarterly contract review") is its own drawing */
+  if (hbBrainVerb(t)) return !!(A && A.road === 'free' && (A.kind === 'follow' || A.kind === 'story')) || (HB_THIS_RE.test(t) && hbOpenCardKey() != null);
+  /* a plain phrase the Board reads whole ("top 10", "By counterparty", "1M to 5M", "only Naivas") is an ask to draw */
+  return hbDrawsSomething(A);
 }
-/* A QUESTION THE BOARD CAN DRAW ("what ends this quarter", "which customers are worth the most", a follow-up on the
-   open chart) is drawn first, free, and then the brain explains under the Board's line (igAskThenExplain). A question
-   the Board would only answer with a flat figure or pack is the brain's alone. */
+/* THE FLAT KINDS: a reading that only SAYS a line (an answer pack) draws nothing — never the answer to a question or a
+   sentence; every other free reading draws or opens something (a card, a list, a story, a verified view, a follow-up) */
+const HB_FLAT_KINDS = ['pack'];
+/* words that point at the open chart */
+const HB_THIS_RE = /\b(this|it|the open chart|this chart|this card|den här|det här|detta|den)\b/i;
+function hbDrawsSomething(A){ return !!(A && A.road === 'free' && !HB_FLAT_KINDS.includes(A.kind)); }
+/* A QUESTION THE BOARD CAN DRAW OR OPEN ("what ends this quarter", "which obligations are overdue?", "how many live
+   contracts do we have", a verified view) is drawn first, free, and then ALWAYS explained by the brain under the
+   Board's line (igAskThenExplain). A question the Board would only answer with a flat pack is the brain's alone. */
 function hbDrawAsk(qRaw, onFace){
   const t = String(qRaw || '').trim();
-  if (!t || hbBrainVerb(t) || hbCommandAsk(t)) return false;
+  if (!t || hbCommandAsk(t)) return false;
+  if (hbBrainVerb(t) && !hbChartWords(t)) return false;
   let A = null; try { A = hbAskReadingOf(t, onFace); } catch (_) { A = null; }
-  if (!A || A.road !== 'free') return false;
-  if (A.kind === 'follow') return true;
-  return A.kind === 'dig' && !!(A.r && /^q:/.test(String(A.r.key || '')));
+  return hbDrawsSomething(A);
 }
 function hbAskReadingOf(qRaw, onFace){
   const raw = String(qRaw == null ? '' : qRaw);
@@ -11042,4 +11053,4 @@ Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLan
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
   HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_BRING_RE, hbBringOf, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
   HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
-  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage, HB_CMD_RE, HB_BRAIN_VERB_RE, HB_CHART_WORD_RE, hbBrainVerb, hbChartWords, hbQuestionAsk, hbCommandAsk, hbDrawAsk });
+  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage, HB_CMD_RE, HB_BRAIN_VERB_RE, HB_CHART_WORD_RE, hbBrainVerb, hbChartWords, hbQuestionAsk, hbCommandAsk, hbDrawAsk, HB_FLAT_KINDS, hbDrawsSomething });
