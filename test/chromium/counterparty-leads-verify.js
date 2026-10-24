@@ -192,7 +192,7 @@ const check = (name, ok, detail) => {
         pageBg: (() => { const d = document.createElement('div');
           d.style.background = 'var(--color-bg)'; document.body.appendChild(d);
           const v = getComputedStyle(d).backgroundColor; d.remove(); return v; })(),
-        cardBg: cs(card) && cs(card).backgroundColor, cardEdge: cs(card) && cs(card).borderColor,
+        cardBg: cs(card) && cs(card).backgroundColor, cardEdge: cs(card) && cs(card).borderColor, cardLift: cs(card) && cs(card).boxShadow,
         lobH: lob ? Math.round(lob.getBoundingClientRect().height) : null,
         fieldH: inp ? Math.round(inp.getBoundingClientRect().height) : null,
         /* THE RULE, not a pair of sections that may not both be drawn: a
@@ -246,8 +246,10 @@ const check = (name, ok, detail) => {
     check('3a the cards have the page’s own ground to be white against',
       !!P.bodyBg && P.bodyBg === P.pageBg && P.bodyBg !== P.cardBg,
       `body ${P.bodyBg} · page ${P.pageBg} · card ${P.cardBg}`);
-    check('3b and the card edge is the token that stays visible on it',
-      P.cardEdge === INKS.strong, `${P.cardEdge} vs ${INKS.strong}`);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2, the owner's drawn New agreement): a card has no
+       outline; it stands off the grey by its lift (--shadow-sm) — still something that stays visible on it */
+    check('3b and the card stands off the ground by its lift, with no outline',
+      /rgba\(0, 0, 0, 0\)|transparent/.test(P.cardEdge || '') && !!P.cardLift && P.cardLift !== 'none', `${P.cardEdge} · ${P.cardLift}`);
     /* RE-POINTED 12 Oct 2026 (the Search list): the line of business moved
        to Settings → Company; the control in the rail now is its own search. */
     check('3c the rail\'s search is the size of the controls beside it',

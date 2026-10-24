@@ -128,9 +128,13 @@ async function login(b, base, email, pass, errs){
     const up = await waitFor(page, () => !!document.querySelector('#pd-redface [data-nego-card]'), 10000);
     check('0  the Redlines face is up beside the paper', !!up);
 
-    const lit = () => page.evaluate(() => [...document.querySelectorAll('#pd-redface :is(.rl-card-d, .rk-row)')]
+    const CARD_GROUND = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--color-bg)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; });
+    const lit = () => page.evaluate(ground => [...document.querySelectorAll('#pd-redface :is(.rl-card-d, .rk-row)')]
       .map(e => ({ k: e.getAttribute('data-nego-card') || e.getAttribute('data-rk-key') || '', bg: getComputedStyle(e).backgroundColor, ring: getComputedStyle(e).boxShadow !== 'none', on: e.classList.contains('is-linked') }))
-      .filter(x => x.bg !== 'rgba(0, 0, 0, 0)' || x.ring));
+      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2: each redline change is its own soft grey card,
+         the owner's pick of the drawing): a card at rest wears the card ground (--color-bg), so "lit" is a
+         shade OTHER than the ground and other than none — the relation, not a colour */
+      .filter(x => (x.bg !== 'rgba(0, 0, 0, 0)' && x.bg !== ground) || x.ring), CARD_GROUND);
     await page.evaluate(() => { const r = document.querySelector('#pd-redface [data-rk-act="run"]'); if (r) r.click(); });
     await waitFor(page, () => !!document.querySelector('#pd-redface .rk-row:not(.is-none):not(.is-covered)'), 8000);
     /* 1 */
