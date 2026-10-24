@@ -8354,7 +8354,8 @@ function renderIntelDock(){
            at a glance — drawn above the conversation, which goes on under it */
         const top=(state.view==='dashboard'&&typeof window.pdJamboTopHtml==='function')?pdJamboTopHtml():'';
         /* the landing carries no conversation (19 Oct 2026): it is the flip's */
-        return top||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`; })()}${solo?msgs+typing:''}
+        /* ONE WINDOW: his own greeting first, then the page's words (owner, 24 Oct 2026: "bring them back") */
+        return (solo&&top&&typeof window.jamboHelloHtml==='function'?jamboHelloHtml():'')+(top||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`); })()}${solo?msgs+typing:''}
     </div>`}
     ${''/* SAVED VIEWS LEFT THE PANEL (owner, 15 Oct 2026): they stand on the
            Board's head as chips (hbSavedViewChipsHtml, round 17), and a press

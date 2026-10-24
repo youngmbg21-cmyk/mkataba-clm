@@ -75,7 +75,8 @@ describe('f784 (3) Jambo says the page', () => {
   test('3c the panel\'s head draws no tabs and no word: it is one window', () => {
     const g = company();
     assert.equal(g.$('st-side-word'), null);
-    assert.equal(g.qa('#st-side-head .st-side-tab').length, 0);
+    /* his one tab "Jambo", his sign and name (owner, 24 Oct 2026: "bring them back") */
+    assert.deepEqual(g.qa('#st-side-head .st-side-tab').map(t => g.text(t)), ['Jambo']);
   });
 });
 

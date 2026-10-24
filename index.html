@@ -16835,10 +16835,12 @@
   .ca-card{padding:14px 16px}
   :is(.st-jb-card, .ca-card) .ui-btn:not(.ui-btn-primary):not(.ui-btn-plain){background:var(--color-surface)}
   :is(.st-jb-card, .ca-card) .ui-btn:not(.ui-btn-primary):not(.ui-btn-plain):hover{background:var(--color-neutral-100)}
-  /* -- ONE WINDOW (owner, 24 Oct 2026): a list panel holding only his words draws no Overview / Jambo tabs and no
-     page word (jlTalkPaint marks .is-solo); written by scope, as .pd-tab's own display outranks [hidden] -- */
-  .is-solo > .jl-head :is([data-jl-home], [data-jl-talk], [data-jl-word]){display:none}
+  /* -- ONE WINDOW (owner, 24 Oct 2026): a list panel holding only his words draws his one tab "Jambo", no Overview
+     and no page word (jlTalkPaint marks .is-solo); written by scope, as .pd-tab's own display outranks [hidden] -- */
+  .is-solo > .jl-head :is([data-jl-home], [data-jl-word]){display:none}
   .is-solo .jl-greet:not(:empty){margin-bottom:12px}
+  /* his own greeting reads the same on every host (jamboHelloHtml): the quiet grey of Home's */
+  .jb-hello{color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.55;margin:0 0 10px}
   /* -- every button is a pill: the soft grey filled, the ink's words; the main one black -- */
   .ui-btn, .hb-btn{border-radius:999px;border-color:transparent;background:var(--surface-2);color:var(--color-text)}
   .ui-btn:hover, .hb-btn:hover{background:var(--color-neutral-200)}

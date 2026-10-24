@@ -3153,10 +3153,9 @@ function pdHeadHtml(brain){
   /* THE TABS STAY WHILE A FACE IS UP (ONE TRAIL, owner 19 Oct 2026): the
      face lives under Jambo's tab; Clauses and back to Jambo brings it back */
   const tabs = pdOnPaper() ? PD_TABS_SHOWN : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
-  /* ONE WINDOW (pdSolo): his conversation is the panel; beside the map's own tabs (Findings, the Guide) it is the
-     one tab "Jambo", alone it needs no tab at all */
+  /* ONE WINDOW (pdSolo): his conversation is the panel, under its one tab "Jambo" — his sign and his name (owner,
+     24 Oct 2026: "bring them back") — beside the map's own Findings and Guide where they stand */
   if (pdSolo()){
-    if (!fd && !gd) return '';
     const onT = (fd && typeof igFindingsShows === 'function' && igFindingsShows()) ? 'findings' : (gd && typeof igGuideShows === 'function' && igGuideShows()) ? 'guide' : 'copilot';
     const jb = _pdT('pd_tab_copilot');
     return `<button type="button" role="tab" class="pd-tab pd-tab-talk${onT === 'copilot' ? ' on' : ''}" data-pd-tab="copilot" aria-selected="${onT === 'copilot'}" title="${_pdE(jb)}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : _pdE(jb)}</button>`
