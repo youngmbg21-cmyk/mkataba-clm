@@ -440,7 +440,7 @@ function draftWordsRead(sentence){
       const home = String((typeof jxCurrency === 'function' && jxCurrency()) || '').toUpperCase();
       const same = !home || home === cur;
       const shown = (typeof fmtMoneyShortIn === 'function') ? fmtMoneyShortIn(num, cur) : `${cur} ${num}`;
-      add('value', same ? shown : i18t('na_rd_value_other', { v: shown, home }), m[0], same ? { value: String(Math.round(num)) } : {});
+      add('value', same ? shown : i18t('na_rd_value_elsewhere', { v: shown, home }), m[0], same ? { value: String(Math.round(num)) } : {});
     }
   }
   return out;
