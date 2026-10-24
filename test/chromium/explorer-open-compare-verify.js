@@ -29,6 +29,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 let pass = 0, fail = 0;
 const check = (name, ok, detail) => { ok ? pass++ : fail++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`); };
+/* THE COUNT IS HONEST ONLY WHEN NOTHING IS IN FLIGHT (24 Oct 2026): a call the ARRIVAL read started (the Open
+   press lands a contract on Workspace -> triageAndPaint) reaches the stub when it reaches it, so on a slow runner
+   it was counted against the next step and "drawing it asked Jambo nothing" read 1. Wait for quiet, bounded,
+   then clear: a wait asks for the state, never a fixed pause. */
+const quietThenReset = async (ai, ms = 700, max = 8000) => { const end = Date.now() + max; let n = ai.calls.length, since = Date.now();
+  while (Date.now() < end){ await pause(100); if (ai.calls.length !== n){ n = ai.calls.length; since = Date.now(); continue; } if (Date.now() - since >= ms) break; }
+  ai.reset(); };
 const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + ms;
   while (Date.now() < end) { const v = await page.evaluate(fn, arg).catch(() => null); if (v) return v; await pause(100); } return null; };
 
@@ -85,7 +92,7 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
     await explorerCard(B);
     const c3 = await cardOf(B);
     check('3b another card\'s button reads "Compare with ' + refA + '"', !!c3 && c3.cmp === `Compare with ${refA}`, JSON.stringify(c3));
-    ai.reset();
+    await quietThenReset(ai);
     await page.click(`#ig-dock [data-ig-hoverid="${B}"] [data-ig-cmp]`);
 
     console.log('\n4 · the table, free');
