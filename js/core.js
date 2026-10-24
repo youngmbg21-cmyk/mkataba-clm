@@ -5624,7 +5624,9 @@ function shareLetterPaint(c, st){
      email, while it is not mid-send; the other channels keep their words */
   const sb=document.getElementById('share-send'), lbl=document.getElementById('sh-send-lbl');
   if(lbl && sb && !sb.dataset.busy && (!st || !st.ch || st.ch==='email')){
-    const first=String(fval('sh-name')||'').trim().split(/\s+/)[0];
+    /* a colleague's letter is named for the colleague in To, never the other side's hidden Name box */
+    const colTo=st && st.purpose==='colleague' && _shCol.picks[0] ? _shCol.picks[0].name : '';
+    const first=String(colTo || (st && st.purpose==='colleague' ? '' : fval('sh-name')) || '').trim().split(/\s+/)[0];
     const v=first ? i18t('sh_lt_send_to', { who:first }) : i18t('co_send_by_email');
     if(lbl.textContent!==v && !/^(Sending|Sent)/.test(lbl.textContent)) lbl.textContent=v;
   }

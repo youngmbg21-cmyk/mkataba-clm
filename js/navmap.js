@@ -420,8 +420,9 @@ function navReadContractAct(raw, t){
   if (shared && !NAV_ACT_OWN.has(act)) return null;
   /* a send named with its purpose ("Send MK-J1 for signing") is the share reader's: it sets the letter's purpose */
   if (act === 'send' && (/ (for signing|to sign|for signature|för underskrift) /.test(t))) return null;
-  /* a send to a person picked with @ ("Send #MK-E1 for review to @Grace Wanjiru") is the send reader's: it keeps the person */
-  if (act === 'send' && /@/.test(raw) && typeof caFindPerson === 'function' && caFindPerson(raw)) return null;
+  /* a send to a person named with @ ("Send #MK-E1 for review to @Grace Wanjiru") is the send reader's: it keeps the
+     person, or says why it cannot (yourself, nobody by that name) — never a trip that drops them */
+  if (act === 'send' && /(^|\s)@[^\s@]/.test(raw) && typeof caReadSend === 'function') return null;
   if (hit.picks && hit.picks.length > 1) return navWhich(hit.picks.map(c => ({ c, nav: { k: 'cact', cid: c.id, act } })));
   const c = hit.c; if (!c) return null;
   /* AI FIRST (stage 3): "open" is sure only when the sentence names the contract and nothing more — "when does

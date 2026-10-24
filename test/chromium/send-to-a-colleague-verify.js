@@ -138,6 +138,21 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       check('3b the send screen opens on "a colleague", the one picked in To', !!up && S.chip === 'a colleague' && /Unrestricted Legal/.test(S.chips), JSON.stringify({ typed, chip: S.chip, chips: S.chips }));
       check('3c the letter asks them to review, and says nothing of a summary', /asked you to review MK-B2/.test(S.letter) && !/Jambo's summary/.test(S.letter), JSON.stringify(S.letter.slice(0, 200)));
       check('3d Jambo says the screen is open, with no summary claimed', /I opened Send the contract for a colleague, with Unrestricted Legal as the person\. Add a note/.test(S.said), JSON.stringify(S.said));
+      /* 3i the Send button is named for the colleague, never the other side's hidden Name box (owner, 24 Oct 2026:
+         "why does it say send to diamonds?") */
+      const lbl = await page.evaluate(() => { const n = document.getElementById('sh-name'); if (n){ n.value = 'diamonds'; n.dispatchEvent(new Event('input', { bubbles: true })); }
+        return new Promise(r => setTimeout(() => r((document.getElementById('sh-send-lbl') || {}).textContent || ''), 300)); });
+      check('3i the Send button names the colleague, not the other side', /^Send to Unrestricted$/.test(lbl.trim()), JSON.stringify(lbl));
+      /* 3j a tab pressed beside the letter shows that tab, and "Before you send" brings the letter's face back
+         (owner: "why is dossier empty and all the other panels") */
+      const tabs = [];
+      for (const k of ['Clauses', 'Dossier']){
+        await page.locator('#ig-dock .pd-tab', { hasText: k }).first().click();
+        tabs.push(await until(() => !document.getElementById('pd-sendface') && document.querySelector('#sh-letter') ? true : null, null, 4000));
+      }
+      await page.click('#ig-dock [data-pd-send-back]');
+      const back = await until(() => document.getElementById('pd-sendface') ? true : null, null, 4000);
+      check('3j Clauses and Dossier show their own panel beside the letter; "Before you send" brings it back', tabs.every(Boolean) && !!back, JSON.stringify({ tabs, back }));
       const n0 = h.mail.sent.length;
       await page.click('#share-send');
       await until(() => !document.querySelector('#sh-letter'), null, 10000);
@@ -149,6 +164,18 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       const card = await until(() => [...document.querySelectorAll('#igd-feed [data-ca-act="send"]')].length ? true : null, null, 8000);
       const open = await page.evaluate(() => !!document.querySelector('#sh-letter'));
       check('3f typed by hand, it is Jambo\'s send card with the colleague — never the trip to Before you send', !!card && !open, JSON.stringify({ card, open }));
+      /* 3g–3h (owner, 24 Oct 2026, "the bug is still there"): a name Jambo cannot take — yourself, or nobody by that
+         name — is said on his card, never the trip to Before you send that drops it */
+      for (const [k, who, says] of [['3g', 'Amina Otieno', /That is you\. Type @ and pick a colleague/], ['3h', 'Nobody Atall', /Choose who it goes to/]]){
+        await page.evaluate(() => { if (window.closeModal) closeModal(); });
+        await page.click('#igd-input'); await page.keyboard.type('share'); await page.keyboard.press('Enter');
+        await until(() => [...document.querySelectorAll('[data-ca-act="sharein"]')].length ? true : null, null, 8000);
+        await page.locator('[data-ca-act="sharein"]').last().click();
+        await page.keyboard.type(who); await page.keyboard.press('Escape'); await page.click('#igd-go');
+        const W = await until(() => { const H = intel.history, m = H[H.length - 1]; return m && m.act && m.role === 'assistant' && H[H.length - 2] && /@/.test(H[H.length - 2].text || '')
+          ? { kind: m.act.kind, nav: m.act.nav ? m.act.nav.act : null, said: [...document.querySelectorAll('#igd-feed [data-ca-card]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(-1)[0] || '' } : null; }, null, 8000);
+        check(k + ' "@' + who + '" is said on Jambo\'s card, never the trip to Before you send', !!W && W.kind === 'send' && !W.nav && says.test(W.said), JSON.stringify(W));
+      }
     });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
