@@ -16829,7 +16829,9 @@
     background:var(--bar-bg);border-bottom-color:transparent;box-shadow:none}
   #top-header .hdr-icon-btn, #top-header #cmd-ai{border-radius:999px}
   #top-header .cmd-search{border-radius:999px;border-color:transparent;background:var(--bar-well)}
-  #top-header #cmd-k-hint{border-radius:999px;border-color:transparent;background:rgba(255,255,255,.16);box-shadow:none}
+  /* the ⌘K hint sits on its own lighter pill inside the well: the quiet 78% white measured 3.97:1 there
+     (contrast-verify), so its word is the bar's full white (about 5.4:1) */
+  #top-header #cmd-k-hint{border-radius:999px;border-color:transparent;background:rgba(255,255,255,.16);box-shadow:none;color:var(--bar-ink)}
   #top-header #side-avatar{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.32)}
   #top-header #rail-avatar:hover #side-avatar{background:rgba(255,255,255,.26)}
   #top-header #shell-title .crumb-sep{color:rgba(255,255,255,.55)}

@@ -1681,8 +1681,11 @@ function pdTalkSync(dock){
   if (_pdTalk.stale && !(typeof intel === 'object' && intel && intel.busy)) _pdTalk.stale = false;
   _pdTalk.last = len;
   if (k.indexOf('dock:') !== 0) return false;
-  /* ONE WINDOW (pdSolo): the conversation is already the panel, nothing to turn to */
-  if (pdSolo()){ _pdTalk.seen = len; _pdTalk.quiet = false; if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
+  /* ONE WINDOW (pdSolo): the conversation is already the panel, nothing to turn to. Words said in it are OWED a
+     turn should the same page stop being solo (a sentence typed on the wall brings the one sheet): the panel then
+     turns to the conversation, his line of what he read beside the sheet (one-sheet-as-drawn 0, 2b, 14, 16). A new
+     page (a contract, another face) lands fresh: jamboTalkLand starts a new _pdTalk, the debt with it */
+  if (pdSolo()){ if (len > _pdTalk.seen) _pdTalk.owed = true; _pdTalk.seen = len; _pdTalk.quiet = false; if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
   /* NOTHING SAID HERE, NO CONVERSATION VIEW (19 Oct 2026): a conversation
      cleared under an open view puts the landing back — an empty talk is never
      what the panel shows (home-held-contract-verify 3g) */
@@ -1702,7 +1705,7 @@ function pdTalkSync(dock){
     /* held until his first words for it are said (firstDraftOwed), so they too wait in his tab */
     { const c0 = pdContract(); if (!(c0 && typeof firstDraftOwed === 'function' && firstDraftOwed(c0))) _pdLandDossier = false; }
     if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
-  if (len > _pdTalk.seen){ _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
+  if (len > _pdTalk.seen || _pdTalk.owed){ _pdTalk.owed = false; _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
   return jamboTalkShows(k);
 }
 /* the next paper to land on Home opens on its Dossier, not on the conversation (the one sheet's Create) */

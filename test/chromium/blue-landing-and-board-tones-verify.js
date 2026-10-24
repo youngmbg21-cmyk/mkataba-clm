@@ -77,14 +77,15 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     const shell = await page.evaluate(() => {
       const bar = document.getElementById('top-header');
       const probe = document.createElement('i'); probe.style.background = 'var(--color-bg)'; document.body.appendChild(probe);
-      const ground = getComputedStyle(probe).backgroundColor; probe.remove();
+      const ground = getComputedStyle(probe).backgroundColor;
+      probe.style.background = 'var(--bar-green)'; const green = getComputedStyle(probe).backgroundColor; probe.remove();
       return { swatches: ['#brand-navy', '#brand-green', '[data-brand-pick]', '#theme-btn'].filter(q => document.querySelector(q)),
-        bar: bar ? getComputedStyle(bar).backgroundColor : '', ground,
+        bar: bar ? getComputedStyle(bar).backgroundColor : '', ground, green,
         dark: document.documentElement.classList.contains('dark'), brand: document.documentElement.getAttribute('data-brand') };
     });
     check('N-3b no brand swatches and no theme button in the bar', shell.swatches.length === 0, JSON.stringify(shell.swatches));
-    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the bar is the drawing's translucent white */
-    check('N-3c the bar is white, standing off the page\'s ground', /^rgba?\(255, 255, 255(, 0\.78)?\)$/.test(shell.bar) && shell.ground !== shell.bar && !shell.dark && shell.brand === null, JSON.stringify(shell));
+    /* RE-POINTED 24 Oct 2026 (THE BAR IN COLOUR, owner picked "The SAP way"): the bar is its deep green, --bar-green */
+    check('N-3c the bar is its deep green, standing off the page\'s ground', !!shell.green && shell.bar === shell.green && shell.ground !== shell.bar && !shell.dark && shell.brand === null, JSON.stringify(shell));
 
     /* ============ N-4 RE-POINTED 20 Oct 2026: the Board wears Chambers ============
        The Board face is always the light screen now, its glow the accent's
