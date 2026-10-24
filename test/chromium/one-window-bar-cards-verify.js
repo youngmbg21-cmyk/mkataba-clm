@@ -48,19 +48,21 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
       const trail = [...p.querySelectorAll('.pd-trail')].filter(vis).length;
       return { tabs, word, trail };
     }, sel);
-    const one = r => !!r && !r.tabs.some(t => /Overview|Översikt/.test(t)) && !r.tabs.some(t => /^Jambo$/.test(t) && r.tabs.length === 1) && r.word.length === 0 && r.trail === 0;
+    /* one window: his one tab "Jambo" (his sign and name, owner 24 Oct 2026: "bring them back"), no Overview, no word, no trail */
+    const one = r => !!r && !r.tabs.some(t => /Overview|Översikt/.test(t)) && r.word.length === 0 && r.trail === 0;
 
     console.log('\nA · one window where the panel holds only his words');
     const homeFace = f => page.evaluate(x => { setView('dashboard'); intel.paper = null; hbSetFace(x); }, f);
     await homeFace('board');
     await until(() => !!document.getElementById('igd-input') && window.pdSolo && pdSolo());
     const A1 = await panelHead('#ig-dock');
-    check('A1 the Board: no tabs, no word, no trail', one(A1) && A1.tabs.length === 0, JSON.stringify(A1));
+    A1.hello = await page.evaluate(() => !!document.querySelector('#ig-dock [data-jb-hello]'));
+    check('A1 the Board: his one tab "Jambo" and his greeting first; no Overview, no word, no trail', one(A1) && A1.tabs.join() === 'Jambo' && A1.hello, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
     await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');
     const A2 = await until(() => { const d = document.getElementById('ig-dock'); return !intel.busy && d && /Two things want you this week/.test(d.innerText) && /Here is your book/.test(d.innerText) ? true : null; }, null, 10000);
     const A2h = await panelHead('#ig-dock');
-    check('A2 a question on the Board: his greeting and the answer in the one window, nothing turned', !!A2 && one(A2h) && A2h.tabs.length === 0, JSON.stringify(A2h));
+    check('A2 a question on the Board: his greeting and the answer in the one window, nothing turned', !!A2 && one(A2h) && A2h.tabs.join() === 'Jambo', JSON.stringify(A2h));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `A-board-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
 
@@ -72,27 +74,27 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await page.evaluate(() => setView('register'));
     await until(() => window.pdSolo && pdSolo() && !!document.getElementById('igd-input'));
     const A4 = await panelHead('#ig-dock');
-    check('A4 the Contracts place, nothing chosen: no tabs, no word', one(A4) && A4.tabs.length === 0, JSON.stringify(A4));
+    check('A4 the Contracts place, nothing chosen: no tabs, no word', one(A4) && A4.tabs.join() === 'Jambo', JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
     await until(() => !!document.querySelector('#ins-panel.is-solo [data-jl-greet] [data-jl-words]'));
     const A5 = await panelHead('#ins-panel');
-    check('A5 Requests, nothing chosen: his words lead the one window; no tabs, no word', one(A5) && A5.tabs.length === 0, JSON.stringify(A5));
+    check('A5 Requests, nothing chosen: his words lead the one window; no tabs, no word', one(A5) && A5.tabs.join() === 'Jambo', JSON.stringify(A5));
     ai.reset(); ai.script(deliver('Nothing is open, so nothing waits.'));
     await page.evaluate(() => { const q = document.getElementById('jl-q'); q.value = 'explain this page to me in two lines'; q.closest('form').requestSubmit(); });
     const A6 = await until(() => { const p = document.getElementById('ins-panel'); return p && /Nothing is open, so nothing waits/.test(p.innerText) && !!p.querySelector('[data-jl-greet] [data-jl-words]') ? true : null; }, null, 10000);
     const A6h = await panelHead('#ins-panel');
-    check('A6 a question there: answered under his words, still one window', !!A6 && one(A6h) && A6h.tabs.length === 0, JSON.stringify(A6h));
+    check('A6 a question there: answered under his words, still one window', !!A6 && one(A6h) && A6h.tabs.join() === 'Jambo', JSON.stringify(A6h));
 
     await page.evaluate(() => setView('team'));
     await until(() => !!document.getElementById('st-jb-feed'));
     const A7 = await panelHead('#st-side');
-    check('A7 Settings: no tabs, no word, no trail', one(A7) && A7.tabs.length === 0, JSON.stringify(A7));
+    check('A7 Settings: no tabs, no word, no trail', one(A7) && A7.tabs.join() === 'Jambo', JSON.stringify(A7));
 
     await page.evaluate(() => setView('calendar'));
     await until(() => !!document.getElementById('cal-plan'));
     const A8 = await panelHead('#cal-plan');
-    check('A8 the Calendar: Your week with no tabs, no word', one(A8) && A8.tabs.length === 0, JSON.stringify(A8));
+    check('A8 the Calendar: Your week with no tabs, no word', one(A8) && A8.tabs.join() === 'Jambo', JSON.stringify(A8));
 
     await page.evaluate(() => pdOpenOnHome('MK-B2', 'copilot'));
     await until(() => !!document.querySelector('#ig-dock [data-pd-tab="red"]'));

@@ -1369,7 +1369,7 @@ function jlTalkLand(){
   return false;
 }
 /* his words on a one-window panel stand at the top of the conversation (data-jl-greet), not in the landing */
-function jlGreetPut(host, html){ const g = host && host.querySelector('[data-jl-greet]'); if (g) g.innerHTML = html || ''; }
+function jlGreetPut(host, html){ const g = host && host.querySelector('[data-jl-greet]'); if (g) g.innerHTML = html ? ((typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : '') + html) : ''; }
 function jlTalkShows(){ return typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()); }
 function jlTalkHtml(){
   return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><div class="jl-greet" data-jl-greet></div><p class="igd-popped" data-jl-popped hidden></p><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;
@@ -1408,7 +1408,8 @@ function jlTalkPaint(host){
   /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
      2026): the Jambo tab stands once words were said on this page — not on one window */
   const tab = host.querySelector('[data-jl-talk]'), home = host.querySelector('[data-jl-home]'), word = host.querySelector('[data-jl-word]');
-  if (tab){ tab.hidden = solo; tab.classList.toggle('on', on); }
+  /* one window: his tab alone, lit — his sign and his name */
+  if (tab){ tab.hidden = false; tab.classList.toggle('on', on || solo); }
   if (home){ home.hidden = solo; home.classList.toggle('on', !on); }
   if (word) word.hidden = solo;
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}

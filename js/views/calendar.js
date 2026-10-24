@@ -2130,7 +2130,9 @@ function calPlanHtml(){
      no Overview / Jambo tabs, no word beside them, no trail */
   const talk=!!(you||answer);
   return `<aside class="cal-cop is-solo${talk?' is-talk':''}" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
+    <div class="cal-plan-head jl-head"><span class="pd-tab on jl-tab" title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</span><span class="jl-sp"></span></div>
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">
+      ${typeof window.jamboHelloHtml==='function'?jamboHelloHtml():''}
       <div class="jl-words cal-yw" data-jt-land>${week?`<div class="jl-say">${sayFace}<div class="jl-bub">${week}</div></div><p class="jl-src">${_esc(i18t('ob_yw_src'))}</p>`:''}${
         offer?`<div class="jl-say">${sayFace}<div class="jl-bub">${_esc(offer)}</div></div>`:''}
         <div class="jl-chips cal-yw-chips"><button type="button" class="jl-chip" data-cal-plan-q="week" title="${_esc(i18t('cal_plan_p_week'))}"${off}>${_esc(i18t('ob_yw_chip_week'))}</button><button type="button" class="jl-chip" data-cal-plan-q="due" title="${_esc(i18t('cal_plan_p_due'))}"${off}>${_esc(i18t('ob_yw_chip_due'))}</button></div>

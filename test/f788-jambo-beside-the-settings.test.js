@@ -25,7 +25,7 @@ describe('f788 (1) the panel\'s head', () => {
      words on every face but a stream chosen on Streams, so its head draws no Overview / Jambo tabs and no word */
   test('1a one window: no tabs and no word on every face of his words; a stream chosen brings both back', () => {
     const g = settingsStage({ role: 'legal' });
-    assert.equal(g.qa('#st-side-head .st-side-tab').length, 0, 'no tabs');
+    assert.deepEqual(g.qa('#st-side-head .st-side-tab').map(t => g.text(t)), ['Jambo'], 'his one tab, no Overview');
     assert.equal(g.$('st-side-word'), null, 'no word');
     const a = settingsStage();
     assert.equal(a.$('st-side-word'), null, 'an admin on You');
@@ -38,7 +38,7 @@ describe('f788 (1) the panel\'s head', () => {
   });
   test('1b the fold: to the right edge, his face brings him back; a refresh keeps it', () => {
     const g = settingsStage();
-    assert.equal(g.qa('#st-side-head .st-side-tab').length, 0, 'one window: no tabs');
+    assert.equal(g.qa('#st-side-head .st-side-tab').length, 1, 'one window: his one tab');
     g.click(g.q('#st-side-head [data-st-side-fold]'));
     assert.ok(g.$('set-page').classList.contains('is-side-folded') && g.$('st-side').classList.contains('is-folded'));
     assert.equal(g.sb.settingsPlace().fold, true, 'kept for a refresh');
