@@ -23,6 +23,17 @@
         head never spills
      8  the Dossier's last line at the panel's foot is the end of a list that
         scrolls, not words under words
+   THE SECOND WALK (owner, 24 Oct 2026: "Fix all five"):
+     9a Redlines pressed on a contract for the first time in a sitting draws
+        the paper and Jambo's panel once: the loads that land after it bring
+        nothing new to draw
+     9b a figure's list on the Board is put away when the reader moves: Home
+        asked again, "board" asked, another page — the Needs you buttons are
+        pressable again
+     9c the Contracts Wall adds the next papers as you scroll to its foot; the
+        place is not drawn again
+     9d the Brain playing a flow marks each step in its row; the list of
+        steps is not built again at each step
    Counting is not timing: a part drawn twice is counted by the writes to
    it, which do not depend on the machine's speed.
      node test/chromium/glitch-fixes-verify.js
@@ -221,6 +232,60 @@ const COUNT_WRITES = () => {
       });
       check('8 the Dossier\'s last line is reached by scrolling its list, whole', !!r && r.whole, JSON.stringify(r));
       await page.screenshot({ path: path.join(OUT, '8-dossier-foot-scrolled.png') });
+    }
+    if (part(9)){
+      /* ---- 9a  REDLINES, FIRST TIME IN A SITTING, DRAWN ONCE ---- */
+      const id = await page.evaluate(() => { const c = state.contracts.find(x => x && !['MK-A1', 'MK-B2'].includes(x.id) && !x._msgFetch && !x._shareFetch && !x.parentId
+        && !(typeof negoExecuted === 'function' && negoExecuted(x)) && !(x.signatures && x.signatures.length)); return c ? c.id : null; });
+      if (!id) check('9a (stage) a contract not yet opened in Redlines', false, 'none in the book');
+      else {
+        await home(); await ask(id); await waitFor(page, () => hbS().face === 'paper' && !!document.querySelector('[data-pd-tab="red"]')); await pause(1500); await writes();
+        await page.click('[data-pd-tab="red"]'); await waitFor(page, () => !!document.getElementById('pd-redface')); await pause(2000);
+        const w = await writes();
+        check(`9a Redlines on ${id}, its first time this sitting: the paper and Jambo's panel each drawn once`, (w['ig-paper'] || 0) <= 1 && (w['ig-dock'] || 0) <= 1, JSON.stringify({ paper: w['ig-paper'] || 0, dock: w['ig-dock'] || 0 }));
+      }
+      /* ---- 9b  A FIGURE'S LIST IS PUT AWAY WHEN THE READER MOVES ---- */
+      const sheetUp = () => page.evaluate(() => !!document.querySelector('.hb-sheet'));
+      const openSheet = async () => { await home(); await ask('board'); await waitFor(page, () => hbS().face === 'board' && !!document.querySelector('[data-hb-dig^="st:"]'));
+        /* a stage's number opens its contracts in the side list (Your book's figures open their page) */
+        await page.locator('[data-hb-dig^="st:"]:not([disabled]) >> visible=true').first().click(); return waitFor(page, () => !!document.querySelector('.hb-sheet'), 4000); };
+      for (const [name, move] of [['Home asked again, then "board"', async () => { /* no Esc first: Esc closes the list by itself */ await page.evaluate(() => setView('counter')); await waitFor(page, () => !!document.getElementById('cn-q') && !!document.getElementById('cn-q').offsetParent); await ask('board'); await settle(); }],
+        ['the Board\'s own tab pressed', async () => { await page.evaluate(() => hbSetFace('board')); await settle(); }],
+        ['another page, then back to Home', async () => { await page.evaluate(() => setView('approvals')); await settle(); await home(); await ask('board'); await settle(); }]]){
+        const up = await openSheet();
+        if (!up){ check(`9b (stage) a figure opens its list — ${name}`, false); continue; }
+        await move();
+        const r = await page.evaluate(() => { const b = [...document.querySelectorAll('#hb-board [data-cn-need]')].find(x => x.getClientRects().length);
+          if (!b) return { sheet: !!document.querySelector('.hb-sheet'), btn: null };
+          b.scrollIntoView({ block: 'center' }); const q = b.getBoundingClientRect(); const at = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+          return { sheet: !!document.querySelector('.hb-sheet'), btn: !!(at && b.contains(at)) }; });
+        check(`9b a figure's list is put away — ${name}; a Needs you button is pressable`, !r.sheet && r.btn !== false, JSON.stringify(r));
+      }
+      check('9b … and × still closes it where it stands', await (async () => { if (!await openSheet()) return false; await page.click('[data-hb-sheet-x]'); await pause(300); return !await sheetUp(); })());
+      /* ---- 9c  THE WALL ADDS THE NEXT PAPERS, THE PLACE IS NOT DRAWN AGAIN ---- */
+      /* the seeded book is shorter than one step of twelve: copies of a contract, in this page only, never saved */
+      await page.evaluate(() => { const c0 = state.contracts.find(x => x && x.id === 'MK-A1');
+        for (let i = 0; i < 30; i++) state.contracts.push(Object.assign({}, c0, { id: 'MK-GF' + String(i).padStart(2, '0'), name: (c0.name || 'Contract') + ' ' + i })); });
+      await home(); await ask('contracts'); await waitFor(page, () => !!document.querySelector('[data-ct-show="wall"]'));
+      await page.locator('[data-ct-show="wall"] >> visible=true').first().click(); await waitFor(page, () => !!document.querySelector('#ig-wall .igw-card')); await pause(600);
+      const n0 = await page.evaluate(() => document.querySelectorAll('#ig-wall .igw-card').length); await writes();
+      for (let i = 0; i < 6; i++){ await page.evaluate(() => { const b = document.querySelector('#ig-wall [data-lh-more="wall"]'); if (b) b.click(); }); await pause(250); }
+      const r9c = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-wall .igw-card').length, foot: (document.querySelector('[data-lh-foot="wall"]') || {}).textContent || '' }));
+      const w9c = await writes();
+      check('9c "Show more" on the Wall adds papers and the Contracts place is not drawn again', r9c.n > n0 && !(w9c['ct-place'] || 0) && !(w9c['ig-wall'] || 0),
+        JSON.stringify({ before: n0, after: r9c.n, foot: r9c.foot.trim(), place: w9c['ct-place'] || 0 }));
+      await page.evaluate(() => { const b = document.querySelector('[data-ct-show="list"]'); if (b) b.click(); }); await pause(400);
+      /* ---- 9d  THE BRAIN MARKS ITS STEP, THE LIST IS NOT BUILT AGAIN ---- */
+      await page.evaluate(() => setView('brain'));
+      const steps = await waitFor(page, () => !!document.querySelector('#br-steps .br-st'), 10000);
+      if (!steps) check('9d (stage) the Brain plays a flow', false);
+      else {
+        await pause(400); await writes();
+        const k0 = await page.evaluate(() => (document.querySelector('#br-steps .br-st.is-now') || {}).getAttribute ? document.querySelector('#br-steps .br-st.is-now').getAttribute('data-br-step') : null);
+        const moved = await waitFor(page, k => { const n = document.querySelector('#br-steps .br-st.is-now'); return !!n && n.getAttribute('data-br-step') !== k; }, 15000, k0);
+        const w9d = await writes();
+        check('9d the Brain moves its step without building the list of steps again', moved && !(w9d['br-steps'] || 0), JSON.stringify({ moved, from: k0, rebuilt: w9d['br-steps'] || 0 }));
+      }
     }
   } catch (e) {
     check('the stage ran', false, String(e && e.stack || e).slice(0, 400));

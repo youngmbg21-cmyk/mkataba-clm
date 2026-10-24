@@ -54,7 +54,7 @@ const BOOKS = (() => {
   }
   return { en, sv };
 })();
-const WALL_FNS = ['igWallLeadOf', 'igWallCountWords', 'igWallKeyOf', 'igWallShown', 'igWallMoreReset', 'igWallShowMore', 'igWallOrderWords', 'igWallBodyHtml',
+const WALL_FNS = ['igWallLeadOf', 'igWallCountWords', 'igWallKeyOf', 'igWallShown', 'igWallMoreReset', 'igWallShowMore', 'igWallAppend', 'igWallOrderWords', 'igWallBodyHtml',
   'igWallPlace', 'igWallPlacePut', 'igWallChosenId', 'igWallChosen', 'igWallChosenPaint', 'igWallChoose', 'igWallLetGo', 'igWallOpen', 'igWallPress'];
 /* the wall's own functions in a small world: a book, Home's Document face, the
    one door (igAnalyze) and the panel's paint counted, nothing else */
