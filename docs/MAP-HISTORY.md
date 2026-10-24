@@ -34302,3 +34302,10 @@ The owner: "fix the other pages too" (the line left in BUGLOG by the Board fix a
 
 ## HOME — THE BOARD AND THE MAP: THE BOARD'S OWN LANDING WITHDRAWN (24 Oct 2026, the same PR)
 GitHub's run on PR #461 failed board-as-drawn-verify 5f: the Board's greeting says "What needs you is on Home" and its "what needs me" link opens Home's Needs you — the owner's design (round 17, 18 Oct 2026). The first fix (hbNeedsOpen landing on the Board's own card with the Board in front, and aiGotoRun turning the talk back to the front when a move kept the page) contradicted it. Since the server now drops the trip on a plain question (copilotQuestionStays, f873) — the real cause — both browser changes were withdrawn: "needs" asked for opens Home as before; the owner's question no longer carries a trip at all. home-speed-verify 1 also failed on that run: the timing check already logged red on main (BUGLOG, 24 Oct 2026), not this PR's.
+
+## THE SAP BENCHMARK, BATCH 1 — THE LISTS (CI fixes for PR 462, 24 Oct 2026)
+- Narrow windows: past the mark the panel slides over the page, so `jlReserved` counts the room the page gave (`--jl-room`), not the panel's width; `insFits` stays honest below `INS_MIN_W` (four-inspectors 5a–5c).
+- The Dossier mix's field rules skip the named door rows (`:not(.is-named)`): "On the web" and "Who else" keep their words.
+- Round 3's "Run all" (`#sc-run` in `.sc-run-box`) is an outlined `ui-btn` with its magnifier: Sign stays the one filled button.
+- The phone's chosen metrics (`mKpiHtml`) moved to Portfolio, not dropped; `contract.js` D reads `c.fields||{}` (a light row reaches the paper).
+- Re-pointed to the agreed designs: sent-means-sent and six-round-audit (email off → the link is the person's hand-over, counts one lower), the-road-as-drawn (no pill while the road holds), signing-flow (run box), pages-read-alike 8 (an empty Import draws no tab row).

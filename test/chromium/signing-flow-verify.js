@@ -96,7 +96,9 @@ const check = (name, pass, detail) => {
       const b0 = document.getElementById('sign-btn');
       const card0 = document.getElementById('sign-check');
       window.__step0 = { label: b0 && b0.textContent.replace(/\s+/g, ' ').trim(),
-        row: !!(card0 && Array.from(card0.querySelectorAll('.sc-find.is-hold')).some(r => /promises/.test(r.textContent) && r.querySelector('[data-sc-run]'))) };
+        /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: the checks not run yet are said once, one "Run all" in a
+           box under the heading, in place of a "Run the check" on every row): the row holds, the box carries the press */
+        row: !!(card0 && Array.from(card0.querySelectorAll('.sc-find.is-hold')).some(r => /promises/i.test(r.textContent)) && card0.querySelector('.sc-run-box #sc-run')) };
       c.obligationsReadHash = hash;
       persist(c); await flushSaves();
       renderSignSide(c); renderSignButton(c);
@@ -375,8 +377,12 @@ const check = (name, pass, detail) => {
       check('7a the run control is drawn', b7.drawn === true, JSON.stringify(b7).slice(0, 160));
       check('7b it is a BUTTON, not a bare word — it carries an edge',
         b7.drawn && parseFloat(b7.border) >= 1, 'border ' + b7.border);
+      /* RE-POINTED 24 Oct 2026 (Round 3's run box / THE LEGORA LOOK: a control is a grey pill, so "not filled"
+         is measured against the filled fill itself, the theme's --accent-fill) */
+      const fill7 = await page.evaluate(() => { const d = document.createElement('span'); d.style.background = 'var(--accent-fill)'; document.body.appendChild(d);
+        const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
       check('7c and it is NOT the filled one — Sign is this screen\'s filled button',
-        b7.drawn && /rgba\(0, 0, 0, 0\)|transparent/.test(b7.bg), b7.bg);
+        b7.drawn && b7.bg !== fill7, b7.bg + ' vs filled ' + fill7);
       check('7d it stands on the product\'s own control rung, not the label\'s',
         b7.drawn && b7.h >= 28, b7.h + 'px');
       /* THE FAULT ITSELF: it used to share the heading's weight. */

@@ -1102,7 +1102,10 @@ function jlReserved(){
   const h = jlHost(); if (!h) return 0;
   /* a panel in a hidden tab takes nothing (Our paper's Templates tab) */
   if (typeof h.closest === 'function' && h.closest('[hidden]')) return 0;
-  return h.classList.contains('is-folded') ? JL_FOLDED : jlWidthNow();
+  if (h.classList.contains('is-folded')) return JL_FOLDED;
+  /* past the mark the panel lies over the page: the page gave only its room (--jl-room), not the panel's width */
+  if (h.classList.contains('is-split-over')){ const sh = jlShell(); const r = sh ? parseFloat(sh.style.getPropertyValue('--jl-room')) : NaN; if (r >= 0) return r; }
+  return jlWidthNow();
 }
 /* ---- THE SLIDER (owner, 19 Oct 2026: "all the new jambo panels do not have
    a slider like in the redline page. They should all have one.") ----

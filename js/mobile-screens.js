@@ -143,14 +143,12 @@ function mKpiHtml(D){
   if(!D) return '';
   const sel = (typeof currentKpiSel==='function' ? currentKpiSel() : []).filter(id=>D.KPI_CATALOG[id]);
   if(!sel.length) return '';
-  const TONE = { 'var(--grad-emerald)':'var(--tile-emerald-fg)', 'var(--grad-amber)':'var(--tile-amber-fg)',
-    'var(--grad-ruby)':'var(--tile-ruby-fg)', 'var(--grad-steel)':'var(--tile-steel-fg)' };
+  /* ROUND 6: one ink for every figure (no coloured tiles) */
   const cards = sel.map(id=>{
     const k = D.KPI_CATALOG[id];
-    const fg = TONE[k.grad] || 'var(--tile-steel-fg)';
     return `<button class="m-kpi" data-m-kpi="${id}">
       <span class="m-kpi-label">${mEsc(k.label)}</span>
-      <span class="m-kpi-val" style="color:${fg}">${k.val}</span>
+      <span class="m-kpi-val">${k.val}</span>
       <span class="m-kpi-sub">${k.delta}</span>
       ${''/* THE PAYMENT-TERMS SPLIT RIDES TOO (the owner's list, 27 Sep 2026): the
              tile's one number carries two directions and only the sub-line says
@@ -601,6 +599,15 @@ function mPortfolioHtml(){
       <div style="font-size:var(--t-page);font-weight:var(--w-strong);font-family:var(--font-heading,inherit)">${i18t('m_portfolio')}</div>
     </div>
     <div class="m-scroll">
+      ${''/* ROUND 6 (owner's yes, 24 Oct 2026): Home lost its metric tiles; the figures each person CHOSE (payment terms,
+            cycle time …) moved here, the Portfolio row being Home's door to "figures and streams", so none is lost */}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:var(--s-4) var(--s-4) 6px">
+        <span class="m-lbl">${i18t('m_your_metrics')}</span>
+        <button class="m-kpi-gear" data-m-act="kpis" aria-label="${i18t('m_choose_metrics')}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+      ${mKpiHtml(D)}
       <div class="m-card m-list" style="margin:var(--s-4)">
         ${rows.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:13px 14px">
           <span style="font-size:var(--t-card);color:var(--color-neutral-600)">${mEsc(r.label)}</span>

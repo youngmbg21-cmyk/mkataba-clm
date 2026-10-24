@@ -2183,7 +2183,8 @@ function redlineLayoutCss(){
   .rl-card-read-w{min-width:0;max-width:100%}
   ${''/* the playbook's verdicts keep two lines; "Worth a look" and "No advice yet" are read whole (as before) */}
   .rl-card-read:not([data-rl-row-read="look"]):not(.is-none) .rl-card-read-w{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .rl-card-verbs .rl-card-read-ask, .rl-card-side .rl-card-read-ask{margin-left:auto}
+  /* on the card it is one of the verbs (their ink, their spark mark), pushed to the right */
+  .rl-card-verbs .rl-card-read-ask, .rl-card-side .rl-card-read-ask{margin-left:auto;text-decoration:none}
   .rl-card-read-ask{flex:none;appearance:none;border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;white-space:nowrap}
   .rl-card-read-ask:hover{text-decoration-color:currentColor}
   .rl-sug-reject :is(ins,.nego-ins){text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px;

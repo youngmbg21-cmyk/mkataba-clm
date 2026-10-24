@@ -658,6 +658,8 @@ const M_CSS = `
   .m-title{ font-family:var(--font-doc,Georgia,serif); font-weight:600; }
   .m-home-head .m-title{ font-size:28px; line-height:1.2; margin-top:var(--s-2); }
   .m-card{ border:0; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .m-kpi{ border:0; border-radius:var(--radius-lg); }
+  .m-kpi-val{ color:var(--color-text); }
   .m-list > *{ border-bottom-color:var(--rule-faint,var(--color-divider)); }
   .m-chip{ border:0; border-radius:999px; background:var(--surface-2); color:var(--color-text); }
   .m-chip.on{ background:var(--accent-fill); color:#fff; }

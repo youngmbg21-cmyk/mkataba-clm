@@ -837,7 +837,9 @@ const SEED = async () => {
       const HOLD = () => { const c = document.querySelector('#page-head .ph-card'), f = document.querySelector('#content .ph-foot'); if (!c || !f) return null;
         const cr = c.getBoundingClientRect(), fr = f.getBoundingClientRect(), sc = document.getElementById('content-scroll');
         /* every figure or tab in the half, painted where it stands (not under the scroller's edge) */
-        const parts = [...f.querySelectorAll('.mig-kpi, .mig-kpi-card, [role="tab"]')].filter(e => e.getBoundingClientRect().width > 0);
+        /* RE-POINTED 24 Oct 2026 (Round 2 / owner's yes: one tab says nothing): an empty Import draws no tab row,
+           so the half's own controls (its box, its buttons) are what must stay in view */
+        const parts = [...f.querySelectorAll('.mig-kpi, .mig-kpi-card, [role="tab"], input, button')].filter(e => e.getBoundingClientRect().width > 0);
         const shown = parts.filter(e => { const r = e.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(8, r.height / 2)); return !!hit && (hit === e || e.contains(hit)); }).length;
         return { y: sc ? Math.round(sc.scrollTop) : null, card: [Math.round(cr.top), Math.round(cr.bottom)], foot: [Math.round(fr.top), Math.round(fr.bottom)], parts: parts.length, shown }; };
       const rest8 = ready ? await page.evaluate(HOLD) : null;

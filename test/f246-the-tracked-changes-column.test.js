@@ -1674,8 +1674,10 @@ describe('f246 (12) — every verb on the face carries the shell\'s own mark', (
        caller, the suggestion row's own face (Adopt · Hand back · Ladder,
        rlSuggestFaceHtml), dressed by the SAME table — the claim (one table,
        one injection) stands; the count moves by that one caller. */
-    assert.equal((NEG_CODE.match(/rlFaceMark/g) || []).length, 3,
-      'rlFaceMark is defined once and called by the face and the suggestion row');
+    /* RE-POINTED 24 Oct 2026 (owner picked "Advice or no advice"): a third caller, "Ask Jambo more" joining the
+       verbs of our seat (rlRowReadMoreHtml), dressed by the SAME table */
+    assert.equal((NEG_CODE.match(/rlFaceMark/g) || []).length, 4,
+      'rlFaceMark is defined once and called by the face, the suggestion row and Ask Jambo more');
     assert.match(NEG_CODE, /function rlSuggestFaceHtml[\s\S]{0,1200}?\.map\(rlFaceMark\)/,
       'the second caller is the suggestion row');
     assert.match(NEG_CODE, /out\.filter\(Boolean\)\.map\(rlFaceMark\)/,

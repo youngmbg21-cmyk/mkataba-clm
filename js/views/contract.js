@@ -3733,7 +3733,9 @@ function docBody(c, opts){
        heading takes a RATIO of it, so both follow the reader. */
     return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="${a}"${wrap}><div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)"><h4 class="font-display font-600 text-brand-900" style="margin:0;font-size:1.05em">${n}. ${title}</h4>${tag}</div><p style="margin:0;color:var(--color-doc-text);line-height:var(--lh-doc)">${body}</p></div>`;
   };
-  const f=c.fields;
+  /* a light list row carries no fields until its whole record is read (ensureFull); since every old-room door
+     lands on the paper (Round 5) the paper can be drawn first, so it reads an absent map as empty */
+  const f=c.fields||{};
   const D=id=>fDate(id,f[id]);                    // date field
   const T=(id,ph)=>fText(id,f[id],ph);            // text field
   const N=(id,def,ph)=>fNum(id,(f[id]??def),ph);  // number field (with default)
@@ -17475,7 +17477,7 @@ function signCheckCardHtml(c){
        the heading — "Three checks have not run on this wording yet · Run all 3" — in place of the heading's button
        and a "Run the check" on every row; the press is the same (#sc-run, data-sc-run) */
     const box=(st==='read'&&rc&&rc.ready&&willN&&!busy)
-      ? `<div class="sc-run-box"><span>${esc(i18tn('sc_run_box',willN,{n:willN}))}</span><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" id="sc-run" data-sc-run="1"${rc.waiting?' disabled':''} title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}">${esc(i18tn('sc_run_all',willN,{n:willN}))}</button></div>` : '';
+      ? `<div class="sc-run-box"><span>${esc(i18tn('sc_run_box',willN,{n:willN}))}</span><button type="button" class="ui-btn" id="sc-run" data-sc-run="1"${rc.waiting?' disabled':''} title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}"><svg class="sc-run-i" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-search"/></svg>${esc(i18tn('sc_run_all',willN,{n:willN}))}</button></div>` : '';
     return `<div class="sc-stage" data-sc-stage="${esc(st)}">
       <div class="sc-stage-h"><span class="sc-stage-t">${esc(i18t('sc_stage_'+st))}</span>${box?'':act}</div>${box}
       ${mine.map(row).join('')}

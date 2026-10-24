@@ -6509,6 +6509,8 @@ const RL_FACE_MARKS = [
   /* a colleague's suggestion on its own row (round 9's gaps): Adopt · Hand back */
   [/data-dk-adopt=/, 'check'],
   [/data-dk-return=/, 'left'],
+  /* "Ask Jambo more", the card's last verb (Advice or no advice, 24 Oct 2026): Jambo's spark */
+  [/data-rl-read-why=/, 'spark'],
 ];
 /* A LOCKED DOOR TAKES THE MARK TOO, and that is measured rather than tidy.
    It is the SAME door — the pencil is what it is, whoever is holding the
@@ -22253,7 +22255,7 @@ function rlRowReadHtml(c, ch, side){
 /* "Ask Jambo more", the last of the card's verbs, at its right: only where there is advice to explain */
 function rlRowReadMoreHtml(c, ch, side){
   const R = rlRowReadOf(c, ch, side); if (!R || !R.more) return '';
-  return `<button type="button" class="rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(i18t('rl_read_why_cost'))}">${_ne(i18t('rl_read_more'))}</button>`;
+  return rlFaceMark(`<button type="button" class="rl-edit rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(i18t('rl_read_why_cost'))}">${_ne(i18t('rl_read_more'))}</button>`);
 }
 /* "Why?" asks Jambo in the conversation beside the paper: the words go through
    his box's one door (intelAsk), which spends the one call the title says */

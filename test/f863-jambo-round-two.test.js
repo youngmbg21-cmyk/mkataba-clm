@@ -90,7 +90,7 @@ describe('f863 (2) — his read on their row, our seat only', () => {
     assert.match(h, /Take it/);
     assert.match(h, /agreed to this kind of ask from Nordkust 3 of 3 times/);
     /* RE-POINTED 24 Oct 2026 (owner picked "Advice or no advice"): the ask is "Ask Jambo more", the last verb at the card's right */
-    assert.match(said(w.rlRowReadMoreHtml(c, ASK, 'owner')), /data-rl-read-why="L1"[^>]*title="Ask Jambo why · 1 Jambo call">Ask Jambo more</);
+    assert.match(said(w.rlRowReadMoreHtml(c, ASK, 'owner')), /data-rl-read-why="L1"[^>]*title="Ask Jambo why · 1 Jambo call">[\s\S]*Ask Jambo more</);
   });
   test('never on their seat, never on our own change, never on a settled one', () => {
     assert.equal(w.rlRowReadHtml(c, ASK, 'counterparty'), '');

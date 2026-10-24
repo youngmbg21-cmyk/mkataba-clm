@@ -17153,25 +17153,25 @@
   /* the chips under the Dossier stand on their own white foot with a rule, never over the last row (the report's Dossier foot) */
   #ig-dock [data-ig-chips]:not(:empty){position:relative;z-index:2;background:var(--color-surface);border-top:1px solid var(--color-divider);padding-top:8px}
   /* the SAP fields */
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-v{display:flex;flex-direction:row;align-items:center;position:relative;padding-left:0;margin-top:2px}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-v > :is(.pd-og-in,.dp-face,.pd-og-sb,select){flex:1 1 auto;width:100%;min-width:0}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door){padding:6px 0}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) .pd-ck-hd{height:auto;cursor:default}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) .pd-ck-hd > :is(.pd-ck-ring,.pd-ck-v,.pd-ck-chev){display:none}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) .pd-ck-hd > b{flex:0 1 auto;font-size:12.5px;color:var(--color-neutral-600)}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v{display:flex;flex-direction:row;align-items:center;position:relative;padding-left:0;margin-top:2px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :is(.pd-og-in,.dp-face,.pd-og-sb,select){flex:1 1 auto;width:100%;min-width:0}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named){padding:6px 0}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd{height:auto;cursor:default}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd > :is(.pd-ck-ring,.pd-ck-v,.pd-ck-chev){display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd > b{flex:0 1 auto;font-size:12.5px;color:var(--color-neutral-600)}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap .pd-og-need{flex:none;font-size:12px;color:var(--st-amber-fg)}
   /* the row's own Confirm goes (one Save); where on the paper a blank lands stays under its field, a door (§N); a read
      field carries its § inside instead (.pd-og-at, the same door) */
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-a{display:block;padding:0;margin-top:2px}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-a > :not(.pd-ck-src):not(.pd-og-order){display:none}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):is(.is-read, :not(:has(.pd-og-src))) td.pd-og-a:not(:has(.pd-og-order)){display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-a{display:block;padding:0;margin-top:2px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-a > :not(.pd-ck-src):not(.pd-og-order){display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named):is(.is-read, :not(:has(.pd-og-src))) td.pd-og-a:not(:has(.pd-og-order)){display:none}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row.is-read .pd-og-in{border-color:var(--accent-ink);padding-right:64px}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-v{flex-wrap:wrap;row-gap:6px}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-v > :is(.pd-og-in,.dp-face,.pd-og-sb,select):first-child{flex-basis:100%}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v{flex-wrap:wrap;row-gap:6px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :is(.pd-og-in,.dp-face,.pd-og-sb,select):first-child{flex-basis:100%}
   /* nothing in a field's cell is wider than the panel: a named signer's route (.pd-ck-sgs) and any block take the
      whole line and give way inside it (checklist-as-drawn 9 measured 125px past the edge) */
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-v > :not(.pd-og-at){min-width:0;max-width:100%}
-  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door) td.pd-og-v > :is(ol,ul,div,p,table){flex:1 1 100%}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :not(.pd-og-at){min-width:0;max-width:100%}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :is(ol,ul,div,p,table){flex:1 1 100%}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap td.pd-og-v .pd-og-at{top:7px;transform:none}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap td.pd-og-v:has(> select:first-child) .pd-og-at{right:30px}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap .pd-og-at{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:var(--w-label);color:var(--accent-ink);white-space:nowrap;border:0;background:none;padding:0;cursor:pointer;font-family:inherit}

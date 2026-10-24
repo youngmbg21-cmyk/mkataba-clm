@@ -112,7 +112,7 @@ const MID = () => {
     check('1b the reader never left: the same view and face (the paper\'s), the paper still held', m1.up && m1.view === viewBefore && /:paper$/.test(m1.view) && m1.paperHeld, JSON.stringify({ before: viewBefore, now: m1.view }));
     check('1c the Dossier stays in sight and pressable beside it; the page ends at its edge', m1.dockShown && m1.right <= m1.dockLeft + 1 && m1.w >= 480, JSON.stringify(m1));
     check('1d "‹ Paper" leads the chips under the Dossier, and is pressable', !!(m1.back && m1.back.first && m1.back.text === '‹ Paper' && m1.back.hit), JSON.stringify(m1.back));
-    check('1e the crumb is the row\'s own words: Paper › Jambo\'s work · New paper', /^Paper › Jambo['’]s work · New paper$/.test(m1.crumb), m1.crumb);
+    check('1e the crumb is the row\'s own words: Paper › Jambo\'s work · New paper', /* RE-POINTED 24 Oct 2026 (Round 3): "‹ Back to the paper" stands before the crumb */ /(^|paper)Paper › Jambo['’]s work · New paper$/.test(m1.crumb), m1.crumb);
     const row1 = await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-needs .pd-nd-row.is-jw'); return r ? { mid: r.classList.contains('is-mid'), say: (r.querySelector('small') || {}).textContent || '', pressed: r.querySelector('[data-pd-nd-jw]').getAttribute('aria-pressed') } : null; });
     check('1f the row says "Showing in the middle"', !!(row1 && row1.mid && row1.say === 'Showing in the middle' && row1.pressed === 'true'), JSON.stringify(row1));
     const body1 = await page.evaluate(() => { const p = document.querySelector('#modal-root [data-pd-mid] .ag-panel'); if (!p) return null;
