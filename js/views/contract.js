@@ -9346,6 +9346,8 @@ function roomPaintHistory(c,f={},at){
   host._histF=f;
   const html=roomHistoryHtml(c,f,{ board:!!at });
   host.innerHTML=html; host._histHtml=html;
+  /* the filters wear HaTi's dropdown face, as every other list does (Round 1, 24 Oct 2026) */
+  try{ if(typeof selectFaceDress==='function') selectFaceDress(host); }catch(_){}
   /* THE VERSIONS CARD IS RETIRED — see the pane above. roomVersionsHtml is
      kept as an exported builder with no caller, this file's own convention for
      a builder whose feature has gone, so a third caller cannot bring the

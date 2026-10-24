@@ -840,7 +840,7 @@ function cuColDefs(){
     { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
     { k: 'ended', label: i18t('cu_col_ended'), r: 1, w: 86 },
-    ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 92 }] : []),
+    ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 112 }] : []),
     { k: 'next', label: i18t('cu_col_next_end'), w: 108 },
     /* wide enough for the drawn short words whole ("an approval, for Jonas") */
     { k: 'waiting', label: i18t('cu_col_waiting'), w: 188 },

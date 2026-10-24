@@ -2602,6 +2602,8 @@ function renderMigration(){
   migSidePaint();
   migFormPut(document.getElementById('content'), keep);
   caret();
+  /* its dropdowns wear HaTi's face, as every other page's do (Round 1, 24 Oct 2026) */
+  try{ if(typeof selectFaceDress==='function') selectFaceDress(document.getElementById('content')); }catch(_){}
   migPaintHead();
   setActiveNav('migration');
   /* the check view's file is read whole once (the list is light) */

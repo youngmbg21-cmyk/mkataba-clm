@@ -28,7 +28,7 @@
      3  re-pointed — What is the kind the words ask for ("A non-disclosure
         agreement"), What it is for read from the words ("A pilot")
      9  the panel beside the sheet: "Jambo · New agreement", no bin, the box
-        asking "Ask for a number, a list or a contract…", the party and the
+        asking "Ask Jambo, or type / for a place", the party and the
         paper in bold
      10 the costs in our own money, measured: "about KES 0.10", "… obligations,
         about KES 0.90." (a seeded ledger and a dated USD rate)
@@ -166,7 +166,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       return { word: (d.querySelector('.pd-head-word') || {}).textContent || '', bin: vis(document.getElementById('igd-history-clear')), fold: vis(document.getElementById('igd-collapse')),
         ph: (document.getElementById('igd-input') || {}).placeholder, bold: said ? [...said.querySelectorAll('b')].map(b => b.textContent) : [] }; });
     check('9a the panel\'s head: "Jambo · New agreement · ›", no bin', P9.word === 'New agreement' && !P9.bin && P9.fold, JSON.stringify(P9));
-    check('9b its box asks "Ask for a number, a list or a contract…"', P9.ph === 'Ask for a number, a list or a contract…', P9.ph);
+    check('9b its box asks "Ask Jambo, or type / for a place"', P9.ph === 'Ask Jambo, or type / for a place', P9.ph);
     check('9c the party and the paper in bold', P9.bold.join('|') === 'Volvo Cars|NDA', JSON.stringify(P9.bold));
     /* RE-POINTED 24 Oct 2026: the list stands again behind "Change paper" (picked, it is put away) */
     await page.click('#na-change-paper');

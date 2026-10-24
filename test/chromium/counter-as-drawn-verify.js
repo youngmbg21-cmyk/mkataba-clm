@@ -160,7 +160,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       chips: [...document.querySelectorAll('.cn-chips .cn-chip')].map(b => { const cs = getComputedStyle(b); return { t: b.textContent.trim(), lead: b.hasAttribute('data-cn-lead'), door: b.getAttribute('data-cn-need') || b.getAttribute('data-cn-note') || b.getAttribute('data-cn-req') || '',
         dress: [cs.borderTopColor, cs.fontWeight, cs.backgroundColor, cs.color].join('|') }; }),
       first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#cn-needs .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
-    check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'A contract, a party, a place, a draft, a question… or /', JSON.stringify([head.h1, head.ph]));
+    check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'Ask Jambo, or type / for a place', JSON.stringify([head.h1, head.ph]));
     check('1b the chips: the first owed row, then contracts · calendar · draft a new agreement — no upload, no "jambo\'s work"',
       head.chips.length === 4 && head.chips[0].lead && head.chips[0].t === head.first && !!head.chips[0].door
       && head.chips.slice(1).map(c => c.t).join('|') === 'contracts|calendar|draft a new agreement', JSON.stringify(head.chips));

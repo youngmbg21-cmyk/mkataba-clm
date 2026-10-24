@@ -340,7 +340,7 @@ const FILES = {
       return { ph: (document.querySelector('#mig-side #jl-q') || {}).placeholder,
         hints: side ? side.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length : -1,
         said: side ? /Typing never signs, sends or files/.test(side.textContent) : null }; });
-    check('10a "Ask for anything, or type /" with no hint line under it', A.ph === 'Ask for anything, or type /' && A.hints === 0 && A.said === false, JSON.stringify(A));
+    check('10a "Ask Jambo, or type / for a place" with no hint line under it', A.ph === 'Ask Jambo, or type / for a place' && A.hints === 0 && A.said === false, JSON.stringify(A));
     await page.fill('#mig-side #jl-q', 'contracts'); await page.press('#mig-side #jl-q', 'Enter');
     const went = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
     check('10b a place word typed in it opens that place, as every Jambo box does', !!went, String(went));

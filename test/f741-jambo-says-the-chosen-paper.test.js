@@ -101,7 +101,7 @@ describe('f741 (1) what the panel holds', () => {
     const w = world(); w.chosen = MSA();
     assert.equal(w.pdHolds(), 'chosen');
     assert.equal(w.pdHeadWord(), 'Contract');
-    assert.equal(w.pdAskPlaceholder(), 'Ask for a contract, a number or a list…');
+    assert.equal(w.pdAskPlaceholder(), 'Ask Jambo, or type / for a place');
     assert.equal(w.pdAskContractId(), null, 'a question here is not about one contract');
   });
   test('1b nothing chosen, or a paper up, or the Board: it holds none of this', () => {

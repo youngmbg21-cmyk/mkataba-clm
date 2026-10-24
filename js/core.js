@@ -2293,6 +2293,10 @@ function renderAuth(mode){
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:var(--s-1);line-height:1.45">${i18t('co_market_sets')}</span></label>
       <label style="display:flex;align-items:center;gap:10px;font-size:var(--t-meta);color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> ${i18t('co_load_sample')} <span id="su-sample-label">${jx().sampleLabel}</span> ${i18t('co_portfolio_30')}</label>
       <button id="su-go" class="ui-btn ui-btn-primary" style="${PBTN}">${i18t('co_create_and_signin')}</button>`);
+    /* HaTi's own dropdown here too (owner's yes, Round 1, 24 Oct 2026): this
+       screen paints before startApp arms the body, so it arms it itself and
+       dresses its one select's face. */
+    try{ selectMenuSweep(); selectFaceDress(root); }catch(_){}
     /* Applied on CHANGE, not at submit, so the sample label under it tells the
        truth about what is on the other side of the button. */
     document.getElementById('su-market')?.addEventListener('change',e=>{

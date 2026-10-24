@@ -309,7 +309,7 @@
        against 39 text uses, so it is the one step in this ramp that is not a
        type token, and the rulebook's "re-hueing the neutrals is safe" argument
        does not cover it. */
-    --color-neutral-400:#6A6A6F; --color-neutral-500:#66666B; --color-neutral-600:#66666B;   /* the Legora look's cool ramp (23 Oct 2026), one step darker than the drawing's #6E6E73 so a grey word on the grey pill clears AA (contrast-verify: 4.46 → 5.02) */
+    --color-neutral-400:#6A6A6F; --color-neutral-500:#4B4B50; --color-neutral-600:#4B4B50;   /* the Legora look's cool ramp (23 Oct 2026); A FIRMER GREY (owner's pick "The Legora Way", 24 Oct 2026: "the grey fonts … are too faint"): the text greys one firm step darker, #66666B → #4B4B50 (5.7 → 8.7 to 1 on white); 400 stays for lines and icons */
     --color-neutral-700:#1D1D1F; --color-neutral-800:#1D1D1F; --color-neutral-900:#1D1D1F;
 
     --color-accent-100:#DCE7E1; --color-accent-200:#B5CDC1; --color-accent-300:#8DB2A2;
@@ -878,7 +878,7 @@
        composited pair, and "Your turn — propose changes" tripped it). #A24E07
        and #1A6F45 are the nearest steps that clear it (5.06 and 5.29) and are
        still the reference's hues. The washes, dots and lines are untouched. */
-    --st-gray-bg:#F0F0F3;  --st-gray-fg:#66666B;  --st-gray-dot:#AEAEB2;  --st-gray-line:#D1D1D6;
+    --st-gray-bg:#F0F0F3;  --st-gray-fg:#4B4B50;  --st-gray-dot:#AEAEB2;  --st-gray-line:#D1D1D6;
     --st-amber-bg:#FBEEDB; --st-amber-fg:#8A5A0A; --st-amber-dot:#C98A14; --st-amber-line:#EBCB8E;
     --st-green-bg:#DFF2E7; --st-green-fg:#1F4D3B; --st-green-dot:#3A8A62; --st-green-line:#A9D6BC;
     --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#8F2A22;  --st-ruby-dot:#C2453B;  --st-ruby-line:#ECBAB5;
@@ -2169,7 +2169,7 @@
   /* CHAMBERS (20 Oct 2026): the bar is white (its own --bar-bg); what still
      reads --nav-bg — the lit tab's underline, the history dot's ring — reads
      the ink. */
-  :root{ --nav-bg:#1D1D1F; --nav-line:#E6E6EA; --nav-ink:#66666B; --nav-ink-strong:#1D1D1F;
+  :root{ --nav-bg:#1D1D1F; --nav-line:#E6E6EA; --nav-ink:#4B4B50; --nav-ink-strong:#1D1D1F;
          --nav-deep:#0A1C15; }
 
   /* Accent text that stays READABLE in both themes. The deep teal that reads
@@ -10673,7 +10673,7 @@
      green for lines and glow. */
   #ig-page.hb-light,#hb-page.hb-light{
     --hb-stage:radial-gradient(circle,rgba(31,77,59,.09) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#F5F5F7 48%,#E9E9ED 100%);
-    --hb-ink:#1D1D1F;--hb-ink-2:#66666B;--hb-mute:#66666B;--hb-glow:#1F4D3B;
+    --hb-ink:#1D1D1F;--hb-ink-2:#4B4B50;--hb-mute:#4B4B50;--hb-glow:#1F4D3B;
     --hb-amber:#8A5A0A;--hb-ruby:#8F2A22;--hb-green:#1F4D3B;
     /* the LINE channel (Chambers, 21 Oct 2026; cool since the Legora look, 23 Oct): a card's edge rgba(ln,.18) over white is exactly
        --color-divider #E6E6EA; the inside rules at .12 / .16 land between --rule-faint and the divider */
@@ -17101,6 +17101,15 @@
      short"): stage 1 capped every panel tab at 96px so five fit; "Overview 99+" needs about 112.
      The first tab (Overview, or Dossier beside a paper) keeps its whole word and count. */
   #app-shell :is(.igd-head, .jl-head) > .pd-tab:first-child{max-width:none;flex-shrink:0}
+  /* ROUND 1 OF THE UI UPGRADE (owner's "all yes", 24 Oct 2026).
+     THE WIDTH HANDLE SHOWS WHERE THE HAND IS: its grip floated halfway down the
+     divider on every page and read as a glitch. With a mouse it appears only
+     while the pointer is over the divider, while dragging, or under the keyboard;
+     a finger cannot hover, so on the iPad it stays drawn. */
+  @media (hover:hover){
+    .ig-resizer span{opacity:0;transition:opacity var(--dur-1),background var(--dur-1)}
+    .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{opacity:1}
+  }
 </style>
 
 

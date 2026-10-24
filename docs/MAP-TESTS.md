@@ -314,6 +314,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- ROUND 1 OF THE UI UPGRADE (24 Oct 2026): f873 (red at 0e002c3 on every test); re-pointed to the one placeholder: f741, f744, f753, f762, f788, f789, f806 and browser counter-as-drawn, home-held-contract, import-as-drawn, jambos-list-panel, one-sheet-as-drawn, our-paper-as-drawn, piles-second-pass, week-as-drawn; f238 re-pointed to #4B4B50; browser: legora-look, legora-lists, one-worklist, inspector, explorer, clean-sans-and-dividers, tidy-sweep.
 - THEIR PAGE, THE LEGORA WAY (24 Oct 2026): their-page-legora-way-verify (35 checks at the three screens; red at the parent on 1–5, 7), counterparty-reading-and-more 14 re-pointed (their tabs the pill track, no underline).
 - 24 Oct 2026 (owner): legora-look 12k (your words to Jambo rounded as his answers, Home's panel and the chat window; 0px at the parent), first-timer-rounds 5a2 (the change card holding "Worth a look" keeps the grey, no box inside), one-shade 3b (the risk cards very light amber, no box inside, a deeper amber when pressed; the change cards grey) and its "lit" treating the amber rest as unlit.
 

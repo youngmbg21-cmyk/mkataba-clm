@@ -10,7 +10,7 @@
    (2) Jambo's line carries the party and the paper in bold, and a sheet opened
        from a new sentence puts away the exchanges of the sheets before it.
    (3) The panel beside the sheet: "Jambo · New agreement" in its head, no bin,
-       its box asking "Ask for a number, a list or a contract…".
+       its box asking "Ask Jambo, or type / for a place".
    (4) What a press costs — RE-POINTED in the third pass to the owner's
        answer (4): in Jambo calls, never money; the measured-money route and
        its reading are gone.
@@ -120,7 +120,7 @@ describe('f753 (3) the panel beside the sheet says what it holds', () => {
        stands only in the flip's conversation, and still never while the sheet is up */
     assert.match(IG, /talk&&msgs&&!\(window\.naSheetUp&&naSheetUp\(\)\)\?`<button id="igd-history-clear"/);
     assert.match(IG, /if\(window\.naSheetUp&&naSheetUp\(\)\) return i18t\('na_ask_ph'\);/);
-    assert.equal(BOOKS.en.na_ask_ph, 'Ask for a number, a list or a contract…');
+    assert.equal(BOOKS.en.na_ask_ph, 'Ask Jambo, or type / for a place');
   });
   test('3b the panel is drawn again when the sheet comes and when it goes, by any way out', () => {
     assert.match(WZ, /const mo=new MutationObserver\(\(\)=>\{ if\(document\.getElementById\('na-root'\)\) return; mo\.disconnect\(\);/);

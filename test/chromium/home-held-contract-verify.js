@@ -182,7 +182,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const fact = k => ((C1 && C1.chosen && C1.chosen.facts.find(f => f[0] === k)) || [])[1] || '';
     check('1d its facts read the record: the stage with its round, Owner "You", "Nordvik Logistik sent 2 redlines", how long ago',
       /^In Review · round 1$/.test(fact('Stage')) && fact('Owner') === 'You' && /^Nordvik Logistik sent 2 redlines today$/.test(fact('Last move')) && /KES/.test(fact('Value')), JSON.stringify(C1 && C1.chosen && C1.chosen.facts));
-    check('1e what it asks of you (Needs you), the box asks about anything, no chips (as drawn)', !!C1 && C1.chosen.needs >= 1 && C1.ph === 'Ask for a contract, a number or a list…' && C1.chips.length === 0, JSON.stringify({ needs: C1 && C1.chosen.needs, ph: C1 && C1.ph, chips: C1 && C1.chips }));
+    check('1e what it asks of you (Needs you), the box asks about anything, no chips (as drawn)', !!C1 && C1.chosen.needs >= 1 && C1.ph === 'Ask Jambo, or type / for a place' && C1.chips.length === 0, JSON.stringify({ needs: C1 && C1.chosen.needs, ph: C1 && C1.ph, chips: C1 && C1.chips }));
     /* RE-POINTED (main moved on: the Counter is named Home, the desk tabs went): the number is Home's own Needs you (counterNeedsCount) */
     check('1e2 his tab carries Home\'s own Needs-you number, as beside a paper', !!C1 && !!C1.count && C1.count === C1.counter, JSON.stringify({ count: C1 && C1.count, counter: C1 && C1.counter }));
     /* pass 3: their two redlines are a row of their own, the clauses under it, wrapped */
@@ -284,7 +284,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].b === 'Open ›'
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the fold's line is "Family" and what stands, a row like the rest */
       && /^Family\s*Original and 1 more in its family/.test(P7.fam), JSON.stringify(P7 && { rows: P7.rows, fam: P7.fam }));
-    check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));
+    check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask Jambo about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));
     check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open in Workspace ›"',
       !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /^7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open in Workspace ›',
       JSON.stringify(P7 && { stage: P7.stage, idline: P7.idline, value: P7.value, next: P7.next, foot: P7.sfoot }));
@@ -314,7 +314,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     check('3a Jambo says "MK-0382 · History": the last two weeks with the newest, what is open with whose move and Redlines',
       !!P12 && P12.word === 'MK-0382 · History' && /^\d+ entr(y|ies) in the last two weeks\. ?Newest: their round 1, today\.$/.test(P12.rows[0].t)
       && /^2 of their changes are still open: clauses \d+ and \d+\. ?Your move, since today\.$/.test(P12.rows[1].t) && P12.rows[1].b === 'Redlines', JSON.stringify(P12 && P12.rows));
-    check('3b chips: the question worth asking, and redline; the box asks about its history', !!P12 && JSON.stringify(P12.chips) === JSON.stringify(['what changed in round 1', 'redline']) && P12.ph === 'Ask about MK-0382\'s history…', JSON.stringify(P12 && { chips: P12.chips, ph: P12.ph }));
+    check('3b chips: the question worth asking, and redline; the box asks about its history', !!P12 && JSON.stringify(P12.chips) === JSON.stringify(['what changed in round 1', 'redline']) && P12.ph === 'Ask Jambo about MK-0382…', JSON.stringify(P12 && { chips: P12.chips, ph: P12.ph }));
     /* RE-POINTED 21 Oct 2026 (the owner picked "The SAP way" for History): the head is "Newest first · N events ·
        2 open changes" with Show the wording and ⋯ on its right; the band under it the search and the filters in the open */
     check('3c the head: "Newest first · N events · 2 open changes", Show the wording and ⋯ named "More"; the search in the band under it, no Filter button',

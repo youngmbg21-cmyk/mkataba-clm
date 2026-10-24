@@ -823,8 +823,9 @@ function renderApprovalsPage(o){
      the rest, 190px or more at 1366 beside Jambo's panel */
   /* 1366 beside Jambo's panel (check A1 #2): Ref gives the party 4px, and a
      party's name takes a second line rather than be cut */
-  const head=[{t:i18t('reg_col_ref'),w:72},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:100},{t:i18t('ap_wl_why'),w:190},{t:i18t('ap_wl_turn'),w:188},{t:i18t('ap_pg_waiting'),w:120},
-    ...(money?[{t:i18t('reg_col_value'),right:true,w:88}]:[]),...(INS?[]:[{t:'',w:220}])];
+  /* Value 112 so a sum is never cut (Round 1, 24 Oct 2026); the 24 come out of Why, whose words wrap */
+  const head=[{t:i18t('reg_col_ref'),w:72},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:100},{t:i18t('ap_wl_why'),w:166},{t:i18t('ap_wl_turn'),w:188},{t:i18t('ap_pg_waiting'),w:120},
+    ...(money?[{t:i18t('reg_col_value'),right:true,w:112}]:[]),...(INS?[]:[{t:'',w:220}])];
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
     if(r.done) return `<span class="ap-acts">${apMayUndo(r)?`<button type="button" class="ui-btn ui-btn-sm" data-ap-undo="${esc(r.c.id)}" title="${esc(i18t('ap_pg_undo_title'))}">${esc(i18t('ap_pg_undo'))}</button>`:''}<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`;

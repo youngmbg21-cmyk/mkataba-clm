@@ -146,7 +146,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
     check('1a the panel is Jambo\'s, 8px in from the right edge, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 384 && Math.abs(N0.right - (1440 - 8)) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
-    check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask for a contract, a number or a list…' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
+    check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask Jambo, or type / for a place' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
 
     /* ---- 2 a row pressed ---- */
     await page.click('#reg-tbody tr[data-row="MK-A2"]');
@@ -514,7 +514,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await page.evaluate(() => setView('migration'));
         const HI = await until(sel => { const q = document.querySelector('#mig-side #jl-q'), e = q && (q.closest('.jb-card') || q);
           return e && e.getClientRects().length ? { hints: document.querySelectorAll(sel).length, inView: e.getBoundingClientRect().bottom <= innerHeight, ph: q.getAttribute('placeholder') } : null; }, HINTS, 10000);
-        check(`7c Import ${w}×${ht}: the shared box in its panel, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask for anything, or type /' && HI.inView, JSON.stringify(HI));
+        check(`7c Import ${w}×${ht}: the shared box in its panel, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask Jambo, or type / for a place' && HI.inView, JSON.stringify(HI));
         await shot(`hint-import-${w}x${ht}.png`);
       });
     }
