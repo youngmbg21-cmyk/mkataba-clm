@@ -10,6 +10,7 @@
    2 THE SCREEN BY ITS OWN DOOR: "a colleague" is a choice of "Sent as"; @ in
      To picks a colleague; back to Negotiate brings the other side's rows
      back; a note past the cap is refused on the screen, nothing mailed.
+   3 SHARE INSIDE THE COMPANY: the share card's button ends on that same screen.
    Red at the parent: no colleague purpose, no summary reading.
    Run: node test/chromium/send-to-a-colleague-verify.js */
 const fs = require('node:fs');
@@ -113,6 +114,41 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       await page.waitForTimeout(600);
       const C = await page.evaluate(() => !!document.querySelector('#sh-letter'));
       check('2d a note past the cap is refused on the screen, nothing mailed', C && h.mail.sent.length === n0);
+    });
+    /* 3 SHARE INSIDE THE COMPANY (owner, 24 Oct 2026: "when i do it for a colleague, it should look the same"):
+       the share card's button, a colleague picked and Enter end on the send screen as the other side's send
+       does — the colleague in To, "a colleague", the review line — never on Before you send with nobody named.
+       Red at the parent: navRead read "Send #MK-B2 … to @…" as the trip to the letter and dropped the colleague. */
+    await part('3', async () => {
+      await page.evaluate(() => { if (window.closeModal) closeModal(); roomHomeLand('MK-B2'); });
+      await until(() => !document.querySelector('#sh-letter') && window.intel && intel.paper && intel.paper.id === 'MK-B2' && document.getElementById('igd-input'), null, 12000);
+      await page.click('#igd-input'); await page.keyboard.type('share'); await page.keyboard.press('Enter');
+      const btn = await until(() => !!document.querySelector('[data-ca-act="sharein"]'), null, 8000);
+      check('3a "share" offers Share inside the company', !!btn);
+      await page.click('[data-ca-act="sharein"]');
+      await until(() => document.getElementById('ca-pop'), null, 4000);
+      await page.keyboard.type('Unre'); await page.keyboard.press('Enter');
+      const typed = await page.inputValue('#igd-input');
+      await page.keyboard.press('Enter');
+      const up = await until(() => document.querySelector('#sh-letter') && document.documentElement.hasAttribute('data-sh-col') && document.querySelector('#sh-lt-after .sh-lt-btn') ? true : null, null, 10000);
+      await page.waitForTimeout(400);
+      const S = await page.evaluate(() => ({ chips: (document.getElementById('sh-col-chips') || {}).textContent || '', chip: (document.querySelector('[data-sh-as-w="purpose"]') || {}).textContent,
+        letter: (document.getElementById('sh-letter') || {}).textContent || '',
+        said: [...document.querySelectorAll('#igd-feed [data-ca-card]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(-1)[0] || '' }));
+      check('3b the send screen opens on "a colleague", the one picked in To', !!up && S.chip === 'a colleague' && /Unrestricted Legal/.test(S.chips), JSON.stringify({ typed, chip: S.chip, chips: S.chips }));
+      check('3c the letter asks them to review, and says nothing of a summary', /asked you to review MK-B2/.test(S.letter) && !/Jambo's summary/.test(S.letter), JSON.stringify(S.letter.slice(0, 200)));
+      check('3d Jambo says the screen is open, with no summary claimed', /I opened Send the contract for a colleague, with Unrestricted Legal as the person\. Add a note/.test(S.said), JSON.stringify(S.said));
+      const n0 = h.mail.sent.length;
+      await page.click('#share-send');
+      await until(() => !document.querySelector('#sh-letter'), null, 10000);
+      await page.waitForTimeout(400);
+      const m = h.mail.sent.slice(n0).find(x => x.to === 'everything@example.co.ke');
+      check('3e the colleague is mailed a review ask, not "Jambo\'s summary"', !!m && /asked you to review MK-B2/.test(m.text) && !/Jambo's summary/.test(m.subject), JSON.stringify(m && m.subject));
+      /* the same sentence typed by hand keeps Jambo's own send card (nothing opened) */
+      await page.click('#igd-input'); await page.keyboard.type('Send #MK-B2 for review to @Unre'); await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
+      const card = await until(() => [...document.querySelectorAll('#igd-feed [data-ca-act="send"]')].length ? true : null, null, 8000);
+      const open = await page.evaluate(() => !!document.querySelector('#sh-letter'));
+      check('3f typed by hand, it is Jambo\'s send card with the colleague — never the trip to Before you send', !!card && !open, JSON.stringify({ card, open }));
     });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
