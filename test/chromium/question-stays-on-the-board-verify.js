@@ -1,14 +1,13 @@
 /* Chromium verification: A QUESTION ON THE BOARD STAYS ON THE BOARD (owner, 24 Oct 2026: "when i write 'what
    should i be concerned with today' in the jambo in this page, i am kicked out and dropped to the home page")
    ============================================================
-   Jambo's answer may carry a trip to "needs" (what waits on me). With the Board in front, the Board's own Needs
-   you card under Your book is all of it: the trip lands there (hbNeedsOpen), and the answer it was said under
-   stays in front in the panel it was asked in (aiGotoRun keeps the conversation). Driven with a scripted model.
+   Jambo's answer may carry a trip to "needs" (what waits on me). A plain question answered in words is no trip
+   (the server's copilotQuestionStays, f873): the answer stays in the box it was asked in, on every page. A trip
+   asked for still goes. Driven with a scripted model.
      A  asked in the Board's panel: still Home's Board, never the Home page; one chat call
-     C  the answer is in the panel, its conversation in front (the server dropped the trip, f873)
-     B  "take me to what needs me" still goes: on the Board, to the Board's own Needs you, the line under the answer
+     C  the answer is in the panel, its conversation in front
+     B  "take me to what needs me" still opens Home's Needs you (board-as-drawn 5f)
      F–G the same question beside Explorer and in the ✦ window off Home stays where it was asked
-     D  "needs" typed off the Board (Explorer) still goes to the Home page, as before
      E  photos at the owner's three screens; no page errors
    Run: node test/chromium/question-stays-on-the-board-verify.js */
 const fs = require('node:fs');
@@ -39,8 +38,8 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 20000 });
     await page.evaluate(() => { setView('dashboard'); intel.paper = null; hbSetFace('board'); });
-    const ready = await until(() => state.view === 'dashboard' && hbS().face === 'board' && !!document.getElementById('igd-input') && !!document.getElementById('hm-agents'));
-    check('the Board is in front with its Needs you card', !!ready);
+    const ready = await until(() => state.view === 'dashboard' && hbS().face === 'board' && !!document.getElementById('igd-input'));
+    check('the Board is in front', !!ready);
 
     console.log('\nA–C · a question whose answer takes you to what needs you');
     ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_n', name: 'deliver_answer', input: { answer: 'Three things deserve attention today.', citations: [], goto: { task: 'needs' } } }]);
@@ -53,27 +52,14 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     check('A2 one chat call', ai.calls.length === 1, `${ai.calls.length}×`);
     const C = await page.evaluate(() => { const t = (document.getElementById('ig-dock') || {}).innerText || ''; return { answer: /Three things deserve attention/.test(t), talk: typeof pdTalkShows === 'function' && pdTalkShows() }; });
     check('C the answer stands in the panel, its conversation in front', !!said && C.answer && C.talk, JSON.stringify(C));
-    /* a trip that WAS asked for ("take me to…") still goes — on the Board, to the Board's own Needs you, free */
-    ai.reset();
-    await page.fill('#igd-input', 'take me to what needs me'); await page.click('#igd-go');
-    const B = await until(() => { const r = document.getElementById('hm-agents')?.getBoundingClientRect(); const m = intel.history.slice(-1)[0];
-      return !intel.busy && m && String(m.text || '').includes(i18t('ca_go_needs')) && r ? { view: state.view, face: hbS().face, top: Math.round(r.top), bottom: Math.round(r.bottom), h: innerHeight } : null; }, null, 10000);
-    check('B1 "take me to what needs me": still the Board, its own Needs you in view, nothing spent', !!B && B.view === 'dashboard' && B.face === 'board' && B.top < B.h && B.bottom > 0 && ai.calls.length === 0, JSON.stringify(B));
-    /* Jambo's own trip to it, said under his answer (aiGotoRun): the answer stays in front */
-    const B2 = await page.evaluate(() => { intel.history.push({ role: 'user', text: 'where is my list' }, { role: 'assistant', text: 'Your list is beside you.' });
-      if (!pdTalkShows()) pdTalkReopen(); const before = pdTalkShows(); aiGotoRun({ task: 'needs' }, 'where is my list');
-      const t = (document.getElementById('ig-dock') || {}).innerText || '';
-      return { before, talk: pdTalkShows(), view: state.view, face: hbS().face, line: t.includes(i18t('ca_go_needs')), answer: t.includes('Your list is beside you.') }; });
-    check('B2 Jambo\'s trip to Needs you on the Board: still the Board, his answer and the line in front', B2.before && B2.talk && B2.view === 'dashboard' && B2.face === 'board' && B2.line && B2.answer, JSON.stringify(B2));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `board-question-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
 
-    console.log('\nD · off the Board the door still goes to the Home page');
-    await page.evaluate(() => { hbSetFace('explorer'); });
-    await until(() => hbS().face === 'explorer');
-    await page.evaluate(() => hbNeedsOpen());
-    const D = await until(() => state.view === 'counter' ? state.view : null);
-    check('D "needs" from Explorer opens the Home page', D === 'counter', String(D));
+    console.log('\nB · a trip that WAS asked for still goes: "what needs you is on Home" (board-as-drawn 5d/5f)');
+    ai.reset();
+    await page.fill('#igd-input', 'take me to what needs me'); await page.click('#igd-go');
+    const B = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs') ? state.view : null, null, 10000);
+    check('B "take me to what needs me" opens Home\'s Needs you, nothing spent', B === 'counter' && ai.calls.length === 0, `${B} · ${ai.calls.length}×`);
 
     console.log('\nF–G · the same question on other pages stays where it was asked (the server drops the trip, f873)');
     const askOn = async (where, box, go) => {

@@ -2639,12 +2639,7 @@ function aiGotoRun(g, q){
     if(!card&&last&&last.role==='assistant'&&!last.err&&!last.act&&String(last.text||'').trim()){
       last.text=String(last.text)+'<div class="ig-go-said">'+line+'</div>';
       if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){}
-      /* …and where the move keeps the reader on the very page (the Board's own Needs you, 24 Oct 2026), the
-         answer it was said under stays in front: the conversation is turned back to, not left behind a tab */
-      const at=()=>{ try{ return [state.view, typeof window.hbFace==='function'?hbFace():'', typeof window.bsCardId==='function'?(bsCardId()||''):''].join('|'); }catch(_){ return ''; } };
-      const was=at(), talked=typeof window.pdTalkShows==='function'&&pdTalkShows();
       if(typeof window.caGo==='function') caGo(a);
-      if(talked&&at()===was&&!pdTalkShows()&&typeof window.pdTalkReopen==='function') try{ pdTalkReopen(); }catch(_){}
       return true;
     }
     try{ intel.history.push({ role:'assistant', text:line, act:a }); }catch(_){}
