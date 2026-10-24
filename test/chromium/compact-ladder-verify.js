@@ -362,7 +362,8 @@ const HELPERS = `(() => {
     await page.evaluate(() => closeModal());
 
     /* ════════ 7. THE NEW AGREEMENT POP-UP ════════ */
-    await page.evaluate(() => openNewAgreement({ door: true }));
+    /* RE-POINTED 24 Oct 2026 (one door): the sheet's one-line boxes are its paper's questions, so a paper is picked */
+    await page.evaluate(() => openNewAgreement({ door: true, pick: { kind: 'tid', id: 'RM' } }));
     await page.waitForTimeout(1400);
     await load();
     await page.screenshot({ path: path.join(OUT, '07-new-agreement.png') });
