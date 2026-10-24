@@ -10069,6 +10069,13 @@
   /* as drawn: the middle is one white page, no sheet on the desk (Key terms and Jambo's work keep theirs) */
   [data-pd-mid^="deal:"] .dlg-pg-body{background:var(--color-surface);padding:8px 28px 32px}
   [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:1040px;margin:0;background:transparent;border:0;padding:0}
+  /* THE DEAL IS A CARD UNDER ITS HEAD, NOT A SHEET UNDER IT (owner, 24 Oct 2026: "the card with the deals is so
+     big that it is overlapping with the top card and it is overlapping on the sides"): once the head floated as
+     a card (12px in, THE LEGORA LOOK) the white body still ran edge to edge and up to the head's foot; it now
+     stands on the same ground, the head's own 12px in from each side and a gap under it */
+  #modal-root [data-pd-mid^="deal:"]{background:var(--color-bg)}
+  #modal-root [data-pd-mid^="deal:"] .dlg-pg-body{background:transparent;padding:10px 12px 12px}
+  #modal-root [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:none;background:var(--color-surface);border-radius:20px;box-shadow:var(--shadow-sm);padding:12px 24px 24px}
   .deal-tabs{display:flex;gap:24px;border-bottom:1px solid var(--color-divider);margin-top:12px}
   .deal-tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:0 0 10px;font:inherit;font-size:var(--t-body);color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
   .deal-tab[aria-selected="true"]{color:var(--color-text);font-weight:var(--w-strong);border-bottom-color:var(--color-text)}
@@ -16737,6 +16744,10 @@
   #app-shell #ig-dock .ds-this.is-links > .pd-kt-line > summary > span:first-child{flex:none;font-weight:var(--w-strong);color:var(--accent-ink);font-size:12.5px}
   #app-shell #ig-dock .ds-this.is-links .ds-this-v, #app-shell #ig-dock .ds-this.is-links > .pd-kt-line > summary > .ds-when{flex:none;max-width:none;font-size:12.5px;color:var(--color-neutral-600)}
   #app-shell #ig-dock .ds-this.is-links :is(.pd-ck-ring, .pd-ck-chev){display:none}
+  /* "Open ›" on a row you press to fill (pdCkGo; owner, 24 Oct 2026): the Risks row's own door word, never
+     the arrow, and it never gives way — the value beside it shortens first */
+  #app-shell #ig-dock :is(.pd-og, .ds-ob-line, .pd-dossier) .pd-ck-chev.is-word{flex:none;width:auto;display:inline-flex;align-items:center;margin-left:8px;color:var(--accent-ink);font-weight:var(--w-strong);font-size:12.5px;white-space:nowrap}
+  #app-shell #ig-dock :is(.pd-og, .ds-ob-line, .pd-dossier) .pd-ck-chev.is-word::before{content:none}
   #app-shell #ig-dock .ds-this.is-links > .ds-fold > summary::after{content:none}
   #app-shell #ig-dock .ds-this.is-links > .pd-kt-line > summary{padding-left:0}
   #app-shell #ig-dock .ds-this.is-links > .ds-fold{flex:none}
@@ -17129,6 +17140,10 @@
   #app-shell .nd-tabs{align-self:center}
   #app-shell .nd-tab{height:30px;align-self:center;display:inline-flex;align-items:center;gap:.3em;padding:0 12px}
   #app-shell .st-cr .st-face{height:30px;align-self:center;display:inline-flex;align-items:center;justify-content:center;gap:.3em;margin-bottom:0;padding-top:0;padding-bottom:0}
+  /* AND ITS BAR GIVES IT ROOM (owner, 24 Oct 2026, over Settings: "the pill is round and bigger than the
+     theme of the pills in the platform"): the bar had shrunk to the pill's own 30, so the pill pressed on the
+     line above and the card's foot and read as a ball; the bar keeps the list heads' 8px round it, no rule under */
+  #app-shell .st-cr .st-headcard .st-facebar{padding:8px 0;border-bottom:0}
   /* THE LANDING TAB IS NEVER CUT (owner, same day: "in the side panel, the overview pill is cut
      short"): stage 1 capped every panel tab at 96px so five fit; "Overview 99+" needs about 112.
      The first tab (Overview, or Dossier beside a paper) keeps its whole word and count. */
@@ -17256,6 +17271,11 @@
   /* ROUND 3: ACTIONS IS ITS OWN MENU CARD (owner's pick "The SAP Way") — it drops from the button over the paper,
      above a page (70/71), under the chat window (75) and a decision (80); the Dossier's own fold of the rows stays
      drawn for their wiring, with no line of its own, so the Dossier never moves */
+  /* ONE SCROLLBAR, THIN, EVERYWHERE (owner, 24 Oct 2026, over the Actions menu: "the scroll pill is too thick"):
+     a pop-up, menu or panel that drew no scrollbar of its own got the system's wide bar with its arrows; every
+     scroller now wears the paper's thin grey one. :where() weighs nothing, so a rule naming its own bar
+     (none, or a set width) still wins */
+  :where(html) *{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent}
   .pd-acts-pop{position:fixed;z-index:72;width:288px;overflow:auto;padding:6px;background:var(--color-surface);border-radius:14px;box-shadow:0 12px 32px -8px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.04)}
   .pd-acts-pop .pd-acts-g + .pd-acts-g{margin-top:4px;padding-top:4px;border-top:1px solid var(--color-divider)}
   .pd-acts-pop .pd-acts-h{padding:8px 10px 4px;font-size:12px;color:var(--color-neutral-600)}
