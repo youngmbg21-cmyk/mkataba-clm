@@ -2437,7 +2437,8 @@ async function intelAsk(qRaw, opts){
   /* …a question about the Board ITSELF ("why does the dashboard say 851 SEK…") keeps the Board's own checked
      answer (hbWhyCheck over its numbers; the board that answers right, Part 4), never a guess from the book */
   let boardWhy=false; try{ const A0=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; boardWhy=!!(A0&&A0.why); }catch(_){ boardWhy=false; }
-  const boardQ=!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
+  /* …only with the Board IN FRONT: on Explorer a question keeps the map's route, whose model hands wording to the chat itself (res.kind 'wording'); imported-on-the-map 1d, explorer-stage-three 4 */
+  const boardQ=igBoardNow()&&!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
     let A=null; try{ A=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; }catch(_){ A=null; }
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
