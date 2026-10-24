@@ -112,16 +112,17 @@ describe('f868 (2) Home', () => {
     const w = world([row('MK-1', 'approval'), row('MK-11', 'sign')], pieces);
     const html = w.ndHomeHtml(w.ndRead());
     assert.ok(html.indexOf('data-nd-g="jambo"') < html.indexOf('data-nd-g="you"'));
-    assert.match(html, /<span class="nd-g-t">Jambo prepared it · your look is next<\/span><span class="cn-n">· 4<\/span><button type="button" class="ui-link nd-all" data-nd-all="jambo">Show all 4<\/button>/);
+    /* RE-POINTED 24 Oct 2026 (Round 2): "Prepared by Jambo", the count said once (in the card's head) */
+    assert.match(html, /<span class="nd-g-t">Prepared by Jambo<\/span><button type="button" class="ui-link nd-all" data-nd-all="jambo">Show all 4<\/button>/);
     assert.ok(!/data-nd-all="you"/.test(html), 'two rows: nothing hidden, no Show all');
-    assert.equal((html.match(/class="cn-r nd-r"/g) || []).length, 5, 'three of Jambo\'s, two of yours');
+    assert.equal((html.match(/class="cn-r nd-r[ "]/g) || []).length, 5, 'three of Jambo\'s, two of yours');
   });
-  test('2b a piece says its step and what Jambo read, and its Look names it', () => {
+  /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads; the number, the other side and the piece in grey; Review */
+  test('2b a piece leads with its agreement, says what Jambo prepared, and its button says Review', () => {
     const w = world([], [chase]);
     const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
-    assert.match(html, /<span class="nd-step" title="Step 3 of 4 · yours">3 of 4<\/span>/);
-    assert.match(html, /MK-3 · <i class="nd-read">Jambo read<\/i> the duty and the address on the contract/);
-    assert.match(html, /<span class="nd-when cn-late">5 days late<\/span><button type="button" class="ui-btn ui-btn-sm nd-btn" data-nd-look="late:MK-3">Look<\/button>/);
+    assert.match(html, /<b><span class="nd-t">Agreement MK-3<\/span><\/b><span>MK-3 · Kettle &amp; Co · /);
+    assert.match(html, /<span class="nd-when cn-late">5 days late<\/span><button type="button" class="ui-btn ui-btn-sm nd-btn" data-nd-look="late:MK-3">Review<\/button>/);
   });
   test('2c Home\'s presses: Show all and Look land on the Board through the one opener', () => {
     assert.match(CN, /if \(\(el = t\.closest\('\[data-nd-all\]'\)\)\)\{ ndOpenBoard\(el\.getAttribute\('data-nd-all'\)\); return; \}/);
@@ -132,7 +133,8 @@ describe('f868 (2) Home', () => {
 
 describe('f868 (3) the Board', () => {
   const many = n => Array.from({ length: n }, (_, i) => row('MK-' + (100 + i), i % 2 ? 'sign' : 'review', { who: 'Sara Lind' }));
-  test('3a tabs with counts, the kinds there are, a find box, five columns, twelve rows', () => {
+  /* RE-POINTED 24 Oct 2026 (the owner: "delete The Who or what asked column"): four columns */
+  test('3a tabs with counts, the kinds there are, a find box, four columns, twelve rows', () => {
     const w = world(many(14), [chase]);
     const html = w.ndBoardHtml({});
     assert.match(html, /^<section class="hb-card nd-card" id="hm-agents">/);
@@ -142,7 +144,7 @@ describe('f868 (3) the Board', () => {
     const chips = [...html.matchAll(/data-nd-kind="(\w+)"/g)].map(m => m[1]).join(',');
     assert.equal(chips, 'any,sign,review,jambo', 'only the kinds there are');
     assert.match(html, /<input type="search" id="nd-q"/);
-    assert.equal((html.match(/<div class="nd-cols">(.*?)<\/div>/) || [])[1].match(/<span>/g).length, 5);
+    assert.equal((html.match(/<div class="nd-cols">(.*?)<\/div>/) || [])[1].match(/<span>/g).length, 4);
     assert.equal((html.match(/class="nd-br/g) || []).length, 12, 'twelve at a time');
     assert.match(html, /data-nd-more>Show 3 more<\/button>/);
     assert.match(html, /hb_ny_title|Needs you/);
@@ -193,7 +195,7 @@ describe('f868 (3) the Board', () => {
 describe('f868 (4) one button width, one word', () => {
   test('4a every Next button wears one width on both drawings', () => {
     assert.match(CSS, /\.nd-btn\{flex:none;width:76px;justify-content:center\}/);
-    assert.match(CSS, /\.nd-cols,\.nd-br\{display:grid;grid-template-columns:minmax\(0,2\.2fr\) minmax\(0,1\.6fr\) minmax\(0,1\.1fr\) 104px 76px;/);
+    assert.match(CSS, /\.nd-cols,\.nd-br\{display:grid;grid-template-columns:minmax\(0,2\.2fr\) minmax\(0,1\.6fr\) 104px 76px;/);
   });
   test('4b the words, in both books', () => {
     const keys = Object.keys(BOOKS.en).filter(k => k.startsWith('nd_'));

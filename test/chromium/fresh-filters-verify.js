@@ -219,8 +219,10 @@ function book(){
     await page.waitForTimeout(900);
     const d1 = await page.evaluate(() => { const R = regState(); return { stage: R.stage, type: R.type, category: R.category, query: R.query, view: R.view }; });
     await page.screenshot({ path: path.join(OUT, '05-phone-tile.png') });
-    check('D1 a phone tile lands on its own question, with nothing left from the desk',
-      !!tile && d1.category === 'all' && d1.type === 'all' && d1.query === '',
+    /* RE-POINTED 24 Oct 2026 (Round 6, owner's yes): the phone's Home draws no metric tiles (its ask box is Jambo; the
+       Portfolio row keeps the figures), so there is no tile to press and nothing it could leave behind */
+    check('D1 the phone Home draws no tile, so nothing lands there with the desk\'s filters',
+      tile === null && !(await page.evaluate(() => !!document.querySelector('.m-kpi-grid, [data-m-kpi]'))),
       `tile ${tile} · ${JSON.stringify(d1)}`);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.waitForTimeout(600);

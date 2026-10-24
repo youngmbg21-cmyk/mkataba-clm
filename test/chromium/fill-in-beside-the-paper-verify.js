@@ -27,7 +27,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, ckOpenRowOf } = require('../helpers');
+const { startHati, seedWorkspace, ckOpenRowOf, ckConfirm } = require('../helpers');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'fill-in-beside-the-paper');
 const EXEC = process.env.CHROMIUM_BIN
@@ -148,13 +148,14 @@ const pastFirstWords = async page => {
     const echo = await page.evaluate(() => [...document.querySelectorAll('#ig-canvas span.up-blank[data-upblank="up_supplier_address"]')].map(x => x.textContent));
     check('2a the words show on the paper while typing', echo.length > 0 && echo.every(t => t === 'Strandvejen 70, Hellerup'), JSON.stringify(echo));
     await page.screenshot({ path: path.join(OUT, '2-typing.png') });
-    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_supplier_address"]'); await page.click('#pd-og [data-pd-og-ok="up_supplier_address"]');
+    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_supplier_address"]'); await ckConfirm(page, 'up_supplier_address');
     await waitFor(page, n => detailsOf(getContract('MK-F1')).left === n - 1, 3000, left0);
     await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og')), 2000);
     f = await page.evaluate(FACE);
     const left1 = await page.evaluate(() => detailsOf(getContract('MK-F1')).left);
     const saved = await page.evaluate(() => !!document.querySelector('#pd-og tr.is-saved[data-pd-og-row="up_supplier_address"]'));
-    check('2b Confirm stores it: the row says saved, the grid shortens, the next row takes the hand', left1 === left0 - 1 && saved && f.rows === rows0 - 1 && f.inFace, `${left0} → ${left1} · rows ${rows0} → ${f.rows} · saved ${saved} · focus ${f.focus}`);
+    /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix", one Save under the fields): every field stays open, so no hand moves */
+    check('2b Save stores it: the row says saved, the grid shortens', left1 === left0 - 1 && saved && f.rows === rows0 - 1, `${left0} → ${left1} · rows ${rows0} → ${f.rows} · saved ${saved} · focus ${f.focus}`);
 
     /* ===== 3. A PRESS ON A BLANK ON THE PAPER ===== */
     let sp = null;
@@ -194,7 +195,7 @@ const pastFirstWords = async page => {
     const site = await page.evaluate(() => getContract(intel.paper.id).templateForm.fields.findIndex(x => x.fieldKey === 'site'));
     await ckOpenRowOf(page, `#pd-og [data-tplf="${site}"]`); await page.click(`#pd-og [data-tplf="${site}"]`);
     await page.keyboard.type('Avenyn 12, Gothenburg', { delay: 10 });
-    await ckOpenRowOf(page, `#pd-og [data-pd-og-ok="site"]`); await page.click(`#pd-og [data-pd-og-ok="site"]`);
+    await ckOpenRowOf(page, `#pd-og [data-pd-og-ok="site"]`); await ckConfirm(page, `site`);
     await waitFor(page, () => /Avenyn 12/.test((document.getElementById('ig-canvas') || {}).textContent || ''), 3000);
     const pre = await page.evaluate(() => { const c = getContract(intel.paper.id); return { paper: /Avenyn 12/.test(document.getElementById('ig-canvas').textContent), stored: /Avenyn 12/.test(c.redlineText || ''), owed: tplFormPending(c) }; });
     check('5a the answer shows on the paper while the stored wording waits for the press', up5 && pre.paper && !pre.stored && pre.owed, JSON.stringify(pre));
@@ -216,7 +217,7 @@ const pastFirstWords = async page => {
       const sel = '#pd-og ' + next.sel;
       if (next.type === 'date') await page.$eval(sel, el => { el.value = '2026-11-01'; el.dispatchEvent(new Event('change', { bubbles: true })); });
       else { await page.click(sel); await page.keyboard.type(/value/.test(next.sel) ? '180000' : /counterparty/.test(next.sel) ? 'Parcelway ApS' : 'Answered', { delay: 5 }); }
-      await ckOpenRowOf(page, `#pd-og [data-pd-og-ok="${next.key}"]`); await page.click(`#pd-og [data-pd-og-ok="${next.key}"]`).catch(() => {});
+      await ckOpenRowOf(page, `#pd-og [data-pd-og-ok="${next.key}"]`); await ckConfirm(page, `${next.key}`).catch(() => {});
       await pause(300);
     }
     await waitFor(page, () => !detailsOf(getContract('MK-F1')).left, 4000);

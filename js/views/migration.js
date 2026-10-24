@@ -1198,7 +1198,9 @@ function migPaintHead(){
   const f = document.getElementById('page-head-facts'), a = document.getElementById('page-head-acts');
   if (f) f.textContent = migHeadFacts();
   /* the same press, named for where you stand: "New batch" while checking one (option 1) */
-  if (a) a.innerHTML = canEdit() ? `<button type="button" class="ui-btn ui-btn-primary" id="mig-choose">${esc(i18t(_migCheck ? 'mig_new_batch' : 'mig_choose_dots'))}</button>` : '';
+  /* ONE CHOOSE FILES DOOR (Round 2, owner's yes 24 Oct 2026): the drop strip carries it; the head's own
+     button stays only while a batch is being checked, as "New batch" */
+  if (a) a.innerHTML = canEdit() && _migCheck ? `<button type="button" class="ui-btn ui-btn-primary" id="mig-choose">${esc(i18t('mig_new_batch'))}</button>` : '';
 }
 
 /* ════ THE LIST HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
@@ -1307,7 +1309,10 @@ function migCostLine(){
   if (!state.aiConfigured || M.aiDown) return head + ' ' + i18t('mig_cost_rules');
   const aw = migAllowanceWords();
   if (aw.done) return head + ' ' + i18t('mig_allow_done');
-  return head + ' ' + i18t('mig_cost_calls', { from:aw.said }) + ' ' + i18t('mig_cost_before');
+  /* one short sentence (Round 2, owner's yes 24 Oct 2026) from the daily allowance; an onboarding allowance
+     an admin opened still says how much of it is used, in files */
+  if (aw.open) return head + ' ' + i18t('mig_cost_calls', { from:aw.said }) + ' ' + i18t('mig_cost_before');
+  return head + ' ' + i18t('mig_cost_short');
 }
 function migDropCardHtml(){
   const M = migState();
@@ -1455,6 +1460,7 @@ function migListHtml(){
 function migListPaint(){
   const host = document.getElementById('mig-list'); if (!host) return;
   host.innerHTML = migListHtml();
+  host.classList.toggle('is-empty-hidden', canEdit() && !migRows().length);
   migWireCancel();
 }
 /* the band's numbers again, as files settle: the list head counts again in
@@ -2573,7 +2579,8 @@ function renderMigration(){
     ${canEdit()?`<input id="mig-files" type="file" multiple accept="${MIG_ACCEPT}" style="display:none"><input id="mig-sheet-file" type="file" accept=".csv" style="display:none">`:''}
     ${_migCheck?migCheckHtml():`
       ${canEdit()?migDropCardHtml():`<div class="mig-warn">${i18t('mig_viewers_readonly')}</div>`}
-      <section class="mig-card mig-list" id="mig-list">${migListHtml()}</section>
+      ${''/* nothing brought in yet: Jambo's panel says so, the strip above is the door; no second card says it again (Round 2) */}
+      <section class="mig-card mig-list${canEdit()&&!migRows().length?' is-empty-hidden':''}" id="mig-list">${migListHtml()}</section>
       ${migReconHtml()}`}
     <aside class="ins-panel mig-side" id="mig-side" aria-label="${migEsc(i18t('mig_side_label'))}"></aside>
   </div>`;
@@ -2602,6 +2609,8 @@ function renderMigration(){
   migSidePaint();
   migFormPut(document.getElementById('content'), keep);
   caret();
+  /* its dropdowns wear HaTi's face, as every other page's do (Round 1, 24 Oct 2026) */
+  try{ if(typeof selectFaceDress==='function') selectFaceDress(document.getElementById('content')); }catch(_){}
   migPaintHead();
   setActiveNav('migration');
   /* the check view's file is read whole once (the list is light) */

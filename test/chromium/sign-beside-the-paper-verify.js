@@ -110,7 +110,9 @@ const FACE = () => {
     /* ===== 2. THE SIGNING COLUMN ===== */
     const holds = await page.evaluate(() => { try { return (signReadiness(getContract('MK-A2')).holds || []).length; } catch (_) { return null; } });
     check('2a the before-you-sign list is in the face, the Sign button at its foot', f1.list && f1.btnInFoot, JSON.stringify(f1));
-    check('2b the pill counts what the list holds — the list the Sign button reads', holds > 0 && f1.pill === `${holds} to settle`, `${f1.pill} · holds ${holds}`);
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): the list under it already counts what is left, so no
+       "N to settle" pill repeats it while anything holds */
+    check('2b no pill repeats what the list already counts', holds > 0 && !f1.pill, `${f1.pill} · holds ${holds}`);
 
     /* ===== 3. READIED, IT SIGNS ===== */
     await page.evaluate(async () => {

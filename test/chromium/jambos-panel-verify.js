@@ -178,7 +178,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       await open(); await settled();
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
         /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box (its rows stand under their stages); the dossier's top is its first stage line */
-        nd = document.querySelector('#ig-dock .ds-sp-st'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
+        /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the top is the stage line across */
+        nd = document.querySelector('#ig-dock .ds-ln-st') || document.querySelector('#ig-dock .ds-sp-st'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !nd || !gl || !box) return null;
         const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), n = nd.getBoundingClientRect();
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;

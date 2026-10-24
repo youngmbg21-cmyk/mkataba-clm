@@ -138,9 +138,11 @@ const FILES = {
     console.log('\n2 · the head');
     const head = await until(() => { const f = document.getElementById('page-head-facts'); const t = f && f.textContent; return t && /files/.test(t) ? t : null; }, null, 6000);
     check('2a the head says what the batch is: old contracts, started on a day by you, the files', !!head && /^Old contracts brought in · started \w{3} \d{1,2} \w{3} by you · 12 files$/.test(head), head);
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): ONE Choose files door, the drop strip's; none in the head */
+    const headBtn = await page.evaluate(() => !!document.querySelector('#page-head-acts #mig-choose'));
     const chooser = await Promise.race([page.waitForEvent('filechooser', { timeout: 4000 }).then(() => true).catch(() => false),
-      page.click('#mig-choose').then(() => new Promise(r => setTimeout(() => r(null), 4500))).catch(() => false)]);
-    check('2b Choose files… in the head opens the chooser', chooser === true);
+      page.click('#mig-drop').then(() => new Promise(r => setTimeout(() => r(null), 4500))).catch(() => false)]);
+    check('2b the drop strip opens the chooser; no second Choose files in the head', chooser === true && !headBtn, JSON.stringify({ chooser, headBtn }));
 
     console.log('\n3 · the tabs and the cap');
     const TAB = k => '[data-lh-seat="migration"] [role="tab"][data-mig-show="' + k + '"]';
@@ -193,13 +195,14 @@ const FILES = {
           ends: ends && { need: ends.classList.contains('is-need'), ph: (ends.querySelector('input') || {}).placeholder, why: (ends.querySelector('.mig-ff-why') || {}).textContent || '' },
           file: !!(s.querySelector('[data-mig-file]') || {}).disabled, wait: (s.querySelector('[data-mig-wait]') || {}).textContent,
           labels: [...s.querySelectorAll('.mig-ff-l')].map(l => l.textContent.trim()) }; }, lease, 6000);
-      check('5a Jambo\'s panel holds the file: his word "Import" and ‹ Jambo', !!P && P.word === 'Import' && P.back, JSON.stringify(P && { word: P.word, back: P.back }));
+      /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
+      check('5a Jambo\'s panel holds the file: his word "Import", no duplicate back button', !!P && P.word === 'Import' && !P.back, JSON.stringify(P && { word: P.word, back: P.back }));
       check('5b "Check this file · Jambo read it; one fact needs you before it is filed."', !!P && P.title === 'Check this file' && P.say === 'Jambo read it; one fact needs you before it is filed.', JSON.stringify(P && [P.title, P.say]));
       check('5c the facts as drawn: Title · Party · Starts · Ends · Value · Stream', !!P && P.labels.join() === 'Title,Party,Starts,Ends,Value,Stream', JSON.stringify(P && P.labels));
       check('5d Ends in amber, "Jambo was not sure", with the clause it read', !!P && P.ends && P.ends.need && P.ends.ph === 'Jambo was not sure' && /^§ 3: “It renews by itself/.test(P.ends.why), JSON.stringify(P && P.ends));
       check('5e File it grey, with its reason beside it', !!P && P.file && /File it waits for Ends: choose “renews by itself” or a date\./.test(P.wait), JSON.stringify(P && [P.file, P.wait]));
       await shot(page, 'import-drawn-chosen-1440x780');
-      if (await press('#mig-side [data-jl-back]', '5f ‹ Jambo')) {
+      if (await press('#mig-side [data-jl-home]', '5f ‹ Jambo')) {
         const gone = await until(() => !document.querySelector('.mig-table tr.is-picked') && /files are in this batch/.test(document.getElementById('mig-side').textContent) ? true : null, null, 4000);
         check('5f ‹ Jambo lets the file go, and Jambo says the batch', !!gone);
       }
@@ -340,7 +343,7 @@ const FILES = {
       return { ph: (document.querySelector('#mig-side #jl-q') || {}).placeholder,
         hints: side ? side.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length : -1,
         said: side ? /Typing never signs, sends or files/.test(side.textContent) : null }; });
-    check('10a "Ask for anything, or type /" with no hint line under it', A.ph === 'Ask for anything, or type /' && A.hints === 0 && A.said === false, JSON.stringify(A));
+    check('10a "Ask Jambo, or type / for a place" with no hint line under it', A.ph === 'Ask Jambo, or type / for a place' && A.hints === 0 && A.said === false, JSON.stringify(A));
     await page.fill('#mig-side #jl-q', 'contracts'); await page.press('#mig-side #jl-q', 'Enter');
     const went = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
     check('10b a place word typed in it opens that place, as every Jambo box does', !!went, String(went));

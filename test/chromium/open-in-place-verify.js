@@ -76,8 +76,9 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
     console.log('\n1 · Look lands on the piece, on the Board\'s card');
     const ready = await page.evaluate(() => hbAgentsData(null).ready);
     check('1 (setup) Jambo has the lease\'s renewal prepared', ready >= 1, String(ready));
-    check('1a the piece is a row of its own with Look, nothing drawn in place', await page.evaluate(() => !document.getElementById('cn-jw-list')
-      && ((document.querySelector('#cn-needs [data-nd-look]') || {}).textContent || '').trim() === 'Look'));
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Home's button says what it opens, "Review" */
+    check('1a the piece is a row of its own with Review, nothing drawn in place', await page.evaluate(() => !document.getElementById('cn-jw-list')
+      && ((document.querySelector('#cn-needs [data-nd-look]') || {}).textContent || '').trim() === 'Review'));
     if (await press('#cn-needs [data-nd-look]', '1b Look')) {
       const L = await until(isLit, null, 6000);
       const s = await landed();

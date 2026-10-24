@@ -107,7 +107,8 @@ const MANIFEST = [
       tabs: [...document.querySelectorAll('[data-lh-seat="migration"] [role="tab"]')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
       title: (document.getElementById('shell-title') || {}).textContent || '' }));
     await page.screenshot({ path: path.join(OUT, '1-page.png') });
-    check('1a the Import contracts page opens with its drop zone and its list head (the box, and All the one tab of an empty page)', p1.drop && p1.box && p1.tabs.join() === 'All', JSON.stringify(p1));
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): a row that could only hold "All" is not drawn */
+    check('1a the Import contracts page opens with its drop zone and its list head (the box; no lone "All" tab on an empty page)', p1.drop && p1.box && p1.tabs.length === 0, JSON.stringify(p1));
 
     /* ===== 2. THE CUSTOMER'S LIST ===== */
     const mf = path.join(OUT, 'manifest.csv');

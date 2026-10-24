@@ -129,8 +129,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('2c the head counts the one list, and there is no second door in the side menu',
       new RegExp('^' + rows.n + ' things?\\b').test(rows.sub.trim()) && rows.rail === ''
         && !(await page.$('#sidebar [data-view="agents"], nav [data-view="agents"]')), JSON.stringify({ sub: rows.sub, rail: rows.rail, n: rows.n }));
-    const lateRow = await page.evaluate(() => { const r = document.querySelector('#hm-agents [data-nd-agent="late"]'); return r ? { what: r.querySelector('.nd-c-what').textContent.trim(), who: r.querySelector('.nd-c-who').textContent.trim() } : null; });
-    ok('2d a row says what the piece is and who prepared it, at which step', !!lateRow && lateRow.what.length > 5 && /^Jambo · step \d+ of \d+$/.test(lateRow.who), JSON.stringify(lateRow));
+    const lateRow = await page.evaluate(() => { const r = document.querySelector('#hm-agents [data-nd-agent="late"]'); return r ? { what: r.querySelector('.nd-c-what').textContent.trim(), who: !!r.querySelector('.nd-c-who') } : null; });
+    /* RE-POINTED 24 Oct 2026 (the owner: "delete The Who or what asked column") */
+    ok('2d a row says what the piece is, with no "Who or what asked" column', !!lateRow && lateRow.what.length > 5 && !lateRow.who, JSON.stringify(lateRow));
     await page.locator('#hm-agents').screenshot({ path: path.join(OUT, '2-card.png') });
 
     /* ===== 3. REVIEW OPENS THAT AGENT'S WORK BELOW THE CARD (Young, 7 Oct 2026) ===== */

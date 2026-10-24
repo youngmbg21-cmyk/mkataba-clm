@@ -849,7 +849,10 @@ const AI_SIDE_SPLIT = {
     return Math.max(0, (window.innerWidth || 0) - left); },
   edge: () => window.innerWidth || 0,
   /* THE ONE WRITER of the width: the panel and the page's room both read --ai-side-w */
-  apply: w => { if (!aiSideShown()) return; document.documentElement.style.setProperty('--ai-side-w', Math.round(w) + 'px'); },
+  /* past the mark the page's room stops at the panel's seam less what lies over it (splitOver) */
+  apply: (w, over) => { if (!aiSideShown()) return; const r = document.documentElement.style;
+    r.setProperty('--ai-side-w', Math.round(w) + 'px'); r.setProperty('--ai-side-room', Math.round(w - (over || 0)) + 'px');
+    const p = document.getElementById('ai-panel'); if (p) p.classList.toggle('is-split-over', !!over); },
   dragging: on => { const p = document.getElementById('ai-panel'); if (p) p.classList.toggle('is-dragging', !!on); },
   settle: () => aiSideReflow(),
   resize: () => aiSideFit()
@@ -3219,6 +3222,9 @@ function updateAiBrainPill(){
   const el=document.getElementById('ai-brain-sub'); if(!el) return;
   const b=copilotBrainInfo();
   el.title=b.hint;
+  /* NO MODEL NAME UNDER HIS NAME WHILE ALL IS WELL (Round 3, owner's yes 24 Oct 2026: it was cut to "✦ Claude Jam…");
+     a missing key still says so where the reader looks — the basic brain keeps its line */
+  el.hidden=!!b.live;
   el.innerHTML=b.live
     ? `<span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span>✦ ${b.label}`
     : `<span class="h-1.5 w-1.5 rounded-full" style="background:#c79a3e;"></span>${b.label}`;

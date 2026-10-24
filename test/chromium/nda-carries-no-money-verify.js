@@ -133,7 +133,7 @@ const check = (name, pass, detail) => {
 
     const text = ready.html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
     check('so the box does not say the contract is not ready',
-      !/Not ready to send/.test(text), text.slice(0, 90) || 'no panel at all');
+      !/Not ready to send|Before you send: \d/.test(text), text.slice(0, 90) || 'no panel at all');
     check('being a draft is not counted as a thing to fix',
       !/thing[s]? to fix/.test(text), text.slice(0, 90));
 
@@ -187,7 +187,7 @@ const check = (name, pass, detail) => {
     check('the share dialog raises no value complaint on screen',
       !/contract type carries one/.test(onScreen.text), onScreen.text.slice(0, 80));
     check('nor calls the contract not ready',
-      !/Not ready to send/.test(onScreen.text));
+      !/Not ready to send|Before you send: \d/.test(onScreen.text));
     check('and asks for no acknowledgement, because nothing is being overridden',
       !onScreen.ack);
 

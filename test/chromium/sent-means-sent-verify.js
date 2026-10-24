@@ -77,6 +77,13 @@ async function run(mode) {
       }, id);
       await waitFor(page, () => !!document.getElementById('share-send') && !document.getElementById('share-send').disabled);
       if (ch === 'word') await page.evaluate(() => document.querySelector('[data-share-ch="word"]').click());
+      /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: with no email set up the letter opens on "Copy the link",
+         "Send by email" greyed with its reason): OFF, the email door cannot be pressed, and the press on the
+         link IS the person's own hand-over (viaHand), told as a link in the trail — never "sent" by email */
+      const linkFirst = (!on && ch === 'email') ? await page.evaluate(() => {
+        const l = document.querySelector('[data-share-ch="link"]'), e = document.getElementById('share-send-off');
+        return { link: !!l && l.getAttribute('aria-pressed') === 'true', emailShut: !!e && e.disabled && !!e.title, why: e ? e.title : '' };
+      }) : null;
       await page.evaluate(() => {
         document.getElementById('sh-email').value = 'erik@nandi.example';
         const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true;
@@ -100,6 +107,10 @@ async function run(mode) {
           check(tag('after the first send the move reads as theirs'), mv.k === 'them' && mv.why === 'firstlook' && /Nandi Dairy/.test(mv.say),
             JSON.stringify(mv));
         }
+      } else if (ch === 'email') {
+        check(tag('email: the letter opens on the link, "Send by email" greyed with its reason'), !!(linkFirst && linkFirst.link && linkFirst.emailShut), JSON.stringify(linkFirst));
+        check(tag('email: the press on the link is their own hand-over'), f.status === 'Under Review' && f.turn === 'counterparty', `${f.status} / ${f.turn}`);
+        check(tag('email: the trail says it went as a link, not by email'), /via link/.test(f.last) && !/via email/.test(f.last), f.last);
       } else {
         check(tag(`${ch}: the button says Queued — email isn't set up`), /Queued/.test(lbl || ''), lbl);
         check(tag(`${ch}: the contract is still a draft`), f.status === 'Draft', f.status);
@@ -168,9 +179,12 @@ async function run(mode) {
          hand-over. */
       const asked = await waitFor(page, () => {
         const L = document.getElementById('sh-letter'), b = document.getElementById('share-send');
-        return L && b && !b.disabled ? L.textContent.replace(/\s+/g, ' ').trim() : null;
+        return L && b && !b.disabled ? document.getElementById('modal-root').innerText.replace(/\s+/g, ' ').trim() : null;
       }, null, 10000);
-      check(tag('Send all: opens the letter, naming what travels'), !!asked && /proposes a change of its own/i.test(asked), (asked || '').slice(0, 220));
+      /* RE-POINTED 24 Oct 2026 (Round 3): OFF the letter is a link you copy, so what travels is named on the
+         screen ("the contract, round 1") and it says nothing is sent from here; ON the letter's words name the change */
+      check(tag('Send all: opens the letter, naming what travels'), !!asked && (on ? /proposes a change of its own/i.test(asked)
+        : /round 1/.test(asked) && /Nothing is sent from here/.test(asked)), (asked || '').slice(0, 400));
       if (asked) await page.evaluate(() => { const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true;
         document.getElementById('share-send').click(); });
       /* RE-POINTED (round 11's gaps, second pass): delivered by email, the
@@ -189,15 +203,10 @@ async function run(mode) {
         check(tag('Send all: the round reached them and the move is theirs'), f.turn === 'counterparty', f.turn);
         check(tag('Send all: it left Drafting'), f.status === 'Under Review', f.status);
       } else {
-        check(tag('Send all: nothing handed over — the move is still ours'), f.turn !== 'counterparty', String(f.turn));
-        check(tag('Send all: still a draft'), f.status === 'Draft', f.status);
-        check(tag('Send all: the button says it was not sent'), /Queued|Not sent/i.test(lbl || ''), lbl);
-        /* AND ITS ACTION IS THE PERSON'S OWN HAND-OVER (roundReachedByHand). */
-        const pressed = await page.evaluate(() => { const b = document.getElementById('share-by-hand'); if (!b) return false; b.click(); return true; });
-        const g = pressed ? await waitFor(page, () => {
-          const c = state.contracts.find(x => x.id === 'MK-D3');
-          return c.negotiation && c.negotiation.turn === 'counterparty' ? c.status : null; }) : null;
-        check(tag('Send all: "Copy link — I\u2019ll send it" hands over'), g === 'Under Review', String(g));
+        /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes): OFF the letter opens on "Copy the link"; that press is
+           the person's own hand-over, the trail naming the link — the queued-email answer cannot arise here */
+        check(tag('Send all: the press on the link is their own hand-over'), f.turn === 'counterparty' && f.status === 'Under Review', `${f.status} / ${f.turn}`);
+        check(tag('Send all: the trail says it went as a link, not by email'), /via link/.test(f.last) && !/via email/.test(f.last), f.last);
       }
     }
     check(tag('no page errors'), errors.length === 0, errors.slice(0, 3).join(' | '));

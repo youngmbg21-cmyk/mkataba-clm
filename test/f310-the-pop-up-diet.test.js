@@ -181,7 +181,9 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     assert.match(send, /id="sh-noemail"[^\n]*co_email_off_line/);
     assert.ok(!/EMAIL_SETUP_LINE/.test(send), 'the four-line version is the mail panel’s, not this dialog’s');
     assert.ok(!/co_press_create_link/.test(send));
-    assert.match(I18N, /co_email_off_line: 'Email is not set up on this workspace\. Copy the link and send it yourself, or set up email first\.'/);
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): one plain line; the way forward is the filled "Copy the link" */
+    assert.match(I18N, /co_email_off_line: 'Email is not set up yet, so this goes as a link you copy and send yourself\.'/);
+    assert.match(send, /let ch=emailOff\(\)\?'link':'email';/, 'the letter opens on the link when email is off');
   });
 
   test('the link tick keeps its sentence on the hover, not on the face', async () => {

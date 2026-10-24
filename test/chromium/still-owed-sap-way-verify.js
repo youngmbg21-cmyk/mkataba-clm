@@ -153,7 +153,9 @@ const MEASURE = () => {
           if (await page.evaluate(() => !!(document.activeElement && document.activeElement.hasAttribute('data-pd-og-ok')))) break; }
         const atTab = await page.evaluate(() => { const b = document.querySelector('#ig-dock #pd-og [data-kt="value"]'), a = document.activeElement;
           return { box: Math.round(b.getBoundingClientRect().top), on: a && a.getAttribute('data-pd-og-ok') }; });
-        check('8 a hand in a box sees its label; Tab onto Confirm does not move the panel', tuck != null && atClick.rowIn && atTab.box === atClick.box && atTab.on === 'value', JSON.stringify({ tuck, atClick, atTab }));
+        /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the rows carry no Confirm of their own (one Save under them);
+           Tab from the box onward still does not move the panel */
+        check('8 a hand in a box sees its label; Tab onward does not move the panel', tuck != null && atClick.rowIn && atTab.box === atClick.box, JSON.stringify({ tuck, atClick, atTab }));
         await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
         await page.screenshot({ path: path.join(OUT, `paper-${at}.png`) });
       }

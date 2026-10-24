@@ -309,7 +309,7 @@
        against 39 text uses, so it is the one step in this ramp that is not a
        type token, and the rulebook's "re-hueing the neutrals is safe" argument
        does not cover it. */
-    --color-neutral-400:#6A6A6F; --color-neutral-500:#66666B; --color-neutral-600:#66666B;   /* the Legora look's cool ramp (23 Oct 2026), one step darker than the drawing's #6E6E73 so a grey word on the grey pill clears AA (contrast-verify: 4.46 → 5.02) */
+    --color-neutral-400:#6A6A6F; --color-neutral-500:#4B4B50; --color-neutral-600:#4B4B50;   /* the Legora look's cool ramp (23 Oct 2026); A FIRMER GREY (owner's pick "The Legora Way", 24 Oct 2026: "the grey fonts … are too faint"): the text greys one firm step darker, #66666B → #4B4B50 (5.7 → 8.7 to 1 on white); 400 stays for lines and icons */
     --color-neutral-700:#1D1D1F; --color-neutral-800:#1D1D1F; --color-neutral-900:#1D1D1F;
 
     --color-accent-100:#DCE7E1; --color-accent-200:#B5CDC1; --color-accent-300:#8DB2A2;
@@ -878,7 +878,7 @@
        composited pair, and "Your turn — propose changes" tripped it). #A24E07
        and #1A6F45 are the nearest steps that clear it (5.06 and 5.29) and are
        still the reference's hues. The washes, dots and lines are untouched. */
-    --st-gray-bg:#F0F0F3;  --st-gray-fg:#66666B;  --st-gray-dot:#AEAEB2;  --st-gray-line:#D1D1D6;
+    --st-gray-bg:#F0F0F3;  --st-gray-fg:#4B4B50;  --st-gray-dot:#AEAEB2;  --st-gray-line:#D1D1D6;
     --st-amber-bg:#FBEEDB; --st-amber-fg:#8A5A0A; --st-amber-dot:#C98A14; --st-amber-line:#EBCB8E;
     --st-green-bg:#DFF2E7; --st-green-fg:#1F4D3B; --st-green-dot:#3A8A62; --st-green-line:#A9D6BC;
     --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#8F2A22;  --st-ruby-dot:#C2453B;  --st-ruby-line:#ECBAB5;
@@ -2169,7 +2169,7 @@
   /* CHAMBERS (20 Oct 2026): the bar is white (its own --bar-bg); what still
      reads --nav-bg — the lit tab's underline, the history dot's ring — reads
      the ink. */
-  :root{ --nav-bg:#1D1D1F; --nav-line:#E6E6EA; --nav-ink:#66666B; --nav-ink-strong:#1D1D1F;
+  :root{ --nav-bg:#1D1D1F; --nav-line:#E6E6EA; --nav-ink:#4B4B50; --nav-ink-strong:#1D1D1F;
          --nav-deep:#0A1C15; }
 
   /* Accent text that stays READABLE in both themes. The deep teal that reads
@@ -10673,7 +10673,7 @@
      green for lines and glow. */
   #ig-page.hb-light,#hb-page.hb-light{
     --hb-stage:radial-gradient(circle,rgba(31,77,59,.09) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#F5F5F7 48%,#E9E9ED 100%);
-    --hb-ink:#1D1D1F;--hb-ink-2:#66666B;--hb-mute:#66666B;--hb-glow:#1F4D3B;
+    --hb-ink:#1D1D1F;--hb-ink-2:#4B4B50;--hb-mute:#4B4B50;--hb-glow:#1F4D3B;
     --hb-amber:#8A5A0A;--hb-ruby:#8F2A22;--hb-green:#1F4D3B;
     /* the LINE channel (Chambers, 21 Oct 2026; cool since the Legora look, 23 Oct): a card's edge rgba(ln,.18) over white is exactly
        --color-divider #E6E6EA; the inside rules at .12 / .16 land between --rule-faint and the divider */
@@ -12993,7 +12993,7 @@
     #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:var(--ai-side-w,384px);max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
     /* BESIDE THE PAGE, AS EVERY JAMBO PANEL (owner, 22 Oct 2026): the page makes room, nothing dimmed;
        THE SLIDER on its left edge (splitHtml, ai.js AI_SIDE_SPLIT) pulls it wider */
-    body.ai-side-open #content-scroll, body.ai-side-open #page-head{margin-right:var(--ai-side-w,384px)}
+    body.ai-side-open #content-scroll, body.ai-side-open #page-head{margin-right:var(--ai-side-room,var(--ai-side-w,384px))}
     #ai-panel.is-side > .ig-resizer{left:-1px}
     #ai-panel.is-side.is-dragging{transition:none}
     #ai-panel.is-side.ai-stepaside{visibility:hidden;pointer-events:none}
@@ -14285,7 +14285,7 @@
      and the panel, the page head and the page's scroller all read — 380 where
      nobody has chosen. */
   #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
-  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:var(--jl-w,384px);}
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:var(--jl-room,var(--jl-w,384px));}
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:46px;}
   #content :has(> #ins-panel.is-jambo){grid-template-columns:minmax(0,1fr);column-gap:0;}
@@ -14324,7 +14324,7 @@
   .jl-head{flex:none;display:flex;align-items:center;gap:8px;padding:6px 10px 6px 8px;border-bottom:1px solid var(--color-divider);min-width:0;}
   .jl-head .jl-tab{flex:none;max-width:none;width:56px;}
   .jl-head .pd-tab.on::after{bottom:-7px;}
-  .jl-word{min-width:0;font-size:var(--t-body);color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jl-word{min-width:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .jl-sp{flex:1 1 auto;}
   .jl-head .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap;}
   .jl-head .pd-back[hidden]{display:none;}
@@ -16161,7 +16161,7 @@
   .nd-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
   .nd-chip{border:1px solid var(--rule-strong);background:var(--color-surface);border-radius:12px;height:24px;padding:0 10px;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
   .nd-chip.on{background:var(--accent-fill,var(--color-text));border-color:var(--accent-fill,var(--color-text));color:var(--color-surface)}
-  .nd-cols,.nd-br{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) minmax(0,1.1fr) 104px 76px;gap:14px;align-items:center;padding:8px 16px}
+  .nd-cols,.nd-br{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) 104px 76px;gap:14px;align-items:center;padding:8px 16px}
   .nd-cols{padding-top:6px;padding-bottom:6px;background:var(--surface-2);border-bottom:1px solid var(--rule-strong);font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
   .nd-cols > :last-child{text-align:right}
   .nd-br{border-bottom:1px solid var(--color-divider)}
@@ -16189,7 +16189,7 @@
     .nd-bar{padding-bottom:8px}
     .nd-find{flex:1 1 100%;width:auto;max-width:none;margin-left:0}
     .nd-cols,.nd-br{grid-template-columns:minmax(0,1fr) 88px 76px}
-    .nd-cols > :nth-child(2),.nd-cols > :nth-child(3),.nd-br > .nd-c-deal,.nd-br > .nd-c-who{display:none}
+    .nd-cols > :nth-child(2),.nd-br > .nd-c-deal{display:none}
     .nd-card .nd-home-shows{display:none}
   }
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
@@ -16858,10 +16858,10 @@
   :is(.reg-seg, .hb-seg:not(.hb-faces), .cal-seg, .cal-lv-seg, .st-cr .st-yseg, .modal-in[data-dlg-sap] .sap-seg) > button{border:0;border-radius:999px;background:transparent}
   :is(.reg-seg, .hb-seg:not(.hb-faces), .cal-seg, .cal-lv-seg, .st-cr .st-yseg, .modal-in[data-dlg-sap] .sap-seg) > button:is(.on, [aria-pressed="true"], [aria-selected="true"]){background:var(--accent-fill);color:#fff}
   /* -- Jambo's box: the one coloured edge on the page, a pill at rest -- */
-  .jb-card{border:1.5px solid transparent;border-radius:999px;
-    background:linear-gradient(var(--color-surface),var(--color-surface)) padding-box,linear-gradient(120deg,#0A7C6B,#6D5DFC,#FF7A59) border-box}
+  /* ONE CALM GREEN EDGE (Round 2, owner's yes 24 Oct 2026): the teal-violet-coral ring ended in red and read as an error */
+  .jb-card{border:1.5px solid var(--accent-ink);border-radius:999px;background:var(--color-surface)}
   .jb-card.is-tall{border-radius:20px}
-  .jb-card:focus-within{border-color:transparent;box-shadow:0 0 0 3px rgba(10,124,107,.12)}
+  .jb-card:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px rgba(10,124,107,.12)}
   /* -- a small tag or chip is a pill (the drawing's "5 of 6", "In Review · round 1"); bars, swatches and focus rings keep their small corners -- */
   #ig-page:not(.hb-dark) :is(.hb-src, .hb-chip, .hb-fd, .hb-given, .hb-vb, .hb-ins-scope), .bs-nx, .bs-late, .bs-done, #context-panel .pt-new,
   #ig-dock .pd-og-cl, [data-pd-mid-kt] .pd-og-cl, .pd-rn-q .pd-og-cl{border-radius:999px}
@@ -16873,7 +16873,7 @@
      most lists) lets it stand over its own empty 16px right margin, so the list keeps every pixel (the
      Parties column kept its 186 at 1366, parties-nda-column 4); a page with a scrollbar steps 8px aside
      so the panel never covers it */
-  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:calc(var(--jl-w,384px) + 8px);}
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:calc(var(--jl-room,var(--jl-w,384px)) + 8px);}
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:54px;}
   @media (min-width:981px){
     .st-cr .st-side{top:8px;margin:calc(8px - var(--page-pad-t)) calc(8px - var(--page-pad-x)) 0 0;height:calc(var(--st-side-h,560px) - 16px);border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
@@ -16941,9 +16941,10 @@
   :is(#ig-dock, .jt-trail, .jl-head) .pd-back:hover, .redline-page :is(.rl-head-notes, .rl-head-review):hover:not(:disabled){border-color:transparent;background:var(--color-neutral-200)}
   /* EACH CHANGE IN THE COLUMN IS ITS OWN SOFT GREY CARD (the drawing's Redlines: #F5F5F7, 16px corners), on
      both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
-  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:0 14px 12px;margin-bottom:8px;border-bottom:0}
+  /* ROOM INSIDE (owner, 24 Oct 2026: the clause name "too close to the edge"): 18 at the sides, 16 above and below */
+  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:0 18px 16px;margin-bottom:8px;border-bottom:0}
   /* the card's top room belongs to its head, which is what a press lands on (it takes the paper to the clause) */
-  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:12px}
+  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:16px}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
   /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
   :is(#ig-dock, body) .redline-page .rl-card-d:is(:hover, .is-linked){background:var(--color-neutral-200)}
@@ -16953,7 +16954,7 @@
      Anything above them should have the grey color they always had"): one rounded box, the reason inside it
      with no box of its own (it read as white in the middle once the card was pressed); the ONE SHADE deepens
      it one amber step on hover and once pressed, and gives it back its amber when another card takes it */
-  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:12px 14px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:16px 18px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone) .rk-why{background:transparent;padding:0}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone):is(:hover, .is-linked){background:var(--st-amber-bg)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover):not(.is-none):not(.is-gone){background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
@@ -17000,8 +17001,8 @@
   /* the box at the foot of their changes, where Jambo's box stands on ours: the same pill and coloured edge */
   #pw-page #rl-changes-col{display:flex;flex-direction:column}
   #pw-page #rl-changes-col > #nego-cards{flex:1 1 auto;min-height:0}
-  #pw-page .pt-write{flex:none;display:flex;align-items:center;gap:8px;margin:8px 12px 12px;height:44px;padding:0 6px 0 14px;border:1.5px solid transparent;border-radius:999px;
-    background:linear-gradient(var(--color-surface),var(--color-surface)) padding-box,linear-gradient(120deg,#0A7C6B,#6D5DFC,#FF7A59) border-box}
+  #pw-page .pt-write{flex:none;display:flex;align-items:center;gap:8px;margin:8px 12px 12px;height:44px;padding:0 6px 0 14px;border:1.5px solid var(--accent-ink);border-radius:999px;
+    background:var(--color-surface)}   /* one calm green edge, as Jambo's box (Round 2) */
   #pw-page .pt-write-in{flex:1 1 auto;min-width:0;border:0;outline:0;background:transparent;font:inherit;color:var(--color-text)}
   #pw-page .pt-write-in::placeholder{color:var(--color-neutral-600)}
   /* ===================================================================================================
@@ -17080,7 +17081,179 @@
     #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:0;border-radius:0;box-shadow:none}
     #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:47px}
     #content .ins-panel.is-jambo{right:0;top:var(--jl-top,88px);bottom:0;border-radius:0;box-shadow:none;border-left:1px solid var(--color-neutral-300)}
-    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:var(--jl-w,384px)}
+    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:var(--jl-room,var(--jl-w,384px))}
+  }
+  /* PAST THE MARK THE PANEL SLIDES OVER (owner, 24 Oct 2026; splitOver in js/components.js):
+     the page holds still and the panel lies over it, its edge lifted by a soft shadow so the
+     page underneath reads as underneath. Each panel's own rule, at its own specificity. */
+  #app-shell #ig-page:not(.hb-dark) #ig-dock.is-split-over, #app-shell #ig-dock.is-split-over{position:relative;z-index:6;box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  #content .ins-panel.is-jambo.is-split-over{box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  #set-page #st-side.is-split-over{z-index:6;box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  #ai-panel.is-side.is-split-over{box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  /* A TAB IS A PILL, NOT A BALL (owner, 24 Oct 2026, over the Board on the iPad: "the pills for the
+     headers are big and almost round which is not the theme of the platform"). The chosen tab's pill
+     stood the full height of its bar: 40px on every list head (.sap-band), 43 on the Board's Needs
+     you, 38 on Settings' You · Company. One height for all three, the panel's own 30, centred. */
+  #app-shell .reg-vtab{height:30px}
+  #app-shell .nd-tabs{align-self:center}
+  #app-shell .nd-tab{height:30px;align-self:center;display:inline-flex;align-items:center;gap:.3em;padding:0 12px}
+  #app-shell .st-cr .st-face{height:30px;align-self:center;display:inline-flex;align-items:center;justify-content:center;gap:.3em;margin-bottom:0;padding-top:0;padding-bottom:0}
+  /* THE LANDING TAB IS NEVER CUT (owner, same day: "in the side panel, the overview pill is cut
+     short"): stage 1 capped every panel tab at 96px so five fit; "Overview 99+" needs about 112.
+     The first tab (Overview, or Dossier beside a paper) keeps its whole word and count. */
+  #app-shell :is(.igd-head, .jl-head) > .pd-tab:first-child{max-width:none;flex-shrink:0}
+  /* ROUND 1 OF THE UI UPGRADE (owner's "all yes", 24 Oct 2026).
+     THE WIDTH HANDLE SHOWS WHERE THE HAND IS: its grip floated halfway down the
+     divider on every page and read as a glitch. With a mouse it appears only
+     while the pointer is over the divider, while dragging, or under the keyboard;
+     a finger cannot hover, so on the iPad it stays drawn. */
+  /* ROUND 4: THE DOSSIER, THE OWNER'S MIX — a stage line across the top (done ticked with its day, the focus ringed
+     amber with how many are left, later grey), "What happened so far", the Next card, then the focus stage's work only;
+     the facts are SAP fields: a label, the box at full width (green with "read §N" where read off the paper, amber
+     where empty), one Save */
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-spine.is-sp, #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st{display:none}
+  #ig-dock .pd-dossier.is-mix .ds-ln{display:flex;flex-direction:column;gap:6px;padding:4px 0 10px}
+  #ig-dock .pd-dossier.is-mix .ds-ln-row{display:flex;align-items:flex-start;justify-content:space-between;position:relative}
+  #ig-dock .pd-dossier.is-mix .ds-ln-row::before{content:'';position:absolute;left:8%;right:8%;top:8px;height:2px;background:var(--rule-strong)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st{position:relative;flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:0;border:0;background:none;font:inherit;color:var(--color-neutral-600);cursor:pointer}
+  #ig-dock .pd-dossier.is-mix span.ds-ln-st{cursor:default}
+  #ig-dock .pd-dossier.is-mix .ds-ln-dot{width:18px;height:18px;box-sizing:border-box;border-radius:50%;border:2px solid var(--rule-strong);background:var(--color-surface);display:inline-flex;align-items:center;justify-content:center}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st.is-done .ds-ln-dot{background:var(--color-text);border-color:var(--color-text)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st.is-done .ds-ln-dot::after{content:'';width:6px;height:3px;border:solid #fff;border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st.is-owed .ds-ln-dot{border-color:var(--st-amber-dot)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st.is-cur .ds-ln-dot{border-color:var(--st-amber-dot);box-shadow:0 0 0 3px var(--st-amber-bg)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st.is-cur .ds-ln-dot::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--st-amber-dot)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st b{font-size:12px;line-height:16px;font-weight:var(--w-body);white-space:nowrap}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st.is-done b,#ig-dock .pd-dossier.is-mix .ds-ln-st.is-cur b{color:var(--color-text)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-st.is-cur b{font-weight:var(--w-strong)}
+  #ig-dock .pd-dossier.is-mix .ds-ln-sub{font-size:11px;line-height:14px;white-space:nowrap;min-height:14px}
+  #ig-dock .pd-dossier.is-mix .ds-ln-sub.is-amb{color:var(--st-amber-fg)}
+  #ig-dock .pd-dossier.is-mix button.ds-ln-st:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px;border-radius:8px}
+  #ig-dock .pd-dossier.is-mix .ds-ln-hp{align-self:flex-end;padding:0;border:0;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
+  #ig-dock .pd-dossier.is-mix .ds-hp{display:grid;gap:6px;margin:0 0 10px;padding:10px 12px;background:var(--surface-2);border-radius:10px}
+  #ig-dock .pd-dossier.is-mix .ds-hp-r{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;font-size:12.5px;line-height:1.4;color:var(--color-neutral-600)}
+  #ig-dock .pd-dossier.is-mix .ds-hp-r b{font-weight:var(--w-label);color:var(--color-text)}
+  #ig-dock .pd-dossier.is-mix .ds-nx{display:flex;flex-direction:column;gap:4px;margin:0 0 12px;padding:12px;background:var(--surface-2);border-radius:12px}
+  #ig-dock .pd-dossier.is-mix .ds-nx-k{font-size:12px;color:var(--color-neutral-600)}
+  #ig-dock .pd-dossier.is-mix .ds-nx-h{font-size:14px;line-height:20px;font-weight:var(--w-strong);color:var(--color-text)}
+  #ig-dock .pd-dossier.is-mix .ds-nx-s{font-size:12.5px;line-height:1.4;color:var(--color-neutral-600)}
+  #ig-dock .pd-dossier.is-mix .ds-nx-bar{height:4px;margin:6px 0 2px;border-radius:2px;background:var(--color-surface);overflow:hidden}
+  #ig-dock .pd-dossier.is-mix .ds-nx-bar i{display:block;height:100%;background:var(--color-text);border-radius:2px}
+  #ig-dock .pd-dossier.is-mix .ds-nx-b{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
+  #ig-dock .pd-dossier.is-mix .ds-nx-then{font-size:12.5px;color:var(--color-neutral-600)}
+  /* only the focus stage's work stands under the Next card; the links, What Jambo read (its Risks to look at door), the one desk's rows (work owed to you: Jambo's pieces, a note, a suggestion) and the Obligations line always */
+  #ig-dock .pd-dossier.is-mix[data-ds-focus="read"] [data-ds-at]:not([data-ds-at="read"]):not(.pd-nd-row):not([data-ds-at="links"]):not([data-ds-at="ob"]),
+  #ig-dock .pd-dossier.is-mix[data-ds-focus="fill"] [data-ds-at]:not([data-ds-at="fill"]):not(.pd-nd-row):not([data-ds-at="links"]):not([data-pd-ds-card="read"]):not([data-ds-at="ob"]):not([data-pd-og-kind="signer"]),
+  #ig-dock .pd-dossier.is-mix[data-ds-focus="nego"] [data-ds-at]:not([data-ds-at="nego"]):not(.pd-nd-row):not([data-ds-at="links"]):not([data-pd-ds-card="read"]):not([data-ds-at="ob"]),
+  #ig-dock .pd-dossier.is-mix[data-ds-focus="sign"] [data-ds-at]:not([data-ds-at="sign"]):not(.pd-nd-row):not([data-ds-at="links"]):not([data-pd-ds-card="read"]):not([data-ds-at="ob"]),
+  #ig-dock .pd-dossier.is-mix[data-ds-focus="live"] [data-ds-at]:not([data-ds-at="live"]):not(.pd-nd-row):not([data-ds-at="links"]):not([data-pd-ds-card="read"]):not([data-ds-at="ob"]){display:none}
+  #ig-dock .pd-dossier.is-mix .ds-owed > .pd-gl-h{display:none}
+  /* no line down the side in the mix: the stage line across the top says where we are */
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .pd-dossier.is-mix :is([data-ds-at], .ds-acts[data-ds-at-now]){padding-left:0;background:none}
+  /* the chips under the Dossier stand on their own white foot with a rule, never over the last row (the report's Dossier foot) */
+  #ig-dock [data-ig-chips]:not(:empty){position:relative;z-index:2;background:var(--color-surface);border-top:1px solid var(--color-divider);padding-top:8px}
+  /* the SAP fields */
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v{display:flex;flex-direction:row;align-items:center;position:relative;padding-left:0;margin-top:2px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :is(.pd-og-in,.dp-face,.pd-og-sb,select){flex:1 1 auto;width:100%;min-width:0}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named){padding:6px 0}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd{height:auto;cursor:default}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd > :is(.pd-ck-ring,.pd-ck-v,.pd-ck-chev){display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd > b{flex:0 1 auto;font-size:12.5px;color:var(--color-neutral-600)}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap .pd-og-need{flex:none;font-size:12px;color:var(--st-amber-fg)}
+  /* the row's own Confirm goes (one Save); where on the paper a blank lands stays under its field, a door (§N); a read
+     field carries its § inside instead (.pd-og-at, the same door) */
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-a{display:block;padding:0;margin-top:2px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-a > :not(.pd-ck-src):not(.pd-og-order){display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named):is(.is-read, :not(:has(.pd-og-src))) td.pd-og-a:not(:has(.pd-og-order)){display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row.is-read .pd-og-in{border-color:var(--accent-ink);padding-right:64px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v{flex-wrap:wrap;row-gap:6px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :is(.pd-og-in,.dp-face,.pd-og-sb,select):first-child{flex-basis:100%}
+  /* nothing in a field's cell is wider than the panel: a named signer's route (.pd-ck-sgs) and any block take the
+     whole line and give way inside it (checklist-as-drawn 9 measured 125px past the edge) */
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :not(.pd-og-at){min-width:0;max-width:100%}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) td.pd-og-v > :is(ol,ul,div,p,table){flex:1 1 100%}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap td.pd-og-v .pd-og-at{top:7px;transform:none}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap td.pd-og-v:has(> select:first-child) .pd-og-at{right:30px}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap .pd-og-at{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:var(--w-label);color:var(--accent-ink);white-space:nowrap;border:0;background:none;padding:0;cursor:pointer;font-family:inherit}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-sap tr.pd-og-save td{display:block;padding:10px 0 4px}
+  #ig-dock .pd-og:not(.is-sap) .pd-og-need, #ig-dock .pd-og:not(.is-sap) .pd-og-at, #ig-dock .pd-dossier:not(.is-mix) .pd-og-save{display:none}
+  /* the groups: one open at a time */
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-grouped tr.pd-og-gh td{display:block;padding:0}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-b{display:flex;align-items:center;gap:10px;width:100%;height:40px;padding:0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer;text-align:left}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-b b{flex:1 1 auto;font-weight:var(--w-label)}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-need{font-size:12px;color:var(--color-neutral-600)}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-need.is-amb{color:var(--st-amber-fg)}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-n{font-size:12px;color:var(--color-neutral-600)}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-b .pd-ck-chev::before{content:'\203A';display:inline-block;transition:transform .15s}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-b[aria-expanded="true"] .pd-ck-chev::before{transform:rotate(90deg)}
+  /* ROUND 3: ONE PLACE TO TYPE — while the ✦'s window is open over the page, the Dossier's own box and its links step aside */
+  body:has(#ai-panel.open.floating) #ig-dock .igd-foot, body:has(#ai-panel.open.floating) #ig-dock [data-ig-chips]{visibility:hidden}
+  /* ROUND 3: SEND — email not set up is one plain line, not an amber strip */
+  .sh-noemail{margin:0 0 var(--s-3);font-size:13px;line-height:1.5;color:var(--color-neutral-600)}
+  /* ROUND 3: BEFORE YOU SIGN — the checks that have not run, said once in a grey box with one button */
+  .sc-run-box{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 4px;padding:10px 12px;background:var(--surface-2);border-radius:10px;font-size:13px;color:var(--color-text)}
+  .sc-run-box > button{flex:none;white-space:nowrap}
+  /* ROUND 3: THE DEAL PAGE, THE LEGORA WAY — each point a quiet row: dot, name, §N on the paper, Send · Open clause;
+     what you hold quoted in the paper's type, then what they ask */
+  .deal-it.is-lg{display:block;padding:12px 0}
+  .deal-it.is-lg .deal-top{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .deal-it.is-lg .deal-dot{flex:none;align-self:center;display:inline-flex}
+  .deal-it.is-lg .deal-dot i{width:8px;height:8px;border-radius:50%;background:var(--st-amber-dot)}
+  .deal-it.is-lg .deal-dot.db-vd-std i,.deal-it.is-lg .deal-dot.db-vd-in i{background:var(--st-green-fg)}
+  .deal-it.is-lg .deal-dot.db-vd-agreed i{background:var(--color-text)}
+  .deal-it.is-lg .deal-dot.db-vd-out i{background:var(--st-ruby-fg)}
+  .deal-it.is-lg .deal-nm{flex:0 1 auto;font-size:14px}
+  .deal-it.is-lg .deal-sec{flex:none;margin:0;font-family:var(--font-ui);font-size:12.5px;color:var(--color-neutral-600)}
+  .deal-it.is-lg .deal-sp{flex:1 1 auto}
+  .deal-it.is-lg .deal-send,.deal-it.is-lg .deal-go{flex:none;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .deal-it.is-lg .deal-send:hover,.deal-it.is-lg .deal-go:hover{text-decoration:underline}
+  .deal-it.is-lg .deal-q{margin-top:6px;grid-template-columns:72px minmax(0,1fr)}
+  /* ROUND 3: CLAUSES AND REDLINES WEAR ONE HEAD (owner's pick "The SAP Way"): the name in the serif, its count, a grey line */
+  .pd-th .stk-head.is-mq .stk-mq-t.stk-mq-t{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;font-size:18px;line-height:24px;font-weight:var(--w-title-serif);text-wrap:wrap}
+  .pd-th .stk-head.is-mq .stk-mq-t .stk-mq-n{font-style:normal;font-family:var(--font-ui);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
+  .pd-th .stk-head.is-mq .stk-mq-t .stk-mq-s{font-family:var(--font-ui);font-size:12.5px;font-weight:var(--w-body);color:var(--color-neutral-600)}
+  #ig-dock .redline-page .rl-idx-top .rl-round-at .rl-round-un{font-weight:var(--w-body);color:inherit}
+  /* ROUND 3: A PAGE IN THE MIDDLE SAYS ITS WAY BACK — "‹ Back to the paper", "Paper › Key terms", a ✕ at the right */
+  [data-pd-mid] .dlg-pg-crumb:has(.pd-mid-back-btn){display:flex;align-items:center;gap:10px;min-width:0}
+  [data-pd-mid] .pd-mid-crumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:var(--color-neutral-600)}
+  [data-pd-mid] .pd-mid-crumb b{font-weight:var(--w-label);color:var(--color-text)}
+  [data-pd-mid] .pd-mid-back-btn{flex:none}
+  [data-pd-mid] .pd-mid-sp{flex:1 1 auto}
+  [data-pd-mid] .pd-mid-x{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-2);color:var(--color-text);cursor:pointer}
+  [data-pd-mid] .pd-mid-x:hover{background:var(--color-divider)}
+  [data-pd-mid] .pd-mid-x:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+  /* ROUND 3: ACTIONS IS ITS OWN MENU CARD (owner's pick "The SAP Way") — it drops from the button over the paper,
+     above a page (70/71), under the chat window (75) and a decision (80); the Dossier's own fold of the rows stays
+     drawn for their wiring, with no line of its own, so the Dossier never moves */
+  .pd-acts-pop{position:fixed;z-index:72;width:288px;overflow:auto;padding:6px;background:var(--color-surface);border-radius:14px;box-shadow:0 12px 32px -8px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.04)}
+  .pd-acts-pop .pd-acts-g + .pd-acts-g{margin-top:4px;padding-top:4px;border-top:1px solid var(--color-divider)}
+  .pd-acts-pop .pd-acts-h{padding:8px 10px 4px;font-size:12px;color:var(--color-neutral-600)}
+  .pd-acts-pop .pd-acts-r{display:flex;align-items:center;gap:10px;width:100%;min-height:32px;padding:6px 10px;border:0;border-radius:8px;background:none;color:var(--color-text);font:inherit;font-size:13px;text-align:left;cursor:pointer;white-space:nowrap}
+  .pd-acts-pop .pd-acts-r > *:not(svg){min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .pd-acts-pop .pd-acts-r svg{flex:none;width:14px;height:14px;color:var(--accent-ink)}
+  .pd-acts-pop .pd-acts-r:hover:not(:disabled),.pd-acts-pop .pd-acts-r:focus-visible{background:var(--surface-2);outline:0}
+  .pd-acts-pop .pd-acts-r .mnote{margin-left:auto;padding-left:12px;flex:none;font-size:12px;color:var(--color-neutral-600)}
+  .pd-acts-pop .pd-acts-r:disabled{color:var(--color-neutral-400);cursor:default}
+  .pd-acts-pop .pd-acts-r.is-danger{color:var(--st-ruby-fg)}
+  .pd-acts-pop .pd-acts-r.is-danger svg{color:currentColor}
+  #ig-dock .pd-nx [data-ds-fold="acts"] > summary{display:none}   /* no line of its own: Actions and All N › drop the card */
+  /* ROUND 2: History's "Show the wording" — the whole width under its row, in the paper's type */
+  .hist-trail > .hist-wfull{padding:2px 16px 14px 16px;border-bottom:1px solid var(--color-divider)}
+  .hist-trail > .hist-wfull > .hist-redline{max-width:none;margin:0;font-family:var(--font-doc);font-size:14.5px;line-height:1.65;padding:12px 16px;background:var(--surface-2)}
+  .hist-who.is-party > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  /* ROUND 2: Import with nothing brought in — the strip is the door, Jambo's panel says it */
+  #mig-list.is-empty-hidden{display:none}
+  /* ROUND 2: Obligations with nothing in the book — what they are, and two doors */
+  .obw-empty.obw-none{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:28px 16px}
+  .obw-empty.obw-none .obw-none-t{font-size:15px;font-weight:var(--w-strong);color:var(--color-text)}
+  .obw-empty.obw-none p{margin:0;max-width:460px;font-size:13px;line-height:1.5;color:var(--color-neutral-600)}
+  .obw-empty.obw-none .obw-none-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}
+  /* ROUND 2: what every Approvals row shares, said once above the table (apSameLineHtml) */
+  .ap-card .ap-same{padding:12px 16px;font-size:13px;line-height:1.45;color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);background:var(--color-surface)}
+  .ap-card .ap-same b{color:var(--color-text);font-weight:var(--w-strong)}
+  @media (hover:hover){
+    .ig-resizer span{opacity:0;transition:opacity var(--dur-1),background var(--dur-1)}
+    .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{opacity:1}
   }
 </style>
 

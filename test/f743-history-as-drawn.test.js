@@ -156,7 +156,7 @@ describe('f743 (3) the page as drawn', () => {
     assert.match(H, /\{weekday:'short',day:'numeric',month:'short'\}:\{weekday:'short',day:'numeric',month:'short',year:'numeric'\}/);
     assert.match(H, /formatToParts\(d\)\.filter\(x=>x\.type!=='literal'\)\.map\(x=>x\.value\)\.join\(' '\)/);
     /* RE-POINTED 21 Oct 2026 (the SAP way): the day a row across the table, its count beside it */
-    assert.match(H, /<div class="hist-day-h" role="row"><b>\$\{esc\(dayLabel\(buf\[0\]\)\)\}<\/b><small>\$\{esc\(i18tn\('ct_hist_events',buf\.length,\{n:buf\.length\}\)\)\}<\/small><\/div>/);
+    assert.match(H, /<div class="hist-day-h" role="row"><b>\$\{esc\(dayLabel\(buf\[0\]\)\)\}<\/b>\$\{buf\.length>1\?`<small>\$\{esc\(i18tn\('ct_hist_events',buf\.length,\{n:buf\.length\}\)\)\}<\/small>`:''\}<\/div>/);
     const parts = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).formatToParts(new Date(2026, 9, 15)).filter(x => x.type !== 'literal').map(x => x.value).join(' ');
     assert.equal(parts, 'Thu 15 Oct', 'the drawing\'s own words');
   });
@@ -320,7 +320,7 @@ describe('f743 (6) pass 4: History as drawn, the second time', () => {
     assert.match(H, /return \(window\.todayISO&&loc===todayISO\(\)\)\?i18t\('ct_hist_day_today',\{ d:said \}\):said; \};/);
     assert.equal(say('ct_hist_day_today', { d: 'Mon 19 Oct' }), 'Today, Mon 19 Oct');
     assert.match(H, /const mark=e\._k==='opened'\?dot:e\._k==='access'\?`<span class="hist-lock" aria-hidden="true">\$\{icon\('lock','w-3 h-3'\)\}<\/span>`:'';/);
-    assert.match(H, /const whoCell=lane==='mid'\?`<span class="hist-who">\$\{mark\}\$\{e\.actor\?`<span>\$\{esc\(e\.actor\)\}<\/span>`:''\}<\/span>`:whoH;/);
+    assert.match(H, /const whoCell=lane==='mid'\?`<span class="hist-who">\$\{mark\}\$\{e\.actor\?`<span>\$\{esc\(e\.actor\)\}<\/span>`:''\}<\/span>`\n\s+:theirName\?/);
     assert.match(H, /const whatT=inside&&e\.actor\?esc\(said\.charAt\(0\)\.toLocaleLowerCase\(\)\+said\.slice\(1\)\):esc\(said\);/);
     assert.match(INDEX, /\.hist-trail\.is-table \.hist-tr\.is-inside \.hist-c-what \.hist-text, \.hist-trail\.is-table \.hist-tr\.is-inside \.hist-who\{color:var\(--color-neutral-600\)\}/, 'in the quiet ink');
     assert.ok(!/rchip/.test(H), 'no round chip anywhere');
@@ -349,7 +349,7 @@ describe('f743 (6) pass 4: History as drawn, the second time', () => {
     assert.deepEqual(cut.slice(1, 3), ops.slice(1, 3), 'the edit itself whole');
     assert.deepEqual(J(ctx.histWordingCut([{ op: 'keep', text: 'Short ' }, { op: 'ins', text: 'x' }])), [{ op: 'keep', text: 'Short ' }, { op: 'ins', text: 'x' }], 'a short clause is not cut');
     const H = fnBody(CT, 'roomHistoryHtml');
-    assert.match(H, /const body=\(_histDetail&&\(e\._k==='proposed'\|\|e\._k==='decided'\)&&e\.ch\)\n\s+\? `<div class="hist-redline">\$\{histWordingHtml\(e\.ch\)\}<\/div>` : '';/);
+    assert.match(H, /const body=\(_histDetail&&\(e\._k==='proposed'\|\|e\._k==='decided'\)&&e\.ch\)\n\s+\? `<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">\$\{histWordingHtml\(e\.ch\)\}<\/div><\/div>` : '';/);
     assert.ok(!/hist-fp/.test(H), 'no fingerprint printed');
   });
   test('6f Jambo on a private, unshared History: its wall, its opens lately, nothing shared yet; who opened it · what Erik changed · fill in', () => {

@@ -421,7 +421,10 @@ const ROUTE = [
       const lit = Array.from(document.querySelectorAll('[data-share-ch]')).find(b => /var\(--color-accent\)/.test(b.style.background));
       return lit ? lit.getAttribute('data-share-ch') : null;
     });
-    check('4b. after a Word send the dialog still opens on Email, and stays there', litCh === 'email', litCh);
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): it opens where a first open does — Email, or the link where no email
+       is set up — and never on the last send's Word */
+    const firstCh = await page.evaluate(() => (typeof emailOff === 'function' && emailOff()) ? 'link' : 'email');
+    check('4b. after a Word send the dialog still opens where a first open does, never on Word', litCh === firstCh && litCh !== 'word', litCh + ' · first ' + firstCh);
     check('4b. the Word send of the record attaches the history report, not the redline',
       !!mail && new RegExp(cid + '-negotiation-history\\.docx').test(String(mail.detail)) && /negotiation history/i.test(mail.subject) && !/mark it up/i.test(mail.body),
       JSON.stringify(mail));

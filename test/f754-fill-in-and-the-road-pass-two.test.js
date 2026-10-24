@@ -200,7 +200,8 @@ describe('f754 (4) the pill and Ready to sign say only what is so', () => {
   test('4a another signer\'s turn is a wait, never "to settle"', () => {
     const { ctx, c } = stage({ holds: [{ kind: 'signapproval' }, { kind: 'turn' }], plan: PLAN });
     assert.deepEqual(J(ctx.pdSignState(c)), { closed: false, holds: 1, waits: 1, noted: 0 });
-    assert.match(ctx.pdSignPillHtml(c), /1 to settle/);
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): the head carries no count while things are to settle — the road's first stop says it */
+    assert.equal(ctx.pdSignPillHtml(c), '');
     const after = stage({ holds: [{ kind: 'turn' }], plan: PLAN });
     assert.match(after.ctx.pdSignPillHtml(after.c), />Their turn</, 'nothing of ours left: whose turn it is');
     const ours = stage({ holds: [{ kind: 'turn' }], plan: [{ id: 'b', party: 'internal', name: 'Jonas Berg', memberId: 'u-jonas', order: 1 }] });
@@ -367,7 +368,7 @@ describe('f754 (9) the road, the third pass', () => {
     assert.deepEqual(R0.stops.map(x => x.k), ['ready', 'rule', 'yes', 'step1', 'step2', 'sealed']);
     assert.equal(R0.stops[1].t, 'An admin’s yes'); assert.equal(R0.stops[2].t, 'Jonas Berg’s yes');
     assert.equal(R0.cur, 1, 'the rule\'s yes is the open stop'); assert.ok(R0.stops[1].framed);
-    assert.match(ctx.pdSignPillHtml(c), />2 to settle</);
+    assert.equal(ctx.pdSignPillHtml(c), '', 'the head carries no count; the road says "2 to settle" (Round 3)');
     const open = R0.stops.filter(x => !x.done && ['rule', 'yes'].includes(x.k)).length;
     assert.equal(open, 2, 'two yeses wait, two stops say so');
   });

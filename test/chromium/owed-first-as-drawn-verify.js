@@ -36,7 +36,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const H = require('../helpers');
-const { ckOpenRowOf } = H;
+const { ckOpenRowOf, ckConfirm } = H;
 const TF = require('../../js/templateform.js');
 
 const EXEC = process.env.CHROMIUM_BIN
@@ -125,7 +125,7 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       box: (document.querySelector('#pd-og [data-blankf="up_notice_period"]') || {}).value, kind: pdFillStdKind(getContract('MK-0405')), cls: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"]') || {}).className }));
     check('2a the owed notice period: "Our standard for <the kind of contract>: 90 days", in the box as the reading', !!N.kind && N.kind !== 'termination' && N.std.trim() === `Our standard for ${N.kind}: 90 days` && N.box === '90 days' && /is-read/.test(N.cls), JSON.stringify(N));
     check('2b a box no standard names is offered nothing', !/Our standard/.test(row('up_start_date').src) && !row('up_start_date').box);
-    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_notice_period"]'); await page.click('#pd-og [data-pd-og-ok="up_notice_period"]');
+    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_notice_period"]'); await ckConfirm(page, 'up_notice_period');
     const used = await until(() => { const c = getContract('MK-0405');
       return c.fields && c.fields.up_notice_period === '90 days' ? { paper: /90 days/.test(document.getElementById('ig-canvas').textContent), saved: !!document.querySelector('#pd-og tr.is-saved[data-pd-og-row="up_notice_period"]') } : null; }, null, 6000);
     check('2c Confirm: the box\'s own writer stored it, the paper shows it, the row says saved', !!used && used.paper && used.saved, JSON.stringify(used));
@@ -185,16 +185,19 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     const N8 = await pa.evaluate(() => { const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
       const r = k => document.querySelector(`#pd-og tr[data-pd-og-row="${k}"]`);
       /* RE-POINTED 23 Oct 2026 (Spine): "Confirm N read" stands on the Fill in stage's line */
-      return { head: t(document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]')), all: !!document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"] [data-pd-og-all]'),
-        rows: ['ndaDir', 'ndaEnds'].map(k => ({ k, chip: t(r(k) && r(k).querySelector('.pd-og-cl')), q: t(r(k) && r(k).querySelector('q')), cls: r(k) && r(k).className,
+      /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): "Confirm N read" is the Next card's one act; a read fact carries
+         its § inside its field ("read §5"), a fact still asked keeps its § and the passage under it */
+      const allB = document.querySelector('#ig-dock .ds-nx [data-pd-og-all]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"] [data-pd-og-all]');
+      return { head: t(allB), all: !!allB,
+        rows: ['ndaDir', 'ndaEnds'].map(k => ({ k, chip: t(r(k) && r(k).querySelector('.pd-og-cl')), at: t(r(k) && r(k).querySelector('.pd-og-at')), q: t(r(k) && r(k).querySelector('q')), cls: r(k) && r(k).className,
           box: k === 'ndaDir' ? (r(k).querySelector('[data-pd-og-nda="dir"]') || {}).value : (r(k).querySelector('[data-pd-og-nda="ends"]') || {}).value })) }; });
     /* RE-POINTED 22 Oct 2026 (the Checklist): "Confirm N read" in the head, the count of readings on its hover */
-    check('8a an NDA: "Confirm N read" on the Fill in stage\'s line', /Confirm \d read/.test(N8.head) && N8.all, N8.head);
+    check('8a an NDA: "Confirm N read" on the Next card', /Confirm \d read/.test(N8.head) && N8.all, N8.head);
     /* the wording counts secrecy from the agreement's end, which this record does not hold yet: quoted, the day asked (amber) */
-    check('8b each fact "§5", the passage quoted; who keeps it secret read into its box, the day asked where the end is not on the record', N8.rows.every(r => r.chip === '§5' && r.q.length > 10)
+    check('8b each fact "§5" (a read one inside its field), the asked one\'s passage quoted; who keeps it secret read into its box, the day asked where the end is not on the record', /§5/.test(N8.rows[0].at) && N8.rows[1].chip === '§5' && N8.rows[1].q.length > 10
       && /is-read/.test(N8.rows[0].cls) && N8.rows[0].box === 'mutual' && /is-amb/.test(N8.rows[1].cls) && !N8.rows[1].box, JSON.stringify(N8.rows));
     await shot(pa, '8-owed-first-nda-1440x780');
-    await pa.click('#ig-dock .ds-sp-st[data-ds-sp="fill"] [data-pd-og-all]');
+    await pa.click('#ig-dock .ds-nx [data-pd-og-all]');
     const conf = await untilA(() => { const c = getContract('MK-0406'); return c.nda && c.nda.dir === 'mutual' && !!document.querySelector('#pd-og tr.is-saved[data-pd-og-row="ndaDir"]') ? c.nda : null; }, null, 6000);
     check('8c Confirm all stores both through the facts\' own writer, the rows say saved', !!conf && conf.dir === 'mutual', JSON.stringify(conf));
     await openA('MK-0407');

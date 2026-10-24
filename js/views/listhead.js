@@ -182,6 +182,11 @@ function lhTabsHtml(seat){
   const views = pg.tabs() || [];
   const after = lhSavedHtml(seat) + _lhOwn('after', (typeof pg.tabsAfter === 'function') ? (pg.tabsAfter() || '') : '');
   if (!views.length && !after) return '';
+  /* ONE TAB SAYS NOTHING (Round 2, owner's yes 24 Oct 2026): a row that could only ever hold "All" is not
+     drawn; once the reader's words narrow the list the tabs stay, so their numbers can follow the words */
+  const cur = (typeof pg.tabNow === 'function') ? String(pg.tabNow()) : '';
+  const typed = (typeof pg.q === 'function') ? String(pg.q() || '').trim() : '';
+  if (!after && !typed && views.filter(v => v && (v.n !== 0 || v.keep || String(v.k) === cur)).length <= 1) return '';
   return insViewTabsHtml({ attr: pg.tabAttr, cur: (typeof pg.tabNow === 'function') ? pg.tabNow() : '', label: pg.tabsLabel || '', views, after });
 }
 
@@ -339,7 +344,9 @@ function lhFootHtml(seat, shown, total, step, o){
   const left = t - s;
   const k = (Number(step) > 0) ? Math.min(Number(step), left) : left;
   const range = _lhT('lh_range', { a: _lhN(t ? 1 : 0), b: _lhN(s), n: _lhN(t) });
-  return `<div class="lh-foot${opt.cls ? ' ' + _lhE(opt.cls) : ''}"${opt.id ? ` id="${_lhE(opt.id)}"` : ''} data-lh-foot="${_lhE(seat)}" role="status" aria-live="polite"><span class="lh-range" data-lh-shown>${_lhE(range)}</span>${
+  /* a page that shows the whole list may say it in its own words (opt.say: "31 contracts · 30 live") */
+  const said = (opt.say && left <= 0) ? String(opt.say) : _lhE(range);
+  return `<div class="lh-foot${opt.cls ? ' ' + _lhE(opt.cls) : ''}"${opt.id ? ` id="${_lhE(opt.id)}"` : ''} data-lh-foot="${_lhE(seat)}" role="status" aria-live="polite"><span class="lh-range" data-lh-shown>${said}</span>${
     left > 0 ? ` · <button type="button" class="ui-link lh-more" data-lh-more="${_lhE(seat)}">${_lhE(_lhT('lh_more', { n: _lhN(k) }))}</button>` : ''}${opt.extra || ''}</div>`;
 }
 /* THE FOOT CHANGES IN PLACE (a live region is heard only when it CHANGES; a

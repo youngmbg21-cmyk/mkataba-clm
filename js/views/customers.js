@@ -839,11 +839,13 @@ function cuColDefs(){
   return [
     { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
-    { k: 'ended', label: i18t('cu_col_ended'), r: 1, w: 86 },
-    ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 92 }] : []),
+    /* 88 (Round 2): it holds a count but its head must read whole in Swedish ("Avslutade"); with Waiting's 22 it pays
+       for On paper's whole sum (112, Round 1), so the row is as wide as before and fits at 1366 beside the panel */
+    { k: 'ended', label: i18t('cu_col_ended'), r: 1, w: 88 },
+    ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 112 }] : []),
     { k: 'next', label: i18t('cu_col_next_end'), w: 108 },
     /* wide enough for the drawn short words whole ("an approval, for Jonas") */
-    { k: 'waiting', label: i18t('cu_col_waiting'), w: 188 },
+    { k: 'waiting', label: i18t('cu_col_waiting'), w: 166 },
     { k: 'nda', label: i18t('cu_col_nda'), w: 128 },
   ];
 }
@@ -889,6 +891,16 @@ function cuCellHtml(k, r, v, ndas){
   if (k === 'nda') return `<td class="cu-nda-td">${cuNdaCellHtml(cuNdaOf(r.key, ndas))}</td>`;
   return '<td></td>';
 }
+/* the columns that hold nothing for any row in the list: a dash in every row says nothing */
+function cuEmptyCols(rows, ndas){
+  const L = rows || [];
+  if (L.length < 2) return [];
+  const out = [];
+  if (L.every(r => !partyCityOf(r.key))) out.push('city');
+  if (L.every(r => !cuView(r).expired.length)) out.push('ended');
+  if (L.every(r => { const n = cuNdaOf(r.key, ndas); return !n || n.state === 'none'; })) out.push('nda');
+  return out;
+}
 /* THE LIST, ITS CARD: the table of the parties the head's words, tab and
    chips leave, ten at a time, and the foot */
 function cuCardOf(all, ndas){
@@ -898,7 +910,11 @@ function cuCardOf(all, ndas){
   const sel = (typeof insSelected === 'function') ? insSelected('customers') : null;
   const at = sel ? rows.findIndex(r => r.key === sel) : -1;
   const shown = Math.min(rows.length, Math.max(_cu.shown || CU_PAGE, at + 1));
-  const cols = cuColDefs(), keys = lcShown('customers', cols.map(c => c.k)), byK = Object.fromEntries(cols.map(c => [c.k, c]));
+  const cols = cuColDefs(), byK = Object.fromEntries(cols.map(c => [c.k, c]));
+  /* A COLUMN EMPTY FOR EVERYONE STEPS OUT (Round 2, owner's yes 24 Oct 2026): City, Ended and NDA, while no
+     party in the list has one (two rows or more); each comes back the day one is filled (cuEmptyCols) */
+  const empty = cuEmptyCols(rows, ndas);
+  const keys = lcShown('customers', cols.map(c => c.k)).filter(k => !empty.includes(k));
   /* how the list is sorted rides the first column's head (round 19 said it
      on the card's own head, which the list head the Legora way replaced) */
   const head = [{ t: i18t('cu_col_customer'), title: i18t('cu_list_sort') }, ...keys.map(k => ({ t: byK[k].label, r: byK[k].r, w: byK[k].w, k }))];
@@ -979,7 +995,9 @@ function cuRowsRepaint(){
    what it counts and how it draws again — every press ends in this page's
    own state (_cu), its own repaint and its own place store */
 function cuLcReg(){
-  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint() };
+  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint(),
+    /* a column stepped out for being empty is greyed in Columns with why, never a live tick that draws nothing */
+    off: () => { const all = cuCustomers(), ndas = cuNdaMap(); return Object.fromEntries(cuEmptyCols(cuRowsOf(all, ndas), ndas).map(k => [k, i18t('cu_col_empty')])); } };
   const save = () => { if (typeof placeSave === 'function') placeSave(); };
   lhRegister('customers', {
     noun: 'parties',

@@ -26,7 +26,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, ckConfirm } = require('../helpers');
 const TF = require('../../js/templateform.js');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'details-owes-overview-edits');
@@ -104,7 +104,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
 
     /* an answer typed on Details is the Overview's to read */
     const cp = '#pd-og [data-kt="counterparty"]';
-    await page.fill(cp, 'Nordic Bites AB'); await page.click('#pd-og [data-pd-og-ok="counterparty"]'); await pause(300);
+    await page.fill(cp, 'Nordic Bites AB'); await ckConfirm(page, 'counterparty'); await pause(300);
 
     /* ===== 4. THE OVERVIEW EDITS AGAIN ===== */
     /* RE-POINTED 14 Oct 2026 (stage 5): Details is on Home now, so the

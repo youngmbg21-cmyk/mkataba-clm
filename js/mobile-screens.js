@@ -143,14 +143,12 @@ function mKpiHtml(D){
   if(!D) return '';
   const sel = (typeof currentKpiSel==='function' ? currentKpiSel() : []).filter(id=>D.KPI_CATALOG[id]);
   if(!sel.length) return '';
-  const TONE = { 'var(--grad-emerald)':'var(--tile-emerald-fg)', 'var(--grad-amber)':'var(--tile-amber-fg)',
-    'var(--grad-ruby)':'var(--tile-ruby-fg)', 'var(--grad-steel)':'var(--tile-steel-fg)' };
+  /* ROUND 6: one ink for every figure (no coloured tiles) */
   const cards = sel.map(id=>{
     const k = D.KPI_CATALOG[id];
-    const fg = TONE[k.grad] || 'var(--tile-steel-fg)';
     return `<button class="m-kpi" data-m-kpi="${id}">
       <span class="m-kpi-label">${mEsc(k.label)}</span>
-      <span class="m-kpi-val" style="color:${fg}">${k.val}</span>
+      <span class="m-kpi-val">${k.val}</span>
       <span class="m-kpi-sub">${k.delta}</span>
       ${''/* THE PAYMENT-TERMS SPLIT RIDES TOO (the owner's list, 27 Sep 2026): the
              tile's one number carries two directions and only the sub-line says
@@ -164,35 +162,27 @@ function mKpiHtml(D){
 
 function mHomeHtml(){
   const D = mSlices();
-  const org = (typeof getOrg==='function' && getOrg()) || null;
-  const cs = (D && D.cs) || (state.contracts||[]);
-  const agreements = (typeof agreementsIn==='function') ? agreementsIn(cs).length : cs.length;
-  const value = (D && typeof fmtMoneyShort==='function' && D.money) ? fmtMoneyShort(D.m.totalValue) : '';
-  const subline = i18tn('m_sub_agreements',agreements,{n:agreements.toLocaleString(jxLocale())})
-    + ' · ' + i18tn('m_sub_documents',cs.length,{n:cs.length.toLocaleString(jxLocale())})
-    + (value?i18t('m_sub_active_value',{v:value}):'');
-
   const needs = mNeedsYou(D);
   const expiring = (D && D.expiring) || [];
 
+  /* ROUND 6 (owner's yes, 24 Oct 2026; the computer's Home on the phone): Needs you is ONE quiet list — the
+     agreement first, its number, the other side and the ask in grey, and one short word for the act (the
+     computer's nd_btn_* words); no dot, no coloured sentence. The whole row stays the one door. */
+  const M_ACT_WORD = { approval:'nd_btn_approve', sign:'nd_btn_sign', redlines:'nd_btn_review', review:'nd_btn_review',
+    renewal:'nd_btn_decide', details:'nd_btn_fill', note:'nd_btn_answer', 'note-mine':'nd_btn_answer', ask:'nd_btn_answer' };
   const needsHtml = needs.length ? `
-    <div class="m-lbl" style="margin:0 var(--s-4) 6px">${i18t('m_needs_you',{n:needs.length})}</div>
-    <div class="m-card m-list" style="margin:0 var(--s-4)">
+    <div class="m-lbl m-needs-h">${i18t('m_waiting_on_you',{n:needs.length})}</div>
+    <div class="m-card m-list m-needs">
       ${needs.map(n=>`
-        <button class="m-row" data-m-open="${mEsc(n.c.id)}" data-m-need="${mEsc(n.kind||'')}" style="align-items:flex-start">
-          <span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:6px;background:${n.dot}"></span>
+        <button class="m-row" data-m-open="${mEsc(n.c.id)}" data-m-need="${mEsc(n.kind||'')}">
           <span style="flex:1;min-width:0">
             <span class="m-row-name">${mEsc(n.c.name||(window.contractRef?contractRef(n.c):n.c.id))}</span>
-            <span class="m-row-sub">${window.refHtml?refHtml(n.c)+' · ':''}${mEsc((typeof cParty==='function'?cParty(n.c):n.c.counterparty)||'No counterparty yet')}</span>
-            <span style="display:block;font-size:var(--t-card);margin-top:5px;line-height:1.45;color:${n.tone}">${mEsc(n.reason)}</span>
+            <span class="m-row-sub">${window.refHtml?refHtml(n.c)+' · ':''}${mEsc((typeof cParty==='function'?cParty(n.c):n.c.counterparty)||'No counterparty yet')} · ${mEsc(n.reason)}</span>
           </span>
-          <span style="flex:none;margin-top:var(--s-3)">${M_CHEV}</span>
+          <span class="m-act-word">${mEsc(i18t(M_ACT_WORD[n.kind]||'nd_btn_open'))}</span>
         </button>`).join('')}
     </div>` : `
     <div class="m-card" style="margin:0 var(--s-4);padding:30px 20px;text-align:center">
-      <div style="width:44px;height:44px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);display:grid;place-items:center;margin:0 auto 10px">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      </div>
       <div style="font-size:18px;font-weight:var(--w-strong)">${i18t('m_nothing_needs_you')}</div>
       <div class="m-note" style="margin-top:var(--s-1)">${i18t('m_nothing_needs_sub')}</div>
     </div>`;
@@ -210,20 +200,17 @@ function mHomeHtml(){
         </button>`).join('')}
     </div>` : '';
 
+  /* ROUND 6: it opens as the computer's Home does — "What do you need, Amina?" and the one ask box, which IS
+     Jambo (its words go to his conversation, openAI); no floating button, no metric tiles (the Portfolio row
+     below keeps the figures) */
+  const me = (typeof currentUser==='function') ? currentUser() : null;
+  const first = String((me&&me.name)||'').trim().split(/\s+/)[0] || i18t('home_greet_there');
   return `
-    <div class="m-pagehead">
-      <div class="m-eyebrow">${mEsc((org&&org.name)||'Your workspace')}</div>
-      <div class="m-title">${i18t('m_portfolio')}</div>
-      <div class="m-sub">${mEsc(subline)}</div>
+    <div class="m-pagehead m-home-head">
+      <div class="m-title">${mEsc(i18t('cn_hello',{name:first}))}</div>
     </div>
     <div class="m-scroll">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:var(--s-4) var(--s-4) 6px">
-        <span class="m-lbl">${i18t('m_your_metrics')}</span>
-        <button class="m-kpi-gear" data-m-act="kpis" aria-label="${i18t('m_choose_metrics')}">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
-        </button>
-      </div>
-      ${mKpiHtml(D)}
+      <form class="m-ask" data-m-ask role="search"><input id="m-ask" type="text" enterkeyhint="send" autocomplete="off" placeholder="${mEsc(i18t('m_ask_ph'))}" aria-label="${mEsc(i18t('m_ask_ph'))}"></form>
       ${needsHtml}
       ${expHtml}
       <div class="m-card m-list" style="margin:14px var(--s-4) var(--s-6)">
@@ -282,6 +269,16 @@ function mKpiSheetHtml(){
    Categories come BEFORE streams deliberately. Appended last they sat ten
    chips along, past every status and every folder, which is further than a
    thumb travels. */
+/* ROUND 6 (owner's yes, 24 Oct 2026): the head says the book in numbers — "30 live · KES 817.70M" — live read
+   as the computer's Contracts foot reads it (not archived, not closed, not an amendment), the value the Home
+   figures' own total (mSlices), said only to a reader who may see values */
+function mBookLine(){
+  const all = state.contracts||[];
+  const live = all.filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c.parentId).length;
+  const D = (typeof mSlices==='function') ? mSlices() : null;
+  const value = (D && D.money && typeof fmtMoneyShort==='function') ? fmtMoneyShort(D.m.totalValue) : '';
+  return i18tn('ngl_n_live',live,{n:live.toLocaleString(jxLocale())}) + (value ? ' \u00b7 ' + value : '');
+}
 function mContractsHtml(){
   const R = (typeof regState==='function') ? regState() : { query:'', stage:'all', type:'all' };
   let rows = [];
@@ -329,15 +326,14 @@ function mContractsHtml(){
     <div class="m-card m-list" style="margin:var(--s-4)">
       ${rows.map(c=>`
         <button class="m-reg-row" data-m-open="${mEsc(c.id)}">
-          <span class="m-stripe" style="background:${(typeof folderColor==='function')?folderColor(c):'var(--color-neutral-300)'}"></span>
           <span style="display:flex;align-items:flex-start;gap:var(--s-2)">
             <span style="flex:1;min-width:0;font-size:16px;font-weight:var(--w-strong);line-height:1.3">${mEsc(c.name||(window.contractRef?contractRef(c):c.id))}</span>
             ${mPill(c)}
           </span>
-          <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'No counterparty yet')}</span>
+          <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'No counterparty yet')}${window.refHtml?' · '+refHtml(c):''}</span>
           <span style="display:flex;gap:10px;margin-top:5px;font-size:var(--t-card)">
             <span style="font-weight:var(--w-strong)">${mEsc(mMoney(c))}</span>
-            <span style="color:var(--color-neutral-600)">${mEsc(mExpiry(c))}</span>
+            ${''/* ROUND 6: no date, no dash */}${(e=>e&&e!=='\u2014'?`<span style="color:var(--color-neutral-600)">${mEsc(e)}</span>`:'')(mExpiry(c))}
           </span>
         </button>`).join('')}
     </div>
@@ -361,11 +357,9 @@ function mContractsHtml(){
       <div style="display:flex;align-items:flex-start;gap:var(--s-2);margin-bottom:10px">
         <div style="flex:1;min-width:0">
           <div class="m-title" style="margin-top:0">${i18t('m_contracts')}</div>
-          <div class="m-sub">${i18t('m_filter_and_act')}</div>
+          <div class="m-sub">${mEsc(mBookLine())}</div>
         </div>
-        <button class="m-new" data-m-act="new" aria-label="${i18t('m_new_contract')}">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
+        <button class="m-new" data-m-act="new" aria-label="${i18t('m_new_contract')}">${mEsc(i18t('m_new_short'))}</button>
       </div>
       <div class="m-search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -605,6 +599,15 @@ function mPortfolioHtml(){
       <div style="font-size:var(--t-page);font-weight:var(--w-strong);font-family:var(--font-heading,inherit)">${i18t('m_portfolio')}</div>
     </div>
     <div class="m-scroll">
+      ${''/* ROUND 6 (owner's yes, 24 Oct 2026): Home lost its metric tiles; the figures each person CHOSE (payment terms,
+            cycle time …) moved here, the Portfolio row being Home's door to "figures and streams", so none is lost */}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:var(--s-4) var(--s-4) 6px">
+        <span class="m-lbl">${i18t('m_your_metrics')}</span>
+        <button class="m-kpi-gear" data-m-act="kpis" aria-label="${i18t('m_choose_metrics')}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+      ${mKpiHtml(D)}
       <div class="m-card m-list" style="margin:var(--s-4)">
         ${rows.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:13px 14px">
           <span style="font-size:var(--t-card);color:var(--color-neutral-600)">${mEsc(r.label)}</span>
@@ -712,6 +715,23 @@ function mWireScreen(root){
   /* Search: repaint the list only, and put the caret back where it was. A full
      repaint on every keystroke would otherwise take the keyboard down. */
   const q = root.querySelector('#m-reg-q');
+  /* ROUND 6: the box narrows the list as you type; a QUESTION sent with Enter goes to Jambo (lhIsQuestion, the
+     computer's list-head reading), so "or ask Jambo" is true */
+  mHeadOnce(q,'mbAsk','keydown', e=>{
+    if(e.key!=='Enter') return;
+    const words = String(q.value||'').trim();
+    if(!words || typeof lhIsQuestion!=='function' || !lhIsQuestion(words)) return;
+    e.preventDefault(); if(window.openAI) openAI(words);
+  });
+  /* Home's ask box IS Jambo: its words go to his one conversation */
+  const ask = root.querySelector('[data-m-ask]');
+  mHeadOnce(ask,'mbHomeAsk','submit', e=>{
+    e.preventDefault();
+    const inp = ask.querySelector('#m-ask'); const words = String((inp&&inp.value)||'').trim();
+    if(!words) return;
+    if(inp) inp.value = '';
+    if(window.openAI) openAI(words);
+  });
   mHeadOnce(q,'mbQuery','input', ()=>{
     const R = regState(); R.query = q.value; R.page = 1;
     const host = root.querySelector('.m-scroll');
@@ -838,5 +858,5 @@ function mWireScreen(root){
   if(typeof mWireContract==='function') mWireContract(root);
 }
 
-Object.assign(window,{ mHomeHtml, mContractsHtml, mNegotiationsHtml, mApprovalsHtml, mPortfolioHtml,
+Object.assign(window,{ mHomeHtml, mContractsHtml, mBookLine, mNegotiationsHtml, mApprovalsHtml, mPortfolioHtml,
   mKpiSheetHtml, mNewSheetHtml, mNeedsYou, mApprovalItems, mSlices, mScreenAct, mWireScreen });

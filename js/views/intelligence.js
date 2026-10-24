@@ -732,7 +732,9 @@ const IG_SPLIT = {
   folded: () => !intel.dockOpen,
   avail: () => { const row=(typeof document!=='undefined')?document.getElementById('ig-row'):null; return row?row.clientWidth:0; },
   edge: () => document.getElementById('ig-row').getBoundingClientRect().right,
-  apply: w => { const dock=document.getElementById('ig-dock'); if(dock) dock.style.width=w+'px'; },
+  /* past the mark the dock lies over the paper by `over` (splitOver): the column keeps its width */
+  apply: (w, over) => { const dock=document.getElementById('ig-dock'); if(!dock) return; dock.style.width=w+'px';
+    dock.style.marginLeft=over?(-over)+'px':''; dock.classList.toggle('is-split-over', !!over); },
   /* THE GRAB STRIP LIES WHOLLY ON THE PANEL'S SIDE OF THE SEAM (Young,
      6 Oct 2026: "a hard time getting my cursor to choose the scroll button as
      opposed to the divider"). Centred on the seam, its left half sat over the

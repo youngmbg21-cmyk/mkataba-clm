@@ -158,7 +158,7 @@ const weekOf = () => {
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
     check('2b his offer, the planner\'s two asks as chips, the setting as three buttons, the box — and no hint line under it',
       /Want me to plan the week\?/.test(Y.bubs[1] || '') && JSON.stringify(Y.chips) === JSON.stringify(['plan my week · 1 Jambo call', 'find time for what is due · 1 call'])
-      && JSON.stringify(Y.lv) === JSON.stringify(['On his own', 'Ask me first*', 'Never']) && Y.ph === 'Ask for a number, a list or a contract…' && Y.hint === 0, Y);
+      && JSON.stringify(Y.lv) === JSON.stringify(['On his own', 'Ask me first*', 'Never']) && Y.ph === 'Ask Jambo, or type / for a place' && Y.hint === 0, Y);
     await page.click('[data-cal-lv="never"]');
     const nv = await until(async () => { if (minePref().copilotLevel !== 'never') return null;
       const r = await api('me/items'); const p = (r.items || []).find(x => x.kind === 'pref');
@@ -182,8 +182,8 @@ const weekOf = () => {
     await until(() => !document.querySelector('.modal-in'));
     await page.click('tr[data-ob-key="MK-A2::o6"] td:nth-child(2)');
     const chosen = await until(() => { const w = (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent; const b = document.querySelector('#ins-panel [data-jl-back]');
-      return w === 'Obligation' && b && !b.hidden ? w : null; });
-    await page.click('#ins-panel [data-jl-back]');
+      return w === 'Obligation' && !b ? w : null; });
+    await page.click('#ins-panel [data-jl-home]');
     const back = await until(() => (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent === 'Your week' && !document.querySelector('.obw-wk tr.is-sel'));
     check('3c a row press: the panel says "Obligation"; ‹ Jambo goes back to the week', !!chosen && !!back, { chosen, back });
     await page.click('[data-obw-add]');

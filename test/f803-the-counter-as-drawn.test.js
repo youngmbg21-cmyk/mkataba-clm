@@ -122,24 +122,25 @@ describe('f803 (1) the chips', () => {
 });
 
 describe('f803 (2) the rows', () => {
-  /* RE-POINTED 22 Oct 2026 (Round A, "The Legora Way"): a row is the one desk's (ndParts → ndHomeRowHtml):
-     the act, then the agreement; how long it waited in its own column; ONE word on the button */
+  /* RE-POINTED 22 Oct 2026 (Round A, "The Legora Way"): a row is the one desk's (ndParts → ndHomeRowHtml).
+     RE-POINTED 24 Oct 2026 (Round 2, owner's yes): THE AGREEMENT LEADS — its name in black, then the number,
+     the other side and the ask in grey; how long it waited in its own column; the button says what happens */
   const row = (w, y) => w.ndHomeRowHtml({ g: 'you', key: 'k', kind: w.ndKindOf(y), y, n: 1, late: y.urgent ? 1 : 0, age: w.ndAgeOf(y) });
-  test('2a "Answer an approval for Jonas" · "for Jonas · away until <day>" · name · party · value · Decide', () => {
+  test('2a the agreement · "for Jonas · away until <day>" · number · party · the ask · value · Approve…', () => {
     const html = row(counter([]), approval);
-    assert.match(html, /<b><span class="nd-t">Answer an approval for Jonas<\/span> <span class="cn-pill"><svg data-ic="users"><\/svg>for Jonas · away until [A-Z][a-z]+day<\/span><\/b>/);
-    assert.match(html, /<span>MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M<\/span>/);
-    assert.match(html, /data-cn-need="approval" data-cn-id="MK-1">Decide<\/button>/);
+    assert.match(html, /<b><span class="nd-t">Power purchase agreement<\/span> <span class="cn-pill"><svg data-ic="users"><\/svg>for Jonas · away until [A-Z][a-z]+day<\/span><\/b>/);
+    assert.match(html, /<span>MK-1 · Helio Energy AB · Answer an approval for Jonas · KES 8\.10M<\/span>/);
+    assert.match(html, /data-cn-need="approval" data-cn-id="MK-1">Approve…<\/button>/);
     assert.match(html, /title="MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M"/, 'the reference rides the hover');
   });
   test('2b their redlines: the party is in the title, so the line does not repeat it; how long, in red', () => {
     const html = row(counter([]), redlines);
-    assert.match(html, /<span>MK-2 · Master services agreement<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
+    assert.match(html, /<b><span class="nd-t">Master services agreement<\/span><\/b><span>MK-2 · Answer Nordvik Logistik’s 2 redlines<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
     assert.match(html, />Review<\/button>/);
   });
   test('2c "Fill in 2 details", a salary\'s job title in place of the person', () => {
     const html = row(counter([]), pay);
-    assert.match(html, /<b><span class="nd-t">Fill in 2 details<\/span><\/b><span>MK-3 · Employment agreement · Chief financial officer<\/span>/);
+    assert.match(html, /<b><span class="nd-t">Employment agreement<\/span><\/b><span>MK-3 · Chief financial officer · Fill in 2 details<\/span>/);
     assert.match(html, />Fill in<\/button>/);
   });
   test('2d whom an approval is answered for: the step\'s own approver, read through the away rule', () => {
@@ -208,8 +209,8 @@ describe('f803 (4) the foot', () => {
   test('4a "Show all N" on the group, three rows in sight', () => {
     const rows = [approval, redlines, pay, note, details(1), req];
     const html = counter(rows).counterHtml();
-    assert.match(html, /<div class="nd-g" data-nd-g="you"><span class="nd-g-t">Your move<\/span><span class="cn-n">· 6<\/span><button type="button" class="ui-link nd-all" data-nd-all="you">Show all 6<\/button><\/div>/);
-    assert.equal((html.match(/<div class="cn-r nd-r"/g) || []).length, 3, 'three rows in sight');
+    assert.match(html, /<div class="nd-g" data-nd-g="you"><span class="nd-g-t">Waiting on you<\/span><button type="button" class="ui-link nd-all" data-nd-all="you">Show all 6<\/button><\/div>/);
+    assert.equal((html.match(/<div class="cn-r nd-r[ "]/g) || []).length, 3, 'three rows in sight');
     assert.doesNotMatch(html, /data-cn-all|cn-foot-said/, 'the old foot is gone');
   });
   test('4b more than three contracts owing details read as ONE row, counted', () => {
@@ -231,12 +232,13 @@ describe('f803 (5) Jambo\'s rows, and the words', () => {
     AG_KEYS: ['round'], AG_DEF: { round: { review: 4, steps: [1, 2, 3, 4, 5, 6] } },
     agentsData: () => ({ agents: { round: { ready: [piece] } } }),
     agPieceTitle: () => 'Nordvik Logistik’s answer', agPieceLine: () => 'Two changes: take one, push back on one.', agPieceRefHtml: it => '<span class="hati-ref">' + it.c.id + '</span>', agCardParts: () => ({ urg: 'Waiting 2 days' }) });
-  test('5a a piece is a row: its step, what Jambo read, Look', () => {
+  /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): a piece leads with the agreement, then the number and what
+     Jambo prepared, in grey (the party is in the piece's own words, so not said twice); its button says Review */
+  test('5a a piece is a row: the agreement, the number and what Jambo prepared, Review', () => {
     const w = world([]);
     const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
-    assert.match(html, /<span class="nd-t">Nordvik Logistik’s answer<\/span><span class="nd-step" title="Step 5 of 6 · yours">5 of 6<\/span>/);
-    assert.match(html, /<span class="hati-ref">MK-2<\/span> · <i class="nd-read">Jambo read<\/i> their changes, your standards and past deals<\/span>/);
-    assert.match(html, /data-nd-look="round:MK-2">Look<\/button>/);
+    assert.match(html, /<b><span class="nd-t">Master services agreement<\/span><\/b><span><span class="hati-ref">MK-2<\/span> · Nordvik Logistik’s answer<\/span>/);
+    assert.match(html, /data-nd-look="round:MK-2">Review<\/button>/);
     assert.match(html, /title="Two changes: take one, push back on one\."/, 'what he found rides the hover');
   });
   test('5a2 the waiting thing and the piece prepared for it are ONE row, the piece\'s, and it keeps the wait and the red', () => {

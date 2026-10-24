@@ -884,10 +884,10 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       if (window.openFromHash) openFromHash();
       return state.view; });
     await pause(600);
-    const after9d = await page.evaluate(() => { const top = document.querySelector('#bs-strips > .bs-strip');
-      return { view: state.view, strip: top ? top.getAttribute('data-bs-id') : null, room: !!document.getElementById('ws-tabs') }; });
-    check('9d a stale link onto the negotiate page lands on the contract instead (its strip on the Board since step 8)',
-      stale !== 'redline' && after9d.view === 'dashboard' && after9d.strip === 'MK-A1' && !after9d.room, JSON.stringify(after9d));
+    const after9d = await page.evaluate(() => ({ view: state.view, paper: window.intel && intel.paper ? intel.paper.id : null, room: !!document.getElementById('ws-tabs') }));
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): its paper on Home, the Dossier beside it */
+    check('9d a stale link onto the negotiate page lands on the contract instead (its paper on Home)',
+      stale !== 'redline' && after9d.view === 'dashboard' && after9d.paper === 'MK-A1' && !after9d.room, JSON.stringify(after9d));
     await page.evaluate(() => { location.hash = ''; openWorkspace('MK-A2', { room: true }); });
     await pause(1200);
     await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="terms"]'); if (b) b.click(); });

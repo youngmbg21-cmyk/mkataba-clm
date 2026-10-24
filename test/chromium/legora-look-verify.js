@@ -299,10 +299,11 @@ const check = (name, pass, detail) => {
     const hm = await page.evaluate(() => { const b = [...document.querySelectorAll('#cn-page .ui-btn')].find(x => !x.classList.contains('ui-btn-primary') && !x.classList.contains('ui-btn-plain') && x.getBoundingClientRect().width);
       const bs = b && getComputedStyle(b), jb = document.querySelector('#cn-page .cn-ask .jb-card'), js = jb && getComputedStyle(jb);
       return { ground: getComputedStyle(document.getElementById('app-shell')).backgroundColor, btn: bs ? { r: bs.borderTopLeftRadius, bg: bs.backgroundColor, edge: bs.borderTopColor } : null,
-        jb: js ? { r: js.borderTopLeftRadius, img: js.backgroundImage.slice(0, 240) } : null }; });
+        jb: js ? { r: js.borderTopLeftRadius, img: js.backgroundImage.slice(0, 240), edge: js.borderTopColor } : null }; });
     check('12a the page\'s ground is the soft cool grey #F5F5F7', hm.ground === 'rgb(245, 245, 247)', hm.ground);
     check('12b a button is a pill filled in the soft grey, with no edge', !!hm.btn && pill(hm.btn.r) && hm.btn.bg === GREY && /rgba\(0, 0, 0, 0\)|transparent/.test(hm.btn.edge), JSON.stringify(hm.btn));
-    check('12c Jambo\'s box is a pill wearing the one coloured edge (teal → violet → coral)', !!hm.jb && pill(hm.jb.r) && /linear-gradient/.test(hm.jb.img) && /10, 124, 107/.test(hm.jb.img), JSON.stringify(hm.jb));
+    /* RE-POINTED 24 Oct 2026 (Round 2): the ring ended in red and read as an error; one calm green edge */
+    check('12c Jambo\'s box is a pill wearing the one coloured edge, plain green', !!hm.jb && pill(hm.jb.r) && hm.jb.img === 'none' && hm.jb.edge === 'rgb(8, 115, 99)', JSON.stringify(hm.jb));
     await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
     await until(() => !!document.querySelector('#reg-tbody tr[data-row]'));
     const ls = await page.evaluate(() => { const t = document.querySelector('.reg-vtab.on'), ts = t && getComputedStyle(t);

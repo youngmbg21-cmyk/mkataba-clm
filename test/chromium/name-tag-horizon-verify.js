@@ -60,22 +60,21 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk — the owner picked "The Legora Way"): the renewal is one row of
        Needs you; who prepared it is said on the row's own line ("Jambo · step N of M" on the Board), and on Home its
        step is a drawn mark beside the title, at the left of the row's tail, never a bare number. */
+    /* RE-POINTED 24 Oct 2026 (the owner: "delete The Who or what asked column"): the Board's row no longer carries
+       "Jambo · step N of M"; the row is still Jambo's (its agent named on the row) and its title is on one line. */
     const tag = await page.evaluate(() => {
       const row = document.querySelector('#hm-agents [data-nd-agent="renew"]');
       if (!row) return null;
-      const who = row.querySelector('.nd-c-who'), head = row.querySelector('.nd-c-what b');
-      const wr = who.getBoundingClientRect(), hr = head.getBoundingClientRect();
-      return { drawn: true, name: who.textContent, sameLine: Math.abs((wr.top + wr.height / 2) - (hr.top + hr.height / 2)) < 12 };
+      const head = row.querySelector('.nd-c-what b');
+      return { drawn: true, agent: row.getAttribute('data-nd-agent'), who: !!row.querySelector('.nd-c-who'), title: head ? head.textContent : '' };
     });
-    ok('1 the row names who prepared it', !!tag && tag.drawn && /^Jambo · step \d+ of \d+$/.test(tag.name || ''), JSON.stringify(tag));
-    ok('1b on the sentence\'s own line', !!tag && tag.sameLine, JSON.stringify(tag));
+    ok('1 the row is the renewal agent\'s, with no who column', !!tag && tag.drawn && tag.agent === 'renew' && !tag.who && !!tag.title, JSON.stringify(tag));
     await page.evaluate(() => setView('counter'));
     await page.waitForTimeout(900);
-    const mark = await page.evaluate(() => { const s = document.querySelector('#cn-needs .nd-r .nd-step'); if (!s) return null;
-      const cs = getComputedStyle(s), b = s.closest('b').querySelector('.nd-t').getBoundingClientRect(), r = s.getBoundingClientRect();
-      return { edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0, afterTitle: r.left >= b.right - 1, t: s.textContent }; });
-    /* GATED on the mark really being drawn, or an absence satisfies it. */
-    ok('1c on Home its step is a drawn mark beside the title, not a bare number', !!mark && mark.edge && mark.afterTitle && /^\d+ of \d+$/.test(mark.t), JSON.stringify(mark));
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): on Home a row leads with its agreement; no step mark */
+    const mark = await page.evaluate(() => { const r = document.querySelector('#cn-needs .nd-r [data-nd-look]'); const row = r && r.closest('.nd-r'); if (!row) return null;
+      return { step: !!row.querySelector('.nd-step'), named: row.classList.contains('nd-named'), t: (row.querySelector('.nd-t') || {}).textContent || '' }; });
+    ok('1c on Home Jambo\'s row leads with its agreement, no step mark', !!mark && !mark.step && mark.named && !!mark.t, JSON.stringify(mark));
     await page.evaluate(() => setView('dashboard'));
 
     /* ════ 2. THE DROPDOWN'S CHOICES ════ */

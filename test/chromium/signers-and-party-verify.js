@@ -335,12 +335,16 @@ const contract = () => ({
     await cpage.waitForTimeout(1600);
     const theirs = await cpage.evaluate(() => {
       const t = document.body.innerText;
-      return { saysIt: /for review only/i.test(t), signBtn: !!document.getElementById('pt-sign') };
+      return { saysIt: /Nobody has been named to sign yet/i.test(t), signBtn: !!document.getElementById('pt-sign'), form: !!document.getElementById('pt-name'),
+        other: !!document.getElementById('pt-other-toggle') };
     });
-    check('their page says it up front, before they type their name',
-      theirs.saysIt, 'notice ' + (theirs.saysIt ? 'drawn' : 'missing'));
-    check('and the Sign button is still there to refuse in words',
-      theirs.signBtn, 'a button that has quietly vanished tells the reader nothing');
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes; reverses "the Sign button stays to refuse in words"): steps 3
+       and 4 are one step, Signing, saying in one sentence that nobody is named yet; no form, no amber box, no Sign
+       button; the other answers (agree to the wording, ask for changes, decline) stay behind their door */
+    check('their page says it in one sentence, under one Signing step',
+      theirs.saysIt, 'sentence ' + (theirs.saysIt ? 'drawn' : 'missing'));
+    check('and no signing form or Sign button is drawn; the other answers stay',
+      !theirs.signBtn && !theirs.form && theirs.other, JSON.stringify(theirs));
     await cctx.close();
 
     /* ---------- 5. naming a signer opens it ---------- */

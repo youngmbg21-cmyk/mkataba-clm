@@ -104,8 +104,10 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
       tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.textContent.replace(/\s+/g, ' ').trim()).join('|'),
       need: stkNeedCount(getContract(id)) }), ID);
     /* RE-POINTED 23 Oct 2026 (owner: "below '3 clauses need you', remove all the other supporting words"): no sentence */
-    ok('1 the head is a headline and tabs with counts, no sentence and no count line', read && /^2 clauses need you$/.test(e1.title)
-      && !e1.sub && !e1.line && e1.boxes === 0
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes, "SAP heads"): the head names the tab and its count, then
+       "· N need you · M worth a look" in grey on the same line; still no count line, no boxes */
+    ok('1 the head names the tab, its count and what needs you, on one line; tabs with counts, no boxes', read && /^Clauses ?4 ?· 2 need you · 2 worth a look$/.test(e1.title)
+      && /^· 2 need you · 2 worth a look$/.test(e1.sub) && !e1.line && e1.boxes === 0
       && e1.tabs === 'All4|Needs you2|Worth a look2|Fine2' && e1.need === 2, JSON.stringify(e1));
     /* 1b THE "WORTH A LOOK" TAB narrows the list and lets go (the Severity box's act, kept) */
     const e1b = await page.evaluate(async () => {

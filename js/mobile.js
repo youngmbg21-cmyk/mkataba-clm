@@ -646,6 +646,41 @@ const M_CSS = `
     width:48px; height:48px; border-radius:50%; margin:0 auto var(--s-3); display:grid; place-items:center;
     background:var(--tile-steel-bg); color:var(--tile-steel-fg);
   }
+
+  /* ---- ROUND 6, THE COMPUTER'S LOOK ON THE PHONE (owner's yes, 24 Oct 2026) ----
+     One ink, grey pills and white cards, as THE LEGORA LOOK draws the computer: the page head sits on the
+     grey ground with no band; the title in the paper's serif; a card floats by its lift with no outline; a
+     chip and the search box are grey pills, the chosen chip filled ink; + New a black pill; the tab bar's
+     chosen word and its count in the ink; no coloured stream stripe, no stream dot. Later in source than
+     the rules above, at their specificity. */
+  .m-head-mark{ background:var(--accent-fill); }
+  .m-pagehead{ background:transparent; border-bottom:0; }
+  .m-title{ font-family:var(--font-doc,Georgia,serif); font-weight:600; }
+  .m-home-head .m-title{ font-size:28px; line-height:1.2; margin-top:var(--s-2); }
+  .m-card{ border:0; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .m-kpi{ border:0; border-radius:var(--radius-lg); }
+  .m-kpi-val{ color:var(--color-text); }
+  .m-list > *{ border-bottom-color:var(--rule-faint,var(--color-divider)); }
+  .m-chip{ border:0; border-radius:999px; background:var(--surface-2); color:var(--color-text); }
+  .m-chip.on{ background:var(--accent-fill); color:#fff; }
+  .m-chip-dot, .m-chip-sep, .m-stripe{ display:none; }
+  .m-search{ border:0; border-radius:999px; background:var(--surface-2); }
+  .m-new{ width:auto; padding:0 16px; border-radius:999px; font:inherit; font-size:var(--t-card); font-weight:var(--w-strong); }
+  .m-reg-row{ padding-left:14px; }
+  .m-tab.on{ color:var(--color-text); }
+  .m-tab-badge{ background:var(--accent-fill); border-radius:999px; }
+  /* a status is a dot and a word, never a filled box */
+  .m-pill{ display:inline-flex; align-items:center; gap:6px; padding:0; background:none; font-weight:var(--w-body);
+    color:var(--color-neutral-600); }
+  .m-pill-dot{ width:7px; height:7px; border-radius:50%; flex:none; }
+  /* Home: the one ask box (it IS Jambo — the one coloured edge), then the one quiet list */
+  .m-ask{ margin:var(--s-2) var(--s-4) 18px; }
+  .m-ask input{ display:block; width:100%; box-sizing:border-box; height:48px; padding:0 18px; border-radius:999px;
+    border:1.5px solid var(--accent-ink); background:var(--color-surface); font:inherit; font-size:16px; color:var(--color-text); outline:none; }
+  .m-needs-h{ margin:0 var(--s-4) 6px; color:var(--color-text); }
+  .m-needs{ margin:0 var(--s-4); }
+  .m-act-word{ flex:none; height:32px; padding:0 14px; border-radius:999px; background:var(--surface-2); color:var(--color-text);
+    font-size:var(--t-card); font-weight:var(--w-strong); display:inline-flex; align-items:center; white-space:nowrap; }
 }`;
 
 let _mCssDone = false;
@@ -704,9 +739,9 @@ function mPill(c){
   const meta = M_STAGE_META()[st]
     || ((typeof STATUS_META==='object' && STATUS_META[st]) || null);
   const label = meta ? meta.label : (typeof statusLabel==='function' ? statusLabel(st) : st);
-  const bg = meta ? meta.bg : 'var(--st-gray-bg)';
-  const tx = meta ? meta.tx : 'var(--st-gray-fg)';
-  return `<span class="m-pill" style="background:${bg};color:${tx}">${mEsc(label)}</span>`;
+  /* ROUND 6 (owner's yes, 24 Oct 2026): a status is a dot and a word, as on the computer; no filled box */
+  const dot = meta ? meta.dot : 'var(--st-gray-dot)';
+  return `<span class="m-pill"><i class="m-pill-dot" style="background:${dot}" aria-hidden="true"></i>${mEsc(label)}</span>`;
 }
 
 /* Money, the way the rest of the app says it — including saying nothing when

@@ -2170,17 +2170,22 @@ function redlineLayoutCss(){
          (owner, 18 Oct 2026): said on our row, in amber, a line each */}
   .rl-card-keeps{display:flex;flex-direction:column;gap:2px;margin-top:3px;font-size:var(--t-meta);color:var(--st-amber-fg)}
   ${''/* JAMBO'S READ ON THEIR ROW (round 2 of Jambo's journey): the verdict as a dot and a word, its first reason, and Why? as a quiet link; two lines at most */}
-  .rl-card-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;margin-top:3px;font-size:var(--t-meta);line-height:1.45;color:var(--color-neutral-600)}
-  .rl-card-read-v{display:inline-flex;align-items:center;gap:5px;flex:none;font-weight:var(--w-label);color:var(--color-text)}
+  /* ADVICE OR NO ADVICE (owner, 24 Oct 2026): the verdict bold with its dot on its own line, the reason under it at
+     the card's full width; "No advice yet" grey with no dot; "Ask Jambo more" the last verb, at the card's right */
+  .rl-card-read{display:flex;flex-direction:column;align-items:flex-start;gap:1px;margin-top:4px;font-size:var(--t-meta);line-height:1.45;color:var(--color-neutral-600)}
+  .rl-card-read-v{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-strong);color:var(--color-text)}
+  .rl-card-read.is-none .rl-card-read-v{color:var(--color-neutral-600)}
   .rl-card-read-v i{width:7px;height:7px;border-radius:50%;background:var(--st-gray-dot)}
   .rl-card-read.is-green .rl-card-read-v i{background:var(--st-green-dot)}
   .rl-card-read.is-amber .rl-card-read-v i{background:var(--st-amber-dot)}
   .rl-card-read.is-ruby .rl-card-read-v i{background:var(--st-ruby-dot)}
   .rl-card-read.is-steel .rl-card-read-v i{background:var(--st-steel-dot)}
-  .rl-card-read-w{min-width:0;flex:1 1 12em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  ${''/* THE PLAIN REASON IS READ WHOLE (round 5 of the first-timer rounds, as the picked drawing shows it): "Worth a look" rows only; the playbook's verdicts keep two lines */}
-  .rl-card-read[data-rl-row-read="look"] .rl-card-read-w{display:block;-webkit-line-clamp:unset;overflow:visible}
-  .rl-card-read-ask{flex:none;appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer}
+  .rl-card-read-w{min-width:0;max-width:100%}
+  ${''/* the playbook's verdicts keep two lines; "Worth a look" and "No advice yet" are read whole (as before) */}
+  .rl-card-read:not([data-rl-row-read="look"]):not(.is-none) .rl-card-read-w{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* on the card it is one of the verbs (their ink, their spark mark), pushed to the right */
+  .rl-card-verbs .rl-card-read-ask, .rl-card-side .rl-card-read-ask{margin-left:auto;text-decoration:none}
+  .rl-card-read-ask{flex:none;appearance:none;border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;white-space:nowrap}
   .rl-card-read-ask:hover{text-decoration-color:currentColor}
   .rl-sug-reject :is(ins,.nego-ins){text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px;
     outline:1.5px dashed var(--color-accent-600);outline-offset:2px}

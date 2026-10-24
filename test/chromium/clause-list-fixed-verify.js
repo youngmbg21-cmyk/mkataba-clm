@@ -260,7 +260,8 @@ const READING = {
       boxes: document.querySelectorAll('#pd-thread .stk-flt').length,
       tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.getAttribute('data-stk-tab')).join(',') }));
     ok('6a the three-count line is gone; a headline and the tabs stand, no boxes',
-      !head.tally && /clauses? needs? you/i.test(head.title) && head.boxes === 0 && /^,need/.test(head.tabs), JSON.stringify(head));
+      /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes, the SAP heads): "Clauses N · M need you · K worth a look" */
+      !head.tally && /^Clauses ?\d+( ?· \d+ need you)?( · \d+ worth a look)?$/.test(head.title) && head.boxes === 0 && /^,need/.test(head.tabs), JSON.stringify(head));
     const pick = v => page.evaluate(v => { const el = document.querySelector(`#pd-thread [data-stk-tab="${v}"]`); if (el) el.click(); }, v);
     await pick('need');
     await page.waitForTimeout(400);

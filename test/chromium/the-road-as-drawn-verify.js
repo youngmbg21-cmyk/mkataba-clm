@@ -188,7 +188,8 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
         above: !!document.querySelector('#ig-paper .paper-zc'), flags: document.querySelectorAll('#ig-canvas .rl-sigline.pg-mine').length,
         theirWay: vis(document.querySelector('#pd-signface #sign-paper')), menuRow: /id="ws-m-their-way"/.test(menu),
         chips: document.querySelectorAll('#ig-dock [data-ig-chips] button').length }; });
-    check('7a the pill counts only what is ours to settle: "1 to settle" (Helio\'s turn is a wait)', S7.pill === '1 to settle', S7.pill);
+/* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: Before you sign carries no second count in the head while the list holds things, pdSignPillHtml): the road's own stop says the number */
+    check('7a while something is ours to settle the head carries no second count (Helio\'s turn is a wait)', S7.pill === '', S7.pill);
     check('7b "Signing copy", its page arrows and size on the paper\'s line — nothing above the paper', S7.word === 'Signing copy' && S7.page && S7.zoom && !S7.above, JSON.stringify(S7));
     check('7c no "Sign here" for a reader whose turn it is not', S7.flags === 0, String(S7.flags));
     check('7d no "Signing it their way" line on the face — its door is the Menu tab\'s row', !S7.theirWay && S7.menuRow, JSON.stringify({ face: S7.theirWay, menu: S7.menuRow }));
@@ -285,7 +286,8 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
           acts: [...card.querySelectorAll('[data-pd-rd-rule]')].map(b => b.textContent.trim()) } : null, ids: document.querySelectorAll('#sa-card').length }; }, null, 12000);
     check('12a each yes at its own stop: Ready · An admin\'s yes · Jonas Berg\'s yes · Helio signs · we sign · sealed', !!R12 && R12.keys.join('|') === 'ready|rule|yes|step1|step2|sealed'
       && R12.t[1] === 'An admin’s yes' && R12.t[2] === 'Jonas Berg’s yes', JSON.stringify(R12 && { k: R12.keys, t: R12.t }));
-    check('12b the pill counts what the road shows: "2 to settle", two yeses open', !!R12 && R12.pill === '2 to settle' && R12.open === 2, JSON.stringify(R12 && { pill: R12.pill, open: R12.open }));
+    /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: Before you sign carries no second count in the head while the list holds things, pdSignPillHtml): the road's own stop says the number */
+    check('12b two yeses open on the road, and no second count in the head', !!R12 && R12.pill === '' && R12.open === 2, JSON.stringify(R12 && { pill: R12.pill, open: R12.open }));
     check('12c the rule\'s own states, what it covers, and its own Approve · Refuse…; one #sa-card on the face', !!R12 && !!R12.card && R12.card.states.join('|') === 'Waiting|Approved|Refused|Lapsed'
       && /^The rule “Sales stream” asks an Admin for a yes\. It covers the wording as it stands and KES 8\.10M; a change undoes it\.$/.test(R12.card.facts) && R12.card.acts.join('|') === 'Approve|Refuse…' && R12.ids === 1, JSON.stringify(R12 && R12.card));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
@@ -302,7 +304,7 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
     await untilOn(page, () => { const s = document.querySelector('#pd-signface [data-pd-road-stop="yes"]'); return s && /is-done/.test(s.className); }, null, 10000);
     const R12e = await page.evaluate(() => { const f = document.getElementById('pd-signface'), st = k => f.querySelector(`[data-pd-road-stop="${k}"]`);
       return { rule: st('rule').className, step1: ((st('step1').querySelector('small') || {}).textContent || '').trim(), pill: ((f.querySelector('[data-pd-sf-pill]') || {}).textContent || '').trim() }; });
-    check('12e Jonas\'s yes given for him: the rule\'s yes is the open stop, Helio\'s link still after it', /is-now/.test(R12e.rule) && R12e.step1 === 'Henrik Dahl · their link opens after the yes' && R12e.pill === '1 to settle', JSON.stringify(R12e));
+    check('12e Jonas\'s yes given for him: the rule\'s yes is the open stop, Helio\'s link still after it', /is-now/.test(R12e.rule) && R12e.step1 === 'Henrik Dahl · their link opens after the yes' && R12e.pill === '', JSON.stringify(R12e));
     await page.click('#pd-signface [data-pd-rd-rule="approved"]');
     const R12f = await untilOn(page, () => { const f = document.getElementById('pd-signface'), r = f.querySelector('[data-pd-road-stop="rule"]');
       const b = f.querySelector('[data-pd-road-stop="step1"] [data-pd-rd-press]');
@@ -347,7 +349,8 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
        the same N, or the stop says plainly it is a part of it ("n of the N") */
     const P14 = await page.evaluate(() => ((document.querySelector('#pd-signface [data-pd-sf-pill]') || {}).textContent || '').trim());
     const pN = Number((/^(\d+) to settle$/.exec(P14) || [])[1]), whole = /^\d+ of the (\d+) to settle/.exec(R14 || '');
-    check('14b the pill and the road\'s first stop never give two different totals', !!m14 && (Number(m14[1]) === pN ? !whole : !!whole && Number(whole[1]) === pN), JSON.stringify({ P14, R14 }));
+    /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: Before you sign carries no second count in the head while the list holds things, pdSignPillHtml): the road's own stop says the number */
+    check('14b the head and the road never give two different totals: the head says none, the road its one', !!m14 && P14 === '' && !Number.isFinite(pN || NaN) && !whole, JSON.stringify({ P14, R14 }));
     /* 14c and where they differ — a yes still owed beside the checks, which waits at its own stop — the
        stop names its part of the head's total (the reading signReadiness gives, one approval added) */
     const R14c = await page.evaluate(async () => { const real = window.signReadiness;
@@ -357,7 +360,8 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
         return { pill: ((document.querySelector('#pd-signface [data-pd-sf-pill]') || {}).textContent || '').trim(), stop: s ? s.textContent.replace(/\s*·\s*(Show|Hide)$/, '').trim() : '' };
       } finally { window.signReadiness = real; pdSignOpen('MK-0391'); } });
     const pc = Number((/^(\d+) to settle$/.exec(R14c.pill) || [])[1]), sc = /^(\d+) of the (\d+) to settle: /.exec(R14c.stop);
-    check('14c a yes owed beside the checks: the stop says "n of the N", N the pill\'s own', !!sc && Number(sc[2]) === pc && Number(sc[1]) === pc - 1, JSON.stringify(R14c));
+    /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: Before you sign carries no second count in the head while the list holds things, pdSignPillHtml): the road's own stop says the number */
+    check('14c a yes owed beside the checks: the stop says "n of the N", the yes the one more; the head no number', !!sc && R14c.pill === '' && !pc && Number(sc[1]) === Number(sc[2]) - 1, JSON.stringify(R14c));
     await shot(page, '10-the-road-gate-1440x780');
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {

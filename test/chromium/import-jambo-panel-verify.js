@@ -112,8 +112,8 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
         return tr && !tr.classList.contains('is-picked') && s && /in this batch/.test(s.textContent) ? true : null; }, pick, 4000);
       check('3b pressed again, the row is let go and Jambo says the batch', !!let1);
       await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
-      await until(() => { const b = document.querySelector('#mig-side [data-jl-back]'); return b && !b.hidden ? true : null; }, null, 3000);
-      if (await press('#mig-side [data-jl-back]', '3c ‹ Jambo')) {
+      await until(() => document.querySelector('.mig-table tr.is-picked') ? true : null, null, 3000);
+      if (await press('#mig-side [data-jl-home]', '3c ‹ Jambo')) {
         const back = await until(() => !document.querySelector('.mig-table tr.is-picked') && /in this batch/.test(document.getElementById('mig-side').textContent) ? true : null, null, 3000);
         check('3c "‹ Jambo" goes back to the batch', !!back);
       }

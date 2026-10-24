@@ -155,7 +155,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       }));
       check('2a the list\'s count is the lit tab\'s ("Live N", the foot\'s N), "sorted by name" on the Party column, Columns in the head\'s chip row',
         /^Live \d+$/.test(L.lit) && L.lit.endsWith(' ' + ((/of (\d+)/.exec(L.foot) || [])[1])) && L.sort === 'sorted by name' && !L.card && L.columns, JSON.stringify({ lit: L.lit, sort: L.sort, card: L.card, foot: L.foot, columns: L.columns }));
-      check('2b the columns as drawn', JSON.stringify(L.cols) === JSON.stringify(['Party', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA']), JSON.stringify(L.cols));
+      /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): a column empty for every party steps out (cuEmptyCols) */
+      const ALL = ['Party', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA'];
+      check('2b the columns as drawn, in order, a column empty for everyone left out', L.cols.length >= 5 && L.cols.every(c => ALL.includes(c)) && L.cols.join() === ALL.filter(c => L.cols.includes(c)).join() && ['Party', 'Live', 'Waiting on you'].every(c => L.cols.includes(c)), JSON.stringify(L.cols));
       check('2c a party\'s line: "2 agreements · <stream>"', /^2 agreements · \S/.test(L.sub), L.sub);
       /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
          foot is the list head's one foot, "1–10 of N · Show N more" */
@@ -313,7 +315,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelector('#cu-tbody'));
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
       await until(() => document.querySelector('#ins-panel .cu-people'));
-      await page.click('#ins-panel .jl-back, #ins-panel [data-jl-back]');
+      await page.click('#ins-panel [data-jl-home]');
       const J = await until(() => { const p = document.getElementById('ins-panel'); const b = p && p.querySelector('b');
         if (!b || !/on this list/.test(b.textContent)) return null;
         /* (Part 8) the list's count is the lit tab's number */

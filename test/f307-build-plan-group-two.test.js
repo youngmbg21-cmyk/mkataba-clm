@@ -495,7 +495,8 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
     m.$('[data-share-ch="word"]').click();
     assert.equal(lit(m), 'word', 'and the reader can move it');
     const fn = /async function openShareModal\([\s\S]*?\n\}/.exec(CORE)[0];
-    assert.match(fn, /let ch='email';/, 'the opening channel is a constant, not the share list\'s');
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): still never the share list's — Email, or the link where no email is set up */
+    assert.match(fn, /let ch=emailOff\(\)\?'link':'email';/, 'the opening channel is not the share list\'s');
     assert.doesNotMatch(fn, /let ch=pre\.channel/, 'the remembered channel is the round send\'s, not this dialog\'s');
   });
 

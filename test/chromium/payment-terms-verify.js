@@ -357,9 +357,9 @@ const EXTRA = [
     await page.waitForTimeout(1400);
     /* RE-POINTED 15 Oct 2026 (step 8, the room retired): a row's door opens
        the contract's strip on Home's Board, at the top, the room not drawn */
-    const landed = await page.evaluate(() => { const top = document.querySelector('#bs-strips > .bs-strip');
-      return { view: state.view, id: state.activeId, strip: top ? top.getAttribute('data-bs-id') : null, room: !!document.getElementById('ws-tabs') }; });
-    check('5k pressing a row opens that contract (its strip on the Board)',
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): its paper on Home, the Dossier beside it */
+    const landed = await page.evaluate(() => ({ view: state.view, id: state.activeId, strip: window.intel && intel.paper ? intel.paper.id : null, room: !!document.getElementById('ws-tabs') }));
+    check('5k pressing a row opens that contract (its paper on Home)',
       landed.view === 'dashboard' && landed.id === target && landed.strip === target && !landed.room,
       `${landed.view} · ${landed.id} · strip ${landed.strip} (wanted ${target})`);
 
@@ -396,7 +396,8 @@ const EXTRA = [
       board: !!document.getElementById('hb-board') || !!document.getElementById('hb-head') }));
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(700);
-    await page.evaluate(() => { if (window.mGo) mGo('home'); });
+    /* RE-POINTED 24 Oct 2026 (Round 6, owner's yes): Home lost its tiles; the chosen ones live on Portfolio */
+    await page.evaluate(() => { if (window.mGo) mGo('portfolio'); });
     await page.waitForTimeout(900);
     const tile = await page.evaluate(() => {
       const el = document.querySelector('.m-kpi[data-m-kpi="payterms"]');
@@ -404,7 +405,7 @@ const EXTRA = [
       const r = el.getBoundingClientRect();
       return { text: el.textContent.replace(/\s+/g, ' ').trim(), w: Math.round(r.width), h: Math.round(r.height) };
     });
-    check('7a the tile draws on the phone\'s Home, where the tiles still live', tile && tile.w > 100 && tile.h > 50,
+    check('7a the tile draws on the phone\'s Portfolio, where the chosen tiles live', tile && tile.w > 100 && tile.h > 50,
       tile ? `${tile.w}x${tile.h}` : 'absent');
     check('7b it counts BOTH sides', tile && tile.text.includes(String(d2.overN)),
       tile ? `${tile.text} · reading says ${d2.overN}` : 'absent');

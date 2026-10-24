@@ -21,7 +21,7 @@
    Run: node test/chromium/details-as-a-form-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, ckConfirm } = require('../helpers');
 const TF = require('../../js/templateform.js');
 
 const EXEC = process.env.CHROMIUM_BIN
@@ -67,8 +67,26 @@ const check = (name, pass, detail) => {
        (the old #doc-right); the tab's count is the face's own "N left" pill. */
     await page.evaluate(() => { openWorkspace('MK-DF1', { room: true }); roomGoTab(getContract('MK-DF1'), 'details'); });
     /* RE-POINTED 20 Oct 2026 (the Legora way): the form is Still owed's grid (#pd-og) on the Dossier beside Home's paper */
-    const up = await until(() => !!document.querySelector('#pd-og[data-pd-og-for="MK-DF1"] [data-tplf]'));
+    /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix": "the fields fold into groups ... Only the group you are working
+       on opens"): with this many owed, the grid is groups, one open; a fact's group is opened before it is read */
+    const openGroupWith = async sel => {
+      if (await page.evaluate(q => !!document.querySelector(q), sel)) return true;
+      const keys = await page.evaluate(() => [...document.querySelectorAll('#pd-og [data-pd-og-g-go]')].map(b => b.getAttribute('data-pd-og-g-go')));
+      for (const k of keys){
+        await page.evaluate(g => { const b = document.querySelector(`#pd-og [data-pd-og-g-go="${g}"]`); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }, k);
+        if (await until(q => !!document.querySelector(q), sel, 1500)) return true;
+      }
+      return false;
+    };
+    const up = await until(() => !!document.querySelector('#pd-og[data-pd-og-for="MK-DF1"]')) && await openGroupWith('#pd-og[data-pd-og-for="MK-DF1"] [data-tplf]');
     if (!up) { check('0 the Details tab draws its form', false); throw new Error('not drawn'); }
+    await page.waitForTimeout(300);
+    const qSeen = await page.evaluate(() => { const q0 = document.querySelector('#pd-og [data-tplf]'); const f = q0 && q0.nextElementSibling && q0.nextElementSibling.classList.contains('dp-face') ? q0.nextElementSibling : null;
+      const el = (q0 && q0.getBoundingClientRect().width === 0 && f) ? f : q0; if (!el) return false;
+      /* the open group may sit below the fold under the Next card: the reader scrolls to it */
+      el.scrollIntoView({ block: 'nearest' }); const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; });
+    await openGroupWith('#pd-og[data-pd-og-for="MK-DF1"] [data-kt="counterparty"]');
+    await page.waitForTimeout(300);
 
     const m = await page.evaluate(() => {
       const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; };
@@ -94,9 +112,10 @@ const check = (name, pass, detail) => {
       return { qOn: vis(firstQ) || (!!qRow && !qRow.classList.contains('is-open') && vis(qRow.querySelector('.pd-ck-hd'))),
         cpOn: cpRow && cpRow.classList.contains('is-open') ? vis(cp) : vis(cpLine), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
         cpAmber: cs.backgroundColor === amber, amber, cpBg: cs.backgroundColor, inner: inner.map(e => e.id || e.className).slice(0, 4),
-        twice: ['counterparty', 'value', 'effDate'].filter(k => count(k) !== 1).concat(count('expiry') ? ['expiry'] : []) };
+        /* a closed group draws none of its rows: one box at most per fact */
+        twice: ['counterparty', 'value', 'effDate'].filter(k => count(k) > 1).concat(count('expiry') ? ['expiry'] : []) };
     });
-    check('1 the first empty question and the other party are on screen without scrolling', m.qOn && m.cpOn, JSON.stringify({ q: m.qOn, cp: m.cpOn }));
+    check('1 the first empty question and the other party are on screen, each in its open group', qSeen && m.cpOn, JSON.stringify({ q: qSeen, cp: m.cpOn }));
     check('2 the contract\'s details are visible boxes, an empty one amber', m.edge && m.cpAmber, `edge ${m.edge} · ${m.cpBg} vs ${m.amber}`);
     check('3 one scroll in the column — nothing scrolls inside it', m.inner.length === 0, JSON.stringify(m.inner));
     check('4 no fact has two boxes in the column', m.twice.length === 0, m.twice.join(', ') || 'one each');
@@ -112,7 +131,7 @@ const check = (name, pass, detail) => {
     if (await page.evaluate(() => !!document.querySelector('#pd-og [data-kt="counterparty"]'))){
       await page.evaluate(() => { const b = document.querySelector('#pd-og [data-pd-ck-row="counterparty"]'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); });
       await page.fill('#pd-og [data-kt="counterparty"]', 'Juno Foods Ltd');
-      await page.click('#pd-og [data-pd-og-ok="counterparty"]'); }
+      await ckConfirm(page, 'counterparty'); }
     await page.waitForTimeout(500);
     const after = await page.evaluate(h => ({ tab: (new Function('return (' + h + ')()'))(),
       open: !document.querySelector('#pd-og tr.is-saved[data-pd-og-row="counterparty"]'),

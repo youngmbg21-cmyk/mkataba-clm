@@ -109,7 +109,8 @@ async function login(browser, email, pass, errors) {
     const bell = await O.page.evaluate(() => {
       const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].find(x => /MK-A2|Nandi Dairy/.test(x.textContent + (x.title || '')));
       const b = document.querySelector('#hm-agents [data-nd-agent="round"] .nd-c-what b');
-      return { says: !!r && !!b && r.querySelector('.nd-t').textContent.trim() === b.textContent.trim(), line: !!r && !!r.querySelector('[data-nd-look]') };
+      /* RE-POINTED 24 Oct 2026 (Round 2): the bell's row leads with the agreement; the Board's words ride its grey line */
+      return { says: !!r && !!b && (r.querySelector('.cn-w > span') || {}).textContent.includes(b.textContent.trim()), line: !!r && !!r.querySelector('[data-nd-look]') };
     });
     check('2c the bell says it too, with the same line', bell.says && bell.line, JSON.stringify(bell));
     await O.page.keyboard.press('Escape');

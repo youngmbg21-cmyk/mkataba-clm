@@ -252,7 +252,8 @@ describe('f308 (3) — the card, and its acts', () => {
        been run before signing) — amber, never the escalation's ruby. */
     assert.match(row[0], /sc-mark is-hold/, 'held until the check runs — neither wrong nor fine, but not signable');
     assert.doesNotMatch(row[0], /is-esc/);
-    assert.match(row[0], /data-sc-run="1"/, 'and it carries the run control');
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): the run control is the readings' stage's ONE box ("Run all N"), not a link per row */
+    assert.match(html, /<div class="sc-run-box">[\s\S]*?data-sc-run="1"/, 'and the stage carries the run control');
   });
 
   test('the card computes nothing — signCheck does', () => {

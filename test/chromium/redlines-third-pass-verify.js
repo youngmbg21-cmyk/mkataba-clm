@@ -241,7 +241,7 @@ const openFace = async page => {
       return { band: p.innerText.replace(/\s+/g, ' '), notices: ((document.querySelector('#pd-redface .pd-rf-notices') || {}).innerText || ''),
         head: ((document.querySelector('#pd-redface .rl-round-at') || {}).textContent || '') }; }, 6000);
     check('3a no review band over the head; the Out for review pile says "Remind Sara"', !!rv && /Remind Sara/.test(rv.band) && !/internal review/i.test(rv.notices), JSON.stringify(rv));
-    check('3a while the move is ours, "Round 2 · their asks came 4 days ago"', !!rv && rv.head === 'Round 2 · their asks came 4 days ago', rv && rv.head);
+    check('3a while the move is ours, "Round 2 · their asks came 4 days ago"', !!rv && /^(\d+ not sent · )?Round 2 · their asks came 4 days ago$/.test(rv.head) /* RE-POINTED 24 Oct 2026 (Round 3): "N not sent" may lead the line */, rv && rv.head);
     await shot(page, '11-face-1440x780');
     await page.click('#pd-redface [data-redline-proxy]', { timeout: 5000 }).catch(() => {});
     /* the parent's review pop-up first: answered, so the walk reports the rest */
