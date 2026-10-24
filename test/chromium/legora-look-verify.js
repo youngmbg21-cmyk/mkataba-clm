@@ -107,6 +107,8 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { if (typeof deskGoCounter === 'function') deskGoCounter(); else setView('counter'); });
     await until(() => !!document.querySelector('#cn-page .cn-ask'));
     await until(() => { const m = document.getElementById('dk-mark'); return !!m && !m.hidden && m.getBoundingClientRect().width > 0; });
+    /* the bell's count is painted once the counts land (a wait asks for the state, bounded) */
+    await until(() => { const d = document.getElementById('hdr-notify-dot'); return !!d && !d.hidden; });
     const bar = await page.evaluate(() => {
       const t = document.getElementById('top-header'), m = document.getElementById('dk-mark'), cs = getComputedStyle(t), ms = m && getComputedStyle(m);
       const div = getComputedStyle(document.documentElement).getPropertyValue('--color-divider').trim();
