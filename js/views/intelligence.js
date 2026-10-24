@@ -1261,6 +1261,17 @@ function igRecipeUndo(){
   igRecipeSet(st.pop()); return true;
 }
 /* THE HEAD LINE READS THE RECIPE BACK — every setting that is not at rest. */
+/* WHAT THE MAP SHOWS, ONE READING (owner, 24 Oct 2026: the window said "the Home page" of Explorer): how many
+   of how many dots, the grouping, and the recipe's own words — borrowed by every Jambo box's screen context
+   (aiPageContext) and by "what am I looking at" (aiHereSays). Counts nothing of its own: the drawn model's. */
+function igMapNow(){
+  const out={ shown:null, total:null, by:'', says:[] };
+  try{ const model=buildGraphModel(); out.shown=model.shown; }catch(_){ out.shown=null; }
+  try{ out.total=igBookTotal(); }catch(_){ out.total=null; }
+  try{ out.by=intel.groupBy?graphGroupingWord(intel.groupBy):''; }catch(_){ out.by=''; }
+  try{ out.says=igRecipeSays(); }catch(_){ out.says=[]; }
+  return out;
+}
 function igRecipeSays(){
   const out=[], w=k=>graphGroupingWord(k);
   if(intel.floorsBy) out.push(i18t('int_says_floors',{ x:w(intel.floorsBy) }));
@@ -2241,6 +2252,20 @@ function intelAskReady(q){
   try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
   return true;
 }
+/* a question the Board answered by DRAWING (a q: card or a follow-up over one), with Jambo available: his words go
+   under it; a figure's own answer ("how many live contracts": the number), a verified view, a pack or a story
+   already say it, and a command asks nothing */
+function igAskThenExplain(q, A){
+  if(!A||A.road!=='free') return false;
+  if(!(window.caAiFirst&&caAiFirst())) return false;
+  const t=String(q||'').trim();
+  const asks=!!(window.CA_WH_Q&&CA_WH_Q.test(t))||/\?\s*$/.test(t);
+  if(!asks) return false;
+  /* a count or an amount the Board drew IS the answer ("how many … between 2M and 40M": the card says the number) */
+  if(/^\s*(?:how many|how much|hur många|hur mycket)\b/i.test(t)) return false;
+  if(A.kind==='follow') return true;
+  return A.kind==='dig'&&!!(A.r&&/^q:/.test(String(A.r.key||'')));
+}
 async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
   if(!q) return;
@@ -2409,10 +2434,19 @@ async function intelAsk(qRaw, opts){
        is signed", a value range, a date): the free reader is sure of every word, so it is not a guess to hand on
        (stage 3d; deal-facts 4, board-answers-the-question 3, home-board 13f/13g) */
     boardKnows=!!pz&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
+  /* …a question about the Board ITSELF ("why does the dashboard say 851 SEK…") keeps the Board's own checked
+     answer (hbWhyCheck over its numbers; the board that answers right, Part 4), never a guess from the book */
+  let boardWhy=false; try{ const A0=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; boardWhy=!!(A0&&A0.why); }catch(_){ boardWhy=false; }
   const boardQ=!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
+    let A=null; try{ A=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; }catch(_){ A=null; }
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
-    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock();
+      /* ACT FIRST, THEN EXPLAIN (owner, 24 Oct 2026): a question the Board read as a card to DRAW ("what ends this
+         quarter", "which customers are worth the most") is drawn, free, and then Jambo says what it shows, under
+         the Board's line — one call, only where the words ask something and the Board only drew */
+      if(igAskThenExplain(q, A)){ intel.busy=true; renderIntelDock(); try{ await intelChatAsk(q, { explain:true }); }catch(_){} intel.busy=false; renderIntelDock(); }
+      return; }
   }
   const h0=intel.history.length;
   /* THE AI TAKES YOU THERE (owner, 22 Oct 2026): an answer that names a place
@@ -2463,6 +2497,9 @@ async function intelAsk(qRaw, opts){
     else if(heldId&&!igAsksThisPaper(q,heldId))         await intelChatAsk(q);
     else if(heldId)                                     await igPaperAsk(q,heldId);
     else if(idHits>=2)                                  await intelChatAsk(q);
+    /* A QUESTION ON THE BOARD IS JAMBO'S WHOLE ANSWER (owner, 24 Oct 2026: "the full brain in every box"): the
+       chat, with what the Board shows in its context; a set it names is a door to the Board (igDoorsHtml) */
+    else if(boardQ&&!boardWhy)                          await intelChatAsk(q);
     else if(IG_COMPLIANCE_RE.test(q)&&!idHits)          await intelComplianceScan(q);
     else                                                await intelGraphAsk(q);
   }catch(e){
@@ -2949,7 +2986,7 @@ function intelPushChatResult(res, q){
 // General Copilot Q&A in the Intel dock (used for compare + typed questions).
 // With no Copilot key, comparisons still work via the deterministic local table;
 // other free-form questions get a clear nudge instead of silence.
-async function intelChatAsk(q){
+async function intelChatAsk(q, opts){
   const ids=(String(q).match(/(?:MK|RL)-\d+/gi)||[]).map(s=>s.toUpperCase())
     .map(r=>{ const x=(state.contracts||[]).find(y=>y.id===r||y.contractNo===r); return x?x.id:r; }).filter((v,i,a)=>a.indexOf(v)===i);
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){
@@ -2963,10 +3000,16 @@ async function intelChatAsk(q){
   }
   try{
     const msgs=intelChatMessages();
+    /* the explain under the Board's drawing (act first, then explain): the Board's line was written down before
+       this call, so the question is put last again for the model — never stored twice */
+    if(opts&&opts.explain&&(!msgs.length||msgs[msgs.length-1].role!=='user')) msgs.push({ role:'user', content:String(q) });
     const board=igBoardNow();
     if(board&&msgs.length&&msgs[msgs.length-1].role==='user')
       msgs[msgs.length-1]={ role:'user', content:'[The reader is on the Home board. What the board shows now:\n'+board+'\nAnswer from these numbers when the question is about the board.]\n\n'+msgs[msgs.length-1].content };
-    const res=await copilotAsk(msgs, { view:'intel' }, null, IG_QUIET);
+    /* ONE JAMBO (24 Oct 2026): the same context the ✦'s window sends — the page in front, the Board or the map as
+       they stand, the book's snapshot — so an answer beside Home knows the screen as the window's does */
+    let ctx={ view:'intel' }; try{ if(typeof window.aiChatContext==='function') ctx=Object.assign(aiChatContext(), { view:'intel' }); }catch(_){ ctx={ view:'intel' }; }
+    const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
     intelPushChatResult(res, q);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
@@ -10202,3 +10245,6 @@ Object.assign(window,{igDockStepAside});
 Object.assign(window,{igFramesDrawn,igKeptKey,igWake,igTurnFace,igLoopStart,IG_SETTLE_ROUNDS,IG_SETTLE_SLICE,IG_AWAKE_MS});
 Object.assign(window,{igTrackLayout,igTrackBodyEnd,igTrackFold,igTrackAt,IG_TRACK_TAIL,igTrackFits,igTrackSize,IG_TRACK_WIDTHS,IG_TRACK_GEOM,igTrackHtml,igTrackPlace,igTrackWindow,igTrackFollow,igTrackHostHome,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
+
+/* what the map shows, one reading (24 Oct 2026) */
+Object.assign(window,{ igMapNow, igAskThenExplain });

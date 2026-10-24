@@ -12775,6 +12775,8 @@ function pageSays(p){
   if (label && label !== name) t += ` (they see it labelled "${label}")`;
   t += '. ';
   if (p.tab) t += `They are on its "${cut(p.tab)}" tab. `;
+  if (p.map) t += `The map shows: ${cut(p.map, 400)}. `;
+  if (p.board) t += `The Board as it stands:\n${cut(p.board, 4000)}\nAnswer from these numbers when the question is about the Board. `;
   if (p.valueStream) t += `It is filtered to the "${cut(p.valueStream)}" value stream. `;
   if (p.showing) t += `It is showing ${cut(p.showing, 80)}. `;
   if (p.searchBox) t += `Its search box reads "${cut(p.searchBox)}". `;

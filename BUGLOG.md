@@ -21516,3 +21516,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Explorer's first opening on a 400-contract book still freezes about 330 ms (the map built and laid out once, `rebuildIntelGraph`); a later visit reuses the map. Deferring the build past the first paint would need the map's arrival redesigned.
 - The Contracts place is drawn again while the reader scrolls when the book changes underneath it (`hbRender` → `regHomeStale` → `igPlacePaint`), as designed; on a book where arrival readings keep saving, that can be several redraws in the first seconds.
 - jambo-tab-and-back-verify 1i/1m/2a and home-first-verify failed once each when run three browsers at a time on one machine and pass alone, on the branch and on main; a load-sensitive wait, not a fault.
+
+## Noticed, not fixed — 24 Oct 2026 (one Jambo, two layers)
+- The Calendar's own box (`calPlanAsk`) is not on the two layers: a question typed there goes to the planner, not the chat; commands still move through `caAskAnywhere`.
+- "where is …" is not among `CA_WH_Q`'s question words (navmap's "where is X" reads a trip), so a "where" question beside the Board is explained only when it ends with "?".
+- On the Board, a "top N by …" sentence the Board's reader cannot read is drawn as a MAP lens behind the Board by the mapListy path ("Showing 0 of 4 · Top 10 by days to pay" in the test world, from "where is my biggest concern as far as payment terms?"); the owner's book reads it as the Board's own Top 10 card.
+- CLAUDE.md is about 88 KB after the one-Jambo line, over its ~80 KB rule; a trim needs the owner's yes.
