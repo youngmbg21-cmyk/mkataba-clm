@@ -6134,7 +6134,7 @@ function rlUnsentSendHtml(c, opts = {}){
   const promise = side === 'counterparty' ? i18t('po_wall_live') + ' ' : '';
   return `<button type="button" class="rl-unsent-go" data-redline-proxy="${target}"
     title="${_nea(promise + i18t('ng_unsent_full', { n, who }) + ' ' + i18t('ng_unsent_send_title', { n, who }))}">${
-      i18t('ng_unsent_send', { n })}</button>`;
+      i18t(opts.dealDoor ? 'ng_unsent_send_short' : 'ng_unsent_send', { n })}</button>`;
 }
 
 /* ---- CLOSE ROUND, IN THE COLUMN HEAD (owner-asked 27 Aug 2026) ----
@@ -6209,7 +6209,10 @@ function rlRoundLabelHtml(c, opts = {}){
   const ago = came ? rlAgoWords(came) : '';
   const words = ago ? i18t('ng_round_asks_came', { n: round, ago })
     : day ? i18t('ng_round_since', { n: round, day }) : i18t('ng_round_n', { n: round });
-  return `<span class="rl-round-at" title="${_nea(i18t('ng_round_since_title'))}">${_ne(words)}</span>`;
+  /* BESIDE THE PAPER THE HEAD SAYS WHAT NEEDS YOU (owner picked "The SAP Way" for the two heads, 24 Oct 2026):
+     "4 not sent · Round 1 · since 10 Sept" — the count leaves Send all, which says "Send all · 4" */
+  const un = opts.dealDoor ? rlUnsentCount(c, opts) : 0;
+  return `<span class="rl-round-at" title="${_nea(i18t('ng_round_since_title'))}">${un ? `<b class="rl-round-un">${_ne(i18t('ng_unsent_n', { n: un }))}</b> \u00b7 ` : ''}${_ne(words)}</span>`;
 }
 
 /* ============================================================
@@ -6506,6 +6509,8 @@ const RL_FACE_MARKS = [
   /* a colleague's suggestion on its own row (round 9's gaps): Adopt · Hand back */
   [/data-dk-adopt=/, 'check'],
   [/data-dk-return=/, 'left'],
+  /* "Ask Jambo more", the card's last verb (Advice or no advice, 24 Oct 2026): Jambo's spark */
+  [/data-rl-read-why=/, 'spark'],
 ];
 /* A LOCKED DOOR TAKES THE MARK TOO, and that is measured rather than tidy.
    It is the SAME door — the pencil is what it is, whoever is holding the
@@ -8162,23 +8167,27 @@ function dealViewHtml(c, side){
   const tab = (_dealTab && (_dealTab === 'all' || n[_dealTab])) ? _dealTab : (n.you ? 'you' : 'all');
   const round = (c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0) ? c.negotiation.round : 1;
   const head = n.you ? i18tn('ng_deal_head_you', n.you, { n: n.you }) : i18t('ng_deal_head_none');
-  const sub = i18tn('ng_deal_sub', n.all, { n: n.all, r: round });
+  /* THE LEGORA WAY (owner's pick, 23 Oct 2026, built 24 Oct): the one fact once, then how the rest stand —
+     "6 argued in round 1 · 1 with AIT · 1 closed" */
+  const sub = [i18t('ng_deal_argued', { n: n.all, r: round }), n.them ? i18t('ng_deal_with', { n: n.them, cp }) : '', n.done ? i18t('ng_deal_closed', { n: n.done }) : ''].filter(Boolean).join(' \u00b7 ');
   const word = { all: i18t('ng_deal_tab_all'), you: i18t('ng_board_g_you'), them: i18t('ng_board_g_them', { cp }), done: i18t('ng_board_g_done') };
   /* a tab with nothing behind it stays out, unless it is All or the one lit (THE LIST HEAD's rule) */
   const tabs = DEAL_TABS.filter(k => k === 'all' || k === tab || n[k]).map(k =>
     `<button type="button" role="tab" class="deal-tab" data-deal-tab="${k}" aria-selected="${k === tab}">${_ne(word[k])}<b>${n[k]}</b></button>`).join('');
   const shown = facts.filter(x => tab === 'all' || x.g === tab);
   const quote = t => `<em>\u201c${_ne(t)}\u201d</em>`;
+  /* EACH POINT A QUIET ROW: its name, where it sits on the paper (§N), Send and Open clause on its own line; what
+     you hold quoted in the paper's type, then what they ask. The verdict is the dot's colour and its hover —
+     said once, never the same sentence on every row. Send presses the card's own Send in the column beside it. */
   const list = shown.map(({ r, v }) => {
     const s = dealSecOf(r);
     const theirs = r.theirs ? dealWordsOf(r.theirs.ch, 'del') : '';
     const held = dealHeldWords(r);
-    return `<div class="deal-it" data-deal-row="${_nea(r.clauseId)}">
-      <div class="deal-nm">${s.sec ? `<span class="deal-sec">${_ne(s.sec)}</span>` : ''}${_ne(s.name)}</div>
-      <div class="deal-vd db-vd-${v.k}"><i aria-hidden="true"></i>${_ne(v.text)}</div>
-      <div class="deal-q"><span>${_ne(i18t('ng_deal_they'))}</span>${r.theirs ? quote(theirs || '\u2014') : `<span class="deal-none">${_ne(i18t('ng_deal_not_asked'))}</span>`}
-        <span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}</div>
-      <button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button>
+    const unsent = side !== 'counterparty' && r.ours && r.ours.ch && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.ours, side) ? r.ours.ch.id : '';
+    return `<div class="deal-it is-lg" data-deal-row="${_nea(r.clauseId)}">
+      <div class="deal-top"><span class="deal-dot db-vd-${v.k}" title="${_nea(v.text)}" aria-label="${_nea(v.text)}"><i aria-hidden="true"></i></span><b class="deal-nm">${_ne(s.name)}</b>${s.sec ? `<span class="deal-sec">${_ne(i18t('ng_deal_on_paper', { s: s.sec }))}</span>` : ''}<span class="deal-sp"></span>${unsent ? `<button type="button" class="deal-send" data-deal-send="${_nea(unsent)}">${_ne(i18t('ng_send'))}</button>` : ''}<button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button></div>
+      <div class="deal-q"><span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}
+        <span>${_ne(i18t('ng_deal_they'))}</span>${r.theirs ? (theirs ? quote(theirs) : '<span class="deal-none">\u2014</span>') : `<span class="deal-none">${_ne(i18t('ng_deal_nothing_yet'))}</span>`}</div>
     </div>`;
   }).join('') || `<p class="deal-empty">${_ne(i18t('ng_board_f_none'))}</p>`;
   return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}">
@@ -20726,7 +20735,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                and full shapes below, which keep their own Open onto the clause
                panel (.rl-open-btn[data-rl-cp-open] — a different control with a
                different job). */}
-        <div class="rl-card-side">${deaden(face)}</div>
+        <div class="rl-card-side">${(() => { const f = deaden(face), more = rlRowReadMoreHtml(c, ch, side); return more && /<\/span>\s*$/.test(f) ? f.replace(/<\/span>\s*$/, more + '</span>') : f + more; })()}</div>
         ${''/* ---- THE STRIPS ARE ON THE ROW (15 Sep 2026) ----
                Conditional and nearly always absent — a colleague's "drafted
                by", who typed it on whose behalf, who rewrote it, the reviewer's
@@ -22209,21 +22218,44 @@ function rlPlainReasonOf(ch){
   }
   return '';
 }
-function rlRowReadHtml(c, ch, side){
-  if (side === 'counterparty' || PORTAL_MODE || !c || !ch) return '';
-  if (ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded) return '';
-  if (typeof rlpJudge !== 'function' || typeof precedentTopicOf !== 'function') return '';
+/* ADVICE OR NO ADVICE (owner picked it, 24 Oct 2026): the card says what to do and why, in plain words, on the
+   card. A verdict (Take it · Push back · Escalate · Worth a look) is bold with its dot, its reason under it, and
+   "Ask Jambo more" sits at the foot of the verbs (rlRowReadMoreHtml). Where Jambo has nothing to judge by (the
+   playbook is silent, the past is split) it says "No advice yet" and which rule is missing — no button: there is
+   nothing more to explain, and setting a rule is an admin's act, so no door to it either (owner). */
+function rlRowReadOf(c, ch, side){
+  if (side === 'counterparty' || PORTAL_MODE || !c || !ch) return null;
+  if (ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded) return null;
+  if (typeof rlpJudge !== 'function' || typeof precedentTopicOf !== 'function') return null;
   let j = null; try { j = rlpJudge(c, ch); } catch (_) { j = null; }
+  if (!j) return null;
   /* no rule and no past answers: "Worth a look", with what the ask does in plain words */
-  const plain = (j && j.verdict === 'review') ? rlPlainReasonOf(ch) : '';
-  if (plain) j = Object.assign({}, j, { verdict: 'look', why: [plain] });
-  const V = plain ? { key: 'look', tone: 'amber', label: i18t('rp_v_look') }
-    : (j && typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
-  if (!V) return '';
-  const why = String((j.why || [])[0] || '').trim();
-  const cost = i18t('rl_read_why_cost');
-  return `<div class="rl-card-read is-${_nea(V.tone)}" data-rl-row-read="${_nea(j.verdict)}"><span class="rl-card-read-v"><i aria-hidden="true"></i>${_ne(V.label)}</span>${
-    why ? `<span class="rl-card-read-w">${_ne(why)}</span>` : ''}<button type="button" class="rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(cost)}">${_ne(i18t('rl_read_why'))}</button></div>`;
+  const plain = (j.verdict === 'review') ? rlPlainReasonOf(ch) : '';
+  if (plain) return { key: 'look', tone: 'amber', label: i18t('rp_v_look'), why: plain, more: true };
+  if (j.verdict === 'review'){
+    let why = String((j.why || [])[0] || '').trim();
+    if (!j.past){
+      let t = null; try { t = precedentTopicOf(ch); } catch (_) { t = null; }
+      /* the category mid-sentence in lower case ("no rule for liability cap"), an acronym kept ("VAT") */
+      const cat = (t && t.category) ? String(t.category) : '';
+      const said = /^[A-ZÅÄÖ][a-zåäö]/.test(cat) ? cat.charAt(0).toLowerCase() + cat.slice(1) : cat;
+      why = said ? i18t('rl_read_none_cat', { category: said }) : i18t('rl_read_none_w');
+    }
+    return { key: 'none', tone: 'none', label: i18t('rl_read_none'), why, more: false };
+  }
+  const V = (typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
+  if (!V) return null;
+  return { key: j.verdict, tone: V.tone, label: V.label, why: String((j.why || [])[0] || '').trim(), more: true };
+}
+function rlRowReadHtml(c, ch, side){
+  const R = rlRowReadOf(c, ch, side); if (!R) return '';
+  return `<div class="rl-card-read is-${_nea(R.tone)}" data-rl-row-read="${_nea(R.key)}"><span class="rl-card-read-v">${R.tone === 'none' ? '' : '<i aria-hidden="true"></i>'}${_ne(R.label)}</span>${
+    R.why ? `<span class="rl-card-read-w">${_ne(R.why)}</span>` : ''}</div>`;
+}
+/* "Ask Jambo more", the last of the card's verbs, at its right: only where there is advice to explain */
+function rlRowReadMoreHtml(c, ch, side){
+  const R = rlRowReadOf(c, ch, side); if (!R || !R.more) return '';
+  return rlFaceMark(`<button type="button" class="rl-edit rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(i18t('rl_read_why_cost'))}">${_ne(i18t('rl_read_more'))}</button>`);
 }
 /* "Why?" asks Jambo in the conversation beside the paper: the words go through
    his box's one door (intelAsk), which spends the one call the title says */
@@ -23220,7 +23252,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      ending on every screen that draws a document — which is what the shared
      builder was for. */
   rlPaperFootHtml,
-  rlRowReadHtml, rlRowReadAsk, redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  rlRowReadHtml, rlRowReadOf, rlRowReadMoreHtml, rlRowReadAsk, redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
   negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,

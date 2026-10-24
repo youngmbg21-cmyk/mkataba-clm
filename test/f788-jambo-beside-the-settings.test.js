@@ -58,7 +58,7 @@ describe('f788 (2) the Menu, and "/"', () => {
     const g = settingsStage();
     const box = g.$('st-jb-q');
     assert.equal(box.getAttribute('placeholder'), S.en.st_jb_ph);
-    assert.equal(S.en.st_jb_ph, 'Ask for anything, or type /');
+    assert.equal(S.en.st_jb_ph, 'Ask Jambo, or type / for a place');
     assert.ok(box.hasAttribute('data-ca-slash'), 'the one "/" reader');
     input(g, box, '/');
     assert.equal(box.value, '/', 'the page keeps no "/" of its own');

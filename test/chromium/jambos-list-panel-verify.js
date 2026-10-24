@@ -146,7 +146,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
     check('1a the panel is Jambo\'s, 8px in from the right edge, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 384 && Math.abs(N0.right - (1440 - 8)) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
-    check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask for a contract, a number or a list…' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
+    check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask Jambo, or type / for a place' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
 
     /* ---- 2 a row pressed ---- */
     await page.click('#reg-tbody tr[data-row="MK-A2"]');
@@ -157,7 +157,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         pill: (p.querySelector('.ins-h .reg-stg') || {}).textContent || '',
         need: (p.querySelector('.jl-needs .jl-need-t') || {}).textContent || '',
         reads: [...p.querySelectorAll('[data-jl-read]')].map(x => x.getAttribute('data-jl-read')) }; });
-    check('2a "Negotiation" beside his tab, ‹ Jambo to go back', !!N1 && N1p.word === 'Negotiation' && N1p.back, JSON.stringify({ word: N1p.word, back: N1p.back }));
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
+    check('2a "Negotiation" beside his tab, no duplicate back button', !!N1 && N1p.word === 'Negotiation' && !N1p.back, JSON.stringify({ word: N1p.word, back: N1p.back }));
     check('2b the pill carries the wait: "Our move · …"', /^Our move · /.test(N1r.pill.trim()), JSON.stringify(N1r.pill));
     check('2c the facts as rows: Value · Lead · Their changes · Last sent', ['Value', 'Lead', 'Their changes', 'Last sent'].every(k => N1r.rows.includes(k)), JSON.stringify(N1r.rows));
     check('2d Needs you leads with "Answer 2 redlines"; What Jambo read in the drawing\'s order', N1r.need === 'Answer 2 redlines'
@@ -175,7 +176,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('2h only the doors: Negotiation · Workspace, no ⋯, no icon on a door', !N4.more && N4.doors.map(d => d.t).join('|') === 'Negotiation|Workspace' && N4.doors.every(d => !d.svg), JSON.stringify(N4));
     });
     await part('2e ‹ Jambo', async () => {
-      await page.click('#ins-panel [data-jl-back]');
+      await page.click('#ins-panel [data-jl-home]');
       const N2 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('[data-jl-words]') && !document.querySelector('#reg-tbody tr.is-sel') ? true : null; });
       check('2e ‹ Jambo lets the row go: his words back, no row lit', !!N2);
       const N3 = await page.evaluate(PANEL);
@@ -233,7 +234,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('5a the list head: All counts the rows, "late after 7 days" on its hover; the foot "1–N of N"; no band',
         Number(A0.pill.trim()) === A0.rows && /late after 7 days/.test(A0.late) && A0.foot.trim() === `1–${A0.rows} of ${A0.rows}` && !A0.band, JSON.stringify(A0));
       check('5b Whose turn: "You for Jonas"; a colleague\'s signature "Jonas signs · back …"', A0.ap1 === 'You for Jonas' && /^Jonas signs · back /.test(A0.sg1 || ''), JSON.stringify({ ap1: A0.ap1, sg1: A0.sg1 }));
-      if (await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jl-back]'); return !!(b && !b.hidden); })) await page.click('#ins-panel [data-jl-back]');
+      await page.click('#ins-panel [data-jl-home]');
       const A0w = await until(() => { const w = [...document.querySelectorAll('#ins-panel [data-jl-words] .jl-bub')].map(b => b.textContent.trim()); return w.length ? w : null; });
       check('5c nothing chosen: the page in his words, whom the reader stands in for', !!A0w && A0w.some(w => /wait for a yes or a signature/.test(w)) && A0w.some(w => /You answer Jonas’s approvals and reviews until/.test(w)), JSON.stringify(A0w));
       await shot('r15-approvals-words-1440x780.png');
@@ -514,7 +515,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await page.evaluate(() => setView('migration'));
         const HI = await until(sel => { const q = document.querySelector('#mig-side #jl-q'), e = q && (q.closest('.jb-card') || q);
           return e && e.getClientRects().length ? { hints: document.querySelectorAll(sel).length, inView: e.getBoundingClientRect().bottom <= innerHeight, ph: q.getAttribute('placeholder') } : null; }, HINTS, 10000);
-        check(`7c Import ${w}×${ht}: the shared box in its panel, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask for anything, or type /' && HI.inView, JSON.stringify(HI));
+        check(`7c Import ${w}×${ht}: the shared box in its panel, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask Jambo, or type / for a place' && HI.inView, JSON.stringify(HI));
         await shot(`hint-import-${w}x${ht}.png`);
       });
     }

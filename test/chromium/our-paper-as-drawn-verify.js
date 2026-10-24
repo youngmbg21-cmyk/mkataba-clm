@@ -175,15 +175,16 @@ async function SEED(){
         said: (p.querySelector('.tpl-pf-jl .jl-bub') || {}).textContent || '', chips: [...p.querySelectorAll('[data-tpl-pf-chip]')].map(b => b.textContent.trim()),
         next: (p.querySelector('.jl-next-h') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
         fixed: getComputedStyle(p).position, right: (d => d >= 0 && d <= 9)(innerWidth - Math.round(p.getBoundingClientRect().right)) }; });
-    check('5a the head says the template; ‹ Jambo is there', E.word === 'Master services agreement' && E.back, JSON.stringify({ w: E.word, b: E.back }));
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
+    check('5a the head says the template; no duplicate back button', E.word === 'Master services agreement' && !E.back, JSON.stringify({ w: E.word, b: E.back }));
     check('5b his words, from the record — nothing spent, with where it came back changed and what it meets',
       /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
       && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
-    check('5d the ask box at the panel\'s foot, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask for anything, or type /' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
-    await press('#ins-panel [data-jl-back]');
+    check('5d the ask box at the panel\'s foot, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo, or type / for a place' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
+    await press('#ins-panel [data-jl-home]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.tpl-pf-jl') && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);
     await press('[data-tpl-pf="company:' + ids.msa.tid + '"]');
@@ -232,7 +233,7 @@ async function SEED(){
     check('7e Blanks and Our standards said under it', G.sh[0] === 'Blanks 3' && /Reseller name · Territory · Discount: asked of whoever drafts from it\./.test(G.p[0] || '')
       && /^\d+ of \d+ met\. .+ (is|are) proposed on the paper\.$/.test(G.p[1] || ''), JSON.stringify({ sh: G.sh, p: G.p }));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
-    check('7f the ask box as drawn, no hint line under it', G.ph === 'Ask for anything, or type /' && /^Ask/.test(G.send) && G.hints === 0, JSON.stringify({ ph: G.ph, send: G.send, hints: G.hints }));
+    check('7f the ask box as drawn, no hint line under it', G.ph === 'Ask Jambo, or type / for a place' && /^Ask/.test(G.send) && G.hints === 0, JSON.stringify({ ph: G.ph, send: G.send, hints: G.hints }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'our-paper-builder-1440x780.png') });
 
     /* 8 PROPOSALS AND MARKS ON THE PAPER */

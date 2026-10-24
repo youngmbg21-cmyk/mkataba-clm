@@ -70,28 +70,35 @@ const ID = 'MK-PA1';
 
     console.log('\n2 · the press');
     if (l1.actions){
+      /* RE-POINTED 24 Oct 2026 (Round 3, the owner's pick "The SAP Way"): Actions drops ITS OWN MENU CARD from
+         the button, over the paper — the groups, Delete last and red — and the Dossier never moves */
+      const dockTop = () => page.evaluate(() => { const g = document.querySelector('#ig-dock .pd-nx, #pd-glance'); return g ? Math.round(g.getBoundingClientRect().top) : null; });
+      const t0 = await dockTop();
       await click('#ig-actions');
-      /* the wait asks for the landed state, bounded (24 Oct 2026: on CI the
-         landing's scroll came a frame after the fold opened) */
-      await waitFor(page, async id => { const f = typeof pdActsFold === 'function' ? pdActsFold(id) : null; const b = f && f.open && f.querySelector('.pd-mn-rows button'); if (!b) return false;
-        const r = b.getBoundingClientRect(), at = document.elementFromPoint(r.left + 20, r.top + r.height / 2); return r.top >= 0 && r.bottom <= innerHeight && !!(at && f.contains(at)); }, 5000, ID);
-      const f2 = await waitFor(page, async id => { const f = typeof pdActsFold === 'function' ? pdActsFold(id) : null; return f && f.open; }, 5000, ID) ? await fold() : null;
-      check('2a Actions opens the Dossier\'s whole list of acts and lands on it', !!f2 && f2.open && f2.inView && f2.rows.length > 3, JSON.stringify(f2 && { open: f2.open, inView: f2.inView, n: f2.rows.length }));
-      check('2b a draft\'s list ends in "Delete this draft"', !!f2 && /Delete this draft/.test(f2.rows[f2.rows.length - 1] || ''), f2 && f2.rows.slice(-2).join(' | '));
-      check('2c the button says it is open', (await line()).expanded === 'true');
+      const card = await waitFor(page, () => { const p = document.getElementById('pd-acts-pop'); if (!p) return null; const r = p.getBoundingClientRect(), a = document.getElementById('ig-actions').getBoundingClientRect();
+        const rows = [...p.querySelectorAll('.pd-acts-r')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
+        const first = p.querySelector('.pd-acts-r'), fr = first && first.getBoundingClientRect(), at = fr && document.elementFromPoint(fr.left + 20, fr.top + fr.height / 2);
+        return { rows, under: r.top >= a.bottom - 1 && r.top <= a.bottom + 12, right: Math.abs(r.right - a.right) <= 2, painted: !!(at && p.contains(at)), heads: [...p.querySelectorAll('.pd-acts-h')].map(h => h.textContent),
+          last: (p.querySelector('.pd-acts-g:last-child .pd-acts-r:last-child') || {}).className || '' }; }, 5000);
+      check('2a Actions drops its own menu card from the button, over the paper, painted, its groups headed', !!card && card.under && card.right && card.painted && card.rows.length > 3 && card.heads.includes('Work on it'), JSON.stringify(card && { under: card.under, right: card.right, painted: card.painted, n: card.rows.length, heads: card.heads }));
+      check('2b a draft\'s list ends in "Delete this draft", in red', !!card && /Delete this draft/.test(card.rows[card.rows.length - 1] || '') && /is-danger/.test(card.last), card && card.rows.slice(-2).join(' | '));
+      check('2c the button says it is open, and the Dossier did not move', (await line()).expanded === 'true' && (await dockTop()) === t0, JSON.stringify({ t0, t1: await dockTop() }));
       await page.screenshot({ path: path.join(OUT, '2-open-1440x780.png') });
 
       console.log('\n3 · again');
       await click('#ig-actions');
-      const f3 = await waitFor(page, async id => { const f = typeof pdActsFold === 'function' ? pdActsFold(id) : null; return f && !f.open ? 'shut' : null; }, 3000, ID);
-      check('3 pressed again, the list folds', f3 === 'shut' && (await line()).expanded === 'false', String(f3));
+      const f3 = await waitFor(page, () => !document.getElementById('pd-acts-pop') ? 'shut' : null, 3000);
+      check('3 pressed again, the card goes', f3 === 'shut' && (await line()).expanded === 'false', String(f3));
+      await click('#ig-actions'); await waitFor(page, () => !!document.getElementById('pd-acts-pop'), 3000);
+      await page.keyboard.press('Escape');
+      check('3b Esc puts it away', !!(await waitFor(page, () => !document.getElementById('pd-acts-pop'), 3000)));
 
       console.log('\n4 · from another tab');
       await page.evaluate(() => { pdSetTab('doc'); renderIntelDock(); });
       await waitFor(page, () => pdTab() === 'doc', 3000);
       await click('#ig-actions');
-      const f4 = await waitFor(page, async id => { const f = typeof pdActsFold === 'function' ? pdActsFold(id) : null; return f && f.open ? pdTab() : null; }, 5000, ID);
-      check('4 from Clauses it brings the Dossier back with the list open', f4 === 'copilot', String(f4));
+      const f4 = await waitFor(page, () => document.getElementById('pd-acts-pop') ? pdTab() : null, 5000);
+      check('4 from Clauses the card drops too, and Clauses stays where it is', f4 === 'doc', String(f4));
       await click('#ig-actions');
     }
 
@@ -130,9 +137,8 @@ const ID = 'MK-PA1';
       await waitFor(page, () => !!document.getElementById('ig-actions'), 8000);
       const fresh = await page.evaluate(() => !(window.pdRedShows && pdRedShows()));
       await click('#ig-actions');
-      await waitFor(page, id => { const f = pdActsFold(id); return f && f.open; }, 5000, ID);
-      await page.evaluate(s => document.querySelector('#ig-dock [data-ds-fold="acts"] ' + s)?.scrollIntoView({ block: 'center' }), sel);
-      const pressed = await click('#ig-dock [data-ds-fold="acts"] ' + sel);
+      await waitFor(page, () => !!document.getElementById('pd-acts-pop'), 5000);
+      const pressed = await click(`#pd-acts-pop [data-pd-acts-go="${sel}"]`);
       const ed = await waitFor(page, () => { const e = document.getElementById('clause-editor'); if (!e || !e.getClientRects().length) return null;
         const pick = e.querySelector('select'); return pick ? pick.options[pick.selectedIndex].textContent.trim() : 'open'; }, 8000);
       check(`7 ${sel === '[data-rl-add-clause]' ? 'Add a clause' : 'Edit clause'}, pressed from the list with no Redlines open first, opens the clause editor on ${want.source.replace(/\\/g, '')}`,

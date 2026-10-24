@@ -160,7 +160,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       chips: [...document.querySelectorAll('.cn-chips .cn-chip')].map(b => { const cs = getComputedStyle(b); return { t: b.textContent.trim(), lead: b.hasAttribute('data-cn-lead'), door: b.getAttribute('data-cn-need') || b.getAttribute('data-cn-note') || b.getAttribute('data-cn-req') || '',
         dress: [cs.borderTopColor, cs.fontWeight, cs.backgroundColor, cs.color].join('|') }; }),
       first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#cn-needs .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
-    check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'A contract, a party, a place, a draft, a question… or /', JSON.stringify([head.h1, head.ph]));
+    check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'Ask Jambo, or type / for a place', JSON.stringify([head.h1, head.ph]));
     check('1b the chips: the first owed row, then contracts · calendar · draft a new agreement — no upload, no "jambo\'s work"',
       head.chips.length === 4 && head.chips[0].lead && head.chips[0].t === head.first && !!head.chips[0].door
       && head.chips.slice(1).map(c => c.t).join('|') === 'contracts|calendar|draft a new agreement', JSON.stringify(head.chips));
@@ -185,9 +185,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       jambo: [...document.querySelectorAll('#cn-needs .nd-r [data-nd-look]')].length, step: [...document.querySelectorAll('#cn-needs .nd-r .nd-step')].length,
       read: [...document.querySelectorAll('#cn-needs .nd-r .nd-read')].map(e => e.textContent), words: [...new Set([...document.querySelectorAll('#cn-needs .nd-btn')].map(b => b.textContent))],
       inPlace: !!document.querySelector('#cn-jw-list, [data-cn-ag-item], [data-cn-look], [data-cn-house], .cn-jw'), n: ndRead().jambo.length }));
-    check('2a Jambo\'s group first, three of his pieces in sight, each with its step and "Jambo read"',
-      homeNd.groups[0] === 'jambo' && homeNd.jambo === Math.min(3, homeNd.n) && homeNd.step === homeNd.jambo && homeNd.read.length === homeNd.jambo && homeNd.read.every(t => t === 'Jambo read'), JSON.stringify(homeNd));
-    check('2b no list of pieces in place on Home, and every button one word', !homeNd.inPlace && homeNd.words.every(w => /^(Look|Decide|Sign|Review|Fill in|Answer|Open)$/.test(w)), JSON.stringify(homeNd.words));
+/* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads the row; the number, the other side and the ask in grey; the button says what happens */
+    check('2a Jambo\'s group first, three of his pieces in sight, each leading with its agreement',
+      homeNd.groups[0] === 'jambo' && homeNd.jambo === Math.min(3, homeNd.n), JSON.stringify(homeNd));
+    check('2b no list of pieces in place on Home, and every button says what happens', !homeNd.inPlace && homeNd.words.every(w => /^(Review|Approve…|Decide|Sign|Fill in|Answer|Open)$/.test(w)), JSON.stringify(homeNd.words));
     await shot(page, 'main-23-home-1440x780');
     const card = () => page.evaluate(() => { const c = document.getElementById('hm-agents'); const r = c ? c.getBoundingClientRect() : null;
       return { view: state.view, face: window.hbFace ? hbFace() : null, card: !!c, nd: !!(c && c.classList.contains('nd-card')), lit: !!(c && c.classList.contains('is-landed')),
@@ -233,12 +234,13 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     check('3c each act named for what it does: Answer on Redlines · Fill in N details · Send the chase · Check the 3 files',
       lead('answer:') === 'Answer on Redlines' && has('read:', /^Fill in \d+ details?$/) && lead('desk:MK-0368') === 'Send the chase' && lead('import:') === 'Check the 3 files',
       JSON.stringify([lead('answer:'), lead('read:'), lead('desk:MK-0368'), lead('import:')]));
-    check('11a each piece is ONE ROW: what it is, the agreement, "Jambo · step N of M", Look; no body until Look',
-      rows.length >= 5 && rows.every(p => p.title && /^Jambo · step \d+ of \d+$/.test(p.who) && p.look === 'Look' && !p.body && p.h > 0 && p.h < 48),
+    /* RE-POINTED 24 Oct 2026 (the owner: "delete The Who or what asked column"): no who column on the row */
+    check('11a each piece is ONE ROW: what it is, the agreement, Look, no "Who or what asked" column; no body until Look',
+      rows.length >= 5 && rows.every(p => p.title && p.who === '' && p.look === 'Look' && !p.body && p.h > 0 && p.h < 48),
       JSON.stringify(rows.map(p => [p.key, p.title, p.who, p.look, p.h])).slice(0, 900));
     const ans = rows.find(p => p.key === 'answer:MK-0382');
-    check('11b their answer reads as drawn: "Nordvik Logistik\'s answer" · the agreement and its reference · step 5 of 6, what Jambo found on the hover',
-      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^MK-0382·Master services agreement · Nordvik Logistik$/.test(ans.deal) && ans.who === 'Jambo · step 5 of 6' && /^Answers to their 2 redlines, read against our standards: /.test(ans.hover), JSON.stringify(ans));
+    check('11b their answer reads as drawn on the Board: "Nordvik Logistik\'s answer" · the agreement and its reference, no who column (24 Oct 2026), what Jambo found on the hover',
+      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^MK-0382·Master services agreement · Nordvik Logistik$/.test(ans.deal) && ans.who === '' && /^Answers to their 2 redlines, read against our standards: /.test(ans.hover), JSON.stringify(ans));
     const heads = await page.evaluate(() => ({ board: (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '', n: ndRead().n }));
     check('11c the card\'s head says Home\'s count: "N things · …"', new RegExp('^' + heads.n + ' things?( · |$)').test(heads.board), JSON.stringify(heads));
     if (await openAgent('late')) {
@@ -372,10 +374,11 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     const needs = await page.evaluate(() => [...document.querySelectorAll('#cn-needs .nd-r')].filter(r => !r.querySelector('[data-nd-look]')).map(r => ({
       title: (r.querySelector('.cn-w b') || {}).innerText || '', sub: (r.querySelector('.cn-w > span') || {}).innerText || '', when: (r.querySelector('.nd-when') || {}).textContent || '',
       btn: (r.querySelector('button') || {}).textContent || '' })));
-    check('11i three of your own rows in sight, the approval answered for an away colleague first, as drawn', needs.length === 3 && /^Answer an approval for /.test(needs[0].title), JSON.stringify(needs.map(n => n.title)));
-    const ap = needs.find(n => /^Answer an approval for /.test(n.title));
-    check('7a "Answer an approval for Unrestricted" · "for Unrestricted · away until <day>" · name · party · value · Decide',
-      !!ap && /Answer an approval for Unrestricted\s*for Unrestricted · away until \S+/.test(ap.title.replace(/\n/g, ' ')) && /^MK-\S+ · Power purchase agreement · Helio Energy AB · KES/.test(ap.sub) && ap.btn === 'Decide',
+/* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads the row; the number, the other side and the ask in grey; the button says what happens */
+    check('11i three of your own rows in sight, the approval answered for an away colleague first, as drawn', needs.length === 3 && /Answer an approval for /.test(needs[0].sub), JSON.stringify(needs.map(n => n.title)));
+    const ap = needs.find(n => /Answer an approval for /.test(n.sub));
+    check('7a the agreement · "for Unrestricted · away until <day>" · number · party · the ask · value · Approve…',
+      !!ap && /^Power purchase agreement\s*for Unrestricted · away until \S+/.test(ap.title.replace(/\n/g, ' ')) && /^MK-\S+ · Helio Energy AB · Answer an approval for Unrestricted · KES/.test(ap.sub) && ap.btn === 'Approve…',
       JSON.stringify(ap));
     const D7 = await page.evaluate(() => { const D = ndRead(); return { you: D.you.map(r => r.bundle ? 'bundle:' + r.n : r.y ? r.y.k + ':' + r.y.kind : r.key), jambo: D.jambo.map(r => r.it.kind), n: D.n,
       all: (document.querySelector('[data-nd-all="you"]') || {}).textContent || '' }; });

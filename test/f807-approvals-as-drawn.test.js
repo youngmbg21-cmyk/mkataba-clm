@@ -163,7 +163,8 @@ describe('f807 (3) the list as drawn', () => {
     assert.match(fnOf(AP, 'apSortHtml'), /regSortIconHtml\(sortOpts,'ap-sort'\)/);
     assert.match(fnOf(AP, 'apHeadRegister'), /right:\(\)=>apSortHtml\(\)/);
     assert.match(f, /lhFootHtml\('approvals',n,n,0,\{ cls:'ap-foot ap-wl-foot' \}\)/);
-    assert.match(f, /apWaitingText\(r\.idle\)\+\(apLate\(r\)\?' \\u00b7 '\+i18t\('jl_late'\):''\)/);
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): "104 days", red already says late; the word rides the hover */
+    assert.match(f, /title="\$\{esc\(i18t\('jl_late'\)\)\}"`:''\}>\$\{esc\(r\.done\?i18t\('ap_pg_approved'\):r\.idle==null\?'—':apWaitingText\(r\.idle\)\)\}/);
     assert.equal(tn('jl_ap_late_after', 7, { n: 7 }), 'late after 7 days');
     const ctx = stage(['apSortRows'], { _apSort: 'wait', AP_SORTS: ['wait', 'value', 'ref'] });
     vm.runInContext("var _apSort='wait', AP_SORTS=['wait','value','ref'];", ctx);
@@ -345,7 +346,8 @@ describe('f807 (10) the party\'s name reads whole beside the panel', () => {
   const HTML = read('index.html');
   test('10a Ref gives the party room; Kind keeps its pill whole', () => {
     const f = fnOf(AP, 'renderApprovalsPage');
-    assert.match(f, /\{t:i18t\('reg_col_ref'\),w:72\},\{t:i18t\('reg_col_party'\)\},\{t:i18t\('ap_wl_kind'\),w:100\}/);
+    /* RE-POINTED 24 Oct 2026 (Round 2): Kind is drawn only where the rows differ (apSameCols) */
+    assert.match(f, /\{t:i18t\('reg_col_ref'\),w:72\},\{t:i18t\('reg_col_party'\)\},\.\.\.\(same\.kind\?\[\]:\[\{t:i18t\('ap_wl_kind'\),w:100\}\]\)/);
   });
   test('10b a long name takes a second line, never an ellipsis; the agreement under it keeps its cut', () => {
     assert.match(HTML, /\.ap-table\.ap-ins \.ap-id \.ap-name\{white-space:normal;overflow-wrap:anywhere;\}/);

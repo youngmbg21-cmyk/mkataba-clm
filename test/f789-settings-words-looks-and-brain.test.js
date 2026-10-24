@@ -46,8 +46,8 @@ describe('f789 (1) the words, in both books', () => {
     }
   });
   test('1c his box says "/" opens the Menu, in both', () => {
-    assert.equal(S.en.st_jb_ph, 'Ask for anything, or type /');
-    assert.match(S.sv.st_jb_ph, /\/$/);
+    assert.equal(S.en.st_jb_ph, 'Ask Jambo, or type / for a place');
+    assert.equal(S.sv.st_jb_ph, 'Fråga Jambo, eller skriv / för en plats');
   });
 });
 

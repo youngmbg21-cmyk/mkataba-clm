@@ -67,7 +67,8 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const tt = document.getElementById('reg-tt');
       const foot = (document.getElementById('reg-showing') || {}).textContent || '';
       /* the list's own count, as its foot states it ("Showing 1–30 of 30") */
-      const of = foot.match(/of\s+([\d,]+)/);
+      /* RE-POINTED 24 Oct 2026 (Round 2): the whole list says "N contracts · M live"; a cut list still "1–40 of N" */
+      const of = foot.match(/of\s+([\d,]+)/) || foot.match(/^\s*([\d,]+)\s+contracts?\b/);
       const all = document.querySelector('[data-lh-seat="contracts"] [data-reg-view=""] .n');
       return { tt: tt ? tt.textContent.trim() : null, shown: tt ? getComputedStyle(tt).display : null,
         n: of ? Number(of[1].replace(/,/g, '')) : -1, foot, all: all ? Number(all.textContent.replace(/[^\d]/g, '')) : null };
@@ -76,7 +77,7 @@ const wait = async (page, fn, arg, ms = 5000) => {
        list card's own head ("Contracts (N)") goes; the number it carried is
        the All tab's, and the foot says the same ("1–40 of N") */
     check('1a the list carries its count — the All tab and the foot agree, no "Contracts (N)" card head',
-      !reg.tt && reg.n > 0 && reg.all === reg.n && /^1–\d+ of /.test(reg.foot.trim()), `${reg.tt} · All ${reg.all} · ${reg.n} rows · ${reg.foot.trim()}`);
+      !reg.tt && reg.n > 0 && reg.all === reg.n && (/^1–\d+ of /.test(reg.foot.trim()) || /^\d+ contracts?( · \d+ live)?$/.test(reg.foot.trim())), `${reg.tt} · All ${reg.all} · ${reg.n} rows · ${reg.foot.trim()}`);
     check('1b no money total in the foot', !/aggregate|totalt|KES|SEK|on paper/i.test(reg.foot), JSON.stringify(reg.foot.trim()));
 
     /* ---- 2. APPROVALS ---- */

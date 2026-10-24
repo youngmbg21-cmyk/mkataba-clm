@@ -232,6 +232,9 @@ const E = {
   party: (n, said) => L => E.wall(n)(L) && L.count === said,
   face: f => L => L.view === 'dashboard' && L.face === f,
   /* the contract's Lifeline strip, newest on the Board, on its page (step 8) */
+  /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): a door that opened the room lands on
+     the paper with its Dossier (roomRetiredLand → roomHomeLand); Where we are, History and "bring up" keep the strip */
+  dossier: id => L => E.copilot(id)(L),
   strip: (id, page) => L => L.view === 'dashboard' && L.face === 'board' && (!L.cv || /^book:/.test(L.cv)) && L.strip === id && L.stripPage === (page || 'ov'),
   page: v => L => L.view === v && !L.room,
   ngList: L => L.view === 'redline' && L.rlList,
@@ -239,7 +242,7 @@ const E = {
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the Dossier beside the paper, Still owed\'s row in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
-  strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)', kt: 'its paper on Home, Key terms in the middle' };
+  strip: 'its strip on the Board', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)', kt: 'its paper on Home, Key terms in the middle' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -496,8 +499,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* Requests */
     const RQ = rqId ? `.ik-lt tbody [data-ik-row="${rqId}"]` : '#none';
     const toRequests = async () => { await goPage('intake'); await domClick('[data-ik-view="all"]'); await waitFor(page, s => !!document.querySelector(s), 6000, RQ); };
-    await door(A, 'Requests row, double-click (→ MK-A2)', { start: toRequests, press: () => dbl(RQ), expect: E.strip('MK-A2'), says: SAYS.strip });
-    await door(A, 'Requests row, Enter (→ MK-A2)', { start: toRequests, press: () => enter(RQ), expect: E.strip('MK-A2'), says: SAYS.strip });
+    await door(A, 'Requests row, double-click (→ MK-A2)', { start: toRequests, press: () => dbl(RQ), expect: E.dossier('MK-A2'), says: SAYS.dossier });
+    await door(A, 'Requests row, Enter (→ MK-A2)', { start: toRequests, press: () => enter(RQ), expect: E.dossier('MK-A2'), says: SAYS.dossier });
     await threeDoors(A + ' · Requests', 'intake', RQ, 'MK-A2');
     /* THE WORKSPACE DOOR PUTS AWAY A FACE LEFT OPEN: on a contract that owes
        nothing it lands on the paper with Jambo, whatever face an earlier press
@@ -517,7 +520,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       look: (id, view) => ({ expect: L => L.view === view && !L.room, says: 'answered where it stands (Done)', same: true }),
       renewal: id => ({ expect: E.obTab(id), says: SAYS.obTab + ', where the renewal is decided' }),
       note: id => ({ expect: E.paper(id), says: 'beside Home\'s paper, the notes drawer open' }),
-      join: id => ({ expect: E.strip(id), says: SAYS.strip + ', the desk sheet over it' }),
+      join: id => ({ expect: E.dossier(id), says: SAYS.dossier + ', the desk sheet over it' }),
     };
     const checklist = async (area, view, reach, rowSel, id, skip = []) => {
       const at = async () => { await reach(); await selectRow(rowSel); };
@@ -608,7 +611,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
        draft) opens its strip too */
     const BELL_ROOM = ['cp-ready', 'look', 'cert-lapsed', 'desk-join', 'renewal'];
     const roomRow = a => BELL_ROOM.includes(a.kind) || (a.kind === 'request' && !!a.id);
-    const stripRow = a => a.kind === 'renewal' ? E.obTab(a.id) : E.strip(a.id);
+    const stripRow = a => a.kind === 'renewal' ? E.obTab(a.id) : E.dossier(a.id);
     /* one row of every kind the bell draws on this book, and every approval row (step 2's own door) */
     const alerts = await page.evaluate(() => buildAlerts().map((a, i) => ({ i, kind: a.kind, id: a.id, obId: a.obId || null, ends: !!a.ends, rid: a.rid || null })));
     /* RE-POINTED 23 Oct 2026 (THE ONE DESK, the bell the Legora way): the bell's panel draws the one
@@ -844,7 +847,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       press: async () => { await page.evaluate(() => openCommandPalette()); if (!(await waitFor(page, () => !!document.getElementById('cp-input'), 4000))) return false;
         await page.type('#cp-input', 'Kabras', { delay: 10 });
         return page.evaluate(() => { const i = commandPaletteResults('Kabras').findIndex(r => r.kind === 'contract'); const b = i >= 0 ? document.getElementById('cp-opt-' + i) : null; if (!b) return false; b.click(); return true; }); },
-      expect: E.strip('MK-A1'), says: SAYS.strip });
+      expect: E.dossier('MK-A1'), says: SAYS.dossier });
     /* "bring up" in Jambo's box on the Board (step 8): the strip, below Today's insights */
     await door(D, 'Jambo\'s box on the Board, "bring up MK-A2"', { start: async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); }); await waitFor(page, () => !!document.getElementById('igd-input'), 8000); },
       press: say('bring up MK-A2'), expect: E.strip('MK-A2'), says: SAYS.strip });
@@ -880,8 +883,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const link = hash => async () => { await page.goto(`${h.base}/?n=${++n}#${hash}`, { waitUntil: 'networkidle' });
       await waitFor(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length > 0 && !/contract=/.test(location.hash), 15000); return true; };
     const LINKS = [
-      ['#contract=MK-A2 (no tab)', 'contract=MK-A2', E.strip('MK-A2'), SAYS.strip, null],
-      ['&tab=terms (MK-A2)', 'contract=MK-A2&tab=terms', E.strip('MK-A2'), SAYS.strip, null],
+      ['#contract=MK-A2 (no tab)', 'contract=MK-A2', E.dossier('MK-A2'), SAYS.dossier, null],
+      ['&tab=terms (MK-A2)', 'contract=MK-A2&tab=terms', E.dossier('MK-A2'), SAYS.dossier, null],
       ['&tab=stands (MK-A2)', 'contract=MK-A2&tab=stands', E.strip('MK-A2', 'where'), SAYS.stripWhere, null],
       ['&tab=sign&go=approval (MK-A2)', 'contract=MK-A2&tab=sign&go=approval', E.signing('MK-A2'), SAYS.signing, null],
       ['&tab=redline (MK-R1)', 'contract=MK-R1&tab=redline', E.red('MK-R1'), SAYS.red, null],
@@ -904,7 +907,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       ['on the wall narrowed to a party', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],
       ['on the Negotiations list', () => go('redline'), E.ngList, 'the Negotiations list', null],
       /* the room by name (the checks' own door) and a refresh standing on it: the strip */
-      ['on the room, opened by name (MK-A1)', () => page.evaluate(() => openWorkspace('MK-A1', { room: true })), E.strip('MK-A1'), SAYS.strip, null],
+      ['on the room, opened by name (MK-A1)', () => page.evaluate(() => openWorkspace('MK-A1', { room: true })), E.dossier('MK-A1'), SAYS.dossier, null],
       ['on the strip, on Where we are (MK-A1)', () => page.evaluate(() => hbStripBring('MK-A1', 'where')), E.strip('MK-A1', 'where'), SAYS.stripWhere, null],
       ['on the Contracts place (the Wall)', () => go('register'), E.wall(null), SAYS.wall, null],
       ['on the Contracts place, the List', () => page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }), E.list(null), SAYS.list, null],

@@ -224,7 +224,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     check('6b the note in Jambo\'s panel ("Note"): three verbs on one line, Review "Today, … · in your bell", Delete note', !!N && N.word === 'Note'
       && /^Mark reviewed,Snooze a week,Open MK-A2$/.test(N.verbs.join(',')) && N.oneLine && /^Today, .* · in your bell$/.test(N.review) && N.del, N && JSON.stringify({ verbs: N.verbs, review: N.review }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-mynotes-1440x780.png') });
-    await press('#ins-panel [data-jl-back]');
+    await press('#ins-panel [data-jl-home]');
     const J = await until(() => { const b = document.querySelector('#ins-panel .jl-bub'); return b ? { say: b.textContent.trim(), chips: [...document.querySelectorAll('#ins-panel .jl-chip')].map(c => c.textContent.trim()) } : null; });
     check('6c ‹ Jambo: the ledger in his words, counted, with its two doors', !!J && /^You have 5 notes, private to you\. 1 is due today\. 2 come up later\./.test(J.say)
       && JSON.stringify(J.chips) === '["the ones due today","new note"]', JSON.stringify(J));

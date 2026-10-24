@@ -217,10 +217,10 @@ describe('f238 — the design system has its other half', () => {
        the inks are the design's literals. */
     /* RE-PINNED 23 Oct 2026 to THE LEGORA LOOK (owner: "i want to apply this
        across all the pages in hati"): the inks are the drawing's #1D1D1F and
-       its cool greys one step deeper (#66666B / #6A6A6F, so a grey word on the
+       its cool greys one step deeper (#4B4B50 for text since the owner's "firmer grey", 24 Oct 2026; #6A6A6F for lines and icons; a grey word on the
        grey pill clears AA); the paper's own ink is unchanged. */
-    for (const decl of ['--color-text:#1D1D1F', '--color-neutral-600:#66666B',
-                        '--color-neutral-500:#66666B', '--color-neutral-400:#6A6A6F',
+    for (const decl of ['--color-text:#1D1D1F', '--color-neutral-600:#4B4B50',
+                        '--color-neutral-500:#4B4B50', '--color-neutral-400:#6A6A6F',
                         '--color-neutral-700:#1D1D1F', '--color-doc-text:#1C1A16',
                         '--color-doc-muted:#3B4A48'])
       assert.ok(has(root, decl), `light theme is missing ${decl}`);

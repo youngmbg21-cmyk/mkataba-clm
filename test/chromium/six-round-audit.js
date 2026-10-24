@@ -334,10 +334,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check(1, 'the first send minted ONE durable link', shares.length === 1
       && !!shares[0].durable, `${shares.length} share(s), durable=${shares[0] && shares[0].durable}`);
     token = shares[0] && shares[0].token;
-    await mailCheck(1, 1, 'the link delivery — the one email with a job');
-    const mail = (await mailToErik())[0];
-    check(1, 'that email carries the link', !!mail && new RegExp(token).test(
-      String(mail.body || '') + String(mail.dev_hint || '')));
+    /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: with no email set up — this server — the send screen opens
+       on "Copy the link", "Send by email" greyed): the first link is the person's own hand-over, so it is no
+       email; the trail says it went as a link. Every count below is one lower for the same reason. */
+    await mailCheck(1, 0, 'the link is copied by hand — no email set up, so none is queued');
+    const handed = await owner.evaluate(id => ((getContract(id) || {}).audit || []).filter(a => a.action === 'Shared').map(a => a.detail).pop() || '', CID);
+    check(1, 'the trail says the link was handed over, not emailed', /via link/.test(handed) && !/via email/.test(handed), handed);
 
     await cpOpen(token);
     await leakCheck(1);
@@ -364,7 +366,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await cpAnswer();
     check(2, 'his postbox sends the held answer and the counter-ask', send === 'ok', send);
     await pause(1500);
-    await mailCheck(2, 1, 'no new email for his answer — the platform carried it');
+    await mailCheck(2, 0, 'no new email for his answer — the platform carried it');
 
     await ownerPoll();
     const applied = await owner.evaluate(() => {
@@ -409,7 +411,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        hand-off is told where they look. Their answers and the comments still
        send nothing. So the count grows by one per hand-over, and by nothing
        else. */
-    await mailCheck(3, 2, 'the link, then one "your turn" email for this hand-over');
+    await mailCheck(3, 1, 'one "your turn" email for this hand-over');
 
     await cpOpen(token);
     await leakCheck(3);
@@ -489,7 +491,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     });
     await cpAnswer();
     await pause(1500);
-    await mailCheck(4, 2, 'his answer sends nothing to him');
+    await mailCheck(4, 1, 'his answer sends nothing to him');
 
     await ownerPoll();
     await ownerOpenBench();
@@ -568,7 +570,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     });
     check(5, 'the reply is on Erik\'s page without any re-send',
       /Confirmed — storage stays/.test(cpNotes), cpNotes.slice(0, 400));
-    await mailCheck(5, 2, 'a comment is a comment — no email');
+    await mailCheck(5, 1, 'a comment is a comment — no email');
   }
 
   /* ============== ROUND 6 — alignment, readiness, both sides ============== */
@@ -610,7 +612,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check(6, 'Erik\'s Ready to sign is live and pressed', ready === 'ok', ready);
     await pause(1500);
     await leakCheck(6);
-    await mailCheck(6, 3, 'six rounds in: the link and one "your turn" email per hand-over (rounds 3 and 6)');
+    await mailCheck(6, 2, 'six rounds in: one "your turn" email per hand-over (rounds 3 and 6)');
 
     await ownerPoll(); await ownerOpenBench();
     /* RE-POINTED 23 Aug 2026, owner-asked: NOTHING FLOATS OVER THE PAGE.
@@ -697,7 +699,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const signShare = shares2.find(s => s.purpose === 'sign');
     check('E', 'a signing link exists, separate from the standing link', !!signShare,
       shares2.map(s => s.purpose).join(','));
-    await mailCheck('E', 4, 'the signing link follows the three negotiation emails — a link delivery again');
+    await mailCheck('E', 3, 'the signing link follows the two "your turn" emails — a link delivery again');
 
     // The standing negotiation link is now retired for answering.
     const gate = await admin.raw('/api/shares/' + token + '/respond', { method: 'POST', body: {
@@ -797,8 +799,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         && (String(finalMail.body).match(/#share=[\w:]+/) || [])[0]);
     /* FIVE since the "your turn" emails (rounds 3 and 6, counted in round 6):
        the link, two hand-overs, the signing link, the signed copy. */
-    check('E', 'emails to Erik, whole negotiation: 5 (link, two "your turn", signing link, signed copy)',
-      mails.length === 5, `${mails.length}: ${mails.map(m => m.subject).join(' | ')}`.slice(0, 400));
+    /* RE-POINTED 24 Oct 2026 (Round 3): FOUR — the first link was copied by hand (no email set up) */
+    check('E', 'emails to Erik, whole negotiation: 4 (two "your turn", signing link, signed copy)',
+      mails.length === 4, `${mails.length}: ${mails.map(m => m.subject).join(' | ')}`.slice(0, 400));
 
     // The standing link is dead for action, alive for reading the sealed copy.
     const after = await admin.raw('/api/shares/' + token);

@@ -1106,7 +1106,10 @@ function jlReserved(){
   const h = jlHost(); if (!h) return 0;
   /* a panel in a hidden tab takes nothing (Our paper's Templates tab) */
   if (typeof h.closest === 'function' && h.closest('[hidden]')) return 0;
-  return h.classList.contains('is-folded') ? JL_FOLDED : jlWidthNow();
+  if (h.classList.contains('is-folded')) return JL_FOLDED;
+  /* past the mark the panel lies over the page: the page gave only its room (--jl-room), not the panel's width */
+  if (h.classList.contains('is-split-over')){ const sh = jlShell(); const r = sh ? parseFloat(sh.style.getPropertyValue('--jl-room')) : NaN; if (r >= 0) return r; }
+  return jlWidthNow();
 }
 /* ---- THE SLIDER (owner, 19 Oct 2026: "all the new jambo panels do not have
    a slider like in the redline page. They should all have one.") ----
@@ -1171,9 +1174,11 @@ const JL_SPLIT = {
     try { return Math.max(0, Math.round(h.getBoundingClientRect().right - cs.getBoundingClientRect().left)); } catch (_){ return 0; } },
   edge: () => { const h = jlHost(); return h ? h.getBoundingClientRect().right : 0; },
   /* THE ONE WRITER of the width: folded, the strip is the stylesheet's 46 and the open width is kept */
-  apply: w => { const sh = jlShell(); const h = jlHost();
+  apply: (w, over) => { const sh = jlShell(); const h = jlHost();
     if (!sh || !h || h.classList.contains('is-folded')) return;
-    sh.style.setProperty('--jl-w', Math.round(w) + 'px'); },
+    sh.style.setProperty('--jl-w', Math.round(w) + 'px');
+    /* past the mark the page's room stops at the panel's seam less what lies over it (splitOver) */
+    sh.style.setProperty('--jl-room', Math.round(w - (over || 0)) + 'px'); h.classList.toggle('is-split-over', !!over); },
   /* the window's resize is this file's own listener (jlLayout, at the foot) */
 };
 /* the panel's top is the page head's top: under the bar and the desk tabs;
@@ -1201,14 +1206,14 @@ function jlHeadHtml(){
      "Overview", as beside a contract; "Jambo" names only the conversation the
      panel flips to (jlTalk*) */
   const name = i18t('pd_tab_overview');
-  const back = i18t('pd_trail_back', { to: name });
   const fold = i18t('int_collapse_panel');
   return `<div class="jl-head">
     <button type="button" class="pd-tab on jl-tab" data-jl-home title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span><span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="pd-tab-w">${esc(name)}</span></button>
     <button type="button" class="pd-tab jl-tab jl-talk-tab" data-jl-talk title="${esc(i18t('pd_tab_copilot'))}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : esc(i18t('pd_tab_copilot'))}</button>
     <span class="jl-word" data-jl-word></span>
     <span class="jl-sp"></span>
-    <button type="button" class="pd-back jl-back" data-jl-back title="${esc(back)}" aria-label="${esc(back)}" hidden><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
+    ${''/* NO "‹ Overview" BESIDE THE OVERVIEW TAB (Round 2, owner's yes 24 Oct 2026): it said what the tab
+        says and squeezed the page's own word to one letter; the tab is the way back */}
     <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-jl-fold aria-expanded="true" title="${esc(fold)}" aria-label="${esc(fold)}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
   </div>`;
 }

@@ -4407,6 +4407,14 @@ function negoBlockerClauses(list){
     seen.push(n); names.push(n);
   });
   if (!names.length) return '';
+  /* NUMBERED CLAUSES SAID BY THEIR NUMBERS (Round 3, owner's yes 24 Oct 2026): "clauses 20, 7, 12 and 3", never four
+     names cut short; ONE clause keeps its name (one place to go), and a list where any has no number keeps names */
+  const nums = names.map(n => (String(n).match(/^\s*(\d+(?:\.\d+)*)[.\s]/) || [])[1]);
+  if (names.length > 1 && names.length <= NG_BLOCK_CLAUSES && nums.every(Boolean)){
+    let list = nums.join(', ');
+    try { list = new Intl.ListFormat((typeof langLocale === 'function') ? langLocale() : undefined, { type: 'conjunction' }).format(nums); } catch (_){}
+    return i18tn('sgx_nb_clauses_n', nums.length, { list });
+  }
   if (names.length <= NG_BLOCK_CLAUSES) return names.join(', ');
   return i18t('ng_block_clauses_more',
     { list: names.slice(0, NG_BLOCK_CLAUSES).join(', '), n: names.length - NG_BLOCK_CLAUSES });

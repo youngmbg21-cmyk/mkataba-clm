@@ -125,8 +125,11 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     if (G && G.shown) {
       await page.mouse.move(G.x, G.y); await page.mouse.down(); await page.mouse.move(G.x - 120, G.y, { steps: 6 }); await page.mouse.move(G.x - 200, G.y, { steps: 6 }); await page.mouse.up();
       const R2 = await until(() => { const p = document.getElementById('ai-panel').getBoundingClientRect(), cs = document.getElementById('content-scroll').getBoundingClientRect();
-        return p.width >= 560 ? { panelW: Math.round(p.width), pageRight: Math.round(cs.right), panelLeft: Math.round(p.left) } : null; }, null, 3000);
-      check('1i pulled 200px to the left, Jambo is that much wider and the page follows', !!R2 && Math.abs(R2.panelW - 584) <= 4 && Math.abs(R2.pageRight - R2.panelLeft) <= 1, JSON.stringify(R2));
+        return p.width >= 560 ? { panelW: Math.round(p.width), pageRight: Math.round(cs.right), panelLeft: Math.round(p.left), mark: window.SPLIT_OVER_AT, over: document.getElementById('ai-panel').classList.contains('is-split-over') } : null; }, null, 3000);
+      /* RE-POINTED 24 Oct 2026 (owner: past the signing page's mark the panel slides OVER the page):
+         the page follows the panel down to SPLIT_OVER_AT, then holds and the panel lies over it */
+      check('1i pulled 200px to the left, Jambo is that much wider; the page follows to the mark, then the panel lies over it', !!R2 && Math.abs(R2.panelW - 584) <= 4 && R2.mark === 880
+        && (R2.panelLeft >= R2.mark ? Math.abs(R2.pageRight - R2.panelLeft) <= 1 && !R2.over : Math.abs(R2.pageRight - R2.mark) <= 1 && R2.over), JSON.stringify(R2));
       await shot('1-side-panel-wider-1440x780');
       await page.click('#ai-min');
       const back = await until(() => { const p = document.getElementById('ai-panel'), t = document.querySelector('[data-jh-jambo]');

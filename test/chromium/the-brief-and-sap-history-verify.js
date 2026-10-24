@@ -118,11 +118,18 @@ const BOXES = sel => {
       const B = await page.evaluate(BOXES, '#igd-feed');
       /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"; asked about its lines, the owner said "no lines",
          keeping The Brief): no edge, band or shadow anywhere — only a fact's state ring and its amber "Missing" tag */
-      const CK_DRAWN = /^(i\.pd-ck-ring[\w.-]* edge( fill)?|span\.pd-ck-pill fill)$/;
+      /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the drawing adds the stage line's done dots, the
+         Next card's pale ground and its progress bar; nothing else is boxed */
+      const CK_DRAWN = /^(i\.pd-ck-ring[\w.-]* edge( fill)?|span\.pd-ck-pill fill|i\.ds-ln-dot( edge)?( fill)?|div\.ds-nx fill|i\. fill)$/;
       const B2 = Array.isArray(B) ? B.filter(x => !CK_DRAWN.test(x)) : B;
       check('1e nothing is boxed inside the Dossier: no edge, band or shadow on a section, row or table cell', Array.isArray(B2) && B2.length === 0, JSON.stringify(B2 && B2.slice(0, 8)));
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a section's label is in small capitals, 11px, still 16 in from the edge */
-      check('1f the stages are six lines, each 16 in from the edge, named in sentence case', D.labels === 6 && D.labLeft === 16 && D.labCase === 'none', JSON.stringify(D));
+      /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the six stages are one line across with ticks and
+         dates (.ds-ln-st), the old spine's six lines folded away; each named in sentence case */
+      const L = await page.evaluate(() => { const st = [...document.querySelectorAll('#ig-dock .ds-ln-st')].filter(x => x.getBoundingClientRect().height > 0);
+        const b = st[0] && st[0].querySelector('b'); return { n: st.length, oneLine: st.length > 1 && st.every(x => Math.abs(x.getBoundingClientRect().top - st[0].getBoundingClientRect().top) < 4),
+          cs: b ? getComputedStyle(b).textTransform : null, spine: [...document.querySelectorAll('#ig-dock .ds-sp-st')].filter(x => x.getBoundingClientRect().height > 0).length }; });
+      check('1f the six stages are one line across, named in sentence case; the old six lines are not drawn', L.n === 6 && L.oneLine && L.cs === 'none' && L.spine === 0, JSON.stringify(L));
       check('1g Still owed\'s head row takes no room (no band over the grid)', D.thH === 0, D.thH);
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-dossier-1440x780.png') });
     }

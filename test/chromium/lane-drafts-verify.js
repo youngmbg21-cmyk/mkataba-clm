@@ -130,13 +130,15 @@ const until = async (page, fn, arg, ms = 8000) => {
        retired — the row opens the draft's Lifeline strip on Home's Board, and
        what Copilot read on arrival is the strip's own band ("What Jambo read
        on upload", .bs-jb), where the room's triage strip used to say it */
-    const landed = await until(p2, id => state.view === 'dashboard' && !!document.getElementById('bs-strip-' + id)
-      && (document.querySelector('#bs-strips > .bs-strip') || {}).getAttribute?.('data-bs-id') === id, cid, 8000);
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): the row opens the draft's paper with its
+       Dossier, and what Jambo read on arrival is the Dossier's own "What Jambo read" */
+    const landed = await until(p2, id => state.view === 'dashboard' && window.intel && intel.paper && intel.paper.id === id && !!document.querySelector('#pd-glance'), cid, 8000);
     ok('3f the press opens the draft', landed, await p2.evaluate(() => ({ view: state.view, id: state.activeId, strip: (document.querySelector('#bs-strips > .bs-strip') || {}).id })));
     await p2.waitForTimeout(800);
     /* PAINTED, not merely present: the band's own pixels answer to it. */
     const strip = await p2.evaluate(id => {
-      const el = document.querySelector('#bs-strip-' + id + ' .bs-jb');
+      /* the Read stage on the Dossier's line: its name and the day it was read */
+      const el = document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="read"]') || document.querySelector('#bs-strip-' + id + ' .bs-jb');
       if (el) el.scrollIntoView({ block: 'center' });
       const r = el ? el.getBoundingClientRect() : null;
       const hit = r && r.height > 0 ? document.elementFromPoint(r.left + Math.min(40, r.width / 2), r.top + Math.min(12, r.height / 2)) : null;
@@ -144,7 +146,7 @@ const until = async (page, fn, arg, ms = 8000) => {
       return { painted: !!(hit && el.contains(hit)), text: ((el || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
         tab: tab ? tab.textContent.trim() : null };
     }, cid);
-    ok('3g it lands on the strip\'s Overview, where the band says Jambo read it, and when', strip.painted && /Read \d/.test(strip.text), strip);
+    ok('3g it lands on the Dossier, where What Jambo read says he read it, and when', strip.painted && /Read\s*\d/.test(strip.text), strip);
     await p2.screenshot({ path: path.join(OUT, '3-opened.png') });
 
     /* ---- 4 · NOBODY READS IT TWICE ---- */

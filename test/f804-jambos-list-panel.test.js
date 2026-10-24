@@ -65,7 +65,7 @@ const evt = (win, type) => new win.Event(type, { bubbles: true, cancelable: true
 
 describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one builder', () => {
   const list = () => [fixture('MK-1', { name: 'Supply & Delivery', counterparty: 'Aleph Group' }), fixture('MK-2', { counterparty: 'Wasoko' })];
-  test('1a a head with his tab, a word for what it holds, ‹ Jambo while it holds a row, the fold, and no hint line', () => {
+  test('1a a head with his tab, a word for what it holds, no duplicate back button, the fold, and no hint line', () => {
     const b = world(list());
     b.win.renderRegister();
     const p = b.$('#ins-panel');
@@ -75,7 +75,8 @@ describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one build
        the PAGE's; Jambo is a flip"): the tab is the landing, "Overview" */
     assert.equal(p.querySelector('.jl-head [data-jl-home] .pd-tab-w').textContent, 'Overview');
     assert.equal(p.querySelector('[data-jl-word]').textContent, 'Contract', 'the word says what it holds');
-    assert.equal(p.querySelector('[data-jl-back]').hidden, false, '‹ Jambo while a row is held');
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
+    assert.equal(p.querySelector('[data-jl-back]'), null, 'no duplicate back button');
     assert.ok(p.querySelector('[data-jl-fold]'), 'the fold to the edge');
     assert.ok(p.querySelector('.jl-body .ins-h'), 'the chosen row\'s panel is in the body');
     assert.ok(p.querySelector('.jl-foot #jl-q') && p.querySelector('.jl-foot [data-jl-send]'), 'the ask box and its Ask at the foot');
@@ -101,16 +102,16 @@ describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one build
 
 describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
   const list = () => [fixture('MK-1', { counterparty: 'Aleph Group' }), fixture('MK-2'), fixture('MK-3')];
-  test('2a ‹ Jambo lets the row go: his words from the list\'s own count, "no Jambo call", no row lit', () => {
+  test('2a the Overview tab lets the row go: his words from the list\'s own count, "no Jambo call", no row lit', () => {
     const b = world(list());
     b.win.renderRegister();
-    b.$('[data-jl-back]').dispatchEvent(evt(b.win, 'click'));
+    b.$('[data-jl-home]').dispatchEvent(evt(b.win, 'click'));
     const p = b.$('#ins-panel');
     assert.equal(p.getAttribute('data-ins-id'), null, 'nothing is held');
     assert.ok(p.querySelector('[data-jl-words] .jl-say .jl-bub'), 'he speaks');
     assert.match(p.querySelector('[data-jl-words]').textContent, /3 on this list/);
     assert.match(p.querySelector('.jl-src').textContent, /no Jambo call/);
-    assert.equal(p.querySelector('[data-jl-back]').hidden, true, 'no ‹ Jambo in his own words');
+    assert.equal(p.querySelector('[data-jl-back]'), null, 'no back button at all');
     assert.equal(b.$$('#reg-tbody tr.is-sel').length, 0, 'the row is let go');
     /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): nothing chosen, his words are the conversation's first message —
        one window, no tabs to flip between */
@@ -121,7 +122,7 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
   test('2b let go stays let go through a repaint, until a row is pressed', () => {
     const b = world(list());
     b.win.renderRegister();
-    b.$('[data-jl-back]').dispatchEvent(evt(b.win, 'click'));
+    b.$('[data-jl-home]').dispatchEvent(evt(b.win, 'click'));
     b.win.regRepaint();
     assert.equal(b.$('#ins-panel').getAttribute('data-ins-id'), null);
     b.$('#reg-tbody tr[data-row="MK-3"]').dispatchEvent(evt(b.win, 'click'));
@@ -208,7 +209,7 @@ describe('f804 (5) where it stands', () => {
        panel's width and the page's margin are ONE value the divider writes,
        --jl-w — 384 since The Brief (21 Oct 2026), Home's panel's, where nobody has chosen. */
     assert.match(HTML, /#content \.ins-panel\.is-jambo\{position:fixed;right:0;top:var\(--jl-top,88px\);bottom:0;width:var\(--jl-w,384px\);/);
-    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-w,384px\);\}/);
+    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-room,var\(--jl-w,384px\)\);\}/);
     assert.match(HTML, /#content :has\(> #ins-panel\.is-jambo\)\{grid-template-columns:minmax\(0,1fr\);column-gap:0;\}/);
     assert.match(read('js/views/intelligence.js'), /const IG_DOCK_W0 = 384,/, 'the same width as Home\'s panel');
     assert.match(code(INS), /const JL_W = 384, JL_FOLDED = 46;/);

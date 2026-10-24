@@ -227,7 +227,9 @@ describe('f319 (4b) THREE STAGES, IN THE ORDER A PERSON ASKS THEM', () => {
       'it runs the readings and nothing else — on their heading it says so by where it is');
     assert.match(CT, /id="sc-run" data-sc-run="1"\$\{busy\|\|rc\.waiting\?' disabled':''\}/,
       'greyed while the wording is still moving, and every older wiring untouched');
-    assert.equal((CT.match(/id="sc-run"/g) || []).length, 1, 'one control, one id');
+    /* RE-POINTED 24 Oct 2026 (Round 3): the heading's button OR the stage's "Run all N" box — drawn one at a time */
+    assert.equal((CT.match(/id="sc-run"/g) || []).length, 2, 'two drawings of one control, one id');
+    assert.match(CT, /\$\{box\?'':act\}/, 'never both at once');
   });
 
   test('the stage heading is a label, not another card', () => {

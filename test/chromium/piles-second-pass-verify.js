@@ -6,7 +6,7 @@
      1 inside "Waiting on you" the paper's order: 7 before 11; each clause named
        as the paper prints it ("7. Liability cap"); "Redlines 4" in a grey pill;
        nothing under the settled fold; no step chips on Home's paper; the box
-       says "Ask for a number, a list or a contract…"
+       says "Ask Jambo, or type / for a place"
      2 Notes opens the notes IN the column: "Internal 2" with its lock, the
        party's tab, "‹ Redlines"; a note as "Maria Lindgren · clause 7 · …"
        with its words in a bubble; the clause is a link to the paper; "Write
@@ -162,7 +162,7 @@ async function login(b, base, email, pass, errs){
     /* RE-POINTED 20 Oct 2026 (owner, 19 Oct: the risk cards back under the piles beside the paper) */
     check('1c under the settled fold only "Risks to look at"', one.risks && one.lastPile === 'accepted' && /^Risks to look at/.test(one.after), JSON.stringify({ risks: one.risks, last: one.lastPile, after: one.after }));
     check('1d Home\'s paper draws no step chips while Redlines is open', one.rungs === 0, String(one.rungs));
-    check('1e the box asks "Ask for a number, a list or a contract…"', one.ph === 'Ask for a number, a list or a contract…', one.ph);
+    check('1e the box asks "Ask Jambo, or type / for a place"', one.ph === 'Ask Jambo, or type / for a place', one.ph);
 
     /* 2 the notes in the column */
     await page.click('#pd-redface [data-rl-notes-all]');

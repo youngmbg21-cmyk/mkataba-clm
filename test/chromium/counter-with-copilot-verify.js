@@ -229,7 +229,8 @@ const paperRead = page => page.evaluate(() => {
       });
       ok('7b our counter is filed as an unsent draft carrying 60 days', s7.n === 1 && !s7.sent && /60 days/.test(s7.newText || ''), JSON.stringify(s7));
       ok('7c the note travels with it as its reason', s7.why === 'We can meet you part-way: 60 days. Our standard is 45 days.', s7.why);
-      ok('7d Send all says 1 not sent', /1 not sent/.test(s7.send || ''), s7.send);
+      /* RE-POINTED 24 Oct 2026 (Round 3): the round line says "1 not sent"; the button "Send all · 1" */
+      ok('7d Send all says 1', /Send all\s*·\s*1\b/.test(s7.send || ''), s7.send);
       await page.screenshot({ path: path.join(OUT, '7-back.png') });
     }
     ok('no page errors', errs.length === 0, errs.join(' | '));

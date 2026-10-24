@@ -112,7 +112,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const e2m = await page.evaluate(() => ({ t: ((document.querySelector('#pd-thread .stk-mq-t') || {}).textContent || '').trim(),
         tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.getAttribute('data-stk-tab')), boxes: document.querySelectorAll('#pd-thread .stk-flt').length }));
       ok('2 the head is a headline, a sentence and tabs, no filter boxes, summary, ribbon or key',
-        /clauses? needs? you|No clause needs you/i.test(e2m.t) && e2m.tabs[0] === '' && e2m.boxes === 0 && e2.tally === false && e2.gone, JSON.stringify({ e2m, e2 }));
+        /^Clauses ?\d+( ?· \d+ need you)?( · \d+ worth a look)?$/.test(e2m.t) && /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): the SAP head */ e2m.tabs[0] === '' && e2m.boxes === 0 && e2.tally === false && e2.gone, JSON.stringify({ e2m, e2 }));
 
       const e3 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')];
@@ -143,7 +143,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
           shown: rows.length, onlyKept: rows.every(r => r.classList.contains('is-open') || !!r.querySelector('.stk-line')), focus: document.activeElement && document.activeElement.getAttribute('data-stk-f') };
       });
       /* RE-POINTED 21 Oct 2026: the head's counts are the whole contract's (they are the Severity doors); the filter narrows the list */
-      ok('3b Found by: Our standards keeps the one standards point and hides rows with none', /clauses? needs? you/i.test(f1.count) && f1.lines.length === 1 && /Payment terms/.test(f1.lines[0])
+      ok('3b Found by: Our standards keeps the one standards point and hides rows with none', /need you/i.test(f1.count) /* RE-POINTED 24 Oct 2026 (Round 3): the SAP head */ && f1.lines.length === 1 && /Payment terms/.test(f1.lines[0])
         && f1.onlyKept && f1.shown <= 2 && f1.focus === 'by', JSON.stringify(f1));
       await pick('by', '');
       /* RE-POINTED 23 Oct 2026 (Marquee): Severity is the tabs */
@@ -396,9 +396,10 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         stkDiveClose(getContract('MK-S1')); });
 
       await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
-      const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);
+      /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): the failure is said in plain grey words under "Not read yet", never red */
+      const said = await page.waitForSelector('#pd-thread .stk-why', { timeout: 8000 }).then(() => true, () => false);
       await page.waitForTimeout(1500);   // a loop would have asked again by now
-      const f = await page.evaluate(() => ({ n: window.__bd.n, err: (document.querySelector('#pd-thread .stk-err') || {}).innerText || null,
+      const f = await page.evaluate(() => ({ n: window.__bd.n, err: (document.querySelector('#pd-thread .stk-why') || {}).innerText || null,
         again: !!document.querySelector('#pd-thread [data-stk-run]') }));
       ok('6 a refusal is said with Try again, and is not retried in a loop', said && f.n === 1 && !!f.err && f.again, JSON.stringify(f));
 

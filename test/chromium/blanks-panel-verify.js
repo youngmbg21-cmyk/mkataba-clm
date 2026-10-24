@@ -87,7 +87,9 @@ const typeInto = async (page, sel, value, ev) => {
   await page.fill(box, value);
   await page.dispatchEvent(box, 'input');
   await page.dispatchEvent(box, ev);
-  await page.click(where === 'og' ? `#pd-og [data-pd-og-ok="${k}"]` : `#pd-kt [data-pd-kt-done="${k}"]`).catch(() => {});
+  /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the grid's rows carry no Confirm of their own; ONE Save stands under them */
+  const okSel = where === 'og' ? ((await page.isVisible(`#pd-og [data-pd-og-ok="${k}"]`).catch(() => false)) ? `#pd-og [data-pd-og-ok="${k}"]` : '#pd-og [data-pd-og-saveall]') : `#pd-kt [data-pd-kt-done="${k}"]`;
+  await page.click(okSel).catch(() => {});
   if (where === 'kt') await page.click('#ig-dock [data-pd-mid-back]').catch(() => {});
   await page.waitForTimeout(700);
   return true;
@@ -124,7 +126,8 @@ const PANEL = () => {
      panel), so the panel is measured by its Needs you list */
   /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box either now (its rows stand under their stages); the panel
      is measured by the Fill in stage's own line */
-  const dock = document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]') || document.querySelector('#ig-dock');
+  /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the stages are one line across; the Fill stage's mark on it */
+  const dock = document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="fill"]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]') || document.querySelector('#ig-dock');
   if (!og && !kt) return { there: false };
   const r = dock.getBoundingClientRect();
   const owedRows = og ? [...og.querySelectorAll('tr[data-pd-og-row]:not(.is-saved)')].filter(x => !['signers', 'stream', 'people'].includes(x.getAttribute('data-pd-og-row'))) : [];

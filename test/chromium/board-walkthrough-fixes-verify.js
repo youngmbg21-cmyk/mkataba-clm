@@ -107,7 +107,7 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
 
     /* 8c asking Jambo for late duties opens the figure's own list, no second panel */
     const panelsBefore = await page.evaluate(() => (hbS().panels || []).length);
-    const box = page.locator('[placeholder*="Ask for a number"]').first();
+    const box = page.locator('#igd-input').first();
     await box.tap(); await box.fill('Which obligations are overdue?'); await page.keyboard.press('Enter');
     await waitFor(page, () => (hbS().path || []).slice(-1)[0] === 'f:overdue', 8000);
     const ask = await page.evaluate(() => ({ path: (hbS().path || []).slice(-1)[0], panels: (hbS().panels || []).length }));

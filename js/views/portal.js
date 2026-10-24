@@ -2407,7 +2407,9 @@ function portalBeforeSignStagesHtml(c, p, o={}){
       `<p class="ps-line">${wordingLine}</p>${changes.length?`<button id="pt-nego-open" type="button" class="ui-link ps-door"
         title="${i18t('po_every_change_oldest')}">${i18t('po_review_what_changed')}</button>`:''}`)
     + stage(2, executed, i18t('po_stage_read'), `<p class="ps-line">${esc(i18t(started?'po_stage_read_started':o.negotiating?'po_stage_read_later':'po_stage_read_line',{org}))}</p>`)
-    + stage(3, executed || !!(order && order.done), i18t((order || o.negotiating) ? 'po_stage_order' : 'po_stage_people'), people);
+    + (o.noSigners
+      ? stage(3, false, i18t('po_tab_signing'), `<p class="ps-line">${esc(i18t('po_no_signers_line',{org}))}</p>${typeof o.other === 'string' ? o.other : ''}`)
+      : stage(3, executed || !!(order && order.done), i18t((order || o.negotiating) ? 'po_stage_order' : 'po_stage_people'), people));
 }
 /* The signing order as their page draws it: one numbered step per row group,
    each person's name and capacity, the party they sign for, and where they
@@ -4829,6 +4831,9 @@ function renderSharePortal(p, opts={}){
      final, and a standalone clause editor on it is a second route back into a
      negotiation that was closed. W6. */
   const signingSeat=portalIssuedForSigning(p);   // chosen, never inferred
+  /* ROUND 5 (owner's yes, 24 Oct 2026; reverses "the button stays and still refuses in words"): where nobody is
+     named to sign yet, steps 3 and 4 are ONE step, Signing, saying so in one sentence; no form, no amber box */
+  const noSigners=!!(p&&p.signingOpen===false)&&!portalExecuted()&&!portalSignedRecord(opts);
   const c=migrateContract({ ...p.contract, status:portalExecuted()?'Signed':'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   /* Display-side repair: a copy shared before delete-time marker cleanup can
@@ -4840,6 +4845,45 @@ function renderSharePortal(p, opts={}){
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
     <input id="${id}" type="text" placeholder="${ph}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
   const TA='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
+  /* ROUND 5 (owner's yes, 24 Oct 2026): the answers behind "Not ready to sign?" are one builder, so a page where
+     nobody is named to sign yet keeps them (Decline, Agree to the wording, Tell them what you want changed) under
+     its one Signing step, the door named for what is behind it, while the signing form itself is not drawn */
+  const portalOtherHtml=word=>`
+          <button id="pt-other-toggle" type="button" aria-expanded="false" aria-controls="pt-other" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:0" data-pt-other-word="${esc(i18t(word))}">${esc(i18t(word))}</button>
+          <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
+            <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${esc(i18t('po_reason_label',{who:(p&&p.sharedBy)||i18t('po_the_sender')}))}</span>
+            <textarea id="pt-comment" rows="3" placeholder="${esc(i18t('po_why_ph'))}" style="${TA}"></textarea></label>
+            ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
+                   "Change the wording yourself" opens #portal-redline, and W6
+                   deliberately stops that editor being built on a link the
+                   sender ISSUED for signature — a signing link states the
+                   wording is final, and f113 pins that it carries no redline
+                   surface. The button was left behind when the panel went, so
+                   on every signing link it threw on a null element and did
+                   nothing at all: the one control a reader presses when they
+                   want changes, silently broken, on the screen where being
+                   stuck is most expensive.
+
+                   It is drawn where it works and not where it does not, and the
+                   route that IS open says what happens next — which is the
+                   owner's own process: they tell us, we send them a negotiation
+                   link, they redline on that. */}
+            ${[...(signingSeat ? [] : [['pt-redline','history','Change the wording yourself',
+                 'Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.']]),
+               ['pt-changes','alert','Tell them what you want changed',
+                 signingSeat
+                   ? `Describe it in the box above. This link was sent to you for signature, so the wording cannot be edited on it — ${esc((p&&p.org)||'the sender')} will send you a link you can redline on.`
+                   : 'Describe it in the box above. The wording stays as it is for now.'],
+               ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
+              .map(([id,ic,label,why])=>`<div>
+                <button id="${id}" class="ui-btn" style="width:100%;text-align:left;display:flex;align-items:center">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
+                <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:var(--s-1) 2px 0">${why}</span>
+              </div>`).join('')}
+            <div style="border-top:1px solid var(--color-divider);padding-top:9px">
+              <button id="pt-decline" class="ui-btn ui-btn-danger" style="width:100%">${i18t('po_decline_contract')}</button>
+              <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:var(--s-1) 2px 0">${i18t('po_ends_the_deal')}</span>
+            </div>
+          </div>`;
   /* ---- THE SIGNING PAGE IS OUR SIGNING TAB, TURNED ROUND (Young picked
      "Signing copy", 28 Sep 2026) ----
      It was the last page in the product still wearing the old dress: a dark
@@ -4928,7 +4972,9 @@ function renderSharePortal(p, opts={}){
       </div>
       <aside class="ps-side portal-aside">
         <h2 class="ps-h">${esc(i18t(portalExecuted()?'po_signed_head':'po_before_you_sign'))}</h2>
-        <ol class="ps-stages">${portalBeforeSignStagesHtml(c,p)}
+        <ol class="ps-stages">${portalBeforeSignStagesHtml(c,p,{ noSigners, other: noSigners ? `<div style="display:flex;flex-direction:column;gap:var(--s-2);margin-top:var(--s-2)">${portalOtherHtml('po_other_answers')}</div>` : '' })}${noSigners ? `</ol>
+        <div id="portal-result" style="margin:var(--s-3) var(--s-4) 0;"></div>
+      </aside>` : `
         <li class="ps-stage"><span class="ps-ico" aria-hidden="true">4</span><div class="ps-sb">
         <h3 class="ps-st">${esc(i18t('po_stage_sign'))}</h3>
         ${''/* The sender's covering note was reproduced here too, headed
@@ -5024,45 +5070,11 @@ function renderSharePortal(p, opts={}){
           <button id="pt-sign" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%"${portalSignHold(p)?' disabled data-pt-hold="1"':''}>${icon('finger','w-4 h-4')} <span id="pt-sign-word">${i18t('po_sign_this_contract')}</span></button>
           ${portalSignHold(p)?`<span class="ps-why" style="display:block;text-align:center;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${esc(portalSignHold(p).why)}</span>`:''}
           ${(opts.token&&PORTAL_OPTS.emailConfigured!==false&&!portalExecuted())?`<span class="ps-code">${esc(i18t('po_code_first'))}</span>`:''}
-          <button id="pt-other-toggle" type="button" aria-expanded="false" aria-controls="pt-other" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:0">${i18t('po_not_ready_sign')}</button>
-          <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
-            <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${esc(i18t('po_reason_label',{who:(p&&p.sharedBy)||i18t('po_the_sender')}))}</span>
-            <textarea id="pt-comment" rows="3" placeholder="${esc(i18t('po_why_ph'))}" style="${TA}"></textarea></label>
-            ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
-                   "Change the wording yourself" opens #portal-redline, and W6
-                   deliberately stops that editor being built on a link the
-                   sender ISSUED for signature — a signing link states the
-                   wording is final, and f113 pins that it carries no redline
-                   surface. The button was left behind when the panel went, so
-                   on every signing link it threw on a null element and did
-                   nothing at all: the one control a reader presses when they
-                   want changes, silently broken, on the screen where being
-                   stuck is most expensive.
-
-                   It is drawn where it works and not where it does not, and the
-                   route that IS open says what happens next — which is the
-                   owner's own process: they tell us, we send them a negotiation
-                   link, they redline on that. */}
-            ${[...(signingSeat ? [] : [['pt-redline','history','Change the wording yourself',
-                 'Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.']]),
-               ['pt-changes','alert','Tell them what you want changed',
-                 signingSeat
-                   ? `Describe it in the box above. This link was sent to you for signature, so the wording cannot be edited on it — ${esc((p&&p.org)||'the sender')} will send you a link you can redline on.`
-                   : 'Describe it in the box above. The wording stays as it is for now.'],
-               ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
-              .map(([id,ic,label,why])=>`<div>
-                <button id="${id}" class="ui-btn" style="width:100%;text-align:left;display:flex;align-items:center">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
-                <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:var(--s-1) 2px 0">${why}</span>
-              </div>`).join('')}
-            <div style="border-top:1px solid var(--color-divider);padding-top:9px">
-              <button id="pt-decline" class="ui-btn ui-btn-danger" style="width:100%">${i18t('po_decline_contract')}</button>
-              <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:var(--s-1) 2px 0">${i18t('po_ends_the_deal')}</span>
-            </div>
-          </div>
+          ${portalOtherHtml('po_not_ready_sign')}
         </div>`}</div>
         </div></li></ol>
         <div id="portal-result" style="margin:var(--s-3) var(--s-4) 0;"></div>
-      </aside>
+      </aside>`}
     </div>
   </div>
 `;
@@ -5072,7 +5084,7 @@ function renderSharePortal(p, opts={}){
     const box=document.getElementById('pt-other');
     const open=box.classList.toggle('hidden')===false;
     e.currentTarget.setAttribute('aria-expanded',open?'true':'false');
-    e.currentTarget.textContent=open?'Hide the other options':'Not ready to sign?';
+    e.currentTarget.textContent=open?'Hide the other options':(e.currentTarget.getAttribute('data-pt-other-word')||'Not ready to sign?');
   });
   /* Optional: on a link already signed the sign step is the receipt
      (portalReceiptHtml) and these buttons are not drawn. */

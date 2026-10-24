@@ -53,7 +53,7 @@ describe('f806 (1) Jambo\'s panel says "Negotiation"', () => {
     assert.match(f, /jlWord:i18t\(seat==='negotiations'\?'jl_w_negotiation':'jl_w_contract'\)/);
     assert.match(f, /jlHome:i18t\(seat==='negotiations'\?'nav_negotiations':'nav_contracts'\)/);
     assert.match(f, /jlPh:i18t\('jl_ph_list'\)/);
-    assert.equal(t('jl_ph_list'), 'Ask for a contract, a number or a list…');
+    assert.equal(t('jl_ph_list'), 'Ask Jambo, or type / for a place');
   });
   test('1b the pill carries the wait: "Our move · 4 days"', () => {
     const ctx = stage(['regMovePillHtml'], { insMove: () => ({ k: 'you', word: 'Yours · 2 to answer' }), regNegoCols: () => ({ waiting: '4 days' }) });

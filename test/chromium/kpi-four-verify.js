@@ -186,7 +186,8 @@ const PANEL = `(() => {
     const legacy = await mp.evaluate(async () => {
       /* Saved before the rule existed, or on another device. */
       setKpiSel(['under_mgmt', 'avgcycle', 'approvals', 'compliance', 'awaiting', 'highrisk']);
-      mCloseSheet(); mGo('home');
+      /* RE-POINTED 24 Oct 2026 (Round 6, owner's yes): the chosen tiles live on Portfolio now, not on Home */
+      mCloseSheet(); mGo('portfolio');
       await new Promise(r => setTimeout(r, 600));
       return { shown: currentKpiSel(), tiles: document.querySelectorAll('.m-kpi').length };
     });

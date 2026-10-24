@@ -186,8 +186,10 @@ async function login(b, base, email, pass, errs){
     check('2a "Redlines N" counts the rows in sight', head.n != null && head.n === head.inSight && head.n === 4, JSON.stringify({ n: head.n, inSight: head.inSight }));
     check('2b "Notes 2" in the head', head.notes === 'Notes 2', head.notes);
     check('2c "Here now" with the faces of who is on it', head.hereShown && /^Here now/.test(head.here || '') && head.faces >= 2, JSON.stringify({ here: head.here, faces: head.faces }));
-    check('2d "Round 2 · their asks came 4 days ago"', head.round === 'Round 2 · their asks came 4 days ago', head.round);
-    check('2e "Send all · 1 not sent" and "Ask for review"', /Send all\s*·\s*1 not sent/.test(head.send || '') && head.review === 'Ask for review' && head.reviewOn, JSON.stringify({ send: head.send, review: head.review }));
+    /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes, the SAP heads): "N not sent" leads the round line, beside the Deal door */
+    check('2d "1 not sent · Round 2 · their asks came 4 days ago"', head.round === '1 not sent · Round 2 · their asks came 4 days ago', head.round);
+    /* RE-POINTED 24 Oct 2026 (Round 3): the count is said on the round line, so the button is "Send all · 1" */
+    check('2e "Send all · 1" and "Ask for review"', /Send all\s*·\s*1$/.test((head.send || '').trim()) && head.review === 'Ask for review' && head.reviewOn, JSON.stringify({ send: head.send, review: head.review }));
 
     /* 3 the piles */
     const piles = await page.evaluate(() => [...document.querySelectorAll('#pd-redface [data-rl-pile]')].map(p => {

@@ -365,7 +365,8 @@ function pageKit(){
     if (!S.n) return false;
     check(`${tag(d)} 1b the head carries one box, input[type=search][data-lh-q]`, S.box && S.type === 'search', JSON.stringify({ box: S.box, type: S.type }));
     if (!S.box) return true;
-    check(`${tag(d)} 1c the box's words carry a number and no ⌘K hint`, /\d/.test(S.ph) && !/⌘|cmd\s*k|ctrl\s*k/i.test(S.ph), `"${S.ph}"`);
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Contracts says its count once, at the foot — its box carries none */
+    check(`${tag(d)} 1c the box's words carry a number (Contracts: none, its foot says it) and no ⌘K hint`, (d.key === 'contracts' ? !/\d/.test(S.ph) : /\d/.test(S.ph)) && !/⌘|cmd\s*k|ctrl\s*k/i.test(S.ph), `"${S.ph}"`);
     const under = S.titleR && S.boxR && S.boxR.t >= S.titleR.b - 1;
     const above = !S.tlR ? d.tabs === false : S.boxR.b <= S.tlR.t + 1;
     check(`${tag(d)} 1d the box sits under the title${d.tabs === false ? '' : ' and above the tab row'}`, !!(under && above),
@@ -513,7 +514,7 @@ function pageKit(){
     await ev(() => { const nm = window.__lh.seatName(); const b = (nm && document.querySelector(`[data-lh-more="${CSS.escape(nm)}"]`)) || document.querySelector('[data-lh-foot] [data-lh-more]'); if (b) b.click(); });
     const grown = await until(([c, n]) => window.__lh.rows(c) === n ? true : null, [cfgOf(d), f.k + N], 4000);
     const now = await ev(c => ({ rows: window.__lh.rows(c), f: window.__lh.foot() }), cfgOf(d));
-    check(`${tag(d)} 6c Show ${N} more adds exactly ${N} rows, and the foot says so`, !!grown && now.f && now.f.k === f.k + N, JSON.stringify({ was: f.k, now: now.rows, foot: now.f && now.f.text }));
+    check(`${tag(d)} 6c Show ${N} more adds exactly ${N} rows, and the foot says so`, !!grown && now.f && (now.f.k === f.k + N || new RegExp('^' + (f.k + N) + ' contracts?\\b').test(now.f.text || '')), JSON.stringify({ was: f.k, now: now.rows, foot: now.f && now.f.text }));
   }
 
   /* ===== 7 · THE BOX: SEARCH, OR ASK THE PAGE'S OWN JAMBO ===== */
@@ -700,8 +701,9 @@ function pageKit(){
       Array.isArray(T) && T.length === VIEWS.length && VIEWS.every((v, i) => T[i] === v), JSON.stringify(T));
     const f = C.first;
     const kr = f && f.subs.find(s => new RegExp('^\\S.* · ' + f.ref.replace(/[-.]/g, '\\$&') + '$').test(s));
-    check('contracts C3 the first column: initials, the party, and "kind · ref" under it (the title on hover)',
-      !!(f && f.av && /^[A-ZÅÄÖ0-9]{1,3}$/.test(f.av) && f.party && kr && f.hover), JSON.stringify(f));
+    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads, "party · ref" under it */
+    check('contracts C3 the first column: initials, the agreement, and "party · ref" under it',
+      !!(f && f.av && /^[A-ZÅÄÖ0-9]{1,3}$/.test(f.av) && f.title && f.text.indexOf(f.title) >= 0 && new RegExp(' · ' + f.ref.replace(/[-.]/g, '\\$&') + '$').test(f.text) && f.hover), JSON.stringify(f));
     check('contracts C4 the columns at rest: Agreement · Stage · Ends · Value, Owner under Columns, no Ref column of its own',
       ['Agreement', 'Stage', 'Ends', 'Value'].every(k => C.heads.includes(k)) && !C.heads.includes('Owner') && !C.heads.includes('Ref'), JSON.stringify(C.heads));
     const pct = C.cols.map(x => /%$/.test(x) ? parseFloat(x) : NaN);

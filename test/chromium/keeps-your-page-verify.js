@@ -186,12 +186,12 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the room opened by
        name is not a page a refresh restores — the same contract comes back as
        its strip on Home's Board (board-strip-verify 7d) */
-    await page.waitForFunction(id => !!document.getElementById('bs-strip-' + id), cid, { timeout: 8000 }).catch(() => {});
-    const after4 = await page.evaluate(() => { const top = document.querySelector('#bs-strips > .bs-strip');
-      return { view: state.view, id: state.activeId, strip: top ? top.getAttribute('data-bs-id') : null }; });
-    check('4b and a refresh comes back to that same contract (its strip on the Board)',
-      after4.view === 'dashboard' && after4.id === cid && after4.strip === cid,
-      `${after4.view} / ${after4.id} / strip ${after4.strip}`);
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes): it comes back as its paper on Home, the Dossier beside it */
+    await page.waitForFunction(id => window.intel && intel.paper && intel.paper.id === id, cid, { timeout: 8000 }).catch(() => {});
+    const after4 = await page.evaluate(() => ({ view: state.view, id: state.activeId, paper: window.intel && intel.paper ? intel.paper.id : null }));
+    check('4b and a refresh comes back to that same contract (its paper on Home)',
+      after4.view === 'dashboard' && after4.id === cid && after4.paper === cid,
+      `${after4.view} / ${after4.id} / paper ${after4.paper}`);
   } catch (e) {
     check('the journey ran', false, e.message);
   }

@@ -312,7 +312,8 @@ const ok = (name, good, detail) => {
     const g5 = await press('MK-149', 'join');
     /* RE-POINTED 15 Oct 2026 (step 8): the contract opens as its strip on the
        Board, the desk's sheet over it */
-    ok('4b Answer on a join request opens the contract with the sheet where the lead lets them in', g5.view === 'dashboard' && g5.id === 'MK-149' && /^MK-149:/.test(g5.strip || '') && g5.sheet && !g5.room, JSON.stringify(g5));
+    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): on the paper with its Dossier, the sheet over it */
+    ok('4b Answer on a join request opens the contract with the sheet where the lead lets them in', g5.view === 'dashboard' && g5.id === 'MK-149' && g5.paper === 'MK-149' && g5.ptab === 'copilot' && g5.sheet && !g5.room, JSON.stringify(g5));
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { try { closeModal(); } catch (_) {} const d = deskOf(getContract('MK-149')); d.joinRequests = []; });
 

@@ -11,8 +11,8 @@
        history · obligations" — a shut door never offered (caChipShut); on
        History the questions worth asking (put in the box for the reader to
        ask, its cost on the box) and "redline". Each presses its own door.
-   (3) The box: "Ask about <ref>…" beside a page, "Ask about <ref>'s
-       history…" on its History, "Ask for a contract, a number or a list…"
+   (3) The box: "Ask Jambo about <ref>…" beside a page and on its
+       History, "Ask Jambo, or type / for a place"
        with a paper chosen; a question beside a page goes with THAT contract's
        wording (igPaperAsk(q, id)), the Board's own reader and the map's
        stepped past, as beside the paper.
@@ -140,11 +140,11 @@ describe('f744 (4) pass 3: the chips right under the card', () => {
 describe('f744 (3) the box asks about what is held', () => {
   test('3a the words on the box', () => {
     const w = world({ card: SIGNED });
-    assert.equal(w.pdAskPlaceholder(), 'Ask about MK-0377…');
+    assert.equal(w.pdAskPlaceholder(), 'Ask Jambo about MK-0377…');
     assert.equal(w.pdAskContractId(), 'MK-0377');
-    w.page = 'hist'; assert.equal(w.pdAskPlaceholder(), 'Ask about MK-0377\'s history…');
+    w.page = 'hist'; assert.equal(w.pdAskPlaceholder(), 'Ask Jambo about MK-0377…');
     const c = world({ face: 'paper', chosen: { id: 'MK-1' } });
-    assert.equal(c.pdAskPlaceholder(), 'Ask for a contract, a number or a list…');
+    assert.equal(c.pdAskPlaceholder(), 'Ask Jambo, or type / for a place');
     assert.equal(world().pdAskPlaceholder(), null);
   });
   test('3b the box reads them before its own words; its cost is counted for the page\'s contract', () => {
