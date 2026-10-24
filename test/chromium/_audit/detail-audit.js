@@ -127,6 +127,8 @@ const MEASURE = `(() => {
       const ctl = ctlSet.has(box);
       const bc = cs(box), br = R(box);
       if (box.matches('[contenteditable], .ProseMirror')) continue;
+      /* a scroller's words slide under its own edge by design */
+      if (/(auto|scroll)/.test(bc.overflowY + bc.overflowX)) continue;
       /* a scroller between the words and the card keeps them */
       let kept = false; for (let p = el; p && p !== box; p = p.parentElement) { const c = cs(p); if (/(auto|scroll)/.test(c.overflowX + c.overflowY) || c.textOverflow === 'ellipsis') { kept = true; break; } } if (kept) continue;
       const rg = document.createRange(); rg.selectNodeContents(n);
