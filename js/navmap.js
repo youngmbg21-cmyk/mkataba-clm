@@ -563,8 +563,11 @@ function navContractsLabel(f, stream, party){
 /* A PARTY'S FOLDER: "Juno's folder", "open Juno Logistics", "take me to Juno",
    "Westlands Towers", "Junos mapp". A sentence that names a contract, or asks
    for contracts, is not a folder ask. */
+const NAV_HOME_FACE_WORDS = / (board|dashboard|tavlan|map|explorer|kartan|utforskaren) /;
 function navReadParty(raw, t){
   if (NAV_CONTRACT_WORDS.test(t)) return null;
+  /* "show me juno llc on the board": the Board's (its own reader draws the party's card), never their folder (24 Oct 2026) */
+  if (NAV_HOME_FACE_WORDS.test(t)) return null;
   const P = navPartiesIn(t); if (!P.length) return null;
   /* "everything we have with Naivas" asks for all of theirs: their folder (stage 3c) */
   /* …and "Kabras Sugar, all their paperwork": all of a party's papers is their folder (stage 3d) */

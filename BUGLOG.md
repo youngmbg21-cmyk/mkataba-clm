@@ -21518,4 +21518,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - jambo-tab-and-back-verify 1i/1m/2a and home-first-verify failed once each when run three browsers at a time on one machine and pass alone, on the branch and on main; a load-sensitive wait, not a fault.
 - Noticed, not fixed (24 Oct 2026): a pin in Home's paper margin (`igPaperWire`) only finds its answer when Jambo's conversation is the panel's face; pressed while Dossier, Clauses or Redlines shows, it lights the paper and nothing in the panel moves. The Track's new press leaves the panel on Clauses, so this is met more often now.
 - Removed on purpose (24 Oct 2026, the owner's one door, "The Legora way"): on a computer the chat's Draft card, the "Draft from HaTi · Upload a contract" drop-down, the older two-column New agreement form with its note and Skip the questions are no longer drawn; the phone keeps its own screens.
+
+## Noticed, not fixed — 24 Oct 2026 (one Jambo, two layers)
+- The Calendar's own box (`calPlanAsk`) is not on the two layers: a question typed there goes to the planner, not the chat; commands still move through `caAskAnywhere`.
+- "where is …" is not among `CA_WH_Q`'s question words (navmap's "where is X" reads a trip), so a "where" question beside the Board is explained only when it ends with "?".
+- On the Board, a "top N by …" sentence the Board's reader cannot read is drawn as a MAP lens behind the Board by the mapListy path ("Showing 0 of 4 · Top 10 by days to pay" in the test world, from "where is my biggest concern as far as payment terms?"); the owner's book reads it as the Board's own Top 10 card.
+- CLAUDE.md is about 88 KB after the one-Jambo line, over its ~80 KB rule; a trim needs the owner's yes.
+
+## Noticed, not fixed — 24 Oct 2026 (PR #456, the stand-in on Home)
+- Nine other AI routes (brief, OCR, breakdown, column, memo …) answer a provider failure with 502 and no `kind`, so the browser's stand-in there says "could not be reached" for a provider error. Only the graph route was given `kind: 'provider'` (the chat route already had it). Not this job's.
 - 24 Oct 2026 (Noticed, not fixed — the glitch audit's second walk): the audit's "Place: … scrolled, open a row, ‹ back" step looks for `tr[data-ins-row]`, which the Approvals list's rows do not carry, so it opens nothing and measures no return; Negotiations and Our paper rows are also out of the walk's reach (an instrument limit, not a HaTi fault).

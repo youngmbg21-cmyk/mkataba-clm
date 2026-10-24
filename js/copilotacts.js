@@ -1808,7 +1808,9 @@ function caPlaceOf(q){
   /* ON THE BOARD ITS OWN READER KEEPS ITS WORDS: "obligations" is its
      obligations panel, "MK-458" the contract's card, a saved view its name.
      Only a move between faces ("board", "explorer") is the same either way. */
-  if (caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
+  /* …a page asked by name ("obligations page", "the people tab") is that page from the Board too (24 Oct 2026) */
+  const tailed = CA_PLACE_TAIL.test(String(q || '').trim().toLowerCase().replace(/[?.!]+\s*$/, ''));
+  if (!tailed && caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
   /* a reference on its own ("MK-458", "open #MK-458") is that contract's paper */
   if (!t && cid) return { kind: 'go', place: 'document', cid, slash, state: 'ready' };
   const p = CA_PLACES.find(x => x.w.includes(whole)) || CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
@@ -2629,6 +2631,8 @@ function caUnderstand(q, opts = {}){
   /* THE THINGS INSIDE THE PLACES (navigable by typing, 22 Oct 2026; js/navmap.js): a clause of a
      contract, a party's folder, Contracts narrowed by stream, stage, party and end — read first, as
      the most exact reading the words have; what it does not read falls through to the readers below */
+  /* "show them on the board": the last answer's set, before any reader that has no "them" (24 Oct 2026) */
+  { let th = null; try { th = caReadThese(t); } catch (_){ th = null; } if (th) return th; }
   { let nv = null; try { nv = (typeof navRead === 'function') ? navRead(t, { box }) : null; } catch (_){ nv = null; } if (nv) return nv; }
   /* SAID ANOTHER WAY (AI first, stage 3c): a place's name misspelt ("aprovals", "teh board") is put right to the
      one place word a slip away, and an act said as a wish ("start negotiating the milk contract", "let's get
@@ -2714,6 +2718,39 @@ function caUnderstandSay(a){
   return '';
 }
 /* THE PLACE, THEN ITS OWN APPLIER (caGo with a.narrow) */
+/* THE BOARD'S OWN LINE for a move the Board carried out (caGoNarrowed): taken once by the host that asked */
+let _caBoardSaid = '';
+function caBoardSaidTake(){ const h = _caBoardSaid; _caBoardSaid = ''; return h; }
+/* ---- "SHOW THEM ON THE BOARD" — THE LAST ANSWER'S SET (owner, 24 Oct 2026) ----
+   A sentence that says "them", "these" or "those" (dem, dessa, de där) and names a place that draws a set — the
+   Board, the map, Contracts — means the contracts the conversation last found: the newest assistant turn carrying
+   a set (the chat's cardIds, a list it drew, a narrowing's ids, a card's set). Read before every other reader,
+   because every other reader has no "them". The one conversation is read (intel.history = ai.history). */
+const CA_THESE_RE = /(?<![\p{L}])(?:them|these|those|these ones|those ones|dem|dessa|de där|de)(?![\p{L}])/iu;
+const CA_THESE_PLACE = [
+  ['board', /(?<![\p{L}])(?:board|dashboard|tavlan)(?![\p{L}])/iu],
+  ['explorer', /(?<![\p{L}])(?:map|explorer|kartan|utforskaren)(?![\p{L}])/iu],
+  ['contracts', /(?<![\p{L}])(?:contracts page|contracts list|the list|as a list|avtalslistan|listan)(?![\p{L}])/iu],
+];
+function caLastSet(){
+  let H = []; try { H = (typeof intel !== 'undefined' && intel && Array.isArray(intel.history)) ? intel.history : []; } catch (_){ H = []; }
+  for (let i = H.length - 1, n = 0; i >= 0 && n < 8; i--, n++){
+    const m = H[i]; if (!m || m.role !== 'assistant') continue;
+    const ids = Array.isArray(m.listIds) && m.listIds.length ? m.listIds
+      : Array.isArray(m.cardIds) && m.cardIds.length ? m.cardIds
+      : (m.act && m.act.narrow && Array.isArray(m.act.narrow.ids) && m.act.narrow.ids.length) ? m.act.narrow.ids
+      : (m.nav && Array.isArray(m.nav.ids) && m.nav.ids.length) ? m.nav.ids : null;
+    if (ids) return { ids: ids.filter(id => typeof getContract === 'function' && getContract(id)), what: String(m.listTitle || (m.act && m.act.narrow && m.act.narrow.what) || '').trim() };
+  }
+  return null;
+}
+function caReadThese(q){
+  const t = ' ' + String(q || '').trim() + ' ';
+  if (!CA_THESE_RE.test(t)) return null;
+  const hit = CA_THESE_PLACE.find(([, re]) => re.test(t)); if (!hit) return null;
+  const last = caLastSet(); if (!last || !last.ids.length) return null;
+  return { kind: 'go', place: hit[0], narrow: { rest: '', what: last.what || _caT('ca_these_what', { n: last.ids.length }), ids: last.ids.slice(), n: last.ids.length, these: true }, state: 'ready' };
+}
 function caGoNarrowed(a){
   const N = a.narrow || {}, rest = String(N.rest || '');
   const ids = Array.isArray(N.ids) ? N.ids.slice() : null;
@@ -2731,8 +2768,21 @@ function caGoNarrowed(a){
     return CA_GO.contracts();
   }
   if (a.place === 'board'){
+    const onHomeNow = typeof state !== 'undefined' && state && state.view === 'dashboard';
     caHomeFace('board');
-    if (rest && typeof hbAsk === 'function') setTimeout(() => { try { hbAsk(rest); } catch (_){} }, 0);
+    /* "SHOW THEM ON THE BOARD" (owner, 24 Oct 2026): a set the last answer found is drawn as the Board's found
+       card (hbShowFound), the Board's own door for a named set */
+    if (!rest && ids && ids.length && typeof hbShowFound === 'function'){
+      const draw = () => { try { hbShowFound(ids, N.what || ''); if (typeof hbPaintBoard === 'function') hbPaintBoard(); } catch (_){} };
+      if (onHomeNow) draw(); else setTimeout(draw, 0);
+      return true;
+    }
+    /* the Board's own reader does the rest and SAYS what it drew: kept for the host that asked (caBoardSaidTake),
+       so a box says "Juno LLC · 5 contracts" rather than a folder's or a place's line */
+    if (rest && typeof hbAsk === 'function'){
+      const ask = () => { try { _caBoardSaid = hbAsk(rest) || ''; } catch (_){ _caBoardSaid = ''; } };
+      if (onHomeNow) ask(); else setTimeout(ask, 0);
+    }
     return true;
   }
   if (a.place === 'negotiations'){
@@ -2771,6 +2821,7 @@ function caNarrowSay(a){
   const N = a.narrow || {};
   const page = _caT('ca_w_' + a.place);
   if (a.narrowOff) return _caT('ca_and_off', { page: page.charAt(0).toUpperCase() + page.slice(1), what: N.what || '' });
+  if (N.these) return _caT('ca_and_these', { n: N.n, page });
   if (N.party) return _caT('ca_and_party', { who: N.what, n: N.n });
   if (N.ids && !N.ids.length) return _caT('ca_and_none', { what: N.what, page });
   if (a.place === 'explorer') return N.n != null ? _caT('ca_and_explorer', { what: N.what, n: N.n }) : _caT('ca_and_explorer_recipe', { what: N.what });
@@ -3069,6 +3120,8 @@ function caHomeRun(q, a){
   intel.history.push({ role: 'user', text: q }, Object.assign({ role: 'assistant', text: _caE(caGoSay(a)), act: a }, caAnswerIds(a)));
   paint();
   caGo(a);
+  /* the Board drew it and said what (caGoNarrowed → hbAsk): its own line stands, as the Board's box would say it */
+  { const said = caBoardSaidTake(); if (said){ const m = intel.history[intel.history.length - 1]; if (m && m.act === a){ m.text = said; Object.assign(m, typeof hbTakeMeta === 'function' ? hbTakeMeta() : {}, typeof hbBoardReplyMeta === 'function' ? hbBoardReplyMeta() : {}); paint(); } } }
   if (card) land(intel.history.length - 1);
   return true;
 }
@@ -3083,3 +3136,6 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
+
+/* the last answer's set, and the Board's own line (24 Oct 2026) */
+Object.assign(window, { CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
