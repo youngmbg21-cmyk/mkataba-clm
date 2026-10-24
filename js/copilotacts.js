@@ -1888,7 +1888,15 @@ function caBackRowHtml(){
    stages bring the work into the panel, docs/PLAN-one-page-home.md §7) ---- */
 function caHomeFace(f){
   if (typeof hbS !== 'function') return false;
-  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbSetFace === 'function'){ hbSetFace(f); return true; }
+  /* THE BOARD ASKED FOR IS THE BOARD (the glitch audit, 24 Oct 2026: "board"
+     typed on Home after a contract's History showed that History again): a
+     contract brought up on the Board face is let go first, as the Recent
+     row's Board does (deskTabOpen 'home:board') */
+  const left = f === 'board' && typeof window !== 'undefined' && typeof window.bsCardLeave === 'function' && window.bsCardLeave();
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbSetFace === 'function'){
+    if (left && typeof hbFace === 'function' && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace(f);
+    if (left && typeof deskTabsSync === 'function') try { deskTabsSync(); } catch (_){}
+    return true; }
   const s = hbS(); s.face = f; if (typeof hbSave === 'function') hbSave();
   if (typeof setView === 'function') setView('dashboard');
   return true;
