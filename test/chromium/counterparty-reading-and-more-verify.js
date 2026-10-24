@@ -502,15 +502,20 @@ const PAPER = `(() => {
       return { on: one(on), off: one(off), accent: ink('var(--accent-fill)'),
         wrapBg: getComputedStyle(document.querySelector('.pw-id .pw-tabs')).backgroundColor };
     });
-    check('14 their tabs have no pill box of their own',
-      tabLook.wrapBg === 'rgba(0, 0, 0, 0)', tabLook.wrapBg);
-    check('14 the chosen tab has no fill, and is heavier than a resting one',
-      tabLook.on && tabLook.off && tabLook.on.bg === 'rgba(0, 0, 0, 0)' && tabLook.on.fw > tabLook.off.fw,
+    /* RE-POINTED 24 Oct 2026 (THE LEGORA LOOK, stage 3: the owner picked "The Legora Way" for the other
+       side's page): their tabs are our switch now — a grey track holding the tabs, the chosen one a white
+       pill and heavier, no underline on either. What 11 Oct asked of them (told apart at a glance, the
+       live one heavier) still holds; the underline and the bare row are what the pick replaced. */
+    const shade = await page.evaluate(() => { const g = v => { const p = document.createElement('span'); p.style.background = v; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; };
+      return { track: g('var(--surface-2)'), white: g('var(--color-surface)') }; });
+    check('14 their tabs stand on the grey track',
+      tabLook.wrapBg === shade.track, tabLook.wrapBg + ' vs ' + shade.track);
+    check('14 the chosen tab is the white pill and heavier; a resting one has no fill',
+      tabLook.on && tabLook.off && tabLook.on.bg === shade.white && tabLook.off.bg === 'rgba(0, 0, 0, 0)' && tabLook.on.fw > tabLook.off.fw,
       JSON.stringify(tabLook));
-    check('14 the chosen one carries the accent underline, a resting one does not',
-      tabLook.on && tabLook.off && tabLook.on.bs !== 'none' && tabLook.on.bw > 0
-      && tabLook.on.bb === tabLook.accent && tabLook.off.bb !== tabLook.accent,
-      JSON.stringify({ on: tabLook.on, off: tabLook.off, accent: tabLook.accent }));
+    check('14 no underline on either tab',
+      tabLook.on && tabLook.off && !(tabLook.on.bw > 0 && tabLook.on.bs !== 'none') && !(tabLook.off.bw > 0 && tabLook.off.bs !== 'none'),
+      JSON.stringify({ on: tabLook.on, off: tabLook.off }));
 
     /* ---- 15. MORE IS WHITE INSIDE, LIKE THE THREE BESIDE IT ----
        It carried .pt-verb, which fills the face with --color-accent-100 —

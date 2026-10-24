@@ -16966,6 +16966,36 @@
   #modal-root .na-tabs{gap:2px;padding:3px;border:0;border-radius:999px;background:var(--surface-2)}
   #modal-root .na-tab{border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600)}
   #modal-root .na-tab[aria-selected="true"]{background:var(--color-surface);color:var(--accent-ink);box-shadow:0 1px 2px rgba(0,0,0,.10);font-weight:var(--w-strong)}
+  /* ===================================================================================================
+     THE LEGORA LOOK, STAGE 3 — THE OTHER SIDE'S PAGE (owner picked "The Legora Way", 24 Oct 2026)
+     Their page wears what ours wears: the tabs a grey track with one white pill; the paper and the change
+     list two floating white cards on the grey, the paper's own ground set in the first with 14px corners.
+     The paper's ground gives back the 8px the card takes, so the wording does not move (the contract's
+     pixels). Scoped to #pw-page: our side is not touched.
+     =================================================================================================== */
+  #pw-page .pw-tabs{align-self:center;gap:2px;padding:3px;margin:-2px 0;border-radius:999px;background:var(--surface-2);overflow:visible}
+  #pw-page .pw-tab{height:26px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600);white-space:nowrap}
+  #pw-page .pw-tab[aria-selected="true"]{background:var(--color-surface);color:var(--color-text);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+  #pw-page .redline-page.rl-embed #rl-grid{gap:8px}
+  #pw-page .redline-page.rl-embed #rl-doc{background:var(--color-surface);border-radius:18px;box-shadow:var(--shadow-sm);padding:8px}
+  #pw-page .redline-page.rl-embed #nego-scroll-work{background:var(--desk-ground);border-radius:14px;padding-top:21px}
+  #pw-page .redline-page.rl-embed :is(#rl-side, #rl-cp){border:0;border-radius:18px;box-shadow:var(--shadow-sm);overflow:hidden}
+  /* the change's place on the paper ("§2 · “…”") and the pile chips, as drawn */
+  #pw-page .rl-card-sec{font-family:var(--font-ref);font-size:12px;color:var(--color-neutral-600)}
+  #pw-page .rl-pile-chips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 8px}
+  #pw-page .rl-pile-chip{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-neutral-600);font:inherit;font-size:12px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  #pw-page .rl-pile-chip b{font-weight:var(--w-label);margin-left:2px}
+  #pw-page .rl-pile-chip:hover{color:var(--color-text)}
+  #pw-page .rl-pile-chip[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  #pw-page .rl-pile-chip:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+  #pw-page .redline-page .rl-idx-title{font-family:var(--font-title);font-size:18px;line-height:24px;font-weight:var(--w-title-serif)}   /* their list's name in the serif, as ours */
+  /* the box at the foot of their changes, where Jambo's box stands on ours: the same pill and coloured edge */
+  #pw-page #rl-changes-col{display:flex;flex-direction:column}
+  #pw-page #rl-changes-col > #nego-cards{flex:1 1 auto;min-height:0}
+  #pw-page .pt-write{flex:none;display:flex;align-items:center;gap:8px;margin:8px 12px 12px;height:44px;padding:0 6px 0 14px;border:1.5px solid transparent;border-radius:999px;
+    background:linear-gradient(var(--color-surface),var(--color-surface)) padding-box,linear-gradient(120deg,#0A7C6B,#6D5DFC,#FF7A59) border-box}
+  #pw-page .pt-write-in{flex:1 1 auto;min-width:0;border:0;outline:0;background:transparent;font:inherit;color:var(--color-text)}
+  #pw-page .pt-write-in::placeholder{color:var(--color-neutral-600)}
   /* -- below 1100px wide (narrower than any of the owner's three screens) the two halves stand docked
      as they did: there every pixel is the page's (swedish-verify caught the Calendar cut by 7px at 800) -- */
   @media (max-width:1100px){
