@@ -90,8 +90,11 @@ const MARK = cid => {
 
     /* ═══ 1 · THE NEW AGREEMENT CARDS ═══ */
     await page.click('[data-page-new]'); await pause(500);
-    /* 23 Sep 2026: the button opens two doors first (openNewDoors); this presses Draft from HaTi. */
-    await page.click('[data-nd-door="draft"]').catch(() => {}); await pause(900);
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): no drop-down — the button opens the one
+       sheet, the three most used on top and the whole search list behind "Search all our paper";
+       the rows measured are the search list's */
+    await pause(900);
+    await page.evaluate(() => { const a = document.getElementById('na-all'); if (a) a.click(); }); await pause(400);
     /* RE-POINTED IN PLACE 22 Sep 2026 — Young chose proposal C, the cards
        became a rail of rows, and there is no grid left to stretch one row to
        another's height. The reasoning that produced these claims is kept in
@@ -99,7 +102,7 @@ const MARK = cid => {
        has to hold, and is what a reader actually feels, is that a long name
        does not wrap, every row measures the same, and the whole of what was
        cut rides the hover. */
-    const cards = await page.evaluate(() => [...document.querySelectorAll('[data-wz-lib]')].map(d => {
+    const cards = await page.evaluate(() => [...document.querySelectorAll('#na-lists [data-wz-lib]')].map(d => {
       const r = d.getBoundingClientRect(), b = d.querySelector('.na-pick-n');
       return { h: Math.round(r.height), name: (b && b.textContent || '').slice(0, 20),
         nameH: b ? Math.round(b.getBoundingClientRect().height) : 0,
@@ -114,8 +117,10 @@ const MARK = cid => {
       cards.length === 6 && hs.length === 1, `heights: ${hs.join(' · ')}`);
     check('1b and a rail row is a row, not a card — well under the old 86px',
       hs.length === 1 && hs[0] < 60, `${hs[0]}px`);
-    check('1c a long name takes one line, like a short one, and is cut',
-      new Set(cards.map(c => c.nameH)).size === 1 && cards.some(c => c.cut),
+    /* RE-POINTED 24 Oct 2026: the search list is as wide as the sheet now, not the old 260px rail,
+       so the longest name may fit whole; what must hold is one line each, never a wrap */
+    check('1c a long name takes one line, like a short one (cut only where it does not fit)',
+      cards.length === 6 && new Set(cards.map(c => c.nameH)).size === 1,
       cards.map(c => c.nameH).join('/') + ' · cut ' + cards.filter(c => c.cut).length);
     check('1d and the whole of what was cut is on the row\'s own hover',
       cards.every(c => c.title.split('\n')[0].length > 0)

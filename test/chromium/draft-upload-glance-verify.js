@@ -8,7 +8,8 @@
      1  Home's head carries no "+ Draft new agreement"; the wall's chips lead
         with "upload a document", then "draft a new agreement"
      2  the chip answers with the Draft card; Open the form opens the ONE form
-        (no two-door menu), Create grey with its reason
+        (no two-door menu), Create grey with its reason (RE-POINTED 24 Oct
+        2026: the chip opens the one sheet itself, no card)
      3  "draft an NDA with Volvo" brings the one form straight to the desk as
         one sheet (round 4, the owner picked "One sheet", 17 Oct 2026 — the
         New agreement card is retired): what was read (With: Volvo) is its
@@ -120,11 +121,11 @@ const pastFirstWords = async page => {
 
     /* ===== 2. THE DRAFT CHIP ===== */
     await page.click('#ig-dock [data-ig-chips] [data-ca-chip="draft"]');
-    const card = await waitFor(page, () => !!document.querySelector('#ig-dock .ca-dr [data-ca-act="draftform"]'), 5000);
-    check('2a "draft a new agreement" answers with the Draft card, nothing opened', card && await page.evaluate(() => !document.getElementById('na-root') && !window._seen.menu));
-    await shoot('2-draft-card');
-    await page.click('#ig-dock .ca-dr [data-ca-act="draftform"]');
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): no Draft card in the
+       chat — the chip opens the one sheet beside Jambo straight away */
     const form = await waitFor(page, () => !!document.getElementById('na-root'), 6000);
+    check('2a "draft a new agreement" opens the one sheet, no card in the chat', form && await page.evaluate(() => !document.querySelector('#ig-dock .ca-dr [data-ca-act="draftform"]') && !window._seen.menu));
+    await shoot('2-draft-card');
     const f0 = await page.evaluate(() => { const b = document.getElementById('na-create'); return { menu: window._seen.menu, dis: !!(b && b.disabled), why: b && b.title }; });
     check('2b Open the form opens the one form, never the two-door menu', form && !f0.menu, f0);
     check('2c Create is grey with its reason until a template is picked', f0.dis && /Pick a template first/.test(f0.why || ''), f0.why);
@@ -134,21 +135,23 @@ const pastFirstWords = async page => {
     await wall();
     await say('draft an NDA with Volvo');
     const nac = await waitFor(page, () => !!document.querySelector('#na-root.na-one #na-words'), 8000);
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way; the owner's "Pick it
+       when clear"): the NDA is clearly the closest, so it is picked, and the
+       sentence's Volvo stands in its counterparty box with the words quoted */
+    await waitFor(page, () => !!document.querySelector('#na-root.is-picked #na-form input[id$="-counterparty"]'), 8000);
     const rows = await page.evaluate(() => { const w = document.getElementById('na-words'), said = [...document.querySelectorAll('#ig-dock .ca-dr-said')].pop();
-      return { words: w ? w.innerText : '', withV: w ? ([...w.querySelectorAll('.na-w-c')][1] || { querySelector: () => null }).querySelector('b').textContent : '',
-        said: said ? said.innerText : '', picked: document.querySelectorAll('.na-pick.on').length, closest: document.querySelectorAll('#na-closest .na-pick').length }; });
-    check('3a the sentence brings the one form to the desk, what was read its first section; Jambo says it in a line', nac && /From your words/.test(rows.words) && /draft an NDA with Volvo/.test(rows.words) && /opened a new agreement on the desk/.test(rows.said), rows);
+      return { words: (document.getElementById('dr-say') || {}).value || '', said: said ? said.innerText : '', card: (document.getElementById('na-card-name') || {}).textContent || '',
+        withV: (document.querySelector('#na-form input[id$="-counterparty"]') || {}).value || '' }; });
+    check('3a the sentence brings the one sheet to the desk with the words kept in its ask; Jambo says it in a line', nac && /draft an NDA with Volvo/.test(rows.words) && /opened a new agreement on the desk/.test(rows.said), rows);
     check('3b With is the counterparty the sentence named', rows.withV === 'Volvo', rows.withV);
-    check('3b2 the closest paper is offered, nothing picked for you', rows.closest >= 1 && rows.picked === 0, rows);
+    check('3b2 the closest paper is picked, being clearly the closest, and Jambo says so', /NDA/.test(rows.card) && /I picked our NDA/.test(rows.said), rows);
     await shoot('3-the-one-sheet');
-    await page.click('#na-closest .na-pick');
-    await waitFor(page, () => !!document.querySelector('#na-form input[id$="-counterparty"]'), 8000);
-    const f1 = await page.evaluate(() => ({ lit: (document.querySelector('.na-pick.on .na-pick-n') || {}).textContent || '',
+    const f1 = await page.evaluate(() => ({ lit: (document.getElementById('na-card-name') || {}).textContent || '',
       cp: (document.querySelector('#na-form input[id$="-counterparty"]') || {}).value || '',
       create: !document.getElementById('na-create').disabled, why: document.getElementById('na-create').title,
       stream: (naStreamBox(document.getElementById('na-form')) || {}).value,
       pressed: document.querySelectorAll('#na-file-seg [aria-pressed="true"]').length }));
-    check('3c the paper pressed brings its questions, Volvo already in its box', !!f1.lit && f1.cp === 'Volvo', f1);
+    check('3c the paper picked brings its questions, Volvo already in its box', !!f1.lit && f1.cp === 'Volvo', f1);
     check('3c2 the stream is asked, not taken: none chosen, Create grey with "Choose a stream first."', f1.stream === '' && f1.pressed === 0 && !f1.create && /Choose a stream first/.test(f1.why || ''), f1);
     await shoot('3-the-one-form');
     const picked = await page.locator('#na-file-seg [data-na-stream="mktg"]').count() > 0 && (await page.click('#na-file-seg [data-na-stream="mktg"]'), true);
@@ -170,7 +173,9 @@ const pastFirstWords = async page => {
     await page.evaluate(() => langSet('sv')); await wall();
     await say('skriv ett NDA med Volvo');
     const sv = await waitFor(page, () => !!document.querySelector('#na-root.na-one #na-words'), 8000);
-    const svWith = await page.evaluate(() => { const w = document.getElementById('na-words'); const c = w && [...w.querySelectorAll('.na-w-c')][1]; return c ? c.querySelector('b').textContent : ''; });
+    /* RE-POINTED 24 Oct 2026: the NDA is picked, Volvo in its counterparty box */
+    await waitFor(page, () => !!(document.querySelector('#na-root.is-picked #na-form input[id$="-counterparty"]') || {}).value, 8000);
+    const svWith = await page.evaluate(() => (document.querySelector('#na-root.is-picked #na-form input[id$="-counterparty"]') || {}).value || '');
     check('3g "skriv ett NDA med Volvo" brings the form too, Med: Volvo', sv && svWith === 'Volvo', svWith);
     await page.evaluate(() => closeModal()); await pause(300);
     await page.evaluate(() => langSet('en'));

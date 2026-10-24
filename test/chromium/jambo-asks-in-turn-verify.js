@@ -41,7 +41,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     await page.evaluate(() => { const t = window.toast; window.toast = function (m, k){ try { window.__toastSeen(m, k); } catch (_){} return t.apply(this, arguments); }; });
     /* the model's answers are held until released, one at a time */
     let gates = [];
-    await page.route('**/api/ai/chat**', async route => { await new Promise(r => gates.push(r)); await route.continue(); });
+    /* RE-POINTED 24 Oct 2026 (#456, "One Jambo, two layers"): a question typed on Explorer goes to the map's
+       own route (/api/ai/graph), so both the chat's and the map's answers are held */
+    await page.route(/\/api\/ai\/(chat|graph)/, async route => { await new Promise(r => gates.push(r)); await route.continue(); });
     const release = () => { const g = gates; gates = []; g.forEach(r => r()); };
 
     /* ---- 1 Home's panel ---- */
@@ -77,7 +79,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       const winBox = await until(() => { const b = aiEl && aiEl('ai-input'); return b && b.getBoundingClientRect().width > 0 ? true : null; }, null, 8000);
       check('2 · the chat window is open', !!winBox);
       await page.evaluate(() => { const b = aiEl('ai-input'); b.value = 'which clause worries you most?'; }); await page.evaluate(() => { aiSubmit(); });
-      await until(() => (window.ai && ai.busy) ? true : null, null, 8000);
+      /* since #456 the window on Home hands its words to Home's box, so the busy one is Home's (intel.busy) */
+      const busy2 = await until(() => ((window.ai && ai.busy) || (window.intel && intel.busy)) ? true : null, null, 8000);
+      check('2 · Jambo is answering the window\'s first question', !!busy2);
       const n0 = await page.evaluate(() => ai.history.filter(m => m.role === 'user').length);
       const t0 = toasts.length;
       await page.evaluate(() => { const b = aiEl('ai-input'); b.value = 'and what is late?'; }); await page.evaluate(() => { aiSubmit(); });

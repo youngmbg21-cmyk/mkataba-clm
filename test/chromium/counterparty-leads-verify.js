@@ -179,11 +179,16 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(1400);
     /* THE SEARCH LIST (12 Oct 2026): nothing is picked on arrival, so the
        check picks the first row the way a reader would. */
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the rail's search is behind "Search all our
+       paper" and a picked paper puts the list away, so the search is measured before the pick */
+    const lobH0 = await page.evaluate(() => { const a = document.getElementById('na-all'); if (a) a.click();
+      const q = document.getElementById('na-q'); return q && q.getClientRects().length ? Math.round(q.getBoundingClientRect().height) : null; });
     await page.evaluate(() => { const t = document.querySelector('[data-na-tab="tid"]'); if (t) t.click();
       const b = document.querySelector('.na-pick'); if (b) b.click(); });
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, '03-new-agreement.png') });
     const P = await page.evaluate(() => {
+      /* an edge of no width is no outline, whatever colour it computes to (RE-POINTED 24 Oct 2026) */
       const cs = e => e ? getComputedStyle(e) : null;
       const body = document.querySelector('.na-body'), card = document.querySelector('.na-card');
       const lob = document.getElementById('na-q');
@@ -192,8 +197,8 @@ const check = (name, ok, detail) => {
         pageBg: (() => { const d = document.createElement('div');
           d.style.background = 'var(--color-bg)'; document.body.appendChild(d);
           const v = getComputedStyle(d).backgroundColor; d.remove(); return v; })(),
-        cardBg: cs(card) && cs(card).backgroundColor, cardEdge: cs(card) && cs(card).borderColor, cardLift: cs(card) && cs(card).boxShadow,
-        lobH: lob ? Math.round(lob.getBoundingClientRect().height) : null,
+        cardBg: cs(card) && cs(card).backgroundColor, cardEdge: cs(card) && (parseFloat(cs(card).borderTopWidth) === 0 ? 'transparent' : cs(card).borderColor), cardLift: cs(card) && cs(card).boxShadow,
+        lobH: lob && lob.getClientRects().length ? Math.round(lob.getBoundingClientRect().height) : null,
         fieldH: inp ? Math.round(inp.getBoundingClientRect().height) : null,
         /* THE RULE, not a pair of sections that may not both be drawn: a
            workspace with no company standard published draws one section, and
@@ -253,7 +258,7 @@ const check = (name, ok, detail) => {
     /* RE-POINTED 12 Oct 2026 (the Search list): the line of business moved
        to Settings → Company; the control in the rail now is its own search. */
     check('3c the rail\'s search is the size of the controls beside it',
-      P.lobH != null && P.fieldH != null && Math.abs(P.lobH - P.fieldH) <= 2, `search ${P.lobH} · field ${P.fieldH}`);
+      lobH0 != null && P.fieldH != null && Math.abs(lobH0 - P.fieldH) <= 2, `search ${lobH0} · field ${P.fieldH}`);
     /* RE-POINTED IN PLACE 22 Sep 2026. The ground is still the claim, and on
        a rail it is the ROW that must not compete with it: an unchosen row
        paints nothing and the chosen one is filled in the accent. */

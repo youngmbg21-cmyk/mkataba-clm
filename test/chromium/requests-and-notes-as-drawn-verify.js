@@ -155,21 +155,24 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
 
     /* ---- 3 · Start the draft ---- */
     await press('#ins-panel [data-ins-act="draft"]');
-    const S = await until(() => { const on = document.querySelector('#na-root .na-pick.on'); return on ? { name: on.textContent.trim(), lit: on.classList.contains('is-landed') || on.classList.contains('is-landed-held') } : null; });
-    check('3 Start the draft opens the New agreement form with that paper chosen and lit — no model asked', !!S && /NDA/.test(S.name) && S.lit && aiCalls.length === 0, JSON.stringify({ S, ai: aiCalls }));
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the chosen paper is
+       the sheet's card — its name in the head, the list put away — not a lit
+       row; the sheet carries no crumb (the bar names New agreement) and its
+       Cancel goes back where it was started */
+    const S = await until(() => { const r = document.getElementById('na-root'), n = document.getElementById('na-card-name');
+      return r && r.classList.contains('is-picked') && n ? { name: n.textContent.trim(), lit: n.getClientRects().length > 0 } : null; });
+    check('3 Start the draft opens the New agreement sheet with that paper chosen — no model asked', !!S && /NDA/.test(S.name) && S.lit && aiCalls.length === 0, JSON.stringify({ S, ai: aiCalls }));
     if (OUT && S) { await page.waitForTimeout(900); await page.screenshot({ path: path.join(OUT, '20-requests-start-the-draft-1440x780.png') }); }
     /* the form is the page in front: Jambo's panel at the edge does not sit over it */
-    const O = await page.evaluate(() => { const on = document.querySelector('#na-root .na-pick.on'); const p = document.getElementById('ins-panel');
+    const O = await page.evaluate(() => { const on = document.getElementById('na-card-name'); const p = document.getElementById('ins-panel');
       const cr = document.querySelector('#na-create'); const at = el => { if (!el) return null; const r = el.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !!(top && (el === top || el.contains(top))); };
       return { pick: at(on), create: at(cr), panelHidden: !p || !p.getClientRects().length || !at(p) }; });
-    check('3b the form stands in front: its chosen paper and Create are painted, not under Jambo\'s panel', O.pick && O.create !== false, JSON.stringify(O));
-    /* SECOND PASS: the form names the paper as the panel did, and carries
-       "‹ Requests" back (the drawing's Compare: "with ‹ Requests to come back") */
-    const BK = await page.evaluate(() => { const b = document.querySelector('[data-dlg-pg-back]'); const n = document.querySelector('#na-root .na-pick.on .na-pick-n');
+    check('3b the sheet stands in front: its chosen paper and Create are painted, not under Jambo\'s panel', O.pick && O.create !== false, JSON.stringify(O));
+    const BK = await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); const n = document.getElementById('na-card-name');
       return { back: b ? b.textContent.trim() : null, name: n ? n.textContent.trim() : null }; });
-    check('3c the form lists the paper by the name Jambo said, and its crumb is "‹ Requests"', !!P && BK.name === P.fit && BK.back === '‹ Requests', JSON.stringify(BK));
-    if (BK.back) { await press('[data-dlg-pg-back]'); await until(() => !document.getElementById('na-root') && state.view === 'intake' ? true : null, null, 4000); }
-    check('3d "‹ Requests" goes back to Requests', await page.evaluate(() => !document.getElementById('na-root') && state.view === 'intake'));
+    check('3c the sheet names the paper as Jambo said, with Cancel to go back', !!P && BK.name === P.fit && BK.back === 'Cancel', JSON.stringify(BK));
+    if (BK.back) { await press('#wz-pick-cancel'); await until(() => !document.getElementById('na-root') && state.view === 'intake' ? true : null, null, 4000); }
+    check('3d Cancel goes back to Requests', await page.evaluate(() => !document.getElementById('na-root') && state.view === 'intake'));
     await page.keyboard.press('Escape').catch(() => {});
     await until(() => !document.getElementById('na-root'), null, 4000);
     await page.evaluate(() => { if (document.getElementById('na-root')) { const b = document.querySelector('#modal-root [data-dlg-cancel], #na-cancel'); if (b) b.click(); } });

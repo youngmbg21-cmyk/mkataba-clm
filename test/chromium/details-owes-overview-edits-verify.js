@@ -65,11 +65,12 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.evaluate(() => { setView('register'); openNewAgreement({ pick: { kind: 'tid', id: 'RM' } }); });
     await until(() => !!document.getElementById('wz-counterparty'));
     await pause(300);
-    const lv = await page.evaluate(() => { const l = document.getElementById('na-lists'), r = l && l.lastElementChild, k = document.getElementById('na-card');
-      if (!r || !k) return null; const a = r.getBoundingClientRect(), b = k.getBoundingClientRect();
-      return { rowsBottom: Math.round(a.bottom), cardBottom: Math.round(b.bottom), scrolls: r.scrollHeight > r.clientHeight + 1 }; });
+    /* RETIRED 24 Oct 2026 (one door, the Legora way): there are no two cards side by side to end level —
+       a picked paper puts the list away and its questions take the sheet. What stands: the list is put away. */
+    const lv = await page.evaluate(() => { const r = document.getElementById('na-root'), l = document.getElementById('na-lists'), k = document.getElementById('na-card');
+      return { picked: !!(r && r.classList.contains('is-picked')), listShown: !!(l && l.getClientRects().length), card: !!(k && k.getClientRects().length) }; });
     await page.screenshot({ path: path.join(OUT, '01-new-agreement.png') });
-    check('1 the choices\' card ends level with the questions\' card', !!lv && Math.abs(lv.rowsBottom - lv.cardBottom) <= 2, JSON.stringify(lv));
+    check('1 a picked paper puts the list away and its questions take the sheet', !!lv && lv.picked && !lv.listShown && lv.card, JSON.stringify(lv));
     await page.evaluate(() => closeModal());
 
     /* ===== 3. DETAILS: ONLY WHAT THE PAPER OWES ===== */

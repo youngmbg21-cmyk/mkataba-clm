@@ -251,16 +251,21 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       const r = t.getBoundingClientRect();
       return { shown: true, text: t.textContent.replace(/\s+/g, ' ').trim(), w: Math.round(r.width) }; });
     check('2s4 the hover names the clause, how serious it is, and why it is flagged',
-      tip.shown && tip.text.includes(staged.label) && /Could hurt you/.test(tip.text) && /capped far below/.test(tip.text) && /ask Jambo/.test(tip.text),
+      tip.shown && tip.text.includes(staged.label) && /Could hurt you/.test(tip.text) && /capped far below/.test(tip.text) && /open it in Clauses/.test(tip.text) && !/ask Jambo/.test(tip.text),
       tip.text || 'not shown');
+    check('2s4b and, the contract not read yet, the card says opening Clauses reads it first and what it costs',
+      /Clauses reads this contract first · 1 Jambo call/.test(tip.text), tip.text || 'not shown');
     await page.evaluate(() => { const i = document.getElementById('igd-input'); if (i) i.value = ''; });
-    const callsBefore = ai.calls.length;
+    const callsBefore = ai.calls.length, turnsBefore = await page.evaluate(() => (intel.history || []).length);
     await page.click(`#ig-spine [data-xr-seg="${blk.i}"]`);
-    await page.waitForFunction(() => { const i = document.getElementById('igd-input'); return i && i.value.length > 0; }, null, { timeout: 4000 }).catch(() => {});
+    /* RE-POINTED 24 Oct 2026 (owner: "Simply stop asking the question and move me to where image 2 is"):
+       the press opens the clause on the Clauses tab; Jambo's box stays empty */
+    await page.waitForFunction(() => !!document.querySelector('#ig-dock .doc-th-row.is-open'), null, { timeout: 4000 }).catch(() => {});
     const pressed = await page.evaluate(i => {
       const inp = document.getElementById('igd-input');
       const b = document.querySelector(`#ig-spine [data-xr-seg="${i}"]`);
-      return { q: inp && inp.value, focused: document.activeElement === inp,
+      const open = document.querySelector('#ig-dock .doc-th-row.is-open .doc-th-name');
+      return { q: inp ? inp.value : '', tab: window.pdTab ? pdTab() : '', open: open ? open.textContent.trim() : '',
         on: !!(b && b.classList.contains('is-on')), lit: document.querySelectorAll('#ig-canvas .ig-flash').length,
         tipHidden: !document.getElementById('ig-spine-tip') || document.getElementById('ig-spine-tip').hidden };
     }, blk.i);
@@ -269,10 +274,14 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       const el = [...document.querySelectorAll('#ig-canvas *')].find(e => e.classList && e.classList.contains('ig-flash'));
       const r = el && el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
       return { inView: !!(r && r.top >= sr.top - 2 && r.top < sr.bottom) }; }, staged.label);
-    check('2s5 a press puts a question naming the clause AND its flag in the box, ready to ask',
-      !!pressed.q && pressed.q.includes(staged.label) && /Risk scan/.test(pressed.q) && /capped far below/.test(pressed.q) && pressed.focused,
-      JSON.stringify(pressed.q));
-    check('2s6 and NOTHING WAS ASKED: no call left for the model', ai.calls.length === callsBefore, `${ai.calls.length - callsBefore} call(s)`);
+    check('2s5 a press opens that clause on the Clauses tab and writes nothing into Jambo\'s box',
+      pressed.tab === 'doc' && pressed.open.includes(staged.label) && !pressed.q,
+      JSON.stringify({ tab: pressed.tab, open: pressed.open, q: pressed.q }));
+    /* opening Clauses reads a contract not read yet (stkAutoRun, the owner's 13 Oct ruling): that one
+       reading is the tab's, said on the hover card first (2s4b); no question is sent to Jambo */
+    const turnsAfter = await page.evaluate(() => (intel.history || []).length);
+    check('2s6 and NOTHING WAS ASKED: no question sent to Jambo, at most the Clauses tab\'s own one reading',
+      turnsAfter === turnsBefore && ai.calls.length - callsBefore <= 1, `${turnsAfter - turnsBefore} turn(s), ${ai.calls.length - callsBefore} call(s)`);
     check('2s7 the block is marked as picked, the clause is lit on the paper and in view, and the card went away',
       pressed.on && pressed.lit >= 1 && landed.inView && pressed.tipHidden, JSON.stringify({ ...pressed, q: undefined, ...landed }));
     await page.screenshot({ path: path.join(OUT, '03b-strip-ask.png') });
@@ -283,7 +292,11 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     check('2s8 a question the reader typed is never overwritten by a press', kept === 'my own question', kept);
     await page.evaluate(() => { const i = document.getElementById('igd-input'); if (i) i.value = ''; });
 
-    /* A pin in the margin finds its answer in the panel. */
+    /* A pin in the margin finds its answer in the panel. Since 24 Oct 2026 the strip's press
+       leaves the panel on Clauses, so the reader goes back to the conversation first (the
+       Jambo tab), as a person would; a pin pressed from another tab is a BUGLOG line. */
+    await page.evaluate(() => { const t = document.querySelector("#ig-dock [data-pd-talk]"); if (t) t.click(); });
+    await page.waitForFunction(() => !!document.getElementById('igd-feed'), null, { timeout: 4000 }).catch(() => {});
     await page.evaluate(() => { const f = document.getElementById('igd-feed'); f.scrollTop = 0; });
     await page.click('#ig-canvas button.ig-pin[data-ig-pin="1"]');
     await page.waitForTimeout(900);

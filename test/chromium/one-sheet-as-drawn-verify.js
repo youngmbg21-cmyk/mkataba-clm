@@ -50,6 +50,13 @@
         and amber-edged while owed
    THE FOURTH PASS (main brought in again, 19 Oct 2026; node half f753 (10)):
      16 "Change the ask" lands on Jambo's box through the one lander (LAND ON IT)
+   RE-POINTED 24 Oct 2026 — ONE DOOR, THE LEGORA WAY (owner picked it by name, replacing "One sheet"'s
+   drawn parts): the sentence's paper is picked when it is clearly the closest (owner: "Pick it when
+   clear"); From your words' cells are rows of what was read, each with the words it came from; the three
+   cards are one quiet list; step 2's three columns are rows Term · What it says · Where it came from;
+   step 3 is a "Filed in" line of chips with the reading's cost under it; "Change the ask" is the ask box
+   itself, read again by its arrow. Each claim below says what it pins now. test/chromium/one-door-verify.js
+   pins the door from every way in.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/one-sheet-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -108,7 +115,9 @@ const SAY = 'NDA with Volvo Cars for a pilot';
         said: t(document.querySelector('#ig-dock .ca-dr-said .ca-say')), saidActs: vis(document.querySelector('#ig-dock .ca-dr-said .ca-acts')),
         lines: [...document.querySelectorAll('#ig-dock .ai-msg .ai-bub')].filter(vis).map(t),
         wall: ['.pd-hello', '#pd-drop', '[data-ig-chips]'].some(s => vis(document.querySelector('#ig-dock ' + s))),
-        words: [...document.querySelectorAll('#na-words .na-w-c')].map(c => ({ t: t(c), owed: c.classList.contains('is-owed') })), fill: t(document.getElementById('dr-read')),
+        words: [...document.querySelectorAll('#na-read .na-kt-r')].map(c => ({ t: t(c) })), fill: t(document.getElementById('dr-read')),
+        src: [...document.querySelectorAll('#na-form .na-kt-r')].filter(vis).map(x => ({ term: t(x.firstElementChild), from: t(x.querySelector('.na-src')) })),
+        count: t(document.getElementById('na-card-count')),
         step1: t(document.querySelector('#wz-pick .na-step')), cards: cards.map(c => ({ t: t(c), radio: !!c.querySelector('.na-radio'), checked: c.getAttribute('aria-checked') })),
         sub: t(document.getElementById('na-card-sub')), cardName: t(document.getElementById('na-card-name')),
         cp: t([...document.querySelectorAll('#na-form label > span:first-child')].find(sp => /^The other company/.test(sp.textContent.trim()))),
@@ -128,9 +137,10 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       ring: (() => { const a = document.activeElement; if (!a || a === document.body) return 'none'; const c = getComputedStyle(a); return (c.outlineStyle === 'none' || parseFloat(c.outlineWidth) === 0) && !/0px 0px 0px [1-9]/.test(c.boxShadow) ? 'none' : c.outlineStyle + ' ' + c.outlineWidth + ' ' + c.boxShadow; })() }));
     check('1b the way back is the bar\'s: no crumb in the sheet\'s head, the bar says "New agreement", its ‹ live, no ring on arrival',
       S1.crumb === '' && !B1.crumbEl && B1.page === 'New agreement' && B1.back && B1.ring === 'none', JSON.stringify({ crumb: S1.crumb, B1 }));
-    check('1c the reason beside Create draft, then Cancel — no "Skip the questions"', S1.acts.join('|') === 'Pick a template first|Create draft|Cancel' && !S1.skip && S1.create, JSON.stringify(S1.acts));
+    /* RE-POINTED 24 Oct 2026: the NDA is clearly the closest, so it is picked; the reason is the stream's */
+    check('1c the reason beside Create draft, then Cancel — no "Skip the questions"', S1.acts.join('|') === 'Choose a stream first|Create draft|Cancel' && !S1.skip && S1.create, JSON.stringify(S1.acts));
     check('2a the sheet stands on the desk beside Jambo\'s panel', S1.beside, JSON.stringify({ beside: S1.beside, dock: S1.dockVis }));
-    check('2b Jambo says in one line what he read, as drawn', S1.said === 'I’ve opened a new agreement on the desk with what I read: an NDA, with Volvo Cars. The closest of our paper is our NDA; you pick. Nothing is created until you press Create.', S1.said);
+    check('2b Jambo says in one line what he read, and that he picked the closest', S1.said === 'I’ve opened a new agreement on the desk with what I read: an NDA, with Volvo Cars. I picked our NDA, the closest of our paper; Change paper if it is not the one. Nothing is created until you press Create.', S1.said);
     check('2c no line in front of it, no doors back to a sheet that is up, no wall furniture', !S1.lines.some(l => /carry this/.test(l)) && !S1.saidActs && !S1.wall, JSON.stringify({ lines: S1.lines, acts: S1.saidActs, wall: S1.wall }));
     /* 2d THE PAGE FOLLOWS THE PANEL (owner's picture, 20 Oct 2026): when Jambo's panel
        leaves, the sheet takes the room it held; when it comes back, the sheet stands
@@ -145,8 +155,11 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* 3 From your words */
     const W3 = S1.words.map(w => w.t);
     /* RE-POINTED (pass 2, 18 Oct 2026): What is the KIND the words ask for, What it is for read from the words */
-    check('3 From your words: What (the kind asked for) · With (amber, not in Parties yet) · What it is for (read from the words) · Let Jambo fill the form',
-      W3.length === 3 && W3[0] === 'What A non-disclosure agreement' && W3[1] === 'With · not in Parties yet Volvo Cars' && S1.words[1].owed && W3[2] === 'What it is for A pilot' && /^Let Jambo fill the form/.test(S1.fill), JSON.stringify({ W3, fill: S1.fill }));
+    /* RE-POINTED 24 Oct 2026 (the Legora way): with the paper picked, what was read stands in its rows,
+       each with the words it came from; Jambo's one spend stays beside the ask box, its cost on it */
+    const cp3 = (S1.src || []).find(x => /other company/i.test(x.term));
+    check('3 the counterparty read from the words is in its row, quoting them; Let Jambo fill the rest beside the ask box',
+      !!cp3 && /“Volvo Cars”/.test(cp3.from) && /^Let Jambo fill the rest/.test(S1.fill), JSON.stringify({ cp3, fill: S1.fill, W3 }));
     /* 9 the panel beside the sheet */
     const P9 = await page.evaluate(() => { const d = document.getElementById('ig-dock'), vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
       const said = d.querySelector('.ca-dr-said .ca-say');
@@ -155,6 +168,10 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('9a the panel\'s head: "Jambo · New agreement · ›", no bin', P9.word === 'New agreement' && !P9.bin && P9.fold, JSON.stringify(P9));
     check('9b its box asks "Ask for a number, a list or a contract…"', P9.ph === 'Ask for a number, a list or a contract…', P9.ph);
     check('9c the party and the paper in bold', P9.bold.join('|') === 'Volvo Cars|NDA', JSON.stringify(P9.bold));
+    /* RE-POINTED 24 Oct 2026: the list stands again behind "Change paper" (picked, it is put away) */
+    await page.click('#na-change-paper');
+    await until(() => document.getElementById('na-closest') && document.getElementById('na-closest').getClientRects().length ? true : null, null, 4000);
+    Object.assign(S1, await page.evaluate(SHEET));
     /* 10 RE-POINTED (the third pass; the owner's answer (4): costs stay in Jambo calls, never money —
        even with a ledger and a dated USD rate on file, as seeded above) */
     await page.waitForTimeout(600);
@@ -162,10 +179,11 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('10a Let Jambo fill the form says its cost in calls: "· 1 Jambo call"', C10.f === '· 1 Jambo call', JSON.stringify(C10));
     check('10b creating says what Jambo\'s reading costs in calls: "… — about three Jambo calls."', C10.r === 'When it is created, Jambo reads it: the brief, our standards, risks and obligations — about three Jambo calls.', JSON.stringify(C10));
     /* 4 Start from */
-    check('4a 1 Start from: the three closest on our paper, nothing picked for you; the search and Legal on its line',
-      /^1 Start from the three closest on our paper · nothing is picked for you Search all our paper \(\d+\) · None fits\? Ask Legal with a request$/.test(S1.step1), S1.step1);
-    check('4b three cards, each with a radio and its shelf, the closest marked, none checked', S1.cards.length === 3 && S1.cards.every(c => c.radio && c.checked === 'false')
-      && /the closest/.test(S1.cards[0].t) && S1.cards.every(c => /template|standard/i.test(c.t)), JSON.stringify(S1.cards));
+    /* RE-POINTED 24 Oct 2026 (the Legora way): one quiet list headed "Closest on our paper"; the picked one checked */
+    check('4a "Closest on our paper"; the search and Legal on its line',
+      /^Closest on our paper Search all our paper \(\d+\) ?· None fits\? ?Ask Legal with a request$/.test(S1.step1), S1.step1);
+    check('4b three rows, each with a radio and when to use it, the closest marked and checked', S1.cards.length === 3 && S1.cards.every(c => c.radio)
+      && /the closest/.test(S1.cards[0].t) && S1.cards[0].checked === 'true' && S1.cards.slice(1).every(c => c.checked === 'false') && S1.cards.every(c => /Use when|template|standard/i.test(c.t)), JSON.stringify(S1.cards));
     await shot(page, '4-one-sheet-1440x780');
     /* 5 picked */
     await page.click('#na-closest .na-pick');
@@ -176,26 +194,35 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* RE-POINTED 21 Oct 2026: the stream is asked at every creation door and Create waits for it
        (naStreamBox, CLAUDE.md "STREAM ACCESS"), so it is needed now beside Counterparty */
     /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): the counterparty is "The other company" on the form */
-    check('5b its questions: "N questions · only The other company and Value stream are needed now"', /^\d+ questions · only The other company and Value stream are needed now$/.test(S5.sub) && /asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub}`);
-    check('5c the counterparty the sentence filled says so: "✦ from your words"', /^The other company \*? ?✦ from your words$/.test(S5.cp.replace(/\s+/g, ' ')), S5.cp);
+    /* RE-POINTED 24 Oct 2026 (the Legora way): the card's head is the paper, its shelf, Change paper and "N details · …";
+       where a value came from is the row's own third column */
+    check('5b its head: the paper\'s name and shelf, "N details · …"', /^\d+ details · /.test(S5.count) && /template|standard/i.test(S5.sub) && !/asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub} · ${S5.count}`);
+    const cp5 = (S5.src || []).find(x => /other company/i.test(x.term));
+    check('5c the counterparty the sentence filled says so, quoting the words', !!cp5 && /“Volvo Cars”/.test(cp5.from), JSON.stringify(cp5));
     check('5d who else: "Who else is on this agreement · nobody is emailed until you send"', /^Who else is on this agreement · nobody is emailed until you send/.test(S5.people), S5.people);
-    check('5e the cost of reading on the stream\'s own row', !!S5.file && S5.file.inRow && /^When it is created, Jambo reads it/.test(S5.file.cost), JSON.stringify(S5.file));
+    /* RE-POINTED 24 Oct 2026: the reading's cost is said under the "Filed in" line */
+    const cost5 = await page.evaluate(() => ((document.getElementById('na-file-cost') || {}).innerText || '').trim());
+    check('5e the cost of reading under the stream\'s line', /^When it is created, Jambo reads it/.test(cost5), cost5);
     check('5f the reason is now the stream\'s', S5.acts.join('|') === 'Choose a stream first|Create draft|Cancel', JSON.stringify(S5.acts));
     /* 11 step 2 in three columns, two rows; who else straight under */
     /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): Who pays whom? is a group of presses, not a label */
-    const Q11 = await page.evaluate(() => { const ls = [...document.querySelectorAll('#na-form .field-grid > label, #na-form .field-grid > .pw-field')].filter(l => l.getClientRects().length && getComputedStyle(l).display !== 'none');
-      const r = ls.map(l => l.getBoundingClientRect()), tops = [...new Set(r.map(x => Math.round(x.top)))];
+    /* RE-POINTED 24 Oct 2026 (the Legora way): the questions are rows Term · What it says · Where it came from,
+       who we are, the counterparty and their email first, "Who else" straight under */
+    const Q11 = await page.evaluate(() => { const ls = [...document.querySelectorAll('#na-form .na-kt-grid > .na-kt-r')].filter(l => l.getClientRects().length && getComputedStyle(l).display !== 'none');
+      const r = ls.map(l => l.getBoundingClientRect());
       const names = ls.map(l => (l.querySelector('span') || l).textContent.replace(/\s+/g, ' ').trim());
+      const head = document.querySelector('#na-form .na-kt-grid > .na-kt-h');
       const sum = document.querySelector('#na-people > summary'), last = Math.max(...r.map(x => x.bottom));
-      return { n: ls.length, tops: tops.length, widths: [...new Set(r.map(x => Math.round(x.width)))].length, first: names.slice(0, 3), gap: sum ? Math.round(sum.getBoundingClientRect().top - last) : null }; });
-    check('11 step 2: three columns, two rows — who we are, the counterparty, their email first — and "Who else" straight under',
-      Q11.n === 6 && Q11.tops === 2 && Q11.widths === 1 && /^Our party/.test(Q11.first[0]) && /^The other company/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 30, JSON.stringify(Q11));
+      return { n: ls.length, rows: [...new Set(r.map(x => Math.round(x.top)))].length, head: head ? head.innerText.replace(/\s+/g, ' ').trim() : '', first: names.slice(0, 3), gap: sum ? Math.round(sum.getBoundingClientRect().top - last) : null }; });
+    check('11 step 2: a row each — Term · What it says · Where it came from — who we are, the counterparty, their email first, and "Who else" straight under',
+      Q11.n >= 6 && Q11.rows === Q11.n && Q11.head === 'Term What it says Where it came from' && /^Our party/.test(Q11.first[0]) && /^The other company/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 40, JSON.stringify(Q11));
     /* 12 step 3 one row */
-    const R12 = await page.evaluate(() => { const row = document.querySelector('#na-file .na-file-b'), seg = row && row.querySelector('.na-seg'), need = row && row.querySelector('.na-need'), cost = row && row.querySelector('.na-file-cost');
+    /* RE-POINTED 24 Oct 2026 (the Legora way): "Filed in", the streams and "Needed before Create" on one line, the cost under it */
+    const R12 = await page.evaluate(() => { const row = document.querySelector('#na-file .na-file-b'), lab = row && row.querySelector('.na-file-l'), seg = row && row.querySelector('.na-seg'), need = row && row.querySelector('.na-need'), cost = document.getElementById('na-file-cost');
       const r = el => el.getBoundingClientRect();
-      return row && seg && need && cost ? { needBeside: r(need).left >= r(seg).right - 1 && r(need).top < r(seg).bottom, costRight: r(cost).left >= r(need).right - 1 && r(cost).top < r(seg).bottom,
+      return row && lab && seg && need && cost ? { label: lab.textContent.trim(), needBeside: r(need).left >= r(seg).left && r(need).top < r(seg).bottom, costUnder: r(cost).top >= r(row).bottom - 1,
         newStream: !!row.querySelector('[data-na-stream="__new__"]') } : null; });
-    check('12 step 3, one row: the streams, "Needed before Create", the cost — no "+ New stream"', !!R12 && R12.needBeside && R12.costRight && !R12.newStream, JSON.stringify(R12));
+    check('12 step 3: "Filed in", the streams, "Needed before Create" — the cost under — no "+ New stream"', !!R12 && R12.label === 'Filed in' && R12.needBeside && R12.costUnder && !R12.newStream, JSON.stringify(R12));
     /* 15 (the third pass) the streams are separate buttons, each its own edge, amber while owed */
     const B15 = await page.evaluate(() => { const seg = document.querySelector('#na-file .na-seg'), bs = [...document.querySelectorAll('#na-file .na-seg-b')];
       const cs = el => getComputedStyle(el), edge = el => ['Top', 'Right', 'Bottom', 'Left'].every(k => cs(el)['border' + k + 'Style'] === 'solid' && parseFloat(cs(el)['border' + k + 'Width']) >= 1);
@@ -218,8 +245,10 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       const sc = await page.evaluate(() => { const b = document.querySelector('[data-dlg-page] .dlg-pg-body'); return b ? b.scrollHeight - b.clientHeight : null; });
       /* RE-POINTED 22 Oct 2026 (the first-timer rounds, as picked): each card's "Use when" line (+40) and the help under
          the other company's name (+20) — measured 0 → 59 at 1440×780; 1536×730 and 1366×950 keep their measure */
-      const most = w === 1440 ? 64 : w === 1536 ? 82 : 0;
-      check(`13 ${w}×${ht}: the page scrolls at most ${most}px to reach step 3's foot`, sc != null && sc <= most, String(sc));
+      /* RE-POINTED 24 Oct 2026 (the Legora way): a question is a row, not a third of one, so the page is taller —
+         the sheet scrolls, its head (Create and its reason) stays in view (8); 13 now pins that the foot is reached
+         inside the sheet, never by the window */
+      check(`13 ${w}×${ht}: the sheet scrolls inside itself, never the window`, sc != null && await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), String(sc));
       await shot(page, `4-one-sheet-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
@@ -238,7 +267,8 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('14 a second sheet in the sitting: one exchange in the panel', L14 === 1, String(L14));
     /* RE-POINTED (the third pass): the bar's ‹ is the sheet's way out — asked first where something
        was typed, as Cancel asks; then the page the reader asked from, named again in the bar */
-    await page.click('#na-closest .na-pick');
+    /* RE-POINTED 24 Oct 2026: the sentence's paper arrives picked; its list is behind "Change paper" */
+    if (!(await page.evaluate(() => document.getElementById('na-root').classList.contains('is-picked')))) await page.click('#na-closest .na-pick');
     await until(() => !!document.querySelector('#na-form input'), null, 8000);
     const typed = await page.evaluate(() => { const i = [...document.querySelectorAll('#na-form input[type="text"], #na-form input[type="email"], #na-form input:not([type])')]
       .find(x => x.getClientRects().length && !x.readOnly && !x.disabled && !String(x.value || '').trim()); if (!i) return null; i.setAttribute('data-typed-here', ''); return i.id || i.name || 'box'; });
@@ -258,13 +288,13 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       !!back && back.page !== 'New agreement' && (was === 'home' ? back.view === 'counter' : back.key === was), JSON.stringify({ was, back }));
     /* 16 THE FOURTH PASS (main's LAND ON IT): "Change the ask" puts the sentence back in Jambo's
        box and lands on it through the one lander — lit, the caret in it, the sheet put away */
+    /* RE-POINTED 24 Oct 2026 (the Legora way): "Change the ask" is the ask box itself — new words, read
+       again by its arrow (still no AI), bring the sheet back read afresh */
     const up16 = await ask();
-    const has16 = up16 && await page.evaluate(() => !!document.getElementById('na-ask-again'));
-    if (has16) await page.click('#na-ask-again');
-    const L16 = has16 ? await until(() => { const i = document.getElementById('igd-input');
-      return !document.getElementById('na-root') && i && i.classList.contains('is-landed') ? { v: i.value, here: document.activeElement === i, end: i.selectionStart === i.value.length } : null; }, null, 6000) : null;
-    const D16 = L16 ? null : await page.evaluate(() => { const i = document.getElementById('igd-input'); return { root: !!document.getElementById('na-root'), box: !!i, v: i && i.value, cls: i && i.className.slice(-60), act: (document.activeElement || {}).id, conf: !!document.getElementById('confirm-overlay') }; });
-    check('16 Change the ask lands on Jambo\'s box: the sentence in it, lit, the caret at its end', !!L16 && L16.v === SAY && L16.here && L16.end, JSON.stringify({ up16: !!up16, has16, L16, D16 }));
+    const has16 = up16 && await page.evaluate(() => !!document.getElementById('na-reask'));
+    if (has16){ await page.fill('#dr-say', 'Lease with Mumias for two years'); await page.click('#na-reask'); }
+    const L16 = has16 ? await until(() => { const s = document.getElementById('dr-say'); return document.getElementById('na-root') && s && s.value === 'Lease with Mumias for two years' ? { v: s.value } : null; }, null, 8000) : null;
+    check('16 the ask box is the way to change the ask: new words, its arrow, the sheet read afresh', !!L16, JSON.stringify({ up16: !!up16, has16, L16 }));
     /* 17 HA PUTS THE PAGE AWAY FIRST (owner's picture, 20 Oct 2026): pressed with New
        agreement up, Home's mark closed nothing and the page stood over Home with Jambo's
        panel gone. Nothing typed: it goes, and Home is in front. Something typed: it asks

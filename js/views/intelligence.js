@@ -2359,7 +2359,7 @@ async function intelAsk(qRaw, opts){
          share, what's next, help) is drawn ONCE per conversation — a second
          ask lands on the one already there, lit, its main button ready —
          and the first is landed on too, so the eye goes straight to it */
-      const cardWord=act.kind==='go'&&Array.isArray(window.CA_CARD_WORDS)&&CA_CARD_WORDS.includes(act.place)&&!act.missing;
+      const cardWord=act.kind==='go'&&typeof window.caIsCardWord==='function'&&caIsCardWord(act.place)&&!act.missing;
       const had=cardWord?intel.history.findIndex(m=>m&&m.act&&m.act.kind==='go'&&m.act.place===act.place&&String(m.act.cid||'')===String(act.cid||'')&&!m.act.missing):-1;
       /* …ON SCREEN (owner, 20 Oct 2026: "some times when i press on the draft
          new agreement it does not work"): once the panel had gone back to its
@@ -9963,16 +9963,17 @@ function igStrandPaint(c){
   if(!sp.dataset.igBound){ sp.dataset.igBound='1';
     sp.addEventListener('click',e=>{ const b=e.target.closest('[data-xr-seg]'); if(!b) return;
       const i=Number(b.getAttribute('data-xr-seg'));
-      const el=_igStrandRows[i]; const s=document.getElementById('ig-paper-scroll');
-      if(el&&s){ const r=el.getBoundingClientRect(), sr=s.getBoundingClientRect(); s.scrollTo({ top:Math.max(0,s.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); }
       igStrandTip(null);
-      igStrandPress(sp, b, i); });
+      /* the Clauses list glides the paper itself (docThreadGoTo); only where it cannot take the press does the Track */
+      if(igStrandPress(sp, b, i)) return;
+      const el=_igStrandRows[i]; const s=document.getElementById('ig-paper-scroll');
+      if(el&&s){ const r=el.getBoundingClientRect(), sr=s.getBoundingClientRect(); s.scrollTo({ top:Math.max(0,s.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); } });
     /* THE HOVER CARD: which clause, how serious, and why — the reason this
        page never said anywhere before. Keyboard focus shows it too. */
     const tipFor=e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]'); igStrandTip(b||null); };
     sp.addEventListener('mouseover',tipFor);
     sp.addEventListener('focusin',tipFor);
-    sp.addEventListener('mouseleave',()=>igStrandTip(null));
+    sp.addEventListener('mouseleave',()=>{ _igTipQuiet=null; igStrandTip(null); });
     sp.addEventListener('focusout',()=>igStrandTip(null));
     sp.addEventListener('scroll',()=>igStrandTip(null),{passive:true}); }
 }
@@ -9990,8 +9991,13 @@ function igStrandPaint(c){
    the model reads the wording, not our scan, playbook or brief.
 
    IT NEVER OVERWRITES WHAT THE READER TYPED: the box is filled only when it is
-   empty or still holds the strip's own last question. */
-let _igStrandData=[], _igStrandLastAsk='';
+   empty or still holds the strip's own last question.
+
+   RETIRED 24 Oct 2026 (owner: "Simply stop asking the question"): a press now
+   opens the clause in Clauses and writes nothing (igStrandPress). The
+   question's builder (igStrandQuestion) is no longer called; the hover card
+   keeps the clause, its grade and why it is flagged. */
+let _igStrandData=[], _igStrandLastAsk='', _igTipQuiet=null;
 const IG_GRADE_RANK=['ruby','amber','steel'];
 function igStrandTopMark(row){
   const ms=((row&&row.marks)||[]).filter(Boolean).slice();
@@ -10014,28 +10020,48 @@ function igStrandPress(sp, b, i){
   const el=_igStrandRows[i];
   if(el&&el.classList){ el.classList.remove('ig-flash'); void el.offsetWidth; el.classList.add('ig-flash');
     clearTimeout(el._igFlash); el._igFlash=setTimeout(()=>el.classList.remove('ig-flash'),1700); }
-  const row=_igStrandData[i]; if(!row) return;
+  const row=_igStrandData[i]; if(!row) return false;
   if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
-  /* the Track's press puts a question ready in the box (under every tab since
-     22 Oct 2026); on Clauses it opens the clause in the list and asks nothing */
-  const onClauses=typeof window.pdTab==='function'&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk();
-  const inp=onClauses?null:igAskBox(); if(!inp) return;
-  const had=String(inp.value||'');
-  if(had.trim() && had!==_igStrandLastAsk) return;
-  const q=igStrandQuestion(row);
-  inp.value=q; _igStrandLastAsk=q;
-  if(window.chatFieldGrow) chatFieldGrow(inp);
-  try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
+  /* A PRESS OPENS THE CLAUSE IN CLAUSES AND ASKS NOTHING (owner, 24 Oct 2026:
+     "Simply stop asking the question and move me to where image 2 is so i can
+     read there and deepdive"; reverses the 22 Oct question in the box). The
+     answer already stands on the Clauses tab, so the press takes the reader
+     there: the tab switches as its own press does, the clause's row opens
+     and the paper glides to it (docThreadLandOn / docThreadWantClause).
+     Jambo's box is never written. True when Clauses took the press. */
+  const c=_igStrandC, label=typeof docXrayLabel==='function'?docXrayLabel(row):String(row.name||'');
+  if(!c||typeof window.docThreadLandOn!=='function'||!(window.pdOnPaper&&pdOnPaper())) return false;
+  if(window.pdTab&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk()) return docThreadLandOn(c,row.el,label);
+  docThreadWantClause(c,row.el,label);
+  if(window.pdTalkShows&&pdTalkShows()&&window.pdTalkClose) pdTalkClose();
+  if(window.pdRedShows&&pdRedShows()&&window.pdRedClose) pdRedClose();
+  pdSetTab('doc');
+  renderIntelDock();
+  if(typeof igPaintPaper==='function') try{ igPaintPaper(); }catch(_){}
+  /* the repaint drew the Track afresh: the pressed block is marked again and the card put away */
+  { const sp2=document.getElementById('ig-spine'), b2=sp2&&sp2.querySelector(`[data-xr-seg="${i}"]`);
+    if(b2){ b2.classList.add('is-on'); b2.setAttribute('aria-pressed','true'); } _igTipQuiet=String(i); igStrandTip(null); }
+  /* a paint that could not draw the list leaves the want: let it go, the Track glides the paper itself */
+  if(docThreadWantPending()){ docThreadWantDrop(); return false; }
+  return true;
 }
 /* The hover card, for the Track on any paper (owner, 10 Oct 2026: the Track
    on the Document tab too): `h` is the paper it stands on — igTrackHostHome()
    by default — carrying the margin it sits in (wrap) and the rows it reads. */
+/* opening Clauses would start its reading for this contract (stkAutoRun's own conditions) */
+function igStrandOpensRead(c){
+  if(!c||typeof window.stkOf!=='function'||stkOf(c)) return false;
+  if(typeof jamboOnPress==='function'&&jamboOnPress(c)) return false;
+  return !!(typeof API_MODE==='function'&&API_MODE()&&state.aiConfigured);
+}
 function igStrandTip(b, h){
   h=h||igTrackHostHome();
   const wrap=h.wrap;
   const tipId=h.tipId||'ig-spine-tip';
   let tip=document.getElementById(tipId);
   if(!b||!wrap){ if(tip) tip.hidden=true; return; }
+  /* the block just pressed keeps its card away while the pointer rests on it: the press redraws the Track under the pointer */
+  if(tipId==='ig-spine-tip'){ const k=b.getAttribute('data-xr-seg'); if(_igTipQuiet===k){ if(tip) tip.hidden=true; return; } _igTipQuiet=null; }
   const row=(h.data||[])[Number(b.getAttribute('data-xr-seg'))]; if(!row){ if(tip) tip.hidden=true; return; }
   if(!tip||tip.parentNode!==wrap){ if(tip) tip.remove(); tip=document.createElement('div'); tip.id=tipId; tip.className='ig-spine-tip'; tip.setAttribute('role','tooltip'); wrap.appendChild(tip); }
   const g=IG_GRADE_RANK.includes(row.tone)?row.tone:'steel';
@@ -10045,7 +10071,10 @@ function igStrandTip(b, h){
     +`<span class="ig-tip-g is-${g}">${igEsc(i18t('int_grade_'+g))}</span>`
     +(lines||(row.asked?`<span class="ig-tip-m">${igEsc(i18t('int_strip_asked'))}</span>`:''))
     +(ms.length>2?`<span class="ig-tip-m ig-tip-more">${igEsc(i18tn('int_strip_more',ms.length-2,{ n:ms.length-2 }))}</span>`:'')
-    +`<span class="ig-tip-go">${igEsc(i18t('int_strip_go'))}</span>`;
+    +`<span class="ig-tip-go">${igEsc(i18t('int_strip_open'))}</span>`
+    /* COST BEFORE THE PRESS (rule 7): on Home the press opens Clauses, and opening Clauses reads a
+       contract not read yet (stkAutoRun, the owner's 13 Oct ruling) — the card says so first */
+    +(tipId==='ig-spine-tip'&&igStrandOpensRead(_igStrandC)?`<span class="ig-tip-m ig-tip-more">${igEsc(i18t('int_strip_open_read'))}</span>`:'');
   tip.hidden=false;
   const sp=b.closest('.ig-spine'); const wr=wrap.getBoundingClientRect(), br=b.getBoundingClientRect();
   tip.style.left=((sp?sp.getBoundingClientRect().right:br.right)-wr.left+8)+'px';
@@ -10280,7 +10309,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
+Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
 Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockBatch,igDockPaintCount,igPaperDown,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

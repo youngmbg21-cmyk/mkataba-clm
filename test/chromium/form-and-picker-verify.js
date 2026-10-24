@@ -168,8 +168,10 @@ const MEASURE = () => {
          own first; HaTi's rows are one press away on their own tab. */
       const tabs = [...root.querySelectorAll('[data-na-tab]')].map(t => t.getAttribute('data-na-tab'));
       const ownTop = own.length ? Math.round(own[0].getBoundingClientRect().y) : null;
+      /* RE-POINTED 24 Oct 2026 (one door): the shelves are behind "Search all our paper" */
+      (document.getElementById('na-all') || { click() {} }).click();
       (root.querySelector('[data-na-tab="tid"]') || { click() {} }).click();
-      const forYou = [...root.querySelectorAll('[data-wz-tid]')].filter(seen);
+      const forYou = [...root.querySelectorAll('#na-lists [data-wz-tid]')].filter(seen);
       const cancel = document.getElementById('wz-pick-cancel');
       return { ownVisible: own.length, forYouVisible: forYou.length,
         ownTop, tabs,
@@ -232,6 +234,8 @@ const MEASURE = () => {
       return drive(page, () => {
         const pick = document.getElementById('wz-pick');
         if (!pick) return { err: 'picker not drawn' };
+        /* RE-POINTED 24 Oct 2026 (one door): the search list, behind "Search all our paper" */
+        (document.getElementById('na-all') || { click() {} }).click();
         (pick.querySelector('[data-na-tab="tid"]') || { click() {} }).click();
         const eye = [...pick.querySelectorAll('span')]
           .find(s => getComputedStyle(s).textTransform === 'uppercase' && /for you/i.test(s.textContent));
@@ -239,7 +243,7 @@ const MEASURE = () => {
         return { eyebrow: eye ? eye.textContent.replace(/\s+/g, ' ').trim() : '',
           /* The button's OWN text: its first nested span is the icon's
              wrapper and carries no words. */
-          cards: [...pick.querySelectorAll('[data-wz-tid]')].filter(seen).slice(0, 4)
+          cards: [...pick.querySelectorAll('#na-lists [data-wz-tid]')].filter(seen).slice(0, 4)
             .map(c => c.textContent.replace(/\s+/g, ' ').trim().slice(0, 60)) };
       }, undefined, { err: 'blocked' });
     };

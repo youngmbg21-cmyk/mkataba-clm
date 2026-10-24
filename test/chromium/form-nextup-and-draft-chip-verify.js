@@ -11,7 +11,8 @@
         glance, a press doing the row's act; the Menu keeps its rows only
      3  "sometimes when i press on the draft new agreement it does not work":
         pressed again after the panel went back to its landing, the chip
-        brings the Draft card up, every time
+        brings the Draft card up, every time (RE-POINTED 24 Oct 2026: the
+        New agreement sheet itself — the card left with the one door)
 
    Run: node test/chromium/form-nextup-and-draft-chip-verify.js */
 'use strict';
@@ -101,18 +102,21 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await page.evaluate(() => setView('register'));
       const chip = await until(page, () => { const b = [...document.querySelectorAll('#ig-dock [data-ca-chip]')].find(x => /draft a new agreement/i.test(x.textContent)); if (!b) return null; b.click(); return true; }, null, 8000);
       if (!chip) return { chip: false };
-      const card = await until(page, () => { const c = document.querySelector('#ig-dock .ca-dr'); if (!c) return null; const r = c.getBoundingClientRect();
-        return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight ? true : null; }, null, 6000);
+      /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the chip brings the one sheet up, not a card in the chat */
+      const card = await until(page, () => { const c = document.querySelector('#na-root .na-ask, #na-root'); if (!c) return null; const r = c.getBoundingClientRect();
+        return r.height > 0 && r.top >= 0 && r.top <= innerHeight ? true : null; }, null, 6000);
+      await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); if (b) b.click(); });
+      await until(page, () => !document.getElementById('na-root'), null, 4000);
       return { chip: true, card: !!card };
     };
     const p1 = await press();
-    check('3a the first press brings the Draft card, on screen', p1.chip && p1.card, JSON.stringify(p1));
+    check('3a the first press brings the New agreement sheet, on screen', p1.chip && p1.card, JSON.stringify(p1));
     /* a paper opened, then the panel back on its landing */
     await page.evaluate(() => { pdOpenOnHome('MK-A2', 'copilot'); });
     await page.waitForFunction(() => typeof pdContract === 'function' && pdContract() && pdContract().id === 'MK-A2', null, { timeout: 8000 }).catch(() => {});
     await page.evaluate(() => { if (typeof pdTalkBack === 'function') pdTalkBack(); });
     const p2 = await press();
-    check('3b pressed again after the panel went back to its landing, the card comes up', p2.chip && p2.card, JSON.stringify(p2));
+    check('3b pressed again after the panel went back to its landing, the sheet comes up', p2.chip && p2.card, JSON.stringify(p2));
     await shot(page, '3-draft-card-again');
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

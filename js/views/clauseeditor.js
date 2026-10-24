@@ -5516,7 +5516,7 @@ async function ceAsk(question, opts = {}){
      the same guard; this clause's own words stay this editor's job */
   const goTo = (typeof window !== 'undefined' && (window.caLeavesFor || window.caReadPlace)) ? (() => { try {
     return (window.caLeavesFor && caLeavesFor(q, 'editor')) || (window.caReadPlace ? caReadPlace(q) : null); } catch (_){ return null; } })() : null;
-  if (goTo && goTo.kind === 'go' && !(window.CA_CARD_WORDS || []).includes(goTo.place) && window.caGo){
+  if (goTo && goTo.kind === 'go' && !(window.caIsCardWord && caIsCardWord(goTo.place)) && window.caGo){
     const box = _ceQ('#ce-ask'); if (box){ box.value = ''; try { box.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){} }
     ceLeaveGuard(() => { rlCloseClauseEditor(); caGo(goTo); });
     return;

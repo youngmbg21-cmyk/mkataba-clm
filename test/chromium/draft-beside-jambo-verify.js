@@ -8,7 +8,9 @@
      1  started from Settings, New agreement opens on Home with Jambo's
         panel beside it (the page ends at the panel); Cancel lands back on
         Settings
-     2  the same from Our paper (its crumb kept) and from Requests
+     2  the same from Our paper and from Requests (RE-POINTED 24 Oct 2026, the
+        one door: the sheet carries no crumb; the bar names "New agreement"
+        and Cancel goes back where it was started)
      3  Create from a form started in Settings lands on the new contract,
         not back on Settings
      4  "take me to my settings for jambo" lands on How you like to work;
@@ -51,7 +53,7 @@ const ID = 'MK-DBJ1';
     if (!f || !document.getElementById('na-root')) return null;
     const fr = f.getBoundingClientRect(), dr = d && d.getClientRects().length ? d.getBoundingClientRect() : null;
     return { view: state.view, right: Math.round(fr.right), dockLeft: dr ? Math.round(dr.left) : null, dockW: dr ? Math.round(dr.width) : 0,
-      crumb: (document.querySelector('.dlg-pg-crumb') || {}).textContent || '' };
+      crumb: (document.querySelector('.dlg-pg-crumb') || {}).textContent || '', bar: ((document.getElementById('dk-page') || {}).textContent || '').trim() };
   });
   const goPlace = (place, view) => page.evaluate(([p, v]) => { try { closeModal(); } catch (_){}
     if (p) caGo({ kind: 'go', place: p }); else setView(v); }, [place, view]);
@@ -77,12 +79,12 @@ const ID = 'MK-DBJ1';
     check('1b Cancel lands back on Settings', !!back1, await page.evaluate(() => state.view));
 
     console.log('\n2 · from Our paper and Requests');
-    for (const [place, view, crumb] of [['ourpaper', 'templates', /^Our paper › New agreement/], ['requests', 'intake', /New agreement/]]){
+    for (const [place, view, crumb] of [['ourpaper', 'templates', /New agreement/], ['requests', 'intake', /New agreement/]]){
       await goPlace(place);
       await waitFor(page, v => state.view === v, 6000, view);
       await page.evaluate(() => openNewAgreement({ door: true }));
       const B = await waitFor(page, () => { const d = document.getElementById('ig-dock'); return document.getElementById('na-root') && d && d.getClientRects().length ? true : null; }, 6000) && await formAt();
-      check(`2 ${place}: beside Jambo, the crumb still names where it was started`, !!B && B.dockW > 300 && crumb.test(B.crumb), JSON.stringify(B));
+      check(`2 ${place}: beside Jambo, the bar names New agreement`, !!B && B.dockW > 300 && crumb.test(B.bar), JSON.stringify(B));
       if (B) await page.click('#wz-pick-cancel');
       const back = await waitFor(page, v => !document.getElementById('na-root') && state.view === v ? true : null, 6000, view);
       check(`2 ${place}: Cancel lands back there`, !!back, await page.evaluate(() => state.view));
@@ -92,8 +94,9 @@ const ID = 'MK-DBJ1';
     await goPlace(null, 'team');
     await waitFor(page, () => state.view === 'team', 6000);
     await page.evaluate(() => openNewAgreement({ door: true }));
-    await waitFor(page, () => !!document.querySelector('#na-lists .na-pick'), 6000);
-    await page.click('#na-lists .na-pick');
+    /* RE-POINTED 24 Oct 2026: the one door opens on the three most used */
+    await waitFor(page, () => !!document.querySelector('#na-closest .na-pick'), 6000);
+    await page.click('#na-closest .na-pick');
     await waitFor(page, () => !!document.querySelector('#na-root input[placeholder="Full registered name"]'), 6000);
     await page.fill('#na-root input[placeholder="Full registered name"]', 'Brookside Dairy Ltd');
     await page.evaluate(() => { const s = document.querySelector('#na-root select[data-na-stream], #na-root select'); const o = s && [...s.options].find(x => x.value);

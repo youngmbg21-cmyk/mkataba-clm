@@ -151,21 +151,18 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
     check('Na the page head carries no separate Upload button', !upBtn, upBtn ? 'still drawn' : 'gone');
     await page.click('[data-page-new]').catch(() => {});
     await page.waitForTimeout(700);
-    const doors = await page.evaluate(() => [...document.querySelectorAll('[data-nd-door]')].map(b => b.getAttribute('data-nd-door')));
-    check('Nb Draft new agreement opens two doors', doors.includes('draft') && doors.includes('upload'), JSON.stringify(doors));
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): no drop-down of two
+       doors — the one sheet carries both, Our paper and Their paper, and
+       Their paper's tab is where a file is dropped */
+    const doors = await page.evaluate(() => [...document.querySelectorAll('[data-na-paper]')].map(b => b.getAttribute('data-na-paper')).concat(document.querySelector('[data-nd-door]') ? ['menu'] : []));
+    check('Nb Draft new agreement opens one sheet with both doors on it', doors.includes('ours') && doors.includes('theirs') && !doors.includes('menu'), JSON.stringify(doors));
     await page.screenshot({ path: path.join(OUT, '04-doors.png') });
-    await page.click('[data-nd-door="upload"]').catch(() => {});
-    await page.waitForTimeout(800);
-    /* RE-POINTED 17 Oct 2026 (round 5, the owner picked "Jambo's tray" and
-       one way in): the Upload door lands on the drop area in Jambo's panel */
-    const up = await page.evaluate(() => { const d = document.getElementById('pd-drop'); return !!d && d.getBoundingClientRect().height > 0 && !document.getElementById('up-file'); });
-    check('Nc the Upload door lands on the drop area in Jambo\'s panel', up, up ? 'the tray' : 'absent');
-    await page.evaluate(() => setView('pipeline'));
-    await page.waitForTimeout(1200);
-    await page.click('[data-page-new]').catch(() => {});
-    await page.waitForTimeout(700);
-    await page.click('[data-nd-door="draft"]').catch(() => {});
-    await page.waitForTimeout(900);
+    await page.click('[data-na-paper="theirs"]').catch(() => {});
+    await page.waitForTimeout(500);
+    const up = await page.evaluate(() => { const d = document.getElementById('na-drop'); return !!d && d.getBoundingClientRect().height > 0 && !document.getElementById('up-file'); });
+    check('Nc Their paper shows the drop area on the same sheet', up, up ? 'the drop area' : 'absent');
+    await page.click('[data-na-paper="ours"]').catch(() => {});
+    await page.waitForTimeout(400);
     const na = await page.evaluate(() => !!document.getElementById('na-root'));
     check('Nd the Draft door opens the drafting screen', na, na ? 'drafting screen' : 'absent');
 

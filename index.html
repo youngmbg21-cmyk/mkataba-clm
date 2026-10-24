@@ -17004,6 +17004,75 @@
     background:linear-gradient(var(--color-surface),var(--color-surface)) padding-box,linear-gradient(120deg,#0A7C6B,#6D5DFC,#FF7A59) border-box}
   #pw-page .pt-write-in{flex:1 1 auto;min-width:0;border:0;outline:0;background:transparent;font:inherit;color:var(--color-text)}
   #pw-page .pt-write-in::placeholder{color:var(--color-neutral-600)}
+  /* ===================================================================================================
+     ONE DOOR TO A NEW AGREEMENT, THE LEGORA WAY (owner picked it by name, 24 Oct 2026)
+     One sheet: the ask box under Our paper · Their paper, the papers one quiet list (nothing boxed), what
+     was read from the words with the words it came from, the paper's questions as rows Term · What it
+     says · Where it came from, the stream a line of chips. Scoped to the sheet (#na-root.na-one).
+     =================================================================================================== */
+  #na-root.na-one .na-body{gap:12px}
+  #na-root.na-one .na-ask,#na-root.na-one .na-rail,#na-root.na-one .na-read,#na-root.na-one .na-theirs,#na-root.na-one .na-card,#na-root.na-one .na-file{background:var(--color-surface);border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 18px}
+  #na-root.na-one .na-ask-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+  #na-root.na-one .na-ptabs{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  #na-root.na-one .na-ptab{height:26px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600);font:inherit;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  #na-root.na-one .na-ptab[aria-selected="true"]{background:var(--color-surface);color:var(--color-text);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+  #na-root.na-one .na-askbox{display:flex;align-items:flex-end;gap:10px;border:1px solid var(--rule-strong);border-radius:16px;padding:10px 10px 10px 14px;background:var(--color-surface)}
+  #na-root.na-one .na-askbox:focus-within{border-color:var(--color-neutral-500)}
+  #na-root.na-one .na-askbox .na-say{flex:1 1 auto;min-width:0;border:0;outline:0;resize:none;background:transparent;font:inherit;font-size:var(--t-body);line-height:1.5;color:var(--color-text);padding:4px 0;min-height:24px}
+  #na-root.na-one .na-askbox .na-say::placeholder{color:var(--color-neutral-600)}
+  #na-root.na-one .na-rail{display:flex;flex-direction:column;gap:6px}
+  #na-root.na-one .na-step{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #na-root.na-one .na-step b{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #na-root.na-one .na-closest{display:flex;flex-direction:column;gap:0}
+  #na-root.na-one .na-closest .na-pick.na-close{display:flex;align-items:flex-start;gap:12px;width:100%;padding:10px 10px;border:0;border-bottom:1px solid var(--rule-faint);border-radius:12px;background:transparent;text-align:left;cursor:pointer}
+  #na-root.na-one .na-closest .na-pick.na-close:last-child{border-bottom:0}
+  #na-root.na-one .na-closest .na-pick.na-close:hover{background:var(--color-neutral-50,#FAFAFB)}
+  #na-root.na-one .na-closest .na-pick.na-close.on{background:var(--color-accent-50);border-bottom-color:transparent}
+  #na-root.na-one .na-close .na-radio{margin-top:2px}
+  #na-root.na-one .na-lr-t{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+  #na-root.na-one .na-lr-top{display:flex;align-items:center;gap:8px;min-width:0}
+  #na-root.na-one .na-lr-top .na-pick-n{font-weight:var(--w-strong);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #na-root.na-one .na-lr-t .na-pick-m{font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4;white-space:normal}
+  #na-root.na-one .na-lr-used{flex:none;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;padding-top:2px}
+  #na-root.na-one .na-read-h,#na-root.na-one .na-card-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  #na-root.na-one .na-read-h b{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #na-root.na-one .na-ask-r{display:flex;align-items:center;gap:14px;min-width:0}
+  #na-root.na-one .na-fill{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  #na-root.na-one .na-fill em{font-style:normal;color:var(--color-neutral-600);font-weight:400}
+  #na-root.na-one .na-kt-h,#na-root.na-one .na-kt-r{display:grid;grid-template-columns:160px minmax(0,1fr) minmax(0,240px);column-gap:14px;align-items:center}
+  #na-root.na-one .na-kt-h{padding:6px 4px;border-bottom:1px solid var(--rule);font-size:12.5px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #na-root.na-one .na-kt-r{padding:8px 4px;border-bottom:1px solid var(--rule-faint);min-height:44px}
+  #na-root.na-one .na-kt-r:last-child{border-bottom:0}
+  #na-root.na-one .na-kt-r > :first-child{grid-column:1;color:var(--color-text)}
+  #na-root.na-one .na-kt-r > .na-src{grid-column:3;grid-row:1;font-size:var(--t-label);line-height:1.4;min-width:0}
+  #na-root.na-one .na-kt-grid > .na-kt-r > :not(:first-child):not(.na-src){grid-column:2;min-width:0}
+  #na-root.na-one .na-kt-grid > .na-kt-r .wz-help{grid-column:2;font-size:12px;color:var(--color-neutral-600)}
+  #na-root.na-one .na-kt-grid{display:block}
+  #na-root.na-one .na-q1{color:var(--color-text)}
+  #na-root.na-one .na-q1 mark{background:var(--color-accent-50);color:var(--color-text);border-radius:4px;padding:0 3px}
+  #na-root.na-one .na-src-m{color:var(--color-neutral-600)}
+  #na-root.na-one .na-src-need{display:inline-block;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:8px;padding:2px 10px}
+  #na-root.na-one .na-new{color:var(--st-amber-fg);font-size:12px}
+  #na-root.na-one .na-card-h h3{font-size:var(--t-body);font-weight:var(--w-strong);margin:0}
+  #na-root.na-one .na-card-sub{flex:none;font-size:var(--t-label);color:var(--color-neutral-600)}
+  #na-root.na-one .na-card-count{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
+  #na-root.na-one .na-n{display:none}
+  #na-root.na-one .na-file-b{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
+  #na-root.na-one .na-file-l{flex:none;width:160px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  #na-root.na-one .na-file-b .na-seg{max-width:none;flex:1 1 auto}
+  #na-root.na-one .na-file-b .na-seg-b{border-radius:999px}
+  #na-root.na-one .na-file-cost{margin:8px 0 0;text-align:left}
+  #na-root.na-one .na-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 18px;border:1.5px dashed var(--rule-strong);border-radius:14px;text-align:center;color:var(--color-neutral-600)}
+  #na-root.na-one .na-drop.is-over{border-color:var(--accent-ink);background:var(--color-accent-50)}
+  #na-root.na-one .na-drop b{color:var(--color-text);font-weight:var(--w-strong)}
+  #na-root.na-one .na-theirs-file{color:var(--color-text);font-weight:var(--w-label)}
+  /* whose paper and what is picked decide what stands on the sheet */
+  #na-root.na-one:not(.is-picked) #na-card{display:none}
+  #na-root.na-one:not([data-paper="theirs"]) #na-theirs{display:none}
+  #na-root.na-one.is-picked :is(#wz-pick,#na-read){display:none}
+  #na-root.na-one[data-paper="theirs"] :is(#wz-pick,#na-card,#dr-read){display:none}
+  /* what was read from the words stands on Their paper too (as drawn, 24 Oct 2026), picked or not */
+  #na-root.na-one.is-picked[data-paper="theirs"] #na-read{display:block}
   /* -- below 1100px wide (narrower than any of the owner's three screens) the two halves stand docked
      as they did: there every pixel is the page's (swedish-verify caught the Calendar cut by 7px at 800) -- */
   @media (max-width:1100px){

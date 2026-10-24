@@ -110,11 +110,13 @@ describe('f750 (3) the sheet', () => {
   });
   test('3c From your words: "What it is for · Not read yet", mirrored from the paper\'s own question', () => {
     /* RE-POINTED (pass 2): read from the words where they say it ("… for a pilot"), else "Not read yet" */
-    assert.match(WZ, /cell\(esc\(i18t\('na_words_for'\)\), `<i id="na-w-for"\$\{purpose\?' class="is-said"':''\}>\$\{esc\(purpose\?naCap\(purpose\):i18t\('na_words_unread'\)\)\}<\/i>`, 'is-for'\)/);
+    /* RE-POINTED 24 Oct 2026 (the Legora way): what it is for is a row of what was read, with its words */
+    assert.match(WZ, /if\(purpose\) L\.push\(\{ k:'for', t:i18t\('na_rd_k_for'\), say:naCap\(purpose\), quote:naQuoteOf\(purpose\) \}\);/);
     assert.match(WZ, /find\(x=>naCarryKey\(x\.id\)==='purpose'\)/);
   });
   test('3d 1 Start from: the count said, the search and Legal on its line, each closest a card with its shelf\'s facts — one row builder', () => {
-    assert.match(WZ, /i18t\(closestRows\(\)\.length===3\?'na_start_sub_3':closestRows\(\)\.length===2\?'na_start_sub_2':'na_start_sub'\)/);
+    /* RE-POINTED 24 Oct 2026 (the Legora way): one quiet list headed "Closest on our paper", or with no words yet "Most used on our paper" */
+    assert.match(WZ, /i18t\(naMost\?'na_most_h':'na_close_h'\)/);
     assert.equal((WZ.match(/const pickRow=/g) || []).length, 1);
     assert.match(WZ, /\(card===true\?\(r\.kind==='tid'\?\[shelfOf\(r\)\]:\[shelfOf\(r\), r\.go\|\|'', r\.stream\|\|''\]\)\.concat\(used\?\[i18tn\('na_used_n',used,\{n:used\}\)\]:\[\]\)/);
     assert.match(WZ, /<span class="na-radio" aria-hidden="true"><\/span>/);
@@ -125,7 +127,8 @@ describe('f750 (3) the sheet', () => {
   });
   test('3f who else, and the cost of reading on the stream\'s own row', () => {
     assert.match(WZ, /\$\{one\?`<span class="na-hint na-people-sub"> · \$\{esc\(i18t\('ppl_sub_short'\)\)\}<\/span>`:''\}/);
-    assert.match(WZ, /<span class="na-need" id="na-file-need">[\s\S]{0,80}<span class="na-hint na-file-cost" id="na-file-cost">/);
+    /* RE-POINTED 24 Oct 2026 (the Legora way): "Filed in" one line of chips, the reading's cost said under it */
+    assert.match(WZ, /<span class="na-need" id="na-file-need">[\s\S]{0,80}<p class="na-hint na-file-cost" id="na-file-cost">/);
   });
   test('3g the words, in both books', () => {
     for (const k of ['na_not_yet_inline', 'na_start_sub_2', 'na_start_sub_3', 'na_shelf_lib', 'na_shelf_mine', 'na_shelf_tid', 'na_used_n_one', 'na_used_n_other', 'na_words_for',

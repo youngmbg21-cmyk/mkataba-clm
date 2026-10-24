@@ -50,8 +50,11 @@ async function waitFor(page, fn, arg, ms = 6000) {
     await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} openNewAgreement({}); });
     /* THE SEARCH LIST (12 Oct 2026): nothing is picked on arrival, so the
        check picks the first row (the company standard) as a reader would. */
-    await waitFor(page, () => !!document.querySelector('#na-root .na-pick'));
-    await page.evaluate(() => document.querySelector('#na-root .na-pick').click());
+    /* RE-POINTED 24 Oct 2026 (one door): the three most used lead the sheet;
+       the company standard is in the search list behind "Search all our paper" */
+    await waitFor(page, () => !!document.querySelector('#na-root #na-all'));
+    await page.evaluate(() => { const a = document.getElementById('na-all'); if (a && !document.getElementById('na-q').getClientRects().length) a.click();
+      document.querySelector('#na-lists [data-wz-lib]').click(); });
     return waitFor(page, () => !!document.querySelector('#na-root #na-form input'));
   };
   try {
@@ -62,9 +65,12 @@ async function waitFor(page, fn, arg, ms = 6000) {
 
     check('the pop-up opens', !!(await open()));
     const sub = await page.evaluate(() => ({ name: document.getElementById('na-card-name').textContent,
-      sub: document.getElementById('na-card-sub').textContent }));
-    check('C3 a company standard counts details and the template’s questions apart',
-      sub.name === 'Supply Standard' && /details/.test(sub.sub) && /3 template questions follow/.test(sub.sub), `${sub.name} · ${sub.sub}`);
+      sub: document.getElementById('na-card-sub').textContent, count: (document.getElementById('na-card-count') || {}).textContent || '' }));
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the card head names the
+       paper and its shelf; one count beside it says how many are not said yet
+       (details and the template's questions alike, each row saying where it came from) */
+    check('C3 a company standard: its name and shelf, and one count of what is not said yet',
+      sub.name === 'Supply Standard' && /\d+ not said yet/.test(sub.count), `${sub.name} · ${sub.sub} · ${sub.count}`);
 
     /* C5: type on the company standard's card, then press a HaTi row. */
     const typedId = await page.evaluate(() => {
