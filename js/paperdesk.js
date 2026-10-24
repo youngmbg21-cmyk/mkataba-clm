@@ -488,6 +488,11 @@ function pdOpenOnHome(id, tab){
     return true;
   }
   if (!(window.state && state.view === 'dashboard') && typeof setView === 'function'){
+    /* A DOOR FROM ANOTHER PAGE LANDS ON THE PANEL'S CONTENT, not on a conversation
+       left open beside this paper earlier (JAMBO AS A TAB YOU FLIP TO; caGoRepaint
+       does the same for a go ask) — the conversation itself is kept, one tab away */
+    try { const k = (typeof jamboTalkKey === 'function') ? String(jamboTalkKey() || '') : '';
+      if (k.indexOf('dock:') === 0) pdTalkClose(); } catch (_){}
     /* Home is set up for the paper: the Board it is leaving is not drawn first */
     if (typeof window.hbArrive === 'function') window.hbArrive('paper', () => setView('dashboard')); else setView('dashboard'); }
   igWalk([id], 0, { tab: tab || 'copilot' });
