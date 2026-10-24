@@ -743,6 +743,10 @@ const check = (name, ok, detail) => {
       const thead = document.querySelector('.reg-table thead');
       const cr = card ? card.getBoundingClientRect() : null;
       const hb = thead ? thead.getBoundingClientRect().bottom : null;
+      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2, the owner's drawing): the column heads stand on the
+         drawing's own faint grey band; that band is the card's own (its heads), never the ground */
+      const th = thead && thead.querySelector('th');
+      const headBand = th ? getComputedStyle(th).backgroundColor : null;
       const cols = [], owners = [];
       /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the card's corners are rounded (--radius-lg), so the
          walk starts below the curve — the ground showing OUTSIDE a rounded corner is the corner, not a gap */
@@ -773,7 +777,7 @@ const check = (name, ok, detail) => {
         card: !!card, cardRight: cr ? Math.round(cr.right) : null, cardTop: cr ? Math.round(cr.top) : null,
         gutter: sc.offsetWidth - sc.clientWidth, surface,
         owners: [...new Set(owners)],
-        colours: [...new Set(cols)], samples: cols.length };
+        colours: [...new Set(cols.map(c => (headBand && c === headBand) ? surface : c))], samples: cols.length, headBand };
     };
     for (const [name, go] of [['Contracts', () => (regPlaceSet({ show: 'list' }), setView('register'))],
                               ['Negotiations', () => openNegotiations({ list: true })]]){

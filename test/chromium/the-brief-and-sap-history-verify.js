@@ -147,8 +147,11 @@ const BOXES = sel => {
       check('2a the piles are labels over their rows: no box round a pile, no shaded band', R.piles.length > 0 && R.piles.every(p => p.edge === '0px' && /rgba\(0, 0, 0, 0\)|transparent/.test(p.bandBg) && p.bandEdge === '0px'), JSON.stringify(R.piles));
       check('2b the face\'s name is the serif', /Source Serif 4/.test(R.face || ''), R.face);
       check('2c Notes stands after Ask for review, on Send all\'s line', R.notesY != null && R.reviewY != null && Math.abs(R.notesY - R.reviewY) <= 2 && R.notesAfter === true, JSON.stringify(R));
-      const B = await page.evaluate(BOXES, '#ig-dock #rl-changes');
-      check('2d nothing is boxed among the piles', Array.isArray(B) && B.length === 0, JSON.stringify(B && B.slice(0, 8)));
+      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2, the owner's pick "Boxes, as drawn"): each change is
+         its own soft grey card — a FILL, never an edge or a lift; nothing else among the piles is boxed */
+      const B0 = await page.evaluate(BOXES, '#ig-dock #rl-changes');
+      const B = Array.isArray(B0) ? B0.filter(x => !/^article\.rl-card\.rl-card-d fill$/.test(x)) : B0;
+      check('2d nothing is boxed among the piles but each change\'s own soft card (a fill, no edge, no lift)', Array.isArray(B) && B.length === 0, JSON.stringify(B && B.slice(0, 8)));
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-redlines-1440x780.png') });
     }
 

@@ -107,6 +107,8 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { if (typeof deskGoCounter === 'function') deskGoCounter(); else setView('counter'); });
     await until(() => !!document.querySelector('#cn-page .cn-ask'));
     await until(() => { const m = document.getElementById('dk-mark'); return !!m && !m.hidden && m.getBoundingClientRect().width > 0; });
+    /* the bell's count is painted once the counts land (a wait asks for the state, bounded) */
+    await until(() => { const d = document.getElementById('hdr-notify-dot'); return !!d && !d.hidden; });
     const bar = await page.evaluate(() => {
       const t = document.getElementById('top-header'), m = document.getElementById('dk-mark'), cs = getComputedStyle(t), ms = m && getComputedStyle(m);
       const div = getComputedStyle(document.documentElement).getPropertyValue('--color-divider').trim();
@@ -239,13 +241,12 @@ const check = (name, pass, detail) => {
     check('11d a tag in a list (Kind) has the soft corner of the new look', !!ap.kind && parseFloat(ap.kind) >= 8, String(ap.kind));
     await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('board'); });
     await until(() => !!document.querySelector('#hb-board .hb-card') && !!document.querySelector('.hb-jb-hello .ai-bub'), null, 10000);
-    const div = await tok('var(--color-divider)'), s2 = await tok('var(--surface-2)');
+    const s2 = await tok('var(--surface-2)');
     const bd = await page.evaluate(() => { const c = document.querySelector('#hb-board .hb-card'), b = document.querySelector('.hb-jb-hello .ai-bub'), p = document.querySelector('#hb-board .hb-pill');
-      return { edge: c && getComputedStyle(c).borderTopColor, bub: b && getComputedStyle(b).backgroundColor, pill: p ? getComputedStyle(p).backgroundColor : 'none drawn' }; });
-    /* the card's edge is a line channel at .18, laid over the card's white */
-    const over = c => { const v = (String(c).match(/[\d.]+/g) || []).map(Number); const a = v.length > 3 ? v[3] : 1;
-      return 'rgb(' + v.slice(0, 3).map(x => Math.round(x * a + 255 * (1 - a))).join(', ') + ')'; };
-    check('11e the Board\'s cards stand on the warm divider, and Jambo\'s words sit on the warm box every panel uses', over(bd.edge) === div && bd.bub === s2, JSON.stringify(bd) + ' edge over white ' + over(bd.edge) + ' divider ' + div + ' box ' + s2);
+      return { edge: c && getComputedStyle(c).borderTopColor, lift: c && getComputedStyle(c).boxShadow, bub: b && getComputedStyle(b).backgroundColor, pill: p ? getComputedStyle(p).backgroundColor : 'none drawn' }; });
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2: cards float with no outline, as drawn): the card's edge
+       is clear and it stands off the ground by the faint lift */
+    check('11e the Board\'s cards float by their lift with no outline, and Jambo\'s words sit on the warm box every panel uses', NONE.test(bd.edge) && /0px 8px 28px/.test(bd.lift || '') && bd.bub === s2, JSON.stringify(bd) + ' box ' + s2);
     check('11f the Board\'s counts are plain numbers', bd.pill === 'none drawn' || NONE.test(bd.pill), String(bd.pill));
     /* ours, on the paper: three redlines staged the way a person files them */
     const ins = await page.evaluate(async () => { const c = getContract('MK-B2'); if (c._light && window.ensureFull) await ensureFull(c);
