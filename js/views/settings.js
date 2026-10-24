@@ -3384,18 +3384,25 @@ let _stTalk={ from:0 };
 function stTalkKey(){ const co=stIsAdmin()&&settingsTab()==='company'; return 'settings:'+(co?'company':'you')+':'+(co?(_stPage||''):''); }
 function stTalkLand(){ if(typeof jamboTalkLand==='function'&&jamboTalkLand(stTalkKey())){ _stTalk={ from:0 }; return true; } return false; }
 function stTalkShows(){ return typeof jamboTalkShows==='function'&&jamboTalkShows(stTalkKey()); }
+/* ONE WINDOW (owner, 24 Oct 2026: "settings has no information either"): the panel holds only his words — every
+   page but a stream chosen on Streams, which shows that stream's facts — so the conversation is the panel: his
+   greeting first, the turns under it, no Overview / Jambo tabs, no word beside them, no trail */
+function stSolo(){ return !(_stSwPick&&_stPage==='streams')&&_stSide!=='menu'; }
 function stTalkTurns(){ return stJbLog(); }
 /* the trail over the conversation and which of the two views is up */
 function stJbTalkPaint(){
   stTalkLand();
-  const on=stTalkShows();
+  const solo=stSolo();
+  if(solo&&stTalkShows()&&typeof jamboTalkClose==='function') jamboTalkClose();
+  const on=!solo&&stTalkShows();
   const tr=document.getElementById('st-jb-trail');
   if(tr){ tr.innerHTML=on&&typeof jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('settings',i18t('pd_tab_overview')):''; tr.hidden=!on; }
   const feed=document.getElementById('st-jb-feed');
   if(feed){ const L=feed.querySelector(':scope > [data-st-jb-land]'), T=feed.querySelector(':scope > [data-st-jb-talk]');
-    if(L) L.hidden=on; if(T) T.hidden=!on;
+    if(L) L.hidden=on; if(T) T.hidden=!(on||solo);
     feed.classList.toggle('is-stream',!on&&!!_stSwPick&&_stPage==='streams'); }
-  const side=document.getElementById('st-side'); if(side) side.classList.toggle('is-talk',on);
+  const side=document.getElementById('st-side'); if(side){ side.classList.toggle('is-talk',on); side.classList.toggle('is-solo',solo); }
+  const sh=document.getElementById('st-side-head'); if(sh&&sh.getAttribute('data-solo')!==String(solo)){ sh.innerHTML=stSideHeadHtml(); sh.setAttribute('data-solo',String(solo)); }
   const ov=document.getElementById('st-side-tab-jambo'), tk=document.querySelector('#st-side [data-st-talk]');
   if(ov){ ov.classList.toggle('is-off',on); ov.setAttribute('aria-current',String(!on)); }
   if(tk){ tk.hidden=false; tk.classList.toggle('is-off',!on); tk.setAttribute('aria-current',String(on)); }
@@ -3432,7 +3439,7 @@ function stTalkBack(){
   const feed=document.getElementById('st-jb-feed'); if(feed) feed.scrollTop=0;
   if(typeof jamboScrollPut==='function') jamboScrollPut(keep);
 }
-if(typeof jamboTalkHost==='function') jamboTalkHost('settings', stTalkBack, k=>k===stTalkKey()&&typeof state!=='undefined'&&state.view==='team'&&!!document.getElementById('st-jb-feed'));
+if(typeof jamboTalkHost==='function') jamboTalkHost('settings', stTalkBack, k=>!stSolo()&&k===stTalkKey()&&typeof state!=='undefined'&&state.view==='team'&&!!document.getElementById('st-jb-feed'));
 function stJbDrop(id){
   stJbForget(id);
   document.querySelector(`[data-st-jb-turn="${id}"]`)?.remove();
@@ -3491,6 +3498,8 @@ function stSideHeadHtml(){
   /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
      2026): once a turn was said on this page a "Jambo" tab stands beside
      Overview; pressed it opens the conversation, pressed again it goes back */
+  /* ONE WINDOW (stSolo): nothing to flip between, so no tabs and no word — only the fold */
+  if(stSolo()) return `<span class="st-side-sp"></span>${fold}`;
   const talk=stTalkShows();
   const jb=esc(i18t('pd_tab_copilot'));
   return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
@@ -3666,6 +3675,7 @@ function stJbFeedHtml(){
   /* landed and never turned: the page's words stand in the feed bare — no
      wrapper, no empty conversation (the colour census counts what is drawn);
      the two views are made the first time a turn is said (stJbTalkWrap) */
+  if(stSolo()) return stJbLandWrapHtml(land,false)+stJbTalkWrapHtml(false);
   if(!on) return land;
   return stJbLandWrapHtml(land,true)+stJbTalkWrapHtml(false);
 }

@@ -80,7 +80,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a chosen tab is a filled grey pill, never an underline */
     check('1b the chosen tab is a filled grey pill (no underline), no sliding thumb', !!head && head.fill === 'rgb(240, 240, 243)' && parseFloat(head.r) >= 100 && !/solid [1-9]/.test(head.line) && head.thumb === 'none', head && (head.line + ' · ' + head.fill + ' · ' + head.r + ' · ' + head.thumb));
     check('1c Company counts Needs your attention', !!head && head.n === String(head.needs) && head.needs > 0, head && (head.n + ' / ' + head.needs));
-    check('1d Jambo\'s head says "Company settings"', !!head && head.word === 'Company settings', head && head.word);
+    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW: "settings has no information either"): no word beside tabs, no tabs */
+    check('1d one window: Jambo\'s head names nothing', !!head && head.word === '', head && head.word);
     await shot(page, 'settings-as-drawn-company-1440x780');
 
     console.log('\n2 · the fold, and "/"');

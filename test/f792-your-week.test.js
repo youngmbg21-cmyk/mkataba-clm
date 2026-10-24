@@ -143,7 +143,8 @@ describe('f792 (4) both pages say it alike', () => {
     assert.match(p, /data-cal-plan-q="week"[^>]*>\$\{_esc\(i18t\('ob_yw_chip_week'\)\)\}/);
     assert.match(p, /data-cal-plan-q="due"[^>]*>\$\{_esc\(i18t\('ob_yw_chip_due'\)\)\}/);
     assert.match(p, /\$\{calLevelSegHtml\(\)\}/);
-    assert.match(p, /<span class="jl-word">\$\{_esc\(i18t\('jl_w_week'\)\)\}<\/span>/);
+    /* RE-PINNED (owner, 24 Oct 2026, one window): no word beside tabs — the panel draws no tabs */
+    assert.doesNotMatch(p, /class="jl-word"|data-cal-talk|jamboTalkTrailHtml/);
     assert.match(p, /placeholder="\$\{_esc\(i18t\('jl_ph_week'\)\)\}"/);
     /* RE-POINTED 20 Oct 2026 (Chambers: no hint line under any Jambo box) */
     assert.doesNotMatch(p, /jamboHintHtml|jb-hint/, 'no hint line under the box');

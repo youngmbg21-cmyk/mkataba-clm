@@ -2049,14 +2049,17 @@ function migSidePaint(){
   /* a word that needs one contract takes the file the panel holds */
   host._jlHeld = () => { const r = _migCheck ? migRowByKey(migCheckId()) : (_migPick ? migRowByKey(_migPick) : null); return (r && r.c) || null; };
   const keep = migFormKeep(host);
-  const body = (typeof jlFrame === 'function') ? jlFrame(host, { jlPh:i18t('jl_ph_any') }) : host;
   const row = _migCheck ? migRowByKey(migCheckId()) : (_migPick ? migRowByKey(_migPick) : null);
   const holds = !!row;
+  /* ONE WINDOW (owner, 24 Oct 2026): no file chosen, the panel is only his words — the conversation is the panel */
+  host._jlSolo = !holds;
+  const body = (typeof jlFrame === 'function') ? jlFrame(host, { jlPh:i18t('jl_ph_any') }) : host;
   if (typeof jlHeadPaint === 'function') jlHeadPaint(host, { jlWord:(_migCheck && row && row.c) ? (((row.c.metadata || {}).contractType) || row.c.name || i18t('mig_side_word')) : i18t('mig_side_word'), jlHome:i18t('mig_side_word') }, holds);
   /* the conversation is the panel's flip, beside the body (jlTalkHtml, 19 Oct 2026) */
   if (_migCheck) body.innerHTML = migCheckSideHtml(row);
   else if (row) body.innerHTML = migSideRowHtml(row);
-  else body.innerHTML = (typeof jlWordsHtml === 'function') ? jlWordsHtml({ jlSay:migSideSay, empty:i18t('mig_side_none') }) : '';
+  else { body.innerHTML = ''; if (typeof jlGreetPut === 'function') jlGreetPut(host, (typeof jlWordsHtml === 'function') ? jlWordsHtml({ jlSay:migSideSay, empty:i18t('mig_side_none') }) : ''); }
+  if (holds && typeof jlGreetPut === 'function') jlGreetPut(host, '');
   migFormPut(host, keep);
   if (typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length) try { renderAIFeed(!!ai.busy); } catch (_){}
 }

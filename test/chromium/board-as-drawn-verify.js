@@ -155,15 +155,18 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         chips: [...bubs[0].querySelectorAll('[data-igsug]')].map(b => b.textContent.trim()), where: bubs[1].querySelector('.ai-bub').textContent.trim(),
         chip2: [...bubs[1].querySelectorAll('[data-igsug]')].map(b => b.textContent.trim()), n: counterNeedsCount(),
         at: (document.querySelector('#hb-bhead .hb-bh-at') || {}).textContent || '', bottom: !!dock.querySelector('[data-ig-chips]'),
-        badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', ending: hbBookData('all').figs.ending.n }; }, null, 10000);
-    check('5a "Board" beside his tab', !!jb && jb.word === 'Board', jb && jb.word);
+        badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
+    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the Board's panel holds only his words, so it draws no tabs and no
+       word beside them (one-window-bar-cards-verify A1) */
+    check('5a one window: no word and no tab in his head', !!jb && jb.word === '' && jb.tabs === 0, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
     check('5b his greeting says the book, counted at the head\'s own time, and the one press that spends',
       !!jb && jb.hello.startsWith('Here is your book, counted at ') && jb.at.includes(jb.hello.slice(30, 35)) && /Summarise my board is the one press here that uses a Jambo call, and it says so first\.$/.test(jb.hello), jb && (jb.hello + ' | ' + jb.at));
     check('5c three questions as chips under it — "which N end in 90 days?" only while any do',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views'].filter(Boolean)), jb && JSON.stringify(jb.chips));
     check('5d then where the owed work went: Home\'s own number, and "what needs me"',
       !!jb && new RegExp(`^What needs you is on Home: ${jb.n} things?(, Jambo’s work first)?\\.$`).test(jb.where) && JSON.stringify(jb.chip2) === JSON.stringify(['what needs me']), jb && (jb.where + ' / ' + jb.n));
-    check('5e no row of chips above his box; his tab carries the Counter\'s number', !!jb && !jb.bottom && Number(jb.badge || 0) === jb.n, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
+    /* RE-PINNED (one window): no tab, so no badge on one — the Counter's number is said in his second bubble (5d) */
+    check('5e no row of chips above his box; no tab to carry a badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 0, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
     console.log('\n6 · "my saved views"');

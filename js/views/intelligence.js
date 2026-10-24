@@ -8263,10 +8263,14 @@ function renderIntelDock(){
   /* ONE CONVERSATION EVERYWHERE (21 Oct 2026): every turn, each drawn by the
      builder of the host it was born in; popped out, the words are in Jambo's
      own window (popped out, or the ✦'s window open) and only there (one place at a time) */
-  if(talk&&typeof window.jamboReadStamp==='function') jamboReadStamp();
+  /* ONE WINDOW WHERE THERE IS NOTHING ELSE TO SHOW (owner, 24 Oct 2026; pdSolo): the panel holds only his words,
+     so the conversation is drawn under his greeting in the one window — never a flip to another */
+  const solo=!!(window.pdSolo&&pdSolo());
+  const say=talk||solo;
+  if(say&&typeof window.jamboReadStamp==='function') jamboReadStamp();
   const _popped=!!(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped()));
-  if(talk&&_popped&&typeof window.renderAIFeed==='function') try{ renderAIFeed(!!intel.busy); }catch(_){ }
-  const msgs=!talk?'':_popped?`<p class="igd-popped">${igEsc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${igEsc(i18t('jb_bring_back'))}</button></p>`
+  if(say&&_popped&&typeof window.renderAIFeed==='function') try{ renderAIFeed(!!intel.busy); }catch(_){ }
+  const msgs=!say?'':_popped?`<p class="igd-popped">${igEsc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${igEsc(i18t('jb_bring_back'))}</button></p>`
     :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${intel.history.map((m,i,a)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a)).join('')}</div>`;
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
@@ -8301,11 +8305,11 @@ function renderIntelDock(){
              rounds 13, 7 and 12 — "Contract", "<ref> at a glance", "<ref> ·
              History", pdHeadWord; round 17 — "Board" beside Jambo on the Board,
              hbHeadWord), nothing where it holds his own words */}
-      ${(()=>{ const w=(typeof window.pdHeadWord==='function')?pdHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()||(()=>{ const w=(typeof window.hbHeadWord==='function')?hbHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
+      ${solo?'':(()=>{ const w=(typeof window.pdHeadWord==='function')?pdHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()||(()=>{ const w=(typeof window.hbHeadWord==='function')?hbHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
       <span class="flex-1"></span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
-      ${talk&&msgs&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      ${say&&msgs&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${''/* ONE TRAIL (owner, 19 Oct 2026): while a face is up, one line under the tabs — its one back, then where you are */}${(typeof window.pdTrailHtml==='function')?pdTrailHtml():''}
@@ -8350,7 +8354,7 @@ function renderIntelDock(){
            at a glance — drawn above the conversation, which goes on under it */
         const top=(state.view==='dashboard'&&typeof window.pdJamboTopHtml==='function')?pdJamboTopHtml():'';
         /* the landing carries no conversation (19 Oct 2026): it is the flip's */
-        return top||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`; })()}
+        return top||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`; })()}${solo?msgs+typing:''}
     </div>`}
     ${''/* SAVED VIEWS LEFT THE PANEL (owner, 15 Oct 2026): they stand on the
            Board's head as chips (hbSavedViewChipsHtml, round 17), and a press
@@ -8407,7 +8411,7 @@ function renderIntelDock(){
      you is the first card, 18 Oct 2026) */
   /* …the newest turn read from its FIRST line, never pushed to its end (jamboFeedLand, owner 20 Oct 2026) */
   const feed=document.getElementById('igd-feed');
-  if(!talk) feed.scrollTop=0; else if(typeof jamboFeedLand==='function') jamboFeedLand(feed, jamboFeedLast(feed)); else feed.scrollTop=feed.scrollHeight;
+  if(!talk&&!(solo&&(msgs||typing))) feed.scrollTop=0; else if(typeof jamboFeedLand==='function') jamboFeedLand(feed, jamboFeedLast(feed)); else feed.scrollTop=feed.scrollHeight;
   /* NO CHIPS UNDER A FACE (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the
      face carries its own acts, so the panel says a face is up and the chips row
      stands down by that scope (#ig-dock.pd-face-up) — Jambo perches on the box */

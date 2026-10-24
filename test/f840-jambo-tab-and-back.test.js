@@ -238,28 +238,19 @@ describe('f840 (3) the panel beside a list', () => {
 });
 
 describe('f840 (4) Settings', () => {
-  test('4a a turn turns the panel to the conversation; ‹ Overview turns it back; another page is fresh', () => {
+  /* RE-PINNED (owner, 24 Oct 2026: "settings has no information either"): ONE WINDOW — his words lead the
+     conversation, a turn is said under them, nothing turns and there is no trail; a stream chosen on Streams is
+     information and keeps the flip (f788 1a) */
+  test('4a one window: his words, then the turn under them; no flip, no trail', () => {
     const { settingsStage } = require('./settingsworld.js');
     const g = settingsStage();
-    assert.ok(g.$('st-jb-trail').hidden, 'lands on its own words');
-    /* landed, never turned: the page's words stand bare, no conversation
-       drawn yet (the colour census counts what is drawn) */
-    assert.ok(g.q('#st-jb-feed > *') && !g.q('#st-jb-feed [data-st-jb-talk]'), 'its own words, no conversation drawn');
+    assert.ok(g.$('st-jb-trail').hidden, 'no trail');
     g.sb.stJbAsk('what is a sealed PDF?');
-    assert.ok(g.q('#st-jb-feed [data-st-jb-land]').hidden, 'the landing out of sight');
-    assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'the conversation in front');
+    assert.ok(!g.q('#st-jb-feed [data-st-jb-land]').hidden, 'his words stay');
+    assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'the conversation under them');
     assert.ok(g.q('#st-jb-feed [data-st-jb-talk] [data-st-jb-turn]'), 'the turn is said there');
-    assert.ok(!g.$('st-jb-trail').hidden);
-    const back = g.q('#st-jb-trail [data-jt-back="settings"]');
-    assert.equal(g.text(back), 'Overview');
-    g.click(back);
-    assert.ok(!g.q('#st-jb-feed [data-st-jb-land]').hidden && g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'back on the landing');
-    assert.ok(g.$('st-jb-trail').hidden);
-    g.sb.stJbAsk('again');
-    g.sb.settingsGoTab('company');
-    const tk = g.q('#st-jb-feed [data-st-jb-talk]');
-    assert.ok(!tk || tk.hidden, 'another page lands on its own panel');
-    assert.equal(g.q('#st-jb-feed [data-st-jb-talk] [data-st-jb-turn]'), null, 'fresh');
+    assert.ok(g.$('st-jb-trail').hidden, 'still no trail');
+    assert.equal(g.q('#st-jb-trail [data-jt-back="settings"]'), null);
   });
   test('4b an ask no longer lets the stream shown go: it stays the landing', () => {
     assert.doesNotMatch(code(fnOf(SET, 'stJbAsk')), /stSwPickSet\(null\)/);
@@ -268,14 +259,14 @@ describe('f840 (4) Settings', () => {
 });
 
 describe('f840 (5) the Calendar\'s panel, and (6) every host\'s back', () => {
-  test('5a an ask opens the conversation view; the trail goes back; the tab is Overview', () => {
+  /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): Your week is his words and the planner's setting, so the asked and
+     the answer are said under them in the one panel — no tabs, no trail, nothing turned */
+  test('5a one window: Your week, then what was asked and the answer under it; no tabs, no trail', () => {
     const f = code(fnOf(CAL, 'calPlanHtml'));
-    // RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel"):
-    // the Jambo tab stands before any word, so the talk no longer waits on you||answer.
-    assert.match(f, /const talk=typeof window\.jamboTalkShows==='function'&&jamboTalkShows\(CAL_TALK_KEY\);/);
-    assert.match(f, /jamboTalkTrailHtml\('cal',land\)/);
-    assert.match(f, /<div class="jl-words cal-yw" data-jt-land\$\{talk\?' hidden':''\}>/, 'Your week kept, out of sight');
-    assert.match(code(fnOf(CAL, 'calPlanAsk')), /jamboTalkOpen\(CAL_TALK_KEY, document\.getElementById\('cal-plan-body'\)\);/);
+    assert.match(f, /const talk=!!\(you\|\|answer\);/);
+    assert.match(f, /<div class="jl-words cal-yw" data-jt-land>/, 'Your week always stands');
+    assert.doesNotMatch(f, /jamboTalkTrailHtml|data-cal-talk|jamboTalkShows/);
+    assert.doesNotMatch(code(fnOf(CAL, 'calPlanAsk')), /jamboTalkOpen/);
     assert.match(CAL, /jamboTalkHost\('cal', calTalkBack,/);
   });
   test('6a Esc and the bar\'s ‹ press the conversation\'s back on every host', () => {

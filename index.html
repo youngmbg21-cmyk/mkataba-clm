@@ -220,6 +220,8 @@
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
     --color-bg:#F5F5F7;   /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' warm #F4F2ED): the soft cool grey every white card floats on. */
+    --jb-card-fill:#F2F2F5;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft grey for every card in his answers. */
+    --bar-green:#0B3B36;  /* THE BAR IN COLOUR (owner picked "The SAP way", 24 Oct 2026): the top bar's deep green; white words on it measure about 12:1. */
     --color-surface:#ffffff;
     /* ---- TWO SURFACES BETWEEN THE PAGE AND WHITE ---- (25 Aug 2026)
        The audit's "boxes separated by borders instead of shade" complaint has
@@ -3997,7 +3999,9 @@
   .st-cr .st-person-resend{ margin-left:6px; }
   @media (max-width:1180px){ .st-cr .st-cards{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
   /* JAMBO'S NEW CARDS: the small print, the ask's reason box */
-  .st-cr .st-jb-fine{ margin:0; padding:0 11px 9px; font-size:var(--t-label); color:var(--color-neutral-500); }
+  /* THE CLOTHES FOLLOW THE BUILDER (24 Oct 2026): the card's footnote is dressed wherever stJbCardHtml draws it —
+     it was dressed under .st-cr only, so in the ✦ window (.jb-turn) it sat against the card's edge */
+  :is(.st-cr, .jb-turn) .st-jb-fine{ margin:0; padding:0 11px 9px; font-size:var(--t-label); color:var(--color-neutral-500); }
   .st-cr .st-ask-why{ display:block; width:100%; margin-top:6px; border:1px solid var(--field-line); border-radius:var(--radius-lg);
     padding:6px 9px; font:inherit; font-size:var(--t-label); color:var(--color-text); background:var(--color-surface); resize:vertical; }
   .st-ask-q{ font-size:var(--t-body); color:var(--color-text); line-height:1.5; padding:10px 12px; border-radius:var(--radius-lg);
@@ -16805,11 +16809,36 @@
      NO backdrop-filter: nothing scrolls under this bar, so the blur would show nothing, and a
      filter makes the bar a stacking context that traps its own menus (Recent went under the
      page; blue-landing-and-board-tones-verify caught it) -- */
-  #top-header{--bar-bg:rgba(255,255,255,.78);--bar-edge:transparent;--bar-well:#F2F2F5;--bar-hover:rgba(0,0,0,.06);
-    background:var(--bar-bg);border-bottom-color:transparent;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+  /* THE BAR IN COLOUR (owner picked "The SAP way" by name, 24 Oct 2026: "the page is too white. We need
+     the top bar on the page to add some color"; reverses Chambers' white bar of 20 Oct, kept by this look):
+     a solid deep green, every word and icon white (the quiet ones at 78%), the search a lighter well inside
+     it. Only the bar: what opens from it (Recent, the search list, the bell, your menu) keeps its white card. */
+  #top-header{--bar-bg:var(--bar-green);--bar-edge:transparent;--bar-ink:#FFFFFF;--bar-ink-2:rgba(255,255,255,.78);
+    --bar-line:rgba(255,255,255,.18);--bar-well:rgba(255,255,255,.14);--bar-hover:rgba(255,255,255,.14);--focus-color:#FFFFFF;
+    background:var(--bar-bg);border-bottom-color:transparent;box-shadow:none}
   #top-header .hdr-icon-btn, #top-header #cmd-ai{border-radius:999px}
   #top-header .cmd-search{border-radius:999px;border-color:transparent;background:var(--bar-well)}
-  #top-header #cmd-k-hint{border-radius:999px;border-color:transparent;background:#fff;box-shadow:0 1px 1px rgba(0,0,0,.05)}
+  #top-header #cmd-k-hint{border-radius:999px;border-color:transparent;background:rgba(255,255,255,.16);box-shadow:none}
+  #top-header #side-avatar{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.32)}
+  #top-header #rail-avatar:hover #side-avatar{background:rgba(255,255,255,.26)}
+  #top-header #shell-title .crumb-sep{color:rgba(255,255,255,.55)}
+  /* -- JAMBO'S CARDS, THE LEGORA WAY (owner picked it by name, 24 Oct 2026: "the card … should be slightly
+     shaded or almost look 3d and the words found without AI should not be literally at the edge of the card"):
+     every card in every Jambo — Settings' (.st-jb-card) and his own (.ca-card) — is ONE soft grey fill, no edge
+     line or header strip, rounded as his answers are, a faint highlight along its top so it sits slightly
+     raised; 16px inside; a plain button on it turns white to stand out on the grey -- */
+  :is(.st-cr, .jb-turn) .st-jb-card, .ca-card{background:var(--jb-card-fill);border:0;border-radius:var(--radius-lg);box-shadow:inset 0 1px 0 rgba(255,255,255,.75)}
+  :is(.st-cr, .jb-turn) .st-jb-ch{padding:12px 16px 2px;border-bottom:0}
+  :is(.st-cr, .jb-turn) .st-jb-cb{padding:6px 16px 4px}
+  :is(.st-cr, .jb-turn) .st-jb-card > .st-jb-ca{padding:6px 16px 10px}
+  :is(.st-cr, .jb-turn) .st-jb-fine{padding:0 16px 14px;font-size:12px;color:var(--color-neutral-600)}
+  .ca-card{padding:14px 16px}
+  :is(.st-jb-card, .ca-card) .ui-btn:not(.ui-btn-primary):not(.ui-btn-plain){background:var(--color-surface)}
+  :is(.st-jb-card, .ca-card) .ui-btn:not(.ui-btn-primary):not(.ui-btn-plain):hover{background:var(--color-neutral-100)}
+  /* -- ONE WINDOW (owner, 24 Oct 2026): a list panel holding only his words draws no Overview / Jambo tabs and no
+     page word (jlTalkPaint marks .is-solo); written by scope, as .pd-tab's own display outranks [hidden] -- */
+  .is-solo > .jl-head :is([data-jl-home], [data-jl-talk], [data-jl-word]){display:none}
+  .is-solo .jl-greet:not(:empty){margin-bottom:12px}
   /* -- every button is a pill: the soft grey filled, the ink's words; the main one black -- */
   .ui-btn, .hb-btn{border-radius:999px;border-color:transparent;background:var(--surface-2);color:var(--color-text)}
   .ui-btn:hover, .hb-btn:hover{background:var(--color-neutral-200)}

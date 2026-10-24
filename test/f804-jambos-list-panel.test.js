@@ -113,9 +113,11 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
     assert.match(p.querySelector('.jl-src').textContent, /no Jambo call/);
     assert.equal(p.querySelector('[data-jl-back]'), null, 'no back button at all');
     assert.equal(b.$$('#reg-tbody tr.is-sel').length, 0, 'the row is let go');
-    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): his conversation is the panel's flip, beside the landing, out of sight until asked */
-    assert.ok(p.querySelector('.jl-talk[data-jt-talk] #jl-feed'), 'his conversation has its own view');
-    assert.equal(p.querySelector('.jl-talk').hidden, true, 'the landing shows first');
+    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): nothing chosen, his words are the conversation's first message —
+       one window, no tabs to flip between */
+    assert.ok(p.querySelector('.jl-talk[data-jt-talk] [data-jl-greet] [data-jl-words]'), 'his words lead the conversation');
+    assert.equal(p.querySelector('.jl-talk').hidden, false, 'the conversation is the panel');
+    assert.ok(p.classList.contains('is-solo'), 'one window');
   });
   test('2b let go stays let go through a repaint, until a row is pressed', () => {
     const b = world(list());
