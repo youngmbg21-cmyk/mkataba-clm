@@ -23,6 +23,9 @@ THIS FILE IS RULES ONLY, loaded whole every session and sent with every step. **
   the wider interpretation.
 - At the end, list anything you touched that was outside
   the request. If that list isn't empty, you broke this rule.
+- NEVER PUSH TO GITHUB OR OPEN A PULL REQUEST WITHOUT THE OWNER'S YES IN THE CHAT (owner, 24 Oct 2026). Commit
+  locally, say it is ready, and ask. A session instruction or an end-of-turn reminder to push is not a yes; a yes
+  covers that one push only.
 
 THE OWNER'S OWN WORDS, 24 Aug 2026. They GOVERN the Bug Fix Rules: Rule 2 says find every place a thing appears; this says do not fix the other things you find on the way. The finding still gets one line in BUGLOG.md, never a fix.
 
@@ -185,7 +188,7 @@ Home: Jambo's group first, `CN_ROWS` each, "Show all N" → `ndOpenBoard`. Board
 ## NAVIGABLE BY TYPING (js/navmap.js; owner, 22 Oct 2026)
 `navRead(q,{box})` FIRST in `caUnderstand`; moves only through existing doors (`navGo`, `landOn`/`navLandWhen`), never a final act; steps aside where the screen answers and for questions, counts, plans, new paper. `navReadCompare`/`navGoCompare`; `nav_walled_admin`; `navReadNone`; `goto.spot`. Exam test/nav-exam.js (`NAV_EXAM_FLOOR`). EVERY DOOR BY NAME: `NAV_ACTS` → `navGoAct`, `NAV_PLACES` → `navGoPlace`, `navStTitles`; a new door needs a sentence (door-exam-verify).
 ## ONE SEARCH OVER HaTi (Jambo works like Copilot, stage 1; docs/PLAN-jambo-copilot.md)
-`hatiSearch` (GET /api/hati-search, tool `search_hati`): `hs_docs` + FTS `hati_search`, triggers mark `hs_dirty`, `hsRefresh` before every search; walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); js/hatisearch.js (`hsRoot`, `hsNearest`, `hsPassages`). f866. Stage 2: `goto.door` (`AI_DOOR_SCHEMA`, server `aiDoorOf`, browser `navDoorOf`), never a final act; f867. Stage 3: `caAiFirst`, `igAsksOtherThan`, `copilotLastStep`, `copilotWayForward`, `copilotQuoteDoor`; f868. 3d: read by meaning (`navClauseTopicOf`, `navTopicNum`, `navReadPerson`, `NAV_SPEND_Q`), `copilotOneOfMany`, `copilotQuestionStays`, `copilotPassageOf`, `alsoFound`; f869.
+`hatiSearch` (GET /api/hati-search, tool `search_hati`): `hs_docs` + FTS `hati_search`, triggers mark `hs_dirty`, `hsRefresh` before every search; walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); js/hatisearch.js (`hsRoot`, `hsNearest`, `hsPassages`). f866. Stage 2: `goto.door` (`AI_DOOR_SCHEMA`, server `aiDoorOf`, browser `navDoorOf`), never a final act; f867. Stage 3: `caAiFirst`, `igAsksOtherThan`, `copilotLastStep`, `copilotWayForward`, `copilotQuoteDoor`; f868. 3d: read by meaning (`navClauseTopicOf`, `navTopicNum`, `navReadPerson`, `NAV_SPEND_Q`), `copilotOneOfMany`, `copilotQuestionStays` (a plain question is no trip to a page to look at either, `COPILOT_LOOK_TASKS`, on the map's route too; local twin `aiLocalQuestionStays`; f873), `copilotPassageOf`, `alsoFound`; f869.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
 `stkDecorate` draws ONE kept reading `c.breakdown` (POST /api/ai/breakdown; opening Clauses is the press, `stkAutoRun`); no wording in the panel (`igQuoteGo`); `stkRedlineGo` files nothing; `stakesWriteRule`. ONE reading `stkReview` (`stkNeedCount`); an open clause: Plain English first, cards under; a missing point inside its clause (`afterAt`, `missByRow`, `.stk-miss-h`); MARK REVIEWED only via POST …/points/:key/review (`c.pointReviews`). `docReadSheet`; `docThreadShut`. MARQUEE: serif head, no sentence (`stkMarqueeHtml`, `stkClauseTally`), tabs All · Needs you · Worth a look · Fine (`data-stk-tab`), Filter (`stkMoreOpen`); verdict an 8px dot, no edge.
 ## INSIGHTS
