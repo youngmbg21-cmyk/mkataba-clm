@@ -221,15 +221,10 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     const liab = rows.find(r => r && r.id === 'K2'), pay = rows.find(r => r && r.id === 'K1');
     check(!!(liab && liab.read === 'look' && /^This adds “Liability of either party is limited to one month's fees”\. Your paper says nothing like it\.$/.test(liab.w)), '5a no rule written: "Worth a look", with what the ask adds', liab);
     check(!!(liab && liab.clamp !== '2'), '5b the plain reason is read whole', liab && liab.clamp);
-    /* 24 Oct 2026 (owner, second word): the CARD holding "Worth a look" is itself the soft card in a very light
-       amber (red over green over blue: amber), with no box inside it; the card beside it keeps the grey ground;
-       pressed, it deepens one amber step and stays amber (never the grey ONE SHADE) */
-    const amb = c => { const k = /^color\(srgb/.test(String(c || '')) ? 255 : 1;   /* a color-mix reads back as color(srgb 0–1 …) */
-      const v = (String(c || '').match(/[\d.]+/g) || []).map(Number).map((x, i) => i < 3 ? x * k : x); return v.length >= 3 && (v.length < 4 || v[3] > 0) && v[0] > v[1] && v[1] > v[2] && v[0] > 240; };
-    check(!!(liab && amb(liab.card) && /rgba\(0, 0, 0, 0\)/.test(liab.bg) && pay && !amb(pay.card)), '5a2 the card holding "Worth a look" is very light amber, with no box inside; the Escalate card keeps the grey', { look: liab && [liab.card, liab.bg], esc: pay && pay.card });
-    const lit = await drive(P, () => { const c = document.querySelector('#ig-dock [data-nego-card="K2"]'); if (!c) return null;
-      const rest = getComputedStyle(c).backgroundColor; c.classList.add('is-linked'); const on = getComputedStyle(c).backgroundColor; c.classList.remove('is-linked'); return { rest, on }; }, null, null);
-    check(!!(lit && amb(lit.on) && lit.on !== lit.rest), '5a3 pressed, the "Worth a look" card deepens one amber step and stays amber', lit);
+    /* 24 Oct 2026 (owner, third word): "i am only talking about the cards that are under risks to look at …
+       Anything above them should have the grey color they always had" — the change card holding "Worth a
+       look" is the grey card like its neighbour, and its read has no box of its own */
+    check(!!(liab && pay && liab.card === pay.card && /rgba\(0, 0, 0, 0\)/.test(liab.bg)), '5a2 the change card holding "Worth a look" keeps the grey of the cards above the risks, no box inside', { look: liab && [liab.card, liab.bg], esc: pay && pay.card });
     check(!!(pay && pay.read === 'escalate'), '5c where a rule is written, its verdict still stands (the workspace\'s payment range)', pay && pay.read);
     check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 4).join(' · ') === 'Accept · Reject · Counter · Ask a colleague')), '5d Ask a colleague sits after Counter on each of their asks', rows.map(r => r && r.verbs));
     for (const [w, hgt] of SCREENS){

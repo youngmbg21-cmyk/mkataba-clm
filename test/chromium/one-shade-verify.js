@@ -129,7 +129,7 @@ async function login(b, base, email, pass, errs){
     check('0  the Redlines face is up beside the paper', !!up);
 
     const CARD_GROUND = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--color-bg)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; });
-    /* 24 Oct 2026 (owner): a card holding Jambo's "Worth a look" rests on a very light amber, its own ground */
+    /* 24 Oct 2026 (owner): a card under "Risks to look at" rests on a very light amber, its own ground */
     const LOOK_GROUND = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; });
     const lit = () => page.evaluate(([ground, look]) => [...document.querySelectorAll('#pd-redface :is(.rl-card-d, .rk-row)')]
       .map(e => ({ k: e.getAttribute('data-nego-card') || e.getAttribute('data-rk-key') || '', bg: getComputedStyle(e).backgroundColor, ring: getComputedStyle(e).boxShadow !== 'none', on: e.classList.contains('is-linked') }))
@@ -155,6 +155,16 @@ async function login(b, base, email, pass, errs){
     if (rk){ await page.click('#pd-redface .rk-row:not(.is-none):not(.is-covered) .rk-head'); await pause(500); await page.mouse.move(5, 5); await pause(300); }
     const L3 = rk ? await lit() : null;
     check('3  a pressed risk card takes the shade from the row: one lit, no ring', !!L3 && L3.length === 1 && L3[0].on && !/^CHG-/.test(L3[0].k) && !L3[0].ring, JSON.stringify(L3));
+    /* 3b (owner, 24 Oct 2026): the risk cards are very light amber with no white box inside; the pressed one
+       is a deeper amber; the change cards above them keep their grey */
+    const rkLook = await page.evaluate(() => { const rows = [...document.querySelectorAll('#pd-redface .rk-row:not(.is-none):not(.is-covered)')];
+      const on = rows.find(r => r.classList.contains('is-linked')), rest = rows.find(r => !r.classList.contains('is-linked'));
+      const g = e => e ? getComputedStyle(e).backgroundColor : null;
+      return { rest: g(rest), on: g(on), why: g(rest && rest.querySelector('.rk-why')), card: g(document.querySelector('#pd-redface [data-nego-card]:not(.is-linked)')) }; });
+    const amb = c => { const k = /^color\(srgb/.test(String(c || '')) ? 255 : 1; const v = (String(c || '').match(/[\d.]+/g) || []).map(Number).map((x, i) => i < 3 ? x * k : x);
+      return v.length >= 3 && (v.length < 4 || v[3] > 0) && v[0] > v[1] && v[1] > v[2] && v[0] > 240; };
+    check('3b the risk cards are very light amber with no box inside, the pressed one a deeper amber; the change cards keep their grey',
+      rkLook.rest === LOOK_GROUND && amb(rkLook.on) && rkLook.on !== rkLook.rest && /rgba\(0, 0, 0, 0\)/.test(rkLook.why || '') && rkLook.card === CARD_GROUND, JSON.stringify(rkLook));
     /* 4 */
     const why = await page.evaluate(() => ({ cards: document.querySelectorAll('#pd-redface .rk-row:not(.is-none):not(.is-covered)').length,
       presses: document.querySelectorAll('#pd-redface [data-rk-act="why"], #pd-redface .rk-why-btn').length, open: document.querySelectorAll('#pd-redface .rk-row .rk-why').length }));

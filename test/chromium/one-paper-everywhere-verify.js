@@ -107,11 +107,14 @@ const M = () => {
        door lands on Home's Document, which keeps Home's ground (1g). */
     ok('1h document: the old Document door lands on Home\'s Document, on Home\'s ground', !!out.document && out.document.col === homeGround,
       out.document && JSON.stringify({ col: out.document.col }));
-    for (const k of ['negotiate', 'theirs']){
-      const v = out[k];
-      ok(`1h ${k}: the column takes no colour — the sheet lies on the page ground`, !!v && v.col === 'rgba(0, 0, 0, 0)' && v.ground === v.page && v.ground !== homeGround,
-        v && JSON.stringify({ col: v.col, ground: v.ground, page: v.page }));
-    }
+    const v = out.negotiate;
+    ok('1h negotiate: the column takes no colour — the sheet lies on the page ground', !!v && v.col === 'rgba(0, 0, 0, 0)' && v.ground === v.page && v.ground !== homeGround,
+      v && JSON.stringify({ col: v.col, ground: v.ground, page: v.page }));
+    /* THE LEGORA WAY ON THEIR PAGE (owner's pick, 24 Oct 2026): the paper is a
+       floating white card, the sheet inside it on Home's desk ground. */
+    const t = out.theirs;
+    ok('1h theirs: the paper column is a white card, the sheet on Home\'s ground', !!t && t.col === 'rgb(255, 255, 255)' && t.ground === homeGround && t.ground !== t.page,
+      t && JSON.stringify({ col: t.col, ground: t.ground, home: homeGround, page: t.page }));
     for (const k of ['homeClean', 'document', 'negotiate', 'theirs']){
       const v = out[k]; const diff = v ? keys.filter(q => v[q] !== ref[q]).map(q => `${q}: ${v[q]} ≠ ${ref[q]}`) : ['no paper'];
       ok(`1 ${k}: the same paper as Home Redlined`, !diff.length, diff.join(' | ') || null);
