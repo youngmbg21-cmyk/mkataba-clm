@@ -3256,6 +3256,9 @@ if (typeof document !== 'undefined' && !document._pdWired){
          the landing's own tab pressed is its way back, as it was left */
       const was = pdTalkShows() ? pdTalkKey() : null, keep = was ? pdTalkClose() : null;
       const k = tab.getAttribute('data-pd-tab');
+      /* a tab pressed while Before you send is up shows that tab: the letter waits on the desk,
+         "Before you send" one tab away (pdSendBack), as pdSendAway draws it */
+      if (pdSendShows()) _pdSend.away = true;
       /* REDLINES IS THE FACE'S DOOR (23 Oct 2026): its walls first (openRedlineWorkbench); pressed while up it stays */
       if (k === 'red'){ const c = pdContract(); if (c && !pdRedShows()){ pdSetTab('copilot'); pdRedOpen(c.id); }
         else if (typeof renderIntelDock === 'function') renderIntelDock();
