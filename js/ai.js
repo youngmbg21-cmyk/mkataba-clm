@@ -907,7 +907,12 @@ function aiFloatTop(){
 function aiFloatMaxBox(){ const w = Math.min(aiFloatMaxW(), window.innerWidth), t = aiFloatTop(); return { x: window.innerWidth - w, y: t, w, h: window.innerHeight - t, home: false }; }
 function aiFloatHome(){ const w = Math.min(AI_FLOAT_DOCK_W, window.innerWidth), t = aiFloatTop(); return { x: window.innerWidth - w, y: t, w, h: window.innerHeight - t, home: true }; }
 /* the first open: a window of its own, 16 in from the right, 16 under the bar */
-function aiFloatFirst(){ const t = aiFloatTop(); return aiFloatClamp({ x: window.innerWidth - 440 - 16, y: t + 16, w: 440, h: Math.min(620, window.innerHeight - t - 32) }); }
+function aiFloatFirst(){
+  const t = aiFloatTop(); let x = window.innerWidth - 440 - 16;
+  /* beside Home's own panel when it is up, never over it (owner, 24 Oct 2026); a moved window keeps its place */
+  try{ const d = document.getElementById('ig-dock'); const b = d && d.getBoundingClientRect ? d.getBoundingClientRect() : null; if(b && b.width > 0 && b.left > 440 + 32) x = Math.min(x, Math.round(b.left) - 16 - 440); }catch(_){}
+  return aiFloatClamp({ x, y: t + 16, w: 440, h: Math.min(620, window.innerHeight - t - 32) });
+}
 /* inside the limits, inside the window and below the bar, always */
 function aiFloatClamp(b){
   const W = window.innerWidth, T = aiFloatTop(), H = window.innerHeight - T;
@@ -918,12 +923,16 @@ function aiFloatClamp(b){
   o.y = Math.min(T + H - o.h, Math.max(T, o.y));
   return o;
 }
-let _aiFloatBox = null;
+let _aiFloatBox = null, _aiFloatUnmoved = false;
 function aiFloatBox(){
-  if(_aiFloatBox) return _aiFloatBox;
+  /* an unmoved window keeps standing beside Home's panel as that panel changes width (aiFloatBeside) */
+  if(_aiFloatBox && !_aiFloatUnmoved) return _aiFloatBox;
   let saved = null; try{ saved = (typeof lsGet==='function') ? lsGet(AI_FLOAT_LS) : null; }catch(_){}
+  _aiFloatUnmoved = !(saved && (saved.home || saved.w));
   return (_aiFloatBox = (saved && saved.home) ? aiFloatHome() : (saved && saved.w) ? aiFloatClamp(saved) : aiFloatFirst());
 }
+/* Home's panel changed width: a window nobody has moved steps beside it again */
+function aiFloatBeside(){ if(!_aiFloatUnmoved || !aiFloatOn()) return; try{ aiFloatApply(aiFloatFirst(), false); }catch(_){} }
 function aiFloatApply(b, keep){
   const panel = document.getElementById('ai-panel'); if(!panel || !panel.style) return;
   /* the drawer on the right edge follows the window's size; a moved one stays put */
@@ -932,7 +941,7 @@ function aiFloatApply(b, keep){
   panel.style.left = o.x + 'px'; panel.style.top = o.y + 'px';
   panel.style.width = o.w + 'px'; panel.style.height = o.h + 'px';
   panel.classList.toggle('ai-float-home', !!o.home);
-  if(keep){ try{ if(typeof lsSet==='function') lsSet(AI_FLOAT_LS, o); }catch(_){} }
+  if(keep){ _aiFloatUnmoved = false; try{ if(typeof lsSet==='function') lsSet(AI_FLOAT_LS, o); }catch(_){} }
 }
 /* drag the header, pull an edge or corner — pointer events, bounded */
 function aiFloatWire(){
@@ -2536,7 +2545,9 @@ function aiRenderServerAnswer(res, q){
   if(res.notice) text+=`<div class="text-[11px] text-amber-700 mt-2 leading-relaxed">${_aiEsc(res.notice)}</div>`;
   text+=aiDeepLineHtml(res);
   const choices=aiWayChoicesOf(res, q);
-  return choices.length?{ text, cards:extra, choices }:{ text, cards:extra };
+  /* the ids ride on the turn: the follow-up "show them on the board" (caLastSet) and the Show on the Board door read them */
+  const cardIds=list.map(c=>c.id);
+  return choices.length?{ text, cards:extra, cardIds, choices }:{ text, cards:extra, cardIds };
 }
 
 /* ── LOCAL-MODE COPILOT (browser-direct, BYOK) ──────────────────────────
@@ -4873,7 +4884,10 @@ async function aiSubmit(asked){
   /* ONE JAMBO, TWO LAYERS (owner, 24 Oct 2026: "act first, then explain"): on Home the window hands its words to
      Home's own box (intelAsk) — the same free readers the side panel has (the Board's, the map's, the places, the
      follow-up "them"), then the brain for a question — and the one conversation shows the turn here too */
-  if(!cardOwns && window.state && state.view==='dashboard' && typeof window.intelAsk==='function' && document.getElementById('igd-input')){
+  /* …a COMMAND only (hbCommandAsk; "show them on the board" too): a question or a sentence keeps the brain here,
+     streamed, with the full treatment (owner, 24 Oct 2026: "give all the jambos the ability") */
+  const homeCmd=(window.state&&state.view==='dashboard')&&((typeof window.hbCommandAsk==='function'&&hbCommandAsk(q))||(typeof window.hbDrawAsk==='function'&&hbDrawAsk(q))||(typeof window.caReadThese==='function'&&!!caReadThese(q)));
+  if(!cardOwns && homeCmd && typeof window.intelAsk==='function' && document.getElementById('igd-input')){
     renderAIFeed(true);
     try{ await intelAsk(q, { fromWindow:true }); }catch(_){}
     renderAIFeed(); return;
@@ -4882,8 +4896,8 @@ async function aiSubmit(asked){
      draws, free, and is said here; a question the Board only drew is then explained (aiAskWords, no echo) */
   if(!cardOwns && typeof window.hbAskReadingOf==='function' && typeof window.hbAsk==='function' && typeof window.caHomeFace==='function' && !(typeof window.mPhone==='function'&&mPhone())){
     let A=null; try{ A=hbAskReadingOf(q,'board'); }catch(_){ A=null; }
-    const asksQ=!!(window.CA_WH_Q&&CA_WH_Q.test(q))||/\?\s*$/.test(q);
-    if(!asksQ&&A&&A.road==='free'&&['dig','panel','split','card','verified','pack','follow'].includes(A.kind)){
+    const isCmd=(typeof window.hbCommandAsk==='function')&&hbCommandAsk(q);
+    if(isCmd&&A&&A.road==='free'){
       aiPush('user',{text:esc(q), raw:q}); renderAIFeed(true);
       caHomeFace('board');
       await new Promise(r=>setTimeout(r,0));
@@ -5952,4 +5966,4 @@ Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,a
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiDeepLineHtml,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiFloatBeside,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiDeepLineHtml,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

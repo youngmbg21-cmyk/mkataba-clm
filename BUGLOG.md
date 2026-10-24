@@ -21526,3 +21526,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 24 Oct 2026 (PR #456, the stand-in on Home)
 - Nine other AI routes (brief, OCR, breakdown, column, memo …) answer a provider failure with 502 and no `kind`, so the browser's stand-in there says "could not be reached" for a provider error. Only the graph route was given `kind: 'provider'` (the chat route already had it). Not this job's.
 - 24 Oct 2026 (Noticed, not fixed — the glitch audit's second walk): the audit's "Place: … scrolled, open a row, ‹ back" step looks for `tr[data-ins-row]`, which the Approvals list's rows do not carry, so it opens nothing and measures no return; Negotiations and Our paper rows are also out of the walk's reach (an instrument limit, not a HaTi fault).
+
+## Noticed, not fixed — 24 Oct 2026 (one Jambo, the owner's picture)
+- The Board's free "Top risks" answer pack prints "contracts carry open risks" with no number before "contracts" (the count is missing from the sentence). Seen in the owner's screenshot; it now shows only for a command, never for a question. Not this job's.
