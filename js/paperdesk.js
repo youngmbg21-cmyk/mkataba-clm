@@ -3765,7 +3765,7 @@ function dossierObLineHtml(c){
   const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(Boolean);
   let late = 0; try { late = (typeof bsObRows === 'function') ? (((bsObRows(c) || {}).rows) || []).filter(r => r && r.st === 'overdue').length : 0; } catch (_){ late = 0; }
   const v = !obs.length ? _pdT('pd_ob_line_none') : late ? _pdTn('pd_ob_line_late', obs.length, { n: obs.length, late }) : _pdTn('pd_ob_line_n', obs.length, { n: obs.length });
-  return `<button type="button" class="ds-ob-line${late ? ' is-late' : ''}" data-ds-at="ob" data-pd-glance-tab="oblig"><i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${_pdE(_pdT('tab_obligations'))}</b><span class="ds-this-v">${_pdE(v)}</span><span class="pd-ck-chev" aria-hidden="true"></span></button>`;
+  return `<button type="button" class="ds-ob-line${late ? ' is-late' : ''}" data-ds-at="ob" data-pd-glance-tab="oblig"><i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${_pdE(_pdT('tab_obligations'))}</b><span class="ds-this-v">${_pdE(v)}</span>${pdCkGo()}</button>`;
 }
 /* ONE SPINE, two hosts (the panel's dossier and the Board's card) */
 function dossierSpineHtml(D, o){
@@ -3789,6 +3789,11 @@ function dossierDay(iso){
   try { return at.toDateString() === new Date().toDateString() ? at.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : at.toLocaleDateString(loc, { day: 'numeric', month: 'short' }); } catch (_){ return String(iso).slice(0, 10); }
 }
 const PD_GO_TXT = ' ›';
+/* A ROW YOU PRESS TO FILL SAYS SO (owner, 24 Oct 2026, over the Dossier: "add the 'open >' anywhere people
+   have to click and fill in the fields just like it is in the top"): Signer, Who else, On the web, a field's
+   own line and Obligations carry the word the Risks and Standards rows carry, not a bare arrow; a row that
+   only folds a group keeps its arrow */
+function pdCkGo(){ return `<span class="pd-ck-chev is-word" aria-hidden="true">${_pdE(_pdT('dos_go_open'))}${PD_GO_TXT}</span>`; }
 function dossierGo(attr, word, extra){ return `<button type="button" class="pd-go ds-go" ${attr}${extra || ''}>${_pdE(word)}${PD_GO_TXT}</button>`; }
 /* JAMBO READ, THE CHECKLIST'S ROWS (owner picked "1 · Checklist" by name, 22 Oct 2026; was "four even
    rows", 21 Oct): one line a row — the name, what stands (grey, at the right), one door. The brief
@@ -4160,7 +4165,7 @@ function pdCkSignersRowHtml(c, o){
   }).join('')).join('');
   const say = _pdT('og_sg_named', { n: _pdTn('og_sg_n', S.n, { n: S.n }), s: _pdTn('og_sg_steps', S.steps.length, { n: S.steps.length }) });
   const hd = held ? `<div class="pd-ck-hd">${pdCkRing('done')}<b>${E(_pdT('og_sg_title'))}</b><span class="pd-ck-v">${E(say)}</span></div>`
-    : `<button type="button" class="pd-ck-hd" data-pd-ck-row="signers" aria-expanded="${open}">${pdCkRing('done')}<b>${E(_pdT('og_sg_title'))}</b><span class="pd-ck-v">${E(say)}</span><span class="pd-ck-chev" aria-hidden="true"></span></button>`;
+    : `<button type="button" class="pd-ck-hd" data-pd-ck-row="signers" aria-expanded="${open}">${pdCkRing('done')}<b>${E(_pdT('og_sg_title'))}</b><span class="pd-ck-v">${E(say)}</span>${pdCkGo()}</button>`;
   const route = (!held && may && typeof openSignerPlanEditor === 'function')
     ? `<button type="button" class="ui-btn ui-btn-sm pd-og-order" data-pd-og-route="${E(c.id)}">${E(_pdT('og_sg_order'))}</button>` : '';
   return `<tr class="pd-og-row is-named${open ? ' is-open' : ''}" data-ds-at="sign" data-pd-og-row="signers" data-pd-og-kind="signers-named"><td class="pd-og-f">${hd}</td>`
@@ -4170,7 +4175,7 @@ function pdCkPeopleRowHtml(c){
   if (!c || typeof participantsDirHtml !== 'function') return '';
   const E = _pdE, n = pdPeopleItems(c).length;
   return `<tr class="pd-og-row is-named is-people" data-ds-at="sign" data-pd-og-row="people" data-pd-og-kind="people"><td class="pd-og-f"><button type="button" class="pd-ck-hd" data-pd-people="${E(c.id)}" data-pd-people-from="dossier">`
-    + `<i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${E(_pdT('ppl_title'))}</b><span class="pd-ck-v">${E(n ? pdPeopleSay(c) : _pdT('ppl_none'))}</span><span class="pd-ck-chev" aria-hidden="true"></span></button></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
+    + `<i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${E(_pdT('ppl_title'))}</b><span class="pd-ck-v">${E(n ? pdPeopleSay(c) : _pdT('ppl_none'))}</span>${pdCkGo()}</button></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
 }
 /* WHAT THE WEB SAYS ABOUT THEM (round 3 of Jambo's journey): one line of the same height after Who else,
    its press the one pop-up (partyWebOpen, js/jambopress.js); it owes nothing, so it is counted nowhere */
@@ -4181,7 +4186,7 @@ function pdCkWebRowHtml(c){
   const E = _pdE, n = kept ? kept.facts.length : 0;
   const v = kept ? _pdTn('pw_row_n', n, { n, day: (d => { try { return (typeof fmtDocDate === 'function') ? fmtDocDate(d) : d; } catch (_){ return d; } })(String(kept.at || '').slice(0, 10)) }) : _pdT('pw_row_none');
   return `<tr class="pd-og-row is-named is-web" data-ds-at="sign" data-pd-og-row="web" data-pd-og-kind="web"><td class="pd-og-f"><button type="button" class="pd-ck-hd" data-pd-web="${E(c.id)}">`
-    + `<i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${E(_pdT('pw_row'))}</b><span class="pd-ck-v">${E(v)}</span><span class="pd-ck-chev" aria-hidden="true"></span></button></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
+    + `<i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${E(_pdT('pw_row'))}</b><span class="pd-ck-v">${E(v)}</span>${pdCkGo()}</button></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
 }
 /* the clause a paper blank sits under, read off the paper beside (pdFillSpotClause), or '' */
 function pdOgSpotNo(f){
@@ -4221,7 +4226,7 @@ function pdOgHtml(c, o){
        on its line opens the signing route editor, where signers are added and ordered */
     if (f.kind === 'signer' && !held){
       const door = may && typeof openSignerPlanEditor === 'function';
-      const inner = `${pdCkRing('miss')}<b>${E(f.label)}</b><span class="pd-ck-v">${val(f)}</span><span class="pd-ck-chev" aria-hidden="true"></span>`;
+      const inner = `${pdCkRing('miss')}<b>${E(f.label)}</b><span class="pd-ck-v">${val(f)}</span>${pdCkGo()}`;
       return `<tr class="pd-og-row is-amb is-door" data-ds-at="sign" data-pd-og-row="${E(f.key)}" data-pd-og-kind="signer"><td class="pd-og-f">${door
         ? `<button type="button" class="pd-ck-hd" data-pd-og-route="${E(c.id)}" title="${E(_pdT('og_sg_order'))}">${inner}</button>`
         : `<div class="pd-ck-hd">${inner}</div>`}</td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
@@ -4230,7 +4235,7 @@ function pdOgHtml(c, o){
     const ring = pdCkRing(f.read ? 'read' : 'miss');
     const hd = held
       ? `<div class="pd-ck-hd">${ring}<b>${E(f.label)}</b><span class="pd-ck-v">${val(f)}</span></div>`
-      : `<button type="button" class="pd-ck-hd" data-pd-ck-row="${E(f.key)}" aria-expanded="${open}">${ring}<b>${E(f.label)}</b>${f.read ? '' : `<span class="pd-og-need">${E(_pdT('og_needed'))}</span>`}${isPaper(f) ? where(f) : ''}<span class="pd-ck-v">${val(f)}</span><span class="pd-ck-chev" aria-hidden="true"></span></button>`;
+      : `<button type="button" class="pd-ck-hd" data-pd-ck-row="${E(f.key)}" aria-expanded="${open}">${ring}<b>${E(f.label)}</b>${f.read ? '' : `<span class="pd-og-need">${E(_pdT('og_needed'))}</span>`}${isPaper(f) ? where(f) : ''}<span class="pd-ck-v">${val(f)}</span>${pdCkGo()}</button>`;
     /* (Round 4) a value read from the paper says where, inside its field: "read §5" */
     /* the § inside a read field is the same door as the source line's §: it shows the spot on the paper */
     const at = (!held && f.read && f.from && f.from.clause) ? `<button type="button" class="pd-og-at" data-pd-og-spot="${E(f.key)}" title="${E(_pdT('og_show_on_paper'))}">${E(_pdT('og_read_at', { n: f.from.clause }))}</button>` : '';
