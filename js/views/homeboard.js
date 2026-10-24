@@ -1606,6 +1606,11 @@ function hbNyDockFollow(){
 /* "needs me" (CA_GO.needs): Home (once the Counter), where Needs you lives
    since round 17 (the owner's yes, 18 Oct 2026), its list in view and lit */
 function hbNeedsOpen(){
+  /* THE BOARD ALREADY HOLDS IT (owner, 24 Oct 2026: "i am kicked out and dropped to the home page"): with the
+     Board in front, its own Needs you card under Your book is ALL of it, so "needs" — typed, or Jambo's answer
+     taking you there — lands on that card and the question's answer stays in the panel it was asked in */
+  const onBoard = typeof state !== 'undefined' && state && state.view === 'dashboard' && hbBoardInFront() && !!document.getElementById('hm-agents');
+  if (onBoard){ if (typeof landOn === 'function') landOn('#hm-agents', { block: 'start' }); return true; }
   if (typeof deskGoCounter === 'function') deskGoCounter(); else if (typeof setView === 'function') setView('counter');
   /* LAND ON IT (owner, 18 Oct 2026): Home's Needs you card, in view and lit,
      pressing nothing — through the one lander */
