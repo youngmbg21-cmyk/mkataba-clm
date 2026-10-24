@@ -1,9 +1,9 @@
-# WORK ORDER — One window for Jambo where there is nothing else to show, and the SAP-way top bar
+# WORK ORDER — One window for Jambo where there is nothing else to show, the SAP-way top bar, and Jambo's cards the Legora way
 
 **Status: AGREED, NOT BUILT (owner, 24 Oct 2026: "SAP way. add it to the job order but do not implement yet, just summarize what is to be built").**
 Nothing here is built until the owner says so in the chat. Pushing and opening a pull request each need the owner's yes (CLAUDE.md, Scope rules).
 
-Two parts. Each is the owner's yes to what is written here; anything beyond it goes to the owner first.
+Three parts. Each is the owner's yes to what is written here; anything beyond it goes to the owner first.
 
 ---
 
@@ -84,5 +84,35 @@ To check before building, and ask the owner if either does not fit:
 
 ---
 
-## Before either part merges
+## Part C · Jambo's cards, "The Legora way"
+
+**The owner's words (24 Oct 2026):** "this is poor design quality. the card inside the table should be slightly shaded or almost look 3d and the words found without AI should not be literally at the edge of the card. Propose a solution for this and other cards that appear in the jambos." Picked **"The Legora way"** by name from "Jambo's Cards" (https://claude.ai/artifact/FFfbwHiGcBjZq7C2p71f71). Not picked, do not build: "The SAP way" (header strip and shaded footer), "Lifted" (floating shadow).
+
+### The fault behind it (a fix restoring stated behaviour)
+The footnote under a Settings card ("Found without AI · free", `st_jb_free_line`, `.st-jb-fine`) gets its inner spacing only under `.st-cr` (Settings' own panel). Drawn in the ✦ window (`.jb-turn`) it has none and sits against the card's edge. THE CLOTHES FOLLOW THE BUILDER: the card is dressed the same wherever its builder draws it.
+
+### What is built, as drawn
+Both card families in every Jambo (Home's panel, the list panel, Settings, the Calendar, the ✦ window, the side panel):
+- **Settings' cards** (`stJbCardHtml`: `.st-jb-card`, `.st-jb-ch`, `.st-jb-cb`, `.st-jb-ca`, `.st-jb-fine`; also `stJbWhyCardHtml`, `stAskCardHtml`).
+- **Jambo's own cards** (`.ca-card` with `.ca-ct`, `.ca-acts`, `.ca-foot`, `.ca-why`: the go / share / help / next / job / send cards in js/copilotacts.js, `jmCardHtml` in js/jambomap.js, and any other builder that draws `.ca-card`).
+
+The look, one for both:
+- A soft grey filled card (the Legora grey, about #F2F2F5), no edge line, no header strip, rounded like Jambo's speech bubbles (18px, `--radius-lg`), a faint inner highlight at the top so it reads as slightly raised.
+- Inner spacing about 16px at the sides; the title in the strong weight on the first line; the words under it; the buttons under them.
+- Plain (not the main) buttons on a card turn white so they stand out on the grey; the main button stays the filled ink.
+- "Found without AI · free" and any other footnote inside the card, 12px, grey, with the card's own 16px side spacing and about 14px under it — never at the edge.
+- The "Read from … and your book" line under a turn keeps its own space below the card and never overlaps it.
+
+### How (THE LOOK RULES)
+- In the "THE LEGORA LOOK" block that closes HaTi's sheet, through tokens (`--surface-2` or one new card-fill token defined once on `:root`, `--radius-lg`); scoped so it reaches every host (`:is(.st-cr, .jb-turn, #ig-dock, #ins-panel, #ai-panel)` or the card's own class), never `!important`.
+- Remove the `.st-cr`-only padding of `.st-jb-fine` by giving the card's own rule the spacing for every host.
+- The paper and its marks stay square; redline cards are not these cards and are untouched.
+
+### Tests to add
+- A browser check, red at the parent: in the ✦ window and in Settings' panel, a Settings card and a Jambo act card each have a filled background (not white), no border, radius 18px; the footnote's left edge sits at least 12px inside the card's left edge and inside its bottom; the "Read from" line starts below the card's bottom.
+- Photographs at the owner's three screens; the tidy sweep stays green.
+
+---
+
+## Before any part merges
 The owner gets a side-by-side, drawn against built, every part ticked or named, with photographs at the three screens; the merge waits for their yes (THE PICKED DESIGN IS THE AGREEMENT).
