@@ -67,9 +67,13 @@ const check = (name, pass, detail) => {
     check('0 the Document tab with nothing open shows the wall', up);
     if (!up) throw new Error('the wall never drew');
     /* the seed holds four contracts; twenty more (in this page only, never saved)
-       prove the wall is not capped at the old list's twelve and fills a line of six */
+       prove the wall is not capped at the old list's twelve and fills a line of six.
+       RE-POINTED 24 Oct 2026 (flaky on CI, "reading 'name'" of undefined): on a slow
+       runner the list was being re-loaded at this moment and read empty; wait for
+       the four seeded contracts first, and copy only whole ones */
+    await page.waitForFunction(() => Array.isArray(state.contracts) && state.contracts.filter(c => c && c.name).length >= 4, null, { timeout: 15000 });
     await page.evaluate(() => {
-      const base = state.contracts.slice();
+      const base = state.contracts.filter(c => c && c.name);
       for (let i = 0; i < 20; i++){
         const src = base[i % base.length];
         state.contracts.push({ ...src, id: 'MK-W' + (i + 1), contractNo: 'MK-W' + (i + 1), name: src.name + ' ' + (i + 1),
