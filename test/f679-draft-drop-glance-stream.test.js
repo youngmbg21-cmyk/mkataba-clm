@@ -413,7 +413,8 @@ describe('f679 (5) a contract at a glance', () => {
     const at = IG.indexOf('<div id="igd-feed" class="flex-1');
     const feed = IG.slice(at, IG.indexOf('SAVED VIEWS LEFT THE PANEL', at));
     assert.match(feed, /pdJamboTopHtml\(\)/);
-    assert.match(feed, /return top\|\|`<div class="ig-welcome/, 'the notebook greeting only where nothing stands at the top');
+    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): on a one-window panel his greeting leads the page's words too */
+    assert.match(feed, /\+\(top\|\|`<div class="ig-welcome/, 'the notebook greeting where nothing stands at the top');
     assert.doesNotMatch(feed, /\$\{msgs\}/, 'the landing carries no conversation');
     /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of
        the panel"): the Jambo tab opens before a word, so an empty flip says

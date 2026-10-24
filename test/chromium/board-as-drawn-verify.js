@@ -158,7 +158,7 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
     /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the Board's panel holds only his words, so it draws no tabs and no
        word beside them (one-window-bar-cards-verify A1) */
-    check('5a one window: no word and no tab in his head', !!jb && jb.word === '' && jb.tabs === 0, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
+    check('5a one window: no word beside his one tab "Jambo"', !!jb && jb.word === '' && jb.tabs === 1, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
     check('5b his greeting says the book, counted at the head\'s own time, and the one press that spends',
       !!jb && jb.hello.startsWith('Here is your book, counted at ') && jb.at.includes(jb.hello.slice(30, 35)) && /Summarise my board is the one press here that uses a Jambo call, and it says so first\.$/.test(jb.hello), jb && (jb.hello + ' | ' + jb.at));
     check('5c three questions as chips under it — "which N end in 90 days?" only while any do',
@@ -166,7 +166,7 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     check('5d then where the owed work went: Home\'s own number, and "what needs me"',
       !!jb && new RegExp(`^What needs you is on Home: ${jb.n} things?(, Jambo’s work first)?\\.$`).test(jb.where) && JSON.stringify(jb.chip2) === JSON.stringify(['what needs me']), jb && (jb.where + ' / ' + jb.n));
     /* RE-PINNED (one window): no tab, so no badge on one — the Counter's number is said in his second bubble (5d) */
-    check('5e no row of chips above his box; no tab to carry a badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 0, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
+    check('5e no row of chips above his box; his one tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 1, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
     console.log('\n6 · "my saved views"');
