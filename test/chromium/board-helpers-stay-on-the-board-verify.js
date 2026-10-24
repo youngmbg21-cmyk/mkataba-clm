@@ -141,8 +141,12 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       return { ok: r.top < innerHeight && r.bottom > 0 && !!hit && el.contains(hit), top: Math.round(r.top), face: hbS().face, card: bsCardId() };
     });
     check('2f a gallery pick adds one chart and that chart is in view', (await page.evaluate(() => (hbS().panels || []).length)) === before + 1 && landed.ok, JSON.stringify(landed));
-    const lit = await page.evaluate(() => { const el = document.querySelector('.is-landed'); if (!el) return 'none'; const cs = getComputedStyle(el); return cs.outlineStyle + '/' + cs.boxShadow; });
-    check('2g it lands with no light drawn', lit === 'none' || /^none\/none$/.test(lit), lit);
+    /* no light: the landed card looks exactly as it does when not landed (the card's own lift is the look's, not a light) */
+    const lit = await page.evaluate(() => { const el = document.querySelector('.is-landed'); if (!el) return { same: true, why: 'nothing landed' };
+      const read = () => { const cs = getComputedStyle(el); return [cs.outlineStyle, cs.outlineWidth, cs.boxShadow, cs.backgroundColor, cs.borderColor].join(' | '); };
+      const on = read(); el.classList.remove('is-landed'); const off = read(); el.classList.add('is-landed');
+      return { same: on === off, on, off }; });
+    check('2g it lands with no light drawn', lit.same, JSON.stringify(lit));
 
     /* ---- 3  THE OWNER'S THREE SCREENS ---- */
     for (const [w, hh] of SCREENS){
