@@ -248,6 +248,10 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     check(accepted && reopen, '5g Accept says it has not gone yet and names Reopen, which is on the row');
     await press(P, '#ig-dock [data-rl-ask-colleague="K1"]');
     const col = await until(P, () => { const b = document.querySelector('[data-share-purpose][aria-pressed="true"]'); return !!(b && b.getAttribute('data-share-purpose') === 'colleague'); }, null, 8000);
+    /* THE WORDS ARE WAITED FOR, NOT READ ON THE BEAT THE PURPOSE LANDS (24 Oct 2026): the screen sets the purpose
+       first and writes the summary a tick later, so a slow machine read it empty. until() answers true/false, so it
+       waits and drive() reads. */
+    await until(P, () => { const e = document.getElementById('sh-summary'); return !!(e && e.value); }, null, 12000);
     const note = await drive(P, () => (document.getElementById('sh-summary') || {}).value, null, '');
     check(col && /^Kilifi Haulage & Logistics Ltd asked to change 2\. Payment\. They want 60 days instead of the 30 in your paper\./.test(note || ''), '5h Ask a colleague opens the send screen set to a colleague, the change named', note);
     await shot(P, '1440x780-5-ask-colleague');

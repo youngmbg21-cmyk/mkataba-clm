@@ -229,6 +229,9 @@ async function mkUser(h, admin, name, email){
        what is typed in it kept — and "Before you send" waits as a tab that
        brings the face back; the other three ways still put both away */
     await openLetter();
+    /* THE NOTE IS TYPED ONCE THE LETTER IS BACK (24 Oct 2026): openLetter's own wait can run out on a slow runner,
+       and the fill then sat on Playwright's 30s locator timeout and failed the stage. Wait for the box, bounded. */
+    await waitFor(page, () => !!document.getElementById('sh-summary'), 15000);
     await page.fill('#sh-summary', 'Kept while Jambo talks.');
     await press('#ig-dock [data-pd-back="send"]');
     const away = await waitFor(page, () => !!document.querySelector('#modal-root .modal-in[data-sh-page] #sh-letter') && !document.getElementById('pd-sendface')
