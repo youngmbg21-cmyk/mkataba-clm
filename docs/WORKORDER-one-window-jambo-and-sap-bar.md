@@ -1,6 +1,6 @@
 # WORK ORDER — One window for Jambo where there is nothing else to show, the SAP-way top bar, and Jambo's cards the Legora way
 
-**Status: AGREED, NOT BUILT (owner, 24 Oct 2026: "SAP way. add it to the job order but do not implement yet, just summarize what is to be built").**
+**Status: BUILT 24 Oct 2026 (owner: "go ahead and build"). Story: MAP-HISTORY "THE SHELL — RAIL, BAR, PANELS: ONE WINDOW, THE BAR IN COLOUR, JAMBO'S CARDS". Merge waits for the owner's yes on the side-by-side.**
 Nothing here is built until the owner says so in the chat. Pushing and opening a pull request each need the owner's yes (CLAUDE.md, Scope rules).
 
 Three parts. Each is the owner's yes to what is written here; anything beyond it goes to the owner first.

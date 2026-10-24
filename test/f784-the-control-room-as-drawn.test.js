@@ -70,9 +70,12 @@ describe('f784 (3) Jambo says the page', () => {
        them — the clash rows say themselves that they warn */
     assert.equal(g.sb.stJbCompanyWords(), 'Five things need you here: a clash in who may sign what, three clashes in who may do what and the quarterly access review. Each row’s button opens what settles it.');
   });
-  test('3c the panel\'s head says what it holds', () => {
+  /* RE-PINNED (owner, 24 Oct 2026, one window where there is nothing else to show): the panel holds only his
+     words, so its head draws no Overview / Jambo tabs and no word beside them */
+  test('3c the panel\'s head draws no tabs and no word: it is one window', () => {
     const g = company();
-    assert.equal(g.text(g.$('st-side-word')), S.en.st_side_company);
+    assert.equal(g.$('st-side-word'), null);
+    assert.equal(g.qa('#st-side-head .st-side-tab').length, 0);
   });
 });
 
@@ -251,7 +254,7 @@ describe('f784 (8) the third pass: the frame, every card door a page, the facts,
     assert.ok(dr && dr.classList.contains('is-docked') && dr.classList.contains('open') && !dr.hidden, 'the one drawer, docked in the page');
     assert.ok(g.q('#st-dock #st-lim-u_y'), 'its own body — everyone\'s limits');
     assert.equal(g.text(g.q('#set-page .st-pg-back')), '‹ ' + S.en.pg_team, '‹ Settings is the way back');
-    assert.equal(g.text(g.$('st-side-word')), g.text(g.q('#st-dock .rvd-title')), 'Jambo\'s head names the page');
+    assert.equal(g.$('st-side-word'), null, 'one window: Jambo\'s head names nothing (owner, 24 Oct 2026)');
     g.click(g.q('#set-page .st-pg-back')); await g.flush();
     assert.equal(g.q('#set-page[data-st-sub]'), null, 'back on the board');
     assert.ok(g.$('st-drawer').hidden && g.$('st-drawer').parentElement === g.win.document.body, 'the drawer put away');

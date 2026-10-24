@@ -801,13 +801,17 @@ function insPaintPanel(o){
      the room's own panels (Obligations tab, Our standards' three) are not */
   const jl = host.id === 'ins-panel' && !opt.plain;
   opt._jl = jl;
+  /* ONE WINDOW (owner, 24 Oct 2026): nothing chosen, the panel is only his words — the conversation is the panel */
+  if (jl) host._jlSolo = !(c || item);
   const body = jl ? jlFrame(host, opt) : host;
   if (jl) jlHeadPaint(host, opt, !!(c || item));
+  if (jl && !c && !item){ body.innerHTML = ''; jlGreetPut(host, jlWordsHtml(opt)); }
+  else { if (jl) jlGreetPut(host, '');
   body.innerHTML = c ? insPanelHtml(c, opt)
     /* `head:false` — an item said in Jambo's own words, no head of facts
        (Our paper's chosen template, round 21) */
     : item ? ((opt.head === false ? '' : insItemHeadHtml(opt.head || {})) + (opt.body || ''))
-    : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty);
+    : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty); }
   /* his conversation, where it was asked here, is said under his words */
   if (jl && !c && !item && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
     try { renderAIFeed(!!ai.busy); if (ai.unread){ ai.unread = false; if (typeof updateAIBadge === 'function') updateAIBadge(); } } catch (_){}
@@ -1359,9 +1363,11 @@ function jlTalkLand(){
   if (typeof jamboTalkLand === 'function' && jamboTalkLand(jlTalkKey())){ const n = _jlAiLen(); _jlTalk = { from: 0, seen: n }; return true; }
   return false;
 }
+/* his words on a one-window panel stand at the top of the conversation (data-jl-greet), not in the landing */
+function jlGreetPut(host, html){ const g = host && host.querySelector('[data-jl-greet]'); if (g) g.innerHTML = html || ''; }
 function jlTalkShows(){ return typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()); }
 function jlTalkHtml(){
-  return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><p class="igd-popped" data-jl-popped hidden></p><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;
+  return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><div class="jl-greet" data-jl-greet></div><p class="igd-popped" data-jl-popped hidden></p><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;
 }
 /* WHILE JAMBO'S WINDOW HOLDS THE CONVERSATION (popped out, or the ✦'s
    window open) the feed here is empty by design (renderAIFeed: one copy on
@@ -1380,26 +1386,32 @@ function jlPoppedPaint(host, on){
 function jlTalkPaint(host){
   host = host || jlHost(); if (!host) return;
   jlTalkLand();
-  const on = jlTalkShows();
+  /* ONE WINDOW (jlSolo): his words are the conversation's first message, nothing to flip between */
+  const solo = !!host._jlSolo;
+  if (solo && typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()) && typeof jamboTalkClose === 'function') jamboTalkClose();
+  const on = !solo && jlTalkShows();
   const body = host.querySelector(':scope > .jl-body'), talk = host.querySelector(':scope > .jl-talk');
-  if (body) body.hidden = on;
+  if (body) body.hidden = on || solo;
   if (talk){
-    talk.hidden = !on;
+    talk.hidden = !(on || solo);
     const tr = talk.querySelector('[data-jl-trail]');
     if (tr) tr.innerHTML = on && typeof jamboTalkTrailHtml === 'function' ? jamboTalkTrailHtml('list', i18t('pd_tab_overview')) : '';
-    jlPoppedPaint(talk, on);
+    jlPoppedPaint(talk, on || solo);
   }
   host.classList.toggle('is-talk', on);
+  host.classList.toggle('is-solo', solo);
   /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
-     2026): the Jambo tab stands once words were said on this page */
-  const tab = host.querySelector('[data-jl-talk]'), home = host.querySelector('[data-jl-home]');
-  if (tab){ tab.hidden = false; tab.classList.toggle('on', on); }
-  if (home) home.classList.toggle('on', !on);
+     2026): the Jambo tab stands once words were said on this page — not on one window */
+  const tab = host.querySelector('[data-jl-talk]'), home = host.querySelector('[data-jl-home]'), word = host.querySelector('[data-jl-word]');
+  if (tab){ tab.hidden = solo; tab.classList.toggle('on', on); }
+  if (home){ home.hidden = solo; home.classList.toggle('on', !on); }
+  if (word) word.hidden = solo;
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
 }
 /* words asked here: the panel turns to the conversation, the landing kept */
 function jlTalkOpen(){
   const host = jlHost(); if (!host) return false;
+  if (host._jlSolo){ _jlTalk.seen = _jlAiLen(); jlTalkPaint(host); return true; }
   jlTalkLand();
   if (typeof jamboTalkOpen === 'function') jamboTalkOpen(jlTalkKey(), host.querySelector(':scope > .jl-body'));
   _jlTalk.seen = _jlAiLen();
@@ -1426,7 +1438,7 @@ function jlTalkBack(){
   jlTalkPaint();
   if (typeof jamboScrollPut === 'function') jamboScrollPut(keep);
 }
-if (typeof jamboTalkHost === 'function') jamboTalkHost('list', jlTalkBack, k => k === jlTalkKey() && !!jlHost());
+if (typeof jamboTalkHost === 'function') jamboTalkHost('list', jlTalkBack, k => k === jlTalkKey() && !!jlHost() && !jlHost()._jlSolo);
 /* ---- NEEDS YOU, AS ITS OWN SECTION (round 14: "Answer 2 redlines · Clause 7
    Liability cap · clause 11 Payment terms · Answer") ----
    The page's own rows first (`opt.jlNeedRows(c)`: {k, title, sub, plain,
@@ -1748,4 +1760,4 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
   JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
-  JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });
+  JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlGreetPut, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

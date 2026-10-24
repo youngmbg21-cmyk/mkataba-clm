@@ -68,6 +68,24 @@ const _pdTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v) : k;
 /* THE LANDING TAB'S NAME: beside a paper it is the contract's Dossier
    (owner picked "The Dossier", 20 Oct 2026); elsewhere on Home, Overview */
 function pdLandName(){ return _pdT(pdOnPaper() ? 'pd_tab_dossier' : 'pd_tab_overview'); }
+/* ONE WINDOW WHERE THERE IS NOTHING ELSE TO SHOW (owner, 24 Oct 2026: "logically it makes no sense to have a
+   window that is empty which you ask a question it takes you to another window that is jambo. If the window has
+   information like the dossier page then that is excusable"; reverses the 19 Oct "A Jambo tab" for these panels):
+   Home's panel holds only his words — the Board, Explorer, the Contracts place with nothing chosen and no question
+   being asked of a column — so it is ONE window, the conversation: his greeting its first message, no Overview /
+   Jambo tabs, no word beside them, no trail. A contract, a face, the letter, the one sheet or a chosen paper is
+   information, and keeps the two tabs. */
+function pdSolo(){
+  try {
+    if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return false;
+    if (typeof hbFace === 'function' && hbFace() === 'calendar') return false;
+    if (pdOnPaper() || pdFaceUp() || pdSendHeld() || pdHeldContract()) return false;
+    if (typeof naSheetUp === 'function' && naSheetUp()) return false;
+    if (typeof document !== 'undefined' && document.getElementById('na-root')) return false;
+    if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true && typeof askColPanelHtml === 'function' && askColPanelHtml()) return false;
+    return true;
+  } catch (_){ return false; }
+}
 function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t; if (PD_TABS.includes(t)) _pdTab = t; }
 function pdTab(){ return _pdTab; }
 /* the contract's tabs are drawn only while Home's Paper holds a contract */
@@ -1663,6 +1681,8 @@ function pdTalkSync(dock){
   if (_pdTalk.stale && !(typeof intel === 'object' && intel && intel.busy)) _pdTalk.stale = false;
   _pdTalk.last = len;
   if (k.indexOf('dock:') !== 0) return false;
+  /* ONE WINDOW (pdSolo): the conversation is already the panel, nothing to turn to */
+  if (pdSolo()){ _pdTalk.seen = len; _pdTalk.quiet = false; if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
   /* NOTHING SAID HERE, NO CONVERSATION VIEW (19 Oct 2026): a conversation
      cleared under an open view puts the landing back — an empty talk is never
      what the panel shows (home-held-contract-verify 3g) */
@@ -1704,7 +1724,7 @@ function pdTalkBack(){
   if (typeof jamboScrollPut === 'function') jamboScrollPut(keep);
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
 }
-if (typeof jamboTalkHost === 'function') jamboTalkHost('dock', pdTalkBack, k => pdTalkKey() === k);
+if (typeof jamboTalkHost === 'function') jamboTalkHost('dock', pdTalkBack, k => pdTalkKey() === k && !pdSolo());
 /* ---- BEFORE YOU SEND, A FACE OF JAMBO'S PANEL (round 11's gaps, 18 Oct
    2026: "The letter" as drawn — the letter on the desk, Jambo's panel beside
    it saying what stays here and why, what they never see, something else to
@@ -3067,6 +3087,16 @@ function pdHeadHtml(brain){
   /* THE TABS STAY WHILE A FACE IS UP (ONE TRAIL, owner 19 Oct 2026): the
      face lives under Jambo's tab; Clauses and back to Jambo brings it back */
   const tabs = pdOnPaper() ? PD_TABS_SHOWN : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
+  /* ONE WINDOW (pdSolo): his conversation is the panel; beside the map's own tabs (Findings, the Guide) it is the
+     one tab "Jambo", alone it needs no tab at all */
+  if (pdSolo()){
+    if (!fd && !gd) return '';
+    const onT = (fd && typeof igFindingsShows === 'function' && igFindingsShows()) ? 'findings' : (gd && typeof igGuideShows === 'function' && igGuideShows()) ? 'guide' : 'copilot';
+    const jb = _pdT('pd_tab_copilot');
+    return `<button type="button" role="tab" class="pd-tab pd-tab-talk${onT === 'copilot' ? ' on' : ''}" data-pd-tab="copilot" aria-selected="${onT === 'copilot'}" title="${_pdE(jb)}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : _pdE(jb)}</button>`
+      + tabs.filter(t => t !== 'copilot').map(t => { const name = _pdT(PD_TAB_NAME[t]), on = t === onT;
+        return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" title="${_pdE(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span></span><span class="pd-tab-w">${_pdE(name)}</span></button>`; }).join('');
+  }
   const lit = pdTalkShows() ? '' : face === 'red' ? 'red' : face ? 'copilot' : (pdOnPaper() && _pdTab === 'oblig') ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings'
     : gd && typeof igGuideShows === 'function' && igGuideShows() ? 'guide' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
@@ -6239,7 +6269,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdActsToggle, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

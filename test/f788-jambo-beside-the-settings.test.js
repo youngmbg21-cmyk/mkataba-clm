@@ -21,29 +21,24 @@ const { settingsStage, S } = require('./settingsworld.js');
 const input = (g, el, v) => { el.value = v; el.dispatchEvent(new g.win.Event('input', { bubbles: true })); };
 
 describe('f788 (1) the panel\'s head', () => {
-  test('1a Jambo, and the word for what the panel holds, on every face', () => {
+  /* RE-PINNED (owner, 24 Oct 2026: "settings has no information either"): ONE WINDOW — the panel holds only his
+     words on every face but a stream chosen on Streams, so its head draws no Overview / Jambo tabs and no word */
+  test('1a one window: no tabs and no word on every face of his words; a stream chosen brings both back', () => {
     const g = settingsStage({ role: 'legal' });
-    assert.ok(g.q('#st-side-head #st-side-tab-jambo'), 'Jambo\'s tab in the head');
-    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner): the panel
-       is the page's, its tab the landing, "Overview"; "Jambo" is the conversation */
-    /* RE-POINTED 19 Oct 2026: Overview wears a plain mark (▦), his face is the Jambo tab's — the word is read */
-    assert.equal(g.text(g.q('#st-side-tab-jambo > span:last-child')), S.en.pd_tab_overview);
-    assert.equal(g.text(g.$('st-side-word')), S.en.st_side_you);
+    assert.equal(g.qa('#st-side-head .st-side-tab').length, 0, 'no tabs');
+    assert.equal(g.$('st-side-word'), null, 'no word');
     const a = settingsStage();
-    assert.equal(g.text(a.$('st-side-word')), S.en.st_side_you, 'an admin on You');
+    assert.equal(a.$('st-side-word'), null, 'an admin on You');
     a.sb.settingsGoTab('company');
-    assert.equal(a.text(a.$('st-side-word')), S.en.st_side_company);
+    assert.equal(a.$('st-side-word'), null, 'Company');
     a.sb.settingsGoPage('streams');
-    assert.equal(a.text(a.$('st-side-word')), S.en.st_sw_title);
-    a.sb.stDrawerOpen('trail');
-    assert.equal(a.text(a.$('st-side-word')), S.en.st_p_backup);
+    assert.equal(a.$('st-side-word'), null, 'Streams, none chosen');
+    a.click(a.q('#set-page .st-sw-row[data-st-sw-pick]'));
+    assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]') && a.$('st-side-word'), 'a stream chosen: its facts, so the two tabs and the word');
   });
   test('1b the fold: to the right edge, his face brings him back; a refresh keeps it', () => {
     const g = settingsStage();
-    /* RE-POINTED 19 Oct 2026 (the Jambo tab, owner): it waits hidden until a word is said here */
-    assert.equal(g.qa('#st-side-head .st-side-tab:not([hidden])').length, 2, 'two tabs: Overview and Jambo, no Menu tab');
-    /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel"): the Jambo tab always stands */
-    assert.ok(g.q('#st-side-head [data-st-talk]:not([hidden])'), 'the Jambo tab always stands beside Overview');
+    assert.equal(g.qa('#st-side-head .st-side-tab').length, 0, 'one window: no tabs');
     g.click(g.q('#st-side-head [data-st-side-fold]'));
     assert.ok(g.$('set-page').classList.contains('is-side-folded') && g.$('st-side').classList.contains('is-folded'));
     assert.equal(g.sb.settingsPlace().fold, true, 'kept for a refresh');
