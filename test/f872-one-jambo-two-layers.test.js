@@ -144,7 +144,8 @@ describe('f872 (5) "what am I looking at", said another way', () => {
 });
 
 describe('f872 (6) act first, then explain', () => {
-  const rule = (ai, wh) => fnOf(IG, 'igAskThenExplain', { caAiFirst: () => ai, CA_WH_Q: wh });
+  /* ONE RULE (owner, 24 Oct 2026): a command is never explained, a brain-verb sentence never drawn; a question the Board drew is always explained */
+  const rule = (ai, wh) => fnOf(IG, 'igAskThenExplain', { caAiFirst: () => ai, CA_WH_Q: wh, hbCommandAsk: q => !wh.test(q) && !/\?\s*$/.test(q) && !/^tell/i.test(q), hbBrainVerb: q => /^tell/i.test(q), hbChartWords: () => false, hbDrawsSomething: A => !!(A && A.road === 'free' && A.kind !== 'pack') });
   const WH = /^\s*(which|what|whats|who|whos|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
   test('a question the Board only DREW (a q: card, a follow-up) gets Jambo\'s words', () => {
     const r = rule(true, WH);
@@ -152,12 +153,14 @@ describe('f872 (6) act first, then explain', () => {
     assert.equal(r('where is my biggest concern as far as payment terms?', { road: 'free', kind: 'dig', r: { key: 'q:…' } }), true);
     assert.equal(r('and by counterparty?', { road: 'free', kind: 'follow' }), true);
   });
-  test('a command, a figure\'s own answer, a count, a verified view, no engine: the Board\'s line is the answer', () => {
+  test('a command, a figure\'s own answer, a verified view, no engine: the Board\'s line is the answer; a count the Board drew is explained too', () => {
     const r = rule(true, WH);
     assert.equal(r('chart value by stream', { road: 'free', kind: 'dig', r: { key: 'q:chart value by stream' } }), false);
-    assert.equal(r('how many live contracts do we have', { road: 'free', kind: 'dig', r: { key: 'f:live' } }), false);
-    assert.equal(r('how many contracts have value between 2 million and 40 million?', { road: 'free', kind: 'dig', r: { key: 'q:…' } }), false);
-    assert.equal(r('what is our exposure', { road: 'free', kind: 'verified' }), false);
+    assert.equal(r('how many live contracts do we have', { road: 'free', kind: 'dig', r: { key: 'f:live' } }), true, 'a figure\'s list opened is explained too');
+    assert.equal(r('what is our exposure', { road: 'free', kind: 'pack' }), false, 'a flat answer pack is never the answer to a question');
+    assert.equal(r('how many contracts have value between 2 million and 40 million?', { road: 'free', kind: 'dig', r: { key: 'q:…' } }), true);
+    assert.equal(r('tell me where we have the highest risk', { road: 'free', kind: 'dig', r: { key: 'q:…' } }), false);
+    assert.equal(r('what is our exposure', { road: 'free', kind: 'verified' }), true, 'a verified view is drawn, then explained');
     assert.equal(rule(false, WH)('what ends this quarter', { road: 'free', kind: 'dig', r: { key: 'q:x' } }), false);
   });
   test('the explain call puts the question last again, never stored twice', () => {
@@ -172,13 +175,14 @@ describe('f872 (6) act first, then explain', () => {
 describe('f872 (7) one reader: the window on Home, the Board off Home', () => {
   test('on Home the window hands its words to Home\'s own box, and the one conversation shows the turn', () => {
     const i = AI.indexOf('async function aiSubmit('); const body = AI.slice(i, AI.indexOf('\nasync function aiAskWords(', i));
-    assert.ok(body.includes("state.view==='dashboard' && typeof window.intelAsk==='function' && document.getElementById('igd-input')"));
+    assert.ok(body.includes("if(!cardOwns && homeCmd && typeof window.intelAsk==='function' && document.getElementById('igd-input'))"), 'a command (or a question the Board can draw) is handed to Home\'s box');
+    assert.ok(body.includes("hbCommandAsk(q))||(typeof window.hbDrawAsk==='function'&&hbDrawAsk(q))||(typeof window.caReadThese==='function'&&!!caReadThese(q))"));
     assert.ok(body.includes('await intelAsk(q, { fromWindow:true })'));
   });
   test('off Home a Board command turns to the Board and draws; a question is never moved', () => {
     const i = AI.indexOf('async function aiSubmit('); const body = AI.slice(i, AI.indexOf('\nasync function aiAskWords(', i));
     assert.ok(body.includes("A=hbAskReadingOf(q,'board')"));
-    assert.ok(body.includes("if(!asksQ&&A&&A.road==='free'&&['dig','panel','split','card','verified','pack','follow'].includes(A.kind))"));
+    assert.ok(body.includes("const isCmd=(typeof window.hbCommandAsk==='function')&&hbCommandAsk(q);") && body.includes("if(isCmd&&A&&A.road==='free'){"), 'a command only; a question is never moved');
     assert.ok(body.includes("caHomeFace('board');"));
   });
   test('a set the window\'s answer names is a door to the Board (the one door, hbShowFound)', () => {
@@ -204,5 +208,33 @@ describe('f872 (8) a Board question is the chat\'s, told the Board; "why does th
     const I = R('js/i18n.js');
     for (const k of ['ai_here_map', 'ai_here_map_by', 'ai_here_map_says', 'ai_here_board_card', 'ai_here_board_none', 'ca_and_these', 'ca_these_what'])
       assert.equal((I.match(new RegExp(`^\\s+${k}: `, 'gm')) || []).length, 2, k);
+  });
+});
+
+describe('f872 (9) one rule in every box (owner, 24 Oct 2026, "give all the jambos the ability")', () => {
+  const reOf = (src, name) => { const m = src.match(new RegExp('const ' + name + ' = (/[\\s\\S]*?/[a-z]*);')); assert.ok(m, name + ' is defined'); return vm.runInNewContext(m[1]); };
+  test('"tell me…", "create a table…" are the brain\'s: a brain verb, never a draft', () => {
+    const VERB = reOf(HB, 'HB_BRAIN_VERB_RE'), AN = reOf(CA, 'CA_DRAFT_ANALYSIS');
+    for (const q of ['tell me where we have the highest risk', 'create a table for juno llc payment terms', 'explain the payment terms', 'berätta var risken är störst']) assert.ok(VERB.test(q), q);
+    for (const q of ['show value by stream on the board', 'chart value by stream', 'open contracts', 'what ends this quarter?']) assert.ok(!VERB.test(q), q);
+    const CHART = reOf(HB, 'HB_CHART_WORD_RE');
+    for (const q of ['build me a renewals dashboard', 'make a chart of renewals', 'bubble chart of value for the grumpy suppliers', 'build me a story of our negotiation friction over the last year']) assert.ok(CHART.test(q), q + ' is an ask to draw');
+    for (const q of ['create a table for juno llc payment terms', 'tell me where we have the highest risk']) assert.ok(!CHART.test(q), q + ' is the brain\'s');
+    for (const q of ['create a table for juno llc payment terms', 'make me a chart of renewals', 'build a quick list of the late ones', 'skapa en tabell över betalningsvillkor']) assert.ok(AN.test(q), q);
+    for (const q of ['draft an NDA with Volvo', 'create a distributor agreement with Juno']) assert.ok(!AN.test(q), q);
+  });
+  test('the readers are published and asked where the words arrive', () => {
+    assert.ok(/Object\.assign\(window, \{[^}]*hbCommandAsk, hbDrawAsk/.test(HB) && HB.includes('hbChartWords'));
+    assert.ok(CA.includes('Object.assign(window, { CA_DRAFT_ANALYSIS,') && CA.includes('if (CA_DRAFT_ANALYSIS.test(t)) return false;'));
+    const i = IG.indexOf('async function intelAsk('); const body = IG.slice(i, IG.indexOf('\n}\n', i));
+    assert.ok(body.includes("const boardCmd=(typeof window.hbCommandAsk==='function')?hbCommandAsk(q):false;"));
+    assert.ok(body.includes("const boardDraw=!boardCmd&&(typeof window.hbDrawAsk==='function')&&hbDrawAsk(q);"));
+    assert.ok(body.includes("(boardCmd||boardDraw) && typeof window.hbAsk==='function'"), 'the Board acts on a command or a drawable question only');
+    assert.ok(body.includes("const boardQ=igBoardNow()&&!boardCmd&&!boardDraw&&"), 'everything else on the Board is the chat\'s');
+  });
+  test('the window\'s first open stands beside Home\'s panel, and its answers carry their contracts', () => {
+    assert.ok(AI.includes("const d = document.getElementById('ig-dock');") && AI.includes('function aiFloatBeside()'));
+    assert.ok(AI.includes('return choices.length?{ text, cards:extra, cardIds, choices }:{ text, cards:extra, cardIds };'));
+    assert.ok(IG.includes("if(typeof window.aiFloatBeside==='function'){ try{ aiFloatBeside(); }catch(_){}"));
   });
 });

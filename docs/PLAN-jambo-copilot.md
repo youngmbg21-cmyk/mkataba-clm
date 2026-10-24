@@ -53,6 +53,7 @@ Questions and the Nine Flow Rules still apply.
 | 2 | EVERY DOOR AS A TOOL | built |
 | 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END (3, then 3b–3d: the live exam's misses read by what they mean) | built |
 | 3e | ONE JAMBO, TWO LAYERS (owner, 24 Oct 2026): every box the free readers first, then the brain; the screen told to the brain; act first, then explain; "show them on the board" | built |
+| 3f | ONE RULE IN EVERY BOX (owner, 24 Oct 2026, the same evening: "give all the jambos the ability"): a command acts; a drawable question is drawn then always explained; everything else is the brain's in the box it was typed in; "create a table…" is never new paper; the window beside Home's panel | built |
 | 4 | MEASURE AGAIN: before/after, calls per ask, the three screens | — |
 
 ## 4. The scores

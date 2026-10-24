@@ -9427,6 +9427,54 @@ function hbBringOf(qRaw){
   const c = hbOpenOne(raw);
   return c ? { id: c.id } : null;
 }
+/* A COMMAND ACTS, EVERYTHING ELSE IS THE BRAIN'S (owner, 24 Oct 2026: "give all the jambos the ability"): the free
+   readers act at once only on a COMMAND — an imperative draw/show/open/move word first, a bare Board word (a face,
+   a lens, "top 10", "undo"), a contract's reference — and say one line. A question, "tell me…", "create a table…",
+   "explain…" is never theirs: the brain answers it, in the box it was typed in, with the screen's numbers in its
+   context (pageSays) and the full treatment (aiFmt). Asked by intelAsk, aiSubmit and caAskAnywhere alike. */
+const HB_CMD_RE = /^\s*(?:please\s+|snälla\s+|can you\s+|could you\s+|kan du\s+)?(?:show|draw|chart|plot|graph|map|group|regroup|split|filter|narrow|only|colou?r|sort|rank|open|go|take me|back|put|undo|redo|clear|reset|hide|remove|add|pin|zoom|dig|bring|pull up|visa|rita|gruppera|dela|filtrera|sortera|öppna|gå|tillbaka|ångra|dölj|ta bort|lägg till|ta fram)(?=[\s.,!:]|$)/i;
+/* a sentence that asks the BRAIN for words — never the Board's reader, whatever it could draw */
+const HB_BRAIN_VERB_RE = /^\s*(?:please\s+|snälla\s+|can you\s+|could you\s+|kan du\s+|jambo[,:]?\s+)?(?:tell|explain|create|make|build|write|give|describe|analy[sz]e|summari[sz]e|compare|advise|help|suggest|recommend|assess|review|check|think|berätta|förklara|skapa|gör|bygg|skriv|ge|beskriv|analysera|sammanfatta|jämför|hjälp|föreslå|rekommendera|bedöm|granska)(?=[\s.,!:]|$)/i;
+function hbBrainVerb(q){ return HB_BRAIN_VERB_RE.test(String(q || '')); }
+/* words that ask for a PICTURE the free reader could not read whole ("bubble chart of value for the grumpy
+   suppliers"): the Board's drawing model (the graph route) reads them, never the chat */
+const HB_CHART_WORD_RE = /\b(chart|graph|plot|bubbles?|pie|bars?|columns?|timeline|blocks|ring|donut|heat ?map|diagram|dashboard|board|cards?|picture|visual\w*|stor(?:y|ies)|berättelse\w*|stapl\w*|cirkel\w*|tidslinje|kurva|tavla\w*|kort)\b/i;
+function hbChartWords(q){ return HB_CHART_WORD_RE.test(String(q || '')); }
+function hbQuestionAsk(q){ const t = String(q || '').trim(); return /\?\s*$/.test(t) || !!(window.CA_WH_Q && CA_WH_Q.test(t)); }
+function hbCommandAsk(qRaw){
+  const t = String(qRaw || '').trim();
+  if (!t || hbQuestionAsk(t)) return false;
+  /* an imperative, or chart words even where the rest is unread ("bubble chart of value for the grumpy suppliers",
+     "build me a renewals dashboard"): the Board's reader keeps the picture it read (_hbPendingRecipe) and its
+     drawing model fills the rest */
+  if (HB_CMD_RE.test(t) || hbChartWords(t)) return true;
+  /* the Board's own extra readers ("my saved views") act too */
+  if (HB_VIEWS_ASK_RE.test(t)) return true;
+  let A = null; try { A = hbAskReadingOf(t); } catch (_) { A = null; }
+  /* "make it monthly", "make this look like a league table" follow the OPEN chart: a command; "create a table for
+     juno llc payment terms" (a brain verb, nothing open it points at, no chart word) is the brain's, whatever the
+     reader thought it could add */
+  /* …and a STORY the Board reads ("build our quarterly contract review") is its own drawing */
+  if (hbBrainVerb(t)) return !!(A && A.road === 'free' && (A.kind === 'follow' || A.kind === 'story')) || (HB_THIS_RE.test(t) && hbOpenCardKey() != null);
+  /* a plain phrase the Board reads whole ("top 10", "By counterparty", "1M to 5M", "only Naivas") is an ask to draw */
+  return hbDrawsSomething(A);
+}
+/* THE FLAT KINDS: a reading that only SAYS a line (an answer pack) draws nothing — never the answer to a question or a
+   sentence; every other free reading draws or opens something (a card, a list, a story, a verified view, a follow-up) */
+const HB_FLAT_KINDS = ['pack'];
+/* words that point at the open chart */
+const HB_THIS_RE = /\b(this|it|the open chart|this chart|this card|den här|det här|detta|den)\b/i;
+function hbDrawsSomething(A){ return !!(A && A.road === 'free' && !HB_FLAT_KINDS.includes(A.kind)); }
+/* A QUESTION THE BOARD CAN DRAW OR OPEN ("what ends this quarter", "which obligations are overdue?", "how many live
+   contracts do we have", a verified view) is drawn first, free, and then ALWAYS explained by the brain under the
+   Board's line (igAskThenExplain). A question the Board would only answer with a flat pack is the brain's alone. */
+function hbDrawAsk(qRaw, onFace){
+  const t = String(qRaw || '').trim();
+  if (!t || hbCommandAsk(t)) return false;
+  if (hbBrainVerb(t) && !hbChartWords(t)) return false;
+  let A = null; try { A = hbAskReadingOf(t, onFace); } catch (_) { A = null; }
+  return hbDrawsSomething(A);
+}
 function hbAskReadingOf(qRaw, onFace){
   const raw = String(qRaw == null ? '' : qRaw);
   if (!raw.trim()) return null;
@@ -11005,4 +11053,4 @@ Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLan
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
   HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_BRING_RE, hbBringOf, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
   HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
-  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage });
+  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage, HB_CMD_RE, HB_BRAIN_VERB_RE, HB_CHART_WORD_RE, hbBrainVerb, hbChartWords, hbQuestionAsk, hbCommandAsk, hbDrawAsk, HB_FLAT_KINDS, hbDrawsSomething });

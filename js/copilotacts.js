@@ -590,8 +590,12 @@ const CA_DRAFT_ASKING = /\?|^\s*(?:what|which|who|whom|whose|how|when|where|why|
 /* "start negotiating the milk contract", "start signing MK-B2": an act on a contract that exists, never new paper */
 /* …and an amendment is made TO a contract that exists (its own Amend door), never new paper (stage 3d) */
 const CA_DRAFT_NOT = /\b(negotiat\w*|redlin\w*|förhandl\w*|signing|signera\w*|reviewing|granska\w*|amend\w*|ändring\w*)\b/i;
+/* "create a table for juno llc payment terms" (owner, 24 Oct 2026) is an ask of the brain, never new paper: the verb
+   followed by a thing that is drawn or written ABOUT contracts */
+const CA_DRAFT_ANALYSIS = /^\s*(?:please\s+|snälla\s+|vänligen\s+)?(?:draft|create|write|prepare|make|build|start|set up|draw up|draw|skriv|skapa|upprätta|förbered|gör|ta fram|bygg|rita)\s+(?:me\s+|us\s+|mig\s+|oss\s+)?(?:an?\s+|the\s+|en\s+|ett\s+)?(?:quick\s+|short\s+|simple\s+|snabb\s+|kort\s+|enkel\s+)?(?:table|chart|graph|plot|list|report|summary|overview|column|comparison|dashboard|breakdown|timeline|tabell|diagram|graf|lista|rapport|sammanfattning|översikt|jämförelse|tidslinje)\b/i;
 function caIsDraftAsk(q){
   const t = String(q || '');
+  if (CA_DRAFT_ANALYSIS.test(t)) return false;
   if (CA_DRAFT_NOT.test(t)) return false;
   if (CA_DRAFT_RE.test(t) && CA_DRAFT_NOUN.test(t)) return true;
   return !CA_DRAFT_ASKING.test(t) && CA_DRAFT_BARE.test(t) && (!!caDraftWith(t) || caDraftTheirs(t));
@@ -3138,4 +3142,4 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
-Object.assign(window, { CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
+Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });

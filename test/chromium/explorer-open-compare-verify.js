@@ -91,8 +91,7 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
     { const end = Date.now() + 10000;
       while (Date.now() < end && !ai.calls.some(c => JSON.stringify(c.body.messages || '').includes(`contract ${B} `))) await pause(100); }
     await waitFor(page, () => !(window.intel && intel.busy), 10000);
-    ai.reset();
-    await page.click(`#ig-dock [data-ig-hoverid="${B}"] [data-ig-cmp]`);
+    ai.reset();    await page.click(`#ig-dock [data-ig-hoverid="${B}"] [data-ig-cmp]`);
 
     console.log('\n4 · the table, free');
     const table = await waitFor(page, () => { const t = [...document.querySelectorAll('#ig-dock table')].pop(); if (!t) return null;

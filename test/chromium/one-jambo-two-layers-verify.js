@@ -141,6 +141,37 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     check('G2 and nothing scrolls sideways', G.wide === true, JSON.stringify(G));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `G-panel-table-${w}x${hh}.png`) }); }
 
+    console.log('\nI · the owner\'s two sentences in the window on Home are the brain\'s (one rule in every box, 24 Oct 2026)');
+    await toHomeWindow('board');
+    ai.reset(); ai.script(deliver('| Term | Juno LLC |\n|---|---|\n| Net days | 58 |\n\n{!over standard} 58 days is over our 30-day standard.'));
+    await winAsk('create a table for juno llc payment terms');
+    await waitCalls(1); await settled(); await page.waitForTimeout(400);
+    const I1 = await page.evaluate(() => { const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0];
+      return { view: state.view, form: /not created yet/i.test(document.body.innerText), juno: !!m && /Juno/.test(String(m.text || '')), table: !!document.querySelector('#ai-feed .ai-table, #ai-feed table'), tone: !!document.querySelector('#ai-feed .ai-tone'), last: m ? String(m.text || '').replace(/<[^>]+>/g, ' ').slice(0, 80) : null }; });
+    I1.calls = ai.calls.length;
+    check('I1 "create a table…" opens no New agreement form: the brain answers in the window, one call, as a table with its tone', !!I1 && !I1.form && I1.juno && I1.table && I1.tone && I1.calls === 1, JSON.stringify(I1));
+    await settled();
+    ai.reset(); ai.script(deliver('The highest risk sits with Nordvane: {-bad} an uncapped liability in §9.'));
+    await winAsk('tell me where we have the highest risk');
+    await waitCalls(1); await settled(); await page.waitForTimeout(400);
+    const I2 = await page.evaluate(() => { const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0]; const t = m ? String(m.text || '') : '';
+      return { nord: /Nordvane/.test(t), pack: /answer pack/i.test(t), tone: !!document.querySelector('#ai-feed .ai-tone'), last: t.replace(/<[^>]+>/g, ' ').slice(0, 80) }; });
+    I2.calls = ai.calls.length;
+    check('I2 "tell me where…" is never the Board\'s flat pack: the brain answers in the window, one call, with its tone', !!I2 && I2.nord && !I2.pack && I2.calls === 1 && I2.tone, JSON.stringify(I2));
+    await settled();
+    ai.reset();
+    await winAsk('show value by stream on the board');
+    await settled(); await page.waitForTimeout(600);
+    const I3 = await page.evaluate(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0]; return { key: k || null, free: !!m && /Free/.test(String(m.text || '')), last: m ? String(m.text || '').replace(/<[^>]+>/g, ' ').slice(0, 80) : null }; });
+    I3.calls = ai.calls.length;
+    check('I3 and a command still acts at once, free', !!I3.key && /^q:/.test(I3.key) && I3.free && I3.calls === 0, JSON.stringify(I3));
+
+    console.log('\nJ · the window stands beside Home\'s panel, never over it');
+    const J = await page.evaluate(() => { const r = el => el && el.getBoundingClientRect(); const p = r(document.getElementById('ai-panel')), d = r(document.getElementById('ig-dock'));
+      return p && d ? { pRight: Math.round(p.right), dLeft: Math.round(d.left), pLeft: Math.round(p.left) } : null; });
+    check('J the window\'s right edge is left of the panel\'s left edge', !!J && J.pRight <= J.dLeft && J.pLeft >= 0, JSON.stringify(J));
+    for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `J-window-beside-${w}x${hh}.png`) }); }
+
     check('H no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('the run stopped', false, String(e && e.message || e).slice(0, 200));
