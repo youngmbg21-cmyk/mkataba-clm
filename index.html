@@ -16948,6 +16948,15 @@
   /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
   :is(#ig-dock, body) .redline-page .rl-card-d:is(:hover, .is-linked){background:var(--color-neutral-200)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
+  /* A CARD HOLDING JAMBO'S "WORTH A LOOK" IS ITSELF THE SOFT CARD IN A VERY LIGHT AMBER (owner, 24 Oct 2026,
+     second word: the whole card, not a box inside it); the ONE SHADE deepens it one amber step on hover and
+     once pressed, and lets it go back to its amber when another card takes the shade */
+  :is(#ig-dock, body) .redline-page .rl-card-d:has(.rl-card-read[data-rl-row-read="look"]){background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  :is(#ig-dock, body) .redline-page .rl-card-d:has(.rl-card-read[data-rl-row-read="look"]):is(:hover, .is-linked){background:var(--st-amber-bg)}
+  :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover):has(.rl-card-read[data-rl-row-read="look"]){background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  /* YOUR WORDS TO JAMBO WEAR HIS ANSWERS' ROUNDING (owner, 24 Oct 2026): the generated sheet zeroes
+     .rounded-2xl, so every "you" bubble (Home's panel, the chat window) takes the answer bubble's 18px here */
+  .ai-msg.justify-end > .ai-bub{border-radius:var(--radius-lg)}
   /* THE LISTS' TABLE, AS DRAWN (Contracts): the column heads on a faint grey band (#FAFAFC), the foot the same,
      a party's initials a rounded square on white. The row height stays the reader's own density choice. */
   #app-shell .reg-card .reg-table thead th{background:#FAFAFC}
