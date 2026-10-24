@@ -372,4 +372,80 @@ function draftHandOff(pick, prefill){
   if(typeof tplLibNewContract==='function') tplLibNewContract(pick.id, prefill);
 }
 
-Object.assign(window,{DRAFT_BUCKETS,draftNoStandards,draftBucket,draftBucketLabel,draftBucketRank,draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftNothingFits,draftHandOff,DRAFT_SENTENCE_MAX});
+/* ---- THE DETAILS IN YOUR WORDS, READ WITHOUT AI (owner, 24 Oct 2026: "Free
+   reader" — "I should be able to simply write the type of contract i want with
+   the details in the jambo side panel and it drops me in step 2 with the details
+   filled in") ----
+   A reading of the sentence, never a guess and never a model: how long it runs,
+   the payment days, the notice, the value and the start, each with the exact
+   words it was read from (shown on the sheet as "Where in your words"). The
+   values become a prefill whose keys are every name the three forms use for the
+   same fact; draftApplyPrefill's wall then lets only the boxes the chosen paper
+   declares take them. A value in another currency than the form's is said and
+   not filled: no rate is ever guessed. */
+const DRAFT_NUM_WORDS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12,
+  en:1, ett:1, 'två':2, tre:3, fyra:4, fem:5, sex:6, sju:7, 'åtta':8, nio:9, tio:10, tolv:12 };
+const DRAFT_MONTHS = { jan:0, january:0, januari:0, feb:1, february:1, februari:1, mar:2, march:2, mars:2, apr:3, april:3, may:4, maj:4,
+  jun:5, june:5, juni:5, jul:6, july:6, juli:6, aug:7, august:7, augusti:7, sep:8, sept:8, september:8, oct:9, october:9, okt:9, oktober:9,
+  nov:10, november:10, dec:11, december:11 };
+const DRAFT_CUR_RE = '(SEK|KES|EUR|USD|GBP|NOK|DKK|kr|kronor|€|\\$|£)';
+const draftNumOf = w => { const x = String(w || '').toLowerCase(); return /^\d+$/.test(x) ? Number(x) : (DRAFT_NUM_WORDS[x] || 0); };
+function draftWordsRead(sentence){
+  const s = String(sentence || '');
+  const out = [];
+  const add = (k, say, quote, put) => { if (!out.some(f => f.k === k)) out.push({ k, say, quote: String(quote || '').trim(), put: put || {} }); };
+  const NUMW = '(\\d{1,3}|' + Object.keys(DRAFT_NUM_WORDS).join('|') + ')';
+  /* PAYMENT: "45-day payment", "payment within 45 days", "net 45", "45 dagars betalning" */
+  let m = new RegExp('\\bnet\\s*(\\d{1,3})\\b', 'i').exec(s)
+    || new RegExp('\\b(\\d{1,3})[\\s-]*days?[\'’]?\\s*(?:payment|credit|to pay)\\b', 'i').exec(s)
+    || new RegExp('\\b(?:pay(?:ment)?|paid|invoices?(?:\\s+(?:are|is))?\\s+(?:paid|due))\\s+(?:with)?in\\s+(\\d{1,3})\\s*days?\\b', 'i').exec(s)
+    || new RegExp('\\b(\\d{1,3})\\s*dagars\\s*betal\\w*', 'i').exec(s);
+  if (m){ const n = String(Number(m[1])); add('pay', i18tn('na_rd_days', Number(n), { n }), m[0], { payDays: n, paymentDays: n, creditDays: n }); }
+  /* NOTICE: "90 days' notice", "notice of 90 days", "90 dagars uppsägning"; months are said, filled only as days */
+  m = new RegExp('\\b' + NUMW + '[\\s-]*(days?|months?)[\'’]?\\s*(?:written\\s+)?notice\\b', 'i').exec(s)
+    || new RegExp('\\bnotice(?:\\s+period)?(?:\\s+of)?\\s+' + NUMW + '\\s*(days?|months?)\\b', 'i').exec(s)
+    || new RegExp('\\b' + NUMW + '\\s*(dagars|månaders)\\s*uppsägning\\w*', 'i').exec(s);
+  let noticeAt = -1;
+  if (m){ const n = draftNumOf(m[1]); const days = /^(day|dag)/i.test(m[2]);
+    if (n){ noticeAt = m.index; add('notice', i18tn(days ? 'na_rd_days' : 'na_rd_months', n, { n }), m[0], days ? { noticeDays: String(n) } : {}); } }
+  /* TERM: "two-year", "for 3 years", "24 months", "två år" — not the notice's own months */
+  const tRe = new RegExp('\\b' + NUMW + '[\\s-]*(years?|yrs?|months?|år|månader|månad)\\b(?![\'’]?\\s*(?:written\\s+)?notice)', 'ig');
+  let term = null;
+  for (let t; (t = tRe.exec(s));){ if (t.index === noticeAt) continue; const n = draftNumOf(t[1]); if (n){ term = { n, months: /^(y|år)/i.test(t[2]) ? n * 12 : n, quote: t[0], year: /^(y|år)/i.test(t[2]) }; break; } }
+  /* START: "from 1 November 2026", "starting 2026-11-01", "från 1 november 2026" */
+  let start = '';
+  m = /\b(?:from|starting(?:\s+on)?|start(?:s|ing)?\s+on|commencing|från|med\s+start)\s+(\d{4})-(\d{2})-(\d{2})\b/i.exec(s);
+  if (m) start = `${m[1]}-${m[2]}-${m[3]}`;
+  else { m = /\b(?:from|starting(?:\s+on)?|start(?:s|ing)?\s+on|commencing|från|med\s+start)\s+(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-zåäö]{3,9})\.?\s+(\d{4})\b/i.exec(s);
+    if (m && DRAFT_MONTHS[m[2].toLowerCase()] != null){ const d = new Date(Date.UTC(Number(m[3]), DRAFT_MONTHS[m[2].toLowerCase()], Number(m[1])));
+      if (!isNaN(d)) start = d.toISOString().slice(0, 10); } }
+  const startQ = m ? m[0] : '';
+  if (term){
+    const put = {};
+    if (start){ const d = new Date(start + 'T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() + term.months); d.setUTCDate(d.getUTCDate() - 1); put.expiry = d.toISOString().slice(0, 10); }
+    add('term', term.year ? i18tn('na_rd_years', term.n, { n: term.n }) : i18tn('na_rd_months', term.n, { n: term.n }), term.quote, put);
+    out.find(f => f.k === 'term').months = term.months;
+  }
+  if (start) add('start', (typeof fmtDocDate === 'function') ? fmtDocDate(start) : start, startQ, { effDate: start });
+  /* VALUE: a currency beside an amount ("SEK 1.2M", "1,200,000 kr", "€500k") */
+  m = new RegExp(DRAFT_CUR_RE + '\\s?(\\d[\\d,.\\s]*?\\d|\\d)\\s?(k|m|mn|million|miljoner|miljon|thousand|tusen)?\\b', 'i').exec(s)
+    || new RegExp('\\b(\\d[\\d,.\\s]*?\\d|\\d)\\s?(k|m|mn|million|miljoner|miljon|thousand|tusen)?\\s?' + DRAFT_CUR_RE + '(?![A-Za-z])', 'i').exec(s);
+  if (m){
+    const curFirst = /^\D/.test(m[0]);
+    const cur = String(curFirst ? m[1] : m[3]).toUpperCase().replace(/^KRONOR$|^KR$/, 'SEK').replace('€', 'EUR').replace('$', 'USD').replace('£', 'GBP');
+    const raw = String(curFirst ? m[2] : m[1]), mult = String((curFirst ? m[3] : m[2]) || '').toLowerCase();
+    let num = Number(raw.replace(/\s/g, '').replace(/,(?=\d{3}\b)/g, '').replace(',', '.'));
+    if (/^(k|thousand|tusen)$/.test(mult)) num *= 1e3; else if (/^(m|mn|million|miljon|miljoner)$/.test(mult)) num *= 1e6;
+    if (num > 0){
+      const home = String((typeof jxCurrency === 'function' && jxCurrency()) || '').toUpperCase();
+      const same = !home || home === cur;
+      const shown = (typeof fmtMoneyShortIn === 'function') ? fmtMoneyShortIn(num, cur) : `${cur} ${num}`;
+      add('value', same ? shown : i18t('na_rd_value_other', { v: shown, home }), m[0], same ? { value: String(Math.round(num)) } : {});
+    }
+  }
+  return out;
+}
+/* every value the reading found, as one prefill (each form takes only the boxes it declares) */
+function draftWordsPrefill(facts){ return (facts || []).reduce((p, f) => Object.assign(p, f.put || {}), {}); }
+
+Object.assign(window,{DRAFT_BUCKETS,draftNoStandards,draftBucket,draftBucketLabel,draftBucketRank,draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftNothingFits,draftHandOff,DRAFT_SENTENCE_MAX,draftWordsRead,draftWordsPrefill,DRAFT_NUM_WORDS,DRAFT_MONTHS,draftNumOf});

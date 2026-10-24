@@ -109,7 +109,10 @@ const pastFirstWords = async page => {
       t.cp === true && t.value === true && t.start === true, JSON.stringify(t));
     check('1b who we are, their email and the end date are not',
       t.party === false && t.email === false && t.end === false, JSON.stringify(t));
-    await page.fill('#ce-counterparty', 'Nordic Bites AB'); await page.click('#na-q');
+    await page.fill('#ce-counterparty', 'Nordic Bites AB');
+    /* RE-POINTED 24 Oct 2026, the one door: the search box (#na-q) sits behind
+       "Search all our paper" now, so the answer is left by blurring the box */
+    await page.evaluate(() => document.getElementById('ce-counterparty').blur());
     t = await page.evaluate(TONES, SEL);
     check('1c typing an answer takes the amber off', t.cp === false && t.value === true, JSON.stringify(t));
 

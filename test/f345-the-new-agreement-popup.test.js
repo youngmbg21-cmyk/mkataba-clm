@@ -114,7 +114,10 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
        before handing over — a hold spent by a creation must not be dropped by
        the screen's own teardown. The CLAIM is unchanged: the foot presses the
        chosen door's own act and this file mints nothing itself. */
-    assert.match(NA, /getElementById\('na-create'\)\?\.addEventListener\('click', goCreate\(\(\)=>api\.create\(\)\)\)/);
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the same wrapper presses our paper's act; on the
+       sheet's Their paper tab Create hands the file to the drop's own reader (pdDropTake), so the press is one listener */
+    assert.match(NA, /const createOurs=goCreate\(\(\)=>api\.create\(\)\);/);
+    assert.match(NA, /getElementById\('na-create'\)\?\.addEventListener\('click', ev=>\{\s*if\(!\(one&&paper==='theirs'\)\) return createOurs\(ev\);[\s\S]{0,400}pdDropTake\(f, \{ folder:streamPicked, counterparty:who \}\)/); /* re-pointed 24 Oct 2026: the words still name the other company */
     assert.match(NA, /getElementById\('na-skip'\)\?\.addEventListener\('click', goCreate\(\(\)=>api\.skip\(\)\)\)/);
     /* RE-POINTED 26 Sep 2026: the wrapper awaits the act, so a refused Create
        can give the held people back to the screen. */

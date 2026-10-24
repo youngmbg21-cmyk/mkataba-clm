@@ -2,9 +2,10 @@
 
 Agreed with the owner in chat, 24 Oct 2026.
 
-**NOT STARTED.** Build 1 waits for the owner to pick an option by name on the
-drawing (https://claude.ai/artifact/ScC4AVoeX78Exh3ajrqKHX). Build 2 has no
-design question in it, so it can go first once the owner says go.
+**BUILT, 24 Oct 2026.** Build 2 (the Track's press) first; Build 1 after the
+owner picked "The Legora way" by name ("go with the Legora way, build both"),
+with "Pick it when clear" and "Free reader". Waiting on the owner's yes to the
+drawn-against-built side-by-side before it merges.
 
 Run the Six Questions and the Nine Flow Rules on each build, as CLAUDE.md asks.
 
@@ -31,7 +32,7 @@ like … and then we will delete the rest after we agree on the way forward."*
   contract" (`openNewDoors`), then the older form.
 
 **Options drawn:** The SAP way · The Legora way · The paper fills itself.
-Claude recommends The Legora way. **The owner has not picked yet.**
+Claude recommended The Legora way. **The owner picked The Legora way, 24 Oct 2026.**
 
 **Already decided by the owner, whichever option is picked:**
 

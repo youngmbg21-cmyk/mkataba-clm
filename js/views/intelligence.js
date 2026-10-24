@@ -2334,7 +2334,7 @@ async function intelAsk(qRaw, opts){
          share, what's next, help) is drawn ONCE per conversation — a second
          ask lands on the one already there, lit, its main button ready —
          and the first is landed on too, so the eye goes straight to it */
-      const cardWord=act.kind==='go'&&Array.isArray(window.CA_CARD_WORDS)&&CA_CARD_WORDS.includes(act.place)&&!act.missing;
+      const cardWord=act.kind==='go'&&typeof window.caIsCardWord==='function'&&caIsCardWord(act.place)&&!act.missing;
       const had=cardWord?intel.history.findIndex(m=>m&&m.act&&m.act.kind==='go'&&m.act.place===act.place&&String(m.act.cid||'')===String(act.cid||'')&&!m.act.missing):-1;
       /* …ON SCREEN (owner, 20 Oct 2026: "some times when i press on the draft
          new agreement it does not work"): once the panel had gone back to its

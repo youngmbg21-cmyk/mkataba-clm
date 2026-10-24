@@ -1974,7 +1974,8 @@ async function submitUpload(ans){
   if(!_up||!_up.file){ toast(i18t('ct_choose_file_upload'),'err'); return; }
   const A=(ans&&ans.drop===true)?ans:null;
   const { file, mime, wordTracked, wordHtml, extractedText, textSource, upload, meta }=_up;
-  const cp=A?'':fval('up-cp');
+  /* a drop names nobody, unless the words beside it did (the one sheet's Their paper, 24 Oct 2026) */
+  const cp=A?String(A.counterparty||'').trim().slice(0,200):fval('up-cp');
   /* Our entity on this agreement — see contractParty in js/core.js. Left
      blank it stays absent and the reading falls back to the workspace, so
      nothing filed before this field existed reads differently. */
@@ -2144,7 +2145,7 @@ async function uploadFromDrop(file, hooks){
       return { handed:true };
     }
     _up=rd;
-    await submitUpload({ drop:true, folder:uploadDropFolder(h.folder), route:uploadRouteDefault(), read:true });
+    await submitUpload({ drop:true, folder:uploadDropFolder(h.folder), route:uploadRouteDefault(), read:true, counterparty:h.counterparty||'' });
     return { ok:true, id:state.activeId };
   }catch(e){
     return { refused:(e&&e.message)||String(e) };

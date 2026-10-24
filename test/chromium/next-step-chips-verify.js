@@ -16,6 +16,7 @@
    5 an answer about the contract already open says so, with no
      "Open … in Workspace" button
    6 "draft" asks our paper or theirs: Use our template · Upload their paper
+     (RE-POINTED 24 Oct 2026: the one sheet's Our paper · Their paper tabs)
    Photographed at the owner's three screens.
    RED AT THE PARENT: caNextSteps does not exist there, the redline chip is
    drawn on the Redlines face, "sign" on a signed agreement, the door is
@@ -141,8 +142,11 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
 
     /* 6 draft: our paper or theirs */
     await ask('draft');
-    const k6 = await lastCard();
-    ok('6 "draft" asks our paper or theirs: two buttons', !!k6 && k6.btns.length === 2 && /template/i.test(k6.btns[0]) && /upload/i.test(k6.btns[1]), JSON.stringify(k6));
+    /* RE-POINTED 24 Oct 2026 (one door, the Legora way): no card — "draft" opens the one sheet, and
+       our paper or theirs is its two tabs */
+    await page.waitForFunction(() => !!document.getElementById('na-root'), null, { timeout: 8000 }).catch(() => {});
+    const k6 = await page.evaluate(() => document.getElementById('na-root') ? [...document.querySelectorAll('#na-root [data-na-paper]')].map(b => b.textContent.trim()) : null);
+    ok('6 "draft" asks our paper or theirs: the one sheet\'s two tabs', !!k6 && k6.length === 2 && /Our paper/.test(k6[0]) && /Their paper/.test(k6[1]), JSON.stringify(k6));
     await shoot('6-draft');
 
     ok('9 no page errors', errs.length === 0, errs.slice(0, 2).join(' | ') || null);
