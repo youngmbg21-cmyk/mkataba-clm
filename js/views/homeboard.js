@@ -1709,7 +1709,7 @@ function hbAgLevelsWanted(){
   if (_hbLvWanted || typeof agentsStatus !== 'function' || agentsStatus() || typeof agentsStatusLoad !== 'function') return;
   if (!(typeof API_MODE === 'function' && API_MODE()) || !document.getElementById('hm-agents')) return;
   _hbLvWanted = true;
-  try { agentsStatusLoad().then(s => { if (s && typeof state !== 'undefined' && state && state.view === 'dashboard') hbPaintBoard(); }, () => {}); } catch (_){}
+  try { agentsStatusLoad().then(s => { if (s && typeof state !== 'undefined' && state && state.view === 'dashboard'){ if (hbS().face === 'board') hbPaintBoard(); else _hbBoardMissed = true; } }, () => {}); } catch (_){}
 }
 /* C3 (the board as drawn, 11 Oct 2026): TODAY'S INSIGHTS IS ITS OWN CARD under
    Copilot's work — HaTi's own arithmetic, no model; the pictures three across,
@@ -7124,6 +7124,9 @@ function hbShowCard(host, el, opts){
 }
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
+  /* a hidden Board is not drawn: it is marked missed and drawn when turned to
+     (hbSetFace → hbBoardStale; the glitch audit, 24 Oct 2026) */
+  if (hbS().face !== 'board' && !(opts && opts.force)){ _hbBoardMissed = true; return; }
   hbGiftsKeep();
   _hbTipMemo.clear(); if (_hbTipFor) hbTipHide(true);
   _hbBoardPaintedAt = Date.now(); _hbBoardMissed = false;
@@ -7362,15 +7365,27 @@ function hbOpenHome(){
 function hbAfterMount(){
   const pg = hbPage(); if (pg) pg.setAttribute('data-hb-lang', (typeof langId === 'function') ? langId() : '');
   hbApplyScreen(); hbApplyFace();
-  hbPaintBoard();
+  /* THE BOARD IS DRAWN WHEN IT SHOWS (the glitch audit, 24 Oct 2026: Home set up
+     for a contract's paper or the Contracts place built the hidden Board first,
+     about 150–300 ms at 400 contracts). Hidden, it is marked missed and drawn
+     when turned to (hbSetFace → hbBoardStale), as hbRender already does. */
+  if (hbS().face === 'board' && !_hbArriving) hbPaintBoard(); else _hbBoardMissed = true;
   hbToolsPaint();
   hbGiftsLoad();
   /* on the Contracts place the rail lights Contracts, as the drawing does */
   if (typeof setActiveNav === 'function') setActiveNav((typeof window.regPlaceUp === 'function' && regPlaceUp()) ? 'register' : 'dashboard');
 }
 function hbSetFace(f){
+  /* one press, one panel (igDockBatch, js/views/intelligence.js) */
+  if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !hbSetFace._in){
+    hbSetFace._in = true; try { return window.igDockBatch(() => hbSetFace(f)); } finally { hbSetFace._in = false; } }
   if (!HB_FACES.includes(f)) return;
-  const s = hbS(); if (s.face === f) return;
+  const s = hbS();
+  /* the Board pressed while a contract stands on it is the Board (the glitch audit, 24 Oct 2026) */
+  if (s.face === f){
+    if (f === 'board' && s.card && typeof window.bsCardLeave === 'function' && window.bsCardLeave()){
+      hbPaintBoard(); if (typeof window.deskTabsSync === 'function') try { window.deskTabsSync(); } catch (_){} }
+    return; }
   const kb = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-hb-face') != null;
   s.face = f;
   /* TURNING TO THE BOARD IS THE BOARD (round 7): a contract's page shown on
@@ -7394,7 +7409,7 @@ function hbSetFace(f){
   const pg = hbPage(), lang = (typeof langId === 'function') ? langId() : '';
   if (pg && hbHost() && document.getElementById('ig-svg') && pg.getAttribute('data-hb-lang') === lang && typeof window.igTurnFace === 'function'){
     hbApplyFace();
-    if (f === 'board' && hbBoardStale()) hbPaintBoard();
+    if (f === 'board' && hbBoardStale() && !_hbArriving) hbPaintBoard();
     hbPaintHead();
     igTurnFace();
     hbToolsPaint();
@@ -7411,6 +7426,10 @@ function hbSetFace(f){
    only while it shows (hbRender), so one landing on another side marks it;
    and its clock line is counted again after a minute. */
 let _hbBoardPaintedAt = 0, _hbBoardMissed = true;
+/* A DOOR ON ITS WAY TO ANOTHER SIDE (a contract's paper): Home is set up for
+   it without drawing the Board it is about to leave (the glitch audit, 24 Oct 2026) */
+let _hbArriving = null;
+function hbArrive(f, fn){ const was = _hbArriving; _hbArriving = f; try { return fn(); } finally { _hbArriving = was; } }
 const HB_BOARD_FRESH_MS = 60000;
 function hbBoardStale(){ return _hbBoardMissed || Date.now() - _hbBoardPaintedAt > HB_BOARD_FRESH_MS; }
 function hbSetLens(lens){
@@ -10929,7 +10948,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbThenDay, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
+Object.assign(window, { hbThenDay, hbArrive, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

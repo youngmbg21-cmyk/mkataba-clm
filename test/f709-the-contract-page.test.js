@@ -40,7 +40,9 @@ describe('f709 (1) a page on the desk', () => {
   });
   test('1b bring up sets it after the face turns; × and Let it go put it away', () => {
     const b = fnBody(BS, 'hbStripBring');
-    assert.match(b, /if \(s\.face !== 'board' && typeof hbSetFace === 'function'\) hbSetFace\('board'\);\n\s+s\.card = bsCardOn\(\) \? st\.id : null; hbSave\(\);/);
+    /* RE-POINTED 24 Oct 2026 (the glitch audit): the turn goes through hbArrive so the
+       Board is painted once, with the card on it; the card is still set after the turn */
+    assert.match(b, /if \(s\.face !== 'board' && typeof hbSetFace === 'function'\)\{\s*if \(typeof window\.hbArrive === 'function'\) window\.hbArrive\('card', \(\) => hbSetFace\('board'\)\); else hbSetFace\('board'\); \}\n\s+s\.card = bsCardOn\(\) \? st\.id : null; hbSave\(\);/);
     assert.match(fnBody(BS, 'bsStripClose'), /hbS\(\)\.card = null;/);
     assert.match(fnBody(BS, 'bsStripLetGo'), /window\.deskTabClose\('c:' \+ id\)/);
   });

@@ -411,6 +411,8 @@ function myNotesWire(){
     if ((el = hit('[data-mn-act]'))){ myNoteAct(el.getAttribute('data-mn-act')); return; }
     if ((el = hit('[data-mn-row]'))){
       if (_mn.mode === 'new' && _mn.form && String(_mn.form.body || '').trim()){ if (typeof toast === 'function') toast(i18t('mn_finish_first'), 'warn'); return; }
+      /* the row already chosen, pressed again (a double press): nothing changes, nothing is drawn again (the glitch audit, 24 Oct 2026) */
+      if (_mn.mode === 'view' && !_mn.form && String(_mn.sel) === String(el.getAttribute('data-mn-row'))) return;
       _mn.mode = 'view'; _mn.form = null; _mn.sel = el.getAttribute('data-mn-row'); _mn.fresh = null;
       if (typeof insSelect === 'function') insSelect('mynotes', _mn.sel);
       renderMyNotes(); return; }

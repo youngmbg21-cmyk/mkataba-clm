@@ -1901,7 +1901,16 @@ function caHomeFace(f){
   if (typeof setView === 'function') setView('dashboard');
   return true;
 }
-function caHomeWall(){ caHomeFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); return true; }
+function caHomeWall(){
+  /* THE WALL, DRAWN ONCE (the glitch audit, 24 Oct 2026: Home set up on the
+     paper side drew the last paper, then the Contracts place again): the
+     paper is put down first, so the face's own paint is the wall */
+  const up = typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper';
+  if (typeof igPaperDown === 'function') igPaperDown();
+  caHomeFace('paper');
+  if (up && typeof igPickAgain === 'function') igPickAgain();
+  else if (typeof igPaintIds === 'function') try { igPaintIds(null); } catch (_){}
+  return true; }
 function caRoomTab(c, k){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, k); } catch (_){} return true; }
 const CA_GO = {
   /* a contract named with it: its strip on the Board, on its Overview (the strip's one door) */
@@ -1988,6 +1997,9 @@ function caGoSay(a){
 /* THE ONE PLACE A WORD MOVES THE READER: intelAsk calls it after the line is
    said; the top bar's search calls it with no conversation. */
 function caGo(a){
+  /* one press, one panel (igDockBatch, js/views/intelligence.js) */
+  if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !caGo._in){
+    caGo._in = true; try { return window.igDockBatch(() => caGo(a)); } finally { caGo._in = false; } }
   if (!a || a.kind !== 'go') return false;
   if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
   if (a.place === 'help') return true;
@@ -2040,7 +2052,10 @@ function caGoRepaint(){ try {
        counts them as heard, and the destination lands fresh (19 Oct 2026) */
     const k = (typeof jamboTalkKey === 'function') ? String(jamboTalkKey() || '') : '';
     if (((typeof pdTalkShows === 'function' && pdTalkShows()) || k.indexOf('dock:') === 0) && typeof pdTalkClose === 'function') pdTalkClose(); } catch (_){}
-  setTimeout(() => { try { if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
+  /* …and only if the move itself did not draw the panel already (one press, one panel) */
+  const n0 = (typeof window !== 'undefined' && typeof window.igDockPaintCount === 'function') ? window.igDockPaintCount() : -1;
+  setTimeout(() => { try { if (n0 >= 0 && window.igDockPaintCount() !== n0) return;
+    if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
 /* the top bar's search: the same words, and the same move */
 function caPlaceRows(q){
   const t = String(q || '').trim().toLowerCase().replace(/^\//, '');

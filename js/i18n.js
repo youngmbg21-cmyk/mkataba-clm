@@ -20515,6 +20515,7 @@ const STRINGS = {
     // ---- HOME, RECENT AND BACK IN THE BAR (the owner picked "The SAP way", 18 Oct 2026) ----
     dk_back: 'Back',
     dk_back_none: 'Nothing to go back to yet',
+    dk_back_to: 'Back to {where}',
     dk_home_sub: 'Needs you, Jambo’s work',
     dk_recent_head: 'Recent · your last {n} pages',
     dk_recent_none: 'The pages you open come here.',
@@ -40297,6 +40298,7 @@ const STRINGS = {
     dk_more: '+{n} till',                       // vilande sedan SAP-sättet
     dk_back: 'Tillbaka',
     dk_back_none: 'Inget att gå tillbaka till än',
+    dk_back_to: 'Tillbaka till {where}',
     dk_home_sub: 'Behöver dig, Jambos arbete',
     dk_recent_head: 'Senaste · dina {n} senaste sidor',
     dk_recent_none: 'Sidorna du öppnar hamnar här.',

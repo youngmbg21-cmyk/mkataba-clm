@@ -1424,7 +1424,8 @@ function setView(view){
   viewPaint('updateCommandBar', ()=>updateCommandBar(view));
   viewPaint('updateSidebarCounts', ()=>updateSidebarCounts());
   viewPaint('applyPanelLayout', ()=>applyPanelLayout());
-  viewPaint('renderContextPanel', ()=>renderContextPanel());
+  /* a closed side panel is drawn when it is opened (openPanel, openNotesPanel), not on every page move (the glitch audit, 24 Oct 2026) */
+  viewPaint('renderContextPanel', ()=>{ if(state.panelOpen) renderContextPanel(); });
   /* the page just drawn is a tab on the desk (Round 2, 17 Oct 2026) */
   viewPaint('deskTabsSync', ()=>{ if(window.deskTabsSync) deskTabsSync(); });
   /* Opening a contract that is out with the other side is the moment to start
