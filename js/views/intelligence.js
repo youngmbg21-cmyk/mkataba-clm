@@ -3033,7 +3033,7 @@ function igFailTurn(e, q){
   if(q&&typeof window.aiWholeBookAsk==='function'&&aiWholeBookAsk(q)&&typeof window.aiPortfolioFigures==='function'){
     const f=aiPortfolioFigures();
     return Object.assign({ role:'assistant', wholeBook:true,
-      text:`<strong>${f.live}</strong> ${igEsc(i18t('ai_book_count', { live:'', total:f.total }).trim())}<div class="text-[11px] text-amber-700 mt-2">${igEsc(why)}</div>` }, again);
+      text:`<strong>${f.live}</strong> ${igEsc(i18t('ai_book_count', { live:'', total:f.total }).trim())}${igNoticeHtml(why)}` }, again);
   }
   return Object.assign({ role:'assistant', err:true, text:igEsc(why) }, again);
 }
