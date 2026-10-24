@@ -572,6 +572,21 @@ function brPaintSteps(){
   const cnt = document.getElementById('br-fl-count');
   if (cnt) cnt.textContent = pl.done ? _brT('brn_done') : _brT('brn_step_of', { i: pl.i + 1, n: f.steps.length });
   const ol = document.getElementById('br-steps'); if (!ol) return;
+  /* A STEP MOVING ON MARKS ITS ROW, the list is not built again (the glitch
+     audit's second walk, 24 Oct 2026: a playing flow rebuilt the whole list
+     at every step). Built once per flow, view, language and map reading. */
+  const key = [f.id, _brView, (typeof langId === 'function') ? langId() : '', ((_brMap && _brMap.flowGaps) || []).length].join('|');
+  const rows = ol.querySelectorAll('button.br-st[data-br-step]');
+  if (ol.dataset.brKey === key && rows.length === f.steps.length){
+    rows.forEach((bt, i) => {
+      bt.classList.toggle('is-done', !!(pl.done || i < pl.i));
+      bt.classList.toggle('is-now', !pl.done && i === pl.i);
+      if (i === pl.i && !pl.done) bt.setAttribute('aria-current', 'step'); else bt.removeAttribute('aria-current');
+    });
+    brLanesPaint();
+    return;
+  }
+  ol.dataset.brKey = key;
   ol.innerHTML = f.steps.map((s, i) => {
     const cls = (pl.done || i < pl.i) ? ' is-done' : (i === pl.i ? ' is-now' : '');
     return '<li><button type="button" class="br-st' + cls + '" data-br-step="' + i + '"' + (i === pl.i && !pl.done ? ' aria-current="step"' : '') + '><span class="br-st-k">' + (i + 1) + '</span>'
