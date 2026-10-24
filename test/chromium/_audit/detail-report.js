@@ -66,6 +66,8 @@ const HUNT = [
   { t: 'Key terms in the middle: square sheet narrower than its header', d: 'The same kind of fault as the Deal page.' },
   { t: 'Send screen: a line against its neighbours', d: '“Email is not set up yet…” sits against the red box above it and the panel’s edge. Its header is also a flat strip.' },
   { t: 'Thick dark rings on buttons you land on', d: '“‹ Paper”, “‹ Back to the paper”, “All 34”. Your rule says landing should not draw a ring.' },
+  { t: 'Three browser checks still expect a white top bar', d: 'The Home page check, the “blue landing” check and the “brand survives a refresh” check each expect the bar to be white but measure dark green. You picked the deep green bar today (“The SAP way”), so the bar is right and these three checks are out of date: they need updating to expect green. (From GitHub’s test logs, not yet seen in a browser.)' },
+  { t: 'The “⌘K” hint on the top bar is too faint', d: 'The small “⌘K” at the right end of the search box measures a contrast of 3.97 on the green bar; the accessibility rule HaTi follows asks for at least 4.5, so it is hard to read in bright light. It needs to be a little brighter. Both this and the line above started with the change to the green bar. (From GitHub’s test logs.)' },
   { t: 'My notes: “No notes yet.” touches the top of its card', small: true },
   { t: 'Import: the header card is wider than the search strip under it', small: true },
   { t: 'iPad, a redline card: Accept · Reject · Counter do not line up with the words above them', small: true },
