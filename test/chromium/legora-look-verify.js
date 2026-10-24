@@ -120,7 +120,9 @@ const check = (name, pass, detail) => {
     /* LEGORA: the bar is frosted white, its edge a soft line drawn as a shadow, not a border */
     const barSh = await page.evaluate(() => { const t = getComputedStyle(document.getElementById('top-header')); return { sh: t.boxShadow, blur: t.backdropFilter || t.webkitBackdropFilter }; });
     /* no blur: nothing scrolls under the bar, and a filter would trap its menus (Recent) under the page */
-    check('3a the bar is the drawing\'s translucent white with a soft line under it, no hairline border, no filter', bar.bg === 'rgba(255, 255, 255, 0.78)' && (bar.edgeW === '0px' || /rgba\(0, 0, 0, 0\)|transparent/.test(bar.edge)) && (!barSh.blur || barSh.blur === 'none') && /0px 1px 0px/.test(barSh.sh), JSON.stringify({ ...bar, ...barSh }));
+    /* RE-PINNED (owner picked "The SAP way", 24 Oct 2026: "the page is too white"): the bar is a solid deep green, no
+       hairline, no filter (one-window-bar-cards-verify B1 measures its words) */
+    check('3a the bar is the deep green, no hairline border, no filter', bar.bg === 'rgb(11, 59, 54)' && (bar.edgeW === '0px' || /rgba\(0, 0, 0, 0\)|transparent/.test(bar.edge)) && (!barSh.blur || barSh.blur === 'none'), JSON.stringify({ ...bar, ...barSh }));
     check('3b the mark is the word "HaTi" in the title serif, no tile', bar.markShown && bar.mark === 'HaTi' && /^"?Source Serif 4/.test(bar.markFace) && /rgba\(0, 0, 0, 0\)|transparent/.test(bar.markBg), JSON.stringify(bar));
     check('3c no theme button, no Blue/Green swatches and no language switch in the bar', !bar.theme && bar.swatches === 0 && !bar.lang, JSON.stringify(bar));
     check('3d the bell\'s count is the ink, not amber', bar.bell === 'rgb(29, 29, 31)', String(bar.bell));

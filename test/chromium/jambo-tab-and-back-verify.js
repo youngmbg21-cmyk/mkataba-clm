@@ -199,49 +199,29 @@ const check = (name, pass, detail) => {
       check('4f pressed again, back to the row\'s panel', !!L4);
     });
 
-    /* ---- 5 Settings ---- */
+    /* ---- 5 Settings — RE-PINNED (owner, 24 Oct 2026, ONE WINDOW: "settings has no information either"): his
+       words lead the conversation, a question is answered under them, no tabs, no trail, nothing turned ---- */
     await part('5', async () => {
       await page.evaluate(() => setView('team'));
       await until(() => document.getElementById('st-jb-q') && document.querySelector('#st-jb-feed > *'), null, 8000);
-      const S0 = await page.evaluate(() => ({ trail: !document.getElementById('st-jb-trail').hidden, land: !document.querySelector('#st-jb-feed [data-st-jb-talk]') || !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden,
-        tab: (document.querySelector('#st-side-tab-jambo') || {}).textContent }));
-      check('5a Settings lands on its own words, its tab "Overview"', !S0.trail && S0.land && /Overview/.test(S0.tab || ''), JSON.stringify(S0));
+      const S0 = await page.evaluate(() => ({ trail: !document.getElementById('st-jb-trail').hidden, tabs: document.querySelectorAll('#st-side-head .st-side-tab').length }));
+      check('5a Settings is one window: no tabs, no trail', !S0.trail && S0.tabs === 0, JSON.stringify(S0));
       await ask('#st-jb-q', 'what is a sealed PDF?');
-      await until(() => !document.getElementById('st-jb-trail').hidden, null, 6000);
-      const S1 = await page.evaluate(() => ({ land: !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden, talk: !document.querySelector('#st-jb-feed [data-st-jb-talk]').hidden,
-        path: (document.querySelector('#st-jb-trail .pd-trail-w') || {}).textContent }));
-      check('5b a question turns the panel to the conversation, the trail over it', !S1.land && S1.talk && /Overview \/ Jambo/.test(S1.path || ''), JSON.stringify(S1));
-      await page.click('#st-jb-trail .pd-back');
-      const S2 = await until(() => document.getElementById('st-jb-trail').hidden && !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden, null, 5000);
-      check('5c the back returns to Jambo\'s words for the page', !!S2);
-      const st = () => { const t = document.querySelector('#st-side [data-st-talk]'); return !!t && !t.hidden; };
-      check('5d a "Jambo" tab stands beside Overview', await page.evaluate(st));
-      if (await page.evaluate(st)) await page.click('#st-side [data-st-talk]');
-      const S3 = await until(() => !document.getElementById('st-jb-trail').hidden && /sealed PDF/.test(document.querySelector('#st-jb-feed [data-st-jb-talk]').textContent), null, 5000);
-      check('5e pressed, the conversation comes back, the question in it', !!S3);
-      if (await page.evaluate(st)) await page.click('#st-side [data-st-talk]');
-      const S4 = await until(() => document.getElementById('st-jb-trail').hidden && !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden, null, 5000);
-      check('5f pressed again, back to Jambo\'s words for the page', !!S4);
+      const S1 = await until(() => { const T = document.querySelector('#st-jb-feed [data-st-jb-talk]'), L = document.querySelector('#st-jb-feed [data-st-jb-land]');
+        return T && !T.hidden && /sealed PDF/.test(T.textContent) ? { land: !!L && !L.hidden, trail: !document.getElementById('st-jb-trail').hidden } : null; }, null, 6000);
+      check('5b a question is answered under his words, nothing turned, no trail', !!S1 && S1.land && !S1.trail, JSON.stringify(S1));
     });
 
-    /* ---- 6 the Calendar ---- */
+    /* ---- 6 the Calendar — RE-PINNED (ONE WINDOW): Your week, then what was asked and the answer ---- */
     await part('6', async () => {
       await page.evaluate(() => hbOpenCalendar());
       await until(() => document.getElementById('cal-plan-in'), null, 8000);
-      const ct = () => !!document.querySelector('#cal-plan [data-cal-talk]');
-      const C0 = await page.evaluate(ct);
+      const C0 = await page.evaluate(() => ({ tabs: document.querySelectorAll('#cal-plan .pd-tab').length, trail: !!document.querySelector('#cal-plan .pd-trail') }));
+      check('6a the Calendar is one window: no tabs, no trail', C0.tabs === 0 && !C0.trail, JSON.stringify(C0));
       await ask('#cal-plan-in', 'what is due this week?');
-      await until(() => document.querySelector('#cal-plan.is-talk'), null, 8000);
-      await page.evaluate(() => { const b = document.querySelector('#cal-plan .pd-trail .pd-back'); if (b) b.click(); });
-      await until(() => document.querySelector('#cal-plan') && !document.querySelector('#cal-plan.is-talk'), null, 5000);
-      /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing"): the tab stands before a word too */
-      check('6a the "Jambo" tab stands before a word and after', C0 && await page.evaluate(ct));
-      if (await page.evaluate(ct)) await page.click('#cal-plan [data-cal-talk]');
-      const C1 = await until(() => { const c = document.querySelector('#cal-plan.is-talk'); return !!c && /due this week/.test(c.textContent); }, null, 5000);
-      check('6b pressed, the conversation comes back, the question in it', !!C1);
-      if (await page.evaluate(ct)) await page.click('#cal-plan [data-cal-talk]');
-      const C2 = await until(() => document.querySelector('#cal-plan') && !document.querySelector('#cal-plan.is-talk'), null, 5000);
-      check('6c pressed again, back to Your week', !!C2);
+      const C1 = await until(() => { const c = document.getElementById('cal-plan'), t = document.getElementById('cal-plan-talk'), w = c && c.querySelector('.cal-yw');
+        return t && /due this week/.test(t.textContent) && w && w.getClientRects().length ? true : null; }, null, 8000);
+      check('6b the question and its answer stand under Your week, still in view', !!C1);
     });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

@@ -238,7 +238,8 @@ const weekOf = () => {
     check('4b late work stands on today (a weekend: this week\'s first day), or on its own day where that is this week; their chips carry their name first; a decision in its week',
       C.firstDay.some(t => /^Late: Check the September invoice/.test(t)) && C.chips.some(c => c.k === 'theirs' && /^Nandi: /.test(c.t)) && C.chips.some(c => c.k === 'decide' && /^Decide: Office Lease/.test(c.t)), { firstDay: C.firstDay, chips: C.chips.slice(0, 8) });
     check('4c a later week says "N due"; the hours read "09"', C.labels.some(l => /^\d+ due$/.test(l)) && C.hours.every(h => /^\d\d$/.test(h)), { labels: C.labels, hours: C.hours });
-    check('4d Jambo\'s panel beside the Calendar says "Your week" in the same words', C.panel === 'Your week' && C.bub === Y.bubs[0] && C.lv === 3, { panel: C.panel, lv: C.lv });
+    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the panel draws no "Your week" word beside tabs; his words are the same */
+    check('4d Jambo\'s panel beside the Calendar says the week in the same words, one window', C.panel === '' && C.bub === Y.bubs[0] && C.lv === 3, { panel: C.panel, lv: C.lv });
     /* ASK FOR THE STATE (22 Oct 2026): the week may be drawn again after it first shows, which took a
        held handle off the page ("Element is not attached to the DOM"); a locator finds the hour afresh
        at each act, and the hover is tried again (bounded) if a repaint came between it and the read */
