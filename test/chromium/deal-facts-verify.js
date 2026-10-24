@@ -55,8 +55,10 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     check('3 the Split menu shows the five under "Deal facts"', !!s3 && s3.head === 'Deal facts' && s3.after.length === 5, JSON.stringify(s3));
     await page.keyboard.press('Escape');
     await page.evaluate(async () => { await intelAsk('which stalled deals are waiting on us, by counterparty'); });
-    const s4 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const D = k && hbDigData(k, s.lens); const a = (intel.history || []).filter(m => m.role === 'assistant').pop();
-      return D && /waiting on us/.test(D.setLabel || '') && a && /Free/.test(String(a.text)) ? { set: D.setLabel, by: hbPlan(D).split.by } : null; });
+    /* RE-POINTED 24 Oct 2026 (act first, then explain): the Board's free line is the turn that drew it; a question
+       the Board only drew gets Jambo's words under it, so the free line is one of the last two turns */
+    const s4 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const D = k && hbDigData(k, s.lens); const as = (intel.history || []).filter(m => m.role === 'assistant').slice(-2);
+      return D && /waiting on us/.test(D.setLabel || '') && as.some(a => /Free/.test(String(a.text))) ? { set: D.setLabel, by: hbPlan(D).split.by } : null; });
     await page.screenshot({ path: path.join(OUT, '4-stalled.png') });
     check('4 "which stalled deals are waiting on us, by counterparty" reads free', !!s4 && s4.by === 'counterparty', JSON.stringify(s4));
     check('5 no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

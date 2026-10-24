@@ -56,7 +56,7 @@ const check = (name, pass, detail) => {
       const real = window.api;
       window.__asked = []; window.__planNext = null;
       window.api = async (p, m, b) => {
-        if (p === 'ai/plan' || p === 'ai/template' || p === 'ai/graph'){ window.__asked.push({ p, ask: b && (b.ask || b.q || b.question || '') });
+        if (p === 'ai/plan' || p === 'ai/template' || p === 'ai/graph' || p === 'ai/chat'){ window.__asked.push({ p, ask: b && (b.ask || b.q || b.question || '') });
           if (p === 'ai/plan') return window.__planNext || { kind: 'answer', say: 'Nothing is due.', points: [] };
           if (p === 'ai/template') return { say: 'A template recommendation.', ranked: [] };
           return { kind: 'map', say: 'An answer about your contracts.', acts: [] };
@@ -144,6 +144,7 @@ const check = (name, pass, detail) => {
     await page.fill('#igd-input', 'What does our NDA template say about the notice period?');
     await page.press('#igd-input', 'Enter');
     const q1 = await until(() => !intel.busy && window.__asked.length ? window.__asked.slice() : null, null, 10000);
+    /* RE-POINTED 24 Oct 2026 (one Jambo, two layers): a question on the Board is the chat's (ai/chat), not the graph route's */
     check('5a a question that mentions a template is not sent to the template adviser', !!q1 && !q1.some(a => a.p === 'ai/template'), JSON.stringify(q1));
     await page.evaluate(() => { window.__asked.length = 0; });
     await until(() => !intel.busy);

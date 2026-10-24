@@ -7956,7 +7956,8 @@ const graphAskHandler = async (req, res) => {
 - Always return via the render_graph tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    /* the kind rides with the error so the browser's stand-in names the cause, as the chat route's does (aiFailWhy) */
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
@@ -12775,6 +12776,8 @@ function pageSays(p){
   if (label && label !== name) t += ` (they see it labelled "${label}")`;
   t += '. ';
   if (p.tab) t += `They are on its "${cut(p.tab)}" tab. `;
+  if (p.map) t += `The map shows: ${cut(p.map, 400)}. `;
+  if (p.board) t += `The Board as it stands:\n${cut(p.board, 4000)}\nAnswer from these numbers when the question is about the Board. `;
   if (p.valueStream) t += `It is filtered to the "${cut(p.valueStream)}" value stream. `;
   if (p.showing) t += `It is showing ${cut(p.showing, 80)}. `;
   if (p.searchBox) t += `Its search box reads "${cut(p.searchBox)}". `;

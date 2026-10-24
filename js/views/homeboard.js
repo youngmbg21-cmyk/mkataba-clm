@@ -1131,6 +1131,14 @@ function hbOpenRef(qRaw){
   const cs = (state.contracts || []).filter(c => c && !c.archived);
   return cs.find(x => hbRef(x).toUpperCase() === rest.toUpperCase() || String(x.id).toUpperCase() === rest.toUpperCase()) || null;
 }
+/* the words left once the board is named: "put juno llc on the board" → "juno llc"; lead words only → nothing */
+const HB_BOARD_WORDS_RE = /\b(?:on|onto|to|in|på|till|i)?\s*(?:the\s+)?(?:board|dashboard|tavlan)\b/gi;
+const HB_BOARD_LEAD_RE = /^(?:show|show me|put|take me|go|back|open|visa|ta mig|gå|tillbaka|me|us|please|snälla)(?:\s+(?:show|me|us|please|snälla|to|back))*$/i;
+function hbBoardRest(q){
+  const rest = String(q || '').replace(HB_BOARD_WORDS_RE, ' ').replace(/\s+/g, ' ').trim().replace(/[,.!?]+$/, '').trim();
+  if (!rest || HB_BOARD_LEAD_RE.test(rest)) return '';
+  return rest;
+}
 function hbParse(qRaw){
   const q = (typeof caRefFix === 'function') ? caRefFix(String(qRaw || '').trim()) : String(qRaw || '').trim(); if (!q) return null;
   const s = q.toLowerCase();
@@ -1156,7 +1164,14 @@ function hbParse(qRaw){
   if (HB_RX.map.test(s) && !HB_RX.showThese.test(s) && s.length < 40) return { act: 'face', face: 'explorer' };
   /* "Summarise my board" typed is the button pressed (it answered "Back to the board.") */
   if (HB_RX.boardSum.test(s) && HB_RX.board.test(s) && s.length < 60) return { act: 'boardsum' };
-  if (HB_RX.board.test(s) && s.length < 40) return { act: 'face', face: 'board' };
+  /* "SHOW ME JUNO LLC ON THE BOARD" IS JUNO LLC, ON THE BOARD (owner, 24 Oct 2026: the Board's words only turned
+     the face): the board words are taken off and what is left is read as its own ask; the act carries `toBoard`,
+     so hbAsk turns to the Board first wherever the words were typed. Bare "board" still turns the face. */
+  if (HB_RX.board.test(s)){
+    const rest = hbBoardRest(q);
+    if (rest){ const r2 = hbParse(rest); if (r2 && r2.act !== 'face' && r2.act !== 'noref') return Object.assign({ toBoard: true }, r2); }
+    if (s.length < 40) return { act: 'face', face: 'board' };
+  }
   if (HB_RX.present.test(s) && s.length < 40) return { act: 'present' };
   /* A CHART QUESTION (4 Oct 2026): the picture words are read first, so "by
      month", "timeline", "as a pie" and "trend" reach the board instead of the
@@ -9444,7 +9459,7 @@ function hbAskReadingOf(qRaw, onFace){
      board's reader steps aside for every question but the two that are about
      the screen itself — back to the board, and Present. A question about
      renewals asked of the map is the map's to answer. */
-  if (face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return { road: 'map', q, r };
+  if (face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.toBoard || r.act === 'present' || r.act === 'analyze')) return { road: 'map', q, r };
   return { road: 'free', kind: r.act, r, q };
 }
 /* the line's words for a reading: what it will draw, and free — or Copilot,
@@ -9564,6 +9579,8 @@ function hbAsk(q){
   if (!r) return null;
   const s = hbS();
   if (A.road === 'map') return null;
+  /* the words named the Board: it is turned to first, wherever they were typed */
+  if (r.toBoard && s.face !== 'board') hbSetFace('board');
   const free = i18t('hb_free');
   const say = (html, opts) => { if (!opts || !opts.noPaint){ if (s.face === 'board') hbPaintBoard(opts && opts.jump ? { jump: opts.jump } : undefined); } return html + `<div class="hb-cost">${_hbE(free)}${hbNoteUndo(u0)}</div>`; };
   if (r.act === 'card'){
