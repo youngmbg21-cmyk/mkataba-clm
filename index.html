@@ -16982,6 +16982,18 @@
   #content .ins-panel.is-jambo.is-split-over{box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
   #set-page #st-side.is-split-over{z-index:6;box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
   #ai-panel.is-side.is-split-over{box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  /* A TAB IS A PILL, NOT A BALL (owner, 24 Oct 2026, over the Board on the iPad: "the pills for the
+     headers are big and almost round which is not the theme of the platform"). The chosen tab's pill
+     stood the full height of its bar: 40px on every list head (.sap-band), 43 on the Board's Needs
+     you, 38 on Settings' You · Company. One height for all three, the panel's own 30, centred. */
+  #app-shell .reg-vtab{height:30px}
+  #app-shell .nd-tabs{align-self:center}
+  #app-shell .nd-tab{height:30px;align-self:center;display:inline-flex;align-items:center;gap:.3em;padding:0 12px}
+  #app-shell .st-cr .st-face{height:30px;align-self:center;display:inline-flex;align-items:center;justify-content:center;gap:.3em;margin-bottom:0;padding-top:0;padding-bottom:0}
+  /* THE LANDING TAB IS NEVER CUT (owner, same day: "in the side panel, the overview pill is cut
+     short"): stage 1 capped every panel tab at 96px so five fit; "Overview 99+" needs about 112.
+     The first tab (Overview, or Dossier beside a paper) keeps its whole word and count. */
+  #app-shell :is(.igd-head, .jl-head) > .pd-tab:first-child{max-width:none;flex-shrink:0}
 </style>
 
 
