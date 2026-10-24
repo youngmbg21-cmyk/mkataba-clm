@@ -15548,6 +15548,33 @@ let _docThreadStillT=null;
 let _docThreadShut='';
 const docThreadShutOn = c => !!_docThreadShut&&_docThreadShut===String(c&&c.id);
 const docThreadShutClear = () => { _docThreadShut=''; };
+/* ---- A PRESS ON HOME'S TRACK OPENS THE CLAUSE IN CLAUSES (owner, 24 Oct
+   2026: "Simply stop asking the question and move me to where image 2 is so i
+   can read there and deepdive") ----
+   The Track beside Home's paper used to write a question into Jambo's box.
+   Now it does what the room's Track always did (docTrackWire): the clause
+   opens in the Clauses list, with its Plain English, cards and Deep dive, and
+   the paper glides there by the list's own glide (docThreadGoTo). A row is
+   found by its paper element, else by its label, so a repaint between the
+   press and the paint still lands. */
+function docThreadWantIndex(rows,w){
+  let j=rows.findIndex(x=>x.el===w.el);
+  if(j<0&&w.label) j=rows.findIndex(x=>!docThreadIsSec(x)&&docXrayLabel(x)===w.label);
+  return j;
+}
+/* the list is up on Home for this contract: open the row now; false when it is not there */
+function docThreadLandOn(c,el,label){
+  if(!c||!_docThreadUp||_thHost!=='home'||!_docThreadCache||_docThreadCache.id!==String(c.id)) return false;
+  const card=thEl('card'); if(!card||!card.isConnected) return false;
+  const j=docThreadWantIndex(_docThreadCache.rows,{ el, label:String(label||'') });
+  if(j<0) return false;
+  docThreadShutClear(); docThreadGoTo(docThreadCur(c),j);
+  return true;
+}
+/* the list is not drawn yet: the next paint for this contract opens the row (docThreadPaint) */
+function docThreadWantClause(c,el,label){ if(c) _docThreadWant={ id:String(c.id), el, label:String(label||'') }; }
+const docThreadWantPending = () => !!_docThreadWant&&typeof _docThreadWant==='object';
+function docThreadWantDrop(){ if(docThreadWantPending()) _docThreadWant=''; }
 /* SHUT THE LIST: the glide in flight is dropped (its reconcile would open the
    row at the line again), the latch is raised, nothing is open. The paper does
    not move — the reader is reading it. */
@@ -15752,6 +15779,11 @@ function docThreadPaint(c){
     _docThreadWant='';
     const worst=docThreadWorst(rows);
     land=worst?rows.findIndex(x=>!docThreadIsSec(x)&&x.tone===worst):-1;
+    if(land>=0&&!docThreadShown(rows[land])) _docThreadTones=[];
+  } else if(_docThreadWant&&typeof _docThreadWant==='object'){
+    /* ARRIVING FROM THE TRACK (docThreadWantClause): the pressed clause, on its own contract only */
+    const w=_docThreadWant; _docThreadWant='';
+    land=(w.id===String(c&&c.id))?docThreadWantIndex(rows,w):-1;
     if(land>=0&&!docThreadShown(rows[land])) _docThreadTones=[];
   }
   /* A LANDING IS A PRESS (the risk door above): it lets the reader's close go.
@@ -19184,7 +19216,7 @@ Object.assign(window,{signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DO
   DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadTonesNow,docThreadKeepTones,docThreadFlatSay,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,
   docThreadRowHtml,docThreadBodyHtml,docThreadExplainHtml,docThreadUnrunHtml,docThreadPlain,docThreadStates,docThreadFill,
   /* the Drawer, the colour filter and Plain (Young, 5 Oct 2026) */
-  docPanelHas,docThreadLanding,docThreadShowsClauses,docThreadDrawerShowing,docThreadDrawerSet,docThreadPlace,docThreadPlacePut,
+  docPanelHas,docThreadLanding,docThreadWantIndex,docThreadLandOn,docThreadWantClause,docThreadWantPending,docThreadWantDrop,docThreadShowsClauses,docThreadDrawerShowing,docThreadDrawerSet,docThreadPlace,docThreadPlacePut,
   docThreadPanelMoved,docThreadShown,docThreadVisible,docThreadNearest,docThreadFilterSet,docThreadTopHtml,docThreadDoorPaint,
   docThreadCannotOf,docThreadCannotMark,docThreadCannotWhy,docReadWhyOf,docThreadIsSec,DOC_THREAD_TONE_KEYS,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,

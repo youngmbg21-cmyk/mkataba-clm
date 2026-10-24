@@ -219,6 +219,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)
 - f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-drawer, home-paper-clauses, runway-and-xray, reading-in-the-background, xray-who-does-what verify.
+- 24 Oct 2026: Home's Track opens Clauses — f424 (2), track-on-the-paper-verify 4a–4d, analyze-on-the-graph-verify 2s4–2s8, document-tab-track-verify.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
 - 21 Oct 2026 (overnight): the-road-as-drawn-verify 14b/14c (the head and the road's first stop never give two totals: "n of the N").

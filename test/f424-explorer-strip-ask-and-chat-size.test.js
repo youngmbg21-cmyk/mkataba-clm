@@ -41,11 +41,17 @@ test('f424 (1) numbers on the blocks are Explorer\'s, asked for; the Document ta
   assert.doesNotMatch(code(region(IG, 'igStrandPaint')), /docXraySpineHtml\(rows/);
 });
 
-test('f424 (2) a press fills the box and asks nothing, and a typed question is kept', () => {
+/* RE-POINTED 24 Oct 2026 (owner: "Simply stop asking the question and move me
+   to where image 2 is so i can read there and deepdive"): the press no longer
+   fills Jambo's box; it opens the clause in Clauses. Browser: track-on-the-paper 4b. */
+test('f424 (2) a press opens the clause in Clauses and writes nothing into Jambo\'s box', () => {
   const p = code(region(IG, 'igStrandPress'));
   assert.doesNotMatch(p, /intelAsk\(|igPaperAsk\(|\bapi\(|fetch\(/, 'nothing is sent from a press');
-  assert.match(p, /if\(had\.trim\(\) && had!==_igStrandLastAsk\) return;/);
-  assert.match(p, /inp\.value=q;/);
+  assert.doesNotMatch(p, /igAskBox\(|\.value=|igStrandQuestion\(/, 'nothing is written into the box');
+  assert.match(p, /docThreadLandOn\(c,row\.el,label\)/);
+  assert.match(p, /docThreadWantClause\(c,row\.el,label\);[\s\S]*pdSetTab\('doc'\);[\s\S]*renderIntelDock\(\)/);
+  assert.match(code(region(IG, 'igStrandTip')), /i18t\('int_strip_open'\)/, 'the hover says where the press goes');
+  assert.doesNotMatch(code(region(IG, 'igStrandTip')), /int_strip_go/);
 });
 
 test('f424 (3) the question names the clause and its worst flag', () => {
@@ -72,7 +78,7 @@ test('f424 (4) both chats\' text is the body size on the desktop, the phone unto
 });
 
 test('f424 (5) every new word is in both books', () => {
-  for (const k of ['int_strip_q', 'int_strip_q_bare', 'int_strip_go', 'int_strip_asked', 'int_strip_more_one',
+  for (const k of ['int_strip_q', 'int_strip_q_bare', 'int_strip_go', 'int_strip_open', 'int_strip_asked', 'int_strip_more_one',
     'int_strip_more_other', 'int_grade_ruby', 'int_grade_amber', 'int_grade_steel'])
     assert.equal((I18N.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).length, 2, k);
 });
@@ -116,5 +122,5 @@ test('f424 (7) the graph answer goes through the side panel\'s renderer, the doc
   assert.match(IG, /<textarea id="igd-input" rows="1"[^>]*class="chat-field"/);
   assert.doesNotMatch(IG, /<input id="igd-input"/);
   assert.match(code(region(IG, 'renderIntelDock')), /chatFieldSubmits\(e\)/);
-  assert.match(code(region(IG, 'igStrandPress')), /chatFieldGrow\(inp\)/, 'a filled question opens the box to fit');
+  /* the Track's press fills no box since 24 Oct 2026 (f424 (2)), so it grows none */
 });
