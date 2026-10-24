@@ -602,13 +602,40 @@ function splitSave(key, w){
 const splitRest = h => Number(typeof h.w0 === 'function' ? h.w0() : h.w0) || h.min || 0;
 /* The width the panel takes in a room `avail` wide: the reader's choice or
    the resting width, clamped by both floors. Pure, so a stage can ask it. */
+/* how much of the page stays in sight at the panel's widest: the page's own
+   floor where the panel squeezes; where it slides over, the same strip on every
+   page (SPLIT_PEEK, Home's own IG_LEFT_MIN), so a list whose table is wider
+   than the mark slides under the panel like the paper does */
+const SPLIT_PEEK = 420;
+const splitKeep = h => (h.over === false) ? h.restMin : Math.min(Number(h.restMin) || 0, SPLIT_PEEK);
 function splitClamp(want, avail, h){
   let w = Number(want) || splitRest(h);
+  const keep = splitKeep(h);
   if (avail > 0){
-    if (avail >= h.restMin + h.min) w = Math.min(Math.max(w, h.min), avail - h.restMin);
+    if (avail >= keep + h.min) w = Math.min(Math.max(w, h.min), avail - keep);
     else w = Math.max(h.min, Math.min(w, avail));
   } else w = Math.max(w, h.min);
   return Math.round(w);
+}
+/* PAST THE MARK THE PANEL SLIDES OVER (owner, 24 Oct 2026, over the
+   signing page on the iPad: "when you slide the side panel leftwards, it does
+   not squeeze the page but rather at some point begins to slide over the
+   paper. All pages should do the same starting the marker where the signing
+   page side panel begins to do overlay"). The signing copy keeps its A4 sheet
+   whole (794px and its gutters), so once its column is narrower than that the
+   panel covers the paper instead of squeezing it. Every panel now does the
+   same at the same mark: the page beside it narrows until it is SPLIT_OVER_AT
+   wide, then holds still and the panel's further width lies OVER it. A
+   window too small to give the page the mark at the panel's resting width
+   holds the page where the resting width leaves it (nothing slides over at
+   rest), and the page's own floor (restMin) still wins. The host is told the
+   width that lies over the page, `apply(w, over)`; one with `over: false`
+   squeezes as before. Story: MAP-HISTORY "THE SLIDER ON EVERY JAMBO PANEL". */
+const SPLIT_OVER_AT = 880;
+function splitOver(w, avail, h){
+  if (!h || h.over === false || !(avail > 0)) return 0;
+  const hold = Math.max(Number(h.restMin) || 0, Math.min(SPLIT_OVER_AT, avail - splitRest(h)));
+  return Math.max(0, Math.round(hold - (avail - w)));
 }
 const _splitPrefOf = h => (typeof h.pref === 'function') ? h.pref() : splitPref(h.key);
 const _splitSaveOf = (h, w) => { if (typeof h.save === 'function') h.save(w); else splitSave(h.key, w); };
@@ -621,13 +648,15 @@ function splitWidth(h){
    else writes the width. */
 function splitFit(rez, h){
   const w = splitWidth(h);
-  h.apply(w);
-  if (!rez) return w;
   const avail = h.avail();
+  const over = h.folded() ? 0 : splitOver(w, avail, h);
+  h.apply(w, over);
+  if (rez){ if (over) rez.setAttribute('data-over', String(over)); else rez.removeAttribute('data-over'); }
+  if (!rez) return w;
   if (h.folded() || (typeof h.off === 'function' && h.off()) || !(avail > 0)){ rez.hidden = true; return w; }
   rez.hidden = false;
   if (typeof h.place === 'function') h.place(rez, w);
-  const atMin = w <= h.min, atMax = avail >= h.restMin + h.min && w >= avail - h.restMin;
+  const keep = splitKeep(h), atMin = w <= h.min, atMax = avail >= keep + h.min && w >= avail - keep;
   if (atMin || atMax) rez.setAttribute('data-at-limit', atMin ? 'min' : 'max'); else rez.removeAttribute('data-at-limit');
   rez.setAttribute('aria-valuenow', String(w));
   return w;
@@ -667,7 +696,7 @@ function splitWire(rez, h){
     h._splitResize = true; window.addEventListener('resize', () => { try { h.resize(); } catch (_){} });
   }
 }
-Object.assign(window,{SPLIT_GRIP,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire});
+Object.assign(window,{SPLIT_GRIP,SPLIT_OVER_AT,SPLIT_PEEK,splitKeep,splitOver,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire});
 
 /* ════ ONE GLIDE FOR LISTS (owner, 22 Oct 2026, the motion plan step 3) ════
    A list drawn again after a press (a card accepted moves to its pile) used

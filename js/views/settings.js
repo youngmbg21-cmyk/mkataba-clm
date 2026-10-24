@@ -3555,7 +3555,9 @@ const ST_SPLIT={
   /* the track's right edge (the panel itself bleeds past it into the page's padding) */
   edge:()=>{ const cols=document.querySelector('#set-page .st-cr-cols'); return cols?cols.getBoundingClientRect().right:0; },
   /* THE ONE WRITER of the width: the track; folded, the stylesheet's 46 */
-  apply:w=>{ const page=document.getElementById('set-page'); if(!page||_stSideFold) return; page.style.setProperty('--st-side-w', Math.round(w)+'px'); },
+  /* past the mark the track stops narrowing the board and the panel lies over it by `over` (splitOver) */
+  apply:(w,over)=>{ const page=document.getElementById('set-page'); if(!page||_stSideFold) return; page.style.setProperty('--st-side-w', Math.round(w-(over||0))+'px');
+    const side=document.getElementById('st-side'); if(side){ side.style.width=over?Math.round(w)+'px':''; side.style.marginLeft=over?(-over)+'px':''; side.classList.toggle('is-split-over', !!over); } },
   /* the head card wraps to the new width: the panel's height is measured again */
   settle:()=>{ try{ stSideFit(); }catch(_){} },
   resize:()=>{ if(document.getElementById('st-side')) stSplitFit(); }

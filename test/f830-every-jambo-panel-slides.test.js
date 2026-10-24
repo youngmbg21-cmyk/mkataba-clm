@@ -58,11 +58,11 @@ function stage(over = {}){
   const win = dom.window;
   win.i18t = k => ({ int_drag_width: 'Drag to set how wide the panel is · double-click to reset' }[k] || k);
   win.eval(CMP);
-  const log = { applied: [], settled: 0, dragging: [] };
+  const log = { applied: [], over: [], settled: 0, dragging: [] };
   const geo = { avail: 1440, edge: 1440, folded: false, off: false };
   const h = Object.assign({ key: 'hati.v1.testW', w0: 380, min: 340, restMin: 700, foldedW: 46,
     folded: () => geo.folded, off: () => geo.off, avail: () => geo.avail, edge: () => geo.edge,
-    apply: w => log.applied.push(w), settle: () => { log.settled++; }, dragging: on => log.dragging.push(on) }, over);
+    apply: (w, o) => { log.applied.push(w); log.over.push(o); }, settle: () => { log.settled++; }, dragging: on => log.dragging.push(on) }, over);
   const host = win.document.getElementById('grip-host');
   host.innerHTML = win.splitHtml({ id: 'test-resizer', min: 340 });
   const rez = win.document.getElementById('test-resizer');
@@ -79,7 +79,7 @@ describe('f830 (1) one builder, three clients, one dress', () => {
   test('1a the builder is components.js\'s and publishes its parts', () => {
     for (const n of ['splitHtml', 'splitPref', 'splitSave', 'splitClamp', 'splitWidth', 'splitFit', 'splitWire'])
       assert.match(CMP, new RegExp('\\nfunction ' + n + '\\('), n + ' is defined once, in the builder');
-    assert.match(CMP, /Object\.assign\(window,\{SPLIT_GRIP,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire\}\);/);
+    assert.match(CMP, /Object\.assign\(window,\{SPLIT_GRIP,SPLIT_OVER_AT,SPLIT_PEEK,splitKeep,splitOver,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire\}\);/);
   });
   test('1b Home, the panel beside the lists (and Import) and Settings are its clients', () => {
     assert.match(code(fnOf(IG, 'igFitSplit')), /splitFit\(rez, IG_SPLIT\)/, 'Home\'s one pass is the builder\'s');
@@ -149,15 +149,19 @@ describe('f830 (3) the wiring', () => {
     assert.equal(s.now(), 440);
     assert.equal(s.rez.dataset.drag, undefined);
   });
-  test('3d the floors win and the grip says so: the panel\'s, then the page\'s', () => {
+  /* REVERSED 24 Oct 2026 (owner: past the signing page's mark the panel slides OVER the page):
+     the page beside no longer stops the panel at its floor; the panel stops where SPLIT_PEEK of
+     the page is still in sight, and the width past the page's hold lies over it */
+  test('3d the floors win and the grip says so: the panel\'s, then the strip of page left in sight', () => {
     const s = stage();
     s.rez.dispatchEvent(s.ev('pointerdown', 1060));
     s.win.dispatchEvent(s.ev('pointermove', 1400));
     assert.equal(s.now(), 340, 'the panel keeps its floor');
     assert.equal(s.rez.getAttribute('data-at-limit'), 'min');
     s.win.dispatchEvent(s.ev('pointermove', 100));
-    assert.equal(s.now(), 1440 - 700, 'the page beside keeps its floor');
+    assert.equal(s.now(), 1440 - s.win.SPLIT_PEEK, 'the panel stops with SPLIT_PEEK of the page in sight');
     assert.equal(s.rez.getAttribute('data-at-limit'), 'max');
+    assert.equal(s.rez.getAttribute('data-over'), String(s.win.SPLIT_OVER_AT - s.win.SPLIT_PEEK), 'the page held at the mark (880, wider than its own 700 floor): the rest lies over it');
     s.win.dispatchEvent(s.ev('pointerup', 100));
   });
   test('3e the keys: ArrowLeft widens, ArrowRight narrows, by max(8px, 2%); Home and Enter put it back', () => {
@@ -193,10 +197,43 @@ describe('f830 (3) the wiring', () => {
   });
   test('3h a stored width is re-fitted to a smaller window (re-fit on resize)', () => {
     const s = stage();
-    s.win.localStorage.setItem('hati.v1.testW', '700');
+    s.win.localStorage.setItem('hati.v1.testW', '1100');
     s.geo.avail = 1366; s.win.splitFit(s.rez, s.h);
-    assert.equal(s.now(), 1366 - 700, 'the page keeps its floor on the smaller screen');
-    assert.equal(s.stored(), '700', 'the reader\'s choice is kept for a wider one');
+    assert.equal(s.now(), 1366 - s.win.SPLIT_PEEK, 'the panel leaves SPLIT_PEEK of the page in sight on the smaller screen');
+    assert.equal(s.stored(), '1100', 'the reader\'s choice is kept for a wider one');
+  });
+  /* PAST THE MARK THE PANEL SLIDES OVER (owner, 24 Oct 2026: "in the signing page, when you slide
+     the side panel leftwards, it does not squeeze the page but rather at some point begins to slide
+     over the paper. All pages should do the same starting the marker where the signing page side
+     panel begins to do overlay"). AT THE PARENT (415b41f) there is no splitOver: every one fails. */
+  test('3j below the mark the page narrows; at the mark it holds and the panel lies over it', () => {
+    const s = stage({ restMin: 420 });
+    assert.equal(s.win.SPLIT_OVER_AT, 880, 'the mark: the signing copy\'s A4 sheet (794px) and its gutters');
+    s.win.localStorage.setItem('hati.v1.testW', '560'); s.win.splitFit(s.rez, s.h);
+    assert.equal(s.now(), 560); assert.equal(s.log.over.at(-1), 0, 'the page 880 wide: nothing over it yet');
+    assert.equal(s.rez.getAttribute('data-over'), null);
+    s.win.localStorage.setItem('hati.v1.testW', '760'); s.win.splitFit(s.rez, s.h);
+    assert.equal(s.now(), 760, 'the panel takes the width asked');
+    assert.equal(s.log.over.at(-1), 200, 'the page holds at 880: 200px of the panel lie over it');
+    assert.equal(s.rez.getAttribute('data-over'), '200');
+    s.geo.folded = true; s.win.splitFit(s.rez, s.h);
+    assert.equal(s.log.over.at(-1), 0, 'folded, nothing lies over the page');
+  });
+  test('3k a window too small for the mark at rest holds the page where the resting width leaves it; over:false squeezes', () => {
+    const s = stage({ restMin: 420 });
+    s.geo.avail = 1100; s.win.splitFit(s.rez, s.h);
+    assert.equal(s.now(), 380); assert.equal(s.log.over.at(-1), 0, 'at rest nothing slides over, even under the mark');
+    s.win.localStorage.setItem('hati.v1.testW', '500'); s.win.splitFit(s.rez, s.h);
+    assert.equal(s.log.over.at(-1), 120, 'the page held at 1100 − 380 = 720: the 120px more lie over it');
+    const q = stage({ restMin: 420, over: false });
+    q.win.localStorage.setItem('hati.v1.testW', '760'); q.win.splitFit(q.rez, q.h);
+    assert.equal(q.log.over.at(-1), 0, 'a host that asks not to slide over squeezes as before');
+  });
+  test('3l every host takes the width that lies over its page', () => {
+    assert.match(code(objOf(IG, 'IG_SPLIT')), /apply: \(w, over\) =>[\s\S]*?dock\.style\.marginLeft=over\?\(-over\)\+'px':''; dock\.classList\.toggle\('is-split-over', !!over\)/, 'Home: the dock lies over the paper by a negative margin');
+    assert.match(code(objOf(INS, 'JL_SPLIT')), /setProperty\('--jl-room', Math\.round\(w - \(over \|\| 0\)\) \+ 'px'\)/, 'the lists: the page\'s room stops short of the panel');
+    assert.match(code(SET), /setProperty\('--st-side-w', Math\.round\(w-\(over\|\|0\)\)\+'px'\)/, 'Settings: the track stops short of the panel');
+    assert.match(HTML, /#app-shell #ig-page:not\(\.hb-dark\) #ig-dock\.is-split-over, #app-shell #ig-dock\.is-split-over\{position:relative;z-index:6;box-shadow:/, 'its edge lifted by a shadow');
   });
   test('3i bound once per grip element', () => {
     const s = stage();
@@ -238,7 +275,7 @@ describe('f830 (4) the panel beside the lists, and Import', () => {
     assert.equal(win.JL_SPLIT.w0, 384, 'Home\'s panel\'s rest');
     assert.equal(win.splitClamp(null, 1440, win.JL_SPLIT), 384);
     assert.equal(win.splitClamp(100, 1440, win.JL_SPLIT), 340);
-    assert.equal(win.splitClamp(2000, 1440, win.JL_SPLIT), 1440 - win.JL_LIST_MIN);
+    assert.equal(win.splitClamp(2000, 1440, win.JL_SPLIT), 1440 - win.SPLIT_PEEK, 'past the list\'s floor the panel slides over it (24 Oct 2026); the line never flips: insFits adds the panel\'s whole width');
     assert.equal(win.JL_SPLIT.key, 'hati.v1.jlW', 'one key for every list page and Import');
   });
   test('4c the width is ONE value: the divider writes --jl-w on the shell; insFits measures with it', () => {
@@ -289,13 +326,14 @@ describe('f830 (4) the panel beside the lists, and Import', () => {
     d.querySelectorAll('table').forEach(t => { t.getBoundingClientRect = () => ({ left: 17, right: 969, width: t.classList.contains('t-hidden') ? 0 : 952, top: 0, bottom: 0, height: 0 }); });
     assert.equal(win.jlListMin(), 66 + 160 + 144 + 114 + 92 + 168 + 170 + (986 - 952), 'People keeps its fixed columns, 170 for the name, and its padding');
     assert.equal(win.JL_SPLIT.restMin, win.jlListMin(), 'the host\'s floor is the list\'s, read live');
-    assert.equal(win.splitClamp(700, 1366, win.JL_SPLIT), 1366 - 948, 'the reader\'s wish is given only the room the list leaves');
+    assert.equal(win.splitClamp(700, 1366, win.JL_SPLIT), 700, 'the reader\'s wish is given');
+    assert.equal(win.splitOver(700, 1366, win.JL_SPLIT), 948 - (1366 - 700), 'the list holds at its own floor (wider than the mark) and the panel lies over it');
     box.remove();
     assert.equal(win.jlListMin(), win.JL_LIST_MIN, 'a list with no fixed table keeps the inspector\'s own floor');
   });
   test('4e the 384 literals are one variable: the panel, the page head and the page\'s scroller read --jl-w', () => {
     assert.match(HTML, /#content \.ins-panel\.is-jambo\{position:fixed;right:0;top:var\(--jl-top,88px\);bottom:0;width:var\(--jl-w,384px\);/);
-    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #page-head,\n\s*#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-w,384px\);\}/);
+    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #page-head,\n\s*#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-room,var\(--jl-w,384px\)\);\}/);
     assert.doesNotMatch(HTML, /\.ins-panel\.is-jambo[^{]*\{[^}]*width:380px/, 'no 380px literal left on the panel');
     assert.match(HTML, /#content \.ins-panel\.is-jambo\.is-folded\{width:46px;\}/, 'the folded strip keeps its 46');
   });
@@ -326,17 +364,23 @@ describe('f830 (5) Settings', () => {
     assert.equal(S.key, 'hati.v1.stSideW', 'its own key');
     assert.match(code(objOf(SET, 'ST_SPLIT')), /w0:\(\)=>\(\(typeof matchMedia==='function'\)&&matchMedia\('\(min-width:1401px\)'\)\.matches\)\?384:344/, 'resting at the track\'s own width');
     assert.equal(g.sb.splitClamp(null, 1382, Object.assign({}, S, { w0: 384 })), 384);
-    assert.equal(g.sb.splitClamp(2000, 1382, S), 1382 - 780, 'the board keeps its floor');
+    assert.equal(g.sb.splitClamp(2000, 1382, S), 1382 - g.sb.SPLIT_PEEK, 'past the board\'s floor the panel slides over it, SPLIT_PEEK left in sight (24 Oct 2026)');
     assert.equal(g.sb.splitClamp(100, 1382, S), 340);
   });
   test('5c the track is --st-side-w, written on the page by the one pass, and stacked below 981px', () => {
     const g = stage5({ role: 'admin' });
     const cols = g.q('#set-page .st-cr-cols');
     cols.getBoundingClientRect = () => ({ left: 16, right: 1414, width: 1398, top: 0, bottom: 700, height: 700 });
-    g.sb.localStorage.setItem('hati.v1.stSideW', '560');
+    g.sb.localStorage.setItem('hati.v1.stSideW', '500');
     g.run('stSplitFit()');
-    assert.equal(g.$('set-page').style.getPropertyValue('--st-side-w'), '560px');
+    assert.equal(g.$('set-page').style.getPropertyValue('--st-side-w'), '500px', 'below the mark the track is the panel');
     assert.equal(g.$('st-resizer').hidden, false);
+    g.sb.localStorage.setItem('hati.v1.stSideW', '760');
+    g.run('stSplitFit()');
+    const over = 880 - (1398 - 760);
+    assert.equal(g.$('set-page').style.getPropertyValue('--st-side-w'), (760 - over) + 'px', 'past the mark the board holds at 880');
+    assert.equal(g.$('st-side').style.width, '760px', 'and the panel lies over it');
+    assert.equal(g.$('st-side').style.marginLeft, (-over) + 'px');
     g.sb.localStorage.removeItem('hati.v1.stSideW');
     assert.match(HTML, /@media \(min-width:981px\)\{[\s\S]*?\.st-cr \.st-cr-cols\{ grid-template-columns:minmax\(0,1fr\) var\(--st-side-w,384px\); column-gap:var\(--s-4\); \}/);
     assert.match(HTML, /@media \(min-width:981px\) and \(max-width:1400px\)\{ \.st-cr \.st-cr-cols\{ grid-template-columns:minmax\(0,1fr\) var\(--st-side-w,344px\); \} \}/);

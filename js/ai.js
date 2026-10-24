@@ -849,7 +849,10 @@ const AI_SIDE_SPLIT = {
     return Math.max(0, (window.innerWidth || 0) - left); },
   edge: () => window.innerWidth || 0,
   /* THE ONE WRITER of the width: the panel and the page's room both read --ai-side-w */
-  apply: w => { if (!aiSideShown()) return; document.documentElement.style.setProperty('--ai-side-w', Math.round(w) + 'px'); },
+  /* past the mark the page's room stops at the panel's seam less what lies over it (splitOver) */
+  apply: (w, over) => { if (!aiSideShown()) return; const r = document.documentElement.style;
+    r.setProperty('--ai-side-w', Math.round(w) + 'px'); r.setProperty('--ai-side-room', Math.round(w - (over || 0)) + 'px');
+    const p = document.getElementById('ai-panel'); if (p) p.classList.toggle('is-split-over', !!over); },
   dragging: on => { const p = document.getElementById('ai-panel'); if (p) p.classList.toggle('is-dragging', !!on); },
   settle: () => aiSideReflow(),
   resize: () => aiSideFit()

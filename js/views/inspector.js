@@ -1163,9 +1163,11 @@ const JL_SPLIT = {
     try { return Math.max(0, Math.round(h.getBoundingClientRect().right - cs.getBoundingClientRect().left)); } catch (_){ return 0; } },
   edge: () => { const h = jlHost(); return h ? h.getBoundingClientRect().right : 0; },
   /* THE ONE WRITER of the width: folded, the strip is the stylesheet's 46 and the open width is kept */
-  apply: w => { const sh = jlShell(); const h = jlHost();
+  apply: (w, over) => { const sh = jlShell(); const h = jlHost();
     if (!sh || !h || h.classList.contains('is-folded')) return;
-    sh.style.setProperty('--jl-w', Math.round(w) + 'px'); },
+    sh.style.setProperty('--jl-w', Math.round(w) + 'px');
+    /* past the mark the page's room stops at the panel's seam less what lies over it (splitOver) */
+    sh.style.setProperty('--jl-room', Math.round(w - (over || 0)) + 'px'); h.classList.toggle('is-split-over', !!over); },
   /* the window's resize is this file's own listener (jlLayout, at the foot) */
 };
 /* the panel's top is the page head's top: under the bar and the desk tabs;

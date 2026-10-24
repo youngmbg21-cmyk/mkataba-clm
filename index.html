@@ -12993,7 +12993,7 @@
     #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:var(--ai-side-w,384px);max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
     /* BESIDE THE PAGE, AS EVERY JAMBO PANEL (owner, 22 Oct 2026): the page makes room, nothing dimmed;
        THE SLIDER on its left edge (splitHtml, ai.js AI_SIDE_SPLIT) pulls it wider */
-    body.ai-side-open #content-scroll, body.ai-side-open #page-head{margin-right:var(--ai-side-w,384px)}
+    body.ai-side-open #content-scroll, body.ai-side-open #page-head{margin-right:var(--ai-side-room,var(--ai-side-w,384px))}
     #ai-panel.is-side > .ig-resizer{left:-1px}
     #ai-panel.is-side.is-dragging{transition:none}
     #ai-panel.is-side.ai-stepaside{visibility:hidden;pointer-events:none}
@@ -14285,7 +14285,7 @@
      and the panel, the page head and the page's scroller all read — 380 where
      nobody has chosen. */
   #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
-  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:var(--jl-w,384px);}
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:var(--jl-room,var(--jl-w,384px));}
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:46px;}
   #content :has(> #ins-panel.is-jambo){grid-template-columns:minmax(0,1fr);column-gap:0;}
@@ -16869,7 +16869,7 @@
      most lists) lets it stand over its own empty 16px right margin, so the list keeps every pixel (the
      Parties column kept its 186 at 1366, parties-nda-column 4); a page with a scrollbar steps 8px aside
      so the panel never covers it */
-  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:calc(var(--jl-w,384px) + 8px);}
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:calc(var(--jl-room,var(--jl-w,384px)) + 8px);}
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:54px;}
   @media (min-width:981px){
     .st-cr .st-side{top:8px;margin:calc(8px - var(--page-pad-t)) calc(8px - var(--page-pad-x)) 0 0;height:calc(var(--st-side-h,560px) - 16px);border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
@@ -16970,8 +16970,15 @@
     #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:0;border-radius:0;box-shadow:none}
     #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:47px}
     #content .ins-panel.is-jambo{right:0;top:var(--jl-top,88px);bottom:0;border-radius:0;box-shadow:none;border-left:1px solid var(--color-neutral-300)}
-    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:var(--jl-w,384px)}
+    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:var(--jl-room,var(--jl-w,384px))}
   }
+  /* PAST THE MARK THE PANEL SLIDES OVER (owner, 24 Oct 2026; splitOver in js/components.js):
+     the page holds still and the panel lies over it, its edge lifted by a soft shadow so the
+     page underneath reads as underneath. Each panel's own rule, at its own specificity. */
+  #app-shell #ig-page:not(.hb-dark) #ig-dock.is-split-over, #app-shell #ig-dock.is-split-over{position:relative;z-index:6;box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  #content .ins-panel.is-jambo.is-split-over{box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  #set-page #st-side.is-split-over{z-index:6;box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
+  #ai-panel.is-side.is-split-over{box-shadow:-16px 0 28px -16px rgba(0,0,0,.24)}
 </style>
 
 
