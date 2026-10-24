@@ -330,6 +330,14 @@ const check = (name, pass, detail) => {
     await until(() => !!document.querySelector('#ig-page.hb-dark'), null, 10000);
     const exd = await page.evaluate(() => { const d = document.getElementById('ig-dock'), c = d && getComputedStyle(d); return c ? { m: c.marginTop, r: c.borderTopLeftRadius } : null; });
     check('12j Explorer stays as it was: its panel does not float (owner: "stay dark")', !!exd && exd.m === '0px' && exd.r === '0px', JSON.stringify(exd));
+    /* 24 Oct 2026 (owner): your words to Jambo wear his answers' rounding, in Home's panel and the chat window */
+    const bubs = await page.evaluate(() => { const u = { role: 'user', text: 'What is late?' }, a = { role: 'assistant', text: 'Two are late.' }, H = [u, a];
+      const r = e => e ? getComputedStyle(e).borderBottomRightRadius + ' ' + getComputedStyle(e).borderTopLeftRadius : null, out = {};
+      const put = (sel, html) => { const d = document.createElement('div'); d.innerHTML = html; (document.querySelector(sel) || document.body).appendChild(d); return d; };
+      if (typeof igMsgHTML === 'function'){ const d = put('#ig-dock', igMsgHTML(u, 0, H) + igMsgHTML(a, 1, H)); out.ig = [r(d.querySelector('.ig-bub-me')), r(d.querySelector('.jl-bub'))]; d.remove(); }
+      if (typeof aiMsgHtml === 'function'){ const d = put('#ai-feed', aiMsgHtml(u, 0) + aiMsgHtml(a, 1)); const b = d.querySelectorAll('.ai-bub'); out.ai = [r(b[0]), r(b[1])]; d.remove(); }
+      return out; });
+    check('12k your words to Jambo are rounded as his answers are, in Home\'s panel and the chat window', !!bubs.ig && !!bubs.ai && [bubs.ig, bubs.ai].every(p => p[0] && p[0] === p[1] && !/^0px/.test(p[0])), JSON.stringify(bubs));
     await page.evaluate(() => { if (window.hbSetFace) hbSetFace('board'); });
 
     check('page errors: none', errors.length === 0, errors.slice(0, 3).join(' | '));

@@ -34073,3 +34073,8 @@ The owner, with four pictures: "Image 2 at the bottom right corner you have file
 - SAVE: the foot's filled act was the small rung (22px) and faded to .45 when greyed — "seem hidden". Now 32px tall, ≥120 wide, body size, and solid grey when greyed (its hover says why). The 5 Oct "make the buttons smaller" stands for the walk's ‹ ›.
 - At 1440 the panel (384 wide) wraps Deal under Send all · Ask for review · Notes; the button itself stays on one line. Said to the owner.
 
+
+## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — THE LEGORA LOOK, AFTER STAGE 2'S REVIEW (owner, 24 Oct 2026)
+- The owner, word for word: "in the redline card, worth a look should have the same shading approval like the redline cards but a very light amber like color. Also, the prompts from the user does not have the round edges like the answers from jambo. Fix this as well".
+- "Worth a look" (Jambo's read on their row, `rlRowReadHtml`, `data-rl-row-read="look"`) now stands in its own soft box inside the change card: 12px corners, 8px 10px padding, the amber status ground mixed 55% into white (`color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))`). Read as asked: the "Worth a look" piece, not the whole card; the other readings (Take it, Push back, Escalate, Read it) keep their dot only.
+- Your words to Jambo: the user bubble in Home's panel (`igMsgHTML`) and the chat window (`aiMsgHtml`) carry `rounded-2xl rounded-br-md`, which the generated Tailwind sheet sets to 0 — measured 0px against the answers' 18px (`.jl-bub`, `--radius-lg`). Fixed in HaTi's own sheet, never the blob: `.ai-msg.justify-end > .ai-bub{border-radius:var(--radius-lg)}`. Settings' own conversation (`.st-jb-me` / `.st-jb-bub`) already matched itself at 10px and is left as it is.
