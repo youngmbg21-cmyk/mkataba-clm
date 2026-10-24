@@ -67,9 +67,18 @@ const check = (name, pass, detail) => {
     check('0 the Document tab with nothing open shows the wall', up);
     if (!up) throw new Error('the wall never drew');
     /* the seed holds four contracts; twenty more (in this page only, never saved)
-       prove the wall is not capped at the old list's twelve and fills a line of six */
-    await page.evaluate(() => {
-      const base = state.contracts.slice();
+       prove the wall is not capped at the old list's twelve and fills a line of six.
+       RE-POINTED 24 Oct 2026 (flaky on CI, "reading 'name'" of undefined): on a slow
+       runner the list was being re-loaded at this moment and read empty; wait for
+       the four seeded contracts first, and copy only whole ones */
+    /* …and on GitHub's runner the book was then filled AGAIN from the server
+       just after the twenty were added (the wall read 4 of 4). Adding is
+       idempotent, so add, wait, and add again until the twenty stay. */
+    const addTwenty = () => page.evaluate(() => {
+      if (!Array.isArray(state.contracts)) return false;
+      if (state.contracts.some(c => c && c.id === 'MK-W20')) return true;
+      const base = state.contracts.filter(c => c && c.name && !/^MK-W\d+$/.test(c.id));
+      if (base.length < 4) return false;
       for (let i = 0; i < 20; i++){
         const src = base[i % base.length];
         state.contracts.push({ ...src, id: 'MK-W' + (i + 1), contractNo: 'MK-W' + (i + 1), name: src.name + ' ' + (i + 1),
@@ -77,7 +86,14 @@ const check = (name, pass, detail) => {
       }
       if (window.familyIndexDirty) familyIndexDirty();
       igPaintPaper();
+      return false;
     });
+    for (let i = 0, stayed = 0; i < 60 && stayed < 6; i++) {
+      stayed = (await addTwenty()) ? stayed + 1 : 0;
+      await page.waitForTimeout(250);
+    }
+    await page.evaluate(() => igPaintPaper());
+    await page.waitForFunction(() => { const n = document.querySelector('#ig-paper .igw-count'); return !!n && /\b24\b/.test(n.textContent); }, null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(OUT, '1-wall.png') });
 
