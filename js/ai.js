@@ -806,7 +806,7 @@ function aiSideSync(){
   panel.classList.toggle('is-side', on && !win);
   panel.classList.toggle('floating', win);
   if(win){ try{ aiFloatWire(); }catch(_){} aiFloatApply(aiFloatBox(), false); }
-  else if(panel.style && typeof panel.style.removeProperty==='function') ['left','top','width','height'].forEach(k => { try{ panel.style.removeProperty(k); }catch(_){} });
+  else if(panel.style && typeof panel.style.removeProperty==='function') ['left','top','width','height','z-index'].forEach(k => { try{ panel.style.removeProperty(k); }catch(_){} });
   const head = panel.querySelector ? panel.querySelector('header') : null;
   if(head){ if(win){ head.setAttribute('data-i18n-title', 'ai_float_move'); head.title = i18t('ai_float_move'); } else { head.removeAttribute('data-i18n-title'); head.removeAttribute('title'); } }
   const aside = !!(on && ai.open && !win && aiEmbeddedHere());
@@ -897,6 +897,10 @@ function aiSideToggle(){
 const AI_FLOAT_LS = 'hati.v1.aiFloat';
 const AI_FLOAT_MIN = { w: 320, h: 360 };
 const AI_FLOAT_DOCK_W = 430;
+/* THE WINDOW FLOATS OVER A PAGE, UNDER A DECISION (owner, 24 Oct 2026): over a page or a drawer (70/71) so a form
+   in the middle never cuts it off, under a dialog's scrim (DLG_Z 80). Set INLINE where the window is placed, so the
+   negotiation room's own `#ai-panel{z-index:70}` cannot win the cascade; aiSideSync takes it off again. */
+const AI_WIN_Z = 75;
 function aiFloatOn(){ return !!(ai.win && aiSideOn()); }
 function aiFloatMaxW(){ return Math.max(AI_FLOAT_DOCK_W, Math.min(940, Math.round(window.innerWidth * 0.72))); }
 /* the top bar's height: the window stands below it */
@@ -938,6 +942,7 @@ function aiFloatApply(b, keep){
   /* the drawer on the right edge follows the window's size; a moved one stays put */
   _aiFloatBox = b.home ? aiFloatHome() : aiFloatClamp(b);
   const o = _aiFloatBox;
+  panel.style.zIndex = String(AI_WIN_Z);
   panel.style.left = o.x + 'px'; panel.style.top = o.y + 'px';
   panel.style.width = o.w + 'px'; panel.style.height = o.h + 'px';
   panel.classList.toggle('ai-float-home', !!o.home);

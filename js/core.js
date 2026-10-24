@@ -3813,6 +3813,10 @@ function dlgPageAdopt(root, panel, page){
   if(page.under){ const u=body.querySelector(page.under); if(u) head.querySelector('.dlg-pg-under').appendChild(u); }
   panel.appendChild(head); panel.appendChild(body);
 }
+/* THE LADDER, NAMED (owner, 24 Oct 2026, "the top jambo is overlapped"): a PAGE and a side drawer stay at 70 —
+   big work that blocks nothing, so the ✦'s window (AI_WIN_Z, js/ai.js) floats over them; a DIALOG carries its scrim
+   and a decision that cannot proceed, so it stands above the window. Toasts keep --z-toast (110), over everything. */
+const DLG_Z = 80;
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
   /* ONE DIALOG REPLACING ANOTHER KEEPS THE FIRST ONE'S OPENER (26 Sep 2026,
@@ -3837,7 +3841,7 @@ function openModal(html, opts={}){
     ? `height:${opts.height};overflow:hidden;`
     : `max-height:88vh;overflow-y:auto;`;
   root.innerHTML=`
-  <div style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:var(--s-4)">
+  <div style="position:fixed;inset:0;z-index:${DLG_Z};display:grid;place-items:center;padding:var(--s-4)">
     ${''/* THE FRAME IS THE REFERENCE'S (20 Sep 2026, step 11 of the redesign
            order): a scrim that is the page ink at 35%, the card corner
            (--radius-lg, DECIDE 3) and the deep shadow. Nothing inside the

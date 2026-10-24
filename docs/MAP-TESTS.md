@@ -62,6 +62,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- THE WINDOW FLOATS OVER A PAGE, UNDER A DECISION (24 Oct 2026): `test/chromium/window-over-a-page-verify.js` — the ✦'s window over the New agreement form (A), Key terms in the middle (B), a side drawer (C), the Settings drawer (D), and a dialog standing above it (D3, E); whose pixels are on top read with `elementFromPoint` at nine points down the window's own edge; photos at the three screens. Red at the parent 5e39c94: A2, B2, D2.
 - One ‹ leaves a contract a list opened; ONE PRESS, ONE PANEL; a tab as wide as its words: glitch-fixes-verify 2, 3, 7.
 - JAMBO'S BOX ON EVERY SIDE PANEL (22 Oct 2026): jambo-box-every-panel verify (Dossier, Clauses and Obligations at the three screens, asked from Clauses and back, the slide-out panel's Guide, Alerts and Activity, Notes keeps its own box; 5/17 at c5aa0c2). RE-POINTED with the owner's words: ask-box-on-copilot-only verify 2 and 3 (the box under every tab), home-first verify 3d, explorer-guide-tab verify 2a, f840 2e (the Guide keeps the box).
 - Words sent while Jambo is still answering wait their turn (22 Oct 2026): f862 (red at the parent), jambo-asks-in-turn verify (red at the parent 1a–1c, 2a–2b), f804 8b4 re-pointed. Re-pointed 24 Oct 2026 after #456: the check holds the map's route (/api/ai/graph) as well as the chat's, and reads either busy flag (intel.busy since the window hands its words to Home's box).
