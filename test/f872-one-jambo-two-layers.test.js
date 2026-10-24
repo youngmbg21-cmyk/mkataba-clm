@@ -164,7 +164,8 @@ describe('f872 (6) act first, then explain', () => {
     const i = IG.indexOf('async function intelChatAsk('); const body = IG.slice(i, IG.indexOf('\n}\n', i));
     assert.ok(body.includes("if(opts&&opts.explain&&(!msgs.length||msgs[msgs.length-1].role!=='user')) msgs.push({ role:'user', content:String(q) });"));
     assert.ok(IG.includes("await intelChatAsk(q, { explain:true })"));
-    assert.ok(AI.includes("if(!(opts&&opts.noEcho)) aiPush('user',{text:esc(q), raw:q});"), 'the window\'s explain asks without an echo');
+    assert.ok(AI.includes("const noEcho=_aiNoEchoOnce; _aiNoEchoOnce=false;") && AI.includes("if(!noEcho) aiPush('user',{text:esc(q), raw:q});"), 'the window\'s explain asks without an echo');
+    assert.ok(AI.includes("_aiNoEchoOnce=true; return aiAskWords(q);"));
   });
 });
 

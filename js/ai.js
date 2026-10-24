@@ -4891,7 +4891,7 @@ async function aiSubmit(asked){
       if(said){
         aiPush('assistant',Object.assign({ text:said }, window.hbTakeMeta?hbTakeMeta():{}, window.hbBoardReplyMeta?hbBoardReplyMeta():{}));
         renderAIFeed();
-        if(typeof window.igAskThenExplain==='function'&&igAskThenExplain(q,A)) return aiAskWords(q,{ noEcho:true });
+        if(typeof window.igAskThenExplain==='function'&&igAskThenExplain(q,A)){ _aiNoEchoOnce=true; return aiAskWords(q); }
         return;
       }
       renderAIFeed();
@@ -4938,9 +4938,13 @@ async function aiSubmit(asked){
 /* THE ONE TURN, from the window's box or from Jambo's panel beside a list
    (jlAsk, js/views/inspector.js): asked once, said where the feed is
    (aiFeedEl). The caller has already taken the words out of its box. */
-async function aiAskWords(qRaw, opts){
+/* the explain under a Board's drawing (aiSubmit) asks the same words again without writing them down twice:
+   a latch read once by the next aiAskWords, never a second signature (f810, f862 pin the one door) */
+let _aiNoEchoOnce=false;
+async function aiAskWords(qRaw){
   const q=String(qRaw||'').trim(); if(!q) return;
-  if(ai.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiAskWords(w, opts)); return; }
+  if(ai.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiAskWords(w)); return; }
+  const noEcho=_aiNoEchoOnce; _aiNoEchoOnce=false;
   /* the same reading aiSubmit makes: an open rewrite owns the sentence only
      when it is not a question or a booking (aiAsksPastCard) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);
@@ -4954,8 +4958,7 @@ async function aiAskWords(qRaw, opts){
      here went in raw, so "<img onerror=…>" ran in the reader's own page and a
      question about "<b>X</b>" lost its words. Escaped for the feed; the raw
      question is kept beside it and is what goes to the model. */
-  /* the explain under a Board's drawing (aiSubmit) asks the same words again without writing them down twice */
-  if(!(opts&&opts.noEcho)) aiPush('user',{text:esc(q), raw:q});
+  if(!noEcho) aiPush('user',{text:esc(q), raw:q});
   ai.busy=true;
   /* A live proposal owns the next sentence that asks for a change: it goes back
      to the model with the passage and the exchange attached. A QUESTION no
