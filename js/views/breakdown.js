@@ -316,7 +316,7 @@ function stkHeadHtml(c, b, all){
        and what to watch, in one reading." in grey; a reading that failed still says why, under it, never in red;
        the button says what it does — "Read the clauses" — and its cost beside it, "1 Jambo call" */
     const why = noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_not_read');
-    return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="stk-sub" role="status">${_bdE(why)}</p>${err ? `<p class="stk-sub stk-why" role="status">${_bdE(err)}</p>` : ''}${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_read_clauses'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost_one'))}</span></div>`}</div>`;
+    return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="stk-sub" role="status">${_bdE(why)}</p>${err ? `<p class="stk-sub stk-why" role="status">${_bdE(err)}</p>` : ''}${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_read_clauses'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost_call'))}</span></div>`}</div>`;
   }
   /* MARQUEE (owner picked it by name, 23 Oct 2026; the navigation kept as it was, the owner's own words):
      a serif headline — how many clauses need you — one sentence naming where to start, and the clauses

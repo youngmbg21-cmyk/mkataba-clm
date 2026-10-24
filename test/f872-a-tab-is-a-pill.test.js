@@ -34,8 +34,10 @@ test('2 a tab\'s word and its count keep their space (a flex pill drops the spac
   assert.match(HTML, /#app-shell \.st-cr \.st-face\{[^}]*gap:\.3em/);
 });
 test('3 the side panel\'s first tab (Overview, or Dossier beside a paper) is never capped nor shrunk', () => {
-  const cap = at('#app-shell .pd-tab{border-radius:999px;height:30px;align-self:center;padding:0 8px;max-width:96px}');
+  /* RE-POINTED 24 Oct 2026 (main's glitch audit, "A PANEL TAB IS AS WIDE AS ITS WORDS"): the cap is gone for every
+     tab; the first one still never shrinks */
+  const cap = at('#app-shell .pd-tab{border-radius:999px;height:30px;align-self:center;padding:0 8px;max-width:none;');
   const free = at('#app-shell :is(.igd-head, .jl-head) > .pd-tab:first-child{max-width:none;flex-shrink:0}');
-  assert.ok(cap > 0, 'the stage-1 cap still stands for the other tabs');
-  assert.ok(free > cap, 'the first tab is let out of it, later in the sheet');
+  assert.ok(cap > 0, 'no tab is capped');
+  assert.ok(free > cap, 'the first tab never shrinks, later in the sheet');
 });

@@ -4252,7 +4252,7 @@ function pdOgHtml(c, o){
 }
 /* the groups the fields fold into, past DOSSIER_GROUP_AT (Round 4): read off each fact's key and label */
 const _pdOgGroup = new Map();   // contract id → the group open
-const PD_OG_GROUPS = ['dates', 'parties', 'money', 'signers', 'paper', 'other'];
+const PD_OG_GROUPS = ['dates', 'parties', 'money', 'signers', 'paper', 'terms'];
 function pdOgGroupOf(f){
   if (f.kind === 'signer') return 'signers';
   if (f.kind === 'blank' || f.kind === 'tplf') return 'paper';
@@ -4260,7 +4260,7 @@ function pdOgGroupOf(f){
   if (/date|effective|expir|start|\bend|term\b|notice|renew|until/i.test(w)) return 'dates';
   if (/party|counterpart|org|address|company|entity|registered|role/i.test(w)) return 'parties';
   if (/value|pay|fee|price|currency|amount|insur|cost/i.test(w)) return 'money';
-  return 'other';
+  return 'terms';
 }
 function pdOgGroupsOf(rows){
   return PD_OG_GROUPS.map(k => ({ k, rows: rows.filter(f => pdOgGroupOf(f) === k) })).filter(g => g.rows.length);

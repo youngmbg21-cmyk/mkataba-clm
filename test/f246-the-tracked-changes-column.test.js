@@ -851,7 +851,9 @@ describe('f246 (6) — the counterparty\'s column is untouched', () => {
        again. */
     /* RE-POINTED 28 Sep 2026: every seat takes the one row; the preview's
        verbs are deadened on the face itself. */
-    assert.ok(NEG_CODE.includes('<div class="rl-card-side">${deaden(face)}</div>'),
+    /* RE-POINTED 24 Oct 2026 (owner picked "Advice or no advice"): "Ask Jambo more" joins the verbs of OUR seat only;
+       their preview still draws the row through deaden() */
+    assert.ok(NEG_CODE.includes('<div class="rl-card-side">${(() => { const f = deaden(face), more = rlRowReadMoreHtml(c, ch, side);'),
       'the preview draws their row with its verbs dead');
     /* ONE READING, SHARED. rlBandOpts answers "does this seat draw bands" and
        "what is unsent on it" for the card renderer AND for redlineCardIds, so
