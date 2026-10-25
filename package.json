@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server/server.js",
     "lint": "eslint .",
+    "audit:styles": "node test/chromium/_audit/style-audit.js",
+    "audit:detail": "node test/chromium/_audit/detail-audit.js",
     "test": "node --test test/*.test.js",
     "coverage": "NODE_OPTIONS=\"--require ./test/coverage-paths.js\" c8 --merge-async --all --include \"js/**\" --include \"server/**\" --reporter=text-summary --reporter=html --reporter=json-summary --reports-dir=coverage node --test --test-reporter=dot test/*.test.js",
     "test:browser": "node test/chromium/redline-verify.js",
@@ -46,6 +48,7 @@
     "c8": "^12.0.0",
     "eslint": "^9.39.5",
     "jsdom": "^29.1.1",
-    "playwright-core": "^1.62.0"
+    "playwright-core": "^1.62.0",
+    "stylelint": "^16.26.1"
   }
 }

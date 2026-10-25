@@ -62,9 +62,12 @@ describe('f674 (1) one column, two hosts', () => {
     assert.match(html, /const o = pdRedOpts\(c\);/);
     assert.match(html, /rlColumnHtml\(c, o\)/);
     assert.match(html, /rlFloatingNoticesHtml\(c, o\)/, 'the Negotiate page\'s notices came with it (stage 5)');
-    assert.match(html, /class="redline-page rl-face"/, 'the column\'s clothes are scoped to .redline-page');
+    /* RE-POINTED 25 Oct 2026 (owner: Their view turns the panel too): the face wears is-theirs while it reads their seat */
+    assert.match(html, /class="redline-page rl-face\$\{theirs \? ' is-theirs' : ''\}"/, 'the column\'s clothes are scoped to .redline-page');
     const opts = strip(fnBody(PD, 'pdRedOpts'));
-    assert.match(opts, /rlBenchOpts\(c, \{ side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' \}\)/);
+    /* RE-POINTED 25 Oct 2026 (Their view): our seat, or theirs while the paper's switch says Their view (pdRedTheirs) */
+    assert.match(opts, /const side = pdRedTheirs\(c\) \? 'counterparty' : 'owner';/);
+    assert.match(opts, /rlBenchOpts\(c, \{ side, hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' \}\)/);
     assert.match(opts, /cpPanel: false/);
     const paint = strip(fnBody(PD, 'pdRedFacePaint'));
     ['wireNegotiationTab(c, opts)', 'negoAfterPaint(c, opts, host)', 'rlWireClauseTools(c, host, opts)', 'redlineSyncProxies(host)'].forEach(w =>
