@@ -1168,7 +1168,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await page.screenshot({ path: path.join(OUT, '02-edit-jump.png') });
 
   /* ---- 12b. AN OPEN EDITOR STILL READS AS THE WORDING IT REPLACED ----
-     Reported with a screenshot (f144): the clause came apart the moment the
+     Reported with a screenshot (f898): the clause came apart the moment the
      editor opened on it — the wording lost its wrapping, its block spacing,
      its table width and its preformatted overflow all at once, because the
      editor's .nego-editing rules had no twin for the body's.

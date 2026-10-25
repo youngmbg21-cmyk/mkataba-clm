@@ -993,7 +993,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.equal(standsAt(p, a), 'with', 'the chosen change has gone');
     assert.equal(standsAt(p, b), 'drafts', 'the other is still a draft on the desk');
     /* Joined, not deep-compared: the page realm's Array prototype is not this
-       realm's — the f60 trap this file already documents. */
+       realm's — the f916 trap this file already documents. */
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id).join(','), b,
       'the arithmetic agrees: one unsent draft remains');
     assert.equal([...p.win.negoHeldBackIds(p.c)].join(','), b,

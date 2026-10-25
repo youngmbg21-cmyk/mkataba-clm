@@ -13,7 +13,7 @@
    readable, and lying. Renumbering without this turns today's honest gaps into
    silent misstatements of what the contract means.
 
-   THE TRAP THIS FILE KEEPS SHUT, inherited word for word from f98. The obvious
+   THE TRAP THIS FILE KEEPS SHUT, inherited word for word from f934. The obvious
    implementation — report every reference that does not resolve — is wrong on
    the product's own primary fixture. The prototype contract is an EXTRACT,
    numbered 1, 4, 5, 6, 9, 12, and an extract cites the agreement it was cut
@@ -182,7 +182,7 @@ describe('a deletion that breaks a reference is reported, on the citing clause',
          baseline both sides are measuring against still carries clause 9 —
          nothing is broken yet, because the deletion is still a proposal that has
          been agreed rather than a change to the document of record. The warning
-         appears when the gap does. Same sequencing as f98. */
+         appears when the gap does. Same sequencing as f934. */
       assert.ok(win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' }), 'the round must close');
     }
     return ch;
@@ -257,7 +257,7 @@ describe('negoAllRefs is the on-demand check, not the warning', () => {
    about the same act, and two banners stacked on one screen saying two halves
    of one fact is how a reader learns to close notices without reading them.
 
-   The f98 rule that the notice carries NO BUTTON on an executed contract keeps
+   The f934 rule that the notice carries NO BUTTON on an executed contract keeps
    holding here — this adds a sentence to it, never an action. */
 describe('the notice says a reference was broken, and names both ends', () => {
   async function noticeFor(win, c){
@@ -307,6 +307,6 @@ describe('the notice says a reference was broken, and names both ends', () => {
     const html = win.negoNumberingNoticeHtml(c, { noticeId: 'nego-gaps' });
     assert.match(html, /data-locked="1"/);
     assert.ok(!/<button/i.test(html),
-      'f98 asserts an executed contract is offered no way to tidy its numbering — adding a sentence must not add an action');
+      'f934 asserts an executed contract is offered no way to tidy its numbering — adding a sentence must not add an action');
   });
 });

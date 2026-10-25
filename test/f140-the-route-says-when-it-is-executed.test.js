@@ -33,7 +33,7 @@
    signers each get their own secure link", so a counterparty who has to sign
    belongs ON it. Where there is a route it answers "is this executed", exactly
    as it already answers "may this seal". Where there is NO route nothing moves:
-   that is the single-signer path f135 protects, where the owner signs, the
+   that is the single-signer path f896 protects, where the owner signs, the
    contract seals, and the counterparty's mark lands afterwards by share link.
 
    Both sides of the wire compute this — executionParties() in js/approvals.js
@@ -128,7 +128,7 @@ describe('f140 — a route that is NOT finished is still honestly partial', () =
   });
 });
 
-describe('f140 — with no route, f135 rules unchanged', () => {
+describe('f140 — with no route, f896 rules unchanged', () => {
   /* The single-signer path: no signerPlan at all. The owner signs, the contract
      seals, and the counterparty's mark lands later through their share link.
      Nothing about that flow may move — it is the commonest one there is. */

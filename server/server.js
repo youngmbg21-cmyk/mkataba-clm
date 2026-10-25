@@ -9642,6 +9642,13 @@ function colAskKeep(req, q, at) {
     .run('ca_' + crypto.randomBytes(8).toString('hex'), q.qkey, q.question, q.name, String(req.user.id), req.user.name || req.user.email || '', at, at);
   return db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
 }
+/* HOW A CELL IS READ (owner, 25 Oct 2026: "fix the eight misses" of the live
+   Discover measure). Three ways the read went wrong, said as rules of reading,
+   never as the exam's own questions: wording that says a thing CANNOT happen or
+   does NOT apply is an answer, not silence; ending early is not stopping a
+   renewal; and a document that answers the point under its own name for it
+   (rent where the question says invoice) answers it. */
+const COLUMN_READ_RULE = 'HOW TO READ: (1) Wording that says a thing cannot happen, does not apply or does not exist ANSWERS the question: set found to true, say so in the answer ("Cannot end early", "Does not renew", "None needed"), and quote that sentence. found is false only when the document says nothing at all on the point. (2) Ending or leaving a contract early is not the same as stopping it from renewing: a question about ending, cancelling or walking away is answered from the termination wording; if that wording says it cannot be ended early, the answer says so, and a notice to stop a renewal goes only in the detail. (3) Where the document answers the point under its own name for the thing (rent for a payment, a lease for an agreement, a fee for a price), answer with it and name it in the detail.';
 const COLUMN_TOOL = {
   name: 'column_answers',
   description: 'One short answer per QUESTION for this contract, each as it would sit in one cell of a table, with the wording it rests on.',
@@ -9695,7 +9702,7 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
     const qs = one
       ? `QUESTION: ${t.asks[0].question}${t.asks[0].rule ? `\nOUR RULE: ${t.asks[0].rule}` : ''}`
       : 'QUESTIONS (answer every one, by its number):\n' + t.asks.map((a, i) => `${i + 1}. ${a.question}${a.rule ? `\n   OUR RULE: ${a.rule}` : ''}`).join('\n');
-    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill cells of a table. Each question is asked of every contract in their list. Answer ${one ? 'it' : 'each one'} for this DOCUMENT only, via column_answers${one ? ' (q is 1)' : ''}. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer a question, set found to false and leave its answer empty. Where a question gives OUR RULE, say whether the answer keeps it ("in") or breaks it ("out"); where it gives none, leave the verdict empty.\n\n${qs}\n\nDOCUMENT:\n${t.sent}`;
+    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill cells of a table. Each question is asked of every contract in their list. Answer ${one ? 'it' : 'each one'} for this DOCUMENT only, via column_answers${one ? ' (q is 1)' : ''}. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer a question, set found to false and leave its answer empty. Where a question gives OUR RULE, say whether the answer keeps it ("in") or breaks it ("out"); where it gives none, leave the verdict empty.\n\n${COLUMN_READ_RULE}\n\n${qs}\n\nDOCUMENT:\n${t.sent}`;
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 500 + 400 * t.asks.length, tools: [COLUMN_TOOL], tool_choice: { type: 'tool', name: 'column_answers' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
     calls++; lastResp = resp;
     if (!resp.ok) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
@@ -12945,7 +12952,7 @@ const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is
 const AI_CLARIFY_RULE = 'UNSURE WHICH ONE: when the person\'s words fit two or more contracts, parties, people or places and nothing on screen settles it, do not guess: ask ONE short question in the answer and give 2-4 choices in deliver_answer\'s choices, each the exact door it opens. When their words fit one thing, answer or open it.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
 /* A CONTRACT'S BRIEF IS KEPT (owner, 22 Oct 2026): the chat opens the kept brief (goto task brief), never writes
-   one again; the browser's twins in js/ai.js, word for word (f862) */
+   one again; the browser's twins in js/ai.js, word for word (f923) */
 const AI_BRIEF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief and shows it in the panel beside the paper: set deliver_answer\'s goto to task brief and say in one short sentence that you are opening its brief.';
 const AI_BRIEF_OFF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief beside the paper: say in one short sentence that the words “brief” and the contract\'s reference (as in “brief MK-458”) open it.';
 const AI_TASK_TAB = { amend: 'amend', sign: 'sign', redline: 'redlines', history: 'hist', fill: 'fill', oblig: 'oblig', brief: 'brief', share: 'send' };

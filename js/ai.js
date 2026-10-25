@@ -2585,13 +2585,13 @@ const AI_GOVERNANCE_RULE="THE COMPANY'S RULES ARE GONE THROUGH, NEVER AROUND. Ha
    for the local-mode chat below. */
 /* THE AI TAKES YOU THERE (owner, 22 Oct 2026; on by default, an admin's
    switch in Settings → Jambo engine): the browser twin of the server's
-   AI_GOTO_RULE / AI_GOTO_OFF_RULE, word for word (f738 pins them equal) */
+   AI_GOTO_RULE / AI_GOTO_OFF_RULE, word for word (f920 pins them equal) */
 const AI_GOTO_RULE="TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, asks to be taken somewhere, or asks to see, show, open or find ONE thing (a contract or one of its tabs, a clause, a list of contracts, a party's folder, a setting, a person, a template, a standard, a duty, a request), set deliver_answer's goto and say in one short sentence where you are taking them. Name the EXACT thing in goto's door with the ids your tools returned (a clause: its contract id and the passage's quote from search_hati, or its number), and set task to the place it sits in. Our standards (the negotiation playbook, book by book) is task standards. When you cannot name the door, set goto's spot to a short phrase naming the thing in their words. A question about what a contract says is answered in words with its source; when it asks WHERE the contract says it (“where does it say…”, “show me the bit about…”, “find the clause…”), also open that clause with goto.";
 /* the server's AI_CLARIFY_RULE, word for word (stage 3) */
 const AI_CLARIFY_RULE="UNSURE WHICH ONE: when the person's words fit two or more contracts, parties, people or places and nothing on screen settles it, do not guess: ask ONE short question in the answer and give 2-4 choices in deliver_answer's choices, each the exact door it opens. When their words fit one thing, answer or open it.";
 const AI_GOTO_OFF_RULE="YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.";
 /* A CONTRACT'S BRIEF IS KEPT (owner, 22 Oct 2026: "sometimes hati writes a brief instead of bringing the brief
-   from the side panel"): the browser twin of the server's AI_BRIEF_RULE / AI_BRIEF_OFF_RULE, word for word (f862) */
+   from the side panel"): the browser twin of the server's AI_BRIEF_RULE / AI_BRIEF_OFF_RULE, word for word (f923) */
 const AI_BRIEF_RULE="A CONTRACT'S BRIEF IS KEPT: when the person asks for a contract's brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract's brief and shows it in the panel beside the paper: set deliver_answer's goto to task brief and say in one short sentence that you are opening its brief.";
 const AI_BRIEF_OFF_RULE="A CONTRACT'S BRIEF IS KEPT: when the person asks for a contract's brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract's brief beside the paper: say in one short sentence that the words “brief” and the contract's reference (as in “brief MK-458”) open it.";
 const aiNavigateLocalOn=()=>!(typeof state!=='undefined'&&state&&state.settings&&state.settings.aiNavigate===false);

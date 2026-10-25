@@ -1,5 +1,5 @@
 /* JAMBO FINDS THE WAY (owner, 22 Oct 2026: "jambo is still very poor at
-   navigating across the platform"; f738 is the source half)
+   navigating across the platform"; f920 is the source half)
 
    WHAT THIS PINS, driven in a real browser on the seeded workspace
      1 the owner's own sentence, typed into Jambo's panel beside a paper —

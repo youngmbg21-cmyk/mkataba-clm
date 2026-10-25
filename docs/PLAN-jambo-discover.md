@@ -89,7 +89,7 @@ company's rules), test/discover-exam.js (forty held-out questions, six facts,
 the marker), test/discover-measure.js (asks each question of every contract
 through POST /api/ai/column; with ANTHROPIC_API_KEY it grades the answers
 through a counting relay, without one it ONLY COUNTS the calls and says so).
-f878 pins that the truth matches the wording and that the marker is fair.
+f887 pins that the truth matches the wording and that the marker is fair.
 
 | Run | Answers right | Dead ends | Calls | Per question per contract | Due diligence pack |
 |---|---|---|---|---|---|
@@ -97,6 +97,8 @@ f878 pins that the truth matches the wording and that the marker is fair.
 | Before, live AI | — needs a key in the environment | | | | |
 | After stage 1, no AI key (calls only), 25 Oct 2026 | not graded | 0 of 440 | 400 for 40 questions (each asked alone) | 1.00 | 50 one at a time · **10 as one press** |
 | After stage 10, no AI key (calls only), 25 Oct 2026 | not graded | 0 of 440 | 400 for 40 questions (each asked alone) | 1.00 | 50 one at a time · **10 as one press** |
+| After stage 10, LIVE AI (claude-sonnet-5, 410 calls), 25 Oct 2026 | 432 of 440 (98%); sentences 326/326; verdicts 303/325 | 0 of 440 | 400 for 40 questions | 1.00 | 50 one at a time · **10 as one press** |
+| After the eight misses were fixed, LIVE AI (claude-sonnet-5, 410 calls), 25 Oct 2026 | **440 of 440 (100%)**; sentences 331/331; verdicts 312/330 | 0 of 440 | 400 for 40 questions | 1.00 | 50 one at a time · **10 as one press** |
 
 Stage 1's target: the Due diligence pack at 10 calls over 10 contracts (one
 read answers all five), answers no less right than the live "before", and
@@ -107,20 +109,19 @@ for payment.
 
 | Stage | Built | Tests |
 |---|---|---|
-| 0 | the measure | f878 |
-| 1 | one read, many answers; the company's rule and verdict; PUT /api/columns/:id | f879 |
+| 0 | the measure | f887 |
+| 1 | one read, many answers; the company's rule and verdict; PUT /api/columns/:id | f888 |
 | 2 | the answers the Legora way; the list box hands a wording question to the form | discover-verify 2 |
-| 3 | Discover beside the list; the Due diligence pack; the whole table as a page | f880, discover-verify 3 |
-| 4 | Settings › Company facts; read on arrival; facts in Key terms | f881, discover-verify 4 |
-| 5 | a watch on a company fact's answer | f882, discover-verify 5 |
-| 6 | Unusual for you on the Dossier | f883, discover-verify 6 |
+| 3 | Discover beside the list; the Due diligence pack; the whole table as a page | f889, discover-verify 3 |
+| 4 | Settings › Company facts; read on arrival; facts in Key terms | f890, discover-verify 4 |
+| 5 | a watch on a company fact's answer | f891, discover-verify 5 |
+| 6 | Unusual for you on the Dossier | f892, discover-verify 6 |
 | 7 | negotiation memory on their row and in the clause editor | f884, discover-verify 7 |
 | 8 | what you are approving; any approver may ask for the brief | f885, discover-verify 8 |
 | 9 | the party's two minutes | f886, discover-verify 9 |
 | 10 | measured again (above); the three screens photographed and fit-checked (test/chromium/discover-photos.js); the tidy sweep 85/85 | — |
 
-Not done, and why: the LIVE measure (answers graded) needs ANTHROPIC_API_KEY in the
-environment; the "what worked before" card offers kept wording only (drafting new
+Not done, and why: the "what worked before" card offers kept wording only (drafting new
 wording when none is kept was left out: it would spend a call the plan had not priced);
 "Send the table" copies it to the clipboard rather than opening the send screen (the
 send screen's letter is one contract's).

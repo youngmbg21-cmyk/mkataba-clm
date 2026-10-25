@@ -1357,7 +1357,7 @@ function signersRemaining(c){ return signerPlan(c).filter(s=>!s.signed).length; 
    there is a route, it answers this question, exactly as it already answers
    when to seal. Where there is NO route the inference below is untouched: that
    is the single-signer path, where the owner signs, the contract seals, and the
-   counterparty's mark lands afterwards through their share link — the flow f135
+   counterparty's mark lands afterwards through their share link — the flow f896
    exists to protect. */
 function executionParties(c){
   const sigs=Array.isArray(c&&c.signatures)?c.signatures:[];

@@ -22,7 +22,7 @@
      DISCOVER_ONLY=notice node test/discover-measure.js      (one fact)
      DISCOVER_OUT=/path/out.json node test/discover-measure.js
    The world's own honesty (every truth matches its wording; the marker marks
-   right answers right and wrong ones wrong) is f878, which CI runs. */
+   right answers right and wrong ones wrong) is f887, which CI runs. */
 const fs = require('node:fs');
 const http = require('node:http');
 const { startHati } = require('./helpers');
