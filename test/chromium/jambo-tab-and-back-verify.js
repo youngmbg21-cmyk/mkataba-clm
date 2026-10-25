@@ -75,12 +75,24 @@ const check = (name, pass, detail) => {
         top: (document.querySelector('#pd-redface #nego-cards') || {}).scrollTop || 0,
         asked: [...d.querySelectorAll('#igd-feed .ai-msg')].map(m => m.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean) }; };
     const ask = async (sel, words) => { await page.click(sel); await page.fill(sel, words); await page.keyboard.press('Enter'); };
+    /* HIS ANSWER LANDS BEFORE THE NEXT PRESS (made steady 25 Oct 2026): an answer still on its way turns the panel
+       back to the conversation when it lands (pdTalkSync), so with four checks side by side a ‹ pressed mid-answer
+       read as "did not go back". Each press that leaves the talk waits for the answer first, bounded. */
+    const answered = () => until(() => (typeof intel === 'object' && intel && !intel.busy) ? true : null, null, 15000);
 
     /* ---- 1 Workspace, beside a contract ---- */
     let keptTop = 0, firstSaid = 0;
     await part('1', async () => {
+      const t0 = await page.evaluate(() => Date.now());
       await page.evaluate(() => openRedlineWorkbench('MK-A2'));
       await until(() => document.querySelectorAll('#pd-redface [data-nego-card]').length >= 2, null, 12000);
+      /* THE PAGE IS NOTED BEFORE THE FIRST WORD (made steady 25 Oct 2026): the bar notes the page arrived on, and the
+         face it came with, once the page has settled (DK_SETTLE_MS after its last repaint) — so ‹ knows a face opened
+         here from one that came with the page. A question typed before that note (no person types so fast; four
+         checks side by side delay the note) made the talk read as the face the page came with, and ‹ left the page.
+         Asked of the bar's own record, bounded. */
+      await until(t => { try { const all = JSON.parse(localStorage.getItem('hati.v1.deskTabs') || '{}'), k = deskKeyNow();
+        return Object.values(all).some(L => Array.isArray(L) && L.some(x => x && x.k === k && (x.at || 0) >= t)) || null; } catch (_){ return null; } }, t0, 8000);
       const D0 = await page.evaluate(DOCK);
       /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): beside a contract the first tab is its Dossier; the lists keep Overview */
       check('1a beside a contract the first tab says "Dossier"', !!D0 && D0.tab === 'Dossier', JSON.stringify(D0 && D0.tab));
@@ -117,6 +129,7 @@ const check = (name, pass, detail) => {
       check('1l pressed again, it goes back to the cards', !!J2);
       await ask('#igd-input', 'and the payment terms?');
       await until(() => document.getElementById('ig-dock').classList.contains('is-talk') && document.querySelectorAll('#igd-feed .ai-msg').length > 2, null, 10000);
+      await answered();
       const D3 = await page.evaluate(DOCK);
       check('1g asked again on the same page: the same conversation goes on', !!D3 && D3.talk && D3.asked.length > firstSaid && D3.asked.some(t => /watch for/.test(t)), JSON.stringify(D3 && { asked: D3.asked.length, before: firstSaid }));
       await page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); });
@@ -125,6 +138,7 @@ const check = (name, pass, detail) => {
       check('1h Esc (outside the box) returns to the landing', !!esc);
       await ask('#igd-input', 'one more question');
       await until(() => document.getElementById('ig-dock').classList.contains('is-talk'), null, 8000);
+      await answered();
       const bar = await page.$('#dk-back');
       if (bar) await bar.click();
       const viaBar = await until(() => !document.getElementById('ig-dock').classList.contains('is-talk') && document.querySelectorAll('#pd-redface [data-nego-card]').length >= 2, null, 5000);

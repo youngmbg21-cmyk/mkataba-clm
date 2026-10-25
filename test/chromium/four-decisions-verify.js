@@ -88,6 +88,32 @@ const blocked = [];
         await page.keyboard.press('Escape').catch(() => {});
       }
 
+      /* ---- Q1b · every "/" list's place rows end in "Open ›" (25 Oct 2026, item 1 after the picks): one builder,
+             four lists — Home's box, the Board's, a list page's panel, and every other box's (Settings' Jambo) ---- */
+      for (const [name, go, box, list, only] of [
+        ['Home', () => setView('counter'), '#cn-q', '#cn-pop'],
+        /* the Board's list also carries its own moves (/compare, /trend…), which fill a question: no "Open" there */
+        ['the Board', () => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} }, '#igd-input', '#hb-askpop', '[data-hb-pop-kind="place"]'],
+        ['Approvals\' panel', () => setView('approvals'), '#jl-q', '[data-jl-pop]'],
+        ['Settings\' Jambo box', () => openSettingsAt('you'), '#st-jb-q', '#ca-slash'],
+      ]){
+        await clean(); await ev(go);
+        const up = await until(sel => { const b = document.querySelector(sel); return !!(b && b.getBoundingClientRect().width); }, box);
+        if (!up){ check(`${at} · Q1b — ${name}: its box is drawn`, false); continue; }
+        await page.click(box).catch(() => {});
+        await page.keyboard.type('/');
+        const open = await until(sel => document.querySelectorAll(sel + ' .ca-opt').length >= 2, list, 5000);
+        await settle();
+        if (!open){ check(`${at} · Q1b — ${name}: "/" lists the places`, false); await page.keyboard.press('Backspace').catch(() => {}); continue; }
+        const rows = await ev(([sel, only]) => [...document.querySelectorAll(sel + ' .ca-opt' + (only || ''))].filter(r => r.getBoundingClientRect().width).map(r => {
+          const g = r.querySelector('.ca-go'), rb = r.getBoundingClientRect();
+          return { t: (r.querySelector('.who b') || r).textContent.trim(), go: g ? g.textContent.trim() : null, inside: !!g && g.getBoundingClientRect().right <= rb.right + 0.5, cut: !!g && g.scrollWidth > g.clientWidth + 0.5 }; }), [list, only]);
+        const bad = (rows || []).filter(x => x.go !== 'Open ›' || !x.inside || x.cut);
+        if (S.k === 'laptop-a') await shot('q1b-' + name.replace(/\W+/g, '-').toLowerCase());
+        check(`${at} · Q1b — ${name}: every "/" place row ends in "Open ›", whole, inside its row`, rows && rows.length >= 2 && !bad.length, bad.length ? bad.map(x => `${x.t}: ${x.go || 'no act word'}`).join(' · ') : `${rows.length} rows`);
+        await page.keyboard.press('Backspace').catch(() => {});
+      }
+
       /* ---- Q2 · five tabs with a letter waiting ---- */
       await clean(); await ev(id => pdOpenOnHome(id, 'copilot'), reviewId);
       await until(() => document.querySelector('#ig-paper'));
