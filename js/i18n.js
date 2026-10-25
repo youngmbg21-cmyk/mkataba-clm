@@ -12898,6 +12898,8 @@ const STRINGS = {
     ca_help_work: 'Work opens its door, and the press stays yours: fill in, redline, sign, share, upload, draft.',
     ca_help_rest: 'Type / for the places you use most. Anything else is a question, and I answer it as before.',
     hb_pop_places: 'Most used',
+    /* a place row's act word in every "/" list (25 Oct 2026) */
+    ca_sl_open: 'Open',
     hb_pop_used: '{n}×',
     ca_job_ready: 'Get it ready to sign',
     ca_job_oblig: 'Find its obligations',
@@ -13064,6 +13066,8 @@ const STRINGS = {
     pd_face_w_signing: 'Before you sign',
     pd_face_w_amend: 'Amend',
     pd_face_w_send: 'Before you send',
+    /* the waiting letter's TAB in one short word (owner picked "Short words", 25 Oct 2026: five tabs fit the iPad); its trail line and hover keep the whole name */
+    pd_face_w_send_tab: 'Send',
     /* LIFTED (8 Oct 2026): the count on a symbol, and each tab's status pill */
     pd_tab_n: '{name}, {n} waiting',
     pd_st_notready: 'Not ready',
@@ -20171,6 +20175,8 @@ const STRINGS = {
     hb_myq_del: "Remove from My questions",
     hb_myq_saved: "Saved \"{name}\". Press in the empty ask box to run it again.",
     hb_gal_head: "Ready analyst questions",
+    /* a chart row's act word in the ask list (owner picked "The Legora way", 25 Oct 2026) */
+    hb_pop_draw: "Draw",
     hb_gal_conc: "Concentration",
     hb_gal_conc_s: "How much depends on our top 10 counterparties?",
     hb_gal_conc_t: "Top 10 counterparties, share of value",
@@ -33015,6 +33021,7 @@ const STRINGS = {
     ca_help_work: 'Arbete öppnar sin dörr, och trycket är ditt: fyll i, förhandla, signera, dela, ladda upp, utkast.',
     ca_help_rest: 'Skriv / för platserna du använder mest. Allt annat är en fråga, och jag svarar som förut.',
     hb_pop_places: 'Mest använda',
+    ca_sl_open: 'Öppna',
     hb_pop_used: '{n}×',
     ca_job_ready: 'Gör det klart att signera',
     ca_job_oblig: 'Hitta dess åtaganden',
@@ -33181,6 +33188,7 @@ const STRINGS = {
     pd_face_w_signing: 'Innan du signerar',
     pd_face_w_amend: 'Ändra',
     pd_face_w_send: 'Innan du skickar',
+    pd_face_w_send_tab: 'Skicka',
     pd_tab_n: '{name}, {n} väntar',
     pd_st_notready: 'Inte redo',
     pd_st_ready: 'Redo att signera',
@@ -40111,6 +40119,7 @@ const STRINGS = {
     hb_myq_del: "Ta bort från Mina frågor",
     hb_myq_saved: "Sparade \"{name}\". Tryck i den tomma frågerutan för att köra den igen.",
     hb_gal_head: "Färdiga analysfrågor",
+    hb_pop_draw: "Rita",
     hb_gal_conc: "Koncentration",
     hb_gal_conc_s: "Hur mycket hänger på våra 10 största motparter?",
     hb_gal_conc_t: "Topp 10 motparter, andel av värdet",

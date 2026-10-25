@@ -984,7 +984,7 @@ function negoStyleHtml(){
   .nego-thread{margin-top:10px;border-top:1px dashed var(--n-line);padding-top:10px;display:none}
   .nego-thread.open{display:block}
   .nego-thead{display:flex;align-items:center;gap:var(--s-2);margin-bottom:7px}
-  .nego-tlabel{flex:1;min-width:0;font-size:var(--t-micro);letter-spacing:.09em;font-weight:var(--w-title);letter-spacing:.5px;
+  .nego-tlabel{flex:1;min-width:0;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.5px;
     color:var(--n-ink-soft)}
   /* The way back to a card the size it was, at the top of the thread so a long
      conversation never puts it out of reach. */
@@ -6132,6 +6132,10 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-face button:has(.rl-verb-i){display:inline-flex;
     align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border-radius:var(--radius);
     font-size:var(--t-meta);font-weight:var(--w-label);line-height:1}
+  ${''/* THE VERBS START UNDER THE WORDS (the detail round, 25 Oct 2026: at 1366 Accept · Reject · Counter began
+         8px right of the change's name above them): each rung keeps its 8px of side padding for its hover, and
+         the row hangs that padding into the card's gutter, so the first mark stands on the words' line */}
+  .redline-page .rl-card-d .rl-card-face.rl-card-verbs{margin-left:calc(-1 * var(--pad-ctl-x-sm))}
   ${''/* THE SMALL RUNG, LIKE EVERY OTHER REPEATED ROW (the Compact ladder,
          26 Sep 2026): 22 drawn, 12px at the one label weight, the rung's own
          8px of side padding and its 14px mark. The reference's 24px/600 verb
