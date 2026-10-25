@@ -3414,7 +3414,7 @@ function renderTemplatesPage(){
      emptied the shell's subtitle never reached it; a tab row with a .st-tabsub
      under it would put the same sentence back one line lower. */
   document.getElementById('content').innerHTML=`
-  <div class="view-enter sap-page tpl-page" style="padding:var(--page-pad)">
+  <div class="view-enter sap-page tpl-page" style="padding:var(--page-pad);padding-bottom:var(--tpl-pb,var(--page-pad))">
     <div class="sap-band tpl-band ph-card">
     ${''/* the card's title row (.ph-top, 19 Oct 2026): the 12px and the hairline
            under it are the one rule every head card wears, so the tabs stand

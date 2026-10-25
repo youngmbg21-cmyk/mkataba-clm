@@ -258,7 +258,9 @@ function landOn(target, opts = {}){
         let b = null;
         try { b = opts.focus ? host.querySelector(opts.focus) : (host.matches && host.matches(LAND_ANY) ? host : (host.querySelector(LAND_MAIN) || host.querySelector(LAND_ANY))); } catch (_){ b = null; }
         if (!b) return null;
+        /* through the one focuser: after a mouse or finger press the button is ready with no ring (fieldFocus) */
         if (b.tagName === 'SELECT'){ if (typeof fieldFocus === 'function') try { fieldFocus(b); } catch (_){} }
+        else if (typeof fieldFocus === 'function') try { fieldFocus(b, { preventScroll: true }); } catch (_){}
         else try { b.focus({ preventScroll: true }); } catch (_){}
         return b;
       };

@@ -188,6 +188,14 @@ function pdTabCount(t, c){
     if (t === 'oblig'){ const n = Array.isArray(c.obligations) ? c.obligations.filter(Boolean).length : 0; return n ? { n, tone: 'quiet' } : null; }
     if (t === 'deal'){ const n = pdTheirOpen(c).length; return n ? { n, tone: 'warn' } : null; }
     /* Redlines: the Dossier's own Negotiate count (their asks waiting, our changes not sent) */
+    /* THEIR VIEW (owner's list, 25 Oct 2026, item 19): while the paper's switch says Their view the tab
+       counts what their column draws — the column's own "Redlines N" (rlOpenCardCount from their seat) —
+       quietly, since it is not our work; it said our unsent change too */
+    if (t === 'red' && pdRedTheirs(c) && typeof rlOpenCardCount === 'function'){
+      const hid = typeof rlHiddenFrom === 'function' ? [...rlHiddenFrom(c, 'counterparty')] : [];
+      const n = rlOpenCardCount(c, Object.assign({}, pdRedOpts(c), { hiddenIds: hid }));
+      return n ? { n, tone: 'quiet' } : null;
+    }
     if (t === 'red'){ const D = dossierOf(c); const n = ((D && D.owed) || []).filter(r => DOSSIER_STAGE_OF[r.kind] === 'nego').reduce((k, r) => k + dossierRowN(r), 0); return n ? { n, tone: 'warn' } : null; }
   } catch (_){}
   return null;
@@ -4155,7 +4163,11 @@ function pdCkSignerSay(c){
   const me = (typeof currentUser === 'function' && currentUser()) || null;
   const them = (typeof counterpartyContact === 'function' ? counterpartyContact(c) : null) || {};
   const tn = them.name && !(typeof signerIsCompany === 'function' && signerIsCompany(c, { party: 'counterparty', name: them.name })) ? them.name : '';
-  return [me && me.name, tn].filter(Boolean).map(short).join(' · ');
+  /* ONE PERSON IS NAMED ONCE (owner's list, 25 Oct 2026, item 20: "Young M. · Young M."): where the other
+     side's contact is the reader themself — a link sent to their own address — the line names them once */
+  const same = !!(me && tn && (String(tn).trim().toLowerCase() === String(me.name || '').trim().toLowerCase()
+    || (them.email && me.email && String(them.email).trim().toLowerCase() === String(me.email).trim().toLowerCase())));
+  return [me && me.name, same ? '' : tn].filter(Boolean).map(short).join(' · ');
 }
 /* THE SIGNERS, NAMED (the Checklist's 1a and 1b, 22 Oct 2026): once the route names people the row
    is green and says how many and in how many steps; opened, the route in order — the step number,

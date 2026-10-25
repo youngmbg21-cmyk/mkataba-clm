@@ -1564,6 +1564,15 @@ function tbStyleHtml() {
   .tb-strip{background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:0 0 0 5px var(--color-surface),0 0 0 6px var(--color-divider)}
   #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
   .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:none;background:var(--color-surface);overflow:hidden}
+  /* THE TWO HALVES FLOAT, LEVEL (25 Oct 2026): wider than 1100 the panel is the white card every list's is
+     (.ins-panel.is-jambo) — 8px in from the window's edge, its top on the head card's line, its foot 8px
+     over the window's; it started flush under the bar while the head card started 8px lower */
+  @media (min-width:1101px){
+    /* the head card is drawn by a 6px ring outside its row (the paper's first line may not move): the panel's top meets the ring */
+    #tb-railslot{margin:-6px calc(8px - var(--page-pad-x)) calc(8px - var(--page-pad-b)) 0}
+    .tb-page:not(.no-rail) > .tb-left{margin-bottom:calc(8px - var(--page-pad-b))}
+    .tb-rail.tb-jl{border-left:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  }
   .tb-page.is-railfold{grid-template-columns:minmax(0,1fr) calc(46px - var(--page-pad-x))}
   .tb-page.is-railfold > .tb-resizer{display:none}
   .tb-rail.is-folded > :not(.tb-door){display:none}

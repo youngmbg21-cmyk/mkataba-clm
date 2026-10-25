@@ -14366,7 +14366,7 @@
   .jl-face-row .jl-face-w{min-width:0;}
   .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}
   /* Jambo's own words: his face, a bubble, the line saying it cost nothing, the page's doors as chips */
-  .jl-words{padding:14px 14px 4px;display:flex;flex-direction:column;gap:8px;}
+  .jl-words{padding:16px 16px 4px;display:flex;flex-direction:column;gap:8px;}
   .jl-say{display:flex;align-items:flex-start;gap:10px;}
   .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
   /* NO FACE IN THE THREAD (owner, 20 Oct 2026): on a computer, Jambo's small
@@ -14401,7 +14401,7 @@
   .jl-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left;}
   .jl-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700);}
   .jl-chip:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;}
-  .jl-feed{padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px;}
+  .jl-feed{padding:6px 16px 16px;display:flex;flex-direction:column;gap:12px;}
   .jl-feed:empty{display:none;}
   .jl-card .ca-acts{display:flex;flex-wrap:wrap;gap:6px;}
   /* the foot: the ask box, Ask inside its right end, and the hint under it */
@@ -17327,6 +17327,10 @@
     :root{--page-pad-t:8px}
     #modal-root [data-dlg-page] .dlg-pg-head{margin-top:8px}
     #content .view-enter:has(.ins-panel.is-jambo), #ct-place .sap-page.ct-page{padding-bottom:8px}
+    /* Our paper sets its padding on the element; its foot follows the same line through a token (25 Oct 2026, it ended 16px up) */
+    #content .view-enter.tpl-page:has(.ins-panel.is-jambo){--tpl-pb:8px}
+    /* the Board's first card starts on the panel's line too (it stood 4px lower: the Board pads 12px, the panel floats 8px down) */
+    #ig-page .hb-board{padding-top:8px}
     /* (10b) a page that scrolls steps 8px aside for the panel (above): its head card steps with it, so it ends
        where the strip under it ends (Import's head stood 8px wider) */
     #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:calc(var(--jl-room,var(--jl-w,384px)) + 8px)}
@@ -17334,7 +17338,8 @@
   }
   /* JAMBO'S GREETING HAS THE PANEL'S MARGIN (3): on a list's panel and the Calendar's it stood flush against
      both edges while his words under it kept their 14px */
-  :is(.jl-greet, .cal-cop .cal-plan-body) > .jb-hello{padding:14px 14px 0;margin-bottom:0}
+  /* ONE MARGIN INSIDE EVERY JAMBO PANEL (25 Oct 2026): 16px, as Home's and Contracts' — his greeting, his words and his answers */
+  :is(.jl-greet, .cal-cop .cal-plan-body) > .jb-hello{padding:16px 16px 0;margin-bottom:0}
   /* HIS TAB IS NEVER CUT (4): "Jambo" is five letters; beside a long page word (a paper's name on Our paper)
      the NAME gives way, never his tab. The paper's own row (five tabs with a letter waiting) is the owner's
      "Short words" below. */
