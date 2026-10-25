@@ -144,7 +144,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦.
        RE-POINTED 20 Oct 2026 (Chambers): his face on a computer is the ✦ svg (.jambo-face/.jambo-mark), not an
        <img>, so the probe asks for either — an img-only probe could no longer see his face if it came back */
-    ok('11c the panel\'s first tab is "Overview", a plain mark, not his face', !!tab && !tab.face && tab.word === 'Overview', JSON.stringify(tab));
+    /* RE-POINTED 24 Oct 2026 (ONE WINDOW WHERE THERE IS NOTHING ELSE TO SHOW, pdSolo): on the Board the panel
+       holds only his words, so it is the conversation under its one tab "Jambo", his sign and his name
+       (owner: "bring them back") — no Overview there */
+    ok('11c on the Board the panel\'s one tab is "Jambo", wearing his sign', !!tab && tab.face && tab.word === 'Jambo', JSON.stringify(tab));
     /* 11d re-pointed 13 Oct 2026: the Breakdown face and its panel are gone, so
        its panel cannot carry an ask box; the reading's Clauses tab carries none */
     const noAsk = await page.evaluate(() => ({ lens: typeof window.bdLensHtml, ask: !!document.querySelector('#pd-thread #igd-input') }));

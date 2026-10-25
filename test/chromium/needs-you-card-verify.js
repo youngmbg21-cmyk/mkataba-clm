@@ -105,15 +105,18 @@ const CONTRACTS = [
 
     /* ===== 2. JAMBO ON THE BOARD SAYS WHERE IT IS ===== */
     await page.evaluate(() => { hbS().face = 'board'; hbSave(); setView('dashboard'); });
-    const said = await until(page, n => {
-      const t = document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n');
-      return !!(t && Number(t.textContent) === n && document.querySelector('#ig-dock .hb-jb-hello'));
-    }, one.n);
+    /* RE-POINTED 24 Oct 2026 (ONE WINDOW WHERE THERE IS NOTHING ELSE TO SHOW, pdSolo): on the Board his
+       panel is the conversation under its one tab "Jambo", which carries no number; the Counter's number
+       is said in his words (2b) */
+    const said = await until(page, () => {
+      const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]');
+      return !!(t && document.querySelectorAll('#ig-dock .hb-jb-hello').length > 1);
+    });
     const two = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello')];
       return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''),
         where: b[1] ? b[1].querySelector('.ai-bub').textContent.replace(/\s+/g, ' ').trim() : '',
         chip: b[1] ? ((b[1].querySelector('[data-igsug]') || {}).textContent || '').trim() : '' }; });
-    ok('2a his tab carries the Counter\'s number', said && Number(two.tab) === one.n, JSON.stringify(two));
+    ok('2a his one tab carries no number of its own (the number is in his words)', said && two.tab === '' && new RegExp(`: ${one.n} things`).test(two.where), JSON.stringify(two));
     /* the Counter is named Home since 18 Oct 2026 (main's own rename; code keeps "counter") */
     ok('2b he says where the owed work went', new RegExp(`^What needs you is on Home: ${one.n} things`).test(two.where), two.where);
     ok('2c "what needs me" stands under it', two.chip === 'what needs me', two.chip);

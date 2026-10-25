@@ -69,7 +69,7 @@ const MEASURE = () => {
         lnCur: [...dock.querySelectorAll('.ds-ln-st.is-cur')].filter(vis).length }; })(),
     saveAll: vis(dock.querySelector('[data-pd-og-saveall]')),
     head: ((dock.querySelector('#pd-needs .pd-gl-h') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-    rows: rows.map(r => ({ key: r.getAttribute('data-pd-og-row'), open: r.classList.contains('is-open'),
+    rows: rows.map(r => ({ key: r.getAttribute('data-pd-og-row'), open: r.classList.contains('is-open'), door: r.classList.contains('is-named') || r.classList.contains('is-door'),
       h: Math.round((r.querySelector('.pd-ck-hd') || r).getBoundingClientRect().height),
       box: vis(r.querySelector('td.pd-og-v')), ok: vis(r.querySelector('[data-pd-og-ok]')),
       words: ((r.querySelector('.pd-ck-hd') || {}).textContent || '').replace(/\s+/g, ' ').trim() })),
@@ -139,7 +139,8 @@ const MEASURE = () => {
     /* RE-POINTED 23 Oct 2026 (Marquee): one height, 44 */
     /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix", "the entry is the SAP way: labelled fields at full width ...
        One Save"): every owed fact shows its field (a door row, the signers, keeps its button), and ONE Save stands */
-    check('2b every owed fact shows its field, labelled above it', owed.length >= 4 && owed.filter(r => r.key !== 'signers').every(r => r.box), JSON.stringify(owed.map(r => [r.key, r.box])));
+    /* the door rows (signers, who else, the web look at the other side) keep their button, not a field */
+    check('2b every owed fact shows its field, labelled above it', owed.length >= 4 && owed.filter(r => !r.door).length >= 4 && owed.filter(r => !r.door).every(r => r.box), JSON.stringify(owed.map(r => [r.key, r.box, r.door])));
     check('2c one Save for them all, no Confirm on each row', m0.saveAll && owed.filter(r => r.key !== 'signers').every(r => !r.ok), JSON.stringify({ save: m0.saveAll, ok: owed.map(r => [r.key, r.ok]) }));
     check('2d a missing fact says "Missing" on its line', owed.some(r => /Missing/.test(r.words)), JSON.stringify(owed.map(r => r.words)));
     check('2e the order: stage, Needs you, Jambo read, Next acts, then Key terms and the folds',
