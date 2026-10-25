@@ -618,7 +618,7 @@ const BRAIN_LANE_OF = {
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'govrule', 'aigoto', 'factsheet', 'dealfacts',
     'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
-    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'askcolread', 'partybrief', 'partyfacts', 'askcolkept', 'askcolteam', 'askcolcheck', 'askcolrule', 'askcolsum', 'askcolfacts', 'askcolodd', 'partyfacts', 'ptreview', 'breakread', 'breakdive', 'agentpieces', 'roundsettle', 'piecesget', 'agentoutcome', 'agentprepared', 'agentrebuild', 'agentpoints', 'invite', 'settingswhy', 'settingsasks', 'fdlist', 'fdpin', 'fddel', 'fdreply', 'fdsend', 'fdseen', 'watchget', 'watchadd', 'watchset', 'watchdel', 'watchrun', 'watchsweep'],
+    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'askcolread', 'partybrief', 'askcolkept', 'askcolteam', 'askcolcheck', 'askcolrule', 'askcolsum', 'askcolfacts', 'askcolodd', 'partyfacts', 'ptreview', 'breakread', 'breakdive', 'agentpieces', 'roundsettle', 'piecesget', 'agentoutcome', 'agentprepared', 'agentrebuild', 'agentpoints', 'invite', 'settingswhy', 'settingsasks', 'fdlist', 'fdpin', 'fddel', 'fdreply', 'fdsend', 'fdseen', 'watchget', 'watchadd', 'watchset', 'watchdel', 'watchrun', 'watchsweep'],
   /* the counterparty: their link, the code that proves it is them */
   them: ['cplink', 'guestcode', 'theirsign']
 };

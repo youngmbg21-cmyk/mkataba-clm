@@ -293,16 +293,15 @@ function apWhatHtml(c){
   return `<section class="ins-sec ap-what" data-ap-what-for="${esc(c.id)}"><h3>${esc(i18t('apw_h'))}</h3>
     ${row('plain',i18t('apw_k_plain'),brief)}${row('money',i18t('apw_k_money'),money)}${row('dep',i18t('apw_k_dep'),dep)}${row('asked',i18t('apw_k_asked'),asked)}${row('nothing',i18t('apw_k_nothing'),esc(i18t('apw_nothing')))}</section>`;
 }
+/* THE BRIEF'S ONE DOOR (runContractBrief, js/ai.js): this page spends nothing of its own; the press goes through
+   the one writer every other brief goes through, and the server's briefAsker lets an approver of THIS contract ask */
 async function apWhatBrief(id){
-  const c=(typeof getContract==='function')?getContract(id):null; if(!c||_apWhatBusy) return;
+  const c=(typeof getContract==='function')?getContract(id):null; if(!c||_apWhatBusy||typeof runContractBrief!=='function') return;
   _apWhatBusy=String(id); apWhatRepaint(c);
   try{
-    let text=''; try{ text=(typeof isUpload==='function'&&isUpload(c))?'':((typeof contractPlainText==='function')?contractPlainText(c):''); }catch(_){ text=''; }
-    const r=await api('ai/brief','POST',text&&text.length>=120?{ id:c.id, text }:{ id:c.id });
-    if(r&&r.brief) c._brief=r.brief;
-    if(typeof toast==='function') toast(i18t('apw_brief_done'),'ok');
-  }catch(e){
-    if(typeof toast==='function') toast(e&&(e.needsKey||e.kind==='noKey')?i18t('ac_nokey'):i18t('apw_brief_err',{msg:(e&&e.message)||''}),'err');
+    const r=await runContractBrief(c,{ quiet:true });
+    if(r&&r.error){ if(typeof toast==='function') toast(i18t('apw_brief_err',{msg:r.error}),'err'); }
+    else if(r&&typeof toast==='function') toast(i18t('apw_brief_done'),'ok');
   }finally{ _apWhatBusy=null; apWhatRepaint(c); }
 }
 function apWhatRepaint(c){
