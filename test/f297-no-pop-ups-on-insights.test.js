@@ -98,7 +98,8 @@ test('f297 (4) on the real page an answer carrying a notice draws it under the a
    the main Copilot panel"). The main panel's chat now asks quietly too, because
    it prints the same notice under its answer; the inline line still stands. */
 test('f297 (5) the main Copilot panel asks quietly, and its own inline line stands', () => {
-  assert.match(AI, /res=await copilotAsk\(aiChatMessages\(\), aiChatContext\(\), aiStreamRenderer\(\), \{ quiet:true \}\);/);
+  /* RE-POINTED 25 Oct 2026 (Both halves): the messages are built first (the explain call puts the question last); still quiet */
+  assert.match(AI, /const msgs=aiChatMessages\(\);[\s\S]{0,200}res=await copilotAsk\(msgs, aiChatContext\(\), aiStreamRenderer\(\), \{ quiet:true \}\);/);
   assert.match(AI, /if\(res\.notice\) text\+=`<div class="text-\[11px\] text-amber-700 mt-2 leading-relaxed">/,
     'its own inline line is untouched');
 });
