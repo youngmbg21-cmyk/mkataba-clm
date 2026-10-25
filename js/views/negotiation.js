@@ -8132,6 +8132,13 @@ function dealBoardHtml(c, side){
 let _dealTab = null;
 const DEAL_TABS = ['all', 'you', 'them', 'done'];
 function dealTabSet(k){ _dealTab = DEAL_TABS.includes(k) ? k : null; }
+/* A POINT OPENS TO COMPARE (owner picked option 2, 25 Oct 2026: "the deal card only shows parts of the
+   clause"): a press on a point where they asked something opens it, both wordings whole with the words each
+   moved marked (the changes' own stored ops, `rlChangeWordingHtml` changedOnly — the card's reading); a point
+   they asked nothing on stays one quiet line. Per sitting, in memory. */
+const _dealOpen = new Set();
+function dealRowToggle(id){ id = String(id); if (_dealOpen.has(id)) _dealOpen.delete(id); else _dealOpen.add(id); return _dealOpen.has(id); }
+function dealRowOpen(id){ return _dealOpen.has(String(id)); }
 /* the paragraphs a move touches, as plain words: `drop` names the ops left
    out (what it proposes: drop its deletions; what stood before it: drop its
    insertions) */
@@ -8184,10 +8191,21 @@ function dealViewHtml(c, side){
     const theirs = r.theirs ? dealWordsOf(r.theirs.ch, 'del') : '';
     const held = dealHeldWords(r);
     const unsent = side !== 'counterparty' && r.ours && r.ours.ch && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.ours, side) ? r.ours.ch.id : '';
-    return `<div class="deal-it is-lg" data-deal-row="${_nea(r.clauseId)}">
-      <div class="deal-top"><span class="deal-dot db-vd-${v.k}" title="${_nea(v.text)}" aria-label="${_nea(v.text)}"><i aria-hidden="true"></i></span><b class="deal-nm">${_ne(s.name)}</b>${s.sec ? `<span class="deal-sec">${_ne(i18t('ng_deal_on_paper', { s: s.sec }))}</span>` : ''}<span class="deal-sp"></span>${unsent ? `<button type="button" class="deal-send" data-deal-send="${_nea(unsent)}">${_ne(i18t('ng_send'))}</button>` : ''}<button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button></div>
-      <div class="deal-q"><span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}
-        <span>${_ne(i18t('ng_deal_they'))}</span>${r.theirs ? (theirs ? quote(theirs) : '<span class="deal-none">\u2014</span>') : `<span class="deal-none">${_ne(i18t('ng_deal_nothing_yet'))}</span>`}</div>
+    const canOpen = !!r.theirs, open = canOpen && dealRowOpen(r.clauseId);
+    const name = canOpen
+      ? `<button type="button" class="deal-nm deal-tg" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="${open}" title="${_nea(i18t(open ? 'ng_deal_close_cmp' : 'ng_deal_open_cmp'))}">${_ne(s.name)}<span class="deal-chev" aria-hidden="true">${open ? '\u25be' : '\u25b8'}</span></button>`
+      : `<b class="deal-nm">${_ne(s.name)}</b>`;
+    /* open: both wordings whole, the moved words marked */
+    const heldCh = r.state === 'settled' && r.accepted ? r.accepted.ch : r.ours ? r.ours.ch : null;
+    const whole = ch => `<div class="rl-cp-src deal-w">${rlChangeWordingHtml(ch, { side, changedOnly: true })}</div>`;
+    const body = open
+      ? `<div class="deal-cmp"><span>${_ne(i18t('ng_deal_you'))}</span>${heldCh ? whole(heldCh) : (held ? `<div class="deal-w is-plain">${_ne(held)}</div>` : '<span class="deal-none">\u2014</span>')}
+        <span>${_ne(i18t('ng_deal_they'))}</span>${whole(r.theirs.ch)}</div>`
+      : `<div class="deal-q"><span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}
+        ${r.theirs ? `<span>${_ne(i18t('ng_deal_they'))}</span>${theirs ? quote(theirs) : '<span class="deal-none">\u2014</span>'}` : ''}</div>`;
+    return `<div class="deal-it is-lg${open ? ' is-open' : ''}" data-deal-row="${_nea(r.clauseId)}">
+      <div class="deal-top"><span class="deal-dot db-vd-${v.k}" title="${_nea(v.text)}" aria-label="${_nea(v.text)}"><i aria-hidden="true"></i></span>${name}${s.sec ? `<span class="deal-sec">${_ne(i18t('ng_deal_on_paper', { s: s.sec }))}</span>` : ''}${r.theirs ? '' : `<span class="deal-sec">${_ne(i18t('ng_deal_nothing_yet_short'))}</span>`}<span class="deal-sp"></span>${unsent ? `<button type="button" class="deal-send" data-deal-send="${_nea(unsent)}">${_ne(i18t('ng_send'))}</button>` : ''}<button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button></div>
+      ${body}
     </div>`;
   }).join('') || `<p class="deal-empty">${_ne(i18t('ng_board_f_none'))}</p>`;
   return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}">
@@ -23288,7 +23306,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
-  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealTabSet, DEAL_TABS,
+  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealTabSet, DEAL_TABS, dealRowToggle, dealRowOpen,
   dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

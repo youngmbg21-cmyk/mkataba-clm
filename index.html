@@ -17264,6 +17264,18 @@
   .deal-it.is-lg .deal-send,.deal-it.is-lg .deal-go{flex:none;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   .deal-it.is-lg .deal-send:hover,.deal-it.is-lg .deal-go:hover{text-decoration:underline}
   .deal-it.is-lg .deal-q{margin-top:6px;grid-template-columns:72px minmax(0,1fr)}
+  /* SEND AND OPEN CLAUSE ON ONE LINE (owner, 25 Oct 2026: "Send is higher"): the head centres its parts and
+     both words are one 20px line, whatever a button would add */
+  .deal-it.is-lg .deal-top{align-items:center}
+  .deal-it.is-lg .deal-top > :is(.deal-send,.deal-go,.deal-sec,.deal-nm){display:inline-flex;align-items:center;height:20px;line-height:20px;margin:0;min-height:0}
+  /* A POINT OPENS TO COMPARE (option 2): its name is the press; both wordings whole, the moved words marked */
+  .deal-it.is-lg .deal-tg{gap:6px;background:none;border:0;padding:0;font:inherit;font-size:14px;font-weight:var(--w-strong);color:var(--color-text);cursor:pointer;text-align:left;min-width:0}
+  .deal-it.is-lg .deal-tg:hover{color:var(--accent-ink)}
+  .deal-it.is-lg .deal-chev{font-size:11px;color:var(--color-neutral-600)}
+  .deal-it.is-lg .deal-cmp{margin-top:8px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px 12px;align-items:baseline;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .deal-it.is-lg .deal-w{min-width:0;font-family:var(--font-doc);font-size:14px;line-height:1.6;color:var(--color-text)}
+  .deal-it.is-lg .deal-w p{margin:0 0 6px}
+  .deal-it.is-lg .deal-w p:last-child{margin-bottom:0}
   /* ROUND 3: CLAUSES AND REDLINES WEAR ONE HEAD (owner's pick "The SAP Way"): the name in the serif, its count, a grey line */
   .pd-th .stk-head.is-mq .stk-mq-t.stk-mq-t{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;font-size:18px;line-height:24px;font-weight:var(--w-title-serif);text-wrap:wrap}
   .pd-th .stk-head.is-mq .stk-mq-t .stk-mq-n{font-style:normal;font-family:var(--font-ui);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
