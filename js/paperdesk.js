@@ -2079,7 +2079,9 @@ function pdRoadRuleHtml(c, r){
   const movedHtml = (hasMoved && _pdRdMoved === 'rule') ? pdRoadMovedHtml(moved) : '';
   /* the approval email's link and Needs you land on the first yes this reader may give (#sa-card) */
   const id = (st === 'pending' && r.mine && !_pdRdId) ? (_pdRdId = true, ' id="sa-card"') : '';
-  return `<div class="pd-rd-card sa-card"${id} data-pd-rd-rule-card="${_pdE(st)}">${states}${standin}${facts ? `<p class="pd-rd-facts">${_pdE(facts)}</p>` : ''}${
+  /* WHAT YOU ARE APPROVING (Discover stage 8): the approver's own stop carries the card, above Approve · Refuse */
+  const what = (st === 'pending' && r.mine && typeof apWhatHtml === 'function') ? apWhatHtml(c) : '';
+  return `<div class="pd-rd-card sa-card"${id} data-pd-rd-rule-card="${_pdE(st)}">${states}${standin}${facts ? `<p class="pd-rd-facts">${_pdE(facts)}</p>` : ''}${what}${
     acts.length ? `<div class="pd-rd-acts">${acts.join('')}</div>` : ''}${movedHtml}</div>`;
 }
 function pdRoadMovedHtml(moved){

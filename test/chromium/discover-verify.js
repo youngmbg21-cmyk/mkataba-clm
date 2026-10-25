@@ -1,4 +1,4 @@
-/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo, contractPlainText, precedentMemoryOf, rlRowReadHtml */
+/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo, contractPlainText, precedentMemoryOf, rlRowReadHtml, apSetTab */
 /* DISCOVER — THE COLUMN THE LEGORA WAY, THE KEPT QUESTIONS, THE COMPANY'S
    FACTS AND WATCHES (docs/PLAN-jambo-discover.md, owner 25 Oct 2026), driven
    in a real browser over test/discover-world.js (eleven contracts, the
@@ -275,6 +275,32 @@ const stage = n => !ONLY || ONLY === String(n);
       const div = await page.evaluate(h => { const d = document.createElement('div'); d.innerHTML = h; return d.innerText; }, m.ours || '');
       check('7a their new ask draws the memory line under the verdict, naming Siginon', !!(m.mem && m.mem.withThem) && /Siginon/.test(div) && /data-rl-row-memory/.test(m.ours || ''), JSON.stringify({ mem: m.mem && m.mem.line, div }));
       check('7b the counterparty\'s seat draws no memory', !/data-rl-row-memory/.test(m.theirs || ''));
+    }
+
+    if (stage(8)){
+      await W.admin.json('/api/settings', { method: 'PUT', body: { approvalRules: [{ id: 'r-dv', name: 'Finance director', order: 1,
+        cond: { type: 'value', op: '>=', value: 1000000 }, approver: { kind: 'role', role: 'admin' } }] } });
+      await W.admin.json('/api/contracts/DV-AP1', { method: 'PUT', body: { baseVersion: 0, contract: {
+        id: 'DV-AP1', name: 'Managed IT Services', counterparty: 'Equity Bank', folder: 'sales', status: 'Under Review', value: 145000000, expiry: '2028-01-31',
+        valueType: 'standard', template: 'RM', fields: {}, metadata: { value: 145000000, currency: 'KES' }, comments: [], audit: [], signatures: [], format: 'text',
+        redlineText: 'MANAGED IT SERVICES\n\n1. Liability\nNothing in this Agreement limits the Supplier\'s liability arising from the Services.\n\n2. Term\nThis Agreement ends on 31 January 2028.' } } });
+      await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+      await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.some(c => c.id === 'DV-AP1'), null, 15000);
+      await page.evaluate(() => { apSetTab('approvals'); setView('approvals'); });
+      const listed = await until(page, () => !!document.querySelector('[data-ap-row="DV-AP1"]'), null, 10000);
+      if (listed) await page.click('[data-ap-row="DV-AP1"]');
+      const card = await until(page, () => !!document.querySelector('#ins-panel [data-ap-what-for="DV-AP1"]'), null, 10000);
+      const t = await page.evaluate(() => (document.querySelector('#ins-panel [data-ap-what-for]') || {}).innerText || '');
+      const above = await page.evaluate(() => { const a = document.querySelector('#ins-panel .ap-what'), b = [...document.querySelectorAll('#ins-panel *')].find(x => /^Why it waits$/.test((x.textContent || '').trim()));
+        return !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)); });
+      check('8a the panel says What you are approving above Why it waits: money, unchecked standards said, plain words offered', listed && card && above
+        && /What you are approving/.test(t) && /KES/.test(t) && /2028-01-31/.test(t) && /not been checked/.test(t) && /Put it in plain words/.test(t), t.replace(/\s+/g, ' ').slice(0, 400));
+      await page.screenshot({ path: path.join(OUT, '8-approvals.png') });
+      const c0 = h.ai.calls.length;
+      await page.click('#ins-panel [data-ap-what-brief]');
+      const said = await until(page, () => !!document.querySelector('#ins-panel .ap-what-brief'), null, 10000);
+      check('8b "Put it in plain words" spends one call and the brief is said there', said && h.ai.calls.length - c0 === 1, String(h.ai.calls.length - c0));
+      check('8c Approve and Refuse are where they were', await page.evaluate(() => !!document.querySelector('#ins-panel [data-ins-act="approve"]') && !!document.querySelector('#ins-panel [data-ins-act="refuse"]')));
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

@@ -9335,7 +9335,30 @@ Return via draft_amendment.\n\n${AI_GOVERNANCE_RULE}\n\nAGREEMENT:\n${aiDocText(
    brief rides GET /api/contracts/:id as _brief, where a reader without
    canViewValues gets it with the money section removed. The prompt keeps
    every amount in that one section so the masking has one thing to mask. */
-app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGuard, capAiInput, async (req, res) => {
+/* THE APPROVER MAY ASK FOR THE BRIEF (Discover stage 8, owner 25 Oct 2026: "any approver may press for it"):
+   someone who cannot edit contracts may still ask for the plain-English brief of a contract they are asked to
+   approve — a rule step the rules name them for and nobody has decided, or a named person's yes waiting on
+   them or their backup. Read off the STORED contract and the workspace's rules, never the body. */
+function srvMayApproveHere(full, u) {
+  if (!full || !u) return false;
+  const chain = Array.isArray(full.approvalChain) ? full.approvalChain : [];
+  for (const rule of srvApprovalRules()) {
+    if (!srvRuleMatches(rule, full) || !srvUserCanApprove(rule.approver || {}, u)) continue;
+    const st = chain.find(x => x && String(x.ruleId) === String(rule.id));
+    if (!st || (st.status !== 'approved' && st.status !== 'rejected')) return true;
+  }
+  return (Array.isArray(full.signApprovals) ? full.signApprovals : []).some(r => r && !r.decidedAt
+    && (String(r.approverId || '') === String(u.id) || String(r.backupId || '') === String(u.id)));
+}
+const briefAsker = (req, res, next) => {
+  if (req.user.role !== 'viewer') return passwordCurrent(req, res, next);
+  const id = String((req.body || {}).id || '');
+  const row = id ? db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(id) : null;
+  let full = null; try { full = row && inScope(folderScopeFor(req.user), row.folder) ? JSON.parse(row.json) : null; } catch (_) { full = null; }
+  if (!srvMayApproveHere(full, req.user)) return res.status(403).json({ error: 'Viewers have read-only access' });
+  return passwordCurrent(req, res, next);
+};
+app.post('/api/ai/brief', auth, briefAsker, rlAiDeep, aiFeature('brief'), aiBudgetGuard, capAiInput, async (req, res) => {
   const { id, text, force } = req.body || {};
   if (!id) return res.status(400).json({ error: 'id is required' });
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
