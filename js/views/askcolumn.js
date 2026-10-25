@@ -45,6 +45,7 @@ const AC = {
   busy: null,      // { n } while Jambo reads
   chosen: null,    // { askId, cid } — the answer the panel explains
   team: null,      // the team's past questions (GET /api/columns)
+  drawn: {},       // askId → true while its counts are drawn in the panel (Draw it)
 };
 const _acE = s => (typeof esc === 'function') ? esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const _acT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
@@ -187,6 +188,42 @@ function askColWhen(at){
 function askColClauseNo(a){
   return (String((a && a.clause) || '').match(/^\s*([0-9]+(?:\.[0-9]+)*|[IVXLC]+|[A-Z])\b/) || [])[1] || '';
 }
+/* THE DOT READS THE COMPANY'S RULE FIRST (Discover stage 2, owner 25 Oct 2026):
+   outside it is a risk, inside it is usual; only where there is no rule does
+   Jambo's own reading of the wording colour it. One reading for the cell, the
+   legend, the counts and Show the N at risk. */
+function askColToneOf(a){
+  if (!a || a.noWording || !a.found) return 'gray';
+  if (a.verdict === 'out') return 'ruby';
+  if (a.verdict === 'in') return 'green';
+  return AC_TONE[a.tone] || 'gray';
+}
+function askColAtRisk(askId){
+  const m = AC.ans[askId] || {};
+  return askColShown().filter(id => m[id] && askColToneOf(m[id]) === 'ruby');
+}
+/* the words the answer rests on, short, for the cell's second line (the Legora way: the answer, then where it was read) */
+function askColQuoteShort(a){
+  const q = String((a && a.quote) || '').trim();
+  return q ? '“' + (q.length > 90 ? q.slice(0, 88).replace(/\s+\S*$/, '') + '…' : q) + '”' : '';
+}
+/* THE LEGEND, IN THE LIST'S FOOT while an answer column stands: what each dot means, said once */
+function askColLegendHtml(){
+  if (!askColIdsUp().length) return '';
+  const d = (k, t) => `<span class="ac-lg"><i class="ac-lg-${k}"></i>${_acE(_acT(t))}</span>`;
+  return `<span class="lh-extra ac-legend"> · ${d('green', 'ac_lg_good')}${d('amber', 'ac_lg_watch')}${d('ruby', 'ac_lg_bad')}${d('gray', 'ac_lg_none')}</span>`;
+}
+/* A QUESTION OF THE WORDING TYPED IN THE LIST'S OWN BOX (stage 2): the same
+   form opens, filled — the one door to a read, the cost said before any call */
+const AC_WORDING_RE = /\b(notice|terminat\w*|cancel\w*|liabilit\w*|capped|cap\b|indemn\w*|govern\w*|law\b|jurisdiction|renew\w*|roll(s|ed)? over|personal data|data protection|confidential\w*|payment terms|days to pay|warrant\w*|exclusiv\w*|non-compete|assign\w*|force majeure|clause|does (it|the contract|each contract) say|uppsägning\w*|ansvar\w*|förnya\w*|personuppgift\w*)\b/i;
+function askColTakes(seat, words){
+  const t = String(words || '').trim();
+  if (seat !== 'contracts' || !askColOn() || !askColMay() || !t) return false;
+  const q = (typeof lhIsQuestion === 'function') ? lhIsQuestion(t) : /\?$/.test(t);
+  if (!q || !AC_WORDING_RE.test(t)) return false;
+  askColOpen({ question: t.slice(0, 300) });
+  return true;
+}
 function askColTdHtml(c, askId){
   const a = (AC.ans[askId] || {})[c.id];
   const on = AC.chosen && AC.chosen.askId === askId && AC.chosen.cid === String(c.id);
@@ -196,13 +233,14 @@ function askColTdHtml(c, askId){
     return `<td ${attrs}>${busy && typeof busyHtml === 'function' ? `<span class="ac-sub">${busyHtml('')}</span>` : `<span class="ac-dash">—</span><small class="ac-sub">${_acE(_acT('ac_not_read'))}</small>`}</td>`;
   }
   if (a.noWording) return `<td ${attrs}><span class="ac-ans tone-gray"><i></i>${_acE(_acT('ac_no_wording'))}</span><small class="ac-sub">${_acE(_acT('ac_no_wording_sub'))}</small></td>`;
-  const tone = AC_TONE[a.found ? a.tone : 'none'] || 'gray';
+  const tone = askColToneOf(a);
   const word = a.found ? a.answer : _acT('ac_not_found');
   const ck = a.checked;
   const may = askColMay();
   const tip = !may ? _acT('ac_mark_viewer') : ck ? _acT('ac_unmark', { who: ck.by, when: askColWhen(ck.at) }) : _acT('ac_mark');
   const tick = `<button type="button" class="ac-ck${ck ? ' on' : ''}" data-ac-ck aria-pressed="${ck ? 'true' : 'false'}" title="${_acE(tip)}" aria-label="${_acE(tip)}"${may ? '' : ' disabled'}>${ck && typeof icon === 'function' ? icon('check2', 'ac-ck-i') : ''}</button>`;
-  const sub = [a.detail, ck ? _acT('ac_checked_by', { who: askColInitials(ck.by) }) : _acT('ac_not_checked')].filter(Boolean).join(' · ');
+  /* THE LEGORA WAY (owner, 25 Oct 2026): under the answer, the words it was read from; the tick says who checked it */
+  const sub = [a.detail, a.found ? askColQuoteShort(a) : '', ck ? _acT('ac_checked_by', { who: askColInitials(ck.by) }) : ''].filter(Boolean).join(' · ');
   /* THE CLAUSE IT CAME FROM, ON THE ANSWER (Part 8, the Legora way's "§ 11.2"):
      a press goes through "Go to clause"'s own door (askColGo), the answer
      chosen first — never a second way onto the paper */
@@ -212,10 +250,10 @@ function askColTdHtml(c, askId){
 }
 /* sorting by an answer column: the ones to look at first — a concern, then
    one to watch, then the usual, then a plain fact, then nothing found */
-const AC_TONE_RANK = { concern:0, watch:1, good:2, none:3 };
 function askColCmp(askId){
   const m = AC.ans[askId] || {};
-  const rank = c => { const a = m[c.id]; return !a ? 9 : a.noWording ? 8 : !a.found ? 7 : (AC_TONE_RANK[a.tone] ?? 5); };
+  const R2 = { ruby:0, amber:1, green:2, gray:3 };
+  const rank = c => { const a = m[c.id]; return !a ? 9 : a.noWording ? 8 : !a.found ? 7 : (R2[askColToneOf(a)] ?? 5); };
   return (x, y) => rank(y) - rank(x);
 }
 
@@ -244,7 +282,7 @@ function askColFormHtml(){
   return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(_acT('ac_title'))}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acTn('ac_shown', shown.length))}</span></div>
     <div class="pd-gl-b">
       <div><label class="ac-l" for="ac-q">${_acE(_acT('ac_q_label'))}</label><textarea id="ac-q" class="ac-in" rows="2" maxlength="300" placeholder="${_acE(_acT('ac_q_ph'))}">${_acE(f.question || '')}</textarea></div>
-      <div><label class="ac-l" for="ac-name">${_acE(_acT('ac_name_label'))}</label><input id="ac-name" class="ac-in" maxlength="40" placeholder="${_acE(_acT('ac_name_ph'))}" value="${_acE(f.name || '')}"></div>
+      <div><label class="ac-l" for="ac-name">${_acE(_acT('ac_name_label'))}</label><input id="ac-name" class="ac-in" maxlength="40" placeholder="${_acE(_acT('ac_name_ph'))}" value="${_acE(f.name || '')}" aria-describedby="ac-name-say"><small class="ac-hint" id="ac-name-say">${_acE(_acT('ac_name_auto'))}</small></div>
       <div class="ac-cost">${cost}${kept ? ' ' + _acE(_acTn('ac_kept', kept)) : ''}${f.force ? ' ' + _acE(_acT('ac_cost_again')) : ''}</div>
       ${why ? `<div class="ac-why">${_acE(why)}</div>` : ''}
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-ask${why ? ` disabled title="${_acE(why)}"` : ''}>${_acE(_acTn('ac_ask_n', ids.length))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-cancel>${_acE(_acT('ac_cancel'))}</button></div>
@@ -266,10 +304,43 @@ function askColColumnHtml(askId){
     s.last ? _acT('ac_read_at', { when: askColWhen(s.last) }) : '', s.calls ? _acTn('ac_n_calls', s.calls) : ''].filter(Boolean).join(' · ');
   const ck = s.total ? `<div class="ac-ckline">${_acE(_acT('ac_checked_line', { n: s.total - s.unck.length, total: s.total }))}${s.unck.length ? ` · <button type="button" class="ac-link" data-ac-unck="${_acE(askId)}">${_acE(_acTn('ac_show_unck', s.unck.length))}</button>` : ''}</div>` : '';
   const may = askColMay();
+  /* THE NEXT STEP IS A LINK (the Legora way): narrow to the risky ones, draw the counts here, copy the table */
+  const risk = askColAtRisk(askId).length, drawn = !!AC.drawn[askId];
+  const chips = s.total ? `<div class="ac-chips ac-next">${risk ? `<button type="button" class="jb-chip" data-ac-risk="${_acE(askId)}">${_acE(_acTn('ac_chip_risk', risk))}</button>` : ''}<button type="button" class="jb-chip" data-ac-draw="${_acE(askId)}" aria-pressed="${drawn ? 'true' : 'false'}">${_acE(_acT(drawn ? 'ac_chip_undraw' : 'ac_chip_draw'))}</button><button type="button" class="jb-chip" data-ac-copy="${_acE(askId)}">${_acE(_acT('ac_chip_copy'))}</button>${askColMoreChipsHtml(askId)}</div>` : '';
   return `<div class="pd-glance ac-card" data-ac-col="${_acE(askId)}"><div class="pd-gl-h"><b>${_acE(a.name || '')}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acT('ac_col_word'))}</span></div>
-    <div class="pd-gl-b"><div class="ac-meta">${_acE(facts)}</div>${ck}
+    <div class="pd-gl-b"><div class="ac-meta">${_acE(facts)}</div>${ck}${chips}${drawn ? askColDrawHtml(askId) : ''}
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-sm" data-ac-save="${_acE(askId)}">${_acE(_acT('ac_save_view'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-again="${_acE(askId)}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_again'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_remove'))}</button></div>
     </div></div>`;
+}
+/* THE COLUMN'S LATER STEPS (stages 4 and 5): keep it as a company fact, watch it */
+function askColMoreChipsHtml(askId){ void askId; return ''; }
+/* DRAW IT: the column's counts as bars, in its own card, from the answers already read (no call) */
+function askColDrawHtml(askId){
+  const m = AC.ans[askId] || {}, ids = askColShown().filter(id => m[id] && !m[id].noWording);
+  const n = { green:0, amber:0, ruby:0, gray:0 };
+  ids.forEach(id => { n[askColToneOf(m[id])]++; });
+  const max = Math.max(1, n.green, n.amber, n.ruby, n.gray), q = AC.asks[askId] || {};
+  const bar = (k, t) => `<div class="ac-bar"><span>${_acE(_acT(t))}</span><span class="ac-bar-t"><i class="ac-lg-${k}" style="width:${Math.round(n[k] / max * 100)}%"></i></span><b>${n[k]}</b></div>`;
+  return `<div class="ac-draw" role="img" aria-label="${_acE(_acT('ac_draw_h', { name: q.name || '', n: ids.length }))}"><div class="ac-meta">${_acE(_acT('ac_draw_h', { name: q.name || '', n: ids.length }))}</div>${bar('green', 'ac_lg_good')}${bar('amber', 'ac_lg_watch')}${bar('ruby', 'ac_lg_bad')}${bar('gray', 'ac_lg_none')}<div class="ac-meta">${_acE(_acT('ac_draw_free'))}</div></div>`;
+}
+/* COPY THE TABLE: the list's rows with this column, each answer with its clause and sentence, as a table a mail or a sheet takes */
+async function askColCopy(askId){
+  const m = AC.ans[askId] || {}, q = AC.asks[askId] || {};
+  const rows = askColShown().filter(id => m[id]).map(id => {
+    const c = (typeof getContract === 'function') ? getContract(id) : null, a = m[id];
+    const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : id;
+    return [ref, c ? (c.counterparty || '') : '', a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found'), a.detail || '', a.clause || '', a.quote || '',
+      a.verdict === 'in' ? _acT('ac_lg_good') : a.verdict === 'out' ? _acT('ac_lg_bad') : ''];
+  });
+  const head = ['Ref', 'Party', q.name || '', '', _acT('ac_f_clause'), _acT('ac_f_source'), _acT('ac_f_rule')];
+  const tsv = [head].concat(rows).map(r => r.map(x => String(x).replace(/[\t\n]+/g, ' ')).join('\t')).join('\n');
+  const html = '<table>' + [head].concat(rows).map((r, i) => '<tr>' + r.map(x => `<${i ? 'td' : 'th'}>${_acE(x)}</${i ? 'td' : 'th'}>`).join('') + '</tr>').join('') + '</table>';
+  try {
+    if (typeof ClipboardItem === 'function' && navigator.clipboard && navigator.clipboard.write)
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([tsv], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
+    else await navigator.clipboard.writeText(tsv);
+    if (typeof toast === 'function') toast(_acT('ac_copied'), 'ok');
+  } catch (_){ if (typeof toast === 'function') toast(_acT('ac_copy_failed'), 'warn'); }
 }
 /* THE SAP WAY (owner picked it, 20 Oct 2026): the chosen answer as labelled facts */
 function askColWhyHtml(ch){
@@ -288,6 +359,7 @@ function askColWhyHtml(ch){
       ${row('ac_f_why', a.why ? _acE(a.why) : '')}
       ${row('ac_f_source', a.quote ? `<div class="ac-quote">“${_acE(a.quote)}”</div>` : (a.noWording ? '' : `<span class="ac-sub">${_acE(_acT('ac_no_quote'))}</span>`))}
       ${row('ac_f_clause', a.clause ? _acE(a.clause) : '')}
+      ${a.noWording || !a.found ? '' : row('ac_f_rule', _acE(a.verdict === 'in' ? _acT('ac_rule_in', { rule: a.rule }) : a.verdict === 'out' ? _acT('ac_rule_out', { rule: a.rule }) : a.rule ? _acT('ac_rule_unsure', { rule: a.rule }) : _acT('ac_rule_none')))}
       ${row('ac_f_read', a.at ? _acE(_acT('ac_read_by', { when: askColWhen(a.at) })) : '')}
     </dl>
     <div class="ac-acts ac-foot"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-go>${_acE(go)}</button></div></div></div>`;
@@ -453,6 +525,11 @@ if (typeof document !== 'undefined' && !document._acWired){
     if (ag){ e.preventDefault(); const q = AC.asks[ag.getAttribute('data-ac-again')]; if (q) askColOpen({ question: q.question, name: q.name, askId: q.id, force: true }); return; }
     const rm = t.closest('[data-ac-remove]'); if (rm){ e.preventDefault(); askColRemove(rm.getAttribute('data-ac-remove')); return; }
     const un = t.closest('[data-ac-unck]'); if (un){ e.preventDefault(); askColUnchecked(un.getAttribute('data-ac-unck')); return; }
+    const rk = t.closest('[data-ac-risk]');
+    if (rk){ e.preventDefault(); const id = rk.getAttribute('data-ac-risk'), ids = askColAtRisk(id), q = AC.asks[id] || {};
+      if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, _acT('ac_risk_label', { name: q.name || '' })); return; }
+    const dr = t.closest('[data-ac-draw]'); if (dr){ e.preventDefault(); const id = dr.getAttribute('data-ac-draw'); AC.drawn[id] = !AC.drawn[id]; askColPaintPanel(); return; }
+    const cp = t.closest('[data-ac-copy]'); if (cp){ e.preventDefault(); askColCopy(cp.getAttribute('data-ac-copy')); return; }
   });
   /* the question's own words: a typed edit is kept across a repaint; Enter asks */
   document.addEventListener('input', e => {
@@ -476,4 +553,4 @@ function askColBtnHtml(){
 }
 
 Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
-  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows });
+  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk });

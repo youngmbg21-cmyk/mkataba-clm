@@ -9812,6 +9812,19 @@
   .reg-table .ac-ck:disabled{cursor:not-allowed}
   .reg-table .ac-ck:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   .reg-table .ac-ck-i{width:10px;height:10px}
+  /* DISCOVER STAGE 2 (owner, 25 Oct 2026): the legend in the list's foot, the drawn counts, the name's hint */
+  .ac-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+  .ac-legend .ac-lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .ac-lg i,.ac-bar-t i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--st-gray-dot)}
+  i.ac-lg-green{background:var(--st-green-dot)} i.ac-lg-amber{background:var(--st-amber-dot)} i.ac-lg-ruby{background:var(--st-ruby-dot)} i.ac-lg-gray{background:var(--st-gray-dot)}
+  #ig-dock .ac-next{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
+  #ig-dock .ac-draw{display:grid;gap:6px;margin-top:10px}
+  #ig-dock .ac-bar{display:grid;grid-template-columns:minmax(0,9.5em) 1fr 2.2em;gap:8px;align-items:center;font-size:12.5px}
+  #ig-dock .ac-bar>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-bar>b{text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-label)}
+  #ig-dock .ac-bar-t{display:block;height:10px;border-radius:5px;background:var(--color-neutral-100);overflow:hidden}
+  #ig-dock .ac-bar-t i{display:block;height:100%;width:0;border-radius:5px;min-width:0}
+  #ig-dock .ac-hint{display:block;font-size:12px;color:var(--color-text);margin-top:3px}
   .ac-btn svg{margin-right:4px}
   #ig-dock .pd-gl-row{display:flex;align-items:center;gap:10px}
   #ig-dock .pd-gl-row>span{flex:1;min-width:0}

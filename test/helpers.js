@@ -79,8 +79,10 @@ function startAiStub() {
             const quote = (txt.match(/[^.\n]{40,200}\./) || [''])[0].trim();
             const head = msg.split('DOCUMENT:\n')[0];
             const n = /QUESTIONS \(/.test(head) ? (head.match(/^\d+\. /gm) || []).length : 1;
-            return { answers: Array.from({ length: n }, (_, i) => ({ q: i + 1, found: true, answer: '30 days', detail: 'either side',
-              tone: 'good', why: 'stubbed reason', quote, clause: '9 · Termination', verdict: 'in' })) };
+            /* "out" of a rule where the wording leaves liability unlimited (test/discover-world.js DV-04, DV-05), else "in" */
+            const out = /nothing in this (agreement|lease) limits/i.test(txt);
+            return { answers: Array.from({ length: n }, (_, i) => ({ q: i + 1, found: true, answer: out ? 'Not capped' : '30 days', detail: out ? 'our side' : 'either side',
+              tone: out ? 'concern' : 'good', why: 'stubbed reason', quote, clause: '9 · Termination', verdict: out ? 'out' : 'in' })) };
           })()
         : {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
