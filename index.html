@@ -10076,24 +10076,50 @@
   #modal-root [data-pd-mid^="deal:"]{background:var(--color-bg)}
   #modal-root [data-pd-mid^="deal:"] .dlg-pg-body{background:transparent;padding:10px 12px 12px}
   #modal-root [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:none;background:var(--color-surface);border-radius:20px;box-shadow:var(--shadow-sm);padding:12px 24px 24px}
-  .deal-tabs{display:flex;gap:24px;border-bottom:1px solid var(--color-divider);margin-top:12px}
-  .deal-tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:0 0 10px;font:inherit;font-size:var(--t-body);color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
-  .deal-tab[aria-selected="true"]{color:var(--color-text);font-weight:var(--w-strong);border-bottom-color:var(--color-text)}
-  .deal-tab b{margin-left:5px;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
-  .deal-it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 24px;padding:16px 0;border-bottom:1px solid var(--color-divider)}
-  .deal-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:var(--w-strong)}
-  .deal-sec{margin-right:6px;font-family:var(--font-title)}
-  .deal-vd{justify-self:end;display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);white-space:nowrap;color:var(--color-neutral-600)}
-  .deal-vd i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--rule-strong)}
-  .deal-vd.db-vd-std,.deal-vd.db-vd-in{color:var(--st-green-fg)}
-  .deal-vd.db-vd-std i,.deal-vd.db-vd-in i{background:var(--st-green-fg)}
-  .deal-vd.db-vd-agreed i{background:var(--color-text)}
-  .deal-vd.db-vd-out{color:var(--st-ruby-fg)}
-  .deal-vd.db-vd-out i{background:var(--st-ruby-fg)}
-  .deal-q{grid-column:1;min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;gap:2px 12px;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .deal-q em{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font-family:var(--font-doc);font-size:14px;color:var(--color-text)}
-  .deal-none{color:var(--color-neutral-500)}
-  .deal-go{grid-column:2;grid-row:2;align-self:end;justify-self:end;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  /* THE CLOSE PLAN (owner picked it, 25 Oct 2026): the head says how many points stand open, the road beside it
+     where they sit; every point a quiet row under what to do with it — name and §, why, where it stands, its doors */
+  [data-pd-mid^="deal:"] .dlg-pg-crumb{display:flex;align-items:center;gap:10px}
+  [data-pd-mid^="deal:"] .dlg-pg-crumb #deal-memo{margin-left:auto;flex:none}
+  [data-pd-mid^="deal:"] .dlg-pg-row{align-items:center;gap:32px}
+  [data-pd-mid^="deal:"] .dlg-pg-title{flex:1 1 auto;min-width:0}
+  [data-pd-mid^="deal:"] .dlg-pg-acts{flex:0 1 380px;min-width:240px}
+  [data-pd-mid] .deal-plan-h{font-family:var(--font-title);font-size:26px;line-height:1.2;font-weight:var(--w-title);text-wrap:balance}
+  [data-pd-mid] .deal-plan-h .deal-sub{display:block;margin:6px 0 0;white-space:normal}
+  .deal-road{display:flex;flex-direction:column;gap:8px;width:100%}
+  .deal-road-bar{display:flex;gap:2px;height:12px;border-radius:6px;overflow:hidden}
+  .deal-road-bar i,.deal-road-key i{display:block;background:var(--color-neutral-300)}
+  .deal-road i.is-go{background:var(--st-green-fg)}
+  .deal-road i.is-wait{background:var(--accent-ink)}
+  .deal-road i.is-agreed{background:var(--st-green-fg);opacity:.35}
+  .deal-road-key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--color-neutral-600)}
+  .deal-road-key span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .deal-road-key i{width:8px;height:8px;border-radius:50%}
+  .deal-road-key b{font-weight:var(--w-label);color:var(--color-text);font-variant-numeric:tabular-nums}
+  .deal-grp{padding:12px 0 2px}
+  .deal-grp + .deal-grp{padding-top:18px}
+  .deal-grp-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;margin:0 0 2px}
+  .deal-grp-h h3{margin:0;font-family:var(--font-title);font-size:17px;font-weight:var(--w-title);color:var(--color-text)}
+  .deal-grp-h span{font-size:var(--t-label);color:var(--color-neutral-600)}
+  .deal-pr{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) 200px auto;gap:18px;align-items:center;padding:12px 0;border-bottom:1px solid var(--color-divider)}
+  .deal-pr-nm{min-width:0;display:flex;flex-direction:column;gap:2px}
+  .deal-pr-nm b{font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .deal-pr-nm span{font-size:12px;color:var(--color-neutral-600)}
+  .deal-pr-why{margin:0;min-width:0;color:var(--color-neutral-600);font-size:var(--t-label);line-height:1.45}
+  .deal-pr-st{min-width:0;display:flex;flex-direction:column;gap:6px}
+  .deal-pr-room{font-size:12px;color:var(--color-neutral-600);white-space:nowrap}
+  .deal-track{position:relative;display:block;height:6px;border-radius:3px;background:var(--color-neutral-200);max-width:200px}
+  .deal-track i.fb{position:absolute;top:-3px;width:2px;height:12px;margin-left:-1px;background:var(--color-neutral-600)}
+  .deal-track b{position:absolute;top:-2px;width:10px;height:10px;margin-left:-5px;border-radius:50%}
+  .deal-track b.y{background:var(--accent-ink)}
+  .deal-track b.t{background:var(--st-ruby-fg)}
+  .deal-tag{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .deal-tag i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-300)}
+  .deal-tag.is-ok i{background:var(--st-green-fg)}
+  .deal-tag.is-ruby i{background:var(--st-ruby-fg)}
+  .deal-tag.is-wait i{background:var(--accent-ink)}
+  .deal-tag.is-agreed i{background:var(--st-green-fg);opacity:.35}
+  .deal-pr-acts{display:flex;justify-content:flex-end;gap:14px;white-space:nowrap}
+  .deal-go{flex:none;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   .deal-go:hover{text-decoration:underline}
   .deal-empty{padding:16px 0;color:var(--color-neutral-600)}
   [data-pd-mid] .pd-kt-fact > span{font-size:12px;color:var(--color-neutral-600)}
@@ -17239,21 +17265,6 @@
   /* ROUND 3: BEFORE YOU SIGN — the checks that have not run, said once in a grey box with one button */
   .sc-run-box{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 4px;padding:10px 12px;background:var(--surface-2);border-radius:10px;font-size:13px;color:var(--color-text)}
   .sc-run-box > button{flex:none;white-space:nowrap}
-  /* ROUND 3: THE DEAL PAGE, THE LEGORA WAY — each point a quiet row: dot, name, §N on the paper, Send · Open clause;
-     what you hold quoted in the paper's type, then what they ask */
-  .deal-it.is-lg{display:block;padding:12px 0}
-  .deal-it.is-lg .deal-top{display:flex;align-items:baseline;gap:8px;min-width:0}
-  .deal-it.is-lg .deal-dot{flex:none;align-self:center;display:inline-flex}
-  .deal-it.is-lg .deal-dot i{width:8px;height:8px;border-radius:50%;background:var(--st-amber-dot)}
-  .deal-it.is-lg .deal-dot.db-vd-std i,.deal-it.is-lg .deal-dot.db-vd-in i{background:var(--st-green-fg)}
-  .deal-it.is-lg .deal-dot.db-vd-agreed i{background:var(--color-text)}
-  .deal-it.is-lg .deal-dot.db-vd-out i{background:var(--st-ruby-fg)}
-  .deal-it.is-lg .deal-nm{flex:0 1 auto;font-size:14px}
-  .deal-it.is-lg .deal-sec{flex:none;margin:0;font-family:var(--font-ui);font-size:12.5px;color:var(--color-neutral-600)}
-  .deal-it.is-lg .deal-sp{flex:1 1 auto}
-  .deal-it.is-lg .deal-send,.deal-it.is-lg .deal-go{flex:none;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
-  .deal-it.is-lg .deal-send:hover,.deal-it.is-lg .deal-go:hover{text-decoration:underline}
-  .deal-it.is-lg .deal-q{margin-top:6px;grid-template-columns:72px minmax(0,1fr)}
   /* ROUND 3: CLAUSES AND REDLINES WEAR ONE HEAD (owner's pick "The SAP Way"): the name in the serif, its count, a grey line */
   .pd-th .stk-head.is-mq .stk-mq-t.stk-mq-t{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;font-size:18px;line-height:24px;font-weight:var(--w-title-serif);text-wrap:wrap}
   .pd-th .stk-head.is-mq .stk-mq-t .stk-mq-n{font-style:normal;font-family:var(--font-ui);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}

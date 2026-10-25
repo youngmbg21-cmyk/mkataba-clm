@@ -4674,10 +4674,13 @@ function pdDealOpen(id){
   if (pdMidUp(mk)){ _pdDealStay = true; return pdMidClose(); }
   const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdMidMay() || typeof dealViewHtml !== 'function') return false;
   const word = _pdT('ng_deal');
-  openModal(dealViewHtml(c, 'owner'), { maxWidth: 'none', label: word, page: Object.assign(pdMidPage(word), { crumb: '', crumbHtml: pdDealCrumbHtml(), acts: ['deal-memo'] }),
+  openModal(dealViewHtml(c, 'owner'), { maxWidth: 'none', label: word, page: Object.assign(pdMidPage(word), { crumb: '', crumbHtml: pdDealCrumbHtml(), acts: ['deal-road'] }),
     onClose: () => { const stay = _pdDealStay; _pdDealStay = false; pdMidOff();
       if (!stay && _pdRed === String(id)) pdRedClose(); else pdRedRepaint(); } });
   pdMidOn(mk);
+  /* THE CLOSE PLAN as drawn: Copy as memo on the way-back line, the road beside the head */
+  const cr = document.querySelector('#modal-root [data-dlg-page] .dlg-pg-crumb'), memo = document.querySelector('#modal-root #deal-memo');
+  if (cr && memo) cr.appendChild(memo);
   pdRedRepaint();
   return true;
 }
@@ -4688,7 +4691,7 @@ function pdDealRepaint(){
   const c = (typeof getContract === 'function') ? getContract(root.getAttribute('data-deal-mid')) : null; if (!c) return;
   const tmp = document.createElement('div'); tmp.innerHTML = dealViewHtml(c, 'owner');
   const now = tmp.querySelector('[data-deal-mid]'); if (!now) return;
-  [['.deal-tabs'], ['.deal-list']].forEach(([s]) => { const a = root.querySelector(s), b = now.querySelector(s); if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; });
+  [['.deal-list'], ['#deal-road']].forEach(([s]) => { const a = document.querySelector('#modal-root [data-dlg-page] ' + s), b = now.querySelector(s); if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; });
   const h = document.querySelector('#modal-root [data-dlg-page] .deal-h'), h2 = now.querySelector('.deal-h');
   if (h && h2 && h.innerHTML !== h2.innerHTML) h.innerHTML = h2.innerHTML;
 }
@@ -5759,8 +5762,17 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     /* THE DEAL (owner, 23 Oct 2026): the face's button, its tabs, a point's clause, its way back */
     const dl = t.closest('[data-rl-deal]');
     if (dl){ e.preventDefault(); pdDealOpen(dl.getAttribute('data-rl-deal')); return; }
-    const dt = t.closest('[data-deal-tab]');
-    if (dt){ e.preventDefault(); if (typeof dealTabSet === 'function') dealTabSet(dt.getAttribute('data-deal-tab')); pdDealRepaint(); return; }
+    /* a point waiting on them: Chase opens the Send screen, the one door to the other side */
+    const dch = t.closest('[data-deal-chase]');
+    if (dch){ e.preventDefault(); const c = (typeof getContract === 'function') ? getContract(dch.getAttribute('data-deal-chase')) : null;
+      if (c && typeof openShareModal === 'function') openShareModal(c); return; }
+    /* a point with no rule: an admin opens the standard; anybody else asks one (the tracked ask) */
+    const dak = t.closest('[data-deal-ask]');
+    if (dak){ e.preventDefault(); const cat = dak.getAttribute('data-deal-ask-cat') || '';
+      if (typeof isAdmin === 'function' && isAdmin()){ if (typeof stdPositionOpen === 'function') stdPositionOpen(cat); return; }
+      const h = dak.closest('[data-deal-mid]'), c = h && typeof getContract === 'function' ? getContract(h.getAttribute('data-deal-mid')) : null;
+      if (typeof stAskDirect === 'function') stAskDirect('playbook', _pdT('ng_plan_ask_what', { cat }), c ? _pdT('ng_plan_ask_why', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }) : '');
+      return; }
     /* a point's Send: the card's own Send in the Redlines column beside it — the one door; else its clause */
     const dsd = t.closest('[data-deal-send]');
     if (dsd){ e.preventDefault(); const own = document.querySelector(`#ig-dock [data-rl-send="${CSS.escape(dsd.getAttribute('data-deal-send'))}"]`);

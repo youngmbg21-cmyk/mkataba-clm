@@ -7,9 +7,12 @@
    ============================================================
    1  the Redlines face beside Home's paper carries Deal, painted, on screen,
       at the owner's three screens
-   2  Deal opens the deal where the paper was: head "N points need you",
-      tabs, a row per point with their words and ours quoted, Deal lit
-   3  All lists every point argued (the reading's own count)
+   2  Deal opens THE CLOSE PLAN where the paper was (owner picked it, 25 Oct
+      2026): head "N points to close before <them> can sign", the road beside
+      it, Copy as memo on the way-back line, every point argued under what to
+      do with it, Deal lit; at the three screens nothing spills
+   3  each row sits in the group its reading names (dealPlanOf), our unsent
+      draft carries Send, and Copy as memo copies the plan
    4  ‹ Dossier closes it: the paper back, the panel on the Dossier
    5  Esc does the same
    6  Deal pressed again closes it and keeps the Redlines face
@@ -99,26 +102,40 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
     await openFace();
     await press('#ig-dock [data-rl-deal]');
     const up = await waitFor(page, () => !!document.querySelector('#modal-root [data-deal-mid="MK-R1"]'), 8000);
-    const d2 = up ? await page.evaluate(() => { const c = getContract('MK-R1'); const f = dealBoardFacts(c, 'owner');
-      const tab = document.querySelector('.deal-tab[aria-selected="true"]');
-      const row = document.querySelector('[data-deal-row]');
+    const d2 = up ? await page.evaluate(() => { const c = getContract('MK-R1'); const f = dealPlanFacts(c, 'owner');
       const mid = document.querySelector('#modal-root [data-pd-mid]'), dock = document.getElementById('ig-dock');
-      return { head: (document.querySelector('[data-dlg-page] .deal-h') || {}).textContent || '', n: f.n, tab: tab && tab.getAttribute('data-deal-tab'),
-        rows: document.querySelectorAll('[data-deal-row]').length, quoted: !!(row && row.querySelector('.deal-q em')), sec: !!(row && row.querySelector('.deal-sec')),
-        open: !!(row && row.querySelector('[data-deal-open]')), back: !!document.querySelector('[data-dlg-page] [data-pd-deal-back]'),
+      return { head: (document.querySelector('[data-dlg-page] .deal-h') || {}).textContent || '', all: f.n.all, open: f.open,
+        rows: document.querySelectorAll('[data-deal-row]').length, groups: [...document.querySelectorAll('[data-deal-grp]')].map(g => g.getAttribute('data-deal-grp')),
+        road: !!document.querySelector('[data-dlg-page] .dlg-pg-acts #deal-road'), memo: !!document.querySelector('[data-dlg-page] .dlg-pg-crumb #deal-memo'),
+        tabs: !!document.querySelector('.deal-tab'), back: !!document.querySelector('[data-dlg-page] [data-pd-deal-back]'),
         beside: !!(mid && dock && mid.getBoundingClientRect().right <= dock.getBoundingClientRect().left + 1) }; }) : null;
     const s2 = await S();
-    check('2 Deal opens the deal where the paper was: "points need you", Needs you lit, rows quoted under their §, ‹ Dossier, Deal lit',
-      up && d2 && /need you/.test(d2.head) && d2.tab === 'you' && d2.rows === d2.n.you && d2.quoted && d2.sec && d2.open && d2.back && d2.beside && s2.lit === 'true', { d2, s2 });
-    for (const [w, hh] of SCREENS) { await page.setViewportSize({ width: w, height: hh }); await pause(400); await page.screenshot({ path: path.join(OUT, `2-deal-${w}x${hh}.png`) }); }
+    /* nothing spills: every row's doors and its tag inside the card, on one line, painted */
+    const tidy = () => page.evaluate(() => { const card = document.querySelector('#modal-root .deal-mid'); if (!card) return { ok: false, why: 'no card' };
+      const cr = card.getBoundingClientRect(); const bad = [];
+      document.querySelectorAll('#modal-root .deal-pr .deal-go, #modal-root .deal-pr .deal-tag, #modal-root .deal-pr .deal-pr-room').forEach(el => { const r = el.getBoundingClientRect();
+        if (r.left < cr.left - 1 || r.right > cr.right + 1 || r.height > 24) bad.push(el.textContent.trim() + ' ' + Math.round(r.left) + '-' + Math.round(r.right) + ' h' + Math.round(r.height)); });
+      const hd = document.querySelector('[data-dlg-page] .dlg-pg-head'); const hr = hd && hd.getBoundingClientRect();
+      const rd = document.querySelector('#deal-road'); const rr = rd && rd.getBoundingClientRect();
+      if (!rr || rr.right > hr.right + 1 || rr.width < 200) bad.push('road ' + (rr ? Math.round(rr.width) : 'none'));
+      if (document.documentElement.scrollWidth > window.innerWidth + 1) bad.push('page scrolls sideways');
+      return { ok: !bad.length, bad }; });
+    const fits = [];
+    for (const [w, hh] of SCREENS) { await page.setViewportSize({ width: w, height: hh }); await pause(400); fits.push({ w, hh, t: await tidy() }); await page.screenshot({ path: path.join(OUT, `2-deal-${w}x${hh}.png`) }); }
+    check('2 Deal opens the close plan where the paper was: "points to close before … can sign", the road beside it, memo on the way-back line, every point in a group, no tabs, ‹ Dossier, Deal lit',
+      up && d2 && /to close before Parcelway ApS can sign/.test(d2.head) && d2.rows === d2.all && d2.all > 0 && d2.groups.length > 0 && d2.road && d2.memo && !d2.tabs && d2.back && d2.beside && s2.lit === 'true', { d2, s2 });
+    check('2b at the three screens nothing in a row spills, wraps or runs off the card', fits.every(x => x.t.ok), fits);
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(300);
 
-    /* 3 — All */
-    const all = await page.$('.deal-tab[data-deal-tab="all"]');
-    if (all) await all.click();
-    await waitFor(page, () => document.querySelector('.deal-tab[data-deal-tab="all"]')?.getAttribute('aria-selected') === 'true', 4000);
-    const d3 = await page.evaluate(() => ({ rows: document.querySelectorAll('[data-deal-row]').length, n: dealBoardFacts(getContract('MK-R1'), 'owner').n.all }));
-    check('3 All lists every point argued', !!all && d3.rows === d3.n && d3.n > 0, d3);
+    /* 3 — the groups are the reading's; our unsent draft carries Send; the memo is the plan */
+    const d3 = await page.evaluate(() => { const c = getContract('MK-R1'); const f = dealPlanFacts(c, 'owner');
+      const drawn = [...document.querySelectorAll('[data-deal-row]')].map(r => ({ id: r.getAttribute('data-deal-row'), k: r.getAttribute('data-deal-plan'), send: !!r.querySelector('[data-deal-send]') }));
+      const read = f.plan.map(x => ({ id: String(x.r.clauseId), k: x.p.k, send: !!x.p.unsent }));
+      const memo = dealPlanMemoText(c);
+      return { same: JSON.stringify(drawn.slice().sort((a, b) => a.id.localeCompare(b.id))) === JSON.stringify(read.slice().sort((a, b) => a.id.localeCompare(b.id))),
+        drawn, kinds: read.map(x => x.k), sendOnUnsent: read.some(x => x.send), memo: memo.split('\n').slice(0, 6) }; });
+    check('3 each row sits in its reading\'s group, our unsent draft carries Send, the memo copies the plan',
+      d3.same && d3.sendOnUnsent && d3.memo.length > 3 && /to close before/.test(d3.memo.join(' ')), d3);
 
     /* 4 — ‹ Dossier */
     const back = await page.$('[data-dlg-page] [data-pd-deal-back]');
