@@ -180,6 +180,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER STAGE 7, negotiation memory: f884 (with f222, f863, f876); discover-verify 7a–7b.
 - DISCOVER STAGE 8, what you are approving: f885 (with f213, f807); discover-verify 8a–8c.
 - DISCOVER STAGE 9, the party's two minutes: f886; discover-verify 9a–9b.
+- DISCOVER, HOW A CELL IS READ (the live run's eight misses): f878 3f (a number of days with its unit run on), f879 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.

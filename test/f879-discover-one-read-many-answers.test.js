@@ -60,6 +60,20 @@ describe('f879 (1) one read, many answers', () => {
   });
 });
 
+describe('f879 (1c) how a cell is read (the live run\'s eight misses, 25 Oct 2026)', () => {
+  test('1c every read carries the reading rules: a "cannot" is an answer, ending early is not stopping a renewal, the document\'s own name for the thing answers', async () => {
+    h.ai.reset();
+    await col({ questions: [{ question: 'Who signs for each side, and in what role?' }], ids: ALL, force: true });
+    assert.ok(h.ai.calls.length >= 1);
+    for (const c of h.ai.calls){
+      assert.match(c.raw, /HOW TO READ/);
+      assert.match(c.raw, /cannot happen, does not apply or does not exist ANSWERS the question/);
+      assert.match(c.raw, /not the same as stopping it from renewing/);
+      assert.match(c.raw, /under its own name for the thing/);
+    }
+  });
+});
+
 describe('f879 (2) only what is not kept is read', () => {
   test('2a a kept question and a new one: only the new one goes to the read', async () => {
     h.ai.reset();

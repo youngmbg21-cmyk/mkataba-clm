@@ -76,8 +76,9 @@ function body(title, party, clauses){
 
 /* the right answers, as patterns over the answer and its detail read together */
 const R = {
-  d90: /\b90\b|ninety/i, d60: /\b60\b|sixty/i, d30: /\b30\b|thirty/i, d45: /\b45\b|forty-five/i, d14: /\b14\b|fourteen/i, d7: /\b7\b|seven/i,
-  d180: /\b180\b|hundred and eighty|\b30\b|thirty/i,
+  /* a number of days stands alone or with its unit run on ("180d" is 180 days, as a table cell writes it); never inside a longer number */
+  d90: /(?<!\d)90(?!\d)|ninety/i, d60: /(?<!\d)60(?!\d)|sixty/i, d30: /(?<!\d)30(?!\d)|thirty/i, d45: /(?<!\d)45(?!\d)|forty-five/i, d14: /(?<!\d)14(?!\d)|fourteen/i, d7: /(?<!\d)7(?!\d)|seven/i,
+  d180: /(?<!\d)180(?!\d)|hundred and eighty|(?<!\d)30(?!\d)|thirty/i,
   noExit: /\bnone\b|\bno\b|not|cannot|can't|fixed/i,
   cap12: /12 months|twelve|\b1\s*[x×]|one year|annual|year's|fees paid/i,
   cap2x: /twice|\b2\s*[x×]|two times|double/i,

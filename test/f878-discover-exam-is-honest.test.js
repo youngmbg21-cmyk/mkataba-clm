@@ -126,4 +126,12 @@ describe('f878 (3) the marker', () => {
     assert.equal(grade(item('notice'), TRUTH['DV-03'].notice, said('30 days', { verdict: 'in' })).verdictRight, false);
     assert.equal(grade(item('payment'), TRUTH['DV-01'].payment, said('30 days', { verdict: 'norule' })).verdictRight, true, 'payment: no rule');
   });
+  test('3f a number of days with its unit run on is read as that number, never inside a longer one (the live run, 25 Oct 2026)', () => {
+    const who = DISCOVER_EXAM.find(x => x.q === 'Who can end it early, and how fast?');
+    assert.equal(grade(who, TRUTH['DV-04'].notice, said('Supplier 180d, Bank 30d', { detail: 'asymmetric notice periods' })).mark, 'right', '"180d" is 180 days');
+    assert.equal(grade(item('notice'), TRUTH['DV-01'].notice, said('90d')).mark, 'right');
+    assert.equal(grade(item('notice'), TRUTH['DV-01'].notice, said('190 days')).mark, 'wrong', 'not inside a longer number');
+    assert.equal(grade(item('notice'), TRUTH['DV-01'].notice, said('900 days')).mark, 'wrong');
+    assert.equal(grade(item('payment'), TRUTH['DV-05'].payment, said('17 days')).mark, 'wrong', 'seven is not inside seventeen');
+  });
 });
