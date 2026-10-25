@@ -3,7 +3,7 @@
 
      Q1  Jambo's ask list on the Board: every chart row ends in "Draw ›", whole, inside its row.
      Q2  A paper with a letter waiting: five tabs — Dossier · Send · Clauses · Redlines · Jambo — every
-         word whole, "Send" carrying the whole name on hover, and the panel's › still in the panel.
+         word whole, "Email" (was "Send", owner 25 Oct 2026) carrying the whole name on hover, and the panel's › still in the panel.
      Q3  A long name takes two lines before "…": a person's contracts on People and the Dossier's
          "Who else" row; a one-line door row keeps its 44px.
      Q4  Skip: nothing built.
@@ -132,7 +132,7 @@ const blocked = [];
           return { tabs, word: send.textContent.trim(), tip: send.title, fold: !!xr && xr.width > 0 && xr.right <= dock.right && xr.left >= dock.left }; });
         const bad = m.tabs.filter(t => t.cut);
         check(`${at} · Q2 — five tabs, every word whole`, m.tabs.length === 5 && !bad.length, m.tabs.map(t => t.t + (t.cut ? ' (cut)' : '')).join(' · '));
-        check(`${at} · Q2 — the letter's tab says "Send", its hover the whole name`, m.word === 'Send' && m.tip === 'Before you send', `"${m.word}" · hover "${m.tip}"`);
+        check(`${at} · Q2 — the letter's tab says "Email" (owner, 25 Oct 2026: "calling the tab send makes no sense"), its hover the whole name`, m.word === 'Email' && m.tip === 'Before you send', `"${m.word}" · hover "${m.tip}"`);
         check(`${at} · Q2 — the panel's › stays in the panel`, m.fold);
       }
       await clean();

@@ -13106,7 +13106,7 @@ const STRINGS = {
     pd_face_w_amend: 'Amend',
     pd_face_w_send: 'Before you send',
     /* the waiting letter's TAB in one short word (owner picked "Short words", 25 Oct 2026: five tabs fit the iPad); its trail line and hover keep the whole name */
-    pd_face_w_send_tab: 'Send',
+    pd_face_w_send_tab: 'Email',
     /* LIFTED (8 Oct 2026): the count on a symbol, and each tab's status pill */
     pd_tab_n: '{name}, {n} waiting',
     pd_st_notready: 'Not ready',
@@ -33265,7 +33265,7 @@ const STRINGS = {
     pd_face_w_signing: 'Innan du signerar',
     pd_face_w_amend: 'Ändra',
     pd_face_w_send: 'Innan du skickar',
-    pd_face_w_send_tab: 'Skicka',
+    pd_face_w_send_tab: 'E-post',
     pd_tab_n: '{name}, {n} väntar',
     pd_st_notready: 'Inte redo',
     pd_st_ready: 'Redo att signera',
