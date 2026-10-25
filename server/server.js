@@ -190,6 +190,11 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS column_asks (
     id TEXT PRIMARY KEY, qkey TEXT NOT NULL UNIQUE, question TEXT NOT NULL, name TEXT NOT NULL,
     created_by TEXT, created_by_name TEXT, created_at TEXT NOT NULL, last_used_at TEXT NOT NULL);
+  -- DISCOVER (owner, 25 Oct 2026): a PACK is a named set of questions asked
+  -- together (one read answers them all). Due diligence is the first, built in.
+  CREATE TABLE IF NOT EXISTS column_packs (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, questions TEXT NOT NULL, builtin INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT, created_at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS column_answers (
     ask_id TEXT NOT NULL, contract_id TEXT NOT NULL, input_hash TEXT NOT NULL, json TEXT NOT NULL,
     checked_by TEXT, checked_name TEXT, checked_at TEXT, created_at TEXT NOT NULL,
@@ -9503,10 +9508,52 @@ function colContract(req, id) {
 }
 const colIds = v => [...new Set((Array.isArray(v) ? v : []).filter(x => typeof x === 'string' && x).map(String))];
 
-/* the team's questions, newest used first: the panel's "Asked before in your team" */
+/* THE FIRST PACK (the owner's pick, 25 Oct 2026): Due diligence, the five
+   questions a buyer or a bank asks. Built in, kept once; its questions are the
+   team's like any other, so an answer to one is kept for the other. */
+const COLUMN_PACK_DD = { id: 'pk_due_diligence', name: 'Due diligence', questions: [
+  { question: 'How much notice does each side need to end the contract early?', name: 'Notice to end' },
+  { question: 'Is our liability capped, and at what?', name: 'Liability cap' },
+  { question: "Which country's law governs this contract?", name: 'Governing law' },
+  { question: 'Does the contract renew by itself, and how long before must we say no?', name: 'Auto-renewal' },
+  { question: 'Does the other side process personal data for us, and are there processing terms?', name: 'Personal data' },
+] };
+db.prepare('INSERT OR IGNORE INTO column_packs (id,name,questions,builtin,created_by,created_at) VALUES (?,?,?,1,NULL,?)')
+  .run(COLUMN_PACK_DD.id, COLUMN_PACK_DD.name, JSON.stringify(COLUMN_PACK_DD.questions), now());
+function colPackOut(r) {
+  let qs = []; try { qs = JSON.parse(r.questions) || []; } catch (_) { qs = []; }
+  return { id: r.id, name: r.name, questions: qs, builtin: !!r.builtin };
+}
+
+/* the team's questions, newest used first: the panel's "Asked before in your team"; and the packs */
 app.get('/api/columns', auth, (req, res) => {
   const rows = db.prepare('SELECT * FROM column_asks ORDER BY last_used_at DESC LIMIT 12').all();
-  res.json({ asks: rows.map(colAskOut), max: COLUMN_MAX });
+  const packs = db.prepare('SELECT * FROM column_packs ORDER BY builtin DESC, name').all().map(colPackOut);
+  res.json({ asks: rows.map(colAskOut), packs, max: COLUMN_MAX, perRead: COLUMN_Q_MAX });
+});
+
+/* DISCOVER — THE KEPT QUESTIONS, COUNTED (stage 3): for each question the
+   team keeps, how many of the contracts THIS PERSON may see were answered,
+   how many are at risk (outside the rule, or Jambo's "concern" where there is
+   no rule) and when it was last read. Counted off the kept answers: free, no
+   names, nothing read. The company's facts first, then the newest used. */
+app.get('/api/columns/summary', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  const asks = db.prepare('SELECT * FROM column_asks ORDER BY COALESCE(fact,0) DESC, last_used_at DESC LIMIT 20').all();
+  const folders = new Map(db.prepare('SELECT id, folder FROM contracts').all().map(r => [r.id, r.folder]));
+  const out = asks.map(a => {
+    let read = 0, found = 0, risk = 0, last = '';
+    for (const r of db.prepare('SELECT contract_id, json, created_at FROM column_answers WHERE ask_id=?').all(a.id)) {
+      if (!folders.has(r.contract_id) || !inScope(scope, folders.get(r.contract_id))) continue;
+      let x = {}; try { x = JSON.parse(r.json) || {}; } catch (_) { x = {}; }
+      if (x.noWording) continue;
+      read++; if (x.found) found++;
+      if (x.found && (x.verdict === 'out' || ((!x.verdict || x.verdict === 'norule') && x.tone === 'concern'))) risk++;
+      if (r.created_at > last) last = r.created_at;
+    }
+    return { ...colAskOut(a), read, found, risk, last };
+  });
+  res.json({ asks: out });
 });
 
 /* What is already known, spending nothing: the kept answers to one question

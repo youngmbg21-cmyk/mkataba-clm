@@ -1,4 +1,4 @@
-/* global regState, regRepaint, regPlaceSet, setView, state */
+/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock */
 /* DISCOVER — THE COLUMN THE LEGORA WAY, THE KEPT QUESTIONS, THE COMPANY'S
    FACTS AND WATCHES (docs/PLAN-jambo-discover.md, owner 25 Oct 2026), driven
    in a real browser over test/discover-world.js (eleven contracts, the
@@ -16,6 +16,16 @@
      2f the column's card: Show the 2 at risk narrows the list to those two
      2g Draw it draws the counts in the card (9 inside, 2 outside: DV-11 has its template paper from its template), no call spent; pressed again it goes
      2h the why card says the rule: outside, with the rule's words
+   STAGE 3 — DISCOVER: THE KEPT QUESTIONS AND THE PACKS
+     3a with no column up, Jambo's panel beside the list shows Discover under
+        his greeting: the kept question, counted, at risk said
+     3b a press brings that question's column onto the list, no call
+     3c "Due diligence · 5 questions" opens the pack in the same form: its five
+        questions, the cost (one read per contract, against five apart)
+     3d asked: one call per contract read, not five; three columns stand on
+        the list, the card offers "See all 5 answers"
+     3e that opens the whole table as a page: five answer columns, Copy the
+        table at the top; Back to the list closes it
    Each stage's checks are added below as the stage is built.
    Run: node test/chromium/discover-verify.js   (HATI_DV_ONLY=2 for one stage) */
 const fs = require('node:fs');
@@ -107,6 +117,42 @@ const stage = n => !ONLY || ONLY === String(n);
       await page.screenshot({ path: path.join(OUT, '2-why.png') });
       await page.click('td.ac-cell[data-ac-cid="DV-04"] .ac-a');
       await page.evaluate(() => { regState().only = null; regRepaint(); });
+    }
+
+    if (stage(3)){
+      /* no column up: the panel greets, Discover under it */
+      await page.evaluate(() => { regState().ask = []; regState().only = null; regRepaint(); });
+      if (ONLY === '3'){ /* the question kept, as stage 2 would have left it */
+        await page.evaluate(q => api('ai/column', 'POST', { question: q, name: '', ids: state.contracts.map(c => c.id) }), CAP_Q);
+      }
+      await page.evaluate(() => askColSummary(true).then(() => renderIntelDock()));
+      const disc = await until(page, () => /Liability cap/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
+      const dt = await page.evaluate(() => (document.querySelector('#ig-dock #ac-disc') || {}).innerText || '');
+      check('3a Discover stands in the panel beside the list: the kept question, counted, at risk said', disc && /Discover/.test(dt) && /2 at risk/.test(dt) && /Due diligence · 5 questions/.test(dt) && /Ask a new question/.test(dt), dt.replace(/\s+/g, ' ').slice(0, 300));
+      await page.screenshot({ path: path.join(OUT, '3-discover.png') });
+      const c0 = h.ai.calls.length;
+      await page.click('#ig-dock [data-ac-bring]');
+      const up = await until(page, () => [...document.querySelectorAll('.reg-table thead th')].some(th => /Liability cap/.test(th.textContent)) && document.querySelectorAll('td.ac-cell .ac-ans').length >= 10);
+      check('3b a press brings its column onto the list, no call', up && h.ai.calls.length === c0, String(h.ai.calls.length - c0));
+      await page.click('#ig-dock [data-ac-pack]');
+      await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
+      const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
+      check('3c the pack opens in the same form: five questions, one read each against five apart', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /about 11 Jambo calls/.test(pf) && /55 Jambo calls/.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
+      await page.screenshot({ path: path.join(OUT, '3-pack-form.png') });
+      const c1 = h.ai.calls.length;
+      await page.click('#ig-dock [data-ac-ask]');
+      const three = await until(page, () => document.querySelectorAll('.reg-table thead th.ac-th').length === 3 && !!document.querySelector('#ig-dock [data-ac-table]'), null, 20000);
+      const spent = h.ai.calls.length - c1;
+      const heads = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th.ac-th')].map(th => th.textContent.trim()));
+      check('3d asked: one call per contract read (11), three columns stand, "See all 5 answers" offered', three && spent <= 11 && heads.length === 3, JSON.stringify({ spent, heads }));
+      await page.click('#ig-dock [data-ac-table]');
+      const pg = await until(page, () => !!document.querySelector('#ac-table-page'));
+      const tt = await page.evaluate(() => ({ cols: document.querySelectorAll('#ac-table-page thead th').length, rows: document.querySelectorAll('#ac-table-page tbody tr').length,
+        copy: !!document.querySelector('#ac-tt-copy'), wide: document.documentElement.scrollWidth > window.innerWidth }));
+      check('3e the whole table is a page: five answer columns, every contract, Copy the table, nothing spilling the window', pg && tt.cols === 6 && tt.rows === 11 && tt.copy && !tt.wide, JSON.stringify(tt));
+      await page.screenshot({ path: path.join(OUT, '3-table.png') });
+      await page.click('#ac-table-page [data-dlg-cancel]');
+      check('3e′ Back to the list closes it', await until(page, () => !document.querySelector('#ac-table-page')));
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

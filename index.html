@@ -9825,6 +9825,26 @@
   #ig-dock .ac-bar-t{display:block;height:10px;border-radius:5px;background:var(--color-neutral-100);overflow:hidden}
   #ig-dock .ac-bar-t i{display:block;height:100%;width:0;border-radius:5px;min-width:0}
   #ig-dock .ac-hint{display:block;font-size:12px;color:var(--color-text);margin-top:3px}
+  /* DISCOVER STAGE 3: the kept questions under his greeting, the pack's questions, the whole table's page */
+  #ig-dock .ac-disc-list{display:grid;margin-top:6px}
+  #ig-dock .ac-disc-row{display:grid;gap:2px;text-align:left;border:0;background:none;padding:8px 0;border-top:1px solid var(--rule);font:inherit;color:inherit;cursor:pointer;min-width:0}
+  #ig-dock .ac-disc-row:last-child{border-bottom:1px solid var(--rule)}
+  #ig-dock .ac-disc-row:hover .ac-disc-n b,#ig-dock .ac-disc-row:focus-visible .ac-disc-n b{color:var(--accent-ink)}
+  #ig-dock .ac-disc-n{display:flex;align-items:center;gap:6px;min-width:0}
+  #ig-dock .ac-disc-n b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #ig-dock .ac-disc-m{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--color-text)}
+  #ig-dock .ac-tag{flex:none;font-size:11px;line-height:1.5;padding:0 7px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);white-space:nowrap}
+  #ig-dock .ac-pack-qs{margin:6px 0 0;padding-left:20px;display:grid;gap:6px}
+  #ig-dock .ac-pack-qs li>span{display:block;font-size:12.5px}
+  .ac-tt{display:grid;gap:12px}
+  .ac-tt-scroll{overflow-x:auto;max-width:100%}
+  .ac-tt-table td.ac-tt-c,.ac-tt-table td.ac-tt-a{vertical-align:top;line-height:1.3;max-width:260px}
+  .ac-tt-table .ac-ans{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label)}
+  .ac-tt-table .ac-ans>i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
+  .ac-tt-table .ac-ans.tone-green>i{background:var(--st-green-dot)} .ac-tt-table .ac-ans.tone-amber>i{background:var(--st-amber-dot)} .ac-tt-table .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  .ac-tt-table .ac-sub{display:block;font-size:11.5px;color:var(--color-text);white-space:normal}
+  .ac-tt-table .ac-cite{display:inline-flex;align-items:center;height:18px;padding:0 4px;border:1px solid var(--rule);border-radius:var(--radius);font-size:var(--t-meta)}
+  .ac-tt-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:12.5px}
   .ac-btn svg{margin-right:4px}
   #ig-dock .pd-gl-row{display:flex;align-items:center;gap:10px}
   #ig-dock .pd-gl-row>span{flex:1;min-width:0}
