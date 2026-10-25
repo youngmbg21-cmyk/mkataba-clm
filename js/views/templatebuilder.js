@@ -1571,6 +1571,8 @@ function tbStyleHtml() {
     /* the head card is drawn by a 6px ring outside its row (the paper's first line may not move): the panel's top meets the ring */
     #tb-railslot{margin:-6px calc(8px - var(--page-pad-x)) calc(8px - var(--page-pad-b)) 0}
     .tb-page:not(.no-rail) > .tb-left{margin-bottom:calc(8px - var(--page-pad-b))}
+    /* the panel keeps its 380: its column takes the 8px it now stands in from the edge */
+    .tb-page:not(.no-rail):not(.is-railfold){grid-template-columns:minmax(0,1fr) calc(388px - var(--page-pad-x))}
     .tb-rail.tb-jl{border-left:0;border-radius:20px;box-shadow:var(--shadow-sm)}
   }
   .tb-page.is-railfold{grid-template-columns:minmax(0,1fr) calc(46px - var(--page-pad-x))}

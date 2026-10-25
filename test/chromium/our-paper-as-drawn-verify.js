@@ -229,8 +229,8 @@ async function SEED(){
         ph: (document.getElementById('tb-ask') || {}).placeholder || '', hints: rail.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, send: (() => { const b = rail.querySelector('[data-tb-send]'); return b ? b.getAttribute('aria-label') || '' : ''; })() }; });  /* RE-POINTED 20 Oct 2026 (Two-row card): the round send says Ask to a screen reader and on its hover */
     check('7a the head card is one line: name · v1 draft · Category · Stream · Save draft · Publish v1',
       G.strip.h <= 46 && /Reseller agreement\s*v1 draft\s*Category\s*\S+.*Stream.*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, head: G.head }));
-    /* RE-POINTED 25 Oct 2026 (the builder works like the clause editor): the head is his tab and the four tabs, no page word */
-    check('7b Jambo\'s panel at the window\'s edge, his tab and the four tabs in its head, no page word', G.rail.r === 1440 && G.word === '', JSON.stringify({ ...G.rail, word: G.word }));
+    /* RE-POINTED 25 Oct 2026 (the builder works like the clause editor; item 12, the panel floats 8px in as every panel does): the head is his tab and the four tabs, no page word */
+    check('7b Jambo\'s panel at the window\'s edge, his tab and the four tabs in its head, no page word', G.rail.r === 1432 && G.word === '', JSON.stringify({ ...G.rail, word: G.word }));
     check('7c tabs Build · Outline · Playbook n/m · Blanks 3, opening on the Outline',
       G.tabs.length === 4 && G.tabs[0] === 'Build' && G.tabs[1] === 'Outline' && /^Playbook ?\d+\/\d+$/.test(G.tabs[2]) && /^Blanks ?3$/.test(G.tabs[3]) && G.on === 'Outline', JSON.stringify(G.tabs));
     check('7d the Outline: "· Parties 1 blank", numbered sections, ✓ where a standard is met, "+ … proposed"',
@@ -284,8 +284,8 @@ async function SEED(){
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
       const T = await page.evaluate(() => { const strip = document.querySelector('.tb-strip'), rail = document.getElementById('tb-rail'), paper = document.getElementById('tb-paper');
         const a = strip.getBoundingClientRect(), r = rail.getBoundingClientRect(), p = paper.getBoundingClientRect();
-        return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneLine: a.height <= 46, beside: p.right <= r.left + 1 && a.right <= r.left + 1, edge: Math.round(r.right) === innerWidth, bottom: Math.round(r.bottom) >= innerHeight - 2 }; });
-      check(`10 ${w}×${ht} the builder: head on one line, paper and panel side by side, the panel at the edge to the foot, nothing sideways`, T.side && T.oneLine && T.beside && T.edge && T.bottom, JSON.stringify(T));
+        return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneLine: a.height <= 46, beside: p.right <= r.left + 1 && a.right <= r.left + 1, edge: Math.round(r.right) === innerWidth - 8, bottom: Math.round(r.bottom) === innerHeight - 8 }; });
+      check(`10 ${w}×${ht} the builder: head on one line, paper and panel side by side, the panel 8px in from the edge and the foot (floats, 25 Oct 2026), nothing sideways`, T.side && T.oneLine && T.beside && T.edge && T.bottom, JSON.stringify(T));
       if (OUT) await page.screenshot({ path: path.join(OUT, `our-paper-builder-${w}x${ht}.png`) });
     }
     await page.evaluate(() => { tbLeave(() => { setView('templates'); tplPageSetTab('book'); }); });
