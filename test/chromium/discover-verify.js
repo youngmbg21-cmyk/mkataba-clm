@@ -1,4 +1,4 @@
-/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid */
+/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo */
 /* DISCOVER — THE COLUMN THE LEGORA WAY, THE KEPT QUESTIONS, THE COMPANY'S
    FACTS AND WATCHES (docs/PLAN-jambo-discover.md, owner 25 Oct 2026), driven
    in a real browser over test/discover-world.js (eleven contracts, the
@@ -34,6 +34,12 @@
      4c a rule written there is saved (the server holds it)
      4d a contract that arrives is read once for the facts that are on
      4e its Key terms carry the company's facts, with where on the paper
+   STAGE 5 — A WATCH ON AN ANSWER
+     5a a company fact's card offers "Tell me when a new contract answers at
+        risk"; pressed, the watch is set and Discover tags it watched
+     5b a new answer at risk fires it: it is on the bell's list in words that
+        name the contract, the fact and the answer
+     5c its press lands on the contract on Home's paper
    Each stage's checks are added below as the stage is built.
    Run: node test/chromium/discover-verify.js   (HATI_DV_ONLY=2 for one stage) */
 const fs = require('node:fs');
@@ -205,6 +211,32 @@ const stage = n => !ONLY || ONLY === String(n);
       const kx = await page.evaluate(() => (document.querySelector('[data-ac-facts-for="DV-07"]') || {}).innerText || '');
       check('4e its Key terms carry the company\'s facts, with where on the paper', kt && /Governing law/.test(kx) && /§ 9/.test(kx), kx.replace(/\s+/g, ' ').slice(0, 200));
       await page.screenshot({ path: path.join(OUT, '4-key-terms.png') });
+    }
+
+    if (stage(5)){
+      /* the cap question as a company fact, with its rule, its column up (asked of all but DV-05, left to arrive) */
+      const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-05') }), CAP_Q);
+      await W.admin.json('/api/columns/' + ck.ask.id, { method: 'PUT', body: { fact: true, rule: 'Capped at no more than one year of fees' } });
+      await page.evaluate(id => { regState().ask = [id]; regState().only = null; regRepaint(); return askColSummary(true).then(() => askColBring(id)); }, ck.ask.id);
+      await until(page, () => !!document.querySelector('#ig-dock [data-ac-watch]'), null, 10000);
+      const wc = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-watch]') || {}).textContent || '');
+      check('5a′ a company fact\'s card offers the watch', /Tell me when a new contract answers at risk/.test(wc), wc);
+      await page.click('#ig-dock [data-ac-watch]');
+      const set = await until(page, () => !!document.querySelector('#ig-dock [data-ac-unwatch]'));
+      await page.evaluate(() => { regState().ask = []; regRepaint(); renderIntelDock(); });
+      const tagged = await until(page, () => /watched/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
+      check('5a pressed, the watch is set and Discover tags it watched', set && tagged);
+      /* DV-05 arrives and answers outside the rule; the sweep runs */
+      await page.evaluate(() => askColFactsArrive(getContract('DV-05')));
+      for (let i = 0; i < 40; i++){ const f = await W.admin.json('/api/columns/facts/DV-05'); if (f.facts.some(x => x.answer)) break; await new Promise(r => setTimeout(r, 100)); }
+      await W.admin.json('/api/watches/run', { method: 'POST', body: {} });
+      await page.evaluate(() => watchLoad(true));
+      const fired = await page.evaluate(() => watchesFired().map(w => watchFiredWords(w)));
+      check('5b a new answer at risk fires it, in words naming the contract, the fact and the answer', fired.length === 1 && /DV-05/.test(fired[0]) && /Liability cap/.test(fired[0]) && /at risk/.test(fired[0]) && /Not capped/.test(fired[0]), JSON.stringify(fired));
+      await page.evaluate(() => watchGo(watchesFired()[0].id));
+      const landed = await until(page, () => typeof pdContract === 'function' && pdContract() && pdContract().id === 'DV-05', null, 10000);
+      check('5c its press lands on the contract on Home\'s paper', landed);
+      await page.screenshot({ path: path.join(OUT, '5-landed.png') });
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

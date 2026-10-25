@@ -151,6 +151,7 @@ async function askColSync(){
   /* Jambo's box sent the reader here to ask (JM_TASKS 'askcol'): the question opens once */
   const R0 = regState();
   if (R0.askOpen){ delete R0.askOpen; if (!AC.form) askColOpen(); return; }
+  if (typeof watchesLoaded === 'function' && !watchesLoaded() && typeof watchLoad === 'function') watchLoad().then(() => { if (askColOn()) askColPaintPanel(); });
   /* DISCOVER: the kept questions, counted, fetched free (at most once a minute) and drawn under the greeting */
   if (!AC.summary || Date.now() - _acSumAt > 60000){ askColSummary().then(() => { if (askColOn() && !AC.chosen) askColPaintPanel(); }); }
   /* the panel counts the list in front of it: a filter moved, so it says the new count */
@@ -479,10 +480,41 @@ async function askColFactsKtLoad(id){
   if (host) host.innerHTML = askColFactsKtHtml({ id });
   setTimeout(() => { delete _acKt[id]; }, 60000);
 }
-/* a kept question's own tags in Discover (stage 5: watched) */
-function askColRowTagsHtml(a){ void a; return ''; }
-/* a company fact's watch link (stage 5) */
-function askColWatchChipHtml(askId){ void askId; return ''; }
+/* ---- WATCHES ON ANSWERS (stage 5, owner 25 Oct 2026: on company facts only, free to run) ----
+   One of Jambo's watches (/api/me/watches, kind 'answer'): when a contract read for the fact
+   answers at risk, it lands on Needs you and the bell, and its press lands on the clause. */
+function askColWatchOf(askId){
+  const all = (typeof watchesAll === 'function') ? watchesAll() : [];
+  return all.find(w => w && w.kind === 'answer' && !w.endedAt && w.params && w.params.askId === askId) || null;
+}
+function askColRowTagsHtml(a){ return a && askColWatchOf(a.id) ? `<span class="ac-tag">${_acE(_acT('ac_disc_watched'))}</span>` : ''; }
+function askColWatchChipHtml(askId){
+  const a = AC.asks[askId] || {};
+  if (!a.fact || typeof watchCreate !== 'function') return '';
+  const w = askColWatchOf(askId);
+  return w ? `<button type="button" class="jb-chip" data-ac-unwatch="${_acE(w.id)}">${_acE(_acT('ac_watch_stop'))}</button>`
+    : `<button type="button" class="jb-chip" data-ac-watch="${_acE(askId)}">${_acE(_acT('ac_watch_on'))}</button>`;
+}
+async function askColWatch(askId, on, wid){
+  try {
+    if (on){ await watchCreate({ kind: 'answer', params: { askId } }); if (typeof toast === 'function') toast(_acT('ac_watch_started', { name: (AC.asks[askId] || {}).name || '' }), 'ok'); }
+    else { await watchDelete(wid); if (typeof toast === 'function') toast(_acT('ac_watch_stopped'), 'ok'); }
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  askColPaintPanel();
+}
+/* the lander a watch's press uses: the contract on Home's paper, then its sentence lit (bounded wait) */
+function askColLandOn(cid, quote){
+  if (typeof regOpenContract === 'function') regOpenContract(cid);
+  if (!quote || typeof igQuoteGo !== 'function') return true;
+  let n = 0;
+  const tick = () => {
+    const here = typeof pdContract === 'function' && pdContract() && String(pdContract().id) === String(cid) && document.getElementById('ig-canvas');
+    if (here){ igQuoteGo(quote); return; }
+    if (++n < 40) setTimeout(tick, 100);
+  };
+  setTimeout(tick, 100);
+  return true;
+}
 /* DRAW IT: the column's counts as bars, in its own card, from the answers already read (no call) */
 function askColDrawHtml(askId){
   const m = AC.ans[askId] || {}, ids = askColShown().filter(id => m[id] && !m[id].noWording);
@@ -775,6 +807,8 @@ if (typeof document !== 'undefined' && !document._acWired){
     const fk = t.closest('[data-ac-fact]'); if (fk){ e.preventDefault(); askColFactSet(fk.getAttribute('data-ac-fact'), true); return; }
     const ft = t.closest('[data-fa-tog]'); if (ft){ e.preventDefault(); const id = ft.getAttribute('data-fa-tog'); askColFactSet(id, ft.getAttribute('aria-pressed') !== 'true'); return; }
     if (t.closest('[data-fa-readall]')){ e.preventDefault(); askColFactsReadAll(); return; }
+    const wa = t.closest('[data-ac-watch]'); if (wa){ e.preventDefault(); askColWatch(wa.getAttribute('data-ac-watch'), true); return; }
+    const uw = t.closest('[data-ac-unwatch]'); if (uw){ e.preventDefault(); askColWatch(null, false, uw.getAttribute('data-ac-unwatch')); return; }
   });
   /* the question's own words: a typed edit is kept across a repaint; Enter asks */
   document.addEventListener('input', e => {
@@ -805,4 +839,4 @@ function askColBtnHtml(){
 
 Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColBring, askColSummary,
-  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet });
+  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf });

@@ -25290,7 +25290,9 @@ db.exec(`
     last_fired_at TEXT, fired TEXT, seen_at TEXT, ended_at TEXT);
   CREATE INDEX IF NOT EXISTS idx_watches_user ON watches(user_id);
 `);
-const WATCH_KINDS = ['reply', 'renewal', 'remind', 'obligation'];
+/* 'answer' (Discover stage 5, owner 25 Oct 2026: on company facts only): a new answer to a
+   company fact that is at risk — outside its rule, or Jambo's concern where it has none */
+const WATCH_KINDS = ['reply', 'renewal', 'remind', 'obligation', 'answer'];
 const WATCH_MAX = 50;                 // per person — a cap is a fact: the refusal says it
 const WATCH_DAYS_MAX = 365;
 const WATCH_HITS_MAX = 400;           // the standing kinds remember what they already told, bounded
@@ -25317,6 +25319,12 @@ function watchClean(b, user) {
     if (!cid) return { error: 'Say which contract to watch for their reply.' };
     return { kind, cid, params: {} };
   }
+  if (kind === 'answer') {
+    const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(p.askId || ''));
+    if (!ask) return { error: 'That question is not kept any more.', status: 404 };
+    if (!ask.fact) return { error: 'A watch on an answer is set on a company fact. An admin can keep this question as one.' };
+    return { kind, cid: '', params: { askId: ask.id, name: ask.name } };
+  }
   if (kind === 'renewal') return { kind, cid, params: { days: days(p.days, 60) || 60 } };
   if (kind === 'obligation') return { kind, cid, params: { days: days(p.days, 7) } };
   const on = myDay(p.on);
@@ -25330,7 +25338,8 @@ function watchRow(r) {
     unseen: !!(r.last_fired_at && (!r.seen_at || r.seen_at < r.last_fired_at)) };
 }
 /* the words the trail keeps: the kind and its day or window, never a contract's name */
-const watchTrailWords = w => w.kind === 'reply' ? 'their reply on a contract'
+const watchTrailWords = w => w.kind === 'answer' ? `a new contract at risk on the company fact "${w.params.name || ''}"`
+  : w.kind === 'reply' ? 'their reply on a contract'
   : w.kind === 'renewal' ? `a renewal within ${w.params.days} days`
   : w.kind === 'obligation' ? `an obligation due within ${w.params.days} days or late`
   : `a reminder on ${w.params.on}`;
@@ -25407,6 +25416,22 @@ function runWatches(opts) {
       if (at) { hit = { what: 'reply', cid: w.contract_id, at, how: m === at ? 'note' : 'answer' }; end = true; }
     } else if (w.kind === 'remind') {
       if (p.on && p.on <= day) { hit = { what: 'remind', cid: w.contract_id || null, on: p.on }; end = true; }
+    } else if (w.kind === 'answer') {
+      /* A NEW ANSWER AT RISK: read after the watch began, for a contract its owner may see; each told once */
+      const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(p.askId || ''));
+      if (!ask || !ask.fact) continue;
+      const rowsA = db.prepare('SELECT a.contract_id, a.json, a.created_at, c.folder FROM column_answers a JOIN contracts c ON c.id=a.contract_id WHERE a.ask_id=? AND a.created_at > ? ORDER BY a.created_at').all(ask.id, w.created_at);
+      for (const r of rowsA) {
+        if (!inScope(scope, r.folder)) continue;
+        try { if (cnOutsideFor(u).has(r.contract_id)) continue; } catch (_) {}
+        const x = watchJson(r.json);
+        const risk = x.found && (x.verdict === 'out' || ((!x.verdict || x.verdict === 'norule') && x.tone === 'concern'));
+        const k = `${r.contract_id}:${r.created_at}`;
+        if (!risk || hits.has(k)) continue;
+        hits.add(k);
+        hit = { what: 'answer', cid: r.contract_id, askId: ask.id, fact: ask.name, answer: String(x.answer || '').slice(0, 60), clause: String(x.clause || '').slice(0, 80), quote: String(x.quote || '').slice(0, 300) };
+        break;
+      }
     } else if (w.kind === 'renewal' || w.kind === 'obligation') {
       const B = readBook();
       const n = Number(p.days) || 0;
@@ -25449,7 +25474,7 @@ function runWatches(opts) {
       const cr = hit.cid ? db.prepare('SELECT id,name,counterparty,json FROM contracts WHERE id=?').get(hit.cid) : null;
       let full = {}; try { full = cr ? (JSON.parse(cr.json) || {}) : {}; } catch (_) { full = {}; }
       const vars = { ref: cr ? contractRef(full.id ? full : cr) : '', name: cr ? (cr.name || '') : '', who: cr ? (cr.counterparty || tFor(L, 'wt_mail_them')) : '',
-        day: hit.day || hit.due || hit.on || '', what: p.what || '', n: hit.days == null ? '' : hit.days };
+        day: hit.day || hit.due || hit.on || '', what: p.what || '', n: hit.days == null ? '' : hit.days, fact: hit.fact || '', answer: hit.answer || '' };
       const line = tFor(L, 'wt_mail_' + hit.what + (hit.what === 'remind' && !cr ? '_bare' : '') + (hit.what === 'obligation' && hit.late ? '_late' : ''), vars);
       const link = cr ? contractUrl(null, cr.id) : (APP_URL() || `http://localhost:${PORT}`) + '/';
       sendEmail(u.email, tFor(L, 'wt_mail_subject', { line: line.length > 90 ? line.slice(0, 89) + '…' : line }),
