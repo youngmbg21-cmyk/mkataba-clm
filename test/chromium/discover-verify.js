@@ -1,4 +1,4 @@
-/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo, contractPlainText */
+/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo, contractPlainText, precedentMemoryOf, rlRowReadHtml */
 /* DISCOVER — THE COLUMN THE LEGORA WAY, THE KEPT QUESTIONS, THE COMPANY'S
    FACTS AND WATCHES (docs/PLAN-jambo-discover.md, owner 25 Oct 2026), driven
    in a real browser over test/discover-world.js (eleven contracts, the
@@ -258,6 +258,23 @@ const stage = n => !ONLY || ONLY === String(n);
       const three = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 3, null, 10000);
       const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(tr => tr.getAttribute('data-row')).sort());
       check('6b "Show the 3" lands on the list narrowed to those three', three && rows.join() === 'DV-03,DV-10,DV-11', JSON.stringify(rows));
+    }
+
+    if (stage(7)){
+      const m = await page.evaluate(() => {
+        const ch = (o) => ({ id: o.id, clauseId: 'c1', clauseLabel: 'Termination', oldText: 'on ninety (90) days written notice', newText: o.newText,
+          status: o.status, authorSide: 'counterparty', author: 'Them', createdAt: '2026-03-01T00:00:00.000Z', updatedAt: '2026-03-02T00:00:00.000Z' });
+        const a = getContract('DV-01'), b = getContract('DV-02');
+        const keepA = a.changes, keepB = b.changes;
+        a.changes = [ch({ id: 'MEM-NOW', status: 'pending', newText: 'on thirty (30) days written notice' })];
+        b.changes = [ch({ id: 'MEM-OLD', status: 'accepted', newText: 'on sixty (60) days written notice' })];
+        try {
+          return { mem: precedentMemoryOf(a, a.changes[0]), ours: rlRowReadHtml(a, a.changes[0], 'owner'), theirs: rlRowReadHtml(a, a.changes[0], 'counterparty') };
+        } finally { a.changes = keepA; b.changes = keepB; }
+      });
+      const div = await page.evaluate(h => { const d = document.createElement('div'); d.innerHTML = h; return d.innerText; }, m.ours || '');
+      check('7a their new ask draws the memory line under the verdict, naming Siginon', !!(m.mem && m.mem.withThem) && /Siginon/.test(div) && /data-rl-row-memory/.test(m.ours || ''), JSON.stringify({ mem: m.mem && m.mem.line, div }));
+      check('7b the counterparty\'s seat draws no memory', !/data-rl-row-memory/.test(m.theirs || ''));
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

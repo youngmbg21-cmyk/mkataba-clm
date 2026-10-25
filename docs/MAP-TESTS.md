@@ -177,6 +177,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER STAGE 4, the company's facts: f881; discover-verify 4a–4e; f784 7b re-pointed (Jambo's card gains Company facts).
 - DISCOVER STAGE 5, a watch on an answer: f882 (with f860); discover-verify 5a–5c.
 - DISCOVER STAGE 6, Unusual for you: f883; discover-verify 6a–6b.
+- DISCOVER STAGE 7, negotiation memory: f884 (with f222, f863, f876); discover-verify 7a–7b.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
