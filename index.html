@@ -17429,8 +17429,9 @@
   #app-shell .st-cr .st-card{padding:16px}
   /* a page in the middle's head (8 above, 14 below) */
   #modal-root [data-dlg-page] .dlg-pg-head.dlg-pg-head{padding-top:16px;padding-bottom:16px}
-  /* the one desk's group card on Home (8 above and below, 12 at the sides) */
-  #app-shell #cn-page .cn-needs .nd-g{padding:16px}
+  /* the one desk's group heads on Home are plain headings, not cards (owner picked "Plain headings", 25 Oct
+     2026: 16px boxes pushed Needs you 29px past a 1536x730 screen) */
+  #app-shell #cn-page .cn-needs .nd-g{padding:12px 12px 2px;background:none;border-radius:0}
   /* the New agreement sheet's cards (14 above, 18 at the sides; the paper list 19 above, 25 below) */
   :is(#app-shell, #modal-root) #na-root.na-one :is(.na-ask, .na-rail, .na-read, .na-theirs, .na-card, .na-file){padding:16px}
   /* the paper list: its head line carries 5 of leading above and its last row 11 of its own room below */
