@@ -548,7 +548,8 @@ describe('f306 (11) — what the screen prints', () => {
     s0.w.tbSetTab('build'); const s = s0.read();
     /* RE-POINTED (lane D check #2, 19 Oct 2026): the panel says the number
        the PAPER prints — the first section is unnumbered, so this is 1 */
-    assert.ok(s.rail.includes('Section 1 · Confidentiality'), 'the focus card names the empty one');
+    /* RE-POINTED 25 Oct 2026 (owner: the builder works like the clause editor): the section card went; the section picker names the section in hand */
+    assert.match(s.rail, /<option value="3" selected>1\. Confidentiality<\/option>/, 'the picker names the empty one');
     assert.ok(s.paper.includes('data-tb-sec="3"') && /data-tb-sec="3"[^>]*is-on|is-on[^>]*data-tb-sec="3"/.test(s.paper), 'and the paper frames it');
   });
 
@@ -612,8 +613,15 @@ describe('f306 (11) — what the screen prints', () => {
 
   test('the paper keeps every block control — arrows, delete, add, and the editable itself', async () => {
     const s = await stage([['heading', 'Confidentiality'], ['field_group', 'x']]);
-    assert.ok(s.paper.includes('data-tb-up="0"') && s.paper.includes('data-tb-down="0"'), 'the arrows');
-    assert.ok(s.paper.includes('data-tb-del="1"'), 'the delete');
+    /* RE-POINTED 25 Oct 2026 (owner picked "The Legora Way" for moving
+       clauses): a paragraph keeps its own small arrows; a heading's are its
+       whole section's — the grip and Up · Down — and the first heading of a
+       typed paper is the title, which does not move */
+    /* RE-POINTED AGAIN 25 Oct 2026 (owner, over a paragraph's up · down · ×: "delete the highlighted
+       features"): a paragraph carries no buttons at all; the heading keeps its remove */
+    assert.ok(!s.paper.includes('data-tb-up="1"') && !s.paper.includes('data-tb-down="1"') && !s.paper.includes('data-tb-del="1"'), 'no buttons beside a paragraph');
+    assert.ok(!s.paper.includes('data-tb-up="0"') && !s.paper.includes('data-tb-grip='), 'the title heading carries no move');
+    assert.ok(s.paper.includes('data-tb-del="0"'), 'the heading keeps its remove');
     assert.ok(s.paper.includes('id="tb-addblock"') && s.paper.includes('id="tb-addtype"'), 'the add control');
     assert.ok(s.paper.includes('data-tb-content="1"'), 'and the editable');
   });
@@ -649,7 +657,8 @@ describe('f306 (11) — what the screen prints', () => {
     /* RE-POINTED (lane D check #2, 19 Oct 2026): the paper's own numbers —
        Parties prints unnumbered, Definitions as 1 */
     assert.ok(out.rail.includes('Applied to Parties'), 'the receipt names the section');
-    assert.ok(out.rail.includes('Section 1 · Definitions'), 'and the next empty section is now in hand');
+    /* RE-POINTED 25 Oct 2026 (owner: the builder works like the clause editor): the section card went; the section picker names the section in hand */
+    assert.match(out.rail, /selected>1\. Definitions<\/option>/, 'and the next empty section is now in hand');
     assert.ok(out.rail.includes('what should it say?'), 'with its question, in HaTi’s own words');
   });
 

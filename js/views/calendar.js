@@ -1543,7 +1543,8 @@ function calStyleCss(){ return `
          Copilot is Home's panel — and the page fills the tab's cover */}
   .cal-page.is-home{height:100%}
   .cal-stage.is-home{grid-template-columns:minmax(0,1fr)}
-  .cal-page.is-home .cal-body{padding-top:var(--s-3)}
+  /* LEVEL WITH JAMBO'S PANEL (25 Oct 2026): the week's card ends where his panel does, 8px above the window's foot */
+  .cal-page.is-home .cal-body{padding-top:var(--s-3);padding-bottom:8px}
   ${''/* THE HEAD IS A CARD, AS EVERY PAGE'S IS (.ph-card; the detail round, 25 Oct 2026: the Calendar's head was a
          flat band edge to edge): set in on the grey as the calendar card under it, level with Jambo's panel */}
   .cal-page.is-home .cal-head{margin:var(--page-pad-t) var(--s-6) 0;padding:12px 16px;border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-sm)}
@@ -1649,8 +1650,8 @@ function calStyleCss(){ return `
   .cal-cop .cal-plan-head.jl-head{padding:6px 10px 6px 8px;flex-wrap:nowrap;justify-content:flex-start}
   .cal-plan-tab{cursor:default}
   .cal-cop .cal-plan-body{padding:0;gap:0}
-  .cal-cop .cal-yw{padding:14px 14px 6px}
-  .cal-cop .cal-plan-talk{display:flex;flex-direction:column;gap:10px;padding:8px 14px 14px}
+  .cal-cop .cal-yw{padding:16px 16px 6px}
+  .cal-cop .cal-plan-talk{display:flex;flex-direction:column;gap:10px;padding:8px 16px 16px}
   .cal-cop .jl-foot{margin-top:auto}
   @media (max-width:980px){
     .cal-stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;flex:none}

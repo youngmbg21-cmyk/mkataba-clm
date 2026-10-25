@@ -3557,10 +3557,18 @@ if (typeof document !== 'undefined'){
   document.addEventListener('pointerdown', ev => { _lastPress = ev.pointerType || 'mouse'; }, true);
   document.addEventListener('keydown', () => { _lastPress = 'key'; }, true);
 }
+/* NO RING AFTER A PRESS (owner's list, 25 Oct 2026, item 17): a button, link or
+   row the code puts the keyboard on after a mouse or a finger press — a page
+   opening, a door landing — draws no focus ring; after a key it does, so a
+   keyboard reader still sees where they are. A box you type in is not
+   touched: its caret is its mark. */
+const FOCUS_TYPED = /^(INPUT|TEXTAREA|SELECT)$/;
 function fieldFocus(el, opts){
   if (!el || typeof el.focus !== 'function') return false;
   if (el.tagName === 'SELECT' && _lastPress !== 'mouse' && _lastPress !== 'key') return false;
-  try { el.focus(opts); } catch (_) { try { el.focus(); } catch (__) { return false; } }
+  const o = Object.assign({}, opts || {});
+  if (_lastPress !== 'key' && !FOCUS_TYPED.test(el.tagName) && !el.isContentEditable && o.focusVisible == null) o.focusVisible = false;
+  try { el.focus(o); } catch (_) { try { el.focus(); } catch (__) { return false; } }
   return true;
 }
 function selectMenuSweep(root){

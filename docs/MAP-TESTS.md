@@ -412,3 +412,11 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE TRACKED-CHANGES COLUMN — ONE SHADE (23 Oct 2026)
 - test/chromium/one-shade-verify.js (new; red at unmodified main 1–5): a pressed row shaded, no ring; a hovered risk card takes the shade, no underline; a pressed risk card takes it from the row; no Why/Hide why; the settled fold dressed as the Covered fold.
 - Node re-pointed: f506 (C) (no Why press), f522 (6) (the reason always open) and (10) (the stub document answers querySelectorAll).
+
+## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS — 25 Oct 2026 additions
+- f879-a-section-moves-whole (node); prompt-and-build-verify, templates-cleaned-up-verify, templates-tabs-verify (browser).
+- f880-the-paper-gets-the-room (node); our-paper-as-drawn-verify (browser).
+
+## LOOKS — THE SMALL ONES (25 Oct 2026)
+- f881-the-small-ones (node); tidy-sweep-verify (now with `level with Jambo's panel`), detail-round-verify, land-on-it-verify (browser).
+- 16PX INSIDE EVERY CARD (25 Oct 2026): `node --test test/f883-16px-inside-every-card.test.js`; in a browser the tidy sweep's "16px inside every card" check (`node test/chromium/tidy-sweep-verify.js`, `HATI_TIDY_ONLY=` for one place; ROOM lines name the card and its four measures).

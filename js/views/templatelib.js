@@ -834,7 +834,7 @@ async function openTemplateLibDetail(id) {
   const openDraft = versions.find(v => v.status === 'draft');
 
   const vRows = versions.slice().reverse().map(v => `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px var(--s-4);border-bottom:1px solid var(--color-divider)">
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-bottom:1px solid var(--color-divider)">
       <span style="flex:none;font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 7px;margin-top:1px">v${v.versionNumber}</span>
       <span style="min-width:0;flex:1">
         <span style="display:block;font-size:var(--t-meta)">${v.status === 'published' ? `Published ${fmtAt(v.publishedAt)}${v.publishedBy ? ' by ' + esc(v.publishedBy) : ''}` : v.status === 'superseded' ? `Superseded — was published ${fmtAt(v.publishedAt)}` : 'Draft in progress'}</span>
@@ -845,83 +845,100 @@ async function openTemplateLibDetail(id) {
       ${v.status === 'published' ? `<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg);flex:none"><span class="dot" style="background:var(--st-green-dot)"></span>${i18t('tl_live')}</span>` : ''}
     </div>`).join('');
 
+  /* ════ ONE THIN LINE, AND JAMBO BESIDE THE PAPER (owner, 25 Oct 2026: "always
+     give more room to the paper. Optimize the top bar as space is wasted") ════
+     The Library row, the tall card (name, description, facts, five buttons) and
+     the second head over the wording ("The wording · Showing v1 · Edit") are ONE
+     LINE: ‹ Library · the name · ● Published v1 · the facts, then Edit, ⋯ and
+     + New contract. Rename, Archive or Restore, Delete and New draft version are
+     in the ⋯; the description is in Jambo's panel, under his greeting, with the
+     template's facts and next steps (owner: "this page does not need an
+     overview page"). Measured at 1440: the first line of wording 422px → 236px. */
+  const st = TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft;
+  const facts = `${esc(tplCategoryName(t.category))} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}${t.sourceContractId ? ` (${esc(window.contractRef && srcC ? contractRef(srcC) : t.sourceContractId)})` : ''} · ${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'} created${t.lastUsedAt ? ` · last used ${fmtAt(t.lastUsedAt)}` : ''}`;
+  const menu = [
+    canManage ? { k: 'meta', label: i18t('tl_dt_rename'), icon: 'pencil' } : null,
+    canManage && t.status === 'published' && !openDraft ? { k: 'newversion', label: i18t('tl_dt_new_version'), icon: 'plus' } : null,
+    canManage && t.status !== 'archived' ? { k: 'archive', label: i18t('tl_dt_archive'), icon: 'box' } : null,
+    canManage && t.status === 'archived' ? { k: 'restore', label: i18t('tl_restore') } : null,
+    canManage && !t.contractsCreated ? { k: 'delete', label: i18t('tl_dt_delete'), icon: 'trash', ruby: true } : null,
+  ].filter(Boolean);
+  const INS = typeof insFits === 'function' && !!insFits() && typeof insPaintPanel === 'function';
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:var(--page-measure)">
-    <div>
-      <button id="tpllib-back" class="ui-btn">${icon('arrowLeft', 'w-3.5 h-3.5')} Library</button>
+  <div class="view-enter tpl-dt" id="tpl-dt" style="padding:var(--page-pad)">
+    <div class="ph-card tpl-dt-line">
+      <button id="tpllib-back" type="button" class="ui-btn ui-btn-sm tpl-dt-back">‹ ${i18t('tl_dt_library')}</button>
+      <h1 class="tpl-dt-name" title="${esc(t.name)}">${esc(t.name)}</h1>
+      <span class="tpl-dt-st" style="color:${st.fg}"><span class="dot" style="background:${st.dot}"></span>${esc(st.label)}${showVer ? ' v' + showVer.versionNumber : ''}</span>
+      <span class="tpl-dt-facts" title="${esc(facts.replace(/&amp;/g, '&'))}">${facts}</span>
+      <span class="tpl-dt-sp"></span>
+      ${canManage && t.status !== 'archived' ? `<button id="tpllib-edit-wording" type="button" class="ui-btn">${i18t('act_edit')}</button>` : ''}
+      ${menu.length && typeof insMoreHtml === 'function' ? `<span class="tpl-dt-more">${insMoreHtml(menu.map(insMenuItemHtml).join(''))}</span>` : ''}
+      ${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? `<button id="tpllib-use" type="button" class="ui-btn ui-btn-primary">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
     </div>
-    <section style="${CARD};padding:18px">
-      <div style="display:flex;align-items:flex-start;gap:var(--s-3);flex-wrap:wrap">
-        <div style="min-width:0;flex:1">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <h3 style="margin:0;font-family:var(--font-heading);font-size:18px;font-weight:var(--w-title)">${esc(t.name)}</h3>
-            ${tplLibStatusBadge(t.status)}
-          </div>
-          <p style="margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${esc(t.description) || `<span style="color:var(--color-neutral-400)">${i18t('tl_no_description')}</span>`}</p>
-          <p style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--color-neutral-500)">
-            ${esc(tplCategoryName(t.category))} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}${t.sourceContractId ? ` (${esc(window.contractRef && srcC ? contractRef(srcC) : t.sourceContractId)})` : ''}
-            · ${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'} created${t.lastUsedAt ? ` · last used ${fmtAt(t.lastUsedAt)}` : ''}</p>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;flex:none">
-          ${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? `<button id="tpllib-use" class="ui-btn ui-btn-primary">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
-          ${canManage ? `<button id="tpllib-edit-meta" class="ui-btn">${icon('pencil', 'w-3 h-3')} Rename / describe</button>` : ''}
-          ${canManage && t.status !== 'archived' ? `<button id="tpllib-archive" class="ui-btn">${icon('box', 'w-3 h-3')} Archive</button>` : ''}
-          ${canManage && t.status === 'archived' ? `<button id="tpllib-restore" class="ui-btn">${i18t('tl_restore')}</button>` : ''}
-          ${canManage && !t.contractsCreated ? `<button id="tpllib-delete" class="ui-btn ui-btn-danger">${icon('trash', 'w-3 h-3')} Delete</button>` : ''}
-        </div>
-      </div>
-      ${t.status === 'archived' ? `<p style="margin:var(--s-3) 0 0;font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-neutral-100);border-radius:var(--radius);padding:var(--s-2) var(--s-3)">
-        Archived — no new contracts can be created from it, but it stays here because ${t.contractsCreated ? 'its contracts permanently cite it' : 'its history matters'}.</p>` : ''}
-      ${canManage && t.status === 'published' && !openDraft ? `<div style="margin-top:var(--s-3)"><button id="tpllib-newversion" class="ui-btn">${icon('plus', 'w-3 h-3')} New draft version</button></div>` : ''}
-    </section>
-    <section style="${CARD}">
-      <div style="display:flex;align-items:center;gap:10px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)">
-        <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0;flex:1">${i18t('tl_the_wording')}</h4>
-        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${showVer ? esc(i18t('tl_showing_v', { n: showVer.versionNumber })) : ''}</span>
-        ${canManage && t.status !== 'archived' ? `<button id="tpllib-edit-wording" class="ui-btn">${icon('pencil', 'w-3 h-3')} ${i18t('act_edit')}</button>` : ''}
-      </div>
+    ${t.status === 'archived' ? `<p class="tpl-dt-arch">
+      Archived — no new contracts can be created from it, but it stays here because ${t.contractsCreated ? 'its contracts permanently cite it' : 'its history matters'}.</p>` : ''}
+    <section class="tpl-dt-paper">
       ${wording
-        ? `<div style="padding:var(--s-4);background:var(--color-bg)">${tplLibSheetHtml(wording)}</div>`
+        ? `<div class="tpl-dt-sheet">${tplLibSheetHtml(wording)}</div>`
         : `<div style="padding:22px var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${
              showVer ? i18t('tl_wording_unreadable') : i18t('tl_wording_none')}</div>`}
     </section>
     <section style="${CARD}">
-      <div style="padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)">
+      <div style="padding:16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tl_version_history')}</h4>
       </div>
       ${vRows || `<div style="padding:22px;text-align:center;color:var(--color-neutral-500);font-size:var(--t-meta)">${i18t('tl_no_versions')}</div>`}
     </section>
+    ${INS ? `<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('lib_panel_label'))}"></aside>` : ''}
   </div>`;
+  tplDtStyle();
+  if (INS && typeof tplDtPanelPaint === 'function') tplDtPanelPaint(t, showVer);
 
   document.getElementById('tpllib-back')?.addEventListener('click', () => setView('templates'));
   document.getElementById('tpllib-use')?.addEventListener('click', () => (window.tplDraftFrom || tplLibNewContract)(t.id));
-  document.getElementById('tpllib-edit-meta')?.addEventListener('click', () => tplLibMetaModal(t));
   document.getElementById('tpllib-edit-wording')?.addEventListener('click', () => tplLibEdit(t.id));
-  document.getElementById('tpllib-archive')?.addEventListener('click', async () => {
-    try {
-      await api('templates/' + t.id, 'PATCH', { status: 'archived' });
-      await tplLibRefresh();   /* an archived standard leaves every picker now (see tplLibRestore) */
-      toast(`“${t.name}” archived — existing contracts keep their link to it`);
-      openTemplateLibDetail(t.id);
-    } catch (e) { toast(e.message, 'err'); }
-  });
-  /* The second of the two doors onto tplLibRestore. It used to write the
-     PATCH itself with an English toast built inline — so this page and the
-     archived refusal would have said different things about the same act. */
-  document.getElementById('tpllib-restore')?.addEventListener('click', () =>
-    tplLibRestore(t, () => openTemplateLibDetail(t.id)));
-  document.getElementById('tpllib-delete')?.addEventListener('click', async () => {
-    const ok = typeof confirmDialog === 'function'
-      ? await confirmDialog({ title: `Delete “${t.name}”?`, message: 'It has never spawned a contract, so nothing cites it. This cannot be undone.', confirmLabel: 'Delete template', danger: true })
-      : true;
-    if (!ok) return;
-    try { await api('templates/' + t.id, 'DELETE'); await tplLibRefresh(); toast(`“${t.name}” deleted`); setView('templates'); }
-    catch (e) { toast(e.message, 'err'); }
-  });
-  document.getElementById('tpllib-newversion')?.addEventListener('click', async () => {
-    try { const r = await api('templates/' + t.id + '/versions', 'POST'); toast(`Draft v${r.versionNumber} created`); openTemplateLibDetail(t.id); }
-    catch (e) { toast(e.message, 'err'); }
-  });
+  /* THE ⋯'S ACTS — each the page's one door for it */
+  const acts = {
+    meta: () => tplLibMetaModal(t),
+    archive: async () => {
+      try {
+        await api('templates/' + t.id, 'PATCH', { status: 'archived' });
+        await tplLibRefresh();   /* an archived standard leaves every picker now (see tplLibRestore) */
+        toast(`“${t.name}” archived — existing contracts keep their link to it`, 'ok');
+        openTemplateLibDetail(t.id);
+      } catch (e) { toast(e.message, 'err'); }
+    },
+    /* The second of the two doors onto tplLibRestore. It used to write the
+       PATCH itself with an English toast built inline — so this page and the
+       archived refusal would have said different things about the same act. */
+    restore: () => tplLibRestore(t, () => openTemplateLibDetail(t.id)),
+    delete: async () => {
+      const ok = typeof confirmDialog === 'function'
+        ? await confirmDialog({ title: `Delete “${t.name}”?`, message: 'It has never spawned a contract, so nothing cites it. This cannot be undone.', confirmLabel: 'Delete template', danger: true })
+        : true;
+      if (!ok) return;
+      try { await api('templates/' + t.id, 'DELETE'); await tplLibRefresh(); toast(`“${t.name}” deleted`, 'ok'); setView('templates'); }
+      catch (e) { toast(e.message, 'err'); }
+    },
+    newversion: async () => {
+      try { const r = await api('templates/' + t.id + '/versions', 'POST'); toast(`Draft v${r.versionNumber} created`, 'ok'); openTemplateLibDetail(t.id); }
+      catch (e) { toast(e.message, 'err'); }
+    },
+  };
+  /* the ⋯: press again closes; Esc and a press outside close (tplDtMenuShut,
+     bound once on the document) */
+  const more = document.querySelector('.tpl-dt-more');
+  if (more) {
+    const mBtn = more.querySelector('[data-ins-more]'), mList = more.querySelector('[data-ins-menu]');
+    mBtn.addEventListener('click', e => { e.stopPropagation(); const open = mList.hidden; mList.hidden = !open; mBtn.setAttribute('aria-expanded', String(open));
+      if (open) { const f = mList.querySelector('button'); if (f) f.focus({ preventScroll: true }); } });
+    more.addEventListener('keydown', e => { if (e.key === 'Escape' && !mList.hidden) { e.stopPropagation(); tplDtMenuShut(); mBtn.focus({ preventScroll: true }); } });
+    mList.addEventListener('click', e => {
+      const b = e.target.closest('[data-act]'); if (!b) return; tplDtMenuShut();
+      const run = acts[b.getAttribute('data-act')]; if (run) run();
+    });
+  }
   document.querySelectorAll('[data-tpllib-build]').forEach(el =>
     el.addEventListener('click', () => {
       const vid = el.getAttribute('data-tpllib-build');
@@ -929,6 +946,55 @@ async function openTemplateLibDetail(id) {
       if (window.openTemplateBuilder) openTemplateBuilder(t.id, vid);
       else toast(i18t('tl_builder_next_phase'), 'err');
     }));
+}
+
+function tplDtMenuShut() {
+  const more = document.querySelector('.tpl-dt-more'); if (!more) return;
+  const mList = more.querySelector('[data-ins-menu]'), mBtn = more.querySelector('[data-ins-more]');
+  if (mList) mList.hidden = true; if (mBtn) mBtn.setAttribute('aria-expanded', 'false');
+}
+if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window._tplDtWired) {
+  window._tplDtWired = true;
+  document.addEventListener('click', e => { const more = document.querySelector('.tpl-dt-more'); if (more && !(e.target.closest && more.contains(e.target))) tplDtMenuShut(); });
+}
+/* JAMBO BESIDE THE TEMPLATE'S PAGE: one window — his greeting, then the
+   template said from the record (Our paper's own reading, tplPfJamboHtml, so
+   the two pages cannot say different things of one template), its
+   description, and the next steps. Nothing spent. */
+function tplDtPanelPaint(t, ver) {
+  if (typeof insPaintPanel !== 'function' || !document.getElementById('ins-panel')) return;
+  let body = '';
+  try {
+    const d = typeof tplOverviewData === 'function' ? tplOverviewData() : null;
+    const card = d && (d.cards || []).find(c => String(c.id) === String(t.id));
+    const sheet = document.querySelector('#tpl-dt .tpl-dt-sheet');
+    const read = card && typeof tplPfReadOf === 'function' ? tplPfReadOf(card, sheet) : null;
+    if (card && typeof tplPfJamboHtml === 'function') body = tplPfJamboHtml(card, read, { desc: t.description || '' });
+  } catch (_) { body = ''; }
+  if (!body) body = `<div class="jl-words"><div class="jl-say"><div class="jl-bub"><p><b>${esc(t.name)}${ver ? ' v' + ver.versionNumber : ''}</b></p>${t.description ? `<p>${esc(t.description)}</p>` : ''}</div></div></div>`;
+  insPaintPanel({ seat: 'tpl-detail', jlPh: i18t('jl_ph_any'), jlHome: i18t('nav_tpl_std'), item: { id: 'tpl:' + t.id }, head: false, solo: true, jlWord: t.name, body, acts: [] });
+}
+/* the page's own look: the line is one control tall, nothing wraps; the name
+   gives way with "…" before the status, facts give way before the buttons */
+function tplDtStyle() {
+  if (typeof document === 'undefined' || document.getElementById('tpl-dt-css')) return;
+  const st = document.createElement('style'); st.id = 'tpl-dt-css';
+  st.textContent = `
+  .tpl-dt{display:flex;flex-direction:column;gap:12px}
+  #app-shell .ph-card.tpl-dt-line{display:flex;align-items:center;gap:12px;padding:16px;min-width:0;flex-wrap:nowrap}
+  .tpl-dt-line > *{flex:none}
+  .tpl-dt-back{border-radius:999px}
+  .tpl-dt-name{margin:0;font-family:var(--font-heading);font-size:15px;font-weight:var(--w-title);color:var(--color-text);min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tpl-dt-st{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap}
+  .tpl-dt-st .dot{width:7px;height:7px;border-radius:50%}
+  .tpl-dt-facts{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1000 auto}
+  .tpl-dt-sp{flex:1 1 0;min-width:0}
+  .tpl-dt-more{display:inline-flex}
+  .tpl-dt-arch{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-neutral-100);border-radius:var(--radius);padding:var(--s-2) var(--s-3)}
+  .tpl-dt-paper{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
+  .tpl-dt-sheet{padding:var(--s-4)}
+  `;
+  document.head.appendChild(st);
 }
 
 /* ONE BOX, TWO WAYS IN (24 Sep 2026, "One Door to Standards" decision 5).
@@ -1324,7 +1390,7 @@ function tplFormPopover(c, idx, anchor) {
   try { input?.focus(); } catch (_) {}
 }
 
-Object.assign(window, { tplFormInputHtml, newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLibCategoryOptions, tplLibCatStreamRowHtml,
+Object.assign(window, { tplDtPanelPaint, tplDtStyle, tplDtMenuShut, tplFormInputHtml, newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLibCategoryOptions, tplLibCatStreamRowHtml,
   /* The whole cached list, drafts included, for surfaces that render company
      templates as rows of their own (the Templates page's library table)
      rather than through renderCompanyTemplatesSection's card grid. */

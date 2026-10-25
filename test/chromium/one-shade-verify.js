@@ -141,7 +141,8 @@ async function login(b, base, email, pass, errs){
     await waitFor(page, () => !!document.querySelector('#pd-redface .rk-row:not(.is-none):not(.is-covered)'), 8000);
     /* 1 */
     const card = await page.$('#pd-redface [data-nego-card] .rl-card-meta');
-    if (card){ await page.click('#pd-redface [data-nego-card] .rl-card-meta'); await pause(500); await page.mouse.move(5, 5); await pause(300); }
+    /* A WAIT ASKS FOR THE STATE, BOUNDED (25 Oct 2026: on GitHub the fixed 500ms read the column mid-repaint, []) */
+    if (card){ await page.click('#pd-redface [data-nego-card] .rl-card-meta'); await waitFor(page, () => !!document.querySelector('#pd-redface [data-nego-card].is-linked, #pd-redface .rl-card-d.is-linked'), 5000); await page.mouse.move(5, 5); await pause(300); }
     const L1 = card ? await lit() : null;
     check('1  a pressed redline row is shaded, with no ring, and stays shaded with the pointer gone', !!L1 && L1.length === 1 && L1[0].on && !L1[0].ring && /^CHG-/.test(L1[0].k), JSON.stringify(L1));
     /* 2 */
