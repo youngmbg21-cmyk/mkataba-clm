@@ -17328,8 +17328,8 @@
      both edges while his words under it kept their 14px */
   :is(.jl-greet, .cal-cop .cal-plan-body) > .jb-hello{padding:14px 14px 0;margin-bottom:0}
   /* HIS TAB IS NEVER CUT (4): "Jambo" is five letters; beside a long page word (a paper's name on Our paper)
-     the NAME gives way, never his tab. The paper's own row of tabs is left as it is (the iPad's five tabs are
-     the owner's to decide). */
+     the NAME gives way, never his tab. The paper's own row (five tabs with a letter waiting) is the owner's
+     "Short words" below. */
   #app-shell .jl-head.jl-head > .jl-tab, #ig-dock > .igd-head.igd-head:not([data-pd-head="paper"]) > .pd-tab-talk{flex-shrink:0}
   /* EVERY PAGE IN THE MIDDLE IS A CARD UNDER ITS HEAD (7), as the Deal was made on 24 Oct: Key terms, Jambo's
      work and the obligations review kept a square 880px sheet narrower than their floating head */
@@ -17343,6 +17343,28 @@
   /* THE DOSSIER'S ACTS KEEP THEIR WORDS (6): a row too narrow for them wraps, never cuts "Import their Word file" */
   #app-shell #ig-dock .ds-acts-b.is-ck.is-mq{flex-wrap:wrap;row-gap:8px}
   #app-shell #ig-dock .ds-acts-b.is-ck.is-mq > .ui-btn{flex:none;overflow:visible;text-overflow:clip}
+  /* ==== THE OWNER'S PICKS, 25 OCT 2026 (the four decisions page) ==== */
+  /* Q1 "THE LEGORA WAY": a chart row in Jambo's ask list ends in its act word, "Draw ›", in the link green;
+     the row's words give way before it, and a saved question's × stays last */
+  .hb-askpop .hb-pop-opt:has(> .hb-pop-go){display:flex;align-items:center;gap:10px}
+  .hb-askpop .hb-pop-opt:has(> .hb-pop-go):not(:has(> .hb-myq-x)){padding-right:10px}
+  .hb-askpop .hb-pop-opt > .who{flex:1 1 auto;min-width:0}
+  .hb-askpop .hb-pop-go{flex:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);white-space:nowrap}
+  /* Q3 "TWO LINES": a long name takes a second line before it gives way with "…" — the Dossier's door rows
+     (Signer, Who else, On the web, Obligations: one builder, .pd-ck-hd) and a person's contracts on People
+     (.dir-ct-n). A one-line row stands exactly where it stood (12 + 20 + 12 = its 44) */
+  /* (a fill-in field's own label line, drawn as a 20px label above its box on the Dossier, is not a door row) */
+  #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd){height:auto;min-height:44px;padding:12px 0;align-items:flex-start}
+  #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd) > :is(b, .pd-ck-v){white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:20px}
+  #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd) > .pd-ck-ring{margin-top:2px}
+  #app-shell .dir-ct .dir-ct-n{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  /* Q2 "SHORT WORDS": with a letter waiting the paper's panel carries five tabs — Dossier · Send · Clauses ·
+     Redlines · Jambo — every word whole and the panel's › kept in sight: five tabs sit closer (6px each side,
+     2px apart, from 8 and 8), and no tab gives way */
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab{flex-shrink:0;padding:0 6px}
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab + .pd-tab{margin-left:2px}
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab:first-child{margin-left:-6px}
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab .pd-tab-w{overflow:visible}
 </style>
 
 

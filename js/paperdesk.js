@@ -1603,7 +1603,8 @@ function pdTalkKey(){
   try {
     if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return null;
     const face = (typeof hbFace === 'function') ? hbFace() : '';
-    if (face === 'calendar') return 'cal:week';
+    /* the New agreement sheet over the Calendar speaks in Jambo's own conversation, as over the Board (25 Oct 2026) */
+    if (face === 'calendar' && !(typeof naSheetUp === 'function' && naSheetUp())) return 'cal:week';
     const c = pdOnPaper() ? pdContract() : null;
     if (c) return 'dock:p:' + c.id + ':' + ((pdSendShows() ? 'send' : pdFaceNow()) || _pdTab);
     const held = pdHeldContract();
@@ -3177,7 +3178,8 @@ function pdHeadHtml(brain){
      as a tab after Jambo's, one press back (round 11's gaps, second pass) */
   /* (Round 3, owner's yes 24 Oct 2026) the waiting letter's tab is the paper's: gone to the Board, the Calendar or a
      contract's History, the panel's tabs are that page's, never squeezed by a face left behind */
-  const sendBack = (pdSendHeld() && !pdSendShows() && pdOnPaper()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
+  /* SHORT WORDS (owner's pick, 25 Oct 2026: "Before y…" on the iPad): the tab says "Send", its hover and the trail line the whole name */
+  const sendBack = (pdSendHeld() && !pdSendShows() && pdOnPaper()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT('pd_face_w_send_tab'))}</span></button>` : '';
   return tabs.map(t => {
     const name = t === 'copilot' ? pdLandName() : _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
