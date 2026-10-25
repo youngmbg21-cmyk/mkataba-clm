@@ -1395,6 +1395,33 @@ function tbStyleHtml() {
   .tb-g button:hover{border-color:var(--accent-solid);color:var(--color-text)}
   .tb-g button[data-tb-tag]{color:#5B21B6;border-color:#DDD6FE;background:#F5F3FF;font-size:var(--t-meta)}
   .tb-g button[disabled]{opacity:.35;cursor:default}
+  /* A SECTION MOVES AS ONE PIECE (25 Oct 2026): the grip drags it, Up · Down at
+     the heading's end move it one place; both show under the hand or the caret,
+     as the gutter does, so the paper still arrives clean */
+  .tb-g button.tb-grip{border:0;background:none;color:var(--color-neutral-500);cursor:grab;touch-action:none}
+  .tb-g button.tb-grip:hover{color:var(--color-text)}
+  .tb-g button.tb-grip:active{cursor:grabbing}
+  .tb-row-h{display:flex;align-items:baseline;gap:8px}
+  .tb-row-h>.tb-h{flex:1 1 auto;min-width:0}
+  .tb-smv{flex:none;display:inline-flex;gap:4px;opacity:0;transition:opacity var(--dur-1);align-self:center}
+  .tb-row-h:hover>.tb-smv,.tb-row-h:focus-within>.tb-smv{opacity:1}
+  @media (hover:none){ .tb-sec.is-on .tb-row-h>.tb-smv{opacity:1} }
+  .tb-smv button{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border:0;border-radius:999px;background:var(--color-neutral-100,#EDEDF0);
+    color:var(--color-text);font:inherit;font-size:12px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  .tb-smv button svg{width:13px;height:13px}
+  .tb-smv button.tb-smv-x{width:24px;padding:0;justify-content:center;background:none;color:var(--color-neutral-500)}
+  .tb-smv button.tb-smv-x:hover{background:var(--color-neutral-100,#EDEDF0);color:var(--color-text)}
+  .tb-row-h>.tb-g{flex-direction:row;left:-52px;gap:4px}
+  .tb-smv button:hover{background:var(--color-neutral-200,#E3E3E8)}
+  .tb-smv button[disabled]{opacity:.4;cursor:default}
+  .tb-sec.is-lifting{opacity:.3}
+  .tb-lifted{position:fixed;z-index:90;background:var(--color-surface);border-radius:14px;padding:10px 16px 12px;pointer-events:none;
+    box-shadow:0 18px 40px -12px rgba(0,0,0,.28),0 0 0 1px rgba(0,0,0,.04);font-size:14px;line-height:1.7;max-height:40vh;overflow:hidden}
+  .tb-lifted .tb-g,.tb-lifted .tb-smv{display:none}
+  .tb-dropline{position:fixed;z-index:91;height:2px;background:var(--accent-ink);border-radius:2px;pointer-events:none}
+  .tb-dropline::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--accent-ink)}
+  .tb-droplab{position:fixed;z-index:91;font-size:12px;font-weight:var(--w-strong);color:var(--accent-ink);background:var(--color-surface);
+    padding:2px 8px;border-radius:999px;box-shadow:0 0 0 1px color-mix(in srgb,var(--accent-ink) 25%,transparent);white-space:nowrap;pointer-events:none}
   .tb-sec{position:relative;padding:6px 10px 6px 12px;margin:0 -10px 2px -12px;border-radius:0}
   /* the paper arrives clean (round 21; check #2, 19 Oct 2026): the section in
      hand wears its frame only while the reader is writing in it */
@@ -1720,10 +1747,20 @@ function tbPaperHtml() {
   const t = _tb.template; const cov = tbCoverage();
   const secs = tbSections(); const bySec = new Map(secs.map(s => [s.headIndex, s]));
   const fits = tbRailFits();
+  /* a heading's gutter carries the GRIP that drags its whole section (the
+     section's Up · Down sit at the heading's end); every other block keeps its
+     own small arrows, which never leave its section (tbMove) */
+  const movable = tbMovableSecs(); const mvAt = new Map(movable.map((s, j) => [s.from, j]));
+  const GRIP = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="3.5" r="1.3"/><circle cx="10.5" cy="3.5" r="1.3"/><circle cx="5.5" cy="8" r="1.3"/><circle cx="10.5" cy="8" r="1.3"/><circle cx="5.5" cy="12.5" r="1.3"/><circle cx="10.5" cy="12.5" r="1.3"/></svg>';
   const G = (i, extra) => `<span class="tb-g">${extra || ''}
-      <button type="button" data-tb-up="${i}" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}" aria-label="${i18t('tb_move_up')}">${icon('chevU')}</button>
+      ${_tb.blocks[i].blockType === 'heading'
+        ? (mvAt.has(i) ? `<button type="button" class="tb-grip" data-tb-grip="${_tb.blocks[i]._k}" title="${i18t('tb_grip')}" aria-label="${i18t('tb_grip')}">${GRIP}</button>` : '')
+        : `<button type="button" data-tb-up="${i}" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}" aria-label="${i18t('tb_move_up')}">${icon('chevU')}</button>
       <button type="button" data-tb-down="${i}" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}" aria-label="${i18t('tb_move_down')}">${icon('chevD')}</button>
-      <button type="button" data-tb-del="${i}" title="${i18t('tb_remove_block')}" aria-label="${i18t('tb_remove_block')}">${icon('x')}</button></span>`;
+      ${DEL(i)}`}</span>`;
+  /* a heading's remove sits at its end beside Up · Down: its gutter is one row,
+     ✦ and the grip, so it never reaches down over the paragraph under it */
+  const DEL = i => `<button type="button" data-tb-del="${i}" title="${i18t('tb_remove_block')}" aria-label="${i18t('tb_remove_block')}">${icon('x')}</button>`;
   let html = ''; let open = false; let n = 0; let sigs = false;
   /* ROUND 21: the marks under each section and Jambo's proposals, drawn in
      place — the proposals where Add will put them (tbProposalSpot: before
@@ -1770,7 +1807,10 @@ function tbPaperHtml() {
         : `<h3 class="tb-h">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3>`;
       html += `<div class="tb-sec${sec && sec.k === _tb.focus ? ' is-on' : ''}${st ? ' is-' + st : ''}${sec && !tbSectionText(sec) ? ' is-empty' : ''}" data-tb-sec="${b._k}">
         <div class="tb-row tb-row-h" data-tb-row="${i}">${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
-          ${head}</div>
+          ${head}<span class="tb-smv">${mvAt.has(i) ? `
+            <button type="button" data-tb-sec-up="${b._k}" ${mvAt.get(i) === 0 ? 'disabled' : ''} title="${i18t('tb_sec_up_tip')}">${icon('chevU')}${i18t('tb_sec_up')}</button>
+            <button type="button" data-tb-sec-down="${b._k}" ${mvAt.get(i) === movable.length - 1 ? 'disabled' : ''} title="${i18t('tb_sec_down_tip')}">${icon('chevD')}${i18t('tb_sec_down')}</button>` : ''}
+            ${DEL(i).replace('<button ', '<button class="tb-smv-x" ')}</span></div>
         ${sec && !sec.body.length && tbSectionOwes(sec) ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; openK = sec ? sec.k : null; return;
     }
@@ -2766,6 +2806,9 @@ function tbWire() {
     if ((b = hit('[data-tb-prop-add]'))) { tbAddStandard(b.getAttribute('data-tb-prop-add')); return; }
     if ((b = hit('[data-tb-unskip]'))) { tbSkip(b.getAttribute('data-tb-unskip'), { undo: true }); tbPaintPaper(); tbPaintRail({ keep: true }); return; }
     if ((b = hit('[data-tb-prop-skip]'))) { tbSkip(b.getAttribute('data-tb-prop-skip')); tbPaintPaper(); tbPaintRail({ keep: true }); return; }
+    if ((b = hit('[data-tb-sec-up]'))) { tbMoveSection(Number(b.getAttribute('data-tb-sec-up')), -1); return; }
+    if ((b = hit('[data-tb-sec-down]'))) { tbMoveSection(Number(b.getAttribute('data-tb-sec-down')), +1); return; }
+    if (hit('[data-tb-grip]')) return;
     if ((b = hit('[data-tb-up]'))) { tbMove(Number(b.getAttribute('data-tb-up')), -1); return; }
     if ((b = hit('[data-tb-down]'))) { tbMove(Number(b.getAttribute('data-tb-down')), +1); return; }
     if ((b = hit('[data-tb-del]'))) { _tb.blocks.splice(Number(b.getAttribute('data-tb-del')), 1); tbTouch(); tbPaint(); return; }
@@ -2821,9 +2864,22 @@ function tbWire() {
     tbMarksRepaint();
     tbPaintScope();
   });
+  /* the grip drags the whole section; the hand is followed on the document
+     so a fast move off the paper still lands */
+  paper?.addEventListener('pointerdown', e => { const g = e.target.closest && e.target.closest('[data-tb-grip]'); if (g) tbDragStart(e, g); });
+  if (!_tbDragBound && typeof document !== 'undefined') { _tbDragBound = true;
+    document.addEventListener('pointermove', tbDragMove);
+    document.addEventListener('pointerup', () => tbDragEnd(true));
+    document.addEventListener('pointercancel', () => tbDragEnd(false)); }
   paper?.addEventListener('keydown', e => {
     const i = tbBlockOf(e.target); if (i < 0) return;
     const kind = e.target.closest('[data-tb-content]').getAttribute('data-tb-kind');
+    /* Alt+↑/↓ in a heading moves its whole section */
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && _tb.blocks[i] && _tb.blocks[i].blockType === 'heading') {
+      e.preventDefault(); const k = _tb.blocks[i]._k;
+      if (tbMoveSection(k, e.key === 'ArrowUp' ? -1 : +1)) { const at = _tb.blocks.findIndex(x => x._k === k); const ed = document.querySelector(`[data-tb-content="${at}"]`); if (ed) ed.focus(); }
+      return;
+    }
     if (e.key === 'Escape') { e.target.blur(); return; }
     if (e.key !== 'Enter') return;
     /* In the document's own markup Enter is the browser's: a new paragraph,
@@ -2972,12 +3028,151 @@ function tbKeyFromLabel(label) {
 }
 const tbPlaceholderUse = key => _tb.blocks.filter(b => b.content.includes(`{{${key}}}`)).length;
 
+/* ---- A SECTION MOVES AS ONE PIECE (owner picked "The Legora Way", 25 Oct 2026) ----
+   One press on a heading's up arrow used to move the heading alone, so it left
+   its wording under the section above. Now a heading's grip, its Up · Down and
+   Alt+↑/↓ all carry the whole section — heading, wording and anything riding
+   with it — past a whole section, and the numbers follow by themselves
+   (tbOutlineNo reads the order). A paragraph's own arrows stay inside its
+   section: they never cross a heading. The first heading of a typed paper is
+   the document's TITLE (templateFormDocHtml), so it neither moves nor is
+   moved above. Every move says where it went, with Undo. */
 function tbMove(i, d) {
   const j = i + d;
   if (j < 0 || j >= _tb.blocks.length) return;
-  const [b] = _tb.blocks.splice(i, 1);
+  const b = _tb.blocks[i];
+  if (b && b.blockType === 'heading') { tbMoveSection(b._k, d); return; }
+  /* a paragraph stays in its own section */
+  if (_tb.blocks[j] && _tb.blocks[j].blockType === 'heading' && tbSections().some(s => s.body.includes(i))) return;
+  _tb.blocks.splice(i, 1);
   _tb.blocks.splice(j, 0, b);
   tbTouch(); tbPaint();
+}
+/* the sections that move: each one's span runs from its heading to the next
+   heading or the signatures; the title of a typed paper stays where it is */
+function tbMovableSecs(blocks) {
+  const bs = blocks || _tb.blocks;
+  const secs = tbSections(bs).map(s => { let e = s.headIndex + 1;
+    while (e < bs.length && bs[e].blockType !== 'heading' && bs[e].blockType !== 'signature_block') e++;
+    return { k: s.k, head: s.head, from: s.headIndex, to: e }; });
+  return bs.some(tbRich) ? secs : secs.slice(1);
+}
+/* the blocks with section k put before section `beforeK` (null = after the
+   last); null where the sections are not one run (a signature between them) */
+function tbBlocksWithSecAt(k, beforeK) {
+  const bs = _tb.blocks; const secs = tbMovableSecs(bs);
+  const me = secs.find(s => s.k === k); if (!me || beforeK === k) return null;
+  if (!secs.length || secs.reduce((n, s) => n + (s.to - s.from), 0) !== secs[secs.length - 1].to - secs[0].from) return null;
+  const rest = secs.filter(s => s !== me);
+  const at = beforeK == null ? rest.length : rest.findIndex(s => s.k === beforeK);
+  if (at < 0) return null;
+  rest.splice(at, 0, me);
+  const out = bs.slice(0, secs[0].from);
+  rest.forEach(s => { out.push(...bs.slice(s.from, s.to)); });
+  out.push(...bs.slice(secs[secs.length - 1].to));
+  return out;
+}
+/* what the drop line says: the number the section will print as, and where */
+function tbSecDropWords(k, beforeK) {
+  const nb = tbBlocksWithSecAt(k, beforeK); if (!nb) return '';
+  const secs = tbSections(nb); const i = secs.findIndex(s => s.k === k);
+  const b = nb[secs[i].headIndex];
+  const n = i === 0 || tbRich(b) || ((typeof tplFormHeadingNumbered === 'function') && tplFormHeadingNumbered(b && b.content)) ? '' : String(i);
+  const near = beforeK == null ? secs[i - 1] : secs[i + 1];
+  const name = near ? (near.head || i18t('tb_untitled')) : '';
+  return i18t(beforeK == null ? (n ? 'tb_drop_after' : 'tb_drop_after_un') : (n ? 'tb_drop_before' : 'tb_drop_before_un'), { n, head: name });
+}
+function tbMoveSectionTo(k, beforeK) {
+  const nb = tbBlocksWithSecAt(k, beforeK); if (!nb) return false;
+  if (JSON.stringify(nb.map(b => b._k)) === JSON.stringify(_tb.blocks.map(b => b._k))) return false;
+  const snap = _tb.blocks.slice();
+  _tb.blocks = nb;
+  tbTouch(); tbPaint(); tbFocus(k, { scroll: true, keepTab: _tb.tab === 'outline' });
+  const after = tbBlocksSig(); const sec = tbSectionAt(k);
+  const n = sec ? tbPaperNo(sec) : '';
+  toast(i18t(n ? 'tb_moved' : 'tb_moved_un', { head: (sec && sec.head) || i18t('tb_untitled'), n }), 'ok', { action: { get label() { return i18t('tb_undo'); }, onClick: () => {
+    if (tbBlocksSig() !== after) { toast(i18t('tb_move_undo_late'), 'warn'); return; }
+    _tb.blocks = snap; tbTouch(); tbPaint(); tbFocus(k, { scroll: true, keepTab: _tb.tab === 'outline' }); toast(i18t('tb_undone'), 'ok');
+  } } });
+  return true;
+}
+function tbMoveSection(k, d) {
+  const secs = tbMovableSecs(); const i = secs.findIndex(s => s.k === k);
+  if (i < 0) return false;
+  if (d < 0) return i > 0 ? tbMoveSectionTo(k, secs[i - 1].k) : false;
+  if (i >= secs.length - 1) return false;
+  return tbMoveSectionTo(k, i + 2 < secs.length ? secs[i + 2].k : null);
+}
+
+/* ---- THE GRIP: DRAG THE WHOLE SECTION ----
+   Pointer events, so a mouse, a pen and a finger on the iPad all drag the same
+   way (the grip carries touch-action:none). The section is lifted as a copy
+   that follows the hand, the original fades where it stood, and a green line
+   says where it will land and the number it will take. Esc or a cancelled
+   pointer puts everything back; nothing moves until the hand lets go. */
+let _tbDrag = null; let _tbDragBound = false;
+function tbDragEnd(drop) {
+  const d = _tbDrag; if (!d) return; _tbDrag = null;
+  [d.ghost, d.line, d.lab].forEach(e => { if (e && e.parentNode) e.parentNode.removeChild(e); });
+  if (d.src) d.src.classList.remove('is-lifting');
+  document.removeEventListener('keydown', d.onKey, true);
+  if (drop && d.moved && d.target !== undefined) tbMoveSectionTo(d.k, d.target);
+}
+function tbDragStart(e, grip) {
+  if (_tbDrag || (e.button != null && e.button !== 0)) return;
+  const k = Number(grip.getAttribute('data-tb-grip'));
+  const src = document.querySelector(`[data-tb-sec="${k}"]`); if (!src) return;
+  e.preventDefault();
+  try { grip.setPointerCapture && grip.setPointerCapture(e.pointerId); } catch (_) {}
+  const r = src.getBoundingClientRect();
+  const scroller = (() => { let p = src.parentElement; while (p && p !== document.body) { const o = getComputedStyle(p).overflowY; if ((o === 'auto' || o === 'scroll') && p.scrollHeight > p.clientHeight) return p; p = p.parentElement; } return null; })();
+  _tbDrag = { k, src, grip, x0: e.clientX, y0: e.clientY, dy: e.clientY - r.top, left: r.left, width: r.width, moved: false, target: undefined, scroller,
+    onKey: ev => { if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); tbDragEnd(false); } } };
+  document.addEventListener('keydown', _tbDrag.onKey, true);
+}
+function tbDragMove(e) {
+  const d = _tbDrag; if (!d) return;
+  if (!d.moved) {
+    if (Math.abs(e.clientY - d.y0) < 4 && Math.abs(e.clientX - d.x0) < 4) return;
+    d.moved = true;
+    const g = d.src.cloneNode(true);
+    g.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+    g.querySelectorAll('[contenteditable]').forEach(x => x.setAttribute('contenteditable', 'false'));
+    [...g.querySelectorAll('*'), g].forEach(x => [...x.attributes].forEach(a => { if (/^data-/.test(a.name)) x.removeAttribute(a.name); }));
+    g.className = 'tb-lifted'; g.setAttribute('aria-hidden', 'true');
+    g.style.left = (d.left + 18) + 'px'; g.style.width = Math.max(200, d.width - 36) + 'px';
+    d.ghost = g; document.body.appendChild(g);
+    d.line = document.createElement('div'); d.line.className = 'tb-dropline'; document.body.appendChild(d.line);
+    d.lab = document.createElement('span'); d.lab.className = 'tb-droplab'; d.lab.setAttribute('role', 'status'); document.body.appendChild(d.lab);
+    d.src.classList.add('is-lifting');
+  }
+  d.ghost.style.top = (e.clientY - d.dy) + 'px';
+  /* near the scroller's edge the paper scrolls under the hand */
+  if (d.scroller) { const sr = d.scroller.getBoundingClientRect();
+    if (e.clientY < sr.top + 48) d.scroller.scrollTop -= 14; else if (e.clientY > sr.bottom - 48) d.scroller.scrollTop += 14; }
+  /* the nearest gap between whole sections */
+  const secs = tbMovableSecs();
+  const els = secs.map(s => ({ k: s.k, el: document.querySelector(`[data-tb-sec="${s.k}"]`) })).filter(x => x.el);
+  if (!els.length) return;
+  /* only a gap the reader can see is a place to drop; the edge scroll brings the rest */
+  const vis = d.scroller ? d.scroller.getBoundingClientRect() : { top: 0, bottom: (window.innerHeight || 0) };
+  let best = null;
+  els.forEach((x, i) => { const rr = x.el.getBoundingClientRect();
+    const gap = [{ y: rr.top, before: x.k }];
+    if (i === els.length - 1) gap.push({ y: rr.bottom, before: null });
+    gap.forEach(g => { if (g.y < vis.top || g.y > vis.bottom) return; const dist = Math.abs(e.clientY - g.y); if (!best || dist < best.dist) best = { ...g, dist }; }); });
+  if (!best) { d.target = undefined; d.line.style.display = d.lab.style.display = 'none'; return; }
+  /* the section's own place — just before itself or just before the one after it — is no move */
+  const at = secs.findIndex(s => s.k === d.k);
+  const same = best.before === d.k || (best.before == null ? at === secs.length - 1 : (secs[at + 1] && secs[at + 1].k === best.before));
+  d.target = same ? undefined : best.before;
+  const words = same ? '' : tbSecDropWords(d.k, best.before);
+  d.line.style.display = d.lab.style.display = words ? '' : 'none';
+  if (!words) return;
+  d.line.style.left = d.left + 'px'; d.line.style.width = d.width + 'px'; d.line.style.top = (best.y - 1) + 'px';
+  d.lab.textContent = words;
+  d.lab.style.top = (best.y - 12) + 'px';
+  d.lab.style.left = Math.max(d.left + 12, d.left + d.width - d.lab.offsetWidth - 12) + 'px';
 }
 
 /* ---- LEAVING, AND THE LADDER WALKED DOWN RATHER THAN UP (17 Sep 2026) ----
@@ -3197,6 +3392,8 @@ Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB
   TB_CAND_MAX, TB_CAND_CHUNK, TB_CAND_SHOWN,
   tbHeadFacts, tbHeadHtml, tbPaintHead, tbMetaOpen, tbOpenItems, tbOpenItemLine, tbPublishAskHtml, tbPublishAsk, tbPublish, tbPublishGo, TB_PQ_NAMED,
   tbSectionOwes, tbMissingStandards,
+  /* A section moves as one piece (25 Oct 2026, "The Legora Way") */
+  tbMove, tbMoveSection, tbMoveSectionTo, tbMovableSecs, tbBlocksWithSecAt, tbSecDropWords,
   /* Round 21, "Paper first": Jambo's panel beside the paper, its Outline tab,
      his proposals and the marks on the paper (the book's own readings). */
   tbRailFolded, tbRailFold, tbOutlineTabHtml, tbOutlineNo, tbBlankKeys, tbSkippedOf, tbSkip, tbOnScreen, tbPaperNo, tbNoHead, tbProposals, tbProposalSpot, TB_CLOSING_RE, TB_FOLD_KEY, tbProposalHtml, tbMarksAll, tbMarksRepaint });

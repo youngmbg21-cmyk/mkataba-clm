@@ -40,7 +40,11 @@ const RAIL = () => {
   const page = document.getElementById('tb-page'), rail = document.getElementById('tb-rail'), paper = document.getElementById('tb-paper');
   return {
     page: R(page), rail: R(rail), paper: R(paper),
-    scope: (document.querySelector('#tb-scope .eb b') || {}).textContent || '',
+    /* RE-POINTED 25 Oct 2026 (the builder works like the clause editor): the
+       section in hand is named by the picker under the panel's head, "N. Head"
+       as the paper prints it; the written count rides the pager's title */
+    scope: (() => { const p = document.getElementById('tb-secpick'); const o = p && p.options[p.selectedIndex]; return o ? o.textContent.trim() : ''; })(),
+    written: ((document.querySelector('#tb-railfoot .tb-pg') || {}).title || ''),
     lane: (document.getElementById('tb-lane') || {}).textContent || '',
     foot: (document.getElementById('tb-railfoot') || {}).textContent || '',
     heads: [...document.querySelectorAll('.tb-hed')].map(e => e.textContent),
@@ -122,14 +126,14 @@ const RAIL = () => {
     check('2c · the first section is in hand, framed on the paper and named on the focus card',
       /* RE-POINTED (lane D check #2, 19 Oct 2026): the panel says the number
          the PAPER prints — Parties prints unnumbered, so the card says its name */
-      /✎ Parties/i.test(s.scope) && s.on.length === 1 && s.on[0] === 'Parties', { scope: s.scope, on: s.on });
+      /^Parties$/i.test(s.scope) && s.on.length === 1 && s.on[0] === 'Parties', { scope: s.scope, on: s.on });
     check('2d · the walk is on and asks its question in HaTi’s own words', /what should it say\?/.test(s.lane) && /Walk me through it · on/.test(s.foot), { foot: s.foot });
     /* RE-POINTED IN PLACE, 24 Sep 2026 (one door to standards). A section the
        list marked "Your library" now arrives WRITTEN — the press that adds it
        is the press that fills it with the workspace's own approved clause — so
        the foot no longer reads 0. The claim is the relation: it counts exactly
        the sections the library wrote, out of all of them. */
-    check('2e · the foot counts what was written: the library’s sections, of N', fromLib > 0 && new RegExp('^' + fromLib + ' of ' + N).test(s.foot.trim()), { fromLib, foot: s.foot });
+    check('2e · the foot counts what was written: the library’s sections, of N', fromLib > 0 && new RegExp('^' + fromLib + ' of ' + N).test(s.written.trim()), { fromLib, written: s.written });
 
     /* ================= 3 · TAG (a real press on the ✦) ================ */
     const tag2 = page.locator('[data-tb-sec]').nth(1).locator('[data-tb-tag]');
@@ -138,7 +142,7 @@ const RAIL = () => {
     await tag2.click();
     await pause(400);
     s = await page.evaluate(RAIL);
-    check('3a · ✦ on section 2 puts it in hand: the focus card names it and the frame moves', /Section 1 · Definitions/.test(s.scope) && s.on[0] === 'Definitions', { scope: s.scope, on: s.on });
+    check('3a · ✦ on section 2 puts it in hand: the focus card names it and the frame moves', /^1\. Definitions$/.test(s.scope) && s.on[0] === 'Definitions', { scope: s.scope, on: s.on });
     check('3b · and the caret is in the ask box', s.active === 'tb-ask', s.active);
 
     /* ================= 4 · TALK ================ */
@@ -152,7 +156,7 @@ const RAIL = () => {
         chip: c.querySelector('.pv .tb-bl') && c.querySelector('.pv .tb-bl').textContent, rests: (c.querySelector('.r') || {}).textContent || '' };
     });
     await page.screenshot({ path: path.join(OUT, '03-card.png') });
-    check('4a · the answer is a card in the rail with Apply and Ask for a change', !!card && card.apply && card.refine && /Definitions — 1/.test(card.name), card);
+    check('4a · the answer is a card in the rail with Apply and Ask for a change', !!card && card.apply && card.refine && /Suggested wording/.test(card.name) && /^1\. Definitions$/.test(s.scope), { ...card, scope: s.scope });
     check('4b · the card says what it rests on', !!card && /Rests on:/.test(card.rests), card && card.rests);
     check('4c · a blank in the draft is already drawn as a chip', !!card && card.chip === 'delivery_days', card && card.chip);
     check('4d · nothing landed on the paper yet — a card waits for a person', !/within/.test(s.sec2), s.sec2.slice(0, 80));
@@ -167,7 +171,7 @@ const RAIL = () => {
       /* the paper's own number: the first section prints unnumbered (lane D check #2) */
       return after ? { n: after.i, head: after.head } : null;
     });
-    const wroteBefore = Number((/^(\d+) of/.exec(s.foot.trim()) || [])[1]);
+    const wroteBefore = Number((/^(\d+) of/.exec(s.written.trim()) || [])[1]);
     await page.click('[data-tb-use]');
     await pause(700);
     s = await page.evaluate(RAIL);
@@ -177,7 +181,7 @@ const RAIL = () => {
     /* RE-POINTED IN PLACE, 24 Sep 2026: the next EMPTY section is no longer
        section 3, because Payment terms now arrives written from the library.
        The claim was always "the next empty one" — asked of the paper. */
-    check('5c · the walk moves on to the next section still to write', !!nextOwed && new RegExp('Section ' + nextOwed.n + ' · ' + nextOwed.head.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(s.scope), { scope: s.scope, expected: nextOwed });
+    check('5c · the walk moves on to the next section still to write', !!nextOwed && new RegExp('^' + nextOwed.n + '\\. ' + nextOwed.head.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(s.scope), { scope: s.scope, expected: nextOwed });
     /* RE-POINTED IN PLACE, 17 Sep 2026 (the build plan's upgrade 1). The claim
        is that Apply leaves work owing and the strip SAYS so; what it says
        changed, because the work is now kept in this browser and "Unsaved
@@ -185,8 +189,8 @@ const RAIL = () => {
     /* And RE-POINTED AGAIN, 24 Sep 2026: "1 of N" became "one MORE than
        before the press" — the library's sections were already counted. */
     check('5d · the foot counts one more written section, and the strip says the draft is kept',
-      Number.isFinite(wroteBefore) && new RegExp('^' + (wroteBefore + 1) + ' of ' + N).test(s.foot.trim()) && /kept/i.test(s.dirty) && !/saved/i.test(s.dirty),
-      { before: wroteBefore, foot: s.foot, dirty: s.dirty });
+      Number.isFinite(wroteBefore) && new RegExp('^' + (wroteBefore + 1) + ' of ' + N).test(s.written.trim()) && /kept/i.test(s.dirty) && !/saved/i.test(s.dirty),
+      { before: wroteBefore, written: s.written, dirty: s.dirty });
 
     /* ================= 6 · SAVE: the one door, end to end ================ */
     await page.click('#tb-save');

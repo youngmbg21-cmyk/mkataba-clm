@@ -613,7 +613,12 @@ describe('f306 (11) — what the screen prints', () => {
 
   test('the paper keeps every block control — arrows, delete, add, and the editable itself', async () => {
     const s = await stage([['heading', 'Confidentiality'], ['field_group', 'x']]);
-    assert.ok(s.paper.includes('data-tb-up="0"') && s.paper.includes('data-tb-down="0"'), 'the arrows');
+    /* RE-POINTED 25 Oct 2026 (owner picked "The Legora Way" for moving
+       clauses): a paragraph keeps its own small arrows; a heading's are its
+       whole section's — the grip and Up · Down — and the first heading of a
+       typed paper is the title, which does not move */
+    assert.ok(s.paper.includes('data-tb-up="1"') && s.paper.includes('data-tb-down="1"'), 'the arrows');
+    assert.ok(!s.paper.includes('data-tb-up="0"') && !s.paper.includes('data-tb-grip='), 'the title heading carries no move');
     assert.ok(s.paper.includes('data-tb-del="1"'), 'the delete');
     assert.ok(s.paper.includes('id="tb-addblock"') && s.paper.includes('id="tb-addtype"'), 'the add control');
     assert.ok(s.paper.includes('data-tb-content="1"'), 'and the editable');
