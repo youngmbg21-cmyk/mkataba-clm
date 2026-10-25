@@ -34462,3 +34462,19 @@ Owner, over a screenshot of a paragraph's up · down · × column beside "1. Com
 
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU · THE DEAL: A POINT OPENS TO COMPARE (25 Oct 2026)
 Owner, over the Deal page: "the send and the open clauses are not on the same line. Send is higher … the deal card only shows parts of the clause. help me understand what value it brings". Four options were explained (keep and fix the line; open a point to compare; show only disagreements; remove the page); the owner: "go with 2 and fix the line issue". Built: a point they asked something on opens on its name (`dealRowToggle`, `dealRowOpen`, per sitting) to both wordings whole with the moved words marked (`rlChangeWordingHtml` changedOnly — the card's own reading); a point with nothing from them stays one line and says "nothing asked yet" (`ng_deal_nothing_yet_short`). Send and Open clause stand on one 20px line (`.deal-top` centred). The card-padding rule the owner asked for the same day is held until the owner says go.
+
+## CLAUDE.MD TRIM, 25 Oct 2026 (second)
+CLAUDE.md was 79,949 bytes; the new line "16PX INSIDE EVERY CARD" (STANDING LESSONS) would have taken it over 80 KB, so four lines were shortened (now 79,988). Cut verbatim:
+
+```
+Doc Lab is REMOVED — flag any doclab mention as stale. Line numbers drift: grep, never trust a remembered line. Each heading is a short form of its MAP-HISTORY heading (the story, picks, dates, STALE names) and is the same heading in MAP-TESTS.md (its tests).
+## OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js)
+Page deleted; keeps `ov2Model` (the strip) and `runDatedWindows` (`c.datedWindows`, in `triageRun`).
+SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`) and the night's paired readings: names in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)". Tests f570, f580–f626, f651.
+DOCX writer: hanging indent = `w:ind` + a left tab stop + a real tab; shape read off the markup (`hati-lv-N`, `rl-hang`, `hati-tight`, `hati-pb`, `hati-toc`); a paragraph only where it carries a visible character or is forced. Fonts, page size, margins, headers, footers, images not carried. `--page-measure` is `none`; the AGREEMENT keeps `--doc-sheet-max`. `rowsThatFit(el,rowH,min,max)` after the paint; counting is never capped, only drawing.
+```
+
+## LOOKS — 16PX INSIDE EVERY CARD (25 Oct 2026)
+The owner (with a picture of a redline card whose first sentence touched the top edge): "Make it a rule to ensure the words are not close to the edges of the cards. there should be a minimum distance and the top and the bottom should have the same distance to the edge so should the left and right edges." Then, after an example drawn at 16px in the redline cards: "go with 16px, apply it everywhere."
+Measured before: the redline card 0px above its first line and 16px below; Jambo's words 11/12 above and below, 12 at the sides; the Board's cards, Settings cards and section heads, New agreement's cards, the Calendar's head, the page heads, a dialog page's head, the version history and a template's line short or uneven. The first run of the new sweep check found 45 kinds of card failing; after the fixes, none.
+Built: one block "16PX INSIDE EVERY CARD" in HaTi's sheet (scoped by #app-shell / #modal-root, no !important), the redline card at 16px with its head adding nothing on top, the template page's pieces in their own sheet. The tidy sweep measures every painted card (radius 8 or more, its own ground or edge, at least 120×36) on every page at the three screens: words and controls at least 13px (16 less 3 of slack) from each edge, top equal to bottom and left equal to right within 3px or 5%; it leaves out buttons, chips, tables, rows, the paper, lists of rows and frames that hold other cards, and does not ask top = bottom of a card stretched by its layout. Full sweep 250 passed, 0 failed. Test f883.
