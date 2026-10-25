@@ -9745,6 +9745,24 @@ app.put('/api/columns/:askId', auth, admin, (req, res) => {
   res.json({ ask: colAskOut(db.prepare('SELECT * FROM column_asks WHERE id=?').get(ask.id)) });
 });
 
+/* THE COMPANY'S FACTS FOR ONE CONTRACT (Discover stage 4): the kept answer to
+   each fact, for a contract the reader may see; one whose wording moved since it
+   was read is said `stale`, never served as current. Free. Its Key terms read it. */
+app.get('/api/columns/facts/:cid', auth, (req, res) => {
+  const id = String(req.params.cid);
+  const full = colContract(req, id);
+  if (!full) return res.status(404).json({ error: 'Contract not found' });
+  /* a paper drawn from its template has no stored wording here, so it cannot be said stale; stored wording can */
+  const w = colWording(null, full, ''), hash = w.has ? sha(w.text) : null;
+  const facts = db.prepare('SELECT * FROM column_asks WHERE fact=1 ORDER BY name').all().map(a => {
+    const r = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, id);
+    const answer = r ? colAnswerOut(r) : null;
+    const stale = !!(r && hash && r.input_hash !== hash && !(answer && answer.noWording));
+    return { ask: colAskOut(a), answer, stale };
+  });
+  res.json({ facts });
+});
+
 /* A PERSON'S TICK: who checked this answer, and when. Anyone who may ask may
    tick; taking a tick back is the same press. It belongs to the answer it was
    given to, so a new reading starts unchecked. */

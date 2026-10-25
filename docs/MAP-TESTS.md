@@ -174,6 +174,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER STAGE 1, one read many answers and the company's rule: f879 (red at the parent 6fefdc0: 9 failures).
 - DISCOVER STAGE 2, the answers the Legora way: discover-verify 2a–2h (`HATI_DV_ONLY=2`); ask-a-column verify 2b re-pointed (the words under the answer, not "not checked").
 - DISCOVER STAGE 3, the kept questions and the packs: f880; discover-verify 3a–3e.
+- DISCOVER STAGE 4, the company's facts: f881; discover-verify 4a–4e; f784 7b re-pointed (Jambo's card gains Company facts).
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.

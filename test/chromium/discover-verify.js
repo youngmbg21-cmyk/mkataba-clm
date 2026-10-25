@@ -1,4 +1,4 @@
-/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock */
+/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid */
 /* DISCOVER — THE COLUMN THE LEGORA WAY, THE KEPT QUESTIONS, THE COMPANY'S
    FACTS AND WATCHES (docs/PLAN-jambo-discover.md, owner 25 Oct 2026), driven
    in a real browser over test/discover-world.js (eleven contracts, the
@@ -26,6 +26,14 @@
         the list, the card offers "See all 5 answers"
      3e that opens the whole table as a page: five answer columns, Copy the
         table at the top; Back to the list closes it
+   STAGE 4 — THE COMPANY'S FACTS
+     4a an admin's column card offers "Keep as a company fact"; pressed, the
+        question is a fact (Discover tags it)
+     4b Settings › Company facts lists the kept questions with their rules and
+        switches, and says the cost per arriving contract
+     4c a rule written there is saved (the server holds it)
+     4d a contract that arrives is read once for the facts that are on
+     4e its Key terms carry the company's facts, with where on the paper
    Each stage's checks are added below as the stage is built.
    Run: node test/chromium/discover-verify.js   (HATI_DV_ONLY=2 for one stage) */
 const fs = require('node:fs');
@@ -153,6 +161,50 @@ const stage = n => !ONLY || ONLY === String(n);
       await page.screenshot({ path: path.join(OUT, '3-table.png') });
       await page.click('#ac-table-page [data-dlg-cancel]');
       check('3e′ Back to the list closes it', await until(page, () => !document.querySelector('#ac-table-page')));
+    }
+
+    if (stage(4)){
+      const LAW = "Which country's law governs this contract?";
+      /* a column of the law question, up on the list (kept by asking it of the empty contract: free) */
+      /* asked of every contract but DV-07, which is left to arrive in 4d */
+      const lk = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Governing law', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-07') }), LAW);
+      await page.evaluate(id => { regState().ask = [id]; regState().only = null; regRepaint(); }, lk.ask.id);
+      await page.evaluate(id => askColBring(id), lk.ask.id);
+      await until(page, () => !!document.querySelector('#ig-dock [data-ac-fact]'));
+      const chip = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-fact]') || {}).textContent || '');
+      check('4a′ an admin\'s column card offers "Keep as a company fact"', /Keep as a company fact/.test(chip), chip);
+      await page.click('#ig-dock [data-ac-fact]');
+      const kept = await until(page, () => !document.querySelector('#ig-dock [data-ac-fact]'));
+      const isFact = (await W.admin.json('/api/columns/summary')).asks.find(a => a.id === lk.ask.id).fact;
+      check('4a pressed, the question is a company fact', kept && isFact === true);
+      /* 4b the Settings panel */
+      await page.evaluate(() => openSettingsAt('platform', 'facts'));
+      const panel = await until(page, () => /Governing law/.test((document.querySelector('#fa-panel') || {}).innerText || ''));
+      const pt = await page.evaluate(() => (document.querySelector('#fa-panel') || {}).innerText || '');
+      const sw = await page.evaluate(id => { const b = document.querySelector(`[data-fa-tog="${id}"]`); return b ? b.getAttribute('aria-pressed') : null; }, lk.ask.id);
+      check('4b Settings › Company facts lists the kept questions, rules and switches, and the cost per arrival', panel && /Our rule/.test(pt) && sw === 'true' && /every contract that arrives costs about 1 Jambo call/.test(pt), pt.replace(/\s+/g, ' ').slice(0, 300));
+      await page.screenshot({ path: path.join(OUT, '4-settings.png') });
+      /* 4c a rule */
+      await page.fill(`[data-fa-rule="${lk.ask.id}"]`, 'Kenya');
+      await page.press(`[data-fa-rule="${lk.ask.id}"]`, 'Tab');
+      let rule = '';
+      for (let i = 0; i < 30 && rule !== 'Kenya'; i++){ rule = (await W.admin.json('/api/columns/summary')).asks.find(a => a.id === lk.ask.id).rule; if (rule !== 'Kenya') await page.waitForTimeout(100); }
+      check('4c a rule written there is saved on the server', rule === 'Kenya', rule);
+      await page.evaluate(() => { if (typeof closeSettingsDrawer === 'function') closeSettingsDrawer(); });
+      /* 4d arrival: DV-07 arrives (its fact not read yet) */
+      const c0 = h.ai.calls.length;
+      await page.evaluate(() => askColFactsArrive(getContract('DV-07')));
+      const read = await (async () => { for (let i = 0; i < 40; i++){ const f = await W.admin.json('/api/columns/facts/DV-07'); const x = f.facts.find(y => y.ask.id === lk.ask.id); if (x && x.answer) return x; await new Promise(r => setTimeout(r, 100)); } return null; })();
+      check('4d a contract that arrives is read once for the facts that are on, judged against the rule', !!read && h.ai.calls.length - c0 === 1 && read.answer.verdict === 'in', JSON.stringify({ calls: h.ai.calls.length - c0, v: read && read.answer.verdict }));
+      /* 4e Key terms */
+      await page.evaluate(() => regOpenContract('DV-07'));
+      await until(page, () => typeof pdContract === 'function' && pdContract() && pdContract().id === 'DV-07', null, 10000);
+      await page.waitForTimeout(400);
+      await page.evaluate(() => pdKtMid('DV-07'));
+      const kt = await until(page, () => /Company facts/.test((document.querySelector('[data-ac-facts-for="DV-07"]') || {}).innerText || ''));
+      const kx = await page.evaluate(() => (document.querySelector('[data-ac-facts-for="DV-07"]') || {}).innerText || '');
+      check('4e its Key terms carry the company\'s facts, with where on the paper', kt && /Governing law/.test(kx) && /§ 9/.test(kx), kx.replace(/\s+/g, ' ').slice(0, 200));
+      await page.screenshot({ path: path.join(OUT, '4-key-terms.png') });
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

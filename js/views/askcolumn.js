@@ -159,15 +159,17 @@ async function askColSync(){
   const R = regState(), ids = Array.isArray(R.ask) ? R.ask.slice(0, AC_COLS_MAX) : [];
   if (!ids.length) return;
   _acSyncing = true;
+  let moved = false;
   try {
     /* a column brought back by a refresh or a saved view learns its question
        from the kept answers' own reply */
     const shown = askColRowsUp();
-    let moved = false;
     for (const id of ids) if (await askColLoad(id, shown)) moved = true;
     if (ids.some(id => !AC.asks[id])) moved = true;
     if (moved && askColOn() && typeof regRepaint === 'function') regRepaint();
   } finally { _acSyncing = false; }
+  /* the answers that just arrived are the panel's too: its column card is drawn now, not on the next press */
+  if (moved && askColOn() && !AC.form) askColPaintPanel();
 }
 
 /* ---- THE TABLE: a head and a cell per answer column ---- */
@@ -377,10 +379,110 @@ function askColColumnHtml(askId){
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-sm" data-ac-save="${_acE(askId)}">${_acE(_acT('ac_save_view'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-again="${_acE(askId)}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_again'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_remove'))}</button></div>
     </div></div>`;
 }
-/* THE COLUMN'S LATER STEPS (stages 4 and 5): keep it as a company fact, watch it */
-function askColMoreChipsHtml(askId){ void askId; return ''; }
+/* THE COLUMN'S LATER STEPS: keep it as a company fact (an admin's, stage 4); watch it (stage 5) */
+function askColIsAdmin(){ const u = (typeof currentUser === 'function') ? currentUser() : null; return !!(u && u.role === 'admin'); }
+function askColMoreChipsHtml(askId){
+  const a = AC.asks[askId] || {};
+  const keep = !a.fact && askColIsAdmin() ? `<button type="button" class="jb-chip" data-ac-fact="${_acE(askId)}">${_acE(_acT('ac_fact_keep'))}</button>` : '';
+  return keep + askColWatchChipHtml(askId);
+}
+/* ---- THE COMPANY'S FACTS (stage 4, owner 25 Oct 2026: any admin switches one on) ---- */
+async function askColFactSet(askId, on){
+  try {
+    const r = await api('columns/' + encodeURIComponent(askId), 'PUT', { fact: !!on });
+    if (r && r.ask) AC.asks[askId] = Object.assign(AC.asks[askId] || {}, r.ask);
+    _acSumAt = 0; await askColSummary(true);
+    if (typeof toast === 'function') toast(_acT(on ? 'ac_fact_kept' : 'ac_fact_dropped', { name: (r && r.ask && r.ask.name) || '' }), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  askColPaintPanel(); askColFactsPanelPaint();
+}
+async function askColRuleSet(askId, rule){
+  try {
+    const r = await api('columns/' + encodeURIComponent(askId), 'PUT', { rule: String(rule || '') });
+    if (r && r.ask) AC.asks[askId] = Object.assign(AC.asks[askId] || {}, r.ask);
+    delete AC.ans[askId]; delete AC.asked[askId];
+    _acSumAt = 0; await askColSummary(true);
+    if (typeof toast === 'function') toast(_acT('fa_rule_saved'), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  askColFactsPanelPaint();
+}
+function askColFactsOn(){ return (AC.summary || []).filter(a => a.fact); }
+/* ON ARRIVAL: a new contract is read once for every fact that is on, through the one route (cached per wording).
+   Not a viewer's (the server refuses); not a private stream's contract, which is read only on a press. */
+let _acFactErr = '';
+async function askColFactsArrive(c){
+  if (!c || !c.id || !askColMay()) return false;
+  if (typeof jamboOnPress === 'function' && jamboOnPress(c)) return false;
+  await askColSummary();
+  const facts = askColFactsOn(); if (!facts.length) return false;
+  try {
+    await api('ai/column', 'POST', { questions: facts.map(a => ({ question: a.question, name: a.name })), ids: [String(c.id)], texts: askColTexts([String(c.id)]) });
+    _acFactErr = ''; _acSumAt = 0;
+    return true;
+  } catch (e){ _acFactErr = (e && (e.needsKey || e.kind === 'noKey')) ? _acT('ac_nokey') : ((e && e.message) || ''); return false; }
+}
+/* the Settings panel: the kept questions, their rules and switches, the cost per arrival */
+function askColFactsPanelHtml(){
+  const rows = (AC.summary || []).slice(0, 20), on = askColFactsOn().length;
+  if (!rows.length) return `<p class="st-note">${_acE(_acT('fa_none'))}</p>`;
+  const total = (typeof state !== 'undefined' && Array.isArray(state.contracts)) ? state.contracts.filter(c => c && !c.archived && !(typeof jamboOnPress === 'function' && jamboOnPress(c))).length : 0;
+  const n = Math.min(total, AC_MAX);
+  const row = a => `<tr data-fa-row="${_acE(a.id)}"><td><b>${_acE(a.name)}</b></td><td class="fa-q">${_acE(a.question)}</td>
+    <td><input class="ac-in fa-rule" data-fa-rule="${_acE(a.id)}" maxlength="200" value="${_acE(a.rule || '')}" placeholder="${_acE(_acT('fa_rule_ph'))}" aria-label="${_acE(_acT('fa_h_rule') + ': ' + a.name)}"></td>
+    <td class="fa-n">${a.read ? _acE(`${a.found} / ${a.read}`) : '—'}</td>
+    <td><button type="button" class="fa-tog${a.fact ? ' on' : ''}" data-fa-tog="${_acE(a.id)}" aria-pressed="${a.fact ? 'true' : 'false'}" aria-label="${_acE(_acT('fa_h_on') + ': ' + a.name)}"></button></td></tr>`;
+  return `<div class="fa-scroll"><table class="fa-t"><thead><tr><th>${_acE(_acT('fa_h_fact'))}</th><th>${_acE(_acT('fa_h_q'))}</th><th>${_acE(_acT('fa_h_rule'))}</th><th>${_acE(_acT('fa_h_ans'))}</th><th>${_acE(_acT('fa_h_on'))}</th></tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div>
+    <p class="st-note fa-cost">${_acE(on ? _acTn('fa_cost', on) : _acT('fa_cost_none'))}</p>
+    ${_acFactErr ? `<p class="st-note fa-err">${_acE(_acT('fa_last_err', { msg: _acFactErr }))}</p>` : ''}
+    ${on && n ? `<div class="ac-acts"><button type="button" class="ui-btn ui-btn-sm" data-fa-readall>${_acE(_acT(n < total ? 'fa_read_all_capped' : 'fa_read_all', { n, total, calls: _acTn('ac_n_calls', n) }))}</button></div>` : ''}`;
+}
+function askColFactsPanelPaint(){
+  const host = (typeof document !== 'undefined') ? document.getElementById('fa-panel') : null; if (!host) return;
+  host.innerHTML = askColFactsPanelHtml();
+}
+async function askColFactsPanelWire(){ askColFactsPanelPaint(); await askColSummary(true); askColFactsPanelPaint(); }
+async function askColFactsReadAll(){
+  const facts = askColFactsOn(); if (!facts.length) return;
+  const ids = state.contracts.filter(c => c && !c.archived && !(typeof jamboOnPress === 'function' && jamboOnPress(c))).map(c => String(c.id)).slice(0, AC_MAX);
+  try {
+    const r = await api('ai/column', 'POST', { questions: facts.map(a => ({ question: a.question, name: a.name })), ids, texts: askColTexts(ids) });
+    if (typeof toast === 'function'){ toast(_acT('fa_read_done', { calls: _acTn('ac_n_calls', (r && r.calls) || 0) }), 'ok'); if (r && r.capped) toast(_acT('ac_capped', r.capped), 'warn'); }
+  } catch (e){ if (typeof toast === 'function') toast(e && (e.needsKey || e.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (e && e.message) || '' }), 'err'); }
+  _acSumAt = 0; await askColSummary(true); askColFactsPanelPaint();
+}
+function askColFactsState(){
+  const n = askColFactsOn().length;
+  return { dot: n ? 'ok' : 'off', text: `${_acT('fa_title')} — ${n ? _acTn('fa_state_on', n) : _acT('fa_state_off')}` };
+}
+/* ---- KEY TERMS CARRY THE COMPANY'S FACTS: Term · What it says · Where on the paper; read free ---- */
+const _acKt = {};
+function askColFactsKtHtml(c){
+  const id = String(c.id), got = _acKt[id];
+  if (!got){ askColFactsKtLoad(id); return ''; }
+  if (!got.length) return '';
+  const row = f => {
+    const a = f.answer, no = a ? askColClauseNo(a) : '';
+    const says = !a ? _acT('fa_kt_unread') : a.noWording ? _acT('ac_no_wording') : a.found ? [a.answer, a.detail].filter(Boolean).join(', ') : _acT('ac_not_found');
+    const tone = a ? askColToneOf(a) : 'gray';
+    return `<tr><th scope="row">${_acE(f.ask.name)}</th><td><span class="ac-ans tone-${tone}"><i></i>${_acE(says)}</span>${f.stale ? `<small class="ac-sub">${_acE(_acT('fa_kt_stale'))}</small>` : ''}</td>
+      <td>${no ? `<b>${_acE(_acT('fa_kt_where', { n: no }))}</b> ` : ''}${a && a.found && a.quote ? `<span class="fa-kt-q">${_acE(askColQuoteShort(a))}</span>` : ''}</td></tr>`;
+  };
+  return `<div class="fa-kt"><div class="fa-kt-h">${_acE(_acT('fa_kt_h'))}</div><table class="pd-og pd-kt-t fa-kt-t">${got.map(row).join('')}</table></div>`;
+}
+async function askColFactsKtLoad(id){
+  if (_acKt[id] === null) return;
+  _acKt[id] = null;
+  let facts = [];
+  try { const r = await api('columns/facts/' + encodeURIComponent(id)); facts = (r && r.facts) || []; } catch (_){ facts = []; }
+  _acKt[id] = facts;
+  const host = (typeof document !== 'undefined') ? document.querySelector(`[data-ac-facts-for="${CSS.escape(id)}"]`) : null;
+  if (host) host.innerHTML = askColFactsKtHtml({ id });
+  setTimeout(() => { delete _acKt[id]; }, 60000);
+}
 /* a kept question's own tags in Discover (stage 5: watched) */
 function askColRowTagsHtml(a){ void a; return ''; }
+/* a company fact's watch link (stage 5) */
+function askColWatchChipHtml(askId){ void askId; return ''; }
 /* DRAW IT: the column's counts as bars, in its own card, from the answers already read (no call) */
 function askColDrawHtml(askId){
   const m = AC.ans[askId] || {}, ids = askColShown().filter(id => m[id] && !m[id].noWording);
@@ -670,12 +772,21 @@ if (typeof document !== 'undefined' && !document._acWired){
     if (pk){ e.preventDefault(); const p = (AC.packs || []).find(x => x.id === pk.getAttribute('data-ac-pack')); if (p) askColOpen({ pack: p }); return; }
     if (t.closest('[data-ac-open-new]')){ e.preventDefault(); if (askColMay()) askColOpen(); return; }
     if (t.closest('[data-ac-table]')){ e.preventDefault(); askColTableOpen(); return; }
+    const fk = t.closest('[data-ac-fact]'); if (fk){ e.preventDefault(); askColFactSet(fk.getAttribute('data-ac-fact'), true); return; }
+    const ft = t.closest('[data-fa-tog]'); if (ft){ e.preventDefault(); const id = ft.getAttribute('data-fa-tog'); askColFactSet(id, ft.getAttribute('aria-pressed') !== 'true'); return; }
+    if (t.closest('[data-fa-readall]')){ e.preventDefault(); askColFactsReadAll(); return; }
   });
   /* the question's own words: a typed edit is kept across a repaint; Enter asks */
   document.addEventListener('input', e => {
     const t = e.target; if (!AC.form || !t) return;
     if (t.id === 'ac-q'){ AC.form.question = t.value; if (AC.form.askId && !AC.form.force){ AC.form.askId = null; AC.form.kept = 0; } }
     if (t.id === 'ac-name') AC.form.name = t.value;
+  });
+  /* a rule is saved when its box is left with new words (a change event: once, never per key) */
+  document.addEventListener('change', e => {
+    const t = e.target && e.target.closest ? e.target.closest('[data-fa-rule]') : null; if (!t) return;
+    const id = t.getAttribute('data-fa-rule'), a = (AC.summary || []).find(x => x.id === id);
+    if (a && String(a.rule || '') !== t.value.trim()) askColRuleSet(id, t.value.trim());
   });
   document.addEventListener('keydown', e => {
     const t = e.target; if (!AC.form || !t) return;
@@ -693,4 +804,5 @@ function askColBtnHtml(){
 }
 
 Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
-  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColBring, askColSummary });
+  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColBring, askColSummary,
+  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet });

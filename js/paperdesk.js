@@ -4617,6 +4617,7 @@ function pdKtMidHtml(c){
     <div id="pd-kt-under" class="pd-kt-under"><div class="pd-kt-file" data-pd-kt-file="${_pdE(c.id)}">${pdKtFileHtml(c)}</div>
       <div class="pd-kt-rec" data-pd-kt-rec="${_pdE(c.id)}">${pdKtRecHtml(c)}</div></div>
     <div class="pd-kt-card"><div id="pd-kt" class="pd-kt" data-pd-og-for="${_pdE(c.id)}"><table class="pd-og pd-kt-t pd-kt-lg">${pdKtLgRowsHtml(c, rows)}</table></div>${pdKtAddPartyHtml(c)}</div>
+    <div class="pd-kt-card fa-kt-card" data-ac-facts-for="${_pdE(c.id)}">${typeof askColFactsKtHtml === 'function' ? askColFactsKtHtml(c) : ''}</div>
   </div>`;
 }
 /* A POP-UP OPENED FROM KEY TERMS COMES BACK TO IT (as Who else is on this agreement does): the
