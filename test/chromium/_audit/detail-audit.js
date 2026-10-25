@@ -229,7 +229,7 @@ const PLANT = `(() => {
     + '<div style="background:#eee;width:300px;height:60px;padding:12px;margin-top:10px">OVERLAP under</div><div style="background:#ddd;width:300px;height:60px;padding:12px;margin-top:-30px;margin-left:40px">OVERLAP over</div>'
     + '<div style="cursor:pointer;width:300px;height:40px;margin-top:10px;padding:10px">DOOR a row with no sign</div>'
     + '<button style="width:90px;height:28px;border-radius:14px;border:1px solid #999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:10px">TRUNC words that do not fit</button>'
-    + '<div style="overflow-y:auto;width:300px;height:50px;margin-top:10px;background:#f6f6f6;padding:10px">SCROLL<br>1<br>2<br>3<br>4<br>5</div>';
+    + '<div style="overflow-y:auto;scrollbar-width:auto;width:300px;height:50px;margin-top:10px;background:#f6f6f6;padding:10px">SCROLL<br>1<br>2<br>3<br>4<br>5</div>';
   document.body.appendChild(d);
 })()`;
 
