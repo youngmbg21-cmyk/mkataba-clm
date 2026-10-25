@@ -1825,14 +1825,16 @@ function tbPaperHtml() {
         ${sec && !sec.body.length && tbSectionOwes(sec) ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; openK = sec ? sec.k : null; return;
     }
+    /* A PARAGRAPH CARRIES NO BUTTONS (owner, 25 Oct 2026, over the paragraph's up · down · ×: "delete the
+       highlighted features"): its wording is moved with its section's grip or Up · Down, and edited in place */
     if (b.blockType === 'fixed_text' || b.blockType === 'field_group') {
       /* The document's own paragraphs, lists and tables, dressed by the
          document's own sheet (.hati-doc) so the paper reads as it will print. */
       if (tbRich(b)) {
-        html += `<div class="tb-row" data-tb-row="${i}">${G(i)}<div class="tb-p tb-ed tb-rich hati-doc" contenteditable="true" data-tb-content="${i}" data-tb-kind="rich" data-ph="${i18t('tb_ph_wording')}">${tbRichChipsHtml(b.content)}</div></div>`;
+        html += `<div class="tb-row" data-tb-row="${i}"><div class="tb-p tb-ed tb-rich hati-doc" contenteditable="true" data-tb-content="${i}" data-tb-kind="rich" data-ph="${i18t('tb_ph_wording')}">${tbRichChipsHtml(b.content)}</div></div>`;
         return;
       }
-      html += `<div class="tb-row" data-tb-row="${i}">${G(i)}<div class="tb-p tb-ed" contenteditable="true" data-tb-content="${i}" data-tb-kind="text" data-ph="${i18t('tb_ph_wording')}">${tbChipsHtml(b.content)}</div></div>`;
+      html += `<div class="tb-row" data-tb-row="${i}"><div class="tb-p tb-ed" contenteditable="true" data-tb-content="${i}" data-tb-kind="text" data-ph="${i18t('tb_ph_wording')}">${tbChipsHtml(b.content)}</div></div>`;
       return;
     }
     if (b.blockType === 'signature_block') {

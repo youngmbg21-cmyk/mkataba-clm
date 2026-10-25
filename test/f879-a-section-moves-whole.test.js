@@ -132,4 +132,10 @@ describe('f879 — a section moves as one piece', () => {
     ['tb_grip', 'tb_sec_up', 'tb_sec_down', 'tb_drop_before', 'tb_drop_after', 'tb_moved', 'tb_move_undo_late']
       .forEach(k => assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k));
   });
+
+  test('a paragraph carries no buttons beside it (owner, 25 Oct 2026: "delete the highlighted features")', async () => {
+    const s = await stage(BOOK);
+    const secs = s.w.tbSections(); const body = secs.flatMap(x => x.body);
+    for (const i of body) assert.ok(!new RegExp(`data-tb-(up|down|del)="${i}"`).test(s.paper()), 'block ' + i);
+  });
 });

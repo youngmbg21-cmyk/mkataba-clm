@@ -617,9 +617,11 @@ describe('f306 (11) — what the screen prints', () => {
        clauses): a paragraph keeps its own small arrows; a heading's are its
        whole section's — the grip and Up · Down — and the first heading of a
        typed paper is the title, which does not move */
-    assert.ok(s.paper.includes('data-tb-up="1"') && s.paper.includes('data-tb-down="1"'), 'the arrows');
+    /* RE-POINTED AGAIN 25 Oct 2026 (owner, over a paragraph's up · down · ×: "delete the highlighted
+       features"): a paragraph carries no buttons at all; the heading keeps its remove */
+    assert.ok(!s.paper.includes('data-tb-up="1"') && !s.paper.includes('data-tb-down="1"') && !s.paper.includes('data-tb-del="1"'), 'no buttons beside a paragraph');
     assert.ok(!s.paper.includes('data-tb-up="0"') && !s.paper.includes('data-tb-grip='), 'the title heading carries no move');
-    assert.ok(s.paper.includes('data-tb-del="1"'), 'the delete');
+    assert.ok(s.paper.includes('data-tb-del="0"'), 'the heading keeps its remove');
     assert.ok(s.paper.includes('id="tb-addblock"') && s.paper.includes('id="tb-addtype"'), 'the add control');
     assert.ok(s.paper.includes('data-tb-content="1"'), 'and the editable');
   });
