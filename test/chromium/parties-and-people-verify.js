@@ -316,7 +316,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
       await until(() => document.querySelector('#ins-panel .cu-people'));
       await page.click('#ins-panel [data-jl-home]');
-      const J = await until(() => { const p = document.getElementById('ins-panel'); const b = p && p.querySelector('b');
+      /* RE-POINTED 24 Oct 2026 (ONE WINDOW, "bring them back"): his greeting now leads the panel with his name in
+         bold, so the probe reads the bold that carries the list's count, not the first bold */
+      const J = await until(() => { const p = document.getElementById('ins-panel'); const b = p && [...p.querySelectorAll('b')].find(x => /on this list/.test(x.textContent));
         if (!b || !/on this list/.test(b.textContent)) return null;
         /* (Part 8) the list's count is the lit tab's number */
         return { said: b.textContent.trim(), head: ((document.querySelector('[data-lh-seat="customers"] [role="tab"][aria-selected="true"] .n') || {}).textContent || '').trim() }; });

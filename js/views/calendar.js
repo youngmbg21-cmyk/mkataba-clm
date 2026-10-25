@@ -1457,6 +1457,9 @@ function calStyleCss(){ return `
   .cal-wkm-row:last-child{border-bottom:0}
   .cal-wkm-lab{display:flex;flex-direction:column;justify-content:flex-start;padding:3px 8px 0;min-width:0}
   .cal-wkm-lab b{font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap}
+  ${''/* A WEEK ACROSS TWO MONTHS BREAKS AT ITS DASH (the detail round, 25 Oct 2026: "30 Nov – 4 Dec" ran 11px
+         over "Mon 30" in its 84px column): the label may take a second line, never the next day's cell */}
+  .cal-wkm-lab b{white-space:normal;text-wrap:balance;line-height:1.25}
   .cal-wkm-lab span{font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap}
   .cal-wkm-d [hidden]{display:none}
   .cal-wkm-d{border-left:1px solid var(--color-divider);padding:3px 4px;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden;cursor:pointer}
@@ -1541,6 +1544,10 @@ function calStyleCss(){ return `
   .cal-page.is-home{height:100%}
   .cal-stage.is-home{grid-template-columns:minmax(0,1fr)}
   .cal-page.is-home .cal-body{padding-top:var(--s-3)}
+  ${''/* THE HEAD IS A CARD, AS EVERY PAGE'S IS (.ph-card; the detail round, 25 Oct 2026: the Calendar's head was a
+         flat band edge to edge): set in on the grey as the calendar card under it, level with Jambo's panel */}
+  .cal-page.is-home .cal-head{margin:var(--page-pad-t) var(--s-6) 0;padding:12px 16px;border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-sm)}
+  @media (max-width:1023px){ .cal-page.is-home .cal-head{margin-left:var(--s-4);margin-right:var(--s-4)} }
   .cal-bar1 .cal-acts{display:inline-flex;position:relative}
   #ig-dock .cal-cop{border-left:0;flex:1;min-height:0;height:100%;background:var(--color-surface)}
   #ig-dock .cal-cop .cal-plan-head{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--color-divider)}
@@ -2130,7 +2137,9 @@ function calPlanHtml(){
      no Overview / Jambo tabs, no word beside them, no trail */
   const talk=!!(you||answer);
   return `<aside class="cal-cop is-solo${talk?' is-talk':''}" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
+    <div class="cal-plan-head jl-head"><span class="pd-tab on jl-tab" title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</span><span class="jl-sp"></span></div>
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">
+      ${typeof window.jamboHelloHtml==='function'?jamboHelloHtml():''}
       <div class="jl-words cal-yw" data-jt-land>${week?`<div class="jl-say">${sayFace}<div class="jl-bub">${week}</div></div><p class="jl-src">${_esc(i18t('ob_yw_src'))}</p>`:''}${
         offer?`<div class="jl-say">${sayFace}<div class="jl-bub">${_esc(offer)}</div></div>`:''}
         <div class="jl-chips cal-yw-chips"><button type="button" class="jl-chip" data-cal-plan-q="week" title="${_esc(i18t('cal_plan_p_week'))}"${off}>${_esc(i18t('ob_yw_chip_week'))}</button><button type="button" class="jl-chip" data-cal-plan-q="due" title="${_esc(i18t('cal_plan_p_due'))}"${off}>${_esc(i18t('ob_yw_chip_due'))}</button></div>

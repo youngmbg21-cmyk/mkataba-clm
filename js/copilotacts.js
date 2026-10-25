@@ -330,6 +330,12 @@ function caSummaryText(before){
 /* "WRITE AN EMAIL TO YOUNG SUMMARISING THE ABOVE" is the same ask in other words (21 Oct 2026: the model
    answered it "Email drafted above…" with no email anywhere): it opens the ONE send screen, never the model */
 const CA_WRITE_MAIL_RE = /^\s*(?:please\s+)?(?:(?:write|draft|compose|prepare)\s+(?:an?\s+|the\s+)?(?:e-?mail|mail|message|note)|e-?mail)\b/i;
+/* "@<your own name>": you are never in your own list, so it is said, not taken for nobody */
+function caNamesMe(q){
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const m = String(q).match(/@([A-Za-zÀ-ÿ'’.\- ]{2,40})/);
+  return !!(me && me.name && m && m[1].trim().toLowerCase().startsWith(String(me.name).toLowerCase()));
+}
 function caFindPersonNamed(q){
   const m = String(q).match(/\bto\s+([A-Za-zÀ-ÿ'’.\-]{2,40})/i); if (!m) return null;
   const w = m[1].toLowerCase();
@@ -342,18 +348,32 @@ function caReadSend(q){
   const person = caFindPerson(q) || (mail ? caFindPersonNamed(q) : null);
   const c = caFindContract(q);
   const a = { kind: 'send', person, cid: c ? c.id : null, note: caNoteOf(q), review: /\breview\b/i.test(q), state: 'ready' };
+  if (!person) a.self = caNamesMe(q);
   if (CA_SUMMARY_RE.test(q) && !a.note){
     a.screen = true; a.note = caSummaryText();
     if (person && person.kind === 'colleague' && c && a.note && !caSendBlock(a)) setTimeout(() => caSummaryOpen(a), 0);
+  } else if (person && person.kind === 'colleague' && c && caChosenForScreen(q, c) && !caSendBlock(a)){
+    /* SHARE INSIDE THE COMPANY ends on the send screen, as the other side's send does: the colleague
+       in To, "a colleague" as Sent as, the typed note (if any) as the note */
+    a.screen = true; a.share = true;
+    /* the words are read more than once in one ask; only the last reading (the one kept) opens it */
+    _caShareRead = a;
+    setTimeout(() => { if (_caShareRead !== a) return; _caShareRead = null; _caShareIn = null; caSummaryOpen(a); }, 0);
   }
   return a;
+}
+/* the contract the share card's "Share inside the company" put in the box (kept apart from
+   _caChosen, which the box clears as it sends); let go once the screen opens */
+let _caShareIn = null, _caShareRead = null;
+function caChosenForScreen(q, c){
+  return !!_caShareIn && _caShareIn === c.id;
 }
 /* the screen, opened on "a colleague" with Jambo's words as the note; the
    turn that asked is told what the press did (caScreenSent) */
 function caSummaryOpen(a){
   const c = a && a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (!c || typeof openShareModal !== 'function') return false;
-  openShareModal(c, { purpose: 'colleague', colleagues: [{ id: a.person.id, name: a.person.name }], note: a.note, fromJambo: true,
+  openShareModal(c, { purpose: 'colleague', colleagues: [{ id: a.person.id, name: a.person.name }], note: a.note, fromJambo: !a.share, review: !!a.review,
     onColleagueSent: r => caScreenSent(a, r) });
   /* AS DRAWN: beside the screen, Jambo's conversation stays in front (his
      line saying the screen is open); "Before you send" is one tab away */
@@ -461,7 +481,7 @@ function caAiFirst(){ try { return typeof copilotAvailable === 'function' && !!c
 /* ---- THE SEND CARD ---- */
 function caSendBlock(a){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
-  if (!a.person) return { why: _caT('ca_send_who'), fix: '' };
+  if (!a.person) return { why: _caT(a.self ? 'ca_send_self' : 'ca_send_who'), fix: '' };
   if (!c) return { why: _caT('ca_send_which'), fix: '' };
   if (a.person.kind === 'theirs') return { why: _caT('ca_send_theirs', { who: a.person.name }), fix: 'sendscreen' };
   if (typeof canEdit === 'function' && !canEdit()) return { why: _caT('ca_send_viewer'), fix: '' };
@@ -512,7 +532,7 @@ function caCardHtml(a, i){
 function caScreenCardHtml(a, i){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
-  const blocked = a.person && a.person.kind === 'theirs' ? caSendBlock(a) : (!a.note ? { why: _caT('ca_summary_none'), fix: '' } : caSendBlock(a));
+  const blocked = a.person && a.person.kind === 'theirs' ? caSendBlock(a) : (!a.note && !a.share ? { why: _caT('ca_summary_none'), fix: '' } : caSendBlock(a));
   if (blocked) return `<div class="ca-card is-said" data-ca-card="${i}"><p class="ca-why">${_caE(blocked.why)}</p>${blocked.fix === 'sendscreen' ? `<div class="ca-acts">${B('sendscreen', _caT('ca_a_sendscreen'), 'lead')}</div>` : ''}</div>`;
   const ref = c ? caRef(c) : '';
   const who = a.sentTo || (a.person ? a.person.name : '');
@@ -521,7 +541,7 @@ function caScreenCardHtml(a, i){
     return `<div class="ca-done${a.state === 'sent' ? '' : ' is-warn'}" data-ca-card="${i}"><span class="ca-tick" aria-hidden="true">${a.state === 'sent' ? '✓' : '!'}</span><span>${_caE(_caT(k, { who, at: a.at || '', ref, why: a.why || '' }))} <button type="button" class="ui-link" data-ca-act="history" data-ca-turn="${i}">${_caE(_caT('ca_scr_show'))}</button></span></div>`;
   }
   if (a.state === 'failed') return `<div class="ca-card is-said" data-ca-card="${i}"><p class="ca-said is-bad">${_caE(a.why || _caT('ca_failed', { who }))}</p><div class="ca-acts">${B('reopen', _caT('ca_scr_reopen'), 'lead')}</div></div>`;
-  return `<div class="ca-card is-said" data-ca-card="${i}"><p>${_caE(_caT('ca_scr_open', { who }))}</p><div class="ca-acts">${B('reopen', _caT('ca_scr_reopen'), '')}</div></div>`;
+  return `<div class="ca-card is-said" data-ca-card="${i}"><p>${_caE(_caT(a.share ? 'ca_scr_open_share' : 'ca_scr_open', { who }))}</p><div class="ca-acts">${B('reopen', _caT('ca_scr_reopen'), '')}</div></div>`;
 }
 function caTurn(i){ try { return intel.history[i] || null; } catch (_){ return null; } }
 async function caCardPress(i, act, btn){
@@ -3048,6 +3068,7 @@ function caGoPress(a, act){
     const inp = document.getElementById('igd-input'); if (!inp) return;
     inp.value = `${_caT('ca_chip_send_word')} #${caRef(c)} ${_caT('ca_chip_send_to')} @`;
     _caChosen.set('#' + caRef(c), { kind: 'contract', id: c.id, name: c.name || '' });
+    _caShareIn = c.id;
     try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_){}
     caPopRead(inp);
   }

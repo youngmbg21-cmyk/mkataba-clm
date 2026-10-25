@@ -928,6 +928,12 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 /* THE JAMBO TAB'S INSIDE (owner picked "A Jambo tab", 19 Oct 2026): the
    way back to the conversation on every right-hand panel — a chat glyph over
    the word, drawn the way the panel's other tabs are */
+/* HIS OWN GREETING, at the top of a one-window panel (owner, 24 Oct 2026: "bring them back") — the words the Jambo
+   tab opened on before anything was asked (int_notebook_welcome), one builder for every host */
+function jamboHelloHtml(){
+  const w = (typeof i18t === 'function') ? i18t('int_notebook_welcome') : '';
+  return w ? `<div class="ig-welcome jb-hello text-[12.5px] text-ink/50 leading-relaxed pt-2" data-jb-hello>${w}</div>` : '';
+}
 function jamboTalkTabInner(){
   const jb = (typeof i18t === 'function') ? i18t('pd_tab_copilot') : 'Jambo';
   const e = String(jb).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -1046,4 +1052,4 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     jamboForeignPress(born, Number(turn.getAttribute('data-jb-turn')), btn);
   }, true);
 }
-Object.assign(window,{jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});

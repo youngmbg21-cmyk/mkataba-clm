@@ -70,6 +70,7 @@ const check = (name, pass, detail) => {
       brand: root.getAttribute('data-brand'),
       dark: root.classList.contains('dark'),
       navBg: bar ? getComputedStyle(bar).backgroundColor : '',
+      green: (() => { const i = document.createElement('i'); i.style.background = 'var(--bar-green)'; document.body.appendChild(i); const g = getComputedStyle(i).backgroundColor; i.remove(); return g; })(),
       bodyBg: getComputedStyle(document.body).backgroundColor,
       held,
     };
@@ -83,9 +84,9 @@ const check = (name, pass, detail) => {
     check('1a CONTROL — a fresh browser opens on the one look: no brand, no dark, no old key stored',
       rest.brand === null && rest.dark === false && Object.keys(rest.held).length === 0,
       `brand=${rest.brand} dark=${rest.dark} held=${JSON.stringify(rest.held)}`);
-    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the drawing's translucent white */
-    check('1b and the bar is painted white',
-      /^rgba?\(255, 255, 255(, 0\.78)?\)$/.test(rest.navBg), rest.navBg);
+    /* RE-POINTED 24 Oct 2026 (THE BAR IN COLOUR, owner picked "The SAP way"): its deep green, --bar-green */
+    check('1b and the bar is painted its deep green',
+      !!rest.green && rest.navBg === rest.green, `${rest.navBg} vs --bar-green ${rest.green}`);
     const gone = await page.evaluate(() => ['setBrand', 'setDark', 'toggleDark', 'brandNow', 'darkNow', 'applyAppearance', 'setTheme', 'toggleTheme']
       .filter(n => typeof window[n] === 'function'));
     check('1c the old switches are gone — nothing left in the app that sets a brand or the dark',

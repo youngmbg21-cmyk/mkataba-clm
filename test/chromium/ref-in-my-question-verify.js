@@ -73,7 +73,13 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     await page.evaluate(() => intelAsk('Summarise MK-RQ1'));
     const answered = await page.waitForFunction(() => !!document.querySelector('#igd-feed .ai-msg:not(.justify-end) .ig-ref-go'), null, { timeout: 8000 }).then(() => true, () => false);
     if (answered) {
-      const a = await measure();
+      /* RE-POINTED 25 Oct 2026 (ONE WINDOW, #463): "Summarise MK-RQ1" lands on its paper with the brief, so the
+         answer drawn for a moment in the one window is then one tab away, under the Dossier's Jambo tab — it is
+         measured there, asked for bounded */
+      let a = await measure();
+      for (let t = 0; a.theirs == null && t < 40; t++){
+        await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-talk]'); if (b && !document.querySelector('#ig-dock.is-talk')) b.click(); });
+        await page.waitForTimeout(100); a = await measure(); }
       const probe = await page.evaluate(acc => { const d = document.createElement('span'); d.style.color = acc; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; }, a.accent);
       ok('4 Copilot\'s answer keeps its accent-ink reference', a.theirs === probe, a.theirs + ' vs ' + probe);
     } else ok('4 Copilot\'s answer keeps its accent-ink reference', true, 'no reference in the answer without a key — nothing to compare');

@@ -119,9 +119,20 @@ let files = fs.readdirSync(DIR)
 
 if (!RUN_ALL) files = files.filter(f => !KNOWN_RED[f]);
 
-/* SHARDING, so CI can put four machines on it instead of one. Round-robin
-   rather than contiguous blocks: the files differ wildly in how long they take,
-   and contiguous blocks put all the slow ones on one unlucky shard. */
+/* HOW LONG EACH FILE TAKES, measured on GitHub (durations.json; a file it does
+   not list counts as its default). The files differ wildly — 2 s to 210 s — so
+   the order and the sharding are both dealt by time, not by name. */
+const DUR = (() => { try { return JSON.parse(fs.readFileSync(path.join(DIR, 'durations.json'), 'utf8')); } catch (_) { return {}; } })();
+const durOf = f => Number(DUR[f]) || Number(DUR._default) || 7;
+/* LONGEST FIRST: the slow files start while every lane is free, so the lanes
+   end together instead of one lane starting a 200 s file at the very end.
+   Ties keep the name order, so a run is the same every time. */
+files.sort((a, b) => durOf(b) - durOf(a) || (a < b ? -1 : a > b ? 1 : 0));
+
+/* SHARDING, so CI can put several machines on it instead of one. DEALT BY TIME
+   (25 Oct 2026): each file, longest first, goes to the shard with the least
+   work so far. Round-robin by name left one shard 9 minutes behind another
+   (13.6 against 22.6 minutes), because the slowest files fell together. */
 const shard = flag('--shard', null);
 if (shard) {
   const [n, of] = shard.split('/').map(Number);
@@ -129,7 +140,13 @@ if (shard) {
     console.error(`--shard wants N/M with 1 <= N <= M, got "${shard}"`);
     process.exit(2);
   }
-  files = files.filter((_, i) => i % of === (n - 1));
+  const load = Array(of).fill(0), mine = [];
+  for (const f of files) {
+    let k = 0; for (let i = 1; i < of; i++) if (load[i] < load[k]) k = i;
+    load[k] += durOf(f);
+    if (k === n - 1) mine.push(f);
+  }
+  files = mine;
 }
 
 if (has('--list')) {

@@ -118,7 +118,8 @@ describe('f753 (3) the panel beside the sheet says what it holds', () => {
        "you land on the page and if you want to chat with jambo it takes you to
        a new jambo tab but you can go back to the landing side panel"): the bin
        stands only in the flip's conversation, and still never while the sheet is up */
-    assert.match(IG, /talk&&msgs&&!\(window\.naSheetUp&&naSheetUp\(\)\)\?`<button id="igd-history-clear"/);
+    /* RE-PINNED (one window, 24 Oct 2026): the bin shows wherever the conversation is drawn (`say` = talk or one window) */
+    assert.match(IG, /say&&msgs&&!\(window\.naSheetUp&&naSheetUp\(\)\)\?`<button id="igd-history-clear"/);
     assert.match(IG, /if\(window\.naSheetUp&&naSheetUp\(\)\) return i18t\('na_ask_ph'\);/);
     assert.equal(BOOKS.en.na_ask_ph, 'Ask Jambo, or type / for a place');
   });

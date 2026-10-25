@@ -1094,7 +1094,7 @@ function clauseEditorCss(){
   .ce-scope .x:hover{color:var(--color-text)}
   .ce-card.ce-ans q.aq{display:block; margin:6px 0 2px; padding-left:8px; quotes:none; white-space:pre-line;
     border-left:2px solid var(--accent-fill); font-style:italic; color:var(--color-text)}
-  .ce-scope q{display:block; margin-top:5px; padding-left:8px; quotes:none;
+  .ce-scope q{margin-top:5px; padding-left:8px; quotes:none;
     border-left:2px solid var(--accent-solid);
     font-size:var(--t-label); line-height:1.55; color:var(--color-text);
     display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}

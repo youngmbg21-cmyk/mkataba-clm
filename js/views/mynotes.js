@@ -461,6 +461,8 @@ function myNotesCss(){ return `
   .mn-ins.is-narrow .mn-card2{min-height:0}
   .mn-split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px}
   .mn-wrap{min-width:0;overflow:auto}
+  /* "No notes yet." stands clear of its card's top, as every empty list's words do (the detail round, 25 Oct 2026: it sat 1px under the edge) */
+  .mn-wrap > .hati-empty{padding:24px 16px}
   .mn-side{border-left:1px solid var(--color-divider);padding:var(--s-4);overflow:auto;display:flex;flex-direction:column;gap:10px;min-width:0}
   .mn-side.mn-side-panel{border-left:0;padding:0;overflow:visible;gap:0}
   @media (max-width:1039px){ .mn-split{grid-template-columns:minmax(0,1fr)} .mn-side{border-left:0;border-top:1px solid var(--color-divider)} }

@@ -205,7 +205,7 @@ const check = (name, pass, detail) => {
       await page.evaluate(() => setView('team'));
       await until(() => document.getElementById('st-jb-q') && document.querySelector('#st-jb-feed > *'), null, 8000);
       const S0 = await page.evaluate(() => ({ trail: !document.getElementById('st-jb-trail').hidden, tabs: document.querySelectorAll('#st-side-head .st-side-tab').length }));
-      check('5a Settings is one window: no tabs, no trail', !S0.trail && S0.tabs === 0, JSON.stringify(S0));
+      check('5a Settings is one window: his one tab, no trail', !S0.trail && S0.tabs === 1, JSON.stringify(S0));
       await ask('#st-jb-q', 'what is a sealed PDF?');
       const S1 = await until(() => { const T = document.querySelector('#st-jb-feed [data-st-jb-talk]'), L = document.querySelector('#st-jb-feed [data-st-jb-land]');
         return T && !T.hidden && /sealed PDF/.test(T.textContent) ? { land: !!L && !L.hidden, trail: !document.getElementById('st-jb-trail').hidden } : null; }, null, 6000);
@@ -217,7 +217,7 @@ const check = (name, pass, detail) => {
       await page.evaluate(() => hbOpenCalendar());
       await until(() => document.getElementById('cal-plan-in'), null, 8000);
       const C0 = await page.evaluate(() => ({ tabs: document.querySelectorAll('#cal-plan .pd-tab').length, trail: !!document.querySelector('#cal-plan .pd-trail') }));
-      check('6a the Calendar is one window: no tabs, no trail', C0.tabs === 0 && !C0.trail, JSON.stringify(C0));
+      check('6a the Calendar is one window: his one tab, no trail', C0.tabs === 1 && !C0.trail, JSON.stringify(C0));
       await ask('#cal-plan-in', 'what is due this week?');
       const C1 = await until(() => { const c = document.getElementById('cal-plan'), t = document.getElementById('cal-plan-talk'), w = c && c.querySelector('.cal-yw');
         return t && /due this week/.test(t.textContent) && w && w.getClientRects().length ? true : null; }, null, 8000);

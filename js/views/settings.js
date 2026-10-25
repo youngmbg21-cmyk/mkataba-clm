@@ -3498,8 +3498,9 @@ function stSideHeadHtml(){
   /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
      2026): once a turn was said on this page a "Jambo" tab stands beside
      Overview; pressed it opens the conversation, pressed again it goes back */
-  /* ONE WINDOW (stSolo): nothing to flip between, so no tabs and no word — only the fold */
-  if(stSolo()) return `<span class="st-side-sp"></span>${fold}`;
+  /* ONE WINDOW (stSolo): nothing to flip between — his one tab "Jambo" (his sign and name), no Overview, no word */
+  if(stSolo()){ const jb1=esc(i18t('pd_tab_copilot'));
+    return `<span class="st-side-tab st-side-talk" aria-current="true" title="${jb1}">${jbFace}<span>${jb1}</span></span><span class="st-side-sp"></span>${fold}`; }
   const talk=stTalkShows();
   const jb=esc(i18t('pd_tab_copilot'));
   return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
@@ -3675,7 +3676,7 @@ function stJbFeedHtml(){
   /* landed and never turned: the page's words stand in the feed bare — no
      wrapper, no empty conversation (the colour census counts what is drawn);
      the two views are made the first time a turn is said (stJbTalkWrap) */
-  if(stSolo()) return stJbLandWrapHtml(land,false)+stJbTalkWrapHtml(false);
+  if(stSolo()) return stJbLandWrapHtml((typeof jamboHelloHtml==='function'?jamboHelloHtml():'')+land,false)+stJbTalkWrapHtml(false);
   if(!on) return land;
   return stJbLandWrapHtml(land,true)+stJbTalkWrapHtml(false);
 }
