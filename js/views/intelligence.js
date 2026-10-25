@@ -9683,7 +9683,13 @@ function igStripWire(){
     if(e.target.closest('[data-ig-pick-again]')){ igPickAgain(); return; }
     const wk=e.target.closest('[data-ig-walk]'); if(wk){ igWalkStep(Number(wk.getAttribute('data-ig-walk'))); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
-    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'); p.red=v==='theirs'?'theirs':v==='1'; _igRedFrom=igRedThumbAt(); igPaintPaper(); return; }
+    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'), was=p.red==='theirs'; p.red=v==='theirs'?'theirs':v==='1'; _igRedFrom=igRedThumbAt(); igPaintPaper();
+      /* THEIR VIEW TURNS THE PANEL TOO (owner, 25 Oct 2026): their paper here, their Redlines column in
+         Jambo's panel (pdRedOpts reads igTheirsOn), read-only; leaving it puts our column back */
+      const faceUp=typeof window.pdRedShows==='function'&&pdRedShows()&&pdRedFor()===String(p.id);
+      if(p.red==='theirs'&&!faceUp&&typeof window.pdRedOpen==='function') pdRedOpen(p.id);
+      else if((p.red==='theirs')!==was&&faceUp) renderIntelDock();
+      return; }
     const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
   });
 }

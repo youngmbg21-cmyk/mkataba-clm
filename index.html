@@ -9931,6 +9931,11 @@
   #ig-dock.pd-face-up [data-ig-chips]{display:none}
   /* the Negotiate page's notices, above the column since the page folded into Home (stage 5) */
   #pd-redface .rl-face .pd-rf-notices{flex:none;padding:10px 12px 0}
+  /* THEIR VIEW's one note (owner, 25 Oct 2026: "a note, not a big banner"): a lock and a line in the column's small grey, nothing boxed */
+  #pd-redface .rl-face .pd-rf-theirs{flex:1 1 100%;display:flex;align-items:flex-start;gap:6px;min-width:0;margin:2px 0 0;font-family:var(--font-body);font-size:12.5px;font-weight:var(--w-body,400);line-height:1.4;color:var(--color-neutral-600)}
+  #pd-redface .rl-face .pd-rf-theirs svg{flex:none;margin-top:2px;color:var(--color-neutral-600)}
+  /* nothing to press on their side: the cards keep their words and marks, their verbs are not drawn */
+  #pd-redface .rl-face.is-theirs :is(.rl-card-verbs, .rl-card-side){display:none}
   #pd-redface .rl-face .pd-rf-notices .rl-notices{margin:0}
   #pd-redface .rl-face .pd-rf-foot{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--color-divider);display:grid;grid-template-columns:1fr 1fr;gap:6px}
   #pd-redface .rl-face .pd-rf-foot button{height:var(--ctl-h-sm);padding:0 10px;font-size:12.5px;justify-content:center;min-width:0}

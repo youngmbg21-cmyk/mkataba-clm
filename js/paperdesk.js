@@ -1255,10 +1255,17 @@ function pdRedPaper(id, o){
    ‹ Jambo in the panel's own row closes the face, as drawn; no caller was
    left. data-pd-rf-close is STALE with it. */
 /* the Negotiate page's own options, this host's repaint and root */
+/* THEIR VIEW TURNS THE PANEL TOO (owner, 25 Oct 2026: "when you press on their view, the paper should show
+   you the counterparty's live paper and the panel should show you their redlines panel … uneditable … the look
+   should be exactly like ours"): while the paper's switch says Their view, this face draws the same column
+   from their seat — the Negotiate page's own preview (rlBenchOpts side 'counterparty': our unsent drafts walled
+   off, readonly, no verbs) — with one quiet "view only" line over it (pdRedTheirsNoteHtml) */
+function pdRedTheirs(c){ return !!(c && typeof igTheirsOn === 'function' && igTheirsOn(c)); }
 function pdRedOpts(c){
+  const side = pdRedTheirs(c) ? 'counterparty' : 'owner';
   const base = (typeof rlBenchOpts === 'function')
-    ? rlBenchOpts(c, { side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
-    : { side: 'owner', hostId: 'pd-redface', rerender: pdRedRepaint };
+    ? rlBenchOpts(c, { side, hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
+    : { side, hostId: 'pd-redface', rerender: pdRedRepaint, readonly: side === 'counterparty' };
   /* ‹ Jambo is the panel's own row now (pdFaceTabHtml, round 9 as drawn) and
      the column's head carries no × (the drawing has none: ‹ Jambo closes);
      no progress pile beside the paper — the head says the round */
@@ -1270,7 +1277,14 @@ function pdRedOpts(c){
      the "Out for review" pile says it, with Remind and Cancel on its head
      (waitingInPile, round 9's gaps, third pass) */
   /* …and the Deal button beside Notes (owner, 23 Oct 2026: the Negotiate page's Deal board, simpler, in the middle) */
-  return Object.assign({}, base, { cpPanel: false, noProgress: true, waitingInPile: true, dealDoor: true });
+  /* their view: the note stands where our Send all row stands, on its own line under the title */
+  const theirs = side === 'counterparty' ? { headNote: pdRedTheirsNoteHtml(c) } : {};
+  return Object.assign({}, base, { cpPanel: false, noProgress: true, waitingInPile: true, dealDoor: true }, theirs);
+}
+/* the one note, not a band: a lock and one line, in the column's own small grey */
+function pdRedTheirsNoteHtml(c){
+  const who = (c && c.counterparty) || _pdT('rl_theirs_who');
+  return `<span class="pd-rf-theirs" data-pd-rf-theirs-note>${typeof icon === 'function' ? icon('lock', 'w-3.5 h-3.5') : ''}<span>${_pdE(_pdT('rl_theirs_note', { party: who }))}</span></span>`;
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -1294,7 +1308,9 @@ function pdRedFaceHtml(c){
   if (!/id="nego-send"/.test(col) && typeof negoTurnBannerHtml === 'function'){
     try { const m = String(negoTurnBannerHtml(c, o) || '').match(/<button id="nego-send"[\s\S]*?<\/button>/); if (m) send = `<div hidden data-pd-rf-send>${m[0]}</div>`; } catch (_){ send = ''; }
   }
-  const html = `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
+  const theirs = pdRedTheirs(c);
+  if (theirs){ notices = ''; send = ''; }
+  const html = `<div class="redline-page rl-face${theirs ? ' is-theirs' : ''}" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}"${theirs ? ' data-pd-rf-theirs' : ''}>${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
   _pdRedDrawn = { id: String(c.id), html };
   return html;
 }
