@@ -46,7 +46,7 @@ const fill = (s, v) => String(s || '').replace(/\{(\w+)\}/g, (_, k) => (v && k i
 const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
 
 const NAMES = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnNeedDoorAttrs', 'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts',
-  'ndHomeRowHtml', 'ndHomeHtml', 'ndKindsOf', 'ndOnBoard', 'ndInTab', 'ndBoardList', 'ndBoardRowHtml', 'ndBoardRowsHtml', 'ndBoardHtml', 'ndShow', 'ndPlace', 'ndPlacePut'];
+  'ndHomeRowHtml', 'ndHomeHtml', 'ndKindsOf', 'ndOnBoard', 'ndInTab', 'ndBoardList', 'ndBoardRowHtml', 'ndBoardRowsHtml', 'ndBoardHtml', 'ndShow', 'ndPlace', 'ndPlacePut', 'ndFolded', 'ndFoldSet', 'ndFoldBtnHtml'];
 const CONSTS = ['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', 'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey',
   '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'];
 function world(rows, pieces, extra){
@@ -177,7 +177,8 @@ describe('f868 (3) the Board', () => {
     assert.match(CSS, /\.nd-c-deal \.hati-ref,\.nd-c-deal \.nd-dot\{flex:none;/);
     assert.match(CSS, /\.nd-deal-t\{min-width:0;overflow:hidden;text-overflow:ellipsis\}/);
   });
-  test('3d it stands under Your book, never folds or closes, and keeps its place', () => {
+  /* RE-POINTED 25 Oct 2026 (owner: "add the ability for the needs you card to be able to be minimized"): it folds to its head (3e), never closes */
+  test('3d it stands under Your book, never closes, and keeps its place', () => {
     const board = HB.slice(HB.indexOf('function hbBoardHtml('), HB.indexOf('function hbBoardHtml(') + 6000);
     const lay = board.slice(board.indexOf('${hbBookHtml('));
     assert.ok(lay.indexOf('${hbPrepHtml(') > 0 && lay.indexOf('${hbPrepHtml(') < lay.indexOf('bsStripsHtml'), 'right under Your book, the strips after it');
@@ -189,6 +190,27 @@ describe('f868 (3) the Board', () => {
     assert.equal(JSON.stringify(w.ndPlace()), '{"tab":"jambo","kind":"sign","q":"kettle"}');
     w.ndPlacePut({ tab: 'nope', kind: 'nope' });
     assert.equal(JSON.stringify(w.ndPlace()), '{"tab":"all","kind":"any","q":""}', 'a word it does not know is not kept');
+  });
+  test('3e Hide folds it to its head, which keeps the count; Show opens it; a door onto the card opens it first', () => {
+    const st = { ndFold: false }; let saves = 0;
+    const w = world(many(4), [chase], { hbS: () => st, hbSave: () => { saves++; } });
+    const open = w.ndBoardHtml({});
+    assert.match(open, /^<section class="hb-card nd-card" id="hm-agents">/);
+    assert.match(open, /<button type="button" class="hb-btn is-sm nd-fold" data-nd-fold aria-expanded="true" aria-controls="nd-main" aria-label="Minimise Needs you">Hide<\/button><\/header><div class="nd-main" id="nd-main"><div class="nd-bar">/);
+    w.ndFoldSet(true);
+    assert.equal(st.ndFold, true); assert.equal(saves, 1, 'kept through the Board\'s own save');
+    const shut = w.ndBoardHtml({});
+    assert.match(shut, /^<section class="hb-card nd-card is-folded" id="hm-agents">/);
+    assert.match(shut, /<span class="hb-cs">5 things/, 'the head still says how many wait');
+    assert.match(shut, /aria-expanded="false" aria-controls="nd-main" aria-label="Open Needs you">Show<\/button>/);
+    assert.match(shut, /<div class="nd-main" id="nd-main" hidden>/);
+    assert.ok(!/nd-home-shows/.test(shut), 'nothing in the head points at rows that are folded away');
+    w.ndShow('you');
+    assert.equal(st.ndFold, false, 'Show all N, Look, the bell: the card is opened before they land');
+    const wire = CN.slice(CN.indexOf("document.addEventListener('click'"), CN.indexOf("document.addEventListener('input'"));
+    assert.ok(wire.indexOf("if (t.closest('[data-nd-fold]')){ ndFoldApply(!ndFolded()); return; }") > 0, 'one press folds, the next opens');
+    assert.match(HB, /if \(typeof v\.ndFold === 'boolean'\) s\.ndFold = v\.ndFold;/, 'a refresh keeps it');
+    for (const k of ['nd_fold_shut', 'nd_fold_open']) assert.ok(BOOKS.en[k] && BOOKS.sv[k], k + ' in both books');
   });
 });
 

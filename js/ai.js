@@ -5103,7 +5103,11 @@ async function aiAskWords(qRaw){
       /* QUIET: aiRenderServerAnswer prints the notice under the answer, so the
          pop-up was the same sentence twice (the owner's list, 27 Sep 2026). */
       const t0=Date.now();
-      res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer(), { quiet:true });
+      /* the explain under the Board's drawing (noEcho, Both halves): the Board's line was the last turn written, so the
+         question is put last again for the model, as Home's panel does (intelChatAsk) — never stored twice */
+      const msgs=aiChatMessages();
+      if(noEcho&&(!msgs.length||msgs[msgs.length-1].role!=='user')) msgs.push({ role:'user', content:q });
+      res=await copilotAsk(msgs, aiChatContext(), aiStreamRenderer(), { quiet:true });
       res&&(res._goto=aiGotoTake(t0));
     }catch(e){ finish(aiDegrade(q,e,true)); return; }
     try{

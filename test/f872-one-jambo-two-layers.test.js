@@ -145,6 +145,8 @@ describe('f872 (5) "what am I looking at", said another way', () => {
 
 describe('f872 (6) act first, then explain', () => {
   /* ONE RULE (owner, 24 Oct 2026): a command is never explained, a brain-verb sentence never drawn; a question the Board drew is always explained */
+  /* REVERSED 25 Oct 2026 (owner picked "Both halves"): the subject decides, not the verb; the one rule is hbExplainsDrawn (f884). What
+     follows pins igAskThenExplain's fallback, used only where the Board's reader is not loaded */
   const rule = (ai, wh) => fnOf(IG, 'igAskThenExplain', { caAiFirst: () => ai, CA_WH_Q: wh, hbCommandAsk: q => !wh.test(q) && !/\?\s*$/.test(q) && !/^tell/i.test(q), hbBrainVerb: q => /^tell/i.test(q), hbChartWords: () => false, hbDrawsSomething: A => !!(A && A.road === 'free' && A.kind !== 'pack') });
   const WH = /^\s*(which|what|whats|who|whos|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
   test('a question the Board only DREW (a q: card, a follow-up) gets Jambo\'s words', () => {
