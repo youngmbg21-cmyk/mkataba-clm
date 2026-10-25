@@ -2588,7 +2588,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     if (M && M.wording && M.wording.text){
       const W = M.wording;
       const when = W.at ? String(W.at).slice(0, 10) : '';
-      _ceThread.push({ who: 'ai', ai: true, memory: true, text: '', read: [],
+      /* worked out from the record, not written by a model: no "check before sending" foot (the ladder card's rule) */
+      _ceThread.push({ who: 'ai', memory: true, text: '', read: [],
         cards: [{ name: _cet('ce_mem_h'), chip: _cet(M.withThem ? 'ce_mem_chip_them' : 'ce_mem_chip_book'), chipTone: 'std',
           line: _cet('ce_mem_line', { who: W.counterparty || '', ref: W.ref || '', when }), rests: M.line || '', text: W.text, passage: null }] });
     }
