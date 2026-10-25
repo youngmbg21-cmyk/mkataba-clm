@@ -12801,6 +12801,13 @@ function rlWireClauseTools(c, host, opts){
       if (!card) return;
       rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card');
     }));
+  /* THE CARD'S OWN 16PX EDGE IS THE HEAD'S TOO (25 Oct 2026, 16px inside every card): the room above the
+     head now belongs to the card, so a press on the card itself, not on anything inside it, does the head's job */
+  host.querySelectorAll('#rl-changes [data-nego-card]').forEach(card =>
+    card.addEventListener('click', ev => {
+      if (ev.target !== card || !card.querySelector(':scope > .rl-card-head, :scope .rl-card-head')) return;
+      rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card');
+    }));
 
   /* The pop button's wiring stood here. The row's Open carries
      data-rl-cp-open — the clause panel's own delegated door, armed at module
