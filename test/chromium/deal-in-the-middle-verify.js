@@ -119,6 +119,10 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
       const rd = document.querySelector('#deal-road'); const rr = rd && rd.getBoundingClientRect();
       if (!rr || rr.right > hr.right + 1 || rr.width < 200) bad.push('road ' + (rr ? Math.round(rr.width) : 'none'));
       if (document.documentElement.scrollWidth > window.innerWidth + 1) bad.push('page scrolls sideways');
+      /* the columns stand on straight lines (owner, 25 Oct 2026: "the third column needs to be on a straight line") */
+      for (const sel of ['.deal-pr-why', '.deal-pr-st', '.deal-pr-acts']){
+        const xs = [...document.querySelectorAll('#modal-root .deal-pr ' + sel)].map(el => Math.round(el.getBoundingClientRect().left));
+        if (new Set(xs).size > 1) bad.push(sel + ' starts at ' + [...new Set(xs)].join('/')); }
       return { ok: !bad.length, bad }; });
     const fits = [];
     for (const [w, hh] of SCREENS) { await page.setViewportSize({ width: w, height: hh }); await pause(400); fits.push({ w, hh, t: await tidy() }); await page.screenshot({ path: path.join(OUT, `2-deal-${w}x${hh}.png`) }); }
