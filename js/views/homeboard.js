@@ -1550,7 +1550,9 @@ function hbNyOldestSay(L){
    there. Every number is a reading the Board or the Counter already makes;
    nothing is spent or written. */
 /* the word the panel's head says beside his tab on the Board (round 17 as drawn) */
-function hbHeadWord(){ return hbBoardHelloOn() ? i18t('hb_face_board') : ''; }
+/* the New agreement sheet in front is what the panel's head names (pdHeadHtml's word), never the Board behind it
+   (the detail round, 25 Oct 2026: "New agreement · Boa…" squeezed his tab to "Jam…") */
+function hbHeadWord(){ return hbBoardHelloOn() && !(typeof naSheetUp === 'function' && naSheetUp()) ? i18t('hb_face_board') : ''; }
 /* THE BOARD ITSELF IS IN FRONT (owner's work order, 23 Oct 2026: "the
    Board's own helpers stay on the Board"): the Board face is up AND no
    contract stands on it. A contract brought up from the Board (bsCardId) is

@@ -1967,7 +1967,7 @@
      alone. The bar keeps its full hit area; only the thumb is drawn narrow,
      inset from the track by a transparent border, so it is still easy to grab
      and no longer competes with the card's own edge. */
-  .scroll-thin::-webkit-scrollbar{width:9px;height:9px;}
+  .scroll-thin::-webkit-scrollbar{width:8px;height:8px;}
   .scroll-thin::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:var(--radius);
     border:2px solid transparent;background-clip:content-box;}
   .scroll-thin::-webkit-scrollbar-thumb:hover{background:var(--color-neutral-400);background-clip:content-box;}
@@ -4021,8 +4021,8 @@
   .st-aw-reach{ margin:12px 0 0; min-height:1.4em; }
   .st-cr .st-you-line{ display:block; font-size:var(--t-meta); color:var(--color-text); line-height:1.45; padding:3px 0; min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .st-cr .st-you-sub{ color:var(--color-neutral-600); font-size:var(--t-label); }
-  .st-cr .chip.st-chip-on{ background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-label); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
-  .st-cr .chip.st-chip-off{ border:1px solid var(--color-divider); color:var(--color-neutral-600); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
+  .st-cr .chip.st-chip-on{ display:inline-flex; align-items:center; height:22px; box-sizing:border-box; background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-label); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
+  .st-cr .chip.st-chip-off{ display:inline-flex; align-items:center; height:22px; box-sizing:border-box; border:1px solid var(--color-divider); color:var(--color-neutral-600); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
   .st-codes{ display:flex; align-items:center; gap:10px; margin-top:var(--s-2); }
   .st-me-who{ display:flex; flex-direction:column; gap:2px; margin:0 0 var(--s-3); }
   .st-me-n{ font-weight:var(--w-strong); color:var(--color-text); }
@@ -5604,7 +5604,7 @@
   .obd-count{font-size:12.5px;color:var(--color-ink-2,#475467);font-variant-numeric:tabular-nums}
   .obd-sp{flex:1}
   @media (max-width:900px){ .obd-grid{grid-template-columns:1fr} .obd-list{border-right:0;border-bottom:1px solid var(--color-line);max-height:34vh} .obd-item{max-height:none} }
-  .of-desc{ resize:vertical; min-height:79px; max-height:140px; line-height:1.5;
+  .of-desc{ resize:vertical; min-height:79px; max-height:140px;
     overflow-y:auto; font:inherit; font-size:var(--t-card); }
   /* 11px, not 10, and neutral-600 rather than an opacity — opacity multiplies
      against whatever is behind it, and these rows sit on white inside a card
@@ -9105,7 +9105,7 @@
      The wrapper takes the scroll; the min-width keeps every column readable.
      NO COLUMN IS EVER HIDDEN — the density is the design. */
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
-  .table-scroll::-webkit-scrollbar{height:9px;}
+  .table-scroll::-webkit-scrollbar{height:8px;}
   .table-scroll::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:var(--radius);}
   /* THE FLOOR ONLY APPLIES WHERE THERE IS NO ROOM.
      It was unconditional, and that was a regression on the machine most
@@ -14064,7 +14064,7 @@
     background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
     box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);}
   .hati-selmenu-row{display:block;width:100%;box-sizing:border-box;text-align:left;
-    padding:0 10px;height:var(--ctl-h);line-height:var(--ctl-h);border:0;border-radius:var(--radius);
+    padding:0 10px;height:var(--ctl-h);border:0;border-radius:var(--radius);
     background:none;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hati-selmenu-row:hover{background:var(--nav-well);}
@@ -14244,7 +14244,7 @@
   .ins-ask{padding:8px 0;border-top:1px solid var(--rule);min-width:0;}
   .ins-ask:first-of-type{border-top:0;padding-top:0;}
   .ins-ask b{display:block;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ins-ask span{display:block;color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ins-ask span{color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .ins-ask em{display:block;font-style:normal;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:1px;}
   .ins-ask em .over{color:var(--st-amber-fg);font-weight:var(--w-label);}
   .ins-read{display:flex;flex-direction:column;gap:2px;}
@@ -16170,7 +16170,7 @@
   .nd-tab-n{font-variant-numeric:tabular-nums}
   .nd-find{margin-left:auto;width:240px;max-width:40%;height:var(--ctl-h-sm,28px);border:1px solid var(--btn-edge,var(--rule-strong));border-radius:var(--radius);padding:0 10px;font:inherit;font-size:var(--t-label);background:var(--color-surface);color:var(--color-text)}
   .nd-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
-  .nd-chip{border:1px solid var(--rule-strong);background:var(--color-surface);border-radius:12px;height:24px;padding:0 10px;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  .nd-chip{border:1px solid var(--rule-strong);background:var(--color-surface);border-radius:999px;height:28px;padding:0 10px;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
   .nd-chip.on{background:var(--accent-fill,var(--color-text));border-color:var(--accent-fill,var(--color-text));color:var(--color-surface)}
   .nd-cols,.nd-br{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) 104px 76px;gap:14px;align-items:center;padding:8px 16px}
   .nd-cols{padding-top:6px;padding-bottom:6px;background:var(--surface-2);border-bottom:1px solid var(--rule-strong);font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
@@ -17059,7 +17059,7 @@
   #na-root.na-one .na-ask,#na-root.na-one .na-rail,#na-root.na-one .na-read,#na-root.na-one .na-theirs,#na-root.na-one .na-card,#na-root.na-one .na-file{background:var(--color-surface);border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 18px}
   #na-root.na-one .na-ask-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
   #na-root.na-one .na-ptabs{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
-  #na-root.na-one .na-ptab{height:26px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600);font:inherit;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  #na-root.na-one .na-ptab{height:30px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600);font:inherit;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   #na-root.na-one .na-ptab[aria-selected="true"]{background:var(--color-surface);color:var(--color-text);box-shadow:0 1px 2px rgba(0,0,0,.10)}
   #na-root.na-one .na-askbox{display:flex;align-items:flex-end;gap:10px;border:1px solid var(--rule-strong);border-radius:16px;padding:10px 10px 10px 14px;background:var(--color-surface)}
   #na-root.na-one .na-askbox:focus-within{border-color:var(--color-neutral-500)}
@@ -17308,6 +17308,41 @@
     .ig-resizer span{opacity:0;transition:opacity var(--dur-1),background var(--dur-1)}
     .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{opacity:1}
   }
+  /* ==== THE DETAIL ROUND (owner, 25 Oct 2026: "fix items 1 to 11" of the detail report, reviewed against main) ====
+     Measured where the reader looks, at the three screens: test/chromium/detail-round-verify.js. */
+  /* EVERY HEAD STARTS LEVEL WITH JAMBO'S PANEL, AND EVERY LIST ENDS LEVEL WITH IT (8): where the two halves
+     float (wider than 1100) the panel stands 8px under the bar and 8px over the foot, while a page's head
+     started 10px down (16 on the iPad) and its list ended 16px up. The page's top is one token
+     (--page-pad-t, "ONE HEADER TOP"), so every view root follows it; a page in the middle drops its head
+     4px to the same line. */
+  @media (min-width:1101px){
+    :root{--page-pad-t:8px}
+    #modal-root [data-dlg-page] .dlg-pg-head{margin-top:8px}
+    #content .view-enter:has(.ins-panel.is-jambo), #ct-place .sap-page.ct-page{padding-bottom:8px}
+    /* (10b) a page that scrolls steps 8px aside for the panel (above): its head card steps with it, so it ends
+       where the strip under it ends (Import's head stood 8px wider) */
+    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:calc(var(--jl-room,var(--jl-w,384px)) + 8px)}
+    #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:54px}
+  }
+  /* JAMBO'S GREETING HAS THE PANEL'S MARGIN (3): on a list's panel and the Calendar's it stood flush against
+     both edges while his words under it kept their 14px */
+  :is(.jl-greet, .cal-cop .cal-plan-body) > .jb-hello{padding:14px 14px 0;margin-bottom:0}
+  /* HIS TAB IS NEVER CUT (4): "Jambo" is five letters; beside a long page word (a paper's name on Our paper)
+     the NAME gives way, never his tab. The paper's own row of tabs is left as it is (the iPad's five tabs are
+     the owner's to decide). */
+  #app-shell .jl-head.jl-head > .jl-tab, #ig-dock > .igd-head.igd-head:not([data-pd-head="paper"]) > .pd-tab-talk{flex-shrink:0}
+  /* EVERY PAGE IN THE MIDDLE IS A CARD UNDER ITS HEAD (7), as the Deal was made on 24 Oct: Key terms, Jambo's
+     work and the obligations review kept a square 880px sheet narrower than their floating head */
+  #modal-root [data-pd-mid]{background:var(--color-bg)}
+  #modal-root [data-pd-mid] .dlg-pg-body{background:transparent;padding:10px 12px 12px}
+  #modal-root [data-pd-mid] .dlg-pg-body > *{max-width:none;margin:0;border:0;background:var(--color-surface);border-radius:20px;box-shadow:var(--shadow-sm);padding:20px 24px}
+  /* THE SEND SCREEN'S HEAD FLOATS AS EVERY PAGE'S DOES (2): set in on the grey, level with the panel */
+  #modal-root .modal-in[data-sh-page] .sh-hd{top:8px;margin:8px 12px 0;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  /* …and "Email is not set up yet" stands with the cards' words beside it, clear of the box above (2) */
+  #pd-sendface #sh-noemail{margin:12px 0 0;padding:0 15px}
+  /* THE DOSSIER'S ACTS KEEP THEIR WORDS (6): a row too narrow for them wraps, never cuts "Import their Word file" */
+  #app-shell #ig-dock .ds-acts-b.is-ck.is-mq{flex-wrap:wrap;row-gap:8px}
+  #app-shell #ig-dock .ds-acts-b.is-ck.is-mq > .ui-btn{flex:none;overflow:visible;text-overflow:clip}
 </style>
 
 

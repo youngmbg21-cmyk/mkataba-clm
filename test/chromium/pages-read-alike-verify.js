@@ -816,10 +816,16 @@ const SEED = async () => {
     /* AND THE TIGHTENING IS REAL, not the token quietly ignored: a short
        window has to pull every header up TOGETHER, or the rule above is
        satisfied by nothing moving at all. */
-    const tall8 = (runs8[1000] || {}).Settings, short8 = (runs8[760] || {}).Settings;
+    /* RE-POINTED 25 Oct 2026 (the detail round, owner: "fix items 1 to 11"): wider than 1100 the two halves float
+       and every head starts level with Jambo's panel, 8px under the bar at any height (--page-pad-t 8), so the
+       tightening by height is measured where the panels dock (1100 wide), and the float's one top at 1500 */
+    const padT = async (w, h) => { await page.setViewportSize({ width: w, height: h }); await pause(300);
+      return page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t'))); };
+    const tall8 = await padT(1100, 1000), short8 = await padT(1100, 760), wideT = await padT(1500, 1000), wideS = await padT(1500, 760);
+    await page.setViewportSize({ width: 1500, height: 1000 }); await pause(300);
     check('8 and a short window pulls them all up rather than none of them',
-      !!tall8 && !!short8 && short8.ink < tall8.ink,
-      `${tall8 && tall8.ink}px at 1000 · ${short8 && short8.ink}px at 760`);
+      short8 < tall8 && wideT === 8 && wideS === 8,
+      `docked: ${tall8}px at 1000 · ${short8}px at 760; floating: ${wideT}px · ${wideS}px`);
     /* RE-POINTED 19 Oct 2026 (the head card's second check; round 22: "the
        head card and Jambo's panel stay put; the lists scroll inside the
        desk", round 16 the same): on a page whose scroller moves, the head
