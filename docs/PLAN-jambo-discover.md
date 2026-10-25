@@ -89,7 +89,7 @@ company's rules), test/discover-exam.js (forty held-out questions, six facts,
 the marker), test/discover-measure.js (asks each question of every contract
 through POST /api/ai/column; with ANTHROPIC_API_KEY it grades the answers
 through a counting relay, without one it ONLY COUNTS the calls and says so).
-f878 pins that the truth matches the wording and that the marker is fair.
+f887 pins that the truth matches the wording and that the marker is fair.
 
 | Run | Answers right | Dead ends | Calls | Per question per contract | Due diligence pack |
 |---|---|---|---|---|---|
@@ -109,13 +109,13 @@ for payment.
 
 | Stage | Built | Tests |
 |---|---|---|
-| 0 | the measure | f878 |
-| 1 | one read, many answers; the company's rule and verdict; PUT /api/columns/:id | f879 |
+| 0 | the measure | f887 |
+| 1 | one read, many answers; the company's rule and verdict; PUT /api/columns/:id | f888 |
 | 2 | the answers the Legora way; the list box hands a wording question to the form | discover-verify 2 |
-| 3 | Discover beside the list; the Due diligence pack; the whole table as a page | f880, discover-verify 3 |
-| 4 | Settings › Company facts; read on arrival; facts in Key terms | f881, discover-verify 4 |
-| 5 | a watch on a company fact's answer | f882, discover-verify 5 |
-| 6 | Unusual for you on the Dossier | f883, discover-verify 6 |
+| 3 | Discover beside the list; the Due diligence pack; the whole table as a page | f889, discover-verify 3 |
+| 4 | Settings › Company facts; read on arrival; facts in Key terms | f890, discover-verify 4 |
+| 5 | a watch on a company fact's answer | f891, discover-verify 5 |
+| 6 | Unusual for you on the Dossier | f892, discover-verify 6 |
 | 7 | negotiation memory on their row and in the clause editor | f884, discover-verify 7 |
 | 8 | what you are approving; any approver may ask for the brief | f885, discover-verify 8 |
 | 9 | the party's two minutes | f886, discover-verify 9 |

@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   f881 — DISCOVER STAGE 4: THE COMPANY'S FACTS (docs/PLAN-jambo-discover.md,
+   f890 — DISCOVER STAGE 4: THE COMPANY'S FACTS (docs/PLAN-jambo-discover.md,
    owner 25 Oct 2026: "any admin" switches a fact on)
    (1) A contract's company facts, free: the kept answer to each fact that is
        on, for its Key terms; a fact switched off is not listed.
@@ -22,7 +22,7 @@ before(async () => {
 });
 after(async () => { if (h) await h.stop(); });
 
-describe('f881 (1) a contract\'s company facts', () => {
+describe('f890 (1) a contract\'s company facts', () => {
   test('1a nothing switched on: nothing listed', async () => {
     const r = await w.admin.json('/api/columns/facts/MK-A1');
     assert.deepEqual(r.facts, []);
@@ -44,7 +44,7 @@ describe('f881 (1) a contract\'s company facts', () => {
   });
 });
 
-describe('f881 (2) stale is said', () => {
+describe('f890 (2) stale is said', () => {
   test('2a wording that moved since the read marks the answer stale', async () => {
     const put = async text => { const cur = await w.admin.json('/api/contracts/MK-A2');
       const r = await w.admin.raw('/api/contracts/MK-A2', { method: 'PUT', body: { baseVersion: cur._v, contract: { ...cur, redlineText: text } } });
@@ -57,7 +57,7 @@ describe('f881 (2) stale is said', () => {
   });
 });
 
-describe('f881 (3) the wall', () => {
+describe('f890 (3) the wall', () => {
   test('3a a contract outside the reader\'s streams reads as not found', async () => {
     const r = await w.restricted.raw('/api/columns/facts/MK-B1');
     assert.equal(r.status, 404);

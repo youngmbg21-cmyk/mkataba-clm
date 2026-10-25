@@ -170,17 +170,17 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## ASK A COLUMN (js/views/askcolumn.js)
 - f843, ask-a-column verify.
 - Typing while the team's questions arrive (22 Oct 2026): ask-a-column verify 10 (red at the parent: the caret went to the question box, "Notice ").
-- THE DISCOVER MEASURE (stage 0, 25 Oct 2026): f878 (the exam's truth matches its wording; the marker is fair); `node test/discover-measure.js` by hand (calls only without a key, graded with one). Every Discover stage reruns it and writes its row in docs/PLAN-jambo-discover.md.
-- DISCOVER STAGE 1, one read many answers and the company's rule: f879 (red at the parent 6fefdc0: 9 failures).
+- THE DISCOVER MEASURE (stage 0, 25 Oct 2026): f887 (the exam's truth matches its wording; the marker is fair); `node test/discover-measure.js` by hand (calls only without a key, graded with one). Every Discover stage reruns it and writes its row in docs/PLAN-jambo-discover.md.
+- DISCOVER STAGE 1, one read many answers and the company's rule: f888 (red at the parent 6fefdc0: 9 failures).
 - DISCOVER STAGE 2, the answers the Legora way: discover-verify 2a–2h (`HATI_DV_ONLY=2`); ask-a-column verify 2b re-pointed (the words under the answer, not "not checked").
-- DISCOVER STAGE 3, the kept questions and the packs: f880; discover-verify 3a–3e.
-- DISCOVER STAGE 4, the company's facts: f881; discover-verify 4a–4e; f784 7b re-pointed (Jambo's card gains Company facts).
-- DISCOVER STAGE 5, a watch on an answer: f882 (with f860); discover-verify 5a–5c.
-- DISCOVER STAGE 6, Unusual for you: f883; discover-verify 6a–6b.
+- DISCOVER STAGE 3, the kept questions and the packs: f889; discover-verify 3a–3e.
+- DISCOVER STAGE 4, the company's facts: f890; discover-verify 4a–4e; f784 7b re-pointed (Jambo's card gains Company facts).
+- DISCOVER STAGE 5, a watch on an answer: f891 (with f860); discover-verify 5a–5c.
+- DISCOVER STAGE 6, Unusual for you: f892; discover-verify 6a–6b.
 - DISCOVER STAGE 7, negotiation memory: f884 (with f222, f863, f876); discover-verify 7a–7b.
 - DISCOVER STAGE 8, what you are approving: f885 (with f213, f807); discover-verify 8a–8c.
 - DISCOVER STAGE 9, the party's two minutes: f886; discover-verify 9a–9b.
-- DISCOVER, HOW A CELL IS READ (the live run's eight misses): f878 3f (a number of days with its unit run on), f879 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
+- DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.

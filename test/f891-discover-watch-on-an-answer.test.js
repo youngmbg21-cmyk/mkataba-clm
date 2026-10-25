@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   f882 — DISCOVER STAGE 5: A WATCH ON AN ANSWER (docs/PLAN-jambo-discover.md,
+   f891 — DISCOVER STAGE 5: A WATCH ON AN ANSWER (docs/PLAN-jambo-discover.md,
    owner 25 Oct 2026: "only on company facts, free to run")
    (1) A watch on an answer is set on a company fact only; on a question that
        is not one it is refused, and said.
@@ -25,7 +25,7 @@ before(async () => {
 after(async () => { if (h) await h.stop(); });
 const run = () => w.admin.json('/api/watches/run', { method: 'POST', body: {} });
 
-describe('f882 (1) on company facts only', () => {
+describe('f891 (1) on company facts only', () => {
   test('1a a question that is not a company fact is refused, and said', async () => {
     const r = await w.admin.raw('/api/me/watches', { method: 'POST', body: { kind: 'answer', params: { askId: capId } } });
     assert.equal(r.status, 400);
@@ -39,7 +39,7 @@ describe('f882 (1) on company facts only', () => {
   });
 });
 
-describe('f882 (2) it fires once, for a new answer at risk', () => {
+describe('f891 (2) it fires once, for a new answer at risk', () => {
   test('2a an answer inside the rule does not fire it; nothing is read by the watch', async () => {
     await new Promise(r => setTimeout(r, 5));
     await w.admin.json('/api/ai/column', { method: 'POST', body: { question: CAP, ids: ['DV-02'] } });
@@ -65,7 +65,7 @@ describe('f882 (2) it fires once, for a new answer at risk', () => {
   });
 });
 
-describe('f882 (3) the wall', () => {
+describe('f891 (3) the wall', () => {
   test('3a a contract outside the watcher\'s streams never fires it', async () => {
     const r = await w.restricted.json('/api/me/watches', { method: 'POST', body: { kind: 'answer', params: { askId: capId } } });
     assert.ok(r.watch);

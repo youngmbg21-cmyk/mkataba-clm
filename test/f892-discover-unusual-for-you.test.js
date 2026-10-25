@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   f883 — DISCOVER STAGE 6: UNUSUAL FOR YOU (docs/PLAN-jambo-discover.md,
+   f892 — DISCOVER STAGE 6: UNUSUAL FOR YOU (docs/PLAN-jambo-discover.md,
    owner 25 Oct 2026; one line on the Dossier, counted, no AI)
    (1) A company fact whose answer stands apart from the other contracts of
        the same kind is said: the answer here, how many of the others say
@@ -29,7 +29,7 @@ before(async () => {
 });
 after(async () => { if (h) await h.stop(); });
 
-describe('f883 (1) an answer that stands apart is said', () => {
+describe('f892 (1) an answer that stands apart is said', () => {
   test('1a not a company fact yet: nothing is said', async () => {
     const r = await w.admin.json('/api/columns/unusual/DV-04');
     assert.deepEqual(r.lines, []);
@@ -51,7 +51,7 @@ describe('f883 (1) an answer that stands apart is said', () => {
   });
 });
 
-describe('f883 (2) nothing is said where nothing stands apart', () => {
+describe('f892 (2) nothing is said where nothing stands apart', () => {
   test('2a the usual answer: nothing', async () => {
     assert.deepEqual((await w.admin.json('/api/columns/unusual/DV-03')).lines, []);
   });
@@ -60,7 +60,7 @@ describe('f883 (2) nothing is said where nothing stands apart', () => {
   });
 });
 
-describe('f883 (3) the wall', () => {
+describe('f892 (3) the wall', () => {
   test('3a a contract outside the reader\'s streams reads as not found', async () => {
     const r = await w.restricted.raw('/api/columns/unusual/DV-04');
     assert.equal(r.status, 404);

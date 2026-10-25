@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   f879 — DISCOVER STAGE 1: ONE READ, MANY ANSWERS, AND THE COMPANY'S RULE
+   f888 — DISCOVER STAGE 1: ONE READ, MANY ANSWERS, AND THE COMPANY'S RULE
    (docs/PLAN-jambo-discover.md, owner 25 Oct 2026)
 
    (1) Several questions in one press: each contract is read ONCE for all of
@@ -32,7 +32,7 @@ const col = (body, who) => (who || w.admin).json('/api/ai/column', { method: 'PO
 before(async () => { h = await startHati(); w = await seedWorkspace(h); });
 after(async () => { if (h) await h.stop(); });
 
-describe('f879 (1) one read, many answers', () => {
+describe('f888 (1) one read, many answers', () => {
   test('1a three questions over four contracts: one call per contract with wording', async () => {
     h.ai.reset();
     const r = await col({ questions: [{ question: Q1, name: 'Notice' }, { question: Q2, name: 'Cap' }, { question: Q3 }], ids: ALL });
@@ -60,7 +60,7 @@ describe('f879 (1) one read, many answers', () => {
   });
 });
 
-describe('f879 (1c) how a cell is read (the live run\'s eight misses, 25 Oct 2026)', () => {
+describe('f888 (1c) how a cell is read (the live run\'s eight misses, 25 Oct 2026)', () => {
   test('1c every read carries the reading rules: a "cannot" is an answer, ending early is not stopping a renewal, the document\'s own name for the thing answers', async () => {
     h.ai.reset();
     await col({ questions: [{ question: 'Who signs for each side, and in what role?' }], ids: ALL, force: true });
@@ -74,7 +74,7 @@ describe('f879 (1c) how a cell is read (the live run\'s eight misses, 25 Oct 202
   });
 });
 
-describe('f879 (2) only what is not kept is read', () => {
+describe('f888 (2) only what is not kept is read', () => {
   test('2a a kept question and a new one: only the new one goes to the read', async () => {
     h.ai.reset();
     const Q4 = 'How long do we have to pay an invoice?';
@@ -90,7 +90,7 @@ describe('f879 (2) only what is not kept is read', () => {
   });
 });
 
-describe('f879 (3) the company\'s rule', () => {
+describe('f888 (3) the company\'s rule', () => {
   let capId;
   test('3a only an admin writes a rule', async () => {
     capId = (await w.admin.json('/api/columns')).asks.find(a => a.question === Q2).id;
@@ -119,7 +119,7 @@ describe('f879 (3) the company\'s rule', () => {
   });
 });
 
-describe('f879 (4) a company fact', () => {
+describe('f888 (4) a company fact', () => {
   test('4a an admin switches it on and off; nobody else may', async () => {
     const id = (await w.admin.json('/api/columns')).asks[0].id;
     assert.equal((await w.unrestricted.raw('/api/columns/' + id, { method: 'PUT', body: { fact: true } })).status, 403);
@@ -128,7 +128,7 @@ describe('f879 (4) a company fact', () => {
   });
 });
 
-describe('f879 (5) names, limits and the old shape', () => {
+describe('f888 (5) names, limits and the old shape', () => {
   test('5a a column left unnamed names itself from its question', async () => {
     const r = await col({ question: 'What is the governing language of the agreement?', name: '', ids: ['MK-A1'] });
     assert.equal(r.ask.name, 'Governing language of the');

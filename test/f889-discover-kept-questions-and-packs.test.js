@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   f880 — DISCOVER STAGE 3: THE KEPT QUESTIONS, COUNTED, AND THE PACKS
+   f889 — DISCOVER STAGE 3: THE KEPT QUESTIONS, COUNTED, AND THE PACKS
    (docs/PLAN-jambo-discover.md, owner 25 Oct 2026)
    (1) THE FIRST PACK: Due diligence, built in, five questions, listed with
        the team's questions.
@@ -22,7 +22,7 @@ const TEXTS = Object.fromEntries(ALL.map(id => [id, `This agreement ${id} may be
 before(async () => { h = await startHati(); w = await seedWorkspace(h); });
 after(async () => { if (h) await h.stop(); });
 
-describe('f880 (1) the first pack', () => {
+describe('f889 (1) the first pack', () => {
   test('1a Due diligence: built in, five questions, each with its name', async () => {
     const l = await w.restricted.json('/api/columns');
     pack = (l.packs || []).find(p => p.name === 'Due diligence');
@@ -42,7 +42,7 @@ describe('f880 (1) the first pack', () => {
   });
 });
 
-describe('f880 (2) the kept questions, counted, free', () => {
+describe('f889 (2) the kept questions, counted, free', () => {
   test('2a each pack question is counted: answered and last read, no call', async () => {
     h.ai.reset();
     const s = await w.admin.json('/api/columns/summary');
@@ -62,7 +62,7 @@ describe('f880 (2) the kept questions, counted, free', () => {
   });
 });
 
-describe('f880 (3) the wall', () => {
+describe('f889 (3) the wall', () => {
   test('3a the restricted reader counts only the contracts in their streams', async () => {
     const all = (await w.admin.json('/api/columns/summary')).asks.find(a => a.name === 'Liability cap');
     const mine = (await w.restricted.json('/api/columns/summary')).asks.find(a => a.name === 'Liability cap');

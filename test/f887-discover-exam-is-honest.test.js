@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   f878 — THE DISCOVER EXAM IS HONEST ABOUT ITS OWN WORLD (stage 0 of
+   f887 — THE DISCOVER EXAM IS HONEST ABOUT ITS OWN WORLD (stage 0 of
    docs/PLAN-jambo-discover.md, owner 25 Oct 2026: "measure first")
 
    test/discover-measure.js asks Jambo forty questions of eleven contracts
@@ -26,7 +26,7 @@ const FACTS = ['notice', 'cap', 'law', 'renewal', 'data', 'payment'];
 /* the word a clause on each fact cannot be written without */
 const TELL = { notice: /terminat/i, cap: /liabilit/i, law: /governed/i, renewal: /renew/i, data: /personal data/i, payment: /\bpay\b/i };
 
-describe('f878 (1) the exam', () => {
+describe('f887 (1) the exam', () => {
   test('1a forty questions, six facts, each asked six ways or more, none twice', () => {
     assert.equal(DISCOVER_EXAM.length, 40);
     for (const f of FACTS) assert.ok(DISCOVER_EXAM.filter(x => x.fact === f).length >= 6, f);
@@ -46,7 +46,7 @@ describe('f878 (1) the exam', () => {
   });
 });
 
-describe('f878 (2) the truth matches the wording', () => {
+describe('f887 (2) the truth matches the wording', () => {
   test('2a eleven contracts, ten with wording, one with none', () => {
     const cs = discoverContracts();
     assert.deepEqual(cs.map(c => c.id), IDS);
@@ -84,7 +84,7 @@ describe('f878 (2) the truth matches the wording', () => {
   });
 });
 
-describe('f878 (3) the marker', () => {
+describe('f887 (3) the marker', () => {
   const item = f => DISCOVER_EXAM.find(x => x.fact === f && x.form === 'amount');
   const yn = f => DISCOVER_EXAM.find(x => x.fact === f && x.form === 'yesno');
   const said = (answer, extra) => Object.assign({ found: true, answer, detail: '', quote: 'Either Party may terminate this Agreement.', quoteMissing: false }, extra || {});
