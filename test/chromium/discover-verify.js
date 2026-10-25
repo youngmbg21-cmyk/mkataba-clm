@@ -1,4 +1,4 @@
-/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo, contractPlainText, precedentMemoryOf, rlRowReadHtml, apSetTab */
+/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo, contractPlainText, precedentMemoryOf, rlRowReadHtml, apSetTab, cuSelectParty */
 /* DISCOVER — THE COLUMN THE LEGORA WAY, THE KEPT QUESTIONS, THE COMPANY'S
    FACTS AND WATCHES (docs/PLAN-jambo-discover.md, owner 25 Oct 2026), driven
    in a real browser over test/discover-world.js (eleven contracts, the
@@ -301,6 +301,19 @@ const stage = n => !ONLY || ONLY === String(n);
       const said = await until(page, () => !!document.querySelector('#ins-panel .ap-what-brief'), null, 10000);
       check('8b "Put it in plain words" spends one call and the brief is said there', said && h.ai.calls.length - c0 === 1, String(h.ai.calls.length - c0));
       check('8c Approve and Refuse are where they were', await page.evaluate(() => !!document.querySelector('#ins-panel [data-ins-act="approve"]') && !!document.querySelector('#ins-panel [data-ins-act="refuse"]')));
+    }
+
+    if (stage(9)){
+      await page.evaluate(() => cuSelectParty('siginon group'));
+      const sec = await until(page, () => /Before the call/.test((document.querySelector('#ins-panel') || {}).innerText || '') && !!document.querySelector('#ins-panel [data-cu-brief]'), null, 10000);
+      const t = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
+      check('9a the party\'s panel says Before the call and offers the brief for one call', sec && /How they negotiate|No settled rounds/.test(t) && /1 Jambo call/.test(t), t.replace(/\s+/g, ' ').slice(0, 300));
+      await page.screenshot({ path: path.join(OUT, '9-party.png') });
+      const c0 = h.ai.calls.length;
+      await page.click('#ins-panel [data-cu-brief]');
+      const said = await until(page, () => !!document.querySelector('#ins-panel .cu-br-text'), null, 10000);
+      const t2 = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
+      check('9b pressed: one call, the brief said, the unfound figure named', said && h.ai.calls.length - c0 === 1 && /2 agreements/.test(t2) && /check them: 999/.test(t2), t2.replace(/\s+/g, ' ').slice(0, 300));
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

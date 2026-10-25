@@ -72,6 +72,12 @@ function startAiStub() {
         : toolName === 'recommend_template' ? { ranked: [], answer: 'stub' }
         /* ASK A COLUMN: an answer resting on the document's own first long
            sentence, so the route's quote check passes as it would live */
+        /* THE PARTY'S TWO MINUTES: one figure from the facts (the agreements counted) and one that is not (999) */
+        : toolName === 'party_brief' ? (() => {
+            const facts = String(((body.messages || [])[0] || {}).content || '').split('FACTS:\n')[1] || '{}';
+            let n = 0; try { n = JSON.parse(facts).agreements || 0; } catch (_) { n = 0; }
+            return { brief: `You have ${n} agreements with them. They once asked for 999 days.` };
+          })()
         : toolName === 'column_answers' ? (() => {
             /* one answer per question asked (Discover: one read, many answers), verdict 'in' where a rule is given */
             const msg = String(((body.messages || [])[0] || {}).content || '');

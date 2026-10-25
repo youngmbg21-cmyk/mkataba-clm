@@ -195,6 +195,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS column_packs (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, questions TEXT NOT NULL, builtin INTEGER NOT NULL DEFAULT 0,
     created_by TEXT, created_at TEXT NOT NULL);
+  -- DISCOVER STAGE 9 (owner, 25 Oct 2026): the party's two-minute brief,
+  -- kept per party until the facts it was written from change.
+  CREATE TABLE IF NOT EXISTS party_briefs (
+    key TEXT PRIMARY KEY, input_hash TEXT NOT NULL, json TEXT NOT NULL, created_at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS column_answers (
     ask_id TEXT NOT NULL, contract_id TEXT NOT NULL, input_hash TEXT NOT NULL, json TEXT NOT NULL,
     checked_by TEXT, checked_name TEXT, checked_at TEXT, created_at TEXT NOT NULL,
@@ -3136,6 +3140,7 @@ const AI_FEATURE_LABEL = {
   windows: 'Dated windows',     // work order O-40, the Time Machine's periods
   breakdown: 'Contract breakdown', // Home's Breakdown tab (owner, 11 Oct 2026), read once per wording
   column: 'Ask a column',       // one question asked of many contracts (20 Oct 2026), named on arrival
+  partybrief: 'Party brief',    // the party's two minutes on the Parties page (Discover stage 9, 25 Oct 2026)
   plan: 'Calendar planning',    // Copilot plans a person's own time (10 Oct 2026)
   settings: 'Settings questions', // Jambo answers a "why" on Settings (16 Oct 2026), named on arrival
   /* The template builder's outline (Prompt & Build). Named on arrival for
@@ -9828,6 +9833,101 @@ app.get('/api/columns/unusual/:cid', auth, (req, res) => {
       ids: others.filter(o => colNorm(o.x.answer) === top).map(o => o.id) });
   }
   res.json({ kind: full.category || full.type || '', lines });
+});
+
+/* ===================== THE PARTY'S TWO MINUTES (Discover stage 9, owner
+   25 Oct 2026) =====================
+   On the Parties page, a chosen party's facts COUNTED off the stored records
+   the reader may see — their agreements, what is live, what ends next, the
+   value in each contract's own currency (never converted, never shown to
+   someone who may not see values), the duties open each way, how they
+   negotiated (their asks taken or held, by clause), and the company facts'
+   answers side by side — free. A code-named deal the reader is outside of is
+   left out. One press writes the two-minute brief from THOSE FACTS ONLY (one
+   call), kept per party until the facts change; every figure in it is
+   checked against the facts and any that is not there is said. */
+const PARTY_BRIEF_MAX_CONTRACTS = 40;
+const ptyKey = v => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+function partyFactsFor(req, name) {
+  const key = ptyKey(name); if (!key) return null;
+  const scope = folderScopeFor(req.user);
+  let outside = new Set(); try { outside = cnOutsideFor(req.user); } catch (_) { outside = new Set(); }
+  const money = canViewValues(req.user), today = aiToday();
+  const items = [];
+  for (const r of db.prepare('SELECT id, folder, json FROM contracts').all()) {
+    if (!inScope(scope, r.folder) || outside.has(r.id)) continue;
+    let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) { f = {}; }
+    if (f.archived || ptyKey(f.counterparty) !== key) continue;
+    items.push(f);
+    if (items.length >= PARTY_BRIEF_MAX_CONTRACTS) break;
+  }
+  if (!items.length) return null;
+  const ref = f => contractRef(f);
+  const live = items.filter(f => f.status !== 'Declined' && !(f.expiry && String(f.expiry).slice(0, 10) < today));
+  const ends = items.filter(f => /^\d{4}-\d{2}-\d{2}/.test(String(f.expiry || '')) && String(f.expiry).slice(0, 10) >= today)
+    .sort((a, b) => String(a.expiry).localeCompare(String(b.expiry))).slice(0, 3).map(f => ({ ref: ref(f), name: f.name || '', day: String(f.expiry).slice(0, 10) }));
+  const value = {};
+  if (money) for (const f of live) { const v = Number(f.value) || 0; if (v > 0) { const cur = String((f.metadata && f.metadata.currency) || f.currency || 'KES'); value[cur] = (value[cur] || 0) + v; } }
+  let dutiesOurs = 0, dutiesTheirs = 0;
+  for (const f of items) for (const ob of (Array.isArray(f.obligations) ? f.obligations : [])) {
+    if (!ob || ob.status === 'done') continue;
+    if (ob.party === 'theirs' || ob.party === 'counterparty') dutiesTheirs++; else dutiesOurs++;
+  }
+  const byClause = new Map();
+  for (const f of items) for (const ch of (Array.isArray(f.changes) ? f.changes : [])) {
+    if (!ch || ch.authorSide !== 'counterparty' || ch.withdrawn) continue;
+    if (ch.status !== 'accepted' && ch.status !== 'rejected') continue;
+    const k = String(ch.clauseLabel || '').trim() || 'Unnamed clause';
+    const x = byClause.get(k) || { clause: k, gave: 0, held: 0 };
+    if (ch.status === 'accepted') x.gave++; else x.held++;
+    byClause.set(k, x);
+  }
+  const negotiated = [...byClause.values()].sort((a, b) => (b.gave + b.held) - (a.gave + a.held)).slice(0, 5);
+  const facts = db.prepare('SELECT * FROM column_asks WHERE fact=1 ORDER BY name').all().map(a => ({
+    fact: a.name, answers: items.map(f => { const r = db.prepare('SELECT json FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, f.id);
+      const x = r ? watchJson(r.json) : null; return x && !x.noWording ? { ref: ref(f), answer: x.found ? x.answer : 'not found', risk: !!(x.found && (x.verdict === 'out' || ((!x.verdict || x.verdict === 'norule') && x.tone === 'concern'))) } : null; }).filter(Boolean) }))
+    .filter(x => x.answers.length);
+  return { name: items[0].counterparty || name, key, agreements: items.length, live: live.length, ends, value: money ? value : null,
+    duties: { ours: dutiesOurs, theirs: dutiesTheirs }, negotiated, facts, capped: items.length >= PARTY_BRIEF_MAX_CONTRACTS };
+}
+function partyBriefKept(key, hash) {
+  const r = db.prepare('SELECT * FROM party_briefs WHERE key=?').get(key);
+  if (!r) return { brief: null, stale: false };
+  const b = watchJson(r.json);
+  return { brief: b, stale: r.input_hash !== hash };
+}
+app.get('/api/parties/brief', auth, (req, res) => {
+  const F = partyFactsFor(req, req.query.name);
+  if (!F) return res.status(404).json({ error: 'No agreements with that party in your streams' });
+  const hash = sha(JSON.stringify(F)), kept = partyBriefKept(F.key + ':' + req.user.id, hash);
+  res.json({ facts: F, brief: kept.stale ? null : kept.brief, stale: kept.stale });
+});
+app.post('/api/ai/party-brief', auth, editor, rlAiDeep, aiFeature('partybrief'), aiBudgetGuard, async (req, res) => {
+  const F = partyFactsFor(req, (req.body || {}).name);
+  if (!F) return res.status(404).json({ error: 'No agreements with that party in your streams' });
+  /* kept per party AND per reader: two readers may see different streams, so one brief never carries another's facts */
+  const hash = sha(JSON.stringify(F)), bkey = F.key + ':' + req.user.id;
+  const kept = partyBriefKept(bkey, hash);
+  if (kept.brief && !kept.stale && !(req.body || {}).force) return res.json({ brief: kept.brief, calls: 0 });
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const facts = JSON.stringify(F);
+  const tool = { name: 'party_brief', description: 'A two-minute brief on one counterparty, for someone walking into a meeting with them.',
+    input_schema: { type: 'object', properties: { brief: { type: 'string', description: 'Four to six plain sentences: what we have with them, what ends next, what is owed, how they negotiate, and the one thing to watch. Only what the FACTS say; every figure copied from them.' } }, required: ['brief'] } };
+  const prompt = `Write a two-minute brief on the counterparty ${F.name} for a colleague walking into a meeting with them, via party_brief. Use ONLY the FACTS below (counted from our own records); never invent, never guess, never give legal advice, and copy every figure exactly as the FACTS give it. Plain, everyday sentences.\n\nFACTS:\n${facts}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 700, tools: [tool], tool_choice: { type: 'tool', name: 'party_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'partybrief', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo request failed: ' + String(resp.error || resp.status).slice(0, 200) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const text = String((block && block.input && block.input.brief) || '').trim().slice(0, 2000);
+    if (!text) return res.status(502).json({ error: 'Jambo gave no brief' });
+    /* EVERY FIGURE CHECKED: a number not in the facts is said beside the brief, never passed off as checked */
+    let unchecked = []; try { const { numbersOutside } = require('./boardjudge.js'); unchecked = numbersOutside(text, [facts, aiToday()].join(' ')) || []; } catch (_) { unchecked = []; }
+    const brief = { text, at: now(), by: req.user.name || '', unchecked, truncated: !!resp.truncated };
+    db.prepare('INSERT INTO party_briefs (key,input_hash,json,created_at) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json, created_at=excluded.created_at')
+      .run(bkey, hash, JSON.stringify(brief), brief.at);
+    res.json({ brief, calls: 1, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* A PERSON'S TICK: who checked this answer, and when. Anyone who may ask may
