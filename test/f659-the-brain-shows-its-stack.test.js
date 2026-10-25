@@ -95,7 +95,9 @@ describe('f659 (3) — every fixed fact the wording states is still true', () =>
     assert.doesNotMatch(YAML, /^\s*plan: free$/m, 'a paid plan: the wording says HaTi never sleeps');
     assert.match(YAML, /NODE_ENV[\s\S]{0,40}production/);
     assert.match(YAML, /buildCommand: npm install/); assert.match(YAML, /startCommand: npm start/);
-    assert.match(CI, /shard: \[1, 2, 3, 4\]/, 'browser checks split over 4 machines');
+    /* six machines since 25 Oct 2026 (the checks dealt by time, owner-asked "make them faster") */
+    assert.match(CI, /shard: \[1, 2, 3, 4, 5, 6\]/, 'browser checks split over 6 machines');
+    assert.match(I18N, /split over 6 machines/, 'the Brain says six');
     assert.match(CI, /eslint|npm run lint/, 'a proofreader for the code');
     assert.ok(fs.existsSync(path.join(ROOT, 'vendor', 'chart.umd.min.js')), 'Chart.js served by HaTi itself');
     assert.doesNotMatch(R('index.html'), /fonts\.googleapis\.com/, 'fonts served by HaTi itself');
