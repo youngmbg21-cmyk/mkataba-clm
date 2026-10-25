@@ -188,6 +188,14 @@ function pdTabCount(t, c){
     if (t === 'oblig'){ const n = Array.isArray(c.obligations) ? c.obligations.filter(Boolean).length : 0; return n ? { n, tone: 'quiet' } : null; }
     if (t === 'deal'){ const n = pdTheirOpen(c).length; return n ? { n, tone: 'warn' } : null; }
     /* Redlines: the Dossier's own Negotiate count (their asks waiting, our changes not sent) */
+    /* THEIR VIEW (owner's list, 25 Oct 2026, item 19): while the paper's switch says Their view the tab
+       counts what their column draws — the column's own "Redlines N" (rlOpenCardCount from their seat) —
+       quietly, since it is not our work; it said our unsent change too */
+    if (t === 'red' && pdRedTheirs(c) && typeof rlOpenCardCount === 'function'){
+      const hid = typeof rlHiddenFrom === 'function' ? [...rlHiddenFrom(c, 'counterparty')] : [];
+      const n = rlOpenCardCount(c, Object.assign({}, pdRedOpts(c), { hiddenIds: hid }));
+      return n ? { n, tone: 'quiet' } : null;
+    }
     if (t === 'red'){ const D = dossierOf(c); const n = ((D && D.owed) || []).filter(r => DOSSIER_STAGE_OF[r.kind] === 'nego').reduce((k, r) => k + dossierRowN(r), 0); return n ? { n, tone: 'warn' } : null; }
   } catch (_){}
   return null;
@@ -1255,10 +1263,17 @@ function pdRedPaper(id, o){
    ‹ Jambo in the panel's own row closes the face, as drawn; no caller was
    left. data-pd-rf-close is STALE with it. */
 /* the Negotiate page's own options, this host's repaint and root */
+/* THEIR VIEW TURNS THE PANEL TOO (owner, 25 Oct 2026: "when you press on their view, the paper should show
+   you the counterparty's live paper and the panel should show you their redlines panel … uneditable … the look
+   should be exactly like ours"): while the paper's switch says Their view, this face draws the same column
+   from their seat — the Negotiate page's own preview (rlBenchOpts side 'counterparty': our unsent drafts walled
+   off, readonly, no verbs) — with one quiet "view only" line over it (pdRedTheirsNoteHtml) */
+function pdRedTheirs(c){ return !!(c && typeof igTheirsOn === 'function' && igTheirsOn(c)); }
 function pdRedOpts(c){
+  const side = pdRedTheirs(c) ? 'counterparty' : 'owner';
   const base = (typeof rlBenchOpts === 'function')
-    ? rlBenchOpts(c, { side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
-    : { side: 'owner', hostId: 'pd-redface', rerender: pdRedRepaint };
+    ? rlBenchOpts(c, { side, hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
+    : { side, hostId: 'pd-redface', rerender: pdRedRepaint, readonly: side === 'counterparty' };
   /* ‹ Jambo is the panel's own row now (pdFaceTabHtml, round 9 as drawn) and
      the column's head carries no × (the drawing has none: ‹ Jambo closes);
      no progress pile beside the paper — the head says the round */
@@ -1270,7 +1285,14 @@ function pdRedOpts(c){
      the "Out for review" pile says it, with Remind and Cancel on its head
      (waitingInPile, round 9's gaps, third pass) */
   /* …and the Deal button beside Notes (owner, 23 Oct 2026: the Negotiate page's Deal board, simpler, in the middle) */
-  return Object.assign({}, base, { cpPanel: false, noProgress: true, waitingInPile: true, dealDoor: true });
+  /* their view: the note stands where our Send all row stands, on its own line under the title */
+  const theirs = side === 'counterparty' ? { headNote: pdRedTheirsNoteHtml(c) } : {};
+  return Object.assign({}, base, { cpPanel: false, noProgress: true, waitingInPile: true, dealDoor: true }, theirs);
+}
+/* the one note, not a band: a lock and one line, in the column's own small grey */
+function pdRedTheirsNoteHtml(c){
+  const who = (c && c.counterparty) || _pdT('rl_theirs_who');
+  return `<span class="pd-rf-theirs" data-pd-rf-theirs-note>${typeof icon === 'function' ? icon('lock', 'w-3.5 h-3.5') : ''}<span>${_pdE(_pdT('rl_theirs_note', { party: who }))}</span></span>`;
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -1294,7 +1316,9 @@ function pdRedFaceHtml(c){
   if (!/id="nego-send"/.test(col) && typeof negoTurnBannerHtml === 'function'){
     try { const m = String(negoTurnBannerHtml(c, o) || '').match(/<button id="nego-send"[\s\S]*?<\/button>/); if (m) send = `<div hidden data-pd-rf-send>${m[0]}</div>`; } catch (_){ send = ''; }
   }
-  const html = `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
+  const theirs = pdRedTheirs(c);
+  if (theirs){ notices = ''; send = ''; }
+  const html = `<div class="redline-page rl-face${theirs ? ' is-theirs' : ''}" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}"${theirs ? ' data-pd-rf-theirs' : ''}>${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
   _pdRedDrawn = { id: String(c.id), html };
   return html;
 }
@@ -1603,7 +1627,8 @@ function pdTalkKey(){
   try {
     if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return null;
     const face = (typeof hbFace === 'function') ? hbFace() : '';
-    if (face === 'calendar') return 'cal:week';
+    /* the New agreement sheet over the Calendar speaks in Jambo's own conversation, as over the Board (25 Oct 2026) */
+    if (face === 'calendar' && !(typeof naSheetUp === 'function' && naSheetUp())) return 'cal:week';
     const c = pdOnPaper() ? pdContract() : null;
     if (c) return 'dock:p:' + c.id + ':' + ((pdSendShows() ? 'send' : pdFaceNow()) || _pdTab);
     const held = pdHeldContract();
@@ -1681,8 +1706,11 @@ function pdTalkSync(dock){
   if (_pdTalk.stale && !(typeof intel === 'object' && intel && intel.busy)) _pdTalk.stale = false;
   _pdTalk.last = len;
   if (k.indexOf('dock:') !== 0) return false;
-  /* ONE WINDOW (pdSolo): the conversation is already the panel, nothing to turn to */
-  if (pdSolo()){ _pdTalk.seen = len; _pdTalk.quiet = false; if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
+  /* ONE WINDOW (pdSolo): the conversation is already the panel, nothing to turn to. Words said in it are OWED a
+     turn should the same page stop being solo (a sentence typed on the wall brings the one sheet): the panel then
+     turns to the conversation, his line of what he read beside the sheet (one-sheet-as-drawn 0, 2b, 14, 16). A new
+     page (a contract, another face) lands fresh: jamboTalkLand starts a new _pdTalk, the debt with it */
+  if (pdSolo()){ if (len > _pdTalk.seen) _pdTalk.owed = true; _pdTalk.seen = len; _pdTalk.quiet = false; if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
   /* NOTHING SAID HERE, NO CONVERSATION VIEW (19 Oct 2026): a conversation
      cleared under an open view puts the landing back — an empty talk is never
      what the panel shows (home-held-contract-verify 3g) */
@@ -1702,7 +1730,7 @@ function pdTalkSync(dock){
     /* held until his first words for it are said (firstDraftOwed), so they too wait in his tab */
     { const c0 = pdContract(); if (!(c0 && typeof firstDraftOwed === 'function' && firstDraftOwed(c0))) _pdLandDossier = false; }
     if (jamboTalkShows(k) && typeof jamboTalkClose === 'function') jamboTalkClose(); return false; }
-  if (len > _pdTalk.seen){ _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
+  if (len > _pdTalk.seen || _pdTalk.owed){ _pdTalk.owed = false; _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
   return jamboTalkShows(k);
 }
 /* the next paper to land on Home opens on its Dossier, not on the conversation (the one sheet's Create) */
@@ -2075,7 +2103,9 @@ function pdRoadRuleHtml(c, r){
   const movedHtml = (hasMoved && _pdRdMoved === 'rule') ? pdRoadMovedHtml(moved) : '';
   /* the approval email's link and Needs you land on the first yes this reader may give (#sa-card) */
   const id = (st === 'pending' && r.mine && !_pdRdId) ? (_pdRdId = true, ' id="sa-card"') : '';
-  return `<div class="pd-rd-card sa-card"${id} data-pd-rd-rule-card="${_pdE(st)}">${states}${standin}${facts ? `<p class="pd-rd-facts">${_pdE(facts)}</p>` : ''}${
+  /* WHAT YOU ARE APPROVING (Discover stage 8): the approver's own stop carries the card, above Approve · Refuse */
+  const what = (st === 'pending' && r.mine && typeof apWhatHtml === 'function') ? apWhatHtml(c) : '';
+  return `<div class="pd-rd-card sa-card"${id} data-pd-rd-rule-card="${_pdE(st)}">${states}${standin}${facts ? `<p class="pd-rd-facts">${_pdE(facts)}</p>` : ''}${what}${
     acts.length ? `<div class="pd-rd-acts">${acts.join('')}</div>` : ''}${movedHtml}</div>`;
 }
 function pdRoadMovedHtml(moved){
@@ -3174,7 +3204,8 @@ function pdHeadHtml(brain){
      as a tab after Jambo's, one press back (round 11's gaps, second pass) */
   /* (Round 3, owner's yes 24 Oct 2026) the waiting letter's tab is the paper's: gone to the Board, the Calendar or a
      contract's History, the panel's tabs are that page's, never squeezed by a face left behind */
-  const sendBack = (pdSendHeld() && !pdSendShows() && pdOnPaper()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
+  /* SHORT WORDS (owner's pick, 25 Oct 2026: "Before y…" on the iPad): the tab says "Send", its hover and the trail line the whole name */
+  const sendBack = (pdSendHeld() && !pdSendShows() && pdOnPaper()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT('pd_face_w_send_tab'))}</span></button>` : '';
   return tabs.map(t => {
     const name = t === 'copilot' ? pdLandName() : _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
@@ -3316,8 +3347,10 @@ function pdWallHelloHtml(){
   const say = _pdT(pdDropMay() ? 'pd_wall_hello' : 'pd_wall_hello_view', { greet, name: first });
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
   /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for, never the wall's greeting */
+  /* ...after his greeting, with what he can do there (owner, 25 Oct 2026: the empty panel said one line) */
   if (typeof naSheetUp === 'function' && naSheetUp())
-    return `<div class="ai-msg flex gap-2 pd-sheet-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(_pdT('ca_go_draft'))}</div></div></div>`;
+    return `${typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : ''}<div class="ai-msg flex gap-2 pd-sheet-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(_pdT('ca_go_draft'))}</div>
+      <p class="jl-next-h pd-sheet-can-h">${_pdE(_pdT('ca_go_draft_can_h'))}</p><ul class="pd-sheet-can">${['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => `<li>${_pdE(_pdT(k))}</li>`).join('')}</ul></div></div>`;
   return `<div class="ai-msg flex gap-2 pd-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(say)}</div></div></div>`;
 }
 function pdDropInner(){
@@ -3822,6 +3855,8 @@ function dossierReadHtml(c, D){
   if (R.blanks){ const b = R.blanks;
     rows.push(row('blanks', _pdT('dos_k_blanks'), `${b.total} · ` + _pdT('dos_k_blanks_f', { f: b.filled }), b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }
   /* SPINE: the card stands under the Read stage, whose line carries "Read again" (dossierStagesHtml) */
+  /* UNUSUAL FOR YOU (Discover stage 6): a company fact that stands apart from this kind of contract in the book, counted free */
+  if (typeof askColOddHtml === 'function') rows.push(askColOddHtml(c));
   return `<div class="pd-glance ds-card ds-read" data-ds-at="read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_head'))}</b><span class="pd-gl-sp"></span></div><div class="pd-gl-b">${rows.join('')}</div></div>`;
 }
 function dossierOwedHtml(c, D, o){
@@ -4132,7 +4167,11 @@ function pdCkSignerSay(c){
   const me = (typeof currentUser === 'function' && currentUser()) || null;
   const them = (typeof counterpartyContact === 'function' ? counterpartyContact(c) : null) || {};
   const tn = them.name && !(typeof signerIsCompany === 'function' && signerIsCompany(c, { party: 'counterparty', name: them.name })) ? them.name : '';
-  return [me && me.name, tn].filter(Boolean).map(short).join(' · ');
+  /* ONE PERSON IS NAMED ONCE (owner's list, 25 Oct 2026, item 20: "Young M. · Young M."): where the other
+     side's contact is the reader themself — a link sent to their own address — the line names them once */
+  const same = !!(me && tn && (String(tn).trim().toLowerCase() === String(me.name || '').trim().toLowerCase()
+    || (them.email && me.email && String(them.email).trim().toLowerCase() === String(me.email).trim().toLowerCase())));
+  return [me && me.name, same ? '' : tn].filter(Boolean).map(short).join(' · ');
 }
 /* THE SIGNERS, NAMED (the Checklist's 1a and 1b, 22 Oct 2026): once the route names people the row
    is green and says how many and in how many steps; opened, the route in order — the step number,
@@ -4612,6 +4651,7 @@ function pdKtMidHtml(c){
     <div id="pd-kt-under" class="pd-kt-under"><div class="pd-kt-file" data-pd-kt-file="${_pdE(c.id)}">${pdKtFileHtml(c)}</div>
       <div class="pd-kt-rec" data-pd-kt-rec="${_pdE(c.id)}">${pdKtRecHtml(c)}</div></div>
     <div class="pd-kt-card"><div id="pd-kt" class="pd-kt" data-pd-og-for="${_pdE(c.id)}"><table class="pd-og pd-kt-t pd-kt-lg">${pdKtLgRowsHtml(c, rows)}</table></div>${pdKtAddPartyHtml(c)}</div>
+    <div class="pd-kt-card fa-kt-card" data-ac-facts-for="${_pdE(c.id)}">${typeof askColFactsKtHtml === 'function' ? askColFactsKtHtml(c) : ''}</div>
   </div>`;
 }
 /* A POP-UP OPENED FROM KEY TERMS COMES BACK TO IT (as Who else is on this agreement does): the
@@ -5706,6 +5746,9 @@ function pdJamboTopHtml(){
      paper chosen on the wall (round 13), a contract brought up as a page
      (round 7) or its History (round 12) — Jambo says that contract */
   const held = pdHeldTopHtml(); if (held != null) return held;
+  /* THE ONE SHEET IS UP, WHATEVER FACE IS BEHIND IT (the detail round, 25 Oct 2026: over the Board the panel
+     drew the Board's greeting, which the sheet stands down, and so stood empty): he says what the sheet is for */
+  if (typeof naSheetUp === 'function' && naSheetUp() && !pdOnPaper()) return pdWallHelloHtml();
   /* ON THE BOARD: his greeting says the book and where the owed work went
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
@@ -5714,7 +5757,11 @@ function pdJamboTopHtml(){
      Contracts list his panel holds the question, then the answers' why */
   const ac = (!c && typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
   /* THE CHECKLIST'S ORDER: stage, Needs you, Jambo read, Next acts, then Key terms and the folds */
-  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || pdWallHtml());
+  /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
+  /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
+  const disc = (!c && !ac && typeof askColDiscoverHtml === 'function') ? askColDiscoverHtml() : '';
+  const lead = disc && typeof askColDiscoverLeads === 'function' && askColDiscoverLeads();
+  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || (lead ? disc + pdWallHtml() : pdWallHtml() + disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll
@@ -5774,6 +5821,9 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       if (typeof stAskDirect === 'function') stAskDirect('playbook', _pdT('ng_plan_ask_what', { cat }), c ? _pdT('ng_plan_ask_why', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }) : '');
       return; }
     /* a point's Send: the card's own Send in the Redlines column beside it — the one door; else its clause */
+    /* a point they asked something on opens to compare both wordings whole (option 2, 25 Oct 2026) */
+    const dtg = t.closest('[data-deal-toggle]');
+    if (dtg){ e.preventDefault(); if (typeof dealRowToggle === 'function') dealRowToggle(dtg.getAttribute('data-deal-toggle')); pdDealRepaint(); return; }
     const dsd = t.closest('[data-deal-send]');
     if (dsd){ e.preventDefault(); const own = document.querySelector(`#ig-dock [data-rl-send="${CSS.escape(dsd.getAttribute('data-deal-send'))}"]`);
       if (own && !own.disabled){ own.click(); return; }

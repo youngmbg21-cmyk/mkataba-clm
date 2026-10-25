@@ -1916,7 +1916,7 @@ function regCtFootHtml(cs){
   const say=esc(i18tn('reg_foot_n',n,{n:n.toLocaleString(jxLocale())}))+(live!==n&&!regNarrowed()?' · '+esc(i18tn('ngl_n_live',live,{n:live.toLocaleString(jxLocale())})):'');
   const fam=familyCounts(list);
   const famNote=fam.amendments?`<span class="lh-extra"> · ${i18tn('reg_agreements',fam.agreements,{n:B(fam.agreements.toLocaleString(jxLocale()))})} · ${i18t('reg_documents',{n:B(fam.documents.toLocaleString(jxLocale()))})}</span>`:'';
-  return lhFootHtml(REG_CT_SEAT, shown, n, REG_PAGE, { id:'reg-showing', extra:total+famNote, say });
+  return lhFootHtml(REG_CT_SEAT, shown, n, REG_PAGE, { id:'reg-showing', extra:total+famNote+(typeof window.askColLegendHtml==='function'?askColLegendHtml():''), say });
 }
 /* THE PLACE'S WIDTHS, BY KEY (Part 8): the seat's own shares — the place's
    full set, its narrow set, or the answers' shape while Ask a column stands

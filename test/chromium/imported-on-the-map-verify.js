@@ -1,5 +1,5 @@
 /* "SHOW ME WHICH CONTRACTS WERE IMPORTED", ON EXPLORER, IN A REAL BROWSER
-   (owner-reported 18 Oct 2026, off an iPad screenshot; f730 pins the parts)
+   (owner-reported 18 Oct 2026, off an iPad screenshot; f919 pins the parts)
 
    The owner asked Explorer's Jambo which contracts were imported. The map
    regrouped by origin and kept every contract; the panel said "these 24

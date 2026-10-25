@@ -399,6 +399,8 @@ function lhAsk(seat, words){
   const t = String(words == null ? '' : words).trim();
   if (!t) return false;
   const pg = _lhPage(seat) || {};
+  /* a question of the WORDING on the Contracts list opens Ask a column's form, filled (Discover stage 2: one door to a read) */
+  if (typeof window !== 'undefined' && typeof window.askColTakes === 'function' && window.askColTakes(seat, t)) return 'page';
   if (typeof pg.ask === 'function') return pg.ask(t) === false ? _lhBusySay() : 'page';
   const here = (typeof aiEmbeddedHere === 'function') ? aiEmbeddedHere() : null;
   if (here === 'list' && typeof jlAsk === 'function'){

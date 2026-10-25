@@ -141,6 +141,21 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
     check('3 each row sits in its reading\'s group, our unsent draft carries Send, the memo copies the plan',
       d3.same && d3.sendOnUnsent && d3.memo.length > 3 && /to close before/.test(d3.memo.join(' ')), d3);
 
+    /* 3b — a point they asked on opens on its name to both wordings whole, and closes again (owner, 25 Oct 2026: "Both") */
+    const tg = await page.$('#modal-root [data-deal-toggle]');
+    if (tg) await tg.click();
+    const opened = await waitFor(page, () => !!document.querySelector('#modal-root .deal-pr.is-open .deal-cmp'), 4000);
+    const d3b = await page.evaluate(() => { const r = document.querySelector('#modal-root .deal-pr.is-open'); const card = document.querySelector('#modal-root .deal-mid');
+      const cr = card && card.getBoundingClientRect(), b = r && r.querySelector('.deal-cmp'), br = b && b.getBoundingClientRect();
+      return { words: r ? r.querySelectorAll('.deal-cmp .deal-w').length : 0, inside: !!(br && cr && br.left >= cr.left - 1 && br.right <= cr.right + 1),
+        expanded: r ? r.querySelector('[data-deal-toggle]').getAttribute('aria-expanded') : null }; });
+    await page.screenshot({ path: path.join(OUT, '3b-compare.png') });
+    const tg2 = await page.$('#modal-root [data-deal-toggle]');
+    if (tg2) await tg2.click();
+    const shut = await waitFor(page, () => !document.querySelector('#modal-root .deal-cmp'), 4000);
+    check('3b a point they asked on opens on its name to both wordings whole, inside the card, and closes on a second press',
+      !!tg && opened && d3b.words === 2 && d3b.inside && d3b.expanded === 'true' && shut, { d3b, opened, shut });
+
     /* 4 — ‹ Dossier */
     const back = await page.$('[data-dlg-page] [data-pd-deal-back]');
     if (back) await back.click();

@@ -2960,6 +2960,18 @@ function tplPfMarkPlace(sheet, sec){
   let top = sec.el; while (top.parentNode && top.parentNode !== sheet) top = top.parentNode;
   return { parent:top.parentNode || sheet, before:null };
 }
+/* the same reading as tplPfMarksPaint, of any sheet, painting nothing — the
+   template's own page asks it for Jambo's lines (25 Oct 2026) */
+function tplPfReadOf(card, sheet){
+  if (!card) return null;
+  if (!sheet || typeof tbCoverageOf !== 'function') return { key:tplPfKey(card), cov:null, st:tplPfStats(card), secs:[], marks:[], loose:[] };
+  const secs = tplPfSheetSections(sheet);
+  const list = secs.map((x, i) => ({ head:x.head, text:x.text, s:i }));
+  const cov = tbCoverageOf(list, tplPfBookKey(card));
+  const st = tplPfStats(card);
+  const r = tbMarksOf(list, cov, st.byCat);
+  return { key:tplPfKey(card), cov, st, secs:secs.map(x => ({ no:x.no, head:x.head })), marks:r.marks, loose:r.loose };
+}
 function tplPfMarksPaint(card){
   const sheet = document.querySelector('[data-tpl-sec="book"] .tpl-pf-sheet');
   if (!sheet || !card || typeof tbCoverageOf !== 'function'){ _tplPf.read = card ? { key:tplPfKey(card), cov:null, st:tplPfStats(card), secs:[], marks:[], loose:[] } : null; return _tplPf.read; }
@@ -3030,10 +3042,13 @@ function tplPfChips(card, read){
   if (st && st.changed) out.push({ label:i18t('lib_pf_c_where'), run:() => { if (typeof landOn === 'function') landOn('[data-tpl-sec="book"] .tpl-mk.is-changed', { block:'center', missing:i18t('lib_pf_c_where_none') }); } });
   return out.filter(Boolean);
 }
-function tplPfJamboHtml(card, read){
+function tplPfJamboHtml(card, read, o){
   const chips = _tplPf.chips = tplPfChips(card, read);
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt') : '';
-  return `<div class="jl-words tpl-pf-jl" data-tpl-pf-jl="${_tplEsc(tplPfKey(card))}"><div class="jl-say">${face}<div class="jl-bub">${tplPfSaid(card, read).map(l => `<p>${l}</p>`).join('')}</div></div>
+  /* the template's own page hands its description in (it left the page's head, 25 Oct 2026) */
+  const lines = tplPfSaid(card, read);
+  if (o && o.desc) lines.splice(1, 0, _tplEsc(o.desc));
+  return `<div class="jl-words tpl-pf-jl" data-tpl-pf-jl="${_tplEsc(tplPfKey(card))}"><div class="jl-say">${face}<div class="jl-bub">${lines.map(l => `<p>${l}</p>`).join('')}</div></div>
     ${chips.length ? `<p class="jl-next-h">${_tplEsc(i18t('lib_pf_next'))}</p><div class="jl-chips is-flush">${chips.map((c, i) => `<button type="button" class="jl-chip" data-tpl-pf-chip="${i}">${_tplEsc(c.label)}</button>`).join('')}</div>` : ''}</div>`;
 }
 /* what Jambo says of the page, once the template is let go (‹ Jambo) */
@@ -3052,7 +3067,7 @@ function tplPfPanelPaint(){
   const base = { seat:'tpl-book', jlPh:i18t('jl_ph_any'), jlHome:i18t('nav_tpl_std'), jlSay:() => tplPfPageSay(d) };
   if (!card || insLetGone('tpl-book')){ insPaintPanel(Object.assign(base, { c:null, item:null })); return; }
   const read = _tplPf.read && _tplPf.read.key === tplPfKey(card) ? _tplPf.read : null;
-  insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, jlWord:card.name, body:tplPfJamboHtml(card, read), acts:[] }));
+  insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, solo:true, jlWord:card.name, body:tplPfJamboHtml(card, read), acts:[] }));
 }
 /* the head's facts: "24 templates · 41 contracts drafted from them in 12
    months · 9 came back changed" — the same tally the index rows print */
@@ -3399,7 +3414,7 @@ function renderTemplatesPage(){
      emptied the shell's subtitle never reached it; a tab row with a .st-tabsub
      under it would put the same sentence back one line lower. */
   document.getElementById('content').innerHTML=`
-  <div class="view-enter sap-page tpl-page" style="padding:var(--page-pad)">
+  <div class="view-enter sap-page tpl-page" style="padding:var(--page-pad);padding-bottom:var(--tpl-pb,var(--page-pad))">
     <div class="sap-band tpl-band ph-card">
     ${''/* the card's title row (.ph-top, 19 Oct 2026): the 12px and the hairline
            under it are the one rule every head card wears, so the tabs stand
@@ -4625,4 +4640,4 @@ function sdWire(d, mayEdit){
 Object.assign(window,{tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfReadOf,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

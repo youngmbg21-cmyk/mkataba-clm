@@ -264,6 +264,45 @@ function precedentLine(p){
   return i18tn('pc_hist_held',them,v);
 }
 
+/* ---- NEGOTIATION MEMORY ON THEIR ROW AND IN THE CLAUSE EDITOR (Discover
+   stage 7, owner 25 Oct 2026: "1 round with the party · 3 across the book") ----
+   For one of THEIR pending asks: what this party settled on the same topic
+   before (one settled round of theirs is enough to say), else what the whole
+   book settled (only from PRECEDENT_MIN rounds), as the sentence precedentLine
+   already writes; and the WORDING last agreed on that topic — with this party
+   first, else anyone, once the book holds PRECEDENT_MIN settled rounds — for
+   the editor's "What worked before" card. Counted, never read by a model;
+   null where nothing is known. Our seat only: the counterparty never sees it. */
+function precedentMemoryOf(c, ch){
+  if(!c||!ch||ch.authorSide!=='counterparty'||ch.status!=='pending'||ch.withdrawn||ch.superseded) return null;
+  const p=precedentForChange(c, ch); const t=precedentTopicOf(ch);
+  if(!p||!t) return null;
+  const them=s=>s?(s.theirs.accepted+s.theirs.refused):0;
+  const withThem=p.withThem&&them(p.withThem)>=1;
+  const book=p.everyone&&them(p.everyone)>=PRECEDENT_MIN;
+  const line=withThem?precedentLine({ ...p, everyone:null }):book?precedentLine({ ...p, withThem:null }):'';
+  /* the wording last agreed on this topic: this party first (one is enough), else anyone (from the floor) */
+  const who=String(c.counterparty||'').trim().toLowerCase();
+  const cs=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
+  let mine=null, any=null, anyN=0;
+  for(const o of cs){
+    if(!o||String(o.id)===String(c.id)||!Array.isArray(o.changes)) continue;
+    const same=who&&String(o.counterparty||'').trim().toLowerCase()===who;
+    for(const x of o.changes){
+      if(precedentOutcome(x)!=='accepted') continue;
+      const tx=precedentTopicOf(x); if(!tx||tx.key!==t.key) continue;
+      const text=String(x.newText||'').trim(); if(!text) continue;
+      const at=x.updatedAt||x.createdAt||'';
+      const hit={ text, contractId:o.id, ref:(window.contractRef?contractRef(o):o.id), counterparty:o.counterparty||'', at, side:x.authorSide==='counterparty'?'theirs':'ours' };
+      anyN++;
+      if(same&&(!mine||at>mine.at)) mine=hit;
+      if(!any||at>any.at) any=hit;
+    }
+  }
+  const wording=mine||(anyN>=PRECEDENT_MIN?any:null);
+  if(!line&&!wording) return null;
+  return { topic:t.key, category:t.category, line, wording, withThem:!!mine };
+}
 Object.assign(window,{PRECEDENT_TOPICS,precedentFigure,PRECEDENT_MIN,PRECEDENT_EXAMPLES,PRECEDENT_SETTLED,
   precedentTopicByKey,precedentTopicOf,precedentOutcome,precedentMine,
-  precedentSuggestions,precedentForChange,precedentLine});
+  precedentSuggestions,precedentForChange,precedentLine,precedentMemoryOf});

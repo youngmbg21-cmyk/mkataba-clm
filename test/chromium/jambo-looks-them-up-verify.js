@@ -123,10 +123,14 @@ const TEXT = [
       const ppl = document.querySelector('#ig-dock tr[data-pd-og-row="people"]');
       const b = r.getBoundingClientRect(); const at = document.elementFromPoint(b.left + 30, b.top + b.height / 2);
       return { text: r.innerText.replace(/\s+/g, ' ').trim(), painted: !!(at && r.contains(at)),
-        afterPeople: !!(ppl && ppl.nextElementSibling === r), h: Math.round(b.height), hp: ppl ? Math.round(ppl.getBoundingClientRect().height) : 0 };
+        afterPeople: !!(ppl && ppl.nextElementSibling === r), h: Math.round(b.height), hp: ppl ? Math.round(ppl.getBoundingClientRect().height) : 0,
+        hs: (() => { const sg = document.querySelector('#ig-dock tr[data-pd-og-row="signers"]'); return sg ? Math.round(sg.getBoundingClientRect().height) : 0; })() };
     }, ROW, null);
     check(!!(row && row.painted && /On the web/.test(row.text) && /Not looked up yet/.test(row.text)), '1b painted, and it says nothing is kept yet', row);
-    check(!!(row && row.afterPeople && row.h === row.hp), '1c right after Who else, the same height', row && { afterPeople: row.afterPeople, h: row.h, hp: row.hp });
+    /* RE-POINTED 25 Oct 2026 (the owner picked "Two lines"): "Who else is on this agreement" may take a second
+       line, so the web row is measured against a one-line door row (the Signer's), and Who else against it as one
+       line or two (owner's pick: a door row's name takes two lines before "…") */
+    check(!!(row && row.afterPeople && row.h === row.hs && (row.hp === row.hs || row.hp === row.hs + 20)), '1c right after Who else, a door row of the same dress (one line as the Signer\'s; Who else one or two lines)', row && { afterPeople: row.afterPeople, h: row.h, hp: row.hp, hs: row.hs });
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-dossier-line.png') });
     await drive(s => document.querySelector(s + ' [data-pd-web]').click(), ROW, null);
     const dlg = await until(P, () => !!document.querySelector('.pw-dlg [data-pw-go]'), null, 5000);

@@ -862,6 +862,8 @@ function contractArrived(c, opts){
      claimed the same way — but the owner's 9 Sep ruling stands: NO BOX MEANS
      NO READING. `read:false` is that box left unticked. */
   if (o.read === false) return false;
+  /* THE COMPANY'S FACTS ARE READ ON ARRIVAL (Discover stage 4): one read for every fact that is on, cached per wording */
+  if (!o.elsewhere && typeof window !== 'undefined' && typeof window.askColFactsArrive === 'function'){ try { window.askColFactsArrive(c); } catch (_){ /* said in the facts panel */ } }
   if (typeof triageAndPaint !== 'function') return false;
   if (!triageApplies(c)) return false;
   /* a ticked box (or the drop area, which reads by design and says its cost)

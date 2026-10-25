@@ -87,7 +87,7 @@ describe('f878 (2) the page draws the reading', () => {
     assert.match(f, /dealPlanFacts\(c, side\)/);
     assert.match(f, /id="deal-road"/);
     assert.match(f, /data-deal-grp="\$\{k\}"/);
-    assert.match(f, /class="deal-pr" data-deal-row=/);
+    assert.match(f, /class="deal-pr\$\{cmp \? ' is-open' : ''\}" data-deal-row=/);
     assert.doesNotMatch(f, /deal-tab/);
     assert.doesNotMatch(NG, /DEAL_TABS|dealTabSet/);
   });
@@ -99,6 +99,12 @@ describe('f878 (2) the page draws the reading', () => {
     assert.match(NG, /dm \? dealPlanMemoText\(mc\) : rlBoardMemoText\(mc\)/);
     assert.match(fnRegion(PD, 'pdDealOpen'), /acts: \['deal-road'\]/);
     assert.match(fnRegion(PD, 'pdDealOpen'), /cr\.appendChild\(memo\)/);
+  });
+  test('2d a point they asked on opens on its name to compare both wordings (option 2, kept in the plan)', () => {
+    const f = fnRegion(NG, 'dealViewHtml');
+    assert.match(f, /data-deal-toggle="\$\{_nea\(r\.clauseId\)\}"/);
+    assert.match(f, /class="deal-cmp"/);
+    assert.match(f, /rlChangeWordingHtml\(ch, \{ side, changedOnly: true \}\)/);
   });
 });
 

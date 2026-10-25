@@ -853,7 +853,7 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     const offered = [...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai'));
     /* Joined rather than deep-compared: the page's array is built in its own
        realm, so its prototype is not this realm's Array and a deep compare
-       reports a mismatch on two identical lists (the same trap f60 documents). */
+       reports a mismatch on two identical lists (the same trap f916 documents). */
     assert.equal(offered.join(','), p.win.RL_SEL_ACTIONS.map(a => a.id).join(','),
       'the menu must be built from the workbench\'s action list, not a second copy');
   });

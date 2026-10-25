@@ -802,10 +802,16 @@ function insPaintPanel(o){
   const jl = host.id === 'ins-panel' && !opt.plain;
   opt._jl = jl;
   /* ONE WINDOW (owner, 24 Oct 2026): nothing chosen, the panel is only his words — the conversation is the panel */
-  if (jl) host._jlSolo = !(c || item);
+  /* AN ITEM SAID IN HIS OWN WORDS IS ONE WINDOW TOO (owner, 25 Oct 2026, "this
+     page does not need an overview page"): `solo` puts the item's lines under
+     his greeting, no Overview tab and no name tab — Our paper's chosen
+     template and the template's own page */
+  const soloItem = jl && !c && !!item && !!opt.solo;
+  if (jl) host._jlSolo = !(c || item) || soloItem;
   const body = jl ? jlFrame(host, opt) : host;
-  if (jl) jlHeadPaint(host, opt, !!(c || item));
+  if (jl) jlHeadPaint(host, opt, !!(c || item) && !soloItem);
   if (jl && !c && !item){ body.innerHTML = ''; jlGreetPut(host, jlWordsHtml(opt)); }
+  else if (soloItem){ body.innerHTML = ''; jlGreetPut(host, opt.body || ''); }
   else { if (jl) jlGreetPut(host, '');
   body.innerHTML = c ? insPanelHtml(c, opt)
     /* `head:false` — an item said in Jambo's own words, no head of facts
@@ -813,7 +819,7 @@ function insPaintPanel(o){
     : item ? ((opt.head === false ? '' : insItemHeadHtml(opt.head || {})) + (opt.body || ''))
     : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty); }
   /* his conversation, where it was asked here, is said under his words */
-  if (jl && !c && !item && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
+  if (jl && ((!c && !item) || soloItem) && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
     try { renderAIFeed(!!ai.busy); if (ai.unread){ ai.unread = false; if (typeof updateAIBadge === 'function') updateAIBadge(); } } catch (_){}
   }
   const selId = c ? c.id : (item ? String(item.id == null ? '' : item.id) : '');
@@ -1696,7 +1702,7 @@ function jlPopRead(inp){
 function jlPopPaint(){
   const el = document.querySelector('[data-jl-pop]'); if (!el || !_jlPop) return;
   el.innerHTML = `<h5>${esc(i18t('hb_pop_places'))}</h5><div role="listbox">${_jlPop.rows.map((r, i) =>
-    `<div class="ca-opt${i === _jlPop.on ? ' on' : ''}" role="option" aria-selected="${i === _jlPop.on}" data-jl-pop-row="${i}"><span class="who"><b>${esc(r.word)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span></div>`).join('')}</div><p class="ca-hint">${esc(i18t('hb_pop_keys'))}</p>`;
+    `<div class="ca-opt${i === _jlPop.on ? ' on' : ''}" role="option" aria-selected="${i === _jlPop.on}" data-jl-pop-row="${i}"><span class="who"><b>${esc(r.word)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span>${typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`).join('')}</div><p class="ca-hint">${esc(i18t('hb_pop_keys'))}</p>`;
   el.hidden = false;
 }
 function jlPopClose(){ _jlPop = null; const el = document.querySelector('[data-jl-pop]'); if (el){ el.hidden = true; el.innerHTML = ''; } }

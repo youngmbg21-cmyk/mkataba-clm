@@ -147,6 +147,9 @@ function deskPageName(){
   /* THE BUILDER IS ITS OWN PAGE (round 21 draws its tab "Builder"; lane D,
      19 Oct 2026): it paints over the page it was opened from without a view
      of its own, so the bar asks it before the page underneath */
+  /* A TEMPLATE'S OWN PAGE IS OUR PAPER'S (owner, 25 Oct 2026): it paints
+     without a view of its own, so the bar asks it too — it said "Builder" */
+  if (typeof document !== 'undefined' && document.getElementById('tpl-dt')) return _cnT('nav_tpl_std');
   if (typeof window !== 'undefined' && typeof window.tbOnScreen === 'function' && window.tbOnScreen()) return _cnT('tb_jl_word');
   const k = deskKeyNow();
   if (!k) return (typeof state !== 'undefined' && state && state.view === 'counter') ? _cnT('dk_counter') : '';
@@ -927,14 +930,29 @@ function ndBoardHtml(opts){
   const tab = (k, n) => `<button type="button" class="nd-tab${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${_cnE(_cnT('nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
-  return `<section class="hb-card nd-card" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${B.n ? `<span class="hb-cs nd-home-shows">${_cnE(_cnT('nd_home_shows', { n: home }))}</span>` : ''}</header>`
-    + `<div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndThings(B.you))}${tab('jambo', ndThings(B.jambo))}</div>`
+  const folded = ndFolded();
+  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${B.n && !folded ? `<span class="hb-cs nd-home-shows">${_cnE(_cnT('nd_home_shows', { n: home }))}</span>` : ''}${ndFoldBtnHtml(folded)}</header>`
+    + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndThings(B.you))}${tab('jambo', ndThings(B.jambo))}</div>`
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
     + (jamboOn && o.chase ? o.chase : '')
     + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
-    + `<div class="nd-rows" id="nd-rows">${ndBoardRowsHtml(D, o)}</div>${o.foot || ''}</section>`;
+    + `<div class="nd-rows" id="nd-rows">${ndBoardRowsHtml(D, o)}</div>${o.foot || ''}</div></section>`;
 }
+/* ---- THE CARD FOLDS TO ITS HEAD (owner, 25 Oct 2026: "add the ability for the needs you card to be able to be
+   minimized") ----
+   Hide on the card's own head line folds everything under it away, as the Insights card beside it does (the same
+   button, the same words, the same store: the Board's own state, hbS().ndFold, kept for this person by hbSave).
+   The head keeps the title and how many things wait, so nothing owed drops out of the count; Show opens it again
+   (PRESS IT AGAIN AND IT CLOSES). Every door that sends you to the card (Show all N, Look, the bell's row) opens
+   it first, so a door always lands on rows (ndShow). No band, no second door. The phone has no card to fold. */
+function ndFolded(){ try { return typeof window.hbS === 'function' && !!hbS().ndFold; } catch (_){ return false; } }
+function ndFoldSet(on){ try { if (typeof window.hbS !== 'function') return; const st = hbS(); if (!!st.ndFold === !!on) return; st.ndFold = !!on; if (typeof window.hbSave === 'function') hbSave(); } catch (_){} }
+function ndFoldBtnHtml(folded){
+  return `<button type="button" class="hb-btn is-sm nd-fold" data-nd-fold aria-expanded="${!folded}" aria-controls="nd-main" aria-label="${_cnE(_cnT(folded ? 'nd_fold_open' : 'nd_fold_shut'))}">${_cnE(_cnT(folded ? 'hb_ins_show' : 'hb_ins_hide'))}</button>`;
+}
+/* fold or open, then the Board draws the card again (its head's words follow the fold) */
+function ndFoldApply(on){ ndFoldSet(!!on); ndBoardRepaint(); return true; }
 /* the find box narrows the rows only: the box being typed in is never redrawn */
 function ndRowsRepaint(){
   const el = document.getElementById('nd-rows'); if (!el) return;
@@ -945,6 +963,8 @@ function ndBoardRepaint(){ if (typeof hbPaintBoard === 'function') try { hbPaint
 /* "Show all N" and Look from Home, and every door onto the card: the Board,
    the tab named, the row named in view (twelve more at a time until it is) */
 function ndShow(tab, key){
+  /* a door onto the card lands on its rows: a folded card is opened first */
+  if (ndFolded()) ndFoldSet(false);
   _nd = { tab: ['all', 'you', 'jambo'].includes(tab) ? tab : 'all', kind: 'any', q: '', more: 0 };
   if (key){ const L = ndBoardList(ndRead()); const i = L.findIndex(r => r.key === key || (r.it && r.it.key === key)); if (i >= ND_PAGE) _nd.more = Math.floor(i / ND_PAGE); }
 }
@@ -1072,7 +1092,7 @@ function counterPopRead(inp){
 function counterPopPaint(){
   const el = document.getElementById('cn-pop'); if (!el || !_cnPop) return;
   el.innerHTML = `<h5>${_cnE(_cnT('hb_pop_places'))}</h5><div role="listbox">${_cnPop.rows.map((r, i) =>
-    `<div class="ca-opt${i === _cnPop.on ? ' on' : ''}" role="option" aria-selected="${i === _cnPop.on}" data-cn-pop="${i}"><span class="who"><b>${_cnE(r.word)}</b>${r.sub ? `<small>${_cnE(r.sub)}</small>` : ''}</span></div>`).join('')}</div><p class="ca-hint">${_cnE(_cnT('hb_pop_keys'))}</p>`;
+    `<div class="ca-opt${i === _cnPop.on ? ' on' : ''}" role="option" aria-selected="${i === _cnPop.on}" data-cn-pop="${i}"><span class="who"><b>${_cnE(r.word)}</b>${r.sub ? `<small>${_cnE(r.sub)}</small>` : ''}</span>${typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`).join('')}</div><p class="ca-hint">${_cnE(_cnT('hb_pop_keys'))}</p>`;
   el.hidden = false;
 }
 function counterPopClose(){ _cnPop = null; const el = document.getElementById('cn-pop'); if (el){ el.hidden = true; el.innerHTML = ''; } }
@@ -1111,6 +1131,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
       let r = null; try { r = ndRead().you.find(x => x.key === k) || null; } catch (_){ r = null; }
       step();
       if (r && r.al && typeof r.al.go === 'function') r.al.go(); return; }
+    if (t.closest('[data-nd-fold]')){ ndFoldApply(!ndFolded()); return; }
     if ((el = t.closest('[data-nd-tab]'))){ _nd = { ..._nd, tab: el.getAttribute('data-nd-tab'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-kind]'))){ _nd = { ..._nd, kind: el.getAttribute('data-nd-kind'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-more]'))){ _nd = { ..._nd, more: (_nd.more || 0) + 1 }; ndRowsRepaint(); return; }
@@ -1165,5 +1186,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

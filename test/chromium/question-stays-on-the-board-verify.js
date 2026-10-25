@@ -2,7 +2,7 @@
    should i be concerned with today' in the jambo in this page, i am kicked out and dropped to the home page")
    ============================================================
    Jambo's answer may carry a trip to "needs" (what waits on me). A plain question answered in words is no trip
-   (the server's copilotQuestionStays, f873): the answer stays in the box it was asked in, on every page. A trip
+   (the server's copilotQuestionStays, f928): the answer stays in the box it was asked in, on every page. A trip
    asked for still goes. Driven with a scripted model.
      A  asked in the Board's panel: still Home's Board, never the Home page; one chat call
      C  the answer is in the panel, its conversation in front
@@ -62,7 +62,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     const B = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs') ? state.view : null, null, 10000);
     check('B "take me to what needs me" opens Home\'s Needs you, nothing spent', B === 'counter' && ai.calls.length === 0, `${B} · ${ai.calls.length}×`);
 
-    console.log('\nF–G · the same question on other pages stays where it was asked (the server drops the trip, f873)');
+    console.log('\nF–G · the same question on other pages stays where it was asked (the server drops the trip, f928)');
     const askOn = async (where, box, go) => {
       ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer', input: { answer: 'Three things deserve attention today.', citations: [], goto: { task: 'needs' } } }]);
       await page.fill(box, 'what should i be concerned with today'); await page.evaluate(go);

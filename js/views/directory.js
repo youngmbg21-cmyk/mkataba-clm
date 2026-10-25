@@ -477,7 +477,7 @@ function dirHeadHtml(book){
 }
 function dirCardHtml(rows, book){
   /* "There is nothing here" wears the product's one shape (emptyStateHtml,
-     f238); nobody matching a search is the same shape with the search's
+     f902); nobody matching a search is the same shape with the search's
      own sentence. */
   const emptyWords = book.length ? i18t('dir_none_match') : i18t('dir_empty');
   const empty = (typeof window !== 'undefined' && typeof window.emptyStateHtml === 'function')

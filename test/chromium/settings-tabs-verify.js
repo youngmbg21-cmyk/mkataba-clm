@@ -686,7 +686,7 @@ const signIn = async (page, base, email, pass) => {
     }));
     check('the avatar opens Your account, with the job title and the sessions on it',
       acct.open && acct.title2 && acct.sessions.length > 0, `"${acct.title}" · sessions "${acct.sessions.slice(0, 40)}"`);
-    /* ---- THE REMOVE KEY VERB SAYS WHAT IT CAN DO (f350, 21 Sep 2026) ----
+    /* ---- THE REMOVE KEY VERB SAYS WHAT IT CAN DO (f908, 21 Sep 2026) ----
        Owner-reported: "I can save but i cannot delete". The press was never
        broken; the screen was silent about it. A node test can read `disabled`
        off the markup, but only a browser can say the reader is actually

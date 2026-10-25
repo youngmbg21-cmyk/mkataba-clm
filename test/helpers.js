@@ -72,10 +72,23 @@ function startAiStub() {
         : toolName === 'recommend_template' ? { ranked: [], answer: 'stub' }
         /* ASK A COLUMN: an answer resting on the document's own first long
            sentence, so the route's quote check passes as it would live */
-        : toolName === 'column_answer' ? (() => {
-            const txt = String(((body.messages || [])[0] || {}).content || '').split('DOCUMENT:\n')[1] || '';
+        /* THE PARTY'S TWO MINUTES: one figure from the facts (the agreements counted) and one that is not (999) */
+        : toolName === 'party_brief' ? (() => {
+            const facts = String(((body.messages || [])[0] || {}).content || '').split('FACTS:\n')[1] || '{}';
+            let n = 0; try { n = JSON.parse(facts).agreements || 0; } catch (_) { n = 0; }
+            return { brief: `You have ${n} agreements with them. They once asked for 999 days.` };
+          })()
+        : toolName === 'column_answers' ? (() => {
+            /* one answer per question asked (Discover: one read, many answers), verdict 'in' where a rule is given */
+            const msg = String(((body.messages || [])[0] || {}).content || '');
+            const txt = msg.split('DOCUMENT:\n')[1] || '';
             const quote = (txt.match(/[^.\n]{40,200}\./) || [''])[0].trim();
-            return { found: true, answer: '30 days', detail: 'either side', tone: 'good', why: 'stubbed reason', quote, clause: '9 · Termination' };
+            const head = msg.split('DOCUMENT:\n')[0];
+            const n = /QUESTIONS \(/.test(head) ? (head.match(/^\d+\. /gm) || []).length : 1;
+            /* "out" of a rule where the wording leaves liability unlimited (test/discover-world.js DV-04, DV-05), else "in" */
+            const out = /nothing in this (agreement|lease) limits/i.test(txt);
+            return { answers: Array.from({ length: n }, (_, i) => ({ q: i + 1, found: true, answer: out ? 'Not capped' : '30 days', detail: out ? 'our side' : 'either side',
+              tone: out ? 'concern' : 'good', why: 'stubbed reason', quote, clause: '9 · Termination', verdict: out ? 'out' : 'in' })) };
           })()
         : {};
       res.writeHead(200, { 'Content-Type': 'application/json' });

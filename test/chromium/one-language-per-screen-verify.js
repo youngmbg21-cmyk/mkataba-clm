@@ -1,7 +1,7 @@
 /* Chromium verification of ONE LANGUAGE PER SCREEN.
    ============================================================
    The functional audit of 23 Aug 2026 found twelve screens still English
-   inside a translated frame. f241 pins the SOURCE — that the words moved into
+   inside a translated frame. f904 pins the SOURCE — that the words moved into
    the dictionary and that the lookup happens at one door. Three of the twelve
    claims cannot be made there at all, and they are the three that were
    reported:

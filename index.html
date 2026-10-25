@@ -1897,7 +1897,7 @@
      teal, #0E5F58, and white on it measured 7.5:1. SINCE 7 OCT 2026 it is the
      brighter #12796D (5.3:1; navy #264C9E 8.1:1), still AA.
      The fill therefore reads --accent-fill, the ONE token for white-on-accent,
-     and f238 computes the contrast of whichever rung that token resolves to
+     and f902 computes the contrast of whichever rung that token resolves to
      rather than pinning the rung's name — the claim is AA, not a number.
      --accent-solid itself is UNCHANGED: it is the nav's active fill and is
      documented as a brand fill that must not flip with the theme. */
@@ -1967,7 +1967,7 @@
      alone. The bar keeps its full hit area; only the thumb is drawn narrow,
      inset from the track by a transparent border, so it is still easy to grab
      and no longer competes with the card's own edge. */
-  .scroll-thin::-webkit-scrollbar{width:9px;height:9px;}
+  .scroll-thin::-webkit-scrollbar{width:8px;height:8px;}
   .scroll-thin::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:var(--radius);
     border:2px solid transparent;background-clip:content-box;}
   .scroll-thin::-webkit-scrollbar-thumb:hover{background:var(--color-neutral-400);background-clip:content-box;}
@@ -4021,8 +4021,8 @@
   .st-aw-reach{ margin:12px 0 0; min-height:1.4em; }
   .st-cr .st-you-line{ display:block; font-size:var(--t-meta); color:var(--color-text); line-height:1.45; padding:3px 0; min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .st-cr .st-you-sub{ color:var(--color-neutral-600); font-size:var(--t-label); }
-  .st-cr .chip.st-chip-on{ background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-label); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
-  .st-cr .chip.st-chip-off{ border:1px solid var(--color-divider); color:var(--color-neutral-600); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
+  .st-cr .chip.st-chip-on{ display:inline-flex; align-items:center; height:22px; box-sizing:border-box; background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-label); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
+  .st-cr .chip.st-chip-off{ display:inline-flex; align-items:center; height:22px; box-sizing:border-box; border:1px solid var(--color-divider); color:var(--color-neutral-600); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
   .st-codes{ display:flex; align-items:center; gap:10px; margin-top:var(--s-2); }
   .st-me-who{ display:flex; flex-direction:column; gap:2px; margin:0 0 var(--s-3); }
   .st-me-n{ font-weight:var(--w-strong); color:var(--color-text); }
@@ -5604,7 +5604,7 @@
   .obd-count{font-size:12.5px;color:var(--color-ink-2,#475467);font-variant-numeric:tabular-nums}
   .obd-sp{flex:1}
   @media (max-width:900px){ .obd-grid{grid-template-columns:1fr} .obd-list{border-right:0;border-bottom:1px solid var(--color-line);max-height:34vh} .obd-item{max-height:none} }
-  .of-desc{ resize:vertical; min-height:79px; max-height:140px; line-height:1.5;
+  .of-desc{ resize:vertical; min-height:79px; max-height:140px;
     overflow-y:auto; font:inherit; font-size:var(--t-card); }
   /* 11px, not 10, and neutral-600 rather than an opacity — opacity multiplies
      against whatever is behind it, and these rows sit on white inside a card
@@ -8909,6 +8909,9 @@
   body:has(#na-root.na-one) #ig-dock .ca-dr-said .ca-acts{ display:none; }
   /* and his panel is the conversation about it, as drawn: the wall's greeting, drop area and next steps stand down */
   body:has(#na-root.na-one) #ig-dock :is(.pd-hello, #pd-drop, [data-ig-chips]){ display:none; }
+  /* WHAT HE CAN DO BESIDE THE ONE SHEET (25 Oct 2026): under his bubble, plain lines, no box */
+  #ig-dock .pd-sheet-hello .pd-sheet-can-h{margin:12px 0 4px;}
+  #ig-dock .pd-sheet-hello .pd-sheet-can{margin:0;padding-left:18px;list-style:disc;display:flex;flex-direction:column;gap:4px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5;}
   @media (max-width:900px){ .na-closest{ grid-template-columns:minmax(0,1fr); } }
   .tpl-bar{ display:block; width:100%; border:0; background:none; text-align:left; font:inherit;
     color:inherit; cursor:pointer; padding:0; margin-bottom:6px; font-size:var(--t-label); }
@@ -9105,7 +9108,7 @@
      The wrapper takes the scroll; the min-width keeps every column readable.
      NO COLUMN IS EVER HIDDEN — the density is the design. */
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
-  .table-scroll::-webkit-scrollbar{height:9px;}
+  .table-scroll::-webkit-scrollbar{height:8px;}
   .table-scroll::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:var(--radius);}
   /* THE FLOOR ONLY APPLIES WHERE THERE IS NO ROOM.
      It was unconditional, and that was a regression on the machine most
@@ -9812,6 +9815,87 @@
   .reg-table .ac-ck:disabled{cursor:not-allowed}
   .reg-table .ac-ck:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   .reg-table .ac-ck-i{width:10px;height:10px}
+  /* DISCOVER STAGE 2 (owner, 25 Oct 2026): the legend in the list's foot, the drawn counts, the name's hint */
+  .ac-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+  .ac-legend .ac-lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .ac-lg i,.ac-bar-t i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--st-gray-dot)}
+  i.ac-lg-green{background:var(--st-green-dot)} i.ac-lg-amber{background:var(--st-amber-dot)} i.ac-lg-ruby{background:var(--st-ruby-dot)} i.ac-lg-gray{background:var(--st-gray-dot)}
+  #ig-dock .ac-next{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
+  #ig-dock .ac-draw{display:grid;gap:6px;margin-top:10px}
+  #ig-dock .ac-bar{display:grid;grid-template-columns:minmax(0,9.5em) 1fr 2.2em;gap:8px;align-items:center;font-size:12.5px}
+  #ig-dock .ac-bar>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-bar>b{text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-label)}
+  #ig-dock .ac-bar-t{display:block;height:10px;border-radius:5px;background:var(--color-neutral-100);overflow:hidden}
+  #ig-dock .ac-bar-t i{display:block;height:100%;width:0;border-radius:5px;min-width:0}
+  #ig-dock .ac-hint{display:block;font-size:12px;color:var(--color-text);margin-top:3px}
+  /* DISCOVER STAGE 3: the kept questions under his greeting, the pack's questions, the whole table's page */
+  #ig-dock .ac-disc-list{display:grid;margin-top:6px}
+  #ig-dock .ac-disc-row{display:grid;gap:2px;text-align:left;border:0;background:none;padding:8px 0;border-top:1px solid var(--rule);font:inherit;color:inherit;cursor:pointer;min-width:0}
+  #ig-dock .ac-disc-row:last-child{border-bottom:1px solid var(--rule)}
+  #ig-dock .ac-disc-row:hover .ac-disc-n b,#ig-dock .ac-disc-row:focus-visible .ac-disc-n b{color:var(--accent-ink)}
+  #ig-dock .ac-disc-n{display:flex;align-items:center;gap:6px;min-width:0}
+  #ig-dock .ac-disc-n b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #ig-dock .ac-disc-m{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--color-text)}
+  #ig-dock .ac-tag{flex:none;font-size:11px;line-height:1.5;padding:0 7px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);white-space:nowrap}
+  #ig-dock .ac-pack-qs{margin:6px 0 0;padding-left:20px;display:grid;gap:6px}
+  #ig-dock .ac-pack-qs li>span{display:block;font-size:12.5px}
+  .ac-tt{display:grid;gap:12px}
+  .ac-tt-scroll{overflow-x:auto;max-width:100%}
+  .ac-tt-table td.ac-tt-c,.ac-tt-table td.ac-tt-a{vertical-align:top;line-height:1.3;max-width:260px}
+  .ac-tt-table .ac-ans{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label)}
+  .ac-tt-table .ac-ans>i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
+  .ac-tt-table .ac-ans.tone-green>i{background:var(--st-green-dot)} .ac-tt-table .ac-ans.tone-amber>i{background:var(--st-amber-dot)} .ac-tt-table .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  .ac-tt-table .ac-sub{display:block;font-size:11.5px;color:var(--color-text);white-space:normal}
+  .ac-tt-table .ac-cite{display:inline-flex;align-items:center;height:18px;padding:0 4px;border:1px solid var(--rule);border-radius:var(--radius);font-size:var(--t-meta)}
+  .ac-tt-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:12.5px}
+  /* DISCOVER STAGE 4: the company's facts in Settings and in Key terms */
+  #fa-panel .fa-scroll{overflow-x:auto;max-width:100%}
+  #fa-panel .fa-t{width:100%;border-collapse:collapse;font-size:13px}
+  #fa-panel .fa-t th{text-align:left;font-size:12px;font-weight:var(--w-label);color:var(--color-text);padding:6px 8px;border-bottom:1px solid var(--rule);white-space:nowrap}
+  #fa-panel .fa-t td{padding:8px;border-bottom:1px solid var(--rule);vertical-align:top}
+  #fa-panel .fa-q{font-family:var(--font-doc);min-width:180px}
+  #fa-panel .fa-rule{width:100%;min-width:160px}
+  #fa-panel .fa-n{white-space:nowrap;font-variant-numeric:tabular-nums}
+  #fa-panel .fa-cost{margin-top:10px}
+  #fa-panel .fa-err{color:var(--st-ruby-fg)}
+  .fa-tog{width:32px;height:19px;border-radius:999px;border:0;padding:0;background:var(--color-neutral-300);position:relative;cursor:pointer;flex:none}
+  .fa-tog::after{content:"";position:absolute;left:2px;top:2px;width:15px;height:15px;border-radius:50%;background:var(--color-surface)}
+  .fa-tog.on{background:var(--accent-fill)} .fa-tog.on::after{left:15px}
+  .fa-tog:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
+  .fa-kt-card:empty{display:none}
+  .fa-kt-h{font-weight:var(--w-label);margin:0 0 6px}
+  .fa-kt-t .ac-ans{display:inline-flex;align-items:center;gap:6px}
+  .fa-kt-t .ac-ans>i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
+  .fa-kt-t .ac-ans.tone-green>i{background:var(--st-green-dot)} .fa-kt-t .ac-ans.tone-amber>i{background:var(--st-amber-dot)} .fa-kt-t .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  .fa-kt-t .fa-kt-q{font-family:var(--font-doc);color:var(--color-text)}
+  .fa-kt-t .ac-sub{display:block;font-size:11.5px;color:var(--color-text)}
+  /* DISCOVER STAGE 6: Unusual for you, one line in the Dossier's Jambo read card (no box when there is nothing to say) */
+  .ac-odd:empty{display:none}
+  .ac-odd-row{display:flex;align-items:flex-start;gap:8px}
+  .ac-odd-row>i{flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px;background:var(--st-amber-dot)}
+  .ac-odd-t{flex:1;min-width:0;font-size:12.5px;line-height:1.45}
+  .ac-odd-t b{font-weight:var(--w-label)}
+  .ac-odd-row .ds-go{flex:none;white-space:nowrap}
+  /* DISCOVER STAGE 7: negotiation memory under Jambo's verdict on their row */
+  .rl-card-read .rl-card-read-m{display:block;margin-top:4px;font-size:12.5px;color:var(--color-text)}
+  /* DISCOVER STAGE 8: What you are approving (the Approvals panel, the Before-you-sign stop) */
+  .ap-what{display:grid;gap:8px;margin:0 0 12px}
+  .ap-what h3{font-weight:var(--w-label);margin:0}
+  .ap-what-r{display:grid;gap:2px;font-size:12.5px;line-height:1.45}
+  .ap-what-r>b{font-weight:var(--w-label);font-size:12px;color:var(--color-text)}
+  .ap-what-r small{display:block;color:var(--color-text);font-size:11.5px;margin-top:2px}
+  .ap-what-dep{margin:0;padding-left:16px;display:grid;gap:4px}
+  .ap-what-dep q{display:block;font-family:var(--font-doc);color:var(--color-text)}
+  .ap-what-brief{margin:0}
+  .pd-rd-card .ap-what{margin:10px 0}
+  /* DISCOVER STAGE 9: Before the call, in the chosen party's panel */
+  .cu-br-host:empty{display:none}
+  .cu-br{display:grid;gap:6px;font-size:12.5px;line-height:1.45}
+  .cu-br-k{margin:4px 0 0;font-weight:var(--w-label)}
+  .cu-br-list{margin:0;padding-left:16px;display:grid;gap:3px}
+  .cu-br-risk{color:var(--st-ruby-fg)}
+  .cu-br-text{margin:0}
+  .cu-br-warn{color:var(--st-amber-fg)}
   .ac-btn svg{margin-right:4px}
   #ig-dock .pd-gl-row{display:flex;align-items:center;gap:10px}
   #ig-dock .pd-gl-row>span{flex:1;min-width:0}
@@ -9931,6 +10015,11 @@
   #ig-dock.pd-face-up [data-ig-chips]{display:none}
   /* the Negotiate page's notices, above the column since the page folded into Home (stage 5) */
   #pd-redface .rl-face .pd-rf-notices{flex:none;padding:10px 12px 0}
+  /* THEIR VIEW's one note (owner, 25 Oct 2026: "a note, not a big banner"): a lock and a line in the column's small grey, nothing boxed */
+  #pd-redface .rl-face .pd-rf-theirs{flex:1 1 100%;display:flex;align-items:flex-start;gap:6px;min-width:0;margin:2px 0 0;font-family:var(--font-body);font-size:12.5px;font-weight:var(--w-body,400);line-height:1.4;color:var(--color-neutral-600)}
+  #pd-redface .rl-face .pd-rf-theirs svg{flex:none;margin-top:2px;color:var(--color-neutral-600)}
+  /* nothing to press on their side: the cards keep their words and marks, their verbs are not drawn */
+  #pd-redface .rl-face.is-theirs :is(.rl-card-verbs, .rl-card-side){display:none}
   #pd-redface .rl-face .pd-rf-notices .rl-notices{margin:0}
   #pd-redface .rl-face .pd-rf-foot{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--color-divider);display:grid;grid-template-columns:1fr 1fr;gap:6px}
   #pd-redface .rl-face .pd-rf-foot button{height:var(--ctl-h-sm);padding:0 10px;font-size:12.5px;justify-content:center;min-width:0}
@@ -14090,7 +14179,7 @@
     background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
     box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);}
   .hati-selmenu-row{display:block;width:100%;box-sizing:border-box;text-align:left;
-    padding:0 10px;height:var(--ctl-h);line-height:var(--ctl-h);border:0;border-radius:var(--radius);
+    padding:0 10px;height:var(--ctl-h);border:0;border-radius:var(--radius);
     background:none;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hati-selmenu-row:hover{background:var(--nav-well);}
@@ -14270,7 +14359,7 @@
   .ins-ask{padding:8px 0;border-top:1px solid var(--rule);min-width:0;}
   .ins-ask:first-of-type{border-top:0;padding-top:0;}
   .ins-ask b{display:block;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ins-ask span{display:block;color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ins-ask span{color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .ins-ask em{display:block;font-style:normal;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:1px;}
   .ins-ask em .over{color:var(--st-amber-fg);font-weight:var(--w-label);}
   .ins-read{display:flex;flex-direction:column;gap:2px;}
@@ -14384,7 +14473,7 @@
   .jl-face-row .jl-face-w{min-width:0;}
   .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}
   /* Jambo's own words: his face, a bubble, the line saying it cost nothing, the page's doors as chips */
-  .jl-words{padding:14px 14px 4px;display:flex;flex-direction:column;gap:8px;}
+  .jl-words{padding:16px 16px 4px;display:flex;flex-direction:column;gap:8px;}
   .jl-say{display:flex;align-items:flex-start;gap:10px;}
   .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
   /* NO FACE IN THE THREAD (owner, 20 Oct 2026): on a computer, Jambo's small
@@ -14419,7 +14508,7 @@
   .jl-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left;}
   .jl-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700);}
   .jl-chip:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;}
-  .jl-feed{padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px;}
+  .jl-feed{padding:6px 16px 16px;display:flex;flex-direction:column;gap:12px;}
   .jl-feed:empty{display:none;}
   .jl-card .ca-acts{display:flex;flex-wrap:wrap;gap:6px;}
   /* the foot: the ask box, Ask inside its right end, and the hint under it */
@@ -16189,6 +16278,9 @@
   .nd-tag{color:var(--color-neutral-600);border-color:var(--rule-strong)}
   /* THE BOARD: all of it under Your book — tabs and a find box, the kinds there are, five columns, twelve rows at a time */
   .nd-card .nd-home-shows{font-size:var(--t-label)}
+  /* folded to its head (ndFoldBtnHtml): the head is the whole card, so it carries no line under it */
+  .nd-card.is-folded > .hb-ch{border-bottom:0}
+  .nd-card .nd-fold{flex:none;white-space:nowrap}
   .nd-bar{display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--color-divider);min-height:44px}
   .nd-tabs{display:flex;gap:20px;align-self:stretch}
   .nd-tab{border:0;background:none;padding:0;font:inherit;font-size:var(--t-body);color:var(--color-neutral-600);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
@@ -16196,7 +16288,7 @@
   .nd-tab-n{font-variant-numeric:tabular-nums}
   .nd-find{margin-left:auto;width:240px;max-width:40%;height:var(--ctl-h-sm,28px);border:1px solid var(--btn-edge,var(--rule-strong));border-radius:var(--radius);padding:0 10px;font:inherit;font-size:var(--t-label);background:var(--color-surface);color:var(--color-text)}
   .nd-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
-  .nd-chip{border:1px solid var(--rule-strong);background:var(--color-surface);border-radius:12px;height:24px;padding:0 10px;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  .nd-chip{border:1px solid var(--rule-strong);background:var(--color-surface);border-radius:999px;height:28px;padding:0 10px;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
   .nd-chip.on{background:var(--accent-fill,var(--color-text));border-color:var(--accent-fill,var(--color-text));color:var(--color-surface)}
   .nd-cols,.nd-br{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) 104px 76px;gap:14px;align-items:center;padding:8px 16px}
   .nd-cols{padding-top:6px;padding-bottom:6px;background:var(--surface-2);border-bottom:1px solid var(--rule-strong);font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
@@ -16855,7 +16947,9 @@
     background:var(--bar-bg);border-bottom-color:transparent;box-shadow:none}
   #top-header .hdr-icon-btn, #top-header #cmd-ai{border-radius:999px}
   #top-header .cmd-search{border-radius:999px;border-color:transparent;background:var(--bar-well)}
-  #top-header #cmd-k-hint{border-radius:999px;border-color:transparent;background:rgba(255,255,255,.16);box-shadow:none}
+  /* the ⌘K hint sits on its own lighter pill inside the well: the quiet 78% white measured 3.97:1 there
+     (contrast-verify), so its word is the bar's full white (about 5.4:1) */
+  #top-header #cmd-k-hint{border-radius:999px;border-color:transparent;background:rgba(255,255,255,.16);box-shadow:none;color:var(--bar-ink)}
   #top-header #side-avatar{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.32)}
   #top-header #rail-avatar:hover #side-avatar{background:rgba(255,255,255,.26)}
   #top-header #shell-title .crumb-sep{color:rgba(255,255,255,.55)}
@@ -17009,10 +17103,10 @@
   :is(#ig-dock, .jt-trail, .jl-head) .pd-back:hover, .redline-page :is(.rl-head-notes, .rl-head-review):hover:not(:disabled){border-color:transparent;background:var(--color-neutral-200)}
   /* EACH CHANGE IN THE COLUMN IS ITS OWN SOFT GREY CARD (the drawing's Redlines: #F5F5F7, 16px corners), on
      both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
-  /* ROOM INSIDE (owner, 24 Oct 2026: the clause name "too close to the edge"): 18 at the sides, 16 above and below */
-  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:0 18px 16px;margin-bottom:8px;border-bottom:0}
-  /* the card's top room belongs to its head, which is what a press lands on (it takes the paper to the clause) */
-  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:16px}
+  /* 16PX INSIDE EVERY CARD (owner, 25 Oct 2026: "go with 16px, apply it everywhere"; it was 0 above the clause
+     name — the top room was the head's, and the row face has none — 16 below, 18 at the sides) */
+  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:16px;margin-bottom:8px;border-bottom:0}
+  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:0}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
   /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
   :is(#ig-dock, body) .redline-page .rl-card-d:is(:hover, .is-linked){background:var(--color-neutral-200)}
@@ -17022,7 +17116,7 @@
      Anything above them should have the grey color they always had"): one rounded box, the reason inside it
      with no box of its own (it read as white in the middle once the card was pressed); the ONE SHADE deepens
      it one amber step on hover and once pressed, and gives it back its amber when another card takes it */
-  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:16px 18px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:16px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone) .rk-why{background:transparent;padding:0}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone):is(:hover, .is-linked){background:var(--st-amber-bg)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover):not(.is-none):not(.is-gone){background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
@@ -17083,7 +17177,7 @@
   #na-root.na-one .na-ask,#na-root.na-one .na-rail,#na-root.na-one .na-read,#na-root.na-one .na-theirs,#na-root.na-one .na-card,#na-root.na-one .na-file{background:var(--color-surface);border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 18px}
   #na-root.na-one .na-ask-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
   #na-root.na-one .na-ptabs{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
-  #na-root.na-one .na-ptab{height:26px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600);font:inherit;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  #na-root.na-one .na-ptab{height:30px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600);font:inherit;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   #na-root.na-one .na-ptab[aria-selected="true"]{background:var(--color-surface);color:var(--color-text);box-shadow:0 1px 2px rgba(0,0,0,.10)}
   #na-root.na-one .na-askbox{display:flex;align-items:flex-end;gap:10px;border:1px solid var(--rule-strong);border-radius:16px;padding:10px 10px 10px 14px;background:var(--color-surface)}
   #na-root.na-one .na-askbox:focus-within{border-color:var(--color-neutral-500)}
@@ -17265,6 +17359,16 @@
   /* ROUND 3: BEFORE YOU SIGN — the checks that have not run, said once in a grey box with one button */
   .sc-run-box{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 4px;padding:10px 12px;background:var(--surface-2);border-radius:10px;font-size:13px;color:var(--color-text)}
   .sc-run-box > button{flex:none;white-space:nowrap}
+  /* A POINT OPENS TO COMPARE (owner picked option 2, 25 Oct 2026), kept inside the Close Plan (owner, 25 Oct: "Both"):
+     a point they asked on opens on its name, both wordings whole under the row, the moved words marked */
+  .deal-pr .deal-tg{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;background:none;border:0;padding:0;font:inherit;color:var(--color-text);cursor:pointer;text-align:left}
+  .deal-pr .deal-tg:hover b{color:var(--accent-ink)}
+  .deal-pr .deal-chev{flex:none;font-size:11px;color:var(--color-neutral-600)}
+  .deal-pr .deal-cmp{grid-column:1 / -1;display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px 12px;align-items:baseline;padding:2px 0 4px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .deal-pr .deal-w{min-width:0;font-family:var(--font-doc);font-size:14px;line-height:1.6;color:var(--color-text)}
+  .deal-pr .deal-w p{margin:0 0 6px}
+  .deal-pr .deal-w p:last-child{margin-bottom:0}
+  .deal-pr .deal-none{color:var(--color-neutral-500)}
   /* ROUND 3: CLAUSES AND REDLINES WEAR ONE HEAD (owner's pick "The SAP Way"): the name in the serif, its count, a grey line */
   .pd-th .stk-head.is-mq .stk-mq-t.stk-mq-t{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;font-size:18px;line-height:24px;font-weight:var(--w-title-serif);text-wrap:wrap}
   .pd-th .stk-head.is-mq .stk-mq-t .stk-mq-n{font-style:normal;font-family:var(--font-ui);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
@@ -17317,6 +17421,116 @@
     .ig-resizer span{opacity:0;transition:opacity var(--dur-1),background var(--dur-1)}
     .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{opacity:1}
   }
+  /* ==== THE DETAIL ROUND (owner, 25 Oct 2026: "fix items 1 to 11" of the detail report, reviewed against main) ====
+     Measured where the reader looks, at the three screens: test/chromium/detail-round-verify.js. */
+  /* EVERY HEAD STARTS LEVEL WITH JAMBO'S PANEL, AND EVERY LIST ENDS LEVEL WITH IT (8): where the two halves
+     float (wider than 1100) the panel stands 8px under the bar and 8px over the foot, while a page's head
+     started 10px down (16 on the iPad) and its list ended 16px up. The page's top is one token
+     (--page-pad-t, "ONE HEADER TOP"), so every view root follows it; a page in the middle drops its head
+     4px to the same line. */
+  @media (min-width:1101px){
+    :root{--page-pad-t:8px}
+    #modal-root [data-dlg-page] .dlg-pg-head{margin-top:8px}
+    #content .view-enter:has(.ins-panel.is-jambo), #ct-place .sap-page.ct-page{padding-bottom:8px}
+    /* Our paper sets its padding on the element; its foot follows the same line through a token (25 Oct 2026, it ended 16px up) */
+    #content .view-enter.tpl-page:has(.ins-panel.is-jambo){--tpl-pb:8px}
+    /* the Board's first card starts on the panel's line too (it stood 4px lower: the Board pads 12px, the panel floats 8px down) */
+    #ig-page .hb-board{padding-top:8px}
+    /* (10b) a page that scrolls steps 8px aside for the panel (above): its head card steps with it, so it ends
+       where the strip under it ends (Import's head stood 8px wider) */
+    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:calc(var(--jl-room,var(--jl-w,384px)) + 8px)}
+    #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:54px}
+  }
+  /* JAMBO'S GREETING HAS THE PANEL'S MARGIN (3): on a list's panel and the Calendar's it stood flush against
+     both edges while his words under it kept their 14px */
+  /* ONE MARGIN INSIDE EVERY JAMBO PANEL (25 Oct 2026): 16px, as Home's and Contracts' — his greeting, his words and his answers */
+  :is(.jl-greet, .cal-cop .cal-plan-body) > .jb-hello{padding:16px 16px 0;margin-bottom:0}
+  /* HIS TAB IS NEVER CUT (4): "Jambo" is five letters; beside a long page word (a paper's name on Our paper)
+     the NAME gives way, never his tab. The paper's own row (five tabs with a letter waiting) is the owner's
+     "Short words" below. */
+  #app-shell .jl-head.jl-head > .jl-tab, #ig-dock > .igd-head.igd-head:not([data-pd-head="paper"]) > .pd-tab-talk{flex-shrink:0}
+  /* EVERY PAGE IN THE MIDDLE IS A CARD UNDER ITS HEAD (7), as the Deal was made on 24 Oct: Key terms, Jambo's
+     work and the obligations review kept a square 880px sheet narrower than their floating head */
+  #modal-root [data-pd-mid]{background:var(--color-bg)}
+  #modal-root [data-pd-mid] .dlg-pg-body{background:transparent;padding:10px 12px 12px}
+  #modal-root [data-pd-mid] .dlg-pg-body > *{max-width:none;margin:0;border:0;background:var(--color-surface);border-radius:20px;box-shadow:var(--shadow-sm);padding:20px 24px}
+  /* THE SEND SCREEN'S HEAD FLOATS AS EVERY PAGE'S DOES (2): set in on the grey, level with the panel */
+  #modal-root .modal-in[data-sh-page] .sh-hd{top:8px;margin:8px 12px 0;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  /* …and "Email is not set up yet" stands with the cards' words beside it, clear of the box above (2) */
+  #pd-sendface #sh-noemail{margin:12px 0 0;padding:0 15px}
+  /* THE DOSSIER'S ACTS KEEP THEIR WORDS (6): a row too narrow for them wraps, never cuts "Import their Word file" */
+  #app-shell #ig-dock .ds-acts-b.is-ck.is-mq{flex-wrap:wrap;row-gap:8px}
+  #app-shell #ig-dock .ds-acts-b.is-ck.is-mq > .ui-btn{flex:none;overflow:visible;text-overflow:clip}
+  /* ==== THE OWNER'S PICKS, 25 OCT 2026 (the four decisions page) ==== */
+  /* Q1 "THE LEGORA WAY": a chart row in Jambo's ask list ends in its act word, "Draw ›", in the link green;
+     the row's words give way before it, and a saved question's × stays last */
+  .hb-askpop .hb-pop-opt:has(> .hb-pop-go){display:flex;align-items:center;gap:10px}
+  .hb-askpop .hb-pop-opt:has(> .hb-pop-go):not(:has(> .hb-myq-x)){padding-right:10px}
+  .hb-askpop .hb-pop-opt > .who{flex:1 1 auto;min-width:0}
+  .hb-askpop .hb-pop-go{flex:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);white-space:nowrap}
+  /* Q3 "TWO LINES": a long name takes a second line before it gives way with "…" — the Dossier's door rows
+     (Signer, Who else, On the web, Obligations: one builder, .pd-ck-hd) and a person's contracts on People
+     (.dir-ct-n). A one-line row stands exactly where it stood (12 + 20 + 12 = its 44) */
+  /* (a fill-in field's own label line, drawn as a 20px label above its box on the Dossier, is not a door row) */
+  #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd){height:auto;min-height:44px;padding:12px 0;align-items:flex-start}
+  #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd) > :is(b, .pd-ck-v){white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:20px}
+  #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd) > .pd-ck-ring{margin-top:2px}
+  #app-shell .dir-ct .dir-ct-n{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  /* …AND A PLACE ROW IN EVERY "/" LIST ENDS IN "Open ›" (owner, 25 Oct 2026: item 1 after the picks), drawn by one
+     builder (caSlashGoHtml) in Home's, the Board's, a list panel's and every other box's list; on the Board its
+     "used N" stands before the word */
+  .ca-pop .ca-opt:has(> .ca-go){display:flex;align-items:center;gap:10px}
+  .ca-pop .ca-opt:has(> .ca-go) > .who{flex:1 1 auto;min-width:0}
+  .ca-pop .ca-go{flex:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);white-space:nowrap}
+  .hb-askpop .hb-pop-opt:has(> .ca-go) .hb-pop-n{position:static;transform:none;flex:none}
+  /* Q2 "SHORT WORDS": with a letter waiting the paper's panel carries five tabs — Dossier · Send · Clauses ·
+     Redlines · Jambo — every word whole and the panel's › kept in sight: five tabs sit closer (6px each side,
+     2px apart, from 8 and 8), and no tab gives way */
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab{flex-shrink:0;padding:0 6px}
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab + .pd-tab{margin-left:2px}
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab:first-child{margin-left:-6px}
+  #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab .pd-tab-w{overflow:visible}
+  /* ==== 16PX INSIDE EVERY CARD (owner, 25 Oct 2026: "ensure the words are not close to the edges of the cards …
+     the top and the bottom should have the same distance to the edge so should the left and right edges";
+     "go with 16px, apply it everywhere"). Every card's words and controls stand at least 16px from its edges,
+     above equal to below and left equal to right; measured on every page by the tidy sweep ("16px inside every
+     card"). Each rule names the card it fixes and what it measured. ==== */
+  /* Jambo's words (11/12 above/below, 12 at the sides) */
+  #app-shell :is(.jl-bub, .st-jb-bub), #modal-root :is(.jl-bub, .st-jb-bub), #app-shell :is(.st-cr, .jb-turn) .st-jb-bub{padding:16px}
+  /* the Board's head card and its findings card (11 above and below, 17 at the sides) */
+  #app-shell .hb-board .hb-bhead.hb-card, #app-shell .hb-board .hb-inscard{padding:16px}
+  /* the Dossier's Next card (12 all round) */
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-nx{padding:16px}
+  /* every page's head card (13 above the title row, 8-12 under its last row): the title row and the last row
+     stand 16 from the card's top and foot, the head's two halves (.ph-card over .ph-foot) read as one card */
+  #app-shell .ph-card, #app-shell .sap-page .sap-band.ph-card{padding-top:17px}
+  #app-shell .ph-foot, #app-shell .sap-page .sap-band.ph-foot{padding-bottom:16px}
+  /* a head card whose last row is the list head's chips (they stand 4 under their own row) */
+  #app-shell .sap-page .sap-band.ph-card{padding-bottom:12px}
+  #app-shell .sap-page .sap-band.jh-band{padding-bottom:9px}
+  /* the Parties' panel list (rows 8 above, 12 at the sides) and Our standards' note (10 and 13) */
+  #app-shell .cu-list .cu-li{padding:12px 16px}
+  #app-shell .sd-ins .ins-offer.sd-info{padding:16px}
+  /* the drop area beside a paper (23 above, 27 below, 22 and 17 at the sides) */
+  #app-shell #ig-dock .pd-drop{padding:20px 16px 16px}
+  /* Jambo's house: its panel (14) and the "What Jambo did" card (12 above, 14 at the sides) */
+  #app-shell .jh-panel, #app-shell .jh-feedcard{padding:16px}
+  /* Settings: its head card (9 under its tab row), a section's head (10) and last row (9), a card (11/12, 14) */
+  #app-shell .st-cr .st-headcard:has(.st-facebar){padding-bottom:7px}
+  #app-shell .st-cr .st-ssec-h{padding:16px}
+  #app-shell .st-cr .st-ssec .st-srows > .st-sr:last-child, #app-shell .st-cr .st-ssec > .st-sr:last-child{padding-bottom:12px}
+  #app-shell .st-cr .st-card{padding:16px}
+  /* a page in the middle's head (8 above, 14 below) */
+  #modal-root [data-dlg-page] .dlg-pg-head.dlg-pg-head{padding-top:16px;padding-bottom:16px}
+  /* the one desk's group heads on Home are plain headings, not cards (owner picked "Plain headings", 25 Oct
+     2026: 16px boxes pushed Needs you 29px past a 1536x730 screen) */
+  #app-shell #cn-page .cn-needs .nd-g{padding:12px 12px 2px;background:none;border-radius:0}
+  /* the New agreement sheet's cards (14 above, 18 at the sides; the paper list 19 above, 25 below) */
+  :is(#app-shell, #modal-root) #na-root.na-one :is(.na-ask, .na-rail, .na-read, .na-theirs, .na-card, .na-file){padding:16px}
+  /* the paper list: its head line carries 5 of leading above and its last row 11 of its own room below */
+  :is(#app-shell, #modal-root) #na-root.na-one #wz-pick.na-rail{padding:11px 16px 5px}
+  /* the Calendar's head card on Home (10 above, 12 below) */
+  #app-shell .cal-page.is-home .cal-head{padding:16px}
 </style>
 
 

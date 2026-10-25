@@ -113,10 +113,14 @@ const pastFirstWords = async page => {
     check('1a the wall: Jambo\'s tab greets and offers the drop area', await wall());
     const head = await page.evaluate(() => ({ draft: !!document.querySelector('#hb-head #hero-draft, #hb-head .hm-primary'),
       chips: [...document.querySelectorAll('#ig-dock [data-ig-chips] button')].map(b => b.textContent.trim()),
-      hello: (document.querySelector('#ig-dock .pd-hello') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome') }));
+      hello: (document.querySelector('#ig-dock .pd-hello') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
+      first: (() => { const w = document.querySelector('#ig-dock [data-jb-hello]'), p = document.querySelector('#ig-dock .pd-hello');
+        return !!(w && p && (w.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING)); })() }));
     check('1b Home\'s head carries no "+ Draft new agreement"', !head.draft);
     check('1c the chips lead with "upload a document", then "draft a new agreement"', head.chips[0] === 'upload a document' && head.chips[1] === 'draft a new agreement', head.chips);
-    check('1d the greeting replaces the notebook\'s, and says what to do', /Press a paper on the left/.test(head.hello) && !head.welcome, head.hello);
+    /* RE-POINTED 24 Oct 2026 (ONE WINDOW, owner: "bring them back" the greetings): the wall is a one-window
+       panel, so his own greeting (jamboHelloHtml) leads it, then the wall's line saying what to do */
+    check('1d his greeting leads the window, then the wall\'s line says what to do', /Press a paper on the left/.test(head.hello) && head.welcome && head.first, head.hello);
     await shoot('1-wall');
 
     /* ===== 2. THE DRAFT CHIP ===== */

@@ -2944,6 +2944,9 @@ function caAskAnywhere(text, opts = {}){
    row is the place's own run (caPlaceRun). Painted fixed above the box, so a
    panel's own scroller never clips it. */
 const CA_SL_MAX = 40;
+/* A PLACE ROW SAYS WHAT A PRESS DOES (owner, 25 Oct 2026: the "/" rows opened a place with nothing on them saying so):
+   every "/" list ends each place row in "Open ›", as the chart rows end in "Draw ›" — one builder, four lists */
+function caSlashGoHtml(){ return `<span class="hb-pop-go ca-go" aria-hidden="true">${_caE(_caT('ca_sl_open'))} ›</span>`; }
 const CA_SL_TALL = 360;   // the Counter's list is as tall; the rest scrolls inside it
 let _caSl = null;   // { inp, rows, on }
 function caSlRead(inp){
@@ -2960,7 +2963,7 @@ function caSlPaint(){
   let el = document.getElementById('ca-slash');
   if (!el){ el = document.createElement('div'); el.id = 'ca-slash'; el.className = 'ca-pop ca-slash'; document.body.appendChild(el); }
   el.innerHTML = `<h5>${_caE(_caT('hb_pop_places'))}</h5><div role="listbox">${_caSl.rows.map((r, i) =>
-    `<div class="ca-opt${i === _caSl.on ? ' on' : ''}" role="option" aria-selected="${i === _caSl.on}" data-ca-sl="${i}"><span class="who"><b>${_caE(r.word)}</b>${r.sub ? `<small>${_caE(r.sub)}</small>` : ''}</span></div>`).join('')}</div><p class="ca-hint">${_caE(_caT('hb_pop_keys'))}</p>`;
+    `<div class="ca-opt${i === _caSl.on ? ' on' : ''}" role="option" aria-selected="${i === _caSl.on}" data-ca-sl="${i}"><span class="who"><b>${_caE(r.word)}</b>${r.sub ? `<small>${_caE(r.sub)}</small>` : ''}</span>${caSlashGoHtml()}</div>`).join('')}</div><p class="ca-hint">${_caE(_caT('hb_pop_keys'))}</p>`;
   const r = _caSl.inp.getBoundingClientRect();
   el.style.left = Math.max(8, r.left) + 'px';
   el.style.width = Math.max(260, r.width) + 'px';
@@ -3153,7 +3156,7 @@ function caHomeRun(q, a){
 Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_AND_WORDS, CA_AND_NARROWS, CA_AND_SAY_MAX, caAndPlaceAt, caNarrowOf, caSayCut, caReadPlaceAnd, caReadGoPlace,
   caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
-Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
+Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */

@@ -890,6 +890,18 @@ function clauseEditorCss(){
   .ce-card .av button.is-applied{background:var(--color-accent-50); border-color:var(--color-accent-100); color:var(--accent-ink); opacity:1; cursor:default}
   .ce-card .av button.u{background:var(--st-amber-bg); border-color:var(--st-amber-line); color:var(--st-amber-fg)}
   .ce-card .av .ce-sug-gone{font-size:var(--t-meta); color:var(--color-neutral-600)}
+  /* THE ROUND LOOK WHERE YOU WRITE (owner, 25 Oct 2026, "in the areas of building or editing the
+     contracts we do not have the same themes of rounded corner buttons"): every chip, act and tag in
+     this panel a pill, the clause picker the grey pill, your words round like Jambo's answers; the
+     paper and its marks stay square */
+  .ce-card .av button, .ce-railfoot button, .ce-railfoot#ce-railfoot button.p{border-radius:999px}
+  .ce-card .av button{padding:0 12px}
+  .ce-card .chip, .ce-card .n .chip{border-radius:999px}
+  .ce-rail .ce-chips > button{border-radius:999px; padding:0 12px}   /* their pale accent wash kept (f541 C); only the shape changes */
+  .ce-rail .ce-pick select{-webkit-appearance:none; appearance:none; border-radius:999px; background-color:var(--surface-2,#EDEDF0); border-color:transparent;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%231D1D1F' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center}
+  .ce-you span{border-radius:18px; padding:8px 14px}
   /* Jambo's counter in the box (change 2): the state, its one way back, and
      the note to the other side under it. */
   .ce-card .ce-prep-in .ce-inbox{color:var(--st-green-fg); font-size:var(--t-meta); font-weight:var(--w-label)}
@@ -1094,7 +1106,7 @@ function clauseEditorCss(){
   .ce-scope .x:hover{color:var(--color-text)}
   .ce-card.ce-ans q.aq{display:block; margin:6px 0 2px; padding-left:8px; quotes:none; white-space:pre-line;
     border-left:2px solid var(--accent-fill); font-style:italic; color:var(--color-text)}
-  .ce-scope q{display:block; margin-top:5px; padding-left:8px; quotes:none;
+  .ce-scope q{margin-top:5px; padding-left:8px; quotes:none;
     border-left:2px solid var(--accent-solid);
     font-size:var(--t-label); line-height:1.55; color:var(--color-text);
     display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}
@@ -2567,6 +2579,21 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      the first card — worked out already, nothing spent — and its Apply is the
      one thing that moves words into the box. Filing is still this page's own
      Save, through negoEditClause. */
+  /* ---- WHAT WORKED BEFORE (Discover stage 7, owner 25 Oct 2026) ---- On one of THEIR asks: the wording
+     last agreed on the same topic — with this party (one round is enough), else across the book (from three) —
+     as a card, nothing spent; its Apply only puts the words in the box, and Save files them through the funnel. */
+  try{
+    const mch = (opts && opts.changeId && window.negoChangeById) ? negoChangeById(_ceC, opts.changeId) : null;
+    const M = (mch && typeof window.precedentMemoryOf === 'function') ? precedentMemoryOf(_ceC, mch) : null;
+    if (M && M.wording && M.wording.text){
+      const W = M.wording;
+      const when = W.at ? String(W.at).slice(0, 10) : '';
+      /* worked out from the record, not written by a model: no "check before sending" foot (the ladder card's rule) */
+      _ceThread.push({ who: 'ai', memory: true, text: '', read: [],
+        cards: [{ name: _cet('ce_mem_h'), chip: _cet(M.withThem ? 'ce_mem_chip_them' : 'ce_mem_chip_book'), chipTone: 'std',
+          line: _cet('ce_mem_line', { who: W.counterparty || '', ref: W.ref || '', when }), rests: M.line || '', text: W.text, passage: null }] });
+    }
+  }catch(_){ /* no memory: nothing drawn, nothing said */ }
   try{
     const ch = (opts && opts.changeId && window.negoChangeById) ? negoChangeById(_ceC, opts.changeId) : null;
     const prep = (ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && window.roundPrepOf) ? roundPrepOf(_ceC, ch) : null;

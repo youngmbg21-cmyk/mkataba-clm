@@ -1,6 +1,6 @@
 /* Chromium verification: WRITING AN AMENDMENT FROM BLANK PAPER
    ============================================================
-   Owner-asked (14 Aug 2026). f193 pins the model in node and f176 pins the two
+   Owner-asked (14 Aug 2026). f901 pins the model in node and f176 pins the two
    claims this reverses. THIS file exists because three of the four things that
    changed are things a node test cannot see:
 

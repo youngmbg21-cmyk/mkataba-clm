@@ -221,7 +221,8 @@ function apLeadJlHtml(tab, r, acts){
       answer=`<section class="ins-sec jl-answer" data-jl-answer><h3>${esc(head)}</h3><div class="ins-acts">${first.map(insActBtnHtml).join('')}</div>${
         gate.length?`<div class="ins-acts">${gate.map(insActBtnHtml).join('')}</div>`:''}${rec}</section>`;
     }
-    return (typeof insRowsHtml==='function'?insRowsHtml(rows):'')+answer;
+    /* WHAT YOU ARE APPROVING stands above Why it waits (Discover stage 8) */
+    return apWhatHtml(r.c)+(typeof insRowsHtml==='function'?insRowsHtml(rows):'')+answer;
   }
   const [a,b]=apWhyLines(r);
   const signs=r.kind==='other'?String((r.signer&&r.signer.name)||''):r.kind==='sign'?i18t('ap_wl_you_sign'):'';
@@ -234,6 +235,82 @@ function apLeadJlHtml(tab, r, acts){
   const list=holds.map(h=>String(h.short||h.label||h.title||'').trim()).filter(Boolean);
   return (typeof insRowsHtml==='function'?insRowsHtml(rows):'')+apSignRuleHtml(r, acts)+(list.length?insSecHtml(i18t('ins_sg_sec'),'',`<ul class="ins-log ins-holds">${list.slice(0,3).map(t=>`<li><span class="t" title="${esc(t)}">${esc(t)}</span></li>`).join('')}</ul>${
     list.length>3?`<p class="ins-note">${esc(i18tn('ins_more_asks',list.length-3,{n:list.length-3}))}</p>`:''}`,'ins-lead'):'');
+}
+/* ---- WHAT YOU ARE APPROVING (Discover stage 8, owner 25 Oct 2026) ----
+   One card for an approver who is not a lawyer, drawn where an approval is
+   decided (this panel, above Why it waits; the Before-you-sign rule stop). A
+   READING of what HaTi already keeps — never a write, nothing invented:
+     the money and when it ends (only where the reader may see values);
+     up to three departures from our standards, each with its sentence (the
+       standards check, c.playbook — or "not checked yet" said);
+     what we asked for and what we gave (the settled changes, counted);
+     if you do nothing (only from what is true: nothing is signed without it);
+     and the plain-English brief, kept (free) or asked on a press (one call,
+       said) — any approver of this contract may press (the server's
+       briefAsker). Approve and Refuse do not move. */
+const AP_WHAT_DEPARTURES = 3;
+function apWhatParts(c){
+  const out = { money:'', ends:'', dep:[], depMore:0, depUnread:false, asked:null, brief:'', briefKept:false };
+  if(!c) return out;
+  if(!(typeof canViewValues==='function'&&!canViewValues())){
+    let cur=''; try{ cur=(typeof contractCurrency==='function')?contractCurrency(c):''; }catch(_){ cur=''; }
+    if(Number(c.value)>0&&typeof fmtMoneyShortIn==='function') out.money=fmtMoneyShortIn(Number(c.value),cur);
+  }
+  if(/^\d{4}-\d{2}-\d{2}/.test(String(c.expiry||''))) out.ends=String(c.expiry).slice(0,10);
+  const V=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:null;
+  if(V){
+    const off=V.filter(v=>v&&(v.status==='deviation'||v.status==='missing'));
+    off.sort((a,b)=>(b.escalate?1:0)-(a.escalate?1:0));
+    out.dep=off.slice(0,AP_WHAT_DEPARTURES); out.depMore=Math.max(0,off.length-AP_WHAT_DEPARTURES);
+  } else out.depUnread=true;
+  const ch=Array.isArray(c.changes)?c.changes.filter(x=>x&&!x.withdrawn):[];
+  if(ch.length){
+    const ours=ch.filter(x=>x.authorSide!=='counterparty'), theirs=ch.filter(x=>x.authorSide==='counterparty');
+    const got=ours.filter(x=>x.status==='accepted').length, lost=ours.filter(x=>x.status==='rejected');
+    out.asked={ ours:ours.length, got, lostN:lost.length, lost:lost.map(x=>String((typeof clauseNameShown==='function'?clauseNameShown(x.clauseLabel||''):x.clauseLabel)||'').trim()).filter(Boolean).slice(0,2),
+      gave:theirs.filter(x=>x.status==='accepted').length, theirs:theirs.length };
+  }
+  const bd=(c._brief&&c._brief.data)||(c._briefLite&&c._briefLite.data)||null;
+  const ov=String((bd&&bd.overview)||'').replace(/\s+/g,' ').trim();
+  /* a brief kept with no summary in it is still kept: said so, never offered again for another call */
+  if(bd){ out.briefKept=true; out.brief=ov?ov.split(/(?<=[.!?])\s+/).slice(0,2).join(' '):i18t('apw_brief_empty'); }
+  return out;
+}
+let _apWhatBusy=null;
+function apWhatHtml(c){
+  if(!c) return '';
+  const P=apWhatParts(c);
+  const row=(k,h,body)=>body?`<div class="ap-what-r" data-ap-what="${k}"><b>${esc(h)}</b><div>${body}</div></div>`:'';
+  const money=P.money?esc(P.ends?i18t('apw_money_ends',{money:P.money,day:P.ends}):P.money):(P.ends?esc(i18t('apw_ends',{day:P.ends})):'');
+  const dep=P.depUnread?esc(i18t('apw_dep_unread'))
+    :!P.dep.length?esc(i18t('apw_dep_none'))
+    :`<ul class="ap-what-dep">${P.dep.map(v=>`<li><span>${esc(v.category||'')}: ${esc(i18t(v.status==='missing'?'apw_dep_missing':'apw_dep_off'))}</span>${v.quote?`<q>${esc(String(v.quote).slice(0,220))}</q>`:''}</li>`).join('')}</ul>${P.depMore?`<small>${esc(i18tn('apw_dep_more',P.depMore,{n:P.depMore}))}</small>`:''}`;
+  const A=P.asked;
+  const asked=A?esc([A.ours?i18t('apw_asked_ours',{n:A.ours,got:A.got}):'',A.lost.length?i18t('apw_asked_lost',{what:A.lost.join(', ')}):'',A.theirs?i18t('apw_asked_gave',{n:A.theirs,gave:A.gave}):''].filter(Boolean).join(' ')):'';
+  const busy=_apWhatBusy===String(c.id);
+  const brief=P.briefKept?`<p class="ap-what-brief">${esc(P.brief)}</p>`
+    :`<button type="button" class="ui-btn ui-btn-sm" data-ap-what-brief="${esc(c.id)}"${busy?' disabled':''}>${esc(i18t(busy?'apw_brief_busy':'apw_brief_ask'))}</button><small>${esc(i18t('apw_brief_cost'))}</small>`;
+  return `<section class="ins-sec ap-what" data-ap-what-for="${esc(c.id)}"><h3>${esc(i18t('apw_h'))}</h3>
+    ${row('plain',i18t('apw_k_plain'),brief)}${row('money',i18t('apw_k_money'),money)}${row('dep',i18t('apw_k_dep'),dep)}${row('asked',i18t('apw_k_asked'),asked)}${row('nothing',i18t('apw_k_nothing'),esc(i18t('apw_nothing')))}</section>`;
+}
+/* THE BRIEF'S ONE DOOR (runContractBrief, js/ai.js): this page spends nothing of its own; the press goes through
+   the one writer every other brief goes through, and the server's briefAsker lets an approver of THIS contract ask */
+async function apWhatBrief(id){
+  const c=(typeof getContract==='function')?getContract(id):null; if(!c||_apWhatBusy||typeof runContractBrief!=='function') return;
+  _apWhatBusy=String(id); apWhatRepaint(c);
+  try{
+    const r=await runContractBrief(c,{ quiet:true });
+    if(r&&r.error){ if(typeof toast==='function') toast(i18t('apw_brief_err',{msg:r.error}),'err'); }
+    else if(r&&typeof toast==='function') toast(i18t('apw_brief_done'),'ok');
+  }finally{ _apWhatBusy=null; apWhatRepaint(c); }
+}
+function apWhatRepaint(c){
+  document.querySelectorAll(`[data-ap-what-for="${CSS.escape(String(c.id))}"]`).forEach(el=>{
+    const t=document.createElement('div'); t.innerHTML=apWhatHtml(c); const n=t.firstElementChild; if(n) el.replaceWith(n); });
+}
+if(typeof document!=='undefined'&&!document._apWhatWired){
+  document._apWhatWired=true;
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-ap-what-brief]'):null; if(!b) return; e.preventDefault(); apWhatBrief(b.getAttribute('data-ap-what-brief')); });
 }
 function apLeadHtml(tab, r){
   if(!r) return '';
@@ -912,6 +989,6 @@ if(typeof document!=='undefined'&&document.addEventListener&&typeof window!=='un
 }
 Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
-  apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,
+  apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,
   AP_VIEWS,AP_F_DEF,apListAtRest,apBook,apStreamName,apRowWords,apListNow,apTabs,apFilters,apSortHtml,apHeadRegister,apPlace,apPlacePut,apShowRow,apPaintList,apListWire});

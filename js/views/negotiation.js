@@ -4406,13 +4406,13 @@ function wireNegotiationTab(c, opts = {}){
        is the lead's — so the first pending token wins, exactly the change
        whose marks the block is drawing. */
     /* THE PANEL'S ＋ CONTINUES THE SAME DRAFT THE CLAUSE IS SHOWING (16 Aug
-       2026, caught by f144 the day the clause's own editor retired). The
+       2026, caught by f898 the day the clause's own editor retired). The
        anchor lives on the DOCUMENT's clause block; the panel body never
        carried one, so in the panel `shownIds` came back empty, onTable came
        back null, and the ＋ — which then carried its own "Continue your draft"
        label, retired 26 Aug 2026 — opened on the standing wording with the
        writer's own ask nowhere on screen —
-       f144's original fault, back through the new door. The panel reads the
+       f898's original fault, back through the new door. The panel reads the
        clause's OWN anchor rather than growing a copy that could drift: one
        canvas, one wall, one list of what is on screen. */
     const onTable = shownIds.length
@@ -8131,6 +8131,13 @@ function dealBoardHtml(c, side){
    sent and when), never a model's; it spends nothing. Still no Accept / Counter / Reject and
    no walk-away (the owner, 3 Oct): a row's doors are Send (the card's own), Open clause, Chase
    (the Send screen) and Ask an admin (the tracked ask; an admin, the standard itself). */
+/* A POINT OPENS TO COMPARE (owner picked option 2, 25 Oct 2026: "the deal card only shows parts of the
+   clause"): a press on a point where they asked something opens it, both wordings whole with the words each
+   moved marked (the changes' own stored ops, `rlChangeWordingHtml` changedOnly — the card's reading); a point
+   they asked nothing on stays one quiet line. Per sitting, in memory. */
+const _dealOpen = new Set();
+function dealRowToggle(id){ id = String(id); if (_dealOpen.has(id)) _dealOpen.delete(id); else _dealOpen.add(id); return _dealOpen.has(id); }
+function dealRowOpen(id){ return _dealOpen.has(String(id)); }
 /* the paragraphs a move touches, as plain words: `drop` names the ops left
    out (what it proposes: drop its deletions; what stood before it: drop its
    insertions) */
@@ -8280,11 +8287,22 @@ function dealViewHtml(c, side){
       : p.k === 'rule' ? `${send}<button type="button" class="deal-go" data-deal-ask="${_nea(r.clauseId)}" data-deal-ask-cat="${_nea((p.std && p.std.category) || s.name)}">${_ne(i18t(admin ? 'ng_plan_set_rule' : 'ng_plan_ask_admin'))}</button>${send ? '' : open}`
       : `${send}${open}`;
     const t = track(r, p);
-    return `<div class="deal-pr" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
-      <div class="deal-pr-nm"><b>${_ne(s.name)}</b>${s.sec ? `<span>${_ne(s.sec)}</span>` : ''}</div>
+    /* A POINT OPENS TO COMPARE (the owner's option 2, kept in the plan): where they asked something, the name
+       opens both wordings whole under the row, the moved words marked (the card's own reading) */
+    const canCmp = !!(r.theirs && r.theirs.ch), cmp = canCmp && dealRowOpen(r.clauseId);
+    const name = canCmp
+      ? `<button type="button" class="deal-tg" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="${cmp}" title="${_nea(i18t(cmp ? 'ng_deal_close_cmp' : 'ng_deal_open_cmp'))}"><b>${_ne(s.name)}</b><span class="deal-chev" aria-hidden="true">${cmp ? '\u25be' : '\u25b8'}</span></button>`
+      : `<b>${_ne(s.name)}</b>`;
+    const heldCh = r.state === 'settled' && r.accepted ? r.accepted.ch : r.ours ? r.ours.ch : null;
+    const whole = ch => `<div class="rl-cp-src deal-w">${rlChangeWordingHtml(ch, { side, changedOnly: true })}</div>`;
+    const held = cmp && !heldCh ? dealHeldWords(r) : '';
+    const body = cmp ? `<div class="deal-cmp"><span>${_ne(i18t('ng_deal_you'))}</span>${heldCh ? whole(heldCh) : (held ? `<div class="deal-w">${_ne(held)}</div>` : '<span class="deal-none">\u2014</span>')}
+        <span>${_ne(i18t('ng_deal_they'))}</span>${whole(r.theirs.ch)}</div>` : '';
+    return `<div class="deal-pr${cmp ? ' is-open' : ''}" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
+      <div class="deal-pr-nm">${name}${s.sec ? `<span>${_ne(s.sec)}</span>` : ''}</div>
       <p class="deal-pr-why">${_ne(p.why)}</p>
       <div class="deal-pr-st">${t ? `${t}<span class="deal-pr-room">${_ne(p.tag)}</span>` : `<span class="deal-tag is-${p.tone}"><i aria-hidden="true"></i>${_ne(p.tag)}</span>`}</div>
-      <div class="deal-pr-acts">${acts}</div>
+      <div class="deal-pr-acts">${acts}</div>${body}
     </div>`;
   };
   const hint = { give: 'ng_plan_h_give', hold: 'ng_plan_h_hold', rule: 'ng_plan_h_rule', wait: 'ng_plan_h_wait', agreed: 'ng_plan_h_agreed' };
@@ -12892,6 +12910,13 @@ function rlWireClauseTools(c, host, opts){
     headEl.addEventListener('click', ev => {
       const card = headEl.closest('[data-nego-card]');
       if (!card) return;
+      rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card');
+    }));
+  /* THE CARD'S OWN 16PX EDGE IS THE HEAD'S TOO (25 Oct 2026, 16px inside every card): the room above the
+     head now belongs to the card, so a press on the card itself, not on anything inside it, does the head's job */
+  host.querySelectorAll('#rl-changes [data-nego-card]').forEach(card =>
+    card.addEventListener('click', ev => {
+      if (ev.target !== card || !card.querySelector(':scope > .rl-card-head, :scope .rl-card-head')) return;
       rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card');
     }));
 
@@ -22361,9 +22386,15 @@ function rlRowReadOf(c, ch, side){
   return { key: j.verdict, tone: V.tone, label: V.label, why: String((j.why || [])[0] || '').trim(), more: true };
 }
 function rlRowReadHtml(c, ch, side){
-  const R = rlRowReadOf(c, ch, side); if (!R) return '';
+  const R = rlRowReadOf(c, ch, side);
+  /* NEGOTIATION MEMORY (Discover stage 7, owner 25 Oct 2026): under the verdict, what this party settled before
+     on the same topic (else the book's, from three rounds); its door is the row's own Ladder verb. Our seat only. */
+  let M = null;
+  if (side !== 'counterparty' && !PORTAL_MODE && typeof precedentMemoryOf === 'function'){ try { M = precedentMemoryOf(c, ch); } catch (_) { M = null; } }
+  const mem = M && M.line ? `<span class="rl-card-read-m" data-rl-row-memory>${_ne(M.line)}</span>` : '';
+  if (!R) return mem ? `<div class="rl-card-read is-none" data-rl-row-read="memory">${mem}</div>` : '';
   return `<div class="rl-card-read is-${_nea(R.tone)}" data-rl-row-read="${_nea(R.key)}"><span class="rl-card-read-v">${R.tone === 'none' ? '' : '<i aria-hidden="true"></i>'}${_ne(R.label)}</span>${
-    R.why ? `<span class="rl-card-read-w">${_ne(R.why)}</span>` : ''}</div>`;
+    R.why ? `<span class="rl-card-read-w">${_ne(R.why)}</span>` : ''}${mem}</div>`;
 }
 /* "Ask Jambo more", the last of the card's verbs, at its right: only where there is advice to explain */
 function rlRowReadMoreHtml(c, ch, side){
@@ -23028,7 +23059,9 @@ function rlColumnHtml(c, opts = {}){
               ${rlHeadReviewHtml(c, opts)}
               ${''/* A HOST'S OWN WAY OUT (stage 3): Jambo's Redlines face puts
                      its Open Negotiate and its × here, at the end of the head
-                     it shares; the Negotiate page passes nothing. */}${opts.headEnd || ''}
+                     it shares; the Negotiate page passes nothing. */}${opts.headEnd || ''}${''/* A HOST'S ONE NOTE
+                     (owner, 25 Oct 2026, Their view): a line of its own under the title, where Send all
+                     stands on ours — Jambo's face passes "view only" there; nothing else passes one */}${opts.headNote ? `<span class="rl-idx-br" aria-hidden="true"></span>${opts.headNote}` : ''}
             </div>
             ${''/* ---- THE COLUMN'S OWN KEY (Young ruled 14 Sep 2026) ----
                    Two colours carry the whole page — one side's marks and the
@@ -23399,7 +23432,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
-  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealPlanOf, dealPlanFacts, dealPlanMemoText, dealStandardOf, DEAL_PLAN_GROUPS,
+  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealPlanOf, dealPlanFacts, dealPlanMemoText, dealStandardOf, DEAL_PLAN_GROUPS, dealRowToggle, dealRowOpen,
   dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

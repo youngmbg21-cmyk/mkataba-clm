@@ -1,5 +1,5 @@
 /* "SENT AS: A COLLEAGUE" — driven in a real browser (owner picked "The Send
-   Screen" by name, 20 Oct 2026). Pairs with f843.
+   Screen" by name, 20 Oct 2026). Pairs with f921.
    1 JAMBO'S BOX: after an answer, "send the above summary to @" lists "People
      who can open MK-B2", the one who cannot greyed with the reason; a pick and
      Enter open the send screen on "a colleague" — the colleague in To, Jambo's

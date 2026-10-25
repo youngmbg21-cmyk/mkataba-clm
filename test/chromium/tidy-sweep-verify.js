@@ -179,7 +179,104 @@ const MEASURE = `(() => {
     const rr = r => [r.left, r.top, r.right, r.bottom].map(Math.round).join(',');
     out.overlap.push({ a: a.w.slice(0, 40), b: b.w.slice(0, 40), who: who(a.el) + ' × ' + who(b.el), in: inside(a.el), ox: Math.round(ox), oy: Math.round(oy), ar: rr(a.r), br: rr(b.r), top: who(top) });
   }
+  /* ROOM INSIDE A CARD (owner, 25 Oct 2026: "ensure the words are not close to the edges of the cards. there
+     should be a minimum distance and the top and the bottom should have the same distance to the edge so should
+     the left and right edges"; "go with 16px, apply it everywhere"): a card is a painted box — its own ground,
+     lift or edge, corners of 8px or more — 120 wide and 36 tall at least, holding words. The first and last
+     line (or control) stand CARD_ROOM from the top and the bottom, the words CARD_ROOM from the left and the
+     widest block that carries them CARD_ROOM from the right, each within CARD_ROOM_SLACK. A pill, chip, tag or
+     button is a control, not a card; a scroller's edge is its view; the paper is the document's own. */
+  const CARD_ROOM = 16, CARD_ROOM_SLACK = 3;
+  const paintOf = el => { const cs = getComputedStyle(el); const bg = cs.backgroundColor;
+    return (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') || cs.boxShadow !== 'none' || (parseFloat(cs.borderTopWidth) > 0 && parseFloat(cs.borderLeftWidth) > 0); };
+  const groundOf = el => { for (let p = el.parentElement; p; p = p.parentElement) { const bg = getComputedStyle(p).backgroundColor; if (bg && bg !== 'rgba(0, 0, 0, 0)') return bg; } return 'rgb(255, 255, 255)'; };
+  const CTRL = 'button, a, input, select, textarea, label, svg, img, canvas, table, thead, tbody, tr, td, th, ul, ol, li, nav, [contenteditable], .pill, .chip, [class*="-chip"], [class*="-pill"], [class*="-tag"], [class*="-badge"], [role="tab"], [role="tablist"], [role="menuitem"], [role="option"], [role="menu"]';
+  const isCard = el => { if (el.matches(CTRL)) return false; const c = getComputedStyle(el); if (parseFloat(c.borderTopLeftRadius) < 8 || !paintOf(el)) return false; const e = c.boxShadow !== 'none' || parseFloat(c.borderTopWidth) > 0; return e || c.backgroundColor !== groundOf(el); };
+  const cardsIn = el => [...el.querySelectorAll('*')].some(d => d.getBoundingClientRect().width >= 120 && d.getBoundingClientRect().height >= 36 && !hidden(d) && isCard(d));
+  out.room = [];
+  for (const el of all) {
+    if (el.matches(CTRL)) continue;
+    if (el.closest('svg, canvas, .tb-paper, .hati-doc, .doc-surface, .doc-sheet, [contenteditable="true"], .hb-dark, [data-toast], .toast')) continue;
+    const cs = getComputedStyle(el);
+    if (parseFloat(cs.borderTopLeftRadius) < 8 || !paintOf(el)) continue;
+    const edged = cs.boxShadow !== 'none' || parseFloat(cs.borderTopWidth) > 0;
+    if (!edged && cs.backgroundColor === groundOf(el)) continue;   /* the same ground as around it, no edge: no box the eye sees */
+    if (/(auto|scroll)/.test(cs.overflowY + cs.overflowX)) continue;
+    const r = R(el); if (r.width < 120 || r.height < 36 || r.top < 0 || r.bottom > vh || r.height > vh * 0.6) continue;   /* a half of the page or a whole panel is a frame, not a card */
+    if (cardsIn(el)) continue;   /* a card that holds cards is a frame: the cards inside it are measured */
+    if (el.querySelector('table, [role="row"], [role="grid"], [role="list"], .hati-doc, .tpl-pf-sheet, .doc-sheet')) continue;
+    /* a stack of rows (three or more children of one kind, edge to edge) is a list's frame too */
+    { const kids = [...el.children].filter(k => !hidden(k)); const tally = {}; kids.forEach(k => { const key = k.tagName + '.' + String(k.className).split(' ')[0]; tally[key] = (tally[key] || 0) + (Math.abs(R(k).width - r.width) < 4 ? 1 : 0); });
+      if (Object.values(tally).some(n => n >= 3) || (kids.length >= 2 && kids.every(k => Math.abs(R(k).width - r.width) < 4 && (k.matches('button, a') || k.classList[0] === kids[0].classList[0]))) || (kids.length >= 1 && kids.every(k => Math.abs(R(k).width - r.width) < 4 && k.matches('button, a') && paintOf(k)))) continue; }   /* a list's frame (rows run edge to edge by design), or the paper's */   /* a list's frame: its rows run edge to edge by design */
+    let t = Infinity, b = -Infinity, l = Infinity, rt = -Infinity, txt = '';
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.textContent.trim()) continue; const pe = n.parentElement; if (!pe || hidden(pe)) continue;
+      let off = false; for (let q = pe; q && q !== el; q = q.parentElement) { const qc = getComputedStyle(q); if (qc.position === 'absolute' || qc.position === 'fixed' || /(auto|scroll)/.test(qc.overflowY)) { off = true; break; } } if (off) continue;
+      /* words inside a control: the control's own edge is what stands near the card's */
+      const ctl0 = pe.closest('button, a, .pill, [class*="-pill"], [class*="-chip"], [class*="-tag"]');
+      /* only a control that paints its own box; a word-link's edge is its words */
+      const ctl = ctl0 && el.contains(ctl0) && ctl0 !== el && paintOf(ctl0) ? ctl0 : null;
+      /* words cut with "…" paint only inside their box: their range runs on past it */
+      const clipTo = (() => { for (let q = pe; q && q !== el; q = q.parentElement) { if (/(hidden|clip)/.test(getComputedStyle(q).overflowX)) return R(q); } return null; })();
+      const clip = q => clipTo ? { top: q.top, bottom: q.bottom, left: Math.max(q.left, clipTo.left), right: Math.min(q.right, clipTo.right), width: Math.min(q.right, clipTo.right) - Math.max(q.left, clipTo.left), height: q.height } : q;
+      const rects = ctl && el.contains(ctl) && ctl !== el ? [R(ctl)] : (() => { const rg = document.createRange(); rg.selectNodeContents(n); return [...rg.getClientRects()].map(clip); })();
+      for (const q of rects) { if (q.width < 1 || q.height < 1) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
+      /* a wrapped line ends where its block ends: the nearest block's content edge stands for the right */
+      if (!ctl) { let q = pe; for (; q && q !== el; q = q.parentElement) { const qc = getComputedStyle(q); if (/^(block|flex|grid|list-item|flow-root)$/.test(qc.display)) break; }
+        const qq = q || el, qc = getComputedStyle(qq);
+        /* centred words are measured by themselves: their line does not run to the block's edge */
+        const centred = qc.textAlign === 'center' || getComputedStyle(pe).textAlign === 'center' || (cs.alignItems === 'center' && cs.flexDirection === 'column');
+        if (!centred) rt = Math.max(rt, R(qq).right - parseFloat(qc.paddingRight) - parseFloat(qc.borderRightWidth)); }
+      txt = txt || n.textContent.trim();
+    }
+    for (const c of el.querySelectorAll('button, input, select, textarea, svg, img')) { if (hidden(c) || getComputedStyle(c).position === 'absolute' || (c.matches('button') && !paintOf(c)) || (c.matches('svg, img') && c.closest('button, a') && el.contains(c.closest('button, a')))) continue; const q = R(c); if (!q.width) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
+    if (!isFinite(t) || !txt) continue;
+    if (!isFinite(rt)) rt = r.right - (l - r.left);
+    const room = { top: Math.round(t - r.top), bottom: Math.round(r.bottom - b), left: Math.round(l - r.left), right: Math.round(r.right - rt) };
+    /* words that stop short of the right (a ragged line, nothing set to the right) say nothing of the right room */
+    if (room.right > room.left + CARD_ROOM) room.right = room.left;
+    /* AT LEAST 16 on every side; above equals below, left equals right */
+    /* a card the layout stretches past its words (a panel filling its row) keeps its room under the words
+       on purpose: its foot is measured only for the minimum */
+    const par = el.parentElement, pcs = par ? getComputedStyle(par) : null;
+    /* …and so is a frame far taller than its words (its foot room more than twice its top's) */
+    const stretched = room.bottom > 2 * room.top + 8 || !!pcs && /flex|grid/.test(pcs.display) && (parseFloat(cs.flexGrow) > 0 || /stretch|normal/.test(cs.alignSelf + pcs.alignItems) && (pcs.display.includes('grid') || !/column/.test(pcs.flexDirection)) && [...par.children].some(k => k !== el && !hidden(k) && Math.abs(R(k).top - r.top) < 2));
+    /* centred words far from both edges read as centred: the slack grows with the room (5%) */
+    const near = (a, b2) => Math.abs(a - b2) <= Math.max(CARD_ROOM_SLACK, Math.min(a, b2) * 0.05);
+    const bad = ['top', 'bottom', 'left', 'right'].some(k => room[k] < CARD_ROOM - CARD_ROOM_SLACK) || (!stretched && !near(room.top, room.bottom)) || !near(room.left, room.right);
+    if (bad) out.room.push({ who: who(el), in: inside(el), text: txt.slice(0, 40), room });
+  }
+  { const seenRoom = new Set(); out.room = out.room.filter(x => { if (seenRoom.has(x.who)) return false; seenRoom.add(x.who); return true; }); }
   return out;
+})()`;
+
+/* ============================================================
+   LEVEL WITH JAMBO'S PANEL (owner's list, 25 Oct 2026, item 12): where the two
+   halves float, the page's first card starts on the panel's top line, and a
+   page that fills the window ends on its foot line. Measured at the parent:
+   the builder's panel started flush under the bar (8px above its head card),
+   the Calendar ended 12px and Our paper 16px above the panel's foot. A list
+   that is simply short ends where its rows end — only a gap of 1–24px is a
+   page that MEANT to fill the window and stopped short.
+   ============================================================ */
+const LEVEL = `(() => {
+  const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 40 && r.height > 40 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+  const panel = ['#ins-panel.is-jambo', '#ig-dock', '#st-side', '#tb-rail', '.cal-cop'].map(s => document.querySelector(s)).find(vis);
+  if (!panel || innerWidth <= 1100 || document.querySelector('.hb-dark')) return null;
+  const pr = panel.getBoundingClientRect();
+  if (pr.top < 40 || pr.bottom > innerHeight) return null;
+  /* a page a door scrolled down (Jambo's work lands on the Board's card) is measured where it starts, not here */
+  if ([document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')].some(el => el && el.scrollTop > 0 && !panel.contains(el))) return null;
+  const cards = [...document.querySelectorAll('#content *, #page-head *')].filter(el => {
+    if (!vis(el) || panel.contains(el) || el.contains(panel) || el.closest('#modal-root')) return false; const r = el.getBoundingClientRect(); if (r.right > pr.left + 2 || r.width < 200) return false;
+    const cs = getComputedStyle(el); return cs.backgroundColor === 'rgb(255, 255, 255)' && parseFloat(cs.borderTopLeftRadius) >= 8; });
+  const outer = cards.filter(c => !cards.some(o => o !== c && o.contains(c)));
+  /* the builder's head card is a row drawn by a 6px ring (box-shadow), its painted edge outside its box */
+  const strip = document.querySelector('#tb-page .tb-strip'); if (vis(strip) || (strip && strip.getBoundingClientRect().height > 0)) outer.push({ getBoundingClientRect: () => { const r = strip.getBoundingClientRect(); return { top: r.top - 6, bottom: r.bottom + 6 }; } });
+  if (!outer.length) return null;
+  const top = Math.min(...outer.map(c => c.getBoundingClientRect().top)), bot = Math.max(...outer.map(c => c.getBoundingClientRect().bottom));
+  return { dTop: Math.round(top - pr.top), dBot: Math.round(pr.bottom - bot) };
 })()`;
 
 /* ============================================================
@@ -204,6 +301,9 @@ const PLACES = [
   { k: 'requests', name: 'Requests', go: `setView('intake')`, wait: `document.querySelector('.ik-page, #ik-root, .sap-page')` },
   { k: 'import', name: 'Import', go: `setView('migration')`, wait: `document.querySelector('#mig-drop, #mig-side')` },
   { k: 'paper-book', name: 'Our paper', go: `setView('templates')`, wait: `document.querySelector('.tpl-pf, #tpl-new, .tpl-shelf')` },
+  /* the template's own page and the builder (25 Oct 2026): a template made for the sweep, nothing else saved */
+  { k: 'template', name: "Our paper · a template's page", go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', description: 'Warehousing and logistics services, our standard', category: 'procurement' })); openTemplateLibDetail(t.template.id); })()`, wait: `document.querySelector('#tpl-dt .tpl-dt-line')` },
+  { k: 'builder', name: 'Our paper · the builder', go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', category: 'procurement' })); const d = await api('templates/' + t.template.id); openTemplateBuilder(t.template.id, d.versions[0].id); })()`, wait: `document.querySelector('#tb-page #tb-rail, #tb-page .tb-strip')` },
   { k: 'standards', name: 'Our standards', go: `setView('playbook')`, wait: `document.querySelector('.sd-page, #sd-root, .sap-page')` },
   { k: 'people', name: 'People', go: `setView('directory')`, wait: `document.querySelector('.dir-td-wrap, .dir-table, .sap-page')` },
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
@@ -288,6 +388,10 @@ const only = (process.env.HATI_TIDY_ONLY || '').split(',').map(s => s.trim()).fi
         for (const x of m.squeeze) console.log(`      SQUEEZED  "${x.text}" ${x.who} in ${x.in} · on ${x.lines} lines in a ${x.h}px box`);
         for (const x of m.spill) console.log(`      SPILT     "${x.text}" ${x.who} past ${x.in} by ${x.by}px`);
         for (const x of m.overlap) console.log(`      OVERLAP   "${x.a}" × "${x.b}" (${x.who}) in ${x.in}${process.env.HATI_TIDY_DEBUG ? ' · a=' + x.ar + ' b=' + x.br + ' top=' + x.top : ''}`);
+        if (m.room) check(`${S.k} · ${P.name} — 16px inside every card`, !m.room.length, m.room.length ? `${m.room.length} kind(s) of card` : undefined);
+        for (const x of (m.room || [])) console.log(`      ROOM      "${x.text}" ${x.who} in ${x.in} · top ${x.room.top} bottom ${x.room.bottom} left ${x.room.left} right ${x.room.right}`);
+        const L = await drive(page, LEVEL, undefined, null);
+        if (L) check(`${S.k} · ${P.name} — level with Jambo's panel`, Math.abs(L.dTop) <= 1 && !(L.dBot > 1 && L.dBot <= 24), `top ${L.dTop >= 0 ? '+' : ''}${L.dTop}px · foot ${L.dBot}px above the panel's`);
       }
     }
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));

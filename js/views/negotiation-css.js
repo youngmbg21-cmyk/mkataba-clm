@@ -543,7 +543,7 @@ function negoStyleHtml(){
   .nego-clause .nego-editing blockquote{margin:var(--s-2) 0 var(--s-2) 18px;padding-left:var(--s-3);
     border-left:2px solid var(--n-line);color:var(--n-ink-soft)}
   /* ---- AND THE SAME DRESS IN THE EDITOR'S OTHER HOME (16 Aug 2026) ----
-     Every twin above is scoped to .nego-clause — the editor's home when f144
+     Every twin above is scoped to .nego-clause — the editor's home when f898
      built them. Since the clause tool row retired, the editor OPENS in the
      clause panel (.rl-cp-src, over "As it stands"), and without these the
      fault came straight back through the new door: a table typed into the
@@ -984,7 +984,7 @@ function negoStyleHtml(){
   .nego-thread{margin-top:10px;border-top:1px dashed var(--n-line);padding-top:10px;display:none}
   .nego-thread.open{display:block}
   .nego-thead{display:flex;align-items:center;gap:var(--s-2);margin-bottom:7px}
-  .nego-tlabel{flex:1;min-width:0;font-size:var(--t-micro);letter-spacing:.09em;font-weight:var(--w-title);letter-spacing:.5px;
+  .nego-tlabel{flex:1;min-width:0;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.5px;
     color:var(--n-ink-soft)}
   /* The way back to a card the size it was, at the top of the thread so a long
      conversation never puts it out of reach. */
@@ -5574,7 +5574,7 @@ function redlineLayoutCss(){
          written later — an unconditional 56px here would beat it and squeeze
          the phone. Writing the WIDE case behind min-width leaves that block the
          last word below 1024, where it belongs. It also keeps the phone's
-         queue-unwind the LAST phone-width block in this file, which is how f95
+         queue-unwind the LAST phone-width block in this file, which is how f931
          finds it. */}
   @media (min-width:1024px){
 
@@ -6132,6 +6132,10 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-face button:has(.rl-verb-i){display:inline-flex;
     align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border-radius:var(--radius);
     font-size:var(--t-meta);font-weight:var(--w-label);line-height:1}
+  ${''/* THE VERBS START UNDER THE WORDS (the detail round, 25 Oct 2026: at 1366 Accept · Reject · Counter began
+         8px right of the change's name above them): each rung keeps its 8px of side padding for its hover, and
+         the row hangs that padding into the card's gutter, so the first mark stands on the words' line */}
+  .redline-page .rl-card-d .rl-card-face.rl-card-verbs{margin-left:calc(-1 * var(--pad-ctl-x-sm))}
   ${''/* THE SMALL RUNG, LIKE EVERY OTHER REPEATED ROW (the Compact ladder,
          26 Sep 2026): 22 drawn, 12px at the one label weight, the rung's own
          8px of side padding and its 14px mark. The reference's 24px/600 verb

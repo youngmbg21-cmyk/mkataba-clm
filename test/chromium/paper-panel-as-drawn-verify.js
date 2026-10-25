@@ -276,6 +276,15 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     const face = await until(() => { const b = document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'); return b ? b.getAttribute('data-pz-follow') : null; }, null, 10000);
     check('6a the colleague\'s face on the paper\'s line is a button on Home', !!face, String(face));
     if (face) {
+      /* THEIR SPOT RIDES THEIR NEXT BEAT (made steady 25 Oct 2026: with four checks running side by side the face
+         came before the colleague's paper had settled on a clause, and the hover said "has this contract open"):
+         both sides say their beat again until the face names a clause, bounded */
+      const FACE = '#ig-strip [data-pz-slot="paper"] button[data-pz-follow]';
+      for (let i = 0; i < 8; i++) {
+        if (await page.evaluate(s => /is reading clause/.test((document.querySelector(s) || {}).title || ''), FACE)) break;
+        await peer.evaluate(() => presenceSay('MK-0382')); await page.evaluate(() => presenceSay('MK-0382'));
+        await until(s => /is reading clause/.test((document.querySelector(s) || {}).title || '') || null, FACE, 1500);
+      }
       /* PASS 2: the hover names the clause they are on */
       const hover = await page.evaluate(() => (document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]') || {}).title || '');
       check('6a2 (pass 2) its hover names where they are: "<name> is reading clause N now. Press to follow: the paper goes where <first> reads."',

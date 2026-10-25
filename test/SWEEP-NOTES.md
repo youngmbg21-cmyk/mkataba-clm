@@ -15,7 +15,7 @@ re-run over merged code. The first time it was fixed in the stylesheet and not i
 the script, which is why it came back.
 
 A sweep must skip any line inside a `prefers-reduced-motion` block, or exclude
-values under 10ms outright. `f238` fails if a token appears in that rule.
+values under 10ms outright. `f902` fails if a token appears in that rule.
 
 ## Never find the compiled Tailwind blob by line number
 

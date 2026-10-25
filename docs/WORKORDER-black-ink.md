@@ -76,7 +76,7 @@ sets `color:var(--ink3)` on that one cell. Do not "fix" it.
 2. `index.html` `html.dark` — `--color-text:#EAF1EF`,
    `--color-neutral-500/600:#9FB0AC`, `--color-neutral-400:#6F817C`,
    `--color-neutral-700:#C6D4D0`.
-3. `test/f238-the-design-system.test.js` — a new check pinning all twelve
+3. `test/f902-the-design-system.test.js` — a new check pinning all twelve
    declarations to the design's literal values, plus a sweep that `#1B2A28` is
    no longer declared in `:root`. **Pinned as literals on purpose**, unlike
    almost every other check in the suite: these are not "a dark ink" and "a

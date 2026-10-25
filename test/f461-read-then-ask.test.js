@@ -74,7 +74,7 @@ describe('F461 (A) — Make bigger, Make smaller', () => {
   });
   test('all three places draw it through the builder; the bare icon lives only there', () => {
     const HB = strip(read('js/views/homeboard.js'));
-    /* the fourth caller is a story's chapter (f536, 6 Oct 2026) */
+    /* the fourth caller is a story's chapter (f914, 6 Oct 2026) */
     /* RE-POINTED 11 Oct 2026 (as drawn): a kept chart's Make bigger is an item
        of its ⋯ (_hbMi, the same data-hb-act="big"); the builder keeps its two
        remaining callers, the opened card that is not a chart and a story's chapter */

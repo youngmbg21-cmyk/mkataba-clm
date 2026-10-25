@@ -2264,9 +2264,32 @@ function intelAskReady(q){
 function igAskThenExplain(q, A){
   if(!A||A.road!=='free') return false;
   if(!(window.caAiFirst&&caAiFirst())) return false;
+  /* BOTH HALVES (owner picked it by name, 25 Oct 2026): the subject decides, not the verb — a fresh picture is
+     explained whether it was asked with "show", "tell me more" or a question; a change to the open chart is not
+     (hbExplainsDrawn, js/views/homeboard.js, the one rule) */
+  if(typeof window.hbExplainsDrawn==='function') return hbExplainsDrawn(q, A);
   if(typeof window.hbCommandAsk==='function'&&hbCommandAsk(q)) return false;
   if(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q)&&!(typeof window.hbChartWords==='function'&&hbChartWords(q))) return false;
   return (typeof window.hbDrawsSomething==='function')?hbDrawsSomething(A):(A.kind==='follow'||(A.kind==='dig'&&!!(A.r&&/^q:/.test(String(A.r.key||'')))));
+}
+/* SAY, THEN OFFER (Both halves, 25 Oct 2026): the next questions the open chart offers (hbNextHtml, free, each one
+   read by the Board before it is offered) stand under Jambo's words, not above them on the Board's line: the
+   newest answer since `from` carries the chart's key, and the Board's line gives its row up to it */
+function igNextUnderWords(from){
+  try{
+    const key=(typeof window.hbOpenListKey==='function')?hbOpenListKey():null; if(!key) return;
+    const h=intel.history, m=h.slice(from).reverse().find(x=>x&&x.role==='assistant'&&!x.err&&!x.act&&!x.reading);
+    if(!m) return;
+    m.nextKey=key;
+    for(let j=from-1;j>=0;j--){ const b=h[j]; if(b&&b.reading){ if(b.reading.key===key) b.nextMoved=true; break; } }
+  }catch(_){}
+}
+/* the row is live while the chart is still open and no later answer drew another */
+function igNextLive(i){
+  const h=intel.history, m=h[i]; if(!m||!m.nextKey) return false;
+  if(typeof window.hbOpenListKey!=='function'||hbOpenListKey()!==m.nextKey) return false;
+  for(let j=h.length-1;j>i;j--) if(h[j]&&(h[j].reading||h[j].nextKey)) return false;
+  return true;
 }
 async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
@@ -2444,16 +2467,19 @@ async function intelAsk(qRaw, opts){
   /* …only with the Board IN FRONT: on Explorer a question keeps the map's route, whose model hands wording to the chat itself (res.kind 'wording'); imported-on-the-map 1d, explorer-stage-three 4 */
   /* …a QUESTION or a brain-verb sentence ("tell me…", "create a table…") is the chat's; a plain phrase the free
      reader could not read ("top 2 by value", "the deals our CFO cares about") keeps the Board's drawing model */
-  const boardWords=!!((typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q))||(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q)));
+  /* …and "more", "go on", "why" carry the last answer on: the chat, with the Board as it stands (Both halves) */
+  const boardWords=!!((typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q))||(typeof window.hbBrainVerb==='function'&&hbBrainVerb(q))||(typeof window.hbMoreAsk==='function'&&hbMoreAsk(q)));
   const boardQ=igBoardNow()&&!boardCmd&&!boardDraw&&boardWords&&!!(window.caAiFirst&&caAiFirst())&&!(typeof window.hbBringOf==='function'&&hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && (boardCmd||boardDraw) && typeof window.hbAsk==='function'){
-    let A=null; try{ A=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(q):null; }catch(_){ A=null; }
-    let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
+    /* the Board draws the SUBJECT of "tell me more about …" (hbDrawWordsOf); the brain is asked the words as typed */
+    const drawQ=(boardDraw&&typeof window.hbDrawWordsOf==='function')?hbDrawWordsOf(q):q;
+    let A=null; try{ A=(typeof window.hbAskReadingOf==='function')?hbAskReadingOf(drawQ):null; }catch(_){ A=null; }
+    let said=null; try{ said=hbAsk(drawQ); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock();
       /* ACT FIRST, THEN EXPLAIN (owner, 24 Oct 2026): a question the Board read as a card to DRAW ("what ends this
          quarter", "which customers are worth the most") is drawn, free, and then Jambo says what it shows, under
          the Board's line — one call, only where the words ask something and the Board only drew */
-      if(igAskThenExplain(q, A)){ intel.busy=true; renderIntelDock(); try{ await intelChatAsk(q, { explain:true }); }catch(_){} intel.busy=false; renderIntelDock(); }
+      if(igAskThenExplain(q, A)){ intel.busy=true; renderIntelDock(); const at=intel.history.length; try{ await intelChatAsk(q, { explain:true }); }catch(_){} igNextUnderWords(at); intel.busy=false; renderIntelDock(); }
       return; }
   }
   const h0=intel.history.length;
@@ -2513,6 +2539,7 @@ async function intelAsk(qRaw, opts){
   }catch(e){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
   }
+  if(boardQ) igNextUnderWords(h0);
   intel.busy=false;
   { const g=(typeof window.aiGotoTake==='function')?aiGotoTake(goSince):null; if(g&&typeof window.aiGotoRun==='function') try{ aiGotoRun(g, q); }catch(_){} }
   /* THE ONE PREPARED PRESS under an answer about one contract (js/jambopress.js):
@@ -8040,7 +8067,8 @@ function igMsgHTML(m,i){
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
-      ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i)):''}
+      ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:!!m.nextMoved }):''}
+      ${(Number.isInteger(i)&&m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function')?hbNextHtml(m.nextKey):''}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
@@ -8283,7 +8311,10 @@ function renderIntelDock(){
      Discard → Added · Undo) stands HERE, in Home's one panel, while the
      Calendar tab is up — never a second panel beside the calendar. Its wiring
      is the calendar's, by id (calWireOwn). The fold is the panel's own. */
-  if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'){
+  /* …but the New agreement sheet in front is what the panel speaks to (25 Oct 2026: opened over the Calendar,
+     the panel went on saying "This week is clear"), as it does over the Board (pdJamboTopHtml); Cancel brings
+     the Calendar's own back */
+  if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'&&!(window.naSheetUp&&naSheetUp())){
     dock.innerHTML=calPlanHtml();
     const head=dock.querySelector('.cal-plan-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
@@ -9683,7 +9714,13 @@ function igStripWire(){
     if(e.target.closest('[data-ig-pick-again]')){ igPickAgain(); return; }
     const wk=e.target.closest('[data-ig-walk]'); if(wk){ igWalkStep(Number(wk.getAttribute('data-ig-walk'))); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
-    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'); p.red=v==='theirs'?'theirs':v==='1'; _igRedFrom=igRedThumbAt(); igPaintPaper(); return; }
+    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'), was=p.red==='theirs'; p.red=v==='theirs'?'theirs':v==='1'; _igRedFrom=igRedThumbAt(); igPaintPaper();
+      /* THEIR VIEW TURNS THE PANEL TOO (owner, 25 Oct 2026): their paper here, their Redlines column in
+         Jambo's panel (pdRedOpts reads igTheirsOn), read-only; leaving it puts our column back */
+      const faceUp=typeof window.pdRedShows==='function'&&pdRedShows()&&pdRedFor()===String(p.id);
+      if(p.red==='theirs'&&!faceUp&&typeof window.pdRedOpen==='function') pdRedOpen(p.id);
+      else if((p.red==='theirs')!==was&&faceUp) renderIntelDock();
+      return; }
     const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
   });
 }
@@ -10331,4 +10368,4 @@ Object.assign(window,{igTrackLayout,igTrackBodyEnd,igTrackFold,igTrackAt,IG_TRAC
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 
 /* what the map shows, one reading (24 Oct 2026) */
-Object.assign(window,{ igMapNow, igAskThenExplain });
+Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
