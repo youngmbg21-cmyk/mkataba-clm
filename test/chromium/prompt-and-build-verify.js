@@ -1,6 +1,6 @@
 /* Chromium verification: THE PAPER AND THE RAIL — tag, talk, apply.
    ============================================================
-   Prompt & Build, round two (13 Sep 2026). f306 reads the markup the builder
+   Prompt & Build, round two (13 Sep 2026). f907 reads the markup the builder
    prints; this file PRESSES it with a real mouse and keyboard, because the
    claims that matter here are journeys: a section tagged from the paper lands
    on the rail's focus card, a draft asked for in the box comes back as a card,
@@ -361,7 +361,7 @@ const RAIL = () => {
     /* ========= 14 · THE DRAFT IS KEPT WHEN YOU PRESS ANYTHING ELSE =========
        The build plan's upgrade 1, driven the way it is actually met: type on
        the paper, walk out through the SIDEBAR — the door that used to take the
-       hour with it without even asking — and come back. f306 (12) reads the
+       hour with it without even asking — and come back. f907 (12) reads the
        shape; only a real browser can prove the work survives a page that was
        replaced underneath it. */
     const kept = async () => page.evaluate(id => {

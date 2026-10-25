@@ -201,7 +201,7 @@ describe('F459 (D) — today\'s insights', () => {
     w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
     return w;
   }
-  /* How a finding is chosen moved to f460 (Young picked "Yours, measured",
+  /* How a finding is chosen moved to f912 (Young picked "Yours, measured",
      4 Oct 2026): against the book's own normal, yours first. What stays here
      is the shelf's furniture. */
   /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"): a usual

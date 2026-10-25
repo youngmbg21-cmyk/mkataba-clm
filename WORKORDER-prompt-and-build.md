@@ -2,7 +2,7 @@
 
 Owner asked, 12 Sep 2026. **BUILT 13 Sep 2026** on the owner's go ("go ahead and build it"),
 to the three proposals at the foot as written — the owner did not rule on them one by one, so each
-is recorded in BUGLOG.md and was said out loud in the summary. Net: `test/f306-prompt-and-build.test.js`.
+is recorded in BUGLOG.md and was said out loud in the summary. Net: `test/f907-prompt-and-build.test.js`.
 
 Prototype and full reasoning: the **Section by Section** artifact — twelve steps, two of them live.
 

@@ -4406,13 +4406,13 @@ function wireNegotiationTab(c, opts = {}){
        is the lead's — so the first pending token wins, exactly the change
        whose marks the block is drawing. */
     /* THE PANEL'S ＋ CONTINUES THE SAME DRAFT THE CLAUSE IS SHOWING (16 Aug
-       2026, caught by f144 the day the clause's own editor retired). The
+       2026, caught by f898 the day the clause's own editor retired). The
        anchor lives on the DOCUMENT's clause block; the panel body never
        carried one, so in the panel `shownIds` came back empty, onTable came
        back null, and the ＋ — which then carried its own "Continue your draft"
        label, retired 26 Aug 2026 — opened on the standing wording with the
        writer's own ask nowhere on screen —
-       f144's original fault, back through the new door. The panel reads the
+       f898's original fault, back through the new door. The panel reads the
        clause's OWN anchor rather than growing a copy that could drift: one
        canvas, one wall, one list of what is on screen. */
     const onTable = shownIds.length

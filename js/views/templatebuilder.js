@@ -1221,7 +1221,7 @@ async function tbBlanksRun(k, text) {
    Keeping a suggested blank, making several blanks at once, putting a deal
    detail back, taking out a note to the drafter: four presses, ONE move —
    every occurrence of some words, in the given blocks, replaced — so they share
-   this one writer, and what may write a block is still three things (f306
+   this one writer, and what may write a block is still three things (f907
    (7)): Apply, typing, and this. In a copied document only the TEXT between
    tags is touched, never a tag (tplFormBlockReplace). Returns how many places
    changed, which is what every caller reports. */
@@ -2594,7 +2594,7 @@ function _tbLeftFrac() {
 const _tbPad = grid => { try { const cs = getComputedStyle(grid); return { l: parseFloat(cs.paddingLeft) || 0, r: parseFloat(cs.paddingRight) || 0 }; } catch (_) { return { l: 0, r: 0 }; } };
 const _tbAvail = grid => { const pad = _tbPad(grid); return Math.max(0, grid.clientWidth - pad.l - pad.r - TB_GAP); };
 /* COUNTING IS NOT DRAWING: the arithmetic answers on its own and is proved
-   without a browser (f306). Both stops in both directions, as the editor's. */
+   without a browser (f907). Both stops in both directions, as the editor's. */
 function tbSplit(avail, frac) {
   const f = Math.max(TB_FMIN, Math.min(TB_FMAX, typeof frac === 'number' && isFinite(frac) ? frac : 2 / 3));
   let left = Math.round(f * avail);

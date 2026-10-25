@@ -1205,7 +1205,7 @@ describe('F89 (14) — the card says what the change is, in one bold line', () =
 
   /* Joined rather than deep-compared throughout: rlDeltaOps returns an array
      built in the PAGE's realm, whose prototype is not this realm's Array, so
-     deepEqual reports a mismatch on two identical lists — the same trap f60
+     deepEqual reports a mismatch on two identical lists — the same trap f916
      documents and f84 works around the same way. */
   test('two edits far apart are not run together', async () => {
     const ops = [{ op: 'keep', text: 'A ' }, { op: 'del', text: 'one' },

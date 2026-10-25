@@ -12952,7 +12952,7 @@ const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is
 const AI_CLARIFY_RULE = 'UNSURE WHICH ONE: when the person\'s words fit two or more contracts, parties, people or places and nothing on screen settles it, do not guess: ask ONE short question in the answer and give 2-4 choices in deliver_answer\'s choices, each the exact door it opens. When their words fit one thing, answer or open it.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
 /* A CONTRACT'S BRIEF IS KEPT (owner, 22 Oct 2026): the chat opens the kept brief (goto task brief), never writes
-   one again; the browser's twins in js/ai.js, word for word (f862) */
+   one again; the browser's twins in js/ai.js, word for word (f923) */
 const AI_BRIEF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief and shows it in the panel beside the paper: set deliver_answer\'s goto to task brief and say in one short sentence that you are opening its brief.';
 const AI_BRIEF_OFF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief beside the paper: say in one short sentence that the words “brief” and the contract\'s reference (as in “brief MK-458”) open it.';
 const AI_TASK_TAB = { amend: 'amend', sign: 'sign', redline: 'redlines', history: 'hist', fill: 'fill', oblig: 'oblig', brief: 'brief', share: 'send' };

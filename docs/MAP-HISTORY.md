@@ -34520,3 +34520,51 @@ The Dossier's Risks to look at › Open lands ON the face's `#rl-risks` (`pdRedO
 
 ## ASK A COLUMN — DISCOVER, TEST NUMBERS MOVED (25 Oct 2026)
 The owner said "fix the doubled test numbers". Main and the Discover branch had each used f878 to f883. Main's tests were already merged, so they keep their numbers; Discover's moved to the next free ones: f878 → f887 (the exam is honest), f879 → f888 (one read, many answers), f880 → f889 (kept questions and packs), f881 → f890 (company facts), f882 → f891 (a watch on an answer), f883 → f892 (unusual for you). MAP-TESTS, docs/PLAN-jambo-discover.md and test/discover-measure.js say the new numbers. The Discover entries ABOVE in this file still say the old numbers, kept as written; read them through this table.
+
+## TEST NUMBERS, EACH USED ONCE (25 Oct 2026)
+The owner said "fix the older doubled test numbers too". 41 numbers were each used by two files (f862 by three), mostly brought in together by one commit. The first file by name kept the number (where git history could not tell which came first); the other moved to the next free number. Each moved file says its new number (capitals too); every LIVE mention that meant a moved file was read in its context and re-pointed (CLAUDE.md, MAP-TESTS, PLAN-jambo-journey, code comments, other tests and browser checks; 90 edits); mentions meaning the file that kept its number stay. Old records (this file, BUGLOG, SESSION-NOTES, SUMMARY, CHECKLIST, WORKORDER-*, EXECUTION-PLAN, LOOP_REPORT, OPEN-ISSUES, SECURITY, REDESIGN-AUDIT, UI-UX-AUDIT, DESIGN-copilot-edit) are kept as written: read an old number in them through this table. Left as they were because the context could not say which twin was meant: test/chromium/structure-verify.js "f130", test/f44 "see f145", test/f96 "f145", test/f329 "f306", js/views/negotiation.js "f96", MAP-TESTS shell list "f96". Lint 0 errors; the 95 files involved pass.
+
+| Old | New | File |
+|---|---|---|
+| f106 | f893 | template-hygiene |
+| f107 | f894 | plain-means-short |
+| f130 | f895 | word-comments-and-export |
+| f135 | f896 | half-signed-honesty |
+| f136 | f897 | the-parties-get-the-contract |
+| f144 | f898 | the-editor-is-the-clause |
+| f145 | f899 | standard-paper-is-a-window-per-clause |
+| f151 | f900 | formatting-only-changes |
+| f193 | f901 | writing-an-amendment |
+| f238 | f902 | the-design-system |
+| f240 | f903 | sent-means-sent-the-rest |
+| f241 | f904 | the-server-speaks-english |
+| f242 | f905 | nothing-floats-over-the-page |
+| f303 | f906 | the-upload-is-its-own-paper |
+| f306 | f907 | prompt-and-build |
+| f350 | f908 | the-remove-key-verb-says-what-it-can-do |
+| f367 | f909 | signing-without-the-facts |
+| f426 | f910 | their-edit-page-and-save-symbol |
+| f427 | f911 | save-live-while-typing-and-term-slips |
+| f460 | f912 | yours-measured |
+| f461 | f913 | the-requests-page-reads-the-new-states |
+| f536 | f914 | story-chapters |
+| f543 | f915 | signing-with-the-other-side |
+| f60 | f916 | internal-notes-stay-home |
+| f61 | f917 | structured-redline |
+| f705 | f918 | needs-you-here |
+| f730 | f919 | imported-on-the-map |
+| f738 | f920 | jambo-finds-the-way |
+| f843 | f921 | send-to-a-colleague |
+| f862 | f922 | jambo-speaks-first |
+| f862 | f923 | the-brief-is-brought-never-rewritten |
+| f866 | f924 | first-timer-rounds |
+| f868 | f925 | the-one-desk |
+| f869 | f926 | jambo-reads-it-said-another-way |
+| f872 | f927 | one-jambo-two-layers |
+| f873 | f928 | a-question-stays-on-every-page |
+| f93 | f929 | party-badges-and-origin-filter |
+| f94 | f930 | redline-focus-mode |
+| f95 | f931 | menus-order-and-quiet |
+| f96 | f932 | three-themes |
+| f97 | f933 | link-column |
+| f98 | f934 | numbering-gaps-and-the-lock |

@@ -606,7 +606,7 @@ library, auto-updating open contracts, cross-org sharing, pricing.
 ## Clause numbering — the gap a deletion leaves, and the lock after signature
 
 **Done** (`js/clausemodel.js`, `js/negotiation.js`, `js/views/negotiation.js`;
-new `test/f98-numbering-gaps-and-the-lock.test.js`, 25 tests; no server changes)
+new `test/f934-numbering-gaps-and-the-lock.test.js`, 25 tests; no server changes)
 
 Deleting a clause takes its heading and body out and closes nothing up, so a
 contract that loses clause 9 reads 1..8, 10..24. That behaviour is right and

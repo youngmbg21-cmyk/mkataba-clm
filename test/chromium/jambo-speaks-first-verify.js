@@ -2,7 +2,7 @@
    ============================================================
    Round 1 of Jambo's journey (owner, 22 Oct 2026: "First thing after
    uploading a contract, jambo pops up to advise you IN VERY NATURAL AND PLAIN
-   LANGUAGE"; "May Jambo speak first on arrival? Yes"). f862 pins the reading
+   LANGUAGE"; "May Jambo speak first on arrival? Yes"). f922 pins the reading
    and the presses; this file asks the reader's questions in a real browser:
      1 · a file dropped through Jambo's own drop area is read on arrival, and
          when the reading lands his panel beside the paper turns to him and

@@ -6,7 +6,7 @@
    THIS FILE EXISTS BECAUSE THE RULING IS ABOUT THE SHELL, and the shell is not
    on any harness page: the dark bar, the sidebar and the app grid live in
    index.html, outside the negotiate page's own markup, so only the real app
-   can say whether they are still standing. f94 pins the rules; this measures
+   can say whether they are still standing. f930 pins the rules; this measures
    the screen.
 
    MEASURED AT THE PARENT (70b831f), entering focus on the negotiate page:
