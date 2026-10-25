@@ -218,7 +218,9 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
 
   /* The section in hand at open is the first one still to write, else the
      first — so the rail has something to say before anything is pressed. */
-  const secs = tbSections(); const first = secs.find(x => tbSectionOwes(x)) || secs[0];
+  /* a section that already reads like a note is said on its thread, and is the one in hand */
+  const noted = tbNotesOnPaper();
+  const secs = tbSections(); const first = noted || secs.find(x => tbSectionOwes(x)) || secs[0];
   /* ARRIVING FROM THE ONE DOOR (24 Sep 2026): the start says what Copilot's
      first move is, and that move LEADS the rail — so no section is in hand
      yet. This stays the open's ONE write of the section in hand (tbFocus is
@@ -227,7 +229,7 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
   /* ROUND 21 AS DRAWN: a template with sections opens on the Outline tab of
      Jambo's panel (the section in hand lit there); an empty one, or one that
      arrives with a first move (the one door's start), on Build */
-  if (secs.length && !opts.start) _tb.tab = 'outline';
+  if (secs.length && !opts.start) _tb.tab = noted ? 'build' : 'outline';
   /* a proposal the reader skipped for this template stays skipped */
   _tb.decided = { kept: [], left: tbSkippedOf(), neg: [] };
   if (opts.start) tbStartWith(opts.start);
@@ -629,7 +631,7 @@ function tbOutlineAdd(opts = {}) {
   list.forEach(x => {
     const h = tbAddBlock('heading', x.heading);
     const lib = (x.src || tbSourceOf(x.heading)) === 'lib' ? tbLibraryFor(x.heading) : null;
-    tbAddBlock('field_group', lib ? lib.preferred : '');
+    tbAddBlock('field_group', lib ? tbSafeWords(lib.preferred) : '');
     if (h) _tb.intent[h._k] = x.intent || '';
   });
   _tb.outline = null;
@@ -904,7 +906,7 @@ function tbCompareFirst(clauseId) {
 function tbAddStandard(category) {
   const lib = tbLibraryFor(category);
   const at = tbProposalSpot();
-  const h = tbAddBlock('heading', category); const w = tbAddBlock('field_group', lib ? lib.preferred : '');
+  const h = tbAddBlock('heading', category); const w = tbAddBlock('field_group', lib ? tbSafeWords(lib.preferred) : '');
   if (h && w && at >= 0 && at < _tb.blocks.indexOf(h)) {
     _tb.blocks = _tb.blocks.filter(b => b !== h && b !== w);
     _tb.blocks.splice(at, 0, h, w);
@@ -1063,6 +1065,10 @@ async function tbDraft(k, said, o = {}) {
     if (_tb !== me) return;
     _tb.reads++;
     if (!made) tbTurn(k, { who: 'ai', text: i18t('tb_pb_unreadable'), tone: 'amber' });
+    else if (!tbCardWording({ text: String(made.proposedText || '') }) && String(made.proposedText || '').trim()) {
+      /* A NOTE ABOUT THE WORK CAME BACK AS WORDING: kept off the paper, said in amber, no card */
+      tbTurn(k, { who: 'ai', text: i18t('tb_kept_off'), tone: 'amber' });
+    }
     else if (!String(made.proposedText || '').trim()) {
       /* AN ANSWER IS NOT WORDING. AI_PROPOSAL_FORMAT asks for an empty
          proposedText where the model cannot draft from what it was shown, so
@@ -1097,6 +1103,24 @@ async function tbDraft(k, said, o = {}) {
    Apply and a press that refuses it can never be the same card. Where the
    module that answers is not on this stage the answer is "wording", which is
    exactly how this page behaved before the wall existed. */
+/* EVERY WAY WORDS REACH THE PAPER ASKS THE SAME WALL (owner, 25 Oct 2026, over
+   a Parties section that read "Drafted the Parties section for … template"):
+   Apply asks tbCardWording at the press; a library clause and an outline's
+   section arrive through tbAddBlock with no press, so they ask it here, and a
+   note is left out — the section arrives empty, never written with a remark */
+function tbSafeWords(t){ return tbCardWording({ text: t }) ? t : ''; }
+/* A SAVED TEMPLATE IS LOOKED OVER ON OPEN, NEVER CHANGED: any section whose
+   wording reads like a note about the drafting is said on its own thread, in
+   amber, for a person to look at */
+function tbNotesOnPaper(){
+  if (!_tb) return null;
+  let first = null;
+  for (const sec of tbSections()){
+    const t = tbSectionText(sec);
+    if (t && !tbCardWording({ text: t })){ tbTurn(sec.k, { who: 'ai', text: i18t('tb_note_on_paper'), tone: 'amber' }); first = first || sec; }
+  }
+  return first;
+}
 function tbCardWording(a){
   const t = String((a && a.text) || '').trim();
   if (!t) return false;
@@ -1120,6 +1144,7 @@ async function tbAccept(k, idx) {
     tbPaintRail();
     return;
   }
+  a.snap = tbBlocksSnap();
   const bi = tbWordingBlock(sec);
   _tb.blocks[bi].content = a.text;
   /* Copilot's wording is plain text, so the block is plain from here on: the
@@ -1128,6 +1153,7 @@ async function tbAccept(k, idx) {
   tbDropExtraBody(sec, bi);
   tbTouch();
   a.applied = true;
+  a.after = tbBlocksSig();
   const receipt = i18t(tbPaperNo(sec) ? 'tb_pb_applied' : 'tb_pb_applied_un', { n: tbPaperNo(sec), head: sec.head || i18t('tb_untitled') });
   tbTurn(k, { who: 'ai', receipt });
   tbPaintPaper(); tbPatchDirty();
@@ -1137,6 +1163,23 @@ async function tbAccept(k, idx) {
   tbPaintRail();
 }
 
+/* UNDO IS EXACT OR IT IS NOT OFFERED: the blocks Apply replaced are kept on the
+   card, and put back only while the paper is still as Apply left it — a later
+   edit is never thrown away by an Undo pressed on an older card */
+const tbBlocksSig = () => JSON.stringify(((_tb && _tb.blocks) || []).map(b => [b.blockType, b.content]));
+const tbBlocksSnap = () => ((_tb && _tb.blocks) || []).map(b => ({ ...b }));
+function tbUndoable(a) { return !!(a && a.applied && a.snap && a.after && a.after === tbBlocksSig()); }
+function tbUndo(k, idx) {
+  const turn = tbThread(k)[idx]; const a = turn && turn.card;
+  if (!tbUndoable(a)) { tbPaintRail(); return; }
+  _tb.blocks = a.snap; a.applied = false; a.snap = null; a.after = null;
+  tbTouch(); tbPaintPaper(); tbPatchDirty(); tbPaintRail();
+  toast(i18t('tb_undone'), 'ok');
+}
+function tbDiscard(k, idx) {
+  const turn = tbThread(k)[idx]; if (!turn || !turn.card || turn.card.applied) return;
+  turn.card.discarded = true; tbPaintRail();
+}
 /* ---- THE BLANKS PROPOSE THEMSELVES ----
    The same reader that turns an uploaded Word file into a template with
    fields, pointed at one section. HELD OUTSIDE _tb.fields until kept, so a
@@ -1508,6 +1551,46 @@ function tbStyleHtml() {
   .tb-rail .tb-tabs{margin-left:0;gap:18px}
   .tb-rail .tb-tabs .n,.tb-rail .tb-tabs .n.r{background:none;padding:0;margin-left:5px;font-weight:var(--w-body);font-style:italic;color:var(--color-neutral-600)}
   .tb-rail .tb-tabs button.is-on .n{color:inherit}
+  /* ---- THE BUILDER WORKS LIKE THE CLAUSE EDITOR, AND WEARS THE ROUND LOOK (owner, 25 Oct 2026) ----
+     one head row with the tabs at its end; a section picker as a grey pill; a grey card of what the
+     section stands on; Jambo's wording under a left rule with the new words marked green; every chip
+     and button a pill; your words round like his answers; the foot ‹ k of n › · Next section */
+  .tb-rail .jl-head .tb-tabs{margin-left:0;gap:14px;flex:none}
+  .tb-rail .jl-head .tb-tabs button{padding:0 1px;height:56px;border-bottom-width:2px}
+  .tb-secpick{flex:none;padding:10px 14px 2px}
+  .tb-secpick select{width:100%;height:var(--ctl-h,32px);border:0;border-radius:999px;background:var(--surface-2,#EDEDF0);color:var(--color-text);padding:0 34px 0 14px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);text-overflow:ellipsis}
+  .tb-ctx{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:0 0 12px;padding:10px 14px;background:var(--surface-2,#EDEDF0);border-radius:18px;font-size:var(--t-label);line-height:1.45}
+  .tb-ctx dt{font-weight:var(--w-strong);color:var(--color-neutral-600);white-space:nowrap}
+  .tb-ctx dd{margin:0;min-width:0;color:var(--color-text)} .tb-ctx dd.e{color:var(--color-neutral-500)}
+  .tb-you span{border-radius:18px;padding:8px 14px}
+  .tb-card{border:0;border-radius:18px;background:var(--surface-2,#EDEDF0)}
+  .tb-card.rcpt{border-radius:18px}
+  .tb-card .chip{border-radius:999px;padding:2px 8px}
+  .tb-card.tb-sug{background:none;border-radius:0;border-left:2px solid var(--color-text);padding:2px 0 2px 12px}
+  .tb-card.tb-sug .chip.ai{background:#FBEBD5;color:#9A6700}
+  .tb-card.tb-sug .pv{background:none;border:0;padding:0;max-height:none;font-size:var(--t-meta)}
+  .tb-card.tb-sug .pv ins{background:#DDF1E8;color:#0B5F52;font-weight:var(--w-body);text-decoration:underline;text-decoration-color:#087363}
+  .tb-card .av button{border:0;border-radius:999px;background:var(--color-surface);color:var(--color-text);padding:0 12px}
+  .tb-card.tb-sug .av button{background:var(--surface-2,#EDEDF0)}
+  .tb-card .av button.p,.tb-card.tb-sug .av button.p{background:var(--accent-fill);color:#fff}
+  .tb-card .av .ok{font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-green-fg)}
+  .tb-chips button{border:0;border-radius:999px;background:var(--surface-2,#EDEDF0);color:var(--color-text);padding:0 12px}
+  .tb-chips button.next{background:var(--accent-fill);color:#fff}
+  .tb-scope.is-ctx{margin:0 14px 6px;padding:0;background:none;border:0}
+  .tb-tagline{display:flex;align-items:center;min-width:0}
+  .tb-tag{display:inline-flex;align-items:center;gap:2px;max-width:100%;height:22px;padding:0 2px 0 10px;border-radius:999px;background:var(--color-text);color:#fff;font-size:var(--t-label);font-weight:var(--w-strong);white-space:nowrap}
+  .tb-tag .w{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .tb-tag button{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border:0;border-radius:999px;background:none;color:inherit;font:inherit;cursor:pointer;padding:0}
+  .tb-tag button:hover{background:rgba(255,255,255,.22)}
+  .tb-railfoot{flex-wrap:nowrap}
+  .tb-pg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  .tb-pg button{display:inline-grid;place-items:center;width:26px;height:26px;border:0;border-radius:999px;background:var(--surface-2,#EDEDF0);color:var(--color-text);font:inherit;cursor:pointer;padding:0}
+  .tb-pg-dev{white-space:nowrap}
+  .tb-railfoot .tb-nextbtn{white-space:nowrap}
+  .tb-rail .tb-secpick select{-webkit-appearance:none;appearance:none;border:0;border-radius:999px;background-color:var(--surface-2,#EDEDF0);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%231D1D1F' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+  .tb-ai:has(> .tb-card.tb-sug){border-left:0;padding-left:0}
+  .tb-railfoot .tb-walk{white-space:nowrap}
+  .tb-railfoot{gap:6px}
   .tb-foot{flex:none;padding:10px 12px 8px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
   .tb-foot .tb-ask{border-top:0;align-items:center;gap:8px;min-height:40px;border:1px solid var(--color-neutral-300);border-radius:10px;padding:0 4px 0 12px;background:var(--color-surface)}
   .tb-foot .tb-ask:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--color-accent-100)}
@@ -1730,6 +1813,7 @@ function tbTurnHtml(t, i, sec) {
   if (t.answered) return tbAiHtml(`<b>${i18t('tb_pb_no_wording')}</b> ${esc(t.answered)}`);
   if (!t.card) return tbAiHtml(esc(t.text || ''), t.tone);
   const a = t.card;
+  if (a.discarded) return t.text ? tbAiHtml(esc(t.text)) : '';
   const draftNo = tbThread(sec.k).slice(0, i + 1).filter(x => x.card).length;
   const dev = !a.applied && tbCardDeviates(sec, a.text);
   /* A REMARK ABOUT THE JOB IS NOT A DRAFT, so it is printed as what it is and
@@ -1738,12 +1822,13 @@ function tbTurnHtml(t, i, sec) {
   if (!tbCardWording(a))
     return tbAiHtml(`<b>${i18t('tb_pb_no_wording')}</b> ${esc(a.text)}`);
   return `<div class="tb-ai">${t.text ? `<p class="t">${esc(t.text)}</p>` : ''}
-    <div class="tb-card" data-tb-card="${i}">
-      <div class="n">${esc(sec.head || i18t('tb_untitled'))} — ${draftNo}<span class="g"></span><span class="chip ${a.tone || 'ai'}">${esc(a.src)}</span>${dev ? `<span class="chip dev">${i18t('tb_ask_first_dev')}</span>` : ''}</div>
+    <div class="tb-card tb-sug" data-tb-card="${i}" title="${esc((sec.head || i18t('tb_untitled')) + ' — ' + draftNo)}">
+      <div class="n">${i18t('tb_sug_head')}<span class="g"></span><span class="chip ${a.tone || 'ai'}">${esc(a.src)}</span>${dev ? `<span class="chip dev">${i18t('tb_ask_first_dev')}</span>` : ''}</div>
       ${a.rests ? `<span class="r">${esc(a.rests)}</span>` : ''}
       <div class="pv">${tbMarkedHtml(a.before, a.text)}</div>
-      ${a.applied ? '' : `<div class="av">
+      ${a.applied ? `<div class="av"><span class="ok">✓ ${i18t('tb_applied')}</span>${tbUndoable(a) ? `<button type="button" data-tb-undo="${sec.k}:${i}">${i18t('tb_undo')}</button>` : ''}</div>` : `<div class="av">
         <button type="button" class="p" data-tb-use="${sec.k}:${i}">${i18t('tb_pb_apply')}</button>
+        <button type="button" data-tb-discard="${sec.k}:${i}">${i18t('tb_discard')}</button>
         <button type="button" data-tb-refine="${sec.k}:${i}">${i18t('tb_pb_refine')}</button>
         <span class="cost">${a.free ? i18t('tb_pb_no_read_short') : i18t('tb_pb_read_n', { n: a.read || _tb.reads })}</span></div>`}
     </div></div>`;
@@ -1800,7 +1885,7 @@ function tbBuildLaneHtml() {
     if (!sec && _tb.start && _tb.start.kind === 'contract') return tbContractCardHtml() + (secs.length ? tbSectionListHtml(secs) : '');
     if (!sec) return (_tb.said ? `<p class="tb-quiet">${i18t('tb_pb_building')} <i style="font-style:normal;color:var(--color-text)">“${esc(_tb.said)}”</i></p>` : '')
       + tbAiHtml(i18t('tb_pick_lead')) + (secs.length ? tbSectionListHtml(secs) : '');
-    let html = '';
+    let html = tbCtxHtml(sec);
     if (_tb.lastReceipt && _tb.lastReceipt.k === sec.k) html += tbReceiptHtml(_tb.lastReceipt.text);
     const th = tbThread(sec.k);
     /* THREE OPENINGS, NOT TWO. The walk question is for an empty section under
@@ -1933,12 +2018,12 @@ function tbBlanksLaneHtml() {
 function tbScopeHtml() {
   const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
   if (!sec || !_tb.blocks.length || _tb.outline) return '<div id="tb-scope"></div>';
-  const txt = tbSectionText(sec);
+  /* THE SECTION CARD WENT (owner, 25 Oct 2026, "the builder should mirror the redline editing"): it
+     stood over the chips and covered "Next: …"; the picker above names the section in hand and the
+     ask box carries "This section", as the clause editor's does. Only the sections tagged for
+     context stay here, as small chips. */
   const ctx = (_tb.ctx || []).map(k => tbSectionAt(k)).filter(Boolean);
-  return `<div id="tb-scope"><div class="tb-scope"><div class="eb"><b>✎ ${tbPaperNo(sec) ? i18t('tb_scope', { n: tbPaperNo(sec), head: esc(sec.head) || i18t('tb_untitled') }) : (esc(sec.head) || i18t('tb_untitled'))}</b><span class="g"></span>
-      <button type="button" class="x" data-tb-step="-1" title="${i18t('tb_prev')}" aria-label="${i18t('tb_prev')}">${icon('chevL','w-3.5 h-3.5')}</button><button type="button" class="x" data-tb-step="1" title="${i18t('tb_next')}" aria-label="${i18t('tb_next')}">${icon('chevR','w-3.5 h-3.5')}</button><button type="button" class="x" data-tb-untag title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}">${icon('x','w-3.5 h-3.5')}</button></div>
-    <q class="${txt ? '' : 'e'}">${esc(txt ? txt.slice(0, 160) + (txt.length > 160 ? '…' : '') : i18t('tb_not_written'))}</q>
-    ${ctx.map(c => `<span class="ctx">@ ${tbNoHead(c, esc(c.head))} — ${i18t('tb_for_context')} <button type="button" data-tb-unctx="${c.k}" title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}" style="display:inline-flex;vertical-align:middle">${icon('x','w-3 h-3')}</button></span>`).join('')}</div></div>`;
+  return `<div id="tb-scope">${ctx.length ? `<div class="tb-scope is-ctx">${ctx.map(c => `<span class="ctx">@ ${tbNoHead(c, esc(c.head))} — ${i18t('tb_for_context')} <button type="button" data-tb-unctx="${c.k}" title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}" style="display:inline-flex;vertical-align:middle">${icon('x','w-3 h-3')}</button></span>`).join('')}</div>` : ''}</div>`;
 }
 function tbChipsRowHtml() {
   const chips = [];
@@ -1988,8 +2073,10 @@ function tbAskHtml() {
      question), the word Ask on its button, "/" the places (data-ca-slash,
      leaving through tbLeave so nothing typed is lost) */
   const ph2 = opening || _tb.refine ? ph : i18t('jl_ph_any');
+  const tag = sec && !opening ? `<div class="tb-tagline"><span class="tb-tag"><span class="w">${esc(i18t('tb_this_section'))}</span><button type="button" data-tb-untag title="${esc(i18t('tb_untag'))}" aria-label="${esc(i18t('tb_untag'))}">×</button></span></div>` : '';
   /* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */
   return `<div class="tb-foot">${_tbJbCard({ id: 'tb-askrow', field: `<textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" data-ca-slash placeholder="${esc(ph2)}" title="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>`,
+    ctx: tag,
     send: _tbJbSend(`data-tb-send ${on ? '' : 'disabled'}`, i18t('int_ask'), { title: on ? i18t('tb_pb_one_read') : i18t('tb_pb_nokey') }),
     tail: `<div class="tb-pick" id="tb-pick" hidden></div>` })}</div>`;
 }
@@ -1999,9 +2086,11 @@ function tbFootHtml() {
   const written = secs.filter(s => !tbSectionOwes(s)).length;
   const cov = tbCoverage(); const dev = cov ? cov.deviations : 0;
   const nx = tbNextEmpty(_tb.focus);
-  return `<span><b>${i18t('tb_pb_covered', { n: written, m: secs.length })}</b> ${i18t('tb_foot_written')}${dev ? ` · <b>${dev}</b> ${i18tn('tb_foot_dev', dev, { n: dev })}` : ''}</span><span class="sp"></span>
+  const at = secs.findIndex(s => s.k === _tb.focus);
+  /* THE EDITOR'S FOOT (‹ k of n ›), the written count kept on its title */
+  return `<span class="tb-pg" title="${esc(i18t('tb_pb_covered', { n: written, m: secs.length }) + ' ' + i18t('tb_foot_written'))}"><button type="button" data-tb-step="-1" title="${i18t('tb_prev')}" aria-label="${i18t('tb_prev')}">‹</button><span>${i18t('tb_pg', { k: at < 0 ? '–' : at + 1, n: secs.length })}</span><button type="button" data-tb-step="1" title="${i18t('tb_next')}" aria-label="${i18t('tb_next')}">›</button></span>${dev ? `<span class="tb-pg-dev"><b>${dev}</b> ${i18tn('tb_foot_dev', dev, { n: dev })}</span>` : ''}<span class="sp"></span>
     <button type="button" class="tb-walk${_tb.walk ? ' is-on' : ''}" data-tb-walk title="${esc(i18t('tb_walk_title'))}">${i18t('tb_walk')} · ${_tb.walk ? i18t('tb_on') : i18t('tb_off')}</button>
-    <button type="button" class="ui-btn ui-btn-sm tb-nextbtn" data-tb-next="${nx ? nx.k : ''}" ${nx ? '' : 'disabled'}>${i18t('tb_next_section')}${icon('chevR')}</button>`;
+    <button type="button" class="ui-btn ui-btn-sm ui-btn-primary tb-nextbtn" data-tb-next="${nx ? nx.k : ''}" ${nx ? '' : 'disabled'}>${i18t('tb_next_section')}${icon('chevR')}</button>`;
 }
 /* ════ THE THREE-STEP SPINE WAS BUILT, MEASURED AND TAKEN OUT (18 Sep 2026)
    ═══ It was in the approved plan and the plan was wrong, which is what
@@ -2065,17 +2154,40 @@ function tbRailHtml() {
     <button type="button" class="tb-door" data-tb-door aria-expanded="false" title="${esc(i18t('int_open_panel'))}" aria-label="${esc(i18t('int_open_panel'))}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg><span class="tb-door-i">${face(28)}</span><span class="tb-door-w">${esc(name)}</span></button>
     <div class="jl-head tb-jh">
       <button type="button" class="pd-tab on jl-tab" data-tb-jambo title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face(20)}</span></span><span class="pd-tab-w">${esc(name)}</span></button>
-      <span class="jl-word" title="${esc(i18t('tb_jl_word'))}">${esc(i18t('tb_jl_word'))}</span>
+      ${''/* ONE ROW, AS THE CLAUSE EDITOR'S (owner, 25 Oct 2026, "the approach should mirror how the redline
+             editing is done"): ✦ Jambo, then the tabs at the row's end; no second row, no page word */}
       <span class="jl-sp"></span>
+      <span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('outline', i18t('tb_tab_outline'))}${T('playbook', i18t('tb_pb_playbook'), pb, cov && cov.met < cov.total ? 'r' : '')}${T('blanks', i18t('tb_tab_blanks'), nb)}</span>
       <button type="button" class="pd-back" data-tb-jambo title="${esc(i18t('pd_back_jambo'))}"${showBack ? '' : ' hidden'}><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
       <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-tb-fold aria-expanded="true" title="${esc(i18t('int_collapse_panel'))}" aria-label="${esc(i18t('int_collapse_panel'))}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
     </div>
-    <div class="tb-ah"><span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('outline', i18t('tb_tab_outline'))}${T('playbook', i18t('tb_pb_playbook'), pb, cov && cov.met < cov.total ? 'r' : '')}${T('blanks', i18t('tb_tab_blanks'), nb)}</span></div>
+    ${tab === 'build' ? tbSecPickHtml() : ''}
     ${tab === 'build' || tab === 'playbook' ? `<div class="tb-disc"><b>✦</b><span>${i18t(tab === 'playbook' ? 'tb_pb_cover_foot' : 'tb_disc')}</span></div>` : ''}
     <div class="tb-lane" id="tb-lane">${tab === 'build' ? tbBuildLaneHtml() : tab === 'outline' ? tbOutlineTabHtml(cov) : tab === 'playbook' ? tbPlaybookLaneHtml(cov) : tbBlanksLaneHtml()}</div>
     ${tab === 'build' ? tbScopeHtml() + tbChipsRowHtml() + `<div class="tb-railfoot" id="tb-railfoot">${tbFootHtml()}</div>` : ''}
     ${tbAskHtml()}
   </aside>`;
+}
+/* ---- THE SECTION PICKER AND WHAT THE SECTION STANDS ON (owner, 25 Oct 2026: the
+   builder works the way the clause editor does) ----
+   The editor's clause picker ("● 4. Termination") is the builder's section
+   picker; its grey card ("What moved · On your ladder · What you have settled
+   for") is the builder's "What it must settle · Our standards · Your library".
+   Choosing moves the section in hand (tbFocus) — the one writer of it. */
+function tbSecPickHtml() {
+  if (!_tb || !_tb.blocks.length || _tb.outline) return '';
+  const secs = tbSections(); if (!secs.length) return '';
+  const on = _tb.focus != null ? String(_tb.focus) : '';
+  const opt = s => { const n = tbPaperNo(s); return `<option value="${s.k}"${String(s.k) === on ? ' selected' : ''}>${esc((n ? n + '. ' : '') + (s.head || i18t('tb_untitled')))}</option>`; };
+  return `<div class="tb-secpick"><select id="tb-secpick" data-tb-secpick aria-label="${esc(i18t('tb_pick_sec'))}">${on ? '' : `<option value="" selected>${esc(i18t('tb_pick_sec'))}</option>`}${secs.map(opt).join('')}</select></div>`;
+}
+function tbCtxHtml(sec) {
+  if (!sec) return '';
+  const settle = (_tb.intent && _tb.intent[sec.k]) || '';
+  const std = tbStandardFor(sec.head) || '';
+  const lib = tbLibraryFor(sec.head);
+  const row = (k, v, none) => `<dt>${esc(i18t(k))}</dt><dd${v ? '' : ' class="e"'}>${esc(v || i18t(none))}</dd>`;
+  return `<dl class="tb-ctx">${row('tb_ctx_settle', settle, 'tb_ctx_settle_none')}${row('tb_ctx_std', std, 'tb_ctx_std_none')}${row('tb_ctx_lib', lib ? lib.name : '', 'tb_ctx_lib_none')}</dl>`;
 }
 /* ---- THE OUTLINE, A TAB OF HIS PANEL (round 21 as drawn) ----
    Every section in paper order — its number as the paper prints it ("·" for
@@ -2762,6 +2874,8 @@ function tbWire() {
     if (hit('[data-tb-skip]')) { const nx = tbNextEmpty(_tb.focus); if (nx) tbFocus(nx.k, { scroll: true }); return; }
     if ((b = hit('[data-tb-next]'))) { const k = b.getAttribute('data-tb-next'); if (k !== '') { _tb.lastReceipt = null; tbFocus(Number(k), { scroll: true }); } return; }
     if ((b = hit('[data-tb-use]'))) { const [k, i] = b.getAttribute('data-tb-use').split(':').map(Number); tbAccept(k, i); return; }
+    if ((b = hit('[data-tb-undo]'))) { const [k, i] = b.getAttribute('data-tb-undo').split(':').map(Number); tbUndo(k, i); return; }
+    if ((b = hit('[data-tb-discard]'))) { const [k, i] = b.getAttribute('data-tb-discard').split(':').map(Number); tbDiscard(k, i); return; }
     if ((b = hit('[data-tb-refine]'))) {
       const [k, i] = b.getAttribute('data-tb-refine').split(':').map(Number);
       _tb.refine = tbThread(k)[i].card; tbPaintRail();
@@ -2819,6 +2933,8 @@ function tbWire() {
     if (hit('#tb-addfield')) { tbFieldModal(null); }
   });
   rail?.addEventListener('change', e => {
+    const pk = e.target.closest ? e.target.closest('[data-tb-secpick]') : null;
+    if (pk) { if (pk.value !== '') tbFocus(Number(pk.value), { scroll: true }); return; }
     const b = e.target.closest ? e.target.closest('[data-tb-out]') : null;
     if (b) { const x = _tb.outline && _tb.outline.sections[Number(b.getAttribute('data-tb-out'))]; if (x) { x.on = b.checked; tbPaintRail(); } }
     /* A tick on a suggested blank: the count on "Make N blanks" follows it. */
