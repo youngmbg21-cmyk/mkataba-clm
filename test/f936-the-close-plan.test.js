@@ -1,5 +1,5 @@
 /* ============================================================
-   f878 — THE DEAL PAGE IS THE CLOSE PLAN (owner picked "The Close Plan",
+   f936 — THE DEAL PAGE IS THE CLOSE PLAN (owner picked "The Close Plan",
    25 Oct 2026; replaces the Legora list of 24 Oct, which quoted the Redlines
    column back beside itself)
    ============================================================
@@ -14,7 +14,7 @@
    Measured at the parent (eb67b55): every test here fails but 3b, which
    guards a ruling the old page already kept.
 
-   Run: node --test test/f878-the-close-plan.test.js
+   Run: node --test test/f936-the-close-plan.test.js
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -49,7 +49,7 @@ function planner(over = {}){
 }
 const C = { id: 'MK-1', negotiation: { turnAt: '2026-10-01' } };
 
-describe('f878 (1) every point under what to do with it', () => {
+describe('f936 (1) every point under what to do with it', () => {
   test('1a our figure with room above the fallback is room to give, the room counted', () => {
     const p = planner({ fallback: { figure: 6 } })(C, { label: '5. Limitation of liability', topic: { key: 'liability' }, ourFig: 12, unit: 'months', state: 'with', ours: { ch: { id: 'a' }, unsent: true } }, 'you', 'owner');
     assert.equal(p.k, 'give'); assert.equal(p.room, 6); assert.equal(p.unsent, 'a');
@@ -81,7 +81,7 @@ describe('f878 (1) every point under what to do with it', () => {
   });
 });
 
-describe('f878 (2) the page draws the reading', () => {
+describe('f936 (2) the page draws the reading', () => {
   const f = fnRegion(NG, 'dealViewHtml');
   test('2a head, road, groups and rows; no tabs', () => {
     assert.match(f, /dealPlanFacts\(c, side\)/);
@@ -108,7 +108,7 @@ describe('f878 (2) the page draws the reading', () => {
   });
 });
 
-describe('f878 (3) the doors are the existing ones', () => {
+describe('f936 (3) the doors are the existing ones', () => {
   test('3a Chase opens the Send screen; Ask an admin is the tracked ask, an admin the standard itself', () => {
     assert.match(PD, /if \(c && typeof openShareModal === 'function'\) openShareModal\(c\);/);
     assert.match(PD, /stdPositionOpen\(cat\)/);
@@ -120,7 +120,7 @@ describe('f878 (3) the doors are the existing ones', () => {
   });
 });
 
-describe('f878 (4) both books', () => {
+describe('f936 (4) both books', () => {
   test('4a every ng_plan_ word is in English and Swedish', () => {
     const keys = [...new Set((NG + PD).match(/ng_plan_[a-z_]+/g))].filter(k => !k.endsWith('_'));
     assert.ok(keys.length > 30, 'the page speaks in ng_plan_ words');
