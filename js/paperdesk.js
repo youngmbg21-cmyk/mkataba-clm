@@ -5800,6 +5800,9 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const dt = t.closest('[data-deal-tab]');
     if (dt){ e.preventDefault(); if (typeof dealTabSet === 'function') dealTabSet(dt.getAttribute('data-deal-tab')); pdDealRepaint(); return; }
     /* a point's Send: the card's own Send in the Redlines column beside it — the one door; else its clause */
+    /* a point they asked something on opens to compare both wordings whole (option 2, 25 Oct 2026) */
+    const dtg = t.closest('[data-deal-toggle]');
+    if (dtg){ e.preventDefault(); if (typeof dealRowToggle === 'function') dealRowToggle(dtg.getAttribute('data-deal-toggle')); pdDealRepaint(); return; }
     const dsd = t.closest('[data-deal-send]');
     if (dsd){ e.preventDefault(); const own = document.querySelector(`#ig-dock [data-rl-send="${CSS.escape(dsd.getAttribute('data-deal-send'))}"]`);
       if (own && !own.disabled){ own.click(); return; }

@@ -16993,10 +16993,10 @@
   :is(#ig-dock, .jt-trail, .jl-head) .pd-back:hover, .redline-page :is(.rl-head-notes, .rl-head-review):hover:not(:disabled){border-color:transparent;background:var(--color-neutral-200)}
   /* EACH CHANGE IN THE COLUMN IS ITS OWN SOFT GREY CARD (the drawing's Redlines: #F5F5F7, 16px corners), on
      both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
-  /* ROOM INSIDE (owner, 24 Oct 2026: the clause name "too close to the edge"): 18 at the sides, 16 above and below */
-  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:0 18px 16px;margin-bottom:8px;border-bottom:0}
-  /* the card's top room belongs to its head, which is what a press lands on (it takes the paper to the clause) */
-  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:16px}
+  /* 16PX INSIDE EVERY CARD (owner, 25 Oct 2026: "go with 16px, apply it everywhere"; it was 0 above the clause
+     name — the top room was the head's, and the row face has none — 16 below, 18 at the sides) */
+  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:16px;margin-bottom:8px;border-bottom:0}
+  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:0}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
   /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
   :is(#ig-dock, body) .redline-page .rl-card-d:is(:hover, .is-linked){background:var(--color-neutral-200)}
@@ -17006,7 +17006,7 @@
      Anything above them should have the grey color they always had"): one rounded box, the reason inside it
      with no box of its own (it read as white in the middle once the card was pressed); the ONE SHADE deepens
      it one amber step on hover and once pressed, and gives it back its amber when another card takes it */
-  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:16px 18px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:16px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone) .rk-why{background:transparent;padding:0}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone):is(:hover, .is-linked){background:var(--st-amber-bg)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover):not(.is-none):not(.is-gone){background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
@@ -17264,6 +17264,18 @@
   .deal-it.is-lg .deal-send,.deal-it.is-lg .deal-go{flex:none;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   .deal-it.is-lg .deal-send:hover,.deal-it.is-lg .deal-go:hover{text-decoration:underline}
   .deal-it.is-lg .deal-q{margin-top:6px;grid-template-columns:72px minmax(0,1fr)}
+  /* SEND AND OPEN CLAUSE ON ONE LINE (owner, 25 Oct 2026: "Send is higher"): the head centres its parts and
+     both words are one 20px line, whatever a button would add */
+  .deal-it.is-lg .deal-top{align-items:center}
+  .deal-it.is-lg .deal-top > :is(.deal-send,.deal-go,.deal-sec,.deal-nm){display:inline-flex;align-items:center;height:20px;line-height:20px;margin:0;min-height:0}
+  /* A POINT OPENS TO COMPARE (option 2): its name is the press; both wordings whole, the moved words marked */
+  .deal-it.is-lg .deal-tg{gap:6px;background:none;border:0;padding:0;font:inherit;font-size:14px;font-weight:var(--w-strong);color:var(--color-text);cursor:pointer;text-align:left;min-width:0}
+  .deal-it.is-lg .deal-tg:hover{color:var(--accent-ink)}
+  .deal-it.is-lg .deal-chev{font-size:11px;color:var(--color-neutral-600)}
+  .deal-it.is-lg .deal-cmp{margin-top:8px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px 12px;align-items:baseline;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .deal-it.is-lg .deal-w{min-width:0;font-family:var(--font-doc);font-size:14px;line-height:1.6;color:var(--color-text)}
+  .deal-it.is-lg .deal-w p{margin:0 0 6px}
+  .deal-it.is-lg .deal-w p:last-child{margin-bottom:0}
   /* ROUND 3: CLAUSES AND REDLINES WEAR ONE HEAD (owner's pick "The SAP Way"): the name in the serif, its count, a grey line */
   .pd-th .stk-head.is-mq .stk-mq-t.stk-mq-t{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;font-size:18px;line-height:24px;font-weight:var(--w-title-serif);text-wrap:wrap}
   .pd-th .stk-head.is-mq .stk-mq-t .stk-mq-n{font-style:normal;font-family:var(--font-ui);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
@@ -17385,6 +17397,47 @@
   #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab + .pd-tab{margin-left:2px}
   #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab:first-child{margin-left:-6px}
   #ig-dock > .igd-head.igd-head:has(> .pd-tab:nth-of-type(5)) > .pd-tab .pd-tab-w{overflow:visible}
+  /* ==== 16PX INSIDE EVERY CARD (owner, 25 Oct 2026: "ensure the words are not close to the edges of the cards …
+     the top and the bottom should have the same distance to the edge so should the left and right edges";
+     "go with 16px, apply it everywhere"). Every card's words and controls stand at least 16px from its edges,
+     above equal to below and left equal to right; measured on every page by the tidy sweep ("16px inside every
+     card"). Each rule names the card it fixes and what it measured. ==== */
+  /* Jambo's words (11/12 above/below, 12 at the sides) */
+  #app-shell :is(.jl-bub, .st-jb-bub), #modal-root :is(.jl-bub, .st-jb-bub), #app-shell :is(.st-cr, .jb-turn) .st-jb-bub{padding:16px}
+  /* the Board's head card and its findings card (11 above and below, 17 at the sides) */
+  #app-shell .hb-board .hb-bhead.hb-card, #app-shell .hb-board .hb-inscard{padding:16px}
+  /* the Dossier's Next card (12 all round) */
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-nx{padding:16px}
+  /* every page's head card (13 above the title row, 8-12 under its last row): the title row and the last row
+     stand 16 from the card's top and foot, the head's two halves (.ph-card over .ph-foot) read as one card */
+  #app-shell .ph-card, #app-shell .sap-page .sap-band.ph-card{padding-top:17px}
+  #app-shell .ph-foot, #app-shell .sap-page .sap-band.ph-foot{padding-bottom:16px}
+  /* a head card whose last row is the list head's chips (they stand 4 under their own row) */
+  #app-shell .sap-page .sap-band.ph-card{padding-bottom:12px}
+  #app-shell .sap-page .sap-band.jh-band{padding-bottom:9px}
+  /* the Parties' panel list (rows 8 above, 12 at the sides) and Our standards' note (10 and 13) */
+  #app-shell .cu-list .cu-li{padding:12px 16px}
+  #app-shell .sd-ins .ins-offer.sd-info{padding:16px}
+  /* the drop area beside a paper (23 above, 27 below, 22 and 17 at the sides) */
+  #app-shell #ig-dock .pd-drop{padding:20px 16px 16px}
+  /* Jambo's house: its panel (14) and the "What Jambo did" card (12 above, 14 at the sides) */
+  #app-shell .jh-panel, #app-shell .jh-feedcard{padding:16px}
+  /* Settings: its head card (9 under its tab row), a section's head (10) and last row (9), a card (11/12, 14) */
+  #app-shell .st-cr .st-headcard:has(.st-facebar){padding-bottom:7px}
+  #app-shell .st-cr .st-ssec-h{padding:16px}
+  #app-shell .st-cr .st-ssec .st-srows > .st-sr:last-child, #app-shell .st-cr .st-ssec > .st-sr:last-child{padding-bottom:12px}
+  #app-shell .st-cr .st-card{padding:16px}
+  /* a page in the middle's head (8 above, 14 below) */
+  #modal-root [data-dlg-page] .dlg-pg-head.dlg-pg-head{padding-top:16px;padding-bottom:16px}
+  /* the one desk's group heads on Home are plain headings, not cards (owner picked "Plain headings", 25 Oct
+     2026: 16px boxes pushed Needs you 29px past a 1536x730 screen) */
+  #app-shell #cn-page .cn-needs .nd-g{padding:12px 12px 2px;background:none;border-radius:0}
+  /* the New agreement sheet's cards (14 above, 18 at the sides; the paper list 19 above, 25 below) */
+  :is(#app-shell, #modal-root) #na-root.na-one :is(.na-ask, .na-rail, .na-read, .na-theirs, .na-card, .na-file){padding:16px}
+  /* the paper list: its head line carries 5 of leading above and its last row 11 of its own room below */
+  :is(#app-shell, #modal-root) #na-root.na-one #wz-pick.na-rail{padding:11px 16px 5px}
+  /* the Calendar's head card on Home (10 above, 12 below) */
+  #app-shell .cal-page.is-home .cal-head{padding:16px}
 </style>
 
 

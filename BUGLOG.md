@@ -21586,4 +21586,5 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 
 ## Noticed, not fixed — 25 Oct 2026 (builder: moving a section)
 - Builder paper: a paragraph's hidden move/remove buttons (a 74px column) can sit under a short row below it, so the next row's invisible buttons take the press meant for the row above. A heading's buttons now lie on one line and are clear of it; the paragraph overlap was there before and is left as it was.
+- Noticed, not fixed (25 Oct 2026): adapt-filters-verify failed once on GitHub (PR #477, "7 groups for 0" — the table had no rows yet when it measured) but passes 18/18 locally on main and on the PR commit; looks like a wait that does not ask for the rows first.
 - 25 Oct 2026 — CHANGED (owner: "calling the tab send makes no sense", picked "Email"): the waiting letter's tab in Jambo's panel says "Email" (Swedish "E-post"), was "Send"; its hover and trail keep "Before you send". Checked: four-decisions-verify (39 passed, the five tabs whole at the three screens), f758, f759, f148; lint clean.

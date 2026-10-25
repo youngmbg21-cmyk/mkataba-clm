@@ -132,4 +132,18 @@ describe('f879 — a section moves as one piece', () => {
     ['tb_grip', 'tb_sec_up', 'tb_sec_down', 'tb_drop_before', 'tb_drop_after', 'tb_moved', 'tb_move_undo_late']
       .forEach(k => assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k));
   });
+
+  test('a paragraph carries no buttons beside it (owner, 25 Oct 2026: "delete the highlighted features")', async () => {
+    const s = await stage(BOOK);
+    const secs = s.w.tbSections(); const body = secs.flatMap(x => x.body);
+    for (const i of body) assert.ok(!new RegExp(`data-tb-(up|down|del)="${i}"`).test(s.paper()), 'block ' + i);
+  });
+
+  test('the signature lines and the logo row carry no buttons either (owner: "yes", 25 Oct 2026)', async () => {
+    const s = await stage(BOOK.concat([['branding', '']]));
+    const at = s.w.tbSections().length; void at;
+    const html = s.paper();
+    assert.ok(!/data-tb-(up|down)="/.test(html), 'no up or down arrows anywhere on the paper');
+    const sigRow = html.match(/<div class="tb-row tb-sig"[^>]*>[\s\S]*?<\/div>/); assert.ok(sigRow && !/data-tb-del=/.test(sigRow[0]), 'a signature line has no remove');
+  });
 });

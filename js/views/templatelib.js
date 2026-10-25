@@ -834,7 +834,7 @@ async function openTemplateLibDetail(id) {
   const openDraft = versions.find(v => v.status === 'draft');
 
   const vRows = versions.slice().reverse().map(v => `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px var(--s-4);border-bottom:1px solid var(--color-divider)">
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-bottom:1px solid var(--color-divider)">
       <span style="flex:none;font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 7px;margin-top:1px">v${v.versionNumber}</span>
       <span style="min-width:0;flex:1">
         <span style="display:block;font-size:var(--t-meta)">${v.status === 'published' ? `Published ${fmtAt(v.publishedAt)}${v.publishedBy ? ' by ' + esc(v.publishedBy) : ''}` : v.status === 'superseded' ? `Superseded — was published ${fmtAt(v.publishedAt)}` : 'Draft in progress'}</span>
@@ -885,7 +885,7 @@ async function openTemplateLibDetail(id) {
              showVer ? i18t('tl_wording_unreadable') : i18t('tl_wording_none')}</div>`}
     </section>
     <section style="${CARD}">
-      <div style="padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)">
+      <div style="padding:16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tl_version_history')}</h4>
       </div>
       ${vRows || `<div style="padding:22px;text-align:center;color:var(--color-neutral-500);font-size:var(--t-meta)">${i18t('tl_no_versions')}</div>`}
@@ -981,7 +981,7 @@ function tplDtStyle() {
   const st = document.createElement('style'); st.id = 'tpl-dt-css';
   st.textContent = `
   .tpl-dt{display:flex;flex-direction:column;gap:12px}
-  .tpl-dt-line{display:flex;align-items:center;gap:12px;padding:10px 16px;min-width:0;flex-wrap:nowrap}
+  #app-shell .ph-card.tpl-dt-line{display:flex;align-items:center;gap:12px;padding:16px;min-width:0;flex-wrap:nowrap}
   .tpl-dt-line > *{flex:none}
   .tpl-dt-back{border-radius:999px}
   .tpl-dt-name{margin:0;font-family:var(--font-heading);font-size:15px;font-weight:var(--w-title);color:var(--color-text);min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

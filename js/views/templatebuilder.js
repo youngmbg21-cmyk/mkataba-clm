@@ -1763,12 +1763,9 @@ function tbPaperHtml() {
      own small arrows, which never leave its section (tbMove) */
   const movable = tbMovableSecs(); const mvAt = new Map(movable.map((s, j) => [s.from, j]));
   const GRIP = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="3.5" r="1.3"/><circle cx="10.5" cy="3.5" r="1.3"/><circle cx="5.5" cy="8" r="1.3"/><circle cx="10.5" cy="8" r="1.3"/><circle cx="5.5" cy="12.5" r="1.3"/><circle cx="10.5" cy="12.5" r="1.3"/></svg>';
+  /* only a heading has a gutter (✦ and the grip); every other block carries no buttons (owner, 25 Oct 2026) */
   const G = (i, extra) => `<span class="tb-g">${extra || ''}
-      ${_tb.blocks[i].blockType === 'heading'
-        ? (mvAt.has(i) ? `<button type="button" class="tb-grip" data-tb-grip="${_tb.blocks[i]._k}" title="${i18t('tb_grip')}" aria-label="${i18t('tb_grip')}">${GRIP}</button>` : '')
-        : `<button type="button" data-tb-up="${i}" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}" aria-label="${i18t('tb_move_up')}">${icon('chevU')}</button>
-      <button type="button" data-tb-down="${i}" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}" aria-label="${i18t('tb_move_down')}">${icon('chevD')}</button>
-      ${DEL(i)}`}</span>`;
+      ${mvAt.has(i) ? `<button type="button" class="tb-grip" data-tb-grip="${_tb.blocks[i]._k}" title="${i18t('tb_grip')}" aria-label="${i18t('tb_grip')}">${GRIP}</button>` : ''}</span>`;
   /* a heading's remove sits at its end beside Up · Down: its gutter is one row,
      ✦ and the grip, so it never reaches down over the paragraph under it */
   const DEL = i => `<button type="button" data-tb-del="${i}" title="${i18t('tb_remove_block')}" aria-label="${i18t('tb_remove_block')}">${icon('x')}</button>`;
@@ -1794,7 +1791,7 @@ function tbPaperHtml() {
   _tb.blocks.forEach((b, i) => {
     if (b.blockType !== 'signature_block') closeSigs();
     if (b.blockType === 'branding') {
-      html += `<div class="tb-row" data-tb-row="${i}">${G(i)}<div class="tb-brand">${i18t('tb_logo_renders')}</div></div>`;
+      html += `<div class="tb-row" data-tb-row="${i}"><div class="tb-brand">${i18t('tb_logo_renders')}</div></div>`;
       return;
     }
     title();
@@ -1825,20 +1822,23 @@ function tbPaperHtml() {
         ${sec && !sec.body.length && tbSectionOwes(sec) ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; openK = sec ? sec.k : null; return;
     }
+    /* A PARAGRAPH CARRIES NO BUTTONS (owner, 25 Oct 2026, over the paragraph's up · down · ×: "delete the
+       highlighted features"; and "yes" for the signature lines and the logo row too): its wording is moved with
+       its section's grip or Up · Down, and edited in place */
     if (b.blockType === 'fixed_text' || b.blockType === 'field_group') {
       /* The document's own paragraphs, lists and tables, dressed by the
          document's own sheet (.hati-doc) so the paper reads as it will print. */
       if (tbRich(b)) {
-        html += `<div class="tb-row" data-tb-row="${i}">${G(i)}<div class="tb-p tb-ed tb-rich hati-doc" contenteditable="true" data-tb-content="${i}" data-tb-kind="rich" data-ph="${i18t('tb_ph_wording')}">${tbRichChipsHtml(b.content)}</div></div>`;
+        html += `<div class="tb-row" data-tb-row="${i}"><div class="tb-p tb-ed tb-rich hati-doc" contenteditable="true" data-tb-content="${i}" data-tb-kind="rich" data-ph="${i18t('tb_ph_wording')}">${tbRichChipsHtml(b.content)}</div></div>`;
         return;
       }
-      html += `<div class="tb-row" data-tb-row="${i}">${G(i)}<div class="tb-p tb-ed" contenteditable="true" data-tb-content="${i}" data-tb-kind="text" data-ph="${i18t('tb_ph_wording')}">${tbChipsHtml(b.content)}</div></div>`;
+      html += `<div class="tb-row" data-tb-row="${i}"><div class="tb-p tb-ed" contenteditable="true" data-tb-content="${i}" data-tb-kind="text" data-ph="${i18t('tb_ph_wording')}">${tbChipsHtml(b.content)}</div></div>`;
       return;
     }
     if (b.blockType === 'signature_block') {
       closeSec();
       if (!sigs) { putProps(); html += '<div class="tb-sigs">'; sigs = true; }
-      html += `<div class="tb-row tb-sig" data-tb-row="${i}">${G(i)}<span class="tb-ed tb-sigwho" contenteditable="true" data-tb-content="${i}" data-tb-kind="sig" data-ph="${i18t('tb_who_signs')}">${esc(b.content)}</span><span class="tb-sigline"></span><small>${i18t('tb_sig_meta')}</small></div>`;
+      html += `<div class="tb-row tb-sig" data-tb-row="${i}"><span class="tb-ed tb-sigwho" contenteditable="true" data-tb-content="${i}" data-tb-kind="sig" data-ph="${i18t('tb_who_signs')}">${esc(b.content)}</span><span class="tb-sigline"></span><small>${i18t('tb_sig_meta')}</small></div>`;
     }
   });
   closeSigs();
