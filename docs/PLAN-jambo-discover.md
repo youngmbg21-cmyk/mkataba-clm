@@ -1,4 +1,4 @@
-# Jambo's way in: Ask a column, Find out, memory, the approver (owner, 25 Oct 2026)
+# Jambo's way in: Ask a column, Discover, memory, the approver (owner, 25 Oct 2026)
 
 Read this before touching js/views/askcolumn.js, POST /api/ai/column, watches,
 the Redlines row's read, the clause editor's panel, the Approvals panel, the
@@ -25,8 +25,8 @@ The owner's picks, by name:
 | The first pack | **Due diligence** |
 | A pack on the list | **3 columns, the rest in the middle** (`AC_COLS_MAX` stays 3; whole table via `pdMidPage`) |
 | Who switches a fact on | **Any admin** |
-| The word people see | OPEN (proposed "Find out") |
-| Where the kept questions are listed | OPEN (proposed "The Legora way": Jambo's panel beside the list, nothing chosen) |
+| The word people see | **Discover** |
+| Where the kept questions are listed | **Jambo's panel beside the Contracts list** (nothing chosen: under his greeting) |
 
 ## 2. The one idea
 
@@ -43,7 +43,7 @@ party's two minutes COUNT kept answers. One engine reads; nothing new invented.
   is kept; panel chips Show the N at risk (`regShowOnly`) · Draw it (the Board)
   · Send the table (send screen, colleague purpose) · Tell me when… ; an
   unanswerable question in the list box offers one chip into `askColOpen(seed)`.
-- Kept questions + packs: home OPEN (above). "Ask a pack instead" is a chip in
+- Kept questions + packs: Jambo's panel beside the Contracts list when nothing is chosen, under his greeting, headed "Discover". "Ask a pack instead" is a chip in
   the same form; whole table in the middle as Term · What it says · Where.
 - Company facts: a Settings › Company card (`ST_CARDS`), admin-only, cost per
   arrival said; read in the arrival read (`contractArrived`), once per wording;
