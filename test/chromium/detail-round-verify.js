@@ -176,6 +176,22 @@ const blocked = [];
         }
       }
 
+      /* ---- 5b · THE SHEET OVER THE CALENDAR (25 Oct 2026): Jambo's line about it, and Cancel gives the Calendar its panel back ---- */
+      if (on(5)) {
+        await clean(); await ev(() => setView('calendar'));
+        await until(() => document.querySelector('.cal-cop'));
+        await ev(() => openNewAgreement());
+        const up = await until(() => document.querySelector('#na-root') && document.querySelector('#ig-dock #igd-feed'));
+        await settle(); await shot('new-agreement-over-calendar');
+        const said = await ev(() => ({ cal: !!document.querySelector('#ig-dock .cal-cop'), words: ((document.querySelector('#ig-dock #igd-feed') || {}).innerText || '').replace(/\s+/g, ' ').trim() }));
+        check(`${at} · 5b — over the Calendar, the panel beside the New agreement sheet says the sheet's line`, up && !said.cal && /New agreement/.test(said.words), JSON.stringify(said).slice(0, 140));
+        const tabs = await ev(() => ({ talk: !!document.querySelector('#ig-dock .igd-head .pd-tab-talk'), key: typeof pdTalkKey === 'function' ? pdTalkKey() : null }));
+        check(`${at} · 5b — …with his Jambo tab, in his own conversation (not the Calendar's)`, tabs.talk && /^dock:/.test(tabs.key || ''), JSON.stringify(tabs));
+        await clean();
+        const back = await until(() => document.querySelector('#ig-dock .cal-cop'), undefined, 5000);
+        check(`${at} · 5b — Cancel gives the Calendar its own panel back`, back);
+      }
+
       /* ---- 9 · NEEDS YOU'S CHIPS, SETTINGS' ON/OFF ---- */
       if (on(9)) {
         await clean(); await ev(() => hbOpenAgent());

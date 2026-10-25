@@ -1603,7 +1603,8 @@ function pdTalkKey(){
   try {
     if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return null;
     const face = (typeof hbFace === 'function') ? hbFace() : '';
-    if (face === 'calendar') return 'cal:week';
+    /* the New agreement sheet over the Calendar speaks in Jambo's own conversation, as over the Board (25 Oct 2026) */
+    if (face === 'calendar' && !(typeof naSheetUp === 'function' && naSheetUp())) return 'cal:week';
     const c = pdOnPaper() ? pdContract() : null;
     if (c) return 'dock:p:' + c.id + ':' + ((pdSendShows() ? 'send' : pdFaceNow()) || _pdTab);
     const held = pdHeldContract();
