@@ -135,7 +135,9 @@ describe('f760 (5) the page\'s frame', () => {
     assert.ok(asideAt > page.indexOf('data-tpl-sec="list"'), 'after the list\'s section');
     assert.ok(!page.slice(page.indexOf('<section data-tpl-sec="list"'), asideAt).includes('ins-panel" class'), 'not inside it');
     assert.match(fnBody(LIB, 'tplPageSetTab'), /if\(k==='book'\) tplPfPanelPaint\(\);/);
-    assert.match(fnBody(LIB, 'tplPfPanelPaint'), /head:false, jlWord:card\.name, body:tplPfJamboHtml\(card, read\)/);
+    /* RE-POINTED 25 Oct 2026 (owner: "this page does not need an overview
+       page"): the chosen template is said under his greeting, one window */
+    assert.match(fnBody(LIB, 'tplPfPanelPaint'), /head:false, solo:true, jlWord:card\.name, body:tplPfJamboHtml\(card, read\)/);
     assert.match(INS, /item \? \(\(opt\.head === false \? '' : insItemHeadHtml\(opt\.head \|\| \{\}\)\) \+ \(opt\.body \|\| ''\)\)/);
   });
 });

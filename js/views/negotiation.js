@@ -22915,7 +22915,9 @@ function rlColumnHtml(c, opts = {}){
               ${rlHeadReviewHtml(c, opts)}
               ${''/* A HOST'S OWN WAY OUT (stage 3): Jambo's Redlines face puts
                      its Open Negotiate and its × here, at the end of the head
-                     it shares; the Negotiate page passes nothing. */}${opts.headEnd || ''}
+                     it shares; the Negotiate page passes nothing. */}${opts.headEnd || ''}${''/* A HOST'S ONE NOTE
+                     (owner, 25 Oct 2026, Their view): a line of its own under the title, where Send all
+                     stands on ours — Jambo's face passes "view only" there; nothing else passes one */}${opts.headNote ? `<span class="rl-idx-br" aria-hidden="true"></span>${opts.headNote}` : ''}
             </div>
             ${''/* ---- THE COLUMN'S OWN KEY (Young ruled 14 Sep 2026) ----
                    Two colours carry the whole page — one side's marks and the

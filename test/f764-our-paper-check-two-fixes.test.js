@@ -78,11 +78,12 @@ describe('f764 (1) the panel says the paper\'s own number', () => {
     const s = await stage();
     s.w.tbFocus(kOf(s.w, 'Parties'));
     let rail = s.read().rail;
-    assert.match(rail, /<b>✎ Parties<\/b>/);
-    assert.doesNotMatch(rail, /Section 1 · Parties/);
+    /* RE-POINTED 25 Oct 2026 (owner: the builder works like the clause editor): the section card went; the section picker names the section in hand */
+    assert.match(rail, /selected>Parties<\/option>/);
+    assert.doesNotMatch(rail, /selected>1\. Parties<\/option>/);
     s.w.tbFocus(kOf(s.w, 'Governing law'));
     rail = s.read().rail;
-    assert.match(rail, /<b>✎ Section 4 · Governing law<\/b>/, 'the paper prints Governing law as 4.');
+    assert.match(rail, /selected>4\. Governing law<\/option>/, 'the paper prints Governing law as 4.');
     assert.match(s.read().paper, /<span class="tb-n">4\.<\/span><span class="tb-ed tb-hed"[^>]*>Governing law</);
   });
 });

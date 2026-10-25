@@ -4002,6 +4002,14 @@ const AI_TASK_TALK = [
   /\bplease\s+(?:confirm|advise|tell|say|clarify)\s+(?:whether|if|which|what|who|how)\b/i,
   /\b(?:a|the)\s+(?:softer|firmer|plainer|tighter|looser|blander|punchier)\s+(?:version|draft|wording|clause|language)\b/i,
   /\byou\s+(?:act|are\s+acting)\s+for\b/i,
+  /* ---- A REPORT OF THE WORK (owner, 25 Oct 2026, over the builder's Parties
+     section reading "Drafted the Parties section for the Swedish-law
+     procurement template, naming HaTi … leaving … as blanks for each deal")
+     ---- no "I", no passage, no playbook: the model describing what it DID.
+     It opens on a past-tense drafting verb AND talks about the job's own
+     furniture (the X section, the template, blanks or placeholders, each
+     deal); contract wording does neither at its start. */
+  /^(?:i\s+(?:have\s+)?)?(?:drafted|wrote|rewrote|redrafted|added|kept|left|filled|replaced|named|updated|revised|tightened|softened|shortened|expanded|restructured|reworded)\b(?=[\s\S]{0,240}?(?:\b(?:the|this)\s+[\w'’&/ -]{1,40}?\s+(?:section|clause|heading)\b|\btemplates?\b|\bas\s+(?:a\s+)?blanks?\b|\bplaceholders?\b|\bfor\s+each\s+(?:deal|contract)\b))/i,
 ];
 
 /* Markdown is not an opener. "**Please paste…**" is "Please paste…" wearing
