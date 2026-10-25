@@ -93,7 +93,11 @@ const CARD = over('rgba(255,255,255,.62)', [255, 255, 255]);
     const chs = await page.evaluate(() => [...document.querySelectorAll('#hb-board .hb-sy-chs')[0].children].map(ch => ({ t: (ch.querySelector('h4') || {}).textContent, drawn: !!ch.querySelector('svg, .hb-chart') })));
     check('1b four chapters, each drawn', chs.length === 4 && chs.every(c => c.drawn), JSON.stringify(chs));
     const c3 = await page.evaluate(() => { const ch = document.querySelectorAll('#hb-board .hb-sy-chs')[0].children[2]; return ch ? ch.innerText.replace(/\s+/g, ' ') : ''; });
-    check('1c the clause chapter names the clause redlined most', /Limitation of liability/.test(c3), c3.slice(0, 160));
+    /* the chart names it in the presenting reading ("Limitation of Liability", clauseNameShown); a case-sensitive
+       match passed only once Jambo's own words ("Limitation of liability was redlined most") had landed, which
+       on GitHub (25 Oct 2026) they had not yet. Before them the chapter says HaTi's own line ("… is redlined
+       most"), after them Jambo's ("… was redlined most"): either names the clause */
+    check('1c the clause chapter names the clause redlined most', /Limitation of liability (is|was) redlined most/i.test(c3), c3.slice(0, 160));
 
     /* 2. the words */
     const words = await until(() => { const l = document.querySelector('#hb-board .hb-sy-lead'); return l && /more rounds/.test(l.textContent) ? document.querySelector('#hb-board .hb-sy').innerText.replace(/\s+/g, ' ') : null; });
