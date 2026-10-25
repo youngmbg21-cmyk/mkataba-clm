@@ -179,6 +179,50 @@ const MEASURE = `(() => {
     const rr = r => [r.left, r.top, r.right, r.bottom].map(Math.round).join(',');
     out.overlap.push({ a: a.w.slice(0, 40), b: b.w.slice(0, 40), who: who(a.el) + ' × ' + who(b.el), in: inside(a.el), ox: Math.round(ox), oy: Math.round(oy), ar: rr(a.r), br: rr(b.r), top: who(top) });
   }
+  /* ROOM INSIDE A CARD (owner, 25 Oct 2026: "ensure the words are not close to the edges of the cards. there
+     should be a minimum distance and the top and the bottom should have the same distance to the edge so should
+     the left and right edges"; "go with 16px, apply it everywhere"): a card is a painted box — its own ground,
+     lift or edge, corners of 8px or more — 120 wide and 36 tall at least, holding words. The first and last
+     line (or control) stand CARD_ROOM from the top and the bottom, the words CARD_ROOM from the left and the
+     widest block that carries them CARD_ROOM from the right, each within CARD_ROOM_SLACK. A pill, chip, tag or
+     button is a control, not a card; a scroller's edge is its view; the paper is the document's own. */
+  const CARD_ROOM = 16, CARD_ROOM_SLACK = 2;
+  const paintOf = el => { const cs = getComputedStyle(el); const bg = cs.backgroundColor;
+    return (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') || cs.boxShadow !== 'none' || (parseFloat(cs.borderTopWidth) > 0 && parseFloat(cs.borderLeftWidth) > 0); };
+  const groundOf = el => { for (let p = el.parentElement; p; p = p.parentElement) { const bg = getComputedStyle(p).backgroundColor; if (bg && bg !== 'rgba(0, 0, 0, 0)') return bg; } return 'rgb(255, 255, 255)'; };
+  const CTRL = 'button, a, input, select, textarea, label, svg, img, canvas, table, thead, tbody, tr, td, th, ul, ol, li, [contenteditable], .pill, .chip, [class*="-chip"], [class*="-pill"], [class*="-tag"], [class*="-badge"], [role="tab"], [role="menuitem"], [role="option"]';
+  const isCard = el => { if (el.matches(CTRL)) return false; const c = getComputedStyle(el); if (parseFloat(c.borderTopLeftRadius) < 8 || !paintOf(el)) return false; const e = c.boxShadow !== 'none' || parseFloat(c.borderTopWidth) > 0; return e || c.backgroundColor !== groundOf(el); };
+  const cardsIn = el => [...el.querySelectorAll('*')].some(d => d.getBoundingClientRect().width >= 120 && d.getBoundingClientRect().height >= 36 && !hidden(d) && isCard(d));
+  out.room = [];
+  for (const el of all) {
+    if (el.matches(CTRL)) continue;
+    if (el.closest('svg, canvas, .tb-paper, .hati-doc, .doc-surface, .doc-sheet, [contenteditable="true"], .hb-dark, [data-toast], .toast')) continue;
+    const cs = getComputedStyle(el);
+    if (parseFloat(cs.borderTopLeftRadius) < 8 || !paintOf(el)) continue;
+    const edged = cs.boxShadow !== 'none' || parseFloat(cs.borderTopWidth) > 0;
+    if (!edged && cs.backgroundColor === groundOf(el)) continue;   /* the same ground as around it, no edge: no box the eye sees */
+    if (/(auto|scroll)/.test(cs.overflowY + cs.overflowX)) continue;
+    const r = R(el); if (r.width < 120 || r.height < 36 || r.top < 0 || r.bottom > vh || r.height > vh * 0.6) continue;   /* a half of the page or a whole panel is a frame, not a card */
+    if (cardsIn(el)) continue;   /* a card that holds cards is a frame: the cards inside it are measured */
+    let t = Infinity, b = -Infinity, l = Infinity, rt = -Infinity, txt = '';
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.textContent.trim()) continue; const pe = n.parentElement; if (!pe || hidden(pe)) continue;
+      let off = false; for (let q = pe; q && q !== el; q = q.parentElement) { const qc = getComputedStyle(q); if (qc.position === 'absolute' || qc.position === 'fixed' || /(auto|scroll)/.test(qc.overflowY)) { off = true; break; } } if (off) continue;
+      const rg = document.createRange(); rg.selectNodeContents(n);
+      for (const q of rg.getClientRects()) { if (q.width < 1 || q.height < 1) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); }
+      txt = txt || n.textContent.trim();
+      /* the right edge: the card's own child that carries these words (the content box, not a ragged line) */
+      { let q = pe; while (q && q.parentElement !== el) q = q.parentElement; if (q && q !== el) rt = Math.max(rt, R(q).right); }
+    }
+    for (const c of el.querySelectorAll('button, input, select, textarea')) { if (hidden(c) || c.closest('[style*="absolute"]')) continue; const q = R(c); if (!q.width) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); rt = Math.max(rt, q.right); }
+    if (!isFinite(t) || !txt) continue;
+    if (!isFinite(rt)) rt = r.right - (l - r.left);
+    const room = { top: Math.round(t - r.top), bottom: Math.round(r.bottom - b), left: Math.round(l - r.left), right: Math.round(r.right - rt) };
+    const bad = ['top', 'bottom', 'left', 'right'].filter(k => Math.abs(room[k] - CARD_ROOM) > CARD_ROOM_SLACK);
+    if (bad.length) out.room.push({ who: who(el), in: inside(el), text: txt.slice(0, 40), room });
+  }
+  { const seenRoom = new Set(); out.room = out.room.filter(x => { if (seenRoom.has(x.who)) return false; seenRoom.add(x.who); return true; }); }
   return out;
 })()`;
 
@@ -319,6 +363,8 @@ const only = (process.env.HATI_TIDY_ONLY || '').split(',').map(s => s.trim()).fi
         for (const x of m.squeeze) console.log(`      SQUEEZED  "${x.text}" ${x.who} in ${x.in} · on ${x.lines} lines in a ${x.h}px box`);
         for (const x of m.spill) console.log(`      SPILT     "${x.text}" ${x.who} past ${x.in} by ${x.by}px`);
         for (const x of m.overlap) console.log(`      OVERLAP   "${x.a}" × "${x.b}" (${x.who}) in ${x.in}${process.env.HATI_TIDY_DEBUG ? ' · a=' + x.ar + ' b=' + x.br + ' top=' + x.top : ''}`);
+        if (m.room) check(`${S.k} · ${P.name} — 16px inside every card`, !m.room.length, m.room.length ? `${m.room.length} kind(s) of card` : undefined);
+        for (const x of (m.room || [])) console.log(`      ROOM      "${x.text}" ${x.who} in ${x.in} · top ${x.room.top} bottom ${x.room.bottom} left ${x.room.left} right ${x.room.right}`);
         const L = await drive(page, LEVEL, undefined, null);
         if (L) check(`${S.k} · ${P.name} — level with Jambo's panel`, Math.abs(L.dTop) <= 1 && !(L.dBot > 1 && L.dBot <= 24), `top ${L.dTop >= 0 ? '+' : ''}${L.dTop}px · foot ${L.dBot}px above the panel's`);
       }
