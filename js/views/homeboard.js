@@ -9520,7 +9520,10 @@ function hbExplainsDrawn(qRaw, A){
   /* a question, or a "tell me…" sentence, the Board drew: always explained */
   /* SHOW STAYS FREE (the owner's answer, 25 Oct 2026): a command ("show me the drafts", "deals by stage", a bare
      "obligations") draws and says one line, free, as before — only words that ask for words are explained */
-  return hbQuestionAsk(t) || hbBrainVerb(t);
+  /* a story writes its own words in its own call (hbStoryWrite): never a second one; and only the TELLING words
+     ("tell me more about", "explain", "describe"), never "build", "create", "make" */
+  if (A.kind === 'story') return false;
+  return hbQuestionAsk(t) || HB_TELL_RE.test(t);
 }
 /* "more", "go on", "why?", "tell me more": the last answer carried on, by the brain, the Board as it stands */
 const HB_MORE_RE = /^\s*(?:(?:and|ok(?:ay)?|so|och|okej)[\s,]+)?(?:(?:tell me |say )?more(?: please| on (?:that|this|it)| about (?:that|this|it))?|go on|keep going|continue|go deeper|dig deeper|elaborate|expand(?: on (?:that|this|it))?|why|how come|tell me more|mer|berätta mer|fortsätt|varför)\s*[.!?]*\s*$/i;

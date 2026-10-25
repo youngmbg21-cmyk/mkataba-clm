@@ -78,6 +78,9 @@ describe('f935 (2) one rule: is a drawing also explained', () => {
     assert.equal(w.hbExplainsDrawn('make it monthly', { road: 'free', kind: 'follow' }), false);
     assert.equal(w.hbExplainsDrawn('what is our exposure', { road: 'free', kind: 'pack' }), false);
     assert.equal(w.hbExplainsDrawn('show me MK-1', { road: 'free', kind: 'card' }), false, 'a contract\'s strip has its own words');
+    assert.equal(w.hbExplainsDrawn('build our quarterly contract review', { road: 'free', kind: 'story' }), false, 'a story writes its own words, one call');
+    assert.equal(w.hbExplainsDrawn('what happened this quarter?', { road: 'free', kind: 'story' }), false);
+    assert.equal(w.hbExplainsDrawn('build me a chart of what ends this quarter', DIG), false, '"build" is not a telling word');
     assert.equal(w.hbExplainsDrawn('what ends this quarter', { road: 'copilot' }), false);
   });
   test('igAskThenExplain asks this one rule (the engine still has to be there)', () => {
