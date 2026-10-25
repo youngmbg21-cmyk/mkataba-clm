@@ -147,6 +147,9 @@ function deskPageName(){
   /* THE BUILDER IS ITS OWN PAGE (round 21 draws its tab "Builder"; lane D,
      19 Oct 2026): it paints over the page it was opened from without a view
      of its own, so the bar asks it before the page underneath */
+  /* A TEMPLATE'S OWN PAGE IS OUR PAPER'S (owner, 25 Oct 2026): it paints
+     without a view of its own, so the bar asks it too — it said "Builder" */
+  if (typeof document !== 'undefined' && document.getElementById('tpl-dt')) return _cnT('nav_tpl_std');
   if (typeof window !== 'undefined' && typeof window.tbOnScreen === 'function' && window.tbOnScreen()) return _cnT('tb_jl_word');
   const k = deskKeyNow();
   if (!k) return (typeof state !== 'undefined' && state && state.view === 'counter') ? _cnT('dk_counter') : '';

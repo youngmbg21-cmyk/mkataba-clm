@@ -176,7 +176,11 @@ async function SEED(){
         next: (p.querySelector('.jl-next-h') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
         fixed: getComputedStyle(p).position, right: (d => d >= 0 && d <= 9)(innerWidth - Math.round(p.getBoundingClientRect().right)) }; });
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
-    check('5a the head says the template; no duplicate back button', E.word === 'Master services agreement' && !E.back, JSON.stringify({ w: E.word, b: E.back }));
+    /* RE-POINTED 25 Oct 2026 (owner: "this page does not need an overview page"): ONE Jambo window —
+       no name tab and no Overview tab; the template is named in his words under the greeting */
+    const E0 = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const vis = el => !!el && !el.hidden && el.getBoundingClientRect().width > 0;
+      return { solo: p.classList.contains('is-solo'), word: vis(p.querySelector('[data-jl-word]')), home: vis(p.querySelector('[data-jl-home]')), hello: !!p.querySelector('[data-jl-greet] [data-jb-hello]') }; });
+    check('5a one Jambo window: his greeting first, no name tab, no Overview tab, no back button', E0.solo && !E0.word && !E0.home && E0.hello && !E.back, JSON.stringify({ ...E0, b: E.back }));
     check('5b his words, from the record — nothing spent, with where it came back changed and what it meets',
       /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
@@ -225,7 +229,8 @@ async function SEED(){
         ph: (document.getElementById('tb-ask') || {}).placeholder || '', hints: rail.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, send: (() => { const b = rail.querySelector('[data-tb-send]'); return b ? b.getAttribute('aria-label') || '' : ''; })() }; });  /* RE-POINTED 20 Oct 2026 (Two-row card): the round send says Ask to a screen reader and on its hover */
     check('7a the head card is one line: name · v1 draft · Category · Stream · Save draft · Publish v1',
       G.strip.h <= 46 && /Reseller agreement\s*v1 draft\s*Category\s*\S+.*Stream.*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, head: G.head }));
-    check('7b Jambo\'s panel at the window\'s edge, "Builder" in its head', G.rail.r === 1440 && G.word === 'Builder', JSON.stringify(G.rail));
+    /* RE-POINTED 25 Oct 2026 (the builder works like the clause editor): the head is his tab and the four tabs, no page word */
+    check('7b Jambo\'s panel at the window\'s edge, his tab and the four tabs in its head, no page word', G.rail.r === 1440 && G.word === '', JSON.stringify({ ...G.rail, word: G.word }));
     check('7c tabs Build · Outline · Playbook n/m · Blanks 3, opening on the Outline',
       G.tabs.length === 4 && G.tabs[0] === 'Build' && G.tabs[1] === 'Outline' && /^Playbook ?\d+\/\d+$/.test(G.tabs[2]) && /^Blanks ?3$/.test(G.tabs[3]) && G.on === 'Outline', JSON.stringify(G.tabs));
     check('7d the Outline: "· Parties 1 blank", numbered sections, ✓ where a standard is met, "+ … proposed"',

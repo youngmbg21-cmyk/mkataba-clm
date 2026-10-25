@@ -3337,8 +3337,10 @@ function pdWallHelloHtml(){
   const say = _pdT(pdDropMay() ? 'pd_wall_hello' : 'pd_wall_hello_view', { greet, name: first });
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
   /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for, never the wall's greeting */
+  /* ...after his greeting, with what he can do there (owner, 25 Oct 2026: the empty panel said one line) */
   if (typeof naSheetUp === 'function' && naSheetUp())
-    return `<div class="ai-msg flex gap-2 pd-sheet-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(_pdT('ca_go_draft'))}</div></div></div>`;
+    return `${typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : ''}<div class="ai-msg flex gap-2 pd-sheet-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(_pdT('ca_go_draft'))}</div>
+      <p class="jl-next-h pd-sheet-can-h">${_pdE(_pdT('ca_go_draft_can_h'))}</p><ul class="pd-sheet-can">${['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => `<li>${_pdE(_pdT(k))}</li>`).join('')}</ul></div></div>`;
   return `<div class="ai-msg flex gap-2 pd-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(say)}</div></div></div>`;
 }
 function pdDropInner(){

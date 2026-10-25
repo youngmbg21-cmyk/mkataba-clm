@@ -8909,6 +8909,9 @@
   body:has(#na-root.na-one) #ig-dock .ca-dr-said .ca-acts{ display:none; }
   /* and his panel is the conversation about it, as drawn: the wall's greeting, drop area and next steps stand down */
   body:has(#na-root.na-one) #ig-dock :is(.pd-hello, #pd-drop, [data-ig-chips]){ display:none; }
+  /* WHAT HE CAN DO BESIDE THE ONE SHEET (25 Oct 2026): under his bubble, plain lines, no box */
+  #ig-dock .pd-sheet-hello .pd-sheet-can-h{margin:12px 0 4px;}
+  #ig-dock .pd-sheet-hello .pd-sheet-can{margin:0;padding-left:18px;list-style:disc;display:flex;flex-direction:column;gap:4px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5;}
   @media (max-width:900px){ .na-closest{ grid-template-columns:minmax(0,1fr); } }
   .tpl-bar{ display:block; width:100%; border:0; background:none; text-align:left; font:inherit;
     color:inherit; cursor:pointer; padding:0; margin-bottom:6px; font-size:var(--t-label); }
