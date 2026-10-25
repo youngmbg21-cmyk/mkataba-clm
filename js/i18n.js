@@ -12898,6 +12898,8 @@ const STRINGS = {
     ca_help_work: 'Work opens its door, and the press stays yours: fill in, redline, sign, share, upload, draft.',
     ca_help_rest: 'Type / for the places you use most. Anything else is a question, and I answer it as before.',
     hb_pop_places: 'Most used',
+    /* a place row's act word in every "/" list (25 Oct 2026) */
+    ca_sl_open: 'Open',
     hb_pop_used: '{n}×',
     ca_job_ready: 'Get it ready to sign',
     ca_job_oblig: 'Find its obligations',
@@ -33017,6 +33019,7 @@ const STRINGS = {
     ca_help_work: 'Arbete öppnar sin dörr, och trycket är ditt: fyll i, förhandla, signera, dela, ladda upp, utkast.',
     ca_help_rest: 'Skriv / för platserna du använder mest. Allt annat är en fråga, och jag svarar som förut.',
     hb_pop_places: 'Mest använda',
+    ca_sl_open: 'Öppna',
     hb_pop_used: '{n}×',
     ca_job_ready: 'Gör det klart att signera',
     ca_job_oblig: 'Hitta dess åtaganden',

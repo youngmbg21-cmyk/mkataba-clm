@@ -17358,6 +17358,13 @@
   #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd) > :is(b, .pd-ck-v){white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:20px}
   #app-shell #ig-dock .pd-og.is-ck button.pd-ck-hd:not(#pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd) > .pd-ck-ring{margin-top:2px}
   #app-shell .dir-ct .dir-ct-n{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  /* …AND A PLACE ROW IN EVERY "/" LIST ENDS IN "Open ›" (owner, 25 Oct 2026: item 1 after the picks), drawn by one
+     builder (caSlashGoHtml) in Home's, the Board's, a list panel's and every other box's list; on the Board its
+     "used N" stands before the word */
+  .ca-pop .ca-opt:has(> .ca-go){display:flex;align-items:center;gap:10px}
+  .ca-pop .ca-opt:has(> .ca-go) > .who{flex:1 1 auto;min-width:0}
+  .ca-pop .ca-go{flex:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);white-space:nowrap}
+  .hb-askpop .hb-pop-opt:has(> .ca-go) .hb-pop-n{position:static;transform:none;flex:none}
   /* Q2 "SHORT WORDS": with a letter waiting the paper's panel carries five tabs — Dossier · Send · Clauses ·
      Redlines · Jambo — every word whole and the panel's › kept in sight: five tabs sit closer (6px each side,
      2px apart, from 8 and 8), and no tab gives way */
