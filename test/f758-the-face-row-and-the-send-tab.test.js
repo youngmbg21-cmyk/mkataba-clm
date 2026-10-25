@@ -188,14 +188,8 @@ describe('f758 (4) ‹ Jambo while the letter is up', () => {
     assert.equal(ctx.pdSendHeld(), true, 'the letter is still up');
     assert.equal(ctx.pdSendFor(), 'MK-1', 'nothing was put away');
     assert.match(ctx.pdSendKeepHtml(), /^<div hidden data-pd-send-kept><div id="pd-send-slot"/, 'the column waits in the page, unseen');
-    /* RE-POINTED 24 Oct 2026 (owner, "Remove it"): no "Before you send" tab in the Dossier's row; a press on
-       the open email is the way back (pdSendBackOnLetter) */
-    assert.doesNotMatch(ctx.pdHeadHtml(''), /data-pd-send-back|pd_face_w_send/, 'no "Before you send" tab among the Dossier\'s');
-    const on = sel => ({ closest: q => (q === '[data-sh-page]' ? {} : q === sel ? {} : null) });
-    assert.equal(ctx.pdSendBackOnLetter(on('#share-close')), false, 'the letter\'s Cancel is not a way back');
-    assert.equal(ctx.pdSendShows(), false);
-    assert.equal(ctx.pdSendBackOnLetter({ closest: () => null }), false, 'a press elsewhere is not');
-    assert.equal(ctx.pdSendBackOnLetter(on('#sh-summary')), true, 'a press on the open email brings it back');
+    assert.match(ctx.pdHeadHtml(''), /data-pd-send-back[^>]*>[\s\S]*pd_face_w_send/, '"Before you send" waits as a tab');
+    ctx.pdSendBack();
     assert.equal(ctx.pdSendShows(), true, 'one press brings it back');
     assert.equal(ctx.pdSendKeepHtml(), '', 'nothing kept twice');
     ctx.pdSendClose();
@@ -204,9 +198,7 @@ describe('f758 (4) ‹ Jambo while the letter is up', () => {
   test('4b the dock keeps the column in the page while away, and fills the slot wherever it is', () => {
     assert.match(IG, /\$\{\(window\.pdSendKeepHtml&&pdSendKeepHtml\(\)\)\|\|''\}`;/);
     assert.match(IG, /if\(document\.getElementById\('pd-send-slot'\)&&typeof window\.pdSendFacePaint==='function'\)/);
-    assert.match(PD, /if \(pdSendBackOnLetter\(t\)\) return;/, 'a press on the letter is heard');
-    assert.match(PD, /if \(pdSendBackOnLetter\(e\.target\)\) return;/, 'a Tab into the letter too');
-    assert.doesNotMatch(PD.replace(/\/\*[\s\S]*?\*\//g, ''), /data-pd-send-back/, 'the tab is gone');
+    assert.match(PD, /if \(t\.closest\('\[data-pd-send-back\]'\)\)\{ e\.preventDefault\(\); pdSendBack\(\); return; \}/);
     /* RE-POINTED 19 Oct 2026 (owner: "Before you send's back returns to the
        panel it came from (normally Redlines)"; reverses this pass's "a face
        under the letter goes too"): the face under the letter stays up */

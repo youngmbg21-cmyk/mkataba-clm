@@ -1468,10 +1468,9 @@ const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), sign
      letter and its face go together, and its guard is asked) */
   /* THE BACK WHILE THE LETTER IS UP RETURNS TO THE PANEL IT CAME FROM (owner,
      19 Oct 2026; was round 11's "turns the panel back to Jambo"): the letter
-     stays on the desk with what is typed in it; a press on the letter brings
-     "Before you send" back (pdSendBackOnLetter; the tab in the panel's head
-     went, owner 24 Oct 2026). Cancel on the letter is still the way to put
-     the screen away. */
+     stays on the desk with what is typed in it; "Before you send" waits as a
+     tab of the panel's head (pdSendBack). Cancel on the letter is still the
+     way to put the screen away. */
   send: () => pdSendAway(),
   /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the conversation's back is the landing, as left */
   talk: () => pdTalkBack(),
@@ -1604,7 +1603,8 @@ function pdTalkKey(){
   try {
     if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return null;
     const face = (typeof hbFace === 'function') ? hbFace() : '';
-    if (face === 'calendar') return 'cal:week';
+    /* the New agreement sheet over the Calendar speaks in Jambo's own conversation, as over the Board (25 Oct 2026) */
+    if (face === 'calendar' && !(typeof naSheetUp === 'function' && naSheetUp())) return 'cal:week';
     const c = pdOnPaper() ? pdContract() : null;
     if (c) return 'dock:p:' + c.id + ':' + ((pdSendShows() ? 'send' : pdFaceNow()) || _pdTab);
     const held = pdHeldContract();
@@ -1754,8 +1754,7 @@ function pdSendAway(){
      round 11's "turns the panel to Jambo with the letter waiting"): the face
      that stood under the letter (Redlines, from its Send all; Fill in;
      Before you sign) stays up and shows again, else Overview; the letter
-     still waits on the desk, and a press on it brings "Before you send"
-     back (pdSendBackOnLetter, owner 24 Oct 2026; was "one tab away") */
+     still waits on the desk, "Before you send" one tab away (pdSendBack) */
   _pdTab = 'copilot';
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
@@ -1765,15 +1764,6 @@ function pdSendBack(){
   if (typeof renderIntelDock === 'function') renderIntelDock();
   /* the column was out of sight: the letter's painter fills it again */
   try { const L = document.getElementById('sh-letter'); if (L && typeof L._shPaint === 'function') L._shPaint(); } catch (_){}
-}
-/* THE LETTER IS ITS OWN WAY BACK (owner, 24 Oct 2026, picked "Remove it"): with the panel turned away, a press
-   or a focus anywhere on the open email in the middle — except its Cancel, which puts it away — brings "Before
-   you send" back into the panel. The press still does its own work (a box takes the caret, a choice is made). */
-function pdSendBackOnLetter(t){
-  if (!t || !t.closest || !pdSendHeld() || pdSendShows()) return false;
-  if (!t.closest('[data-sh-page]') || t.closest('#share-close')) return false;
-  pdSendBack();
-  return true;
 }
 function pdSendOpen(id, node){
   if (!id) return false;
@@ -3184,10 +3174,12 @@ function pdHeadHtml(brain){
      being drafted */
   const word = (!c && typeof naSheetUp === 'function' && naSheetUp()) ? `<span class="pd-head-word">${_pdE(_pdT('na_title'))}</span>` : '';
   /* the face's word is the trail line's (pdTrailHtml), not the tab row's */
-  /* NO "BEFORE YOU SEND" TAB (owner, 24 Oct 2026, over a screenshot: "clean the bug of this highlighted tab
-     showing up in the dossier page"; reverses round 11's second pass, "waits as a tab after Jambo's"): the
-     letter turned away leaves the Dossier's tabs as they are; the way back is the letter itself — a press
-     on the open email brings "Before you send" back into the panel (pdSendBackOnLetter) */
+  /* the letter is up and the panel turned to Jambo: "Before you send" waits
+     as a tab after Jambo's, one press back (round 11's gaps, second pass) */
+  /* (Round 3, owner's yes 24 Oct 2026) the waiting letter's tab is the paper's: gone to the Board, the Calendar or a
+     contract's History, the panel's tabs are that page's, never squeezed by a face left behind */
+  /* SHORT WORDS (owner's pick, 25 Oct 2026: "Before y…" on the iPad): the tab says "Send", its hover and the trail line the whole name */
+  const sendBack = (pdSendHeld() && !pdSendShows() && pdOnPaper()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT('pd_face_w_send_tab'))}</span></button>` : '';
   return tabs.map(t => {
     const name = t === 'copilot' ? pdLandName() : _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
@@ -3195,7 +3187,7 @@ function pdHeadHtml(brain){
     /* A DEAD BUTTON NEVER WEARS A LIVE ONE'S CLOTHES: Redlines on a contract nobody may negotiate is grey, its
        reason the Negotiate door's own sentence (negoMayStartLine); a press still says it (the door's toast) */
     let shut = ''; try { shut = (t === 'red' && c && typeof negoMayStart === 'function' && !negoMayStart(c).ok && typeof negoMayStartLine === 'function') ? (negoMayStartLine(c) || '') : ''; } catch (_){ shut = ''; }
-    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}${shut ? ' is-shut' : ''}" data-pd-tab="${t}" aria-selected="${on}"${shut ? ' aria-disabled="true"' : ''} aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(shut || tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>`;
+    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}${shut ? ' is-shut' : ''}" data-pd-tab="${t}" aria-selected="${on}"${shut ? ' aria-disabled="true"' : ''} aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(shut || tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${t === 'copilot' ? sendBack : ''}`;
   }).join('') + pdTalkTabHtml() + word;
 }
 function pdBodyHtml(c){
@@ -5076,8 +5068,6 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     if (!pdSgListOpen(box)) pdSgListClose();
   });
   document.addEventListener('focusin', e => {
-    /* a Tab into the open email is a press on it: "Before you send" comes back */
-    if (pdSendBackOnLetter(e.target)) return;
     const host = pdOgHostOf(e.target); if (!host) return;
     const c = pdOgContract(host); if (c) pdOgWire(host, c);
     /* THE SAP WAY puts a row's label and Confirm ABOVE its box: a hand in a box sees what it answers, so the
@@ -5773,7 +5763,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (t.closest('[data-pd-drop-import]')){ e.preventDefault(); if (typeof setView === 'function') setView('migration'); return; }
     const back = t.closest('[data-pd-back]');
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
-    if (pdSendBackOnLetter(t)) return;
+    if (t.closest('[data-pd-send-back]')){ e.preventDefault(); pdSendBack(); return; }
     /* THE DEAL (owner, 23 Oct 2026): the face's button, its tabs, a point's clause, its way back */
     const dl = t.closest('[data-rl-deal]');
     if (dl){ e.preventDefault(); pdDealOpen(dl.getAttribute('data-rl-deal')); return; }
@@ -6525,7 +6515,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdMidCrumbHtml, pdActsToggle, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendBackOnLetter, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

@@ -8283,7 +8283,10 @@ function renderIntelDock(){
      Discard → Added · Undo) stands HERE, in Home's one panel, while the
      Calendar tab is up — never a second panel beside the calendar. Its wiring
      is the calendar's, by id (calWireOwn). The fold is the panel's own. */
-  if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'){
+  /* …but the New agreement sheet in front is what the panel speaks to (25 Oct 2026: opened over the Calendar,
+     the panel went on saying "This week is clear"), as it does over the Board (pdJamboTopHtml); Cancel brings
+     the Calendar's own back */
+  if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'&&!(window.naSheetUp&&naSheetUp())){
     dock.innerHTML=calPlanHtml();
     const head=dock.querySelector('.cal-plan-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);

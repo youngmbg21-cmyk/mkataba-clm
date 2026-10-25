@@ -235,13 +235,12 @@ async function mkUser(h, admin, name, email){
     await page.fill('#sh-summary', 'Kept while Jambo talks.');
     await press('#ig-dock [data-pd-back="send"]');
     const away = await waitFor(page, () => !!document.querySelector('#modal-root .modal-in[data-sh-page] #sh-letter') && !document.getElementById('pd-sendface')
-      && !document.querySelector('#ig-dock [data-pd-send-back]') && document.getElementById('sh-summary').value === 'Kept while Jambo talks.', 6000);
+      && !!document.querySelector('#ig-dock [data-pd-send-back]') && document.getElementById('sh-summary').value === 'Kept while Jambo talks.', 6000);
     /* RE-POINTED 19 Oct 2026 (owner: "Before you send's back returns to the panel
        it came from (normally Redlines)"): the letter still waits with its note */
     check('6b the back turns the panel to where it came from; the letter stays with its note', !!away);
-    /* RE-POINTED 24 Oct 2026 (owner, "Remove it"): no tab in the Dossier's row — a press on the open email is the way back */
-    await press('#sh-summary');
-    check('6b a press on the open email brings "Before you send" back', !!(await waitFor(page, () => !!document.querySelector('#pd-sendface #share-step-1'), 6000)));
+    await press('#ig-dock [data-pd-send-back]');
+    check('6b "Before you send" is one press back', !!(await waitFor(page, () => !!document.querySelector('#pd-sendface #share-step-1'), 6000)));
     await press('#share-close');
     await waitFor(page, () => !document.querySelector('#modal-root .modal-in'), 6000);
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
