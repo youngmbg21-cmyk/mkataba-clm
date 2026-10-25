@@ -9489,7 +9489,8 @@ function hbDrawAsk(qRaw, onFace){
    The verb used to decide: "show" drew and said one line, "tell" said words and drew nothing, and only a plain
    question got both. Now the SUBJECT decides: a subject the Board can draw is drawn and then explained by the
    brain (igAskThenExplain); the verb only sets how deep the words go. A change to what is already drawn ("sort by
-   value", "make it monthly", "only Naivas", "undo") is still said in one line. "More", "go on", "why" carry on
+   value", "make it monthly", "only Naivas", "undo") is still said in one line, and so is a plain command ("show me
+   the drafts": the owner's answer, "Show stays free", 25 Oct 2026). "More", "go on", "why" carry on
    from the last answer (hbMoreAsk), and the next questions sit under the words (nextKey). */
 const HB_TELL_RE = /^\s*(?:(?:please|can you|could you|would you|jambo[,:]?|snälla|kan du)\s+)*(?:tell (?:me|us)|explain|describe|walk (?:me|us) through|talk (?:me|us) through|take (?:me|us) through|give (?:me|us) (?:an? )?(?:overview|summary|breakdown|rundown|picture) (?:of|on)|summari[sz]e|break down|go deeper (?:on|into)|dig deeper (?:on|into)|berätta(?: för mig)?|förklara|beskriv|sammanfatta)(?:\s+(?:a (?:bit|little) |lite )?(?:more|mer))?(?:\s+(?:about|on|of|regarding|om))?\s+(.+?)\s*[.!?]*\s*$/iu;
 /* the kinds of drawing that are a fresh picture worth words; a contract's strip, a face, a saved view are not */
@@ -9517,11 +9518,9 @@ function hbExplainsDrawn(qRaw, A){
      "make" is also a word that asks for words */
   if (HB_TWEAK_RE.test(t)) return false;
   /* a question, or a "tell me…" sentence, the Board drew: always explained */
-  if (hbQuestionAsk(t) || hbBrainVerb(t)) return true;
-  /* a follow-up said as a command ("monthly"): one line */
-  if (A.kind === 'follow') return false;
-  /* a fresh picture asked for by command ("show me what ends this quarter", "chart value by stream"): explained */
-  return HB_EXPLAIN_KINDS.includes(A.kind);
+  /* SHOW STAYS FREE (the owner's answer, 25 Oct 2026): a command ("show me the drafts", "deals by stage", a bare
+     "obligations") draws and says one line, free, as before — only words that ask for words are explained */
+  return hbQuestionAsk(t) || hbBrainVerb(t);
 }
 /* "more", "go on", "why?", "tell me more": the last answer carried on, by the brain, the Board as it stands */
 const HB_MORE_RE = /^\s*(?:(?:and|ok(?:ay)?|so|och|okej)[\s,]+)?(?:(?:tell me |say )?more(?: please| on (?:that|this|it)| about (?:that|this|it))?|go on|keep going|continue|go deeper|dig deeper|elaborate|expand(?: on (?:that|this|it))?|why|how come|tell me more|mer|berätta mer|fortsätt|varför)\s*[.!?]*\s*$/i;

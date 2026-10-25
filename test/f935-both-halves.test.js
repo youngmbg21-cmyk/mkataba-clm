@@ -5,7 +5,7 @@
    you the charts while giving you nuanced answers." Before this, the first word decided: "show" drew and said one
    line, "tell" said words and drew nothing, only a plain question got both. Now the SUBJECT decides.
      1 · "tell me more about X" draws X when the Board can draw it; "create…" and a flat pack stay the brain's
-     2 · one rule for whether a drawing is also explained: a fresh picture yes, whatever the verb; a change no
+     2 · one rule for whether a drawing is also explained: words that ask for words yes; a command or a change no (Show stays free)
      3 · "more", "go on", "why" carry the last answer on, in the chat, with the Board as it stands
      4 · the panel asks the Board for the subject, the brain for the words as typed; next questions under the words
    At the parent every test here fails: the readers are not there.
@@ -62,13 +62,15 @@ describe('f935 (1) "tell me more about X" draws X', () => {
 
 describe('f935 (2) one rule: is a drawing also explained', () => {
   const w = world(READS);
-  test('a fresh picture is explained whatever the verb', () => {
-    assert.equal(w.hbExplainsDrawn('show me what ends this quarter', DIG), true, 'show');
-    assert.equal(w.hbExplainsDrawn('chart value by stream', DIG), true, 'chart');
+  test('a drawing asked for in words that ask for words is explained: a question, "tell me more about"', () => {
     assert.equal(w.hbExplainsDrawn('what ends this quarter?', DIG), true, 'a question');
+    assert.equal(w.hbExplainsDrawn('explain the overdue obligations', DIG), true, 'explain');
     assert.equal(w.hbExplainsDrawn('tell me more about what ends this quarter', DIG), true, 'tell me more');
     assert.equal(w.hbExplainsDrawn('and by counterparty?', { road: 'free', kind: 'follow' }), true, 'a follow-up asked as a question');
-    assert.equal(w.hbExplainsDrawn('top 10', { road: 'free', kind: 'panel' }), true);
+  });
+  test('SHOW STAYS FREE (the owner\'s answer, 25 Oct 2026): a plain command draws and says one line', () => {
+    for (const q of ['show me what ends this quarter', 'show me the drafts', 'chart value by stream', 'deals by stage', 'obligations', 'negotiations', 'top 10'])
+      assert.equal(w.hbExplainsDrawn(q, DIG), false, q);
   });
   test('a change to what is drawn, a flat pack, or nothing drawn: one line', () => {
     for (const q of ['sort by value', 'make it monthly', 'only Naivas', 'undo', 'by counterparty', 'group by stream', 'open contracts'])

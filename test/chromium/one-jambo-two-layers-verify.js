@@ -114,13 +114,11 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     console.log('\nF · off Home: a command turns to the Board; a question stays in words');
     await page.evaluate(() => { setView('brain'); ai.history = []; if (!(ai.open && ai.win)) openAI(null, { win: true }); });
     await until(() => state.view === 'brain' && ai.open && !!document.getElementById('ai-input') && document.getElementById('ai-input').getClientRects().length > 0);
-    /* RE-POINTED 25 Oct 2026 (owner picked "Both halves"): a fresh chart asked for by command is drawn, said free, and
-       then explained in the same window — one call; was "free, no words" */
-    ai.reset(); ai.script(deliver('Distribution carries most of the value.'));
+    ai.reset();
     await winAsk('chart value by stream');
-    const F1 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const said = (ai.history || []).filter(x => x.role === 'assistant').map(x => String(x.text || '').replace(/<[^>]+>/g, ' '));
-      return state.view === 'dashboard' && s.face === 'board' && k && said.some(t => /Free/.test(t)) && said.some(t => /Distribution carries/.test(t)) ? { key: k, said: said.length } : null; }, null, 10000);
-    check('F1 the Board is turned to and the chart drawn, said in the window free, then explained once', !!F1 && /^q:/.test(F1.key) && ai.calls.length === 1, JSON.stringify({ F1, calls: ai.calls.length }));
+    const F1 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0];
+      return state.view === 'dashboard' && s.face === 'board' && k && m && /Free/.test(String(m.text || '')) ? { key: k } : null; }, null, 10000);
+    check('F1 the Board is turned to and the chart drawn, said in the window, free', !!F1 && /^q:/.test(F1.key) && ai.calls.length === 0, JSON.stringify({ F1, calls: ai.calls.length }));
     await page.evaluate(() => { setView('brain'); ai.history = []; if (!(ai.open && ai.win)) openAI(null, { win: true }); });
     await until(() => state.view === 'brain' && ai.open && !!document.getElementById('ai-input') && document.getElementById('ai-input').getClientRects().length > 0);
     ai.reset(); ai.script(deliver('Two end this quarter.'));
