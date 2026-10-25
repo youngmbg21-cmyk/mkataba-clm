@@ -170,6 +170,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## ASK A COLUMN (js/views/askcolumn.js)
 - f843, ask-a-column verify.
 - Typing while the team's questions arrive (22 Oct 2026): ask-a-column verify 10 (red at the parent: the caret went to the question box, "Notice ").
+- THE DISCOVER MEASURE (stage 0, 25 Oct 2026): f878 (the exam's truth matches its wording; the marker is fair); `node test/discover-measure.js` by hand (calls only without a key, graded with one). Every Discover stage reruns it and writes its row in docs/PLAN-jambo-discover.md.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.

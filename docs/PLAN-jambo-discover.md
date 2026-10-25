@@ -81,3 +81,22 @@ party's two minutes COUNT kept answers. One engine reads; nothing new invented.
 
 Every visible stage is drawn full size on its real page at the owner's three
 screens before it is built (THE PICKED DESIGN IS THE AGREEMENT).
+
+## 5. The measure (stage 0, built 25 Oct 2026)
+
+test/discover-world.js (eleven contracts, the truth beside the wording, the
+company's rules), test/discover-exam.js (forty held-out questions, six facts,
+the marker), test/discover-measure.js (asks each question of every contract
+through POST /api/ai/column; with ANTHROPIC_API_KEY it grades the answers
+through a counting relay, without one it ONLY COUNTS the calls and says so).
+f878 pins that the truth matches the wording and that the marker is fair.
+
+| Run | Answers right | Dead ends | Calls | Per question per contract | Due diligence pack |
+|---|---|---|---|---|---|
+| Before, no AI key (calls only), a992f4c + stage 0, 25 Oct 2026 | not graded | 0 of 440 | 400 for 40 questions | 1.00 | 50 calls over 10 contracts |
+| Before, live AI | — needs a key in the environment | | | | |
+
+Stage 1's target: the Due diligence pack at 10 calls over 10 contracts (one
+read answers all five), answers no less right than the live "before", and
+"in / outside our range" given and right where a rule exists, "no rule yet"
+for payment.
