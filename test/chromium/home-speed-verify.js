@@ -6,8 +6,9 @@
    up to 430 contracts in the page, as the measuring script did, and every
    limit is a RELATION with room for a slower machine, never a bare
    millisecond figure:
-     1. Board ⇄ Paper: the longest freeze of a switch is under half of the
-        freeze of opening Home itself (the face turns in place)
+     1. Board ⇄ Paper: the longest freeze of a switch, the middle of five
+        tries each way, is under half of the freeze of opening Home itself
+        (the face turns in place)
      2. the second Explorer arrival's longest freeze is under half of the
         first's (the laid-out map is kept)
      3. sitting on a still, settled Explorer keeps the browser busy under 5%
@@ -84,12 +85,19 @@ const check = (name, pass, detail) => {
     const quiet = ms => () => page.waitForTimeout(ms);
     const onFace = f => () => until(f => document.getElementById('ig-page') && document.getElementById('ig-page').getAttribute('data-hb-side') === f, f).then(() => page.waitForTimeout(600));
     const home1 = await act(() => setView('dashboard'), () => until(() => !!document.querySelector('#hb-board .hb-note')).then(() => page.waitForTimeout(600)));
-    const toPaper = await act(() => hbSetFace('paper'), onFace('paper'));
-    const toBoard = await act(() => hbSetFace('board'), onFace('board'));
+    /* THE MIDDLE OF FIVE SWITCHES (owner picked "make the stopwatch fairer", 25 Oct 2026): one switch measured
+       70–150 ms against a limit near 90 at this book, at #458 as at main, so one sample passed or failed by
+       luck. Each way is timed five times and the middle result is held to the relation; every sample is printed */
+    const toPaper = [], toBoard = [];
+    for (let r = 0; r < 5; r++){
+      toPaper.push((await act(() => hbSetFace('paper'), onFace('paper'))).max);
+      toBoard.push((await act(() => hbSetFace('board'), onFace('board'))).max);
+    }
+    const mid = a => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];
     const bookNow = await page.evaluate(() => state.contracts.length);
-    check('1. Board ⇄ Paper: a switch freezes under half of opening Home',
-      leftHome && Math.max(toPaper.max, toBoard.max) < Math.max(60, home1.max / 2),
-      `${leftHome ? '' : 'Home was never left · '}paper ${toPaper.max} · board ${toBoard.max} · Home ${home1.max} ms, ${bookNow} contracts`);
+    check('1. Board ⇄ Paper: a switch (the middle of five) freezes under half of opening Home',
+      leftHome && Math.max(mid(toPaper), mid(toBoard)) < Math.max(60, home1.max / 2),
+      `${leftHome ? '' : 'Home was never left · '}paper ${mid(toPaper)} (${toPaper.join(' ')}) · board ${mid(toBoard)} (${toBoard.join(' ')}) · Home ${home1.max} ms, ${bookNow} contracts`);
     const ex1 = await act(() => hbSetFace('explorer'), onFace('explorer'));
     /* settle: the layout finishes off the press, then the loop rests */
     await page.waitForTimeout(4000);
