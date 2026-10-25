@@ -70,6 +70,8 @@ async function toList(page){
   return until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'));
 }
 const stage = n => !ONLY || ONLY === String(n);
+/* each stage starts on the Contracts list, nothing left open by the stage before */
+async function fresh(page){ await page.evaluate(() => { try { if (document.querySelector('#modal-root [role="dialog"]')) closeModal(); } catch (_){ /* none open */ } }); return toList(page); }
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -174,6 +176,7 @@ const stage = n => !ONLY || ONLY === String(n);
     }
 
     if (stage(4)){
+      await fresh(page);
       const LAW = "Which country's law governs this contract?";
       /* a column of the law question, up on the list (kept by asking it of the empty contract: free) */
       /* asked of every contract but DV-07, which is left to arrive in 4d */
@@ -218,10 +221,17 @@ const stage = n => !ONLY || ONLY === String(n);
     }
 
     if (stage(5)){
+      await fresh(page);
       /* the cap question as a company fact, with its rule, its column up (asked of all but DV-05, left to arrive) */
-      const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-05') }), CAP_Q);
-      await W.admin.json('/api/columns/' + ck.ask.id, { method: 'PUT', body: { fact: true, rule: 'Capped at no more than one year of fees' } });
+      /* its own wording of the cap question, so nothing an earlier stage read is kept for DV-05; the rule and the
+         fact written FIRST (a new rule lets go of the answers kept without it), then asked of all but DV-05 */
+      const Q5 = 'Is our liability capped at all, and if so at what amount?';
+      const k5 = await W.admin.json('/api/ai/column', { method: 'POST', body: { question: Q5, name: 'Liability cap', ids: ['DV-11'] } });
+      await W.admin.json('/api/columns/' + k5.ask.id, { method: 'PUT', body: { fact: true, rule: 'Capped at no more than one year of fees' } });
+      const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-05'),
+        texts: { 'DV-11': contractPlainText(getContract('DV-11')) } }), Q5);
       await page.evaluate(id => { regState().ask = [id]; regState().only = null; regRepaint(); return askColSummary(true).then(() => askColBring(id)); }, ck.ask.id);
+      await until(page, () => /answered/.test((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || ''), null, 10000);
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-watch]'), null, 10000);
       const wc = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-watch]') || {}).textContent || '');
       check('5a′ a company fact\'s card offers the watch', /Tell me when a new contract answers at risk/.test(wc), wc);
@@ -244,6 +254,7 @@ const stage = n => !ONLY || ONLY === String(n);
     }
 
     if (stage(6)){
+      await fresh(page);
       /* asked as the page asks it: DV-11's paper is drawn from its template, so its drawn wording travels (contractPlainText) */
       const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id),
         texts: { 'DV-11': contractPlainText(getContract('DV-11')) } }), CAP_Q);
@@ -261,6 +272,7 @@ const stage = n => !ONLY || ONLY === String(n);
     }
 
     if (stage(7)){
+      await fresh(page);
       const m = await page.evaluate(() => {
         const ch = (o) => ({ id: o.id, clauseId: 'c1', clauseLabel: 'Termination', oldText: 'on ninety (90) days written notice', newText: o.newText,
           status: o.status, authorSide: 'counterparty', author: 'Them', createdAt: '2026-03-01T00:00:00.000Z', updatedAt: '2026-03-02T00:00:00.000Z' });
@@ -304,6 +316,7 @@ const stage = n => !ONLY || ONLY === String(n);
     }
 
     if (stage(9)){
+      await fresh(page);
       await page.evaluate(() => cuSelectParty('siginon group'));
       const sec = await until(page, () => /Before the call/.test((document.querySelector('#ins-panel') || {}).innerText || '') && !!document.querySelector('#ins-panel [data-cu-brief]'), null, 10000);
       const t = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));

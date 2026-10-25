@@ -5725,7 +5725,10 @@ function pdJamboTopHtml(){
   const ac = (!c && typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
   /* THE CHECKLIST'S ORDER: stage, Needs you, Jambo read, Next acts, then Key terms and the folds */
   /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
-  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || pdWallHtml() + (typeof askColDiscoverHtml === 'function' ? askColDiscoverHtml() : ''));
+  /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
+  const disc = (!c && !ac && typeof askColDiscoverHtml === 'function') ? askColDiscoverHtml() : '';
+  const lead = disc && typeof askColDiscoverLeads === 'function' && askColDiscoverLeads();
+  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || (lead ? disc + pdWallHtml() : pdWallHtml() + disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll

@@ -309,6 +309,8 @@ function askColDiscoverHtml(){
       <div class="ac-next"><button type="button" class="jb-chip" data-ac-open-new${askColMay() ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_disc_new'))}</button></div>
     </div></div>`;
 }
+/* Discover leads the panel when the team keeps questions this reader can see answered */
+function askColDiscoverLeads(){ return (AC.summary || []).some(a => a.read > 0 || a.fact); }
 /* a kept question brought onto the list: its answers fetched free, its column up (the oldest steps down past three) */
 async function askColBring(askId){
   const R = regState();
@@ -867,5 +869,5 @@ function askColBtnHtml(){
 }
 
 Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
-  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColBring, askColSummary,
+  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml });
