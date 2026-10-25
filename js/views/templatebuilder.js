@@ -1509,7 +1509,7 @@ function tbStyleHtml() {
   .tb-rail .tb-tabs .n,.tb-rail .tb-tabs .n.r{background:none;padding:0;margin-left:5px;font-weight:var(--w-body);font-style:italic;color:var(--color-neutral-600)}
   .tb-rail .tb-tabs button.is-on .n{color:inherit}
   .tb-foot{flex:none;padding:10px 12px 8px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
-  .tb-foot .tb-ask{padding:0;border-top:0;align-items:center;gap:8px;min-height:40px;border:1px solid var(--color-neutral-300);border-radius:10px;padding:0 4px 0 12px;background:var(--color-surface)}
+  .tb-foot .tb-ask{border-top:0;align-items:center;gap:8px;min-height:40px;border:1px solid var(--color-neutral-300);border-radius:10px;padding:0 4px 0 12px;background:var(--color-surface)}
   .tb-foot .tb-ask:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--color-accent-100)}
   .tb-foot .tb-ask textarea{height:auto;min-height:24px;max-height:120px;padding:9px 0;border:0;background:transparent;font-size:var(--t-body);line-height:1.4;box-shadow:none}
   .tb-foot .tb-ask textarea:focus{box-shadow:none}

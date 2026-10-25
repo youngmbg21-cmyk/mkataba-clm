@@ -5706,6 +5706,9 @@ function pdJamboTopHtml(){
      paper chosen on the wall (round 13), a contract brought up as a page
      (round 7) or its History (round 12) — Jambo says that contract */
   const held = pdHeldTopHtml(); if (held != null) return held;
+  /* THE ONE SHEET IS UP, WHATEVER FACE IS BEHIND IT (the detail round, 25 Oct 2026: over the Board the panel
+     drew the Board's greeting, which the sheet stands down, and so stood empty): he says what the sheet is for */
+  if (typeof naSheetUp === 'function' && naSheetUp() && !pdOnPaper()) return pdWallHelloHtml();
   /* ON THE BOARD: his greeting says the book and where the owed work went
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
