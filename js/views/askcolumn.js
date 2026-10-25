@@ -502,6 +502,34 @@ async function askColWatch(askId, on, wid){
   } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
   askColPaintPanel();
 }
+/* ---- UNUSUAL FOR YOU (stage 6): one line on the Dossier's "Jambo read" card, only when a
+   company fact's answer stands apart from the same kind of contract in this book; counted, free ---- */
+const _acOdd = {};
+function askColOddHtml(c){
+  const id = String(c.id), got = _acOdd[id];
+  if (got === undefined){ askColOddLoad(id); return `<div class="ac-odd" data-ac-odd-for="${_acE(id)}"></div>`; }
+  return `<div class="ac-odd" data-ac-odd-for="${_acE(id)}">${askColOddInner(id)}</div>`;
+}
+function askColOddInner(id){
+  const got = _acOdd[id]; if (!got || !got.lines || !got.lines.length) return '';
+  const kind = String(got.kind || '').toLowerCase();
+  return got.lines.slice(0, 2).map(l => `<div class="pd-gl-row ds-row ac-odd-row"><i class="ac-lg-amber" aria-hidden="true"></i><span class="ac-odd-t"><b>${_acE(_acT('ac_odd_h'))}</b> ${_acE(_acT('ac_odd_line', { fact: l.fact, mine: l.mine, n: l.usualN, of: l.others, kind, usual: l.usual }))}</span><button type="button" class="pd-go ds-go" data-ac-odd-show="${_acE(id)}:${_acE(l.askId)}">${_acE(_acTn('ac_odd_show', l.ids.length))}</button></div>`).join('');
+}
+async function askColOddLoad(id){
+  if (_acOdd[id] === null) return;
+  _acOdd[id] = null;
+  let r = null; try { r = await api('columns/unusual/' + encodeURIComponent(id)); } catch (_){ r = null; }
+  _acOdd[id] = r || { lines: [] };
+  const host = (typeof document !== 'undefined') ? document.querySelector(`[data-ac-odd-for="${CSS.escape(id)}"]`) : null;
+  if (host) host.innerHTML = askColOddInner(id);
+  setTimeout(() => { delete _acOdd[id]; }, 60000);
+}
+function askColOddShow(key){
+  const [id, askId] = String(key).split(':');
+  const l = ((_acOdd[id] || {}).lines || []).find(x => x.askId === askId); if (!l) return;
+  if (typeof setView === 'function') setView('register');
+  if (typeof regShowOnly === 'function') regShowOnly(l.ids, _acT('ac_odd_label', { fact: l.fact, usual: l.usual }));
+}
 /* the lander a watch's press uses: the contract on Home's paper, then its sentence lit (bounded wait) */
 function askColLandOn(cid, quote){
   if (typeof regOpenContract === 'function') regOpenContract(cid);
@@ -807,6 +835,7 @@ if (typeof document !== 'undefined' && !document._acWired){
     const fk = t.closest('[data-ac-fact]'); if (fk){ e.preventDefault(); askColFactSet(fk.getAttribute('data-ac-fact'), true); return; }
     const ft = t.closest('[data-fa-tog]'); if (ft){ e.preventDefault(); const id = ft.getAttribute('data-fa-tog'); askColFactSet(id, ft.getAttribute('aria-pressed') !== 'true'); return; }
     if (t.closest('[data-fa-readall]')){ e.preventDefault(); askColFactsReadAll(); return; }
+    const od = t.closest('[data-ac-odd-show]'); if (od){ e.preventDefault(); askColOddShow(od.getAttribute('data-ac-odd-show')); return; }
     const wa = t.closest('[data-ac-watch]'); if (wa){ e.preventDefault(); askColWatch(wa.getAttribute('data-ac-watch'), true); return; }
     const uw = t.closest('[data-ac-unwatch]'); if (uw){ e.preventDefault(); askColWatch(null, false, uw.getAttribute('data-ac-unwatch')); return; }
   });
@@ -839,4 +868,4 @@ function askColBtnHtml(){
 
 Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColBring, askColSummary,
-  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf });
+  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml });

@@ -1,4 +1,4 @@
-/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo */
+/* global regState, regRepaint, regPlaceSet, setView, state, api, askColSummary, renderIntelDock, closeModal, askColBring, openSettingsAt, closeSettingsDrawer, askColFactsArrive, getContract, regOpenContract, pdContract, pdKtMid, watchLoad, watchesFired, watchFiredWords, watchGo, contractPlainText */
 /* DISCOVER — THE COLUMN THE LEGORA WAY, THE KEPT QUESTIONS, THE COMPANY'S
    FACTS AND WATCHES (docs/PLAN-jambo-discover.md, owner 25 Oct 2026), driven
    in a real browser over test/discover-world.js (eleven contracts, the
@@ -40,6 +40,10 @@
      5b a new answer at risk fires it: it is on the bell's list in words that
         name the contract, the fact and the answer
      5c its press lands on the contract on Home's paper
+   STAGE 6 — UNUSUAL FOR YOU
+     6a DV-04's Dossier says, in its Jambo read card, that its liability cap
+        stands apart from the other services contracts
+     6b "Show the 3" lands on the Contracts list narrowed to those three
    Each stage's checks are added below as the stage is built.
    Run: node test/chromium/discover-verify.js   (HATI_DV_ONLY=2 for one stage) */
 const fs = require('node:fs');
@@ -237,6 +241,23 @@ const stage = n => !ONLY || ONLY === String(n);
       const landed = await until(page, () => typeof pdContract === 'function' && pdContract() && pdContract().id === 'DV-05', null, 10000);
       check('5c its press lands on the contract on Home\'s paper', landed);
       await page.screenshot({ path: path.join(OUT, '5-landed.png') });
+    }
+
+    if (stage(6)){
+      /* asked as the page asks it: DV-11's paper is drawn from its template, so its drawn wording travels (contractPlainText) */
+      const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id),
+        texts: { 'DV-11': contractPlainText(getContract('DV-11')) } }), CAP_Q);
+      await W.admin.json('/api/columns/' + ck.ask.id, { method: 'PUT', body: { fact: true } });
+      await page.evaluate(() => regOpenContract('DV-04'));
+      await until(page, () => typeof pdContract === 'function' && pdContract() && pdContract().id === 'DV-04', null, 10000);
+      const said = await until(page, () => /Unusual for you/.test((document.querySelector('[data-ac-odd-for="DV-04"]') || {}).innerText || ''), null, 10000);
+      const line = await page.evaluate(() => (document.querySelector('[data-ac-odd-for="DV-04"]') || {}).innerText || '');
+      check('6a DV-04\'s Dossier says its cap stands apart from the other services contracts', said && /Liability cap here is “Not capped”/.test(line) && /3 of your other 3/.test(line), line.replace(/\s+/g, ' '));
+      await page.screenshot({ path: path.join(OUT, '6-dossier.png') });
+      await page.click('[data-ac-odd-show]');
+      const three = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 3, null, 10000);
+      const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(tr => tr.getAttribute('data-row')).sort());
+      check('6b "Show the 3" lands on the list narrowed to those three', three && rows.join() === 'DV-03,DV-10,DV-11', JSON.stringify(rows));
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

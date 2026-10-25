@@ -3827,6 +3827,8 @@ function dossierReadHtml(c, D){
   if (R.blanks){ const b = R.blanks;
     rows.push(row('blanks', _pdT('dos_k_blanks'), `${b.total} · ` + _pdT('dos_k_blanks_f', { f: b.filled }), b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }
   /* SPINE: the card stands under the Read stage, whose line carries "Read again" (dossierStagesHtml) */
+  /* UNUSUAL FOR YOU (Discover stage 6): a company fact that stands apart from this kind of contract in the book, counted free */
+  if (typeof askColOddHtml === 'function') rows.push(askColOddHtml(c));
   return `<div class="pd-glance ds-card ds-read" data-ds-at="read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_head'))}</b><span class="pd-gl-sp"></span></div><div class="pd-gl-b">${rows.join('')}</div></div>`;
 }
 function dossierOwedHtml(c, D, o){

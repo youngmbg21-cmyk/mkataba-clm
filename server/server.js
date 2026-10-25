@@ -9763,6 +9763,50 @@ app.get('/api/columns/facts/:cid', auth, (req, res) => {
   res.json({ facts });
 });
 
+/* UNUSUAL FOR YOU (Discover stage 6, owner 25 Oct 2026): for one contract,
+   each company fact whose answer stands apart from the other contracts of the
+   SAME KIND the reader may see — counted off the kept answers, no call, no AI.
+   Said only with COLUMN_ODD_MIN others to compare with (the precedent floor,
+   js/precedent.js PRECEDENT_MIN), only where fewer than one in three of them
+   say the same and at least half say one other thing. Nothing is guessed: no
+   kind, no kept answer, or too few others — nothing is said. */
+const COLUMN_ODD_MIN = 3;
+const colNorm = v => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim();
+app.get('/api/columns/unusual/:cid', auth, (req, res) => {
+  const id = String(req.params.cid);
+  const full = colContract(req, id);
+  if (!full) return res.status(404).json({ error: 'Contract not found' });
+  const kind = colNorm(full.category || full.type);
+  const facts = db.prepare('SELECT * FROM column_asks WHERE fact=1 ORDER BY name').all();
+  if (!kind || !facts.length) return res.json({ kind: full.category || full.type || '', lines: [] });
+  const scope = folderScopeFor(req.user);
+  let outside = new Set(); try { outside = cnOutsideFor(req.user); } catch (_) { outside = new Set(); }
+  const peers = new Set();
+  for (const r of db.prepare('SELECT id, folder, json FROM contracts').all()) {
+    if (r.id === id || !inScope(scope, r.folder) || outside.has(r.id)) continue;
+    let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) { f = {}; }
+    if (f.archived || colNorm(f.category || f.type) !== kind) continue;
+    peers.add(r.id);
+  }
+  const lines = [];
+  for (const a of facts) {
+    const mine = db.prepare('SELECT json FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, id);
+    const m = mine ? watchJson(mine.json) : null;
+    if (!m || !m.found || m.noWording) continue;
+    const others = db.prepare('SELECT contract_id, json FROM column_answers WHERE ask_id=?').all(a.id)
+      .filter(r => peers.has(r.contract_id)).map(r => ({ id: r.contract_id, x: watchJson(r.json) })).filter(o => o.x.found && !o.x.noWording);
+    if (others.length < COLUMN_ODD_MIN) continue;
+    const counts = new Map(), shown = new Map();
+    for (const o of others) { const k = colNorm(o.x.answer); counts.set(k, (counts.get(k) || 0) + 1); if (!shown.has(k)) shown.set(k, o.x.answer); }
+    const same = counts.get(colNorm(m.answer)) || 0;
+    let top = '', topN = 0; for (const [k, n] of counts) if (n > topN) { top = k; topN = n; }
+    if (same * 3 >= others.length || topN * 2 < others.length || top === colNorm(m.answer)) continue;
+    lines.push({ askId: a.id, fact: a.name, mine: m.answer, others: others.length, same, usual: shown.get(top), usualN: topN,
+      ids: others.filter(o => colNorm(o.x.answer) === top).map(o => o.id) });
+  }
+  res.json({ kind: full.category || full.type || '', lines });
+});
+
 /* A PERSON'S TICK: who checked this answer, and when. Anyone who may ask may
    tick; taking a tick back is the same press. It belongs to the answer it was
    given to, so a new reading starts unchecked. */
