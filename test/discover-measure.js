@@ -26,7 +26,7 @@
 const fs = require('node:fs');
 const http = require('node:http');
 const { startHati } = require('./helpers');
-const { seedDiscoverWorld, TRUTH, IDS } = require('./discover-world');
+const { seedDiscoverWorld, TRUTH, IDS, RULES } = require('./discover-world');
 const { DISCOVER_EXAM, PACK_DD, grade } = require('./discover-exam');
 
 const ONLY = process.env.DISCOVER_ONLY || '';
@@ -72,6 +72,17 @@ const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
   try {
     const W = await seedDiscoverWorld(h);
     const items = DISCOVER_EXAM.filter(x => !ONLY || x.fact === ONLY);
+    /* THE COMPANY'S RULES, written by the admin on each question before it is asked (stage 1 onward):
+       a question is kept by asking it of the one contract with no wording, which spends nothing */
+    const empty = IDS.find(id => TRUTH[id].noWording);
+    let rulesSet = 0;
+    for (const item of items) if (RULES[item.fact]) {
+      try {
+        const k = await W.admin.json('/api/ai/column', { method: 'POST', body: { question: item.q, name: '', ids: [empty] } });
+        const put = await W.admin.raw('/api/columns/' + k.ask.id, { method: 'PUT', body: { rule: RULES[item.fact] } });
+        if (put.status < 300) rulesSet++;
+      } catch (_){ /* the parent has no rules: measured without them, and said */ }
+    }
     for (const item of items){
       const before = callsNow();
       let r = null, err = null;
@@ -87,6 +98,13 @@ const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
       results.push({ fact: item.fact, form: item.form, q: item.q, spent, said, err, marks });
       const right = marks.filter(m => m.mark === 'right').length, dead = marks.filter(m => m.mark === 'dead').length;
       console.log(`${LIVE ? `${right}/${marks.length}`.padEnd(6) : ''}${dead ? `dead ${dead}  ` : ''}${String(spent).padStart(3)} calls  ${item.fact.padEnd(8)} ${item.q}${err ? '  ERROR ' + err : ''}`);
+    }
+    /* THE PACK AS ONE PRESS (stage 1): the Due diligence questions asked together, read afresh */
+    let packOne = null;
+    if (!ONLY){
+      const p0 = callsNow();
+      try { await W.admin.json('/api/ai/column', { method: 'POST', body: { questions: PACK_DD.map(q => ({ question: q })), ids: IDS, force: true } }); packOne = callsNow() - p0; }
+      catch (_){ packOne = null; }
     }
     /* KEPT: the first question asked again spends nothing */
     const k0 = callsNow();
@@ -120,8 +138,10 @@ const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
     console.log(`                ${(calls / results.length).toFixed(2)} per question · ${(calls / (results.length * withWording)).toFixed(2)} per question per contract`);
     console.log(`                ${lies ? `${lies} questions SAID a different number of calls than they made` : 'every question said the calls it made'}`);
     console.log(`KEPT            the first question asked again: ${keptSpent} calls`);
-    if (!ONLY) console.log(`DUE DILIGENCE   the owner's first pack (5 questions) asked as a person asks it today: ${pack} calls over ${withWording} contracts`);
-    if (process.env.DISCOVER_OUT) fs.writeFileSync(process.env.DISCOVER_OUT, JSON.stringify({ live: LIVE, models: relay ? relay.models : {}, n, dead, calls, pack, keptSpent, results }, null, 1));
+    console.log(`RULES           ${rulesSet ? `${rulesSet} questions carry the company's rule` : 'none could be written (no rule route): verdicts not measured'}`);
+    if (!ONLY) console.log(`DUE DILIGENCE   the owner's first pack (5 questions) asked one at a time: ${pack} calls over ${withWording} contracts`);
+    if (!ONLY) console.log(`                asked as one press: ${packOne == null ? 'not possible (one question a press)' : packOne + ' calls'}`);
+    if (process.env.DISCOVER_OUT) fs.writeFileSync(process.env.DISCOVER_OUT, JSON.stringify({ live: LIVE, models: relay ? relay.models : {}, n, dead, calls, pack, packOne, rulesSet, keptSpent, results }, null, 1));
   } finally {
     await h.stop();
     if (relay) await relay.stop();

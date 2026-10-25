@@ -72,10 +72,15 @@ function startAiStub() {
         : toolName === 'recommend_template' ? { ranked: [], answer: 'stub' }
         /* ASK A COLUMN: an answer resting on the document's own first long
            sentence, so the route's quote check passes as it would live */
-        : toolName === 'column_answer' ? (() => {
-            const txt = String(((body.messages || [])[0] || {}).content || '').split('DOCUMENT:\n')[1] || '';
+        : toolName === 'column_answers' ? (() => {
+            /* one answer per question asked (Discover: one read, many answers), verdict 'in' where a rule is given */
+            const msg = String(((body.messages || [])[0] || {}).content || '');
+            const txt = msg.split('DOCUMENT:\n')[1] || '';
             const quote = (txt.match(/[^.\n]{40,200}\./) || [''])[0].trim();
-            return { found: true, answer: '30 days', detail: 'either side', tone: 'good', why: 'stubbed reason', quote, clause: '9 · Termination' };
+            const head = msg.split('DOCUMENT:\n')[0];
+            const n = /QUESTIONS \(/.test(head) ? (head.match(/^\d+\. /gm) || []).length : 1;
+            return { answers: Array.from({ length: n }, (_, i) => ({ q: i + 1, found: true, answer: '30 days', detail: 'either side',
+              tone: 'good', why: 'stubbed reason', quote, clause: '9 · Termination', verdict: 'in' })) };
           })()
         : {};
       res.writeHead(200, { 'Content-Type': 'application/json' });

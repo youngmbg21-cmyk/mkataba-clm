@@ -617,6 +617,14 @@ function addColumnIfMissing(table, col, decl) {
   if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
 }
 addColumnIfMissing('users', 'lang', 'TEXT');   // per-person UI + email language (js/i18n.js)
+/* DISCOVER (docs/PLAN-jambo-discover.md, owner 25 Oct 2026): a kept question
+   may carry THE COMPANY'S RULE (what breaks it, said in words; an answer is then
+   judged in or outside it), and an admin may keep it as a COMPANY FACT (read for
+   every contract that arrives). NULL / 0 = neither, where every question starts. */
+addColumnIfMissing('column_asks', 'rule', 'TEXT');
+addColumnIfMissing('column_asks', 'fact', 'INTEGER');
+addColumnIfMissing('column_asks', 'fact_by', 'TEXT');
+addColumnIfMissing('column_asks', 'fact_at', 'TEXT');
 /* How much this member may sign a contract for, in the workspace currency.
    TEXT rather than REAL because it carries THREE states and the third is the
    point: absent = nobody has decided, 'none' = decided, no limit, a number =
@@ -9468,7 +9476,8 @@ const colKey = q => String(q || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const colFlat = s => String(s || '').replace(/[‘’‚′]/g, "'").replace(/[“”„″]/g, '"')
   .replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
 function colAskOut(r) {
-  return r ? { id: r.id, question: r.question, name: r.name, by: r.created_by_name || '', at: r.created_at, used: r.last_used_at } : null;
+  return r ? { id: r.id, question: r.question, name: r.name, by: r.created_by_name || '', at: r.created_at, used: r.last_used_at,
+    rule: r.rule || '', fact: !!r.fact } : null;
 }
 function colAnswerOut(r) {
   let a = {}; try { a = JSON.parse(r.json) || {}; } catch (_) {}
@@ -9517,86 +9526,176 @@ app.post('/api/columns/answers', auth, (req, res) => {
   res.json({ ask: colAskOut(ask), answers, stale });
 });
 
+/* ONE READ, MANY ANSWERS (Discover stage 1, owner 25 Oct 2026): a press may
+   carry several questions (`questions: [{question, name}]`, at most
+   COLUMN_Q_MAX; the old single `question`/`name` still works). Each contract is
+   read ONCE for every question it has no kept answer to, in one call, and each
+   answer is kept on its own as before. A question that carries the company's
+   rule (`column_asks.rule`) gets a VERDICT: 'in' or 'out' of that rule, judged
+   off the same read; a question with no rule says 'norule' — never a rule
+   invented. The calls said are the calls made; an answer records how many
+   questions shared its read (`with`), so a column never claims a whole call. */
+const COLUMN_Q_MAX = 8;
+const COLUMN_VERDICTS = ['in', 'out'];
+function colQuestionsOf(b) {
+  const raw = Array.isArray(b.questions) ? b.questions : [{ question: b.question, name: b.name }];
+  const out = [], seen = new Set();
+  for (const x of raw.slice(0, 50)) {
+    const question = String((x && x.question) || '').trim().replace(/\s+/g, ' ');
+    if (question.length < 3) return { error: 'Type the question for the column' };
+    if (question.length > 300) return { error: 'Keep the question under 300 characters' };
+    const k = colKey(question); if (seen.has(k)) continue; seen.add(k);
+    const name = (String((x && x.name) || '').trim().replace(/\s+/g, ' ') || colNameOf(question)).slice(0, 40);
+    out.push({ question, name, qkey: k });
+  }
+  if (!out.length) return { error: 'Type the question for the column' };
+  if (out.length > COLUMN_Q_MAX) return { error: `At most ${COLUMN_Q_MAX} questions are read together` };
+  return { list: out };
+}
+/* A COLUMN NAMES ITSELF (stage 2): the question's own first words, minus the
+   asking words, when the person leaves the name empty */
+function colNameOf(question) {
+  const w = String(question).replace(/[?.!]+$/, '').split(/\s+/)
+    .filter((x, i) => !(i < 3 && /^(how|what|which|who|when|is|are|does|do|can|will|the|a|an|our|this)$/i.test(x)));
+  const n = (w.length ? w : String(question).split(/\s+/)).slice(0, 4).join(' ');
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+function colAskKeep(req, q, at) {
+  let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+  if (ask) db.prepare('UPDATE column_asks SET name=?, last_used_at=? WHERE id=?').run(q.name, at, ask.id);
+  else db.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run('ca_' + crypto.randomBytes(8).toString('hex'), q.qkey, q.question, q.name, String(req.user.id), req.user.name || req.user.email || '', at, at);
+  return db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+}
+const COLUMN_TOOL = {
+  name: 'column_answers',
+  description: 'One short answer per QUESTION for this contract, each as it would sit in one cell of a table, with the wording it rests on.',
+  input_schema: { type: 'object', properties: { answers: { type: 'array', items: { type: 'object', properties: {
+    q: { type: 'integer', description: 'The number of the question this answers.' },
+    found: { type: 'boolean', description: 'true only if the DOCUMENT itself answers the question.' },
+    answer: { type: 'string', description: 'The answer as a table cell, 1 to 5 words: "90 days", "KES 78M", "Not capped", "Kenya". Empty when not found.' },
+    detail: { type: 'string', description: '2 to 6 words that qualify the answer: "either side", "Buyer only", "1x the value". When not found, what was looked for, in 2 to 6 words.' },
+    tone: { type: 'string', enum: COLUMN_TONES, description: 'good = usual and balanced; watch = one-sided or unusual; concern = exposes OUR SIDE to real risk; none = a plain fact, or not found.' },
+    why: { type: 'string', description: 'One plain sentence on what the wording means for the reader. Never advice on whether to sign.' },
+    quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
+    clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
+    verdict: { type: 'string', enum: ['in', 'out', ''], description: 'Only for a question that gives OUR RULE: "in" if the answer keeps the rule, "out" if it breaks it. Empty when the question gives no rule, or nothing was found.' },
+  }, required: ['q', 'found', 'answer', 'detail', 'tone', 'why'] } } }, required: ['answers'] },
+};
+
 app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
   const b = req.body || {};
-  const question = String(b.question || '').trim().replace(/\s+/g, ' ');
-  if (question.length < 3) return res.status(400).json({ error: 'Type the question for the column' });
-  if (question.length > 300) return res.status(400).json({ error: 'Keep the question under 300 characters' });
-  const name = (String(b.name || '').trim().replace(/\s+/g, ' ') || question.split(' ').slice(0, 4).join(' ')).slice(0, 40);
+  const Q = colQuestionsOf(b);
+  if (Q.error) return res.status(400).json({ error: Q.error });
   const asked = colIds(b.ids);
   if (!asked.length) return res.status(400).json({ error: 'There are no contracts to ask' });
   const ids = asked.slice(0, COLUMN_MAX);
-  /* the team's question, kept once by its words; the newest name given wins */
-  const at = now(), qkey = colKey(question);
-  let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(qkey);
-  if (ask) db.prepare('UPDATE column_asks SET name=?, last_used_at=? WHERE id=?').run(name, at, ask.id);
-  else db.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
-    .run('ca_' + crypto.randomBytes(8).toString('hex'), qkey, question, name, String(req.user.id), req.user.name || req.user.email || '', at, at);
-  ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(qkey);
+  /* the team's questions, each kept once by its words; the newest name given wins */
+  const at = now();
+  const asks = Q.list.map(q => colAskKeep(req, q, at));
 
-  const answers = {}, failed = [], todo = [], texts = colTexts(b.texts);
+  const byAsk = Object.fromEntries(asks.map(a => [a.id, {}]));
+  const failed = [], todo = [], texts = colTexts(b.texts);
   let cached = 0;
   for (const id of ids) {
     const full = colContract(req, id);
     if (!full) { failed.push({ id, why: 'notFound' }); continue; }
     const w = colWording(req, full, texts[id]), sent = w.text;
-    if (!w.has) { answers[id] = { found: false, noWording: true, at, by: 'jambo', calls: 0 }; continue; }
-    const hash = sha(sent);
-    const prev = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(ask.id, id);
-    if (prev && prev.input_hash === hash && !b.force) { answers[id] = colAnswerOut(prev); cached++; continue; }
-    todo.push({ id, full, sent, hash, capped: w.capped });
+    if (!w.has) { for (const a of asks) byAsk[a.id][id] = { found: false, noWording: true, at, by: 'jambo', calls: 0 }; continue; }
+    const hash = sha(sent), need = [];
+    for (const a of asks) {
+      const prev = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, id);
+      if (prev && prev.input_hash === hash && !b.force) { byAsk[a.id][id] = colAnswerOut(prev); cached++; }
+      else need.push(a);
+    }
+    if (need.length) todo.push({ id, full, sent, hash, capped: w.capped, asks: need });
   }
   const key = todo.length ? aiKey() : null;
   if (todo.length && !key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
-  const tool = {
-    name: 'column_answer',
-    description: 'One short answer to the question for this contract, as it would sit in one cell of a table, with the wording it rests on.',
-    input_schema: { type: 'object', properties: {
-      found: { type: 'boolean', description: 'true only if the DOCUMENT itself answers the question.' },
-      answer: { type: 'string', description: 'The answer as a table cell, 1 to 5 words: "90 days", "KES 78M", "Not capped", "Kenya". Empty when not found.' },
-      detail: { type: 'string', description: '2 to 6 words that qualify the answer: "either side", "Buyer only", "1x the value". When not found, what was looked for, in 2 to 6 words.' },
-      tone: { type: 'string', enum: COLUMN_TONES, description: 'good = usual and balanced; watch = one-sided or unusual; concern = exposes OUR SIDE to real risk; none = a plain fact, or not found.' },
-      why: { type: 'string', description: 'One plain sentence on what the wording means for the reader. Never advice on whether to sign.' },
-      quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
-      clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
-    }, required: ['found', 'answer', 'detail', 'tone', 'why'] },
-  };
   const J = orgJx();
   let calls = 0, lastResp = null;
   const readOne = async t => {
     const ours = t.full.party || (t.full.execution && t.full.execution.firstParty) || 'our company';
-    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill one cell of a table. The QUESTION is asked of every contract in their list. Answer it for this DOCUMENT only, via column_answer. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer the question, set found to false and leave the answer empty.\n\nQUESTION: ${question}\n\nDOCUMENT:\n${t.sent}`;
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 800, tools: [tool], tool_choice: { type: 'tool', name: 'column_answer' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
+    const one = t.asks.length === 1;
+    const qs = one
+      ? `QUESTION: ${t.asks[0].question}${t.asks[0].rule ? `\nOUR RULE: ${t.asks[0].rule}` : ''}`
+      : 'QUESTIONS (answer every one, by its number):\n' + t.asks.map((a, i) => `${i + 1}. ${a.question}${a.rule ? `\n   OUR RULE: ${a.rule}` : ''}`).join('\n');
+    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill cells of a table. Each question is asked of every contract in their list. Answer ${one ? 'it' : 'each one'} for this DOCUMENT only, via column_answers${one ? ' (q is 1)' : ''}. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer a question, set found to false and leave its answer empty. Where a question gives OUR RULE, say whether the answer keeps it ("in") or breaks it ("out"); where it gives none, leave the verdict empty.\n\n${qs}\n\nDOCUMENT:\n${t.sent}`;
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 500 + 400 * t.asks.length, tools: [COLUMN_TOOL], tool_choice: { type: 'tool', name: 'column_answers' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
     calls++; lastResp = resp;
-    if (!resp.ok) { failed.push({ id: t.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
+    if (!resp.ok) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
-    if (!block) { failed.push({ id: t.id, why: 'empty' }); return; }
-    const d = block.input || {};
+    const list = block && block.input && Array.isArray(block.input.answers) ? block.input.answers : null;
+    if (!list) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'empty' }); return; }
     const s = v => String(v == null ? '' : v).trim();
-    const found = d.found === true && !!s(d.answer);
-    /* THE SENTENCE IS CHECKED AGAINST THE WORDING: a quote that is not in the
-       document is not shown as if it were — an absence is stated, never guessed */
-    let quote = s(d.quote).slice(0, 600);
-    const quoteMissing = !!quote && !colFlat(t.sent).includes(colFlat(quote));
-    if (quoteMissing) quote = '';
-    const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
-      tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
-      quote, quoteMissing, clause: s(d.clause).slice(0, 80), truncated: !!resp.truncated,
-      inputCapped: t.capped, at: now(), by: 'jambo', calls: 1 };
-    db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
-      VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
-      checked_by=NULL, checked_name=NULL, checked_at=NULL, created_at=excluded.created_at`)
-      .run(ask.id, t.id, t.hash, JSON.stringify(a), a.at);
-    answers[t.id] = { ...a, checked: null };
+    t.asks.forEach((ask, i) => {
+      const d = list.find(x => x && Number(x.q) === i + 1) || (list.length === t.asks.length ? list[i] : null);
+      if (!d) { failed.push({ id: t.id, askId: ask.id, why: 'empty' }); return; }
+      const found = d.found === true && !!s(d.answer);
+      /* THE SENTENCE IS CHECKED AGAINST THE WORDING: a quote that is not in the
+         document is not shown as if it were — an absence is stated, never guessed */
+      let quote = s(d.quote).slice(0, 600);
+      const quoteMissing = !!quote && !colFlat(t.sent).includes(colFlat(quote));
+      if (quoteMissing) quote = '';
+      /* THE VERDICT IS THE RULE'S, NEVER INVENTED: no rule, 'norule'; nothing found, none */
+      const verdict = !ask.rule ? 'norule' : found && COLUMN_VERDICTS.includes(d.verdict) ? d.verdict : '';
+      const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
+        tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
+        quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '',
+        truncated: !!resp.truncated, inputCapped: t.capped, at: now(), by: 'jambo', calls: 1, with: t.asks.length };
+      db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
+        VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
+        checked_by=NULL, checked_name=NULL, checked_at=NULL, created_at=excluded.created_at`)
+        .run(ask.id, t.id, t.hash, JSON.stringify(a), a.at);
+      byAsk[ask.id][t.id] = { ...a, checked: null };
+    });
   };
   try {
     const queue = todo.slice();
     await Promise.all(Array.from({ length: Math.min(COLUMN_AT_ONCE, queue.length) }, async () => {
-      while (queue.length) { const t = queue.shift(); try { await readOne(t); } catch (e) { failed.push({ id: t.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); } }
+      while (queue.length) { const t = queue.shift(); try { await readOne(t); } catch (e) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); } }
     }));
   } catch (e) { return res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
-  res.json({ ask: colAskOut(ask), answers, calls, cached, failed,
+  const first = asks[0];
+  res.json({ ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached,
+    failed: asks.length === 1 ? failed.map(f => ({ id: f.id, why: f.why, ...(f.error ? { error: f.error } : {}) })) : failed,
     capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) });
+});
+
+/* THE COMPANY'S RULE AND THE COMPANY'S FACT (Discover stages 1 and 4, owner
+   25 Oct 2026: "any admin" switches a fact on). An admin writes, for a kept
+   question, the rule an answer is judged against (words, at most 200) and
+   whether the company keeps it as a FACT (read for every contract that
+   arrives, in the one arrival read). A changed rule changes what a verdict
+   means, so the answers kept under the old rule are let go: the next press
+   reads them again. Rules live here, as settings do: the page only shows them. */
+const COLUMN_FACTS_MAX = 8;
+app.put('/api/columns/:askId', auth, admin, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(req.params.askId));
+  if (!ask) return res.status(404).json({ error: 'That question is not kept any more' });
+  const b = req.body || {};
+  if ('rule' in b) {
+    const rule = String(b.rule == null ? '' : b.rule).trim().replace(/\s+/g, ' ');
+    if (rule.length > 200) return res.status(400).json({ error: 'Keep the rule under 200 characters' });
+    if (rule !== (ask.rule || '')) {
+      db.prepare('UPDATE column_asks SET rule=? WHERE id=?').run(rule || null, ask.id);
+      db.prepare('DELETE FROM column_answers WHERE ask_id=?').run(ask.id);
+    }
+  }
+  if ('fact' in b) {
+    const on = !!b.fact;
+    if (on && !ask.fact) {
+      const n = db.prepare('SELECT COUNT(*) AS n FROM column_asks WHERE fact=1').get().n;
+      if (n >= COLUMN_FACTS_MAX) return res.status(400).json({ error: `At most ${COLUMN_FACTS_MAX} company facts are kept; switch one off first` });
+    }
+    db.prepare('UPDATE column_asks SET fact=?, fact_by=?, fact_at=? WHERE id=?')
+      .run(on ? 1 : 0, on ? (req.user.name || req.user.email || '') : null, on ? now() : null, ask.id);
+  }
+  if ('name' in b) {
+    const name = String(b.name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+    if (name) db.prepare('UPDATE column_asks SET name=? WHERE id=?').run(name, ask.id);
+  }
+  res.json({ ask: colAskOut(db.prepare('SELECT * FROM column_asks WHERE id=?').get(ask.id)) });
 });
 
 /* A PERSON'S TICK: who checked this answer, and when. Anyone who may ask may

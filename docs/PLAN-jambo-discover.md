@@ -95,6 +95,7 @@ f878 pins that the truth matches the wording and that the marker is fair.
 |---|---|---|---|---|---|
 | Before, no AI key (calls only), a992f4c + stage 0, 25 Oct 2026 | not graded | 0 of 440 | 400 for 40 questions | 1.00 | 50 calls over 10 contracts |
 | Before, live AI | — needs a key in the environment | | | | |
+| After stage 1, no AI key (calls only), 25 Oct 2026 | not graded | 0 of 440 | 400 for 40 questions (each asked alone) | 1.00 | 50 one at a time · **10 as one press** |
 
 Stage 1's target: the Due diligence pack at 10 calls over 10 contracts (one
 read answers all five), answers no less right than the live "before", and
