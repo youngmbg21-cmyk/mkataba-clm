@@ -183,6 +183,34 @@ const MEASURE = `(() => {
 })()`;
 
 /* ============================================================
+   LEVEL WITH JAMBO'S PANEL (owner's list, 25 Oct 2026, item 12): where the two
+   halves float, the page's first card starts on the panel's top line, and a
+   page that fills the window ends on its foot line. Measured at the parent:
+   the builder's panel started flush under the bar (8px above its head card),
+   the Calendar ended 12px and Our paper 16px above the panel's foot. A list
+   that is simply short ends where its rows end — only a gap of 1–24px is a
+   page that MEANT to fill the window and stopped short.
+   ============================================================ */
+const LEVEL = `(() => {
+  const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 40 && r.height > 40 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+  const panel = ['#ins-panel.is-jambo', '#ig-dock', '#st-side', '#tb-rail', '.cal-cop'].map(s => document.querySelector(s)).find(vis);
+  if (!panel || innerWidth <= 1100 || document.querySelector('.hb-dark')) return null;
+  const pr = panel.getBoundingClientRect();
+  if (pr.top < 40 || pr.bottom > innerHeight) return null;
+  /* a page a door scrolled down (Jambo's work lands on the Board's card) is measured where it starts, not here */
+  if ([document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')].some(el => el && el.scrollTop > 0 && !panel.contains(el))) return null;
+  const cards = [...document.querySelectorAll('#content *, #page-head *')].filter(el => {
+    if (!vis(el) || panel.contains(el) || el.contains(panel) || el.closest('#modal-root')) return false; const r = el.getBoundingClientRect(); if (r.right > pr.left + 2 || r.width < 200) return false;
+    const cs = getComputedStyle(el); return cs.backgroundColor === 'rgb(255, 255, 255)' && parseFloat(cs.borderTopLeftRadius) >= 8; });
+  const outer = cards.filter(c => !cards.some(o => o !== c && o.contains(c)));
+  /* the builder's head card is a row drawn by a 6px ring (box-shadow), its painted edge outside its box */
+  const strip = document.querySelector('#tb-page .tb-strip'); if (vis(strip) || (strip && strip.getBoundingClientRect().height > 0)) outer.push({ getBoundingClientRect: () => { const r = strip.getBoundingClientRect(); return { top: r.top - 6, bottom: r.bottom + 6 }; } });
+  if (!outer.length) return null;
+  const top = Math.min(...outer.map(c => c.getBoundingClientRect().top)), bot = Math.max(...outer.map(c => c.getBoundingClientRect().bottom));
+  return { dTop: Math.round(top - pr.top), dBot: Math.round(pr.bottom - bot) };
+})()`;
+
+/* ============================================================
    THE PLACES — every page a person can open on a computer, by its own door.
    Each is guarded: a door that is not there reports, never throws.
    ============================================================ */
@@ -204,6 +232,9 @@ const PLACES = [
   { k: 'requests', name: 'Requests', go: `setView('intake')`, wait: `document.querySelector('.ik-page, #ik-root, .sap-page')` },
   { k: 'import', name: 'Import', go: `setView('migration')`, wait: `document.querySelector('#mig-drop, #mig-side')` },
   { k: 'paper-book', name: 'Our paper', go: `setView('templates')`, wait: `document.querySelector('.tpl-pf, #tpl-new, .tpl-shelf')` },
+  /* the template's own page and the builder (25 Oct 2026): a template made for the sweep, nothing else saved */
+  { k: 'template', name: "Our paper · a template's page", go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', description: 'Warehousing and logistics services, our standard', category: 'procurement' })); openTemplateLibDetail(t.template.id); })()`, wait: `document.querySelector('#tpl-dt .tpl-dt-line')` },
+  { k: 'builder', name: 'Our paper · the builder', go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', category: 'procurement' })); const d = await api('templates/' + t.template.id); openTemplateBuilder(t.template.id, d.versions[0].id); })()`, wait: `document.querySelector('#tb-page #tb-rail, #tb-page .tb-strip')` },
   { k: 'standards', name: 'Our standards', go: `setView('playbook')`, wait: `document.querySelector('.sd-page, #sd-root, .sap-page')` },
   { k: 'people', name: 'People', go: `setView('directory')`, wait: `document.querySelector('.dir-td-wrap, .dir-table, .sap-page')` },
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
@@ -288,6 +319,8 @@ const only = (process.env.HATI_TIDY_ONLY || '').split(',').map(s => s.trim()).fi
         for (const x of m.squeeze) console.log(`      SQUEEZED  "${x.text}" ${x.who} in ${x.in} · on ${x.lines} lines in a ${x.h}px box`);
         for (const x of m.spill) console.log(`      SPILT     "${x.text}" ${x.who} past ${x.in} by ${x.by}px`);
         for (const x of m.overlap) console.log(`      OVERLAP   "${x.a}" × "${x.b}" (${x.who}) in ${x.in}${process.env.HATI_TIDY_DEBUG ? ' · a=' + x.ar + ' b=' + x.br + ' top=' + x.top : ''}`);
+        const L = await drive(page, LEVEL, undefined, null);
+        if (L) check(`${S.k} · ${P.name} — level with Jambo's panel`, Math.abs(L.dTop) <= 1 && !(L.dBot > 1 && L.dBot <= 24), `top ${L.dTop >= 0 ? '+' : ''}${L.dTop}px · foot ${L.dBot}px above the panel's`);
       }
     }
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));

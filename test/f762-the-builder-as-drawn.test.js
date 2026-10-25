@@ -82,7 +82,9 @@ describe('f762 (1) Jambo\'s panel beside the paper', () => {
   test('1a his tab, "Builder", ‹ Jambo and the fold; tabs Build · Outline · Playbook n/m · Blanks n', async () => {
     const s = await stage(RESELLER, FIELDS);
     assert.match(s.rail, /<aside class="tb-rail tb-jl[^"]*" id="tb-rail"/);
-    assert.match(s.rail, /<div class="jl-head tb-jh">[\s\S]*data-tb-jambo[\s\S]*<span class="jl-word"[^>]*>Builder<\/span>[\s\S]*class="pd-back" data-tb-jambo[\s\S]*data-tb-fold/);
+    /* RE-POINTED 25 Oct 2026 (owner: the builder works like the clause editor): one head row — his tab,
+       then the four tabs at the row's end (the editor's ✦ Jambo · Playbook · Ladder), ‹ Jambo and the fold */
+    assert.match(s.rail, /<div class="jl-head tb-jh">[\s\S]*data-tb-jambo[\s\S]*<span class="tb-tabs" role="tablist">[\s\S]*data-tb-tab="blanks"[\s\S]*class="pd-back" data-tb-jambo[\s\S]*data-tb-fold/);
     assert.match(s.rail, /data-tb-door/, 'the folded strip is drawn to open it again');
     const tabs = [...s.rail.matchAll(/data-tb-tab="(\w+)"[^>]*>([^<]+)(?:<span class="n[^"]*">([^<]+)<\/span>)?/g)].map(m => [m[1], m[2], m[3] || '']);
     assert.deepEqual(tabs.map(t => t[0]), ['build', 'outline', 'playbook', 'blanks']);
@@ -142,7 +144,7 @@ describe('f762 (3) Jambo proposes on the paper', () => {
   });
   test('3b Add is our standard\'s own wording through the one push; Skip is kept for this template', async () => {
     assert.match(TB, /if \(\(b = hit\('\[data-tb-prop-add\]'\)\)\) \{ tbAddStandard\(b\.getAttribute\('data-tb-prop-add'\)\); return; \}/);
-    assert.match(fnBody(TB, 'tbAddStandard'), /const h = tbAddBlock\('heading', category\); const w = tbAddBlock\('field_group', lib \? lib\.preferred : ''\);/);
+    assert.match(fnBody(TB, 'tbAddStandard'), /const h = tbAddBlock\('heading', category\); const w = tbAddBlock\('field_group', lib \? tbSafeWords\(lib\.preferred\) : ''\);/);
     const s = await stage(RESELLER, FIELDS);
     const cat = /data-tb-prop="([^"]+)"/.exec(s.paper)[1];
     CALLS.length = 0;
