@@ -16252,6 +16252,9 @@
   .nd-tag{color:var(--color-neutral-600);border-color:var(--rule-strong)}
   /* THE BOARD: all of it under Your book — tabs and a find box, the kinds there are, five columns, twelve rows at a time */
   .nd-card .nd-home-shows{font-size:var(--t-label)}
+  /* folded to its head (ndFoldBtnHtml): the head is the whole card, so it carries no line under it */
+  .nd-card.is-folded > .hb-ch{border-bottom:0}
+  .nd-card .nd-fold{flex:none;white-space:nowrap}
   .nd-bar{display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--color-divider);min-height:44px}
   .nd-tabs{display:flex;gap:20px;align-self:stretch}
   .nd-tab{border:0;background:none;padding:0;font:inherit;font-size:var(--t-body);color:var(--color-neutral-600);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
