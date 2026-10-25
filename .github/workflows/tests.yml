@@ -14,8 +14,17 @@
 # were left out for a real reason rather than an oversight — each starts a
 # Chromium and takes minutes, so run one after another they cost hours — and
 # the answer to that is to run them SIDE BY SIDE. test/chromium/run-all.js
-# does that, four at a time, and this workflow puts four machines on it, so
-# the whole set lands in about the time a single slow one used to take.
+# does that, two at a time per machine, and this workflow puts six machines on
+# it, so the whole set lands in about the time a single slow one used to take.
+#
+# DEALT BY TIME, NOT BY NAME (25 Oct 2026, owner-asked "make them faster"):
+# run-all.js hands each machine the same amount of work from
+# test/chromium/durations.json (seconds per check, read off a green run).
+# Dealt round-robin by name, four machines finished at 13.6, 17.9, 18.0 and
+# 22.6 minutes — everyone waited for the unlucky one. Six balanced machines
+# each get about 12 minutes of checks. The cost: a check now borrows eight of
+# the ~20 machines GitHub lends this account (it was six), so two checks can
+# run at once without waiting, where three could before.
 #
 # A FILE THAT IS EXPECTED TO FAIL IS NAMED IN run-all.js's KNOWN_RED, with the
 # reason, and is printed on every run. Everything else must pass. That is what
@@ -89,15 +98,15 @@ jobs:
           grep -n -A 12 -E '^\s*not ok ' node-suite.log | grep -v -E '^\S*-\s*(ok |# Subtest|\.\.\.$|---$|type:|duration_ms)' || echo "(no 'not ok' line found — the run died before a result)"
 
   browser:
-    name: browser checks ${{ matrix.shard }}/4
+    name: browser checks ${{ matrix.shard }}/6
     runs-on: ubuntu-latest
     strategy:
-      # ONE SHARD'S FAILURE MUST NOT CANCEL THE OTHER THREE. The point of a run
+      # ONE SHARD'S FAILURE MUST NOT CANCEL THE OTHERS. The point of a run
       # is the whole picture — "these four broke" is a diagnosis, "one broke and
       # we stopped looking" is another push to find out the rest.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -108,7 +117,7 @@ jobs:
       # the registry copy this installs (see EXEC in test/chromium/*.js —
       # the dev sandbox's fixed path wins only where it exists).
       - run: npx playwright-core install --with-deps chromium
-      - run: node test/chromium/run-all.js --shard ${{ matrix.shard }}/4 --jobs 2
+      - run: node test/chromium/run-all.js --shard ${{ matrix.shard }}/6 --jobs 2
       # The measurements are numbers, but a failure is usually a LOOK — keep
       # the screenshots so a red run can be seen, not only read.
       - uses: actions/upload-artifact@v4
