@@ -182,7 +182,10 @@ const PROBE = `(() => {
       const at = d => d.toISOString();
       const earlier = new Date(now.getTime() - 3 * 86400000); earlier.setHours(10, 2, 0, 0);
       const lastYear = new Date(now.getFullYear() - 1, 2, 5, 14, 20, 0, 0);
-      const today = new Date(now.getTime() - 5 * 60000);
+      /* five minutes ago, but never before today began: run in the first minutes after midnight (as GitHub's
+         run of 25 Oct 2026 at 00:04 was), "five minutes ago" was yesterday and 2a/2e read the wrong day */
+      const dayStart = new Date(now); dayStart.setHours(0, 0, 30, 0);
+      const today = new Date(Math.max(now.getTime() - 5 * 60000, dayStart.getTime()));
       c.audit = (c.audit || []).concat([
         { at: at(lastYear), user: 'Amina Otieno', action: 'Staged', detail: 'a year ago' },
         { at: at(earlier), user: 'Amina Otieno', action: 'Staged', detail: 'three days ago' },
