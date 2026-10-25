@@ -12,7 +12,7 @@
         LEAVES THE CONTRACT IT CAME FROM ALONE;
      4  the column-hiding focus mode is gone from the workbench header — and
         stays gone: the chrome-hiding focus mode that later took the name
-        (f94) must never grow back into hiding the work columns.
+        (f930) must never grow back into hiding the work columns.
 
    ITEM 3 IS REVERSED IN PLACE, 23 Aug 2026, and the reversal is the whole
    point of keeping these tests. This section used to pin a DEMOTION: opening a
@@ -159,7 +159,7 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
      mode on the page TODAY is a different animal wearing the same name: it
      hides the CHROME above the grid (shell, toolbar, banner) and leaves every
      working column standing, so no path needs to undo it to reach one. Its
-     own contract is pinned in f94; these tests pin that the old shape cannot
+     own contract is pinned in f930; these tests pin that the old shape cannot
      creep back under the new name. */
   test('the focus rules never touch the work columns', async () => {
     const b = bench(['MK-1']);

@@ -1,7 +1,7 @@
 /* ============================================================
    f119 — explicit, previewed renumbering (N2, closes the rest of OI-2)
    ============================================================
-   The gap notice (f98) tells the reader a deletion left a hole in the
+   The gap notice (f934) tells the reader a deletion left a hole in the
    numbering. This is the door out of it: a plan computed with no writes, a
    preview showing 100% of what would move — headings AND cross-references —
    and one confirmed act that applies it, recorded once.
@@ -23,7 +23,7 @@
      data-clause-id, and every change ever filed keeps pointing at it.
    · AN EXECUTED CONTRACT HAS NO PATH TO THIS AT ALL. The computation itself
      refuses (not only the button), and the notice's door is absent, never
-     disabled (f98 holds the notice half).
+     disabled (f934 holds the notice half).
    · PREVIEW-THEN-CANCEL IS BYTE-IDENTICAL. The plan is pure; nothing is
      written until the confirm. */
 const { test, describe } = require('node:test');

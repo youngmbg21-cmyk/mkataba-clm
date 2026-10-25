@@ -3,7 +3,7 @@
    The owner, 22 Oct 2026: a forklift driver asked to draft and negotiate a
    warehouse and transport agreement, on HaTi for the first time. Five rounds,
    each picked by name (On the card · One question · Who pays whom · He speaks ·
-   Four doors). f866 pins the readings; this file walks them in a real browser:
+   Four doors). f924 pins the readings; this file walks them in a real browser:
      1 · a read-only account asks to draft: the card says what is true and who
          lifts it; Ask presses the one Ask an admin record; the Guide's door says
          the same with the same press

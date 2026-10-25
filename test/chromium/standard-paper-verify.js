@@ -6,7 +6,7 @@
    it drew as ONE clause box holding the whole agreement, with one Direct Edit
    button at the foot of the page.
 
-   jsdom pins the clause model and the markup (test/f145). What it cannot see is
+   jsdom pins the clause model and the markup (test/f899). What it cannot see is
    the thing that was reported: how many boxes a reader actually looks at, and
    whether a verb is reachable on the clause under their pointer. That is
    measured here, off getBoundingClientRect on the real page.

@@ -1,0 +1,677 @@
+/* ============================================================
+   f902 — THE DESIGN SYSTEM HAS ITS OTHER HALF, AND KEEPS IT
+   ============================================================
+   The 23 Aug 2026 design audit found one structural fact under almost every
+   complaint: HaTi had a mature COLOUR system and essentially nothing else.
+   91 of 120 :root tokens were colour; font-size, line-height, font-weight,
+   z-index, transition-duration and border-width had ZERO tokens between them;
+   and the fifteen non-colour tokens that did exist had zero consumers each.
+
+   THIS FILE IS THE RATCHET. Every claim below is a thing that was measured
+   wrong before the pass and must not quietly go back. It reads SOURCE, which
+   is the right instrument for "does the system exist and is it reachable" —
+   the companion claims about what actually DRAWS are browser work, because a
+   rule that loses the cascade looks perfectly correct here (this codebase's
+   own most expensive lesson, .rl-rej computing to border-width 0 for a year).
+
+   Run: node --test test/f902-the-design-system.test.js
+   ============================================================ */
+const { test, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const ROOT = path.join(__dirname, '..');
+const INDEX = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const JS = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const VIEWS = fs.readdirSync(path.join(ROOT, 'js/views')).filter(f => f.endsWith('.js'));
+
+/* The hand-written sheet only. One line of index.html is the COMPILED Tailwind
+   blob, which is generated and must never be asserted on as though somebody
+   wrote it — nor EDITED.
+   FOUND BY ITS SIGNATURE, NEVER BY ITS LINE NUMBER (25 Aug 2026). It was line
+   74 when this was written and it is line 81 now, because tokens were added
+   above it — and a sweep whose blob-guard was pinned to 73 walked straight
+   into it and rewrote 60 declarations, one of which turned Tailwind's own
+   .transition utility from 150ms into effectively instant. The blob was
+   restored byte for byte from the pre-run tree; this is the guard. */
+const BLOB_SIG = '*,:after,:before{--tw-border-spacing-x';
+const BLOB_LINE = INDEX.split('\n').findIndex(l => l.startsWith(BLOB_SIG));
+const SHEET = INDEX.split('\n').filter((_, i) => i !== BLOB_LINE).join('\n');
+/* THE FIRST :root BLOCK, and a token's value read off :root (20 Oct 2026, when
+   dark mode was removed and the html.dark block these checks used to slice up
+   to went with it). A token is looked for in the first :root block, then in a
+   one-line `:root{ --tok:… }` declaration; a var() is followed to its value. */
+const ROOT0 = (() => {
+  /* Brace-matched, as test/tokens.js does: a '}' in a comment must not end it. */
+  const at = SHEET.indexOf(':root{');
+  let d = 0;
+  for (let j = SHEET.indexOf('{', at); j < SHEET.length; j++) {
+    if (SHEET[j] === '{') d++;
+    else if (SHEET[j] === '}' && !--d) return SHEET.slice(at, j);
+  }
+  return '';
+})();
+const rootVal = (tok, depth = 0) => {
+  const esc = tok.replace(/[-]/g, '\\-');
+  const m = new RegExp(esc + ':\\s*([^;}]+)').exec(ROOT0)
+    || new RegExp(':root\\{[^}]*?' + esc + ':\\s*([^;}]+)').exec(SHEET);
+  if (!m) return null;
+  const v = m[1].trim();
+  const ref = /^var\((--[a-z0-9-]+)\)$/i.exec(v);
+  return ref && depth < 5 ? rootVal(ref[1], depth + 1) : v;
+};
+const lumOf = hex => {
+  const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+const onWhite = hex => 1.05 / (lumOf(hex) + 0.05);
+
+describe('f902 — the design system has its other half', () => {
+
+  /* ---------- 1 · THE LADDERS EXIST ---------- */
+  test('a spacing ladder exists, and every rung is a whole pixel', () => {
+    for (const [tok, px] of [['--s-1','4px'],['--s-2','8px'],['--s-3','12px'],
+                             ['--s-4','16px'],['--s-6','24px'],['--s-8','32px']]) {
+      assert.match(SHEET, new RegExp(tok + ':\\s*' + px.replace('px','px')),
+        tok + ' is ' + px);
+    }
+    /* THE FAULT THIS REPLACED: --space-1..8 was a 0.85x scaling of the real
+       scale, so every rung was a fraction of a device pixel (3.4 / 6.8 / 10.2
+       / 13.6 / 20.4 / 27.2px) — and it had zero consumers, while its own value
+       had been hand-typed once as `padding:6.8px`. A fractional rung is the
+       softness the 22 Aug type sweep spent 865 replacements removing. */
+    const rungs = [...SHEET.matchAll(/--s-\d+:\s*([\d.]+)px/g)].map(m => m[1]);
+    assert.ok(rungs.length >= 6, 'the ladder is declared');
+    for (const r of rungs) assert.ok(!r.includes('.'), 'rung ' + r + 'px is a whole pixel');
+    assert.doesNotMatch(SHEET, /--space-\d:\s*[\d.]+\.\d/, 'no fractional --space-* survives');
+  });
+
+  test('a type scale, a leading ladder and a weight set all exist', () => {
+    for (const t of ['--t-page','--t-section','--t-card','--t-body','--t-meta',
+                     '--t-label','--t-micro','--t-figure'])
+      assert.match(SHEET, new RegExp(t + ':'), t + ' is declared');
+    for (const t of ['--lh-tight','--lh-snug','--lh-base','--lh-relaxed','--lh-doc'])
+      assert.match(SHEET, new RegExp(t + ':'), t + ' is declared');
+    for (const t of ['--w-body','--w-label','--w-strong','--w-title'])
+      assert.match(SHEET, new RegExp(t + ':'), t + ' is declared');
+  });
+
+  test('the product owns its own base leading, not the generated blob', () => {
+    /* Before: 78.2% of 2,300 font-size declarations carried no line-height and
+       the ONLY base in the product was html{line-height:1.5} inherited from the
+       compiled Tailwind blob — a file this project is told never to edit. */
+    assert.match(SHEET, /html\{[^}]*line-height:var\(--lh-base\)/,
+      'HaTi\'s own sheet declares the base leading');
+  });
+
+  test('borders, focus, fields, layers and icons all have tokens', () => {
+    for (const t of ['--rule','--rule-strong','--field-line',
+                     '--focus-color','--focus-width','--focus',
+                     '--field-h','--field-size','--field-lh','--field-pad-x',
+                     '--z-modal','--z-toast','--icon','--tap-min'])
+      assert.match(SHEET, new RegExp(t.replace(/[-]/g,'-') + ':'), t + ' is declared');
+  });
+
+  /* ---------- 2 · THE PAGE MEASURE IS ONE VALUE ---------- */
+  test('every padded page root reads the page measure, none types its own', () => {
+    /* MEASURED before: 11 page roots carrying 3 different measures, and the
+       leftmost ink landing on 6 different verticals across the product. */
+    const offenders = [];
+    for (const f of VIEWS) {
+      const src = JS('js/views/' + f);
+      for (const m of src.matchAll(/class="view-enter"\s+style="padding:([^;"]+)/g))
+        if (!m[1].includes('var(--page-pad')) offenders.push(f + ' -> ' + m[1]);
+    }
+    assert.deepEqual(offenders, [], 'a page root typed its own measure');
+  });
+
+  test('the shared page header lines up with the page under it', () => {
+    /* It padded to 20px while the eleven bodies beneath padded to 16/18/20/0,
+       so on 10 of 11 screens the title and its own content did not line up.
+       STRENGTHENED 25 Aug 2026 (owner-asked: "the distance between the edge at
+       the top and the header should be the same across all pages"). It used to
+       carry a ternary — 10px on the inline-subtitle pages, 16 everywhere else —
+       so the horizontal measure was shared and the VERTICAL one was not. It is
+       ONE value now, which is a stronger claim than the one it replaces: the
+       header cannot differ from page to page in either direction.
+       REVERSED IN PLACE 25 Aug 2026, and the reversal is the point: this
+       pinned the LITERAL `16px` down, and a literal is exactly what stopped
+       the short-laptop block reaching this header. A window under 820px of
+       page tightens --page-pad-t, every other view root followed it, and this
+       one could not — so on every laptop the shared header sat 8px BELOW the
+       pages it is meant to line up with. It reads the TOKEN in both
+       directions now, which is the claim that was always meant. */
+    const src = JS('js/app.js');
+    assert.match(src, /host\.style\.padding='var\(--page-pad-t\) var\(--page-pad-x\) 0'/,
+      '#page-head reads the page measure in BOTH directions, so a short window '
+      + 'tightens it with every other page rather than leaving it behind');
+    /* `padding='0'` is the OTHER branch — a page that draws its own head gets
+       the shared one cleared — so the ban is on a typed LENGTH, not on a
+       digit. A typed length is what broke this on every laptop. */
+    assert.ok(!/host\.style\.padding='\d+px/.test(src),
+      'and never a typed length, which is what broke this on every laptop');
+    assert.ok(!/host\.style\.padding=inlineSub\?/.test(src),
+      'and no branch can give one page a different top');
+    /* AND THE TITLE'S TOP IS THE PADDING, with or without a subtitle. With
+       flex-END a title block shorter than the act button was pushed down —
+       measured, Contracts sat at 23px where Templates sat at 16 on the same
+       header. */
+    assert.match(src, /align-items:flex-start;justify-content:space-between/,
+      'the header row starts its items at the top, so the title never drifts');
+    /* ---- AND IT DRAWS NO SENTENCE UNDER THE TITLE (owner-asked 25 Aug 2026:
+       "remove these explanations below the headers in all pages where the
+       explanation is there") ----
+       Asserted on the BUILDER rather than on the eighteen cases that feed it:
+       commandMeta still returns its second element and every pg_*_sub key is
+       still written, so the only thing standing between a reader and a
+       reinstated subtitle is that this markup has nowhere to put one. */
+    const headMarkup = (src.split("host.innerHTML=`")[1] || '').split('`')[0];
+    assert.ok(headMarkup.length > 40, 'found the header markup to read');
+    assert.ok(!/<p\b/.test(headMarkup),
+      'the page header has no paragraph — no page explains itself under its own title');
+    assert.ok(!/inlineSub/.test(headMarkup),
+      'and no branch puts one back on the title\'s line');
+  });
+
+  /* ---------- 3 · CONTRAST ---------- */
+  /* ---- THE READING INKS ARE THE DESIGN'S OWN VALUES ----
+     Owner-reported 24 Aug 2026: "the html has a very beautiful design on how
+     they use the black fonts across the different pages but HaTi uses grey
+     fonts instead which is not striking."
+     THE 22 Aug RETUNE GOT THE HUE RIGHT AND THE DEPTH WRONG. It re-hued this
+     ramp onto the brand's green-black family — which was correct and is kept —
+     and every step landed a shade LIGHTER than the reference, so the whole
+     product read one notch softer than the design on every screen at once.
+     PINNED AS THE DESIGN'S LITERAL VALUES, deliberately and unlike almost every
+     other check in this suite: these four are not "a dark ink" and "a label
+     ink", they are the four the handover's own tokens.css declares, and the
+     failure this guards against is exactly a well-meant retune drifting off
+     them again. tokens.css: --ink #0E1A18, --ink2 #3B4A48, --ink3 #54635F,
+     --ink4 #8A9997; and in dark #EAF1EF / #C6D4D0 / #9FB0AC / #6F817C. */
+  test('the reading inks are the design\'s own, to the byte', () => {
+    /* ANCHORED FORWARD FROM :root, not from the top of the file — "html.dark"
+       appears in prose long before either block, and slicing on the first hit
+       gives an empty root and seven false misses. */
+    /* RE-ANCHORED 20 Oct 2026: the html.dark block this sliced up to is gone
+       with dark mode, so the light inks are read off the first :root block. */
+    const root = ROOT0;
+    const has = (src, decl) => src.includes(decl);
+    /* RE-PINNED 20 Sep 2026 to the redesign order's own palette (the
+       owner-approved artifact, prototype/hati-redesign-reference.html): ink
+       #141F1D, secondary #5A6866, tertiary #6B7876, the paper's own ink
+       #1C1A16; at night #E6ECEA / #A0ACA9 / #8B9895. The claim is unchanged —
+       the four inks are the design's literal values and a well-meant retune
+       may not drift off them — only the design they are read from moved. */
+    /* RE-PINNED 9 Oct 2026 to INK WASH (owner-picked, "HaTi without grey",
+       docs/WORKORDER-ink-wash-and-sentence-case.md): light mode's inks are
+       black + the theme colour — Green's here in :root, Blue's in
+       :root[data-brand="navy"]:not(.dark). Dark is unchanged, and so is the
+       paper's own ink. Same claim: the inks are the design's literals. */
+    /* RE-PINNED 20 Oct 2026 to CHAMBERS (owner-picked by name): the inks are
+       warm black #161512 and the warm grey #5E5A51 / #6F6A5E; the paper's own
+       ink is unchanged. And there is no dark theme any more ("Let's not
+       implement the dark theme. Remove it from HaTi."), so the night inks this
+       pinned are now asserted ABSENT: no html.dark block survives. Same claim:
+       the inks are the design's literals. */
+    /* RE-PINNED 23 Oct 2026 to THE LEGORA LOOK (owner: "i want to apply this
+       across all the pages in hati"): the inks are the drawing's #1D1D1F and
+       its cool greys one step deeper (#4B4B50 for text since the owner's "firmer grey", 24 Oct 2026; #6A6A6F for lines and icons; a grey word on the
+       grey pill clears AA); the paper's own ink is unchanged. */
+    for (const decl of ['--color-text:#1D1D1F', '--color-neutral-600:#4B4B50',
+                        '--color-neutral-500:#4B4B50', '--color-neutral-400:#6A6A6F',
+                        '--color-neutral-700:#1D1D1F', '--color-doc-text:#1C1A16',
+                        '--color-doc-muted:#3B4A48'])
+      assert.ok(has(root, decl), `light theme is missing ${decl}`);
+    assert.equal(/html\.dark\{/.test(SHEET), false,
+      'a dark theme block is back — HaTi has no dark mode outside Explorer and the Brain');
+    /* AND NOTHING KEPT THE OLD ONES. A stray literal is how one screen comes
+       to read a shade lighter than the rest of the product; the standalone
+       documents (the evidence pack, the print root, the branding preview) are
+       the deliberate exception, because they carry no stylesheet and a token
+       there resolves to nothing. */
+    assert.equal(/#1B2A28|#032E2A/i.test(root.replace(/\/\*[\s\S]*?\*\//g, '')), false,
+      'an old primary ink is still declared somewhere in :root');
+  });
+
+  test('no text opacity ladder survives — an opacity is not an ink', () => {
+    /* .text-ink/40…/60 put 54 elements of reading text between 2.36:1 and
+       4.11:1 — five rungs under the AA floor. */
+    assert.doesNotMatch(SHEET, /\.text-ink\\\/(40|45|50|55|60)\{color:color-mix/,
+      'a faded reading ink came back');
+  });
+
+  test('the accent-as-text carriers read the one accent-ink token, which reads on white', () => {
+    /* html.dark redefines the surface, the ink and the whole neutral ramp and
+       never redefines the accent — so a raw ramp step used as TEXT measured
+       3.26:1 at night in teal and 1.58:1 in navy. */
+    const btn = /\.ui-btn\{([^}]*)\}/.exec(SHEET);
+    assert.ok(btn, '.ui-btn is defined');
+    assert.match(btn[1], /color:var\(--accent-ink\)/, '.ui-btn reads --accent-ink');
+    assert.match(SHEET, /\ba\{color:var\(--accent-ink\)/, 'the global link reads it too');
+    /* RE-POINTED 20 Oct 2026: dark mode was removed, so the token no longer
+       owes a night answer. What it still owes is to READ: it names a rung of
+       the accent ramp that clears AA as text on white (Chambers' #1F4D3B). */
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a link is the drawing's teal
+       one step deeper, #087363, a literal off the deep-green ramp, so the token is read as
+       written. The claim is unchanged: it reads on white at AA. */
+    const lit = /--accent-ink:(#[0-9A-Fa-f]{6})/.exec(SHEET);
+    const rung = /--accent-ink:var\(--color-accent-(\d+)\)/.exec(SHEET);
+    assert.ok(lit || rung, '--accent-ink is a colour or a rung of the accent ramp');
+    const hex = lit ? lit[1] : rootVal('--color-accent-' + rung[1]);
+    assert.ok(hex && onWhite(hex) >= 4.5,
+      `--accent-ink (${hex}) reads at ${hex && onWhite(hex).toFixed(2)}:1 on white, under AA`);
+    assert.doesNotMatch(SHEET, /html\.dark\{/, 'and no dark answer is left — there is no dark theme');
+  });
+
+  test('the one filled act does not put white on a 3.74:1 fill', () => {
+    /* NOT the first match: `.ui-btn-lg.ui-btn-primary{font-weight:var\(--w-title\)}` also
+       ends in that selector. Take the rule that carries the FILL. */
+    const prim = [...SHEET.matchAll(/\.ui-btn-primary\{([^}]*)\}/g)]
+      .map(m => m[1]).find(b => /background:/.test(b));
+    assert.ok(prim, '.ui-btn-primary carries a fill');
+    /* RE-POINTED 20 Sep 2026: it read accent-700 by name while accent-600 was
+       3.74:1; the ramp moved and the fill reads --accent-fill, the ONE token
+       for white-on-accent, whose contrast the test above computes. */
+    assert.match(prim, /background:var\(--accent-fill\)/,
+      'the filled act reads --accent-fill, the one token judged for AA above');
+    /* RE-POINTED 20 Oct 2026 (CHAMBERS, owner-picked): --accent-solid is no
+       longer the brand's green rung — the filled control is the INK, black.
+       Pin the relation, not the number: the solid fill is the text ink. */
+    assert.ok(rootVal('--accent-solid'), '--accent-solid is declared');
+    assert.equal(rootVal('--accent-solid'), rootVal('--color-text'),
+      '--accent-solid is the ink — a filled control is black in Chambers');
+  });
+
+  /* ---------- 3b · A1 — THE DARK THEME'S OWN CONTRAST, RATCHETED ----------
+     The 25 Aug pass swept 183 accent-ramp-as-TEXT declarations and 62 inline
+     accent-tint backgrounds onto tokens that answer differently at night. The
+     claims below are what must not come back; the browser half — what actually
+     DRAWS, in both themes, on the census screens — is contrast-verify. */
+
+  test('no view file paints a raw accent ramp step as text', () => {
+    /* The whole of A1's biggest win. html.dark redefines the surface, the ink
+       and the neutral ramp and NEVER redefines the accent, so every one of
+       these measured 2.35:1 at night against AA's 4.5. */
+    const bad = [];
+    for (const f of ['js/core.js', 'js/components.js', 'js/mobile.js',
+                     ...VIEWS.map(v => 'js/views/' + v)]) {
+      const src = JS(f);
+      for (const m of src.matchAll(/(?<!-)color:\s*var\(--color-accent-(600|700|800|900)\)/g))
+        bad.push(f + ' → ' + m[0]);
+    }
+    assert.deepEqual(bad, [], 'accent-ramp-as-text is back in ' + bad.length + ' places');
+  });
+
+  test('both accent inks are their own token, with no night answer left', () => {
+    /* TWO tokens, not one, and that is the whole reason light did not move:
+       --accent-ink is accent-800 in light and --accent-ink-700 is accent-700,
+       so each of the two rungs that carried text keeps its own light value and
+       only night changes. Collapsing them onto one would have re-coloured
+       104 of the 183 declarations in broad daylight. */
+    /* RE-POINTED 20 Oct 2026: dark mode was removed, so neither token owes a
+       night answer and none may come back; the two stay two tokens on two
+       different rungs, which is still what keeps them from collapsing. */
+    for (const t of ['--accent-ink', '--accent-ink-700'])
+      assert.doesNotMatch(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' has a night answer again — there is no dark theme');
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the two are the drawing's link
+       teal and its hover, two literals; they must still be two colours. */
+    const a = /--accent-ink:(#[0-9A-Fa-f]{6})/.exec(SHEET), b = /--accent-ink-700:(#[0-9A-Fa-f]{6})/.exec(SHEET);
+    assert.ok(a && b, 'both inks are stated');
+    assert.notEqual(a[1].toLowerCase(), b[1].toLowerCase(), 'the two inks are two colours, not one');
+  });
+
+  test('--accent-fill is the token for white-on-fill, and white on it clears AA', () => {
+    /* White on the OLD accent-600 measured 3.74:1 — under AA for anything that
+       is not large text — so this once pinned the token to accent-700 by name.
+       RE-POINTED 20 Sep 2026: the ramp moved to the reference's own teal and
+       accent-600 is #0E5F58 (7.5:1 under white; navy's #24488f is 8.8:1). The
+       claim was always AA, never a rung's name, so it is COMPUTED now: resolve
+       the rung the token names in each brand and measure white against it. */
+    /* RE-POINTED 20 Oct 2026 (CHAMBERS): --accent-fill reads --accent-solid,
+       the ink, and there is ONE brand now — the navy block went with the
+       brand picker. The claim was always AA, so it is still COMPUTED: follow
+       the token to its value and measure white against it. */
+    assert.match(SHEET, /--accent-fill:var\(--/, '--accent-fill names a token');
+    const hex = rootVal('--accent-fill');
+    assert.ok(/^#[0-9a-fA-F]{6}$/.test(hex || ''), '--accent-fill resolves to a colour on :root');
+    const ratio = onWhite(hex);
+    assert.ok(ratio >= 4.5, `white on ${hex} is ${ratio.toFixed(2)}:1, under AA`);
+    assert.equal(SHEET.includes(':root[data-brand="navy"]{'), false,
+      'and no second brand declares its own rung any more');
+  });
+
+  test('danger and the two rules have one answer each — no night answer left', () => {
+    /* RE-POINTED 20 Oct 2026: dark mode was removed ("Let's not implement the
+       dark theme. Remove it from HaTi."), so these four no longer answer at
+       night; the claim is that none does again, that each is still declared,
+       and that danger — a destructive VERB — still reads as text on white. */
+    for (const t of ['--danger', '--danger-hover', '--rule-strong', '--rule-faint']) {
+      assert.ok(rootVal(t), t + ' is declared on :root');
+      assert.doesNotMatch(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' has a night answer again — there is no dark theme');
+    }
+    const danger = rootVal('--danger');
+    assert.ok(onWhite(danger) >= 4.5, `--danger (${danger}) reads at ${onWhite(danger).toFixed(2)}:1 on white, under AA`);
+    assert.ok(lumOf(rootVal('--rule-faint')) > lumOf(rootVal('--rule-strong')),
+      'the faint rule is lighter than the strong one');
+  });
+
+  test("Reports' hero cards are on the platform shell, not white on a gradient", () => {
+    /* MEASURED before they moved: white on --grad-amber is 1.67:1 and on
+       --grad-emerald 1.92:1. The tone is not lost — it moved from the fill to
+       a 3px top edge and the icon chip, which is where a status colour is
+       carried everywhere else in this product. */
+    const src = JS('js/views/reports.js');
+    assert.doesNotMatch(src, /grad:/, 'the metric table states a tone, not a gradient');
+    assert.match(src, /tone:'(green|amber|steel|ruby)'/, 'every metric names its tone');
+    assert.doesNotMatch(src, /rgba\(255,\s*255,\s*255/,
+      'nothing on this page is a white-on-colour wash any more');
+    assert.match(src, /border-top:3px solid var\(--st-\$\{t\}-dot\)/,
+      'the tone is a 3px top edge, the shape Home\'s KPI cards already use');
+  });
+
+  test('the compiled Tailwind blob is not hand-edited', () => {
+    /* RULE 8, AS A NET. It regenerates, so every edit to it is thrown away on
+       the next build — and worse, it looks permanent until then. The 25 Aug
+       ladder sweep reached it because its guard named a LINE rather than the
+       line's content, and the repair for THAT then rewrote its transition
+       utilities. Two faults from one pinned number.
+       A design token in there is the tell: the blob is generated from a
+       Tailwind config that knows nothing about HaTi's :root. */
+    const blob = INDEX.split('\n')[BLOB_LINE] || '';
+    assert.ok(blob.length > 10000, 'the blob was found by its signature, not a line number');
+    const tokens = [...blob.matchAll(/var\((--(?:t|w|s|dur)-[a-z0-9-]+)\)/g)].map(m => m[1]);
+    assert.deepEqual([...new Set(tokens)], [],
+      'a design token is in the compiled blob — it was hand-edited and will be lost');
+  });
+
+  /* ---------- 3d · PHASE D — THE LADDERS THAT DID NOT EXIST ---------- */
+
+  test('the motion ladder exists and nothing types its own duration', () => {
+    /* 183 transitions across TWELVE ad-hoc durations, chosen one at a time by
+       whoever wrote the rule. Three rungs, and the question each answers is
+       WHAT IS MOVING rather than how far. */
+    for (const [tok, ms] of [['--dur-1','120ms'],['--dur-2','180ms'],['--dur-3','240ms']])
+      assert.match(SHEET, new RegExp(tok + ':' + ms), tok + ' is ' + ms);
+    assert.match(SHEET, /--ease-exit:/, 'and a flatter curve for a layer leaving');
+
+    const stray = [];
+    for (const f of ['js/core.js', 'js/app.js', 'js/mobile.js',
+                     ...VIEWS.map(v => 'js/views/' + v)]) {
+      if (/healthreport|weekly/.test(f)) continue;      // standalone documents
+      for (const line of JS(f).split('\n')) {
+        if (!/transition[^;:]*:/.test(line)) continue;
+        for (const m of line.matchAll(/(?<![\w.-])([0-9.]+m?s)(?![\w-])/g)) {
+          const ms = m[1].endsWith('ms') ? parseFloat(m[1]) : parseFloat(m[1]) * 1000;
+          /* A deliberate long animation is not a transition rung, and 0 is not
+             a duration. Anything between is one of the three. */
+          if (ms > 0 && ms <= 300) stray.push(f + ' → ' + m[1]);
+        }
+      }
+    }
+    assert.deepEqual(stray, [], 'a transition is typing its own duration again');
+  });
+
+  test('the reduced-motion kill switch is never a token', () => {
+    /* .001ms is not a duration somebody chose, it is "as close to zero as a
+       stylesheet can say" — and the motion sweep read it as an ad-hoc value
+       and mapped it to the nearest rung, which turned the reduced-motion
+       SETTING into a 120ms setting. */
+    const kill = /@media \(prefers-reduced-motion: ?reduce\)\{\*[^}]*\}/.exec(SHEET);
+    assert.ok(kill, 'the global kill switch is there');
+    assert.match(kill[0], /transition-duration:\.001ms!important/, 'and it really kills');
+    assert.doesNotMatch(kill[0], /var\(--dur/, 'a rung has no business in here');
+  });
+
+  test('the breakpoint rungs are named where they can be READ', () => {
+    /* AND A CSS TOKEN IS IMPOSSIBLE, which is why they are not in :root.
+       `@media (max-width: var(--bp-tablet))` is not valid CSS — a media query
+       is evaluated before custom properties resolve — so a :root block of
+       --bp-* would have ZERO consumers by construction, which is the exact
+       fault this whole pass exists to fix. */
+    assert.match(JS('js/app.js'), /const BP = \{ phone: 480, tablet: 768, laptop: 1024, desk: 1440, wide: 1800 \}/,
+      'the rungs are JS constants, where JS can ask the window');
+    assert.doesNotMatch(SHEET, /--bp-(phone|tablet|laptop|desk|wide)\s*:/,
+      'and NOT dead tokens in :root that no media query could ever read');
+    /* THE FLOAT LINE IS BESPOKE AND IS NOT ONE OF THESE. It was set from two of
+       the owner's own laptops and moved three times in two days to get there. */
+    assert.match(JS('js/app.js'), /const NAV_DRAWER_W = 1440;/,
+      'the nav float line is its own number and stays its own number');
+  });
+
+  test('one shape for "there is nothing here", with a way forward', () => {
+    /* Seven ad-hoc treatments across the product, each with its own class
+       name, icon size and idea of whether to offer an act. */
+    assert.match(JS('js/core.js'), /function emptyStateHtml\(o\)/, 'one builder');
+    assert.match(JS('js/core.js'), /emptyStateHtml,/, 'published');
+    for (const f of ['js/views/register.js', 'js/views/intake.js',
+                     'js/views/directory.js', 'js/views/calendar.js'])
+      assert.match(JS(f), /emptyStateHtml\(/, f + ' reads it');
+  });
+
+  test('the charts speak the platform typeface and draw square', () => {
+    /* A canvas cannot read a CSS token, so Chart.js drew every axis label in
+       ITS OWN default stack while every word around it was Inter — two faces
+       on one screen. And the 20 Aug square-corners sweep reached ~810 radii in
+       CSS and could not reach a canvas, so nine bar charts kept a 4px corner. */
+    const src = JS('js/aichart.js');
+    assert.match(src, /Chart\.defaults\.font\.family = fam/, 'the canvas is told the face');
+    assert.match(src, /_acVar\('--font-body'/, 'from the same token the rest of the product reads');
+    assert.doesNotMatch(src, /borderRadius:\s*[1-9]/, 'and no bar keeps a rounded corner');
+  });
+
+  /* ---------- 4 · THE FOCUS RING REACHES WHAT REFUSES AN OUTLINE ---------- */
+  test('the focus ring is a box-shadow as well as an outline', () => {
+    /* 91 inline `outline:none` declarations defeat any outline rule, and an
+       inline declaration cannot be beaten without !important. Not one of them
+       sets box-shadow, so the shadow reaches all of them. */
+    const rule = /:focus-visible[^{]*\{([^}]*)\}/.exec(
+      SHEET.slice(SHEET.indexOf('button:focus-visible')));
+    assert.ok(rule, 'the global focus rule is there');
+    assert.match(rule[1], /box-shadow:var\(--focus\)/,
+      'the second declaration is the fix, not decoration');
+  });
+
+  test('the shared field constants carry no outline:none', () => {
+    for (const f of ['js/core.js', 'js/review.js']) {
+      const src = JS(f);
+      for (const m of src.matchAll(/const (FLD|RV_FLD)\s*=\s*'([^']*)'/g))
+        assert.ok(!m[2].includes('outline:none'),
+          f + "'s " + m[1] + ' no longer kills its own focus ring');
+    }
+  });
+
+  test('every field constant reads the field tokens, so no copy can drift', () => {
+    /* Three disagreeing FLD constants, two of them in one file 1,300 lines
+       apart; and RV_FLD carried a note saying it was a deliberate copy to be
+       kept in step, which had already drifted 2px from what it quoted. */
+    /* REVERSED IN PLACE 25 Aug 2026 — AND MADE THE STRONGER CLAIM. This asked
+       that each copy read the tokens; there is no copy now. HATI_FLD and
+       HATI_LBL are declared once in core.js and every field in the product is
+       an assignment from them, so the two cannot drift even in principle —
+       which is what "kept in step" was trying and failing to promise. */
+    const core = JS('js/core.js');
+    const canon = [...core.matchAll(/const HATI_(?:FLD|LBL)\s*=\s*'([^']*)'/g)].map(m => m[1]);
+    assert.equal(canon.length, 2, 'exactly one field pair, declared once');
+    assert.ok(canon[0].includes('var(--field-h)') && canon[0].includes('var(--field-pad-y)'),
+      'and it reads the field tokens, so a height change is one edit in :root');
+    assert.match(core, /HATI_FLD,HATI_LBL/, 'published, so every module reaches the one pair');
+
+    /* AND NOBODY TYPES THEIR OWN ANY MORE. A local `const FLD = '…'` carrying
+       a literal is exactly how seven copies in three flavours happened; every
+       one is an assignment now. */
+    /* WHAT DRIFTS IS VALUES, NOT STRINGS, and that is the claim. Any constant
+       still written out longhand must read the field TOKENS in every one of
+       its size and spacing declarations, so a change to the field's height is
+       one edit in :root and every form follows it.
+       js/review.js's pair is written out on purpose and says why: this dialog
+       renders on stages that do not load core.js, and pointing it at the
+       shared pair there left the field with no style at all — f156 caught it
+       in one run. The tokens are what make that copy safe. */
+    const stray = [];
+    for (const f of ['js/core.js', 'js/review.js', 'js/family.js',
+                     'js/views/intake.js', 'js/views/library.js'])
+      for (const m of JS(f).matchAll(/const (?:RV_)?(?:FLD|LBL)\s*=\s*'((?:width|display)[^']*)'/g)) {
+        const d = m[1];
+        if (/(?:min-height|padding|font-size)\s*:\s*[0-9]/.test(d)) stray.push(f + ' → ' + d.slice(0, 60));
+      }
+    assert.deepEqual(stray, [], 'a field constant is typing its own numbers again');
+  });
+
+  /* ---------- 5 · THE CONTRACT PAPER FOLLOWS ITS READER ---------- */
+  test('no fixed-size utility is applied to the contract paper', () => {
+    /* MEASURED: .doc-surface moved 7.46 -> 14 -> 18.66px across the reader's
+       three settings while every clause paragraph stayed a flat 15px, because
+       it carried `text-[13.5px]` — a class whose COMPILED value the 22 Aug
+       sweep moved to 15px while leaving its NAME saying 13.5. At the small
+       setting the clause title drew smaller than the body beneath it. */
+    const src = JS('js/views/contract.js');
+    const clause = src.slice(src.indexOf('data-anchor="c${n}"'), src.indexOf('data-anchor="c${n}"') + 700);
+    assert.ok(!/text-\[[\d.]+px\]/.test(clause),
+      'the clause block pins no font size');
+    const recital = src.slice(src.indexOf('data-anchor="recital"') - 300, src.indexOf('data-anchor="recital"'));
+    assert.ok(!/text-\[[\d.]+px\]/.test(recital), 'the recital pins no font size');
+  });
+
+  /* ---------- 6 · THE THINGS THAT WERE SIMPLY BROKEN ---------- */
+  test('the owner side has a print path', () => {
+    /* body>*{display:none!important} with #print-root the one escape, and the
+       only code that ever filled it was the counterparty's side — so the
+       Document tab printed 0 characters against 2,092 on screen. */
+    const app = JS('js/app.js');
+    assert.match(app, /addEventListener\('beforeprint'/, 'something fills #print-root on print');
+    assert.match(app, /addEventListener\('afterprint'/, 'and clears it afterwards');
+    assert.match(app, /root\.innerHTML\.trim\(\)\)\s*return/,
+      'it never overwrites a deliberate fill — portal.js composes its own');
+  });
+
+  test('the sign-in screen shows nothing from a session it does not have', () => {
+    assert.match(JS('js/core.js'), /classList\.add\('pre-auth'\)/, 'renderAuth marks it');
+    assert.match(JS('js/core.js'), /classList\.remove\('pre-auth'\)/, 'the shell clears it');
+    assert.match(SHEET, /body\.pre-auth #ai-panel/, 'the Copilot panel is hidden there');
+    assert.match(SHEET, /body\.pre-auth #context-panel/, 'and the activity panel');
+  });
+
+  test('a modal says it is a dialog and keeps the keyboard inside it', () => {
+    const core = JS('js/core.js');
+    /* THE FUNCTION'S OWN REGION, not 3,000 bytes from its head: a note added to
+       the frame on 20 Sep 2026 pushed the trap past the byte count while the
+       trap was exactly where it had always been. */
+    const o0 = core.indexOf('function openModal');
+    const open = core.slice(o0, core.indexOf('\nfunction ', o0 + 20));
+    assert.match(open, /role="dialog"/, 'it has the role');
+    assert.match(open, /aria-modal="true"/, 'and announces itself as modal');
+    /* RE-POINTED 25 Aug 2026 — the trap was EXTRACTED, not removed. It was
+       written here and was the only overlay in the product that had it; it is
+       trapFocus now, with nine homes. The claim is the same and is asked one
+       layer up: this dialog uses the shared trap, and the shared trap is the
+       thing that cycles Tab and hands focus back. */
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): openModal
+       now hands the trap its opener, read before a replacing dialog tears the
+       old panel out. Still the one shared trap, on the panel. */
+    assert.match(open, /trapFocus\(panel\b/, 'it uses the one shared trap');
+    assert.match(core, /function trapFocus\(/, 'which is defined once');
+    assert.match(core, /e\.key!=='Tab'/, 'Tab cycles inside it');
+    assert.match(core, /_modalOpener/, 'and focus goes back where it came from');
+  });
+
+  /* ---------- 5b · PHASE B — ONE TRAP, AND EVERY REFUSAL SPOKEN ----------
+     The audit measured ONE focus trap against nine overlays that needed one,
+     and ZERO aria-live regions in the whole product. Source claims only; what
+     a keyboard can actually REACH is keyboard-reach-verify, because "does the
+     element carry role=dialog" is a different question from "can somebody get
+     to this without a mouse" and only the second one matters. */
+
+  test('the focus trap is one function with one definition', () => {
+    const core = JS('js/core.js');
+    assert.equal((core.match(/function trapFocus\(/g) || []).length, 1,
+      'defined once');
+    assert.match(core, /trapFocus,/, 'and published, so nine modules can reach it');
+    /* IT RETURNS ITS OWN UNDO. Separated from the trap, the restore is the
+       part that gets forgotten — which drops a keyboard reader at the top of
+       the document every time they dismiss anything. */
+    assert.match(core, /return function release\(\)/, 'it hands back a release');
+  });
+
+  test('every overlay that needed a trap has one', () => {
+    /* NINE HOMES, named. A layer missing from this list is a layer Tab walks
+       out of, and the only way to know is to look. */
+    const homes = [
+      ['js/core.js',            /trapFocus\(panel\b/,                 'openModal'],
+      ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="alertdialog"\]'\)/, 'confirmDialog'],
+      ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="dialog"\]'\)/,      'promptDialog'],
+      ['js/app.js',             /_panelTrap\s*=\s*trapFocus\(panel\)/, 'the alerts panel'],
+      ['js/app.js',             /trapFocus\([^)]*modal-in[^)]*\)/,    'the command palette'],
+      ['js/views/settings.js',  /_stTrap\s*=\s*window\.trapFocus\(el\)/, 'the settings drawer'],
+      ['js/views/portal.js',    /PT_ALERTS_TRAP\s*=\s*window\.trapFocus\(panel\)/, "the counterparty's alerts"],
+      ['js/mobile.js',          /_mSheetTrap\s*=\s*window\.trapFocus\(panel/, "the phone's seven sheets"],
+    ];
+    for (const [f, re, what] of homes)
+      assert.match(JS(f), re, what + ' holds the keyboard');
+    /* EIGHT SINCE 24 Sep 2026: the KPI customizer was the ninth, and it left
+       Home with the four tiles it chose (Young: the Map takes their place).
+       What still has to hold is that no overlay is left on that page without
+       a trap — so the page may not grow a popover back without joining this
+       list. */
+    assert.ok(!/document\.createElement\('div'\)[\s\S]{0,200}position:absolute;z-index/.test(JS('js/views/home.js')),
+      'Home draws no popover of its own any more');
+  });
+
+  test('a refusal and a result are announced, not only drawn', () => {
+    /* The audit measured ZERO aria-live regions in 30,000 lines. Four now, and
+       each sits on the element that RECEIVES the message rather than on a
+       wrapper — a region announces its own subtree, so one wrapped around a
+       whole page announces the page. */
+    assert.match(JS('js/views/settings.js'), /r\.setAttribute\('aria-live','assertive'\)/,
+      "the settings drawer's refusal");
+    assert.match(JS('js/views/register.js'), /id="reg-showing" role="status" aria-live="polite"/,
+      "the register's result count");
+    assert.match(JS('js/views/portal.js'), /band\.setAttribute\('aria-live','polite'\)/,
+      "the counterparty's own signature confirmation");
+    assert.match(SHEET, /id="toast-root"[^>]*aria-live="polite"/, 'and the toast root');
+  });
+
+  test('.sr-only exists, because something now writes it', () => {
+    /* The ui-input lesson, which this codebase records by name: a class the
+       app never defines is a class that styles nothing. The KPI row's keyboard
+       hint was its first consumer and left Home with the tiles (24 Sep 2026);
+       RE-POINTED IN PLACE to the two consumers that stay — the obligations
+       worklist's acts column head and the settings search label. */
+    assert.match(SHEET, /\.sr-only\{[^}]*clip-path:inset\(50%\)/,
+      'clipped rather than display:none — a hidden element says nothing at all');
+    assert.match(JS('js/obligations.js'), /class="sr-only"/, 'and it has a consumer');
+    assert.match(JS('js/views/settings.js'), /class="sr-only"/, 'two, in fact');
+  });
+
+  test('the live door and the live tab say so, not only look so', () => {
+    assert.match(JS('js/app.js'), /setAttribute\('aria-current','page'\)/,
+      'the nav marks where the reader is');
+    assert.match(JS('js/app.js'), /removeAttribute\('aria-current'\)/,
+      'and REMOVES it elsewhere — aria-current="false" is still current');
+    /* aria-selected was set once, when the row was BUILT, so from the second
+       tab onward the row announced the tab the reader started on. */
+    assert.match(JS('js/views/contract.js'), /b\.setAttribute\('aria-selected', on\?'true':'false'\)/,
+      'the room tabs re-state it on every change');
+    assert.match(JS('js/views/contract.js'), /b\.tabIndex = on \? 0 : -1/,
+      'and a tablist takes ONE tab stop, with arrows inside it');
+  });
+
+  test('refusing the pointer also refuses the keyboard', () => {
+    /* pointer-events:none is not a refusal to somebody using a keyboard —
+       measured, Tab reached every verb in the greyed column and Enter fired
+       them. aria-disabled SAYS unavailable; inert makes it so. */
+    assert.match(JS('js/views/negotiation.js'),
+      /rlReadOnlyReading\(\) \? 'aria-disabled="true" inert' : ''/,
+      'the change column is inert on a reading, not merely faded');
+  });
+
+  test('a text-styled button still clears the target-size floor', () => {
+    /* "Forgot password?" — the only route back into a locked-out account —
+       measured 366x17px, 7px under WCAG 2.5.8 at every width. */
+    assert.match(JS('js/core.js'), /const LINKBTN='[^']*min-height:var\(--tap-min\)/,
+      'LINKBTN carries a floor');
+  });
+});

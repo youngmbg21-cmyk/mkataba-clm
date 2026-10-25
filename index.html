@@ -1897,7 +1897,7 @@
      teal, #0E5F58, and white on it measured 7.5:1. SINCE 7 OCT 2026 it is the
      brighter #12796D (5.3:1; navy #264C9E 8.1:1), still AA.
      The fill therefore reads --accent-fill, the ONE token for white-on-accent,
-     and f238 computes the contrast of whichever rung that token resolves to
+     and f902 computes the contrast of whichever rung that token resolves to
      rather than pinning the rung's name — the claim is AA, not a number.
      --accent-solid itself is UNCHANGED: it is the nav's active fill and is
      documented as a brand fill that must not flip with the theme. */
@@ -9815,6 +9815,87 @@
   .reg-table .ac-ck:disabled{cursor:not-allowed}
   .reg-table .ac-ck:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   .reg-table .ac-ck-i{width:10px;height:10px}
+  /* DISCOVER STAGE 2 (owner, 25 Oct 2026): the legend in the list's foot, the drawn counts, the name's hint */
+  .ac-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+  .ac-legend .ac-lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .ac-lg i,.ac-bar-t i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--st-gray-dot)}
+  i.ac-lg-green{background:var(--st-green-dot)} i.ac-lg-amber{background:var(--st-amber-dot)} i.ac-lg-ruby{background:var(--st-ruby-dot)} i.ac-lg-gray{background:var(--st-gray-dot)}
+  #ig-dock .ac-next{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
+  #ig-dock .ac-draw{display:grid;gap:6px;margin-top:10px}
+  #ig-dock .ac-bar{display:grid;grid-template-columns:minmax(0,9.5em) 1fr 2.2em;gap:8px;align-items:center;font-size:12.5px}
+  #ig-dock .ac-bar>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-bar>b{text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-label)}
+  #ig-dock .ac-bar-t{display:block;height:10px;border-radius:5px;background:var(--color-neutral-100);overflow:hidden}
+  #ig-dock .ac-bar-t i{display:block;height:100%;width:0;border-radius:5px;min-width:0}
+  #ig-dock .ac-hint{display:block;font-size:12px;color:var(--color-text);margin-top:3px}
+  /* DISCOVER STAGE 3: the kept questions under his greeting, the pack's questions, the whole table's page */
+  #ig-dock .ac-disc-list{display:grid;margin-top:6px}
+  #ig-dock .ac-disc-row{display:grid;gap:2px;text-align:left;border:0;background:none;padding:8px 0;border-top:1px solid var(--rule);font:inherit;color:inherit;cursor:pointer;min-width:0}
+  #ig-dock .ac-disc-row:last-child{border-bottom:1px solid var(--rule)}
+  #ig-dock .ac-disc-row:hover .ac-disc-n b,#ig-dock .ac-disc-row:focus-visible .ac-disc-n b{color:var(--accent-ink)}
+  #ig-dock .ac-disc-n{display:flex;align-items:center;gap:6px;min-width:0}
+  #ig-dock .ac-disc-n b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #ig-dock .ac-disc-m{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--color-text)}
+  #ig-dock .ac-tag{flex:none;font-size:11px;line-height:1.5;padding:0 7px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);white-space:nowrap}
+  #ig-dock .ac-pack-qs{margin:6px 0 0;padding-left:20px;display:grid;gap:6px}
+  #ig-dock .ac-pack-qs li>span{display:block;font-size:12.5px}
+  .ac-tt{display:grid;gap:12px}
+  .ac-tt-scroll{overflow-x:auto;max-width:100%}
+  .ac-tt-table td.ac-tt-c,.ac-tt-table td.ac-tt-a{vertical-align:top;line-height:1.3;max-width:260px}
+  .ac-tt-table .ac-ans{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label)}
+  .ac-tt-table .ac-ans>i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
+  .ac-tt-table .ac-ans.tone-green>i{background:var(--st-green-dot)} .ac-tt-table .ac-ans.tone-amber>i{background:var(--st-amber-dot)} .ac-tt-table .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  .ac-tt-table .ac-sub{display:block;font-size:11.5px;color:var(--color-text);white-space:normal}
+  .ac-tt-table .ac-cite{display:inline-flex;align-items:center;height:18px;padding:0 4px;border:1px solid var(--rule);border-radius:var(--radius);font-size:var(--t-meta)}
+  .ac-tt-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:12.5px}
+  /* DISCOVER STAGE 4: the company's facts in Settings and in Key terms */
+  #fa-panel .fa-scroll{overflow-x:auto;max-width:100%}
+  #fa-panel .fa-t{width:100%;border-collapse:collapse;font-size:13px}
+  #fa-panel .fa-t th{text-align:left;font-size:12px;font-weight:var(--w-label);color:var(--color-text);padding:6px 8px;border-bottom:1px solid var(--rule);white-space:nowrap}
+  #fa-panel .fa-t td{padding:8px;border-bottom:1px solid var(--rule);vertical-align:top}
+  #fa-panel .fa-q{font-family:var(--font-doc);min-width:180px}
+  #fa-panel .fa-rule{width:100%;min-width:160px}
+  #fa-panel .fa-n{white-space:nowrap;font-variant-numeric:tabular-nums}
+  #fa-panel .fa-cost{margin-top:10px}
+  #fa-panel .fa-err{color:var(--st-ruby-fg)}
+  .fa-tog{width:32px;height:19px;border-radius:999px;border:0;padding:0;background:var(--color-neutral-300);position:relative;cursor:pointer;flex:none}
+  .fa-tog::after{content:"";position:absolute;left:2px;top:2px;width:15px;height:15px;border-radius:50%;background:var(--color-surface)}
+  .fa-tog.on{background:var(--accent-fill)} .fa-tog.on::after{left:15px}
+  .fa-tog:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
+  .fa-kt-card:empty{display:none}
+  .fa-kt-h{font-weight:var(--w-label);margin:0 0 6px}
+  .fa-kt-t .ac-ans{display:inline-flex;align-items:center;gap:6px}
+  .fa-kt-t .ac-ans>i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
+  .fa-kt-t .ac-ans.tone-green>i{background:var(--st-green-dot)} .fa-kt-t .ac-ans.tone-amber>i{background:var(--st-amber-dot)} .fa-kt-t .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  .fa-kt-t .fa-kt-q{font-family:var(--font-doc);color:var(--color-text)}
+  .fa-kt-t .ac-sub{display:block;font-size:11.5px;color:var(--color-text)}
+  /* DISCOVER STAGE 6: Unusual for you, one line in the Dossier's Jambo read card (no box when there is nothing to say) */
+  .ac-odd:empty{display:none}
+  .ac-odd-row{display:flex;align-items:flex-start;gap:8px}
+  .ac-odd-row>i{flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px;background:var(--st-amber-dot)}
+  .ac-odd-t{flex:1;min-width:0;font-size:12.5px;line-height:1.45}
+  .ac-odd-t b{font-weight:var(--w-label)}
+  .ac-odd-row .ds-go{flex:none;white-space:nowrap}
+  /* DISCOVER STAGE 7: negotiation memory under Jambo's verdict on their row */
+  .rl-card-read .rl-card-read-m{display:block;margin-top:4px;font-size:12.5px;color:var(--color-text)}
+  /* DISCOVER STAGE 8: What you are approving (the Approvals panel, the Before-you-sign stop) */
+  .ap-what{display:grid;gap:8px;margin:0 0 12px}
+  .ap-what h3{font-weight:var(--w-label);margin:0}
+  .ap-what-r{display:grid;gap:2px;font-size:12.5px;line-height:1.45}
+  .ap-what-r>b{font-weight:var(--w-label);font-size:12px;color:var(--color-text)}
+  .ap-what-r small{display:block;color:var(--color-text);font-size:11.5px;margin-top:2px}
+  .ap-what-dep{margin:0;padding-left:16px;display:grid;gap:4px}
+  .ap-what-dep q{display:block;font-family:var(--font-doc);color:var(--color-text)}
+  .ap-what-brief{margin:0}
+  .pd-rd-card .ap-what{margin:10px 0}
+  /* DISCOVER STAGE 9: Before the call, in the chosen party's panel */
+  .cu-br-host:empty{display:none}
+  .cu-br{display:grid;gap:6px;font-size:12.5px;line-height:1.45}
+  .cu-br-k{margin:4px 0 0;font-weight:var(--w-label)}
+  .cu-br-list{margin:0;padding-left:16px;display:grid;gap:3px}
+  .cu-br-risk{color:var(--st-ruby-fg)}
+  .cu-br-text{margin:0}
+  .cu-br-warn{color:var(--st-amber-fg)}
   .ac-btn svg{margin-right:4px}
   #ig-dock .pd-gl-row{display:flex;align-items:center;gap:10px}
   #ig-dock .pd-gl-row>span{flex:1;min-width:0}

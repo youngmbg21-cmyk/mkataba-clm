@@ -2210,7 +2210,7 @@ const ALERT_KINDS = [
   { k:'look',        tone:'amber', ic:'&#128064;' },
   /* ---- A REFUSED APPROVAL RULE STEP COMES BACK TO THE OWNER (B5, 8 Oct
      2026) ---- The refusal was said on the Signing tab alone. Just above the
-     approvals it answers (approval, ap-cleared and request stay one run — f461); amber: work owed — revise and send it back. The
+     approvals it answers (approval, ap-cleared and request stay one run — f913); amber: work owed — revise and send it back. The
      server mails the same moment (ruleStepRefusedTell). */
   { k:'ap-refused',  tone:'amber', ic:'&#8617;'  },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
@@ -2234,7 +2234,7 @@ const ALERT_KINDS = [
   /* ---- DETAILS STILL TO FILL IN (owner, 12 Oct 2026) ----
      A contract this reader owns with boxes still empty on its Details tab
      (detailsOf, the tab's own count); the press opens that tab. Amber: work
-     owed, never late. After the approvals' run, which f461 keeps together. */
+     owed, never late. After the approvals' run, which f913 keeps together. */
   { k:'details',     tone:'amber', ic:'&#9999;' },
   /* ---- A DOCUMENT THAT ARRIVED BY EMAIL IS YOURS (owner, 22 Oct 2026: "Yes"
      to telling the person the Mailroom gives it to) ----

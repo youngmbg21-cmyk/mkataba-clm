@@ -369,7 +369,7 @@ codebase already records:
   square-corners sweep removed. Assert the fallback **has content**, not its shape.
 * `designstep-verify.js:196` — `docFont === '13.5px'` → assert the sheet's type equals
   the document surface's computed base, whatever that is.
-* `f96-three-themes.test.js:246` — anchor on `--color-chat-bg` within each palette block,
+* `f932-three-themes.test.js:246` — anchor on `--color-chat-bg` within each palette block,
   not on `--color-bg` being the line immediately after `:root{`.
 
 ---

@@ -1412,7 +1412,7 @@ describe('f210 (19) — the panel\'s own type stepper', () => {
   });
 
   test('only the panel: the zoom is read by the panel body alone, and the document stepper does not touch it', async () => {
-    /* jsdom resolves no cascade — the rule is read at the source, the f95 way. */
+    /* jsdom resolves no cascade — the rule is read at the source, the f931 way. */
     assert.match(SRC, /\.redline-page \.rl-cp-body\{[^}]*zoom:var\(--cp-zoom,1\)/,
       'the panel BODY takes the zoom');
     assert.equal((SRC.match(/var\(--cp-zoom/g) || []).length, 1,

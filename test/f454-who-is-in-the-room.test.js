@@ -276,7 +276,7 @@ describe('f454 (5) — the row is a slot, and it is quiet', () => {
   test('its clothes are the desk\'s face, one rung smaller', () => {
     assert.match(HTML, /\.pz-face\{[^}]*width:17px/);
     assert.match(HTML, /\.pz-face\{[^}]*color:var\(--color-neutral-600\)[^}]*border:1px solid var\(--rule-strong\)/,
-      'an ink token and the hairline, never the raw accent ramp as text — f238 sweeps for that');
+      'an ink token and the hairline, never the raw accent ramp as text — f902 sweeps for that');
     assert.match(HTML, /\.dk-face\{[^}]*color:var\(--color-neutral-600\); border:1px solid var\(--rule-strong\)/, 'the desk\'s face, the same clothes');
   });
 

@@ -121,7 +121,7 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
      plain language supported by Minisearch"): the 32nd task is a contract's
      brief ("briefing for contracts mk 345"), the paper's own Read the brief */
   /* RE-POINTED 22 Oct 2026 (owner: "jambo is still very poor at navigating
-     across the platform"; f738): Our standards is the 34th task, its own
+     across the platform"; f920): Our standards is the 34th task, its own
      place apart from the templates (Our paper's standards tab, on a book) */
   /* RE-POINTED 22 Oct 2026 (owner: "take me to my settings for jambo", "take me to jambo points"):
      Jambo's own two rows of Settings › You are the 35th and 36th, read only where he is named */

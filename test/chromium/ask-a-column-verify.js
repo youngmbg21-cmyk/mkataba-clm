@@ -91,7 +91,9 @@ async function toList(page) {
       cells: [...document.querySelectorAll('td.ac-cell')].map(td => td.innerText.replace(/\s+/g, ' ').trim()),
       panel: (document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '' }));
     check('2a one column, every contract answered', filled && col.heads.includes('Notice to end'), JSON.stringify(col.heads));
-    check('2b each cell: its answer and "not checked" under it', col.cells.every(t => /30 days/.test(t) && /not checked/.test(t)), JSON.stringify(col.cells));
+    /* RE-POINTED 25 Oct 2026 (Discover stage 2, the owner's "The Legora way" for the answers): under the answer,
+       the words it was read from, never "not checked" — the circle says that */
+    check('2b each cell: its answer and the words it was read from under it', col.cells.every(t => /30 days/.test(t) && /“[^”]{10,}/.test(t) && !/not checked/.test(t)), JSON.stringify(col.cells));
     check('2c Owner steps aside while an answer column stands, as drawn', !col.heads.includes('Owner'));
     check('2d the panel says the column, with its three doors', /Notice to end/.test(col.panel) && /4 answered/.test(col.panel) && /Save as a view/.test(col.panel) && /Ask again/.test(col.panel) && /Remove column/.test(col.panel), col.panel.slice(0, 200));
     check('2e the calls said are the calls made', h.ai.calls.length - before === 4, String(h.ai.calls.length - before));

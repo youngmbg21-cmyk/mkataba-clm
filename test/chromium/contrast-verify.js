@@ -13,7 +13,7 @@
    under AA's 4.5. Sixty-two more set an accent TINT as an inline background,
    which at night is a near-white block under near-white text.
 
-   THIS IS THE BROWSER HALF AND IT HAS TO BE. f238 asks whether the tokens
+   THIS IS THE BROWSER HALF AND IT HAS TO BE. f902 asks whether the tokens
    exist and are reached; only a real browser can answer "and what does that
    compute to, composited, on the ground it actually sits on". This codebase's
    most expensive lesson is a rule that looked perfectly correct in the source

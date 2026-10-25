@@ -4406,13 +4406,13 @@ function wireNegotiationTab(c, opts = {}){
        is the lead's — so the first pending token wins, exactly the change
        whose marks the block is drawing. */
     /* THE PANEL'S ＋ CONTINUES THE SAME DRAFT THE CLAUSE IS SHOWING (16 Aug
-       2026, caught by f144 the day the clause's own editor retired). The
+       2026, caught by f898 the day the clause's own editor retired). The
        anchor lives on the DOCUMENT's clause block; the panel body never
        carried one, so in the panel `shownIds` came back empty, onTable came
        back null, and the ＋ — which then carried its own "Continue your draft"
        label, retired 26 Aug 2026 — opened on the standing wording with the
        writer's own ask nowhere on screen —
-       f144's original fault, back through the new door. The panel reads the
+       f898's original fault, back through the new door. The panel reads the
        clause's OWN anchor rather than growing a copy that could drift: one
        canvas, one wall, one list of what is on screen. */
     const onTable = shownIds.length
@@ -22273,9 +22273,15 @@ function rlRowReadOf(c, ch, side){
   return { key: j.verdict, tone: V.tone, label: V.label, why: String((j.why || [])[0] || '').trim(), more: true };
 }
 function rlRowReadHtml(c, ch, side){
-  const R = rlRowReadOf(c, ch, side); if (!R) return '';
+  const R = rlRowReadOf(c, ch, side);
+  /* NEGOTIATION MEMORY (Discover stage 7, owner 25 Oct 2026): under the verdict, what this party settled before
+     on the same topic (else the book's, from three rounds); its door is the row's own Ladder verb. Our seat only. */
+  let M = null;
+  if (side !== 'counterparty' && !PORTAL_MODE && typeof precedentMemoryOf === 'function'){ try { M = precedentMemoryOf(c, ch); } catch (_) { M = null; } }
+  const mem = M && M.line ? `<span class="rl-card-read-m" data-rl-row-memory>${_ne(M.line)}</span>` : '';
+  if (!R) return mem ? `<div class="rl-card-read is-none" data-rl-row-read="memory">${mem}</div>` : '';
   return `<div class="rl-card-read is-${_nea(R.tone)}" data-rl-row-read="${_nea(R.key)}"><span class="rl-card-read-v">${R.tone === 'none' ? '' : '<i aria-hidden="true"></i>'}${_ne(R.label)}</span>${
-    R.why ? `<span class="rl-card-read-w">${_ne(R.why)}</span>` : ''}</div>`;
+    R.why ? `<span class="rl-card-read-w">${_ne(R.why)}</span>` : ''}${mem}</div>`;
 }
 /* "Ask Jambo more", the last of the card's verbs, at its right: only where there is advice to explain */
 function rlRowReadMoreHtml(c, ch, side){

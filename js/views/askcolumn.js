@@ -45,6 +45,10 @@ const AC = {
   busy: null,      // { n } while Jambo reads
   chosen: null,    // { askId, cid } — the answer the panel explains
   team: null,      // the team's past questions (GET /api/columns)
+  drawn: {},       // askId → true while its counts are drawn in the panel (Draw it)
+  packs: [],       // the packs (GET /api/columns): Due diligence first
+  summary: null,   // the kept questions, counted (GET /api/columns/summary)
+  packRun: null,   // { packId, name, askIds } — the last pack asked, so its whole table can be opened
 };
 const _acE = s => (typeof esc === 'function') ? esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const _acT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
@@ -120,7 +124,7 @@ async function askColLoad(askId, ids){
   }
 }
 async function askColTeam(){
-  try { const r = await api('columns'); AC.team = (r && r.asks) || []; (AC.team || []).forEach(a => { AC.asks[a.id] = AC.asks[a.id] || a; }); }
+  try { const r = await api('columns'); AC.team = (r && r.asks) || []; AC.packs = (r && r.packs) || []; (AC.team || []).forEach(a => { AC.asks[a.id] = AC.asks[a.id] || a; }); }
   catch (_){ AC.team = AC.team || []; }
   return AC.team;
 }
@@ -147,21 +151,26 @@ async function askColSync(){
   /* Jambo's box sent the reader here to ask (JM_TASKS 'askcol'): the question opens once */
   const R0 = regState();
   if (R0.askOpen){ delete R0.askOpen; if (!AC.form) askColOpen(); return; }
+  if (typeof watchesLoaded === 'function' && !watchesLoaded() && typeof watchLoad === 'function') watchLoad().then(() => { if (askColOn()) askColPaintPanel(); });
+  /* DISCOVER: the kept questions, counted, fetched free (at most once a minute) and drawn under the greeting */
+  if (!AC.summary || Date.now() - _acSumAt > 60000){ askColSummary().then(() => { if (askColOn() && !AC.chosen) askColPaintPanel(); }); }
   /* the panel counts the list in front of it: a filter moved, so it says the new count */
   if (!_acSyncing && (AC.form || askColIdsUp().length)) askColPaintPanel();
   if (_acSyncing) return;
   const R = regState(), ids = Array.isArray(R.ask) ? R.ask.slice(0, AC_COLS_MAX) : [];
   if (!ids.length) return;
   _acSyncing = true;
+  let moved = false;
   try {
     /* a column brought back by a refresh or a saved view learns its question
        from the kept answers' own reply */
     const shown = askColRowsUp();
-    let moved = false;
     for (const id of ids) if (await askColLoad(id, shown)) moved = true;
     if (ids.some(id => !AC.asks[id])) moved = true;
     if (moved && askColOn() && typeof regRepaint === 'function') regRepaint();
   } finally { _acSyncing = false; }
+  /* the answers that just arrived are the panel's too: its column card is drawn now, not on the next press */
+  if (moved && askColOn() && !AC.form) askColPaintPanel();
 }
 
 /* ---- THE TABLE: a head and a cell per answer column ---- */
@@ -187,6 +196,45 @@ function askColWhen(at){
 function askColClauseNo(a){
   return (String((a && a.clause) || '').match(/^\s*([0-9]+(?:\.[0-9]+)*|[IVXLC]+|[A-Z])\b/) || [])[1] || '';
 }
+/* THE DOT READS THE COMPANY'S RULE FIRST (Discover stage 2, owner 25 Oct 2026):
+   outside it is a risk, inside it is usual; only where there is no rule does
+   Jambo's own reading of the wording colour it. One reading for the cell, the
+   legend, the counts and Show the N at risk. */
+function askColToneOf(a){
+  if (!a || a.noWording || !a.found) return 'gray';
+  if (a.verdict === 'out') return 'ruby';
+  if (a.verdict === 'in') return 'green';
+  return AC_TONE[a.tone] || 'gray';
+}
+function askColAtRisk(askId){
+  const m = AC.ans[askId] || {};
+  return askColShown().filter(id => m[id] && askColToneOf(m[id]) === 'ruby');
+}
+/* the words the answer rests on, short, for the cell's second line (the Legora way: the answer, then where it was read) */
+function askColQuoteShort(a){
+  const q = String((a && a.quote) || '').trim();
+  return q ? '“' + (q.length > 90 ? q.slice(0, 88).replace(/\s+\S*$/, '') + '…' : q) + '”' : '';
+}
+/* THE LEGEND, IN THE LIST'S FOOT while an answer column stands: what each dot means, said once */
+function askColLegendInner(){
+  const d = (k, t) => `<span class="ac-lg"><i class="ac-lg-${k}"></i>${_acE(_acT(t))}</span>`;
+  return `${d('green', 'ac_lg_good')}${d('amber', 'ac_lg_watch')}${d('ruby', 'ac_lg_bad')}${d('gray', 'ac_lg_none')}`;
+}
+function askColLegendHtml(){
+  if (!askColIdsUp().length) return '';
+  return `<span class="lh-extra ac-legend"> · ${askColLegendInner()}</span>`;
+}
+/* A QUESTION OF THE WORDING TYPED IN THE LIST'S OWN BOX (stage 2): the same
+   form opens, filled — the one door to a read, the cost said before any call */
+const AC_WORDING_RE = /\b(notice|terminat\w*|cancel\w*|liabilit\w*|capped|cap\b|indemn\w*|govern\w*|law\b|jurisdiction|renew\w*|roll(s|ed)? over|personal data|data protection|confidential\w*|payment terms|days to pay|warrant\w*|exclusiv\w*|non-compete|assign\w*|force majeure|clause|does (it|the contract|each contract) say|uppsägning\w*|ansvar\w*|förnya\w*|personuppgift\w*)\b/i;
+function askColTakes(seat, words){
+  const t = String(words || '').trim();
+  if (seat !== 'contracts' || !askColOn() || !askColMay() || !t) return false;
+  const q = (typeof lhIsQuestion === 'function') ? lhIsQuestion(t) : /\?$/.test(t);
+  if (!q || !AC_WORDING_RE.test(t)) return false;
+  askColOpen({ question: t.slice(0, 300) });
+  return true;
+}
 function askColTdHtml(c, askId){
   const a = (AC.ans[askId] || {})[c.id];
   const on = AC.chosen && AC.chosen.askId === askId && AC.chosen.cid === String(c.id);
@@ -196,13 +244,14 @@ function askColTdHtml(c, askId){
     return `<td ${attrs}>${busy && typeof busyHtml === 'function' ? `<span class="ac-sub">${busyHtml('')}</span>` : `<span class="ac-dash">—</span><small class="ac-sub">${_acE(_acT('ac_not_read'))}</small>`}</td>`;
   }
   if (a.noWording) return `<td ${attrs}><span class="ac-ans tone-gray"><i></i>${_acE(_acT('ac_no_wording'))}</span><small class="ac-sub">${_acE(_acT('ac_no_wording_sub'))}</small></td>`;
-  const tone = AC_TONE[a.found ? a.tone : 'none'] || 'gray';
+  const tone = askColToneOf(a);
   const word = a.found ? a.answer : _acT('ac_not_found');
   const ck = a.checked;
   const may = askColMay();
   const tip = !may ? _acT('ac_mark_viewer') : ck ? _acT('ac_unmark', { who: ck.by, when: askColWhen(ck.at) }) : _acT('ac_mark');
   const tick = `<button type="button" class="ac-ck${ck ? ' on' : ''}" data-ac-ck aria-pressed="${ck ? 'true' : 'false'}" title="${_acE(tip)}" aria-label="${_acE(tip)}"${may ? '' : ' disabled'}>${ck && typeof icon === 'function' ? icon('check2', 'ac-ck-i') : ''}</button>`;
-  const sub = [a.detail, ck ? _acT('ac_checked_by', { who: askColInitials(ck.by) }) : _acT('ac_not_checked')].filter(Boolean).join(' · ');
+  /* THE LEGORA WAY (owner, 25 Oct 2026): under the answer, the words it was read from; the tick says who checked it */
+  const sub = [a.detail, a.found ? askColQuoteShort(a) : '', ck ? _acT('ac_checked_by', { who: askColInitials(ck.by) }) : ''].filter(Boolean).join(' · ');
   /* THE CLAUSE IT CAME FROM, ON THE ANSWER (Part 8, the Legora way's "§ 11.2"):
      a press goes through "Go to clause"'s own door (askColGo), the answer
      chosen first — never a second way onto the paper */
@@ -212,10 +261,10 @@ function askColTdHtml(c, askId){
 }
 /* sorting by an answer column: the ones to look at first — a concern, then
    one to watch, then the usual, then a plain fact, then nothing found */
-const AC_TONE_RANK = { concern:0, watch:1, good:2, none:3 };
 function askColCmp(askId){
   const m = AC.ans[askId] || {};
-  const rank = c => { const a = m[c.id]; return !a ? 9 : a.noWording ? 8 : !a.found ? 7 : (AC_TONE_RANK[a.tone] ?? 5); };
+  const R2 = { ruby:0, amber:1, green:2, gray:3 };
+  const rank = c => { const a = m[c.id]; return !a ? 9 : a.noWording ? 8 : !a.found ? 7 : (R2[askColToneOf(a)] ?? 5); };
   return (x, y) => rank(y) - rank(x);
 }
 
@@ -226,10 +275,69 @@ function askColPanelHtml(){
   const up = askColIdsUp();
   if (!up.length) return '';
   const ch = AC.chosen && up.includes(AC.chosen.askId) ? AC.chosen : null;
-  return (ch ? askColWhyHtml(ch) : '') + (ch ? askColColumnHtml(ch.askId) : up.map(askColColumnHtml).join(''));
+  return (ch ? askColWhyHtml(ch) : '') + (ch ? askColColumnHtml(ch.askId) : up.map(askColColumnHtml).join('') + askColDiscoverHtml());
+}
+
+/* ---- DISCOVER (stage 3, owner 25 Oct 2026: "Discover", in Jambo's panel beside
+   the Contracts list) — the questions the team keeps, counted for the contracts
+   this person may see, free; a press brings a question's column onto the list;
+   the packs; and the one door to a new question. Drawn under his greeting when
+   nothing is chosen, and under the columns' cards. ---- */
+let _acSumAt = 0;
+async function askColSummary(force){
+  if (!force && Date.now() - _acSumAt < 60000 && AC.summary) return AC.summary;
+  _acSumAt = Date.now();
+  try { const r = await api('columns/summary'); AC.summary = (r && r.asks) || []; (AC.summary || []).forEach(a => { AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a); }); }
+  catch (_){ AC.summary = AC.summary || []; }
+  if (!AC.packs.length) await askColTeam();
+  return AC.summary;
+}
+function askColDiscoverHtml(){
+  if (!askColOn() || AC.form) return '';
+  const rows = (AC.summary || []).filter(a => a.read > 0 || a.fact).slice(0, 8);
+  const up = new Set(askColIdsUp());
+  const row = a => {
+    const bits = [a.found ? _acTn('ac_answered', a.found) : '', a.risk ? _acTn('ac_disc_risk', a.risk) : '', a.last ? _acT('ac_read_at', { when: askColWhen(a.last) }) : ''].filter(Boolean).join(' · ');
+    const tags = [a.fact ? `<span class="ac-tag">${_acE(_acT('ac_disc_fact'))}</span>` : '', up.has(a.id) ? `<span class="ac-tag">${_acE(_acT('ac_disc_up'))}</span>` : '', askColRowTagsHtml(a)].join('');
+    return `<button type="button" class="ac-disc-row${a.risk ? ' has-risk' : ''}" data-ac-bring="${_acE(a.id)}" title="${_acE(a.question || '')}"><span class="ac-disc-n"><b>${_acE(a.name || '')}</b>${tags}</span><span class="ac-disc-m">${a.risk ? '<i class="ac-lg-ruby"></i>' : ''}${_acE(bits)}</span></button>`;
+  };
+  const packs = (AC.packs || []).map(p => `<button type="button" class="jb-chip" data-ac-pack="${_acE(p.id)}">${_acE(_acT('ac_pack_n', { name: p.name, n: (p.questions || []).length }))}</button>`).join('');
+  return `<div class="pd-glance ac-card ac-disc" id="ac-disc"><div class="pd-gl-h"><b>${_acE(_acT('ac_disc_h'))}</b></div>
+    <div class="pd-gl-b"><div class="ac-meta">${_acE(_acT(rows.length ? 'ac_disc_sub' : 'ac_disc_empty'))}</div>
+      ${rows.length ? `<div class="ac-disc-list">${rows.map(row).join('')}</div>` : ''}
+      ${packs ? `<div class="ac-l">${_acE(_acT('ac_disc_packs'))}</div><div class="ac-chips ac-next">${packs}</div>` : ''}
+      <div class="ac-next"><button type="button" class="jb-chip" data-ac-open-new${askColMay() ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_disc_new'))}</button></div>
+    </div></div>`;
+}
+/* Discover leads the panel when the team keeps questions this reader can see answered */
+function askColDiscoverLeads(){ return (AC.summary || []).some(a => a.read > 0 || a.fact); }
+/* a kept question brought onto the list: its answers fetched free, its column up (the oldest steps down past three) */
+async function askColBring(askId){
+  const R = regState();
+  const up = (Array.isArray(R.ask) ? R.ask : []).filter(x => x !== askId);
+  R.ask = up.concat(askId).slice(-AC_COLS_MAX);
+  AC.chosen = null;
+  await askColLoad(askId, askColShown().slice(0, 500));
+  if (typeof regRepaint === 'function') regRepaint();
+  askColPaintPanel();
+}
+function askColPackFormHtml(f){
+  const p = f.pack, shown = askColShown(), ids = shown.slice(0, AC_MAX), q = (p.questions || []).length;
+  const b = x => `<b>${_acE(x)}</b>`;
+  const v = { contracts: b(_acTn('ac_n_contracts', ids.length)), shown: b(String(shown.length)), q: b(String(q)), calls: b(_acTn('ac_n_calls', ids.length)), apart: b(_acTn('ac_n_calls', ids.length * q)) };
+  const cost = _acT(ids.length < shown.length ? 'ac_pack_cost_capped' : 'ac_pack_cost', v);
+  const why = !askColMay() ? _acT('ac_btn_viewer') : !ids.length ? _acT('ac_none_shown') : '';
+  return `<div class="pd-glance ac-card" id="ac-form" data-ac-pack-form="${_acE(p.id)}"><div class="pd-gl-h"><b>${_acE(_acT('ac_pack_title'))}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acTn('ac_shown', shown.length))}</span></div>
+    <div class="pd-gl-b"><div><b>${_acE(p.name)}</b></div>
+      <ol class="ac-pack-qs">${(p.questions || []).map(x => `<li><b>${_acE(x.name || '')}</b><span class="ac-meta">${_acE(x.question || '')}</span></li>`).join('')}</ol>
+      <div class="ac-cost">${cost}</div>
+      ${why ? `<div class="ac-why">${_acE(why)}</div>` : ''}
+      <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-ask${why ? ` disabled title="${_acE(why)}"` : ''}>${_acE(_acTn('ac_ask_n', ids.length))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-cancel>${_acE(_acT('ac_cancel'))}</button></div>
+    </div></div>`;
 }
 function askColFormHtml(){
   const f = AC.form;
+  if (f.pack && !AC.busy) return askColPackFormHtml(f);
   if (AC.busy) return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(_acT('ac_title'))}</b></div><div class="pd-gl-b"><div class="ac-busy" role="status">${typeof busyHtml === 'function' ? busyHtml(_acTn('ac_reading', AC.busy.n)) : _acE(_acTn('ac_reading', AC.busy.n))}</div></div></div>`;
   const shown = askColShown(), ids = shown.slice(0, AC_MAX);
   const kept = f.force ? 0 : Math.min(ids.length, f.kept || 0);
@@ -244,7 +352,7 @@ function askColFormHtml(){
   return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(_acT('ac_title'))}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acTn('ac_shown', shown.length))}</span></div>
     <div class="pd-gl-b">
       <div><label class="ac-l" for="ac-q">${_acE(_acT('ac_q_label'))}</label><textarea id="ac-q" class="ac-in" rows="2" maxlength="300" placeholder="${_acE(_acT('ac_q_ph'))}">${_acE(f.question || '')}</textarea></div>
-      <div><label class="ac-l" for="ac-name">${_acE(_acT('ac_name_label'))}</label><input id="ac-name" class="ac-in" maxlength="40" placeholder="${_acE(_acT('ac_name_ph'))}" value="${_acE(f.name || '')}"></div>
+      <div><label class="ac-l" for="ac-name">${_acE(_acT('ac_name_label'))}</label><input id="ac-name" class="ac-in" maxlength="40" placeholder="${_acE(_acT('ac_name_ph'))}" value="${_acE(f.name || '')}" aria-describedby="ac-name-say"><small class="ac-hint" id="ac-name-say">${_acE(_acT('ac_name_auto'))}</small></div>
       <div class="ac-cost">${cost}${kept ? ' ' + _acE(_acTn('ac_kept', kept)) : ''}${f.force ? ' ' + _acE(_acT('ac_cost_again')) : ''}</div>
       ${why ? `<div class="ac-why">${_acE(why)}</div>` : ''}
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-ask${why ? ` disabled title="${_acE(why)}"` : ''}>${_acE(_acTn('ac_ask_n', ids.length))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-cancel>${_acE(_acT('ac_cancel'))}</button></div>
@@ -266,10 +374,207 @@ function askColColumnHtml(askId){
     s.last ? _acT('ac_read_at', { when: askColWhen(s.last) }) : '', s.calls ? _acTn('ac_n_calls', s.calls) : ''].filter(Boolean).join(' · ');
   const ck = s.total ? `<div class="ac-ckline">${_acE(_acT('ac_checked_line', { n: s.total - s.unck.length, total: s.total }))}${s.unck.length ? ` · <button type="button" class="ac-link" data-ac-unck="${_acE(askId)}">${_acE(_acTn('ac_show_unck', s.unck.length))}</button>` : ''}</div>` : '';
   const may = askColMay();
+  /* THE NEXT STEP IS A LINK (the Legora way): narrow to the risky ones, draw the counts here, copy the table */
+  const risk = askColAtRisk(askId).length, drawn = !!AC.drawn[askId];
+  const chips = s.total ? `<div class="ac-chips ac-next">${risk ? `<button type="button" class="jb-chip" data-ac-risk="${_acE(askId)}">${_acE(_acTn('ac_chip_risk', risk))}</button>` : ''}<button type="button" class="jb-chip" data-ac-draw="${_acE(askId)}" aria-pressed="${drawn ? 'true' : 'false'}">${_acE(_acT(drawn ? 'ac_chip_undraw' : 'ac_chip_draw'))}</button><button type="button" class="jb-chip" data-ac-copy="${_acE(askId)}">${_acE(_acT('ac_chip_copy'))}</button>${askColMoreChipsHtml(askId)}${AC.packRun && AC.packRun.askIds.includes(askId) && AC.packRun.askIds.length > AC_COLS_MAX ? `<button type="button" class="jb-chip" data-ac-table>${_acE(_acT('ac_pack_all', { q: AC.packRun.askIds.length }))}</button>` : ''}</div>` : '';
   return `<div class="pd-glance ac-card" data-ac-col="${_acE(askId)}"><div class="pd-gl-h"><b>${_acE(a.name || '')}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acT('ac_col_word'))}</span></div>
-    <div class="pd-gl-b"><div class="ac-meta">${_acE(facts)}</div>${ck}
+    <div class="pd-gl-b"><div class="ac-meta">${_acE(facts)}</div>${ck}${chips}${drawn ? askColDrawHtml(askId) : ''}
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-sm" data-ac-save="${_acE(askId)}">${_acE(_acT('ac_save_view'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-again="${_acE(askId)}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_again'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_remove'))}</button></div>
     </div></div>`;
+}
+/* THE COLUMN'S LATER STEPS: keep it as a company fact (an admin's, stage 4); watch it (stage 5) */
+function askColIsAdmin(){ const u = (typeof currentUser === 'function') ? currentUser() : null; return !!(u && u.role === 'admin'); }
+function askColMoreChipsHtml(askId){
+  const a = AC.asks[askId] || {};
+  const keep = !a.fact && askColIsAdmin() ? `<button type="button" class="jb-chip" data-ac-fact="${_acE(askId)}">${_acE(_acT('ac_fact_keep'))}</button>` : '';
+  return keep + askColWatchChipHtml(askId);
+}
+/* ---- THE COMPANY'S FACTS (stage 4, owner 25 Oct 2026: any admin switches one on) ---- */
+async function askColFactSet(askId, on){
+  try {
+    const r = await api('columns/' + encodeURIComponent(askId), 'PUT', { fact: !!on });
+    if (r && r.ask) AC.asks[askId] = Object.assign(AC.asks[askId] || {}, r.ask);
+    _acSumAt = 0; await askColSummary(true);
+    if (typeof toast === 'function') toast(_acT(on ? 'ac_fact_kept' : 'ac_fact_dropped', { name: (r && r.ask && r.ask.name) || '' }), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  askColPaintPanel(); askColFactsPanelPaint();
+}
+async function askColRuleSet(askId, rule){
+  try {
+    const r = await api('columns/' + encodeURIComponent(askId), 'PUT', { rule: String(rule || '') });
+    if (r && r.ask) AC.asks[askId] = Object.assign(AC.asks[askId] || {}, r.ask);
+    delete AC.ans[askId]; delete AC.asked[askId];
+    _acSumAt = 0; await askColSummary(true);
+    if (typeof toast === 'function') toast(_acT('fa_rule_saved'), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  askColFactsPanelPaint();
+}
+function askColFactsOn(){ return (AC.summary || []).filter(a => a.fact); }
+/* ON ARRIVAL: a new contract is read once for every fact that is on, through the one route (cached per wording).
+   Not a viewer's (the server refuses); not a private stream's contract, which is read only on a press. */
+let _acFactErr = '';
+async function askColFactsArrive(c){
+  if (!c || !c.id || !askColMay()) return false;
+  if (typeof jamboOnPress === 'function' && jamboOnPress(c)) return false;
+  await askColSummary();
+  const facts = askColFactsOn(); if (!facts.length) return false;
+  try {
+    await api('ai/column', 'POST', { questions: facts.map(a => ({ question: a.question, name: a.name })), ids: [String(c.id)], texts: askColTexts([String(c.id)]) });
+    _acFactErr = ''; _acSumAt = 0;
+    return true;
+  } catch (e){ _acFactErr = (e && (e.needsKey || e.kind === 'noKey')) ? _acT('ac_nokey') : ((e && e.message) || ''); return false; }
+}
+/* the Settings panel: the kept questions, their rules and switches, the cost per arrival */
+function askColFactsPanelHtml(){
+  const rows = (AC.summary || []).slice(0, 20), on = askColFactsOn().length;
+  if (!rows.length) return `<p class="st-note">${_acE(_acT('fa_none'))}</p>`;
+  const total = (typeof state !== 'undefined' && Array.isArray(state.contracts)) ? state.contracts.filter(c => c && !c.archived && !(typeof jamboOnPress === 'function' && jamboOnPress(c))).length : 0;
+  const n = Math.min(total, AC_MAX);
+  const row = a => `<tr data-fa-row="${_acE(a.id)}"><td><b>${_acE(a.name)}</b></td><td class="fa-q">${_acE(a.question)}</td>
+    <td><input class="ac-in fa-rule" data-fa-rule="${_acE(a.id)}" maxlength="200" value="${_acE(a.rule || '')}" placeholder="${_acE(_acT('fa_rule_ph'))}" aria-label="${_acE(_acT('fa_h_rule') + ': ' + a.name)}"></td>
+    <td class="fa-n">${a.read ? _acE(`${a.found} / ${a.read}`) : '—'}</td>
+    <td><button type="button" class="fa-tog${a.fact ? ' on' : ''}" data-fa-tog="${_acE(a.id)}" aria-pressed="${a.fact ? 'true' : 'false'}" aria-label="${_acE(_acT('fa_h_on') + ': ' + a.name)}"></button></td></tr>`;
+  return `<div class="fa-scroll"><table class="fa-t"><thead><tr><th>${_acE(_acT('fa_h_fact'))}</th><th>${_acE(_acT('fa_h_q'))}</th><th>${_acE(_acT('fa_h_rule'))}</th><th>${_acE(_acT('fa_h_ans'))}</th><th>${_acE(_acT('fa_h_on'))}</th></tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div>
+    <p class="st-note fa-cost">${_acE(on ? _acTn('fa_cost', on) : _acT('fa_cost_none'))}</p>
+    ${_acFactErr ? `<p class="st-note fa-err">${_acE(_acT('fa_last_err', { msg: _acFactErr }))}</p>` : ''}
+    ${on && n ? `<div class="ac-acts"><button type="button" class="ui-btn ui-btn-sm" data-fa-readall>${_acE(_acT(n < total ? 'fa_read_all_capped' : 'fa_read_all', { n, total, calls: _acTn('ac_n_calls', n) }))}</button></div>` : ''}`;
+}
+function askColFactsPanelPaint(){
+  const host = (typeof document !== 'undefined') ? document.getElementById('fa-panel') : null; if (!host) return;
+  host.innerHTML = askColFactsPanelHtml();
+}
+async function askColFactsPanelWire(){ askColFactsPanelPaint(); await askColSummary(true); askColFactsPanelPaint(); }
+async function askColFactsReadAll(){
+  const facts = askColFactsOn(); if (!facts.length) return;
+  const ids = state.contracts.filter(c => c && !c.archived && !(typeof jamboOnPress === 'function' && jamboOnPress(c))).map(c => String(c.id)).slice(0, AC_MAX);
+  try {
+    const r = await api('ai/column', 'POST', { questions: facts.map(a => ({ question: a.question, name: a.name })), ids, texts: askColTexts(ids) });
+    if (typeof toast === 'function'){ toast(_acT('fa_read_done', { calls: _acTn('ac_n_calls', (r && r.calls) || 0) }), 'ok'); if (r && r.capped) toast(_acT('ac_capped', r.capped), 'warn'); }
+  } catch (e){ if (typeof toast === 'function') toast(e && (e.needsKey || e.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (e && e.message) || '' }), 'err'); }
+  _acSumAt = 0; await askColSummary(true); askColFactsPanelPaint();
+}
+function askColFactsState(){
+  const n = askColFactsOn().length;
+  return { dot: n ? 'ok' : 'off', text: `${_acT('fa_title')} — ${n ? _acTn('fa_state_on', n) : _acT('fa_state_off')}` };
+}
+/* ---- KEY TERMS CARRY THE COMPANY'S FACTS: Term · What it says · Where on the paper; read free ---- */
+const _acKt = {};
+function askColFactsKtHtml(c){
+  const id = String(c.id), got = _acKt[id];
+  if (!got){ askColFactsKtLoad(id); return ''; }
+  if (!got.length) return '';
+  const row = f => {
+    const a = f.answer, no = a ? askColClauseNo(a) : '';
+    const says = !a ? _acT('fa_kt_unread') : a.noWording ? _acT('ac_no_wording') : a.found ? [a.answer, a.detail].filter(Boolean).join(', ') : _acT('ac_not_found');
+    const tone = a ? askColToneOf(a) : 'gray';
+    return `<tr><th scope="row">${_acE(f.ask.name)}</th><td><span class="ac-ans tone-${tone}"><i></i>${_acE(says)}</span>${f.stale ? `<small class="ac-sub">${_acE(_acT('fa_kt_stale'))}</small>` : ''}</td>
+      <td>${no ? `<b>${_acE(_acT('fa_kt_where', { n: no }))}</b> ` : ''}${a && a.found && a.quote ? `<span class="fa-kt-q">${_acE(askColQuoteShort(a))}</span>` : ''}</td></tr>`;
+  };
+  return `<div class="fa-kt"><div class="fa-kt-h">${_acE(_acT('fa_kt_h'))}</div><table class="pd-og pd-kt-t fa-kt-t">${got.map(row).join('')}</table></div>`;
+}
+async function askColFactsKtLoad(id){
+  if (_acKt[id] === null) return;
+  _acKt[id] = null;
+  let facts = [];
+  try { const r = await api('columns/facts/' + encodeURIComponent(id)); facts = (r && r.facts) || []; } catch (_){ facts = []; }
+  _acKt[id] = facts;
+  const host = (typeof document !== 'undefined') ? document.querySelector(`[data-ac-facts-for="${CSS.escape(id)}"]`) : null;
+  if (host) host.innerHTML = askColFactsKtHtml({ id });
+  setTimeout(() => { delete _acKt[id]; }, 60000);
+}
+/* ---- WATCHES ON ANSWERS (stage 5, owner 25 Oct 2026: on company facts only, free to run) ----
+   One of Jambo's watches (/api/me/watches, kind 'answer'): when a contract read for the fact
+   answers at risk, it lands on Needs you and the bell, and its press lands on the clause. */
+function askColWatchOf(askId){
+  const all = (typeof watchesAll === 'function') ? watchesAll() : [];
+  return all.find(w => w && w.kind === 'answer' && !w.endedAt && w.params && w.params.askId === askId) || null;
+}
+function askColRowTagsHtml(a){ return a && askColWatchOf(a.id) ? `<span class="ac-tag">${_acE(_acT('ac_disc_watched'))}</span>` : ''; }
+function askColWatchChipHtml(askId){
+  const a = AC.asks[askId] || {};
+  if (!a.fact || typeof watchCreate !== 'function') return '';
+  const w = askColWatchOf(askId);
+  return w ? `<button type="button" class="jb-chip" data-ac-unwatch="${_acE(w.id)}">${_acE(_acT('ac_watch_stop'))}</button>`
+    : `<button type="button" class="jb-chip" data-ac-watch="${_acE(askId)}">${_acE(_acT('ac_watch_on'))}</button>`;
+}
+async function askColWatch(askId, on, wid){
+  try {
+    if (on){ await watchCreate({ kind: 'answer', params: { askId } }); if (typeof toast === 'function') toast(_acT('ac_watch_started', { name: (AC.asks[askId] || {}).name || '' }), 'ok'); }
+    else { await watchDelete(wid); if (typeof toast === 'function') toast(_acT('ac_watch_stopped'), 'ok'); }
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  askColPaintPanel();
+}
+/* ---- UNUSUAL FOR YOU (stage 6): one line on the Dossier's "Jambo read" card, only when a
+   company fact's answer stands apart from the same kind of contract in this book; counted, free ---- */
+const _acOdd = {};
+function askColOddHtml(c){
+  const id = String(c.id), got = _acOdd[id];
+  if (got === undefined){ askColOddLoad(id); return `<div class="ac-odd" data-ac-odd-for="${_acE(id)}"></div>`; }
+  return `<div class="ac-odd" data-ac-odd-for="${_acE(id)}">${askColOddInner(id)}</div>`;
+}
+function askColOddInner(id){
+  const got = _acOdd[id]; if (!got || !got.lines || !got.lines.length) return '';
+  const kind = String(got.kind || '').toLowerCase();
+  return got.lines.slice(0, 2).map(l => `<div class="pd-gl-row ds-row ac-odd-row"><i class="ac-lg-amber" aria-hidden="true"></i><span class="ac-odd-t"><b>${_acE(_acT('ac_odd_h'))}</b> ${_acE(_acT('ac_odd_line', { fact: l.fact, mine: l.mine, n: l.usualN, of: l.others, kind, usual: l.usual }))}</span><button type="button" class="pd-go ds-go" data-ac-odd-show="${_acE(id)}:${_acE(l.askId)}">${_acE(_acTn('ac_odd_show', l.ids.length))}</button></div>`).join('');
+}
+async function askColOddLoad(id){
+  if (_acOdd[id] === null) return;
+  _acOdd[id] = null;
+  let r = null; try { r = await api('columns/unusual/' + encodeURIComponent(id)); } catch (_){ r = null; }
+  _acOdd[id] = r || { lines: [] };
+  const host = (typeof document !== 'undefined') ? document.querySelector(`[data-ac-odd-for="${CSS.escape(id)}"]`) : null;
+  if (host) host.innerHTML = askColOddInner(id);
+  setTimeout(() => { delete _acOdd[id]; }, 60000);
+}
+function askColOddShow(key){
+  const [id, askId] = String(key).split(':');
+  const l = ((_acOdd[id] || {}).lines || []).find(x => x.askId === askId); if (!l) return;
+  if (typeof setView === 'function') setView('register');
+  if (typeof regShowOnly === 'function') regShowOnly(l.ids, _acT('ac_odd_label', { fact: l.fact, usual: l.usual }));
+}
+/* the lander a watch's press uses: the contract on Home's paper, then its sentence lit (bounded wait) */
+function askColLandOn(cid, quote){
+  if (typeof regOpenContract === 'function') regOpenContract(cid);
+  if (!quote || typeof igQuoteGo !== 'function') return true;
+  let n = 0;
+  const tick = () => {
+    const here = typeof pdContract === 'function' && pdContract() && String(pdContract().id) === String(cid) && document.getElementById('ig-canvas');
+    if (here){ igQuoteGo(quote); return; }
+    if (++n < 40) setTimeout(tick, 100);
+  };
+  setTimeout(tick, 100);
+  return true;
+}
+/* DRAW IT: the column's counts as bars, in its own card, from the answers already read (no call) */
+function askColDrawHtml(askId){
+  const m = AC.ans[askId] || {}, ids = askColShown().filter(id => m[id] && !m[id].noWording);
+  const n = { green:0, amber:0, ruby:0, gray:0 };
+  ids.forEach(id => { n[askColToneOf(m[id])]++; });
+  const max = Math.max(1, n.green, n.amber, n.ruby, n.gray), q = AC.asks[askId] || {};
+  const bar = (k, t) => `<div class="ac-bar"><span>${_acE(_acT(t))}</span><span class="ac-bar-t"><i class="ac-lg-${k}" style="width:${Math.round(n[k] / max * 100)}%"></i></span><b>${n[k]}</b></div>`;
+  return `<div class="ac-draw" role="img" aria-label="${_acE(_acT('ac_draw_h', { name: q.name || '', n: ids.length }))}"><div class="ac-meta">${_acE(_acT('ac_draw_h', { name: q.name || '', n: ids.length }))}</div>${bar('green', 'ac_lg_good')}${bar('amber', 'ac_lg_watch')}${bar('ruby', 'ac_lg_bad')}${bar('gray', 'ac_lg_none')}<div class="ac-meta">${_acE(_acT('ac_draw_free'))}</div></div>`;
+}
+/* COPY THE TABLE: the list's rows with this column, each answer with its clause and sentence, as a table a mail or a sheet takes */
+function askColCopy(askId){ return askColCopyMany([askId]); }
+async function askColCopyMany(askIds){
+  const word = a => !a ? '' : a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
+  const rule = a => !a ? '' : a.verdict === 'in' ? _acT('ac_lg_good') : a.verdict === 'out' ? _acT('ac_lg_bad') : '';
+  const rows = askColShown().filter(id => askIds.some(k => (AC.ans[k] || {})[id])).map(id => {
+    const c = (typeof getContract === 'function') ? getContract(id) : null;
+    const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : id;
+    return [ref, c ? (c.counterparty || '') : ''].concat(...askIds.map(k => { const a = (AC.ans[k] || {})[id];
+      return [word(a), (a && a.detail) || '', (a && a.clause) || '', (a && a.quote) || '', rule(a)]; }));
+  });
+  const head = ['Ref', 'Party'].concat(...askIds.map(k => { const n = (AC.asks[k] || {}).name || '';
+    return [n, '', n + ' · ' + _acT('ac_f_clause'), n + ' · ' + _acT('ac_f_source'), n + ' · ' + _acT('ac_f_rule')]; }));
+  const tsv = [head].concat(rows).map(r => r.map(x => String(x).replace(/[\t\n]+/g, ' ')).join('\t')).join('\n');
+  const html = '<table>' + [head].concat(rows).map((r, i) => '<tr>' + r.map(x => `<${i ? 'td' : 'th'}>${_acE(x)}</${i ? 'td' : 'th'}>`).join('') + '</tr>').join('') + '</table>';
+  try {
+    if (typeof ClipboardItem === 'function' && navigator.clipboard && navigator.clipboard.write)
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([tsv], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
+    else await navigator.clipboard.writeText(tsv);
+    if (typeof toast === 'function') toast(_acT('ac_copied'), 'ok');
+  } catch (_){ if (typeof toast === 'function') toast(_acT('ac_copy_failed'), 'warn'); }
 }
 /* THE SAP WAY (owner picked it, 20 Oct 2026): the chosen answer as labelled facts */
 function askColWhyHtml(ch){
@@ -288,6 +593,7 @@ function askColWhyHtml(ch){
       ${row('ac_f_why', a.why ? _acE(a.why) : '')}
       ${row('ac_f_source', a.quote ? `<div class="ac-quote">“${_acE(a.quote)}”</div>` : (a.noWording ? '' : `<span class="ac-sub">${_acE(_acT('ac_no_quote'))}</span>`))}
       ${row('ac_f_clause', a.clause ? _acE(a.clause) : '')}
+      ${a.noWording || !a.found ? '' : row('ac_f_rule', _acE(a.verdict === 'in' ? _acT('ac_rule_in', { rule: a.rule }) : a.verdict === 'out' ? _acT('ac_rule_out', { rule: a.rule }) : a.rule ? _acT('ac_rule_unsure', { rule: a.rule }) : _acT('ac_rule_none')))}
       ${row('ac_f_read', a.at ? _acE(_acT('ac_read_by', { when: askColWhen(a.at) })) : '')}
     </dl>
     <div class="ac-acts ac-foot"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-go>${_acE(go)}</button></div></div></div>`;
@@ -334,8 +640,73 @@ function askColDrop(askId){
   if (R.sort === 'ask:' + askId){ R.sort = 'updated'; R.dir = -1; }
   if (AC.chosen && AC.chosen.askId === askId) AC.chosen = null;
 }
+async function askColRunPack(f){
+  const ids = askColShown().slice(0, AC_MAX); if (!ids.length) return;
+  const p = f.pack;
+  AC.busy = { n: ids.length, ids, askId: null };
+  askColPaintPanel();
+  try {
+    const r = await api('ai/column', 'POST', { questions: (p.questions || []).map(x => ({ question: x.question, name: x.name })), ids, texts: askColTexts(ids) });
+    const askIds = (r.asks || []).map(a => a.id);
+    (r.asks || []).forEach(a => {
+      AC.asks[a.id] = a;
+      Object.assign(AC.ans[a.id] || (AC.ans[a.id] = {}), (r.byAsk || {})[a.id] || {});
+      (AC.asked[a.id] || (AC.asked[a.id] = new Set())); ids.forEach(x => AC.asked[a.id].add(x));
+    });
+    /* THREE STAND ON THE LIST, THE REST IN THE TABLE (the owner's pick, 25 Oct 2026) */
+    regState().ask = askIds.slice(0, AC_COLS_MAX);
+    AC.packRun = { packId: p.id, name: p.name, askIds };
+    AC.form = null;
+    _acSumAt = 0;
+    if (typeof toast === 'function'){
+      toast(_acT('ac_pack_done', { name: p.name, q: askIds.length, calls: _acTn('ac_n_calls', r.calls || 0) }), 'ok');
+      const failed = new Set((r.failed || []).filter(x => x.why !== 'notFound').map(x => x.id)).size;
+      if (failed) toast(_acTn('ac_failed', failed), 'warn');
+      if (r.capped) toast(_acT('ac_capped', r.capped), 'warn');
+    }
+  } catch (e){
+    if (typeof toast === 'function') toast(e && (e.needsKey || e.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (e && e.message) || '' }), 'err');
+  } finally {
+    AC.busy = null;
+    if (typeof regRepaint === 'function') regRepaint();
+    askColPaintPanel();
+    askColSummary(true).then(() => askColPaintPanel());
+  }
+}
+/* THE WHOLE TABLE, A PAGE OF ITS OWN (big work is a page): every answer of the pack, per contract, with its clause */
+function askColTableOpen(){
+  const run = AC.packRun; if (!run || typeof openModal !== 'function') return;
+  const ids = askColShown();
+  const head = run.askIds.map(id => `<th>${_acE((AC.asks[id] || {}).name || '')}</th>`).join('');
+  const body = ids.map(cid => {
+    const c = (typeof getContract === 'function') ? getContract(cid) : null;
+    const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : cid;
+    const cells = run.askIds.map(id => {
+      const a = (AC.ans[id] || {})[cid];
+      if (!a) return '<td class="ac-tt-c"><span class="ac-sub">—</span></td>';
+      const no = askColClauseNo(a);
+      const word = a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
+      return `<td class="ac-tt-c"><span class="ac-ans tone-${askColToneOf(a)}"><i></i><span>${_acE(word)}</span>${no ? `<span class="ac-cite">§ ${_acE(no)}</span>` : ''}</span><small class="ac-sub">${_acE([a.detail, a.found ? askColQuoteShort(a) : ''].filter(Boolean).join(' · '))}</small></td>`;
+    }).join('');
+    return `<tr><td class="ac-tt-a"><b>${_acE(ref)}</b><small class="ac-sub">${_acE((c && c.counterparty) || '')}</small></td>${cells}</tr>`;
+  }).join('');
+  const title = _acT('ac_table_title', { name: run.name });
+  const html = `<div id="ac-table-page" class="ac-tt">
+    <h2 class="ac-tt-h">${_acE(title)}</h2>
+    <button type="button" id="ac-tt-copy" class="ui-btn">${_acE(_acT('ac_chip_copy'))}</button>
+    <div class="ac-tt-scroll"><table class="reg-table ac-tt-table"><thead><tr><th>${_acE(_acT('ac_f_answer'))}</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    <div class="ac-tt-foot"><span class="lh-extra ac-legend">${askColLegendInner()}</span>
+      <button type="button" class="ui-btn" id="ac-tt-back" data-dlg-cancel>${_acE(_acT('ac_table_back'))}</button></div>
+  </div>`;
+  openModal(html, { page: { acts: ['ac-tt-copy'], crumb: _acT('ac_table_title', { name: run.name }) }, label: title });
+  const cp = document.getElementById('ac-tt-copy');
+  if (cp) cp.addEventListener('click', () => askColCopyMany(run.askIds));
+  const back = document.getElementById('ac-tt-back');
+  if (back) back.addEventListener('click', () => { if (typeof closeModal === 'function') closeModal(); });
+}
 async function askColRun(){
   const f = AC.form; if (!f || AC.busy) return;
+  if (f.pack) return askColRunPack(f);
   const qEl = document.getElementById('ac-q'), nEl = document.getElementById('ac-name');
   const question = String(qEl ? qEl.value : f.question || '').trim();
   const name = String(nEl ? nEl.value : f.name || '').trim();
@@ -453,12 +824,34 @@ if (typeof document !== 'undefined' && !document._acWired){
     if (ag){ e.preventDefault(); const q = AC.asks[ag.getAttribute('data-ac-again')]; if (q) askColOpen({ question: q.question, name: q.name, askId: q.id, force: true }); return; }
     const rm = t.closest('[data-ac-remove]'); if (rm){ e.preventDefault(); askColRemove(rm.getAttribute('data-ac-remove')); return; }
     const un = t.closest('[data-ac-unck]'); if (un){ e.preventDefault(); askColUnchecked(un.getAttribute('data-ac-unck')); return; }
+    const rk = t.closest('[data-ac-risk]');
+    if (rk){ e.preventDefault(); const id = rk.getAttribute('data-ac-risk'), ids = askColAtRisk(id), q = AC.asks[id] || {};
+      if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, _acT('ac_risk_label', { name: q.name || '' })); return; }
+    const dr = t.closest('[data-ac-draw]'); if (dr){ e.preventDefault(); const id = dr.getAttribute('data-ac-draw'); AC.drawn[id] = !AC.drawn[id]; askColPaintPanel(); return; }
+    const cp = t.closest('[data-ac-copy]'); if (cp){ e.preventDefault(); askColCopy(cp.getAttribute('data-ac-copy')); return; }
+    const br = t.closest('[data-ac-bring]'); if (br){ e.preventDefault(); askColBring(br.getAttribute('data-ac-bring')); return; }
+    const pk = t.closest('[data-ac-pack]');
+    if (pk){ e.preventDefault(); const p = (AC.packs || []).find(x => x.id === pk.getAttribute('data-ac-pack')); if (p) askColOpen({ pack: p }); return; }
+    if (t.closest('[data-ac-open-new]')){ e.preventDefault(); if (askColMay()) askColOpen(); return; }
+    if (t.closest('[data-ac-table]')){ e.preventDefault(); askColTableOpen(); return; }
+    const fk = t.closest('[data-ac-fact]'); if (fk){ e.preventDefault(); askColFactSet(fk.getAttribute('data-ac-fact'), true); return; }
+    const ft = t.closest('[data-fa-tog]'); if (ft){ e.preventDefault(); const id = ft.getAttribute('data-fa-tog'); askColFactSet(id, ft.getAttribute('aria-pressed') !== 'true'); return; }
+    if (t.closest('[data-fa-readall]')){ e.preventDefault(); askColFactsReadAll(); return; }
+    const od = t.closest('[data-ac-odd-show]'); if (od){ e.preventDefault(); askColOddShow(od.getAttribute('data-ac-odd-show')); return; }
+    const wa = t.closest('[data-ac-watch]'); if (wa){ e.preventDefault(); askColWatch(wa.getAttribute('data-ac-watch'), true); return; }
+    const uw = t.closest('[data-ac-unwatch]'); if (uw){ e.preventDefault(); askColWatch(null, false, uw.getAttribute('data-ac-unwatch')); return; }
   });
   /* the question's own words: a typed edit is kept across a repaint; Enter asks */
   document.addEventListener('input', e => {
     const t = e.target; if (!AC.form || !t) return;
     if (t.id === 'ac-q'){ AC.form.question = t.value; if (AC.form.askId && !AC.form.force){ AC.form.askId = null; AC.form.kept = 0; } }
     if (t.id === 'ac-name') AC.form.name = t.value;
+  });
+  /* a rule is saved when its box is left with new words (a change event: once, never per key) */
+  document.addEventListener('change', e => {
+    const t = e.target && e.target.closest ? e.target.closest('[data-fa-rule]') : null; if (!t) return;
+    const id = t.getAttribute('data-fa-rule'), a = (AC.summary || []).find(x => x.id === id);
+    if (a && String(a.rule || '') !== t.value.trim()) askColRuleSet(id, t.value.trim());
   });
   document.addEventListener('keydown', e => {
     const t = e.target; if (!AC.form || !t) return;
@@ -476,4 +869,5 @@ function askColBtnHtml(){
 }
 
 Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
-  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows });
+  askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
+  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml });

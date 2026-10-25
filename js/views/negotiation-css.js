@@ -543,7 +543,7 @@ function negoStyleHtml(){
   .nego-clause .nego-editing blockquote{margin:var(--s-2) 0 var(--s-2) 18px;padding-left:var(--s-3);
     border-left:2px solid var(--n-line);color:var(--n-ink-soft)}
   /* ---- AND THE SAME DRESS IN THE EDITOR'S OTHER HOME (16 Aug 2026) ----
-     Every twin above is scoped to .nego-clause — the editor's home when f144
+     Every twin above is scoped to .nego-clause — the editor's home when f898
      built them. Since the clause tool row retired, the editor OPENS in the
      clause panel (.rl-cp-src, over "As it stands"), and without these the
      fault came straight back through the new door: a table typed into the
@@ -5574,7 +5574,7 @@ function redlineLayoutCss(){
          written later — an unconditional 56px here would beat it and squeeze
          the phone. Writing the WIDE case behind min-width leaves that block the
          last word below 1024, where it belongs. It also keeps the phone's
-         queue-unwind the LAST phone-width block in this file, which is how f95
+         queue-unwind the LAST phone-width block in this file, which is how f931
          finds it. */}
   @media (min-width:1024px){
 

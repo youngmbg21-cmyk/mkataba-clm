@@ -81,7 +81,7 @@ to the other side on its own.
   face (`CA_GO.redline`); Just send it answers with the share card his word
   "share" already answers with. The recommended road is first and the only
   filled button.
-- **Tests:** f862 (red at the parent); test/chromium/jambo-speaks-first-verify
+- **Tests:** f922 (red at the parent); test/chromium/jambo-speaks-first-verify
   (a real file through Jambo's drop area, the real arrival reading, every
   press, once across a refresh, the owner's three screens).
 

@@ -1475,7 +1475,7 @@ describe('f246 (11) — who may be tagged, per room', () => {
   test('internal offers colleagues who may act, and nobody else', async () => {
     const p = await tagBench();
     /* JOINED, NOT DEEP-COMPARED: the page realm's Array prototype is not this
-        realm's — the f60 trap this file already documents. */
+        realm's — the f916 trap this file already documents. */
     const names = p.win.negoTagPeople(p.c, 'internal').map(x => x.name);
     assert.equal(names.join(' | '), 'Simon Jordan',
       'a viewer can neither edit nor review, and you do not tag yourself');
