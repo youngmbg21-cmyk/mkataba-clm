@@ -190,6 +190,15 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS column_asks (
     id TEXT PRIMARY KEY, qkey TEXT NOT NULL UNIQUE, question TEXT NOT NULL, name TEXT NOT NULL,
     created_by TEXT, created_by_name TEXT, created_at TEXT NOT NULL, last_used_at TEXT NOT NULL);
+  -- DISCOVER (owner, 25 Oct 2026): a PACK is a named set of questions asked
+  -- together (one read answers them all). Due diligence is the first, built in.
+  CREATE TABLE IF NOT EXISTS column_packs (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, questions TEXT NOT NULL, builtin INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT, created_at TEXT NOT NULL);
+  -- DISCOVER STAGE 9 (owner, 25 Oct 2026): the party's two-minute brief,
+  -- kept per party until the facts it was written from change.
+  CREATE TABLE IF NOT EXISTS party_briefs (
+    key TEXT PRIMARY KEY, input_hash TEXT NOT NULL, json TEXT NOT NULL, created_at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS column_answers (
     ask_id TEXT NOT NULL, contract_id TEXT NOT NULL, input_hash TEXT NOT NULL, json TEXT NOT NULL,
     checked_by TEXT, checked_name TEXT, checked_at TEXT, created_at TEXT NOT NULL,
@@ -617,6 +626,14 @@ function addColumnIfMissing(table, col, decl) {
   if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
 }
 addColumnIfMissing('users', 'lang', 'TEXT');   // per-person UI + email language (js/i18n.js)
+/* DISCOVER (docs/PLAN-jambo-discover.md, owner 25 Oct 2026): a kept question
+   may carry THE COMPANY'S RULE (what breaks it, said in words; an answer is then
+   judged in or outside it), and an admin may keep it as a COMPANY FACT (read for
+   every contract that arrives). NULL / 0 = neither, where every question starts. */
+addColumnIfMissing('column_asks', 'rule', 'TEXT');
+addColumnIfMissing('column_asks', 'fact', 'INTEGER');
+addColumnIfMissing('column_asks', 'fact_by', 'TEXT');
+addColumnIfMissing('column_asks', 'fact_at', 'TEXT');
 /* How much this member may sign a contract for, in the workspace currency.
    TEXT rather than REAL because it carries THREE states and the third is the
    point: absent = nobody has decided, 'none' = decided, no limit, a number =
@@ -3123,6 +3140,7 @@ const AI_FEATURE_LABEL = {
   windows: 'Dated windows',     // work order O-40, the Time Machine's periods
   breakdown: 'Contract breakdown', // Home's Breakdown tab (owner, 11 Oct 2026), read once per wording
   column: 'Ask a column',       // one question asked of many contracts (20 Oct 2026), named on arrival
+  partybrief: 'Party brief',    // the party's two minutes on the Parties page (Discover stage 9, 25 Oct 2026)
   plan: 'Calendar planning',    // Copilot plans a person's own time (10 Oct 2026)
   settings: 'Settings questions', // Jambo answers a "why" on Settings (16 Oct 2026), named on arrival
   /* The template builder's outline (Prompt & Build). Named on arrival for
@@ -9322,7 +9340,30 @@ Return via draft_amendment.\n\n${AI_GOVERNANCE_RULE}\n\nAGREEMENT:\n${aiDocText(
    brief rides GET /api/contracts/:id as _brief, where a reader without
    canViewValues gets it with the money section removed. The prompt keeps
    every amount in that one section so the masking has one thing to mask. */
-app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGuard, capAiInput, async (req, res) => {
+/* THE APPROVER MAY ASK FOR THE BRIEF (Discover stage 8, owner 25 Oct 2026: "any approver may press for it"):
+   someone who cannot edit contracts may still ask for the plain-English brief of a contract they are asked to
+   approve — a rule step the rules name them for and nobody has decided, or a named person's yes waiting on
+   them or their backup. Read off the STORED contract and the workspace's rules, never the body. */
+function srvMayApproveHere(full, u) {
+  if (!full || !u) return false;
+  const chain = Array.isArray(full.approvalChain) ? full.approvalChain : [];
+  for (const rule of srvApprovalRules()) {
+    if (!srvRuleMatches(rule, full) || !srvUserCanApprove(rule.approver || {}, u)) continue;
+    const st = chain.find(x => x && String(x.ruleId) === String(rule.id));
+    if (!st || (st.status !== 'approved' && st.status !== 'rejected')) return true;
+  }
+  return (Array.isArray(full.signApprovals) ? full.signApprovals : []).some(r => r && !r.decidedAt
+    && (String(r.approverId || '') === String(u.id) || String(r.backupId || '') === String(u.id)));
+}
+const briefAsker = (req, res, next) => {
+  if (req.user.role !== 'viewer') return passwordCurrent(req, res, next);
+  const id = String((req.body || {}).id || '');
+  const row = id ? db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(id) : null;
+  let full = null; try { full = row && inScope(folderScopeFor(req.user), row.folder) ? JSON.parse(row.json) : null; } catch (_) { full = null; }
+  if (!srvMayApproveHere(full, req.user)) return res.status(403).json({ error: 'Viewers have read-only access' });
+  return passwordCurrent(req, res, next);
+};
+app.post('/api/ai/brief', auth, briefAsker, rlAiDeep, aiFeature('brief'), aiBudgetGuard, capAiInput, async (req, res) => {
   const { id, text, force } = req.body || {};
   if (!id) return res.status(400).json({ error: 'id is required' });
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
@@ -9468,7 +9509,8 @@ const colKey = q => String(q || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const colFlat = s => String(s || '').replace(/[‘’‚′]/g, "'").replace(/[“”„″]/g, '"')
   .replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
 function colAskOut(r) {
-  return r ? { id: r.id, question: r.question, name: r.name, by: r.created_by_name || '', at: r.created_at, used: r.last_used_at } : null;
+  return r ? { id: r.id, question: r.question, name: r.name, by: r.created_by_name || '', at: r.created_at, used: r.last_used_at,
+    rule: r.rule || '', fact: !!r.fact } : null;
 }
 function colAnswerOut(r) {
   let a = {}; try { a = JSON.parse(r.json) || {}; } catch (_) {}
@@ -9494,10 +9536,52 @@ function colContract(req, id) {
 }
 const colIds = v => [...new Set((Array.isArray(v) ? v : []).filter(x => typeof x === 'string' && x).map(String))];
 
-/* the team's questions, newest used first: the panel's "Asked before in your team" */
+/* THE FIRST PACK (the owner's pick, 25 Oct 2026): Due diligence, the five
+   questions a buyer or a bank asks. Built in, kept once; its questions are the
+   team's like any other, so an answer to one is kept for the other. */
+const COLUMN_PACK_DD = { id: 'pk_due_diligence', name: 'Due diligence', questions: [
+  { question: 'How much notice does each side need to end the contract early?', name: 'Notice to end' },
+  { question: 'Is our liability capped, and at what?', name: 'Liability cap' },
+  { question: "Which country's law governs this contract?", name: 'Governing law' },
+  { question: 'Does the contract renew by itself, and how long before must we say no?', name: 'Auto-renewal' },
+  { question: 'Does the other side process personal data for us, and are there processing terms?', name: 'Personal data' },
+] };
+db.prepare('INSERT OR IGNORE INTO column_packs (id,name,questions,builtin,created_by,created_at) VALUES (?,?,?,1,NULL,?)')
+  .run(COLUMN_PACK_DD.id, COLUMN_PACK_DD.name, JSON.stringify(COLUMN_PACK_DD.questions), now());
+function colPackOut(r) {
+  let qs = []; try { qs = JSON.parse(r.questions) || []; } catch (_) { qs = []; }
+  return { id: r.id, name: r.name, questions: qs, builtin: !!r.builtin };
+}
+
+/* the team's questions, newest used first: the panel's "Asked before in your team"; and the packs */
 app.get('/api/columns', auth, (req, res) => {
   const rows = db.prepare('SELECT * FROM column_asks ORDER BY last_used_at DESC LIMIT 12').all();
-  res.json({ asks: rows.map(colAskOut), max: COLUMN_MAX });
+  const packs = db.prepare('SELECT * FROM column_packs ORDER BY builtin DESC, name').all().map(colPackOut);
+  res.json({ asks: rows.map(colAskOut), packs, max: COLUMN_MAX, perRead: COLUMN_Q_MAX });
+});
+
+/* DISCOVER — THE KEPT QUESTIONS, COUNTED (stage 3): for each question the
+   team keeps, how many of the contracts THIS PERSON may see were answered,
+   how many are at risk (outside the rule, or Jambo's "concern" where there is
+   no rule) and when it was last read. Counted off the kept answers: free, no
+   names, nothing read. The company's facts first, then the newest used. */
+app.get('/api/columns/summary', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  const asks = db.prepare('SELECT * FROM column_asks ORDER BY COALESCE(fact,0) DESC, last_used_at DESC LIMIT 20').all();
+  const folders = new Map(db.prepare('SELECT id, folder FROM contracts').all().map(r => [r.id, r.folder]));
+  const out = asks.map(a => {
+    let read = 0, found = 0, risk = 0, last = '';
+    for (const r of db.prepare('SELECT contract_id, json, created_at FROM column_answers WHERE ask_id=?').all(a.id)) {
+      if (!folders.has(r.contract_id) || !inScope(scope, folders.get(r.contract_id))) continue;
+      let x = {}; try { x = JSON.parse(r.json) || {}; } catch (_) { x = {}; }
+      if (x.noWording) continue;
+      read++; if (x.found) found++;
+      if (x.found && (x.verdict === 'out' || ((!x.verdict || x.verdict === 'norule') && x.tone === 'concern'))) risk++;
+      if (r.created_at > last) last = r.created_at;
+    }
+    return { ...colAskOut(a), read, found, risk, last };
+  });
+  res.json({ asks: out });
 });
 
 /* What is already known, spending nothing: the kept answers to one question
@@ -9517,86 +9601,333 @@ app.post('/api/columns/answers', auth, (req, res) => {
   res.json({ ask: colAskOut(ask), answers, stale });
 });
 
+/* ONE READ, MANY ANSWERS (Discover stage 1, owner 25 Oct 2026): a press may
+   carry several questions (`questions: [{question, name}]`, at most
+   COLUMN_Q_MAX; the old single `question`/`name` still works). Each contract is
+   read ONCE for every question it has no kept answer to, in one call, and each
+   answer is kept on its own as before. A question that carries the company's
+   rule (`column_asks.rule`) gets a VERDICT: 'in' or 'out' of that rule, judged
+   off the same read; a question with no rule says 'norule' — never a rule
+   invented. The calls said are the calls made; an answer records how many
+   questions shared its read (`with`), so a column never claims a whole call. */
+const COLUMN_Q_MAX = 8;
+const COLUMN_VERDICTS = ['in', 'out'];
+function colQuestionsOf(b) {
+  const raw = Array.isArray(b.questions) ? b.questions : [{ question: b.question, name: b.name }];
+  const out = [], seen = new Set();
+  for (const x of raw.slice(0, 50)) {
+    const question = String((x && x.question) || '').trim().replace(/\s+/g, ' ');
+    if (question.length < 3) return { error: 'Type the question for the column' };
+    if (question.length > 300) return { error: 'Keep the question under 300 characters' };
+    const k = colKey(question); if (seen.has(k)) continue; seen.add(k);
+    const name = (String((x && x.name) || '').trim().replace(/\s+/g, ' ') || colNameOf(question)).slice(0, 40);
+    out.push({ question, name, qkey: k });
+  }
+  if (!out.length) return { error: 'Type the question for the column' };
+  if (out.length > COLUMN_Q_MAX) return { error: `At most ${COLUMN_Q_MAX} questions are read together` };
+  return { list: out };
+}
+/* A COLUMN NAMES ITSELF (stage 2): the question's own first words, minus the
+   asking words, when the person leaves the name empty */
+function colNameOf(question) {
+  const w = String(question).replace(/[?.!]+$/, '').split(/\s+/)
+    .filter((x, i) => !(i < 3 && /^(how|what|which|who|when|is|are|does|do|can|will|the|a|an|our|this)$/i.test(x)));
+  const n = (w.length ? w : String(question).split(/\s+/)).slice(0, 4).join(' ');
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+function colAskKeep(req, q, at) {
+  let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+  if (ask) db.prepare('UPDATE column_asks SET name=?, last_used_at=? WHERE id=?').run(q.name, at, ask.id);
+  else db.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run('ca_' + crypto.randomBytes(8).toString('hex'), q.qkey, q.question, q.name, String(req.user.id), req.user.name || req.user.email || '', at, at);
+  return db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+}
+const COLUMN_TOOL = {
+  name: 'column_answers',
+  description: 'One short answer per QUESTION for this contract, each as it would sit in one cell of a table, with the wording it rests on.',
+  input_schema: { type: 'object', properties: { answers: { type: 'array', items: { type: 'object', properties: {
+    q: { type: 'integer', description: 'The number of the question this answers.' },
+    found: { type: 'boolean', description: 'true only if the DOCUMENT itself answers the question.' },
+    answer: { type: 'string', description: 'The answer as a table cell, 1 to 5 words: "90 days", "KES 78M", "Not capped", "Kenya". Empty when not found.' },
+    detail: { type: 'string', description: '2 to 6 words that qualify the answer: "either side", "Buyer only", "1x the value". When not found, what was looked for, in 2 to 6 words.' },
+    tone: { type: 'string', enum: COLUMN_TONES, description: 'good = usual and balanced; watch = one-sided or unusual; concern = exposes OUR SIDE to real risk; none = a plain fact, or not found.' },
+    why: { type: 'string', description: 'One plain sentence on what the wording means for the reader. Never advice on whether to sign.' },
+    quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
+    clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
+    verdict: { type: 'string', enum: ['in', 'out', ''], description: 'Only for a question that gives OUR RULE: "in" if the answer keeps the rule, "out" if it breaks it. Empty when the question gives no rule, or nothing was found.' },
+  }, required: ['q', 'found', 'answer', 'detail', 'tone', 'why'] } } }, required: ['answers'] },
+};
+
 app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
   const b = req.body || {};
-  const question = String(b.question || '').trim().replace(/\s+/g, ' ');
-  if (question.length < 3) return res.status(400).json({ error: 'Type the question for the column' });
-  if (question.length > 300) return res.status(400).json({ error: 'Keep the question under 300 characters' });
-  const name = (String(b.name || '').trim().replace(/\s+/g, ' ') || question.split(' ').slice(0, 4).join(' ')).slice(0, 40);
+  const Q = colQuestionsOf(b);
+  if (Q.error) return res.status(400).json({ error: Q.error });
   const asked = colIds(b.ids);
   if (!asked.length) return res.status(400).json({ error: 'There are no contracts to ask' });
   const ids = asked.slice(0, COLUMN_MAX);
-  /* the team's question, kept once by its words; the newest name given wins */
-  const at = now(), qkey = colKey(question);
-  let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(qkey);
-  if (ask) db.prepare('UPDATE column_asks SET name=?, last_used_at=? WHERE id=?').run(name, at, ask.id);
-  else db.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
-    .run('ca_' + crypto.randomBytes(8).toString('hex'), qkey, question, name, String(req.user.id), req.user.name || req.user.email || '', at, at);
-  ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(qkey);
+  /* the team's questions, each kept once by its words; the newest name given wins */
+  const at = now();
+  const asks = Q.list.map(q => colAskKeep(req, q, at));
 
-  const answers = {}, failed = [], todo = [], texts = colTexts(b.texts);
+  const byAsk = Object.fromEntries(asks.map(a => [a.id, {}]));
+  const failed = [], todo = [], texts = colTexts(b.texts);
   let cached = 0;
   for (const id of ids) {
     const full = colContract(req, id);
     if (!full) { failed.push({ id, why: 'notFound' }); continue; }
     const w = colWording(req, full, texts[id]), sent = w.text;
-    if (!w.has) { answers[id] = { found: false, noWording: true, at, by: 'jambo', calls: 0 }; continue; }
-    const hash = sha(sent);
-    const prev = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(ask.id, id);
-    if (prev && prev.input_hash === hash && !b.force) { answers[id] = colAnswerOut(prev); cached++; continue; }
-    todo.push({ id, full, sent, hash, capped: w.capped });
+    if (!w.has) { for (const a of asks) byAsk[a.id][id] = { found: false, noWording: true, at, by: 'jambo', calls: 0 }; continue; }
+    const hash = sha(sent), need = [];
+    for (const a of asks) {
+      const prev = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, id);
+      if (prev && prev.input_hash === hash && !b.force) { byAsk[a.id][id] = colAnswerOut(prev); cached++; }
+      else need.push(a);
+    }
+    if (need.length) todo.push({ id, full, sent, hash, capped: w.capped, asks: need });
   }
   const key = todo.length ? aiKey() : null;
   if (todo.length && !key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
-  const tool = {
-    name: 'column_answer',
-    description: 'One short answer to the question for this contract, as it would sit in one cell of a table, with the wording it rests on.',
-    input_schema: { type: 'object', properties: {
-      found: { type: 'boolean', description: 'true only if the DOCUMENT itself answers the question.' },
-      answer: { type: 'string', description: 'The answer as a table cell, 1 to 5 words: "90 days", "KES 78M", "Not capped", "Kenya". Empty when not found.' },
-      detail: { type: 'string', description: '2 to 6 words that qualify the answer: "either side", "Buyer only", "1x the value". When not found, what was looked for, in 2 to 6 words.' },
-      tone: { type: 'string', enum: COLUMN_TONES, description: 'good = usual and balanced; watch = one-sided or unusual; concern = exposes OUR SIDE to real risk; none = a plain fact, or not found.' },
-      why: { type: 'string', description: 'One plain sentence on what the wording means for the reader. Never advice on whether to sign.' },
-      quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
-      clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
-    }, required: ['found', 'answer', 'detail', 'tone', 'why'] },
-  };
   const J = orgJx();
   let calls = 0, lastResp = null;
   const readOne = async t => {
     const ours = t.full.party || (t.full.execution && t.full.execution.firstParty) || 'our company';
-    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill one cell of a table. The QUESTION is asked of every contract in their list. Answer it for this DOCUMENT only, via column_answer. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer the question, set found to false and leave the answer empty.\n\nQUESTION: ${question}\n\nDOCUMENT:\n${t.sent}`;
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 800, tools: [tool], tool_choice: { type: 'tool', name: 'column_answer' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
+    const one = t.asks.length === 1;
+    const qs = one
+      ? `QUESTION: ${t.asks[0].question}${t.asks[0].rule ? `\nOUR RULE: ${t.asks[0].rule}` : ''}`
+      : 'QUESTIONS (answer every one, by its number):\n' + t.asks.map((a, i) => `${i + 1}. ${a.question}${a.rule ? `\n   OUR RULE: ${a.rule}` : ''}`).join('\n');
+    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill cells of a table. Each question is asked of every contract in their list. Answer ${one ? 'it' : 'each one'} for this DOCUMENT only, via column_answers${one ? ' (q is 1)' : ''}. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer a question, set found to false and leave its answer empty. Where a question gives OUR RULE, say whether the answer keeps it ("in") or breaks it ("out"); where it gives none, leave the verdict empty.\n\n${qs}\n\nDOCUMENT:\n${t.sent}`;
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 500 + 400 * t.asks.length, tools: [COLUMN_TOOL], tool_choice: { type: 'tool', name: 'column_answers' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
     calls++; lastResp = resp;
-    if (!resp.ok) { failed.push({ id: t.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
+    if (!resp.ok) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
-    if (!block) { failed.push({ id: t.id, why: 'empty' }); return; }
-    const d = block.input || {};
+    const list = block && block.input && Array.isArray(block.input.answers) ? block.input.answers : null;
+    if (!list) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'empty' }); return; }
     const s = v => String(v == null ? '' : v).trim();
-    const found = d.found === true && !!s(d.answer);
-    /* THE SENTENCE IS CHECKED AGAINST THE WORDING: a quote that is not in the
-       document is not shown as if it were — an absence is stated, never guessed */
-    let quote = s(d.quote).slice(0, 600);
-    const quoteMissing = !!quote && !colFlat(t.sent).includes(colFlat(quote));
-    if (quoteMissing) quote = '';
-    const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
-      tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
-      quote, quoteMissing, clause: s(d.clause).slice(0, 80), truncated: !!resp.truncated,
-      inputCapped: t.capped, at: now(), by: 'jambo', calls: 1 };
-    db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
-      VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
-      checked_by=NULL, checked_name=NULL, checked_at=NULL, created_at=excluded.created_at`)
-      .run(ask.id, t.id, t.hash, JSON.stringify(a), a.at);
-    answers[t.id] = { ...a, checked: null };
+    t.asks.forEach((ask, i) => {
+      const d = list.find(x => x && Number(x.q) === i + 1) || (list.length === t.asks.length ? list[i] : null);
+      if (!d) { failed.push({ id: t.id, askId: ask.id, why: 'empty' }); return; }
+      const found = d.found === true && !!s(d.answer);
+      /* THE SENTENCE IS CHECKED AGAINST THE WORDING: a quote that is not in the
+         document is not shown as if it were — an absence is stated, never guessed */
+      let quote = s(d.quote).slice(0, 600);
+      const quoteMissing = !!quote && !colFlat(t.sent).includes(colFlat(quote));
+      if (quoteMissing) quote = '';
+      /* THE VERDICT IS THE RULE'S, NEVER INVENTED: no rule, 'norule'; nothing found, none */
+      const verdict = !ask.rule ? 'norule' : found && COLUMN_VERDICTS.includes(d.verdict) ? d.verdict : '';
+      const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
+        tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
+        quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '',
+        truncated: !!resp.truncated, inputCapped: t.capped, at: now(), by: 'jambo', calls: 1, with: t.asks.length };
+      db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
+        VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
+        checked_by=NULL, checked_name=NULL, checked_at=NULL, created_at=excluded.created_at`)
+        .run(ask.id, t.id, t.hash, JSON.stringify(a), a.at);
+      byAsk[ask.id][t.id] = { ...a, checked: null };
+    });
   };
   try {
     const queue = todo.slice();
     await Promise.all(Array.from({ length: Math.min(COLUMN_AT_ONCE, queue.length) }, async () => {
-      while (queue.length) { const t = queue.shift(); try { await readOne(t); } catch (e) { failed.push({ id: t.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); } }
+      while (queue.length) { const t = queue.shift(); try { await readOne(t); } catch (e) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); } }
     }));
   } catch (e) { return res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
-  res.json({ ask: colAskOut(ask), answers, calls, cached, failed,
+  const first = asks[0];
+  res.json({ ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached,
+    failed: asks.length === 1 ? failed.map(f => ({ id: f.id, why: f.why, ...(f.error ? { error: f.error } : {}) })) : failed,
     capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) });
+});
+
+/* THE COMPANY'S RULE AND THE COMPANY'S FACT (Discover stages 1 and 4, owner
+   25 Oct 2026: "any admin" switches a fact on). An admin writes, for a kept
+   question, the rule an answer is judged against (words, at most 200) and
+   whether the company keeps it as a FACT (read for every contract that
+   arrives, in the one arrival read). A changed rule changes what a verdict
+   means, so the answers kept under the old rule are let go: the next press
+   reads them again. Rules live here, as settings do: the page only shows them. */
+const COLUMN_FACTS_MAX = 8;
+app.put('/api/columns/:askId', auth, admin, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(req.params.askId));
+  if (!ask) return res.status(404).json({ error: 'That question is not kept any more' });
+  const b = req.body || {};
+  if ('rule' in b) {
+    const rule = String(b.rule == null ? '' : b.rule).trim().replace(/\s+/g, ' ');
+    if (rule.length > 200) return res.status(400).json({ error: 'Keep the rule under 200 characters' });
+    if (rule !== (ask.rule || '')) {
+      db.prepare('UPDATE column_asks SET rule=? WHERE id=?').run(rule || null, ask.id);
+      db.prepare('DELETE FROM column_answers WHERE ask_id=?').run(ask.id);
+    }
+  }
+  if ('fact' in b) {
+    const on = !!b.fact;
+    if (on && !ask.fact) {
+      const n = db.prepare('SELECT COUNT(*) AS n FROM column_asks WHERE fact=1').get().n;
+      if (n >= COLUMN_FACTS_MAX) return res.status(400).json({ error: `At most ${COLUMN_FACTS_MAX} company facts are kept; switch one off first` });
+    }
+    db.prepare('UPDATE column_asks SET fact=?, fact_by=?, fact_at=? WHERE id=?')
+      .run(on ? 1 : 0, on ? (req.user.name || req.user.email || '') : null, on ? now() : null, ask.id);
+  }
+  if ('name' in b) {
+    const name = String(b.name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+    if (name) db.prepare('UPDATE column_asks SET name=? WHERE id=?').run(name, ask.id);
+  }
+  res.json({ ask: colAskOut(db.prepare('SELECT * FROM column_asks WHERE id=?').get(ask.id)) });
+});
+
+/* THE COMPANY'S FACTS FOR ONE CONTRACT (Discover stage 4): the kept answer to
+   each fact, for a contract the reader may see; one whose wording moved since it
+   was read is said `stale`, never served as current. Free. Its Key terms read it. */
+app.get('/api/columns/facts/:cid', auth, (req, res) => {
+  const id = String(req.params.cid);
+  const full = colContract(req, id);
+  if (!full) return res.status(404).json({ error: 'Contract not found' });
+  /* a paper drawn from its template has no stored wording here, so it cannot be said stale; stored wording can */
+  const w = colWording(null, full, ''), hash = w.has ? sha(w.text) : null;
+  const facts = db.prepare('SELECT * FROM column_asks WHERE fact=1 ORDER BY name').all().map(a => {
+    const r = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, id);
+    const answer = r ? colAnswerOut(r) : null;
+    const stale = !!(r && hash && r.input_hash !== hash && !(answer && answer.noWording));
+    return { ask: colAskOut(a), answer, stale };
+  });
+  res.json({ facts });
+});
+
+/* UNUSUAL FOR YOU (Discover stage 6, owner 25 Oct 2026): for one contract,
+   each company fact whose answer stands apart from the other contracts of the
+   SAME KIND the reader may see — counted off the kept answers, no call, no AI.
+   Said only with COLUMN_ODD_MIN others to compare with (the precedent floor,
+   js/precedent.js PRECEDENT_MIN), only where fewer than one in three of them
+   say the same and at least half say one other thing. Nothing is guessed: no
+   kind, no kept answer, or too few others — nothing is said. */
+const COLUMN_ODD_MIN = 3;
+const colNorm = v => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim();
+app.get('/api/columns/unusual/:cid', auth, (req, res) => {
+  const id = String(req.params.cid);
+  const full = colContract(req, id);
+  if (!full) return res.status(404).json({ error: 'Contract not found' });
+  const kind = colNorm(full.category || full.type);
+  const facts = db.prepare('SELECT * FROM column_asks WHERE fact=1 ORDER BY name').all();
+  if (!kind || !facts.length) return res.json({ kind: full.category || full.type || '', lines: [] });
+  const scope = folderScopeFor(req.user);
+  let outside = new Set(); try { outside = cnOutsideFor(req.user); } catch (_) { outside = new Set(); }
+  const peers = new Set();
+  for (const r of db.prepare('SELECT id, folder, json FROM contracts').all()) {
+    if (r.id === id || !inScope(scope, r.folder) || outside.has(r.id)) continue;
+    let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) { f = {}; }
+    if (f.archived || colNorm(f.category || f.type) !== kind) continue;
+    peers.add(r.id);
+  }
+  const lines = [];
+  for (const a of facts) {
+    const mine = db.prepare('SELECT json FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, id);
+    const m = mine ? watchJson(mine.json) : null;
+    if (!m || !m.found || m.noWording) continue;
+    const others = db.prepare('SELECT contract_id, json FROM column_answers WHERE ask_id=?').all(a.id)
+      .filter(r => peers.has(r.contract_id)).map(r => ({ id: r.contract_id, x: watchJson(r.json) })).filter(o => o.x.found && !o.x.noWording);
+    if (others.length < COLUMN_ODD_MIN) continue;
+    const counts = new Map(), shown = new Map();
+    for (const o of others) { const k = colNorm(o.x.answer); counts.set(k, (counts.get(k) || 0) + 1); if (!shown.has(k)) shown.set(k, o.x.answer); }
+    const same = counts.get(colNorm(m.answer)) || 0;
+    let top = '', topN = 0; for (const [k, n] of counts) if (n > topN) { top = k; topN = n; }
+    if (same * 3 >= others.length || topN * 2 < others.length || top === colNorm(m.answer)) continue;
+    lines.push({ askId: a.id, fact: a.name, mine: m.answer, others: others.length, same, usual: shown.get(top), usualN: topN,
+      ids: others.filter(o => colNorm(o.x.answer) === top).map(o => o.id) });
+  }
+  res.json({ kind: full.category || full.type || '', lines });
+});
+
+/* ===================== THE PARTY'S TWO MINUTES (Discover stage 9, owner
+   25 Oct 2026) =====================
+   On the Parties page, a chosen party's facts COUNTED off the stored records
+   the reader may see — their agreements, what is live, what ends next, the
+   value in each contract's own currency (never converted, never shown to
+   someone who may not see values), the duties open each way, how they
+   negotiated (their asks taken or held, by clause), and the company facts'
+   answers side by side — free. A code-named deal the reader is outside of is
+   left out. One press writes the two-minute brief from THOSE FACTS ONLY (one
+   call), kept per party until the facts change; every figure in it is
+   checked against the facts and any that is not there is said. */
+const PARTY_BRIEF_MAX_CONTRACTS = 40;
+const ptyKey = v => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+function partyFactsFor(req, name) {
+  const key = ptyKey(name); if (!key) return null;
+  const scope = folderScopeFor(req.user);
+  let outside = new Set(); try { outside = cnOutsideFor(req.user); } catch (_) { outside = new Set(); }
+  const money = canViewValues(req.user), today = aiToday();
+  const items = [];
+  for (const r of db.prepare('SELECT id, folder, json FROM contracts').all()) {
+    if (!inScope(scope, r.folder) || outside.has(r.id)) continue;
+    let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) { f = {}; }
+    if (f.archived || ptyKey(f.counterparty) !== key) continue;
+    items.push(f);
+    if (items.length >= PARTY_BRIEF_MAX_CONTRACTS) break;
+  }
+  if (!items.length) return null;
+  const ref = f => contractRef(f);
+  const live = items.filter(f => f.status !== 'Declined' && !(f.expiry && String(f.expiry).slice(0, 10) < today));
+  const ends = items.filter(f => /^\d{4}-\d{2}-\d{2}/.test(String(f.expiry || '')) && String(f.expiry).slice(0, 10) >= today)
+    .sort((a, b) => String(a.expiry).localeCompare(String(b.expiry))).slice(0, 3).map(f => ({ ref: ref(f), name: f.name || '', day: String(f.expiry).slice(0, 10) }));
+  const value = {};
+  if (money) for (const f of live) { const v = Number(f.value) || 0; if (v > 0) { const cur = String((f.metadata && f.metadata.currency) || f.currency || 'KES'); value[cur] = (value[cur] || 0) + v; } }
+  let dutiesOurs = 0, dutiesTheirs = 0;
+  for (const f of items) for (const ob of (Array.isArray(f.obligations) ? f.obligations : [])) {
+    if (!ob || ob.status === 'done') continue;
+    if (ob.party === 'theirs' || ob.party === 'counterparty') dutiesTheirs++; else dutiesOurs++;
+  }
+  const byClause = new Map();
+  for (const f of items) for (const ch of (Array.isArray(f.changes) ? f.changes : [])) {
+    if (!ch || ch.authorSide !== 'counterparty' || ch.withdrawn) continue;
+    if (ch.status !== 'accepted' && ch.status !== 'rejected') continue;
+    const k = String(ch.clauseLabel || '').trim() || 'Unnamed clause';
+    const x = byClause.get(k) || { clause: k, gave: 0, held: 0 };
+    if (ch.status === 'accepted') x.gave++; else x.held++;
+    byClause.set(k, x);
+  }
+  const negotiated = [...byClause.values()].sort((a, b) => (b.gave + b.held) - (a.gave + a.held)).slice(0, 5);
+  const facts = db.prepare('SELECT * FROM column_asks WHERE fact=1 ORDER BY name').all().map(a => ({
+    fact: a.name, answers: items.map(f => { const r = db.prepare('SELECT json FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, f.id);
+      const x = r ? watchJson(r.json) : null; return x && !x.noWording ? { ref: ref(f), answer: x.found ? x.answer : 'not found', risk: !!(x.found && (x.verdict === 'out' || ((!x.verdict || x.verdict === 'norule') && x.tone === 'concern'))) } : null; }).filter(Boolean) }))
+    .filter(x => x.answers.length);
+  return { name: items[0].counterparty || name, key, agreements: items.length, live: live.length, ends, value: money ? value : null,
+    duties: { ours: dutiesOurs, theirs: dutiesTheirs }, negotiated, facts, capped: items.length >= PARTY_BRIEF_MAX_CONTRACTS };
+}
+function partyBriefKept(key, hash) {
+  const r = db.prepare('SELECT * FROM party_briefs WHERE key=?').get(key);
+  if (!r) return { brief: null, stale: false };
+  const b = watchJson(r.json);
+  return { brief: b, stale: r.input_hash !== hash };
+}
+app.get('/api/parties/brief', auth, (req, res) => {
+  const F = partyFactsFor(req, req.query.name);
+  if (!F) return res.status(404).json({ error: 'No agreements with that party in your streams' });
+  const hash = sha(JSON.stringify(F)), kept = partyBriefKept(F.key + ':' + req.user.id, hash);
+  res.json({ facts: F, brief: kept.stale ? null : kept.brief, stale: kept.stale });
+});
+app.post('/api/ai/party-brief', auth, editor, rlAiDeep, aiFeature('partybrief'), aiBudgetGuard, async (req, res) => {
+  const F = partyFactsFor(req, (req.body || {}).name);
+  if (!F) return res.status(404).json({ error: 'No agreements with that party in your streams' });
+  /* kept per party AND per reader: two readers may see different streams, so one brief never carries another's facts */
+  const hash = sha(JSON.stringify(F)), bkey = F.key + ':' + req.user.id;
+  const kept = partyBriefKept(bkey, hash);
+  if (kept.brief && !kept.stale && !(req.body || {}).force) return res.json({ brief: kept.brief, calls: 0 });
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const facts = JSON.stringify(F);
+  const tool = { name: 'party_brief', description: 'A two-minute brief on one counterparty, for someone walking into a meeting with them.',
+    input_schema: { type: 'object', properties: { brief: { type: 'string', description: 'Four to six plain sentences: what we have with them, what ends next, what is owed, how they negotiate, and the one thing to watch. Only what the FACTS say; every figure copied from them.' } }, required: ['brief'] } };
+  const prompt = `Write a two-minute brief on the counterparty ${F.name} for a colleague walking into a meeting with them, via party_brief. Use ONLY the FACTS below (counted from our own records); never invent, never guess, never give legal advice, and copy every figure exactly as the FACTS give it. Plain, everyday sentences.\n\nFACTS:\n${facts}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 700, tools: [tool], tool_choice: { type: 'tool', name: 'party_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'partybrief', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo request failed: ' + String(resp.error || resp.status).slice(0, 200) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const text = String((block && block.input && block.input.brief) || '').trim().slice(0, 2000);
+    if (!text) return res.status(502).json({ error: 'Jambo gave no brief' });
+    /* EVERY FIGURE CHECKED: a number not in the facts is said beside the brief, never passed off as checked */
+    let unchecked = []; try { const { numbersOutside } = require('./boardjudge.js'); unchecked = numbersOutside(text, [facts, aiToday()].join(' ')) || []; } catch (_) { unchecked = []; }
+    const brief = { text, at: now(), by: req.user.name || '', unchecked, truncated: !!resp.truncated };
+    db.prepare('INSERT INTO party_briefs (key,input_hash,json,created_at) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json, created_at=excluded.created_at')
+      .run(bkey, hash, JSON.stringify(brief), brief.at);
+    res.json({ brief, calls: 1, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* A PERSON'S TICK: who checked this answer, and when. Anyone who may ask may
@@ -25126,7 +25457,9 @@ db.exec(`
     last_fired_at TEXT, fired TEXT, seen_at TEXT, ended_at TEXT);
   CREATE INDEX IF NOT EXISTS idx_watches_user ON watches(user_id);
 `);
-const WATCH_KINDS = ['reply', 'renewal', 'remind', 'obligation'];
+/* 'answer' (Discover stage 5, owner 25 Oct 2026: on company facts only): a new answer to a
+   company fact that is at risk — outside its rule, or Jambo's concern where it has none */
+const WATCH_KINDS = ['reply', 'renewal', 'remind', 'obligation', 'answer'];
 const WATCH_MAX = 50;                 // per person — a cap is a fact: the refusal says it
 const WATCH_DAYS_MAX = 365;
 const WATCH_HITS_MAX = 400;           // the standing kinds remember what they already told, bounded
@@ -25153,6 +25486,12 @@ function watchClean(b, user) {
     if (!cid) return { error: 'Say which contract to watch for their reply.' };
     return { kind, cid, params: {} };
   }
+  if (kind === 'answer') {
+    const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(p.askId || ''));
+    if (!ask) return { error: 'That question is not kept any more.', status: 404 };
+    if (!ask.fact) return { error: 'A watch on an answer is set on a company fact. An admin can keep this question as one.' };
+    return { kind, cid: '', params: { askId: ask.id, name: ask.name } };
+  }
   if (kind === 'renewal') return { kind, cid, params: { days: days(p.days, 60) || 60 } };
   if (kind === 'obligation') return { kind, cid, params: { days: days(p.days, 7) } };
   const on = myDay(p.on);
@@ -25166,7 +25505,8 @@ function watchRow(r) {
     unseen: !!(r.last_fired_at && (!r.seen_at || r.seen_at < r.last_fired_at)) };
 }
 /* the words the trail keeps: the kind and its day or window, never a contract's name */
-const watchTrailWords = w => w.kind === 'reply' ? 'their reply on a contract'
+const watchTrailWords = w => w.kind === 'answer' ? `a new contract at risk on the company fact "${w.params.name || ''}"`
+  : w.kind === 'reply' ? 'their reply on a contract'
   : w.kind === 'renewal' ? `a renewal within ${w.params.days} days`
   : w.kind === 'obligation' ? `an obligation due within ${w.params.days} days or late`
   : `a reminder on ${w.params.on}`;
@@ -25243,6 +25583,22 @@ function runWatches(opts) {
       if (at) { hit = { what: 'reply', cid: w.contract_id, at, how: m === at ? 'note' : 'answer' }; end = true; }
     } else if (w.kind === 'remind') {
       if (p.on && p.on <= day) { hit = { what: 'remind', cid: w.contract_id || null, on: p.on }; end = true; }
+    } else if (w.kind === 'answer') {
+      /* A NEW ANSWER AT RISK: read after the watch began, for a contract its owner may see; each told once */
+      const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(p.askId || ''));
+      if (!ask || !ask.fact) continue;
+      const rowsA = db.prepare('SELECT a.contract_id, a.json, a.created_at, c.folder FROM column_answers a JOIN contracts c ON c.id=a.contract_id WHERE a.ask_id=? AND a.created_at > ? ORDER BY a.created_at').all(ask.id, w.created_at);
+      for (const r of rowsA) {
+        if (!inScope(scope, r.folder)) continue;
+        try { if (cnOutsideFor(u).has(r.contract_id)) continue; } catch (_) {}
+        const x = watchJson(r.json);
+        const risk = x.found && (x.verdict === 'out' || ((!x.verdict || x.verdict === 'norule') && x.tone === 'concern'));
+        const k = `${r.contract_id}:${r.created_at}`;
+        if (!risk || hits.has(k)) continue;
+        hits.add(k);
+        hit = { what: 'answer', cid: r.contract_id, askId: ask.id, fact: ask.name, answer: String(x.answer || '').slice(0, 60), clause: String(x.clause || '').slice(0, 80), quote: String(x.quote || '').slice(0, 300) };
+        break;
+      }
     } else if (w.kind === 'renewal' || w.kind === 'obligation') {
       const B = readBook();
       const n = Number(p.days) || 0;
@@ -25285,7 +25641,7 @@ function runWatches(opts) {
       const cr = hit.cid ? db.prepare('SELECT id,name,counterparty,json FROM contracts WHERE id=?').get(hit.cid) : null;
       let full = {}; try { full = cr ? (JSON.parse(cr.json) || {}) : {}; } catch (_) { full = {}; }
       const vars = { ref: cr ? contractRef(full.id ? full : cr) : '', name: cr ? (cr.name || '') : '', who: cr ? (cr.counterparty || tFor(L, 'wt_mail_them')) : '',
-        day: hit.day || hit.due || hit.on || '', what: p.what || '', n: hit.days == null ? '' : hit.days };
+        day: hit.day || hit.due || hit.on || '', what: p.what || '', n: hit.days == null ? '' : hit.days, fact: hit.fact || '', answer: hit.answer || '' };
       const line = tFor(L, 'wt_mail_' + hit.what + (hit.what === 'remind' && !cr ? '_bare' : '') + (hit.what === 'obligation' && hit.late ? '_late' : ''), vars);
       const link = cr ? contractUrl(null, cr.id) : (APP_URL() || `http://localhost:${PORT}`) + '/';
       sendEmail(u.email, tFor(L, 'wt_mail_subject', { line: line.length > 90 ? line.slice(0, 89) + '…' : line }),

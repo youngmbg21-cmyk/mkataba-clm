@@ -772,6 +772,8 @@ const ST_GROUPS=[
   { key:'standards', tab:'platform' },
   { key:'intake',    tab:'platform', sub:true },
   { key:'copilot',   tab:'platform' },
+  /* THE COMPANY'S FACTS (Discover stage 4, 25 Oct 2026): their own group under Jambo's, so neither holds more than four */
+  { key:'facts',     tab:'platform', sub:true },
   { key:'house',     tab:'platform' },
   { key:'launch',    tab:'build' },
   { key:'plumbing',  tab:'build' }
@@ -1290,7 +1292,7 @@ const ST_CARDS=[
   /* "Jambo's agents ›" opens their page with ‹ Settings (round 25 as drawn,
      the gaps' third pass: every card door is a page on the desk) — the
      agents' own panel, how far each may go; his house stays its own place */
-  { key:'copilot', groups:['copilot'], facts:['copilot','agents'], doors:()=>[{ panel:'agents' }, { panel:'boardwords' }] },
+  { key:'copilot', groups:['copilot','facts'], facts:['copilot','agents'], doors:()=>[{ panel:'agents' }, { panel:'boardwords' }, { panel:'facts' }] },
   /* Housekeeping says how the book is kept and when the record last left
      (round 25 as drawn); Data & backup opens on The trail (round 26) */
   { key:'house', groups:['house'], own:()=>stHouseFacts(),
@@ -6323,6 +6325,21 @@ const SET_PANELS={
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_link_code_sub')}</p><div id="lc-rule-panel"></div>`; },
     find:()=>[i18t('set_link_code'), i18t('set_link_code_sub')],
     wire(){ renderLinkCodePanel(); },
+  },
+
+  /* ---- THE COMPANY'S FACTS (Discover stage 4, owner 25 Oct 2026: "any admin")
+     ---- Questions the company keeps asking of every contract: each one on is
+     read for every contract that arrives, in one read, and stands in Key terms.
+     The rules an answer is judged against are written here. The server holds
+     both (PUT /api/columns/:id, admin only); this panel shows and presses. */
+  facts:{
+    tab:'platform', group:'facts', mandatory:false,
+    title:()=>i18t('fa_title'),
+    sub:()=>i18t('fa_sub'),
+    state(){ return (typeof window.askColFactsState==='function') ? askColFactsState() : { dot:'off', text:i18t('fa_title') }; },
+    find:()=>[i18t('fa_title'), i18t('fa_sub')],
+    body(){ return `<div id="fa-panel"></div>`; },
+    wire(){ if(typeof window.askColFactsPanelWire==='function') askColFactsPanelWire(); },
   },
 
   desk:{

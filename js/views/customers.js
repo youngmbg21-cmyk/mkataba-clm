@@ -1070,6 +1070,58 @@ function cuSay(){
   if (_cu.status !== 'all') chips.push({ label: i18t('cu_say_chip_all'), run: set('status', 'all') });
   return { lines, chips };
 }
+/* ---- BEFORE THE CALL: THE PARTY'S TWO MINUTES (Discover stage 9, owner 25 Oct 2026) ----
+   Under the party's facts: how they negotiated (their asks we gave or held, by
+   clause), the company facts' answers side by side, counted free by the server
+   (GET /api/parties/brief); and the two-minute brief — kept, free; or one call
+   on a press, said first, figures checked (POST /api/ai/party-brief). */
+const _cuBrief = {};
+let _cuBriefBusy = null;
+function cuBriefLoad(r){
+  const k = r.key; if (_cuBrief[k] !== undefined) return;
+  /* no server (this browser alone, or a stage with none): the section has nothing to count and says nothing */
+  if (typeof api !== 'function' || (typeof API_MODE === 'function' && !API_MODE())){ _cuBrief[k] = {}; return; }
+  _cuBrief[k] = null;
+  api('parties/brief?name=' + encodeURIComponent(r.name)).then(x => { _cuBrief[k] = x || {}; cuBriefPaint(k); }, () => { _cuBrief[k] = {}; cuBriefPaint(k); });
+}
+function cuBriefPaint(k){
+  const host = document.querySelector(`[data-cu-brief-for="${CSS.escape(k)}"]`);
+  if (host) host.innerHTML = cuBriefInner(k);
+}
+function cuBriefInner(k){
+  const x = _cuBrief[k]; if (!x || !x.facts) return '';
+  const F = x.facts, may = (typeof canEdit !== 'function') || !!canEdit();
+  const neg = (F.negotiated || []).slice(0, 3).map(n => `<li>${_cuE(i18t('cu_br_neg', { clause: n.clause, gave: n.gave, held: n.held }))}</li>`).join('');
+  const facts = (F.facts || []).map(f => `<li><b>${_cuE(f.fact)}</b>: ${f.answers.map(a => `<span class="${a.risk ? 'cu-br-risk' : ''}">${_cuE(a.ref)} ${_cuE(a.answer)}</span>`).join(' · ')}</li>`).join('');
+  const b = x.brief, busy = _cuBriefBusy === k;
+  const brief = b ? `<p class="cu-br-text">${_cuE(b.text)}</p>${b.unchecked && b.unchecked.length ? `<p class="ins-note cu-br-warn">${_cuE(i18t('cu_br_unchecked', { figs: b.unchecked.join(', ') }))}</p>` : ''}<p class="ins-note">${_cuE(i18t(b.unchecked && b.unchecked.length ? 'cu_br_kept_only' : 'cu_br_kept'))}</p>`
+    : may ? `<div class="ins-acts"><button type="button" class="ui-btn" data-cu-brief="${_cuE(k)}"${busy ? ' disabled' : ''}>${_cuE(i18t(busy ? 'cu_br_busy' : 'cu_br_write'))}</button></div><p class="ins-note">${_cuE(i18t(x.stale ? 'cu_br_cost_stale' : 'cu_br_cost'))}</p>`
+    : `<p class="ins-note">${_cuE(i18t('cu_br_viewer'))}</p>`;
+  const body = `<div class="cu-br">${neg ? `<p class="cu-br-k">${_cuE(i18t('cu_br_neg_h'))}</p><ul class="cu-br-list">${neg}</ul>` : `<p class="ins-note">${_cuE(i18t('cu_br_neg_none'))}</p>`}
+    ${facts ? `<p class="cu-br-k">${_cuE(i18t('cu_br_facts_h'))}</p><ul class="cu-br-list">${facts}</ul>` : ''}
+    <p class="cu-br-k">${_cuE(i18t('cu_br_two_h'))}</p>${brief}</div>`;
+  /* the section, heading and all, only once there is something counted to say */
+  return (typeof insSecHtml === 'function') ? insSecHtml(i18t('cu_br_h'), '', body, 'cu-brief') : body;
+}
+function cuBriefSecHtml(r){
+  cuBriefLoad(r);
+  return `<div class="cu-br-host" data-cu-brief-for="${_cuE(r.key)}">${cuBriefInner(r.key)}</div>`;
+}
+async function cuBriefWrite(k){
+  const x = _cuBrief[k]; if (!x || !x.facts || _cuBriefBusy) return;
+  _cuBriefBusy = k; cuBriefPaint(k);
+  try {
+    const r = await api('ai/party-brief', 'POST', { name: x.facts.name });
+    if (r && r.brief){ x.brief = r.brief; x.stale = false; }
+    if (typeof toast === 'function') toast(i18t('cu_br_done'), 'ok');
+  } catch (e){
+    if (typeof toast === 'function') toast(e && (e.needsKey || e.kind === 'noKey') ? i18t('ac_nokey') : i18t('cu_br_err', { msg: (e && e.message) || '' }), 'err');
+  } finally { _cuBriefBusy = null; cuBriefPaint(k); }
+}
+if (typeof document !== 'undefined' && !document._cuBriefWired){
+  document._cuBriefWired = true;
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-cu-brief]') : null; if (!b) return; e.preventDefault(); cuBriefWrite(b.getAttribute('data-cu-brief')); });
+}
 function cuPaintCustomerPanel(tb){
   const seat = 'customers';
   const idOf = r => r.getAttribute('data-cu-cust');
@@ -1106,6 +1158,8 @@ function cuPaintCustomerPanel(tb){
           { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) }] },
       body: (_cu.edit === r.key ? cuPrFormHtml(r) : '') + rows
         + (r.needs.length ? sec(i18t('cu_col_waiting'), r.needs.length, cuPanelNeedsHtml(r.needs), 'cu-needs') : '')
+        /* BEFORE THE CALL (Discover stage 9): how they negotiate, the company facts side by side, the two minutes */
+        + cuBriefSecHtml(r)
         /* AS DRAWN FOR A PARTY WITH NOTHING LIVE (Kettle & Co): Live agreements
            already names what ended, so no list repeats it; and where a
            colleague's request about them waits, that request is the way to

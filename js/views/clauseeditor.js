@@ -2579,6 +2579,21 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      the first card — worked out already, nothing spent — and its Apply is the
      one thing that moves words into the box. Filing is still this page's own
      Save, through negoEditClause. */
+  /* ---- WHAT WORKED BEFORE (Discover stage 7, owner 25 Oct 2026) ---- On one of THEIR asks: the wording
+     last agreed on the same topic — with this party (one round is enough), else across the book (from three) —
+     as a card, nothing spent; its Apply only puts the words in the box, and Save files them through the funnel. */
+  try{
+    const mch = (opts && opts.changeId && window.negoChangeById) ? negoChangeById(_ceC, opts.changeId) : null;
+    const M = (mch && typeof window.precedentMemoryOf === 'function') ? precedentMemoryOf(_ceC, mch) : null;
+    if (M && M.wording && M.wording.text){
+      const W = M.wording;
+      const when = W.at ? String(W.at).slice(0, 10) : '';
+      /* worked out from the record, not written by a model: no "check before sending" foot (the ladder card's rule) */
+      _ceThread.push({ who: 'ai', memory: true, text: '', read: [],
+        cards: [{ name: _cet('ce_mem_h'), chip: _cet(M.withThem ? 'ce_mem_chip_them' : 'ce_mem_chip_book'), chipTone: 'std',
+          line: _cet('ce_mem_line', { who: W.counterparty || '', ref: W.ref || '', when }), rests: M.line || '', text: W.text, passage: null }] });
+    }
+  }catch(_){ /* no memory: nothing drawn, nothing said */ }
   try{
     const ch = (opts && opts.changeId && window.negoChangeById) ? negoChangeById(_ceC, opts.changeId) : null;
     const prep = (ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && window.roundPrepOf) ? roundPrepOf(_ceC, ch) : null;

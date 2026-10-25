@@ -2103,7 +2103,9 @@ function pdRoadRuleHtml(c, r){
   const movedHtml = (hasMoved && _pdRdMoved === 'rule') ? pdRoadMovedHtml(moved) : '';
   /* the approval email's link and Needs you land on the first yes this reader may give (#sa-card) */
   const id = (st === 'pending' && r.mine && !_pdRdId) ? (_pdRdId = true, ' id="sa-card"') : '';
-  return `<div class="pd-rd-card sa-card"${id} data-pd-rd-rule-card="${_pdE(st)}">${states}${standin}${facts ? `<p class="pd-rd-facts">${_pdE(facts)}</p>` : ''}${
+  /* WHAT YOU ARE APPROVING (Discover stage 8): the approver's own stop carries the card, above Approve · Refuse */
+  const what = (st === 'pending' && r.mine && typeof apWhatHtml === 'function') ? apWhatHtml(c) : '';
+  return `<div class="pd-rd-card sa-card"${id} data-pd-rd-rule-card="${_pdE(st)}">${states}${standin}${facts ? `<p class="pd-rd-facts">${_pdE(facts)}</p>` : ''}${what}${
     acts.length ? `<div class="pd-rd-acts">${acts.join('')}</div>` : ''}${movedHtml}</div>`;
 }
 function pdRoadMovedHtml(moved){
@@ -3853,6 +3855,8 @@ function dossierReadHtml(c, D){
   if (R.blanks){ const b = R.blanks;
     rows.push(row('blanks', _pdT('dos_k_blanks'), `${b.total} · ` + _pdT('dos_k_blanks_f', { f: b.filled }), b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }
   /* SPINE: the card stands under the Read stage, whose line carries "Read again" (dossierStagesHtml) */
+  /* UNUSUAL FOR YOU (Discover stage 6): a company fact that stands apart from this kind of contract in the book, counted free */
+  if (typeof askColOddHtml === 'function') rows.push(askColOddHtml(c));
   return `<div class="pd-glance ds-card ds-read" data-ds-at="read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_head'))}</b><span class="pd-gl-sp"></span></div><div class="pd-gl-b">${rows.join('')}</div></div>`;
 }
 function dossierOwedHtml(c, D, o){
@@ -4647,6 +4651,7 @@ function pdKtMidHtml(c){
     <div id="pd-kt-under" class="pd-kt-under"><div class="pd-kt-file" data-pd-kt-file="${_pdE(c.id)}">${pdKtFileHtml(c)}</div>
       <div class="pd-kt-rec" data-pd-kt-rec="${_pdE(c.id)}">${pdKtRecHtml(c)}</div></div>
     <div class="pd-kt-card"><div id="pd-kt" class="pd-kt" data-pd-og-for="${_pdE(c.id)}"><table class="pd-og pd-kt-t pd-kt-lg">${pdKtLgRowsHtml(c, rows)}</table></div>${pdKtAddPartyHtml(c)}</div>
+    <div class="pd-kt-card fa-kt-card" data-ac-facts-for="${_pdE(c.id)}">${typeof askColFactsKtHtml === 'function' ? askColFactsKtHtml(c) : ''}</div>
   </div>`;
 }
 /* A POP-UP OPENED FROM KEY TERMS COMES BACK TO IT (as Who else is on this agreement does): the
@@ -5749,7 +5754,11 @@ function pdJamboTopHtml(){
      Contracts list his panel holds the question, then the answers' why */
   const ac = (!c && typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
   /* THE CHECKLIST'S ORDER: stage, Needs you, Jambo read, Next acts, then Key terms and the folds */
-  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || pdWallHtml());
+  /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
+  /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
+  const disc = (!c && !ac && typeof askColDiscoverHtml === 'function') ? askColDiscoverHtml() : '';
+  const lead = disc && typeof askColDiscoverLeads === 'function' && askColDiscoverLeads();
+  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || (lead ? disc + pdWallHtml() : pdWallHtml() + disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll

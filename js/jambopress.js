@@ -184,7 +184,7 @@ function jpPress(btn){
 }
 
 /* ---------------------------------------------------------------- watches */
-const WT_KINDS = ['reply', 'renewal', 'remind', 'obligation'];
+const WT_KINDS = ['reply', 'renewal', 'remind', 'obligation', 'answer'];
 let _wt = { list: [], loaded: false, loading: null, max: 50, at: 0 };
 const wtServer = () => typeof API_MODE === 'function' && API_MODE();
 function watchLoad(force){
@@ -328,6 +328,7 @@ const _wtDay = iso => { const d = String(iso || '').slice(0, 10); if (!/^\d{4}-\
 function watchWords(w){
   const c = _jpC(w.contractId), ref = c ? _jpRef(c) : '', who = c ? (String(c.counterparty || '').trim() || _jpT('wt_them')) : '';
   const p = w.params || {};
+  if (w.kind === 'answer') return _jpT('wt_say_answer', { fact: p.name || '' });
   if (w.kind === 'reply') return _jpT('wt_say_reply', { who, ref });
   if (w.kind === 'renewal') return c ? _jpT('wt_say_renewal_on', { ref, n: p.days }) : _jpT('wt_say_renewal', { n: p.days });
   if (w.kind === 'obligation') return c ? _jpT('wt_say_oblig_on', { ref, n: p.days }) : _jpT('wt_say_oblig', { n: p.days });
@@ -336,6 +337,7 @@ function watchWords(w){
 }
 function watchFiredWords(w){
   const f = w.fired || {}, c = _jpC(f.cid || w.contractId), ref = c ? _jpRef(c) : '', who = c ? (String(c.counterparty || '').trim() || _jpT('wt_them')) : '';
+  if (f.what === 'answer') return _jpT('wt_fired_answer', { ref, fact: f.fact || '', answer: f.answer || '' });
   if (f.what === 'reply') return _jpT(f.how === 'note' ? 'wt_fired_note' : 'wt_fired_reply', { who, ref });
   if (f.what === 'renewal') return _jpT(f.said === 'notice' ? 'wt_fired_notice' : 'wt_fired_ends', { ref, day: _wtDay(f.day), n: f.days });
   if (f.what === 'obligation') return _jpT(f.late ? 'wt_fired_oblig_late' : 'wt_fired_oblig', { ref, day: _wtDay(f.due) });
@@ -347,6 +349,8 @@ function watchGo(id){
   const w = watchGet(id); if (!w) return false;
   watchSeen(w.id);
   const f = w.fired || {}, cid = f.cid || w.contractId, c = _jpC(cid);
+  /* a new answer at risk lands on its clause, the sentence lit (Ask a column's own lander) */
+  if (f.what === 'answer' && c) return (typeof askColLandOn === 'function') ? askColLandOn(c.id, f.quote || '') : jpShowContract(c.id);
   if (f.what === 'reply' && c) return (typeof needsYouGo === 'function') ? needsYouGo('quiet', c.id) : jpShowContract(c.id);
   if (f.what === 'renewal' && c) return (typeof needsYouGo === 'function') ? needsYouGo('renewal', c.id) : jpShowContract(c.id);
   if (f.what === 'obligation' && c) return jpShowRun({ k: 'oblig', id: c.id });
