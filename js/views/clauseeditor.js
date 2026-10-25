@@ -897,8 +897,7 @@ function clauseEditorCss(){
   .ce-card .av button, .ce-railfoot button, .ce-railfoot#ce-railfoot button.p{border-radius:999px}
   .ce-card .av button{padding:0 12px}
   .ce-card .chip, .ce-card .n .chip{border-radius:999px}
-  .ce-rail .ce-chips button{border-radius:999px; background:var(--surface-2,#EDEDF0); color:var(--color-text); border-color:transparent; padding:0 12px}
-  .ce-rail .ce-chips button:hover{background:var(--color-accent-50); border-color:transparent}
+  .ce-rail .ce-chips > button{border-radius:999px; padding:0 12px}   /* their pale accent wash kept (f541 C); only the shape changes */
   .ce-rail .ce-pick select{-webkit-appearance:none; appearance:none; border-radius:999px; background-color:var(--surface-2,#EDEDF0); border-color:transparent;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%231D1D1F' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 12px center}
