@@ -82,7 +82,29 @@ function pdSolo(){
     if (pdOnPaper() || pdFaceUp() || pdSendHeld() || pdHeldContract()) return false;
     if (typeof naSheetUp === 'function' && naSheetUp()) return false;
     if (typeof document !== 'undefined' && document.getElementById('na-root')) return false;
-    if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true && typeof askColPanelHtml === 'function' && askColPanelHtml()) return false;
+    /* THE PAGE'S OWN WORK IS NEVER INSIDE THE CONVERSATION (owner, 26 Oct 2026:
+       "if a link is on the first page and a user will need to access it, they
+       should not scroll up the jambo to find this link"; they named the Dossier
+       as the pattern that is already right and the Contracts list as the one
+       that is wrong). Beside the Contracts list the panel carries the wall and
+       Discover — the kept questions, their counts and Ask a new question — and
+       as his answers piled up underneath, those scrolled out of reach. So the
+       whole Paper face keeps the two tabs: the page's own under Overview, his
+       conversation under Jambo, one press apart. This REPLACES the narrower
+       test of 25 Oct, which broke the one window only while a column's form
+       was open. Explorer's panel draws no landing at all and the Board's is
+       his own greeting, so both are still his one window. */
+    if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true) return false;
+    /* THE BOARD IS LEFT AS HIS ONE WINDOW, and the reason is worth keeping:
+       what its panel holds is his own greeting, and every link in it — the
+       book's figures, "what needs me" — opens something drawn on the Board
+       itself, in full, a glance to the left. Nothing lives only in that panel,
+       which is what made the Contracts list different: Discover was there and
+       nowhere else. Two other answers were tried here on 26 Oct 2026 and both
+       cost more than they bought: pinning his greeting cut a sentence in half
+       (his words run 412px against the 226 the shortest of the owner's screens
+       can spare), and giving the Board two tabs brought a page word and a trail
+       the owner had ruled out. Asked. */
     return true;
   } catch (_){ return false; }
 }
@@ -5784,6 +5806,9 @@ function pdJamboTopHtml(){
    scroll under it. Its host is drawn even empty, so a repaint has a home. */
 function pdJamboPinHtml(){
   /* THE DOSSIER CARRIES STILL OWED (owner, 20 Oct 2026): nothing is pinned above it */
+  /* Pinning the Board's greeting above the talk was tried on 26 Oct 2026 and
+     reversed the same day: his words are taller than the panel can spare, so
+     the pin cut a sentence in half. The Board keeps its own tab instead. */
   return '';
 }
 /* the presses, delegated once: the panel is redrawn under them */

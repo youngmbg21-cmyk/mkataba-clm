@@ -125,3 +125,60 @@ Not done, and why: the "what worked before" card offers kept wording only (draft
 wording when none is kept was left out: it would spend a call the plan had not priced);
 "Send the table" copies it to the clipboard rather than opening the send screen (the
 send screen's letter is one contract's).
+
+## 7. The owner's notes after using it (26 Oct 2026) — NOT BUILT, more to come
+
+The owner said: "take note of these but do not code anything yet as I will be adding some more."
+
+1. **Stop while it reads.** Ask a column's "Jambo is reading 50 contracts…" has no way to stop.
+   Wanted: a Stop on the reading line. (Today the read runs to the end once pressed.)
+2. **The answer cells are cramped.** With three columns on the list, a cell shows a cut-off
+   answer ("N", "S", "6"), the § and the tick circle squeezed together, and a cut-off quote.
+   Wanted: much tidier — a traffic-light way of showing it so the cell is not crammed
+   (the colour carries the verdict; the words and the quote go elsewhere).
+3. **Discover's list grows without end.** Every question anyone asked stays on it, including
+   one-off ones ("how many of these"). Wanted: delete questions, or save (keep) some, so only
+   the saved ones appear.
+4. **The whole-table page (Due diligence: every answer) needs a professional design.**
+   Today: a plain grid, the legend and "Back to the list" floating under it, lots of empty page.
+5. **Questions that are not company facts show in Settings › Company facts.** The panel lists
+   every question anyone asked (up to 20, switched off) — including personal, counting
+   questions such as "how many of these contracts need my response from their redlines",
+   which are not questions about a contract's wording at all. Wanted: they must not be there.
+   (Found: the panel reads the whole kept-question list, not only facts; and counting
+   questions should never have become columns in the first place.)
+6. **"In plain words" on the approver's card is easy to miss.** It runs as plain text under
+   its heading. Wanted: a highlighted area or card so it is not missed.
+7. **"The two minutes" on Before the call is easy to miss** for the same reason. Wanted: the
+   same highlighted card.
+The owner then asked for proposals for all seven, "well structured, clear and professional,
+that Legora or a top SaaS company would be proud of" — design options first, nothing built.
+
+### The owner's picks (26 Oct 2026): "I will go with all your recommendations for now"
+1 Count and Stop · 2 Lights · 3 Only what you keep · 4 Ledger · 5 Facts only, wording only (the junk
+columns listed and deleted only on a further yes) · 6+7 Jambo's card. Two more asks the same day:
+8. **Ask a column's own column is Lights too** — the owner's words, corrected the same day: "I mean
+   remove the cramping up and make it a traffic light system": a single question's column wears
+   Lights exactly as a pack's do (one light + the short answer, never cut; §, tick and quote in the
+   panel), and the column card's links stop clumping. NOT several questions in one form (that reading
+   was withdrawn).
+9. **Choose which pack questions to run** — each question in the pack form has a tick (all on by
+   default); untick to run 3 of 5; the cost line follows.
+
+
+## 8. The seven notes, built (26 Oct 2026)
+
+| Note | Picked | Built | Checks |
+|---|---|---|---|
+| 1 Stop while it reads | Count and Stop | `AC_BATCH` 10, `askColReadRun`/`askColStop`/`askColCarryOn`, the count, the bar, Carry on with its cost | discover-verify 11a–11d |
+| 2 + 8 the cramped cells | Lights | one light + the short answer, one line; §, quote and tick in the panel; the at-risk count in the head | discover-verify 2c, ask-a-column 2b/4a |
+| 3 the growing list | Only what you keep | `column_asks.kept`, POST …/keep, DELETE, the folded line, Keep in Discover on the card | f893 (1), discover-verify 3a′–3a‴ |
+| 4 the every-answer table | Ledger | one framed card, still contract column, counts in the heads, Only at risk, legend in the foot | discover-verify 3e′–3f |
+| 5 personal questions in facts | Facts only, wording only | `COLUMN_PORTFOLIO_RE` on both hosts; the page lists facts, adds from kept questions | f893 (2), discover-verify 4b′, 4f–4g |
+| 6 + 7 the brief in a card | Jambo's card | one builder `jamboSayCardHtml`, both panels | discover-verify 8b′, 9b′ |
+| 9 choose the pack's questions | — | a tick per question, the cost and the button follow | discover-verify 3c′ |
+
+NOT DONE, and why: the junk questions already in the owner's workspace are not deleted —
+Delete is on every unkept row in Discover, but deleting is not undoable and the owner has
+not seen the list, so it waits for their yes. The live (graded) measure still needs
+`ANTHROPIC_API_KEY`.

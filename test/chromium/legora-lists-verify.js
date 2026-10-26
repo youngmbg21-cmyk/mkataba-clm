@@ -824,13 +824,21 @@ function pageKit(){
     await page.fill('#ac-q', 'How much notice does each side need to end the contract early?');
     await page.fill('#ac-name', 'Notice to end').catch(() => {});
     await ev(() => document.querySelector('[data-ac-ask]').click());
-    const filled = await until(() => document.querySelectorAll('td.ac-cell .ac-ans').length > 0 ? true : null, null, 30000);
-    const cite = filled && await until(() => { const a = [...document.querySelectorAll('td.ac-cell .ac-cite')].find(e => window.__lh.vis(e) && /§\s*\S/.test(e.textContent));
-      if (!a) return null; const td = a.closest('td.ac-cell'); return { cid: td && td.getAttribute('data-ac-cid'), t: window.__lh.words(a) }; }, null, 4000);
-    if (!cite){ check('contracts C7 an answer cell carries a § chip ("§ N")', false, filled ? 'answers stand, but no .ac-cite "§ N" in their cells' : 'no answer came back to the list'); return; }
-    await ev(cid => { const a = document.querySelector(`td.ac-cell[data-ac-cid="${CSS.escape(cid)}"] .ac-cite`); if (a) a.click(); }, cite.cid);
-    const open = await until(cid => window.pdContract && pdContract() && String(pdContract().id) === cid ? true : null, cite.cid, 10000);
-    check('contracts C7 pressing a § chip opens that contract on Home\'s paper (Go to clause\'s door)', !!open, JSON.stringify(cite));
+    const filled = await until(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length > 0 ? true : null, null, 30000);
+    /* RE-POINTED (the owner picked "Lights", 26 Oct 2026): the § chip came OUT
+       of the cell, which now says one thing — the light and the short answer.
+       The clause, the words it was read from and the tick stand in the panel's
+       reading of the chosen row, and Go to clause is its own button there. */
+    const cell = filled && await until(() => { const a = [...document.querySelectorAll('td.ac-cell .ac-ans')].find(e => window.__lh.vis(e) && !e.classList.contains('is-wait'));
+      if (!a) return null; const td = a.closest('td.ac-cell');
+      return { cid: td && td.getAttribute('data-ac-cid'), t: window.__lh.words(td), lines: td.getClientRects().length, chip: !!td.querySelector('.ac-cite'), tick: !!td.querySelector('[data-ac-ck]') }; }, null, 4000);
+    if (!cell){ check('contracts C7 an answer cell is one light and one answer', false, filled ? 'no answered cell found' : 'no answer came back to the list'); return; }
+    check('contracts C7 an answer cell is one light and one answer, with no § chip or tick squeezing it', !cell.chip && !cell.tick && !/\n/.test(cell.t), JSON.stringify(cell));
+    await ev(cid => { const a = document.querySelector(`td.ac-cell[data-ac-cid="${CSS.escape(cid)}"] .ac-a`); if (a) a.click(); }, cell.cid);
+    const go = await until(() => document.querySelector('#ig-dock [data-ac-go]') ? true : null, null, 5000);
+    if (go) await ev(() => document.querySelector('#ig-dock [data-ac-go]').click());
+    const open = await until(cid => window.pdContract && pdContract() && String(pdContract().id) === cid ? true : null, cell.cid, 10000);
+    check('contracts C7\u2032 the panel reads that answer out, and Go to clause opens its contract on Home\'s paper', !!go && !!open, JSON.stringify(cell));
     await shot('contracts-cite');
   }
 

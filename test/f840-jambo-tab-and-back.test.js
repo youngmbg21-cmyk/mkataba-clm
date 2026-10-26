@@ -187,8 +187,12 @@ describe('f840 (2) Home\'s panel', () => {
        the talk settles and the talk then looks again (firstReadDue → pdTalkSync, f922) */
     assert.match(f, /let talk=\(typeof window\.pdTalkSync==='function'\)\?pdTalkSync\(dock\):false;/);
     assert.match(f, /\$\{talk\?`<div id="igd-feed" class="igd-talk /, 'the conversation in its own view');
-    /* RE-PINNED (owner, 24 Oct 2026, one window): on a one-window panel his own greeting leads the page's words */
-    assert.match(f, /return \(solo&&top&&typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):''\)\+\(top\|\|`<div class="ig-welcome/, 'the landing: its own words, his greeting first on one window');
+    /* RE-POINTED 26 Oct 2026 (the panel rule): his greeting leads the landing
+       on a one-window panel AND on the Paper face, which keeps two tabs now so
+       that Discover is never inside the talk. Without the second case the
+       Contracts panel lost his greeting altogether. `lead` is that reading. */
+    assert.match(f, /const lead=solo\|\|\(typeof window\.igHomePaperFace==='function'&&igHomePaperFace\(\)===true\s*&&!\(window\.pdOnPaper&&pdOnPaper\(\)\)&&!\(window\.pdHeldContract&&pdHeldContract\(\)\)\);/, 'his greeting leads a one-window panel and the wall, never a chosen paper');
+    assert.match(f, /return \(lead&&top&&typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):''\)\+\(top\|\|`<div class="ig-welcome/, 'the landing: its own words, his greeting first');
     assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');
     /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the box stands under every tab, no condition */
     assert.match(f, /\$\{`<div class="igd-foot p-3 border-t/, 'the box on both views, under every tab');
@@ -239,19 +243,22 @@ describe('f840 (3) the panel beside a list', () => {
 });
 
 describe('f840 (4) Settings', () => {
-  /* RE-PINNED (owner, 24 Oct 2026: "settings has no information either"): ONE WINDOW — his words lead the
-     conversation, a turn is said under them, nothing turns and there is no trail; a stream chosen on Streams is
-     information and keeps the flip (f788 1a) */
-  test('4a one window: his words, then the turn under them; no flip, no trail', () => {
+  /* REVERSED (owner, 26 Oct 2026, of every page: "if a link is on the first
+     page and a user will need to access it, they should not scroll up the
+     jambo to find this link"). Settings' landing carries "N things need you
+     here" with a link per row, so it is not his one window any more: the page
+     keeps its own tab, the asked and the answer go to his, and the trail names
+     the way back. What decides is what the landing HOLDS (stLandHasLinks). */
+  test('4a the page\'s own view and his: the turn goes to his, the trail names the way back', () => {
     const { settingsStage } = require('./settingsworld.js');
     const g = settingsStage();
-    assert.ok(g.$('st-jb-trail').hidden, 'no trail');
+    assert.ok(g.$('st-jb-trail').hidden, 'no trail until the talk is up');
     g.sb.stJbAsk('what is a sealed PDF?');
-    assert.ok(!g.q('#st-jb-feed [data-st-jb-land]').hidden, 'his words stay');
-    assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'the conversation under them');
+    assert.ok(g.q('#st-jb-feed [data-st-jb-land]').hidden, 'the page\'s own view stands aside');
+    assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'his view is up');
     assert.ok(g.q('#st-jb-feed [data-st-jb-talk] [data-st-jb-turn]'), 'the turn is said there');
-    assert.ok(g.$('st-jb-trail').hidden, 'still no trail');
-    assert.equal(g.q('#st-jb-trail [data-jt-back="settings"]'), null);
+    assert.ok(!g.$('st-jb-trail').hidden, 'the trail names the way back');
+    assert.ok(g.q('#st-jb-trail [data-jt-back="settings"]'), 'and carries it');
   });
   test('4b an ask no longer lets the stream shown go: it stays the landing', () => {
     assert.doesNotMatch(code(fnOf(SET, 'stJbAsk')), /stSwPickSet\(null\)/);

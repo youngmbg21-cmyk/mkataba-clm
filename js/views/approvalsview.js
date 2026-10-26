@@ -288,10 +288,17 @@ function apWhatHtml(c){
   const A=P.asked;
   const asked=A?esc([A.ours?i18t('apw_asked_ours',{n:A.ours,got:A.got}):'',A.lost.length?i18t('apw_asked_lost',{what:A.lost.join(', ')}):'',A.theirs?i18t('apw_asked_gave',{n:A.theirs,gave:A.gave}):''].filter(Boolean).join(' ')):'';
   const busy=_apWhatBusy===String(c.id);
-  const brief=P.briefKept?`<p class="ap-what-brief">${esc(P.brief)}</p>`
-    :`<button type="button" class="ui-btn ui-btn-sm" data-ap-what-brief="${esc(c.id)}"${busy?' disabled':''}>${esc(i18t(busy?'apw_brief_busy':'apw_brief_ask'))}</button><small>${esc(i18t('apw_brief_cost'))}</small>`;
+  /* HIS WORDS IN HIS CARD (the owner picked "Jambo's card", 26 Oct 2026): the
+     plain-words reading ran as a paragraph among the facts and was missed. One
+     builder dresses it here and on the party's panel; the facts stay plain
+     rows under it, so the card is the only one on the panel and carries. */
+  const brief=P.briefKept
+    ? jamboSayCardHtml({ who:i18t('apw_k_plain'), text:P.brief, attrs:' data-ap-what-say' })
+    : jamboSayAskHtml({ attrs:' data-ap-what-say',
+        body:`<p>${esc(i18t('apw_brief_none'))}</p>`,
+        foot:`<button type="button" class="ui-btn ui-btn-sm" data-ap-what-brief="${esc(c.id)}"${busy?' disabled':''}>${esc(i18t(busy?'apw_brief_busy':'apw_brief_ask'))}</button><small>${esc(i18t('apw_brief_cost'))}</small>` });
   return `<section class="ins-sec ap-what" data-ap-what-for="${esc(c.id)}"><h3>${esc(i18t('apw_h'))}</h3>
-    ${row('plain',i18t('apw_k_plain'),brief)}${row('money',i18t('apw_k_money'),money)}${row('dep',i18t('apw_k_dep'),dep)}${row('asked',i18t('apw_k_asked'),asked)}${row('nothing',i18t('apw_k_nothing'),esc(i18t('apw_nothing')))}</section>`;
+    ${brief}${row('money',i18t('apw_k_money'),money)}${row('dep',i18t('apw_k_dep'),dep)}${row('asked',i18t('apw_k_asked'),asked)}${row('nothing',i18t('apw_k_nothing'),esc(i18t('apw_nothing')))}</section>`;
 }
 /* THE BRIEF'S ONE DOOR (runContractBrief, js/ai.js): this page spends nothing of its own; the press goes through
    the one writer every other brief goes through, and the server's briefAsker lets an approver of THIS contract ask */
