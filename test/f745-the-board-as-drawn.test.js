@@ -194,20 +194,25 @@ describe('f745 (4) Jambo on the Board', () => {
       expiry: (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); })(), createdAt: ago(200) + 'T09:00:00Z', comments: [], audit: [], signatures: [] });
     assert.match(w.hbBoardHelloHtml(), /data-igsug="which 1 ends in 90 days\?"/);
   });
-  test('4d "Board" beside his tab on the Board only; his chips ride his words, not a row above the box', () => {
+  test('4d the Board\'s name is never in the panel head (the bar names the page); his chips ride his words, not a row above the box', () => {
     const { w } = world();
+    /* RE-POINTED 26 Oct 2026: the Board got its two tabs (owner: a first page with a link to press needs a second
+       tab for Jambo) and the "Board" word stayed out (owner, 24 Oct 2026: "the name board which looks like another
+       tab but it is nothing behind it"). hbHeadWord still reads the Board; the panel head no longer draws it. */
     assert.equal(w.hbHeadWord(), 'Board');
     w.hbS().face = 'explorer';
     assert.equal(w.hbHeadWord(), '');
     assert.equal(w.hbBoardHelloHtml(), '');
     const IG = read('js/views/intelligence.js');
-    assert.match(IG, /const w=\(typeof window\.hbHeadWord==='function'\)\?hbHeadWord\(\):''; return w\?`<span class="igd-head-w"/);
+    assert.doesNotMatch(IG, /hbHeadWord\(\):''; return w\?`<span class="igd-head-w"/, 'the Board word is not drawn in the head');
     assert.match(IG, /&&!\(state\.view==='dashboard'&&typeof window\.hbBoardHelloOn==='function'&&hbBoardHelloOn\(\)\)\?`\s*<div class="px-3\.5 pb-2 shrink-0 flex flex-wrap gap-1\.5" data-ig-chips>/);
     assert.match(read('js/paperdesk.js'), /return \(typeof hbBoardHelloHtml === 'function'\) \? hbBoardHelloHtml\(\) : '';/, 'his tab opens on it on the Board');
   });
-  test('4e his tab carries the Counter\'s number on the Board', () => {
+  /* RE-POINTED 26 Oct 2026 (the Board's two tabs): behind Overview stands his greeting, not the list, so the tab
+     carries no number (the number on a door matches the list behind it); his words and the Needs you card say it */
+  test('4e on the Board the Overview tab carries no number', () => {
     const PD = code(read('js/paperdesk.js'));
-    assert.match(PD, /const n = !onBoard \? 0 : \(typeof counterNeedsCount === 'function'\) \? counterNeedsCount\(\)/);
+    assert.doesNotMatch(PD, /const n = !onBoard \? 0 : \(typeof counterNeedsCount === 'function'\) \? counterNeedsCount\(\)/);
   });
 });
 
@@ -299,7 +304,11 @@ describe('f745 (7) Today\'s insights as drawn', () => {
     assert.match(CSS, /\.hb-board \.hb-shelf\.hb-shelf-cards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:12px;/);
     assert.match(CSS, /\.hb-board \.hb-shelf\.hb-shelf-cards>\.hb-ins:last-child:nth-child\(odd\)\{grid-column:1\/-1\}/);
     assert.match(CSS, /\.hb-board \.hb-shelf-cards>\.hb-ins\{background:var\(--hb-card\);border:1px solid/);
-    assert.match(CSS, /\.hb-board \.hb-ins-head>\.hb-ch \.hb-cs\{flex:1 1 auto;white-space:normal;overflow:visible;text-overflow:clip;/, 'the head\'s line wraps before it is ever cut (the iPad)');
+    /* the head is the Needs you head (owner, 26 Oct 2026): one line, never wrapped, the Board's own padding and 40px floor */
+    assert.match(CSS, /\.hb-board \.hb-ins-head>\.hb-ch\{border-bottom:0;padding:10px 12px 10px var\(--s-4\);min-height:40px\}/, 'the head line is padded and floored like the Needs you head');
+    assert.match(CSS, /\.hb-board \.hb-ins-head>\.hb-ch \.hb-cs\{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/, 'the head\'s line never wraps');
+    assert.ok(!/#app-shell \.hb-board \.hb-inscard\{padding:16px\}/.test(CSS), 'no second padding on the head card');
+    for (const k of ['hb_ins_sub_moved', 'hb_ins_sub_quiet', 'hb_ins_sub_young']) for (const b of ['en', 'sv']) assert.ok(BOOKS[b][k].replace('{m}', 'September').length <= 40, b + ' ' + k + ' is short enough never to wrap');
     const { w, I } = shelfWorld('co');
     const cards = w.hbInsCardHtml(I).match(/<article class="hb-ins/g) || [];
     assert.ok(cards.length >= 2 && cards.length <= 4, String(cards.length));

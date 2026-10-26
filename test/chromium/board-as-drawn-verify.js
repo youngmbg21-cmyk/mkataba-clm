@@ -156,17 +156,19 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         chip2: [...bubs[1].querySelectorAll('[data-igsug]')].map(b => b.textContent.trim()), n: counterNeedsCount(),
         at: (document.querySelector('#hb-bhead .hb-bh-at') || {}).textContent || '', bottom: !!dock.querySelector('[data-ig-chips]'),
         badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
-    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the Board's panel holds only his words, so it draws no tabs and no
-       word beside them (one-window-bar-cards-verify A1) */
-    check('5a one window: no word beside his one tab "Jambo"', !!jb && jb.word === '' && jb.tabs === 1, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
+    /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
+       for jambo"; reverses the 24 Oct one window here): his greeting and its chips under Overview, a Jambo tab beside
+       it, still no page word (one-window-bar-cards-verify A1) */
+    check('5a two tabs, Overview and Jambo, and no word beside them', !!jb && jb.word === '' && jb.tabs === 2, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
     check('5b his greeting says the book, counted at the head\'s own time, and the one press that spends',
       !!jb && jb.hello.startsWith('Here is your book, counted at ') && jb.at.includes(jb.hello.slice(30, 35)) && /Summarise my board is the one press here that uses a Jambo call, and it says so first\.$/.test(jb.hello), jb && (jb.hello + ' | ' + jb.at));
     check('5c three questions as chips under it — "which N end in 90 days?" only while any do',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views'].filter(Boolean)), jb && JSON.stringify(jb.chips));
     check('5d then where the owed work went: Home\'s own number, and "what needs me"',
       !!jb && new RegExp(`^What needs you is on Home: ${jb.n} things?(, Jambo’s work first)?\\.$`).test(jb.where) && JSON.stringify(jb.chip2) === JSON.stringify(['what needs me']), jb && (jb.where + ' / ' + jb.n));
-    /* RE-PINNED (one window): no tab, so no badge on one — the Counter's number is said in his second bubble (5d) */
-    check('5e no row of chips above his box; his one tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 1, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
+    /* RE-POINTED 26 Oct 2026 (the two tabs): behind Overview stands his greeting, not the list, so its tab carries
+       no number — the Counter's number is said in his second bubble (5d) and on the Needs you card */
+    check('5e no row of chips above his box; the Overview tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 2, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
     console.log('\n6 · "my saved views"');
@@ -210,8 +212,8 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         n: cards.length, perRow: cards.filter(c => Math.round(c.getBoundingClientRect().top) === tops[0]).length, edge: cs.borderTopStyle + ' ' + cs.borderTopWidth,
         acts: cards.every(c => c.querySelector('[data-hb-ins="open"]') && c.querySelector('[data-hb-ins="keep"]') && c.querySelector('[data-hb-read-more]') && c.querySelector('[data-hb-ins="go"]')),
         month: hbThenWord(true) }; });
-    check('8a the head is its own slim card: the count OF THE CARDS UNDER IT, "what moved most since <month> · worked out this morning from your book", and Hide',
-      !!shelf && !!ins && new RegExp(`^Today’s insights\\s*${ins.n}\\s*what moved most since ${ins.month} · worked out this morning from your book\\s*Hide$`).test(ins.head) && ins.hide && !ins.headHasPics, JSON.stringify(ins));
+    check('8a the head is its own slim card: the count OF THE CARDS UNDER IT, "what moved most since <month>", and Hide',
+      !!shelf && !!ins && new RegExp(`^Today’s insights\\s*${ins.n}\\s*what moved most since ${ins.month}\\s*Hide$`).test(ins.head) && ins.hide && !ins.headHasPics, JSON.stringify(ins));
     check('8b each picture its own card, two to a row, each with Open · Keep · Ask why · Let it go', !!ins && ins.n >= 2 && ins.n <= 4 && ins.perRow === 2 && ins.edge === 'solid 1px' && ins.acts, JSON.stringify(ins));
     /* 8b2 THE SYMMETRY RULE (owner, 22 Oct 2026: "These attached cards should
        be the same size"): two cards sharing a row stand the same height, their
@@ -310,6 +312,23 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         const over = [...sh.querySelectorAll('*')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > board.right + 1; }).length;
         return { cut, over, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`8c ${w}×${ht}: the head's line whole (never cut), nothing past the board's edge, nothing sideways`, !!fit && !fit.cut && !fit.over && fit.side, JSON.stringify(fit));
+      /* THE INSIGHTS HEAD IS THE NEEDS YOU HEAD (owner, 26 Oct 2026): the two cards the same height, their words
+         starting at the same left, their Show/Hide on the head's one line at the same right edge; the line never
+         wraps. Measured against the Needs you card (#hm-agents) when it stands on the Board, else its head card;
+         heights inside the 1px rule an OPEN Needs you draws under its head (folded, as drawn, there is none). */
+      const same = await page.evaluate(() => {
+        const ins = document.querySelector('#hb-board .hb-ins-head>.hb-ch'), nd = document.querySelector('#hb-board #hm-agents>.hb-ch') || document.querySelector('#hb-board .hb-card>.hb-ch');
+        if (!ins || !nd) return { missing: !ins ? 'insights head' : 'a card head to measure against' };
+        const r = e => e.getBoundingClientRect();
+        const a = r(ins), b = r(nd), at = r(ins.querySelector('.hb-ct')), bt = r(nd.querySelector('.hb-ct'));
+        const ab = ins.querySelector('button'), bb = nd.querySelector('button');
+        const cs = ins.querySelector('.hb-cs');
+        return { h: [ins.clientHeight, nd.clientHeight], left: [Math.round(at.left), Math.round(bt.left)],
+          btnRight: [ab ? Math.round(r(ab).right) : null, bb ? Math.round(r(bb).right) : null],
+          btnOnLine: ab ? Math.abs((r(ab).top + r(ab).bottom) / 2 - (a.top + a.bottom) / 2) < 2 : null,
+          oneLine: cs ? r(cs).height < 24 && getComputedStyle(cs).whiteSpace === 'nowrap' : null, against: nd.parentElement.id || nd.parentElement.className }; });
+      check(`8c′ ${w}×${ht}: the insights head is the Needs you head — same height, words at the same left, Show on the line at the same right, never wrapped`,
+        !same.missing && same.h[0] === same.h[1] && same.left[0] === same.left[1] && same.btnRight[0] === same.btnRight[1] && same.btnOnLine && same.oneLine, JSON.stringify(same));
       await shot(page, `17-board-insights-head-${w}x${ht}`);
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

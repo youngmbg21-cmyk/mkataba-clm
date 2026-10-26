@@ -249,6 +249,18 @@ const AC_WORDING_RE = /\b(notice|terminat\w*|cancel\w*|liabilit\w*|capped|cap\b|
    wall: nothing counting is ever kept as a question. */
 const AC_PORTFOLIO_RE = /^\s*(how many\b|how much (of|do i|do we)\b|which (of|ones)\b|count\b|list\b|show me\b|who (has|have)\b)|\b(these|those|my|our|the) contracts\b/i;
 function askColIsPortfolio(words){ return AC_PORTFOLIO_RE.test(String(words || '')); }
+/* A REFUSAL IS SAID UNDER THE BOX, NEVER OVER IT (owner, 26 Oct 2026: the toast sat on the very box it pointed
+   the reader to). The sentence stands under the question box until the question is typed in again; with no
+   form on the screen it falls back to a toast. */
+function askColSay(msg){
+  const q = document.getElementById('ac-q');
+  if (!q){ if (typeof toast === 'function') toast(msg, 'warn'); return; }
+  let el = document.getElementById('ac-q-say');
+  if (!el){ el = document.createElement('div'); el.id = 'ac-q-say'; el.className = 'ac-why'; el.setAttribute('role', 'alert'); q.insertAdjacentElement('afterend', el); }
+  el.textContent = String(msg || ''); el.hidden = !el.textContent;
+  q.focus();
+}
+function askColSayClear(){ const el = document.getElementById('ac-q-say'); if (el) el.hidden = true; }
 function askColTakes(seat, words){
   const t = String(words || '').trim();
   if (seat !== 'contracts' || !askColOn() || !askColMay() || !t) return false;
@@ -442,7 +454,9 @@ function askColFormHtml(){
     : _acT('ac_cost', { contracts: b(_acTn('ac_n_contracts', ids.length)), calls: b(_acTn('ac_n_calls', calls)) });
   const up = askColIdsUp(), full = up.length >= AC_COLS_MAX && !up.includes(f.askId);
   const why = !askColMay() ? _acT('ac_btn_viewer') : !ids.length ? _acT('ac_none_shown') : full ? _acT('ac_full') : '';
-  const team = (AC.team || []).slice(0, 6);
+  /* a counting question kept before the rule of 26 Oct 2026 cannot be asked, so it is not listed (a chip that
+     cannot give results is not drawn); the server's summary leaves it out too */
+  const team = (AC.team || []).filter(a => !askColIsPortfolio(a.question)).slice(0, 6);
   return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(_acT('ac_title'))}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acTn('ac_shown', shown.length))}</span></div>
     <div class="pd-gl-b">
       <div><label class="ac-l" for="ac-q">${_acE(_acT('ac_q_label'))}</label><textarea id="ac-q" class="ac-in" rows="2" maxlength="300" placeholder="${_acE(_acT('ac_q_ph'))}">${_acE(f.question || '')}</textarea></div>
@@ -933,16 +947,12 @@ async function askColRun(){
   const qEl = document.getElementById('ac-q'), nEl = document.getElementById('ac-name');
   const question = String(qEl ? qEl.value : f.question || '').trim();
   const name = String(nEl ? nEl.value : f.name || '').trim();
-  if (question.length < 3){ if (typeof toast === 'function') toast(_acT('ac_q_short'), 'warn'); if (qEl) qEl.focus(); return; }
+  if (question.length < 3){ askColSay(_acT('ac_q_short')); return; }
   /* A COLUMN ASKS THE WORDING (owner, 26 Oct 2026): a counting question is
      about the reader's own book, not about what a contract says — it is handed
      to Jambo's box, free, and never kept as a column. The server is the wall;
      this is the sentence the reader sees before a call is spent. */
-  if (askColIsPortfolio(question)){
-    if (typeof toast === 'function') toast(_acT('ac_q_portfolio'), 'warn');
-    if (qEl) qEl.focus();
-    return;
-  }
+  if (askColIsPortfolio(question)){ askColSay(_acT('ac_q_portfolio')); return; }
   const ids = askColShown().slice(0, AC_MAX); if (!ids.length) return;
   f.question = question; f.name = name;
   const base = { question, name, force: !!f.force };
@@ -1072,7 +1082,7 @@ if (typeof document !== 'undefined' && !document._acWired){
   /* the question's own words: a typed edit is kept across a repaint; Enter asks */
   document.addEventListener('input', e => {
     const t = e.target; if (!AC.form || !t) return;
-    if (t.id === 'ac-q'){ AC.form.question = t.value; if (AC.form.askId && !AC.form.force){ AC.form.askId = null; AC.form.kept = 0; } }
+    if (t.id === 'ac-q'){ askColSayClear(); AC.form.question = t.value; if (AC.form.askId && !AC.form.force){ AC.form.askId = null; AC.form.kept = 0; } }
     if (t.id === 'ac-name') AC.form.name = t.value;
   });
   /* a rule is saved when its box is left with new words (a change event: once, never per key) */
@@ -1105,7 +1115,7 @@ function askColBtnHtml(){
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
 
-Object.assign(window, { AC_MAX, AC_COLS_MAX, AC_BATCH, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { AC_MAX, AC_COLS_MAX, AC_BATCH, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });

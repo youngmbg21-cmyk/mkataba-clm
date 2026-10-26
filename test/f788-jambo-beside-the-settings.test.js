@@ -87,6 +87,28 @@ describe('f788 (2) the Menu, and "/"', () => {
     assert.ok(g.$('st-side-menu').hidden);
     assert.equal(g.log.api.filter(a => /^ai\//.test(a.route)).length, 0);
   });
+  /* THE MENU DOOR, FRONT AND CENTRE (owner, 26 Oct 2026): before this the only doors to the Menu face were a
+     "nothing found" answer's button and Ctrl/Cmd+K — a reader who asked nothing never saw it */
+  test('2c′ the landing carries Open the Menu first, with the count, on You and on Company; it opens the Menu', () => {
+    for (const role of ['legal', 'admin']) {
+      const g = settingsStage({ role });
+      /* the landing stands bare in the feed when it holds something to press (main, 26 Oct 2026: stLandHasLinks),
+         wrapped under his greeting when it does not — the door is found either way */
+      const feed = g.$('st-jb-feed');
+      const door = feed && feed.querySelector('[data-st-jb-menu-door]');
+      assert.ok(door, role + ': the door is on the landing');
+      const before = door.previousElementSibling;
+      assert.ok(!before || before.matches('.jb-hello'), role + ': first thing after his greeting, nothing else above it');
+      const btn = door.querySelector('button[data-st-side="menu"]');
+      assert.equal(g.text(btn), S.en.st_jb_to_menu);
+      const n = g.sb.stMenuCount();
+      assert.equal(g.text(door.querySelector('.st-jb-fine')), n === 1 ? '1 setting' : n + ' settings');
+      assert.ok(n > 0, role + ': the count is real');
+      assert.ok(g.$('st-side-menu').hidden);
+      g.click(btn);
+      assert.ok(!g.$('st-side-menu').hidden, role + ': the Menu opens');
+    }
+  });
   test('2c his answer that finds nothing still offers the Menu', () => {
     const g = settingsStage();
     g.sb.stJbAsk('qwertyuiop zxcv');

@@ -166,6 +166,26 @@ async function toList(page) {
     await page.evaluate(() => { const a = caActOf('ask a column'); if (a) caGo(a); });
     check('7 "ask a column" in Jambo\'s box opens the same question beside the list', await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q')));
 
+    /* ============ 8. THE TWO ROUGH EDGES (owner, 26 Oct 2026) ============
+       A counting question is refused UNDER the question box, never as a toast over the panel's foot (the very
+       box the sentence points to); typing again clears it. And "Asked before" never offers a counting question. */
+    await page.fill('#ac-q', 'How many contracts have more than 30 days payment terms?');
+    const callsBefore = h.ai.calls.length;
+    await page.click('[data-ac-ask]');
+    const said = await until(page, () => { const s = document.getElementById('ac-q-say'); return !!s && !s.hidden && /not about the wording of one/.test(s.textContent); });
+    const edge = await page.evaluate(() => {
+      const s = document.getElementById('ac-q-say'), q = document.getElementById('ac-q'), foot = document.querySelector('#ig-dock .ig-ask, #ig-dock [data-ig-ask], #ig-dock textarea:not(#ac-q), #ig-dock input[type="text"]:not(#ac-name)');
+      const r = e => e && e.getBoundingClientRect();
+      const toastOver = [...document.querySelectorAll('#toast-root *')].some(e => /not about the wording/.test(e.textContent || ''));
+      const fr = r(foot), top = fr ? document.elementFromPoint(fr.left + 8, fr.top + fr.height / 2) : null;
+      return { underBox: !!s && !!q && s.previousElementSibling === q && r(s).top >= r(q).bottom - 1, focus: document.activeElement && document.activeElement.id,
+        toastOver, footClear: fr ? !!top && (foot.contains(top) || top === foot) : 'no foot box found', chips: [...document.querySelectorAll('[data-ac-chip]')].map(b => b.title) }; });
+    check('8a a counting question is refused under the box, the box focused, no toast over the panel, nothing read', said && edge.underBox && edge.focus === 'ac-q' && !edge.toastOver && edge.footClear !== false && h.ai.calls.length === callsBefore, JSON.stringify(edge));
+    await page.screenshot({ path: path.join(OUT, '08-refused-under-the-box.png') });
+    await page.type('#ac-q', ' ');
+    check('8b typing in the box again clears the refusal', await until(page, () => { const s = document.getElementById('ac-q-say'); return !!s && s.hidden; }));
+    check('8c "Asked before in your team" offers no counting question', !edge.chips.some(t => /^\s*(how many|which of|list|count)\b/i.test(t)), JSON.stringify(edge.chips));
+
     /* ============ 9. THE OWNER'S THREE SCREENS ============ */
     await page.click('[data-ac-cancel]').catch(() => {});
     for (const [wd, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

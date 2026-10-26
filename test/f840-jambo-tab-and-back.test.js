@@ -269,12 +269,16 @@ describe('f840 (4) Settings', () => {
 describe('f840 (5) the Calendar\'s panel, and (6) every host\'s back', () => {
   /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): Your week is his words and the planner's setting, so the asked and
      the answer are said under them in the one panel — no tabs, no trail, nothing turned */
-  test('5a one window: Your week, then what was asked and the answer under it; no tabs, no trail', () => {
+  /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
+     for jambo"; reverses the 24 Oct one window): Your week carries the planner's asks and its setting, so the
+     Calendar's panel is Overview + Jambo again, an ask turns it to the talk, ‹ Overview brings Your week back */
+  test('5a two tabs: Your week under Overview, the talk under Jambo, an ask turns to it, its trail brings it back', () => {
     const f = code(fnOf(CAL, 'calPlanHtml'));
-    assert.match(f, /const talk=!!\(you\|\|answer\);/);
-    assert.match(f, /<div class="jl-words cal-yw" data-jt-land>/, 'Your week always stands');
-    assert.doesNotMatch(f, /jamboTalkTrailHtml|data-cal-talk|jamboTalkShows/);
-    assert.doesNotMatch(code(fnOf(CAL, 'calPlanAsk')), /jamboTalkOpen/);
+    assert.match(f, /const talk=typeof window\.jamboTalkShows==='function'&&jamboTalkShows\(CAL_TALK_KEY\);/);
+    assert.match(f, /<div class="jl-words cal-yw" data-jt-land\$\{talk\?' hidden':''\}>/, 'Your week hides under the talk, never gone');
+    assert.match(f, /data-cal-talk-back/); assert.match(f, /data-cal-talk /);
+    assert.match(f, /jamboTalkTrailHtml\('cal',land\)/);
+    assert.match(code(fnOf(CAL, 'calPlanAsk')), /jamboTalkOpen\(CAL_TALK_KEY/);
     assert.match(CAL, /jamboTalkHost\('cal', calTalkBack,/);
   });
   test('6a Esc and the bar\'s ‹ press the conversation\'s back on every host', () => {

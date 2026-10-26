@@ -299,7 +299,10 @@ describe('f740 (6) pass 4: as you scroll, one number, the doors whole', () => {
     ctx.hbFace = () => ctx.face; ctx.pdHolds = () => ctx.holds; ctx.pdContract = () => ctx.contract; ctx.igHomePaperFace = () => (ctx.face === 'paper' ? true : null);
     vm.createContext(ctx); vm.runInContext(fnBody(PD, 'pdTabCount'), ctx);
     const n = () => { const r = ctx.pdTabCount('copilot', null); return r ? r.n : 0; };
-    assert.equal(n(), 16, 'the Board at rest: Home\'s own number (round 17: the card left the Board)');
+    /* RE-POINTED 26 Oct 2026 (the Board's two tabs, owner: "any page where there is a link to press on the first page
+       needs a second tab for jambo"): on the Board at rest his tab is Overview, his greeting behind it, not the list —
+       so it carries no number (the number on a door matches the list behind it); his words and the Needs you card say it */
+    assert.equal(n(), 0, 'the Board at rest: no number on the Overview tab');
     ctx.holds = 'card'; assert.equal(n(), 16, 'a page brought up');
     ctx.holds = 'hist'; assert.equal(n(), 16, 'its History');
     ctx.face = 'paper'; ctx.holds = 'chosen'; assert.equal(n(), 16, 'a paper chosen on the wall');

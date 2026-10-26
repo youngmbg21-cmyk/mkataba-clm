@@ -143,8 +143,12 @@ describe('f792 (4) both pages say it alike', () => {
     assert.match(p, /data-cal-plan-q="week"[^>]*>\$\{_esc\(i18t\('ob_yw_chip_week'\)\)\}/);
     assert.match(p, /data-cal-plan-q="due"[^>]*>\$\{_esc\(i18t\('ob_yw_chip_due'\)\)\}/);
     assert.match(p, /\$\{calLevelSegHtml\(\)\}/);
-    /* RE-PINNED (owner, 24 Oct 2026, one window): no word beside tabs — the panel draws no tabs */
-    assert.doesNotMatch(p, /class="jl-word"|data-cal-talk|jamboTalkTrailHtml/);
+    /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
+       for jambo"; reverses the 24 Oct one window): Overview and a Jambo tab, the talk's trail; still no page word */
+    assert.doesNotMatch(p, /class="jl-word"/, 'no page word beside the tabs');
+    assert.match(p, /data-cal-talk-back/, 'Overview is its own tab');
+    assert.match(p, /data-cal-talk /, 'the Jambo tab beside it');
+    assert.match(p, /jamboTalkTrailHtml\('cal',land\)/, 'the talk carries its way back');
     assert.match(p, /placeholder="\$\{_esc\(i18t\('jl_ph_week'\)\)\}"/);
     /* RE-POINTED 20 Oct 2026 (Chambers: no hint line under any Jambo box) */
     assert.doesNotMatch(p, /jamboHintHtml|jb-hint/, 'no hint line under the box');

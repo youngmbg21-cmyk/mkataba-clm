@@ -38,7 +38,9 @@ describe('f877 attention to detail', () => {
     assert.match(I, /\.pd-ck-chev\.is-word::before\{content:none\}/);
   });
   test('3 the Deal stands as a card on the ground, in line with its head', () => {
-    assert.match(I, /#modal-root \[data-pd-mid\^="deal:"\] \.dlg-pg-body\{background:transparent;padding:10px 12px 12px\}/);
+    /* RE-POINTED 26 Oct 2026 (f939 (4), the owner: "the bottom card is not aligned with the top one on the right
+       edge"): the body keeps its scrollbar's gutter and the head is given the same room */
+    assert.match(I, /#modal-root \[data-pd-mid\^="deal:"\] \.dlg-pg-body\{background:transparent;padding:10px 12px 12px;scrollbar-gutter:stable\}/);
     assert.match(I, /#modal-root \[data-pd-mid\^="deal:"\] \.dlg-pg-body > \.deal-mid\{max-width:none;background:var\(--color-surface\);border-radius:20px;/);
   });
   test('4 one thin scrollbar wherever none is named', () => {

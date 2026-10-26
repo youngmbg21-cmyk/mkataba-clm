@@ -95,18 +95,19 @@ function pdSolo(){
        was open. Explorer's panel draws no landing at all and the Board's is
        his own greeting, so both are still his one window. */
     if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true) return false;
-    /* THE BOARD IS LEFT AS HIS ONE WINDOW, and the reason is worth keeping:
-       what its panel holds is his own greeting, and every link in it — the
-       book's figures, "what needs me" — opens something drawn on the Board
-       itself, in full, a glance to the left. Nothing lives only in that panel,
-       which is what made the Contracts list different: Discover was there and
-       nowhere else. Two other answers were tried here on 26 Oct 2026 and both
-       cost more than they bought: pinning his greeting cut a sentence in half
-       (his words run 412px against the 226 the shortest of the owner's screens
-       can spare), and giving the Board two tabs brought a page word and a trail
-       the owner had ruled out. Asked. */
+    /* THE FIRST PAGE WITH A PRESS GETS TWO TABS (owner, 26 Oct 2026: "any page where there is a link to press on
+       the first page needs a second tab for jambo"; REVERSES "the Board is left as his one window" of the same
+       day, which had been asked — this is the answer). The LANDING is read, never the page's name: anything to
+       press in it (the Board's own greeting chips too) and the panel keeps the page's own under Overview and his
+       conversation under Jambo, as Settings does (stLandHasLinks). Only a landing with nothing to press is his
+       one window (Explorer's, which draws none). */
+    if (pdLandHasPress()) return false;
     return true;
   } catch (_){ return false; }
+}
+/* the landing the panel would draw (pdJamboTopHtml), asked whether it holds anything to press */
+function pdLandHasPress(){
+  try { const top = (typeof pdJamboTopHtml === 'function') ? pdJamboTopHtml() : ''; return /<(?:a|button)\b/i.test(String(top || '')); } catch (_){ return false; }
 }
 function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t; if (PD_TABS.includes(t)) _pdTab = t; }
 function pdTab(){ return _pdTab; }
@@ -183,10 +184,11 @@ function pdTabCount(t, c){
       let k = 0; try { k = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ k = 0; }
       return k ? { n: k, tone: 'warn' } : null;
     }
-    /* on the Board: the Counter's own number since round 17 (the card left
-       the Board; his greeting says "What needs you is on the Counter: N things") */
-    const n = !onBoard ? 0 : (typeof counterNeedsCount === 'function') ? counterNeedsCount() : (typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0;
-    return n ? { n, tone: 'warn' } : null; }
+    /* ON THE BOARD HIS TAB CARRIES NO NUMBER (26 Oct 2026, the Board's two tabs; keeps the 24 Oct reading):
+       behind Overview stands his greeting, not the list, and the number on a door must match the list behind
+       it (the six questions, 6); his words say it — "What needs you is on Home: N things" — and the Needs you
+       card under Your book carries the count on its own door. Round 17's number here is retired. */
+    return null; }
   if (!c) return null;
   /* WITH A PAPER UP HIS FACE CARRIES THE COUNTER'S OWN NUMBER (owner picked
      "Tabs and faces" by name, round 3, 17 Oct 2026): the "All N" that Needs
@@ -1786,9 +1788,23 @@ if (typeof jamboTalkHost === 'function') jamboTalkHost('dock', pdTalkBack, k => 
    the screen's onClose). A question asked in the box is answered under it;
    nothing here sends. Not kept through a refresh: the screen is not. */
 let _pdSend = null;          // { id, node, away } while the send screen is a page beside the panel
-function pdSendFor(){ return _pdSend ? _pdSend.id : null; }
+/* A HOLD WITHOUT A PAGE IS STALE (owner, 26 Oct 2026: the bar said "Send · MK-382" and the panel drew an Email
+   tab with no letter in sight; HaTi then went nowhere and Email did nothing). The letter is held only while its
+   page stands in the modal root; gone by any route that skipped its close, the hold ends here, read by every
+   reader (pdSendFor, pdSendHeld, pdSendIsWaiting) — so the bar, the tab and the Counter's leave guard never
+   see a letter that is not there. */
+function pdSendLive(){
+  if (!_pdSend) return false;
+  if (typeof document === 'undefined') return true;
+  const root = document.getElementById('modal-root');
+  if (!root || root.querySelector('.modal-in[data-sh-page]')) return true;
+  const n = _pdSend.node; _pdSend = null;
+  if (n && n.parentNode) try { n.parentNode.removeChild(n); } catch (_){}
+  return false;
+}
+function pdSendFor(){ return pdSendLive() ? _pdSend.id : null; }
 /* the screen is up (the letter on the desk), whichever face the panel shows */
-function pdSendHeld(){ return !!_pdSend && typeof state !== 'undefined' && !!state && state.view === 'dashboard'; }
+function pdSendHeld(){ return pdSendLive() && typeof state !== 'undefined' && !!state && state.view === 'dashboard'; }
 /* the panel shows "Before you send" — not while ‹ Jambo has turned it to
    Jambo's own words (away) */
 function pdSendShows(){ return pdSendHeld() && !_pdSend.away; }
@@ -1830,7 +1846,7 @@ function pdSendOpen(id, node){
    panel and the card's own button reads "Back to the letter"; the bar's
    Recent carries the letter as its first row ("Send · MK-0382"). Back brings
    the page up again where it was. Cancel and Send are still its only ends. */
-function pdSendIsWaiting(){ return !!(_pdSend && _pdSend.waiting); }
+function pdSendIsWaiting(){ return pdSendLive() && !!_pdSend.waiting; }
 function pdSendWaitSet(on){
   if (!_pdSend) return false;
   _pdSend.waiting = !!on;
@@ -2296,8 +2312,21 @@ function pdRoadStops(c){
       t: _pdT('pd_rd_signs', { party }), sub: sub.filter(Boolean).join(' · ') });
   });
   const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done').length;
-  stops.push({ k: 'sealed', done: s.closed, t: _pdT('pd_rd_sealed'),
-    sub: [_pdT('pd_rd_copies'), obs ? _pdTn('pd_rd_obls', obs, { n: obs }) : ''].filter(Boolean).join(' · ') });
+  /* "SENT" MUST MEAN SENT (flag D, 26 Oct 2026): the last stop said "Sealed and
+     sent · Copies to both sides" with its tick even where a copy had failed or
+     sat in the outbox. Sealed is still sealed; where a copy did not go out the
+     stop is not ticked, says whose copy and where to send it again, and the
+     copies panel with its Send again stands right under it (the body follows
+     the open stop). One reading, copiesNotOut. A contract nobody sent copies
+     of (paper signed elsewhere and filed here) keeps its words: that is not a
+     failure, and the copies panel says what can be done. */
+  let cop = null; try { cop = (s.closed && typeof copiesNotOut === 'function') ? copiesNotOut(c) : null; } catch (_){ cop = null; }
+  const notOut = !!(cop && cop.n);
+  const whoNot = notOut ? cop.rows.map(r => String(r.name || r.email || '').trim()).filter(Boolean) : [];
+  stops.push({ k: 'sealed', done: s.closed && !notOut, copies: notOut,
+    t: _pdT(notOut ? 'pd_rd_sealed_not_out' : 'pd_rd_sealed'),
+    sub: [notOut ? _pdTn('pd_rd_copies_not_out', cop.n, { n: cop.n, who: whoNot.slice(0, 2).join(', ') + (whoNot.length > 2 ? '…' : '') }) : _pdT('pd_rd_copies'),
+      obs ? _pdTn('pd_rd_obls', obs, { n: obs }) : ''].filter(Boolean).join(' · ') });
   const cur = stops.findIndex(x => !x.done);
   const at = cur < 0 ? stops.length - 1 : cur;
   /* each yes is framed where it is the open stop, or the reader's own to give */
@@ -2821,6 +2850,8 @@ function pdGoClause(c, clauseId){
   pdNegoThen(c, () => { if (!document.querySelector('[data-clause-id], .rl-paper')) return false;
     if (typeof rlJumpToClause === 'function') try { rlJumpToClause(clauseId); } catch (_){} return true; });
 }
+/* changes of ours that have not gone yet, read as the Dossier's Send row reads them (never initialises) */
+function pdHasUnsent(c){ try { return !!(c && c.negotiation && typeof rlUnsentCount === 'function' && rlUnsentCount(c, {}) > 0); } catch (_){ return false; } }
 function pdSendWaiting(c){
   pdNegoThen(c, () => { const b = document.getElementById('nego-send'); if (!b) return false; b.click(); return true; });
 }
@@ -3686,7 +3717,7 @@ const DOSSIER_FILL_MAX = 4;
 const DOSSIER_ASKS_MAX = 3;
 /* which stage each owed kind belongs to (Needs you's own kinds, insNeedWords') */
 const DOSSIER_STAGE_OF = { late: 'live', fill: 'fill', signer: 'sign', details: 'fill', ask: 'nego', share: 'nego', quiet: 'nego', review: 'nego',
-  join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', renewal: 'live' };
+  join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', copies: 'sign', promises: 'live', renewal: 'live' };
 function dossierNowStage(c){
   if (!c) return 'arrive';
   if (c.status === 'Signed' || c.status === 'Declined' || (typeof negoExecuted === 'function' && negoExecuted(c))) return 'live';
@@ -5922,7 +5953,14 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const dpg = t.closest('[data-pd-ds-page]');
     if (dpg){ e.preventDefault(); const cc = full(); if (cc && typeof hbStripBring === 'function') hbStripBring(cc.id, dpg.getAttribute('data-pd-ds-page')); return; }
     const g = t.closest('[data-pd-glance]');
-    if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
+    if (g && !g.disabled){ e.preventDefault(); const k = g.getAttribute('data-pd-glance');
+      /* ONE SEND DOOR (owner, 26 Oct 2026: "this send door should be the same send door that is in the send all"):
+         the Dossier's Send is the Redlines column's Send all — the round's letter, its checks first, the hand-over
+         on send (pdSendWaiting → #nego-send) — never a word typed to Jambo that opens the plain share screen */
+      /* …only while changes wait to go (the same reading as the Dossier's "N changes not sent", rlUnsentCount):
+         a paper with nothing unsent is shared for the first time through Jambo's Share card, as before */
+      if (k === 'share'){ const c = pdContract(); if (c && pdHasUnsent(c)){ pdSendWaiting(c); return; } }
+      const row = PD_GLANCE[k]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
 }
 /* ============================================================
@@ -6594,7 +6632,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdMidCrumbHtml, pdActsToggle, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
