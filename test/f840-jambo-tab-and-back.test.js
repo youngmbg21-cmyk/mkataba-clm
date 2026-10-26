@@ -187,8 +187,12 @@ describe('f840 (2) Home\'s panel', () => {
        the talk settles and the talk then looks again (firstReadDue → pdTalkSync, f922) */
     assert.match(f, /let talk=\(typeof window\.pdTalkSync==='function'\)\?pdTalkSync\(dock\):false;/);
     assert.match(f, /\$\{talk\?`<div id="igd-feed" class="igd-talk /, 'the conversation in its own view');
-    /* RE-PINNED (owner, 24 Oct 2026, one window): on a one-window panel his own greeting leads the page's words */
-    assert.match(f, /return \(solo&&top&&typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):''\)\+\(top\|\|`<div class="ig-welcome/, 'the landing: its own words, his greeting first on one window');
+    /* RE-POINTED 26 Oct 2026 (the panel rule): his greeting leads the landing
+       on a one-window panel AND on the Paper face, which keeps two tabs now so
+       that Discover is never inside the talk. Without the second case the
+       Contracts panel lost his greeting altogether. `lead` is that reading. */
+    assert.match(f, /const lead=solo\|\|\(typeof window\.igHomePaperFace==='function'&&igHomePaperFace\(\)===true\s*&&!\(window\.pdOnPaper&&pdOnPaper\(\)\)&&!\(window\.pdHeldContract&&pdHeldContract\(\)\)\);/, 'his greeting leads a one-window panel and the wall, never a chosen paper');
+    assert.match(f, /return \(lead&&top&&typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):''\)\+\(top\|\|`<div class="ig-welcome/, 'the landing: its own words, his greeting first');
     assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');
     /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the box stands under every tab, no condition */
     assert.match(f, /\$\{`<div class="igd-foot p-3 border-t/, 'the box on both views, under every tab');

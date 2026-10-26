@@ -21626,3 +21626,68 @@ Measured with a finger at 1366x950 and with a mouse at 1440x780: opacity 0 at
 the parent (0bb28af), 1 now; the press lands, the row stays inside the panel,
 each link on one line. Permanent check: discover-verify 3a-4 reads the live
 stylesheet, so the rule cannot quietly leave its media block.
+
+## The Company facts page, and the door to the full report (26 Oct 2026)
+
+Two of the owner's notes, both reversing something built the same day.
+
+1. Making the Company facts page "facts only" left it empty: it listed a
+   question only once that question was already switched on, so a workspace
+   with five kept questions and none on showed "No fact is on yet" and five
+   run-together links. The page now lists every question the team keeps, each
+   with a switch saying whether it is read on every contract that arrives. The
+   switch column is named for what it does ("Read on arrival"), and a new
+   question joins through the one door it already had: the Contracts list.
+   The links ran together because .ac-chips was dressed only inside #ig-dock
+   and the page is in Settings — the clothes now follow the builder.
+
+2. The door to the full report only appeared after a pack's read. Columns
+   asked one at a time had no door at all. Every column's card now carries it,
+   over the pack's run where there is one and otherwise over the columns
+   standing on the list. One word for the one door: "See the full report".
+
+Measured at the owner's three screens. discover-verify 3b'-3b" and 4b'-4b"
+are red at the parent (6e9fbd2).
+
+## Noticed, not fixed
+
+- The rule box on the Company facts page clips its own placeholder at the
+  owner's narrower screens; a text field truncating its placeholder is
+  ordinary, so it was left alone.
+
+## The page's own work is never inside the conversation (26 Oct 2026)
+
+The owner, of every page: "if a link is on the first page and a user will need
+to access it, they should not scroll up the jambo to find this link." They
+named the Dossier as the pattern that was already right — its work sits under
+its own tabs and Jambo's talk under his — and the Contracts list as the one
+that was wrong.
+
+Beside the Contracts list the panel was drawn as Jambo's one window, so
+Discover, the kept questions and Ask a new question lived inside the chat's own
+scroller. Measured: after nine exchanges those links sat 433px above the top of
+the panel, out of reach without scrolling the conversation back. The whole
+Paper face now keeps two tabs, the Dossier's pattern.
+
+The Board's panel carries only Jambo's own words, so it keeps his one window —
+but his greeting carries the book's count and the chips that open it, and those
+were 542px out of reach for the same reason. They are now pinned above the
+scroller and the talk runs under them.
+
+A sweep holds every page in the platform to the rule rather than those two:
+test/chromium/jambo-panel-sweep-verify.js types six real questions into each
+panel's own box and then asks whether anything the landing offered has gone out
+of reach. This REVERSES the "one window" ruling of 24 Oct for panels that carry
+the page's work; it stands for panels that carry only his words.
+
+## Noticed, not fixed
+
+- Our standards and Import draw no ask box in their panel, so the panel sweep
+  skips both. The house rule is his box at every panel's foot; these two are
+  the exceptions and were left alone.
+
+## Noticed, not fixed
+
+- Jambo's house draws no ask box in its panel either, so the panel sweep skips
+  it alongside Our standards and Import. Three pages where the house rule
+  "his box at every panel's foot" does not hold.
