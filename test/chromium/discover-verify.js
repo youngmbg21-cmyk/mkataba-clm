@@ -189,7 +189,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
         for (const sh of document.styleSheets){
           let rules; try { rules = sh.cssRules; } catch (_) { continue; }
           for (const r of rules || []){
-            if (r.type !== CSSRule.MEDIA_RULE || !/hover\s*:\s*hover/.test(r.conditionText || '')) continue;
+            if (!r.cssRules || !/hover\s*:\s*hover/.test(r.conditionText || '')) continue;
             for (const k of r.cssRules) if (/\.ac-disc-acts/.test(k.selectorText || '') && /opacity:\s*0/.test(k.style.cssText || '')) return true;
           }
         }
