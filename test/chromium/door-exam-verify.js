@@ -61,7 +61,8 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
     const where = () => P.evaluate(src => new Function('return (' + src + ')()')(), navWhereSrc.toString()).catch(e => ({ error: String(e.message || e) }));
     const fillEnter = async (sel, q) => { await P.waitForSelector(sel, { state: 'visible', timeout: 6000 }); await P.fill(sel, q); await P.press(sel, 'Enter'); };
     async function typeInto(box, q){
-      if (box === 'board') return fillEnter('#igd-input', q);
+      /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+      if (box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); return fillEnter('#igd-input', q); }
       if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(); return fillEnter('#jl-q', q); }
       if (box === 'settings'){ await P.evaluate(() => setView('team')); await settle(); return fillEnter('#st-jb-q', q); }
       throw new Error('no such box ' + box);

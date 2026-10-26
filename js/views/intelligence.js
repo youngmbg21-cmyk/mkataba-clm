@@ -2304,7 +2304,9 @@ async function intelAsk(qRaw, opts){
      the face, which waits as it was left (pdTalkSync, the trail's back) */
   const readied=!!_igReadyAsk && q===_igReadyAsk; _igReadyAsk='';
   /* ON THE BOARD'S JAMBO TAB THE BRAIN READS FIRST (igBoardTalkFirst): words TYPED in the panel's own box go to
-     none of the free readers below; a chip, or the ✦ window handing Home a command, keeps its reader */
+     none of the free readers below — a short command too (owner, 26 Oct 2026: "short commands on overview while
+     jambo [is] where all questions go to AI and then also can take you to specific places in settings"; the AI's
+     goto lands on the place or the setting); a chip, or the ✦ window handing Home a command, keeps its reader */
   if(!readied&&opts&&opts.typed&&igBoardTalkFirst()) return igBoardTalkAsk(q);
   if(readied){
     intel.history.push({role:'user', text:q});
@@ -2692,7 +2694,7 @@ function igBoardNow(){
 }
 /* THE BOARD'S JAMBO TAB READS WITH THE BRAIN FIRST (owner, 26 Oct 2026, a trial on the Board before any other
    page; reverses "one rule in every box" for this one tab): words typed while the panel's Jambo tab is open over
-   the Board go straight to the chat, with the Board in its context and its doors (goto, search) as its tools —
+   the Board go straight to the chat, a short command too, with the Board in its context and its doors (goto, search) as its tools —
    no word list reads them first. The Overview tab keeps the free readers as they were, and what they do not read
    still goes to Jambo and turns the panel to his tab. Only words TYPED in the panel's own box (#igd-input) are
    his: a chip, or the ✦ window handing Home a command, keeps its reader. With no brain (no key) the tab keeps the free readers too,

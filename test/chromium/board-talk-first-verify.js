@@ -4,12 +4,14 @@
    Jambo tab is open go straight to the chat (igBoardTalkFirst), no word list first. Driven with a scripted model,
    so what is sent and what lands are read where the reader looks. Waits ask for the state, bounded.
      A  Overview: "approvals" is a place word — it moves there, free, as before
-     B  Jambo tab: the gate is on, and the line above the box promises no free move while "approvals" is typed
-     C  Jambo tab: "approvals" goes to the chat once, the Board stays in front, the answer stands under his tab
-     D  Jambo tab: "take me to our standards" — the AI's own door takes the reader there (goto)
+     B  Jambo tab: the gate is on, and the line above the box promises no free move while a sentence is typed
+     K  Jambo tab: "approvals", a short command, goes to the AI too; its goto moves the reader there
+     L  Jambo tab: "where do i change the language…" — the AI lands on that spot in Settings
+     C  Jambo tab: a question goes to the chat once, the Board stays in front, the answer stands under his tab
+     D  Jambo tab: a long sentence asking the way — the AI's own door takes the reader there (goto)
      E  Jambo tab: a follow-up carries the conversation (the earlier turns travel with it)
      F  photos at the owner's three screens; no page errors
-   At the parent A passes and B–E fail (the free readers answer first, nothing is sent).
+   At the parent A passes and B–L fail (the free readers answer first, nothing is sent).
    Run: node test/chromium/board-talk-first-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -58,15 +60,30 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     await toBoard();
     check('B0 the Jambo tab is open', !!(await toTalk()));
     check('B1 the brain reads first here (igBoardTalkFirst)', await page.evaluate(() => typeof igBoardTalkFirst === 'function' && igBoardTalkFirst() === true));
-    await page.fill('#igd-input', 'approvals');
+    await page.fill('#igd-input', 'i keep losing track of which approvals are stuck with finance');
     await page.evaluate(() => { const i = document.getElementById('igd-input'); i.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.waitForTimeout(900);
     const pre = await page.evaluate(() => (document.getElementById('igd-pre') || {}).textContent || '');
     check('B2 the line above the box promises nothing', pre.trim() === '', JSON.stringify(pre));
+    await page.fill('#igd-input', '');
 
-    console.log('\nC · "approvals" on the Jambo tab is the chat\'s');
+    console.log('\nK · a short command on the Jambo tab is the AI\'s too, and its goto moves the reader');
+    ai.reset(); ai.script(deliver('Taking you to Approvals.', { task: 'approvals' }));
+    await ask('approvals');
+    const K = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
+    check('K1 one chat call, and the AI\'s door moved the reader to Approvals', chatCalls().length === 1 && !!K && /approv/i.test(K), `${K} · ${chatCalls().length}×`);
+    await toBoard(); await toTalk();
+
+    console.log('\nL · the AI lands on one spot in Settings');
+    ai.reset(); ai.script(deliver('Your language is in Settings, under You. Taking you there.', { task: 'lang', door: { kind: 'you', key: 'lang' } }));
+    await ask('where do i change the language hati speaks to me in');
+    const L = await until(() => state.view !== 'dashboard' ? { view: state.view, lang: !!document.querySelector('[data-st-card="lang"], #st-lang, [data-st-row="lang"], select[name="lang"], #st-you-lang') } : null, null, 10000);
+    check('L1 one chat call, and the reader is in Settings', chatCalls().length === 1 && !!L && /team|settings/i.test(L.view), JSON.stringify(L));
+    await toBoard(); await toTalk();
+
+    console.log('\nC · a question on the Jambo tab is the chat\'s');
     ai.reset(); ai.script(deliver('Approvals is where requests for a yes wait. Three wait on you now.'));
-    await page.click('#igd-go');
+    await ask('why do approvals keep getting stuck with finance?');
     const C = await until(() => !intel.busy && /Three wait on you/.test((document.getElementById('ig-dock') || {}).innerText || '') ? { view: state.view, face: hbS().face, talk: pdTalkShows() } : null, null, 10000);
     check('C1 the chat was asked once', chatCalls().length === 1, `${chatCalls().length}×`);
     check('C2 the Board stays in front and the answer stands under his tab', !!C && C.view === 'dashboard' && C.face === 'board' && C.talk, JSON.stringify(C));
@@ -78,11 +95,11 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     await ask('which has waited longest?');
     await until(() => !intel.busy && /nine days/.test((document.getElementById('ig-dock') || {}).innerText || '') ? true : null, null, 10000);
     const sent = JSON.stringify((chatCalls().slice(-1)[0] || {}).body || {});
-    check('E1 the earlier question and answer travel with it', /approvals/.test(sent) && /Three wait on you/.test(sent), sent ? 'carried' : 'no call');
+    check('E1 the earlier question and answer travel with it', /stuck with finance/.test(sent) && /Three wait on you/.test(sent), sent ? 'carried' : 'no call');
 
     console.log('\nD · the AI takes the reader there');
     ai.reset(); ai.script(deliver('Our standards are on Our paper. Taking you there.', { task: 'standards' }));
-    await ask('take me to our standards');
+    await ask('i need the page where we keep our standard clauses for suppliers');
     const D = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
     check('D1 one chat call, and the reader is moved by the AI\'s door', chatCalls().length === 1 && !!D, `${D} · ${chatCalls().length}×`);
 
