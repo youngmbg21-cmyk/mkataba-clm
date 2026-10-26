@@ -116,7 +116,7 @@ const check = (name, pass, detail) => {
     check('1e the picture lights its month and prints its value; the range is said, not drawn', !s1.band && !!s1.lit && !/none/.test(s1.lit) && / 1$/.test(s1.lit) && /^60 days$/.test(s1.val || ''), JSON.stringify({ band: s1.band, lit: s1.lit, val: s1.val }));
     check('1f every picture carries Keep · Open · Read more · let go, and is one press', s1.acts && s1.doorsInside === 0, `${s1.doorsInside} doors inside`);
     /* pass 3: Hide stays at its end (the owner's answer 7) */
-    check('1g its head says what moved most since the month six months back (each card says whose), and Hide', /^Today.s insights\s*\d+\s*what moved most since \S+ · worked out this morning from your book\s*Hide$/.test(s1.row), s1.row);
+    check('1g its head says what moved most since the month six months back (each card says whose), and Hide', /^Today.s insights\s*\d+\s*what moved most since \S+\s*Hide$/.test(s1.row), s1.row);
     await page.waitForTimeout(1500);   /* the columns rise in; photograph them risen */
     await page.screenshot({ path: path.join(OUT, '1-yours-measured.png') });
     /* RE-POINTED 11 Oct 2026 (owner: "make it to always be 3 but if the only
@@ -207,7 +207,7 @@ const check = (name, pass, detail) => {
       const s = hbS(); s.ins = null; s.insOff = {}; s.panels = []; hbSave(); hbPaintBoard(); });
     const s7 = await until(() => { const r = document.querySelector('#hb-board .hb-ins-head > .hb-ch'); if (!r || !hbS().ins || hbS().ins.list.length) return null;
       return { row: r.textContent.replace(/\s+/g, ' ').trim(), cards: document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins').length, btn: (r.querySelector('[data-hb-ins="usual"]') || {}).textContent }; });
-    check('7a a quiet day: the row says nothing moved outside normal', !!s7 && /nothing moved outside its normal range this morning/.test(s7.row), s7 && s7.row);
+    check('7a a quiet day: the row says nothing unusual', !!s7 && /nothing unusual this morning/.test(s7.row), s7 && s7.row);
     /* RE-POINTED 11 Oct 2026 (owner, as in 1h): a quiet day is SAID in the
        head, and the usual pictures fill the row at once — no switch */
     check('7b and the usual pictures fill the row, plain, with no switch to press', !!s7 && s7.cards >= 1 && s7.cards <= 4 && !s7.btn

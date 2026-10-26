@@ -9595,8 +9595,11 @@ app.get('/api/columns/summary', auth, (req, res) => {
      each still free to bring back or to keep. `others` is how many that is. */
   const all = String(req.query.all || '') === '1';
   const where = all ? '' : 'WHERE COALESCE(kept,0)=1 OR COALESCE(fact,0)=1 ';
-  const asks = db.prepare(`SELECT * FROM column_asks ${where}ORDER BY COALESCE(fact,0) DESC, COALESCE(kept,0) DESC, last_used_at DESC LIMIT 40`).all();
-  const others = db.prepare('SELECT COUNT(*) AS n FROM column_asks WHERE COALESCE(kept,0)=0 AND COALESCE(fact,0)=0').get().n;
+  /* A COUNTING QUESTION IS NOT A COLUMN (owner, 26 Oct 2026): one kept before the rule is never listed, so no
+     chip offers a question the ask door refuses (COLUMN_PORTFOLIO_RE, the same wall as the ask) */
+  const notCounting = a => !COLUMN_PORTFOLIO_RE.test(String(a.question || ''));
+  const asks = db.prepare(`SELECT * FROM column_asks ${where}ORDER BY COALESCE(fact,0) DESC, COALESCE(kept,0) DESC, last_used_at DESC LIMIT 40`).all().filter(notCounting);
+  const others = db.prepare('SELECT question FROM column_asks WHERE COALESCE(kept,0)=0 AND COALESCE(fact,0)=0').all().filter(notCounting).length;
   const folders = new Map(db.prepare('SELECT id, folder FROM contracts').all().map(r => [r.id, r.folder]));
   const out = asks.map(a => {
     let read = 0, found = 0, risk = 0, last = '';

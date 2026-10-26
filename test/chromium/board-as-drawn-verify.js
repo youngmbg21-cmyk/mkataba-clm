@@ -210,8 +210,8 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         n: cards.length, perRow: cards.filter(c => Math.round(c.getBoundingClientRect().top) === tops[0]).length, edge: cs.borderTopStyle + ' ' + cs.borderTopWidth,
         acts: cards.every(c => c.querySelector('[data-hb-ins="open"]') && c.querySelector('[data-hb-ins="keep"]') && c.querySelector('[data-hb-read-more]') && c.querySelector('[data-hb-ins="go"]')),
         month: hbThenWord(true) }; });
-    check('8a the head is its own slim card: the count OF THE CARDS UNDER IT, "what moved most since <month> · worked out this morning from your book", and Hide',
-      !!shelf && !!ins && new RegExp(`^Today’s insights\\s*${ins.n}\\s*what moved most since ${ins.month} · worked out this morning from your book\\s*Hide$`).test(ins.head) && ins.hide && !ins.headHasPics, JSON.stringify(ins));
+    check('8a the head is its own slim card: the count OF THE CARDS UNDER IT, "what moved most since <month>", and Hide',
+      !!shelf && !!ins && new RegExp(`^Today’s insights\\s*${ins.n}\\s*what moved most since ${ins.month}\\s*Hide$`).test(ins.head) && ins.hide && !ins.headHasPics, JSON.stringify(ins));
     check('8b each picture its own card, two to a row, each with Open · Keep · Ask why · Let it go', !!ins && ins.n >= 2 && ins.n <= 4 && ins.perRow === 2 && ins.edge === 'solid 1px' && ins.acts, JSON.stringify(ins));
     /* 8b2 THE SYMMETRY RULE (owner, 22 Oct 2026: "These attached cards should
        be the same size"): two cards sharing a row stand the same height, their
@@ -310,6 +310,23 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         const over = [...sh.querySelectorAll('*')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > board.right + 1; }).length;
         return { cut, over, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`8c ${w}×${ht}: the head's line whole (never cut), nothing past the board's edge, nothing sideways`, !!fit && !fit.cut && !fit.over && fit.side, JSON.stringify(fit));
+      /* THE INSIGHTS HEAD IS THE NEEDS YOU HEAD (owner, 26 Oct 2026): the two cards the same height, their words
+         starting at the same left, their Show/Hide on the head's one line at the same right edge; the line never
+         wraps. Measured against the Needs you card (#hm-agents) when it stands on the Board, else its head card;
+         heights inside the 1px rule an OPEN Needs you draws under its head (folded, as drawn, there is none). */
+      const same = await page.evaluate(() => {
+        const ins = document.querySelector('#hb-board .hb-ins-head>.hb-ch'), nd = document.querySelector('#hb-board #hm-agents>.hb-ch') || document.querySelector('#hb-board .hb-card>.hb-ch');
+        if (!ins || !nd) return { missing: !ins ? 'insights head' : 'a card head to measure against' };
+        const r = e => e.getBoundingClientRect();
+        const a = r(ins), b = r(nd), at = r(ins.querySelector('.hb-ct')), bt = r(nd.querySelector('.hb-ct'));
+        const ab = ins.querySelector('button'), bb = nd.querySelector('button');
+        const cs = ins.querySelector('.hb-cs');
+        return { h: [ins.clientHeight, nd.clientHeight], left: [Math.round(at.left), Math.round(bt.left)],
+          btnRight: [ab ? Math.round(r(ab).right) : null, bb ? Math.round(r(bb).right) : null],
+          btnOnLine: ab ? Math.abs((r(ab).top + r(ab).bottom) / 2 - (a.top + a.bottom) / 2) < 2 : null,
+          oneLine: cs ? r(cs).height < 24 && getComputedStyle(cs).whiteSpace === 'nowrap' : null, against: nd.parentElement.id || nd.parentElement.className }; });
+      check(`8c′ ${w}×${ht}: the insights head is the Needs you head — same height, words at the same left, Show on the line at the same right, never wrapped`,
+        !same.missing && same.h[0] === same.h[1] && same.left[0] === same.left[1] && same.btnRight[0] === same.btnRight[1] && same.btnOnLine && same.oneLine, JSON.stringify(same));
       await shot(page, `17-board-insights-head-${w}x${ht}`);
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

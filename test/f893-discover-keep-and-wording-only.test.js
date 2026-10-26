@@ -117,6 +117,28 @@ describe('f893 (2) a column asks the wording, never the book', () => {
       assert.ok(r.ask && r.ask.id, q);
     }
   });
+  /* THE TWO ROUGH EDGES (owner, 26 Oct 2026): a counting question kept BEFORE
+     the rule (straight in the table, as the older build left it) is never
+     listed again — not in the kept list, not behind the folded line, not in
+     its count — so no "Asked before" chip offers a question the door refuses. */
+  test('2e a counting question kept before the rule is listed nowhere, and not counted', async () => {
+    const path = require('node:path');
+    const { DatabaseSync } = require('node:sqlite');
+    const raw = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    raw.exec('PRAGMA busy_timeout = 5000');
+    const at = new Date().toISOString();
+    raw.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at,kept) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run('ca_old_count_kept', 'how many of these', 'how many of these', 'how many of these', 'u1', 'Old', at, at, 1);
+    raw.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
+      .run('ca_old_count_loose', 'how many contracts have risks', 'How many contracts have risks', 'Risks count', 'u1', 'Old', at, at);
+    raw.close();
+    const kept = await w.admin.json('/api/columns/summary');
+    assert.equal(kept.asks.find(a => a.id === 'ca_old_count_kept'), undefined, 'the kept counting question is not listed');
+    const all = await w.admin.json('/api/columns/summary?all=1');
+    for (const id of ['ca_old_count_kept', 'ca_old_count_loose']) assert.equal(all.asks.find(a => a.id === id), undefined, id + ' is not behind the fold either');
+    const loose = all.asks.filter(a => !a.kept && !a.fact).length;
+    assert.equal(all.others, loose, 'the folded line counts only what it would show');
+  });
   test('2d one counting question inside a pack refuses the whole read', async () => {
     h.ai.reset();
     const r = await w.admin.raw('/api/ai/column', { method: 'POST', body: { ids: IDS, texts: TEXTS,

@@ -34705,3 +34705,47 @@ Over a screenshot of the Handbook page, asked "what is the handbook about?", Jam
 WHY IT WENT WRONG: the Handbook was drawn only in the browser; the chat brain's one search held contracts, clauses, obligations, notes, history, requests, people, templates and standards, never the book; the page sentence named the page and nothing on it; and the rules call the contracts "your book", so a book it had never read was taken for them. WHAT WAS BUILT: (1) js/handbook.js reads itself out in plain words for both hosts (`hbkPlainOf`, `hbkChapterPlain`, `hbkAboutPlain`, `hbkSearchDocs`, `hbkPlainFor`; markers become the screen's words through each host's dictionary, `srvHbkWord` / `aiHbkWord`); (2) the ONE search holds every chapter and the book itself as kind `guide` (read again at each start; every reader may read it; the first three hits carry the chapter's steps in the reader's language; a hit's door is `{kind:'chapter'}`); the browser's own search the same; (3) `AI_HANDBOOK_RULE` on both hosts word for word: HaTi itself is answered from the Handbook with numbered steps, never from the contracts; "your book" means the contracts; (4) every page names the chapters that cover it (`HBK_VIEW_DOORS`, `HBK_FACE_DOORS`, `hbkChaptersForPage`: a chapter owning the page's door leads, then one whose path starts there, then one that mentions it), sent as `page.chapters`, and on the Handbook the chapter being read (`page.chapter`); (5) a chapter is a BUTTON under the answer ("Handbook › 4.2 …"), never a move away from where the question was asked (`copilotChapterButton`, `aiLocalChapterButton`; `navDoorOf` → `navGo` `{k:'chapter'}` → `hbkOpen`; `about` opens the first part). Chapter 0.2 says so, both languages.
 MEASURED: the exam (63 questions in a person's own words, every part of the book) 0 of 63 at main 8e8196b, 62 of 63 after; the known miss, kept rather than tuned away: "how do I ask jambo something". The gap report: every page Jambo can be on has at least one chapter today.
 LEFT ALONE (said): "who can change the currency rates?" typed in a box is still taken by the typed-navigation reader as a trip to that setting ("The setting, in Settings."), because earlier rulings make "who works here", "who can open Procurement" and "who is Amina" trips to their pages; changing "who …" would reverse them, so it is a BUGLOG line and a question for the owner.
+## HOME — THE BOARD AND THE MAP · ASK A COLUMN — THE TWO ROUGH EDGES AND THE INSIGHTS HEAD (26 Oct 2026)
+The owner sent two pictures. The first: Ask a column refusing "How many contracts have more than 30 days
+payment terms?" with an orange toast — "That asks about your contracts, not about the wording of one. Ask
+Jambo in the box below" — drawn ON TOP of the very box it pointed to, and a chip "how many of these" under
+Asked before in your team, a counting question kept before the rule of the same day. The second: the Board's
+Today's insights card standing taller than Needs you above it, its words starting 16px further in, its line
+("nothing moved outside its normal range this morning · checked payment days, days to sign, rounds and
+renewals") wrapping on to a second line with Show pushed below. The owner: "fix both rough edges … make the
+todays insights align with the design of the needs you. The sentences should start from the same vertical and
+insights should also be very short so that it is not in a position to wrap text. Also the show button should
+be on the same line as the show in the needs you card. The cards should also be the same height."
+- THE REFUSAL UNDER THE BOX: `askColSay(msg)` puts the sentence in `#ac-q-say` (class `.ac-why`, role alert)
+  right under the question box and focuses the box; `askColSayClear` hides it on the next keystroke; with no
+  form on the screen it falls back to the toast. Both refusals (too short, counting) go through it. The SAP
+  rule's inline state, cheaper than the toast and never over the panel's foot.
+- THE DEAD CHIP: the server's `/api/columns/summary` leaves out any stored question `COLUMN_PORTFOLIO_RE`
+  matches (kept or not) and counts `others` without them; the browser's chips filter through
+  `askColIsPortfolio` too. The row stays in the table (deleting is the owner's, from Discover's own door).
+- THE HEAD: `.hb-ins-head>.hb-ch` takes the Board's own head padding (10px 12px 10px 16px) and 40px floor, the
+  line `white-space:nowrap` with …; the 16px card padding on `.hb-inscard` is gone (it doubled the head's);
+  the three `hb_ins_sub_*` lines cut to "what moved most since {m}" / "nothing unusual this morning" / "not
+  enough history yet" (Swedish alike) — the quiet line no longer lists what was checked. Measured at the three
+  screens: 42px inside the rule both, words at x=33 both, Show's right edge equal, the line one row.
+- THE 16PX RULE AND THIS HEAD: the tidy sweep measured the head-only card for "16px inside every card" (top
+  11, bottom 11) on the iPad, where it is in view. The Needs you head has the same 10px and is never measured
+  (its card holds rows, a frame). Today's ask — the same height as Needs you — cannot be met with 16px above
+  and below, so the sweep now leaves a card whose only child is `header.hb-ch` out of that measurement, as a
+  head line. SAID TO THE OWNER in the summary: the other way is to make BOTH heads 16px tall (60px cards).
+Red at the parent: board-as-drawn 8c′ ×3 (60 vs 42, left 49 vs 33, wrapped), ask-a-column 8a (toast over the
+foot), f893 2e (the chip listed), f934. Green: lint 0 errors · f934 · f893 · f912 · f745 · f746 · f883 ·
+board-as-drawn-verify 44/44 · insights-shelf-verify · ask-a-column-verify 31/31 · tidy sweep board/agents 17/17.
+
+## SETTINGS & RULES — THE CONTROL ROOM · THE MENU DOOR FRONT AND CENTRE (26 Oct 2026)
+The owner's picture: Settings' Jambo panel, a "menu" typed in his box answered "I could not find a setting for
+'menu'", and under it the only "Open the Menu" button there was. "On settings page, this menu button should be
+front and center in the overview page. Why is it hidden?" WHY IT WAS HIDDEN: the third pass of Settings as
+drawn (19 Oct 2026) had taught Settings' box that "/" opens its Menu face; main's rule that "/" lists places
+in every box won, that handler went, and the Menu face was left reachable only from a "nothing found"
+answer's button and from Cmd/Ctrl+K — a reader who asked nothing never saw a door to it. NOW: the one door
+(`data-st-side="menu"`, the same press) stands first on every landing of the panel, right under his greeting,
+with how many settings the Menu lists (`stJbMenuDoorHtml`, `stMenuCount`; `st_jb_menu_n`, both books). The
+"nothing found" answer keeps its button. Not a band: a control in the panel. Red at the parent: f788 2c′.
+Green: lint 0 errors · f788 · f784 · f691 · settings-as-drawn-4 (photos at the three screens) ·
+control-room-in-full · tidy sweep on the Settings pages.
