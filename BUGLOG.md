@@ -21720,3 +21720,20 @@ landing's words live on the Overview tab, and Settings' talk view returned
 nothing for an empty conversation. His greeting stands there until the first
 turn, the way Home's talk view already falls back to its welcome line. Greeting
 first either way, which is the rule.
+
+## 26 Oct 2026 — 13f's own clock, not the Explorer
+
+f840's owner check went red in CI at 13f ("a press that wobbles by a few
+pixels still opens the contract's card") while every local run was green.
+First guess: the map's jiggle moved the dot between being measured and being
+pressed. Instrumented over three runs — the dot moved 0px — so that was
+wrong. The real cause is this check's own wait: 3000ms where every other wait
+in the file allows 8000-10000ms. A runner slower than three seconds at putting
+the card in intel.history gives exactly what CI showed (13e green, 13f red).
+Widened to 8000ms. The press now also re-reads the live rect of the SAME dot
+at the moment of the press — not the cause, but the stricter aim, so it stays.
+33/33 green locally after the change.
+
+### Noticed, not fixed
+- 7g ("a press on the bubble opens that group") in the same file also waits
+  only 3000ms, with the same slow-runner exposure as 13f had.
