@@ -299,7 +299,11 @@ describe('f745 (7) Today\'s insights as drawn', () => {
     assert.match(CSS, /\.hb-board \.hb-shelf\.hb-shelf-cards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:12px;/);
     assert.match(CSS, /\.hb-board \.hb-shelf\.hb-shelf-cards>\.hb-ins:last-child:nth-child\(odd\)\{grid-column:1\/-1\}/);
     assert.match(CSS, /\.hb-board \.hb-shelf-cards>\.hb-ins\{background:var\(--hb-card\);border:1px solid/);
-    assert.match(CSS, /\.hb-board \.hb-ins-head>\.hb-ch \.hb-cs\{flex:1 1 auto;white-space:normal;overflow:visible;text-overflow:clip;/, 'the head\'s line wraps before it is ever cut (the iPad)');
+    /* the head is the Needs you head (owner, 26 Oct 2026): one line, never wrapped, the Board's own padding and 40px floor */
+    assert.match(CSS, /\.hb-board \.hb-ins-head>\.hb-ch\{border-bottom:0;padding:10px 12px 10px var\(--s-4\);min-height:40px\}/, 'the head line is padded and floored like the Needs you head');
+    assert.match(CSS, /\.hb-board \.hb-ins-head>\.hb-ch \.hb-cs\{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/, 'the head\'s line never wraps');
+    assert.ok(!/#app-shell \.hb-board \.hb-inscard\{padding:16px\}/.test(CSS), 'no second padding on the head card');
+    for (const k of ['hb_ins_sub_moved', 'hb_ins_sub_quiet', 'hb_ins_sub_young']) for (const b of ['en', 'sv']) assert.ok(BOOKS[b][k].replace('{m}', 'September').length <= 40, b + ' ' + k + ' is short enough never to wrap');
     const { w, I } = shelfWorld('co');
     const cards = w.hbInsCardHtml(I).match(/<article class="hb-ins/g) || [];
     assert.ok(cards.length >= 2 && cards.length <= 4, String(cards.length));

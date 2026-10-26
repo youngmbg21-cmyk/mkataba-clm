@@ -34663,3 +34663,35 @@ THE THREE SCREENS: photographed at 1440×780, 1536×730 and 1366×950, including
 ones (the Ledger, and the reading line with Stop); every screen fits, nothing spills.
 GREEN: lint 0 errors · f893 26/26 · f887–f892 re-run · discover-verify 54/54 ·
 ask-a-column-verify 28/28 · tidy sweep 40/40 on the four pages touched.
+
+## HOME — THE BOARD AND THE MAP · ASK A COLUMN — THE TWO ROUGH EDGES AND THE INSIGHTS HEAD (26 Oct 2026)
+The owner sent two pictures. The first: Ask a column refusing "How many contracts have more than 30 days
+payment terms?" with an orange toast — "That asks about your contracts, not about the wording of one. Ask
+Jambo in the box below" — drawn ON TOP of the very box it pointed to, and a chip "how many of these" under
+Asked before in your team, a counting question kept before the rule of the same day. The second: the Board's
+Today's insights card standing taller than Needs you above it, its words starting 16px further in, its line
+("nothing moved outside its normal range this morning · checked payment days, days to sign, rounds and
+renewals") wrapping on to a second line with Show pushed below. The owner: "fix both rough edges … make the
+todays insights align with the design of the needs you. The sentences should start from the same vertical and
+insights should also be very short so that it is not in a position to wrap text. Also the show button should
+be on the same line as the show in the needs you card. The cards should also be the same height."
+- THE REFUSAL UNDER THE BOX: `askColSay(msg)` puts the sentence in `#ac-q-say` (class `.ac-why`, role alert)
+  right under the question box and focuses the box; `askColSayClear` hides it on the next keystroke; with no
+  form on the screen it falls back to the toast. Both refusals (too short, counting) go through it. The SAP
+  rule's inline state, cheaper than the toast and never over the panel's foot.
+- THE DEAD CHIP: the server's `/api/columns/summary` leaves out any stored question `COLUMN_PORTFOLIO_RE`
+  matches (kept or not) and counts `others` without them; the browser's chips filter through
+  `askColIsPortfolio` too. The row stays in the table (deleting is the owner's, from Discover's own door).
+- THE HEAD: `.hb-ins-head>.hb-ch` takes the Board's own head padding (10px 12px 10px 16px) and 40px floor, the
+  line `white-space:nowrap` with …; the 16px card padding on `.hb-inscard` is gone (it doubled the head's);
+  the three `hb_ins_sub_*` lines cut to "what moved most since {m}" / "nothing unusual this morning" / "not
+  enough history yet" (Swedish alike) — the quiet line no longer lists what was checked. Measured at the three
+  screens: 42px inside the rule both, words at x=33 both, Show's right edge equal, the line one row.
+- THE 16PX RULE AND THIS HEAD: the tidy sweep measured the head-only card for "16px inside every card" (top
+  11, bottom 11) on the iPad, where it is in view. The Needs you head has the same 10px and is never measured
+  (its card holds rows, a frame). Today's ask — the same height as Needs you — cannot be met with 16px above
+  and below, so the sweep now leaves a card whose only child is `header.hb-ch` out of that measurement, as a
+  head line. SAID TO THE OWNER in the summary: the other way is to make BOTH heads 16px tall (60px cards).
+Red at the parent: board-as-drawn 8c′ ×3 (60 vs 42, left 49 vs 33, wrapped), ask-a-column 8a (toast over the
+foot), f893 2e (the chip listed), f934. Green: lint 0 errors · f934 · f893 · f912 · f745 · f746 · f883 ·
+board-as-drawn-verify 44/44 · insights-shelf-verify · ask-a-column-verify 31/31 · tidy sweep board/agents 17/17.

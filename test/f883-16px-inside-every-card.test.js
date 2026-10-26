@@ -25,7 +25,7 @@ describe('f883 — 16px inside every card', () => {
     assert.ok(!/!important/.test(block), 'no !important');
     for (const re of [
       /#app-shell :is\(\.jl-bub, \.st-jb-bub\)[^{]*\{padding:16px\}/,
-      /#app-shell \.hb-board \.hb-bhead\.hb-card, #app-shell \.hb-board \.hb-inscard\{padding:16px\}/,
+      /#app-shell \.hb-board \.hb-bhead\.hb-card\{padding:16px\}/,
       /#app-shell \.st-cr \.st-card\{padding:16px\}/,
       /#na-root\.na-one :is\(\.na-ask, \.na-rail, \.na-read, \.na-theirs, \.na-card, \.na-file\)\{padding:16px\}/,
       /#app-shell \.cal-page\.is-home \.cal-head\{padding:16px\}/,
