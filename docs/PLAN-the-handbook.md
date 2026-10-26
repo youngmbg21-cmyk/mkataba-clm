@@ -1,6 +1,6 @@
 # THE HANDBOOK — HaTi's own instruction book, one chapter per thing you can do
 
-**Status: PROPOSAL, nothing built (26 Oct 2026). Waits for the owner's yes on the picks in §9.**
+**Status: PROPOSAL AGREED (owner, 26 Oct 2026), nothing built yet. The owner's picks are in §9; round 1 waits for a separate go.**
 
 ## 1. What the owner asked (26 Oct 2026)
 
@@ -192,7 +192,15 @@ already exist: the six questions are asked before any visible change, the three 
 merge, and the chapter's "checked on" date is part of the merge checklist. The rule lands the house way: four
 lines in CLAUDE.md, its tests under its heading in MAP-TESTS.md, the story in MAP-HISTORY.md.
 
-## 9. The owner's picks (needed before anything is built)
+## 9. The owner's picks (26 Oct 2026: "Handbook, the 20 chapters, pictures after, Swedish same change")
+
+1. **The name: Handbook.**
+2. **Round 1: the 20 starred chapters in §4.**
+3. **Pictures after the words and doors (round 3).**
+4. **The rule's wording** in §8 stands as drafted; the optional fourth check (the date against git) is not asked for and is left out.
+5. **Swedish in the same change.**
+
+The questions as they were asked:
 
 1. **The name.** "Handbook" (recommended: one word, sits beside Guide · Alerts · Notes). Alternatives: "How to",
    "Instructions".
