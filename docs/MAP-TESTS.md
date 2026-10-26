@@ -138,6 +138,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f919; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- Promises Jambo found on a signed contract are on Needs you until decided (26 Oct 2026, flag E): test/chromium/found-promises-verify.js (11 checks: one row, not urgent, "Jambo found 2 promises to confirm", on the one desk; none on a live contract; Review opens the desk with nothing ticked; skipping both removes the row; the three screens; red at the parent bbff1c4: 1a, 1b, 1c, 3, 4, 5×3).
 - Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
 - The Calendar whole, not a day's luck (26 Oct 2026, owner picked "Fix the check"): week-as-drawn-verify 5 "the Calendar whole" accepts every row in view OR the five later weeks scrolling inside their own band (top in view, foot in the window, every row reachable, none under 38px), as ruled 21 Oct. It was red on a busy Monday at 1536×730 only; red again with the band's overflow forced visible.
 - MARQUEE (23 Oct 2026): obligations-renewal-legora-way-verify 1a re-pointed (three columns, labels in small capitals; how far off on the date's hover); obligations-tab-verify green.

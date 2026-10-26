@@ -498,9 +498,9 @@ function insPartiesHtml(list){
    worst row's, and a button wears the platform's one light edge (26 Sep 2026)
    with the row's colour on its word. */
 const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', look: 'ins_need_v_look', approval: 'ins_need_v_approval', refused: 'ins_need_v_refused', join: 'home_verb_answer',
-  note: 'home_verb_answer', suggest: 'home_verb_answer', details: 'det_need_verb', sign: 'home_verb_sign', copies: 'sgx_copy_again', renewal: 'home_verb_decide' };
+  note: 'home_verb_answer', suggest: 'home_verb_answer', details: 'det_need_verb', sign: 'home_verb_sign', copies: 'sgx_copy_again', promises: 'home_verb_review', renewal: 'home_verb_decide' };
 const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', look: 'ins_need_go_look', approval: 'ins_need_go_approval', refused: 'ins_need_go_refused', join: 'ins_need_go_desk',
-  note: 'ins_need_go_notes', suggest: 'ins_need_go_nego', details: 'det_need_go', sign: 'ins_need_go_sign', copies: 'ins_need_go_copies', renewal: 'ins_need_go_terms' };
+  note: 'ins_need_go_notes', suggest: 'ins_need_go_nego', details: 'det_need_go', sign: 'ins_need_go_sign', copies: 'ins_need_go_copies', promises: 'ob_finds_go_title', renewal: 'ins_need_go_terms' };
 /* One row's words: a title, and a line under it as HTML (`sub`) with the same
    words plain on its hover (`plain`) — the line is cut to one line, never the
    fact. Every number is a reading the panel already prints elsewhere: the
@@ -576,6 +576,9 @@ function insNeedWords(c, it){
     return Object.assign({ title: i18tn('ins_need_copies', it.n || 1, { n: it.n || 1 }) },
       lineOf([who ? bit(who) : null, bit(i18t(it.outbox ? 'sgx_st_outbox' : 'ins_need_copies_failed'), true)]));
   }
+  /* PROMISES JAMBO FOUND, NOT YET CONFIRMED (flag E): the count is the review desk's */
+  if (it.kind === 'promises')
+    return Object.assign({ title: i18tn('ins_need_promises', it.n || 1, { n: it.n || 1 }) }, lineOf([bit(i18t('ins_need_promises_sub'))]));
   if (it.kind === 'renewal'){
     const day = _insDay(it.dd);
     const inN = it.d === 0 ? i18t('ins_days_today') : i18tn('ins_need_in', it.d, { n: it.d });

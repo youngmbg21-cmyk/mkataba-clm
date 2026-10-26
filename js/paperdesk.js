@@ -3677,7 +3677,7 @@ const DOSSIER_FILL_MAX = 4;
 const DOSSIER_ASKS_MAX = 3;
 /* which stage each owed kind belongs to (Needs you's own kinds, insNeedWords') */
 const DOSSIER_STAGE_OF = { late: 'live', fill: 'fill', signer: 'sign', details: 'fill', ask: 'nego', share: 'nego', quiet: 'nego', review: 'nego',
-  join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', copies: 'sign', renewal: 'live' };
+  join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', copies: 'sign', promises: 'live', renewal: 'live' };
 function dossierNowStage(c){
   if (!c) return 'arrive';
   if (c.status === 'Signed' || c.status === 'Declined' || (typeof negoExecuted === 'function' && negoExecuted(c))) return 'live';

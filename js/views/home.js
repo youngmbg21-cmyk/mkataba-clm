@@ -1546,7 +1546,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','look','approval','refused','note','suggest','join','details','sign','copies','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','look','approval','refused','note','suggest','join','details','sign','copies','promises','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1617,6 +1617,15 @@ function needsYouOf(c){
     if(cp && cp.n) out.push({ kind:'copies', urgent:true, n:cp.n,
       who:cp.rows.map(r=>String(r.name||r.email||'').trim()).filter(Boolean),
       outbox:cp.rows.every(r=>r.status==='outbox') }); });
+  /* PROMISES JAMBO FOUND AND NOBODY CONFIRMED (flag E, 26 Oct 2026): a signed
+     contract's duties he read on arrival wait in the review desk, unticked, and
+     nothing reminds anyone of a duty that is not on the contract — so a contract
+     full of promises looked as if it owed nothing. To its owner, until each one
+     is added or skipped; not urgent (nothing is late, it is unread). The count is
+     the review desk's own (obReviewWaiting), the week list's "Review N". */
+  take(()=>{ if(c.status!=='Signed' || !(typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))) return;
+    const n=window.obReviewWaiting?obReviewWaiting(c).length:0;
+    if(n) out.push({ kind:'promises', urgent:false, n }); });
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
       out.push({ kind:'renewal', urgent:r.d<=HM_SOON_DAYS, dd:r.dd, d:r.d }); });
@@ -1723,6 +1732,10 @@ function needsYouGo(kind, id){
   /* A COPY THAT DID NOT GO OUT is sent again from the receipt, which is the
      same face once signed: Before you sign beside the paper (flag D) */
   if(kind==='copies'){ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } return true; }
+  /* FOUND PROMISES ARE CONFIRMED AT THE REVIEW DESK (flag E): the week list's
+     own Review door, on the list the arrival read holds — nothing pre-ticked,
+     no new reading paid for while any waits */
+  if(kind==='promises' && window.runFindObligations){ runFindObligations(c); return true; }
   /* ---- THE ROOM IS RETIRED (the overnight work order, step 8; owner's "Go",
      14 Oct 2026) ---- a renewal is decided on the Overview's own renewal
      card, which is the contract strip's Details page on Home's Board now
