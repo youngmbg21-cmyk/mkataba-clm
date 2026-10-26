@@ -116,7 +116,18 @@ jobs:
       # playwright-core ships no browser of its own; the harnesses resolve
       # the registry copy this installs (see EXEC in test/chromium/*.js —
       # the dev sandbox's fixed path wins only where it exists).
-      - run: npx playwright-core install --with-deps chromium
+      #
+      # NO --with-deps (26 Oct 2026, owner-asked). That flag asked Ubuntu's
+      # package mirror for 21 MB of fonts the checks never draw (Japanese,
+      # Thai, Chinese, Unifont, FreeFont) and an xvfb a headless Chrome never
+      # starts; every library Chrome does need was "already the newest
+      # version" on ubuntu-latest. MEASURED on runs 4312, 4313 and 4326: on one
+      # or two machines in six that apt fetch crawled at 27 kB/s and took 8 to
+      # 13 minutes, where Chrome's own 311 MB from Playwright's CDN took 3 s;
+      # the whole run waited for that machine, 23 minutes against 13. If a
+      # future runner image drops a library Chrome needs, the launch fails on
+      # every machine at once and says which — put --with-deps back then.
+      - run: npx playwright-core install chromium
       - run: node test/chromium/run-all.js --shard ${{ matrix.shard }}/6 --jobs 2
       # The measurements are numbers, but a failure is usually a LOOK — keep
       # the screenshots so a red run can be seen, not only read.
