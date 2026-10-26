@@ -196,7 +196,8 @@ const FILES = {
           file: !!(s.querySelector('[data-mig-file]') || {}).disabled, wait: (s.querySelector('[data-mig-wait]') || {}).textContent,
           labels: [...s.querySelectorAll('.mig-ff-l')].map(l => l.textContent.trim()) }; }, lease, 6000);
       /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
-      check('5a Jambo\'s panel holds the file: his word "Import", no duplicate back button', !!P && P.word === 'Import' && !P.back, JSON.stringify(P && { word: P.word, back: P.back }));
+      /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+      check('5a Jambo\'s panel holds the file: no word beside the tabs, no duplicate back button', !!P && !P.word && !P.back, JSON.stringify(P && { word: P.word, back: P.back }));
       check('5b "Check this file · Jambo read it; one fact needs you before it is filed."', !!P && P.title === 'Check this file' && P.say === 'Jambo read it; one fact needs you before it is filed.', JSON.stringify(P && [P.title, P.say]));
       check('5c the facts as drawn: Title · Party · Starts · Ends · Value · Stream', !!P && P.labels.join() === 'Title,Party,Starts,Ends,Value,Stream', JSON.stringify(P && P.labels));
       check('5d Ends in amber, "Jambo was not sure", with the clause it read', !!P && P.ends && P.ends.need && P.ends.ph === 'Jambo was not sure' && /^§ 3: “It renews by itself/.test(P.ends.why), JSON.stringify(P && P.ends));

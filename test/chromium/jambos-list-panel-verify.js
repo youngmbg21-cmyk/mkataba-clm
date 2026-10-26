@@ -158,7 +158,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         need: (p.querySelector('.jl-needs .jl-need-t') || {}).textContent || '',
         reads: [...p.querySelectorAll('[data-jl-read]')].map(x => x.getAttribute('data-jl-read')) }; });
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
-    check('2a "Negotiation" beside his tab, no duplicate back button', !!N1 && N1p.word === 'Negotiation' && !N1p.back, JSON.stringify({ word: N1p.word, back: N1p.back }));
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+    check('2a no word beside his tab, no duplicate back button', !!N1 && !N1p.word && !N1p.back, JSON.stringify({ word: N1p.word, back: N1p.back }));
     check('2b the pill carries the wait: "Our move · …"', /^Our move · /.test(N1r.pill.trim()), JSON.stringify(N1r.pill));
     check('2c the facts as rows: Value · Lead · Their changes · Last sent', ['Value', 'Lead', 'Their changes', 'Last sent'].every(k => N1r.rows.includes(k)), JSON.stringify(N1r.rows));
     check('2d Needs you leads with "Answer 2 redlines"; What Jambo read in the drawing\'s order', N1r.need === 'Answer 2 redlines'
@@ -244,7 +245,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         const rows = {}; p.querySelectorAll('.jl-rows > div').forEach(r => { const l = r.querySelector('dt'), v = r.querySelector('dd'); if (l && v) rows[l.textContent.trim()] = v.textContent.replace(/\s+/g, ' ').trim(); });
         return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', approve: btn('approve'), refuse: btn('refuse'), gate: btn('gate'),
           rows, rec: ((p.querySelector('.jl-rec') || {}).textContent || '').replace(/\s+/g, ' ').trim(), forPill: !!p.querySelector('.ap-for-pill, .ap-for') }; });
-      check('5d "Approval": Approve for Jonas · Refuse… · Open Before you sign', !!A1 && A1.word === 'Approval' && A1.approve === 'Approve for Jonas' && /^Refuse/.test(A1.refuse) && A1.gate === 'Open Before you sign', JSON.stringify(A1 && { word: A1.word, approve: A1.approve, refuse: A1.refuse, gate: A1.gate }));
+      check('5d an approval: Approve for Jonas · Refuse… · Open Before you sign, no word beside the tabs', !!A1 && !A1.word && A1.approve === 'Approve for Jonas' && /^Refuse/.test(A1.refuse) && A1.gate === 'Open Before you sign', JSON.stringify(A1 && { word: A1.word, approve: A1.approve, refuse: A1.refuse, gate: A1.gate }));
       check('5e the rows: Why it waits · Asked by · Value · Since last look "Nothing changed in the wording"',
         !!A1 && ['Why it waits', 'Asked by', 'Value'].every(k => A1.rows[k]) && A1.rows['Since last look'] === 'Nothing changed in the wording', JSON.stringify(A1 && A1.rows));
       check('5f the recorded-as sentence says whom the answer is for', !!A1 && /for Jonas/i.test(A1.rec), JSON.stringify(A1 && A1.rec));
@@ -283,7 +284,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         const acts = [...p.querySelectorAll('.ins-acts [data-ins-act], .ins-h [data-ins-act]')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
         return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', rows, acts, text: p.innerText.replace(/\s+/g, ' '),
           wait: !!p.querySelector('[data-dir-wait="approval"][data-dir-wait-id="MK-AP1"]') }; });
-      check('6a "Person": Show their contracts · Email', picked && !!P && P.word === 'Person' && P.acts.includes('Show their contracts') && P.acts.includes('Email'), JSON.stringify(P && { word: P.word, acts: P.acts }));
+      check('6a a person: Show their contracts · Email, no word beside the tabs', picked && !!P && !P.word && P.acts.includes('Show their contracts') && P.acts.includes('Email'), JSON.stringify(P && { word: P.word, acts: P.acts }));
       check('6b the rows: Email · In HaTi · Streams · Named on · Away', !!P && ['Email', 'In HaTi', 'Streams', 'Named on', 'Away'].every(k => P.rows.includes(k)), JSON.stringify(P && P.rows));
       check('6c "Waiting on Jonas": his approval with its own door, "you may answer for them"; away until a day', !!P && P.wait && /Waiting on Jonas/.test(P.text) && /you may answer for them/.test(P.text) && /Away until /.test(P.text), P && P.text.slice(0, 400));
       await shot('r19-person-panel-1440x780.png');

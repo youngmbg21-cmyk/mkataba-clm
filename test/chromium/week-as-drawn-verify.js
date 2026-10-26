@@ -112,7 +112,7 @@ const weekOf = () => {
 
     /* ---- 1 the Obligations page as drawn ---- */
     await page.evaluate(() => setView('obligations'));
-    await until(() => document.querySelectorAll('.obw-wk').length >= 4 && !!document.querySelector('#ins-panel [data-jl-word]'), null, 12000);
+    await until(() => document.querySelectorAll('.obw-wk').length >= 4 && !!document.querySelector('#ins-panel [data-jl-home]'), null, 12000);
     await page.mouse.move(2, 400);
     const P = await page.evaluate(() => {
       const card = k => document.querySelector(`.obw-wk[data-obw-card="${k}"]`);
@@ -153,7 +153,7 @@ const weekOf = () => {
         lv: [...p.querySelectorAll('[data-cal-lv]')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')),
         ph: (p.querySelector('#jl-q') || {}).placeholder || '', hint: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, sel: document.querySelectorAll('.obw-wk tr.is-sel').length }; });
     check('2a nothing chosen: Jambo says "Your week", counted from the list, no call',
-      Y.word === 'Your week' && Y.sel === 0 && /^This week: 1 late \(yours\), 2 due from the other side, and Jambo’s 3 finds to review\. Next week holds the renewal decision on Office Lease\.$/.test(Y.bubs[0] || '')
+      !Y.word && Y.sel === 0 && /^This week: 1 late \(yours\), 2 due from the other side, and Jambo’s 3 finds to review\. Next week holds the renewal decision on Office Lease\.$/.test(Y.bubs[0] || '')
       && Y.src === 'Counted from your list · no Jambo call', Y);
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
     check('2b his offer, the planner\'s two asks as chips, the setting as three buttons, the box — and no hint line under it',
@@ -181,11 +181,12 @@ const weekOf = () => {
     await page.keyboard.press('Escape'); await page.evaluate(() => { if (document.querySelector('.modal-in')) closeModal(); });
     await until(() => !document.querySelector('.modal-in'));
     await page.click('tr[data-ob-key="MK-A2::o6"] td:nth-child(2)');
-    const chosen = await until(() => { const w = (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent; const b = document.querySelector('#ins-panel [data-jl-back]');
-      return w === 'Obligation' && !b ? w : null; });
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+    const chosen = await until(() => { const w = document.querySelector('#ins-panel [data-jl-word]'); const b = document.querySelector('#ins-panel [data-jl-back]');
+      return !w && !b && document.querySelector('tr[data-ob-key="MK-A2::o6"].is-sel') && document.querySelector('#ins-panel[data-ins-id]') ? 'chosen' : null; });
     await page.click('#ins-panel [data-jl-home]');
-    const back = await until(() => (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent === 'Your week' && !document.querySelector('.obw-wk tr.is-sel'));
-    check('3c a row press: the panel says "Obligation"; ‹ Jambo goes back to the week', !!chosen && !!back, { chosen, back });
+    const back = await until(() => !document.querySelector('#ins-panel [data-jl-word]') && !document.querySelector('.obw-wk tr.is-sel'));
+    check('3c a row press: the panel holds the obligation; the Overview tab goes back to the week', !!chosen && !!back, { chosen, back });
     await page.click('[data-obw-add]');
     await until(() => !!document.querySelector('#obw-pick-q'));
     await page.fill('#obw-pick-q', 'milk');
@@ -276,12 +277,12 @@ const weekOf = () => {
     await page.click('.obw-wk[data-obw-card="w2"] .ob-wk-said');
     const w2open = await until(() => document.querySelector('.obw-wk[data-obw-card="w2"]:not(.is-shut)') ? true : null);
     await page.click('tr[data-ob-key="MK-A2::o6"] td:nth-child(2)');
-    await until(() => (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent === 'Obligation');
+    await until(() => !!document.querySelector('tr[data-ob-key="MK-A2::o6"].is-sel') && !!document.querySelector('#ins-panel[data-ins-id]'));
     await page.reload({ waitUntil: 'networkidle' });
     const kept = await until(() => { if (state.view !== 'obligations' || !document.querySelector('.obw-wk')) return null;
       return { w2: !!document.querySelector('.obw-wk[data-obw-card="w2"]:not(.is-shut)'), word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '',
         sel: !!document.querySelector('tr[data-ob-key="MK-A2::o6"].is-sel') }; }, null, 20000);
-    check('6e a folded week opens on a press on its line; a refresh keeps it open and the chosen row chosen', !!w2open && !!kept && kept.w2 && kept.word === 'Obligation' && kept.sel, { w2open, kept });
+    check('6e a folded week opens on a press on its line; a refresh keeps it open and the chosen row chosen', !!w2open && !!kept && kept.w2 && !kept.word && kept.sel, { w2open, kept });
 
     /* ---- 5 the owner's three screens ---- */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

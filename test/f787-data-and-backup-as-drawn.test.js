@@ -75,7 +75,8 @@ describe('f787 (3) Jambo says the trail', () => {
     const said = g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub'));
     assert.match(said, /^The trail for Q3 2026 has 1[,.\s  ]?234 acts in the 5 streams you can see\. Marketing & Brand is left out, because you are not named on it\.$/);
     /* named between the two tabs (owner, 26 Oct 2026) */
-    assert.ok(g.$('st-side-word'), 'the panel\'s head names the page');
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
+    assert.ok(!g.$('st-side-word'), 'no page name beside the tabs');
   });
   test('3c an empty period is said as empty, never "0 acts in the 0 streams"', async () => {
     const g = settingsStage({ reply: r => r === 'trail/exports' ? { exports: [], total: 0 } : /^trail\/summary\?/.test(r) ? { acts: 0, streams: 0, people: 0, leftOut: 0 } : null });
