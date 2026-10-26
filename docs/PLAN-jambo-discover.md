@@ -157,7 +157,10 @@ that Legora or a top SaaS company would be proud of" — design options first, n
 ### The owner's picks (26 Oct 2026): "I will go with all your recommendations for now"
 1 Count and Stop · 2 Lights · 3 Only what you keep · 4 Ledger · 5 Facts only, wording only (the junk
 columns listed and deleted only on a further yes) · 6+7 Jambo's card. Two more asks the same day:
-8. **Ask a column tidied like the pack form** — owner chose "Same frame, several questions": the form
-   wears the pack's layout and takes up to 8 questions in one read ("+ Add another question").
+8. **Ask a column's own column is Lights too** — the owner's words, corrected the same day: "I mean
+   remove the cramping up and make it a traffic light system": a single question's column wears
+   Lights exactly as a pack's do (one light + the short answer, never cut; §, tick and quote in the
+   panel), and the column card's links stop clumping. NOT several questions in one form (that reading
+   was withdrawn).
 9. **Choose which pack questions to run** — each question in the pack form has a tick (all on by
    default); untick to run 3 of 5; the cost line follows.
