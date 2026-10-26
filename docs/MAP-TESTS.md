@@ -243,6 +243,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 24 Oct 2026: Home's Track opens Clauses — f424 (2), track-on-the-paper-verify 4a–4d, analyze-on-the-graph-verify 2s4–2s8, document-tab-track-verify.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
+- A signed copy that did not go out is said where you look (26 Oct 2026, flag D): test/chromium/copies-not-out-verify.js (15 checks: a real Send against a refusing provider, the receipt's last stop un-ticked with whose copy, Needs you's urgent row on Home and the bell, its Look landing on Send again and sending nothing, delivered again → ticked and gone, the three screens; red at the parent bbff1c4: 2a, 2b, 3a–3c, 4).
 - 21 Oct 2026 (overnight): the-road-as-drawn-verify 14b/14c (the head and the road's first stop never give two totals: "n of the N").
 - f308, f311, f319, f353, f909, f915, f676, f712, f752, f754, signing-flow, sign-beside-the-paper, the-road, the-road-as-drawn, two-copies verify.
 

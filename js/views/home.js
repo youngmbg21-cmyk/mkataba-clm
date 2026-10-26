@@ -1546,7 +1546,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','look','approval','refused','note','suggest','join','details','sign','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','look','approval','refused','note','suggest','join','details','sign','copies','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1608,6 +1608,15 @@ function needsYouOf(c){
     const n=((d&&d.left)||0)+sg;
     if(n) out.push({ kind:'details', urgent:false, n }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
+  /* A SIGNED COPY THAT DID NOT GO OUT (flag D, 26 Oct 2026): the other side may
+     be waiting for the contract they signed. To the contract's owner, the
+     person the renewal and the details go to; urgent, because something went
+     wrong rather than something being due. One reading, copiesNotOut. */
+  take(()=>{ if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))) return;
+    const cp=window.copiesNotOut?copiesNotOut(c):null;
+    if(cp && cp.n) out.push({ kind:'copies', urgent:true, n:cp.n,
+      who:cp.rows.map(r=>String(r.name||r.email||'').trim()).filter(Boolean),
+      outbox:cp.rows.every(r=>r.status==='outbox') }); });
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
       out.push({ kind:'renewal', urgent:r.d<=HM_SOON_DAYS, dd:r.dd, d:r.d }); });
@@ -1659,6 +1668,8 @@ const NEEDS_LAND={
     return document.querySelector('#pd-signface [data-pd-road-stop="yes"]'); },
   refused:'#pd-signface .pd-road-stop.is-now',
   sign:'#pd-signface #sign-btn',
+  /* the copies panel's own Send again, under the receipt's last stop (it presses nothing) */
+  copies:'#pd-signface #dist-send',
   details:'#pd-fillface [data-pd-owed="1"]',
   quiet:'#pd-redface [data-nego-card]',
   review:'#pd-redface [data-nego-card]',
@@ -1709,6 +1720,9 @@ function needsYouGo(kind, id){
   /* SIGNING IS BESIDE THE PAPER (the one-page Home plan, stage 5): Jambo's
      Before you sign face on Home, without the room drawn on the way */
   if(kind==='sign' && window.roomOpenAt){ roomOpenAt(c.id,'sign'); return true; }
+  /* A COPY THAT DID NOT GO OUT is sent again from the receipt, which is the
+     same face once signed: Before you sign beside the paper (flag D) */
+  if(kind==='copies'){ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } return true; }
   /* ---- THE ROOM IS RETIRED (the overnight work order, step 8; owner's "Go",
      14 Oct 2026) ---- a renewal is decided on the Overview's own renewal
      card, which is the contract strip's Details page on Home's Board now
