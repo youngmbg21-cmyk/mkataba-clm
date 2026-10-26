@@ -62,8 +62,15 @@ const KNOWN_RED = {
      checks were re-pointed to Home's paper line (round 6, "One line" — Notes
      beside Share; the row's verbs measured against that line's buttons), and
      it reads 93/93, also with four checks side by side. */
-  'their-edit-page-verify.js':
-    'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
+  /* their-edit-page-verify.js CAME OFF 26 Oct 2026 (flag C of the flow
+     report): listed since 10 Oct as "red on GitHub only" — section 4's
+     typing after a save on THEIR seat vanished there. Listed files are not
+     run on GitHub at all, so nothing had measured it there since. Measured
+     here on main: 26/26, also at six times slower, with a slow word list,
+     and with typing during the save; the code that rebuilds the box after a
+     save was traced (ceFiled, the symbol's save, the click back in) and none
+     takes words typed after it. Section 4 now records which code rebuilds
+     the box while words are in it, so a red on GitHub names the culprit. */
   /* THE TIDY SWEEP (tidy-sweep-verify.js) CAME ON 22 Oct 2026 and sat here
      red by design for one afternoon, until its first four faults were fixed
      the same day (the owner's yes). It is required to pass. */

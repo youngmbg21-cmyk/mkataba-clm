@@ -291,6 +291,32 @@ const symbol = page => page.evaluate(() => {
      So the stage clicks in and types again until the words hold, bounded at
      three tries; a retry is SAID, because a repaint that wipes typing is
      worth a person's eye (BUGLOG, "noticed, not fixed", 10 Oct 2026). */
+  /* WHO TOOK THE TYPING (26 Oct 2026, flag C of the flow report): from here
+     on, every DOM write is followed by one question — is the clause's box a
+     different element, or has it lost the words just typed? — and the answer
+     is kept with the code that did it. Measured locally (normal speed, six
+     times slower, a slow word list, typing during the save) nothing wipes the
+     words; if GitHub's runner ever does, the stage check below prints WHICH
+     code rebuilt the box instead of only saying that the words are gone. */
+  await page.evaluate(() => {
+    window.__boxLog = []; window.__boxT0 = performance.now();
+    window.__boxNow = document.getElementById('ce-clausebody');
+    window.__boxText = window.__boxNow ? window.__boxNow.textContent : '';
+    const look = how => {
+      const b = document.getElementById('ce-clausebody'), t = b ? b.textContent : '';
+      const lost = /Always\./.test(window.__boxText) && !/Always\./.test(t);
+      if (b !== window.__boxNow || lost) window.__boxLog.push({ t: Math.round(performance.now() - window.__boxT0), how,
+        rebuilt: b !== window.__boxNow, lost,
+        by: String(new Error().stack).split('\n').slice(3, 8).map(s => s.trim().replace(/https?:\/\/[^/]+\//, '')).join(' < ') });
+      window.__boxNow = b; window.__boxText = t;
+    };
+    const wrap = (proto, name) => { const f = proto[name]; proto[name] = function(){ const r = f.apply(this, arguments); look(name); return r; }; };
+    const wrapSet = (proto, name) => { const d = Object.getOwnPropertyDescriptor(proto, name);
+      Object.defineProperty(proto, name, { ...d, set(v){ d.set.call(this, v); look(name); } }); };
+    wrapSet(Element.prototype, 'innerHTML'); wrapSet(Element.prototype, 'outerHTML');
+    ['replaceChild', 'removeChild', 'appendChild', 'insertBefore'].forEach(n => wrap(Node.prototype, n));
+    ['replaceWith', 'remove', 'insertAdjacentHTML', 'replaceChildren'].forEach(n => wrap(Element.prototype, n));
+  });
   let typedIn = false, tries = 0;
   while (!typedIn && tries < 3){
     tries++;
@@ -312,7 +338,9 @@ const symbol = page => page.evaluate(() => {
       question: !!document.getElementById('pd-input'),
       inBox: /Always\./.test((document.getElementById('ce-doc') || {}).textContent || ''),
       dirty: !!(window.clauseEditorDirty && clauseEditorDirty()),
-      focus: (document.activeElement && (document.activeElement.id || document.activeElement.className || document.activeElement.tagName)) || '' }))));
+      focus: (document.activeElement && (document.activeElement.id || document.activeElement.className || document.activeElement.tagName)) || '',
+      /* what rebuilt the box, or took the words out of it, while they were being typed */
+      boxLog: (window.__boxLog || []).filter(e => e.lost || e.rebuilt).slice(-6) }))));
   const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('#rl-changes-col button')]
     .find(x => x.textContent.trim() === 'Accept'); if (!b) return false; b.click(); return true; });
   const asked = await until(page, () => !!document.getElementById('confirm-overlay'), null, 8000);
