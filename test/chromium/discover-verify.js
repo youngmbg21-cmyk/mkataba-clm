@@ -69,13 +69,18 @@ async function toList(page){
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   return until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'));
 }
-const stage = n => !ONLY || ONLY === String(n);
+/* HATI_DV_ONLY=4 for one stage, or 4,5 for a few (a fault that only shows
+   when a stage runs after another is reproduced without the whole run) */
+const stage = n => !ONLY || ONLY.split(',').map(x => x.trim()).includes(String(n));
 /* each stage starts on the Contracts list, nothing left open by the stage before */
 async function fresh(page){ await page.evaluate(() => { try { if (document.querySelector('#modal-root [role="dialog"]')) closeModal(); } catch (_){ /* none open */ } }); return toList(page); }
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const h = await startHati();
+  /* the deep limiter counts REQUESTS, and a read of eleven contracts is now
+     more than one (it goes in batches so it can be stopped); this check drives
+     a dozen reads in a minute, which is not what the limit is there for */
+  const h = await startHati({ AI_RATE_DEEP: '400' });
   const W = await seedDiscoverWorld(h);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
@@ -271,7 +276,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
           add: t ? t.querySelectorAll('[data-fa-add]').length : -1, txt: t ? t.innerText.replace(/\s+/g, ' ') : '' };
       });
       check('4b′ only the facts that are on are listed; the rest are offered under "Add a fact"',
-        only.rows === 1 && only.tog === 1 && only.add === 1 && /Add a fact/.test(only.txt) && /Notice to end/.test(only.txt) && !/Notice to end[^]*Kept/.test(only.txt.split('Add a fact')[0]), JSON.stringify(only));
+        only.rows === 1 && only.tog === 1 && only.add >= 1 && /Add a fact/.test(only.txt)
+        && /Notice to end/.test(only.txt.split('Add a fact')[1] || '') && !/Notice to end/.test(only.txt.split('Add a fact')[0]), JSON.stringify(only));
       await page.screenshot({ path: path.join(OUT, '4-settings.png') });
       /* 4c a rule */
       await page.fill(`[data-fa-rule="${lk.ask.id}"]`, 'Kenya');
@@ -298,6 +304,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const took = await page.evaluate(() => askColTakes('contracts', 'How many contracts have 30 day payment terms?'));
       const wording = await page.evaluate(() => askColTakes('contracts', 'How much notice does each side need to end the contract early?'));
       check('4f the list\'s box: a counting question is not a column, a wording question is', took === false && wording === true, JSON.stringify({ took, wording }));
+      await page.evaluate(() => askColClose());   /* the wording question above OPENED the form: shut it behind us */
       const refused = await page.evaluate(() => api('ai/column', 'POST', { question: 'How many contracts have risks', ids: ['DV-01'] }).then(() => null, e => String(e && e.message)));
       const facts2 = await W.admin.json('/api/columns/summary?all=1');
       check('4g asked outright, the server turns it away, so it is never kept and can never be a fact',
@@ -319,7 +326,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await until(page, () => /answered/.test((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || ''), null, 10000);
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-watch]'), null, 10000);
       const wc = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-watch]') || {}).textContent || '');
-      check('5a′ a company fact\'s card offers the watch', /Tell me when a new contract answers at risk/.test(wc), wc);
+      check('5a′ a company fact\'s card offers the watch', /Tell me when a new contract answers at risk/.test(wc),
+        wc || await page.evaluate(() => (document.querySelector('#ig-dock') || {}).innerText.replace(/\s+/g, ' ').slice(0, 400)));
       await page.click('#ig-dock [data-ac-watch]');
       const set = await until(page, () => !!document.querySelector('#ig-dock [data-ac-unwatch]'));
       await page.evaluate(() => { regState().ask = []; regRepaint(); renderIntelDock(); });
@@ -426,6 +434,42 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
         return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius }; });
       check('9b\u2032 the two minutes wear the same card as the approver\'s brief (one builder, both panels)',
         !!psay && /jb-say/.test(psay.cls) && /The two minutes/.test(psay.head) && psay.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(psay.r) >= 16, JSON.stringify(psay));
+    }
+    /* ============ 11. STOP WHILE HE READS (the owner's note 1, 26 Oct 2026) ============ */
+    if (stage(11)){
+      await fresh(page);
+      /* every contract shown: an earlier stage may have narrowed the list, and
+         Stop can only be pressed where there is a batch still to come */
+      await page.evaluate(() => { regState().only = null; regState().ask = []; regState().page = 1; regRepaint(); });
+      await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 11);
+      const shownN = await page.evaluate(() => document.querySelectorAll('#reg-tbody tr[data-row]').length);
+      h.ai.slow(500);                      /* so the read lasts long enough to stop */
+      const c0 = h.ai.calls.length;
+      /* a question nobody has asked yet: a kept answer costs no call, so a
+         cached question would be read before the check could press Stop */
+      await page.evaluate(() => askColOpen({ question: 'Does this agreement name a court or an arbitrator for disputes?', name: 'Disputes' }));
+      await until(page, () => !!document.querySelector('#ac-q'));
+      await page.click('#ig-dock [data-ac-ask]');
+      const counting = await until(page, () => /answered/.test((document.querySelector('#ig-dock .ac-busy') || {}).innerText || ''), null, 20000);
+      const line = await page.evaluate(() => (document.querySelector('#ig-dock .ac-busy') || {}).innerText || '');
+      const bar = await page.evaluate(() => { const i = document.querySelector('#ig-dock .ac-prog>i'); return i ? i.style.width : ''; });
+      check('11a while he reads, the line counts what has landed and a bar follows it', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ answered/.test(line) && /%/.test(bar), JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
+      await page.screenshot({ path: path.join(OUT, '11-reading.png') });
+      await page.click('#ig-dock [data-ac-stop]');
+      const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
+      const st = await page.evaluate(() => (document.querySelector('#ig-dock #ac-stopped') || {}).innerText || '');
+      const spent = h.ai.calls.length - c0;
+      const kept = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
+      check('11b Stop: it says what was read and kept, what was not, and offers the rest with its cost',
+        stopped && /read and kept/.test(st) && /not read/.test(st) && /Carry on/.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
+      check('11c nothing already read is lost, and no more was read after the press', kept > 0 && kept === spent && spent < shownN, JSON.stringify({ kept, spent, shownN }));
+      await page.screenshot({ path: path.join(OUT, '11-stopped.png') });
+      h.ai.slow(0);
+      await page.click('#ig-dock [data-ac-carry]');
+      const done = await until(page, n => !document.querySelector('#ig-dock #ac-stopped') && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= n - 1, shownN, 30000);
+      const all = h.ai.calls.length - c0;
+      const cells = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
+      check('11d Carry on reads only the rest: every contract answered, each read once', done && all === cells, JSON.stringify({ calls: all, cells, shownN }));
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

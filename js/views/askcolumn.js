@@ -40,7 +40,7 @@ const AC_COL_W = { 1:[33,15,13,11,22,6], 2:[30,13,11,9,16.5,16.5,4], 3:[26,12,10
    on the reading"). The read goes out in batches, so the count rises as answers
    land and Stop simply means "start no more": every answer already read is
    kept, and what is left is offered again with its own cost. */
-const AC_BATCH = 5;
+const AC_BATCH = 10;
 
 const AC = {
   asks: {},        // id → { id, question, name }
@@ -1081,4 +1081,4 @@ function askColBtnHtml(){
 Object.assign(window, { AC_MAX, AC_COLS_MAX, AC_BATCH, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColPackPicked, askColTableOpen,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
-  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml });
+  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });

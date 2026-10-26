@@ -57,6 +57,11 @@ class Client {
    code runs for real. `calls` is what the prompt assertions read. */
 function startAiStub() {
   const calls = [];
+  /* HOW SLOWLY IT ANSWERS. Nought by default, so every check that has ever run
+     runs the same. A check that is ABOUT what happens mid-read — Stop while
+     Jambo reads a column (the owner's note 1, 26 Oct 2026) — sets it, so the
+     read takes long enough for a person, or a check, to press the button. */
+  const state = { slowMs: 0 };
   const server = http.createServer((req, res) => {
     let raw = '';
     req.on('data', d => { raw += d; });
@@ -92,11 +97,12 @@ function startAiStub() {
           })()
         : {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
+      const answer = () => res.end(JSON.stringify({
         id: 'msg_stub', type: 'message', role: 'assistant', model: body.model || 'stub',
         content: [{ type: 'tool_use', id: 'tu_stub', name: toolName, input }],
         usage: { input_tokens: 10, output_tokens: 5 },
       }));
+      if (state.slowMs) setTimeout(answer, state.slowMs); else answer();
     });
   });
   return new Promise(resolve => {
@@ -105,6 +111,7 @@ function startAiStub() {
         base: 'http://127.0.0.1:' + server.address().port,
         calls,
         reset() { calls.length = 0; },
+        slow(ms) { state.slowMs = Number(ms) || 0; },
         /* Every character HaTi sent to the provider on the last call — prompts,
            system prompt, tool results, the lot. This is the string the
            "no folder-B contract reached the model" assertions run against. */
