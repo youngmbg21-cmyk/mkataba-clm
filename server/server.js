@@ -3790,7 +3790,10 @@ function cnMailMask(to, parts) {
   /* in an email, the party a confidential deal is with is hidden too */
   const cps = new Set();
   for (const id of out.keys()) { const r = db.prepare('SELECT counterparty FROM contracts WHERE id=?').get(id); if (r && r.counterparty && r.counterparty.length >= 3) cps.add(r.counterparty); }
-  const hide = s => { let t = s; for (const cp of cps) if (typeof t === 'string' && t.includes(cp)) t = t.split(cp).join('—'); return t; };
+  /* the party's name as a whole name only: "Kenya Foods" is hidden, "Kenya Foodstuffs Ltd" is somebody else */
+  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const res = [...cps].sort((a, b) => b.length - a.length).map(cp => new RegExp('(?<![\\p{L}\\p{N}])' + esc(cp) + '(?![\\p{L}\\p{N}])', 'gu'));
+  const hide = s => { let t = s; for (const re of res) if (typeof t === 'string') t = t.replace(re, '—'); return t; };
   return Object.fromEntries(Object.entries(masked).map(([k, v]) => [k, typeof v === 'string' ? hide(v) : v]));
 }
 /* ONE WRITER: the deal's owner, or an admin who knows its real name */
@@ -12414,6 +12417,9 @@ function copilotSearch(ctx, query, limit = 8) {
     for (const r of rows) {
       const owned = own.get(r.id, ctx.org);
       if (!owned || !inScope(ctx.scope, owned.folder)) continue;
+      /* a confidential deal the reader is outside of is no hit at all: its name, party and words stay
+         behind the wall, as in the one search (hatiSearch) */
+      if (ctx.cnOut && ctx.cnOut.has(String(r.id))) continue;
       total++;
       if (out.length < want) out.push({ id: r.id, name: r.name, counterparty: r.counterparty || '', snippet: r.snippet || '' });
     }

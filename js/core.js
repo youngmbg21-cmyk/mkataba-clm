@@ -4889,7 +4889,8 @@ const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(Stri
 const waShareLink=(phone,text)=>'https://wa.me/'+String(phone||'').replace(/[^\d]/g,'')+'?text='+encodeURIComponent(text);
 /* The words are js/sharemail.js's (the letter on the send screen draws them). */
 const shareMessageText=(c,link,msg,expiresAt)=>shareWaTextOf({ sender:currentUser().name, org:FIRST_PARTY,
-  cName:c.name, message:msg, link, expires:expiresAt }).body;
+  cName:c.name, message:msg, link, expires:expiresAt,
+  ...(c&&c._codeName&&c._codeName.code?{ code:c._codeName.code, ref:(typeof contractRef==='function')?contractRef(c):c.id }:{}) }).body;
 
 /* ---------- what is this link FOR? ----------
    A share carries a purpose, and the purpose decides which screen the other
