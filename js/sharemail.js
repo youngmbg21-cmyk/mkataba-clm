@@ -120,6 +120,14 @@ function shareAnswersOf(contract, stored){
   const decidedAt = x => String(x.resolvedAt || (rec.get(String(x.id)) || {}).resolvedAt || '');
   const ours = x => x && x.authorSide !== 'counterparty';
   const fresh = x => !at || String(x.createdAt || '') > at;
+  /* WHAT THE COPY CARRIES, THE LETTER NAMES (owner, 26 Oct 2026: Redlines said 4 not sent, the email named one).
+     A change of ours filed before the table last changed hands but kept back then (holdIds: a solo send's rest;
+     keptIds: what a send withheld) never left either — it travels in this copy, so it is named here, the same
+     reading as the column's count (negoUnsentAsks). Read off the record the copy was made from, else the copy. */
+  const negOf = r => (r && r.negotiation && typeof r.negotiation === 'object') ? r.negotiation : {};
+  const keptN = stored ? negOf(stored) : negOf(contract);
+  const kept = new Set([...(Array.isArray(keptN.holdIds) ? keptN.holdIds : []), ...(Array.isArray(keptN.keptIds) ? keptN.keptIds : [])].map(String));
+  const unsent = x => fresh(x) || kept.has(String(x.id));
   /* never handed over in this record (no turnAt): every answer given is this send's */
   const since = x => !!decidedAt(x) && (!at || decidedAt(x) > at);
   const theirs = ch.filter(x => x.authorSide === 'counterparty' && !x.withdrawn && x.status !== 'superseded'
@@ -133,7 +141,7 @@ function shareAnswersOf(contract, stored){
       continue;
     }
     const k = t.status === 'countered' ? byId.get(String(t.counteredBy || '')) : null;
-    if (k && ours(k) && k.status === 'pending' && fresh(k)){
+    if (k && ours(k) && k.status === 'pending' && unsent(k)){
       used.add(String(k.id));
       const mine = shareFigureOf(k.newText, t.oldText), hers = shareFigureOf(t.newText, t.oldText);
       const said = mine && hers ? `they propose ${_smFigSay(mine)} (you asked for ${_smFigSay(hers, hers.unit === mine.unit && hers.unit !== '%')}).` : 'they propose new wording.';
@@ -144,12 +152,12 @@ function shareAnswersOf(contract, stored){
   /* a counter that SUPERSEDED their ask carries its id (counterOf); the ask
      itself does not travel, so it is counted here */
   for (const k of ch){
-    if (!ours(k) || k.status !== 'pending' || !fresh(k) || !k.counterOf || used.has(String(k.id))) continue;
+    if (!ours(k) || k.status !== 'pending' || !unsent(k) || !k.counterOf || used.has(String(k.id))) continue;
     if (theirs.some(t => String(t.id) === String(k.counterOf))) continue;
     used.add(String(k.id)); asked++;
     lines.push({ id: k.counterOf, clause: shareClauseSay(k.clauseLabel || k.clauseId), say: 'they propose new wording.' });
   }
-  const own = ch.filter(k => ours(k) && k.status === 'pending' && fresh(k) && !used.has(String(k.id)))
+  const own = ch.filter(k => ours(k) && k.status === 'pending' && unsent(k) && !used.has(String(k.id)))
     .map(k => ({ id: k.id, clause: shareClauseSay(k.clauseLabel || k.clauseId) }));
   const num = x => { const m = /^Clause (\d+)/.exec(x.clause); return m ? Number(m[1]) : 1e9; };
   lines.sort((a, b) => num(a) - num(b)); own.sort((a, b) => num(a) - num(b));

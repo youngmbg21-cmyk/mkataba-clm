@@ -10246,7 +10246,11 @@
      a card (12px in, THE LEGORA LOOK) the white body still ran edge to edge and up to the head's foot; it now
      stands on the same ground, the head's own 12px in from each side and a gap under it */
   #modal-root [data-pd-mid^="deal:"]{background:var(--color-bg)}
-  #modal-root [data-pd-mid^="deal:"] .dlg-pg-body{background:transparent;padding:10px 12px 12px}
+  #modal-root [data-pd-mid^="deal:"] .dlg-pg-body{background:transparent;padding:10px 12px 12px;scrollbar-gutter:stable}
+  /* ONE RIGHT EDGE (owner, 26 Oct 2026: "the bottom card is not aligned with the top one on the right edge"): the
+     body scrolls and gives its scrollbar's width to the gutter; the head stands outside the scroller, so it is
+     given the same room (--dlg-sbw, measured by dlgPageAdopt) and both cards end on one line */
+  #modal-root [data-pd-mid^="deal:"] .dlg-pg-head.dlg-pg-head{margin-right:calc(12px + var(--dlg-sbw,0px))}
   #modal-root [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:none;background:var(--color-surface);border-radius:20px;box-shadow:var(--shadow-sm);padding:12px 24px 24px}
   /* THE CLOSE PLAN (owner picked it, 25 Oct 2026): the head says how many points stand open, the road beside it
      where they sit; every point a quiet row under what to do with it — name and §, why, where it stands, its doors */

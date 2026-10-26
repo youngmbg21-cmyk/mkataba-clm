@@ -92,7 +92,9 @@ const blocked = [];
       /* ---- 1 · THE CALENDAR ---- */
       if (on(1) || on(3) || on(8)) {
         await clean(); await ev(() => setView('dashboard')); await until(() => document.querySelector('#ig-dock'), undefined, 4000); await ev(() => setView('calendar'));
-        const ready = () => document.querySelectorAll('#hb-cal .cal-wkm-lab b').length >= 5 && document.querySelector('.cal-head') && document.querySelector('.cal-cop .jb-hello');
+        /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
+           for jambo"): the Calendar's panel opens on Overview (Your week); his greeting is under the Jambo tab, as in Settings */
+        const ready = () => document.querySelectorAll('#hb-cal .cal-wkm-lab b').length >= 5 && document.querySelector('.cal-head') && document.querySelector('.cal-cop [data-cal-talk]');
         /* the first page after signing in may still be settling on the Board: asked once more, bounded */
         const there = (await until(ready, undefined, 5000)) || (await ev(() => setView('calendar')), await until(ready));
         await settle(); await shot('calendar');
@@ -111,7 +113,9 @@ const blocked = [];
             check(`${at} · 1b — the Calendar's head floats as a card`, head && head.rad >= 16 && head.shadow && head.inset >= 8, JSON.stringify(head));
           }
         }
-        if (on(3)) await greetCheck('Calendar');
+        if (on(3)){ await ev(() => { const t = document.querySelector('.cal-cop [data-cal-talk]'); if (t) t.click(); }); await until(() => document.querySelector('.cal-cop .jb-hello'), undefined, 4000);
+          await greetCheck('Calendar');
+          await ev(() => { const t = document.querySelector('.cal-cop [data-cal-talk-back]'); if (t) t.click(); }); }
         if (on(8)) await levelCheck('Calendar', '.cal-head');
       }
 

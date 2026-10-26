@@ -57,17 +57,16 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.getElementById('igd-input') && window.pdSolo && pdSolo());
     const A1 = await panelHead('#ig-dock');
     A1.hello = await page.evaluate(() => !!document.querySelector('#ig-dock [data-jb-hello]'));
-    /* THE BOARD KEEPS HIS ONE WINDOW (owner, 24 Oct 2026, and still true after
-       the panel rule of 26 Oct): every link in his greeting here opens something
-       drawn on the Board itself, in full, a glance to the left — nothing lives
-       only in this panel. That is what made the Contracts list different (A4),
-       where Discover was in the panel and nowhere else. */
-    check('A1 the Board: his one tab "Jambo" and his greeting first; no Overview, no word, no trail', one(A1) && A1.tabs.join() === 'Jambo' && A1.hello, JSON.stringify(A1));
+    /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second
+       tab for jambo"; reverses the Board's one window of the same day): his greeting and its chips are the
+       Board's first page, under Overview; his conversation under the Jambo tab beside it; still no page word */
+    check('A1 the Board: Overview (his cards and chips) and a Jambo tab beside it; no word, no trail on the landing', !!A1 && A1.tabs.some(t => /Overview|Översikt/.test(t)) && A1.tabs.some(t => /Jambo/.test(t)) && A1.word.length === 0 && A1.trail === 0, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
     await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');
-    const A2 = await until(() => { const d = document.getElementById('ig-dock'); return !intel.busy && d && /Two things want you this week/.test(d.innerText) && /Here is your book/.test(d.innerText) ? true : null; }, null, 10000);
+    /* RE-POINTED 26 Oct 2026: the answer stands under his tab; his greeting waits under Overview, one press back */
+    const A2 = await until(() => { const d = document.getElementById('ig-dock'); return !intel.busy && d && /Two things want you this week/.test(d.innerText) ? true : null; }, null, 10000);
     const A2h = await panelHead('#ig-dock');
-    check('A2 a question on the Board: his greeting and the answer in the one window, nothing turned', !!A2 && one(A2h) && A2h.tabs.join() === 'Jambo', JSON.stringify(A2h));
+    check('A2 a question on the Board: the answer under his tab, Overview one press away (the talk\'s own trail)', !!A2 && A2h.tabs.some(t => /Overview|Översikt/.test(t)) && A2h.tabs.some(t => /Jambo/.test(t)) && A2h.word.length === 0, JSON.stringify(A2h));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `A-board-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
 
@@ -111,7 +110,9 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await page.evaluate(() => setView('calendar'));
     await until(() => !!document.getElementById('cal-plan'));
     const A8 = await panelHead('#cal-plan');
-    check('A8 the Calendar: Your week with no tabs, no word', one(A8) && A8.tabs.join() === 'Jambo', JSON.stringify(A8));
+    /* RE-POINTED 26 Oct 2026 (owner: a first page with a link to press needs a second tab for Jambo): Your week
+       carries the planner's asks and its setting, so Overview and Jambo, still no page word */
+    check('A8 the Calendar: Your week under Overview, a Jambo tab beside it, no word', !!A8 && A8.tabs.length === 2 && A8.tabs.some(t => /Overview|Översikt/.test(t)) && A8.tabs.some(t => /Jambo/.test(t)) && A8.word.length === 0, JSON.stringify(A8));
 
     await page.evaluate(() => pdOpenOnHome('MK-B2', 'copilot'));
     await until(() => !!document.querySelector('#ig-dock [data-pd-tab="red"]'));

@@ -8334,9 +8334,12 @@ function renderIntelDock(){
         return (typeof window.pdHeadHtml==='function')?pdHeadHtml(brain):`<span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>`; })()}
       ${''/* WHAT THE PANEL HOLDS, SAID BESIDE HIS TAB (the redesign's gaps:
              rounds 13, 7 and 12 — "Contract", "<ref> at a glance", "<ref> ·
-             History", pdHeadWord; round 17 — "Board" beside Jambo on the Board,
-             hbHeadWord), nothing where it holds his own words */}
-      ${solo?'':(()=>{ const w=(typeof window.pdHeadWord==='function')?pdHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()||(()=>{ const w=(typeof window.hbHeadWord==='function')?hbHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
+             History", pdHeadWord), nothing where it holds his own words.
+             THE BOARD'S OWN NAME IS NEVER HERE (owner, 24 Oct 2026: "the name
+             board which looks like another tab but it is nothing behind it";
+             kept when the Board got its two tabs on 26 Oct 2026): the bar
+             names the page, so round 17's "Board" (hbHeadWord) is not drawn */}
+      ${solo?'':(()=>{ const w=(typeof window.pdHeadWord==='function')?pdHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
       <span class="flex-1"></span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}

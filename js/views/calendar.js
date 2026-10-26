@@ -2132,20 +2132,23 @@ function calPlanHtml(){
   /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): the panel lands on Your
      week; an ask turns it to the conversation under the one trail line
      (jamboTrailHtml), and ‹ Overview, Esc or the bar's ‹ turn it back as left */
-  /* ONE WINDOW (owner, 24 Oct 2026: "logically it makes no sense to have a window that is empty which you ask a
-     question it takes you to another window"; reverses the 19 Oct "A Jambo tab" here): Your week is his words and
-     the planner's setting, so the panel is ONE window — his words first, what was asked and his answer under them,
-     no Overview / Jambo tabs, no word beside them, no trail */
-  const talk=!!(you||answer);
-  return `<aside class="cal-cop is-solo${talk?' is-talk':''}" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
-    <div class="cal-plan-head jl-head"><span class="pd-tab on jl-tab" title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</span><span class="jl-sp"></span></div>
+  /* THE FIRST PAGE WITH A PRESS GETS TWO TABS (owner, 26 Oct 2026: "any page where there is a link to press on
+     the first page needs a second tab for jambo"; REVERSES the 24 Oct one window here): Your week carries the
+     planner's two asks and its setting — things to press — so the landing stands under Overview and his
+     conversation under the Jambo tab beside it, as on the Board and in Settings. No page word, no number. */
+  if(typeof window.jamboTalkLand==='function') jamboTalkLand(CAL_TALK_KEY);
+  const talk=typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY);
+  const land=i18t('pd_tab_overview');
+  const mark=(typeof window.JAMBO_LAND_GLYPH==='string')?JAMBO_LAND_GLYPH:'\u25A6\uFE0E';
+  return `<aside class="cal-cop${talk?' is-talk':''}" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
+    <div class="cal-plan-head jl-head" role="tablist"><button type="button" role="tab" class="pd-tab jl-tab cal-plan-tab${talk?'':' on'}" data-cal-talk-back aria-selected="${!talk}" title="${_esc(land)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${mark}</span></span><span class="pd-tab-w">${_esc(land)}</span></button><button type="button" role="tab" class="pd-tab pd-tab-talk jl-tab${talk?' on':''}" data-cal-talk aria-selected="${!!talk}" title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</button><span class="jl-sp"></span></div>
+    ${talk&&typeof window.jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('cal',land):''}
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">
-      ${typeof window.jamboHelloHtml==='function'?jamboHelloHtml():''}
-      <div class="jl-words cal-yw" data-jt-land>${week?`<div class="jl-say">${sayFace}<div class="jl-bub">${week}</div></div><p class="jl-src">${_esc(i18t('ob_yw_src'))}</p>`:''}${
+      <div class="jl-words cal-yw" data-jt-land${talk?' hidden':''}>${week?`<div class="jl-say">${sayFace}<div class="jl-bub">${week}</div></div><p class="jl-src">${_esc(i18t('ob_yw_src'))}</p>`:''}${
         offer?`<div class="jl-say">${sayFace}<div class="jl-bub">${_esc(offer)}</div></div>`:''}
         <div class="jl-chips cal-yw-chips"><button type="button" class="jl-chip" data-cal-plan-q="week" title="${_esc(i18t('cal_plan_p_week'))}"${off}>${_esc(i18t('ob_yw_chip_week'))}</button><button type="button" class="jl-chip" data-cal-plan-q="due" title="${_esc(i18t('cal_plan_p_due'))}"${off}>${_esc(i18t('ob_yw_chip_due'))}</button></div>
         ${calLevelSegHtml()}</div>
-      ${talk?`<div class="cal-plan-talk" id="cal-plan-talk" data-jt-talk>${you}${answer}</div>`:''}
+      ${talk?`<div class="cal-plan-talk" id="cal-plan-talk" data-jt-talk>${typeof window.jamboHelloHtml==='function'?jamboHelloHtml():''}${you}${answer}</div>`:''}
     </div>
     <div class="jl-foot cal-plan-foot">
       ${_calJbCard({ cls: 'cal-plan-box', field: `<textarea id="cal-plan-in" rows="1" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('jl_ph_week'))}" aria-label="${_esc(i18t('jl_ph_week'))}" title="${_esc(cost)}"${off}></textarea>`, send: _calJbSend(`id="cal-plan-go"${off}`, i18t('int_ask'), { cls: 'jl-send', title: cost }) })}
@@ -2192,6 +2195,7 @@ async function calPlanAsk(q, ref){
   const events=(typeof mineList==='function'?mineList('event'):[]).filter(e=>e.date>=from&&e.date<=until).slice(0,200).map(e=>({ date:e.date, start:e.start, end:e.end, title:e.title }));
   const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17,copilotLevel:'ask'};
   /* the panel turns to the conversation; Your week is kept as it was left */
+  if(typeof window.jamboTalkOpen==='function') jamboTalkOpen(CAL_TALK_KEY, document.getElementById('cal-plan-body'));
   _calPlan.busy=true; _calPlan.err=''; _calPlan.ask=said; _calPlan.read=null; calPlanRepaint();
   try{
     if(!(typeof API_MODE==='function'&&API_MODE())) throw Object.assign(new Error('needsKey'),{needsKey:true});

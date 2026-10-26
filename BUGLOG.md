@@ -21600,6 +21600,9 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 
 - Noticed, not fixed (26 Oct 2026, PR #484): week-as-drawn-verify "5 1536×730: the Calendar whole" is red on main itself (measured on an untouched worktree at 73a0dfd): the week rows keep the 1440×780 layout instead of fitting, so the fifth row ends at 756px on a 730px screen; it turned red when the new week began (this week's row grew to "3 due"). The owner's laptop screen.
 
+## Noticed, not fixed (26 Oct 2026, the owner's four screenshots)
+- probe2.js stands at the repository root (committed in #427): a browser probe, not part of the app; left where it is.
+- The letter's "Send round 2" beside the Redlines column's "Round 1": two facts (the round this send opens; the round on the table), read by shareRoundOf and the column's own round — left as they are and said to the owner.
 - Noticed, not fixed (26 Oct 2026, flag D): the receipt's copies panel is headed "Copies sent" (ct_copies_sent) even when every copy in it failed or sits in the outbox; the rows under it say Failed, but the heading claims "sent". Same "sent must mean sent" class as flag D's stop, left for the owner to rule on.
 ## Noticed, not fixed — 26 Oct 2026 (Discover, the owner's seven notes)
 - The owner's workspace holds question rows that should never have become columns
@@ -21738,6 +21741,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ### Noticed, not fixed
 - 7g ("a press on the bubble opens that group") in the same file also waits
   only 3000ms, with the same slow-runner exposure as 13f had.
+- tidy-sweep-verify with HATI_TIDY_ONLY=board,calendar,explorer,board-card: on laptop-b and ipad the Board's two places land on Explorer (the face left by the Explorer place before them), 4 FAIL — the same 4 at origin/main 8e8196b, so a subset-order fault of the sweep, not of the app; left as it is.
 
 ## Noticed, not fixed — 26 Oct 2026 (Jambo reads the Handbook)
 - "who can change the currency rates?" is read by navRead as a trip to the setting ("The setting, in Settings.") instead of being answered from the Handbook; "who …" questions are trips by earlier rulings ("who works here", "who can open Procurement", "who is Amina" in test/nav-exam.js and f926), so a who-asks-permission split is the owner's call.

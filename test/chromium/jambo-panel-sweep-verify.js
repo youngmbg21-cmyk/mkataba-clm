@@ -28,8 +28,10 @@
 
    A panel may answer the rule in either of the two ways HaTi already uses, and
    the sweep does not care which: TABS (the Dossier, the Contracts place, the
-   list pages) or A PIN above the talk (the Board, whose landing is Jambo's own
-   greeting and so keeps his one window).
+   list pages, and since the owner's ruling of 26 Oct 2026 the Board too: "any
+   page where there is a link to press on the first page needs a second tab for
+   jambo") or A PIN above the talk. No page is excused by its name: a landing
+   with something to press carries a way back to it, wherever it is.
 
    Run: node test/chromium/jambo-panel-sweep-verify.js
         HATI_SWEEP_ONLY=board,contracts  for one or two places */
@@ -195,26 +197,10 @@ const wayBack = (page, sel) => page.evaluate(a => {
       if (!asked){ console.log(`SKIP  ${name} — this panel has no box to ask in`); continue; }
 
       const above = await aboveTalk(page, sel);
-      if (key === 'board'){
-        /* THE ONE PAGE HELD OPEN, AND THE REASON IT IS. The Board's panel holds
-           Jambo's own greeting, and his chips do sit above the talk in its
-           scroller — but every one of them opens something the Board already
-           draws in full, a glance to the left, so nothing lives only in that
-           panel. That is what made the Contracts list different, where Discover
-           was there and nowhere else. Pinning the greeting was tried and cut a
-           sentence in half; two tabs brought a page word and a trail the owner
-           had ruled out. The owner has been asked; until they answer, this is
-           what the exception costs, and the check holds it to its reason: the
-           chips above the talk are HIS, and the Board itself carries the same
-           work. A second page joining the exception, or the Board's own card
-           going away, turns this red. */
-        const onPage = await page.evaluate(() => ({
-          book: !!document.querySelector('#hb-bhead, .hb-book, [data-hb-fig]'),
-          needs: !!document.querySelector('#nd-board, .nd-card, [data-nd-row], .hb-nd') }));
-        const his = (above.above || []).every(w => /needs me|by stream|ending|views|saved/i.test(w));
-        check(`${name}: the one page held open — his own chips above the talk, and the Board draws the same work in full`,
-          !above.ok && his && onPage.book && onPage.needs, JSON.stringify({ above, onPage }));
-      } else check(`${name}: nothing to press sits above the conversation in its scroller`, above.ok, JSON.stringify(above));
+      /* THE BOARD IS NO EXCEPTION (owner, 26 Oct 2026: "any page where there is a link to press on the first
+         page needs a second tab for jambo" — the answer to the question this check used to hold open): its
+         greeting and chips are its Overview, his conversation under his own tab, like every other page */
+      check(`${name}: nothing to press sits above the conversation in its scroller`, above.ok, JSON.stringify(above));
 
       const still = await painted(page, sel, before);
       let how = still.off.length ? '' : 'they never left the screen';
@@ -248,20 +234,14 @@ const wayBack = (page, sel) => page.evaluate(a => {
          because the harness could not drive its conversation the checks above
          passed it while the screen was plainly wrong. A landing with something
          to press must carry a way back to it — a tab that is not Jambo's, or a
-         back control — UNLESS that landing never leaves, which is what the two
-         named here do and what this check asserts of them rather than assuming.
-         The Board's own exception is settled by its check above. */
-      const NO_BACK_NEEDED = {
-        board: 'his own greeting; every link in it opens what the Board draws in full',
-        calendar: 'the week\'s plan, which the conversation never replaces' };
+         back control. NO PAGE IS EXCUSED (owner, 26 Oct 2026: "it is not only on
+         board, any page where there is a link to press on the first page needs
+         a second tab for jambo"): the Board's and the Calendar's exceptions of
+         the same morning are gone; a landing with nothing to press passes on
+         its own. */
       const back = await wayBack(page, sel);
-      if (NO_BACK_NEEDED[key]){
-        check(`${name}: needs no way back — ${NO_BACK_NEEDED[key]}, and nothing it offers left the screen`,
-          !still.off.length, JSON.stringify({ off: still.off.slice(0, 5) }));
-      } else {
-        check(`${name}: a landing with ${before.length} to press carries a way back to them`,
-          !before.length || !!back, JSON.stringify({ panel: sel, links: before.slice(0, 4).map(l => l.w), back }));
-      }
+      check(`${name}: a landing with ${before.length} to press carries a way back to them`,
+        !before.length || !!back, JSON.stringify({ panel: sel, links: before.slice(0, 4).map(l => l.w), back }));
       await page.screenshot({ path: path.join(OUT, key + '.png') });
     }
 

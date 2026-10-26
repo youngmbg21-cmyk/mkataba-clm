@@ -194,20 +194,25 @@ describe('f745 (4) Jambo on the Board', () => {
       expiry: (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); })(), createdAt: ago(200) + 'T09:00:00Z', comments: [], audit: [], signatures: [] });
     assert.match(w.hbBoardHelloHtml(), /data-igsug="which 1 ends in 90 days\?"/);
   });
-  test('4d "Board" beside his tab on the Board only; his chips ride his words, not a row above the box', () => {
+  test('4d the Board\'s name is never in the panel head (the bar names the page); his chips ride his words, not a row above the box', () => {
     const { w } = world();
+    /* RE-POINTED 26 Oct 2026: the Board got its two tabs (owner: a first page with a link to press needs a second
+       tab for Jambo) and the "Board" word stayed out (owner, 24 Oct 2026: "the name board which looks like another
+       tab but it is nothing behind it"). hbHeadWord still reads the Board; the panel head no longer draws it. */
     assert.equal(w.hbHeadWord(), 'Board');
     w.hbS().face = 'explorer';
     assert.equal(w.hbHeadWord(), '');
     assert.equal(w.hbBoardHelloHtml(), '');
     const IG = read('js/views/intelligence.js');
-    assert.match(IG, /const w=\(typeof window\.hbHeadWord==='function'\)\?hbHeadWord\(\):''; return w\?`<span class="igd-head-w"/);
+    assert.doesNotMatch(IG, /hbHeadWord\(\):''; return w\?`<span class="igd-head-w"/, 'the Board word is not drawn in the head');
     assert.match(IG, /&&!\(state\.view==='dashboard'&&typeof window\.hbBoardHelloOn==='function'&&hbBoardHelloOn\(\)\)\?`\s*<div class="px-3\.5 pb-2 shrink-0 flex flex-wrap gap-1\.5" data-ig-chips>/);
     assert.match(read('js/paperdesk.js'), /return \(typeof hbBoardHelloHtml === 'function'\) \? hbBoardHelloHtml\(\) : '';/, 'his tab opens on it on the Board');
   });
-  test('4e his tab carries the Counter\'s number on the Board', () => {
+  /* RE-POINTED 26 Oct 2026 (the Board's two tabs): behind Overview stands his greeting, not the list, so the tab
+     carries no number (the number on a door matches the list behind it); his words and the Needs you card say it */
+  test('4e on the Board the Overview tab carries no number', () => {
     const PD = code(read('js/paperdesk.js'));
-    assert.match(PD, /const n = !onBoard \? 0 : \(typeof counterNeedsCount === 'function'\) \? counterNeedsCount\(\)/);
+    assert.doesNotMatch(PD, /const n = !onBoard \? 0 : \(typeof counterNeedsCount === 'function'\) \? counterNeedsCount\(\)/);
   });
 });
 
