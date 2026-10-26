@@ -16280,6 +16280,8 @@
   #app-shell.dk-shell #top-header:has(#shell-title.is-crumb) .sh-div{display:block}
   .dk-recent{position:absolute;top:calc(100% + 8px);left:0;z-index:80;width:340px;max-width:calc(100vw - 24px);max-height:calc(100vh - 72px);overflow:auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:6px;font-size:var(--t-body);font-weight:var(--w-body)}
   .dk-recent[hidden]{display:none}
+  /* lifted out of the app's frame while open, so it stands in front of every page (deskBarPaint, 26 Oct 2026) */
+  .dk-recent.is-lifted{position:fixed;z-index:76;max-height:calc(100vh - 72px)}
   .dk-r{display:flex;align-items:center;border-radius:var(--radius)}
   .dk-r.is-on{background:var(--color-accent-50)}
   .dk-r-go{flex:1;min-width:0;display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:center;border:0;background:none;text-align:left;padding:7px 8px;border-radius:var(--radius);color:inherit;font:inherit;cursor:pointer}

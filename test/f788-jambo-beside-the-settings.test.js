@@ -36,10 +36,11 @@ describe('f788 (1) the panel\'s head', () => {
     const a = settingsStage();
     assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]'), 'an admin on You: both tabs');
     a.sb.settingsGoTab('company');
-    assert.ok(a.$('st-side-word'), 'Company: the page named beside them');
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
+    assert.ok(!a.$('st-side-word'), 'Company: no page name beside the tabs');
     a.sb.settingsGoPage('streams');
     a.click(a.q('#set-page .st-sw-row[data-st-sw-pick]'));
-    assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]') && a.$('st-side-word'), 'a stream chosen: its facts, so the two tabs and the word');
+    assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]') && !a.$('st-side-word'), 'a stream chosen: its facts, so the two tabs, and no word beside them');
     /* and the rule still has its other half: a landing with nothing to press is his one window */
     assert.equal(typeof a.sb.stLandHasLinks, 'function', 'the landing is read, not the page guessed');
   });

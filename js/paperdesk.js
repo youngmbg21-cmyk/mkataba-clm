@@ -3251,7 +3251,8 @@ function pdHeadHtml(brain){
   /* A WORD FOR WHAT THE PANEL HOLDS (the gaps, round 4 "One sheet", 18 Oct
      2026: "Jambo · New agreement · ›"): beside the one sheet, the agreement
      being drafted */
-  const word = (!c && typeof naSheetUp === 'function' && naSheetUp()) ? `<span class="pd-head-word">${_pdE(_pdT('na_title'))}</span>` : '';
+  /* NO PAGE NAME BESIDE THE TABS (owner, 26 Oct 2026: "on the side panel next to the Jambo tab you have the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): the one sheet's "New agreement" is said by the bar and the sheet's own head, not as a word beside the tabs */
+  const word = '';
   /* the face's word is the trail line's (pdTrailHtml), not the tab row's */
   /* the letter is up and the panel turned to Jambo: "Before you send" waits
      as a tab after Jambo's, one press back (round 11's gaps, second pass) */

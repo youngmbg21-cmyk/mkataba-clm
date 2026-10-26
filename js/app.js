@@ -1142,6 +1142,20 @@ function viewLayersClosed(view){
      layer, and a reader mid-sentence must never be asked whether they meant to
      leave a page nobody asked to leave. Same view in, layer untouched. */
   if(state.view === view) return true;
+  /* THE NEW AGREEMENT SHEET BELONGS TO HOME (owner, 26 Oct 2026, the second time asked: "The new agreement
+     page is supposed to look like image 2 with the jambo panel but sometimes the image 1 appears"): the sheet
+     stands beside Jambo's panel on Home; a move to any other page (the Guide's rows, a typed page name, ⌘K)
+     left it standing over that page, full width, with no Jambo. Every page change now puts it away first
+     through its own guarded close (naAskLeave asks while anything is typed), then goes on. */
+  if(view!=='dashboard' && !_leavingCe && typeof window!=='undefined' && typeof window.naSheetUp==='function' && window.naSheetUp()
+    && typeof window.closeModalGuarded==='function'){
+    Promise.resolve(window.closeModalGuarded()).then(ok=>{
+      if(ok===false || window.naSheetUp()) return;
+      _leavingCe = true;
+      try{ setView(view); } finally { _leavingCe = false; }
+    }).catch(()=>{});
+    return false;
+  }
   /* THE DESIGN STEP (js/views/designstep.js) paints over the page too, and its
      choices are lost on the way out — so it is asked the same way. */
   if(typeof window!=='undefined' && window.designStepOpen && designStepOpen()){

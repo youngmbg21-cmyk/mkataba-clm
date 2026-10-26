@@ -85,8 +85,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* REVERSED (owner, 26 Oct 2026): Settings' landing carries "N things need
        you here" with a link per row, so the panel keeps its own tab beside his
        and names the page between them, rather than being his one window. */
-    check('1d the panel\'s head: its own tab beside his, the page named between them',
-      !!head && !!head.word && /Overview/.test((head.tabs || []).join(' ')) && /Jambo/.test((head.tabs || []).join(' ')),
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+    check('1d the panel\'s head: its own tab beside his, no page name beside them',
+      !!head && !head.word && /Overview/.test((head.tabs || []).join(' ')) && /Jambo/.test((head.tabs || []).join(' ')),
       head && JSON.stringify({ word: head.word, tabs: head.tabs }));
     await shot(page, 'settings-as-drawn-company-1440x780');
 
@@ -116,9 +117,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       const side = await until(() => { const p = document.querySelector('#st-jb-feed .st-swp'); if (!p) return null;
         const facts = {}; p.querySelectorAll('.st-swp-f').forEach(f => { facts[f.querySelector('dt').textContent.trim()] = f.querySelector('dd').textContent.replace(/\s+/g, ' ').trim(); });
         if (!facts['Due now'] && !p.querySelector('[data-st-swp-run]')) return null;
-        return { word: document.getElementById('st-side-word').textContent.trim(), facts, due: p.querySelectorAll('.st-swp-tb tbody tr').length, held: p.querySelectorAll('.st-swp-held').length,
+        return { word: (document.getElementById('st-side-word') || { textContent: '' }).textContent.trim(), facts, due: p.querySelectorAll('.st-swp-tb tbody tr').length, held: p.querySelectorAll('.st-swp-held').length,
           del: ((p.querySelector('[data-st-swp-run]') || {}).textContent || '').trim() }; }, null, 8000);
-      check('3a the panel says "<stream> · stream"', !!side && side.word === 'Sales & Route-to-Market · stream', side && side.word);
+      /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+      check('3a the stream\'s panel, no word beside the tabs', !!side && side.word === '', side && side.word);
       check('3b its facts: Due now 2, On legal hold 1', !!side && /^2 contracts/.test(side.facts['Due now'] || '') && /^1 · held back$/.test(side.facts['On legal hold'] || ''), JSON.stringify(side && side.facts));
       check('3c the Due now table and the held row', !!side && side.due === 2 && side.held === 1, side && (side.due + ' · ' + side.held));
       await shot(page, 'settings-as-drawn-stream-1440x780');

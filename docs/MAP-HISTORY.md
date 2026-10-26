@@ -34775,6 +34775,34 @@ Bringing main in before the owner's "push and merge to main when green": main ha
 
 ## THE SEND SCREEN · THE STUCK LETTER'S ROOT: A TYPED "SEND" OPENED A FACE WITH NO LETTER (26 Oct 2026, GitHub's run on #496)
 GitHub's browser run on #496 named the route the owner's morning screenshots could not: `navGoAct`'s `send` (a typed "send MK-382…", Jambo's goto `send`, the door exam's act:send) called `pdSendOpen(id)` with NO node and no letter page — a "Before you send" face over nothing. Left by ‹ or a tab it became the Email tab (pdSendBack showed the empty slot: "when i press on email nothing happens"), the bar said "Send · MK-382" (dkSendNow), and HaTi's leave guard waited on a letter that never existed. `pdSendLive` (earlier the same day) already ended such a hold; the door itself now opens the letter: Send all while changes of ours wait (`pdHasUnsent`, the Dossier's own "N not sent" reading, → `pdSendWaiting`), else `openShareModal(c)` — the same rule as the Dossier's Send, which also stopped sending a paper with nothing unsent to an empty Redlines face (every-door-lands-on-home-verify D found that). The Calendar's two tabs put his greeting under Jambo, as in Settings (detail-round-verify re-pointed to open the tab first).
+AFTER THE MERGE (26 Oct 2026, the owner asked "show me a picture of where the handbook is"): the first look at
+the built page found two faults of this change. The frame "Picture to come" showed UNDER a picture that had
+loaded: the page's own `.hbk-ph{display:flex}` beat the skeleton's `[hidden]` (a rule losing a cascade fight —
+the four costumes); `.hbk-ph[hidden]{display:none}` at the page's own specificity. And the chapters quoted the
+Send-all button by the page head's old key (`ng_send_all`, "Send All (N) Redlines") where the column's button says
+`ng_unsent_send` ("Send all · N not sent"). The picture script now scrolls a boxed element into view before it
+measures it, so a box in a long panel (the Guide's Handbook row, 0.5) is in the picture; all pictures re-taken.
+
+## THE SHELL — RAIL, BAR, PANELS · THE BAR'S LIST, THE NEW AGREEMENT SHEET, NO WORD BESIDE THE TABS (26 Oct 2026, the overnight build)
+Three of the owner's asks, built in the overnight run they authorised ("build it all, push and merge to main when it
+is green"). (1) "while in the above page [New agreement], when you press on the highlighted filter, the dropdown does
+not appear": MEASURED, Recent opened behind the sheet's head (`dlg-pg-head`, fixed z 70) and behind the send letter's
+head. Its z-index 80 sat inside `#app-shell`, which is position:fixed and so its own stacking layer: no number inside
+it can rise above a page drawn outside it. Fixed by lifting the list to the body while open (`.dk-recent.is-lifted`,
+fixed under the page's name, z 76: above pages 70/71 and Jambo's window 75, below a question dialog 80); the press
+and keyboard checks read `#dk-pg-w, #dk-recent`. (2) "The new agreement page is supposed to look like image 2 with
+the jambo panel but sometimes the image 1 appears. That is a bug" — the SECOND time asked. MEASURED: every door
+opens the sheet beside Jambo (twelve pages, seven ways in, all fine); the fault was LEAVING: the Guide's rows, a page
+name typed in a box and a bare setView moved to another page and left the sheet standing over it, full width, no
+Jambo — image 1 is the sheet over Settings (its search box says "Find a setting, a person or a word"). Only the bar's
+‹ put it away (naSheetBack). Fixed in the one guard every page change asks (`viewLayersClosed`): the sheet is put
+away through its own guarded close (`closeModalGuarded` → `naAskLeave`, which asks while words are typed), then the
+move goes on; "stay" keeps the sheet and its words. Home's own faces (Calendar, Explorer, Contracts) keep the sheet
+beside Jambo, as before. (3) "on the side panel next to the Jambo tab you have the name of the page next to the
+Jambos which looks like an additional tab. These are to be deleted": the list panel's `jl-word`, Settings'
+`st-side-word` and Home's `pd-head-word` are no longer drawn (the fill-in code already guards a missing slot); the ›
+fold stays. The drawing of 26 Oct (Jambo Overview Tab) showed the word; the owner's later word wins. Settings' Menu
+mode keeps its own "‹ Overview  Menu" head (no tabs there). Fifteen tests re-pointed, each with the owner's words.
 
 ## INSIGHTS · THE MAP CHECK MADE RELIABLE (owners-fifteen-verify, 26 Oct 2026)
 The owner, after #496 merged with this check red on main and on the PR: "fix the unreliable map check". Measured, with logging, over runs three at a time (as CI runs two): it failed about half the time, two different ways. 13d ("let me ask questions about MK-A2" opens the paper) — the question never reached Jambo: Discover's kept-questions answer, fetched while the check stood on the Contracts place (13a–b), arrived after it had moved to the Board and redrew Jambo's panel (askColPaintPanel → renderIntelDock); Playwright's fill had resolved the OLD box and wrote into a box no longer on the page, so Enter sent nothing. A person keeps their words (renderIntelDock carries the live box's words and caret across), so the fault was the check's: `typeAsk` reads the words back from the live, focused box before Enter, bounded. 13f (a wobbling press opens the pressed dot's card) — the card of the NEIGHBOUR opened. A map change was tried first (remember the dot the finger went down on) and THROWN AWAY: measured, the press, the lift and the click all already go to the dot the finger went down on, old code or new. The check had chosen MK-Y3, whose centre stood ~30px from MK-T7-3's centre, i.e. at the very edge of that neighbour's 44px target with the neighbour drawn on top; the dots jiggle (IG_JIG_FPS), so for an instant the finger went down on the neighbour. A finger on the border of two dots is ambiguous for a person too, so the check now presses the clearest dot on the map (at least IG_CLEAR 8px outside every other target; it picks one ~52px clear). Before: red in 4 of 7 local runs (13d three times, 13f twice). After: 33 runs in a row green. No app code changed.

@@ -342,6 +342,17 @@ function deskBarPaint(){
   }
   const menu = document.getElementById('dk-recent');
   if (menu){
+    /* THE LIST STANDS IN FRONT OF EVERY PAGE (owner, 26 Oct 2026: "when you press on the highlighted filter, the
+       dropdown does not appear" — on New agreement): the app's frame (#app-shell, position:fixed) is its own
+       layer, so the list's z-index inside it could never rise above a page (z 70, drawn outside the frame) —
+       it opened BEHIND the New agreement sheet and the send letter. While open it is lifted out to the body,
+       fixed under the page's name, above pages and Jambo's window (75), below a question dialog (DLG_Z 80). */
+    if (_dkMenuOpen && btn){
+      if (menu.parentElement !== document.body) document.body.appendChild(menu);
+      const r = btn.getBoundingClientRect();
+      menu.classList.add('is-lifted');
+      menu.style.top = Math.round(r.bottom + 8) + 'px'; menu.style.left = Math.round(r.left) + 'px';
+    }
     if (menu.hidden === _dkMenuOpen) menu.hidden = !_dkMenuOpen;
     const h = _dkMenuOpen ? deskRecentHtml() : '';
     if (_dkMenuHtml !== h || (_dkMenuOpen && !menu.firstChild)){ menu.innerHTML = h; _dkMenuHtml = h; }
@@ -1122,7 +1133,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-dk-go]'))){ deskTabOpen(el.getAttribute('data-dk-go')); keyBack(); return; }
     if ((el = t.closest('[data-dk-present]'))){ _dkMenuOpen = false; deskBarPaint(); if (typeof hbPresent === 'function') hbPresent(true); return; }
     if ((el = t.closest('[data-dk-recent]'))){ deskRecentToggle(); return; }
-    if (_dkMenuOpen && !t.closest('#dk-pg-w')){ _dkMenuOpen = false; deskBarPaint(); }
+    if (_dkMenuOpen && !t.closest('#dk-pg-w, #dk-recent')){ _dkMenuOpen = false; deskBarPaint(); }
     /* THE ONE DESK's own presses, on Home, on the Board's card and in the bell's panel
        (a row pressed in the panel steps the panel aside before its door is taken) */
     const inPanel = !!t.closest('#panel-body .nd-pan');
@@ -1169,7 +1180,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
       return;
     }
     /* Recent: Esc closes it and hands the keyboard back to the page's name; the arrows walk its rows */
-    if (_dkMenuOpen && t && t.closest && t.closest('#dk-pg-w')){
+    if (_dkMenuOpen && t && t.closest && t.closest('#dk-pg-w, #dk-recent')){
       if (e.key === 'Escape'){ e.preventDefault(); _dkMenuOpen = false; deskBarPaint(); const b = document.getElementById('dk-page'); if (b) try { b.focus(); } catch (_){} return; }
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
         const L = [...document.querySelectorAll('#dk-recent .dk-r-go, #dk-recent .dk-r-act')]; if (!L.length) return;

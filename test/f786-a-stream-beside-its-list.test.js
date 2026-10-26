@@ -55,7 +55,8 @@ describe('f786 (2) a press shows the stream beside the list', () => {
     const g = streams();
     pick(g, 'sales');
     assert.ok(g.q('.st-sw-row[data-st-sw-pick="sales"]').classList.contains('is-picked'), 'the row is lit');
-    assert.equal(g.text(g.$('st-side-word')), 'Sales & Route-to-Market · stream');
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
+    assert.ok(!g.$('st-side-word'), 'no page name beside the tabs');
     assert.equal(fact(g, 'Who may open'), 'Everyone given it · 3 people');
     assert.equal(fact(g, 'Kept after they end'), '10 years, then listed to delete');
     assert.equal(fact(g, 'Due now'), '2 contracts · ended before 15 Oct 2016');
