@@ -101,7 +101,12 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await page.evaluate(() => setView('team'));
     await until(() => !!document.getElementById('st-jb-feed'));
     const A7 = await panelHead('#st-side');
-    check('A7 Settings: no tabs, no word, no trail', one(A7) && A7.tabs.join() === 'Jambo', JSON.stringify(A7));
+    /* REVERSED (owner, 26 Oct 2026, of every page): Settings' landing carries
+       "N things need you here" with a link per row, so it keeps its own tab
+       beside his rather than being his one window. A7 now reads the rule's
+       other half too — the reading is of what the landing HOLDS. */
+    check('A7 Settings: its own tab beside Jambo\'s, because its landing has links to press',
+      !!A7 && A7.tabs.length === 2 && A7.tabs.some(t => /Overview|Översikt/.test(t)) && A7.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A7));
 
     await page.evaluate(() => setView('calendar'));
     await until(() => !!document.getElementById('cal-plan'));

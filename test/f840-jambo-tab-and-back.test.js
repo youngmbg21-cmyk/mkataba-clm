@@ -243,19 +243,22 @@ describe('f840 (3) the panel beside a list', () => {
 });
 
 describe('f840 (4) Settings', () => {
-  /* RE-PINNED (owner, 24 Oct 2026: "settings has no information either"): ONE WINDOW — his words lead the
-     conversation, a turn is said under them, nothing turns and there is no trail; a stream chosen on Streams is
-     information and keeps the flip (f788 1a) */
-  test('4a one window: his words, then the turn under them; no flip, no trail', () => {
+  /* REVERSED (owner, 26 Oct 2026, of every page: "if a link is on the first
+     page and a user will need to access it, they should not scroll up the
+     jambo to find this link"). Settings' landing carries "N things need you
+     here" with a link per row, so it is not his one window any more: the page
+     keeps its own tab, the asked and the answer go to his, and the trail names
+     the way back. What decides is what the landing HOLDS (stLandHasLinks). */
+  test('4a the page\'s own view and his: the turn goes to his, the trail names the way back', () => {
     const { settingsStage } = require('./settingsworld.js');
     const g = settingsStage();
-    assert.ok(g.$('st-jb-trail').hidden, 'no trail');
+    assert.ok(g.$('st-jb-trail').hidden, 'no trail until the talk is up');
     g.sb.stJbAsk('what is a sealed PDF?');
-    assert.ok(!g.q('#st-jb-feed [data-st-jb-land]').hidden, 'his words stay');
-    assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'the conversation under them');
+    assert.ok(g.q('#st-jb-feed [data-st-jb-land]').hidden, 'the page\'s own view stands aside');
+    assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'his view is up');
     assert.ok(g.q('#st-jb-feed [data-st-jb-talk] [data-st-jb-turn]'), 'the turn is said there');
-    assert.ok(g.$('st-jb-trail').hidden, 'still no trail');
-    assert.equal(g.q('#st-jb-trail [data-jt-back="settings"]'), null);
+    assert.ok(!g.$('st-jb-trail').hidden, 'the trail names the way back');
+    assert.ok(g.q('#st-jb-trail [data-jt-back="settings"]'), 'and carries it');
   });
   test('4b an ask no longer lets the stream shown go: it stays the landing', () => {
     assert.doesNotMatch(code(fnOf(SET, 'stJbAsk')), /stSwPickSet\(null\)/);
