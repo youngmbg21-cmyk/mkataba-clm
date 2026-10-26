@@ -3692,6 +3692,8 @@ function ceTwinSchedule(){
    to remove; the record holds it.
    ========================================================================== */
 const CE_MARK_ATTR = 'data-ce-mark';
+/* A struck run's own words as drawn — so a clear can tell them from a reader's typing that landed in it. */
+const CE_MARK_WAS = 'data-ce-was';
 const CE_MARKS_MS = 300;
 let _ceMarksTimer = null;
 const _ceIsAtom = n => !!(n && n.nodeType === 1 && n.getAttribute && n.getAttribute(CE_MARK_ATTR) === 'del');
@@ -3710,16 +3712,48 @@ function ceLiveTextNodes(root){
   return out;
 }
 /* The paint comes off: atoms go, wrappers unwrap, the split text nodes are
-   joined again so a raw character index means one thing. */
+   joined again so a raw character index means one thing.
+
+   A READER'S WORDS NEVER GO WITH AN ATOM (26 Oct 2026, flag C of the flow
+   report: on GitHub's Chromium, words typed after a struck run at a line's
+   end landed INSIDE the run, and this clear threw them away with it — every
+   repaint of the marks, and every read of the box for a save, since
+   ceBoxHtml clears a copy the same way). An atom remembers what it said when
+   drawn (CE_MARK_WAS); whatever it holds beyond that is the reader's, and is
+   put back as live text where the run stood. Where the caret was in those
+   words, the answer is the live count just after them, so the paint's caret
+   lands after the words rather than before them (ceMarksPaintBox). */
 function ceMarksClear(box){
-  if (!box || !box.querySelectorAll) return;
-  box.querySelectorAll(`[${CE_MARK_ATTR}="del"]`).forEach(n => n.remove());
+  if (!box || !box.querySelectorAll) return null;
+  const doc = box.ownerDocument || (typeof document !== 'undefined' ? document : null);
+  let kept = null;
+  box.querySelectorAll(`[${CE_MARK_ATTR}="del"]`).forEach(n => {
+    if (!n.parentNode) return;
+    const outer = n.parentElement && n.parentElement.closest ? n.parentElement.closest(`[${CE_MARK_ATTR}="del"]`) : null;
+    const was = n.getAttribute(CE_MARK_WAS);
+    if (!outer && was != null && doc){
+      const now = String(n.textContent || '');
+      if (now !== was){
+        let a = 0; while (a < was.length && a < now.length && was[a] === now[a]) a++;
+        let b = 0; while (b < was.length - a && b < now.length - a && was[was.length - 1 - b] === now[now.length - 1 - b]) b++;
+        const extra = now.slice(a, now.length - b);
+        if (extra){ kept = doc.createTextNode(extra); n.parentNode.insertBefore(kept, n.nextSibling); }
+      }
+    }
+    n.remove();
+  });
   box.querySelectorAll(`[${CE_MARK_ATTR}="ins"]`).forEach(w => {
     const p = w.parentNode; if (!p) return;
     while (w.firstChild) p.insertBefore(w.firstChild, w);
     w.remove();
   });
+  let after = null;
+  if (kept && kept.parentNode){
+    after = 0;
+    for (const t of ceLiveTextNodes(box)){ after += t.data.length; if (t === kept) break; }
+  }
   try{ box.normalize(); }catch(_){}
+  return after == null ? null : { after };
 }
 /* Where the caret is, as a count of live characters before it; null where
    the caret is not in the box. */
@@ -3805,6 +3839,8 @@ function ceMarksDraw(box, units, plan){
     let el = d;
     if (under){ el = doc.createElement('ins'); el.className = INS + ' rl-' + under; el.appendChild(d); }
     el.setAttribute(CE_MARK_ATTR, 'del');
+    /* what the run said when it was drawn: anything more is a reader's typing (ceMarksClear) */
+    el.setAttribute(CE_MARK_WAS, text);
     return el;
   };
   const nodesOf = u => (u.nodes || []).filter(t => t && t.parentNode);
@@ -3846,6 +3882,7 @@ function ceMarksDraw(box, units, plan){
       p.appendChild(atom(String(sp.rest || '').replace(/^\s+/, ''), who, under));
     } else p.appendChild(atom(text, who, under));
     p.setAttribute(CE_MARK_ATTR, 'del');
+    p.setAttribute(CE_MARK_WAS, p.textContent);
     return p;
   };
   /* A rewrite: everything in the box is ours, and their wording, struck, stands
@@ -3857,6 +3894,7 @@ function ceMarksDraw(box, units, plan){
     const blk = doc.createElement('p'); blk.className = 'rl-line rl-line-del';
     blk.appendChild(atom(plan.theirs, 'them'));
     blk.setAttribute(CE_MARK_ATTR, 'del');
+    blk.setAttribute(CE_MARK_WAS, blk.textContent);
     box.insertBefore(blk, box.firstChild);
     return true;
   }
@@ -4022,8 +4060,12 @@ function ceInlineSeed(c, clauseId, side){
    click-to-type box (change 5). `seed` names what the draft stands on. */
 function ceMarksPaintBox(box, seed, o = {}){
   if (!box || !seed || typeof window._lineUnits !== 'function') return false;
-  const caret = o.caret != null ? o.caret : (o.fresh ? null : ceCaretSave(box));
-  ceMarksClear(box);
+  let caret = o.caret != null ? o.caret : (o.fresh ? null : ceCaretSave(box));
+  /* the caret inside a struck run is in words the clear will put back beside it */
+  let inAtom = false;
+  try{ const s = window.getSelection(); inAtom = !!(s && s.rangeCount && box.contains(s.focusNode) && ceAtomAt(s.focusNode)); }catch(_){ inAtom = false; }
+  const kept = ceMarksClear(box);
+  if (kept && inAtom && o.caret == null && !o.fresh) caret = kept.after;
   let drawn = false;
   try{
     const units = _lineUnits(box);
@@ -4118,6 +4160,19 @@ function ceAtomWall(box, ev){
        where the selection began. */
     if (box && sel && sel.rangeCount && !sel.isCollapsed && ceSpanOverAtoms(box, sel, ev)) return false;
     if (!box || !sel || !sel.rangeCount || !sel.isCollapsed) return false;
+    /* ---- A LETTER TYPED AT A STRUCK RUN'S END GOES BESIDE IT, PUT THERE BY
+       HaTi (26 Oct 2026, flag C of the flow report) ----
+       Moving the caret "after the run" and letting the browser insert was not
+       enough: some Chromium builds (GitHub's runner's) take a point just after
+       an inline element as the END OF ITS TEXT and type into the run — and the
+       next paint of the marks took the words away. So where the caret is in a
+       run, or just after an inline one, the letters are written into live text
+       after it here, and the box is told it changed, as any keystroke does. */
+    if (ev && ev.inputType === 'insertText' && ev.data != null && ceAtomWriteBeside(box, sel, ev.data)){
+      ev.preventDefault();
+      try{ box.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){}
+      return true;
+    }
     const atom = ceAtomAt(sel.anchorNode);
     if (!atom || !box.contains(atom)) return false;
     try{
@@ -4134,6 +4189,54 @@ function ceAtomWall(box, ev){
 function ceAtomAt(node){
   const el = node ? (node.nodeType === 1 ? node : node.parentElement) : null;
   return (el && el.closest) ? el.closest(`[${CE_MARK_ATTR}="del"]`) : null;
+}
+/* The inline struck run the collapsed point sits in, or ends just after — the
+   left-hand neighbour walk ceAtomSkipIn does for Backspace. A run drawn as its
+   own paragraph is not inline and is left to the ordinary path. */
+function ceAtomLeftOf(box, node, off){
+  const inside = ceAtomAt(node);
+  if (inside) return box.contains(inside) ? inside : null;
+  let nb = null;
+  if (node.nodeType === 3){
+    /* only spaces between the run and the caret still count as "just after":
+       a space at a line's end is not drawn, and Chromium then takes the point
+       after it as the end of the run's text (measured: " Kept." typed after a
+       run put the space beside it and the K inside it) */
+    if (off > 0 && !/^\s*$/.test(node.data.slice(0, off))) return null;
+    let n = node;
+    while (n && n !== box && !n.previousSibling) n = n.parentNode;
+    if (!n || n === box) return null;
+    nb = n.previousSibling;
+  } else {
+    nb = node.childNodes[off - 1] || null;
+    if (!nb) return null;
+  }
+  let leaf = nb;
+  while (leaf && leaf.nodeType === 1 && !_ceIsAtom(leaf) && leaf.childNodes.length) leaf = leaf.lastChild;
+  const atom = _ceIsAtom(leaf) ? leaf : (leaf && leaf.parentElement ? ceAtomAt(leaf) : null);
+  return (atom && box.contains(atom)) ? atom : null;
+}
+/* Write `text` into live text just after the struck run at the caret; the
+   caret ends after it. False where there is no inline run there. */
+function ceAtomWriteBeside(box, sel, text){
+  const atom = ceAtomLeftOf(box, sel.anchorNode, sel.anchorOffset);
+  if (!atom || !atom.parentNode || /^(P|DIV|LI|H[1-6]|BLOCKQUOTE|PRE)$/.test(atom.tagName || '')) return false;
+  const doc = box.ownerDocument || document;
+  try{
+    const node = sel.anchorNode, off = sel.anchorOffset;
+    let t, at;
+    /* the caret already in live text after the run (only spaces before it): write there */
+    if (node.nodeType === 3 && !ceAtomAt(node)){ t = node; t.insertData(off, text); at = off + text.length; }
+    else {
+      t = atom.nextSibling;
+      if (t && t.nodeType === 3 && !ceAtomAt(t)) t.insertData(0, text);
+      else { t = doc.createTextNode(text); atom.parentNode.insertBefore(t, atom.nextSibling); }
+      at = text.length;
+    }
+    const r = doc.createRange(); r.setStart(t, at); r.collapse(true);
+    sel.removeAllRanges(); sel.addRange(r);
+    return true;
+  }catch(_){ return false; }
 }
 /* Backspace before a struck run and Delete after it step the caret across it,
    as Word does; a caret INSIDE one steps out on the side the key deletes

@@ -21596,3 +21596,5 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 - Noticed, not fixed (25 Oct 2026): test/chromium/owners-fifteen-verify.js is unsteady on main (4b58a32): 13d ("let me ask questions about MK-A2" opens the same paper) and 13f (a wobbling press opens the card) each fail about one run in four locally; 13d failed on GitHub for PR #480 too.
 
 - Noticed, not fixed (25 Oct 2026, flow report re-check): four-decisions-verify.js failed its first step "signed in with the sample book" when run four browser checks at a time; run alone it passed 39 of 39. Likely a sign-in wait that is too short under load.
+
+- Noticed, not fixed (26 Oct 2026, PR #484): week-as-drawn-verify "5 1536×730: the Calendar whole" is red on main itself (measured on an untouched worktree at 73a0dfd): the week rows keep the 1440×780 layout instead of fitting, so the fifth row ends at 756px on a 730px screen; it turned red when the new week began (this week's row grew to "3 due"). The owner's laptop screen.
