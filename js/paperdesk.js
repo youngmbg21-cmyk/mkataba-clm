@@ -1764,9 +1764,23 @@ if (typeof jamboTalkHost === 'function') jamboTalkHost('dock', pdTalkBack, k => 
    the screen's onClose). A question asked in the box is answered under it;
    nothing here sends. Not kept through a refresh: the screen is not. */
 let _pdSend = null;          // { id, node, away } while the send screen is a page beside the panel
-function pdSendFor(){ return _pdSend ? _pdSend.id : null; }
+/* A HOLD WITHOUT A PAGE IS STALE (owner, 26 Oct 2026: the bar said "Send · MK-382" and the panel drew an Email
+   tab with no letter in sight; HaTi then went nowhere and Email did nothing). The letter is held only while its
+   page stands in the modal root; gone by any route that skipped its close, the hold ends here, read by every
+   reader (pdSendFor, pdSendHeld, pdSendIsWaiting) — so the bar, the tab and the Counter's leave guard never
+   see a letter that is not there. */
+function pdSendLive(){
+  if (!_pdSend) return false;
+  if (typeof document === 'undefined') return true;
+  const root = document.getElementById('modal-root');
+  if (!root || root.querySelector('.modal-in[data-sh-page]')) return true;
+  const n = _pdSend.node; _pdSend = null;
+  if (n && n.parentNode) try { n.parentNode.removeChild(n); } catch (_){}
+  return false;
+}
+function pdSendFor(){ return pdSendLive() ? _pdSend.id : null; }
 /* the screen is up (the letter on the desk), whichever face the panel shows */
-function pdSendHeld(){ return !!_pdSend && typeof state !== 'undefined' && !!state && state.view === 'dashboard'; }
+function pdSendHeld(){ return pdSendLive() && typeof state !== 'undefined' && !!state && state.view === 'dashboard'; }
 /* the panel shows "Before you send" — not while ‹ Jambo has turned it to
    Jambo's own words (away) */
 function pdSendShows(){ return pdSendHeld() && !_pdSend.away; }
@@ -1808,7 +1822,7 @@ function pdSendOpen(id, node){
    panel and the card's own button reads "Back to the letter"; the bar's
    Recent carries the letter as its first row ("Send · MK-0382"). Back brings
    the page up again where it was. Cancel and Send are still its only ends. */
-function pdSendIsWaiting(){ return !!(_pdSend && _pdSend.waiting); }
+function pdSendIsWaiting(){ return pdSendLive() && !!_pdSend.waiting; }
 function pdSendWaitSet(on){
   if (!_pdSend) return false;
   _pdSend.waiting = !!on;
@@ -5897,7 +5911,12 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const dpg = t.closest('[data-pd-ds-page]');
     if (dpg){ e.preventDefault(); const cc = full(); if (cc && typeof hbStripBring === 'function') hbStripBring(cc.id, dpg.getAttribute('data-pd-ds-page')); return; }
     const g = t.closest('[data-pd-glance]');
-    if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
+    if (g && !g.disabled){ e.preventDefault(); const k = g.getAttribute('data-pd-glance');
+      /* ONE SEND DOOR (owner, 26 Oct 2026: "this send door should be the same send door that is in the send all"):
+         the Dossier's Send is the Redlines column's Send all — the round's letter, its checks first, the hand-over
+         on send (pdSendWaiting → #nego-send) — never a word typed to Jambo that opens the plain share screen */
+      if (k === 'share'){ const c = pdContract(); if (c) pdSendWaiting(c); return; }
+      const row = PD_GLANCE[k]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
 }
 /* ============================================================
@@ -6569,7 +6588,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdMidCrumbHtml, pdActsToggle, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

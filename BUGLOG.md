@@ -21599,3 +21599,7 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 - Noticed, not fixed (25 Oct 2026, flow report re-check): four-decisions-verify.js failed its first step "signed in with the sample book" when run four browser checks at a time; run alone it passed 39 of 39. Likely a sign-in wait that is too short under load.
 
 - Noticed, not fixed (26 Oct 2026, PR #484): week-as-drawn-verify "5 1536×730: the Calendar whole" is red on main itself (measured on an untouched worktree at 73a0dfd): the week rows keep the 1440×780 layout instead of fitting, so the fifth row ends at 756px on a 730px screen; it turned red when the new week began (this week's row grew to "3 due"). The owner's laptop screen.
+
+## Noticed, not fixed (26 Oct 2026, the owner's four screenshots)
+- probe2.js stands at the repository root (committed in #427): a browser probe, not part of the app; left where it is.
+- The letter's "Send round 2" beside the Redlines column's "Round 1": two facts (the round this send opens; the round on the table), read by shareRoundOf and the column's own round — left as they are and said to the owner.

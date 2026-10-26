@@ -3792,7 +3792,11 @@ function dlgPageAdopt(root, panel, page){
     if(ro&&side!==seen){ if(seen) ro.unobserve(seen); if(side) ro.observe(side); seen=side; }
     if(side&&side.getClientRects().length&&getComputedStyle(side).visibility!=='hidden'){ const sr=side.getBoundingClientRect(); const vw=window.innerWidth||0;
       if(sr.left>r.left+DLG_PAGE_BESIDE_MIN && sr.right>=vw-DLG_PAGE_BESIDE_EDGE) right=Math.max(0,Math.round(vw-sr.left)); }
-    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:${right}px;bottom:0;z-index:70;display:flex;`;
+    /* THE BODY'S SCROLLBAR, MEASURED (owner, 26 Oct 2026: the Deal's lower card stopped short of the head's right
+       edge by the scrollbar's width): the head stands outside the scroller, so it is told the gutter the body
+       lost (--dlg-sbw) and a page that floats its head beside its body gives the head that much more room */
+    const bd=panel.querySelector('.dlg-pg-body'); const sbw=bd?Math.max(0,bd.offsetWidth-bd.clientWidth):0;
+    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:${right}px;bottom:0;z-index:70;display:flex;--dlg-sbw:${sbw}px;`;
   };
   if(page.beside&&typeof ResizeObserver==='function'){ ro=new ResizeObserver(()=>place()); const cs=document.getElementById('content-scroll'); if(cs) ro.observe(cs); }
   place(); window.addEventListener('resize',place);
@@ -3824,6 +3828,8 @@ function dlgPageAdopt(root, panel, page){
   (page.acts||[]).forEach(id=>{ const b=body.querySelector('#'+CSS.escape(id)); if(b) acts.appendChild(b); });
   if(page.under){ const u=body.querySelector(page.under); if(u) head.querySelector('.dlg-pg-under').appendChild(u); }
   panel.appendChild(head); panel.appendChild(body);
+  /* measured again once the body stands (its scrollbar), and whenever its size changes */
+  place(); if(ro) ro.observe(body);
 }
 /* THE LADDER, NAMED (owner, 24 Oct 2026, "the top jambo is overlapped"): a PAGE and a side drawer stay at 70 —
    big work that blocks nothing, so the ✦'s window (AI_WIN_Z, js/ai.js) floats over them; a DIALOG carries its scrim
