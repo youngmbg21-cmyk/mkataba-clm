@@ -1094,12 +1094,19 @@ function cuBriefInner(k){
   const neg = (F.negotiated || []).slice(0, 3).map(n => `<li>${_cuE(i18t('cu_br_neg', { clause: n.clause, gave: n.gave, held: n.held }))}</li>`).join('');
   const facts = (F.facts || []).map(f => `<li><b>${_cuE(f.fact)}</b>: ${f.answers.map(a => `<span class="${a.risk ? 'cu-br-risk' : ''}">${_cuE(a.ref)} ${_cuE(a.answer)}</span>`).join(' · ')}</li>`).join('');
   const b = x.brief, busy = _cuBriefBusy === k;
-  const brief = b ? `<p class="cu-br-text">${_cuE(b.text)}</p>${b.unchecked && b.unchecked.length ? `<p class="ins-note cu-br-warn">${_cuE(i18t('cu_br_unchecked', { figs: b.unchecked.join(', ') }))}</p>` : ''}<p class="ins-note">${_cuE(i18t(b.unchecked && b.unchecked.length ? 'cu_br_kept_only' : 'cu_br_kept'))}</p>`
-    : may ? `<div class="ins-acts"><button type="button" class="ui-btn" data-cu-brief="${_cuE(k)}"${busy ? ' disabled' : ''}>${_cuE(i18t(busy ? 'cu_br_busy' : 'cu_br_write'))}</button></div><p class="ins-note">${_cuE(i18t(x.stale ? 'cu_br_cost_stale' : 'cu_br_cost'))}</p>`
+  /* HIS WORDS IN HIS CARD (the owner picked "Jambo's card", 26 Oct 2026): the
+     two minutes ran as a paragraph under a small grey heading and was missed.
+     The same builder as the approver's "In plain words" dresses it. */
+  const brief = b
+    ? jamboSayCardHtml({ who: i18t('cu_br_two_h'), attrs: ' data-cu-br-say',
+        html: `<p class="cu-br-text">${_cuE(b.text)}</p>`,
+        foot: `${b.unchecked && b.unchecked.length ? `<p class="cu-br-warn">${_cuE(i18t('cu_br_unchecked', { figs: b.unchecked.join(', ') }))}</p>` : ''}<p class="cu-br-note">${_cuE(i18t(b.unchecked && b.unchecked.length ? 'cu_br_kept_only' : 'cu_br_kept'))}</p>` })
+    : may ? jamboSayAskHtml({ attrs: ' data-cu-br-say', body: `<p>${_cuE(i18t('cu_br_none'))}</p>`,
+        foot: `<button type="button" class="ui-btn ui-btn-sm" data-cu-brief="${_cuE(k)}"${busy ? ' disabled' : ''}>${_cuE(i18t(busy ? 'cu_br_busy' : 'cu_br_write'))}</button><small>${_cuE(i18t(x.stale ? 'cu_br_cost_stale' : 'cu_br_cost'))}</small>` })
     : `<p class="ins-note">${_cuE(i18t('cu_br_viewer'))}</p>`;
   const body = `<div class="cu-br">${neg ? `<p class="cu-br-k">${_cuE(i18t('cu_br_neg_h'))}</p><ul class="cu-br-list">${neg}</ul>` : `<p class="ins-note">${_cuE(i18t('cu_br_neg_none'))}</p>`}
     ${facts ? `<p class="cu-br-k">${_cuE(i18t('cu_br_facts_h'))}</p><ul class="cu-br-list">${facts}</ul>` : ''}
-    <p class="cu-br-k">${_cuE(i18t('cu_br_two_h'))}</p>${brief}</div>`;
+    ${brief}</div>`;
   /* the section, heading and all, only once there is something counted to say */
   return (typeof insSecHtml === 'function') ? insSecHtml(i18t('cu_br_h'), '', body, 'cu-brief') : body;
 }

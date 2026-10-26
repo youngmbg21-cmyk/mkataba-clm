@@ -1055,3 +1055,34 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   }, true);
 }
 Object.assign(window,{jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+
+/* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
+   (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain
+   words" and the party's "The two minutes": "the output should be in a
+   highlighted area or card so they are not missed.") Both ran as plain
+   paragraphs under a small grey heading, in the same type as the facts around
+   them, and read as more of the same. They wear the ONE soft grey card every
+   answer of his already wears — 18px corners, 16px inside, no edge — with a
+   line on top saying it is Jambo's and what it was read from. It is the only
+   card on the panel, so the eye lands on it; the facts around it stay plain
+   rows, which is what makes it carry.
+   ONE BUILDER, BOTH HOSTS (the clothes follow the builder): the approver's
+   panel and the party's panel draw this and nothing of their own. */
+function jamboSayCardHtml(o = {}){
+  const E = (typeof esc === 'function') ? esc : (s => String(s == null ? '' : s));
+  const T = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
+  const who = o.who || T('jb_say_who');
+  const when = o.when ? `<span class="jb-say-when">${E(o.when)}</span>` : '';
+  const body = o.html || (o.text ? `<p>${E(o.text)}</p>` : '');
+  const foot = o.foot ? `<div class="jb-say-f">${o.foot}</div>` : '';
+  return `<div class="jb-say"${o.id ? ` id="${E(o.id)}"` : ''}${o.attrs || ''}>
+    <div class="jb-say-h"><b><span class="jb-say-i" aria-hidden="true">&#10022;</span>${E(who)}</b>${when}</div>
+    <div class="jb-say-b">${body}</div>${foot}</div>`;
+}
+/* the same card before his words exist: what it will cost, and the one press */
+function jamboSayAskHtml(o = {}){
+  const E = (typeof esc === 'function') ? esc : (s => String(s == null ? '' : s));
+  return `<div class="jb-say is-ask"${o.id ? ` id="${E(o.id)}"` : ''}${o.attrs || ''}>
+    <div class="jb-say-b">${o.body || ''}</div>${o.foot ? `<div class="jb-say-f">${o.foot}</div>` : ''}</div>`;
+}
+Object.assign(window, { jamboSayCardHtml, jamboSayAskHtml });

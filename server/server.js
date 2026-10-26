@@ -634,6 +634,13 @@ addColumnIfMissing('column_asks', 'rule', 'TEXT');
 addColumnIfMissing('column_asks', 'fact', 'INTEGER');
 addColumnIfMissing('column_asks', 'fact_by', 'TEXT');
 addColumnIfMissing('column_asks', 'fact_at', 'TEXT');
+/* ONLY WHAT YOU KEEP (owner, 26 Oct 2026: "over time the list becomes enormous
+   … save some so the saved ones are the only ones that appear"). A question is
+   KEPT when somebody presses Keep in Discover, and by itself when it is a
+   pack's or a company fact. Everything else is still answered and still free to
+   bring back — it just waits behind one folded line. */
+addColumnIfMissing('column_asks', 'kept', 'INTEGER');
+addColumnIfMissing('column_asks', 'kept_by', 'TEXT');
 /* How much this member may sign a contract for, in the workspace currency.
    TEXT rather than REAL because it carries THREE states and the third is the
    point: absent = nobody has decided, 'none' = decided, no limit, a number =
@@ -9510,7 +9517,13 @@ const colFlat = s => String(s || '').replace(/[‘’‚′]/g, "'").replace(/[�
   .replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
 function colAskOut(r) {
   return r ? { id: r.id, question: r.question, name: r.name, by: r.created_by_name || '', at: r.created_at, used: r.last_used_at,
-    rule: r.rule || '', fact: !!r.fact } : null;
+    rule: r.rule || '', fact: !!r.fact, kept: !!(r.kept || r.fact), keptBy: r.kept_by || '', askedBy: r.created_by || '' } : null;
+}
+/* WHO MAY TAKE A QUESTION OFF THE LIST, OR DELETE IT: the person who asked it,
+   the person who kept it, or an admin. Keeping takes nobody's permission. */
+function colMayUnkeep(req, r) {
+  const me = String(req.user.id);
+  return req.user.role === 'admin' || String(r.created_by || '') === me || String(r.kept_by || '') === me;
 }
 function colAnswerOut(r) {
   let a = {}; try { a = JSON.parse(r.json) || {}; } catch (_) {}
@@ -9567,7 +9580,13 @@ app.get('/api/columns', auth, (req, res) => {
    names, nothing read. The company's facts first, then the newest used. */
 app.get('/api/columns/summary', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
-  const asks = db.prepare('SELECT * FROM column_asks ORDER BY COALESCE(fact,0) DESC, last_used_at DESC LIMIT 20').all();
+  /* KEPT FIRST, AND BY DEFAULT ONLY KEPT (owner, 26 Oct 2026): Discover lists
+     what the team keeps. `all=1` is the folded line's own press — the rest,
+     each still free to bring back or to keep. `others` is how many that is. */
+  const all = String(req.query.all || '') === '1';
+  const where = all ? '' : 'WHERE COALESCE(kept,0)=1 OR COALESCE(fact,0)=1 ';
+  const asks = db.prepare(`SELECT * FROM column_asks ${where}ORDER BY COALESCE(fact,0) DESC, COALESCE(kept,0) DESC, last_used_at DESC LIMIT 40`).all();
+  const others = db.prepare('SELECT COUNT(*) AS n FROM column_asks WHERE COALESCE(kept,0)=0 AND COALESCE(fact,0)=0').get().n;
   const folders = new Map(db.prepare('SELECT id, folder FROM contracts').all().map(r => [r.id, r.folder]));
   const out = asks.map(a => {
     let read = 0, found = 0, risk = 0, last = '';
@@ -9581,7 +9600,35 @@ app.get('/api/columns/summary', auth, (req, res) => {
     }
     return { ...colAskOut(a), read, found, risk, last };
   });
-  res.json({ asks: out });
+  res.json({ asks: out, others });
+});
+
+/* KEEP IT, OR TAKE IT OFF THE LIST (owner, 26 Oct 2026). Keeping takes nobody's
+   permission — anyone who may ask a column may keep one. Taking it off is the
+   asker's, the keeper's or an admin's. A company fact is kept by being a fact:
+   switch the fact off first. */
+app.post('/api/columns/:askId/keep', auth, editor, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(req.params.askId));
+  if (!ask) return res.status(404).json({ error: 'That question is not kept any more' });
+  const on = !!(req.body || {}).kept;
+  if (!on && ask.fact) return res.status(400).json({ error: 'It is a company fact: switch the fact off first' });
+  if (!on && !colMayUnkeep(req, ask)) return res.status(403).json({ error: 'Only the person who kept this question, or an admin, may take it off the list' });
+  db.prepare('UPDATE column_asks SET kept=?, kept_by=? WHERE id=?').run(on ? 1 : 0, on ? String(req.user.id) : null, ask.id);
+  res.json({ ask: colAskOut(db.prepare('SELECT * FROM column_asks WHERE id=?').get(ask.id)) });
+});
+
+/* FORGET IT ALTOGETHER: the question and every answer kept under it. The
+   asker's or an admin's, never a company fact's (switch it off first), and
+   never undoable — the page asks before it presses. */
+app.delete('/api/columns/:askId', auth, editor, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(req.params.askId));
+  if (!ask) return res.json({ ok: true });
+  if (ask.fact) return res.status(400).json({ error: 'It is a company fact: switch the fact off first' });
+  if (!colMayUnkeep(req, ask)) return res.status(403).json({ error: 'Only the person who asked this question, or an admin, may delete it' });
+  const n = db.prepare('SELECT COUNT(*) AS n FROM column_answers WHERE ask_id=?').get(ask.id).n;
+  db.prepare('DELETE FROM column_answers WHERE ask_id=?').run(ask.id);
+  db.prepare('DELETE FROM column_asks WHERE id=?').run(ask.id);
+  res.json({ ok: true, deleted: { id: ask.id, name: ask.name, answers: n } });
 });
 
 /* What is already known, spending nothing: the kept answers to one question
@@ -9612,6 +9659,13 @@ app.post('/api/columns/answers', auth, (req, res) => {
    questions shared its read (`with`), so a column never claims a whole call. */
 const COLUMN_Q_MAX = 8;
 const COLUMN_VERDICTS = ['in', 'out'];
+/* A COLUMN ASKS ONE CONTRACT'S WORDING, NEVER THE BOOK (owner, 26 Oct 2026:
+   "why are the personal questions going to the company facts?"). A counting
+   question — how many contracts need my answer, which of these are signed — is
+   about the reader's work, not about what a contract says: Jambo's own box
+   answers it from the records, free, and it must never become a column kept
+   for the company. The wall is here; the browser's box turns them away too. */
+const COLUMN_PORTFOLIO_RE = /^\s*(how many\b|how much (of|do i|do we)\b|which (of|ones)\b|count\b|list\b|show me\b|who (has|have)\b)|\b(these|those|my|our|the) contracts\b/i;
 function colQuestionsOf(b) {
   const raw = Array.isArray(b.questions) ? b.questions : [{ question: b.question, name: b.name }];
   const out = [], seen = new Set();
@@ -9619,6 +9673,7 @@ function colQuestionsOf(b) {
     const question = String((x && x.question) || '').trim().replace(/\s+/g, ' ');
     if (question.length < 3) return { error: 'Type the question for the column' };
     if (question.length > 300) return { error: 'Keep the question under 300 characters' };
+    if (COLUMN_PORTFOLIO_RE.test(question)) return { error: 'That asks about your contracts, not about the wording of one. Ask Jambo in the box below and he answers it from your records, free.' };
     const k = colKey(question); if (seen.has(k)) continue; seen.add(k);
     const name = (String((x && x.name) || '').trim().replace(/\s+/g, ' ') || colNameOf(question)).slice(0, 40);
     out.push({ question, name, qkey: k });
@@ -9635,12 +9690,15 @@ function colNameOf(question) {
   const n = (w.length ? w : String(question).split(/\s+/)).slice(0, 4).join(' ');
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
-function colAskKeep(req, q, at) {
+function colAskKeep(req, q, at, keep) {
   let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
   if (ask) db.prepare('UPDATE column_asks SET name=?, last_used_at=? WHERE id=?').run(q.name, at, ask.id);
   else db.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
     .run('ca_' + crypto.randomBytes(8).toString('hex'), q.qkey, q.question, q.name, String(req.user.id), req.user.name || req.user.email || '', at, at);
-  return db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+  ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+  /* a PACK's question is the company's standard set, so it is kept by itself */
+  if (keep && !ask.kept) { db.prepare('UPDATE column_asks SET kept=1, kept_by=? WHERE id=?').run(String(req.user.id), ask.id); ask.kept = 1; }
+  return ask;
 }
 /* HOW A CELL IS READ (owner, 25 Oct 2026: "fix the eight misses" of the live
    Discover measure). Three ways the read went wrong, said as rules of reading,
@@ -9674,7 +9732,8 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   const ids = asked.slice(0, COLUMN_MAX);
   /* the team's questions, each kept once by its words; the newest name given wins */
   const at = now();
-  const asks = Q.list.map(q => colAskKeep(req, q, at));
+  const fromPack = !!db.prepare('SELECT id FROM column_packs WHERE id=?').get(String(b.pack || ''));
+  const asks = Q.list.map(q => colAskKeep(req, q, at, fromPack));
 
   const byAsk = Object.fromEntries(asks.map(a => [a.id, {}]));
   const failed = [], todo = [], texts = colTexts(b.texts);

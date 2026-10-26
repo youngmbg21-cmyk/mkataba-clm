@@ -33,7 +33,7 @@ describe('f889 (1) the first pack', () => {
   });
   test('1b asked as one press: one call per contract read, five answers each', async () => {
     h.ai.reset();
-    const r = await w.admin.json('/api/ai/column', { method: 'POST', body: { questions: pack.questions, ids: ALL, texts: TEXTS } });
+    const r = await w.admin.json('/api/ai/column', { method: 'POST', body: { questions: pack.questions, ids: ALL, texts: TEXTS, pack: pack.id } });
     assert.equal(r.asks.length, 5);
     const read = Object.values(r.byAsk[r.asks[0].id]).filter(a => !a.noWording).length;
     assert.equal(read, 4, 'all four read');
@@ -43,6 +43,8 @@ describe('f889 (1) the first pack', () => {
 });
 
 describe('f889 (2) the kept questions, counted, free', () => {
+  /* ONLY WHAT YOU KEEP (owner, 26 Oct 2026): the summary lists the kept
+     questions — a pack's are kept by being a pack's, so these are all here. */
   test('2a each pack question is counted: answered and last read, no call', async () => {
     h.ai.reset();
     const s = await w.admin.json('/api/columns/summary');
