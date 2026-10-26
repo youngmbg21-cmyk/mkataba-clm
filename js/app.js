@@ -69,9 +69,11 @@ import './adviserlink.js';   // send two clauses to an outside adviser: a fifth 
 import './mine.js';             // a person's own calendar events and private notes: one store, private to them (10 Oct 2026)
 import './jambopress.js';       // Jambo's Show me ›, the one prepared press under an answer, and his standing watches (21 Oct 2026)
 import './push.js';            // alerts on your phone: the switch's one reading and its presses (round 4 of Jambo's journey, 22 Oct 2026)
+import './handbook.js';        // THE HANDBOOK: the instruction book as data, one chapter per thing a person can do (owner, 26 Oct 2026)
 import './navmap.js';          // navigable by typing: the things inside the places, read and landed (22 Oct 2026)
 import './views/calendar.js';
 import './views/mynotes.js';
+import './views/handbook.js';     // the Handbook's page: the book drawn one part at a time, every door live (26 Oct 2026)
 import './views/breakdown.js';   // Home's Breakdown face: the whole contract in regions (11 Oct 2026)     // My notes: the private ledger (10 Oct 2026)
 import './views/reports.js';
 import './views/weekly.js';       // the weekly review: five slots, three sizes, no AI
@@ -323,7 +325,8 @@ function commandMeta(view){
     // is one name too many for a reader trying to describe where they were.
     case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
     case 'calendar':  return [i18t('nav_calendar'), ''];
-    case 'mynotes':   return [i18t('nav_mynotes'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
+    case 'mynotes':   return [i18t('nav_mynotes'), ''];
+    case 'handbook':  return [i18t('nav_handbook'), ''];   // THE HANDBOOK (owner, 26 Oct 2026)   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
     /* a member reads their own settings only, and the head says so (round 24
@@ -451,7 +454,7 @@ function pageActionHtml(kind){
    view, so the page title was the one row between the brain and the screen. */
 /* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026);
    'directory' the same since it became the wall of faces (13 Oct 2026). */
-const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory'];
+const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory', 'handbook'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -483,7 +486,7 @@ const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templ
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
 /* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) and 'templates' (Our paper) the same day, each scrolling inside its own page. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'agents'];
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'handbook', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -1335,6 +1338,7 @@ function setView(view){
     else if(view==='intel') renderIntel();
     else if(view==='calendar') renderCalendar();
     else if(view==='mynotes') renderMyNotes();
+    else if(view==='handbook') renderHandbook();
     else if(view==='reports') renderReports();
     else if(view==='register') renderRegister();
     else if(view==='migration') renderMigration();
@@ -1561,6 +1565,8 @@ const PLACE_PARTS={
      boxes and chosen note (round 20 as drawn, 19 Oct 2026) */
   intake:['ikPlace','ikPlacePut'],
   mynotes:['mnPlace','mnPlacePut'],
+  /* the Handbook keeps its part and chapter (26 Oct 2026) */
+  handbook:['hbkPlace','hbkPlacePut'],
   /* Import keeps its figure door, Show all, the chosen file and the check view (round 22, 18 Oct 2026) */
   migration:['migPlace','migPlacePut'],
   /* Approvals & signing keeps its tab, filters, words and sort (Part 8, 21 Oct 2026) */
@@ -3795,7 +3801,7 @@ function guideHereKey(){
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
     return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'ourpaper', redline:'negotiations', customers:'parties',
       directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', jambo:'house',
-      team:'settings', workspace:'document', doc:'document' })[v]||null;
+      team:'settings', workspace:'document', doc:'document', handbook:'handbook' })[v]||null;
   }catch(_){ return null; }
 }
 /* a page this reader cannot use is not listed (Import needs the right to add) */
@@ -3815,6 +3821,7 @@ function guidePanelHtml(){
     <ol class="gd-stages">${GUIDE_STAGES.map((st,i)=>{ const rows=st.rows.filter(guideRowShown); if(!rows.length) return '';
       return `<li class="gd-st"><span class="gd-n">${i+1}</span><div class="gd-sh">${esc(i18t('gd_s_'+st.k))}<small>${esc(i18t('gd_s_'+st.k+'_w'))}</small></div>
         <span class="gd-rail" aria-hidden="true"></span><div class="gd-rows">${rows.map(k=>guideRowHtml(k,here)).join('')}</div></li>`; }).join('')}</ol>
+    ${guideRowHtml('handbook',here,'is-foot')}
     ${guideRowHtml('settings',here,'is-foot')}
   </div>`;
 }

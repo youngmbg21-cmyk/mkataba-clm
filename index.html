@@ -9785,6 +9785,12 @@
   #ig-dock .ac-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   #ig-dock .ac-foot{justify-content:flex-end;border-top:1px solid var(--color-divider);padding-top:10px}
   #ig-dock .ac-chips{display:flex;flex-wrap:wrap;gap:4px 12px}
+  /* THE CLOTHES FOLLOW THE BUILDER: askcolumn.js draws .ac-chips on Settings'
+     Company facts page too, which is nowhere near #ig-dock — undressed there,
+     the links ran into one another ("Notice to endLiability cap…"). The same
+     declarations, unscoped; the dock's own rule carries more weight, so it still
+     wins wherever both apply. */
+  .ac-chips{display:flex;flex-wrap:wrap;gap:4px 12px}
   #ig-dock .ac-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left}
   #ig-dock .ac-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
   #ig-dock .ac-chip:focus-visible,#ig-dock .ac-link:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
@@ -9858,8 +9864,16 @@
   #ig-dock .ac-disc-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;border-top:1px solid var(--rule)}
   #ig-dock .ac-disc-row:last-of-type{border-bottom:1px solid var(--rule)}
   #ig-dock .ac-disc-go{display:grid;gap:2px;text-align:left;border:0;background:none;padding:8px 0;font:inherit;color:inherit;cursor:pointer;min-width:0}
-  #ig-dock .ac-disc-acts{display:flex;gap:10px;flex:none;opacity:0;transition:opacity .12s}
-  #ig-dock .ac-disc-row:hover .ac-disc-acts,#ig-dock .ac-disc-row:focus-within .ac-disc-acts{opacity:1}
+  #ig-dock .ac-disc-acts{display:flex;gap:10px;flex:none}
+  /* WHERE THE DEVICE HOVERS (the house rule the width grip already follows,
+     Round 1, 24 Oct 2026). On the owner's iPad there is no hover, so hiding
+     Keep and Delete until a pointer arrives left them unreachable: a tap on
+     the row brings the column instead. They simply stand there on a touch
+     screen — a dead button wearing a live one's clothes is a fault. */
+  @media (hover:hover){
+    #ig-dock .ac-disc-acts{opacity:0;transition:opacity .12s}
+    #ig-dock .ac-disc-row:hover .ac-disc-acts,#ig-dock .ac-disc-row:focus-within .ac-disc-acts{opacity:1}
+  }
   #ig-dock .ac-disc-act{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
   #ig-dock .ac-disc-act.is-del{color:var(--st-ruby-fg)}
   #ig-dock .ac-disc-row.is-loose .ac-disc-n b{font-weight:var(--w-body)}

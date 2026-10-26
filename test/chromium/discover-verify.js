@@ -23,7 +23,7 @@
      3c "Due diligence · 5 questions" opens the pack in the same form: its five
         questions, the cost (one read per contract, against five apart)
      3d asked: one call per contract read, not five; three columns stand on
-        the list, the card offers "See all 5 answers"
+        the list, every card offers the door to the full report
      3e that opens the whole table as a page: five answer columns, Copy the
         table at the top; Back to the list closes it
    STAGE 4 — THE COMPANY'S FACTS
@@ -179,6 +179,23 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const acts = await page.evaluate(() => { const r = [...document.querySelectorAll('#ig-dock .ac-disc-row')].find(x => /Governing law/.test(x.innerText));
         return r ? { keep: !!r.querySelector('[data-ac-keep]'), del: !!r.querySelector('[data-ac-del]') } : null; });
       check('3a‴ the folded line opens them, each with Keep and Delete', shown && acts && acts.keep && acts.del, JSON.stringify(acts));
+      /* ON A SCREEN THAT CANNOT HOVER THEY SIMPLY STAND THERE (the owner's
+         iPad). Keep and Delete rest until the pointer arrives, which on a
+         finger-only screen never happens — so the quiet is kept behind
+         (hover:hover), the house pattern the width grip already follows.
+         Read off the live stylesheet, not the file: a rule moved out of its
+         media block is the fault, wherever the bytes end up. */
+      const hv = await page.evaluate(() => {
+        for (const sh of document.styleSheets){
+          let rules; try { rules = sh.cssRules; } catch (_) { continue; }
+          for (const r of rules || []){
+            if (!r.cssRules || !/hover\s*:\s*hover/.test(r.conditionText || '')) continue;
+            for (const k of r.cssRules) if (/\.ac-disc-acts/.test(k.selectorText || '') && /opacity:\s*0/.test(k.style.cssText || '')) return true;
+          }
+        }
+        return false;
+      });
+      check('3a⁗ on a screen that cannot hover, Keep and Delete simply stand there', hv);
       await page.click('#ig-dock [data-ac-disc-all="0"]');
       await until(page, () => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
       const c0 = h.ai.calls.length;
@@ -189,6 +206,23 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const up = await until(page, () => [...document.querySelectorAll('.reg-table thead th')].some(th => /Liability cap/.test(th.textContent)) && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 10);
       check('3b a press brings its column onto the list, no call', up && h.ai.calls.length === c0,
         JSON.stringify({ calls: h.ai.calls.length - c0, cells: await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length), heads: await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.trim())) }));
+      /* THE DOOR TO THE FULL REPORT IS ON EVERY COLUMN (owner, 26 Oct 2026:
+         "when you have 3 columns or company facts that you run … you do not
+         get the full report … They should all have the door to the full
+         report"). Here one column stands on the list and no pack was run:
+         red at the parent, where the door only appeared after a pack's read. */
+      const door = await until(page, () => !!document.querySelector('#ig-dock [data-ac-col] [data-ac-table]'));
+      check('3b′ a column asked on its own carries the door to the full report', door,
+        await page.evaluate(() => ((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '(no card)').replace(/\s+/g, ' ').slice(0, 220)));
+      await page.click('#ig-dock [data-ac-col] [data-ac-table]');
+      const solo = await until(page, () => !!document.querySelector('#ac-table-page .ac-tt-table'));
+      const soloCols = await page.evaluate(() => ({
+        cols: document.querySelectorAll('#ac-table-page thead th').length,
+        head: [...document.querySelectorAll('#ac-table-page thead th')].map(t => t.textContent.trim()).join(' | '),
+        rows: document.querySelectorAll('#ac-table-page tbody tr').length }));
+      check('3b″ it opens over the column in play, every contract under it', solo && soloCols.cols === 2 && /Liability cap/.test(soloCols.head) && soloCols.rows >= 10, JSON.stringify(soloCols));
+      await page.click('#ac-tt-back');
+      await until(page, () => !document.querySelector('#ac-table-page'));
       await page.click('#ig-dock [data-ac-pack]');
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
       const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
@@ -209,7 +243,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const three = await until(page, () => document.querySelectorAll('.reg-table thead th.ac-th').length === 3 && !!document.querySelector('#ig-dock [data-ac-table]'), null, 20000);
       const spent = h.ai.calls.length - c1;
       const heads = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th.ac-th')].map(th => th.textContent.trim()));
-      check('3d asked: one call per contract read (11), three columns stand, "See all 5 answers" offered', three && spent <= 11 && heads.length === 3, JSON.stringify({ spent, heads }));
+      check('3d asked: one call per contract read (11), three columns stand, the full report offered', three && spent <= 11 && heads.length === 3, JSON.stringify({ spent, heads }));
       await page.click('#ig-dock [data-ac-table]');
       const pg = await until(page, () => !!document.querySelector('#ac-table-page'));
       const tt = await page.evaluate(() => {
@@ -265,19 +299,32 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const pt = await page.evaluate(() => (document.querySelector('#fa-panel') || {}).innerText || '');
       const sw = await page.evaluate(id => { const b = document.querySelector(`[data-fa-tog="${id}"]`); return b ? b.getAttribute('aria-pressed') : null; }, lk.ask.id);
       check('4b Settings › Company facts lists the kept questions, rules and switches, and the cost per arrival', panel && /Our rule/.test(pt) && sw === 'true' && /every contract that arrives costs about 1 Jambo call/.test(pt), pt.replace(/\s+/g, ' ').slice(0, 300));
-      /* FACTS ONLY (owner, 26 Oct 2026: "why are the personal questions going
-         to the company facts? These should not be there"). The page lists the
-         facts that are ON and nothing else; a fact is added from the kept
-         questions, which are questions of the WORDING by the time they are
-         here — a counting question never becomes a column at all (4f, 4g). */
-      const only = await page.evaluate(() => {
+      /* EVERY KEPT QUESTION STANDS HERE, EACH WITH ITS SWITCH (owner, 26 Oct
+         2026: "you are hiding the 5 company facts which were there before …
+         They should be there and you can toggle them on or off and also add
+         new ones if you would like"). This REVERSES the facts-only page of
+         earlier the same day: that one listed a question only once it was
+         already on, so the page read as empty with nothing to press. What the
+         page must never list is a counting question — and it cannot, because
+         one never becomes a column at all (4f, 4g), which is the owner's
+         note 5 of 26 Oct still holding. */
+      const only = await page.evaluate(ids => {
         const t = document.querySelector('#fa-panel');
+        const tog = id => { const b = t && t.querySelector(`[data-fa-tog="${id}"]`); return b ? b.getAttribute('aria-pressed') : null; };
         return { rows: t ? t.querySelectorAll('tbody tr').length : -1, tog: t ? t.querySelectorAll('[data-fa-tog]').length : -1,
-          add: t ? t.querySelectorAll('[data-fa-add]').length : -1, txt: t ? t.innerText.replace(/\s+/g, ' ') : '' };
-      });
-      check('4b′ only the facts that are on are listed; the rest are offered under "Add a fact"',
-        only.rows === 1 && only.tog === 1 && only.add >= 1 && /Add a fact/.test(only.txt)
-        && /Notice to end/.test(only.txt.split('Add a fact')[1] || '') && !/Notice to end/.test(only.txt.split('Add a fact')[0]), JSON.stringify(only));
+          onSw: tog(ids.on), offSw: tog(ids.off), go: t ? t.querySelectorAll('[data-fa-go]').length : -1,
+          txt: t ? t.innerText.replace(/\s+/g, ' ') : '' };
+      }, { on: lk.ask.id, off: nk.ask.id });
+      /* HOW MANY kept questions there are depends on which stages ran before
+         this one (stage 3 keeps a pack's five), so the check is on the RULE,
+         not on a number: every kept question has a row and a switch, and the
+         two this stage knows about are switched the way it left them. */
+      check('4b′ every kept question stands on the page, the one that is on switched on and the other off',
+        only.rows >= 2 && only.tog === only.rows && only.onSw === 'true' && only.offSw === 'false'
+        && /Governing law/.test(only.txt) && /Notice to end/.test(only.txt)
+        && /Read on arrival/.test(only.txt), JSON.stringify(only));
+      check('4b″ a new one is added through the one door, the Contracts list — no second way in',
+        only.go === 1 && /Add a fact/.test(only.txt) && /kept in Discover/.test(only.txt), JSON.stringify(only));
       await page.screenshot({ path: path.join(OUT, '4-settings.png') });
       /* 4c a rule */
       await page.fill(`[data-fa-rule="${lk.ask.id}"]`, 'Kenya');

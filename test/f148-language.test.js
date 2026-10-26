@@ -41,6 +41,8 @@ const SAME_IN_BOTH = new Set([ 'fa_kt_where', 'cmp_row_status', 'bs_rd_risks_one
   'jb_say_who',
   /* the list head's "+ Filter" (21 Oct 2026, js/views/listhead.js): the word is the same in Swedish */
   'lh_add',
+  /* the Handbook's door chip to Webhooks (26 Oct 2026): the word is the same in Swedish */
+  'hbk_d_webhooks',
   /* the Checklist (22 Oct 2026): "4 named · 4 steps" joins two counted words; "PDF" is PDF in both */
   'og_sg_named', 'dos_as_pdf',
   /* a counter that keeps one of their words (18 Oct 2026): one place is just the word itself */

@@ -23,22 +23,30 @@ const input = (g, el, v) => { el.value = v; el.dispatchEvent(new g.win.Event('in
 describe('f788 (1) the panel\'s head', () => {
   /* RE-PINNED (owner, 24 Oct 2026: "settings has no information either"): ONE WINDOW — the panel holds only his
      words on every face but a stream chosen on Streams, so its head draws no Overview / Jambo tabs and no word */
-  test('1a one window: no tabs and no word on every face of his words; a stream chosen brings both back', () => {
+  /* REVERSED (owner, 26 Oct 2026, of every page: "if a link is on the first
+     page and a user will need to access it, they should not scroll up the
+     jambo to find this link"). Settings' landing is not only his words: it
+     carries "N things need you here" with a link per row, and the owner showed
+     the screen with those links and one Jambo tab. What decides is what the
+     landing HOLDS: something to press means the two tabs this panel already
+     draws, nothing to press means his one window. */
+  test('1a the landing decides: something to press brings the two tabs and the word', () => {
     const g = settingsStage({ role: 'legal' });
-    assert.deepEqual(g.qa('#st-side-head .st-side-tab').map(t => g.text(t)), ['Jambo'], 'his one tab, no Overview');
-    assert.equal(g.$('st-side-word'), null, 'no word');
+    assert.deepEqual(g.qa('#st-side-head .st-side-tab').map(t => g.text(t).replace(/[^\p{L} ]/gu, '').trim()), ['Overview', 'Jambo'], 'its own tab beside his');
     const a = settingsStage();
-    assert.equal(a.$('st-side-word'), null, 'an admin on You');
+    assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]'), 'an admin on You: both tabs');
     a.sb.settingsGoTab('company');
-    assert.equal(a.$('st-side-word'), null, 'Company');
+    assert.ok(a.$('st-side-word'), 'Company: the page named beside them');
     a.sb.settingsGoPage('streams');
-    assert.equal(a.$('st-side-word'), null, 'Streams, none chosen');
     a.click(a.q('#set-page .st-sw-row[data-st-sw-pick]'));
     assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]') && a.$('st-side-word'), 'a stream chosen: its facts, so the two tabs and the word');
+    /* and the rule still has its other half: a landing with nothing to press is his one window */
+    assert.equal(typeof a.sb.stLandHasLinks, 'function', 'the landing is read, not the page guessed');
   });
   test('1b the fold: to the right edge, his face brings him back; a refresh keeps it', () => {
     const g = settingsStage();
-    assert.equal(g.qa('#st-side-head .st-side-tab').length, 1, 'one window: his one tab');
+    /* the two tabs now (26 Oct 2026, 1a): the fold is the same control either way */
+    assert.equal(g.qa('#st-side-head .st-side-tab').length, 2, 'its own tab beside his');
     g.click(g.q('#st-side-head [data-st-side-fold]'));
     assert.ok(g.$('set-page').classList.contains('is-side-folded') && g.$('st-side').classList.contains('is-folded'));
     assert.equal(g.sb.settingsPlace().fold, true, 'kept for a refresh');
@@ -84,8 +92,10 @@ describe('f788 (2) the Menu, and "/"', () => {
   test('2c′ the landing carries Open the Menu first, with the count, on You and on Company; it opens the Menu', () => {
     for (const role of ['legal', 'admin']) {
       const g = settingsStage({ role });
-      const land = g.q('#st-jb-feed [data-st-jb-land]');
-      const door = land && land.querySelector('[data-st-jb-menu-door]');
+      /* the landing stands bare in the feed when it holds something to press (main, 26 Oct 2026: stLandHasLinks),
+         wrapped under his greeting when it does not — the door is found either way */
+      const feed = g.$('st-jb-feed');
+      const door = feed && feed.querySelector('[data-st-jb-menu-door]');
       assert.ok(door, role + ': the door is on the landing');
       const before = door.previousElementSibling;
       assert.ok(!before || before.matches('.jb-hello'), role + ': first thing after his greeting, nothing else above it');

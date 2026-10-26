@@ -213,17 +213,21 @@ const check = (name, pass, detail) => {
       check('4f pressed again, back to the row\'s panel', !!L4);
     });
 
-    /* ---- 5 Settings — RE-PINNED (owner, 24 Oct 2026, ONE WINDOW: "settings has no information either"): his
-       words lead the conversation, a question is answered under them, no tabs, no trail, nothing turned ---- */
+    /* ---- 5 Settings — REVERSED (owner, 26 Oct 2026, of every page: "if a link
+       is on the first page and a user will need to access it, they should not
+       scroll up the jambo to find this link"). Settings' landing carries "N
+       things need you here" with a link per row, so the page keeps its own tab
+       beside his: a question goes to HIS view, the page's stands aside, and the
+       trail names the way back. What decides is what the landing HOLDS. ---- */
     await part('5', async () => {
       await page.evaluate(() => setView('team'));
       await until(() => document.getElementById('st-jb-q') && document.querySelector('#st-jb-feed > *'), null, 8000);
       const S0 = await page.evaluate(() => ({ trail: !document.getElementById('st-jb-trail').hidden, tabs: document.querySelectorAll('#st-side-head .st-side-tab').length }));
-      check('5a Settings is one window: his one tab, no trail', !S0.trail && S0.tabs === 1, JSON.stringify(S0));
+      check('5a Settings keeps its own tab beside his, no trail until the talk is up', !S0.trail && S0.tabs === 2, JSON.stringify(S0));
       await ask('#st-jb-q', 'what is a sealed PDF?');
       const S1 = await until(() => { const T = document.querySelector('#st-jb-feed [data-st-jb-talk]'), L = document.querySelector('#st-jb-feed [data-st-jb-land]');
         return T && !T.hidden && /sealed PDF/.test(T.textContent) ? { land: !!L && !L.hidden, trail: !document.getElementById('st-jb-trail').hidden } : null; }, null, 6000);
-      check('5b a question is answered under his words, nothing turned, no trail', !!S1 && S1.land && !S1.trail, JSON.stringify(S1));
+      check('5b a question goes to his view, the page\'s stands aside, the trail names the way back', !!S1 && !S1.land && S1.trail, JSON.stringify(S1));
     });
 
     /* ---- 6 the Calendar — RE-PINNED (ONE WINDOW): Your week, then what was asked and the answer ---- */
