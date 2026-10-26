@@ -34663,3 +34663,30 @@ THE THREE SCREENS: photographed at 1440×780, 1536×730 and 1366×950, including
 ones (the Ledger, and the reading line with Stop); every screen fits, nothing spills.
 GREEN: lint 0 errors · f893 26/26 · f887–f892 re-run · discover-verify 54/54 ·
 ask-a-column-verify 28/28 · tidy sweep 40/40 on the four pages touched.
+
+## THE HANDBOOK — HOW TO DO EACH THING (owner, 26 Oct 2026)
+The owner: "i want to create a page with a link in the guide page that shows instructions similar to the
+information in this artifact [the Discover user guide] … the same exact instructions format and include other
+processes that you deem critical. This guide page should also be in subsections so it is easy to follow. Create a
+proposal first" — then "Also, there should be a rule that whenever the platform changes or new features added,
+the guide instruction book is updated accordingly." The proposal (docs/PLAN-the-handbook.md) offered the name,
+the round-1 set, pictures first or after, the rule's wording and Swedish in the same change; the owner picked
+"Handbook, the 20 chapters, pictures after, Swedish same change — push it", then "build all the rounds".
+BUILT, all four rounds in one change: js/handbook.js is the book (43 chapters in the Guide's eight parts, Getting
+around first and Settings & rules last, every text {en, sv}); a chapter quotes a button as `{ui:key}` and a door as
+`{door:key}`, so a renamed label follows and a retired one fails f937. The page (js/views/handbook.js) draws one
+part at a time: the contents down the left, the part's "Which one do I need?" table (You want to… · Use · Where ·
+Cost), a row of chips, then the chapters in the Discover guide's exact format; a door chip moves through Jambo's
+one mover and is greyed with why when the reader may not use it (a contract's face with no contract open, an
+admin's page); Jambo's panel beside it with his box at the foot (ONE WINDOW, only his words). Doors in: the
+Guide's row above Settings (f841's "Settings at the foot" kept), the word "handbook" and its everyday words in
+CA_PLACES, "/", the help card's last line, and `navReadHandbook` — LAST in navRead's chain and in its Board branch —
+for "how do I …" (hbkFind on the chapter's everyday words, no AI; a contract named or a task of Jambo's map steps
+aside). Pictures: each chapter carries a recipe (go · boxes · cap) that handbook-verify runs on the seeded nav
+world, drawing the red boxes from the elements' own rects; `HANDBOOK_SHOTS=1` writes handbook/img/<k>.png, served
+at /handbook; a chapter with none says why (their page, the handover). THE RULE is 9d in CLAUDE.md with f937 as
+its net; what a machine cannot check (whether the sentences still tell the truth) is the rule itself, plus the
+foot's "last checked" day. Reversed nothing. Noticed on the way: a how-to question asked on the Board never left
+the Board's branch (every "how do I" fell to the chat), which is why navReadHandbook sits in that branch too.
+CLAUDE.md grew to 84 KB with the rule and the MAP line (the limit is "about 80 KB"): said to the owner, not
+trimmed without their yes.

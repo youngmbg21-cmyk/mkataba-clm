@@ -220,3 +220,24 @@ The questions as they were asked:
   check.
 - **Round 4** — "how do I…" asked of Jambo lands on the chapter (through `hatiSearch` and `navRead`), no AI.
 - **Later, if wanted** — the Handbook on the phone.
+
+## 11. Built (26 Oct 2026, all four rounds in one change; the owner: "build all the rounds")
+
+- **The book**: js/handbook.js, 43 chapters in the eight parts (Part 0 Getting around, the Guide's six stages,
+  Settings & rules), every text in both languages; a button quoted as `{ui:key}`, a door as `{door:key}`.
+  Discover's eleven artifact chapters are carried as one chapter (5.5) so the part stays one screen.
+- **The page**: js/views/handbook.js; the contents down the left, one part at a time, the "Which one do I need?"
+  table, chips, the chapters in the exact format, Jambo's panel beside with his box. Place kept on refresh.
+- **The doors**: the Guide's row above Settings & rules; the word "handbook" (and instructions, user guide,
+  manual, handbok, instruktioner); "/"; the help card's last line; "how do I …" from any box (round 4), with
+  no AI.
+- **The pictures** (round 3): 41 taken by `HANDBOOK_SHOTS=1 node test/chromium/handbook-verify.js` on the
+  seeded world, red boxes drawn from the elements' own positions, under handbook/img; two chapters say why
+  they have none (their page, the handover). The three-screen photos: docs/review-shots/handbook-*.png.
+- **The rule**: 9d in CLAUDE.md; f937 and handbook-verify enforce what a machine can; the foot's "last checked"
+  day (`HANDBOOK_CHECKED`) carries the rest.
+- **Left out, said plainly**: the phone (the Guide tab is not on the phone either); the optional date-against-git
+  check the owner did not ask for.
+- **Noticed on the way**: on the Board a "how do I …" never left the Board's branch of the typed-navigation
+  reader (it fell to the chat); the Handbook's reader now sits in that branch too. CLAUDE.md grew to 84 KB with
+  the rule and the MAP line, past the "about 80 KB" mark: a trim needs the owner's yes.
