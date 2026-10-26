@@ -9785,6 +9785,12 @@
   #ig-dock .ac-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   #ig-dock .ac-foot{justify-content:flex-end;border-top:1px solid var(--color-divider);padding-top:10px}
   #ig-dock .ac-chips{display:flex;flex-wrap:wrap;gap:4px 12px}
+  /* THE CLOTHES FOLLOW THE BUILDER: askcolumn.js draws .ac-chips on Settings'
+     Company facts page too, which is nowhere near #ig-dock — undressed there,
+     the links ran into one another ("Notice to endLiability cap…"). The same
+     declarations, unscoped; the dock's own rule carries more weight, so it still
+     wins wherever both apply. */
+  .ac-chips{display:flex;flex-wrap:wrap;gap:4px 12px}
   #ig-dock .ac-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left}
   #ig-dock .ac-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
   #ig-dock .ac-chip:focus-visible,#ig-dock .ac-link:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}

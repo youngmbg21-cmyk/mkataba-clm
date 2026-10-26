@@ -21626,3 +21626,31 @@ Measured with a finger at 1366x950 and with a mouse at 1440x780: opacity 0 at
 the parent (0bb28af), 1 now; the press lands, the row stays inside the panel,
 each link on one line. Permanent check: discover-verify 3a-4 reads the live
 stylesheet, so the rule cannot quietly leave its media block.
+
+## The Company facts page, and the door to the full report (26 Oct 2026)
+
+Two of the owner's notes, both reversing something built the same day.
+
+1. Making the Company facts page "facts only" left it empty: it listed a
+   question only once that question was already switched on, so a workspace
+   with five kept questions and none on showed "No fact is on yet" and five
+   run-together links. The page now lists every question the team keeps, each
+   with a switch saying whether it is read on every contract that arrives. The
+   switch column is named for what it does ("Read on arrival"), and a new
+   question joins through the one door it already had: the Contracts list.
+   The links ran together because .ac-chips was dressed only inside #ig-dock
+   and the page is in Settings — the clothes now follow the builder.
+
+2. The door to the full report only appeared after a pack's read. Columns
+   asked one at a time had no door at all. Every column's card now carries it,
+   over the pack's run where there is one and otherwise over the columns
+   standing on the list. One word for the one door: "See the full report".
+
+Measured at the owner's three screens. discover-verify 3b'-3b" and 4b'-4b"
+are red at the parent (6e9fbd2).
+
+## Noticed, not fixed
+
+- The rule box on the Company facts page clips its own placeholder at the
+  owner's narrower screens; a text field truncating its placeholder is
+  ordinary, so it was left alone.
