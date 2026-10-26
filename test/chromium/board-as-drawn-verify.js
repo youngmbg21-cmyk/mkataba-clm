@@ -150,7 +150,11 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
 
     console.log('\n5 · Jambo on the Board');
     const jb = await until(() => { const dock = document.getElementById('ig-dock'); if (!dock) return null;
-      const bubs = [...dock.querySelectorAll('#igd-feed .hb-jb-hello')]; if (bubs.length < 2) return null;
+      /* PINNED ABOVE THE TALK, NOT INSIDE IT (owner, 26 Oct 2026): his greeting
+         carries the book's count and the chips that open it, so it stands in
+         .pd-jb-pin outside #igd-feed and a long conversation cannot push it
+         out of reach. Same two bubbles, same words — a different host. */
+      const bubs = [...dock.querySelectorAll('.pd-jb-pin .hb-jb-hello')]; if (bubs.length < 2) return null;
       return { word: (dock.querySelector('.igd-head-w') || {}).textContent || '', hello: bubs[0].querySelector('.ai-bub').textContent.trim(),
         chips: [...bubs[0].querySelectorAll('[data-igsug]')].map(b => b.textContent.trim()), where: bubs[1].querySelector('.ai-bub').textContent.trim(),
         chip2: [...bubs[1].querySelectorAll('[data-igsug]')].map(b => b.textContent.trim()), n: counterNeedsCount(),

@@ -82,7 +82,19 @@ function pdSolo(){
     if (pdOnPaper() || pdFaceUp() || pdSendHeld() || pdHeldContract()) return false;
     if (typeof naSheetUp === 'function' && naSheetUp()) return false;
     if (typeof document !== 'undefined' && document.getElementById('na-root')) return false;
-    if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true && typeof askColPanelHtml === 'function' && askColPanelHtml()) return false;
+    /* THE PAGE'S OWN WORK IS NEVER INSIDE THE CONVERSATION (owner, 26 Oct 2026:
+       "if a link is on the first page and a user will need to access it, they
+       should not scroll up the jambo to find this link"; they named the Dossier
+       as the pattern that is already right and the Contracts list as the one
+       that is wrong). Beside the Contracts list the panel carries the wall and
+       Discover — the kept questions, their counts and Ask a new question — and
+       as his answers piled up underneath, those scrolled out of reach. So the
+       whole Paper face keeps the two tabs: the page's own under Overview, his
+       conversation under Jambo, one press apart. This REPLACES the narrower
+       test of 25 Oct, which broke the one window only while a column's form
+       was open. Explorer's panel draws no landing at all and the Board's is
+       his own greeting, so both are still his one window. */
+    if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true) return false;
     return true;
   } catch (_){ return false; }
 }
@@ -5751,7 +5763,9 @@ function pdJamboTopHtml(){
   if (typeof naSheetUp === 'function' && naSheetUp() && !pdOnPaper()) return pdWallHelloHtml();
   /* ON THE BOARD: his greeting says the book and where the owed work went
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
-  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
+  /* the Board's greeting is PINNED above the conversation now (pdJamboPinHtml),
+     so it is not drawn here as well; Explorer's landing is empty either way */
+  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return pdJamboPinHtml() ? '' : ((typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '');
   const c = pdContract();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
      Contracts list his panel holds the question, then the answers' why */
@@ -5770,7 +5784,24 @@ function pdJamboTopHtml(){
    scroll under it. Its host is drawn even empty, so a repaint has a home. */
 function pdJamboPinHtml(){
   /* THE DOSSIER CARRIES STILL OWED (owner, 20 Oct 2026): nothing is pinned above it */
-  return '';
+  /* THE BOARD'S GREETING IS PINNED, NOT SCROLLED (owner, 26 Oct 2026: "those
+     details should always be visible and not bumped off screen for the jambo
+     history"). The Board's panel is his one window — its landing is his own
+     greeting, which is why it keeps one tab rather than two — but that greeting
+     carries the book's count and the chips that open it, and his answers piling
+     up underneath pushed them out of reach. Pinned, they stand above the
+     scroller and the conversation runs under them. A panel with tabs needs none
+     of this: its work is on its own tab, a press away. */
+  try {
+    if (typeof pdSolo !== 'function' || !pdSolo()) return '';
+    if (typeof hbBoardHelloOn !== 'function' || !hbBoardHelloOn()) return '';
+    const book = (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
+    if (!book) return '';
+    /* his own greeting still comes first (owner, 24 Oct 2026: "bring them
+       back") — it is pinned WITH the book's words, not left behind in the feed */
+    const hello = (typeof jamboHelloHtml === 'function') ? jamboHelloHtml() : '';
+    return `<div class="pd-jb-pin">${hello}${book}</div>`;
+  } catch (_){ return ''; }
 }
 /* the presses, delegated once: the panel is redrawn under them */
 if (typeof document !== 'undefined' && !document._pdJamboTopWired){

@@ -21654,3 +21654,34 @@ are red at the parent (6e9fbd2).
 - The rule box on the Company facts page clips its own placeholder at the
   owner's narrower screens; a text field truncating its placeholder is
   ordinary, so it was left alone.
+
+## The page's own work is never inside the conversation (26 Oct 2026)
+
+The owner, of every page: "if a link is on the first page and a user will need
+to access it, they should not scroll up the jambo to find this link." They
+named the Dossier as the pattern that was already right — its work sits under
+its own tabs and Jambo's talk under his — and the Contracts list as the one
+that was wrong.
+
+Beside the Contracts list the panel was drawn as Jambo's one window, so
+Discover, the kept questions and Ask a new question lived inside the chat's own
+scroller. Measured: after nine exchanges those links sat 433px above the top of
+the panel, out of reach without scrolling the conversation back. The whole
+Paper face now keeps two tabs, the Dossier's pattern.
+
+The Board's panel carries only Jambo's own words, so it keeps his one window —
+but his greeting carries the book's count and the chips that open it, and those
+were 542px out of reach for the same reason. They are now pinned above the
+scroller and the talk runs under them.
+
+A sweep holds every page in the platform to the rule rather than those two:
+test/chromium/jambo-panel-sweep-verify.js types six real questions into each
+panel's own box and then asks whether anything the landing offered has gone out
+of reach. This REVERSES the "one window" ruling of 24 Oct for panels that carry
+the page's work; it stands for panels that carry only his words.
+
+## Noticed, not fixed
+
+- Our standards and Import draw no ask box in their panel, so the panel sweep
+  skips both. The house rule is his box at every panel's foot; these two are
+  the exceptions and were left alone.

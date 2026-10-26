@@ -57,7 +57,15 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.getElementById('igd-input') && window.pdSolo && pdSolo());
     const A1 = await panelHead('#ig-dock');
     A1.hello = await page.evaluate(() => !!document.querySelector('#ig-dock [data-jb-hello]'));
-    check('A1 the Board: his one tab "Jambo" and his greeting first; no Overview, no word, no trail', one(A1) && A1.tabs.join() === 'Jambo' && A1.hello, JSON.stringify(A1));
+    /* THE GREETING IS PINNED, NOT FIRST IN THE SCROLL (owner, 26 Oct 2026:
+       "they should not scroll up the jambo to find this link"). It carries the
+       book's count and the chips that open it, so it now stands above the
+       conversation instead of at the top of it. The one tab is unchanged. */
+    A1.pin = await page.evaluate(() => { const p = document.querySelector('#ig-dock .pd-jb-pin');
+      const f = document.querySelector('#ig-dock #igd-feed');
+      return { up: !!p, hello: !!(p && p.querySelector('[data-jb-hello]')), outside: !!(p && f && !f.contains(p)) }; });
+    check('A1 the Board: his one tab "Jambo", his greeting pinned above the talk, no Overview, no word, no trail',
+      one(A1) && A1.tabs.join() === 'Jambo' && A1.pin.up && A1.pin.hello && A1.pin.outside, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
     await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');
     const A2 = await until(() => { const d = document.getElementById('ig-dock'); return !intel.busy && d && /Two things want you this week/.test(d.innerText) && /Here is your book/.test(d.innerText) ? true : null; }, null, 10000);
@@ -72,9 +80,16 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     check('A3 Explorer: "Jambo" beside its own Findings · Guide, no Overview, no word', !!A3 && A3.tabs[0] === 'Jambo' && !A3.tabs.some(t => /Overview/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
 
     await page.evaluate(() => setView('register'));
-    await until(() => window.pdSolo && pdSolo() && !!document.getElementById('igd-input'));
+    await until(() => !window.pdSolo() && !!document.getElementById('igd-input'));
     const A4 = await panelHead('#ig-dock');
-    check('A4 the Contracts place, nothing chosen: no tabs, no word', one(A4) && A4.tabs.join() === 'Jambo', JSON.stringify(A4));
+    /* THE CONTRACTS PLACE KEEPS TWO TABS (owner, 26 Oct 2026, REVERSING "no
+       tabs" of 24 Oct: "image 2 in the contracts page … has information on the
+       side panel like discovery and other that is important to always be in
+       view therefore it warrants a second panel for jambo"). Its panel carries
+       the wall and Discover — the page's own work, not his words — so it wears
+       the Dossier's pattern: the page's tab and his, one press apart. */
+    check('A4 the Contracts place: the page\'s own tab and Jambo\'s, so Discover is never inside the talk',
+      !!A4 && A4.tabs.length === 2 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.tabs.some(t => /Jambo/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
     await until(() => !!document.querySelector('#ins-panel.is-solo [data-jl-greet] [data-jl-words]'));
@@ -105,6 +120,64 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.querySelector('#ins-panel [data-jl-home]'));
     const A10 = await panelHead('#ins-panel');
     check('A10 Our standards, a standard chosen, keeps Overview and Jambo (information)', !!A10 && A10.tabs.some(t => /Overview/.test(t)) && A10.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A10));
+
+    /* ==== A11 THE RULE ITSELF (owner, 26 Oct 2026) ====
+       "if a link is on the first page and a user will need to access it, they
+       should not scroll up the jambo to find this link." So fill the
+       conversation and look: inside the scroller the talk grows in, nothing a
+       reader must press may sit above the turns. A panel with tabs keeps its
+       work on its own tab and a one-window panel pins it, so on both the
+       answer is the same — and on neither does the page's work scroll away.
+       Red at the parent (e1c9687) on the Board and the Contracts place. */
+    const fillTalk = () => page.evaluate(() => {
+      window.intel.history = [];
+      for (let i = 1; i <= 9; i++){
+        window.intel.history.push({ role: 'user', text: 'what is our exposure in stream ' + i + '?' });
+        window.intel.history.push({ role: 'assistant', text: 'Stream ' + i + ' carries KES ' + (i * 37) + 'M across ' + (i + 3) + ' agreements, two of them with no cap at all.' });
+      }
+      window.renderIntelDock();
+    });
+    const aboveTalk = () => page.evaluate(() => {
+      const f = document.querySelector('#ig-dock #igd-feed'); if (!f) return { ok: false, why: 'no feed' };
+      const turns = f.querySelector('[data-jb-turns]');
+      if (!turns) return { ok: true, why: 'the talk is not in this scroller' };
+      const before = [...f.querySelectorAll('a,button')].filter(b => turns.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING);
+      return { ok: before.length === 0, above: before.map(b => (b.textContent || '').trim().slice(0, 40)) };
+    });
+    /* REACHED = painted inside the panel's own box AND pressable where it is
+       drawn, which Playwright's own trial press answers (visible, stable, not
+       covered, inside the viewport) — the reader's question, not the DOM's. */
+    const reach = async word => {
+      const where = await page.evaluate(w => {
+        const dock = document.querySelector('#ig-dock'); if (!dock) return { found: false };
+        const dr = dock.getBoundingClientRect();
+        const el = [...dock.querySelectorAll('a,button')].find(b => (b.textContent || '').trim().includes(w));
+        if (!el) return { found: false };
+        const r = el.getBoundingClientRect();
+        return { found: true, onScreen: r.height > 0 && r.bottom > dr.top + 1 && r.top < dr.bottom - 1,
+          top: Math.round(r.top - dr.top), host: el.closest('.pd-jb-pin') ? 'pin' : el.closest('#igd-feed') ? 'feed' : 'other' };
+      }, word);
+      if (!where.found) return where;
+      try { await page.locator('#ig-dock a,#ig-dock button').filter({ hasText: word }).first()
+        .click({ trial: true, timeout: 2500 }); where.pressable = true; }
+      catch (e){ where.pressable = false; where.why = String(e.message || e).split('\n')[0].slice(0, 90); }
+      return where;
+    };
+
+    await homeFace('board');
+    await until(() => !!document.querySelector('#ig-dock .pd-jb-pin'));
+    await fillTalk(); await page.waitForTimeout(400);
+    const A11a = await reach('what needs me'), A11b = await aboveTalk();
+    check('A11 the Board, nine exchanges later: "what needs me" is still on screen, nothing above the talk',
+      A11a.found && A11a.onScreen && A11a.pressable && A11b.ok, JSON.stringify({ A11a, A11b }));
+
+    await page.evaluate(() => setView('register'));
+    await until(() => !window.pdSolo() && !!document.getElementById('igd-input'));
+    await fillTalk(); await page.waitForTimeout(400);
+    const A12a = await reach('Ask a new question'), A12b = await aboveTalk();
+    check('A12 the Contracts place, nine exchanges later: "Ask a new question" is still on screen',
+      A12a.found && A12a.onScreen && A12a.pressable && A12b.ok, JSON.stringify({ A12a, A12b }));
+    await page.evaluate(() => { window.intel.history = []; window.renderIntelDock(); });
 
     console.log('\nB · the top bar, The SAP way');
     /* the ink is laid over the bar first (the quiet ink is 78% white), then measured */

@@ -16454,6 +16454,15 @@
   #ig-dock .igd-foot .jb-card:not(.is-tall), #app-shell .jl-foot .jb-card:not(.is-tall), .st-cr #st-jb-form .jb-card:not(.is-tall){box-sizing:border-box;min-height:40px}
   /* THE BODY: 16 in, sections 24 apart, a label over its rows, nothing boxed */
   #ig-dock #igd-feed{padding:16px var(--jb-g) 24px}
+  /* THE BOARD'S GREETING, PINNED ABOVE THE CONVERSATION (owner, 26 Oct 2026:
+     "those details should always be visible and not bumped off screen for the
+     jambo history"). It stands outside #igd-feed, so it keeps the body's own
+     16px and its own rule; the talk scrolls under it. It never grows past a
+     third of the panel — on the 730-tall laptop his answers still need room —
+     and gives way with its own scroll if the book's words run long. */
+  #ig-dock .pd-jb-pin{flex:none;padding:16px var(--jb-g) 12px;border-bottom:1px solid var(--color-divider);
+    max-height:34%;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+  #ig-dock .pd-jb-pin .hb-jb-hello:last-child{margin-bottom:0}
   #ig-dock .pd-dossier{gap:0}
   #ig-dock .pd-glance{border:0;border-radius:0;background:transparent;box-shadow:none}
   #ig-dock .pd-glance .pd-gl-h{padding:0;margin:24px 0 8px;min-height:16px;border:0;gap:8px;font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600)}
