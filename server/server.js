@@ -2087,20 +2087,34 @@ function srvAsksMerge(prev, c, user) {
     }
     if (to === 'no' && !why) return { status: 400, error: 'A refusal says why — the reason is what goes back.' };
     Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null },
-      b.kind === 'rule' && to === 'yes' && e.stamp ? { stamp: e.stamp } : {});
+      /* a reader who cannot see money sends a masked stamp (stampMasked): the record's own stands in */
+      b.kind === 'rule' && to === 'yes' && e.stamp ? { stamp: canViewValues(user) && !e.stamp._masked ? e.stamp : srvApprovalStamp(c) } : {});
     if (answeredFor) b.answeredFor = answeredFor; else delete b.answeredFor;   // only where a stand-in answered
   }
   return { list: asksBound(out) };
 }
 /* Money in a question's stamp is money, and is masked like every figure
    (maskContractValues): a named request's value and currency, a rule's. */
-function asksMasked(list) {
+function asksMasked(list, moneyKeys) {
   return (Array.isArray(list) ? list : []).map(a => {
     if (!a || !a.stamp || typeof a.stamp !== 'object') return a;
-    if (a.kind === 'named') return { ...a, stamp: { ...a.stamp, value: '', currency: '' } };
-    if (a.kind === 'rule') return { ...a, stamp: { ...a.stamp, value: '' } };
+    if (a.kind === 'named' || a.kind === 'rule') return { ...a, stamp: stampMasked(a.stamp, moneyKeys) };
     return a;
   });
+}
+/* A STAMP'S MONEY IS MONEY (bug log, 26 Oct 2026): a stamp records the amount AND every term filled in at
+   that moment, the money terms among them; both go, and the stamp says it was masked so a save from a
+   reader who cannot see money puts the stored one back (the PUT's money restore). */
+function stampMasked(st, moneyKeys) {
+  if (!st || typeof st !== 'object') return st;
+  const x = { ...st, value: '', _masked: true };
+  if ('currency' in x) x.currency = '';
+  if (x.fields && typeof x.fields === 'object') {
+    const keys = moneyKeys || moneyFieldKeys(), f = { ...x.fields };
+    for (const k of keys) delete f[k];
+    x.fields = f;
+  }
+  return x;
 }
 
 /* ============================================================
@@ -2550,9 +2564,11 @@ function maskContractValues(c, moneyKeys) {
      not money. */
   if (Array.isArray(x.signApprovals)) x.signApprovals = x.signApprovals.map(r => r ? {
     ...r, shows: r.shows ? { ...r.shows, value: null, currency: '' } : r.shows,
-    stamp: r.stamp ? { ...r.stamp, value: '', currency: '' } : r.stamp } : r);
+    stamp: r.stamp ? stampMasked({ currency: '', ...r.stamp }, keys) : r.stamp } : r);
+  /* ...and a rule step's own stamp of what its yes was of */
+  if (Array.isArray(x.approvalChain)) x.approvalChain = x.approvalChain.map(st => (st && st.stamp) ? { ...st, stamp: stampMasked(st.stamp, keys) } : st);
   /* ...and the one ask record's own copy of what each question was of. */
-  if (Array.isArray(x.asks)) x.asks = asksMasked(x.asks);
+  if (Array.isArray(x.asks)) x.asks = asksMasked(x.asks, keys);
   x._valuesHidden = true;
   return x;
 }
@@ -5358,6 +5374,18 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
     if (Array.isArray(c.rounds) && Array.isArray(prev.rounds))
       c.rounds = c.rounds.map((r, i) => (r && prev.rounds[i] && r.proposedValue == null) ? { ...r, proposedValue: prev.rounds[i].proposedValue } : r);
+    /* a rule step's stamp went out masked (stampMasked): the stored one stands; a step decided in this save
+       is stamped from the record as stored, money and all, never from what a masked page could compute */
+    if (Array.isArray(c.approvalChain)) {
+      const was = new Map((Array.isArray(prev.approvalChain) ? prev.approvalChain : []).filter(x => x && x.ruleId).map(x => [String(x.ruleId), x]));
+      c.approvalChain = c.approvalChain.map(st => {
+        if (!st || !st.ruleId) return st;
+        const w = was.get(String(st.ruleId));
+        const moved = !w || String(st.status || '') !== String(w.status || '') || String(st.at || '') !== String(w.at || '');
+        if (!moved) return w.stamp !== undefined ? { ...st, stamp: w.stamp } : st;
+        return (st.stamp && st.status === 'approved') ? { ...st, stamp: srvApprovalStamp(c) } : st;
+      });
+    }
   }
   /* PAY ARRIVES IN ONE SHAPE (payClean, the browser's own cleaner, js/jurisdiction.js) */
   if (c.pay !== undefined) { const p = payClean(c.pay); if (p) c.pay = p; else delete c.pay; }

@@ -4200,7 +4200,7 @@ function sdLearnApply(cl, move){
   saveClauseLibrary(lib);
   _sdLearnPick=null; _sdLearnDone[String(cl.id)]=done;
   sdRepaint();
-  toast(done,'ok',{ action:{ label:i18t('sd_learn_undo'), run:()=>{
+  toast(done,'ok',{ action:{ label:i18t('sd_learn_undo'), onClick:()=>{
     const l2=clauseLibrary().slice(); const j=l2.findIndex(x=>String(x.id)===String(cl.id));
     if(j<0) return; l2[j]=before; saveClauseLibrary(l2); delete _sdLearnDone[String(cl.id)]; sdRepaint();
   } } });
