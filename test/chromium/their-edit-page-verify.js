@@ -275,54 +275,6 @@ const symbol = page => page.evaluate(() => {
   check('3d Ctrl+S files it, the tick shows, the symbol goes', tick && !saved.dirty && !saved.typed && saved.words,
     JSON.stringify({ tick, ...saved }));
 
-  /* ---- 4c/4d · WORDS TYPED AT A STRUCK RUN ARE NEVER LOST (26 Oct 2026) ----
-     What GitHub's runner showed, once section 4 could name the culprit: the
-     typed words had gone INTO a struck run (some Chromium builds take a point
-     just after an inline element as the end of its text), and ceMarksClear —
-     run by every repaint of the marks and by every read of the box for a save
-     (ceBoxHtml) — removed the run and the words with it. This container's
-     Chromium never puts them there and this fixture draws no struck run at
-     that moment, so the two checks build a box of their own with one, wired
-     the way the editor's is (ceAtomWall on beforeinput), and drive it with
-     real keys. 4c: words typed at the run's end land beside it. 4d: words that
-     DID land inside it (as that Chromium does) are read for the save, put back
-     beside it by the clear, and the caret's count lands after them.
-     Red at the parent: 4d (the read and the clear dropped the words). */
-  const runBox = async extra => page.evaluate(x => {
-    document.getElementById('t-runbox')?.remove();
-    const b = document.createElement('div'); b.id = 't-runbox'; b.contentEditable = 'true';
-    b.style.cssText = 'position:fixed;left:20px;bottom:20px;width:520px;z-index:99999;background:#fff;font:15px serif;padding:8px';
-    b.innerHTML = '<p>Late payments are charged<del class="hati-del nego-del rl-them" data-ce-mark="del" data-ce-was=" at two per cent"> at two per cent' + (x || '') + '</del></p>';
-    document.body.appendChild(b);
-    b.addEventListener('beforeinput', ev => window.ceAtomWall(b, ev));
-    b.focus();
-    const t = b.querySelector('del').firstChild;
-    const r = document.createRange(); r.setStart(t, t.data.length); r.collapse(true);
-    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
-    return true;
-  }, extra);
-  await runBox('');
-  await page.keyboard.type(' Kept.');
-  const typedAt = await page.evaluate(() => { const b = document.getElementById('t-runbox');
-    const run = b.querySelector('[data-ce-mark="del"]');
-    const read = window.ceBoxHtml(b);
-    return { run: run ? run.textContent : null, read: /Kept\./.test(read), shown: /Kept\./.test(b.textContent) }; });
-  check('4c words typed at the end of a struck run land beside it, not in it, and the save reads them',
-    typedAt.run === ' at two per cent' && typedAt.read && typedAt.shown, JSON.stringify(typedAt));
-  await runBox(' Forced.');
-  const inside = await page.evaluate(() => { const b = document.getElementById('t-runbox');
-    const read = /Forced\./.test(window.ceBoxHtml(b));
-    const kept = window.ceMarksClear(b);
-    const txt = b.textContent;
-    return { read, shown: /Forced\./.test(txt), noRun: !b.querySelector('[data-ce-mark="del"]'),
-      caretAfter: !!kept && kept.after === txt.indexOf(' Forced.') + ' Forced.'.length };
-  });
-  check('4d words that landed inside a struck run are read for the save, kept by the clear, and the caret count lands after them',
-    inside.read && inside.shown && inside.noRun && inside.caretAfter, JSON.stringify(inside));
-  await page.evaluate(() => document.getElementById('t-runbox')?.remove());
-  /* the editor's box gets its focus back for section 4 */
-  await clickInto(page, /Late payments/);
-
   /* ---- 4 · a column press with unfiled typing asks ---- */
   /* SLOW-RUNNER WAITS (10 Oct 2026, "get main to green"): on GitHub's runner
      this section's press went through WITHOUT the question while 4b found the
@@ -369,8 +321,22 @@ const symbol = page => page.evaluate(() => {
   while (!typedIn && tries < 3){
     tries++;
     await clickInto(page, /Late payments/);
-    await until(page, () => { const a = document.activeElement;
+    let inBox = await until(page, () => { const a = document.activeElement;
       return !!(a && a.closest && a.closest('#ce-clausebody')); }, null, 4000);
+    /* A CLICK THAT DID NOT LAND IN THE BOX IS HELPED, AND SAID (26 Oct 2026): on a
+       slow GitHub runner the click once left the focus on the page three times
+       running. What this section tests is the column's question over unfiled
+       typing, not the click (section 3 tests that), so the stage does what the
+       editor's own ceFocusTyping does — the box takes the focus and the caret
+       goes to its end — and prints that it had to. */
+    if (!inBox){
+      inBox = await page.evaluate(() => { const box = document.getElementById('ce-clausebody'); if (!box) return false;
+        try { box.focus({ preventScroll: true }); } catch (_){ box.focus(); }
+        const r = document.createRange(); r.selectNodeContents(box); r.collapse(false);
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+        const a = document.activeElement; return !!(a && a.closest && a.closest('#ce-clausebody')); });
+      console.log(`   note: try ${tries}: the click left the focus outside the box; the box took it itself (${inBox ? 'held' : 'no box to focus'})`);
+    }
     await page.keyboard.type(' Always.');
     /* A WAIT ASKS FOR THE STATE, BOUNDED: the typed words are in the box and
        the editor itself counts them as unfiled — the very reading the
@@ -436,6 +402,55 @@ const symbol = page => page.evaluate(() => {
     return { words: h ? [...h].map(r => r.toString()) : [], native: b ? b.spellcheck : null }; });
   check('7 on a narrow window the clause panel\'s box underlines the same way', opened7 && boxed7
     && ul7.words.join(',') === 'Provdier,recieves' && ul7.native === false, JSON.stringify({ opened7, boxed7, ...ul7 }));
+
+  /* 4c/4d run LAST since 26 Oct 2026: they type into a box of their own and take the
+     focus with them, so standing before section 4 they could leave its first click
+     with nowhere to land (GitHub, PR #485: focus on the page, "boxLog: []"). */
+  /* ---- 4c/4d · WORDS TYPED AT A STRUCK RUN ARE NEVER LOST (26 Oct 2026) ----
+     What GitHub's runner showed, once section 4 could name the culprit: the
+     typed words had gone INTO a struck run (some Chromium builds take a point
+     just after an inline element as the end of its text), and ceMarksClear —
+     run by every repaint of the marks and by every read of the box for a save
+     (ceBoxHtml) — removed the run and the words with it. This container's
+     Chromium never puts them there and this fixture draws no struck run at
+     that moment, so the two checks build a box of their own with one, wired
+     the way the editor's is (ceAtomWall on beforeinput), and drive it with
+     real keys. 4c: words typed at the run's end land beside it. 4d: words that
+     DID land inside it (as that Chromium does) are read for the save, put back
+     beside it by the clear, and the caret's count lands after them.
+     Red at the parent: 4d (the read and the clear dropped the words). */
+  const runBox = async extra => page.evaluate(x => {
+    document.getElementById('t-runbox')?.remove();
+    const b = document.createElement('div'); b.id = 't-runbox'; b.contentEditable = 'true';
+    b.style.cssText = 'position:fixed;left:20px;bottom:20px;width:520px;z-index:99999;background:#fff;font:15px serif;padding:8px';
+    b.innerHTML = '<p>Late payments are charged<del class="hati-del nego-del rl-them" data-ce-mark="del" data-ce-was=" at two per cent"> at two per cent' + (x || '') + '</del></p>';
+    document.body.appendChild(b);
+    b.addEventListener('beforeinput', ev => window.ceAtomWall(b, ev));
+    b.focus();
+    const t = b.querySelector('del').firstChild;
+    const r = document.createRange(); r.setStart(t, t.data.length); r.collapse(true);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    return true;
+  }, extra);
+  await runBox('');
+  await page.keyboard.type(' Kept.');
+  const typedAt = await page.evaluate(() => { const b = document.getElementById('t-runbox');
+    const run = b.querySelector('[data-ce-mark="del"]');
+    const read = window.ceBoxHtml(b);
+    return { run: run ? run.textContent : null, read: /Kept\./.test(read), shown: /Kept\./.test(b.textContent) }; });
+  check('4c words typed at the end of a struck run land beside it, not in it, and the save reads them',
+    typedAt.run === ' at two per cent' && typedAt.read && typedAt.shown, JSON.stringify(typedAt));
+  await runBox(' Forced.');
+  const inside = await page.evaluate(() => { const b = document.getElementById('t-runbox');
+    const read = /Forced\./.test(window.ceBoxHtml(b));
+    const kept = window.ceMarksClear(b);
+    const txt = b.textContent;
+    return { read, shown: /Forced\./.test(txt), noRun: !b.querySelector('[data-ce-mark="del"]'),
+      caretAfter: !!kept && kept.after === txt.indexOf(' Forced.') + ' Forced.'.length };
+  });
+  check('4d words that landed inside a struck run are read for the save, kept by the clear, and the caret count lands after them',
+    inside.read && inside.shown && inside.noRun && inside.caretAfter, JSON.stringify(inside));
+  await page.evaluate(() => document.getElementById('t-runbox')?.remove());
 
   await browser.close(); srv.close();
   const failed = results.filter(r => !r.pass).length;
