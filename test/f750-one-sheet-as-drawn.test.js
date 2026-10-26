@@ -106,7 +106,8 @@ describe('f750 (3) the sheet', () => {
     assert.match(WZ, /\? \{\}\s*: \{ crumb:`\$\{i18t\('nav_contracts'\)\} › \$\{i18t\('na_title'\)\}` \}\),/);
     assert.match(WZ, /beside:'#ig-dock' \}/);
     assert.match(CORE, /if\(page\.crumbHtml\) head\.querySelector\('\.dlg-pg-crumb'\)\.innerHTML=page\.crumbHtml;/);
-    assert.match(CORE, /frame\.style\.cssText=`position:fixed;top:\$\{Math\.round\(top\)\}px;left:\$\{Math\.round\(r\.left\)\}px;right:\$\{right\}px;bottom:0;z-index:70;display:flex;`;/);
+    /* RE-POINTED 26 Oct 2026 (f939 (4)): the frame also carries the body's measured scrollbar (--dlg-sbw) */
+    assert.match(CORE, /frame\.style\.cssText=`position:fixed;top:\$\{Math\.round\(top\)\}px;left:\$\{Math\.round\(r\.left\)\}px;right:\$\{right\}px;bottom:0;z-index:70;display:flex;--dlg-sbw:\$\{sbw\}px;`;/);
   });
   test('3c From your words: "What it is for · Not read yet", mirrored from the paper\'s own question', () => {
     /* RE-POINTED (pass 2): read from the words where they say it ("… for a pilot"), else "Not read yet" */
