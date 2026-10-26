@@ -21600,6 +21600,7 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 
 - Noticed, not fixed (26 Oct 2026, PR #484): week-as-drawn-verify "5 1536×730: the Calendar whole" is red on main itself (measured on an untouched worktree at 73a0dfd): the week rows keep the 1440×780 layout instead of fitting, so the fifth row ends at 756px on a 730px screen; it turned red when the new week began (this week's row grew to "3 due"). The owner's laptop screen.
 
+- Noticed, not fixed (26 Oct 2026, flag D): the receipt's copies panel is headed "Copies sent" (ct_copies_sent) even when every copy in it failed or sits in the outbox; the rows under it say Failed, but the heading claims "sent". Same "sent must mean sent" class as flag D's stop, left for the owner to rule on.
 ## Noticed, not fixed — 26 Oct 2026 (Discover, the owner's seven notes)
 - The owner's workspace holds question rows that should never have become columns
   ("how many of these contracts need my response from their redlines", "how many

@@ -19146,6 +19146,27 @@ async function notifyNextSigner(c, nxt){
 }
 
 /* Distribution panel shown in the sign area once a contract is executed. */
+/* ---- WHICH SIGNED COPIES DID NOT GO OUT (flag D of the flow report, the
+   owner's "fix flag D", 26 Oct 2026) ----
+   ONE reading for the three places that say it: the receipt's last stop on the
+   road (pdRoadStops), the copies panel under it (this file), and Needs you —
+   Home, the bell, the Dossier, the list panel and the phone (needsYouOf, kind
+   'copies'). Only once the contract is SIGNED: before that the only mail is a
+   part-signed progress notice, which carries no copy. A copy is out when the
+   record says it was delivered or handed to the mail service; it is NOT out
+   when it failed, bounced, or sits in the outbox because email is not set up
+   (the server's own three words, srvDistributeTo). `never`: signed, and no
+   executed copy has been sent at all. Reads c.distribution RAW, which the
+   light list carries, so Home and the bell see it without opening the contract. */
+const COPY_NOT_OUT=['failed','bounced','outbox'];
+function copiesNotOut(c){
+  if(!c || c.status!=='Signed') return null;
+  const d=c.distribution;
+  const recs=(d && Array.isArray(d.recipients))?d.recipients.filter(Boolean):[];
+  const rows=(d && d.at)?recs.filter(r=>COPY_NOT_OUT.includes(String(r.status||''))):[];
+  const never=!d || !d.at || (d.fully===false && !rows.length);
+  return { rows, never, n:rows.length };
+}
 function distributionPanelHtml(c){
   const d=c.distribution;
   const dot=st=>['delivered','queued','sent'].includes(st)?'var(--st-green-dot)'
@@ -19195,7 +19216,7 @@ Object.assign(window,{signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DO
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,docPaperAnswersHtml,docAnswersWire,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,ktFolderMove,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,copiesNotOut,COPY_NOT_OUT,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,ktFolderMove,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
