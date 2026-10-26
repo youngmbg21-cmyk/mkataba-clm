@@ -147,3 +147,9 @@ The owner said: "take note of these but do not code anything yet as I will be ad
    which are not questions about a contract's wording at all. Wanted: they must not be there.
    (Found: the panel reads the whole kept-question list, not only facts; and counting
    questions should never have become columns in the first place.)
+6. **"In plain words" on the approver's card is easy to miss.** It runs as plain text under
+   its heading. Wanted: a highlighted area or card so it is not missed.
+7. **"The two minutes" on Before the call is easy to miss** for the same reason. Wanted: the
+   same highlighted card.
+The owner then asked for proposals for all seven, "well structured, clear and professional,
+that Legora or a top SaaS company would be proud of" — design options first, nothing built.
