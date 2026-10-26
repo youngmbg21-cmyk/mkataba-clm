@@ -21740,3 +21740,4 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ### Noticed, not fixed
 - 7g ("a press on the bubble opens that group") in the same file also waits
   only 3000ms, with the same slow-runner exposure as 13f had.
+- tidy-sweep-verify with HATI_TIDY_ONLY=board,calendar,explorer,board-card: on laptop-b and ipad the Board's two places land on Explorer (the face left by the Explorer place before them), 4 FAIL — the same 4 at origin/main 8e8196b, so a subset-order fault of the sweep, not of the app; left as it is.

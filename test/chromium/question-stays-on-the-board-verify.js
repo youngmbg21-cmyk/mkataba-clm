@@ -50,9 +50,10 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     const A = await page.evaluate(() => ({ view: state.view, face: hbS().face }));
     check('A1 still Home\'s Board, never the Home page', A.view === 'dashboard' && A.face === 'board', JSON.stringify(A));
     check('A2 one chat call', ai.calls.length === 1, `${ai.calls.length}×`);
-    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the Board's panel is the conversation itself — nothing to turn to */
-    const C = await page.evaluate(() => { const t = (document.getElementById('ig-dock') || {}).innerText || ''; return { answer: /Three things deserve attention/.test(t), solo: typeof pdSolo === 'function' && pdSolo() }; });
-    check('C the answer stands in the panel, the one window', !!said && C.answer && C.solo, JSON.stringify(C));
+    /* RE-PINNED 26 Oct 2026 (owner: a first page with a link to press needs a second tab for Jambo; reverses the
+       24 Oct one window here): the Board's panel turns to his tab for the answer, Overview one press away */
+    const C = await page.evaluate(() => { const t = (document.getElementById('ig-dock') || {}).innerText || ''; return { answer: /Three things deserve attention/.test(t), solo: typeof pdSolo === 'function' && pdSolo(), talk: typeof pdTalkShows === 'function' && pdTalkShows(), tabs: [...document.querySelectorAll('#ig-dock .pd-tab')].map(x => x.textContent.trim()) }; });
+    check('C the answer stands in the panel under his tab, Overview beside it', !!said && C.answer && !C.solo && C.talk && C.tabs.some(t => /Overview|Översikt/.test(t)), JSON.stringify(C));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `board-question-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
 

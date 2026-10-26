@@ -147,7 +147,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* RE-POINTED 24 Oct 2026 (ONE WINDOW WHERE THERE IS NOTHING ELSE TO SHOW, pdSolo): on the Board the panel
        holds only his words, so it is the conversation under its one tab "Jambo", his sign and his name
        (owner: "bring them back") — no Overview there */
-    ok('11c on the Board the panel\'s one tab is "Jambo", wearing his sign', !!tab && tab.face && tab.word === 'Jambo', JSON.stringify(tab));
+    /* RE-POINTED 26 Oct 2026 (owner: a first page with a link to press needs a second tab for Jambo): the Board's
+       first tab is Overview, his greeting and chips under it; the Jambo tab beside it wears his sign */
+    const talkTab = await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-talk]'); return t ? { face: !!t.querySelector('.jambo-face, .jambo-mark'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
+    ok('11c on the Board: Overview first, and a "Jambo" tab wearing his sign beside it', !!tab && /Overview|Översikt/.test(tab.word || '') && !!talkTab && talkTab.face && talkTab.word === 'Jambo', JSON.stringify({ tab, talkTab }));
     /* 11d re-pointed 13 Oct 2026: the Breakdown face and its panel are gone, so
        its panel cannot carry an ask box; the reading's Clauses tab carries none */
     const noAsk = await page.evaluate(() => ({ lens: typeof window.bdLensHtml, ask: !!document.querySelector('#pd-thread #igd-input') }));
