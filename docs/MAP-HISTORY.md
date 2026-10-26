@@ -34604,3 +34604,116 @@ PR #485's next run went red on 6f (the underline listed "ayments") and 3d (no ti
 
 ## OBLIGATIONS — promises Jambo found on a signed contract are on Needs you until decided (26 Oct 2026)
 Flag E of the owner's flow report ("fix all the flags at once"). Before: the duties Jambo read on arrival (`c.triage.steps.oblig.found`) waited at the review desk unticked; once his new-paper piece was put away, nothing on Home, the bell or the Dossier said a signed contract had promises nobody had added, and nobody was reminded of a duty never added. Built: a new Needs you kind `promises` in `needsYouOf` (signed contracts only, the owner's, not urgent, n = `obReviewWaiting(c).length`), after `sign` and `copies` in NEEDS_YOU_ORDER; words "Jambo found N promises to confirm" · "Nobody is reminded of it until it is added" (`insNeedWords`); button "Review" → `runFindObligations(c)` (the existing review desk, nothing pre-ticked); on the one desk as a duty (`ND_KIND_OF`), merged with the details piece when one stands for the same contract (`ND_MERGE`); the Dossier stage 'live'. A live (unsigned) contract's finds give no row: they are not duties yet. The row goes when each find is added or skipped at the desk.
+
+
+## ASK A COLUMN — DISCOVER, THE OWNER'S SEVEN NOTES AFTER USING IT (26 Oct 2026)
+The owner ran the merged Discover against their own book (189 contracts, SEK 1.07B) and
+sent seven notes with screenshots, then: "I will go with all your recommendations for now."
+Three options were drawn for each design question in a plain HTML Artifact, named, at real
+size on the screen each changes; the owner picked by name.
+
+1. **Stop while it reads.** "Once you start the work and it is reading, need the ability to
+   click on stop on the reading." Built as drawn (one proposal, no options): the read goes
+   out in tens (`AC_BATCH` 10, `askColReadRun`), so the line counts what has landed, a bar
+   follows it, and Stop raises a flag read between batches. Nothing already read is lost —
+   answers are kept per contract — and what is left is offered again with its own cost
+   (`askColStopHtml` → Carry on · N contracts · N Jambo calls). MEASURED: at the parent
+   there was no count and no way out; a 50-contract read was one request and could only be
+   waited out. The batching costs one thing, said here so it is not rediscovered: the deep
+   rate limiter counts REQUESTS, so a 50-contract read is now 5 of them, not 1 (hence
+   `AC_BATCH` 10, not 5, and `AI_RATE_DEEP` raised in the two checks that drive many reads).
+2. **"The highlighted area should be much tidier so find a traffic light system so that info
+   is not cramped up."** Options drawn: **Lights** (the SAP way), Two lines (the Legora way,
+   which is what 25 Oct had built), Strip (dense). The owner picked **Lights**, and on being
+   asked whether "tidy up Ask a column like Due diligence" meant a multi-question form,
+   corrected it: "I mean remove the cramping up and make it a traffic light system" — so a
+   single question's column wears Lights too, and the multi-question form was NOT built.
+   A cell is now one light and the short answer on one line, never cut; the §, the quoted
+   words and the tick moved into the panel's reading of the chosen row, which has the room.
+   The at-risk count moved into the column's own head. REVERSES "each fact shows where on
+   the paper it was read, § and words quoted, in the cell" (25 Oct), which the owner found
+   cramped as soon as three columns stood together.
+3. **"Over time the list becomes enormous. You should be able to delete some or save some
+   from your list so the saved ones are the only ones that appear."** Options: **Only what
+   you keep** (the Legora way), Kept · All (the SAP way), Shelves. The owner picked **Only
+   what you keep**: Discover lists kept questions only (`column_asks.kept`), a pack's and a
+   company fact's are kept by themselves, everything else waits behind one folded line
+   ("14 other questions asked"), where each can be kept or deleted. Keeping takes nobody's
+   permission; taking off and deleting are the asker's, the keeper's or an admin's
+   (`colMayUnkeep`), and a fact cannot be either while it is a fact.
+4. **"This table should be better designed and tidy for professionals."** Options:
+   **Ledger** (the SAP way), Matrix (dense), Dossiers (the Legora way). The owner picked
+   **Ledger**: one framed card with a head that says what was read and when, the contract
+   column standing still while the answers scroll, the same two-line rhythm in every cell,
+   the at-risk count in each column's head, Only at risk, and the legend in the foot.
+5. **"Why are the personal questions going to the company facts? These should not be
+   there."** TWO faults, both found by reading the code the owner's screenshot pointed at:
+   the Settings page listed every question anyone had ever asked (not only facts), and a
+   COUNTING question ("how many contracts have no redlines", "How many of the contracts
+   have been signed") had been allowed to become a column at all. A column asks what ONE
+   contract's wording says, of every contract in turn; a counting question is about the
+   reader's own book, which Jambo's box answers from the records, free. Both hosts now
+   refuse one (`COLUMN_PORTFOLIO_RE` = `AC_PORTFOLIO_RE`, the server being the wall), so it
+   is never kept and can never reach the facts page; the page lists facts only, with an
+   "Add a fact" picker over the kept wording questions. The junk already in the owner's
+   workspace is theirs to delete from Discover (Delete is on every unkept row) — not done
+   here, because deleting is not undoable and the owner has not seen the list.
+6 & 7. **"In these two areas, the output should be in a highlighted area or card so they are
+   not missed"** — the approver's "In plain words" and the party's "The two minutes", both
+   of which ran as plain paragraphs under a small grey heading, in the same type as the
+   facts around them. Options: **Jambo's card** (the Legora way), Memo (the SAP way),
+   Spotlight. The owner picked **Jambo's card**: ONE builder (`jamboSayCardHtml` /
+   `jamboSayAskHtml`, js/components.js) dresses both — the soft grey card his answers
+   already wear, 18px corners, 16px inside, "✦ Jambo · In plain words" on top. It carries
+   because it is the only card on the panel; the facts around it stay plain rows.
+8. **A pack's questions each have a tick** ("I should be able to choose which of the
+   available company facts I want to run if I only want to run 3 out of the 5"): all on to
+   begin with, the cost line and the Ask button follow the ticks, none ticked greys the
+   button with why (`askColPackPicked`).
+
+THE THREE SCREENS: photographed at 1440×780, 1536×730 and 1366×950, including the two new
+ones (the Ledger, and the reading line with Stop); every screen fits, nothing spills.
+GREEN: lint 0 errors · f893 26/26 · f887–f892 re-run · discover-verify 54/54 ·
+ask-a-column-verify 28/28 · tidy sweep 40/40 on the four pages touched.
+
+## THE HANDBOOK — HOW TO DO EACH THING (owner, 26 Oct 2026)
+The owner: "i want to create a page with a link in the guide page that shows instructions similar to the
+information in this artifact [the Discover user guide] … the same exact instructions format and include other
+processes that you deem critical. This guide page should also be in subsections so it is easy to follow. Create a
+proposal first" — then "Also, there should be a rule that whenever the platform changes or new features added,
+the guide instruction book is updated accordingly." The proposal (docs/PLAN-the-handbook.md) offered the name,
+the round-1 set, pictures first or after, the rule's wording and Swedish in the same change; the owner picked
+"Handbook, the 20 chapters, pictures after, Swedish same change — push it", then "build all the rounds".
+BUILT, all four rounds in one change: js/handbook.js is the book (43 chapters in the Guide's eight parts, Getting
+around first and Settings & rules last, every text {en, sv}); a chapter quotes a button as `{ui:key}` and a door as
+`{door:key}`, so a renamed label follows and a retired one fails f937. The page (js/views/handbook.js) draws one
+part at a time: the contents down the left, the part's "Which one do I need?" table (You want to… · Use · Where ·
+Cost), a row of chips, then the chapters in the Discover guide's exact format; a door chip moves through Jambo's
+one mover and is greyed with why when the reader may not use it (a contract's face with no contract open, an
+admin's page); Jambo's panel beside it with his box at the foot (ONE WINDOW, only his words). Doors in: the
+Guide's row above Settings (f841's "Settings at the foot" kept), the word "handbook" and its everyday words in
+CA_PLACES, "/", the help card's last line, and `navReadHandbook` — LAST in navRead's chain and in its Board branch —
+for "how do I …" (hbkFind on the chapter's everyday words, no AI; a contract named or a task of Jambo's map steps
+aside). Pictures: each chapter carries a recipe (go · boxes · cap) that handbook-verify runs on the seeded nav
+world, drawing the red boxes from the elements' own rects; `HANDBOOK_SHOTS=1` writes handbook/img/<k>.png, served
+at /handbook; a chapter with none says why (their page, the handover). THE RULE is 9d in CLAUDE.md with f937 as
+its net; what a machine cannot check (whether the sentences still tell the truth) is the rule itself, plus the
+foot's "last checked" day. Reversed nothing. Noticed on the way: a how-to question asked on the Board never left
+the Board's branch (every "how do I" fell to the chat), which is why navReadHandbook sits in that branch too.
+CLAUDE.md grew to 84 KB with the rule and the MAP line (the limit is "about 80 KB"): said to the owner, not
+trimmed without their yes.
+GITHUB'S FIRST RUN (tests #4314) was red on five node expectations and one browser check, all mine: AI_PAGE_NAMES,
+VIEW_OWNS_HEIGHT's order, the "/" line `ca_sl_handbook`, the ask flow's first three parts, and `hbk_d_webhooks`
+(the same word in Swedish). The browser one was a real mis-read: "how should I approach the liability cap in this
+contract?" (banner-and-answer-top 2a) is advice on a deal, and the how-to reader took it for the Handbook. The
+reader now takes only a question about USING HaTi: "how do I / how can I / how to / how does / where do I" (no
+should/would), and steps aside for anything that names this contract, a clause or a term of it (`NAV_HOWTO_NOT`);
+the Discover chapter's words name HaTi's features, not a contract's terms. Main's own red that hour
+(their-edit-page-verify) is not this change's.
+
+
+## THE HANDBOOK — HOW TO DO EACH THING · JAMBO READS THE BOOK, ON EVERY PAGE (owner, 26 Oct 2026)
+Over a screenshot of the Handbook page, asked "what is the handbook about?", Jambo answered with a summary of 187 agreements. The owner: "look at the limitations I am facing with jambo. How do we get this right? The goal is to have jambo be the cure to all question related to the platform but it is not closing the gap", then "please note that we are looking to address the issue across Hati not just the handbook". Asked the cost first ("about a tenth to three tenths of a US cent per question about HaTi; nothing extra to keep current, because every change already updates the Handbook"), the owner said "go".
+WHY IT WENT WRONG: the Handbook was drawn only in the browser; the chat brain's one search held contracts, clauses, obligations, notes, history, requests, people, templates and standards, never the book; the page sentence named the page and nothing on it; and the rules call the contracts "your book", so a book it had never read was taken for them. WHAT WAS BUILT: (1) js/handbook.js reads itself out in plain words for both hosts (`hbkPlainOf`, `hbkChapterPlain`, `hbkAboutPlain`, `hbkSearchDocs`, `hbkPlainFor`; markers become the screen's words through each host's dictionary, `srvHbkWord` / `aiHbkWord`); (2) the ONE search holds every chapter and the book itself as kind `guide` (read again at each start; every reader may read it; the first three hits carry the chapter's steps in the reader's language; a hit's door is `{kind:'chapter'}`); the browser's own search the same; (3) `AI_HANDBOOK_RULE` on both hosts word for word: HaTi itself is answered from the Handbook with numbered steps, never from the contracts; "your book" means the contracts; (4) every page names the chapters that cover it (`HBK_VIEW_DOORS`, `HBK_FACE_DOORS`, `hbkChaptersForPage`: a chapter owning the page's door leads, then one whose path starts there, then one that mentions it), sent as `page.chapters`, and on the Handbook the chapter being read (`page.chapter`); (5) a chapter is a BUTTON under the answer ("Handbook › 4.2 …"), never a move away from where the question was asked (`copilotChapterButton`, `aiLocalChapterButton`; `navDoorOf` → `navGo` `{k:'chapter'}` → `hbkOpen`; `about` opens the first part). Chapter 0.2 says so, both languages.
+MEASURED: the exam (63 questions in a person's own words, every part of the book) 0 of 63 at main 8e8196b, 62 of 63 after; the known miss, kept rather than tuned away: "how do I ask jambo something". The gap report: every page Jambo can be on has at least one chapter today.
+LEFT ALONE (said): "who can change the currency rates?" typed in a box is still taken by the typed-navigation reader as a trip to that setting ("The setting, in Settings."), because earlier rulings make "who works here", "who can open Procurement" and "who is Amina" trips to their pages; changing "who …" would reverse them, so it is a BUGLOG line and a question for the owner.

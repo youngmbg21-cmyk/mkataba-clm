@@ -257,10 +257,27 @@ const check = (name, pass, detail) => {
     if (dot){
       await page.evaluate(() => { intel.history = []; });
       const cdp14 = await ctx.newCDPSession(page);
-      await cdp14.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: dot.x, y: dot.y, id: 1 }] });
-      await cdp14.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: dot.x + 5, y: dot.y + 4, id: 1 }] });
+      /* 13f WAS THE CHECK'S FAULT, NOT THE EXPLORER'S (red in CI on 2fa7273,
+         green here every run). TWO THINGS WERE CHANGED, and only one of them
+         is backed by a measurement:
+         (1) THE WAIT. It asked for the card in 3000ms where every other wait
+         in this file allows 8000-10000. A runner slower than three seconds at
+         putting the card in intel.history gives exactly what CI showed: 13e
+         green (the dot is found) and 13f red. That is the cause.
+         (2) THE DOT IS MEASURED AGAIN AT THE MOMENT OF THE PRESS. The first
+         guess was that the map's jiggle (IG_JIG_FPS) moved the dot between
+         being measured and being pressed. Instrumented over three runs it
+         moved 0px, so that is NOT what went wrong — but reading the live rect
+         and asking for the SAME dot is still the press a finger makes, so it
+         stays as the stricter aim. */
+      const at = await page.evaluate(id => { const n = (IG.contracts || []).find(x => x.id === id);
+        if (!n || !n.hitEl) return null; const r = n.hitEl.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, dot.id);
+      const px = at ? at.x : dot.x, py = at ? at.y : dot.y;
+      await cdp14.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: px, y: py, id: 1 }] });
+      await cdp14.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: px + 5, y: py + 4, id: 1 }] });
       await cdp14.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      const opened = await until(id => (intel.history || []).some(m => m.explainId === id), dot.id, 3000);
+      const opened = await until(id => (intel.history || []).some(m => m.explainId === id), dot.id, 8000);
       check('13f a press that wobbles by a few pixels still opens the contract\'s card, and does not turn the map', !!opened, JSON.stringify(dot));
     }
 

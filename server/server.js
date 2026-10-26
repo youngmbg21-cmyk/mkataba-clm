@@ -29,6 +29,16 @@ const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
 /* The graph's `where` predicate, one for both hosts (Copilot audit phase 4). */
 const { graphWhereHit } = require('../js/graphwhere.js');
 const { HS_KINDS, HS_MAX, hsTerms, hsRoot, hsNearest, hsPassages } = require('../js/hatisearch.js');
+/* THE HANDBOOK, READ BY JAMBO (owner, 26 Oct 2026: "the goal is to have jambo be the cure to all question related
+   to the platform … across HaTi, not just the handbook"): the browser's own book (js/handbook.js), one copy,
+   its markers turned into the screen's words through the same dictionary the pages print */
+const HBK = require('../js/handbook.js');
+function srvHbkWord(kind, key, lang) {
+  const k = kind === 'door' ? 'hbk_d_' + key : key;
+  const book = (I18N_STRINGS && (I18N_STRINGS[lang] || I18N_STRINGS.en)) || {};
+  const pick = b => { if (!b) return ''; const v = b[k] != null ? b[k] : b[k + '_other']; return typeof v === 'string' ? v : ''; };
+  return pick(book) || pick(I18N_STRINGS && I18N_STRINGS.en);
+}
 /* A request's lane and its answers (4 Oct 2026): ONE reading for both hosts —
    the Requests page says which lane a request would take, and the server's
    sweep clears it, off the same rule. */
@@ -634,6 +644,13 @@ addColumnIfMissing('column_asks', 'rule', 'TEXT');
 addColumnIfMissing('column_asks', 'fact', 'INTEGER');
 addColumnIfMissing('column_asks', 'fact_by', 'TEXT');
 addColumnIfMissing('column_asks', 'fact_at', 'TEXT');
+/* ONLY WHAT YOU KEEP (owner, 26 Oct 2026: "over time the list becomes enormous
+   … save some so the saved ones are the only ones that appear"). A question is
+   KEPT when somebody presses Keep in Discover, and by itself when it is a
+   pack's or a company fact. Everything else is still answered and still free to
+   bring back — it just waits behind one folded line. */
+addColumnIfMissing('column_asks', 'kept', 'INTEGER');
+addColumnIfMissing('column_asks', 'kept_by', 'TEXT');
 /* How much this member may sign a contract for, in the workspace currency.
    TEXT rather than REAL because it carries THREE states and the third is the
    point: absent = nobody has decided, 'none' = decided, no limit, a number =
@@ -9510,7 +9527,13 @@ const colFlat = s => String(s || '').replace(/[‘’‚′]/g, "'").replace(/[�
   .replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
 function colAskOut(r) {
   return r ? { id: r.id, question: r.question, name: r.name, by: r.created_by_name || '', at: r.created_at, used: r.last_used_at,
-    rule: r.rule || '', fact: !!r.fact } : null;
+    rule: r.rule || '', fact: !!r.fact, kept: !!(r.kept || r.fact), keptBy: r.kept_by || '', askedBy: r.created_by || '' } : null;
+}
+/* WHO MAY TAKE A QUESTION OFF THE LIST, OR DELETE IT: the person who asked it,
+   the person who kept it, or an admin. Keeping takes nobody's permission. */
+function colMayUnkeep(req, r) {
+  const me = String(req.user.id);
+  return req.user.role === 'admin' || String(r.created_by || '') === me || String(r.kept_by || '') === me;
 }
 function colAnswerOut(r) {
   let a = {}; try { a = JSON.parse(r.json) || {}; } catch (_) {}
@@ -9567,7 +9590,13 @@ app.get('/api/columns', auth, (req, res) => {
    names, nothing read. The company's facts first, then the newest used. */
 app.get('/api/columns/summary', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
-  const asks = db.prepare('SELECT * FROM column_asks ORDER BY COALESCE(fact,0) DESC, last_used_at DESC LIMIT 20').all();
+  /* KEPT FIRST, AND BY DEFAULT ONLY KEPT (owner, 26 Oct 2026): Discover lists
+     what the team keeps. `all=1` is the folded line's own press — the rest,
+     each still free to bring back or to keep. `others` is how many that is. */
+  const all = String(req.query.all || '') === '1';
+  const where = all ? '' : 'WHERE COALESCE(kept,0)=1 OR COALESCE(fact,0)=1 ';
+  const asks = db.prepare(`SELECT * FROM column_asks ${where}ORDER BY COALESCE(fact,0) DESC, COALESCE(kept,0) DESC, last_used_at DESC LIMIT 40`).all();
+  const others = db.prepare('SELECT COUNT(*) AS n FROM column_asks WHERE COALESCE(kept,0)=0 AND COALESCE(fact,0)=0').get().n;
   const folders = new Map(db.prepare('SELECT id, folder FROM contracts').all().map(r => [r.id, r.folder]));
   const out = asks.map(a => {
     let read = 0, found = 0, risk = 0, last = '';
@@ -9581,7 +9610,35 @@ app.get('/api/columns/summary', auth, (req, res) => {
     }
     return { ...colAskOut(a), read, found, risk, last };
   });
-  res.json({ asks: out });
+  res.json({ asks: out, others });
+});
+
+/* KEEP IT, OR TAKE IT OFF THE LIST (owner, 26 Oct 2026). Keeping takes nobody's
+   permission — anyone who may ask a column may keep one. Taking it off is the
+   asker's, the keeper's or an admin's. A company fact is kept by being a fact:
+   switch the fact off first. */
+app.post('/api/columns/:askId/keep', auth, editor, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(req.params.askId));
+  if (!ask) return res.status(404).json({ error: 'That question is not kept any more' });
+  const on = !!(req.body || {}).kept;
+  if (!on && ask.fact) return res.status(400).json({ error: 'It is a company fact: switch the fact off first' });
+  if (!on && !colMayUnkeep(req, ask)) return res.status(403).json({ error: 'Only the person who kept this question, or an admin, may take it off the list' });
+  db.prepare('UPDATE column_asks SET kept=?, kept_by=? WHERE id=?').run(on ? 1 : 0, on ? String(req.user.id) : null, ask.id);
+  res.json({ ask: colAskOut(db.prepare('SELECT * FROM column_asks WHERE id=?').get(ask.id)) });
+});
+
+/* FORGET IT ALTOGETHER: the question and every answer kept under it. The
+   asker's or an admin's, never a company fact's (switch it off first), and
+   never undoable — the page asks before it presses. */
+app.delete('/api/columns/:askId', auth, editor, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(req.params.askId));
+  if (!ask) return res.json({ ok: true });
+  if (ask.fact) return res.status(400).json({ error: 'It is a company fact: switch the fact off first' });
+  if (!colMayUnkeep(req, ask)) return res.status(403).json({ error: 'Only the person who asked this question, or an admin, may delete it' });
+  const n = db.prepare('SELECT COUNT(*) AS n FROM column_answers WHERE ask_id=?').get(ask.id).n;
+  db.prepare('DELETE FROM column_answers WHERE ask_id=?').run(ask.id);
+  db.prepare('DELETE FROM column_asks WHERE id=?').run(ask.id);
+  res.json({ ok: true, deleted: { id: ask.id, name: ask.name, answers: n } });
 });
 
 /* What is already known, spending nothing: the kept answers to one question
@@ -9612,6 +9669,13 @@ app.post('/api/columns/answers', auth, (req, res) => {
    questions shared its read (`with`), so a column never claims a whole call. */
 const COLUMN_Q_MAX = 8;
 const COLUMN_VERDICTS = ['in', 'out'];
+/* A COLUMN ASKS ONE CONTRACT'S WORDING, NEVER THE BOOK (owner, 26 Oct 2026:
+   "why are the personal questions going to the company facts?"). A counting
+   question — how many contracts need my answer, which of these are signed — is
+   about the reader's work, not about what a contract says: Jambo's own box
+   answers it from the records, free, and it must never become a column kept
+   for the company. The wall is here; the browser's box turns them away too. */
+const COLUMN_PORTFOLIO_RE = /^\s*(how many\b|how much (of|do i|do we)\b|which (of|ones)\b|count\b|list\b|show me\b|who (has|have)\b)|\b(these|those|my|our|the) contracts\b/i;
 function colQuestionsOf(b) {
   const raw = Array.isArray(b.questions) ? b.questions : [{ question: b.question, name: b.name }];
   const out = [], seen = new Set();
@@ -9619,6 +9683,7 @@ function colQuestionsOf(b) {
     const question = String((x && x.question) || '').trim().replace(/\s+/g, ' ');
     if (question.length < 3) return { error: 'Type the question for the column' };
     if (question.length > 300) return { error: 'Keep the question under 300 characters' };
+    if (COLUMN_PORTFOLIO_RE.test(question)) return { error: 'That asks about your contracts, not about the wording of one. Ask Jambo in the box below and he answers it from your records, free.' };
     const k = colKey(question); if (seen.has(k)) continue; seen.add(k);
     const name = (String((x && x.name) || '').trim().replace(/\s+/g, ' ') || colNameOf(question)).slice(0, 40);
     out.push({ question, name, qkey: k });
@@ -9635,12 +9700,15 @@ function colNameOf(question) {
   const n = (w.length ? w : String(question).split(/\s+/)).slice(0, 4).join(' ');
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
-function colAskKeep(req, q, at) {
+function colAskKeep(req, q, at, keep) {
   let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
   if (ask) db.prepare('UPDATE column_asks SET name=?, last_used_at=? WHERE id=?').run(q.name, at, ask.id);
   else db.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
     .run('ca_' + crypto.randomBytes(8).toString('hex'), q.qkey, q.question, q.name, String(req.user.id), req.user.name || req.user.email || '', at, at);
-  return db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+  ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);
+  /* a PACK's question is the company's standard set, so it is kept by itself */
+  if (keep && !ask.kept) { db.prepare('UPDATE column_asks SET kept=1, kept_by=? WHERE id=?').run(String(req.user.id), ask.id); ask.kept = 1; }
+  return ask;
 }
 /* HOW A CELL IS READ (owner, 25 Oct 2026: "fix the eight misses" of the live
    Discover measure). Three ways the read went wrong, said as rules of reading,
@@ -9674,7 +9742,8 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   const ids = asked.slice(0, COLUMN_MAX);
   /* the team's questions, each kept once by its words; the newest name given wins */
   const at = now();
-  const asks = Q.list.map(q => colAskKeep(req, q, at));
+  const fromPack = !!db.prepare('SELECT id FROM column_packs WHERE id=?').get(String(b.pack || ''));
+  const asks = Q.list.map(q => colAskKeep(req, q, at, fromPack));
 
   const byAsk = Object.fromEntries(asks.map(a => [a.id, {}]));
   const failed = [], todo = [], texts = colTexts(b.texts);
@@ -12843,20 +12912,20 @@ const aiNavigateOn = () => getSetting('aiNavigate') !== false;
    never a final act: it opens, chooses and lands; it sends, signs, approves and deletes
    nothing. Every id is checked here against what this reader may see (aiDoorOf) before
    the browser is handed it, and the browser asks its own book again. */
-const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties', 'mynote'];
+const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties', 'mynote', 'chapter'];
 const AI_DOOR_TABS = ['open', 'dossier', 'fill', 'send', 'sign', 'redlines', 'brief', 'clauses', 'amend', 'oblig', 'hist', 'compare'];
 const AI_DOOR_YOU = ['lang', 'told', 'safety', 'away', 'who', 'data', 'work', 'password'];
 const AI_DOOR_COMPANY_PAGES = ['team', 'streams', 'sheet', 'roles'];
 const AI_DOOR_COMPANY = [...new Set(Object.keys((I18N_STRINGS && I18N_STRINGS.en) || {}).filter(k => /^st_syn_[a-z]+$/.test(k)).map(k => k.slice(7)))].filter(k => !AI_DOOR_COMPANY_PAGES.includes(k));
 const AI_DOOR_STAGES = ['Draft', 'Under Review', 'Signed', 'Declined'];
 const AI_DOOR_ENDINGS = ['month', 'quarter', 'year'];
-const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week} · mynote {noteId} (the person\'s own private note, from search_hati; no noteId = My notes).',
+const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week} · mynote {noteId} (the person\'s own private note, from search_hati; no noteId = My notes) · chapter {chapter} (a Handbook chapter, its number from search_hati kind guide, e.g. "4.2"; "about" opens the Handbook\'s front page).',
   properties: { kind: { type: 'string', enum: AI_DOOR_KINDS }, contractId: { type: 'string' }, tab: { type: 'string', enum: AI_DOOR_TABS },
     num: { type: 'string' }, quote: { type: 'string' }, head: { type: 'string' },
     stage: { type: 'string', enum: AI_DOOR_STAGES }, stream: { type: 'string' }, party: { type: 'string' }, ending: { type: 'string', enum: AI_DOOR_ENDINGS },
     ids: { type: 'array', items: { type: 'string' } }, name: { type: 'string' }, key: { type: 'string' }, userId: { type: 'string' },
     row: { type: 'string' }, streamId: { type: 'string' }, keep: { type: 'boolean' }, book: { type: 'string' }, templateId: { type: 'string' },
-    obligationId: { type: 'string' }, requestId: { type: 'string' }, due: { type: 'string' }, noteId: { type: 'string' } },
+    obligationId: { type: 'string' }, requestId: { type: 'string' }, due: { type: 'string' }, noteId: { type: 'string' }, chapter: { type: 'string' } },
   required: ['kind'] };
 /* the door the model named, kept only where this reader may stand: an id they cannot see is no door (null) */
 function aiDoorOf(d, cx) {
@@ -12939,6 +13008,8 @@ function aiDoorOf(d, cx) {
     const r = u ? db.prepare("SELECT id FROM my_items WHERE id=? AND user_id=? AND kind='note'").get(id, String(u.id)) : null;
     return r ? { kind: k, noteId: String(r.id) } : null;
   }
+  /* a Handbook chapter by its number, or the book's front page ('about'): every reader may read the book */
+  if (k === 'chapter') { const ch = txt(d.chapter, 8); return ch === HBK.HBK_ABOUT || HBK.hbkChapterOf(ch) ? { kind: k, chapter: ch } : null; }
   return null;
 }
 const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the person asks WHERE something is in HaTi, to be taken somewhere, or to see, show, open or find one thing. The ONE place to open for them (task), and the exact thing in it (door) when your tools named it; HaTi opens it and says so. Also when they ask for a contract\'s brief or summary (task brief). Leave it out for any other question only about what contracts say.',
@@ -12981,7 +13052,7 @@ function ruleDoorOf(d, scope) {
 }
 
 /* THE ONE SEARCH, AS A TOOL (stage 1): what the reader may see, found by words */
-const HS_TOOL_DESC = 'Search EVERYTHING in HaTi this reader may see, by words: contracts, the passages of their wording (a clause), obligations, notes, history, parties, requests (what a colleague or a party has asked legal for), people (each colleague\'s name, job title and HaTi role: admin, editor or viewer), templates and our standards. Each hit says its kind, where it sits (contract id, a passage\'s first words in "quote") and a snippet with the matched words in [brackets]. "fixed" lists a misspelt word and the words read for it. "total" is the TRUE number of hits; "truncated" when cut at "limit". Use it to FIND anything a person names in their own words — a clause by what it means, a note, a request, a person, who holds a role — before saying something does not exist or that you have no tool for it; kinds with empty words lists every one of those kinds (e.g. ["person"] for every colleague). Search by meaning by passing the likely words the book uses as well as theirs.';
+const HS_TOOL_DESC = 'Search EVERYTHING in HaTi this reader may see, by words: contracts, the passages of their wording (a clause), obligations, notes, history, parties, requests (what a colleague or a party has asked legal for), people (each colleague\'s name, job title and HaTi role: admin, editor or viewer), templates, our standards, and the Handbook (kind guide: HaTi\'s own instruction book, one chapter per thing a person can do in HaTi — what it is, when, where, how step by step, who may, what it costs; a guide hit carries its chapter number and its steps). Each hit says its kind, where it sits (contract id, a passage\'s first words in "quote") and a snippet with the matched words in [brackets]. "fixed" lists a misspelt word and the words read for it. "total" is the TRUE number of hits; "truncated" when cut at "limit". Use it to FIND anything a person names in their own words — a clause by what it means, a note, a request, a person, who holds a role — before saying something does not exist or that you have no tool for it; kinds with empty words lists every one of those kinds (e.g. ["person"] for every colleague). Search by meaning by passing the likely words the book uses as well as theirs.';
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet, plus "total" — the TRUE number of matches in this reader\'s scope — and "truncated" when the list was cut at "limit". Use when the user names a party or topic rather than an exact id; raise "limit" (up to 40) when they ask for all of them.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
@@ -13117,6 +13188,8 @@ function pageSays(p){
   if (p.tab) t += `They are on its "${cut(p.tab)}" tab. `;
   if (p.map) t += `The map shows: ${cut(p.map, 400)}. `;
   if (p.board) t += `The Board as it stands:\n${cut(p.board, 4000)}\nAnswer from these numbers when the question is about the Board. `;
+  if (p.chapter) t += `They are reading the Handbook chapter "${cut(p.chapter, 120)}"; "this" and "this chapter" mean it. `;
+  if (Array.isArray(p.chapters) && p.chapters.length) t += `The Handbook chapters that cover this page: ${p.chapters.slice(0, 4).map(x => cut(x, 80)).join('; ')}. `;
   if (p.valueStream) t += `It is filtered to the "${cut(p.valueStream)}" value stream. `;
   if (p.showing) t += `It is showing ${cut(p.showing, 80)}. `;
   if (p.searchBox) t += `Its search box reads "${cut(p.searchBox)}". `;
@@ -13187,6 +13260,10 @@ function chatTodayLine(day) {
 /* WHAT THE CHAT CANNOT DO WITH SOMEBODY'S CALENDAR, said rather than guessed
    (owner, 18 Oct 2026): it has no tool onto a person's own events and books
    nothing; the Calendar's own Jambo does both. Word for word in js/ai.js. */
+/* HaTi ITSELF IS ANSWERED FROM THE HANDBOOK (owner, 26 Oct 2026: asked "what is the handbook about?", Jambo
+   summarised the contracts; "the goal is to have jambo be the cure to all question related to the platform …
+   across HaTi"). The browser's twin, word for word, is js/ai.js AI_HANDBOOK_RULE (f938). */
+const AI_HANDBOOK_RULE = "HaTi ITSELF IS ANSWERED FROM THE HANDBOOK. A question about HaTi — what a page, tab, panel, button, word, setting or rule in HaTi is or does, how to do something in HaTi, where something is, who may do it, what it costs, or what the person can do on the page in front of them — is answered from the Handbook, HaTi's own instruction book, never from the contracts: call search_hati with kinds [\"guide\"] and the person's words plus the words the app uses, answer from the chapter's own steps in plain words (number the steps), name the chapter, and set goto's door to {kind:\"chapter\", chapter} with its number (\"about\" for the book itself). The page in front names the chapters that cover it: read those first. \"The Handbook\", \"the manual\" and \"the instructions\" are that book; \"your book\" and \"the book\" mean the contracts. When no chapter covers the question, say so plainly and say what you can tell from the screen, never a guess.";
 const AI_CALENDAR_RULE = "You cannot see the person's own calendar, events or notes, and you cannot book, add, move or delete anything in it. When they ask to book, schedule or find time, or whether they are free, say so in one sentence and point them to the Calendar, where Jambo reads their events and plans time with them.";
 /* A REWRITE CARD OPEN IN THE JAMBO WINDOW, as clamped fields (owner, 18 Oct
    2026): a question asked past it is answered as a question, and "this" or
@@ -13271,7 +13348,8 @@ SCOPE & SAFETY:
 - ${aiNavigateOn() ? AI_GOTO_RULE : AI_GOTO_OFF_RULE}
 - ${aiNavigateOn() ? AI_BRIEF_RULE : AI_BRIEF_OFF_RULE}
 - ${AI_CLARIFY_RULE}
-- ${AI_CALENDAR_RULE}`;
+- ${AI_CALENDAR_RULE}
+- ${AI_HANDBOOK_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the
      same live rule as the Home tile. Before it, "value under management" had
@@ -13399,6 +13477,7 @@ function hsDoorOf(h) {
   if (h.kind === 'person') return { kind: 'person', userId: h.ref };
   if (h.kind === 'template') return { kind: 'template', templateId: h.ref };
   if (h.kind === 'standard') return { kind: 'standard', book: h.book, row: h.title };
+  if (h.kind === 'guide') return { kind: 'chapter', chapter: h.ref };
   return null;
 }
 /* THE QUOTE OPENS ITS CLAUSE (stage 3): an answer that rests on ONE contract's verified quote, asked as a
@@ -13567,6 +13646,18 @@ function copilotNotNewPaper(question, final) {
    place that is an ACT (draft, upload, share, sign, a setting, the brief, our paper, our standards) keeps its trip */
 const COPILOT_LOOK_TASKS = ['needs', 'contracts', 'expiring', 'oblig', 'history', 'calendar', 'approvals', 'parties', 'people', 'requests', 'board', 'insights', 'explorer'];
 const COPILOT_WAY_RE = /\b(how (do|can|would|should) (i|we) (get|go|reach|find)|get to|go to|navigate|bring me|hur (kommer|hittar) (jag|vi)|gå till|ta mig)\b/i;
+/* A CHAPTER IS A BUTTON, NEVER A MOVE (26 Oct 2026): the answer already carries the chapter's steps, so the reader
+   stays where they asked and the chapter waits under the answer as one press ("Handbook › 4.2 Before you sign"),
+   through the same door buttons a "which did you mean" uses (aiWayChoicesOf → navDoorOf) */
+function copilotChapterButton(cx, final) {
+  const d = final && final.goto && final.goto.door; if (!d || d.kind !== 'chapter') return;
+  const lang = cx && cx.user && cx.user.lang === 'sv' ? 'sv' : 'en';
+  const c = HBK.hbkChapterOf(d.chapter);
+  const title = c ? `${c.k} ${HBK.hbkPlainOf(c.title, lang, srvHbkWord)}` : (lang === 'sv' ? 'Handboken' : 'The Handbook');
+  const label = (lang === 'sv' ? 'Handboken › ' : 'Handbook › ') + title;
+  final.choices = (Array.isArray(final.choices) ? final.choices : []).concat([{ label: label.slice(0, 80), door: d }]);
+  delete final.goto;
+}
 function copilotQuestionStays(question, final) {
   const g = final && final.goto; if (!g) return;
   const d = g.door;
@@ -13822,7 +13913,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
     if (final) copilotTurnSources(cx, question, final, turn);
-    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); }
+    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); copilotChapterButton(cx, final); }
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -14173,7 +14264,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
     if (final) copilotTurnSources(cx, question, final, turn);
-    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); }
+    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); copilotChapterButton(cx, final); }
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
@@ -26163,7 +26254,8 @@ db.exec(`
    dropped, everyday endings forgiven (hsRoot), a misspelt word replaced by
    the words the book holds one slip away (hsNearest over the index's own
    vocabulary). Search by meaning is Jambo's: he hands several likely words. */
-const HS_SCAN = 800;   // candidate rows read past the wall at most; past it the total is said to be partial
+const HS_SCAN = 800;
+const HS_GUIDE_STEPS = 3;   // Handbook chapters handed whole per search; the rest come by title   // candidate rows read past the wall at most; past it the total is said to be partial
 const HS_CONTRACT_KINDS = ['contract', 'clause', 'obligation', 'note', 'history', 'party'];
 let hsOk = true;
 try {
@@ -26196,6 +26288,8 @@ try {
   for (const t of ['templates', 'template_versions', 'template_blocks']) mark(t, t, '', "'k:template'");
   /* HaTi's own templates ride with the code, not a table: read again once each start (stage 3d) */
   db.exec(hsMarkSql("'k:template'"));
+  /* …and the Handbook rides with the code too: read again once each start, so a chapter written today is found today */
+  db.exec(hsMarkSql("'k:guide'"));
 } catch (e) { hsOk = false; }
 const hsText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+/g, ' ').trim().slice(0, n || 20000);
@@ -26204,7 +26298,8 @@ const hsText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').rep
 const HS_KIND_WORDS = { contract: 'contract agreement deal avtal', clause: 'clause section article klausul', obligation: 'obligation obligations duty duties due payment åtagande',
   note: 'note notes anteckning', mine: 'note notes my anteckning', request: 'request requests intake förfrågan', person: 'person people colleague user kollega',
   party: 'party counterparty customer supplier part motpart', partyrec: 'party counterparty part motpart', history: 'history trail audit historik',
-  template: 'template templates mall', standard: 'standard standards playbook standard' };
+  template: 'template templates mall', standard: 'standard standards playbook standard',
+  guide: 'handbook guide how instructions steps help manual where who may handbok guide instruktion hjälp hur' };
 function hsPut(kind, ref, cid, owner, title, body, meta, extra) {
   const tags = [HS_KIND_WORDS[kind] || kind, extra || ''].join(' ').trim();
   const r = db.prepare('INSERT INTO hs_docs (kind, ref, cid, owner, title, body, meta, tags) VALUES (?,?,?,?,?,?,?,?)')
@@ -26286,6 +26381,10 @@ function hsIndexKind(k) {
       if (!t || !t.name) continue;
       hsPut('template', 'builtin:' + key, null, null, t.name, [t.kind, t.blurb, 'HaTi template'].filter(Boolean).join('  '));
     }
+  } else if (k === 'guide') {
+    /* THE HANDBOOK: the book itself and every chapter, both languages in one document (js/handbook.js hbkSearchDocs) */
+    hsDrop("kind = 'guide'");
+    for (const d of HBK.hbkSearchDocs(srvHbkWord)) hsPut('guide', d.k, null, null, d.title, d.body, { part: d.part }, d.tags);
   } else if (k === 'standard') {
     hsDrop("kind = 'standard'");
     for (const [book, b] of Object.entries(workspacePlaybook() || {})) {
@@ -26303,7 +26402,7 @@ function hsRefresh() {
   if (!getSetting('hsBuilt')) {
     txn(() => {
       for (const r of db.prepare('SELECT id FROM contracts').all()) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('c:' + r.id);
-      for (const k of ['request', 'person', 'party', 'mine', 'template', 'standard']) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('k:' + k);
+      for (const k of ['request', 'person', 'party', 'mine', 'template', 'standard', 'guide']) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('k:' + k);
     });
     setSetting('hsBuilt', { at: now() });
   }
@@ -26361,7 +26460,7 @@ function hatiSearch(ctx, q, opts) {
     if (r.kind === 'mine') return !!user && r.owner === user.id;
     if (r.kind === 'template') return String(r.ref).startsWith('builtin:') ? !!SRV_TEMPLATES[String(r.ref).slice(8)] : tplVisibleTo(tplOf.get(r.ref), user);
     if (r.kind === 'partyrec') return partyKeys.has(r.ref);
-    return r.kind === 'person' || r.kind === 'standard';
+    return r.kind === 'person' || r.kind === 'standard' || r.kind === 'guide';
   };
   const asKind = r => (r.kind === 'mine' ? 'note' : r.kind === 'partyrec' ? 'party' : r.kind);
   let rows = [];
@@ -26396,6 +26495,10 @@ function hatiSearch(ctx, q, opts) {
     if (kind === 'standard') h.book = meta.book;
     if (r.kind === 'mine') { h.mine = true; if (meta.contractId) h.contractId = meta.contractId; }
     if (kind === 'request') h.status = reqs.get(r.ref).status;
+    /* a Handbook chapter comes with its own steps, in the reader's language, so the answer rests on the chapter's
+       words (the first three chapters found; the rest by their title) */
+    if (kind === 'guide') { h.chapter = r.ref;
+      if (hits.filter(x => x.kind === 'guide').length < HS_GUIDE_STEPS) h.steps = HBK.hbkPlainFor(r.ref, user && user.lang === 'sv' ? 'sv' : 'en', srvHbkWord).slice(0, 2400); }
     hits.push(h);
   }
   return { hits, total, shown: hits.length, truncated: total > hits.length, scanCapped, searched: terms, fixed, ...(ctx.money ? {} : { snippets: false }) };
@@ -28053,6 +28156,9 @@ app.use('/vendor', express.static(path.join(__dirname, '..', 'vendor'), {
   maxAge: '30d', immutable: true,
 }));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
+/* THE HANDBOOK'S PICTURES (owner, 26 Oct 2026): taken by test/chromium/handbook-verify.js from the
+   example world and kept under handbook/img; a chapter whose picture is not there says so in its frame. */
+app.use('/handbook', express.static(path.join(__dirname, '..', 'handbook'), { maxAge: '1h' }));
 
 /* ---- EVERY FAILURE ANSWERS IN JSON, AND NEVER WITH OUR INSIDES (26 Sep 2026,
    the overnight clean-up) ----

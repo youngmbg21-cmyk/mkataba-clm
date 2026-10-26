@@ -1,0 +1,898 @@
+// HaTi — THE HANDBOOK: one chapter per thing a person can do, in both books.
+/* ============================================================================
+   THE HANDBOOK (owner, 26 Oct 2026: "a page with a link in the guide page that
+   shows instructions … the same exact instructions format [as the Discover
+   user guide] … in subsections … and a rule that whenever the platform changes
+   or new features are added, the guide instruction book is updated")
+   ----------------------------------------------------------------------------
+   This file is the BOOK: the parts (the Guide's own stages, with Getting
+   around first and Settings last), and every chapter as data. The page that
+   draws it is js/views/handbook.js. Nothing here touches the DOM, so node can
+   read it (test/f937-every-change-updates-the-handbook.test.js) and the
+   browser publishes it.
+
+   A CHAPTER'S WORDS CARRY MARKERS, never typed labels:
+     {ui:key}    a button or word as the screen prints it — the dictionary key,
+                 so a renamed label follows and a retired one FAILS the test
+     {door:key}  a live door: a place word (CA_PLACES), a place inside one
+                 (NAV_PLACES) or 'handbook' — drawn as a chip that takes you
+                 there through Jambo's one mover (caGo), greyed with why when
+                 the reader may not use it
+   Every text field is {en, sv}. `doors` and `acts` say which doors the
+   chapter covers (the test's coverage); `words` are the everyday words a
+   "how do I …" question is matched on (navReadHandbook, round 4); `shot` is
+   the picture's recipe (test/chromium/handbook-verify.js takes it on the
+   seeded world and draws the red boxes from the elements' own positions), or
+   `noShot` says plainly why there is none.
+   ========================================================================== */
+/* the day a person last read the whole book against the running app (the rule's foot line) */
+const HANDBOOK_CHECKED = '2026-10-26';
+
+/* THE PARTS, in the Guide's order: a part with `gd` takes its name and its
+   line from the Guide's own words (gd_s_<k>, gd_s_<k>_w: one fact, one home) */
+const HANDBOOK_PARTS = [
+  { k: 'around', w: 'hbk_part_around', sub: 'hbk_part_around_w' },
+  { k: 'ask', gd: 'ask' },
+  { k: 'draft', gd: 'draft' },
+  { k: 'agree', gd: 'agree' },
+  { k: 'sign', gd: 'sign' },
+  { k: 'keep', gd: 'keep' },
+  { k: 'see', gd: 'see' },
+  { k: 'settings', w: 'gd_p_settings', sub: 'hbk_part_settings_w' },
+];
+
+const _hbkFree = { en: 'Free', sv: 'Gratis' };
+const _hbkCall = (n, what) => ({ en: `${n} Jambo call${n === 1 ? '' : 's'} ${what.en}`, sv: `${n} Jambo-anrop ${what.sv}` });
+
+const HANDBOOK_CHAPTERS = [
+  /* ======================= PART 0 — GETTING AROUND ======================= */
+  { k: '0.1', part: 'around', round: 1,
+    title: { en: 'Home: what needs you, your book, the Board', sv: 'Hem: vad som behöver dig, din bok, Tavlan' },
+    eyebrow: { en: 'The first screen', sv: 'Första skärmen' },
+    what: { en: 'On a computer HaTi opens on Home. Jambo\'s box is at the top, Needs you under it (everything waiting on you, the contract\'s number first on every row), then your book: the Board, your contracts, the Calendar and the Explorer.',
+      sv: 'På en dator öppnar HaTi på Hem. Jambos ruta överst, Behöver dig under den (allt som väntar på dig, avtalets nummer först på varje rad), sedan din bok: Tavlan, dina avtal, Kalendern och Utforskaren.' },
+    when: [{ en: 'Every morning: what is waiting, and whose move it is.', sv: 'Varje morgon: vad som väntar, och vems drag det är.' },
+      { en: 'When you are lost: the bar\'s HaTi mark always brings you back here.', sv: 'När du tappat bort dig: HaTi-märket i listen tar dig alltid hit.' }],
+    path: ['door:counter', { en: 'or press HaTi in the bar', sv: 'eller tryck HaTi i listen' }],
+    how: [{ en: 'Read Needs you. Each row has one button with one word ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): press it and you land on that act.', sv: 'Läs Behöver dig. Varje rad har en knapp med ett ord ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): tryck och du landar på den handlingen.' },
+      { en: 'Jambo\'s ready pieces come first; "Show all N" opens the whole desk on the Board.', sv: 'Jambos färdiga stycken kommer först; "Visa alla N" öppnar hela disken på Tavlan.' },
+      { en: 'Under it, your book: {door:board} for the figures, {door:contracts} for every contract, {door:calendar} and {door:explorer}.', sv: 'Under det, din bok: {door:board} för siffrorna, {door:contracts} för alla avtal, {door:calendar} och {door:explorer}.' }],
+    tip: { en: 'There is no menu on the left. Every page is a word: type it in Jambo\'s box, or type / and pick from the list.', sv: 'Det finns ingen meny till vänster. Varje sida är ett ord: skriv det i Jambos ruta, eller skriv / och välj i listan.' },
+    cost: _hbkFree, doors: ['counter', 'needs', 'board', 'work'], acts: [],
+    words: { en: ['home', 'start page', 'first screen', 'needs you', 'needs me', 'what is waiting'], sv: ['hem', 'startsidan', 'behöver mig', 'vad väntar'] },
+    shot: { go: [{ place: 'counter' }], boxes: ['#cn-q', '#cn-needs'], cap: { en: 'Home: Jambo\'s box (1) and Needs you (2).', sv: 'Hem: Jambos ruta (1) och Behöver dig (2).' } } },
+
+  { k: '0.2', part: 'around', round: 1,
+    title: { en: 'Ask Jambo, or type "/"', sv: 'Fråga Jambo, eller skriv "/"' },
+    eyebrow: { en: 'Every box', sv: 'Varje ruta' },
+    what: { en: 'One box, on every page, with one placeholder: "{ui:jl_ph_any}". A place word takes you there. A question is answered where you typed it. On the Board what can be drawn is drawn first, then explained.',
+      sv: 'En ruta, på varje sida, med en text: "{ui:jl_ph_any}". Ett platsord tar dig dit. En fråga besvaras där du skrev den. På Tavlan ritas det som kan ritas först, sedan förklaras det.' },
+    when: [{ en: '"obligations", "approvals", "the Kabras contract": to get somewhere.', sv: '"åtaganden", "godkännanden", "Kabras-avtalet": för att komma någonstans.' },
+      { en: '"which contracts end this year?": to get an answer with a chart.', sv: '"vilka avtal löper ut i år?": för ett svar med ett diagram.' },
+      { en: '"how do I send this for review?": to get the Handbook\'s chapter.', sv: '"hur skickar jag det här på granskning?": för Handbokens kapitel.' }],
+    path: [{ en: 'The box at the top of Home, or at the foot of Jambo\'s panel on every page', sv: 'Rutan överst på Hem, eller längst ned i Jambos panel på varje sida' }],
+    how: [{ en: 'Type a page\'s name, or / and pick it. Jambo moves you and presses nothing else.', sv: 'Skriv en sidas namn, eller / och välj. Jambo flyttar dig och trycker inget annat.' },
+      { en: 'Type a question. Free readings (counts, lists, dates) are answered without Jambo\'s brain; a question that needs it says so and what it costs before it runs.', sv: 'Skriv en fråga. Fria avläsningar (antal, listor, datum) besvaras utan Jambos hjärna; en fråga som behöver den säger det och vad det kostar innan den körs.' },
+      { en: 'Say "them" or "these" for the last answer\'s set: "show them on the board".', sv: 'Säg "dem" eller "dessa" för förra svarets mängd: "visa dem på tavlan".' },
+      { en: 'Ask about HaTi itself on any page ("what can I do here?", "who can change the rates?", "what is the Handbook about?"): Jambo answers from this book, in steps, with the chapter as a button under the answer. You stay where you asked.', sv: 'Fråga om HaTi självt på vilken sida som helst ("vad kan jag göra här?", "vem kan ändra kurserna?", "vad handlar Handboken om?"): Jambo svarar ur den här boken, steg för steg, med kapitlet som en knapp under svaret. Du stannar där du frågade.' }],
+    tip: { en: 'Typing never acts. A send, a signature or a change always waits for your press, with its cost said first.', sv: 'Att skriva utför aldrig något. Ett utskick, en signatur eller en ändring väntar alltid på ditt tryck, med kostnaden sagd först.' },
+    cost: { en: 'Free to move; a brain question says its cost', sv: 'Gratis att flytta; en hjärnfråga säger sin kostnad' }, doors: ['help', 'back', 'next', 'insights'], acts: [],
+    words: { en: ['ask jambo', 'jambo box', 'slash', 'type a place', 'talk to jambo', 'chat'], sv: ['fråga jambo', 'jambos ruta', 'snedstreck', 'chatta'] },
+    shot: { go: [{ place: 'counter' }, { type: '/' }], boxes: ['#cn-q', '#cn-pop'], cap: { en: 'Type / and the places you use most are listed.', sv: 'Skriv / och platserna du använder mest listas.' } } },
+
+  { k: '0.3', part: 'around', round: 1,
+    title: { en: 'The bell and Needs you: one list', sv: 'Klockan och Behöver dig: en lista' },
+    eyebrow: { en: 'Top right', sv: 'Uppe till höger' },
+    what: { en: 'The bell counts exactly what Needs you lists: the same rows, the same number. News (things that ask nothing of you) is never counted.',
+      sv: 'Klockan räknar precis det Behöver dig listar: samma rader, samma siffra. Nyheter (sådant som inte ber dig om något) räknas aldrig.' },
+    when: [{ en: 'A number on the bell: something waits on you.', sv: 'En siffra på klockan: något väntar på dig.' },
+      { en: 'You were told by email: the bell has the same thing, with its door.', sv: 'Du fick ett mejl: klockan har samma sak, med sin dörr.' }],
+    path: ['door:alerts', { en: 'the bell, or the Alerts tab of the right-hand panel', sv: 'klockan, eller fliken Aviseringar i högerpanelen' }],
+    how: [{ en: 'Press the bell. Needs you is first; News under it.', sv: 'Tryck på klockan. Behöver dig först; Nyheter under.' },
+      { en: 'Press {ui:act_open} on a row and you land on the contract, on the act it asks for.', sv: 'Tryck {ui:act_open} på en rad och du landar på avtalet, på handlingen den ber om.' }],
+    tip: { en: 'A thing you are owed is said to you once, where you look: here, on Home, and on your phone if alerts are on. Other pages point here.', sv: 'Något som väntar på dig sägs en gång, där du tittar: här, på Hem och i telefonen om aviseringar är på. Andra sidor pekar hit.' },
+    cost: _hbkFree, doors: ['alerts', 'news'], acts: [],
+    words: { en: ['bell', 'alerts', 'notifications', 'news'], sv: ['klockan', 'aviseringar', 'notiser', 'nyheter'] },
+    shot: { go: [{ place: 'counter' }, { panel: 'alerts' }], boxes: ['#context-panel', '#panel-tabs'], cap: { en: 'The Alerts face of the right-hand panel.', sv: 'Aviseringar i högerpanelen.' } } },
+
+  { k: '0.4', part: 'around', round: 1,
+    title: { en: 'A contract\'s Dossier', sv: 'Ett avtals Dossier' },
+    eyebrow: { en: 'Beside the paper', sv: 'Bredvid papperet' },
+    what: { en: 'Open a contract and its paper stands in the middle, with Jambo\'s panel beside it. The panel has three tabs: {ui:pd_tab_dossier} (the six stages down one line, what is owed under each), {ui:pd_tab_clauses} (the deep read, clause by clause) and {ui:pd_face_w_red} (their changes and yours).',
+      sv: 'Öppna ett avtal och dess papper står i mitten, med Jambos panel bredvid. Panelen har tre flikar: {ui:pd_tab_dossier} (de sex stegen på en rad, det som väntar under varje), {ui:pd_tab_clauses} (djupläsningen, klausul för klausul) och {ui:pd_face_w_red} (deras ändringar och dina).' },
+    when: [{ en: 'Any time you open a contract: start here.', sv: 'Varje gång du öppnar ett avtal: börja här.' },
+      { en: 'To see at a glance which stage it is in and what still blocks it.', sv: 'För att på en gång se vilket steg det är i och vad som fortfarande hindrar.' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: 'Dossier', sv: 'Dossier' }],
+    how: [{ en: 'Read the spine: six stages down one line, the current one marked, the work owed under it.', sv: 'Läs ryggraden: sex steg på en rad, det aktuella markerat, arbetet som väntar under.' },
+      { en: 'Press a line. What it opens comes to the middle, where the paper was; the Dossier never moves. "‹ Paper" or Esc brings the paper back.', sv: 'Tryck på en rad. Det den öppnar kommer till mitten, där papperet var; Dossiern flyttar sig aldrig. "‹ Papper" eller Esc tar papperet tillbaka.' },
+      { en: 'Under the stages: Obligations, the stage\'s acts (Amend, Review, Send …), links last.', sv: 'Under stegen: Åtaganden, stegets handlingar (Ändra, Granska, Skicka …), länkar sist.' }],
+    tip: { en: 'The paper itself is never edited by hand. Changes go through Redlines, so every change is a record.', sv: 'Papperet redigeras aldrig för hand. Ändringar går genom Ändringar, så varje ändring är en post.' },
+    cost: _hbkFree, doors: ['document', 'history', 'brief'], acts: ['paper', 'dossier', 'hist', 'where', 'family', 'opened', 'clauses'],
+    words: { en: ['dossier', 'open a contract', 'the paper', 'contract panel', 'stages', 'spine'], sv: ['dossier', 'öppna ett avtal', 'papperet', 'stegen'] },
+    shot: { go: [{ open: 'MK-A1', face: 'copilot' }], boxes: ['#ig-dock', '.pd-tabs, [data-pd-tab]'], cap: { en: 'The paper in the middle, the Dossier beside it with its three tabs.', sv: 'Papperet i mitten, Dossiern bredvid med sina tre flikar.' } } },
+
+  { k: '0.5', part: 'around', round: 1,
+    title: { en: 'The right-hand panel: Guide · Alerts · Notes · Activity', sv: 'Högerpanelen: Guide · Aviseringar · Anteckningar · Aktivitet' },
+    eyebrow: { en: 'Top right', sv: 'Uppe till höger' },
+    what: { en: 'One panel, four faces. {ui:gd_tab} is the map of every page in the order a contract lives; {ui:sh_alerts} is the bell; {ui:ng_card_notes} shows only with a contract in front; {ui:sh_activity} is what happened lately.',
+      sv: 'En panel, fyra ansikten. {ui:gd_tab} är kartan över varje sida i den ordning ett avtal lever; {ui:sh_alerts} är klockan; {ui:ng_card_notes} visas bara med ett avtal framför; {ui:sh_activity} är vad som hänt nyligen.' },
+    when: [{ en: 'You do not know where a page is: the Guide lists them all, and says "You are here".', sv: 'Du vet inte var en sida finns: Guiden listar alla, och säger "Du är här".' },
+      { en: 'You want this book: it is the Guide\'s last row but one.', sv: 'Du vill ha den här boken: den är Guidens näst sista rad.' }],
+    path: ['door:guide', { en: 'or type "guide"', sv: 'eller skriv "guide"' }],
+    how: [{ en: 'Open the panel on any tab; press another tab to switch. A press on the tab in front does nothing.', sv: 'Öppna panelen på valfri flik; tryck på en annan för att byta. Ett tryck på fliken framför gör inget.' },
+      { en: 'On the Guide, press a page and the panel lets go and takes you there. A number on a row is that page\'s own count.', sv: 'I Guiden, tryck på en sida och panelen släpper och tar dig dit. En siffra på en rad är sidans egen räkning.' },
+      { en: 'Jambo\'s box is at the foot of every face.', sv: 'Jambos ruta finns längst ned i varje ansikte.' }],
+    tip: { en: 'The Guide is where things ARE. This Handbook is how to DO them. The Guide\'s row "{ui:gd_p_handbook}" opens it.', sv: 'Guiden visar var saker FINNS. Handboken visar hur man GÖR dem. Guidens rad "{ui:gd_p_handbook}" öppnar den.' },
+    cost: _hbkFree, doors: ['guide', 'activity', 'handbook', 'recent'], acts: [],
+    words: { en: ['guide', 'right panel', 'side panel', 'activity', 'handbook', 'instructions', 'manual'], sv: ['guide', 'högerpanel', 'sidopanel', 'aktivitet', 'handbok', 'instruktioner'] },
+    shot: { go: [{ place: 'counter' }, { panel: 'guide' }], boxes: ['#panel-tabs', '.gd-stages', '[data-gd-go="handbook"]'], cap: { en: 'The Guide: the tabs (1), the stages (2) and the Handbook\'s row (3).', sv: 'Guiden: flikarna (1), stegen (2) och Handbokens rad (3).' } } },
+
+  { k: '0.6', part: 'around', round: 1,
+    title: { en: 'Finding a contract', sv: 'Hitta ett avtal' },
+    eyebrow: { en: 'Contracts', sv: 'Avtal' },
+    what: { en: 'Contracts is a place on Home: a wall of papers or a list, with one head: a search box, tabs and filter chips. A press chooses, a second press opens, Esc lets go.',
+      sv: 'Avtal är en plats på Hem: en vägg av papper eller en lista, med ett huvud: en sökruta, flikar och filterchips. Ett tryck väljer, ett andra öppnar, Esc släpper.' },
+    when: [{ en: '"The Kabras contract", "contracts ending this quarter in Sales": type it in Jambo\'s box and the list narrows.', sv: '"Kabras-avtalet", "avtal som löper ut detta kvartal i Sälj": skriv det i Jambos ruta och listan smalnar.' },
+      { en: 'You opened it recently: the page name in the bar opens Recent.', sv: 'Du öppnade det nyligen: sidnamnet i listen öppnar Senaste.' }],
+    path: ['door:contracts', { en: 'List or Wall', sv: 'Lista eller Vägg' }],
+    how: [{ en: 'Press {door:list} or {door:wall} in the head to change how it is shown.', sv: 'Tryck {door:list} eller {door:wall} i huvudet för att byta visning.' },
+      { en: 'Type in the box to narrow. The tabs and chips only offer choices that give rows.', sv: 'Skriv i rutan för att smalna. Flikarna och chipsen erbjuder bara val som ger rader.' },
+      { en: 'The archive is its own view: type "{door:archived}".', sv: 'Arkivet är en egen vy: skriv "{door:archived}".' }],
+    tip: { en: 'A contract in a private stream shows only to the people named on it, admins too. A code-named deal shows its code name to everyone outside its list.', sv: 'Ett avtal i en privat ström syns bara för dem som är namngivna, även admins. Ett kodnamnat avtal visar sitt kodnamn för alla utanför listan.' },
+    cost: _hbkFree, doors: ['contracts', 'list', 'wall', 'archived', 'recent'], acts: [],
+    words: { en: ['find a contract', 'search contracts', 'contracts list', 'the wall', 'archive', 'recent'], sv: ['hitta ett avtal', 'sök avtal', 'avtalslistan', 'väggen', 'arkiv'] },
+    shot: { go: [{ place: 'contracts' }], boxes: ['#ct-place .ph-card, #ct-place', '#ig-dock'], cap: { en: 'Contracts as a list, its head above it, Jambo beside.', sv: 'Avtal som lista, huvudet ovanför, Jambo bredvid.' } } },
+
+  /* ======================= PART 1 — SOMEONE ASKS ======================= */
+  { k: '1.1', part: 'ask', round: 2,
+    title: { en: 'Requests: ask legal for a contract or advice', sv: 'Förfrågningar: be juristerna om ett avtal eller råd' },
+    eyebrow: { en: 'Requests page', sv: 'Förfrågningar' },
+    what: { en: 'A colleague who needs a contract, or a legal answer, raises a request. It lands with the stream\'s editors, is tracked until answered, and the paper that fits is found without Jambo\'s brain.',
+      sv: 'En kollega som behöver ett avtal, eller ett juridiskt svar, lägger en förfrågan. Den hamnar hos strömmens redaktörer, följs tills den är besvarad, och papperet som passar hittas utan Jambos hjärna.' },
+    when: [{ en: 'Sales needs an NDA with a new supplier.', sv: 'Sälj behöver ett sekretessavtal med en ny leverantör.' },
+      { en: 'Somebody needs advice on a clause, not a new paper: advice is a request too.', sv: 'Någon behöver råd om en klausul, inte ett nytt papper: råd är också en förfrågan.' }],
+    path: ['door:requests'],
+    how: [{ en: 'Press the new-request button, say what is needed and for whom; attach up to 3 files of 5 MB.', sv: 'Tryck på knappen för ny förfrågan, säg vad som behövs och för vem; bifoga upp till 3 filer på 5 MB.' },
+      { en: 'The editors are emailed and the request shows on their Needs you. Each tab\'s number is the list behind it.', sv: 'Redaktörerna mejlas och förfrågan visas på deras Behöver dig. Varje fliks siffra är listan bakom den.' },
+      { en: 'Open a request: the paper that fits is already suggested. Press {ui:ik_act_draft} and the one New agreement sheet opens with it.', sv: 'Öppna en förfrågan: papperet som passar är redan föreslaget. Tryck {ui:ik_act_draft} så öppnas det enda Nytt avtal-arket med det.' }],
+    tip: { en: 'A person who may not make new paper is sent here instead: their refusal names who lifts it, with Ask an admin.', sv: 'En person som inte får skapa nytt papper skickas hit i stället: avslaget säger vem som lyfter det, med Fråga en admin.' },
+    cost: _hbkFree, doors: ['requests'], acts: [],
+    words: { en: ['request', 'ask legal', 'raise a request', 'advice', 'intake'], sv: ['förfrågan', 'be juristerna', 'råd'] },
+    shot: { go: [{ place: 'requests' }], boxes: ['#content .sap-band', '#ins-panel'], cap: { en: 'Requests: the tabs count the lists behind them; Jambo beside.', sv: 'Förfrågningar: flikarna räknar listorna bakom; Jambo bredvid.' } } },
+
+  { k: '1.2', part: 'ask', round: 2,
+    title: { en: 'Import: bring in the contracts you already have', sv: 'Import: ta in avtalen du redan har' },
+    eyebrow: { en: 'Import page', sv: 'Import' },
+    what: { en: 'Drop a folder of old contracts and HaTi reads each file into a record: a name, the parties, the dates. One table, the ones that need you first; a press chooses, the form beside it is the one place to correct and file.',
+      sv: 'Släpp en mapp med gamla avtal så läser HaTi varje fil till en post: ett namn, parterna, datumen. En tabell, de som behöver dig först; ett tryck väljer, formuläret bredvid är det enda stället att rätta och arkivera.' },
+    when: [{ en: 'You are moving to HaTi and have a drive of signed PDFs and Word files.', sv: 'Ni flyttar till HaTi och har en disk med signerade PDF:er och Word-filer.' },
+      { en: 'A batch of contracts arrived from an acquisition.', sv: 'En bunt avtal kom från ett förvärv.' }],
+    path: ['door:import'],
+    how: [{ en: 'Drop the files, or a whole folder. Several files at once always go through Import, never the single Upload.', sv: 'Släpp filerna, eller en hel mapp. Flera filer på en gång går alltid genom Import, aldrig den enskilda Uppladdningen.' },
+      { en: 'Press a row to choose it; correct what the reader got wrong in the form beside; press {ui:mig_file_it}.', sv: 'Tryck på en rad för att välja; rätta det läsaren fick fel i formuläret bredvid; tryck {ui:mig_file_it}.' },
+      { en: '{ui:mig_check_all_other} walks every file\'s words so you check them one after another.', sv: '{ui:mig_check_all_other} går igenom varje fils ord så du kontrollerar dem en efter en.' }],
+    tip: { en: 'A file that looks unsigned is parked, never sealed as signed. A contract that renews by itself gets a yearly obligation with its notice day.', sv: 'En fil som ser osignerad ut parkeras, förseglas aldrig som signerad. Ett avtal som förnyas av sig självt får ett årligt åtagande med sin uppsägningsdag.' },
+    cost: { en: 'Free; Jambo\'s read of a file says its cost', sv: 'Gratis; Jambos läsning av en fil säger sin kostnad' }, doors: ['import'], acts: [],
+    words: { en: ['import', 'bring in old contracts', 'migrate', 'drop a folder', 'bulk upload'], sv: ['import', 'ta in gamla avtal', 'migrera', 'släpp en mapp'] },
+    shot: { go: [{ place: 'import' }], boxes: ['#content .sap-band', '#mig-side'], cap: { en: 'Import: the drop area and the table, the form beside.', sv: 'Import: släppytan och tabellen, formuläret bredvid.' } } },
+
+  /* ======================= PART 2 — DRAFT IT ======================= */
+  { k: '2.1', part: 'draft', round: 1,
+    title: { en: 'New agreement: the one sheet', sv: 'Nytt avtal: det enda arket' },
+    eyebrow: { en: 'From anywhere', sv: 'Varifrån som helst' },
+    what: { en: 'Every way of starting a contract opens the same sheet beside Jambo: a box to say what you need, then {ui:na_tab_ours} (a template) or {ui:na_tab_theirs} (their file). The details you typed (party, value, dates) are read into the form without Jambo\'s brain, each saying where it came from.',
+      sv: 'Varje sätt att starta ett avtal öppnar samma ark bredvid Jambo: en ruta för vad du behöver, sedan {ui:na_tab_ours} (en mall) eller {ui:na_tab_theirs} (deras fil). Uppgifterna du skrev (part, värde, datum) läses in i formuläret utan Jambos hjärna, var och en med sin källa.' },
+    when: [{ en: '"an NDA with Volvo, mutual, two years": the closest paper is picked and the facts filled.', sv: '"ett sekretessavtal med Volvo, ömsesidigt, två år": närmaste papper väljs och uppgifterna fylls i.' },
+      { en: 'The other side sent their paper: drop it on the sheet instead.', sv: 'Motparten skickade sitt papper: släpp det på arket i stället.' }],
+    path: ['door:draft', { en: 'or the + on Home', sv: 'eller + på Hem' }],
+    how: [{ en: 'Say what you need in a sentence. The three closest papers are offered; when one is clearly closest it is chosen.', sv: 'Säg vad du behöver i en mening. De tre närmaste papperen erbjuds; när ett är klart närmast väljs det.' },
+      { en: 'Check the rows: Term · What it says · Where it came from. Change anything.', sv: 'Kontrollera raderna: Term · Vad det säger · Varifrån det kom. Ändra vad som helst.' },
+      { en: 'Pick a stream. {ui:act_create} stays grey until there is a paper AND a stream. Nothing is minted before you press it.', sv: 'Välj en ström. {ui:act_create} är grå tills det finns ett papper OCH en ström. Inget skapas innan du trycker.' }],
+    tip: { en: 'Nothing fits? The sheet sends you to Requests so legal can draft it. Easily confused papers ask one question first.', sv: 'Inget passar? Arket skickar dig till Förfrågningar så juristerna kan skriva det. Papper som är lätta att blanda ihop ställer en fråga först.' },
+    cost: { en: 'Free; Jambo\'s read of their file says its cost', sv: 'Gratis; Jambos läsning av deras fil säger sin kostnad' }, doors: ['draft'], acts: [],
+    words: { en: ['new agreement', 'new contract', 'draft a contract', 'start a contract', 'create a contract', 'draft from a sentence'], sv: ['nytt avtal', 'skapa avtal', 'skriv ett avtal', 'börja ett avtal'] },
+    shot: { go: [{ place: 'counter' }, { fn: 'openNewAgreement' }], boxes: ['#na-one, .na-one', '#ig-dock'], cap: { en: 'The one sheet beside Jambo.', sv: 'Det enda arket bredvid Jambo.' } } },
+
+  { k: '2.2', part: 'draft', round: 1,
+    title: { en: 'Upload a document', sv: 'Ladda upp ett dokument' },
+    eyebrow: { en: 'Jambo\'s panel', sv: 'Jambos panel' },
+    what: { en: 'Drop one Word or PDF file on Jambo\'s panel and it opens as the paper. On arrival Jambo reads it: the brief, a check against Our standards, the risk scan and the blanks, with the cost said before he starts.',
+      sv: 'Släpp en Word- eller PDF-fil på Jambos panel så öppnas den som papperet. Vid ankomst läser Jambo den: sammanfattningen, en kontroll mot Våra standarder, riskskanningen och luckorna, med kostnaden sagd innan han börjar.' },
+    when: [{ en: 'The other side sent their draft.', sv: 'Motparten skickade sitt utkast.' },
+      { en: 'A signed paper arrived that is not in HaTi yet (one file; many go through Import).', sv: 'Ett signerat papper kom som inte finns i HaTi än (en fil; många går genom Import).' }],
+    path: ['door:upload', { en: 'or drop the file on Jambo\'s panel', sv: 'eller släpp filen på Jambos panel' }],
+    how: [{ en: 'Drop the file. "{ui:pd_drop_t}" is the area; {ui:pd_drop_pick} opens the picker.', sv: 'Släpp filen. "{ui:pd_drop_t}" är ytan; {ui:pd_drop_pick} öppnar väljaren.' },
+      { en: 'The file becomes a name and a paper with its clauses. Numbering is read off the file, never invented.', sv: 'Filen blir ett namn och ett papper med sina klausuler. Numreringen läses från filen, hittas aldrig på.' },
+      { en: 'Jambo speaks first in his panel: what he read and the doors that follow. Then fill in the details.', sv: 'Jambo talar först i sin panel: vad han läste och dörrarna som följer. Fyll sedan i uppgifterna.' }],
+    tip: { en: 'One file at a time. A file with no structure stores no body. A contract in a private stream is read only when you press.', sv: 'En fil i taget. En fil utan struktur lagrar ingen text. Ett avtal i en privat ström läses bara när du trycker.' },
+    cost: { en: 'The read\'s cost is said before it runs', sv: 'Läsningens kostnad sägs innan den körs' }, doors: ['upload'], acts: [],
+    words: { en: ['upload', 'upload a document', 'upload a file', 'drop a file', 'their draft', 'pdf', 'word file'], sv: ['ladda upp', 'ladda upp ett dokument', 'släpp en fil', 'deras utkast'] },
+    shot: { go: [{ open: 'MK-A1', face: 'copilot' }], boxes: ['#ig-dock'], cap: { en: 'The drop area lives in Jambo\'s panel.', sv: 'Släppytan finns i Jambos panel.' } } },
+
+  { k: '2.3', part: 'draft', round: 1,
+    title: { en: 'Fill in the details', sv: 'Fyll i uppgifterna' },
+    eyebrow: { en: 'The Dossier', sv: 'Dossiern' },
+    what: { en: 'One reading of what a contract still owes: the parties, value, dates, stream, signers. It is answered in place on the Dossier; Key terms open in the middle. An empty box that is owed is amber.',
+      sv: 'En avläsning av vad ett avtal fortfarande saknar: parterna, värdet, datumen, strömmen, undertecknarna. Det besvaras på plats i Dossiern; Nyckelvillkor öppnas i mitten. En tom ruta som saknas är gul.' },
+    when: [{ en: 'A contract shows "N details owed" on Needs you.', sv: 'Ett avtal visar "N uppgifter saknas" på Behöver dig.' },
+      { en: 'Before sending or signing: an owed detail blocks the signature.', sv: 'Innan utskick eller signering: en saknad uppgift blockerar signaturen.' }],
+    path: ['door:fill', { en: 'or the Dossier\'s owed lines', sv: 'eller Dossierns rader som saknas' }],
+    how: [{ en: 'Press {ui:dos_go_fill_in} on the Dossier, or the amber line itself.', sv: 'Tryck {ui:dos_go_fill_in} i Dossiern, eller den gula raden själv.' },
+      { en: 'Answer in the box; it saves on its own. {ui:og_kt_title} opens in the middle for the whole list.', sv: 'Svara i rutan; den sparas av sig själv. {ui:og_kt_title} öppnas i mitten för hela listan.' },
+      { en: 'Money is in the contract\'s own currency; a missing exchange rate is said, never guessed.', sv: 'Pengar är i avtalets egen valuta; en saknad växelkurs sägs, gissas aldrig.' }],
+    tip: { en: 'The blanks in the wording ("[Company]", "[date]") are read off the paper and filled from the record; Jambo suggests, you confirm.', sv: 'Luckorna i texten ("[Bolag]", "[datum]") läses från papperet och fylls från posten; Jambo föreslår, du bekräftar.' },
+    cost: _hbkFree, doors: ['fill'], acts: ['fill', 'terms', 'value', 'counterparty', 'category', 'stream', 'rename', 'nda'],
+    words: { en: ['fill in', 'fill in the details', 'details', 'key terms', 'value', 'dates', 'blanks'], sv: ['fyll i', 'fyll i uppgifterna', 'uppgifter', 'nyckelvillkor', 'värde'] },
+    shot: { go: [{ open: 'MK-A1', face: 'copilot' }], boxes: ['#ig-dock'], cap: { en: 'The Dossier: what is owed, answered in place.', sv: 'Dossiern: det som saknas, besvarat på plats.' } } },
+
+  { k: '2.4', part: 'draft', round: 2,
+    title: { en: 'Our paper: templates and the builder', sv: 'Vårt papper: mallar och byggaren' },
+    eyebrow: { en: 'Our paper page', sv: 'Vårt papper' },
+    what: { en: 'The company\'s templates, shelved beside the chosen paper. A template\'s own page is one line: name, status, version, {ui:act_edit}, and {ui:tl_new_contract}. A new standard is built in the builder, section by section.',
+      sv: 'Företagets mallar, på hyllor bredvid det valda papperet. En malls egen sida är en rad: namn, status, version, {ui:act_edit} och {ui:tl_new_contract}. En ny standard byggs i byggaren, avsnitt för avsnitt.' },
+    when: [{ en: 'You want to see what paper the company has before drafting.', sv: 'Du vill se vilket papper företaget har innan du skriver.' },
+      { en: 'Legal wants a new standard NDA.', sv: 'Juristerna vill ha ett nytt standard-sekretessavtal.' }],
+    path: ['door:ourpaper'],
+    how: [{ en: 'Press a template: its page opens with Jambo beside it, saying what it is for.', sv: 'Tryck på en mall: dess sida öppnas med Jambo bredvid, som säger vad den är till för.' },
+      { en: '{ui:tl_new_contract} opens the one New agreement sheet with this paper chosen.', sv: '{ui:tl_new_contract} öppnar det enda Nytt avtal-arket med detta papper valt.' },
+      { en: 'A new standard: press the new-standard button and the builder opens. A section moves whole ({ui:tb_move_up} · {ui:tb_move_down}); a note is never wording.', sv: 'En ny standard: tryck på knappen för ny standard så öppnas byggaren. Ett avsnitt flyttas helt ({ui:tb_move_up} · {ui:tb_move_down}); en anteckning är aldrig avtalstext.' }],
+    tip: { en: 'A template\'s form fills the wording only when you press {ui:pd_doc_form_go}; until then the form\'s answers are owed and block the signature.', sv: 'En malls formulär fyller texten först när du trycker {ui:pd_doc_form_go}; tills dess saknas formulärets svar och blockerar signaturen.' },
+    cost: _hbkFree, doors: ['ourpaper'], acts: [],
+    words: { en: ['templates', 'our paper', 'template builder', 'new standard', 'new template'], sv: ['mallar', 'vårt papper', 'mallbyggaren', 'ny standard'] },
+    shot: { go: [{ place: 'ourpaper' }], boxes: ['#content .ph-card, #content', '#ins-panel'], cap: { en: 'Our paper: the shelves, Jambo beside.', sv: 'Vårt papper: hyllorna, Jambo bredvid.' } } },
+
+  { k: '2.5', part: 'draft', round: 2,
+    title: { en: 'Our standards: how firm we are', sv: 'Våra standarder: hur fasta vi är' },
+    eyebrow: { en: 'Our paper › standards', sv: 'Vårt papper › standarder' },
+    what: { en: 'For each kind of clause, the company\'s position: aligned, a deviation, missing, or not applicable. Jambo checks every contract against it and learns from settled rounds. "{ui:std_change_position}" is the admin\'s door to the position.',
+      sv: 'För varje slags klausul, företagets position: i linje, en avvikelse, saknas, eller ej tillämplig. Jambo kontrollerar varje avtal mot den och lär av avslutade rundor. "{ui:std_change_position}" är adminens dörr till positionen.' },
+    when: [{ en: 'A clause in their paper departs from what you usually accept.', sv: 'En klausul i deras papper avviker från vad ni brukar godta.' },
+      { en: 'You want Jambo to propose our wording for a weak clause: "{ui:ng_prepare}" files a proposal and sends nothing.', sv: 'Du vill att Jambo föreslår vår text för en svag klausul: "{ui:ng_prepare}" registrerar ett förslag och skickar inget.' }],
+    path: ['door:ourpaper', { en: 'Our standards', sv: 'Våra standarder' }],
+    how: [{ en: 'Open a standard; its rows say the company\'s rule and how firm it is.', sv: 'Öppna en standard; raderna säger företagets regel och hur fast den är.' },
+      { en: 'On a contract, the check lists every standard as met, a deviation or missing. "Every standard is met" is said only over a finished check.', sv: 'På ett avtal listar kontrollen varje standard som uppfylld, en avvikelse eller saknad. "Alla standarder uppfyllda" sägs bara efter en färdig kontroll.' },
+      { en: 'When a round settles, Jambo proposes a learned position; an admin applies it or not.', sv: 'När en runda avslutas föreslår Jambo en inlärd position; en admin tillämpar den eller inte.' }],
+    tip: { en: 'The smallest change wins: Jambo splices our wording into their clause rather than replacing it.', sv: 'Den minsta ändringen vinner: Jambo fogar in vår text i deras klausul i stället för att byta ut den.' },
+    cost: { en: 'The check against standards says its cost', sv: 'Kontrollen mot standarder säger sin kostnad' }, doors: [], acts: [],
+    words: { en: ['standards', 'our standards', 'playbook', 'position', 'how firm', 'deviation'], sv: ['standarder', 'våra standarder', 'spelbok', 'position', 'avvikelse'] },
+    shot: { go: [{ place: 'ourpaper' }, { fn: 'caOpenStandards' }], boxes: ['#content', '#ins-panel'], cap: { en: 'Our standards, each with its position.', sv: 'Våra standarder, var och en med sin position.' } } },
+
+  /* ======================= PART 3 — AGREE THE WORDS ======================= */
+  { k: '3.1', part: 'agree', round: 1,
+    title: { en: 'Their changes: Accept · Reject · Counter', sv: 'Deras ändringar: Godta · Avslå · Motbud' },
+    eyebrow: { en: 'Redlines tab', sv: 'Fliken Ändringar' },
+    what: { en: 'Every change the other side asked for is a row in the Redlines column: one line in paper order, Waiting on you first, settled ones folded. The row carries the whole decision: {ui:ng_accept} · {ui:ng_reject} · {ui:ng_counter}. Under it, Jambo\'s read: the verdict in bold, the reason under, from the playbook first and then what you agreed before.',
+      sv: 'Varje ändring motparten bett om är en rad i Ändringar-kolumnen: en rad i papperets ordning, Väntar på dig först, avgjorda hopfällda. Raden bär hela beslutet: {ui:ng_accept} · {ui:ng_reject} · {ui:ng_counter}. Under den, Jambos läsning: domen i fetstil, skälet under, från spelboken först och sedan vad ni gått med på förut.' },
+    when: [{ en: 'A round came back and Needs you says "N changes waiting on you".', sv: 'En runda kom tillbaka och Behöver dig säger "N ändringar väntar på dig".' },
+      { en: 'You want to know what happened the last time they asked for this: the memory line under the verdict says it.', sv: 'Du vill veta vad som hände sist de bad om detta: minnesraden under domen säger det.' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, 'door:redline'],
+    how: [{ en: 'Read the row: §N and the words that moved. Press the row and the paper glides to the clause.', sv: 'Läs raden: §N och orden som flyttats. Tryck på raden så glider papperet till klausulen.' },
+      { en: 'Press {ui:ng_accept}, {ui:ng_reject} (red) or {ui:ng_counter}. A counter opens the editor on top of their ask, so what you keep of theirs is said.', sv: 'Tryck {ui:ng_accept}, {ui:ng_reject} (röd) eller {ui:ng_counter}. Ett motbud öppnar redigeraren ovanpå deras begäran, så det du behåller av deras sägs.' },
+      { en: 'Nothing is sent by deciding. Your decisions wait as "N not sent" until {ui:ng_send_all}.', sv: 'Inget skickas genom att besluta. Dina beslut väntar som "N inte skickade" tills {ui:ng_send_all}.' },
+      { en: '"{ui:rl_read_more}" asks Jambo\'s brain about this one change, with its cost.', sv: '"{ui:rl_read_more}" frågar Jambos hjärna om just denna ändring, med sin kostnad.' }],
+    read: { key: [{ tone: 'ok', en: 'inside our rule', sv: 'inom vår regel' }, { tone: 'warn', en: 'one-sided or unusual', sv: 'ensidig eller ovanlig' }, { tone: 'risk', en: 'outside our rule', sv: 'utanför vår regel' }, { tone: 'none', en: 'no advice yet (no rule, no precedent)', sv: 'inget råd än (ingen regel, inget prejudikat)' }],
+      en: 'One proposal stands per clause: a counter measured against the standing text replaces the rival, and the list shows the lead first.', sv: 'Ett förslag står per klausul: ett motbud mätt mot gällande text ersätter rivalen, och listan visar det ledande först.' },
+    tip: { en: 'Once anyone has signed, the wording is frozen: no change can be filed. A refusal names the clause.', sv: 'När någon har signerat är texten fryst: ingen ändring kan registreras. Ett avslag namnger klausulen.' },
+    cost: { en: 'Free; "Ask Jambo more" says its cost', sv: 'Gratis; "Fråga Jambo mer" säger sin kostnad' }, doors: ['redline', 'negotiations'], acts: ['ladder'],
+    words: { en: ['redlines', 'their changes', 'accept a change', 'reject a change', 'counter', 'negotiation memory', 'what they asked for'], sv: ['ändringar', 'deras ändringar', 'godta', 'avslå', 'motbud', 'förhandlingsminne'] },
+    shot: { go: [{ open: 'MK-A1', face: 'red' }], boxes: ['#ig-dock'], cap: { en: 'The Redlines column beside the paper.', sv: 'Ändringar-kolumnen bredvid papperet.' } } },
+
+  { k: '3.2', part: 'agree', round: 1,
+    title: { en: 'Your changes: Edit with Jambo, the ladder, Send all', sv: 'Dina ändringar: Redigera med Jambo, stegen, Skicka alla' },
+    eyebrow: { en: 'Redlines tab › Edit', sv: 'Fliken Ändringar › Redigera' },
+    what: { en: 'On a computer you never write on the paper. {ui:ng_cp_copilot} opens the clause editor as a full page: the box IS the redline (struck and inserted words), one panel for the Playbook, the Risks and the Ladder with {ui:ce_apply} · Discard → Applied · Undo, and one foot ‹ k of n › + Save.',
+      sv: 'På en dator skriver du aldrig på papperet. {ui:ng_cp_copilot} öppnar klausulredigeraren som en hel sida: rutan ÄR ändringen (strukna och insatta ord), en panel för Spelboken, Riskerna och Stegen med {ui:ce_apply} · Förkasta → Tillämpad · Ångra, och en fot ‹ k av n › + Spara.' },
+    when: [{ en: 'You want to change a clause before the first send.', sv: 'Du vill ändra en klausul innan första utskicket.' },
+      { en: 'You are countering their ask and want Jambo\'s wording from the playbook.', sv: 'Du bemöter deras begäran och vill ha Jambos text från spelboken.' }],
+    path: ['door:redline', { en: 'a row\'s Edit, or the clause\'s menu', sv: 'en rads Redigera, eller klausulens meny' }],
+    how: [{ en: 'Press {ui:act_edit} on your row, or {ui:ng_cp_copilot} on the clause. The editor opens; the trail says "‹ Redlines  Jambo / Redlines / …".', sv: 'Tryck {ui:act_edit} på din rad, eller {ui:ng_cp_copilot} på klausulen. Redigeraren öppnas; spåret säger "‹ Ändringar  Jambo / Ändringar / …".' },
+      { en: 'Write, or press {ui:ce_apply} on a card. The foot walks their asks one by one; {ui:ce_save_to} files the change. Every way out asks before dropping an unsaved edit.', sv: 'Skriv, eller tryck {ui:ce_apply} på ett kort. Foten går igenom deras begäranden en efter en; {ui:ce_save_to} registrerar ändringen. Varje väg ut frågar innan en osparad ändring släpps.' },
+      { en: 'The row\'s {ui:ng_row_ladder} shows every rung so far on this clause: what each side asked, in order. It invents no walk-away.', sv: 'Radens {ui:ng_row_ladder} visar varje steg hittills på denna klausul: vad varje sida bett om, i ordning. Den hittar inte på någon smärtgräns.' },
+      { en: 'When you are done, {ui:ng_send_all} sends every unsent change in one letter. A single row\'s Send sends only that card.', sv: 'När du är klar skickar {ui:ng_send_all} varje oskickad ändring i ett brev. En enskild rads Skicka skickar bara det kortet.' }],
+    tip: { en: 'Spelling: Save lists the new words it does not know, with a wavy underline where it would. Contract words and names pass.', sv: 'Stavning: Spara listar de nya ord den inte känner, med en vågig understrykning där den skulle. Avtalsord och namn passerar.' },
+    cost: { en: 'Free; a Jambo card in the editor says its cost', sv: 'Gratis; ett Jambo-kort i redigeraren säger sin kostnad' }, doors: [], acts: [],
+    words: { en: ['edit a clause', 'edit with jambo', 'clause editor', 'ladder', 'send all', 'my changes', 'change the wording'], sv: ['redigera en klausul', 'redigera med jambo', 'klausulredigeraren', 'stegen', 'skicka alla', 'ändra texten'] },
+    shot: { go: [{ open: 'MK-A1', face: 'red' }], boxes: ['#ig-dock'], cap: { en: 'Your rows carry Edit · Send · Review · Ladder.', sv: 'Dina rader bär Redigera · Skicka · Granska · Stege.' } } },
+
+  { k: '3.3', part: 'agree', round: 1,
+    title: { en: 'Send it: the send screen is the letter', sv: 'Skicka: utskicksskärmen är brevet' },
+    eyebrow: { en: 'Any contract', sv: 'Vilket avtal som helst' },
+    what: { en: 'Every send door opens the same screen: {ui:sh_lt_from} · {ui:sh_lt_to} · {ui:sh_lt_subject} · {ui:sh_lt_as} · the words, with "{ui:sh_lt_before}" beside. Nothing leaves until you press Send, and "sent" in the history means the mail really went.',
+      sv: 'Varje utskicksdörr öppnar samma skärm: {ui:sh_lt_from} · {ui:sh_lt_to} · {ui:sh_lt_subject} · {ui:sh_lt_as} · orden, med "{ui:sh_lt_before}" bredvid. Inget lämnar förrän du trycker Skicka, och "skickat" i historiken betyder att mejlet verkligen gick.' },
+    when: [{ en: 'Sending the other side your changes, or the paper for the first time.', sv: 'Skicka motparten dina ändringar, eller papperet för första gången.' },
+      { en: 'Sending a colleague the contract with a note: a colleague is a purpose on the same screen.', sv: 'Skicka en kollega avtalet med en anteckning: en kollega är ett syfte på samma skärm.' },
+      { en: 'Giving an outside adviser a few clauses only.', sv: 'Ge en extern rådgivare bara några klausuler.' }],
+    path: ['door:share', { en: 'or {ui:ng_send_all}, or the Dossier\'s Send line', sv: 'eller {ui:ng_send_all}, eller Dossierns Skicka-rad' }],
+    how: [{ en: 'Press {ui:dos_go_send} wherever you see it. The letter opens.', sv: 'Tryck {ui:dos_go_send} var du än ser det. Brevet öppnas.' },
+      { en: 'Check {ui:sh_lt_to}: the other side\'s named person, or colleagues picked from your own people (a colleague who may not open the stream is greyed with why).', sv: 'Kontrollera {ui:sh_lt_to}: motpartens namngivna person, eller kollegor valda bland era egna (en kollega som inte får öppna strömmen är grå med skäl).' },
+      { en: 'Choose {ui:sh_lt_as}: a review link, a signing link, a link for a colleague, or an adviser\'s link to chosen clauses.', sv: 'Välj {ui:sh_lt_as}: en granskningslänk, en signeringslänk, en länk till en kollega, eller en rådgivarlänk till valda klausuler.' },
+      { en: 'Read "{ui:sh_lt_before}": what is held back (a change waiting on internal review), what is owed, what the link can do.', sv: 'Läs "{ui:sh_lt_before}": vad som hålls kvar (en ändring som väntar på intern granskning), vad som saknas, vad länken kan göra.' },
+      { en: 'Press {ui:act_send}. The history records it; a mail that did not go says so.', sv: 'Tryck {ui:act_send}. Historiken registrerar det; ett mejl som inte gick säger det.' }],
+    tip: { en: 'A held change never travels, whichever door you send from. An adviser\'s link lasts 14 days and never carries a Word file.', sv: 'En kvarhållen ändring reser aldrig, oavsett dörr. En rådgivarlänk gäller 14 dagar och bär aldrig en Word-fil.' },
+    cost: _hbkFree, doors: ['share'], acts: ['send'],
+    words: { en: ['send', 'send it', 'share', 'send for review', 'send to the other side', 'send to a colleague', 'adviser link', 'the letter'], sv: ['skicka', 'dela', 'skicka på granskning', 'skicka till motparten', 'skicka till en kollega', 'rådgivarlänk', 'brevet'] },
+    shot: { go: [{ open: 'MK-A1', face: 'copilot' }, { fn: 'openShareModal', ref: 'MK-A1', arg: 'c' }], boxes: ['#modal-root .modal-in', '#ig-dock'], cap: { en: 'The letter in the middle, "Before you send" beside.', sv: 'Brevet i mitten, "Innan du skickar" bredvid.' } } },
+
+  { k: '3.4', part: 'agree', round: 1,
+    title: { en: 'What the other side sees', sv: 'Vad motparten ser' },
+    eyebrow: { en: 'Their page', sv: 'Deras sida' },
+    what: { en: 'The link you send opens their own page: {ui:po_tab_where} · {ui:po_tab_redlines} · {ui:po_tab_history} · Signing. They read the paper, answer each change ({ui:po_send_accept} · {ui:po_send_reject} · {ui:po_send_counter}), write notes in their room and, when the route reaches them, sign. They never see your review, your notes, your money or any colleague\'s name.',
+      sv: 'Länken du skickar öppnar deras egen sida: {ui:po_tab_where} · {ui:po_tab_redlines} · {ui:po_tab_history} · Signering. De läser papperet, besvarar varje ändring ({ui:po_send_accept} · {ui:po_send_reject} · {ui:po_send_counter}), skriver anteckningar i sitt rum och, när turen når dem, signerar. De ser aldrig er granskning, era anteckningar, era pengar eller någon kollegas namn.' },
+    when: [{ en: 'They ask "what do I see when I open this?": press Their view on the Redlines tab.', sv: 'De frågar "vad ser jag när jag öppnar detta?": tryck Deras vy på fliken Ändringar.' },
+      { en: 'You want one page every party can read about where the deal stands: send the status link.', sv: 'Du vill ha en sida alla parter kan läsa om var affären står: skicka statuslänken.' }],
+    path: ['door:redline', { en: 'Their view', sv: 'Deras vy' }],
+    how: [{ en: 'On the Redlines tab, Their view draws their column read-only, exactly as they get it.', sv: 'På fliken Ändringar ritar Deras vy deras kolumn skrivskyddad, precis som de får den.' },
+      { en: 'A guest\'s link can ask who is opening it: one code by email, one proof, two gates (opening and signing). An admin switches it on.', sv: 'En gästs länk kan fråga vem som öppnar den: en kod per mejl, ett bevis, två grindar (öppna och signera). En admin slår på det.' },
+      { en: 'Where the deal stands (the status link) shows only what every party may see, with whose move it is said as a party, never a person.', sv: 'Var affären står (statuslänken) visar bara det alla parter får se, med vems drag det är sagt som en part, aldrig en person.' }],
+    tip: { en: 'A link that cannot reach the server can still be answered by a pasted code; a code is not a delivery, and the history says which it was.', sv: 'En länk som inte når servern kan ändå besvaras med en inklistrad kod; en kod är inte en leverans, och historiken säger vilket det var.' },
+    cost: _hbkFree, doors: [], acts: ['where'],
+    words: { en: ['their view', 'what the other side sees', 'counterparty page', 'portal', 'status link', 'where the deal stands'], sv: ['deras vy', 'vad motparten ser', 'motpartens sida', 'statuslänk', 'var affären står'] },
+    noShot: { en: 'Their page opens only from a sent link; the picture would be of a world that has not sent one.', sv: 'Deras sida öppnas bara från en skickad länk; bilden skulle visa en värld som inte skickat någon.' } },
+
+  { k: '3.5', part: 'agree', round: 2,
+    title: { en: 'Internal review before sending', sv: 'Intern granskning före utskick' },
+    eyebrow: { en: 'Settings · admins', sv: 'Inställningar · admins' },
+    what: { en: 'An admin can require that a named colleague checks changes before they go out. Review gates SENDING only: a held change never travels, every send door says so, and the other side never learns a review exists.',
+      sv: 'En admin kan kräva att en namngiven kollega granskar ändringar innan de skickas. Granskning gäller bara UTSKICK: en kvarhållen ändring reser aldrig, varje utskicksdörr säger det, och motparten får aldrig veta att en granskning finns.' },
+    when: [{ en: 'Junior colleagues redline, a senior one signs off before anything leaves.', sv: 'Juniora kollegor gör ändringar, en senior godkänner innan något lämnar.' },
+      { en: 'Only above a value: the setting has a threshold.', sv: 'Bara över ett värde: inställningen har en tröskel.' }],
+    path: ['door:settings', { en: 'Company', sv: 'Företag' }, { en: '{ui:rv_set_title}', sv: '{ui:rv_set_title}' }],
+    how: [{ en: 'Admin: switch on "{ui:rv_set_on}", set the threshold; who is checked is set on each person under People.', sv: 'Admin: slå på "{ui:rv_set_on}", sätt tröskeln; vem som granskas sätts på varje person under Personer.' },
+      { en: 'A checked person presses {ui:rv_ask_btn} on their row; the reviewer sees it on Needs you and answers it.', sv: 'En granskad person trycker {ui:rv_ask_btn} på sin rad; granskaren ser det på Behöver dig och svarar.' },
+      { en: 'Until answered, the send screen lists the change as held.', sv: 'Tills det är besvarat listar utskicksskärmen ändringen som kvarhållen.' }],
+    tip: { en: 'Review gates sending, approvals gate signing, the desk gates redlining. Three different rules.', sv: 'Granskning gäller utskick, godkännanden gäller signering, disken gäller ändringar. Tre olika regler.' },
+    cost: _hbkFree, doors: [], acts: [],
+    words: { en: ['internal review', 'review before sending', 'held change', 'ask for review'], sv: ['intern granskning', 'granskning före utskick', 'kvarhållen ändring', 'be om granskning'] },
+    shot: { go: [{ view: 'team' }], boxes: ['#content'], cap: { en: 'Settings › Company: the review switch lives here.', sv: 'Inställningar › Företag: granskningsbrytaren finns här.' } } },
+
+  { k: '3.6', part: 'agree', round: 2,
+    title: { en: 'Working as a team on one negotiation', sv: 'Arbeta som ett lag på en förhandling' },
+    eyebrow: { en: 'Redlines tab', sv: 'Fliken Ändringar' },
+    what: { en: 'Four things keep colleagues from treading on each other: the desk (Lead · Contributor · Reader, an admin\'s rule, off by default), the clause lock (a baton: whoever edits a clause holds it, you can {ui:cl_ask} and they {ui:cl_hand_over}), who is in the room (faces on the paper), and Follow me (press a face and your paper goes where they read).',
+      sv: 'Fyra saker hindrar kollegor från att trampa på varandra: disken (Ledare · Bidragare · Läsare, en adminregel, av som standard), klausullåset (en stafettpinne: den som redigerar en klausul håller den, du kan {ui:cl_ask} och de {ui:cl_hand_over}), vem som är i rummet (ansikten på papperet) och Följ mig (tryck på ett ansikte så går ditt papper dit de läser).' },
+    when: [{ en: 'Two of you are on the same contract at the same time.', sv: 'Två av er är på samma avtal samtidigt.' },
+      { en: 'A contributor proposes a change: the lead adopts it or hands it back with a reason.', sv: 'En bidragare föreslår en ändring: ledaren tar upp den eller lämnar tillbaka den med ett skäl.' }],
+    path: ['door:redline', { en: 'the faces at the top of the paper', sv: 'ansiktena överst på papperet' }],
+    how: [{ en: 'A clause someone else is editing says "Locked by …". Press {ui:cl_ask}; they get your name and press {ui:cl_hand_over}.', sv: 'En klausul någon annan redigerar säger "Låst av …". Tryck {ui:cl_ask}; de får ditt namn och trycker {ui:cl_hand_over}.' },
+      { en: 'With the desk rule on, a Reader sees the Reading banner with {ui:dk_ask_to_join}; the Lead is the only one who reaches the other side.', sv: 'Med diskregeln på ser en Läsare bannern Läser med {ui:dk_ask_to_join}; Ledaren är den enda som når motparten.' },
+      { en: 'Press a colleague\'s face to follow them; press it again to stop. Nothing is stored.', sv: 'Tryck på en kollegas ansikte för att följa dem; tryck igen för att sluta. Inget lagras.' }],
+    tip: { en: 'The desk never gates signing. A suggestion from a contributor does not travel until the lead adopts it.', sv: 'Disken gäller aldrig signering. Ett förslag från en bidragare reser inte förrän ledaren tar upp det.' },
+    cost: _hbkFree, doors: [], acts: ['people'],
+    words: { en: ['desk', 'lead', 'contributor', 'clause lock', 'locked by', 'follow me', 'who is in the room', 'ask to join', 'team'], sv: ['disken', 'ledare', 'bidragare', 'klausullås', 'låst av', 'följ mig', 'vem är i rummet', 'be att få vara med'] },
+    shot: { go: [{ open: 'MK-A1', face: 'red' }], boxes: ['#ig-dock'], cap: { en: 'The Redlines face; the faces of colleagues appear above the paper when they are here.', sv: 'Ändringar-ansiktet; kollegornas ansikten visas ovanför papperet när de är här.' } } },
+
+  { k: '3.7', part: 'agree', round: 2,
+    title: { en: 'Notes and comments', sv: 'Anteckningar och kommentarer' },
+    eyebrow: { en: 'Notes drawer', sv: 'Anteckningslådan' },
+    what: { en: 'A note is one message, anchored to a clause and a quote, in a room: {ui:ng_fn_internal} (your side only) or one room per outside party. The drawer opens over the paper with a pin; its marks sit on the clauses.',
+      sv: 'En anteckning är ett meddelande, fäst vid en klausul och ett citat, i ett rum: {ui:ng_fn_internal} (bara er sida) eller ett rum per extern part. Lådan öppnas över papperet med en nål; dess märken sitter på klausulerna.' },
+    when: [{ en: 'Ask a colleague "can we live with 60 days here?" without the other side seeing.', sv: 'Fråga en kollega "kan vi leva med 60 dagar här?" utan att motparten ser.' },
+      { en: 'Explain a counter to the other side in their room.', sv: 'Förklara ett motbud för motparten i deras rum.' }],
+    path: ['door:redline', { en: 'Notes, or {ui:ng_sel_comment} on selected words', sv: 'Anteckningar, eller {ui:ng_sel_comment} på markerade ord' }],
+    how: [{ en: 'Select words on the paper and press {ui:ng_sel_comment}; or open the Notes tab of the right-hand panel.', sv: 'Markera ord på papperet och tryck {ui:ng_sel_comment}; eller öppna fliken Anteckningar i högerpanelen.' },
+      { en: 'Pick the room, write, press {ui:ng_fn_post}. @-mention a colleague and they are told.', sv: 'Välj rummet, skriv, tryck {ui:ng_fn_post}. @-nämn en kollega så får de veta.' },
+      { en: 'A note can be edited or deleted only until it is delivered.', sv: 'En anteckning kan redigeras eller tas bort bara tills den är levererad.' }],
+    tip: { en: 'The server is the wall: a party\'s room is never sent to another party. A note given to you shows on your checklist and bell until seen.', sv: 'Servern är muren: en parts rum skickas aldrig till en annan part. En anteckning given till dig visas på din checklista och klocka tills den är sedd.' },
+    cost: _hbkFree, doors: [], acts: ['notes'],
+    words: { en: ['notes', 'comments', 'comment on a clause', 'internal note', 'mention a colleague'], sv: ['anteckningar', 'kommentarer', 'kommentera en klausul', 'intern anteckning', 'nämna en kollega'] },
+    shot: { go: [{ open: 'MK-A1', face: 'copilot' }, { panel: 'notes' }], boxes: ['#context-panel'], cap: { en: 'Notes in the right-hand panel, with a contract in front.', sv: 'Anteckningar i högerpanelen, med ett avtal framför.' } } },
+
+  { k: '3.8', part: 'agree', round: 2,
+    title: { en: 'Risks to look at', sv: 'Risker att titta på' },
+    eyebrow: { en: 'Redlines tab', sv: 'Fliken Ändringar' },
+    what: { en: 'One list of what could hurt you in this paper, worst first: the local risk scan plus the brief\'s watch-outs. Each is a soft amber card with the WHY first. {ui:rk_edit_ce} opens Edit with Jambo on that clause with his suggestion ready.',
+      sv: 'En lista över vad som kan skada er i detta papper, värst först: den lokala riskskanningen plus sammanfattningens varningar. Var och en är ett mjukt gult kort med VARFÖR först. {ui:rk_edit_ce} öppnar Redigera med Jambo på den klausulen med hans förslag klart.' },
+    when: [{ en: 'Their paper arrived and you want the dangerous clauses first.', sv: 'Deras papper kom och du vill ha de farliga klausulerna först.' },
+      { en: 'Before you send a counter: have you dealt with the worst one?', sv: 'Innan du skickar ett motbud: har du hanterat den värsta?' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: 'Dossier › Risks › Open', sv: 'Dossier › Risker › Öppna' }],
+    how: [{ en: 'On the Dossier, Risks › Open lands on the risk cards under the Redlines column.', sv: 'I Dossiern landar Risker › Öppna på riskkorten under Ändringar-kolumnen.' },
+      { en: 'Read the why. Press {ui:rk_edit_ce} to open the editor on that clause; the next risk is one step away in the foot.', sv: 'Läs varför. Tryck {ui:rk_edit_ce} för att öppna redigeraren på den klausulen; nästa risk är ett steg bort i foten.' },
+      { en: 'A risk at or after the signatures is never edited.', sv: 'En risk vid eller efter signaturerna redigeras aldrig.' }],
+    tip: { en: 'Risks never travel to the other side.', sv: 'Risker reser aldrig till motparten.' },
+    cost: _hbkFree, doors: [], acts: ['risks'],
+    words: { en: ['risks', 'risk scan', 'risky clauses', 'what could hurt us', 'watch-outs'], sv: ['risker', 'riskskanning', 'riskabla klausuler', 'varningar'] },
+    shot: { go: [{ open: 'MK-A1', face: 'red' }], boxes: ['#ig-dock'], cap: { en: 'The risk cards sit under the change cards in the Redlines column.', sv: 'Riskkorten sitter under ändringskorten i Ändringar-kolumnen.' } } },
+
+  { k: '3.9', part: 'agree', round: 2,
+    title: { en: 'The Deal: the close plan', sv: 'Affären: planen för att stänga' },
+    eyebrow: { en: 'Redlines tab › Deal', sv: 'Fliken Ändringar › Affären' },
+    what: { en: '"N points to close before they can sign", with the road beside it and every point under Room to give · Hold firm · Needs a rule · Waiting on them · Agreed. Read off the playbook and the rounds, no Jambo brain. A point they asked on opens to both wordings whole.',
+      sv: '"N punkter att stänga innan de kan signera", med vägen bredvid och varje punkt under Utrymme att ge · Stå fast · Behöver en regel · Väntar på dem · Överens. Avläst från spelboken och rundorna, ingen Jambo-hjärna. En punkt de bett om öppnas till båda texterna helt.' },
+    when: [{ en: 'Before a call with the other side: what is still open and what you can give.', sv: 'Före ett samtal med motparten: vad som fortfarande är öppet och vad ni kan ge.' },
+      { en: 'A point needs a rule nobody has set: {ui:ng_plan_ask_admin} is the door.', sv: 'En punkt behöver en regel ingen satt: {ui:ng_plan_ask_admin} är dörren.' }],
+    path: ['door:redline', { en: '{ui:pd_tab_deal}', sv: '{ui:pd_tab_deal}' }],
+    how: [{ en: 'Press {ui:pd_tab_deal} at the head of the Redlines face. The plan opens in the middle.', sv: 'Tryck {ui:pd_tab_deal} i huvudet på Ändringar-ansiktet. Planen öppnas i mitten.' },
+      { en: 'Press a point\'s name to compare both wordings, moved words marked. {ui:ng_deal_open} goes to the clause; {ui:ng_plan_chase} opens the letter.', sv: 'Tryck på en punkts namn för att jämföra båda texterna, flyttade ord markerade. {ui:ng_deal_open} går till klausulen; {ui:ng_plan_chase} öppnar brevet.' },
+      { en: '‹ Dossier or Esc closes it.', sv: '‹ Dossier eller Esc stänger den.' }],
+    tip: { en: 'The memo under the plan can be sent to a colleague; it is built from the same reading.', sv: 'Promemorian under planen kan skickas till en kollega; den byggs från samma avläsning.' },
+    cost: _hbkFree, doors: [], acts: [],
+    words: { en: ['deal', 'close plan', 'points to close', 'what is still open', 'deal board', 'memo'], sv: ['affären', 'stängningsplan', 'punkter att stänga', 'vad är öppet', 'promemoria'] },
+    shot: { go: [{ open: 'MK-A1', face: 'red' }, { fn: 'pdDealOpen', ref: 'MK-A1', arg: 'id' }], boxes: ['#modal-root .modal-in', '#ig-dock'], cap: { en: 'The close plan in the middle, the road beside it.', sv: 'Stängningsplanen i mitten, vägen bredvid.' } } },
+
+  /* ======================= PART 4 — SIGN ======================= */
+  { k: '4.1', part: 'sign', round: 1,
+    title: { en: 'Approvals: approve or refuse, with the facts in front of you', sv: 'Godkännanden: godkänn eller avslå, med fakta framför dig' },
+    eyebrow: { en: 'Approvals & signing', sv: 'Godkännanden & signering' },
+    what: { en: 'One worklist of everything waiting for a yes before a signature: who it waits on, since when, and how late. Press a row and Jambo\'s card "{ui:apw_h}" leads the panel: the contract in plain words, the money, where it departs from your standards, what happens if nobody acts.',
+      sv: 'En arbetslista över allt som väntar på ett ja före en signatur: vem det väntar på, sedan när, och hur sent. Tryck på en rad så leder Jambos kort "{ui:apw_h}" panelen: avtalet i klarspråk, pengarna, var det avviker från era standarder, vad som händer om ingen agerar.' },
+    when: [{ en: 'Needs you says "N approvals waiting on you".', sv: 'Behöver dig säger "N godkännanden väntar på dig".' },
+      { en: 'You are the backup while the approver is away: the stand-in answers approvals, never signing.', sv: 'Du är ersättare medan godkännaren är borta: ersättaren besvarar godkännanden, aldrig signering.' }],
+    path: ['door:approvals', { en: 'press a row', sv: 'tryck på en rad' }],
+    how: [{ en: 'Press the row. The card opens on the right.', sv: 'Tryck på raden. Kortet öppnas till höger.' },
+      { en: 'No plain-words summary yet? Press {ui:apw_brief_ask}: 1 Jambo call, then kept and free for everyone.', sv: 'Ingen klarspråkssammanfattning än? Tryck {ui:apw_brief_ask}: 1 Jambo-anrop, sedan sparad och gratis för alla.' },
+      { en: 'Press {ui:pd_approve} or {ui:pd_refuse} at the bottom. A refusal asks why; the reason goes back to the asker. Undo is offered for a moment.', sv: 'Tryck {ui:pd_approve} eller {ui:pd_refuse} längst ned. Ett avslag frågar varför; skälet går tillbaka till den som frågade. Ångra erbjuds en stund.' }],
+    tip: { en: 'Any approver of that contract can ask for the summary. The counterparty never learns an approval exists.', sv: 'Vilken godkännare som helst av det avtalet kan be om sammanfattningen. Motparten får aldrig veta att ett godkännande finns.' },
+    cost: { en: 'Free + optional 1 call for the plain words', sv: 'Gratis + valfritt 1 anrop för klarspråket' }, doors: ['approvals'], acts: [],
+    words: { en: ['approvals', 'approve', 'refuse', 'what you are approving', 'approval before signing', 'sign off'], sv: ['godkännanden', 'godkänna', 'avslå', 'vad du godkänner', 'godkännande före signering'] },
+    shot: { go: [{ place: 'approvals' }], boxes: ['#content .sap-band', '#ins-panel'], cap: { en: 'The worklist; Jambo\'s card leads the panel on the right.', sv: 'Arbetslistan; Jambos kort leder panelen till höger.' } } },
+
+  { k: '4.2', part: 'sign', round: 1,
+    title: { en: 'Before you sign: the road, what still blocks, the signing copy', sv: 'Innan du signerar: vägen, vad som hindrar, signeringskopian' },
+    eyebrow: { en: 'The Dossier › Before you sign', sv: 'Dossiern › Innan du signerar' },
+    what: { en: 'Jambo\'s face for signing: the road with its stops (details, approvals, a named person\'s yes, the signers in order), each stop ticked or saying what blocks it, and the signing copy of the paper (A4, exactly what is sealed). Sign shows only in your own stop.',
+      sv: 'Jambos ansikte för signering: vägen med sina stopp (uppgifter, godkännanden, en namngiven persons ja, undertecknarna i ordning), varje stopp ibockat eller med vad som hindrar, och papperets signeringskopia (A4, exakt det som förseglas). Signera visas bara i ditt eget stopp.' },
+    when: [{ en: 'The words are agreed and it is time to sign.', sv: 'Orden är överenskomna och det är dags att signera.' },
+      { en: 'Something blocks the signature and you want to know what, in one list.', sv: 'Något hindrar signaturen och du vill veta vad, i en lista.' }],
+    path: ['door:sign', { en: 'or the Dossier\'s Sign stage', sv: 'eller Dossierns steg Signera' }],
+    how: [{ en: 'Open {ui:pd_sf_title}. Read the road top to bottom; a blocked stop says what to do and carries its door.', sv: 'Öppna {ui:pd_sf_title}. Läs vägen uppifrån och ned; ett blockerat stopp säger vad som ska göras och bär sin dörr.' },
+      { en: 'When it is your stop, press {ui:ct_sign}. The pad asks you to confirm you mean it; the mark is painted on the copy after it is sealed.', sv: 'När det är ditt stopp, tryck {ui:ct_sign}. Plattan ber dig bekräfta att du menar det; märket målas på kopian efter förseglingen.' },
+      { en: 'Signed, the face becomes the receipt: who signed, when, and the executed copies sent.', sv: 'Signerat blir ansiktet kvittot: vem som signerade, när, och de verkställda kopiorna som skickats.' }],
+    tip: { en: 'The signing check is an admin\'s setting: off, advise, or require. An open ask on the contract refuses the signature until answered. Once anyone signs, the wording is frozen.', sv: 'Signeringskontrollen är en admininställning: av, råd eller krav. En öppen fråga på avtalet vägrar signaturen tills den är besvarad. När någon signerar fryses texten.' },
+    cost: _hbkFree, doors: ['sign'], acts: [],
+    words: { en: ['sign', 'before you sign', 'signing', 'what blocks signing', 'the road', 'signing copy', 'receipt'], sv: ['signera', 'innan du signerar', 'signering', 'vad hindrar signering', 'vägen', 'signeringskopia', 'kvitto'] },
+    shot: { go: [{ open: 'MK-A1', face: 'copilot' }, { fn: 'pdSignOpen', ref: 'MK-A1', arg: 'id' }], boxes: ['#ig-dock'], cap: { en: 'Before you sign: the road in Jambo\'s panel.', sv: 'Innan du signerar: vägen i Jambos panel.' } } },
+
+  { k: '4.3', part: 'sign', round: 2,
+    title: { en: 'Who signs, in what order', sv: 'Vem signerar, i vilken ordning' },
+    eyebrow: { en: 'The Dossier › Signers', sv: 'Dossiern › Undertecknare' },
+    what: { en: 'The signer plan is a timeline: who on each side, in order, with sign links. A signer on each side opens the route; once anyone has signed it is shut. A per-person rule can require a named colleague\'s yes before that person signs, and a signing cap can hold a signature above a value.',
+      sv: 'Undertecknarplanen är en tidslinje: vem på varje sida, i ordning, med signeringslänkar. En undertecknare på varje sida öppnar rutten; när någon signerat är den stängd. En regel per person kan kräva en namngiven kollegas ja innan personen signerar, och ett signeringstak kan hålla en signatur över ett värde.' },
+    when: [{ en: 'Setting up who signs before the first send.', sv: 'Sätta upp vem som signerar före första utskicket.' },
+      { en: 'The signing cap stopped you: the road says who may sign instead.', sv: 'Signeringstaket stoppade dig: vägen säger vem som får signera i stället.' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: '{ui:pd_signers}', sv: '{ui:pd_signers}' }],
+    how: [{ en: 'Open {ui:pd_signers} from the Dossier. Add a person on each side; the order is the timeline.', sv: 'Öppna {ui:pd_signers} från Dossiern. Lägg till en person på varje sida; ordningen är tidslinjen.' },
+      { en: 'A named person\'s yes: press {ui:sa_ask_btn}; they get it on Needs you and by email, answer {ui:sa_card_approve} or refuse with a reason. It lapses if the wording, value or parties change.', sv: 'En namngiven persons ja: tryck {ui:sa_ask_btn}; de får det på Behöver dig och per mejl, svarar {ui:sa_card_approve} eller avslår med ett skäl. Det förfaller om text, värde eller parter ändras.' },
+      { en: 'A review link cannot sign; a Sign link binds to the stored route. Our own staff get the app\'s address, never a secret in the mail.', sv: 'En granskningslänk kan inte signera; en signeringslänk binds till den lagrade rutten. Vår egen personal får appens adress, aldrig en hemlighet i mejlet.' }],
+    tip: { en: 'A signature is a MARK painted on the copy after sealing; marks on the paper (where to sign) are not signing and never travel.', sv: 'En signatur är ett MÄRKE målat på kopian efter försegling; märken på papperet (var man signerar) är inte signering och reser aldrig.' },
+    cost: _hbkFree, doors: [], acts: ['signers'],
+    words: { en: ['signers', 'who signs', 'signing order', 'signing route', 'sign link', 'signing cap', 'named approver'], sv: ['undertecknare', 'vem signerar', 'signeringsordning', 'signeringsrutt', 'signeringslänk', 'signeringstak'] },
+    shot: { go: [{ open: 'MK-A1', face: 'copilot' }, { fn: 'openSignerPlanEditor', ref: 'MK-A1', arg: 'c' }], boxes: ['#sr-win'], cap: { en: 'The signer plan as a timeline.', sv: 'Undertecknarplanen som en tidslinje.' } } },
+
+  { k: '4.4', part: 'sign', round: 2,
+    title: { en: 'Signing outside HaTi: redline here, sign there', sv: 'Signera utanför HaTi: ändra här, signera där' },
+    eyebrow: { en: 'The paper\'s menu', sv: 'Papperets meny' },
+    what: { en: 'Some deals are signed in another tool or on paper. The handover freezes the wording and the route while the file is out; filing the signed copy needs every signature. Words that differ from what left need the approver or an admin with a reason; a filled blank is not a change.',
+      sv: 'Vissa affärer signeras i ett annat verktyg eller på papper. Överlämningen fryser texten och rutten medan filen är ute; att arkivera den signerade kopian kräver varje signatur. Ord som skiljer sig från det som lämnade kräver godkännaren eller en admin med ett skäl; en ifylld lucka är ingen ändring.' },
+    when: [{ en: 'The other side insists on DocuSign, or wet ink.', sv: 'Motparten kräver DocuSign, eller bläck.' },
+      { en: 'A signed PDF came back and must be filed against the record.', sv: 'En signerad PDF kom tillbaka och ska arkiveras mot posten.' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: '⋯ › {ui:ct_sign}ing outside', sv: '⋯ › signering utanför' }],
+    how: [{ en: 'Choose the outside route in the signing stage; export the file. While out, nobody can file a change.', sv: 'Välj den yttre rutten i signeringssteget; exportera filen. Medan den är ute kan ingen registrera en ändring.' },
+      { en: 'When it comes back, add the signed copy from the paper\'s menu. HaTi compares the words; their numbering is never a difference.', sv: 'När den kommer tillbaka, lägg till den signerade kopian från papperets meny. HaTi jämför orden; deras numrering är aldrig en skillnad.' },
+      { en: 'Filed, the duties read the signed words, and the printed reference stays the contract\'s number.', sv: 'Arkiverad läser åtagandena de signerade orden, och den tryckta referensen förblir avtalets nummer.' }],
+    tip: { en: 'An unsigned copy is parked, never sealed.', sv: 'En osignerad kopia parkeras, förseglas aldrig.' },
+    cost: _hbkFree, doors: [], acts: [],
+    words: { en: ['sign outside', 'docusign', 'wet ink', 'signed copy', 'add the signed copy', 'handover'], sv: ['signera utanför', 'bläck', 'signerad kopia', 'lägg till den signerade kopian', 'överlämning'] },
+    noShot: { en: 'The handover needs a contract already out for signature; the seeded world has none.', sv: 'Överlämningen kräver ett avtal som redan är ute för signering; den seedade världen har inget.' } },
+
+  { k: '4.5', part: 'sign', round: 2,
+    title: { en: 'After the signature', sv: 'Efter signaturen' },
+    eyebrow: { en: 'The Dossier', sv: 'Dossiern' },
+    what: { en: 'The server seals the paper: the sealed text is what everyone reads from now on, the executed copies go out by email, and the wording, the terms and the signatures are frozen. Jambo says once what comes next: the obligations, the renewal, the calendar.',
+      sv: 'Servern förseglar papperet: den förseglade texten är vad alla läser från och med nu, de verkställda kopiorna skickas per mejl, och texten, villkoren och signaturerna är frysta. Jambo säger en gång vad som kommer: åtagandena, förnyelsen, kalendern.' },
+    when: [{ en: 'The last signature landed.', sv: 'Sista signaturen landade.' },
+      { en: 'You need the sealed record or the executed copy later: the paper\'s menu.', sv: 'Du behöver den förseglade posten eller den verkställda kopian senare: papperets meny.' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: 'Dossier', sv: 'Dossier' }],
+    how: [{ en: 'Read the receipt on the Before you sign face.', sv: 'Läs kvittot på ansiktet Innan du signerar.' },
+      { en: 'Open Obligations: the duties read the signed words. Set who owes each and when.', sv: 'Öppna Åtaganden: åtagandena läser de signerade orden. Sätt vem som ansvarar för varje och när.' },
+      { en: 'The history keeps every send, signature and copy, in one table.', sv: 'Historiken behåller varje utskick, signatur och kopia, i en tabell.' }],
+    tip: { en: 'A sealed record answers to nobody\'s edit. Changing the deal later is an amendment: a new draft that files itself against this one.', sv: 'En förseglad post lyder ingen redigering. Att ändra affären senare är ett tillägg: ett nytt utkast som arkiveras mot detta.' },
+    cost: _hbkFree, doors: [], acts: [],
+    words: { en: ['after signing', 'sealed', 'executed copy', 'signed contract', 'frozen'], sv: ['efter signering', 'förseglad', 'verkställd kopia', 'signerat avtal', 'fryst'] },
+    shot: { go: [{ open: 'MK-B1', face: 'copilot' }], boxes: ['#ig-dock'], cap: { en: 'A signed contract\'s Dossier.', sv: 'Ett signerat avtals Dossier.' } } },
+
+  /* ======================= PART 5 — KEEP IT ALIVE ======================= */
+  { k: '5.1', part: 'keep', round: 1,
+    title: { en: 'Obligations, week by week', sv: 'Åtaganden, vecka för vecka' },
+    eyebrow: { en: 'Obligations page', sv: 'Åtaganden' },
+    what: { en: 'Every promise in your contracts, laid out by the week it falls due, one act per row: what, who, when, and one word you can press. Mark it done, chase the person who owes it, or review a contract\'s duties in one sitting from its Dossier.',
+      sv: 'Varje löfte i era avtal, uppställt efter veckan det förfaller, en handling per rad: vad, vem, när, och ett ord du kan trycka. Markera det klart, påminn den som ansvarar, eller gå igenom ett avtals åtaganden i ett svep från dess Dossier.' },
+    when: [{ en: 'Monday morning: what is due this week, and whose it is.', sv: 'Måndag morgon: vad som förfaller denna vecka, och vems det är.' },
+      { en: 'A payment or a report the other side owes you is late.', sv: 'En betalning eller en rapport motparten är skyldig er är sen.' },
+      { en: 'A new contract arrived and its duties need a person and a date.', sv: 'Ett nytt avtal kom och dess åtaganden behöver en person och ett datum.' }],
+    path: ['door:oblig', { en: 'or the Guide › Keep it alive › Obligations', sv: 'eller Guiden › Håll det levande › Åtaganden' }],
+    how: [{ en: 'Open Obligations. This week is first; the weeks after follow.', sv: 'Öppna Åtaganden. Denna vecka först; veckorna efter följer.' },
+      { en: 'Press {ui:ob_mark_done} when it is met. A repeating duty rolls on to its next date by itself.', sv: 'Tryck {ui:ob_mark_done} när det är uppfyllt. Ett återkommande åtagande rullar vidare till nästa datum av sig självt.' },
+      { en: 'Press {ui:ob_chase} to remind the person who owes it. HaTi records the chase.', sv: 'Tryck {ui:ob_chase} för att påminna den som ansvarar. HaTi registrerar påminnelsen.' },
+      { en: 'On a contract\'s Dossier, open its Obligations line to review all its duties together. Nothing is ticked for you.', sv: 'I ett avtals Dossier, öppna dess Åtaganden-rad för att gå igenom alla dess åtaganden tillsammans. Inget bockas i åt dig.' }],
+    tip: { en: 'The person who owes a duty is nudged a week before, on the day, and the day after. Duties from a template are the template\'s own list, never guessed.', sv: 'Den som ansvarar påminns en vecka före, på dagen och dagen efter. Åtaganden från en mall är mallens egen lista, aldrig gissade.' },
+    cost: _hbkFree, doors: ['oblig'], acts: ['oblig', 'renewal'],
+    words: { en: ['obligations', 'duties', 'what is due', 'mark done', 'chase', 'week by week', 'promises'], sv: ['åtaganden', 'skyldigheter', 'vad förfaller', 'markera klart', 'påminn', 'vecka för vecka'] },
+    shot: { go: [{ place: 'oblig' }], boxes: ['#content .sap-band', '#ins-panel'], cap: { en: 'This week first, one act per row.', sv: 'Denna vecka först, en handling per rad.' } } },
+
+  { k: '5.2', part: 'keep', round: 2,
+    title: { en: 'Calendar and the plan', sv: 'Kalendern och planen' },
+    eyebrow: { en: 'Calendar', sv: 'Kalender' },
+    what: { en: 'A tab of Home: Monday to Friday, this week and five more, with every contract date as a chip (renewals, notices, duties, your notes due). Jambo can plan your week around them, at a level you set: ask me first, or just do it.',
+      sv: 'En flik på Hem: måndag till fredag, denna vecka och fem till, med varje avtalsdatum som ett chip (förnyelser, uppsägningar, åtaganden, dina anteckningar). Jambo kan planera din vecka kring dem, på en nivå du sätter: fråga mig först, eller gör det bara.' },
+    when: [{ en: '"Find me two hours this week for the lease": the plan.', sv: '"Hitta två timmar denna vecka för hyresavtalet": planen.' },
+      { en: 'What ends next month?', sv: 'Vad löper ut nästa månad?' }],
+    path: ['door:calendar'],
+    how: [{ en: 'Press a chip and you land on that contract\'s act.', sv: 'Tryck på ett chip så landar du på det avtalets handling.' },
+      { en: 'Ask Jambo to plan; the blocks are offered, {ui:cal_plan_add} puts them in, {ui:cal_plan_undo} takes them out. {ui:cal_plan_ask} is the starting level.', sv: 'Be Jambo planera; blocken erbjuds, {ui:cal_plan_add} lägger in dem, {ui:cal_plan_undo} tar bort dem. {ui:cal_plan_ask} är startnivån.' },
+      { en: 'Your own events live only with you; a booking goes to your own calendar.', sv: 'Dina egna händelser finns bara hos dig; en bokning går till din egen kalender.' }],
+    tip: { en: 'A typed day is read, never guessed. Weekends are said as a word, not drawn.', sv: 'En skriven dag läses, gissas aldrig. Helger sägs som ett ord, ritas inte.' },
+    cost: { en: 'Free; the plan says its cost', sv: 'Gratis; planen säger sin kostnad' }, doors: ['calendar', 'week'], acts: [],
+    words: { en: ['calendar', 'my week', 'plan my week', 'what ends', 'dates'], sv: ['kalender', 'min vecka', 'planera min vecka', 'vad löper ut', 'datum'] },
+    shot: { go: [{ place: 'calendar' }], boxes: ['#hb-cal', '#ig-dock'], cap: { en: 'The Calendar as a tab of Home.', sv: 'Kalendern som en flik på Hem.' } } },
+
+  { k: '5.3', part: 'keep', round: 2,
+    title: { en: 'Amendments and renewals; end or pause', sv: 'Tillägg och förnyelser; avsluta eller pausa' },
+    eyebrow: { en: 'The Dossier', sv: 'Dossiern' },
+    what: { en: 'An amendment is written here: Create mints a draft and files it against the parent; the amended deal is read as one (its end date, its term, "as amended"). A renewal is a decision with its own act. Ending or pausing a contract is one question.',
+      sv: 'Ett tillägg skrivs här: Skapa präglar ett utkast och arkiverar det mot moderavtalet; det ändrade avtalet läses som ett (slutdatum, löptid, "i ändrad lydelse"). En förnyelse är ett beslut med sin egen handling. Att avsluta eller pausa ett avtal är en fråga.' },
+    when: [{ en: 'The price changes mid-term.', sv: 'Priset ändras mitt i löptiden.' },
+      { en: 'The renewal window opens and somebody must decide.', sv: 'Förnyelsefönstret öppnas och någon måste besluta.' },
+      { en: 'A supplier is gone: end it.', sv: 'En leverantör är borta: avsluta det.' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: '{ui:pd_face_w_amend} · {ui:end_door}', sv: '{ui:pd_face_w_amend} · {ui:end_door}' }],
+    how: [{ en: 'Press {ui:pd_face_w_amend}. One reason can shut the door (a draft, a child, expired) and it is said on the door.', sv: 'Tryck {ui:pd_face_w_amend}. Ett skäl kan stänga dörren (ett utkast, ett barn, utgånget) och det sägs på dörren.' },
+      { en: 'The renewal line on the Dossier\'s Obligations panel asks: {ui:cal_k_renew}, decline, or let it run.', sv: 'Förnyelseraden på Dossierns Åtaganden-panel frågar: {ui:cal_k_renew}, avböj, eller låt det löpa.' },
+      { en: '{ui:end_door} asks one question: what is happening with this deal?', sv: '{ui:end_door} ställer en fråga: vad händer med denna affär?' }],
+    tip: { en: 'A child contract is never "missing" a standard its parent carries.', sv: 'Ett barnavtal "saknar" aldrig en standard som moderavtalet bär.' },
+    cost: _hbkFree, doors: [], acts: ['amend', 'family', 'renewal'],
+    words: { en: ['amendment', 'amend', 'renewal', 'renew', 'end a contract', 'pause', 'terminate', 'decline the renewal'], sv: ['tillägg', 'ändra', 'förnyelse', 'förnya', 'avsluta ett avtal', 'pausa', 'säga upp'] },
+    shot: { go: [{ open: 'MK-B1', face: 'copilot' }], boxes: ['#ig-dock'], cap: { en: 'Amend and End or pause are the stage\'s acts on the Dossier.', sv: 'Ändra och Avsluta eller pausa är stegets handlingar i Dossiern.' } } },
+
+  { k: '5.4', part: 'keep', round: 1,
+    title: { en: 'Parties: a party\'s shelf, its facts, and Before the call', sv: 'Parter: en parts hylla, dess fakta och Före samtalet' },
+    eyebrow: { en: 'Parties page', sv: 'Parter' },
+    what: { en: 'A shelf per counterparty, a reading of your contracts: status is the party\'s standing, the NDA column says whether one covers them today, and what is waiting on you. A party\'s own facts (city, organisation number) have one home. "{ui:cu_br_h}" is the two-minute summary before you speak to them.',
+      sv: 'En hylla per motpart, en avläsning av era avtal: status är partens ställning, kolumnen NDA säger om ett täcker dem i dag, och vad som väntar på dig. En parts egna fakta (stad, organisationsnummer) har ett hem. "{ui:cu_br_h}" är tvåminuterssammanfattningen innan du talar med dem.' },
+    when: [{ en: 'Before a meeting, a call or a renewal talk with a customer or supplier.', sv: 'Före ett möte, ett samtal eller ett förnyelsesamtal med en kund eller leverantör.' },
+      { en: '"Everything we have with Naivas": the party\'s contracts.', sv: '"Allt vi har med Naivas": partens avtal.' }],
+    path: ['door:parties', { en: 'press a party', sv: 'tryck på en part' }],
+    how: [{ en: 'Press the party\'s row. The facts show straight away, for free; {ui:cu_open_customer} lists its contracts.', sv: 'Tryck på partens rad. Fakta visas direkt, gratis; {ui:cu_open_customer} listar dess avtal.' },
+      { en: 'Press {ui:cu_br_write} for a short write-up in Jambo\'s card: 1 call, kept until something about the party changes. Every number is checked against your records; one that cannot be found is said in amber.', sv: 'Tryck {ui:cu_br_write} för en kort text i Jambos kort: 1 anrop, sparad tills något om parten ändras. Varje siffra kontrolleras mot era poster; en som inte hittas sägs i gult.' },
+      { en: 'Web search on the other side is one door, with cited lines only and the fee booked.', sv: 'Webbsökning om motparten är en dörr, med bara citerade rader och avgiften bokförd.' }],
+    tip: { en: 'A code-named deal is left off the shelves.', sv: 'En kodnamnad affär lämnas utanför hyllorna.' },
+    cost: { en: 'Free + optional 1 call for the brief', sv: 'Gratis + valfritt 1 anrop för sammanfattningen' }, doors: ['parties'], acts: ['counterparty'],
+    words: { en: ['parties', 'party', 'customers', 'suppliers', 'before the call', 'counterparty', 'two-minute brief'], sv: ['parter', 'part', 'kunder', 'leverantörer', 'före samtalet', 'motpart'] },
+    shot: { go: [{ place: 'parties' }], boxes: ['#content .ph-card', '#ins-panel'], cap: { en: 'Parties: the shelves, the party\'s panel beside.', sv: 'Parter: hyllorna, partens panel bredvid.' } } },
+
+  { k: '5.5', part: 'keep', round: 1,
+    title: { en: 'Discover: one question asked of many contracts', sv: 'Discover: en fråga ställd till många avtal' },
+    eyebrow: { en: 'Contracts list', sv: 'Avtalslistan' },
+    what: { en: '{ui:ac_btn} asks one question of every contract shown; each answer is a new column: a coloured light and the answer in a few words. Discover keeps the questions worth keeping; a pack (due diligence) asks five at once; the whole table shows every answer side by side; a Company fact runs on every new contract and can be watched; "Unusual for you" tells you on the Dossier when a contract differs from your usual.',
+      sv: '{ui:ac_btn} ställer en fråga till varje visat avtal; varje svar är en ny kolumn: en färgad lampa och svaret i några ord. Discover behåller frågorna värda att behålla; ett paket (due diligence) ställer fem på en gång; hela tabellen visar varje svar sida vid sida; ett Företagsfaktum körs på varje nytt avtal och kan bevakas; "Ovanligt för er" säger på Dossiern när ett avtal avviker från ert vanliga.' },
+    when: [{ en: '"How much notice does each side need to end the contract?", "Is our liability capped?"', sv: '"Hur lång uppsägningstid behöver varje sida?", "Är vårt ansvar begränsat?"' },
+      { en: 'Before an audit or a sale of the business: the pack.', sv: 'Före en revision eller en försäljning av bolaget: paketet.' },
+      { en: 'Every new contract should be checked against a company rule: a Company fact (admins).', sv: 'Varje nytt avtal ska kontrolleras mot en företagsregel: ett Företagsfaktum (admins).' }],
+    path: ['door:contracts', { en: '{ui:ac_btn} (top right of the list) · Jambo\'s panel › {ui:ac_disc_h}', sv: '{ui:ac_btn} (uppe till höger i listan) · Jambos panel › {ui:ac_disc_h}' }],
+    how: [{ en: 'Narrow the list first if you want: Jambo reads only the contracts shown. Press {ui:ac_btn}, type the question, read the cost line, press Ask.', sv: 'Smalna listan först om du vill: Jambo läser bara visade avtal. Tryck {ui:ac_btn}, skriv frågan, läs kostnadsraden, tryck Fråga.' },
+      { en: 'The read goes out in tens so it can be stopped: {ui:ac_stop} keeps every answer read and offers the rest with its cost ({ui:ac_carry_on_other}).', sv: 'Läsningen går ut i tiotal så den kan stoppas: {ui:ac_stop} behåller varje läst svar och erbjuder resten med sin kostnad ({ui:ac_carry_on_other}).' },
+      { en: 'Press any answer: the panel reads it out in full, the words it came from, the clause, your rule, and a tick that a person has checked it.', sv: 'Tryck på vilket svar som helst: panelen läser upp det helt, orden det kom från, klausulen, er regel, och en bock att en person kontrollerat det.' },
+      { en: '{ui:ac_keep_on} keeps a question in Discover; {ui:ac_del} removes it and its answers (asks first). {ui:ac_pack_all} opens the whole table; {ui:ac_chip_copy} takes it to a mail or a spreadsheet.', sv: '{ui:ac_keep_on} behåller en fråga i Discover; {ui:ac_del} tar bort den och dess svar (frågar först). {ui:ac_pack_all} öppnar hela tabellen; {ui:ac_chip_copy} tar den till ett mejl eller ett kalkylark.' },
+      { en: 'Admins: Settings › Company › {ui:fa_title}: add a kept question as a fact with its rule. On the fact\'s column, "{ui:ac_watch_on}" tells you on the bell when a new contract breaks it.', sv: 'Admins: Inställningar › Företag › {ui:fa_title}: lägg till en behållen fråga som ett faktum med sin regel. På faktumets kolumn säger "{ui:ac_watch_on}" till på klockan när ett nytt avtal bryter mot den.' }],
+    read: { key: [{ tone: 'ok', en: 'usual, or inside our rule', sv: 'vanligt, eller inom vår regel' }, { tone: 'warn', en: 'one-sided or unusual', sv: 'ensidigt eller ovanligt' }, { tone: 'risk', en: 'a risk, or outside our rule', sv: 'en risk, eller utanför vår regel' }, { tone: 'none', en: 'not found', sv: 'hittades inte' }],
+      en: 'The column\'s head says how many are at risk. Answers are kept: asking again reads only contracts whose wording changed.', sv: 'Kolumnens huvud säger hur många som är i riskzonen. Svar sparas: att fråga igen läser bara avtal vars text ändrats.' },
+    tip: { en: 'A column asks the wording. A counting question ("how many contracts have no redlines") is about your work and goes to Jambo instead; it is never kept as a column. Editors ask; viewers see the answers. Contracts in a private stream are never read automatically.', sv: 'En kolumn frågar texten. En räknefråga ("hur många avtal saknar ändringar") handlar om ert arbete och går till Jambo i stället; den sparas aldrig som en kolumn. Redaktörer frågar; läsare ser svaren. Avtal i en privat ström läses aldrig automatiskt.' },
+    cost: { en: '1 Jambo call per contract (a pack: one read per contract for all its questions); the rest free', sv: '1 Jambo-anrop per avtal (ett paket: en läsning per avtal för alla dess frågor); resten gratis' }, doors: ['watches'], acts: [],
+    words: { en: ['ask a column', 'discover', 'due diligence', 'company facts', 'watch', 'unusual for you', 'ask many contracts'], sv: ['fråga en kolumn', 'discover', 'due diligence', 'företagsfakta', 'bevaka', 'ovanligt för er', 'fråga många avtal'] },
+    shot: { go: [{ place: 'contracts' }, { fn: 'regPlaceSet', args: [{ view: 'all', page: 1, only: null }] }, { place: 'list' }], boxes: ['#ct-place', '#ig-dock'], cap: { en: 'Ask a column sits at the top right of the list; Discover in Jambo\'s panel.', sv: 'Fråga en kolumn sitter uppe till höger i listan; Discover i Jambos panel.' } } },
+
+  { k: '5.6', part: 'keep', round: 2,
+    title: { en: 'My notes', sv: 'Mina anteckningar' },
+    eyebrow: { en: 'My notes page', sv: 'Mina anteckningar' },
+    what: { en: 'Your private ledger: a note may name a contract and words in it, and a day to look again. On that day it is on your calendar and your bell. Nobody else sees it: never on the contract, a share or the history.',
+      sv: 'Din privata liggare: en anteckning kan nämna ett avtal och ord i det, och en dag att se över igen. Den dagen finns den i din kalender och på din klocka. Ingen annan ser den: aldrig på avtalet, en delning eller historiken.' },
+    when: [{ en: '"Check the price clause again before the renewal."', sv: '"Kolla prisklausulen igen före förnyelsen."' },
+      { en: 'A thought while reading, kept beside the contract.', sv: 'En tanke under läsningen, sparad bredvid avtalet.' }],
+    path: ['door:mynotes', { en: 'or a contract\'s ⋯ › private note', sv: 'eller ett avtals ⋯ › privat anteckning' }],
+    how: [{ en: 'Press {ui:mn_new_btn}; the form opens in the panel. {ui:mn_save} stays grey until the note has words.', sv: 'Tryck {ui:mn_new_btn}; formuläret öppnas i panelen. {ui:mn_save} är grå tills anteckningen har ord.' },
+      { en: 'Set a review day. On the day, {ui:mn_mark_reviewed} closes it, {ui:mn_snooze} moves it on.', sv: 'Sätt en granskningsdag. På dagen stänger {ui:mn_mark_reviewed} den, {ui:mn_snooze} flyttar den vidare.' },
+      { en: 'Tabs: All · Due today · Later · Reviewed, each with its count.', sv: 'Flikar: Alla · Förfaller i dag · Senare · Granskade, var och en med sitt antal.' }],
+    tip: { en: 'Jambo reads your notes only when you ask him to.', sv: 'Jambo läser dina anteckningar bara när du ber honom.' },
+    cost: _hbkFree, doors: ['mynotes'], acts: [],
+    words: { en: ['my notes', 'private note', 'reminder', 'note to self', 'review again'], sv: ['mina anteckningar', 'privat anteckning', 'påminnelse', 'granska igen'] },
+    shot: { go: [{ place: 'mynotes' }], boxes: ['#mn-page .ph-card, #mn-page', '#ins-panel'], cap: { en: 'My notes: a table, the note in the panel.', sv: 'Mina anteckningar: en tabell, anteckningen i panelen.' } } },
+
+  { k: '5.7', part: 'keep', round: 2,
+    title: { en: 'Archive, legal hold, code names', sv: 'Arkiv, rättsligt stopp, kodnamn' },
+    eyebrow: { en: 'The paper\'s menu', sv: 'Papperets meny' },
+    what: { en: 'Three ways a contract is set apart. Archive takes it off the lists but keeps it searchable. Legal hold freezes it against every change until someone who may hold releases it. A code name hides the real name from everyone outside a list, in every place the name is printed and in every mail.',
+      sv: 'Tre sätt ett avtal sätts åt sidan. Arkiv tar bort det från listorna men behåller det sökbart. Rättsligt stopp fryser det mot varje ändring tills någon som får hålla det släpper. Ett kodnamn döljer det riktiga namnet för alla utanför en lista, överallt där namnet skrivs och i varje mejl.' },
+    when: [{ en: 'A deal ended years ago and clutters the list: archive it.', sv: 'En affär slutade för år sedan och skräpar ned listan: arkivera den.' },
+      { en: 'A dispute: put it on hold so nothing can change.', sv: 'En tvist: sätt stopp så inget kan ändras.' },
+      { en: 'An acquisition only three people may know about: a code name.', sv: 'Ett förvärv bara tre personer får känna till: ett kodnamn.' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: '⋯ › {ui:ct_archive} · {ui:st_kp_legal_hold} · {ui:cn_dlg_title}', sv: '⋯ › {ui:ct_archive} · {ui:st_kp_legal_hold} · {ui:cn_dlg_title}' }],
+    how: [{ en: '{ui:ct_archive}: the contract leaves the lists; "{door:archived}" shows them again; {ui:reg_restore} brings one back.', sv: '{ui:ct_archive}: avtalet lämnar listorna; "{door:archived}" visar dem igen; {ui:reg_restore} tar ett tillbaka.' },
+      { en: 'Legal hold: a grant per person; while held, every save is refused with the reason.', sv: 'Rättsligt stopp: en behörighet per person; medan det hålls vägras varje sparning med skälet.' },
+      { en: '{ui:cn_dlg_title}: name it, name who knows the real name. The real name never leaves the server for anyone else.', sv: '{ui:cn_dlg_title}: namnge det, namnge vem som känner det riktiga namnet. Det riktiga namnet lämnar aldrig servern för någon annan.' }],
+    tip: { en: 'Money in a private stream adds to no total anywhere; every open of a private contract is kept.', sv: 'Pengar i en privat ström läggs inte till någon summa någonstans; varje öppning av ett privat avtal sparas.' },
+    cost: _hbkFree, doors: ['archived'], acts: ['codename'],
+    words: { en: ['archive', 'archived', 'legal hold', 'hold', 'code name', 'hide the name', 'private deal'], sv: ['arkiv', 'arkivera', 'rättsligt stopp', 'kodnamn', 'dölj namnet', 'privat affär'] },
+    shot: { go: [{ open: 'MK-B1', face: 'copilot' }], boxes: ['#ig-dock'], cap: { en: 'The Dossier\'s actions and the paper\'s ⋯ menu carry Archive, the hold and the code name.', sv: 'Dossierns handlingar och papperets ⋯-meny bär Arkiv, stoppet och kodnamnet.' } } },
+
+  /* ======================= PART 6 — SEE THE WHOLE BOOK ======================= */
+  { k: '6.1', part: 'see', round: 2,
+    title: { en: 'The Board: every number a door', sv: 'Tavlan: varje siffra en dörr' },
+    eyebrow: { en: 'Home › Board', sv: 'Hem › Tavlan' },
+    what: { en: 'Today\'s figures: value, what ends, whose move, by stream, by party, and under your book all of Needs you. Every number is a door to the list behind it, so a number never disagrees with its list. Jambo draws what can be drawn, then explains it; "{ui:hb_dd_btn}" asks why.',
+      sv: 'Dagens siffror: värde, vad som löper ut, vems drag, per ström, per part, och under din bok hela Behöver dig. Varje siffra är en dörr till listan bakom, så en siffra motsäger aldrig sin lista. Jambo ritar det som kan ritas, sedan förklarar han; "{ui:hb_dd_btn}" frågar varför.' },
+    when: [{ en: '"Which contracts end this quarter?": drawn, then explained.', sv: '"Vilka avtal löper ut detta kvartal?": ritat, sedan förklarat.' },
+      { en: 'A number looks wrong: press it and read the list.', sv: 'En siffra ser fel ut: tryck på den och läs listan.' }],
+    path: ['door:board'],
+    how: [{ en: 'Press any figure: the list opens beside it; "them on the board" draws the last answer\'s set.', sv: 'Tryck på vilken siffra som helst: listan öppnas bredvid; "dem på tavlan" ritar förra svarets mängd.' },
+      { en: 'Ask a question in the box. The chart comes first, free; "{ui:hb_dd_btn}" and "{ui:hb_dd_far}" ask Jambo\'s brain with the cost said.', sv: 'Ställ en fråga i rutan. Diagrammet kommer först, gratis; "{ui:hb_dd_btn}" och "{ui:hb_dd_far}" frågar Jambos hjärna med kostnaden sagd.' },
+      { en: 'Saved views are the Board\'s chips; "{door:present}" shows it full screen for a meeting.', sv: 'Sparade vyer är Tavlans chips; "{door:present}" visar den i helskärm för ett möte.' }],
+    tip: { en: 'Every figure Jambo quotes is checked against the records; one that cannot be found is said so.', sv: 'Varje siffra Jambo citerar kontrolleras mot posterna; en som inte hittas sägs.' },
+    cost: { en: 'Free; Dig deeper says its cost', sv: 'Gratis; Gräv djupare säger sin kostnad' }, doors: ['board', 'savedviews', 'present', 'health', 'weekly'], acts: [],
+    words: { en: ['board', 'dashboard', 'figures', 'numbers', 'dig deeper', 'saved views', 'present', 'health report', 'weekly report'], sv: ['tavlan', 'siffror', 'gräv djupare', 'sparade vyer', 'presentera', 'hälsorapport', 'veckorapport'] },
+    shot: { go: [{ place: 'board' }], boxes: ['#hb-board, [data-hb-face="board"], #hb-root', '#ig-dock'], cap: { en: 'The Board with Jambo beside it.', sv: 'Tavlan med Jambo bredvid.' } } },
+
+  { k: '6.2', part: 'see', round: 2,
+    title: { en: 'Explorer: the map', sv: 'Utforskaren: kartan' },
+    eyebrow: { en: 'Home › Explorer', sv: 'Hem › Utforskaren' },
+    what: { en: 'Every contract and party as a map that faces you and stands still (its dots still jiggle). Group it by stream, party, stage or end; Needs attention is one list; "then and now" compares two days. Jambo explains what the map drew, free, with every figure checked.',
+      sv: 'Varje avtal och part som en karta som vänder sig mot dig och står stilla (prickarna vickar ändå). Gruppera efter ström, part, steg eller slut; Behöver uppmärksamhet är en lista; "då och nu" jämför två dagar. Jambo förklarar vad kartan ritade, gratis, med varje siffra kontrollerad.' },
+    when: [{ en: 'You want the shape of the whole book, not a list.', sv: 'Du vill se hela bokens form, inte en lista.' },
+      { en: 'Which parties hold most of our value?', sv: 'Vilka parter har mest av vårt värde?' }],
+    path: ['door:explorer'],
+    how: [{ en: 'Press {ui:hb_group_by} and choose. Past the room, one "Other (N more)".', sv: 'Tryck {ui:hb_group_by} och välj. Utanför rummet, ett "Övriga (N till)".' },
+      { en: 'Press a dot: the contract\'s Dossier. Type a day to see the book as it was then.', sv: 'Tryck på en prick: avtalets Dossier. Skriv en dag för att se boken som den var då.' },
+      { en: 'Findings are kept on the map ("{door:findings}"); the Guide tab beside the map says what is on this view.', sv: 'Fynd sparas på kartan ("{door:findings}"); fliken Guide bredvid kartan säger vad som finns i denna vy.' }],
+    tip: { en: 'Turning is greyed with why: the owner ruled the grid stands upright. A count prints only if it is drawn.', sv: 'Vridning är grå med skäl: ägaren beslöt att rutnätet står upprätt. En siffra skrivs bara om den ritas.' },
+    cost: _hbkFree, doors: ['explorer', 'findings'], acts: [],
+    words: { en: ['explorer', 'the map', 'group by', 'then and now', 'findings', 'needs attention'], sv: ['utforskaren', 'kartan', 'gruppera', 'då och nu', 'fynd'] },
+    shot: { go: [{ place: 'explorer' }], boxes: ['#hb-root, #content', '#ig-dock'], cap: { en: 'The Explorer\'s map, upright and still.', sv: 'Utforskarens karta, upprätt och stilla.' } } },
+
+  { k: '6.3', part: 'see', round: 2,
+    title: { en: 'Jambo\'s agents: what he did on his own', sv: 'Jambos agenter: vad han gjorde själv' },
+    eyebrow: { en: 'Jambo\'s agents page', sv: 'Jambos agenter' },
+    what: { en: 'Jambo\'s office: each agent (chasing, reading, drafting replies, preparing links) and every piece it prepared, as a trip through its rooms. Each piece is one row: {ui:nd_btn_look} in place, {ui:desk_discard} last. Each person sets how far an agent goes: {ui:st_agents_lv_ask} (the start) or {ui:st_agents_lv_auto}; only an admin may set Just do it, and only downwards for each person.',
+      sv: 'Jambos kontor: varje agent (påminner, läser, skriver svar, förbereder länkar) och varje stycke den förberett, som en resa genom dess rum. Varje stycke är en rad: {ui:nd_btn_look} på plats, {ui:desk_discard} sist. Varje person sätter hur långt en agent går: {ui:st_agents_lv_ask} (starten) eller {ui:st_agents_lv_auto}; bara en admin får sätta Gör det bara, och bara nedåt för varje person.' },
+    when: [{ en: 'What did Jambo prepare overnight?', sv: 'Vad förberedde Jambo i natt?' },
+      { en: 'You want an agent to stop asking and just do it (admins).', sv: 'Du vill att en agent slutar fråga och bara gör det (admins).' }],
+    path: ['door:house'],
+    how: [{ en: 'The log is the first tab. Press a piece to see its trip; {ui:nd_btn_look} opens it where it lives.', sv: 'Loggen är första fliken. Tryck på ett stycke för att se dess resa; {ui:nd_btn_look} öppnar det där det finns.' },
+      { en: 'Decide on the piece where it waits (Needs you, the Board\'s card); {ui:desk_discard} with Undo.', sv: 'Besluta om stycket där det väntar (Behöver dig, Tavlans kort); {ui:desk_discard} med Ångra.' }],
+    tip: { en: 'No agent ever sends to the other side. Every run is recorded.', sv: 'Ingen agent skickar någonsin till motparten. Varje körning registreras.' },
+    cost: { en: 'Each run says its cost', sv: 'Varje körning säger sin kostnad' }, doors: ['house', 'work'], acts: [],
+    words: { en: ['agents', "jambo's agents", 'jambo house', 'what jambo did', 'ask me first', 'just do it', 'automation'], sv: ['agenter', 'jambos agenter', 'jambos hus', 'vad jambo gjorde', 'fråga mig först', 'gör det bara'] },
+    shot: { go: [{ place: 'house' }], boxes: ['#content', '#jh-log'], cap: { en: 'The office, the log first.', sv: 'Kontoret, loggen först.' } } },
+
+  { k: '6.4', part: 'see', round: 2,
+    title: { en: 'Insights and the Brain', sv: 'Insikter och Hjärnan' },
+    eyebrow: { en: 'Insights · the Brain (admins)', sv: 'Insikter · Hjärnan (admins)' },
+    what: { en: 'Insights counts the book (exposure, renewals, who waits on whom) and draws each count as a tile that is a door. The Brain is HaTi\'s map of itself: every part, every flow, the lanes, and a stack view of what is running; every change to HaTi names its part there.',
+      sv: 'Insikter räknar boken (exponering, förnyelser, vem som väntar på vem) och ritar varje antal som en platta som är en dörr. Hjärnan är HaTis karta över sig själv: varje del, varje flöde, banorna, och en stackvy av vad som körs; varje ändring i HaTi namnger sin del där.' },
+    when: [{ en: 'A board meeting wants the exposure by stream.', sv: 'Ett styrelsemöte vill ha exponeringen per ström.' },
+      { en: 'You want to know how a thing in HaTi is wired (admins).', sv: 'Du vill veta hur något i HaTi är kopplat (admins).' }],
+    path: ['door:insights', { en: '·', sv: '·' }, 'door:brain'],
+    how: [{ en: 'Press a tile: the contracts behind it.', sv: 'Tryck på en platta: avtalen bakom.' },
+      { en: 'In the Brain, press a part for its body and what hands to it; the lanes view is a process map.', sv: 'I Hjärnan, tryck på en del för dess innehåll och vad som lämnar till den; banvyn är en processkarta.' }],
+    tip: { en: 'Counting is not drawing: a number is read once and every tile reads it.', sv: 'Att räkna är inte att rita: en siffra läses en gång och varje platta läser den.' },
+    cost: _hbkFree, doors: ['insights', 'brain'], acts: [],
+    words: { en: ['insights', 'exposure', 'the brain', 'how hati works', 'process map'], sv: ['insikter', 'exponering', 'hjärnan', 'hur hati fungerar', 'processkarta'] },
+    shot: { go: [{ place: 'insights' }], boxes: ['#content'], cap: { en: 'Insights: each count a tile.', sv: 'Insikter: varje antal en platta.' } } },
+
+  /* ======================= PART 7 — SETTINGS & RULES ======================= */
+  { k: '7.1', part: 'settings', round: 2,
+    title: { en: 'People, roles and the grants per person', sv: 'Personer, roller och behörigheter per person' },
+    eyebrow: { en: 'Settings › Company › People · admins', sv: 'Inställningar › Företag › Personer · admins' },
+    what: { en: 'Every colleague, their role and what they may do. Grants are per person and off by default: a signing cap, whether their changes are checked (review), approval before signing, who may make new paper, re-file a contract, or put one on hold. They are asked when a person is added, by role.',
+      sv: 'Varje kollega, deras roll och vad de får göra. Behörigheter är per person och av som standard: ett signeringstak, om deras ändringar granskas, godkännande före signering, vem som får skapa nytt papper, flytta ett avtal, eller sätta stopp. De frågas när en person läggs till, per roll.' },
+    when: [{ en: 'A new colleague starts: a viewer first.', sv: 'En ny kollega börjar: läsare först.' },
+      { en: 'Someone keeps signing above what they should: a cap.', sv: 'Någon signerar ständigt över vad de borde: ett tak.' }],
+    path: ['door:settings', { en: 'Company', sv: 'Företag' }, { en: 'People', sv: 'Personer' }],
+    how: [{ en: 'Add the person; the grant rows for their role are asked at once.', sv: 'Lägg till personen; behörighetsraderna för rollen frågas direkt.' },
+      { en: 'Open a person to change a grant. Admins are never capped.', sv: 'Öppna en person för att ändra en behörighet. Admins har aldrig tak.' },
+      { en: '"{door:roles}" lists the business roles; "{door:access}" is the access review, refused while anyone is undecided.', sv: '"{door:roles}" listar affärsrollerna; "{door:access}" är behörighetsgranskningen, vägrad medan någon är obestämd.' }],
+    tip: { en: 'A member who is not an admin reads only their own settings. Ask an admin is a record, answered where admins look.', sv: 'En medlem som inte är admin läser bara sina egna inställningar. Fråga en admin är en post, besvarad där admins tittar.' },
+    cost: _hbkFree, doors: ['settings', 'people', 'roles', 'access', 'profile'], acts: [],
+    words: { en: ['people', 'roles', 'grants', 'signing cap', 'add a person', 'permissions', 'access review', 'who holds what'], sv: ['personer', 'roller', 'behörigheter', 'signeringstak', 'lägg till en person', 'behörighetsgranskning'] },
+    shot: { go: [{ view: 'team' }], boxes: ['#content'], cap: { en: 'Settings: You first, Company for admins.', sv: 'Inställningar: Du först, Företag för admins.' } } },
+
+  { k: '7.2', part: 'settings', round: 2,
+    title: { en: 'Streams, private streams and the filing lists', sv: 'Strömmar, privata strömmar och arkiveringslistorna' },
+    eyebrow: { en: 'Settings › Company › Streams · admins', sv: 'Inställningar › Företag › Strömmar · admins' },
+    what: { en: 'A stream is a shelf with its own people: the server filters every list by it. A private stream shows only to the people named on it, admins too, and its money adds nowhere. Category and stream are the company\'s lists, asked at every creation door. Keeping (how long we keep contracts) is set per stream.',
+      sv: 'En ström är en hylla med egna personer: servern filtrerar varje lista efter den. En privat ström syns bara för dem som är namngivna, även admins, och dess pengar läggs inte till någonstans. Kategori och ström är företagets listor, frågade vid varje skapandedörr. Bevarande (hur länge vi behåller avtal) sätts per ström.' },
+    when: [{ en: 'Sales should not see Legal\'s employment contracts.', sv: 'Sälj ska inte se Juridiks anställningsavtal.' },
+      { en: 'An acquisition: a private stream for the five people on it.', sv: 'Ett förvärv: en privat ström för de fem personerna på det.' }],
+    path: ['door:settings', { en: 'Company', sv: 'Företag' }, 'door:privstreams'],
+    how: [{ en: 'Open a stream; name who may open it. A new member is a viewer.', sv: 'Öppna en ström; namnge vem som får öppna den. En ny medlem är läsare.' },
+      { en: 'Private streams: one writer; every open is kept in the trail.', sv: 'Privata strömmar: en skrivare; varje öppning sparas i spåret.' },
+      { en: 'Re-filing a contract to another stream is an admin\'s act, delegable per person.', sv: 'Att flytta ett avtal till en annan ström är en admins handling, delegerbar per person.' }],
+    tip: { en: 'The server is the wall: the browser only shows what the server already filtered.', sv: 'Servern är muren: webbläsaren visar bara det servern redan filtrerat.' },
+    cost: _hbkFree, doors: ['privstreams', 'keeping', 'company'], acts: [],
+    words: { en: ['streams', 'private streams', 'who can see', 'filing', 'categories', 'retention', 'keeping'], sv: ['strömmar', 'privata strömmar', 'vem kan se', 'arkivering', 'kategorier', 'bevarande', 'gallring'] },
+    shot: { go: [{ view: 'team' }], boxes: ['#content'], cap: { en: 'Company settings hold the streams.', sv: 'Företagsinställningarna rymmer strömmarna.' } } },
+
+  { k: '7.3', part: 'settings', round: 2,
+    title: { en: 'The switches: review, the desk, a code on a guest\'s link, two-step sign-in, away', sv: 'Brytarna: granskning, disken, en kod på en gästs länk, tvåstegsinloggning, borta' },
+    eyebrow: { en: 'Settings · admins and You', sv: 'Inställningar · admins och Du' },
+    what: { en: 'Company switches, each off by default: "{ui:rv_set_on}" (sending), "{ui:dk_set_on}" (the desk: redlining and sending, never signing), a code on a named guest\'s link (opening and signing), and {ui:ts_title} for staff. On You: Away names a stand-in who answers your approvals and reviews, never your signing.',
+      sv: 'Företagsbrytare, var och en av som standard: "{ui:rv_set_on}" (utskick), "{ui:dk_set_on}" (disken: ändringar och utskick, aldrig signering), en kod på en namngiven gästs länk (öppna och signera), och {ui:ts_title} för personal. Under Du: Borta namnger en ersättare som besvarar dina godkännanden och granskningar, aldrig din signering.' },
+    when: [{ en: 'A guest\'s link was forwarded to someone it was not meant for: the code.', sv: 'En gästs länk vidarebefordrades till någon den inte var avsedd för: koden.' },
+      { en: 'You are on leave next week: {ui:st_aw_set}.', sv: 'Du är ledig nästa vecka: {ui:st_aw_set}.' }],
+    path: ['door:settings', { en: 'Company (switches) · You (Away, two-step)', sv: 'Företag (brytare) · Du (Borta, tvåsteg)' }],
+    how: [{ en: 'Admin: open the Company page and flip the switch; the finder box finds any setting by name.', sv: 'Admin: öppna Företagssidan och slå om brytaren; sökrutan hittar vilken inställning som helst på namn.' },
+      { en: 'Away: {ui:st_aw_set}, choose the colleague and the days. "{ui:st_aw_never_sign}"', sv: 'Borta: {ui:st_aw_set}, välj kollegan och dagarna. "{ui:st_aw_never_sign}"' },
+      { en: 'Two-step sign-in: on for you under You; an admin can clear it for a colleague, never for themselves.', sv: 'Tvåstegsinloggning: på för dig under Du; en admin kan nollställa den för en kollega, aldrig för sig själv.' }],
+    tip: { en: 'The sign-in limiter counts wrong guesses, not attempts.', sv: 'Inloggningsbegränsaren räknar fel gissningar, inte försök.' },
+    cost: _hbkFree, doors: [], acts: [],
+    words: { en: ['switches', 'two-step', 'link code', 'guest code', 'away', 'stand-in', 'out of office', 'desk rule', 'language'], sv: ['brytare', 'tvåsteg', 'länkkod', 'gästkod', 'borta', 'ersättare', 'frånvaro', 'språk'] },
+    shot: { go: [{ view: 'team' }], boxes: ['#content'], cap: { en: 'Settings: the switches live on the Company page.', sv: 'Inställningar: brytarna finns på Företagssidan.' } } },
+
+  { k: '7.4', part: 'settings', round: 2,
+    title: { en: 'Money: currencies and rates', sv: 'Pengar: valutor och kurser' },
+    eyebrow: { en: 'Settings › Company › {ui:st_fx} · admins', sv: 'Inställningar › Företag › {ui:st_fx} · admins' },
+    what: { en: 'A contract states its own currency and is never rewritten. Anything that adds converts to the home currency through a rate an admin set on a date; no rate is ever guessed: a missing one is said and the contract left out of the total. Pay (a salary) is never deal value.',
+      sv: 'Ett avtal anger sin egen valuta och skrivs aldrig om. Allt som summerar räknar om till hemvalutan genom en kurs en admin satt på ett datum; ingen kurs gissas någonsin: en som saknas sägs och avtalet lämnas utanför summan. Lön är aldrig affärsvärde.' },
+    when: [{ en: 'The Board says "N contracts left out: no rate for USD".', sv: 'Tavlan säger "N avtal utelämnade: ingen kurs för USD".' }],
+    path: ['door:settings', { en: 'Company', sv: 'Företag' }, { en: '{ui:st_fx}', sv: '{ui:st_fx}' }],
+    how: [{ en: 'Press {ui:st_fx_add}, type the code and "{ui:st_fx_rate}". The date is kept with it.', sv: 'Tryck {ui:st_fx_add}, skriv koden och "{ui:st_fx_rate}". Datumet sparas med.' },
+      { en: '{ui:st_fx_remove} takes it away; its contracts leave the converted totals again.', sv: '{ui:st_fx_remove} tar bort den; dess avtal lämnar de omräknade summorna igen.' }],
+    tip: { en: '"{ui:st_fx_note}"', sv: '"{ui:st_fx_note}"' },
+    cost: _hbkFree, doors: [], acts: ['value'],
+    words: { en: ['currency', 'currencies', 'exchange rate', 'rates', 'fx', 'convert'], sv: ['valuta', 'valutor', 'växelkurs', 'kurser', 'omräkna'] },
+    shot: { go: [{ view: 'team' }], boxes: ['#content'], cap: { en: 'Exchange rates on the Company page.', sv: 'Växelkurser på Företagssidan.' } } },
+
+  { k: '7.5', part: 'settings', round: 2,
+    title: { en: 'Jambo\'s settings: spend, company facts, navigation, agent levels', sv: 'Jambos inställningar: kostnad, företagsfakta, navigering, agentnivåer' },
+    eyebrow: { en: 'Settings › Company › Jambo · admins', sv: 'Inställningar › Företag › Jambo · admins' },
+    what: { en: 'What Jambo may spend and has spent (dollars to admins only), the company facts he checks every new contract against, whether he may take people to a page when they ask ("the AI takes you there"), and how far each agent may go for each person.',
+      sv: 'Vad Jambo får spendera och har spenderat (dollar bara för admins), företagsfakta han kontrollerar varje nytt avtal mot, om han får ta folk till en sida när de ber ("AI:n tar dig dit"), och hur långt varje agent får gå för varje person.' },
+    when: [{ en: 'The month\'s spend is climbing: a budget.', sv: 'Månadens kostnad stiger: en budget.' },
+      { en: 'A standing question for every new contract: a company fact.', sv: 'En stående fråga för varje nytt avtal: ett företagsfaktum.' }],
+    path: ['door:settings', { en: 'Company', sv: 'Företag' }, 'door:budget'],
+    how: [{ en: '"{door:budget}" shows spend today and the limit; judgement questions run on the stronger model from the first step, and the answer says so.', sv: '"{door:budget}" visar dagens kostnad och gränsen; bedömningsfrågor körs på den starkare modellen från första steget, och svaret säger det.' },
+      { en: '{ui:fa_title}: add a kept question with its rule; a changed rule drops its old answers so they are judged again.', sv: '{ui:fa_title}: lägg till en behållen fråga med sin regel; en ändrad regel släpper sina gamla svar så de bedöms igen.' },
+      { en: 'Agent levels: {ui:st_agents_lv_ask} for everyone to start; Just do it is the admin\'s, and only for the link-only agent.', sv: 'Agentnivåer: {ui:st_agents_lv_ask} för alla till att börja med; Gör det bara är adminens, och bara för länkagenten.' }],
+    tip: { en: 'Jambo guides through the rules, never around them: he says the rule, who lifts it and the proper step.', sv: 'Jambo leder genom reglerna, aldrig runt dem: han säger regeln, vem som lyfter den och rätt steg.' },
+    cost: _hbkFree, doors: ['budget', 'webhooks'], acts: [],
+    words: { en: ['jambo settings', 'spend', 'budget', 'ai cost', 'company facts', 'navigation', 'agent levels', 'webhooks'], sv: ['jambos inställningar', 'kostnad', 'budget', 'företagsfakta', 'navigering', 'agentnivåer'] },
+    shot: { go: [{ view: 'team' }], boxes: ['#content'], cap: { en: 'Jambo\'s card on the Company page.', sv: 'Jambos kort på Företagssidan.' } } },
+];
+
+/* ---------- READERS (no DOM) ---------- */
+const hbkPartOf = k => HANDBOOK_PARTS.find(p => p.k === k) || null;
+const hbkChapterOf = k => HANDBOOK_CHAPTERS.find(c => c.k === String(k || '')) || null;
+const hbkChaptersOf = part => HANDBOOK_CHAPTERS.filter(c => c.part === part);
+/* every door and act the book names (the test's coverage) */
+function hbkDoorsNamed(){
+  const doors = new Set(), acts = new Set();
+  for (const c of HANDBOOK_CHAPTERS){
+    (c.doors || []).forEach(d => doors.add(d)); (c.acts || []).forEach(a => acts.add(a));
+    for (const m of hbkMarkersOf(c)) if (m.kind === 'door') doors.add(m.key);
+  }
+  return { doors, acts };
+}
+/* every {ui:key} and {door:key} marker a chapter carries, in any of its texts */
+const HBK_MARK_RE = /\{(ui|door):([a-z0-9_]+)\}/g;
+function hbkTextsOf(c){
+  const out = [];
+  const take = v => { if (!v) return; if (typeof v === 'string') out.push(v); else if (Array.isArray(v)) v.forEach(take); else if (typeof v === 'object'){ if (v.en != null || v.sv != null){ out.push(String(v.en || ''), String(v.sv || '')); } Object.keys(v).forEach(k => { if (k !== 'en' && k !== 'sv') take(v[k]); }); } };
+  ['title', 'eyebrow', 'what', 'when', 'path', 'how', 'read', 'tip', 'cost', 'noShot'].forEach(f => take(c[f]));
+  return out;
+}
+function hbkMarkersOf(c){
+  const out = [];
+  for (const t of hbkTextsOf(c)) for (const m of t.matchAll(HBK_MARK_RE)) out.push({ kind: m[1], key: m[2] });
+  return out;
+}
+/* "how do I …" matched on a chapter's words: the chapter whose words the question holds, the longest word
+   winning; null when no chapter's word is in it (navReadHandbook, round 4) */
+function hbkFind(q, lang){
+  const t = ' ' + String(q || '').toLowerCase().replace(/[’‘]/g, "'").replace(/[^\p{L}\p{N}' ]+/gu, ' ').replace(/\s+/g, ' ').trim() + ' ';
+  let best = null;
+  for (const c of HANDBOOK_CHAPTERS){
+    const words = (c.words && c.words[lang]) || [];
+    for (const w of words){ const ww = ' ' + String(w).toLowerCase() + ' '; if (t.includes(ww) && (!best || ww.length > best.len)) best = { c, len: ww.length, word: w }; }
+  }
+  return best ? { k: best.c.k, word: best.word } : null;
+}
+
+/* ---------- THE BOOK IN PLAIN WORDS, FOR JAMBO TO READ (owner, 26 Oct 2026: "the goal is to have jambo be the
+   cure to all question related to the platform") ----------
+   Asked "what is the handbook about?", Jambo summarised the contracts: the brain had never read this book. Now
+   both hosts read it through these readers — the server puts every chapter in the ONE search (kind 'guide',
+   hsIndexKind), the browser's own search does the same when there is no server — so a question about HaTi is
+   answered from the chapter that was checked against the app, and a chapter written tomorrow is read tomorrow.
+   `word(kind, key, lang)` turns a marker into the screen's word (kind 'ui' a dictionary key, 'door' a place);
+   each host passes its own dictionary. Nothing here is translated: every field is already {en, sv}. */
+const HBK_ABOUT = 'about';
+function hbkWord(word, kind, key, lang){
+  let w = ''; try { w = typeof word === 'function' ? String(word(kind, key, lang) || '') : ''; } catch (_){ w = ''; }
+  /* a label's own placeholders ({n}, {cur}) are said as "…", as the page draws them (hbkLabel) */
+  return w && w !== key ? w.replace(/\{[a-z]+\}/gi, '…').replace(/&amp;/g, '&') : String(key).replace(/_/g, ' ');
+}
+/* one field, in one language, its markers as the screen's words */
+function hbkPlainOf(v, lang, word){
+  const s = v == null ? '' : typeof v === 'string' ? v : String((v[lang] != null ? v[lang] : v.en) || '');
+  return s.replace(HBK_MARK_RE, (m, kind, key) => hbkWord(word, kind, key, lang)).replace(/\s+/g, ' ').trim();
+}
+/* a part's name and line: the Guide's own words for the six stages, its own for the two ends */
+function hbkPartPlain(p, lang, word){
+  if (!p) return { w: '', sub: '' };
+  return p.gd ? { w: hbkWord(word, 'ui', 'gd_s_' + p.gd, lang), sub: hbkWord(word, 'ui', 'gd_s_' + p.gd + '_w', lang) }
+    : { w: hbkWord(word, 'ui', p.w, lang), sub: hbkWord(word, 'ui', p.sub, lang) };
+}
+const HBK_PLAIN_HEADS = {
+  en: { part: 'Part', what: 'What it is', when: 'When to use it', path: 'Where', how: 'How', read: 'Reading it', tip: 'Good to know', cost: 'Cost' },
+  sv: { part: 'Del', what: 'Vad det är', when: 'När du använder det', path: 'Var', how: 'Hur', read: 'Så läser du det', tip: 'Bra att veta', cost: 'Kostnad' } };
+/* one chapter as Jambo reads it: its title, then what, when, where, how (numbered), the reading key, the tip, the cost */
+function hbkChapterPlain(c, lang, word){
+  if (!c) return '';
+  const L = HBK_PLAIN_HEADS[lang] || HBK_PLAIN_HEADS.en, P = x => hbkPlainOf(x, lang, word);
+  const part = hbkPartPlain(hbkPartOf(c.part), lang, word);
+  const lines = [`${c.k} ${P(c.title)}`, `${L.part}: ${part.w}${c.eyebrow ? ' · ' + P(c.eyebrow) : ''}`];
+  if (c.what) lines.push(`${L.what}: ${P(c.what)}`);
+  if (Array.isArray(c.when) && c.when.length) lines.push(`${L.when}: ` + c.when.map(P).join(' '));
+  if (Array.isArray(c.path) && c.path.length) lines.push(`${L.path}: ` + c.path.map(x => typeof x === 'string' && x.startsWith('door:') ? hbkWord(word, 'door', x.slice(5), lang) : P(x)).join(' › '));
+  if (Array.isArray(c.how) && c.how.length) lines.push(`${L.how}: ` + c.how.map((x, i) => `${i + 1}. ${P(x)}`).join(' '));
+  if (c.read) lines.push(`${L.read}: ${P(c.read)}` + (Array.isArray(c.read.key) ? ' ' + c.read.key.map(P).join('; ') + '.' : ''));
+  if (c.tip) lines.push(`${L.tip}: ${P(c.tip)}`);
+  if (c.cost) lines.push(`${L.cost}: ${P(c.cost)}`);
+  return lines.join('\n');
+}
+/* the book itself ("what is the handbook about?"): what it is, then every part with its chapters */
+function hbkAboutPlain(lang, word){
+  const head = lang === 'sv'
+    ? `Handboken är HaTis egen instruktionsbok: ${HANDBOOK_CHAPTERS.length} kapitel i ${HANDBOOK_PARTS.length} delar, i den ordning ett avtal lever. Varje kapitel säger vad en sak är, när du använder den, var den finns, hur du gör steg för steg och vad den kostar. Den öppnas från Guiden eller genom att skriva "handbok". Kontrollerad mot appen ${HANDBOOK_CHECKED}.`
+    : `The Handbook is HaTi's own instruction book: ${HANDBOOK_CHAPTERS.length} chapters in ${HANDBOOK_PARTS.length} parts, in the order a contract lives. Each chapter says what a thing is, when to use it, where it is, how to do it step by step, and what it costs. It opens from the Guide or by typing "handbook". Checked against the app on ${HANDBOOK_CHECKED}.`;
+  return [head].concat(HANDBOOK_PARTS.map((p, i) => { const w = hbkPartPlain(p, lang, word);
+    return `${i}. ${w.w}${w.sub ? ' (' + w.sub + ')' : ''}: ` + hbkChaptersOf(p.k).map(c => `${c.k} ${hbkPlainOf(c.title, lang, word)}`).join('; '); })).join('\n');
+}
+/* every chapter, and the book itself, as search documents: both languages in one body, the everyday words as tags */
+function hbkSearchDocs(word){
+  const docs = [{ k: HBK_ABOUT, part: '', title: 'The Handbook: instructions for using HaTi · Handboken', body: 'handbook · instructions · user guide · manual · how to use HaTi · handboken · instruktioner\n' + hbkAboutPlain('en', word) + '\n\n' + hbkAboutPlain('sv', word).split('\n')[0],
+    tags: 'handbook handboken manual instructions user guide instruction book what is the handbook about bruksanvisning' }];
+  for (const c of HANDBOOK_CHAPTERS){
+    const w = c.words || {};
+    docs.push({ k: c.k, part: c.part, title: `${hbkPlainOf(c.title, 'en', word)} · ${hbkPlainOf(c.title, 'sv', word)}`,
+      /* the chapter's everyday words lead its body too: they are the words people ask with ("playbook", "ask jambo") */
+      body: [].concat(w.en || [], w.sv || []).join(' · ') + '\n' + hbkChapterPlain(c, 'en', word) + '\n\n' + hbkChapterPlain(c, 'sv', word),
+      tags: [].concat(w.en || [], w.sv || []).join(' ') });
+  }
+  return docs;
+}
+/* what Jambo is handed for one chapter ('about' = the book itself), in the reader's language */
+function hbkPlainFor(k, lang, word){
+  const L = lang === 'sv' ? 'sv' : 'en';
+  if (k === HBK_ABOUT) return hbkAboutPlain(L, word);
+  const c = hbkChapterOf(k); return c ? hbkChapterPlain(c, L, word) : '';
+}
+
+/* WHICH CHAPTERS COVER THE PAGE IN FRONT (the owner, 26 Oct 2026: "we are looking to address the issue across
+   HaTi, not just the handbook"): every page names the place words its chapters carry in `doors`, so Jambo on ANY
+   page — Obligations, Settings, a contract — is told which chapters describe what he is looking at, and "what can
+   I do here?" is answered from them. A view is the app's state.view; Home's faces have their own. A page with no
+   chapter is a GAP the Handbook owes (test/f938's gap list), never a guess. */
+const HBK_VIEW_DOORS = {
+  dashboard: ['counter', 'needs'], register: ['contracts', 'list', 'wall'], folder: ['contracts', 'list'], workspace: ['document'],
+  redline: ['negotiations', 'redline'], intel: ['insights'], reports: ['insights'], obligations: ['oblig', 'week'],
+  approvals: ['approvals'], pipeline: ['approvals'], customers: ['parties'], agents: ['house'], jambo: ['house'], brain: ['brain'],
+  calendar: ['calendar'], mynotes: ['mynotes'], handbook: ['handbook'], templates: ['ourpaper'], playbook: ['ourpaper'],
+  intake: ['requests'], advice: ['requests'], directory: ['people'], team: ['settings', 'company'], migration: ['import'] };
+const HBK_FACE_DOORS = { board: ['board'], paper: ['document'], calendar: ['calendar'], explorer: ['explorer'] };
+function hbkChaptersForPage(view, face){
+  const first = (face && HBK_FACE_DOORS[face]) || [], then = HBK_VIEW_DOORS[view] || [];
+  const doors = new Set([].concat(first, then));
+  if (!doors.size) return [];
+  const pathDoors = c => (c.path || []).filter(x => typeof x === 'string' && x.startsWith('door:')).map(x => x.slice(5));
+  const named = c => new Set([].concat(c.doors || [], pathDoors(c), hbkMarkersOf(c).filter(m => m.kind === 'door').map(m => m.key)));
+  /* how closely a chapter is about the page: it owns Home's face (its `doors`, 0) or starts there (1), it owns the
+     page (2) or starts there (3), it only mentions it (4); a tie goes to the chapter owning more of the page */
+  const has = (list, set) => list.some(d => set.includes(d));
+  const rank = c => { const p0 = pathDoors(c)[0], cd = c.doors || [];
+    return has(cd, first) ? 0 : first.includes(p0) ? 1 : has(cd, then) ? 2 : then.includes(p0) ? 3 : 4; };
+  const width = c => (c.doors || []).filter(d => doors.has(d)).length;
+  return HANDBOOK_CHAPTERS.filter(c => [...named(c)].some(d => doors.has(d)))
+    .map((c, i) => ({ c, r: rank(c), w: width(c), i })).sort((a, b) => a.r - b.r || b.w - a.w || a.i - b.i).map(x => x.c).slice(0, 4);
+}
+
+const HBK_API = { HANDBOOK_CHECKED, HANDBOOK_PARTS, HANDBOOK_CHAPTERS, HBK_MARK_RE, hbkPartOf, hbkChapterOf, hbkChaptersOf, hbkDoorsNamed, hbkTextsOf, hbkMarkersOf, hbkFind,
+  HBK_ABOUT, hbkPlainOf, hbkPartPlain, hbkChapterPlain, hbkAboutPlain, hbkSearchDocs, hbkPlainFor, HBK_VIEW_DOORS, HBK_FACE_DOORS, hbkChaptersForPage };
+if (typeof window !== 'undefined') Object.assign(window, HBK_API);
+if (typeof module !== 'undefined' && module.exports) module.exports = HBK_API;

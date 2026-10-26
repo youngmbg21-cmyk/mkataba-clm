@@ -202,7 +202,8 @@ function navRead(q, opts = {}){
     if (one) return one;
     /* A PLACE BY NAME ON THE BOARD (23 Oct 2026): "news", "the archive", "access review" are no question of
        the Board's lists; they move unless the Board reads the words itself, free */
-    const pl = navReadPage(raw, t) || navReadPlace(raw, t) || navReadSettings(raw, t) || navReadStTitle(raw, t);
+    /* …and a "how do I …" is the Handbook's chapter, no question of the Board's lists either (26 Oct 2026) */
+    const pl = navReadPage(raw, t) || navReadPlace(raw, t) || navReadSettings(raw, t) || navReadStTitle(raw, t) || navReadHandbook(raw, t);
     if (!pl) return null;
     /* a Settings page asked by its exact title is sure: the Board's own guess at those words gives way */
     if (pl.nav && pl.nav.k === 'stfind' && pl.exact) return pl;
@@ -219,7 +220,7 @@ function navRead(q, opts = {}){
      admin (the record), where "only an admin can open that" would carry nothing */
   const stWall = r => (opts.box === 'settings' && r && r.kind === 'navsay') ? null : r;
   let stOwn = false; if (opts.box === 'settings'){ try { stOwn = typeof stFind === 'function' && (stFind(raw) || []).length > 0; } catch (_){ stOwn = false; } }
-  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || (stOwn && navPlaceIsSetting(t) ? null : stWall(navReadPlace(raw, t))) || navReadParty(raw, t) || navReadPerson(raw, t) || (stOwn ? null : stWall(navReadSettings(raw, t))) || (opts.box === 'settings' ? null : navReadStTitle(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || null;
+  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || (stOwn && navPlaceIsSetting(t) ? null : stWall(navReadPlace(raw, t))) || navReadParty(raw, t) || navReadPerson(raw, t) || (stOwn ? null : stWall(navReadSettings(raw, t))) || (opts.box === 'settings' ? null : navReadStTitle(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || navReadHandbook(raw, t) || null;
 }
 
 /* A PAGE BY ITS EVERYDAY NAME, even with a contract open beside the reader: "all our duties" is the
@@ -623,6 +624,8 @@ function navGo(a){
   if (n.k === 'compare') return navGoCompare(n);
   if (n.k === 'place') return navGoPlace(n);
   if (n.k === 'stfind') return (typeof stFindGo === 'function') ? (stFindGo(n.id), true) : false;
+  /* a Handbook chapter (Jambo's answer's button; 'about' the book's front page) */
+  if (n.k === 'chapter') return (typeof hbkOpen === 'function') ? (n.chapter === 'about' ? hbkOpen(null, { part: (typeof HANDBOOK_PARTS !== 'undefined' && HANDBOOK_PARTS[0]) ? HANDBOOK_PARTS[0].k : 'around' }) : hbkOpen(n.chapter)) : false;
   return navGoStage2(n) || navGoStage3(n);
 }
 /* the contract on Home's paper, then its clause found on the paper as drawn and landed. A paper drawn
@@ -1117,6 +1120,24 @@ function navUnknownNames(raw){
     .filter(w => w && /^\p{Lu}/u.test(w) && !/^(NDA|MK|HaTi|Jambo|I)$/.test(w) && !NAV_WORD_SKIP.has(w.toLowerCase()) && !NAV_LEAD.test(' ' + w.toLowerCase() + ' '));
   return caps.filter(w => !known.includes(' ' + w.toLowerCase() + ' ') && !known.includes(' ' + w.toLowerCase()));
 }
+/* "HOW DO I …" IS THE HANDBOOK'S (THE HANDBOOK, round 4, 26 Oct 2026): a question asked as a how-to that no
+   reader above read lands on the chapter whose everyday words it holds (hbkFind, js/handbook.js) — LAST in
+   the chain, so it never takes a door another reader owns; never with a contract named (that contract's
+   reader's), never a task of Jambo's map (jmRead reads "how do I get them to sign MK-B2"); no AI */
+/* a how-to about USING HaTi ("how do I send this for review"), never advice on a deal ("how should I approach the
+   liability cap in this contract?" is the chat's: banner-and-answer-top-verify 2a) — so no should/would, and
+   nothing that names this contract, a clause or a term of it */
+const NAV_HOWTO = /^ (how (do|can) (i|we)|how to|how does|where (do|can) (i|we)|hur (gör|kan) (jag|vi|man)|hur fungerar|var (gör|hittar|kan) (jag|vi)) /;
+const NAV_HOWTO_NOT = / (this|that|the|my|our) (contract|agreement|deal|clause|wording|paper|draft|nda|lease)|(approach|handle|negotiate|respond|reply|answer|argue|push back|liability|indemnit|cap|clause|term|skulle|borde|hantera|bemöta|förhandla|klausul|ansvar) /;
+function navReadHandbook(raw, t){
+  if (!NAV_HOWTO.test(t) || NAV_HOWTO_NOT.test(t) || typeof hbkFind !== 'function' || typeof hbkChapterOf !== 'function') return null;
+  if (/\b[A-Za-z]{2,4}-[A-Za-z0-9]+\b/.test(String(raw || ''))) return null;
+  try { if (typeof jmRead === 'function' && jmRead(raw)) return null; } catch (_){ /* the map stays silent */ }
+  const lang = (typeof langId === 'function' && langId() === 'sv') ? 'sv' : 'en';
+  const hit = hbkFind(raw, lang) || hbkFind(raw, lang === 'sv' ? 'en' : 'sv'); if (!hit) return null;
+  const c = hbkChapterOf(hit.k); const title = c && c.title ? (c.title[lang] || c.title.en) : hit.k;
+  return { kind: 'go', place: 'handbook', chapter: hit.k, say: 'nav_go_handbook', sayVars: { t: title } };
+}
 function navReadNone(raw, t){
   const folder = NAV_FOLDER_WORDS.test(t), contract = NAV_CONTRACT_WORDS.test(t) && !/ (contracts|agreements|deals|avtalen) /.test(t);
   if (!folder && !contract) return null;
@@ -1258,10 +1279,17 @@ function navDoorOf(d){
   if (d.kind === 'duties') return d.due === '7' ? go({ k: 'duties', due: '7' }, 'nav_go_duties_week') : { kind: 'go', place: 'oblig' };
   /* My notes, or one of them: its own page's door (myNotesOpen); private, so only ever the reader's own */
   if (d.kind === 'mynote') return go({ k: 'mynote', id: d.noteId || null }, 'nav_go_mynote');
+  /* a Handbook chapter, or the book itself: every reader may open it (the server's aiDoorOf checked the number) */
+  if (d.kind === 'chapter'){
+    const ch = String(d.chapter || 'about'), c = typeof hbkChapterOf === 'function' ? hbkChapterOf(ch) : null;
+    if (ch !== 'about' && !c) return null;
+    const lang = (typeof langId === 'function' && langId() === 'sv') ? 'sv' : 'en';
+    return go({ k: 'chapter', chapter: c ? c.k : 'about' }, 'nav_go_handbook', { t: c && c.title ? (c.title[lang] || c.title.en) : _nvT('nav_handbook') });
+  }
   return null;
 }
 
-Object.assign(window, { NAV_PLACES, navReadPlace, navGoPlace, navReadStTitle, navStTitles, navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
+Object.assign(window, { NAV_PLACES, NAV_PLACES_ADMIN, navIsAdmin, navReadHandbook, navReadPlace, navGoPlace, navReadStTitle, navStTitles, navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
   navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,

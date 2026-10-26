@@ -21601,3 +21601,144 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 - Noticed, not fixed (26 Oct 2026, PR #484): week-as-drawn-verify "5 1536×730: the Calendar whole" is red on main itself (measured on an untouched worktree at 73a0dfd): the week rows keep the 1440×780 layout instead of fitting, so the fifth row ends at 756px on a 730px screen; it turned red when the new week began (this week's row grew to "3 due"). The owner's laptop screen.
 
 - Noticed, not fixed (26 Oct 2026, flag D): the receipt's copies panel is headed "Copies sent" (ct_copies_sent) even when every copy in it failed or sits in the outbox; the rows under it say Failed, but the heading claims "sent". Same "sent must mean sent" class as flag D's stop, left for the owner to rule on.
+## Noticed, not fixed — 26 Oct 2026 (Discover, the owner's seven notes)
+- The owner's workspace holds question rows that should never have become columns
+  ("how many of these contracts need my response from their redlines", "how many
+  contracts have no redlines", "How many of the contracts have been signed", "How many
+  contracts have risks", "How many contracts have 30 day payment terms"). Both hosts now
+  refuse such a question, so no new one can appear, and Delete stands on every unkept row
+  in Discover — but the rows already there are NOT deleted: deleting is not undoable and
+  the owner has not seen the list. Waiting on their yes.
+- Batching a column read multiplies the requests the deep rate limiter counts (a
+  50-contract read is 5 requests, not 1). Not a fault today at AI_RATE_DEEP 15, but the
+  limiter now counts pieces of one read, which is not quite what it means to count.
+
+## Keep and Delete were invisible on the owner's iPad (26 Oct 2026)
+
+Fixed. The Keep in Discover and Delete links I shipped yesterday rested at
+nothing until a mouse pointer arrived over their row. On a screen with only a
+finger no pointer ever arrives, so on the owner's iPad both links were simply
+not there — and the owner's next ask was to delete five junk questions, which
+is exactly what those links do. They now sit behind `@media (hover:hover)`,
+the house pattern the panel's width grip already follows: a mouse still gets
+the quiet row, a finger simply sees them.
+
+Measured with a finger at 1366x950 and with a mouse at 1440x780: opacity 0 at
+the parent (0bb28af), 1 now; the press lands, the row stays inside the panel,
+each link on one line. Permanent check: discover-verify 3a-4 reads the live
+stylesheet, so the rule cannot quietly leave its media block.
+
+## The Company facts page, and the door to the full report (26 Oct 2026)
+
+Two of the owner's notes, both reversing something built the same day.
+
+1. Making the Company facts page "facts only" left it empty: it listed a
+   question only once that question was already switched on, so a workspace
+   with five kept questions and none on showed "No fact is on yet" and five
+   run-together links. The page now lists every question the team keeps, each
+   with a switch saying whether it is read on every contract that arrives. The
+   switch column is named for what it does ("Read on arrival"), and a new
+   question joins through the one door it already had: the Contracts list.
+   The links ran together because .ac-chips was dressed only inside #ig-dock
+   and the page is in Settings — the clothes now follow the builder.
+
+2. The door to the full report only appeared after a pack's read. Columns
+   asked one at a time had no door at all. Every column's card now carries it,
+   over the pack's run where there is one and otherwise over the columns
+   standing on the list. One word for the one door: "See the full report".
+
+Measured at the owner's three screens. discover-verify 3b'-3b" and 4b'-4b"
+are red at the parent (6e9fbd2).
+
+## Noticed, not fixed
+
+- The rule box on the Company facts page clips its own placeholder at the
+  owner's narrower screens; a text field truncating its placeholder is
+  ordinary, so it was left alone.
+
+## The page's own work is never inside the conversation (26 Oct 2026)
+
+The owner, of every page: "if a link is on the first page and a user will need
+to access it, they should not scroll up the jambo to find this link." They
+named the Dossier as the pattern that was already right — its work sits under
+its own tabs and Jambo's talk under his — and the Contracts list as the one
+that was wrong.
+
+Beside the Contracts list the panel was drawn as Jambo's one window, so
+Discover, the kept questions and Ask a new question lived inside the chat's own
+scroller. Measured: after nine exchanges those links sat 433px above the top of
+the panel, out of reach without scrolling the conversation back. The whole
+Paper face now keeps two tabs, the Dossier's pattern.
+
+The Board's panel carries only Jambo's own words, so it keeps his one window —
+but his greeting carries the book's count and the chips that open it, and those
+were 542px out of reach for the same reason. They are now pinned above the
+scroller and the talk runs under them.
+
+A sweep holds every page in the platform to the rule rather than those two:
+test/chromium/jambo-panel-sweep-verify.js types six real questions into each
+panel's own box and then asks whether anything the landing offered has gone out
+of reach. This REVERSES the "one window" ruling of 24 Oct for panels that carry
+the page's work; it stands for panels that carry only his words.
+
+## Noticed, not fixed
+
+- Our standards and Import draw no ask box in their panel, so the panel sweep
+  skips both. The house rule is his box at every panel's foot; these two are
+  the exceptions and were left alone.
+
+## Noticed, not fixed
+
+- Jambo's house draws no ask box in its panel either, so the panel sweep skips
+  it alongside Our standards and Import. Three pages where the house rule
+  "his box at every panel's foot" does not hold.
+
+## Settings' panel had links and only Jambo's tab (26 Oct 2026)
+
+The owner, looking at Company facts: "There should be an overview side panel
+which is what is on screen then a jambo one next to it. We already discussed
+this." They were right, and the sweep I built the same day passed Settings by
+mistake — it could not drive a conversation into that panel, so the two
+behavioural checks measured nothing moving and called it well.
+
+Settings' landing carries "N things need you here" with a link per row. It is
+not only his words, so it keeps its own tab beside his. What decides is what
+the landing HOLDS (stLandHasLinks), not which page it is — the 24 Oct ruling
+("settings has no information either") is reversed for any page whose landing
+has something to press.
+
+The sweep gained a third check, the structural one: a landing with something to
+press must carry a way back to it. That half needs no conversation, so a panel
+that will not flip cannot make it vacuous. Red at 6b9c017 on Settings, green
+with the fix. The Board and the Calendar are named there as needing no way
+back, each held to the reason — their landings never leave the screen.
+
+## An empty Jambo tab in Settings (26 Oct 2026)
+
+Found while photographing the fix above. With the page's own tab now beside
+his, pressing Jambo before anything had been said showed an empty panel: the
+landing's words live on the Overview tab, and Settings' talk view returned
+nothing for an empty conversation. His greeting stands there until the first
+turn, the way Home's talk view already falls back to its welcome line. Greeting
+first either way, which is the rule.
+
+## 26 Oct 2026 — 13f's own clock, not the Explorer
+
+f840's owner check went red in CI at 13f ("a press that wobbles by a few
+pixels still opens the contract's card") while every local run was green.
+First guess: the map's jiggle moved the dot between being measured and being
+pressed. Instrumented over three runs — the dot moved 0px — so that was
+wrong. The real cause is this check's own wait: 3000ms where every other wait
+in the file allows 8000-10000ms. A runner slower than three seconds at putting
+the card in intel.history gives exactly what CI showed (13e green, 13f red).
+Widened to 8000ms. The press now also re-reads the live rect of the SAME dot
+at the moment of the press — not the cause, but the stricter aim, so it stays.
+33/33 green locally after the change.
+
+### Noticed, not fixed
+- 7g ("a press on the bubble opens that group") in the same file also waits
+  only 3000ms, with the same slow-runner exposure as 13f had.
+
+## Noticed, not fixed — 26 Oct 2026 (Jambo reads the Handbook)
+- "who can change the currency rates?" is read by navRead as a trip to the setting ("The setting, in Settings.") instead of being answered from the Handbook; "who …" questions are trips by earlier rulings ("who works here", "who can open Procurement", "who is Amina" in test/nav-exam.js and f926), so a who-asks-permission split is the owner's call.
+- Two tests share the number f893 on main (f893-discover-keep-and-wording-only.test.js and f893-template-hygiene.test.js), against "every test number is used once".

@@ -57,6 +57,11 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.getElementById('igd-input') && window.pdSolo && pdSolo());
     const A1 = await panelHead('#ig-dock');
     A1.hello = await page.evaluate(() => !!document.querySelector('#ig-dock [data-jb-hello]'));
+    /* THE BOARD KEEPS HIS ONE WINDOW (owner, 24 Oct 2026, and still true after
+       the panel rule of 26 Oct): every link in his greeting here opens something
+       drawn on the Board itself, in full, a glance to the left — nothing lives
+       only in this panel. That is what made the Contracts list different (A4),
+       where Discover was in the panel and nowhere else. */
     check('A1 the Board: his one tab "Jambo" and his greeting first; no Overview, no word, no trail', one(A1) && A1.tabs.join() === 'Jambo' && A1.hello, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
     await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');
@@ -72,9 +77,16 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     check('A3 Explorer: "Jambo" beside its own Findings · Guide, no Overview, no word', !!A3 && A3.tabs[0] === 'Jambo' && !A3.tabs.some(t => /Overview/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
 
     await page.evaluate(() => setView('register'));
-    await until(() => window.pdSolo && pdSolo() && !!document.getElementById('igd-input'));
+    await until(() => !window.pdSolo() && !!document.getElementById('igd-input'));
     const A4 = await panelHead('#ig-dock');
-    check('A4 the Contracts place, nothing chosen: no tabs, no word', one(A4) && A4.tabs.join() === 'Jambo', JSON.stringify(A4));
+    /* THE CONTRACTS PLACE KEEPS TWO TABS (owner, 26 Oct 2026, REVERSING "no
+       tabs" of 24 Oct: "image 2 in the contracts page … has information on the
+       side panel like discovery and other that is important to always be in
+       view therefore it warrants a second panel for jambo"). Its panel carries
+       the wall and Discover — the page's own work, not his words — so it wears
+       the Dossier's pattern: the page's tab and his, one press apart. */
+    check('A4 the Contracts place: the page\'s own tab and Jambo\'s, so Discover is never inside the talk',
+      !!A4 && A4.tabs.length === 2 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.tabs.some(t => /Jambo/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
     await until(() => !!document.querySelector('#ins-panel.is-solo [data-jl-greet] [data-jl-words]'));
@@ -89,7 +101,12 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await page.evaluate(() => setView('team'));
     await until(() => !!document.getElementById('st-jb-feed'));
     const A7 = await panelHead('#st-side');
-    check('A7 Settings: no tabs, no word, no trail', one(A7) && A7.tabs.join() === 'Jambo', JSON.stringify(A7));
+    /* REVERSED (owner, 26 Oct 2026, of every page): Settings' landing carries
+       "N things need you here" with a link per row, so it keeps its own tab
+       beside his rather than being his one window. A7 now reads the rule's
+       other half too — the reading is of what the landing HOLDS. */
+    check('A7 Settings: its own tab beside Jambo\'s, because its landing has links to press',
+      !!A7 && A7.tabs.length === 2 && A7.tabs.some(t => /Overview|Översikt/.test(t)) && A7.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A7));
 
     await page.evaluate(() => setView('calendar'));
     await until(() => !!document.getElementById('cal-plan'));
@@ -105,6 +122,11 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.querySelector('#ins-panel [data-jl-home]'));
     const A10 = await panelHead('#ins-panel');
     check('A10 Our standards, a standard chosen, keeps Overview and Jambo (information)', !!A10 && A10.tabs.some(t => /Overview/.test(t)) && A10.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A10));
+
+    /* THE RULE OF 26 OCT 2026 — that a page's own work is never inside the
+       conversation — has its own home: test/chromium/jambo-panel-sweep-verify.js
+       walks every page with a panel and holds each to it. It is not repeated
+       here in a weaker form; this file is about what each panel's head draws. */
 
     console.log('\nB · the top bar, The SAP way');
     /* the ink is laid over the bar first (the quiet ink is 78% white), then measured */
