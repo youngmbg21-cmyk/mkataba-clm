@@ -94,10 +94,11 @@ const PROBE = () => {
     if (['auto', 'scroll'].includes(cs.overflowY) && el.scrollHeight > el.clientHeight + 2 && !SCROLLERS.test(k)) {
       /* A list drawn as ONE table is one child: its row is the table's first
          body row, not the whole table (9 Oct 2026, Our standards' clause list). */
-      /* RE-POINTED 26 Oct 2026: Jambo's landing beside Contracts (.pd-wall: Overview, Discover, the drop) is
-         one block, the panel's page, not a row of a list: its row is its own first part. */
+      /* RE-POINTED 26 Oct 2026: Jambo's landing beside Contracts (.pd-wall: Overview, Discover, the drop) and
+         every panel's Overview (.is-ov, the Board's among them) is one block, the panel's page, not a row of a
+         list: its row is its own first part. */
       let kid = el.firstElementChild;
-      if (kid && kid.classList && kid.classList.contains('pd-wall') && kid.firstElementChild) kid = kid.firstElementChild;
+      if (kid && kid.classList && (kid.classList.contains('pd-wall') || kid.classList.contains('is-ov')) && kid.firstElementChild) kid = kid.firstElementChild;
       const first = kid && kid.tagName === 'TABLE' ? (kid.querySelector('tbody tr') || kid) : kid;
       const rowH = first ? first.getBoundingClientRect().height : 0;
       if (rowH > 8 && el.clientHeight < rowH) {
