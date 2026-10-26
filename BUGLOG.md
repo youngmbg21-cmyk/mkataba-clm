@@ -21691,3 +21691,23 @@ the page's work; it stands for panels that carry only his words.
 - Jambo's house draws no ask box in its panel either, so the panel sweep skips
   it alongside Our standards and Import. Three pages where the house rule
   "his box at every panel's foot" does not hold.
+
+## Settings' panel had links and only Jambo's tab (26 Oct 2026)
+
+The owner, looking at Company facts: "There should be an overview side panel
+which is what is on screen then a jambo one next to it. We already discussed
+this." They were right, and the sweep I built the same day passed Settings by
+mistake — it could not drive a conversation into that panel, so the two
+behavioural checks measured nothing moving and called it well.
+
+Settings' landing carries "N things need you here" with a link per row. It is
+not only his words, so it keeps its own tab beside his. What decides is what
+the landing HOLDS (stLandHasLinks), not which page it is — the 24 Oct ruling
+("settings has no information either") is reversed for any page whose landing
+has something to press.
+
+The sweep gained a third check, the structural one: a landing with something to
+press must carry a way back to it. That half needs no conversation, so a panel
+that will not flip cannot make it vacuous. Red at 6b9c017 on Settings, green
+with the fix. The Board and the Calendar are named there as needing no way
+back, each held to the reason — their landings never leave the screen.

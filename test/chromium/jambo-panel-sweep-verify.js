@@ -155,7 +155,11 @@ const wayBack = (page, sel) => page.evaluate(a => {
   /* a panel may keep its tabs in its own head, just outside the body the
      sweep found (Settings does): look in the panel, then around it */
   const near = el.querySelector(T) ? el : (el.parentElement && el.parentElement.querySelector(T) ? el.parentElement : document);
-  const tabs = [...near.querySelectorAll(T)].filter(t => t.getBoundingClientRect().height > 0);
+  /* the tab is asked for by EXISTENCE, not by the height it happens to have
+     right now: a list panel draws its Overview tab with nothing in it until a
+     row is chosen, and a zero-height tab there is the panel being quiet, not
+     the way back being missing. What Settings lacked was the tab itself. */
+  const tabs = [...near.querySelectorAll(T)];
   const land = tabs.find(t => !/Jambo/i.test(t.textContent || ''));
   if (land) return { kind: 'tab', word: (land.textContent || '').replace(/\s+/g, ' ').trim() };
   return null;
@@ -237,6 +241,27 @@ const wayBack = (page, sel) => page.evaluate(a => {
       }
       check(`${name}: its ${before.length} link${before.length === 1 ? '' : 's'} stay within one press — ${how || 'NOT REACHABLE'}`,
         !!how, JSON.stringify({ panel: sel, off: still.off.slice(0, 6), stillOff: still.stillOff, noWayBack: still.noWayBack, pressFailed: still.pressFailed }));
+
+      /* AND THE SAME RULE ASKED OF THE PANEL ITSELF, which is the half that
+         catches a page this sweep cannot make flip. Settings was such a page:
+         its landing carries "N things need you here" with a link per row, and
+         because the harness could not drive its conversation the checks above
+         passed it while the screen was plainly wrong. A landing with something
+         to press must carry a way back to it — a tab that is not Jambo's, or a
+         back control — UNLESS that landing never leaves, which is what the two
+         named here do and what this check asserts of them rather than assuming.
+         The Board's own exception is settled by its check above. */
+      const NO_BACK_NEEDED = {
+        board: 'his own greeting; every link in it opens what the Board draws in full',
+        calendar: 'the week\'s plan, which the conversation never replaces' };
+      const back = await wayBack(page, sel);
+      if (NO_BACK_NEEDED[key]){
+        check(`${name}: needs no way back — ${NO_BACK_NEEDED[key]}, and nothing it offers left the screen`,
+          !still.off.length, JSON.stringify({ off: still.off.slice(0, 5) }));
+      } else {
+        check(`${name}: a landing with ${before.length} to press carries a way back to them`,
+          !before.length || !!back, JSON.stringify({ panel: sel, links: before.slice(0, 4).map(l => l.w), back }));
+      }
       await page.screenshot({ path: path.join(OUT, key + '.png') });
     }
 

@@ -75,13 +75,19 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       if (!f || !sel || !f.textContent.trim()) return null;
       const cs = getComputedStyle(sel), n = document.querySelector('#set-page .st-face[data-st-tab="company"] .st-face-n');
       return { facts: f.textContent.trim(), line: cs.borderBottomStyle + ' ' + cs.borderBottomWidth, fill: cs.backgroundColor, r: cs.borderTopLeftRadius, thumb: (() => { const t = document.querySelector('#set-page .st-thumb'); return t ? getComputedStyle(t).display : 'none'; })(),
-        n: n ? n.textContent.trim() : '', needs: stNeedsAll().length, word: (document.getElementById('st-side-word') || {}).textContent || '' }; });
+        n: n ? n.textContent.trim() : '', needs: stNeedsAll().length, word: (document.getElementById('st-side-word') || {}).textContent || '',
+        tabs: [...document.querySelectorAll('#st-side-head .st-side-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()) }; });
     check('1a the head says the company', !!head && head.facts === 'Highland Corporate Ltd', JSON.stringify(head && head.facts));
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a chosen tab is a filled grey pill, never an underline */
     check('1b the chosen tab is a filled grey pill (no underline), no sliding thumb', !!head && head.fill === 'rgb(240, 240, 243)' && parseFloat(head.r) >= 100 && !/solid [1-9]/.test(head.line) && head.thumb === 'none', head && (head.line + ' · ' + head.fill + ' · ' + head.r + ' · ' + head.thumb));
     check('1c Company counts Needs your attention', !!head && head.n === String(head.needs) && head.needs > 0, head && (head.n + ' / ' + head.needs));
     /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW: "settings has no information either"): no word beside tabs, no tabs */
-    check('1d one window: Jambo\'s head names nothing', !!head && head.word === '', head && head.word);
+    /* REVERSED (owner, 26 Oct 2026): Settings' landing carries "N things need
+       you here" with a link per row, so the panel keeps its own tab beside his
+       and names the page between them, rather than being his one window. */
+    check('1d the panel\'s head: its own tab beside his, the page named between them',
+      !!head && !!head.word && /Overview/.test((head.tabs || []).join(' ')) && /Jambo/.test((head.tabs || []).join(' ')),
+      head && JSON.stringify({ word: head.word, tabs: head.tabs }));
     await shot(page, 'settings-as-drawn-company-1440x780');
 
     console.log('\n2 · the fold, and "/"');

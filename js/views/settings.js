@@ -3389,7 +3389,21 @@ function stTalkShows(){ return typeof jamboTalkShows==='function'&&jamboTalkShow
 /* ONE WINDOW (owner, 24 Oct 2026: "settings has no information either"): the panel holds only his words — every
    page but a stream chosen on Streams, which shows that stream's facts — so the conversation is the panel: his
    greeting first, the turns under it, no Overview / Jambo tabs, no word beside them, no trail */
-function stSolo(){ return !(_stSwPick&&_stPage==='streams')&&_stSide!=='menu'; }
+/* …BUT NOT WHERE THE LANDING CARRIES LINKS (owner, 26 Oct 2026, of every page:
+   "if a link is on the first page and a user will need to access it, they
+   should not scroll up the jambo to find this link"). Settings' landing is not
+   only his words any more: it carries "N things need you here" with a link per
+   row, and those were pushed out of reach as the conversation grew. So the
+   test is what the landing actually HOLDS, not which page it is — nothing to
+   press means his one window, anything to press means the two tabs this panel
+   already draws (data-st-overview beside data-st-talk). */
+function stLandHasLinks(){
+  try {
+    const land=_stSwPick&&_stPage==='streams'?stSwPanelHtml(_stSwPick):stJbLandHtml();
+    return /<(?:a|button)\b/i.test(String(land||''));
+  } catch(_){ return false; }
+}
+function stSolo(){ return !(_stSwPick&&_stPage==='streams')&&_stSide!=='menu'&&!stLandHasLinks(); }
 function stTalkTurns(){ return stJbLog(); }
 /* the trail over the conversation and which of the two views is up */
 function stJbTalkPaint(){
@@ -9878,6 +9892,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
