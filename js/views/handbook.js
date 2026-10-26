@@ -221,7 +221,7 @@ function hbkCss(){
   #hbk-page .hbk-fig{ margin:0; display:flex; flex-direction:column; gap:8px; }
   #hbk-page .hbk-pic-wrap{ position:relative; min-width:0; }
   #hbk-page .hbk-pic{ width:100%; height:auto; border-radius:var(--radius); border:1px solid var(--hbk-rule); display:block; background:#fff; cursor:zoom-in; }
-  #hbk-page .hbk-pic[hidden]{ display:none; }
+  #hbk-page .hbk-pic[hidden], #hbk-page .hbk-ph[hidden]{ display:none; }
   #hbk-page .hbk-ph{ aspect-ratio:16/9; width:100%; border-radius:var(--radius); border:1px dashed var(--hbk-rule); background:var(--color-neutral-50); display:flex; align-items:center; justify-content:center; color:var(--color-neutral-600); font-size:13px; text-align:center; padding:16px; box-sizing:border-box; }
   #hbk-page .hbk-fig figcaption{ font-size:13px; color:var(--color-neutral-600); }
   #hbk-page .hbk-zoom{ position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; padding:24px; z-index:79; cursor:zoom-out; }

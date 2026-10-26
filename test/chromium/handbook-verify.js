@@ -82,6 +82,8 @@ async function drawBoxes(P, boxes){
   return P.evaluate(boxes => {
     document.querySelectorAll('.hbk-shot-box').forEach(x => x.remove());
     const miss = [];
+    /* a box inside a long panel (the Guide's rows) is scrolled into view first, so the picture shows it */
+    boxes.forEach(sel => { let el = null; try { el = document.querySelector(sel); } catch (_){ el = null; } if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
     boxes.forEach((sel, i) => {
       let el = null; try { el = document.querySelector(sel); } catch (_){ el = null; }
       const r = el && el.getBoundingClientRect();

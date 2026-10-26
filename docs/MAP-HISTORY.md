@@ -34698,3 +34698,10 @@ reader now takes only a question about USING HaTi: "how do I / how can I / how t
 should/would), and steps aside for anything that names this contract, a clause or a term of it (`NAV_HOWTO_NOT`);
 the Discover chapter's words name HaTi's features, not a contract's terms. Main's own red that hour
 (their-edit-page-verify) is not this change's.
+AFTER THE MERGE (26 Oct 2026, the owner asked "show me a picture of where the handbook is"): the first look at
+the built page found two faults of this change. The frame "Picture to come" showed UNDER a picture that had
+loaded: the page's own `.hbk-ph{display:flex}` beat the skeleton's `[hidden]` (a rule losing a cascade fight —
+the four costumes); `.hbk-ph[hidden]{display:none}` at the page's own specificity. And the chapters quoted the
+Send-all button by the page head's old key (`ng_send_all`, "Send All (N) Redlines") where the column's button says
+`ng_unsent_send` ("Send all · N not sent"). The picture script now scrolls a boxed element into view before it
+measures it, so a box in a long panel (the Guide's Handbook row, 0.5) is in the picture; all pictures re-taken.
