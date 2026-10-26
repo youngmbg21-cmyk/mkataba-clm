@@ -8121,17 +8121,16 @@ function dealBoardHtml(c, side){
     </div>
   </div>`;
 }
-/* ---- THE DEAL, IN THE MIDDLE (owner picked "The Legora Way", 23 Oct 2026) ----
-   The Negotiate page's deal board, simpler, standing where the paper was
-   (pdDealOpen): nothing boxed, one list of every point argued, each with
-   their words and yours quoted under its §, the playbook's verdict as a dot
-   and its words, and the clause as its one door. ONE reading (dealBoardFacts),
-   so the tabs, the head and the Deal button's number say the same. Still no
-   Accept / Counter / Reject and no walk-away (the owner, 3 Oct). The tab is
-   per sitting, in memory. */
-let _dealTab = null;
-const DEAL_TABS = ['all', 'you', 'them', 'done'];
-function dealTabSet(k){ _dealTab = DEAL_TABS.includes(k) ? k : null; }
+/* ---- THE DEAL, IN THE MIDDLE: THE CLOSE PLAN (owner picked "The Close Plan", 25 Oct 2026;
+   reverses the Legora pick of 23 Oct, which quoted the Redlines column back beside itself) ----
+   The deal where the paper was (pdDealOpen), answering "how far from a signature, and what do
+   I do with each point": one line of how many points stand open and how many the other side
+   has not seen, a bar of where they sit, then every point under what to do with it — Room to
+   give · Hold firm · Needs a rule · Waiting on them · Agreed (dealPlanOf). Every word is a
+   READING of facts HaTi holds (the playbook's standard and fallback, past deals, what was
+   sent and when), never a model's; it spends nothing. Still no Accept / Counter / Reject and
+   no walk-away (the owner, 3 Oct): a row's doors are Send (the card's own), Open clause, Chase
+   (the Send screen) and Ask an admin (the tracked ask; an admin, the standard itself). */
 /* A POINT OPENS TO COMPARE (owner picked option 2, 25 Oct 2026: "the deal card only shows parts of the
    clause"): a press on a point where they asked something opens it, both wordings whole with the words each
    moved marked (the changes' own stored ops, `rlChangeWordingHtml` changedOnly — the card's reading); a point
@@ -8160,59 +8159,171 @@ function dealSecOf(r){
   const m = String(r.label || r.clauseId || '').match(/^\s*(\d+(?:\.\d+)*)\.?\s+(.+)$/);
   return m ? { sec: '§' + m[1], name: m[2] } : { sec: '', name: String(r.label || r.clauseId || '') };
 }
-function dealViewHtml(c, side){
+/* WHAT TO DO WITH ONE POINT, read off the playbook and the record:
+   { k: give · hold · rule · wait · agreed, why, tag, tone, room, std, unsent }.
+   OUR OWN POSITION is measured where we hold one that has not been answered: a figure against
+   the fallback's figure (room = how far we could still move), else the standard's wording
+   (a fallback wording in the library = room; the preferred one alone = hold; none = a rule
+   is owed). THEIR ASK is Jambo's read of their row (rlpJudge), so the two never disagree. */
+const DEAL_PLAN_GROUPS = ['give', 'hold', 'rule', 'wait', 'agreed'];
+function dealStandardOf(c, r){
+  if (typeof window.pbStandardsFor !== 'function') return null;
+  let list = []; try { list = pbStandardsFor(c).standards || []; } catch (_){ list = []; }
+  const norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9åäö]+/g, ' ').trim();
+  const lead = (r.ours || r.theirs || r.top || {}).ch || null;
+  let topic = null; try { topic = (lead && typeof window.precedentTopicOf === 'function') ? precedentTopicOf(lead) : null; } catch (_){ topic = null; }
+  /* the playbook's own note on a change it filed: "Playbook — <category>…" */
+  const noted = String((r.ours && r.ours.ch && (r.ours.ch.note || r.ours.ch.why)) || '').match(/^Playbook\s+—\s+([^:(]+)/);
+  const rangeKey = (r.topic && window.LADDER_RANGE_TOPIC) ? LADDER_RANGE_TOPIC[r.topic.key] : null;
+  const names = [topic && topic.category, noted && noted[1], dealSecOf(r).name].map(norm).filter(Boolean);
+  return list.find(s => rangeKey && s.range && s.range.key === rangeKey)
+    || list.find(s => names.includes(norm(s.category)) || (s.range && names.includes(norm(s.range.key))))
+    || list.find(s => { const k = norm(s.category); return k && names.some(n => n.includes(k) || k.includes(n)); })
+    || null;
+}
+function dealPlanOf(c, r, g, side){
+  const unit = r.unit ? ' ' + r.unit : '';
+  const fig = n => n == null ? '' : n + unit;
+  const unsent = side !== 'counterparty' && r.ours && r.ours.ch && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.ours, side) ? r.ours.ch.id : '';
+  const prec = (typeof rlPrecedentSay === 'function') ? rlPrecedentSay(c, r) : '';
+  const out = (k, tone, tag, why, more) => Object.assign({ k, tone, tag, why: [why, prec].filter(Boolean).join(' '), unsent }, more || {});
+  if (g === 'done') return out('agreed', 'agreed', i18t('ng_plan_tag_agreed'), r.state === 'settled' ? i18t('ng_plan_why_agreed') : i18t('ng_plan_why_closed'));
+  if (g === 'them'){
+    const neg = c.negotiation || {};
+    const at = [String((r.ours && r.ours.at) || ''), String(neg.turnAt || '')].sort().pop();
+    const ago = (typeof rlAgoWords === 'function') ? rlAgoWords(at) : '';
+    const held = dealHeldWords(r);
+    const cut = held.length > 120 ? held.slice(0, 117).replace(/\s+\S*$/, '') + '…' : held;
+    return { k: 'wait', tone: 'wait', tag: ago ? i18t('ng_plan_tag_wait', { ago }) : i18t('ng_plan_tag_wait_none'),
+      why: cut ? i18t('ng_plan_why_wait', { words: cut }) : i18t('ng_plan_why_wait_none'), unsent: '' };
+  }
+  const std = dealStandardOf(c, r);
+  const fb = (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
+  const fbN = fb && fb.figure != null ? fb.figure : null;
+  const within = (n, bound) => (typeof window.ladderWithin === 'function') ? ladderWithin(r.topic, n, bound) : null;
+  /* their ask, still unanswered, with nothing of ours over it: Jambo's read of their row */
+  if (r.state === 'awaiting' && r.theirs && !unsent){
+    let j = null; try { j = (typeof window.rlpJudge === 'function') ? rlpJudge(c, r.theirs.ch) : null; } catch (_){ j = null; }
+    const said = String(((j && j.why) || [])[0] || '').trim();
+    if (j && j.verdict === 'accept') return out('give', 'ok', i18t('ng_plan_tag_inside'), said, { std, theirs: true });
+    if (j && (j.verdict === 'push' || j.verdict === 'escalate')) return out('hold', j.verdict === 'escalate' ? 'ruby' : 'ok', i18t('ng_plan_tag_past'), said, { std, theirs: true });
+    const plain = (typeof rlPlainReasonOf === 'function') ? rlPlainReasonOf(r.theirs.ch) : '';
+    return out('rule', 'none', i18t('ng_plan_tag_none'), said || plain || i18t('ng_plan_why_rule', { name: dealSecOf(r).name }), { std });
+  }
+  /* our own position: a figure against the fallback's */
+  if (r.topic && fbN != null && r.ourFig != null){
+    const room = Math.abs(r.ourFig - fbN);
+    if (within(r.ourFig, fbN) === true && room > 0)
+      return out('give', 'ok', i18t('ng_plan_tag_room', { n: room, unit: r.unit || '' }), i18t('ng_plan_why_room', { ours: fig(r.ourFig), fb: fig(fbN) }), { std, room, fbN });
+    return out('hold', 'ok', room ? i18t('ng_plan_tag_beyond') : i18t('ng_plan_tag_at_fb'),
+      room ? i18t('ng_plan_why_beyond', { ours: fig(r.ourFig), fb: fig(fbN) }) : i18t('ng_plan_why_at_fb', { fb: fig(fbN) }), { std });
+  }
+  if (std){
+    const L = (std.clause && typeof window.clauseById === 'function') ? clauseById(std.clause) : null;
+    const cat = String(std.category || '');
+    const lower = /^[A-ZÅÄÖ][a-zåäö]/.test(cat) ? cat.charAt(0).toLowerCase() + cat.slice(1) : cat;
+    if (L && L.fallback && String(L.fallback).trim() && String(L.fallback).trim() !== String(L.preferred || '').trim())
+      return out('give', 'ok', i18t('ng_plan_tag_fb_words'), i18t('ng_plan_why_fb_words', { cat: lower }), { std });
+    if (std.range && r.ourFig != null)
+      return out('hold', 'ok', i18t('ng_plan_tag_std'), i18t('ng_plan_why_std_fig', { ours: fig(r.ourFig), op: std.range.op === '<=' ? '≤' : '≥', v: fig(std.range.value) }), { std });
+    return out('hold', 'ok', std.pos === 'required' ? i18t('ng_plan_tag_required') : i18t('ng_plan_tag_preferred'),
+      i18t(std.pos === 'required' ? 'ng_plan_why_required' : 'ng_plan_why_preferred', { cat: lower }), { std });
+  }
+  return out('rule', 'none', i18t('ng_plan_tag_none'), i18t('ng_plan_why_rule', { name: dealSecOf(r).name }), { std: null });
+}
+/* THE PLAN, READ ONCE: every point with what to do with it, the open count, the unsent count */
+function dealPlanFacts(c, side){
   side = side || 'owner';
   const { rows, facts, n } = dealBoardFacts(c, side);
-  const cp = rlLegendNames(c, side).them;
-  const memo = `<button type="button" class="ui-btn" id="deal-memo" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
+  const plan = facts.map(x => Object.assign({}, x, { p: dealPlanOf(c, x.r, x.g, side) }));
+  const by = {}; DEAL_PLAN_GROUPS.forEach(k => { by[k] = plan.filter(x => x.p.k === k); });
+  const open = plan.filter(x => x.p.k !== 'agreed').length;
+  const unseen = plan.filter(x => x.p.k !== 'agreed' && x.p.unsent).length;
+  return { rows, plan, by, n, open, unseen, cp: rlLegendNames(c, side).them };
+}
+/* "5 points to close before AIT can sign" and the line under it */
+function dealPlanHead(c, f){
+  const round = (c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0) ? c.negotiation.round : 1;
+  const since = (typeof window.negoRoundSince === 'function') ? negoRoundSince(c) : null;
+  let day = '';
+  if (since){ const d = new Date(since); if (!isNaN(d.getTime())) try { day = d.toLocaleDateString(window.langLocale ? langLocale() : 'en-GB', { day: 'numeric', month: 'short' }); } catch (_){ day = ''; } }
+  const head = f.open ? i18tn('ng_plan_head', f.open, { n: f.open, cp: f.cp }) : i18t('ng_plan_head_none');
+  const sub = [
+    f.unseen ? i18tn('ng_plan_unseen', f.unseen, { n: f.unseen, cp: f.cp }) : '',
+    [day ? i18t('ng_round_since', { n: round, day }) : i18t('ng_round_n', { n: round }), f.by.agreed.length ? i18t('ng_plan_agreed_n', { n: f.by.agreed.length }) : ''].filter(Boolean).join(' · ') + '.'
+  ].filter(Boolean).join(' ');
+  return { head, sub };
+}
+function dealViewHtml(c, side){
+  side = side || 'owner';
+  const f = dealPlanFacts(c, side);
   const id = _nea(String(c.id));
-  if (!rows.length){
+  const memo = `<button type="button" class="ui-btn" id="deal-memo" data-rl-board-memo data-deal-memo="${id}" title="${_nea(i18t('ng_plan_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
+  if (!f.rows.length){
     return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}"><h2 class="deal-h">${_ne(i18t('ng_deal'))}</h2>${memo}
       <p class="deal-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
   }
-  /* the tab shown: the one chosen while it still has points, else Needs you where any wait, else All */
-  const tab = (_dealTab && (_dealTab === 'all' || n[_dealTab])) ? _dealTab : (n.you ? 'you' : 'all');
-  const round = (c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0) ? c.negotiation.round : 1;
-  const head = n.you ? i18tn('ng_deal_head_you', n.you, { n: n.you }) : i18t('ng_deal_head_none');
-  /* THE LEGORA WAY (owner's pick, 23 Oct 2026, built 24 Oct): the one fact once, then how the rest stand —
-     "6 argued in round 1 · 1 with AIT · 1 closed" */
-  const sub = [i18t('ng_deal_argued', { n: n.all, r: round }), n.them ? i18t('ng_deal_with', { n: n.them, cp }) : '', n.done ? i18t('ng_deal_closed', { n: n.done }) : ''].filter(Boolean).join(' \u00b7 ');
-  const word = { all: i18t('ng_deal_tab_all'), you: i18t('ng_board_g_you'), them: i18t('ng_board_g_them', { cp }), done: i18t('ng_board_g_done') };
-  /* a tab with nothing behind it stays out, unless it is All or the one lit (THE LIST HEAD's rule) */
-  const tabs = DEAL_TABS.filter(k => k === 'all' || k === tab || n[k]).map(k =>
-    `<button type="button" role="tab" class="deal-tab" data-deal-tab="${k}" aria-selected="${k === tab}">${_ne(word[k])}<b>${n[k]}</b></button>`).join('');
-  const shown = facts.filter(x => tab === 'all' || x.g === tab);
-  const quote = t => `<em>\u201c${_ne(t)}\u201d</em>`;
-  /* EACH POINT A QUIET ROW: its name, where it sits on the paper (§N), Send and Open clause on its own line; what
-     you hold quoted in the paper's type, then what they ask. The verdict is the dot's colour and its hover —
-     said once, never the same sentence on every row. Send presses the card's own Send in the column beside it. */
-  const list = shown.map(({ r, v }) => {
+  const h = dealPlanHead(c, f);
+  const cnt = k => f.by[k].length;
+  /* THE ROAD: one bar, a segment per kind of point, the legend its words and counts */
+  const seg = [['go', cnt('give') + cnt('hold'), i18t('ng_plan_road_go')], ['rule', cnt('rule'), i18t('ng_plan_g_rule')],
+    ['wait', cnt('wait'), i18t('ng_plan_g_wait', { cp: f.cp })], ['agreed', cnt('agreed'), i18t('ng_plan_g_agreed')]].filter(s => s[1]);
+  const road = `<div class="deal-road" id="deal-road" role="img" aria-label="${_nea(seg.map(s => s[2] + ' ' + s[1]).join(', '))}">
+    <div class="deal-road-bar">${seg.map(s => `<i class="is-${s[0]}" style="flex:${s[1]}"></i>`).join('')}</div>
+    <div class="deal-road-key">${seg.map(s => `<span><i class="is-${s[0]}" aria-hidden="true"></i>${_ne(s[2])} <b>${s[1]}</b></span>`).join('')}</div></div>`;
+  const admin = typeof window.isAdmin === 'function' && isAdmin();
+  /* the room drawn to one scale: the fallback a tick, our position a dot, theirs where they asked */
+  const track = (r, p) => {
+    if (p.room == null || p.fbN == null || r.ourFig == null) return '';
+    const hi = Math.max(r.ourFig, p.fbN, r.theirFig || 0, 1);
+    const pct = x => Math.max(0, Math.min(100, (x / hi) * 100));
+    return `<span class="deal-track" aria-hidden="true"><i class="fb" style="left:${pct(p.fbN)}%"></i>${r.theirFig != null ? `<b class="t" style="left:${pct(r.theirFig)}%"></b>` : ''}<b class="y" style="left:${pct(r.ourFig)}%"></b></span>`;
+  };
+  const row = ({ r, p }) => {
     const s = dealSecOf(r);
-    const theirs = r.theirs ? dealWordsOf(r.theirs.ch, 'del') : '';
-    const held = dealHeldWords(r);
-    const unsent = side !== 'counterparty' && r.ours && r.ours.ch && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.ours, side) ? r.ours.ch.id : '';
-    const canOpen = !!r.theirs, open = canOpen && dealRowOpen(r.clauseId);
-    const name = canOpen
-      ? `<button type="button" class="deal-nm deal-tg" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="${open}" title="${_nea(i18t(open ? 'ng_deal_close_cmp' : 'ng_deal_open_cmp'))}">${_ne(s.name)}<span class="deal-chev" aria-hidden="true">${open ? '\u25be' : '\u25b8'}</span></button>`
-      : `<b class="deal-nm">${_ne(s.name)}</b>`;
-    /* open: both wordings whole, the moved words marked */
+    const send = p.unsent ? `<button type="button" class="deal-go" data-deal-send="${_nea(p.unsent)}">${_ne(i18t('ng_send'))}</button>` : '';
+    const open = `<button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} ›</button>`;
+    const acts = p.k === 'wait' ? `<button type="button" class="deal-go" data-deal-chase="${id}">${_ne(i18t('ng_plan_chase'))}</button>${open}`
+      : p.k === 'rule' ? `${send}<button type="button" class="deal-go" data-deal-ask="${_nea(r.clauseId)}" data-deal-ask-cat="${_nea((p.std && p.std.category) || s.name)}">${_ne(i18t(admin ? 'ng_plan_set_rule' : 'ng_plan_ask_admin'))}</button>${send ? '' : open}`
+      : `${send}${open}`;
+    const t = track(r, p);
+    /* A POINT OPENS TO COMPARE (the owner's option 2, kept in the plan): where they asked something, the name
+       opens both wordings whole under the row, the moved words marked (the card's own reading) */
+    const canCmp = !!(r.theirs && r.theirs.ch), cmp = canCmp && dealRowOpen(r.clauseId);
+    const name = canCmp
+      ? `<button type="button" class="deal-tg" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="${cmp}" title="${_nea(i18t(cmp ? 'ng_deal_close_cmp' : 'ng_deal_open_cmp'))}"><b>${_ne(s.name)}</b><span class="deal-chev" aria-hidden="true">${cmp ? '\u25be' : '\u25b8'}</span></button>`
+      : `<b>${_ne(s.name)}</b>`;
     const heldCh = r.state === 'settled' && r.accepted ? r.accepted.ch : r.ours ? r.ours.ch : null;
     const whole = ch => `<div class="rl-cp-src deal-w">${rlChangeWordingHtml(ch, { side, changedOnly: true })}</div>`;
-    const body = open
-      ? `<div class="deal-cmp"><span>${_ne(i18t('ng_deal_you'))}</span>${heldCh ? whole(heldCh) : (held ? `<div class="deal-w is-plain">${_ne(held)}</div>` : '<span class="deal-none">\u2014</span>')}
-        <span>${_ne(i18t('ng_deal_they'))}</span>${whole(r.theirs.ch)}</div>`
-      : `<div class="deal-q"><span>${_ne(i18t('ng_deal_you'))}</span>${held ? quote(held) : '<span class="deal-none">\u2014</span>'}
-        ${r.theirs ? `<span>${_ne(i18t('ng_deal_they'))}</span>${theirs ? quote(theirs) : '<span class="deal-none">\u2014</span>'}` : ''}</div>`;
-    return `<div class="deal-it is-lg${open ? ' is-open' : ''}" data-deal-row="${_nea(r.clauseId)}">
-      <div class="deal-top"><span class="deal-dot db-vd-${v.k}" title="${_nea(v.text)}" aria-label="${_nea(v.text)}"><i aria-hidden="true"></i></span>${name}${s.sec ? `<span class="deal-sec">${_ne(i18t('ng_deal_on_paper', { s: s.sec }))}</span>` : ''}${r.theirs ? '' : `<span class="deal-sec">${_ne(i18t('ng_deal_nothing_yet_short'))}</span>`}<span class="deal-sp"></span>${unsent ? `<button type="button" class="deal-send" data-deal-send="${_nea(unsent)}">${_ne(i18t('ng_send'))}</button>` : ''}<button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} \u203a</button></div>
-      ${body}
+    const held = cmp && !heldCh ? dealHeldWords(r) : '';
+    const body = cmp ? `<div class="deal-cmp"><span>${_ne(i18t('ng_deal_you'))}</span>${heldCh ? whole(heldCh) : (held ? `<div class="deal-w">${_ne(held)}</div>` : '<span class="deal-none">\u2014</span>')}
+        <span>${_ne(i18t('ng_deal_they'))}</span>${whole(r.theirs.ch)}</div>` : '';
+    return `<div class="deal-pr${cmp ? ' is-open' : ''}" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
+      <div class="deal-pr-nm">${name}${s.sec ? `<span>${_ne(s.sec)}</span>` : ''}</div>
+      <p class="deal-pr-why">${_ne(p.why)}</p>
+      <div class="deal-pr-st">${t ? `${t}<span class="deal-pr-room">${_ne(p.tag)}</span>` : `<span class="deal-tag is-${p.tone}"><i aria-hidden="true"></i>${_ne(p.tag)}</span>`}</div>
+      <div class="deal-pr-acts">${acts}</div>${body}
     </div>`;
-  }).join('') || `<p class="deal-empty">${_ne(i18t('ng_board_f_none'))}</p>`;
-  return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}">
-    <h2 class="deal-h">${_ne(head)}<span class="deal-sub">${_ne(sub)}</span></h2>${memo}
-    <div class="deal-tabs" role="tablist" aria-label="${_nea(i18t('ng_board_list_label'))}">${tabs}</div>
-    <div class="deal-list">${list}</div>
+  };
+  const hint = { give: 'ng_plan_h_give', hold: 'ng_plan_h_hold', rule: 'ng_plan_h_rule', wait: 'ng_plan_h_wait', agreed: 'ng_plan_h_agreed' };
+  const groups = DEAL_PLAN_GROUPS.filter(k => cnt(k)).map(k => `<section class="deal-grp" data-deal-grp="${k}">
+      <div class="deal-grp-h"><h3>${_ne(i18t('ng_plan_g_' + k, { cp: f.cp }))}</h3><span>${_ne(i18t(hint[k], { cp: f.cp }))}</span></div>
+      ${f.by[k].map(row).join('')}</section>`).join('');
+  return `<div class="deal-mid is-plan" data-deal-mid="${id}" data-db-host="${id}">
+    <h2 class="deal-h deal-plan-h">${_ne(h.head)}<small class="deal-sub">${_ne(h.sub)}</small></h2>${memo}${road}
+    <div class="deal-list">${groups}</div>
   </div>`;
+}
+/* COPY AS MEMO, the plan in words: the head, then each group and its points */
+function dealPlanMemoText(c){
+  if (!c) return '';
+  const f = dealPlanFacts(c, 'owner'); if (!f.rows.length) return '';
+  const h = dealPlanHead(c, f);
+  const ref = (typeof window.contractRef === 'function') ? contractRef(c) : c.id;
+  return [`${i18t('ng_deal')} · ${c.name || ref} · ${c.counterparty || ''}`, h.head, h.sub, '']
+    .concat(...DEAL_PLAN_GROUPS.filter(k => f.by[k].length).map(k => [i18t('ng_plan_g_' + k, { cp: f.cp }),
+      ...f.by[k].map(({ r, p }) => { const s = dealSecOf(r); return `- ${s.name}${s.sec ? ' (' + s.sec + ')' : ''}: ${p.tag}. ${p.why}`; }), '']))
+    .join('\n').trim();
 }
 /* ONE POINT, WHOLE. Every piece is a reading the negotiate page already
    draws somewhere — the scale (rlScaleHtml), the wording (rlChangeWordingHtml),
@@ -21860,8 +21971,10 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
         const memo = t.closest('[data-rl-board-memo]');
         if (memo){
           ev.preventDefault(); ev.stopPropagation();
-          const mc = rlBoardHostOf(memo).c;
-          const txt = mc ? rlBoardMemoText(mc) : '';
+          /* the Deal page's Copy as memo names its contract and copies the close plan */
+          const dm = memo.getAttribute('data-deal-memo');
+          const mc = dm ? (window.getContract ? getContract(dm) : null) : rlBoardHostOf(memo).c;
+          const txt = mc ? (dm ? dealPlanMemoText(mc) : rlBoardMemoText(mc)) : '';
           const ok = () => { if (window.toast) toast(i18t('ng_board_memo_ok'), 'ok'); };
           const no = () => { if (window.toast) toast(i18t('ng_board_memo_fail'), 'warn'); };
           if (txt && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, no);
@@ -23319,7 +23432,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
-  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealTabSet, DEAL_TABS, dealRowToggle, dealRowOpen,
+  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealPlanOf, dealPlanFacts, dealPlanMemoText, dealStandardOf, DEAL_PLAN_GROUPS, dealRowToggle, dealRowOpen,
   dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
