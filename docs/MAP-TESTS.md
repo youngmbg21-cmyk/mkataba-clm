@@ -139,6 +139,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## OBLIGATIONS
 - Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
+- The Calendar whole, not a day's luck (26 Oct 2026, owner picked "Fix the check"): week-as-drawn-verify 5 "the Calendar whole" accepts every row in view OR the five later weeks scrolling inside their own band (top in view, foot in the window, every row reachable, none under 38px), as ruled 21 Oct. It was red on a busy Monday at 1536×730 only; red again with the band's overflow forced visible.
 - MARQUEE (23 Oct 2026): obligations-renewal-legora-way-verify 1a re-pointed (three columns, labels in small capitals; how far off on the date's hover); obligations-tab-verify green.
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 
@@ -222,6 +223,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f918 (the jw row's door).
 - deal-in-the-middle-verify (23 Oct 2026: Deal in the Redlines face at the three screens; the deal in the middle, Needs you lit, rows quoted under their §; All; ‹ Dossier and Esc back to the Dossier; Deal again and Open clause keep Redlines). Red at the parent (10 of 11).
+- THE CLOSE PLAN (25 Oct 2026): deal-in-the-middle-verify 2, 2b and 3 RE-POINTED to the plan (head "to close before … can sign", the road, memo on the way-back line, every point in a group, no tabs; nothing spills at the three screens; groups equal `dealPlanOf`, Send on the unsent draft, the memo is the plan). f936 (the reading against stubs, the page, the doors, both books; 10 of 12 red at eb67b55). f875 3h re-pointed off the Legora list. 3b (25 Oct, owner "Both"): a point they asked on opens on its name to both wordings whole and closes again (main's option 2 kept inside the plan); f936 2d (numbered f878 until main took f878).
 
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
 - 21 Oct 2026 (overnight): where-we-are-verify 10a (the journey on the page's line; .ds-st spine rules scoped to .ds-spine).

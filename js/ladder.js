@@ -530,7 +530,7 @@ function ladderWithin(topic, figure, bound){
   return topic.dir === 'lower-is-worse' ? figure >= bound : figure <= bound;
 }
 
-if (typeof window !== 'undefined') Object.assign(window, {
+if (typeof window !== 'undefined') Object.assign(window, { LADDER_RANGE_TOPIC,
   LADDER_CAP, ladderMoves, ladderRungs, ladderOverflow, ladderUnder, ladderBaseText,
   ladderLive, ladderTop, ladderSettled, ladderTally, ladderTallyText, ladderChip, ladderTopic, ladderFigure,
   ladderTrack, ladderStandard, ladderSettledFigure, ladderStand, ladderBoard,

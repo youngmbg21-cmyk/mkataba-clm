@@ -320,13 +320,24 @@ const weekOf = () => {
         const vw = document.documentElement.clientWidth, side = document.documentElement.scrollWidth <= vw + 1;
         const stage = document.getElementById('cal-stage').getBoundingClientRect();
         const rows = [...document.querySelectorAll('#cal-wk-more .cal-wkm-row')];
-        const whole = rows.length === 5 && rows.every(r => r.getBoundingClientRect().bottom <= window.innerHeight + 1);
+        /* THE FIVE WEEKS GIVE WAY (the owner's 21 Oct ruling, the check re-pointed 26 Oct 2026): every row stands
+           in view, or, where a busy week leaves too little room (a laptop's 730px on a Monday with three things
+           due), the five weeks scroll inside their own band — its top in view, its foot in the window, every row
+           reachable inside it, none squeezed under 38px. Not a day's luck either way: the old "every row in view"
+           went red on busy days only. */
+        const band = document.querySelector('#cal-wk-more .cal-wkm') || document.querySelector('.cal-wkm');
+        const bandR = band ? band.getBoundingClientRect() : null, H = window.innerHeight;
+        const inView = rows.every(r => r.getBoundingClientRect().bottom <= H + 1);
+        const scrolls = !!band && /auto|scroll/.test(getComputedStyle(band).overflowY) && band.scrollHeight > band.clientHeight
+          && bandR.bottom <= H + 1 && bandR.top + 38 <= H
+          && rows.every(r => r.getBoundingClientRect().bottom - bandR.top + band.scrollTop <= band.scrollHeight + 1);
+        const whole = rows.length === 5 && rows.every(r => r.getBoundingClientRect().height >= 37) && (inView || scrolls);
         const head = [...document.querySelectorAll('.cal-head-r > *')].every(b => b.getBoundingClientRect().right <= stage.right + 1);
         const key = document.querySelector('.cal-key').getBoundingClientRect();
         const box = document.querySelector('#cal-plan-in').getBoundingClientRect();
         return { side, whole, head, key: key.right <= stage.right + 1, box: box.bottom <= window.innerHeight && box.top > 0 };
       });
-      check(`5 ${w}×${ht}: the Calendar whole — six weeks in view, the head and the key not cut, Jambo's box in view, nothing sideways`,
+      check(`5 ${w}×${ht}: the Calendar whole — six weeks in view or the five later weeks scrolling inside their own band, the head and the key not cut, Jambo's box in view, nothing sideways`,
         fitC.side && fitC.whole && fitC.head && fitC.key && fitC.box, fitC);
       if (OUT) await page.screenshot({ path: path.join(OUT, `16-calendar-${w}x${ht}.png`) });
     }
