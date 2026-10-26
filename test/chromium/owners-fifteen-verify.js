@@ -133,7 +133,20 @@ const check = (name, pass, detail) => {
     await page.keyboard.press('Escape');
 
     /* ================= 4–7. THE MAP'S LOOK, ASKED FOR IN WORDS ============== */
-    const askMap = async q => { await page.fill('#igd-input', q); await page.keyboard.press('Enter'); await page.waitForTimeout(500); };
+    /* WORDS INTO JAMBO'S BOX, CONFIRMED BEFORE ENTER (26 Oct 2026, the unreliable 13d): a late answer from a page
+       left behind (Discover's kept questions, fetched on the Contracts place) can redraw the panel while the check
+       types. A person keeps their words — the redraw carries the live box's words and caret over — but a fill that
+       resolved the OLD box writes into a box no longer on the page, and Enter then sent nothing. So the words are put
+       in and read back from the box that is there now, bounded, before Enter. */
+    const typeAsk = async q => {
+      for (let k = 0; k < 6; k++){
+        await page.fill('#igd-input', q).catch(() => {});
+        if (await page.evaluate(w => { const b = document.getElementById('igd-input'); return !!b && b.value === w && document.activeElement === b; }, q)) break;
+        await page.waitForTimeout(150);
+      }
+      await page.keyboard.press('Enter');
+    };
+    const askMap = async q => { await typeAsk(q); await page.waitForTimeout(500); };
     const shown = () => page.evaluate(() => ({
       tags: IG.contracts.filter(n => n.tag && n.tag._disp !== 'none' && n.g.style.display !== 'none').map(n => n.id),
       nums: IG.contracts.filter(n => n.num && n.num._disp !== 'none' && n.g.style.display !== 'none').map(n => n.id),
@@ -215,7 +228,7 @@ const check = (name, pass, detail) => {
     /* ================= 13. ANALYZE CONTRACT, EASY TO REACH ================= */
     await page.evaluate(() => { intel.paper = null; const st = hbS(); st.face = 'board'; hbSave(); setView('dashboard'); });
     await until(() => hbS().face === 'board' && document.querySelectorAll('#hb-board .hb-fig').length === 6);
-    await page.fill('#igd-input', 'bring up MK-A2'); await page.keyboard.press('Enter');
+    await typeAsk('bring up MK-A2');
     /* RE-POINTED 20 Oct 2026 (4b, the owner picked "The Dossier" with its
        Board card): "Analyze contract" left the strip's ⋯ — the card's head
        carries "Open in Workspace ›", the same door onto the paper, one press
@@ -231,7 +244,7 @@ const check = (name, pass, detail) => {
     /* asked in words, from the board */
     await page.evaluate(() => { intel.paper = null; igPaintPaper(); hbSetFace('board'); });
     await until(() => hbS().face === 'board');
-    await page.fill('#igd-input', 'let me ask questions about MK-A2'); await page.keyboard.press('Enter');
+    await typeAsk('let me ask questions about MK-A2');
     const said = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'paper' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden; }, null, 10000);
     check('13d "let me ask questions about MK-A2" opens the same paper, spending nothing', !!said,
       await page.evaluate(() => (document.querySelector('#igd-feed .hb-cost') || {}).textContent || ''));
@@ -248,11 +261,25 @@ const check = (name, pass, detail) => {
       const b = await page.evaluate(() => IG.contracts.slice(0, 20).map(n => n.q ? Math.round(n.q[0]) + ',' + Math.round(n.q[1]) : '').join('|'));
       still = a === b;
     }
-    const dot = await until(() => { if (!IG || !IG.contracts) return null;
-      for (const n of IG.contracts){ if (!(n._fold < .5) || n.g.style.display === 'none' || !n.hitEl) continue;
-        const r = n.hitEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, at = document.elementFromPoint(x, y);
-        if (at && n.g.contains(at)) return { id: n.id, x, y, d: Math.round(r.width) }; }
-      return null; });
+    /* A DOT CLEAR OF ITS NEIGHBOURS (26 Oct 2026, the unreliable 13f): 44px targets overlap, and the map's dots
+       jiggle a pixel or two (IG_JIG_FPS). A dot whose centre sat at the very edge of a neighbour's target — the
+       neighbour drawn on top — was, for an instant, under the neighbour: the finger went down on the neighbour and
+       ITS card opened (measured: the press, lift and click all go to the dot the finger went down on). A finger on
+       the border of two dots is ambiguous for a person too, so the check presses a dot whose centre stands at
+       least IG_CLEAR px outside every other visible dot's target — the clearest one on the map. */
+    const IG_CLEAR = 8;
+    const dot = await until(clear => { if (!IG || !IG.contracts) return null;
+      const vis = IG.contracts.filter(n => n._fold < .5 && n.g.style.display !== 'none' && n.hitEl);
+      const ctr = n => { const r = n.hitEl.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2, w: r.width }; };
+      const C = new Map(vis.map(n => [n, ctr(n)]));
+      let best = null;
+      for (const n of vis){
+        const c = C.get(n), at = document.elementFromPoint(c.x, c.y);
+        if (!at || !n.g.contains(at)) continue;
+        /* how far the centre stands outside the nearest other target */
+        const gap = Math.min(Infinity, ...vis.filter(m => m !== n).map(m => { const o = C.get(m); return Math.hypot(o.x - c.x, o.y - c.y) - o.r; }));
+        if (gap >= clear && (!best || gap > best.gap)) best = { id: n.id, x: c.x, y: c.y, d: Math.round(c.w), gap: Math.round(gap) }; }
+      return best; }, IG_CLEAR);
     check('13e on a touch screen each dot answers across a 44px target', !!dot && (coarse ? dot.d >= 44 : true), JSON.stringify({ coarse, dot }));
     if (dot){
       await page.evaluate(() => { intel.history = []; });
