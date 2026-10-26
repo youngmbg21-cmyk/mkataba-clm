@@ -2303,6 +2303,9 @@ async function intelAsk(qRaw, opts){
      sign and an amendment away): the panel turns to the conversation over
      the face, which waits as it was left (pdTalkSync, the trail's back) */
   const readied=!!_igReadyAsk && q===_igReadyAsk; _igReadyAsk='';
+  /* ON THE BOARD'S JAMBO TAB THE BRAIN READS FIRST (igBoardTalkFirst): words TYPED in the panel's own box go to
+     none of the free readers below; a chip, or the ✦ window handing Home a command, keeps its reader */
+  if(!readied&&opts&&opts.typed&&igBoardTalkFirst()) return igBoardTalkAsk(q);
   if(readied){
     intel.history.push({role:'user', text:q});
     intel.busy=true; renderIntelDock(); updateIntelNote();
@@ -2574,6 +2577,32 @@ async function intelAsk(qRaw, opts){
   }
 }
 
+/* the Board's Jambo tab's one path (igBoardTalkFirst): the chat with the Board in its context, then what every
+   chat answer on the Board gets — the next questions under the words, the AI's own door (goto), a set it names
+   drawn on the Board with the reply written from what the Board now draws, its reading and the Right / Wrong marks */
+async function igBoardTalkAsk(q){
+  const h0=intel.history.length, goSince=Date.now();
+  const rdSnap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
+  intel.lenses=(intel.lenses||[]).filter(l=>l.hb||l.action!=='filter');
+  intel.history.push({role:'user', text:q});
+  intel.busy=true; renderIntelDock(); updateIntelNote();
+  try{ await intelChatAsk(q); }
+  catch(e){ intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true}); }
+  igNextUnderWords(h0);
+  intel.busy=false;
+  { const g=(typeof window.aiGotoTake==='function')?aiGotoTake(goSince):null; if(g&&typeof window.aiGotoRun==='function') try{ aiGotoRun(g, q); }catch(_){} }
+  if(typeof window.jpPressOf==='function'){ const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+    if(m&&!m.press&&!m.act){ try{ const p=jpPressOf({ ids:igAnswerIds(m), q, text:m.text, noShow:true }); if(p) m.press=p; }catch(_){} } }
+  rebuildIntelGraph(); renderIntelDock();
+  if(state.view!=='dashboard'||typeof window.hbShowFound!=='function') return;
+  const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
+  if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null);
+    if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(q); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
+  const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+  if(last&&!last.reading&&rdSnap){ try{ const r=hbReadingAfter(rdSnap); if(r){ last.reading=r; renderIntelDock(); } }catch(_){} }
+  if(last&&typeof window.hbBoardReplyMeta==='function'&&hbBoardReplyMeta().boardReply&&!last.boardReply){ last.boardReply=true; renderIntelDock(); }
+}
+
 /* ============================================================
    C-1 · THE CARD CARRIES EVERY FACT THE MAP DRAWS (11 Sep 2026)
    ============================================================
@@ -2660,6 +2689,21 @@ function graphLensesNow(){
    Copilot answers about the numbers in front of the reader, not the map. */
 function igBoardNow(){
   try{ return (state.view==='dashboard' && typeof window.hbFace==='function' && hbFace()==='board' && typeof window.hbBoardNow==='function') ? (hbBoardNow()||'') : ''; }catch(_){ return ''; }
+}
+/* THE BOARD'S JAMBO TAB READS WITH THE BRAIN FIRST (owner, 26 Oct 2026, a trial on the Board before any other
+   page; reverses "one rule in every box" for this one tab): words typed while the panel's Jambo tab is open over
+   the Board go straight to the chat, with the Board in its context and its doors (goto, search) as its tools —
+   no word list reads them first. The Overview tab keeps the free readers as they were, and what they do not read
+   still goes to Jambo and turns the panel to his tab. Only words TYPED in the panel's own box (#igd-input) are
+   his: a chip, or the ✦ window handing Home a command, keeps its reader. With no brain (no key) the tab keeps the free readers too,
+   never a dead box. A contract held or on the paper is not the Board: its own route stands. */
+function igBoardTalkFirst(){
+  try{
+    if(state.view!=='dashboard'||typeof window.hbFace!=='function'||hbFace()!=='board') return false;
+    if(igHomePaperFace()===true||igPaperUp()||igHeldAskId()) return false;
+    if(!(window.caAiFirst&&caAiFirst())) return false;
+    return typeof window.pdTalkShows==='function'&&!!pdTalkShows();
+  }catch(_){ return false; }
 }
 function graphAskScreen(){
   return { groupBy:intel.groupBy, custom:!!intel.groups, lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
@@ -8156,6 +8200,8 @@ let _igPreT = null;
 function igPreOn(){ return !!(window.state && state.view==='dashboard' && typeof window.hbFace==='function' && hbFace()==='board' && typeof window.hbAskReadingOf==='function'); }
 function igPrePaint(){
   const el=document.getElementById('igd-pre'), inp=document.getElementById('igd-input'); if(!el||!inp) return;
+  /* on the Board's Jambo tab no free reader acts on the words (igBoardTalkFirst): the line never promises a move */
+  if(igBoardTalkFirst()){ el.textContent=''; el.title=''; return; }
   let t=''; try{ t=hbAskPreviewText(hbAskReadingOf(inp.value)); }catch(_){ t=''; }
   /* THE ONE READER'S OWN READING FIRST (19 Oct 2026), as intelAsk asks it:
      where it will go, free — or the contract a question is asked of, and
@@ -8506,7 +8552,7 @@ function renderIntelDock(){
      and Send did nothing). */
   const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value;
     if(!String(v||'').trim()) return;
-    inp.value=''; if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v); };
+    inp.value=''; if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v, { typed:true }); };
   document.getElementById('igd-go')?.addEventListener('click',go);
   document.getElementById('igd-input')?.addEventListener('keydown',e=>{
     if(window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),true))) go(); });
@@ -10383,3 +10429,4 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 
 /* what the map shows, one reading (24 Oct 2026) */
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
+Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk });

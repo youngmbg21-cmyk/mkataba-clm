@@ -21748,3 +21748,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Two tests share the number f893 on main (f893-discover-keep-and-wording-only.test.js and f893-template-hygiene.test.js), against "every test number is used once".
 - owners-fifteen-verify.js is unreliable: red on main's run of 2bfe7f5 (shard 5/6), and locally one run passes 33/33 while the next fails 13f (a wobbling press); on #496 it failed 13d. Not fixed (outside the request).
 - Discover's kept-questions answer (askColSummary, fetched on the Contracts place) redraws Jambo's panel after the reader has moved on to the Board (askColOn still true there); harmless to a person — the panel keeps the typed words — but a needless repaint from a page left behind. Not fixed.
+
+## Changed — 26 Oct 2026 (the Board's Jambo tab, a trial: the brain reads first)
+- Removed on the Board's Jambo tab only: the line above the box that said where typed words would go ("…, free"). The brain now reads those words, so the line would promise a move that no longer happens. It still shows under Overview.
