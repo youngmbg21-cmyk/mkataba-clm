@@ -216,7 +216,7 @@ Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,JAMBO_MARK_PATH,jamboMarkSvg
    that refills a moment later does not put it out. A thing that never shows
    is said where the reader looks (opts.missing), never a silent arrival.
    Story: MAP-HISTORY "LAND ON IT". */
-const LAND_TRIES = 40, LAND_WAIT = 100, LAND_PULSE_MS = 2000;
+const LAND_TRIES = 40, LAND_WAIT = 100, LAND_PULSE_MS = 2000, LAND_KEEP_MS = 1500;
 /* the main button: the area's filled one, else its first live one */
 const LAND_MAIN = '.ui-btn-primary:not([disabled]), .hb-btn.is-primary:not([disabled]), .is-primary:not([disabled])';
 const LAND_ANY = 'button:not([disabled]), [href], input:not([type="hidden"]):not([disabled])';
@@ -278,6 +278,12 @@ function landOn(target, opts = {}){
             if (!nu || nu === L.el) return;
             L.el = nu; nu.classList.add('is-landed');
             if (Date.now() - L.at > LAND_PULSE_MS) nu.classList.add('is-landed-held');
+          }
+          /* a part drawn late above it (Discover's summary beside Contracts) may push it out of sight: in its first
+             moments the landing keeps it in sight */
+          if (Date.now() - L.at < LAND_KEEP_MS && L.el.isConnected){
+            const r = L.el.getBoundingClientRect();
+            if (r.top < 0 || r.bottom > innerHeight) try { L.el.scrollIntoView({ block: opts.block || 'nearest', inline: 'nearest' }); } catch (_){}
           }
           if (opts.focus !== false && (!L.btn || !L.btn.isConnected)){
             const a = document.activeElement;
@@ -1115,7 +1121,7 @@ function jamboOverviewOf(say){
     src: say.src === false ? '' : (say.src || ''), asks: (say.chips || []).filter(c => c && c.label && typeof c.run === 'function'),
     after: say.after || '', before: say.before || '' };
 }
-if (typeof document !== 'undefined' && !(typeof window !== 'undefined' && window._jovWired)){
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._jovWired)){
   if (typeof window !== 'undefined') window._jovWired = true;
   document.addEventListener('click', e => {
     const b = e.target && e.target.closest && e.target.closest('[data-jov]'); if (!b) return;
