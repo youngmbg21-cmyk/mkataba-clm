@@ -1791,6 +1791,8 @@ const CA_PLACES = [
   { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'standards', 'our standards', 'playbook', 'vårt papper', 'mallar', 'mall', 'standarder', 'våra standarder'] },
   { k: 'import', w: ['import', 'imports', 'import contracts', 'importera', 'importera avtal'] },
   { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
+  /* THE HANDBOOK (owner, 26 Oct 2026): the instruction book, one chapter per thing; "how do I …" lands on its chapter (navReadHandbook) */
+  { k: 'handbook', w: ['handbook', 'the handbook', 'instructions', 'the instructions', 'user guide', 'manual', 'instruction book', 'handbok', 'handboken', 'instruktioner', 'instruktionerna', 'manualen', 'bruksanvisning'] },
   { k: 'insights', w: ['insights', 'insikter'] },
   { k: 'house', w: ["jambo's agents", 'agents', "jambo's house", 'house', 'jambos agenter', 'agenter', 'jambos hus'] },
   { k: 'settings', w: ['settings', 'settings and rules', 'setup', 'inställningar'] },
@@ -1887,7 +1889,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2044,6 +2046,8 @@ const CA_GO = {
   ourpaper: (c, a) => { if (!(a && a.std)){ setView('templates'); return; } caOpenStandards(a.book); },
   import: () => !caMayAdd() ? false : setView('migration'),
   mynotes: () => setView('mynotes'),
+  /* the Handbook, on a chapter when a "how do I …" read one (26 Oct 2026) */
+  handbook: (c, a) => (typeof hbkOpen === 'function') ? hbkOpen(a && a.chapter, { part: a && a.part }) : setView('handbook'),
   insights: () => setView('intel'),
   house: () => setView('jambo'),
   settings: () => setView('team'),
@@ -3051,7 +3055,8 @@ function caGoCardHtml(a, i){
     return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_help_title'))}</div>
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_places'))}</p>
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_work'))}</p>
-      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_rest'))}</p></div>`;
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_rest'))}</p>
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_book'))}</p></div>`;
   }
   return '';
 }

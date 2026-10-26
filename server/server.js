@@ -28112,6 +28112,9 @@ app.use('/vendor', express.static(path.join(__dirname, '..', 'vendor'), {
   maxAge: '30d', immutable: true,
 }));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
+/* THE HANDBOOK'S PICTURES (owner, 26 Oct 2026): taken by test/chromium/handbook-verify.js from the
+   example world and kept under handbook/img; a chapter whose picture is not there says so in its frame. */
+app.use('/handbook', express.static(path.join(__dirname, '..', 'handbook'), { maxAge: '1h' }));
 
 /* ---- EVERY FAILURE ANSWERS IN JSON, AND NEVER WITH OUR INSIDES (26 Sep 2026,
    the overnight clean-up) ----
