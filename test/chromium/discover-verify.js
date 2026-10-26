@@ -101,14 +101,17 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('2b the name box says Jambo names it if left empty', /Jambo names it/.test(hint), hint);
       await page.fill('#ct-q', '');
       await page.click('[data-ac-ask]');
-      const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans').length >= 10, null, 20000);
+      const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11, null, 20000);
       const col = await page.evaluate(() => ({
         heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
         cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }])),
         foot: (document.querySelector('#reg-showing') || {}).innerText || '' }));
       check('2b′ the column is named from the question', read && col.heads.some(x => /Liability cap/.test(x)), JSON.stringify(col.heads));
-      const withWords = ['DV-01', 'DV-03', 'DV-07'].every(id => col.cells[id] && /“[^”]{10,}/.test(col.cells[id].t));
-      check('2c each cell: the answer, then the words it was read from', withWords, JSON.stringify(col.cells['DV-01']));
+      const oneLine = ['DV-01', 'DV-03', 'DV-07'].every(id => col.cells[id] && !/“/.test(col.cells[id].t) && !/\n/.test(col.cells[id].t) && col.cells[id].t.length < 40);
+      /* RE-POINTED (owner picked "Lights", 26 Oct 2026): one line per cell —
+         the light and the short answer. The words it was read from are in the
+         panel's reading of the chosen row, checked at 2h. */
+      check('2c each cell is one line: a light and the answer, no quote fighting it', oneLine, JSON.stringify(col.cells['DV-01']));
       check('2d the dot reads the rule first: the two outside it are red, the rest green',
         col.cells['DV-04'].red && col.cells['DV-05'].red && col.cells['DV-01'].green && Object.values(col.cells).filter(c => c.red).length === 2,
         JSON.stringify(Object.fromEntries(Object.entries(col.cells).map(([i, c]) => [i, c.red ? 'red' : c.green ? 'green' : '-']))));
@@ -141,24 +144,61 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
 
     if (stage(3)){
       /* no column up: the panel greets, Discover under it */
-      await page.evaluate(() => { regState().ask = []; regState().only = null; regRepaint(); });
-      if (ONLY === '3'){ /* the question kept, as stage 2 would have left it */
-        await page.evaluate(q => api('ai/column', 'POST', { question: q, name: '', ids: state.contracts.map(c => c.id) }), CAP_Q);
+      if (ONLY === '3'){ /* the column up, as stage 2 would have left it */
+        const k = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: '', ids: state.contracts.map(c => c.id) }), CAP_Q);
+        await page.evaluate(id => { regState().ask = [id]; regRepaint(); return askColBring(id); }, k.ask.id);
       }
+      /* ONLY WHAT YOU KEEP (the owner picked it, 26 Oct 2026): a question joins
+         the team's list by ONE press on its card; until then it is answered,
+         free to bring back, and out of the way behind the folded line. */
+      const keepable = await until(page, () => !!document.querySelector('#ig-dock [data-ac-keep]'));
+      await page.click('#ig-dock [data-ac-keep]');
+      const keptNow = await until(page, () => !document.querySelector('#ig-dock [data-ac-col] [data-ac-keep]'));
+      check('3a′ "Keep in Discover" puts the question on the team\'s list', keepable && keptNow);
+      await page.evaluate(() => { regState().ask = []; regState().only = null; regRepaint(); });
       await page.evaluate(() => askColSummary(true).then(() => renderIntelDock()));
       const disc = await until(page, () => /Liability cap/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
       const dt = await page.evaluate(() => (document.querySelector('#ig-dock #ac-disc') || {}).innerText || '');
       check('3a Discover stands in the panel beside the list: the kept question, counted, at risk said', disc && /Discover/.test(dt) && /2 at risk/.test(dt) && /Due diligence · 5 questions/.test(dt) && /Ask a new question/.test(dt), dt.replace(/\s+/g, ' ').slice(0, 300));
       await page.screenshot({ path: path.join(OUT, '3-discover.png') });
+      /* a question nobody kept is not on the list; the folded line finds it,
+         and from there it can be kept or deleted (owner, 26 Oct 2026) */
+      await page.evaluate(() => api('ai/column', 'POST', { question: 'Which country\u2019s law governs this contract?', name: 'Governing law', ids: ['DV-01'] }));
+      await page.evaluate(() => askColSummary(true).then(() => renderIntelDock()));
+      const folded = await until(page, () => /other question/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
+      const noLaw = await page.evaluate(() => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
+      check('3a″ a question nobody kept stays off the list, counted in one folded line', folded && noLaw,
+        await page.evaluate(() => (document.querySelector('#ig-dock #ac-disc') || {}).innerText.replace(/\s+/g, ' ').slice(0, 200)));
+      await page.click('#ig-dock [data-ac-disc-all="1"]');
+      const shown = await until(page, () => /Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
+      const acts = await page.evaluate(() => { const r = [...document.querySelectorAll('#ig-dock .ac-disc-row')].find(x => /Governing law/.test(x.innerText));
+        return r ? { keep: !!r.querySelector('[data-ac-keep]'), del: !!r.querySelector('[data-ac-del]') } : null; });
+      check('3a‴ the folded line opens them, each with Keep and Delete', shown && acts && acts.keep && acts.del, JSON.stringify(acts));
+      await page.click('#ig-dock [data-ac-disc-all="0"]');
+      await until(page, () => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
       const c0 = h.ai.calls.length;
       await page.click('#ig-dock [data-ac-bring]');
-      const up = await until(page, () => [...document.querySelectorAll('.reg-table thead th')].some(th => /Liability cap/.test(th.textContent)) && document.querySelectorAll('td.ac-cell .ac-ans').length >= 10);
-      check('3b a press brings its column onto the list, no call', up && h.ai.calls.length === c0, String(h.ai.calls.length - c0));
+      /* >= 10, not 11: a paper drawn from its template keeps no answer of its
+         own (the server writes none), so DV-11 is read only where the drawing
+         travelled with the ask — which stage 2 does and HATI_DV_ONLY=3 cannot */
+      const up = await until(page, () => [...document.querySelectorAll('.reg-table thead th')].some(th => /Liability cap/.test(th.textContent)) && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 10);
+      check('3b a press brings its column onto the list, no call', up && h.ai.calls.length === c0,
+        JSON.stringify({ calls: h.ai.calls.length - c0, cells: await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length), heads: await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.trim())) }));
       await page.click('#ig-dock [data-ac-pack]');
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
       const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
       check('3c the pack opens in the same form: five questions, one read each against five apart', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /about 11 Jambo calls/.test(pf) && /55 Jambo calls/.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
       await page.screenshot({ path: path.join(OUT, '3-pack-form.png') });
+      /* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026) */
+      const ticks = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ac-pick]').length);
+      await page.uncheck('#ig-dock [data-ac-pick="4"]');
+      await page.uncheck('#ig-dock [data-ac-pick="3"]');
+      const picked = await until(page, () => /3 of 5 chosen/.test((document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || ''));
+      check('3c′ each question has a tick: untick two and the count and the cost follow', ticks === 5 && picked,
+        await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText.replace(/\s+/g, ' ').slice(0, 220)));
+      await page.check('#ig-dock [data-ac-pick="3"]');
+      await page.check('#ig-dock [data-ac-pick="4"]');
+      await until(page, () => /5 of 5 chosen/.test((document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || ''));
       const c1 = h.ai.calls.length;
       await page.click('#ig-dock [data-ac-ask]');
       const three = await until(page, () => document.querySelectorAll('.reg-table thead th.ac-th').length === 3 && !!document.querySelector('#ig-dock [data-ac-table]'), null, 20000);
@@ -167,12 +207,32 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('3d asked: one call per contract read (11), three columns stand, "See all 5 answers" offered', three && spent <= 11 && heads.length === 3, JSON.stringify({ spent, heads }));
       await page.click('#ig-dock [data-ac-table]');
       const pg = await until(page, () => !!document.querySelector('#ac-table-page'));
-      const tt = await page.evaluate(() => ({ cols: document.querySelectorAll('#ac-table-page thead th').length, rows: document.querySelectorAll('#ac-table-page tbody tr').length,
-        copy: !!document.querySelector('#ac-tt-copy'), wide: document.documentElement.scrollWidth > window.innerWidth }));
-      check('3e the whole table is a page: five answer columns, every contract, Copy the table, nothing spilling the window', pg && tt.cols === 6 && tt.rows === 11 && tt.copy && !tt.wide, JSON.stringify(tt));
+      const tt = await page.evaluate(() => {
+        const first = document.querySelector('#ac-table-page tbody th.ac-tt-a');
+        return { cols: document.querySelectorAll('#ac-table-page thead th').length, rows: document.querySelectorAll('#ac-table-page tbody tr').length,
+          copy: !!document.querySelector('#ac-tt-copy'), wide: document.documentElement.scrollWidth > window.innerWidth,
+          card: !!document.querySelector('#ac-table-page .ac-tt-card'), sub: (document.querySelector('.ac-tt-sub') || {}).innerText || '',
+          stuck: first ? getComputedStyle(first).position : '', legend: (document.querySelector('.ac-tt-foot') || {}).innerText || '',
+          risk: !!document.querySelector('#ac-tt-risk'), heads: (document.querySelector('#ac-table-page thead') || {}).innerText || '' };
+      });
+      check('3e the whole table is a page: five answer columns, every contract, Copy the table, nothing spilling the window', pg && tt.cols === 6 && tt.rows === 11 && tt.copy && !tt.wide, JSON.stringify({ cols: tt.cols, rows: tt.rows, copy: tt.copy, wide: tt.wide }));
+      /* THE LEDGER (the owner picked it, 26 Oct 2026) */
+      check('3e′ one framed card: what was read said under the title, the contract column standing still, the legend in the foot',
+        tt.card && /answers/.test(tt.sub) && /read/.test(tt.sub) && tt.stuck === 'sticky' && /inside our rule/.test(tt.legend),
+        JSON.stringify({ card: tt.card, sub: tt.sub.replace(/\s+/g, ' '), stuck: tt.stuck }));
+      check('3e″ the at-risk count stands in the head of the column it belongs to, and Only at risk narrows the table',
+        /at risk/.test(tt.heads) && tt.risk, tt.heads.replace(/\s+/g, ' ').slice(0, 160));
+      if (tt.risk){
+        await page.click('#ac-tt-risk');
+        const fewer = await until(page, () => document.querySelectorAll('#ac-table-page tbody tr').length < 11);
+        check('3e‴ pressed, only the rows at risk stand; pressed again they all come back', fewer && await (async () => {
+          await page.click('#ac-tt-risk');
+          return until(page, () => document.querySelectorAll('#ac-table-page tbody tr').length === 11);
+        })());
+      }
       await page.screenshot({ path: path.join(OUT, '3-table.png') });
-      await page.click('#ac-table-page [data-dlg-cancel]');
-      check('3e′ Back to the list closes it', await until(page, () => !document.querySelector('#ac-table-page')));
+      await page.click('#ac-tt-back');
+      check('3f Back to the list closes it', await until(page, () => !document.querySelector('#ac-table-page')));
     }
 
     if (stage(4)){
@@ -190,12 +250,28 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const kept = await until(page, () => !document.querySelector('#ig-dock [data-ac-fact]'));
       const isFact = (await W.admin.json('/api/columns/summary')).asks.find(a => a.id === lk.ask.id).fact;
       check('4a pressed, the question is a company fact', kept && isFact === true);
+      /* a second question, kept but not a fact: it belongs under "Add a fact",
+         never in the table of facts (the owner's note 5) */
+      const nk = await page.evaluate(() => api('ai/column', 'POST', { question: 'How much notice does each side need to end the contract early?', name: 'Notice to end', ids: ['DV-01'] }));
+      await page.evaluate(id => api('columns/' + id + '/keep', 'POST', { kept: true }), nk.ask.id);
       /* 4b the Settings panel */
       await page.evaluate(() => openSettingsAt('platform', 'facts'));
       const panel = await until(page, () => /Governing law/.test((document.querySelector('#fa-panel') || {}).innerText || ''));
       const pt = await page.evaluate(() => (document.querySelector('#fa-panel') || {}).innerText || '');
       const sw = await page.evaluate(id => { const b = document.querySelector(`[data-fa-tog="${id}"]`); return b ? b.getAttribute('aria-pressed') : null; }, lk.ask.id);
       check('4b Settings › Company facts lists the kept questions, rules and switches, and the cost per arrival', panel && /Our rule/.test(pt) && sw === 'true' && /every contract that arrives costs about 1 Jambo call/.test(pt), pt.replace(/\s+/g, ' ').slice(0, 300));
+      /* FACTS ONLY (owner, 26 Oct 2026: "why are the personal questions going
+         to the company facts? These should not be there"). The page lists the
+         facts that are ON and nothing else; a fact is added from the kept
+         questions, which are questions of the WORDING by the time they are
+         here — a counting question never becomes a column at all (4f, 4g). */
+      const only = await page.evaluate(() => {
+        const t = document.querySelector('#fa-panel');
+        return { rows: t ? t.querySelectorAll('tbody tr').length : -1, tog: t ? t.querySelectorAll('[data-fa-tog]').length : -1,
+          add: t ? t.querySelectorAll('[data-fa-add]').length : -1, txt: t ? t.innerText.replace(/\s+/g, ' ') : '' };
+      });
+      check('4b′ only the facts that are on are listed; the rest are offered under "Add a fact"',
+        only.rows === 1 && only.tog === 1 && only.add === 1 && /Add a fact/.test(only.txt) && /Notice to end/.test(only.txt) && !/Notice to end[^]*Kept/.test(only.txt.split('Add a fact')[0]), JSON.stringify(only));
       await page.screenshot({ path: path.join(OUT, '4-settings.png') });
       /* 4c a rule */
       await page.fill(`[data-fa-rule="${lk.ask.id}"]`, 'Kenya');
@@ -217,6 +293,15 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const kt = await until(page, () => /Company facts/.test((document.querySelector('[data-ac-facts-for="DV-07"]') || {}).innerText || ''));
       const kx = await page.evaluate(() => (document.querySelector('[data-ac-facts-for="DV-07"]') || {}).innerText || '');
       check('4e its Key terms carry the company\'s facts, with where on the paper', kt && /Governing law/.test(kx) && /§ 9/.test(kx), kx.replace(/\s+/g, ' ').slice(0, 200));
+      /* 4f a counting question is nobody's column: the list's box hands it to
+         Jambo, and the server refuses it even when asked outright */
+      const took = await page.evaluate(() => askColTakes('contracts', 'How many contracts have 30 day payment terms?'));
+      const wording = await page.evaluate(() => askColTakes('contracts', 'How much notice does each side need to end the contract early?'));
+      check('4f the list\'s box: a counting question is not a column, a wording question is', took === false && wording === true, JSON.stringify({ took, wording }));
+      const refused = await page.evaluate(() => api('ai/column', 'POST', { question: 'How many contracts have risks', ids: ['DV-01'] }).then(() => null, e => String(e && e.message)));
+      const facts2 = await W.admin.json('/api/columns/summary?all=1');
+      check('4g asked outright, the server turns it away, so it is never kept and can never be a fact',
+        /not about the wording/.test(refused || '') && !facts2.asks.some(a => /how many/i.test(a.question)), String(refused).slice(0, 120));
       await page.screenshot({ path: path.join(OUT, '4-key-terms.png') });
     }
 
@@ -310,8 +395,17 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.screenshot({ path: path.join(OUT, '8-approvals.png') });
       const c0 = h.ai.calls.length;
       await page.click('#ins-panel [data-ap-what-brief]');
-      const said = await until(page, () => !!document.querySelector('#ins-panel .ap-what-brief'), null, 10000);
+      /* RE-POINTED (the owner picked "Jambo's card", 26 Oct 2026): his words
+         come back in HIS card — the one soft grey card on the panel, named for
+         him — not as a paragraph among the facts, where it was missed. */
+      const said = await until(page, () => !!document.querySelector('#ins-panel [data-ap-what-say]:not(.is-ask) .jb-say-b'), null, 10000);
+      const say = await page.evaluate(() => { const el = document.querySelector('#ins-panel [data-ap-what-say]');
+        if (!el) return null; const cs = getComputedStyle(el);
+        return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius, pad: cs.padding }; });
       check('8b "Put it in plain words" spends one call and the brief is said there', said && h.ai.calls.length - c0 === 1, String(h.ai.calls.length - c0));
+      check('8b′ it comes back in Jambo\'s own card: his name on it, the soft grey fill, 18px corners, 16px inside',
+        !!say && /jb-say/.test(say.cls) && /Jambo/.test(say.head) && /In plain words/.test(say.head)
+        && say.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(say.r) >= 16 && parseFloat(say.pad) >= 16, JSON.stringify(say));
       check('8c Approve and Refuse are where they were', await page.evaluate(() => !!document.querySelector('#ins-panel [data-ins-act="approve"]') && !!document.querySelector('#ins-panel [data-ins-act="refuse"]')));
     }
 
@@ -327,6 +421,11 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const said = await until(page, () => !!document.querySelector('#ins-panel .cu-br-text'), null, 10000);
       const t2 = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
       check('9b pressed: one call, the brief said, the unfound figure named', said && h.ai.calls.length - c0 === 1 && /2 agreements/.test(t2) && /check them: 999/.test(t2), t2.replace(/\s+/g, ' ').slice(0, 300));
+      const psay = await page.evaluate(() => { const el = document.querySelector('#ins-panel [data-cu-br-say]');
+        if (!el) return null; const cs = getComputedStyle(el);
+        return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius }; });
+      check('9b\u2032 the two minutes wear the same card as the approver\'s brief (one builder, both panels)',
+        !!psay && /jb-say/.test(psay.cls) && /The two minutes/.test(psay.head) && psay.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(psay.r) >= 16, JSON.stringify(psay));
     }
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {

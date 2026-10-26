@@ -270,7 +270,7 @@ function askColTdHtml(c, askId){
   const attrs = `class="ac-cell${on ? ' is-on' : ''}" data-ac="${_acE(askId)}" data-ac-cid="${_acE(c.id)}"`;
   if (!a){
     const busy = AC.busy && AC.busy.ids && AC.busy.ids.includes(String(c.id));
-    return `<td ${attrs}>${busy && typeof busyHtml === 'function' ? `<span class="ac-sub">${busyHtml('')}</span>` : `<span class="ac-ans tone-none" title="${_acE(_acT('ac_not_read'))}"><i></i><span class="ac-a">${_acE(_acT('ac_not_read'))}</span></span>`}</td>`;
+    return `<td ${attrs}>${busy && typeof busyHtml === 'function' ? `<span class="ac-sub">${busyHtml('')}</span>` : `<span class="ac-ans tone-none is-wait" title="${_acE(_acT('ac_not_read'))}"><i></i><span class="ac-a">${_acE(_acT('ac_not_read'))}</span></span>`}</td>`;
   }
   const word = a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
   const tone = a.noWording ? 'gray' : askColToneOf(a);
@@ -860,7 +860,7 @@ function askColTableInner(){
     const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : cid;
     const cells = run.askIds.map(id => {
       const a = (AC.ans[id] || {})[cid];
-      if (!a) return `<td class="ac-tt-c"><span class="ac-ans tone-none"><i></i><span>${_acE(_acT('ac_not_read'))}</span></span></td>`;
+      if (!a) return `<td class="ac-tt-c"><span class="ac-ans tone-none is-wait"><i></i><span>${_acE(_acT("ac_not_read"))}</span></span></td>`;
       const no = a.found ? askColClauseNo(a) : '';
       const word = a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
       const sub = [a.detail, a.found ? askColQuoteShort(a) : ''].filter(Boolean).join(' · ');

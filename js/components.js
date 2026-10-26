@@ -1071,7 +1071,10 @@ Object.assign(window,{jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jambo
 function jamboSayCardHtml(o = {}){
   const E = (typeof esc === 'function') ? esc : (s => String(s == null ? '' : s));
   const T = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
-  const who = o.who || T('jb_say_who');
+  /* whose words, then what they are: "Jambo · In plain words" (the drawing the
+     owner picked, 26 Oct 2026) — his name first, so the card says at a glance
+     that this is him and not another fact of the record */
+  const who = [T('jb_say_who'), o.who].filter(Boolean).join(' · ');
   const when = o.when ? `<span class="jb-say-when">${E(o.when)}</span>` : '';
   const body = o.html || (o.text ? `<p>${E(o.text)}</p>` : '');
   const foot = o.foot ? `<div class="jb-say-f">${o.foot}</div>` : '';

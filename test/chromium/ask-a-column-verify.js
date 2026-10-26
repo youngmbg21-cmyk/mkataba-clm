@@ -89,11 +89,16 @@ async function toList(page) {
     const col = await page.evaluate(() => ({
       heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
       cells: [...document.querySelectorAll('td.ac-cell')].map(td => td.innerText.replace(/\s+/g, ' ').trim()),
+      lights: document.querySelectorAll('td.ac-cell .ac-ans>i').length,
       panel: (document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '' }));
     check('2a one column, every contract answered', filled && col.heads.includes('Notice to end'), JSON.stringify(col.heads));
     /* RE-POINTED 25 Oct 2026 (Discover stage 2, the owner's "The Legora way" for the answers): under the answer,
        the words it was read from, never "not checked" — the circle says that */
-    check('2b each cell: its answer and the words it was read from under it', col.cells.every(t => /30 days/.test(t) && /“[^”]{10,}/.test(t) && !/not checked/.test(t)), JSON.stringify(col.cells));
+    /* RE-POINTED (owner picked "Lights", 26 Oct 2026, of three columns cramped
+       together): a cell says ONE thing — the light and the short answer, on one
+       line. The words it was read from, its § and the tick moved to the
+       panel's reading of the chosen row (3b, 4a below). */
+    check('2b each cell is one line: the light and the answer, nothing else', col.cells.every(t => /^30 days$/.test(t.trim())) && col.lights === col.cells.length, JSON.stringify({ cells: col.cells, lights: col.lights }));
     check('2c Owner steps aside while an answer column stands, as drawn', !col.heads.includes('Owner'));
     check('2d the panel says the column, with its three doors', /Notice to end/.test(col.panel) && /4 answered/.test(col.panel) && /Save as a view/.test(col.panel) && /Ask again/.test(col.panel) && /Remove column/.test(col.panel), col.panel.slice(0, 200));
     check('2e the calls said are the calls made', h.ai.calls.length - before === 4, String(h.ai.calls.length - before));
@@ -111,13 +116,17 @@ async function toList(page) {
     await page.click('td.ac-cell[data-ac-cid="MK-A1"] .ac-a');
     check('3c a second press lets it go', await until(page, () => !document.querySelector('#ig-dock .ac-why-card') && !document.querySelector('tr.ac-row-on')));
 
-    /* ============ 4. TICK IN THE CELL ============ */
-    await page.click('td.ac-cell[data-ac-cid="MK-A1"] [data-ac-ck]');
-    const ticked = await until(page, () => /checked AO/.test((document.querySelector('td.ac-cell[data-ac-cid="MK-A1"]') || {}).innerText || ''));
+    /* ============ 4. THE TICK, IN THE PANEL'S READING (Lights, 26 Oct 2026) ============ */
+    await page.click('td.ac-cell[data-ac-cid="MK-A1"] .ac-a');
+    await until(page, () => !!document.querySelector('#ig-dock [data-ac-ck]'));
+    await page.click('#ig-dock [data-ac-ck]');
+    const ticked = await until(page, () => /Checked by/.test((document.querySelector('#ig-dock .ac-why-card') || {}).innerText || ''));
     const line = await page.evaluate(() => (document.querySelector('#ig-dock .ac-ckline') || {}).innerText || '');
-    check('4a the circle ticks it, with the initials of who', ticked);
+    check('4a the tick stands with the reading, and says who checked it', ticked);
     check('4b the panel counts it: 1 of 4, and offers the 3 not checked', /1 of 4 answers checked by a person/.test(line) && /show the 3 not checked/.test(line), line);
     await page.screenshot({ path: path.join(OUT, '05-ticked.png') });
+    await page.click('td.ac-cell[data-ac-cid="MK-A1"] .ac-a');
+    await until(page, () => !document.querySelector('#ig-dock .ac-why-card'));
     await page.click('[data-ac-unck]');
     const three = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 3);
     const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(tr => tr.getAttribute('data-row')));
