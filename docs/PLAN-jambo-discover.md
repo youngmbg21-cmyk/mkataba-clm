@@ -153,3 +153,11 @@ The owner said: "take note of these but do not code anything yet as I will be ad
    same highlighted card.
 The owner then asked for proposals for all seven, "well structured, clear and professional,
 that Legora or a top SaaS company would be proud of" — design options first, nothing built.
+
+### The owner's picks (26 Oct 2026): "I will go with all your recommendations for now"
+1 Count and Stop · 2 Lights · 3 Only what you keep · 4 Ledger · 5 Facts only, wording only (the junk
+columns listed and deleted only on a further yes) · 6+7 Jambo's card. Two more asks the same day:
+8. **Ask a column tidied like the pack form** — owner chose "Same frame, several questions": the form
+   wears the pack's layout and takes up to 8 questions in one read ("+ Add another question").
+9. **Choose which pack questions to run** — each question in the pack form has a tick (all on by
+   default); untick to run 3 of 5; the cost line follows.
