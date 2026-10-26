@@ -1,0 +1,82 @@
+{
+ "board": [
+  "which 2 end in 90 days?",
+  "value by stream",
+  "what needs me"
+ ],
+ "contracts": [
+  "Choose a file",
+  "Import contracts",
+  "Due diligence · 5 questions",
+  "Ask a new question",
+  "upload a document",
+  "draft a new agreement",
+  "board",
+  "calendar"
+ ],
+ "explorer": [
+  "Shade the lobes by liability cap",
+  "Size the lobes by value",
+  "Explain this view"
+ ],
+ "calendar": [
+  "plan my week · 1 Jambo call",
+  "find time for what is due · 1 call",
+  "On his own",
+  "Ask me first",
+  "Never"
+ ],
+ "sheet": [],
+ "approvals": [
+  "the first that is yours",
+  "approval rules"
+ ],
+ "obligations": [
+  "plan my week · 1 Jambo call",
+  "find time for what is due · 1 call",
+  "On his own",
+  "Ask me first",
+  "Never"
+ ],
+ "negotiations": [
+  "our move",
+  "start a negotiation"
+ ],
+ "customers": [
+  "no NDA",
+  "all parties"
+ ],
+ "directory": [
+  "our people"
+ ],
+ "intake": [
+  "ask for a contract"
+ ],
+ "templates": [
+  "new standard contract",
+  "the templates list"
+ ],
+ "mynotes": [
+  "new note"
+ ],
+ "handbook": [],
+ "migration": [
+  "choose files"
+ ],
+ "settings-you": [
+  "Open the Menu",
+  "brief me once a week",
+  "switch to Svenska",
+  "turn off my suggestions",
+  "Add a file",
+  "Ask"
+ ],
+ "settings-company": [
+  "Open the Menu",
+  "review the quarterly access review",
+  "what should I turn on next?",
+  "who can open Procurement & Raw Materials?",
+  "Add a file",
+  "Ask"
+ ]
+}

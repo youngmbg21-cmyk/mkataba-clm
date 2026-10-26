@@ -109,16 +109,18 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
     b.$('[data-jl-home]').dispatchEvent(evt(b.win, 'click'));
     const p = b.$('#ins-panel');
     assert.equal(p.getAttribute('data-ins-id'), null, 'nothing is held');
-    assert.ok(p.querySelector('[data-jl-words] .jl-say .jl-bub'), 'he speaks');
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side
+       panel in each page followed by the jambo tab"; REVERSES the one window of 24 Oct): nothing chosen, the page's
+       words are its Overview (the one builder, .jov) under the Overview tab; his greeting is the Jambo tab's */
+    assert.ok(p.querySelector('[data-jl-words] .jov .jov-head'), 'he says the page');
     assert.match(p.querySelector('[data-jl-words]').textContent, /3 on this list/);
-    assert.match(p.querySelector('.jl-src').textContent, /no Jambo call/);
+    assert.match(p.querySelector('.jov-src').textContent, /no Jambo call/);
     assert.equal(p.querySelector('[data-jl-back]'), null, 'no back button at all');
     assert.equal(b.$$('#reg-tbody tr.is-sel').length, 0, 'the row is let go');
-    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): nothing chosen, his words are the conversation's first message —
-       one window, no tabs to flip between */
-    assert.ok(p.querySelector('.jl-talk[data-jt-talk] [data-jl-greet] [data-jl-words]'), 'his words lead the conversation');
-    assert.equal(p.querySelector('.jl-talk').hidden, false, 'the conversation is the panel');
-    assert.ok(p.classList.contains('is-solo'), 'one window');
+    assert.ok(p.querySelector('.jl-body[data-jt-land] [data-jl-words]'), 'his words are the Overview, not the conversation');
+    assert.equal(p.querySelector('.jl-body').hidden, false, 'the panel opens on Overview');
+    assert.ok(!p.classList.contains('is-solo'), 'two tabs, never one window');
+    assert.ok(!p.querySelector('.jl-body [data-jb-hello]'), 'no greeting on the Overview');
   });
   test('2b let go stays let go through a repaint, until a row is pressed', () => {
     const b = world(list());
@@ -144,8 +146,11 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
     b.win.insPaintPanel(Object.assign({}, b.$('#ins-panel')._ins, { c: null, item: null,
       jlSay: () => ({ lines: ['<b>Seven</b> live.'], chips: [{ label: 'our move', run: () => { ran++; } }] }) }));
     const p = b.$('#ins-panel');
-    assert.match(p.querySelector('.jl-bub').innerHTML, /<b>Seven<\/b> live\./);
-    p.querySelector('[data-jl-chip="0"]').dispatchEvent(evt(b.win, 'click'));
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side
+       panel in each page followed by the jambo tab"; REVERSES the one window of 24 Oct): nothing chosen, the page's
+       words are its Overview (the one builder, .jov) under the Overview tab; his greeting is the Jambo tab's */
+    assert.match(p.querySelector('.jov-head').innerHTML, /<b>Seven<\/b> live\./);
+    p.querySelector('.jov-lnk.is-ask').dispatchEvent(evt(b.win, 'click', { bubbles: true }));
     assert.equal(ran, 1);
   });
 });
@@ -492,8 +497,11 @@ describe('f804 (10) the head says what it holds on every page', () => {
     b.win.renderRegister();
     const host = b.win.document.createElement('div');
     host.innerHTML = b.win.jlWordsHtml({ empty: 'Choose an obligation to read it here.' });
-    assert.equal(host.querySelector('.jl-bub').textContent, 'Choose an obligation to read it here.');
-    assert.equal(host.querySelector('.jl-src'), null, 'nothing was counted, so nothing says it was');
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side
+       panel in each page followed by the jambo tab"; REVERSES the one window of 24 Oct): nothing chosen, the page's
+       words are its Overview (the one builder, .jov) under the Overview tab; his greeting is the Jambo tab's */
+    assert.equal(host.querySelector('.jov-head').textContent, 'Choose an obligation to read it here.');
+    assert.equal(host.querySelector('.jov-src'), null, 'nothing was counted, so nothing says it was');
   });
 });
 describe('f804 (11) every door the panel added lands on its one target', () => {

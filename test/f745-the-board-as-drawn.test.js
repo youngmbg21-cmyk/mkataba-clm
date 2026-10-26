@@ -58,6 +58,7 @@ function world({ views = [], need = 3, ready = 0, keyed = true } = {}){
   w.FOLDERS = { f1: { id: 'f1', name: 'Stream' } };
   w.currentUser = () => ({ id: 'u_f745', name: 'Maria Lind', role: 'admin' });
   w.localStorage.setItem('hati.v1.igViews', JSON.stringify(views));
+  w.eval(read('js/components.js'));
   w.eval(read('js/views/homeboard.js'));
   const pressed = [];
   w.counterNeedsCount = () => need;
@@ -166,19 +167,21 @@ describe('f745 (3) the Board\'s card is all of Needs you (Round A, 22 Oct 2026)'
 });
 
 describe('f745 (4) Jambo on the Board', () => {
-  test('4a two bubbles: the book, then where the owed work went', () => {
+  /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way", the drawing they picked; "we will
+     have an overview tab side panel in each page followed by the jambo tab"): the Board's two bubbles became its
+     Overview (jamboOverviewHtml) — one head sentence, the facts Needs you and Your book with their doors, the
+     counted time under them, his chips under "Ask me" — and his greeting is the Jambo tab's */
+  test('4a the Overview: the head, Needs you counted, the counted time, his chips under "Ask me"', () => {
     const { w } = world({ views: [{ name: 'V', recipe: { lenses: [] } }], need: 7, ready: 2 });
     w.hbCountedAt(true);
     const html = w.hbBoardHelloHtml();
-    const bubs = [...html.matchAll(/<div class="ai-bub[^"]*">([\s\S]*?)<\/div>(?:<div class="hb-jb-chips">([\s\S]*?)<\/div>)?<\/div><\/div>/g)];
-    assert.equal(bubs.length, 2);
-    const hello = bubs[0][1].replace(/<[^>]+>/g, '');
-    assert.equal(hello, BOOKS.en.hb_jb_hello.replace('{time}', w.hbCountedAt()));
-    assert.match(bubs[0][1], /<b>Summarise my board<\/b>/, 'the press named, as drawn');
-    const chips = c => [...String(c || '').matchAll(/data-igsug="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(chips(bubs[0][2]), ['value by stream', 'my saved views'], 'none ending in 90 days: that chip is not offered');
-    assert.equal(bubs[1][1], 'What needs you is on Home: 7 things, Jambo’s work first.');
-    assert.deepEqual(chips(bubs[1][2]), ['what needs me']);
+    assert.match(html, /class="jov"/, 'drawn by the one builder');
+    assert.ok(!/ai-bub|data-jb-hello/.test(html), 'no bubble, no greeting');
+    assert.ok(html.includes(`<b>${BOOKS.en.jov_hb_head_b}</b>`), 'the head, its first words bold');
+    assert.match(html, /<b class="jov-k">Needs you<\/b>[\s\S]*?7 things · 2 prepared by Jambo/);
+    assert.ok(html.includes(`<span data-hb-jb-at>${w.hbCountedAt()}</span>`), 'the counted time follows the head');
+    const chips = [...html.matchAll(/data-igsug="([^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(chips, ['value by stream', 'my saved views', 'what needs me'], 'none ending in 90 days: that chip is not offered');
   });
   test('4b the number is the Counter\'s; nothing owed, no chip; no view saved, no views chip', () => {
     const { w } = world({ need: 0 });
@@ -186,7 +189,7 @@ describe('f745 (4) Jambo on the Board', () => {
     assert.match(html, /Nothing needs you on Home\./);
     assert.ok(!/what needs me/.test(html) && !/my saved views/.test(html));
     const one = world({ need: 1 }).w.hbBoardHelloHtml();
-    assert.match(one, /What needs you is on Home: 1 thing\./);
+    assert.match(one, /1 thing · 0 prepared by Jambo/);
   });
   test('4c "which N end in 90 days?" leads while any do', () => {
     const { w } = world();

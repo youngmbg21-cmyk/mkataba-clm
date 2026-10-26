@@ -242,13 +242,14 @@ const check = (name, pass, detail) => {
     check('11c Jambo\'s panel beside a list floats: a card with the faint lift', !!ap.shadow && ap.shadow !== 'none' && /0px 8px 28px/.test(ap.shadow), String(ap.shadow));
     check('11d a tag in a list (Kind) has the soft corner of the new look', !!ap.kind && parseFloat(ap.kind) >= 8, String(ap.kind));
     await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('board'); });
-    await until(() => !!document.querySelector('#hb-board .hb-card') && !!document.querySelector('.hb-jb-hello .ai-bub'), null, 10000);
-    const s2 = await tok('var(--surface-2)');
-    const bd = await page.evaluate(() => { const c = document.querySelector('#hb-board .hb-card'), b = document.querySelector('.hb-jb-hello .ai-bub'), p = document.querySelector('#hb-board .hb-pill');
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way": nothing boxed): his words beside the page are the Overview's head and lines (.jov-head, .jov-v), and his chips its offers (.jov-lnk.is-ask) */
+    await until(() => !!document.querySelector('#hb-board .hb-card') && !!document.querySelector('.hb-jb-hello .jov'), null, 10000);
+    const s2 = 'rgba(0, 0, 0, 0)';
+    const bd = await page.evaluate(() => { const c = document.querySelector('#hb-board .hb-card'), b = document.querySelector('.hb-jb-hello .jov'), p = document.querySelector('#hb-board .hb-pill');
       return { edge: c && getComputedStyle(c).borderTopColor, lift: c && getComputedStyle(c).boxShadow, bub: b && getComputedStyle(b).backgroundColor, pill: p ? getComputedStyle(p).backgroundColor : 'none drawn' }; });
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2: cards float with no outline, as drawn): the card's edge
        is clear and it stands off the ground by the faint lift */
-    check('11e the Board\'s cards float by their lift with no outline, and Jambo\'s words sit on the warm box every panel uses', NONE.test(bd.edge) && /0px 8px 28px/.test(bd.lift || '') && bd.bub === s2, JSON.stringify(bd) + ' box ' + s2);
+    check('11e the Board\'s cards float by their lift with no outline, and Jambo\'s Overview beside them is not boxed', NONE.test(bd.edge) && /0px 8px 28px/.test(bd.lift || '') && bd.bub === s2, JSON.stringify(bd) + ' box ' + s2);
     check('11f the Board\'s counts are plain numbers', bd.pill === 'none drawn' || NONE.test(bd.pill), String(bd.pill));
     /* ours, on the paper: three redlines staged the way a person files them */
     const ins = await page.evaluate(async () => { const c = getContract('MK-B2'); if (c._light && window.ensureFull) await ensureFull(c);

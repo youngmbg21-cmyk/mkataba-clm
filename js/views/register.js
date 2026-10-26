@@ -2974,9 +2974,20 @@ function regNegoSay(){
   if(ours.length){ const c=ours[0].c; let w=''; try{ w=regNegoCols(c).waiting; }catch(_){ w=''; }
     if(w&&w!=='\u2014') lines.push(esc(i18t('jl_ng_oldest',{ref:(window.contractRef?contractRef(c):c.id),party:c.counterparty||'\u2014',wait:w}))); }
   const R=regState(), chips=[];
-  if(n.you&&(R.band||'')!=='you') chips.push({ label:i18t('jl_ng_chip_ours'), run:()=>{ R.band='you'; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); } });
+  if(n.you&&(R.band||'')!=='you') chips.push({ label:i18t('jl_ng_chip_ours'), verb:i18t('jov_ask_open_v'), rest:i18t('jov_ask_ng_ours_r'), run:()=>{ R.band='you'; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); } });
   if(typeof ngStartPickerOpen==='function') chips.push({ label:i18t('jl_ng_chip_start'), run:()=>ngStartPickerOpen() });
-  return { lines, chips };
+  /* THE OVERVIEW'S FACTS (The Legora Way, owner 26 Oct 2026): the bands this page already counts (negoBandCounts)
+     and their asks read RAW off c.changes; each link the band's own tab. "Settled this quarter" has no reading */
+  const band=k=>()=>{ R.band=k; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); };
+  const names=k=>book.filter(c=>c._ngBand===k).slice(0,2).map(c=>c.counterparty||(window.contractRef?contractRef(c):c.id)).join(', ');
+  const facts=[];
+  if(n.you) facts.push({ k:i18t('jov_ng_you'), v:i18tn('jov_n_then',n.you,{n:n.you,list:names('you')}), link:i18t('jov_ln_open'), run:band('you') });
+  if(n.them) facts.push({ k:i18t('jov_ng_them'), v:i18tn('jov_n_then',n.them,{n:n.them,list:names('them')}), link:i18t('jov_ln_show'), run:band('them') });
+  if(n.out) facts.push({ k:i18t('jov_ng_out'), v:i18tn('jov_n_then',n.out,{n:n.out,list:names('out')}), link:i18t('jov_ln_show'), run:band('out') });
+  let asks=0; book.forEach(c=>{ asks+=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='counterparty').length; });
+  if(asks) facts.push({ k:i18t('jov_ng_asks'), v:i18tn('jov_ng_asks_v',asks,{n:asks}), need:true });
+  if(lines[1]) facts.push({ html:lines[1] });
+  return { lines, chips, head:{ html:lines[0] }, facts };
 }
 /* A CLAUSE SAID THE WAY THE DRAWING SAYS IT (round 14): "Clause 7 Liability
    cap", the next "clause 11 Payment terms" — the heading's own number and its

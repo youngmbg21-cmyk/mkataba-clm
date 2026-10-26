@@ -988,10 +988,13 @@ function stSyncAttention(){
 function stJbHelloSync(){
   if(typeof document==='undefined') return;
   if(!(stIsAdmin()&&settingsTab()==='company'&&!_stPage)) return;
-  const bub=document.querySelector('#st-jb-feed [data-st-jb-hello] .st-jb-bub');
-  if(bub){ const words=stJbCompanyWords(); if(bub.textContent!==words) bub.textContent=words; }
+  /* the Overview's head sentence (The Legora Way, 26 Oct 2026), dressed again by the one builder */
+  const head=document.querySelector('#st-jb-feed [data-st-jb-hello]');
+  if(head&&typeof jamboOverviewHtml==='function'){ const d=document.createElement('div');
+    d.innerHTML=jamboOverviewHtml({ head:{ html:esc(stJbCompanyWords()) }, headAttr:'data-st-jb-hello' },'st-h');
+    const p=d.querySelector('[data-st-jb-hello]'); if(p&&head.textContent!==p.textContent) head.innerHTML=p.innerHTML; }
   const chip=document.querySelector('#st-jb-feed [data-st-jb-first]');
-  if(chip){ const d=document.createElement('div'); d.innerHTML=stJbFirstChipHtml();
+  if(chip){ const d=document.createElement('div'); d.innerHTML=stJbFirstChipHtml().replace('class="st-jb-chip"','class="st-jb-chip jov-lnk is-ask"');
     const next=d.firstElementChild; if(next) chip.replaceWith(next); else chip.remove(); }
 }
 
@@ -3275,13 +3278,13 @@ async function stAskSeen(id){
   if(typeof updateAlertBadge==='function') try{ updateAlertBadge(); }catch(_){}
 }
 /* JAMBO TELLS THE ASKER, ON SETTINGS: what is still waiting, and any answer */
-function stAsksMineHtml(){
-  if(stIsAdmin()) return '';
+/* the same asks as plain sentences, for the Overview's quiet lines (stJbLandHtml) */
+function stAsksMineLines(){
+  if(stIsAdmin()) return [];
   return stAsksMine().slice(0,3).map(a=>{
-    const said=a.status==='open'?i18t('st_ask_mine_wait',{what:a.what,day:stDay(a.createdAt)})
-      :i18t(a.status==='done'?'st_ask_mine_done':'st_ask_mine_no',{what:a.what,who:a.answeredBy||'',note:a.note||''});
     if(a.status!=='open') setTimeout(()=>stAskSeen(a.id),0);
-    return stJbSayHtml(said); }).join('');
+    return a.status==='open'?i18t('st_ask_mine_wait',{what:a.what,day:stDay(a.createdAt)})
+      :i18t(a.status==='done'?'st_ask_mine_done':'st_ask_mine_no',{what:a.what,who:a.answeredBy||'',note:a.note||''}); });
 }
 
 /* ---- A "WHY" ANSWERED WITH AI (piece 17; owner, 16 Oct 2026: "yes") ----
@@ -3403,7 +3406,9 @@ function stLandHasLinks(){
     return /<(?:a|button)\b/i.test(String(land||''));
   } catch(_){ return false; }
 }
-function stSolo(){ return !(_stSwPick&&_stPage==='streams')&&_stSide!=='menu'&&!stLandHasLinks(); }
+/* AN OVERVIEW TAB ON EVERY PAGE, THEN THE JAMBO TAB (owner, 26 Oct 2026: "we will have an overview tab side panel
+   in each page followed by the jambo tab"): never his one window any more; kept as a name so its callers read alike */
+function stSolo(){ return false; }
 function stTalkTurns(){ return stJbLog(); }
 /* the trail over the conversation and which of the two views is up */
 function stJbTalkPaint(){
@@ -3670,7 +3675,7 @@ function stJbDataWords(html){
   return parts.map((w,i)=>(i===0&&counting&&typeof busyHtml==='function')?busyHtml(w):esc(w)).join(' ');
 }
 function stJbDataRepaint(){
-  const el=document.querySelector('#st-jb-feed [data-st-jb-hello] .st-jb-bub');
+  const el=document.querySelector('#st-jb-feed [data-st-jb-hello]');
   if(el && _stPage==='data') el.innerHTML=stJbDataWords(true);
 }
 function stJbChipBtn(label, attrs){ return `<button type="button" class="st-jb-chip" ${attrs}>${esc(stChipWord(label))}</button>`; }
@@ -3683,7 +3688,6 @@ function stJbFirstChipHtml(){
   const said=verb.split(/\s+/).length>1?verb:i18t('st_jb_c_need',{ verb, what:stJbNeedPhrase(first) });
   return stJbChipBtn(said,first.btn).replace('class="st-jb-chip"','class="st-jb-chip" data-st-jb-first=""');
 }
-function stJbChipsRow(list){ return list.length?`<div class="st-jb-chips">${list.join('')}</div>`:''; }
 /* THE FEED'S TWO VIEWS (19 Oct 2026): the landing — the page in Jambo's words,
    or the stream chosen — and the conversation, one shown at a time */
 function stJbFeedHtml(){
@@ -3733,40 +3737,60 @@ function stJbTalkWrap(feed){
   return feed.querySelector(':scope > [data-st-jb-talk]');
 }
 /* WHAT JAMBO SAYS FIRST, for the page in front */
+/* THE OVERVIEW, THE LEGORA WAY (owner picked it, 26 Oct 2026; jamboOverviewHtml, the one builder): the Menu door
+   first, then one head sentence, the named facts with their row's own door, and "Ask me" with the chips this page
+   already offered — no face, no bubble. His greeting is the Jambo tab's (stJbTalkInnerHtml). */
 function stJbLandHtml(){
   const admin=stIsAdmin(), face=admin?settingsTab():'you';
   const chipsOn=(typeof jamboChipsOn!=='function')||jamboChipsOn();
   const ask=q=>`data-st-jb-ask="${esc(q)}"`;
-  const hello=words=>stJbSayHtml(words).replace('<div class="st-jb-msg">','<div class="st-jb-msg" data-st-jb-hello>');
+  const chip=(label,attr)=>({ label:stChipWord(label), attr });
   /* THE MENU DOOR, FRONT AND CENTRE (owner, 26 Oct 2026: "this menu button should be front and center in the
      overview page. Why is it hidden?"): the one door to the Menu face (data-st-side="menu", the same press as
      under a "nothing found" answer) stands first on every landing, with how many settings it lists. */
   const door=stJbMenuDoorHtml();
-  let html='';
+  const hello='data-st-jb-hello';
+  let o;
   if(admin && face==='company' && _stPage==='data'){
-    html=stJbSayHtml('').replace('<div class="st-jb-msg">','<div class="st-jb-msg" data-st-jb-hello>').replace('<div class="st-jb-bub"></div>',`<div class="st-jb-bub">${stJbDataWords(true)}</div>`)+(chipsOn?stJbChipsRow([stJbChipBtn(i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||stTrailDefault().from,_stTr.to||stTrailDefault().to,true) }),'data-st-tr-pdf'),
-      stJbChipBtn(i18t('st_jb_c_sealed'),'data-st-jb-say="sealed"')]):'');
+    o={ head:{ html:stJbDataWords(true) }, headAttr:hello, asks:chipsOn?[chip(i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||stTrailDefault().from,_stTr.to||stTrailDefault().to,true) }),'data-st-tr-pdf'),
+      chip(i18t('st_jb_c_sealed'),'data-st-jb-say="sealed"')]:[] };
   } else if(admin && face==='company' && _stPage==='streams'){
-    html=hello(stJbStreamsWords());
+    o={ head:{ html:esc(stJbStreamsWords()) }, headAttr:hello };
   } else if(admin && face==='company'){
     const priv=Object.values(FOLDERS||{}).find(f=>{ const p=f&&stPsSaved(f.id); return p&&p.on; })||Object.values(FOLDERS||{})[0];
-    html=hello(stJbCompanyWords())
-      +(chipsOn?stJbChipsRow([stJbFirstChipHtml(), stJbChipBtn(i18t('st_jb_c_next'),ask(i18t('st_jb_c_next'))),
-        priv?stJbChipBtn(i18t('st_jb_c_stream',{ name:priv.name }),ask(i18t('st_jb_c_stream',{ name:priv.name }))):''].filter(Boolean)):'')
-      +stJbSayHtml(i18t('st_jb_co_how'));
+    const first=chipsOn?stJbFirstChipHtml():'';
+    o={ head:{ html:esc(stJbCompanyWords()) }, headAttr:hello,
+      facts:[{ html:esc(i18t('st_jb_co_how')) }],
+      asks:chipsOn?[chip(i18t('st_jb_c_next'),ask(i18t('st_jb_c_next'))), priv?chip(i18t('st_jb_c_stream',{ name:priv.name }),ask(i18t('st_jb_c_stream',{ name:priv.name }))):null].filter(Boolean):[],
+      /* the first row's own button, said in plain words, stays first under "Ask me" (round 25 as drawn) */
+      before:'', firstAsk:first };
   } else {
+    const u=(typeof currentUser==='function'&&currentUser())||{};
     const m=(state.away||{}).mine;
     const apiOn=(typeof API_MODE==='function')&&API_MODE();
     const other=((typeof langList==='function')?langList():[]).find(l=>l.id!==((typeof langId==='function')?langId():''));
-    html=hello(i18t('st_jb_you_hello')+(m?' '+i18t('st_jb_away',{who:m.deputyName}):''))
-      +stAsksMineHtml()
-      +(chipsOn?stJbChipsRow([apiOn?stJbChipBtn(i18t('st_jb_c_brief'),ask(i18t('st_jb_c_brief'))):'',
-        other?stJbChipBtn(i18t('st_jb_c_lang_to',{ name:other.name }),ask(i18t('st_jb_c_lang_to',{ name:other.name }))):'',
-        stJbChipBtn(i18t('st_jb_c_chips_off'),ask(i18t('st_jb_c_chips_off')))].filter(Boolean)):'');
-    /* a company rule is an admin's: said, with the door to ask (as drawn) */
-    if(!admin && apiOn) html+=stJbSayHtml(i18t('st_jb_rules_admin',{ who:stAdminFirstSaid(), to:stAdminFirstSaid(true) }))
-      +(chipsOn?stJbChipsRow([stJbChipBtn(i18t('st_ask_go'),'data-st-ask-head=""')]):'');
+    const you=(k,focus)=>`data-st-you="${k}"${focus?` data-st-you-focus="${esc(focus)}"`:''}`;
+    /* the facts are the You sheet's own readings (stYouItems' states, stDevicesSaid), each link its row's door */
+    const facts=[{ k:i18t('st_you_lang'), v:[stLangName(), stMarketSaid()].filter(Boolean).join(' · '), link:i18t('jov_ln_change'), attr:you('lang') }];
+    if(apiOn){ const cad=briefCadenceOf(u);
+      facts.push({ k:i18t('st_you_brief_row'), v:i18t('st_you_brief_'+cad), need:cad==='off', link:i18t(cad==='off'?'jov_ln_set':'jov_ln_change'), attr:you('told') });
+      facts.push({ k:i18t('st_you_away'), v:stAwayState(), link:i18t('jov_ln_change'), attr:you('away') });
+      facts.push({ k:i18t('ts_title'), v:i18t(u.twoStep?'st_you_ts_on':'st_you_ts_off'), need:!u.twoStep, link:i18t('st_you_manage'), attr:you('safety') });
+      const ss=_stYouFacts.sessions; if(ss) facts.push({ k:i18t('st_you_devices_row'), v:stDevicesSaid(ss), link:i18t('st_you_manage'), attr:you('safety') }); }
+    /* the asks he is still waiting on an admin for, said as quiet lines of the list */
+    stAsksMineLines().forEach(l=>facts.push({ html:esc(l) }));
+    if(!admin && apiOn) facts.push({ html:esc(i18t('st_jb_rules_admin',{ who:stAdminFirstSaid(), to:stAdminFirstSaid(true) })) });
+    o={ head:{ html:esc(i18t('st_jb_you_hello')+(m?' '+i18t('st_jb_away',{who:m.deputyName}):'')) }, headAttr:hello, facts,
+      asks:chipsOn?[apiOn?chip(i18t('st_jb_c_brief'),ask(i18t('st_jb_c_brief'))):null,
+        other?chip(i18t('st_jb_c_lang_to',{ name:other.name }),ask(i18t('st_jb_c_lang_to',{ name:other.name }))):null,
+        chip(i18t('st_jb_c_chips_off'),ask(i18t('st_jb_c_chips_off'))),
+        /* a company rule is an admin's: said, with the door to ask (as drawn) */
+        (!admin && apiOn)?{ label:i18t('st_ask_go'), attr:'data-st-ask-head=""' }:null].filter(Boolean):[] };
   }
+  let html=(typeof jamboOverviewHtml==='function')?jamboOverviewHtml(o,'st'):'';
+  /* the company board's first row keeps its own button (its press is the row's own door), first under "Ask me" */
+  if(o.firstAsk) html=html.includes('<div class="jov-asks">')?html.replace('<div class="jov-asks">','<div class="jov-asks">'+o.firstAsk.replace('class="st-jb-chip"','class="st-jb-chip jov-lnk is-ask"'))
+    :html.replace(/<\/div>$/,`<p class="jov-eyebrow">${esc(i18t('jov_ask_me'))}</p><div class="jov-asks">${o.firstAsk.replace('class="st-jb-chip"','class="st-jb-chip jov-lnk is-ask"')}</div></div>`);
   return door+html;
 }
 /* THE TRAIL AS A PDF, READIED (round 26's chip "download Q3 as a PDF"): the

@@ -72,7 +72,7 @@ describe('f787 (2) the count names what it leaves out', () => {
 describe('f787 (3) Jambo says the trail', () => {
   test('3a the period, its acts, the streams; who is left out', async () => {
     const g = data(); await settle(g);
-    const said = g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub'));
+    const said = g.text(g.q('#st-jb-feed [data-st-jb-hello]'));
     assert.match(said, /^The trail for Q3 2026 has 1[,.\s  ]?234 acts in the 5 streams you can see\. Marketing & Brand is left out, because you are not named on it\.$/);
     /* named between the two tabs (owner, 26 Oct 2026) */
     /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
@@ -81,11 +81,11 @@ describe('f787 (3) Jambo says the trail', () => {
   test('3c an empty period is said as empty, never "0 acts in the 0 streams"', async () => {
     const g = settingsStage({ reply: r => r === 'trail/exports' ? { exports: [], total: 0 } : /^trail\/summary\?/.test(r) ? { acts: 0, streams: 0, people: 0, leftOut: 0 } : null });
     g.sb.stDrawerOpen('trail'); await settle(g);
-    assert.equal(g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub')), 'The trail for Q3 2026 is empty: nothing was done in the streams you can see.');
+    assert.equal(g.text(g.q('#st-jb-feed [data-st-jb-hello]')), 'The trail for Q3 2026 is empty: nothing was done in the streams you can see.');
   });
   test('3b a code-named deal travels by its code name only — said', async () => {
     const g = data({ before: sb => { sb.state.contracts = [{ id: 'MK-9', _codeNamed: true, code: 'Falcon' }]; } }); await settle(g);
-    assert.match(g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub')), new RegExp(S.en.st_jb_tr_code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'));
+    assert.match(g.text(g.q('#st-jb-feed [data-st-jb-hello]')), new RegExp(S.en.st_jb_tr_code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'));
   });
 });
 
@@ -95,13 +95,13 @@ describe('f787 (4) his chips', () => {
   test('4a "download Q3 as a PDF" readies the page, and downloads nothing', async () => {
     const g = data(); await settle(g);
     const chip = g.q('#st-jb-feed [data-st-tr-pdf]');
-    assert.equal(chip.textContent, 'download Q3 as a PDF');
+    assert.equal(chip.textContent, 'Download Q3 as a PDF'); /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): his offers stand under "Ask me" verb first, its first letter a capital as drawn */
     const before = g.log.api.length;
     g.click(chip); await settle(g);
     assert.equal(g.$('st-tr-as-sel').value, 'pdf', 'the As box says PDF');
     assert.ok(g.log.landed.some(l => l.t === '#st-tr-download'), 'Download is landed on, still the reader\'s press');
     assert.ok(!g.log.api.slice(before).some(a => /export/.test(a.route)), 'nothing downloaded');
-    const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
+    const bubs = g.qa('#st-jb-feed :is(.jov-head, .jov-fact.is-line .jov-v, .st-jb-bub)').map(b => g.text(b));
     assert.equal(bubs[bubs.length - 1], S.en.st_jb_tr_pdf_ready);
   });
   test('4c from the Backup tab, the chip turns the page to The trail first', async () => {
@@ -115,11 +115,11 @@ describe('f787 (4) his chips', () => {
   test('4b "what is a sealed PDF?" is answered from what HaTi is, spending nothing', async () => {
     const g = data(); await settle(g);
     const chip = g.q('#st-jb-feed [data-st-jb-say="sealed"]');
-    assert.equal(chip.textContent, 'what is a sealed PDF?');
+    assert.equal(chip.textContent, 'What is a sealed PDF?'); /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): his offers stand under "Ask me" verb first, its first letter a capital as drawn */
     const before = g.log.api.length;
     g.click(chip); await settle(g);
     assert.ok(!g.log.api.slice(before).some(a => /^ai\//.test(a.route)), 'no AI route');
-    const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
+    const bubs = g.qa('#st-jb-feed :is(.jov-head, .jov-fact.is-line .jov-v, .st-jb-bub)').map(b => g.text(b));
     assert.equal(bubs[bubs.length - 1], S.en.st_jb_sealed_say);
   });
 });
@@ -156,14 +156,14 @@ describe('f787 (6) Data & backup opens on The trail; Jambo counts it on either t
     const g = data({ door: 'backup' }); await settle(g);
     assert.ok(g.$('bk-export'), 'Backup in front');
     assert.ok(g.log.api.some(a => /^trail\/summary\?/.test(a.route)), 'the count was asked');
-    assert.match(g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub')), /^The trail for Q3 2026 has 1,234 acts/);
+    assert.match(g.text(g.q('#st-jb-feed [data-st-jb-hello]')), /^The trail for Q3 2026 has 1,234 acts/);
   });
   test('6c while he counts, the ring turns; a count that cannot be read is said, never "counting" for ever', async () => {
     const wait = data({ before: sb => { sb.busyHtml = t => '<span class="ob-spin" aria-hidden="true"></span>' + t; },
       reply: r => /^trail\/summary\?/.test(r) ? new Promise(() => {}) : null });
     /* the stage's own reply answers the summary first; ask again with one that never comes */
     wait.sb.stJbDataRepaint();
-    const bub = () => wait.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub');
+    const bub = () => wait.q('#st-jb-feed [data-st-jb-hello]');
     require('node:vm').runInContext('_stTr.sum=null;_stTr.sumKey="";_stTr.sumErr="";', wait.sb); wait.sb.stJbDataRepaint();
     assert.ok(bub().querySelector('.ob-spin'), 'the turning ring');
     assert.match(wait.text(bub()), /^I am counting the trail for Q3 2026\./);

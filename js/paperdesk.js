@@ -76,34 +76,10 @@ function pdLandName(){ return _pdT(pdOnPaper() ? 'pd_tab_dossier' : 'pd_tab_over
    Jambo tabs, no word beside them, no trail. A contract, a face, the letter, the one sheet or a chosen paper is
    information, and keeps the two tabs. */
 function pdSolo(){
-  try {
-    if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return false;
-    if (typeof hbFace === 'function' && hbFace() === 'calendar') return false;
-    if (pdOnPaper() || pdFaceUp() || pdSendHeld() || pdHeldContract()) return false;
-    if (typeof naSheetUp === 'function' && naSheetUp()) return false;
-    if (typeof document !== 'undefined' && document.getElementById('na-root')) return false;
-    /* THE PAGE'S OWN WORK IS NEVER INSIDE THE CONVERSATION (owner, 26 Oct 2026:
-       "if a link is on the first page and a user will need to access it, they
-       should not scroll up the jambo to find this link"; they named the Dossier
-       as the pattern that is already right and the Contracts list as the one
-       that is wrong). Beside the Contracts list the panel carries the wall and
-       Discover — the kept questions, their counts and Ask a new question — and
-       as his answers piled up underneath, those scrolled out of reach. So the
-       whole Paper face keeps the two tabs: the page's own under Overview, his
-       conversation under Jambo, one press apart. This REPLACES the narrower
-       test of 25 Oct, which broke the one window only while a column's form
-       was open. Explorer's panel draws no landing at all and the Board's is
-       his own greeting, so both are still his one window. */
-    if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true) return false;
-    /* THE FIRST PAGE WITH A PRESS GETS TWO TABS (owner, 26 Oct 2026: "any page where there is a link to press on
-       the first page needs a second tab for jambo"; REVERSES "the Board is left as his one window" of the same
-       day, which had been asked — this is the answer). The LANDING is read, never the page's name: anything to
-       press in it (the Board's own greeting chips too) and the panel keeps the page's own under Overview and his
-       conversation under Jambo, as Settings does (stLandHasLinks). Only a landing with nothing to press is his
-       one window (Explorer's, which draws none). */
-    if (pdLandHasPress()) return false;
-    return true;
-  } catch (_){ return false; }
+  /* AN OVERVIEW TAB ON EVERY PAGE, THEN THE JAMBO TAB (owner, 26 Oct 2026: "we will have an overview tab side panel
+     in each page followed by the jambo tab"; answered "Yes, every page"): never his one window any more, Explorer and
+     the Board included */
+  return false;
 }
 /* the landing the panel would draw (pdJamboTopHtml), asked whether it holds anything to press */
 function pdLandHasPress(){
@@ -3267,8 +3243,12 @@ function pdHeadHtml(brain){
     /* A DEAD BUTTON NEVER WEARS A LIVE ONE'S CLOTHES: Redlines on a contract nobody may negotiate is grey, its
        reason the Negotiate door's own sentence (negoMayStartLine); a press still says it (the door's toast) */
     let shut = ''; try { shut = (t === 'red' && c && typeof negoMayStart === 'function' && !negoMayStart(c).ok && typeof negoMayStartLine === 'function') ? (negoMayStartLine(c) || '') : ''; } catch (_){ shut = ''; }
-    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}${shut ? ' is-shut' : ''}" data-pd-tab="${t}" aria-selected="${on}"${shut ? ' aria-disabled="true"' : ''} aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(shut || tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${t === 'copilot' ? sendBack : ''}`;
-  }).join('') + pdTalkTabHtml() + word;
+    /* JAMBO RIGHT AFTER THE OVERVIEW (owner, 26 Oct 2026: "an overview tab side panel in each page followed by the
+       jambo tab"): off the paper his tab stands second, before Explorer's Findings and Guide; beside a paper the
+       Dossier's own tabs keep their row and his comes last, as it was */
+    const after = t === 'copilot' ? sendBack + (pdOnPaper() ? '' : pdTalkTabHtml()) : '';
+    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}${shut ? ' is-shut' : ''}" data-pd-tab="${t}" aria-selected="${on}"${shut ? ' aria-disabled="true"' : ''} aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(shut || tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${after}`;
+  }).join('') + (pdOnPaper() ? pdTalkTabHtml() : '') + word;
 }
 function pdBodyHtml(c){
   _pdActs.clear();
@@ -3394,18 +3374,47 @@ const PD_DROP_ACCEPT = '.pdf,.docx,.txt,.png,.jpg,.jpeg';
 let _pdDrop = null;          // { state: 'reading' | 'refused', name, note, why }, or null
 function pdDropMay(){ return (typeof canEdit !== 'function') || !!canEdit(); }
 function pdWallHelloHtml(){
-  const me = (typeof currentUser === 'function') ? currentUser() : null;
-  const hour = new Date().getHours();
-  const greet = _pdT(hour < 12 ? 'home_greet_morning' : hour < 17 ? 'home_greet_afternoon' : 'home_greet_evening');
-  const first = String((me && me.name) || '').trim().split(/\s+/)[0] || _pdT('home_greet_there');
-  const say = _pdT(pdDropMay() ? 'pd_wall_hello' : 'pd_wall_hello_view', { greet, name: first });
-  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
-  /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for, never the wall's greeting */
-  /* ...after his greeting, with what he can do there (owner, 25 Oct 2026: the empty panel said one line) */
+  /* THE OVERVIEW, THE LEGORA WAY (owner picked it, 26 Oct 2026; jamboOverviewHtml): no greeting here — "Good
+     morning" is the Jambo tab's (jamboHelloHtml); the landing says what the page in front holds */
+  /* .pd-hello is the wall's own (it stands down while the sheet is up); the sheet's is .pd-sheet-hello */
+  const ov = (o, cls) => (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov ${cls || 'pd-hello'}">${jamboOverviewHtml(o, 'pd')}</div>` : '';
+  /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for and what he can do there */
   if (typeof naSheetUp === 'function' && naSheetUp())
-    return `${typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : ''}<div class="ai-msg flex gap-2 pd-sheet-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(_pdT('ca_go_draft'))}</div>
-      <p class="jl-next-h pd-sheet-can-h">${_pdE(_pdT('ca_go_draft_can_h'))}</p><ul class="pd-sheet-can">${['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => `<li>${_pdE(_pdT(k))}</li>`).join('')}</ul></div></div>`;
-  return `<div class="ai-msg flex gap-2 pd-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(say)}</div></div></div>`;
+    return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
+      facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');
+  return ov(pdWallOverview());
+}
+/* THE CONTRACTS PLACE, NOTHING CHOSEN: its facts, each a reading the book already makes, no AI — how many and how
+   many signed, what ends inside 90 days (effectiveExpiry), what still owes a detail (detailsOf), the value in the
+   home currency with what could not be added (fxCounted, fxMissing). "Unusual for you" is a reading per contract
+   only, so it is left out here. */
+function pdWallOverview(){
+  const book = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined' && (!window.canAccessFolder || canAccessFolder(c.folder)));
+  const signed = book.filter(c => c.status === 'Signed');
+  const ref = c => (typeof contractRef === 'function') ? contractRef(c) : c.id;
+  const today = (typeof todayISO === 'function') ? todayISO() : '';
+  const in90 = (() => { const d = new Date(); d.setDate(d.getDate() + 90); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  const end = c => { try { return String((typeof effectiveExpiry === 'function') ? (effectiveExpiry(c) || '') : (c.expiry || '')).slice(0, 10); } catch (_){ return ''; } };
+  const ending = signed.filter(c => { const e = end(c); return e && today && e >= today && e <= in90; }).sort((x, y) => end(x).localeCompare(end(y)));
+  const owes = book.filter(c => { try { return (typeof detailsOf === 'function') && detailsOf(c).left > 0; } catch (_){ return false; } });
+  const show = (L, label) => () => { if (typeof regShowOnly === 'function') regShowOnly(L.map(c => c.id), label); };
+  const facts = [{ k: _pdT('jov_ct_list'), v: _pdTn('jov_ct_list_v', book.length, { n: book.length, s: signed.length, w: book.length - signed.length }) }];
+  if (ending.length){ const f = ending[0], day = (typeof regDotDate === 'function') ? regDotDate(end(f)) : end(f);
+    facts.push({ k: _pdT('jov_ct_ending'), v: _pdTn('jov_ct_ending_v', ending.length, { n: ending.length, name: f.name || ref(f), day }), need: true,
+      link: _pdT('jov_ln_show'), run: show(ending, _pdT('jov_ct_ending')) }); }
+  if (owes.length) facts.push({ k: _pdT('jov_ct_owes'), v: _pdTn('jov_ct_owes_v', owes.length, { n: owes.length }), need: true, link: _pdT('jov_ln_show'), run: show(owes, _pdT('jov_ct_owes')) });
+  let money = true; try { money = (typeof canViewValues !== 'function') || canViewValues(); } catch (_){ money = true; }
+  if (money && typeof fxCounted === 'function' && typeof fmtMoneyShortIn === 'function'){
+    let sum = 0; signed.forEach(c => { try { const h = fxCounted(c); if (h && !h.missing) sum += Number(h.v) || 0; } catch (_){} });
+    let miss = ''; try { miss = (typeof fxMissingLine === 'function') ? fxMissingLine(signed) : ''; } catch (_){ miss = ''; }
+    const code = (typeof fxHomeCode === 'function') ? fxHomeCode() : undefined;
+    if (sum > 0) facts.push({ k: _pdT('jov_ct_value'), v: _pdT('jov_ct_value_v', { sum: fmtMoneyShortIn(sum, code) }) + (miss ? ' · ' + _pdT('jov_ct_value_miss', { list: miss }) : '') });
+  }
+  const asks = [];
+  if (ending.length) asks.push({ verb: _pdT('jov_ln_show'), rest: _pdTn('jov_ct_ask_ending', ending.length, { n: ending.length }), run: show(ending, _pdT('jov_ct_ending')) });
+  if (owes.length) asks.push({ verb: _pdT('jov_ln_show'), rest: _pdT('jov_ct_ask_owes'), run: show(owes, _pdT('jov_ct_owes')) });
+  return { head: { b: _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }), s: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view') },
+    facts, src: _pdT('jl_src_list'), asks };
 }
 function pdDropInner(){
   const d = _pdDrop;
@@ -3490,7 +3499,9 @@ function pdDropPaint(){
   el.classList.toggle('is-busy', !!(_pdDrop && _pdDrop.state === 'reading'));
   el.innerHTML = pdDropInner();
 }
-function pdWallHtml(){ return `<div class="pd-wall">${pdWallHelloHtml()}${pdDropHtml()}</div>`; }
+/* DISCOVER FIRST, THE DROP BELOW IT (owner, 26 Oct 2026: "the file uploading feature should be below discover"):
+   both stand under the Overview's "Ask me", in that order */
+function pdWallHtml(disc){ return `<div class="pd-wall">${pdWallHelloHtml()}${disc || ''}${pdDropHtml()}</div>`; }
 /* THE FILE PICKER: one input, kept outside the panel (the panel is redrawn
    under it), found at press time, so a chip's press opens it in the press */
 function pdDropInput(){
@@ -5805,6 +5816,8 @@ function pdJamboTopHtml(){
   if (typeof naSheetUp === 'function' && naSheetUp() && !pdOnPaper()) return pdWallHelloHtml();
   /* ON THE BOARD: his greeting says the book and where the owed work went
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
+  /* EXPLORER HAS ITS OVERVIEW TOO (owner, 26 Oct 2026: "Yes, every page"): what the map in front holds */
+  if (typeof hbFace === 'function' && hbFace() === 'explorer' && typeof igOverviewHtml === 'function') return igOverviewHtml();
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
@@ -5814,8 +5827,7 @@ function pdJamboTopHtml(){
   /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
   /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
   const disc = (!c && !ac && typeof askColDiscoverHtml === 'function') ? askColDiscoverHtml() : '';
-  const lead = disc && typeof askColDiscoverLeads === 'function' && askColDiscoverLeads();
-  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || (lead ? disc + pdWallHtml() : pdWallHtml() + disc));
+  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || pdWallHtml(disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll

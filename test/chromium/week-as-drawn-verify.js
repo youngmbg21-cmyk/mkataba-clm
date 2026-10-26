@@ -25,6 +25,7 @@
        under the panel, the head's acts and the panel's box in view
    Every date is built from today; a wait asks for the state, bounded.
    Run: node test/chromium/week-as-drawn-verify.js */
+/* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): nothing chosen, his words are the Overview's (.jov-head, .jov-v, .jov-src) and his chips its offers (.jov-lnk.is-ask) */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -148,8 +149,8 @@ const weekOf = () => {
 
     /* ---- 2 Your week ---- */
     const Y = await page.evaluate(() => { const p = document.getElementById('ins-panel');
-      return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', bubs: [...p.querySelectorAll('.jl-bub')].map(b => b.textContent.trim()),
-        src: (p.querySelector('.jl-src') || {}).textContent || '', chips: [...p.querySelectorAll('.jl-chip')].map(c => c.textContent.trim()),
+      return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', bubs: [...p.querySelectorAll('.jl-bub, .jov-head, .jov-fact.is-line .jov-v')].map(b => b.textContent.trim()),
+        src: (p.querySelector(':is(.jl-src, .jov-src)') || {}).textContent || '', chips: [...p.querySelectorAll('.jl-chip, .jov-lnk.is-ask')].map(c => c.textContent.trim().replace(/\s*·\s*/, ' · ').toLowerCase()),
         lv: [...p.querySelectorAll('[data-cal-lv]')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')),
         ph: (p.querySelector('#jl-q') || {}).placeholder || '', hint: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, sel: document.querySelectorAll('.obw-wk tr.is-sel').length }; });
     check('2a nothing chosen: Jambo says "Your week", counted from the list, no call',
@@ -157,12 +158,12 @@ const weekOf = () => {
       && Y.src === 'Counted from your list · no Jambo call', Y);
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
     check('2b his offer, the planner\'s two asks as chips, the setting as three buttons, the box — and no hint line under it',
-      /Want me to plan the week\?/.test(Y.bubs[1] || '') && JSON.stringify(Y.chips) === JSON.stringify(['plan my week · 1 Jambo call', 'find time for what is due · 1 call'])
+      /Want me to plan the week\?/.test(Y.bubs[1] || '') && JSON.stringify(Y.chips) === JSON.stringify(['plan my week · 1 jambo call', 'find time for what is due · 1 call'])
       && JSON.stringify(Y.lv) === JSON.stringify(['On his own', 'Ask me first*', 'Never']) && Y.ph === 'Ask Jambo, or type / for a place' && Y.hint === 0, Y);
     await page.click('[data-cal-lv="never"]');
     const nv = await until(async () => { if (minePref().copilotLevel !== 'never') return null;
       const r = await api('me/items'); const p = (r.items || []).find(x => x.kind === 'pref');
-      const off = (document.querySelectorAll('#ins-panel .jl-bub')[1] || {}).textContent || '';
+      const off = [...document.querySelectorAll('#ins-panel :is(.jl-bub, .jov-head, .jov-v)')].map(e => e.textContent).find(t => /You chose Never/.test(t)) || '';
       return p && p.copilotLevel === 'never' && /You chose Never/.test(off) ? { stored: p.copilotLevel, off } : null; });
     check('2c Never is kept on the server and changes his offer', !!nv, nv);
     await page.click('[data-cal-lv="ask"]');
@@ -200,8 +201,8 @@ const weekOf = () => {
     const dec = await until(() => { const h = document.querySelector('#renewal-host'); return h && state.view === 'dashboard' && (h.classList.contains('is-landed') || h.classList.contains('is-landed-held')) ? true : null; }, null, 12000);
     check('3e Decide lands on the renewal card, lit', !!dec);
     await page.evaluate(() => setView('obligations'));
-    await until(() => !!document.querySelector('#ins-panel .jl-chip'));
-    await page.click('#ins-panel .jl-chip >> nth=0');
+    await until(() => !!document.querySelector('#ins-panel :is(.jl-chip, .jov-lnk.is-ask)'));
+    await page.click('#ins-panel :is(.jl-chip, .jov-lnk.is-ask) >> nth=0');
     const cal = await until(() => calOnScreen() && document.querySelector('#cal-plan') ? true : null, null, 12000);
     check('3f "plan my week" opens the Calendar, whose planner takes the ask', !!cal);
     const plan = await until(() => { const p = [...document.querySelectorAll('#cal-plan [data-cal-prop]')];
@@ -231,7 +232,7 @@ const weekOf = () => {
         firstDay: first ? [...first.querySelectorAll('.cal-chip')].map(c => c.textContent.trim()) : [], chips,
         labels: [...document.querySelectorAll('#cal-wk-more .cal-wkm-lab span')].map(s => s.textContent.trim()),
         hours: [...document.querySelectorAll('.cal-wk-t')].map(t => t.textContent.trim()).slice(0, 3),
-        panel: (document.querySelector('#cal-plan .jl-word') || {}).textContent || '', bub: (document.querySelector('#cal-plan .jl-bub') || {}).textContent || '',
+        panel: (document.querySelector('#cal-plan .jl-word') || {}).textContent || '', bub: ((document.querySelector('#cal-plan .jl-bub, #cal-plan .jov-head') || {}).textContent || '').trim(),
         lv: document.querySelectorAll('#cal-plan [data-cal-lv]').length };
     }, D.b3);
     check('4a the head: the six weeks, the ⋯ in it; the card: "This week, then five more" and the key as drawn',
@@ -240,7 +241,7 @@ const weekOf = () => {
       C.firstDay.some(t => /^Late: Check the September invoice/.test(t)) && C.chips.some(c => c.k === 'theirs' && /^Nandi: /.test(c.t)) && C.chips.some(c => c.k === 'decide' && /^Decide: Office Lease/.test(c.t)), { firstDay: C.firstDay, chips: C.chips.slice(0, 8) });
     check('4c a later week says "N due"; the hours read "09"', C.labels.some(l => /^\d+ due$/.test(l)) && C.hours.every(h => /^\d\d$/.test(h)), { labels: C.labels, hours: C.hours });
     /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the panel draws no "Your week" word beside tabs; his words are the same */
-    check('4d Jambo\'s panel beside the Calendar says the week in the same words, one window', C.panel === '' && C.bub === Y.bubs[0] && C.lv === 3, { panel: C.panel, lv: C.lv });
+    check('4d Jambo\'s panel beside the Calendar says the week in the same words, under its Overview', C.panel === '' && C.bub === Y.bubs[0] && C.lv === 3, { panel: C.panel, lv: C.lv });
     /* ASK FOR THE STATE (22 Oct 2026): the week may be drawn again after it first shows, which took a
        held handle off the page ("Element is not attached to the DOM"); a locator finds the hour afresh
        at each act, and the hover is tried again (bounded) if a repaint came between it and the read */

@@ -816,20 +816,25 @@ function insPaintPanel(o){
      page does not need an overview page"): `solo` puts the item's lines under
      his greeting, no Overview tab and no name tab — Our paper's chosen
      template and the template's own page */
+  /* AN OVERVIEW TAB ON EVERY PAGE, THEN THE JAMBO TAB (owner, 26 Oct 2026: "we will have an overview tab side
+     panel in each page followed by the jambo tab"; REVERSES both one-window rulings above): nothing chosen, the
+     landing is the page's Overview (jlWordsHtml → jamboOverviewHtml, The Legora Way); an item said in his own
+     words (`solo`) stands in the landing as it was drawn; his greeting is the Jambo tab's first words only */
   const soloItem = jl && !c && !!item && !!opt.solo;
-  if (jl) host._jlSolo = !(c || item) || soloItem;
+  if (jl) host._jlSolo = false;
   const body = jl ? jlFrame(host, opt) : host;
   if (jl) jlHeadPaint(host, opt, !!(c || item) && !soloItem);
-  if (jl && !c && !item){ body.innerHTML = ''; jlGreetPut(host, jlWordsHtml(opt)); }
-  else if (soloItem){ body.innerHTML = ''; jlGreetPut(host, opt.body || ''); }
-  else { if (jl) jlGreetPut(host, '');
+  if (jl) jlGreetPut(host, true);
+  if (jl && !c && !item){ body.innerHTML = jlWordsHtml(opt); }
+  else if (soloItem){ body.innerHTML = opt.body || ''; }
+  else {
   body.innerHTML = c ? insPanelHtml(c, opt)
     /* `head:false` — an item said in Jambo's own words, no head of facts
        (Our paper's chosen template, round 21) */
     : item ? ((opt.head === false ? '' : insItemHeadHtml(opt.head || {})) + (opt.body || ''))
     : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty); }
   /* his conversation, where it was asked here, is said under his words */
-  if (jl && ((!c && !item) || soloItem) && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
+  if (jl && jlTalkShows() && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
     try { renderAIFeed(!!ai.busy); if (ai.unread){ ai.unread = false; if (typeof updateAIBadge === 'function') updateAIBadge(); } } catch (_){}
   }
   const selId = c ? c.id : (item ? String(item.id == null ? '' : item.id) : '');
@@ -1353,6 +1358,13 @@ function jlWordsHtml(opt){
     say = Object.assign({}, say || {}, { lines: [esc(n ? i18tn('jl_say_rows', n, { n }) : (opt.empty || i18t('ins_none')))] }, n ? {} : { src: false });
   }
   _jlChips = Array.isArray(say.chips) ? say.chips.filter(c => c && c.label && typeof c.run === 'function') : [];
+  /* THE OVERVIEW, THE LEGORA WAY (owner picked it, 26 Oct 2026): the ONE builder (jamboOverviewHtml) draws the
+     page's head sentence, its named facts, the source line and "Ask me" — no face, no bubble; a page that says
+     only lines keeps every one (jamboOverviewOf) */
+  if (typeof jamboOverviewHtml === 'function' && typeof jamboOverviewOf === 'function'){
+    const ov = jamboOverviewOf(Object.assign({}, say, { src: say.src === false ? false : (say.src || i18t('jl_src_list')) }));
+    return `<div class="jl-words is-ov" data-jl-words>${jamboOverviewHtml(ov, 'jl:' + ((opt && opt.seat) || 'list'))}</div>`;
+  }
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt') : '';
   const src = say.src === false ? '' : (say.src || i18t('jl_src_list'));
   const lines = say.lines.map((l, i) => {
@@ -1385,7 +1397,13 @@ function jlTalkLand(){
   return false;
 }
 /* his words on a one-window panel stand at the top of the conversation (data-jl-greet), not in the landing */
-function jlGreetPut(host, html){ const g = host && host.querySelector('[data-jl-greet]'); if (g) g.innerHTML = html ? ((typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : '') + html) : ''; }
+/* HIS GREETING IS THE JAMBO TAB'S FIRST WORDS (owner, 26 Oct 2026), never the Overview's: `on` puts it at the
+   top of the conversation; a page's words passed as a string (Import's older call) go to its landing instead */
+function jlGreetPut(host, on){
+  const g = host && host.querySelector('[data-jl-greet]'); if (!g) return;
+  if (typeof on === 'string' && on){ const b = host.querySelector(':scope > .jl-body'); if (b) b.innerHTML = on; }
+  g.innerHTML = on ? (typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : '') : '';
+}
 function jlTalkShows(){ return typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()); }
 function jlTalkHtml(){
   return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><div class="jl-greet" data-jl-greet></div><p class="igd-popped" data-jl-popped hidden></p><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;

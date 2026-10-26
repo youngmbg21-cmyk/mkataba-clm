@@ -123,30 +123,30 @@ describe('f788 (2) the Menu, and "/"', () => {
 describe('f788 (3) on Your settings', () => {
   test('3a his words and chips, as drawn', () => {
     const g = settingsStage({ role: 'legal' });
-    const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
+    const bubs = g.qa('#st-jb-feed :is(.jov-head, .jov-fact.is-line .jov-v, .st-jb-bub)').map(b => g.text(b));
     assert.equal(bubs[0], S.en.st_jb_you_hello);
-    const chips = g.qa('#st-jb-feed .st-jb-chip').map(c => c.textContent);
-    assert.ok(chips.includes('brief me once a week'), JSON.stringify(chips));
-    assert.ok(chips.includes('turn off my suggestions'), JSON.stringify(chips));
+    const chips = g.qa('#st-jb-feed .jov-lnk.is-ask').map(c => c.textContent);
+    assert.ok(chips.includes('Brief me once a week'), JSON.stringify(chips)); /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): his offers stand under "Ask me" verb first, its first letter a capital as drawn */
+    assert.ok(chips.includes('Turn off my suggestions'), JSON.stringify(chips));
   });
   test('3b a member: a company rule is an admin\'s, said with the door to ask', () => {
     const g = settingsStage({ role: 'legal', more: [{ id: 'u_a1', name: 'Sara Lind', role: 'admin', email: 's@h.t' }] });
-    const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
+    const bubs = g.qa('#st-jb-feed :is(.jov-head, .jov-fact.is-line .jov-v, .st-jb-bub)').map(b => g.text(b));
     /* as drawn ("I can send her your question"), by name: HaTi keeps no
        one's pronoun, so it never guesses one */
     assert.equal(bubs[1], 'Company rules, such as signing limits, are Sara’s to change. I can send Sara your question.', 'the one admin by first name');
-    const ask = g.q('#st-jb-feed .st-jb-chip[data-st-ask-head]');
+    const ask = g.q('#st-jb-feed .jov-lnk.is-ask[data-st-ask-head]');
     assert.ok(ask, 'the door to ask');
-    assert.equal(ask.textContent, 'ask an admin');
+    assert.equal(ask.textContent, 'Ask an admin'); /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): his offers stand under "Ask me" verb first, its first letter a capital as drawn */
   });
   test('3c two admins: "an admin\'s"', () => {
     const g = settingsStage({ role: 'legal', more: [{ id: 'u_a1', name: 'Sara Lind', role: 'admin', email: 's@h.t' }, { id: 'u_a2', name: 'Per Holm', role: 'admin', email: 'p@h.t' }] });
-    const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
+    const bubs = g.qa('#st-jb-feed :is(.jov-head, .jov-fact.is-line .jov-v, .st-jb-bub)').map(b => g.text(b));
     assert.equal(bubs[1], S.en.st_jb_rules_admin.replace('{who}', S.en.st_jb_an_admin).replace('{to}', S.en.st_jb_an_admin_to));
   });
   test('3d suggestions off: no chips at all', () => {
     const g = settingsStage({ role: 'legal', me: { prefs: { jamboChips: false } } });
-    assert.equal(g.qa('#st-jb-feed .st-jb-chip').length, 0);
-    assert.ok(g.qa('#st-jb-feed .st-jb-bub').length >= 2, 'his words stay');
+    assert.equal(g.qa('#st-jb-feed .jov-lnk.is-ask').length, 0);
+    assert.ok(g.qa('#st-jb-feed :is(.jov-head, .jov-fact.is-line .jov-v, .st-jb-bub)').length >= 2, 'his words stay');
   });
 });

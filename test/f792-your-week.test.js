@@ -52,6 +52,7 @@ const stage = (book, dec, finds, lv) => {
     todayISO: () => '2026-10-19', obligationDue: r => r.due, langLocale: () => 'en-GB', i18t: T, i18tn: TN,
     _obEsc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'),
     obligationIsTheirs: r => r.party === 'theirs', obligationIsMine: r => !!r.mine,
+    regDotDate: d => d, obwFilters: () => ({}), obwRepaint: () => {},
     obwBook: () => book, obwDecisions: () => dec, obwFinds: () => finds, contractRef: c => c.id,
     window: { calLevelOf: () => lv || 'ask', calHandOff: q => { ctx.handed.push(q); return true; }, calLevelSegHtml: () => '<div data-cal-lvs></div>' },
     calHandOff: q => { ctx.handed.push(q); return true; }, calLevelSegHtml: () => '<div data-cal-lvs></div>', calLevelOf: () => lv || 'ask',
@@ -59,7 +60,7 @@ const stage = (book, dec, finds, lv) => {
   };
   vm.createContext(ctx);
   vm.runInContext([constLine(OB, 'OB_WEEKS_SHOWN'), constLine(OB, '_obIsoLocal'), fnBody(OB, 'obWeekMonday'), fnBody(OB, 'obThisMonday'),
-    fnBody(OB, 'obWeekKeyOf'), fnBody(OB, 'obYourWeek'), fnBody(OB, 'obYourWeekSentence'), fnBody(OB, 'obYourWeekOffer'), fnBody(OB, 'obYourWeekSay')].join('\n'), ctx);
+    fnBody(OB, 'obWeekKeyOf'), fnBody(OB, 'obYourWeek'), fnBody(OB, 'obYourWeekSentence'), fnBody(OB, 'obYourWeekOffer'), fnBody(OB, 'obYourWeekSay'), fnBody(OB, 'obYourWeekFacts')].join('\n'), ctx);
   return ctx;
 };
 /* the drawing's week, in HaTi's own words */
@@ -140,9 +141,14 @@ describe('f792 (4) both pages say it alike', () => {
     const p = fnBody(CAL, 'calPlanHtml');
     assert.match(p, /obYourWeekSentence\(\)/);
     assert.match(p, /obYourWeekOffer\(\)/);
-    assert.match(p, /data-cal-plan-q="week"[^>]*>\$\{_esc\(i18t\('ob_yw_chip_week'\)\)\}/);
-    assert.match(p, /data-cal-plan-q="due"[^>]*>\$\{_esc\(i18t\('ob_yw_chip_due'\)\)\}/);
-    assert.match(p, /\$\{calLevelSegHtml\(\)\}/);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): Your week is drawn by the one
+       Overview builder — the same sentence and offer, the week's facts, the planner's two asks under "Ask me" by
+       their own press (data-cal-plan-q), the setting under them */
+    assert.match(p, /jamboOverviewHtml\(\{/);
+    assert.match(p, /obYourWeekFacts\(\)/);
+    assert.match(p, /label:i18t\('ob_yw_chip_week'\)[^}]*attr:`data-cal-plan-q="week"\$\{off\}`/);
+    assert.match(p, /label:i18t\('ob_yw_chip_due'\)[^}]*attr:`data-cal-plan-q="due"\$\{off\}`/);
+    assert.match(p, /after:calLevelSegHtml\(\)/);
     /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
        for jambo"; reverses the 24 Oct one window): Overview and a Jambo tab, the talk's trail; still no page word */
     assert.doesNotMatch(p, /class="jl-word"/, 'no page word beside the tabs');
