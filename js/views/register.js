@@ -42,7 +42,7 @@ function folderFiltered(){
   if(sort==='value' && typeof canViewValues==='function' && !canViewValues()) sort='updated';
   const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
   if(sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
-  else if(sort==='value') cs.sort((a,b)=>regSortValue(b)-regSortValue(a));
+  else if(sort==='value') cs.sort((a,b)=>{ const A=regSortValue(a), B=regSortValue(b); return A==null||B==null ? (A==null)-(B==null) : B-A; });
   else if(sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
   else if(sort==='expiry') cs.sort((a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; });
   return cs;
@@ -1222,7 +1222,9 @@ function negoGroupByMove(cs){
    filtered view — see the note the page prints when a filter is on. */
 function negoBandCounts(cs){
   const n={you:0,them:0,out:0,clear:0};
-  cs.forEach(c=>{ n[c._ngBand===undefined?'clear':c._ngBand]=(n[c._ngBand]||0)+1; });
+  /* one key, read and written: a contract never stamped by negoGroupByMove counts as "neither", added to the
+     rest (bug log, 26 Oct 2026: it read n[undefined] and reset "neither" to 1) */
+  cs.forEach(c=>{ const k=c._ngBand===undefined?'clear':c._ngBand; n[k]=(n[k]||0)+1; });
   return n;
 }
 /* ---- A NAMED SET, SENT HERE FROM SOMEWHERE ELSE (added 2026-08-11) ----
@@ -1381,11 +1383,20 @@ function regRefParts(id){
   const m=REG_REF_RE.exec(s);
   return m ? [m[1].toLowerCase(), Number(m[2])] : [s.toLowerCase(), -1];
 }
-/* the value a sort ranks by: a salary is not deal value, so it ranks with the dashes (fxIsPay) */
-const regSortValue=c=>(typeof fxIsPay==='function'&&fxIsPay(c))?0:Number(c.value||0);
+/* the value a sort ranks by: a salary is not deal value, so it ranks with the dashes (fxIsPay); a value in
+   another currency ranks by what it is worth here (fxHome, the one converter), and one with no rate is a
+   blank — never a figure guessed, so it sorts last both ways (bug log, 26 Oct 2026: USD 100k ranked
+   under KES 1M) */
+const regSortValue=c=>{
+  if(typeof fxIsPay==='function'&&fxIsPay(c)) return 0;
+  if(typeof fxHome!=='function') return Number(c.value||0);
+  const h=fxHome(c); return h.missing ? null : h.v;
+};
 const REG_CMP={
   updated:(a,b)=>((Date.parse(a.lastAction)||0)-(Date.parse(b.lastAction)||0)),
-  value:(a,b)=>regSortValue(a)-regSortValue(b),
+  value:(a,b)=>{ const A=regSortValue(a), B=regSortValue(b);
+    const e=regBlanksLast(A!=null, B!=null); if(e!==null) return e;
+    return A-B; },
   risk:(a,b)=>contractRisk(a)-contractRisk(b),
   name:(a,b)=>(a.name||'').localeCompare(b.name||''),
   expiry:(a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; },

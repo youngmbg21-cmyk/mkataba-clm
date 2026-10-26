@@ -123,9 +123,12 @@ const iso = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.to
     const nt = await pp.evaluate(() => { const t = document.querySelector('.pt-notes textarea'); return t ? Math.round(t.getBoundingClientRect().width) : 0; });
     check('14 their Notes opens with a box to write in', nt > 300, nt + 'px wide');
     const pad = await pp.evaluate(async () => { const p = openSignaturePad({ intent: true }); await new Promise(r => setTimeout(r, 300));
-      const c = document.getElementById('sig-canvas'); const hgt = c ? Math.round(c.getBoundingClientRect().height) : 0;
-      const x = document.getElementById('sig-cancel'); if (x) x.click(); await p; return hgt; });
-    check('12 their signature box is 200px tall', pad === 200, pad + 'px');
+      const c = document.getElementById('sig-canvas'); const r = c ? c.getBoundingClientRect() : null; const hgt = r ? Math.round(r.height) : 0;
+      /* the saved mark is the canvas's pixels: their shape is the box's, or the mark is saved squashed (bug log, 26 Oct 2026) */
+      const shape = r && r.width ? { box: +(r.width / r.height).toFixed(3), canvas: +(c.width / c.height).toFixed(3) } : null;
+      const x = document.getElementById('sig-cancel'); if (x) x.click(); await p; return { hgt, shape }; });
+    check('12 their signature box is 200px tall', pad.hgt === 200, pad.hgt + 'px');
+    check('12b the mark is saved the shape it is drawn: the canvas has the box\'s shape', !!pad.shape && Math.abs(pad.shape.box - pad.shape.canvas) / pad.shape.box <= 0.03, JSON.stringify(pad.shape));
     await cp.close();
 
     /* ---------------- a tablet ---------------- */

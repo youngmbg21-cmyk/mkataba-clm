@@ -143,8 +143,22 @@ function openSignaturePad(opts={}){
 
     // ---- draw ----
     const canvas=q('#sig-canvas'), ctx=canvas.getContext('2d');
-    ctx.lineWidth=2.6; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.strokeStyle='#15324a';
+    const pen=()=>{ ctx.lineWidth=2.6; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.strokeStyle='#15324a'; };
+    pen();
     let drawing=false, drawn=false, lastPt=null;
+    /* THE MARK IS SAVED THE SHAPE IT WAS DRAWN (bug log, 26 Oct 2026): where a sheet gives the box a height of
+       its own (the phone's 200px box over a 520×170 canvas), the canvas takes the box's shape before anything
+       is drawn, so the saved image is not squashed to about 0.55 of its height */
+    const sigFit=()=>{
+      if(drawn) return;
+      const r=canvas.getBoundingClientRect();
+      if(!(r.width>0 && r.height>0)) return;
+      const want=Math.max(60, Math.min(SIG_W, Math.round(SIG_W*r.height/r.width)));
+      if(Math.abs(want-canvas.height)/canvas.height<=0.02) return;
+      canvas.width=SIG_W; canvas.height=want; pen();
+    };
+    sigFit();
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(sigFit);
     const ptOf=e=>{ const r=canvas.getBoundingClientRect(); const sx=canvas.width/r.width, sy=canvas.height/r.height;
       const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left, cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
       return { x:cx*sx, y:cy*sy }; };
