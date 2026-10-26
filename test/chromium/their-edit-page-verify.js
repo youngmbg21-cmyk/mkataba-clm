@@ -79,7 +79,21 @@ const clickInto = async (page, re) => {
   if (!at) return false;
   await page.mouse.click(at.x, at.y);
   await until(page, () => !!document.querySelector('#clause-editor .ce-typing'), null, 3000);
-  await page.keyboard.press('End');
+  /* SLOW-RUNNER WAIT (26 Oct 2026): the click lands 40px in, mid-word ("Late
+     p|ayments"); on GitHub's runner End sometimes arrived before the caret was
+     in the box, so the typing split the word, the spell check held the Save,
+     and 6f / 3d read red. Ask for the caret in the box, press End, and ask
+     that it reached the end of its line. */
+  await until(page, () => { const s = getSelection(), b = document.getElementById('ce-clausebody');
+    return !!(b && s.rangeCount && b.contains(s.anchorNode)); }, null, 5000);
+  for (let i = 0; i < 3; i++){
+    await page.keyboard.press('End');
+    const atEnd = await until(page, () => { const s = getSelection(); if (!s.rangeCount || !s.isCollapsed) return false;
+      const r = s.getRangeAt(0).cloneRange(), n = s.anchorNode, blk = (n.nodeType === 1 ? n : n.parentElement).closest('p, div, li') || n.parentNode;
+      r.setEnd(blk, blk.childNodes.length); return !r.toString().trim(); }, null, 1500);
+    if (atEnd) break;
+    console.log(`note: try ${i + 1}: End left the caret short of the line's end; pressing it again`);
+  }
   return true;
 };
 /* The foot's two buttons, read while the caret is still in the box — no
