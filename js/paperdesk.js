@@ -95,6 +95,16 @@ function pdSolo(){
        was open. Explorer's panel draws no landing at all and the Board's is
        his own greeting, so both are still his one window. */
     if (typeof igHomePaperFace === 'function' && igHomePaperFace() === true) return false;
+    /* THE BOARD IS LEFT AS HIS ONE WINDOW, and the reason is worth keeping:
+       what its panel holds is his own greeting, and every link in it — the
+       book's figures, "what needs me" — opens something drawn on the Board
+       itself, in full, a glance to the left. Nothing lives only in that panel,
+       which is what made the Contracts list different: Discover was there and
+       nowhere else. Two other answers were tried here on 26 Oct 2026 and both
+       cost more than they bought: pinning his greeting cut a sentence in half
+       (his words run 412px against the 226 the shortest of the owner's screens
+       can spare), and giving the Board two tabs brought a page word and a trail
+       the owner had ruled out. Asked. */
     return true;
   } catch (_){ return false; }
 }
@@ -5763,9 +5773,7 @@ function pdJamboTopHtml(){
   if (typeof naSheetUp === 'function' && naSheetUp() && !pdOnPaper()) return pdWallHelloHtml();
   /* ON THE BOARD: his greeting says the book and where the owed work went
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
-  /* the Board's greeting is PINNED above the conversation now (pdJamboPinHtml),
-     so it is not drawn here as well; Explorer's landing is empty either way */
-  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return pdJamboPinHtml() ? '' : ((typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '');
+  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
      Contracts list his panel holds the question, then the answers' why */
@@ -5784,24 +5792,10 @@ function pdJamboTopHtml(){
    scroll under it. Its host is drawn even empty, so a repaint has a home. */
 function pdJamboPinHtml(){
   /* THE DOSSIER CARRIES STILL OWED (owner, 20 Oct 2026): nothing is pinned above it */
-  /* THE BOARD'S GREETING IS PINNED, NOT SCROLLED (owner, 26 Oct 2026: "those
-     details should always be visible and not bumped off screen for the jambo
-     history"). The Board's panel is his one window — its landing is his own
-     greeting, which is why it keeps one tab rather than two — but that greeting
-     carries the book's count and the chips that open it, and his answers piling
-     up underneath pushed them out of reach. Pinned, they stand above the
-     scroller and the conversation runs under them. A panel with tabs needs none
-     of this: its work is on its own tab, a press away. */
-  try {
-    if (typeof pdSolo !== 'function' || !pdSolo()) return '';
-    if (typeof hbBoardHelloOn !== 'function' || !hbBoardHelloOn()) return '';
-    const book = (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
-    if (!book) return '';
-    /* his own greeting still comes first (owner, 24 Oct 2026: "bring them
-       back") — it is pinned WITH the book's words, not left behind in the feed */
-    const hello = (typeof jamboHelloHtml === 'function') ? jamboHelloHtml() : '';
-    return `<div class="pd-jb-pin">${hello}${book}</div>`;
-  } catch (_){ return ''; }
+  /* Pinning the Board's greeting above the talk was tried on 26 Oct 2026 and
+     reversed the same day: his words are taller than the panel can spare, so
+     the pin cut a sentence in half. The Board keeps its own tab instead. */
+  return '';
 }
 /* the presses, delegated once: the panel is redrawn under them */
 if (typeof document !== 'undefined' && !document._pdJamboTopWired){

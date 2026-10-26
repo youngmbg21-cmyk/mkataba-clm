@@ -315,8 +315,12 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
           onSw: tog(ids.on), offSw: tog(ids.off), go: t ? t.querySelectorAll('[data-fa-go]').length : -1,
           txt: t ? t.innerText.replace(/\s+/g, ' ') : '' };
       }, { on: lk.ask.id, off: nk.ask.id });
+      /* HOW MANY kept questions there are depends on which stages ran before
+         this one (stage 3 keeps a pack's five), so the check is on the RULE,
+         not on a number: every kept question has a row and a switch, and the
+         two this stage knows about are switched the way it left them. */
       check('4b′ every kept question stands on the page, the one that is on switched on and the other off',
-        only.rows === 2 && only.tog === 2 && only.onSw === 'true' && only.offSw === 'false'
+        only.rows >= 2 && only.tog === only.rows && only.onSw === 'true' && only.offSw === 'false'
         && /Governing law/.test(only.txt) && /Notice to end/.test(only.txt)
         && /Read on arrival/.test(only.txt), JSON.stringify(only));
       check('4b″ a new one is added through the one door, the Contracts list — no second way in',

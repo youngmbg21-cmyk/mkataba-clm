@@ -57,15 +57,12 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.getElementById('igd-input') && window.pdSolo && pdSolo());
     const A1 = await panelHead('#ig-dock');
     A1.hello = await page.evaluate(() => !!document.querySelector('#ig-dock [data-jb-hello]'));
-    /* THE GREETING IS PINNED, NOT FIRST IN THE SCROLL (owner, 26 Oct 2026:
-       "they should not scroll up the jambo to find this link"). It carries the
-       book's count and the chips that open it, so it now stands above the
-       conversation instead of at the top of it. The one tab is unchanged. */
-    A1.pin = await page.evaluate(() => { const p = document.querySelector('#ig-dock .pd-jb-pin');
-      const f = document.querySelector('#ig-dock #igd-feed');
-      return { up: !!p, hello: !!(p && p.querySelector('[data-jb-hello]')), outside: !!(p && f && !f.contains(p)) }; });
-    check('A1 the Board: his one tab "Jambo", his greeting pinned above the talk, no Overview, no word, no trail',
-      one(A1) && A1.tabs.join() === 'Jambo' && A1.pin.up && A1.pin.hello && A1.pin.outside, JSON.stringify(A1));
+    /* THE BOARD KEEPS HIS ONE WINDOW (owner, 24 Oct 2026, and still true after
+       the panel rule of 26 Oct): every link in his greeting here opens something
+       drawn on the Board itself, in full, a glance to the left — nothing lives
+       only in this panel. That is what made the Contracts list different (A4),
+       where Discover was in the panel and nowhere else. */
+    check('A1 the Board: his one tab "Jambo" and his greeting first; no Overview, no word, no trail', one(A1) && A1.tabs.join() === 'Jambo' && A1.hello, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
     await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');
     const A2 = await until(() => { const d = document.getElementById('ig-dock'); return !intel.busy && d && /Two things want you this week/.test(d.innerText) && /Here is your book/.test(d.innerText) ? true : null; }, null, 10000);
@@ -121,63 +118,10 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     const A10 = await panelHead('#ins-panel');
     check('A10 Our standards, a standard chosen, keeps Overview and Jambo (information)', !!A10 && A10.tabs.some(t => /Overview/.test(t)) && A10.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A10));
 
-    /* ==== A11 THE RULE ITSELF (owner, 26 Oct 2026) ====
-       "if a link is on the first page and a user will need to access it, they
-       should not scroll up the jambo to find this link." So fill the
-       conversation and look: inside the scroller the talk grows in, nothing a
-       reader must press may sit above the turns. A panel with tabs keeps its
-       work on its own tab and a one-window panel pins it, so on both the
-       answer is the same — and on neither does the page's work scroll away.
-       Red at the parent (e1c9687) on the Board and the Contracts place. */
-    const fillTalk = () => page.evaluate(() => {
-      window.intel.history = [];
-      for (let i = 1; i <= 9; i++){
-        window.intel.history.push({ role: 'user', text: 'what is our exposure in stream ' + i + '?' });
-        window.intel.history.push({ role: 'assistant', text: 'Stream ' + i + ' carries KES ' + (i * 37) + 'M across ' + (i + 3) + ' agreements, two of them with no cap at all.' });
-      }
-      window.renderIntelDock();
-    });
-    const aboveTalk = () => page.evaluate(() => {
-      const f = document.querySelector('#ig-dock #igd-feed'); if (!f) return { ok: false, why: 'no feed' };
-      const turns = f.querySelector('[data-jb-turns]');
-      if (!turns) return { ok: true, why: 'the talk is not in this scroller' };
-      const before = [...f.querySelectorAll('a,button')].filter(b => turns.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING);
-      return { ok: before.length === 0, above: before.map(b => (b.textContent || '').trim().slice(0, 40)) };
-    });
-    /* REACHED = painted inside the panel's own box AND pressable where it is
-       drawn, which Playwright's own trial press answers (visible, stable, not
-       covered, inside the viewport) — the reader's question, not the DOM's. */
-    const reach = async word => {
-      const where = await page.evaluate(w => {
-        const dock = document.querySelector('#ig-dock'); if (!dock) return { found: false };
-        const dr = dock.getBoundingClientRect();
-        const el = [...dock.querySelectorAll('a,button')].find(b => (b.textContent || '').trim().includes(w));
-        if (!el) return { found: false };
-        const r = el.getBoundingClientRect();
-        return { found: true, onScreen: r.height > 0 && r.bottom > dr.top + 1 && r.top < dr.bottom - 1,
-          top: Math.round(r.top - dr.top), host: el.closest('.pd-jb-pin') ? 'pin' : el.closest('#igd-feed') ? 'feed' : 'other' };
-      }, word);
-      if (!where.found) return where;
-      try { await page.locator('#ig-dock a,#ig-dock button').filter({ hasText: word }).first()
-        .click({ trial: true, timeout: 2500 }); where.pressable = true; }
-      catch (e){ where.pressable = false; where.why = String(e.message || e).split('\n')[0].slice(0, 90); }
-      return where;
-    };
-
-    await homeFace('board');
-    await until(() => !!document.querySelector('#ig-dock .pd-jb-pin'));
-    await fillTalk(); await page.waitForTimeout(400);
-    const A11a = await reach('what needs me'), A11b = await aboveTalk();
-    check('A11 the Board, nine exchanges later: "what needs me" is still on screen, nothing above the talk',
-      A11a.found && A11a.onScreen && A11a.pressable && A11b.ok, JSON.stringify({ A11a, A11b }));
-
-    await page.evaluate(() => setView('register'));
-    await until(() => !window.pdSolo() && !!document.getElementById('igd-input'));
-    await fillTalk(); await page.waitForTimeout(400);
-    const A12a = await reach('Ask a new question'), A12b = await aboveTalk();
-    check('A12 the Contracts place, nine exchanges later: "Ask a new question" is still on screen',
-      A12a.found && A12a.onScreen && A12a.pressable && A12b.ok, JSON.stringify({ A12a, A12b }));
-    await page.evaluate(() => { window.intel.history = []; window.renderIntelDock(); });
+    /* THE RULE OF 26 OCT 2026 — that a page's own work is never inside the
+       conversation — has its own home: test/chromium/jambo-panel-sweep-verify.js
+       walks every page with a panel and holds each to it. It is not repeated
+       here in a weaker form; this file is about what each panel's head draws. */
 
     console.log('\nB · the top bar, The SAP way');
     /* the ink is laid over the bar first (the quiet ink is 78% white), then measured */

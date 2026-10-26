@@ -21685,3 +21685,9 @@ the page's work; it stands for panels that carry only his words.
 - Our standards and Import draw no ask box in their panel, so the panel sweep
   skips both. The house rule is his box at every panel's foot; these two are
   the exceptions and were left alone.
+
+## Noticed, not fixed
+
+- Jambo's house draws no ask box in its panel either, so the panel sweep skips
+  it alongside Our standards and Import. Three pages where the house rule
+  "his box at every panel's foot" does not hold.
