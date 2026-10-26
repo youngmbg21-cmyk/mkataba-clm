@@ -1122,9 +1122,13 @@ function navUnknownNames(raw){
    reader above read lands on the chapter whose everyday words it holds (hbkFind, js/handbook.js) — LAST in
    the chain, so it never takes a door another reader owns; never with a contract named (that contract's
    reader's), never a task of Jambo's map (jmRead reads "how do I get them to sign MK-B2"); no AI */
-const NAV_HOWTO = /^ (how (do|can|should|would) (i|we|you)|how to|how does|how is|where (do|can|should) (i|we)|what is the way to|hur (gör|kan|ska) (jag|vi|man)|hur fungerar|var (gör|hittar|kan) (jag|vi)) /;
+/* a how-to about USING HaTi ("how do I send this for review"), never advice on a deal ("how should I approach the
+   liability cap in this contract?" is the chat's: banner-and-answer-top-verify 2a) — so no should/would, and
+   nothing that names this contract, a clause or a term of it */
+const NAV_HOWTO = /^ (how (do|can) (i|we)|how to|how does|where (do|can) (i|we)|hur (gör|kan) (jag|vi|man)|hur fungerar|var (gör|hittar|kan) (jag|vi)) /;
+const NAV_HOWTO_NOT = / (this|that|the|my|our) (contract|agreement|deal|clause|wording|paper|draft|nda|lease)|(approach|handle|negotiate|respond|reply|answer|argue|push back|liability|indemnit|cap|clause|term|skulle|borde|hantera|bemöta|förhandla|klausul|ansvar) /;
 function navReadHandbook(raw, t){
-  if (!NAV_HOWTO.test(t) || typeof hbkFind !== 'function' || typeof hbkChapterOf !== 'function') return null;
+  if (!NAV_HOWTO.test(t) || NAV_HOWTO_NOT.test(t) || typeof hbkFind !== 'function' || typeof hbkChapterOf !== 'function') return null;
   if (/\b[A-Za-z]{2,4}-[A-Za-z0-9]+\b/.test(String(raw || ''))) return null;
   try { if (typeof jmRead === 'function' && jmRead(raw)) return null; } catch (_){ /* the map stays silent */ }
   const lang = (typeof langId === 'function' && langId() === 'sv') ? 'sv' : 'en';

@@ -34690,3 +34690,11 @@ foot's "last checked" day. Reversed nothing. Noticed on the way: a how-to questi
 the Board's branch (every "how do I" fell to the chat), which is why navReadHandbook sits in that branch too.
 CLAUDE.md grew to 84 KB with the rule and the MAP line (the limit is "about 80 KB"): said to the owner, not
 trimmed without their yes.
+GITHUB'S FIRST RUN (tests #4314) was red on five node expectations and one browser check, all mine: AI_PAGE_NAMES,
+VIEW_OWNS_HEIGHT's order, the "/" line `ca_sl_handbook`, the ask flow's first three parts, and `hbk_d_webhooks`
+(the same word in Swedish). The browser one was a real mis-read: "how should I approach the liability cap in this
+contract?" (banner-and-answer-top 2a) is advice on a deal, and the how-to reader took it for the Handbook. The
+reader now takes only a question about USING HaTi: "how do I / how can I / how to / how does / where do I" (no
+should/would), and steps aside for anything that names this contract, a clause or a term of it (`NAV_HOWTO_NOT`);
+the Discover chapter's words name HaTi's features, not a contract's terms. Main's own red that hour
+(their-edit-page-verify) is not this change's.
