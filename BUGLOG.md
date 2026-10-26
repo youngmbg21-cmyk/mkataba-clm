@@ -21611,3 +21611,18 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 - Batching a column read multiplies the requests the deep rate limiter counts (a
   50-contract read is 5 requests, not 1). Not a fault today at AI_RATE_DEEP 15, but the
   limiter now counts pieces of one read, which is not quite what it means to count.
+
+## Keep and Delete were invisible on the owner's iPad (26 Oct 2026)
+
+Fixed. The Keep in Discover and Delete links I shipped yesterday rested at
+nothing until a mouse pointer arrived over their row. On a screen with only a
+finger no pointer ever arrives, so on the owner's iPad both links were simply
+not there — and the owner's next ask was to delete five junk questions, which
+is exactly what those links do. They now sit behind `@media (hover:hover)`,
+the house pattern the panel's width grip already follows: a mouse still gets
+the quiet row, a finger simply sees them.
+
+Measured with a finger at 1366x950 and with a mouse at 1440x780: opacity 0 at
+the parent (0bb28af), 1 now; the press lands, the row stays inside the panel,
+each link on one line. Permanent check: discover-verify 3a-4 reads the live
+stylesheet, so the rule cannot quietly leave its media block.
