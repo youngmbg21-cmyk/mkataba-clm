@@ -91,7 +91,8 @@ describe('F514 (E) — a quick change is a possible misreading', () => {
 describe('F514 — wired into the panel (source)', () => {
   test('the panel draws the chips and attaches the reading to both roads', () => {
     const src = strip(read('js/views/intelligence.js'));
-    assert.match(src, /hbReadingHtml\(m\.reading,hbReadingLive\(i\)\)/);
+    /* RE-POINTED 25 Oct 2026 (Both halves): the row gives its next questions up to Jambo's words under it (noNext) */
+    assert.match(src, /hbReadingHtml\(m\.reading,hbReadingLive\(i\),\{ noNext:!!m\.nextMoved \}\)/);
     assert.match(src, /hbTakeMeta\(\):\{\}, rdOf\(\),/);
     assert.match(src, /if\(last&&!last\.reading\)\{ const r=rdOf\(\);/);
   });

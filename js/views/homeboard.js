@@ -164,6 +164,8 @@ function hbS(){
     if (v.insOff && typeof v.insOff === 'object') HB_INS_SHAPES.forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(String(v.insOff[k] || ''))) s.insOff[k] = v.insOff[k]; });
     if (typeof v.keptSent === 'string') s.keptSent = v.keptSent.slice(0, 4000);
     if (typeof v.insFold === 'boolean') s.insFold = v.insFold;
+    /* the Needs you card folded to its head (ndFoldSet, js/views/counter.js) */
+    if (typeof v.ndFold === 'boolean') s.ndFold = v.ndFold;
     if (Array.isArray(v.path)) s.path = v.path.filter(k => typeof k === 'string').slice(-HB_PATH_MAX);
     /* THE CONTRACTS BROUGHT UP, AS STRIPS (the overnight work order, step 8;
        js/views/boardstrip.js): one not kept belongs to the day it was brought
@@ -8714,7 +8716,7 @@ function hbReadingLive(i){
   for (let j = h.length - 1; j > i; j--) if (h[j] && h[j].reading) return false;
   return true;
 }
-function hbReadingHtml(rd, live){
+function hbReadingHtml(rd, live, opts){
   if (!rd || !rd.key) return '';
   const s = hbS(); const D = live ? hbDigData(rd.key, s.lens) : null;
   const P = D && D.kind === 'list' ? hbPlan(D) : null;
@@ -8728,7 +8730,7 @@ function hbReadingHtml(rd, live){
       return (x.head ? `<div class="hb-rd-menu-h" role="presentation">${_hbE(x.head)}</div>` : '') + `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rdset="${_hbE(p + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
     return `<span class="hb-rd-wrap"><button type="button" class="hb-rd-chip${open ? ' is-open' : ''}" data-hb-rd="${p}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label(p))}</i>${_hbE(words[p])}${_hbCaret}</button>${menu}</span>`;
   };
-  return `<div class="hb-rd" role="group" data-hb-rd-key="${_hbE(rd.key)}" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.map(chip).join('')}${hbNextHtml(rd.key)}</div>`;
+  return `<div class="hb-rd" role="group" data-hb-rd-key="${_hbE(rd.key)}" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.map(chip).join('')}${opts && opts.noNext ? '' : hbNextHtml(rd.key)}</div>`;
 }
 /* ============================================================
    THREE NEXT QUESTIONS (work order "the board that answers right", Part 5,
@@ -8785,10 +8787,12 @@ function hbDockRepaint(){
   try {
     const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
     let done = false;
+    /* next questions moved under Jambo's words (Both halves) are a row of their own: the whole panel is repainted */
+    if (h.some(m => m && m.nextKey)){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     document.querySelectorAll('[data-ig-turn] .hb-rd').forEach(el => {
       const turn = el.closest('[data-ig-turn]'); const i = Number(turn && turn.getAttribute('data-ig-turn'));
       const m = h[i]; if (!m || !m.reading) return;
-      el.outerHTML = hbReadingHtml(m.reading, hbReadingLive(i)); done = true;
+      el.outerHTML = hbReadingHtml(m.reading, hbReadingLive(i), { noNext: !!m.nextMoved }); done = true;
     });
     if (!done && typeof renderIntelDock === 'function') renderIntelDock();
   } catch (_){ if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_e){ /* the panel is not up */ } }
@@ -9473,10 +9477,57 @@ function hbDrawsSomething(A){ return !!(A && A.road === 'free' && !HB_FLAT_KINDS
 function hbDrawAsk(qRaw, onFace){
   const t = String(qRaw || '').trim();
   if (!t || hbCommandAsk(t)) return false;
-  if (hbBrainVerb(t) && !hbChartWords(t)) return false;
+  /* BOTH HALVES (owner picked it by name, 25 Oct 2026): "tell me more about what ends this quarter" is drawn too —
+     the lead words are taken off and what is left is read as the Board reads a question; "create…" keeps the brain */
+  if (hbBrainVerb(t) && !hbChartWords(t)) return !!hbTellSubject(t, onFace);
   let A = null; try { A = hbAskReadingOf(t, onFace); } catch (_) { A = null; }
   return hbDrawsSomething(A);
 }
+/* ---- BOTH HALVES — DRAWN AND EXPLAINED, WHATEVER THE VERB (owner picked it by name, 25 Oct 2026: "if you ask to
+   tell you more about something, it should be okay to be pushed to the board and it shows you the charts while
+   giving you nuanced answers") ----
+   The verb used to decide: "show" drew and said one line, "tell" said words and drew nothing, and only a plain
+   question got both. Now the SUBJECT decides: a subject the Board can draw is drawn and then explained by the
+   brain (igAskThenExplain); the verb only sets how deep the words go. A change to what is already drawn ("sort by
+   value", "make it monthly", "only Naivas", "undo") is still said in one line, and so is a plain command ("show me
+   the drafts": the owner's answer, "Show stays free", 25 Oct 2026). "More", "go on", "why" carry on
+   from the last answer (hbMoreAsk), and the next questions sit under the words (nextKey). */
+const HB_TELL_RE = /^\s*(?:(?:please|can you|could you|would you|jambo[,:]?|snälla|kan du)\s+)*(?:tell (?:me|us)|explain|describe|walk (?:me|us) through|talk (?:me|us) through|take (?:me|us) through|give (?:me|us) (?:an? )?(?:overview|summary|breakdown|rundown|picture) (?:of|on)|summari[sz]e|break down|go deeper (?:on|into)|dig deeper (?:on|into)|berätta(?: för mig)?|förklara|beskriv|sammanfatta)(?:\s+(?:a (?:bit|little) |lite )?(?:more|mer))?(?:\s+(?:about|on|of|regarding|om))?\s+(.+?)\s*[.!?]*\s*$/iu;
+/* the kinds of drawing that are a fresh picture worth words; a contract's strip, a face, a saved view are not */
+const HB_EXPLAIN_KINDS = ['dig', 'panel', 'split'];
+function hbSubjectDraws(A){ return hbDrawsSomething(A) && (HB_EXPLAIN_KINDS.includes(A.kind) || A.kind === 'verified' || A.kind === 'follow'); }
+/* the words left once "tell me more about" is taken off, when the Board draws them; else null */
+function hbTellSubject(qRaw, onFace){
+  const m = HB_TELL_RE.exec(String(qRaw || '')); if (!m || !m[1]) return null;
+  const sub = m[1].trim(); if (!sub || /^(?:it|this|that|them|these|those|more|det|detta|dem)$/i.test(sub)) return null;
+  let A = null; try { A = hbAskReadingOf(sub, onFace); } catch (_){ A = null; }
+  return hbSubjectDraws(A) ? sub : null;
+}
+/* what the Board draws for these words: the subject of a "tell me…" sentence, else the words as typed */
+function hbDrawWordsOf(qRaw, onFace){
+  const t = String(qRaw || '').trim();
+  return (hbBrainVerb(t) && !hbChartWords(t) && hbTellSubject(t, onFace)) || t;
+}
+/* a change to what is already drawn, said in one line and never explained */
+const HB_TWEAK_RE = /^\s*(?:please\s+|can you\s+|could you\s+)?(?:sort|rank|filter|narrow|only|colou?r|group|regroup|split|open|go|take me|back|put|undo|redo|clear|reset|hide|remove|add|pin|zoom|make (?:it|this)|turn (?:it|this)|switch|as an?|by|sortera|filtrera|gruppera|dela|öppna|gå|tillbaka|ångra|dölj|ta bort|lägg till|bara|som en?|per)(?=[\s.,!:]|$)/i;
+/* ONE RULE FOR WHETHER A DRAWING IS ALSO EXPLAINED (asked by igAskThenExplain on every host) */
+function hbExplainsDrawn(qRaw, A){
+  const t = String(qRaw || '').trim();
+  if (!t || !hbDrawsSomething(A)) return false;
+  /* a change to what is drawn ("make it monthly", "sort by value", "only Naivas"): one line, asked first because
+     "make" is also a word that asks for words */
+  if (HB_TWEAK_RE.test(t)) return false;
+  /* a question, or a "tell me…" sentence, the Board drew: always explained */
+  /* SHOW STAYS FREE (the owner's answer, 25 Oct 2026): a command ("show me the drafts", "deals by stage", a bare
+     "obligations") draws and says one line, free, as before — only words that ask for words are explained */
+  /* a story writes its own words in its own call (hbStoryWrite): never a second one; and only the TELLING words
+     ("tell me more about", "explain", "describe"), never "build", "create", "make" */
+  if (A.kind === 'story') return false;
+  return hbQuestionAsk(t) || HB_TELL_RE.test(t);
+}
+/* "more", "go on", "why?", "tell me more": the last answer carried on, by the brain, the Board as it stands */
+const HB_MORE_RE = /^\s*(?:(?:and|ok(?:ay)?|so|och|okej)[\s,]+)?(?:(?:tell me |say )?more(?: please| on (?:that|this|it)| about (?:that|this|it))?|go on|keep going|continue|go deeper|dig deeper|elaborate|expand(?: on (?:that|this|it))?|why|how come|tell me more|mer|berätta mer|fortsätt|varför)\s*[.!?]*\s*$/i;
+function hbMoreAsk(q){ return HB_MORE_RE.test(String(q || '')); }
 function hbAskReadingOf(qRaw, onFace){
   const raw = String(qRaw == null ? '' : qRaw);
   if (!raw.trim()) return null;
@@ -11055,4 +11106,5 @@ Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLan
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
   HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_BRING_RE, hbBringOf, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
   HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
-  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage, HB_CMD_RE, HB_BRAIN_VERB_RE, HB_CHART_WORD_RE, hbBrainVerb, hbChartWords, hbQuestionAsk, hbCommandAsk, hbDrawAsk, HB_FLAT_KINDS, hbDrawsSomething });
+  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage, HB_CMD_RE, HB_BRAIN_VERB_RE, HB_CHART_WORD_RE, hbBrainVerb, hbChartWords, hbQuestionAsk, hbCommandAsk, hbDrawAsk, HB_FLAT_KINDS, hbDrawsSomething,
+  HB_TELL_RE, HB_EXPLAIN_KINDS, hbSubjectDraws, hbTellSubject, hbDrawWordsOf, HB_TWEAK_RE, hbExplainsDrawn, HB_MORE_RE, hbMoreAsk });
