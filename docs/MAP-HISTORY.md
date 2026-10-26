@@ -34695,3 +34695,16 @@ be on the same line as the show in the needs you card. The cards should also be 
 Red at the parent: board-as-drawn 8c′ ×3 (60 vs 42, left 49 vs 33, wrapped), ask-a-column 8a (toast over the
 foot), f893 2e (the chip listed), f934. Green: lint 0 errors · f934 · f893 · f912 · f745 · f746 · f883 ·
 board-as-drawn-verify 44/44 · insights-shelf-verify · ask-a-column-verify 31/31 · tidy sweep board/agents 17/17.
+
+## SETTINGS & RULES — THE CONTROL ROOM · THE MENU DOOR FRONT AND CENTRE (26 Oct 2026)
+The owner's picture: Settings' Jambo panel, a "menu" typed in his box answered "I could not find a setting for
+'menu'", and under it the only "Open the Menu" button there was. "On settings page, this menu button should be
+front and center in the overview page. Why is it hidden?" WHY IT WAS HIDDEN: the third pass of Settings as
+drawn (19 Oct 2026) had taught Settings' box that "/" opens its Menu face; main's rule that "/" lists places
+in every box won, that handler went, and the Menu face was left reachable only from a "nothing found"
+answer's button and from Cmd/Ctrl+K — a reader who asked nothing never saw a door to it. NOW: the one door
+(`data-st-side="menu"`, the same press) stands first on every landing of the panel, right under his greeting,
+with how many settings the Menu lists (`stJbMenuDoorHtml`, `stMenuCount`; `st_jb_menu_n`, both books). The
+"nothing found" answer keeps its button. Not a band: a control in the panel. Red at the parent: f788 2c′.
+Green: lint 0 errors · f788 · f784 · f691 · settings-as-drawn-4 (photos at the three screens) ·
+control-room-in-full · tidy sweep on the Settings pages.

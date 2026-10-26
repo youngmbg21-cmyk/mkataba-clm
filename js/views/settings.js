@@ -3682,6 +3682,10 @@ function stJbFeedHtml(){
   if(!on) return land;
   return stJbLandWrapHtml(land,true)+stJbTalkWrapHtml(false);
 }
+function stJbMenuDoorHtml(){
+  const n=stMenuCount();
+  return `<div class="st-jb-menu-door" data-st-jb-menu-door><button type="button" class="ui-btn ui-btn-sm" data-st-side="menu">${esc(i18t('st_jb_to_menu'))}</button><span class="st-jb-fine">${esc(i18tn('st_jb_menu_n',n,{n}))}</span></div>`;
+}
 function stJbLandWrapHtml(land, hide){ return `<div class="st-jb-land" data-st-jb-land data-jt-land${hide?' hidden':''}>${land}</div>`; }
 function stJbTalkInnerHtml(){
   if(typeof jamboTurnHtml!=='function') return stTalkTurns().map(stJbTurnHtml).join('');
@@ -3713,6 +3717,10 @@ function stJbLandHtml(){
   const chipsOn=(typeof jamboChipsOn!=='function')||jamboChipsOn();
   const ask=q=>`data-st-jb-ask="${esc(q)}"`;
   const hello=words=>stJbSayHtml(words).replace('<div class="st-jb-msg">','<div class="st-jb-msg" data-st-jb-hello>');
+  /* THE MENU DOOR, FRONT AND CENTRE (owner, 26 Oct 2026: "this menu button should be front and center in the
+     overview page. Why is it hidden?"): the one door to the Menu face (data-st-side="menu", the same press as
+     under a "nothing found" answer) stands first on every landing, with how many settings it lists. */
+  const door=stJbMenuDoorHtml();
   let html='';
   if(admin && face==='company' && _stPage==='data'){
     html=stJbSayHtml('').replace('<div class="st-jb-msg">','<div class="st-jb-msg" data-st-jb-hello>').replace('<div class="st-jb-bub"></div>',`<div class="st-jb-bub">${stJbDataWords(true)}</div>`)+(chipsOn?stJbChipsRow([stJbChipBtn(i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||stTrailDefault().from,_stTr.to||stTrailDefault().to,true) }),'data-st-tr-pdf'),
@@ -3738,7 +3746,7 @@ function stJbLandHtml(){
     if(!admin && apiOn) html+=stJbSayHtml(i18t('st_jb_rules_admin',{ who:stAdminFirstSaid(), to:stAdminFirstSaid(true) }))
       +(chipsOn?stJbChipsRow([stJbChipBtn(i18t('st_ask_go'),'data-st-ask-head=""')]):'');
   }
-  return html;
+  return door+html;
 }
 /* THE TRAIL AS A PDF, READIED (round 26's chip "download Q3 as a PDF"): the
    page turns to The trail, its As box says PDF and the Download button is
@@ -9878,6 +9886,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
