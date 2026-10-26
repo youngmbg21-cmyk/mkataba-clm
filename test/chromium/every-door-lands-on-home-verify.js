@@ -172,6 +172,10 @@ const LAND = () => {
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
+    /* THE ROUND'S LETTER (owner, 26 Oct 2026: the Dossier's Send "should be the same send door that is in the send
+       all"): with changes of ours waiting to go, Send is Send all and lands on the letter */
+    letter: !!document.querySelector('#modal-root .modal-in[data-sh-page]'),
+    unsent: !!(window.intel && intel.paper && window.pdHasUnsent && window.getContract && pdHasUnsent(getContract(intel.paper.id))),
     /* the clause editor open on its Risks tab (the glance's risks row, joined at the integration, 19 Oct 2026) */
     ceRisks: !!document.getElementById('ce-tab-risks') && !!document.querySelector('#clause-editor'),
     /* RE-POINTED (owner, 23 Oct 2026): the risks row lands ON the Redlines face's "Risks to look at" list */
@@ -776,7 +780,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       /* RE-POINTED (owner, 23 Oct 2026: "when you press on risk to look at it should take you to where risks
          are … and place you there"): the risks row opens the Redlines face, landed on its risks list */
       const GL = { fill: [E.fill(gid), SAYS.fill], redline: [L => E.red(gid)(L) && L.rkLanded, 'Redlines beside the paper, landed on Risks to look at'],
-        share: [L => E.paper(gid)(L) && L.shareCard, 'the paper, Jambo\'s Share card'], sign: [E.signing(gid), SAYS.signing] };
+        /* RE-POINTED 26 Oct 2026 (one send door): changes of ours waiting → Send all's letter; nothing waiting → Jambo's Share card */
+        share: [L => E.paper(gid)(L) && (L.unsent ? L.letter : L.shareCard), 'the paper, with the round\'s letter when changes of ours wait (Send all), else Jambo\'s Share card'], sign: [E.signing(gid), SAYS.signing] };
       /* the card stands where no face is open: the face the last press opened is put away first */
       /* RE-POINTED (19 Oct 2026, owner: "you land on the page and if you want
          to chat with jambo it takes you to a new jambo tab but you can go back

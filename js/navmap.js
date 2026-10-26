@@ -733,7 +733,16 @@ function navGoAct(n){
   const id = n.cid;
   const go = {
     fill: () => (typeof pdFillOpen === 'function') ? pdFillOpen(id) : pdOpenOnHome(id, 'copilot'),
-    send: () => (typeof pdSendOpen === 'function') ? (pdOpenOnHome(id, 'copilot'), pdSendOpen(id)) : false,
+    /* THE ONE SEND DOOR (owner, 26 Oct 2026: "this send door should be the same send door that is in the send all";
+       the "Before you send" face opened here with NO letter behind it, which is how the bar came to say "Send · …"
+       with an Email tab that did nothing): the letter itself — Send all's while changes of ours wait
+       (pdHasUnsent → pdSendWaiting), else the paper's own letter (openShareModal, which brings its face) */
+    send: () => {
+      const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
+      pdOpenOnHome(id, 'copilot');
+      if (typeof pdHasUnsent === 'function' && pdHasUnsent(c) && typeof pdSendWaiting === 'function'){ pdSendWaiting(c); return true; }
+      if (typeof openShareModal === 'function'){ openShareModal(c); return true; }
+      return false; },
     clauses: () => pdOpenOnHome(id, 'doc'),
     amend: () => (typeof pdAmendOpen === 'function') ? (pdOpenOnHome(id, 'copilot'), pdAmendOpen(id)) : false,
     dossier: () => pdOpenOnHome(id, 'copilot'),

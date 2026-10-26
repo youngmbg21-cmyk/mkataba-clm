@@ -44,10 +44,21 @@ describe('f939 (1) a hold without a page is stale', () => {
 });
 
 describe('f939 (2) one send door', () => {
+  test('a typed "send MK-…" opens the letter itself, never a "Before you send" face with no letter behind it', () => {
+    const NAV = strip(R('js/navmap.js'));
+    const i = NAV.indexOf('function navGoAct('); assert.ok(i > 0);
+    const body = NAV.slice(i, NAV.indexOf('\nfunction ', i + 10));
+    const send = body.slice(body.indexOf('send: () =>'), body.indexOf('clauses:'));
+    assert.doesNotMatch(send, /pdSendOpen\(/, 'no bare face');
+    assert.match(send, /pdHasUnsent\(c\)[\s\S]*pdSendWaiting\(c\)/, 'changes waiting: Send all');
+    assert.match(send, /openShareModal\(c\)/, 'else the paper\'s own letter');
+  });
   test("the Dossier's Send presses the Redlines column's Send all, never a word typed to Jambo", () => {
     const i = PD.indexOf("t.closest('[data-pd-glance]')"); assert.ok(i > 0);
     const b = strip(PD.slice(i, i + 900));
-    assert.match(b, /k === 'share'[^\n]*pdSendWaiting\(c\)/, 'share → the one door');
+    assert.match(b, /k === 'share'[^\n]*pdHasUnsent\(c\)\)\{ pdSendWaiting\(c\); return; \}/, 'share with changes waiting → the one door');
+    assert.match(fnBody(PD, 'pdHasUnsent'), /rlUnsentCount\(c, \{\}\) > 0/, 'the Dossier\'s own "N not sent" reading');
+    assert.match(b, /intelAsk\(_pdT\(row\[2\]\)\)/, 'nothing unsent: the paper is shared through Jambo\'s Share card, as before');
     assert.match(fnBody(PD, 'pdSendWaiting'), /getElementById\('nego-send'\)[\s\S]*\.click\(\)/, 'the door is the column\'s postbox');
   });
 });

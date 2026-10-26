@@ -308,6 +308,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f452, named-guest-verify.
 
 ## THE SEND SCREEN
+- 26 Oct 2026 (the owner's screenshots, GitHub's run on #496): every-door-lands-on-home-verify D (the glance's Share: the letter when changes wait), jambo-doors-verify 10, door-exam-verify act:send, detail-round-verify 1/3 (the Calendar's greeting under its Jambo tab), f740 6b, f750 3b, f877 3 — re-pointed; nav-exam-verify and send-to-a-colleague-verify green.
 - 26 Oct 2026 (the owner's screenshots): f939 (1–3: a stale hold ends at pdSendLive, the Dossier's Send is Send all, kept-back changes named in the letter; red at the parent bbff1c4); the-letter-as-drawn-verify (28 green), deal-in-the-middle-verify (13 green).
 - 22 Oct 2026: send-screen-asks-before-losing-verify (a typed note asks before the bar, Cancel or Esc puts the screen away; nothing typed, nothing asked); f758 3b, f178 re-pointed.
 - f17, f42, f307, f310, f333, f713, f755, f757, f758, share-recipient, the-letter, the-letter-as-drawn verify.
