@@ -73,9 +73,10 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       const t = s.textContent.replace(/\s+/g, ' ').trim();
       return /3 files are in this batch/.test(t) ? { t } : null; }, null, 6000);
     check('1a beside the list, Jambo says the batch in words', !!batch && /These need you: 2 to check/.test(batch.t), batch && batch.t.slice(0, 160));
-    const chip = await page.evaluate(() => [...document.querySelectorAll('#mig-side [data-jl-chip]')].findIndex(b => /^check the 2 files$/.test(b.textContent.trim())));
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): his chips are the Overview's offers under "Ask me", verb first with a capital */
+    const chip = await page.evaluate(() => [...document.querySelectorAll('#mig-side .jov-lnk.is-ask')].findIndex(b => /^check the 2 files$/i.test(b.textContent.trim())));
     if (chip >= 0){
-      await page.locator('#mig-side [data-jl-chip]').nth(chip).click();
+      await page.locator('#mig-side .jov-lnk.is-ask').nth(chip).click();
       const ck = await until(() => document.getElementById('mig-ck-facts') ? migCheckIds().length : null, null, 4000);
       check('1b his chip "check the 2 files" opens the check view on the two', ck === 2, String(ck));
       await page.evaluate(() => migCheckClose()); await page.evaluate(() => migPickSet(null));

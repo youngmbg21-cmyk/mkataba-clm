@@ -29,6 +29,7 @@
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/requests-and-notes-as-drawn-verify.js
    Photos: HATI_SHOT_DIR=<dir> */
+/* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): nothing chosen, his words are the Overview's (.jov-head, .jov-v, .jov-src) and his chips its offers (.jov-lnk.is-ask) */
 const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
@@ -226,10 +227,10 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       && /^Mark reviewed,Snooze a week,Open MK-A2$/.test(N.verbs.join(',')) && N.oneLine && /^Today, .* · in your bell$/.test(N.review) && N.del, N && JSON.stringify({ verbs: N.verbs, review: N.review }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-mynotes-1440x780.png') });
     await press('#ins-panel [data-jl-home]');
-    const J = await until(() => { const b = document.querySelector('#ins-panel .jl-bub'); return b ? { say: b.textContent.trim(), chips: [...document.querySelectorAll('#ins-panel .jl-chip')].map(c => c.textContent.trim()) } : null; });
+    const J = await until(() => { const b = document.querySelector('#ins-panel :is(.jl-bub, .jov-head, .jov-v)'); return b ? { say: b.textContent.trim(), chips: [...document.querySelectorAll('#ins-panel :is(.jl-chip, .jov-lnk.is-ask)')].map(c => c.textContent.trim()) } : null; });
     check('6c ‹ Jambo: the ledger in his words, counted, with its two doors', !!J && /^You have 5 notes, private to you\. 1 is due today\. 2 come up later\./.test(J.say)
-      && JSON.stringify(J.chips) === '["the ones due today","new note"]', JSON.stringify(J));
-    await press('#ins-panel .jl-chip');
+      && JSON.stringify(J.chips.map(c => c.toLowerCase())) === '["the ones due today","new note"]', JSON.stringify(J)); /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "Yes, every page"): his words are the Overview's head, his offers verb first with a capital */
+    await press('#ins-panel :is(.jl-chip, .jov-lnk.is-ask)');
     const L = await until(() => { const el = document.querySelector('.mn-t [data-mn-row].is-landed, .mn-t [data-mn-row].is-landed-held'); const on = document.querySelector('[data-mn-tab].on');
       return el && on ? { lit: el.getAttribute('data-mn-row'), tab: on.getAttribute('data-mn-tab'), rows: document.querySelectorAll('.mn-t [data-mn-row]').length } : null; });
     check('6d "the ones due today" turns the tab and lands on its row', !!L && L.tab === 'today' && L.rows === 1, JSON.stringify(L));

@@ -3983,7 +3983,30 @@ function obYourWeekSay(){
       { label: i18t('ob_yw_chip_due'), title: i18t('cal_plan_p_due'), run: () => { if(typeof window.calHandOff === 'function') calHandOff('due'); } },
     ],
     after: (typeof window.calLevelSegHtml === 'function') ? calLevelSegHtml() : '',
+    /* THE OVERVIEW'S FACTS (The Legora Way, owner 26 Oct 2026): the week's own reading (obYourWeek, obwBook,
+       obwDecisions); each link the page's own door (the Overdue tab, the decision's needsYouGo). "Chased" has no
+       reading across the book and is left out */
+    /* …and his offer stays, a quiet line under them (nothing the panel said is lost) */
+    facts: obYourWeekFacts().concat([{ html: _obEsc(obYourWeekOffer()) }]),
   };
+}
+function obYourWeekFacts(){
+  const book = ((typeof obwBook === 'function') ? obwBook() : []).filter(r => r.st !== 'done');
+  const decs = obwDecisions();
+  const day = r => { const d = obligationDue(r); return d ? ((typeof regDotDate === 'function') ? regDotDate(d) : d) : ''; };
+  const out = [];
+  const late = book.filter(r => r.win === 'overdue');
+  if(late.length) out.push({ k: i18t('jov_ob_late'), v: i18tn('jov_n_then', late.length, { n: late.length, list: [late[0].desc, day(late[0])].filter(Boolean).join(' · ') }), need: true,
+    link: i18t('jov_ln_show'), run: () => { obwFilters().state = 'overdue'; obwRepaint(); } });
+  const w0 = book.filter(r => obWeekKeyOf(r) === 'w0'), w1 = book.concat(decs).filter(r => obWeekKeyOf(r) === 'w1');
+  if(w0.length){ const by = {}; w0.forEach(r => { const d = day(r); if(d) by[d] = (by[d] || 0) + 1; });
+    const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
+    out.push({ k: i18t('jov_ob_week'), v: top && top[1] > 1 ? i18tn('jov_ob_week_v', w0.length, { n: w0.length, k: top[1], day: top[0] }) : i18tn('jov_ob_n', w0.length, { n: w0.length }) }); }
+  const dec = decs.slice().sort((a, b) => (a.days || 0) - (b.days || 0))[0];
+  if(dec) out.push({ k: i18t('jov_ob_dec'), v: i18t('jov_ob_dec_v', { name: dec.cname || ((typeof contractRef === 'function') ? contractRef(dec._c) : dec.cid), day: day(dec) }),
+    link: i18t('ob_wk_decide'), run: () => { if(typeof window.needsYouGo === 'function') needsYouGo('renewal', dec.cid); } });
+  if(w1.length) out.push({ k: i18t('jov_ob_next'), v: i18tn('jov_ob_n', w1.length, { n: w1.length }) });
+  return out;
 }
 
 /* ---- + ADD AN OBLIGATION (round 16's head): the one form, on the contract
@@ -4447,7 +4470,7 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   obwWeekShut,obWeekFolds,OBW_DEC_KEY,obwDecisions,obwFinds,obwFindRows,obPossessive,obwFindsRowHtml,obwRowPrivate,obWeekSub,obWeekOneWho,obWeekMoneyHtml,obwRowAvHtml,obwLine2,obwRowActHtml,obwWeekRowHtml,obwRowAct,
-  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obwAddOpen,obPaintDecision,obPanelJl,
+  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,

@@ -72,7 +72,8 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
         src: [...document.querySelectorAll('#na-form .na-kt-r')].filter(vis).map(x => ({ term: t(x.firstElementChild), from: t(x.querySelector('.na-src')) })),
         drop: vis(document.getElementById('na-drop')), menu: !!document.getElementById('nd-menu'),
         chatCard: !!document.querySelector('#ig-dock [data-ca-act="draftform"]'),
-        jambo: [...document.querySelectorAll('#ig-dock .pd-sheet-hello .ai-bub, #ig-dock .ai-msg .ai-bub')].filter(vis).map(t) }; };
+        /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way": nothing boxed): his words beside the page are the Overview's head and lines (.jov-head, .jov-v), and his chips its offers (.jov-lnk.is-ask) */
+        jambo: [...document.querySelectorAll('#ig-dock .pd-sheet-hello .ai-bub, #ig-dock .pd-sheet-hello .jov-head, #ig-dock .ai-msg .ai-bub')].filter(vis).map(t) }; };
     /* a photograph waits for the glide and crossfade to finish (bounded) */
     const still = () => page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'), null, { timeout: 3000 }).catch(() => {});
     const cancel = async () => { if (await page.evaluate(() => !!document.getElementById('na-root'))) { await page.click('#wz-pick-cancel'); await until(() => !document.getElementById('na-root'), null, 4000); } };

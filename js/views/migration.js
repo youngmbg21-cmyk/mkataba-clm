@@ -2051,17 +2051,19 @@ function migSidePaint(){
   const keep = migFormKeep(host);
   const row = _migCheck ? migRowByKey(migCheckId()) : (_migPick ? migRowByKey(_migPick) : null);
   const holds = !!row;
-  /* ONE WINDOW (owner, 24 Oct 2026): no file chosen, the panel is only his words — the conversation is the panel */
-  host._jlSolo = !holds;
+  /* AN OVERVIEW TAB, THEN THE JAMBO TAB (owner, 26 Oct 2026: "an overview tab side panel in each page followed by
+     the jambo tab"; reverses the one window of 24 Oct): no file chosen, the landing is the page's Overview */
+  host._jlSolo = false;
   const body = (typeof jlFrame === 'function') ? jlFrame(host, { jlPh:i18t('jl_ph_any') }) : host;
   if (typeof jlHeadPaint === 'function') jlHeadPaint(host, { jlWord:(_migCheck && row && row.c) ? (((row.c.metadata || {}).contractType) || row.c.name || i18t('mig_side_word')) : i18t('mig_side_word'), jlHome:i18t('mig_side_word') }, holds);
   /* the conversation is the panel's flip, beside the body (jlTalkHtml, 19 Oct 2026) */
   if (_migCheck) body.innerHTML = migCheckSideHtml(row);
   else if (row) body.innerHTML = migSideRowHtml(row);
-  else { body.innerHTML = ''; if (typeof jlGreetPut === 'function') jlGreetPut(host, (typeof jlWordsHtml === 'function') ? jlWordsHtml({ jlSay:migSideSay, empty:i18t('mig_side_none') }) : ''); }
-  if (holds && typeof jlGreetPut === 'function') jlGreetPut(host, '');
+  else body.innerHTML = (typeof jlWordsHtml === 'function') ? jlWordsHtml({ jlSay:migSideSay, empty:i18t('mig_side_none'), seat:'migration' }) : '';
+  /* his greeting: the Jambo tab's first words */
+  if (typeof jlGreetPut === 'function') jlGreetPut(host, true);
   migFormPut(host, keep);
-  if (typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length) try { renderAIFeed(!!ai.busy); } catch (_){}
+  if (typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length && typeof jlTalkShows === 'function' && jlTalkShows()) try { renderAIFeed(!!ai.busy); } catch (_){}
 }
 
 /* ═══ CHECK ALL N — ONE AT A TIME (option 1's view, borrowed) ═════════════

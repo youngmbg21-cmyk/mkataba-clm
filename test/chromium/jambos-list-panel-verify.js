@@ -57,6 +57,7 @@
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/jambos-list-panel-verify.js
    Photographs: HATI_SHOT_DIR=<dir> node test/chromium/jambos-list-panel-verify.js */
+/* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): nothing chosen, his words are the Overview's (.jov-head, .jov-v, .jov-src) and his chips its offers (.jov-lnk.is-ask) */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -138,8 +139,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       return { jambo: p.classList.contains('is-jambo'), folded: p.classList.contains('is-folded'), w: Math.round(r.width), right: Math.round(r.right), left: Math.round(r.left),
         tab: !!p.querySelector('[data-jl-home] .pd-tab-g'), word: (p.querySelector('[data-jl-word]') || {}).textContent || '',
         back: !!(p.querySelector('[data-jl-back]') && !p.querySelector('[data-jl-back]').hidden),
-        words: [...p.querySelectorAll('[data-jl-words] .jl-bub')].map(b => b.textContent.trim()),
-        chips: [...p.querySelectorAll('[data-jl-chip]')].map(b => b.textContent.trim()),
+        words: [...p.querySelectorAll('[data-jl-words] :is(.jl-bub, .jov-head, .jov-v)')].map(b => b.textContent.trim()),
+        chips: [...p.querySelectorAll(':is([data-jl-chip], .jov-lnk.is-ask)')].map(b => b.textContent.trim()),
         ph: q ? q.getAttribute('placeholder') : null, hint: hint ? hint.textContent.replace(/\s+/g, ' ').trim() : null,
         text: p.innerText.replace(/\s+/g, ' ') }; };
     const N0 = await page.evaluate(PANEL);
@@ -182,7 +183,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('2e ‹ Jambo lets the row go: his words back, no row lit', !!N2);
       const N3 = await page.evaluate(PANEL);
       check('1b nothing chosen: the page in his words from its own counts, its doors as chips, no ‹ Jambo',
-        !!N3 && /^\d+ live negotiations?: /.test(N3.words[0] || '') && /wait on our side|waits on our side/.test(N3.words[0] || '') && N3.chips.includes('our move') && N3.chips.includes('start a negotiation') && !N3.back,
+        !!N3 && /^\d+ live negotiations?: /.test(N3.words[0] || '') && /wait on our side|waits on our side/.test(N3.words[0] || '') && N3.chips.some(c => /our move/i.test(c)) && N3.chips.some(c => /^start a negotiation$/i.test(c)) && !N3.back,
         JSON.stringify(N3 && { words: N3.words, chips: N3.chips, back: N3.back }));
       await shot('r14-negotiations-words-1440x780.png');
     });
@@ -231,12 +232,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         return { pill: ((all && all.querySelector('.n')) || {}).textContent || '', late: all ? all.title : '',
           foot: (document.querySelector('[data-lh-foot="approvals"]') || {}).textContent || '', ap1: t('MK-AP1'), sg1: t('MK-SG1'), band: !!document.querySelector('.ap-band'),
           rows: document.querySelectorAll('[data-ap-row]').length,
-          words: [...document.querySelectorAll('#ins-panel [data-jl-words] .jl-bub')].map(b => b.textContent.trim()) }; });
+          words: [...document.querySelectorAll('#ins-panel [data-jl-words] :is(.jl-bub, .jov-head, .jov-v)')].map(b => b.textContent.trim()) }; });
       check('5a the list head: All counts the rows, "late after 7 days" on its hover; the foot "1–N of N"; no band',
         Number(A0.pill.trim()) === A0.rows && /late after 7 days/.test(A0.late) && A0.foot.trim() === `1–${A0.rows} of ${A0.rows}` && !A0.band, JSON.stringify(A0));
       check('5b Whose turn: "You for Jonas"; a colleague\'s signature "Jonas signs · back …"', A0.ap1 === 'You for Jonas' && /^Jonas signs · back /.test(A0.sg1 || ''), JSON.stringify({ ap1: A0.ap1, sg1: A0.sg1 }));
       await page.click('#ins-panel [data-jl-home]');
-      const A0w = await until(() => { const w = [...document.querySelectorAll('#ins-panel [data-jl-words] .jl-bub')].map(b => b.textContent.trim()); return w.length ? w : null; });
+      const A0w = await until(() => { const w = [...document.querySelectorAll('#ins-panel [data-jl-words] :is(.jl-bub, .jov-head, .jov-v)')].map(b => b.textContent.trim()); return w.length ? w : null; });
       check('5c nothing chosen: the page in his words, whom the reader stands in for', !!A0w && A0w.some(w => /wait for a yes or a signature/.test(w)) && A0w.some(w => /You answer Jonas’s approvals and reviews until/.test(w)), JSON.stringify(A0w));
       await shot('r15-approvals-words-1440x780.png');
       await page.click('[data-ap-row="MK-AP1"]');

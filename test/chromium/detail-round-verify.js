@@ -294,7 +294,9 @@ const blocked = [];
       }
 
       async function greetCheck(name) {
-        const g = await ev(() => { const e = [...document.querySelectorAll('.jb-hello')].find(x => x.getBoundingClientRect().width); if (!e) return null;
+        /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo
+           tab"): his greeting is the Jambo tab's; what stands first on a page is its Overview (.jov), held to the same margin */
+        const g = await ev(() => { const e = [...document.querySelectorAll('.jb-hello, .jov')].find(x => x.getBoundingClientRect().width); if (!e) return null;
           const p = e.closest('.ins-panel, #ig-dock, .cal-cop, .st-side, aside'); const a = e.getBoundingClientRect(), b = p.getBoundingClientRect();
           const cs = getComputedStyle(e); return { l: Math.round(a.left + parseFloat(cs.paddingLeft) - b.left), r: Math.round(b.right - a.right + parseFloat(cs.paddingRight)) }; });
         check(`${at} · 3 — ${name}: Jambo's greeting has the panel's margin`, g && g.l >= 12 && g.r >= 12, g ? `${g.l}px left · ${g.r}px right` : 'no greeting drawn');

@@ -149,37 +149,38 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     check('4c the book is one card with its own edge, the stage bars inside it', bk.edge === 'solid 1px' && bk.bg !== 'rgba(0, 0, 0, 0)' && bk.bars, JSON.stringify(bk));
 
     console.log('\n5 · Jambo on the Board');
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side
+       panel in each page followed by the jambo tab"): the two bubbles are the Board's Overview (jamboOverviewHtml) —
+       the head sentence, Needs you and Your book as facts, the counted time under them, his chips under "Ask me";
+       his greeting is the Jambo tab's first words */
     const jb = await until(() => { const dock = document.getElementById('ig-dock'); if (!dock) return null;
-      const bubs = [...dock.querySelectorAll('#igd-feed .hb-jb-hello')]; if (bubs.length < 2) return null;
-      return { word: (dock.querySelector('.igd-head-w') || {}).textContent || '', hello: bubs[0].querySelector('.ai-bub').textContent.trim(),
-        chips: [...bubs[0].querySelectorAll('[data-igsug]')].map(b => b.textContent.trim()), where: bubs[1].querySelector('.ai-bub').textContent.trim(),
-        chip2: [...bubs[1].querySelectorAll('[data-igsug]')].map(b => b.textContent.trim()), n: counterNeedsCount(),
-        at: (document.querySelector('#hb-bhead .hb-bh-at') || {}).textContent || '', bottom: !!dock.querySelector('[data-ig-chips]'),
+      const ov = dock.querySelector('#igd-feed .hb-jb-hello .jov'); if (!ov) return null;
+      const fact = k => { const f = [...ov.querySelectorAll('.jov-fact')].find(x => (x.querySelector('.jov-k') || {}).textContent === k); return f ? f.querySelector('.jov-v').textContent.trim() : ''; };
+      return { word: (dock.querySelector('.igd-head-w') || {}).textContent || '', head: (ov.querySelector('.jov-head') || {}).textContent || '',
+        chips: [...ov.querySelectorAll('[data-igsug]')].map(b => b.getAttribute('data-igsug')), needs: fact('Needs you'), n: counterNeedsCount(),
+        at: (document.querySelector('#hb-bhead .hb-bh-at') || {}).textContent || '', counted: (ov.querySelector('[data-hb-jb-at]') || {}).textContent || '',
+        hello: !!ov.querySelector('[data-jb-hello]'), bottom: !!dock.querySelector('[data-ig-chips]'),
         badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
-    /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
-       for jambo"; reverses the 24 Oct one window here): his greeting and its chips under Overview, a Jambo tab beside
-       it, still no page word (one-window-bar-cards-verify A1) */
     check('5a two tabs, Overview and Jambo, and no word beside them', !!jb && jb.word === '' && jb.tabs === 2, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
-    check('5b his greeting says the book, counted at the head\'s own time, and the one press that spends',
-      !!jb && jb.hello.startsWith('Here is your book, counted at ') && jb.at.includes(jb.hello.slice(30, 35)) && /Summarise my board is the one press here that uses a Jambo call, and it says so first\.$/.test(jb.hello), jb && (jb.hello + ' | ' + jb.at));
-    check('5c three questions as chips under it — "which N end in 90 days?" only while any do',
-      !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views'].filter(Boolean)), jb && JSON.stringify(jb.chips));
-    check('5d then where the owed work went: Home\'s own number, and "what needs me"',
-      !!jb && new RegExp(`^What needs you is on Home: ${jb.n} things?(, Jambo’s work first)?\\.$`).test(jb.where) && JSON.stringify(jb.chip2) === JSON.stringify(['what needs me']), jb && (jb.where + ' / ' + jb.n));
-    /* RE-POINTED 26 Oct 2026 (the two tabs): behind Overview stands his greeting, not the list, so its tab carries
-       no number — the Counter's number is said in his second bubble (5d) and on the Needs you card */
+    check('5b the Overview says the book, counted at the head\'s own time, and no greeting',
+      !!jb && jb.head.startsWith('Your book on one page.') && !!jb.counted && jb.at.includes(jb.counted) && !jb.hello, jb && (jb.head + ' | ' + jb.counted + ' | ' + jb.at));
+    check('5c his questions under "Ask me" — "which N end in 90 days?" only while any do, "what needs me" while anything does',
+      !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views', jb.n ? 'what needs me' : null].filter(Boolean)), jb && JSON.stringify(jb.chips));
+    check('5d Needs you counts Home\'s own number',
+      !!jb && new RegExp(`^${jb.n} things? · \\d+ prepared by Jambo`).test(jb.needs), jb && (jb.needs + ' / ' + jb.n));
     check('5e no row of chips above his box; the Overview tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 2, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
     console.log('\n6 · "my saved views"');
-    await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.textContent.trim() === 'my saved views'); if (b) b.click(); });
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'my saved views'); if (b) b.click(); });
     const said = await until(() => { const t = [...document.querySelectorAll('#igd-feed .ai-bub')].map(b => b.textContent.trim()).find(x => /^You have 1 saved view:/.test(x)); return t || null; }, null, 8000);
     check('6 asked, he lists the saved views with their counts and says where they are, free', !!said && /“Whole book” \d+\./.test(said) && /press one to open it on Explorer/.test(said) && /Free/.test(said), said);
 
     console.log('\n5f · "what needs me" lands on Home\'s Needs you');
-    await page.evaluate(() => { if (typeof intel !== 'undefined') intel.history = []; renderIntelDock(); });
+    /* the Overview tab brings the landing back from the talk (RE-POINTED 26 Oct 2026, the two tabs) */
+    await page.evaluate(() => { if (typeof intel !== 'undefined') intel.history = []; if (typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){} renderIntelDock(); });
     await until(() => !!document.querySelector('#ig-dock .hb-jb-hello'), null, 6000);
-    await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.textContent.trim() === 'what needs me'); if (b) b.click(); });
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'what needs me'); if (b) b.click(); });
     const cn = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed'), null, 8000);
     check('5f "what needs me" opens Home and lands on Needs you, lit (landOn)', !!cn);
 

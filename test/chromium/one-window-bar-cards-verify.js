@@ -48,8 +48,7 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
       const trail = [...p.querySelectorAll('.pd-trail')].filter(vis).length;
       return { tabs, word, trail };
     }, sel);
-    /* one window: his one tab "Jambo" (his sign and name, owner 24 Oct 2026: "bring them back"), no Overview, no word, no trail */
-    const one = r => !!r && !r.tabs.some(t => /Overview|Översikt/.test(t)) && r.word.length === 0 && r.trail === 0;
+    /* (the one-window reader "one" is retired: owner, 26 Oct 2026, "Yes, every page" — every panel has Overview, then Jambo) */
 
     console.log('\nA · one window where the panel holds only his words');
     const homeFace = f => page.evaluate(x => { setView('dashboard'); intel.paper = null; hbSetFace(x); }, f);
@@ -73,7 +72,8 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await homeFace('explorer');
     await until(() => !!document.getElementById('igd-input') && document.querySelector('#ig-dock [data-pd-tab="findings"]'));
     const A3 = await panelHead('#ig-dock');
-    check('A3 Explorer: "Jambo" beside its own Findings · Guide, no Overview, no word', !!A3 && A3.tabs[0] === 'Jambo' && !A3.tabs.some(t => /Overview/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
+    /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"; REVERSES the one window here): Overview first, then Jambo, then the page's own tabs; still no word */
+    check('A3 Explorer: Overview, then Jambo, then its own Findings · Guide, no word', !!A3 && /Overview/.test(A3.tabs[0]) && /Jambo/.test(A3.tabs[1]) && A3.tabs.some(t => /Findings/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
 
     await page.evaluate(() => setView('register'));
     await until(() => !window.pdSolo() && !!document.getElementById('igd-input'));
@@ -88,14 +88,15 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
       !!A4 && A4.tabs.length === 2 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.tabs.some(t => /Jambo/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
-    await until(() => !!document.querySelector('#ins-panel.is-solo [data-jl-greet] [data-jl-words]'));
+    await until(() => !!document.querySelector('#ins-panel .jl-body [data-jl-words] .jov'));
     const A5 = await panelHead('#ins-panel');
-    check('A5 Requests, nothing chosen: his words lead the one window; no tabs, no word', one(A5) && A5.tabs.join() === 'Jambo', JSON.stringify(A5));
+    /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"; REVERSES the one window here): Overview first, then Jambo, then the page's own tabs; still no word */
+    check('A5 Requests, nothing chosen: its Overview first, then Jambo; no word', !!A5 && /Overview/.test(A5.tabs[0]) && /Jambo/.test(A5.tabs[1]) && A5.word.length === 0, JSON.stringify(A5));
     ai.reset(); ai.script(deliver('Nothing is open, so nothing waits.'));
     await page.evaluate(() => { const q = document.getElementById('jl-q'); q.value = 'explain this page to me in two lines'; q.closest('form').requestSubmit(); });
-    const A6 = await until(() => { const p = document.getElementById('ins-panel'); return p && /Nothing is open, so nothing waits/.test(p.innerText) && !!p.querySelector('[data-jl-greet] [data-jl-words]') ? true : null; }, null, 10000);
+    const A6 = await until(() => { const p = document.getElementById('ins-panel'); return p && /Nothing is open, so nothing waits/.test(p.innerText) && p.classList.contains('is-talk') ? true : null; }, null, 10000);
     const A6h = await panelHead('#ins-panel');
-    check('A6 a question there: answered under his words, still one window', !!A6 && one(A6h) && A6h.tabs.join() === 'Jambo', JSON.stringify(A6h));
+    check('A6 a question there: answered under the Jambo tab, the Overview one press back', !!A6 && /Overview/.test(A6h.tabs[0]) && /Jambo/.test(A6h.tabs[1]), JSON.stringify(A6h));
 
     await page.evaluate(() => setView('team'));
     await until(() => !!document.getElementById('st-jb-feed'));

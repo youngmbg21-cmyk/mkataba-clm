@@ -27,7 +27,7 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/views/settings.js'];
+const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/components.js', 'js/views/settings.js'];
 const S = require('../js/i18n.js').STRINGS;
 
 /* The real view on a real DOM, the boundary stubbed (f193's stage, with the
@@ -337,11 +337,13 @@ describe('f691 — the You board, as drawn', () => {
     assert.ok(c && c.method === 'POST' && c.body.current === 'old-pass-1' && c.body.password === 'a-new-pass-9', 'the route the first sign-in uses');
   });
   test('Jambo\'s suggestions off: no chips beside Settings either', () => {
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab"): his chips are the Overview's offers under "Ask me" (.jov-lnk.is-ask), the verb first and bold */
+    const ASKS = '.st-jb-chip, .jov-lnk.is-ask';
     const { win } = stage({ });
-    assert.ok(win.document.querySelectorAll('.st-jb-chip').length >= 3);
+    assert.ok(win.document.querySelectorAll(ASKS).length >= 3);
     const off = stage();
     off.me.prefs = { jamboChips: false }; off.sb.renderTeam();
-    assert.equal(off.win.document.querySelectorAll('.st-jb-chip').length, 0, 'the person turned them off');
+    assert.equal(off.win.document.querySelectorAll(ASKS).length, 0, 'the person turned them off');
   });
 });
 
@@ -423,13 +425,14 @@ describe('f691 — Jambo finds, explains and readies; the AI only on a press', (
       const { sb, ask } = stage({ role, capOn: true });
       sb.langSet(lang, { quiet: true }); sb.renderTeam();
       if (role === 'admin') { sb.settingsGoTab('company'); }
-      const chips = [...sb.document.querySelectorAll('.st-jb-chip')];
+      /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab"): his chips are the Overview's offers under "Ask me" (.jov-lnk.is-ask), the verb first and bold */
+      const chips = [...sb.document.querySelectorAll('.st-jb-chip, .jov-lnk.is-ask')];
       assert.ok(chips.length >= 3, `${lang}/${role}: chips are offered`);
       /* RE-POINTED 18 Oct 2026 (rounds 24–25 as drawn): a chip's first word is
          small ("what should I turn on next?"), and a chip may be a DOOR — the
          first need's own button, or Ask an admin — rather than an ask */
       const small = w => w.charAt(0).toLowerCase() + w.slice(1);
-      if (lang === 'sv') assert.ok(chips.some(c => c.textContent === small(S.sv[role === 'admin' ? 'st_jb_c_next' : 'st_jb_c_brief'])), 'in the reader\'s language');
+      if (lang === 'sv') assert.ok(chips.some(c => small(c.textContent) === small(S.sv[role === 'admin' ? 'st_jb_c_next' : 'st_jb_c_brief'])), 'in the reader\'s language');
       for (const c of chips) {
         const q = c.getAttribute('data-st-jb-ask');
         if (q == null) { assert.ok(c.matches('[data-st-panel],[data-st-page],[data-st-ask-head],[data-st-resend]'), `${lang}/${role}: "${c.textContent}" is a door`); continue; }

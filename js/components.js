@@ -1054,7 +1054,77 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     jamboForeignPress(born, Number(turn.getAttribute('data-jb-turn')), btn);
   }, true);
 }
-Object.assign(window,{jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+/* ---- THE OVERVIEW, THE LEGORA WAY (owner picked it by name, 26 Oct 2026: "Build Jambo's Overview tab The
+   Legora Way"; then "we will have an overview tab side panel in each page followed by the jambo tab") ----
+   ONE BUILDER for every Overview tab (the list pages' panel, Settings' panel, Home's panel): nothing boxed — one
+   head sentence (its first words bold, the rest in the small-text ink), a quiet list of facts (bold name, the link
+   at the end of the row, the small reading under it; a reading that needs a look is amber), the source line, then
+   "Ask me" and his offers one per line, the verb bold, a call's cost said in grey; the page's working tools
+   (`after`: a drop area, Discover, a switch) stand under them, as they are; `before` stands first (Settings' Menu
+   door). The greeting is never here: it is the Jambo tab's first words (jamboHelloHtml). Presses are delegated
+   once on document and resolve the live run at press time (`slot` names the panel, so two panels never mix). */
+/* one store on the window, so a second load of this file (a test's world) shares the listener's runs */
+var _jovRuns = (typeof window !== 'undefined' && (window._jovRunsAll || (window._jovRunsAll = {}))) || {};
+var _jovE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+var _jovT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
+/* an offer said as one label ("plan my week · 1 Jambo call") → its verb, the rest and the cost */
+function jamboAskOf(label){
+  const parts = String(label || '').split(/\s+·\s+/);
+  const cost = parts.length > 1 && /\b(call|calls|anrop)\b/i.test(parts[parts.length - 1]) ? parts.pop() : '';
+  const words = parts.join(' · ').trim();
+  const m = /^(\S+)(\s+[\s\S]*)?$/.exec(words) || [words, words, ''];
+  const verb = m[1] ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : '';
+  return { verb, rest: (m[2] || '').trim(), cost };
+}
+function jamboOverviewHtml(o, slot){
+  o = o || {}; slot = String(slot || 'ov');
+  const runs = _jovRuns[slot] = [];
+  const reg = fn => { if (typeof fn !== 'function') return -1; runs.push(fn); return runs.length - 1; };
+  /* `attr`: a press the page already listens for (Settings' data-st-jb-ask, data-st-side) — its own door, dressed here */
+  const lnk = (i, html, title, cls, attr) => attr ? `<button type="button" class="jov-lnk${cls ? ' ' + cls : ''}" ${attr}${title ? ` title="${_jovE(title)}"` : ''}>${html}</button>`
+    : i < 0 ? `<span class="jov-lnk is-dead">${html}</span>`
+    : `<button type="button" class="jov-lnk${cls ? ' ' + cls : ''}" data-jov="${_jovE(slot)}:${i}"${title ? ` title="${_jovE(title)}"` : ''}>${html}</button>`;
+  /* the head's first words bold, as drawn: a sentence handed in plain has its first sentence (or what stands before
+     its colon) put in bold; one that brings its own bold is left as it is */
+  const boldFirst = h => { h = String(h || ''); if (/<b[\s>]/i.test(h)) return h;
+    const m = /^([^<]*?[.:!?])(\s[\s\S]*|)$/.exec(h); return m ? `<b>${m[1]}</b>${m[2] ? ' ' + m[2].trim() : ''}` : h; };
+  const head = o.head ? (o.head.html != null ? boldFirst(o.head.html)
+    : `<b>${_jovE(o.head.b || '')}</b>${o.head.s ? ' ' + _jovE(o.head.s) : ''}`) : '';
+  const facts = (o.facts || []).filter(f => f && (f.k || f.v || f.html));
+  const factHtml = facts.map((f, i) => {
+    const link = f.link ? lnk(f.attr ? -1 : reg(f.run), _jovE(f.link), f.title, '', f.attr) : '';
+    return `<div class="jov-fact${i === facts.length - 1 ? ' is-last' : ''}${f.k ? '' : ' is-line'}">${f.k ? `<b class="jov-k">${_jovE(f.k)}</b>` : ''}${link}`
+      + `<span class="jov-v${f.need ? ' is-need' : ''}">${f.html != null ? f.html : _jovE(f.v || '')}</span></div>`;
+  }).join('');
+  const asks = (o.asks || []).map(a => a && a.label && !a.verb ? Object.assign(jamboAskOf(a.label), { run: a.run, title: a.title, attr: a.attr }) : a).filter(a => a && a.verb);
+  const askHtml = asks.length ? `<p class="jov-eyebrow">${_jovE(_jovT('jov_ask_me'))}</p><div class="jov-asks">${asks.map(a =>
+    lnk(a.attr ? -1 : reg(a.run), `<b>${_jovE(a.verb)}</b>${a.rest ? ' ' + _jovE(a.rest) : ''}${a.cost ? `<span class="jov-cost">· ${_jovE(a.cost)}</span>` : ''}`, a.title, 'is-ask', a.attr)).join('')}</div>` : '';
+  return `<div class="jov" data-jov-slot="${_jovE(slot)}">${o.before || ''}${head ? `<p class="jov-head"${o.headAttr ? ' ' + o.headAttr : ''}>${head}</p>` : ''}`
+    + `${factHtml ? `<div class="jov-facts">${factHtml}</div>` : ''}${o.srcHtml ? `<p class="jov-src">${o.srcHtml}</p>` : o.src ? `<p class="jov-src">${_jovE(o.src)}</p>` : ''}${askHtml}`
+    + `${o.after ? `<div class="jov-after">${o.after}</div>` : ''}</div>`;
+}
+/* a page that still says itself as { lines, chips, src, after } is drawn in the same shape, nothing lost: its first
+   line is the head, the others quiet lines of the list, its chips the offers */
+function jamboOverviewOf(say){
+  say = say || {};
+  /* a page that names its facts (head · facts · asks) keeps its chips as the offers and its `after` */
+  if (say.head || say.facts || say.asks) return Object.assign({ asks: (say.chips || []).filter(c => c && c.label && (typeof c.run === 'function' || c.attr)) }, say,
+    { head: say.head || ((say.lines || [])[0] ? { html: typeof say.lines[0] === 'string' ? say.lines[0] : say.lines[0].html } : null), src: say.src === false ? '' : (say.src || '') });
+  const lines = (say.lines || []).map(l => typeof l === 'string' ? l : (l && l.html) || '').filter(Boolean);
+  return { head: lines.length ? { html: lines[0] } : null, facts: lines.slice(1).map(h => ({ html: h })),
+    src: say.src === false ? '' : (say.src || ''), asks: (say.chips || []).filter(c => c && c.label && typeof c.run === 'function'),
+    after: say.after || '', before: say.before || '' };
+}
+if (typeof document !== 'undefined' && !(typeof window !== 'undefined' && window._jovWired)){
+  if (typeof window !== 'undefined') window._jovWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest && e.target.closest('[data-jov]'); if (!b) return;
+    const v = String(b.getAttribute('data-jov')), at = v.lastIndexOf(':'), slot = v.slice(0, at), i = v.slice(at + 1);
+    const fn = (_jovRuns[slot] || [])[Number(i)];
+    if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
+  });
+}
+Object.assign(window,{jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain

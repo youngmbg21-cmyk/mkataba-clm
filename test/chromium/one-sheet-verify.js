@@ -65,14 +65,15 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await shot(page, 'one-sheet-1440x780');
 
     console.log('\n2 · a switch changes in its row');
-    const chipsBefore = await page.evaluate(() => document.querySelectorAll('#st-side .st-jb-chip').length);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way": nothing boxed): his words beside the page are the Overview's head and lines (.jov-head, .jov-v), and his chips its offers (.jov-lnk.is-ask) */
+    const chipsBefore = await page.evaluate(() => document.querySelectorAll('#st-side :is(.st-jb-chip, .jov-lnk.is-ask)').length);
     if (await press('[data-st-sw="chips"]', '2 the suggestions switch')) {
       const saved = await until(() => currentUser().prefs && currentUser().prefs.jamboChips === false
         && document.querySelector('[data-st-sw="chips"]').getAttribute('aria-checked') === 'false' ? true : null, null, 5000);
       check('2a Jambo\'s suggestions off, the row says so', !!saved);
       const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /Saved/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; }, null, 4000);
       check('2b a passing "Saved"', !!told, told);
-      const chipsAfter = await until(() => document.querySelectorAll('#st-side .st-jb-chip').length === 0 ? 'none' : null, null, 3000);
+      const chipsAfter = await until(() => document.querySelectorAll('#st-side :is(.st-jb-chip, .jov-lnk.is-ask)').length === 0 ? 'none' : null, null, 3000);
       check('2c the chips beside the page go at once', chipsBefore > 0 && chipsAfter === 'none', chipsBefore + ' → ' + chipsAfter);
     }
 

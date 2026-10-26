@@ -419,7 +419,9 @@ describe('f679 (5) a contract at a glance', () => {
     /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of
        the panel"): the Jambo tab opens before a word, so an empty flip says
        the notebook welcome in place of an empty feed. */
-    assert.match(IG, /talk\?`<div id="igd-feed" class="igd-talk[^`]*>\$\{\(msgs&&String\(msgs\)\.trim\(\)\)\|\|typing\?msgs:`<div class="ig-welcome[^]*?\$\{typing\}<\/div>/, 'the conversation is the flip\'s');
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): an empty flip opens on his
+       greeting (jamboHelloHtml), the Jambo tab's first words; the welcome line only where the builder is absent */
+    assert.match(IG, /talk\?`<div id="igd-feed" class="igd-talk[^`]*>\$\{\(msgs&&String\(msgs\)\.trim\(\)\)\|\|typing\?msgs:\(typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):`<div class="ig-welcome[^]*?\$\{typing\}<\/div>/, 'the conversation is the flip\'s');
     assert.match(fnBody(PD, 'pdChipsRepaint'), /pdGlanceRepaint\(\)/, 'kept current in place as the counts move');
   });
 });
