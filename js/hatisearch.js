@@ -18,7 +18,8 @@
 
 /* every kind of thing the one search finds. Settings are found by stFind, the
    ONE settings finder (js/views/settings.js) — never a second copy here. */
-const HS_KINDS = ['contract', 'clause', 'obligation', 'note', 'request', 'person', 'party', 'history', 'template', 'standard'];
+/* 'guide' is the Handbook (js/handbook.js): HaTi's own instruction book, read by Jambo (26 Oct 2026) */
+const HS_KINDS = ['contract', 'clause', 'obligation', 'note', 'request', 'person', 'party', 'history', 'template', 'standard', 'guide'];
 const HS_MAX = 40;          // hits handed back at most; past it the total is said
 const HS_TERMS_MAX = 16;    // words searched at most from one ask
 const HS_PASSAGE_MAX = 1200;

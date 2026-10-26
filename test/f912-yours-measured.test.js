@@ -83,7 +83,7 @@ describe('F912 — a finding is a number outside its own normal', () => {
     assert.equal(w.hbS().ins.young, true);
     assert.equal(w.hbInsUsualOpen(), true, 'a young book still shows its pictures');
     const I = w.hbInsightsToday();
-    assert.match(text(w.hbInsRowHtml(I)), /not enough history yet to tell what is normal/);
+    assert.match(text(w.hbInsRowHtml(I)), /not enough history yet/);
     assert.match(w.hbShelfHtml(I), /hb-ins is-plain/);
   });
   /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the card draws its own
@@ -173,7 +173,7 @@ describe('F912 — a quiet day is said, not filled', () => {
     const I = w.hbInsightsToday();
     assert.equal(I.length, 0);
     const row = w.hbInsRowHtml(I);
-    assert.match(text(row), /nothing moved outside its normal range this morning/);
+    assert.match(text(row), /nothing unusual this morning/);
     const shelf = w.hbShelfHtml(I);
     assert.match(shelf, /hb-ins is-plain/);
     const n = (shelf.match(/data-hb-ins-card=/g) || []).length;

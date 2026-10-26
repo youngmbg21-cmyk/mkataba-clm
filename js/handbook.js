@@ -73,7 +73,9 @@ const HANDBOOK_CHAPTERS = [
     path: [{ en: 'The box at the top of Home, or at the foot of Jambo\'s panel on every page', sv: 'Rutan överst på Hem, eller längst ned i Jambos panel på varje sida' }],
     how: [{ en: 'Type a page\'s name, or / and pick it. Jambo moves you and presses nothing else.', sv: 'Skriv en sidas namn, eller / och välj. Jambo flyttar dig och trycker inget annat.' },
       { en: 'Type a question. Free readings (counts, lists, dates) are answered without Jambo\'s brain; a question that needs it says so and what it costs before it runs.', sv: 'Skriv en fråga. Fria avläsningar (antal, listor, datum) besvaras utan Jambos hjärna; en fråga som behöver den säger det och vad det kostar innan den körs.' },
-      { en: 'Say "them" or "these" for the last answer\'s set: "show them on the board".', sv: 'Säg "dem" eller "dessa" för förra svarets mängd: "visa dem på tavlan".' }],
+      { en: 'Say "them" or "these" for the last answer\'s set: "show them on the board".', sv: 'Säg "dem" eller "dessa" för förra svarets mängd: "visa dem på tavlan".' },
+      { en: 'Where a panel\'s first page has something to press, it has two tabs: {ui:pd_tab_overview} holds the page\'s own links, and his answers go under {ui:pd_tab_copilot}. One press on {ui:pd_tab_overview} brings the links back; you never scroll up through the talk to find them.', sv: 'Där en panels första sida har något att trycka på har den två flikar: {ui:pd_tab_overview} rymmer sidans egna länkar, och hans svar hamnar under {ui:pd_tab_copilot}. Ett tryck på {ui:pd_tab_overview} tar tillbaka länkarna; du skrollar aldrig upp genom samtalet för att hitta dem.' },
+      { en: 'Ask about HaTi itself on any page ("what can I do here?", "who can change the rates?", "what is the Handbook about?"): Jambo answers from this book, in steps, with the chapter as a button under the answer. You stay where you asked.', sv: 'Fråga om HaTi självt på vilken sida som helst ("vad kan jag göra här?", "vem kan ändra kurserna?", "vad handlar Handboken om?"): Jambo svarar ur den här boken, steg för steg, med kapitlet som en knapp under svaret. Du stannar där du frågade.' }],
     tip: { en: 'Typing never acts. A send, a signature or a change always waits for your press, with its cost said first.', sv: 'Att skriva utför aldrig något. Ett utskick, en signatur eller en ändring väntar alltid på ditt tryck, med kostnaden sagd först.' },
     cost: { en: 'Free to move; a brain question says its cost', sv: 'Gratis att flytta; en hjärnfråga säger sin kostnad' }, doors: ['help', 'back', 'next', 'insights'], acts: [],
     words: { en: ['ask jambo', 'jambo box', 'slash', 'type a place', 'talk to jambo', 'chat'], sv: ['fråga jambo', 'jambos ruta', 'snedstreck', 'chatta'] },
@@ -307,7 +309,7 @@ const HANDBOOK_CHAPTERS = [
       { en: 'Choose {ui:sh_lt_as}: a review link, a signing link, a link for a colleague, or an adviser\'s link to chosen clauses.', sv: 'Välj {ui:sh_lt_as}: en granskningslänk, en signeringslänk, en länk till en kollega, eller en rådgivarlänk till valda klausuler.' },
       { en: 'Read "{ui:sh_lt_before}": what is held back (a change waiting on internal review), what is owed, what the link can do.', sv: 'Läs "{ui:sh_lt_before}": vad som hålls kvar (en ändring som väntar på intern granskning), vad som saknas, vad länken kan göra.' },
       { en: 'Press {ui:act_send}. The history records it; a mail that did not go says so.', sv: 'Tryck {ui:act_send}. Historiken registrerar det; ett mejl som inte gick säger det.' }],
-    tip: { en: 'A held change never travels, whichever door you send from. An adviser\'s link lasts 14 days and never carries a Word file.', sv: 'En kvarhållen ändring reser aldrig, oavsett dörr. En rådgivarlänk gäller 14 dagar och bär aldrig en Word-fil.' },
+    tip: { en: 'A held change never travels, whichever door you send from. The Dossier\'s Send and {ui:ng_send_all} are one door, and the letter names every change of yours that goes with it, a change kept back from an earlier send too. An adviser\'s link lasts 14 days and never carries a Word file.', sv: 'En kvarhållen ändring reser aldrig, oavsett dörr. Dossierns Skicka och {ui:ng_send_all} är en dörr, och brevet nämner varje ändring av dina som följer med, även en som hölls kvar vid ett tidigare utskick. En rådgivarlänk gäller 14 dagar och bär aldrig en Word-fil.' },
     cost: _hbkFree, doors: ['share'], acts: ['send'],
     words: { en: ['send', 'send it', 'share', 'send for review', 'send to the other side', 'send to a colleague', 'adviser link', 'the letter'], sv: ['skicka', 'dela', 'skicka på granskning', 'skicka till motparten', 'skicka till en kollega', 'rådgivarlänk', 'brevet'] },
     shot: { go: [{ open: 'MK-A1', face: 'copilot' }, { fn: 'openShareModal', ref: 'MK-A1', arg: 'c' }], boxes: ['#modal-root .modal-in', '#ig-dock'], cap: { en: 'The letter in the middle, "Before you send" beside.', sv: 'Brevet i mitten, "Innan du skickar" bredvid.' } } },
@@ -518,7 +520,8 @@ const HANDBOOK_CHAPTERS = [
     path: ['door:calendar'],
     how: [{ en: 'Press a chip and you land on that contract\'s act.', sv: 'Tryck på ett chip så landar du på det avtalets handling.' },
       { en: 'Ask Jambo to plan; the blocks are offered, {ui:cal_plan_add} puts them in, {ui:cal_plan_undo} takes them out. {ui:cal_plan_ask} is the starting level.', sv: 'Be Jambo planera; blocken erbjuds, {ui:cal_plan_add} lägger in dem, {ui:cal_plan_undo} tar bort dem. {ui:cal_plan_ask} är startnivån.' },
-      { en: 'Your own events live only with you; a booking goes to your own calendar.', sv: 'Dina egna händelser finns bara hos dig; en bokning går till din egen kalender.' }],
+      { en: 'Your own events live only with you; a booking goes to your own calendar.', sv: 'Dina egna händelser finns bara hos dig; en bokning går till din egen kalender.' },
+      { en: 'Jambo\'s panel beside it opens on {ui:pd_tab_overview}: your week, his two plan asks and how far he may change your calendar. His plan comes under {ui:pd_tab_copilot}; {ui:pd_tab_overview} brings your week back.', sv: 'Jambos panel bredvid öppnas på {ui:pd_tab_overview}: din vecka, hans två planfrågor och hur långt han får ändra din kalender. Hans plan kommer under {ui:pd_tab_copilot}; {ui:pd_tab_overview} tar tillbaka din vecka.' }],
     tip: { en: 'A typed day is read, never guessed. Weekends are said as a word, not drawn.', sv: 'En skriven dag läses, gissas aldrig. Helger sägs som ett ord, ritas inte.' },
     cost: { en: 'Free; the plan says its cost', sv: 'Gratis; planen säger sin kostnad' }, doors: ['calendar', 'week'], acts: [],
     words: { en: ['calendar', 'my week', 'plan my week', 'what ends', 'dates'], sv: ['kalender', 'min vecka', 'planera min vecka', 'vad löper ut', 'datum'] },
@@ -622,7 +625,8 @@ const HANDBOOK_CHAPTERS = [
     path: ['door:board'],
     how: [{ en: 'Press any figure: the list opens beside it; "them on the board" draws the last answer\'s set.', sv: 'Tryck på vilken siffra som helst: listan öppnas bredvid; "dem på tavlan" ritar förra svarets mängd.' },
       { en: 'Ask a question in the box. The chart comes first, free; "{ui:hb_dd_btn}" and "{ui:hb_dd_far}" ask Jambo\'s brain with the cost said.', sv: 'Ställ en fråga i rutan. Diagrammet kommer först, gratis; "{ui:hb_dd_btn}" och "{ui:hb_dd_far}" frågar Jambos hjärna med kostnaden sagd.' },
-      { en: 'Saved views are the Board\'s chips; "{door:present}" shows it full screen for a meeting.', sv: 'Sparade vyer är Tavlans chips; "{door:present}" visar den i helskärm för ett möte.' }],
+      { en: 'Saved views are the Board\'s chips; "{door:present}" shows it full screen for a meeting.', sv: 'Sparade vyer är Tavlans chips; "{door:present}" visar den i helskärm för ett möte.' },
+      { en: 'Jambo\'s panel beside the Board opens on {ui:pd_tab_overview}: his reading of your book and its links. His answers go under {ui:pd_tab_copilot}, {ui:pd_tab_overview} one press away.', sv: 'Jambos panel bredvid Tavlan öppnas på {ui:pd_tab_overview}: hans läsning av din bok och dess länkar. Hans svar hamnar under {ui:pd_tab_copilot}, {ui:pd_tab_overview} ett tryck bort.' }],
     tip: { en: 'Every figure Jambo quotes is checked against the records; one that cannot be found is said so.', sv: 'Varje siffra Jambo citerar kontrolleras mot posterna; en som inte hittas sägs.' },
     cost: { en: 'Free; Dig deeper says its cost', sv: 'Gratis; Gräv djupare säger sin kostnad' }, doors: ['board', 'savedviews', 'present', 'health', 'weekly'], acts: [],
     words: { en: ['board', 'dashboard', 'figures', 'numbers', 'dig deeper', 'saved views', 'present', 'health report', 'weekly report'], sv: ['tavlan', 'siffror', 'gräv djupare', 'sparade vyer', 'presentera', 'hälsorapport', 'veckorapport'] },
@@ -792,6 +796,106 @@ function hbkFind(q, lang){
   return best ? { k: best.c.k, word: best.word } : null;
 }
 
-const HBK_API = { HANDBOOK_CHECKED, HANDBOOK_PARTS, HANDBOOK_CHAPTERS, HBK_MARK_RE, hbkPartOf, hbkChapterOf, hbkChaptersOf, hbkDoorsNamed, hbkTextsOf, hbkMarkersOf, hbkFind };
+/* ---------- THE BOOK IN PLAIN WORDS, FOR JAMBO TO READ (owner, 26 Oct 2026: "the goal is to have jambo be the
+   cure to all question related to the platform") ----------
+   Asked "what is the handbook about?", Jambo summarised the contracts: the brain had never read this book. Now
+   both hosts read it through these readers — the server puts every chapter in the ONE search (kind 'guide',
+   hsIndexKind), the browser's own search does the same when there is no server — so a question about HaTi is
+   answered from the chapter that was checked against the app, and a chapter written tomorrow is read tomorrow.
+   `word(kind, key, lang)` turns a marker into the screen's word (kind 'ui' a dictionary key, 'door' a place);
+   each host passes its own dictionary. Nothing here is translated: every field is already {en, sv}. */
+const HBK_ABOUT = 'about';
+function hbkWord(word, kind, key, lang){
+  let w = ''; try { w = typeof word === 'function' ? String(word(kind, key, lang) || '') : ''; } catch (_){ w = ''; }
+  /* a label's own placeholders ({n}, {cur}) are said as "…", as the page draws them (hbkLabel) */
+  return w && w !== key ? w.replace(/\{[a-z]+\}/gi, '…').replace(/&amp;/g, '&') : String(key).replace(/_/g, ' ');
+}
+/* one field, in one language, its markers as the screen's words */
+function hbkPlainOf(v, lang, word){
+  const s = v == null ? '' : typeof v === 'string' ? v : String((v[lang] != null ? v[lang] : v.en) || '');
+  return s.replace(HBK_MARK_RE, (m, kind, key) => hbkWord(word, kind, key, lang)).replace(/\s+/g, ' ').trim();
+}
+/* a part's name and line: the Guide's own words for the six stages, its own for the two ends */
+function hbkPartPlain(p, lang, word){
+  if (!p) return { w: '', sub: '' };
+  return p.gd ? { w: hbkWord(word, 'ui', 'gd_s_' + p.gd, lang), sub: hbkWord(word, 'ui', 'gd_s_' + p.gd + '_w', lang) }
+    : { w: hbkWord(word, 'ui', p.w, lang), sub: hbkWord(word, 'ui', p.sub, lang) };
+}
+const HBK_PLAIN_HEADS = {
+  en: { part: 'Part', what: 'What it is', when: 'When to use it', path: 'Where', how: 'How', read: 'Reading it', tip: 'Good to know', cost: 'Cost' },
+  sv: { part: 'Del', what: 'Vad det är', when: 'När du använder det', path: 'Var', how: 'Hur', read: 'Så läser du det', tip: 'Bra att veta', cost: 'Kostnad' } };
+/* one chapter as Jambo reads it: its title, then what, when, where, how (numbered), the reading key, the tip, the cost */
+function hbkChapterPlain(c, lang, word){
+  if (!c) return '';
+  const L = HBK_PLAIN_HEADS[lang] || HBK_PLAIN_HEADS.en, P = x => hbkPlainOf(x, lang, word);
+  const part = hbkPartPlain(hbkPartOf(c.part), lang, word);
+  const lines = [`${c.k} ${P(c.title)}`, `${L.part}: ${part.w}${c.eyebrow ? ' · ' + P(c.eyebrow) : ''}`];
+  if (c.what) lines.push(`${L.what}: ${P(c.what)}`);
+  if (Array.isArray(c.when) && c.when.length) lines.push(`${L.when}: ` + c.when.map(P).join(' '));
+  if (Array.isArray(c.path) && c.path.length) lines.push(`${L.path}: ` + c.path.map(x => typeof x === 'string' && x.startsWith('door:') ? hbkWord(word, 'door', x.slice(5), lang) : P(x)).join(' › '));
+  if (Array.isArray(c.how) && c.how.length) lines.push(`${L.how}: ` + c.how.map((x, i) => `${i + 1}. ${P(x)}`).join(' '));
+  if (c.read) lines.push(`${L.read}: ${P(c.read)}` + (Array.isArray(c.read.key) ? ' ' + c.read.key.map(P).join('; ') + '.' : ''));
+  if (c.tip) lines.push(`${L.tip}: ${P(c.tip)}`);
+  if (c.cost) lines.push(`${L.cost}: ${P(c.cost)}`);
+  return lines.join('\n');
+}
+/* the book itself ("what is the handbook about?"): what it is, then every part with its chapters */
+function hbkAboutPlain(lang, word){
+  const head = lang === 'sv'
+    ? `Handboken är HaTis egen instruktionsbok: ${HANDBOOK_CHAPTERS.length} kapitel i ${HANDBOOK_PARTS.length} delar, i den ordning ett avtal lever. Varje kapitel säger vad en sak är, när du använder den, var den finns, hur du gör steg för steg och vad den kostar. Den öppnas från Guiden eller genom att skriva "handbok". Kontrollerad mot appen ${HANDBOOK_CHECKED}.`
+    : `The Handbook is HaTi's own instruction book: ${HANDBOOK_CHAPTERS.length} chapters in ${HANDBOOK_PARTS.length} parts, in the order a contract lives. Each chapter says what a thing is, when to use it, where it is, how to do it step by step, and what it costs. It opens from the Guide or by typing "handbook". Checked against the app on ${HANDBOOK_CHECKED}.`;
+  return [head].concat(HANDBOOK_PARTS.map((p, i) => { const w = hbkPartPlain(p, lang, word);
+    return `${i}. ${w.w}${w.sub ? ' (' + w.sub + ')' : ''}: ` + hbkChaptersOf(p.k).map(c => `${c.k} ${hbkPlainOf(c.title, lang, word)}`).join('; '); })).join('\n');
+}
+/* every chapter, and the book itself, as search documents: both languages in one body, the everyday words as tags */
+function hbkSearchDocs(word){
+  const docs = [{ k: HBK_ABOUT, part: '', title: 'The Handbook: instructions for using HaTi · Handboken', body: 'handbook · instructions · user guide · manual · how to use HaTi · handboken · instruktioner\n' + hbkAboutPlain('en', word) + '\n\n' + hbkAboutPlain('sv', word).split('\n')[0],
+    tags: 'handbook handboken manual instructions user guide instruction book what is the handbook about bruksanvisning' }];
+  for (const c of HANDBOOK_CHAPTERS){
+    const w = c.words || {};
+    docs.push({ k: c.k, part: c.part, title: `${hbkPlainOf(c.title, 'en', word)} · ${hbkPlainOf(c.title, 'sv', word)}`,
+      /* the chapter's everyday words lead its body too: they are the words people ask with ("playbook", "ask jambo") */
+      body: [].concat(w.en || [], w.sv || []).join(' · ') + '\n' + hbkChapterPlain(c, 'en', word) + '\n\n' + hbkChapterPlain(c, 'sv', word),
+      tags: [].concat(w.en || [], w.sv || []).join(' ') });
+  }
+  return docs;
+}
+/* what Jambo is handed for one chapter ('about' = the book itself), in the reader's language */
+function hbkPlainFor(k, lang, word){
+  const L = lang === 'sv' ? 'sv' : 'en';
+  if (k === HBK_ABOUT) return hbkAboutPlain(L, word);
+  const c = hbkChapterOf(k); return c ? hbkChapterPlain(c, L, word) : '';
+}
+
+/* WHICH CHAPTERS COVER THE PAGE IN FRONT (the owner, 26 Oct 2026: "we are looking to address the issue across
+   HaTi, not just the handbook"): every page names the place words its chapters carry in `doors`, so Jambo on ANY
+   page — Obligations, Settings, a contract — is told which chapters describe what he is looking at, and "what can
+   I do here?" is answered from them. A view is the app's state.view; Home's faces have their own. A page with no
+   chapter is a GAP the Handbook owes (test/f938's gap list), never a guess. */
+const HBK_VIEW_DOORS = {
+  dashboard: ['counter', 'needs'], register: ['contracts', 'list', 'wall'], folder: ['contracts', 'list'], workspace: ['document'],
+  redline: ['negotiations', 'redline'], intel: ['insights'], reports: ['insights'], obligations: ['oblig', 'week'],
+  approvals: ['approvals'], pipeline: ['approvals'], customers: ['parties'], agents: ['house'], jambo: ['house'], brain: ['brain'],
+  calendar: ['calendar'], mynotes: ['mynotes'], handbook: ['handbook'], templates: ['ourpaper'], playbook: ['ourpaper'],
+  intake: ['requests'], advice: ['requests'], directory: ['people'], team: ['settings', 'company'], migration: ['import'] };
+const HBK_FACE_DOORS = { board: ['board'], paper: ['document'], calendar: ['calendar'], explorer: ['explorer'] };
+function hbkChaptersForPage(view, face){
+  const first = (face && HBK_FACE_DOORS[face]) || [], then = HBK_VIEW_DOORS[view] || [];
+  const doors = new Set([].concat(first, then));
+  if (!doors.size) return [];
+  const pathDoors = c => (c.path || []).filter(x => typeof x === 'string' && x.startsWith('door:')).map(x => x.slice(5));
+  const named = c => new Set([].concat(c.doors || [], pathDoors(c), hbkMarkersOf(c).filter(m => m.kind === 'door').map(m => m.key)));
+  /* how closely a chapter is about the page: it owns Home's face (its `doors`, 0) or starts there (1), it owns the
+     page (2) or starts there (3), it only mentions it (4); a tie goes to the chapter owning more of the page */
+  const has = (list, set) => list.some(d => set.includes(d));
+  const rank = c => { const p0 = pathDoors(c)[0], cd = c.doors || [];
+    return has(cd, first) ? 0 : first.includes(p0) ? 1 : has(cd, then) ? 2 : then.includes(p0) ? 3 : 4; };
+  const width = c => (c.doors || []).filter(d => doors.has(d)).length;
+  return HANDBOOK_CHAPTERS.filter(c => [...named(c)].some(d => doors.has(d)))
+    .map((c, i) => ({ c, r: rank(c), w: width(c), i })).sort((a, b) => a.r - b.r || b.w - a.w || a.i - b.i).map(x => x.c).slice(0, 4);
+}
+
+const HBK_API = { HANDBOOK_CHECKED, HANDBOOK_PARTS, HANDBOOK_CHAPTERS, HBK_MARK_RE, hbkPartOf, hbkChapterOf, hbkChaptersOf, hbkDoorsNamed, hbkTextsOf, hbkMarkersOf, hbkFind,
+  HBK_ABOUT, hbkPlainOf, hbkPartPlain, hbkChapterPlain, hbkAboutPlain, hbkSearchDocs, hbkPlainFor, HBK_VIEW_DOORS, HBK_FACE_DOORS, hbkChaptersForPage };
 if (typeof window !== 'undefined') Object.assign(window, HBK_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = HBK_API;

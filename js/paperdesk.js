@@ -2312,8 +2312,21 @@ function pdRoadStops(c){
       t: _pdT('pd_rd_signs', { party }), sub: sub.filter(Boolean).join(' · ') });
   });
   const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done').length;
-  stops.push({ k: 'sealed', done: s.closed, t: _pdT('pd_rd_sealed'),
-    sub: [_pdT('pd_rd_copies'), obs ? _pdTn('pd_rd_obls', obs, { n: obs }) : ''].filter(Boolean).join(' · ') });
+  /* "SENT" MUST MEAN SENT (flag D, 26 Oct 2026): the last stop said "Sealed and
+     sent · Copies to both sides" with its tick even where a copy had failed or
+     sat in the outbox. Sealed is still sealed; where a copy did not go out the
+     stop is not ticked, says whose copy and where to send it again, and the
+     copies panel with its Send again stands right under it (the body follows
+     the open stop). One reading, copiesNotOut. A contract nobody sent copies
+     of (paper signed elsewhere and filed here) keeps its words: that is not a
+     failure, and the copies panel says what can be done. */
+  let cop = null; try { cop = (s.closed && typeof copiesNotOut === 'function') ? copiesNotOut(c) : null; } catch (_){ cop = null; }
+  const notOut = !!(cop && cop.n);
+  const whoNot = notOut ? cop.rows.map(r => String(r.name || r.email || '').trim()).filter(Boolean) : [];
+  stops.push({ k: 'sealed', done: s.closed && !notOut, copies: notOut,
+    t: _pdT(notOut ? 'pd_rd_sealed_not_out' : 'pd_rd_sealed'),
+    sub: [notOut ? _pdTn('pd_rd_copies_not_out', cop.n, { n: cop.n, who: whoNot.slice(0, 2).join(', ') + (whoNot.length > 2 ? '…' : '') }) : _pdT('pd_rd_copies'),
+      obs ? _pdTn('pd_rd_obls', obs, { n: obs }) : ''].filter(Boolean).join(' · ') });
   const cur = stops.findIndex(x => !x.done);
   const at = cur < 0 ? stops.length - 1 : cur;
   /* each yes is framed where it is the open stop, or the reader's own to give */
@@ -3702,7 +3715,7 @@ const DOSSIER_FILL_MAX = 4;
 const DOSSIER_ASKS_MAX = 3;
 /* which stage each owed kind belongs to (Needs you's own kinds, insNeedWords') */
 const DOSSIER_STAGE_OF = { late: 'live', fill: 'fill', signer: 'sign', details: 'fill', ask: 'nego', share: 'nego', quiet: 'nego', review: 'nego',
-  join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', renewal: 'live' };
+  join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', copies: 'sign', promises: 'live', renewal: 'live' };
 function dossierNowStage(c){
   if (!c) return 'arrive';
   if (c.status === 'Signed' || c.status === 'Declined' || (typeof negoExecuted === 'function' && negoExecuted(c))) return 'live';

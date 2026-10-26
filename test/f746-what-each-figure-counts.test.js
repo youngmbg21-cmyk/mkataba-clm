@@ -129,6 +129,6 @@ describe('f746 (4) Today\'s insights, its head as drawn', () => {
     assert.match(fn, /<span class="hb-pill hb-ins-n">\$\{_hbE\(_hbN\(n\)\)\}<\/span>/);
     assert.match(fn, /i18t\(sub, \{ m: hbThenWord\(true\) \}\)/);
     const w = world([mk('A')]);
-    assert.equal(w.i18t('hb_ins_sub_moved', { m: 'April' }), 'what moved most since April · worked out this morning from your book');
+    assert.equal(w.i18t('hb_ins_sub_moved', { m: 'April' }), 'what moved most since April');
   });
 });

@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f937 — THE OWNER'S FOUR SCREENSHOTS, 26 Oct 2026 (and the fifth: the Dossier's Send)
+   f939 — THE OWNER'S FOUR SCREENSHOTS, 26 Oct 2026 (and the fifth: the Dossier's Send)
    (1) A HOLD WITHOUT A PAGE IS STALE: the send letter is held only while its page stands in the modal root
        (pdSendLive); every reader goes through it (pdSendFor, pdSendHeld, pdSendIsWaiting), so the bar never says
        "Send · …", the panel never draws an Email tab, and the Counter's leave guard never waits on a letter that
@@ -11,9 +11,10 @@
        is named as "proposes a change of its own", the same reading as the column's count.
    (4) THE DEAL PAGE'S TWO CARDS END ON ONE LINE: the body reserves its scrollbar's gutter, the head is given the
        same room (--dlg-sbw, measured by dlgPageAdopt).
-   (5) A FOLDED CARD ON THE BOARD WEARS ONE FRAME: Today's insights folded takes the Needs you card's head line.
+   (Their fifth, the folded Today's insights head, landed on main the same day by another change: f745,
+   board-as-drawn-verify 8c′ — not repeated here.)
    Browser halves: the-letter-as-drawn-verify, deal-in-the-middle-verify (and the owner's three screens, photographed).
-   At the parent (bbff1c4) 1, 2, 3, 4 and 5 fail.
+   At the parent (bbff1c4) 1, 2, 3 and 4 fail.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -28,7 +29,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists');
   const j = src.indexOf('\nfunction ', i + 10); return strip(src.slice(i, j > 0 ? j : undefined)); };
 
-describe('f937 (1) a hold without a page is stale', () => {
+describe('f939 (1) a hold without a page is stale', () => {
   test('pdSendLive asks the modal root for the letter page and drops the hold when it is gone', () => {
     const b = fnBody(PD, 'pdSendLive');
     assert.match(b, /\.modal-in\[data-sh-page\]/, 'the letter page is the proof');
@@ -42,7 +43,7 @@ describe('f937 (1) a hold without a page is stale', () => {
   });
 });
 
-describe('f937 (2) one send door', () => {
+describe('f939 (2) one send door', () => {
   test("the Dossier's Send presses the Redlines column's Send all, never a word typed to Jambo", () => {
     const i = PD.indexOf("t.closest('[data-pd-glance]')"); assert.ok(i > 0);
     const b = strip(PD.slice(i, i + 900));
@@ -51,7 +52,7 @@ describe('f937 (2) one send door', () => {
   });
 });
 
-describe('f937 (3) the letter names what the copy carries', () => {
+describe('f939 (3) the letter names what the copy carries', () => {
   const at = '2026-10-01T10:00:00.000Z';
   const mk = (id, created, extra) => Object.assign({ id, clauseId: 'c' + id, clauseLabel: id + '. Clause ' + id, authorSide: 'owner', status: 'pending', createdAt: created }, extra || {});
   test('a change kept back by an earlier send is named; one already sent is not', () => {
@@ -66,20 +67,11 @@ describe('f937 (3) the letter names what the copy carries', () => {
   });
 });
 
-describe('f937 (4) the Deal page\'s two cards end on one line', () => {
+describe('f939 (4) the Deal page\'s two cards end on one line', () => {
   test('the head is told the body\'s scrollbar and the body keeps its gutter', () => {
     assert.match(fnBody(CORE, 'dlgPageAdopt'), /--dlg-sbw:\$\{sbw\}px/, 'measured into the frame');
     assert.match(fnBody(CORE, 'dlgPageAdopt'), /offsetWidth-bd\.clientWidth/, 'the scrollbar\'s width, not a guess');
     assert.match(CSS, /\[data-pd-mid\^="deal:"\] \.dlg-pg-body\{[^}]*scrollbar-gutter:stable/, 'the gutter stands whether or not it scrolls');
     assert.match(CSS, /\[data-pd-mid\^="deal:"\] \.dlg-pg-head\.dlg-pg-head\{margin-right:calc\(12px \+ var\(--dlg-sbw,0px\)\)\}/, 'the head\'s right margin = the body\'s inset + the gutter');
-  });
-});
-
-describe('f937 (5) a folded card on the Board wears one frame', () => {
-  test('the folded insights head takes the Board head\'s own padding and the card none', () => {
-    const board = /\.hb-board \.hb-ch\{padding:([^;}]+)/.exec(CSS); assert.ok(board, 'the Board head\'s padding');
-    const fold = /\.hb-board \.hb-ins-head\.is-folded>\.hb-ch\{padding:([^;}]+)/.exec(CSS); assert.ok(fold, 'the folded insights head');
-    assert.equal(fold[1], board[1], 'the same line as the Needs you head (pin the relation)');
-    assert.match(CSS, /#app-shell \.hb-board \.hb-inscard\.hb-ins-head\.is-folded\{padding:0\}/, 'no card padding under a folded head');
   });
 });

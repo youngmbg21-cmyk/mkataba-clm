@@ -204,6 +204,10 @@ const MEASURE = `(() => {
     if (/(auto|scroll)/.test(cs.overflowY + cs.overflowX)) continue;
     const r = R(el); if (r.width < 120 || r.height < 36 || r.top < 0 || r.bottom > vh || r.height > vh * 0.6) continue;   /* a half of the page or a whole panel is a frame, not a card */
     if (cardsIn(el)) continue;   /* a card that holds cards is a frame: the cards inside it are measured */
+    /* a card that is ONLY a head line (Today's insights: its pictures are their own cards) is a head, not a body —
+       the same band as the Needs you card's head, which the sweep leaves out as a frame's; it stands at the
+       Board's head padding (owner, 26 Oct 2026: "the same height as the Needs you") and is not measured for 16px */
+    { const kids = [...el.children].filter(k => !hidden(k)); if (kids.length === 1 && kids[0].matches('header.hb-ch')) continue; }
     if (el.querySelector('table, [role="row"], [role="grid"], [role="list"], .hati-doc, .tpl-pf-sheet, .doc-sheet')) continue;
     /* a stack of rows (three or more children of one kind, edge to edge) is a list's frame too */
     { const kids = [...el.children].filter(k => !hidden(k)); const tally = {}; kids.forEach(k => { const key = k.tagName + '.' + String(k.className).split(' ')[0]; tally[key] = (tally[key] || 0) + (Math.abs(R(k).width - r.width) < 4 ? 1 : 0); });

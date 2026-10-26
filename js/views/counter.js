@@ -531,6 +531,10 @@ function cnNeedShort(y){
   if (it.kind === 'details') return _cnTn('cn_sh_details', n, { ..._cnWho(cp), n });
   if (it.kind === 'renewal') return _cnT('cn_sh_renewal', _cnWho(cp));
   if (it.kind === 'sign') return _cnT('cn_sh_sign', { who: cp });
+  /* a signed copy that did not go out (flag D) */
+  if (it.kind === 'copies') return _cnT('cn_sh_copies', _cnWho(cp));
+  /* promises Jambo found, not yet confirmed (flag E) */
+  if (it.kind === 'promises') return _cnTn('cn_sh_promises', n, { ..._cnWho(cp), n });
   if (['review', 'look', 'refused', 'join', 'note', 'suggest'].includes(it.kind) && it.who) return _cnT('cn_sh_' + it.kind, _cnWho(_cnFirst(it.who)));
   const w = (typeof hbNyWhat === 'function') ? hbNyWhat(x) : '';
   return w ? w.charAt(0).toLowerCase() + w.slice(1) : '';
@@ -563,10 +567,10 @@ function cnNeedDoorAttrs(y){
    already exists. */
 const ND_PAGE = 12;
 const ND_BUNDLE_MIN = 4;
-const ND_MERGE = { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details'] };
-const ND_KIND_OF = { approval: 'approval', refused: 'approval', sign: 'sign', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'details', renewal: 'renewal' };
+const ND_MERGE = { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details', 'promises'] };
+const ND_KIND_OF = { approval: 'approval', refused: 'approval', sign: 'sign', copies: 'sign', promises: 'duty', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'details', renewal: 'renewal' };
 const ND_KINDS = ['approval', 'sign', 'review', 'details', 'renewal', 'duty', 'ask', 'jambo'];
-const ND_BTN = { approval: 'decide', refused: 'decide', renewal: 'decide', sign: 'sign', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'fill', join: 'answer', request: 'answer' };
+const ND_BTN = { approval: 'decide', refused: 'decide', renewal: 'decide', sign: 'sign', copies: 'look', promises: 'review', quiet: 'review', review: 'review', suggest: 'review', look: 'review', details: 'fill', join: 'answer', request: 'answer' };
 /* the kinds whose `days` count forward to a day, not how long they waited */
 const ND_NOT_WAITED = ['renewal', 'notice', 'soon', 'soon-sign', 'week', 'ours'];
 let _ndMemo = null;
