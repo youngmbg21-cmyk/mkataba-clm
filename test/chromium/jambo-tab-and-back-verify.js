@@ -230,16 +230,21 @@ const check = (name, pass, detail) => {
       check('5b a question goes to his view, the page\'s stands aside, the trail names the way back', !!S1 && !S1.land && S1.trail, JSON.stringify(S1));
     });
 
-    /* ---- 6 the Calendar — RE-PINNED (ONE WINDOW): Your week, then what was asked and the answer ---- */
+    /* ---- 6 the Calendar — RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page
+       needs a second tab for jambo"; reverses the 24 Oct one window): Your week under Overview, the talk under Jambo ---- */
     await part('6', async () => {
       await page.evaluate(() => hbOpenCalendar());
       await until(() => document.getElementById('cal-plan-in'), null, 8000);
       const C0 = await page.evaluate(() => ({ tabs: document.querySelectorAll('#cal-plan .pd-tab').length, trail: !!document.querySelector('#cal-plan .pd-trail') }));
-      check('6a the Calendar is one window: his one tab, no trail', C0.tabs === 1 && !C0.trail, JSON.stringify(C0));
+      check('6a the Calendar keeps Overview and Jambo, no trail until the talk is up', C0.tabs === 2 && !C0.trail, JSON.stringify(C0));
       await ask('#cal-plan-in', 'what is due this week?');
       const C1 = await until(() => { const c = document.getElementById('cal-plan'), t = document.getElementById('cal-plan-talk'), w = c && c.querySelector('.cal-yw');
-        return t && /due this week/.test(t.textContent) && w && w.getClientRects().length ? true : null; }, null, 8000);
-      check('6b the question and its answer stand under Your week, still in view', !!C1);
+        return t && /due this week/.test(t.textContent) && t.getClientRects().length && !(w && w.getClientRects().length) && !!c.querySelector('.pd-trail') ? true : null; }, null, 8000);
+      check('6b the question and its answer stand under his tab, Your week aside, the trail names the way back', !!C1);
+      await page.evaluate(() => { const b = document.querySelector('#cal-plan [data-cal-talk-back]'); if (b) b.click(); });
+      const C2 = await until(() => { const c = document.getElementById('cal-plan'), w = c && c.querySelector('.cal-yw');
+        return w && w.getClientRects().length && w.querySelector('[data-cal-plan-q="week"]') ? true : null; }, null, 6000);
+      check('6c Overview brings Your week back with its asks', !!C2);
     });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
