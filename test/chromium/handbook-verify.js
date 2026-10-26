@@ -27,14 +27,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati } = require('../helpers');
-const { seedNavWorld } = require('../nav-world');
+const { seedHandbookWorld } = require('../handbook-world');
 
 const ROOT = path.join(__dirname, '..', '..');
 const OUT = path.join(__dirname, 'shots', 'handbook');
 const IMG = path.join(ROOT, 'handbook', 'img');
 const REVIEW = path.join(ROOT, 'docs', 'review-shots');
 const SHOTS = process.env.HANDBOOK_SHOTS === '1';
-const ONLY = process.env.HANDBOOK_ONLY || '';
+/* HANDBOOK_ONLY=<chapter>[,<chapter>…] runs those recipes; a part's number ("3") runs all its chapters */
+const ONLY = String(process.env.HANDBOOK_ONLY || '').split(',').map(x => x.trim()).filter(Boolean);
+const onlyHas = k => !ONLY.length || ONLY.some(x => k === x || k.startsWith(x + '.'));
 const EXEC = process.env.CHROMIUM_BIN || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
 
@@ -62,7 +64,7 @@ async function login(P, base){
   await P.evaluate(() => { state.aiConfigured = true; });
 }
 /* the recipe's steps, each through a door HaTi already has */
-async function runStep(P, st){
+async function runStep(P, st, h){
   if (st.place) await P.evaluate(k => caGo({ kind: 'go', place: k }), st.place);
   else if (st.view) await P.evaluate(v => setView(v), st.view);
   else if (st.open){ const id = await P.evaluate(([ref, face]) => { const c = state.contracts.find(x => String((typeof contractRef === 'function') ? contractRef(x) : x.id) === ref || x.id === ref); if (!c) throw new Error('no contract ' + ref); pdOpenOnHome(c.id, face || 'copilot'); return c.id; }, [st.open, st.face]);
@@ -74,40 +76,77 @@ async function runStep(P, st){
     if (ref){ const c = state.contracts.find(x => String((typeof contractRef === 'function') ? contractRef(x) : x.id) === ref || x.id === ref); if (!c) throw new Error('no contract ' + ref); a = [arg === 'id' ? c.id : c].concat(a); }
     return f(...a); }, [st.fn, st.args || null, st.ref || null, st.arg || null]);
   else if (st.click){ const el = await P.$(st.click); if (!el) throw new Error('nothing to press at ' + st.click); await el.click(); }
-  else if (st.type){ await P.fill('#cn-q', st.type); await P.dispatchEvent('#cn-q', 'input'); await P.waitForTimeout(300); }
+  else if (st.type){ await P.fill(st.into || '#cn-q', st.type); await P.dispatchEvent(st.into || '#cn-q', 'input'); await P.waitForTimeout(300); }
+  /* a state that needs a beat, a thing to wait for, or a reading the page itself does (Discover's kept answers) */
+  else if (st.wait) await P.waitForTimeout(st.wait);
+  else if (st.waitFor){ if (!(await until(P, s => !!document.querySelector(s), st.waitFor, st.ms || 10000))) throw new Error('never came: ' + st.waitFor); }
+  else if (st.eval) await P.evaluate(new Function(st.eval));
+  /* Jambo's answers slowed, so a read can be seen while it runs (Stop) */
+  else if (st.aiSlow != null){ if (h && h.ai && typeof h.ai.slow === 'function') h.ai.slow(st.aiSlow); }
   await settle(P);
 }
-/* the boxes: the first element each selector finds, a red frame and a number drawn FROM ITS OWN RECT */
+/* the boxes: the first element each selector finds, a red frame and a number drawn FROM ITS OWN RECT. A box is a
+   selector or { sel, step }: its number is the STEP it shows (owner, 26 Oct 2026: "numbered marks on the pictures that
+   match the steps"). Returns what was missed, what covers a whole panel, and the boxes' joint rect for the close-up. */
+const PANEL_ROOTS = ['#ig-dock', '#ins-panel', '#st-side', '#context-panel', '#mig-side', '#content', '#app-shell', '#cal-plan', '#hb-board', '#ct-place', '#modal-root', '#set-page', 'body', 'main'];
 async function drawBoxes(P, boxes){
-  return P.evaluate(boxes => {
+  return P.evaluate(([boxes, roots]) => {
     document.querySelectorAll('.hbk-shot-box').forEach(x => x.remove());
-    const miss = [];
+    const miss = [], whole = [], rects = [];
+    const sel = b => typeof b === 'string' ? b : b.sel;
     /* a box inside a long panel (the Guide's rows) is scrolled into view first, so the picture shows it */
-    boxes.forEach(sel => { let el = null; try { el = document.querySelector(sel); } catch (_){ el = null; } if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
-    boxes.forEach((sel, i) => {
-      let el = null; try { el = document.querySelector(sel); } catch (_){ el = null; }
+    boxes.forEach(b => { let el = null; try { el = document.querySelector(sel(b)); } catch (_){ el = null; } if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+    boxes.forEach((b, i) => {
+      let el = null; try { el = document.querySelector(sel(b)); } catch (_){ el = null; }
       const r = el && el.getBoundingClientRect();
-      if (!el || !r || r.width < 4 || r.height < 4){ miss.push(sel); return; }
+      if (!el || !r || r.width < 4 || r.height < 4){ miss.push(sel(b)); return; }
+      /* A BOX IS A PLACE TO LOOK, NEVER A WHOLE PANEL (owner, 26 Oct 2026) */
+      if (roots.some(q => { try { return el.matches(q); } catch (_){ return false; } }) || r.width * r.height > innerWidth * innerHeight * 0.3) whole.push(sel(b));
+      rects.push(r);
       const d = document.createElement('div'); d.className = 'hbk-shot-box';
       d.style.cssText = `position:fixed;left:${r.left - 3}px;top:${r.top - 3}px;width:${r.width + 6}px;height:${r.height + 6}px;border:2px solid #C0392B;border-radius:6px;z-index:2147483000;pointer-events:none;box-sizing:border-box;`;
-      const n = document.createElement('span'); n.textContent = String(i + 1);
-      n.style.cssText = 'position:absolute;left:-2px;top:-2px;transform:translate(-50%,-50%);background:#C0392B;color:#fff;font:600 12px/18px Inter,sans-serif;width:18px;height:18px;border-radius:50%;text-align:center;';
+      const n = document.createElement('span'); n.textContent = String(typeof b === 'object' && b.step ? b.step : i + 1);
+      n.style.cssText = 'position:absolute;left:-2px;top:-2px;transform:translate(-50%,-50%);background:#C0392B;color:#fff;font:600 13px/22px Inter,sans-serif;width:22px;height:22px;border-radius:50%;text-align:center;box-shadow:0 0 0 2px #fff;';
       d.appendChild(n); document.body.appendChild(d);
     });
-    return miss;
-  }, boxes);
+    let clip = null;
+    if (rects.length){
+      const L = Math.min(...rects.map(r => r.left)) - 40, T = Math.min(...rects.map(r => r.top)) - 40, R = Math.max(...rects.map(r => r.right)) + 40, B = Math.max(...rects.map(r => r.bottom)) + 40;
+      /* a close-up, never smaller than 560 × 350 and never past the window, about the frame's 16:10 */
+      let w = Math.max(560, R - L), h = Math.max(350, B - T);
+      if (w / h > 1.9) h = Math.round(w / 1.6); else if (h / w > 0.9) w = Math.round(h * 1.6);
+      w = Math.min(w, innerWidth); h = Math.min(h, innerHeight);
+      const cx = (L + R) / 2, cy = (T + B) / 2;
+      const x = Math.max(0, Math.min(innerWidth - w, Math.round(cx - w / 2))), y = Math.max(0, Math.min(innerHeight - h, Math.round(cy - h / 2)));
+      clip = { x, y, width: Math.round(w), height: Math.round(h) };
+    }
+    return { miss, whole, clip };
+  }, [boxes, PANEL_ROOTS]);
 }
 const clearBoxes = P => P.evaluate(() => document.querySelectorAll('.hbk-shot-box').forEach(x => x.remove()));
 /* back to a clean Home between recipes: a page in the middle shut, the panel let go, the landing off */
-async function reset(P){
-  await P.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} try { if (typeof closeContextPanel === 'function') closeContextPanel(); } catch (_){} try { if (typeof landOff === 'function') landOff(); } catch (_){} setView('counter'); });
+async function reset(P, base){
+  /* a fresh load first, so what one picture left in the page's memory (a read stopped half-way, a Settings
+     page open) never stands in the next; the steps below then bring it back to Home */
+  if (base){
+    await P.goto(base + '/', { waitUntil: 'networkidle' });
+    await until(P, () => !!(window.state && state.view && Array.isArray(state.contracts) && state.contracts.length && typeof hbkOpen === 'function'), null, 20000);
+    await P.evaluate(() => { state.aiConfigured = true; });
+  }
+  await P.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} try { if (typeof closeContextPanel === 'function') closeContextPanel(); } catch (_){} try { if (typeof landOff === 'function') landOff(); } catch (_){}
+    /* every face of Jambo's panel put away, so one picture's state never stands in the next */
+    ['pdFillAway', 'pdRedAway', 'pdSignAway', 'pdAmendAway', 'pdSendAway', 'pdMidOff', 'pdTalkClose'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (_){} });
+    try { if (typeof pdSetTab === 'function') pdSetTab('copilot'); } catch (_){}
+    /* the Contracts list back at rest: no column brought up, no set from another screen, Discover's form shut */
+    try { const R = regState(); (R.ask || []).slice().forEach(id => { if (typeof askColDrop === 'function') askColDrop(id); }); R.ask = []; R.only = null; if (typeof askColClose === 'function') askColClose(); } catch (_){}
+    setView('counter'); });
   await settle(P);
 }
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true }); if (SHOTS){ fs.mkdirSync(IMG, { recursive: true }); fs.mkdirSync(REVIEW, { recursive: true }); }
   const h = await startHati({ AI_RATE_DEEP: '5000', AI_RATE_LIGHT: '5000' });
-  await seedNavWorld(h);
+  await seedHandbookWorld(h);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 780 } });
   const P = await ctx.newPage();
@@ -115,9 +154,9 @@ async function reset(P){
   const errors = []; P.on('pageerror', e => errors.push(String(e && e.message || e)));
   try {
     await login(P, h.base);
-    const book = await P.evaluate(() => ({ chapters: HANDBOOK_CHAPTERS.map(c => ({ k: c.k, part: c.part, shot: c.shot || null, noShot: !!c.noShot })), parts: HANDBOOK_PARTS.map(p => p.k) }));
+    const book = await P.evaluate(() => ({ chapters: HANDBOOK_CHAPTERS.map(c => ({ k: c.k, part: c.part, shot: c.shot || null, shots: c.shots || null, noShot: !!c.noShot })), parts: HANDBOOK_PARTS.map(p => p.k) }));
 
-    if (!ONLY){
+    if (!ONLY.length){
       /* ---- 1 the doors in ---- */
       await P.evaluate(() => { setView('counter'); openPanel('guide'); });
       await until(P, () => document.querySelector('[data-gd-go="handbook"]'));
@@ -179,6 +218,36 @@ async function reset(P){
       await P.evaluate(() => caGo(caUnderstand('how do I send this for review', { box: 'list' }))); await settle(P);
       check('4b …and the press opens the Handbook on that chapter', await P.evaluate(() => state.view === 'handbook' && hbkPlace().chapter === '3.3' && !!document.querySelector('.hbk-ch[aria-current="true"][data-hbk-ch="3.3"]')));
 
+      /* ---- 4′ THE PAGE STANDS STILL (owner, 26 Oct 2026: "stop the Handbook jumping"; numbered steps; the
+         contents fully visible) ---- */
+      await P.evaluate(() => hbkOpen('3.1')); await settle(P);
+      const still = await P.evaluate(async () => {
+        const pg = document.getElementById('hbk-page'), toc = document.querySelector('#hbk-page .hbk-toc'), body = document.getElementById('hbk-body');
+        const jump = [...document.querySelectorAll('[data-hbk-jump]')].pop(); const k = jump && jump.getAttribute('data-hbk-jump');
+        jump.click();
+        const ch = document.querySelector(`.hbk-ch[data-hbk-ch="${k}"]`);
+        const off = ch ? Math.abs(ch.getBoundingClientRect().top - body.getBoundingClientRect().top) : 999;
+        const samePage = document.getElementById('hbk-page') === pg && document.querySelector('#hbk-page .hbk-toc') === toc;
+        body.scrollTop = 400;
+        const row = [...document.querySelectorAll('.hbk-toc-row')].find(r => r.getAttribute('data-hbk-part') !== hbkPlace().part); row.click();
+        const top = document.getElementById('hbk-body').scrollTop;
+        return { k, off: Math.round(off), samePage, sameToc: document.querySelector('#hbk-page .hbk-toc') === toc, top, behavior: getComputedStyle(body).scrollBehavior };
+      });
+      check('4′a a chapter link moves the page at once to the chapter, nothing repainted', !!still.k && still.off <= 24 && still.samePage && still.behavior === 'auto', JSON.stringify(still));
+      check('4′b a part opens at its top, the contents kept', still.sameToc && still.top === 0, JSON.stringify(still));
+      const steps = await P.evaluate(() => [...document.querySelectorAll('.hbk-ch')].map(ch => { const ol = ch.querySelector('ol.hbk-steps'); const n = ol ? [...ol.querySelectorAll(':scope > li > .hbk-step-n')].map(x => x.textContent.trim()) : [];
+        const ul = ch.querySelector('ul.hbk-bullets'); return { k: ch.getAttribute('data-hbk-ch'), n, li: ol ? ol.children.length : 0, dot: ul ? getComputedStyle(ul).listStyleType : 'none' }; }));
+      check('4′c every chapter\'s steps are numbered 1, 2, 3 …, its "when" lines bulleted', steps.length && steps.every(s => s.li && s.n.length === s.li && s.n.every((x, i) => x === String(i + 1)) && s.dot === 'disc'), JSON.stringify(steps.filter(s => !(s.li && s.n.length === s.li && s.dot === 'disc')).slice(0, 3)));
+      for (const [w, hgt] of SCREENS){
+        await P.setViewportSize({ width: w, height: hgt }); await settle(P);
+        const toc = await P.evaluate(() => { const t = document.querySelector('#hbk-page .hbk-toc');
+          const cut = [...t.querySelectorAll('.hbk-toc-w b, .hbk-toc-w small')].filter(e => e.scrollWidth > e.clientWidth + 1 || getComputedStyle(e).textOverflow === 'ellipsis').length;
+          const out = [...t.querySelectorAll('.hbk-toc-row')].filter(r => r.getBoundingClientRect().right > t.getBoundingClientRect().right + 1).length;
+          return { side: t.scrollWidth > t.clientWidth + 1, cut, out }; });
+        check(`4′d at ${w}×${hgt}: the contents never scroll sideways, every part's words whole`, !toc.side && !toc.cut && !toc.out, JSON.stringify(toc));
+      }
+      await P.setViewportSize({ width: 1440, height: 780 });
+
       /* ---- 5 the three screens ---- */
       for (const [w, hgt] of SCREENS){
         await P.setViewportSize({ width: w, height: hgt }); await P.evaluate(() => hbkOpen('3.3')); await settle(P);
@@ -192,20 +261,32 @@ async function reset(P){
     }
 
     /* ---- 6 every chapter's picture recipe finds what it boxes (and, asked, takes the picture) ---- */
-    const chapters = book.chapters.filter(c => !ONLY || c.k === ONLY);
+    const chapters = book.chapters.filter(c => onlyHas(c.k));
+    const seenPic = new Map();
+    const crypto = require('node:crypto');
     for (const c of chapters){
-      if (!c.shot){ check(`6 ${c.k} has no picture by design, and says why`, c.noShot); continue; }
-      await reset(P);
-      let err = '';
-      try { for (const st of c.shot.go) await runStep(P, st); } catch (e){ err = String(e && e.message || e); }
-      let miss = err ? c.shot.boxes : [];
-      if (!err){ for (let i = 0; i < 20 && (miss = await drawBoxes(P, c.shot.boxes)).length; i++) await P.waitForTimeout(250); }
-      check(`6 ${c.k} the recipe lands and every box is found`, !err && !miss.length, err || (miss.length ? 'not found: ' + miss.join(' ; ') : `${c.shot.boxes.length} boxes`));
-      if (!err && !miss.length){
-        const file = path.join(SHOTS ? IMG : OUT, `${c.k}.png`);
-        await P.screenshot({ path: file });
+      const shots = Array.isArray(c.shots) ? c.shots : (c.shot ? [c.shot] : []);
+      if (!shots.length){ check(`6 ${c.k} has no picture by design, and says why`, c.noShot); continue; }
+      for (const [i, sh] of shots.entries()){
+        const nm = `${c.k}-${i + 1}`;
+        await reset(P, h.base);
+        let err = '';
+        if (h.ai && typeof h.ai.slow === 'function') h.ai.slow(0);
+        try { for (const st of sh.go) await runStep(P, st, h); } catch (e){ err = String(e && e.message || e); }
+        let got = { miss: sh.boxes.map(b => typeof b === 'string' ? b : b.sel), whole: [], clip: null };
+        if (!err){ for (let t = 0; t < 20 && (got = await drawBoxes(P, sh.boxes)).miss.length; t++) await P.waitForTimeout(250); }
+        check(`6 ${nm} the recipe lands and every box is found`, !err && !got.miss.length, err || (got.miss.length ? 'not found: ' + got.miss.join(' ; ') : `${sh.boxes.length} boxes`));
+        check(`6′ ${nm} every box is a place to look, never a whole panel`, !got.whole.length, got.whole.join(' ; '));
+        if (!err && !got.miss.length){
+          const file = path.join(SHOTS ? IMG : OUT, `${nm}.png`);
+          const buf = await P.screenshot({ path: file, clip: got.clip || undefined });
+          /* NO PICTURE IS SHARED (owner, 26 Oct 2026): two pictures with the same pixels fail */
+          const hash = crypto.createHash('sha1').update(buf).digest('hex');
+          check(`6″ ${nm} is its own picture, shared with no other`, !seenPic.has(hash), seenPic.get(hash) || '');
+          seenPic.set(hash, nm);
+        }
+        await clearBoxes(P);
       }
-      await clearBoxes(P);
     }
     await reset(P);
     check('7 no page errors', !errors.length, errors.slice(0, 3).join(' | '));
