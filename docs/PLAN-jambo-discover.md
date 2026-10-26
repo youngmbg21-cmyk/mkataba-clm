@@ -125,3 +125,25 @@ Not done, and why: the "what worked before" card offers kept wording only (draft
 wording when none is kept was left out: it would spend a call the plan had not priced);
 "Send the table" copies it to the clipboard rather than opening the send screen (the
 send screen's letter is one contract's).
+
+## 7. The owner's notes after using it (26 Oct 2026) — NOT BUILT, more to come
+
+The owner said: "take note of these but do not code anything yet as I will be adding some more."
+
+1. **Stop while it reads.** Ask a column's "Jambo is reading 50 contracts…" has no way to stop.
+   Wanted: a Stop on the reading line. (Today the read runs to the end once pressed.)
+2. **The answer cells are cramped.** With three columns on the list, a cell shows a cut-off
+   answer ("N", "S", "6"), the § and the tick circle squeezed together, and a cut-off quote.
+   Wanted: much tidier — a traffic-light way of showing it so the cell is not crammed
+   (the colour carries the verdict; the words and the quote go elsewhere).
+3. **Discover's list grows without end.** Every question anyone asked stays on it, including
+   one-off ones ("how many of these"). Wanted: delete questions, or save (keep) some, so only
+   the saved ones appear.
+4. **The whole-table page (Due diligence: every answer) needs a professional design.**
+   Today: a plain grid, the legend and "Back to the list" floating under it, lots of empty page.
+5. **Questions that are not company facts show in Settings › Company facts.** The panel lists
+   every question anyone asked (up to 20, switched off) — including personal, counting
+   questions such as "how many of these contracts need my response from their redlines",
+   which are not questions about a contract's wording at all. Wanted: they must not be there.
+   (Found: the panel reads the whole kept-question list, not only facts; and counting
+   questions should never have become columns in the first place.)
