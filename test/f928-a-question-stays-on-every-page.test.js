@@ -61,7 +61,7 @@ describe('f928 (3) the local-mode chat says the same', () => {
   const lit = (src, re) => { const m = src.match(re); return m ? m[1] : null; };
   test('the browser twin exists and is called on every delivered answer', () => {
     assert.match(AI, /function aiLocalQuestionStays\(messages, final\)/);
-    assert.match(AI, /aiLocalQuestionStays\(messages, final\);\s*break;/);
+    assert.match(AI, /aiLocalQuestionStays\(messages, final\);\s*aiLocalChapterButton\(final\);\s*break;/);
   });
   test('its word lists equal the server\'s', () => {
     assert.equal(lit(AI, /const AI_LOOK_TASKS=(\[[^\]]*\])/).replace(/\s/g, ''), lit(SRV, /const COPILOT_LOOK_TASKS = (\[[^\]]*\])/).replace(/\s/g, ''));
