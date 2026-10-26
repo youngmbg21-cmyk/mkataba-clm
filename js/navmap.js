@@ -624,6 +624,8 @@ function navGo(a){
   if (n.k === 'compare') return navGoCompare(n);
   if (n.k === 'place') return navGoPlace(n);
   if (n.k === 'stfind') return (typeof stFindGo === 'function') ? (stFindGo(n.id), true) : false;
+  /* a Handbook chapter (Jambo's answer's button; 'about' the book's front page) */
+  if (n.k === 'chapter') return (typeof hbkOpen === 'function') ? (n.chapter === 'about' ? hbkOpen(null, { part: (typeof HANDBOOK_PARTS !== 'undefined' && HANDBOOK_PARTS[0]) ? HANDBOOK_PARTS[0].k : 'around' }) : hbkOpen(n.chapter)) : false;
   return navGoStage2(n) || navGoStage3(n);
 }
 /* the contract on Home's paper, then its clause found on the paper as drawn and landed. A paper drawn
@@ -1277,6 +1279,13 @@ function navDoorOf(d){
   if (d.kind === 'duties') return d.due === '7' ? go({ k: 'duties', due: '7' }, 'nav_go_duties_week') : { kind: 'go', place: 'oblig' };
   /* My notes, or one of them: its own page's door (myNotesOpen); private, so only ever the reader's own */
   if (d.kind === 'mynote') return go({ k: 'mynote', id: d.noteId || null }, 'nav_go_mynote');
+  /* a Handbook chapter, or the book itself: every reader may open it (the server's aiDoorOf checked the number) */
+  if (d.kind === 'chapter'){
+    const ch = String(d.chapter || 'about'), c = typeof hbkChapterOf === 'function' ? hbkChapterOf(ch) : null;
+    if (ch !== 'about' && !c) return null;
+    const lang = (typeof langId === 'function' && langId() === 'sv') ? 'sv' : 'en';
+    return go({ k: 'chapter', chapter: c ? c.k : 'about' }, 'nav_go_handbook', { t: c && c.title ? (c.title[lang] || c.title.en) : _nvT('nav_handbook') });
+  }
   return null;
 }
 

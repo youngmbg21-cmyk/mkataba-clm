@@ -21737,3 +21737,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ### Noticed, not fixed
 - 7g ("a press on the bubble opens that group") in the same file also waits
   only 3000ms, with the same slow-runner exposure as 13f had.
+
+## Noticed, not fixed — 26 Oct 2026 (Jambo reads the Handbook)
+- "who can change the currency rates?" is read by navRead as a trip to the setting ("The setting, in Settings.") instead of being answered from the Handbook; "who …" questions are trips by earlier rulings ("who works here", "who can open Procurement", "who is Amina" in test/nav-exam.js and f926), so a who-asks-permission split is the owner's call.
+- Two tests share the number f893 on main (f893-discover-keep-and-wording-only.test.js and f893-template-hygiene.test.js), against "every test number is used once".
