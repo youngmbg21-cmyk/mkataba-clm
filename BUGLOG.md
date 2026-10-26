@@ -21746,3 +21746,4 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## Noticed, not fixed — 26 Oct 2026 (Jambo reads the Handbook)
 - "who can change the currency rates?" is read by navRead as a trip to the setting ("The setting, in Settings.") instead of being answered from the Handbook; "who …" questions are trips by earlier rulings ("who works here", "who can open Procurement", "who is Amina" in test/nav-exam.js and f926), so a who-asks-permission split is the owner's call.
 - Two tests share the number f893 on main (f893-discover-keep-and-wording-only.test.js and f893-template-hygiene.test.js), against "every test number is used once".
+- owners-fifteen-verify.js is unreliable: red on main's run of 2bfe7f5 (shard 5/6), and locally one run passes 33/33 while the next fails 13f (a wobbling press); on #496 it failed 13d. Not fixed (outside the request).
