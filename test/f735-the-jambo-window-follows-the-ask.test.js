@@ -98,7 +98,7 @@ describe('f735 (3) a booking goes to the Calendar\'s Jambo from every box', () =
   test('the chat says plainly it cannot book or see a calendar, in the same words on both hosts', () => {
     assert.ok(srvParts.rule && srvParts.rule === webParts.rule, 'one sentence, word for word');
     assert.match(srvParts.rule, /cannot see the person's own calendar/);
-    assert.match(fnOf(SRV, 'function buildCopilotSystem('), /- \$\{AI_CALENDAR_RULE\}`;/);
+    assert.match(fnOf(SRV, 'function buildCopilotSystem('), /- \$\{AI_CALENDAR_RULE\}\n- \$\{AI_HANDBOOK_RULE\}`;/);
     assert.match(fnOf(AIJS, 'function _localSystem('), /\$\{AI_CALENDAR_RULE\}/);
   });
 });
