@@ -8392,8 +8392,11 @@ function renderIntelDock(){
            and that tab does not scroll with the conversation — so nothing the
            owner asked for is undone by keeping it there. Without this the
            Contracts panel lost his greeting altogether the moment it stopped
-           being his one window. */
-        const lead=solo||(typeof window.igHomePaperFace==='function'&&igHomePaperFace()===true);
+           being his one window. Only over the WALL, though: once a paper is
+           chosen or open the landing is that contract's own card, and a
+           greeting above it pushed the card off the screen at 1536x730. */
+        const lead=solo||(typeof window.igHomePaperFace==='function'&&igHomePaperFace()===true
+          &&!(window.pdOnPaper&&pdOnPaper())&&!(window.pdHeldContract&&pdHeldContract()));
         return (lead&&top&&typeof window.jamboHelloHtml==='function'?jamboHelloHtml():'')+(top||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`); })()}${solo?msgs+typing:''}
     </div>`}
     ${''/* SAVED VIEWS LEFT THE PANEL (owner, 15 Oct 2026): they stand on the

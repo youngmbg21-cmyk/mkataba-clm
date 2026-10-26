@@ -191,7 +191,7 @@ describe('f840 (2) Home\'s panel', () => {
        on a one-window panel AND on the Paper face, which keeps two tabs now so
        that Discover is never inside the talk. Without the second case the
        Contracts panel lost his greeting altogether. `lead` is that reading. */
-    assert.match(f, /const lead=solo\|\|\(typeof window\.igHomePaperFace==='function'&&igHomePaperFace\(\)===true\);/, 'his greeting leads a one-window panel and the Paper face');
+    assert.match(f, /const lead=solo\|\|\(typeof window\.igHomePaperFace==='function'&&igHomePaperFace\(\)===true\s*&&!\(window\.pdOnPaper&&pdOnPaper\(\)\)&&!\(window\.pdHeldContract&&pdHeldContract\(\)\)\);/, 'his greeting leads a one-window panel and the wall, never a chosen paper');
     assert.match(f, /return \(lead&&top&&typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):''\)\+\(top\|\|`<div class="ig-welcome/, 'the landing: its own words, his greeting first');
     assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');
     /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the box stands under every tab, no condition */
