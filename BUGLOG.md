@@ -21599,3 +21599,15 @@ Checked: test/chromium/window-over-a-page-verify.js (red at the parent on three 
 - Noticed, not fixed (25 Oct 2026, flow report re-check): four-decisions-verify.js failed its first step "signed in with the sample book" when run four browser checks at a time; run alone it passed 39 of 39. Likely a sign-in wait that is too short under load.
 
 - Noticed, not fixed (26 Oct 2026, PR #484): week-as-drawn-verify "5 1536×730: the Calendar whole" is red on main itself (measured on an untouched worktree at 73a0dfd): the week rows keep the 1440×780 layout instead of fitting, so the fifth row ends at 756px on a 730px screen; it turned red when the new week began (this week's row grew to "3 due"). The owner's laptop screen.
+
+## Noticed, not fixed — 26 Oct 2026 (Discover, the owner's seven notes)
+- The owner's workspace holds question rows that should never have become columns
+  ("how many of these contracts need my response from their redlines", "how many
+  contracts have no redlines", "How many of the contracts have been signed", "How many
+  contracts have risks", "How many contracts have 30 day payment terms"). Both hosts now
+  refuse such a question, so no new one can appear, and Delete stands on every unkept row
+  in Discover — but the rows already there are NOT deleted: deleting is not undoable and
+  the owner has not seen the list. Waiting on their yes.
+- Batching a column read multiplies the requests the deep rate limiter counts (a
+  50-contract read is 5 requests, not 1). Not a fault today at AI_RATE_DEEP 15, but the
+  limiter now counts pieces of one read, which is not quite what it means to count.

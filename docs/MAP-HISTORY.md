@@ -34592,3 +34592,74 @@ BOTH, KEPT TOGETHER (25 Oct 2026). Bringing main in, the Deal page had been chan
 
 ## CALENDAR · THE CHECK NO LONGER DEPENDS ON THE DAY (26 Oct 2026)
 GitHub's browser checks on #483 (and on main, measured locally at 73a0dfd) went red on week-as-drawn-verify 5 "1536×730: the Calendar whole" on Monday 26 Oct only: three things due on the day stack in the week's all-day row (63px), the first later week holds a chip and its "+N more" (57px), and "30 Nov – 4 Dec" takes two lines (48px, the 25 Oct detail round), so the five later weeks needed 219px in a 170px band. The page did what the owner ruled on 21 Oct ("the five weeks after give way — their rows down to 38px, then scrolling inside their own band on a shorter screen still"); the check asked that every row be in view, which a quiet day allows and a busy one does not. Asked between "Fix the check" and "Squeeze the page", the owner picked "Fix the check": the check now passes when every row is in view or the band scrolls inside itself with its top in view, its foot inside the window, every row reachable and none under 38px. Nothing on the page changed.
+
+
+## ASK A COLUMN — DISCOVER, THE OWNER'S SEVEN NOTES AFTER USING IT (26 Oct 2026)
+The owner ran the merged Discover against their own book (189 contracts, SEK 1.07B) and
+sent seven notes with screenshots, then: "I will go with all your recommendations for now."
+Three options were drawn for each design question in a plain HTML Artifact, named, at real
+size on the screen each changes; the owner picked by name.
+
+1. **Stop while it reads.** "Once you start the work and it is reading, need the ability to
+   click on stop on the reading." Built as drawn (one proposal, no options): the read goes
+   out in tens (`AC_BATCH` 10, `askColReadRun`), so the line counts what has landed, a bar
+   follows it, and Stop raises a flag read between batches. Nothing already read is lost —
+   answers are kept per contract — and what is left is offered again with its own cost
+   (`askColStopHtml` → Carry on · N contracts · N Jambo calls). MEASURED: at the parent
+   there was no count and no way out; a 50-contract read was one request and could only be
+   waited out. The batching costs one thing, said here so it is not rediscovered: the deep
+   rate limiter counts REQUESTS, so a 50-contract read is now 5 of them, not 1 (hence
+   `AC_BATCH` 10, not 5, and `AI_RATE_DEEP` raised in the two checks that drive many reads).
+2. **"The highlighted area should be much tidier so find a traffic light system so that info
+   is not cramped up."** Options drawn: **Lights** (the SAP way), Two lines (the Legora way,
+   which is what 25 Oct had built), Strip (dense). The owner picked **Lights**, and on being
+   asked whether "tidy up Ask a column like Due diligence" meant a multi-question form,
+   corrected it: "I mean remove the cramping up and make it a traffic light system" — so a
+   single question's column wears Lights too, and the multi-question form was NOT built.
+   A cell is now one light and the short answer on one line, never cut; the §, the quoted
+   words and the tick moved into the panel's reading of the chosen row, which has the room.
+   The at-risk count moved into the column's own head. REVERSES "each fact shows where on
+   the paper it was read, § and words quoted, in the cell" (25 Oct), which the owner found
+   cramped as soon as three columns stood together.
+3. **"Over time the list becomes enormous. You should be able to delete some or save some
+   from your list so the saved ones are the only ones that appear."** Options: **Only what
+   you keep** (the Legora way), Kept · All (the SAP way), Shelves. The owner picked **Only
+   what you keep**: Discover lists kept questions only (`column_asks.kept`), a pack's and a
+   company fact's are kept by themselves, everything else waits behind one folded line
+   ("14 other questions asked"), where each can be kept or deleted. Keeping takes nobody's
+   permission; taking off and deleting are the asker's, the keeper's or an admin's
+   (`colMayUnkeep`), and a fact cannot be either while it is a fact.
+4. **"This table should be better designed and tidy for professionals."** Options:
+   **Ledger** (the SAP way), Matrix (dense), Dossiers (the Legora way). The owner picked
+   **Ledger**: one framed card with a head that says what was read and when, the contract
+   column standing still while the answers scroll, the same two-line rhythm in every cell,
+   the at-risk count in each column's head, Only at risk, and the legend in the foot.
+5. **"Why are the personal questions going to the company facts? These should not be
+   there."** TWO faults, both found by reading the code the owner's screenshot pointed at:
+   the Settings page listed every question anyone had ever asked (not only facts), and a
+   COUNTING question ("how many contracts have no redlines", "How many of the contracts
+   have been signed") had been allowed to become a column at all. A column asks what ONE
+   contract's wording says, of every contract in turn; a counting question is about the
+   reader's own book, which Jambo's box answers from the records, free. Both hosts now
+   refuse one (`COLUMN_PORTFOLIO_RE` = `AC_PORTFOLIO_RE`, the server being the wall), so it
+   is never kept and can never reach the facts page; the page lists facts only, with an
+   "Add a fact" picker over the kept wording questions. The junk already in the owner's
+   workspace is theirs to delete from Discover (Delete is on every unkept row) — not done
+   here, because deleting is not undoable and the owner has not seen the list.
+6 & 7. **"In these two areas, the output should be in a highlighted area or card so they are
+   not missed"** — the approver's "In plain words" and the party's "The two minutes", both
+   of which ran as plain paragraphs under a small grey heading, in the same type as the
+   facts around them. Options: **Jambo's card** (the Legora way), Memo (the SAP way),
+   Spotlight. The owner picked **Jambo's card**: ONE builder (`jamboSayCardHtml` /
+   `jamboSayAskHtml`, js/components.js) dresses both — the soft grey card his answers
+   already wear, 18px corners, 16px inside, "✦ Jambo · In plain words" on top. It carries
+   because it is the only card on the panel; the facts around it stay plain rows.
+8. **A pack's questions each have a tick** ("I should be able to choose which of the
+   available company facts I want to run if I only want to run 3 out of the 5"): all on to
+   begin with, the cost line and the Ask button follow the ticks, none ticked greys the
+   button with why (`askColPackPicked`).
+
+THE THREE SCREENS: photographed at 1440×780, 1536×730 and 1366×950, including the two new
+ones (the Ledger, and the reading line with Stop); every screen fits, nothing spills.
+GREEN: lint 0 errors · f893 26/26 · f887–f892 re-run · discover-verify 54/54 ·
+ask-a-column-verify 28/28 · tidy sweep 40/40 on the four pages touched.

@@ -36,6 +36,11 @@ const AC_TONE = { good:'green', watch:'amber', concern:'ruby', none:'gray' };
    the agreement cell carries "kind · ref" now, so the Ref column's share
    went to it (the drawing's Agreement 34% beside one answer) */
 const AC_COL_W = { 1:[33,15,13,11,22,6], 2:[30,13,11,9,16.5,16.5,4], 3:[26,12,10,9,13,13,13,4] };
+/* STOP WHILE HE READS (owner, 26 Oct 2026: "need the ability to click on stop
+   on the reading"). The read goes out in batches, so the count rises as answers
+   land and Stop simply means "start no more": every answer already read is
+   kept, and what is left is offered again with its own cost. */
+const AC_BATCH = 10;
 
 const AC = {
   asks: {},        // id → { id, question, name }
@@ -49,6 +54,10 @@ const AC = {
   packs: [],       // the packs (GET /api/columns): Due diligence first
   summary: null,   // the kept questions, counted (GET /api/columns/summary)
   packRun: null,   // { packId, name, askIds } — the last pack asked, so its whole table can be opened
+  stopped: null,   // { base, left, done, name } after Stop — what was kept, and the rest offered again
+  discAll: false,  // the folded line pressed: the questions nobody kept are shown too
+  others: 0,       // how many questions are not kept (the folded line's number)
+  tableRisk: false,// the whole table's "Only at risk"
 };
 const _acE = s => (typeof esc === 'function') ? esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const _acT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
@@ -180,7 +189,12 @@ function askColThHtml(askId, style, grip, caret){
   const a = AC.asks[askId] || {}, key = 'ask:' + askId;
   const on = typeof regState === 'function' && regState().sort === key;
   const spark = (typeof icon === 'function') ? icon('sparkle', 'ac-th-i') : '';
-  return `<th class="reg-th-sort ac-th${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.name || '')}</span>${spark}${caret || ''}${grip || ''}</th>`;
+  /* THE COUNT THAT MATTERS, WHERE THE EYE ALREADY IS (Lights, 26 Oct 2026):
+     the cells carry one word each now, so how many are at risk is said once,
+     in the head of the column it belongs to. Nothing where none are. */
+  const risk = askColAtRisk(askId).length;
+  const tally = risk ? `<span class="ac-th-risk">${_acE(_acTn('ac_disc_risk', risk))}</span>` : '';
+  return `<th class="reg-th-sort ac-th${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.name || '')}</span>${spark}${tally}${caret || ''}${grip || ''}</th>`;
 }
 function askColInitials(name){
   const p = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -227,37 +241,43 @@ function askColLegendHtml(){
 /* A QUESTION OF THE WORDING TYPED IN THE LIST'S OWN BOX (stage 2): the same
    form opens, filled — the one door to a read, the cost said before any call */
 const AC_WORDING_RE = /\b(notice|terminat\w*|cancel\w*|liabilit\w*|capped|cap\b|indemn\w*|govern\w*|law\b|jurisdiction|renew\w*|roll(s|ed)? over|personal data|data protection|confidential\w*|payment terms|days to pay|warrant\w*|exclusiv\w*|non-compete|assign\w*|force majeure|clause|does (it|the contract|each contract) say|uppsägning\w*|ansvar\w*|förnya\w*|personuppgift\w*)\b/i;
+/* A COUNTING QUESTION IS NOT A COLUMN (owner, 26 Oct 2026: "why are the
+   personal questions going to the company facts?"). "How many contracts have
+   no redlines" asks about the reader's own book, which Jambo's box answers from
+   the records, free; a column asks what ONE contract's wording says, of every
+   contract in turn. Twinned on the server (COLUMN_PORTFOLIO_RE), which is the
+   wall: nothing counting is ever kept as a question. */
+const AC_PORTFOLIO_RE = /^\s*(how many\b|how much (of|do i|do we)\b|which (of|ones)\b|count\b|list\b|show me\b|who (has|have)\b)|\b(these|those|my|our|the) contracts\b/i;
+function askColIsPortfolio(words){ return AC_PORTFOLIO_RE.test(String(words || '')); }
 function askColTakes(seat, words){
   const t = String(words || '').trim();
   if (seat !== 'contracts' || !askColOn() || !askColMay() || !t) return false;
   const q = (typeof lhIsQuestion === 'function') ? lhIsQuestion(t) : /\?$/.test(t);
-  if (!q || !AC_WORDING_RE.test(t)) return false;
+  if (!q || !AC_WORDING_RE.test(t) || askColIsPortfolio(t)) return false;
   askColOpen({ question: t.slice(0, 300) });
   return true;
 }
+/* LIGHTS (the owner picked it, 26 Oct 2026: "remove the cramping up … make it a
+   traffic light system"). A CELL SAYS ONE THING: the light and the short answer,
+   on one line, never cut off by a § chip, a tick and a quoted sentence fighting
+   it for 150 pixels. Everything else — the clause, the words it was read from,
+   the rule, the tick — is one press away, in the panel's reading of the chosen
+   row, which has the room for it. Reversal of "the Legora way's two lines"
+   (25 Oct 2026), which the owner found cramped with three columns up. */
 function askColTdHtml(c, askId){
   const a = (AC.ans[askId] || {})[c.id];
   const on = AC.chosen && AC.chosen.askId === askId && AC.chosen.cid === String(c.id);
   const attrs = `class="ac-cell${on ? ' is-on' : ''}" data-ac="${_acE(askId)}" data-ac-cid="${_acE(c.id)}"`;
   if (!a){
-    const busy = AC.busy && AC.busy.askId === askId && AC.busy.ids && AC.busy.ids.includes(String(c.id));
-    return `<td ${attrs}>${busy && typeof busyHtml === 'function' ? `<span class="ac-sub">${busyHtml('')}</span>` : `<span class="ac-dash">—</span><small class="ac-sub">${_acE(_acT('ac_not_read'))}</small>`}</td>`;
+    const busy = AC.busy && AC.busy.ids && AC.busy.ids.includes(String(c.id));
+    return `<td ${attrs}>${busy && typeof busyHtml === 'function' ? `<span class="ac-sub">${busyHtml('')}</span>` : `<span class="ac-ans tone-none is-wait" title="${_acE(_acT('ac_not_read'))}"><i></i><span class="ac-a">${_acE(_acT('ac_not_read'))}</span></span>`}</td>`;
   }
-  if (a.noWording) return `<td ${attrs}><span class="ac-ans tone-gray"><i></i>${_acE(_acT('ac_no_wording'))}</span><small class="ac-sub">${_acE(_acT('ac_no_wording_sub'))}</small></td>`;
-  const tone = askColToneOf(a);
-  const word = a.found ? a.answer : _acT('ac_not_found');
-  const ck = a.checked;
-  const may = askColMay();
-  const tip = !may ? _acT('ac_mark_viewer') : ck ? _acT('ac_unmark', { who: ck.by, when: askColWhen(ck.at) }) : _acT('ac_mark');
-  const tick = `<button type="button" class="ac-ck${ck ? ' on' : ''}" data-ac-ck aria-pressed="${ck ? 'true' : 'false'}" title="${_acE(tip)}" aria-label="${_acE(tip)}"${may ? '' : ' disabled'}>${ck && typeof icon === 'function' ? icon('check2', 'ac-ck-i') : ''}</button>`;
-  /* THE LEGORA WAY (owner, 25 Oct 2026): under the answer, the words it was read from; the tick says who checked it */
-  const sub = [a.detail, a.found ? askColQuoteShort(a) : '', ck ? _acT('ac_checked_by', { who: askColInitials(ck.by) }) : ''].filter(Boolean).join(' · ');
-  /* THE CLAUSE IT CAME FROM, ON THE ANSWER (Part 8, the Legora way's "§ 11.2"):
-     a press goes through "Go to clause"'s own door (askColGo), the answer
-     chosen first — never a second way onto the paper */
-  const no = a.found ? askColClauseNo(a) : '';
-  const cite = no ? `<button type="button" class="ac-cite" data-ac-cite title="${_acE(_acT('ac_go_clause', { n: no }))}" aria-label="${_acE(_acT('ac_go_clause', { n: no }))}">§ ${_acE(no)}</button>` : '';
-  return `<td ${attrs}><span class="ac-ans tone-${tone}"><i></i><span class="ac-a${ck ? '' : ' is-unck'}">${_acE(word)}</span>${cite}${tick}</span><small class="ac-sub">${_acE(sub)}</small></td>`;
+  const word = a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
+  const tone = a.noWording ? 'gray' : askColToneOf(a);
+  /* the full reading rides the cell's own title, so a long answer is readable
+     where it is, without the row growing or the words being cut twice over */
+  const tip = [word, a.detail, a.found ? askColQuoteShort(a) : ''].filter(Boolean).join(' · ');
+  return `<td ${attrs}><span class="ac-ans tone-${tone}" title="${_acE(tip)}"><i></i><span class="ac-a">${_acE(word)}</span></span></td>`;
 }
 /* sorting by an answer column: the ones to look at first — a concern, then
    one to watch, then the usual, then a plain fact, then nothing found */
@@ -271,11 +291,33 @@ function askColCmp(askId){
 /* ---- JAMBO'S PANEL ---- */
 function askColPanelHtml(){
   if (!askColOn()) return '';
+  if (AC.busy) return askColBusyHtml();
   if (AC.form) return askColFormHtml();
+  const stopped = AC.stopped ? askColStoppedHtml() : '';
   const up = askColIdsUp();
-  if (!up.length) return '';
+  if (!up.length) return stopped;
   const ch = AC.chosen && up.includes(AC.chosen.askId) ? AC.chosen : null;
-  return (ch ? askColWhyHtml(ch) : '') + (ch ? askColColumnHtml(ch.askId) : up.map(askColColumnHtml).join('') + askColDiscoverHtml());
+  return stopped + (ch ? askColWhyHtml(ch) : '') + (ch ? askColColumnHtml(ch.askId) : up.map(askColColumnHtml).join('') + askColDiscoverHtml());
+}
+/* WHILE HE READS: how far he has got, and Stop. The count is the answers
+   already landed — they are kept whatever happens next (owner, 26 Oct 2026). */
+function askColBusyHtml(){
+  const b = AC.busy, pct = b.total ? Math.round(b.done / b.total * 100) : 0;
+  const line = b.stop ? _acT('ac_stopping') : _acTn('ac_reading_n', b.total, { done: b.done });
+  return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(b.name || _acT('ac_title'))}</b></div>
+    <div class="pd-gl-b"><div class="ac-busy" role="status" aria-live="polite">${typeof busyHtml === 'function' ? busyHtml(line) : _acE(line)}</div>
+      <div class="ac-prog" role="img" aria-label="${_acE(line)}"><i style="width:${pct}%"></i></div>
+      <div class="ac-next"><button type="button" class="jb-chip" data-ac-stop${b.stop ? ' disabled' : ''}>${_acE(_acT('ac_stop'))}</button></div>
+      <div class="ac-meta">${_acE(_acT('ac_stop_keeps'))}</div>
+    </div></div>`;
+}
+/* AFTER A STOP: what was kept, what was not, and the rest offered with its cost */
+function askColStoppedHtml(){
+  const s = AC.stopped, calls = s.left.length;
+  return `<div class="pd-glance ac-card" id="ac-stopped"><div class="pd-gl-h"><b>${_acE(s.name)}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acT('ac_stopped_word'))}</span></div>
+    <div class="pd-gl-b"><div class="ac-meta">${_acE(_acT('ac_stopped_said', { done: s.done, total: s.total, left: s.left.length }))}</div>
+      <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-carry>${_acE(_acTn('ac_carry_on', calls, { calls: _acTn('ac_n_calls', calls) }))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-stopped-close>${_acE(_acT('ac_stopped_leave'))}</button></div>
+    </div></div>`;
 }
 
 /* ---- DISCOVER (stage 3, owner 25 Oct 2026: "Discover", in Jambo's panel beside
@@ -283,34 +325,77 @@ function askColPanelHtml(){
    this person may see, free; a press brings a question's column onto the list;
    the packs; and the one door to a new question. Drawn under his greeting when
    nothing is chosen, and under the columns' cards. ---- */
-let _acSumAt = 0;
+let _acSumAt = 0, _acSumAll = 0;
 async function askColSummary(force){
-  if (!force && Date.now() - _acSumAt < 60000 && AC.summary) return AC.summary;
-  _acSumAt = Date.now();
-  try { const r = await api('columns/summary'); AC.summary = (r && r.asks) || []; (AC.summary || []).forEach(a => { AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a); }); }
+  const want = AC.discAll ? 1 : 0;
+  if (!force && want === _acSumAll && Date.now() - _acSumAt < 60000 && AC.summary) return AC.summary;
+  _acSumAt = Date.now(); _acSumAll = want;
+  try {
+    const r = await api('columns/summary' + (want ? '?all=1' : ''));
+    AC.summary = (r && r.asks) || []; AC.others = (r && r.others) || 0;
+    (AC.summary || []).forEach(a => { AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a); });
+  }
   catch (_){ AC.summary = AC.summary || []; }
   if (!AC.packs.length) await askColTeam();
   return AC.summary;
 }
+/* ONLY WHAT YOU KEEP (the owner picked it, 26 Oct 2026). Discover lists the
+   questions the team keeps: the company's facts, the packs' and whatever
+   somebody pressed Keep on. The rest are still answered and still free to
+   bring back — they wait behind one folded line, where each can be kept or
+   deleted. Keeping takes nobody's permission; taking off and deleting are the
+   asker's, the keeper's or an admin's (the server is the wall). */
 function askColDiscoverHtml(){
-  if (!askColOn() || AC.form) return '';
-  const rows = (AC.summary || []).filter(a => a.read > 0 || a.fact).slice(0, 8);
-  const up = new Set(askColIdsUp());
+  if (!askColOn() || AC.form || AC.busy) return '';
+  const all = AC.discAll, rows = (AC.summary || []).slice(0, all ? 40 : 8);
+  const up = new Set(askColIdsUp()), may = askColMay();
   const row = a => {
     const bits = [a.found ? _acTn('ac_answered', a.found) : '', a.risk ? _acTn('ac_disc_risk', a.risk) : '', a.last ? _acT('ac_read_at', { when: askColWhen(a.last) }) : ''].filter(Boolean).join(' · ');
     const tags = [a.fact ? `<span class="ac-tag">${_acE(_acT('ac_disc_fact'))}</span>` : '', up.has(a.id) ? `<span class="ac-tag">${_acE(_acT('ac_disc_up'))}</span>` : '', askColRowTagsHtml(a)].join('');
-    return `<button type="button" class="ac-disc-row${a.risk ? ' has-risk' : ''}" data-ac-bring="${_acE(a.id)}" title="${_acE(a.question || '')}"><span class="ac-disc-n"><b>${_acE(a.name || '')}</b>${tags}</span><span class="ac-disc-m">${a.risk ? '<i class="ac-lg-ruby"></i>' : ''}${_acE(bits)}</span></button>`;
+    const keep = !may || a.fact ? '' : `<button type="button" class="ac-disc-act" data-ac-keep="${_acE(a.id)}" data-ac-on="${a.kept ? '1' : '0'}" title="${_acE(_acT(a.kept ? 'ac_keep_off_tip' : 'ac_keep_on_tip'))}">${_acE(_acT(a.kept ? 'ac_keep_off' : 'ac_keep_on'))}</button>`;
+    const del = !may || a.fact ? '' : `<button type="button" class="ac-disc-act is-del" data-ac-del="${_acE(a.id)}" title="${_acE(_acT('ac_del_tip'))}">${_acE(_acT('ac_del'))}</button>`;
+    return `<div class="ac-disc-row${a.risk ? ' has-risk' : ''}${a.kept ? '' : ' is-loose'}">
+      <button type="button" class="ac-disc-go" data-ac-bring="${_acE(a.id)}" title="${_acE(a.question || '')}"><span class="ac-disc-n"><b>${_acE(a.name || '')}</b>${tags}</span><span class="ac-disc-m">${a.risk ? '<i class="ac-lg-ruby"></i>' : ''}${_acE(bits)}</span></button>
+      ${keep || del ? `<span class="ac-disc-acts">${keep}${del}</span>` : ''}</div>`;
   };
   const packs = (AC.packs || []).map(p => `<button type="button" class="jb-chip" data-ac-pack="${_acE(p.id)}">${_acE(_acT('ac_pack_n', { name: p.name, n: (p.questions || []).length }))}</button>`).join('');
+  const more = all
+    ? `<button type="button" class="ac-disc-more" data-ac-disc-all="0">${_acE(_acT('ac_disc_fewer'))}</button>`
+    : (AC.others ? `<button type="button" class="ac-disc-more" data-ac-disc-all="1">${_acE(_acTn('ac_disc_others', AC.others))}</button>` : '');
   return `<div class="pd-glance ac-card ac-disc" id="ac-disc"><div class="pd-gl-h"><b>${_acE(_acT('ac_disc_h'))}</b></div>
     <div class="pd-gl-b"><div class="ac-meta">${_acE(_acT(rows.length ? 'ac_disc_sub' : 'ac_disc_empty'))}</div>
       ${rows.length ? `<div class="ac-disc-list">${rows.map(row).join('')}</div>` : ''}
+      ${more}
       ${packs ? `<div class="ac-l">${_acE(_acT('ac_disc_packs'))}</div><div class="ac-chips ac-next">${packs}</div>` : ''}
-      <div class="ac-next"><button type="button" class="jb-chip" data-ac-open-new${askColMay() ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_disc_new'))}</button></div>
+      <div class="ac-next"><button type="button" class="jb-chip" data-ac-open-new${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_disc_new'))}</button></div>
     </div></div>`;
 }
 /* Discover leads the panel when the team keeps questions this reader can see answered */
 function askColDiscoverLeads(){ return (AC.summary || []).some(a => a.read > 0 || a.fact); }
+/* KEEP IT, TAKE IT OFF, OR FORGET IT ALTOGETHER */
+async function askColKeep(askId, on){
+  try {
+    const r = await api('columns/' + encodeURIComponent(askId) + '/keep', 'POST', { kept: !!on });
+    if (r && r.ask) AC.asks[askId] = Object.assign(AC.asks[askId] || {}, r.ask);
+    if (typeof toast === 'function') toast(_acT(on ? 'ac_kept_on' : 'ac_kept_off', { name: (r && r.ask && r.ask.name) || '' }), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  _acSumAt = 0; await askColSummary(true); askColPaintPanel();
+}
+async function askColDelete(askId){
+  const a = (AC.summary || []).find(x => x.id === askId) || AC.asks[askId] || {};
+  const yes = (typeof confirmDialog === 'function')
+    ? await confirmDialog({ title: _acT('ac_del_title', { name: a.name || '' }), message: _acT('ac_del_body'), confirmLabel: _acT('ac_del'), danger: true })
+    : true;
+  if (!yes) return;
+  try {
+    await api('columns/' + encodeURIComponent(askId), 'DELETE');
+    askColDrop(askId); delete AC.ans[askId]; delete AC.asked[askId]; delete AC.asks[askId];
+    if (typeof toast === 'function') toast(_acT('ac_deleted', { name: a.name || '' }), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+  _acSumAt = 0; await askColSummary(true);
+  if (typeof regRepaint === 'function') regRepaint();
+  askColPaintPanel(); askColFactsPanelPaint();
+}
 /* a kept question brought onto the list: its answers fetched free, its column up (the oldest steps down past three) */
 async function askColBring(askId){
   const R = regState();
@@ -321,15 +406,25 @@ async function askColBring(askId){
   if (typeof regRepaint === 'function') regRepaint();
   askColPaintPanel();
 }
+/* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026: "I should be able to
+   choose which of the available company facts I want to run if I only want to
+   run 3 out of the 5"). All are ticked to begin with; the cost and the button
+   follow the ticks, and with none ticked the button greys with why. */
+function askColPackPicked(f, i){ return !f.drop || !f.drop.has(i); }
 function askColPackFormHtml(f){
-  const p = f.pack, shown = askColShown(), ids = shown.slice(0, AC_MAX), q = (p.questions || []).length;
+  const p = f.pack, shown = askColShown(), ids = shown.slice(0, AC_MAX);
+  const qs = p.questions || [], q = qs.filter((x, i) => askColPackPicked(f, i)).length;
   const b = x => `<b>${_acE(x)}</b>`;
   const v = { contracts: b(_acTn('ac_n_contracts', ids.length)), shown: b(String(shown.length)), q: b(String(q)), calls: b(_acTn('ac_n_calls', ids.length)), apart: b(_acTn('ac_n_calls', ids.length * q)) };
   const cost = _acT(ids.length < shown.length ? 'ac_pack_cost_capped' : 'ac_pack_cost', v);
-  const why = !askColMay() ? _acT('ac_btn_viewer') : !ids.length ? _acT('ac_none_shown') : '';
+  const why = !askColMay() ? _acT('ac_btn_viewer') : !ids.length ? _acT('ac_none_shown') : !q ? _acT('ac_pack_none_picked') : '';
+  const row = (x, i) => {
+    const on = askColPackPicked(f, i);
+    return `<li><label class="ac-pick"><input type="checkbox" data-ac-pick="${i}"${on ? ' checked' : ''}><span><b>${_acE(x.name || '')}</b><span class="ac-meta">${_acE(x.question || '')}</span></span></label></li>`;
+  };
   return `<div class="pd-glance ac-card" id="ac-form" data-ac-pack-form="${_acE(p.id)}"><div class="pd-gl-h"><b>${_acE(_acT('ac_pack_title'))}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acTn('ac_shown', shown.length))}</span></div>
-    <div class="pd-gl-b"><div><b>${_acE(p.name)}</b></div>
-      <ol class="ac-pack-qs">${(p.questions || []).map(x => `<li><b>${_acE(x.name || '')}</b><span class="ac-meta">${_acE(x.question || '')}</span></li>`).join('')}</ol>
+    <div class="pd-gl-b"><div class="ac-pack-h"><b>${_acE(p.name)}</b><span class="ac-meta">${_acE(_acT('ac_pack_picked', { n: q, of: qs.length }))}</span></div>
+      <ul class="ac-pack-qs">${qs.map(row).join('')}</ul>
       <div class="ac-cost">${cost}</div>
       ${why ? `<div class="ac-why">${_acE(why)}</div>` : ''}
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-ask${why ? ` disabled title="${_acE(why)}"` : ''}>${_acE(_acTn('ac_ask_n', ids.length))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-cancel>${_acE(_acT('ac_cancel'))}</button></div>
@@ -337,8 +432,7 @@ function askColPackFormHtml(f){
 }
 function askColFormHtml(){
   const f = AC.form;
-  if (f.pack && !AC.busy) return askColPackFormHtml(f);
-  if (AC.busy) return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(_acT('ac_title'))}</b></div><div class="pd-gl-b"><div class="ac-busy" role="status">${typeof busyHtml === 'function' ? busyHtml(_acTn('ac_reading', AC.busy.n)) : _acE(_acTn('ac_reading', AC.busy.n))}</div></div></div>`;
+  if (f.pack) return askColPackFormHtml(f);
   const shown = askColShown(), ids = shown.slice(0, AC_MAX);
   const kept = f.force ? 0 : Math.min(ids.length, f.kept || 0);
   const calls = ids.length - kept;
@@ -386,8 +480,11 @@ function askColColumnHtml(askId){
 function askColIsAdmin(){ const u = (typeof currentUser === 'function') ? currentUser() : null; return !!(u && u.role === 'admin'); }
 function askColMoreChipsHtml(askId){
   const a = AC.asks[askId] || {};
-  const keep = !a.fact && askColIsAdmin() ? `<button type="button" class="jb-chip" data-ac-fact="${_acE(askId)}">${_acE(_acT('ac_fact_keep'))}</button>` : '';
-  return keep + askColWatchChipHtml(askId);
+  const fact = !a.fact && askColIsAdmin() ? `<button type="button" class="jb-chip" data-ac-fact="${_acE(askId)}">${_acE(_acT('ac_fact_keep'))}</button>` : '';
+  /* KEEP IN DISCOVER (owner, 26 Oct 2026): the one press that puts a question
+     on the team's list. A company fact is kept by being a fact. */
+  const keep = !a.fact && !a.kept && askColMay() ? `<button type="button" class="jb-chip" data-ac-keep="${_acE(askId)}" data-ac-on="0">${_acE(_acT('ac_keep_on'))}</button>` : '';
+  return keep + fact + askColWatchChipHtml(askId);
 }
 /* ---- THE COMPANY'S FACTS (stage 4, owner 25 Oct 2026: any admin switches one on) ---- */
 async function askColFactSet(askId, on){
@@ -425,16 +522,25 @@ async function askColFactsArrive(c){
   } catch (e){ _acFactErr = (e && (e.needsKey || e.kind === 'noKey')) ? _acT('ac_nokey') : ((e && e.message) || ''); return false; }
 }
 /* the Settings panel: the kept questions, their rules and switches, the cost per arrival */
+/* FACTS ONLY, AND WORDING ONLY (owner, 26 Oct 2026: "why are the personal
+   questions going to the company facts? These should not be there"). The page
+   lists the facts the company keeps — nothing else. A fact is added from the
+   kept questions, which are questions of the WORDING by the time they get here
+   (a counting question never becomes one: the server turns it away). */
 function askColFactsPanelHtml(){
-  const rows = (AC.summary || []).slice(0, 20), on = askColFactsOn().length;
-  if (!rows.length) return `<p class="st-note">${_acE(_acT('fa_none'))}</p>`;
+  const rows = (AC.summary || []).filter(a => a.fact), on = rows.length;
+  const could = (AC.summary || []).filter(a => !a.fact).slice(0, 10);
   const total = (typeof state !== 'undefined' && Array.isArray(state.contracts)) ? state.contracts.filter(c => c && !c.archived && !(typeof jamboOnPress === 'function' && jamboOnPress(c))).length : 0;
   const n = Math.min(total, AC_MAX);
-  const row = a => `<tr data-fa-row="${_acE(a.id)}"><td><b>${_acE(a.name)}</b></td><td class="fa-q">${_acE(a.question)}</td>
+  const row = a => `<tr data-fa-row="${_acE(a.id)}"><td><b>${_acE(a.name)}</b><span class="fa-q">${_acE(a.question)}</span></td>
     <td><input class="ac-in fa-rule" data-fa-rule="${_acE(a.id)}" maxlength="200" value="${_acE(a.rule || '')}" placeholder="${_acE(_acT('fa_rule_ph'))}" aria-label="${_acE(_acT('fa_h_rule') + ': ' + a.name)}"></td>
     <td class="fa-n">${a.read ? _acE(`${a.found} / ${a.read}`) : '—'}</td>
-    <td><button type="button" class="fa-tog${a.fact ? ' on' : ''}" data-fa-tog="${_acE(a.id)}" aria-pressed="${a.fact ? 'true' : 'false'}" aria-label="${_acE(_acT('fa_h_on') + ': ' + a.name)}"></button></td></tr>`;
-  return `<div class="fa-scroll"><table class="fa-t"><thead><tr><th>${_acE(_acT('fa_h_fact'))}</th><th>${_acE(_acT('fa_h_q'))}</th><th>${_acE(_acT('fa_h_rule'))}</th><th>${_acE(_acT('fa_h_ans'))}</th><th>${_acE(_acT('fa_h_on'))}</th></tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div>
+    <td><button type="button" class="fa-tog on" data-fa-tog="${_acE(a.id)}" aria-pressed="true" aria-label="${_acE(_acT('fa_h_on') + ': ' + a.name)}"></button></td></tr>`;
+  const add = could.length
+    ? `<div class="fa-add"><div class="ac-l">${_acE(_acT('fa_add_h'))}</div><div class="ac-chips ac-next">${could.map(a => `<button type="button" class="jb-chip" data-fa-add="${_acE(a.id)}" title="${_acE(a.question)}">${_acE(a.name)}</button>`).join('')}</div><p class="st-note">${_acE(_acT('fa_add_sub'))}</p></div>`
+    : `<p class="st-note">${_acE(_acT('fa_add_none'))}</p>`;
+  return `${rows.length ? `<div class="fa-scroll"><table class="fa-t"><thead><tr><th>${_acE(_acT('fa_h_fact'))}</th><th>${_acE(_acT('fa_h_rule'))}</th><th>${_acE(_acT('fa_h_ans'))}</th><th>${_acE(_acT('fa_h_on'))}</th></tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div>` : `<p class="st-note">${_acE(_acT('fa_none_on'))}</p>`}
+    ${add}
     <p class="st-note fa-cost">${_acE(on ? _acTn('fa_cost', on) : _acT('fa_cost_none'))}</p>
     ${_acFactErr ? `<p class="st-note fa-err">${_acE(_acT('fa_last_err', { msg: _acFactErr }))}</p>` : ''}
     ${on && n ? `<div class="ac-acts"><button type="button" class="ui-btn ui-btn-sm" data-fa-readall>${_acE(_acT(n < total ? 'fa_read_all_capped' : 'fa_read_all', { n, total, calls: _acTn('ac_n_calls', n) }))}</button></div>` : ''}`;
@@ -587,14 +693,21 @@ function askColWhyHtml(ch){
   const num = askColClauseNo(a);
   const go = num ? _acT('ac_go_clause', { n: num }) : _acT('ac_go_it');
   const row = (k, v) => v ? `<dt>${_acE(_acT(k))}</dt><dd>${v}</dd>` : '';
+  /* THE TICK LIVES HERE NOW (Lights, 26 Oct 2026): it came out of the cell,
+     where it squeezed the answer, and stands with the reading it belongs to —
+     one door still, in the panel that reads the chosen row */
+  const ck = a.checked, may = askColMay();
+  const tip = !may ? _acT('ac_mark_viewer') : ck ? _acT('ac_unmark', { who: ck.by, when: askColWhen(ck.at) }) : _acT('ac_mark');
+  const tick = `<button type="button" class="ac-ck-row${ck ? ' on' : ''}" data-ac-ck aria-pressed="${ck ? 'true' : 'false'}" title="${_acE(tip)}"${may ? '' : ' disabled'}><span class="ac-ck${ck ? ' on' : ''}">${ck && typeof icon === 'function' ? icon('check2', 'ac-ck-i') : ''}</span>${_acE(ck ? _acT('ac_checked_by_when', { who: ck.by, when: askColWhen(ck.at) }) : _acT('ac_mark'))}</button>`;
   return `<div class="pd-glance ac-card ac-why-card" data-ac-why="${_acE(ch.askId)}:${_acE(ch.cid)}"><div class="pd-gl-h"><b>${_acE(head)}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(q.name || '')}</span></div>
     <div class="pd-gl-b"><dl class="ac-fl">
-      ${row('ac_f_answer', `<b>${_acE(word)}</b>`)}
+      ${row('ac_f_answer', `<span class="ac-ans tone-${a.noWording ? 'gray' : askColToneOf(a)}"><i></i><b>${_acE(word)}</b></span>`)}
       ${row('ac_f_why', a.why ? _acE(a.why) : '')}
       ${row('ac_f_source', a.quote ? `<div class="ac-quote">“${_acE(a.quote)}”</div>` : (a.noWording ? '' : `<span class="ac-sub">${_acE(_acT('ac_no_quote'))}</span>`))}
       ${row('ac_f_clause', a.clause ? _acE(a.clause) : '')}
       ${a.noWording || !a.found ? '' : row('ac_f_rule', _acE(a.verdict === 'in' ? _acT('ac_rule_in', { rule: a.rule }) : a.verdict === 'out' ? _acT('ac_rule_out', { rule: a.rule }) : a.rule ? _acT('ac_rule_unsure', { rule: a.rule }) : _acT('ac_rule_none')))}
       ${row('ac_f_read', a.at ? _acE(_acT('ac_read_by', { when: askColWhen(a.at) })) : '')}
+      ${a.noWording ? '' : row('ac_f_checked', tick)}
     </dl>
     <div class="ac-acts ac-foot"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-go>${_acE(go)}</button></div></div></div>`;
 }
@@ -640,67 +753,155 @@ function askColDrop(askId){
   if (R.sort === 'ask:' + askId){ R.sort = 'updated'; R.dir = -1; }
   if (AC.chosen && AC.chosen.askId === askId) AC.chosen = null;
 }
-async function askColRunPack(f){
-  const ids = askColShown().slice(0, AC_MAX); if (!ids.length) return;
-  const p = f.pack;
-  AC.busy = { n: ids.length, ids, askId: null };
+/* ---- THE READ ITSELF, IN BATCHES, STOPPABLE (owner, 26 Oct 2026) ----
+   One engine for a question and for a pack. It goes out AC_BATCH contracts at
+   a time, so the answers land on the list as they come and the count rises;
+   Stop raises a flag that is read between batches, so it starts no more and
+   nothing already read is lost. A failure ends the run and is said, never
+   swallowed. Nothing here decides what to do with the result: the two callers
+   put their columns up and say their own words. */
+async function askColReadRun(base, ids, opts){
+  const o = opts || {};
+  const got = { calls: 0, cached: 0, failed: [], capped: null, asks: [], err: null, stopped: false, done: 0, left: [] };
+  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '' };
   askColPaintPanel();
-  try {
-    const r = await api('ai/column', 'POST', { questions: (p.questions || []).map(x => ({ question: x.question, name: x.name })), ids, texts: askColTexts(ids) });
-    const askIds = (r.asks || []).map(a => a.id);
-    (r.asks || []).forEach(a => {
-      AC.asks[a.id] = a;
-      Object.assign(AC.ans[a.id] || (AC.ans[a.id] = {}), (r.byAsk || {})[a.id] || {});
-      (AC.asked[a.id] || (AC.asked[a.id] = new Set())); ids.forEach(x => AC.asked[a.id].add(x));
-    });
-    /* THREE STAND ON THE LIST, THE REST IN THE TABLE (the owner's pick, 25 Oct 2026) */
-    regState().ask = askIds.slice(0, AC_COLS_MAX);
-    AC.packRun = { packId: p.id, name: p.name, askIds };
-    AC.form = null;
-    _acSumAt = 0;
-    if (typeof toast === 'function'){
-      toast(_acT('ac_pack_done', { name: p.name, q: askIds.length, calls: _acTn('ac_n_calls', r.calls || 0) }), 'ok');
-      const failed = new Set((r.failed || []).filter(x => x.why !== 'notFound').map(x => x.id)).size;
-      if (failed) toast(_acTn('ac_failed', failed), 'warn');
-      if (r.capped) toast(_acT('ac_capped', r.capped), 'warn');
-    }
-  } catch (e){
-    if (typeof toast === 'function') toast(e && (e.needsKey || e.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (e && e.message) || '' }), 'err');
-  } finally {
-    AC.busy = null;
+  for (let i = 0; i < ids.length; i += AC_BATCH){
+    if (AC.busy.stop){ got.stopped = true; break; }
+    const part = ids.slice(i, i + AC_BATCH);
+    AC.busy.ids = part;
     if (typeof regRepaint === 'function') regRepaint();
     askColPaintPanel();
-    askColSummary(true).then(() => askColPaintPanel());
+    let r = null;
+    try { r = await api('ai/column', 'POST', { ...base, ids: part, texts: askColTexts(part) }); }
+    catch (e){ got.err = e; break; }
+    got.calls += Number(r.calls) || 0;
+    got.cached += Number(r.cached) || 0;
+    (r.failed || []).forEach(f => got.failed.push(f));
+    if (r.capped) got.capped = r.capped;
+    const asks = (r.asks && r.asks.length) ? r.asks : (r.ask ? [r.ask] : []);
+    asks.forEach(a => {
+      AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a);
+      const m = (r.byAsk && r.byAsk[a.id]) || r.answers || {};
+      Object.assign(AC.ans[a.id] || (AC.ans[a.id] = {}), m);
+      (AC.asked[a.id] || (AC.asked[a.id] = new Set())); part.forEach(x => AC.asked[a.id].add(x));
+    });
+    if (!got.asks.length){ got.asks = asks; if (o.onFirst) o.onFirst(asks); }
+    AC.busy.done += part.length;
+    got.done = AC.busy.done;
+    if (typeof regRepaint === 'function') regRepaint();
+    askColPaintPanel();
   }
+  AC.busy = null;
+  got.left = ids.slice(got.done);
+  return got;
+}
+/* what the reader is told after a run that was stopped or that broke: nothing
+   is lost, and the rest is offered again with its own cost */
+function askColRunEnd(got, base, name){
+  AC.stopped = (got.stopped || got.err) && got.left.length ? { base, left: got.left, done: got.done, total: got.done + got.left.length, name } : null;
+  if (got.err && typeof toast === 'function')
+    toast(got.err && (got.err.needsKey || got.err.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (got.err && got.err.message) || '' }), 'err');
+  else if (got.stopped && typeof toast === 'function') toast(_acT('ac_stopped', { done: got.done, total: got.done + got.left.length }), 'ok');
+  else if (typeof toast === 'function'){
+    const failed = new Set(got.failed.filter(x => x.why !== 'notFound').map(x => x.id)).size;
+    if (failed) toast(_acTn('ac_failed', failed), 'warn');
+    if (got.capped) toast(_acT('ac_capped', got.capped), 'warn');
+  }
+  _acSumAt = 0;
+  if (typeof regRepaint === 'function') regRepaint();
+  askColPaintPanel();
+  askColSummary(true).then(() => askColPaintPanel());
+}
+function askColStop(){ if (AC.busy) AC.busy.stop = true; askColPaintPanel(); }
+/* CARRY ON WITH THE REST: the same question, the contracts the stop left */
+async function askColCarryOn(){
+  const s = AC.stopped; if (!s || AC.busy) return;
+  AC.stopped = null;
+  const got = await askColReadRun(s.base, s.left, { name: s.name });
+  askColRunEnd(got, s.base, s.name);
+  if (!got.stopped && !got.err && typeof toast === 'function') toast(_acT('ac_done', { name: s.name, calls: _acTn('ac_n_calls', got.calls) }), 'ok');
+}
+async function askColRunPack(f){
+  const p = f.pack;
+  const picked = (p.questions || []).filter((x, i) => askColPackPicked(f, i));
+  const ids = askColShown().slice(0, AC_MAX); if (!ids.length || !picked.length) return;
+  const base = { questions: picked.map(x => ({ question: x.question, name: x.name })), pack: p.id };
+  AC.form = null;
+  const got = await askColReadRun(base, ids, { name: p.name, onFirst: asks => {
+    /* THREE STAND ON THE LIST, THE REST IN THE TABLE (the owner's pick, 25 Oct 2026) */
+    const askIds = asks.map(a => a.id);
+    regState().ask = askIds.slice(0, AC_COLS_MAX);
+    AC.packRun = { packId: p.id, name: p.name, askIds };
+  } });
+  askColRunEnd(got, base, p.name);
+  if (!got.stopped && !got.err && typeof toast === 'function')
+    toast(_acT('ac_pack_done', { name: p.name, q: (AC.packRun && AC.packRun.askIds.length) || picked.length, calls: _acTn('ac_n_calls', got.calls) }), 'ok');
 }
 /* THE WHOLE TABLE, A PAGE OF ITS OWN (big work is a page): every answer of the pack, per contract, with its clause */
-function askColTableOpen(){
-  const run = AC.packRun; if (!run || typeof openModal !== 'function') return;
-  const ids = askColShown();
-  const head = run.askIds.map(id => `<th>${_acE((AC.asks[id] || {}).name || '')}</th>`).join('');
+/* THE LEDGER (the owner picked it, 26 Oct 2026: "this table should be better
+   designed and tidy for professionals"). One framed card with a real head: what
+   was read and when, the acts in one row; the contract column stands still
+   while the answers scroll; every cell keeps the same two-line rhythm, the
+   verdict and its clause over the words it was read from; the at-risk count
+   sits in the head of the column it belongs to and the legend in the foot. */
+function askColTableRowsAtRisk(ids, askIds){
+  return ids.filter(cid => askIds.some(id => { const a = (AC.ans[id] || {})[cid]; return a && !a.noWording && askColToneOf(a) === 'ruby'; }));
+}
+function askColTableInner(){
+  const run = AC.packRun; if (!run) return '';
+  const all = askColShown(), risky = askColTableRowsAtRisk(all, run.askIds);
+  const ids = AC.tableRisk ? risky : all;
+  const head = run.askIds.map(id => {
+    const n = all.filter(cid => { const a = (AC.ans[id] || {})[cid]; return a && !a.noWording && askColToneOf(a) === 'ruby'; }).length;
+    return `<th scope="col"><span class="ac-tt-hn">${_acE((AC.asks[id] || {}).name || '')}</span>${n ? `<span class="ac-th-risk">${_acE(_acTn('ac_disc_risk', n))}</span>` : ''}</th>`;
+  }).join('');
   const body = ids.map(cid => {
     const c = (typeof getContract === 'function') ? getContract(cid) : null;
     const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : cid;
     const cells = run.askIds.map(id => {
       const a = (AC.ans[id] || {})[cid];
-      if (!a) return '<td class="ac-tt-c"><span class="ac-sub">—</span></td>';
-      const no = askColClauseNo(a);
+      if (!a) return `<td class="ac-tt-c"><span class="ac-ans tone-none is-wait"><i></i><span>${_acE(_acT("ac_not_read"))}</span></span></td>`;
+      const no = a.found ? askColClauseNo(a) : '';
       const word = a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
-      return `<td class="ac-tt-c"><span class="ac-ans tone-${askColToneOf(a)}"><i></i><span>${_acE(word)}</span>${no ? `<span class="ac-cite">§ ${_acE(no)}</span>` : ''}</span><small class="ac-sub">${_acE([a.detail, a.found ? askColQuoteShort(a) : ''].filter(Boolean).join(' · '))}</small></td>`;
+      const sub = [a.detail, a.found ? askColQuoteShort(a) : ''].filter(Boolean).join(' · ');
+      return `<td class="ac-tt-c"><span class="ac-ans tone-${a.noWording ? 'gray' : askColToneOf(a)}"><i></i><span class="ac-tt-w">${_acE(word)}</span>${no ? `<span class="ac-cite">§ ${_acE(no)}</span>` : ''}</span>${sub ? `<small class="ac-sub">${_acE(sub)}</small>` : ''}</td>`;
     }).join('');
-    return `<tr><td class="ac-tt-a"><b>${_acE(ref)}</b><small class="ac-sub">${_acE((c && c.counterparty) || '')}</small></td>${cells}</tr>`;
+    return `<tr><th scope="row" class="ac-tt-a"><b>${_acE(ref)}</b><small class="ac-sub">${_acE([(c && c.name) || '', (c && c.counterparty) || ''].filter(Boolean).join(' · '))}</small></th>${cells}</tr>`;
   }).join('');
-  const title = _acT('ac_table_title', { name: run.name });
-  const html = `<div id="ac-table-page" class="ac-tt">
-    <h2 class="ac-tt-h">${_acE(title)}</h2>
-    <button type="button" id="ac-tt-copy" class="ui-btn">${_acE(_acT('ac_chip_copy'))}</button>
-    <div class="ac-tt-scroll"><table class="reg-table ac-tt-table"><thead><tr><th>${_acE(_acT('ac_f_answer'))}</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
-    <div class="ac-tt-foot"><span class="lh-extra ac-legend">${askColLegendInner()}</span>
-      <button type="button" class="ui-btn" id="ac-tt-back" data-dlg-cancel>${_acE(_acT('ac_table_back'))}</button></div>
+  const last = run.askIds.map(id => askColStats(id).last).filter(Boolean).sort().pop() || '';
+  const calls = run.askIds.reduce((n, id) => n + askColStats(id).calls, 0);
+  const answers = run.askIds.reduce((n, id) => n + askColStats(id).total, 0);
+  const sub = [_acTn('ac_pack_q', run.askIds.length), _acTn('ac_tt_answers', answers),
+    risky.length ? `<b class="ac-tt-risk">${_acE(_acTn('ac_disc_risk', risky.length))}</b>` : '',
+    last ? _acE(_acT('ac_read_at', { when: askColWhen(last) })) : '', calls ? _acE(_acTn('ac_n_calls', calls)) : ''].filter(Boolean).join(' · ');
+  return `<div class="ac-tt-card">
+    <div class="ac-tt-top"><div class="ac-tt-ttl"><h2>${_acE(_acT('ac_table_title', { name: run.name }))}</h2><div class="ac-tt-sub">${sub}</div></div></div>
+    <div class="ac-tt-scroll"><table class="ac-tt-table"><thead><tr><th scope="col" class="ac-tt-a">${_acE(_acT('ac_tt_contract'))}</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    ${ids.length ? '' : `<p class="ac-tt-none">${_acE(_acT('ac_tt_none'))}</p>`}
+    <div class="ac-tt-foot"><span class="ac-legend">${askColLegendInner()}</span><span class="ac-meta">${_acE(_acT('ac_tt_hint'))}</span></div>
   </div>`;
-  openModal(html, { page: { acts: ['ac-tt-copy'], crumb: _acT('ac_table_title', { name: run.name }) }, label: title });
+}
+function askColTablePaint(){
+  const host = (typeof document !== 'undefined') ? document.getElementById('ac-tt-body') : null;
+  if (host) host.innerHTML = askColTableInner();
+  const r = document.getElementById('ac-tt-risk');
+  if (r){ r.setAttribute('aria-pressed', AC.tableRisk ? 'true' : 'false'); r.classList.toggle('is-on', !!AC.tableRisk); }
+}
+function askColTableOpen(){
+  const run = AC.packRun; if (!run || typeof openModal !== 'function') return;
+  AC.tableRisk = false;
+  const title = _acT('ac_table_title', { name: run.name });
+  const risky = askColTableRowsAtRisk(askColShown(), run.askIds).length;
+  const html = `<div id="ac-table-page" class="ac-tt">
+    <div class="ac-tt-pacts">${risky ? `<button type="button" id="ac-tt-risk" class="ui-btn ui-btn-sm" aria-pressed="false">${_acE(_acTn('ac_tt_only_risk', risky))}</button>` : ''}
+      <button type="button" id="ac-tt-copy" class="ui-btn ui-btn-sm">${_acE(_acT('ac_chip_copy'))}</button>
+      <button type="button" id="ac-tt-back" class="ui-btn ui-btn-sm" data-dlg-cancel>${_acE(_acT('ac_table_back'))}</button></div>
+    <div id="ac-tt-body">${askColTableInner()}</div></div>`;
+  openModal(html, { page: { acts: ['ac-tt-risk', 'ac-tt-copy', 'ac-tt-back'], crumb: title }, label: title });
   const cp = document.getElementById('ac-tt-copy');
   if (cp) cp.addEventListener('click', () => askColCopyMany(run.askIds));
+  const rk = document.getElementById('ac-tt-risk');
+  if (rk) rk.addEventListener('click', () => { AC.tableRisk = !AC.tableRisk; askColTablePaint(); });
   const back = document.getElementById('ac-tt-back');
   if (back) back.addEventListener('click', () => { if (typeof closeModal === 'function') closeModal(); });
 }
@@ -711,33 +912,27 @@ async function askColRun(){
   const question = String(qEl ? qEl.value : f.question || '').trim();
   const name = String(nEl ? nEl.value : f.name || '').trim();
   if (question.length < 3){ if (typeof toast === 'function') toast(_acT('ac_q_short'), 'warn'); if (qEl) qEl.focus(); return; }
+  /* A COLUMN ASKS THE WORDING (owner, 26 Oct 2026): a counting question is
+     about the reader's own book, not about what a contract says — it is handed
+     to Jambo's box, free, and never kept as a column. The server is the wall;
+     this is the sentence the reader sees before a call is spent. */
+  if (askColIsPortfolio(question)){
+    if (typeof toast === 'function') toast(_acT('ac_q_portfolio'), 'warn');
+    if (qEl) qEl.focus();
+    return;
+  }
   const ids = askColShown().slice(0, AC_MAX); if (!ids.length) return;
   f.question = question; f.name = name;
-  AC.busy = { n: ids.length, ids, askId: f.askId };
-  askColPaintPanel();
-  try {
-    const r = await api('ai/column', 'POST', { question, name, ids, texts: askColTexts(ids), force: !!f.force });
-    const id = r.ask.id;
-    AC.asks[id] = r.ask;
-    Object.assign(AC.ans[id] || (AC.ans[id] = {}), r.answers || {});
-    (AC.asked[id] || (AC.asked[id] = new Set())); ids.forEach(x => AC.asked[id].add(x));
+  const base = { question, name, force: !!f.force };
+  AC.form = null;
+  const got = await askColReadRun(base, ids, { name: name || question, onFirst: asks => {
+    const id = asks[0] && asks[0].id; if (!id) return;
     const R = regState();
-    const up = (Array.isArray(R.ask) ? R.ask : []).filter(x => x !== id);
-    R.ask = up.concat(id).slice(-AC_COLS_MAX);
-    AC.form = null;
-    if (typeof toast === 'function'){
-      toast(_acT('ac_done', { name: r.ask.name, calls: _acTn('ac_n_calls', r.calls || 0) }), 'ok');
-      const failed = (r.failed || []).filter(x => x.why !== 'notFound').length;
-      if (failed) toast(_acTn('ac_failed', failed), 'warn');
-      if (r.capped) toast(_acT('ac_capped', r.capped), 'warn');
-    }
-  } catch (e){
-    if (typeof toast === 'function') toast(e && (e.needsKey || e.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (e && e.message) || '' }), 'err');
-  } finally {
-    AC.busy = null;
-    if (typeof regRepaint === 'function') regRepaint();
-    askColPaintPanel();
-  }
+    R.ask = (Array.isArray(R.ask) ? R.ask : []).filter(x => x !== id).concat(id).slice(-AC_COLS_MAX);
+  } });
+  const named = (got.asks[0] && got.asks[0].name) || name || question;
+  askColRunEnd(got, base, named);
+  if (!got.stopped && !got.err && typeof toast === 'function') toast(_acT('ac_done', { name: named, calls: _acTn('ac_n_calls', got.calls) }), 'ok');
 }
 /* PRESS IT AGAIN AND IT CLOSES: a second press on the chosen answer lets it go */
 function askColChoose(askId, cid){
@@ -799,14 +994,10 @@ if (typeof document !== 'undefined' && !document._acWired){
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const td = t.closest('td.ac-cell');
     if (td){
+      /* LIGHTS (26 Oct 2026): the cell holds one thing, so a press on it means
+         one thing — choose this answer, and let the panel read it out */
       e.stopPropagation(); e.preventDefault();
-      const askId = td.getAttribute('data-ac'), cid = td.getAttribute('data-ac-cid');
-      /* the § chip: this answer chosen (unless it already is), then Go to clause */
-      if (t.closest('[data-ac-cite]')){
-        if (!(AC.chosen && AC.chosen.askId === askId && AC.chosen.cid === cid)) askColChoose(askId, cid);
-        askColGo(); return;
-      }
-      if (t.closest('[data-ac-ck]')) askColCheck(askId, cid); else askColChoose(askId, cid);
+      askColChoose(td.getAttribute('data-ac'), td.getAttribute('data-ac-cid'));
     }
   }, true);
   document.addEventListener('click', e => {
@@ -816,9 +1007,19 @@ if (typeof document !== 'undefined' && !document._acWired){
       if (AC.form) askColClose(); else askColOpen(); return; }
     if (t.closest('[data-ac-ask]')){ e.preventDefault(); askColRun(); return; }
     if (t.closest('[data-ac-cancel]')){ e.preventDefault(); askColClose(); return; }
+    if (t.closest('[data-ac-stop]')){ e.preventDefault(); askColStop(); return; }
+    if (t.closest('[data-ac-carry]')){ e.preventDefault(); askColCarryOn(); return; }
+    if (t.closest('[data-ac-stopped-close]')){ e.preventDefault(); AC.stopped = null; askColPaintPanel(); return; }
+    const kp = t.closest('[data-ac-keep]'); if (kp){ e.preventDefault(); askColKeep(kp.getAttribute('data-ac-keep'), kp.getAttribute('data-ac-on') !== '1'); return; }
+    const dl = t.closest('[data-ac-del]'); if (dl){ e.preventDefault(); askColDelete(dl.getAttribute('data-ac-del')); return; }
+    const da = t.closest('[data-ac-disc-all]');
+    if (da){ e.preventDefault(); AC.discAll = da.getAttribute('data-ac-disc-all') === '1'; _acSumAt = 0; askColSummary(true).then(() => askColPaintPanel()); askColPaintPanel(); return; }
+    const fa = t.closest('[data-fa-add]'); if (fa){ e.preventDefault(); askColFactSet(fa.getAttribute('data-fa-add'), true); return; }
     const chip = t.closest('[data-ac-chip]');
     if (chip){ e.preventDefault(); const a = (AC.team || []).find(x => x.id === chip.getAttribute('data-ac-chip')); if (a && AC.form){ Object.assign(AC.form, { question: a.question, name: a.name, askId: a.id, kept: 0 }); askColPaintPanel(); askColKept(AC.form); } return; }
     if (t.closest('[data-ac-go]')){ e.preventDefault(); askColGo(); return; }
+    /* the tick moved out of the cell into the panel's reading (Lights, 26 Oct 2026) */
+    if (t.closest('[data-ac-ck]')){ e.preventDefault(); const ch = AC.chosen; if (ch) askColCheck(ch.askId, ch.cid); return; }
     const sv = t.closest('[data-ac-save]'); if (sv){ e.preventDefault(); askColSave(); return; }
     const ag = t.closest('[data-ac-again]');
     if (ag){ e.preventDefault(); const q = AC.asks[ag.getAttribute('data-ac-again')]; if (q) askColOpen({ question: q.question, name: q.name, askId: q.id, force: true }); return; }
@@ -849,7 +1050,16 @@ if (typeof document !== 'undefined' && !document._acWired){
   });
   /* a rule is saved when its box is left with new words (a change event: once, never per key) */
   document.addEventListener('change', e => {
-    const t = e.target && e.target.closest ? e.target.closest('[data-fa-rule]') : null; if (!t) return;
+    const el = e.target && e.target.closest ? e.target : null; if (!el) return;
+    /* which of the pack's questions to run (owner, 26 Oct 2026) */
+    const pick = el.closest ? el.closest('[data-ac-pick]') : null;
+    if (pick && AC.form && AC.form.pack){
+      const i = Number(pick.getAttribute('data-ac-pick'));
+      const drop = AC.form.drop || (AC.form.drop = new Set());
+      if (pick.checked) drop.delete(i); else drop.add(i);
+      askColPaintPanel(); return;
+    }
+    const t = el.closest('[data-fa-rule]'); if (!t) return;
     const id = t.getAttribute('data-fa-rule'), a = (AC.summary || []).find(x => x.id === id);
     if (a && String(a.rule || '') !== t.value.trim()) askColRuleSet(id, t.value.trim());
   });
@@ -868,6 +1078,7 @@ function askColBtnHtml(){
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
 
-Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
+Object.assign(window, { AC_MAX, AC_COLS_MAX, AC_BATCH, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColPackPicked, askColTableOpen,
+  askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
-  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml });
+  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });
