@@ -113,7 +113,9 @@ describe('f753 (2) Jambo\'s line, bold where drawn, one exchange at a time', () 
 describe('f753 (3) the panel beside the sheet says what it holds', () => {
   test('3a "New agreement" in the head while the sheet is up; no bin; the box asks as drawn', () => {
     assert.match(WZ, /function naSheetUp\(\)\{ return typeof document!=='undefined' && !!document\.querySelector\('#na-root\.na-one'\); \}/);
-    assert.match(PD, /const word = \(!c && typeof naSheetUp === 'function' && naSheetUp\(\)\) \? `<span class="pd-head-word">\$\{_pdE\(_pdT\('na_title'\)\)\}<\/span>` : '';/);
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs, the bar and the sheet's head name it */
+    assert.match(PD, /const word = '';/);
+    assert.doesNotMatch(PD, /class="pd-head-word"/);
     /* RE-POINTED 19 Oct 2026 (Jambo as a tab you flip to, and back; the owner:
        "you land on the page and if you want to chat with jambo it takes you to
        a new jambo tab but you can go back to the landing side panel"): the bin

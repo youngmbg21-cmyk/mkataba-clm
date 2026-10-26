@@ -77,7 +77,8 @@ describe('f784 (3) Jambo says the page', () => {
      and names the page between them. */
   test('3c the panel\'s head: its own tab beside his, the page named between them', () => {
     const g = company();
-    assert.ok(g.$('st-side-word'), 'the page named');
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
+    assert.ok(!g.$('st-side-word'), 'no page name beside the tabs');
     assert.deepEqual(g.qa('#st-side-head .st-side-tab').map(t => g.text(t).replace(/[^\p{L} ]/gu, '').trim()), ['Overview', 'Jambo']);
   });
 });
@@ -261,7 +262,8 @@ describe('f784 (8) the third pass: the frame, every card door a page, the facts,
     assert.equal(g.text(g.q('#set-page .st-pg-back')), '‹ ' + S.en.pg_team, '‹ Settings is the way back');
     /* the page is named between the two tabs now (owner, 26 Oct 2026: a landing
        with something to press keeps its own tab beside his) */
-    assert.ok(g.$('st-side-word'), 'the panel\'s head names the page');
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
+    assert.ok(!g.$('st-side-word'), 'no page name beside the tabs');
     g.click(g.q('#set-page .st-pg-back')); await g.flush();
     assert.equal(g.q('#set-page[data-st-sub]'), null, 'back on the board');
     assert.ok(g.$('st-drawer').hidden && g.$('st-drawer').parentElement === g.win.document.body, 'the drawer put away');

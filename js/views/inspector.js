@@ -1226,7 +1226,7 @@ function jlHeadHtml(){
   return `<div class="jl-head">
     <button type="button" class="pd-tab on jl-tab" data-jl-home title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span><span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="pd-tab-w">${esc(name)}</span></button>
     <button type="button" class="pd-tab jl-tab jl-talk-tab" data-jl-talk title="${esc(i18t('pd_tab_copilot'))}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : esc(i18t('pd_tab_copilot'))}</button>
-    <span class="jl-word" data-jl-word></span>
+    ${''/* NO PAGE NAME BESIDE THE TABS (owner, 26 Oct 2026: "on the side panel next to the Jambo tab you have the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): the page's or the chosen row's word is no longer drawn here */}
     <span class="jl-sp"></span>
     ${''/* NO "‹ Overview" BESIDE THE OVERVIEW TAB (Round 2, owner's yes 24 Oct 2026): it said what the tab
         says and squeezed the page's own word to one letter; the tab is the way back */}

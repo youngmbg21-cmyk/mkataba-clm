@@ -133,7 +133,8 @@ describe('f798 (4) the note in Jambo\'s panel', () => {
     const { d } = await painted();
     const p = d.querySelector('#ins-panel.is-jambo');
     assert.ok(p, 'Jambo\'s panel beside the list');
-    assert.equal(txt(p.querySelector('[data-jl-word]')), 'Note');
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
+    assert.equal(p.querySelector('[data-jl-word]'), null, 'no word beside the tabs');
     assert.match(txt(p.querySelector('.ins-eb')), /^My note · written \d{1,2} [A-Z][a-z]{2}$/);
     assert.ok(p.querySelector('.ins-eb svg'), 'the lock');
     assert.equal(txt(p.querySelector('.ins-cp')), "Check Nandi Dairy's insurance broker");

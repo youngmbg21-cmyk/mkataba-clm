@@ -3519,7 +3519,8 @@ function stSideHeadHtml(){
     return `<span class="st-side-tab st-side-talk" aria-current="true" title="${jb1}">${jbFace}<span>${jb1}</span></span><span class="st-side-sp"></span>${fold}`; }
   const talk=stTalkShows();
   const jb=esc(i18t('pd_tab_copilot'));
-  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
+  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-sp"></span>${fold}`;
+  /* NO PAGE NAME BESIDE THE TABS (owner, 26 Oct 2026: "on the side panel next to the Jambo tab you have the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): the page's word (stSideWord) is no longer drawn beside the tabs */
 }
 function stSideHtml(){
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',26,'st-side-ic'):'';

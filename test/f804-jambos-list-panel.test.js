@@ -74,7 +74,8 @@ describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one build
     /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the panel is
        the PAGE's; Jambo is a flip"): the tab is the landing, "Overview" */
     assert.equal(p.querySelector('.jl-head [data-jl-home] .pd-tab-w').textContent, 'Overview');
-    assert.equal(p.querySelector('[data-jl-word]').textContent, 'Contract', 'the word says what it holds');
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
+    assert.equal(p.querySelector('[data-jl-word]'), null, 'no word beside the tabs');
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
     assert.equal(p.querySelector('[data-jl-back]'), null, 'no duplicate back button');
     assert.ok(p.querySelector('[data-jl-fold]'), 'the fold to the edge');

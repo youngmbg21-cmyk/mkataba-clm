@@ -146,7 +146,8 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* RE-POINTED 19 Oct 2026 (lane A4, round 16 as drawn: All = Outstanding +
        Waiting on a step + Completed): the held-back step is no longer an
        Outstanding row, so the list holds one row fewer */
-    ok('1a the page is a list and a panel', ob.ins && ob.rows >= 7 && ob.word === 'Your week', { rows: ob.rows, word: ob.word });
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+    ok('1a the page is a list and a panel, no word beside the tabs', ob.ins && ob.rows >= 7 && !ob.word, { rows: ob.rows, word: ob.word });
     /* RE-POINTED 18 Oct 2026 (round 16, owner picked "Week by week"): the
        page's groups are weeks now — Late, this week, next week, the later
        weeks of six, Later, then No date, Waiting and Completed. */

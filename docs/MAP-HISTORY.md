@@ -34782,3 +34782,24 @@ the four costumes); `.hbk-ph[hidden]{display:none}` at the page's own specificit
 Send-all button by the page head's old key (`ng_send_all`, "Send All (N) Redlines") where the column's button says
 `ng_unsent_send` ("Send all · N not sent"). The picture script now scrolls a boxed element into view before it
 measures it, so a box in a long panel (the Guide's Handbook row, 0.5) is in the picture; all pictures re-taken.
+
+## THE SHELL — RAIL, BAR, PANELS · THE BAR'S LIST, THE NEW AGREEMENT SHEET, NO WORD BESIDE THE TABS (26 Oct 2026, the overnight build)
+Three of the owner's asks, built in the overnight run they authorised ("build it all, push and merge to main when it
+is green"). (1) "while in the above page [New agreement], when you press on the highlighted filter, the dropdown does
+not appear": MEASURED, Recent opened behind the sheet's head (`dlg-pg-head`, fixed z 70) and behind the send letter's
+head. Its z-index 80 sat inside `#app-shell`, which is position:fixed and so its own stacking layer: no number inside
+it can rise above a page drawn outside it. Fixed by lifting the list to the body while open (`.dk-recent.is-lifted`,
+fixed under the page's name, z 76: above pages 70/71 and Jambo's window 75, below a question dialog 80); the press
+and keyboard checks read `#dk-pg-w, #dk-recent`. (2) "The new agreement page is supposed to look like image 2 with
+the jambo panel but sometimes the image 1 appears. That is a bug" — the SECOND time asked. MEASURED: every door
+opens the sheet beside Jambo (twelve pages, seven ways in, all fine); the fault was LEAVING: the Guide's rows, a page
+name typed in a box and a bare setView moved to another page and left the sheet standing over it, full width, no
+Jambo — image 1 is the sheet over Settings (its search box says "Find a setting, a person or a word"). Only the bar's
+‹ put it away (naSheetBack). Fixed in the one guard every page change asks (`viewLayersClosed`): the sheet is put
+away through its own guarded close (`closeModalGuarded` → `naAskLeave`, which asks while words are typed), then the
+move goes on; "stay" keeps the sheet and its words. Home's own faces (Calendar, Explorer, Contracts) keep the sheet
+beside Jambo, as before. (3) "on the side panel next to the Jambo tab you have the name of the page next to the
+Jambos which looks like an additional tab. These are to be deleted": the list panel's `jl-word`, Settings'
+`st-side-word` and Home's `pd-head-word` are no longer drawn (the fill-in code already guards a missing slot); the ›
+fold stays. The drawing of 26 Oct (Jambo Overview Tab) showed the word; the owner's later word wins. Settings' Menu
+mode keeps its own "‹ Overview  Menu" head (no tabs there). Fifteen tests re-pointed, each with the owner's words.

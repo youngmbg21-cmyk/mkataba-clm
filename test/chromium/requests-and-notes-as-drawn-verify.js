@@ -143,7 +143,8 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
         cp: (p.querySelector('[data-ins-fact="cp"] dd') || {}).textContent, files: (p.querySelector('.ik-files h3') || {}).textContent,
         file: (p.querySelector('.ik-file-b span') || {}).textContent, fit: (p.querySelector('.ik-fit .jl-bub b') || {}).textContent };
     }, r1.id);
-    check('2a "Request" in his head; the reference line, Routine and "With you · by the NDA lane"; the ⋯ at the pills\' end', !!P && P.word === 'Request'
+    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+    check('2a no word in his head; the reference line, Routine and "With you · by the NDA lane"; the ⋯ at the pills\' end', !!P && !P.word
       && /from Wanjiru Kamau · Sales/.test(P.eb) && JSON.stringify(P.pills) === '["Routine","With you · by the NDA lane"]' && P.more, P && JSON.stringify({ eb: P.eb, pills: P.pills, more: P.more }));
     check('2b Start the draft · Promise a day · Hand back on one line, whole', !!P && JSON.stringify(P.verbs) === '["Start the draft","Promise a day","Hand back"]' && P.oneLine && P.inside, P && JSON.stringify(P.verbs));
     check('2c her words quoted, the rows, "no NDA with them today", Attachments 1 of 3 with who added it', !!P && /^“Naivas want/.test(P.quote)
@@ -221,7 +222,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     check('6a My notes: the head, the tabs, the box and Contract under + Filter, the review pills as drawn', !!N && N.title === 'My notes' && N.n === '5'
       && JSON.stringify(N.tabs) === '["All 5","Due today 1","Later 2","Reviewed 1"]' && JSON.stringify(N.boxes) === '["box","Contract"]'
       && N.pills[0] === 'Review today' && /^Review \S+ \d/.test(N.pills[1]) && N.pills[3] === 'No review day' && /^Reviewed/.test(N.pills[4]), N && JSON.stringify({ tabs: N.tabs, boxes: N.boxes, pills: N.pills }));
-    check('6b the note in Jambo\'s panel ("Note"): three verbs on one line, Review "Today, … · in your bell", Delete note', !!N && N.word === 'Note'
+    check('6b the note in Jambo\'s panel (no word beside the tabs): three verbs on one line, Review "Today, … · in your bell", Delete note', !!N && !N.word
       && /^Mark reviewed,Snooze a week,Open MK-A2$/.test(N.verbs.join(',')) && N.oneLine && /^Today, .* · in your bell$/.test(N.review) && N.del, N && JSON.stringify({ verbs: N.verbs, review: N.review }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-mynotes-1440x780.png') });
     await press('#ins-panel [data-jl-home]');
