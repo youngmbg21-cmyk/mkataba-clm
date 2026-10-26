@@ -139,6 +139,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## OBLIGATIONS
 - Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
+- The Calendar whole, not a day's luck (26 Oct 2026, owner picked "Fix the check"): week-as-drawn-verify 5 "the Calendar whole" accepts every row in view OR the five later weeks scrolling inside their own band (top in view, foot in the window, every row reachable, none under 38px), as ruled 21 Oct. It was red on a busy Monday at 1536×730 only; red again with the band's overflow forced visible.
 - MARQUEE (23 Oct 2026): obligations-renewal-legora-way-verify 1a re-pointed (three columns, labels in small capitals; how far off on the date's hover); obligations-tab-verify green.
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 
