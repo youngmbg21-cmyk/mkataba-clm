@@ -182,6 +182,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER STAGE 6, Unusual for you: f892; discover-verify 6a–6b.
 - DISCOVER STAGE 7, negotiation memory: f884 (with f222, f863, f876); discover-verify 7a–7b.
 - DISCOVER STAGE 8, what you are approving: f885 (with f213, f807); discover-verify 8a–8c.
+- THE OWNER'S SEVEN NOTES (26 Oct 2026): f893 (keep/unkeep/delete and their walls; the counting question refused, so it is never kept and never a fact; red at the parent bbff1c4). discover-verify: 11a–11d Stop while he reads (`HATI_DV_ONLY=11`; the AI stand-in answers slowly through `h.ai.slow`), 2c re-pointed to the one-line cell, 3a′/3a″/3a‴ Keep and the folded line, 3c′ the pack's ticks, 3e′/3e″/3e‴/3f the Ledger, 4b′ facts only, 4f–4g wording only, 8b′ and 9b′ Jambo's card on both panels. ask-a-column-verify 2b and 4a re-pointed (one-line cell; the tick in the panel). Photos: discover-photos 8 the ledger · 9 reading · 9 stopped, at the three screens.
 - DISCOVER STAGE 9, the party's two minutes: f886; discover-verify 9a–9b.
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 

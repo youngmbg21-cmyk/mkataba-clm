@@ -164,3 +164,21 @@ columns listed and deleted only on a further yes) · 6+7 Jambo's card. Two more 
    was withdrawn).
 9. **Choose which pack questions to run** — each question in the pack form has a tick (all on by
    default); untick to run 3 of 5; the cost line follows.
+
+
+## 8. The seven notes, built (26 Oct 2026)
+
+| Note | Picked | Built | Checks |
+|---|---|---|---|
+| 1 Stop while it reads | Count and Stop | `AC_BATCH` 10, `askColReadRun`/`askColStop`/`askColCarryOn`, the count, the bar, Carry on with its cost | discover-verify 11a–11d |
+| 2 + 8 the cramped cells | Lights | one light + the short answer, one line; §, quote and tick in the panel; the at-risk count in the head | discover-verify 2c, ask-a-column 2b/4a |
+| 3 the growing list | Only what you keep | `column_asks.kept`, POST …/keep, DELETE, the folded line, Keep in Discover on the card | f893 (1), discover-verify 3a′–3a‴ |
+| 4 the every-answer table | Ledger | one framed card, still contract column, counts in the heads, Only at risk, legend in the foot | discover-verify 3e′–3f |
+| 5 personal questions in facts | Facts only, wording only | `COLUMN_PORTFOLIO_RE` on both hosts; the page lists facts, adds from kept questions | f893 (2), discover-verify 4b′, 4f–4g |
+| 6 + 7 the brief in a card | Jambo's card | one builder `jamboSayCardHtml`, both panels | discover-verify 8b′, 9b′ |
+| 9 choose the pack's questions | — | a tick per question, the cost and the button follow | discover-verify 3c′ |
+
+NOT DONE, and why: the junk questions already in the owner's workspace are not deleted —
+Delete is on every unkept row in Discover, but deleting is not undoable and the owner has
+not seen the list, so it waits for their yes. The live (graded) measure still needs
+`ANTHROPIC_API_KEY`.

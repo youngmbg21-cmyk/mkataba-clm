@@ -6,7 +6,7 @@
    column), and saves a picture of each to DISCOVER_SHOTS (default
    test/chromium/shots/discover-screens). Exits 1 when a fit check fails.
    Run: node test/chromium/discover-photos.js */
-/* global regPlaceSet, setView, state, api, regState, regRepaint, askColBring, askColSummary, renderIntelDock, openSettingsAt,
+/* global regPlaceSet, setView, state, api, regState, regRepaint, askColBring, askColSummary, askColOpen, renderIntelDock, openSettingsAt,
    regOpenContract, pdContract, apSetTab, cuSelectParty, closeModal */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -95,6 +95,39 @@ const fit = async (page, name) => {
       await until(page, () => !!document.querySelector('#ins-panel .cu-br-text'));
       await page.waitForTimeout(400);
       await fit(page, `${tag} 7 party`); await page.screenshot({ path: path.join(OUT, `${tag}-7-party.png`) });
+      /* 8 THE LEDGER: the pack's whole table as its own page (the owner's note 4) */
+      await list();
+      await page.evaluate(() => { regState().only = null; regState().ask = []; regState().page = 1; regRepaint(); });
+      await page.click('#ig-dock [data-ac-pack]').catch(() => {});
+      if (await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'))){
+        await page.click('#ig-dock [data-ac-ask]');
+        await until(page, () => !!document.querySelector('#ig-dock [data-ac-table]'), null, 40000);
+        await page.click('#ig-dock [data-ac-table]');
+        await until(page, () => !!document.querySelector('#ac-table-page .ac-tt-card'));
+        await page.waitForTimeout(400);
+        await fit(page, `${tag} 8 the ledger`); await page.screenshot({ path: path.join(OUT, `${tag}-8-ledger.png`) });
+        await page.click('#ac-tt-back').catch(() => {});
+        await until(page, () => !document.querySelector('#ac-table-page'));
+      }
+      /* 9 WHILE HE READS: the count and Stop (the owner's note 1) */
+      await list();
+      await page.evaluate(() => { regState().only = null; regState().ask = []; regRepaint(); });
+      h.ai.slow(600);
+      /* force: the second screen on would find every answer kept, and a read with
+         nothing to read is over before the button can be photographed */
+      await page.evaluate(() => askColOpen({ question: 'Does this agreement name a court or an arbitrator for disputes?', name: 'Disputes', force: true }));
+      if (await until(page, () => !!document.querySelector('#ac-q'))){
+        await page.click('#ig-dock [data-ac-ask]');
+        if (await until(page, () => !!document.querySelector('#ig-dock [data-ac-stop]'), null, 20000)){
+          await page.waitForTimeout(300);
+          await fit(page, `${tag} 9 reading`); await page.screenshot({ path: path.join(OUT, `${tag}-9-reading.png`) });
+          await page.click('#ig-dock [data-ac-stop]').catch(() => {});
+          await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
+          await page.waitForTimeout(200);
+          await fit(page, `${tag} 9 stopped`); await page.screenshot({ path: path.join(OUT, `${tag}-9-stopped.png`) });
+        }
+      }
+      h.ai.slow(0);
       await page.close();
     }
   } finally { await browser.close(); await h.stop(); }
