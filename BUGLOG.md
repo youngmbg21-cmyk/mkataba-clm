@@ -21711,3 +21711,12 @@ press must carry a way back to it. That half needs no conversation, so a panel
 that will not flip cannot make it vacuous. Red at 6b9c017 on Settings, green
 with the fix. The Board and the Calendar are named there as needing no way
 back, each held to the reason — their landings never leave the screen.
+
+## An empty Jambo tab in Settings (26 Oct 2026)
+
+Found while photographing the fix above. With the page's own tab now beside
+his, pressing Jambo before anything had been said showed an empty panel: the
+landing's words live on the Overview tab, and Settings' talk view returned
+nothing for an empty conversation. His greeting stands there until the first
+turn, the way Home's talk view already falls back to its welcome line. Greeting
+first either way, which is the rule.

@@ -3701,7 +3701,13 @@ function stJbTalkInnerHtml(){
   if(typeof jamboTurnHtml!=='function') return stTalkTurns().map(stJbTurnHtml).join('');
   if(typeof jamboReadStamp==='function') jamboReadStamp();
   if(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped())){ if(typeof window.renderAIFeed==='function') try{ renderAIFeed(); }catch(_){ } return `<p class="igd-popped">${esc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${esc(i18t('jb_bring_back'))}</button></p>`; }
-  const H=stJbConvo(); return H.map((m,i)=>jamboTurnHtml(m,i,H,'st')).join('');
+  const H=stJbConvo();
+  /* GREETING FIRST EITHER WAY (26 Oct 2026). With the page's own tab beside
+     his, nothing said yet left his tab blank — you pressed Jambo and got an
+     empty panel. His greeting stands there until the first turn, the way
+     Home's talk view falls back to its welcome line. */
+  if(!H.length) return (typeof jamboHelloHtml==='function')?jamboHelloHtml():`<p class="st-note">${esc(i18t('int_notebook_welcome'))}</p>`;
+  return H.map((m,i)=>jamboTurnHtml(m,i,H,'st')).join('');
 }
 function stJbTalkWrapHtml(hide){ return `<div class="st-jb-talk" data-st-jb-talk data-jt-talk${hide?' hidden':''}>${stJbTalkInnerHtml()}</div>`; }
 /* the whole conversation drawn again in the talk view, taken off the other hosts */
