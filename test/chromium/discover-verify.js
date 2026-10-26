@@ -179,6 +179,23 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const acts = await page.evaluate(() => { const r = [...document.querySelectorAll('#ig-dock .ac-disc-row')].find(x => /Governing law/.test(x.innerText));
         return r ? { keep: !!r.querySelector('[data-ac-keep]'), del: !!r.querySelector('[data-ac-del]') } : null; });
       check('3a‴ the folded line opens them, each with Keep and Delete', shown && acts && acts.keep && acts.del, JSON.stringify(acts));
+      /* ON A SCREEN THAT CANNOT HOVER THEY SIMPLY STAND THERE (the owner's
+         iPad). Keep and Delete rest until the pointer arrives, which on a
+         finger-only screen never happens — so the quiet is kept behind
+         (hover:hover), the house pattern the width grip already follows.
+         Read off the live stylesheet, not the file: a rule moved out of its
+         media block is the fault, wherever the bytes end up. */
+      const hv = await page.evaluate(() => {
+        for (const sh of document.styleSheets){
+          let rules; try { rules = sh.cssRules; } catch (_) { continue; }
+          for (const r of rules || []){
+            if (!r.cssRules || !/hover\s*:\s*hover/.test(r.conditionText || '')) continue;
+            for (const k of r.cssRules) if (/\.ac-disc-acts/.test(k.selectorText || '') && /opacity:\s*0/.test(k.style.cssText || '')) return true;
+          }
+        }
+        return false;
+      });
+      check('3a⁗ on a screen that cannot hover, Keep and Delete simply stand there', hv);
       await page.click('#ig-dock [data-ac-disc-all="0"]');
       await until(page, () => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
       const c0 = h.ai.calls.length;
