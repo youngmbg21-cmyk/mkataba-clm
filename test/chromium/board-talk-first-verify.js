@@ -103,6 +103,25 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     const D = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
     check('D1 one chat call, and the reader is moved by the AI\'s door', chatCalls().length === 1 && !!D, `${D} · ${chatCalls().length}×`);
 
+    /* "CONTACTS" IS PEOPLE (owner, 27 Oct 2026: "when i type contacts in the jambo or take me to contacts, it instead
+       takes me to contracts") — on both tabs */
+    console.log('\nG · "take me to contacts" is People, never Contracts');
+    await toBoard();
+    if (await page.evaluate(() => pdTalkShows())) await page.click('#ig-dock [data-pd-talk]');
+    ai.reset();
+    await ask('take me to contacts');
+    const G = await until(() => state.view !== 'dashboard' ? state.view : null, null, 8000);
+    check('G1 under Overview it opens People, nothing spent', G === 'directory' && chatCalls().length === 0, `${G} · ${ai.calls.length}×`);
+    await toBoard(); await toTalk();
+    ai.reset(); ai.script(deliver('Taking you to People.', { task: 'people' }));
+    await ask('take me to contacts');
+    await until(() => chatCalls().length >= 1 ? true : null, null, 10000);
+    const taskDesc = (() => { const c = chatCalls().slice(-1)[0]; const t = c && (c.body.tools || []).find(x => x.name === 'deliver_answer');
+      const g = t && t.input_schema && t.input_schema.properties && t.input_schema.properties.goto; return (g && g.properties && g.properties.task && g.properties.task.description) || ''; })();
+    check('G2 on the Jambo tab the AI is told People\'s words, "contacts" among them, and not to read one as a slip', /people \(colleagues, contacts/.test(taskDesc) && /never a misspelling/.test(taskDesc), taskDesc.slice(0, 120));
+    const G3 = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
+    check('G3 and its door lands on People', G3 === 'directory', G3);
+
     check('F no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('the run stopped', false, String(e && e.message || e).slice(0, 200));

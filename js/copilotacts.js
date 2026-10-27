@@ -2494,11 +2494,19 @@ function caBookIndex(){
 }
 /* the words a title or a party could be: what is left of the sentence once
    its frame, its acts, its places, its stages and its read conditions are gone */
+/* the one-word names of HaTi's places (CA_PLACES), built once */
+let _caPlaceWords = null;
+function caPlaceWordSet(){
+  if (!_caPlaceWords) _caPlaceWords = new Set(CA_PLACES.flatMap(p => p.w || []).map(w => String(w).toLowerCase()).filter(w => !/\s/.test(w)));
+  return _caPlaceWords;
+}
 function caFindTerms(t){
   let s = ' ' + String(t || '').toLowerCase().replace(/[’‘]/g, "'") + ' ';
   /* a condition the map's reader reads (a stage, a side, a window) is not a name — its party is */
   try { (typeof igConditions === 'function' ? igConditions(t) : []).forEach(x => { if (x.field !== 'counterparty' && x.hit) s = s.split(' ' + String(x.hit).toLowerCase() + ' ').join(' '); }); } catch (_){}
-  const stop = w => CA_FIND_SKIP.has(w) || (typeof JM_STOP !== 'undefined' && JM_STOP.has(w)) || (typeof JM_SOFT !== 'undefined' && JM_SOFT.has(w))
+  /* a page's own word ("contacts", "approvals") names that page, never a contract: the forgiving name search read
+     "take me to contacts" as a contract whose title says "contract" (owner, 27 Oct 2026) */
+  const stop = w => CA_FIND_SKIP.has(w) || caPlaceWordSet().has(w) || (typeof JM_STOP !== 'undefined' && JM_STOP.has(w)) || (typeof JM_SOFT !== 'undefined' && JM_SOFT.has(w))
     || CA_FIND_NOUN.test(w) || /^\d+$/.test(w) || w.length < 3;
   return [...new Set(s.split(/[^\p{L}\p{N}'-]+/u).map(w => w.replace(/^'+|'+$/g, '')).filter(w => w && !stop(w)))];
 }

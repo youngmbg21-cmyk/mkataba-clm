@@ -12951,6 +12951,15 @@ const JM_TASKS_SRC = (() => { try { return fs.readFileSync(path.join(__dirname, 
 const JM_TASKS_BODY = (() => { const i = JM_TASKS_SRC.indexOf('const JM_TASKS = ['); return i < 0 ? '' : JM_TASKS_SRC.slice(i, JM_TASKS_SRC.indexOf('\n];', i)); })();
 const JM_TASK_KEYS = [...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)'/g)].map(m => m[1]);
 const JM_TASK_ADMIN = [...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)', admin: true/g)].map(m => m[1]);
+/* EACH PLACE WITH THE WORDS PEOPLE USE FOR IT (owner, 27 Oct 2026: "when i type contacts in the jambo or take me to
+   contacts, it instead takes me to contracts"): the model read "contacts" as a slip for "contracts" because the place
+   list named People only by its key. The everyday words are the map's own (JM_TASKS' en words, read off the same
+   file), so what the free readers and the AI understand a word to mean are one list. */
+const JM_TASK_NOTE = { needs: 'what waits on me', fill: 'a contract\'s details', approval: 'ask for one', approvals: 'to decide', ourpaper: 'templates', standards: 'our standards / the negotiation playbook', folders: 'who sees which stream', jamboset: 'my own Jambo settings', jambopts: 'my Jambo points' };
+const JM_TASK_WORDS_SHOWN = 4;
+const JM_TASK_WORDS = Object.fromEntries([...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)'[\s\S]*?en: \[([^\]]*)\]/g)]
+  .map(m => [m[1], [...m[2].matchAll(/'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"/g)].map(x => (x[1] != null ? x[1] : x[2]).replace(/\\(.)/g, '$1')).slice(0, JM_TASK_WORDS_SHOWN)]));
+const JM_TASK_SAYS = JM_TASK_KEYS.map(k => { const w = [...new Set([JM_TASK_NOTE[k]].concat(JM_TASK_WORDS[k] || []).filter(Boolean))]; return w.length ? `${k} (${w.join(', ')})` : k; }).join('; ');
 const aiNavigateOn = () => getSetting('aiNavigate') !== false;
 /* ---- EVERY DOOR AS A TOOL (Jambo works like Copilot, stage 2, 22 Oct 2026) ----
    The EXACT spot, named by the ids the tools returned, for the browser's ONE mover
@@ -13059,7 +13068,7 @@ function aiDoorOf(d, cx) {
   return null;
 }
 const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the person asks WHERE something is in HaTi, to be taken somewhere, or to see, show, open or find one thing. The ONE place to open for them (task), and the exact thing in it (door) when your tools named it; HaTi opens it and says so. Also when they ask for a contract\'s brief or summary (task brief). Leave it out for any other question only about what contracts say.',
-  properties: { task: { type: 'string', enum: JM_TASK_KEYS, description: 'The place: needs (what waits on me), contracts, expiring, upload, draft, fill (a contract\'s details), redline, sign, signlink, share, approval (ask for one), approvals (to decide), oblig, history, calendar, amend, export, end, parties, people, requests, ourpaper (templates), standards (our standards / the negotiation playbook), import, board, insights, askcol, explorer, brief, team, signcap, folders (who sees which stream), lang, away, jamboset (my own Jambo settings), jambopts (my Jambo points).' },
+  properties: { task: { type: 'string', enum: JM_TASK_KEYS, description: 'The place, by what the person\'s words MEAN. Each place is listed with words people use for it; a word on a place\'s list is that place, never a misspelling of another place\'s word ("contacts" is people, not contracts): ' + JM_TASK_SAYS + '.' },
     book: { type: 'string', description: 'For task standards only, when a contract type or value stream is named: the playbook book key (e.g. supply, nda, services, lease). Leave out otherwise.' },
     door: AI_DOOR_SCHEMA,
     spot: { type: 'string', description: 'OPTIONAL — when they name ONE thing inside a place (a contract, a clause, a party\'s folder, a person\'s setting, a duty, a request, a standard, a template): a short "take me to" phrase naming it in their words, e.g. "clause 7 of MK-A1", "Juno Logistics\'s folder", "Grace\'s signing limit". HaTi reads it with its own map and lands there; task is the fallback.' } },
