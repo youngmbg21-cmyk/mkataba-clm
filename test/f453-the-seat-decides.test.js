@@ -114,8 +114,11 @@ describe('f453 (1) — the stamp is written in the FUNNEL', () => {
 
 describe('f453 (2) — a suggestion does not travel', () => {
   test('the payload subtracts it, unconditionally', () => {
-    const fn = bare(CORE.slice(CORE.indexOf('function buildSharePayload'),
+    /* RE-POINTED 27 Oct 2026: the held-back list is one reading now (shareHeldBackIds, just above
+       buildSharePayload, which asks it), so the region runs from that function to the payload's changes */
+    const fn = bare(CORE.slice(CORE.indexOf('function shareHeldBackIds'),
       CORE.indexOf('const shareChanges =')));
+    assert.match(fn, /const heldBack = shareHeldBackIds\(c, opts\);/, 'and the payload asks it');
     assert.match(fn, /deskSuggestedIds\(c\)\) heldBack\.add\(id\)/,
       'not behind an opts flag: reshareToLastRecipient — the round-send every '
       + 'negotiation after the first travels on — passes no options at all');
