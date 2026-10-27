@@ -106,18 +106,18 @@ const req = { k: 'req', kind: 'request', urgent: false, r: { id: 'REQ-1', title:
 const details = n => ({ k: 'c', kind: 'details', urgent: false, x: { c: C('MK-9' + n, 'Freight terms', 'Baltic Freight'), it: { kind: 'details', n: 3 }, age: null } });
 
 describe('f803 (1) the chips', () => {
-  test('1a the first owed row leads, by its short name, pressing its own door; then the three places', () => {
+  /* RE-POINTED 27 Oct 2026 (owner: "remove the highlighted sign contract and add board as always an option to press
+     when you are in the home page"): no lead chip — the first owed row stays in Needs you — and the Board leads */
+  test('1a an owed row is never a chip; the four places, the Board first', () => {
     const w = counter([approval, redlines]);
     const html = w.cnChipsHtml([approval, redlines]);
-    /* RE-POINTED 18 Oct 2026 (second pass): the four chips wear one dress, as drawn; the lead is marked for its door only */
-    const chips = [...html.matchAll(/<button type="button" class="cn-chip" ([^>]*)>([^<]*)<\/button>/g)].map(m => ({ lead: /data-cn-lead/.test(m[1]), attrs: m[1], t: m[2] }));
-    assert.equal(chips.map(c => c.t).join('|'), 'Jonas’s approval|contracts|calendar|draft a new agreement');
-    assert.ok(chips[0].lead && /data-cn-need="approval" data-cn-id="MK-1"/.test(chips[0].attrs), 'the row\'s own door');
-    assert.doesNotMatch(html, /is-lead/);
-    assert.doesNotMatch(html, /upload a document|jambo.s work/i);
+    const chips = [...html.matchAll(/<button type="button" class="cn-chip" ([^>]*)>([^<]*)<\/button>/g)].map(m => ({ attrs: m[1], t: m[2] }));
+    assert.equal(chips.map(c => c.t).join('|'), 'board|contracts|calendar|draft a new agreement');
+    assert.ok(chips.every(c => /^data-cn-ask="/.test(c.attrs)), 'each a place word, pressed as typed');
+    assert.doesNotMatch(html, /data-cn-lead|data-cn-need|is-lead/);
   });
-  test('1b nothing owed: the three places', () => {
-    assert.equal([...counter([]).cnChipsHtml([]).matchAll(/>([^<]+)<\/button>/g)].map(m => m[1]).join('|'), 'contracts|calendar|draft a new agreement');
+  test('1b nothing owed: the same four', () => {
+    assert.equal([...counter([]).cnChipsHtml([]).matchAll(/>([^<]+)<\/button>/g)].map(m => m[1]).join('|'), 'board|contracts|calendar|draft a new agreement');
   });
 });
 
@@ -343,7 +343,7 @@ describe('f803 (8) third pass: Home as drawn', () => {
   test('8a three owed rows in sight', () => {
     assert.match(constLine(CN, 'CN_ROWS'), /^const CN_ROWS = 3;$/);
   });
-  test('8b the approval answered for an away colleague leads — then the urgent — and so leads the chips', () => {
+  test('8b the approval answered for an away colleague leads — then the urgent', () => {
     const ctx = { cnNeeds: () => [{ c: { id: 'MK-2' }, it: { kind: 'quiet', urgent: true } }, { c: { id: 'MK-1' }, it: { kind: 'approval' } }],
       approvalAnswersFor: c => c.id === 'MK-1' ? { id: 'u_j', name: 'Jonas Berg' } : null, mineNotesDue: () => [], intakeAlertRows: () => [], todayISO: () => today };
     vm.createContext(ctx);
@@ -351,7 +351,8 @@ describe('f803 (8) third pass: Home as drawn', () => {
     const rows = ctx.cnRows();
     assert.deepEqual(rows.map(r => r.x.c.id), ['MK-1', 'MK-2'], 'Jonas\'s approval above their late redlines, as drawn');
     const w = counter(rows.map(r => r.x.c.id === 'MK-1' ? approval : redlines));
-    assert.match(w.cnChipsHtml([approval, redlines]), /^<button type="button" class="cn-chip" data-cn-lead data-cn-need="approval" data-cn-id="MK-1">Jonas’s approval<\/button>/);
+    /* RE-POINTED 27 Oct 2026: it no longer leads the chips (no lead chip, f803 (1)) */
+    assert.match(w.cnChipsHtml([approval, redlines]), /^<button type="button" class="cn-chip" data-cn-ask="board">board<\/button>/);
   });
   test('8c time in words: "in 40 days", never "in 40d"; a day the way a person says it', () => {
     const w = counter([]);

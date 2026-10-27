@@ -51,7 +51,10 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     /* Home, the Board in front, the window open beside it */
     const toHomeWindow = async face => { await page.evaluate(f => { ai.history = []; setView('dashboard'); intel.paper = null; hbSetFace(f || 'board'); if (!(ai.open && ai.win)) openAI(null, { win: true }); }, face);
       return until(() => state.view === 'dashboard' && ai.open && ai.win && !!document.getElementById('ai-input') && document.getElementById('ai-input').getClientRects().length > 0 && !!document.getElementById('igd-input') && !ai.busy && !intel.busy); };
-    const winAsk = async q => { await page.fill('#ai-input', q); await page.evaluate(() => aiSubmit()); };
+    /* RE-POINTED 27 Oct 2026 (owner: "Go with option 1, AI-first anyway"): words TYPED in the ✦ window go to the brain
+       (every-jambo-tab-verify G); the window's free readers stand for words handed in (a suggestion pressed), so they
+       are asked that way here */
+    const winAsk = async q => { await page.evaluate(w => aiSubmit(w), q); };
     const settled = () => until(() => !ai.busy && !intel.busy);
 
     console.log('\nA · the window on Home draws on the Board, free, and says the Board\'s line');

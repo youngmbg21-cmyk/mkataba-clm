@@ -4956,6 +4956,10 @@ async function aiSubmit(asked){
   /* an open rewrite (or a seeded session) owns the sentence only when it is not
      a question or a booking (aiAsksPastCard, 18 Oct 2026) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);
+  /* THE ✦ WINDOW READS WITH THE BRAIN FIRST (owner, 27 Oct 2026: "Go with option 1, AI-first anyway"): words TYPED in
+     the window (or its popped-out copy) go to the chat, a page word too — goto takes them there, and the page's own
+     controls go with them (aiAskWords {controls}); a chip, a paste's offer and no key keep the free readers below */
+  if(!given && !cardOwns && aiWinTypedFirst()) return aiAskWords(q, { controls:true });
   /* "What am I looking at?" typed is the chip's free reading; a watch sentence
      is proposed as a card (js/jambopress.js) — both before any other reader */
   if(!cardOwns && aiHereAsked(q)){ aiHereExplain(q); return; }
@@ -5034,6 +5038,12 @@ async function aiSubmit(asked){
 /* the explain under a Board's drawing (aiSubmit) asks the same words again without writing them down twice:
    a latch read once by the next aiAskWords, never a second signature (f810, f862 pin the one door) */
 let _aiNoEchoOnce=false;
+/* the ✦'s window (or its popped-out copy) on a computer, with a brain to ask (caAiFirst) */
+function aiWinTypedFirst(){
+  if(typeof window.mPhone==='function'&&mPhone()) return false;
+  if(!((ai.open&&ai.win)||aiPopped())) return false;
+  return typeof window.caAiFirst==='function'&&!!caAiFirst();
+}
 /* opts.controls: asked on a page's Jambo tab (owner, 27 Oct 2026) — the page's own controls go with the words
    (lhControlsNow) and what he presses comes back as `page` (aiPageControlsSaid) */
 async function aiAskWords(qRaw, opts){
@@ -6061,4 +6071,4 @@ Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFa
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiFloatBeside,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiDeepLineHtml,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf,aiPageControlsSaid});
+  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiFloatBeside,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiDeepLineHtml,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf,aiPageControlsSaid,aiWinTypedFirst});

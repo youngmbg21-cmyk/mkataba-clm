@@ -13,7 +13,7 @@
      F  no page errors
    AT THE PARENT (origin/main 422878e) A fails on every page but the Board, B and C fail.
    Run: node test/chromium/every-jambo-tab-verify.js   (HATI_TAB_ONLY=approvals,contracts to run some) */
-/* global state, ai, intel, setView, hbSetFace, hbOpenContracts, openNegotiations, openSettingsAt, closeModal, jlToWords, jamboTalkUp, jamboTalkBack, lhControlsNow, LH_PAGES, roomHomeLand */
+/* global aiWinToggle, closeAI, state, ai, intel, setView, hbSetFace, hbOpenContracts, openNegotiations, openSettingsAt, closeModal, jlToWords, jamboTalkUp, jamboTalkBack, lhControlsNow, LH_PAGES, roomHomeLand */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
 const { startHati, startScriptedAi, seedWorkspace } = require('../helpers');
@@ -116,6 +116,29 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
         const said = await P.evaluate(s => /Showing|Searched the list/.test((document.querySelector(s) || {}).innerText || ''), host);
         check(`B ${key}: his press worked the page's own ${want.tab ? 'tab' : 'search'}, said under his words`, !!got && said, JSON.stringify({ want, got, said }));
       }
+    }
+
+    /* G — THE ✦ WINDOW (owner, 27 Oct 2026: "Go with option 1, AI-first anyway"): typed there, "approvals" is a question
+       to the brain, the page stays, and his press works the page's own list */
+    console.log('\n· G: the ✦ window');
+    if (!ONLY || ONLY.includes('window')){
+      await open("setView('obligations')", '#ins-panel');
+      await P.evaluate(() => { if (!(window.ai && ai.open && ai.win)) aiWinToggle(); });
+      const up = await until(P, () => { const i = document.getElementById('ai-input'); return i && i.offsetParent ? true : null; }, null, 6000);
+      const C = await P.evaluate(() => lhControlsNow());
+      const S = C && C.seats[0], t = S && S.tabs.find((x, i) => i > 0);
+      ai.reset(); ai.script(deliver('ANS-window', t ? { page: [{ seat: S.seat, do: 'tab', k: t.k }] } : {}));
+      await type('#ai-input', 'approvals');
+      await settled(); await P.waitForTimeout(700);
+      const view = await P.evaluate(() => state.view);
+      const chat = ai.calls.find(c => toolsOf(c).includes('deliver_answer'));
+      check('G1 typed in the ✦ window, "approvals" is one question to the brain, the page stays', !!up && ai.calls.length === 1 && !!chat && view === 'obligations', `${ai.calls.length} call(s) · ${view}`);
+      if (t){
+        const got = await until(P, w => { const pg = LH_PAGES[w.seat]; return pg && String(pg.tabNow()) === String(w.k) ? true : null; }, { seat: S.seat, k: t.k }, 5000);
+        const said = await P.evaluate(() => /Showing/.test((document.getElementById('ai-feed') || {}).innerText || ''));
+        check('G2 his press works the page\'s own tab, said under his words in the window', !!got && said, JSON.stringify({ got, said }));
+      } else check('G2 the page offered a tab to press', false);
+      await P.evaluate(() => { try { if (ai.open) closeAI(); } catch (_){} });
     }
 
     console.log('\n· E: Overview keeps its free readers');
