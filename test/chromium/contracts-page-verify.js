@@ -114,18 +114,21 @@ const check = (name, ok, detail) => {
       !!kind.title && /·/.test(kind.title), kind.title);
 
     /* ============ 2. THE STAGE IS A DOT AND A WORD, NOT A CHIP ============ */
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): on the Contracts place the
+       stage is its word in its own tone in the grey line under the agreement, and the row's MARK in the same
+       tone leads it — the mark is the dot's job now, its colour the meta's brighter shade */
     const stage = await page.evaluate(() => {
-      const s = document.querySelector('tr[data-row] .reg-stg');
-      if (!s) return { err: 'no .reg-stg' };
+      const s = document.querySelector('tr[data-row] .reg-stg-w');
+      if (!s) return { err: 'no .reg-stg-w' };
       const cs = getComputedStyle(s);
-      const dot = s.querySelector('i');
-      const dcs = dot ? getComputedStyle(dot) : null;
+      const mark = s.closest('tr').querySelector('.reg-id .ls-mark');
+      const dcs = mark ? getComputedStyle(mark) : null;
       return {
         word: s.textContent.trim(),
         ink: cs.color,
         dotW: dcs ? dcs.width : null,
-        dotBg: dcs ? dcs.backgroundColor : null,
-        radius: dcs ? dcs.borderRadius : null,
+        dotBg: dcs ? dcs.color : null,
+        svg: !!(mark && mark.querySelector('svg')),
         /* the chip must be GONE from the row, not merely restyled */
         chips: document.querySelectorAll('tr[data-row] .badge').length,
         /* same tone family: the dominant channel of both is the same one */
@@ -138,9 +141,9 @@ const check = (name, ok, detail) => {
         })(),
       };
     });
-    check('2a the stage draws a dot beside a word',
-      !stage.err && stage.dotW === '8px' && /50%/.test(stage.radius || ''),
-      `${stage.dotW} ${stage.radius}`);
+    check('2a the stage is a word, and a mark leads the row',
+      !stage.err && stage.svg && stage.dotW === '22px',
+      `${stage.err || ''} ${stage.dotW} ${stage.svg}`);
     check('2b the word carries the meaning ink, so colour is not the only carrier',
       !!stage.word && stage.ink !== 'rgb(0, 0, 0)', `"${stage.word}" ${stage.ink}`);
     /* THE DOT AND THE WORD ARE TWO SHADES OF ONE TONE, DELIBERATELY — the
@@ -149,7 +152,7 @@ const check = (name, ok, detail) => {
        an 8px circle still catches the eye. What matters is that BOTH come from
        the one meta, so they can never name different tones: asserted by their
        hues agreeing while their lightness differs. */
-    check('2c the dot and the word are two shades of ONE tone',
+    check('2c the mark and the word are two shades of ONE tone',
       stage.dotBg !== stage.ink && stage.hueMatch,
       `${stage.dotBg} vs ${stage.ink}`);
     check('2d no filled chip is left in a row', stage.chips === 0, `${stage.chips} chips`);
@@ -171,8 +174,9 @@ const check = (name, ok, detail) => {
        They asserted the stream was a column of its own, written out on the
        row beside a 3px tick. The owner has taken the column off both seats and
        KEPT the filter, so the claims now say exactly that. */
-    check('3a the value stream is no longer a column',
-      !cols.heads.some(x => /value stream|affärsområde|värdeflöde/i.test(x)), cols.heads.join(' · '));
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stream is a column again on the Contracts place, a soft chip */
+    check('3a the stream is a column again, a soft chip in every row that has one',
+      cols.heads.some(x => /^stream$|^värdeflöde$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
     check('3b and no row draws its stream tick', !cols.tick);
     check('3c CONTROL the Stream filter is still offered (under + Filter), with its streams to pick',
       !!cols.streamChip && cols.streamChip.w > 0 && cols.streamChip.opts >= 1, JSON.stringify(cols.streamChip));
@@ -1063,8 +1067,9 @@ const check = (name, ok, detail) => {
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick): the reference rides
        the agreement cell on the place, so it has no head of its own there; the
        sort by reference is offered in the Sort box, and asked there below */
-    check('18a the agreement head sorts, the reference is in the Sort box, and no stream head is drawn',
-      heads.some(h => h.sort === 'party') && !heads.some(h => h.sort === 'stream')
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stream head is drawn again, and it sorts */
+    check('18a the agreement head sorts, the reference is in the Sort box, and the stream head sorts',
+      heads.some(h => h.sort === 'party') && heads.some(h => h.sort === 'stream')
         && (await page.evaluate(() => !!document.querySelector('#reg-sort option[value="ref"]'))),
       JSON.stringify(heads.map(h => h.sort)));
     check('18b and the last column, which has no heading, still does not',

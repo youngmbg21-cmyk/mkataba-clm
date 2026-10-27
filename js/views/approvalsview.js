@@ -927,7 +927,23 @@ function renderApprovalsPage(o){
   /* WHICH SHAPE — asked once, recorded on the page (data-ins) so a width
      that crosses the line repaints it. */
   const INS=(typeof insFits==='function')&&insFits()&&typeof insPaintPanel==='function';
-  const ident=c=>`<td><div class="ap-id">${apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}</span><span class="ap-sub">${esc(c.name||'')}</span></div></div></td>`;
+  /* the row as the list language draws it: whose turn as the mark, "party · agreement", and the grey line —
+     the reference, the kind where its column stepped out, who asked and how long ago */
+  const apMark=r=>(typeof listMarkHtml!=='function')?apAvHtml(r.c.counterparty)
+    : r.done?listMarkHtml('green','done'):apLate(r)?listMarkHtml('ruby','late',i18t('jl_late')):r.mine?listMarkHtml('amber','part',apTurnText(r)):listMarkHtml('steel','wait',apTurnText(r));
+  const ident=(c,r,sameKind)=>`<td><div class="ap-id">${r?apMark(r):apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}<span class="ls-sep"> · </span>${esc(c.name||'')}</span><span class="ap-sub">${[window.refHtml?refHtml(c):esc(c.id), r&&sameKind?esc(i18t(r.type==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr')):'', r?esc(apAskedByText(r)):''].filter(Boolean).join(' \u00b7 ')}</span></div></div></td>`;
+  /* the rule, a soft chip, and who decides under it (apWhyLines); a signature's sentence as it was */
+  const apRuleHtml=r=>{
+    if(r.type==='signature'||typeof listChipHtml!=='function') return apWhyHtml(r);
+    const [a,b]=apWhyLines(r);
+    return `${a?listChipHtml('steel',a):''}${b?`<span class="ap-sub" title="${esc(b)}">${esc(b)}</span>`:''}`;
+  };
+  const apWaitHtml=r=>{
+    if(r.done) return esc(i18t('ap_pg_approved'));
+    if(r.idle==null) return '—';
+    const late=apLate(r), t=apWaitingText(r.idle);
+    return typeof listWordHtml==='function'?listWordHtml(late?'ruby':'amber', t):esc(t);
+  };
   /* the drawing's room (round 15): Whose turn wide enough for "You · for
      Jonas" and "Jonas signs · back Friday", Waiting for "9 days · late" */
   /* widths measured on the words they hold (18 Oct 2026): "Signature" in its
@@ -939,8 +955,12 @@ function renderApprovalsPage(o){
   /* A COLUMN THAT SAYS THE SAME IN EVERY ROW STEPS OUT (Round 2, owner's yes 24 Oct 2026): Kind, Why it
      waits and Whose turn are asked of the rows on screen; where two or more rows all say one thing, the
      column goes and the fact is said once, in one line above the table (apSameLineHtml) */
-  const same=apSameCols(W.rows);
-  const head=[{t:i18t('reg_col_ref'),w:72},{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),...(same.why?[]:[{t:i18t('ap_wl_why'),w:166}]),...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('ap_pg_waiting'),w:120},
+  /* THE LIST LANGUAGE (owner's yes, 27 Oct 2026: the line above the table may go, "replaced by the rule chip
+     on each row"): Why it waits never steps out — each row carries its rule; Kind and Whose turn still step
+     out where every row says the same, the kind then said in the row's grey line and the turn by its mark.
+     The reference rides the grey line, and Our standards is said in words beside the rule. */
+  const same=Object.assign({}, apSameCols(W.rows), { why:false });
+  const head=[{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),{t:i18t('ap_wl_why'),w:170},...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('reg_col_standards'),w:168},{t:i18t('ap_pg_waiting'),w:120},
     ...(money?[{t:i18t('reg_col_value'),right:true,w:112}]:[]),...(INS?[]:[{t:'',w:220}])];
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
@@ -949,17 +969,18 @@ function renderApprovalsPage(o){
     return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button>`;
   };
   const row=r=>`<tr data-ap-row="${esc(r.c.id)}" data-ap-kind="${r.type}"${INS?' tabindex="-1"':''}>
-      <td class="mono">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>${ident(r.c)}
+      ${ident(r.c,r,same.kind)}
       ${same.kind?'':`<td>${apKindHtml(r)}</td>`}
-      ${same.why?'':`<td>${apWhyHtml(r)}</td>`}
+      <td class="ap-rule">${apRuleHtml(r)}</td>
       ${same.turn?'':`<td class="ap-turn" title="${esc(apTurnText(r))}">${apTurnHtml(r)}</td>`}
-      <td class="${r.done?'done':apLate(r)?'late':''}"${apLate(r)&&!r.done?` title="${esc(i18t('jl_late'))}"`:''}>${esc(r.done?i18t('ap_pg_approved'):r.idle==null?'—':apWaitingText(r.idle))}</td>
-      ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
+      <td class="ap-std">${typeof stdRowWordsHtml==='function'?stdRowWordsHtml(r.c):''}</td>
+      <td class="ap-wait${r.done?' done':apLate(r)?' late':''}"${apLate(r)&&!r.done?` title="${esc(i18t('jl_late'))}"`:''}>${apWaitHtml(r)}</td>
+      ${money?`<td class="r mono ap-val">${apValueCell(r.c)}</td>`:''}
       ${INS?'':`<td class="r">${acts(r)}</td>`}
     </tr>`;
   const n=W.rows.length, total=W.all.rows.length;
   const table=n
-    ? `${apSameLineHtml(W.rows, same)}<table class="ap-table${INS?' ap-ins':''}"><colgroup>${head.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${
+    ? `<table class="ap-table${INS?' ap-ins':''}"><colgroup>${head.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${
         W.rows.map(row).join('')}</tbody></table>`
     : `<div class="ap-empty">${esc(i18t(total?'ap_wl_none_match':'ap_wl_none'))}</div>`;
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */

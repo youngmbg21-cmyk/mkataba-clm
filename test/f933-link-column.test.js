@@ -104,7 +104,8 @@ describe('F933 — one builder, so the two tables cannot disagree', () => {
        stream column off both seats. The register draws no stream head; the
        Stream FILTER stays (f379 pins it). The two builder claims below are
        about every head and still stand. */
-    assert.ok(!/sortableTh\('stream',/.test(reg), 'the register draws no value-stream head');
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the Contracts place heads the stream again, its head sorting */
+    assert.ok(/if\(k==='stream'\) return sortableTh\('stream',i18t\('reg_col_stream'\),'',k\);/.test(reg), 'the stream head sorts, on the place that draws it');
     /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the builder takes
        the column's key as well, so the inspector's shape can hand a head its
        pixel width; the full table's heads still take theirs off the one list. */

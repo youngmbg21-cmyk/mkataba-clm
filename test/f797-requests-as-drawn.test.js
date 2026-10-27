@@ -485,14 +485,15 @@ describe('f797 (14) the list head\'s presses are the page\'s own', () => {
     assert.equal(d.querySelector('[data-lh-seat="intake"] .lh-chip'), null, '× puts it back at rest');
     assert.equal(rowIds(d).length, 3);
   });
-  test('14c Columns hides a column, its head and its cells; Ref and Request always stand', () => {
+  /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference rides the grey line, so Request alone stands first */
+  test('14c Columns hides a column, its head and its cells; Request always stands', () => {
     const { win, d } = world(); win.renderIntake();
     win.lcSave('intake', { order: ['kind', 'road', 'with', 'files', 'asked', 'promised'], hidden: ['kind'] });
     win.renderIntake();
     const heads = [...d.querySelectorAll('.ik-lt thead th')].map(txt);
-    assert.deepEqual(heads, ['Ref', 'Request', 'How it is handled', 'With', 'Files', 'Asked', 'Promised by']);
-    assert.equal(d.querySelector('.ik-lt [data-ik-row]').children.length, 7, 'one cell less a row');
-    assert.equal(d.querySelectorAll('.ik-lt colgroup col').length, 7);
+    assert.deepEqual(heads, ['Request', 'How it is handled', 'With', 'Files', 'Asked', 'Promised by']);
+    assert.equal(d.querySelector('.ik-lt [data-ik-row]').children.length, 6, 'one cell less a row');
+    assert.equal(d.querySelectorAll('.ik-lt colgroup col').length, 6);
     win.lcSave('intake', null);
   });
   test('14d the asker\'s Advice tab is a door to the advice desk, kept at zero, and a press goes there', () => {

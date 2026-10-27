@@ -685,7 +685,7 @@ function pageKit(){
       const colEls = t ? [...t.querySelectorAll('colgroup col')] : [];
       const cols = t ? (colEls.length ? colEls : [...t.querySelectorAll('thead th')]).map(x => x.style.width || x.getAttribute('width') || '') : [];
       return { arch: !!arch, seg: seg.map(e => e.getAttribute('data-ct-show')), beside: !!(ra && rs && ra.t < rs.b && rs.t < ra.b),
-        first: td ? { text: window.__lh.words(td).slice(0, 120), av: (() => { const a = td.querySelector('.reg-av, [class*="-av"]'); return a ? window.__lh.words(a) : null; })(),
+        first: td ? { text: window.__lh.words(td).slice(0, 120), av: (() => { const a = td.querySelector('.reg-av, [class*="-av"]'); return a ? window.__lh.words(a) : null; })(), mark: !!td.querySelector('.reg-id .ls-mark svg'),
           party: ct ? window.__lh.words(td).includes(ct.counterparty) : false, subs, ref, title: ct ? ct.name : '', hover: !!(ct && [...td.querySelectorAll('[title]'), td].some(e => (e.title || '').includes(ct.name))) } : null,
         heads: t ? [...t.querySelectorAll('thead th')].filter(window.__lh.vis).map(x => window.__lh.words(x)) : [], cols };
     }, cfgOf(d));
@@ -701,11 +701,12 @@ function pageKit(){
       Array.isArray(T) && T.length === VIEWS.length && VIEWS.every((v, i) => T[i] === v), JSON.stringify(T));
     const f = C.first;
     const kr = f && f.subs.find(s => new RegExp('^\\S.* · ' + f.ref.replace(/[-.]/g, '\\$&') + '$').test(s));
-    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads, "party · ref" under it */
-    check('contracts C3 the first column: initials, the agreement, and "party · ref" under it',
-      !!(f && f.av && /^[A-ZÅÄÖ0-9]{1,3}$/.test(f.av) && f.title && f.text.indexOf(f.title) >= 0 && new RegExp(' · ' + f.ref.replace(/[-.]/g, '\\$&') + '$').test(f.text) && f.hover), JSON.stringify(f));
-    check('contracts C4 the columns at rest: Agreement · Stage · Ends · Value, Owner under Columns, no Ref column of its own',
-      ['Agreement', 'Stage', 'Ends', 'Value'].every(k => C.heads.includes(k)) && !C.heads.includes('Owner') && !C.heads.includes('Ref'), JSON.stringify(C.heads));
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): a mark leads in the
+       initials' place, and the grey line under the agreement reads "party · ref · stage · when it moved" */
+    check('contracts C3 the first column: a mark, the agreement, and "party · ref · stage" under it',
+      !!(f && f.mark && !f.av && f.title && f.text.indexOf(f.title) >= 0 && new RegExp(' · ' + f.ref.replace(/[-.]/g, '\\$&') + ' · \\S').test(f.text) && f.hover), JSON.stringify(f));
+    check('contracts C4 the columns at rest: Agreement · Stream · Our standards · Ends · Value, Owner under Columns, no Ref or Stage column of its own',
+      ['Agreement', 'Stream', 'Our standards', 'Ends', 'Value'].every(k => C.heads.includes(k)) && !C.heads.includes('Owner') && !C.heads.includes('Ref') && !C.heads.includes('Stage'), JSON.stringify(C.heads));
     const pct = C.cols.map(x => /%$/.test(x) ? parseFloat(x) : NaN);
     const sum = pct.reduce((a, b) => a + b, 0);
     check('contracts C5 the <col> widths add up to 100%', C.cols.length > 0 && pct.every(Number.isFinite) && Math.abs(sum - 100) <= 0.6, JSON.stringify({ cols: C.cols, sum: Math.round(sum * 10) / 10 }));

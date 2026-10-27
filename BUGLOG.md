@@ -21826,3 +21826,9 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## Noticed, not fixed — 27 Oct 2026 ("Ask Jambo more" moved to the clause editor's Jambo)
 - The conversation beside the paper answered a question sent from MK-398's Redlines face with "Read from MK-382 · Board" — the contract the owner was on before — and asked which contract was meant; `intelAsk` from the Redlines face can carry a stale contract into its context (owner's iPad, 27 Oct 2026). Ask Jambo more no longer goes there on a computer, but any other door that hands the face's words to `intelAsk` may still read the wrong contract.
 - The card's no-AI reading says "Take it" (`rlRowReadOf` → `rlpJudge`, from precedent), while the brain, asked why, answered "I haven't told you to take it … and I wouldn't" (its governance rule): the two readings disagree about whether Jambo gives a verdict on a negotiated term. In the clause editor the card's reading now rides as his first line, which the editor's answer can see; the brain beside the paper still cannot.
+
+## 27 Oct 2026 — the list language and the black bar
+- Removed, with the owner's yes: Approvals' one line above the table ("All N wait on you. Each: …"); its facts now ride each row (the rule chip) and the row's mark.
+- Noticed, not fixed: CLAUDE.md stands at about 82 KB, over its "about 80 KB" ceiling; a trim needs the owner's yes.
+- Noticed, not fixed: Obligations' Jambo "found" row draws 5 cells in Late's 2-column card if a find ever falls in Late (it drew 3 there before — the same mismatch).
+- Noticed, not fixed: an obligation records no kind beyond dated/event/standing, so the new Kind column can only say Decision or Payment; Report, Delivery and the like would need a recorded kind.

@@ -1662,7 +1662,7 @@ const IK_SEAT = 'intake';
 function ikColDefs(asker){
   return asker
     ? [{ k:'with', label:i18t('ik_f_with'), w:170 }, { k:'promised', label:i18t('ik_f_promised'), w:130 }]
-    : [{ k:'kind', label:i18t('ik_col_kind'), w:88 }, { k:'road', label:i18t('ik_f_road'), w:140 }, { k:'with', label:i18t('ik_f_with'), w:148 },
+    : [{ k:'kind', label:i18t('ik_col_kind'), w:104 }, { k:'road', label:i18t('ik_f_road'), w:140 }, { k:'with', label:i18t('ik_f_with'), w:148 },
       { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }, { k:'promised', label:i18t('ik_f_promised'), w:100 }];
 }
 function ikRepaint(){ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); }
@@ -1680,7 +1680,7 @@ function ikBoxKeep(){
 }
 function ikLhRegister(asker){
   if(typeof LC_PAGES==='object'&&LC_PAGES)
-    LC_PAGES[IK_SEAT]={ cols:()=>ikColDefs(asker).map(c=>({ k:c.k, label:c.label })), repaint:()=>ikRepaint() };
+    LC_PAGES[IK_SEAT]={ cols:()=>ikColDefs(asker).map(c=>({ k:c.k, label:c.label })), repaint:()=>ikRepaint(), hide:['asked'] };
   if(typeof lhRegister!=='function') return null;
   /* a choice's number: the rows it would leave, the view, the other filter
      and the words held */
@@ -1793,9 +1793,13 @@ function ikPaintRows(){
      enough for HaTi's own references (REQ-37E60C) to read whole. */
   const defs=ikColDefs(asker), byK=Object.fromEntries(defs.map(c=>[c.k,c]));
   const keys=(typeof lcShown==='function')?lcShown(IK_SEAT, defs.map(c=>c.k)):defs.map(c=>c.k);
-  const cols=[{ t:i18t('ik_col_ref'), w:asker?96:108 }, { t:i18t('ik_col_request') }, ...keys.map(k=>({ t:byK[k].label, w:byK[k].w, k }))];
-  /* the Kind, an outlined pill — round 15's own (ap-kind) */
-  const kindPill=k=>`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
+  /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the reference rides the grey
+     line under the request, so the Request leads; a mark says what is asked for — a pen for a contract, a
+     question for advice — and the Kind is a soft chip in the same tone */
+  const cols=[{ t:i18t('ik_col_request') }, ...keys.map(k=>({ t:byK[k].label, w:byK[k].w, k }))];
+  const kindPill=k=>(typeof listChipHtml==='function')?`<span class="ik-kind">${listChipHtml(k==='advice'?'violet':'steel', i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`
+    :`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
+  const kindMark=k=>(typeof listMarkHtml==='function')?listMarkHtml(k==='advice'?'violet':'steel', k==='advice'?'ask':'draft', i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract')):'';
   const advCells=r=>{
     const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
     const late=!IK_ADV_DONE.includes(r.status)&&left!=null&&left<=0;
@@ -1811,8 +1815,7 @@ function ikPaintRows(){
   const advTr=r=>{
     const c=advCells(r);
     return `<tr data-ins-row data-ik-row="${esc('adv:'+r.id)}" tabindex="-1">
-      <td><span class="ins-ref">${esc(r.id)}</span></td>
-      <td><span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span>${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></td>
+      <td><span class="ik-req">${kindMark('advice')}<span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span><span class="ins-ref">${esc(r.id)}</span> · ${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></span></td>
       ${keys.map(k=>c[k]()).join('')}
     </tr>`;
   };
@@ -1844,8 +1847,7 @@ function ikPaintRows(){
       : [ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''), stream].filter(Boolean).join(' · ');
     const c=reqCells(r);
     return `<tr data-ins-row data-ik-row="${esc(r.id)}" tabindex="-1">
-      <td><span class="ins-ref">${esc(r.id)}</span></td>
-      <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
+      <td><span class="ik-req">${kindMark('contract')}<span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span><span class="ins-ref">${esc(r.id)}</span> · ${esc(sub)}${asker?'':` · ${esc(i18t('ik_row_asked',{date:ikDay(r.createdAt)}))}`}</span></span></span></td>
       ${keys.map(k=>c[k]()).join('')}
     </tr>`;
   };

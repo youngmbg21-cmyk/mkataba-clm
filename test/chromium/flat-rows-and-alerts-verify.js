@@ -440,7 +440,10 @@ const SEED_UNSENT = async () => {
          (.reg-av) — a mark at the badge's own size, like .reg-own. THE
          REFERENCE is the row's label (ROW IDENTITY: "the reference at
          --t-label/--w-label"), deliberately one rung smaller. */
-      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av/;
+      /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the row's new marks are marks too — a kind's soft chip
+         (ls-chip), the grey line under a reading (ls-word-m, reg-wait-s, the stage's word in the grey line
+         reg-stg-w) and the small print "Not checked yet" (ls-quiet) — so they stand outside the one size */
+      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av|ls-chip|ls-word-m|ls-quiet|reg-stg-w|reg-wait-s/;
       /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): on
          the Contracts place the reference rides under the party ("kind ·
          ref", refHtml's .hati-ref) instead of a Ref column — still the row's
@@ -491,7 +494,9 @@ const SEED_UNSENT = async () => {
         { kind: kind.slice(0, 2).map(c => c.size), row: sizes[0] });
 
       /* THE COLOURS ARE THE WHOLE CONDITION ON FLATTENING THE TYPE. */
-      const inks = [...new Set(body.map(c => c.color))];
+      /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stage's tone rides its word in the grey line and the
+         row's mark now, so the inks are read over the row's words, marks included (the initials apart) */
+      const inks = [...new Set(rows.cells.filter(c => !/reg-av/.test(c.cls)).map(c => c.color))];
       /* "not one" is the claim: the narrow inspector's table draws fewer
          columns, and two inks — the title's and the labels' — still tell
          them apart (11 Oct 2026) */

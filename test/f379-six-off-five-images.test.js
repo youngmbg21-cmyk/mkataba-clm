@@ -47,8 +47,11 @@ test('F379 — six off five images', async t => {
   await t.test('(1) neither seat draws a stream column', () => {
     assert.ok(!win.REG_COL_KEYS.includes('stream'), 'Contracts has no stream column');
     assert.ok(!win.REG_COL_KEYS_NEGO.includes('stream'), 'nor does Negotiations');
-    assert.ok(!/CELL\.stream=/.test(REG), 'and no cell builder is left drawing one');
-    assert.ok(!/sortableTh\('stream'/.test(REG), 'nor a head');
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): the full tables
+       still draw no stream column; the Contracts PLACE on Home draws it again, a soft chip */
+    assert.ok(win.REG_COL_KEYS_HOME.includes('stream'), 'the Contracts place draws the stream again, as designed');
+    assert.ok(/CELL\.stream=`<td/.test(REG), 'its one cell builder');
+    assert.ok(/sortableTh\('stream'/.test(REG), 'and its head, which sorts');
     assert.ok(!/\.reg-tick\{/.test(REG), 'and its colour tick rule went with it');
   });
   await t.test('(1b) the widths still sum to 100, and the five shared columns agree', () => {

@@ -390,6 +390,8 @@ function dirAwayPillHtml(p){
 function dirColDefs(){
   return [
     { k: 'party', label: i18t('dir_col_party'), w: 220 },
+    /* THE SIDE IS A COLUMN AGAIN (owner, 27 Oct 2026: "for people the sap way"): an icon and a word in its tone */
+    { k: 'side', label: i18t('dir_col_side'), w: 130 },
     { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 92 },
   ];
 }
@@ -403,7 +405,13 @@ function dirOurParty(){
 function dirNone(word){ return word ? `<span class="dir-none" title="${_dE(word)}" aria-label="${_dE(word)}">—</span>` : `<span class="dir-none">—</span>`; }
 function dirCellHtml(k, p){
   if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut dir-td-wrap"${v ? ` title="${_dE(v)}"` : ''}>${v ? `<span class="dir-clamp">${_dE(v)}</span>` : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
-  if (k === 'contracts') return `<td class="n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
+  if (k === 'side'){
+    if (p.side !== 'ours' && p.side !== 'theirs') return `<td>${dirNone()}</td>`;
+    const ours = p.side === 'ours', tone = ours ? 'green' : 'steel';
+    const mark = (typeof listMarkHtml === 'function') ? listMarkHtml(tone, ours ? 'done' : 'part') : '';
+    return `<td><span class="dir-side" style="color:var(--st-${tone}-fg)">${mark}${_dE(i18t(ours ? 'dir_side_ours_row' : 'dir_side_theirs_row'))}</span></td>`;
+  }
+  if (k === 'contracts') return `<td class="n dir-n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
   return '<td></td>';
 }
 /* THE LINE UNDER THE NAME, AS DRAWN ("COO · Editor", "Supply Chain
@@ -423,12 +431,19 @@ function dirSubHtml(p){
    the name's hover, so the row still says whose it is. A space parts the
    initials, the name and the line under it (flex draws none), so the row's
    words read "AO Amina Okafor Head of Legal", never "AOAmina". */
+/* THE INITIALS IN THEIR OWN TONE (owner, 27 Oct 2026, the SAP way): a square tinted per name,
+   kept off amber and ruby (listAvatarTone) — a person is never a warning */
+function dirTavTone(p){
+  if (typeof listAvatarTone !== 'function') return '';
+  const t = listAvatarTone(p.name || p.email || '');
+  return ` style="background:var(--st-${t}-bg);color:var(--st-${t}-fg);border-color:transparent"`;
+}
 function dirRowHtml(p, keys){
   const ini = _dE(dirInitials(p.name || p.email));
   const you = p.you ? ` <span class="dir-you">${_dE(i18t('dir_you_paren'))}</span>` : '';
   const hover = [p.name, p.email].filter(Boolean).join(' · ');
   return `<tr data-dir-row="${_dE(p.key)}" data-dir-letter="${_dE(dirLetterOf(p))}" tabindex="-1">
-    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true">${ini}</span> <span class="dir-nm-w" title="${_dE(hover)}"><span class="dir-nm-l"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span> ${dirSubHtml(p)}</span></span></td>
+    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true"${dirTavTone(p)}>${ini}</span> <span class="dir-nm-w" title="${_dE(hover)}"><span class="dir-nm-l"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span> ${dirSubHtml(p)}</span></span></td>
     ${keys.map(k => dirCellHtml(k, p)).join('')}
   </tr>`;
 }
@@ -884,6 +899,8 @@ const DIR_CSS = `
   .dir-nm{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:nowrap;}
   .dir-nm-w{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;}
   .dir-nm-l{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0;}
+  .dir-side{display:inline-flex;align-items:center;gap:4px;font-weight:var(--w-label);font-size:13px;white-space:nowrap}
+  td.dir-n{font-weight:var(--w-label)}
   .dir-tav{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);letter-spacing:.02em;line-height:1;background:transparent;color:var(--color-quiet);border:1px solid var(--rule-strong);}  /* outlined (Chambers, 20 Oct 2026) */
   .dir-table .dir-name{font-weight:var(--w-label);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .dir-table .dir-sub{display:block;margin-top:1px;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}

@@ -309,7 +309,9 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
        columns, and whose move as tabs over the bands. */
     /* RE-POINTED 17 Oct 2026 (round 14, "Whose move"): what the changes ask is
        "What is open", and who leads each deal is its own column (owner's yes). */
-    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Round', 'What is open', 'Waiting', 'Lead']);
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, round
+       and lead ride the grey line under the counterparty; Round and Lead are one press away under Columns */
+    assert.deepEqual(heads, ['Counterparty and agreement', 'Clauses in play', 'What is open', 'Waiting', 'Value']);
     const moves = b.$$('#reg-tbody tr[data-row] .reg-ch').map(x => x.textContent.trim());
     /* RE-POINTED 18 Oct 2026 (round 14 as drawn, owner's "build all the
        gaps"): "What is open" says what is open — "1 redline to answer" */

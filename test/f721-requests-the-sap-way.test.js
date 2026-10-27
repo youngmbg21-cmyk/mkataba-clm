@@ -38,7 +38,10 @@ describe('f721 (1) the team\'s columns', () => {
     assert.match(defs, /\{ k:'kind', label:i18t\('ik_col_kind'\), w:\d+ \}, \{ k:'road', label:i18t\('ik_f_road'\), w:\d+ \}, \{ k:'with', label:i18t\('ik_f_with'\), w:\d+ \},\s*\{ k:'files', label:i18t\('ik_col_files'\), w:\d+ \}, \{ k:'asked', label:i18t\('ik_col_asked'\), w:\d+ \}, \{ k:'promised', label:i18t\('ik_f_promised'\), w:\d+ \}\]/);
     assert.match(defs, /\? \[\{ k:'with', label:i18t\('ik_f_with'\), w:170 \}, \{ k:'promised', label:i18t\('ik_f_promised'\), w:130 \}\]/, 'the asker\'s list is as it was');
     const r = fnBody(IK, 'ikPaintRows');
-    assert.match(r, /const cols=\[\{ t:i18t\('ik_col_ref'\), w:asker\?96:108 \}, \{ t:i18t\('ik_col_request'\) \}, \.\.\.keys\.map/, 'Ref and Request first, then the columns shown');
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference rides the grey line under the request, so
+       the Request leads; Asked is one press away under Columns (its day is in the grey line too) */
+    assert.match(r, /const cols=\[\{ t:i18t\('ik_col_request'\) \}, \.\.\.keys\.map/, 'Request first, then the columns shown');
+    assert.match(r, /<span class="ins-ref">\$\{esc\(r\.id\)\}<\/span> · \$\{esc\(sub\)\}/, 'the reference leads the grey line');
     /* RE-POINTED 19 Oct 2026 (round 20 as drawn): the With cell carries its class (the name and the lane on one line) */
     assert.match(r, /with:\(\)=>asker\?`<td>\$\{ikWithCellHtml\(r, asker\)\}<\/td>`:`<td class="ik-with">\$\{ikWithListHtml\(r\)\}<\/td>`/);
     assert.match(r, /files:\(\)=>`<td>\$\{ikFilesCellHtml\(r\)\}<\/td>`,\s*asked:\(\)=>`<td class="ik-ask">/);

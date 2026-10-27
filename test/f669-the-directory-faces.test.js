@@ -237,9 +237,10 @@ describe('f669 — the table, as drawn', () => {
     assert.match(doc.querySelector('#dir-page .dir-t').textContent, /7/, 'everyone counted beside the name');
     assert.match(doc.querySelector('#dir-page .page-facts').textContent, /"n":3/, 'three of ours');
     assert.match(doc.querySelector('#dir-page .page-facts').textContent, /dir_head_theirs:2/, 'theirs at two parties');
-    /* RE-POINTED (Part 8, the Legora way): Name · Party · Contracts, as drawn */
+    /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Name · Party · Side · Contracts.
+       RE-POINTED (Part 8, the Legora way): Name · Party · Contracts, as drawn */
     eq([...doc.querySelectorAll('#dir-page thead th')].map(h => h.getAttribute('data-dir-col') || 'name'),
-      ['name', 'party', 'contracts']);
+      ['name', 'party', 'side', 'contracts']);
   });
 
   /* RE-POINTED (Part 8, the Legora way): the side is the tab the row stands

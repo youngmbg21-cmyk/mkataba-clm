@@ -79,6 +79,7 @@ function stage(o = {}){
   };
   sb.window = sb; sb.self = sb;
   vm.createContext(sb);
+  vm.runInContext(read('js/listlang.js'), sb, { filename: 'listlang.js' });   // the list language (27 Oct 2026)
   vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
   vm.runInContext(read('js/views/customers.js'), sb, { filename: 'customers.js' });
   return { sb, doc: win.document };
@@ -129,11 +130,15 @@ describe('f739 (2) the list as drawn', () => {
   });
   /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): a column empty for every party steps out — no party here has a
      city or an NDA, so City and NDA are not drawn (f739 (3) draws City the day one has) */
+  /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: the other lists "the same way"): Stream and
+     Standing join, Live is one press away under Columns, and the grey line says since when (the
+     streams are their own column) */
   test('the columns as drawn, a column empty for everyone left out', () => {
-    assert.deepEqual([...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent), ['Party', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you']);
+    assert.deepEqual([...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent), ['Party', 'Stream', 'Standing', 'Ended', 'On paper', 'Next to end', 'Waiting on you']);
     const kf = doc.querySelector('[data-cu-cust="kenya freight ltd"]');
-    assert.equal(kf.querySelector('.cu-ps').textContent, '2 agreements · Procurement');
-    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] .cu-ps').textContent, '1 agreement · Procurement');
+    assert.match(kf.querySelector('.cu-ps').textContent, /^2 agreements( · with us since \S.*)?$/);
+    assert.match(doc.querySelector('[data-cu-cust="party 01 ltd"] .cu-ps').textContent, /^1 agreement( · with us since \S.*)?$/);
+    assert.equal(kf.querySelector('td.cu-stream .ls-chip').textContent, 'Procurement', 'the stream a soft chip');
   });
   /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the foot
      is the list head's one foot (lhFootHtml) — "1–10 of 13 · Show 3 more",
@@ -151,7 +156,7 @@ describe('f739 (2) the list as drawn', () => {
     sb.localStorage.setItem('hati.v1.cols.customers', JSON.stringify({ order: ['nda', 'city'], hidden: ['paper'] }));
     sb.renderCustomers();
     const th = [...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent);
-    assert.deepEqual(th, ['Party', 'Live', 'Ended', 'Next to end', 'Waiting on you'], 'City and NDA, empty for everyone, stay out; On paper hidden by the reader');
+    assert.deepEqual(th, ['Party', 'Stream', 'Standing', 'Live', 'Ended', 'Next to end', 'Waiting on you'], 'City and NDA, empty for everyone, stay out; On paper hidden by the reader, Live shown by their own choice');
     assert.equal(doc.querySelector('#cu-tbody tr').children.length, th.length, 'every row draws the columns the head does');
     sb.localStorage.removeItem('hati.v1.cols.customers');
   });
@@ -175,9 +180,11 @@ describe('f739 (3) a party\'s city, from the one home', () => {
   test('a live party still counts what has ended with it; Ended lists the parties everything with has ended', () => {
     sb.renderCustomers();
     const kf = doc.querySelector('[data-cu-cust="kenya freight ltd"]');
-    const cells = [...kf.children].map(td => td.textContent.trim());
-    assert.equal(cells[2], '1', 'one live');
-    assert.equal(cells[3], '1', 'one ended, still counted under Live');
+    /* RE-POINTED 27 Oct 2026 (the list language): Live is under Columns, so the party's standing says it */
+    const heads = [...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent);
+    const cell = h => kf.children[heads.indexOf(h)].textContent.trim();
+    assert.equal(cell('Standing'), 'Live', 'live');
+    assert.equal(cell('Ended'), '1', 'one ended, still a live party');
     assert.equal(doc.querySelector('[data-cu-cust="retired supplies ltd"]'), null, 'a party everything with has ended is off Live');
     sb.cuPlacePut({ status: 'ended' });
     sb.renderCustomers();
@@ -264,8 +271,9 @@ describe('f739 (6) a colleague\'s request about the party waits on you', () => {
     assert.equal(JSON.stringify(sb.cuRequestsOf('party 01 ltd').map(x => x.r.id)), JSON.stringify(['REQ-1', 'REQ-4']));
     sb.renderCustomers();
     /* RE-POINTED 19 Oct 2026 (lane A2, check #1): the first whole, the rest on a quiet second line */
-    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-wait .cu-wait-t').textContent, 'Sara asked for an NDA with Party 01 Ltd');
-    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-wait .cu-wait-more').textContent, '+1 more');
+    /* RE-POINTED 27 Oct 2026 (the list language): the first a dot and its words, the rest on the grey line under it */
+    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-wait .ls-word-v').textContent, 'Sara asked for an NDA with Party 01 Ltd');
+    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-wait .ls-word-m').textContent, '+1 more');
   });
   test('a reader who may not draft is not asked', () => {
     const { sb } = stage({ canEdit: false, requests: [R('REQ-1', 'u2')] });
@@ -312,7 +320,8 @@ describe('f739 (7) check #1\'s differences, built', () => {
   test('7c the Waiting column says the first whole, the rest on a quiet second line, and has the room', () => {
     const { sb } = stage();
     const td = sb.cuCellHtml('waiting', { key: 'k' }, { needs: [{ c: { id: 'A' }, it: { kind: 'details' } }, { c: { id: 'B' }, it: { kind: 'details' } }] }, new Map());
-    assert.match(td, /<span class="cu-wait-t">[^<]+<\/span><span class="cu-wait-more">\+1 more<\/span>/);
+    /* RE-POINTED 27 Oct 2026 (the list language): the first a dot and its words, the rest on the grey line under it */
+    assert.match(td, /<span class="cu-wait-t"><span class="ls-word"><span class="ls-word-v"[^>]*><i[^>]*><\/i>[^<]+<\/span><span class="ls-word-m">\+1 more<\/span>/);
     const w = sb.cuColDefs().find(c => c.k === 'waiting').w;
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): 166 pays for Ended reading whole in Swedish and On paper's sum;
        parties-and-people-verify 9e measures that nothing on the page is cut, in both languages */
