@@ -7935,7 +7935,9 @@ function hbShelfHtml(I){
     const chips = x.plain ? '' : (x.mine ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_mine', { n: _hbN(mineN) }))}</span>` : scope === 'mine' ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_co'))}</span>` : '');
     const tone = x.plain ? ' is-plain' : x.tone === 'warn' ? ' is-warn' : x.tone === 'good' ? ' is-good' : '';
     return `<article class="hb-ins${tone}" data-hb-ins-card="${_hbE(id)}">
-      ${chips ? `<div class="hb-ins-top">${chips}</div>` : ''}<div class="hb-ins-t">${_hbE(x.title)}</div>
+      ${chips ? `<div class="hb-ins-top">${chips}</div>` : ''}<div class="hb-ins-h"><div class="hb-ins-t">${_hbE(x.title)}</div>${''/* THE × AT THE TOP RIGHT
+        (owner, 27 Oct 2026: "give insights the × too"): the Board's one way off a card, the opened chart's own ×;
+        it lets the picture go (rests 30 days), so "Let it go" left the foot */}<button type="button" class="hb-ib hb-x hb-ins-x" data-hb-ins="go" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_letgo'))}" aria-label="${_hbE(i18t('hb_ins_letgo'))}">${_hbX}</button></div>
       <button type="button" class="hb-ins-pic" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_open_tip'))}" aria-label="${_hbE(x.title + ' — ' + i18t('hb_ins_open'))}">${hbInsPicHtml(x)}</button>
       <div class="hb-ins-f">${_hbE(x.say)}</div>${!x.plain && scope === 'mine' ? `<div class="hb-ins-why">${_hbE(hbInsWhy(x))}</div>` : ''}${_hbReadOpen.has('ins:' + id) ? hbReadSrcHtml('ins:' + id) : ''}
       <div class="hb-ins-acts">
@@ -7946,8 +7948,7 @@ function hbShelfHtml(I){
                this?" in place — two doors onto one question. The card's
                finding is its headline; Read more opens its reading here, the
                same block (hbReadSrcHtml), per sitting (_hbReadOpen).
-               hb_ins_why / hb_ins_why_q are inert in both books. */}<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE('ins:' + id)}" aria-expanded="${_hbReadOpen.has('ins:' + id)}">${_hbE(i18t(_hbReadOpen.has('ins:' + id) ? 'hb_head_less' : 'hb_ins_askwhy'))}</button>
-        <button type="button" class="hb-link hb-ins-go" data-hb-ins="go" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_letgo'))}">${_hbE(i18t('hb_ins_letgo_btn'))}</button></div></article>`; }).join('')}${calm}</div>`;
+               hb_ins_why / hb_ins_why_q are inert in both books. */}<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE('ins:' + id)}" aria-expanded="${_hbReadOpen.has('ins:' + id)}">${_hbE(i18t(_hbReadOpen.has('ins:' + id) ? 'hb_head_less' : 'hb_ins_askwhy'))}</button></div></article>`; }).join('')}${calm}</div>`;
 }
 /* A KEPT VIEW IS A PANEL: the question, its recipe, a name that stays true
    (the proposal's sentence was true the morning it was made). */
