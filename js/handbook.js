@@ -292,15 +292,15 @@ const HANDBOOK_CHAPTERS = [
 
   /* ======================= PART 3 — AGREE THE WORDS ======================= */
   { k: '3.1', part: 'agree', round: 1,
-    title: { en: 'Their changes: Accept · Reject · Counter', sv: 'Deras ändringar: Godta · Avslå · Motbud' },
+    title: { en: 'Their changes: Counter · Accept · More', sv: 'Deras ändringar: Motbud · Godta · Mer' },
     eyebrow: { en: 'Redlines tab', sv: 'Fliken Ändringar' },
-    what: { en: 'Every change the other side asked for is a row in the Redlines column: one line in paper order, Waiting on you first, settled ones folded. The row carries the whole decision: {ui:ng_accept} · {ui:ng_reject} · {ui:ng_counter}. Under it, Jambo\'s read: the verdict in bold, the reason under, from the playbook first and then what you agreed before.',
-      sv: 'Varje ändring motparten bett om är en rad i Ändringar-kolumnen: en rad i papperets ordning, Väntar på dig först, avgjorda hopfällda. Raden bär hela beslutet: {ui:ng_accept} · {ui:ng_reject} · {ui:ng_counter}. Under den, Jambos läsning: domen i fetstil, skälet under, från spelboken först och sedan vad ni gått med på förut.' },
+    what: { en: 'Every change the other side asked for is a row in the Redlines column: one line in paper order, Waiting on you first, settled ones folded. The row carries the whole decision: {ui:ng_counter} leads as the row\'s one filled button, {ui:ng_accept} beside it, and the other ways to answer — {ui:ng_reject} (red), a colleague, the ladder — wait behind {ui:rl_more}. Under it, Jambo\'s read: the verdict in bold, the reason under, from the playbook first and then what you agreed before.',
+      sv: 'Varje ändring motparten bett om är en rad i Ändringar-kolumnen: en rad i papperets ordning, Väntar på dig först, avgjorda hopfällda. Raden bär hela beslutet: {ui:ng_counter} leder som radens enda fyllda knapp, {ui:ng_accept} bredvid, och de andra sätten att svara — {ui:ng_reject} (röd), en kollega, stegen — väntar bakom {ui:rl_more}. Under den, Jambos läsning: domen i fetstil, skälet under, från spelboken först och sedan vad ni gått med på förut.' },
     when: [{ en: 'A round came back and Needs you says "N changes waiting on you".', sv: 'En runda kom tillbaka och Behöver dig säger "N ändringar väntar på dig".' },
       { en: 'You want to know what happened the last time they asked for this: the memory line under the verdict says it.', sv: 'Du vill veta vad som hände sist de bad om detta: minnesraden under domen säger det.' }],
     path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, 'door:redline'],
     how: [{ en: 'Read the row: §N and the words that moved. Press the row and the paper glides to the clause.', sv: 'Läs raden: §N och orden som flyttats. Tryck på raden så glider papperet till klausulen.' },
-      { en: 'Press {ui:ng_accept}, {ui:ng_reject} (red) or {ui:ng_counter}. A counter opens the editor on top of their ask, so what you keep of theirs is said.', sv: 'Tryck {ui:ng_accept}, {ui:ng_reject} (röd) eller {ui:ng_counter}. Ett motbud öppnar redigeraren ovanpå deras begäran, så det du behåller av deras sägs.' },
+      { en: 'Press {ui:ng_counter} (the filled button) to answer in the editor on top of their ask, so what you keep of theirs is said; {ui:ng_accept} takes it as it stands; {ui:rl_more} opens {ui:ng_reject} (red) and the other ways.', sv: 'Tryck {ui:ng_counter} (den fyllda knappen) för att svara i redigeraren ovanpå deras begäran, så det du behåller av deras sägs; {ui:ng_accept} tar den som den står; {ui:rl_more} öppnar {ui:ng_reject} (röd) och de andra sätten.' },
       { en: 'Nothing is sent by deciding. Your decisions wait as "N not sent" until {ui:ng_unsent_send}.', sv: 'Inget skickas genom att besluta. Dina beslut väntar som "N inte skickade" tills {ui:ng_unsent_send}.' },
       { en: '"{ui:rl_read_more}" asks Jambo\'s brain about this one change, with its cost.', sv: '"{ui:rl_read_more}" frågar Jambos hjärna om just denna ändring, med sin kostnad.' }],
     read: { key: [{ tone: 'ok', en: 'inside our rule', sv: 'inom vår regel' }, { tone: 'warn', en: 'one-sided or unusual', sv: 'ensidig eller ovanlig' }, { tone: 'risk', en: 'outside our rule', sv: 'utanför vår regel' }, { tone: 'none', en: 'no advice yet (no rule, no precedent)', sv: 'inget råd än (ingen regel, inget prejudikat)' }],
@@ -309,7 +309,7 @@ const HANDBOOK_CHAPTERS = [
     cost: { en: 'Free; "Ask Jambo more" says its cost', sv: 'Gratis; "Fråga Jambo mer" säger sin kostnad' }, doors: ['redline', 'negotiations'], acts: ['ladder'],
     words: { en: ['redlines', 'their changes', 'accept a change', 'reject a change', 'counter', 'negotiation memory', 'what they asked for'], sv: ['ändringar', 'deras ändringar', 'godta', 'avslå', 'motbud', 'förhandlingsminne'] },
     shots: [
-      { go: [{ open: 'MK-A2', face: 'red' }], boxes: [{ sel: '[data-rl-pile="awaiting"]', step: 1 }, { sel: '[data-nego-accept="hb-ch2"]', step: 2 }], cap: { en: 'Their asks, one row each, waiting on you (1); Accept · Reject · Counter on the row (2).', sv: 'Deras önskemål, en rad var, som väntar på dig (1); Godta · Avslå · Motbud på raden (2).' } },
+      { go: [{ open: 'MK-A2', face: 'red' }], boxes: [{ sel: '[data-rl-pile="awaiting"]', step: 1 }, { sel: '[data-nego-accept="hb-ch2"]', step: 2 }], cap: { en: 'Their asks, one row each, waiting on you (1); Counter leads with Accept beside it, the rest behind More (2).', sv: 'Deras önskemål, en rad var, som väntar på dig (1); Motbud leder med Godta bredvid, resten bakom Mer (2).' } },
       { go: [{ open: 'MK-A2', face: 'red' }], boxes: [{ sel: '[data-ig-red="1"]', step: 1 }, { sel: 'section.rl-clause[data-clause]', step: 1 }], cap: { en: 'The paper shows their changes in place, clause by clause (1).', sv: 'Papperet visar deras ändringar på plats, klausul för klausul (1).' } }] },
 
   { k: '3.2', part: 'agree', round: 1,
@@ -782,7 +782,7 @@ const HANDBOOK_CHAPTERS = [
     title: { en: 'Negotiation memory', sv: 'Förhandlingsminne' },
     eyebrow: { en: 'Redlines tab', sv: 'Fliken Ändringar' },
     what: { en: 'When the other side asks for a change, their card tells you what happened the last time this came up, either with them or across your contracts.', sv: 'När motparten ber om en ändring säger deras kort vad som hände förra gången det kom upp, antingen med dem eller över era avtal.' },
-    when: [{ en: 'Every time you decide whether to Accept, Reject or Counter their change.', sv: 'Varje gång du bestämmer om du ska Godta, Avslå eller ge Motbud på deras ändring.' }],
+    when: [{ en: 'Every time you decide whether to Counter, Accept or Reject their change.', sv: 'Varje gång du bestämmer om du ska ge Motbud, Godta eller Avslå deras ändring.' }],
     path: [{ en: 'Open a contract › Redlines › their change\'s card', sv: 'Öppna ett avtal › Ändringar › deras ändrings kort' }],
     how: [{ en: 'Read the line under Jambo\'s verdict on their change: what was agreed before.', sv: 'Läs raden under Jambos omdöme om deras ändring: vad som avtalades förut.' },
       { en: 'It shows after 1 earlier round with the same party, or after 3 rounds across your contracts.', sv: 'Den visas efter 1 tidigare runda med samma part, eller efter 3 rundor över era avtal.' },

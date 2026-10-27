@@ -6154,6 +6154,25 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-face [data-rl-retract]{color:var(--st-ruby-fg)}
   .redline-page .rl-card-d .rl-card-face .rl-rej:hover,
   .redline-page .rl-card-d .rl-card-face [data-rl-retract]:hover{background:var(--st-ruby-bg)}
+  ${''/* ---- THE PICKED CARD (owner, 27 Oct 2026, round 9 of the Legora rounds) ----
+         On our seat's live ask of theirs the suggested answer leads as the
+         row's ONE filled button — the product's filled ink, white word and
+         mark — Accept beside it, and the rest behind More ▾. The fold is
+         display:contents so an opened row lays out exactly as the old face
+         did; [hidden] still wins over it. More's chevron follows
+         aria-expanded, so the control says its own state. Written LAST in
+         this sheet, AND on .rl-card-face.rl-card-verbs (both names of the one
+         span), so the lead's white outweighs the pile's five-class verb ink
+         (measured in the bench: .rl-pile ... button.rl-verb-ai won at four). */}
+  .redline-page .rl-card-d .rl-card-face.rl-card-verbs button.rl-verb-lead{background:var(--accent-fill,#1d1d1f);
+    color:#fff;border-radius:999px;padding:3px 11px}
+  .redline-page .rl-card-d .rl-card-face.rl-card-verbs button.rl-verb-lead:hover{text-decoration:none;
+    background:var(--accent-fill,#1d1d1f);filter:brightness(1.15)}
+  .redline-page .rl-card-d .rl-card-face.rl-card-verbs button.rl-fold-btn{color:var(--color-neutral-600)}
+  .redline-page .rl-card-d .rl-card-face .rl-fold-btn::after{content:" ▾"}
+  .redline-page .rl-card-d .rl-card-face .rl-fold-btn[aria-expanded="true"]::after{content:" ▴"}
+  .redline-page .rl-card-d .rl-card-more{display:contents}
+  .redline-page .rl-card-d .rl-card-more[hidden]{display:none}
   .redline-page .rl-card-d .rl-card-face [data-rl-ladder],
   .redline-page .rl-card-d .rl-card-face [data-rl-ask-review],
   .redline-page .rl-card-d .rl-card-face [data-nego-withdraw]{color:var(--color-neutral-600)}
@@ -6469,6 +6488,12 @@ function redlineLayoutCss(){
   .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ladder],
   .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ask-review],
   .redline-page .rl-pile .rl-card-d .rl-card-face .rl-sg-back{color:var(--accent-ink)}
+  ${''/* THE PICKED CARD'S LEAD KEEPS ITS WHITE INSIDE A PILE TOO (27 Oct 2026):
+         the rule above dresses every Copilot door in a pile with the accent at
+         five classes, which is one more than the lead's base rule carries —
+         measured in the bench as green-on-ink. Stated here, after it and at
+         its own weight plus one, by SCOPE and never !important. */}
+  .redline-page .rl-pile .rl-card-d .rl-card-face.rl-card-verbs button.rl-verb-lead{color:#fff}
   .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ladder]:hover,
   .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ask-review]:hover,
   .redline-page .rl-pile .rl-card-d .rl-card-face .rl-sg-back:hover{background:var(--color-accent-100);color:var(--accent-ink)}
