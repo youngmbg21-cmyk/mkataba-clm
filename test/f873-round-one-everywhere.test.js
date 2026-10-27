@@ -39,9 +39,12 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const fnRegion = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = src.indexOf('\nfunction ', i + 10); return src.slice(i, j < 0 ? undefined : j); };
 
 describe('f873 (1) a firmer grey', () => {
-  test('1a the small-text greys are #4B4B50; the line grey stays', () => {
-    for (const t of ['--color-neutral-500', '--color-neutral-600', '--st-gray-fg', '--nav-ink', '--hb-ink-2', '--hb-mute'])
+  /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: "more black font"): 500 and 600 are the ink now; the small print's grey is --color-quiet / --hb-quiet */
+  test('1a the small print\'s grey is #4B4B50 (--color-quiet); the text greys are the ink; the line grey stays', () => {
+    for (const t of ['--color-quiet', '--hb-quiet', '--st-gray-fg', '--nav-ink'])
       assert.match(INDEX, new RegExp(t + ':#4B4B50'), t);
+    for (const t of ['--color-neutral-500', '--color-neutral-600', '--hb-ink-2', '--hb-mute'])
+      assert.match(INDEX, new RegExp(t + ':#1D1D1F'), t);
     assert.match(INDEX, /--color-neutral-400:#6A6A6F/);
     assert.doesNotMatch(strip(INDEX), /--color-neutral-(500|600):#66666B/);
   });

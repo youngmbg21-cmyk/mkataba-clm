@@ -536,7 +536,7 @@ function portfolioFrameHtml(){
     .pf-risk g[data-pf-cp]:hover circle,.pf-risk g[data-pf-cp]:focus-visible circle{stroke:var(--color-text)}
     .pf-risk g[data-pf-cp]:focus{outline:none}
     .pf-run{display:grid;grid-template-columns:62px minmax(0,1fr);grid-template-rows:var(--pf-run-h,190px) auto;gap:0 6px}
-    .pf-yax{position:relative;font-size:var(--t-micro);color:var(--color-neutral-600);text-align:right}
+    .pf-yax{position:relative;font-size:var(--t-micro);color:var(--color-quiet);text-align:right}
     .pf-yax span{position:absolute;right:0;transform:translateY(50%);white-space:nowrap;font-variant-numeric:tabular-nums}
     .pf-vbars{position:relative;display:grid;align-items:end;gap:4px;border-bottom:1px solid var(--color-neutral-300);padding:0 2px}
     .pf-gl{position:absolute;left:0;right:0;border-top:1px dashed var(--color-divider);pointer-events:none;z-index:0}
@@ -544,7 +544,7 @@ function portfolioFrameHtml(){
     button.pf-col{cursor:pointer}
     .pf-col i{display:block;border-radius:3px 3px 0 0;min-height:0}
     button.pf-col:hover i{filter:brightness(.92)}
-    .pf-vaxis{display:grid;gap:4px;padding:4px 2px 0;font-size:var(--t-micro);color:var(--color-neutral-600);text-align:center;white-space:nowrap}
+    .pf-vaxis{display:grid;gap:4px;padding:4px 2px 0;font-size:var(--t-micro);color:var(--color-quiet);text-align:center;white-space:nowrap}
     .pf-door{display:inline-flex;align-items:center;gap:4px;margin-left:auto;white-space:nowrap}
     .pf-say .pf-amber{color:var(--st-amber-fg);font-weight:var(--w-title)}
     @media (min-width:1080px){

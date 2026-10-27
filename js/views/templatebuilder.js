@@ -1383,7 +1383,7 @@ function tbStyleHtml() {
     max-width:var(--doc-sheet-max,780px);margin:0 auto;padding:34px 48px 36px 62px;font-size:14px;line-height:1.7;color:var(--color-text)}
   @media (max-width:700px){ .tb-paper{padding:22px 18px 24px 46px} }
   .tb-title{font-family:var(--font-heading);font-size:16px;font-weight:var(--w-strong);text-align:center;margin:0 0 20px;letter-spacing:.01em}
-  .tb-brand{font-size:var(--t-micro);color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:8px;margin-bottom:18px}
+  .tb-brand{font-size:var(--t-micro);color:var(--color-quiet);border-bottom:1px solid var(--color-divider);padding-bottom:8px;margin-bottom:18px}
   .tb-row{position:relative}
   .tb-g{position:absolute;left:-48px;top:1px;display:flex;flex-direction:column;gap:3px;opacity:0;transition:opacity var(--dur-1)}
   /* the paper is clean, as round 21 draws it: a block's move and remove show
@@ -1459,7 +1459,7 @@ function tbStyleHtml() {
   .tb-sigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:26px;margin-top:22px;padding-top:14px;border-top:1px solid var(--color-divider)}
   .tb-sig .tb-sigwho{font-weight:var(--w-strong);font-size:13px}
   .tb-sig .tb-sigline{display:block;border-bottom:1px solid var(--color-neutral-500);height:26px;margin:14px 0 4px}
-  .tb-sig small{color:var(--color-neutral-600);font-size:11px}
+  .tb-sig small{color:var(--color-quiet);font-size:11px}
   .tb-add{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:26px;padding-top:12px;border-top:1px dashed var(--color-divider)}
   /* the paper ends with its wording (round 21): Add block shows under the hand
      or the caret on a computer; a touch screen, with no hover, always sees it */
@@ -1497,7 +1497,7 @@ function tbStyleHtml() {
   .tb-card .av button{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);background:var(--color-surface);color:var(--accent-ink);border:1px solid var(--color-divider);cursor:pointer}
   .tb-card .av button.p{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff}
   .tb-card .av button:hover{border-color:var(--accent-solid)} .tb-card .av button[disabled]{opacity:.45;cursor:default}
-  .tb-card .av .cost{margin-left:auto;font-size:var(--t-micro);color:var(--color-neutral-500)}
+  .tb-card .av .cost{margin-left:auto;font-size:var(--t-micro);color:var(--color-quiet)}
   .tb-card.rcpt{background:var(--color-surface)} .tb-card.rcpt .n{font-size:var(--t-meta);color:var(--st-green-fg)}
   .tb-list{margin:6px 0 0;padding:0;list-style:none} .tb-list li{padding:6px 0;border-top:1px solid var(--color-divider);font-size:var(--t-meta)} .tb-list li:first-child{border-top:0}
   .tb-list label{display:flex;gap:8px;align-items:flex-start;cursor:pointer} .tb-list label>span{min-width:0;flex:1}
@@ -1529,7 +1529,7 @@ function tbStyleHtml() {
   .tb-scope .x:hover{color:var(--color-text)}
   .tb-scope q{display:block;margin-top:5px;padding-left:8px;quotes:none;border-left:2px solid var(--accent-solid);font-size:var(--t-label);line-height:1.55;color:var(--color-text)}
   .tb-scope q.e{color:var(--color-neutral-500);font-style:italic}
-  .tb-scope .ctx{display:inline-flex;align-items:center;gap:5px;margin:7px 6px 0 0;font-size:var(--t-micro);color:var(--color-neutral-600);background:var(--color-surface);border:1px solid var(--color-divider);padding:1px 7px}
+  .tb-scope .ctx{display:inline-flex;align-items:center;gap:5px;margin:7px 6px 0 0;font-size:var(--t-micro);color:var(--color-quiet);background:var(--color-surface);border:1px solid var(--color-divider);padding:1px 7px}
   .tb-scope .ctx button{border:0;background:none;font:inherit;cursor:pointer;color:inherit;padding:0}
   .tb-chips{flex:none;display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;padding:0 14px 9px;scrollbar-width:thin;
     -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent)}
@@ -1549,7 +1549,7 @@ function tbStyleHtml() {
   .tb-pick i.d{width:7px;height:7px;border-radius:50%;background:var(--color-divider);flex:none;display:block} .tb-pick i.d.ok{background:var(--accent-solid)}
   .tb-railfoot{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600)}
   .tb-railfoot b{color:var(--color-text);font-variant-numeric:tabular-nums} .tb-railfoot .sp{flex:1}
-  .tb-walk{background:none;border:0;font:inherit;font-size:var(--t-micro);color:var(--color-neutral-500);cursor:pointer;padding:0} .tb-walk.is-on{color:var(--accent-ink)}
+  .tb-walk{background:none;border:0;font:inherit;font-size:var(--t-micro);color:var(--color-quiet);cursor:pointer;padding:0} .tb-walk.is-on{color:var(--accent-ink)}
   .tb-quiet{font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5}
   /* ════ ROUND 21, "PAPER FIRST" — THE BUILDER AS DRAWN (owner's "build all
      the gaps", 18 Oct 2026) ════
@@ -1649,7 +1649,7 @@ function tbStyleHtml() {
   .tb-ol-r.is-prop{color:var(--color-neutral-600)}
   .tb-ol-n{flex:none;width:18px;text-align:right;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .tb-ol-h{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tb-ol-pill{flex:none;font-size:var(--t-micro);padding:1px 8px;border-radius:999px;border:1px solid var(--color-divider);color:var(--color-neutral-600);white-space:nowrap}
+  .tb-ol-pill{flex:none;font-size:var(--t-micro);padding:1px 8px;border-radius:999px;border:1px solid var(--color-divider);color:var(--color-quiet);white-space:nowrap}
   .tb-ol-pill.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:transparent}
   .tb-ol-ok{flex:none;color:var(--st-green-fg);display:block}
   .tb-ol-sh{margin:16px 0 4px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)}

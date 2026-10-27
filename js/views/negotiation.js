@@ -417,7 +417,7 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht h3{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 2px}
       .ht .ht-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3)}
       .ht .ht-filters{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:14px;padding-bottom:var(--s-3);border-bottom:1px solid var(--color-divider)}
-      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
+      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-quiet)}
       .ht .ht-f select{font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-1) 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:var(--s-2) 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:var(--t-label)}

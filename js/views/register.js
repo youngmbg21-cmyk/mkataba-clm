@@ -4005,7 +4005,7 @@ function renderRegister(opts){
         box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);
         padding:10px 12px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
       .reg-display-pop[hidden]{display:none}
-      .reg-dp-h{font-size:var(--t-micro);color:var(--color-neutral-600);margin-top:2px}
+      .reg-dp-h{font-size:var(--t-micro);color:var(--color-quiet);margin-top:2px}
       .reg-display-pop .reg-seg{align-self:flex-start}
       .reg-dp-row{display:flex;align-items:center;gap:8px;border:0;background:none;font:inherit;font-size:var(--t-body);
         color:var(--color-text);padding:6px 0 2px;cursor:pointer;text-align:left;min-height:var(--tap-min);white-space:nowrap}

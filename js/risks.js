@@ -976,7 +976,7 @@ function rkEnsureStyle(){
   .rk-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px}
   .rk-h b{font-family:var(--font-heading);font-size:var(--t-label);font-weight:var(--w-strong);
     color:var(--color-neutral-600)}
-  .rk-when{font-size:var(--t-micro);color:var(--color-neutral-500)}
+  .rk-when{font-size:var(--t-micro);color:var(--color-quiet)}
   /* THE CARD TAKES THE COLUMN'S WIDTH, NEVER ITS TITLE'S (Young, 5 Oct 2026,
      "Risk Card Titles"): an automatic grid column let the one-line title set
      the card's minimum width, so one long title stretched every card to
@@ -991,11 +991,11 @@ function rkEnsureStyle(){
   .rk-t{font-weight:var(--w-strong);min-width:0}
   .rk-sev{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);}
   .rk-sev.is-high{color:var(--st-ruby-fg)} .rk-sev.is-med{color:var(--st-amber-fg)} .rk-sev.is-low{color:var(--st-steel-fg)}
-  .rk-m{font-size:var(--t-micro);color:var(--color-neutral-500);}
+  .rk-m{font-size:var(--t-micro);color:var(--color-quiet);}
   .rk-p{margin:0;color:var(--color-neutral-700);line-height:1.5}
   .rk-quiet{color:var(--color-neutral-500)}
   .rk-k{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;
-    color:var(--color-neutral-500);margin-top:4px}
+    color:var(--color-quiet);margin-top:4px}
   .rk-acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
   .rk-row .rk-acts .ui-link{margin-right:auto}
   .rk-head{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;border-radius:var(--radius)}
@@ -1012,7 +1012,7 @@ function rkEnsureStyle(){
   .rk-why.is-door:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
   .rk-why{display:grid;gap:2px;margin-top:2px;padding:7px 9px;border-radius:var(--radius);
     background:var(--color-neutral-100);font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
-  .rk-why b{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)}
+  .rk-why b{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-quiet)}
   .rk-why-full{font-weight:var(--w-label);margin-bottom:3px}
   .rk-verb{display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);
     border:0;border-radius:var(--radius);background:transparent;font:inherit;font-size:var(--t-meta);
@@ -1029,7 +1029,7 @@ function rkEnsureStyle(){
   .rk-verb.is-no:hover{background:var(--st-ruby-bg)}
   .rk-verb-i{flex:none;width:var(--btn-ic, 15px);height:var(--btn-ic, 15px)}
   .rk-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-top:4px}
-  .rk-cost{font-size:var(--t-micro);color:var(--color-neutral-500)}
+  .rk-cost{font-size:var(--t-micro);color:var(--color-quiet)}
   .rk-where{display:grid;gap:2px}
   .rk-sel,.rk-in{width:100%;min-width:0;height:var(--field-h, 28px);font:inherit;font-size:var(--t-meta);
     border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);
@@ -1041,14 +1041,14 @@ function rkEnsureStyle(){
   .rk-cov{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--st-green-fg)}
   .rk-cov-t{justify-self:start;font-size:var(--t-meta)}
   .rk-ce{display:grid;gap:10px;font-family:var(--font-body);font-size:var(--t-meta);color:var(--color-text)}
-  .rk-ce-step{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:var(--t-micro);color:var(--color-neutral-500)}
+  .rk-ce-step{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:var(--t-micro);color:var(--color-quiet)}
   .rk-ce-dots{display:flex;flex-wrap:wrap;gap:3px}
   .rk-ce-dots i{width:14px;height:4px;border-radius:2px;background:var(--color-divider)}
   .rk-ce-dots i.is-done{background:var(--st-green-fg)} .rk-ce-dots i.is-now{background:var(--color-accent-600, var(--accent))}
   .rk-ce-card{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;background:var(--color-bg)}
   .rk-ce-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
   .rk-ce-head .rk-t{min-width:0;font-size:var(--t-body);font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rk-ce-why b{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:2px}
+  .rk-ce-why b{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-quiet);margin-bottom:2px}
   .rk-ce-end{border:1px solid var(--st-green-fg);border-radius:var(--radius-lg);padding:12px}
   .doc-xr-rk{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:6px}
   .doc-xr-rk .rk-done{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--st-green-fg)}

@@ -275,9 +275,10 @@ describe('f454 (5) — the row is a slot, and it is quiet', () => {
      and the warm label ink — and this one still wears its clothes, one rung smaller. */
   test('its clothes are the desk\'s face, one rung smaller', () => {
     assert.match(HTML, /\.pz-face\{[^}]*width:17px/);
-    assert.match(HTML, /\.pz-face\{[^}]*color:var\(--color-neutral-600\)[^}]*border:1px solid var\(--rule-strong\)/,
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: "more black font"): 500 and 600 are the ink now; the small print's grey is --color-quiet / --hb-quiet */
+    assert.match(HTML, /\.pz-face\{[^}]*color:var\(--color-quiet\)[^}]*border:1px solid var\(--rule-strong\)/,
       'an ink token and the hairline, never the raw accent ramp as text — f902 sweeps for that');
-    assert.match(HTML, /\.dk-face\{[^}]*color:var\(--color-neutral-600\); border:1px solid var\(--rule-strong\)/, 'the desk\'s face, the same clothes');
+    assert.match(HTML, /\.dk-face\{[^}]*color:var\(--color-neutral-600\); border:1px solid var\(--rule-strong\)/, 'the desk\'s face: 12px, so it wears the ink (600 is the ink now)');
   });
 
   test('and its one sentence is in both books, as a pair', () => {

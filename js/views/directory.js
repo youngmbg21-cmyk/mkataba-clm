@@ -884,9 +884,9 @@ const DIR_CSS = `
   .dir-nm{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:nowrap;}
   .dir-nm-w{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;}
   .dir-nm-l{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0;}
-  .dir-tav{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);letter-spacing:.02em;line-height:1;background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}  /* outlined (Chambers, 20 Oct 2026) */
+  .dir-tav{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);letter-spacing:.02em;line-height:1;background:transparent;color:var(--color-quiet);border:1px solid var(--rule-strong);}  /* outlined (Chambers, 20 Oct 2026) */
   .dir-table .dir-name{font-weight:var(--w-label);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .dir-table .dir-sub{display:block;margin-top:1px;font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+  .dir-table .dir-sub{display:block;margin-top:1px;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
   .dir-you{font-size:var(--t-body);color:var(--color-neutral-500);margin-left:2px;font-weight:var(--w-body);}
   .dir-away{flex:none;display:inline-flex;align-items:center;gap:3px;margin-left:2px;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);
     font-size:var(--t-micro);font-weight:var(--w-label);vertical-align:1px;white-space:nowrap;}
