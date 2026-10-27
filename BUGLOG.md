@@ -21792,3 +21792,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed — 27 Oct 2026
 - Insights' ledger counts a refused change on a signed or declined deal as "refused, still open" and lists the deal under "Waiting on a decision". f430's fixture states this on purpose, so changing it is the owner's call.
+
+## Fixed — 27 Oct 2026 (the owner's two calls from the morning report)
+- FIXED: the history trail showed amounts ("Approved … for KES 5M") to people who may not see money. They now see every line without its amount, on the contract and in the activity feed; their saves leave the stored lines as they were (f948). The owner picked "Drop the amount".
+- FIXED: a request lane's value limit was kept but shown nowhere. The lane's row in Settings now says "Value limit · KES 5M"; a lane without one shows nothing (lane-limit-verify). The owner said yes to the line.

@@ -32,6 +32,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f212–f224.
 
 ## MONEY IN ITS OWN CURRENCY
+- THE TRAIL WITHOUT ITS AMOUNTS (the owner's "Drop the amount", 27 Oct 2026): f948 (new; red at the parent 3 of 4) — historyLineMoneyless rewords the three lines HaTi writes with an amount and takes out any other figure; maskContractValues and /api/activity send it; the PUT measures a masked reader's trail against what they were sent (auditMasked), so the stored lines stand and none is doubled.
 - A STAMP'S MONEY IS MONEY (bug log batch 2, 26 Oct 2026): f941 (new; red at the parent 1 of 3, and 2 of 3 with the save guard off) — a reader without money sees no figure in a rule step's, a named approval's or the ask record's stamp (stampMasked); their save puts the stored stamp back; the admin still sees it whole.
 - f218, f696, settings-tabs, pay-section verify.
 
@@ -180,6 +181,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+- A LANE'S LIMIT, READ BACK (the owner's yes, 27 Oct 2026): test/chromium/lane-limit-verify.js (new) — Settings › Request lanes says "Value limit · KES 5M" on a lane with one, nothing on one without, inside its row at the three screens; a save keeps it.
 - IMPORT STORES A SIGNING DAY ONLY WHERE ONE WAS READ (bug log batch 5, 27 Oct 2026): f946 (4) (new; red at the parent) — migBuildAndSave's signedAt is the manifest's signed day or null, never the start date.
 - A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
 - f193, f244 (7), f336, f495, f652, f721, f723, f728, f770–f773, f797, f799, sap-lists, advice-is-a-request, four-inspectors, requests-sap-way, requests-and-notes-as-drawn, import-sap-way, import-as-drawn, import-jambo-panel, calendar-* verify.
