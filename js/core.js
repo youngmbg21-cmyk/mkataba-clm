@@ -6269,6 +6269,54 @@ function saveLinkCodeCfg(g){
   if(window.saveSettings) saveSettings();
   return state.settings.linkCode;
 }
+/* ---- WHAT STAYS HOME, ONE READING (bug log, 27 Oct 2026) ----
+   The changes a send never carries to the other side: what an internal review holds or is still reading,
+   what a solo send kept back, what a colleague only suggested, and (asked) what the owner has not sent.
+   The link's payload asks it, and so does the Word file a send attaches (wordTrackedFile's hiddenIds),
+   which built from the whole redline and so carried all of them. */
+function shareHeldBackIds(c, opts){
+  const heldBack = (opts && opts.holdUnsent && window.negoUnsentAsks)
+    ? new Set(negoUnsentAsks(c, 'owner').map(x => x.id)) : new Set();
+  /* AND WHAT AN INTERNAL REVIEWER HELD BACK, on every route, unconditionally.
+
+     Not behind an opts flag like holdUnsent above: this payload is built by
+     three callers and only one of them passes options. reshareToLastRecipient —
+     the round-send that every negotiation after the first travels on — passes
+     none at all, so a flag-gated filter would have let a change the reviewer
+     refused reach the counterparty on the ordinary path while blocking it on
+     the rare one. The whole worth of a hold is that it is not conditional.
+
+     reviewHeldIds is itself limited to UNSENT asks (see its own note): wording
+     the other side already holds cannot be recalled, and a payload that quietly
+     dropped it would read to them as us editing what we had already said. */
+  if (window.reviewWithheldIds){
+    /* HELD **AND** STILL BEING LOOKED AT. Both stay behind, for the same
+       reason: wording sent while a colleague is midway through reading it makes
+       their verdict worthless — it arrives about something the counterparty has
+       already seen. The screens tell the two apart (ruby for a refusal, amber
+       for in flight); the payload does not need to. */
+    try{ for (const id of reviewWithheldIds(c)) heldBack.add(id); }catch(_){}
+  }
+  /* AND WHAT A SOLO SEND CHOSE TO KEEP BACK (16 Aug 2026) — unconditionally,
+     for exactly the reason the review's holds are: reshareToLastRecipient,
+     the round-send every negotiation after the first travels on, passes no
+     options, and a flag-gated filter would push a deliberately held draft
+     down the ordinary path. See negoHeldBackIds. */
+  if (window.negoHeldBackIds){
+    try{ for (const id of negoHeldBackIds(c)) heldBack.add(id); }catch(_){}
+  }
+  /* AND WHAT A COLLEAGUE ONLY SUGGESTED (4 Oct 2026) — unconditionally, for
+     the third time and the same reason the two sets above are unconditional.
+     A contributor's redline lives in our draft and belongs to the lead to
+     adopt; until they have, it is not what this company is asking for, and a
+     send that carried it would put wording in front of the other side that
+     nobody accountable had agreed to. deskSuggestedIds is empty wherever the
+     desk rule is off, which is everywhere by default. */
+  if (window.deskSuggestedIds){
+    try{ for (const id of deskSuggestedIds(c)) heldBack.add(id); }catch(_){}
+  }
+  return heldBack;
+}
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   /* ---- WHICH OUTSIDE PARTY'S ROOM THIS COPY MAY CARRY (3 Oct 2026) ----
@@ -6367,46 +6415,7 @@ function buildSharePayload(c, docHash, who, opts){
      organisation speaks, exactly as it does for shareRounds above. */
   /* What the owner has not sent is not sendable by a side effect. See the
      holdUnsent note at the quiet-refresh call site. */
-  const heldBack = (opts && opts.holdUnsent && window.negoUnsentAsks)
-    ? new Set(negoUnsentAsks(c, 'owner').map(x => x.id)) : new Set();
-  /* AND WHAT AN INTERNAL REVIEWER HELD BACK, on every route, unconditionally.
-
-     Not behind an opts flag like holdUnsent above: this payload is built by
-     three callers and only one of them passes options. reshareToLastRecipient —
-     the round-send that every negotiation after the first travels on — passes
-     none at all, so a flag-gated filter would have let a change the reviewer
-     refused reach the counterparty on the ordinary path while blocking it on
-     the rare one. The whole worth of a hold is that it is not conditional.
-
-     reviewHeldIds is itself limited to UNSENT asks (see its own note): wording
-     the other side already holds cannot be recalled, and a payload that quietly
-     dropped it would read to them as us editing what we had already said. */
-  if (window.reviewWithheldIds){
-    /* HELD **AND** STILL BEING LOOKED AT. Both stay behind, for the same
-       reason: wording sent while a colleague is midway through reading it makes
-       their verdict worthless — it arrives about something the counterparty has
-       already seen. The screens tell the two apart (ruby for a refusal, amber
-       for in flight); the payload does not need to. */
-    try{ for (const id of reviewWithheldIds(c)) heldBack.add(id); }catch(_){}
-  }
-  /* AND WHAT A SOLO SEND CHOSE TO KEEP BACK (16 Aug 2026) — unconditionally,
-     for exactly the reason the review's holds are: reshareToLastRecipient,
-     the round-send every negotiation after the first travels on, passes no
-     options, and a flag-gated filter would push a deliberately held draft
-     down the ordinary path. See negoHeldBackIds. */
-  if (window.negoHeldBackIds){
-    try{ for (const id of negoHeldBackIds(c)) heldBack.add(id); }catch(_){}
-  }
-  /* AND WHAT A COLLEAGUE ONLY SUGGESTED (4 Oct 2026) — unconditionally, for
-     the third time and the same reason the two sets above are unconditional.
-     A contributor's redline lives in our draft and belongs to the lead to
-     adopt; until they have, it is not what this company is asking for, and a
-     send that carried it would put wording in front of the other side that
-     nobody accountable had agreed to. deskSuggestedIds is empty wherever the
-     desk rule is off, which is everywhere by default. */
-  if (window.deskSuggestedIds){
-    try{ for (const id of deskSuggestedIds(c)) heldBack.add(id); }catch(_){}
-  }
+  const heldBack = shareHeldBackIds(c, opts);
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
     .filter(x => x.status !== 'superseded' && !heldBack.has(x.id))
     .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,
@@ -8815,7 +8824,7 @@ async function openShareModal(c, opts={}){
         const hist=purposeSel==='history';
         if(!(hist?window.wordHistoryFile:window.wordTrackedFile)){ toast(i18t('ct_word_writer_missing'),'err'); return false; }
         try{
-          const f=hist ? await wordHistoryFile(c) : wordTrackedFile(c,{ side:'owner' });
+          const f=hist ? await wordHistoryFile(c) : wordTrackedFile(c,{ side:'owner', hiddenIds:[...shareHeldBackIds(c, {})] });
           wordFile={ filename:f.name, content:bytesToBase64(f.bytes) }; wordRaw=f;
         }catch(e){ toast(i18t('ct_word_write_failed')+((e&&e.message)||e),'err'); return false; }
       }
@@ -10698,4 +10707,4 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

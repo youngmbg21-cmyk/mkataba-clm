@@ -11145,7 +11145,9 @@ function wireChangesStrip(){ }
 function wordTrackedFile(c,opts){
   if(!window.docxExportTracked||!window.redlineDocHtml) throw new Error(i18t('ct_word_writer_missing'));
   const side=(opts&&opts.side)==='counterparty'?'counterparty':'owner';
-  const html=redlineDocHtml(c,{side});
+  /* what stays home stays out of the file too (shareHeldBackIds, the link payload's own list): the send passes it */
+  const hidden=Array.isArray(opts&&opts.hiddenIds)?opts.hiddenIds:null;
+  const html=redlineDocHtml(c,hidden?{side,hiddenIds:hidden}:{side});
   const me=(window.currentUser&&currentUser())||null;
   /* ---- THE EXTERNAL NOTES GO WITH IT, AS WORD COMMENTS (Young asked 11 Sep
      2026) ---- Every note in the EXTERNAL room, on a change or pinned to
@@ -11155,7 +11157,7 @@ function wordTrackedFile(c,opts){
      comes back. Replies thread; Done is resolved. INTERNAL NOTES NEVER
      LEAVE: wordCommentsOf reads the external room only. */
   const out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi',
-    comments:wordCommentsOf(c,side)});
+    comments:wordCommentsOf(c,side,hidden?{hiddenIds:hidden}:undefined)});
   return { bytes:out.bytes, tracked:out.tracked, comments:out.comments,
     name:`${(window.contractRef?contractRef(c):c.id)}-redline.docx` };
 }
@@ -11223,7 +11225,8 @@ function exportWordTracked(c,opts){
    comment sits on is the note's own anchor, or — for a note on a change with
    no anchor — the change's inserted words, else its struck words. A thread
    with nothing to sit on is left out and counted by the writer. */
-function wordCommentsOf(c,side){
+function wordCommentsOf(c,side,wo){
+  const skip=new Set((wo&&Array.isArray(wo.hiddenIds))?wo.hiddenIds:[]);
   if(!window.negoRoomNotes||!window.negoNoteThreads) return [];
   const opts={side,messages:(c&&c._messages)||(window.PORTAL_OPTS&&PORTAL_OPTS.messages)||null};
   const out=[];
@@ -11244,7 +11247,7 @@ function wordCommentsOf(c,side){
   };
   try{
     take(null,negoRoomNotes(c,null,'external',opts,side));
-    for(const ch of (Array.isArray(c&&c.changes)?c.changes:[])) if(ch&&ch.id&&ch.status!=='superseded') take(ch,negoRoomNotes(c,ch,'external',opts,side));
+    for(const ch of (Array.isArray(c&&c.changes)?c.changes:[])) if(ch&&ch.id&&ch.status!=='superseded'&&!skip.has(ch.id)) take(ch,negoRoomNotes(c,ch,'external',opts,side));
   }catch(_){ return out; }
   return out;
 }

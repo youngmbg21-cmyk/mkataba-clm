@@ -498,7 +498,7 @@ describe('f210 (5) — where it is not drawn', () => {
     assert.equal(box.querySelectorAll('.rl-cp-pill').length, 0);
     assert.equal(box.querySelectorAll('.rl-cp-src').length, 0);
     const cv = read('js/views/contract.js');
-    assert.match(cv, /redlineDocHtml\(c,\{side\}\)/, 'the export passes no sink');
+    assert.match(cv, /redlineDocHtml\(c,hidden\?\{side,hiddenIds:hidden\}:\{side\}\)/, 'the export passes no sink');
   });
 });
 
