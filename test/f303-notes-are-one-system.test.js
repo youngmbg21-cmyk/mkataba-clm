@@ -611,7 +611,7 @@ describe('f303 (7) — the external notes go out as Word comments', () => {
   });
 
   test('the export gathers the EXTERNAL room only, every change but a superseded one', () => {
-    const fn = CONTRACT.match(/function wordCommentsOf\(c,side\)\{[\s\S]*?\n\}/)[0];
+    const fn = CONTRACT.match(/function wordCommentsOf\(c,side(?:,wo)?\)\{[\s\S]*?\n\}/)[0];
     assert.equal((fn.match(/'external'/g) || []).length, 2);
     assert.equal(/'internal'/.test(fn), false);
     assert.match(fn, /ch\.status!=='superseded'/);
