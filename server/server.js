@@ -13146,11 +13146,11 @@ const COPILOT_TOOLS = [
       compare: { type: 'object', description: 'OPTIONAL — include ONLY when comparing 2+ contracts. A side-by-side table.', properties: {
         columns: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' } }, required: ['id', 'label'] }, description: 'One column per contract, in display order.' },
         rows: { type: 'array', items: { type: 'object', properties: { label: { type: 'string', description: 'Row label, e.g. "Value", "Payment terms", "Governing law".' }, cells: { type: 'array', items: { type: 'string' }, description: 'One cell per column, same order as columns.' } }, required: ['label', 'cells'] } },
-        verdict: { type: 'string', description: 'One or two sentences: which is more favorable and why.' } }, required: ['columns', 'rows'] } },
+        verdict: { type: 'string', description: 'One or two sentences: which is more favorable and why.' } }, required: ['columns', 'rows'] },
       wholeBook: { type: 'boolean', description: 'true when the answer is about the WHOLE workspace (a listing of everything, a total count): HaTi then draws a door onto the full Contracts page instead of a narrowed set.' },
       ruleDoor: { type: 'object', description: 'OPTIONAL — only when a company rule stops the person and your answer explains it. The ONE HaTi door that takes them THROUGH the rule, never around it: ask_admin = a company rule only an admin decides (name it in rule); ask_review = their changes must be checked before they are sent (name the contract); send_for_approval = a named person must say yes before anyone signs (name the contract). Leave it out when no rule is in the way.',
         properties: { kind: { type: 'string', enum: RULE_DOOR_KINDS }, rule: { type: 'string', enum: RULE_DOOR_RULES, description: 'For ask_admin: the rule — signcap (signing limits), signfolder (sign streams), signcheck (the check before signing), signroute (signing order), review (review before sending), desk (the negotiation desk), linkcode (link codes), approvals (approval rules), rules (company rules), folders (who sees which stream).' }, contractId: { type: 'string', description: 'The contract it is about.' } },
-        required: ['kind'] },
+        required: ['kind'] } },
       required: ['answer'] } },
 ];
 
