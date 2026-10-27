@@ -2402,6 +2402,10 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceC = probeC; _ceClauseId = probeId; _ceOpts = opts || {};
   _ceNew = wantNew ? { afterClauseId: String(opts.newClause.afterClauseId || ''), heading: String(opts.newClause.heading || '') } : null;
   if (wantTyping){ _ceOpts = { ..._ceOpts }; delete _ceOpts.typing; }
+  /* "ASK JAMBO MORE" ON A REDLINES ROW (owner, 27 Oct 2026: "it should be taking me to the editor jambo"): the
+     card's reading and its question arrive with the press and are CONSUMED, so a walk to the next clause asks nothing */
+  const askWhy = (opts && opts.askWhy && opts.askWhy.q) ? opts.askWhy : null;
+  if (askWhy){ _ceOpts = { ..._ceOpts }; delete _ceOpts.askWhy; }
   try{ _ceRead0 = window.rlReadMode ? rlReadMode() : null; }catch(_){ _ceRead0 = null; }
   _ceAgain = typeof opts.again === 'function' ? opts.again
     : (window.renderRedline ? () => renderRedline() : () => {});
@@ -2475,6 +2479,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   /* COUNTER ON A NUMBER (round 5 of the first-timer rounds): Jambo's first line says the two
      figures, read off the stored wording (rlPlainFigureOf); the reader types the offer — no wording proposed */
   if (opts && opts.fact) _ceThread.push({ who: 'ai', text: String(opts.fact), read: [] });
+  /* the card's own reading is Jambo's first line here, so the question and its answer stand on what the card said */
+  if (askWhy && askWhy.said) _ceThread.push({ who: 'ai', text: String(askWhy.said), read: [] });
   _ceRiskCard = null;
   _ceScan = null;
   _ceSpellList = []; _ceSpellFor = null;
@@ -2625,6 +2631,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      run. Stamped at the open, so that mouse-up ends the press that opened
      the page rather than clearing what the attach is about to hold. */
   if (opts && opts.passage){ ceStampPick(); setTimeout(() => { try { ceAttachWords(opts.passage, opts.passageMode); } catch (e){} }, 0); }
+  /* the row's question is asked here, as a question: explained, never rewritten (one Jambo call, as its title says) */
+  if (askWhy) setTimeout(() => { try { if (clauseEditorOpen()) ceAsk(askWhy.q, { asking: true }); } catch (e){} }, 0);
   /* THE CLAUSE YOU CAME IN ON IS WHAT THIS PAGE IS ABOUT, and on a long
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
@@ -5669,7 +5677,7 @@ async function ceAsk(question, opts = {}){
      prompt asks for an explanation, the answer is drawn as a reading with no
      Apply anywhere, nothing is recorded as proposed, and the one way on is
      Edit with this on the answer card (ceEditWith). */
-  const asking = whole || !!(scope && scope.mode === 'ask');
+  const asking = whole || !!(scope && scope.mode === 'ask') || !!opts.asking;
   if (!opts.silent) _ceThread.push({ who: 'you', text: q });
   _ceBusy = true;
   ceRenderLane();

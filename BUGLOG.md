@@ -21822,3 +21822,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - CLAUDE.md stands at about 81.3 KB, over the "about 80 KB" line; a trim needs the owner's yes.
 
 - Noticed, not fixed (27 Oct 2026): home-speed-verify's timing steps flicker under load — PR #517's run read "second Explorer arrival 235 ms vs first 325" (step 2), and locally 1 run in 3 failed step 1 by a few ms; main's run #4404 was green. The ratios are measured on a shared runner with no retry or median across arrivals.
+
+## Noticed, not fixed — 27 Oct 2026 ("Ask Jambo more" moved to the clause editor's Jambo)
+- The conversation beside the paper answered a question sent from MK-398's Redlines face with "Read from MK-382 · Board" — the contract the owner was on before — and asked which contract was meant; `intelAsk` from the Redlines face can carry a stale contract into its context (owner's iPad, 27 Oct 2026). Ask Jambo more no longer goes there on a computer, but any other door that hands the face's words to `intelAsk` may still read the wrong contract.
+- The card's no-AI reading says "Take it" (`rlRowReadOf` → `rlpJudge`, from precedent), while the brain, asked why, answered "I haven't told you to take it … and I wouldn't" (its governance rule): the two readings disagree about whether Jambo gives a verdict on a negotiated term. In the clause editor the card's reading now rides as his first line, which the editor's answer can see; the brain beside the paper still cannot.
