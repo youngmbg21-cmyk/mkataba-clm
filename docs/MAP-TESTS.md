@@ -152,6 +152,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f919; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- A SERVED NOTICE IS THE DECISION ON THE SERVER (bug log batch 3, 26 Oct 2026): f943 (new; red at the parent) — srvRenewalDecision reads notice.servedOn as lapse: no 90/60/30 warning, no renewal memo; the control still warned.
 - Promises Jambo found on a signed contract are on Needs you until decided (26 Oct 2026, flag E): test/chromium/found-promises-verify.js (11 checks: one row, not urgent, "Jambo found 2 promises to confirm", on the one desk; none on a live contract; Review opens the desk with nothing ticked; skipping both removes the row; the three screens; red at the parent bbff1c4: 1a, 1b, 1c, 3, 4, 5×3).
 - Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
 - The Calendar whole, not a day's luck (26 Oct 2026, owner picked "Fix the check"): week-as-drawn-verify 5 "the Calendar whole" accepts every row in view OR the five later weeks scrolling inside their own band (top in view, foot in the window, every row reachable, none under 38px), as ruled 21 Oct. It was red on a busy Monday at 1536×730 only; red again with the band's overflow forced visible.
@@ -204,6 +205,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- VALUE SORTS IN ONE CURRENCY (bug log batch 3, 26 Oct 2026): f944 (new; red at the parent) — REG_CMP.value ranks by fxHome, an unrated value last both ways; negoBandCounts adds an unstamped contract to "neither". With contracts-page-verify.
 - f933, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
 - THE FIVE DRAWN TABS (22 Oct 2026, question 2 "B"): f693 (4); legora-lists-verify C2 (exactly the five) and C8a–C8e (the Quick filters group under + Filter by a touch press, one chip and the rows the view reads, ×, the tab row one line at all three screens); contracts-stage-tabs-verify 1e/3a and answer-worklist-verify 1a re-pointed.
 
@@ -274,6 +276,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f375, approval-before-signing-verify.
 
 ## SIGN LINKS, SIGNERS AND THE SIGNING ROUTE
+- THE PHONE'S MARK KEEPS ITS SHAPE (bug log batch 3, 26 Oct 2026): phone-fits-verify 12b (new; red at the parent, canvas 3.06 against a 1.58 box) — the signature canvas takes its box's shape before drawing; the computer's pad stays 520×170.
 - f182, f185, f897, f398, sign-links, signing-route-timeline verify.
 
 ## SIGNING ON THE PAPER

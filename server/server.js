@@ -5162,6 +5162,10 @@ function srvRenewalDecisionOk(prev, next, caller) {
    two hosts agreeing about what has been settled — and any mismatch at all
    fails towards REMINDING, never towards silence. */
 function srvRenewalDecision(full, expiry) {
+  /* A NOTICE THAT WAS SERVED IS THE DECISION, as in the browser's twin (renewalDecisionOf): the letter has
+     gone, so the reminders and the overnight memo stop (bug log, 26 Oct 2026) */
+  const n = full && full.notice;
+  if (n && n.servedOn) return { answer: 'lapse', served: true, servedOn: String(n.servedOn), expiry: String(expiry || ''), by: n.by || null };
   const d = full && full.renewalDecision;
   if (!d || !RENEWAL_ANSWERS_SRV.includes(d.answer)) return null;
   if (!d.expiry || !d.decideBy) return null;
