@@ -91,7 +91,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     /* RE-POINTED 26 Oct 2026: the view tabs other than All are drawn once their counts land (a 0 tab stays
        out); on a slow runner the row was read before they had, and 3a found only All. Wait for the counts,
        bounded. */
-    await page.waitForFunction(S => document.querySelectorAll(S + ' .reg-views [data-reg-view]').length > 1, SEAT, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 27 Oct 2026: the "needs" tab's count is the Needs you list (regNeedsIds → hbNeedsList), which
+       a slow runner had not read in 8 seconds (#509); the wait is longer, still bounded, still reading the row */
+    await page.waitForFunction(S => document.querySelectorAll(S + ' .reg-views [data-reg-view]').length > 1, SEAT, { timeout: 20000 }).catch(() => {});
     console.log('\n1 · the stages are under + Filter; the views are the tabs');
     const r0 = await read();
     ok('1a + Filter offers a Stage group, and the tab row starts at All, chosen', r0.head && r0.stages.length >= 2 && r0.tabs.length >= 1 && r0.tabs[0].k === '' && r0.tabs[0].on,
