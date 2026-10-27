@@ -21820,3 +21820,5 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## Noticed, not fixed — 27 Oct 2026 (Home's box reads with the brain first)
 - A draft sentence handed to `counterAsk` with no box focused (as a script does) left Jambo's panel on Overview beside the new sheet: the conversation held his line (`.ca-dr-said`) but the panel did not turn to his tab (`pdTalkSync`); with `#cn-q` focused, as typing or a chip press leaves it, it turned. Only a programmatic ask reaches that path today; one-sheet-as-drawn 0 focuses the box first.
 - CLAUDE.md stands at about 81.3 KB, over the "about 80 KB" line; a trim needs the owner's yes.
+
+- Noticed, not fixed (27 Oct 2026): home-speed-verify's timing steps flicker under load — PR #517's run read "second Explorer arrival 235 ms vs first 325" (step 2), and locally 1 run in 3 failed step 1 by a few ms; main's run #4404 was green. The ratios are measured on a shared runner with no retry or median across arrivals.
