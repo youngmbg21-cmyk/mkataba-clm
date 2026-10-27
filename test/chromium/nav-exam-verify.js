@@ -74,7 +74,8 @@ const ONLY = process.env.NAV_EXAM_ONLY || '';   // a section's name, or its firs
   /* WHERE EACH BOX IS, AND HOW A PERSON TYPES INTO IT */
   async function typeInto(P, box, q){
     const fillEnter = async sel => { await P.waitForSelector(sel, { state: 'visible', timeout: 6000 }); await P.fill(sel, q); await P.press(sel, 'Enter'); };
-    if (box === 'home' || box === 'board') return fillEnter('#igd-input');
+    /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    if (box === 'home' || box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); return fillEnter('#igd-input'); }
     if (box === 'chat' || box === 'phone'){
       await P.evaluate(() => { const i = document.getElementById('ai-input'); const shown = i && i.offsetParent;
         if (!shown){ if (typeof aiWinToggle === 'function') aiWinToggle(); else if (typeof openAI === 'function') openAI(); } });

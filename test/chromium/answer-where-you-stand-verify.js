@@ -73,7 +73,8 @@ const check = (name, pass, detail) => {
         if (now !== box) { box = now; since = Date.now(); } else if (box && Date.now() - since >= 500) return true; } return false; });
     const toPlace = () => page.evaluate(() => { regShowOnly([], ''); hbOpenContracts(); intel.history = []; window.__ai.length = 0; })
       .then(() => until(() => !!document.getElementById('ct-place') && !!document.getElementById('igd-input') && !intel.busy)).then(async ok => (await settled()) && ok);
-    const ask = async q => { await page.fill('#igd-input', q); await page.press('#igd-input', 'Enter'); await page.waitForTimeout(400); await until(() => !intel.busy); };
+    /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    const ask = async q => { await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.fill('#igd-input', q); await page.press('#igd-input', 'Enter'); await page.waitForTimeout(400); await until(() => !intel.busy); };
     const mapLens = () => page.evaluate(() => (intel.lenses || []).filter(l => l.on !== false).map(l => ({ action: l.action, ids: (l.ids || []).slice().sort() })));
     const door = () => page.evaluate(() => { const b = document.querySelector('#ig-dock .ca-here [data-ca-act="herepage"]'); return b ? b.textContent.trim() : ''; });
     const lastSaid = () => page.evaluate(() => { const m = intel.history.filter(x => x.role === 'assistant').slice(-1)[0]; return m ? String(m.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : ''; });

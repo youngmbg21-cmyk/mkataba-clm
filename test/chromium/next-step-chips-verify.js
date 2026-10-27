@@ -52,7 +52,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('0 the parts exist', have.length === 0, have.length ? 'missing ' + have.join(', ') : null);
     if (have.length) throw new Error('nothing to drive');
     const chips = () => page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')));
-    const ask = async q => { await page.fill('#igd-input', q); await page.click('#igd-go'); await page.waitForTimeout(500); };
+    /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    const ask = async q => { await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.fill('#igd-input', q); await page.click('#igd-go'); await page.waitForTimeout(500); };
     const lastCard = () => page.evaluate(() => { const cs = document.querySelectorAll('#igd-feed .ca-card'); const k = cs[cs.length - 1];
       return k ? { title: (k.querySelector('.ca-ct') || {}).textContent || '', why: (k.querySelector('.ca-why') || {}).textContent || '',
         btns: [...k.querySelectorAll('button')].map(b => b.textContent.trim() + (b.disabled ? ' (grey)' : '')) } : null; });
