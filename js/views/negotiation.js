@@ -16958,7 +16958,7 @@ function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
           aria-selected="${r.key === room}" title="${_nea(r.external
             ? i18t('ng_np_room_t_ext', { who: r.name || '' })
             : i18t('ng_np_room_t_int'))}"
-          >${_ne(nm)} <i>(${n})</i></button>`;
+          ><span class="rl-np-nm">${_ne(nm)}</span> <i>(${n})</i></button>`;
       }).join('')}
     </div>`;
 }
@@ -17375,7 +17375,7 @@ function rlNpWhoHtml(tabbed, ext, who){
 function rlNpSeatTabHtml(other, n, ext){
   const title = ext ? i18t('ng_np_who_ext', { who: other }) : i18t('ng_np_room_t_int');
   return `<div class="rl-np-tabs is-seat" role="tablist">
-      <span role="tab" aria-selected="true" class="rl-np-tab on${ext ? ' is-ext' : ''}" title="${_nea(title)}">${_ne(other)} <i>(${n})</i></span>
+      <span role="tab" aria-selected="true" class="rl-np-tab on${ext ? ' is-ext' : ''}" title="${_nea(title)}"><span class="rl-np-nm">${_ne(other)}</span> <i>(${n})</i></span>
     </div>`;
 }
 /* One note. The per-note visibility badge the card used to carry is GONE and

@@ -2997,7 +2997,15 @@ function chatContractId(){
      Notes door stands on the paper's line, so it opens that contract's notes */
   try{ if(state.view==='dashboard'&&window.pdOnPaper&&pdOnPaper()&&window.pdContract){ const p=pdContract(); if(p) return p.id; } }catch(_){}
   try{ if(window.redlineHeldId){ const id=redlineHeldId(); if(id) return id; } }catch(_){}
-  return (window.state&&state.activeId)||null;
+  /* A CONTRACT IN FRONT, NOT THE LAST ONE OPENED (owner, 27 Oct 2026: "when
+     you are not on a contract, the notes button should be not pressable").
+     The Board with no paper, a list, Settings: no contract is in front, so
+     there is no conversation to read — state.activeId is sticky and used to
+     answer here, which is how the Board showed another page's notes. The room
+     by name and the phone's contract screen still answer with it. */
+  try{ const v=window.state&&state.view; const phone=typeof window.mPhone==='function'&&window.mPhone();
+    if(v==='workspace'||v==='doc'||phone) return (window.state&&state.activeId)||null; }catch(_){}
+  return null;
 }
 /* IT IS DEAD WHERE PRESSING IT WOULD DO NOTHING, with the reason on its hover —
    the product's own rule, grey where it can be known before the press.
@@ -3020,9 +3028,21 @@ function chatContractId(){
    IT KEEPS ITS OWN READING rather than borrowing panelSuppressed, deliberately:
    the state that survives is about whether there is a conversation at all,
    which is nothing to do with layers. */
+let _chatInFront=null;
 function paintChatDoor(){
-  const btn=document.getElementById('hdr-chat'); if(!btn) return;
   const id=chatContractId();
+  /* LEAVING A CONTRACT TAKES ITS NOTES WITH IT: a drawer still showing the
+     notes of the contract you just left, on the Board or a list, is the fault
+     the owner photographed, so it is put away here, on the same beat as every
+     view change and face turn; the panel's own Notes tab repaints grey with
+     the reason (panelTabsPaint). ONLY ON LEAVING: a door that names its
+     contract — the bell's note alerts, Jambo's reply, a filed change's note —
+     opens that contract's notes from anywhere and they stay (window-drag-verify
+     5 caught the wider rule closing them). */
+  const was=_chatInFront; _chatInFront=id||null;
+  if(!id&&was&&state.panelOpen&&panelFace()==='notes'&&String((state.notesFor||{}).contractId||'')===String(was)){ try{ closeContextPanel(); }catch(_){} }
+  try{ if(state.panelOpen&&document.getElementById('panel-tabs')) panelTabsPaint(panelFace()); }catch(_){}
+  const btn=document.getElementById('hdr-chat'); if(!btn) return;
   const dead=!id;
   btn.disabled=dead;
   btn.setAttribute('aria-disabled',dead?'true':'false');
@@ -3853,8 +3873,11 @@ const GUIDE_SEEN_KEY='hati.v1.guideSeen';
 function guideSeen(){ try{ return localStorage.getItem(GUIDE_SEEN_KEY)==='1'; }catch(_){ return true; } }
 function guideSeenMark(){ try{ localStorage.setItem(GUIDE_SEEN_KEY,'1'); }catch(_){} }
 /* THE PANEL'S TABS (the Journey drawing): Activity · Alerts · Notes · Guide on
-   a computer; Notes only while a contract is in front (an unusable switch is
-   not drawn); a press on the tab in front does nothing */
+   a computer; Notes is always drawn and GREY WITH THE REASON while no contract
+   is in front (owner, 27 Oct 2026: "the notes button should be not pressable
+   and therefore you can not access the tab"; a dead button wears its reason,
+   the ng_chat_none sentence the room's own Notes door wears); a press on the
+   tab in front does nothing */
 function panelTabsPaint(face){
   const host=document.getElementById('panel-tabs'); if(!host) return;
   const desk=(typeof deskShellOn==='function')?!!deskShellOn():true;
@@ -3863,10 +3886,11 @@ function panelTabsPaint(face){
   const head=host.previousElementSibling; if(head&&head.style) head.style.borderBottom=desk?'0':'';
   if(!desk){ host.innerHTML=''; return; }
   const cid=(typeof chatContractId==='function')?chatContractId():null;
-  const tabs=[['guide','gd_tab'],['alerts','sh_alerts']].concat(cid||face==='notes'?[['notes','ng_card_notes']]:[]).concat([['activity','sh_activity']]);
-  host.innerHTML=tabs.map(([k,w])=>`<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}">${esc(i18t(w))}${k==='guide'&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`).join('');
+  const tabs=[['guide','gd_tab'],['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
+  host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid&&face!=='notes';
+    return `<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}"${dead?` disabled aria-disabled="true" title="${esc(i18t('ng_chat_none'))}"`:''}>${esc(i18t(w))}${k==='guide'&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`; }).join('');
   host.querySelectorAll('[data-pt-face]').forEach(b=>b.addEventListener('click',()=>{
-    const k=b.getAttribute('data-pt-face'); if(k===panelFace()) return;
+    const k=b.getAttribute('data-pt-face'); if(k===panelFace()||b.disabled) return;
     if(k==='notes'){ const id=(typeof chatContractId==='function')?chatContractId():null; if(id) openNotesPanel(id,null,{ force:true }); return; }
     setPanelFace(k); applyPanelLayout(); if(k==='activity') refreshActivityFeed(true); renderContextPanel(); }));
 }

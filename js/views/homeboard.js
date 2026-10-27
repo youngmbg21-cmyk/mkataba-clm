@@ -7438,6 +7438,9 @@ function hbSetFace(f){
      the Board's side is let go; hbStripBring sets it again after the turn */
   if (f === 'board') s.card = null;
   hbSave();
+  /* the Notes door and the panel's Notes tab follow the face: the Board has no
+     contract in front (paintChatDoor, js/app.js) */
+  try { if (window.paintChatDoor) window.paintChatDoor(); } catch (_){}
   /* a presentation carries on across the turn; the pen's marks were drawn
      over the other side, so they go */
   if (_hbPresenting){ _hbStroke = null; hbInkClear(); }
