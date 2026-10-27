@@ -189,6 +189,11 @@ const openSettings = async (page, tab) => {
 
     const door = await until(p2, () => { const b = document.querySelector('[data-cn-setup]'); const r = b && b.closest('.cn-r');
       return !!(r && /Finish setting up — \d+ left/.test(r.textContent)); }, null, 10000);
+    /* SETTLED FIRST (27 Oct 2026, main's run #4395 read "door 5 · list 4"): a new workspace's setup items finish loading
+       a beat after the row is first drawn, and the row redraws with them — so the door is read once its number agrees with
+       the reading behind it (stGoLive), bounded; a row that never agrees still fails below */
+    if (door) await until(p2, () => { const w = document.querySelector('[data-cn-setup]')?.closest('.cn-r')?.querySelector('.cn-w');
+      const m = w && /(\d+)/.exec(w.textContent); return m && typeof stGoLive === 'function' && Number(m[1]) === stGoLive().filter(r => !r.ok).length ? true : null; }, null, 6000);
     const doorText = door ? await p2.evaluate(() => document.querySelector('[data-cn-setup]').closest('.cn-r').querySelector('.cn-w').textContent.trim()) : '';
     check('D12 a brand-new workspace lands on the Counter, whose admin row is "Finish setting up — N left"', !!door, doorText);
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the admin's row is a row of your move, its door data-cn-setup */
