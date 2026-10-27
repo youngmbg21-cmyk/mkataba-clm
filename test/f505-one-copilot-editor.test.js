@@ -49,7 +49,8 @@ describe('f505 (A) the wording waits for Apply', () => {
     const h = fn(CE, 'ceRiskAnswerHtml');
     /* RE-POINTED 6 Oct 2026: the turn also carries Copilot's two plain parts
        (explain) and is marked as Copilot's (ai: the check line under it) */
-    assert.match(h, /return ceTurnHtml\(\{ who: 'ai', ai: true, text: a\.advice, explain: a\.explain \|\| null, read: ceReadList\(\), cards: \[_ceRiskCard\] \}, 'rk'\)/);
+    /* RE-POINTED 27 Oct 2026 (the Legora way): the same builder, its turn headed by his name (ceWhoOn) */
+    assert.match(h, /return ceWhoOn\(ceTurnHtml\(\{ who: 'ai', ai: true, text: a\.advice, explain: a\.explain \|\| null, read: ceReadList\(\), cards: \[_ceRiskCard\] \}, 'rk'\)\)/);
     assert.match(fn(CE, 'ceCardAt'), /parts\[0\] === 'rk'/, 'its Apply, votes and Expand resolve to that card');
     assert.match(fn(CE, 'ceRenderLane'), /riskLaneHtml\(_ceC\) : ''\) \+ ceRiskAnswerHtml\(\)/);
   });
