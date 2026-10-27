@@ -6588,6 +6588,8 @@ const SET_PANELS={
           knownOnly: !!el.querySelector('.ln-known')?.checked,
           ...(ownerId ? { ownerId } : {}),
           ...(prev && prev.savedById ? { savedById: prev.savedById } : {}),
+          /* the panel draws no box for a lane's value ceiling (intakeLanes reads it), so a save keeps the stored one */
+          ...(prev && prev.maxValue != null && prev.maxValue !== '' ? { maxValue: prev.maxValue } : {}),
         };
       });
       document.getElementById('st-lane-add')?.addEventListener('click',()=>{

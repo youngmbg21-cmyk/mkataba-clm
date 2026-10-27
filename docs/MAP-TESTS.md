@@ -31,6 +31,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f212–f224.
 
 ## MONEY IN ITS OWN CURRENCY
+- A STAMP'S MONEY IS MONEY (bug log batch 2, 26 Oct 2026): f941 (new; red at the parent 1 of 3, and 2 of 3 with the save guard off) — a reader without money sees no figure in a rule step's, a named approval's or the ask record's stamp (stampMasked); their save puts the stored stamp back; the admin still sees it whole.
 - f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
@@ -175,6 +176,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+- A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
 - f193, f244 (7), f336, f495, f652, f721, f723, f728, f770–f773, f797, f799, sap-lists, advice-is-a-request, four-inspectors, requests-sap-way, requests-and-notes-as-drawn, import-sap-way, import-as-drawn, import-jambo-panel, calendar-* verify.
 
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (9 Oct)
@@ -340,6 +342,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f558.
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
+- UNDO UNDOES (bug log batch 2, 26 Oct 2026): f942 (new; red at the parent) — toast() presses onClick; every toast action in js/ is handed as onClick (sdLearnApply's Undo was `run`).
 - f133, f222, f272, f279, f295, f296, f314, f318, f372, f545, prepare-redlines, standards-page verify.
 
 ## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js)
