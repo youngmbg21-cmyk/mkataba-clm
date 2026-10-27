@@ -13176,6 +13176,19 @@ const COPILOT_TOOLS = [
 const COPILOT_TOOLS_GOTO = COPILOT_TOOLS.map(t => t.name !== 'deliver_answer' ? t
   : { ...t, input_schema: { ...t.input_schema, properties: { ...t.input_schema.properties, goto: AI_GOTO_SCHEMA } } });
 const copilotToolsNow = () => (aiNavigateOn() ? COPILOT_TOOLS_GOTO : COPILOT_TOOLS);
+/* JAMBO DRAWS ON THE BOARD (owner, 27 Oct 2026: "Teach Jambo to draw on the board now"; the owner's option 3 of the
+   Board's Jambo tab trial): asked from the Board's Jambo tab (context.drawBoard, igBoardTalkAsk), the answer may carry
+   the Board's OWN buttons — the list the map route's model already presses (GRAPH_BOARD_ACTIONS_SCHEMA, cleaned by
+   graphBoardActionsClean) — and the browser's one applier draws them, checked (hbBoardTakesChecked). The Board counts
+   every number; the model names the picture and says what to look at. One call: no second model for the drawing. */
+const copilotDrawsBoard = context => !!(context && typeof context === 'object' && context.drawBoard === true);
+function copilotToolsFor(context) {
+  const base = copilotToolsNow();
+  if (!copilotDrawsBoard(context)) return base;
+  return base.map(t => t.name !== 'deliver_answer' ? t
+    : { ...t, input_schema: { ...t.input_schema, properties: { ...t.input_schema.properties, board: GRAPH_BOARD_ACTIONS_SCHEMA } } });
+}
+const AI_BOARD_DRAW_RULE = 'DRAWING ON THE BOARD: the person is on Home\'s Board, a page of charts, and can see it beside you. When they ask to see, chart, draw, plot, map out, break down or compare contracts as a picture, or ask something a chart answers best ("value by stream", "what ends this quarter, by month"), set deliver_answer\'s board to the Board\'s own buttons: add_card for a new chart, change_card with card "open" to change the chart that is open, filter_board, name_card, arrange, and remove_card only when they ask to remove one. Name which contracts in plain words (which.q), never ids. HaTi counts and draws every number itself, AFTER you answer, and the card states its own result (which group leads, by how much). So say in one or two sentences what the picture shows (what it splits by and measures) and what to look at in it; never say which group leads, ranks or is biggest, and never state a figure, unless your tools returned it or the Board as it stands already shows it. Drawing changes only what is on the screen, never a contract. A question answered best in words leaves board out.';
 
 /* Async because check_against_playbook makes its own provider call; the data
    tools stay synchronous reads and simply resolve immediately. `aux.key` is
@@ -13421,7 +13434,7 @@ SCOPE & SAFETY:
      once, 161 with the declined the next). */
   const figures = portfolioSays(portfolioFigures(scopeCtx));
   const live = `${chatTodayLine(ctx.today)}
-${view ? 'CURRENT VIEW: ' + view + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
+${view ? 'CURRENT VIEW: ' + view + '\n' : ''}${copilotDrawsBoard(ctx) ? AI_BOARD_DRAW_RULE + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
 ${figures}
 
 ${[guideLive, guideLegacy].filter(Boolean).join('\n\n')}`;
@@ -13845,7 +13858,10 @@ function normalizeDeliver(input, cx) {
   const choices = (Array.isArray(inp.choices) ? inp.choices : []).slice(0, 6)
     .map(c => ({ label: typeof (c && c.label) === 'string' ? c.label.replace(/[\u0000-\u001f<>{}]/g, ' ').trim().slice(0, 80) : '', door: aiDoorOf(c && c.door, cx) }))
     .filter(c => c.label && c.door).slice(0, 4);
-  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(choices.length >= 2 ? { choices } : {}) };
+  /* the Board's buttons, cleaned as the map route's are (graphBoardActionsClean); how many were asked is kept so a
+     cut is said (hbBoardTakes, hb_act_cap) */
+  const board = graphBoardActionsClean(inp.board);
+  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(choices.length >= 2 ? { choices } : {}), ...(board ? { board, boardTotal: inp.board.length } : {}) };
 }
 
 /* One row per completed Copilot chat turn — including the failure paths, so
@@ -13938,7 +13954,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) });
+      const resp = await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) });
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -13992,7 +14008,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Jambo request failed: ' + e.message });
@@ -14287,7 +14303,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          whole in `final`. To re-enable, pass
          onToken: text => { if (text) send('token', { text }); } */
       const resp = await anthropicMessagesStream(key, (compared || judge) ? 'deep' : 'fast',
-        { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) },
+        { max_tokens: 4000, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) },
         { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal });
       if (!resp.ok) {
@@ -14342,7 +14358,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {
