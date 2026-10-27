@@ -843,9 +843,10 @@ function cuColDefs(){
   const money = cuMoney();
   return [
     /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the party's stream as a
-       soft chip and its standing as a mark and a word; Live is under Columns (the grey line counts) */
-    { k: 'stream', label: i18t('reg_col_stream'), w: 108 },
-    { k: 'standing', label: i18t('cu_col_standing'), w: 124 },
+       soft chip and its standing as a mark and a word; Live, Ended and City are under Columns (the grey line
+       counts, Standing says Ended, the panel says the city); Waiting has the room for its dot and words whole */
+    { k: 'stream', label: i18t('reg_col_stream'), w: 100 },
+    { k: 'standing', label: i18t('cu_col_standing'), w: 116 },
     { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
     /* 88 (Round 2): it holds a count but its head must read whole in Swedish ("Avslutade"); with Waiting's 22 it pays
@@ -854,7 +855,7 @@ function cuColDefs(){
     ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 112 }] : []),
     { k: 'next', label: i18t('cu_col_next_end'), w: 108 },
     /* wide enough for the drawn short words whole ("an approval, for Jonas") */
-    { k: 'waiting', label: i18t('cu_col_waiting'), w: 166 },
+    { k: 'waiting', label: i18t('cu_col_waiting'), w: 180 },
     { k: 'nda', label: i18t('cu_col_nda'), w: 128 },
   ];
 }
@@ -1029,7 +1030,7 @@ function cuRowsRepaint(){
    what it counts and how it draws again — every press ends in this page's
    own state (_cu), its own repaint and its own place store */
 function cuLcReg(){
-  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint(), hide: ['live'],
+  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint(), hide: ['live', 'ended', 'city'],
     /* a column stepped out for being empty is greyed in Columns with why, never a live tick that draws nothing */
     off: () => { const all = cuCustomers(), ndas = cuNdaMap(); return Object.fromEntries(cuEmptyCols(cuRowsOf(all, ndas), ndas).map(k => [k, i18t('cu_col_empty')])); } };
   const save = () => { if (typeof placeSave === 'function') placeSave(); };

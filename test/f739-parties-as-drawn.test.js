@@ -134,7 +134,7 @@ describe('f739 (2) the list as drawn', () => {
      Standing join, Live is one press away under Columns, and the grey line says since when (the
      streams are their own column) */
   test('the columns as drawn, a column empty for everyone left out', () => {
-    assert.deepEqual([...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent), ['Party', 'Stream', 'Standing', 'Ended', 'On paper', 'Next to end', 'Waiting on you']);
+    assert.deepEqual([...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent), ['Party', 'Stream', 'Standing', 'On paper', 'Next to end', 'Waiting on you']);
     const kf = doc.querySelector('[data-cu-cust="kenya freight ltd"]');
     assert.match(kf.querySelector('.cu-ps').textContent, /^2 agreements( · with us since \S.*)?$/);
     assert.match(doc.querySelector('[data-cu-cust="party 01 ltd"] .cu-ps').textContent, /^1 agreement( · with us since \S.*)?$/);
@@ -156,7 +156,7 @@ describe('f739 (2) the list as drawn', () => {
     sb.localStorage.setItem('hati.v1.cols.customers', JSON.stringify({ order: ['nda', 'city'], hidden: ['paper'] }));
     sb.renderCustomers();
     const th = [...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent);
-    assert.deepEqual(th, ['Party', 'Stream', 'Standing', 'Live', 'Ended', 'Next to end', 'Waiting on you'], 'City and NDA, empty for everyone, stay out; On paper hidden by the reader, Live shown by their own choice');
+    assert.deepEqual(th, ['Party', 'Stream', 'Standing', 'Live', 'Ended', 'Next to end', 'Waiting on you'], 'City and NDA, empty for everyone, stay out; On paper hidden by the reader, Live and Ended shown by their own choice');
     assert.equal(doc.querySelector('#cu-tbody tr').children.length, th.length, 'every row draws the columns the head does');
     sb.localStorage.removeItem('hati.v1.cols.customers');
   });
@@ -165,11 +165,14 @@ describe('f739 (2) the list as drawn', () => {
 describe('f739 (3) a party\'s city, from the one home', () => {
   const { sb, doc } = stage({ records: { 'kenya freight ltd': { name: 'Kenya Freight Ltd', city: 'Kisumu', orgNo: 'PVT-1' } } });
   sb.renderCustomers();
+  /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): City is one press away under Columns; shown, it says it */
   test('the City column says it; a party without one says a dash', () => {
+    sb.lcSave('customers', { hidden: ['live', 'ended'] }); sb.renderCustomers();
     assert.equal(doc.querySelector('[data-cu-cust="kenya freight ltd"] td.cu-city').textContent, 'Kisumu');
     assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-city').textContent, '—');
     assert.equal(sb.partyCityOf('kenya freight ltd'), 'Kisumu');
     assert.equal(sb.partyOrgNoOf('kenya freight ltd'), 'PVT-1');
+    sb.lcSave('customers', null);
   });
   test('the find box finds a party by its city', () => {
     sb.cuPlacePut({ q: 'kisu' });
@@ -184,7 +187,7 @@ describe('f739 (3) a party\'s city, from the one home', () => {
     const heads = [...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent);
     const cell = h => kf.children[heads.indexOf(h)].textContent.trim();
     assert.equal(cell('Standing'), 'Live', 'live');
-    assert.equal(cell('Ended'), '1', 'one ended, still a live party');
+    assert.match(kf.querySelector('.cu-ps').textContent, /^2 agreements/, 'the one ended still counted with it (Ended is under Columns)');
     assert.equal(doc.querySelector('[data-cu-cust="retired supplies ltd"]'), null, 'a party everything with has ended is off Live');
     sb.cuPlacePut({ status: 'ended' });
     sb.renderCustomers();
