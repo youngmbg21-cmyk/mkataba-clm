@@ -844,15 +844,27 @@ function apSay(rows){
     lines.push(esc(i18t('jl_ap_cover',{who:String(x.userName||'').split(/\s+/)[0],day:jlDayWord(x.to)}))); });
   const chips=[];
   const first=W.yours[0]||null;
-  if(first) chips.push({ label:i18t('jl_ap_chip_first'), run:()=>{
+  if(first) chips.push({ label:i18t('jl_ap_chip_first'), verb:i18t('jov_ask_take_v'), rest:i18t('jov_ask_ap_first_r'), run:()=>{
     /* LAND ON IT: a tab, a filter or words that hide the row are put at rest first */
     if(apShowRow(first.c.id)){ if(typeof insSelect==='function') insSelect('approvals', first.c.id); renderApprovalsPage(); }
     const tb=document.querySelector('.ap-table tbody'); const L=tb&&tb._insList;
     const row=tb&&[...tb.querySelectorAll('[data-ap-row]')].find(x=>x.getAttribute('data-ap-row')===String(first.c.id));
     if(L&&row) L.onSelect(String(first.c.id), row);
     if(typeof jlLand==='function') jlLand('row', first.c.id); } });
-  if(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function') chips.push({ label:i18t('jl_ap_chip_rules'), run:()=>openSettingsAt('platform','approvals') });
-  return { lines, chips };
+  if(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function') chips.push({ label:i18t('jl_ap_chip_rules'), verb:i18t('jov_ask_open_v'), rest:i18t('jov_ask_rules_r'), run:()=>openSettingsAt('platform','approvals') });
+  /* THE OVERVIEW'S FACTS (The Legora Way, owner 26 Oct 2026): each a reading this page already makes (apWorkRows,
+     apLate, state.away.covering), its link the page's own door; "Decided this month" has no reading and is left out */
+  const refOf=r=>(window.contractRef?contractRef(r.c):r.c.id);
+  const firstTwo=L=>L.slice(0,2).map(refOf).join(', ')+(L.length>2?' '+i18tn('jov_more',L.length-2,{n:L.length-2}):'');
+  const facts=[];
+  if(W.yours.length) facts.push({ k:i18t('jov_ap_yours'), v:i18tn('jov_n_then',W.yours.length,{n:W.yours.length,list:firstTwo(W.yours)}), link:first?i18t('jov_ln_take'):'', run:chips[0]&&chips[0].run });
+  if(W.others.length){ const who=[...new Set(W.others.map(apWaitsShort).filter(Boolean))].slice(0,3).join(', ');
+    facts.push({ k:i18t('jov_ap_others'), v:i18tn('jov_n_then',W.others.length,{n:W.others.length,list:who||firstTwo(W.others)}), link:i18t('jov_ln_show'), run:()=>{ _apView='others'; renderApprovalsPage(); } }); }
+  if(late){ const lr=W.rows.filter(apLate)[0];
+    facts.push({ k:i18t('jov_ap_late'), v:lr?i18tn('jov_ap_late_v',late,{n:late,d:AP_LATE_DAYS,ref:refOf(lr)}):i18tn('jl_ap_late',late,{n:late,d:AP_LATE_DAYS}), need:true }); }
+  cov.filter(x=>x&&(!today||(x.from<=today&&today<=x.to))).forEach(x=>{
+    facts.push({ k:i18t('jov_ap_cover'), v:i18t('jl_ap_cover',{who:String(x.userName||'').split(/\s+/)[0],day:jlDayWord(x.to)}) }); });
+  return { lines, chips, head:{ html:lines[0] }, facts };
 }
 /* THE PAGE HEAD AS DRAWN (round 15): the two counts on the title's line, and
    Approval rules at its end — an admin's door to Settings */

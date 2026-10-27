@@ -110,16 +110,14 @@ const CONTRACTS = [
        is said in his words (2b) */
     const said = await until(page, () => {
       const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]');
-      return !!(t && document.querySelectorAll('#ig-dock .hb-jb-hello').length > 1);
+      return !!(t && document.querySelector('#ig-dock .hb-jb-hello .jov')); /* RE-POINTED 26 Oct 2026: one Overview, not two bubbles */
     });
-    const two = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello')];
-      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''),
-        where: b[1] ? b[1].querySelector('.ai-bub').textContent.replace(/\s+/g, ' ').trim() : '',
-        chip: b[1] ? ((b[1].querySelector('[data-igsug]') || {}).textContent || '').trim() : '' }; });
-    ok('2a his one tab carries no number of its own (the number is in his words)', said && two.tab === '' && new RegExp(`: ${one.n} things`).test(two.where), JSON.stringify(two));
-    /* the Counter is named Home since 18 Oct 2026 (main's own rename; code keeps "counter") */
-    ok('2b he says where the owed work went', new RegExp(`^What needs you is on Home: ${one.n} things`).test(two.where), two.where);
-    ok('2c "what needs me" stands under it', two.chip === 'what needs me', two.chip);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
+    const two = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && [...o.querySelectorAll('.jov-fact')].find(x => (x.querySelector('.jov-k') || {}).textContent === 'Needs you');
+      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: f ? f.querySelector('.jov-v').textContent.replace(/\s+/g, ' ').trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
+    ok('2a his Overview tab carries no number of its own (the number is in its Needs you fact)', said && !two.tab && new RegExp(`^${one.n} things`).test(two.where), JSON.stringify(two));
+    ok('2b the Overview says how many things need you', new RegExp(`^${one.n} things · \\d+ prepared by Jambo`).test(two.where), two.where);
+    ok('2c "what needs me" stands under "Ask me"', two.chip, String(two.chip));
 
     /* ===== 4. A COLLEAGUE'S LOOK: AFTER WHAT CANNOT WAIT, ANSWERED BY ITS OWN DONE ===== */
     const asked = await page.evaluate(() => {
@@ -174,8 +172,9 @@ const CONTRACTS = [
     await page.evaluate(() => { window.__ny = window.needsYouOf; window.needsYouOf = () => []; window.__ag = window.hbAgentsData; window.hbAgentsData = () => ({ ready: 0, rows: [], done: [] }); window.__cn = window.counterNeedsCount; window.counterNeedsCount = () => 0;
       hbS().face = 'board'; hbSave(); setView('dashboard'); });
     const quiet = await until(page, () => !document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') && !!document.querySelector('#ig-dock .hb-jb-hello'));
-    const seven = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello')];
-      return { where: b[1] ? b[1].querySelector('.ai-bub').textContent.trim() : '', chip: b[1] ? !!b[1].querySelector('[data-igsug]') : true, n: counterNeedsCount() }; });
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
+    const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && [...o.querySelectorAll('.jov-fact')].find(x => (x.querySelector('.jov-k') || {}).textContent === 'Needs you');
+      return { where: f ? f.querySelector('.jov-v').textContent.trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')), n: counterNeedsCount() }; });
     ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you on Home.' && !seven.chip, JSON.stringify(seven));
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });
     await page.evaluate(() => { window.needsYouOf = window.__ny; window.hbAgentsData = window.__ag; window.counterNeedsCount = window.__cn; });

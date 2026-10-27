@@ -57,16 +57,19 @@ describe('f880 — one Jambo window for an item said in his words', () => {
   test('insPaintPanel: `solo` puts the item under his greeting, no Overview and no name tab', () => {
     const p = fnBody(INS, 'insPaintPanel');
     assert.match(p, /const soloItem = jl && !c && !!item && !!opt\.solo;/);
-    assert.match(p, /host\._jlSolo = !\(c \|\| item\) \|\| soloItem;/);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"): no panel is one window any more and his greeting is the Jambo tab's first words, never the Overview's */
+    assert.match(p, /host\._jlSolo = false;/);
     assert.match(p, /jlHeadPaint\(host, opt, !!\(c \|\| item\) && !soloItem\)/);
-    assert.match(p, /else if \(soloItem\)\{ body\.innerHTML = ''; jlGreetPut\(host, opt\.body \|\| ''\); \}/);
+    assert.match(p, /else if \(soloItem\)\{ body\.innerHTML = opt\.body \|\| ''; \}/, 'the item stands in the Overview, as it was drawn');
   });
   test('Our paper\'s chosen template is said that way', () => {
     assert.match(fnBody(LIB, 'tplPfPanelPaint'), /head:false, solo:true,/);
   });
   test('the empty New agreement panel: his greeting, then what he can do there', () => {
     const h = fnBody(PD, 'pdWallHelloHtml');
-    assert.match(h, /naSheetUp\(\)\)\s*\n\s*return `\$\{typeof jamboHelloHtml === 'function' \? jamboHelloHtml\(\) : ''\}/);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"): no panel is one window any more and his greeting is the Jambo tab's first words, never the Overview's */
+    assert.match(h, /naSheetUp\(\)\)\s*\n\s*return ov\(\{ head: \{ html: _pdE\(_pdT\('ca_go_draft'\)\) \}/);
+    assert.doesNotMatch(h.replace(/\/\*[\s\S]*?\*\//g, ''), /jamboHelloHtml/, 'no greeting on the Overview');
     assert.match(h, /\['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'\]/);
   });
   test('both books carry the words', () => {

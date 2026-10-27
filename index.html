@@ -14564,6 +14564,32 @@
   .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}
   /* Jambo's own words: his face, a bubble, the line saying it cost nothing, the page's doors as chips */
   .jl-words{padding:16px 16px 4px;display:flex;flex-direction:column;gap:8px;}
+  /* THE OVERVIEW, THE LEGORA WAY (owner picked it by name, 26 Oct 2026; jamboOverviewHtml, js/components.js):
+     nothing boxed — a head sentence, a quiet list of facts, the source line, "Ask me" and his offers one per line */
+  .jov{display:flex;flex-direction:column;min-width:0;}
+  .jov-head{margin:0 0 14px;font-size:15px;line-height:1.45;color:var(--color-neutral-600);}
+  .jov-head b{font-weight:var(--w-strong);color:var(--color-text);}
+  .jov-facts{display:flex;flex-direction:column;}
+  .jov-fact{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:2px;align-items:baseline;padding:10px 0;border-top:1px solid var(--color-divider);min-width:0;}
+  .jov-fact.is-last{border-bottom:1px solid var(--color-divider);}
+  .jov-k{grid-column:1;grid-row:1;font-weight:var(--w-strong);color:var(--color-text);font-size:13px;min-width:0;overflow-wrap:anywhere;}
+  .jov-fact > .jov-lnk{grid-column:2;grid-row:1;font-size:12.5px;white-space:nowrap;}
+  .jov-v{grid-column:1;font-size:12.5px;line-height:1.45;color:var(--color-neutral-600);min-width:0;overflow-wrap:anywhere;}
+  .jov-v b{color:var(--color-text);font-weight:var(--w-strong);}
+  .jov-v.is-need{color:var(--st-amber-fg);}
+  .jov-fact.is-line .jov-v{grid-column:1 / -1;font-size:13px;}
+  .jov-src{margin:8px 0 0;font-size:11.5px;color:var(--color-neutral-500, #8A8A91);}
+  .jov-eyebrow{margin:18px 0 0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);}
+  .jov-asks{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin:12px 0 0;}
+  .jov-lnk{border:0;background:none;padding:0;margin:0;font:inherit;font-size:13.5px;line-height:1.45;color:var(--accent-ink);text-align:left;cursor:pointer;
+    text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent-ink) 30%,transparent);text-underline-offset:3px;max-width:100%;}
+  .jov-lnk b{font-weight:var(--w-strong);}
+  .jov-lnk:hover{text-decoration-color:currentColor;}
+  .jov-lnk.is-dead{color:var(--color-neutral-600);text-decoration:none;cursor:default;}
+  .jov-cost{color:var(--color-neutral-600);font-size:12px;margin-left:6px;text-decoration:none;display:inline-block;}
+  .jov-after{margin:18px 0 0;display:flex;flex-direction:column;gap:12px;min-width:0;}
+  /* Home's panel already pads its feed (14px): the Overview adds the 2px that makes 16 inside (16PX INSIDE EVERY CARD) */
+  #ig-dock .jl-words.is-ov{padding:2px 2px 4px;}
   .jl-say{display:flex;align-items:flex-start;gap:10px;}
   .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
   /* NO FACE IN THE THREAD (owner, 20 Oct 2026): on a computer, Jambo's small

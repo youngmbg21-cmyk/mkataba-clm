@@ -141,7 +141,11 @@ describe('f731 (7) a reminder names only somebody the server would mail', () => 
   let kv = null;
   const mk = allow => loadViews(['js/obligations.js'], { getUsers: () => users, canAccessFolder: (fid, u) => allow(u), currentUser: () => users[1],
     insMenuItemHtml: () => '', insSecHtml: () => '', insKvHtml: rows => { kv = rows; return ''; } });
-  const o = { id: 'o1', desc: 'Pay the deposit', due: '2026-10-25', status: 'open', party: 'ours', assignee: 'Wanjiku Kamau' };
+  /* RE-POINTED 27 Oct 2026: the due day was a fixed 2026-10-25, so once the reminders' last day (the day after)
+     had passed the line read "Nothing more is scheduled" and the test went red with the calendar; a day three
+     days ahead keeps a reminder to name */
+  const ahead = (() => { const d = new Date(); d.setDate(d.getDate() + 3); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  const o = { id: 'o1', desc: 'Pay the deposit', due: ahead, status: 'open', party: 'ours', assignee: 'Wanjiku Kamau' };
   const c = { id: 'MK-1', folder: 'proc', counterparty: 'Kabras', obligations: [o], owner: { id: 'u2', name: 'Amina Otieno' } };
   const line = w => w.obligationReminderLine(o, c).replace(/<[^>]+>/g, '');
   test('the assignee who cannot open the stream is passed over for the owner; nobody, and it says so', () => {

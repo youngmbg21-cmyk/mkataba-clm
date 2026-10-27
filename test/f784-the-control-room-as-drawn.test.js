@@ -46,7 +46,7 @@ describe('f784 (3) Jambo says the page', () => {
     const g = company({ capOn: true, more: [{ id: 'u_x', name: 'Ann Holm', role: 'legal', email: 'a@h.t', prefs: { mustChangePassword: true } }] });
     const rows = g.sb.stNeedsAll();
     assert.ok(rows.length >= 2);
-    const hello = g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub'));
+    const hello = g.text(g.q('#st-jb-feed [data-st-jb-hello]'));
     assert.match(hello, new RegExp('^' + ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'][rows.length - 1] + ' things need you here: '));
     assert.ok(hello.includes(g.sb.stJbNeedPhrase(rows[0])), 'each row said by what it is');
     assert.match(hello, /Each row’s button opens what settles it\.$/);
@@ -54,13 +54,13 @@ describe('f784 (3) Jambo says the page', () => {
   test('3b the chips: the first row\'s own door, what to turn on next, who can open a private stream', () => {
     const g = company({ capOn: true, more: [{ id: 'u_x', name: 'Ann Holm', role: 'legal', email: 'a@h.t' }],
       before: sb => { sb.state.settings.privateStreams = { mktg: { on: true, people: [{ id: 'u_two' }] } }; } });
-    const chips = g.qa('#st-jb-feed .st-jb-chip');
+    const chips = g.qa('#st-jb-feed .jov-lnk.is-ask');
     const first = g.sb.stNeedsAll()[0];
     assert.ok(chips[0].matches('[data-st-panel],[data-st-page],[data-st-resend]'), 'the first is the row\'s own door');
     assert.equal(chips[0].outerHTML.includes(first.btn.split('"')[1]), true);
-    assert.equal(chips[1].textContent, 'what should I turn on next?');
-    assert.match(chips[2].textContent, /^who can open Marketing & Brand\?$/);
-    assert.equal(g.text(g.qa('#st-jb-feed .st-jb-bub')[1]), S.en.st_jb_co_how);
+    assert.equal(chips[1].textContent.toLowerCase(), 'what should i turn on next?'); /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): his offers stand under "Ask me" verb first, its first letter a capital as drawn */
+    assert.match(chips[2].textContent, /^Who can open Marketing & Brand\?$/);
+    assert.equal(g.text(g.qa('#st-jb-feed :is(.jov-head, .jov-fact.is-line .jov-v, .st-jb-bub)')[1]), S.en.st_jb_co_how);
   });
   test('3d rows of one kind are said once, with their count', () => {
     const g = company();
@@ -135,16 +135,16 @@ describe('f784 (5) the list, its "N more" and Jambo say the same number', () => 
     assert.equal(rows, was - 1);
     assert.equal(g.text(g.q('#st-att .st-needs-n')), String(rows), 'the tag');
     assert.equal(g.text(g.q('#st-att .st-need-more')), S.en.st_needs_more_other.replace('{n}', rows - drawn), '"N more" is the rows the list holds and does not draw');
-    assert.ok(g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub')).startsWith(S.en['st_num_' + rows] + ' things need you here'), 'Jambo says the same count');
+    assert.ok(g.text(g.q('#st-jb-feed [data-st-jb-hello]')).startsWith(S.en['st_num_' + rows] + ' things need you here'), 'Jambo says the same count');
   });
   test('5b his first chip is the first row\'s button, in plain words, never "verb: what"', () => {
     const g = company({ capOn: true, more: LINA() });
-    const chip = g.q('#st-jb-feed .st-jb-chip');
+    const chip = g.q('#st-jb-feed .jov-lnk.is-ask');
     assert.equal(g.text(chip), 'open Lina Ek', 'as drawn');
     const solo = company({ capOn: true });
     const first = solo.sb.stNeedsAll()[0];
     assert.ok(first, 'a row to say');
-    assert.doesNotMatch(solo.text(solo.q('#st-jb-feed .st-jb-chip')), /:/, 'no colon');
+    assert.doesNotMatch(solo.text(solo.q('#st-jb-feed .jov-lnk.is-ask')), /:/, 'no colon');
   });
   test('5c the quarterly access review\'s second line: "… reviewed · asked until the quarter is stamped"', () => {
     const g = company({ state: { accessReview: { quarter: '2026-Q4', people: ['u_me', 'u_two', 'u_x'], marks: { u_two: 'keep' }, done: null } } });
@@ -295,7 +295,7 @@ describe('f784 (8) the third pass: the frame, every card door a page, the facts,
   });
   test('8f his first words are the drawing\'s: the list, then "Each row\'s button opens what settles it." and nothing after', () => {
     const g = company({ capOn: true, more: LINA() });
-    const w = g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub'));
+    const w = g.text(g.q('#st-jb-feed [data-st-jb-hello]'));
     assert.match(w, /Each row’s button opens what settles it\.$/);
     assert.doesNotMatch(w, /warns|nothing is blocked/);
     assert.equal(S.en.st_jb_np_unseen, 'contracts no admin can see waiting in {stream}', 'a stream is named "in <stream>", as drawn');

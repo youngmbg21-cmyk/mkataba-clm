@@ -173,9 +173,10 @@ describe('f798 (5) the boxes narrow; Jambo says the ledger', () => {
     const x = await painted();
     x.win.insLetGo('mynotes'); x.win.renderMyNotes();
     const p = x.d.getElementById('ins-panel');
-    assert.equal(txt(p.querySelector('.jl-bub')), 'You have 5 notes, private to you. 1 is due today. 2 come up later. I read a note only when you ask me to.');
-    assert.match(txt(p.querySelector('.jl-src')), /no Jambo call/);
-    assert.deepEqual([...p.querySelectorAll('.jl-chip')].map(txt), ['the ones due today', 'new note']);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): nothing chosen, his words are the Overview's head and quiet lines (.jov-head), its source line .jov-src, his chips the offers under "Ask me" (.jov-lnk.is-ask), each verb first with a capital as drawn */
+    assert.equal(txt(p.querySelector('.jov-head')), 'You have 5 notes, private to you. 1 is due today. 2 come up later. I read a note only when you ask me to.');
+    assert.match(txt(p.querySelector('.jov-src')), /no Jambo call/);
+    assert.deepEqual([...p.querySelectorAll('.jov-lnk.is-ask')].map(txt), ['The ones due today', 'New note']);
   });
 });
 

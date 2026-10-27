@@ -1573,35 +1573,47 @@ function hbBoardHelloOn(){
 function hbBoardHelloHtml(){
   /* not over a contract brought up as a page: the desk shows that contract, not the book */
   if (!hbBoardHelloOn()) return '';
-  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
-  const bub = (say, chips) => `<div class="ai-msg flex gap-2 pd-hello hb-jb-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${say}</div>`
-    + (chips.length ? `<div class="hb-jb-chips">${chips.map(c => `<button type="button" data-igsug="${_hbE(c)}" class="jb-chip">${_hbE(c)}</button>`).join('')}</div>` : '') + '</div></div>';
+  /* THE OVERVIEW, THE LEGORA WAY (owner picked it, 26 Oct 2026; jamboOverviewHtml, the one builder): the Board in
+     one head sentence, its facts (the one desk ndRead, Jambo's ready work, the book's own counts), each with its
+     door, then "Ask me" with the chips his greeting carried — no face, no bubble; his greeting is the Jambo tab's.
+     "Today's insights" and "Jambo this month" have no reading the panel can make here and are left out. */
   let ending = 0; try { ending = hbBookData(hbS().lens || 'all').figs.ending.n; } catch (_){ ending = 0; }
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
-  const book = [ending ? i18tn('hb_jb_ending', ending, { n: ending }) : null, i18t('hb_jb_by_stream'), views ? i18t('hb_jb_views') : null].filter(Boolean);
-  /* "counted at <time>" is the HEAD's own time: it wears a mark so a later
-     board paint (which counts again, hbCountedAt(true)) moves it in place —
-     the greeting and the head never name two different minutes */
-  const hello = _hbE(i18t('hb_jb_hello', { time: '\uE000' })).replace(_hbE(i18t('hb_bs_btn')), m => `<b>${m}</b>`)
-    .replace('\uE000', `<span data-hb-jb-at>${_hbE(hbCountedAt())}</span>`);
   let n = 0; try { n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); } catch (_){ n = 0; }
-  _hbNyDockN = n;
+  _hbNyDockN = n; _hbNyDockBook = (state.contracts || []).length;
   let work = 0; try { work = hbAgentsData(null).ready || 0; } catch (_){ work = 0; }
-  const where = n ? i18tn(work ? 'hb_jb_counter_work' : 'hb_jb_counter', n, { n }) : i18t('hb_jb_counter_none');
-  return bub(hello, book) + bub(_hbE(where), n ? [i18t('hb_jb_needs_chip')] : []);
+  let D = null; try { D = (typeof ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
+  const sum = (D && typeof ndSumWords === 'function') ? ndSumWords(D) : '';
+  const book = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined' && (!window.canAccessFolder || canAccessFolder(c.folder)));
+  const signed = book.filter(c => c.status === 'Signed').length, drafts = book.filter(c => c.status === 'Draft').length;
+  const facts = [];
+  facts.push({ k: i18t('jov_hb_needs'), v: n ? i18tn('jov_hb_needs_v', n, { n, k: work }) + (sum ? ' · ' + sum : '') : i18t('hb_jb_counter_none'), need: !!(D && D.late),
+    link: n ? i18t('jov_ln_show_all') : '', run: () => { if (typeof ndOpenBoard === 'function') ndOpenBoard(); } });
+  facts.push({ k: i18t('jov_hb_book'), v: i18tn('jov_hb_book_v', book.length, { n: book.length, s: signed, d: drafts }), link: i18t('jov_ln_open'), run: () => { if (typeof hbOpenContracts === 'function') hbOpenContracts(); } });
+  if (ending) facts.push({ k: i18t('jov_hb_ending'), v: i18tn('jov_hb_ending_v', ending, { n: ending }), need: true });
+  const chip = q => ({ label: q, attr: `data-igsug="${_hbE(q)}"` });
+  const asks = [ending ? chip(i18tn('hb_jb_ending', ending, { n: ending })) : null, chip(i18t('hb_jb_by_stream')), views ? chip(i18t('hb_jb_views')) : null,
+    n ? chip(i18t('hb_jb_needs_chip')) : null,
+    (typeof calHandOff === 'function') ? { label: i18t('ob_yw_chip_week'), title: i18t('cal_plan_p_week'), run: () => calHandOff('week') } : null].filter(Boolean);
+  /* "counted at <time>" is the HEAD's own time: it wears a mark so a later board paint moves it in place */
+  const src = _hbE(i18t('jov_hb_src', { time: '\uE000' })).replace('\uE000', `<span data-hb-jb-at>${_hbE(hbCountedAt())}</span>`);
+  const o = { head: { b: i18t('jov_hb_head_b'), s: i18t('jov_hb_head_s') }, facts, srcHtml: src, asks };
+  return (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov hb-jb-hello">${jamboOverviewHtml(o, 'hb')}</div>` : '';
 }
 /* JAMBO'S PANEL FOLLOWS THE CARD'S NUMBER: the greeting, his tab's count and
    the lead chip are drawn with the panel, which a board paint does not redraw;
    when the number the panel last drew differs, it is drawn again — never under
    a reader typing in his box. */
-let _hbNyDockN = null;
+let _hbNyDockN = null, _hbNyDockBook = null;
 function hbNyDockFollow(){
   try {
     if (hbS().face !== 'board' || typeof renderIntelDock !== 'function') return;
     /* the greeting's time follows the head's, in place (nothing redrawn) */
     const at = hbCountedAt();
     document.querySelectorAll('[data-hb-jb-at]').forEach(el => { if (el.textContent !== at) el.textContent = at; });
-    const n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); if (n === _hbNyDockN) return;
+    /* the Overview's book count follows too (a book still loading when the panel was drawn) */
+    const n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount();
+    const b = (state.contracts || []).length; if (n === _hbNyDockN && b === _hbNyDockBook) return;
     const box = document.getElementById('igd-input');
     if (box && document.activeElement === box) return;
     renderIntelDock();

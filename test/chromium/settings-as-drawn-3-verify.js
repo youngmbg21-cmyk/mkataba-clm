@@ -173,7 +173,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     check('3b Jambo\'s day limit in calls, never money', !!facts && facts.j.some(f => /calls a day at most$/.test(f)) && !facts.j.some(f => /\$|KES|SEK/.test(f)), facts && JSON.stringify(facts.j));
 
     console.log('\n4 · his first words');
-    const hello = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello] .st-jb-bub'); return b && /need/.test(b.textContent) ? b.textContent.trim() : null; });
+    const hello = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello]'); return b && /need/.test(b.textContent) ? b.textContent.trim() : null; });
     check('4a they end with "Each row’s button opens what settles it." — nothing after', !!hello && /Each row’s button opens what settles it\.$/.test(hello) && !/warns|nothing is blocked/.test(hello), hello);
 
     console.log('\n5 · Ready to delete → Review');
@@ -214,7 +214,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await page.evaluate(() => settingsGoPage('data'));
     const dt = await until(() => { const c = document.querySelector('#st-jb-feed [data-st-tr-pdf]'), w0 = document.querySelector('.st-tr-tb .st-ps-who');
       return c && w0 ? { chip: c.textContent.trim(), who: getComputedStyle(w0).fontWeight } : null; }, null, 10000);
-    check('7a "download Q3 as a PDF"', !!dt && /^download Q\d as a PDF$/.test(dt.chip), dt && dt.chip);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "Yes, every page"): his words are the Overview's head, his offers verb first with a capital */
+    check('7a "Download Q3 as a PDF"', !!dt && /^download Q\d as a PDF$/i.test(dt.chip), dt && dt.chip);
     check('7b Downloads so far: Who in plain weight', !!dt && Number(dt.who) <= 400, dt && dt.who);
     await company();
     await page.evaluate(() => stDrawerOpen('backup'));

@@ -95,7 +95,10 @@ function settingsStage(opts = {}) {
   /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the one conversation record and
      trail builder, js/components.js's own region, before settings.js registers its back */
   { const C = fs.readFileSync(path.join(ROOT, 'js/components.js'), 'utf8'); const i = C.indexOf('var _jt = ');
-    if (i > 0) vm.runInContext(C.slice(i, C.indexOf('Object.assign(window,{JT_BACK', i)), sb, { filename: 'js/components.js#jamboTalk' }); }
+    if (i > 0) vm.runInContext(C.slice(i, C.indexOf('Object.assign(window,{JT_BACK', i)), sb, { filename: 'js/components.js#jamboTalk' });
+    /* THE OVERVIEW'S ONE BUILDER (owner, 26 Oct 2026, The Legora Way): Settings' landing is drawn by it */
+    const j = C.indexOf('const _jovRuns = ');
+    if (j > 0 && !vm.runInContext('typeof jamboOverviewHtml', sb).startsWith('func')) vm.runInContext(C.slice(j, C.indexOf('Object.assign(window,{jamboOverviewHtml', j)), sb, { filename: 'js/components.js#jamboOverview' }); }
   for (const f of FILES) if (fs.existsSync(path.join(ROOT, f))) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
   if (opts.before) opts.before(sb);
   sb.renderTeam();

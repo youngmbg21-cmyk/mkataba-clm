@@ -15,8 +15,8 @@
    why, never dead. A {ui:key} is the screen's own label, read from the
    dictionary at paint time, so a renamed button follows.
 
-   PICTURES are files under handbook/img/<chapter>.png, taken by
-   test/chromium/handbook-verify.js (HANDBOOK_SHOTS=1) from the seeded world;
+   PICTURES are files under handbook/img/<chapter>-<n>.png (2–3 close-ups a chapter), taken by
+   test/chromium/handbook-verify.js (HANDBOOK_SHOTS=1) in test/handbook-world.js;
    one that is not there yet shows "Picture to come" in its frame, and a
    chapter with no picture by design says why (noShot).
 
@@ -114,10 +114,16 @@ function hbkPickTableHtml(chs){
     chs.map(c => `<tr><td>${hbkText(c.when && c.when[0])}</td><td><a href="#" data-hbk-jump="${c.k}">${_hbkE(_hbkW(c.title))}</a></td><td>${_hbkE(_hbkW(c.eyebrow))}</td><td>${hbkCostHtml(c)}</td></tr>`).join('')
   }</tbody></table></div></div>`;
 }
-function hbkPicHtml(c, i, n){
-  const cap = c.shot && c.shot.cap ? _hbkW(c.shot.cap) : '';
-  if (!c.shot) return `<figure class="hbk-fig"><div class="hbk-ph">${_hbkE(_hbkT('hbk_no_pic', { why: _hbkW(c.noShot) }))}</div></figure>`;
-  return `<figure class="hbk-fig"><div class="hbk-pic-wrap"><img class="hbk-pic" src="handbook/img/${_hbkE(c.k)}.png" alt="${_hbkE(cap)}" loading="lazy" data-hbk-pic="${c.k}" tabindex="0"><div class="hbk-ph" hidden>${_hbkE(_hbkT('hbk_pic_soon'))}</div></div>${cap ? `<figcaption>${_hbkE(cap)}</figcaption>` : ''}</figure>`;
+/* A CHAPTER'S PICTURES (owner, 26 Oct 2026: "close-ups, 2–3 per chapter where useful, each in the right state, with
+   no shared pictures"): `shots` — each its own file handbook/img/<k>-<n>.png, a close-up of the place the steps
+   name, its red numbers the steps' own numbers (hbkShotsOf reads an older single `shot` as one) */
+function hbkShotsOf(c){ return Array.isArray(c && c.shots) ? c.shots : (c && c.shot ? [c.shot] : []); }
+function hbkPicFile(c, i){ return `handbook/img/${c.k}-${i + 1}.png`; }
+function hbkPicHtml(c){
+  const shots = hbkShotsOf(c);
+  if (!shots.length) return `<figure class="hbk-fig"><div class="hbk-ph">${_hbkE(_hbkT('hbk_no_pic', { why: _hbkW(c.noShot) }))}</div></figure>`;
+  return shots.map((sh, i) => { const cap = sh.cap ? _hbkW(sh.cap) : '';
+    return `<figure class="hbk-fig"><div class="hbk-pic-wrap"><img class="hbk-pic" src="${_hbkE(hbkPicFile(c, i))}" alt="${_hbkE(cap)}" loading="lazy" data-hbk-pic="${_hbkE(c.k)}-${i + 1}" tabindex="0"><div class="hbk-ph" hidden>${_hbkE(_hbkT('hbk_pic_soon'))}</div></div>${cap ? `<figcaption>${_hbkE(cap)}</figcaption>` : ''}</figure>`; }).join('');
 }
 const HBK_TONES = { ok: 'is-ok', warn: 'is-warn', risk: 'is-risk', none: 'is-none' };
 function hbkChapterHtml(c){
@@ -129,9 +135,9 @@ function hbkChapterHtml(c){
       <div class="hbk-eyebrow"><span class="hbk-num">${_hbkE(c.k)}</span>${hbkText(c.eyebrow)}</div>
       <h2>${_hbkE(_hbkW(c.title))}</h2>
       <p class="hbk-what">${hbkText(c.what)}</p>
-      ${blk('hbk_sec_when', `<ul>${(c.when || []).map(w => `<li>${hbkText(w)}</li>`).join('')}</ul>`)}
+      ${blk('hbk_sec_when', `<ul class="hbk-bullets">${(c.when || []).map(w => `<li>${hbkText(w)}</li>`).join('')}</ul>`)}
       ${blk('hbk_sec_where', `<div class="hbk-path">${path}</div>`)}
-      ${blk('hbk_sec_how', `<ol>${(c.how || []).map(h => `<li>${hbkText(h)}</li>`).join('')}</ol>`)}
+      ${blk('hbk_sec_how', `<ol class="hbk-steps">${(c.how || []).map((h, i) => `<li><span class="hbk-step-n" aria-hidden="true">${i + 1}</span><span class="hbk-step-w">${hbkText(h)}</span></li>`).join('')}</ol>`)}
       ${read}
       ${c.tip ? `<div class="hbk-tip">${hbkText(c.tip)}</div>` : ''}
       <div class="hbk-foot"><span class="hbk-foot-l">${_hbkE(_hbkT('hbk_th_cost'))}</span>${hbkCostHtml(c)}</div>
@@ -160,22 +166,24 @@ function hbkCss(){
   #hbk-page .hbk-t1{ font-size:20px; font-weight:var(--w-title); margin:0; }
   #hbk-page .hbk-hn{ font-variant-numeric:tabular-nums; color:var(--color-neutral-600); }
   #hbk-page .hbk-hs{ color:var(--color-neutral-600); font-size:13px; }
-  #hbk-page .hbk-card{ display:grid; grid-template-columns:272px minmax(0,1fr); min-height:0; }
+  /* THE CONTENTS ARE READ WHOLE (owner, 26 Oct 2026: "make it so that everything is visible"): the column is as wide as
+     it needs (up to 320px), its words wrap rather than being cut, and it never scrolls sideways; the middle narrows */
+  #hbk-page .hbk-card{ display:grid; grid-template-columns:minmax(248px,320px) minmax(0,1fr); min-height:0; }
   #hbk-page.is-narrow .hbk-card{ grid-template-columns:minmax(0,1fr); }
-  #hbk-page .hbk-toc{ border-right:1px solid var(--hbk-rule); padding:16px; overflow:auto; min-height:0; }
+  #hbk-page .hbk-toc{ border-right:1px solid var(--hbk-rule); padding:16px; overflow-y:auto; overflow-x:hidden; min-height:0; min-width:0; }
   #hbk-page.is-narrow .hbk-toc{ border-right:0; border-bottom:1px solid var(--hbk-rule); }
   #hbk-page .hbk-toc ol{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
-  #hbk-page .hbk-toc-row{ display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px; border:0; background:none; border-radius:var(--radius); font:inherit; color:inherit; text-align:left; cursor:pointer; min-width:0; }
+  #hbk-page .hbk-toc-row{ display:flex; align-items:flex-start; gap:10px; width:100%; padding:8px 10px; border:0; background:none; border-radius:var(--radius); font:inherit; color:inherit; text-align:left; cursor:pointer; min-width:0; }
   #hbk-page .hbk-toc-row:hover{ background:color-mix(in srgb,var(--color-text) 5%,transparent); }
   #hbk-page .hbk-toc-row.is-on{ background:var(--color-accent-50); }
   #hbk-page .hbk-toc-n{ font-variant-numeric:tabular-nums; font-size:12px; color:var(--color-neutral-600); width:16px; flex:0 0 auto; }
   #hbk-page .hbk-toc-w{ display:flex; flex-direction:column; min-width:0; flex:1; }
-  #hbk-page .hbk-toc-w b{ font-weight:var(--w-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #hbk-page .hbk-toc-w small{ color:var(--color-neutral-600); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #hbk-page .hbk-toc-w b{ font-weight:var(--w-label); overflow-wrap:anywhere; }
+  #hbk-page .hbk-toc-w small{ color:var(--color-neutral-600); font-size:12px; line-height:1.35; overflow-wrap:anywhere; }
   #hbk-page .hbk-toc-c{ font-size:11px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600); border:1px solid var(--hbk-rule); border-radius:999px; padding:0 7px; flex:0 0 auto; }
   #hbk-page .hbk-checked{ margin:16px 0 0; font-size:12px; color:var(--color-neutral-600); }
-  #hbk-page .hbk-body{ overflow:auto; min-height:0; padding:24px 28px 48px; scroll-behavior:smooth; }
-  @media (prefers-reduced-motion:reduce){ #hbk-page .hbk-body{ scroll-behavior:auto; } }
+  /* LINKS SNAP, NOTHING GLIDES (owner, 26 Oct 2026: "it jumps from top to bottom when you press anything") */
+  #hbk-page .hbk-body{ overflow:auto; min-height:0; padding:24px 28px 48px; scroll-behavior:auto; }
   #hbk-page .hbk-part{ display:grid; gap:24px; max-width:1180px; }
   #hbk-page .hbk-part-h h1{ font-family:var(--font-doc); font-size:30px; font-weight:600; line-height:1.15; margin:4px 0 0; text-wrap:balance; }
   #hbk-page .hbk-part-h p{ margin:6px 0 0; color:var(--color-neutral-600); max-width:66ch; }
@@ -205,7 +213,14 @@ function hbkCss(){
   #hbk-page .hbk-what{ margin:0; font-size:15px; line-height:1.5; }
   #hbk-page .hbk-blk h3{ font-size:12px; font-weight:var(--w-label); letter-spacing:.04em; text-transform:uppercase; color:var(--color-neutral-600); margin:0 0 4px; }
   #hbk-page .hbk-blk p, #hbk-page .hbk-blk ul, #hbk-page .hbk-blk ol{ margin:0; font-size:13px; line-height:1.5; }
-  #hbk-page .hbk-blk ul, #hbk-page .hbk-blk ol{ padding-left:20px; display:flex; flex-direction:column; gap:4px; }
+  /* THE STEPS ARE NUMBERED AND THE BULLETS SHOW (owner, 26 Oct 2026): a flex list drew neither (its items stopped
+     being list items); the steps wear the pictures' own red numbers, so step 2 is the box marked 2 */
+  #hbk-page .hbk-blk ul.hbk-bullets{ display:block; list-style:disc outside; padding-left:20px; }
+  #hbk-page .hbk-blk ul.hbk-bullets li{ display:list-item; margin:0 0 4px; }
+  #hbk-page .hbk-blk ol.hbk-steps{ display:block; list-style:none; padding:0; }
+  #hbk-page .hbk-blk ol.hbk-steps li{ display:flex; align-items:flex-start; gap:10px; margin:0 0 8px; }
+  #hbk-page .hbk-step-n{ flex:0 0 auto; width:20px; height:20px; border-radius:50%; background:#C0392B; color:#fff; font-size:12px; font-weight:600; line-height:20px; text-align:center; margin-top:1px; font-variant-numeric:tabular-nums; }
+  #hbk-page .hbk-step-w{ min-width:0; }
   #hbk-page .hbk-path{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; }
   #hbk-page .hbk-path i{ font-style:normal; color:var(--color-neutral-600); }
   #hbk-page .hbk-ui{ font-weight:var(--w-label); white-space:nowrap; }
@@ -219,10 +234,12 @@ function hbkCss(){
   #hbk-page .hbk-cost.is-free{ background:var(--color-accent-50); color:var(--accent-ink); border-color:transparent; }
   #hbk-page .hbk-pics{ display:flex; flex-direction:column; gap:18px; min-width:0; }
   #hbk-page .hbk-fig{ margin:0; display:flex; flex-direction:column; gap:8px; }
-  #hbk-page .hbk-pic-wrap{ position:relative; min-width:0; }
-  #hbk-page .hbk-pic{ width:100%; height:auto; border-radius:var(--radius); border:1px solid var(--hbk-rule); display:block; background:#fff; cursor:zoom-in; }
+  /* A FRAME THAT NEVER CHANGES SIZE: a picture arriving late moves nothing under the reader (the jump) */
+  #hbk-page .hbk-pic-wrap{ position:relative; min-width:0; aspect-ratio:16/10; border-radius:var(--radius); border:1px solid var(--hbk-rule); background:#fff; overflow:hidden; }
+  #hbk-page .hbk-pic{ width:100%; height:100%; object-fit:contain; display:block; background:#fff; cursor:zoom-in; }
   #hbk-page .hbk-pic[hidden], #hbk-page .hbk-ph[hidden]{ display:none; }
-  #hbk-page .hbk-ph{ aspect-ratio:16/9; width:100%; border-radius:var(--radius); border:1px dashed var(--hbk-rule); background:var(--color-neutral-50); display:flex; align-items:center; justify-content:center; color:var(--color-neutral-600); font-size:13px; text-align:center; padding:16px; box-sizing:border-box; }
+  #hbk-page .hbk-pic-wrap > .hbk-ph{ position:absolute; inset:0; aspect-ratio:auto; border:0; }
+  #hbk-page .hbk-ph{ aspect-ratio:16/10; width:100%; border-radius:var(--radius); border:1px dashed var(--hbk-rule); background:var(--color-neutral-50); display:flex; align-items:center; justify-content:center; color:var(--color-neutral-600); font-size:13px; text-align:center; padding:16px; box-sizing:border-box; }
   #hbk-page .hbk-fig figcaption{ font-size:13px; color:var(--color-neutral-600); }
   #hbk-page .hbk-zoom{ position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; padding:24px; z-index:79; cursor:zoom-out; }
   #hbk-page .hbk-zoom img{ max-width:100%; max-height:100%; border-radius:8px; }
@@ -250,17 +267,37 @@ function hbkPanelPaint(){
   if (typeof insPaintPanel !== 'function') return;
   insPaintPanel({ seat: HBK_SEAT, jlSay: hbkJlSay, jlWord: _hbkT('nav_handbook'), jlHome: _hbkT('nav_handbook'), empty: _hbkT('hbk_jl_say2') });
 }
+/* A CHAPTER SNAPS INTO PLACE (owner, 26 Oct 2026: "it jumps from top to bottom when you press anything"): only the
+   book's own scroller moves, at once, to the chapter's top — never the page, never a glide, never a repaint */
 function hbkScrollTo(k){
-  const el = document.getElementById('hbk-' + k); if (!el) return false;
-  if (typeof landOn === 'function') landOn(() => document.getElementById('hbk-' + k), { block: 'start', focus: false }); else el.scrollIntoView({ block: 'start' });
+  const el = document.getElementById('hbk-' + k), sc = document.getElementById('hbk-body'); if (!el || !sc) return false;
+  sc.scrollTop = Math.max(0, sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 16);
+  return true;
+}
+function hbkMarkChapter(){
+  const page = document.getElementById('hbk-page'); if (!page) return;
+  page.querySelectorAll('.hbk-ch[aria-current]').forEach(x => x.removeAttribute('aria-current'));
+  const el = _hbk.chapter && document.getElementById('hbk-' + _hbk.chapter); if (el) el.setAttribute('aria-current', 'true');
+}
+/* A PART OPENS AT ITS TOP: the middle alone is drawn again, the contents' lit row moved, Jambo's panel untouched */
+function hbkShowPart(){
+  const sc = document.getElementById('hbk-body'); if (!sc) return false;
+  sc.innerHTML = hbkPartHtml(); sc.scrollTop = 0;
+  document.querySelectorAll('#hbk-page .hbk-toc-row').forEach(r => { const on = r.getAttribute('data-hbk-part') === _hbk.part;
+    r.classList.toggle('is-on', on); if (on) r.setAttribute('aria-current', 'true'); else r.removeAttribute('aria-current'); });
   return true;
 }
 /* THE ONE DOOR INTO A CHAPTER: the Guide's row, the word, a "how do I …" question, a chip */
 function hbkOpen(chapter, opts = {}){
   const c = chapter ? hbkChapterOf(chapter) : null;
+  const was = _hbk.part;
   if (c){ _hbk.part = c.part; _hbk.chapter = c.k; }
   else if (opts.part && hbkPartOf(opts.part)){ _hbk.part = opts.part; _hbk.chapter = null; }
-  if (typeof state !== 'undefined' && state && state.view === 'handbook') renderHandbook();
+  if (typeof state !== 'undefined' && state && state.view === 'handbook' && document.getElementById('hbk-body')){
+    if (_hbk.part !== was || !(c && document.getElementById('hbk-' + c.k))) hbkShowPart();
+    if (_hbk.chapter) hbkScrollTo(_hbk.chapter);
+    hbkMarkChapter();
+  }
   else if (typeof setView === 'function') setView('handbook');
   _hbkKeep();
   return true;
@@ -270,9 +307,9 @@ function hbkWire(host){
   page.dataset.hbkBound = '1';
   page.addEventListener('click', e => {
     const part = e.target.closest && e.target.closest('[data-hbk-part]');
-    if (part){ _hbk.part = part.getAttribute('data-hbk-part'); _hbk.chapter = null; renderHandbook(); _hbkKeep(); return; }
+    if (part){ _hbk.part = part.getAttribute('data-hbk-part'); _hbk.chapter = null; hbkShowPart(); _hbkKeep(); return; }
     const jump = e.target.closest && e.target.closest('[data-hbk-jump]');
-    if (jump){ e.preventDefault(); _hbk.chapter = jump.getAttribute('data-hbk-jump'); hbkScrollTo(_hbk.chapter); page.querySelectorAll('.hbk-ch[aria-current]').forEach(x => x.removeAttribute('aria-current')); const el = document.getElementById('hbk-' + _hbk.chapter); if (el) el.setAttribute('aria-current', 'true'); _hbkKeep(); return; }
+    if (jump){ e.preventDefault(); _hbk.chapter = jump.getAttribute('data-hbk-jump'); hbkScrollTo(_hbk.chapter); hbkMarkChapter(); _hbkKeep(); return; }
     const door = e.target.closest && e.target.closest('[data-hbk-door]');
     if (door){ if (door.disabled) return; hbkGoDoor(door.getAttribute('data-hbk-door')); return; }
     const pic = e.target.closest && e.target.closest('img.hbk-pic');
@@ -295,4 +332,4 @@ function hbkZoom(src, alt){
   page.appendChild(z);
 }
 
-Object.assign(window, { hbkPlace, hbkPlacePut, renderHandbook, hbkOpen, hbkGoDoor, hbkDoorInfo, hbkLabel, hbkText, hbkChapterHtml, hbkPanelPaint, hbkJlSay });
+Object.assign(window, { hbkShotsOf, hbkPicFile, hbkShowPart, hbkMarkChapter, hbkPlace, hbkPlacePut, renderHandbook, hbkOpen, hbkGoDoor, hbkDoorInfo, hbkLabel, hbkText, hbkChapterHtml, hbkPanelPaint, hbkJlSay });

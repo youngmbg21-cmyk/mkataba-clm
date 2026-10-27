@@ -31,6 +31,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f212–f224.
 
 ## MONEY IN ITS OWN CURRENCY
+- A STAMP'S MONEY IS MONEY (bug log batch 2, 26 Oct 2026): f941 (new; red at the parent 1 of 3, and 2 of 3 with the save guard off) — a reader without money sees no figure in a rule step's, a named approval's or the ask record's stamp (stampMasked); their save puts the stored stamp back; the admin still sees it whole.
 - f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
@@ -62,12 +63,14 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE HANDBOOK — HOW TO DO EACH THING (owner, 26 Oct 2026)
+- THE HANDBOOK'S SIX FIXES (26 Oct 2026, the overnight build): test/chromium/handbook-verify.js 4′a–4′d (new; red at the parent 6cbdd77: a chapter link repainted the page and glided, a part kept the old scroll, the steps were plain lines, the contents cut their words) — a chapter link moves at once with nothing repainted, a part opens at its top, every chapter's steps numbered and its "when" lines bulleted, the contents never sideways at the three screens; 6 / 6′ / 6″ per picture (the recipe lands, no box is a whole panel, no picture shared with another; 90 pictures in their own world test/handbook-world.js, a fresh load between pictures). RE-POINTED: f937 3b (every chapter has `shots` or a `noShot`).
 - JAMBO READS THE BOOK, ON EVERY PAGE (26 Oct 2026): f938 (new, red at the parent 8e8196b: no hbkSearchDocs, no kind guide, no rule, no chapter door) — the book in plain words both hosts, the search holds it (every reader), THE EXAM (test/handbook-exam.js: 0 of 63 at the parent, 62 of 63 after; floor 95%), the gap report (every page names a chapter), one rule word for word, a chapter is a button through the one mover. Browser: test/chromium/jambo-reads-the-handbook-verify.js A–D (the Handbook page, Obligations, the ✦ window on Home; three screens). RE-POINTED: f866 (4) (the book is on everyone's shelf, like HaTi's own templates), f735 (3) (the rule list ends with AI_HANDBOOK_RULE), f928 (3) (the local chat adds the chapter button). Green after: nav-exam-verify 202/202, door-exam-verify, handbook-verify.
 - test/f937-every-change-updates-the-handbook.test.js — rule 9d: every place word, place inside one, contract part and Guide row is named by a chapter (the debt list `DOORS_NOT_IN_THE_HANDBOOK`, empty on the day, only shrinks); every `{ui:key}` a live label in both books, every `{door:key}` a real door; every chapter whole in both languages with a picture recipe or its why; the wiring (the Guide's row above Settings, the word, "/", Jambo's mover, the place on refresh, `navReadHandbook` last in the chain, the words in both books, `HANDBOOK_CHECKED`); the check bites.
 - test/chromium/handbook-verify.js — the Guide's row lands on the page; "handbook"/"instructions"/"handbok" read as the place; the eight parts, the "Which one do I need?" table, every chapter's format in both languages with no raw marker and no bare key; a greyed door says why; a door chip moves through `caGo`; the place kept on coming back and after a refresh; "how do I …" lands on its chapter; the three screens fit; EVERY chapter's picture recipe lands and finds its boxes (`HANDBOOK_SHOTS=1` writes handbook/img and docs/review-shots; `HANDBOOK_ONLY=<k>` one chapter).
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- AN OVERVIEW TAB ON EVERY PAGE, THE LEGORA WAY (26 Oct 2026): `test/chromium/overview-tab-verify.js` — 17 pages (Board, Contracts, Explorer, Calendar, the New agreement sheet, ten lists, Import, Settings You and Company): Overview first, then Jambo, opening on Overview; no greeting on the Overview, his greeting first on the Jambo tab; drawn by `jamboOverviewHtml`; NOTHING LOST against `test/overview-inventory.json` (every press the panel offered at 6cbdd77, written by `OV_INVENTORY_WRITE=1`); Contracts' Discover above the drop; Settings' Menu door first. 1, 2, 3 and 5 red at 6cbdd77. Re-pointed: f148 (`jov_n_then` alike), f679, f691, f745, f784, f787, f788, f792, f797, f798, f804, f807, f840, f880; `test/settingsworld.js` loads the builder's region.
 - THE BOARD'S JAMBO TAB, A TRIAL (26 Oct 2026): `test/chromium/board-talk-first-verify.js` (new; red at the parent b8fa64a: B1–L fail, A passes) — Overview's "approvals" moves free; on his tab the gate is on, the line above the box is empty, "approvals" is one chat call with the Board still in front, a follow-up carries the turns, "take me to our standards" is moved by the AI's goto. K: "approvals" on his tab is one chat call whose goto moves the reader; L: the AI lands on the language setting in Settings. Re-pinned to type under Overview (they test the free readers): question-stays-on-the-board-verify B (B0), home-board-verify `ask`, board-says-it-plain-verify `ask`, door-exam-verify `typeInto('board')`, jambo-follows-the-ask-verify 5b (the template adviser). Unchanged and green: one-jambo-two-layers-verify (the ✦'s hand-off is not typed), f927, f935, f811, f732, f736, f737, f425, f426, f483, f744, f937, f938.
 - THE BAR AND THE SHEET (26 Oct 2026): `test/chromium/bar-list-and-sheet-verify.js` — Recent in front on Home, New agreement and the send letter (elementFromPoint); the sheet put away by the Guide's row, a typed page name and code, asking first with words typed and keeping them on "stay"; no word beside the tabs on Home's panel, a list's panel (nothing chosen, a row chosen) and Settings', the › fold kept. 1b, 1c, 2a–2d, 3c, 3d red at origin/main 91c12b0. Re-pointed for the word: f753, f784, f786, f787, f788, f798, f804; four-inspectors, import-as-drawn, jambos-list-panel, one-sheet-as-drawn, requests-and-notes-as-drawn, settings-as-drawn, week-as-drawn.
 - NO PAGE IS EXCUSED (26 Oct 2026, the Board and the Calendar get two tabs): jambo-panel-sweep-verify (40 green over every page; its Board and Calendar exceptions removed), one-window-bar-cards-verify A1/A2/A8, jambo-pill-and-window-verify 11c, question-stays-on-the-board-verify C, board-as-drawn-verify 5a/5e, jambo-tab-and-back-verify 6a–6c, f740 6b, f745 4d/4e, f792 4c, f840 5a — all re-pointed.
@@ -150,6 +153,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f919; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- A SERVED NOTICE IS THE DECISION ON THE SERVER (bug log batch 3, 26 Oct 2026): f943 (new; red at the parent) — srvRenewalDecision reads notice.servedOn as lapse: no 90/60/30 warning, no renewal memo; the control still warned.
 - Promises Jambo found on a signed contract are on Needs you until decided (26 Oct 2026, flag E): test/chromium/found-promises-verify.js (11 checks: one row, not urgent, "Jambo found 2 promises to confirm", on the one desk; none on a live contract; Review opens the desk with nothing ticked; skipping both removes the row; the three screens; red at the parent bbff1c4: 1a, 1b, 1c, 3, 4, 5×3).
 - Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
 - The Calendar whole, not a day's luck (26 Oct 2026, owner picked "Fix the check"): week-as-drawn-verify 5 "the Calendar whole" accepts every row in view OR the five later weeks scrolling inside their own band (top in view, foot in the window, every row reachable, none under 38px), as ruled 21 Oct. It was red on a busy Monday at 1536×730 only; red again with the band's overflow forced visible.
@@ -174,6 +178,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+- A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
 - f193, f244 (7), f336, f495, f652, f721, f723, f728, f770–f773, f797, f799, sap-lists, advice-is-a-request, four-inspectors, requests-sap-way, requests-and-notes-as-drawn, import-sap-way, import-as-drawn, import-jambo-panel, calendar-* verify.
 
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (9 Oct)
@@ -201,6 +206,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- VALUE SORTS IN ONE CURRENCY (bug log batch 3, 26 Oct 2026): f944 (new; red at the parent) — REG_CMP.value ranks by fxHome, an unrated value last both ways; negoBandCounts adds an unstamped contract to "neither". With contracts-page-verify.
 - f933, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
 - THE FIVE DRAWN TABS (22 Oct 2026, question 2 "B"): f693 (4); legora-lists-verify C2 (exactly the five) and C8a–C8e (the Quick filters group under + Filter by a touch press, one chip and the rows the view reads, ×, the tab row one line at all three screens); contracts-stage-tabs-verify 1e/3a and answer-worklist-verify 1a re-pointed.
 
@@ -212,6 +218,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f641, f798, my-notes, requests-and-notes-as-drawn verify.
 
 ## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
+- CODE NAMES, THE BUG LOG'S BATCH 1 (26 Oct 2026): f940 (new; red at the parent 74ad016, 4 of 5) — search_contracts leaves a confidential deal out for a reader outside its list (still found by one on it); the WhatsApp text names the code and number; an email hides the party as a whole name only. With f704, f713, code-names-verify.
 - 22 Oct 2026: f695 (8) the workspace download keeps a private stream's files out of an unnamed admin's zip.
 - 21 Oct 2026 (overnight): settings-as-drawn-2-verify 4f, settings-as-drawn-3-verify 6b (a held contract's Open lands on Release hold in the Dossier's All acts).
 - f193, f195, f201, f203, f276, f908, f691, f692, f699–f704, f725–f727, f729, f780–f788; settings-tabs, settings-groups, settings-as-drawn(-2/-3/-4), control-room-in-full, company-control-room, one-sheet, streams-and-data, trail-export, business-roles, clashes, access-review, when-youre-away, keeping, keeping-no-admin, code-names verify.
@@ -270,6 +277,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f375, approval-before-signing-verify.
 
 ## SIGN LINKS, SIGNERS AND THE SIGNING ROUTE
+- THE PHONE'S MARK KEEPS ITS SHAPE (bug log batch 3, 26 Oct 2026): phone-fits-verify 12b (new; red at the parent, canvas 3.06 against a 1.58 box) — the signature canvas takes its box's shape before drawing; the computer's pad stays 520×170.
 - f182, f185, f897, f398, sign-links, signing-route-timeline verify.
 
 ## SIGNING ON THE PAPER
@@ -338,6 +346,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f558.
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
+- UNDO UNDOES (bug log batch 2, 26 Oct 2026): f942 (new; red at the parent) — toast() presses onClick; every toast action in js/ is handed as onClick (sdLearnApply's Undo was `run`).
 - f133, f222, f272, f279, f295, f296, f314, f318, f372, f545, prepare-redlines, standards-page verify.
 
 ## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js)

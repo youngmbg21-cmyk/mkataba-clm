@@ -184,7 +184,9 @@ describe('f807 (4) nothing chosen: the page in Jambo\'s words', () => {
   test('4a counted from the list: how many, whose, the late ones, whom the reader stands in for', () => {
     const W = { yours: [{ c: { id: 'A' }, idle: 3 }], others: [{ c: { id: 'B' }, idle: 9 }, { c: { id: 'C' }, idle: 1 }, { c: { id: 'D' }, idle: 4 }] };
     W.rows = W.yours.concat(W.others);
-    const ctx = stage(['apSay', 'apLate'], { apWorkRows: () => W, AP_LATE_DAYS: 7, todayISO: () => '2026-10-19',
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): apSay also names its facts, read
+       through apWaitsShort, the list's own way of saying whom a row waits on */
+    const ctx = stage(['apSay', 'apLate', 'apWaitsShort'], { apWorkRows: () => W, AP_LATE_DAYS: 7, todayISO: () => '2026-10-19',
       state: { away: { covering: [{ userId: 'u-j', userName: 'Jonas Berg', from: '2026-10-16', to: '2026-10-23' }] } }, jlDayWord: () => 'Friday' });
     vm.runInContext('var AP_LATE_DAYS=7;', ctx);
     const say = ctx.apSay();
@@ -192,6 +194,7 @@ describe('f807 (4) nothing chosen: the page in Jambo\'s words', () => {
     assert.equal(say.lines[1], '1 is late — past 7 days.');
     assert.equal(say.lines[2], 'You answer Jonas’s approvals and reviews until Friday.');
     assert.equal(say.chips[0].label, 'the first that is yours');
+    assert.equal(JSON.stringify(say.facts.map(f => f.k)), JSON.stringify(['Yours', 'Others’', 'Late', 'Covering']), 'the Overview\'s facts, each a reading the list makes');
   });
   test('4b every word in both books', () => {
     const keys = [...new Set([...AP.matchAll(/i18tn?\('(jl_[a-z_]+)'/g)].map(m => m[1]))];

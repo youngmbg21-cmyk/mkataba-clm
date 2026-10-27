@@ -114,7 +114,12 @@ describe('f937 (3) every chapter is whole', () => {
   test('3b a picture recipe (steps, boxes, a caption in both books), or a plain reason why none', () => {
     const bad = [];
     for (const c of H.HANDBOOK_CHAPTERS){
-      if (c.shot){ if (!Array.isArray(c.shot.go) || !c.shot.go.length || !Array.isArray(c.shot.boxes) || !c.shot.boxes.length || !both(c.shot.cap)) bad.push(c.k); }
+      /* RE-POINTED 26 Oct 2026 (owner: "retake the pictures as close-ups, 2–3 per chapter where useful … with no shared
+         pictures" and "numbered marks on the pictures that match the steps"): `shots`, each with its steps, its boxes
+         { sel, step } — a step that is one of the chapter's own — and a caption in both books */
+      const shots = Array.isArray(c.shots) ? c.shots : (c.shot ? [c.shot] : []);
+      if (shots.length){ for (const sh of shots){ if (!Array.isArray(sh.go) || !sh.go.length || !Array.isArray(sh.boxes) || !sh.boxes.length || !both(sh.cap)) bad.push(c.k);
+          for (const b of sh.boxes) if (!(b && typeof b.sel === 'string' && Number.isInteger(b.step) && b.step >= 1 && b.step <= c.how.length)) bad.push(c.k + ' box ' + JSON.stringify(b)); } }
       else if (!both(c.noShot)) bad.push(c.k + ' (no shot, no reason)');
     }
     assert.deepEqual(bad, [], bad.join(', '));

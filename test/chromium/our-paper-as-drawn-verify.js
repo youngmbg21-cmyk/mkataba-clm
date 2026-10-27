@@ -179,8 +179,12 @@ async function SEED(){
     /* RE-POINTED 25 Oct 2026 (owner: "this page does not need an overview page"): ONE Jambo window —
        no name tab and no Overview tab; the template is named in his words under the greeting */
     const E0 = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const vis = el => !!el && !el.hidden && el.getBoundingClientRect().width > 0;
-      return { solo: p.classList.contains('is-solo'), word: vis(p.querySelector('[data-jl-word]')), home: vis(p.querySelector('[data-jl-home]')), hello: !!p.querySelector('[data-jl-greet] [data-jb-hello]') }; });
-    check('5a one Jambo window: his greeting first, no name tab, no Overview tab, no back button', E0.solo && !E0.word && !E0.home && E0.hello && !E.back, JSON.stringify({ ...E0, b: E.back }));
+      return { solo: p.classList.contains('is-solo'), word: vis(p.querySelector('[data-jl-word]')), home: vis(p.querySelector('[data-jl-home]')), hello: !!p.querySelector('[data-jl-greet] [data-jb-hello]'), landHello: !!p.querySelector('.jl-body [data-jb-hello]') }; });
+    /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab",
+       answered "Yes, every page"; REVERSES the 25 Oct "this page does not need an overview page"): the template is
+       named under the Overview tab, his greeting the Jambo tab's; still no name tab and no back button */
+    check('5a two tabs: the template under Overview, no greeting there, no name tab, no back button', !E0.solo && !E0.word && E0.home && !E.back
+      && !E0.landHello, JSON.stringify({ ...E0, b: E.back }));
     check('5b his words, from the record — nothing spent, with where it came back changed and what it meets',
       /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'

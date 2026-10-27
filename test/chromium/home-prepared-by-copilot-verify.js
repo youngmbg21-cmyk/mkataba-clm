@@ -152,8 +152,12 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.waitForSelector('#hm-agents', { timeout: 8000 }).catch(() => {});
 
     /* ===== 4. NOTHING READY, NO CARD ===== */
-    const empty = await page.evaluate(() => {
+    /* RE-POINTED 26 Oct 2026: the one desk's reading is kept for the rest of the task that made it (_ndMemo,
+       let go on the next tick); a repaint queued just before this step could hand the old reading back, so the
+       empty book is read on a fresh tick */
+    const empty = await page.evaluate(async () => {
       const keep = state.contracts; state.contracts = [];
+      await new Promise(r => setTimeout(r, 0));
       setView('dashboard');
       const drawn = !!document.getElementById('hm-agents');
       const D = ndRead(), left = D.jambo.map(r => r.it.kind).concat(D.you.map(r => r.key));

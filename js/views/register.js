@@ -42,7 +42,7 @@ function folderFiltered(){
   if(sort==='value' && typeof canViewValues==='function' && !canViewValues()) sort='updated';
   const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
   if(sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
-  else if(sort==='value') cs.sort((a,b)=>regSortValue(b)-regSortValue(a));
+  else if(sort==='value') cs.sort((a,b)=>{ const A=regSortValue(a), B=regSortValue(b); return A==null||B==null ? (A==null)-(B==null) : B-A; });
   else if(sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
   else if(sort==='expiry') cs.sort((a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; });
   return cs;
@@ -1222,7 +1222,9 @@ function negoGroupByMove(cs){
    filtered view — see the note the page prints when a filter is on. */
 function negoBandCounts(cs){
   const n={you:0,them:0,out:0,clear:0};
-  cs.forEach(c=>{ n[c._ngBand===undefined?'clear':c._ngBand]=(n[c._ngBand]||0)+1; });
+  /* one key, read and written: a contract never stamped by negoGroupByMove counts as "neither", added to the
+     rest (bug log, 26 Oct 2026: it read n[undefined] and reset "neither" to 1) */
+  cs.forEach(c=>{ const k=c._ngBand===undefined?'clear':c._ngBand; n[k]=(n[k]||0)+1; });
   return n;
 }
 /* ---- A NAMED SET, SENT HERE FROM SOMEWHERE ELSE (added 2026-08-11) ----
@@ -1381,11 +1383,20 @@ function regRefParts(id){
   const m=REG_REF_RE.exec(s);
   return m ? [m[1].toLowerCase(), Number(m[2])] : [s.toLowerCase(), -1];
 }
-/* the value a sort ranks by: a salary is not deal value, so it ranks with the dashes (fxIsPay) */
-const regSortValue=c=>(typeof fxIsPay==='function'&&fxIsPay(c))?0:Number(c.value||0);
+/* the value a sort ranks by: a salary is not deal value, so it ranks with the dashes (fxIsPay); a value in
+   another currency ranks by what it is worth here (fxHome, the one converter), and one with no rate is a
+   blank — never a figure guessed, so it sorts last both ways (bug log, 26 Oct 2026: USD 100k ranked
+   under KES 1M) */
+const regSortValue=c=>{
+  if(typeof fxIsPay==='function'&&fxIsPay(c)) return 0;
+  if(typeof fxHome!=='function') return Number(c.value||0);
+  const h=fxHome(c); return h.missing ? null : h.v;
+};
 const REG_CMP={
   updated:(a,b)=>((Date.parse(a.lastAction)||0)-(Date.parse(b.lastAction)||0)),
-  value:(a,b)=>regSortValue(a)-regSortValue(b),
+  value:(a,b)=>{ const A=regSortValue(a), B=regSortValue(b);
+    const e=regBlanksLast(A!=null, B!=null); if(e!==null) return e;
+    return A-B; },
   risk:(a,b)=>contractRisk(a)-contractRisk(b),
   name:(a,b)=>(a.name||'').localeCompare(b.name||''),
   expiry:(a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; },
@@ -2974,9 +2985,20 @@ function regNegoSay(){
   if(ours.length){ const c=ours[0].c; let w=''; try{ w=regNegoCols(c).waiting; }catch(_){ w=''; }
     if(w&&w!=='\u2014') lines.push(esc(i18t('jl_ng_oldest',{ref:(window.contractRef?contractRef(c):c.id),party:c.counterparty||'\u2014',wait:w}))); }
   const R=regState(), chips=[];
-  if(n.you&&(R.band||'')!=='you') chips.push({ label:i18t('jl_ng_chip_ours'), run:()=>{ R.band='you'; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); } });
+  if(n.you&&(R.band||'')!=='you') chips.push({ label:i18t('jl_ng_chip_ours'), verb:i18t('jov_ask_open_v'), rest:i18t('jov_ask_ng_ours_r'), run:()=>{ R.band='you'; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); } });
   if(typeof ngStartPickerOpen==='function') chips.push({ label:i18t('jl_ng_chip_start'), run:()=>ngStartPickerOpen() });
-  return { lines, chips };
+  /* THE OVERVIEW'S FACTS (The Legora Way, owner 26 Oct 2026): the bands this page already counts (negoBandCounts)
+     and their asks read RAW off c.changes; each link the band's own tab. "Settled this quarter" has no reading */
+  const band=k=>()=>{ R.band=k; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); };
+  const names=k=>book.filter(c=>c._ngBand===k).slice(0,2).map(c=>c.counterparty||(window.contractRef?contractRef(c):c.id)).join(', ');
+  const facts=[];
+  if(n.you) facts.push({ k:i18t('jov_ng_you'), v:i18tn('jov_n_then',n.you,{n:n.you,list:names('you')}), link:i18t('jov_ln_open'), run:band('you') });
+  if(n.them) facts.push({ k:i18t('jov_ng_them'), v:i18tn('jov_n_then',n.them,{n:n.them,list:names('them')}), link:i18t('jov_ln_show'), run:band('them') });
+  if(n.out) facts.push({ k:i18t('jov_ng_out'), v:i18tn('jov_n_then',n.out,{n:n.out,list:names('out')}), link:i18t('jov_ln_show'), run:band('out') });
+  let asks=0; book.forEach(c=>{ asks+=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='counterparty').length; });
+  if(asks) facts.push({ k:i18t('jov_ng_asks'), v:i18tn('jov_ng_asks_v',asks,{n:asks}), need:true });
+  if(lines[1]) facts.push({ html:lines[1] });
+  return { lines, chips, head:{ html:lines[0] }, facts };
 }
 /* A CLAUSE SAID THE WAY THE DRAWING SAYS IT (round 14): "Clause 7 Liability
    cap", the next "clause 11 Payment terms" — the heading's own number and its

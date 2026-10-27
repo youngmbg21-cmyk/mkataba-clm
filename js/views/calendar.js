@@ -2125,7 +2125,6 @@ function calPlanHtml(){
       never&&rows?`<p class="cal-plan-read">${_esc(i18t('cal_lv_never_note'))}</p>`:''}${calPlanLeftHtml()}${read}</div>`
     :'';
   const off=_calPlan.busy?' disabled':'';
-  const sayFace=(window.jamboFaceHtml?jamboFaceHtml('hello',24,'jl-say-face').replace('<img','<img data-ink-exempt'):'');
   const week=(typeof window.obYourWeekSentence==='function')?obYourWeekSentence():'';
   const offer=(typeof window.obYourWeekOffer==='function')?obYourWeekOffer():'';
   const cost=i18t('jl_ask_cost');
@@ -2144,10 +2143,15 @@ function calPlanHtml(){
     <div class="cal-plan-head jl-head" role="tablist"><button type="button" role="tab" class="pd-tab jl-tab cal-plan-tab${talk?'':' on'}" data-cal-talk-back aria-selected="${!talk}" title="${_esc(land)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${mark}</span></span><span class="pd-tab-w">${_esc(land)}</span></button><button type="button" role="tab" class="pd-tab pd-tab-talk jl-tab${talk?' on':''}" data-cal-talk aria-selected="${!!talk}" title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</button><span class="jl-sp"></span></div>
     ${talk&&typeof window.jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('cal',land):''}
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">
-      <div class="jl-words cal-yw" data-jt-land${talk?' hidden':''}>${week?`<div class="jl-say">${sayFace}<div class="jl-bub">${week}</div></div><p class="jl-src">${_esc(i18t('ob_yw_src'))}</p>`:''}${
-        offer?`<div class="jl-say">${sayFace}<div class="jl-bub">${_esc(offer)}</div></div>`:''}
-        <div class="jl-chips cal-yw-chips"><button type="button" class="jl-chip" data-cal-plan-q="week" title="${_esc(i18t('cal_plan_p_week'))}"${off}>${_esc(i18t('ob_yw_chip_week'))}</button><button type="button" class="jl-chip" data-cal-plan-q="due" title="${_esc(i18t('cal_plan_p_due'))}"${off}>${_esc(i18t('ob_yw_chip_due'))}</button></div>
-        ${calLevelSegHtml()}</div>
+      ${''/* THE OVERVIEW, THE LEGORA WAY (owner, 26 Oct 2026; jamboOverviewHtml, the one builder): Your week as one head
+             sentence, its named facts (obYourWeekFacts, the Obligations page's own), the offer, "Ask me" with the
+             planner's two asks (their cost said) and the Calendar's own setting under them — nothing boxed */}
+      <div class="jl-words is-ov cal-yw" data-jt-land${talk?' hidden':''}>${typeof window.jamboOverviewHtml==='function'?jamboOverviewHtml({
+        head:week?{ html:week }:null,
+        facts:((typeof window.obYourWeekFacts==='function')?obYourWeekFacts():[]).concat(offer?[{ html:_esc(offer) }]:[]),
+        src:week?i18t('ob_yw_src'):'',
+        asks:[{ label:i18t('ob_yw_chip_week'), title:i18t('cal_plan_p_week'), attr:`data-cal-plan-q="week"${off}` }, { label:i18t('ob_yw_chip_due'), title:i18t('cal_plan_p_due'), attr:`data-cal-plan-q="due"${off}` }],
+        after:calLevelSegHtml() },'cal'):''}</div>
       ${talk?`<div class="cal-plan-talk" id="cal-plan-talk" data-jt-talk>${typeof window.jamboHelloHtml==='function'?jamboHelloHtml():''}${you}${answer}</div>`:''}
     </div>
     <div class="jl-foot cal-plan-foot">

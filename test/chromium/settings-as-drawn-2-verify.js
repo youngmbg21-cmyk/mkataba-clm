@@ -87,7 +87,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await company();
 
     console.log('\n1 · Jambo counts what the list holds');
-    const said = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello] .st-jb-bub'), tag = document.querySelector('#st-att .st-needs-n');
+    const said = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello]'), tag = document.querySelector('#st-att .st-needs-n');
       const tab = document.querySelector('#set-page .st-face[data-st-tab="company"] .st-face-n'); if (!b || !tag) return null;
       const words = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
       const n = Number(tag.textContent), drawn = document.querySelectorAll('#st-att .st-need[data-st-need]').length, more = document.querySelector('#st-att .st-need-more');
@@ -136,7 +136,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       check('3b it lands on The trail, the page at its own name', !!dp && dp.tab === 'trail' && dp.head === 'none' && !dp.tabs, dp && JSON.stringify(dp));
       check('3c the Streams box says "All you can see"', !!dp && dp.streams === 'All you can see', dp && dp.streams);
       await press('[data-st-bk-tab="backup"]', '3d the Backup tab');
-      const jb = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello] .st-jb-bub'); if (!b || !document.getElementById('bk-export')) return null;
+      const jb = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello]'); if (!b || !document.getElementById('bk-export')) return null;
         return /^The trail for /.test(b.textContent) && !/counting/.test(b.textContent) ? b.textContent : null; }, null, 8000);
       check('3d on Backup, Jambo says the trail\'s count', !!jb, jb || 'still counting, or nothing said');
     }

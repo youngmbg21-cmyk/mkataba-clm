@@ -191,7 +191,9 @@ describe('f840 (2) Home\'s panel', () => {
        on a one-window panel AND on the Paper face, which keeps two tabs now so
        that Discover is never inside the talk. Without the second case the
        Contracts panel lost his greeting altogether. `lead` is that reading. */
-    assert.match(f, /const lead=solo\|\|\(typeof window\.igHomePaperFace==='function'&&igHomePaperFace\(\)===true\s*&&!\(window\.pdOnPaper&&pdOnPaper\(\)\)&&!\(window\.pdHeldContract&&pdHeldContract\(\)\)\);/, 'his greeting leads a one-window panel and the wall, never a chosen paper');
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"): no panel is one window any more and his greeting is the Jambo tab's first words, never the Overview's */
+    assert.match(f, /const lead=solo;/, 'his greeting leads only a one-window panel, never an Overview');
+    assert.match(f, /msgs&&String\(msgs\)\.trim\(\)\)\|\|typing\?msgs:\(typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\)/, 'the Jambo tab opens on his greeting');
     assert.match(f, /return \(lead&&top&&typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):''\)\+\(top\|\|`<div class="ig-welcome/, 'the landing: its own words, his greeting first');
     assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');
     /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the box stands under every tab, no condition */
@@ -275,7 +277,8 @@ describe('f840 (5) the Calendar\'s panel, and (6) every host\'s back', () => {
   test('5a two tabs: Your week under Overview, the talk under Jambo, an ask turns to it, its trail brings it back', () => {
     const f = code(fnOf(CAL, 'calPlanHtml'));
     assert.match(f, /const talk=typeof window\.jamboTalkShows==='function'&&jamboTalkShows\(CAL_TALK_KEY\);/);
-    assert.match(f, /<div class="jl-words cal-yw" data-jt-land\$\{talk\?' hidden':''\}>/, 'Your week hides under the talk, never gone');
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"): no panel is one window any more and his greeting is the Jambo tab's first words, never the Overview's */
+    assert.match(f, /<div class="jl-words is-ov cal-yw" data-jt-land\$\{talk\?' hidden':''\}>/, 'Your week hides under the talk, never gone');
     assert.match(f, /data-cal-talk-back/); assert.match(f, /data-cal-talk /);
     assert.match(f, /jamboTalkTrailHtml\('cal',land\)/);
     assert.match(code(fnOf(CAL, 'calPlanAsk')), /jamboTalkOpen\(CAL_TALK_KEY/);

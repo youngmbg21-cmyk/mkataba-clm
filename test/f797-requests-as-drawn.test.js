@@ -263,9 +263,10 @@ describe('f797 (7) with nothing chosen, Jambo says the list', () => {
     const x = world();
     x.win.insLetGo('intake:team'); x.win.renderIntake();
     const p = x.d.getElementById('ins-panel');
-    assert.equal(txt(p.querySelector('.jl-bub')), '3 open requests. 1 nobody holds yet, asked 4 days ago. 1 is with you.');
-    assert.match(txt(p.querySelector('.jl-src')), /no Jambo call/);
-    assert.deepEqual([...p.querySelectorAll('.jl-chip')].map(txt), ['the ones nobody holds', 'ask for a contract']);
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): nothing chosen, his words are the Overview's head and quiet lines (.jov-head), its source line .jov-src, his chips the offers under "Ask me" (.jov-lnk.is-ask), each verb first with a capital as drawn */
+    assert.equal(txt(p.querySelector('.jov-head')), '3 open requests. 1 nobody holds yet, asked 4 days ago. 1 is with you.');
+    assert.match(txt(p.querySelector('.jov-src')), /no Jambo call/);
+    assert.deepEqual([...p.querySelectorAll('.jov-lnk.is-ask')].map(txt), ['The ones nobody holds', 'Ask for a contract']);
   });
 });
 
@@ -377,7 +378,8 @@ describe('f797 (11) a tab\'s number is the list it opens; advice reads like a re
   test('11e Jambo counts the advice nobody holds among those nobody holds', () => {
     const x = withAdv(); x.win.renderIntake();
     x.win.insLetGo('intake:team'); x.win.renderIntake();
-    const say = txt(x.d.querySelector('#ins-panel .jl-bub'));
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): nothing chosen, his words are the Overview's head and quiet lines (.jov-head), its source line .jov-src, his chips the offers under "Ask me" (.jov-lnk.is-ask), each verb first with a capital as drawn */
+    const say = txt(x.d.querySelector('#ins-panel .jov-head'));
     assert.match(say, /2 nobody holds yet/, say);
   });
   test('11f the advice list landing after the first paint paints the list again', () => {

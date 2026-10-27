@@ -99,6 +99,10 @@ const pastFirstWords = async page => {
     /* HaTi's list shuts on any scroll (core.js): the press waits for the page to hold still, bounded */
     await page.evaluate(() => { window._scN = 0; if (!window._scArmed) { window._scArmed = true; window.addEventListener('scroll', () => { window._scN++; }, true); } });
     { const end = Date.now() + 3000; let last = -1; while (Date.now() < end) { const n = await page.evaluate(() => window._scN); if (n === last) break; last = n; await pause(400); } }
+    /* RE-POINTED 26 Oct 2026 (Discover now stands above the drop, owner: "the file uploading feature should be below
+       discover"): the drop can sit below the panel's fold, so it is scrolled into sight first, as a person would —
+       the click's own scroll would land after the list opened and shut it (a scroll carries the control away) */
+    await page.evaluate(s => { const e = document.querySelector(s); if (e) e.scrollIntoView({ block: 'center' }); }, sel); await pause(400);
     await page.click(sel);
     if (!(await waitFor(page, () => !!document.querySelector('.hati-selmenu'), 3000))) return false;
     const i = await page.evaluate(([s, v]) => [...document.querySelector(s).options].findIndex(o => o.value === v), [sel, value]);
@@ -120,7 +124,9 @@ const pastFirstWords = async page => {
     check('1c the chips lead with "upload a document", then "draft a new agreement"', head.chips[0] === 'upload a document' && head.chips[1] === 'draft a new agreement', head.chips);
     /* RE-POINTED 24 Oct 2026 (ONE WINDOW, owner: "bring them back" the greetings): the wall is a one-window
        panel, so his own greeting (jamboHelloHtml) leads it, then the wall's line saying what to do */
-    check('1d his greeting leads the window, then the wall\'s line says what to do', /Press a paper on the left/.test(head.hello) && head.welcome && head.first, head.hello);
+    /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab"):
+       the wall's Overview says what to do, and his greeting is the Jambo tab's, not the Overview's */
+    check('1d the wall\'s Overview says what to do, no greeting on it', /Press one and I say what it holds/.test(head.hello) && !head.welcome, head.hello);
     await shoot('1-wall');
 
     /* ===== 2. THE DRAFT CHIP ===== */
@@ -323,10 +329,13 @@ const pastFirstWords = async page => {
 
     /* ===== 7. IT FITS ===== */
     await page.setViewportSize({ width: 1536, height: 730 }); await wall();
+    /* RE-POINTED 26 Oct 2026 (owner: "the file uploading feature should be below discover"): the drop stands under the
+       Overview and Discover, so at 1536×730 it is reached by scrolling the panel; once scrolled to, it is whole and painted */
+    await page.evaluate(() => { const b = document.querySelector('#pd-drop [data-pd-drop-pick]'); if (b) b.scrollIntoView({ block: 'nearest' }); }); await pause(300);
     const fit = await page.evaluate(() => { const b = document.querySelector('#pd-drop [data-pd-drop-pick]'), d = document.getElementById('ig-dock');
       const r = b.getBoundingClientRect(), dr = d.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return { inside: r.top >= dr.top && r.bottom <= dr.bottom && r.right <= dr.right, painted: !!at && (at === b || b.contains(at)), sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth }; });
-    check('7a at 1536×730 the drop area\'s button is on screen, painted, nothing scrolls sideways', fit.inside && fit.painted && !fit.sideways, fit);
+    check('7a at 1536×730 the drop area\'s button, scrolled to, is on screen, painted, nothing scrolls sideways', fit.inside && fit.painted && !fit.sideways, fit);
     await page.setViewportSize({ width: 1440, height: 780 });
   } catch (e) {
     check('the run', false, String(e && e.stack || e).slice(0, 400));
