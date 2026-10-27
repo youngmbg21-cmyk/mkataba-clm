@@ -64,6 +64,21 @@ const check = (ok, what) => {
   if (canvases > 0)
     check(await page.locator('.rp-charts .ai-chart-btn').count() >= 3, 'chart cards carry the copy/PNG/CSV toolbar');
   await page.screenshot({ path: path.join(OUT, 'reports.png'), fullPage: true });
+  /* ---- THE FALLBACK HALF, ASKED ON ITS OWN (27 Oct 2026) ----
+     The check above passes on the canvases alone, so the no-network bars it was written to guard were never
+     drawn by any check (BUGLOG, "Noticed, not fixed"). Here the chart library is made to fail, as it does when the
+     reader's network refuses it, and the cards must fall back to the bars, with no canvas left behind. */
+  const fb = await page.evaluate(async () => {
+    const was = window.aiChartLib;
+    window.aiChartLib = () => Promise.reject(new Error('no network'));
+    try { window.setView('dashboard'); window.setView('reports'); } catch (_){}
+    for (let t = 0; t < 40; t++){ await new Promise(r => setTimeout(r, 100));
+      if (document.querySelectorAll('.rp-charts div[style*="height:7px"]').length) break; }
+    const out = { bars: document.querySelectorAll('.rp-charts div[style*="height:7px"]').length, canvases: document.querySelectorAll('.rp-charts canvas').length };
+    window.aiChartLib = was; try { window.setView('dashboard'); window.setView('reports'); } catch (_){}
+    return out;
+  });
+  check(fb.bars > 0 && fb.canvases === 0, `with the chart library refused, the cards fall back to bars (${fb.bars} bars, ${fb.canvases} canvases)`);
 
   /* the CSV button actually produces a file */
   const dl = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);

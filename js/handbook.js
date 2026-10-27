@@ -26,7 +26,7 @@
    `noShot` says plainly why there is none.
    ========================================================================== */
 /* the day a person last read the whole book against the running app (the rule's foot line) */
-const HANDBOOK_CHECKED = '2026-10-26';
+const HANDBOOK_CHECKED = '2026-10-27';
 
 /* THE PARTS, in the Guide's order: a part with `gd` takes its name and its
    line from the Guide's own words (gd_s_<k>, gd_s_<k>_w: one fact, one home) */
@@ -78,6 +78,7 @@ const HANDBOOK_CHAPTERS = [
       { en: 'Say "them" or "these" for the last answer\'s set: "show them on the board".', sv: 'Säg "dem" eller "dessa" för förra svarets mängd: "visa dem på tavlan".' },
       { en: 'Every page\'s panel has two tabs and opens on the first. {ui:pd_tab_overview} says what the page holds: one sentence, its facts (each with its link at the end of the row), then "{ui:jov_ask_me}" with what he can do for you, a call\'s cost said beside it. {ui:pd_tab_copilot} is the conversation: his greeting first, then his answers. Beside a contract the {ui:pd_tab_dossier} is its Overview.', sv: 'Varje sidas panel har två flikar och öppnar på den första. {ui:pd_tab_overview} säger vad sidan rymmer: en mening, dess fakta (var och en med sin länk i slutet av raden), sedan "{ui:jov_ask_me}" med vad han kan göra åt dig, ett anrops kostnad sagd bredvid. {ui:pd_tab_copilot} är samtalet: hans hälsning först, sedan hans svar. Bredvid ett avtal är {ui:pd_tab_dossier} dess översikt.' },
       { en: 'Your question goes to {ui:pd_tab_copilot}; one press on {ui:pd_tab_overview} brings the page\'s links back, so you never scroll up through the talk to find them.', sv: 'Din fråga hamnar under {ui:pd_tab_copilot}; ett tryck på {ui:pd_tab_overview} tar tillbaka sidans länkar, så du skrollar aldrig upp genom samtalet för att hitta dem.' },
+      { en: 'The bin beside the tabs ({ui:int_clear_conversation}) empties the conversation. It stands on every page\'s {ui:pd_tab_copilot} tab once something has been said, and it is one conversation, so it empties it everywhere.', sv: 'Papperskorgen bredvid flikarna ({ui:int_clear_conversation}) tömmer samtalet. Den står på varje sidas {ui:pd_tab_copilot}-flik när något har sagts, och det är ett samtal, så den tömmer det överallt.' },
       { en: 'On the Board (a trial): words typed while the {ui:pd_tab_copilot} tab is open go straight to Jambo\'s brain, a page\'s name too: he reads the whole sentence with the Board in view and can take you to any page or setting; each one is a question to the brain. Under {ui:pd_tab_overview} the box works as before: a page word moves you, free, and what it does not know goes to {ui:pd_tab_copilot}.', sv: 'På Tavlan (ett försök): ord du skriver medan fliken {ui:pd_tab_copilot} är öppen går direkt till Jambos hjärna, ett sidnamn också: han läser hela meningen med Tavlan framför sig och kan ta dig till vilken sida eller inställning som helst; varje gång är en fråga till hjärnan. Under {ui:pd_tab_overview} fungerar rutan som förut: ett sidord flyttar dig, gratis, och det den inte känner igen går till {ui:pd_tab_copilot}.' },
       { en: 'Ask about HaTi itself on any page ("what can I do here?", "who can change the rates?", "what is the Handbook about?"): Jambo answers from this book, in steps, with the chapter as a button under the answer. You stay where you asked.', sv: 'Fråga om HaTi självt på vilken sida som helst ("vad kan jag göra här?", "vem kan ändra kurserna?", "vad handlar Handboken om?"): Jambo svarar ur den här boken, steg för steg, med kapitlet som en knapp under svaret. Du stannar där du frågade.' }],
     tip: { en: 'Typing never acts. A send, a signature or a change always waits for your press, with its cost said first.', sv: 'Att skriva utför aldrig något. Ett utskick, en signatur eller en ändring väntar alltid på ditt tryck, med kostnaden sagd först.' },
@@ -400,7 +401,9 @@ const HANDBOOK_CHAPTERS = [
     tip: { en: 'The desk never gates signing. A suggestion from a contributor does not travel until the lead adopts it.', sv: 'Disken gäller aldrig signering. Ett förslag från en bidragare reser inte förrän ledaren tar upp det.' },
     cost: _hbkFree, doors: [], acts: ['people'],
     words: { en: ['desk', 'lead', 'contributor', 'clause lock', 'locked by', 'follow me', 'who is in the room', 'ask to join', 'team'], sv: ['disken', 'ledare', 'bidragare', 'klausullås', 'låst av', 'följ mig', 'vem är i rummet', 'be att få vara med'] },
-    noShot: { en: 'Locks, the desk and following a colleague need two people in the room at once; the picture would be of one.', sv: 'Lås, disken och att följa en kollega kräver två personer i rummet samtidigt; bilden skulle visa en.' } },
+    shots: [
+      { go: [{ open: 'MK-A2', face: 'red' }, { waitFor: '.rl-card-lock' }], boxes: [{ sel: '.rl-card-lock', step: 1 }], cap: { en: 'A colleague is editing this clause: Ask for it, and they hand it over (1).', sv: 'En kollega redigerar klausulen: Be om den, så lämnar de över den (1).' } },
+      { go: [{ open: 'MK-A2', face: 'red' }, { waitFor: '[data-pz-slot] .pz-face' }], boxes: [{ sel: '[data-pz-slot] .pz-face', step: 3 }], cap: { en: 'Who is in the room: press a colleague\'s face to follow them (3).', sv: 'Vem är i rummet: tryck på en kollegas ansikte för att följa dem (3).' } }] },
 
   { k: '3.7', part: 'agree', round: 2,
     title: { en: 'Notes and comments', sv: 'Anteckningar och kommentarer' },
@@ -524,7 +527,9 @@ const HANDBOOK_CHAPTERS = [
     tip: { en: 'An unsigned copy is parked, never sealed.', sv: 'En osignerad kopia parkeras, förseglas aldrig.' },
     cost: _hbkFree, doors: [], acts: [],
     words: { en: ['sign outside', 'docusign', 'wet ink', 'signed copy', 'add the signed copy', 'handover'], sv: ['signera utanför', 'bläck', 'signerad kopia', 'lägg till den signerade kopian', 'överlämning'] },
-    noShot: { en: 'The handover needs a contract already out for signature; the seeded world has none.', sv: 'Överlämningen kräver ett avtal som redan är ute för signering; den seedade världen har inget.' } },
+    shots: [
+      { go: [{ open: 'MK-HB4', face: 'signing' }, { waitFor: '[data-ho-route-card]' }], boxes: [{ sel: '[data-ho-route-card]', step: 1 }], cap: { en: 'Who runs the signing: they do, outside HaTi (1).', sv: 'Vem sköter signeringen: de gör det, utanför HaTi (1).' } },
+      { go: [{ open: 'MK-HB4', face: 'signing' }, { waitFor: '#ho-wait' }], boxes: [{ sel: '#ho-wait .ho-chip', step: 1 }, { sel: '#ho-wait [data-ho-act="check"]', step: 2 }], cap: { en: 'Out for signature: how long it has been with them (1), and the check when their copy comes back (2).', sv: 'Ute för signering: hur länge den varit hos dem (1), och kontrollen när deras kopia kommer tillbaka (2).' } }] },
 
   { k: '4.5', part: 'sign', round: 2,
     title: { en: 'After the signature', sv: 'Efter signaturen' },
@@ -664,8 +669,8 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['ask a column', 'one question many contracts', 'column of answers'], sv: ['fråga en kolumn', 'en fråga många avtal'] },
     shots: [
       { go: [{ place: 'contracts' }, { click: '[data-ac-open]' }, { waitFor: '#ac-q' }], boxes: [{ sel: '[data-ac-open]', step: 2 }, { sel: '#ac-q', step: 3 }, { sel: '[data-ac-ask]', step: 4 }], cap: { en: 'Ask a column (2): the question (3) and the cost on the button (4).', sv: 'Fråga en kolumn (2): frågan (3) och kostnaden på knappen (4).' } },
-      { go: [{ place: 'contracts' }, { eval: 'return askColSummary(true).then(() => renderIntelDock())' }, { waitFor: '#ac-disc [data-ac-bring]' }, { click: '#ac-disc [data-ac-bring]' }, { waitFor: 'td.ac-cell .ac-ans' }], boxes: [{ sel: '[data-ac-th]', step: 4 }, { sel: 'td.ac-cell', step: 4 }], cap: { en: 'The answers: one light and the answer, the column\'s head counting what is at risk (4).', sv: 'Svaren: en lampa och svaret, kolumnens huvud räknar det som är i riskzonen (4).' } },
-      { go: [{ place: 'contracts' }, { eval: 'return askColSummary(true).then(() => renderIntelDock())' }, { waitFor: '#ac-disc [data-ac-bring]' }, { click: '#ac-disc [data-ac-bring]' }, { waitFor: 'td.ac-cell .ac-ans' }, { click: 'td.ac-cell' }, { waitFor: '[data-ac-ck]' }], boxes: [{ sel: '[data-ac-ck]', step: 4 }, { sel: '[data-ac-go]', step: 4 }], cap: { en: 'An answer pressed: read out in full, the tick, and the clause it came from (4).', sv: 'Ett svar tryckt: uppläst helt, bocken, och klausulen det kom från (4).' } }] },
+      { go: [{ place: 'contracts' }, { eval: 'return askColSummary(true).then(() => renderIntelDock())' }, { waitFor: '#ac-disc [data-ac-bring]' }, { click: '#ac-disc [data-ac-bring]' }, { waitFor: 'td.ac-cell .ac-ans:not(.is-wait)' }], boxes: [{ sel: '[data-ac-th]', step: 4 }, { sel: 'td.ac-cell', step: 4 }], cap: { en: 'The answers: one light and the answer, the column\'s head counting what is at risk (4).', sv: 'Svaren: en lampa och svaret, kolumnens huvud räknar det som är i riskzonen (4).' } },
+      { go: [{ place: 'contracts' }, { eval: 'return askColSummary(true).then(() => renderIntelDock())' }, { waitFor: '#ac-disc [data-ac-bring]' }, { click: '#ac-disc [data-ac-bring]' }, { waitFor: 'td.ac-cell .ac-ans:not(.is-wait)' }, { click: 'td.ac-cell:has(.ac-ans:not(.is-wait))' }, { waitFor: '[data-ac-ck]' }], boxes: [{ sel: '[data-ac-ck]', step: 4 }, { sel: '[data-ac-go]', step: 4 }], cap: { en: 'An answer pressed: read out in full, the tick, and the clause it came from (4).', sv: 'Ett svar tryckt: uppläst helt, bocken, och klausulen det kom från (4).' } }] },
   { k: '5.5.2', part: 'keep', round: 2,
     title: { en: 'Stop', sv: 'Stoppa' },
     eyebrow: { en: 'While he reads', sv: 'Medan han läser' },
@@ -758,7 +763,7 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['watches'], acts: [],
     words: { en: ['watch', 'tell me when', 'alert on a fact'], sv: ['bevaka', 'säg till när'] },
     shots: [
-      { go: [{ place: 'contracts' }, { eval: 'return askColSummary(true).then(() => renderIntelDock())' }, { waitFor: '#ac-disc [data-ac-bring]' }, { click: '#ac-disc [data-ac-bring]' }, { waitFor: 'td.ac-cell .ac-ans' }], boxes: [{ sel: '#ig-dock [data-ac-watch]', step: 2 }], cap: { en: 'On a company fact\'s card: Tell me when a new contract answers at risk (2).', sv: 'På ett företagsfaktums kort: Säg till när ett nytt avtal svarar i riskzonen (2).' } }] },
+      { go: [{ place: 'contracts' }, { eval: 'return askColSummary(true).then(() => renderIntelDock())' }, { waitFor: '#ac-disc [data-ac-bring]' }, { click: '#ac-disc [data-ac-bring]' }, { waitFor: 'td.ac-cell .ac-ans:not(.is-wait)' }], boxes: [{ sel: '#ig-dock [data-ac-watch]', step: 2 }], cap: { en: 'On a company fact\'s card: Tell me when a new contract answers at risk (2).', sv: 'På ett företagsfaktums kort: Säg till när ett nytt avtal svarar i riskzonen (2).' } }] },
   { k: '5.5.8', part: 'keep', round: 2,
     title: { en: 'Unusual for you', sv: 'Ovanligt för er' },
     eyebrow: { en: 'The contract\'s Dossier', sv: 'Avtalets Dossier' },
@@ -771,7 +776,8 @@ const HANDBOOK_CHAPTERS = [
     tip: { en: 'It only speaks when there are at least 3 similar contracts to compare with, so it is never a guess. It uses answers you already have, so it is free.', sv: 'Det säger bara något när det finns minst 3 liknande avtal att jämföra med, så det är aldrig en gissning. Det använder svar ni redan har, så det är gratis.' },
     cost: _hbkFree, doors: [], acts: [],
     words: { en: ['unusual for you', 'different from usual'], sv: ['ovanligt för er'] },
-    noShot: { en: 'The example contracts all answer alike, so none is unusual; the line appears by itself only when one differs from three like it.', sv: 'Exempelavtalen svarar alla lika, så inget är ovanligt; raden visas av sig själv bara när ett avviker från tre liknande.' } },
+    shots: [
+      { go: [{ open: 'DV-04', face: 'copilot' }, { waitFor: '.ac-odd-row' }], boxes: [{ sel: '.ac-odd-row', step: 1 }, { sel: '[data-ac-odd-show]', step: 2 }], cap: { en: 'Unusual for you on the Dossier (1), and Show the 3 it is compared with (2).', sv: 'Ovanligt för er i Dossiern (1), och Visa de 3 det jämförs med (2).' } }] },
   { k: '5.5.9', part: 'keep', round: 2,
     title: { en: 'Negotiation memory', sv: 'Förhandlingsminne' },
     eyebrow: { en: 'Redlines tab', sv: 'Fliken Ändringar' },
@@ -784,7 +790,8 @@ const HANDBOOK_CHAPTERS = [
     tip: { en: 'Only your side sees it. The other party never does.', sv: 'Bara er sida ser det. Motparten gör det aldrig.' },
     cost: _hbkFree, doors: [], acts: [],
     words: { en: ['negotiation memory', 'what worked before', 'last time'], sv: ['förhandlingsminne', 'vad som fungerade förut'] },
-    noShot: { en: 'The memory needs a round already settled with the party; the example world has none settled yet.', sv: 'Minnet kräver en runda som redan avgjorts med parten; exempelvärlden har ingen avgjord än.' } },
+    shots: [
+      { go: [{ open: 'MK-A2', face: 'red' }, { waitFor: '[data-rl-row-memory]' }], boxes: [{ sel: '[data-rl-row-memory]', step: 1 }], cap: { en: 'On their change\'s card: what was agreed with them before (1).', sv: 'På deras ändrings kort: vad som avtalades med dem förut (1).' } }] },
   { k: '5.5.10', part: 'keep', round: 2,
     title: { en: 'What you are approving', sv: 'Vad du godkänner' },
     eyebrow: { en: 'Approvals page', sv: 'Godkännanden' },

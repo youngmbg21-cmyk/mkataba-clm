@@ -1109,6 +1109,36 @@ function jamboOverviewHtml(o, slot){
     + `${factHtml ? `<div class="jov-facts">${factHtml}</div>` : ''}${o.srcHtml ? `<p class="jov-src">${o.srcHtml}</p>` : o.src ? `<p class="jov-src">${_jovE(o.src)}</p>` : ''}${askHtml}`
     + `${o.after ? `<div class="jov-after">${o.after}</div>` : ''}</div>`;
 }
+/* ---- THE BIN ON EVERY JAMBO TAB (owner, 27 Oct 2026: "in settings there is no trash button to clear history …
+   review all the pages") ----
+   ONE CONVERSATION, ONE BIN: Home's panel had the only one; every panel's Jambo tab now carries it, drawn here and
+   pressed here, and it empties the one conversation (aiConvoClear) wherever it is shown. Drawn while the Jambo tab
+   is up and something has been said (`on`); a host whose head is painted once toggles it with jamboBinSync. Home's
+   keeps its id (#igd-history-clear) and its own press, which also puts away the paper the conversation opened. */
+function jamboBinHtml(on, id){
+  const t = _jovT('int_clear_conversation');
+  const ic = (typeof window !== 'undefined' && typeof window.icon === 'function') ? window.icon('trash', 'w-3.5 h-3.5') : '\u{1F5D1}';
+  return `<button type="button" ${id ? `id="${_jovE(id)}"` : 'data-jb-bin'} class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jb-bin" title="${_jovE(t)}" aria-label="${_jovE(t)}"${on ? '' : ' hidden'}>${ic}</button>`;
+}
+function jamboBinSync(root, talking){
+  const b = root && root.querySelector && root.querySelector('[data-jb-bin]');
+  if (b) b.hidden = !(talking && jamboConvo().length);
+}
+function jamboBinPress(){
+  if (typeof window.aiConvoClear === 'function') window.aiConvoClear(); else if (window.ai) window.ai.history = [];
+  if (typeof window.aiHostsRepaint === 'function') try { window.aiHostsRepaint(); } catch (_){}
+  if (typeof window.renderAIFeed === 'function') try { window.renderAIFeed(); } catch (_){}
+  if (typeof window.calPlanRepaint === 'function') try { window.calPlanRepaint(); } catch (_){}
+  if (typeof document !== 'undefined') document.querySelectorAll('[data-jb-bin]').forEach(b => { b.hidden = true; });
+  if (typeof window.toast === 'function') window.toast(_jovT('int_conversation_deleted'), 'ok');
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._jbBinWired)){
+  if (typeof window !== 'undefined') window._jbBinWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest && e.target.closest('[data-jb-bin]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation(); jamboBinPress();
+  });
+}
 /* a page that still says itself as { lines, chips, src, after } is drawn in the same shape, nothing lost: its first
    line is the head, the others quiet lines of the list, its chips the offers */
 function jamboOverviewOf(say){
@@ -1130,7 +1160,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain

@@ -273,5 +273,6 @@
   "type-and-symbols-verify.js": 41,
   "tidy-sweep-verify.js": 81,
   "upload-structure-verify.js": 33,
-  "who-is-in-the-room-verify.js": 31
+  "who-is-in-the-room-verify.js": 31,
+  "jambo-panels-alike-verify.js": 100
 }

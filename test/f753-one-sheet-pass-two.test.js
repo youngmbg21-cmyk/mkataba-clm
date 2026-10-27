@@ -121,7 +121,8 @@ describe('f753 (3) the panel beside the sheet says what it holds', () => {
        a new jambo tab but you can go back to the landing side panel"): the bin
        stands only in the flip's conversation, and still never while the sheet is up */
     /* RE-PINNED (one window, 24 Oct 2026): the bin shows wherever the conversation is drawn (`say` = talk or one window) */
-    assert.match(IG, /say&&msgs&&!\(window\.naSheetUp&&naSheetUp\(\)\)\?`<button id="igd-history-clear"/);
+    /* RE-POINTED (27 Oct 2026, the bin on every Jambo tab): Home's is drawn by the one builder (jamboBinHtml), its id kept; same condition */
+    assert.match(IG, /say&&msgs&&!\(window\.naSheetUp&&naSheetUp\(\)\)\?\(typeof window\.jamboBinHtml==='function'\?jamboBinHtml\(true,'igd-history-clear'\)/);
     assert.match(IG, /if\(window\.naSheetUp&&naSheetUp\(\)\) return i18t\('na_ask_ph'\);/);
     assert.equal(BOOKS.en.na_ask_ph, 'Ask Jambo, or type / for a place');
   });
