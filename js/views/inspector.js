@@ -1646,8 +1646,15 @@ function jlSayBoard(q, A){
   renderAIFeed();
   return true;
 }
-function jlAsk(text){
+function jlAsk(text, opts){
   const t = String(text || '').trim(); if (!t) return false;
+  /* JAMBO'S TAB READS WITH THE BRAIN FIRST, ON EVERY LIST PAGE (owner, 27 Oct 2026, the Board's rolled out): words
+     TYPED in the box while his tab shows go to the chat alone, with the page's own controls (the list head's search,
+     tabs, filters, saved views) for him to press; Overview's box keeps every reader below */
+  if (opts && opts.typed && jlTalkShows() && typeof caAiFirst === 'function' && caAiFirst() && typeof aiAskWords === 'function'){
+    if (_jlBusy()) return jlBusySay(t);
+    jlTalkOpen(); aiAskWords(t, { controls: true }); return 'model';
+  }
   /* a watch sentence (js/jambopress.js) is proposed as a card in this conversation, never read as a place */
   if (typeof watchAsks === 'function' && watchAsks(t) && typeof watchAskHere === 'function'){ jlTalkOpen(); if (watchAskHere(t)) return 'card'; }
   const cards = (typeof JM_CARD_PLACES !== 'undefined') ? JM_CARD_PLACES : ['share', 'draft', 'help', 'next'];
@@ -1791,7 +1798,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if (_jlPop){ jlPopTake(_jlPop.on); return; }
     const v = q.value; if (!String(v || '').trim()) return;
     /* words a busy Jambo could not take stay in the box (jlAsk said so) */
-    jlPopClose(); if (jlAsk(v) !== false) q.value = '';
+    jlPopClose(); if (jlAsk(v, { typed: true }) !== false) q.value = '';
   });
   document.addEventListener('input', e => { if (e.target && e.target.id === 'jl-q') jlPopRead(e.target); });
   document.addEventListener('keydown', e => {

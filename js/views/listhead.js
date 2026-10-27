@@ -636,6 +636,64 @@ if (typeof document !== 'undefined' && document.addEventListener && typeof windo
   document.addEventListener('keydown', _lhKey);
 }
 
+/* ---- JAMBO WORKS THE PAGE'S OWN CONTROLS (owner, 27 Oct 2026: "Teach him to work each page's controls, as he now
+   draws on the Board, separately for each page") ----
+   What a page registered here IS its controls: the search box (setQuery), the tabs (tabs/tab), the filters and their
+   choices (filters/apply), the saved views (saved/useSaved). lhControlsNow reads them off every list head on screen,
+   in the page's own words, for his Jambo tab to send (context.controls); lhControlsRun presses what he named through
+   those same doors, as a person's press would, and says each in one line. Nothing else is pressed: the server keeps
+   only presses the page offered (pageActionsClean). */
+const LH_CTRL_MAX = { seats: 3, tabs: 14, filters: 8, opts: 16, saved: 8 };
+function _lhOnScreen(head){ try { return !!head && head.getClientRects().length > 0; } catch (_){ return false; } }
+function lhControlsNow(){
+  if (typeof document === 'undefined' || !document.querySelectorAll) return null;
+  const seen = new Set(), seats = [];
+  document.querySelectorAll('[data-lh-seat]').forEach(head => {
+    const seat = head.getAttribute('data-lh-seat'); if (!seat || seen.has(seat) || seats.length >= LH_CTRL_MAX.seats || !_lhOnScreen(head)) return;
+    const pg = _lhPage(seat); if (!pg) return; seen.add(seat);
+    let tabs = [], filters = [], saved = [];
+    try { if (typeof pg.tab === 'function' && typeof pg.tabs === 'function') tabs = (pg.tabs() || []).filter(v => v && v.k != null).slice(0, LH_CTRL_MAX.tabs).map(v => ({ k: String(v.k), label: String(v.label == null ? v.k : v.label) })); } catch (_){ tabs = []; }
+    try { if (typeof pg.apply === 'function' && typeof pg.filters === 'function') filters = (pg.filters() || []).filter(f => f && f.k != null && Array.isArray(f.opts)).slice(0, LH_CTRL_MAX.filters)
+      .map(f => ({ k: String(f.k), label: String(f.label || f.k), opts: f.opts.filter(o => Array.isArray(o) && o[0] != null && o[2] !== 0).slice(0, LH_CTRL_MAX.opts).map(o => ({ v: String(o[0]), label: String(o[1] == null ? o[0] : o[1]) })) })).filter(f => f.opts.length); } catch (_){ filters = []; }
+    try { if (typeof pg.useSaved === 'function' && typeof pg.saved === 'function') saved = (pg.saved() || []).filter(x => x && x.id != null).slice(0, LH_CTRL_MAX.saved).map(x => ({ id: String(x.id), label: String(x.label || x.id) })); } catch (_){ saved = []; }
+    const search = typeof pg.setQuery === 'function';
+    if (search || tabs.length || filters.length || saved.length) seats.push({ seat, noun: String(pg.noun || seat), search, tabs, filters, saved });
+  });
+  return seats.length ? { seats } : null;
+}
+function lhControlsRun(actions){
+  const lines = [];
+  (Array.isArray(actions) ? actions : []).forEach(a => {
+    if (!a || !a.seat) return;
+    const pg = _lhPage(a.seat);
+    const head = (typeof document !== 'undefined' && document.querySelector) ? document.querySelector(`[data-lh-seat="${_lhSel(a.seat)}"]`) : null;
+    if (!pg || !_lhOnScreen(head)){ lines.push(_lhT('lh_ai_gone')); return; }
+    try {
+      if (a.do === 'search' && typeof pg.setQuery === 'function'){ pg.setQuery(String(a.words || '')); lhBoxSet(a.seat, String(a.words || '')); lines.push(_lhT('lh_ai_search', { w: String(a.words || '') })); }
+      else if (a.do === 'tab' && typeof pg.tab === 'function'){
+        const v = (typeof pg.tabs === 'function' ? (pg.tabs() || []) : []).find(x => x && String(x.k) === String(a.k));
+        pg.tab(String(a.k)); lines.push(_lhT('lh_ai_tab', { t: String((v && v.label) || a.k) }));
+      }
+      else if (a.do === 'filter' && typeof pg.apply === 'function'){
+        const f = (typeof pg.filters === 'function' ? (pg.filters() || []) : []).find(x => x && String(x.k) === String(a.k));
+        const o = f && (f.opts || []).find(x => Array.isArray(x) && String(x[0]) === String(a.v));
+        if (!f || !o) return;
+        pg.apply({ [f.k]: o[0] }); lines.push(_lhT('lh_ai_filter', { f: String(f.label || f.k), v: String(o[1] == null ? o[0] : o[1]) }));
+      }
+      else if (a.do === 'saved' && typeof pg.useSaved === 'function'){
+        const v = (typeof pg.saved === 'function' ? (pg.saved() || []) : []).find(x => x && String(x.id) === String(a.id));
+        pg.useSaved(String(a.id)); lines.push(_lhT('lh_ai_saved', { t: String((v && v.label) || a.id) }));
+      }
+      else if (a.do === 'clear'){
+        if (typeof pg.setQuery === 'function'){ pg.setQuery(''); lhBoxSet(a.seat, ''); }
+        if (typeof pg.apply === 'function' && typeof pg.filters === 'function'){ const back = {}; (pg.filters() || []).forEach(f => { if (f && _lhApplied(f)) back[f.k] = f.def; }); if (Object.keys(back).length) pg.apply(back); }
+        lines.push(_lhT('lh_ai_clear'));
+      }
+    } catch (_){ /* a press the page refused says nothing it did not do */ }
+    lhHeadSync(a.seat);
+  });
+  return lines;
+}
 /* WHAT A PAGE REGISTERS (lhRegister(seat, spec), at its own render time):
      noun      the placeholder's word: lh_ph_<noun>_one/_other (default: the seat)
      total()   the page's book at rest, for "… across N …"
@@ -658,6 +716,6 @@ if (typeof document !== 'undefined' && document.addEventListener && typeof windo
      lcSeat    Columns' seat when it is not the page's own
      more()    Show N more
      ask(text) the page's own Jambo door (answers false when it could not take it) */
-Object.assign(window, { LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
+Object.assign(window, { LH_CTRL_MAX, lhControlsNow, lhControlsRun, LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
   lhRowsHtml, lhHtml, lhHeadSync, lhHeadSyncSoon, LH_SYNC_QUIET_MS, lhBoxSet, lhFootHtml, lhFootPut, lhMore, lhAsk, lhBoxFocus,
   LC_PAGES, LC_CSS, lcKey, lcState, lcSave, lcShown, lcBtnHtml, lcPopHtml, lcPlace, lcRepaint, lcScrollWire });

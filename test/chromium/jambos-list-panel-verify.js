@@ -213,6 +213,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('4b the strip opens it again', F2 === 384, String(F2));
     });
     await part('3c a place word', async () => {
+      /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"):
+         the free readers are Overview's; Jambo's tab sends every typed word to the chat (every-jambo-tab-verify) */
+      await page.evaluate(() => { try { jlTalkBack(); } catch (_) {} });
       await page.fill('#jl-q', 'approvals'); await page.press('#jl-q', 'Enter');
       const V = await until(() => state.view === 'approvals' ? state.view : null);
       check('3c a place word opens its page, costing nothing', V === 'approvals', String(V));
@@ -367,6 +370,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await page.evaluate(() => setView('approvals'));
         await until(() => document.getElementById('jl-q') && document.querySelector('[data-ap-row]'), null, 8000);
         aiCalls.length = 0;
+        await page.evaluate(() => { try { jlTalkBack(); } catch (_) {} }); /* RE-POINTED 27 Oct 2026: Overview's free readers */
         await page.fill('#jl-q', q); await page.press('#jl-q', 'Enter');
         const G = await until(([w, said]) => {
           if (w === 'form') return state.view === 'dashboard' && document.querySelector('#na-q, .na-one, #dr-say') ? { face: hbFace(), form: true } : null;

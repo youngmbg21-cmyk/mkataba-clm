@@ -119,7 +119,7 @@ describe('f793 (4) on the server', () => {
     const r = await plan();
     assert.equal(r.kind, 'answer');
     const body = ai.calls[0].body;
-    assert.deepEqual(body.tools.map(t => t.name), ['answer']);
+    assert.deepEqual(body.tools.map(t => t.name), ['answer', 'elsewhere'], 'RE-POINTED 27 Oct 2026: other words still go to the chat (f950)');
     assert.match(JSON.stringify(body.messages), /NEVER change their calendar/);
   });
   test('4c Ask me first: he may answer or propose blocks, as before', async () => {
@@ -128,7 +128,7 @@ describe('f793 (4) on the server', () => {
     ai.script([{ type: 'tool_use', id: 'tu_a', name: 'answer', input: { say: 'Free on Tuesday.' } }]);
     await plan();
     const body = ai.calls[0].body;
-    assert.deepEqual(body.tools.map(t => t.name).sort(), ['answer', 'propose_blocks']);
+    assert.deepEqual(body.tools.map(t => t.name).sort(), ['answer', 'elsewhere', 'propose_blocks']);
     assert.ok(!/NEVER change their calendar/.test(JSON.stringify(body.messages)));
   });
 });

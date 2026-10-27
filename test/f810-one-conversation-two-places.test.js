@@ -90,7 +90,7 @@ describe('f810 (3) one turn, whichever box asked', () => {
     assert.match(code(fnOf(AI, 'aiSubmit')), /return aiAskWords\(q\);\s*\}$/);
     /* RE-POINTED 22 Oct 2026 (owner: "fix the bug where Jambo drops questions while busy"):
        empty asks nothing; busy waits its turn through the same door (f862) — still never asked twice at once */
-    assert.match(code(fnOf(AI, 'aiAskWords')), /^async function aiAskWords\(qRaw\)\{\s*const q=String\(qRaw\|\|''\)\.trim\(\); if\(!q\) return;\s*if\(ai\.busy\)\{[^\n]*jamboAskLater\(q, *\(\)=>ai\.busy, *w=>aiAskWords\(w\)\); return; \}/, 'empty: nothing; busy: it waits its turn');
+    assert.match(code(fnOf(AI, 'aiAskWords')), /^async function aiAskWords\(qRaw(, *opts)?\)\{\s*const q=String\(qRaw\|\|''\)\.trim\(\); if\(!q\) return;\s*if\(ai\.busy\)\{[^\n]*jamboAskLater\(q, *\(\)=>ai\.busy, *w=>aiAskWords\(w(, *opts)?\)\); return; \}/, 'empty: nothing; busy: it waits its turn');
     assert.match(AI, /Object\.assign\(window,\{[\s\S]*\baiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway\b/);
   });
   test('3b the streaming words, the proposal cards\' buttons and the scroll follow the feed it chose', () => {

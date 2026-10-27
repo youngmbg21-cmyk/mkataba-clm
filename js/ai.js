@@ -5034,9 +5034,11 @@ async function aiSubmit(asked){
 /* the explain under a Board's drawing (aiSubmit) asks the same words again without writing them down twice:
    a latch read once by the next aiAskWords, never a second signature (f810, f862 pin the one door) */
 let _aiNoEchoOnce=false;
-async function aiAskWords(qRaw){
+/* opts.controls: asked on a page's Jambo tab (owner, 27 Oct 2026) — the page's own controls go with the words
+   (lhControlsNow) and what he presses comes back as `page` (aiPageControlsSaid) */
+async function aiAskWords(qRaw, opts){
   const q=String(qRaw||'').trim(); if(!q) return;
-  if(ai.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiAskWords(w)); return; }
+  if(ai.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiAskWords(w, opts)); return; }
   const noEcho=_aiNoEchoOnce; _aiNoEchoOnce=false;
   /* the same reading aiSubmit makes: an open rewrite owns the sentence only
      when it is not a question or a booking (aiAsksPastCard) */
@@ -5152,11 +5154,13 @@ async function aiAskWords(qRaw){
          question is put last again for the model, as Home's panel does (intelChatAsk) — never stored twice */
       const msgs=aiChatMessages();
       if(noEcho&&(!msgs.length||msgs[msgs.length-1].role!=='user')) msgs.push({ role:'user', content:q });
-      res=await copilotAsk(msgs, aiChatContext(), aiStreamRenderer(), { quiet:true });
+      const ctx=aiChatContext();
+      if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
+      res=await copilotAsk(msgs, ctx, aiStreamRenderer(), { quiet:true });
       res&&(res._goto=aiGotoTake(t0));
     }catch(e){ finish(aiDegrade(q,e,true)); return; }
     try{
-      finish(aiRenderServerAnswer(res, q));
+      finish(aiPageControlsSaid(aiRenderServerAnswer(res, q), res));
       if(res&&res._goto) aiGotoRun(res._goto, q);
     }catch(e){
       try{ console.error('[hati] Jambo answer could not be rendered', e); }catch(_){}
@@ -5170,6 +5174,14 @@ async function aiAskWords(qRaw){
   finish(ans);
 }
 
+/* THE PAGE'S OWN PRESSES (owner, 27 Oct 2026): what he named is pressed through the page's own doors (lhControlsRun)
+   and each press is said in one line under his words — "sent" means sent, "pressed" means pressed */
+function aiPageControlsSaid(ans, res){
+  if(!res||!Array.isArray(res.page)||!res.page.length||typeof window.lhControlsRun!=='function') return ans;
+  let lines=[]; try{ lines=lhControlsRun(res.page)||[]; }catch(_){ lines=[]; }
+  if(!lines.length||!ans||typeof ans!=='object') return ans;
+  return Object.assign({}, ans, { text:String(ans.text||'')+'<div class="ig-go-said">'+lines.map(_aiEsc).join('<br>')+'</div>' });
+}
 /* One place that decides what a failed Copilot turn SAYS. Transport failures may
    quote the server's own sentence — that is a message written for a person and
    often names the real problem. A RENDER failure is ours, and says so without
@@ -6049,4 +6061,4 @@ Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFa
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiFloatBeside,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiDeepLineHtml,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,AI_CLARIFY_RULE,aiWayChoicesOf,aiFailWhy,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiFloatBeside,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiDeepLineHtml,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf,aiPageControlsSaid});

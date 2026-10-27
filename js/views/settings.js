@@ -523,6 +523,9 @@ function stWireDrawerOnce(){
        contract ("briefing for contracts mk 345"), a place with a narrowing
        leave Settings like any box; a Settings section asked here stays the
        finder's (box 'settings'); a number nobody can see is said here */
+    /* JAMBO'S TAB READS WITH THE BRAIN FIRST (owner, 27 Oct 2026, the Board's rolled out): typed while his tab shows,
+       the chat answers and takes them to the exact setting (goto); Overview's box keeps the finder and the readers */
+    if(stTalkShows()&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q,{ controls:true }); return; }
     if(typeof caAskAnywhere==='function'&&caAskAnywhere(q,{ box:'settings', say:line=>stJbSayLine(q,line) })) return;
     /* AI FIRST (Jambo works like Copilot, stage 3): the finder sure of ONE setting goes there as it says so;
        words that are no setting at all ("what law governs the Kabras contract") are Jambo's to answer, here */
@@ -3359,8 +3362,8 @@ function stJbTalkNow(){
   if(typeof jamboTalkOpen==='function') jamboTalkOpen(stTalkKey(), feed);
   stJbTalkRepaint(stJbTalkWrap(feed)); stJbTalkPaint(); stJbLand(feed);
 }
-async function stJbAskJambo(q){
-  const asked=aiAskWords(q);
+async function stJbAskJambo(q,opts){
+  const asked=aiAskWords(q,opts);
   stJbTalkNow();
   try{ await asked; }catch(_){}
   stJbTalkNow();

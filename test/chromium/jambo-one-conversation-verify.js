@@ -103,6 +103,9 @@ const CONTRACTS = [
     await quiet();
     await page.evaluate(() => closeAI());
     await toSettings();
+    /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): the
+       settings finder's free answer (its press, part 5) is Overview's; typed on Jambo's tab it would go to the chat */
+    await page.evaluate(() => { try { stTalkBack(); } catch (_) {} });
     await page.fill('#st-jb-q', 'QSET signing limit');
     await page.press('#st-jb-q', 'Enter');
     const st2 = await until(() => { const f = document.getElementById('st-jb-feed'); return f && /QSET/.test(f.textContent) && /QSIDE/.test(f.textContent) ? true : null; }, null, 6000);

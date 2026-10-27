@@ -6,7 +6,7 @@
      1 HOME'S PANEL, beside a contract: a second question sent while the first
        is being answered leaves the box, "Jambo will answer that next" is said,
        and once the first answer is in the second is asked — here "open
-       explorer", which moves to Explorer.
+       explorer", typed on Jambo's tab, so the chat is asked (27 Oct 2026).
      2 THE CHAT WINDOW: the same — the second question leaves the box, is
        said to be next, and is asked once the first answer is in.
    AT THE PARENT: Send did nothing while he was answering; the words sat in
@@ -43,7 +43,8 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     let gates = [];
     /* RE-POINTED 24 Oct 2026 (#456, "One Jambo, two layers"): a question typed on Explorer goes to the map's
        own route (/api/ai/graph), so both the chat's and the map's answers are held */
-    await page.route(/\/api\/ai\/(chat|graph)/, async route => { await new Promise(r => gates.push(r)); await route.continue(); });
+    let asked = 0;
+    await page.route(/\/api\/ai\/(chat|graph)/, async route => { asked++; await new Promise(r => gates.push(r)); await route.continue(); });
     const release = () => { const g = gates; gates = []; g.forEach(r => r()); };
 
     /* ---- 1 Home's panel ---- */
@@ -66,9 +67,14 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       check('1a the second question leaves the box', box === '', JSON.stringify(box));
       check('1b "Jambo will answer that next" is said', toasts.slice(t0).some(([m, k]) => /answer that next/.test(m) && k === 'ok'), JSON.stringify(toasts.slice(t0)));
       check('1b2 nothing moved yet: the first answer comes first', await page.evaluate(() => !(typeof hbFace === 'function' && hbFace() === 'explorer')));
+      /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"):
+         typed on Jambo's tab, "open explorer" is the chat's to answer (it takes you there with goto) — so the second
+         question is asked of the chat once the first answer is in (every-jambo-tab-verify pins the move itself) */
+      const n0 = asked;
       release();
-      const moved = await until(() => (state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'explorer') ? true : null, null, 12000);
-      check('1c once the first answer is in, the second is asked: Explorer', !!moved, await page.evaluate(() => typeof hbFace === 'function' ? hbFace() : null));
+      const t1 = Date.now(); while (asked <= n0 && Date.now() - t1 < 12000) await page.waitForTimeout(120);
+      release();
+      check('1c once the first answer is in, the second is asked', asked > n0, `${n0} → ${asked}`);
     } catch (e) { check('1 ran', false, String(e && e.message).split('\n')[0]); }
 
     /* ---- 2 the chat window ---- */

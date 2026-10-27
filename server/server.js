@@ -13184,10 +13184,74 @@ const copilotToolsNow = () => (aiNavigateOn() ? COPILOT_TOOLS_GOTO : COPILOT_TOO
 const copilotDrawsBoard = context => !!(context && typeof context === 'object' && context.drawBoard === true);
 function copilotToolsFor(context) {
   const base = copilotToolsNow();
-  if (!copilotDrawsBoard(context)) return base;
+  const draw = copilotDrawsBoard(context), ctrl = !!pageControlsClean(context && context.controls);
+  if (!draw && !ctrl) return base;
   return base.map(t => t.name !== 'deliver_answer' ? t
-    : { ...t, input_schema: { ...t.input_schema, properties: { ...t.input_schema.properties, board: GRAPH_BOARD_ACTIONS_SCHEMA } } });
+    : { ...t, input_schema: { ...t.input_schema, properties: { ...t.input_schema.properties, ...(draw ? { board: GRAPH_BOARD_ACTIONS_SCHEMA } : {}), ...(ctrl ? { page: PAGE_ACTIONS_SCHEMA } : {}) } } });
 }
+/* EACH PAGE'S OWN CONTROLS (owner, 27 Oct 2026: "Teach him to work each page's controls, as he now draws on the
+   Board, separately for each page"): a list page registers its controls with THE LIST HEAD (lhRegister: the search
+   box, the tabs, the filters and their choices, the saved views), and its Jambo tab sends exactly those (lhControlsNow,
+   context.controls). The model names presses from that list only; the browser presses them through the page's own
+   registered doors (lhControlsRun). Cleaned twice: what was offered (pageControlsClean) and what came back
+   (pageActionsClean) — a press the page did not offer is dropped. */
+const PAGE_CTRL_DOS = ['search', 'tab', 'filter', 'saved', 'clear'];
+const PAGE_CTRL_MAX = { seats: 3, tabs: 14, filters: 8, opts: 16, saved: 8, actions: 6 };
+function pageControlsClean(c) {
+  if (!c || typeof c !== 'object' || !Array.isArray(c.seats)) return null;
+  const txt = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>{}]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const key = v => { const k = txt(v, 60); return /^[\w:.\-]+$/.test(k) ? k : ''; };
+  const seats = c.seats.slice(0, PAGE_CTRL_MAX.seats).map(x => {
+    if (!x || typeof x !== 'object') return null;
+    const seat = key(x.seat); if (!seat) return null;
+    const pair = (a, kf, lf) => (Array.isArray(a) ? a : []).map(o => o && kf(o) ? { k: kf(o), label: txt(lf(o), 50) || kf(o) } : null).filter(Boolean);
+    const tabs = pair(x.tabs, o => key(o.k), o => o.label).slice(0, PAGE_CTRL_MAX.tabs);
+    const filters = (Array.isArray(x.filters) ? x.filters : []).slice(0, PAGE_CTRL_MAX.filters).map(f => {
+      const k = f && key(f.k); if (!k) return null;
+      const opts = (Array.isArray(f.opts) ? f.opts : []).slice(0, PAGE_CTRL_MAX.opts).map(o => o && o.v != null && txt(o.v, 60) !== '' ? { v: txt(o.v, 60), label: txt(o.label, 50) || txt(o.v, 60) } : null).filter(Boolean);
+      return opts.length ? { k, label: txt(f.label, 50) || k, opts } : null;
+    }).filter(Boolean);
+    const saved = pair(x.saved, o => key(o.id), o => o.label).slice(0, PAGE_CTRL_MAX.saved);
+    const search = x.search === true;
+    return (search || tabs.length || filters.length || saved.length) ? { seat, noun: txt(x.noun, 30), search, tabs, filters, saved } : null;
+  }).filter(Boolean);
+  return seats.length ? { seats } : null;
+}
+function pageControlsSays(C) {
+  if (!C) return '';
+  return 'THE PAGE\'S OWN CONTROLS (press them with deliver_answer\'s page; nothing else exists):\n' + C.seats.map(x => [
+    `- list "${x.seat}"${x.noun ? ' (' + x.noun + ')' : ''}:`,
+    x.search ? '  search: yes (do "search" with words; do "clear" empties it and puts the tabs and filters back)' : '',
+    x.tabs.length ? '  tabs: ' + x.tabs.map(t => `${t.k} = "${t.label}"`).join('; ') : '',
+    ...x.filters.map(f => `  filter ${f.k} ("${f.label}"): ` + f.opts.map(o => `${o.v} = "${o.label}"`).join('; ')),
+    x.saved.length ? '  saved views: ' + x.saved.map(t => `${t.k} = "${t.label}"`).join('; ') : '',
+  ].filter(Boolean).join('\n')).join('\n');
+}
+function pageActionsClean(list, C) {
+  if (!C || !Array.isArray(list)) return null;
+  const txt = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>{}]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const out = list.slice(0, PAGE_CTRL_MAX.actions).map(a => {
+    if (!a || typeof a !== 'object' || !PAGE_CTRL_DOS.includes(a.do)) return null;
+    const named = txt(a.seat, 60); const S = named ? C.seats.find(x => x.seat === named) : (C.seats.length === 1 ? C.seats[0] : null); if (!S) return null;
+    const o = { seat: S.seat, do: a.do };
+    if (a.do === 'search'){ if (!S.search) return null; o.words = txt(a.words, 80); if (!o.words) return null; }
+    if (a.do === 'clear' && !S.search && !S.filters.length) return null;
+    if (a.do === 'tab'){ const t = S.tabs.find(x => x.k === txt(a.k, 60)); if (!t) return null; o.k = t.k; }
+    if (a.do === 'filter'){ const f = S.filters.find(x => x.k === txt(a.k, 60)); const v = f && f.opts.find(x => x.v === txt(a.v, 60)); if (!v) return null; o.k = f.k; o.v = v.v; }
+    if (a.do === 'saved'){ const t = S.saved.find(x => x.k === txt(a.id, 60)); if (!t) return null; o.id = t.k; }
+    return o;
+  }).filter(Boolean);
+  return out.length ? out : null;
+}
+const PAGE_ACTIONS_SCHEMA = { type: 'array', description: 'OPTIONAL — the page\'s OWN controls to press for the person, in order (see THE PAGE\'S OWN CONTROLS): search the list, choose a tab, set a filter, open a saved view, clear. Only what is listed there; HaTi presses it through the page\'s own buttons and says what it did.',
+  items: { type: 'object', required: ['do'], properties: {
+    seat: { type: 'string', description: 'Which list (its name from THE PAGE\'S OWN CONTROLS).' },
+    do: { type: 'string', enum: PAGE_CTRL_DOS },
+    words: { type: 'string', description: 'search: the words to search the list for (a name, a party, a number).' },
+    k: { type: 'string', description: 'tab: the tab\'s key. filter: the filter\'s key.' },
+    v: { type: 'string', description: 'filter: the choice\'s value.' },
+    id: { type: 'string', description: 'saved: the saved view\'s key.' } } } };
+const AI_PAGE_CONTROLS_RULE = 'WORKING THE PAGE: the person typed on this page\'s Jambo tab, beside the page\'s own list. When they ask to see, find, narrow, filter, sort into a tab or open a saved view of what this page lists ("only the overdue ones", "find Naivas", "show me the ones waiting on me"), press the page\'s own controls with deliver_answer\'s page (only those listed under THE PAGE\'S OWN CONTROLS) and say in one short sentence what the list now shows. Never state how many rows it shows unless your tools returned that count. A question answered in words, or a trip to another page (goto), leaves page out.';
 const AI_BOARD_DRAW_RULE = 'DRAWING ON THE BOARD: the person is on Home\'s Board, a page of charts, and can see it beside you. When they ask to see, chart, draw, plot, map out, break down or compare contracts as a picture, or ask something a chart answers best ("value by stream", "what ends this quarter, by month"), set deliver_answer\'s board to the Board\'s own buttons: add_card for a new chart, change_card with card "open" to change the chart that is open, filter_board, name_card, arrange, and remove_card only when they ask to remove one. Name which contracts in plain words (which.q), never ids. HaTi counts and draws every number itself, AFTER you answer, and the card states its own result (which group leads, by how much). So say in one or two sentences what the picture shows (what it splits by and measures) and what to look at in it; never say which group leads, ranks or is biggest, and never state a figure, unless your tools returned it or the Board as it stands already shows it. Drawing changes only what is on the screen, never a contract. A question answered best in words leaves board out.';
 
 /* Async because check_against_playbook makes its own provider call; the data
@@ -13434,7 +13498,7 @@ SCOPE & SAFETY:
      once, 161 with the declined the next). */
   const figures = portfolioSays(portfolioFigures(scopeCtx));
   const live = `${chatTodayLine(ctx.today)}
-${view ? 'CURRENT VIEW: ' + view + '\n' : ''}${copilotDrawsBoard(ctx) ? AI_BOARD_DRAW_RULE + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
+${view ? 'CURRENT VIEW: ' + view + '\n' : ''}${copilotDrawsBoard(ctx) ? AI_BOARD_DRAW_RULE + '\n' : ''}${pageControlsClean(ctx.controls) ? AI_PAGE_CONTROLS_RULE + '\n' + pageControlsSays(pageControlsClean(ctx.controls)) + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
 ${figures}
 
 ${[guideLive, guideLegacy].filter(Boolean).join('\n\n')}`;
@@ -13861,7 +13925,7 @@ function normalizeDeliver(input, cx) {
   /* the Board's buttons, cleaned as the map route's are (graphBoardActionsClean); how many were asked is kept so a
      cut is said (hbBoardTakes, hb_act_cap) */
   const board = graphBoardActionsClean(inp.board);
-  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(choices.length >= 2 ? { choices } : {}), ...(board ? { board, boardTotal: inp.board.length } : {}) };
+  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(choices.length >= 2 ? { choices } : {}), ...(board ? { board, boardTotal: inp.board.length } : {}), ...(Array.isArray(inp.page) ? { pageAsked: inp.page } : {}) };
 }
 
 /* One row per completed Copilot chat turn — including the failure paths, so
@@ -14008,7 +14072,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Jambo request failed: ' + e.message });
@@ -14358,7 +14422,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {
@@ -26000,10 +26064,15 @@ app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAi
           asked: { type: 'boolean', description: 'true ONLY when the person named this exact day and time themselves.' },
           contractId: { type: 'string', description: 'The contract id the block is for, from the dates listed, or empty.' } },
           required: ['date', 'start', 'end', 'title'] } } }, required: ['blocks'] } },
+    /* JAMBO ON EVERY TAB (owner, 27 Oct 2026): the Calendar's Jambo tab reads everything typed first; words that are
+       not about the person's time (a contract, a page, a setting, the book) are handed to Jambo's chat, which answers
+       and takes them there — the plan route never pretends to know them */
+    { name: 'elsewhere', description: 'The person asks for something that is NOT about their time or calendar (a contract, a clause, a page or a setting in HaTi, a question about their book of contracts, to be taken somewhere). HaTi hands their words to Jambo\'s chat. Nothing is added to the calendar.',
+      input_schema: { type: 'object', properties: { why: { type: 'string', description: 'A few words: what they asked for.' } } } },
   ];
   /* NEVER: the person said he may not change their calendar — only words */
   const never = myCalLevel(req.user.id) === 'never';
-  const useTools = never ? tools.filter(t => t.name === 'answer') : tools;
+  const useTools = never ? tools.filter(t => t.name !== 'propose_blocks') : tools;
   const prompt = `You are Jambo, beside ${req.user.name || 'a lawyer'}'s calendar in a contract-management system. Write in ${lang}, plain words, short.
 ${AI_GOVERNANCE_RULE}${never ? '\nThe person has set that you may NEVER change their calendar: call answer only. Where they ask to plan, book or find time, say in words which free times would suit, and that nothing is added.' : ''}
 Today is ${wdOf(today)} ${today}. The days ahead: ${days}.
@@ -26027,6 +26096,7 @@ DO WHAT THEY ASK, NOTHING ELSE:
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const inp = block.input || {};
+    if (block.name === 'elsewhere') return res.json({ kind: 'elsewhere', say: '', points: [], blocks: [], dropped: 0, left: [], ...aiNotice(req, resp) });
     if (block.name === 'answer'){
       const say = myText(inp.say, 800);
       if (!say) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before he could answer. Try again.' : 'Jambo returned an empty answer' });
