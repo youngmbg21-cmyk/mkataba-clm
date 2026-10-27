@@ -68,7 +68,7 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
         contractBlankSet(c, b.key, b.type === 'date' ? '2026-10-01' : 'Stated', { quiet: true, hold: true }));
       const hash = playbookHashOf(playbookText(c));
       c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
-      c.obligationsReadHash = hash;
+      c.obligationsReadHash = playbookHashOf(obligationsText(c));
       c.compliance = {};
       persist(c); await flushSaves();
       openWorkspace(c.id, { room: true });

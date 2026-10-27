@@ -121,7 +121,9 @@ function signCheckStandards(c){
    or where the hasher is not on this stage. */
 function signCheckObligations(c){
   const list = Array.isArray(c && c.obligations) ? c.obligations : [];
-  const text = _scCall('playbookText', c) || '';
+  /* the stamp is a hash of the words the obligation scan READ (obligationsText: the signed copy's own
+     text where one is filed), so it is compared against those words, not the playbook's reading */
+  const text = _scCall('obligationsText', c) || '';
   let unread = null;
   const seen = _scStr(c && c.obligationsReadHash);
   if (!seen) unread = null;                       /* never read: we do not know */
@@ -134,7 +136,7 @@ function signCheckObligations(c){
      obligationReminderTo is the browser twin the Insights page already asks. */
   const ownerless = list.filter(o => {
     if (!o) return false;
-    const to = _scCall('obligationReminderTo', c, o);
+    const to = _scCall('obligationReminderTo', o);
     return !to;
   }).length;
   return { total: list.length, unread, readAt: _scStr(c && c.obligationsReadAt) || null,

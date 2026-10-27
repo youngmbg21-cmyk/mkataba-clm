@@ -6539,6 +6539,11 @@ const SET_PANELS={
         return `<select class="ln-owner" style="${window.RV_FLD||ST_INPUT}width:100%"><option value="">${esc(defWord)}</option>${
           people.map(u=>`<option value="${esc(u.id)}"${cur===String(u.id)?' selected':''}>${esc(u.name||u.email||'')}</option>`).join('')}</select>`;
       };
+      /* A LANE'S VALUE LIMIT, READ BACK (the owner's yes, 27 Oct 2026): one quiet line where a lane has one
+         (intakeLaneMatch clears a stated value at or under it); a lane without one draws nothing */
+      const laneMaxHtml=x=>(x.maxValue==null||x.maxValue===''||!isFinite(Number(x.maxValue))) ? ''
+        : `<div class="ln-max" title="${esc(i18t('set_lane_max_tip'))}" style="font-size:var(--t-meta);color:var(--color-neutral-600)">${esc(i18t('set_lane_max',{
+            amount:(typeof fmtMoneyShort==='function')?fmtMoneyShort(Number(x.maxValue)):String(x.maxValue) }))}</div>`;
       const row=(x,i)=>`<div class="st-lane" data-lane-i="${i}"${x.id?` data-lane-id="${esc(x.id)}"`:''} style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3);display:flex;flex-direction:column;gap:9px">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
           <input class="ln-on" type="checkbox" ${x.on===false?'':'checked'} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
@@ -6559,7 +6564,7 @@ const SET_PANELS={
           <label style="display:flex;align-items:center;gap:7px;align-self:end;font-size:var(--t-meta)">
             <input class="ln-known" type="checkbox" ${x.knownOnly?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
             <span>${esc(i18t('set_lane_known'))}</span></label>
-        </div>
+        </div>${laneMaxHtml(x)}
       </div>`;
       return `<div id="st-lanes" style="display:flex;flex-direction:column;gap:var(--s-3)">${L.map(row).join('')}</div>
         <div style="display:flex;gap:var(--s-2);margin-top:var(--s-3)">

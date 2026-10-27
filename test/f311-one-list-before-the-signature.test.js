@@ -77,7 +77,7 @@ const esc = (over = {}) => ({ category: 'Governing law', status: 'deviation', es
 const dev = (over = {}) => ({ category: 'Payment terms', status: 'deviation', escalate: false,
   position: '<= 45 days', quote: 'within 60 days', ...over });
 const withBook = (win, c, verdicts) => { c.playbook = { label: 'Default',
-  wordingHash: win.playbookHashOf(win.playbookText(c)), verdicts }; c.obligationsReadHash = c.playbook.wordingHash; };
+  wordingHash: win.playbookHashOf(win.playbookText(c)), verdicts }; c.obligationsReadHash = win.playbookHashOf(win.obligationsText(c)); };
 
 describe('f311 (1) — the gate, advise by default, and what holds', () => {
   test('advise is the default in the browser and on the server', () => {
