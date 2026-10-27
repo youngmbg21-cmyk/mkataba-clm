@@ -415,8 +415,19 @@ const SHELL_ICONS = [
     await page.waitForFunction(() => document.querySelectorAll('#pd-redface .rl-card-d .rl-card-face button').length >= 4,
       null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(400);
+    /* RE-POINTED 27 Oct 2026 (THE PICKED CARD): the live row leads with
+       Counter and folds Reject · Ask a colleague · Ladder behind More
+       (data-rl-more). A hidden mark measures 0x0, so the fold is opened the
+       way a person does before measuring; the More button itself is the
+       fold's handle, drawn with the sheet's chevron, never a sprite mark —
+       it is not a verb and is left out of the mark checks. */
+    await page.evaluate(() => {
+      document.querySelectorAll('#pd-redface [data-rl-more]').forEach(b => b.click());
+    });
+    await page.waitForTimeout(200);
     const rowMarks = await page.evaluate(() => {
-      const btns = [...document.querySelectorAll('#pd-redface .rl-card-d .rl-card-face button')];
+      const btns = [...document.querySelectorAll('#pd-redface .rl-card-d .rl-card-face button')]
+        .filter(b => !b.hasAttribute('data-rl-more'));
       return btns.map(b => {
         const i = b.querySelector('.rl-verb-i');
         const u = i && i.querySelector('use');
