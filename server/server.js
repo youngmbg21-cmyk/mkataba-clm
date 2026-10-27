@@ -4155,8 +4155,13 @@ app.get('/api/bootstrap', auth, (req, res) => {
        row has to know whether to print money. */
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(u => {
       const p = publicUser(u);
-      if (req.user.role !== 'admin' && u.id !== req.user.id)
+      if (req.user.role !== 'admin' && u.id !== req.user.id) {
         for (const k of ADMIN_ONLY_USER_FIELDS) delete p[k];
+        /* A COLLEAGUE'S PREFERENCES ARE THEIRS (bug log, 27 Oct 2026): what they put away, their Jambo levels,
+           their brief and the rest stay with them; a colleague's row keeps only "invited, not signed in yet",
+           the one fact other screens draw */
+        p.prefs = (p.prefs && p.prefs.mustChangePassword) ? { mustChangePassword: true } : {};
+      }
       return p;
     }),
     uid: getSetting('uid') || 100,

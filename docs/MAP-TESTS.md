@@ -11,6 +11,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
 
 ## INTERNAL REVIEW (js/review.js)
+- WHAT STAYS HOME, THE WORD FILE TOO (bug log batch 4, 27 Oct 2026): f945 (1) (new; red at the parent) — a draft kept back is in the full .docx and out of the one a send attaches; the payload and the file read one list (shareHeldBackIds). RE-POINTED: f307 (the send's Word line), f453 (2) (the region now starts at shareHeldBackIds).
 - What they already hold stays with them when a revision is kept back (22 Oct 2026): f857 (srvLinkStrip opts.holds; red at the parent 1, 2).
 - f17, f154–f159, f161, f162, f164, f174, f186, f190, f412, wall-standing.
 
@@ -57,6 +58,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f453, the-seat-decides-verify.
 
 ## STREAM ACCESS, PEOPLE, RE-FILING
+- A COLLEAGUE'S PREFERENCES ARE THEIRS (bug log batch 4, 27 Oct 2026): f945 (2) (new; red at the parent) — /api/bootstrap gives a non-admin no prefs on a colleague's row but "invited, not signed in"; their own row and an admin's read keep them. With people-directory-verify.
 - f1, f160, f200, f202, f326, f330, f669, f695, f688 (3), f795, people-directory, refile-a-contract, private-streams, parties-and-people verify.
 
 ## PER-PERSON GRANTS (admin-only, on ADMIN_ONLY_USER_FIELDS)

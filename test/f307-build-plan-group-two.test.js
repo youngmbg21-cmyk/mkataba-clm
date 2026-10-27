@@ -164,7 +164,8 @@ describe('f307 (2) — Word is a channel, and the screen follows the choice', ()
     assert.ok(dl, 'the download exists');
     assert.match(dl[0], /wordTrackedFile\(/, 'and the download asks it');
     assert.doesNotMatch(dl[0], /docxExportTracked\(/, 'rather than writing a second one');
-    assert.match(strip(CORE), /wordTrackedFile\(c,\s*\{\s*side:\s*'owner'\s*\}\)/,
+    /* RE-POINTED 27 Oct 2026: the send also passes what stays home (shareHeldBackIds) */
+    assert.match(strip(CORE), /wordTrackedFile\(c,\s*\{\s*side:\s*'owner',\s*hiddenIds:\[\.\.\.shareHeldBackIds\(c, \{\}\)\]\s*\}\)/,
       'and so does the send');
   });
 
@@ -475,7 +476,7 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
   test('the send builds the record\'s file on the record, and the contract\'s otherwise', () => {
     const fn = /const doSend=async\(\)=>\{[\s\S]*?const wantDurable=/.exec(CORE)[0];
     assert.match(fn, /const hist=purposeSel==='history';/);
-    assert.match(fn, /hist \? await wordHistoryFile\(c\) : wordTrackedFile\(c,\{ side:'owner' \}\)/,
+    assert.match(fn, /hist \? await wordHistoryFile\(c\) : wordTrackedFile\(c,\{ side:'owner', hiddenIds:\[\.\.\.shareHeldBackIds\(c, \{\}\)\] \}\)/,
       'one branch, the kind decides the builder');
     assert.match(CONTRACT, /async function wordHistoryFile\(c,opts\)\{[\s\S]*?negoIntegrityReport\(c\)[\s\S]*?negoHistoryWordHtml\(c,r\)/,
       'the file is verified first, as Export and Print verify it');
