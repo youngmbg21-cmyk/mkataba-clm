@@ -295,7 +295,8 @@ function _smLetterHtml(parts){
    expires } — expires may be null. Its own joins: blank lines between. */
 function shareWaTextOf(o){
   const x = o || {};
-  const parts = [{ k: 'lead', t: `${x.sender || ''} at ${x.org || ''} shared "${x.cName || ''}" for your review.` }];
+  /* a code-named deal names its code and number only, as its email does (shareMailNameOf) */
+  const parts = [{ k: 'lead', t: `${x.sender || ''} at ${x.org || ''} shared "${shareMailNameOf(x) || x.cName || ''}" for your review.` }];
   if (x.message) parts.push({ k: 'msg', t: String(x.message) });
   parts.push({ k: 'say', t: 'Open it here — review, sign, request changes or decline, no account needed:' });
   parts.push({ k: 'link', t: x.link == null ? null : String(x.link), at: true });
