@@ -99,7 +99,7 @@ const check = (name, pass, detail) => {
         /* RE-POINTED 24 Oct 2026 (Round 3 / owner's yes: the checks not run yet are said once, one "Run all" in a
            box under the heading, in place of a "Run the check" on every row): the row holds, the box carries the press */
         row: !!(card0 && Array.from(card0.querySelectorAll('.sc-find.is-hold')).some(r => /promises/i.test(r.textContent)) && card0.querySelector('.sc-run-box #sc-run')) };
-      c.obligationsReadHash = hash;
+      c.obligationsReadHash = playbookHashOf(obligationsText(c));
       persist(c); await flushSaves();
       renderSignSide(c); renderSignButton(c);
       await new Promise(r => setTimeout(r, 300));

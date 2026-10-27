@@ -56,7 +56,7 @@ test('f421 (s7) undated or unreachable promises are a noted row that never holds
     changes: [], obligations: [{ id: 'o1', desc: 'Deliver the report', party: 'ours' }, { id: 'o2', desc: 'Pay', due: '2030-01-01', party: 'ours' }],
     value: 1, valueType: 'estimated' };
   win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, settings: {} });
-  win.obligationReminderTo = (cc, o) => (o.id === 'o2' ? { email: 'x@y.z' } : null);
+  win.obligationReminderTo = o => (o.id === 'o2' ? { email: 'x@y.z' } : null);
   const rd = win.signReadiness(c);
   const row = rd.rows.find(r => r.kind === 'oblig-gaps');
   assert.ok(row, 'the row is there');

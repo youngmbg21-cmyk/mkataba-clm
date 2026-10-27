@@ -2569,8 +2569,13 @@ function maskContractValues(c, moneyKeys) {
   if (Array.isArray(x.approvalChain)) x.approvalChain = x.approvalChain.map(st => (st && st.stamp) ? { ...st, stamp: stampMasked(st.stamp, keys) } : st);
   /* ...and the one ask record's own copy of what each question was of. */
   if (Array.isArray(x.asks)) x.asks = asksMasked(x.asks, keys);
+  /* ...and the trail's own lines: every line stays, its amount goes (historyLineMoneyless, js/metaclean.js) */
+  if (Array.isArray(x.audit)) x.audit = auditMasked(x.audit);
   x._valuesHidden = true;
   return x;
+}
+function auditMasked(trail) {
+  return trail.map(a => (a && typeof a.detail === 'string') ? { ...a, detail: historyLineMoneyless(a.detail) } : a);
 }
 /* The one call every read route makes before it responds. */
 function visibleContract(c, user, moneyKeys) {
@@ -4523,9 +4528,10 @@ app.get('/api/activity', auth, (req, res) => {
   const f = scopeFrag(folderScopeFor(req.user));
   const rows = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq DESC LIMIT 400`).all(...f.args);
   const feed = [];
+  const money = canViewValues(req.user);
   for (const r of rows) {
     let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
-    const audit = Array.isArray(c.audit) ? c.audit : [];
+    const audit = Array.isArray(c.audit) ? (money ? c.audit : auditMasked(c.audit)) : [];
     for (const a of audit.slice(-40)) {
       feed.push({ id: c.id, contractNo: c.contractNo || undefined, name: c.name, action: a.action || '', detail: a.detail || '', at: a.at || '', user: a.user || '' });
     }
@@ -6321,10 +6327,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   // already on the record.
   if (prev && Array.isArray(prev.audit) && prev.audit.length) {
     const incoming = Array.isArray(c.audit) ? c.audit : [];
-    const keptPrefix = incoming.length >= prev.audit.length &&
-      prev.audit.every((a, i) => stable(a) === stable(incoming[i]));
-    c.audit = keptPrefix ? incoming : prev.audit.concat(incoming.filter(a =>
-      !prev.audit.some(b => stable(a) === stable(b))));
+    /* a reader who may not see values was sent the trail without its amounts (auditMasked): their copy
+       is measured against that, and the stored lines stand, never the copies they were sent */
+    const sent = canViewValues(req.user) ? prev.audit : auditMasked(prev.audit);
+    const keptPrefix = incoming.length >= sent.length &&
+      sent.every((a, i) => stable(a) === stable(incoming[i]));
+    c.audit = keptPrefix ? prev.audit.concat(incoming.slice(sent.length)) : prev.audit.concat(incoming.filter(a =>
+      !sent.some(b => stable(a) === stable(b))));
   }
   /* A COLLEAGUE'S LOOK, ANSWERED (8 Oct 2026, the nine flow rules 3 and 8):
      the trail line is the SERVER's, written off the difference this save
@@ -13155,11 +13164,11 @@ const COPILOT_TOOLS = [
       compare: { type: 'object', description: 'OPTIONAL — include ONLY when comparing 2+ contracts. A side-by-side table.', properties: {
         columns: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' } }, required: ['id', 'label'] }, description: 'One column per contract, in display order.' },
         rows: { type: 'array', items: { type: 'object', properties: { label: { type: 'string', description: 'Row label, e.g. "Value", "Payment terms", "Governing law".' }, cells: { type: 'array', items: { type: 'string' }, description: 'One cell per column, same order as columns.' } }, required: ['label', 'cells'] } },
-        verdict: { type: 'string', description: 'One or two sentences: which is more favorable and why.' } }, required: ['columns', 'rows'] } },
+        verdict: { type: 'string', description: 'One or two sentences: which is more favorable and why.' } }, required: ['columns', 'rows'] },
       wholeBook: { type: 'boolean', description: 'true when the answer is about the WHOLE workspace (a listing of everything, a total count): HaTi then draws a door onto the full Contracts page instead of a narrowed set.' },
       ruleDoor: { type: 'object', description: 'OPTIONAL — only when a company rule stops the person and your answer explains it. The ONE HaTi door that takes them THROUGH the rule, never around it: ask_admin = a company rule only an admin decides (name it in rule); ask_review = their changes must be checked before they are sent (name the contract); send_for_approval = a named person must say yes before anyone signs (name the contract). Leave it out when no rule is in the way.',
         properties: { kind: { type: 'string', enum: RULE_DOOR_KINDS }, rule: { type: 'string', enum: RULE_DOOR_RULES, description: 'For ask_admin: the rule — signcap (signing limits), signfolder (sign streams), signcheck (the check before signing), signroute (signing order), review (review before sending), desk (the negotiation desk), linkcode (link codes), approvals (approval rules), rules (company rules), folders (who sees which stream).' }, contractId: { type: 'string', description: 'The contract it is about.' } },
-        required: ['kind'] },
+        required: ['kind'] } },
       required: ['answer'] } },
 ];
 
@@ -18328,147 +18337,156 @@ app.patch('/api/users/:id', auth, (req, res) => {
   }
   const target = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  if (hasName) {
-    const nm = clean(b.name).slice(0, 120);
-    if (!nm) return res.status(400).json({ error: 'Name is required' });
-    /* A named approver is matched by name where a rule has no id, so two
-       members sharing one name could answer each other's approvals. */
-    const clash = db.prepare('SELECT id FROM users WHERE lower(name)=lower(?) AND id<>?').get(nm, req.params.id);
-    if (clash) return res.status(409).json({ error: 'Another member already has that name.' });
-    if (nm !== target.name) {
-      db.prepare('UPDATE users SET name=? WHERE id=?').run(nm, req.params.id);
-      acctRecord(req.user, target, 'name', `${target.name || ''} to ${nm}`);
-      /* The approval rules follow the person: a rule that names them by their
-         old name is repointed, and from now on carries their id too. */
-      const st = getSetting('appSettings');
-      if (st && Array.isArray(st.approvalRules)) {
-        let moved = false;
-        st.approvalRules.forEach(r => {
-          const a = r && r.approver;
-          if (a && a.kind === 'member' && (String(a.id || '') === req.params.id || (!a.id && String(a.name || '') === String(target.name || '')))) {
-            r.approver = { kind: 'member', name: nm, id: req.params.id }; moved = true;
-          }
-        });
-        if (moved) setSetting('appSettings', st);
+  /* ONE CHANGE, ALL OR NOTHING (bug log, 27 Oct 2026): every part below is written in one transaction, so a
+     refusal further down (a signing limit, a reviewer, an overseer, hold or re-file) undoes the name, role or
+     two-step reset written before it — the admin's error is then the whole truth */
+  let refused = null;
+  const no = (status, body) => { refused = { status, body }; throw new Error('refused'); };
+  try {
+    txn(() => {
+    if (hasName) {
+      const nm = clean(b.name).slice(0, 120);
+      if (!nm) return no(400, { error: 'Name is required' });
+      /* A named approver is matched by name where a rule has no id, so two
+         members sharing one name could answer each other's approvals. */
+      const clash = db.prepare('SELECT id FROM users WHERE lower(name)=lower(?) AND id<>?').get(nm, req.params.id);
+      if (clash) return no(409, { error: 'Another member already has that name.' });
+      if (nm !== target.name) {
+        db.prepare('UPDATE users SET name=? WHERE id=?').run(nm, req.params.id);
+        acctRecord(req.user, target, 'name', `${target.name || ''} to ${nm}`);
+        /* The approval rules follow the person: a rule that names them by their
+           old name is repointed, and from now on carries their id too. */
+        const st = getSetting('appSettings');
+        if (st && Array.isArray(st.approvalRules)) {
+          let moved = false;
+          st.approvalRules.forEach(r => {
+            const a = r && r.approver;
+            if (a && a.kind === 'member' && (String(a.id || '') === req.params.id || (!a.id && String(a.name || '') === String(target.name || '')))) {
+              r.approver = { kind: 'member', name: nm, id: req.params.id }; moved = true;
+            }
+          });
+          if (moved) setSetting('appSettings', st);
+        }
       }
     }
-  }
-  if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
-  /* who set it, said on the person's own You (round 24: "— set by Sara") */
-  if (hasRole && b.role !== target.role) db.prepare('UPDATE users SET role=?, role_by=? WHERE id=?').run(b.role, String(req.user.name || req.user.email || ''), req.params.id);
-  if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
-  if (hasCap) {
-    /* null clears the decision, 'none' IS a decision, a number is the ceiling.
-       Anything else is refused rather than coerced — a signing limit read out
-       of a typo is worse than no signing limit. */
-    let store = null;
-    if (b.signCap === null || b.signCap === '') store = null;
-    else if (b.signCap === 'none') store = 'none';
-    else {
-      const n = Number(b.signCap);
-      if (!Number.isFinite(n) || n < 0)
-        return res.status(400).json({ error: 'A signing limit has to be a number that is not negative, or "none" for no limit.' });
-      store = String(n);
+    if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
+    /* who set it, said on the person's own You (round 24: "— set by Sara") */
+    if (hasRole && b.role !== target.role) db.prepare('UPDATE users SET role=?, role_by=? WHERE id=?').run(b.role, String(req.user.name || req.user.email || ''), req.params.id);
+    if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
+    if (hasCap) {
+      /* null clears the decision, 'none' IS a decision, a number is the ceiling.
+         Anything else is refused rather than coerced — a signing limit read out
+         of a typo is worse than no signing limit. */
+      let store = null;
+      if (b.signCap === null || b.signCap === '') store = null;
+      else if (b.signCap === 'none') store = 'none';
+      else {
+        const n = Number(b.signCap);
+        if (!Number.isFinite(n) || n < 0)
+          return no(400, { error: 'A signing limit has to be a number that is not negative, or "none" for no limit.' });
+        store = String(n);
+      }
+      db.prepare('UPDATE users SET sign_cap=? WHERE id=?').run(store, req.params.id);
     }
-    db.prepare('UPDATE users SET sign_cap=? WHERE id=?').run(store, req.params.id);
-  }
-  if (hasChecked)
-    db.prepare('UPDATE users SET review_checked=? WHERE id=?')
-      .run(b.reviewChecked == null ? null : (b.reviewChecked ? 1 : 0), req.params.id);
-  if (hasReviewer) {
-    const rid = b.reviewerId == null || b.reviewerId === '' ? null : String(b.reviewerId);
-    /* A reviewer who is not a member of this workspace is not a reviewer, and
-       nobody reviews themselves — the browser's picker refuses both and the
-       server is where that is true. */
-    if (rid) {
-      if (rid === req.params.id) return res.status(400).json({ error: 'Nobody reviews their own work.' });
-      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(rid);
-      if (!who) return res.status(400).json({ error: 'That reviewer is not a member of this workspace.' });
-      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot rule on a change.' });
+    if (hasChecked)
+      db.prepare('UPDATE users SET review_checked=? WHERE id=?')
+        .run(b.reviewChecked == null ? null : (b.reviewChecked ? 1 : 0), req.params.id);
+    if (hasReviewer) {
+      const rid = b.reviewerId == null || b.reviewerId === '' ? null : String(b.reviewerId);
+      /* A reviewer who is not a member of this workspace is not a reviewer, and
+         nobody reviews themselves — the browser's picker refuses both and the
+         server is where that is true. */
+      if (rid) {
+        if (rid === req.params.id) return no(400, { error: 'Nobody reviews their own work.' });
+        const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(rid);
+        if (!who) return no(400, { error: 'That reviewer is not a member of this workspace.' });
+        if (who.role === 'viewer') return no(400, { error: 'A Viewer cannot rule on a change.' });
+      }
+      db.prepare('UPDATE users SET reviewer_id=? WHERE id=?').run(rid, req.params.id);
     }
-    db.prepare('UPDATE users SET reviewer_id=? WHERE id=?').run(rid, req.params.id);
-  }
-  if (hasOverseer) {
-    const oid = b.overseerId == null || b.overseerId === '' ? null : String(b.overseerId);
-    if (oid) {
-      /* NOBODY OVERSEES THEIR OWN CONTRACTS — an approval step you grant
-         yourself is not an approval. Refused here and not only in the picker,
-         because the picker is a decision about pixels. */
-      if (oid === req.params.id) return res.status(400).json({ error: 'Nobody oversees their own contracts.' });
-      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(oid);
-      if (!who) return res.status(400).json({ error: 'That person is not a member of this workspace.' });
-      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot approve a contract.' });
+    if (hasOverseer) {
+      const oid = b.overseerId == null || b.overseerId === '' ? null : String(b.overseerId);
+      if (oid) {
+        /* NOBODY OVERSEES THEIR OWN CONTRACTS — an approval step you grant
+           yourself is not an approval. Refused here and not only in the picker,
+           because the picker is a decision about pixels. */
+        if (oid === req.params.id) return no(400, { error: 'Nobody oversees their own contracts.' });
+        const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(oid);
+        if (!who) return no(400, { error: 'That person is not a member of this workspace.' });
+        if (who.role === 'viewer') return no(400, { error: 'A Viewer cannot approve a contract.' });
+      }
+      db.prepare('UPDATE users SET overseer_id=? WHERE id=?').run(oid, req.params.id);
     }
-    db.prepare('UPDATE users SET overseer_id=? WHERE id=?').run(oid, req.params.id);
-  }
-  if (hasSa) {
-    /* Read against what the row will hold after THIS save, so a request that
-       names a new approver and switches the rule on in one breath is judged
-       as one change. Refused rather than coerced: an approval rule read out
-       of a typo is worse than none. */
-    const row = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id) || {};
-    const on = hasSaOn ? (b.overseerOn == null || b.overseerOn === '' ? null : String(b.overseerOn)) : (row.overseer_on || null);
-    if (on !== null && on !== 'always' && on !== 'off')
-      return res.status(400).json({ error: 'Approval before signing is either "always" or "off".' });
-    const approver = row.overseer_id || null;
-    if (on === 'always' && !approver)
-      return res.status(400).json({ error: 'Pick who approves before switching approval before signing on.' });
-    let bid = hasSaBackup ? (b.overseerBackupId == null || b.overseerBackupId === '' ? null : String(b.overseerBackupId)) : (row.overseer_backup_id || null);
-    if (bid) {
-      if (bid === req.params.id) return res.status(400).json({ error: 'Nobody steps in for their own approval.' });
-      if (bid === approver) return res.status(400).json({ error: 'The backup has to be somebody other than the approver.' });
-      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(bid);
-      if (!who) return res.status(400).json({ error: 'That backup is not a member of this workspace.' });
-      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot approve a contract.' });
+    if (hasSa) {
+      /* Read against what the row will hold after THIS save, so a request that
+         names a new approver and switches the rule on in one breath is judged
+         as one change. Refused rather than coerced: an approval rule read out
+         of a typo is worse than none. */
+      const row = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id) || {};
+      const on = hasSaOn ? (b.overseerOn == null || b.overseerOn === '' ? null : String(b.overseerOn)) : (row.overseer_on || null);
+      if (on !== null && on !== 'always' && on !== 'off')
+        return no(400, { error: 'Approval before signing is either "always" or "off".' });
+      const approver = row.overseer_id || null;
+      if (on === 'always' && !approver)
+        return no(400, { error: 'Pick who approves before switching approval before signing on.' });
+      let bid = hasSaBackup ? (b.overseerBackupId == null || b.overseerBackupId === '' ? null : String(b.overseerBackupId)) : (row.overseer_backup_id || null);
+      if (bid) {
+        if (bid === req.params.id) return no(400, { error: 'Nobody steps in for their own approval.' });
+        if (bid === approver) return no(400, { error: 'The backup has to be somebody other than the approver.' });
+        const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(bid);
+        if (!who) return no(400, { error: 'That backup is not a member of this workspace.' });
+        if (who.role === 'viewer') return no(400, { error: 'A Viewer cannot approve a contract.' });
+      }
+      let when = hasSaWhen ? (b.overseerWhen == null || b.overseerWhen === '' ? null : String(b.overseerWhen)) : (row.overseer_when || null);
+      if (when !== null) {
+        const parts = when.split(',').map(x => x.trim()).filter(Boolean);
+        if (!parts.length || parts.some(x => x !== 'lead' && x !== 'sign'))
+          return no(400, { error: 'Approval before signing applies when they lead a contract, are named to sign one, or both.' });
+        when = ['lead', 'sign'].filter(x => parts.includes(x)).join(',');
+      }
+      db.prepare('UPDATE users SET overseer_on=?, overseer_backup_id=?, overseer_when=? WHERE id=?')
+        .run(on, bid, when, req.params.id);
     }
-    let when = hasSaWhen ? (b.overseerWhen == null || b.overseerWhen === '' ? null : String(b.overseerWhen)) : (row.overseer_when || null);
-    if (when !== null) {
-      const parts = when.split(',').map(x => x.trim()).filter(Boolean);
-      if (!parts.length || parts.some(x => x !== 'lead' && x !== 'sign'))
-        return res.status(400).json({ error: 'Approval before signing applies when they lead a contract, are named to sign one, or both.' });
-      when = ['lead', 'sign'].filter(x => parts.includes(x)).join(',');
+    if (hasValues) {
+      const role = hasRole ? b.role : target.role;
+      if (role === 'admin' && !b.canViewValues)
+        return no(400, { error: 'Admins always see contract values. Change the role first if this member should not.' });
+      db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
     }
-    db.prepare('UPDATE users SET overseer_on=?, overseer_backup_id=?, overseer_when=? WHERE id=?')
-      .run(on, bid, when, req.params.id);
-  }
-  if (hasValues) {
-    const role = hasRole ? b.role : target.role;
-    if (role === 'admin' && !b.canViewValues)
-      return res.status(400).json({ error: 'Admins always see contract values. Change the role first if this member should not.' });
-    db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
-  }
-  if (hasHold || hasReFile) {
-    const role = hasRole ? b.role : target.role;
-    /* The re-filing grant, on the same terms as the one above it: an admin's
-       to give, never self-service, and meaningless on the two roles that
-       already answer for themselves. */
-    if (hasHold) {
-      if (role === 'admin' && !b.holdContracts)
-        return res.status(400).json({ error: 'An admin can always put a contract on hold — the tick cannot be removed from them.' });
-      if (role === 'viewer' && b.holdContracts)
-        return res.status(400).json({ error: 'A viewer cannot change a contract at all, so they cannot put one on hold.' });
-      db.prepare('UPDATE users SET hold_contracts=? WHERE id=?').run(b.holdContracts ? 1 : 0, req.params.id);
+    if (hasHold || hasReFile) {
+      const role = hasRole ? b.role : target.role;
+      /* The re-filing grant, on the same terms as the one above it: an admin's
+         to give, never self-service, and meaningless on the two roles that
+         already answer for themselves. */
+      if (hasHold) {
+        if (role === 'admin' && !b.holdContracts)
+          return no(400, { error: 'An admin can always put a contract on hold — the tick cannot be removed from them.' });
+        if (role === 'viewer' && b.holdContracts)
+          return no(400, { error: 'A viewer cannot change a contract at all, so they cannot put one on hold.' });
+        db.prepare('UPDATE users SET hold_contracts=? WHERE id=?').run(b.holdContracts ? 1 : 0, req.params.id);
+      }
+      if (hasReFile) {
+        if (role === 'admin' && !b.reFile)
+          return no(400, { error: 'An admin may always re-file a contract.' });
+        if (role === 'viewer' && b.reFile)
+          return no(400, { error: 'A viewer may not edit a contract, so it cannot be re-filed by them.' });
+        db.prepare('UPDATE users SET re_file=? WHERE id=?').run(b.reFile ? 1 : 0, req.params.id);
+      }
     }
-    if (hasReFile) {
-      if (role === 'admin' && !b.reFile)
-        return res.status(400).json({ error: 'An admin may always re-file a contract.' });
-      if (role === 'viewer' && b.reFile)
-        return res.status(400).json({ error: 'A viewer may not edit a contract, so it cannot be re-filed by them.' });
-      db.prepare('UPDATE users SET re_file=? WHERE id=?').run(b.reFile ? 1 : 0, req.params.id);
+    if (hasPaper) {
+      /* The same refusal shape the values grant uses, and for the same reason:
+         an admin holds this by rank, so a stored "no" on an admin row would be a
+         fact the product then ignores — two places saying different things about
+         one person. Change the role first if that is what was meant. */
+      const role = hasRole ? b.role : target.role;
+      if (role === 'admin' && !b.newPaper)
+        return no(400, { error: 'Admins may always write new paper. Change the role first if this member should not.' });
+      if (role === 'viewer' && b.newPaper)
+        return no(400, { error: 'A Viewer cannot write paper at all. Change the role first.' });
+      db.prepare('UPDATE users SET new_paper=? WHERE id=?').run(b.newPaper ? 1 : 0, req.params.id);
     }
-  }
-  if (hasPaper) {
-    /* The same refusal shape the values grant uses, and for the same reason:
-       an admin holds this by rank, so a stored "no" on an admin row would be a
-       fact the product then ignores — two places saying different things about
-       one person. Change the role first if that is what was meant. */
-    const role = hasRole ? b.role : target.role;
-    if (role === 'admin' && !b.newPaper)
-      return res.status(400).json({ error: 'Admins may always write new paper. Change the role first if this member should not.' });
-    if (role === 'viewer' && b.newPaper)
-      return res.status(400).json({ error: 'A Viewer cannot write paper at all. Change the role first.' });
-    db.prepare('UPDATE users SET new_paper=? WHERE id=?').run(b.newPaper ? 1 : 0, req.params.id);
-  }
+    });
+  } catch (e) { if (refused) return res.status(refused.status).json(refused.body); throw e; }
   res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)) });
 });
 
@@ -26654,7 +26672,7 @@ function tplBlockRow(bl) {
    block reads byte-for-byte as it always did. */
 const tplBlockOut = bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '',
   ...(bl.format === 'rich' ? { format: 'rich' } : {}) });
-const { metaUnleak, historyLineHasMoney } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
+const { metaUnleak, historyLineHasMoney, historyLineMoneyless } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
 const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,

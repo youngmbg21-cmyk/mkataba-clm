@@ -123,7 +123,7 @@ const FACE = () => {
       if (window.briefMarkRead) briefMarkRead(c);
       if (window.contractBoxesOpen && window.contractBlankSet) contractBoxesOpen(c).forEach(b => contractBlankSet(c, b.key, b.type === 'date' ? '2026-10-01' : 'Stated', { quiet: true, hold: true }));
       const hash = playbookHashOf(playbookText(c));
-      c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] }; c.obligationsReadHash = hash; c.compliance = {};
+      c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] }; c.obligationsReadHash = playbookHashOf(obligationsText(c)); c.compliance = {};
       persist(c); await flushSaves(); renderSignButton(c);
     });
     const ready = await waitFor(page, () => /^Sign as /.test(((document.getElementById('sign-btn') || {}).textContent || '').trim()), 6000);

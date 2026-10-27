@@ -102,7 +102,21 @@
   const MONEY_LINE_RE = /\b(?:values?|amounts?|prices?|pricing|fees?|worth|costs?|payments?|paid|pay|invoices?|sums?|totals?|rates?|deposits?|budgets?|discounts?|rebates?|penalt(?:y|ies)|currency)\b|[€$£¥₹₦]|\b(?:AED|AUD|BRL|CAD|CHF|CNY|DKK|ETB|EUR|GBP|GHS|HKD|INR|JPY|KES|NGN|NOK|NZD|RWF|SEK|SGD|TZS|UGX|USD|ZAR|ZMW)\b|\b\d{1,3}(?:[,\u00a0 .']\d{3})+\b|\b\d{5,}\b|\b\d+(?:[.,]\d+)?\s*(?:k|m|bn|mn|million|billion|thousand)\b/i;
   const historyLineHasMoney = t => MONEY_LINE_RE.test(String(t || ''));
 
-  const API = { META_SEAM_RE, META_ABSENT_RE, META_NUMBER_KEYS, metaUnleak, metaHasSeam, MONEY_LINE_RE, historyLineHasMoney };
+  /* A TRAIL LINE WITHOUT ITS AMOUNT (the owner picked "Drop the amount", 27 Oct 2026). The trail page
+     keeps every line for a reader who may not see values; only the figure goes. The three lines HaTi
+     writes with an amount are reworded whole; any other figure (a currency and a number, either way
+     round) is taken out where it stands. The stored line never changes: this is what is SENT. */
+  const MONEY_CODES = 'AED|AUD|BRL|CAD|CHF|CNY|DKK|ETB|EUR|GBP|GHS|HKD|INR|JPY|KES|NGN|NOK|NZD|RWF|SEK|SGD|TZS|UGX|USD|ZAR|ZMW';
+  const MONEY_FIG_RE = new RegExp('(?:[€$£¥₹₦]|\\b(?:' + MONEY_CODES + ')\\b)\\s?-?\\d[\\d,\\u00a0 .\']*(?:\\s?(?:k|m|bn|mn|million|billion|thousand)\\b)?'
+    + '|\\b\\d[\\d,\\u00a0.\']*(?:\\s?(?:k|m|bn|mn|million|billion|thousand))?\\s?(?:' + MONEY_CODES + ')\\b', 'gi');
+  const historyLineMoneyless = t => String(t == null ? '' : t)
+    .replace(/ — for .+? and the wording as it stands/g, ' — for the wording as it stands')
+    .replace(/ \(proposed value [^)]*\)/g, ' (with a proposed value)')
+    .replace(/ — value set to .+?(?= · |$)/g, ' — value updated')
+    .replace(MONEY_FIG_RE, '')
+    .replace(/ {2,}/g, ' ').replace(/ ([,.;:)])/g, '$1').trim();
+
+  const API = { META_SEAM_RE, META_ABSENT_RE, META_NUMBER_KEYS, metaUnleak, metaHasSeam, MONEY_LINE_RE, historyLineHasMoney, historyLineMoneyless };
   if(typeof module !== 'undefined' && module.exports) module.exports = API;
   if(typeof window !== 'undefined') Object.assign(window, API);
 })(typeof globalThis !== 'undefined' ? globalThis : this);
