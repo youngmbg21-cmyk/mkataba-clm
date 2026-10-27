@@ -13426,7 +13426,7 @@ SCOPE & SAFETY:
 - ${aiNavigateOn() ? AI_BRIEF_RULE : AI_BRIEF_OFF_RULE}
 - ${AI_CLARIFY_RULE}
 - ${AI_CALENDAR_RULE}
-${copilotDrawsBoard(ctx) ? '- ' + AI_BOARD_DRAW_RULE + '\n' : ''}- ${AI_HANDBOOK_RULE}`;
+- ${AI_HANDBOOK_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the
      same live rule as the Home tile. Before it, "value under management" had
@@ -13434,7 +13434,7 @@ ${copilotDrawsBoard(ctx) ? '- ' + AI_BOARD_DRAW_RULE + '\n' : ''}- ${AI_HANDBOOK
      once, 161 with the declined the next). */
   const figures = portfolioSays(portfolioFigures(scopeCtx));
   const live = `${chatTodayLine(ctx.today)}
-${view ? 'CURRENT VIEW: ' + view + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
+${view ? 'CURRENT VIEW: ' + view + '\n' : ''}${copilotDrawsBoard(ctx) ? AI_BOARD_DRAW_RULE + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
 ${figures}
 
 ${[guideLive, guideLegacy].filter(Boolean).join('\n\n')}`;
