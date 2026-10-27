@@ -78,7 +78,7 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
     const chip = async word => {
       const how = await page.evaluate(w => { const b = [...document.querySelectorAll('#cn-page [data-cn-ask]')].find(x => x.getAttribute('data-cn-ask') === w);
         if (b){ b.click(); return 'chip'; } return document.getElementById('cn-q') ? 'box' : ''; }, word);
-      if (how === 'box'){ await page.fill('#cn-q', word); await page.press('#cn-q', 'Enter'); }
+      if (how === 'box'){ /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */ await page.evaluate(w => counterAsk(w), word); }
       if (!how) check(`(Home has no "${word}" chip and no box to ask it in)`, false);
       return !!how;
     };

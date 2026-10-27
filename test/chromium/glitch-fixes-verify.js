@@ -77,7 +77,8 @@ const COUNT_WRITES = () => {
     return { view: state.view, face: hb.face, card: (typeof bsCardId === 'function' && bsCardId()) || null, trail: (typeof pdTrail === 'function' && pdTrail()) ? pdTrail().back : null }; });
   const home = async () => { await page.keyboard.press('Escape').catch(() => {}); await page.evaluate(() => setView('counter'));
     await waitFor(page, () => !!document.getElementById('cn-q') && !!document.getElementById('cn-q').offsetParent); await pause(200); };
-  const ask = async w => { await page.fill('#cn-q', w); await page.press('#cn-q', 'Enter'); };
+  /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
+  const ask = async w => { await page.evaluate(x => counterAsk(x), w); };
   const writes = () => page.evaluate(() => { const w = window.__gfW; window.__gfW = {}; return w; });
   const settle = async () => { await pause(900); };
   try {

@@ -1080,11 +1080,36 @@ function counterFollow(){
 /* THE BOX: a place opens on the desk; anything else is Jambo's, beside the
    page — the one reader every Jambo box uses (caAskAnywhere), with the
    Counter's own rule that a question goes to Home's Jambo too */
-function counterAsk(text){
+function counterAsk(text, opts = {}){
   const t = String(text || '').trim(); if (!t) return false;
   /* a request to book or find time goes to the Calendar's own Jambo with its words (18 Oct 2026, #342) */
   if (typeof igBookAsk === 'function' && igBookAsk(t) && typeof calHandOff === 'function' && calHandOff(t)) return true;
+  /* HOME'S BOX READS WITH THE BRAIN FIRST (owner, 27 Oct 2026: "make the home page box go to AI first too";
+     reverses "Overview's box … keep the free readers" for this one box): words TYPED here (Enter, the send
+     button) are the Board's Jambo tab's — the Board opens on his tab and the chat reads the whole sentence, a
+     page's name too (its goto lands there). A chip, a "/" row and no key keep the free readers, never a dead box. */
+  if (opts.typed && counterTalkFirst()) return counterTalkAsk(t);
   return (typeof caAskAnywhere === 'function') ? caAskAnywhere(text, { all: true }) : false;
+}
+function counterTalkFirst(){
+  try { return !!(window.caAiFirst && caAiFirst()) && typeof intelAsk === 'function' && typeof setView === 'function' && typeof hbS === 'function'; }
+  catch (_){ return false; }
+}
+/* the Board, his tab turned to (pdTalkReopen), then the words as typed on that tab (intelAsk {typed}) */
+function counterTalkAsk(t){
+  const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave();
+  setView('dashboard');
+  let tries = 0;
+  const ask = () => {
+    if (document.getElementById('igd-input')){
+      try { if (typeof pdTalkReopen === 'function' && !(typeof pdTalkShows === 'function' && pdTalkShows())) pdTalkReopen(); } catch (_){}
+      try { intelAsk(t, { typed: true }); } catch (_){}
+      return;
+    }
+    if (++tries < 30) setTimeout(ask, 100);
+  };
+  setTimeout(ask, 0);
+  return true;
 }
 
 /* "/" — the places, most used first: the same rows the Board's list draws (caSlashRows) */
@@ -1149,7 +1174,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if (inPanel && t.closest('[data-cn-note],[data-cn-watch],[data-cn-req],[data-cn-need],[data-cn-setup],[data-cn-co]')) step();
     if ((el = t.closest('[data-cn-pop]'))){ counterPopTake(Number(el.getAttribute('data-cn-pop'))); return; }
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
-    if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterBoxFit(q); counterPopClose(); counterAsk(v); } return; }
+    if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterBoxFit(q); counterPopClose(); counterAsk(v, { typed: true }); } return; }
     if ((el = t.closest('[data-cn-ask]'))){ counterAsk(el.getAttribute('data-cn-ask')); return; }
     /* a note of yours and a request nobody holds: their own pages, landing ON
        the row (LAND ON IT — My notes' row, Requests' row), lit */
@@ -1169,7 +1194,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
         e.preventDefault(); const n = _cnPop.rows.length;
         _cnPop.on = (_cnPop.on + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; counterPopPaint(); return;
       }
-      if (e.key === 'Enter'){ e.preventDefault(); if (_cnPop){ counterPopTake(_cnPop.on); return; } const v = t.value; t.value = ''; counterBoxFit(t); counterAsk(v); return; }
+      if (e.key === 'Enter'){ e.preventDefault(); if (_cnPop){ counterPopTake(_cnPop.on); return; } const v = t.value; t.value = ''; counterBoxFit(t); counterAsk(v, { typed: true }); return; }
       if (e.key === 'Escape'){ if (_cnPop) counterPopClose(); else { t.value = ''; counterBoxFit(t); } }
       return;
     }
@@ -1196,4 +1221,4 @@ if (typeof document !== 'undefined' && !window._cnWired){
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
   ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
-  CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });
+  CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });

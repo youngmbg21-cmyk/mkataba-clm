@@ -48,7 +48,8 @@ const check = (name, pass, detail) => {
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q')); };
-    const counterAsk = async q => { await page.fill('#cn-q', q); await page.press('#cn-q', 'Enter'); };
+    /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
+    const counterAsk = async q => { await page.evaluate(x => window.counterAsk(x), q); };
     const onPaper = async id => { await page.evaluate(i => { setView('dashboard'); igAnalyze(i); }, id);
       return until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('igd-input') && !intel.busy, id, 10000); };
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */

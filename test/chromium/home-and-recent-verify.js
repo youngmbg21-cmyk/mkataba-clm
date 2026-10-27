@@ -64,7 +64,8 @@ const CONTRACTS = [
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
-    const ask = async word => { await page.fill('#cn-q', word); await page.press('#cn-q', 'Enter'); };
+    /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
+    const ask = async word => { await page.evaluate(w => counterAsk(w), word); };
     const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q')); };
     const menuOpen = () => page.evaluate(() => { const m = document.getElementById('dk-recent'); return !!m && !m.hidden && m.getBoundingClientRect().height > 0; });
     const openRecent = async () => { if (await menuOpen()) return true; if (!(await press('#dk-page', 'the page\'s name'))) return false; return !!await until(() => { const m = document.getElementById('dk-recent'); return m && !m.hidden && m.querySelector('.dk-r'); }); };

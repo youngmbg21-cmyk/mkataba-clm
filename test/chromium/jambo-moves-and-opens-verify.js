@@ -88,6 +88,8 @@ const BODY = TEXT.split('\n\n').map(p => /^\d+\./.test(p) ? `<h2>${p}</h2>` : `<
     const ask = async (sel, words) => {
       const box = await until(s => { const el = document.querySelector(s); return el && el.getBoundingClientRect().width > 0; }, sel, 8000);
       if (!box) return false;
+      /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
+      if (sel === '#cn-q'){ await page.evaluate(w => counterAsk(w), words); return true; }
       await page.fill(sel, words); await page.press(sel, 'Enter'); return true; };
     const face = () => until(() => state.panelOpen && typeof panelFace === 'function' ? panelFace() : null, null, 5000);
     await page.evaluate(() => { state.panelOpen = false; if (typeof applyPanelLayout === 'function') applyPanelLayout(); setView('counter'); });
