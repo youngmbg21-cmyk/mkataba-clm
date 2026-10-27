@@ -65,8 +65,14 @@ const check = (name, pass, detail) => {
     }, IMPORTED);
     const toExplorer = () => page.evaluate(() => { setView('dashboard'); hbSetFace('explorer'); intel.lenses = []; intel.history = []; window.__ai.length = 0; })
       .then(() => until(() => state.view === 'dashboard' && hbFace() === 'explorer' && !!document.getElementById('igd-input') && !intel.busy));
+    /* RE-POINTED 27 Oct 2026: the panel beside Contracts redraws once Discover's summary lands (its Overview
+       carries Discover), which can swap the ask box out between the fill and the Enter; wait, bounded, until
+       the same box has stood for half a second */
+    const settled = () => page.evaluate(async () => { const t0 = Date.now(); let box = document.getElementById('igd-input'), since = Date.now();
+      while (Date.now() - t0 < 6000) { await new Promise(r => setTimeout(r, 100)); const now = document.getElementById('igd-input');
+        if (now !== box) { box = now; since = Date.now(); } else if (box && Date.now() - since >= 500) return true; } return false; });
     const toPlace = () => page.evaluate(() => { regShowOnly([], ''); hbOpenContracts(); intel.history = []; window.__ai.length = 0; })
-      .then(() => until(() => !!document.getElementById('ct-place') && !!document.getElementById('igd-input') && !intel.busy));
+      .then(() => until(() => !!document.getElementById('ct-place') && !!document.getElementById('igd-input') && !intel.busy)).then(async ok => (await settled()) && ok);
     const ask = async q => { await page.fill('#igd-input', q); await page.press('#igd-input', 'Enter'); await page.waitForTimeout(400); await until(() => !intel.busy); };
     const mapLens = () => page.evaluate(() => (intel.lenses || []).filter(l => l.on !== false).map(l => ({ action: l.action, ids: (l.ids || []).slice().sort() })));
     const door = () => page.evaluate(() => { const b = document.querySelector('#ig-dock .ca-here [data-ca-act="herepage"]'); return b ? b.textContent.trim() : ''; });
