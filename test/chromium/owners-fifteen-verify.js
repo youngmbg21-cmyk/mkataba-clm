@@ -138,7 +138,9 @@ const check = (name, pass, detail) => {
        types. A person keeps their words — the redraw carries the live box's words and caret over — but a fill that
        resolved the OLD box writes into a box no longer on the page, and Enter then sent nothing. So the words are put
        in and read back from the box that is there now, bounded, before Enter. */
+    /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
     const typeAsk = async q => {
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); 
       for (let k = 0; k < 6; k++){
         await page.fill('#igd-input', q).catch(() => {});
         if (await page.evaluate(w => { const b = document.getElementById('igd-input'); return !!b && b.value === w && document.activeElement === b; }, q)) break;

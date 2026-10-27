@@ -161,9 +161,11 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
         dress: [cs.borderTopColor, cs.fontWeight, cs.backgroundColor, cs.color].join('|') }; }),
       first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#cn-needs .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
     check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'Ask Jambo, or type / for a place', JSON.stringify([head.h1, head.ph]));
-    check('1b the chips: the first owed row, then contracts · calendar · draft a new agreement — no upload, no "jambo\'s work"',
-      head.chips.length === 4 && head.chips[0].lead && head.chips[0].t === head.first && !!head.chips[0].door
-      && head.chips.slice(1).map(c => c.t).join('|') === 'contracts|calendar|draft a new agreement', JSON.stringify(head.chips));
+    /* RE-POINTED 27 Oct 2026 (owner: "remove the highlighted sign contract and add board as always an option to press
+       when you are in the home page"): no owed row as a chip; the Board always first */
+    check('1b the chips: board · contracts · calendar · draft a new agreement — no owed row, no upload, no "jambo\'s work"',
+      head.chips.length === 4 && !head.chips.some(c => c.lead || c.door)
+      && head.chips.map(c => c.t).join('|') === 'board|contracts|calendar|draft a new agreement', JSON.stringify(head.chips));
     /* RE-POINTED 20 Oct 2026 (Chambers): the hint line is not drawn — no .cn-hint under Needs you, no hint under the box */
     check('1c no hint line: no "each row\'s button opens its page" under Needs you, no hint under the box', head.hint.el === 0 && !head.hint.said, JSON.stringify(head.hint));
     check('1d the four chips wear one dress, as drawn (the lead is not louder)', head.chips.length === 4 && new Set(head.chips.map(c => c.dress)).size === 1, JSON.stringify(head.chips.map(c => c.dress)));
@@ -175,7 +177,8 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
        RE-POINTED 22 Oct 2026 (Round A, the owner: "make all of the buttons the same size"): every button of Needs you one width */
     check('11g the greeting large as drawn (28px, the title serif at its own weight); a row\'s name 14px; every Needs you button one width',
       !!type.h1 && type.h1 === '28px ' + type.wSerif && !!type.title && /Source Serif 4/.test(type.fam || '') && type.name === '14px' && type.btns.length === 1, JSON.stringify(type));
-    check('11h the approval answered for an away colleague leads, so it is the lead chip: "Unrestricted\'s approval"', head.chips[0] && head.chips[0].t === 'Unrestricted’s approval' && head.chips[0].door === 'approval', JSON.stringify(head.chips[0]));
+    /* RE-POINTED 27 Oct 2026 (no lead chip): the order is still read — the first owed row is that approval */
+    check('11h the approval answered for an away colleague leads the owed rows: "Unrestricted\'s approval"', head.first === 'Unrestricted’s approval', JSON.stringify(head.first) || JSON.stringify(head.chips[0]));
 
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk — the owner picked "The Legora Way"): Home draws Jambo's
        prepared pieces as rows of their own, three of each group, and "Show all N" lands on the Board's card,
@@ -425,9 +428,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       }
     } else check('7j the request is Jambo\'s row', false, 'no request piece');
     await toCounter();
-    if (await press('#cn-chips [data-cn-lead]', '11k the lead chip')) {
+    /* RE-POINTED 27 Oct 2026: no lead chip — the same door is the approval row's own button in Needs you */
+    if (await press('#cn-needs [data-cn-need="approval"]', '11k the approval row\'s button')) {
       const lit = await until(() => { const l = document.querySelector('#pd-signface .is-landed'); return l ? { gate: !!l.querySelector('#ap-approve'), stop: l.matches('[data-pd-road-stop]'), sa: l.id === 'sa-card', html: l.outerHTML.slice(0, 120) } : null; }, null, 10000);
-      check('11k the lead chip ("Unrestricted\'s approval") LANDS ON the approval it opens: Before you sign, the Approval gate lit with its Approve', !!lit && (lit.gate || lit.sa || lit.stop), JSON.stringify(lit));
+      check('11k the approval row\'s button LANDS ON the approval it opens: Before you sign, the Approval gate lit with its Approve', !!lit && (lit.gate || lit.sa || lit.stop), JSON.stringify(lit));
       await shot(page, 'main-23-approval-landed-1440x780');
     }
 

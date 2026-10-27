@@ -112,6 +112,9 @@ const ID = 'MK-DBJ1';
     const ask = async q => {
       await goPlace('contracts');
       await waitFor(page, () => !!document.querySelector('#ig-dock textarea'), 6000);
+      /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): typed on
+         Jambo's tab the words go to the AI; these are the free readers, so they type under Overview */
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } });
       await page.fill('#ig-dock textarea', q); await page.press('#ig-dock textarea', 'Enter');
       return waitFor(page, () => { const l = document.querySelector('.is-landed'); return state.view === 'team' && l ? l.id : null; }, 6000);
     };

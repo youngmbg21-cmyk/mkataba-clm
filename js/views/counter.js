@@ -1001,16 +1001,12 @@ function ndBundleGo(){
   if (typeof regShowOnly === 'function'){ regShowOnly(ids, _cnT('nd_bundle_said')); return true; }
   return false;
 }
-/* THE CHIPS, AS DRAWN ("Jonas's approval · contracts · calendar · draft a new
-   agreement"): what is owed first leads — the first row's short name, its
-   press the row's own door — then the three places. All four wear the same
-   plain pill (the drawing's; the lead is first, not louder). */
-function cnChipsHtml(rows){
+/* THE CHIPS UNDER THE BOX: the four places, the Board always first (owner, 27 Oct 2026: "remove the highlighted sign
+   contract and add board as always an option to press when you are in the home page" — the lead chip, the first row's
+   short name, is gone: Needs you right under it already carries that row and its button). All wear the same plain pill. */
+function cnChipsHtml(){
   const w = k => _cnT(k);
-  const first = (rows || [])[0];
-  const lead = first ? cnNeedShort(first) : '';
-  return (lead ? `<button type="button" class="cn-chip" data-cn-lead ${cnNeedDoorAttrs(first)}>${_cnE(lead)}</button>` : '')
-    + [w('nav_contracts').toLowerCase(), w('ca_w_calendar'), w('ca_wall_draft')].map(word => `<button type="button" class="cn-chip" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`).join('');
+  return [w('ca_w_board'), w('nav_contracts').toLowerCase(), w('ca_w_calendar'), w('ca_wall_draft')].map(word => `<button type="button" class="cn-chip" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`).join('');
 }
 /* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
    a page loaded without it (a test's one-file world) draws the bare parts */
@@ -1027,8 +1023,6 @@ function counterHtml(){
   const quiet = !D.n;
   const rows = quiet ? `<div class="cn-r"><div class="cn-w"><b>${_cnE(_cnT('cn_nothing'))}</b></div></div>` : ndHomeHtml(D);
   const sum = ndSumWords(D);
-  /* the lead chip: the first of your own rows that names one contract's act */
-  const lead = D.you.find(r => r.y);
   const open = quiet ? dkTabs().slice().sort((a, b) => (b.at || 0) - (a.at || 0)).filter(t => deskTabLabel(t.k)).slice(0, CN_PICK_UP) : [];
   const pick = open.length ? `<section class="cn-card"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('cn_pick_up'))}</span></header>${open.map(t =>
     `<div class="cn-r"><div class="cn-w"><b>${_cnE(deskTabLabel(t.k))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-dk-go="${_cnE(t.k)}">${_cnE(_cnT('cn_open'))}</button></div>`).join('')}</section>` : '';
@@ -1036,7 +1030,7 @@ function counterHtml(){
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
     <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
       <div class="cn-wrap">${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */}${_cnJbCard({ cls: 'cn-card-box', field: `<textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea>`, send: _cnJbSend('data-cn-send', _cnT('cn_ask')) })}<div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
-      <div class="cn-chips" id="cn-chips">${cnChipsHtml(lead ? [lead.y] : [])}</div></section>
+      <div class="cn-chips" id="cn-chips">${cnChipsHtml()}</div></section>
     <section class="cn-card cn-needs nd-home" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${D.n}</span>${sum ? `<span class="nd-sum">${_cnE(sum)}</span>` : ''}</header>${rows}</section>
     ${pick}</div></div>`;
 }

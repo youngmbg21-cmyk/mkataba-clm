@@ -199,12 +199,14 @@ const signIn = async (page, base, email, pass) => {
        "new contract" the sample contracts; both are work, so they go to Home's Jambo, who acts on them ---- */
     const inSettings = () => until(() => { if (window.closeModal) try { closeModal(); } catch (_) {}
       if (!document.getElementById('st-jb-q')) { setView('team'); return null; } return true; }, null, 15000);
-    const askIn = async q => { await inSettings(); await page.fill('#st-jb-q', q); await page.press('#st-jb-q', 'Enter');
+    /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): typed
+       on Settings' Jambo tab the words go to the chat; these steps are about the free readers, so they type under Overview */
+    const askIn = async q => { await inSettings(); await page.evaluate(() => { try { if (stTalkShows()) stTalkBack(); } catch (_) {} }); await page.fill('#st-jb-q', q); await page.press('#st-jb-q', 'Enter');
       return until(q => { const f = document.getElementById('igd-feed'); const t = f ? f.textContent.replace(/\s+/g, ' ') : '';
         return state.view === 'dashboard' && t.includes(q) ? t.slice(t.lastIndexOf(q)) : null; }, q, 8000); };
     const up = await askIn('upload a contract');
     check('7b. "upload a contract" in Settings\' box goes to Home\'s Jambo, who offers Upload a document', !!up && /Upload a document/.test(up), up);
-    const nw = await (async () => { await inSettings(); await page.fill('#st-jb-q', 'new contract'); await page.press('#st-jb-q', 'Enter'); return 'new contract'; })();
+    const nw = await (async () => { await inSettings(); await page.evaluate(() => { try { if (stTalkShows()) stTalkBack(); } catch (_) {} }); await page.fill('#st-jb-q', 'new contract'); await page.press('#st-jb-q', 'Enter'); return 'new contract'; })();
     /* RE-POINTED 24 Oct 2026 (one door, the Legora way): "new contract" is no longer a card in the chat —
        it opens the one New agreement sheet on Home, beside Jambo's panel */
     const nwSheet = await until(() => state.view === 'dashboard' && document.getElementById('na-root') && document.getElementById('ig-dock') ? true : null, null, 8000);

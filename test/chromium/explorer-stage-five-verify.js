@@ -64,7 +64,8 @@ const check = (name, pass, detail) => {
     while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
     return v; };
   const ask = async q => { const n = await page.evaluate(() => intel.history.length);
-    await page.fill('#igd-input', q); await page.click('#igd-go');
+    /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.fill('#igd-input', q); await page.click('#igd-go');
     await until(k => !intel.busy && intel.history.length >= k + 2, n); await page.waitForTimeout(300); };
   const said = () => page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = String((intel.history[intel.history.length - 1] || {}).text || ''); return d.textContent.replace(/\s+/g, ' ').trim(); });
   const press = async sel => { if (await page.locator(sel).count()) { await page.click(sel); return true; } return false; };

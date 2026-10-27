@@ -77,7 +77,7 @@ describe('f862 (2) every Jambo box hands its words to the queue', () => {
   });
   test('2b the chat window and side panel (aiSubmit, aiAskWords)', () => {
     assert.match(body('js/ai.js', 'async function aiSubmit('), /if\(ai\.busy\)\{[^\n]*jamboAskLater\(q, *\(\)=>ai\.busy, *w=>aiSubmit\(w\)\)/);
-    assert.match(body('js/ai.js', 'async function aiAskWords('), /if\(ai\.busy\)\{[^\n]*jamboAskLater\(q, *\(\)=>ai\.busy, *w=>aiAskWords\(w\)\)/);
+    assert.match(body('js/ai.js', 'async function aiAskWords('), /if\(ai\.busy\)\{[^\n]*jamboAskLater\(q, *\(\)=>ai\.busy, *w=>aiAskWords\(w(, *opts)?\)\)/);
   });
   test('2c the panel beside the lists (jlBusySay) and the list head (_lhLater)', () => {
     assert.match(body('js/views/inspector.js', 'function jlBusySay('), /jamboAskLater\(t, *_jlBusy, *w => jlAsk\(w\)\)/);

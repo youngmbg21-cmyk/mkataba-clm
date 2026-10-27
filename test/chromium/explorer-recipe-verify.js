@@ -55,7 +55,8 @@ const check = (name, pass, detail) => {
     return v; };
   /* typed and sent as a reader does, then waited on until the panel answers */
   const ask = async q => { const n = await page.evaluate(() => intel.history.length);
-    await page.fill('#igd-input', q); await page.click('#igd-go');
+    /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.fill('#igd-input', q); await page.click('#igd-go');
     await until(k => !intel.busy && intel.history.length >= k + 2, n); await page.waitForTimeout(300); };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });

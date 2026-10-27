@@ -2224,6 +2224,12 @@ async function calPlanAsk(q, ref){
   try{
     if(!(typeof API_MODE==='function'&&API_MODE())) throw Object.assign(new Error('needsKey'),{needsKey:true});
     const r=await api('ai/plan','POST',{ from, to, until, today:calToday(), ask, dates, events, dayStart:pref.dayStart, dayEnd:pref.dayEnd });
+    /* not about their time: the chat answers in the one conversation and takes them there (no plan is drawn) */
+    if(r&&r.kind==='elsewhere'){
+      _calPlan.busy=false; _calPlan.ask=''; _calPlan.blocks=[]; _calPlan.say=''; _calPlan.points=[]; calPlanRepaint();
+      if(typeof window.aiAskWords==='function'){ try{ await aiAskWords(ask,{ controls:true }); }catch(_){} }
+      calPlanRepaint(); return;
+    }
     _calPlan.seq++;
     /* an ANSWER is words (and lines), nothing to add; a PLAN is blocks, each
        left-out one with its reason */
@@ -2317,7 +2323,10 @@ function calWireOwn(){
      Home — a page, a contract's number, a draft, a send — he does here too
      (caAskAnywhere); planning time is this box's own job, for the rest. Enter
      and the drawn Ask button ask alike (round 16). */
+  /* JAMBO'S TAB READS WITH THE BRAIN FIRST (owner, 27 Oct 2026, the Board's rolled out): typed while his tab shows,
+     the planner reads it whole — words that are not about time it hands to the chat ('elsewhere') */
   const ask=()=>{ if(!inp) return; const v=inp.value; if(!String(v||'').trim()) return;
+    if(typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY)&&typeof window.caAiFirst==='function'&&caAiFirst()){ inp.value=''; calPlanAsk(v); return; }
     if(typeof caAskAnywhere==='function'&&caAskAnywhere(v,{cal:true})){ inp.value=''; return; } calPlanAsk(v); };
   if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ask(); } });
   document.getElementById('cal-plan-go')?.addEventListener('click',ask);

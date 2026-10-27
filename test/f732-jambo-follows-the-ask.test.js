@@ -124,7 +124,8 @@ describe('f732 (3) a question is answered in words, and nothing is added', () =>
     assert.match(prompt, /Tue 2026-12-15: Notice deadline/, 'a date two months out is seen');
     assert.match(prompt, /up to 2026-12-31/);
     assert.ok(prompt.includes('GONE THROUGH, NEVER AROUND'), 'the governance rule');
-    assert.deepEqual(body.tools.map(t => t.name).sort(), ['answer', 'propose_blocks']);
+    /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities … to all the jambos"): words not about time are handed to the chat (f950) */
+    assert.deepEqual(body.tools.map(t => t.name).sort(), ['answer', 'elsewhere', 'propose_blocks']);
     assert.equal(body.tool_choice.type, 'any', 'he chooses: an answer or a plan');
   });
   test('the horizon is 120 days, never further', async () => {

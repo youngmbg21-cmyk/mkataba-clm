@@ -2311,6 +2311,9 @@ async function intelAsk(qRaw, opts){
      jambo [is] where all questions go to AI and then also can take you to specific places in settings"; the AI's
      goto lands on the place or the setting); a chip, or the ✦ window handing Home a command, keeps its reader */
   if(!readied&&opts&&opts.typed&&igBoardTalkFirst()) return igBoardTalkAsk(q);
+  /* …and so does every other face's Jambo tab on Home (owner, 27 Oct 2026: "roll out the jambo capabilities from the
+     board's jambo to all the jambos across HaTi"): a contract's Dossier, the Contracts place, Explorer, the sheet */
+  if(!readied&&opts&&opts.typed&&igTalkFirst()) return igPageTalkAsk(q);
   if(readied){
     intel.history.push({role:'user', text:q});
     intel.busy=true; renderIntelDock(); updateIntelNote();
@@ -2585,13 +2588,28 @@ async function intelAsk(qRaw, opts){
 /* the Board's Jambo tab's one path (igBoardTalkFirst): the chat with the Board in its context, then what every
    chat answer on the Board gets — the next questions under the words, the AI's own door (goto), a set it names
    drawn on the Board with the reply written from what the Board now draws, its reading and the Right / Wrong marks */
-async function igBoardTalkAsk(q){
+async function igBoardTalkAsk(q){ return igTalkRun(q, ()=>intelChatAsk(q, { draw:true })); }
+/* the other faces' Jambo tab: each face's OWN brain, its own controls with it — a contract on the paper (or held) is
+   asked with its wording (igPaperAsk), any other question goes to the chat; Explorer's is the map's own (intelGraphAsk:
+   it regroups and narrows the map, and hands wording to the chat itself); the Contracts place and the sheet the chat,
+   with the page's controls (the list head's search, tabs, filters, saved views) */
+async function igPageTalkAsk(q){
+  const held=igHeldAskId(), paperId=igPaperUp()?intel.paper.id:null;
+  const face=(typeof window.hbFace==='function')?hbFace():'';
+  return igTalkRun(q, ()=>{
+    if(paperId) return igAsksThisPaper(q,paperId)?igPaperAsk(q):intelChatAsk(q, { controls:true });
+    if(held) return igAsksThisPaper(q,held)?igPaperAsk(q,held):intelChatAsk(q, { controls:true });
+    if(face==='explorer') return intelGraphAsk(q);
+    return intelChatAsk(q, { controls:true });
+  });
+}
+async function igTalkRun(q, run){
   const h0=intel.history.length, goSince=Date.now();
   const rdSnap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
   intel.lenses=(intel.lenses||[]).filter(l=>l.hb||l.action!=='filter');
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
-  try{ await intelChatAsk(q, { draw:true }); }
+  try{ await run(); }
   catch(e){ intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true}); }
   igNextUnderWords(h0);
   intel.busy=false;
@@ -2706,6 +2724,15 @@ function igBoardTalkFirst(){
   try{
     if(state.view!=='dashboard'||typeof window.hbFace!=='function'||hbFace()!=='board') return false;
     if(igHomePaperFace()===true||igPaperUp()||igHeldAskId()) return false;
+    if(!(window.caAiFirst&&caAiFirst())) return false;
+    return typeof window.pdTalkShows==='function'&&!!pdTalkShows();
+  }catch(_){ return false; }
+}
+/* every Home face's Jambo tab but the Board's (igBoardTalkFirst) and the Calendar's (its own planner, calWireOwn) */
+function igTalkFirst(){
+  try{
+    if(state.view!=='dashboard'||typeof window.hbFace!=='function') return false;
+    const f=hbFace(); if(f==='calendar'||f==='board') return false;
     if(!(window.caAiFirst&&caAiFirst())) return false;
     return typeof window.pdTalkShows==='function'&&!!pdTalkShows();
   }catch(_){ return false; }
@@ -3097,9 +3124,15 @@ async function intelChatAsk(q, opts){
     let ctx={ view:'intel' }; try{ if(typeof window.aiChatContext==='function') ctx=Object.assign(aiChatContext(), { view:'intel' }); }catch(_){ ctx={ view:'intel' }; }
     /* the Board's Jambo tab may DRAW (igBoardDrawn): the answer can carry the Board's own buttons */
     if(opts&&opts.draw) ctx.drawBoard=true;
+    if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
     const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
     if(opts&&opts.draw&&await igBoardDrawn(res, q)) return;
     intelPushChatResult(res, q);
+    if(opts&&opts.controls&&res&&Array.isArray(res.page)&&res.page.length&&typeof window.lhControlsRun==='function'){
+      let lines=[]; try{ lines=lhControlsRun(res.page)||[]; }catch(_){ lines=[]; }
+      const m=intel.history[intel.history.length-1];
+      if(lines.length&&m&&m.role==='assistant') m.text=String(m.text||'')+'<div class="ig-go-said">'+lines.map(igEsc).join('<br>')+'</div>';
+    }
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
     if(ids.length>=2 && typeof localCompareData==='function'){
@@ -10464,4 +10497,4 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 
 /* what the map shows, one reading (24 Oct 2026) */
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
-Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn });
+Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
