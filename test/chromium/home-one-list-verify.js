@@ -164,7 +164,7 @@ const CONTRACTS = [
         const card = h.closest('.hb-card');
         out.push({ card: card ? (card.id || card.className) : '?',
           gap: +(hb.right - xb.right).toFixed(1),
-          last: h.lastElementChild === x });
+          last: h.lastElementChild === x || (x.parentElement === h.lastElementChild && x.parentElement.lastElementChild === x) /* RE-POINTED 27 Oct 2026: a kept chart's × closes its tools group, the row's last */ });
       }
       return out;
     });

@@ -5895,6 +5895,13 @@ function hbDrawnPanelHtml(D, P){
 }
 /* the head's right side for a chart card: akey is the card's own (a panel's
    id, or 'focus'); where says which card it is ('board' | 'focus') */
+/* ONE WAY OFF A CARD (owner, 27 Oct 2026: "Make all charts use the exit shown in image 1"): every chart on the Board
+   carries the × at the top right that an opened chart closes with, beside its ⋯ — Remove from the board is no longer
+   a menu row (reverses 12 Oct's "at the foot of the menu"); a card given to you says "Take it off my board" */
+function hbCardXHtml(gift){
+  const w = _hbE(i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'));
+  return `<button type="button" class="hb-ib hb-x" data-hb-act="x" title="${w}" aria-label="${w}">${_hbX}</button>`;
+}
 function hbEdgeHtml(D, akey, where, p, gift){
   const M = _hbEdgeMeta.get(akey) || {}, P = hbPlan(D), mk = akey + '|' + where, board = where === 'board';
   const drawnOpen = _hbDrawnOpen === mk, moreOpen = _hbToolsMenu === mk;
@@ -5902,9 +5909,8 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + (drawnOpen ? `<div class="hb-dp" role="dialog" aria-label="${_hbE(i18t('hb_dp_btn'))}">${hbDrawnPanelHtml(D, P)}</div>` : '') + '</span>' : '';
   const table = M.canTable ? `<button type="button" class="hb-edge-b" data-hb-table="${_hbE(akey)}" aria-pressed="${!!M.tab}">${_hbE(i18t(M.tab ? 'hb_edge_chart' : 'hb_edge_table'))}</button>` : '';
   const k = _hbE(D.key);
-  /* THE MOST USED FIRST, THE ONE THAT TAKES AWAY LAST (owner, 12 Oct 2026):
-     Make bigger and Full screen lead the menu; Remove from the board stays
-     at the foot, on its own, where a slip cannot reach it */
+  /* THE MOST USED FIRST (owner, 12 Oct 2026): Make bigger and Full screen lead the menu; taking a card off the
+     Board is the × beside it (hbCardXHtml, 27 Oct 2026) */
   /* full screen is the biggest a chart gets: there, its way back is Back to opened */
   const items = (board ? _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p && p.big ? 'hb_p_small' : 'hb_p_big')) : _hbFull ? '' : _hbMi('data-hb-digbig', _HB_MI.big, i18t(hbS().digBig ? 'hb_p_small' : 'hb_p_big')))
     + (board ? _hbMi(`data-hb-fullkey="${k}"`, _HB_MI.full, i18t('hb_full_screen')) : _hbMi(`data-hb-full aria-pressed="${_hbFull}"`, _HB_MI.full, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
@@ -5923,11 +5929,10 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + (M.canTable ? (M.tab ? '' : _hbMi('data-hb-copy-img', _HB_MI.img, i18t('hb_copy_img'))) + _hbMi('data-hb-copy-tab', _HB_MI.tab, i18t('hb_copy_tab')) : '')
     + _hbMi(`data-hb-saveq="${k}"`, _HB_MI.save, i18t('hb_myq_btn'))
     + _hbMi(`data-hb-whatif="${k}" aria-pressed="${_hbWhatIf.has(D.key)}"`, _HB_MI.wi, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
-    + (board && p && hbMayVerify(p) ? _hbMi('data-hb-act="verify"', _HB_MI.ver, i18t('hb_ver_menu')) : '')
-    + (board ? '<hr>' + _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true) : '');
+    + (board && p && hbMayVerify(p) ? _hbMi('data-hb-act="verify"', _HB_MI.ver, i18t('hb_ver_menu')) : '');
   const more = `<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>';
-  return `<span class="hb-edge hb-open-tools" data-hb-copy-t="${_hbE(M.title || '')}" data-hb-copy-s="${_hbE(M.by || '')}" data-hb-copy-n="${M.n || 0}">${drawn}${table}${more}</span>`;
+  return `<span class="hb-edge hb-open-tools" data-hb-copy-t="${_hbE(M.title || '')}" data-hb-copy-s="${_hbE(M.by || '')}" data-hb-copy-n="${M.n || 0}">${drawn}${table}${more}${board ? hbCardXHtml(gift) : ''}</span>`;
 }
 /* a ready-made panel's ⋯ (11 Oct 2026, the artifact's card edge): its
    reading is HaTi's own (hp:<kind>), so what could explain it and asking
@@ -5937,15 +5942,13 @@ function hbKindToolsHtml(p, gift){
   const sb = (on, word) => `<button type="button" ${on ? '' : 'data-hb-act="split"'} aria-pressed="${on}" class="${on ? 'is-on' : ''}">${_hbE(word)}</button>`;
   const drawn = `<span class="hb-edge-w"><button type="button" class="hb-edge-b" data-hb-drawn="${_hbE(mk)}" aria-haspopup="dialog" aria-expanded="${drawnOpen}">${_hbE(i18t('hb_dp_btn'))}${_hbCaret}</button>`
     + (drawnOpen ? `<div class="hb-dp" role="dialog" aria-label="${_hbE(i18t('hb_dp_btn'))}"><div class="hb-dp-head">${_hbE(i18t('hb_dp_head'))}</div><div class="hb-dp-g"><div class="hb-dp-l">${_hbE(i18t('hb_rc_split'))}</div><div class="hb-dp-seg">${sb(!p.split, i18t('hb_sp_none'))}${sb(!!p.split, i18t('hb_p_split'))}</div></div></div>` : '') + '</span>';
-  /* the same order as a chart card's ⋯ (owner, 12 Oct 2026): Make bigger
-     first, Remove from the board last on its own */
+  /* the same order as a chart card's ⋯ (owner, 12 Oct 2026): Make bigger first; off the Board by the × (hbCardXHtml) */
   const items = _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p.big ? 'hb_p_small' : 'hb_p_big'))
     + '<hr>' + _hbMi(`data-hb-dd-on="${_hbE(key)}"${hbDdLive() ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}`, _HB_MI.why, i18t('hb_dd_btn'))
     + _hbMi(`data-hb-why-follow="${_hbE(key)}"`, _HB_MI.ask, i18t('hb_tip_ask'))
-    + (gift && gift.from ? '' : '<hr>' + _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…'))
-    + '<hr>' + _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true);
+    + (gift && gift.from ? '' : '<hr>' + _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…'));
   return `<span class="hb-edge">${drawn}<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
-    + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span></span>';
+    + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>' + hbCardXHtml(gift) + '</span>';
 }
 function hbPanelHtml(p, lens, gift){
   if (p.kind === 'view') return hbViewPanelHtml(p, lens, gift);
@@ -7932,7 +7935,9 @@ function hbShelfHtml(I){
     const chips = x.plain ? '' : (x.mine ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_mine', { n: _hbN(mineN) }))}</span>` : scope === 'mine' ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_co'))}</span>` : '');
     const tone = x.plain ? ' is-plain' : x.tone === 'warn' ? ' is-warn' : x.tone === 'good' ? ' is-good' : '';
     return `<article class="hb-ins${tone}" data-hb-ins-card="${_hbE(id)}">
-      ${chips ? `<div class="hb-ins-top">${chips}</div>` : ''}<div class="hb-ins-t">${_hbE(x.title)}</div>
+      ${chips ? `<div class="hb-ins-top">${chips}</div>` : ''}<div class="hb-ins-h"><div class="hb-ins-t">${_hbE(x.title)}</div>${''/* THE × AT THE TOP RIGHT
+        (owner, 27 Oct 2026: "give insights the × too"): the Board's one way off a card, the opened chart's own ×;
+        it lets the picture go (rests 30 days), so "Let it go" left the foot */}<button type="button" class="hb-ib hb-x hb-ins-x" data-hb-ins="go" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_letgo'))}" aria-label="${_hbE(i18t('hb_ins_letgo'))}">${_hbX}</button></div>
       <button type="button" class="hb-ins-pic" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_open_tip'))}" aria-label="${_hbE(x.title + ' — ' + i18t('hb_ins_open'))}">${hbInsPicHtml(x)}</button>
       <div class="hb-ins-f">${_hbE(x.say)}</div>${!x.plain && scope === 'mine' ? `<div class="hb-ins-why">${_hbE(hbInsWhy(x))}</div>` : ''}${_hbReadOpen.has('ins:' + id) ? hbReadSrcHtml('ins:' + id) : ''}
       <div class="hb-ins-acts">
@@ -7943,8 +7948,7 @@ function hbShelfHtml(I){
                this?" in place — two doors onto one question. The card's
                finding is its headline; Read more opens its reading here, the
                same block (hbReadSrcHtml), per sitting (_hbReadOpen).
-               hb_ins_why / hb_ins_why_q are inert in both books. */}<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE('ins:' + id)}" aria-expanded="${_hbReadOpen.has('ins:' + id)}">${_hbE(i18t(_hbReadOpen.has('ins:' + id) ? 'hb_head_less' : 'hb_ins_askwhy'))}</button>
-        <button type="button" class="hb-link hb-ins-go" data-hb-ins="go" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_letgo'))}">${_hbE(i18t('hb_ins_letgo_btn'))}</button></div></article>`; }).join('')}${calm}</div>`;
+               hb_ins_why / hb_ins_why_q are inert in both books. */}<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE('ins:' + id)}" aria-expanded="${_hbReadOpen.has('ins:' + id)}">${_hbE(i18t(_hbReadOpen.has('ins:' + id) ? 'hb_head_less' : 'hb_ins_askwhy'))}</button></div></article>`; }).join('')}${calm}</div>`;
 }
 /* A KEPT VIEW IS A PANEL: the question, its recipe, a name that stays true
    (the proposal's sentence was true the morning it was made). */
@@ -7972,7 +7976,7 @@ function hbViewPanelHtml(p, lens, gift){
   const given = gift && gift.sent ? `<span class="hb-given" title="${_hbE(gift.sent.note || '')}">${_hbE(i18t('hb_given', { who: gift.sent.toName || '', seen: i18t(gift.sent.seenAt ? 'hb_seen' : 'hb_not_seen') }))}<button type="button" data-hb-ungive="${_hbE(gift.sent.id)}" title="${_hbE(i18t('hb_take_back'))}" aria-label="${_hbE(i18t('hb_take_back'))}">${_hbX}</button></span>` : '';
   const from = gift && gift.from ? `<span class="hb-given is-from" title="${_hbE(gift.from.note || '')}">${_hbE(i18t('hb_from', { who: gift.from.fromName || '' }))}</span>` : '';
   const edge = D ? hbEdgeHtml(D, p.id, 'board', p, gift)
-    : `<span class="hb-edge"><button type="button" class="hb-edge-b" data-hb-act="x">${_hbE(i18t('hb_p_x'))}</button></span>`;
+    : `<span class="hb-edge">${hbCardXHtml(gift)}</span>`;
   return `<section class="hb-card hb-panel hb-view${p.big ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
     <header class="hb-ch">${hbStartBtnHtml(p.key, false)}<span class="hb-ch-l"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${hbVerBadgeHtml(p)}${tag}${from}${given}${M.by ? `<span class="hb-cs">${_hbE(M.by)}</span>` : ''}</span><span class="hb-grow"></span>
       ${edge}</header>
