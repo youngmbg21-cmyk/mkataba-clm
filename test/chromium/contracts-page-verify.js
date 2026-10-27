@@ -497,8 +497,9 @@ const check = (name, ok, detail) => {
         lfg: getComputedStyle(l).color, bfg: b ? getComputedStyle(b).color : null }; });
     const actAdd = await page.evaluate(ADD);
     const chipEdge = await page.evaluate(RESOLVE, '--chip-edge');
-    check('12d a filter in force stands as a chip, its value at a heavier weight and a darker ink than its label',
-      !!act && act.bw > act.lw && act.bfg !== act.lfg, JSON.stringify(act));
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('12d a filter in force stands as a chip, its value at a heavier weight than its label (both the ink)',
+      !!act && act.bw > act.lw && act.bfg === act.lfg, JSON.stringify(act));
     check('12e and "+ Filter" beside it stays resting, so the narrowing is legible',
       !!actAdd && actAdd.bc === ruleStrong && actAdd.bs === 'dashed', actAdd && `${actAdd.bc} ${actAdd.bs}`);
     /* RE-POINTED 20 Oct 2026 (Chambers, no dark mode) and 21 Oct 2026 (Part 8) */

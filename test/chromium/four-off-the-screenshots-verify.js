@@ -337,9 +337,10 @@ const SEED = () => {
       nonZero.length && zero.length
       && Math.max(...nonZero.map(r => r.top)) < Math.min(...zero.map(r => r.top)),
       { nonZero: nonZero.map(r => r.k), zero: zero.map(r => r.k) });
-    check('4c · a zero row stands down — its words take a lighter ink than a live row’s',
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('4c · a zero row wears the ink like a live row (its standing down is the bar it has no claim to, 4e–4f)',
       zero.length && nonZero.length
-      && lum(zero[0].titleInk) > lum(nonZero[0].titleInk) + 40,
+      && zero[0].titleInk === nonZero[0].titleInk,
       { zero: zero[0] && zero[0].titleInk, live: nonZero[0] && nonZero[0].titleInk });
     check('4d · and it is NOT hidden — "no contract has this" is a fact worth reading',
       zero.length >= 2, zero.map(r => r.k));

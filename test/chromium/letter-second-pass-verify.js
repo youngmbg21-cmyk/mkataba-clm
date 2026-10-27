@@ -150,7 +150,7 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
     await page.fill('#sh-summary', LONG); await pause(150);
     const B2 = await box();
     check('1a the note\'s label is a small grey line ("Your note · type here"), not a heading',
-      !!B0 && B0.label === 'Your note · type here' && B0.labelPx < B0.bodyPx && Number(B0.labelW) < 600 && JSON.stringify(B0.labelInk) !== JSON.stringify(B0.textInk), JSON.stringify(B0));
+      !!B0 && B0.label === 'Your note · type here' && B0.labelPx < B0.bodyPx && Number(B0.labelW) < 600 && JSON.stringify(B0.labelInk) === JSON.stringify(B0.textInk), JSON.stringify(B0)); /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
     check('1b the box hugs its words (or the hint while empty): a short note a short box, a long line wider, never the letter\'s whole width',
       !!B0 && !!B1 && !!B2 && B0.frameW < B0.bodyW * 0.6 && B1.frameW < B1.bodyW * 0.6 && B2.frameW > B1.frameW && B2.frameW <= Math.ceil(B2.bodyW * 0.7),
       JSON.stringify({ empty: B0 && B0.frameW, short: B1 && B1.frameW, long: B2 && B2.frameW, letter: B2 && B2.bodyW }));

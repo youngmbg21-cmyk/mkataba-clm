@@ -481,8 +481,9 @@ const BOX = sel => {
        on the name's own line, so a third line would print one of those twice. */
     /* RE-POINTED 21 Sep 2026: the labels are 12px regular; the note is the
        reference's micro line (11px) — both in a secondary ink, never the name's. */
-    check('6d · the small text is regular and secondary — labels 12px, the note micro',
-      dm.every(c => c.labels.every(x => x.size === '12px' && x.weight === '400' && x.color !== c.nm.color)
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('6d · the small text is regular — labels 12px in the ink, the note micro in the quiet grey',
+      dm.every(c => c.labels.every(x => x.size === '12px' && x.weight === '400' && x.color === c.nm.color)
         && c.note.size === '11px' && c.note.weight === '400' && c.note.color !== c.nm.color),
       dm[0] && { note: dm[0].note, label: dm[0].labels[0] });
     check('6e · the labels are sentence case, not the uppercase caps the panels use',

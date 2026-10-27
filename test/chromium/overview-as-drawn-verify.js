@@ -557,8 +557,9 @@ const SEC = (suffix) => {
       !!ty && ty.labelCase === 'none', ty ? String(ty.labelCase) : 'not measured');
     check('8d an ANSWERED field on the terms card is not bold', !!ty && Number(ty.answered) <= 400,
       ty ? 'value weight ' + ty.answered : 'not measured');
-    check('8e CONTROL — and stays in the page\'s own ink, not the label\'s grey',
-      !!ty && ty.answeredInk === ty.bodyInk && ty.answeredInk !== ty.labelInk,
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('8e CONTROL — and stays in the page\'s own ink (the label wears it too now, 12px and up)',
+      !!ty && ty.answeredInk === ty.bodyInk && ty.answeredInk === ty.labelInk,
       ty ? (ty.answeredInk + ' against body ' + ty.bodyInk + ' / label ' + ty.labelInk) : 'not measured');
     check('8f CONTROL — an em-dash is still the light one',
       !!ty && (ty.empty == null || Number(ty.empty) <= 400),

@@ -1036,8 +1036,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('9d the change id is the page\'s own text colour, and the section heading a label in the label shade',
      look.id === look.body && look.head !== look.body,
      `head ${look.head}, id ${look.id}, body ${look.body}`);
-  ck('9e …and the captions under them are NOT — only the signposts were lifted',
-     look.note !== look.body && look.meta !== look.body,
+  /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+  ck('9e …and the captions under them wear the ink too (12px and up): the signposts are told by weight, not a lighter grey',
+     look.note === look.body && look.meta === look.body,
      `note ${look.note}, meta ${look.meta}`);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 

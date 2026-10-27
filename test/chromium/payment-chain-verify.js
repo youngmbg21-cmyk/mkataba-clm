@@ -145,8 +145,9 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
     });
     check('a held row is SET BACK, never faded — an opacity is not an ink',
       faded.held === 1 && faded.live === 1, JSON.stringify(faded));
-    check('its quieting is the label INK, which keeps its contrast',
-      faded.ink !== faded.liveInk, `${faded.liveInk} → ${faded.ink}`);
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('its quieting keeps the ink (12px and up: no lighter grey for a settled row), which keeps its contrast',
+      faded.ink === faded.liveInk, `${faded.liveInk} → ${faded.ink}`);
 
     /* ============ 3. NOTHING IS DRAWN TWICE ============ */
     const all = [...chain.steps.map(s => s.what), ...chain.rows];
