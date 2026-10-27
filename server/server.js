@@ -2569,8 +2569,13 @@ function maskContractValues(c, moneyKeys) {
   if (Array.isArray(x.approvalChain)) x.approvalChain = x.approvalChain.map(st => (st && st.stamp) ? { ...st, stamp: stampMasked(st.stamp, keys) } : st);
   /* ...and the one ask record's own copy of what each question was of. */
   if (Array.isArray(x.asks)) x.asks = asksMasked(x.asks, keys);
+  /* ...and the trail's own lines: every line stays, its amount goes (historyLineMoneyless, js/metaclean.js) */
+  if (Array.isArray(x.audit)) x.audit = auditMasked(x.audit);
   x._valuesHidden = true;
   return x;
+}
+function auditMasked(trail) {
+  return trail.map(a => (a && typeof a.detail === 'string') ? { ...a, detail: historyLineMoneyless(a.detail) } : a);
 }
 /* The one call every read route makes before it responds. */
 function visibleContract(c, user, moneyKeys) {
@@ -4523,9 +4528,10 @@ app.get('/api/activity', auth, (req, res) => {
   const f = scopeFrag(folderScopeFor(req.user));
   const rows = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq DESC LIMIT 400`).all(...f.args);
   const feed = [];
+  const money = canViewValues(req.user);
   for (const r of rows) {
     let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
-    const audit = Array.isArray(c.audit) ? c.audit : [];
+    const audit = Array.isArray(c.audit) ? (money ? c.audit : auditMasked(c.audit)) : [];
     for (const a of audit.slice(-40)) {
       feed.push({ id: c.id, contractNo: c.contractNo || undefined, name: c.name, action: a.action || '', detail: a.detail || '', at: a.at || '', user: a.user || '' });
     }
@@ -6321,10 +6327,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   // already on the record.
   if (prev && Array.isArray(prev.audit) && prev.audit.length) {
     const incoming = Array.isArray(c.audit) ? c.audit : [];
-    const keptPrefix = incoming.length >= prev.audit.length &&
-      prev.audit.every((a, i) => stable(a) === stable(incoming[i]));
-    c.audit = keptPrefix ? incoming : prev.audit.concat(incoming.filter(a =>
-      !prev.audit.some(b => stable(a) === stable(b))));
+    /* a reader who may not see values was sent the trail without its amounts (auditMasked): their copy
+       is measured against that, and the stored lines stand, never the copies they were sent */
+    const sent = canViewValues(req.user) ? prev.audit : auditMasked(prev.audit);
+    const keptPrefix = incoming.length >= sent.length &&
+      sent.every((a, i) => stable(a) === stable(incoming[i]));
+    c.audit = keptPrefix ? prev.audit.concat(incoming.slice(sent.length)) : prev.audit.concat(incoming.filter(a =>
+      !sent.some(b => stable(a) === stable(b))));
   }
   /* A COLLEAGUE'S LOOK, ANSWERED (8 Oct 2026, the nine flow rules 3 and 8):
      the trail line is the SERVER's, written off the difference this save
@@ -26654,7 +26663,7 @@ function tplBlockRow(bl) {
    block reads byte-for-byte as it always did. */
 const tplBlockOut = bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '',
   ...(bl.format === 'rich' ? { format: 'rich' } : {}) });
-const { metaUnleak, historyLineHasMoney } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
+const { metaUnleak, historyLineHasMoney, historyLineMoneyless } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
 const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,

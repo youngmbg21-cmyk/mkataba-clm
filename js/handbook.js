@@ -172,7 +172,7 @@ const HANDBOOK_CHAPTERS = [
     how: [{ en: 'Press the new-request button, say what is needed and for whom; attach up to 3 files of 5 MB.', sv: 'Tryck på knappen för ny förfrågan, säg vad som behövs och för vem; bifoga upp till 3 filer på 5 MB.' },
       { en: 'The editors are emailed and the request shows on their Needs you. Each tab\'s number is the list behind it.', sv: 'Redaktörerna mejlas och förfrågan visas på deras Behöver dig. Varje fliks siffra är listan bakom den.' },
       { en: 'Open a request: the paper that fits is already suggested. Press {ui:ik_act_draft} and the one New agreement sheet opens with it.', sv: 'Öppna en förfrågan: papperet som passar är redan föreslaget. Tryck {ui:ik_act_draft} så öppnas det enda Nytt avtal-arket med det.' }],
-    tip: { en: 'A person who may not make new paper is sent here instead: their refusal names who lifts it, with Ask an admin.', sv: 'En person som inte får skapa nytt papper skickas hit i stället: avslaget säger vem som lyfter det, med Fråga en admin.' },
+    tip: { en: 'A person who may not make new paper is sent here instead: their refusal names who lifts it, with Ask an admin. An admin can set up request lanes in Settings that draft a plain request by themselves; a lane with a value limit shows it on its row.', sv: 'En person som inte får skapa nytt papper skickas hit i stället: avslaget säger vem som lyfter det, med Fråga en admin. En admin kan ställa in förfrågningsspår i Inställningar som skriver ut en enkel förfrågan av sig själva; ett spår med en värdegräns visar den på sin rad.' },
     cost: _hbkFree, doors: ['requests'], acts: [],
     words: { en: ['request', 'ask legal', 'raise a request', 'advice', 'intake'], sv: ['förfrågan', 'be juristerna', 'råd'] },
     shots: [
