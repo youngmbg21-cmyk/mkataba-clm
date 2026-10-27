@@ -100,7 +100,9 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     const ask = async () => {
       await page.evaluate(() => { if (window.deskGoCounter) deskGoCounter(); });
       await until(() => !!document.getElementById('cn-q'), null, 8000);
-      await page.fill('#cn-q', SAY); await page.keyboard.press('Enter');
+      /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip
+         asks (counterAsk) with the box focused as typing leaves it (unfocused, the panel stayed on Overview) */
+      await page.focus('#cn-q'); await page.evaluate(s => counterAsk(s), SAY);
       return until(() => !!document.getElementById('na-root') && !!document.querySelector('#ig-dock .ca-dr-said'), null, 12000); };
     const SHEET = () => { const panel = document.querySelector('[data-dlg-page]'), head = panel && panel.querySelector('.dlg-pg-head');
       const vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
