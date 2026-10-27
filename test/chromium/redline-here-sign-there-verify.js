@@ -92,7 +92,7 @@ const AGREED = [
         if (window.briefMarkRead) briefMarkRead(c);
         const hash = playbookHashOf(playbookText(c));
         c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
-        c.obligationsReadHash = hash; c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
+        c.obligationsReadHash = playbookHashOf(obligationsText(c)); c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
         state.settings = { ...(state.settings || {}), approvalRules: [] };
         persist(c); await flushSaves();
         renderWorkspace();

@@ -111,7 +111,7 @@ const signedOf = (cp, signer) => [
           if (window.briefMarkRead) briefMarkRead(c);
           const hash = playbookHashOf(playbookText(c));
           c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
-          c.obligationsReadHash = hash; c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
+          c.obligationsReadHash = playbookHashOf(obligationsText(c)); c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
           persist(c); await flushSaves();
           if (state.view !== 'workspace') openWorkspace(c.id, { room: true });
           renderWorkspace();

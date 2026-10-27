@@ -152,7 +152,7 @@ describe('f308 (2) — signCheck is the one reading of where it stands', () => {
   test('obligations: unread is a real answer, and so is "we do not know"', () => {
     const { win, c } = bench();
     assert.equal(win.signCheck(c).obligations.unread, null, 'nothing has ever read it');
-    c.obligationsReadHash = win.playbookHashOf(win.playbookText(c));
+    c.obligationsReadHash = win.playbookHashOf(win.obligationsText(c));
     assert.equal(win.signCheck(c).obligations.unread, false, 'read from this wording');
     c.upload.extractedText = TEXT + ' 4. The Supplier shall indemnify the Buyer against all third-party claims arising from any defect in the goods supplied under this Agreement.';
     assert.equal(win.signCheck(c).obligations.unread, true, 'and the wording moved after it');
@@ -318,7 +318,7 @@ describe('f308 (5) — the gate, advise by default (re-pointed 13 Sep 2026)', ()
     /* The sweep has run against this wording (13 Sep 2026: an unrun check
        holds) — so what it FOUND is the only question, and an ordinary
        departure is shown, not held. */
-    c.obligationsReadHash = hash;
+    c.obligationsReadHash = win.playbookHashOf(win.obligationsText(c));
     c.signCheck = { at: new Date().toISOString(), by: 'W', wordingHash: hash };
     assert.equal(win.signCheckBlocker(c), null);
   });
@@ -338,7 +338,7 @@ describe('f308 (5) — the gate, advise by default (re-pointed 13 Sep 2026)', ()
     const b = win.signCheckBlocker(c);
     assert.ok(b && b.n >= 1, 'it holds');
     c.playbook.verdicts[0].accepted = { by: 'W', at: new Date().toISOString(), why: 'Traded.' };
-    c.obligationsReadHash = win.playbookHashOf(win.playbookText(c));
+    c.obligationsReadHash = win.playbookHashOf(win.obligationsText(c));
     assert.equal(win.signCheckBlocker(c), null, 'and lets go once it is settled');
   });
   test('it is one row in signBlockers, never a fourth kind of gate', () => {

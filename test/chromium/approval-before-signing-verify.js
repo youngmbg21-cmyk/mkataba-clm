@@ -127,7 +127,7 @@ let H;
         contractBlankSet(c, b.key, b.type === 'date' ? '2026-10-01' : 'Stated', { quiet: true, hold: true }));
       const hash = playbookHashOf(playbookText(c));
       c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
-      c.obligationsReadHash = hash;
+      c.obligationsReadHash = playbookHashOf(obligationsText(c));
       c.compliance = {};
       /* No value rule in the way — the workspace's legacy 5M default would
          add an admin's step this file is not about (signing-flow-verify's
@@ -360,7 +360,7 @@ let H;
          press Run for — so what is left holding is the approval alone. */
       const hash = playbookHashOf(playbookText(c));
       c.playbook = { ...(c.playbook || {}), wordingHash: hash };
-      c.obligationsReadHash = hash;
+      c.obligationsReadHash = playbookHashOf(obligationsText(c));
       persist(c); await flushSaves();
       renderSignSide(c); renderSignButton(c);
     });
