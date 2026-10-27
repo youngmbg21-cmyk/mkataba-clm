@@ -3669,7 +3669,7 @@
   .st-cr .st-side-body[hidden]{ display:none; }
   /* Jambo's face */
   .st-cr .st-jb{ flex:1; min-height:0; display:flex; flex-direction:column; }
-  .st-cr .st-jb-feed{ flex:1; min-height:0; overflow:auto; background:var(--color-chat-bg); padding:12px; display:flex; flex-direction:column; gap:10px; }
+  .st-cr .st-jb-feed{ flex:1; min-height:0; overflow:auto; background:var(--color-chat-bg); padding:16px; display:flex; flex-direction:column; gap:10px; }
   /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the feed's two views, the landing and the conversation, one at a time */
   /* each view is no box of its own (display:contents): its rows sit in the feed's own column exactly as before the flip, so the page paints nothing new */
   .st-cr .st-jb-feed > .st-jb-land, .st-cr .st-jb-feed > .st-jb-talk{ display:contents; }
@@ -14590,6 +14590,9 @@
   .jov-after{margin:18px 0 0;display:flex;flex-direction:column;gap:12px;min-width:0;}
   /* Home's panel already pads its feed (14px): the Overview adds the 2px that makes 16 inside (16PX INSIDE EVERY CARD) */
   #ig-dock .jl-words.is-ov{padding:2px 2px 4px;}
+  /* EVERY TAB IN A JAMBO PANEL'S HEAD SHOWS THE HAND, lit or not, and so does its bin (owner, 27 Oct 2026: "when the
+     cursor hovers over overview, the cursor does not turn into a hand"); a shut tab (is-shut) keeps its arrow */
+  :is(#ig-dock, #ins-panel, #mig-side, #st-side, #cal-plan) :is(.pd-tab, .jl-tab, .st-side-tab, [data-st-overview], [data-jb-bin]):not(.is-shut){cursor:pointer;}
   .jl-say{display:flex;align-items:flex-start;gap:10px;}
   .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
   /* NO FACE IN THE THREAD (owner, 20 Oct 2026): on a computer, Jambo's small

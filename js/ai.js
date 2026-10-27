@@ -2656,7 +2656,10 @@ function aiGotoRun(g, q){
   }
   if(!(a&&a.kind==='go')){ if(typeof window.jmGotoAct!=='function') return false; a=jmGotoAct(g, q); }
   if(!a) return false;
-  const card=a.kind!=='go'||!!a.missing||(Array.isArray(window.JM_CARD_PLACES)&&JM_CARD_PLACES.includes(a.place));
+  /* A CARD IS WHAT WAITS FOR A PRESS, by the one rule caGo itself asks (caIsCardWord): "draft" was on Jambo's map's
+     own list, so on Home he said "I've opened New agreement beside me" and opened nothing (owner, 27 Oct 2026) —
+     an editor's draft opens the sheet, a viewer's is the card with its refusal */
+  const card=a.kind!=='go'||!!a.missing||(typeof window.caIsCardWord==='function'?caIsCardWord(a.place):(Array.isArray(window.JM_CARD_PLACES)&&JM_CARD_PLACES.includes(a.place)));
   const onHome=typeof state!=='undefined'&&state&&state.view==='dashboard'&&typeof intel!=='undefined';
   if(onHome){
     const line=a.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(a):i18t('ca_intro_job');
@@ -6034,7 +6037,7 @@ function aiDoorFace(){
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
 Object.assign(window,{ AI_HANDBOOK_RULE,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
