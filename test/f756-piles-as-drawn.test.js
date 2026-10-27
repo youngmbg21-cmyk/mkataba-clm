@@ -354,7 +354,8 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     assert.match(fnBody(CE, 'ceRisksOn'), /if \(ceRowMode\(\)\) return true;/, 'the Risks tab always drawn from a row');
     const lane = fnBody(CE, 'ceRenderLane');
     assert.doesNotMatch(lane, /ceRowCardsHtml\(\)/);
-    assert.match(lane, /lane\.innerHTML = \(_cePrep \? '' : ceLadderCardHtml\(\)\) \+ _ceThread\.map\(ceTurnHtml\)/);
+    /* RE-POINTED 27 Oct 2026 (the Legora way): the same turns, each run of his headed by his name (ceTurnsWithWho) */
+    assert.match(lane, /lane\.innerHTML = \(_cePrep \? '' : ceLadderCardHtml\(\)\) \+ ceTurnsWithWho\(_ceThread\.map\(ceTurnHtml\), _ceThread\)/);
     assert.doesNotMatch(CE, /const sc = ceRowStdCard\(\)/, 'no standard\'s card pushed at the open');
     assert.doesNotMatch(CE, /ce-rowmode \.ce-ah \.sp\{display:none\}|ce-rowmode #ce-pick\{display:none\}/);
   });
