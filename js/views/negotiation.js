@@ -22445,16 +22445,27 @@ function rlRowReadMoreHtml(c, ch, side){
   const R = rlRowReadOf(c, ch, side); if (!R || !R.more) return '';
   return rlFaceMark(`<button type="button" class="rl-edit rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(i18t('rl_read_why_cost'))}">${_ne(i18t('rl_read_more'))}</button>`);
 }
-/* "Why?" asks Jambo in the conversation beside the paper: the words go through
-   his box's one door (intelAsk), which spends the one call the title says */
+/* "Ask Jambo more" asks the CLAUSE EDITOR's Jambo (owner, 27 Oct 2026: "it is taking me to the wrong jambo. I believe
+   it should be taking me to the editor jambo"): the editor opens on this change as Counter opens it, from the row, with
+   the card's reading as Jambo's first line and the question asked there as a question — that Jambo already holds the
+   clause, our playbook line and what we settled before (ceReadList), so the answer stands on what the card said. One
+   call, as the title says. Where the editor does not fit (rlEditorTakesIt) the words go to the conversation beside the
+   paper through his box's one door (intelAsk), as before. */
 function rlRowReadAsk(cid, chId){
   const c = (typeof getContract === 'function') ? getContract(cid) : null;
   const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
-  if (!c || !ch || typeof window.intelAsk !== 'function') return false;
+  if (!c || !ch) return false;
   let j = null; try { j = rlpJudge(c, ch); } catch (_) { j = null; }
   const V = j && (j.verdict === 'review' && rlPlainReasonOf(ch) ? { label: i18t('rp_v_look') } : RLP_VERDICTS[j.verdict]);
   const clause = String((typeof clauseNameShown === 'function' ? clauseNameShown(ch.clauseLabel || '') : '') || ch.clauseLabel || '').trim();
-  window.intelAsk(i18t('rl_read_why_q', { verdict: V ? V.label : '', clause }));
+  const q = i18t('rl_read_why_q', { verdict: V ? V.label : '', clause });
+  if (ch.clauseId && rlEditorTakesIt('owner')){
+    let R = null; try { R = rlRowReadOf(c, ch, 'owner'); } catch (_) { R = null; }
+    const said = R ? [R.label, R.why].filter(Boolean).join(': ') : '';
+    return !!rlWithEditorDoor(c, d => d.open(String(ch.clauseId), { changeId: String(ch.id), fromRow: true, askWhy: { q, said } }));
+  }
+  if (typeof window.intelAsk !== 'function') return false;
+  window.intelAsk(q);
   return true;
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._rlReadWhyWired){

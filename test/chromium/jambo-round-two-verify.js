@@ -99,10 +99,25 @@ const THIRTY = 'Invoices are payable within thirty (30) days.';
     check(!!(read && read.painted && read.why), '1b it is painted, with Ask Jambo more on its card', read);
     check(!!(read && /Escalate|Push back|Take it|Read it/.test(read.text) && read.text.length > 20), '1c it says the verdict and its reason', read && read.text);
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-row-read.png') });
+    /* RE-POINTED 27 Oct 2026 (owner: "it is taking me to the wrong jambo. I believe it should be taking me to the
+       editor jambo"): the press opens the clause editor on this change, from the row, with the card's reading as
+       Jambo's first line, and the question is asked THERE — not in the conversation beside the paper. */
     const n0 = await drive(() => intel.history.length, null, 0);
+    const readSaid = await drive(() => { const r = document.querySelector('#ig-dock [data-rl-row-read] .rl-card-read-v'); return r ? r.textContent.trim() : ''; }, null, '');
+    /* the fixture's 'cl_pay' names no clause on its plain-text paper (one clause, stamped with its own id); the
+       editor opens a REAL clause, so the change is put on the paper's own, as every filed change is */
+    await drive(() => { const c = getContract('MK-L1'), cl = (negoClauseList(c) || [])[0]; if (cl) c.changes.find(x => x.id === 'L1').clauseId = cl.clauseId; }, null, null);
     await drive(() => document.querySelector('#ig-dock [data-rl-read-why]').click(), null, null);
-    const asked = await until(P, n => intel.history.length > n && intel.history.some(m => m && m.role === 'user' && /^Why do you say/.test(String(m.text || ''))), n0, 8000);
-    check(asked, '1d Why? hands the question to Jambo\'s conversation');
+    const asked = await until(P, () => { const lane = document.querySelector('#clause-editor #ce-lane'); return !!(lane && /Why do you say/.test(lane.innerText)); }, null, 8000);
+    check(asked, '1d Ask Jambo more opens the clause editor and asks the question in its Jambo');
+    const ed = await drive(() => { const lane = document.querySelector('#clause-editor #ce-lane'), pg = document.getElementById('clause-editor');
+      return { lane: lane ? lane.innerText.replace(/\s+/g, ' ') : '', fromRow: !!(pg && pg.classList.contains('ce-rowmode')) }; }, null, {});
+    check(!!readSaid && ed.lane.indexOf(readSaid) >= 0 && ed.lane.indexOf(readSaid) < ed.lane.indexOf('Why do you say'), '1e the card\'s reading is Jambo\'s first line there, before the question', { readSaid, lane: ed.lane.slice(0, 300) });
+    check(ed.fromRow, '1f it opens as a Redlines row\'s door does, with its way back to Redlines');
+    const chatN = await drive(() => intel.history.filter(m => m && m.role === 'user' && /^Why do you say/.test(String(m.text || ''))).length, null, -1);
+    check(chatN === 0 && n0 >= 0, '1g and the conversation beside the paper is not asked', chatN);
+    await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-ask-more-editor.png') });
+    await drive(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); }, null, null);
 
     /* ============ 2 · AFTER THE SIGNATURE ============ */
     await drive(() => { try { localStorage.removeItem('hati.v1.jbSigned'); } catch (_) {} pdOpenOnHome('MK-S1', 'copilot'); }, null, null);
