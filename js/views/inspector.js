@@ -1233,6 +1233,7 @@ function jlHeadHtml(){
     <button type="button" class="pd-tab jl-tab jl-talk-tab" data-jl-talk title="${esc(i18t('pd_tab_copilot'))}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : esc(i18t('pd_tab_copilot'))}</button>
     ${''/* NO PAGE NAME BESIDE THE TABS (owner, 26 Oct 2026: "on the side panel next to the Jambo tab you have the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): the page's or the chosen row's word is no longer drawn here */}
     <span class="jl-sp"></span>
+    ${''/* THE BIN (owner, 27 Oct 2026): the one builder every Jambo tab carries; jlTalkPaint shows it with the conversation */}${typeof jamboBinHtml === 'function' ? jamboBinHtml(false) : ''}
     ${''/* NO "‹ Overview" BESIDE THE OVERVIEW TAB (Round 2, owner's yes 24 Oct 2026): it said what the tab
         says and squeezed the page's own word to one letter; the tab is the way back */}
     <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-jl-fold aria-expanded="true" title="${esc(fold)}" aria-label="${esc(fold)}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
@@ -1446,6 +1447,7 @@ function jlTalkPaint(host){
   if (tab){ tab.hidden = false; tab.classList.toggle('on', on || solo); }
   if (home){ home.hidden = solo; home.classList.toggle('on', !on); }
   if (word) word.hidden = solo;
+  if (typeof jamboBinSync === 'function') jamboBinSync(host, on || solo);
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
 }
 /* words asked here: the panel turns to the conversation, the landing kept */
@@ -1457,6 +1459,14 @@ function jlTalkOpen(){
   _jlTalk.seen = _jlAiLen();
   jlTalkPaint(host);
   return true;
+}
+/* THE JAMBO TAB PRESSED (owner, 21 Oct 2026: "a page draws the whole conversation"; found missing 27 Oct 2026):
+   the feed was drawn only when a new answer landed here, so the press showed his greeting alone; it now draws
+   what was said on any page (renderAIFeed: one copy on the page at a time) */
+function jlTalkPress(){
+  if (!jlTalkOpen()) return;
+  if (typeof renderAIFeed === 'function' && _jlAiLen()) try { renderAIFeed(); } catch (_){}
+  jlTalkPaint();
 }
 /* asked by the feed's painter (renderAIFeed): new words open the view; the
    page's conversation begins at `from` */
@@ -1761,7 +1771,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if (!host) return;
     if ((el = t.closest('[data-jl-fold]'))){ jlFoldSet(true); return; }
     if ((el = t.closest('[data-jl-door]'))){ jlFoldSet(false); return; }
-    if ((el = t.closest('[data-jl-talk]'))){ if (jlTalkShows()) jlTalkBack(); else jlTalkOpen(); return; }
+    if ((el = t.closest('[data-jl-talk]'))){ if (jlTalkShows()) jlTalkBack(); else jlTalkPress(); return; }
     if ((el = t.closest('[data-jl-back]')) || (el = t.closest('[data-jl-home]'))){
       /* the landing's own tab pressed while the panel talks is its way back, as left */
       if (jlTalkShows()){ jlTalkBack(); return; }
@@ -1800,4 +1810,4 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
   JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
-  JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlGreetPut, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });
+  JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlGreetPut, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkPress, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

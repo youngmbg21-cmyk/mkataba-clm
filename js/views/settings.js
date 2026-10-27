@@ -3427,6 +3427,7 @@ function stJbTalkPaint(){
   const ov=document.getElementById('st-side-tab-jambo'), tk=document.querySelector('#st-side [data-st-talk]');
   if(ov){ ov.classList.toggle('is-off',on); ov.setAttribute('aria-current',String(!on)); }
   if(tk){ tk.hidden=false; tk.classList.toggle('is-off',!on); tk.setAttribute('aria-current',String(on)); }
+  if(typeof jamboBinSync==='function') jamboBinSync(document.getElementById('st-side-head'),on||solo);
   if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
 }
 /* the newest turn read from its first line (jamboFeedLand, owner 20 Oct 2026) */
@@ -3508,6 +3509,9 @@ function stSideWord(){
   }
   return i18t(stIsAdmin()&&settingsTab()==='company'?'st_side_company':'st_side_you');
 }
+/* THE BIN (owner, 27 Oct 2026: "in settings there is no trash button to clear history"): the one builder every
+   Jambo tab carries (jamboBinHtml), shown with the conversation; stJbTalkPaint keeps it in step */
+function stBinHtml(talk){ return (typeof jamboBinHtml==='function')?jamboBinHtml(!!talk&&typeof jamboConvo==='function'&&jamboConvo().length>0):''; }
 function stSideHeadHtml(){
   /* Overview wears a plain mark; his face is the Jambo tab's (19 Oct 2026) */
   const face=`<span class="st-side-ic st-side-mark" aria-hidden="true">\u25A6\uFE0E</span>`;
@@ -3521,10 +3525,10 @@ function stSideHeadHtml(){
      Overview; pressed it opens the conversation, pressed again it goes back */
   /* ONE WINDOW (stSolo): nothing to flip between — his one tab "Jambo" (his sign and name), no Overview, no word */
   if(stSolo()){ const jb1=esc(i18t('pd_tab_copilot'));
-    return `<span class="st-side-tab st-side-talk" aria-current="true" title="${jb1}">${jbFace}<span>${jb1}</span></span><span class="st-side-sp"></span>${fold}`; }
+    return `<span class="st-side-tab st-side-talk" aria-current="true" title="${jb1}">${jbFace}<span>${jb1}</span></span><span class="st-side-sp"></span>${stBinHtml(true)}${fold}`; }
   const talk=stTalkShows();
   const jb=esc(i18t('pd_tab_copilot'));
-  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-sp"></span>${fold}`;
+  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-sp"></span>${stBinHtml(talk)}${fold}`;
   /* NO PAGE NAME BESIDE THE TABS (owner, 26 Oct 2026: "on the side panel next to the Jambo tab you have the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): the page's word (stSideWord) is no longer drawn beside the tabs */
 }
 function stSideHtml(){

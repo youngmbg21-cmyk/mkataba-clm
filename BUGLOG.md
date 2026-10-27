@@ -21799,3 +21799,14 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## Fixed — 27 Oct 2026 (the owner's two calls from the morning report)
 - FIXED: the history trail showed amounts ("Approved … for KES 5M") to people who may not see money. They now see every line without its amount, on the contract and in the activity feed; their saves leave the stored lines as they were (f948). The owner picked "Drop the amount".
 - FIXED: a request lane's value limit was kept but shown nowhere. The lane's row in Settings now says "Value limit · KES 5M"; a lane without one shows nothing (lane-limit-verify). The owner said yes to the line.
+
+## Fixed — 27 Oct 2026 (the owner's screenshots: every Jambo panel alike, and the Handbook's last four pictures)
+- FIXED: Calendar's Overview words stood 2px from the panel's edge — Home's own rule for its panel won the cascade; Settings' stood 12px. Both stand 16px now (jambo-panels-alike-verify 1).
+- FIXED: Settings' and Calendar's Overview tab showed an arrow, not the hand; every tab in every Jambo panel's head shows the hand now, lit or not (2).
+- FIXED: the list pages', Import's and Calendar's Jambo tab showed only his greeting, not the one conversation; the press draws it now (3).
+- FIXED: only Home's panel had the bin to clear the conversation; every panel's Jambo tab carries it now, one builder (jamboBinHtml) (4). aiHostsRepaint was read by name but never published; it is now.
+- FIXED: asked by the AI to draft, Jambo said "I've opened New agreement beside me" and opened nothing ("draft" was on his map's card list); the AI's move asks the same card rule a typed one does (caIsCardWord), so the sheet opens (5, 6).
+- FIXED: the chart check's offline-bars half was never exercised; a second check refuses the chart library and requires the bars (analytics-verify).
+- FIXED: Handbook chapters 3.6, 4.4, 5.5.8 and 5.5.9 said "No picture"; the example world now has a colleague in the room holding a clause, a contract out for signature elsewhere, a fourth services agreement, and a settled round with Nandi Dairy, and each chapter has its pictures.
+- Noticed, not fixed (27 Oct 2026): MK-A2's example changes name clause ids (c1, c2) its paper does not have, so Counter on them says "That clause is no longer in the document" in the test worlds; for that reason 5.5.9 has no picture of "What worked before" in the editor.
+- Noticed, not fixed (27 Oct 2026): the tidy sweep's "16px inside every card" did not catch Calendar's 2px or Settings' 12px Jambo panel; it does not measure the panel's own Overview.

@@ -8403,7 +8403,7 @@ function renderIntelDock(){
       <span class="flex-1"></span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
-      ${say&&msgs&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      ${''/* THE BIN: the one builder every Jambo tab carries (jamboBinHtml); Home's keeps its id and its own press below */}${say&&msgs&&!(window.naSheetUp&&naSheetUp())?(typeof window.jamboBinHtml==='function'?jamboBinHtml(true,'igd-history-clear'):`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`):''}
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${''/* ONE TRAIL (owner, 19 Oct 2026): while a face is up, one line under the tabs — its one back, then where you are */}${(typeof window.pdTrailHtml==='function')?pdTrailHtml():''}

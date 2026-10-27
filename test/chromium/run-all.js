@@ -82,11 +82,11 @@ const KNOWN_RED = {
      the library is served by the workspace itself (vendor/README.md), so the
      canvas half now passes with NO outbound network at all — which is the
      whole point of that change and is why this file is worth more than it was.
-     WHAT IS STILL BROKEN, and it is not this change's to fix: the fallback
-     half looks for `div[style*="border-radius:999px"]`, a pill-shaped CSS bar
-     that SQUARE CORNERS EVERYWHERE (20 Aug 2026) squared away, so that
-     selector matches nothing anywhere. The offline fallback it was written to
-     guard is still unguarded — logged in BUGLOG under "Noticed, not fixed". */
+     THE FALLBACK HALF IS ASKED ON ITS OWN SINCE 27 Oct 2026 (owner's list,
+     item 11): the bars are found by their shape (a 7px track, re-pointed
+     23 Aug), and a second check refuses the chart library in the page and
+     requires the cards to fall back to them, so the offline fallback is
+     guarded whether or not the canvases draw. */
 };
 
 /* NOT A TEST. These live in the same folder and are run by hand for their
