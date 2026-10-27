@@ -148,6 +148,8 @@ const check = (name, pass, detail) => {
     check('5a a question that mentions a template is not sent to the template adviser', !!q1 && !q1.some(a => a.p === 'ai/template'), JSON.stringify(q1));
     await page.evaluate(() => { window.__asked.length = 0; });
     await until(() => !intel.busy);
+    /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } });
     await page.fill('#igd-input', 'Which template should I start from for a supplier deal?');
     await page.press('#igd-input', 'Enter');
     const q2 = await until(() => !intel.busy && window.__asked.length ? window.__asked.slice() : null, null, 10000);

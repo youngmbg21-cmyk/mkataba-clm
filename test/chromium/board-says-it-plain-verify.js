@@ -83,6 +83,8 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
   const ask = async q => {
     const n0 = await page.evaluate(() => (window.intel && intel.history ? intel.history.length : 0));
     const p0 = await page.evaluate(() => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length);
+    /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } });
     await page.fill('#igd-input', q);
     await page.keyboard.press('Enter');
     await until(page, n0 => !intel.busy && intel.history.length > n0, n0, 15000);

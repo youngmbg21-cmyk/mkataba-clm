@@ -75,6 +75,8 @@ const CONTRACTS = [
     await page.evaluate(() => setView('dashboard'));
   };
   const ask = async (page, q) => {
+    /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
+    await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } });
     await page.fill('#igd-input', q); await page.keyboard.press('Enter');
   };
   try {

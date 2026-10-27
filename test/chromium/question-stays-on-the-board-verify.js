@@ -58,6 +58,10 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
 
     console.log('\nB · a trip that WAS asked for still goes: "what needs you is on Home" (board-as-drawn 5d/5f)');
+    /* RE-PINNED 26 Oct 2026 (owner: the Board's Jambo tab is a trial where the brain reads first, igBoardTalkFirst):
+       A's answer turned the panel to his tab, so the free trip is asked from Overview, one press back */
+    if (await page.evaluate(() => pdTalkShows())) await page.click('#ig-dock [data-pd-talk]');
+    check('B0 Overview is in front again', !!(await until(() => !pdTalkShows() && !!document.getElementById('igd-input'))));
     ai.reset();
     await page.fill('#igd-input', 'take me to what needs me'); await page.click('#igd-go');
     const B = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs') ? state.view : null, null, 10000);
