@@ -313,9 +313,11 @@ describe('f458 (11) — the x that closes a card is in its right corner', () => 
        cards that are not kept charts (Copilot's work, the opened card). */
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the card under Your book is all of Needs you and
        never closes (work owed is not hidden), so the opened card's x is the one corner x left */
+    /* RE-POINTED 27 Oct 2026 (owner: "Make all charts use the exit shown in image 1"): every chart kept on the Board
+       wears the opened card's corner × (ONE builder, hbCardXHtml), no Remove row in its ⋯ */
     const xs = (BOARD.match(/class="hb-ib hb-x"/g) || []).length;
-    assert.equal(xs, 1, 'expected one corner x button, found ' + xs);
-    assert.equal((BOARD.match(/_hbMi\('data-hb-act="x"'/g) || []).length, 2, 'both kinds of kept card remove from their ⋯');
+    assert.equal(xs, 2, 'the opened card\'s x and the one builder for every kept card, found ' + xs);
+    assert.equal((BOARD.match(/_hbMi\('data-hb-act="x"'/g) || []).length, 0, 'no kept card removes from its ⋯');
     for (const door of ['data-hb-crumb="-1"'])
       assert.ok(new RegExp('class="hb-ib hb-x"[^>]*' + door.replace(/"/g, '"')).test(BOARD)
         || new RegExp(door.replace(/"/g, '"') + '[^>]*class="hb-ib hb-x"').test(BOARD),
