@@ -180,7 +180,7 @@ function hbkCss(){
   #hbk-page .hbk-toc-w{ display:flex; flex-direction:column; min-width:0; flex:1; }
   #hbk-page .hbk-toc-w b{ font-weight:var(--w-label); overflow-wrap:anywhere; }
   #hbk-page .hbk-toc-w small{ color:var(--color-neutral-600); font-size:12px; line-height:1.35; overflow-wrap:anywhere; }
-  #hbk-page .hbk-toc-c{ font-size:11px; font-variant-numeric:tabular-nums; color:var(--color-neutral-600); border:1px solid var(--hbk-rule); border-radius:999px; padding:0 7px; flex:0 0 auto; }
+  #hbk-page .hbk-toc-c{ font-size:11px; font-variant-numeric:tabular-nums; color:var(--color-quiet); border:1px solid var(--hbk-rule); border-radius:999px; padding:0 7px; flex:0 0 auto; }
   #hbk-page .hbk-checked{ margin:16px 0 0; font-size:12px; color:var(--color-neutral-600); }
   /* LINKS SNAP, NOTHING GLIDES (owner, 26 Oct 2026: "it jumps from top to bottom when you press anything") */
   #hbk-page .hbk-body{ overflow:auto; min-height:0; padding:24px 28px 48px; scroll-behavior:auto; }
@@ -193,7 +193,7 @@ function hbkCss(){
   #hbk-page .hbk-pick h2{ font-family:var(--font-doc); font-size:20px; font-weight:600; margin:0 0 8px; }
   #hbk-page .hbk-tbl{ overflow-x:auto; }
   #hbk-page .hbk-tbl table{ border-collapse:collapse; width:100%; min-width:560px; font-size:13px; }
-  #hbk-page .hbk-tbl th{ text-align:left; font-weight:var(--w-label); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--color-neutral-600); padding:8px 10px; border-bottom:1px solid var(--hbk-rule); }
+  #hbk-page .hbk-tbl th{ text-align:left; font-weight:var(--w-label); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--color-quiet); padding:8px 10px; border-bottom:1px solid var(--hbk-rule); }
   #hbk-page .hbk-tbl td{ padding:9px 10px; border-bottom:1px solid var(--hbk-rule); vertical-align:top; }
   #hbk-page .hbk-tbl tr:last-child td{ border-bottom:0; }
   #hbk-page .hbk-tbl td a{ font-weight:var(--w-label); color:var(--accent-ink); text-decoration:none; }

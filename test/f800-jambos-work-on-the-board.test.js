@@ -239,7 +239,7 @@ describe('f800 (8) each piece folded to one line (the owner\'s answer (18), 19 O
     assert.match(css, /\.hb-ag-work\.is-line \+ \.hb-ag-work\.is-line\{border-top:1px solid rgba\(var\(--hb-ln\),\.12\)\}/);
     assert.match(css, /\.hb-pc-line\{[^}]*white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/);
     assert.match(css, /\.hb-ag-work\.is-look \.hb-pc-line\{white-space:normal\}/);
-    assert.match(css, /\.hb-pc-tag\{--hb-pc-c:var\(--hb-mute\);/);
+    assert.match(css, /\.hb-pc-tag\{--hb-pc-c:var\(--hb-quiet\);/); /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: "more black font"): 500 and 600 are the ink now; the small print's grey is --color-quiet / --hb-quiet */
     assert.match(css, /\.hb-pc-tag i\{[^}]*background:var\(--hb-pc-c\)/);
   });
 });

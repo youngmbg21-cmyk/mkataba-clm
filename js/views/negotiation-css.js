@@ -2663,7 +2663,7 @@ function redlineLayoutCss(){
        has now learned four times. */}
   .redline-page .rl-lock-mono{display:inline-flex;align-items:center;justify-content:center;
     width:16px;height:16px;border-radius:9999px;background:transparent;border:1px solid var(--rule-strong);
-    color:var(--color-neutral-600);font-size:9px;font-weight:var(--w-title);
+    color:var(--color-quiet);font-size:9px;font-weight:var(--w-title);
     letter-spacing:.02em;flex:none}
   ${''/* NOT OPACITY ALONE. An opacity is not an ink — this rulebook's own rule,
        paid for once on .text-ink/40 — and a control the reader most needs to
@@ -3163,7 +3163,7 @@ function redlineLayoutCss(){
     margin:0;padding:7px var(--s-4) 6px;background:var(--color-neutral-100);
     border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);
     font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
-    color:var(--color-neutral-600)}
+    color:var(--color-quiet)}
   .redline-page .rl-band:first-child{border-top:0}
   ${''/* THE COUNT SITS AT THE RIGHT WALL, not beside the words. A pile's
          number is scanned down a column rather than read as part of its name,
@@ -3294,7 +3294,7 @@ function redlineLayoutCss(){
   .redline-page .rl-cb{padding:2px 0 4px}
   .redline-page .rl-cb-blk{margin-top:var(--s-3)}
   .redline-page .rl-cb-k{margin:0 0 5px;font-size:var(--t-micro);font-weight:var(--w-title);
-    color:var(--color-neutral-600)}
+    color:var(--color-quiet)}
   ${''/* The wording sits on the raised strip this product uses for a quotation
          of the document, so it reads as the paper rather than as more card. */}
   .redline-page .rl-cb-q{font-size:var(--t-meta);line-height:1.6;
@@ -4645,7 +4645,7 @@ function redlineLayoutCss(){
      border, which is the one edge it is fixed to. */
   .redline-page .rl-q-tab:hover{background:var(--color-neutral-100);padding-right:11px}
   .redline-page .rl-q-tab .rl-q-tab-k{
-    font-size:var(--t-micro);white-space:nowrap;color:var(--color-neutral-600)}
+    font-size:var(--t-micro);white-space:nowrap;color:var(--color-quiet)}
   .redline-page .rl-q-tab .rl-q-tab-n{font-family:var(--font-mono);font-size:var(--t-label);
     font-weight:var(--w-title);color:var(--color-text)}
   /* The door is a door only while it is shut — with the panel open the panel's
@@ -4668,7 +4668,7 @@ function redlineLayoutCss(){
   .redline-page .rl-q-head{position:relative;flex:none;padding:14px 10px 10px;
     border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-q-label{margin:0 26px var(--s-2) 0;font-size:var(--t-micro);font-weight:var(--w-title);
-    color:var(--color-neutral-500)}
+    color:var(--color-quiet)}
   /* ---- THE CLOSE ----
      Same corner the fold chevron used, same id, and it is now what it always
      looked like: the way out of the panel. */
@@ -5906,7 +5906,7 @@ function redlineLayoutCss(){
   .hb-cv-deal .rl-scale,.redline-page .rl-scale{margin:6px 0 0;padding:16px 0 0}
   .hb-cv-deal .rl-sc-line,.redline-page .rl-sc-line{position:relative;height:42px;border-bottom:1px solid var(--color-divider);margin:0 10px}
   .hb-cv-deal .rl-sc-tick,.redline-page .rl-sc-tick{position:absolute;bottom:-1px;transform:translateX(-50%);font-size:var(--t-micro);
-    color:var(--color-neutral-600);padding-top:26px;font-family:var(--font-code)}
+    color:var(--color-quiet);padding-top:26px;font-family:var(--font-code)}
   .hb-cv-deal .rl-sc-tick::before,.redline-page .rl-sc-tick::before{content:'';position:absolute;left:50%;top:18px;width:1px;height:8px;background:var(--color-divider)}
   .hb-cv-deal .rl-sc-mark,.redline-page .rl-sc-mark{position:absolute;transform:translateX(-50%);top:0;font-size:var(--t-micro);font-weight:var(--w-title);
     line-height:1;padding:3px 6px;border-radius:var(--radius);white-space:nowrap}
@@ -6110,7 +6110,7 @@ function redlineLayoutCss(){
     color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .redline-page .rl-band,.redline-page .rl-band:first-child{background:none;border:0;
     padding:12px var(--s-4) 4px;font-size:var(--t-micro);letter-spacing:.08em;
-    color:var(--color-neutral-500)}
+    color:var(--color-quiet)}
   .redline-page .rl-band b{font-family:var(--font-mono);letter-spacing:0;
     font-weight:var(--w-label);color:inherit}
   .redline-page .rl-band[data-rl-band="awaiting"],
@@ -6206,14 +6206,14 @@ function redlineLayoutCss(){
     border-radius:0;box-shadow:none;background:var(--color-surface)}
   .redline-page .rl-cp-head{padding:8px 16px 0;border-bottom:0;gap:8px}
   .redline-page .rl-cp-label{font-size:var(--t-micro);letter-spacing:.08em;font-weight:var(--w-strong);
-    color:var(--color-neutral-500)}
+    color:var(--color-quiet)}
   .redline-page .rl-cp-body{padding:0}
   .redline-page .rl-cp-clhead{display:flex;align-items:center;gap:8px;min-width:0;
     padding:4px 16px 12px;border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-cp-clhead .rl-cp-clname{margin:0;font-size:var(--t-card);min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .redline-page .rl-cp-rungs{display:inline-flex;align-items:center;gap:4px;flex:none;
-    font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);
+    font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-quiet);
     border:1px solid var(--rule-strong);border-radius:10px;padding:0 7px;height:18px;
     background:var(--color-surface);white-space:nowrap}
   .redline-page .rl-cp-rungs svg{width:11px;height:11px;flex:none}
@@ -6222,7 +6222,7 @@ function redlineLayoutCss(){
   .redline-page .rl-cp:not(.is-ladder) .rl-cp-hd-edit{display:none}
   .redline-page .rl-cp-sec{margin:0;padding:12px 16px;border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-cp-h{margin:0 0 8px;font-size:var(--t-micro);letter-spacing:.08em;
-    color:var(--color-neutral-500)}
+    color:var(--color-quiet)}
   .hb-cv-deal .rl-cp-src ol.rl-ladder,.redline-page .rl-cp-src ol.rl-ladder,
   .redline-page ol.rl-ladder{display:flex;flex-direction:column;gap:6px;margin:0}
   .redline-page .rl-rung-row{padding:6px 8px;border:1px solid var(--color-divider);
@@ -6232,7 +6232,7 @@ function redlineLayoutCss(){
   .redline-page .rl-rung-row.rl-rung-win{background:var(--color-accent-100);
     border-color:var(--color-accent-300);margin-inline:0;padding-inline:8px}
   .redline-page .rl-rung-n{font-family:var(--font-mono);font-size:var(--t-micro);font-weight:var(--w-strong);
-    color:var(--color-neutral-500);min-width:24px}
+    color:var(--color-quiet);min-width:24px}
   .redline-page .rl-rung-fig{flex:none;font-family:var(--font-mono);font-size:var(--t-micro);
     font-weight:var(--w-strong);color:var(--color-text)}
   .redline-page .rl-rung-who{font-size:var(--t-label)}
@@ -6245,7 +6245,7 @@ function redlineLayoutCss(){
   .hb-cv-deal .rl-sc-tick,.redline-page .rl-sc-tick,.hb-cv-deal .rl-sc-zone,.redline-page .rl-sc-zone{display:none}
   .hb-cv-deal .rl-sc-mark,.redline-page .rl-sc-mark,.hb-cv-deal .rl-sc-mark.rl-sc-below,.redline-page .rl-sc-mark.rl-sc-below{top:24px;bottom:auto;background:none;
     padding:0;font-family:var(--font-mono);font-size:10px;font-weight:var(--w-label);
-    color:var(--color-neutral-500);line-height:1.2}
+    color:var(--color-quiet);line-height:1.2}
   .hb-cv-deal .rl-sc-mark::after,.redline-page .rl-sc-mark::after,.hb-cv-deal .rl-sc-mark.rl-sc-below::after,.redline-page .rl-sc-mark.rl-sc-below::after{bottom:auto;top:-18px;
     width:14px;height:14px;box-sizing:border-box;border:2px solid var(--color-neutral-500);
     background:var(--color-surface)}
@@ -6527,7 +6527,7 @@ function redlineLayoutCss(){
   .redline-page .rl-fn-note{display:flex;gap:8px;align-items:flex-start;margin:0 0 8px}
   .redline-page .rl-fn-note.is-reply{margin-left:28px}
   .redline-page .rl-fn-face{flex:none;width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;margin-top:1px;
-    background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-size:9px;font-weight:var(--w-title)}
+    background:transparent;border:1px solid var(--rule-strong);color:var(--color-quiet);font-size:9px;font-weight:var(--w-title)}
   .redline-page .rl-fn-note.is-them .rl-fn-face{border-color:var(--st-amber-line);color:var(--st-amber-fg)}
   .redline-page .rl-fn-main{flex:1;min-width:0}
   .redline-page .rl-fn-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}

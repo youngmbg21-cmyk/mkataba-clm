@@ -453,10 +453,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       regTitles.length > 0 && regTitles.slice(0, 3).every(t => sameButSize(t).ok),
       regTitles.slice(0, 3).map(t => `${t._txt}: ${sameButSize(t).why || 'match'}`));
     const regInk = await page.evaluate(PAGE_INK);
-    check('5d and the title is the PAGE\'S OWN INK, never the quiet ink a resting tab wears',
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('5d and the title is the PAGE\'S OWN INK (a resting tab wears it too now; the chosen one is told by its fill and weight)',
       !!regInk && regTitles.length > 0
-        && regTitles.slice(0, 3).every(t => t.color === regInk)
-        && regInk !== (ref && ref.color),
+        && regTitles.slice(0, 3).every(t => t.color === regInk),
       { title: regTitles[0] && regTitles[0].color, pageHeading: regInk, restingTab: ref && ref.color });
     /* ---- REVERSED IN PLACE 21 Sep 2026 (Young: "contracts need to look
        exactly like the artifact") ---- WO-16's "one rung down" was 14 to

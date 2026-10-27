@@ -788,7 +788,7 @@ function clauseEditorCss(){
      rail read as a sunken well rather than as the panel it is */
   /* ---- THE LADDER CARD AND THE TWO NEW TABS (14 Sep 2026) ---- */
   .ce-lcard .k{font-size:var(--t-micro); font-weight:var(--w-title);  
-    color:var(--color-neutral-500); margin:10px 0 3px}
+    color:var(--color-quiet); margin:10px 0 3px}
   .ce-lcard .k:first-child{margin-top:0}
   .ce-lcard .said{font-style:italic; color:var(--color-neutral-600)}
   .ce-lcard .cost{font-size:var(--t-label); color:var(--color-neutral-600); margin-top:8px}
@@ -951,7 +951,7 @@ function clauseEditorCss(){
          does — which is a band saying what the page will do with what you
          press, not a narration of the screen. */}
   .ce-scan-h{margin:14px 0 var(--s-2); font-size:var(--t-micro); font-weight:var(--w-title);
-      color:var(--color-neutral-600)}
+      color:var(--color-quiet)}
   .ce-scan-h:first-child{margin-top:0}
   .ce-scan-h .s{display:block; margin-top:3px; font-size:var(--t-label); font-weight:var(--w-body);
     letter-spacing:0; text-transform:none; color:var(--color-neutral-600); line-height:1.45}
@@ -1044,7 +1044,7 @@ function clauseEditorCss(){
     padding:11px var(--s-3)}
   .ce-reason[hidden]{display:none}
   .ce-reason label{display:block; font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
-     color:var(--color-neutral-600); margin-bottom:7px}
+     color:var(--color-quiet); margin-bottom:7px}
   .ce-reason textarea{width:100%; min-height:52px; padding:var(--s-2) 10px; font:inherit; font-size:var(--t-meta);
     line-height:1.5; resize:vertical; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}

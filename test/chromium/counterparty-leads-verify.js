@@ -81,9 +81,10 @@ const check = (name, ok, detail) => {
     check('1b the counterparty leads the identity cell, in the page ink at the heavier weight',
       !!C.title && +C.title.w >= 500 && C.title.col === INKS.text,
       C.title && `"${C.title.txt}" ${C.title.w} ${C.title.size} ${C.title.col}`);
-    check('1c the contract name sits UNDER it, a size down and in the quiet grey',
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('1c the contract name sits UNDER it, a size down and lighter in weight (the ink, 12px and up)',
       !!C.sub && C.stacked && parseFloat(C.sub.size) < parseFloat(C.title.size)
-        && C.sub.col !== C.title.col && +C.sub.w < +C.title.w,
+        && C.sub.col === C.title.col && +C.sub.w < +C.title.w,
       C.sub && `"${C.sub.txt}" ${C.sub.w} ${C.sub.size} ${C.sub.col} · stacked ${C.stacked}`);
     /* WELL SPACED: the counterparty is the widest column on the table, because
        it carries two facts where the two columns it replaced carried one each. */

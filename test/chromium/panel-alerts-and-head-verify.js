@@ -124,8 +124,9 @@ const px = v => Number(String(v || '').replace('px', ''));
       : (Math.max(x, y) + .05) / (Math.min(x, y) + .05); })();
     check('the head\'s word is the primary ink — B1, "all of it black"',
       head.color === head.ink, `${head.color} vs ${head.ink}`);
-    check('and its number is the quiet half, still legible',
-      head.num && head.num !== head.ink && nr >= 4.5, `${head.num} · ${nr && nr.toFixed(2)}`);
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('and its number is the ink too (12px and up), legible',
+      head.num && head.num === head.ink && nr >= 4.5, `${head.num} · ${nr && nr.toFixed(2)}`);
 
     const noNight = await page.evaluate(() => ({ setTheme: typeof window.setTheme, setDark: typeof window.setDark,
       darkClass: document.documentElement.classList.contains('dark') }));

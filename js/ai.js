@@ -5480,7 +5480,7 @@ function renderBriefSection(c){
         margin:var(--s-3) 0;padding:11px 13px;background:var(--color-bg);border-radius:var(--radius);
         border:1px solid var(--color-divider)}
       #brief-section .br-facts dt{font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;
-        color:var(--color-neutral-600);padding-top:2px}
+        color:var(--color-quiet);padding-top:2px}
       #brief-section .br-facts dd{margin:0;font-size:var(--t-body);line-height:1.6;color:var(--color-text)}
       /* ---- AND A PARTIAL BRIEF SAYS SO WHERE IT IS READ ---- (10 Sep 2026)
          A cut-short brief is kept now, so the one place that could never carry

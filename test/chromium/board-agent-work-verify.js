@@ -112,7 +112,8 @@ const check = (name, pass, detail) => {
       check(`${scr} 2b. no band of another colour under the buttons`, !m.footBand);
       check(`${scr} 3a. the list has a painted edge`, /^solid /.test(m.edge) && parseFloat(m.edge.split(' ')[1]) >= 1, m.edge);
       check(`${scr} 3b. one piece from the next: a painted hairline (style and width), one line each`, /^solid /.test(m.rule) && parseFloat(m.rule.split(' ')[1]) >= 1, m.rule);
-      check(`${scr} 3c. Put away is not dressed as Look (its own quiet ink, still readable)`, !!m.awayC && !!m.lookC && m.awayC !== m.lookC && m.awayR >= 4.5, JSON.stringify({ look: m.lookC, away: m.awayC, r: m.awayR && m.awayR.toFixed(2) }));
+      /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+      check(`${scr} 3c. Put away wears the ink like Look (12px and up), readable`, !!m.awayC && !!m.lookC && m.awayC === m.lookC && m.awayR >= 4.5, JSON.stringify({ look: m.lookC, away: m.awayC, r: m.awayR && m.awayR.toFixed(2) }));
       await page.screenshot({ path: path.join(OUT, `${scr}.png`) });
     }
     check('4. no page errors', errors.length === 0, errors.join(' | '));

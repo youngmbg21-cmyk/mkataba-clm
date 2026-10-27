@@ -1152,7 +1152,7 @@ function calStyleCss(){ return `
   .cal-hz-t{font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)}
   .cal-hz-h{font-size:var(--t-label);color:var(--color-neutral-600)}
   .cal-hz-col{padding:7px var(--s-3);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
-    color:var(--color-neutral-500)}
+    color:var(--color-quiet)}
   .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr) 150px;position:sticky;top:0;z-index:2;
     background:var(--color-surface);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-hz-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
@@ -1162,7 +1162,7 @@ function calStyleCss(){ return `
          where a month begins, and drawing the boundary twice made the head a
          grid of twelve cells. */}
   .cal-hz-months span{padding:7px 6px;font-family:var(--font-mono);font-size:var(--t-micro);
-    font-weight:var(--w-body);color:var(--color-neutral-500);
+    font-weight:var(--w-body);color:var(--color-quiet);
     white-space:nowrap;overflow:hidden}
   .cal-hz-row{display:grid;grid-template-columns:300px minmax(0,1fr) 150px;align-items:center;
     box-shadow:inset 0 -1px var(--rule);cursor:pointer}
@@ -1258,7 +1258,7 @@ function calStyleCss(){ return `
     column-gap:var(--s-1);padding:0 var(--s-1);
     background:var(--color-neutral-100);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-dow span{padding:7px var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
-    color:var(--color-neutral-500);white-space:nowrap;overflow:hidden}
+    color:var(--color-quiet);white-space:nowrap;overflow:hidden}
   ${''/* ---- THE DAY BOXES ARE TILES WITH ROUNDED CORNERS (owner-asked 4 Oct
          2026: "the date boxes should have rounded corners like the cards
          across the platform") ---- They were cells: a 1px gap over a grey
@@ -1460,15 +1460,15 @@ function calStyleCss(){ return `
   ${''/* A WEEK ACROSS TWO MONTHS BREAKS AT ITS DASH (the detail round, 25 Oct 2026: "30 Nov – 4 Dec" ran 11px
          over "Mon 30" in its 84px column): the label may take a second line, never the next day's cell */}
   .cal-wkm-lab b{white-space:normal;text-wrap:balance;line-height:1.25}
-  .cal-wkm-lab span{font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap}
+  .cal-wkm-lab span{font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap}
   .cal-wkm-d [hidden]{display:none}
   .cal-wkm-d{border-left:1px solid var(--color-divider);padding:3px 4px;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden;cursor:pointer}
   .cal-wkm-d:hover{background:color-mix(in srgb,var(--accent-solid) 6%,transparent)}
   .cal-wkm-d:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px}
   .cal-wkm-d.is-today .cal-wkm-dn{color:var(--accent-ink);font-weight:var(--w-strong)}
-  .cal-wkm-dn{font-size:var(--t-micro);color:var(--color-neutral-600);line-height:1.2}
+  .cal-wkm-dn{font-size:var(--t-micro);color:var(--color-quiet);line-height:1.2}
   .cal-wkm-d .cal-chip{display:block;font-size:var(--t-micro);padding:1px 5px;border-left:3px solid;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
-  .cal-wkm-d .cal-more{font-size:var(--t-micro);color:var(--color-neutral-600);line-height:1.1}
+  .cal-wkm-d .cal-more{font-size:var(--t-micro);color:var(--color-quiet);line-height:1.1}
   .cal-we{font-weight:var(--w-strong)}
   .cal-wk-hd{border-bottom:1px solid var(--color-divider)}
   .cal-wk-h{padding:6px 8px;font-size:var(--t-label);color:var(--color-neutral-600);border-left:1px solid var(--color-divider)}
@@ -1476,14 +1476,14 @@ function calStyleCss(){ return `
   .cal-wk-h.is-today b{color:var(--accent-ink)}
   .cal-wk-h.is-we{background:var(--surface-2, transparent)}
   .cal-wk-alls{border-bottom:1px solid var(--color-divider);background:var(--surface-2, var(--color-surface))}
-  .cal-wk-lab{font-size:var(--t-micro);color:var(--color-neutral-600);padding:6px 6px 0 0;text-align:right}
+  .cal-wk-lab{font-size:var(--t-micro);color:var(--color-quiet);padding:6px 6px 0 0;text-align:right}
   .cal-wk-all{border-left:1px solid var(--color-divider);padding:3px;display:flex;flex-direction:column;gap:2px;min-height:30px;min-width:0}
   .cal-view.is-tight .cal-day .cal-chip{padding:1px var(--s-1);line-height:1.15}
   .cal-view.is-tight .cal-day{padding-top:2px;padding-bottom:3px}
   .cal-wk-all .cal-chip{display:block;text-align:left;border:0;border-left:3px solid;font:inherit;font-size:var(--t-micro);padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;max-width:100%}
   .cal-wk-body{flex:1;min-height:0;overflow:auto}
   .cal-wk-times{display:flex;flex-direction:column}
-  .cal-wk-t{height:var(--cal-wk-row);font-size:var(--t-micro);color:var(--color-neutral-600);text-align:right;padding:0 6px 0 0;border-top:1px solid var(--color-divider);font-variant-numeric:tabular-nums}
+  .cal-wk-t{height:var(--cal-wk-row);font-size:var(--t-micro);color:var(--color-quiet);text-align:right;padding:0 6px 0 0;border-top:1px solid var(--color-divider);font-variant-numeric:tabular-nums}
   .cal-wk-col{position:relative;border-left:1px solid var(--color-divider);display:flex;flex-direction:column}
   .cal-wk-col.is-today{background:color-mix(in srgb,var(--color-accent-50) 45%,transparent)}
   .cal-wk-slot{height:var(--cal-wk-row);flex:none;border:0;border-top:1px solid var(--color-divider);background:none;cursor:copy;padding:0}

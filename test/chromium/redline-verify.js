@@ -1946,8 +1946,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const ik = piles.inks;
     check('19c a live row keeps the dark reference',
       !!ik.live, ik.live);
-    check('19c an accepted row\'s reference steps back to the grey',
-      !!ik.acc && !!ik.live && ik.acc !== ik.live, `accepted ${ik.acc} vs live ${ik.live}`);
+    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
+    check('19c an accepted row\'s reference keeps the ink (12px and up; its settling is said by its pile, not a lighter grey)',
+      !!ik.acc && !!ik.live && ik.acc === ik.live, `accepted ${ik.acc} vs live ${ik.live}`);
     check('19c and a withdrawn one with it',
       !!ik.wdr && ik.wdr === ik.acc, `withdrawn ${ik.wdr}`);
     check('19c A REFUSAL DOES NOT — it leads this column because it can still stop the deal',

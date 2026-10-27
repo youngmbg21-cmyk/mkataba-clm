@@ -779,7 +779,7 @@ const CU_CSS = `
   .cu-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .cu-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
   .cu-table .cu-pn{display:block;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .cu-table .cu-ps{display:block;font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cu-table .cu-ps{display:block;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* the first column as drawn (Part 8, the Legora way): the party's initials in the outlined square every list
      draws (.reg-av), the name over its line */
   .cu-table .cu-who{display:flex;align-items:center;gap:10px;min-width:0;}
@@ -812,11 +812,11 @@ const CU_CSS = `
   button.cu-li{cursor:pointer;} button.cu-li:hover{background:var(--surface-2);}
   .cu-li-b{display:flex;flex-direction:column;min-width:0;flex:1;}
   .cu-li-b b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .cu-li-b span{font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cu-li-b span{font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cu-li.is-late .cu-li-b b{color:var(--st-ruby-fg);}
   .cu-li-b span .late{color:var(--st-ruby-fg);}
   .cu-ag-st{flex:none;font-size:var(--t-meta);}
-  .cu-pp-av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}
+  .cu-pp-av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);background:transparent;color:var(--color-quiet);border:1px solid var(--rule-strong);}
   .cu-draft-with{padding:4px 16px 16px;}
   .cu-sub-act{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);font-weight:var(--w-label);cursor:pointer;}
   .cu-sub-act:hover{text-decoration:underline;}

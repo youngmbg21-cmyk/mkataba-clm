@@ -3765,7 +3765,7 @@ function renderPlaybookPage(){
       .std-row{border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:8px 10px}
       .std-row.is-open{border-color:color-mix(in srgb,var(--accent-solid) 34%,transparent)}
       .std-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .std-cat{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);flex:none}
+      .std-cat{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-quiet);flex:none}
       .std-name{font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .std-chip{font-size:var(--t-micro);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);white-space:nowrap;flex:none}
       .std-chip-none{color:var(--color-neutral-600);border:1px solid var(--color-divider)}
@@ -3777,7 +3777,7 @@ function renderPlaybookPage(){
             as a sentence that continues. */}
       .std-clip{margin:4px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .std-body{margin:9px 0 2px;display:flex;flex-direction:column;gap:9px}
-      .std-lab{margin:0 0 3px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
+      .std-lab{margin:0 0 3px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-quiet)}
       .std-quote{font-size:var(--t-label);line-height:1.6;color:var(--color-text);border-left:2px solid var(--color-divider);padding:2px 0 2px 10px;white-space:pre-wrap}
       .std-none{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}
       .std-hist{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}
