@@ -6166,6 +6166,12 @@ function redlineLayoutCss(){
          (measured in the bench: .rl-pile ... button.rl-verb-ai won at four). */}
   .redline-page .rl-card-d .rl-card-face.rl-card-verbs button.rl-verb-lead{background:var(--accent-fill,#1d1d1f);
     color:#fff;border-radius:999px;padding:3px 11px}
+  ${''/* THE ROW PULLS ITSELF one control-pad LEFT (rule above, 6138) so bare
+         words' glyphs sit at the card's 16px while their hover wash has room.
+         A lead that is PAINTED AT REST must give that margin back, or its box
+         stands 8px from the card's edge — the tidy sweep's own catch,
+         27 Oct 2026. First-child only: the lead always leads. */}
+  .redline-page .rl-card-d .rl-card-face.rl-card-verbs > button.rl-verb-lead:first-child{margin-left:var(--pad-ctl-x-sm)}
   .redline-page .rl-card-d .rl-card-face.rl-card-verbs button.rl-verb-lead:hover{text-decoration:none;
     background:var(--accent-fill,#1d1d1f);filter:brightness(1.15)}
   .redline-page .rl-card-d .rl-card-face.rl-card-verbs button.rl-fold-btn{color:var(--color-neutral-600)}

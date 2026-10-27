@@ -151,13 +151,18 @@ const openFace = async page => {
     const lad = page.locator('#pd-redface [data-rl-pile="awaiting"] [data-rl-ladder-ch]').first();
     let la = null;
     if (await lad.count()){
+      /* THE PICKED CARD (27 Oct 2026): Ladder waits behind More ▾; the stage
+         opens the fold the way a reader would. */
+      await page.evaluate(() => { const l = document.querySelector('#pd-redface [data-rl-pile="awaiting"] [data-rl-ladder-ch]'); const m = l && l.closest('[data-nego-card]') && l.closest('[data-nego-card]').querySelector('[data-rl-more]'); if (m) m.click(); });
       await lad.click({ timeout: 5000 }).catch(() => {});
       la = await waitFor(page, () => { const l = document.querySelector('#pd-redface .rl-row-ladder'); const v = document.querySelector('#pd-redface [data-rl-ladder-ch][aria-expanded="true"]');
         return l && v ? { under: !!v.closest('[data-nego-card]').querySelector('.rl-row-ladder'), text: l.innerText.slice(0, 120), panel: !!document.querySelector('#rl-cp.is-open') } : null; }, 5000);
     }
     check('1a Ladder opens the clause\'s ladder under its own row (the steps, our standard)', !!la && la.under && /ladder/i.test(la.text) && !la.panel, JSON.stringify(la));
     await shot(page, '9-ladder-1440x780');
-    if (la){ await page.click('#pd-redface [data-rl-ladder-ch][aria-expanded="true"]', { timeout: 5000 }).catch(() => {}); }
+    if (la){
+      await page.evaluate(() => { const l = document.querySelector('#pd-redface [data-rl-ladder-ch][aria-expanded="true"]'); const m = l && l.closest('[data-nego-card]') && l.closest('[data-nego-card]').querySelector('[data-rl-more]'); if (m && l.closest('.rl-card-more[hidden]')) m.click(); });
+      await page.click('#pd-redface [data-rl-ladder-ch][aria-expanded="true"]', { timeout: 5000 }).catch(() => {}); }
     const folded = await waitFor(page, () => !document.querySelector('#pd-redface .rl-row-ladder'), 4000);
     check('1a the same press folds it', !!la && !!folded);
 
@@ -198,8 +203,12 @@ const openFace = async page => {
         review: col('[data-rl-ask-review]'), edit: col('[data-rl-pile="drafts"] .rl-verb-ai'), reject: col('[data-rl-pile="awaiting"] [data-nego-reject]'), discard: col('[data-rl-retract]'), faces,
         sg: sgIns ? getComputedStyle(sgIns).textDecorationStyle : null, ours: ourIns ? getComputedStyle(ourIns).textDecorationStyle : null };
     });
-    const live = [ink.counter, ink.ladder, ink.review, ink.edit];
-    check('1d Counter, Ladder, Review and Edit wear the same accent ink as Accept', !!ink.accept && live.every(x => x === ink.accept), JSON.stringify(ink));
+    /* RE-POINTED 27 Oct 2026 (THE PICKED CARD): Counter leads as the row's one
+       filled button — white word on the product's filled ink — so it leaves
+       the accent roll-call; Ladder, Review and Edit still wear Accept's ink. */
+    const live = [ink.ladder, ink.review, ink.edit];
+    check('1d Ladder, Review and Edit wear the same accent ink as Accept', !!ink.accept && live.every(x => x === ink.accept), JSON.stringify(ink));
+    check('1d the lead Counter is the picked card\'s filled button, its word white', ink.counter === 'rgb(255, 255, 255)', ink.counter);
     check('1d Reject and Discard last stay red', !!ink.reject && ink.reject === ink.discard && ink.reject !== ink.accept, JSON.stringify({ reject: ink.reject, discard: ink.discard }));
     check('1e "Here now": 22px filled circles, white initials, one colour each', ink.faces.length >= 2 && ink.faces.every(f => f.w === '22px' && f.fg === 'rgb(255, 255, 255)')
       && new Set(ink.faces.map(f => f.bg)).size === ink.faces.length, JSON.stringify(ink.faces));

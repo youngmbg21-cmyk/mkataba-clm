@@ -285,10 +285,16 @@ const blocked = [];
         });
         const up = await until(() => document.querySelector('#ig-dock .rl-card-d .rl-idx-top, #ig-dock .rl-card-d'));
         await settle(); await shot('redlines');
+        /* RE-POINTED 27 Oct 2026 (THE PICKED CARD): the row's FIRST verb is
+           measured, not Accept by name — the suggested answer leads now. A
+           bare word starts at its ink; a painted lead starts at its own box,
+           which is what the eye reads as the row's start. */
         const m = await ev(() => [...document.querySelectorAll('#ig-dock .rl-card-d')].filter(c => c.getBoundingClientRect().width).slice(0, 2).map(card => {
-          const verb = card.querySelector('.rl-card-verbs .rl-acc'); if (!verb || !verb.getBoundingClientRect().width) return null;
+          const verb = [...card.querySelectorAll('.rl-card-verbs button')].find(b => b.getBoundingClientRect().width); if (!verb) return null;
           const cs = getComputedStyle(card); const words = card.getBoundingClientRect().left + parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth);
-          const ink = verb.firstElementChild || verb; return Math.round(ink.getBoundingClientRect().left - words); }).filter(x => x != null));
+          const vcs = getComputedStyle(verb);
+          const start = (vcs.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(vcs.backgroundColor)) ? verb : (verb.firstElementChild || verb);
+          return Math.round(start.getBoundingClientRect().left - words); }).filter(x => x != null));
         check(`${at} · 10c — a redline card's verbs start under its words`, up && m && m.length && m.every(x => Math.abs(x) <= 1), JSON.stringify(m) + ' (' + id + ')');
         await ev(() => { state.contracts = state.contracts.filter(x => x.id !== 'DR-400'); });
       }

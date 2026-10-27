@@ -152,6 +152,8 @@ function answer(body){
        its Reject where none glows; 3c now also asks that a glow WAS there, so a
        glow never painted cannot read as one put out */
     const glowBefore = await page.evaluate(() => document.querySelectorAll('#pd-redface .rl-glow').length);
+    /* THE PICKED CARD (27 Oct 2026): Reject waits behind More ▾. */
+    if (!glowBefore) await page.evaluate(() => { const r = document.querySelector('#pd-redface [data-nego-reject]'); const m = r && r.closest('[data-nego-card]') && r.closest('[data-nego-card]').querySelector('[data-rl-more]'); if (m && r.closest('.rl-card-more[hidden]')) m.click(); });
     await page.click(glowBefore ? '#pd-redface .rl-glow' : '#pd-redface [data-nego-reject]');
     const cancel = await page.waitForSelector('#prompt-overlay #pd-cancel', { timeout: 5000 }).then(() => true, () => false);
     if (cancel) await page.click('#prompt-overlay #pd-cancel');

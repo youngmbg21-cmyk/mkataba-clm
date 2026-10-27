@@ -18951,7 +18951,15 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
     }
     if (opts.noGlow || _rlGlowDone.has(ch.id)) continue;
     const v = scope.querySelector(RL_SUG_VERB[a.verdict](css(ch.id)));
-    if (v){ v.classList.add('rl-glow'); v.setAttribute('data-rl-glow-for', ch.id); }
+    if (v){
+      /* THE PICKED CARD (27 Oct 2026): a glowing suggestion is never folded.
+         Where Jambo's suggested answer waits behind More ▾, the fold opens
+         itself, because a suggestion is visible pixels or it is nothing. */
+      const fold = v.closest('.rl-card-more[hidden]');
+      if (fold){ fold.removeAttribute('hidden'); const m = fold.previousElementSibling;
+        if (m && m.hasAttribute && m.hasAttribute('data-rl-more')) m.setAttribute('aria-expanded', 'true'); }
+      v.classList.add('rl-glow'); v.setAttribute('data-rl-glow-for', ch.id);
+    }
   }
   return n;
 }
