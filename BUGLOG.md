@@ -21778,3 +21778,17 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## Fixed — 27 Oct 2026 (the bug log, batch 4: what stays home)
 - Fixed (27 Oct 2026, f945 (1)): the Word file a send attaches no longer carries changes the link leaves behind — held or in-flight review changes, drafts kept back, a colleague's suggestions — nor their Word comments; both read one list (shareHeldBackIds). (Note "the Word channel builds from the whole redline, so may carry held changes and open suggestions".)
 - Fixed (27 Oct 2026, f945 (2)): /api/bootstrap no longer hands a non-admin every colleague's personal preferences; a colleague's row keeps only "invited, not signed in yet". (Note "other members' prefs (agentAway and others) still travel to non-admins".)
+
+## Fixed — 27 Oct 2026 (the bug log, batch 5: records written right)
+- FIXED: a returned Word file whose clauses Word numbers itself was read without its numbering, so every numbered clause was filed as the counterparty's change. The import reads with the structured reader, as the upload does (f946 1).
+- FIXED: a change to a person that was refused part-way (a bad signing limit) still saved the name, role or two-step reset written before the refusal. The update is one transaction now (f946 2).
+- FIXED: a person who renamed themselves could no longer discard their own drafts, and someone with the same name could. Changes carry the author's id and the check asks it first (f946 3).
+- FIXED: Import stored a contract's start date as the day it was signed when the file named no signing day. It stores no day (f946 4).
+
+## Fixed — 27 Oct 2026 (the bug log, batch 6: the answers read right)
+- FIXED: Jambo's answer tool described "whole book" and "rule door" outside its list of fields, so the AI was never offered them. Both are fields now (f947 1).
+- FIXED: the check before signing asked who a duty's reminder reaches with the contract in the duty's place, so every duty read as reaching nobody (f947 2).
+- FIXED: the same check compared the obligation scan's stamp against the playbook's reading of the wording, so a contract filed with its signed copy always read "the wording moved since". It compares the words the scan read (f947 3).
+
+## Noticed, not fixed — 27 Oct 2026
+- Insights' ledger counts a refused change on a signed or declined deal as "refused, still open" and lists the deal under "Waiting on a decision". f430's fixture states this on purpose, so changing it is the owner's call.

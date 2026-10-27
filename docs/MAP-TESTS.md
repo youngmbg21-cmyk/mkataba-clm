@@ -62,6 +62,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f1, f160, f200, f202, f326, f330, f669, f695, f688 (3), f795, people-directory, refile-a-contract, private-streams, parties-and-people verify.
 
 ## PER-PERSON GRANTS (admin-only, on ADMIN_ONLY_USER_FIELDS)
+- A REFUSED CHANGE TO A PERSON SAVES NONE OF IT (bug log batch 5, 27 Oct 2026): f946 (2) (new; red at the parent) — PATCH /api/users/:id is one transaction; a bad signing limit leaves the role and title as they were.
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE HANDBOOK — HOW TO DO EACH THING (owner, 26 Oct 2026)
@@ -179,6 +180,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+- IMPORT STORES A SIGNING DAY ONLY WHERE ONE WAS READ (bug log batch 5, 27 Oct 2026): f946 (4) (new; red at the parent) — migBuildAndSave's signedAt is the manifest's signed day or null, never the start date.
 - A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
 - f193, f244 (7), f336, f495, f652, f721, f723, f728, f770–f773, f797, f799, sap-lists, advice-is-a-request, four-inspectors, requests-sap-way, requests-and-notes-as-drawn, import-sap-way, import-as-drawn, import-jambo-panel, calendar-* verify.
 
@@ -267,6 +269,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 24 Oct 2026: Home's Track opens Clauses — f424 (2), track-on-the-paper-verify 4a–4d, analyze-on-the-graph-verify 2s4–2s8, document-tab-track-verify.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
+- THE CHECK READS THE DUTIES RIGHT (bug log batch 6, 27 Oct 2026): f947 (2, 3) (new; red at the parent) — signCheckObligations asks obligationReminderTo(o) and hashes obligationsText(c), the words the scan stamped; f421 (s7)'s stub takes the duty alone.
 - A signed copy that did not go out is said where you look (26 Oct 2026, flag D): test/chromium/copies-not-out-verify.js (15 checks: a real Send against a refusing provider, the receipt's last stop un-ticked with whose copy, Needs you's urgent row on Home and the bell, its Look landing on Send again and sending nothing, delivered again → ticked and gone, the three screens; red at the parent bbff1c4: 2a, 2b, 3a–3c, 4).
 - 21 Oct 2026 (overnight): the-road-as-drawn-verify 14b/14c (the head and the road's first stop never give two totals: "n of the N").
 - f308, f311, f319, f353, f909, f915, f676, f712, f752, f754, signing-flow, sign-beside-the-paper, the-road, the-road-as-drawn, two-copies verify.
@@ -288,6 +291,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f388, f389, f342 (7)(8), f654, f655, redline-here-sign-there, signed-copy-differs, import-contracts verify.
 
 ## NEGOTIATE — FOLDED INTO HOME, AND ITS PAGE (the engine)
+- THEIR OWN NUMBERED FILE FILES NOTHING; A RENAME KEEPS YOUR DRAFTS (bug log batch 5, 27 Oct 2026): f946 (1, 3) (new; red at the parent) — negoImportReturnedDocx reads with docxExtractRich; the funnel stamps authorId and negoMayDiscard asks it before the name.
 - 21 Oct 2026 (overnight): f36-negotiation-tab (--n-del-fg is --st-ruby-fg, about 7:1).
 - f84, f89, f92–f95, f931, f100, f152, f184, f210, f246, nego-redesign, redline, parity, negotiations-door, focus-*, edit-clause-door, negotiate-as-drawn verify.
 - deal-in-the-middle-verify 8 (23 Oct 2026: a stray renderRedline paints no Negotiate page over Home; at the parent it did). Re-pointed to the face (they relied on that stray repaint): one-copilot-editor, one-copilot-editor-plain, a-risk-finds-its-clause, panel-tidy-and-risk-footer, one-door-for-edits, selected-card-and-advice; tracked-changes-scroll opens the page by name.
@@ -356,6 +360,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
+- THE ANSWER TOOL OFFERS EVERY FIELD IT DESCRIBES (bug log batch 6, 27 Oct 2026): f947 (1) (new; red at the parent) — wholeBook and ruleDoor sit inside deliver_answer's properties, as the AI is sent them.
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
 - f870 (judgement on the stronger model: the reader's exam, both chat routes, admin-only dollars, one pinned model says nothing; f133/f134's compare-escalation tests re-worded as lookups), judgement-line-verify (the line painted under the answer in the Jambo window and Home's panel, one line, at the three screens; a lookup draws none).
 - f871 (the meter prices a dated model id as its model: a fast call booked at Haiku's price, an admin's exact row still wins, the import estimate the same; 2 of 3 red at the parent).
