@@ -510,7 +510,9 @@ async function migBuildAndSave(ctx){
   const c={ id:nextId(), name, counterparty:cp, value, status,
     template:null, source:'upload', folder, valueType:value>0?'estimated':'none',
     lastAction:todayStr(), expiry, hash:executedOutside?'MIGRATED':null,
-    signedAt:executedOutside?((manifest&&(manifest.signed||manifest.effective))||(meta&&meta.effectiveDate)||null):null,
+    /* the day it was SIGNED, where the file or the manifest says it; a start date is not a signing date, so
+       none read is none stored, never guessed (bug log, 27 Oct 2026) */
+    signedAt:executedOutside?((manifest&&manifest.signed)||null):null,
     // Paper executed elsewhere has no signatory HaTi can name — the person
     // running the import is a filing clerk, not a party to the contract.
     // Who imported it is recorded on c.migration and in the audit trail.

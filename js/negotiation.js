@@ -1467,6 +1467,11 @@ async function negoFileChange(c, draft, opts = {}){
   const author = String(opts.author || (side === 'owner'
     ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
     : (c.counterparty || 'The counterparty'))).trim();
+  /* WHO, BY ID AS WELL AS BY NAME (bug log, 27 Oct 2026): a name changes; "is this mine to discard" asks the id
+     first (negoMayDiscard), so a rename does not take a person's own drafts away from them. Our side only,
+     and only where the funnel named the author itself; it stays home (the payload is an allow-list). */
+  const authorId = (side === 'owner' && !opts.author && window.currentUser && window.currentUser()?.id)
+    ? String(window.currentUser().id) : null;
   /* ---- WHO ACTUALLY TYPED IT, WHEN THAT IS NOT WHO IT IS FROM ----
 
      The workbench is one component with a side flag, so the owner's
@@ -1681,12 +1686,15 @@ async function negoFileChange(c, draft, opts = {}){
        CLEARED when the author revises their own ask again: the wording is
        theirs once more, and a stale "revised by" would be a claim about the
        present that stopped being true. */
-    if (String(author) !== String(live.author)){
+    const sameHand = (authorId && live.authorId) ? String(authorId) === String(live.authorId) : String(author) === String(live.author);
+    if (!sameHand){
       live.revisedBy = author;
       live.revisedAt = at;
+      if (authorId) live.revisedById = authorId; else delete live.revisedById;
     } else {
       delete live.revisedBy;
       delete live.revisedAt;
+      delete live.revisedById;
     }
     live.summary = String(opts.summary || '').trim() || autoSummary;
     await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });
@@ -1711,6 +1719,7 @@ async function negoFileChange(c, draft, opts = {}){
     revisions: [],
     status: 'pending',
     author, authorSide: side,
+    ...(authorId ? { authorId } : {}),
     /* Null on everything that genuinely came from them — see above. Set only
        when somebody on this workspace typed it wearing their hat. */
     enteredBy: enteredBy || null,
@@ -2404,8 +2413,10 @@ async function negoFileProposal(c, proposedText, opts = {}){
    Posting the comments is the caller's job (server or local store) — this
    function reads and files, it does not talk to a network. */
 async function negoImportReturnedDocx(c, bytes, opts = {}){
-  if (!window.docxExtract) throw new Error('The Word reader is not loaded on this page');
-  const read = await docxExtract(bytes);
+  if (!window.docxExtract && !window.docxExtractRich) throw new Error('The Word reader is not loaded on this page');
+  /* THE ONE STRUCTURED READER, as the upload reads (bug log, 27 Oct 2026): the text-only reader drops Word's
+     automatic numbering, so a returned file whose clauses Word numbers itself filed "1." … moves nobody made */
+  const read = window.docxExtractRich ? await docxExtractRich(bytes) : await docxExtract(bytes);
   const text = String((read && read.text) || '');
   if (!text.trim()) throw new Error('That file has no readable wording in it');
   const author = String(opts.author || c.counterparty || 'Counterparty').trim();
@@ -3210,9 +3221,12 @@ function negoMayDiscard(c, ch, u){
   if (me.role === 'admin') return true;
   const sg0 = ch.suggested;
   const sg = (sg0 && typeof sg0 === 'object') ? sg0 : null;
+  /* by id first (the funnel stamps authorId and revisedById), the name only for a change filed before ids were */
   const authorMine = (sg && sg.byId && me.id) ? String(sg.byId) === String(me.id)
+    : (ch.authorId && me.id) ? String(ch.authorId) === String(me.id)
     : !!me.name && String(ch.author || '') === String(me.name);
-  const revisedByOther = ch.revisedBy && String(ch.revisedBy) !== String(me.name || '');
+  const revisedByOther = ch.revisedBy && ((ch.revisedById && me.id) ? String(ch.revisedById) !== String(me.id)
+    : String(ch.revisedBy) !== String(me.name || ''));
   if (authorMine && !revisedByOther) return true;
   const deskOn = !!(window.deskIsOpen && deskIsOpen(c));
   if (deskOn && window.deskIsLead && deskIsLead(c, me)) return true;
