@@ -386,7 +386,9 @@ describe('f745 (7) Today\'s insights as drawn', () => {
     const card = html.slice(html.indexOf('<article'), html.indexOf('</article>'));
     assert.ok(!/Highest of 12 months|hb-chip/.test(card), 'no rank chip above the headline');
     assert.ok(!/hb-ins-why/.test(card), 'one sentence');
-    assert.match(card, /<div class="hb-ins-t">Payment days are above normal<\/div>\s*<button type="button" class="hb-ins-pic"[^>]*><svg class="hb-ip"/);
+    /* RE-POINTED 27 Oct 2026 (owner: "give insights the × too"): the headline shares its row with the × that lets it go */
+    assert.match(card, /<div class="hb-ins-h"><div class="hb-ins-t">Payment days are above normal<\/div><button type="button" class="hb-ib hb-x hb-ins-x" data-hb-ins="go"[^>]*>[\s\S]*?<\/button><\/div>\s*<button type="button" class="hb-ins-pic"[^>]*><svg class="hb-ip"/);
+    assert.ok(!/hb-ins-go/.test(card), 'no "Let it go" at the foot');
     assert.match(card, /<div class="hb-ins-f">45 days in Sept · normal 30–33 days<\/div>/);
     w.hbS().ins.scope = 'mine';
     assert.match(w.hbShelfHtml([x]), /hb-ins-why/, 'where yours are measured, the reason it is the company\'s is said');
