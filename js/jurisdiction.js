@@ -481,6 +481,16 @@ const fxCounted = c => (fxPrivate(c) || fxIsPay(c))
   ? { v: 0, code: contractCurrency(c), converted: false, missing: false, private: fxPrivate(c), pay: fxIsPay(c) }
   : fxHome(c);
 const fxHomeValue = c => fxCounted(c).v;
+/* WHAT A CONTRACT RANKS BY WHEN SOMETHING IS "THE LARGEST" (bug log, 27 Oct 2026): its value in the
+   workspace currency through fxHome; null where nothing should rank — no money passes, no value, a salary
+   (fxIsPay), or a foreign value with no rate (never guessed). A caller ranks the nulls last or leaves them out. */
+function fxRankValue(c) {
+  if (!c || (typeof isMonetary === 'function' && !isMonetary(c)) || !(Number(c.value || 0) > 0) || fxIsPay(c)) return null;
+  const h = fxHome(c); return h.missing ? null : h.v;
+}
+/* largest first, the ones that cannot rank last (a sort comparator) */
+const fxRankDesc = (a, b) => { const A = fxRankValue(a), B = fxRankValue(b);
+  if (A == null || B == null) return (A == null) - (B == null); return B - A; };
 /* What the converted figures LEFT OUT — {code: count} over valued, live,
    unarchived contracts. */
 function fxMissing(list) {
@@ -518,7 +528,7 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jxLandStatute, jxLandForum, jxEg, jxTaxIdField, jxGovernedBy, jxGovernedByArb, jxLeaseLaw,
   fmtMoney, fmtMoneyShort, fmtMoneyShortIn,
   fxSetRatesReader, fxSetHomeReader, fxHomeCode, contractCurrency, fxIsForeign,
-  fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf,
+  fxRateFor, fxHome, fxHomeValue, fxRankValue, fxRankDesc, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf,
   fxSetPrivateReader, fxPrivate, fxCounted,
   fxIsPay, PAY_EVERY, PAY_PARTS_MAX, payClean, payPartsOf,
   FX_CURRENCIES, fxCurrencyName, fxPickerCodes };

@@ -21799,3 +21799,8 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## Fixed — 27 Oct 2026 (the owner's two calls from the morning report)
 - FIXED: the history trail showed amounts ("Approved … for KES 5M") to people who may not see money. They now see every line without its amount, on the contract and in the activity feed; their saves leave the stored lines as they were (f948). The owner picked "Drop the amount".
 - FIXED: a request lane's value limit was kept but shown nowhere. The lane's row in Settings now says "Value limit · KES 5M"; a lane without one shows nothing (lane-limit-verify). The owner said yes to the line.
+
+## Fixed — 27 Oct 2026 (the owner's three fixes)
+- FIXED: beside Contracts, Jambo's panel redraws when Discover's summary lands, and the cursor in his box jumped to the end, so a word typed mid-sentence went on at the end. The redraw keeps the words, the focus and the cursor (typing-survives-redraw-verify).
+- FIXED: Explorer's "Largest", its "high value" filter, Jambo's highest-value and two-biggest answers, the map's cap order and the comparison's "larger" verdict ranked by the raw number, ignoring currency (ZAR 50M was called "KES 50,000,000" and ranked first). They rank by what each is worth here; a value with no rate ranks last, and "larger" is not said when one in the pair has no rate (largest-in-one-currency-verify).
+- CHECKED, NO CHANGE NEEDED: the seven tests with fixed late-2026 dates (f226, f408, f487, f554, f630, f718, f792) pass with the clock moved forward 70, 400 and 800 days; their dates are records or a "today" the test sets itself.
