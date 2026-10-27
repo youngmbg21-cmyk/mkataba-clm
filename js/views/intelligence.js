@@ -1053,7 +1053,7 @@ function graphInterpret(qRaw){
   else if(has('under review','pending','awaiting','in review')) { vis=cs.filter(c=>c.status==='Under Review'); note='In review'; }
   else if(has('signed','executed','sealed')) { vis=cs.filter(c=>c.status==='Signed'); note='Executed'; }
   else if(has('declined','closed','rejected')) { vis=cs.filter(c=>c.status==='Declined'); note='Closed'; }
-  else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>Number(c.value||0)>=20e6); note=`High-value (≥ ${jxCurrency()} 20M)`; }
+  else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>(igHomeValue(c)||0)>=20e6); note=`High-value (≥ ${jxCurrency()} 20M)`; }
   else if(has('non-monetary','no value')) { vis=cs.filter(c=>!isMonetary(c)); note='Non-monetary'; }
   else {
     // counterparty name match
@@ -1068,7 +1068,7 @@ function graphInterpret(qRaw){
   const answer = vis===null
     ? (groupBy?'':'I could not match that to a filter — try a contract type, status, counterparty or expiry horizon.')
     : (vis.length
-      ? `${vis.length} contract${vis.length===1?'':'s'} match${vis.length===1?'es':''} (${note}). Largest: ${vis.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0))[0].name}.`
+      ? `${vis.length} contract${vis.length===1?'':'s'} match${vis.length===1?'es':''} (${note}). Largest: ${vis.slice().sort(igRankDesc)[0].name}.`
       : `No contracts match (${note}).`);
   return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy, groups:null, note, action, badges, answer };
 }
@@ -1383,8 +1383,11 @@ const IG_STATUS_WORDS=[
 const IG_UNIT_DAYS={ day:1, days:1, dag:1, dagar:1, week:7, weeks:7, vecka:7, veckor:7, month:30.44, months:30.44, månad:30.44, månader:30.44, quarter:91.3, quarters:91.3, kvartal:91.3, year:365.25, years:365.25, år:365.25 };
 function igMoneyOf(n, unit){ let v=Number(String(n).replace(/[, ]/g,'')); if(!isFinite(v)) return null;
   const u=String(unit||'').toLowerCase(); if(/^(m|mn|million|millions|miljon|miljoner|mkr)$/.test(u)) v*=1e6; else if(/^(k|thousand|tusen)$/.test(u)) v*=1e3; else if(/^(bn|b|billion|miljard|miljarder)$/.test(u)) v*=1e9; return v; }
-function igHomeValue(c){ if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)||(typeof fxIsPay==='function'&&fxIsPay(c))) return null;
-  const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false }; return h.missing?null:h.v; }
+/* the one ranking reading, js/jurisdiction.js (fxRankValue) */
+/* largest first in the workspace currency, what cannot rank last (fxRankDesc) */
+const igRankDesc=(a,b)=>{ const A=igHomeValue(a), B=igHomeValue(b); if(A==null||B==null) return (A==null)-(B==null); return B-A; };
+function igHomeValue(c){ if(typeof window.fxRankValue==='function') return fxRankValue(c);
+  if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)) return null; return Number(c.value||0); }
 /* THE READER'S WORDS, FOR BOTH SCREENS (the owner's review, 3 Oct 2026
    evening: "Show me all Juno contracts" showed everything). Every condition
    carries the FIELD it reads (conditions on one field are OR-ed — "Naivas
@@ -3265,7 +3268,7 @@ function buildGraphModel(){
   if(capped) cs=cs.slice().sort((a,b)=>{
     // matched contracts survive the cap first, then largest by value
     const am=act.ids?.has(a.id)?1:0, bm=act.ids?.has(b.id)?1:0;
-    return (bm-am)||(Number(b.value||0)-Number(a.value||0));
+    return (bm-am)||igRankDesc(a,b);
   }).slice(0,INTEL_CAP);
   const highlight = act.ids && act.action==='highlight';
   // hubs
@@ -8335,6 +8338,9 @@ function renderIntelDock(){
      what was left. The words and the caret are carried across. */
   const _was=document.getElementById('igd-input');
   const _keep=_was?_was.value:'', _focus=!!(_was&&document.activeElement===_was);
+  /* ...and where in them the caret stood (27 Oct 2026: Discover's summary landing redraws the panel beside
+     Contracts, and a word being fixed mid-sentence went on at the end) */
+  let _sel=null; if(_focus){ try{ _sel=[_was.selectionStart,_was.selectionEnd,_was.selectionDirection]; }catch(_){ _sel=null; } }
   /* the Redlines face's column keeps its place across a repaint (stage 3) */
   const _redTop=(typeof window.pdRedScrollOf==='function')?pdRedScrollOf():0;
   /* JAMBO AS A TAB YOU FLIP TO, AND BACK (owner, 19 Oct 2026): the panel lands
@@ -8560,7 +8566,7 @@ function renderIntelDock(){
   document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
   /* The » widen button went on 27 Sep 2026 — the divider beside the panel is
      the one way to set its width (igWireSplit). */
-  if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); }catch(_){ } } } }
+  if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); if(_sel&&_sel[0]!=null) n.setSelectionRange(_sel[0],_sel[1],_sel[2]||'none'); }catch(_){ } } } }
   if(window.chatFieldWire) chatFieldWire(dock);
   /* A question asked while an answer is still coming leaves the box and waits
      its turn (intelAsk → jamboAskLater, 22 Oct 2026; was: it stayed in the box

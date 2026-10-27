@@ -1793,7 +1793,7 @@ function aiAnswer(qRaw){
   if(has('compare','side by side','side-by-side','versus',' vs ')||idsInQ.length>=2){
     let ids=idsInQ.filter(id=>aiContractByRef(id));
     if(ids.length<2 && has('highest','largest','biggest','top','most valuable'))
-      ids=[...cs].filter(c=>c.status!=='Declined'&&!c.archived&&Number(c.value||0)>0).sort((a,b)=>b.value-a.value).slice(0,2).map(c=>c.id);
+      ids=[...cs].filter(c=>c.status!=='Declined'&&!c.archived&&(window.fxRankValue?fxRankValue(c)!=null:Number(c.value||0)>0)).sort((window.fxRankDesc||((a,b)=>Number(b.value||0)-Number(a.value||0)))).slice(0,2).map(c=>c.id);
     if(ids.length<2){
       const words=q.replace(/[?.,!]/g,'').split(/\s+/).filter(w=>w.length>3);
       const byParty=cs.filter(c=>c.counterparty&&words.some(w=>c.counterparty.toLowerCase().includes(w)));
@@ -1872,7 +1872,7 @@ function aiAnswer(qRaw){
   }
   // 7) highest / largest
   if(has('highest','largest','biggest','top contract','most valuable')){
-    const sorted=[...cs].filter(c=>c.status!=='Declined'&&!c.archived).sort((a,b)=>b.value-a.value).slice(0,3);
+    const sorted=[...cs].filter(c=>c.status!=='Declined'&&!c.archived).sort((window.fxRankDesc||((a,b)=>Number(b.value||0)-Number(a.value||0)))).slice(0,3);
     if(!sorted.length) return { text:`There are no active contracts to rank yet — create one from a template or upload received paper and ask me again.` };
     return { text:`Your highest-value agreement is <strong>${sorted[0].name}</strong> at <strong>${fmtMoney(sorted[0].value)}</strong>. Top three by value:`, cards:aiCards(sorted) };
   }
@@ -2036,7 +2036,7 @@ function aiPortfolioSnapshot(){
     .sort((a,b)=>{ const ea=exp(a),eb=exp(b);
       if(ea&&eb) return String(ea).localeCompare(String(eb));
       if(ea) return -1; if(eb) return 1;
-      return Number(b.value||0)-Number(a.value||0); })
+      return (window.fxRankDesc||((a,b)=>Number(b.value||0)-Number(a.value||0)))(a,b); })
     .slice(0,AI_SNAPSHOT_CAP)
     .map(c=>`  ${(window.contractRef?contractRef(c):c.id)} · ${c.name} · ${c.counterparty||'—'} · ${c.status}`
       +`${c.value?' · '+money(c.value):''}${exp(c)?' · expires '+exp(c):''}`);
@@ -3384,7 +3384,10 @@ function localCompareData(ids){
   ];
   const said=[];
   const monetary=cs.filter(c=>c.valueType!=='none'&&Number(c.value)>0);
-  if(monetary.length>=2){ const top=monetary.slice().sort((a,b)=>Number(b.value)-Number(a.value))[0]; said.push(T('cmp_verdict_larger',{ ref:ref(top), value:window.fmtMoneyShortOf?fmtMoneyShortOf(top):fmtMoneyShort(top.value) })); }
+  /* "larger" only where every figure can be put in one currency (fxRankValue): a value with no rate could be
+     either, so nothing is said (bug log, 27 Oct 2026) */
+  const _ranks=!window.fxRankValue||monetary.every(c=>fxRankValue(c)!=null);
+  if(monetary.length>=2&&_ranks){ const top=monetary.slice().sort((window.fxRankDesc||((a,b)=>Number(b.value||0)-Number(a.value||0))))[0]; said.push(T('cmp_verdict_larger',{ ref:ref(top), value:window.fmtMoneyShortOf?fmtMoneyShortOf(top):fmtMoneyShort(top.value) })); }
   const dated=cs.filter(c=>c.expiry&&_daysTo(c.expiry)!=null&&_daysTo(c.expiry)>=0);
   if(dated.length>=2){ const soon=dated.slice().sort((a,b)=>_daysTo(a.expiry)-_daysTo(b.expiry))[0]; said.push(T('cmp_verdict_first',{ ref:ref(soon), n:_daysTo(soon.expiry) })); }
   return { columns:cs.map(c=>({id:c.id,label:ref(c)})), rows, verdict:said.join(' ') };
