@@ -2591,7 +2591,7 @@ async function igBoardTalkAsk(q){
   intel.lenses=(intel.lenses||[]).filter(l=>l.hb||l.action!=='filter');
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
-  try{ await intelChatAsk(q); }
+  try{ await intelChatAsk(q, { draw:true }); }
   catch(e){ intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true}); }
   igNextUnderWords(h0);
   intel.busy=false;
@@ -3095,7 +3095,10 @@ async function intelChatAsk(q, opts){
     /* ONE JAMBO (24 Oct 2026): the same context the ✦'s window sends — the page in front, the Board or the map as
        they stand, the book's snapshot — so an answer beside Home knows the screen as the window's does */
     let ctx={ view:'intel' }; try{ if(typeof window.aiChatContext==='function') ctx=Object.assign(aiChatContext(), { view:'intel' }); }catch(_){ ctx={ view:'intel' }; }
+    /* the Board's Jambo tab may DRAW (igBoardDrawn): the answer can carry the Board's own buttons */
+    if(opts&&opts.draw) ctx.drawBoard=true;
     const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
+    if(opts&&opts.draw&&await igBoardDrawn(res, q)) return;
     intelPushChatResult(res, q);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
@@ -3105,6 +3108,17 @@ async function intelChatAsk(q, opts){
     }
     intel.history.push(igFailTurn(e, q));
   }
+}
+/* JAMBO DRAWS ON THE BOARD (owner, 27 Oct 2026): the buttons his answer names are pressed by the Board's own checked
+   applier (hbBoardTakesChecked → hbBoardApply): a good one draws, one the Board cannot draw is said, two or more cards
+   wait as a preview; his words come under the Board's line, checked against what it drew. No second call: a bad
+   button is said, never sent back. An answer with no buttons is an ordinary answer (false). */
+async function igBoardDrawn(res, q){
+  if(!res||!Array.isArray(res.board)||!res.board.length||!igBoardNow()||typeof window.hbBoardTakesChecked!=='function') return false;
+  let said=null; try{ said=await hbBoardTakesChecked({ actions:res.board, actionsTotal:res.boardTotal, answer:String(res.answer||''), say:true }, null, q); }catch(_){ said=null; }
+  if(!said) return false;
+  intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice)+(typeof window.aiDeepLineHtml==='function'?aiDeepLineHtml(res):'') }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}));
+  return true;
 }
 /* A FAILED TURN SAYS WHY AND OFFERS THE SAME WORDS AGAIN (stage 3: never a dead end) */
 /* ONE STAND-IN ON EVERY HOST (24 Oct 2026; the window's aiDegrade): a whole-book ask ("list all the contracts",
@@ -10450,4 +10464,4 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 
 /* what the map shows, one reading (24 Oct 2026) */
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
-Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk });
+Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn });

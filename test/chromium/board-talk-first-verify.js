@@ -10,6 +10,9 @@
      C  Jambo tab: a question goes to the chat once, the Board stays in front, the answer stands under his tab
      D  Jambo tab: a long sentence asking the way — the AI's own door takes the reader there (goto)
      E  Jambo tab: a follow-up carries the conversation (the earlier turns travel with it)
+     G  "take me to contacts" is People on both tabs
+     H  Jambo tab: "chart value by stream" — his answer's Board buttons draw the card, his words under the Board's line
+     I  a button the Board cannot press is said; nothing else spent
      F  photos at the owner's three screens; no page errors
    At the parent A passes and B–L fail (the free readers answer first, nothing is sent).
    Run: node test/chromium/board-talk-first-verify.js */
@@ -121,6 +124,35 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     check('G2 on the Jambo tab the AI is told People\'s words, "contacts" among them, and not to read one as a slip', /people \(colleagues, contacts/.test(taskDesc) && /never a misspelling/.test(taskDesc), taskDesc.slice(0, 120));
     const G3 = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
     check('G3 and its door lands on People', G3 === 'directory', G3);
+
+    /* JAMBO DRAWS ON THE BOARD (owner, 27 Oct 2026: "Teach Jambo to draw on the board now") */
+    console.log('\nH · on the Jambo tab, a chart asked for is drawn on the Board, his words under it');
+    await toBoard(); await toTalk();
+    const panels0 = await page.evaluate(() => (hbS().panels || []).length);
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_h', name: 'deliver_answer', input: { answer: 'Each bar is one value stream, measured by contract value; the card\'s own line names the stream that leads.', citations: [],
+      board: [{ do: 'add_card', which: { all: true }, recipe: { pic: 'bars', split: 'stream', measure: 'value' }, title: 'Value by stream' }] } }]);
+    await ask('chart value by stream');
+    await until(() => !intel.busy && chatCalls().length >= 1 ? true : null, null, 12000);
+    await page.waitForTimeout(600);
+    const H = await page.evaluate(() => ({ view: state.view, face: hbS().face, panels: (hbS().panels || []).length, talk: pdTalkShows(), key: (hbS().path || []).slice(-1)[0] || '',
+      said: String(((intel.history || []).filter(m => m.role === 'assistant').slice(-1)[0] || {}).text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240) }));
+    const hCall = chatCalls().slice(-1)[0];
+    const hTool = hCall && (hCall.body.tools || []).find(t => t.name === 'deliver_answer');
+    check('H1 one chat call, told it may draw: the Board\'s buttons on its answer and the drawing rule', chatCalls().length === 1 && !!(hTool && hTool.input_schema.properties.board) && /DRAWING ON THE BOARD/.test(JSON.stringify(hCall.body.system || '')), `${chatCalls().length}×`);
+    check('H2 a card is drawn on the Board, which stays in front', !!H && H.view === 'dashboard' && H.face === 'board' && (H.panels > panels0 || /^q:/.test(H.key)), JSON.stringify(H) + ' · before ' + panels0);
+    check('H3 his words stand under the Board\'s line, under his tab', !!H && H.talk && /^Added/.test(H.said) && /Each bar is one value stream/.test(H.said), H.said);
+    for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `H-jambo-draws-${w}x${hh}.png`) }); }
+    await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
+
+    console.log('\nI · a button the Board cannot press is said, nothing else is spent');
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_i', name: 'deliver_answer', input: { answer: 'Changing that card.', citations: [],
+      board: [{ do: 'change_card', card: 'p999', recipe: { measure: 'count' } }] } }]);
+    const iBefore = await page.evaluate(() => JSON.stringify((hbS().panels || []).map(p => p.key)));
+    await ask('make card p999 count contracts instead');
+    await until(() => !intel.busy && chatCalls().length >= 1 ? true : null, null, 10000);
+    await page.waitForTimeout(500);
+    const I = await page.evaluate(b => ({ same: JSON.stringify((hbS().panels || []).map(p => p.key)) === b, said: ((intel.history || []).filter(m => m.role === 'assistant').slice(-1)[0] || {}).text || '' }), iBefore);
+    check('I1 one call, the Board unchanged, and something is said (never a silent nothing)', chatCalls().length === 1 && I.same && String(I.said).replace(/<[^>]+>/g, '').trim().length > 0, JSON.stringify({ calls: chatCalls().length, same: I.same, said: String(I.said).replace(/<[^>]+>/g, ' ').slice(0, 120) }));
 
     check('F no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {

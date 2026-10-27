@@ -8481,7 +8481,7 @@ function hbActionWords(raw){
 }
 /* what the panel says for an answer: applied at once, or offered as a list */
 function hbBoardAnswer(res, applied, lines){
-  const tail = hbCopilotTail(res.answer, _hbAskQ, { nothingDrawn: !applied.length });
+  const tail = hbCopilotTail(res.answer, _hbAskQ, { nothingDrawn: !applied.length, say: !!res.say });
   const extra = (lines || []).map(l => _hbE(l)).join('<br>');
   if (applied.length && hbIsBig(applied)){
     const id = 'pv' + (++_hbPvSeq);
@@ -9287,8 +9287,10 @@ function hbProseChecked(text, opts){
 }
 /* Copilot's own sentence, as the reply may carry it: only for a why or
    explain question, checked against the open chart, formatted */
+/* opts.say: the Board's Jambo tab asked him to draw AND say what it shows (igBoardDrawn, owner 27 Oct 2026); his words
+   still pass the same check against what was drawn (hbProseChecked) */
 function hbCopilotTail(own, q, opts){
-  const o = String(own || '').trim(); if (!o || !(hbCopilotMaySay(q) || HB_FACT_ASK_RE.test(String(q || '')))) return '';
+  const o = String(own || '').trim(); if (!o || !((opts && opts.say) || hbCopilotMaySay(q) || HB_FACT_ASK_RE.test(String(q || '')))) return '';
   const chk = hbProseChecked(o, opts); if (!chk.text) return '';
   return '<br>' + ((typeof aiRichText === 'function') ? aiRichText(chk.text) : _hbE(chk.text));
 }
