@@ -21816,3 +21816,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - CHECKED, NO CHANGE NEEDED: the seven tests with fixed late-2026 dates (f226, f408, f487, f554, f630, f718, f792) pass with the clock moved forward 70, 400 and 800 days; their dates are records or a "today" the test sets itself.
 
 - Noticed, not fixed (27 Oct 2026): settings-overnight-fixes-verify D12 reads the number on Home's "Finish setting up — N left" row the moment it first appears, then reads the go-live list after the press; on main's run #4395 it read door 5 · list 4 (a setup item finished between the two reads). Green on the PR run of the same tree and 3 of 3 locally — a timing gap in the check (read the door after the page settles), not in the app.
+
+## Noticed, not fixed — 27 Oct 2026 (Home's box reads with the brain first)
+- A draft sentence handed to `counterAsk` with no box focused (as a script does) left Jambo's panel on Overview beside the new sheet: the conversation held his line (`.ca-dr-said`) but the panel did not turn to his tab (`pdTalkSync`); with `#cn-q` focused, as typing or a chip press leaves it, it turned. Only a programmatic ask reaches that path today; one-sheet-as-drawn 0 focuses the box first.
+- CLAUDE.md stands at about 81.3 KB, over the "about 80 KB" line; a trim needs the owner's yes.

@@ -10,6 +10,7 @@
      C  the Calendar's planner hands words that are not about time to the chat ('elsewhere'), in the one conversation
      D  Explorer's tab asks the map's own brain (render_graph), a contract's Dossier the chat or its wording's
      E  Overview's box keeps its free readers: "approvals" there moves to Approvals, nothing spent
+     H  Home's box (the Counter) typed into is one question to the brain, the Board opening on his tab; a chip stays free
      F  no page errors
    AT THE PARENT (origin/main 422878e) A fails on every page but the Board, B and C fail.
    Run: node test/chromium/every-jambo-tab-verify.js   (HATI_TAB_ONLY=approvals,contracts to run some) */
@@ -139,6 +140,27 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
         check('G2 his press works the page\'s own tab, said under his words in the window', !!got && said, JSON.stringify({ got, said }));
       } else check('G2 the page offered a tab to press', false);
       await P.evaluate(() => { try { if (ai.open) closeAI(); } catch (_){} });
+    }
+
+    /* H — HOME'S BOX (owner, 27 Oct 2026: "make the home page box go to AI first too"): typed there, "approvals" is one
+       question to the brain, the Board opens on his tab with the answer; a chip pressed keeps its free reader */
+    console.log('\n· H: Home\'s box');
+    if (!ONLY || ONLY.includes('home')){
+      await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
+      const box = await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
+      ai.reset(); ai.script(deliver('ANS-home'));
+      await type('#cn-q', 'approvals');
+      await until(P, () => state.view === 'dashboard' ? true : null, null, 6000);
+      await settled(); await P.waitForTimeout(700);
+      const H = await P.evaluate(() => ({ view: state.view, face: (typeof hbFace === 'function') ? hbFace() : '', talk: !!(window.pdTalkShows && pdTalkShows()), said: /ANS-home/.test((document.getElementById('ig-dock') || {}).innerText || '') }));
+      const chat = ai.calls.find(c => toolsOf(c).includes('deliver_answer'));
+      check('H1 typed in Home\'s box, "approvals" is one question to the brain; the Board opens on his tab with the answer', !!box && ai.calls.length === 1 && !!chat && H.view === 'dashboard' && H.face === 'board' && H.talk && H.said, `${ai.calls.length} call(s) · ${JSON.stringify(H)}`);
+      await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
+      await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
+      ai.reset();
+      await P.click('#cn-page [data-cn-ask="contracts"]');
+      const H2 = await until(P, () => (state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper') ? true : null, null, 6000);
+      check('H2 a chip pressed on Home keeps its free reader: Contracts opens, nothing spent', !!H2 && ai.calls.length === 0, `${!!H2} · ${ai.calls.length}×`);
     }
 
     console.log('\n· E: Overview keeps its free readers');

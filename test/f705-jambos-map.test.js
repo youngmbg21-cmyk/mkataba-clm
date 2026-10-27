@@ -442,7 +442,10 @@ describe('f705 (8) the wiring', () => {
      through the one reader every Jambo box uses, caAskAnywhere, with {all};
      the map is asked there, after the place words, before the hand to Jambo */
   test('8c Home\'s box asks the map before it hands the words to Jambo beside the Board', () => {
-    const body = strip(R('js/views/counter.js')).match(/function counterAsk\(text\)\{([\s\S]*?)\n\}/)[1];
+    /* RE-POINTED 27 Oct 2026 (Home's box reads with the brain first): words TYPED there go to the Board's Jambo
+       tab (counterTalkAsk); a chip, a "/" row and no key still reach the one reader, caAskAnywhere */
+    const body = strip(R('js/views/counter.js')).match(/function counterAsk\(text, opts = \{\}\)\{([\s\S]*?)\n\}/)[1];
+    assert.ok(body.indexOf('counterTalkFirst()') > -1 && body.indexOf('counterTalkFirst()') < body.indexOf('caAskAnywhere('));
     assert.match(body, /caAskAnywhere\(text, \{ all: true \}\)/);
     const any = strip(ACTS).match(/function caAskAnywhere\(text, opts = \{\}\)\{([\s\S]*?)\n\}/)[1];
     const tail = any.slice(any.indexOf('let a = null'));
