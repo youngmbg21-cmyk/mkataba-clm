@@ -9177,6 +9177,20 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
   e.preventDefault();
   rlBackToClauses();
 });
+/* THE PICKED CARD'S More ▾ (owner, 27 Oct 2026): opens the folded verbs on
+   its own row, presses nothing else; press it again and it closes. Delegated
+   here so a repainted card needs no re-wiring; the LIVE elements are resolved
+   at press time. */
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('[data-rl-more]');
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const more = b.nextElementSibling;
+  if (!more || !more.classList || !more.classList.contains('rl-card-more')) return;
+  const open = more.hasAttribute('hidden');
+  if (open) more.removeAttribute('hidden'); else more.setAttribute('hidden', '');
+  b.setAttribute('aria-expanded', String(open));
+});
 /* ---- LAND ON THE POINT'S CLAUSE ----
    The clause is the one the Clauses tab named (its id where the paper carries
    one, else the clause holding the point's quote, else its number). Where Edit
@@ -18937,7 +18951,15 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
     }
     if (opts.noGlow || _rlGlowDone.has(ch.id)) continue;
     const v = scope.querySelector(RL_SUG_VERB[a.verdict](css(ch.id)));
-    if (v){ v.classList.add('rl-glow'); v.setAttribute('data-rl-glow-for', ch.id); }
+    if (v){
+      /* THE PICKED CARD (27 Oct 2026): a glowing suggestion is never folded.
+         Where Jambo's suggested answer waits behind More ▾, the fold opens
+         itself, because a suggestion is visible pixels or it is nothing. */
+      const fold = v.closest('.rl-card-more[hidden]');
+      if (fold){ fold.removeAttribute('hidden'); const m = fold.previousElementSibling;
+        if (m && m.hasAttribute && m.hasAttribute('data-rl-more')) m.setAttribute('aria-expanded', 'true'); }
+      v.classList.add('rl-glow'); v.setAttribute('data-rl-glow-for', ch.id);
+    }
   }
   return n;
 }
@@ -19852,14 +19874,30 @@ function redlineChangeCardsHtml(c, opts = {}){
     const acc = take(/data-nego-accept=/), rej = take(/data-nego-reject=/);
     const out = [];
     let discard = '';   /* our own row's last word — see below */
+    let foldFrom = 0;   /* the picked card: verbs past this index fold behind More */
     if (theirs && (acc || rej)){
-      /* A LIVE ASK OF THEIRS IS THE ARTIFACT'S DECISION ROW: Accept · Reject ·
-         Counter, and the door wears the artifact's word because countering is
-         what pressing it does to an ask still on the table. */
-      out.push(acc, rej, relabel(door, i18t('ng_counter')));
+      /* A LIVE ASK OF THEIRS IS THE ARTIFACT'S DECISION ROW. THE PICKED CARD
+         (owner, 27 Oct 2026, round 9 of the Legora rounds, off the redline
+         playground): on OUR seat the suggested answer LEADS as the row's one
+         filled button — Counter, because a counter is the usual answer and
+         the editor says what it keeps — Accept beside it, and every other way
+         to answer folds behind More ▾ (the fold is cut at the return below).
+         This REVERSES "every verb is visible pixels" (f180) FOR THIS ROW ONLY,
+         by the owner's pick; their page keeps the old row — the pick is our
+         seat's drawing, and a locked door or a row with no door keeps the old
+         row too, so nothing filled is ever dead. */
+      const ourSeat = side !== 'counterparty' && !rlOnTheirPage();
       /* ASK A COLLEAGUE (round 5 of the first-timer rounds): the one send screen, set to
          a colleague, the change named in the note — the pass route, tracked until they answer */
-      if (side !== 'counterparty' && !rlOnTheirPage()) out.push(`<button type="button" class="rl-edit rl-ask-col" data-rl-ask-colleague="${_nea(ch.id)}" title="${_nea(i18t('rl_ask_col_title'))}">${_ne(i18t('rl_ask_col'))}</button>`);
+      const askCol = ourSeat ? `<button type="button" class="rl-edit rl-ask-col" data-rl-ask-colleague="${_nea(ch.id)}" title="${_nea(i18t('rl_ask_col_title'))}">${_ne(i18t('rl_ask_col'))}</button>` : '';
+      if (ourSeat && acc && door && !/is-locked/.test(door)){
+        out.push(relabel(door, i18t('ng_counter')).replace('class="', 'class="rl-verb-lead '), acc, rej);
+        if (askCol) out.push(askCol);
+        foldFrom = 2;
+      } else {
+        out.push(acc, rej, relabel(door, i18t('ng_counter')));
+        if (askCol) out.push(askCol);
+      }
     } else if (theirs){
       /* ---- A SETTLED ASK KEEPS THE FUNNEL'S OWN ORDER (15 Sep 2026) ----
          The artifact's three slots describe a row with a decision on it. On a
@@ -19901,6 +19939,12 @@ function redlineChangeCardsHtml(c, opts = {}){
       out.push(rlLadderVerbHtml(ch));
     if (discard) out.push(discard);
     const kept = out.filter(Boolean).map(rlFaceMark);
+    /* THE PICKED CARD'S FOLD: the lead and Accept stay on the face; the rest
+       waits behind More ▾ (delegated at module load, press again closes). */
+    if (foldFrom && kept.length > foldFrom){
+      const head = kept.slice(0, foldFrom), rest = kept.slice(foldFrom);
+      return `<span class="rl-card-face rl-card-verbs">${head.join('')}<button type="button" class="rl-fold-btn" data-rl-more="${_nea(ch.id)}" aria-expanded="false" title="${_nea(i18t('rl_more_title'))}">${_ne(i18t('rl_more'))}</button><span class="rl-card-more" hidden>${rest.join('')}</span></span>`;
+    }
     /* IT WEARS BOTH CLASSES. `rl-card-face` is the artifact's own dressing for
        this row (a bare word until 17 Sep 2026, a mark and a word since);
        `rl-card-verbs` is the name the rest of the product and half

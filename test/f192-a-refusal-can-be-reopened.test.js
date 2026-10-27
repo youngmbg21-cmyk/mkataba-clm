@@ -200,9 +200,17 @@ describe('f192 (4) — pressing it puts the ask back on the table', () => {
        UNCHANGED and is what this test is named for: reopening puts the
        DECISION back. So the two decision verbs are asserted, in order and at
        the head of the row, rather than as a list a third verb can lengthen. */
+    /* RE-POINTED 27 Oct 2026 (THE PICKED CARD, round 9 of the Legora rounds):
+       the suggested answer LEADS as the row's one filled button, Accept beside
+       it, and Reject waits behind More ▾. THE CLAIM IS STILL UNCHANGED —
+       reopening puts the DECISION back — so the picked head is asserted AND
+       Reject is asserted present on the card, behind the fold, so a cap could
+       not quietly drop the no. */
     const backVerbs = verbsOf(cardOf(column(p)));
-    assert.deepEqual(backVerbs.slice(0, 2), ['Accept', 'Reject'],
-      'and the card is a decision again');
+    assert.deepEqual(backVerbs.slice(0, 2), ['Counter', 'Accept'],
+      'and the card is a decision again, led by the suggested answer');
+    assert.ok(backVerbs.includes('Reject'),
+      'with Reject still offered, behind More');
     /* RE-POINTED 1 Sep 2026 — and it was PASSING ON A BUG: `data-rl-edit=` was
        the card's Edit until 30 Aug and on our seat the string survived only
        because the ⋯ was drawing a duplicate jump row that opened the retired

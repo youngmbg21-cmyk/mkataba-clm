@@ -808,7 +808,11 @@ describe('f246 (5) — the card opens instead of a menu', () => {
       'data-rl-card-open', 'data-rl-np-room', 'data-rl-np-send', 'data-rl-note-more',
       /* ADDED 22 Oct 2026 (round 5 of the first-timer rounds, owner picked "Four doors"): Ask a colleague,
          owned by rlAskColleague — the one send screen set to a colleague, the pass route */
-      'data-rl-ask-colleague'];
+      'data-rl-ask-colleague',
+      /* ADDED 27 Oct 2026 (THE PICKED CARD, round 9 of the Legora rounds): More ▾,
+         the fold on a live ask of theirs — owned by its own module-load delegated
+         listener; it opens and closes the folded verbs and reaches nothing else */
+      'data-rl-more'];
     const p = await bench();
     for (const ch of p.c.changes)
       for (const b of p.open(ch.id).querySelectorAll('button')){
@@ -1767,6 +1771,10 @@ describe('f246 (12) — every verb on the face carries the shell\'s own mark', (
     let verbs = 0;
     for (const f of faces)
       for (const b of f.querySelectorAll('button')){
+        /* THE PICKED CARD (27 Oct 2026): More ▾ is the fold, not a verb — its
+           chevron is its own mark (::after follows aria-expanded), so the
+           sprite rule does not cover it. */
+        if (b.hasAttribute('data-rl-more')) continue;
         verbs++;
         const svg = b.querySelectorAll('.rl-verb-i');
         assert.equal(svg.length, 1, `"${b.textContent.trim()}" carries one mark`);

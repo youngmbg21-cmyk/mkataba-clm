@@ -61,6 +61,8 @@ const DOC = ['RAW MATERIAL SUPPLY AGREEMENT', '', '1. Supply', '', 'The Supplier
     const before = await page.evaluate(() => !!document.querySelector('.rl-unsent-go[data-rl-decided]'));
     ok('1 before deciding, no hand-back send in the column', !before);
 
+    /* THE PICKED CARD (27 Oct 2026): Reject waits behind More ▾. */
+    await page.evaluate(() => { const r = document.querySelector('#pd-redface [data-nego-reject]'); const m = r && r.closest('[data-nego-card]') && r.closest('[data-nego-card]').querySelector('[data-rl-more]'); if (m && r.closest('.rl-card-more[hidden]')) m.click(); });
     await page.click('[data-nego-reject]');
     const asked = await page.waitForSelector('#prompt-overlay #pd-input, #prompt-overlay textarea', { timeout: 5000 }).then(() => true, () => false);
     if (asked) { await page.fill('#prompt-overlay #pd-input, #prompt-overlay textarea', 'The clause stays.'); await page.click('#prompt-overlay #pd-ok'); }

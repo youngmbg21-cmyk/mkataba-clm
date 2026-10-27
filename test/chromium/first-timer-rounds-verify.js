@@ -235,10 +235,15 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
        look" is the grey card like its neighbour, and its read has no box of its own */
     check(!!(liab && pay && liab.card === pay.card && /rgba\(0, 0, 0, 0\)/.test(liab.bg)), '5a2 the change card holding "Worth a look" keeps the grey of the cards above the risks, no box inside', { look: liab && [liab.card, liab.bg], esc: pay && pay.card });
     check(!!(pay && pay.read === 'escalate'), '5c where a rule is written, its verdict still stands (the workspace\'s payment range)', pay && pay.read);
-    check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 4).join(' · ') === 'Accept · Reject · Counter · Ask a colleague')), '5d Ask a colleague sits after Counter on each of their asks', rows.map(r => r && r.verbs));
+    /* RE-POINTED 27 Oct 2026 (THE PICKED CARD): Counter leads filled, Accept
+       beside, the rest — Ask a colleague among them — behind More ▾. */
+    check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 3).join(' · ') === 'Counter · Accept · More' && r.verbs.includes('Reject') && r.verbs.includes('Ask a colleague'))), '5d the picked head leads each of their asks, Ask a colleague behind More', rows.map(r => r && r.verbs));
     for (const [w, hgt] of SCREENS){
       await P.setViewportSize({ width: w, height: hgt });
-      check(await painted(P, '#ig-dock [data-rl-ask-colleague="K2"]') && !(await sideways(P)), `5e the row and its new door are painted, nothing sideways, at ${w}×${hgt}`);
+      /* THE PICKED CARD: the door waits behind More ▾; a repaint folds it, so
+         each screen opens the fold the way a reader would before measuring. */
+      await drive(P, () => { const m = document.querySelector('#ig-dock [data-nego-card="K2"] [data-rl-more]'); const f = document.querySelector('#ig-dock [data-nego-card="K2"] .rl-card-more[hidden]'); if (m && f) m.click(); });
+      check(await painted(P, '#ig-dock [data-rl-ask-colleague="K2"]') && !(await sideways(P)), `5e the row and its new door are painted once More is open, nothing sideways, at ${w}×${hgt}`);
       await shot(P, `${w}x${hgt}-5-rows`);
     }
     await P.setViewportSize({ width: 1440, height: 780 });

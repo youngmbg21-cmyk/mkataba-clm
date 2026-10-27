@@ -241,7 +241,16 @@ describe('f924 (5) answering their changes', () => {
   });
   test('5d Ask a colleague on a live ask of theirs, our seat only, through the one send screen set to a colleague', () => {
     const S = strip(NG);
-    assert.match(S, /out\.push\(acc, rej, relabel\(door, i18t\('ng_counter'\)\)\);\n\s+if \(side !== 'counterparty' && !rlOnTheirPage\(\)\) out\.push\(`<button type="button" class="rl-edit rl-ask-col" data-rl-ask-colleague=/);
+    /* RE-POINTED 27 Oct 2026 (THE PICKED CARD, round 9 of the Legora rounds):
+       the live-theirs branch now leads with the suggested Counter and folds
+       the rest behind More. THE CLAIM IS UNCHANGED and is pinned as its three
+       parts rather than the old line: the seat gate, the button through the
+       one send screen, and that it rides the live-theirs branch on both of
+       that branch's shapes. */
+    assert.match(S, /const ourSeat = side !== 'counterparty' && !rlOnTheirPage\(\);/);
+    assert.match(S, /const askCol = ourSeat \? `<button type="button" class="rl-edit rl-ask-col" data-rl-ask-colleague=/);
+    assert.match(S, /out\.push\(relabel\(door, i18t\('ng_counter'\)\)\.replace\('class="', 'class="rl-verb-lead '\), acc, rej\);\n\s+if \(askCol\) out\.push\(askCol\);/);
+    assert.match(S, /out\.push\(acc, rej, relabel\(door, i18t\('ng_counter'\)\)\);\n\s+if \(askCol\) out\.push\(askCol\);/);
     assert.match(strip(decl(NG, 'rlAskColleague')), /window\.openShareModal\(c, \{ purpose: 'colleague', note: i18t\(what \? 'rl_ask_col_note' : 'rl_ask_col_note_bare'/);
   });
   test('5e Accept on an ask of theirs says it has not gone yet and names the row\'s own way back; Counter on a number names the figures', () => {

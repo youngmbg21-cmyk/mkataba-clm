@@ -493,6 +493,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const bg = rgb(s.backgroundColor), fg = rgb(s.color), pv = rgb(paint);
       const L1 = Math.max(lum(pv), lum(fg)), L2 = Math.min(lum(pv), lum(fg));
       return { bg: s.backgroundColor, fg: s.color, bgv: bg, fgv: fg, paint,
+        lead: b.classList.contains('rl-verb-lead'),
         contrast: Math.round(((L1 + 0.05) / (L2 + 0.05)) * 100) / 100 };
     };
     /* ---- EVERY VERB THE COLUMN OFFERS, SINCE THE CARD OPENS (2 Sep 2026) ----
@@ -561,10 +562,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      UNCHANGED and is measured in the two checks around this one: every label
      stays legible against what is actually behind it, and the yes and the no
      stay tellable apart. */
-  check('11 no verb is filled — every one is a bare coloured word',
+  /* RE-POINTED 27 Oct 2026 (THE PICKED CARD, round 9 of the Legora rounds):
+     the door on a live ask of theirs is the row's ONE filled lead now, by the
+     owner's pick; Accept, Reject and Send stay bare words, and a door that is
+     not the lead stays bare too. */
+  check('11 only the lead is filled — every other verb is a bare coloured word',
     cards.acc && /rgba\(0, 0, 0, 0\)|transparent/.test(cards.acc.bg)
       && cards.rej && /rgba\(0, 0, 0, 0\)|transparent/.test(cards.rej.bg)
-      && cards.edit && /rgba\(0, 0, 0, 0\)|transparent/.test(cards.edit.bg),
+      && cards.edit && (cards.edit.lead ? !/rgba\(0, 0, 0, 0\)|transparent/.test(cards.edit.bg)
+        : /rgba\(0, 0, 0, 0\)|transparent/.test(cards.edit.bg)),
     cards.acc ? `${cards.acc.bg} / ${cards.rej && cards.rej.bg} / ${cards.edit && cards.edit.bg}` : 'missing');
   /* And the two decisions must not read as the same button at a glance. */
   check('11 Accept and Reject are tellable apart',
@@ -1447,7 +1453,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const g = (sel) => { const e = document.querySelector(sel); if (!e) return null;
       const cs = getComputedStyle(e);
       return { w: parseFloat(cs.borderTopWidth) || 0, col: cs.borderTopColor,
-               ink: cs.color, bg: cs.backgroundColor }; };
+               ink: cs.color, bg: cs.backgroundColor,
+               /* THE PICKED CARD (27 Oct 2026): the door may be the row's one
+                  filled lead now; the checks below branch on it. */
+               lead: e.classList.contains('rl-verb-lead') }; };
     return { acc: g('.rl-card-verbs .rl-acc'), rej: g('.rl-card-verbs .rl-rej'),
              edit: g('.rl-card-verbs .rl-edit'),
              /* The row's own caption ink, so "not a caption" is a RELATION
@@ -1481,6 +1490,16 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      pass on the wrong thing in between. */
   for (const [k, label] of [['acc', 'Accept'], ['rej', 'Reject'], ['edit', 'Edit']]) {
     const v = verbs[k];
+    /* THE PICKED CARD (owner, 27 Oct 2026, round 9 of the Legora rounds): on a
+       live ask of theirs the door LEADS as the row's ONE filled verb — white
+       word on the product's filled ink — and Accept and Reject stay bare.
+       Where the sampled door is the lead, the bare-word claim flips for it
+       and only for it. */
+    if (v && v.lead){
+      check(`6 ${label} leads filled — the picked card's one filled verb`,
+        v.w === 0 && v.bg !== 'rgba(0, 0, 0, 0)' && v.ink === 'rgb(255, 255, 255)', JSON.stringify(v));
+      continue;
+    }
     check(`6 ${label} is a bare word — no line, no fill`,
       !!v && v.w === 0 && v.bg === 'rgba(0, 0, 0, 0)', JSON.stringify(v));
     check(`6 ${label} still carries its own ink, so it is not a caption`,
