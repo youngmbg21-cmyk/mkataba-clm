@@ -12664,7 +12664,9 @@
   #context-panel .pt-tabs{ flex:none; display:flex; gap:16px; padding:0 var(--s-4); border-bottom:1px solid var(--color-divider); }
   #context-panel .pt-tab{ border:0; background:none; font:inherit; font-size:var(--t-meta); color:var(--color-neutral-600); padding:8px 0; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
   #context-panel .pt-tab.on{ color:var(--color-text); border-bottom-color:var(--accent-solid); font-weight:var(--w-label); }
-  #context-panel .pt-tab:hover:not(.on){ color:var(--color-text); }
+  #context-panel .pt-tab:hover:not(.on):not(:disabled){ color:var(--color-text); }
+  /* A DEAD TAB WEARS ITS REASON: Notes with no contract in front is grey, not pressable, its sentence on the hover */
+  #context-panel .pt-tab:disabled{ color:var(--color-quiet); opacity:.55; cursor:default; }
   #context-panel .pt-new{ margin-left:4px; font-size:10px; background:var(--color-accent-100); color:var(--accent-ink); border-radius:3px; padding:0 4px; vertical-align:1px; }
   #context-panel .gd{ padding:12px var(--s-4) 16px; display:grid; gap:12px; align-content:start; }
   #context-panel .gd-say{ margin:0; font-size:var(--t-meta); line-height:1.45; color:var(--color-neutral-600); }
@@ -12726,10 +12728,15 @@
      accent underline when live, exactly as every other tab row here. */
   .rl-np-tabs{display:flex;gap:18px;flex:none;padding:0 var(--s-4);
     border-bottom:1px solid var(--color-divider);}
+  /* EQUAL ROOMS (owner, 27 Oct 2026): every room's tab takes the same share of
+     the row; a long party name ends in "…" and the count stays whole; the full
+     name is on the hover (the tab's own title) */
   .rl-np-tab{font:inherit;background:none;border:0;border-bottom:2px solid transparent;
     padding:9px 1px;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-text);
-    line-height:1.3;cursor:pointer;}
-  .rl-np-tab i{font-style:normal;color:var(--color-neutral-600);}
+    line-height:1.3;cursor:pointer;flex:1 1 0;min-width:0;display:inline-flex;align-items:baseline;
+    justify-content:center;gap:4px;white-space:nowrap;text-align:center;}
+  .rl-np-tab .rl-np-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .rl-np-tab i{font-style:normal;color:var(--color-neutral-600);flex:none;}
   .rl-np-tab.on{font-weight:var(--w-title);color:var(--accent-ink);border-bottom-color:var(--color-accent);}
   .rl-np-tab.on i{color:var(--accent-ink);}
   /* WHO READS THIS ROOM, said ONCE at the top. It replaces the per-note badge

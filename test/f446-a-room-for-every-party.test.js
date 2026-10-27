@@ -221,8 +221,8 @@ describe('f446 (5) — the clothes follow the builder', () => {
     const html = p.win.rlNpRoomsHtml(p.c, 'p:py_a', { byRoom: { internal: 2, 'p:py_a': 1, 'p:py_b': 0 } }, {}, 'owner');
     assert.match(html, /data-rl-np-room="internal"/);
     assert.match(html, /data-rl-np-room="p:py_a"[^>]*aria-selected="true"/s, 'the live room is lit');
-    assert.match(html, /Jumenza LLC <i>\(1\)<\/i>/, 'named, with its count');
-    assert.match(html, /Kvarnby Holding AB <i>\(0\)<\/i>/, 'and an empty room says zero');
+    assert.match(html, /<span class="rl-np-nm">Jumenza LLC<\/span> <i>\(1\)<\/i>/, 'named, with its count (the name in its own span since 27 Oct 2026, so a long one ends in "…")');
+    assert.match(html, /Kvarnby Holding AB<\/span> <i>\(0\)<\/i>/, 'and an empty room says zero');
   });
   test('and a seat with one room draws no row at all', () => {
     const p = bench(TWO);

@@ -5,8 +5,9 @@
    simply alerts you to all the pages available in Hati but it's more of a
    guide than a nav panel" — and of the three drawn, "Journey it is".
 
-   Claims: the right-hand panel draws its tabs (Activity · Alerts · Guide, and
-   Notes only with a contract in front); the Guide is a face of the SAME panel;
+   Claims: the right-hand panel draws its tabs (Guide · Alerts · Notes ·
+   Activity; Notes GREY AND NOT PRESSABLE with no contract in front, with its
+   reason on the hover — owner, 27 Oct 2026); the Guide is a face of the SAME panel;
    it lists Home, six numbered stages in order and Settings at the foot; the
    page in front says "You are here"; a count is the page's own door number; a
    press lets the panel go and lands on that page; the tab's "new" goes once
@@ -34,7 +35,7 @@ async function until(page, fn, arg, ms = 8000){
   return null;
 }
 const READ = () => { const p = document.getElementById('context-panel'); if (!p) return null;
-  const tabs = [...document.querySelectorAll('#panel-tabs [data-pt-face]')].map(b => ({ k: b.getAttribute('data-pt-face'), w: b.textContent.trim(), on: b.classList.contains('on') }));
+  const tabs = [...document.querySelectorAll('#panel-tabs [data-pt-face]')].map(b => ({ k: b.getAttribute('data-pt-face'), w: b.textContent.trim(), on: b.classList.contains('on'), dead: b.disabled, title: b.title }));
   return { open: p.classList.contains('open'), face: p.dataset.face, title: (document.getElementById('panel-title') || {}).textContent, tabs,
     stages: [...p.querySelectorAll('.gd-st')].map(s => ({ n: s.querySelector('.gd-n').textContent, h: s.querySelector('.gd-sh').childNodes[0].textContent.trim(),
       rows: [...s.querySelectorAll('[data-gd-go]')].map(r => r.getAttribute('data-gd-go')) })),
@@ -66,9 +67,15 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.evaluate(() => openPanel('activity'));
     const A = await until(page, () => { const p = document.getElementById('context-panel'); return p && p.classList.contains('open') && document.querySelector('#panel-tabs [data-pt-face]') ? true : null; });
     const R1 = await page.evaluate(READ);
-    check('1a the panel draws its tabs: Guide · Alerts · Activity (owner, 20 Oct 2026), no Notes with no contract in front', !!A && R1.tabs.map(t => t.k).join() === 'guide,alerts,activity' && (R1.tabs.find(t => t.k === R1.face) || {}).on,
+    check('1a the panel draws its tabs: Guide · Alerts · Notes · Activity; with no contract in front Notes is grey with its reason (owner, 27 Oct 2026)', !!A && R1.tabs.map(t => t.k).join() === 'guide,alerts,notes,activity' && (R1.tabs.find(t => t.k === R1.face) || {}).on
+      && (R1.tabs.find(t => t.k === 'notes') || {}).dead === true && /Open a contract/.test((R1.tabs.find(t => t.k === 'notes') || {}).title || ''),
       JSON.stringify(R1 && R1.tabs));
     check('1b the Guide tab says "new" until it has been opened', !!R1 && /new/.test((R1.tabs.find(t => t.k === 'guide') || {}).w || ''), JSON.stringify(R1 && R1.tabs));
+
+    /* 1c the grey tab is not pressable: a press leaves the face where it was */
+    const deadPress = await page.evaluate(() => { const b = document.querySelector('#panel-tabs [data-pt-face="notes"]'); const d = b && b.disabled;
+      try { b.click(); } catch (_){} return { dead: !!d, face: document.getElementById('context-panel').dataset.face, open: document.getElementById('context-panel').classList.contains('open') }; });
+    check('1c a press on the grey Notes tab does nothing', deadPress.dead && deadPress.face !== 'notes' && deadPress.open, JSON.stringify(deadPress));
 
     /* 2 the Guide face */
     await page.click('#panel-tabs [data-pt-face="guide"]');
@@ -121,6 +128,24 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.click('#panel-tabs [data-pt-face="notes"]');
     const nf = await until(page, () => document.getElementById('context-panel').dataset.face === 'notes' ? true : null);
     check('5b its Notes tab opens that contract\'s notes in the same panel', !!nf);
+    check('5c with a contract in front the Notes tab is live', (R5.tabs.find(t => t.k === 'notes') || {}).dead === false);
+
+    /* 6 THE ROOMS SHARE THE ROW EQUALLY; a long party name ends in "…" and its count stays whole (owner, 27 Oct 2026) */
+    await page.evaluate(() => { const c = pdContract(); c.counterparty = 'AIT Worldwide Logistics Norway AS Scandinavian Holdings Group'; delete c.parties; openNotesPanel(c.id, null, { force: true }); });
+    const R6 = await until(page, () => { const tabs = [...document.querySelectorAll('#context-panel .rl-np-tabs .rl-np-tab')]; if (tabs.length < 2) return null;
+      return tabs.map(b => { const nm = b.querySelector('.rl-np-nm'), i = b.querySelector('i'); const r = b.getBoundingClientRect(), ri = i.getBoundingClientRect();
+        return { w: Math.round(r.width), name: nm ? nm.textContent : b.textContent, cut: !!nm && nm.scrollWidth > nm.clientWidth + 1, ellipsis: nm ? getComputedStyle(nm).textOverflow : '', countWhole: ri.right <= r.right + 0.5 && ri.width >= 14, title: b.title }; }); });
+    check('6a every room tab takes the same width', !!R6 && Math.max(...R6.map(t => t.w)) - Math.min(...R6.map(t => t.w)) <= 1, JSON.stringify(R6));
+    check('6b the long party name ends in "…" and its count stays whole; the full name is on the hover', !!R6 && R6.some(t => t.cut && t.ellipsis === 'ellipsis' && t.countWhole && /AIT Worldwide/.test(t.title)), JSON.stringify(R6));
+    await page.screenshot({ path: path.join(OUT, 'notes-rooms-equal.png') });
+
+    /* 7 turning to the Board leaves no contract in front: the notes face goes, and the tab is grey again */
+    await page.evaluate(() => hbSetFace('board'));
+    const R7 = await until(page, () => { const p = document.getElementById('context-panel'); return (!p.classList.contains('open') || p.dataset.face !== 'notes') ? { open: p.classList.contains('open'), face: p.dataset.face } : null; });
+    check('7a on the Board the notes drawer is put away', !!R7, JSON.stringify(R7));
+    await page.evaluate(() => openPanel('activity'));
+    const R7b = await until(page, () => { const b = document.querySelector('#panel-tabs [data-pt-face="notes"]'); return b ? { dead: b.disabled } : null; });
+    check('7b and its Notes tab is grey again', !!R7b && R7b.dead, JSON.stringify(R7b));
     await page.keyboard.press('Escape');
   } catch (e) {
     check('the walk ran to the end', false, e && e.message);

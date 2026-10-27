@@ -37,10 +37,15 @@ describe('f841 (1) a face of the one panel', () => {
     assert.match(IDX, /<nav id="panel-tabs" class="pt-tabs" role="tablist"[^>]*hidden><\/nav>\s*<div id="panel-body"/);
     assert.match(code(fnOf(APP, 'renderContextPanel')), /panelTabsPaint\(face\);/);
   });
-  test('1b Notes is a tab only with a contract in front; the tab in front does nothing; a computer only', () => {
+  test('1b Notes is always a tab, grey with its reason while no contract is in front (owner, 27 Oct 2026); the tab in front does nothing; a computer only', () => {
+    /* RE-POINTED 27 Oct 2026: the tab used to be left out with no contract in
+       front; the owner asked for it drawn and not pressable, so it is disabled
+       with ng_chat_none on its hover, and a press on it is refused. */
     const f = code(fnOf(APP, 'panelTabsPaint'));
-    assert.match(f, /concat\(cid\|\|face==='notes'\?\[\['notes','ng_card_notes'\]\]:\[\]\)/);
-    assert.match(f, /if\(k===panelFace\(\)\) return;/);
+    assert.match(f, /\['notes','ng_card_notes'\]/);
+    assert.match(f, /const dead=k==='notes'&&!cid;/);
+    assert.match(f, /disabled aria-disabled="true" title="\$\{esc\(i18t\('ng_chat_none'\)\)\}"/);
+    assert.match(f, /if\(k===panelFace\(\)\|\|b\.disabled\) return;/);
     assert.match(f, /deskShellOn/);
   });
 });
