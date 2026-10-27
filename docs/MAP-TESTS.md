@@ -136,6 +136,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f447, f448, f482, f483, f496–f504, f511–f521, f524–f543, f549–f552, f560, f562–f567, f657, f658, f660, f672, f675, f679, f690, f705, f708, f719; board-*/chart-*/home-*/copilot-*, document-wall, jambo-words, board-views, draft-upload-glance, one-page-home-walk, next-step-chips, needs-you-card, paper-line, board-walkthrough-fixes, late-open-stays-put, jambo-alive, jambos-panel, then-and-now verify.
 
 ## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY-ONE TASKS (js/jambomap.js)
+- "CONTACTS" IS PEOPLE (27 Oct 2026): f946 (new; red at the parent cd53a16) — the name search drops a page's own word, "take me to contacts" reads as People; the AI's task list carries each place's words with the rule against reading one as a slip. Browser: board-talk-first-verify G1–G3 (G2 red at the parent; G1 and G3 pass there with the seeded book and a scripted model, so f946 is the proof for those). Unchanged and green: door-exam, home-board, jambo-finds-the-way, nav-exam; handbook-exam 61/63 both sides.
 - f705, jambo-map-verify.
 
 - Jambo finds the way (22 Oct 2026): f920 (red at the parent 1b, 1c, (2)–(5)), f705 1a, jambo-finds-the-way verify.
