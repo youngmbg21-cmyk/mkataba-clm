@@ -12374,7 +12374,7 @@
   .hb-tn .hb-fig-lw{display:flex;flex-direction:column;gap:1px;padding:9px 14px;min-width:0}
   .hb-tn .hb-fig-lw .hb-fig-left{margin:0}
   .hb-tn .hb-fig-then{padding:0 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--hb-ink-2);white-space:nowrap}
-  .hb-book .hb-tn .hb-fig-n{padding:0 14px;text-align:right;font-size:var(--t-section)}
+  .hb-book .hb-tn .hb-fig-n{padding:0 14px;text-align:right;font-size:inherit} /* Today the size of its row's other figures, still bold (owner, 27 Oct 2026) */
   .hb-tn .hb-fig-chg{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:0 14px;min-width:0}
   .hb-book .hb-tn .hb-spark{height:24px;margin:0;width:calc(100% - 14px)}
   .hb-stagerows{display:flex;flex-direction:column;gap:6px}
@@ -14571,7 +14571,7 @@
   /* THE OVERVIEW, THE LEGORA WAY (owner picked it by name, 26 Oct 2026; jamboOverviewHtml, js/components.js):
      nothing boxed — a head sentence, a quiet list of facts, the source line, "Ask me" and his offers one per line */
   .jov{display:flex;flex-direction:column;min-width:0;}
-  .jov-head{margin:0 0 14px;font-size:15px;line-height:1.45;color:var(--color-neutral-600);}
+  .jov-head{margin:0 0 14px;font-size:13px;line-height:1.55;color:var(--color-neutral-600);} /* the size of Jambo's own words in his tab (owner, 27 Oct 2026) */
   .jov-head b{font-weight:var(--w-strong);color:var(--color-text);}
   .jov-facts{display:flex;flex-direction:column;}
   .jov-fact{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:2px;align-items:baseline;padding:10px 0;border-top:1px solid var(--color-divider);min-width:0;}
