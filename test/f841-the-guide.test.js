@@ -43,7 +43,7 @@ describe('f841 (1) a face of the one panel', () => {
        with ng_chat_none on its hover, and a press on it is refused. */
     const f = code(fnOf(APP, 'panelTabsPaint'));
     assert.match(f, /\['notes','ng_card_notes'\]/);
-    assert.match(f, /const dead=k==='notes'&&!cid;/);
+    assert.match(f, /const dead=k==='notes'&&!cid&&face!=='notes';/);
     assert.match(f, /disabled aria-disabled="true" title="\$\{esc\(i18t\('ng_chat_none'\)\)\}"/);
     assert.match(f, /if\(k===panelFace\(\)\|\|b\.disabled\) return;/);
     assert.match(f, /deskShellOn/);

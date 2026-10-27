@@ -146,6 +146,14 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.evaluate(() => openPanel('activity'));
     const R7b = await until(page, () => { const b = document.querySelector('#panel-tabs [data-pt-face="notes"]'); return b ? { dead: b.disabled } : null; });
     check('7b and its Notes tab is grey again', !!R7b && R7b.dead, JSON.stringify(R7b));
+
+    /* 8 a door that NAMES its contract (the bell's note alert) opens its notes from the Board, and they stay */
+    await page.evaluate(() => { const c = state.contracts.find(x => x && x.status !== 'Signed'); openNotesPanel(c.id, null, { force: true }); });
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { if (window.paintChatDoor) paintChatDoor(); });
+    const R8 = await until(page, () => { const p = document.getElementById('context-panel'), b = document.querySelector('#panel-tabs [data-pt-face="notes"]');
+      return p ? { open: p.classList.contains('open'), face: p.dataset.face, tabDead: b ? b.disabled : null } : null; });
+    check('8 the bell\'s note door opens a contract\'s notes on the Board and they stay, the tab lit and live', !!R8 && R8.open && R8.face === 'notes' && R8.tabDead === false, JSON.stringify(R8));
     await page.keyboard.press('Escape');
   } catch (e) {
     check('the walk ran to the end', false, e && e.message);

@@ -3028,13 +3028,19 @@ function chatContractId(){
    IT KEEPS ITS OWN READING rather than borrowing panelSuppressed, deliberately:
    the state that survives is about whether there is a conversation at all,
    which is nothing to do with layers. */
+let _chatInFront=null;
 function paintChatDoor(){
   const id=chatContractId();
-  /* NO CONTRACT IN FRONT, NO NOTES FACE: a drawer still showing a contract's
-     notes on the Board or a list is the fault the owner photographed, so it is
-     put away here, on the same beat as every view change and face turn; and
-     the panel's own Notes tab repaints grey with the reason (panelTabsPaint) */
-  if(!id&&state.panelOpen&&panelFace()==='notes'){ try{ closeContextPanel(); }catch(_){} }
+  /* LEAVING A CONTRACT TAKES ITS NOTES WITH IT: a drawer still showing the
+     notes of the contract you just left, on the Board or a list, is the fault
+     the owner photographed, so it is put away here, on the same beat as every
+     view change and face turn; the panel's own Notes tab repaints grey with
+     the reason (panelTabsPaint). ONLY ON LEAVING: a door that names its
+     contract — the bell's note alerts, Jambo's reply, a filed change's note —
+     opens that contract's notes from anywhere and they stay (window-drag-verify
+     5 caught the wider rule closing them). */
+  const was=_chatInFront; _chatInFront=id||null;
+  if(!id&&was&&state.panelOpen&&panelFace()==='notes'&&String((state.notesFor||{}).contractId||'')===String(was)){ try{ closeContextPanel(); }catch(_){} }
   try{ if(state.panelOpen&&document.getElementById('panel-tabs')) panelTabsPaint(panelFace()); }catch(_){}
   const btn=document.getElementById('hdr-chat'); if(!btn) return;
   const dead=!id;
@@ -3881,7 +3887,7 @@ function panelTabsPaint(face){
   if(!desk){ host.innerHTML=''; return; }
   const cid=(typeof chatContractId==='function')?chatContractId():null;
   const tabs=[['guide','gd_tab'],['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
-  host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid;
+  host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid&&face!=='notes';
     return `<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}"${dead?` disabled aria-disabled="true" title="${esc(i18t('ng_chat_none'))}"`:''}>${esc(i18t(w))}${k==='guide'&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`; }).join('');
   host.querySelectorAll('[data-pt-face]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-pt-face'); if(k===panelFace()||b.disabled) return;
