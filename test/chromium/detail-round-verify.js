@@ -261,7 +261,7 @@ const blocked = [];
             check(`${at} · 2a — the Send screen's head floats as a card`, hd && hd.rad >= 16 && hd.shadow && hd.inset >= 8, JSON.stringify(hd));
             if (on(8)) await levelCheck('Send screen', '#modal-root .modal-in[data-sh-page] .sh-hd');
             const ln = await ev(() => { const p = document.querySelector('#sh-noemail'); if (!p || !p.getBoundingClientRect().width) return null;
-              const box = p.previousElementSibling || p.parentElement.previousElementSibling; const card = document.querySelector('#pd-sendface .sh-lt-card');
+              const box = p.previousElementSibling || p.parentElement.previousElementSibling; const card = [...document.querySelectorAll('#pd-sendface .sh-lt-card')].find(e => e.getClientRects().length); /* RE-POINTED, the SAP Way (28 Oct 2026): the first card SHOWN — the verdict card leads and steps out where a blocking check says no */
               const pr = p.getBoundingClientRect(); const cardText = card ? card.getBoundingClientRect().left + parseFloat(getComputedStyle(card).paddingLeft) + parseFloat(getComputedStyle(card).borderLeftWidth) : null;
               const above = [...document.querySelectorAll('#share-readiness-wrap > *')].filter(e => e.getBoundingClientRect().height).pop();
               return { textIn: cardText == null ? null : Math.round(pr.left + parseFloat(getComputedStyle(p).paddingLeft) - cardText), gap: above ? Math.round(pr.top - above.getBoundingClientRect().bottom) : null }; });

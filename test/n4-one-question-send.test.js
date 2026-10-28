@@ -70,7 +70,10 @@ describe('N4 (1) — the dialog opens on the one decision that matters', () => {
     assert.match(h, /id="share-step-kind" class="hidden"/, 'the sharing question is behind its door');
     assert.match(h, /id="share-other"/, 'and the door is drawn');
     assert.match(h, /What are you sharing\?/);
-    assert.match(h, /What this round is for/, 'and the purpose is still asked');
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the
+       purpose is the form's "What they can do" field — still asked on the
+       one screen before anything can be sent. */
+    assert.match(h, /What they can do/, 'and the purpose is still asked');
     assert.match(h, /id="share-step-1">/, 'the send is the screen');
   });
 
