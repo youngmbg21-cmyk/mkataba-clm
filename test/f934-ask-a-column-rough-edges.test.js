@@ -21,7 +21,9 @@ const runOf = (() => { const i = SRC.indexOf('async function askColRun('); retur
 
 describe('f934 (1) the refusal is said under the box', () => {
   test('1a askColRun refuses through askColSay, never a toast', () => {
-    assert.match(runOf, /askColIsPortfolio\(question\)\)\{ askColSay\(_acT\('ac_q_portfolio'\)\); return; \}/);
+    /* RE-POINTED 28 Oct 2026 (JAMBO ASKS, round 3 of the review): a counting question is no longer refused at all —
+       it opens Jambo's card in the panel (f957); the too-short refusal still stands under the box */
+    assert.match(runOf, /askColIsPortfolio\(question\)\)\{ askColCountOpen\(question\); return; \}/);
     assert.match(runOf, /question\.length < 3\)\{ askColSay\(_acT\('ac_q_short'\)\); return; \}/);
     assert.ok(!/toast\(_acT\('ac_q_(portfolio|short)'\)/.test(SRC), 'no toast carries either refusal');
   });

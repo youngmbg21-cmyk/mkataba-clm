@@ -52,6 +52,8 @@ const AC = {
   asked: {},       // askId → Set of contract ids already looked up
   form: null,      // { question, name, askId, force, kept } while the question is open
   busy: null,      // { n } while Jambo reads
+  count: null,     // { typed, stage, question, says, … } while Jambo asks about a counting question (round 3)
+  counts: {},      // askId → { says, typed } — a read that answers a counting question is counted on its card
   chosen: null,    // { askId, cid } — the answer the panel explains
   team: null,      // the team's past questions (GET /api/columns)
   drawn: {},       // askId → true while its counts are drawn in the panel (Draw it)
@@ -408,9 +410,104 @@ function askColCmp(askId){
 }
 
 /* ---- JAMBO'S PANEL ---- */
+/* ---- JAMBO ASKS (round 3 of the review; the owner picked "Jambo asks" and "Jambo" for the rewording, 28 Oct 2026) ----
+   A counting question ("How many contracts mention a rebate?") asks about the list, and a column asks each
+   contract one question. So Jambo's card says so, in his grey card, instead of a refusal under the box:
+   - a question the RECORDS answer whole (every word read by the list's own conditions, jmOnlyNarrows:
+     "How many of my contracts are in Procurement?") is answered here, free: "8 of the 16 shown · Procurement"
+     with Show those 8 (regShowOnly);
+   - any other is offered to be turned into the one question for each contract, a press that says its cost
+     (1 Jambo call, POST /api/ai/column-turn); the turned question is shown before anything is read, with
+     Ask each contract and the reads' cost, or Change my question (back to the box, the words kept);
+   - after the read the card counts the yeses: "5 of 16 mention a rebate · Show those 5" (askColCountLineHtml).
+   Nothing here writes; the read itself goes through the one read (askColReadAndSay). */
+function askColRecordsOf(q){
+  if (typeof jmOnlyNarrows !== 'function' || typeof igConditions !== 'function' || typeof igIdsWhere !== 'function') return null;
+  let conds = []; try { conds = jmOnlyNarrows(q) ? (igConditions(q) || []) : []; } catch (_){ conds = []; }
+  if (!conds.length) return null;
+  const shown = askColShown(), set = new Set(shown);
+  const base = (state.contracts || []).filter(c => c && set.has(String(c.id)));
+  let ids = []; try { ids = igIdsWhere(conds, base).map(String); } catch (_){ return null; }
+  const what = [...new Set(conds.map(c => String(c.label || c.hit || '').trim()).filter(Boolean))].join(' · ');
+  return { ids, total: shown.length, what };
+}
+function askColCountOpen(typed){
+  const rec = askColRecordsOf(typed);
+  AC.count = rec ? { typed, stage: 'records', ...rec } : { typed, stage: 'ask' };
+  askColPaintPanel();
+}
+function askColCountHtml(){
+  const k = AC.count;
+  const head = askColDeskHeadHtml({ name: k.question ? askColNameOf(k.question) : '', question: k.typed });
+  const change = `<button type="button" class="ui-btn ui-btn-sm" data-ac-count-change>${_acE(_acT('ac_ct_change'))}</button>`;
+  let body = '', acts = '';
+  if (k.stage === 'records'){
+    const n = k.ids.length;
+    body = `<div class="ac-dk-said"><b>${_acE(n ? _acT('ac_ct_rec_n', { n, total: k.total }) : _acT('ac_ct_rec_none', { total: k.total }))}</b>${k.what ? ' · ' + _acE(k.what) : ''}</div>
+      <div class="ac-dk-eb">${_acE(_acT('ac_ct_rec_free'))}</div>`;
+    acts = (n ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-count-show>${_acE(_acTn('ac_ct_show', n))}</button>` : '') + change;
+  } else if (k.stage === 'turned'){
+    const p = askColPlan({ force: true }), m = p.pick.length;
+    body = `<div class="ac-dk-said">${_acE(_acT('ac_ct_will'))}</div><p class="ac-dk-q2">${_acE(k.question)}</p>
+      <div class="ac-dk-said">${_acE(_acT('ac_ct_then'))}</div><div class="ac-dk-eb">${_acE(_acT('ac_desk_spent', { calls: _acTn('ac_n_calls', 1) }))}</div>`;
+    acts = `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-count-go${m && askColMay() ? '' : ' disabled'}>${_acE(_acTn('ac_ct_go', m, { calls: _acTn('ac_n_calls', m) }))}</button>` + change;
+  } else if (k.stage === 'cannot'){
+    body = `<div class="ac-dk-said">${_acE(_acT('ac_ct_cannot'))}</div>`;
+    acts = change;
+  } else {
+    const turning = k.stage === 'turning';
+    body = `<div class="ac-dk-said">${_acE(_acT('ac_ct_explain'))}</div>${k.err ? `<div class="ac-say" role="alert">${_acE(k.err)}</div>` : ''}`;
+    acts = `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-count-turn${turning || !askColMay() ? ' disabled' : ''}>${turning && typeof busyHtml === 'function' ? busyHtml(_acT('ac_ct_turning')) : _acE(_acT('ac_ct_turn', { calls: _acTn('ac_n_calls', 1) }))}</button>` + change;
+  }
+  return `<div class="ac-card ac-dk-card" id="ac-form" data-ac-count="${_acE(k.stage)}">${head}${body}<div class="ac-acts">${acts}</div></div>`;
+}
+async function askColCountTurn(){
+  const k = AC.count; if (!k || k.stage === 'turning') return;
+  k.stage = 'turning'; k.err = ''; askColPaintPanel();
+  let r = null;
+  try { r = await api('ai/column-turn', 'POST', { question: k.typed }); }
+  catch (e){
+    if (AC.count !== k) return;
+    k.stage = 'ask'; k.err = (e && (e.needsKey || (e.body && e.body.needsKey))) ? _acT('ac_nokey') : _acT('ac_err', { msg: (e && e.message) || '' });
+    askColPaintPanel(); return;
+  }
+  if (AC.count !== k) return;
+  if (r && r.question){ k.stage = 'turned'; k.question = r.question; k.says = r.says || ''; }
+  else k.stage = 'cannot';
+  askColPaintPanel();
+}
+async function askColCountGo(){
+  const k = AC.count; if (!k || k.stage !== 'turned' || AC.busy) return;
+  const question = k.question, name = askColNameOf(question);
+  const p = askColPlan({ force: true }); if (!p.pick.length) return;
+  AC.count = null; AC.form = null;
+  const base = { question, name, force: false, run: askColRunId(p) };
+  await askColReadAndSay(base, p.pick, name, asks => {
+    const id = asks[0] && asks[0].id; if (!id) return;
+    AC.counts[id] = { says: k.says, typed: k.typed };
+    const R = regState();
+    R.ask = (Array.isArray(R.ask) ? R.ask : []).filter(x => x !== id).concat(id).slice(-AC_COLS_MAX);
+  });
+}
+/* the count a counting question was asked for, off the answers read among those shown */
+function askColCountOf(askId){
+  const ct = AC.counts[askId]; if (!ct) return null;
+  const m = AC.ans[askId] || {}, read = askColShown().filter(id => m[id] && !m[id].noWording);
+  const yes = read.filter(id => m[id].yes === true);
+  return { yes, n: read.length, says: ct.says };
+}
+function askColCountLineHtml(askId){
+  const c = askColCountOf(askId); if (!c || !c.n) return '';
+  return `<div class="ac-dk-count"><span class="ac-dk-said"><b>${_acE(_acT('ac_ct_of', { y: c.yes.length, n: c.n }))}</b> ${_acE(c.says)}</span>${c.yes.length ? `<button type="button" class="ac-link" data-ac-count-yes="${_acE(askId)}">${_acE(_acTn('ac_ct_show', c.yes.length))}</button>` : ''}</div>`;
+}
+function askColCountShow(ids, what){
+  if (!ids || !ids.length || typeof regShowOnly !== 'function') return;
+  regShowOnly(ids.slice(), what);
+}
 function askColPanelHtml(){
   if (!askColOn()) return '';
   if (AC.busy) return askColBusyHtml();
+  if (AC.count) return askColCountHtml();
   if (AC.form) return askColFormHtml();
   const stopped = AC.stopped ? askColStoppedHtml() : '';
   const up = askColIdsUp();
@@ -437,7 +534,7 @@ function askColBusyHtml(){
 /* the eyebrow and the question, shared by the card while it reads and the card it leaves behind */
 function askColDeskHeadHtml(b){
   const pack = (b.qCount || 0) > 1;
-  const eb = pack ? _acT('ac_desk_eb_pack', { name: b.name || '' }) : _acT('ac_desk_eb', { name: b.name || '' });
+  const eb = pack ? _acT('ac_desk_eb_pack', { name: b.name || '' }) : b.name ? _acT('ac_desk_eb', { name: b.name }) : _acT('ac_btn');
   const q = pack ? _acTn('ac_desk_pack_qs', b.qCount) : (b.question || b.name || '');
   return `<div class="ac-dk-eb">${_acE(eb)}</div><p class="ac-dk-q">${_acE(q)}</p>`;
 }
@@ -457,7 +554,7 @@ function askColDeskRestHtml(askId){
     : [_acT('ac_th_done', { total: p.shown }), risk ? _acTn('ac_disc_risk', risk) : '', spent].filter(Boolean).join(' · ');
   const btn = w ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-next="${_acE(askId)}" data-ac-n="${w.n}" title="${_acE(_acT('ac_th_next_title'))}">${_acE(w.label)}</button>`
     : `<button type="button" class="ui-btn ui-btn-sm" data-ac-again="${_acE(askId)}"${askColMay() ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_desk_again'))}</button>`;
-  return `<div class="ac-card ac-dk-card is-rest" data-ac-desk-rest="${_acE(askId)}">${askColDeskHeadHtml(r)}
+  return `<div class="ac-card ac-dk-card is-rest" data-ac-desk-rest="${_acE(askId)}">${askColDeskHeadHtml(r)}${askColCountLineHtml(askId)}
       <div class="ac-desk">${askColDeskHtml(r)}</div>
       <ul class="ac-stack">${askColStackHtml(r)}</ul>
       <div class="ac-desk-foot"><span class="ac-busy">${_acE(foot)}</span>${btn}</div>
@@ -1021,10 +1118,11 @@ function askColDrawHtml(askId){
 }
 /* COPY THE TABLE: the list's rows with this column, each answer with its clause and sentence, as a table a mail or a sheet takes */
 function askColCopy(askId){ return askColCopyMany([askId]); }
-async function askColCopyMany(askIds){
+async function askColCopyMany(askIds, only){
   const word = a => !a ? '' : a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
   const rule = a => !a ? '' : a.verdict === 'in' ? _acT('ac_lg_good') : a.verdict === 'out' ? _acT('ac_lg_bad') : '';
-  const rows = askColShown().filter(id => askIds.some(k => (AC.ans[k] || {})[id])).map(id => {
+  /* `only`: the rows another page shows (the read table on Reads), else the Contracts list as filtered */
+  const rows = (Array.isArray(only) ? only : askColShown()).filter(id => askIds.some(k => (AC.ans[k] || {})[id])).map(id => {
     const c = (typeof getContract === 'function') ? getContract(id) : null;
     const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : id;
     return [ref, c ? (c.counterparty || '') : ''].concat(...askIds.map(k => { const a = (AC.ans[k] || {})[id];
@@ -1089,7 +1187,7 @@ function askColPaintPanel(){
 /* ---- THE ACTS ---- */
 async function askColOpen(seed){
   const f = { question: '', name: '', askId: null, force: false, kept: 0, ...(seed || {}) };
-  AC.form = f; AC.chosen = null;
+  AC.form = f; AC.chosen = null; AC.count = null;
   askColPaintPanel();
   /* the question box is ready at once; never taken back from a box the reader has moved to */
   setTimeout(() => { const q = document.getElementById('ac-q'), at = document.activeElement; if (q && !q.value && !(at && at.closest && at.closest('#ac-form'))) q.focus(); }, 0);
@@ -1351,7 +1449,7 @@ async function askColRun(){
      about the reader's own book, not about what a contract says — it is handed
      to Jambo's box, free, and never kept as a column. The server is the wall;
      this is the sentence the reader sees before a call is spent. */
-  if (askColIsPortfolio(question)){ askColSay(_acT('ac_q_portfolio')); return; }
+  if (askColIsPortfolio(question)){ askColCountOpen(question); return; }
   /* THE NEXT NOT YET READ (The thread): a typed question that is not the team's reads the first `size` shown */
   const p = askColPlan({ askId: f.force ? null : f.askId, force: !!f.force }); if (!p.pick.length) return;
   f.question = question; f.name = name;
@@ -1451,6 +1549,14 @@ if (typeof document !== 'undefined' && !document._acWired){
       if (!askColMay()){ askColBtnFix(); if (typeof toast === 'function') toast(_acT('ac_btn_viewer'), 'warn'); return; }
       if (AC.form) askColClose(); else askColOpen(); return; }
     if (t.closest('[data-ac-ask]')){ e.preventDefault(); askColRun(); return; }
+    if (t.closest('[data-ac-count-turn]')){ e.preventDefault(); askColCountTurn(); return; }
+    if (t.closest('[data-ac-count-go]')){ e.preventDefault(); askColCountGo(); return; }
+    if (t.closest('[data-ac-count-change]')){ e.preventDefault(); const k = AC.count; AC.count = null;
+      if (AC.form && k) AC.form.question = k.question || k.typed; askColPaintPanel();
+      const q = document.getElementById('ac-q'); if (q && typeof fieldFocus === 'function') fieldFocus(q); return; }
+    if (t.closest('[data-ac-count-show]')){ e.preventDefault(); const k = AC.count; if (k && k.ids) askColCountShow(k.ids, k.what || k.typed); return; }
+    { const y = t.closest('[data-ac-count-yes]'); if (y){ e.preventDefault(); const id = y.getAttribute('data-ac-count-yes'), c = askColCountOf(id);
+      if (c) askColCountShow(c.yes, `${((AC.asks[id] || {}).name) || ''}: ${c.says}`.replace(/^: /, '')); return; } }
     if (t.closest('[data-ac-cancel]')){ e.preventDefault(); askColClose(); return; }
     if (t.closest('[data-ac-stop]')){ e.preventDefault(); askColStop(); return; }
     if (t.closest('[data-ac-carry]')){ e.preventDefault(); askColCarryOn(); return; }
@@ -1537,7 +1643,7 @@ function askColBtnHtml(){
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
 
-Object.assign(window, { askColNameOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });

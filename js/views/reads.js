@@ -15,18 +15,19 @@
    ========================================================================== */
 const RD_SEAT = 'reads';
 const RD_TABS = [['all', 'rd_tab_all'], ['mine', 'rd_tab_mine'], ['packs', 'rd_tab_packs'], ['facts', 'rd_tab_facts']];
-let _rd = { sel: null, filter: 'all', q: '', rows: null, asks: null, me: '', loading: false, at: 0 };
+let _rd = { sel: null, filter: 'all', q: '', rows: null, asks: null, me: '', loading: false, at: 0, table: null };
 let _rdBack = null;
 const _rdE = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const _rdT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
 const _rdTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, { n, ...(v || {}) }) : k;
 /* A REFRESH LANDS AT THE SAME SPOT (PLACE_PARTS.reads): the tab, the box and the chosen row */
-function rdPlace(){ return { filter: _rd.filter, q: _rd.q, sel: _rd.sel }; }
+function rdPlace(){ return { filter: _rd.filter, q: _rd.q, sel: _rd.sel, table: _rd.table ? { key: _rd.table.key, tab: _rd.table.tab, q: _rd.table.q, cid: _rd.table.cid } : null }; }
 function rdPlacePut(p){
   if (!p || typeof p !== 'object') return;
   _rd.filter = RD_TABS.some(t => t[0] === p.filter) ? p.filter : 'all';
   _rd.q = p.q ? String(p.q) : '';
   _rdBack = p.sel ? String(p.sel) : null;
+  _rd.table = p.table && p.table.key ? { key: String(p.table.key), tab: String(p.table.tab || 'all'), q: String(p.table.q || ''), cid: p.table.cid ? String(p.table.cid) : null, loaded: false } : null;
 }
 /* THE CONTRACTS THIS PERSON MAY SEE, counted once: "of 500" on every row */
 function rdTotal(){
@@ -164,6 +165,133 @@ function readsTableHtml(list){
         ${keys.map(k => cell(k, r)).join('')}</tr>`).join('')
   }</tbody></table>`;
 }
+/* ---- THE READ TABLE, INSIDE READS (round 4 of the review; the owner picked "The Legora way", 28 Oct 2026; the
+   drawing look/r8 p5) ----
+   "Open the table" stays on this page (no trip through Contracts): "‹ All reads · Rebate “question” · 16 read ·
+   who, when" with Copy the table and Ask again at its end; All · Yes · No for a yes-or-no question (else All ·
+   At risk · Not found) and a search box; a row leads with the agreement (bold name, party · ref under), then per
+   question its light, the short answer and its §, then Checked; the chosen row's reading in Jambo's panel — the
+   words once, Go to § and the tick. The answers are the kept ones, fetched free (askColLoad); nothing here reads. */
+function rdTableIds(){
+  const cs = (typeof state !== 'undefined' && Array.isArray(state.contracts)) ? state.contracts : [];
+  return cs.filter(c => c && c.id && !c.archived && !c._codeNamed && !(typeof jamboOnPress === 'function' && jamboOnPress(c))).map(c => String(c.id));
+}
+const _rdAns = (k, id) => ((typeof AC !== 'undefined' && AC.ans && AC.ans[k]) || {})[id] || null;
+function rdTableRows(r){
+  return rdTableIds().map(id => ({ id, c: (typeof getContract === 'function') ? getContract(id) : null, a: r.askIds.map(k => _rdAns(k, id)) }))
+    .filter(x => x.c && x.a.some(Boolean));
+}
+const rdTableYesNo = (r, rows) => r.askIds.length === 1 && rows.some(x => x.a[0] && typeof x.a[0].yes === 'boolean');
+const _rdTone = a => (typeof askColToneOf === 'function') ? askColToneOf(a) : 'gray';
+function rdTableIn(x, tab, yn){
+  if (tab === 'yes') return !!(x.a[0] && x.a[0].yes === true);
+  if (tab === 'no') return !(x.a[0] && x.a[0].yes === true);
+  if (tab === 'risk') return x.a.some(a => a && _rdTone(a) === 'ruby');
+  if (tab === 'none') return x.a.some(a => a && (a.noWording || !a.found));
+  return true;
+}
+const rdTableTabs = yn => yn ? [['all', 'rd_tt_all'], ['yes', 'rd_tt_yes'], ['no', 'rd_tt_no']] : [['all', 'rd_tt_all'], ['risk', 'rd_tt_risk'], ['none', 'rd_tt_none']];
+const _rdRef = c => (typeof contractRef === 'function') ? contractRef(c) : c.id;
+const _rdName = c => { let n = ''; try { n = (typeof bsShortName === 'function') ? String(bsShortName(c) || '').trim() : ''; } catch (_){ n = ''; } return n || String(c.name || '').trim() || c.counterparty || _rdRef(c); };
+const _rdWord = a => !a ? '' : a.noWording ? _rdT('ac_no_wording') : a.found ? a.answer : _rdT('ac_not_found');
+function rdTableHit(x, q){
+  if (!q) return true;
+  const hay = [_rdName(x.c), x.c.counterparty, _rdRef(x.c)].concat(x.a.map(_rdWord)).join(' ').toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w));
+}
+function rdTableShown(r){
+  const t = _rd.table, rows = rdTableRows(r), yn = rdTableYesNo(r, rows);
+  const boxed = rows.filter(x => rdTableHit(x, t.q));
+  const tabs = rdTableTabs(yn);
+  if (!tabs.some(([k]) => k === t.tab)) t.tab = 'all';
+  return { rows, yn, boxed, tabs, list: boxed.filter(x => rdTableIn(x, t.tab, yn)) };
+}
+function rdTableCellHtml(a){
+  if (!a) return `<span class="rd-quiet">${_rdE(_rdT('rd_tt_unread'))}</span>`;
+  const num = (typeof askColClauseNo === 'function') ? askColClauseNo(a) : '';
+  return `<span class="rdt-ans"><span class="ac-ans tone-${a.noWording ? 'gray' : _rdTone(a)}"><i></i><span class="rdt-w">${_rdE(_rdWord(a))}${a.found && a.detail ? `, ${_rdE(a.detail)}` : ''}</span></span>${num ? `<span class="rdt-sec">§ ${_rdE(num)}</span>` : ''}</span>`;
+}
+function rdTableCheckedHtml(x){
+  const ck = x.a.map(a => a && a.checked).filter(Boolean);
+  if (!ck.length) return `<span class="rd-quiet">—</span>`;
+  const k = ck[0];
+  return `<span class="rdt-ck" title="${_rdE(_rdT('ac_th_by', { by: k.by || '', when: rdWhen(k.at) }))}">${_rdE(_rdT('ac_th_by', { by: String(k.by || '').split(/\s+/)[0], when: rdWhen(k.at) }))}</span>`;
+}
+function rdTableHtml(r){
+  const t = _rd.table, S = rdTableShown(r);
+  /* the chosen row is kept until the answers are in (a refresh lands on it), then the first shown stands in */
+  if (S.list.length && (!t.cid || !S.list.some(x => x.id === t.cid))) t.cid = S.list[0].id;
+  const names = r.askIds.map(k => ((typeof AC !== 'undefined' && AC.asks && AC.asks[k]) || {}).name || r.name);
+  const yes = S.yn ? S.rows.filter(x => rdTableIn(x, 'yes', true)).length : 0;
+  const risk = S.rows.filter(x => rdTableIn(x, 'risk', false)).length;
+  const sub = [r.q ? `“${r.q}”` : _rdT('rd_chip_pack', { n: r.askIds.length }), _rdTn('rd_tt_read', S.rows.length), r.by, r.when ? rdWhen(r.when) : ''].filter(Boolean).join(' · ');
+  const tabs = typeof insViewTabsHtml === 'function' ? insViewTabsHtml({ views: S.tabs.map(([k, key]) => ({ k, label: _rdT(key), n: S.boxed.filter(x => rdTableIn(x, k, S.yn)).length, keep: k === 'all' })), cur: t.tab, attr: 'data-rdt-tab', label: _rdT('rd_filter') }) : '';
+  const head = `<div class="rdt-head"><button type="button" class="ac-link rdt-back" data-rdt-back>${_rdE(_rdT('rd_tt_back'))}</button><span class="rdt-dot" aria-hidden="true">·</span><b class="rdt-nm">${_rdE(r.name)}</b><span class="rdt-sub" title="${_rdE(sub)}">${_rdE(sub)}</span><span class="rdt-sp"></span><button type="button" class="ac-link" data-rdt-copy>${_rdE(_rdT('ac_chip_copy'))}</button><button type="button" class="ac-link" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
+    <div class="rdt-bar">${tabs}<label class="lh-ask rdt-ask"><input type="search" id="rdt-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('rd_tt_search', S.rows.length))}" value="${_rdE(t.q)}" aria-label="${_rdE(_rdTn('rd_tt_search', S.rows.length))}"></label></div>`;
+  const body = !S.rows.length ? `<p class="rdt-empty">${_rdE(_rdT(t.loaded ? 'rd_tt_none_read' : 'rd_tt_loading'))}</p>`
+    : !S.list.length ? `<p class="rdt-empty">${_rdE(_rdT('rd_none_here'))}</p>`
+    : `<table class="ins-lt rd-t rdt-t"><colgroup><col>${names.map(() => `<col style="width:${Math.round(52 / names.length)}%">`).join('')}<col style="width:16%"></colgroup>
+      <thead><tr><th>${_rdE(_rdT('rd_tt_agreement'))}</th>${names.map(n => `<th>${_rdE(n)}</th>`).join('')}<th>${_rdE(_rdT('rd_tt_checked'))}</th></tr></thead><tbody>${
+      S.list.map(x => { const on = x.id === t.cid, who = [x.c.counterparty, _rdRef(x.c)].filter(Boolean).join(' · ');
+        return `<tr data-rdt-row="${_rdE(x.id)}" tabindex="0" class="${on ? 'is-sel' : ''}"${on ? ' aria-current="true"' : ''}>
+          <td><span class="rd-who-t"><span class="ap-name rd-n"><span class="rd-nm" title="${_rdE(_rdName(x.c))}">${_rdE(_rdName(x.c))}</span></span><span class="ap-sub rd-sub" title="${_rdE(who)}">${_rdE(who)}</span></span></td>
+          ${x.a.map(a => `<td>${rdTableCellHtml(a)}</td>`).join('')}<td>${rdTableCheckedHtml(x)}</td></tr>`; }).join('')
+    }</tbody></table>`;
+  const say = [_rdTn('ac_n_contracts', S.list.length), S.yn ? _rdTn('rd_tt_say_yes', yes) : risk ? _rdTn('ac_disc_risk', risk) : ''].filter(Boolean).join(' · ');
+  const foot = S.list.length && typeof lhFootHtml === 'function' ? lhFootHtml(RD_SEAT, S.list.length, S.list.length, 0, { cls: 'ins-foot', say }) : '';
+  return { head, body, foot };
+}
+/* THE CHOSEN ROW in Jambo's panel: the agreement, then Answer · Where · Words (once) · Checked, Go to § and the tick */
+function rdTableSidePaint(r){
+  if (typeof insPaintPanel !== 'function') return;
+  const t = _rd.table, x = t.cid ? rdTableRows(r).find(y => y.id === t.cid) : null;
+  const base = { seat: RD_SEAT, jlSay: rdJlSay, jlWord: _rdT('jl_w_read') };
+  if (!x){ insPaintPanel(Object.assign(base, { empty: _rdT('rd_tt_pick') })); return; }
+  const i = Math.max(0, x.a.findIndex(Boolean)), a = x.a[i], askId = r.askIds[i];
+  const num = (typeof askColClauseNo === 'function') ? askColClauseNo(a) : '';
+  const may = typeof askColMay === 'function' && askColMay();
+  /* as drawn: the two doors under the reading, Go to § filled and the tick beside it */
+  const acts = `<div class="ac-acts rdt-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-rdt-go="${_rdE(askId)}">${_rdE(num ? _rdT('ac_go_clause', { n: num }) : _rdT('ac_go_it'))}</button>${a.noWording ? ''
+    : `<button type="button" class="ui-btn ui-btn-sm" data-rdt-ck="${_rdE(askId)}"${may ? '' : ` disabled title="${_rdE(_rdT('ac_mark_viewer'))}"`}>${_rdE(a.checked ? _rdT('rd_tt_untick') : _rdT('rd_tt_tick'))}</button>`}</div>`;
+  const row = (k, v) => v ? `<dt>${_rdE(_rdT(k))}</dt><dd>${v}</dd>` : '';
+  const many = x.a.length > 1 ? x.a.map((b, j) => b ? `<li><b>${_rdE(((AC.asks || {})[r.askIds[j]] || {}).name || '')}</b> ${rdTableCellHtml(b)}</li>` : '').join('') : '';
+  const body = `<div class="rd-side rdt-side" id="rd-side"><dl class="ac-fl">
+      ${row('ac_f_answer', `<span class="ac-ans tone-${a.noWording ? 'gray' : _rdTone(a)}"><i></i><b>${_rdE([_rdWord(a), a.found ? a.detail : ''].filter(Boolean).join(', '))}</b></span>`)}
+      ${row('rd_tt_where', a.clause ? _rdE('§ ' + a.clause.replace(/\s*·\s*/, ' ')) : '')}
+      ${row('rd_tt_words', a.quote ? `<blockquote class="ac-quote rdt-quote">“${_rdE(a.quote)}”</blockquote>` : '')}
+      ${row('ac_f_why', a.why ? _rdE(a.why) : '')}
+      ${row('rd_tt_checked', a.checked ? _rdE(_rdT('ac_th_by', { by: a.checked.by || '', when: rdWhen(a.checked.at) })) : _rdE(_rdT('rd_tt_not_checked')))}
+    </dl>${many ? `<ul class="rdt-many">${many}</ul>` : ''}${acts}</div>`;
+  insPaintPanel(Object.assign(base, { item: { id: 'rdt:' + x.id }, head: { title: [_rdName(x.c), x.c.counterparty].filter(Boolean).join(' · '), sub: _rdE([_rdRef(x.c), r.name].filter(Boolean).join(' · ')), acts: [] }, acts: [], body }));
+}
+function rdTablePaint(){
+  const now = _rd.table ? rdFind(_rd.table.key) : null;
+  if (!now || state.view !== 'reads'){ renderReads(); return; }
+  const card = document.querySelector('#rd-page .rd-card');
+  if (!card){ renderReads(); return; }
+  const P = rdTableHtml(now);
+  const keep = document.activeElement && document.activeElement.id === 'rdt-q' ? document.activeElement.selectionStart : null;
+  card.innerHTML = `${P.head}<div class="ins-scroll rd-wrap scroll-thin" id="rd-scroll">${P.body}</div>${P.foot}`;
+  if (keep != null){ const q = document.getElementById('rdt-q'); if (q){ q.focus(); try { q.setSelectionRange(keep, keep); } catch (_){ /* not a text box */ } } }
+  const page = document.getElementById('rd-page');
+  if (page && page.getAttribute('data-ins') === '1') rdTableSidePaint(now);
+}
+async function rdTableLoad(){
+  const t = _rd.table; if (!t) return;
+  const r = rdFind(t.key); if (!r) return;
+  const ids = rdTableIds();
+  if (typeof askColLoad === 'function') await Promise.all(r.askIds.map(k => askColLoad(k, ids).catch(() => false)));
+  if (_rd.table !== t) return;
+  t.loaded = true; rdTablePaint();
+}
+function readsTableOpen(key){
+  const r = rdFind(key); if (!r) return;
+  _rd.table = { key, tab: 'all', q: '', cid: null, loaded: false };
+  _rd.sel = key; rdKeep();
+  if (state.view !== 'reads' && typeof setView === 'function') setView('reads'); else renderReads();
+  rdTableLoad();
+}
+function readsTableBack(){ _rd.table = null; rdKeep(); renderReads(); }
 const rdFootHtml = list => (list.length && typeof lhFootHtml === 'function') ? lhFootHtml(RD_SEAT, list.length, list.length, 0, { cls: 'ins-foot' }) : '';
 /* THE THREAD (the panel, as drawn): the name, the question; Read the next N · Open the table; then "Next ·
    51–100 — the first N not yet read, in the list's order · N calls · or 100"; each press newest first
@@ -219,6 +347,7 @@ function rdSidePaint(wide){
 function rdRowsPaint(){
   const page = document.getElementById('rd-page');
   if (state.view !== 'reads' || !page){ if (state.view === 'reads') renderReads(); return; }
+  if (_rd.table){ rdTablePaint(); return; }
   const wide = page.getAttribute('data-ins') === '1';
   const was = String(_rd.sel);
   const list = readsShown();
@@ -261,17 +390,23 @@ function renderReads(){
   const keep = document.activeElement && document.activeElement.id && document.activeElement.closest && document.activeElement.closest('#rd-page') ? document.activeElement.id : '';
   const caret = keep ? document.activeElement.selectionStart : null;
   rdHeadReg();
-  const card = `<section class="ins-card rd-card" aria-label="${_rdE(_rdT('nav_reads'))}">
+  const tr = _rd.table ? rdFind(_rd.table.key) : null;
+  if (_rd.table && !tr && _rd.rows && _rd.rows.length && _rd.at) _rd.table = null;
+  const P = tr ? rdTableHtml(tr) : null;
+  const card = P ? `<section class="ins-card rd-card is-table" aria-label="${_rdE(tr.name)}">${P.head}<div class="ins-scroll rd-wrap scroll-thin" id="rd-scroll">${P.body}</div>${P.foot}</section>`
+    : `<section class="ins-card rd-card" aria-label="${_rdE(_rdT('nav_reads'))}">
       <div class="ins-scroll rd-wrap scroll-thin" id="rd-scroll">${readsTableHtml(list)}</div>
       ${rdFootHtml(list)}
     </section>`;
   host.innerHTML = `<div class="view-enter sap-page ins-page rd-page rd-ins${wide ? '' : ' is-narrow'}" id="rd-page" data-ins-page="reads" data-ins="${wide ? 1 : 0}"><style>${readsCss()}</style>
     ${readsBandHtml()}
     <div class="ins-body">${card}${wide ? `<aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside>` : ''}</div></div>`;
-  if (wide){
+  if (wide && tr) rdTableSidePaint(tr);
+  else if (wide){
     const tb = host.querySelector('.rd-t tbody'); if (tb) tb.setAttribute('data-ins-on', '1');
     rdSidePaint(true);
   }
+  if (tr && !_rd.table.loaded) rdTableLoad();
   if (typeof lcPlace === 'function') lcPlace(RD_SEAT);
   if (keep && document.getElementById(keep)){ const el = document.getElementById(keep); el.focus(); try { if (caret != null) el.setSelectionRange(caret, caret); } catch (_){ /* not a text box */ } }
   readsWire();
@@ -306,7 +441,8 @@ function readsAgain(key){
   const a = (typeof AC !== 'undefined' && AC.asks) ? AC.asks[r.askIds[0]] : null;
   rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen(a ? { question: a.question, name: a.name, askId: a.id, force: true } : {}); });
 }
-function readsTable(key){ const r = rdFind(key); if (!r) return; rdOnContracts(() => { if (typeof askColTableFor === 'function') askColTableFor(r.askIds, r.name); }); }
+/* OPEN THE TABLE STAYS ON THIS PAGE (round 4): the read table opens inside Reads, never by way of Contracts */
+function readsTable(key){ readsTableOpen(key); }
 function readsBring(key){ const r = rdFind(key); if (!r) return; rdOnContracts(() => { if (typeof askColBring === 'function') askColBring(r.askIds[0]); }); }
 function readsRisk(key){
   const r = rdFind(key); if (!r) return;
@@ -324,6 +460,16 @@ function readsWire(){
     if (!inPage && !inPanel) return;
     let el;
     if ((el = t.closest('#rd-ask'))){ readsAskNew(); return; }
+    if (_rd.table){
+      const tr = rdFind(_rd.table.key);
+      if ((el = t.closest('[data-rdt-back]'))){ readsTableBack(); return; }
+      if ((el = t.closest('[data-rdt-tab]'))){ _rd.table.tab = el.getAttribute('data-rdt-tab'); rdKeep(); rdTablePaint(); return; }
+      if ((el = t.closest('[data-rdt-copy]')) && tr){ if (typeof askColCopyMany === 'function') askColCopyMany(tr.askIds, rdTableRows(tr).map(x => x.id)); return; }
+      if ((el = t.closest('[data-rdt-again]')) && tr){ readsAgain(tr.key); return; }
+      if ((el = t.closest('[data-rdt-go]')) && _rd.table.cid){ if (typeof AC !== 'undefined') AC.chosen = { askId: el.getAttribute('data-rdt-go'), cid: _rd.table.cid }; if (typeof askColGo === 'function') askColGo(); return; }
+      if ((el = t.closest('[data-rdt-ck]')) && _rd.table.cid && !el.disabled){ const cid = _rd.table.cid; if (typeof askColCheck === 'function') askColCheck(el.getAttribute('data-rdt-ck'), cid).then(() => rdTablePaint()); return; }
+      if ((el = t.closest('[data-rdt-row]'))){ const id = el.getAttribute('data-rdt-row'); if (_rd.table.cid === id) return; _rd.table.cid = id; rdKeep(); rdTablePaint(); return; }
+    }
     if ((el = t.closest('[data-rd-next]'))){ e.stopPropagation(); readsNext(el.getAttribute('data-rd-next'), typeof acSize === 'function' ? acSize() : 50); return; }
     if ((el = t.closest('[data-rd-again]'))){ e.stopPropagation(); readsAgain(el.getAttribute('data-rd-again')); return; }
     if ((el = t.closest('[data-rd-act]')) && _rd.sel){
@@ -343,8 +489,20 @@ function readsWire(){
       renderReads(); return;
     }
   });
+  document.addEventListener('input', e => {
+    if (state.view !== 'reads' || !_rd.table || !e.target || e.target.id !== 'rdt-q') return;
+    _rd.table.q = e.target.value; rdTablePaint();
+  });
   document.addEventListener('keydown', e => {
     if (state.view !== 'reads') return;
+    const trow = e.target && e.target.closest ? e.target.closest('[data-rdt-row]') : null;
+    if (trow && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); trow.click(); return; }
+    if (trow && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){
+      const to = e.key === 'ArrowDown' ? trow.nextElementSibling : trow.previousElementSibling;
+      if (to && to.hasAttribute('data-rdt-row')){ e.preventDefault(); to.click(); const again = document.querySelector(`[data-rdt-row="${CSS.escape(to.getAttribute('data-rdt-row'))}"]`); if (again) again.focus(); }
+      return;
+    }
+    if (_rd.table && e.key === 'Escape' && !(e.target && e.target.closest && e.target.closest('input,textarea,[contenteditable="true"]'))){ e.preventDefault(); readsTableBack(); return; }
     const row = e.target && e.target.closest ? e.target.closest('[data-rd-row]') : null;
     if (row && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); row.click(); }
     if (row && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){
@@ -394,6 +552,37 @@ function readsCss(){ return `
   .rd-where{margin:0;font-size:13px;line-height:1.5}
   .rd-where b{font-weight:var(--w-label)}
   #ins-panel .rd-sec{padding-top:0}
+  /* THE READ TABLE (round 4, the Legora way): the back line, the tabs and the box, a quiet table */
+  .rd-card.is-table{display:flex;flex-direction:column;min-height:0}
+  .rdt-head{display:flex;align-items:baseline;gap:6px 8px;padding:14px 16px 0;min-width:0;font-size:13px}
+  .rdt-back{flex:none}
+  .rdt-dot{color:var(--color-quiet);flex:none}
+  .rdt-nm{font-weight:var(--w-strong);flex:none;white-space:nowrap}
+  .rdt-sub{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rdt-sp{flex:1}
+  .rdt-head .ac-link{white-space:nowrap;flex:none}
+  .rdt-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px 8px;flex-wrap:wrap}
+  .rdt-bar .reg-views{margin:0}
+  .rdt-ask{flex:0 1 260px;min-width:160px}
+  .rdt-t td{vertical-align:middle}
+  .rdt-ans{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+  .rdt-ans .ac-ans{min-width:0;display:inline-flex;align-items:center;gap:6px}
+  .rdt-w{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .rdt-sec{flex:none;font-size:11.5px;color:var(--color-quiet);background:var(--color-neutral-100);border-radius:6px;padding:1px 6px;white-space:nowrap}
+  .rdt-ck{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-size:12.5px}
+  .rdt-empty{padding:24px 16px;margin:0;color:var(--color-quiet)}
+  .rdt-quote{margin:0;padding:8px 12px;border-left:3px solid var(--accent-solid);background:color-mix(in srgb,var(--color-accent) 6%,transparent);font-family:var(--font-doc);font-size:14px;line-height:1.5}
+  .rdt-many{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px;font-size:13px}
+  .rdt-t .ac-ans>i,.rdt-side .ac-ans>i,.rdt-many .ac-ans>i{width:8px;height:8px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
+  .rdt-t .ac-ans.tone-green>i,.rdt-side .ac-ans.tone-green>i,.rdt-many .ac-ans.tone-green>i{background:var(--st-green-dot)}
+  .rdt-t .ac-ans.tone-amber>i,.rdt-side .ac-ans.tone-amber>i,.rdt-many .ac-ans.tone-amber>i{background:var(--st-amber-dot)}
+  .rdt-t .ac-ans.tone-ruby>i,.rdt-side .ac-ans.tone-ruby>i,.rdt-many .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  #ins-panel .rdt-side{padding:8px 16px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+  #ins-panel .rdt-side .ac-fl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px 12px;margin:0;font-size:13px;line-height:1.45}
+  #ins-panel .rdt-side .ac-fl dt{font-size:12px;color:var(--color-quiet)}
+  #ins-panel .rdt-side .ac-fl dd{margin:0;min-width:0}
+  #ins-panel .rdt-side .ac-ans{display:inline-flex;align-items:center;gap:8px}
+  #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+Object.assign(window, { readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
