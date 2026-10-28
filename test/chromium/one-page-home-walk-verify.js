@@ -34,7 +34,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, chipEnter } = require('../helpers');
 const { mkDocx, para } = require('../docxfix');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'one-page-home-walk');
@@ -66,7 +66,7 @@ const WATCH = () => { window._walk = {}; const tick = () => {
   const settle = () => page.waitForFunction(() => !(window.intel && intel.busy), null, { timeout: 8000 }).catch(() => {});
   const say = async word => {
     await page.click('#igd-input'); await page.fill('#igd-input', '');
-    await page.type('#igd-input', word, { delay: 15 }); await page.keyboard.press('Enter'); await settle();
+    await page.type('#igd-input', word, { delay: 15 }); /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await chipEnter(page, '#igd-input'); await settle();
   };
   const shot = name => page.screenshot({ path: path.join(OUT, name + '.png') }).catch(() => {});
   let id = null;

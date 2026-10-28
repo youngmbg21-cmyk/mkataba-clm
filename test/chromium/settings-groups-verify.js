@@ -26,7 +26,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, chipEnter } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -172,8 +172,9 @@ const PAINTED = (sel) => {
        "/" in every Jambo box lists the places (caSlRead) — so the Menu is
        reached through Jambo's own door, "Open the Menu", under the answer
        he gives when he finds no setting */
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the finder's free answer, asked as a chip asks */
     await page.fill('#st-jb-q', 'zzqx nothing here');
-    await page.keyboard.press('Enter');
+    await chipEnter(page, '#st-jb-q');
     await page.waitForSelector('#st-jb-feed [data-st-side="menu"]', { timeout: 6000 }).catch(() => null);
     if (await page.locator('#st-jb-feed [data-st-side="menu"]').count()) await page.locator('#st-jb-feed [data-st-side="menu"]').last().click();
     await page.waitForTimeout(300);

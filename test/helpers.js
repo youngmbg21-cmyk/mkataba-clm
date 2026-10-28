@@ -533,6 +533,16 @@ const ckConfirm = async (page, key) => {
   return page.click('#pd-og [data-pd-og-saveall]');
 };
 
+/* ASK WHAT IS IN THE BOX AS A CHIP ASKS IT (28 Oct 2026, the owner's "Door above the box": every word TYPED in a
+   Jambo box is the brain's but a page's one name). A browser check of the FREE readers types into the box as before
+   (its "/" and "@" lists are real) and then hands the words to that box's own reader, not typed, instead of Enter.
+   A box with no such reader (the clause editor, the builder) still gets Enter. */
+const CHIP_READERS = { '#igd-input': 'intelAsk', '#jl-q': 'jlAsk', '#st-jb-q': 'stJbBoxAsk', '#cal-plan-in': 'calBoxAsk', '#ai-input': 'aiSubmit', '#cn-q': 'counterAsk' };
+async function chipEnter(page, sel){
+  const fn = CHIP_READERS[sel];
+  if (!fn) return page.keyboard.press('Enter');
+  return page.evaluate(([s, f]) => { const i = document.querySelector(s); const v = i ? i.value : ''; if (i){ i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); } return window[f](v); }, [sel, fn]);
+}
 module.exports = { startHati, startAiStub, startScriptedAi, startMailStub, startHatiWithMail,
   seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
-  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client, CAL_TODAY_ASIDE, ckOpenRowOf, ckConfirm };
+  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client, CAL_TODAY_ASIDE, ckOpenRowOf, ckConfirm, CHIP_READERS, chipEnter };

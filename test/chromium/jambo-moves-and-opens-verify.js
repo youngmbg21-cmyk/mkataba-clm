@@ -18,7 +18,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, FOLDER_A } = require('../helpers');
+const { startHati, seedWorkspace, FOLDER_A, chipEnter } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -90,7 +90,8 @@ const BODY = TEXT.split('\n\n').map(p => /^\d+\./.test(p) ? `<h2>${p}</h2>` : `<
       if (!box) return false;
       /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
       if (sel === '#cn-q'){ await page.evaluate(w => counterAsk(w), words); return true; }
-      await page.fill(sel, words); await page.press(sel, 'Enter'); return true; };
+      /* RE-PINNED 28 Oct 2026 ("Door above the box"): the panel's box too, asked as a chip asks */
+      await page.fill(sel, words); await chipEnter(page, sel); return true; };
     const face = () => until(() => state.panelOpen && typeof panelFace === 'function' ? panelFace() : null, null, 5000);
     await page.evaluate(() => { state.panelOpen = false; if (typeof applyPanelLayout === 'function') applyPanelLayout(); setView('counter'); });
     const typed = await ask('#cn-q', 'show me the guide');

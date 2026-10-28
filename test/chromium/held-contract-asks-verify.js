@@ -65,7 +65,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     return until(() => (typeof igHeldAskId === 'function' && igHeldAskId() === 'MK-105') ? 'held' : null, null, 6000);
   };
   const typeHome = async q => {
-    await page.fill('#igd-input', q); await page.press('#igd-input', 'Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => intelAsk(w), q);
     await until(() => !intel.busy && intel.history.some(m => m.role === 'user'), null, 6000);
     await page.waitForTimeout(500);
     return page.evaluate(() => {
@@ -107,7 +107,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       await page.evaluate(() => { intel.history = []; setView('approvals'); });
       const box = await until(() => !!document.querySelector('#jl-q'), null, 6000);
       if (!box) { check(`3 "${q}": the Approvals list has Jambo's box`, false, 'no #jl-q'); continue; }
-      await page.fill('#jl-q', q); await page.press('#jl-q', 'Enter');
+      /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => jlAsk(w), q);
       await page.waitForTimeout(1500);
       const r = await page.evaluate(() => {
         const said = (intel.history || []).filter(m => m.role === 'assistant').map(m => String(m.text || '') + ' ' + (m.act ? (m.act.kind || '') + ':' + (m.act.place || '') : ''));

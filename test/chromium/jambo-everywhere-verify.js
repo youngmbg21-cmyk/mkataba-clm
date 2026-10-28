@@ -57,7 +57,7 @@ const CONTRACTS = [
       return v; };
     const shot = n => page.screenshot({ path: path.join(OUT, n + '.png') }).catch(() => {});
     const toCal = async () => { await page.evaluate(() => hbOpenCalendar()); return until(() => !!document.getElementById('cal-plan-in')); };
-    const typeIn = async (sel, words) => { await page.click(sel); await page.fill(sel, ''); await page.type(sel, words, { delay: 6 }); await page.keyboard.press('Enter'); };
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free readers, asked as a chip asks */ const typeIn = async (sel, words) => { await page.click(sel); await page.fill(sel, ''); await page.type(sel, words, { delay: 6 }); await H.chipEnter(page, sel); };
 
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');

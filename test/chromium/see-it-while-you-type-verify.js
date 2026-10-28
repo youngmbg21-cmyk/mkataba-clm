@@ -13,7 +13,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract, chipEnter } = require('../helpers');
 
 const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'see-it-while-you-type');
 const EXEC = process.env.CHROMIUM_BIN || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -37,6 +37,11 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.waitForFunction(ids => window.state && state.contracts && state.contracts.length === ids.length && ids.every(id => state.contracts.some(c => c.id === id)), BOOK.map(c => c.id), { timeout: 20000 });
     await page.evaluate(() => { const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.path = []; s.screen = 'dark'; hbSave(); setView('dashboard'); });
     await until(() => document.getElementById('igd-pre') && document.getElementById('hb-board') ? true : null);
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): with a brain set, every sentence typed is the brain's,
+       so the line promises nothing free (igPrePaint, igBoardTalkFirst); it is the box's reading where no key is set */
+    const quiet = await page.evaluate(async () => { const i = document.getElementById('igd-input'); i.value = 'contracts by stage'; igPrePaint(); const t = document.getElementById('igd-pre').textContent; i.value = ''; igPrePaint(); return t; });
+    check('0 with a brain set, the line promises nothing free', quiet.trim() === '', JSON.stringify(quiet));
+    await page.evaluate(() => { state.aiConfigured = false; });
     await page.waitForTimeout(400);
     const b0 = await box(); const board0 = await page.evaluate(() => JSON.stringify(hbS()));
     check('1 the line\'s room is there before a word is typed', !!b0.pre && b0.pre[1] === 16, JSON.stringify(b0));
@@ -53,7 +58,7 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.screenshot({ path: path.join(OUT, '3-copilot.png') });
     check('3 a question Copilot answers says so, with no price', s3 === 'Jambo will read this one', s3);
     check('4 nothing moved: the box, the line and the feed hold their places', JSON.stringify(b0) === JSON.stringify(b2) && JSON.stringify(b0) === JSON.stringify(b3), JSON.stringify({ b0, b2, b3 }));
-    await page.fill('#igd-input', 'contracts by stage'); await page.keyboard.press('Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#igd-input', 'contracts by stage'); await chipEnter(page, '#igd-input');
     const s5 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; if (!k) return null; return hbHowWord(hbPlan(hbDigData(k, s.lens))); });
     await page.screenshot({ path: path.join(OUT, '5-asked.png') });
     check('5 asking draws what the line said', s5 === 'Ring · by stage · count', s5);

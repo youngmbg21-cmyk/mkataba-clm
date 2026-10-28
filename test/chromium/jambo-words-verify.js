@@ -22,7 +22,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract, FOLDER_A } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract, FOLDER_A, chipEnter } = require('../helpers');
 
 const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'jambo-words');
 const EXEC = process.env.CHROMIUM_BIN
@@ -73,7 +73,9 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
       await page.click('#igd-input');
       await page.fill('#igd-input', '');
       await page.type('#igd-input', text, { delay: 15 });
-      if (enter) { await page.keyboard.press('Enter'); await settle(); }
+      /* RE-PINNED 28 Oct 2026 ("Door above the box"): a pick from the "/" list is still Enter; words are asked as a chip asks */
+      if (enter) { const popUp = await page.evaluate(() => !![...document.querySelectorAll('#hb-askpop .hb-pop-opt')].some(e => e.getClientRects().length));
+        if (popUp) await page.keyboard.press('Enter'); else await chipEnter(page, '#igd-input'); await settle(); }
     };
     const pop = () => page.evaluate(() => [...document.querySelectorAll('#hb-askpop .hb-pop-opt b')].map(b => b.textContent.trim()));
 

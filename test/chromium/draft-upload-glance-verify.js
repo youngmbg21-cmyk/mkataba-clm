@@ -86,7 +86,7 @@ const pastFirstWords = async page => {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e.message || e).slice(0, 200)));
-  const say = async w => { await page.click('#igd-input'); await page.fill('#igd-input', ''); await page.type('#igd-input', w, { delay: 8 }); await page.keyboard.press('Enter'); };
+  const say = async w => { await page.click('#igd-input'); await page.fill('#igd-input', ''); await page.type('#igd-input', w, { delay: 8 }); /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(() => { const i = document.getElementById('igd-input'); const v = i.value; i.value = ''; intelAsk(v); }); };
   const shoot = async name => { for (const [w, hh] of SCREENS) { await page.setViewportSize({ width: w, height: hh }); await pause(350);
     await page.screenshot({ path: path.join(OUT, `${name}-${w}x${hh}.png`) }).catch(() => {}); } await page.setViewportSize({ width: 1440, height: 780 }); await pause(250); };
   const login = async (pg, email, pass) => { await pg.goto(h.base + '/', { waitUntil: 'networkidle' });
