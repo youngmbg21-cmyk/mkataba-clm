@@ -99,6 +99,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, the owner's ranking): on a laptop beside the panel the columns a reader adds step aside first; what this file reads in them is read where they all have room */
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 780 } });
     const page = await ctx.newPage();
     page.on('pageerror', e => errors.push(e.message));
@@ -302,9 +303,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6a one box to search or ask in, "Search N people, or ask Jambo"; Party · Role in HaTi · Stream under + Filter; no labelled band', D.box && !D.old && D.add && /^Search \d+ people, or ask Jambo$/.test(D.ph || ''), JSON.stringify({ box: D.box, old: D.old, add: D.add, ph: D.ph }));
       check('6a2 the sides are the tabs: Everyone · Ours · Theirs', JSON.stringify(D.tabs.slice(0, 3)) === JSON.stringify(['Everyone', 'Ours', 'Theirs']), JSON.stringify(D.tabs));
       check('6b the page is People: "People N", "<n> of ours · <n> at <n> parties"; no A to Z', /^People\s*\d+$/.test(D.title) && /^\d+ of ours · \d+ at \d+ parties$/.test(D.sub) && !D.az, JSON.stringify({ t: D.title, s: D.sub, az: D.az, bar: D.bar }));
-      /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Side is a column again */
-      check('6c the table as drawn: Name · Party or company · Side · Contracts, the job title and role under the name; "ours first, then theirs, by name" on Name',
-        JSON.stringify(D.cols) === JSON.stringify(['Name', 'Party or company', 'Side', 'Contracts']) && D.sort === 'ours first, then theirs, by name' && /Amina Otieno/.test(D.first) && / · Admin$/.test(D.sub1.trim()), JSON.stringify({ c: D.cols, s: D.sort, f: D.first, sub: D.sub1 }));
+      /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Side is a column again.
+         RE-POINTED 28 Oct 2026 (owner): the job title is its own column; the role alone under the name */
+      check('6c the table as drawn: Name · Job title · Party or company · Side · Contracts, the role under the name; "ours first, then theirs, by name" on Name',
+        JSON.stringify(D.cols) === JSON.stringify(['Name', 'Job title', 'Party or company', 'Side', 'Contracts']) && D.sort === 'ours first, then theirs, by name' && /Amina Otieno/.test(D.first) && /^Admin$/.test(D.sub1.trim()), JSON.stringify({ c: D.cols, s: D.sort, f: D.first, sub: D.sub1 }));
       check('6d an away colleague wears "Away until …" on their row', D.away.some(x => /Jonas Berg.*Away until/.test(x)), JSON.stringify(D.away));
       check('6e twelve at a time, the cap said: "1–12 of N · Show N more"', D.rows === 12 && /^1–12 of 1\d · Show \d+ more/.test(D.foot.trim()), JSON.stringify({ r: D.rows, f: D.foot }));
       await page.click('#dir-tbody [data-dir-row="' + (await page.evaluate(() => (dirBook().find(p => p.name === 'Jonas Berg') || {}).key)) + '"]');

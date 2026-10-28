@@ -188,7 +188,8 @@ describe('f791 (6) the page', () => {
   test('6b renewal decisions are rows of their week; Jambo\'s finds ride in This week while the list holds what is open', () => {
     assert.match(page, /const book = obwBook\(\)\.concat\(obwDecisions\(\)\);/);
     assert.match(page, /\(f\.state === 'open' \|\| f\.state === 'all'\) && !narrowing\.length \? obwFindRows\(\) : \[\]/);
-    assert.match(fnBody(OB, 'obListHtml'), /W\.rows\.map\(r => r\._find \? obwFindsRowHtml\(r\) : obwWeekRowHtml\(r, W\)\)/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS): each row keeps the cells the room keeps (obwKeepTds) */
+    assert.match(fnBody(OB, 'obListHtml'), /W\.rows\.map\(r => r\._find \? obwKeepTds\(obwFindsRowHtml\(r\)\) : W\.k === 'overdue' \? obwWeekRowHtml\(r, W\) : obwKeepTds\(obwWeekRowHtml\(r, W\)\)\)/);
     assert.match(fnBody(OB, 'obwDecisions'), /renewalDecided\(c\)/);
     assert.match(fnBody(OB, 'obwDecisions'), /d > RENEWAL_WINDOW_DAYS/);
     assert.match(fnBody(OB, 'obwFinds'), /obReviewWaiting\(c\)\.length/);

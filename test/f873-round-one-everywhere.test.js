@@ -59,7 +59,8 @@ describe('f873 (2) the width handle shows where the hand is', () => {
 
 describe('f873 (3) money is never cut', () => {
   test('3a Approvals\' value and Parties\' paper columns are 112 wide', () => {
-    assert.match(R('js/views/approvalsview.js'), /t:i18t\('reg_col_value'\),right:true,w:112\}/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS): the value column is keyed and ranked, still 112 */
+    assert.match(R('js/views/approvalsview.js'), /t:i18t\('reg_col_value'\),right:true,w:112,rank:4\}/);
     assert.match(R('js/views/customers.js'), /k: 'paper', label: i18t\('cu_col_paper'\), r: 1, w: 112 \}/);
   });
 });

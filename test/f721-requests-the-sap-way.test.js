@@ -41,7 +41,8 @@ describe('f721 (1) the team\'s columns', () => {
     const r = fnBody(IK, 'ikPaintRows');
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference rides the grey line under the request, so
        the Request leads; Asked is one press away under Columns (its day is in the grey line too) */
-    assert.match(r, /const cols=\[\{ t:i18t\('ik_col_request'\) \}, \.\.\.keys\.map/, 'Request first, then the columns shown');
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, listCols): Request first, then the columns the room keeps */
+    assert.match(r, /const cols=\[Object\.assign\(\{ t:i18t\('ik_col_request'\) \},FIT\.cols\[0\]\), \.\.\.FIT\.cols\.slice\(1\)\.map/, 'Request first, then the columns shown');
     assert.match(r, /<span class="ins-ref">\$\{esc\(r\.id\)\}<\/span> · \$\{esc\(sub\)\}/, 'the reference leads the grey line');
     /* RE-POINTED 19 Oct 2026 (round 20 as drawn): the With cell carries its class (the name and the lane on one line) */
     assert.match(r, /with:\(\)=>asker\?`<td>\$\{ikWithCellHtml\(r, asker\)\}<\/td>`:`<td class="ik-with">\$\{ikWithListHtml\(r\)\}<\/td>`/);

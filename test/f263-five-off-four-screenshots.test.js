@@ -320,12 +320,14 @@ describe('f263 (4) — the worklist names its columns and states its filters', (
 
   test('THE TABLE NAMES ITS COLUMNS, on the widths it already declares', () => {
     const list = OB.match(/function renderObligationsList\(\)\{[\s\S]*?\n\}/)[0];
-    assert.match(list, /<table class="obw-table"><thead><tr>/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, listCols): the head is drawn from the one list of columns
+       (OBT_DEFS), each named on its own class, the grip on each; Amount only with money, as the cells */
+    assert.match(list, /<table class="obw-table" data-list-seat="obligations-all"><colgroup>/);
     for (const cls of ['obw-c', 'obw-side', 'obw-who', 'obw-when', 'obw-acts'])
-      assert.ok(new RegExp('<th class="' + cls + '"').test(list), cls + ' is named');
+      assert.ok(new RegExp("cls: '" + cls + "'").test(list), cls + ' is named');
     /* THE HEAD FOLLOWS THE SAME `money` READING AS THE CELLS, so the two cannot
        come to disagree about how many columns there are. */
-    assert.match(list, /\$\{money \? `<th class="obw-amt">/);
+    assert.match(list, /\.\.\.\(money \? \[\{ k: 'amt', t: i18t\('ob_amount'\), cls: 'obw-amt'/);
     assert.equal((list.match(/\$\{money \? `<td class="obw-amt/g) || []).length, 1);
     /* The verb column is deliberately unnamed on screen: a heading over a
        column of verbs names nothing a reader needs. */

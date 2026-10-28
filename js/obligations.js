@@ -2732,15 +2732,24 @@ function renderObligationsList(){
      is the fault the insights panels were rebuilt to stop. */
   /* THE ONE CONVERTER is obwHomeSum, which obMoneyWords asks per direction —
      the very function the wide page's group headings sum through. */
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the full table too — the duty, its day and its acts
+     always stand; where the room is short Side steps aside first, then Who, then Amount; a reader's own widths
+     are kept */
+  const OBT_DEFS = [{ k: 'name', t: i18t('ob_col_what'), cls: 'obw-c' }, { k: 'side', t: i18t('ob_col_side'), cls: 'obw-side', w: 96, rank: 1 },
+    { k: 'who', t: i18t('ob_col_who'), cls: 'obw-who', w: 170, rank: 2 }, ...(money ? [{ k: 'amt', t: i18t('ob_amount'), cls: 'obw-amt', w: 120, rank: 3 }] : []),
+    { k: 'when', t: i18t('ob_col_when'), cls: 'obw-when', w: 130 }, { k: 'acts', t: '', cls: 'obw-acts', w: 220 }];
+  const OBT = typeof listCols === 'function' ? listCols('obligations-all', OBT_DEFS, () => renderObligationsList()) : { cols: OBT_DEFS };
+  const obtK = new Set(OBT.cols.map(c => c.k)), obtKeep = OBT_DEFS.map(d => obtK.has(d.k));
+  const obtTds = html => obtKeep.every(Boolean) ? html : (() => { let i = 0; return String(html).replace(/<td[\s\S]*?<\/td>/g, m => obtKeep[i++] === false ? '' : m); })();
   const banded = OBLIG_BANDS.map(([k, key]) => {
     const mine = rows.filter(r => r.band === k);
     if(!mine.length) return '';
     /* EACH DIRECTION APART (the owner's list, 27 Sep 2026): one figure per
        band added money we owe to money owed to us. */
     const mw = money ? obMoneyWords(mine) : null;
-    return `<tr class="obw-band"><td colspan="${money ? 6 : 5}">${_obEsc(i18t(key))}<b>${mine.length}</b>${
+    return `<tr class="obw-band"><td colspan="${OBT.cols.length}">${_obEsc(i18t(key))}<b>${mine.length}</b>${
       mw && mw.text ? `<i class="obw-bandsum">${_obEsc(_obCap(mw.text))}</i>` : ''}</td></tr>`
-      + mine.map(row).join('');
+      + mine.map(r => obtTds(row(r))).join('');
   }).join('');
   /* ONE TOTAL AT THE FOOT, over every row on the page. Drawn only where there
      is money to state; a foot reading nothing is furniture.
@@ -2823,13 +2832,9 @@ function renderObligationsList(){
              to disagree about how many columns there are. The last column is
              deliberately unnamed: it holds verbs, and a heading over a verb
              column names nothing a reader needs. */}
-      ${rows.length ? `<table class="obw-table"><thead><tr>
-          <th class="obw-c">${_obEsc(i18t('ob_col_what'))}</th>
-          <th class="obw-side">${_obEsc(i18t('ob_col_side'))}</th>
-          <th class="obw-who">${_obEsc(i18t('ob_col_who'))}</th>
-          ${money ? `<th class="obw-amt">${_obEsc(i18t('ob_amount'))}</th>` : ''}
-          <th class="obw-when">${_obEsc(i18t('ob_col_when'))}</th>
-          <th class="obw-acts"><span class="sr-only">${_obEsc(i18t('ob_col_acts'))}</span></th>
+      ${rows.length ? `<table class="obw-table" data-list-seat="obligations-all"><colgroup>${OBT.cols.map(c => typeof listColTag === 'function' ? listColTag(c) : '<col>').join('')}</colgroup><thead><tr>
+          ${OBT.cols.map(c => c.k === 'acts' ? `<th class="obw-acts"><span class="sr-only">${_obEsc(i18t('ob_col_acts'))}</span></th>`
+            : `<th class="${c.cls}">${_obEsc(c.t)}${typeof listGripHtml === 'function' ? listGripHtml('obligations-all', c.k) : ''}</th>`).join('')}
         </tr></thead><tbody>${banded}</tbody></table>${foot}`
         : `<div class="obt-empty">${_obEsc(i18t('ob_none_match'))}</div>`}
     </div></div>`;
@@ -3576,6 +3581,17 @@ function obListHtml(rows, ctx, c1){
     const wcols0 = [{ t: i18t('ob_col_what') }, { t: i18t('ob_col_kind'), w: 104 }, { t: i18t('ob_col_when'), w: 120 }, { t: i18t('ob_col_amount'), w: 112, r: true }, { t: i18t('ob_col_act'), w: 140, r: true }];
     /* Late's card has no day column: its day stands beside its act */
     const lcols = [{ t: i18t('ob_col_what') }, { t: i18t('ob_col_act'), w: 240, r: true }];
+    const OBW_SPREAD = [{ k: 'party', t: i18t('cu_col_customer'), w: 170, spread: 1 }, { k: 'ref', t: i18t('reg_col_ref'), w: 100, spread: 1 }, { k: 'whose', t: i18t('ob_f_whose'), w: 140, spread: 1 }];
+    /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the duty, its day and its act always stand; where the
+       room is short Kind steps aside first, then Amount; one answer for every week's card */
+    const OBW_DEFS = [Object.assign({ k: 'name' }, wcols0[0]), ...OBW_SPREAD, { k: 'kind', t: wcols0[1].t, w: 104, rank: 1 }, { k: 'when', t: wcols0[2].t, w: 120 },
+      { k: 'amount', t: wcols0[3].t, w: 112, r: true, rank: 2 }, { k: 'act', t: wcols0[4].t, w: 140, r: true }];
+    const FIT = typeof listCols === 'function' ? listCols('obligations', OBW_DEFS, () => obwRepaintRows()) : { cols: OBW_DEFS.filter(d => !d.spread), spread: false };
+    _obwSP = !!FIT.spread;
+    const fitK = new Set(FIT.cols.map(c => c.k));
+    _obwKeep = (_obwSP ? OBW_DEFS : OBW_DEFS.filter(d => !d.spread)).map(d => fitK.has(d.k));
+    wcols0.splice(0, wcols0.length, ...FIT.cols.map((c, i) => Object.assign({}, c, i === 0 ? { name: true } : {})));
+    if(_obwSP) lcols.splice(1, 0, ...FIT.cols.filter(c => c.spread));
     let html = '';
     for(const W of obWeekGroups(rows)){
       const wcols = W.k === 'overdue' ? lcols : wcols0;
@@ -3592,11 +3608,11 @@ function obListHtml(rows, ctx, c1){
       const money = obWeekMoneyHtml(own);
       const rng = [W.range, sub].filter(Boolean).join(' · ');
       const head = `<button type="button" class="ob-wk-fold" data-obw-week="${W.k}" aria-expanded="${shut ? 'false' : 'true'}"><i class="ob-wk-car" aria-hidden="true"></i>${_obEsc(W.word)}</button>`;
-      const rowsHtml = W.rows.map(r => r._find ? obwFindsRowHtml(r) : obwWeekRowHtml(r, W)).join('')
+      const rowsHtml = W.rows.map(r => r._find ? obwKeepTds(obwFindsRowHtml(r)) : W.k === 'overdue' ? obwWeekRowHtml(r, W) : obwKeepTds(obwWeekRowHtml(r, W))).join('')
         .replace(/<tr (data-ins-row|class="obw-finds") /g, shut ? '<tr hidden $1 ' : '<tr $1 ');
-      html += `<section class="obw-wk${shut ? ' is-shut' : ''}" data-obw-card="${W.k}"><table class="ins-lt ob-lt obw-wk-lt"><colgroup>${
-        wcols.map(c => `<col${c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead${html || W.k === 'overdue' ? ' class="sr-only"' : ' class="obw-heads"'}><tr>${
-        wcols.map(c => `<th${c.r ? ' class="r"' : ''}>${_obEsc(c.t)}</th>`).join('')}</tr></thead><tbody>`
+      html += `<section class="obw-wk${shut ? ' is-shut' : ''}" data-obw-card="${W.k}"><table class="ins-lt ob-lt obw-wk-lt" data-list-seat="obligations"><colgroup>${
+        wcols.map(c => typeof listColTag === 'function' ? listColTag(c) : `<col${c && c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead${html || W.k === 'overdue' ? ' class="sr-only"' : ' class="obw-heads"'}><tr>${
+        wcols.map(c => `<th${c.r ? ' class="r"' : ''}>${_obEsc(c.t)}${W.k !== 'overdue' && typeof listGripHtml === 'function' && c.k ? listGripHtml('obligations', c.k) : ''}</th>`).join('')}</tr></thead><tbody>`
         + `<tr class="ins-grp${W.fold ? ' is-fold' : ''}${shut ? ' is-shut' : ''}" data-ob-win="${W.win}" data-ob-week="${W.k}"><td colspan="${wcols.length}"><span class="ins-g">${head}<span class="n obw-n">${own.rows.length}</span>${
           rng ? `<span class="ob-wk-rng">${_obEsc(rng)}</span>` : ''}${
           said ? `<span class="ob-wk-said" title="${_obEsc(said)}">${_obEsc(said)}</span>` : ''}${priv}${
@@ -3767,6 +3783,7 @@ function obwFindsRowHtml(x){
   const may = (typeof canEdit !== 'function') || canEdit();
   return `<tr class="obw-finds" data-obw-finds="${_obEsc(c.id)}">
       <td><span class="ob-id"><i class="obw-av is-jambo" aria-hidden="true">${face}</i><span class="ins-c2"><b title="${_obEsc(i18tn('ob_finds_t', n, { n, doc }))}">${_obEsc(i18tn('ob_finds_t', n, { n, doc }))}</b><span>${_obEsc(i18tn('ob_finds_sub', n, { n }))}</span></span></span></td>
+      ${_obwSP ? `<td${c.counterparty ? ` title="${_obEsc(c.counterparty)}"` : ''}>${_obEsc(c.counterparty || '\u2014')}</td><td>${obwRefHtml({ cid: c.id }, c)}</td><td></td>` : ''}
       <td></td>
       <td><span class="ins-c2"><b>${_obEsc(today)}</b><span>${_obEsc(i18t('ob_wk_today'))}</span></span></td>
       <td></td>
@@ -3836,22 +3853,42 @@ function obwRowAvHtml(r, c){
 /* THE ROW'S SECOND LINE, as drawn: the party, the reference, then what kind
    of promise it is — how often, "theirs" (and when it was chased), a
    colleague's name, "nobody owns it yet", or a decision's "notice deadline" */
+/* ROOM TO SPREAD (owner, 28 Oct 2026): where the week has the room, the party, the reference and who
+   acts are columns of their own (_obwSP, listSpread); what is left of the line (the step, how often, a
+   chase, who did it) stays under the duty, and only where there is something to say */
+let _obwSP = false, _obwKeep = null;
+/* a week row's cells, the ones this paint keeps (listCols; a table's cells are never nested) */
+function obwKeepTds(html){
+  if(!_obwKeep || _obwKeep.every(Boolean)) return html;
+  let i = 0; return String(html).replace(/<td[\s\S]*?<\/td>/g, m => _obwKeep[i++] === false ? '' : m);
+}
+const obwRefHtml = (r, c) => (window.refHtml && (c || r.cid) ? refHtml(c || r.cid) : _obEsc(r.cid || (c && c.id) || ''));
+/* the line's words stand at the head of their own cell: a capital, as a column says it */
+const obwCap = w => { const t = String(w || ''); return t ? t.charAt(0).toLocaleUpperCase() + t.slice(1) : t; };
+function obwWhoHtml(r){
+  if(r._dec) return _obEsc(obwCap(i18t('ob_wk_notice')));
+  if(obligationIsTheirs(r)) return _obEsc(obwCap(i18t('ob_wk_theirs_1')));
+  const m = obligationReminderTo(r);
+  if(!m) return `<span class="ins-unassigned">${_obEsc(obwCap(i18t('ob_wk_nobody')))}</span>`;
+  return _obEsc(obligationIsMine(r) ? obwCap(i18t('ob_wk_yours_1')) : (m.name || ''));
+}
 function obwLine2(r, c){
-  const bits = [ _obEsc(r.counterparty || (c && c.counterparty) || ''),
-    (window.refHtml && (c || r.cid) ? refHtml(c || r.cid) : _obEsc(r.cid || (c && c.id) || '')) ].filter(Boolean);
-  if(r._dec){ bits.push(_obEsc(i18t('ob_wk_notice'))); return bits.join(' · '); }
+  const sp = _obwSP;
+  const bits = sp ? [] : [ _obEsc(r.counterparty || (c && c.counterparty) || ''), obwRefHtml(r, c) ].filter(Boolean);
+  if(r._dec){ if(!sp) bits.push(_obEsc(i18t('ob_wk_notice'))); return bits.join(' · '); }
   const s = obligationStepNo(r, c);
   if(s) bits.push(_obEsc(i18t('ob_step_low', { n: s.n, of: s.of })));
   const rk = OB_REPEAT_KEY[String(r.recurring || 'none')];
   if(rk) bits.push(_obEsc(i18t(rk.replace('ob_rep_', 'ob_wk_rep_'))));   // "monthly", as drawn
   const done = obState(r) === 'done';
   if(obligationIsTheirs(r)){
-    bits.push(_obEsc(i18t('ob_wk_theirs_1')));
+    if(!sp) bits.push(_obEsc(i18t('ob_wk_theirs_1')));
     const at = r.chaseFirmAt || r.chasedAt;
     if(at && !done) bits.push(`<span class="obw-chase-on">${_obEsc(i18t(r.chaseFirmAt ? 'ob_wk_chased_again' : 'ob_chased_short', { date: obDay(at) || at }))}</span>`);
   } else {
     const m = obligationReminderTo(r);
-    if(!m) bits.push(`<span class="ins-unassigned">${_obEsc(i18t('ob_wk_nobody'))}</span>`);
+    if(sp){ /* who acts is its own column */ }
+    else if(!m) bits.push(`<span class="ins-unassigned">${_obEsc(i18t('ob_wk_nobody'))}</span>`);
     else if(!obligationIsMine(r)) bits.push(_obEsc(m.name || ''));
     /* yours, said in words now the mark leads the row in the initials' place (the list language) */
     else bits.push(_obEsc(i18t('ob_wk_yours_1')));
@@ -3911,14 +3948,17 @@ function obwWeekRowHtml(r, W){
   /* the second line's hover names the contract it sits on, so a row the box
      found by that name says why (Part 8, obwSays) */
   const on = _obEsc(r.cname || (c && c.name) || '');
+  const line2 = obwLine2(r, c);
+  const party = r.counterparty || (c && c.counterparty) || '';
+  const spreadTds = _obwSP ? `<td${party ? ` title="${_obEsc(party)}"` : ''}>${party ? _obEsc(party) : '<span class="ins-quiet">\u2014</span>'}</td><td>${obwRefHtml(r, c) || '<span class="ins-quiet">\u2014</span>'}</td><td>${obwWhoHtml(r)}</td>` : '';
   /* LATE, AS DRAWN: the row starts with who acts; its day and how late it is
      stand on the right, in the late ink, before its one act */
   if(W.k === 'overdue') return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1" class="obw-late-row">
-      <td><span class="ob-id">${obwRowMarkHtml(r, W)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
+      <td><span class="ob-id">${obwRowMarkHtml(r, W)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b>${line2 ? `<span${on ? ` title="${on}"` : ''}>${line2}</span>` : ''}</span></span></td>${spreadTds}
       <td class="r obw-act-c"><span class="obw-late-act"><span class="ins-c2 obw-late-when"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span>${obwRowActHtml(r, c)}</span></td>
     </tr>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1"${r._dec ? ' data-obw-dec="1"' : ''}>
-      <td><span class="ob-id">${obwRowMarkHtml(r, W)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
+      <td><span class="ob-id">${obwRowMarkHtml(r, W)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b>${line2 ? `<span${on ? ` title="${on}"` : ''}>${line2}</span>` : ''}</span></span></td>${spreadTds}
       <td>${obwKindHtml(r)}</td>
       <td><span class="ins-c2"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span></td>
       <td class="r obw-amt">${obwAmountHtml(r, c)}</td>

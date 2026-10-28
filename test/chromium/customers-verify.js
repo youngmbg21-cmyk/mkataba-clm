@@ -65,7 +65,8 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
   const h = await H.startHati();
   await H.seedWorkspace(h, { contracts: CONTRACTS, approvalRules: [] });
   const b = await chromium.launch({ executablePath: EXEC });
-  const page = await b.newPage({ viewport: { width: 1440, height: 900 } });
+/* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, the owner's ranking): on a laptop beside the panel the columns a reader adds step aside first; what this file reads in them is read where they all have room */
+  const page = await b.newPage({ viewport: { width: 1800, height: 1000 } });
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   try {
@@ -134,7 +135,9 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const own = (await readList()).find(r => r.key === 'naivas supermarkets');
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const ownPanel = await panelText();
-    ok('2e with Owner on, the row says 2 live, none ended, and its sub-line 2 agreements and since when', !!own && own.by.Live === '2' && own.by.Ended === '—' && /^2 agreements · with us since .+$/.test(own.sub), own && (JSON.stringify(own.by) + ' / ' + own.sub));
+    ok('2e with Owner on, the row says 2 live, none ended, and its sub-line 2 agreements and since when', !!own && own.by.Live === '2' && own.by.Ended === '—'
+      /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD): where the list has the room its grey line stands as two columns */
+      && (/^2 agreements · with us since .+$/.test(own.sub) || (own.by.Agreements === '2' && !!own.by['With us since'])), own && (JSON.stringify(own.by) + ' / ' + own.sub));
     ok('2f …and the side panel says the same: Live agreements 2, and its two agreements', /Live agreements\s*2 · /.test(ownPanel) && /Agreements\s*2/.test(ownPanel), ownPanel.slice(0, 300));
 
     console.log('\n3 · Open party lands on Home\'s wall, narrowed');

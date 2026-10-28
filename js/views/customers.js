@@ -897,6 +897,8 @@ function cuStandingWords(v){
   return open ? { tone: 'amber', kind: 'part', k: 'cu_st_nego' } : (v.active || []).length ? { tone: 'green', kind: 'done', k: 'cu_st_live' } : { tone: 'gray', kind: 'todo', k: 'cu_st_ended' };
 }
 function cuCellHtml(k, r, v, ndas){
+  if (k === 'agreements') return `<td class="n">${v.items.length}</td>`;
+  if (k === 'since'){ const d = cuSinceOf(v.items); return d ? `<td>${_cuE(cuMonthYear(d, true))}</td>` : `<td class="quiet">—</td>`; }
   if (k === 'stream'){
     const f = v.streams[0]; if (!f || typeof listChipHtml !== 'function') return `<td class="quiet">—</td>`;
     const short = (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || cuStreamName(f);
@@ -955,20 +957,33 @@ function cuCardOf(all, ndas){
   const keys = lcShown('customers', cols.map(c => c.k)).filter(k => !empty.includes(k));
   /* how the list is sorted rides the first column's head (round 19 said it
      on the card's own head, which the list head the Legora way replaced) */
-  const head = [{ t: i18t('cu_col_customer'), title: i18t('cu_list_sort') }, ...keys.map(k => ({ t: byK[k].label, r: byK[k].r, w: byK[k].w, k }))];
+  /* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the grey line's two facts are
+     columns of their own — Agreements and With us since — and the name stands alone. THE LIST'S COLUMNS
+     (owner, 28 Oct 2026, listCols): Party and Waiting on you always stand; where the room is short NDA steps
+     aside first, then Next to end, Stream, On paper, Standing; a column the reader chose under Columns (City,
+     Live, Ended) steps aside last — the reader's own choice wins */
+  const SPREAD = [{ k: 'agreements', label: i18t('cu_col_agreements'), r: 1, w: 108, spread: 1 }, { k: 'since', label: i18t('cu_col_since'), w: 124, spread: 1 }];
+  const CU_RANK = { nda: 1, next: 2, stream: 3, paper: 4, standing: 5, city: 6, live: 6, ended: 6 };
+  const DEFS = [{ k: 'name' }, ...SPREAD, ...keys.map(k => Object.assign({}, byK[k], { rank: CU_RANK[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols('customers', DEFS, cuRepaint) : { cols: DEFS.filter(d => !d.spread), spread: false };
+  const spread = FIT.spread;
+  const fitW = Object.fromEntries(FIT.cols.map(c => [c.k, c]));
+  SPREAD.forEach(c => { byK[c.k] = c; });
+  keys.splice(0, keys.length, ...FIT.cols.slice(1).map(c => c.k));
+  const head = [{ k: 'name', t: i18t('cu_col_customer'), title: i18t('cu_list_sort'), w: fitW.name && fitW.name.w, name: true }, ...keys.map(k => ({ t: byK[k].label, r: byK[k].r, w: fitW[k].w, spread: byK[k].spread, rank: fitW[k].rank, k }))];
   const body = rows.slice(0, shown).map(r => {
     const v = cuView(r);
     /* the grey line (the list language): how many agreements, and since when — the streams are their own column now */
     const since = cuSinceOf(v.items);
-    const sub = [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), since ? i18t('cu_since', { d: cuMonthYear(since, true) }) : ''].filter(Boolean).join(' · ');
+    const sub = spread ? '' : [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), since ? i18t('cu_since', { d: cuMonthYear(since, true) }) : ''].filter(Boolean).join(' · ');
     return `<tr data-cu-cust="${_cuE(r.key)}" tabindex="-1">
-      <td><span class="cu-who">${cuAvHtml(r.name)} <span class="cu-who-t"><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span> <span class="ap-sub cu-ps" title="${_cuE(sub)}">${_cuE(sub)}</span></span></span></td>
+      <td><span class="cu-who">${cuAvHtml(r.name)} <span class="cu-who-t"><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span> ${sub ? `<span class="ap-sub cu-ps" title="${_cuE(sub)}">${_cuE(sub)}</span>` : ''}</span></span></td>
       ${keys.map(k => cuCellHtml(k, r, v, ndas)).join('')}
     </tr>`;
   }).join('');
   const table = rows.length
-    ? `<table class="ap-table ap-ins cu-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
-      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-cu-col="${_cuE(h.k)}"` : ''}${h.title ? ` title="${_cuE(h.title)}"` : ''}>${_cuE(h.t)}</th>`).join('')}</tr></thead><tbody id="cu-tbody">${body}</tbody></table>`
+    ? `<table class="ap-table ap-ins cu-table" data-list-seat="customers"><colgroup>${head.map(c => typeof listColTag === 'function' ? listColTag(c) : `<col${c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
+      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k && h.k !== 'name' ? ` data-cu-col="${_cuE(h.k)}"` : ''}${h.title ? ` title="${_cuE(h.title)}"` : ''}>${_cuE(h.t)}${typeof listGripHtml === 'function' ? listGripHtml('customers', h.k) : ''}</th>`).join('')}</tr></thead><tbody id="cu-tbody">${body}</tbody></table>`
     : `<div class="ap-empty">${_cuE(all.length ? i18t('cu_none_match') : i18t('cu_none_yet'))}</div>`;
   const foot = rows.length ? [lhFootHtml('customers', shown, rows.length, CU_PAGE), cuPartFoot()].filter(Boolean).join('') : cuPartFoot();
   return cuCardHtml({ seat: 'customers', id: 'cu-scroll', table, foot });

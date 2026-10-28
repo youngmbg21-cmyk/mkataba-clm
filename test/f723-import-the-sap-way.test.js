@@ -57,7 +57,8 @@ describe('f723 (1) each tab is a door', () => {
   test('1b the list draws only what the door lets through, and says so', () => {
     const r = fnBody(MIG, 'migListHtml');
     assert.match(r, /const sh = migShown\(migFound\(rows\)\)/);
-    assert.match(r, /\$\{sh\.list\.map\(migRowHtml\)\.join\(''\)\}/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS): each row keeps the cells the room keeps (migKeepTds) */
+    assert.match(r, /\$\{sh\.list\.map\(r => migKeepTds\(migRowHtml\(r\)\)\)\.join\(''\)\}/);
     assert.match(r, /lhFootHtml\(MIG_SEAT, sh\.list\.length, sh\.of, null, \{ cls:'mig-foot' \}\)/, '"1–9 of 12 · Show 3 more"');
     assert.match(fnBody(MIG, 'migShown'), /const pass = rows\.filter\(r => migShowPass\(r\)\)/);
     assert.match(fnBody(MIG, 'migShown'), /of:pass\.length/, 'the foot\'s "of" is the rows the door lets through');
