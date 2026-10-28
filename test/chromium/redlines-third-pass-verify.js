@@ -225,10 +225,13 @@ const openFace = async page => {
       ed = await waitFor(page, () => { const e = document.getElementById('clause-editor'); const hd = document.getElementById('ce-head'); const x = e && e.querySelector('.ce-exit');
         const back = e && e.querySelector('#ce-rowhead .ce-rowback'), path = e && e.querySelector('#ce-rowhead .ce-rowpath');
         if (!e || !hd || !back || !e.classList.contains('ce-rowmode')) return null;
-        return { headW: Math.round(hd.getBoundingClientRect().width), vw: innerWidth, exitShown: !!(x && x.getClientRects().length), back: back.textContent.trim(), path: path ? path.textContent.trim() : '',
+        const bar = e.querySelector('.ce-barrow'), rail = e.querySelector('.ce-rail');
+        return { headW: Math.round(hd.getBoundingClientRect().width), vw: innerWidth, barRight: bar ? Math.round(bar.getBoundingClientRect().right) : null, railLeft: rail ? Math.round(rail.getBoundingClientRect().left) : null, exitShown: !!(x && x.getClientRects().length), back: back.textContent.trim(), path: path ? path.textContent.trim() : '',
           step: !!e.querySelector('.ce-row-step'), is: (e.querySelector('.ce-row-is') || {}).textContent }; }, 8000);
     }
-    check('2a from a row the strip keeps to the paper\'s column, the trail first', !!ed && ed.headW < ed.vw - 100 && ed.back === 'Redlines' && /Jambo \/ Redlines \/ Counter/.test(ed.path), JSON.stringify(ed));
+    /* RE-POINTED 28 Oct 2026 (owner: "the top bar has to go end to end and the jambo goes over it"): the bar's ground spans the
+       window, its tools keep to the paper's column, ending where Jambo's card starts */
+    check('2a from a row the strip\'s tools keep to the paper\'s column, the trail first', !!ed && ed.headW >= ed.vw - 1 && ed.barRight != null && Math.abs(ed.barRight - ed.railLeft) <= 1 && ed.back === 'Redlines' && /Jambo \/ Redlines \/ Counter/.test(ed.path), JSON.stringify(ed));
     check('2b no Exit from a row: the trail\'s back is the way out', !!ed && !ed.exitShown, JSON.stringify(ed));
     check('2c no step number; the line says only what is true', !!ed && !ed.step && ed.is === 'Your counter · nothing is filed until you save', JSON.stringify(ed && ed.is));
     await shot(page, '9E-editor-1440x780');
