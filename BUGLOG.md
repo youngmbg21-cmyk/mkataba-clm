@@ -21839,3 +21839,5 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Noticed, not fixed: an obligation records no kind beyond dated/event/standing, so the new Kind column can only say Decision or Payment; Report, Delivery and the like would need a recorded kind.
 - 28 Oct 2026 · Noticed, not fixed: handbook-verify's pictures 5.1-1 (`[data-obw-card="w0"]`) and 5.2-1 (`[data-sel="MK-A1"]`) are not found on 28 Oct 2026, red at unmodified main too — the handbook world's obligation dates land by the day it runs (CLAUDE.md: a test whose answer depends on the day is worse than none). Their pictures were kept from 27 Oct.
 - 28 Oct 2026 · Fixed (owner asked): handbook-verify 5.1-1 / 5.2-1 no longer depend on the day — the handbook world puts MK-A1's deposit on the Friday of the working week both Obligations (obThisMonday) and the Calendar (calWeekStart) call this week.
+
+- Noticed, not fixed (28 Oct 2026, Parties review): on Parties' side panel the "Draft an agreement with <party name>" button runs past the panel's right edge with a long party name (seen at 1920×1000) — a "nothing spills" fault.
