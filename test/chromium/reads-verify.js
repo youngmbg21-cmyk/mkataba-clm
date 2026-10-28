@@ -84,17 +84,18 @@ function book(){
     const card = async () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-col]'); if (!c) return null; const p = c.querySelector('.ac-th-prog');
       return { prog: p ? (p.querySelector('.ac-meta') || {}).textContent.replace(/\s+/g, ' ').trim() : '', next: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), every: !!c.querySelector('[data-ac-reads]'), bar: p ? (p.querySelector('.ac-prog > i') || {}).style.width : '' }; });
     let C = await card();
-    check('2b the card: "50 of 500 read", Next 50 · 51–100 · 50 calls, Next 100 · 51–150 · 100 calls, Every read ›',
-      !!C && /^50 of 500 read/.test(C.prog) && JSON.stringify(C.next) === JSON.stringify(['Next 50 · contracts 51–100 · 50 Jambo calls', 'Next 100 · contracts 51–150 · 100 Jambo calls']) && C.every && C.bar === '10%', C);
+    /* RE-POINTED 28 Oct 2026 (ONE BUTTON): the line says read and still to read, ONE button sized to what is left, the 50 | 100 pill beside it */
+    check('2b the card: "50 of the 500 shown read · 450 still to read", one button "Read the next 50 · 400 left after", the pill, Every read ›',
+      !!C && /^50 of the 500 shown read · 450 still to read/.test(C.prog) && JSON.stringify(C.next) === JSON.stringify(['Read the next 50 · 400 left after']) && C.every && C.bar === '10%', C);
     await page.screenshot({ path: path.join(OUT, 'after-1440x780.png') });
 
     /* ---- 3 the next 50 reads 51–100, never the first 50 again ---- */
     await page.click('#ig-dock [data-ac-next][data-ac-n="50"]');
-    await until(page, () => !document.querySelector('[data-ac-stop]') && /^100 of 500 read/.test(((document.querySelector('#ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
+    await until(page, () => !document.querySelector('[data-ac-stop]') && /^100 of the 500 shown read/.test(((document.querySelector('#ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
     C = await card();
     const reads = await W.admin.json('/api/columns/reads');
     const mine = (reads.reads || []).filter(r => r.askIds.includes(ask.id)).sort((a, b) => a.at.localeCompare(b.at));
-    check('3a Next 50 read 51–100: "100 of 500 read", the next offered 101–150', !!C && /^100 of 500 read/.test(C.prog) && C.next[0] === 'Next 50 · contracts 101–150 · 50 Jambo calls', C);
+    check('3a the button read 51–100: "100 of the 500 shown read · 400 still to read", the next offered', !!C && /^100 of the 500 shown read · 400 still to read/.test(C.prog) && C.next[0] === 'Read the next 50 · 350 left after', C);
     check('3b the server kept two reads, 1–50 and 51–100, 50 contracts and 50 calls each, nothing cached', mine.length === 2 && mine[0].from === 1 && mine[0].to === 50 && mine[1].from === 51 && mine[1].to === 100
       && mine.every(r => r.n === 50 && r.calls === 50 && r.cached === 0) && mine.every(r => r.by === 'Amina Otieno'), mine.map(r => `${r.from}–${r.to} · ${r.n} · ${r.calls} calls · ${r.cached} cached · ${r.by}`).join(' | '));
     const sum = await W.admin.json('/api/columns/summary?all=1');
@@ -113,8 +114,8 @@ function book(){
     check('4b the row: partly read, "100 of 500 read", Next 50 →, the grey line with the question, who and when', R.mark === 'Partly read' && R.read === '100 of 500' && R.next === 'Next 50 →' && /“How much notice/.test(R.sub) && /Amina Otieno · read \d+ \w+, \d\d:\d\d$/.test(R.sub), R);
     /* a tab with no rows stays out unless lit (the list head's rule): Packs and Facts are not drawn here */
     check('4c the head and tabs: "Reads", the facts, All 1 · Mine 1 (Packs and Facts empty, left out)', R.head === 'Reads' && /1 question/.test(R.facts) && /100 Jambo calls this month/.test(R.facts) && JSON.stringify(R.tabs) === JSON.stringify(['All1', 'Mine1']), { head: R.head, facts: R.facts, tabs: R.tabs });
-    check('4d the thread, newest first: Next · 101–150, then 51–100, then 1–50, then Asked; the panel\'s doors Read the next 50 · 50 Jambo calls, Open the table',
-      R.thread.length === 4 && /^Next · contracts 101–150$/.test(R.thread[0]) && /^contracts 51–100 · /.test(R.thread[1]) && /^contracts 1–50 · /.test(R.thread[2]) && /^Asked · /.test(R.thread[3]) && R.acts[0] === 'Read the next 50 · 50 calls' && R.acts[1] === 'Open the table', R);
+    check('4d the thread, newest first: Next · 101–150, then 51–100, then 1–50, then Asked; the panel\'s doors Read the next 50 · 350 left after, Open the table',
+      R.thread.length === 4 && /^Next · contracts 101–150$/.test(R.thread[0]) && /^contracts 51–100 · /.test(R.thread[1]) && /^contracts 1–50 · /.test(R.thread[2]) && /^Asked · /.test(R.thread[3]) && R.acts[0] === 'Read the next 50 · 350 left after' && R.acts[1] === 'Open the table', R);
 
     /* ---- 5 the three screens ---- */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){

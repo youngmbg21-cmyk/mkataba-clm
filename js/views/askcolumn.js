@@ -397,17 +397,108 @@ function askColBusyHtml(){
   const b = AC.busy, pct = b.total ? Math.round(b.done / b.total * 100) : 0;
   const line = b.stop ? _acT('ac_stopping') : _acTn('ac_reading_n', b.total, { done: b.done });
   return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(b.name || _acT('ac_title'))}</b></div>
-    <div class="pd-gl-b"><div class="ac-busy" role="status" aria-live="polite">${typeof busyHtml === 'function' ? busyHtml(line) : _acE(line)}</div>
+    <div class="pd-gl-b">${askColDeskNowHtml(b)}
+      <div class="ac-desk" data-ac-desk>${askColDeskHtml(b)}</div>
+      <ul class="ac-stack" data-ac-stack>${askColStackHtml(b)}</ul>
       <div class="ac-prog" role="img" aria-label="${_acE(line)}"><i style="width:${pct}%"></i></div>
-      <div class="ac-next"><button type="button" class="jb-chip" data-ac-stop${b.stop ? ' disabled' : ''}>${_acE(_acT('ac_stop'))}</button></div>
-      <div class="ac-meta">${_acE(_acT('ac_stop_keeps'))}</div>
+      <div class="ac-desk-foot"><span class="ac-busy" role="status" aria-live="polite">${_acE(askColDeskFootText(b))}</span><button type="button" class="jb-chip" data-ac-stop${b.stop ? ' disabled' : ''}>${_acE(_acT('ac_stop'))}</button></div>
     </div></div>`;
+}
+/* ---- THE READING DESK (the owner picked it, 28 Oct 2026) ----
+   While a read runs the card shows, top to bottom: the ten in flight ("Reading
+   HC-1061 to HC-1070"); THE DESK, one answer that has REALLY come back — the
+   contract, its ref and clause, the words Jambo quoted set in the paper's
+   face, and the answer with its light; THE STACK of the last three the desk
+   turned past; the bar; a foot line of counts with Stop. HaTi sends ten at a
+   time and all ten answers land together, so the desk never pretends to know
+   which single contract is being read: it turns through the ten that LAST
+   came back, one every AC_DESK_TURN_MS, and only the desk and the stack are
+   repainted on a turn. Under less motion nothing slides or spins: the desk
+   just changes. Everything is read off AC.busy, AC.ans and AC.asks. */
+const AC_DESK_TURN_MS = 1400, AC_DESK_SLIDE_MS = 350, AC_DESK_STACK = 3;
+function askColDeskNowHtml(b){
+  const ids = (b && b.ids) || [];
+  if (!ids.length || b.stop) return '';
+  const ref = id => { const c = (typeof getContract === 'function') ? getContract(id) : null; return c ? ((typeof refHtml === 'function') ? refHtml(c) : _acE((typeof contractRef === 'function') ? contractRef(c) : c.id)) : _acE(id); };
+  const refs = ids.length > 1 ? _acT('ac_desk_refs', { a: ref(ids[0]), b: ref(ids[ids.length - 1]) }) : ref(ids[0]);
+  return `<div class="ac-desk-now"><span class="ob-spin" aria-hidden="true"></span><span>${_acE(_acT('ac_desk_now'))}</span><span class="ac-desk-refs">${refs}</span></div>`;
+}
+/* the answer the desk shows now, and the three it turned past (newest first) */
+function askColDeskAt(b){ return (b && b.batch && b.batch.length) ? b.batch[Math.min(b.turn || 0, b.batch.length - 1)] : null; }
+function askColDeskPast(b){ return b ? (b.seen || []).concat((b.batch || []).slice(0, b.turn || 0)).slice(-AC_DESK_STACK).reverse() : []; }
+function askColDeskWord(a){ return a.noWording ? _acT('ac_no_wording') : a.found ? [a.answer, a.detail].filter(Boolean).join(', ') : _acT('ac_not_found'); }
+/* the agreement, then the other side where the name does not carry it ("Supply Agreement · Kabras Sugar"), as the list's own row reads */
+function askColDeskNameOf(cid){
+  const c = (typeof getContract === 'function') ? getContract(cid) : null;
+  if (!c) return cid;
+  let n = '';
+  try { if (typeof regShortTitle === 'function') n = String(regShortTitle(c) || ''); } catch (_){ n = ''; }
+  n = n || String(c.name || c.counterparty || cid);
+  const party = String(c.counterparty || '').trim();
+  return (party && !n.toLowerCase().includes(party.toLowerCase())) ? `${n} · ${party}` : n;
+}
+function askColDeskHtml(b){
+  const at = askColDeskAt(b), a = at ? (AC.ans[at.askId] || {})[at.cid] : null;
+  if (!a) return `<div class="ac-desk-empty">${_acE(_acT('ac_desk_first'))}</div>`;
+  const c = (typeof getContract === 'function') ? getContract(at.cid) : null;
+  const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : at.cid;
+  const num = askColClauseNo(a), q = AC.asks[at.askId] || {};
+  const meta = [ref, num ? '§ ' + num : '', (b.asks && b.asks.length > 1) ? q.name : ''].filter(Boolean).join(' · ');
+  const quote = (a.quote && !a.noWording && a.found) ? `<blockquote class="ac-desk-q">“${_acE(a.quote)}”</blockquote>`
+    : `<div class="ac-desk-noq">${_acE(a.noWording ? _acT('ac_no_wording') : !a.found ? _acT('ac_not_found') : _acT('ac_no_quote'))}</div>`;
+  return `<div class="ac-desk-in" data-ac-desk-cid="${_acE(at.cid)}"><div class="ac-desk-who"><b class="ac-desk-nm">${_acE(askColDeskNameOf(at.cid))}</b><span class="ac-meta">${_acE(meta)}</span></div>
+    ${quote}<span class="ac-ans tone-${askColToneOf(a)}"><i></i><b>${_acE(askColDeskWord(a))}</b></span></div>`;
+}
+function askColStackHtml(b){
+  return askColDeskPast(b).map(x => { const a = (AC.ans[x.askId] || {})[x.cid]; if (!a) return '';
+    return `<li class="ac-stack-r"><span class="ac-ans tone-${askColToneOf(a)}"><i></i></span><span class="ac-stack-nm">${_acE(askColDeskNameOf(x.cid))}</span><span class="ac-stack-an">${_acE(askColDeskWord(a))}</span></li>`; }).join('');
+}
+/* at risk so far: the same reading the head's count uses (askColToneOf === 'ruby'), over the contracts done */
+function askColDeskRisk(b){
+  const id = b && b.askId; if (!id) return 0;
+  const m = AC.ans[id] || {};
+  return (b.doneIds || []).filter(cid => m[cid] && askColToneOf(m[cid]) === 'ruby').length;
+}
+function askColDeskFootText(b){
+  if (b.stop) return _acT('ac_stopping');
+  return _acTn('ac_desk_foot', b.total, { done: b.done, risk: b.done ? _acTn('ac_desk_risk', askColDeskRisk(b)) : '', calls: _acTn('ac_n_calls', b.calls || 0) }).replace(/ · (?= · )/, '').replace(/ ·  · /g, ' · ');
+}
+/* a batch has landed: the one before it joins what the desk turned past; the desk starts on the new ten */
+function askColDeskLanded(b, part, lead){
+  if (!b) return;
+  b.seen = (b.seen || []).concat(b.batch || []);
+  b.askId = lead || b.askId || null;
+  b.batch = lead ? part.filter(id => (AC.ans[lead] || {})[id]).map(cid => ({ askId: lead, cid })) : [];
+  b.turn = 0;
+  b.doneIds = (b.doneIds || []).concat(part);
+}
+function askColDeskStart(){ askColDeskStop(); AC.deskTimer = setInterval(askColDeskTick, AC_DESK_TURN_MS); }
+function askColDeskStop(){ if (AC.deskTimer){ clearInterval(AC.deskTimer); AC.deskTimer = null; } }
+function askColDeskTick(){
+  const b = AC.busy;
+  if (!b || typeof document === 'undefined' || !document.querySelector('#ac-form [data-ac-desk]')){ if (!b) askColDeskStop(); return; }
+  if (!b.batch || (b.turn || 0) >= b.batch.length - 1) return;
+  b.turn = (b.turn || 0) + 1;
+  askColDeskPaint(true);
+}
+/* only the desk and the stack repaint on a turn; the slide is the browser's own, off under less motion */
+function askColDeskPaint(turned){
+  const b = AC.busy; if (!b || typeof document === 'undefined') return;
+  const desk = document.querySelector('#ac-form [data-ac-desk]'), stack = document.querySelector('#ac-form [data-ac-stack]');
+  if (!desk) return;
+  desk.innerHTML = askColDeskHtml(b);
+  if (stack) stack.innerHTML = askColStackHtml(b);
+  const still = (typeof listGlideOff === 'function') ? listGlideOff() : true;
+  const inner = desk.firstElementChild;
+  if (turned && !still && inner && typeof inner.animate === 'function'){
+    try { inner.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }], { duration: AC_DESK_SLIDE_MS, easing: 'ease-out' }); } catch (_){}
+  }
 }
 /* AFTER A STOP: what was kept, what was not, and the rest offered with its cost */
 function askColStoppedHtml(){
   const s = AC.stopped, calls = s.left.length;
   return `<div class="pd-glance ac-card" id="ac-stopped"><div class="pd-gl-h"><b>${_acE(s.name)}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acT('ac_stopped_word'))}</span></div>
-    <div class="pd-gl-b"><div class="ac-meta">${_acE(_acT('ac_stopped_said', { done: s.done, total: s.total, left: s.left.length }))}</div>
+    <div class="pd-gl-b"><div class="ac-meta">${_acE(_acT('ac_stopped_said', { done: s.done, total: s.total, left: s.left.length, spent: _acTn('ac_n_calls', s.calls || 0) }))}</div>
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-carry>${_acE(_acTn('ac_carry_on', calls, { calls: _acTn('ac_n_calls', calls) }))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-stopped-close>${_acE(_acT('ac_stopped_leave'))}</button></div>
     </div></div>`;
 }
@@ -596,18 +687,29 @@ function askColProgressHtml(askId){
   const last = askColLastRead(askId), risk = askColAtRisk(askId).length;
   const pct = Math.round(p.read / p.shown * 100);
   const who = last ? _acT('ac_th_by', { by: last.by || '', when: askColWhen(last.last || last.at) }) : '';
-  const line = [_acT('ac_th_prog', { read: p.read, total: p.shown }), risk ? _acTn('ac_disc_risk', risk) : '', who].filter(Boolean).join(' · ');
-  const next = p.unread
-    ? [...new Set(AC_SIZES.map(n => Math.min(n, p.unread)))].map(n => { const q = askColPlan({ askId, size: n > AC_SIZES[0] ? n : AC_SIZES[0] }); const m = Math.min(n, q.pick.length);
-        return `<button type="button" class="jb-chip" data-ac-next="${_acE(askId)}" data-ac-n="${n > AC_SIZES[0] ? n : AC_SIZES[0]}" title="${_acE(_acT('ac_th_next_title'))}">${_acE(_acT('ac_th_next_chip', { n: m, where: askColWhereText(Object.assign({}, q, { pick: q.pick.slice(0, m) })), calls: _acTn('ac_n_calls', m) }))}</button>`; }).join('')
+  /* ONE BUTTON (the owner picked it, 28 Oct 2026): the line says read and
+     still to read; one button sized to what is left; all read, it says so */
+  const left = p.unread, size = acSize(), w = askColNextWords(left, size);
+  const line = left
+    ? [_acT('ac_th_prog2', { read: p.read, total: p.shown }), `<b class="ac-th-left">${_acE(_acTn('ac_th_left', left))}</b>`, risk ? _acE(_acTn('ac_disc_risk', risk)) : '', _acE(who)].filter(Boolean).join(' · ')
+    : [`<b class="ac-th-done">${_acE(_acT('ac_th_done', { total: p.shown }))}</b>`, risk ? _acE(_acTn('ac_disc_risk', risk)) : '', _acE(who)].filter(Boolean).join(' · ');
+  const plain = line.replace(/<[^>]+>/g, '');
+  const next = left
+    ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-next="${_acE(askId)}" data-ac-n="${w.n}" title="${_acE(_acT('ac_th_next_title'))}">${_acE(w.label)}</button>${left > AC_SIZES[0] ? askColPillHtml(size, 'data-ac-size') : ''}`
     : '';
-  return `<div class="ac-th-prog" data-ac-prog="${_acE(askId)}"><div class="ac-prog" role="img" aria-label="${_acE(line)}"><i style="width:${pct}%"></i></div><div class="ac-meta">${_acE(line)}${p.unread ? '' : ' · ' + _acE(_acT('ac_th_all_read'))}</div>
+  return `<div class="ac-th-prog" data-ac-prog="${_acE(askId)}"><div class="ac-prog" role="img" aria-label="${_acE(plain)}"><i style="width:${pct}%"></i></div><div class="ac-meta">${line}</div>
     <div class="ac-chips ac-next">${next}<button type="button" class="jb-chip" data-ac-reads="${_acE(askId)}">${_acE(_acT('ac_th_every_read'))}</button></div></div>`;
+}
+/* the one button's words, shared with the Reads page: the rest when it fits a press, else the next batch and what is left after */
+function askColNextWords(left, size){
+  const sz = Number(size) || acSize();
+  if (left <= sz) return { n: left, label: _acT('ac_th_btn_rest', { n: left, calls: _acTn('ac_n_calls', left) }), rest: true };
+  return { n: sz, label: _acT('ac_th_btn_more', { n: sz, after: left - sz }), rest: false };
 }
 /* THE NEXT BATCH, FROM THE LINK (the cost is on the link): the same engine, the same door as Carry on */
 async function askColNext(askId, n){
   if (AC.busy || !askColMay()) return;
-  acSizeSet(n);
+  if (AC_SIZES.includes(Number(n))) acSizeSet(n);   /* "the remaining 20" is a count, not a choice of size */
   await askColSummary(); await askColTeam();
   const a = AC.asks[askId]; if (!a) return;
   await askColLoad(askId, askColShown().slice(0, 500));
@@ -929,8 +1031,8 @@ function askColDrop(askId){
 async function askColReadRun(base, ids, opts){
   const o = opts || {};
   const got = { calls: 0, cached: 0, failed: [], capped: null, asks: [], err: null, stopped: false, done: 0, left: [] };
-  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '' };
-  askColPaintPanel();
+  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '', calls: 0, seen: [], batch: [], turn: 0, doneIds: [], askId: null, asks: [] };
+  askColPaintPanel(); askColDeskStart();
   for (let i = 0; i < ids.length; i += AC_BATCH){
     if (AC.busy.stop){ got.stopped = true; break; }
     const part = ids.slice(i, i + AC_BATCH);
@@ -952,19 +1054,21 @@ async function askColReadRun(base, ids, opts){
       (AC.asked[a.id] || (AC.asked[a.id] = new Set())); part.forEach(x => AC.asked[a.id].add(x));
     });
     if (!got.asks.length){ got.asks = asks; if (o.onFirst) o.onFirst(asks); }
+    AC.busy.calls = got.calls; AC.busy.asks = asks.map(a => a.id);
+    askColDeskLanded(AC.busy, part, asks[0] && asks[0].id);
     AC.busy.done += part.length;
     got.done = AC.busy.done;
     if (typeof regRepaint === 'function') regRepaint();
     askColPaintPanel();
   }
-  AC.busy = null;
+  AC.busy = null; askColDeskStop();
   got.left = ids.slice(got.done);
   return got;
 }
 /* what the reader is told after a run that was stopped or that broke: nothing
    is lost, and the rest is offered again with its own cost */
 function askColRunEnd(got, base, name){
-  AC.stopped = (got.stopped || got.err) && got.left.length ? { base, left: got.left, done: got.done, total: got.done + got.left.length, name } : null;
+  AC.stopped = (got.stopped || got.err) && got.left.length ? { base, left: got.left, done: got.done, total: got.done + got.left.length, name, calls: got.calls } : null;
   if (got.err && typeof toast === 'function')
     toast(got.err && (got.err.needsKey || got.err.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (got.err && got.err.message) || '' }), 'err');
   else if (got.stopped && typeof toast === 'function') toast(_acT('ac_stopped', { done: got.done, total: got.done + got.left.length }), 'ok');
@@ -987,7 +1091,7 @@ async function askColCarryOn(){
   AC.stopped = null;
   const got = await askColReadRun(s.base, s.left, { name: s.name });
   askColRunEnd(got, s.base, s.name);
-  if (!got.stopped && !got.err && typeof toast === 'function') toast(_acT('ac_done', { name: s.name, calls: _acTn('ac_n_calls', got.calls) }), 'ok');
+  if (!got.stopped && !got.err && typeof toast === 'function') toast(askColDoneSay(s.name, got), 'ok');
 }
 async function askColRunPack(f){
   const p = f.pack;
@@ -1116,7 +1220,16 @@ async function askColReadAndSay(base, ids, name, onFirst){
   const got = await askColReadRun(base, ids, { name, onFirst });
   const named = (got.asks[0] && got.asks[0].name) || name;
   askColRunEnd(got, base, named);
-  if (!got.stopped && !got.err && typeof toast === 'function') toast(_acT('ac_done', { name: named, calls: _acTn('ac_n_calls', got.calls) }), 'ok');
+  if (!got.stopped && !got.err && typeof toast === 'function') toast(askColDoneSay(named, got), 'ok');
+}
+/* ONE BUTTON (the owner picked it, 28 Oct 2026): when a read ends the message
+   says where the question stands against the list shown — read, and still to
+   read — the same words the card's line says; all read, it says so */
+function askColDoneSay(name, got){
+  const id = got && got.asks && got.asks[0] && got.asks[0].id;
+  const p = id ? askColPlan({ askId: id }) : null;
+  if (!p || !p.shown) return _acT('ac_done', { name, calls: _acTn('ac_n_calls', (got && got.calls) || 0) });
+  return p.unread ? _acT('ac_done_left', { name, read: p.read, total: p.shown, left: p.unread }) : _acT('ac_done_all', { name, total: p.shown });
 }
 /* PRESS IT AGAIN AND IT CLOSES: a second press on the chosen answer lets it go */
 function askColChoose(askId, cid){
@@ -1272,7 +1385,7 @@ function askColBtnHtml(){
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
 
-Object.assign(window, { AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, acSize, acSizeSet, askColPlan, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });

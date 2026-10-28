@@ -83,6 +83,9 @@ function rdPlanOf(r, size){
   return Object.assign(p, { shown: r.total, read: r.read, unread: Math.max(0, r.total - r.read) });
 }
 const rdNextN = (r, size) => Math.min(size || (typeof acSize === 'function' ? acSize() : 50), Math.max(0, r.total - r.read));
+const rdSizeNow = () => (typeof acSize === 'function') ? acSize() : 50;
+/* ONE BUTTON (28 Oct 2026): the same words as the column's card — the rest when it fits a press, else the next batch and what is left after */
+const rdNextLabel = (r, size) => (typeof askColNextWords === 'function') ? askColNextWords(Math.max(0, r.total - r.read), size).label : _rdT('rd_next_btn', { n: rdNextN(r, size), calls: _rdTn('rd_calls', rdNextN(r, size)) });
 /* "27 Oct, 14:02" / "today, 09:12" — the presses' own clock words (askColWhen) */
 const rdWhen = at => (typeof askColWhen === 'function') ? askColWhen(at) : String(at || '').slice(0, 16);
 
@@ -152,7 +155,7 @@ function readsTableHtml(list){
   const byK = Object.fromEntries(rdColDefs().map(c => [c.k, c])), keys = rdColKeys().filter(k => byK[k]);
   const cell = (k, r) => k === 'read' ? `<td><span class="rd-cell">${rdBarHtml(r.read, r.total)}<small>${_rdE(_rdT('rd_of_total', { read: r.read, total: r.total }))}</small></span></td>`
     : k === 'risk' ? `<td>${rdRiskHtml(r)}</td>`
-    : `<td>${r.total > r.read ? `<button type="button" class="rd-next" data-rd-next="${_rdE(r.key)}" title="${_rdE(_rdT('ac_th_next_title'))}">${_rdE(_rdT('rd_next_arrow', { n: rdNextN(r) }))}</button>`
+    : `<td>${r.total > r.read ? `<button type="button" class="rd-next" data-rd-next="${_rdE(r.key)}" title="${_rdE(_rdT('ac_th_next_title'))}">${_rdE(_rdT(r.total - r.read <= rdSizeNow() ? 'rd_last_arrow' : 'rd_next_arrow', { n: rdNextN(r) }))}</button>`
       : `<button type="button" class="rd-again" data-rd-again="${_rdE(r.key)}">${_rdE(_rdT('ac_again'))}</button>`}</td>`;
   const line = r => [r.q ? `“${r.q}”` : '', r.by, r.when ? _rdT('ac_read_at', { when: rdWhen(r.when) }) : ''].filter(Boolean).join(' · ');
   return `<table class="ins-lt rd-t"><colgroup><col>${keys.map(k => `<col style="width:${byK[k].w}">`).join('')}</colgroup><thead><tr><th>${_rdE(_rdT('rd_col_question'))}</th>${keys.map(k => `<th data-rd-col="${k}">${_rdE(byK[k].label)}</th>`).join('')}</tr></thead><tbody>${
@@ -171,7 +174,7 @@ function readParts(r){
   const size = typeof acSize === 'function' ? acSize() : 50, other = AC_SIZES_OF().find(x => x !== size);
   const nextN = Math.min(size, Math.max(0, r.total - r.read)), otherN = Math.min(other || size, Math.max(0, r.total - r.read));
   const acts = [];
-  if (r.total > r.read) acts.push({ k: 'next', kind: 'accent', label: _rdT('rd_next_btn', { n: nextN, calls: _rdTn('rd_calls', nextN) }), attrs: `data-rd-act="next" data-rd-n="${size}"` });
+  if (r.total > r.read) acts.push({ k: 'next', kind: 'accent', label: rdNextLabel(r, size), attrs: `data-rd-act="next" data-rd-n="${size}"` });
   else acts.push({ k: 'again', label: _rdT('ac_again'), attrs: 'data-rd-act="again"' });
   acts.push({ k: 'table', label: _rdT('rd_open_table'), attrs: 'data-rd-act="table"' });
   const where = p && p.pick.length ? (typeof askColWhereText === 'function' ? askColWhereText(Object.assign({}, p, { pick: p.pick.slice(0, nextN) })) : '') : _rdT('ac_th_where', { from: r.read + 1, to: r.read + nextN });
@@ -199,7 +202,7 @@ function rdJlSay(){
   if (risk) lines.push(_rdTn('jl_rd_say_risk', risk, { n: risk }));
   const chips = [{ label: _rdT('ac_btn'), run: () => readsAskNew() }];
   const first = qs.find(r => r.total > r.read);
-  if (first) chips.push({ label: _rdT('rd_next_btn', { n: rdNextN(first), calls: _rdTn('rd_calls', rdNextN(first)) }), run: () => readsNext(first.key, typeof acSize === 'function' ? acSize() : 50) });
+  if (first) chips.push({ label: rdNextLabel(first, rdSizeNow()), run: () => readsNext(first.key, rdSizeNow()) });
   return { lines: [_rdE(lines.join(' '))], chips, src: _rdT('jl_rd_src') };
 }
 function rdChoose(list, wide){

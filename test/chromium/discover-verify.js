@@ -497,10 +497,11 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.evaluate(() => askColOpen({ question: 'Does this agreement name a court or an arbitrator for disputes?', name: 'Disputes' }));
       await until(page, () => !!document.querySelector('#ac-q'));
       await page.click('#ig-dock [data-ac-ask]');
-      const counting = await until(page, () => /answered/.test((document.querySelector('#ig-dock .ac-busy') || {}).innerText || ''), null, 20000);
+      /* RE-POINTED 28 Oct 2026 (THE READING DESK): the foot line counts done · at risk so far · calls */
+      const counting = await until(page, () => /\d+ done/.test((document.querySelector('#ig-dock .ac-busy') || {}).innerText || ''), null, 20000);
       const line = await page.evaluate(() => (document.querySelector('#ig-dock .ac-busy') || {}).innerText || '');
       const bar = await page.evaluate(() => { const i = document.querySelector('#ig-dock .ac-prog>i'); return i ? i.style.width : ''; });
-      check('11a while he reads, the line counts what has landed and a bar follows it', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ answered/.test(line) && /%/.test(bar), JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
+      check('11a while he reads, the line counts what has landed and a bar follows it', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done · (\d+ at risk so far · )?\d+ Jambo calls/.test(line) && /%/.test(bar), JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
       await page.screenshot({ path: path.join(OUT, '11-reading.png') });
       await page.click('#ig-dock [data-ac-stop]');
       const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
