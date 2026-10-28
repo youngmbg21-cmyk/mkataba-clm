@@ -134,6 +134,13 @@ const pastFirstWords = async page => {
        the wall's Overview says what to do, and his greeting is the Jambo tab's, not the Overview's */
     check('1d the wall\'s Overview says what to do, no greeting on it', /Press one and I say what it holds/.test(head.hello) && !head.welcome, head.hello);
     await shoot('1-wall');
+    /* 1e THE WALL'S WAYS IN (owner, 28 Oct 2026: "remove board and add reads"): upload · draft · reads · calendar,
+       no board; "reads" lands on the Reads page */
+    check('1e the chips are upload, draft, reads and calendar — no board', JSON.stringify(head.chips) === JSON.stringify(['upload a document', 'draft a new agreement', 'reads', 'calendar']), head.chips);
+    const readsGo = await page.locator('#ig-dock [data-ig-chips] [data-ca-chip="reads"]').count() > 0
+      && (await page.click('#ig-dock [data-ig-chips] [data-ca-chip="reads"]'), await waitFor(page, () => state.view === 'reads', 6000));
+    check('1f "reads" opens the Reads page', !!readsGo, await page.evaluate(() => state.view));
+    await wall();
 
     /* ===== 2. THE DRAFT CHIP ===== */
     await page.click('#ig-dock [data-ig-chips] [data-ca-chip="draft"]');

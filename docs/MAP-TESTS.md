@@ -235,6 +235,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- The wall's ways in (`CA_CHIPS_WALL`): upload · draft · reads · calendar, no board (owner, 28 Oct 2026) — f672 4c, f679 2a/2c, draft-upload-glance-verify 1e/1f ("reads" lands on the Reads page).
 - VALUE SORTS IN ONE CURRENCY (bug log batch 3, 26 Oct 2026): f944 (new; red at the parent) — REG_CMP.value ranks by fxHome, an unrated value last both ways; negoBandCounts adds an unstamped contract to "neither". With contracts-page-verify.
 - f933, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
 - THE FIVE DRAWN TABS (22 Oct 2026, question 2 "B"): f693 (4); legora-lists-verify C2 (exactly the five) and C8a–C8e (the Quick filters group under + Filter by a touch press, one chip and the rows the view reads, ×, the tab row one line at all three screens); contracts-stage-tabs-verify 1e/3a and answer-worklist-verify 1a re-pointed.
