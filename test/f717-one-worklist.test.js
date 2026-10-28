@@ -51,7 +51,8 @@ describe('f717 (1) one list, no tabs', () => {
     const page = fnBody(AP, 'renderApprovalsPage');
     assert.ok(page, 'renderApprovalsPage is there');
     assert.doesNotMatch(page, /data-ap-tab/, 'no tab row by kind on the page');
-    assert.match(page, /i18t\('ap_wl_kind'\)[\s\S]*i18t\('ap_wl_why'\)[\s\S]*i18t\('ap_wl_turn'\)/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, as drawn): the rule's column is headed Rule */
+    assert.match(page, /i18t\('ap_wl_kind'\)[\s\S]*i18t\('ap_col_rule'\)[\s\S]*i18t\('ap_wl_turn'\)/);
   });
 });
 

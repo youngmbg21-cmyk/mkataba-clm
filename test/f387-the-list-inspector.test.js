@@ -312,7 +312,8 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, round
        and lead ride the grey line under the counterparty; Round and Lead are one press away under Columns */
     assert.deepEqual(heads, ['Counterparty and agreement', 'Clauses in play', 'What is open', 'Waiting', 'Value']);
-    const moves = b.$$('#reg-tbody tr[data-row] .reg-ch').map(x => x.textContent.trim());
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the reading's words; where the asks are rides its grey line */
+    const moves = b.$$('#reg-tbody tr[data-row] .reg-ch').map(x => ((x.querySelector('.ls-word-v') || x).textContent.trim()));
     /* RE-POINTED 18 Oct 2026 (round 14 as drawn, owner's "build all the
        gaps"): "What is open" says what is open — "1 redline to answer" */
     assert.ok(moves.length === 2 && moves.every(m => /^1 redline to answer$/.test(m)), moves.join('|'));
