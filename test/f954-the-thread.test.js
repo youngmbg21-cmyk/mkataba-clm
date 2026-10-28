@@ -161,7 +161,9 @@ test('4 · the Reads page is on every list a page must be on', () => {
   for (const k of ['nav_reads', 'ca_w_reads', 'gd_p_reads', 'gd_w_reads', 'brn_p_reads', 'rd_next_arrow', 'ac_th_next', 'ac_th_every_read', 'lh_ph_reads_other']) assert.ok(EN[k], k + ' is in the book');
   /* the page's own words: the thread and the next batch, every door an existing one */
   const RD = read('js/views/reads.js');
-  for (const fn of ['askColNext', 'askColBring', 'askColTableFor', 'askColOpen', 'regShowOnly']) assert.ok(RD.includes(fn + '('), 'the page opens the existing door ' + fn);
+  /* RE-POINTED 28 Oct 2026 (round 4 of the review): the read table opens on this page, off the kept answers (askColLoad), never by way of Contracts */
+  for (const fn of ['askColNext', 'askColBring', 'askColLoad', 'askColOpen', 'regShowOnly']) assert.ok(RD.includes(fn + '('), 'the page opens the existing door ' + fn);
+  assert.doesNotMatch(RD.replace(/\/\*[\s\S]*?\*\//g, ''), /askColTableFor\(/, 'the table is never opened by way of Contracts');
   assert.doesNotMatch(RD, /api\('ai\/column'/, 'the page itself reads nothing');
 });
 
