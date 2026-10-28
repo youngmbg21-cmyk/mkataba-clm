@@ -89,7 +89,9 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
         fold: !!og.querySelector('details'), parties: !!og.querySelector('#ov-parties'), law: !!og.querySelector('[data-ktm]'), q: !!og.querySelector('[data-tplf]') }; });
     await page.screenshot({ path: path.join(OUT, '02-details.png') });
     check('3a Details asks only the contract\'s owed details — the other party, the value and the start date, never who we are',
-      det.keys.length > 0 && JSON.stringify(det.keys) === JSON.stringify(det.owed) && det.keys.every(k => ['counterparty', 'value', 'effDate'].includes(k)), JSON.stringify(det));
+      /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the form stands in groups (Money · Dates · Parties …),
+         so the same facts are asked in the groups' order */
+      det.keys.length > 0 && JSON.stringify(det.keys.slice().sort()) === JSON.stringify(det.owed.slice().sort()) && det.keys.every(k => ['counterparty', 'value', 'effDate'].includes(k)), JSON.stringify(det));
     check('3b no other terms and no parties/people/filing in the grid; the paper\'s questions stay',
       !det.fold && !det.parties && !det.law && det.q, JSON.stringify(det));
 

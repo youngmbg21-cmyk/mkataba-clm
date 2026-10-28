@@ -169,7 +169,8 @@ describe('f918 (3) the way back to Jambo on every face', () => {
        notes and the ladder the column turned to — go back to the piles */
     /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): the conversation
        the panel flips to has its one back too, to the landing as left */
-    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'oblig', 'red', 'red-ladder', 'red-notes', 'send', 'signing', 'talk']);
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form goes back to the Dossier */
+    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'form', 'oblig', 'red', 'red-ladder', 'red-notes', 'send', 'signing', 'talk']);
     /* RE-POINTED 23 Oct 2026 (Spine): the Obligations list, opened from its line under Sign, has its one back too */
     for (const f of ctx.PD_FACE_WORDS) assert.ok(Object.keys(ctx.PD_BACK_CLOSE).includes(f), 'every face has its way back: ' + f);
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));

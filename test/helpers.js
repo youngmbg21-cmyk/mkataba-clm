@@ -528,11 +528,23 @@ const CAL_TODAY_ASIDE = () => {
    at a time and only it shows its boxes. A browser check that types into a fact's box, or presses its
    Confirm, first opens that fact's row — as a person would, with a press on the row's line. Nothing
    happens where the selector names no row, or the row is already open. */
-const ckOpenRowOf = (page, sel) => page.evaluate(s => {
-  const el = document.querySelector(s); const tr = el && el.closest && el.closest('tr.pd-og-row');
-  const hd = tr && tr.querySelector('[data-pd-ck-row]');
-  if (hd && !tr.classList.contains('is-open')) hd.click();
-}, sel).catch(() => {});
+/* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract", The Legora way): beside a paper the Dossier holds no
+   box; an owed fact's box is in the form its one Fill in door opens (pdFillOpen → the panel's `form` tab). A box not
+   on the page is asked for there first, bounded; a box the page already holds (a held Dossier, Key terms) is as was */
+const ckOpenRowOf = async (page, sel) => {
+  const there = () => page.evaluate(s => !!document.querySelector(s), sel).catch(() => false);
+  if (!(await there())){
+    await page.evaluate(() => { const c = typeof pdContract === 'function' ? pdContract() : null;
+      if (c && typeof pdFillOpen === 'function') pdFillOpen(c.id); }).catch(() => {});
+    const end = Date.now() + 5000;
+    while (Date.now() < end && !(await there())) await new Promise(r => setTimeout(r, 100));
+  }
+  return page.evaluate(s => {
+    const el = document.querySelector(s); const tr = el && el.closest && el.closest('tr.pd-og-row');
+    const hd = tr && tr.querySelector('[data-pd-ck-row]');
+    if (hd && !tr.classList.contains('is-open')) hd.click();
+  }, sel).catch(() => {});
+};
 
 /* RE-POINTED 24 Oct 2026 (Round 4, the owner's "mix": "labelled fields at full width ... One Save"): a fact is
    confirmed by its row's own Confirm where one is drawn (the held Dossier, Key terms), else by the grid's ONE Save,
@@ -541,7 +553,8 @@ const ckConfirm = async (page, key) => {
   const own = `#pd-og [data-pd-og-ok="${key}"]`;
   if (await page.isVisible(own).catch(() => false)) return page.click(own);
   /* a long list folds into groups: the open group's own "Save" / "Save · next" */
-  for (const sel of ['#pd-og [data-pd-og-saveall]', '#pd-og tbody.is-open [data-pd-og-g-save]'])
+  /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form's ONE Save, under its table */
+  for (const sel of ['#ig-dock .pd-fm [data-pd-fm-save]', '#pd-og [data-pd-og-saveall]', '#pd-og tbody.is-open [data-pd-og-g-save]'])
     if (await page.isVisible(sel).catch(() => false)) return page.click(sel);
   return page.click('#pd-og [data-pd-og-saveall]');
 };

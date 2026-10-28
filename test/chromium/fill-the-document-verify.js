@@ -62,6 +62,9 @@ const openDocs = async (page, id) => {
     await page.waitForTimeout(300);
   }
   await waitFor(page, () => !!document.querySelector('#pd-og input'));
+  /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the door opens the form; it is up once its first box
+     is in the hand (a bounded beat after the paint) */
+  await waitFor(page, () => !pdFormShows() || !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og.is-form')), undefined, 4000);
 };
 const paperText = page => page.evaluate(() => (document.getElementById('ig-canvas') || {}).textContent || '');
 /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): on Home's
@@ -124,7 +127,8 @@ const owed = (page, id) => page.evaluate(x => {
     if (there) {
       await ckOpenRowOf(page, b0); await page.click(b0);
       await page.keyboard.type('Wanjiru Catering Ltd');
-      await page.click('#pd-og tr:has([data-tplf="1"]) [data-pd-ck-row]');
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract): every box stands open in the form; the next is pressed itself */
+      await page.click(b1);
       await page.waitForTimeout(400);
     }
     const focus1 = await page.evaluate(() => (document.activeElement || {}).getAttribute?.('data-tplf'));
@@ -141,7 +145,8 @@ const owed = (page, id) => page.evaluate(x => {
     const w2 = await page.evaluate(() => String((state.contracts.find(k => k.id === 'MK-FD1') || {}).redlineText || ''));
     check('2b the wording waits for the press', !!w2 && !w2.includes('Wanjiru Catering Ltd'), w2 ? '' : 'no wording');
     /* the hand leaves the grid: Still owed is drawn again with what it now owes */
-    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form's one Save, and the Dossier says what the wording still owes */
+    await page.click('#ig-dock [data-pd-fm-save]');
     await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 4000);
     const fb = await fillBtn(page);
     check('2c "Fill the document" is a line of Still owed while the answers are owed', !!fb && fb.inCard && /Fill the document/.test(fb.text), fb && fb.text);
@@ -158,6 +163,8 @@ const owed = (page, id) => page.evaluate(x => {
     await page.reload({ waitUntil: 'networkidle' });
     await waitFor(page, () => !!window.state && Array.isArray(state.contracts) && state.contracts.length > 0);
     await openDocs(page, 'MK-FD1');
+    await page.evaluate(() => { if (pdFormShows()) pdFormClose(); });   /* RE-POINTED 28 Oct 2026: the line is the Dossier's */
+    await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 4000);
     const fbR = await fillBtn(page);
     /* answered, the company is a Key terms line now; the provider is still the grid's */
     check('2f after a refresh the answer is still there and still owed', !!fbR && !fbR.disabled
@@ -173,9 +180,14 @@ const owed = (page, id) => page.evaluate(x => {
        press, not the one they were drawn with — staged here every run. */
     await page.evaluate(() => { const i = state.contracts.findIndex(k => k.id === 'MK-FD1');
       if (i >= 0) state.contracts[i] = JSON.parse(JSON.stringify(state.contracts[i])); });
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the answer is typed in the form and Saved; the press is the Dossier's */
+    await page.evaluate(() => pdFillOpen('MK-FD1'));
+    await waitFor(page, () => !!document.querySelector('#pd-og.is-form [data-tplf="1"]') && !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og.is-form')), undefined, 6000);
     if (await page.evaluate(s => !!document.querySelector(s), '#pd-og [data-tplf="1"]')) {
       await ckOpenRowOf(page, '#pd-og [data-tplf="1"]'); await page.click('#pd-og [data-tplf="1"]');
       await page.keyboard.type('Juno Limited');
+      await page.click('#ig-dock [data-pd-fm-save]');
+      await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 6000);
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is
          taken where the runner is, not guessed at. */
@@ -233,8 +245,8 @@ const owed = (page, id) => page.evaluate(x => {
       await ckOpenRowOf(page, sel5(from)); await page.click(sel5(from));
       await page.keyboard.type('11');
       const sameRow = await page.evaluate(([a, b]) => { const x = document.querySelector(a), y = document.querySelector(b); return !!(x && y && x.closest('tr') === y.closest('tr')); }, [sel5(from), sel5(to)]);
-      if (sameRow) await page.click(sel5(to));
-      else await page.evaluate(sel => { const b = document.querySelector(sel); const hd = b && b.closest('tr').querySelector('[data-pd-ck-row]'); if (hd) hd.click(); }, sel5(to));
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract): every box stands open in the form; the next is pressed itself */
+      void sameRow; await page.click(sel5(to));
       await page.waitForTimeout(400);
       focus5 = await page.evaluate(() => { const a = document.activeElement || {}; return a.getAttribute ? (a.getAttribute('data-blankf') ? 'blankf:' + a.getAttribute('data-blankf') : 'kt:' + a.getAttribute('data-kt')) : null; });
     }

@@ -88,7 +88,7 @@ const typeInto = async (page, sel, value, ev) => {
 const openRoom = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
     if (await page.evaluate(x => state.view === 'dashboard' && !!(window.pdContract && pdContract() && pdContract().id === x)
-      && !!document.querySelector('#ig-canvas') && !!document.querySelector('#ig-dock #pd-needs'), id)) break;
+      && !!document.querySelector('#ig-canvas') && !!document.querySelector(`#ig-dock :is(#pd-og.is-form[data-pd-og-for="${x}"], #pd-needs)`), id)) break;
     await page.evaluate(x => { if (document.getElementById('cd-page') && window.closeModal) closeModal(); pdFillOpen(x); }, id);
     await page.waitForTimeout(300);
   }
@@ -129,7 +129,9 @@ const SEEN = () => {
   /* RE-POINTED 17 Oct 2026 (round 8, "Owed first"): the questions' host is laid flat in Fill in's worklist, so the face is what is drawn */
   /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box (its rows stand under their stages); the panel is measured by the Fill in stage's line */
   /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the stages are one line across; the Fill in stage's mark on it */
-  const card = document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="fill"]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]');
+  /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the blanks stand in the form beside the paper; its head
+     names it and carries the count */
+  const card = document.querySelector('#ig-dock .pd-fm-h') || document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="fill"]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]');
   const pr = host && card ? card.getBoundingClientRect() : null;
   const cr = canvas ? canvas.getBoundingClientRect() : null;
   /* THE GEOMETRY OF THE WORDING, block by block — this is what says the marks
@@ -155,13 +157,13 @@ const SEEN = () => {
     panelX: pr ? Math.round(pr.left) : null,
     canvasRight: cr ? Math.round(cr.left + cr.width) : null,
     /* RE-POINTED 23 Oct 2026 (Spine): the card's head is the Fill in stage's name, its count that line's "N to do" */
-    panelHead: host && card ? ((card.querySelector('b') || {}).textContent || '').trim() : '',
+    panelHead: host && card ? ((card.querySelector('h3, b') || {}).textContent || '').trim() : '',
     /* each blank row says where it stands on the paper (pdOgFromHtml), never a cell of its own */
     blankRows: host ? [...host.querySelectorAll('tr.pd-og-row[data-pd-og-kind="blank"]')].length : 0,
     boxKeys: boxes.map(b => b.getAttribute('data-blankf')),
     boxLabels: boxes.map(b => { const tr = b.closest('tr'); return ((tr && tr.querySelector('.pd-og-f b')) || {}).textContent || ''; }).map(t => t.trim()),
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the number stands beside "Needs you" */
-    count: host && card ? ((card.querySelector('.ds-ln-sub, .ds-sp-v') || {}).textContent || '').trim() : '',   /* RE-POINTED 24 Oct 2026 (Round 4): the line's count */
+    count: host && card ? ((card.querySelector('[data-pd-fm-count], .ds-ln-sub, .ds-sp-v') || {}).textContent || '').trim() : '',   /* RE-POINTED 24 Oct 2026 (Round 4): the line's count */
     blocks,
     /* WHAT SITS ON THE CANVAS BUT OUTSIDE THE AGREEMENT — HaTi's own signature
        block and the seal card. The scope claim is about these. */
@@ -279,7 +281,7 @@ const CONTRACT = (id, over) => Object.assign({
       `panel x ${s.panelX}, paper ends ${s.canvasRight}`);
     /* RE-POINTED 21 Oct 2026: the card is Still owed (no "Blanks in this document" heading, no hover
        of its own); each blank is a row of the grid, one per question */
-    check('3c the blanks stand under the Fill in stage, one row each', /^fill( in)?$/i.test(s.panelHead) /* RE-POINTED 24 Oct 2026 (Round 4): the line says "Fill" */ && s.blankRows === s.boxKeys.length, `${s.panelHead} · ${s.blankRows} rows`);
+    check('3c the blanks stand under the Fill in stage, one row each', /^fill( in)?( the contract)?$/i.test(s.panelHead) /* RE-POINTED 24 Oct 2026 (Round 4): the line says "Fill" */ && s.blankRows === s.boxKeys.length, `${s.panelHead} · ${s.blankRows} rows`);
     check('3e one box per question', s.boxKeys.length >= 4, s.boxKeys.join(', '));
     check('3f a ruled line is labelled by the words in front of it',
       s.boxLabels.some(l => /Delivery address/i.test(l)), s.boxLabels.join(' | '));

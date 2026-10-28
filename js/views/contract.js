@@ -5025,7 +5025,11 @@ function roomHomeLand(id, opts){
   /* the reader's own "A contract opens on" where they chose a face; Jambo's
      conversation otherwise */
   const mine=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
-  return (owed&&may)?!!pdFillOpen(c.id):!!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open');
+  /* FILL IN THE CONTRACT (owner, 28 Oct 2026, the walk-through's first step "The contract opens"): the Workspace door
+     lands on the paper and its Dossier, whose Next card carries "Fill in the contract ›" while details are owed; the
+     form is its own door's (pdFillOpen), never a Workspace door's */
+  void owed; void may;
+  return !!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open');
 }
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5

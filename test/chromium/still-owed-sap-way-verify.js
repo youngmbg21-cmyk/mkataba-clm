@@ -60,7 +60,9 @@ const MEASURE = () => {
      label still stands immediately above the box, which is what this reads. */
   const labelOver = el => { const w = el && el.closest ? (el.closest('.pd-og-sb') || el) : el;
     const p = w && w.previousElementSibling; return p && p.classList.contains('pd-og-ml') ? p.textContent.trim() : null; };
-  const acts = [...grid.querySelectorAll('[data-pd-og-ok], [data-pd-og-go]')].map(b => ({ k: b.getAttribute('data-pd-og-ok') || b.getAttribute('data-pd-og-go'), right: Math.round(b.getBoundingClientRect().right) }));
+  /* RE-POINTED 28 Oct 2026 (Fill in the contract): beside a paper the Dossier's lines carry their door words ("Open ›",
+     "Fill in ›", "Edit ›"); no Confirm stands on a row */
+  const acts = [...grid.querySelectorAll('[data-pd-og-ok], [data-pd-og-go], .pd-ck-chev.is-word')].map(b => ({ k: b.getAttribute('data-pd-og-ok') || b.getAttribute('data-pd-og-go'), right: Math.round(b.getBoundingClientRect().right) }));
   /* anything with its own words in the card that runs past the panel's right edge */
   const past = [];
   const card = document.getElementById('pd-needs');
@@ -137,16 +139,22 @@ const MEASURE = () => {
       /* RE-POINTED 22 Oct 2026: the signer's boxes (and their labels) went with the owner's ruling; none is left */
       check(`2 ${at} no signer box is left in the row`, !!sg && sg.boxes === 0, JSON.stringify(sg));
       check(`2a ${at} the column names take no room on screen`, m.theadShown === false);
-      check(`3 ${at} an empty owed box is amber`, m.amber === true);
       check(`4 ${at} nothing in Still owed falls past the panel's edge`, m.past.length === 0, JSON.stringify(m.past));
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract): the owed boxes stand in the form the Fill in door opens */
+      await page.evaluate(id => pdFillOpen(id), ID);
+      await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og.is-form [data-kt="value"]'), 6000);
+      await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og.is-form')), 4000);
+      const mf = await page.evaluate(MEASURE);
+      check(`3 ${at} an empty owed box is amber`, mf.amber === true);
       if (w === 1440) {
         check('6 Key terms keeps its table', m.ktTable === null || m.ktTable === 'table', m.ktTable);
+        /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form scrolls in the panel's own body (#pd-body) */
         /* 8 the label and Confirm stand above the box: a hand in a box whose label was scrolled away sees it
            brought back, so Tab onto Confirm does not jump the panel */
-        const tuck = await page.evaluate(() => { const f = document.getElementById('igd-feed'), b = document.querySelector('#ig-dock #pd-og [data-kt="value"]');
+        const tuck = await page.evaluate(() => { const f = (document.getElementById('pd-body') || document.getElementById('igd-feed')), b = document.querySelector('#ig-dock #pd-og [data-kt="value"]');
           if (!f || !b) return null; f.scrollTop += b.getBoundingClientRect().top - f.getBoundingClientRect().top - 4; return Math.round(b.getBoundingClientRect().top); });
         await ckOpenRowOf(page, '#ig-dock #pd-og [data-kt="value"]'); await page.click('#ig-dock #pd-og [data-kt="value"]');
-        const atClick = await page.evaluate(() => { const b = document.querySelector('#ig-dock #pd-og [data-kt="value"]'), t = b.closest('tr'), f = document.getElementById('igd-feed');
+        const atClick = await page.evaluate(() => { const b = document.querySelector('#ig-dock #pd-og [data-kt="value"]'), t = b.closest('tr'), f = (document.getElementById('pd-body') || document.getElementById('igd-feed'));
           return { box: Math.round(b.getBoundingClientRect().top), rowIn: t.getBoundingClientRect().top >= f.getBoundingClientRect().top - 1 }; });
         /* the value row: the box, its "No money passes" tick, then Confirm */
         for (let i = 0; i < 3; i++) { await page.keyboard.press('Tab');
