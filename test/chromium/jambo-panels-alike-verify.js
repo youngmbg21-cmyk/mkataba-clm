@@ -6,9 +6,9 @@
    over Settings' and Calendar's Overview tab; and Jambo saying "I've opened New agreement beside me" when nothing
    had opened. So, on EVERY page with Jambo's panel:
    1 the Overview's words stand at least 16px inside the panel, left and right (16PX INSIDE EVERY CARD);
-   2 every tab in the panel's head shows the hand, on the Overview and on the Jambo tab;
-   3 the Jambo tab shows the conversation said elsewhere (ONE CONVERSATION);
-   4 the Jambo tab carries the bin (one builder, jamboBinHtml), it shows the hand, and pressing it empties the one
+   2 every tab in the panel's head shows the hand on the Overview, and the door above the box shows it in the talk;
+   3 the conversation (no Jambo tab since 28 Oct 2026, "Door above the box") shows what was said elsewhere (ONE CONVERSATION);
+   4 the door above the box carries the bin (one builder, jamboBinHtml), it shows the hand, and pressing it empties the one
      conversation and the panel;
    and on Home:
    5 asked by the AI to draft (aiGotoRun, task draft), the New agreement sheet IS open when he says it is;
@@ -16,7 +16,7 @@
    AT THE PARENT (origin/main 963997a): 1 fails on Calendar; 2 on Settings and Calendar; 3 on the list pages,
    Import and Calendar; 4 everywhere but Home; 5 fails (the sheet stays shut).
    Run: node test/chromium/jambo-panels-alike-verify.js */
-/* global state, ai, intel, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords, aiGotoRun, naSheetUp, intelAsk, naClose, jamboTalkUp, jamboTalkBack */
+/* global state, ai, intel, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords, aiGotoRun, naSheetUp, intelAsk, naClose, jamboTalkUp, jamboTalkBack, stTalkReopen, jamboTalkOpen, calPlanRepaint, calTurnsAfter, jlTalkPress, pdTalkReopen */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace } = require('../helpers');
@@ -57,8 +57,13 @@ const PAGES = [
   ['settings-you', "setView('team')", '#st-side'],
   ['settings-company', "setView('team'); openSettingsAt('platform')", '#st-side'],
 ];
-const TALK = h => `${h} [data-jl-talk], ${h} .pd-tab-talk, ${h} [data-st-talk], ${h} [data-cal-talk]`;
-const HOME = h => `${h} [data-jl-home], ${h} [data-st-overview], ${h} [data-cal-talk-back], ${h} .pd-tab[data-pd-tab="copilot"]`;
+/* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): no Jambo tab to press — the conversation is opened the
+   way an answer opens it (each host's own reopen), and its way back and the bin stand in the door above the box */
+const OPEN_TALK = key => { const CAL = 'cal:week';
+  if (/^settings/.test(key)) return stTalkReopen();
+  if (key === 'calendar'){ jamboTalkOpen(CAL, document.getElementById('cal-plan-body')); calPlanRepaint(); return calTurnsAfter(); }
+  if (document.querySelector('#ins-panel.is-jambo, #mig-side .jl-head')) return jlTalkPress();
+  return pdTalkReopen(); };
 const HEAD = '.jl-head, .igd-head, .st-side-head, .cal-plan-head';
 /* the past exchange every page is asked to show */
 const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text: 'HISTQ what ends soon?' }, { role: 'assistant', text: 'HISTA Two contracts end within 90 days.' }); };
@@ -104,24 +109,22 @@ const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text:
         return head ? [...head.querySelectorAll('.pd-tab, .jl-tab, .st-side-tab, [data-st-overview], [data-jb-bin], #igd-history-clear')].filter(e => e.getBoundingClientRect().width > 0)
           .map(e => ({ w: (e.textContent || e.getAttribute('aria-label') || '').replace(/[^\p{L} ]/gu, '').trim().slice(0, 14), c: getComputedStyle(e).cursor })) : []; }, [host, HEAD]);
       const c1 = await cursors();
-      check(`2 ${key}: every tab shows the hand on the Overview`, c1.length >= 2 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
-      /* the Jambo tab */
-      const tab = await P.$(TALK(host));
-      if (!tab){ check(`3 ${key}: the Jambo tab is there to press`, false); continue; }
-      await tab.click();
+      check(`2 ${key}: every tab shows the hand on the Overview`, c1.length >= 1 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
+      await P.evaluate(OPEN_TALK, key);
       const shows = await until(P, s => /HISTQ/.test(document.querySelector(s).innerText) && /HISTA/.test(document.querySelector(s).innerText), host, 3000);
-      check(`3 ${key}: the Jambo tab shows the conversation said elsewhere`, !!shows);
-      const c2 = await cursors();
-      check(`2b ${key}: every tab shows the hand on the Jambo tab`, c2.length >= 2 && c2.every(x => x.c === 'pointer'), JSON.stringify(c2));
-      const bin = await P.$(`${host} [data-jb-bin], ${host} #igd-history-clear`);
+      check(`3 ${key}: the conversation shows what was said elsewhere`, !!shows);
+      const back = await P.$(`${host} [data-jb-door] .jb-door-back`);
+      const backOn = back && await back.evaluate(e => e.getBoundingClientRect().width > 0 && getComputedStyle(e).cursor === 'pointer');
+      check(`2b ${key}: the door above the box goes back, with the hand`, !!backOn);
+      const bin = await P.$(`${host} [data-jb-door] [data-jb-bin], ${host} [data-jb-door] #igd-history-clear`);
       const binOn = bin && await bin.evaluate(e => e.getBoundingClientRect().width > 0 && getComputedStyle(e).cursor === 'pointer');
-      check(`4 ${key}: the Jambo tab carries the bin, with the hand`, !!binOn);
+      check(`4 ${key}: the door carries the bin, with the hand`, !!binOn);
       if (binOn){
         await bin.click();
         const gone = await until(P, s => !ai.history.length && !/HISTQ/.test(document.querySelector(s).innerText), host, 3000);
         check(`4b ${key}: the bin empties the conversation and the panel`, !!gone);
       }
-      await P.evaluate(s => { const b = document.querySelector(s); if (b) b.click(); }, HOME(host));
+      await P.evaluate(() => { try { if (window.jamboTalkUp && jamboTalkUp()) jamboTalkBack(); } catch (_){} });
       await P.waitForTimeout(300);
     }
     /* 5 THE AI'S "DRAFT" ON HOME: said opened = open */

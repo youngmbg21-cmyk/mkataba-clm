@@ -149,8 +149,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        (owner: "bring them back") — no Overview there */
     /* RE-POINTED 26 Oct 2026 (owner: a first page with a link to press needs a second tab for Jambo): the Board's
        first tab is Overview, his greeting and chips under it; the Jambo tab beside it wears his sign */
-    const talkTab = await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-talk]'); return t ? { face: !!t.querySelector('.jambo-face, .jambo-mark'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
-    ok('11c on the Board: Overview first, and a "Jambo" tab wearing his sign beside it', !!tab && /Overview|Översikt/.test(tab.word || '') && !!talkTab && talkTab.face && talkTab.word === 'Jambo', JSON.stringify({ tab, talkTab }));
+    const talkTab = await page.evaluate(() => { const t = document.querySelector('#ig-dock .pd-tab-talk'); return t ? { face: !!t.querySelector('.jambo-face, .jambo-mark'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): Overview alone on the landing, no Jambo tab */
+    ok('11c on the Board: Overview alone, no Jambo tab beside it', !!tab && /Overview|Översikt/.test(tab.word || '') && !talkTab, JSON.stringify({ tab, talkTab }));
     /* 11d re-pointed 13 Oct 2026: the Breakdown face and its panel are gone, so
        its panel cannot carry an ask box; the reading's Clauses tab carries none */
     const noAsk = await page.evaluate(() => ({ lens: typeof window.bdLensHtml, ask: !!document.querySelector('#pd-thread #igd-input') }));

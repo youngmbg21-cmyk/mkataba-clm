@@ -1873,6 +1873,27 @@ function caReadPlace(q){
   return a;
 }
 
+/* ---- ONE WORD THAT NAMES A PAGE MOVES YOU, FREE (owner, 28 Oct 2026, "Door above the box": "if you type one word
+   describing a page let's say settings, you are moved to settings immediately"; "Only real page names move you";
+   "I can also use long form to move me but that goes to the brain") ----
+   Asked FIRST by every Jambo box for words TYPED in it: exactly one word (a leading "/" and a closing ?.! let go),
+   and that word one of a PAGE's own names in CA_PLACES — never an act, a card or a contract's part ("sign", "draft",
+   "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
+   to settings" — is the brain's. */
+const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
+  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'handbook', 'insights', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity'];
+function jamboPageWordOf(q){
+  const t = String(q || '').trim().toLowerCase().replace(/[’‘]/g, "'").replace(/^\//, '').replace(/[?.!]+$/, '').trim();
+  if (!t || /\s/.test(t)) return null;
+  const p = CA_PLACES.find(x => JB_PAGE_PLACES.includes(x.k) && x.w.includes(t)); if (!p) return null;
+  const a = { kind: 'go', place: p.k, cid: null, slash: false, state: 'ready', page: true };
+  return (typeof caPlaceStd === 'function') ? caPlaceStd(a, t) : a;
+}
+function jamboPageGo(q){
+  const a = jamboPageWordOf(q); if (!a) return false;
+  let ok = false; try { ok = !!caGo(a); } catch (_){ ok = false; }
+  return ok;
+}
 /* ---- THE PLACES YOU USE MOST, per person, in this browser ----
    Its own key, not LS.ui: LS.ui is written whole by the page store
    (app.js), which would drop a count kept beside it. */
@@ -3169,7 +3190,7 @@ function caHomeRun(q, a){
 Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_AND_WORDS, CA_AND_NARROWS, CA_AND_SAY_MAX, caAndPlaceAt, caNarrowOf, caSayCut, caReadPlaceAnd, caReadGoPlace,
   caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
-Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
+Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */

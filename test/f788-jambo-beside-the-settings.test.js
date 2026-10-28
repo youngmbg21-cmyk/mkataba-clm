@@ -30,19 +30,23 @@ describe('f788 (1) the panel\'s head', () => {
      the screen with those links and one Jambo tab. What decides is what the
      landing HOLDS: something to press means the two tabs this panel already
      draws, nothing to press means his one window. */
-  test('1a the landing decides: something to press brings the two tabs and the word', () => {
+  /* REVERSED AGAIN (owner picked "Door above the box", 28 Oct 2026): no Jambo tab to press — the head is Overview on
+     the landing and his name alone in the conversation; the way back stands above the box */
+  test('1a the landing is Overview alone: no Jambo tab to press, no word beside it', () => {
+    const shown = g => g.qa('#st-side-head .st-side-tab').filter(t => !t.hidden).map(t => g.text(t).replace(/[^\p{L} ]/gu, '').trim());
     const g = settingsStage({ role: 'legal' });
-    assert.deepEqual(g.qa('#st-side-head .st-side-tab').map(t => g.text(t).replace(/[^\p{L} ]/gu, '').trim()), ['Overview', 'Jambo'], 'its own tab beside his');
+    assert.deepEqual(shown(g), ['Overview'], 'Overview alone heads the landing');
     const a = settingsStage();
-    assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]'), 'an admin on You: both tabs');
+    assert.ok(a.q('#st-side-head #st-side-tab-jambo') && !a.q('#st-side-head button[data-st-talk]'), 'an admin on You: Overview, no Jambo tab to press');
     a.sb.settingsGoTab('company');
     /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted.") */
     assert.ok(!a.$('st-side-word'), 'Company: no page name beside the tabs');
     a.sb.settingsGoPage('streams');
     a.click(a.q('#set-page .st-sw-row[data-st-sw-pick]'));
-    assert.ok(a.q('#st-side-head #st-side-tab-jambo') && a.q('#st-side-head [data-st-talk]') && !a.$('st-side-word'), 'a stream chosen: its facts, so the two tabs, and no word beside them');
-    /* and the rule still has its other half: a landing with nothing to press is his one window */
-    assert.equal(typeof a.sb.stLandHasLinks, 'function', 'the landing is read, not the page guessed');
+    assert.deepEqual(shown(a), ['Overview'], 'a stream chosen: its facts under Overview');
+    assert.ok(!a.$('st-side-word'), 'and no word beside it');
+    const d = a.q('#st-jb-form [data-jb-door]');
+    assert.ok(d && d.hidden, 'the door above the box waits, unseen, for the conversation');
   });
   test('1b the fold: to the right edge, his face brings him back; a refresh keeps it', () => {
     const g = settingsStage();

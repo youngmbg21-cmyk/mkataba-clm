@@ -59,12 +59,14 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
       }
     };
     const where = () => P.evaluate(src => new Function('return (' + src + ')()')(), navWhereSrc.toString()).catch(e => ({ error: String(e.message || e) }));
-    const fillEnter = async (sel, q) => { await P.waitForSelector(sel, { state: 'visible', timeout: 6000 }); await P.fill(sel, q); await P.press(sel, 'Enter'); };
+    /* RE-PINNED 28 Oct 2026 (owner picked "Door above the box": every word TYPED in a box is the brain's but a page's
+       one name): this exam is of the free readers, so each box is asked as a chip asks it — its own reader, not typed */
+    const chipAsk = async (sel, fn, q) => { await P.waitForSelector(sel, { state: 'visible', timeout: 6000 }); await P.evaluate(([f, w]) => window[f](w), [fn, q]); };
     async function typeInto(box, q){
       /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
-      if (box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); return fillEnter('#igd-input', q); }
-      if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(); return fillEnter('#jl-q', q); }
-      if (box === 'settings'){ await P.evaluate(() => setView('team')); await settle(); return fillEnter('#st-jb-q', q); }
+      if (box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); return chipAsk('#igd-input', 'intelAsk', q); }
+      if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(); return chipAsk('#jl-q', 'jlAsk', q); }
+      if (box === 'settings'){ await P.evaluate(() => setView('team')); await settle(); return chipAsk('#st-jb-q', 'stJbBoxAsk', q); }
       throw new Error('no such box ' + box);
     }
     /* EVERY SENTENCE STARTS FROM THE SAME PLACE: nothing open over the page, nothing landed, Present and

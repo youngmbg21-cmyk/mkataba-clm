@@ -160,7 +160,10 @@ const check = (name, pass, detail) => {
 
     /* ================= 5. BESIDE A PAPER ==================================== */
     await page.evaluate(() => regOpenContract('MK-B2'));
-    await until(() => !!document.querySelector('#ig-paper .doc-surface') && !!document.querySelector('#ig-dock .pd-tab-talk'), null, 12000);
+    /* RE-POINTED 28 Oct 2026 ("Door above the box"): his name heads the panel only in the conversation, so it is turned to */
+    await until(() => !!document.querySelector('#ig-paper .doc-surface') && !!document.getElementById('igd-input'), null, 12000);
+    await page.evaluate(() => { if (typeof pdTalkReopen === 'function') pdTalkReopen(); });
+    await until(() => !!document.querySelector('#ig-dock .pd-tab-talk'), null, 6000);
     const paper = await page.evaluate(() => {
       const s = document.querySelector('#ig-paper .doc-surface'), tab = document.querySelector('#ig-dock .pd-tab-talk');
       const btn = document.querySelector('#ig-dock .ui-btn-primary, #ig-strip .ui-btn-primary');
@@ -171,7 +174,7 @@ const check = (name, pass, detail) => {
           for (const sh of document.styleSheets){ try { walk(sh.cssRules); } catch (_){} } return n; })() };
     });
     check('5a the paper you read is set in Source Serif 4, and the face is loaded at 500', /^"?Source Serif 4/.test(paper.face || '') && paper.serif === true, JSON.stringify(paper));
-    check('5b Jambo\'s tab beside the paper carries the ✦ mark, not the bird', paper.mark && !paper.tabBird, JSON.stringify(paper));
+    check('5b his name over the conversation beside the paper carries the ✦ mark, not the bird', paper.mark && !paper.tabBird, JSON.stringify(paper));
     check('5c a filled button is the ink (LEGORA: #1D1D1F)', /^#1D1D1F$/i.test(paper.fill) && (!paper.btnBg || paper.btnBg === 'rgb(29, 29, 31)'), JSON.stringify(paper));
     /* ================= 2. NO DARK RULE ANYWHERE ============================= */
     check('2a no rule in any stylesheet the browser holds asks for the dark class (Home, the list and the paper loaded)', paper.darkRules === 0, paper.darkRules);

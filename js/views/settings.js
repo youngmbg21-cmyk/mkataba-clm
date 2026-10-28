@@ -516,31 +516,7 @@ function stWireDrawerOnce(){
     const box=document.getElementById('st-jb-q');
     const q=(box&&box.value||'').trim(); if(!q) return;
     box.value='';
-    /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page, a contract's
-       number, a draft or a send is read as Home reads it (caAskAnywhere);
-       finding a setting is this box's own job, for the rest */
-    /* ONE READER FOR EVERY JAMBO BOX (owner, 19 Oct 2026): a place, a
-       contract ("briefing for contracts mk 345"), a place with a narrowing
-       leave Settings like any box; a Settings section asked here stays the
-       finder's (box 'settings'); a number nobody can see is said here */
-    /* JAMBO'S TAB READS WITH THE BRAIN FIRST (owner, 27 Oct 2026, the Board's rolled out): typed while his tab shows,
-       the chat answers and takes them to the exact setting (goto); Overview's box keeps the finder and the readers */
-    if(stTalkShows()&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q,{ controls:true }); return; }
-    if(typeof caAskAnywhere==='function'&&caAskAnywhere(q,{ box:'settings', say:line=>stJbSayLine(q,line) })) return;
-    /* AI FIRST (Jambo works like Copilot, stage 3): the finder sure of ONE setting goes there as it says so;
-       words that are no setting at all ("what law governs the Kabras contract") are Jambo's to answer, here */
-    let hits=[]; try{ hits=stFind(q); }catch(_){ hits=[]; }
-    /* a question about the company's RULES ("why can't Legal sign…") keeps its cost-first press (stJbAsk's why) */
-    const rules=/\b(why|can'?t|cannot|allowed|may|limits?|rules?|approv\w*|access|permission\w*|sign\w*|review\w*|varför|får|gräns\w*|regel\w*|godkän\w*|behörighet\w*)\b/i.test(q);
-    /* words that name a contract ("…the overview of contact mk 382") or ask to be taken somewhere are no
-       setting either (owner, 23 Oct 2026): Jambo's, never "I could not find a setting" */
-    let named=false; try{ named=typeof caContractOf==='function'&&!!caContractOf(q); }catch(_){ named=false; }
-    const asks=!rules&&(ST_JB_ASK_RE.test(q)||named||(!hits.length&&ST_JB_GO_RE.test(q))||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
-    if(!hits.length&&asks&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
-    stJbAsk(q);
-    /* …and goes there only when the words ask to be taken ("where do I set…", "take me to…"); a word typed
-       to find a setting leaves the finder's rows to press (Settings lands, never presses) */
-    if(hits.length===1&&ST_JB_GO_RE.test(q)){ const row=stFindRows(q)[0]; if(row&&row.id) stFindGo(row.id); }
+    stJbBoxAsk(q,{ typed:true });
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
      key closes the top layer only, never the drawer underneath as well. */
@@ -3342,13 +3318,47 @@ function stJamboHtml(){
   stTalkLand();
   const on=stTalkShows();
   return `<div class="st-jb">
-    <div id="st-jb-trail"${on?'':' hidden'}>${on&&typeof jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('settings',i18t('pd_tab_overview')):''}</div>
+    <div id="st-jb-trail" hidden></div>
     <div class="st-jb-feed${!on&&_stSwPick&&_stPage==='streams'?' is-stream':''}" id="st-jb-feed" aria-live="polite">${stJbFeedHtml()}</div>
     <form class="st-jb-ask" id="st-jb-form" autocomplete="off">
       <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
+      ${''/* the door back, and the bin, right above the box while the conversation shows (Door above the box) */}${typeof jamboDoorHtml==='function'?jamboDoorHtml({ on, back:'settings', to:i18t('pd_tab_overview'), bin:stBinHtml(on) }):''}${typeof jamboFwdHtml==='function'?jamboFwdHtml({ on:!on&&typeof jamboConvo==='function'&&jamboConvo().length>0, host:'settings' }):''}
       ${_stJbCard({ field: `<textarea id="st-jb-q" rows="1" maxlength="200" data-ca-slash data-jb-enter autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}"></textarea>`, send: _stJbSend('', i18t('st_jb_ask'), { submit: true }) })}
     </form>
   </div>`;
+}
+/* SETTINGS' BOX'S ONE READER (made a function 28 Oct 2026 so a chip-like ask reads as the box does; Enter and Ask pass
+   {typed:true}) */
+function stJbBoxAsk(q,opts){
+  q=String(q||'').trim(); if(!q) return;
+  /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page, a contract's
+     number, a draft or a send is read as Home reads it (caAskAnywhere);
+     finding a setting is this box's own job, for the rest */
+  /* ONE READER FOR EVERY JAMBO BOX (owner, 19 Oct 2026): a place, a
+     contract ("briefing for contracts mk 345"), a place with a narrowing
+     leave Settings like any box; a Settings section asked here stays the
+     finder's (box 'settings'); a number nobody can see is said here */
+  /* JAMBO'S TAB READS WITH THE BRAIN FIRST (owner, 27 Oct 2026, the Board's rolled out): typed while his tab shows,
+     the chat answers and takes them to the exact setting (goto); Overview's box keeps the finder and the readers */
+  /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): a page's one name moves you free; every other
+     word typed is the brain's, on the landing too (it takes them to the exact setting through goto) */
+  if(opts&&opts.typed&&typeof jamboPageGo==='function'&&jamboPageGo(q)) return;
+  if(opts&&opts.typed&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q,{ controls:true }); return; }
+  if(typeof caAskAnywhere==='function'&&caAskAnywhere(q,{ box:'settings', say:line=>stJbSayLine(q,line) })) return;
+  /* AI FIRST (Jambo works like Copilot, stage 3): the finder sure of ONE setting goes there as it says so;
+     words that are no setting at all ("what law governs the Kabras contract") are Jambo's to answer, here */
+  let hits=[]; try{ hits=stFind(q); }catch(_){ hits=[]; }
+  /* a question about the company's RULES ("why can't Legal sign…") keeps its cost-first press (stJbAsk's why) */
+  const rules=/\b(why|can'?t|cannot|allowed|may|limits?|rules?|approv\w*|access|permission\w*|sign\w*|review\w*|varför|får|gräns\w*|regel\w*|godkän\w*|behörighet\w*)\b/i.test(q);
+  /* words that name a contract ("…the overview of contact mk 382") or ask to be taken somewhere are no
+     setting either (owner, 23 Oct 2026): Jambo's, never "I could not find a setting" */
+  let named=false; try{ named=typeof caContractOf==='function'&&!!caContractOf(q); }catch(_){ named=false; }
+  const asks=!rules&&(ST_JB_ASK_RE.test(q)||named||(!hits.length&&ST_JB_GO_RE.test(q))||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
+  if(!hits.length&&asks&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
+  stJbAsk(q);
+  /* …and goes there only when the words ask to be taken ("where do I set…", "take me to…"); a word typed
+     to find a setting leaves the finder's rows to press (Settings lands, never presses) */
+  if(hits.length===1&&ST_JB_GO_RE.test(q)){ const row=stFindRows(q)[0]; if(row&&row.id) stFindGo(row.id); }
 }
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the
    reader's hand; the page underneath does not move. */
@@ -3420,17 +3430,18 @@ function stJbTalkPaint(){
   if(solo&&stTalkShows()&&typeof jamboTalkClose==='function') jamboTalkClose();
   const on=!solo&&stTalkShows();
   const tr=document.getElementById('st-jb-trail');
-  if(tr){ tr.innerHTML=on&&typeof jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('settings',i18t('pd_tab_overview')):''; tr.hidden=!on; }
+  /* no trail over the conversation: its way back is the door above the box (Door above the box, 28 Oct 2026) */
+  if(tr){ tr.innerHTML=''; tr.hidden=true; }
   const feed=document.getElementById('st-jb-feed');
   if(feed){ const L=feed.querySelector(':scope > [data-st-jb-land]'), T=feed.querySelector(':scope > [data-st-jb-talk]');
     if(L) L.hidden=on; if(T) T.hidden=!(on||solo);
     feed.classList.toggle('is-stream',!on&&!!_stSwPick&&_stPage==='streams'); }
   const side=document.getElementById('st-side'); if(side){ side.classList.toggle('is-talk',on); side.classList.toggle('is-solo',solo); }
   const sh=document.getElementById('st-side-head'); if(sh&&sh.getAttribute('data-solo')!==String(solo)){ sh.innerHTML=stSideHeadHtml(); sh.setAttribute('data-solo',String(solo)); }
-  const ov=document.getElementById('st-side-tab-jambo'), tk=document.querySelector('#st-side [data-st-talk]');
-  if(ov){ ov.classList.toggle('is-off',on); ov.setAttribute('aria-current',String(!on)); }
-  if(tk){ tk.hidden=false; tk.classList.toggle('is-off',!on); tk.setAttribute('aria-current',String(on)); }
-  if(typeof jamboBinSync==='function') jamboBinSync(document.getElementById('st-side-head'),on||solo);
+  const ov=document.getElementById('st-side-tab-jambo'), tk=document.querySelector('#st-side [data-st-talk-label]');
+  if(ov) ov.hidden=on;
+  if(tk) tk.hidden=!on;
+  { const f=document.getElementById('st-jb-form'); if(typeof jamboDoorSync==='function') jamboDoorSync(f,on); if(typeof jamboBinSync==='function') jamboBinSync(f,on||solo); }
   if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
 }
 /* the newest turn read from its first line (jamboFeedLand, owner 20 Oct 2026) */
@@ -3464,6 +3475,8 @@ function stTalkBack(){
   const feed=document.getElementById('st-jb-feed'); if(feed) feed.scrollTop=0;
   if(typeof jamboScrollPut==='function') jamboScrollPut(keep);
 }
+/* "Jambo ›" above the box on the landing opens the conversation as it was (owner's pick, 28 Oct 2026) */
+if(typeof jamboTalkFwdHost==='function') jamboTalkFwdHost('settings', ()=>stTalkReopen());
 if(typeof jamboTalkHost==='function') jamboTalkHost('settings', stTalkBack, k=>!stSolo()&&k===stTalkKey()&&typeof state!=='undefined'&&state.view==='team'&&!!document.getElementById('st-jb-feed'));
 function stJbDrop(id){
   stJbForget(id);
@@ -3531,7 +3544,10 @@ function stSideHeadHtml(){
     return `<span class="st-side-tab st-side-talk" aria-current="true" title="${jb1}">${jbFace}<span>${jb1}</span></span><span class="st-side-sp"></span>${stBinHtml(true)}${fold}`; }
   const talk=stTalkShows();
   const jb=esc(i18t('pd_tab_copilot'));
-  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-sp"></span>${stBinHtml(talk)}${fold}`;
+  /* ONE PANEL, TWO FACES (owner picked "Door above the box", 28 Oct 2026): no Jambo tab to press — the head is
+     Overview on the landing and his name alone in the conversation (a label); the way back and the bin stand
+     right above the box (stJamboHtml) */
+  return `<span class="st-side-tab" id="st-side-tab-jambo" data-st-overview aria-current="true"${talk?' hidden':''}>${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><span class="st-side-tab st-side-talk" data-st-talk-label aria-current="true" title="${jb}"${talk?'':' hidden'}>${jbFace}<span>${jb}</span></span><span class="st-side-sp"></span>${fold}`;
   /* NO PAGE NAME BESIDE THE TABS (owner, 26 Oct 2026: "on the side panel next to the Jambo tab you have the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): the page's word (stSideWord) is no longer drawn beside the tabs */
 }
 function stSideHtml(){
@@ -9945,6 +9961,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});

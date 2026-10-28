@@ -140,13 +140,9 @@ const check = (name, pass, detail) => {
        in and read back from the box that is there now, bounded, before Enter. */
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
     const typeAsk = async q => {
-      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); 
-      for (let k = 0; k < 6; k++){
-        await page.fill('#igd-input', q).catch(() => {});
-        if (await page.evaluate(w => { const b = document.getElementById('igd-input'); return !!b && b.value === w && document.activeElement === b; }, q)) break;
-        await page.waitForTimeout(150);
-      }
-      await page.keyboard.press('Enter');
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); 
+      /* RE-PINNED 28 Oct 2026 ("Door above the box": every word typed is the brain's but a page's one name): asked as a chip asks */
+      await page.evaluate(w => intelAsk(w), q);
     };
     const askMap = async q => { await typeAsk(q); await page.waitForTimeout(500); };
     const shown = () => page.evaluate(() => ({

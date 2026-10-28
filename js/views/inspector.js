@@ -1230,10 +1230,11 @@ function jlHeadHtml(){
   const fold = i18t('int_collapse_panel');
   return `<div class="jl-head">
     <button type="button" class="pd-tab on jl-tab" data-jl-home title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span><span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="pd-tab-w">${esc(name)}</span></button>
-    <button type="button" class="pd-tab jl-tab jl-talk-tab" data-jl-talk title="${esc(i18t('pd_tab_copilot'))}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : esc(i18t('pd_tab_copilot'))}</button>
+    ${''/* ONE PANEL, TWO FACES (owner picked "Door above the box", 28 Oct 2026): no Jambo tab to press — while the
+        conversation shows, his name alone heads the panel (a label, Overview's tab put away) and the way back is
+        the door above the box (jlAskHtml); jlTalkPaint turns the two */}${typeof jamboTalkLabelHtml === 'function' ? jamboTalkLabelHtml('jl-tab').replace('<span ', '<span data-jl-talk hidden ') : ''}
     ${''/* NO PAGE NAME BESIDE THE TABS (owner, 26 Oct 2026: "on the side panel next to the Jambo tab you have the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): the page's or the chosen row's word is no longer drawn here */}
     <span class="jl-sp"></span>
-    ${''/* THE BIN (owner, 27 Oct 2026): the one builder every Jambo tab carries; jlTalkPaint shows it with the conversation */}${typeof jamboBinHtml === 'function' ? jamboBinHtml(false) : ''}
     ${''/* NO "‹ Overview" BESIDE THE OVERVIEW TAB (Round 2, owner's yes 24 Oct 2026): it said what the tab
         says and squeezed the page's own word to one letter; the tab is the way back */}
     <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-jl-fold aria-expanded="true" title="${esc(fold)}" aria-label="${esc(fold)}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
@@ -1262,6 +1263,7 @@ function jlAskHtml(o){
   return `<div class="jl-foot">
     <form class="jl-ask" data-jl-ask autocomplete="off" title="${esc(cost)}">
       <div class="ca-pop jl-pop" data-jl-pop hidden></div>
+      ${''/* the door back, and the bin, right above the box while the conversation shows (Door above the box) */}${typeof jamboDoorHtml === 'function' ? jamboDoorHtml({ on: false, back: 'list', to: i18t('pd_tab_overview'), bin: typeof jamboBinHtml === 'function' ? jamboBinHtml(false) : '' }) : ''}${typeof jamboFwdHtml === 'function' ? jamboFwdHtml({ on: false, host: 'list' }) : ''}
       ${_jlJbCard({ field: `<textarea id="jl-q" rows="1" maxlength="400" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send: _jlJbSend('data-jl-send', i18t('int_ask'), { submit: true, cls: 'jl-send', title: cost }) })}
     </form>
   </div>`;
@@ -1435,7 +1437,8 @@ function jlTalkPaint(host){
   if (talk){
     talk.hidden = !(on || solo);
     const tr = talk.querySelector('[data-jl-trail]');
-    if (tr) tr.innerHTML = on && typeof jamboTalkTrailHtml === 'function' ? jamboTalkTrailHtml('list', i18t('pd_tab_overview')) : '';
+    /* no trail over the conversation: its way back is the door above the box (Door above the box, 28 Oct 2026) */
+    if (tr) tr.innerHTML = '';
     jlPoppedPaint(talk, on || solo);
   }
   host.classList.toggle('is-talk', on);
@@ -1444,9 +1447,11 @@ function jlTalkPaint(host){
      2026): the Jambo tab stands once words were said on this page — not on one window */
   const tab = host.querySelector('[data-jl-talk]'), home = host.querySelector('[data-jl-home]'), word = host.querySelector('[data-jl-word]');
   /* one window: his tab alone, lit — his sign and his name */
-  if (tab){ tab.hidden = false; tab.classList.toggle('on', on || solo); }
-  if (home){ home.hidden = solo; home.classList.toggle('on', !on); }
+  /* ONE PANEL, TWO FACES: the head is Overview on the landing, his name alone in the conversation */
+  if (tab) tab.hidden = !(on || solo);
+  if (home){ home.hidden = solo || on; home.classList.toggle('on', !on); }
   if (word) word.hidden = solo;
+  if (typeof jamboDoorSync === 'function') jamboDoorSync(host, on);
   if (typeof jamboBinSync === 'function') jamboBinSync(host, on || solo);
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
 }
@@ -1479,6 +1484,8 @@ function jlTalkSync(typing){
      the conversation for the next flip */
   if (_jlTalk.quiet && n > _jlTalk.seen){ const H = (ai.history || []).slice(_jlTalk.seen); if (!H.some(m => m && (m.role === 'user' || m.role === 'st'))){ _jlTalk.seen = n; if (!ai.busy) _jlTalk.quiet = false; } }
   if (n > _jlTalk.seen){ _jlTalk.quiet = false; jlTalkOpen(); }
+  /* words kept for the next flip still show "Jambo ›" above the box (owner's pick, 28 Oct 2026) */
+  { const host = jlHost(); if (host && typeof jamboDoorSync === 'function') jamboDoorSync(host, jlTalkShows()); }
   return _jlTalk.from;
 }
 function jlTalkBack(){
@@ -1488,6 +1495,8 @@ function jlTalkBack(){
   jlTalkPaint();
   if (typeof jamboScrollPut === 'function') jamboScrollPut(keep);
 }
+/* "Jambo ›" above the box on the landing opens the conversation as it was (owner's pick, 28 Oct 2026) */
+if (typeof jamboTalkFwdHost === 'function') jamboTalkFwdHost('list', () => jlTalkPress());
 if (typeof jamboTalkHost === 'function') jamboTalkHost('list', jlTalkBack, k => k === jlTalkKey() && !!jlHost() && !jlHost()._jlSolo);
 /* ---- NEEDS YOU, AS ITS OWN SECTION (round 14: "Answer 2 redlines · Clause 7
    Liability cap · clause 11 Payment terms · Answer") ----
@@ -1651,7 +1660,10 @@ function jlAsk(text, opts){
   /* JAMBO'S TAB READS WITH THE BRAIN FIRST, ON EVERY LIST PAGE (owner, 27 Oct 2026, the Board's rolled out): words
      TYPED in the box while his tab shows go to the chat alone, with the page's own controls (the list head's search,
      tabs, filters, saved views) for him to press; Overview's box keeps every reader below */
-  if (opts && opts.typed && jlTalkShows() && typeof caAiFirst === 'function' && caAiFirst() && typeof aiAskWords === 'function'){
+  /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): no Jambo tab to be on — a page's one name
+     moves you free (jamboPageGo), every other word TYPED is the brain's, on the landing too */
+  if (opts && opts.typed && typeof jamboPageGo === 'function' && jamboPageGo(t)) return 'go';
+  if (opts && opts.typed && typeof caAiFirst === 'function' && caAiFirst() && typeof aiAskWords === 'function'){
     if (_jlBusy()) return jlBusySay(t);
     jlTalkOpen(); aiAskWords(t, { controls: true }); return 'model';
   }
@@ -1778,7 +1790,6 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if (!host) return;
     if ((el = t.closest('[data-jl-fold]'))){ jlFoldSet(true); return; }
     if ((el = t.closest('[data-jl-door]'))){ jlFoldSet(false); return; }
-    if ((el = t.closest('[data-jl-talk]'))){ if (jlTalkShows()) jlTalkBack(); else jlTalkPress(); return; }
     if ((el = t.closest('[data-jl-back]')) || (el = t.closest('[data-jl-home]'))){
       /* the landing's own tab pressed while the panel talks is its way back, as left */
       if (jlTalkShows()){ jlTalkBack(); return; }

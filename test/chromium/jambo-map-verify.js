@@ -53,7 +53,7 @@ const check = (name, pass, detail) => {
     const onPaper = async id => { await page.evaluate(i => { setView('dashboard'); igAnalyze(i); }, id);
       return until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('igd-input') && !intel.busy, id, 10000); };
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
-    const panelAsk = async q => { await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.fill('#igd-input', q); await page.click('#igd-go'); await page.waitForTimeout(300); };
+    const panelAsk = async q => { await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); /* asked as a chip asks: typed words are the brain's (Door above the box, 28 Oct 2026) */ await page.evaluate(w => intelAsk(w), q); await page.waitForTimeout(300); };
     const lastCard = () => page.evaluate(() => { const cs = document.querySelectorAll('#igd-feed .ca-card'); const k = cs[cs.length - 1];
       return k ? { jm: k.hasAttribute('data-jm-card'), title: ((k.querySelector('.ca-ct') || {}).textContent || '').trim(),
         btns: [...k.querySelectorAll('button')].map(b => ({ t: b.textContent.trim(), act: b.getAttribute('data-ca-act'), lead: b.classList.contains('ui-btn-primary') })) } : null; });
