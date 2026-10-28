@@ -717,7 +717,7 @@ function splitWire(rez, h){
    A spread column is <col data-spread>, never counted in the list's floor
    (jlListMin), so the panel never slides over the list to make room for it.
    jsdom measures nothing: room 0 is today's look. */
-const SPREAD_NAME_MIN = 240;
+const SPREAD_NAME_MIN = 300;   /* owner, 28 Oct 2026: "use the stricter rule" (was 240) */
 const SPREAD_PAD = 34;
 const _spread = new Map(), _spreadFlip = new Map();
 let _spreadLater = null;
