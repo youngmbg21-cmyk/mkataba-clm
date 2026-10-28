@@ -100,7 +100,14 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
       if (!o) return false; add.value = o.value; add.dispatchEvent(new Event('change', { bubbles: true })); return true; }, [k, v]);
     const readList = () => page.evaluate(() => [...document.querySelectorAll('tr[data-cu-cust]')].map(tr => ({
       key: tr.getAttribute('data-cu-cust'), sub: ((tr.querySelector('.ap-sub') || {}).textContent || '').trim(),
-      cells: [...tr.querySelectorAll('td')].map(td => td.textContent.trim()) })));
+      cells: [...tr.querySelectorAll('td')].map(td => td.textContent.trim()),
+      /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): Live and Ended are one press away under Columns, so cells are read by their head */
+      by: (() => { const h = [...document.querySelectorAll('.cu-table thead th')].map(t => t.textContent.trim()); const td = [...tr.querySelectorAll('td')]; return Object.fromEntries(h.map((k, i) => [k, td[i] ? td[i].textContent.trim() : ''])); })() })));
+    const showCols = async keys => { await page.click('[data-lc-btn="customers"]');
+      await page.waitForFunction(() => document.querySelector('[data-lc-pop="customers"]'), null, { timeout: 4000 }).catch(() => {});
+      for (const k of keys) { const on = await page.evaluate(k => { const b = document.querySelector(`[data-lc-pop="customers"] [data-lc-k="${k}"]`); return b ? b.checked : null; }, k);
+        if (on === false) await page.click(`[data-lc-pop="customers"] [data-lc-k="${k}"]`); }
+      await page.click('[data-lc-btn="customers"]').catch(() => {}); };
     /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the list opens on
        Live — Siginon, whose one contract was declined, is a party everything
        with has ended, so it waits under Status · All; the cells after the
@@ -109,13 +116,15 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     ok('2a the rail door opens the list, on its live parties', opened && live.length === 2 && !live.some(r => r.key === 'siginon logistics'), `${live.length} rows`);
     await setF('status', 'all');
     await page.waitForFunction(() => document.querySelectorAll('tr[data-cu-cust]').length === 3, null, { timeout: 4000 }).catch(() => {});
+    await showCols(['live', 'ended']);
+    await page.waitForFunction(() => [...document.querySelectorAll('.cu-table thead th')].some(t => t.textContent.trim() === 'Ended'), null, { timeout: 4000 }).catch(() => {});
     const list = await readList();
     const nv = list.find(r => r.key === 'naivas supermarkets');
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): City is empty for every party here, so its column steps out and
        Live · Ended are the cells right after the party */
-    ok('2b Naivas: 3 live and 1 ended (a term that ran out has ended)', !!nv && nv.cells[1] === '3' && nv.cells[2] === '1', nv && nv.cells.join(' | '));
+    ok('2b Naivas: 3 live and 1 ended (a term that ran out has ended)', !!nv && nv.by.Live === '3' && nv.by.Ended === '1', nv && JSON.stringify(nv.by));
     const sg = list.find(r => r.key === 'siginon logistics');
-    ok('2c a declined contract sits with Ended', !!sg && sg.cells[1] === '—' && sg.cells[2] === '1', sg && sg.cells.join(' | '));
+    ok('2c a declined contract sits with Ended', !!sg && sg.by.Live === '—' && sg.by.Ended === '1', sg && JSON.stringify(sg.by));
     await page.click('tr[data-cu-cust="naivas supermarkets"]').catch(() => {});
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const panelText = () => page.evaluate(() => ((document.querySelector('#ins-panel') || {}).textContent || '').replace(/\s+/g, ' ').trim());
@@ -125,7 +134,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const own = (await readList()).find(r => r.key === 'naivas supermarkets');
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const ownPanel = await panelText();
-    ok('2e with Owner on, the row says 2 live, none ended, and its sub-line 2 agreements in their streams', !!own && own.cells[2] === '2' && own.cells[3] === '—' && /^2 agreements · .+ · .+$/.test(own.sub), own && (own.cells.join(' | ') + ' / ' + own.sub));
+    ok('2e with Owner on, the row says 2 live, none ended, and its sub-line 2 agreements and since when', !!own && own.by.Live === '2' && own.by.Ended === '—' && /^2 agreements · with us since .+$/.test(own.sub), own && (JSON.stringify(own.by) + ' / ' + own.sub));
     ok('2f …and the side panel says the same: Live agreements 2, and its two agreements', /Live agreements\s*2 · /.test(ownPanel) && /Agreements\s*2/.test(ownPanel), ownPanel.slice(0, 300));
 
     console.log('\n3 · Open party lands on Home\'s wall, narrowed');

@@ -120,7 +120,7 @@ const weekOf = () => {
       const sub = k => { const c = card(k); return c ? ((c.querySelector('.ob-wk-rng') || {}).textContent || '') + ' | ' + ((c.querySelector('.ob-wk-said') || {}).textContent || '') + ' | ' + ((c.querySelector('.ins-g-r') || {}).textContent || '') + ' | ' + ((c.querySelector('.obw-priv') || {}).textContent || '') : null; };
       const row = k => document.querySelector(`tr[data-ob-key="${k}"]`);
       const act = k => { const r = row(k); const b = r && r.querySelector('[data-obw-act]'); return b ? b.textContent.trim() : ''; };
-      const line = k => { const r = row(k); return r ? (r.querySelector('td:nth-child(2) .ins-c2 > span') || {}).textContent || '' : ''; };
+      const line = k => { const r = row(k); return r ? (r.querySelector('td:first-child .ins-c2 > span') || {}).textContent || '' : ''; }; /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, as drawn): the duty leads the row, its day in the Due column */
       const finds = document.querySelector('tr.obw-finds');
       return { head: (document.getElementById('page-head-facts') || {}).textContent || '',
         acts: [...document.querySelectorAll('#page-head-acts button')].map(b => b.textContent.trim()),

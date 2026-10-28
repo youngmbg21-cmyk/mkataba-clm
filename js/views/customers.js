@@ -845,7 +845,7 @@ function cuColDefs(){
     /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the party's stream as a
        soft chip and its standing as a mark and a word; Live, Ended and City are under Columns (the grey line
        counts, Standing says Ended, the panel says the city); Waiting has the room for its dot and words whole */
-    { k: 'stream', label: i18t('reg_col_stream'), w: 124 },
+    { k: 'stream', label: i18t('reg_col_stream'), w: 118 },
     { k: 'standing', label: i18t('cu_col_standing'), w: 116 },
     { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
