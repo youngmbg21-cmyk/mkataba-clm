@@ -3470,7 +3470,7 @@ function pdDropDoor(){
      the contract lands (pdDropTake) */
   if (typeof openModal !== 'function') return false;
   if (document.querySelector('#modal-root #pd-drop')){ if (typeof landOn === 'function') landOn('#pd-drop', { focus: '[data-pd-drop-pick]' }); return true; }
-  openModal(`<div class="p-6 pd-drop-dlg"><h2>${_pdE(_pdT('ct_add_received'))}</h2>${pdDropHtml()}<div class="pd-drop-dlg-f"><button type="button" data-dlg-cancel class="ui-btn">${_pdE(_pdT('act_cancel'))}</button></div></div>`);
+  openModal(`<div class="p-6 pd-drop-dlg"><h2>${_pdE(_pdT('ct_add_received'))}</h2>${pdDropHtml()}<div class="pd-drop-dlg-f"><button type="button" data-dlg-cancel class="ui-btn" onclick="closeModal()">${_pdE(_pdT('act_cancel'))}</button></div></div>`);
   /* LAND ON IT (owner, 18 Oct 2026): Choose a file ready */
   if (typeof landOn === 'function') landOn('#pd-drop', { focus: '[data-pd-drop-pick]' });
   return true;

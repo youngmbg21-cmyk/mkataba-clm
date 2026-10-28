@@ -736,7 +736,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const isNew = ids => L => L.view === 'dashboard' && L.face === 'paper' && !!L.paper && !ids.includes(L.paper) && (L.pd === 'fill' || L.pd === '');
     const NEWSAYS = 'the new contract on Home\'s paper (Fill in beside it while owed)';
     const onWall = async () => { await page.evaluate(() => { if (typeof caHomeWall === 'function') caHomeWall(); });
-      await waitFor(page, () => window.intel && !intel.paper && !!document.getElementById('pd-drop'), 8000); };
+      await waitFor(page, () => window.intel && !intel.paper, 8000); };
+    /* RE-POINTED 28 Oct 2026 (owner: the drop card no longer sits on a panel, it is a pop-up): the drop area's
+       own doors start with the pop-up open, as the word "upload" opens it */
+    const onDrop = async () => { await onWall(); await page.evaluate(() => { if (typeof pdDropDoor === 'function') pdDropDoor(); });
+      await waitFor(page, () => !!document.querySelector('#modal-root #pd-drop'), 8000); };
     const docx = name => { const f = path.join(OUT, name); fs.writeFileSync(f, Buffer.from(mkDocx([para('COURIER SERVICES AGREEMENT'),
       para('This Agreement is made between Parcelway ApS and the Client.'), para('1. Services. The Supplier shall collect and deliver the parcels.'),
       para('2. Fees. The Client shall pay each invoice within thirty (30) days of receipt.')].join('')))); return f; };
@@ -753,10 +757,10 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     ids = await known();
     await door(D, 'the word "upload" on the wall (it lands on the drop area, lit), a file chosen', { start: onWall, press: pickFile(thenChoose(say('upload')), docx('Census_Word.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();
-    await door(D, 'the drop area\'s Choose a file', { start: onWall, press: pickFile(() => domClick('#pd-drop [data-pd-drop-pick]'), docx('Census_Pick.docx')), expect: isNew(ids), says: NEWSAYS });
+    await door(D, 'the drop area\'s Choose a file', { start: onDrop, press: pickFile(() => domClick('#pd-drop [data-pd-drop-pick]'), docx('Census_Pick.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();
     const dropped = fs.readFileSync(docx('Census_Drop.docx')).toString('base64');
-    await door(D, 'a file dropped on the drop area', { start: onWall,
+    await door(D, 'a file dropped on the drop area', { start: onDrop,
       press: () => page.evaluate(b64 => { const z = document.getElementById('pd-drop'); if (!z) return false;
         const f = new File([Uint8Array.from(atob(b64), ch => ch.charCodeAt(0))], 'Census_Drop.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
         const dt = new window.DataTransfer(); dt.items.add(f);

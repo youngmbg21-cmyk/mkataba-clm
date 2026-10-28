@@ -9256,6 +9256,7 @@
   .ig-strip-sp{flex:1}
   .ig-strip-pins{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
   .ig-paper{position:absolute;inset:0;z-index:3;background:var(--color-bg)}
+  .ig-paper{--pg-ground:var(--color-bg)}
   /* HOME'S PAPER SIDE, NOTHING CHOSEN YET (7 Oct 2026): one card, the book's
      contracts as rows, most recently touched first. */
   .ig-pick{height:100%;overflow:auto;padding:28px 24px 48px}
@@ -9517,7 +9518,7 @@
      then the copilot bar should then align with it"): on Board, Paper and Explorer the
      panel is ONE plain white column below the greeting row, with its own left line —
      no lifted card on a grey ground (reverses LIFTED, 8 Oct). The paper keeps its ground. */
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) .ig-paper{background:var(--desk-ground)}
+  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
   #ig-dock{background:var(--color-surface)}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]){box-shadow:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{gap:0}
