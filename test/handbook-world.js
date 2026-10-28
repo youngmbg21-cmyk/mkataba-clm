@@ -16,6 +16,14 @@ const CAP = 'Is our liability capped, and at what?';
 function handbookContracts(){
   const cs = navContracts();
   const a2 = cs.find(c => c.id === 'MK-A2');
+  /* THIS WEEK, WHATEVER THE DAY (28 Oct 2026: "in five days" left this week on a Wednesday, and 5.1-1's This week
+     card and 5.2-1's calendar chip had nothing to show): MK-A1's deposit falls due on the Friday of the working week
+     both pages call this week (obThisMonday, calWeekStart: a Saturday or a Sunday opens the week ahead) */
+  const a1 = cs.find(c => c.id === 'MK-A1');
+  const dep = a1 && (a1.obligations || []).find(o => o.id === 'ob-dep');
+  if (dep) { const d = new Date(); if (d.getDay() === 6 || d.getDay() === 0) d.setDate(d.getDate() + (d.getDay() === 6 ? 2 : 1));
+    d.setDate(d.getDate() + (4 - (d.getDay() + 6) % 7));
+    dep.due = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
   const at = new Date(Date.now() - 4 * 864e5).toISOString();
   a2.negotiation = { rounds: [{ n: 1 }], turn: 'us', turnAt: at };
   a2.changes = [{ id: 'hb-ch1', clauseId: 'c1', clauseLabel: '3. Payment', status: 'pending', authorSide: 'counterparty', kind: 'edit', at, before: 'thirty', after: 'sixty' },
