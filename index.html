@@ -9818,7 +9818,9 @@
   #ig-dock .ac-desk-in{display:flex;flex-direction:column;gap:6px;min-width:0}
   #ig-dock .ac-desk-who{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:13px}
   #ig-dock .ac-desk-nm{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-  #ig-dock .ac-desk-who .ac-meta{margin-left:auto;white-space:nowrap}
+  /* the ref and § never give way (the owner, 28 Oct 2026: "words are going outside the white box"): the name ends in "…" instead */
+  #ig-dock .ac-desk-who .ac-meta{margin-left:auto;white-space:nowrap;flex:none}
+  #ig-dock .ac-desk-who .ac-desk-nm{flex:1 1 auto}
   #ig-dock .ac-desk-q{margin:0;font-family:var(--font-doc);font-style:italic;font-size:14px;line-height:1.45;opacity:.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   #ig-dock .ac-desk-noq{font-size:12.5px;color:var(--color-quiet)}
   #ig-dock .ac-desk-empty{font-size:13px;color:var(--color-quiet);text-align:center}
