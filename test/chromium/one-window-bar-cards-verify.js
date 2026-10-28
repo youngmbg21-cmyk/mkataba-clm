@@ -46,8 +46,12 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
       const tabs = [...p.querySelectorAll('.pd-tab, .st-side-tab')].filter(vis).map(t => t.textContent.replace(/\s+/g, ' ').trim());
       const word = [...p.querySelectorAll('.igd-head-w, .jl-word, .st-side-word, .pd-head-word')].filter(vis).map(w => w.textContent.trim());
       const trail = [...p.querySelectorAll('.pd-trail')].filter(vis).length;
-      return { tabs, word, trail };
+      const door = ([...p.querySelectorAll('[data-jb-door] .jb-door-back')].filter(vis)[0] || { textContent: '' }).textContent.trim();
+      return { tabs, word, trail, door };
     }, sel);
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): NO Jambo tab on any landing; in the conversation the
+       head is his name alone and "‹ Overview" stands above the box — every claim below reads that */
+    const noJb = x => !!x && !x.tabs.some(t => /Jambo/.test(t));
     /* (the one-window reader "one" is retired: owner, 26 Oct 2026, "Yes, every page" — every panel has Overview, then Jambo) */
 
     console.log('\nA · one window where the panel holds only his words');
@@ -59,13 +63,13 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second
        tab for jambo"; reverses the Board's one window of the same day): his greeting and its chips are the
        Board's first page, under Overview; his conversation under the Jambo tab beside it; still no page word */
-    check('A1 the Board: Overview (his cards and chips) and a Jambo tab beside it; no word, no trail on the landing', !!A1 && A1.tabs.some(t => /Overview|Översikt/.test(t)) && A1.tabs.some(t => /Jambo/.test(t)) && A1.word.length === 0 && A1.trail === 0, JSON.stringify(A1));
+    check('A1 the Board: Overview (his cards and chips), no Jambo tab; no word, no trail on the landing', !!A1 && A1.tabs.some(t => /Overview|Översikt/.test(t)) && noJb(A1) && A1.word.length === 0 && A1.trail === 0, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
-    await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');
+    await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');   /* typed: the brain's */
     /* RE-POINTED 26 Oct 2026: the answer stands under his tab; his greeting waits under Overview, one press back */
     const A2 = await until(() => { const d = document.getElementById('ig-dock'); return !intel.busy && d && /Two things want you this week/.test(d.innerText) ? true : null; }, null, 10000);
     const A2h = await panelHead('#ig-dock');
-    check('A2 a question on the Board: the answer under his tab, Overview one press away (the talk\'s own trail)', !!A2 && A2h.tabs.some(t => /Overview|Översikt/.test(t)) && A2h.tabs.some(t => /Jambo/.test(t)) && A2h.word.length === 0, JSON.stringify(A2h));
+    check('A2 a question on the Board: the answer in his conversation, his name alone above it, "‹ Overview" above the box', !!A2 && A2h.tabs.length === 1 && /Jambo/.test(A2h.tabs[0]) && /Overview|Översikt/.test(A2h.door) && A2h.word.length === 0, JSON.stringify(A2h));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `A-board-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
 
@@ -73,7 +77,7 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.getElementById('igd-input') && document.querySelector('#ig-dock [data-pd-tab="findings"]'));
     const A3 = await panelHead('#ig-dock');
     /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"; REVERSES the one window here): Overview first, then Jambo, then the page's own tabs; still no word */
-    check('A3 Explorer: Overview, then Jambo, then its own Findings · Guide, no word', !!A3 && /Overview/.test(A3.tabs[0]) && /Jambo/.test(A3.tabs[1]) && A3.tabs.some(t => /Findings/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
+    check('A3 Explorer: Overview, then its own Findings · Guide, no Jambo tab, no word', !!A3 && /Overview/.test(A3.tabs[0]) && noJb(A3) && A3.tabs.some(t => /Findings/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
 
     await page.evaluate(() => setView('register'));
     await until(() => !window.pdSolo() && !!document.getElementById('igd-input'));
@@ -84,19 +88,19 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
        view therefore it warrants a second panel for jambo"). Its panel carries
        the wall and Discover — the page's own work, not his words — so it wears
        the Dossier's pattern: the page's tab and his, one press apart. */
-    check('A4 the Contracts place: the page\'s own tab and Jambo\'s, so Discover is never inside the talk',
-      !!A4 && A4.tabs.length === 2 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.tabs.some(t => /Jambo/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
+    check('A4 the Contracts place: the page\'s own tab alone, so Discover is never inside the talk',
+      !!A4 && A4.tabs.length === 1 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
     await until(() => !!document.querySelector('#ins-panel .jl-body [data-jl-words] .jov'));
     const A5 = await panelHead('#ins-panel');
     /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"; REVERSES the one window here): Overview first, then Jambo, then the page's own tabs; still no word */
-    check('A5 Requests, nothing chosen: its Overview first, then Jambo; no word', !!A5 && /Overview/.test(A5.tabs[0]) && /Jambo/.test(A5.tabs[1]) && A5.word.length === 0, JSON.stringify(A5));
+    check('A5 Requests, nothing chosen: its Overview, no Jambo tab, no word', !!A5 && /Overview/.test(A5.tabs[0]) && noJb(A5) && A5.word.length === 0, JSON.stringify(A5));
     ai.reset(); ai.script(deliver('Nothing is open, so nothing waits.'));
     await page.evaluate(() => { const q = document.getElementById('jl-q'); q.value = 'explain this page to me in two lines'; q.closest('form').requestSubmit(); });
     const A6 = await until(() => { const p = document.getElementById('ins-panel'); return p && /Nothing is open, so nothing waits/.test(p.innerText) && p.classList.contains('is-talk') ? true : null; }, null, 10000);
     const A6h = await panelHead('#ins-panel');
-    check('A6 a question there: answered under the Jambo tab, the Overview one press back', !!A6 && /Overview/.test(A6h.tabs[0]) && /Jambo/.test(A6h.tabs[1]), JSON.stringify(A6h));
+    check('A6 a question there: answered in his conversation, "‹ Overview" above the box', !!A6 && A6h.tabs.length === 1 && /Jambo/.test(A6h.tabs[0]) && /Overview/.test(A6h.door), JSON.stringify(A6h));
 
     await page.evaluate(() => setView('team'));
     await until(() => !!document.getElementById('st-jb-feed'));
@@ -105,25 +109,25 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
        "N things need you here" with a link per row, so it keeps its own tab
        beside his rather than being his one window. A7 now reads the rule's
        other half too — the reading is of what the landing HOLDS. */
-    check('A7 Settings: its own tab beside Jambo\'s, because its landing has links to press',
-      !!A7 && A7.tabs.length === 2 && A7.tabs.some(t => /Overview|Översikt/.test(t)) && A7.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A7));
+    check('A7 Settings: its own Overview, no Jambo tab',
+      !!A7 && A7.tabs.length === 1 && A7.tabs.some(t => /Overview|Översikt/.test(t)), JSON.stringify(A7));
 
     await page.evaluate(() => setView('calendar'));
     await until(() => !!document.getElementById('cal-plan'));
     const A8 = await panelHead('#cal-plan');
     /* RE-POINTED 26 Oct 2026 (owner: a first page with a link to press needs a second tab for Jambo): Your week
        carries the planner's asks and its setting, so Overview and Jambo, still no page word */
-    check('A8 the Calendar: Your week under Overview, a Jambo tab beside it, no word', !!A8 && A8.tabs.length === 2 && A8.tabs.some(t => /Overview|Översikt/.test(t)) && A8.tabs.some(t => /Jambo/.test(t)) && A8.word.length === 0, JSON.stringify(A8));
+    check('A8 the Calendar: Your week under Overview, no Jambo tab, no word', !!A8 && A8.tabs.length === 1 && A8.tabs.some(t => /Overview|Översikt/.test(t)) && A8.word.length === 0, JSON.stringify(A8));
 
     await page.evaluate(() => pdOpenOnHome('MK-B2', 'copilot'));
     await until(() => !!document.querySelector('#ig-dock [data-pd-tab="red"]'));
     const A9 = await panelHead('#ig-dock');
-    check('A9 a contract\'s Dossier keeps its tabs (information)', !!A9 && A9.tabs.some(t => /Dossier/.test(t)) && A9.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A9));
+    check('A9 a contract\'s Dossier keeps its tabs (information)', !!A9 && A9.tabs.some(t => /Dossier/.test(t)) && noJb(A9), JSON.stringify(A9));
 
     await page.evaluate(() => setView('playbook'));
     await until(() => !!document.querySelector('#ins-panel [data-jl-home]'));
     const A10 = await panelHead('#ins-panel');
-    check('A10 Our standards, a standard chosen, keeps Overview and Jambo (information)', !!A10 && A10.tabs.some(t => /Overview/.test(t)) && A10.tabs.some(t => /Jambo/.test(t)), JSON.stringify(A10));
+    check('A10 Our standards, a standard chosen, keeps Overview, no Jambo tab', !!A10 && A10.tabs.some(t => /Overview/.test(t)) && noJb(A10), JSON.stringify(A10));
 
     /* THE RULE OF 26 OCT 2026 — that a page's own work is never inside the
        conversation — has its own home: test/chromium/jambo-panel-sweep-verify.js

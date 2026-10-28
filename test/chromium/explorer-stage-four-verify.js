@@ -97,6 +97,8 @@ const check = (name, pass, detail) => {
     check('1c the finding is kept on the server: its title, note, the three streams it is counted in, every contract on the map',
       !!f1 && f1.note === 'Fix the caps at renewal' && f1.parts.length === 3 && f1.ids.length === BOOK.length && f1.view === 0 && !f1.partial,
       JSON.stringify(f1 && { parts: f1.parts.map(p => p.label + ' ' + p.ids.length), ids: f1.ids.length, view: f1.view }));
+    /* RE-POINTED 28 Oct 2026 ("Door above the box"): in the conversation the head is his name alone; its door goes back to the tabs */
+    await a.press('#ig-dock [data-jb-door] .jb-door-back');
     await a.until(() => !!document.querySelector('#ig-dock [data-pd-tab="findings"]'), null, 4000);
     await a.press('#ig-dock [data-pd-tab="findings"]');
     const c1 = await a.until(() => { const c = document.querySelector('#ig-fd .ig-fd'); return c ? c.textContent.replace(/\s+/g, ' ') : null; }, null, 4000);
