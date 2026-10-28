@@ -98,8 +98,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* RE-POINTED 18 Oct 2026 (LAND ON IT, the owner's rule): the upload lands on
        Jambo's drop area on the Contracts place, lit — the paper is left — so the
        next ask brings the paper back first */
-    ok('2h2 and it lands on the drop area on the Contracts place, lit', await until(page, () => { const d = document.getElementById('pd-drop');
-      return !!d && d.classList.contains('is-landed') && !!document.getElementById('ct-place'); }, null, 6000));
+    /* RE-POINTED 28 Oct 2026 (owner: "it shows up as a pop up card"): the drop card opens in a pop-up where you are, lit */
+    ok('2h2 and it opens the drop card in a pop-up, lit', await until(page, () => { const d = document.querySelector('#modal-root #pd-drop');
+      return !!d && d.classList.contains('is-landed'); }, null, 6000));
+    await page.evaluate(() => { try { closeModal(); } catch (_){} });
     const toJambo = async () => { await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B2'); });
       await until(page, () => window.intel && intel.paper && intel.paper.id === 'MK-B2' && !!document.querySelector('#ig-dock [data-pd-tab="copilot"]'), null, 10000);
       await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
@@ -134,6 +136,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const wup = await page.evaluate(n => { const m = intel.history[intel.history.length - 1] || {};
       return { cards: document.querySelectorAll('#igd-feed .ca-card').length - n, door: !!(m.act && m.act.kind === 'door'), act: m.act ? { kind: m.act.kind, place: m.act.place } : null }; }, doors0);
     ok('2m typed beside the paper, "add a word file" goes to the upload, no Word copy card', !wup.door && !!wup.act && wup.act.kind === 'go' && wup.act.place === 'upload', JSON.stringify(wup));
+    /* the upload's card is a pop-up now (owner, 28 Oct 2026): put away before the paper is worked again */
+    await page.evaluate(() => { try { closeModal(); } catch (_){} });
     await toJambo();
 
     /* 3 a contract number in any form */

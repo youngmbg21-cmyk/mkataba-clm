@@ -9756,21 +9756,26 @@
   #ig-canvas .pd-ff-pend{text-decoration:underline dotted var(--accent-ink);text-decoration-thickness:1.5px;text-underline-offset:3px}
   /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
   #ig-dock .pd-wall{display:flex;flex-direction:column;gap:12px}
-  #ig-dock .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:transparent;color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}  /* Chambers: a hairline box, no wash (20 Oct 2026) */
+  :is(#ig-dock, #modal-root) .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:transparent;color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}  /* Chambers: a hairline box, no wash (20 Oct 2026) */
   /* A SHORT WINDOW (a 1080p laptop at 150%: about 590px of page) keeps the whole drop area
      inside Jambo's feed: the same words and the same cost line, less air around them */
-  @media (max-height:640px){ #ig-dock .pd-drop{padding:12px 14px;gap:4px} }
-  #ig-dock .pd-drop.is-over{background:var(--color-accent-100)}
-  #ig-dock .pd-drop.is-busy{border-style:solid}
-  #ig-dock .pd-drop-ic{display:flex;color:var(--accent-ink)}
-  #ig-dock .pd-drop b{font-size:13px;font-weight:var(--w-strong)}
-  #ig-dock .pd-drop-sub{color:var(--color-neutral-600)}
-  #ig-dock .pd-drop-cost{max-width:34em;font-size:11.5px;line-height:1.45;color:var(--color-quiet)}
-  #ig-dock .pd-drop-why{padding:6px 10px;border-radius:var(--radius);background:var(--st-ruby-bg);color:var(--st-ruby-fg);font-size:12px;line-height:1.45}
-  #ig-dock .pd-drop .hm-primary{margin-top:4px}
+  @media (max-height:640px){ :is(#ig-dock, #modal-root) .pd-drop{padding:12px 14px;gap:4px} }
+  /* THE DROP CARD AS A POP-UP (owner, 28 Oct 2026): the card under the dialog's title, Cancel last at its foot */
+  .pd-drop-dlg h2{margin:0 0 12px}
+  /* Discover right under his one line (the drop card no longer stands between them) */
+  #ig-dock .pd-wall > .ac-disc > .pd-gl-h:first-child{margin-top:4px}
+  .pd-drop-dlg-f{display:flex;justify-content:flex-end;margin-top:14px}
+  :is(#ig-dock, #modal-root) .pd-drop.is-over{background:var(--color-accent-100)}
+  :is(#ig-dock, #modal-root) .pd-drop.is-busy{border-style:solid}
+  :is(#ig-dock, #modal-root) .pd-drop-ic{display:flex;color:var(--accent-ink)}
+  :is(#ig-dock, #modal-root) .pd-drop b{font-size:13px;font-weight:var(--w-strong)}
+  :is(#ig-dock, #modal-root) .pd-drop-sub{color:var(--color-neutral-600)}
+  :is(#ig-dock, #modal-root) .pd-drop-cost{max-width:34em;font-size:11.5px;line-height:1.45;color:var(--color-quiet)}
+  :is(#ig-dock, #modal-root) .pd-drop-why{padding:6px 10px;border-radius:var(--radius);background:var(--st-ruby-bg);color:var(--st-ruby-fg);font-size:12px;line-height:1.45}
+  :is(#ig-dock, #modal-root) .pd-drop .hm-primary{margin-top:4px}
   /* the stream the file goes into, asked at the drop as the pop-up asked it (the fix round, 15 Oct 2026): a labelled box in the field's own clothes */
-  #ig-dock .pd-drop-stream{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
-  #ig-dock .pd-drop-stream select{height:var(--ctl-h-sm);max-width:14rem;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:400;padding:0 8px}
+  :is(#ig-dock, #modal-root) .pd-drop-stream{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  :is(#ig-dock, #modal-root) .pd-drop-stream select{height:var(--ctl-h-sm);max-width:14rem;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:400;padding:0 8px}
   #ig-dock .pd-glance{background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);font-size:12.5px;color:var(--color-text)}
   #ig-dock .pd-gl-h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--color-divider)}
   #ig-dock .pd-gl-h b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:var(--w-title)}
@@ -10036,8 +10041,8 @@
   #ig-dock .pd-gl-brief span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   #ig-dock .pd-gl-foot{padding:0 14px 10px;font-size:11.5px;color:var(--color-quiet)}
   /* the importer's door under the drop area, and the drop area lit when a door brings you to it */
-  #ig-dock .pd-drop-more{font-size:12px;color:var(--color-neutral-600)}
-  #ig-dock .pd-drop-wait{color:var(--st-amber-fg)}
+  :is(#ig-dock, #modal-root) .pd-drop-more{font-size:12px;color:var(--color-neutral-600)}
+  :is(#ig-dock, #modal-root) .pd-drop-wait{color:var(--st-amber-fg)}
   /* NEEDS YOU HERE (owner picked "Tabs and faces" by name, round 3, 17 Oct 2026; pdNeedsHtml): the glance's own card grammar above it — a row is what is owed, its line under it, its one button; Jambo's prepared work first with his face */
   #ig-dock .pd-needs .pd-gl-h .pd-pill{height:20px;padding:0}
   #ig-dock .pd-needs .pd-gl-h .pd-pill i{display:none}

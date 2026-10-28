@@ -72,7 +72,9 @@ describe('f707 (1) one way in: the tray', () => {
     assert.match(d, /window\.innerWidth < 768\)\) return false;/);
     /* RE-POINTED 22 Oct 2026 (round 1 of the first-timer rounds): refused with the one wall's words and its Ask an admin */
     assert.match(d, /if \(!pdDropMay\(\)\)\{[^}]*draftWallToast\(\)/);
-    assert.match(d, /hbOpenContracts\(\);/); assert.match(d, /intel\.dockOpen = true/); assert.match(d, /pdSetTab\('copilot'\);/);
+    /* RE-POINTED 28 Oct 2026 (owner: "it shows up as a pop up card"): the door opens the drop card in a dialog where
+       you are — no move to the Contracts place, no panel opened */
+    assert.doesNotMatch(d, /hbOpenContracts\(\);/); assert.match(d, /openModal\(`<div class="p-6 pd-drop-dlg">[\s\S]*\$\{pdDropHtml\(\)\}[\s\S]*data-dlg-cancel/);
     /* RE-POINTED 18 Oct 2026 (LAND ON IT): lit by the house's one lander, Choose files ready */
     assert.match(d, /landOn\('#pd-drop', \{ focus: '\[data-pd-drop-pick\]' \}\)/, 'the drop area is lit where the door brings you');
   });

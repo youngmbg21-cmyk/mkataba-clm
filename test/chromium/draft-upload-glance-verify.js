@@ -109,12 +109,18 @@ const pastFirstWords = async page => {
     if (i < 0) return false;
     await page.click(`.hati-selmenu [data-sm="${i}"]`); return page.evaluate(([s, v]) => document.querySelector(s).value === v, [sel, value]); };
   const wall = async () => { await page.evaluate(() => { setView('dashboard'); caHomeWall(); intel.history = []; renderIntelDock(); });
-    return waitFor(page, () => !intel.paper && !!document.getElementById('pd-drop'), 8000); };
+    return waitFor(page, () => !intel.paper && !!document.querySelector('#ig-dock .pd-wall'), 8000); };
+  /* RE-POINTED 28 Oct 2026 (owner: "the card no longer sits on a panel … it shows up as a pop up card"): the drop card
+     is opened by its door, in a pop-up over the wall */
+  const card = async () => { if (!(await wall())) return false; await page.evaluate(() => pdDropDoor());
+    return waitFor(page, () => !!document.querySelector('#modal-root #pd-drop'), 8000); };
   try {
     await login(page, 'admin@example.co.ke', 'adminpassword1');
 
     /* ===== 1. HOME'S HEAD, AND THE WALL'S CHIPS ===== */
-    check('1a the wall: Jambo\'s tab greets and offers the drop area', await wall());
+    check('1a the wall: Jambo\'s tab greets, no drop card on it', await wall() && await page.evaluate(() => !document.querySelector('#ig-dock #pd-drop')));
+    check('1a2 its door opens the drop card in a pop-up', await card());
+    await page.evaluate(() => closeModal()); await pause(300);
     const head = await page.evaluate(() => ({ draft: !!document.querySelector('#hb-head #hero-draft, #hb-head .hm-primary'),
       chips: [...document.querySelectorAll('#ig-dock [data-ig-chips] button')].map(b => b.textContent.trim()),
       hello: (document.querySelector('#ig-dock .pd-hello') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
@@ -191,7 +197,7 @@ const pastFirstWords = async page => {
     await page.evaluate(() => langSet('en'));
 
     /* ===== 4. THE DROP AREA ===== */
-    await wall();
+    await card();
     await page.evaluate(() => { window._seen.popup = false; window._seen.room = false; });
     const ids4 = await page.evaluate(() => state.contracts.map(c => c.id));
     const b64 = word(['COURIER SERVICES AGREEMENT', 'This Agreement is made between Parcelway ApS and the Client.',
@@ -227,13 +233,14 @@ const pastFirstWords = async page => {
     check('4d who we are is changed in Key terms beside the paper, our entities offered', party.box && party.offered.length > 0, party);
     await shoot('4-dropped-fill-in');
     const upId = up.id;
-    await wall();
+    await card();
     const n4 = await page.evaluate(() => state.contracts.length);
     await drop(Buffer.from('\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1 old word', 'latin1').toString('base64'), 'Old.doc', 'application/msword');
     const refused = await waitFor(page, () => !!document.querySelector('#pd-drop .pd-drop-why'), 8000);
     const r4 = await page.evaluate(() => ({ why: (document.querySelector('#pd-drop .pd-drop-why') || {}).textContent || '', n: state.contracts.length }));
     check('4e a legacy .doc is refused in the drop area, nothing filed', refused && r4.n === n4 && r4.why.length > 10, r4.why.slice(0, 90));
     await shoot('4-refused');
+    await page.evaluate(() => closeModal()); await pause(300);
 
     /* "upload" typed with a contract on the paper. RE-POINTED 18 Oct 2026
        (LAND ON IT): every upload door on a computer is the drop area, so the
@@ -328,14 +335,14 @@ const pastFirstWords = async page => {
     await shoot('6-glance-mk-a1');
 
     /* ===== 7. IT FITS ===== */
-    await page.setViewportSize({ width: 1536, height: 730 }); await wall();
+    await page.setViewportSize({ width: 1536, height: 730 }); await card();
     /* RE-POINTED 26 Oct 2026 (owner: "the file uploading feature should be below discover"): the drop stands under the
        Overview and Discover, so at 1536×730 it is reached by scrolling the panel; once scrolled to, it is whole and painted */
     await page.evaluate(() => { const b = document.querySelector('#pd-drop [data-pd-drop-pick]'); if (b) b.scrollIntoView({ block: 'nearest' }); }); await pause(300);
-    const fit = await page.evaluate(() => { const b = document.querySelector('#pd-drop [data-pd-drop-pick]'), d = document.getElementById('ig-dock');
+    const fit = await page.evaluate(() => { const b = document.querySelector('#pd-drop [data-pd-drop-pick]'), d = document.querySelector('#modal-root [role="dialog"]') || document.getElementById('ig-dock');
       const r = b.getBoundingClientRect(), dr = d.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return { inside: r.top >= dr.top && r.bottom <= dr.bottom && r.right <= dr.right, painted: !!at && (at === b || b.contains(at)), sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth }; });
-    check('7a at 1536×730 the drop area\'s button, scrolled to, is on screen, painted, nothing scrolls sideways', fit.inside && fit.painted && !fit.sideways, fit);
+    check('7a at 1536×730 the pop-up\'s Choose a file is inside it, painted, nothing scrolls sideways', fit.inside && fit.painted && !fit.sideways, fit);
     await page.setViewportSize({ width: 1440, height: 780 });
   } catch (e) {
     check('the run', false, String(e && e.stack || e).slice(0, 400));
