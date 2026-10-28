@@ -53,17 +53,21 @@ function listAvatarTone(name){
   let h = 7; for (const ch of String(name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return LIST_AVATAR_TONES[h % LIST_AVATAR_TONES.length];
 }
-/* OUR STANDARDS, IN WORDS, for a list row: the drawing of js/standards.js's stdRowReading (which counts and
-   draws nothing). Worst news first; no stored check is "Not checked yet", never clean. */
+/* OUR STANDARDS, A TRAFFIC LIGHT for a list row (owner picked "Traffic light", 28 Oct 2026, over two lines of
+   words): the drawing of js/standards.js's stdRowReading (which counts and draws nothing). Three lamps in ONE fixed
+   order — missing (ruby), differs (amber), met (green) — each carrying its count; a lamp at zero turns grey, so
+   colour is never alone (the count and the place say it too). The whole sentence rides the hover and a screen
+   reader (title, aria-label). No stored check is "Not checked yet" in words, never a clean light. */
 function stdRowWordsHtml(c){
   const T = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
   const Tn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v) : T(k, v);
   const r = (typeof stdRowReading === 'function') ? stdRowReading(c) : null;
   if (!r || !r.total) return `<span class="ls-quiet">${T('std_row_unchecked')}</span>`;
-  if (typeof listWordHtml !== 'function') return '';
-  const of = T('std_row_of', { met: r.met, total: r.total });
-  if (r.miss) return listWordHtml('ruby', Tn('std_row_missing', r.miss, { n: r.miss }), (r.off ? Tn('std_row_differ', r.off, { n: r.off }) + ' \u00b7 ' : '') + of);
-  if (r.off) return listWordHtml('amber', Tn('std_row_differs', r.off, { n: r.off }), of);
-  return listWordHtml('green', T('std_row_all', { n: r.total }));
+  const said = [r.miss ? Tn('std_row_missing', r.miss, { n: r.miss }) : '', r.off ? Tn('std_row_differ', r.off, { n: r.off }) : '',
+    T('std_row_of', { met: r.met, total: r.total })].filter(Boolean).join(' \u00b7 ');
+  const lamp = (tone, n) => n
+    ? `<span class="ls-lamp" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)"><i style="background:var(--st-${tone}-dot)"></i>${n}</span>`
+    : '<span class="ls-lamp is-off"><i></i>0</span>';
+  return `<span class="ls-lights" role="img" aria-label="${_lsE(said)}" title="${_lsE(said)}">${lamp('ruby', r.miss)}${lamp('amber', r.off)}${lamp('green', r.met)}</span>`;
 }
 Object.assign(window, { stdRowWordsHtml, LIST_MARK_PATHS, LIST_STREAM_FIXED, listMarkHtml, listWordHtml, listChipHtml, listStreamTone, listAvatarTone });

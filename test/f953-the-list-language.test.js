@@ -48,7 +48,7 @@ test('1 · one set of parts: a mark per state, words with their grey line, a chi
   for (const n of ['Amina Otieno', 'Grace Wanjiru', 'Kabras Sugar', 'X', '']) assert.ok(!['amber', 'ruby'].includes(sb.listAvatarTone(n)), n);
 });
 
-test('2 · Our standards in words, RAW: no check is never clean, the worst news leads, na counts in neither', () => {
+test('2 · Our standards as a traffic light, RAW: no check is never clean, the worst news leads, na counts in neither', () => {
   const sb = stage();
   assert.equal(sb.stdRowReading({}), null);
   assert.equal(text(sb.stdRowWordsHtml({})), 'Not checked yet');
@@ -56,15 +56,21 @@ test('2 · Our standards in words, RAW: no check is never clean, the worst news 
   const v = s => ({ status: s, category: s });
   const c = { playbook: { verdicts: [v('missing'), v('missing'), v('deviation'), v('aligned'), v('ok'), v('na')] } };
   assert.deepEqual(JSON.parse(JSON.stringify(sb.stdRowReading(c))), { miss: 2, off: 1, met: 2, total: 5 });
-  assert.equal(text(sb.stdRowWordsHtml(c)), '2 missing 1 differs · 2 of 5 met');
-  assert.match(sb.stdRowWordsHtml(c), /--st-ruby-fg/);
+  /* RE-POINTED 28 Oct 2026 (owner picked "Traffic light"): three lamps in one order — missing, differs, met — each
+     its count, zero grey; the sentence rides the hover and a screen reader */
+  const said = h => (/aria-label="([^"]*)"/.exec(h) || [])[1];
+  const lamps = h => [...h.matchAll(/<span class="ls-lamp( is-off)?"[^>]*>(?:<i[^>]*><\/i>)?(\d+)<\/span>/g)].map(m => (m[1] ? 'off:' : '') + m[2]);
+  assert.deepEqual(lamps(sb.stdRowWordsHtml(c)), ['2', '1', '2']);
+  assert.equal(said(sb.stdRowWordsHtml(c)), '2 missing · 1 differs · 2 of 5 met');
+  assert.match(sb.stdRowWordsHtml(c), /title="2 missing · 1 differs · 2 of 5 met"/);
+  assert.match(sb.stdRowWordsHtml(c), /--st-ruby-fg.*--st-amber-fg.*--st-green-fg/, 'the order never changes: missing, differs, met');
   const off = { playbook: { verdicts: [v('deviation'), v('aligned'), v('aligned')] } };
-  assert.equal(text(sb.stdRowWordsHtml(off)), '1 differs from ours 2 of 3 met');
-  assert.match(sb.stdRowWordsHtml(off), /--st-amber-fg/);
+  assert.deepEqual(lamps(sb.stdRowWordsHtml(off)), ['off:0', '1', '2'], 'a lamp with nothing in it is grey, not gone');
+  assert.equal(said(sb.stdRowWordsHtml(off)), '1 differs · 2 of 3 met');
   const all = { playbook: { verdicts: [v('aligned'), v('ok'), v('na')] } };
-  assert.equal(text(sb.stdRowWordsHtml(all)), 'All 2 met');
-  assert.match(sb.stdRowWordsHtml(all), /--st-green-fg/);
-  assert.equal(text(sb.stdRowWordsHtml({ playbook: { verdicts: [v('mystery'), v('aligned')] } })), '1 differs from ours 1 of 2 met',
+  assert.deepEqual(lamps(sb.stdRowWordsHtml(all)), ['off:0', 'off:0', '2']);
+  assert.equal(said(sb.stdRowWordsHtml(all)), '2 of 2 met');
+  assert.deepEqual(lamps(sb.stdRowWordsHtml({ playbook: { verdicts: [v('mystery'), v('aligned')] } })), ['off:0', '1', '1'],
     'a word no engine writes is work, never met (PB_SETTLED_STATUSES)');
 });
 
