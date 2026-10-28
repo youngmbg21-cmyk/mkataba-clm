@@ -231,6 +231,30 @@ function stkQuoteAt(p, ctx){
    FIRST within a clause, then where its words stand. The list, the three
    counts, the Clauses tab's number and the dive all read this. RAW: nothing
    is run, spent or written. */
+/* ---- A FIELD LEFT BLANK IS FILLED IN, NOT ARGUED (round 5 of the review, 28 Oct 2026: "does not filling in a field
+   in the contract need a deep dive?") ----
+   A point Jambo read as a clause that is in the contract with nothing under it (`blank`) is a missing fact, not a risk:
+   its card carries ONE door, Fill it in (the contract's own fill-in box, pdFillOpen, free), never Deep dive or Start
+   redlining; Mark reviewed stays for a blank left empty on purpose. Its boxes are the paper's own blanks
+   (contractBlanks) under that clause's number, or named by the point's words; once every one is filled the point
+   is gone from the one reading (stkReview), so the list and the number on the tab agree. No box found = it stays. */
+function stkBlanksOf(c, p){
+  if (!c || !p || !p.blank || typeof contractBlanks !== 'function') return [];
+  let bl = []; try { bl = contractBlanks(c) || []; } catch (_){ bl = []; }
+  const n = (String(p.clause || '').trim().match(/^[0-9]+(?:\.[0-9]+)*/) || [''])[0];
+  const words = String(p.title || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 3);
+  return bl.filter(x => {
+    const sn = (String(x.section || '').trim().match(/^[0-9]+(?:\.[0-9]+)*/) || [''])[0];
+    if (n && sn && (sn === n || sn.startsWith(n + '.'))) return true;
+    const lab = String(x.label || x.key || '').toLowerCase();
+    return words.some(w => lab.includes(w));
+  });
+}
+function stkBlankFilled(c, p){ const bl = stkBlanksOf(c, p); return bl.length > 0 && bl.every(x => String(x.value || '').trim()); }
+function stkFillGo(c, p){
+  const open = stkBlanksOf(c, p).find(x => !String(x.value || '').trim());
+  if (typeof pdFillOpen === 'function') pdFillOpen(c.id, { key: open ? open.key : '' });
+}
 function stkReview(c, b, ctx){
   if (!b) return [];
   ctx = ctx || { rows: _stk.rows, nums: _stk.nums };
@@ -242,7 +266,7 @@ function stkReview(c, b, ctx){
     p._place = p.at >= 0 ? p.at : p.afterAt >= 0 ? p.afterAt + 0.5 : 1e9;
     p._qat = stkQuoteAt(p, ctx);
     return p;
-  });
+  }).filter(p => !(p.blank && stkBlankFilled(c, p)));
   return pts.sort((a, z) => (a._place - z._place) || ((STK_RANK[z.status] || 0) - (STK_RANK[a.status] || 0)) || (a._qat - z._qat) || (a._seq - z._seq));
 }
 /* the three counts: live points only — a reviewed one counts nowhere */
@@ -410,7 +434,9 @@ function stkCardHtml(c, p, i, redWhy){
     <div class="stk-ct"><i class="stk-d8 is-${p.status}" aria-hidden="true"></i><span>${_bdE(p.title || stake)}</span></div>
     ${stake && stake !== p.title ? `<p class="stk-st">${_bdE(stake)}</p>` : ''}
     ${p.stdPos && p.by !== 'std' ? `<div class="stk-std" title="${_bdE(p.stdPos)}">${_bdE(i18t('stk_our_std', { pos: p.stdPos }))}</div>` : ''}
-    <div class="stk-cacts"><button type="button" class="stk-a is-go" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))}</button><span class="stk-mks">${mark}</span></div></div>`;
+    <div class="stk-cacts">${p.blank
+      ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
+      : `<button type="button" class="stk-a is-go is-link" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a is-link" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))}</button>`}<span class="stk-mks">${mark}</span></div></div>`;
 }
 /* the words at a row's right: the worst live verdict and how many, in its ink */
 function stkRowWords(live){
@@ -565,11 +591,15 @@ function stkDiveHtml(c, b, i){
   const cost = `<div class="stk-fig${fig ? '' : ' is-none'}">${_bdE(fig || i18t('stk_no_figure'))}</div>${how ? `<p class="stk-how">${_bdE(how)}</p>` : ''}`;
   /* a link names Jambo's point by its place in his read; it opens where that point stands on screen */
   const links = (p.links || []).map(k => shown.findIndex(q => q.by === 'jambo' && q._i === k - 1)).filter(at => at >= 0 && at !== i);
+  /* the walk steps past a field left blank (it has no deep dive), and an arrow with nothing that way is greyed */
+  let prevAt = -1, nextAt = -1;
+  for (let j = i - 1; j >= 0; j--) if (shown[j] && !shown[j].blank){ prevAt = j; break; }
+  for (let j = i + 1; j < shown.length; j++) if (shown[j] && !shown[j].blank){ nextAt = j; break; }
   return `<div class="stk-dv${stkTone(p)}">
     <div class="stk-dv-top"><button type="button" class="ui-btn ui-btn-sm" data-stk-back>‹ ${_bdE(i18t('stk_back'))}</button>
       <span class="stk-pg">${_bdE(i18t('stk_of', { k: i + 1, n }))}
-        <button type="button" class="ui-btn ui-btn-icon ui-btn-sm" data-stk-dive="${i - 1}"${i > 0 ? '' : ' disabled'} aria-label="${_bdE(i18t('stk_prev'))}" title="${_bdE(i18t('stk_prev'))}">‹</button>
-        <button type="button" class="ui-btn ui-btn-icon ui-btn-sm" data-stk-dive="${i + 1}"${i < n - 1 ? '' : ' disabled'} aria-label="${_bdE(i18t('stk_next'))}" title="${_bdE(i18t('stk_next'))}">›</button></span></div>
+        <button type="button" class="ui-btn ui-btn-icon ui-btn-sm" data-stk-dive="${prevAt}"${prevAt >= 0 ? '' : ' disabled'} aria-label="${_bdE(i18t('stk_prev'))}" title="${_bdE(i18t('stk_prev'))}">‹</button>
+        <button type="button" class="ui-btn ui-btn-icon ui-btn-sm" data-stk-dive="${nextAt}"${nextAt >= 0 ? '' : ' disabled'} aria-label="${_bdE(i18t('stk_next'))}" title="${_bdE(i18t('stk_next'))}">›</button></span></div>
     <div class="stk-dv-scroll scroll-thin">
     <div class="stk-dv-head"><div class="stk-meta">${bdChip(p.status)}</div>
       <h3>${_bdE(p.title)}</h3><div class="stk-meta">${where}</div></div>
@@ -697,6 +727,8 @@ async function stkRun(c){
 }
 function stkDiveOpen(c, i){
   const b = stkOf(c), shown = stkShown(c, b); if (!b || !shown[i]) return;
+  /* a field left blank has no deep dive (round 5): the walk ‹ › steps past it, never spending a call on it */
+  if (shown[i].blank){ const step = i < _stk.dive ? -1 : 1; let j = i; while (shown[j] && shown[j].blank) j += step; if (!shown[j]) return; i = j; }
   _stk.dive = i;
   stkDivePaint(c);
   const dv = document.querySelector('#pd-thread .stk-dv-scroll'); if (dv) dv.scrollTop = 0;
@@ -744,6 +776,8 @@ if (typeof document !== 'undefined' && !document._stkWired){
     if (rv){ if (rv.disabled) return; const b0 = stkOf(c), undo = rv.hasAttribute('data-stk-unreview');
       const p = b0 ? stkShown(c, b0)[Number(rv.getAttribute(undo ? 'data-stk-unreview' : 'data-stk-review'))] : null;
       if (p) stkMarkReviewed(c, p, undo); return; }
+    const fl = t.closest('[data-stk-fill]');
+    if (fl){ e.stopPropagation(); if (fl.disabled) return; const b0 = stkOf(c), p = b0 ? stkShown(c, b0)[Number(fl.getAttribute('data-stk-fill'))] : null; if (p) stkFillGo(c, p); return; }
     const dv = t.closest('[data-stk-dive]');
     if (dv){ e.stopPropagation(); if (dv.disabled) return; stkDiveOpen(c, Number(dv.getAttribute('data-stk-dive'))); return; }
     if (t.closest('[data-stk-back]')){ stkDiveClose(c); return; }

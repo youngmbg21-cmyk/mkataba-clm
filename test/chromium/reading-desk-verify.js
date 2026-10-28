@@ -89,6 +89,22 @@ const Q = 'How much notice does each side need to end the contract?';
         refLinks: refs ? refs.querySelectorAll('a').length : -1, refFont: refs ? getComputedStyle(refs).fontFamily : '', stopBtn: !!stop && stop.classList.contains('ui-btn'), bar: !!c.querySelector('.ac-prog') }; });
     check('1d the card is Jambo\'s grey card, 16px inside, with "Ask a column · Notice to end" and the question in bold', !!G && G.bg === 'rgb(242, 242, 245)' && G.pad === '16px' && G.eb === 'Ask a column · Notice to end' && /How much notice/.test(G.q || '') && Number(G.qw) >= 600, G);
     check('1e the refs in flight are plain words in the reference face; Stop is a button; no bar', !!G && G.refLinks === 0 && /Mono/i.test(G.refFont) && G.stopBtn && !G.bar, G);
+    /* THE LIGHTS IN THE CARD (the owner, 28 Oct 2026: "the reading or results are coming out color coded as well"): the desk's
+       answer and every row of the stack wear a painted light, the same colour as the list's cell of that tone (a wrong-scoped
+       style left them 0px wide at the parent) */
+    await until(page, () => document.querySelectorAll('#ac-form [data-ac-stack] .ac-ans>i').length >= 1, null, 15000);
+    const LT = await page.evaluate(() => {
+      const cellOf = tone => { const i = document.querySelector(`.reg-table td.ac-cell .ac-ans.tone-${tone}>i`); return i ? getComputedStyle(i).backgroundColor : null; };
+      return [...document.querySelectorAll('#ac-form [data-ac-desk] .ac-ans>i, #ac-form [data-ac-stack] .ac-ans>i')].map(i => {
+        const r = i.getBoundingClientRect(), tone = (i.parentElement.className.match(/tone-(\w+)/) || [])[1], bg = getComputedStyle(i).backgroundColor;
+        const top = r.width ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+        return { w: Math.round(r.width), tone, bg, cell: cellOf(tone), seen: top === i }; }); });
+    check('1f the desk\'s answer and each stack row wear a painted light, coloured as the list\'s cell of the same tone',
+      LT.length >= 2 && LT.every(x => x.w >= 6 && x.seen && x.bg !== 'rgba(0, 0, 0, 0)' && (!x.cell || x.bg === x.cell)), LT);
+    const INK = await page.evaluate(() => { const a = [...document.querySelectorAll('.reg-table td.ac-cell .ac-ans:not(.tone-gray):not(.tone-none)')].slice(0, 3);
+      const t = document.createElement('span'); t.style.color = 'var(--color-text)'; document.body.appendChild(t); const ink = getComputedStyle(t).color; t.remove();
+      return { ink, words: a.map(x => getComputedStyle(x).color) }; });
+    check('1g as drawn, the light carries the colour and the list\'s short answer is the ink', INK.words.length > 0 && INK.words.every(c => c === INK.ink), INK);
     check('1c the ten in flight are named at the top, and the foot counts done · at risk so far · calls, with Stop',
       D && /^Reading\s*HC-1\d\d\d to HC-1\d\d\d$/.test(D.now.replace(/\s+/g, ' ').trim()) && /^Reading 100 contracts · \d+ done · \d+ at risk so far · \d+ Jambo calls$/.test(D.foot.trim()) && D.stop, D && { now: D.now, foot: D.foot });
     await page.waitForTimeout(450);                /* past the slide, so the picture is still */
