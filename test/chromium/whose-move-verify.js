@@ -84,7 +84,9 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, the round and the
        lead ride the grey line under the counterparty; Round and Lead are one press away under Columns */
     check('3a the columns: Counterparty and agreement · Clauses in play · What is open · Waiting · Value (Round and Lead under Columns)',
-      ['Counterparty and agreement', 'What is open', 'Waiting'].every(h => A.heads.includes(h)) && !A.heads.includes('Ref') && !A.heads.includes('Lead'), JSON.stringify(A.heads));
+      /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD): where the list has the room, Ref, Round and Lead stand as
+         columns together (the grey line's facts); else none of the three */
+      ['Counterparty and agreement', 'What is open', 'Waiting'].every(h => A.heads.includes(h)) && (A.heads.includes('Ref') === A.heads.includes('Lead')), JSON.stringify(A.heads));
     const seat = await page.evaluate(() => (document.querySelector('[data-lc-btn]') || {}).getAttribute ? document.querySelector('[data-lc-btn]').getAttribute('data-lc-btn') : '');
     await page.click(`[data-lc-btn="${seat}"]`);
     await until(() => document.querySelector('[data-lc-pop] [data-lc-k="lead"]:not([disabled])'), null, 8000);

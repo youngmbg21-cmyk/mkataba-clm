@@ -1425,11 +1425,25 @@ function migStreamOf(r){
   const p = migParked(r) ? (migState().pending || {})[r.i] : null;
   return p ? migStreamName(migFolderFor(p.manifest, p.meta)) : '—';
 }
+/* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the grey line under the file's name
+   (the kind of contract and the party read) is two columns of their own and the file stands alone
+   (listSpread); the widths the drawing gives the other columns, for the room it needs */
+const MIG_SPREAD = [{ k:'kind', w:170 }, { k:'party', w:190 }];
+const MIG_COLS_W = [{}, { w:150 }, { w:120 }, { w:110 }, { w:100 }, { w:170 }];
+let _migSP = false;
+function migReadOf(r){
+  const c = r.c, m = c ? (c.metadata || {}) : (((migState().pending || {})[r.i] || {}).meta || {});
+  const blocked = !!(c && c.migration && c.migration.blocked && !m.contractType && !c.counterparty);
+  return { kind:m.contractType || '', party:(c && c.counterparty) || m.counterparty || '', blocked };
+}
 function migRowHtml(r){
   const gates = r.c ? migGates(r.c) : (migParked(r) ? migPendingGates(r) : null);
   const on = r.key === _migPick;
+  const rd = _migSP ? migReadOf(r) : null;
+  const dash = '<span class="quiet">\u2014</span>';
   return `<tr data-row="${esc(r.key)}" tabindex="0" class="mig-tr is-${r.st.k}${on ? ' is-picked' : ''}" aria-selected="${on ? 'true' : 'false'}">
-    <td class="mig-td-f"><span class="mig-fn" title="${esc(r.file)}">${esc(r.file)}</span><span class="mig-fr">${esc(migWhatOf(r)) || '&nbsp;'}</span></td>
+    <td class="mig-td-f"><span class="mig-fn" title="${esc(r.file)}">${esc(r.file)}</span>${_migSP ? '' : `<span class="mig-fr">${esc(migWhatOf(r)) || '&nbsp;'}</span>`}</td>
+    ${_migSP ? `<td class="mig-td-k">${rd.kind ? esc(rd.kind) : rd.blocked ? esc(i18t('mig_nothing_read')) : dash}</td><td class="mig-td-p"${rd.party ? ` title="${esc(rd.party)}"` : ''}>${rd.party ? esc(rd.party) : dash}</td>` : ''}
     <td class="mig-td-s">${esc(migStreamOf(r))}</td>
     <td class="mig-td-v">${migValueCell(r)}</td>
     <td class="mig-td-e">${migEndsCell(r)}</td>
@@ -1444,14 +1458,15 @@ function migListHtml(){
   const sh = migShown(migFound(rows));
   const settled = M.queue.filter(q => ['saved', 'duplicate', 'error', 'word', 'skipped', 'dupe'].includes(q.status)).length;
   /* nothing behind the door: said in the list, with the way to every file */
-  const none = sh.list.length ? '' : `<tr class="mig-none"><td colspan="6">${esc(i18t(_migQ.trim() ? 'mig_none_match' : 'mig_none_left'))}</td></tr>`;
+  _migSP = typeof listSpread === 'function' && listSpread(MIG_SEAT, [MIG_COLS_W[0], ...MIG_SPREAD, ...MIG_COLS_W.slice(1)], () => migListPaint());
+  const none = sh.list.length ? '' : `<tr class="mig-none"><td colspan="${_migSP ? 8 : 6}">${esc(i18t(_migQ.trim() ? 'mig_none_match' : 'mig_none_left'))}</td></tr>`;
   return `${M.running ? `<div class="mig-run">${typeof busyHtml === 'function' ? busyHtml(i18t('mig_running', { n:settled, of:M.queue.length })) : esc(i18t('mig_running', { n:settled, of:M.queue.length }))}<span class="mig-sp"></span><button type="button" id="mig-cancel" class="ui-btn ui-btn-sm">${esc(i18t('mig_stop_after_current'))}</button></div>` : ''}
     ${M.ocrError ? `<div class="mig-warn is-amber">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — check each one and type its details, or fix the reader and read them again.</div>` : ''}
     ${M.aiDown ? `<div class="mig-warn is-amber">${migEsc(M.aiDownMsg || 'Jambo unavailable')} — the rest of the files were read by HaTi's own rules and wait for you to check them.</div>` : ''}
     <div class="table-scroll">
-      <table class="mig-table">
+      <table class="mig-table" data-spread-seat="${esc(MIG_SEAT)}">
         <thead><tr>
-          <th>${esc(i18t('mig_col_file'))}</th><th>${esc(i18t('mig_col_stream'))}</th><th class="mig-td-v">${esc(i18t('mig_col_value'))}</th>
+          <th>${esc(i18t('mig_col_file'))}</th>${_migSP ? `<th>${esc(i18t('mig_col_kind'))}</th><th>${esc(i18t('cu_col_customer'))}</th>` : ''}<th>${esc(i18t('mig_col_stream'))}</th><th class="mig-td-v">${esc(i18t('mig_col_value'))}</th>
           <th>${esc(i18t('mig_col_ends'))}</th><th>${esc(i18t('mig_col_done'))}</th><th>${esc(i18t('mig_col_state'))}</th>
         </tr></thead>
         <tbody>${sh.list.map(migRowHtml).join('')}${none}</tbody>

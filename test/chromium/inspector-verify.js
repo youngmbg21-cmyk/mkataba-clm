@@ -286,7 +286,9 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, the round and the
        lead ride the grey line under the counterparty (Round and Lead one press away under Columns) */
     ok('2a Negotiations draws the list and the panel, with the clauses in play, what is open, the wait and the value', ng.ins === '1'
-      && ng.heads.join('|') === 'Counterparty and agreement|Clauses in play|What is open|Waiting|Value', ng.heads.join(' | '));
+      /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD, owner: "go ahead on all list pages"): where the list has the
+         room (1440 here), the grey line's reference, round and lead are columns of their own */
+      && ['Counterparty and agreement|Clauses in play|What is open|Waiting|Value', 'Counterparty and agreement|Ref|Clauses in play|What is open|Waiting|Value|Round|Lead'].includes(ng.heads.join('|')), ng.heads.join(' | '));
     ok('2b the changes say what they ask of whom, and the wait says how long', /* RE-POINTED 18 Oct 2026 (round 14 as drawn): "N redlines to answer", "N sent, no answer yet" */ ng.moves.some(m => /^\d+ redlines? to answer$/.test(m)) && ng.moves.some(m => /^\d+ sent, no answer yet$/.test(m))
       && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
     ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views

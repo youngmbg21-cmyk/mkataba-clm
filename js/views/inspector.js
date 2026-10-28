@@ -1169,7 +1169,8 @@ function jlListMin(){
       const cols = Array.from(t.querySelectorAll(':scope > colgroup > col'));
       if (!cols.length) continue;
       let fixed = 0, flex = 0;
-      cols.forEach(c => { const px = /^(\d+(?:\.\d+)?)px$/.exec(c.style.width || ''); if (px) fixed += Number(px[1]); else flex++; });
+      /* a spread column (listSpread) is no part of the floor: where the room goes it steps aside */
+      cols.forEach(c => { if (c.hasAttribute('data-spread')) return; const px = /^(\d+(?:\.\d+)?)px$/.exec(c.style.width || ''); if (px) fixed += Number(px[1]); else flex++; });
       need = Math.max(need, Math.ceil(fixed + flex * JL_FLEX_MIN + Math.max(0, room - tw)));
     }
   } catch (_){ return need; }
@@ -1199,7 +1200,9 @@ const JL_SPLIT = {
     if (!sh || !h || h.classList.contains('is-folded')) return;
     sh.style.setProperty('--jl-w', Math.round(w) + 'px');
     /* past the mark the page's room stops at the panel's seam less what lies over it (splitOver) */
-    sh.style.setProperty('--jl-room', Math.round(w - (over || 0)) + 'px'); h.classList.toggle('is-split-over', !!over); },
+    sh.style.setProperty('--jl-room', Math.round(w - (over || 0)) + 'px'); h.classList.toggle('is-split-over', !!over);
+    /* a drag that leaves a list too little room for its spread columns (or gives it back) draws it again */
+    if (typeof listSpreadCheck === 'function') listSpreadCheck(); },
   /* the window's resize is this file's own listener (jlLayout, at the foot) */
 };
 /* the panel's top is the page head's top: under the bar and the desk tabs;
@@ -1211,6 +1214,8 @@ function jlLayout(){
   if (top > 0) h.style.setProperty('--jl-top', top + 'px');
   const rez = h.querySelector(':scope > #jl-resizer');
   if (typeof splitWire === 'function') splitWire(rez, JL_SPLIT);
+  /* the panel is laid out now: a list that spread its grey line into columns asks again (listSpread) */
+  if (typeof listSpreadCheck === 'function') listSpreadCheck();
 }
 /* HIS COUNT, the Counter's own number (what needs you), read at most once a
    second — the walk is the book's, and a panel repaints on every row press */

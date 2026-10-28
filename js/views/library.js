@@ -1858,11 +1858,18 @@ function tplInsPaint(host){
     stream:r=>`<td>${r.stream&&FOLDERS[r.stream]?_tplEsc(tplShortStream(FOLDERS[r.stream].name)):dash}</td>`,
     used:r=>`<td class="num">${r.used==null?dash:r.used}</td>`,
   };
+  /* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the grey line under the template's
+     name (its kind of paper, where it came from, what it is for) is a column of its own, About, and the
+     name stands alone (listSpread) */
+  const SPREAD=[{ k:'about', label:i18t('lib_col_about'), w:300, spread:1 }];
+  const SP=typeof listSpread==='function'&&listSpread(TPL_LH_LIST,[{},...SPREAD,...keys.map(k=>byK[k])],()=>tplPagePaintRows());
+  if(SP){ byK.about=SPREAD[0]; keys.unshift('about'); }
+  cell.about=r=>`<td class="tpl-about"${r.sub?` title="${_tplEsc(r.sub)}"`:''}>${r.sub?_tplEsc(r.sub):dash}</td>`;
   const tr=r=>`<tr data-ins-row data-tpl-row="${_tplEsc(r.kind+':'+r.id)}" tabindex="-1">
-      <td><span class="ins-c2"><b title="${_tplEsc(r.name)}">${_tplEsc(r.name)}${r.draft?` <span class="tpl-draft-tag">${_tplEsc(i18t('lib_draft_tag'))}</span>`:''}</b><span>${_tplEsc(r.sub||'')}</span></span></td>
+      <td><span class="ins-c2"><b title="${_tplEsc(r.name)}">${_tplEsc(r.name)}${r.draft?` <span class="tpl-draft-tag">${_tplEsc(i18t('lib_draft_tag'))}</span>`:''}</b>${SP?'':`<span>${_tplEsc(r.sub||'')}</span>`}</span></td>
       ${keys.map(k=>cell[k](r)).join('')}
     </tr>`;
-  host.innerHTML=rows.length?`<table class="ins-lt tpl-lt"><colgroup><col>${keys.map(k=>`<col style="width:${byK[k].w}px">`).join('')}</colgroup>
+  host.innerHTML=rows.length?`<table class="ins-lt tpl-lt" data-spread-seat="${_tplEsc(TPL_LH_LIST)}"><colgroup><col>${keys.map(k=>(typeof listColHtml==='function'?listColHtml:(c=>`<col${c&&c.w?` style="width:${c.w}px"`:''}>`))(byK[k])).join('')}</colgroup>
       <thead><tr><th>${_tplEsc(i18t('lib_col_template'))}</th>${keys.map(k=>`<th${byK[k].num?' class="num"':''}>${_tplEsc(byK[k].label)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map(tr).join('')}</tbody></table>`
     :`<div class="ins-empty-p">${_tplEsc(i18t('lib_nothing_matches'))}</div>`;
@@ -4037,14 +4044,24 @@ function sdCountCell(list){
     :(list.every(x=>x.v.status==='missing')?esc(i18t('sd_all_leave_out')):'');
   return `<span class="ins-c2"><b class="ins-cnt ${legal?'is-bad':'is-warn'}">${esc(i18tn('sd_n_contracts',list.length,{n:list.length}))}</b><span>${sub}</span></span>`;
 }
-function sdTableHtml(cls, cols, body){
-  return `<table class="ins-lt ${cls}"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
+/* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the grey line under a row's name is
+   columns of its own and the name stands alone (listSpread); one answer per table, asked as it is drawn */
+const _sdSP={};
+function sdSpread(seat, cols, spread){
+  const on=typeof listSpread==='function'&&listSpread(seat,[cols[0],...spread,...cols.slice(1)],()=>sdRepaint());
+  _sdSP[seat]=!!on;
+  if(on) cols.splice(1,0,...spread.map(c=>Object.assign({ spread:1 },c)));
+  return !!on;
+}
+function sdTableHtml(cls, cols, body, seat){
+  return `<table class="ins-lt ${cls}"${seat?` data-spread-seat="${esc(seat)}"`:''}><colgroup>${cols.map((typeof listColHtml==='function'?listColHtml:(c=>`<col${c&&c.w?` style="width:${c.w}px"`:''}>`))).join('')}</colgroup><thead><tr>${
     cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
 }
 const sdIdCmp=(a,b)=>String(sdRef(a)).localeCompare(String(sdRef(b)),undefined,{numeric:true});
 /* ---- 1 · THE CLAUSE LIBRARY ---- */
 function sdClauseListHtml(d){
   const cols=[{t:i18t('sd_col_standard')},{t:i18t('sd_col_firm'),w:230},{t:i18t('sd_col_fallback'),w:140},{t:i18t('sd_col_departing'),w:150}];
+  const SP=sdSpread('sd-lib', cols, [{t:i18t('sd_col_topic'),w:170}]);
   let LL=null; try{ LL=(typeof stdLearned==='function')?stdLearned():null; }catch(_){ LL=null; }
   /* THE ROW SAYS IT (7 Oct 2026, O-18): one small line where this standard's
      settled rounds propose a move — no band, no column of its own. */
@@ -4052,14 +4069,15 @@ function sdClauseListHtml(d){
   const rows=d.lib.map(cl=>{
     const f=sdFirm(cl), fb=sdFbShort(cl), off=stdDepartsFrom(cl.category, d.book);
     return [String(cl.id), `<tr data-ins-row data-sd-row="${esc(String(cl.id))}" tabindex="-1">
-      <td><span class="ins-c2"><b title="${esc(cl.name||'')}">${esc(cl.name||'')}</b><span>${esc(cl.category||'')}</span>${learnTag(cl)}</span></td>
+      <td><span class="ins-c2"><b title="${esc(cl.name||'')}">${esc(cl.name||'')}</b>${SP?'':`<span>${esc(cl.category||'')}</span>`}${learnTag(cl)}</span></td>
+      ${SP?`<td${cl.category?` title="${esc(cl.category)}"`:''}>${cl.category?esc(cl.category):'<span class="ins-quiet">\u2014</span>'}</td>`:''}
       <td><span class="ins-c2"><b class="${f.req?'is-req':''}">${esc(f.word)}</b><span title="${esc(f.where)}">${esc(f.where)}</span></span></td>
       <td><span class="${fb.none?'ins-quiet':''}">${esc(fb.text)}</span></td>
       <td>${d.book.length?sdCountCell(off):`<span class="ins-quiet">—</span>`}</td></tr>`];
   }).filter(r=>sdQHit(r[1]));
   _sdShown.clauses=rows.map(r=>r[0]);
-  const body=rows.map(r=>r[1]).join('')||`<tr class="ins-empty"><td colspan="4">${esc(i18t(d.lib.length?'sd_none_q':'set_no_clauses'))}</td></tr>`;
-  return sdTableHtml('sd-lt sd-lib', cols, body);
+  const body=rows.map(r=>r[1]).join('')||`<tr class="ins-empty"><td colspan="${cols.length}">${esc(i18t(d.lib.length?'sd_none_q':'set_no_clauses'))}</td></tr>`;
+  return sdTableHtml('sd-lt sd-lib', cols, body, 'sd-lib');
 }
 /* WHAT YOU HAVE SETTLED FOR — the learned card's own reading, for THIS
    standard: a proposal where the quarter's settled rounds say the line should
@@ -4254,19 +4272,21 @@ function sdClausePanelOpts(cl, d, mayEdit){
 /* ---- 2 · THE NEGOTIATION PLAYBOOK ---- */
 function sdBookListHtml(d){
   const cols=[{t:i18t('sd_col_book')},{t:i18t('sd_col_standards'),w:140},{t:i18t('sd_col_contracts'),w:120},{t:i18t('sd_col_depart'),w:120}];
+  const SP=sdSpread('sd-books', cols, [{t:i18t('lib_col_about'),w:220}]);
   const rows=d.keys.map(k=>{
     const b=d.pb[k]||{}, base=k==='_default';
     const lines=stdBookLines(k), cs=stdBookContracts(k,d.book), off=cs.filter(c=>stdDepartures(c).length);
     const legalLines=lines.filter(l=>l.legal).length, offLegal=off.some(c=>stdDepartures(c).some(stdNeedsLegal));
     return [k, `<tr data-ins-row data-sd-book="${esc(k)}" tabindex="-1">
-      <td><span class="ins-c2"><b title="${esc(b.label||k)}">${esc(b.label||k)}</b><span>${esc(i18t(base?'sd_book_base_sub':'sd_book_type_sub'))}</span></span></td>
+      <td><span class="ins-c2"><b title="${esc(b.label||k)}">${esc(b.label||k)}</b>${SP?'':`<span>${esc(i18t(base?'sd_book_base_sub':'sd_book_type_sub'))}</span>`}</span></td>
+      ${SP?`<td>${esc(i18t(base?'sd_book_base_sub':'sd_book_type_sub'))}</td>`:''}
       <td><span class="ins-c2"><b>${lines.length}</b><span${legalLines?' class="ins-legal"':''}>${esc(legalLines?i18tn('sd_n_need_legal',legalLines,{n:legalLines}):i18t('sd_none_legal'))}</span></span></td>
       <td><span class="ins-c2"><b>${esc(base?i18t('sd_all_n',{n:cs.length}):String(cs.length))}</b><span>${esc(i18t('sd_checked'))}</span></span></td>
       <td>${off.length?`<span class="ins-c2"><b class="ins-cnt ${offLegal?'is-bad':'is-warn'}">${off.length}</b><span>${esc(i18t('sd_depart_word'))}</span></span>`:`<span class="ins-quiet">${esc(i18t('sd_none'))}</span>`}</td></tr>`];
   }).filter(r=>sdQHit(r[1]));
   _sdShown.playbook=rows.map(r=>r[0]);
-  const body=rows.map(r=>r[1]).join('')||(d.keys.length?`<tr class="ins-empty"><td colspan="4">${esc(i18t('sd_none_q'))}</td></tr>`:'');
-  return sdTableHtml('sd-lt sd-books', cols, body);
+  const body=rows.map(r=>r[1]).join('')||(d.keys.length?`<tr class="ins-empty"><td colspan="${cols.length}">${esc(i18t('sd_none_q'))}</td></tr>`:'');
+  return sdTableHtml('sd-lt sd-books', cols, body, 'sd-books');
 }
 function sdBookPanelOpts(key, d, mayEdit){
   const b=d.pb[key]||{}, base=key==='_default';
@@ -4333,13 +4353,15 @@ function sdDevRowHtml(c){
   let kind=''; try{ kind=(typeof cKind==='function')?cKind(c):''; }catch(_){ kind=''; }
   const day=sdDay(c.playbook&&c.playbook.checkedAt);
   return `<tr data-ins-row data-sd-dev="${esc(c.id)}" tabindex="-1">
-      <td><span class="ins-c2"><b title="${esc(c.name||'')}">${esc(c.name||'')}</b><span>${esc(sdRef(c)+' · '+(c.counterparty||'—'))}</span></span></td>
+      <td><span class="ins-c2"><b title="${esc(c.name||'')}">${esc(c.name||'')}</b>${_sdSP['sd-dev']?'':`<span>${esc(sdRef(c)+' · '+(c.counterparty||'—'))}</span>`}</span></td>
+      ${_sdSP['sd-dev']?`<td>${esc(sdRef(c))}</td><td${c.counterparty?` title="${esc(c.counterparty)}"`:''}>${esc(c.counterparty||'—')}</td>`:''}
       <td><span class="ins-c2"><b class="ins-cnt ${legal?'is-bad':'is-warn'}">${n}</b><span>${legal?`<span class="ins-legal">${esc(i18tn('sd_n_legal_row',legal,{n:legal}))}</span>`:esc(i18t(acc?'sd_accepted_before':'sd_none_legal'))}</span></span></td>
       <td><span class="ins-c2"><b title="${esc(sdBookLabel(c))}">${esc(sdBookLabel(c))}</b><span>${esc(kind)}</span></span></td>
       <td><span class="ins-c2"><b>${esc(day||'—')}</b><span>${esc(sdByWord(c))}</span></span></td></tr>`;
 }
 function sdDevListHtml(d, rows){
   const cols=[{t:i18t('sd_col_contract')},{t:i18t('sd_col_departures'),w:160},{t:i18t('sd_col_book'),w:170},{t:i18t('sd_col_checked'),w:140}];
+  sdSpread('sd-dev', cols, [{t:i18t('reg_col_ref'),w:100},{t:i18t('cu_col_customer'),w:180}]);
   /* the box's words narrow the rows by what each row says */
   const html=new Map(rows.map(c=>[c, sdDevRowHtml(c)]));
   const shown=rows.filter(c=>sdQHit(html.get(c)));
@@ -4358,7 +4380,7 @@ function sdDevListHtml(d, rows){
     const msg=!d.book.length?i18t('sd_dev_unchecked'):(rows.length&&String(_sdQ||'').trim())?i18t('sd_none_q'):narrowing?i18t('sd_none_match'):i18t('sd_dev_none');
     body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing?`<br><button type="button" class="ui-link" data-sd-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
   }
-  return sdTableHtml('sd-lt sd-dev', cols, body);
+  return sdTableHtml('sd-lt sd-dev', cols, body, 'sd-dev');
 }
 function sdDevPanelOpts(c, d){
   const deps=stdDepartures(c).slice().sort((a,b)=>(stdNeedsLegal(b)-stdNeedsLegal(a))||((a.status==='missing')-(b.status==='missing')));

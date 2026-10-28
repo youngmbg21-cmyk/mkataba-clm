@@ -704,6 +704,92 @@ function splitWire(rez, h){
     h._splitResize = true; window.addEventListener('resize', () => { try { h.resize(); } catch (_){} });
   }
 }
+/* ROOM TO SPREAD (owner, 28 Oct 2026: "this design should be for all pages
+   with a list", after People's job title left the grey line for its own
+   column; "big screen gets the extra columns, small screen keeps today's
+   look"). A list's grey line under its name becomes columns of its own only
+   where the list has the room for all of them AND the name its floor
+   (SPREAD_NAME_MIN); else today's look, the line under the name. The page
+   asks listSpread(seat, cols) at its paint (cols = every column the spread
+   shape would draw, {w} fixed or none for the one that takes the rest) and
+   marks the table data-spread-seat; ONE observer on the page's scroller
+   repaints a page whose answer flipped (a window resized, the panel dragged).
+   A spread column is <col data-spread>, never counted in the list's floor
+   (jlListMin), so the panel never slides over the list to make room for it.
+   jsdom measures nothing: room 0 is today's look. */
+const SPREAD_NAME_MIN = 240;
+const SPREAD_PAD = 34;
+const _spread = new Map(), _spreadFlip = new Map();
+let _spreadLater = null;
+let _spreadObs = null;
+/* the list's room: the page's scroller, up to the panel's edge where an open panel stands over it
+   (a page whose scroller runs under the panel, or a panel slid over the page, both measure true) */
+function listSpreadMeasure(){
+  if (typeof document === 'undefined') return { room: 0, panel: false };
+  const cs = document.getElementById('content-scroll');
+  if (!cs || !(cs.clientWidth > 0)) return { room: 0, panel: false };
+  const left = cs.getBoundingClientRect().left;
+  let right = left + cs.clientWidth, panel = false;
+  /* the list's panel, Jambo's fixed one or a page's own beside the list in its grid */
+  for (const p of Array.from(document.querySelectorAll('#content .ins-panel'))){
+    if (p.classList.contains('is-folded') || p.closest('[hidden]')) continue;
+    const b = p.getBoundingClientRect();
+    if (b.width > 0 && b.left > left && b.left < right){ right = b.left; panel = true; }
+  }
+  return { room: Math.max(0, Math.round(right - left - SPREAD_PAD)), panel };
+}
+const listSpreadRoom = () => listSpreadMeasure().room;
+function listSpreadNeed(cols){
+  let fixed = 0, flex = 0;
+  (cols || []).forEach(c => { const w = Number(c && c.w) || 0; if (w > 0) fixed += w; else flex++; });
+  return fixed + Math.max(1, flex) * SPREAD_NAME_MIN;
+}
+/* A PAGE THAT DRAWS ITS PANEL AGAIN WITH ITS LIST measures, mid-paint, a room with no panel in it; it
+   keeps the room it last measured beside the panel instead (never more than it measures now), or the
+   two answers would chase each other, one paint after another */
+function listSpread(seat, cols, repaint, roomOf){
+  const need = listSpreadNeed(cols);
+  const prev = _spread.get(seat);
+  let room, panel = false;
+  if (typeof roomOf === 'function') room = roomOf();
+  else { const m = listSpreadMeasure(); room = m.room; panel = m.panel;
+    if (!panel && prev && prev.panel && prev.room > 0 && room > 0){ room = Math.min(room, prev.room); panel = true; } }
+  const on = room > 0 && room >= need;
+  _spread.set(seat, { need, on, repaint, roomOf, room, panel });
+  if (!_spreadObs && typeof ResizeObserver === 'function' && typeof document !== 'undefined'){
+    const cs = document.getElementById('content-scroll');
+    if (cs){
+      let queued = false;
+      _spreadObs = new ResizeObserver(() => { if (queued) return; queued = true;
+        (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f => setTimeout(f, 16)))(() => { queued = false; listSpreadCheck(); }); });
+      _spreadObs.observe(cs);
+    }
+  }
+  return on;
+}
+/* a page still on screen whose answer flipped draws again, in its own way — once per change of room */
+function listSpreadCheck(){
+  if (typeof document === 'undefined') return;
+  _spread.forEach((v, seat) => {
+    const t = document.querySelector(`[data-spread-seat="${String(seat).replace(/"/g, '')}"]`);
+    if (!t || t.closest('[hidden]') || typeof v.repaint !== 'function') return;
+    let room, panel = false;
+    if (typeof v.roomOf === 'function') room = v.roomOf();
+    else { const m = listSpreadMeasure(); room = m.room; panel = m.panel; }
+    if (!(room > 0)) return;
+    v.room = room; v.panel = panel;
+    if ((room >= v.need) === v.on) return;
+    /* a last net: one page never draws again for this more than once in a breath */
+    const now = Date.now(), last = _spreadFlip.get(seat) || 0;
+    /* inside the breath, asked again once it is over — never dropped */
+    if (now - last < 600){ if (!_spreadLater){ _spreadLater = setTimeout(() => { _spreadLater = null; listSpreadCheck(); }, 620 - (now - last)); } return; }
+    _spreadFlip.set(seat, now);
+    try { v.repaint(); } catch (_){}
+  });
+}
+/* the <col> of a column: its width, and data-spread where it is one of the spread ones */
+const listColHtml = c => `<col${c && c.w ? ` style="width:${c.w}px"` : ''}${c && c.spread ? ' data-spread' : ''}>`;
+Object.assign(window,{SPREAD_NAME_MIN,SPREAD_PAD,listSpreadMeasure,listSpreadRoom,listSpreadNeed,listSpread,listSpreadCheck,listColHtml});
 Object.assign(window,{SPLIT_GRIP,SPLIT_OVER_AT,SPLIT_PEEK,splitKeep,splitOver,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire});
 
 /* ════ ONE GLIDE FOR LISTS (owner, 22 Oct 2026, the motion plan step 3) ════

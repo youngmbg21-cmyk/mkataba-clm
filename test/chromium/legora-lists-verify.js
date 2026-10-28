@@ -482,10 +482,12 @@ function pageKit(){
     const hid = popped && await ev(() => { const p = [...document.querySelectorAll('[data-lc-pop]')].find(window.__lh.vis);
       const cb = p && [...p.querySelectorAll('input[type=checkbox][data-lc-k]')].find(x => x.checked && !x.disabled);
       if (!cb) return null; const label = window.__lh.words(cb.closest('label') || cb.parentElement); cb.click(); return { k: cb.getAttribute('data-lc-k'), label }; });
-    const after = hid && before && await until(([c, n]) => { const r = window.__lh.rowEls(c)[0]; const t = r && r.closest('table'); if (!t) return null;
-      const th = [...t.querySelectorAll('thead th')].filter(window.__lh.vis).map(x => window.__lh.words(x)); return th.length === n - 1 ? { th, td: r.querySelectorAll('td').length } : null; }, [cfgOf(d), before.th.length], 4000);
+    const after = hid && before && await until(([c, n, lab]) => { const r = window.__lh.rowEls(c)[0]; const t = r && r.closest('table'); if (!t) return null;
+      /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD): the room a hidden column gives back may let the grey line's
+         facts stand as columns of their own, so the head may grow by those; the hidden one is gone either way */
+      const th = [...t.querySelectorAll('thead th')].filter(window.__lh.vis).map(x => window.__lh.words(x)); return !th.includes(lab) && th.length !== n ? { th, td: r.querySelectorAll('td').length } : null; }, [cfgOf(d), before.th.length, hid.label], 4000);
     check(`${tag(d)} 5c hiding a column through Columns takes its head and its cells away`,
-      !!(before && hid && after && after.td === before.td - 1 && !after.th.includes(hid.label)), JSON.stringify({ popped: !!popped, hid, before, after }));
+      !!(before && hid && after && after.td === after.th.length && !after.th.includes(hid.label)), JSON.stringify({ popped: !!popped, hid, before, after }));
     await ev(() => { const r = [...document.querySelectorAll('[data-lc-pop] [data-lc-reset]')].find(window.__lh.vis); if (r) r.click(); });
     await until(([c, n]) => { const r = window.__lh.rowEls(c)[0]; const t = r && r.closest('table'); return t && [...t.querySelectorAll('thead th')].filter(window.__lh.vis).length === n ? true : null; }, [cfgOf(d), before ? before.th.length : -1], 3000);
     /* PRESS IT AGAIN AND IT CLOSES */
@@ -858,9 +860,11 @@ function pageKit(){
       const nameEl = [...hit.td.querySelectorAll('*')].find(e => !e.children.length && window.__lh.words(e) === people[hit.i]);
       const titleEl = [...hit.td.querySelectorAll('*')].find(e => !e.children.length && window.__lh.words(e).includes(titles[hit.i]));
       const rn = window.__lh.rect(nameEl), rt = window.__lh.rect(titleEl);
-      return { heads, mails, who: people[hit.i], title: titles[hit.i], under: !!(rn && rt && rt.t >= rn.b - 2), cell: window.__lh.words(hit.td).slice(0, 80) };
+      /* RE-POINTED 28 Oct 2026 (owner: "take the title from below the name"): the job title is its own column */
+      const ti = heads.indexOf('Job title'), tcell = ti >= 0 ? hit.tr.children[ti] : null;
+      return { heads, mails, who: people[hit.i], title: titles[hit.i], under: !!(rn && rt && rt.t >= rn.b - 2), inCol: !!(tcell && window.__lh.words(tcell).includes(titles[hit.i])), cell: window.__lh.words(hit.td).slice(0, 80) };
     }, [cfgOf(d), PEOPLE, TITLES]);
-    check('people P2 the job title stands under the name', !!(P && !P.none && P.under), JSON.stringify(P));
+    check('people P2 the job title stands in its own column, not under the name', !!(P && !P.none && P.inCol && !P.under), JSON.stringify(P));
     check('people P3 no Email column (the address stays in the person\'s panel)', !!P && !P.heads.some(h => /^e-?mail$/i.test(h)) && P.mails === 0, JSON.stringify({ heads: P && P.heads, mailLinks: P && P.mails }));
   }
 
