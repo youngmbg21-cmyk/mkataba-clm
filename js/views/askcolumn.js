@@ -1096,8 +1096,13 @@ async function askColReadRun(base, ids, opts){
       askColDeskAdd(AC.busy, AC.busy.askId || Object.keys(ev.byAsk)[0], ev.id);
       askColDeskFootPaint(); askColListSoon();
     };
-    try { r = (typeof apiStream === 'function') ? await apiStream('ai/column', { ...body, stream: true }, onEvent) : null; }
+    /* STOP MEANS STOP (the owner, 28 Oct 2026): the stream carries a signal Stop pulls; a stopped stream is
+       never asked again the plain way */
+    const ac = (typeof AbortController === 'function') ? new AbortController() : null;
+    AC.busy.ac = ac;
+    try { r = (typeof apiStream === 'function') ? await apiStream('ai/column', { ...body, stream: true }, onEvent, ac ? { signal: ac.signal } : undefined) : null; }
     catch (_){ r = null; }
+    if (AC.busy.stop){ got.calls += streamCalls; got.stopped = true; break; }
     if (!r){
       /* the calls the broken stream already spent are still spent: they are counted, never hidden */
       got.calls += streamCalls;
@@ -1124,8 +1129,11 @@ async function askColReadRun(base, ids, opts){
   /* THE DESK DOES NOT VANISH AT THE END: the last answers that landed are turned through first (bounded,
      and Stop or a failure ends it at once); the line of refs in flight goes, the desk and the counts stay */
   if (AC.busy && !got.stopped && !got.err && !AC.busy.stop){ AC.busy.ids = []; askColPaintPanel(); await askColDeskDrain(); }
+  /* what was answered, by contract: a stop inside a batch keeps the answers that landed and offers the rest */
+  const answered = new Set(AC.busy ? AC.busy.doneIds : []);
+  if (got.stopped){ got.done = answered.size; got.left = ids.filter(id => !answered.has(id)); }
+  else got.left = ids.slice(got.done);
   AC.busy = null; askColDeskStop(); askColListSoon(true);
-  got.left = ids.slice(got.done);
   return got;
 }
 /* what the reader is told after a run that was stopped or that broke: nothing
@@ -1147,7 +1155,15 @@ function askColRunEnd(got, base, name){
   askColPaintPanel();
   Promise.all([askColSummary(true), askColReads(true)]).then(() => askColPaintPanel());
 }
-function askColStop(){ if (AC.busy) AC.busy.stop = true; askColPaintPanel(); }
+/* STOP MEANS STOP: the stream is cancelled at once (the server starts no further read; the few already with
+   Jambo finish there and are kept, free on Carry on),
+   the cells that were spinning say "not read yet", and the card says where it stopped straight away */
+function askColStop(){
+  const b = AC.busy; if (!b) return;
+  b.stop = true; b.ids = [];
+  try { if (b.ac) b.ac.abort(); } catch (_){}
+  askColListSoon(true); askColPaintPanel();
+}
 /* CARRY ON WITH THE REST: the same question, the contracts the stop left */
 async function askColCarryOn(){
   const s = AC.stopped; if (!s || AC.busy) return;

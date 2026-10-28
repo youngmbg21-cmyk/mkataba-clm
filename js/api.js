@@ -66,9 +66,10 @@ async function api(path, method='GET', body, opts){
    mid-stream, server error event) throws, and the caller falls back to the
    plain endpoint transparently. */
 async function apiStream(path, body, onEvent, opts){
+  /* `opts.signal` — a caller's Stop cancels the stream at once (Ask a column, 28 Oct 2026) */
   const res=await fetch('api/'+path,{ method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body), credentials:'same-origin' });
+    body:JSON.stringify(body), credentials:'same-origin', ...(opts&&opts.signal?{signal:opts.signal}:{}) });
   if(!res.ok||!res.body||!/text\/event-stream/.test(res.headers.get('content-type')||''))
     throw new Error('stream unavailable ('+res.status+')');
   const reader=res.body.getReader(); const dec=new TextDecoder();
