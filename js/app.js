@@ -74,6 +74,7 @@ import './handbook.js';        // THE HANDBOOK: the instruction book as data, on
 import './navmap.js';          // navigable by typing: the things inside the places, read and landed (22 Oct 2026)
 import './views/calendar.js';
 import './views/mynotes.js';
+import './views/reads.js';   // READS (The thread, 28 Oct 2026): every read of the wording, and the next batch
 import './views/handbook.js';     // the Handbook's page: the book drawn one part at a time, every door live (26 Oct 2026)
 import './views/breakdown.js';   // Home's Breakdown face: the whole contract in regions (11 Oct 2026)     // My notes: the private ledger (10 Oct 2026)
 import './views/reports.js';
@@ -327,6 +328,7 @@ function commandMeta(view){
     case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
     case 'calendar':  return [i18t('nav_calendar'), ''];
     case 'mynotes':   return [i18t('nav_mynotes'), ''];
+    case 'reads':     return [i18t('nav_reads'), ''];     // READS (The thread, 28 Oct 2026)
     case 'handbook':  return [i18t('nav_handbook'), ''];   // THE HANDBOOK (owner, 26 Oct 2026)   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
@@ -455,7 +457,7 @@ function pageActionHtml(kind){
    view, so the page title was the one row between the brain and the screen. */
 /* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026);
    'directory' the same since it became the wall of faces (13 Oct 2026). */
-const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory', 'handbook'];
+const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'reads', 'brain', 'customers', 'jambo', 'directory', 'handbook'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -487,7 +489,7 @@ const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templ
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
 /* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) and 'templates' (Our paper) the same day, each scrolling inside its own page. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'handbook', 'agents'];
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'reads', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'handbook', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -1353,6 +1355,7 @@ function setView(view){
     else if(view==='intel') renderIntel();
     else if(view==='calendar') renderCalendar();
     else if(view==='mynotes') renderMyNotes();
+    else if(view==='reads') renderReads();
     else if(view==='handbook') renderHandbook();
     else if(view==='reports') renderReports();
     else if(view==='register') renderRegister();
@@ -1580,6 +1583,8 @@ const PLACE_PARTS={
      boxes and chosen note (round 20 as drawn, 19 Oct 2026) */
   intake:['ikPlace','ikPlacePut'],
   mynotes:['mnPlace','mnPlacePut'],
+  /* Reads keeps its tab, box and chosen row (The thread, 28 Oct 2026) */
+  reads:['rdPlace','rdPlacePut'],
   /* the Handbook keeps its part and chapter (26 Oct 2026) */
   handbook:['hbkPlace','hbkPlacePut'],
   /* Import keeps its figure door, Show all, the chosen file and the check view (round 22, 18 Oct 2026) */
@@ -3809,7 +3814,7 @@ const GUIDE_STAGES = [
   { k: 'draft', rows: ['ourpaper', 'draft'] },
   { k: 'agree', rows: ['document', 'negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
-  { k: 'keep', rows: ['contracts', 'oblig', 'calendar', 'mynotes'] },
+  { k: 'keep', rows: ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'] },
   { k: 'see', rows: ['board', 'explorer', 'house'] },
 ];
 /* each page's count and its words, off the door's own reading (null = none) */
@@ -3835,7 +3840,7 @@ function guideHereKey(){
       if(f==='paper'){ const c=(typeof pdOnPaper==='function'&&pdOnPaper()&&typeof pdContract==='function')?pdContract():null; return c?'document':'contracts'; }
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
     return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'ourpaper', redline:'negotiations', customers:'parties',
-      directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', jambo:'house',
+      directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:'reads', jambo:'house',
       team:'settings', workspace:'document', doc:'document', handbook:'handbook' })[v]||null;
   }catch(_){ return null; }
 }

@@ -2531,7 +2531,7 @@ function startApp(){
   if(window._cnSignedIn && window.deskShellOn && deskShellOn()) state.view='counter';
   window._cnSignedIn=false;
   const _place=window.placeResume?placeResume():null;
-  setView(['brain','dashboard','counter','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','handbook','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
+  setView(['brain','dashboard','counter','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reads','handbook','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
   if(_place&&window.placeScrollBack) placeScrollBack(_place);
   /* MY OWN EVENTS AND NOTES (10 Oct 2026): loaded once, so the rail's count
      and the bell know what is due before either page is opened. */

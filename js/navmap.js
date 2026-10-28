@@ -234,6 +234,8 @@ const NAV_PAGES = [
   /* "jambo's work" is the Board's card (land-on-it 1a, the owner's door); his house by its own name */
   ['house', / (jambo s house|jambos house|jambo house|jambos hus) /],
   ['mynotes', / (my (private |own )?notes|mina (privata |egna )?anteckningar) /],
+  /* READS (The thread, 28 Oct 2026): every read of the wording, where the next batch is */
+  ['reads', / (every read|all reads|the reads|reads page|past reads|previous reads|earlier reads|read history|varje läsning|alla läsningar|tidigare läsningar|läsningarna) /],
   ['needs', /^ (what )?(needs me|needs you|is waiting on me|waits for me|väntar på mig) $/],
 ];
 function navReadPage(raw, t){

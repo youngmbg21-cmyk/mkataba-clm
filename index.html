@@ -9804,6 +9804,29 @@
   #ig-dock .ac-fl dd{margin:0;min-width:0}
   #ig-dock .ac-quote{font-family:var(--font-doc);border-left:3px solid var(--color-accent-300);background:var(--color-accent-50);padding:7px 10px;border-radius:0 var(--radius) var(--radius) 0}
   #ig-dock .ac-busy{font-size:13px}
+  /* THE READING DESK (the owner picked it, 28 Oct 2026): the ten in flight, one real answer with its quote, the last three turned past, the counts */
+  #ig-dock .ac-desk-now{display:flex;align-items:center;gap:6px;font-size:12.5px;min-width:0}
+  #ig-dock .ac-desk-now .ob-spin{margin-right:0}
+  #ig-dock .ac-desk-refs{margin-left:auto;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #ig-dock .ac-desk{background:var(--color-surface);border:1px solid var(--rule);border-radius:var(--radius);padding:12px;margin-top:8px;min-height:112px;display:flex;flex-direction:column;justify-content:center}
+  #ig-dock .ac-desk-in{display:flex;flex-direction:column;gap:6px;min-width:0}
+  #ig-dock .ac-desk-who{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:13px}
+  #ig-dock .ac-desk-nm{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #ig-dock .ac-desk-who .ac-meta{margin-left:auto;white-space:nowrap}
+  #ig-dock .ac-desk-q{margin:0;font-family:var(--font-doc);font-style:italic;font-size:14px;line-height:1.45;opacity:.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  #ig-dock .ac-desk-noq{font-size:12.5px;color:var(--color-quiet)}
+  #ig-dock .ac-desk-empty{font-size:13px;color:var(--color-quiet);text-align:center}
+  #ig-dock .ac-stack{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+  #ig-dock .ac-stack:empty{display:none}
+  #ig-dock .ac-stack-r{display:flex;align-items:center;gap:8px;font-size:12.5px;background:var(--color-surface);border:1px solid var(--rule);border-radius:var(--radius);padding:5px 10px;min-width:0}
+  #ig-dock .ac-stack-r .ac-ans{flex:none}
+  #ig-dock .ac-stack-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-stack-an{white-space:nowrap;flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis}
+  #ig-dock .ac-desk-foot{display:flex;align-items:center;gap:10px;margin-top:8px;min-width:0}
+  #ig-dock .ac-desk-foot .ac-busy{flex:1;min-width:0;font-variant-numeric:tabular-nums}
+  #ig-dock .ac-desk-foot .jb-chip{flex:none}
+  #ig-dock .ac-th-left,#ig-dock .ac-th-done{font-weight:var(--w-strong)}
+  #ig-dock .ac-th-prog .ac-next{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .reg-table th.ac-th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .reg-table .ac-th-i{width:12px;height:12px;margin-left:4px;color:var(--accent-ink);vertical-align:-1px;display:inline-block}
   /* LIGHTS (the owner picked it, 26 Oct 2026): a cell says ONE thing — the
@@ -9863,6 +9886,14 @@
   /* while he reads: how far he has got, and Stop (owner, 26 Oct 2026) */
   #ig-dock .ac-prog{height:4px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
   #ig-dock .ac-prog>i{display:block;height:100%;background:var(--accent-solid);border-radius:2px;transition:width .2s linear}
+  /* THE THREAD (owner picked it, 28 Oct 2026): the choice 50 | 100 inside the sentence; the progress line under a column's facts */
+  .ac-size{display:inline-flex;background:var(--color-neutral-100);border-radius:999px;padding:2px;vertical-align:middle;margin:0 2px}
+  .ac-size-b{border:0;background:none;font:inherit;font-size:12px;font-weight:var(--w-label);line-height:18px;padding:0 9px;border-radius:999px;color:var(--color-text);cursor:pointer}
+  .ac-size-b.on{background:var(--color-text);color:#fff}
+  .ac-size-b:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  #ig-dock .ac-th b{font-weight:var(--w-label)}
+  #ig-dock .ac-th-prog{display:flex;flex-direction:column;gap:4px;margin-top:2px}
+  #ig-dock .ac-th-prog .ac-next{margin-top:2px}
   /* Discover's rows: the question presses, its two acts sit beside it */
   #ig-dock .ac-disc-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;border-top:1px solid var(--rule)}
   #ig-dock .ac-disc-row:last-of-type{border-bottom:1px solid var(--rule)}

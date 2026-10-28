@@ -312,6 +312,8 @@ const PLACES = [
   { k: 'people', name: 'People', go: `setView('directory')`, wait: `document.querySelector('.dir-td-wrap, .dir-table, .sap-page')` },
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },
+  /* READS (The thread, 28 Oct 2026) */
+  { k: 'reads', name: 'Reads', go: `setView('reads')`, wait: `document.querySelector('.rd-page')` },
   { k: 'jambo', name: "Jambo's house", go: `setView('jambo')`, wait: `document.querySelector('#jh-log, #jh-office')` },
   /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Jambo's work is the Board's Needs you card, its rows .nd-br */
   { k: 'agents', name: "Jambo's work", go: `hbOpenAgent()`, wait: `document.querySelector('#hm-agents .nd-br')` },
