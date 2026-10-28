@@ -12068,6 +12068,11 @@
   .pd-th .stk-flt select{height:var(--ctl-h-sm);border-radius:var(--radius);border-color:var(--rule-strong);font-size:var(--t-meta);font-weight:var(--w-body)}
   /* the row's dot: 8px, centred where the 12px bead stood; the worst OPEN point wins over the paper's old tone */
   .pd-th .doc-th-rows .doc-th-row .doc-th-bead{left:3px;top:13px;width:8px;height:8px;border-width:1px}
+  /* the spine always ends on a dot, over the rows a tab leaves showing (stkSpineEnds; owner, 28 Oct 2026) */
+  .pd-th .doc-th-rows .doc-th-row.stk-sp-first::before{top:17px}
+  .pd-th .doc-th-rows .doc-th-row.stk-sp-last::before{bottom:auto;height:17px}
+  .pd-th .doc-th-rows .doc-th-row.stk-sp-first.stk-sp-last::before{display:none}
+  .pd-th .doc-th-rows .doc-th-sec.stk-sp-off::before{display:none}
   .pd-th .doc-th-rows .doc-th-row.stk-b-need .doc-th-bead{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot)}
   .pd-th .doc-th-rows .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border-color:var(--st-amber-dot)}
   .pd-th .doc-th-rows .doc-th-row.stk-b-note .doc-th-bead{background:var(--st-steel-dot);border-color:var(--st-steel-dot)}

@@ -123,6 +123,27 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     ok('1b the "Worth a look" tab narrows to the same points, and All lets go',
       e1b.box && e1b.lit === 'true' && e1b.look === 2 && e1b.back === e1b.all && e1b.all === 4, JSON.stringify(e1b));
 
+    /* 1c THE SPINE ALWAYS ENDS ON A DOT (owner, 28 Oct 2026: "I want the spine to always end with a ball"):
+       on every tab, the hairline starts at the first dot left showing and stops at the last one */
+    const e1c = {};
+    for (const k of ['', 'need', 'look', 'fine']) {
+      e1c[k || 'all'] = await page.evaluate(async k => {
+        const t = document.querySelector(`#pd-thread [data-stk-tab="${k}"]`); if (!t) return null;
+        t.click(); await new Promise(r => setTimeout(r, 300));
+        const els = [...document.querySelectorAll('#pd-thread .doc-th-row, #pd-thread .doc-th-sec')].filter(e => e.getBoundingClientRect().height > 0);
+        let top = 1e9, bot = -1e9;
+        els.forEach(e => { const cs = getComputedStyle(e, '::before'); if (cs.content === 'none' || cs.display === 'none') return;
+          const r = e.getBoundingClientRect(), tp = r.top + parseFloat(cs.top); top = Math.min(top, tp); bot = Math.max(bot, tp + parseFloat(cs.height)); });
+        const beads = els.map(e => e.querySelector('.doc-th-bead')).filter(Boolean).map(b => { const r = b.getBoundingClientRect(); return r.top + r.height / 2; });
+        if (beads.length < 2) return { beads: beads.length };
+        return { beads: beads.length, top: Math.round(top - beads[0]), bottom: Math.round(bot - beads[beads.length - 1]) };
+      }, k);
+    }
+    await page.evaluate(async () => { const t = document.querySelector('#pd-thread [data-stk-tab=""]'); if (t) { t.click(); await new Promise(r => setTimeout(r, 300)); } });
+    ok('1c on every tab the spine starts at the first dot shown and ends at the last — never open-ended',
+      Object.values(e1c).every(v => v && (v.beads < 2 || (Math.abs(v.top) <= 1 && Math.abs(v.bottom) <= 1))) && !!e1c.need && e1c.need.beads >= 2,
+      JSON.stringify(e1c));
+
     /* 2 + 3: open clause 2, then clause 3 */
     const openRow = n => page.evaluate(async n => {
       const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => new RegExp('^' + n + '\\b').test((r.querySelector('.doc-th-name') || {}).innerText || ''));
