@@ -8421,7 +8421,7 @@ function renderIntelDock(){
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
       ${igFaceHtml('think')}
-      <div class="jl-bub typing"><span></span><span></span><span></span></div>
+      ${typeof window.jamboThinkingHtml==='function'?jamboThinkingHtml():'<div class="jl-bub typing"><span></span><span></span><span></span></div>'}
     </div>`:'';
   /* ---- ONE COPILOT PANEL, ON THE CALENDAR TAB TOO (owner, 11 Oct 2026,
      WORKORDER-four-builds item 1) ----

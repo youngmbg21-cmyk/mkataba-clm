@@ -968,6 +968,16 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     e.preventDefault(); go();
   });
 }
+/* ---- JAMBO IS THINKING (owner, 28 Oct 2026: "while jambo is thinking there needs to be a sign that something is
+   running or thinking so that you do not think the panel has frozen") ----
+   ONE builder for every conversation's waiting turn (Home's panel, the lists and Import, Settings, the ✦ window):
+   a spinner that moves and the words "Jambo is thinking…", in his answer's own bubble, said to a screen reader
+   (WHEN SOMETHING LOADS, SOMETHING MOVES; the Calendar's planner says its own "reading your calendar"). It
+   replaces three 5px dots that read as a frozen panel. Less motion asked = the spinner stands still. */
+function jamboThinkingHtml(){
+  const w = (typeof i18t === 'function') ? i18t('jb_thinking') : 'Jambo is thinking…';
+  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span><span>${String(w).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))}</span></div>`;
+}
 /* the head while the conversation shows: his name, lit, a label — never a second way back */
 function jamboTalkLabelHtml(cls){
   return `<span class="pd-tab pd-tab-talk on jb-talk-label${cls ? ' ' + cls : ''}" role="tab" aria-selected="true" aria-current="true">${jamboTalkTabInner()}</span>`;
@@ -1208,7 +1218,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain
