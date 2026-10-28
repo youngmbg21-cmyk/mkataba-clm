@@ -192,7 +192,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Part 8 question 1 = A (22 Oct 2026): wall-of-papers-verify 4 at 1536×730 re-pointed — the second row of papers starts on the screen and the reader scrolls a little.
 
 - THE LIST LANGUAGE (27 Oct 2026): `node --test test/f953-the-list-language.test.js`, with f687, f739, f795, f716, f387, f721, f797, f807, f874 and the Obligations files; in a browser legora-look-verify, legora-lists-verify, sap-lists-verify, the tidy sweep.
-- Our standards as a traffic light (28 Oct 2026): f953 2 re-pointed (three lamps in order, zero grey, the sentence in aria-label/title; red at the parent d866f89); handbook 0.6 pictures re-taken; tidy sweep contracts, approvals, negotiations at the three screens.
+- Our standards as a traffic light (28 Oct 2026): f953 2 re-pointed (three lamps in order, zero grey, the sentence in aria-label/title; red at the parent d866f89); handbook 0.6 pictures re-taken; tidy sweep contracts, approvals, negotiations at the three screens; Approvals keeps 124 (jambos-list-panel-verify 8 at 1366).
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct)
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 

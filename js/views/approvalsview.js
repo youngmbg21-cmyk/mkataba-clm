@@ -960,9 +960,10 @@ function renderApprovalsPage(o){
      on each row"): Why it waits never steps out — each row carries its rule; Kind and Whose turn still step
      out where every row says the same, the kind then said in the row's grey line and the turn by its mark.
      The reference rides the grey line, and Our standards is said in words beside the rule.
-     A TRAFFIC LIGHT (owner, 28 Oct 2026): Our standards' three lamps take 132, two-figure counts whole. */
+     A TRAFFIC LIGHT (owner, 28 Oct 2026): Our standards' three lamps fit the 124 it had (slim lamps, .ls-lamp), so
+     the list still stands beside Jambo's panel at 1366 (jambos-list-panel-verify 8). */
   const same=Object.assign({}, apSameCols(W.rows), { why:false });
-  const head=[{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),{t:i18t('ap_col_rule'),w:136},...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('reg_col_standards'),w:132},{t:i18t('ap_pg_waiting'),w:120},
+  const head=[{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),{t:i18t('ap_col_rule'),w:136},...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('reg_col_standards'),w:124},{t:i18t('ap_pg_waiting'),w:120},
     ...(money?[{t:i18t('reg_col_value'),right:true,w:112}]:[]),...(INS?[]:[{t:'',w:220}])];
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
