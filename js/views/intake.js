@@ -1219,8 +1219,18 @@ function ikWithCellHtml(r, asker, o){
    while it is open, the lane that sent it: a small chip with the lane's mark
    on the same line ("You ⇉ NDA lane", as drawn), the name without initials */
 function ikWithListHtml(r){
-  const base=ikWithCellHtml(r, false, { face:false });
-  return r.lane&&!IK_STOPPED.includes(r.status)?`${base} ${ikLaneChipHtml(r.lane)}`:base;
+  /* THE LIST LANGUAGE (owner, 27 Oct 2026, as drawn): nobody is a reading with its dot; a holder
+     wears tinted initials over "holds it", the lane that sent it on that grey line */
+  if(!IK_STOPPED.includes(r.status)){
+    if(!(r.assignee&&r.assignee.id)){
+      const w=typeof listWordHtml==='function'?listWordHtml('amber', i18t('ik_with_nobody')):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
+      return r.lane?`${w} ${ikLaneChipHtml(r.lane)}`:w;
+    }
+    const name=r.assignee.name||'', tone=typeof listAvatarTone==='function'?listAvatarTone(name):'gray';
+    const shown=ikHeldByMe(r)?i18t('ik_with_you'):name;
+    return `<span class="ik-holder"><i class="ls-av ik-av" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)" aria-hidden="true">${esc(ikInitials(name))}</i><span class="ins-c2"><b title="${esc(name)}">${esc(shown)}</b><span>${esc(i18t('ik_with_holds'))}${r.lane?` ${ikLaneChipHtml(r.lane)}`:''}</span></span></span>`;
+  }
+  return ikWithCellHtml(r, false, { face:false });
 }
 /* the lane's chip — the list's With cell and the panel's head say it alike */
 function ikLaneChipHtml(lane, words){
@@ -1662,8 +1672,8 @@ const IK_SEAT = 'intake';
 function ikColDefs(asker){
   return asker
     ? [{ k:'with', label:i18t('ik_f_with'), w:170 }, { k:'promised', label:i18t('ik_f_promised'), w:130 }]
-    : [{ k:'kind', label:i18t('ik_col_kind'), w:88 }, { k:'road', label:i18t('ik_f_road'), w:140 }, { k:'with', label:i18t('ik_f_with'), w:148 },
-      { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }, { k:'promised', label:i18t('ik_f_promised'), w:100 }];
+    : [{ k:'kind', label:i18t('ik_col_kind'), w:104 }, { k:'road', label:i18t('ik_f_road'), w:140 }, { k:'with', label:i18t('ik_f_with'), w:148 },
+      { k:'promised', label:i18t('ik_f_promised'), w:136 }, { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }];
 }
 function ikRepaint(){ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); }
 const ikPlaceKeep = () => { if(typeof window!=='undefined'&&typeof window.placeSave==='function') try{ placeSave(); }catch(_){} };
@@ -1680,7 +1690,7 @@ function ikBoxKeep(){
 }
 function ikLhRegister(asker){
   if(typeof LC_PAGES==='object'&&LC_PAGES)
-    LC_PAGES[IK_SEAT]={ cols:()=>ikColDefs(asker).map(c=>({ k:c.k, label:c.label })), repaint:()=>ikRepaint() };
+    LC_PAGES[IK_SEAT]={ cols:()=>ikColDefs(asker).map(c=>({ k:c.k, label:c.label })), repaint:()=>ikRepaint(), hide:['asked'] };
   if(typeof lhRegister!=='function') return null;
   /* a choice's number: the rows it would leave, the view, the other filter
      and the words held */
@@ -1793,26 +1803,29 @@ function ikPaintRows(){
      enough for HaTi's own references (REQ-37E60C) to read whole. */
   const defs=ikColDefs(asker), byK=Object.fromEntries(defs.map(c=>[c.k,c]));
   const keys=(typeof lcShown==='function')?lcShown(IK_SEAT, defs.map(c=>c.k)):defs.map(c=>c.k);
-  const cols=[{ t:i18t('ik_col_ref'), w:asker?96:108 }, { t:i18t('ik_col_request') }, ...keys.map(k=>({ t:byK[k].label, w:byK[k].w, k }))];
-  /* the Kind, an outlined pill — round 15's own (ap-kind) */
-  const kindPill=k=>`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
+  /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the reference rides the grey
+     line under the request, so the Request leads; a mark says what is asked for — a pen for a contract, a
+     question for advice — and the Kind is a soft chip in the same tone */
+  const cols=[{ t:i18t('ik_col_request') }, ...keys.map(k=>({ t:byK[k].label, w:byK[k].w, k }))];
+  const kindPill=k=>(typeof listChipHtml==='function')?`<span class="ik-kind">${listChipHtml(k==='advice'?'violet':'steel', i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`
+    :`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
+  const kindMark=k=>(typeof listMarkHtml==='function')?listMarkHtml(k==='advice'?'violet':'steel', k==='advice'?'ask':'draft', i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract')):'';
   const advCells=r=>{
     const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
     const late=!IK_ADV_DONE.includes(r.status)&&left!=null&&left<=0;
     return {
       kind:()=>`<td>${kindPill('advice')}</td>`,
       road:()=>`<td>${ikAdvRoadHtml()}</td>`,
-      with:()=>`<td class="ik-with">${r.holder?esc(r.holder):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`}</td>`,
+      with:()=>`<td class="ik-with">${r.holder?esc(r.holder):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:(typeof listWordHtml==='function'?listWordHtml('amber', i18t('ik_with_nobody')):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`)}</td>`,
       files:()=>`<td><span class="ins-quiet">—</span></td>`,
       asked:()=>`<td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`,
-      promised:()=>`<td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>`,
+      promised:()=>`<td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ik-pr-none">${esc(i18t('ik_pr_none'))}</span>`}</td>`,
     };
   };
   const advTr=r=>{
     const c=advCells(r);
     return `<tr data-ins-row data-ik-row="${esc('adv:'+r.id)}" tabindex="-1">
-      <td><span class="ins-ref">${esc(r.id)}</span></td>
-      <td><span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span>${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></td>
+      <td><span class="ik-req">${kindMark('advice')}<span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span><span class="ins-ref">${esc(r.id)}</span> · ${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></span></td>
       ${keys.map(k=>c[k]()).join('')}
     </tr>`;
   };
@@ -1822,9 +1835,11 @@ function ikPaintRows(){
     const prHtml=()=>{
       const pr=intakePromiseSay(r);
       const d=(pr&&r.promisedAt&&!IK_STOPPED.includes(r.status)&&typeof daysUntil==='function')?daysUntil(String(r.promisedAt).slice(0,10)):null;
-      return !pr?`<span class="ins-quiet">—</span>`
-        : d===0?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`
-        : `<span class="${d!=null&&d<0?'ins-late':pr.cls==='ins-soon'?'ins-soon':''}"${pr.sub?` title="${esc(pr.sub)}"`:''}>${esc(pr.day)}</span>`;
+      /* THE LIST LANGUAGE (as drawn): no promise says so; a day carries how far off it is on the grey line */
+      if(!pr) return IK_STOPPED.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ik-pr-none">${esc(i18t('ik_pr_none'))}</span>`;
+      const tone=d!=null&&d<0?'ins-late':pr.cls==='ins-soon'?'ins-soon':'';
+      if(d===0) return `<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`;
+      return `<span class="ik-pr-day${tone?' '+tone:''}">${esc(pr.day)}</span>${pr.sub&&d!=null?`<span class="ik-pr-sub${tone?' '+tone:d<=7?' ins-ok':''}">${esc(pr.sub)}</span>`:''}`;
     };
     return {
       kind:()=>`<td>${kindPill('contract')}</td>`,
@@ -1844,8 +1859,7 @@ function ikPaintRows(){
       : [ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''), stream].filter(Boolean).join(' · ');
     const c=reqCells(r);
     return `<tr data-ins-row data-ik-row="${esc(r.id)}" tabindex="-1">
-      <td><span class="ins-ref">${esc(r.id)}</span></td>
-      <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
+      <td><span class="ik-req">${kindMark('contract')}<span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span><span class="ins-ref">${esc(r.id)}</span> · ${esc(sub)}${asker?'':` · ${esc(i18t('ik_row_asked',{date:ikDay(r.createdAt)}))}`}</span></span></span></td>
       ${keys.map(k=>c[k]()).join('')}
     </tr>`;
   };

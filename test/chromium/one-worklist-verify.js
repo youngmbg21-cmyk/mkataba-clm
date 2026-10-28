@@ -69,7 +69,7 @@ const RULES = [
     };
     const A = await page.evaluate(READ);
     const row = id => A.rows.find(r => r.id === id) || {};
-    check('1 one list, no tabs, a Kind column', A.tabs === 0 && A.heads.includes('Kind') && A.heads.includes('Why it waits') && A.heads.includes('Whose turn'), JSON.stringify({ tabs: A.tabs, heads: A.heads }));
+    check('1 one list, no tabs, a Kind column', A.tabs === 0 && A.heads.includes('Kind') && A.heads.includes('Rule') && A.heads.includes('Whose turn') /* RE-POINTED 28 Oct 2026: the rule's column is headed Rule, as drawn */, JSON.stringify({ tabs: A.tabs, heads: A.heads }));
     /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way; the
        owner's "tabs only"): ONE plain table, no group rows — the head's tabs
        ([data-ap-view]) are the two groups, each showing its own rows, and
@@ -114,7 +114,8 @@ const RULES = [
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       const F = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
         const t = r('.ap-table'), p = r('#ins-panel'), last = [...document.querySelectorAll('[data-ap-row]')].pop();
-        const party = document.querySelector('.ap-table thead th:nth-child(2)');
+        /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the reference rides the party's grey line, so the party is the first column */
+        const party = document.querySelector('.ap-table thead th:nth-child(1)');
         return { list: !!t && t.top < innerHeight, panel: !!p && p.right <= innerWidth + 1, rows: !!last && last.getBoundingClientRect().bottom <= innerHeight,
           party: party ? Math.round(party.getBoundingClientRect().width) : 0,
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });

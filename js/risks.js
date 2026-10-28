@@ -1045,11 +1045,12 @@ function rkEnsureStyle(){
   .rk-ce-dots{display:flex;flex-wrap:wrap;gap:3px}
   .rk-ce-dots i{width:14px;height:4px;border-radius:2px;background:var(--color-divider)}
   .rk-ce-dots i.is-done{background:var(--st-green-fg)} .rk-ce-dots i.is-now{background:var(--color-accent-600, var(--accent))}
-  .rk-ce-card{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;background:var(--color-bg)}
+  /* the editor's Risks tab draws as its Playbook tab, the Legora way (owner, 27 Oct 2026): soft cards, no edges */
+  .rk-ce-card{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border-radius:var(--radius-lg);padding:16px;background:var(--jb-card-fill)}
   .rk-ce-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
   .rk-ce-head .rk-t{min-width:0;font-size:var(--t-body);font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rk-ce-why b{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-quiet);margin-bottom:2px}
-  .rk-ce-end{border:1px solid var(--st-green-fg);border-radius:var(--radius-lg);padding:12px}
+  .rk-ce-end{border-radius:var(--radius-lg);padding:16px;background:var(--jb-card-fill)}
   .doc-xr-rk{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:6px}
   .doc-xr-rk .rk-done{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--st-green-fg)}
   `;

@@ -78,14 +78,14 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       const bar = document.getElementById('top-header');
       const probe = document.createElement('i'); probe.style.background = 'var(--color-bg)'; document.body.appendChild(probe);
       const ground = getComputedStyle(probe).backgroundColor;
-      probe.style.background = 'var(--bar-green)'; const green = getComputedStyle(probe).backgroundColor; probe.remove();
+      probe.style.background = 'var(--bar-black)'; const green = getComputedStyle(probe).backgroundColor; probe.remove();
       return { swatches: ['#brand-navy', '#brand-green', '[data-brand-pick]', '#theme-btn'].filter(q => document.querySelector(q)),
         bar: bar ? getComputedStyle(bar).backgroundColor : '', ground, green,
         dark: document.documentElement.classList.contains('dark'), brand: document.documentElement.getAttribute('data-brand') };
     });
     check('N-3b no brand swatches and no theme button in the bar', shell.swatches.length === 0, JSON.stringify(shell.swatches));
-    /* RE-POINTED 24 Oct 2026 (THE BAR IN COLOUR, owner picked "The SAP way"): the bar is its deep green, --bar-green */
-    check('N-3c the bar is its deep green, standing off the page\'s ground', !!shell.green && shell.bar === shell.green && shell.ground !== shell.bar && !shell.dark && shell.brand === null, JSON.stringify(shell));
+    /* RE-POINTED 27 Oct 2026 (THE BAR IN BLACK, owner: "Black it is"): the bar is its near-black, --bar-black */
+    check('N-3c the bar is its near-black, standing off the page\'s ground', !!shell.green && shell.bar === shell.green && shell.ground !== shell.bar && !shell.dark && shell.brand === null, JSON.stringify(shell));
 
     /* ============ N-4 RE-POINTED 20 Oct 2026: the Board wears Chambers ============
        The Board face is always the light screen now, its glow the accent's

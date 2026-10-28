@@ -141,15 +141,20 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
     await railShot('2-typing.png');
     await page.evaluate(() => { const t = document.getElementById('ce-ask'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); t.blur(); });
 
-    /* ---- B. SHADED COLUMN ---- */
+    /* ---- B. THE FACTS, THE LEGORA WAY ----
+       RE-POINTED 27 Oct 2026 (owner picked "The Legora way": "The editor panel has so many edge lines or vertical
+       lines it does not look professional"): the shaded label column and its 2px line are gone; each fact is a bold
+       name over its reading, no ground of its own, no line down, labels in normal case. */
     const b = await page.evaluate(() => {
       const li = document.querySelector('#ce-lane .ce-read li'); if (!li) return null;
-      const k = li.querySelector('b'), v = li.querySelector('span');
-      const kb = getComputedStyle(k), vb = getComputedStyle(v);
-      return { kBg: kb.backgroundColor, vBg: vb.backgroundColor, line: kb.borderRightStyle + ' ' + kb.borderRightWidth, caps: kb.textTransform };
+      const k = li.querySelector('b'), v = li.querySelector('span'), ul = li.closest('.ce-read');
+      const kb = getComputedStyle(k), vb = getComputedStyle(v), ub = getComputedStyle(ul);
+      const kr = k.getBoundingClientRect(), vr = v.getBoundingClientRect();
+      return { kBg: kb.backgroundColor, vBg: vb.backgroundColor, line: kb.borderRightStyle + ' ' + kb.borderRightWidth, caps: kb.textTransform,
+        over: vr.top >= kr.bottom - 1, box: ub.borderLeftWidth + ' ' + ub.borderLeftStyle, w: kb.fontWeight };
     });
-    check(!!b && b.kBg !== b.vBg, 'B1 the labels\' column has its own ground', b && JSON.stringify(b));
-    check(!!b && /^solid 2px$/.test(b.line) && b.caps !== 'uppercase', 'B2 a 2px line is painted between labels and explanations, labels in normal case', b && b.line + ' ' + b.caps);
+    check(!!b && b.kBg === 'rgba(0, 0, 0, 0)' && b.vBg === 'rgba(0, 0, 0, 0)' && b.over, 'B1 each fact is a name over its reading, neither on a ground of its own', b && JSON.stringify(b));
+    check(!!b && !/^solid [1-9]/.test(b.line) && !/^[1-9]\S* solid/.test(b.box) && b.caps !== 'uppercase' && Number(b.w) >= 600, 'B2 no line down the facts, the name bold and in normal case', b && JSON.stringify(b));
 
     /* ---- C. NO WINDOW, NO EXPAND ---- */
     const c = await page.evaluate(() => {

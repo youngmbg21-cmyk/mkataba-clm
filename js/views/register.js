@@ -390,6 +390,7 @@ const REG_SORTS=[
   {k:'ref',get label(){ return i18t('reg_sort_ref'); }},
   {k:'party',get label(){ return i18t('reg_sort_party'); }},
   {k:'stream',get label(){ return i18t('reg_sort_stream'); }},
+  {k:'standards',get label(){ return i18t('reg_sort_standards'); }},
   {k:'stage',get label(){ return i18t('reg_sort_stage'); }},
   {k:'signed',get label(){ return i18t('reg_sort_signed'); }},
   /* THE TWO COLUMNS THE REFERENCE ADDED (second pass, 21 Sep 2026) sort too —
@@ -675,13 +676,16 @@ const REG_COL_KEYS_INS      = ['mk','counterparty','stage','value'];
 /* WHOSE MOVE (round 14 of the redesign: the owner picked "Whose move" and said
    yes to a Lead column, 17 Oct 2026): who leads each deal, so a deal a
    colleague leads does not read as the reader's own move. */
-const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','round','changes','waiting','lead'];
+/* THE LIST LANGUAGE (owner, 27 Oct 2026: "keep" the Clauses in play): the mark says whose move; the
+   reference, the round and the lead move to the grey line, Round and Lead one press away under Columns
+   (LC_PAGES.negotiations hide), and the clauses with open redlines stand as chips, the value after */
+const REG_COL_KEYS_NEGO_INS = ['counterparty','clauses','changes','waiting','value','round','lead'];
 /* round + changes + waiting = stage + value (340), so the reference and the
    counterparty stay cut identically on both seats (inspector-verify 2e). */
 /* the Lead column (round 14) is the counterparty's to give: its words and
    the other three's stay whole (the old pairing with stage + value, 340, was
    retired with inspector-verify 2e on 15 Oct 2026) */
-const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:64, changes:168, waiting:88, lead:84 };
+const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:64, changes:176, waiting:132, lead:84, clauses:196 };
 /* THE CONTRACTS PLACE ON HOME HAS NO INSPECTOR (the overnight work order,
    step 7): a row press opens the contract on the paper, and its six columns
    are the drawing's — the reference, the counterparty over the agreement,
@@ -696,14 +700,17 @@ const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:64, change
    printed twice), and the drawing's columns follow: Stage · Ends · Value.
    Owner stays a column, hidden until the reader shows it under Columns
    (LC_PAGES.contracts hide:['owner']); the row's ⋯ ends every row. */
-const REG_COL_KEYS_HOME = ['counterparty','stage','expiry','value','owner','acts'];
+/* THE LIST LANGUAGE (owner, 27 Oct 2026: "keep contracts … as designed"): the stage leaves its column
+   for the grey line under the agreement, a mark leading the row; Stream and Our standards stand in
+   its place (docs/MAP-HISTORY.md "THE LIST LANGUAGE"). */
+const REG_COL_KEYS_HOME = ['counterparty','stream','standards','expiry','value','owner','acts'];
 /* Value is 14, not 10 (the checkers of step 7): at 10 parts of a 900px column
    "KES 2.20M" was cut to "KES 2.20…", hiding whether it was thousands or
    millions; the four parts come out of the counterparty, whose names end in an
    ellipsis with the whole on the hover. */
 /* by position over REG_COL_KEYS_HOME; a column the reader hid gives its
    share to the agreement (regHomeColW), so the drawn ones still sum to 100 */
-const REG_COL_W_HOME    = [34,17,15,14,14,6];
+const REG_COL_W_HOME    = [29,14,18,12,11,10,6];
 /* THE PLACE'S LIST FITS ITS COLUMN: Home's paper column can be narrow (an
    820 tablet, a 1024 window, the split dragged toward the paper), so below
    REG_HOME_NARROW_W of PLACE — measured, the host's own width — the List
@@ -762,7 +769,7 @@ function regColKeysSeat(){
     /* ASK A COLUMN (20 Oct 2026): the answers stand before the ⋯, and Owner
        steps aside for them, as drawn (it stays in the filters and the sort) */
     const ask=regCtAskKeys();
-    if(ask.length) shown=shown.filter(k=>k!=='owner');
+    if(ask.length) shown=shown.filter(k=>k!=='owner'&&k!=='stream');
     return ['counterparty'].concat(shown, ask, ['acts']);
   }
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
@@ -1398,6 +1405,11 @@ const REG_CMP={
     const e=regBlanksLast(A!=null, B!=null); if(e!==null) return e;
     return A-B; },
   risk:(a,b)=>contractRisk(a)-contractRisk(b),
+  /* worst first: the most missing, then the most that differ; a contract not checked sorts last both ways */
+  standards:(a,b)=>{
+    const r=c=>(typeof stdRowReading==='function')?stdRowReading(c):null;
+    const A=r(a), B=r(b); const e=regBlanksLast(!!(A&&A.total), !!(B&&B.total)); if(e!==null) return e;
+    return (B.miss-A.miss)||(B.off-A.off); },
   name:(a,b)=>(a.name||'').localeCompare(b.name||''),
   expiry:(a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; },
   stage:(a,b)=>((REG_STAGE_ORDER[a.status]??9)-(REG_STAGE_ORDER[b.status]??9)),
@@ -1457,7 +1469,7 @@ const REG_CMP={
 };
 // direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
 const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1, signed:-1,
-  ref:1, party:1, stream:1, move:1, owner:1, kind:1 };
+  ref:1, party:1, stream:1, standards:1, move:1, owner:1, kind:1 };
 /* ---- THIS LIST DOES NOT PAGE, AND THAT IS THE ANSWER TO THE BAND BREAK ----
    Contracts pages at 40 because a register holds every agreement a company has
    ever had. Live negotiations are the handful being argued over right now — a
@@ -1637,7 +1649,7 @@ function regNegoToolsHtml(R){ return regToolsHtml(R, true); }
    ones after who the row is (Ref and the counterparty always lead). */
 function regNegoHeadReg(){
   if(typeof window.LC_PAGES==='object'&&window.LC_PAGES&&!LC_PAGES[REG_NEGO_SEAT])
-    LC_PAGES[REG_NEGO_SEAT]={ cols:()=>regNegoColDefs(), repaint:()=>regNegoRepaint() };
+    LC_PAGES[REG_NEGO_SEAT]={ cols:()=>regNegoColDefs(), repaint:()=>regNegoRepaint(), hide:['round','lead'] };
   if(typeof window.lhRegister!=='function') return null;
   return lhRegister(REG_NEGO_SEAT, {
     noun:'negotiations', boxId:'ngl-q',
@@ -1684,7 +1696,7 @@ function regNegoFootHtml(cs){
    counterparty, the column with the give. */
 const REG_NEGO_FIXED=['mk','counterparty'];
 const REG_NEGO_COL_WORD={ kind:'reg_col_type_round', value:'reg_col_value', expiry:'reg_col_ends', stage:'reg_col_stage', move:'ngl_col_move',
-  round:'ngl_col_round', changes:'ngl_col_changes', waiting:'ngl_col_waiting', lead:'ngl_col_lead' };
+  round:'ngl_col_round', changes:'ngl_col_changes', waiting:'ngl_col_waiting', lead:'ngl_col_lead', clauses:'ngl_col_clauses' };
 function regNegoShapeKeys(){ return regOnNego(()=>regColKeysSeat()); }
 function regNegoColDefs(){
   return regNegoShapeKeys().filter(k=>!REG_NEGO_FIXED.includes(k)).map(k=>({ k, label:i18t(REG_NEGO_COL_WORD[k]||k) }));
@@ -1852,7 +1864,7 @@ function regCtToolsHtml(R){
    shows it (the drawing draws Agreement · Stage · Ends · Value). The
    agreement leads and the row's ⋯ ends every row, whatever is chosen. */
 const REG_CT_FIXED=['counterparty','acts'];
-const REG_CT_COL_WORD={ stage:'reg_col_stage', expiry:'reg_col_ends', value:'reg_col_value', owner:'reg_col_owner_word' };
+const REG_CT_COL_WORD={ stage:'reg_col_stage', stream:'reg_col_stream', standards:'reg_col_standards', expiry:'reg_col_ends', value:'reg_col_value', owner:'reg_col_owner_word' };
 function regCtShapeKeys(){ return regOnCt(()=>regHomeNarrow()?REG_COL_KEYS_HOME_NARROW:REG_COL_KEYS_HOME); }
 function regCtColDefs(){
   return regCtShapeKeys().filter(k=>!REG_CT_FIXED.includes(k)).map(k=>({ k, label:i18t(REG_CT_COL_WORD[k]||k) }));
@@ -1936,7 +1948,7 @@ function regCtFootHtml(cs){
 function regHomeColW(keys){
   const ask=keys.filter(k=>String(k).startsWith('ask:'));
   const narrow=regHomeNarrow();
-  const shape=narrow?REG_COL_KEYS_HOME_NARROW:ask.length?['counterparty','stage','expiry','value'].concat(ask,['acts']):REG_COL_KEYS_HOME;
+  const shape=narrow?REG_COL_KEYS_HOME_NARROW:ask.length?['counterparty','standards','expiry','value'].concat(ask,['acts']):REG_COL_KEYS_HOME;
   const w=narrow?REG_COL_W_HOME_NARROW:ask.length&&typeof window.askColWidths==='function'?askColWidths(ask.length):REG_COL_W_HOME;
   const at=k=>{ const i=shape.indexOf(k); return i>=0&&typeof w[i]==='number'?w[i]:0; };
   const out=keys.map(at);
@@ -2756,10 +2768,10 @@ function regRowsHtml(cs){
        Wall's own words for why the party is missing ("Kept to its list") */
     const coded=placeRows&&!!c._codeNamed;
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
-        <span class="reg-id">${regAvatarHtml(cpName)}<span class="reg-id-txt">
+        <span class="reg-id">${placeRows?regStageMarkHtml(c):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        </span><span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}`:`${regTitleOf(c)}`}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        </span><span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?regNegoLineHtml(c,refLine):`${regTitleOf(c)}`}</span>
         </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
@@ -2769,13 +2781,20 @@ function regRowsHtml(cs){
     CELL.kind=neg?`<td class="reg-typecell">${esc(kindRound)}</td>`:'';
     if(neg&&insOn){ const nc=regNegoCols(c);
       CELL.round=`<td class="reg-num">${esc(nc.round)}</td>`;
-      CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${esc(nc.changes)}</td>`;
+      /* WHAT IS OPEN, IN WORDS (the list language): ours to answer amber, sent and waiting steel, settled green */
+      const chTone=c._ngBand==='you'?'amber':c._ngBand==='them'?'steel':'green';
+      /* its grey line, as drawn: where the asks are ("in payment and liability"), or what follows a settled word */
+      const chParts=String(nc.changes).split(' · '), chNames=c._ngBand==='you'?regNegoClauseNames(c).slice(0,2).map(n=>n.toLowerCase()):[];
+      const chSub=chParts.length>1?chParts.slice(1).join(' · '):chNames.length?i18t('ngl_ch_in',{ list:chNames.join(i18t('ngl_ch_and')) }):'';
+      CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${window.listWordHtml?listWordHtml(chTone,chParts[0],chSub):esc(nc.changes)}</td>`;
+      CELL.clauses=`<td class="reg-cl">${regNegoClauseChips(c)}</td>`;
       const ld=regNegoLeadOf(c);
       CELL.lead=`<td class="reg-lead" title="${esc(ld.name)}">${esc(ld.short)}</td>`;
       /* AMBER WHERE IT WAITS ON THE READER (round 14, "Whose move" as drawn):
          our move, on a deal the reader leads — the one wait that is theirs */
       const onMe=ld.mine&&c._ngBand==='you'&&nc.waiting!=='\u2014';
-      CELL.waiting=`<td class="reg-wait${onMe?' is-mine':''}" style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`; }
+      const wSub=nc.waiting==='\u2014'?'':i18t(c._ngBand==='you'?'ngl_wait_ours':'ngl_wait_theirs');
+      CELL.waiting=`<td class="reg-wait${onMe?' is-mine':''}" style="white-space:nowrap"><span class="reg-wait-d">${esc(nc.waiting)}</span>${wSub?`<span class="reg-wait-s">${esc(wSub)}</span>`:''}</td>`; }
     /* ---- THE `stream` CELL IS GONE FROM BOTH SEATS (24 Sep 2026) ----
           Owner-ruled with the filter kept. DELETED RATHER THAN STUBBED, for
           the `name` column's reason below. regStreamName stays: the sort by
@@ -2783,6 +2802,12 @@ function regRowsHtml(cs){
           its own Folder column. */
     CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'font-family:inherit;color:var(--color-neutral-600)'}"${isMonetary(c)?'':` title="${esc(i18t('reg_non_monetary'))}"`}>${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
+    /* THE LIST LANGUAGE (27 Oct 2026): the stream a soft chip, the standards in words (stdRowWordsHtml) */
+    CELL.stream=`<td style="white-space:nowrap;overflow:hidden">${(()=>{ const n=regStreamName(c); if(!n||!window.listChipHtml) return '<span class="reg-dash">—</span>';
+      /* the stream's short word where the house has one (STREAM_SHORT), its whole name on the hover */
+      const short=(window.STREAM_SHORT&&STREAM_SHORT[c.folder])||n;
+      return listChipHtml(listStreamTone(c.folder),short).replace(/ title="[^"]*"/,` title="${esc(n)}"`); })()}</td>`;
+    CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}</td>`;
     /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
        7: in Home's narrower column "· in 25 days" was cut on every screen) —
        the row is two lines already, so it costs no height; the hover says
@@ -2846,6 +2871,60 @@ const regAvatarTone = name => {
   return h % REG_AV_TONES;
 };
 const regAvatarHtml = name => `<span class="reg-av av-${regAvatarTone(name)}" aria-hidden="true">${esc(regInitials(name))}</span>`;
+/* ---- THE ROW'S MARK AND ITS LINE (the list language, owner, 27 Oct 2026) ----
+   ONE reading of the stage (contractStatusMeta) in two dresses: the mark that leads the row — a
+   ticked circle once signed, a dashed one for a draft, a triangle for what ended or was declined, a
+   half circle for everything in between — and the stage's word in its own tone in the grey line,
+   then when the contract last moved (the trail's last day, carried by the light list). */
+function regStageTone(c){
+  let m=null; try{ m=contractStatusMeta(c); }catch(_){ m=null; }
+  const t=m&&/--st-([a-z]+)-/.exec(String(m.dot||''));
+  return { tone:t?t[1]:'gray', m };
+}
+function regStageMarkHtml(c){
+  const { tone, m }=regStageTone(c);
+  const kind=tone==='green'?'done':tone==='ruby'?'late':(c&&c.status==='Draft')?'todo':tone==='gray'?'todo':'part';
+  return window.listMarkHtml?listMarkHtml(tone,kind,m&&m.label):'';
+}
+/* THE NEGOTIATIONS ROW (the list language): whose move as the mark — ours a half circle in amber, theirs
+   a clock in steel, settled a ticked circle — and the grey line "ref · Round 2 · Lead: You" */
+function regNegoMarkHtml(c){
+  if(!window.listMarkHtml) return '';
+  const b=c&&c._ngBand;
+  return b==='you'?listMarkHtml('amber','part',i18t('reg_pill_your_move')):b==='them'?listMarkHtml('steel','wait',i18t('reg_pill_their_move')):listMarkHtml('green','done');
+}
+function regNegoLineHtml(c,refLine){
+  const nc=regNegoCols(c), ld=regNegoLeadOf(c);
+  return `${refLine} · ${esc(i18t('ngl_round_lead',{ n:nc.round, who:ld.short }))}`;
+}
+/* THE CLAUSES IN PLAY: the clauses with a change still open, as the paper names them (clauseNameShown,
+   its number left off), three at most and the count of the rest; RAW over c.changes */
+function regNegoClauseNames(c){
+  const ch=Array.isArray(c&&c.changes)?c.changes:[];
+  const seen=new Set(), names=[];
+  for(const x of ch){
+    if(!x||(x.status&&x.status!=='pending')||x.superseded) continue;
+    const raw=String(x.clauseLabel||'').trim(); if(!raw) continue;
+    const shown=(typeof clauseNameShown==='function'?clauseNameShown(raw):raw).replace(/^[\dIVXLCivxlc.()§]+\s+/,'').trim()||raw;
+    const k=shown.toLowerCase(); if(seen.has(k)) continue; seen.add(k); names.push(shown);
+  }
+  return names;
+}
+function regNegoClauseChips(c){
+  const names=regNegoClauseNames(c);
+  if(!names.length) return '<span class="reg-dash">\u2014</span>';
+  const chips=names.slice(0,3).map(n=>window.listChipHtml?listChipHtml('gray',n):esc(n)).join(' ');
+  return chips+(names.length>3?` <span class="reg-cl-more">+${names.length-3}</span>`:'');
+}
+function regStageLineHtml(c){
+  const { m }=regStageTone(c); if(!m) return '';
+  const at=c&&(c._lastAuditAt||c.updatedAt||c.lastAction);
+  const ago=at&&typeof window.rlAgoWords==='function'?rlAgoWords(at):'';
+  /* the SHORT word, as the stage column's dot printed it (contractStatusDotHtml) */
+  const W=window, short=(W.READY_META&&m===W.READY_META&&W.READY_META_SHORT)||(W.HANDOVER_META&&m===W.HANDOVER_META&&W.HANDOVER_META_SHORT)
+    ||(W.HANDOVER_SIGNED_META&&m===W.HANDOVER_SIGNED_META&&W.HANDOVER_SIGNED_META_SHORT)||m;
+  return ` · <span class="reg-stg-w" style="color:${m.tx}" title="${esc(m.label)}">${esc(short.label)}</span>${ago?` · ${esc(ago)}`:''}`;
+}
 
 /* THE FOOT IS WRITTEN IN PLACE, so its live region is heard when the count
    moves (js/views/listhead.js lhFootPut; main wrote #reg-showing's words in
@@ -4204,10 +4283,12 @@ function renderRegister(opts){
                   if(k==='signed') return sortableTh('signed',i18t('reg_col_signed'),'',k);
                   if(k==='expiry') return sortableTh('expiry',i18t('reg_col_ends'),'',k);
                   if(k==='stage') return sortableTh('stage',i18t('reg_col_stage'),'',k);
+                  if(k==='stream') return sortableTh('stream',i18t('reg_col_stream'),'',k);
+                  if(k==='standards') return sortableTh('standards',i18t('reg_col_standards'),'',k);
                   if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="${INS?'':'text-align:right;'}${colAt('',k)}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
                     : sortableTh('move',i18t('ngl_col_move'),'',k);
                   if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);
-                  if(k==='round'||k==='changes'||k==='waiting'||k==='lead'){ const i=_colN; return `<th style="${k==='waiting'?'text-align:right;':''}${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
+                  if(k==='round'||k==='changes'||k==='waiting'||k==='lead'||k==='clauses'){ const i=_colN; return `<th style="${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
                   if(k.startsWith('ask:')&&typeof window.askColThHtml==='function'){ const i=_colN; return askColThHtml(k.slice(4),colAt('',k),gripFor(i),R.sort===k?sortCaret(k):''); }
                   return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
                 }).join('')}
@@ -4508,4 +4589,4 @@ Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSigned
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});

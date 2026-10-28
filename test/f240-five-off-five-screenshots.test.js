@@ -377,8 +377,10 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
        column from both pages as well but not from the filter") ----
        The stream stopped being a column on either seat, so the row builder
        writes it nowhere; sorting by it and filtering by it both stay. */
-    assert.ok(!/regStreamName\(c\)/.test(rowsFn),
-      'the row no longer writes the stream out — the column is gone');
+    /* ---- RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): the stream
+       is a column again on the Contracts place, a soft chip, read through the one reading its sort reads */
+    assert.ok(/CELL\.stream=`<td[^\n]*const n=regStreamName\(c\)/.test(rowsFn),
+      'the row writes the stream through the one reading its sort reads');
     /* The height is stated on the CELL, which for a td is a floor rather than a
        cap — content taller than it still expands the row. */
     assert.match(css, /\.reg-table\{--reg-row-h:36px\}/);

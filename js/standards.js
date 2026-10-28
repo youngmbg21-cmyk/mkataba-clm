@@ -481,6 +481,23 @@ function stdMeets(c){
   return vs.filter(v => v && (v.status === 'aligned' || v.status === 'ok'));
 }
 const stdNeedsLegal = v => !!(v && v.escalate && !v.accepted);
+/* ---- THE ROW'S READING (the list language, owner, 27 Oct 2026: "In words") ----
+   How ONE contract measures against Our standards, for a list row: the worst news leads ("2 missing",
+   "1 differs from ours", "All 8 met"), the rest in the grey line under it. RAW over the stored check
+   and nothing run: null where no check is stored, which a row says as "Not checked yet" — never clean.
+   A cut-short check is never stored (pbStandardsFor's rule), so "All N met" only reads a finished one.
+   "Does not apply" (na) counts in neither the met nor the total. Counting only: the words are
+   js/listlang.js's (stdRowWordsHtml), as this file draws nothing. */
+function stdRowReading(c){
+  const vs = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : null;
+  if (!vs) return null;
+  const counted = vs.filter(v => v && String(v.status || '') !== 'na');
+  const miss = counted.filter(v => v.status === 'missing').length;
+  /* anything not settled is work (PB_SETTLED_STATUSES' rule): a word no engine writes counts as differing, never met */
+  const off = counted.filter(v => !['missing', 'aligned', 'ok'].includes(String(v.status || ''))).length;
+  const met = counted.filter(v => v.status === 'aligned' || v.status === 'ok').length;
+  return { miss, off, met, total: counted.length };
+}
 /* THE BOOK A CONTRACT WAS CHECKED AGAINST is the one its check STAMPED — the
    Overview prints that one, never a book re-resolved today. An older check
    carries no key and answers today's reading. */
@@ -604,5 +621,5 @@ Object.assign(window, { stdRoundsFor, stdKeptQuiet, STD_KEEP_DAYS, stdNumberWord
   stdStanceOf, stdFigureIn, stdFallbackOf, stdPreferredFigure,
   stdWindow, stdHeld, stdHistoryFor, stdLearned, stdSignedBook, stdDraftFromSigned,
   stdUsingDefaults, stdDraftWorthOffering,
-  STD_DEPART_STATUSES, stdCheckedBook, stdDepartures, stdMeets, stdNeedsLegal, stdBookOf,
+  STD_DEPART_STATUSES, stdCheckedBook, stdDepartures, stdMeets, stdNeedsLegal, stdBookOf, stdRowReading,
   stdDepartsFrom, stdBookContracts, STD_LINE_RANK, stdBookLines, stdBookFor, stdOpenToChange, STD_FACT_OF, STD_FACT_NOT, stdValueFor });

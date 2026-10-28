@@ -76,6 +76,7 @@ function stage(o = {}){
   sb.window = sb; sb.self = sb;
   vm.createContext(sb);
   vm.runInContext(read('js/participants.js'), sb, { filename: 'participants.js' });
+  vm.runInContext(read('js/listlang.js'), sb, { filename: 'listlang.js' });   // the list language (27 Oct 2026)
   vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
   vm.runInContext(read('js/views/customers.js'), sb, { filename: 'customers.js' });
   vm.runInContext(read('js/views/directory.js'), sb, { filename: 'directory.js' });
@@ -112,11 +113,12 @@ describe('f795 (1) the band as drawn', () => {
 describe('f795 (2) the table as drawn', () => {
   const { sb, doc } = stage();
   sb.renderDirectory();
-  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): Name · Party · Contracts
+  /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Name · Party · Side · Contracts.
+     RE-POINTED 21 Oct 2026 (Part 8, the Legora way): Name · Party · Contracts
      as drawn; the card's own head went — the count is the lit tab's, the
      order the Name column's hover, Columns at the end of the head's chip row */
   test('the columns and the list\'s head', () => {
-    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Party or company', 'Contracts']);
+    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Party or company', 'Side', 'Contracts']);
     assert.equal(doc.querySelector('.dir-card .ap-card-h'), null, 'the card is the table and its foot');
     assert.equal(sb.LH_PAGES.directory.tabs().find(t => t.k === 'all').n, 15);
     assert.equal(doc.querySelector('#dir-page thead th').getAttribute('title'), 'ours first, then theirs, by name');
@@ -132,8 +134,8 @@ describe('f795 (2) the table as drawn', () => {
   test('a row says it all: (you), the job title and role here under the name, party or company, contracts', () => {
     const r = rowsOf(doc);
     const cells = row => [...row.children].map(td => td.textContent.replace(/\s+/g, ' ').trim());
-    assert.equal(JSON.stringify(cells(r[0])), JSON.stringify(['VR Vera Reader (you) No job title on file · Viewer', 'Highland Corporate Ltd', '—']));
-    assert.equal(JSON.stringify(cells(r[4])), JSON.stringify(['B0 Buyer 01 No job title on file', 'Party 01 Ltd', '1']));
+    assert.equal(JSON.stringify(cells(r[0])), JSON.stringify(['VR Vera Reader (you) No job title on file · Viewer', 'Highland Corporate Ltd', 'Our side', '—']));
+    assert.equal(JSON.stringify(cells(r[4])), JSON.stringify(['B0 Buyer 01 No job title on file', 'Party 01 Ltd', 'Their side', '1']));
     assert.match(r[0].querySelector('.dir-sub .dir-none').textContent, /title/i, 'a missing job title still says so');
     assert.match(r[0].querySelector('.dir-nm-w').getAttribute('title'), /v@x\.test/, 'the address on the name\'s hover');
     assert.match(rowsOf(doc).find(x => nameOf(x) === 'Amina Otieno').querySelector('.dir-sub').textContent, /^General Counsel · Admin$/);
@@ -167,10 +169,10 @@ describe('f795 (3) the boxes narrow; twelve at a time; Columns', () => {
   });
   test('Columns hides a column, for this reader', () => {
     const { sb, doc } = stage();
-    /* (Part 8) the columns as drawn: Party or company · Contracts */
+    /* the columns as drawn: Party or company · Side · Contracts (27 Oct 2026; Part 8 had no Side) */
     sb.localStorage.setItem('hati.v1.cols.directory', JSON.stringify({ hidden: ['party'] }));
     sb.renderDirectory();
-    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Contracts']);
+    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Side', 'Contracts']);
   });
 });
 
@@ -269,12 +271,14 @@ describe('f795 (5) someone on their side, as drawn', () => {
    pill drops under a tight name. Somebody on no contract wears the same panel
    shape as everyone. RED at the first fix (cdc5051). */
 describe('f795 (6) check #2\'s differences, built', () => {
-  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): Side, In HaTi and
+  /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Side is a column again — an icon and
+     "Our side" / "Their side" in its tone — between Party or company and Contracts.
+     RE-POINTED 21 Oct 2026 (Part 8, the Legora way): Side, In HaTi and
      Email are no columns any more — the side is the tab, the role reads under
      the name after the job title, the address is the panel's */
-  test('6a the job title and the role here read under the name; no Side, In HaTi or Email column', () => {
+  test('6a the job title and the role here read under the name; Side is a column, no In HaTi or Email column', () => {
     const { sb } = stage();
-    assert.deepEqual(Array.from(sb.dirColDefs(), c => c.k), ['party', 'contracts']);
+    assert.deepEqual(Array.from(sb.dirColDefs(), c => c.k), ['party', 'side', 'contracts']);
     const ours = sb.dirBook().find(x => x.side === 'ours' && x.title);
     assert.match(sb.dirRowHtml(ours, ['party', 'contracts']), /<span class="dir-sub"><span class="dir-title">General Counsel<\/span> · <span class="dir-role">Admin<\/span><\/span>/);
     assert.equal(sb.dirCellHtml('email', ours), '<td></td>');

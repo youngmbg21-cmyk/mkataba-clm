@@ -475,7 +475,7 @@ function clauseEditorCss(){
      own track. Costs no layout — nothing here is absolutely positioned but
      that card. */
   .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column; position:relative;
-    background:var(--color-surface); border-left:1px solid var(--color-divider)}
+    background:var(--color-surface)}
   .ce-rail .ce-lane{flex:1; min-height:0}
   /* ONE ROW OF FEET (Young, 5 Oct 2026: "bring them down to the same level
      as the discard changes and file as a change … shorten to Discard and File
@@ -802,8 +802,11 @@ function clauseEditorCss(){
   .ce-you{display:flex; justify-content:flex-end; margin:0 0 var(--s-3)}
   .ce-you span{max-width:86%; background:var(--st-steel-bg); color:var(--color-text);
     padding:var(--s-2) 11px; font-size:var(--t-meta); line-height:1.5}
-  .ce-ai{margin:0 0 var(--s-4); padding-left:11px;
-    box-shadow:inset 2px 0 0 color-mix(in srgb, var(--accent-solid) 45%, transparent)}
+  /* THE LEGORA WAY (owner picked it, 27 Oct 2026): nothing boxed and no line down the panel — his turns are named
+     by his mark (ceWhoHtml), his worked pieces sit on the soft card his answers wear everywhere in HaTi */
+  .ce-ai{margin:0 0 var(--s-4)}
+  .ce-who{display:flex; align-items:center; gap:6px; margin:0 0 6px; font-size:var(--t-meta); font-weight:var(--w-title); color:var(--accent-ink)}
+  .ce-who b{font-weight:inherit}
   .ce-ai p.t{margin:0 0 11px; font-size:var(--t-meta); line-height:1.6}
   .ce-ai p.t:last-child{margin-bottom:0}
   .ce-explain{margin:0 0 11px}
@@ -821,20 +824,17 @@ function clauseEditorCss(){
   /* SHADED COLUMN (Young, 7 Oct 2026, "Jambo Panel Tidy-up"): the labels
      on a pale accent column in normal case, a 2px line between them and the
      explanations, faint lines between rows, one thin border round the block. */
-  .ce-read{margin:0 0 var(--s-4); padding:0; display:flex; flex-direction:column;
-    border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden}
-  .ce-read li{list-style:none; display:flex; font-size:var(--t-meta); line-height:1.5}
-  .ce-read li + li{border-top:1px solid var(--color-divider)}
-  .ce-read li b{flex:none; width:112px; padding:6px 10px; color:var(--accent-ink); font-weight:var(--w-title);
-    font-size:var(--t-label); background:var(--color-accent-50);
-    border-right:2px solid var(--color-accent-100)}
-  .ce-read li span{flex:1; min-width:0; padding:6px 10px; background:var(--color-surface)}
+  /* the facts as plain lines, a bold name over its reading (the Legora way, 27 Oct 2026) */
+  .ce-read{margin:0 0 var(--s-4); padding:0; display:flex; flex-direction:column; gap:var(--s-2)}
+  .ce-read li{list-style:none; display:block; font-size:var(--t-meta); line-height:1.5}
+  .ce-read li b{display:block; font-weight:var(--w-title); font-size:var(--t-label); color:var(--color-text)}
+  .ce-read li span{display:block; min-width:0}
 
   /* ONE CARD SHAPE, whether it comes from the chat or from the scan. On a
      white lane a white card needs its edge to do the work the ground used to
      do, so the border stays and the fill goes very slightly off-white. */
-  .ce-card{background:var(--color-neutral-100); color:var(--color-text);
-    border:1px solid var(--color-divider); padding:10px 11px; margin-bottom:var(--s-2)}
+  .ce-card{background:var(--jb-card-fill); color:var(--color-text);
+    border:0; border-radius:var(--radius-lg); padding:var(--s-4); margin-bottom:var(--s-2)}
   .ce-card .n{display:flex; align-items:center; gap:var(--s-2); font-size:var(--t-body); font-weight:var(--w-title)}
   .ce-card .n .g{flex:1; min-width:4px}
   .ce-card .chip{flex:none; font-size:var(--t-figure); font-weight:var(--w-title); letter-spacing:.06em;
@@ -915,14 +915,12 @@ function clauseEditorCss(){
      printed whole on the panel under a 2px accent line, and the panel scrolls
      as ONE. Its buttons stick to the lane's bottom edge while any of the
      suggestion is on screen (sticky inside the card, so they leave with it). */
-  .ce-card.ce-sug{background:none; border:0; border-left:2px solid var(--accent-solid);
-    padding:0 0 0 11px; margin-bottom:var(--s-3)}
+  .ce-card.ce-sug{margin-bottom:var(--s-3)}
   .ce-rail .ce-card.ce-sug .pv{max-height:none; overflow:visible; border:0; padding:0;
     background:none; margin-top:var(--s-2)}
   .ce-card.ce-sug .pv .ce-sug-left{display:block; margin-top:6px; font-size:var(--t-label); color:var(--color-neutral-500); font-style:italic}
-  .ce-card.ce-sug > .av{position:sticky; bottom:-14px; z-index:1; margin:10px 0 0 -11px;
-    padding:8px 0 8px 11px; background:var(--color-surface); border-top:1px solid var(--color-divider);
-    box-shadow:0 -6px 10px -8px rgba(0,0,0,.18)}
+  .ce-card.ce-sug > .av{position:sticky; bottom:-14px; z-index:1; margin:var(--s-3) 0 0;
+    padding:var(--s-2) 0 0; background:var(--jb-card-fill)}
   /* EXPAND, in the card's own head (Fill the panel, 5 Oct 2026): a quiet
      control on the compact ladder, never a second filled button. */
   .ce-card .n .ce-x{flex:none; display:inline-flex; align-items:center; gap:5px; height:var(--ctl-h-sm);
@@ -1015,7 +1013,7 @@ function clauseEditorCss(){
      one builder's (.jb-card, index.html); here only its place on the rail
      and "Asking about" riding the control row beside +. .ce-ask, .ce-askbox
      and the square send outside the box are STALE. */
-  .ce-askwrap{flex:none; padding:10px 14px 0; border-top:1px solid var(--color-divider)}
+  .ce-askwrap{flex:none; padding:10px 14px 0}
   /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box") */
   .ce-tagline{display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;
     font-size:var(--t-label); color:var(--color-neutral-500)}
@@ -1093,8 +1091,8 @@ function clauseEditorCss(){
     box-shadow:inset 0 -2px 0 var(--accent-solid);
   }
   .ce-rail #ce-scope{flex:none}
-  .ce-scope{margin:0 13px 9px; padding:8px 10px;
-    background:var(--color-neutral-100); border:1px solid var(--color-divider)}
+  .ce-scope{margin:0 13px 9px; padding:10px 12px;
+    background:var(--jb-card-fill); border-radius:var(--radius-lg)}
   .ce-scope .eb{display:flex; align-items:center; gap:6px; font-size:var(--t-figure);
     font-weight:var(--w-title);  
     color:var(--accent-ink)}
@@ -1104,10 +1102,9 @@ function clauseEditorCss(){
     font:inherit; font-size:var(--t-label); background:none; border:0;
     color:var(--color-neutral-600); cursor:pointer}
   .ce-scope .x:hover{color:var(--color-text)}
-  .ce-card.ce-ans q.aq{display:block; margin:6px 0 2px; padding-left:8px; quotes:none; white-space:pre-line;
-    border-left:2px solid var(--accent-fill); font-style:italic; color:var(--color-text)}
-  .ce-scope q{margin-top:5px; padding-left:8px; quotes:none;
-    border-left:2px solid var(--accent-solid);
+  .ce-card.ce-ans q.aq{display:block; margin:6px 0 2px; quotes:none; white-space:pre-line;
+    font-style:italic; color:var(--color-text)}
+  .ce-scope q{margin-top:5px; quotes:none; font-style:italic;
     font-size:var(--t-label); line-height:1.55; color:var(--color-text);
     display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}
   .ce-scope .cut{margin-top:7px; height:22px; padding:0 var(--s-2); font:inherit;
@@ -5110,7 +5107,7 @@ function ceRenderLane(){
      worked out, not asked for. */
   /* from a Redlines row too (owner, 20 Oct 2026): round 9's cards stand down
      (ceRowCardsHtml kept, not drawn) */
-  lane.innerHTML = (_cePrep ? '' : ceLadderCardHtml()) + _ceThread.map(ceTurnHtml).join('')
+  lane.innerHTML = (_cePrep ? '' : ceLadderCardHtml()) + ceTurnsWithWho(_ceThread.map(ceTurnHtml), _ceThread)
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
   if (last) lane.scrollTop = Math.max(0, last.offsetTop - lane.offsetTop - 4);
@@ -5129,7 +5126,21 @@ function ceRiskAnswerHtml(){
     _ceRiskCard = { key: a.key, name: _cet('ce_suggestion'), chip: _cet('ce_chip_copilot'), chipTone: 'wait',
       line: '', rests: [cePlaybookLine(), cePrecedentLine()].filter(Boolean)[0] || '', text: a.words, passage: null };
   }
-  return ceTurnHtml({ who: 'ai', ai: true, text: a.advice, explain: a.explain || null, read: ceReadList(), cards: [_ceRiskCard] }, 'rk');
+  return ceWhoOn(ceTurnHtml({ who: 'ai', ai: true, text: a.advice, explain: a.explain || null, read: ceReadList(), cards: [_ceRiskCard] }, 'rk'));
+}
+/* THE LEGORA WAY (owner picked it, 27 Oct 2026: "The editor panel has so many edge lines or vertical lines it does not
+   look professional"): his turns are named by his mark, not a bar beside them — once at the head of each run of his */
+const ceWhoHtml = () => `<p class="ce-who"><b aria-hidden="true">&#10022;</b> ${_cee(_cet('ce_copilot'))}</p>`;
+const ceWhoOn = h => String(h || '').replace(/^<div class="ce-ai">/, '<div class="ce-ai">' + ceWhoHtml());
+function ceTurnsWithWho(htmls, turns){
+  let lastAi = false;
+  return htmls.map((h, i) => {
+    if (!h) return '';
+    const ai = !!(turns[i] && turns[i].who !== 'you');
+    const out = ai && !lastAi ? ceWhoOn(h) : h;
+    lastAi = ai;
+    return out;
+  }).join('');
 }
 /* RETIRED (Young, 7 Oct 2026, "Copilot Panel Tidy-up" — Sticky bar): the
    suggestion is printed whole in the panel's one scroll, so there is nothing

@@ -169,7 +169,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await part('2f pass 3', async () => {
       const N4 = await page.evaluate(() => { const p = document.getElementById('ins-panel');
         const row = document.querySelector('#reg-tbody tr[data-row="MK-A2"]');
-        return { open: row ? ((row.querySelector('.reg-ch') || {}).textContent || '').trim() : null,
+        /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the reading's words; where the asks are rides its grey line */
+        return { open: row ? ((row.querySelector('.reg-ch .ls-word-v') || row.querySelector('.reg-ch') || {}).textContent || '').trim() : null,
           sub: ((p.querySelector('.jl-needs .jl-need-s') || {}).textContent || '').trim(),
           more: !!p.querySelector('[data-ins-more]'),
           doors: [...p.querySelectorAll('.ins-doors [data-ins-act]')].map(b => ({ k: b.getAttribute('data-ins-act'), t: b.textContent.trim(), svg: !!b.querySelector('svg') })) }; });

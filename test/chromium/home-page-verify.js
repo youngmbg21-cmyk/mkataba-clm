@@ -112,16 +112,16 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     const barTok = await page.evaluate(() => {
       const bar = document.getElementById('top-header'); if (!bar) return null;
       const probe = document.createElement('span');
-      probe.style.cssText = 'position:absolute;left:-9999px;background:var(--bar-bg);color:var(--bar-ink);border-top:1px solid var(--bar-edge);outline:1px solid var(--bar-green)';
+      probe.style.cssText = 'position:absolute;left:-9999px;background:var(--bar-bg);color:var(--bar-ink);border-top:1px solid var(--bar-edge);outline:1px solid var(--bar-black)';
       bar.appendChild(probe);
       const c = getComputedStyle(probe), o = { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor, green: c.outlineColor };
       probe.remove();
       const b = getComputedStyle(bar); o.barEdge = b.borderBottomColor; o.barEdgeW = b.borderBottomWidth;
       return o;
     });
-    /* RE-POINTED 24 Oct 2026 (THE BAR IN COLOUR, owner picked "The SAP way"): its --bar-bg is
-       the deep green --bar-green with white words, its edge the --bar-edge token (transparent) */
-    check('1 the bar is 48px, DEEP GREEN in its own --bar-bg, white words on it, its edge its own token',
+    /* RE-POINTED 27 Oct 2026 (THE BAR IN BLACK, owner: "Black it is"): its --bar-bg is
+       the near-black --bar-black with white words, its edge the --bar-edge token (transparent) */
+    check('1 the bar is 48px, NEAR-BLACK in its own --bar-bg, white words on it, its edge its own token',
       shell.bar.h === 48 && !!barTok && shell.bar.bg === barTok.bg && barTok.bg === barTok.green && barTok.ink === 'rgb(255, 255, 255)' && shell.bar.ink === barTok.ink
       && barTok.barEdge === barTok.edge && barTok.barEdgeW === '1px',
       `${shell.bar.h}px · bar ${shell.bar.bg} · --bar-bg ${barTok && barTok.bg} · ink ${shell.bar.ink}/${barTok && barTok.ink} · edge ${barTok && barTok.barEdgeW} ${barTok && barTok.barEdge} · (--nav-bg ${barGround})`);
@@ -260,8 +260,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const out = {};
       document.querySelectorAll('tr[data-row]').forEach(tr => {
         const c = state.contracts.find(x => x.id === tr.getAttribute('data-row'));
-        const dot = tr.querySelector('.reg-stg i');
-        if (c && dot && !out[c.status]) out[c.status] = getComputedStyle(dot).backgroundColor;
+        /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the row's mark carries the stage's dot tone now */
+        const dot = tr.querySelector('.reg-id .ls-mark') || tr.querySelector('.reg-stg i');
+        if (c && dot && !out[c.status]) out[c.status] = dot.matches('.ls-mark') ? getComputedStyle(dot).color : getComputedStyle(dot).backgroundColor;
       });
       return out;
     });

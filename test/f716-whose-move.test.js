@@ -72,7 +72,10 @@ describe('f716 (2) who leads it', () => {
        still the one reading */
     assert.match(fnBody(REG, 'regNegoFacts'), /const ld=regNegoLeadOf\(c\), lead=ld\.mine\?ld\.short:ld\.name;/);
     assert.match(REG, /const ld=regNegoLeadOf\(c\);\n\s+CELL\.lead=`<td class="reg-lead" title="\$\{esc\(ld\.name\)\}">\$\{esc\(ld\.short\)\}<\/td>`;/);
-    assert.match(REG, /const REG_COL_KEYS_NEGO_INS = \['mk','counterparty','round','changes','waiting','lead'\];/);
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference, round and lead ride the grey line; Round
+       and Lead stay columns one press away under Columns, the Clauses in play and the Value join */
+    assert.match(REG, /const REG_COL_KEYS_NEGO_INS = \['counterparty','clauses','changes','waiting','value','round','lead'\];/);
+    assert.match(REG, /LC_PAGES\[REG_NEGO_SEAT\]=\{ cols:\(\)=>regNegoColDefs\(\), repaint:\(\)=>regNegoRepaint\(\), hide:\['round','lead'\] \};/);
   });
 });
 

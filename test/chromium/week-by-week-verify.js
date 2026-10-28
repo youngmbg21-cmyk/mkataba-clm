@@ -72,7 +72,7 @@ const check = (name, pass, detail) => {
       word: ((g.querySelector('.ob-wk-fold') || g.querySelector('.ins-g') || {}).textContent || '').replace(/\d+$/, '').trim(),
       rng: (g.querySelector('.ob-wk-rng') || {}).textContent || '', shut: g.classList.contains('is-shut'),
       said: (g.querySelector('.ob-wk-said') || {}).textContent || '',
-      rows: (() => { const out = []; let n = g.nextElementSibling; while (n && !n.classList.contains('ins-grp')) { out.push({ hidden: n.hidden, day: ((n.querySelector('td b') || {}).textContent || '') }); n = n.nextElementSibling; } return out; })() }));
+      rows: (() => { const out = []; let n = g.nextElementSibling; while (n && !n.classList.contains('ins-grp')) { out.push({ hidden: n.hidden, day: ((n.querySelector('.obw-late-when b') || n.querySelector('td:nth-child(3) .ins-c2 b') || n.querySelector('td b') || {}).textContent || '') }); /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the duty leads, the day is the Due column's */ n = n.nextElementSibling; } return out; })() }));
     const G = await page.evaluate(READ);
     const by = k => G.find(g => g.k === k) || {};
     check('1a the groups are weeks, in order: Late, This week, Next week, the later weeks, Later',

@@ -2,6 +2,7 @@
 // execution order, then nav + shell wiring + boot.
 import './i18n.js';        // what language this PERSON reads the app in — theirs, not the company's
 import './components.js';
+import './listlang.js';    // the list language: a row's mark, its readings in words, its soft chips (27 Oct 2026)
 import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './outside.js';     // redline here, sign there: the working reference, the contract number and the word check (26 Sep 2026)

@@ -35,10 +35,14 @@ describe('f721 (1) the team\'s columns', () => {
      the columns at rest (ikColDefs); Ref and Request always stand first */
   test('1a eight columns for the team, four for the asker', () => {
     const defs = fnBody(IK, 'ikColDefs');
-    assert.match(defs, /\{ k:'kind', label:i18t\('ik_col_kind'\), w:\d+ \}, \{ k:'road', label:i18t\('ik_f_road'\), w:\d+ \}, \{ k:'with', label:i18t\('ik_f_with'\), w:\d+ \},\s*\{ k:'files', label:i18t\('ik_col_files'\), w:\d+ \}, \{ k:'asked', label:i18t\('ik_col_asked'\), w:\d+ \}, \{ k:'promised', label:i18t\('ik_f_promised'\), w:\d+ \}\]/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, as drawn): Promised by stands before Files */
+    assert.match(defs, /\{ k:'kind', label:i18t\('ik_col_kind'\), w:\d+ \}, \{ k:'road', label:i18t\('ik_f_road'\), w:\d+ \}, \{ k:'with', label:i18t\('ik_f_with'\), w:\d+ \},\s*\{ k:'promised', label:i18t\('ik_f_promised'\), w:\d+ \}, \{ k:'files', label:i18t\('ik_col_files'\), w:\d+ \}, \{ k:'asked', label:i18t\('ik_col_asked'\), w:\d+ \}\]/);
     assert.match(defs, /\? \[\{ k:'with', label:i18t\('ik_f_with'\), w:170 \}, \{ k:'promised', label:i18t\('ik_f_promised'\), w:130 \}\]/, 'the asker\'s list is as it was');
     const r = fnBody(IK, 'ikPaintRows');
-    assert.match(r, /const cols=\[\{ t:i18t\('ik_col_ref'\), w:asker\?96:108 \}, \{ t:i18t\('ik_col_request'\) \}, \.\.\.keys\.map/, 'Ref and Request first, then the columns shown');
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference rides the grey line under the request, so
+       the Request leads; Asked is one press away under Columns (its day is in the grey line too) */
+    assert.match(r, /const cols=\[\{ t:i18t\('ik_col_request'\) \}, \.\.\.keys\.map/, 'Request first, then the columns shown');
+    assert.match(r, /<span class="ins-ref">\$\{esc\(r\.id\)\}<\/span> · \$\{esc\(sub\)\}/, 'the reference leads the grey line');
     /* RE-POINTED 19 Oct 2026 (round 20 as drawn): the With cell carries its class (the name and the lane on one line) */
     assert.match(r, /with:\(\)=>asker\?`<td>\$\{ikWithCellHtml\(r, asker\)\}<\/td>`:`<td class="ik-with">\$\{ikWithListHtml\(r\)\}<\/td>`/);
     assert.match(r, /files:\(\)=>`<td>\$\{ikFilesCellHtml\(r\)\}<\/td>`,\s*asked:\(\)=>`<td class="ik-ask">/);
@@ -47,14 +51,18 @@ describe('f721 (1) the team\'s columns', () => {
 
 describe('f721 (2) With and Files', () => {
   const stage = () => { const ctx = { esc: s => String(s), i18t: (k, o) => k + (o ? ':' + JSON.stringify(o) : ''), i18tn: (k, n) => k + ':' + n,
-    IK_STOPPED: ['done', 'declined', 'withdrawn'], ikWithCellHtml: (r) => r.assignee ? '[' + r.assignee.name + ']' : '[nobody]', icon: () => '<svg/>' };
+    IK_STOPPED: ['done', 'declined', 'withdrawn'], ikWithCellHtml: (r) => r.assignee ? '[' + r.assignee.name + ']' : '[nobody]', icon: () => '<svg/>',
+    listWordHtml: (t, w) => '{' + t + ':' + w + '}', listAvatarTone: () => 'steel', ikInitials: n => n.slice(0, 2).toUpperCase(), ikHeldByMe: () => false };
     vm.createContext(ctx); vm.runInContext(fnBody(IK, 'ikWithListHtml') + fnBody(IK, 'ikLaneChipHtml') + fnBody(IK, 'ikFilesCellHtml'), ctx); return ctx; };
   /* RE-POINTED 19 Oct 2026 (round 20 as drawn: "You ⇉ NDA lane"): the lane is
      a chip with its own mark, one builder (ikLaneChipHtml) the panel's head shares */
   test('2a the asker\'s own cell, then the lane while it is open', () => {
     const c = stage();
-    assert.match(c.ikWithListHtml({ status: 'open', assignee: { name: 'Maria' }, lane: 'NDA' }), /^\[Maria\] <span class="ik-lane-chip"[^>]*><svg\/>ik_lane_chip:\{"lane":"NDA"\}<\/span>$/);
-    assert.equal(c.ikWithListHtml({ status: 'open' }), '[nobody]');
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, as drawn): a holder wears tinted initials over "holds it", the
+       lane on that grey line; nobody is a reading in amber */
+    assert.match(c.ikWithListHtml({ status: 'open', assignee: { id: 'u1', name: 'Maria' }, lane: 'NDA' }),
+      /^<span class="ik-holder"><i class="ls-av ik-av" style="background:var\(--st-steel-bg\);color:var\(--st-steel-fg\)" aria-hidden="true">MA<\/i><span class="ins-c2"><b title="Maria">Maria<\/b><span>ik_with_holds <span class="ik-lane-chip"[^>]*><svg\/>ik_lane_chip:\{"lane":"NDA"\}<\/span><\/span><\/span><\/span>$/);
+    assert.equal(c.ikWithListHtml({ status: 'open' }), '{amber:ik_with_nobody}');
     assert.equal(c.ikWithListHtml({ status: 'done', assignee: { name: 'Maria' }, lane: 'NDA' }), '[Maria]', 'a finished one says no lane');
   });
   test('2b Files counts the clip; none is a dash', () => {
