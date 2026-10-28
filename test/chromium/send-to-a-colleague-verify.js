@@ -61,7 +61,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
         who: !!(document.querySelector('.sh-lt-who') || { getClientRects: () => [] }).getClientRects().length, ch: !!document.querySelector('[data-sh-as="ch"]').getClientRects().length,
         talk: document.getElementById('ig-dock').classList.contains('is-talk'),
         said: [...document.querySelectorAll('#igd-feed [data-ca-card]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(-1)[0] || '' }));
-      check('1c the screen opens on "a colleague", the colleague in To', S.chip === 'a colleague' && /Unrestricted Legal/.test(S.chips || ''), JSON.stringify({ chip: S.chip, chips: S.chips }));
+      /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): a colleague is a person, asked for
+         in To; the purpose's face reads "A colleague" and To offers the way back to someone outside */
+      check('1c the screen opens on "a colleague", the colleague in To', S.chip === 'A colleague' && /Unrestricted Legal/.test(S.chips || ''), JSON.stringify({ chip: S.chip, chips: S.chips }));
       check('1d Jambo\'s words are the note, as plain lines', /^Clause 8 governs money in MK-B2\.\n- Fixed fee of KES 78,000,000\n- Paid within 30 days of invoice$/.test(S.note || ''), JSON.stringify(S.note));
       check('1e the other side\'s rows stand down; the letter says "Open MK-B2 in HaTi"', !S.who && !S.ch && S.btn === 'Open MK-B2 in HaTi', JSON.stringify({ who: S.who, ch: S.ch, btn: S.btn }));
       check('1f Jambo\'s conversation stays beside it, saying the screen is open', S.talk && /I opened Send the contract for a colleague/.test(S.said), JSON.stringify(S.said));
@@ -95,9 +97,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       await page.evaluate(() => openShareModal(getContract('MK-B2')));
       await until(() => document.querySelector('#sh-letter') && document.querySelector('[data-sh-as-go="purpose"]') && document.querySelector('#sh-lt-after .sh-lt-btn'), null, 12000);
       await page.waitForTimeout(400);
-      await page.click('[data-sh-as-go="purpose"]');
-      const seg = await page.$('#share-purpose [data-share-purpose="colleague"]');
-      check('2a "a colleague" is a choice of Sent as', !!seg);
+      /* RE-POINTED, the SAP Way (28 Oct 2026): "A colleague instead" under To presses the purpose's own button */
+      const seg = await page.$('[data-sh-to-kind="colleague"]:not(.hidden)');
+      check('2a "A colleague instead" is offered in To', !!seg);
       if (seg) await seg.click();
       await until(() => document.documentElement.hasAttribute('data-sh-col'), null, 4000);
       await page.click('#sh-col-q'); await page.keyboard.type('@No');
@@ -106,11 +108,11 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       await page.waitForTimeout(250);
       const A = await page.evaluate(() => ({ chips: document.getElementById('sh-col-chips').textContent, popUp: !document.getElementById('sh-col-pop').classList.contains('hidden') }));
       check('2b @ in To picks a colleague, and the list goes away', /No Values Legal/.test(A.chips) && !A.popUp, JSON.stringify(A));
-      await page.click('[data-sh-as-go="purpose"]'); await page.click('#share-purpose [data-share-purpose="negotiate"]');
+      await page.click('[data-sh-to-kind="outside"]');
       await page.waitForTimeout(250);
       const B = await page.evaluate(() => ({ attr: document.documentElement.hasAttribute('data-sh-col'), ch: !!document.querySelector('[data-sh-as="ch"]').getClientRects().length }));
-      check('2c back to Negotiate brings the other side\'s rows back', !B.attr && B.ch, JSON.stringify(B));
-      await page.click('[data-sh-as-go="purpose"]'); await page.click('#share-purpose [data-share-purpose="colleague"]');
+      check('2c back to someone outside brings the other side\'s rows back', !B.attr && B.ch, JSON.stringify(B));
+      await page.click('[data-sh-to-kind="colleague"]');
       await page.waitForTimeout(200);
       await page.fill('#sh-summary', 'x'.repeat(2100));
       const n0 = h.mail.sent.length;
@@ -141,7 +143,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       const S = await page.evaluate(() => ({ chips: (document.getElementById('sh-col-chips') || {}).textContent || '', chip: (document.querySelector('[data-sh-as-w="purpose"]') || {}).textContent,
         letter: (document.getElementById('sh-letter') || {}).textContent || '',
         said: [...document.querySelectorAll('#igd-feed [data-ca-card]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(-1)[0] || '' }));
-      check('3b the send screen opens on "a colleague", the one picked in To', !!up && S.chip === 'a colleague' && /Unrestricted Legal/.test(S.chips), JSON.stringify({ typed, chip: S.chip, chips: S.chips }));
+      check('3b the send screen opens on "a colleague", the one picked in To', !!up && S.chip === 'A colleague' && /Unrestricted Legal/.test(S.chips), JSON.stringify({ typed, chip: S.chip, chips: S.chips }));
       check('3c the letter asks them to review, and says nothing of a summary', /asked you to review MK-B2/.test(S.letter) && !/Jambo's summary/.test(S.letter), JSON.stringify(S.letter.slice(0, 200)));
       check('3d Jambo says the screen is open, with no summary claimed', /I opened Send the contract for a colleague, with Unrestricted Legal as the person\. Add a note/.test(S.said), JSON.stringify(S.said));
       /* 3i the Send button is named for the colleague, never the other side's hidden Name box (owner, 24 Oct 2026:

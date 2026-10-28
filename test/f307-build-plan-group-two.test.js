@@ -488,7 +488,9 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
 
   test('the dialog opens on Email whatever the last send used, and the reader moves it', async () => {
     const { win } = buildWorld();
-    const lit = m => m.$$('[data-share-ch]').find(b => /var\(--color-accent\)/.test(b.style.background)).getAttribute('data-share-ch');
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the
+       channels are rows of a list; the chosen one is ticked (aria-checked) */
+    const lit = m => m.$$('[data-share-ch]').find(b => b.getAttribute('aria-checked') === 'true').getAttribute('data-share-ch');
     const m = await openShare(await negotiated(win), undefined, w => {
       w.contractShares = async () => [{ token: 't1', channel: 'word', durable: false, recipientName: 'Priya', recipientEmail: 'p@nandi.example', createdAt: '2026-09-13T10:00:00Z', state: 'sent' }];
     });

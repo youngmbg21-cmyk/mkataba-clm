@@ -149,10 +149,13 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
     const B1 = await box();
     await page.fill('#sh-summary', LONG); await pause(150);
     const B2 = await box();
-    check('1a the note\'s label is a small grey line ("Your note · type here"), not a heading',
-      !!B0 && B0.label === 'Your note · type here' && B0.labelPx < B0.bodyPx && Number(B0.labelW) < 600 && JSON.stringify(B0.labelInk) === JSON.stringify(B0.textInk), JSON.stringify(B0)); /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
-    check('1b the box hugs its words (or the hint while empty): a short note a short box, a long line wider, never the letter\'s whole width',
-      !!B0 && !!B1 && !!B2 && B0.frameW < B0.bodyW * 0.6 && B1.frameW < B1.bodyW * 0.6 && B2.frameW > B1.frameW && B2.frameW <= Math.ceil(B2.bodyW * 0.7),
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the note is the one white box with a
+       green edge, named for who reads it in small green type, running the letter's width; only its height
+       follows what is typed */
+    check('1a the note\'s label is a small line ("Your note to Anna"), not a heading',
+      !!B0 && B0.label === 'Your note to Anna' && B0.labelPx < B0.bodyPx && JSON.stringify(B0.labelInk) === JSON.stringify([8, 115, 99]), JSON.stringify(B0));
+    check('1b the box runs the letter\'s width whatever is typed',
+      !!B0 && !!B1 && !!B2 && B0.frameW === B1.frameW && B1.frameW === B2.frameW && B2.frameW > B2.bodyW * 0.7,
       JSON.stringify({ empty: B0 && B0.frameW, short: B1 && B1.frameW, long: B2 && B2.frameW, letter: B2 && B2.bodyW }));
     check('1c it grows downward to hold what is typed, and has no grip in its corner',
       !!B2 && B2.resize === 'none' && B2.taSH <= B2.taH + 1, JSON.stringify({ resize: B2 && B2.resize, h: B2 && B2.taH, sh: B2 && B2.taSH }));
@@ -175,16 +178,17 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
     /* 3 the history in place */
     await page.evaluate(() => { const pg = document.querySelector('#modal-root .modal-in[data-sh-page]'); if (pg) pg.setAttribute('data-c2-same', '1'); });
     const subj0 = await page.evaluate(() => (document.getElementById('sh-lt-subject') || {}).textContent || '');
-    await press('#share-other');
+    /* RE-POINTED, the SAP Way (28 Oct 2026): the history is a choice in What goes */
+    await press('[data-sh-as-what="history"]');
     const Hs = await waitFor(page, () => {
       const s = (document.getElementById('sh-lt-subject') || {}).textContent || '';
       if (!/^The negotiation history of /.test(s)) return null;
       const pg = document.querySelector('#modal-root .modal-in[data-sh-page]');
       const kind = document.getElementById('share-step-kind');
-      const back = document.querySelector('[data-sh-lt-else="contract"]');
+      const back = document.querySelector('[data-sh-as-what="contract"]:not(:disabled)');
       return { s, same: !!(pg && pg.getAttribute('data-c2-same') === '1'), side: !!document.querySelector('#pd-sendface .sh-lt-side'),
         kindStep: !!(kind && kind.getClientRects().length && kind.getBoundingClientRect().height > 0),
-        back: !!(back && back.getClientRects().length), label: (document.getElementById('sh-summary-label') || {}).textContent || '',
+        back: !!back, label: (document.getElementById('sh-summary-label') || {}).textContent || '',
         title: (document.getElementById('share-lead-title') || {}).textContent.replace(/\s+/g, ' ').trim(),
         note: document.getElementById('sh-summary').value };
     }, 6000);
@@ -193,8 +197,8 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
     check('3b its subject and title are the record\'s, the note kept', !!Hs && Hs.s === 'The negotiation history of the Master services agreement, from Lindqvist & Co AB'
       && /negotiation history/i.test(Hs.title) && Hs.note === NOTE, JSON.stringify(Hs && { s: Hs.s, t: Hs.title, n: Hs.note }));
     await shot(page, '11-history-in-place-1440x780');
-    check('3c "The contract instead" is offered', !!Hs && Hs.back);
-    await press('[data-sh-lt-else="contract"]');
+    check('3c "The contract" is offered in What goes', !!Hs && Hs.back);
+    await press('[data-sh-as-what="contract"]');
     const back = await waitFor(page, s0 => { const s = (document.getElementById('sh-lt-subject') || {}).textContent || ''; return s === s0 ? s : null; }, 6000, subj0);
     check('3d and turns it back to the round, on the same page', !!back && await page.evaluate(() => !!document.querySelector('#modal-root .modal-in[data-sh-page][data-c2-same="1"]')), back);
 
@@ -254,7 +258,7 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`6 ${w}×${ht}: the letter beside the panel, its note inside it, the checks in the panel, nothing sideways`, Z1.beside && Z1.note && Z1.checks && Z1.side, JSON.stringify(Z1));
       await shot(page, `11-letter2-${w}x${ht}`);
-      await press('#share-other');
+      await press('[data-sh-as-what="history"]');
       await waitFor(page, () => /^The negotiation history of /.test((document.getElementById('sh-lt-subject') || {}).textContent || ''), 6000);
       const Z2 = await page.evaluate(() => ({ side: document.documentElement.scrollWidth <= innerWidth + 1, face: !!document.querySelector('#pd-sendface .sh-lt-side') }));
       check(`6 ${w}×${ht}: the history letter in place, nothing sideways`, Z2.side && Z2.face, JSON.stringify(Z2));

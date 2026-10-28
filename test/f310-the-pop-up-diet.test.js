@@ -104,7 +104,10 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the one
        box sits in the email where the note goes, under the drawing's own label
        on its dashed edge. Still one box, still the one the send reads. */
-    assert.match(m.$('#sh-summary-label').textContent, /^Your note · type here$/);
+    /* RE-POINTED AGAIN, the SAP Way (owner picked it by name, 28 Oct 2026):
+       the box is named for who reads it, "optional" drawn at its end. */
+    assert.match(m.$('#sh-summary-label').textContent, /^Your note to /);
+    assert.equal(m.$('#sh-summary-label').getAttribute('data-opt'), 'optional');
     const send = strip(CORE.slice(CORE.indexOf('async function openShareModal')));
     assert.match(send, /fval\('sh-summary'\)/, 'the send still reads the one box');
   });
@@ -120,7 +123,9 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     assert.ok(!m.$('#sh-prefill-note'), 'no sentence above the address');
     assert.equal(m.$('#sh-email').getAttribute('data-prefill-src'), 'record',
       'but the SOURCE survives as a fact on the box');
-    assert.match(m.$('#share-purpose span').textContent, /What this round is for/);
+    /* RE-POINTED, the SAP Way (28 Oct 2026): the question is the form's own
+       label, "What they can do", beside its field */
+    assert.match(m.$('#sh-lt-can-row > .sh-lt-k').textContent, /^What they can do$/);
   });
 
   test('the purpose row says ONE line under the chosen answer — the promise, not the room', async () => {
@@ -189,11 +194,18 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
   test('the link tick keeps its sentence on the hover, not on the face', async () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));
-    const lab = m.$('#sh-durable').closest('label');
-    /* RE-POINTED, SAP pop-ups 10 Oct 2026: the tick sits under the drawn
-       label "Link stays open", so its face is the short answer. */
-    assert.equal(lab.textContent.replace(/\s+/g, ' ').trim(), 'For the whole negotiation');
-    assert.match(lab.querySelector('[title]').getAttribute('title'), /single-answer link/);
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): how
+       long the link works is one list; its first choice's face is the short
+       answer with its sentence, the longer reason on its hover. The tick the
+       send reads is still there, set by the choice. */
+    const whole = m.$('#sh-link-opts [data-sh-link="whole"]');
+    assert.equal(whole.querySelector('.sh-opt-t').textContent, 'Open for the whole negotiation');
+    assert.match(whole.getAttribute('title'), /single-answer link/);
+    m.$('#sh-link-opts [data-sh-link="30"]').click();
+    assert.equal(m.$('#sh-durable').checked, false, 'a link that expires is not kept open');
+    assert.equal(m.$('#sh-exp').value, '30');
+    whole.click();
+    assert.equal(m.$('#sh-durable').checked, true);
   });
 });
 
