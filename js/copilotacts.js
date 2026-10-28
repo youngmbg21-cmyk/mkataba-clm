@@ -1898,9 +1898,60 @@ function jamboPageWordOf(q){
   return (typeof caPlaceStd === 'function') ? caPlaceStd(a, t) : a;
 }
 function jamboPageGo(q){
-  const a = jamboPageWordOf(q); if (!a) return false;
+  const a = jamboPageWordOf(q);
+  if (!a) return jamboRefGo(q);
   let ok = false; try { ok = !!caGo(a); } catch (_){ ok = false; }
   return ok;
+}
+/* ---- A CONTRACT NUMBER OPENS THE CONTRACT, FREE (owner, 28 Oct 2026, round 17: "Contract numbers should not go
+   to AI brain. They should be rule and take you to contracts workspace for the contract in question") ----
+   Asked with the page's name by every Jambo box, for words TYPED in it (jamboPageGo). A number ON ITS OWN ("MK-469",
+   "mk 469", "#mk469", "open MK-469") lands on that contract's paper with its Dossier (roomHomeLand; the room on the
+   phone), no AI. A number INSIDE A QUESTION ("MK-469 when does notice fall due?") opens it the same way and hands the
+   question to Home's Jambo there, with the contract in front of him (jamboRefAskThere). A number nobody here can open
+   is said so ("No contract MK-469 that you can open"), never a hint that it exists; the wall on what a person may
+   open is the server's (folderScopeFor), which is why a number not in this reader's book is not found. */
+const JB_REF_OPEN_RE = /^\s*(?:(?:please|ok|okay|now|jambo)[\s,]+)*(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:(?:go|take me|bring me|jump|switch|navigate|head|move)\s+(?:back\s+|over\s+|straight\s+)?to|open(?:\s+up)?|show(?:\s+me)?|gå\s+(?:tillbaka\s+)?till|ta\s+mig\s+till|öppna|visa(?:\s+mig)?)\s+/iu;
+function jamboRefOf(q){
+  const raw = String(q || '').trim(); if (!raw || typeof caContractOf !== 'function') return null;
+  let r = null; try { r = caContractOf(raw, { names: false }); } catch (_){ r = null; }
+  if (!r || (!r.c && !r.miss)) return null;
+  /* what is left once the number and an "open" are taken away: nothing = the number alone */
+  let fixed = raw; try { fixed = caRefFix(raw); } catch (_){ fixed = raw; }
+  const hit = r.c ? String(r.hit || '') : '';
+  let rest = fixed.replace(JB_REF_OPEN_RE, '');
+  if (hit) rest = rest.split(hit).join(' ');
+  else rest = rest.replace(/(?<![\p{L}\p{N}])#?[A-Za-z]{2,4}[- ]?\d+(?![\p{L}\p{N}])/giu, ' ');
+  rest = rest.replace(/^[\s:,.!?–—-]+|[\s:,.!?–—-]+$/g, '').replace(/^(?:the\s+)?(?:contract|avtal(?:et)?)$/i, '').trim();
+  return { c: r.c || null, miss: r.miss || null, question: rest ? raw : '' };
+}
+function jamboRefGo(q){
+  const R = jamboRefOf(q); if (!R) return false;
+  if (!R.c){
+    if (R.question) return false;
+    if (typeof toast === 'function') toast(i18t('jb_ref_none', { ref: R.miss }), 'warn');
+    return true;
+  }
+  /* already in front of the reader: a question about it is the brain's, here */
+  let here = false; try { here = !!(typeof aiOnScreenContract === 'function' && aiOnScreenContract() && aiOnScreenContract().id === R.c.id); } catch (_){ here = false; }
+  if (R.question && here) return false;
+  let landed = false;
+  try { landed = !!(typeof roomHomeLand === 'function' && roomHomeLand(R.c.id)); } catch (_){ landed = false; }
+  if (!landed){ try { if (typeof openWorkspace === 'function'){ openWorkspace(R.c.id); landed = true; } } catch (_){ landed = false; } }
+  if (!landed) return false;
+  if (R.question) jamboRefAskThere(R.c.id, R.question);
+  return true;
+}
+/* the question asked beside the contract it named, once its paper is in front (bounded) */
+function jamboRefAskThere(id, q){
+  let tries = 0;
+  const ask = () => {
+    let ready = false;
+    try { ready = typeof aiOnScreenContract === 'function' && !!aiOnScreenContract() && aiOnScreenContract().id === id && !!document.getElementById('ig-dock'); } catch (_){ ready = false; }
+    if (ready && typeof window.intelAsk === 'function'){ try { window.intelAsk(q); } catch (_){} return; }
+    if (++tries < 40) setTimeout(ask, 100);
+  };
+  setTimeout(ask, 0);
 }
 /* ---- THE PLACES YOU USE MOST, per person, in this browser ----
    Its own key, not LS.ui: LS.ui is written whole by the page store
@@ -3200,7 +3251,7 @@ function caHomeRun(q, a){
 Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_AND_WORDS, CA_AND_NARROWS, CA_AND_SAY_MAX, caAndPlaceAt, caNarrowOf, caSayCut, caReadPlaceAnd, caReadGoPlace,
   caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
-Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
+Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, JB_REF_OPEN_RE, jamboRefOf, jamboRefGo, jamboRefAskThere, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
