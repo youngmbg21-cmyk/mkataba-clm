@@ -1883,7 +1883,7 @@ function caReadPlace(q){
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
-  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'handbook', 'insights', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
+  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'handbook', 'insights', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
   /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
   'upload'];

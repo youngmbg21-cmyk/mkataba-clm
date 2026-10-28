@@ -9583,6 +9583,10 @@ app.post('/api/ai/brief', auth, briefAsker, rlAiDeep, aiFeature('brief'), aiBudg
    is refused at the front door (cnRequestIds reads `ids`). */
 const COLUMN_MAX = 100;
 const COLUMN_AT_ONCE = 4;
+/* A READ ALREADY WITH JAMBO IS NEVER STARTED AGAIN (28 Oct 2026): after Stop, the reads already in flight finish
+   here; a Carry on pressed before they land waits for them and takes their answer, kept, instead of paying twice.
+   Keyed by contract, wording and the questions asked. */
+const COLUMN_INFLIGHT = new Map();
 const COLUMN_TONES = ['good', 'watch', 'concern', 'none'];
 const colKey = q => String(q || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const colFlat = s => String(s || '').replace(/[‘’‚′]/g, "'").replace(/[“”„″]/g, '"')
@@ -9837,6 +9841,9 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
      is kept per wording and costs nothing the next time. */
   const stream = b.stream === true;
   let clientGone = false;
+  /* STOP MEANS STOP (the owner, 28 Oct 2026: "when it is running and I press stop it does not work"): a reader
+     who presses Stop or goes away ends the stream and NO FURTHER read is started. The few already with Jambo
+     finish here and are kept per wording — paid for once, free on Carry on — rather than cancelled half-spent */
   const send = (event, data) => { if (!stream) return; try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {} };
   const answersOf = id => Object.fromEntries(asks.filter(a => byAsk[a.id][id]).map(a => [a.id, byAsk[a.id][id]]));
   if (stream) {
@@ -9853,6 +9860,21 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   const J = orgJx();
   let calls = 0, lastResp = null;
   const readOne = async t => {
+    const k = [t.id, t.hash, t.asks.map(a => a.id).join(',')].join('|');
+    const already = COLUMN_INFLIGHT.get(k);
+    if (already) {
+      await already.catch(() => {});
+      for (const a of t.asks) {
+        const prev = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(a.id, t.id);
+        if (prev && prev.input_hash === t.hash) { byAsk[a.id][t.id] = colAnswerOut(prev); cached++; }
+        else failed.push({ id: t.id, askId: a.id, why: 'provider', error: 'the read already under way did not finish' });
+      }
+      return;
+    }
+    const p = readFresh(t); COLUMN_INFLIGHT.set(k, p);
+    try { await p; } finally { COLUMN_INFLIGHT.delete(k); }
+  };
+  const readFresh = async t => {
     const ours = t.full.party || (t.full.execution && t.full.execution.firstParty) || 'our company';
     const one = t.asks.length === 1;
     const qs = one
@@ -9860,7 +9882,7 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
       : 'QUESTIONS (answer every one, by its number):\n' + t.asks.map((a, i) => `${i + 1}. ${a.question}${a.rule ? `\n   OUR RULE: ${a.rule}` : ''}`).join('\n');
     const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill cells of a table. Each question is asked of every contract in their list. Answer ${one ? 'it' : 'each one'} for this DOCUMENT only, via column_answers${one ? ' (q is 1)' : ''}. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer a question, set found to false and leave its answer empty. Where a question gives OUR RULE, say whether the answer keeps it ("in") or breaks it ("out"); where it gives none, leave the verdict empty.\n\n${COLUMN_READ_RULE}\n\n${qs}\n\nDOCUMENT:\n${t.sent}`;
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 500 + 400 * t.asks.length, tools: [COLUMN_TOOL], tool_choice: { type: 'tool', name: 'column_answers' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
-    calls++; lastResp = resp;
+    calls++; lastResp = resp; t.called = true;
     if (!resp.ok) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     const list = block && block.input && Array.isArray(block.input.answers) ? block.input.answers : null;
@@ -9892,7 +9914,7 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
     const queue = todo.slice();
     await Promise.all(Array.from({ length: Math.min(COLUMN_AT_ONCE, queue.length) }, async () => {
       while (queue.length && !clientGone) { const t = queue.shift(); try { await readOne(t); } catch (e) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); }
-        const m = answersOf(t.id); if (Object.keys(m).length) send('answer', { id: t.id, byAsk: m, calls: 1 }); }
+        const m = answersOf(t.id); if (Object.keys(m).length) send('answer', { id: t.id, byAsk: m, calls: t.called ? 1 : 0 }); }
     }));
   } catch (e) {
     if (stream) { send('error', { message: 'Jambo request failed: ' + e.message }); return res.end(); }

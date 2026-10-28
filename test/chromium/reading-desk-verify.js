@@ -115,7 +115,8 @@ const Q = 'How much notice does each side need to end the contract?';
     await page.click('#ac-form [data-ac-stop]');
     const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
     const ST = await page.evaluate(() => ({ said: (document.querySelector('#ac-stopped .pd-gl-b .ac-meta') || {}).textContent.trim(), carry: (document.querySelector('[data-ac-carry]') || {}).textContent, timer: !!AC.deskTimer }));
-    check('4 Stop: "N of 100 read and kept · N not read · N Jambo calls spent", Carry on with its cost; the desk\'s timer is cleared', stopped && /^\d0 of 100 read and kept · \d0 not read · \d0 Jambo calls spent\.$/.test(ST.said) && /^Carry on · \d0 contracts · \d0 Jambo calls$/.test(ST.carry) && !ST.timer, ST);
+    check('4 Stop: "N of 100 read and kept · N not read · N Jambo calls spent", Carry on with its cost; the desk\'s timer is cleared', stopped && (m4 => !!m4 && Number(m4[1]) + Number(m4[2]) === 100)(/^(\d+) of 100 read and kept · (\d+) not read · \d+ Jambo calls spent\.$/.exec(ST.said)) && /^Carry on · \d+ contracts · \d+ Jambo calls$/.test(ST.carry) && !ST.timer, ST);
+    /* RE-POINTED 28 Oct 2026 (STOP MEANS STOP): a stop can now cut a batch midway, so the counts need not be tens */
     h.ai.slow(0);
     await page.click('[data-ac-carry]');
     const ended = await until(page, () => !document.querySelector('[data-ac-stop]') && !document.querySelector('#ac-stopped') && !!document.querySelector('#ig-dock [data-ac-prog]'), null, 60000);
@@ -125,6 +126,8 @@ const Q = 'How much notice does each side need to end the contract?';
       return { prog: p ? (p.querySelector('.ac-meta') || {}).textContent.replace(/\s+/g, ' ').trim() : '', btn: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
         primary: !!c.querySelector('[data-ac-next].ui-btn-primary'), pill: !!c.querySelector('.ac-th-prog [data-ac-size]'), every: !!c.querySelector('[data-ac-reads]'),
         toast: [...document.querySelectorAll('#toast-root *')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).pop() || '', timer: !!AC.deskTimer }; });
+    /* who and when come from the reads' record, fetched as the read ends: asked for, bounded */
+    await until(page, () => / · \S/.test(((document.querySelector('#ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').replace(/^.*still to read/, '')), null, 5000);
     let C = await card();
     check('5 when the read ends: "100 of the 120 shown read · 20 still to read", ONE filled button "Read the remaining 20 · 20 Jambo calls", no pill (the rest fits), Every read ›',
       ended && !!C && /^100 of the 120 shown read · 20 still to read · /.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20 · 20 Jambo calls']) && C.primary && !C.pill && C.every && !C.timer, C);
