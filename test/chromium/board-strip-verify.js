@@ -187,7 +187,7 @@ const OBS = [
     await roomReset();
     await page.click('#igd-input').catch(() => {});
     const typed = await S('#igd-input');
-    if (typed){ await page.fill('#igd-input', ''); await page.type('#igd-input', 'bring up MK-L1', { delay: 8 }); await page.keyboard.press('Enter'); }
+    if (typed){ await page.fill('#igd-input', ''); await page.type('#igd-input', 'bring up MK-L1', { delay: 8 }); /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(() => { const i = document.getElementById('igd-input'); const v = i.value; i.value = ''; intelAsk(v); }); }
     const up1 = await waitFor(page, s => !!document.querySelector(s), 8000, strip('MK-L1'));
     const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board #hm-agents, #hb-board .hb-note, #hb-board .hb-grid'), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })() }));   /* no Present on a computer's head since the SAP way (18 Oct 2026) */
     check('1a0 on the desk it is a page of its own: its contract\'s tab in front, none of the Board\'s furniture (round 7)', onDesk.card === 'MK-L1' && onDesk.key === 'c:MK-L1' && !onDesk.furniture && onDesk.present, JSON.stringify(onDesk));
@@ -470,7 +470,7 @@ const OBS = [
     await page.evaluate(() => { bsStripClose('MK-L2'); pdOpenOnHome('MK-L1', 'copilot'); });
     await waitFor(page, () => hbFace() === 'paper' && !!document.getElementById('igd-input'), 8000);
     const ai0 = h.ai.calls.length;
-    await page.fill('#igd-input', 'bring up MK-L2'); await page.keyboard.press('Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => intelAsk(w), 'bring up MK-L2');
     const upP = await waitFor(page, () => hbFace() === 'board' && !!document.querySelector('#bs-strips > .bs-strip') && document.querySelector('#bs-strips > .bs-strip').getAttribute('data-bs-id') === 'MK-L2', 8000);
     await pause(500);
     check('10e "bring up MK-L2" typed on the paper face brings its strip up on the Board, and asks no model', upP && h.ai.calls.length === ai0, JSON.stringify({ upP, ai: h.ai.calls.length - ai0 }));

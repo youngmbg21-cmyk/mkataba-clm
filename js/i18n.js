@@ -13931,7 +13931,8 @@ const STRINGS = {
     pd_nd_jw_some: 'answers to {p} of the {n} redlines',
     pd_back_jambo: 'Back to Jambo',
     pd_trail_back: 'Back to {to} (Esc)',
-    jb_thinking: 'Thinking…',
+    jb_door_fwd_tip: 'Back to the conversation with Jambo',
+    jb_thinking: 'Jambo is thinking…',
     pd_ff_done_press: 'All details are in. Press Fill the document below to write them into the wording.',
     pd_ff_redlines: 'Open the redlines',
     /* BEFORE YOU SIGN, BESIDE THE PAPER (the one-page Home plan, stage 5, 14 Oct 2026) */
@@ -34631,7 +34632,8 @@ const STRINGS = {
     pd_nd_jw_some: 'svar på {p} av de {n} ändringarna',
     pd_back_jambo: 'Tillbaka till Jambo',
     pd_trail_back: 'Tillbaka till {to} (Esc)',
-    jb_thinking: 'Tänker…',
+    jb_door_fwd_tip: 'Tillbaka till samtalet med Jambo',
+    jb_thinking: 'Jambo tänker…',
     pd_ff_done_press: 'Alla uppgifter är ifyllda. Tryck på Fyll i dokumentet nedan för att skriva in dem i texten.',
     pd_ff_redlines: 'Öppna ändringarna',
     /* INNAN DU SIGNERAR, BREDVID PAPPRET (planen för en sida, steg 5, 14 okt 2026) */

@@ -5,7 +5,8 @@
    page", "Dossier is its Overview", "Opens on Overview" — and, of Settings' "Open the Menu": every existing feature
    is kept. So, on every page with Jambo's panel (Home's Board, Contracts, Explorer, Calendar and the New agreement
    sheet; the list pages; Import; Settings, You and Company):
-   1 the panel's tabs are Overview first, then Jambo, and it OPENS on Overview;
+   1 the panel's tabs are Overview first, then Jambo, and it OPENS on Overview — RE-POINTED 28 Oct 2026 (owner picked
+     "Door above the box"): Overview first and NO Jambo tab; his conversation is opened the way an answer opens it;
    2 the Overview holds no greeting ([data-jb-hello]); the Jambo tab's first words are his greeting;
    3 the Overview is drawn by the one builder (.jov) — the Dossier beside a paper is its own and is not asked;
    4 NOTHING IS LOST: every button and link the page's panel offered before (the INVENTORY, test/overview-inventory.json,
@@ -18,7 +19,7 @@
    sheet (they were his one window, or led with the greeting), and 5 fails (the drop stood first); 4 is the parent's
    own inventory and holds there by construction.
    Run: node test/chromium/overview-tab-verify.js */
-/* global state, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords */
+/* global state, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords , stTalkReopen, jamboTalkOpen, calPlanRepaint, jlTalkPress, pdTalkReopen, jamboTalkUp, jamboTalkBack */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -113,7 +114,7 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       if (!read){ check(`${key}: the panel is drawn`, false, host); continue; }
       if (WRITE){ inv[key] = read.press; console.log(`INVENTORY ${key}: ${read.press.length} — ${JSON.stringify(read.press)}`); continue; }
       const ov = read.tabWords[0] || '', jb = read.tabWords[1] || '';
-      check(`1 ${key}: Overview first, then Jambo, landing on Overview`, /Overview/.test(ov) && /Jambo/.test(jb) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit }));
+      check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
       check(`2 ${key}: no greeting on the Overview`, !read.helloIn, String(read.helloIn));
       check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1, String(read.jov));
       /* nothing lost: each pressable of the old panel is still pressable here, by its words (case, cost and spacing aside) */
@@ -125,13 +126,14 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       if (key === 'contracts') check('5 contracts: Discover stands above the drop area', read.order === 'disc-first', String(read.order));
       if (key === 'settings-you' || key === 'settings-company') check(`6 ${key}: "Open the Menu" is still first`, read.menuFirst === true, String(read.menuFirst));
       /* the Jambo tab's first words are his greeting */
-      const tab = await P.$(`${host} [data-jl-talk], ${host} .pd-tab-talk, ${host} [data-st-talk], ${host} [data-cal-talk]`);
-      if (tab){ await tab.click();
-        const hello = await until(P, h => { const r = document.querySelector(h); return r && [...r.querySelectorAll('[data-jb-hello]')].some(e => e.getBoundingClientRect().height > 0) ? true : null; }, host, 3000);
-        check(`2b ${key}: the Jambo tab opens on his greeting`, !!hello);
-        await P.keyboard.press('Escape').catch(() => {});
-        await P.evaluate(h => { const r = document.querySelector(h); const b = r && r.querySelector('[data-jl-home], [data-st-overview], [data-cal-talk-back], .pd-tab[data-pd-tab="copilot"]'); if (b) b.click(); }, host);
-      } else check(`2b ${key}: the Jambo tab is there to press`, false);
+      /* the conversation, turned to as an answer turns it (each host's own reopen), opens on his greeting */
+      await P.evaluate(k => { if (/^settings/.test(k)) return stTalkReopen();
+        if (k === 'calendar'){ jamboTalkOpen('cal:week', document.getElementById('cal-plan-body')); return calPlanRepaint(); }
+        if (document.querySelector('#ins-panel.is-jambo, #mig-side .jl-head')) return jlTalkPress();
+        return pdTalkReopen(); }, key);
+      const hello = await until(P, h => { const r = document.querySelector(h); return r && [...r.querySelectorAll('[data-jb-hello]')].some(e => e.getBoundingClientRect().height > 0) ? true : null; }, host, 3000);
+      check(`2b ${key}: the conversation opens on his greeting`, !!hello);
+      await P.evaluate(() => { try { if (window.jamboTalkUp && jamboTalkUp()) jamboTalkBack(); } catch (_){} });
     }
     if (WRITE){ fs.writeFileSync(INV, JSON.stringify(inv, null, 1) + '\n'); console.log('wrote ' + INV); }
     check('7 no page errors', !errors.length, errors.slice(0, 3).join(' | '));

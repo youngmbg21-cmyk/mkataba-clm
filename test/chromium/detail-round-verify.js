@@ -94,7 +94,7 @@ const blocked = [];
         await clean(); await ev(() => setView('dashboard')); await until(() => document.querySelector('#ig-dock'), undefined, 4000); await ev(() => setView('calendar'));
         /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
            for jambo"): the Calendar's panel opens on Overview (Your week); his greeting is under the Jambo tab, as in Settings */
-        const ready = () => document.querySelectorAll('#hb-cal .cal-wkm-lab b').length >= 5 && document.querySelector('.cal-head') && document.querySelector('.cal-cop [data-cal-talk]');
+        const ready = () => document.querySelectorAll('#hb-cal .cal-wkm-lab b').length >= 5 && document.querySelector('.cal-head') && document.querySelector('.cal-cop .cal-plan-tab');
         /* the first page after signing in may still be settling on the Board: asked once more, bounded */
         const there = (await until(ready, undefined, 5000)) || (await ev(() => setView('calendar')), await until(ready));
         await settle(); await shot('calendar');
@@ -189,8 +189,9 @@ const blocked = [];
         await settle(); await shot('new-agreement-over-calendar');
         const said = await ev(() => ({ cal: !!document.querySelector('#ig-dock .cal-cop'), words: ((document.querySelector('#ig-dock #igd-feed') || {}).innerText || '').replace(/\s+/g, ' ').trim() }));
         check(`${at} · 5b — over the Calendar, the panel beside the New agreement sheet says the sheet's line`, up && !said.cal && /New agreement/.test(said.words), JSON.stringify(said).slice(0, 140));
-        const tabs = await ev(() => ({ talk: !!document.querySelector('#ig-dock .igd-head .pd-tab-talk'), key: typeof pdTalkKey === 'function' ? pdTalkKey() : null }));
-        check(`${at} · 5b — …with his Jambo tab, in his own conversation (not the Calendar's)`, tabs.talk && /^dock:/.test(tabs.key || ''), JSON.stringify(tabs));
+        /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab — the panel is in his own conversation's key */
+        const tabs = await ev(() => ({ key: typeof pdTalkKey === 'function' ? pdTalkKey() : null }));
+        check(`${at} · 5b — …in his own conversation (not the Calendar's)`, /^dock:/.test(tabs.key || ''), JSON.stringify(tabs));
         await clean();
         const back = await until(() => document.querySelector('#ig-dock .cal-cop'), undefined, 5000);
         check(`${at} · 5b — Cancel gives the Calendar its own panel back`, back);
@@ -324,8 +325,8 @@ const blocked = [];
           return [...h.querySelectorAll('.pd-tab, .igd-head-w, .pd-head-word')].filter(x => x.getBoundingClientRect().width).map(x => {
             const w = x.querySelector('.pd-tab-w') || x; return { t: x.textContent.replace(/\s+/g, ' ').trim(), jambo: x.matches('.pd-tab-talk, .jl-tab'), cut: w.scrollWidth > w.clientWidth + 1, name: x.matches('[data-jl-word]') }; }); }, head);
         const bad = (t || []).filter(x => x.cut && !x.name);
-        const jb = (t || []).find(x => x.jambo);
-        check(`${at} · 4 — ${name}: Jambo's tab and the head's words are whole`, t && jb && !bad.length, t ? (bad.map(x => `"${x.t}" cut`).join(', ') || t.map(x => x.t).join(' · ')) : 'no head');
+        /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab on the landing — the head's tabs are whole */
+        check(`${at} · 4 — ${name}: the head's words are whole`, t && t.length && !bad.length, t ? (bad.map(x => `"${x.t}" cut`).join(', ') || t.map(x => x.t).join(' · ')) : 'no head');
       }
     }
     check('every probe ran', blocked.length === 0, blocked.slice(0, 3).join(' | ') || undefined);

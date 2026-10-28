@@ -53,17 +53,20 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     /* RE-PINNED 26 Oct 2026 (owner: a first page with a link to press needs a second tab for Jambo; reverses the
        24 Oct one window here): the Board's panel turns to his tab for the answer, Overview one press away */
     const C = await page.evaluate(() => { const t = (document.getElementById('ig-dock') || {}).innerText || ''; return { answer: /Three things deserve attention/.test(t), solo: typeof pdSolo === 'function' && pdSolo(), talk: typeof pdTalkShows === 'function' && pdTalkShows(), tabs: [...document.querySelectorAll('#ig-dock .pd-tab')].map(x => x.textContent.trim()) }; });
-    check('C the answer stands in the panel under his tab, Overview beside it', !!said && C.answer && !C.solo && C.talk && C.tabs.some(t => /Overview|Översikt/.test(t)), JSON.stringify(C));
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): his name alone heads the conversation, "‹ Overview" above the box */
+    const back = await page.evaluate(() => ((document.querySelector('#ig-dock [data-jb-door] .jb-door-back') || {}).textContent || '').trim());
+    check('C the answer stands in the panel\'s conversation, "‹ Overview" above the box', !!said && C.answer && !C.solo && C.talk && /Overview|Översikt/.test(back), JSON.stringify(Object.assign(C, { back })));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `board-question-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
 
     console.log('\nB · a trip that WAS asked for still goes: "what needs you is on Home" (board-as-drawn 5d/5f)');
     /* RE-PINNED 26 Oct 2026 (owner: the Board's Jambo tab is a trial where the brain reads first, igBoardTalkFirst):
        A's answer turned the panel to his tab, so the free trip is asked from Overview, one press back */
-    if (await page.evaluate(() => pdTalkShows())) await page.click('#ig-dock [data-pd-talk]');
+    if (await page.evaluate(() => pdTalkShows())) await page.click('#ig-dock [data-jb-door] .jb-door-back');
     check('B0 Overview is in front again', !!(await until(() => !pdTalkShows() && !!document.getElementById('igd-input'))));
     ai.reset();
-    await page.fill('#igd-input', 'take me to what needs me'); await page.click('#igd-go');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free trip is a reader's, asked as a chip asks (typed, the long form is the brain's) */
+    await page.evaluate(w => intelAsk(w), 'take me to what needs me');
     const B = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs') ? state.view : null, null, 10000);
     check('B "take me to what needs me" opens Home\'s Needs you, nothing spent', B === 'counter' && ai.calls.length === 0, `${B} · ${ai.calls.length}×`);
 

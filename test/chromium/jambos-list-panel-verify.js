@@ -198,7 +198,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.fill('#jl-q', 'which of these is worth the most?');
       await page.press('#jl-q', 'Enter');
       const ANS = await until(() => { const f = document.getElementById('jl-feed');
-        return f && f.querySelectorAll('.ai-msg').length >= 2 && !f.querySelector('.typing') && /\S/.test((f.querySelector('.ai-msg:last-child') || {}).textContent || '') ? { n: f.querySelectorAll('.ai-msg').length, open: !!(window.ai && ai.open), win: (document.getElementById('ai-feed') || {}).innerHTML === '' } : null; }, null, 15000);
+        return f && f.querySelectorAll('.ai-msg').length >= 2 && !f.querySelector('.typing, [data-jb-thinking]') && /\S/.test((f.querySelector('.ai-msg:last-child') || {}).textContent || '') ? { n: f.querySelectorAll('.ai-msg').length, open: !!(window.ai && ai.open), win: (document.getElementById('ai-feed') || {}).innerHTML === '' } : null; }, null, 15000);
       check('3b a question is said in the panel; the window stays shut and holds no second copy', !!ANS && !ANS.open && ANS.win, JSON.stringify(ANS));
       await shot('r14-negotiations-ask-1440x780.png');
     });
@@ -372,7 +372,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await until(() => document.getElementById('jl-q') && document.querySelector('[data-ap-row]'), null, 8000);
         aiCalls.length = 0;
         await page.evaluate(() => { try { jlTalkBack(); } catch (_) {} }); /* RE-POINTED 27 Oct 2026: Overview's free readers */
-        await page.fill('#jl-q', q); await page.press('#jl-q', 'Enter');
+        /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free readers, asked as a chip asks */
+        await page.fill('#jl-q', q); await H.chipEnter(page, '#jl-q');
         const G = await until(([w, said]) => {
           if (w === 'form') return state.view === 'dashboard' && document.querySelector('#na-q, .na-one, #dr-say') ? { face: hbFace(), form: true } : null;
           if (state.view !== 'approvals') return null;

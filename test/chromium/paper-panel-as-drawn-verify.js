@@ -231,10 +231,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     await page.evaluate(() => intelAsk('what does clause 7 say?'));
     const flipped = await until(() => { if (!(window.pdTalkShows && pdTalkShows()) || !(intel.history || []).length || intel.busy) return null;
       const nd = document.getElementById('pd-needs'), r = nd && nd.getBoundingClientRect();
-      return { talk: (intel.history || []).length, needsShown: !!(r && r.width > 0 && r.height > 0), back: !!document.querySelector('#ig-dock .pd-trail [data-pd-back]') }; }, null, 10000);
-    check('1h asked something: the panel turns to the conversation under its trail, Needs you here kept on the landing', !!flipped && flipped.talk > 0 && !flipped.needsShown && flipped.back, JSON.stringify(flipped));
+      return { talk: (intel.history || []).length, needsShown: !!(r && r.width > 0 && r.height > 0), back: !!document.querySelector('#ig-dock [data-jb-door] [data-pd-back]') }; }, null, 10000);
+    check('1h asked something: the panel turns to the conversation, its back above the box (Door above the box, 28 Oct 2026), Needs you here kept on the landing', !!flipped && flipped.talk > 0 && !flipped.needsShown && flipped.back, JSON.stringify(flipped));
     await shot(page, '3-panel-asked-1440x780');
-    if (flipped && flipped.back) await page.click('#ig-dock .pd-trail [data-pd-back]');
+    if (flipped && flipped.back) await page.click('#ig-dock [data-jb-door] [data-pd-back]');
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the landing is the dossier, Still owed its second card */
     const pinned = await until(() => { const nd = document.getElementById('pd-needs'), sp = document.querySelector('#pd-glance .ds-spine'); if (!nd || !sp || (window.pdTalkShows && pdTalkShows())) return null;
       const n = nd.getBoundingClientRect();

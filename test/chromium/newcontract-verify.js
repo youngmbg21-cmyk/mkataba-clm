@@ -45,7 +45,7 @@ const pastFirstWords = async page => {
   while (Date.now() < end){
     const s = await page.evaluate(() => document.getElementById('pd-glance') ? 'cd' : document.querySelector('#ig-dock .jb-turn') ? 'jb' : '').catch(() => '');
     if (s === 'cd') return true;
-    if (s === 'jb'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-trail .pd-back'); if (b) b.click(); }).catch(() => {}); }
+    if (s === 'jb'){ await page.evaluate(() => { const b = (document.querySelector('#ig-dock [data-jb-door] .jb-door-back') || document.querySelector('#ig-dock .pd-trail .pd-back')); if (b) b.click(); }).catch(() => {}); }
     await new Promise(r => setTimeout(r, 120));
   }
   return false;

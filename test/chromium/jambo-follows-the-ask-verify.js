@@ -121,8 +121,9 @@ const check = (name, pass, detail) => {
       const s = hbS(); s.face = 'board'; if (window.hbSave) hbSave(); setView('dashboard'); });
     const box = await until(() => state.view === 'dashboard' && !calOnScreen() && !!document.getElementById('igd-input') && !intel.busy);
     check('3 · on the Board, the main box up', !!box);
-    await page.fill('#igd-input', 'book a meeting with Naivas on Tuesday at 2pm');
-    await page.press('#igd-input', 'Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box": every word typed in the panel's box is the brain's but a page's one
+       name): the Board's booking hand-off is a free reader, so it is asked as a chip asks; Home's box (4) keeps it first */
+    await page.evaluate(w => intelAsk(w), 'book a meeting with Naivas on Tuesday at 2pm');
     const went = await until(() => calOnScreen() && window.__asked.some(a => a.p === 'ai/plan') ? window.__asked.slice() : null, null, 10000);
     check('3a the Calendar opens and its Jambo is asked the same words', !!went && went.some(a => a.p === 'ai/plan' && a.ask === 'book a meeting with Naivas on Tuesday at 2pm'), JSON.stringify(went || await asked()));
     check('3b and the contract map is not asked', !!went && !went.some(a => a.p === 'ai/graph'));
@@ -149,9 +150,8 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { window.__asked.length = 0; });
     await until(() => !intel.busy);
     /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
-    await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } });
-    await page.fill('#igd-input', 'Which template should I start from for a supplier deal?');
-    await page.press('#igd-input', 'Enter');
+    await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } });
+    await page.evaluate(w => intelAsk(w), 'Which template should I start from for a supplier deal?');
     const q2 = await until(() => !intel.busy && window.__asked.length ? window.__asked.slice() : null, null, 10000);
     check('5b a request for a starting point still reaches the template adviser', !!q2 && q2.some(a => a.p === 'ai/template'), JSON.stringify(q2));
 

@@ -2,14 +2,14 @@
    ============================================================
    The owner, 27 Oct 2026: "roll out the jambo capabilities from the board's jambo to all the jambos across HaTi.
    Then, Teach him to work each page's controls, as he now draws on the Board, separately for each page."
-   On every page with Jambo's panel, his tab pressed:
-     A  "approvals" typed there is a question to the brain — one call, the page stays (no free reader moved it); the
+   On every page with Jambo's panel (RE-POINTED 28 Oct 2026, "Door above the box": no Jambo tab, typed on the landing):
+     A  "approvals waiting" typed there is a question to the brain — one call, the page stays (no free reader moved it); the
         chat is told the page's OWN controls where the page has a list (THE PAGE'S OWN CONTROLS, deliver_answer.page)
      B  the brain's presses work the page's own controls, said in a line under his words:
         Approvals and Obligations — a tab; the Contracts place and People — the list's search
      C  the Calendar's planner hands words that are not about time to the chat ('elsewhere'), in the one conversation
      D  Explorer's tab asks the map's own brain (render_graph), a contract's Dossier the chat or its wording's
-     E  Overview's box keeps its free readers: "approvals" there moves to Approvals, nothing spent
+     E  a page's one name, "approvals", moves to Approvals, nothing spent
      H  Home's box (the Counter) typed into is one question to the brain, the Board opening on his tab; a chip stays free
      F  no page errors
    AT THE PARENT (origin/main 422878e) A fails on every page but the Board, B and C fail.
@@ -55,7 +55,6 @@ const PAGES = [
   ['migration', "setView('migration')", '#mig-side', '#jl-q', 'migration', null],
   ['settings', "setView('team')", '#st-side', '#st-jb-q', 'team', null],
 ];
-const TALK = h => `${h} [data-jl-talk], ${h} .pd-tab-talk, ${h} [data-st-talk], ${h} [data-cal-talk]`;
 const deliver = (answer, extra) => ({ content: [{ type: 'tool_use', id: 'tu_e', name: 'deliver_answer', input: Object.assign({ answer, citations: [] }, extra || {}) }] });
 const toolsOf = c => (c && c.body && Array.isArray(c.body.tools)) ? c.body.tools.map(t => t.name) : [];
 const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArray(s) ? s.map(b => (b && b.text) || '').join('\n') : String(s || ''); };
@@ -89,9 +88,8 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
       if (ONLY && !ONLY.includes(key)) continue;
       console.log(`\n· ${key}`);
       if (!(await open(go, host))){ check(`${key}: the panel is drawn`, false, host); continue; }
-      const tab = await P.$(TALK(host));
-      if (!tab){ check(`${key}: the Jambo tab is there to press`, false); continue; }
-      await tab.click(); await P.waitForTimeout(300);
+      /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): no Jambo tab to press — words typed on the landing
+         are the brain's, but a page's one name, so the sentence asked is two words */
       /* what his presses should be on this page, read off the page's own controls */
       const C = await P.evaluate(() => (typeof lhControlsNow === 'function') ? lhControlsNow() : null);
       let page = null, want = null;
@@ -102,11 +100,11 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
       else if (does === 'map') ai.script({ content: [{ type: 'tool_use', id: 'tu_g', name: 'render_graph', input: { answer: 'ANS-' + key, note: 'map' } }] });
       else ai.script(deliver('ANS-' + key, page ? { page } : {}));
       const view0 = await P.evaluate(() => state.view);
-      await type(box, 'approvals');
+      await type(box, 'approvals waiting');
       await until(P, () => ai !== undefined, null, 500);
       await settled(); await P.waitForTimeout(700);
       const calls = ai.calls.slice(), view1 = await P.evaluate(() => state.view);
-      check(`A ${key}: "approvals" on his tab is a question to the brain, the page stays`, calls.length >= 1 && view1 === (view || view0), `${calls.length} call(s) · ${view0} → ${view1}`);
+      check(`A ${key}: "approvals waiting" typed is a question to the brain, the page stays`, calls.length >= 1 && view1 === (view || view0), `${calls.length} call(s) · ${view0} → ${view1}`);
       const chat = calls.find(c => toolsOf(c).includes('deliver_answer'));
       if (does === 'elsewhere') check(`C ${key}: the planner hands it to the chat`, calls.length === 2 && toolsOf(calls[0]).includes('elsewhere') && !!chat, calls.map(c => toolsOf(c).slice(0, 3).join('/')).join(' · '));
       if (does === 'map') check(`D ${key}: the map's own brain is asked`, calls.length === 1 && toolsOf(calls[0]).includes('render_graph'), toolsOf(calls[0]).slice(0, 4).join('/'));
@@ -130,11 +128,11 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
       const C = await P.evaluate(() => lhControlsNow());
       const S = C && C.seats[0], t = S && S.tabs.find((x, i) => i > 0);
       ai.reset(); ai.script(deliver('ANS-window', t ? { page: [{ seat: S.seat, do: 'tab', k: t.k }] } : {}));
-      await type('#ai-input', 'approvals');
+      await type('#ai-input', 'approvals waiting');
       await settled(); await P.waitForTimeout(700);
       const view = await P.evaluate(() => state.view);
       const chat = ai.calls.find(c => toolsOf(c).includes('deliver_answer'));
-      check('G1 typed in the ✦ window, "approvals" is one question to the brain, the page stays', !!up && ai.calls.length === 1 && !!chat && view === 'obligations', `${ai.calls.length} call(s) · ${view}`);
+      check('G1 typed in the ✦ window, "approvals waiting" is one question to the brain, the page stays', !!up && ai.calls.length === 1 && !!chat && view === 'obligations', `${ai.calls.length} call(s) · ${view}`);
       if (t){
         const got = await until(P, w => { const pg = LH_PAGES[w.seat]; return pg && String(pg.tabNow()) === String(w.k) ? true : null; }, { seat: S.seat, k: t.k }, 5000);
         const said = await P.evaluate(() => /Showing/.test((document.getElementById('ai-feed') || {}).innerText || ''));
@@ -150,12 +148,12 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
       await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
       const box = await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
       ai.reset(); ai.script(deliver('ANS-home'));
-      await type('#cn-q', 'approvals');
+      await type('#cn-q', 'approvals waiting');
       await until(P, () => state.view === 'dashboard' ? true : null, null, 6000);
       await settled(); await P.waitForTimeout(700);
       const H = await P.evaluate(() => ({ view: state.view, face: (typeof hbFace === 'function') ? hbFace() : '', talk: !!(window.pdTalkShows && pdTalkShows()), said: /ANS-home/.test((document.getElementById('ig-dock') || {}).innerText || '') }));
       const chat = ai.calls.find(c => toolsOf(c).includes('deliver_answer'));
-      check('H1 typed in Home\'s box, "approvals" is one question to the brain; the Board opens on his tab with the answer', !!box && ai.calls.length === 1 && !!chat && H.view === 'dashboard' && H.face === 'board' && H.talk && H.said, `${ai.calls.length} call(s) · ${JSON.stringify(H)}`);
+      check('H1 typed in Home\'s box, "approvals waiting" is one question to the brain; the Board opens on his tab with the answer', !!box && ai.calls.length === 1 && !!chat && H.view === 'dashboard' && H.face === 'board' && H.talk && H.said, `${ai.calls.length} call(s) · ${JSON.stringify(H)}`);
       await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
       await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
       ai.reset();
@@ -170,7 +168,7 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
       ai.reset();
       await type('#jl-q', 'approvals');
       const E = await until(P, () => state.view === 'approvals' ? state.view : null, null, 8000);
-      check('E under Overview, "approvals" moves to Approvals, nothing spent', E === 'approvals' && ai.calls.length === 0, `${E} · ${ai.calls.length}×`);
+      check('E a page\'s one name, "approvals", moves to Approvals, nothing spent', E === 'approvals' && ai.calls.length === 0, `${E} · ${ai.calls.length}×`);
     }
     check('F no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {

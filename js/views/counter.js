@@ -1088,6 +1088,8 @@ function counterAsk(text, opts = {}){
      reverses "Overview's box … keep the free readers" for this one box): words TYPED here (Enter, the send
      button) are the Board's Jambo tab's — the Board opens on his tab and the chat reads the whole sentence, a
      page's name too (its goto lands there). A chip, a "/" row and no key keep the free readers, never a dead box. */
+  /* …but a page's one name moves you there, free (owner, 28 Oct 2026, "Door above the box": "Only real page names move you") */
+  if (opts.typed && typeof jamboPageGo === 'function' && jamboPageGo(t)) return true;
   if (opts.typed && counterTalkFirst()) return counterTalkAsk(t);
   return (typeof caAskAnywhere === 'function') ? caAskAnywhere(text, { all: true }) : false;
 }

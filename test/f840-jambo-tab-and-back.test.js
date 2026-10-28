@@ -144,7 +144,10 @@ describe('f840 (2) Home\'s panel', () => {
     ctx.intel.history.push({ role: 'user', text: 'what is the cap?' });
     assert.equal(ctx.pdTalkSync(null), true, 'a question turns it');
     assert.deepEqual(JSON.parse(JSON.stringify(ctx.pdTrail())), { back: 'talk', up: 'pd_tab_dossier', path: ['pd_tab_dossier', 'pd_tab_copilot'] });
-    assert.match(ctx.pdTrailHtml(), /data-pd-back="talk"[^>]*>[\s\S]*pd_tab_dossier<\/button>/, '‹ Dossier');
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): the conversation's back is the door right above the
+       box, never a line over the talk — pdTrail still names it for Esc and the bar's ‹ */
+    assert.equal(ctx.pdTrailHtml(), '', 'no trail line over the talk');
+    assert.match(code(fnOf(IG, 'renderIntelDock')), /jamboDoorHtml\(\{ on:true, attr:'data-pd-back', back:'talk', to:\(typeof window\.pdLandWord==='function'\)\?pdLandWord\(\)/, '‹ Dossier above the box');
     ctx.PD_BACK_CLOSE.talk();
     assert.equal(ctx.pdTalkShows(), false, 'back on the landing');
     assert.ok(painted.length, 'and drawn');
@@ -232,10 +235,13 @@ describe('f840 (3) the panel beside a list', () => {
     assert.equal(p.querySelector('.jl-body').hidden, true, 'the landing out of sight');
     assert.equal(p.querySelector('.jl-talk').hidden, false, 'the conversation in front');
     assert.equal(p.getAttribute('data-ins-id'), 'MK-2', 'the row is still held');
-    const back = p.querySelector('.jl-talk [data-jt-back="list"]');
-    assert.ok(back, 'the trail\'s back');
-    assert.equal(back.textContent.trim(), 'Overview');
-    assert.match(p.querySelector('.jl-talk .pd-trail-w').textContent, /Overview \/ Jambo/);
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): the way back stands right above the box */
+    const door = p.querySelector('.jl-foot [data-jb-door]');
+    assert.ok(door && !door.hidden, 'the door above the box');
+    const back = door.querySelector('[data-jt-back="list"]');
+    assert.ok(back, 'its back');
+    assert.match(back.textContent, /Overview|pd_tab_overview/, 'named for the landing');
+    assert.ok(!p.querySelector('.jl-talk .pd-trail-w'), 'no trail line over the talk');
     back.dispatchEvent(new win.Event('click', { bubbles: true }));
     assert.equal(p.querySelector('.jl-body').hidden, false, 'back on the landing');
     assert.equal(p.querySelector('.jl-talk').hidden, true);
@@ -251,16 +257,18 @@ describe('f840 (4) Settings', () => {
      here" with a link per row, so it is not his one window any more: the page
      keeps its own tab, the asked and the answer go to his, and the trail names
      the way back. What decides is what the landing HOLDS (stLandHasLinks). */
-  test('4a the page\'s own view and his: the turn goes to his, the trail names the way back', () => {
+  /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): the way back is the door right above the box */
+  test('4a the page\'s own view and his: the turn goes to his, the door above the box names the way back', () => {
     const { settingsStage } = require('./settingsworld.js');
     const g = settingsStage();
-    assert.ok(g.$('st-jb-trail').hidden, 'no trail until the talk is up');
+    assert.ok(g.q('#st-jb-form [data-jb-door]').hidden, 'no door until the talk is up');
     g.sb.stJbAsk('what is a sealed PDF?');
     assert.ok(g.q('#st-jb-feed [data-st-jb-land]').hidden, 'the page\'s own view stands aside');
     assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'his view is up');
     assert.ok(g.q('#st-jb-feed [data-st-jb-talk] [data-st-jb-turn]'), 'the turn is said there');
-    assert.ok(!g.$('st-jb-trail').hidden, 'the trail names the way back');
-    assert.ok(g.q('#st-jb-trail [data-jt-back="settings"]'), 'and carries it');
+    assert.ok(!g.q('#st-jb-form [data-jb-door]').hidden, 'the door names the way back');
+    assert.ok(g.q('#st-jb-form [data-jb-door] [data-jt-back="settings"]'), 'and carries it');
+    assert.ok(g.$('st-jb-trail').hidden, 'no trail line over the talk');
   });
   test('4b an ask no longer lets the stream shown go: it stays the landing', () => {
     assert.doesNotMatch(code(fnOf(SET, 'stJbAsk')), /stSwPickSet\(null\)/);
@@ -279,8 +287,9 @@ describe('f840 (5) the Calendar\'s panel, and (6) every host\'s back', () => {
     assert.match(f, /const talk=typeof window\.jamboTalkShows==='function'&&jamboTalkShows\(CAL_TALK_KEY\);/);
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"): no panel is one window any more and his greeting is the Jambo tab's first words, never the Overview's */
     assert.match(f, /<div class="jl-words is-ov cal-yw" data-jt-land\$\{talk\?' hidden':''\}>/, 'Your week hides under the talk, never gone');
-    assert.match(f, /data-cal-talk-back/); assert.match(f, /data-cal-talk /);
-    assert.match(f, /jamboTalkTrailHtml\('cal',land\)/);
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): no Jambo tab, the way back above the box */
+    assert.doesNotMatch(f, /data-cal-talk /, 'no Jambo tab to press');
+    assert.match(f, /jamboDoorHtml\(\{ on:true, attr:'data-cal-talk-back', back:'cal', to:land/);
     assert.match(code(fnOf(CAL, 'calPlanAsk')), /jamboTalkOpen\(CAL_TALK_KEY/);
     assert.match(CAL, /jamboTalkHost\('cal', calTalkBack,/);
   });

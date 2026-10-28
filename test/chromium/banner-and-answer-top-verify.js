@@ -83,7 +83,7 @@ const LONG = [FIRST].concat(Array.from({ length: 30 }, (_, i) => `Point ${i + 1}
     await page.press('#igd-input', 'Enter');
     const land = await until(f => { const feed = document.getElementById('igd-feed'); if (!feed || feed.hidden) return null;
       const all = [...feed.querySelectorAll('.ai-msg')]; const last = all[all.length - 1];
-      if (!last || !last.textContent.includes('START OF THE ANSWER') || last.querySelector('.typing')) return null;
+      if (!last || !last.textContent.includes('START OF THE ANSWER') || last.querySelector('.typing, [data-jb-thinking]')) return null;
       const sc = feed, fr = sc.getBoundingClientRect();
       const tw = document.createTreeWalker(last, NodeFilter.SHOW_TEXT); let first = null;
       while (tw.nextNode()) if (tw.currentNode.nodeValue.includes(f)) { first = tw.currentNode.parentElement; break; }

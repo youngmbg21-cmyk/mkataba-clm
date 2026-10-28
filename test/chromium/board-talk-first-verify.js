@@ -47,9 +47,9 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 20000 });
     const toBoard = async () => { await page.evaluate(() => { setView('dashboard'); intel.paper = null; intel.history = []; hbSetFace('board'); if (!intel.dockOpen){ intel.dockOpen = true; renderIntelDock(); } });
       return until(() => state.view === 'dashboard' && hbS().face === 'board' && !!document.getElementById('igd-input') && !intel.busy); };
-    const toTalk = async () => { const on = await page.evaluate(() => typeof pdTalkShows === 'function' && pdTalkShows());
-      if (!on) await page.click('#ig-dock [data-pd-talk]');
-      return until(() => typeof pdTalkShows === 'function' && pdTalkShows() && !!document.getElementById('igd-input')); };
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): there is no Jambo tab to open — words typed in the box
+       are the brain's on the landing too (but a page's one name); "toTalk" asks only that the box stands */
+    const toTalk = async () => until(() => !!document.getElementById('igd-input') && typeof igBoardTalkFirst === 'function' && igBoardTalkFirst());
     const ask = async q => { await page.fill('#igd-input', q); await page.click('#igd-go'); };
 
     console.log('\nA · Overview keeps the free readers');
@@ -61,7 +61,7 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
 
     console.log('\nB · the Jambo tab: the gate is on, the line promises no free move');
     await toBoard();
-    check('B0 the Jambo tab is open', !!(await toTalk()));
+    check('B0 the box is the brain\'s here, no tab to open', !!(await toTalk()));
     check('B1 the brain reads first here (igBoardTalkFirst)', await page.evaluate(() => typeof igBoardTalkFirst === 'function' && igBoardTalkFirst() === true));
     await page.fill('#igd-input', 'i keep losing track of which approvals are stuck with finance');
     await page.evaluate(() => { const i = document.getElementById('igd-input'); i.dispatchEvent(new Event('input', { bubbles: true })); });
@@ -72,7 +72,7 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
 
     console.log('\nK · a short command on the Jambo tab is the AI\'s too, and its goto moves the reader');
     ai.reset(); ai.script(deliver('Taking you to Approvals.', { task: 'approvals' }));
-    await ask('approvals');
+    await ask('approvals please');
     const K = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
     check('K1 one chat call, and the AI\'s door moved the reader to Approvals', chatCalls().length === 1 && !!K && /approv/i.test(K), `${K} · ${chatCalls().length}×`);
     await toBoard(); await toTalk();
@@ -110,11 +110,11 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
        takes me to contracts") — on both tabs */
     console.log('\nG · "take me to contacts" is People, never Contracts');
     await toBoard();
-    if (await page.evaluate(() => pdTalkShows())) await page.click('#ig-dock [data-pd-talk]');
     ai.reset();
-    await ask('take me to contacts');
+    /* RE-POINTED 28 Oct 2026 ("Door above the box"): the one word moves free; the long form is the brain's (G2) */
+    await ask('contacts');
     const G = await until(() => state.view !== 'dashboard' ? state.view : null, null, 8000);
-    check('G1 under Overview it opens People, nothing spent', G === 'directory' && chatCalls().length === 0, `${G} · ${ai.calls.length}×`);
+    check('G1 "contacts" alone opens People, nothing spent', G === 'directory' && chatCalls().length === 0, `${G} · ${ai.calls.length}×`);
     await toBoard(); await toTalk();
     ai.reset(); ai.script(deliver('Taking you to People.', { task: 'people' }));
     await ask('take me to contacts');

@@ -40,7 +40,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract, FOLDER_A } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract, FOLDER_A, chipEnter } = require('../helpers');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'redlines-beside-the-paper');
 const EXEC = process.env.CHROMIUM_BIN
@@ -275,7 +275,7 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.evaluate(() => pdRedClose()); await pause(300);
 
     /* ===== 8. THE OTHER DOORS ===== */
-    await page.fill('#igd-input', 'redline'); await page.keyboard.press('Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#igd-input', 'redline'); await chipEnter(page, '#igd-input');
     check('8a the word "redline" opens the face', await waitFor(page, () => !!document.getElementById('pd-redface'), 5000));
     await page.evaluate(() => pdRedClose()); await page.evaluate(() => setView('register')); await pause(400);
     await page.evaluate(() => { const al = buildAlerts().find(a => a.kind === 'negotiation' && a.id === 'MK-R1'); window._al8 = !!al; if (al) al.go(); });

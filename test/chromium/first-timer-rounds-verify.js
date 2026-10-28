@@ -175,7 +175,7 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
        wait in his tab, said there once — the reader flips to it */
     const onDossier = await until(P, () => !!document.querySelector('#ig-dock .ds-sp-st') && !document.querySelector('#ig-dock .jb-turn') && pdTab() === 'copilot', null, 15000);
     check(!!onDossier, '4a0 Create lands on the Dossier, not on his words');
-    await drive(P, () => { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); });
+    await drive(P, () => { if (typeof pdTalkReopen === 'function') pdTalkReopen(); });
     const spoke = await until(P, () => [...document.querySelectorAll('#ig-dock .jb-turn')].some(t => /A few things are still open/.test(t.innerText)), null, 15000);
     const id = await drive(P, () => pdContract() && pdContract().id, null, null);
     const said = await drive(P, () => { const T = [...document.querySelectorAll('#ig-dock .jb-turn')].map(t => t.innerText.replace(/\s+/g, ' '));

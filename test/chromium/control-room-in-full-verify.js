@@ -113,7 +113,7 @@ const signIn = async (page, base, email, pass) => {
        "/" in every Jambo box lists the places (caSlRead) — so the Menu is
        reached through Jambo's own "Open the Menu", under the answer he gives
        when he finds no setting */
-    await page.fill('#st-jb-q', 'zzqx nothing here'); await page.keyboard.press('Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): asked as a chip asks */ await page.evaluate(w => stJbBoxAsk(w), 'zzqx nothing here');
     await until(() => !!document.querySelector('#st-jb-feed [data-st-side="menu"]'));
     if (await page.locator('#st-jb-feed [data-st-side="menu"]').count()) await page.locator('#st-jb-feed [data-st-side="menu"]').last().click();
     await page.fill('#st-q', 'logo');
@@ -148,8 +148,7 @@ const signIn = async (page, base, email, pass) => {
     /* ---- 5. Jambo's why ---- */
     await page.evaluate(() => { setView('team'); settingsGoTab('company'); stSideSet('jambo'); });
     await until(() => !!document.getElementById('st-jb-q'));
-    await page.fill('#st-jb-q', 'Why can\'t Restricted Legal sign the Naivas deal?');
-    await page.press('#st-jb-q', 'Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): asked as a chip asks */ await page.evaluate(w => stJbBoxAsk(w), 'Why can\'t Restricted Legal sign the Naivas deal?');
     const cost = await until(() => { const t = [...document.querySelectorAll('.st-jb-turn')].pop(); return t && t.querySelector('[data-st-jb-why]') ? t.textContent : null; });
     check('5. a "why" offers the AI, its cost said before the press', !!cost && /Jambo call|Jambo-anrop/.test(cost));
     const callsBefore = h.ai.calls.length;
@@ -164,8 +163,7 @@ const signIn = async (page, base, email, pass) => {
     await signIn(ed, h.base, 'everything@example.co.ke', 'their-own-pass-9');
     await ed.evaluate(() => setView('team'));
     await ed.waitForFunction(() => !!document.getElementById('st-jb-q'), null, { timeout: 10000 });
-    await ed.fill('#st-jb-q', 'turn on internal review');
-    await ed.press('#st-jb-q', 'Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): asked as a chip asks */ await ed.evaluate(w => stJbBoxAsk(w), 'turn on internal review');
     await ed.waitForFunction(() => !!document.querySelector('#st-jb-feed .jb-turn:last-child .st-jb-turn [data-st-ask-admin]'), null, { timeout: 8000 });
     await ed.fill('#st-jb-feed .jb-turn:last-child .st-jb-turn textarea', 'HR offer letters go out unchecked');
     await ed.click('#st-jb-feed .jb-turn:last-child .st-jb-turn [data-st-ask-admin]');
@@ -201,12 +199,12 @@ const signIn = async (page, base, email, pass) => {
       if (!document.getElementById('st-jb-q')) { setView('team'); return null; } return true; }, null, 15000);
     /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): typed
        on Settings' Jambo tab the words go to the chat; these steps are about the free readers, so they type under Overview */
-    const askIn = async q => { await inSettings(); await page.evaluate(() => { try { if (stTalkShows()) stTalkBack(); } catch (_) {} }); await page.fill('#st-jb-q', q); await page.press('#st-jb-q', 'Enter');
+    const askIn = async q => { await inSettings(); await page.evaluate(() => { try { if (stTalkShows()) stTalkBack(); } catch (_) {} }); await page.evaluate(w => stJbBoxAsk(w), q);
       return until(q => { const f = document.getElementById('igd-feed'); const t = f ? f.textContent.replace(/\s+/g, ' ') : '';
         return state.view === 'dashboard' && t.includes(q) ? t.slice(t.lastIndexOf(q)) : null; }, q, 8000); };
     const up = await askIn('upload a contract');
     check('7b. "upload a contract" in Settings\' box goes to Home\'s Jambo, who offers Upload a document', !!up && /Upload a document/.test(up), up);
-    const nw = await (async () => { await inSettings(); await page.evaluate(() => { try { if (stTalkShows()) stTalkBack(); } catch (_) {} }); await page.fill('#st-jb-q', 'new contract'); await page.press('#st-jb-q', 'Enter'); return 'new contract'; })();
+    const nw = await (async () => { await inSettings(); await page.evaluate(() => { try { if (stTalkShows()) stTalkBack(); } catch (_) {} }); await page.evaluate(w => stJbBoxAsk(w), 'new contract'); return 'new contract'; })();
     /* RE-POINTED 24 Oct 2026 (one door, the Legora way): "new contract" is no longer a card in the chat —
        it opens the one New agreement sheet on Home, beside Jambo's panel */
     const nwSheet = await until(() => state.view === 'dashboard' && document.getElementById('na-root') && document.getElementById('ig-dock') ? true : null, null, 8000);

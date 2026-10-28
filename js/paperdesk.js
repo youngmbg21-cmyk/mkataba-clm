@@ -1546,6 +1546,9 @@ function pdTrail(){
 const PD_TRAIL_IN_HEAD = ['fill', 'signing', 'amend'];
 function pdTrailHtml(o){
   const t = pdTrail(); if (!t) return '';
+  /* the conversation's back is the door above the box (Door above the box, 28 Oct 2026), never a line over it;
+     pdTrail still names it for Esc and the bar's ‹ */
+  if (t.back === 'talk') return '';
   const inHead = PD_TRAIL_IN_HEAD.includes(t.back);
   if (!(o && o.inHead) && inHead) return '';
   if (o && o.inHead && !inHead) return '';
@@ -1666,10 +1669,12 @@ function pdTalkReopen(){
    disappearing from the top of the panel"; reverses "nothing shows before your
    first question"): pressed before a word, it opens his conversation, empty,
    his box ready */
+/* ONE PANEL, TWO FACES (owner picked "Door above the box", 28 Oct 2026; reverses the tab above): no Jambo tab to press.
+   While the conversation shows, the head is his name alone, lit (jamboTalkLabelHtml), and the one way back is the
+   door right above the box (jamboDoorHtml, renderIntelDock); on the landing nothing of his is drawn */
 function pdTalkTabHtml(){
-  if (!pdTalkKey() || pdTalkKey().indexOf('dock:') !== 0) return '';
-  const on = pdTalkShows(), name = _pdT('pd_tab_copilot');
-  return `<button type="button" role="tab" class="pd-tab pd-tab-talk${on ? ' on' : ''}" data-pd-talk aria-selected="${on}" title="${_pdE(name)}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : _pdE(name)}</button>`;
+  if (!pdTalkKey() || pdTalkKey().indexOf('dock:') !== 0 || !pdTalkShows()) return '';
+  return (typeof jamboTalkLabelHtml === 'function') ? jamboTalkLabelHtml() : '';
 }
 /* asked by renderIntelDock before it draws: a new page lands fresh; new words
    in the conversation (asked here, or an answer coming) turn the panel to it */
@@ -1753,6 +1758,8 @@ function pdTalkBack(){
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
 }
 if (typeof jamboTalkHost === 'function') jamboTalkHost('dock', pdTalkBack, k => pdTalkKey() === k && !pdSolo());
+/* "Jambo ›" above the box on the landing opens the conversation as it was (owner's pick, 28 Oct 2026) */
+if (typeof jamboTalkFwdHost === 'function') jamboTalkFwdHost('dock', () => pdTalkReopen());
 /* ---- BEFORE YOU SEND, A FACE OF JAMBO'S PANEL (round 11's gaps, 18 Oct
    2026: "The letter" as drawn — the letter on the desk, Jambo's panel beside
    it saying what stays here and why, what they never see, something else to
@@ -3221,7 +3228,9 @@ function pdHeadHtml(brain){
       + tabs.filter(t => t !== 'copilot').map(t => { const name = _pdT(PD_TAB_NAME[t]), on = t === onT;
         return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" title="${_pdE(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span></span><span class="pd-tab-w">${_pdE(name)}</span></button>`; }).join('');
   }
-  const lit = pdTalkShows() ? '' : face === 'red' ? 'red' : face ? 'copilot' : (pdOnPaper() && _pdTab === 'oblig') ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings'
+  /* the conversation up: his name alone heads the panel; the door above the box goes back (Door above the box) */
+  if (pdTalkShows()) return pdTalkTabHtml();
+  const lit = face === 'red' ? 'red' : face ? 'copilot' : (pdOnPaper() && _pdTab === 'oblig') ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings'
     : gd && typeof igGuideShows === 'function' && igGuideShows() ? 'guide' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
   /* A WORD FOR WHAT THE PANEL HOLDS (the gaps, round 4 "One sheet", 18 Oct
@@ -3246,9 +3255,9 @@ function pdHeadHtml(brain){
     /* JAMBO RIGHT AFTER THE OVERVIEW (owner, 26 Oct 2026: "an overview tab side panel in each page followed by the
        jambo tab"): off the paper his tab stands second, before Explorer's Findings and Guide; beside a paper the
        Dossier's own tabs keep their row and his comes last, as it was */
-    const after = t === 'copilot' ? sendBack + (pdOnPaper() ? '' : pdTalkTabHtml()) : '';
+    const after = t === 'copilot' ? sendBack : '';
     return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}${shut ? ' is-shut' : ''}" data-pd-tab="${t}" aria-selected="${on}"${shut ? ' aria-disabled="true"' : ''} aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(shut || tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${after}`;
-  }).join('') + (pdOnPaper() ? pdTalkTabHtml() : '') + word;
+  }).join('') + word;
 }
 function pdBodyHtml(c){
   _pdActs.clear();

@@ -145,7 +145,7 @@ const TEXT = [
     check(named, '3b the panel turns back to the Dossier and lands on the other side\'s name, in view');
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-their-name.png') });
     /* back to the conversation by his own tab, and the road */
-    await drive(() => { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); }, null, null);
+    await drive(() => { if (typeof pdTalkReopen === 'function') pdTalkReopen(); }, null, null);
     await until(P, () => !!document.querySelector('#ig-dock [data-ig-choice]'), null, 5000);
     check(await press('Negotiate it'), '3c "Negotiate it" is there to press');
     check(await until(P, () => typeof pdFaceNow === 'function' && pdFaceNow() === 'red', null, 8000), '3d it opens the Redlines face beside the paper');

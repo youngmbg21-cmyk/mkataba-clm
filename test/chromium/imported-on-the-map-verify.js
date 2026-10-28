@@ -62,7 +62,7 @@ const BOOK = FIXTURES.concat([
       return v; };
     const askInBox = async q => {
       if (!(await page.locator('#igd-input').count())) { check('the dock\'s box is there (nothing to type in)', false); return false; }
-      await page.fill('#igd-input', q); await page.press('#igd-input', 'Enter'); return true; };
+      /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => intelAsk(w), q); return true; };
 
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');

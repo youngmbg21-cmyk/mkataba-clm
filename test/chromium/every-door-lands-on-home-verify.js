@@ -81,7 +81,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract, FOLDER_A, FOLDER_B } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract, FOLDER_A, FOLDER_B, chipEnter } = require('../helpers');
 const { mkDocx, para } = require('../docxfix');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'every-door-lands-on-home');
@@ -695,7 +695,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const say = word => async () => {
       if (!(await page.$('#igd-input'))) return false;
       await page.click('#igd-input'); await page.fill('#igd-input', ''); await page.type('#igd-input', word, { delay: 10 });
-      await page.keyboard.press('Enter'); return true; };
+      /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): the free readers, asked as a chip asks (chipEnter) */ await chipEnter(page, '#igd-input'); return true; };
     const R1owed = await owedFor('MK-R1');
     const WORDS = [
       ['redline', E.red('MK-R1'), SAYS.red], ['sign', E.signing('MK-R1'), SAYS.signing],

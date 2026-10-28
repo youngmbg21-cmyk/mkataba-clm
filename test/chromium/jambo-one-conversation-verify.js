@@ -106,8 +106,8 @@ const CONTRACTS = [
     /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): the
        settings finder's free answer (its press, part 5) is Overview's; typed on Jambo's tab it would go to the chat */
     await page.evaluate(() => { try { stTalkBack(); } catch (_) {} });
-    await page.fill('#st-jb-q', 'QSET signing limit');
-    await page.press('#st-jb-q', 'Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#st-jb-q', 'QSET signing limit');
+    await H.chipEnter(page, '#st-jb-q');
     const st2 = await until(() => { const f = document.getElementById('st-jb-feed'); return f && /QSET/.test(f.textContent) && /QSIDE/.test(f.textContent) ? true : null; }, null, 6000);
     check('2a in Settings: its own question and the side panel\'s, one conversation', !!st2, (await txt('#st-jb-feed')).slice(0, 300));
     await toHome(); await homeTalk();

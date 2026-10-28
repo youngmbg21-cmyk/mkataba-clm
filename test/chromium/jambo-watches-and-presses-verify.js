@@ -102,10 +102,12 @@ const CONTRACTS = [
       const sendsBefore = sends.length;
       /* RE-POINTED 24 Oct 2026 (ONE CONVERSATION, one place at a time; the one-window merge #463): landed on
          Home's paper, the conversation is Home's panel's — one press on its Jambo tab — not the side panel's */
-      await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t && !document.querySelector('#ig-dock [data-jp="act"]')) t.click(); });
+      /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab — the conversation is turned to as an answer turns it
+         (pdTalkReopen), as "Jambo ›" above the box opens it */
+      await page.evaluate(() => { if (!document.querySelector('#ig-dock [data-jp="act"]') && typeof pdTalkReopen === 'function') pdTalkReopen(); });
       const actIn = await until(() => document.querySelector('#ig-dock [data-jp="act"]') ? true : null, null, 4000);
       if (actIn) await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-jp="act"]')].pop().click());
-      else check('2c0 the prepared press is in Home\'s panel under its Jambo tab', false, 'not found');
+      else check('2c0 the prepared press is in Home\'s panel, in the conversation', false, 'not found');
       await page.waitForTimeout(800);
       check('2c the prepared press opens its act and sends nothing by itself', sends.length === sendsBefore, JSON.stringify(sends.slice(sendsBefore)));
       for (let i = 0; i < 3; i++) await page.keyboard.press('Escape').catch(() => {});

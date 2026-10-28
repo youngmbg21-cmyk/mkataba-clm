@@ -642,7 +642,11 @@ function splitClamp(want, avail, h){
 const SPLIT_OVER_AT = 880;
 function splitOver(w, avail, h){
   if (!h || h.over === false || !(avail > 0)) return 0;
-  const hold = Math.max(Number(h.restMin) || 0, Math.min(SPLIT_OVER_AT, avail - splitRest(h)));
+  /* a host whose room starts right of the page's own left edge (Settings' board, inside its padding) says where
+     the mark falls in ITS room (`overAt`), so the panel starts to slide over at the same spot on the screen as
+     the lists' (owner, 28 Oct 2026: "make Customers and Settings match contacts") */
+  const at = (typeof h.overAt === 'function') ? (Number(h.overAt()) || SPLIT_OVER_AT) : SPLIT_OVER_AT;
+  const hold = Math.max(Number(h.restMin) || 0, Math.min(at, avail - splitRest(h)));
   return Math.max(0, Math.round(hold - (avail - w)));
 }
 const _splitPrefOf = h => (typeof h.pref === 'function') ? h.pref() : splitPref(h.key);
@@ -933,6 +937,65 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     e.preventDefault(); jamboTalkBack();
   });
 }
+/* ---- ONE PANEL, TWO FACES — THE DOOR ABOVE THE BOX (owner picked "Door above the box", 28 Oct 2026: "the jambo
+   tab is not visible just the overview … once you press enter the screen becomes a jambo screen but right above
+   the entry fields, the word overview appear and it becomes the door back to the overview"; REVERSES 26 Oct's "an
+   Overview tab, then the Jambo tab") ----
+   No panel draws a Jambo tab to press. While the conversation shows, the head names him (lit, nothing to press)
+   and ONE line stands right above the box: "‹ <landing>" — the one way back, the host's own back (`attr`: Home's
+   data-pd-back, every other host data-jt-back) — and THE BIN at its end. Nothing is drawn on the landing. */
+function jamboDoorHtml(o){
+  o = o || {};
+  const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const tr = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
+  const to = o.to || tr('pd_tab_overview');
+  const tip = tr('pd_trail_back', { to });
+  return `<div class="jb-door" data-jb-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back" ${o.attr || 'data-jt-back'}="${e(o.back || '')}" title="${e(tip)}" aria-label="${e(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg><span>${e(to)}</span></button><span class="jb-door-sp"></span>${o.bin || ''}</div>`;
+}
+/* …AND ITS MIRROR ON THE LANDING (owner picked "\"Jambo ›\" above the box", 28 Oct 2026): once something has been
+   said, the same spot above the box reads "Jambo ›" and opens the conversation as it was — free, no question asked;
+   nothing is drawn while the conversation is empty. Each host registers how it opens (jamboTalkFwdHost). */
+var JT_FWD = (typeof JT_FWD !== 'undefined' && JT_FWD) || {};
+function jamboTalkFwdHost(host, open){ if (host && typeof open === 'function') JT_FWD[host] = open; }
+function jamboFwdHtml(o){
+  o = o || {};
+  const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const tr = k => (typeof i18t === 'function') ? i18t(k) : k;
+  const jb = tr('pd_tab_copilot'), tip = tr('jb_door_fwd_tip');
+  return `<div class="jb-door jb-door-fwd-line" data-jb-fwd-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back jb-door-fwd" data-jb-fwd="${e(o.host || '')}" title="${e(tip)}" aria-label="${e(tip)}"><span>${e(jb)}</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-right"/></svg></button></div>`;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._jbFwdWired)){
+  if (typeof window !== 'undefined') window._jbFwdWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-jb-fwd]') : null; if (!b) return;
+    const go = JT_FWD[b.getAttribute('data-jb-fwd')]; if (typeof go !== 'function') return;
+    e.preventDefault(); go();
+  });
+}
+/* ---- JAMBO IS THINKING (owner, 28 Oct 2026: "while jambo is thinking there needs to be a sign that something is
+   running or thinking so that you do not think the panel has frozen"; then "it should not say jambo is thinking, it
+   should just be a different symbol" — owner picked "The SAP way") ----
+   ONE builder for every conversation's waiting turn (Home's panel, the lists and Import, Settings, the ✦ window):
+   SAP's busy indicator — three dark dots pulsing one after another in his answer's own bubble, NO WORDS on screen;
+   a screen reader hears "Jambo is thinking…" (aria-label). It replaces three faint 5px dots that read as a frozen
+   panel (WHEN SOMETHING LOADS, SOMETHING MOVES; the Calendar's planner says its own "reading your calendar"). */
+function jamboThinkingHtml(){
+  const w = (typeof i18t === 'function') ? i18t('jb_thinking') : 'Jambo is thinking…';
+  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true" aria-label="${String(w).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))}"><span class="jb-dot" aria-hidden="true"></span><span class="jb-dot" aria-hidden="true"></span><span class="jb-dot" aria-hidden="true"></span></div>`;
+}
+/* the head while the conversation shows: his name, lit, a label — never a second way back */
+function jamboTalkLabelHtml(cls){
+  return `<span class="pd-tab pd-tab-talk on jb-talk-label${cls ? ' ' + cls : ''}" role="tab" aria-selected="true" aria-current="true">${jamboTalkTabInner()}</span>`;
+}
+/* shown or hidden in place by a host painted once (the list panel, Settings) */
+function jamboDoorSync(root, on){
+  const d = root && root.querySelector && root.querySelector('[data-jb-door]');
+  if (d) d.hidden = !on;
+  /* the landing's "Jambo ›": only off the conversation, and only once something has been said */
+  const f = root && root.querySelector && root.querySelector('[data-jb-fwd-door]');
+  if (f) f.hidden = !!on || !jamboConvo().length;
+  return d;
+}
 /* THE JAMBO TAB'S INSIDE (owner picked "A Jambo tab", 19 Oct 2026): the
    way back to the conversation on every right-hand panel — a chat glyph over
    the word, drawn the way the panel's other tabs are */
@@ -1160,7 +1223,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain

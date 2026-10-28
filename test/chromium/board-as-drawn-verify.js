@@ -161,14 +161,15 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         at: (document.querySelector('#hb-bhead .hb-bh-at') || {}).textContent || '', counted: (ov.querySelector('[data-hb-jb-at]') || {}).textContent || '',
         hello: !!ov.querySelector('[data-jb-hello]'), bottom: !!dock.querySelector('[data-ig-chips]'),
         badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
-    check('5a two tabs, Overview and Jambo, and no word beside them', !!jb && jb.word === '' && jb.tabs === 2, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): Overview alone, no Jambo tab */
+    check('5a one tab, Overview, and no word beside it', !!jb && jb.word === '' && jb.tabs === 1, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
     check('5b the Overview says the book, counted at the head\'s own time, and no greeting',
       !!jb && jb.head.startsWith('Your book on one page.') && !!jb.counted && jb.at.includes(jb.counted) && !jb.hello, jb && (jb.head + ' | ' + jb.counted + ' | ' + jb.at));
     check('5c his questions under "Ask me" — "which N end in 90 days?" only while any do, "what needs me" while anything does',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views', jb.n ? 'what needs me' : null].filter(Boolean)), jb && JSON.stringify(jb.chips));
     check('5d Needs you counts Home\'s own number',
       !!jb && new RegExp(`^${jb.n} things? · \\d+ prepared by Jambo`).test(jb.needs), jb && (jb.needs + ' / ' + jb.n));
-    check('5e no row of chips above his box; the Overview tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 2, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
+    check('5e no row of chips above his box; the Overview tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 1, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
     console.log('\n6 · "my saved views"');

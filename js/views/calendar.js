@@ -2094,6 +2094,14 @@ function calTalkBack(){
   if(typeof window.jamboScrollPut==='function') jamboScrollPut(keep);
   if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
 }
+/* "Jambo ›" above the box on Your week opens the conversation as it was (owner's pick, 28 Oct 2026) */
+function calTalkOpen(){
+  if(typeof window.jamboTalkOpen==='function') jamboTalkOpen(CAL_TALK_KEY, document.getElementById('cal-plan-body'));
+  if(calOnScreen()) calPlanRepaint(); else if(typeof window.renderIntelDock==='function') renderIntelDock();
+  calTurnsAfter();
+  if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
+}
+if(typeof window!=='undefined'&&typeof window.jamboTalkFwdHost==='function') jamboTalkFwdHost('cal', ()=>calTalkOpen());
 if(typeof window!=='undefined'&&typeof window.jamboTalkHost==='function') jamboTalkHost('cal', calTalkBack, k=>k===CAL_TALK_KEY&&!!document.getElementById('cal-plan'));
 if(typeof document!=='undefined'&&!document._calTalkWired){ document._calTalkWired=true;
   document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-cal-talk-back]'):null; if(!b) return; e.preventDefault(); calTalkBack(); });
@@ -2150,8 +2158,9 @@ function calPlanHtml(){
   const land=i18t('pd_tab_overview');
   const mark=(typeof window.JAMBO_LAND_GLYPH==='string')?JAMBO_LAND_GLYPH:'\u25A6\uFE0E';
   return `<aside class="cal-cop${talk?' is-talk':''}" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
-    <div class="cal-plan-head jl-head" role="tablist"><button type="button" role="tab" class="pd-tab jl-tab cal-plan-tab${talk?'':' on'}" data-cal-talk-back aria-selected="${!talk}" title="${_esc(land)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${mark}</span></span><span class="pd-tab-w">${_esc(land)}</span></button><button type="button" role="tab" class="pd-tab pd-tab-talk jl-tab${talk?' on':''}" data-cal-talk aria-selected="${!!talk}" title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</button><span class="jl-sp"></span>${typeof window.jamboBinHtml==='function'?jamboBinHtml(!!talk&&calConvo().length>0):''}</div>
-    ${talk&&typeof window.jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('cal',land):''}
+    ${''/* ONE PANEL, TWO FACES (owner picked "Door above the box", 28 Oct 2026): no Jambo tab to press — Overview heads
+           the landing, his name alone the conversation; the way back and the bin stand right above the box */}
+    <div class="cal-plan-head jl-head" role="tablist">${talk?(typeof window.jamboTalkLabelHtml==='function'?jamboTalkLabelHtml('jl-tab'):''):`<span role="tab" class="pd-tab jl-tab cal-plan-tab on" aria-selected="true" title="${_esc(land)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${mark}</span></span><span class="pd-tab-w">${_esc(land)}</span></span>`}<span class="jl-sp"></span></div>
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">
       ${''/* THE OVERVIEW, THE LEGORA WAY (owner, 26 Oct 2026; jamboOverviewHtml, the one builder): Your week as one head
              sentence, its named facts (obYourWeekFacts, the Obligations page's own), the offer, "Ask me" with the
@@ -2168,6 +2177,8 @@ function calPlanHtml(){
       ${talk?`<div class="cal-plan-talk" id="cal-plan-talk" data-jt-talk>${typeof window.jamboHelloHtml==='function'?jamboHelloHtml():''}${calConvoHtml()}${you}${answer}</div>`:''}
     </div>
     <div class="jl-foot cal-plan-foot">
+      ${talk&&typeof window.jamboDoorHtml==='function'?jamboDoorHtml({ on:true, attr:'data-cal-talk-back', back:'cal', to:land, bin:typeof window.jamboBinHtml==='function'?jamboBinHtml(calConvo().length>0):'' })
+        :((calConvo().length||_calPlan.seq||_calPlan.ask)&&typeof window.jamboFwdHtml==='function'?jamboFwdHtml({ on:true, host:'cal' }):'')}
       ${_calJbCard({ cls: 'cal-plan-box', field: `<textarea id="cal-plan-in" rows="1" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('jl_ph_week'))}" aria-label="${_esc(i18t('jl_ph_week'))}" title="${_esc(cost)}"${off}></textarea>`, send: _calJbSend(`id="cal-plan-go"${off}`, i18t('int_ask'), { cls: 'jl-send', title: cost }) })}
     </div>
   </aside>`;
@@ -2316,6 +2327,16 @@ function calEventDialog(item, seed){
     catch(e){ $('cal-ev-say').textContent=String((e&&(e.error||e.message))||''); }
   });
 }
+/* THE CALENDAR BOX'S ONE READER (made a function 28 Oct 2026 so a chip-like ask reads as the box does) */
+function calBoxAsk(v, opts){
+  v=String(v||'').trim(); if(!v) return;
+  /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): a page's one name moves you free; every other
+     word TYPED is the planner's brain, on the landing too (words not about time it hands to the chat) */
+  if(opts&&opts.typed&&typeof window.jamboPageGo==='function'&&jamboPageGo(v)) return;
+  if(opts&&opts.typed&&typeof window.caAiFirst==='function'&&caAiFirst()){ calPlanAsk(v); return; }
+  if(typeof caAskAnywhere==='function'&&caAskAnywhere(v,{cal:true})) return;
+  calPlanAsk(v);
+}
 /* ARMED ONCE, delegated on document, the element resolved at the press. */
 function calWireOwn(){
   const inp=document.getElementById('cal-plan-in');
@@ -2325,9 +2346,7 @@ function calWireOwn(){
      and the drawn Ask button ask alike (round 16). */
   /* JAMBO'S TAB READS WITH THE BRAIN FIRST (owner, 27 Oct 2026, the Board's rolled out): typed while his tab shows,
      the planner reads it whole — words that are not about time it hands to the chat ('elsewhere') */
-  const ask=()=>{ if(!inp) return; const v=inp.value; if(!String(v||'').trim()) return;
-    if(typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY)&&typeof window.caAiFirst==='function'&&caAiFirst()){ inp.value=''; calPlanAsk(v); return; }
-    if(typeof caAskAnywhere==='function'&&caAskAnywhere(v,{cal:true})){ inp.value=''; return; } calPlanAsk(v); };
+  const ask=()=>{ if(!inp) return; const v=inp.value; if(!String(v||'').trim()) return; inp.value=''; calBoxAsk(v,{ typed:true }); };
   if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ask(); } });
   document.getElementById('cal-plan-go')?.addEventListener('click',ask);
   const body=document.getElementById('cal-wk-body');
@@ -2377,7 +2396,7 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
   },true);
 }
 
-Object.assign(window,{CAL_TALK_KEY,calTalkBack,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+Object.assign(window,{CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
