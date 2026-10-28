@@ -1219,8 +1219,18 @@ function ikWithCellHtml(r, asker, o){
    while it is open, the lane that sent it: a small chip with the lane's mark
    on the same line ("You ⇉ NDA lane", as drawn), the name without initials */
 function ikWithListHtml(r){
-  const base=ikWithCellHtml(r, false, { face:false });
-  return r.lane&&!IK_STOPPED.includes(r.status)?`${base} ${ikLaneChipHtml(r.lane)}`:base;
+  /* THE LIST LANGUAGE (owner, 27 Oct 2026, as drawn): nobody is a reading with its dot; a holder
+     wears tinted initials over "holds it", the lane that sent it on that grey line */
+  if(!IK_STOPPED.includes(r.status)){
+    if(!(r.assignee&&r.assignee.id)){
+      const w=typeof listWordHtml==='function'?listWordHtml('amber', i18t('ik_with_nobody')):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
+      return r.lane?`${w} ${ikLaneChipHtml(r.lane)}`:w;
+    }
+    const name=r.assignee.name||'', tone=typeof listAvatarTone==='function'?listAvatarTone(name):'gray';
+    const shown=ikHeldByMe(r)?i18t('ik_with_you'):name;
+    return `<span class="ik-holder"><i class="ls-av ik-av" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)" aria-hidden="true">${esc(ikInitials(name))}</i><span class="ins-c2"><b title="${esc(name)}">${esc(shown)}</b><span>${esc(i18t('ik_with_holds'))}${r.lane?` ${ikLaneChipHtml(r.lane)}`:''}</span></span></span>`;
+  }
+  return ikWithCellHtml(r, false, { face:false });
 }
 /* the lane's chip — the list's With cell and the panel's head say it alike */
 function ikLaneChipHtml(lane, words){
@@ -1663,7 +1673,7 @@ function ikColDefs(asker){
   return asker
     ? [{ k:'with', label:i18t('ik_f_with'), w:170 }, { k:'promised', label:i18t('ik_f_promised'), w:130 }]
     : [{ k:'kind', label:i18t('ik_col_kind'), w:104 }, { k:'road', label:i18t('ik_f_road'), w:140 }, { k:'with', label:i18t('ik_f_with'), w:148 },
-      { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }, { k:'promised', label:i18t('ik_f_promised'), w:100 }];
+      { k:'promised', label:i18t('ik_f_promised'), w:120 }, { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }];
 }
 function ikRepaint(){ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); }
 const ikPlaceKeep = () => { if(typeof window!=='undefined'&&typeof window.placeSave==='function') try{ placeSave(); }catch(_){} };
@@ -1806,10 +1816,10 @@ function ikPaintRows(){
     return {
       kind:()=>`<td>${kindPill('advice')}</td>`,
       road:()=>`<td>${ikAdvRoadHtml()}</td>`,
-      with:()=>`<td class="ik-with">${r.holder?esc(r.holder):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`}</td>`,
+      with:()=>`<td class="ik-with">${r.holder?esc(r.holder):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:(typeof listWordHtml==='function'?listWordHtml('amber', i18t('ik_with_nobody')):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`)}</td>`,
       files:()=>`<td><span class="ins-quiet">—</span></td>`,
       asked:()=>`<td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`,
-      promised:()=>`<td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>`,
+      promised:()=>`<td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ik-pr-none">${esc(i18t('ik_pr_none'))}</span>`}</td>`,
     };
   };
   const advTr=r=>{
@@ -1825,9 +1835,11 @@ function ikPaintRows(){
     const prHtml=()=>{
       const pr=intakePromiseSay(r);
       const d=(pr&&r.promisedAt&&!IK_STOPPED.includes(r.status)&&typeof daysUntil==='function')?daysUntil(String(r.promisedAt).slice(0,10)):null;
-      return !pr?`<span class="ins-quiet">—</span>`
-        : d===0?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`
-        : `<span class="${d!=null&&d<0?'ins-late':pr.cls==='ins-soon'?'ins-soon':''}"${pr.sub?` title="${esc(pr.sub)}"`:''}>${esc(pr.day)}</span>`;
+      /* THE LIST LANGUAGE (as drawn): no promise says so; a day carries how far off it is on the grey line */
+      if(!pr) return IK_STOPPED.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ik-pr-none">${esc(i18t('ik_pr_none'))}</span>`;
+      const tone=d!=null&&d<0?'ins-late':pr.cls==='ins-soon'?'ins-soon':'';
+      if(d===0) return `<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`;
+      return `<span class="ik-pr-day${tone?' '+tone:''}">${esc(pr.day)}</span>${pr.sub&&d!=null?`<span class="ik-pr-sub${tone?' '+tone:d<=7?' ins-ok':''}">${esc(pr.sub)}</span>`:''}`;
     };
     return {
       kind:()=>`<td>${kindPill('contract')}</td>`,

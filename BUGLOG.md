@@ -21832,3 +21832,4 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Noticed, not fixed: CLAUDE.md stands at about 82 KB, over its "about 80 KB" ceiling; a trim needs the owner's yes.
 - Noticed, not fixed: Obligations' Jambo "found" row draws 5 cells in Late's 2-column card if a find ever falls in Late (it drew 3 there before — the same mismatch).
 - Noticed, not fixed: an obligation records no kind beyond dated/event/standing, so the new Kind column can only say Decision or Payment; Report, Delivery and the like would need a recorded kind.
+- 28 Oct 2026 · Noticed, not fixed: handbook-verify's pictures 5.1-1 (`[data-obw-card="w0"]`) and 5.2-1 (`[data-sel="MK-A1"]`) are not found on 28 Oct 2026, red at unmodified main too — the handbook world's obligation dates land by the day it runs (CLAUDE.md: a test whose answer depends on the day is worse than none). Their pictures were kept from 27 Oct.

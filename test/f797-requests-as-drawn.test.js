@@ -372,7 +372,8 @@ describe('f797 (11) a tab\'s number is the list it opens; advice reads like a re
     const x = withAdv(); x.win.ikFilters().view = 'advice'; x.win.renderIntake();
     const row = id => x.d.querySelector(`.ik-lt [data-ik-row="adv:${id}"]`);
     assert.equal(txt(row('AR-101').querySelector('.ik-road')), 'Standard');
-    assert.equal(txt(row('AR-101').querySelector('.ik-with .ins-nobody')), 'Nobody yet');
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): "Nobody yet" is a reading with its amber dot */
+    assert.equal(txt(row('AR-101').querySelector('.ik-with .ls-word-v') || row('AR-101').querySelector('.ik-with .ins-nobody')), 'Nobody yet');
     assert.equal(txt(row('AR-102').querySelector('.ik-with')), 'Wanjiru Kamau');
   });
   test('11e Jambo counts the advice nobody holds among those nobody holds', () => {

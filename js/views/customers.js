@@ -686,8 +686,8 @@ function cuSinceOf(items){
   }).filter(Boolean).sort();
   return days[0] || '';
 }
-function cuMonthYear(iso){
-  try { return new Date(iso + 'T00:00:00Z').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_){ return iso; }
+function cuMonthYear(iso, short){
+  try { return new Date(iso + 'T00:00:00Z').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: short ? 'short' : 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_){ return iso; }
 }
 /* the party's name as a sentence says it: "People at Nordvik", "Draft an
    agreement with Kabras Sugar" — its legal form left off, never anything else */
@@ -845,7 +845,7 @@ function cuColDefs(){
     /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the party's stream as a
        soft chip and its standing as a mark and a word; Live, Ended and City are under Columns (the grey line
        counts, Standing says Ended, the panel says the city); Waiting has the room for its dot and words whole */
-    { k: 'stream', label: i18t('reg_col_stream'), w: 100 },
+    { k: 'stream', label: i18t('reg_col_stream'), w: 124 },
     { k: 'standing', label: i18t('cu_col_standing'), w: 116 },
     { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
@@ -955,7 +955,7 @@ function cuCardOf(all, ndas){
     const v = cuView(r);
     /* the grey line (the list language): how many agreements, and since when — the streams are their own column now */
     const since = cuSinceOf(v.items);
-    const sub = [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), since ? i18t('cu_since', { d: cuMonthYear(since) }) : ''].filter(Boolean).join(' · ');
+    const sub = [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), since ? i18t('cu_since', { d: cuMonthYear(since, true) }) : ''].filter(Boolean).join(' · ');
     return `<tr data-cu-cust="${_cuE(r.key)}" tabindex="-1">
       <td><span class="cu-who">${cuAvHtml(r.name)} <span class="cu-who-t"><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span> <span class="ap-sub cu-ps" title="${_cuE(sub)}">${_cuE(sub)}</span></span></span></td>
       ${keys.map(k => cuCellHtml(k, r, v, ndas)).join('')}
