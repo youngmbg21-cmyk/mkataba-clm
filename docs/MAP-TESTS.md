@@ -494,3 +494,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## LOOKS — THE SMALL ONES (25 Oct 2026)
 - f881-the-small-ones (node); tidy-sweep-verify (now with `level with Jambo's panel`), detail-round-verify, land-on-it-verify (browser).
 - 16PX INSIDE EVERY CARD (25 Oct 2026): `node --test test/f883-16px-inside-every-card.test.js`; in a browser the tidy sweep's "16px inside every card" check (`node test/chromium/tidy-sweep-verify.js`, `HATI_TIDY_ONLY=` for one place; ROOM lines name the card and its four measures).
+
+## THE TRACKED-CHANGES COLUMN — NUMBERED DOTS ON THE PAPER (round 9, 28 Oct 2026)
+- f961; test/chromium/paper-dots-verify.js (new; nothing to find at unmodified main): dot 1 after their words; its words the card's reading; press opens painted, again shuts, Esc and elsewhere shut; a prepared answer said; ours and their seat none; three screens.

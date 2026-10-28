@@ -18848,7 +18848,7 @@ function rlSugWordsHtml(from, to){
    redlineWholesale reads as a rewrite) is drawn whole, in the box under it.
    PAINTED AFTER THE RENDER as before, never into the paper's HTML; the
    reader's own click-to-type counts past it (rlInlineCountTo). */
-const RL_SUG_SKIP = 'del, .nego-del, .hati-del, .rl-line-del, .rl-sug-ins, button, .rl-clause-top';
+const RL_SUG_SKIP = 'del, .nego-del, .hati-del, .rl-line-del, .rl-sug-ins, .rl-pt, button, .rl-clause-top';
 const RL_SUG_MARK = 'ins, .nego-ins, mark';
 function rlSugInlineClear(root){
   if (!root || !root.querySelectorAll) return;
@@ -18921,7 +18921,7 @@ function rlSugInline(body, to, id){
 }
 function rlPaintCopilotAnswers(root, c, opts = {}){
   if (!root || !c) return 0;
-  root.querySelectorAll('.rl-sug-box').forEach(e => e.remove());
+  root.querySelectorAll('.rl-sug-box, .rl-pt').forEach(e => e.remove());
   rlSugInlineClear(root);
   root.querySelectorAll('.rl-sug').forEach(e => e.classList.remove('rl-sug', 'rl-sug-counter', 'rl-sug-reject', 'rl-sug-accept', 'rl-sug-escalate'));
   const scope = opts.verbsIn || document;
@@ -18961,7 +18961,76 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
       v.classList.add('rl-glow'); v.setAttribute('data-rl-glow-for', ch.id);
     }
   }
+  rlPaintPoints(root, c);
   return n;
+}
+/* ---- NUMBERED DOTS ON THE PAPER (owner picked "The Legora way", round 9;
+   "the reads should be automatic", 28 Oct 2026) ----
+   After the words of each ask of theirs still waiting, a small numbered dot
+   (counted per clause) carries Jambo's reading of it; a press opens it under
+   the dot, a second press, Esc or a press elsewhere shuts it. The reading is
+   the one Jambo already prepares when their round arrives (roundPrepOf, read
+   by the server on arrival; a private stream's only on a press), else the free
+   reading the card says (rlRowReadOf). No reading, no dot. Painted, never
+   stored: the dot is not wording and never reaches the record. Our seat only
+   (the caller returns before this on theirs). */
+function rlPointReadOf(c, ch){
+  const a = typeof roundPrepOf === 'function' ? roundPrepOf(c, ch) : null;
+  if (a && a.verdict) return { label: i18t('ag_prep_' + a.verdict), why: String(a.why || '').trim(), hot: a.verdict !== 'accept' };
+  const r = rlRowReadOf(c, ch, 'owner');
+  return r && r.label ? { label: r.label, why: String(r.why || '').trim(), hot: r.tone === 'amber' || r.tone === 'ruby' } : null;
+}
+function rlPaintPoints(root, c){
+  if (!root) return 0;
+  root.querySelectorAll('.rl-pt').forEach(e => e.remove());
+  if (!c || !Array.isArray(c.changes)) return 0;
+  const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v).replace(/"/g, '\\"');
+  const perClause = new Map();
+  let n = 0;
+  for (const ch of c.changes){
+    if (!ch || ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded) continue;
+    const sec = root.querySelector(`section[data-nego-card-anchor~="${css(ch.id)}"]`);
+    const body = sec && sec.querySelector('.nego-body');
+    if (!body) continue;
+    const r = rlPointReadOf(c, ch);
+    if (!r) continue;
+    const k = (perClause.get(sec) || 0) + 1; perClause.set(sec, k);
+    const dot = document.createElement('span');
+    dot.className = 'rl-pt' + (r.hot ? ' is-hot' : '');
+    dot.setAttribute('role', 'button'); dot.setAttribute('tabindex', '0');
+    dot.setAttribute('contenteditable', 'false');
+    dot.setAttribute('data-rl-pt', ch.id);
+    dot.setAttribute('aria-expanded', 'false');
+    dot.setAttribute('aria-label', i18t('rl_pt_aria', { n: k }));
+    dot.innerHTML = `${k}<span class="rl-pt-bub" role="tooltip"><b>${_ne(r.label)}</b>${r.why ? ' ' + _ne(r.why) : ''}</span>`;
+    /* after their words: the last insertion of theirs, else the end of the clause's wording */
+    const ins = body.querySelectorAll('ins');
+    const at = ins.length ? ins[ins.length - 1] : null;
+    if (at) at.after(dot);
+    else { const blocks = body.querySelectorAll('p, li, div:not(.nego-body)'); const last = blocks.length ? blocks[blocks.length - 1] : body; last.appendChild(dot); }
+    n++;
+  }
+  return n;
+}
+function rlPointShut(except){
+  document.querySelectorAll('.rl-pt.is-open').forEach(d => { if (d !== except){ d.classList.remove('is-open'); d.setAttribute('aria-expanded', 'false'); } });
+}
+if (typeof document !== 'undefined' && !document._rlPtWired){
+  document._rlPtWired = true;
+  document.addEventListener('click', e => {
+    const d = e.target && e.target.closest && e.target.closest('.rl-pt');
+    if (!d){ rlPointShut(null); return; }
+    if (e.target.closest('.rl-pt-bub')) return;
+    const open = !d.classList.contains('is-open');
+    rlPointShut(d);
+    d.classList.toggle('is-open', open); d.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('keydown', e => {
+    const d = e.target && e.target.closest && e.target.closest('.rl-pt');
+    /* Esc shuts the open reading and nothing else (the face beside stays) */
+    if (e.key === 'Escape' && document.querySelector('.rl-pt.is-open')){ e.preventDefault(); e.stopImmediatePropagation(); rlPointShut(null); return; }
+    if (d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); d.click(); }
+  }, true);
 }
 /* A press on any verb of a glowing row puts that row's glow out, for the
    sitting. Delegated once, at load. */
@@ -19017,7 +19086,7 @@ function rlInlineCountTo(nodes, range){
     let t;
     while ((t = walker.nextNode())){
       const p = t.parentElement;
-      if (p && p.closest && p.closest('del, .nego-del, .hati-del, .rl-sug-ins')) continue;
+      if (p && p.closest && p.closest('del, .nego-del, .hati-del, .rl-sug-ins, .rl-pt')) continue;
       if (t === range.startContainer) return n + Math.min(range.startOffset, t.data.length);
       try{ if (range.comparePoint(t, 0) > 0) return n; }catch(_){ return n; }
       n += t.data.length;
@@ -23402,7 +23471,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom, rlCpZoomPct, rlCpSetZoom,
-  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlWordKept, negoKeepsTheirs, RL_SEAT_LAND, RL_LAW_LAND, negoLawSeatQ, rlRowKeepsHtml, RL_SUG_SKIP, RL_SUG_MARK, rlSugInline, rlSugInlineClear, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlWordKept, negoKeepsTheirs, RL_SEAT_LAND, RL_LAW_LAND, negoLawSeatQ, rlRowKeepsHtml, RL_SUG_SKIP, RL_SUG_MARK, rlSugInline, rlSugInlineClear, rlPaintCopilotAnswers, rlPointReadOf, rlPaintPoints, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,

@@ -2157,6 +2157,18 @@ function redlineLayoutCss(){
          (see rlPaintCopilotAnswers). Counter: its wording in a dashed box under
          theirs, the words that moved marked. Reject: a dashed line through their
          words; a whole deleted clause, a dashed frame. Accept: a dashed tick. */}
+  ${''/* NUMBERED DOTS (round 9, owner picked "The Legora way"): after their words,
+         Jambo's reading under a press. Ink dot; amber where his reading says look. */}
+  .rl-pt{position:relative;display:inline-block;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;
+    background:var(--color-text);color:#fff;font:var(--w-strong) 10px/16px var(--font-body);text-align:center;vertical-align:2px;
+    margin:0 2px;cursor:pointer;user-select:none;text-decoration:none;text-indent:0}
+  .rl-pt.is-hot{background:var(--st-amber-fg, #B45309)}
+  .rl-pt-bub{display:none;position:absolute;top:22px;left:50%;transform:translateX(-50%);width:260px;z-index:6;
+    background:var(--color-text);color:#fff;font:400 12px/1.5 var(--font-body);text-align:left;white-space:normal;
+    padding:8px 10px;border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.28);cursor:default}
+  .rl-pt-bub b,.nego-clause .nego-body .rl-pt-bub b{color:inherit;font-weight:var(--w-strong);margin-right:4px}
+  .rl-pt-bub:before{content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top:0;border-bottom-color:var(--color-text)}
+  .rl-pt.is-open .rl-pt-bub{display:block}
   .rl-sug-box{margin:6px 0 0;padding:2px 6px;border:1.5px dashed var(--color-accent-600);border-radius:3px;
     background:var(--color-accent-50);color:var(--accent-ink)}
   .rl-sug-box .rl-sug-new{text-decoration:underline dashed;text-underline-offset:3px;font-weight:var(--w-strong)}

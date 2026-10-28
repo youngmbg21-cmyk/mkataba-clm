@@ -1671,7 +1671,7 @@ function docRichFromText(text){
 const DOCX_UI_CLASSES = ['change-tag-badge', 'rl-authormark', 'lab-tag', 'lab-tagwho',
   'lab-tagvis', 'lab-authorpill', 'lab-pilldepth', 'lab-stacktrail', 'lab-stackid',
   'lab-stackarrow', 'lab-stacklabel', 'lab-chip', 'clause-tools', 'clause-tool',
-  'badge', 'ui-btn', 'rl-rung', 'rl-baseline', 'nego-note', 'nego-gaps', 'rl-rv-docnote'];
+  'badge', 'ui-btn', 'rl-rung', 'rl-baseline', 'nego-note', 'nego-gaps', 'rl-rv-docnote', 'rl-pt'];
 /* The id series the lab stamps on a change: L-001, L-002, … Matched as a whole
    id so a clause genuinely called "L-shaped premises" is untouched. */
 const DOCX_UI_ID = /^L-\d+$/;
