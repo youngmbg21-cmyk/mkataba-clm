@@ -131,7 +131,9 @@ describe('f888 (4) a company fact', () => {
 describe('f888 (5) names, limits and the old shape', () => {
   test('5a a column left unnamed names itself from its question', async () => {
     const r = await col({ question: 'What is the governing language of the agreement?', name: '', ids: ['MK-A1'] });
-    assert.equal(r.ask.name, 'Governing language of the');
+    /* RE-POINTED 28 Oct 2026 (round 2 of the review): the name rule now stops at its small words, the same on both
+       hosts (askColNameOf = colNameOf, f956) — "Governing language", never "Governing language of the" */
+    assert.equal(r.ask.name, 'Governing language');
   });
   test('5b more than eight questions in one press are refused and said', async () => {
     const qs = Array.from({ length: 9 }, (_, i) => ({ question: `Question number ${i + 1} about the wording?` }));

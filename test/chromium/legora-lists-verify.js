@@ -825,7 +825,8 @@ function pageKit(){
     const form = await until(() => document.querySelector('#ac-q') && document.querySelector('[data-ac-ask]') ? true : null, null, 5000);
     if (!form){ check('contracts C7 the § chip', false, 'the Ask a column form did not open'); return; }
     await page.fill('#ac-q', 'How much notice does each side need to end the contract early?');
-    await page.fill('#ac-name', 'Notice to end').catch(() => {});
+    /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
+    await page.click('[data-ac-name-edit]').catch(() => {}); await page.fill('#ac-name', 'Notice to end').catch(() => {});
     await ev(() => document.querySelector('[data-ac-ask]').click());
     const filled = await until(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length > 0 ? true : null, null, 30000);
     /* RE-POINTED (the owner picked "Lights", 26 Oct 2026): the § chip came OUT

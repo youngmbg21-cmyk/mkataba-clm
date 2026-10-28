@@ -9763,11 +9763,24 @@ function colQuestionsOf(b) {
 }
 /* A COLUMN NAMES ITSELF (stage 2): the question's own first words, minus the
    asking words, when the person leaves the name empty */
+/* THE COLUMN'S NAME (round 2 of the review, 28 Oct 2026): twinned with the browser's askColNameOf, so the name the
+   form says before the read is the name kept. Leading question and filler words go; the name runs to the first small
+   word or comma, at most four words. */
+const COLUMN_NAME_LEAD = /^(how|what|which|who|when|where|is|are|does|do|did|can|could|will|would|should|has|have|the|a|an|any|our|their|this|these|that|it|there|much|many|either|each|contract|contracts|agreement|agreements|mention|mentions|include|includes|contain|contains|say|says|state|states|name|names|side|sides|party|parties)$/i;
+const COLUMN_NAME_STOP = /^(does|do|is|are|was|were|need|needs|to|and|or|of|for|in|on|at|by|with|under|if|when|each|either|it|its|the|a|an)$/i;
 function colNameOf(question) {
-  const w = String(question).replace(/[?.!]+$/, '').split(/\s+/)
-    .filter((x, i) => !(i < 3 && /^(how|what|which|who|when|is|are|does|do|can|will|the|a|an|our|this)$/i.test(x)));
-  const n = (w.length ? w : String(question).split(/\s+/)).slice(0, 4).join(' ');
-  return n.charAt(0).toUpperCase() + n.slice(1);
+  const words = String(question || '').trim().replace(/[?.!]+$/, '').split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  let i = 0; while (i < words.length - 1 && COLUMN_NAME_LEAD.test(words[i].replace(/[,;:]$/, ''))) i++;
+  const out = [];
+  for (let j = i; j < words.length && out.length < 4; j++) {
+    const w = words[j], bare = w.replace(/[,;:]$/, '');
+    if (out.length && COLUMN_NAME_STOP.test(bare)) break;
+    out.push(bare);
+    if (bare !== w) break;
+  }
+  const n = (out.length ? out : words.slice(0, 4)).join(' ');
+  return (n.charAt(0).toUpperCase() + n.slice(1)).slice(0, 40);
 }
 function colAskKeep(req, q, at, keep) {
   let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(q.qkey);

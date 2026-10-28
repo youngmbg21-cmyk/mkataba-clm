@@ -72,29 +72,29 @@ test('1 · the plan: the next are the first not yet read, in the list\'s order; 
 test('2 · one sentence: the choice, the count, where they stand, the cost', () => {
   const sb = stage({ shown: ids(500) });
   const say = (o, s) => text(sb.askColSentenceHtml(sb.askColPlan(o), Object.assign({ force: !!o.force }, s || {})));
-  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the first 50 100 of the 500 shown: contracts 1–50 · 50 Jambo calls. Every answer comes with the sentence it came from. Nothing is filed.');
+  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the first 50 100 of the 500 shown: contracts 1–50 · 50 Jambo calls. Each answer shows the sentence it came from.');
   assert.match(sb.askColSentenceHtml(sb.askColPlan({ askId: 'a1', size: 100 })), /<button type="button" class="ac-size-b" data-ac-size="50" aria-pressed="false">50<\/button><button type="button" class="ac-size-b on" data-ac-size="100" aria-pressed="true">100<\/button>/, 'the choice is inside the sentence, the chosen one lit');
   sb.AC.ans.a1 = Object.fromEntries(ids(50).map(id => [id, { found: true }]));
-  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the next 50 100 of the 450 not yet read: contracts 51–100 · 50 Jambo calls. The 50 already read are kept and cost nothing. Every answer comes with the sentence it came from. Nothing is filed.');
+  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the next 50 100 of the 450 not yet read: contracts 51–100 · 50 Jambo calls. The 50 already read are kept and cost nothing. Each answer shows the sentence it came from.');
   assert.equal(say({ askId: 'a1', size: 50, force: true }), 'Ask again reads the first 50 100 of the 500 shown afresh, even where an answer is kept: contracts 1–50 · 50 Jambo calls.');
   /* a pack says it reads once and answers every question */
   assert.match(say({ askIds: ['a1'], size: 50 }, { pack: true, q: 5 }), /^Jambo reads the next 50 100 of the 450 not yet read, once each, and answers all 5 questions from that one read: contracts 51–100 · 50 Jambo calls\./);
   /* fewer left than a size: no choice to make, the count said plainly */
   sb.AC.ans.a1 = Object.fromEntries(ids(488).map(id => [id, { found: true }]));
-  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the 12 not yet read: contracts 489–500 · 12 Jambo calls. The 488 already read are kept and cost nothing. Every answer comes with the sentence it came from. Nothing is filed.');
+  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the 12 not yet read: contracts 489–500 · 12 Jambo calls. The 488 already read are kept and cost nothing. Each answer shows the sentence it came from.');
   /* a gap is said as one, never as a range that is not one */
   sb.AC.ans.a1 = Object.fromEntries(ids(50).concat(['HC-1070']).map(id => [id, { found: true }]));
   assert.match(say({ askId: 'a1', size: 50 }), /: 50 down the list from no\. 51 · 50 Jambo calls\./);
   /* every one read: the kept answers offered, nothing to read */
   sb.AC.ans.a1 = Object.fromEntries(ids(500).map(id => [id, { found: true }]));
   assert.equal(say({ askId: 'a1', size: 50 }), 'Every one of the 500 shown is read and kept, free to bring onto the list. Ask again reads them afresh.');
-  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a1', size: 50, force: true })), 'Ask again · 50');
+  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a1', size: 50, force: true })), 'Read again · 50 Jambo calls'); /* RE-POINTED 28 Oct 2026 (round 2): the button says what it spends */
   sb.AC.ans.a1 = Object.fromEntries(ids(50).map(id => [id, { found: true }]));
-  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a1', size: 50 })), 'Read the next 50');
-  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a9', size: 50 })), 'Ask 50 contracts');
+  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a1', size: 50 })), 'Read the next 50 · 50 Jambo calls');
+  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a9', size: 50 })), 'Read 50 contracts · 50 Jambo calls');
   /* a small book: no choice to make either */
   const small = stage({ shown: ids(12) });
-  assert.equal(text(small.askColSentenceHtml(small.askColPlan({ askId: 'a1', size: 50 }))), 'Jambo reads the 12 shown · 12 Jambo calls. Every answer comes with the sentence it came from. Nothing is filed.');
+  assert.equal(text(small.askColSentenceHtml(small.askColPlan({ askId: 'a1', size: 50 }))), 'Jambo reads the 12 shown · 12 Jambo calls. Each answer shows the sentence it came from.');
 });
 
 test('3 · the server records every press; its batches share the record; Stop marks it; the count is what the reader may see', async () => {
