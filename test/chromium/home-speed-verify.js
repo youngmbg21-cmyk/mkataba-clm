@@ -9,8 +9,8 @@
      1. Board ⇄ Paper: the longest freeze of a switch, the middle of five
         tries each way, is under half of the freeze of opening Home itself
         (the face turns in place)
-     2. the second Explorer arrival's longest freeze is under half of the
-        first's (the laid-out map is kept)
+     2. the second Explorer arrival's longest freeze, the middle of three
+        returns, is under half of the first's (the laid-out map is kept)
      3. sitting on a still, settled Explorer keeps the browser busy under 5%
         of the time (the frame loop rests)
      4. no frame of the map is drawn while the Board shows
@@ -114,8 +114,17 @@ const check = (name, pass, detail) => {
     const back = await act(() => hbSetFace('board'), onFace('board'));
     const onBoard = await act(() => 0, quiet(3000));
     check('4. no frame of the map is drawn while the Board shows', onBoard.frames === 0, `${onBoard.frames} frames (and ${back.frames} on the way out)`);
-    const ex2 = await act(() => hbSetFace('explorer'), onFace('explorer'));
-    check('2. the second Explorer arrival freezes under half of the first', ex2.max < Math.max(60, ex1.max / 2), `first ${ex1.max} · second ${ex2.max} ms`);
+    /* THE MIDDLE OF THREE RETURNS (28 Oct 2026, the same fairer stopwatch the owner picked for 1 on 25 Oct): one
+       return measured 189–253 ms on GitHub's runner, beside a heavy check sharing the machine, and 105–218 ms here,
+       at main as at the change that met it, so one sample passed or failed by luck. The first arrival can happen only
+       once; the return is timed three times (Board, then Explorer) and the middle result is held to the relation */
+    const ex2s = [(await act(() => hbSetFace('explorer'), onFace('explorer'))).max];
+    for (let r = 0; r < 2; r++){
+      await act(() => hbSetFace('board'), onFace('board'));
+      ex2s.push((await act(() => hbSetFace('explorer'), onFace('explorer'))).max);
+    }
+    const ex2 = { max: mid(ex2s) };
+    check('2. the second Explorer arrival freezes under half of the first (the middle of three returns)', ex2.max < Math.max(60, ex1.max / 2), `first ${ex1.max} · return ${ex2.max} (${ex2s.join(' ')}) ms`);
     /* (5, a second visit to Home, is pinned in f567 rather than timed: the
        first visit measured anywhere from 41 to 191 ms busy run to run, so a
        relation between the two was a coin toss.) */

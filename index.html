@@ -17210,6 +17210,26 @@
   .jb-card{border:1.5px solid var(--accent-ink);border-radius:999px;background:var(--color-surface)}
   .jb-card.is-tall{border-radius:20px}
   .jb-card:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px rgba(10,124,107,.12)}
+  /* -- ONE PANEL, TWO FACES: the door above the box (owner picked "Door above the box", 28 Oct 2026) — "‹ Overview" on
+     the left, the bin at the end, standing on the box's own line of sight; nothing on the landing -- */
+  .jb-door{display:flex;align-items:center;gap:8px;min-width:0;min-height:28px;margin:0 0 6px}
+  .jb-door[hidden]{display:none}
+  .jb-door-sp{flex:1 1 auto}
+  .jb-door-back{flex:none;display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:100%;height:28px;padding:0 10px 0 6px;border:0;border-radius:999px;background:transparent;color:var(--accent-ink);font:inherit;font-size:13px;font-weight:var(--w-strong);cursor:pointer;white-space:nowrap}
+  .jb-door-back > span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .jb-door-back:hover{background:var(--surface-2)}
+  .jb-door-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
+  .jb-door .jb-bin{flex:none;cursor:pointer}
+  .jb-talk-label{cursor:default}
+  /* a head's tab put away while the other face shows is gone, whatever display its class gives it */
+  :is(.jl-head, .igd-head, .st-side-head, .cal-plan-head) :is(.pd-tab, .st-side-tab)[hidden]{display:none}
+  /* …and the tab after it stands where it stood: no gap is kept for a tab that is not drawn */
+  #app-shell .jl-head.jl-head > .pd-tab[hidden] + .pd-tab{margin-left:0}
+  /* in a foot that already spaces its rows (Home's, the list's, the Calendar's), the door adds no margin of its own */
+  :is(.igd-foot, .jl-foot) > .jb-door{margin:0}
+  /* Settings' foot is a row: the door takes the whole first line, the box the second */
+  .st-cr .st-jb-ask{flex-wrap:wrap;row-gap:0}
+  .st-cr .st-jb-ask > .jb-door{flex:1 1 100%}
   /* -- a small tag or chip is a pill (the drawing's "5 of 6", "In Review · round 1"); bars, swatches and focus rings keep their small corners -- */
   #ig-page:not(.hb-dark) :is(.hb-src, .hb-chip, .hb-fd, .hb-given, .hb-vb, .hb-ins-scope), .bs-nx, .bs-late, .bs-done, #context-panel .pt-new,
   #ig-dock .pd-og-cl, [data-pd-mid-kt] .pd-og-cl, .pd-rn-q .pd-og-cl{border-radius:999px}

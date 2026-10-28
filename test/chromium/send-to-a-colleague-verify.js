@@ -39,18 +39,21 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     await until(() => window.intel && intel.paper && intel.paper.id === 'MK-B2' && document.getElementById('igd-input'), null, 12000);
 
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); these steps are about the free readers (the @ chips, the send card), so each types under Overview */
+    /* RE-PINNED 28 Oct 2026 ("Door above the box": every word TYPED is the brain's but a page's one name): the box is
+       still typed into (its @ list is under test), and what it holds is then asked as a chip asks — the free readers */
+    const askBox = () => page.evaluate(() => { const i = document.getElementById('igd-input'); const v = i ? i.value : ''; if (i) i.value = ''; intelAsk(v); });
     await part('1', async () => {
-      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.click('#igd-input'); await page.keyboard.type('what does the contract say about money?'); await page.keyboard.press('Enter');
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); await page.click('#igd-input'); await page.keyboard.type('what does the contract say about money?'); await askBox();
       await until(() => !intel.busy && intel.history.length >= 2, null, 15000);
       await page.evaluate(() => { const Hh = intel.history; while (Hh.length && Hh[Hh.length - 1].role !== 'user') Hh.pop();
         Hh.push({ role: 'assistant', text: '<p><b>Clause 8</b> governs money in MK-B2.</p><ul><li>Fixed fee of KES 78,000,000</li><li>Paid within 30 days of invoice</li></ul>' }); renderIntelDock(); });
-      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.click('#igd-input'); await page.keyboard.type('send the above summary to @');
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); await page.click('#igd-input'); await page.keyboard.type('send the above summary to @');
       const pop = await until(() => { const p = document.getElementById('ca-pop'); return p ? { head: p.querySelector('h5').textContent,
         rows: [...p.querySelectorAll('.ca-opt')].map(r => ({ t: r.textContent.replace(/\s+/g, ' ').trim(), off: r.classList.contains('is-off'), on: r.classList.contains('on') })) } : null; }, null, 4000);
       check('1a the @ list says "People who can open MK-B2"', !!pop && pop.head === 'People who can open MK-B2', JSON.stringify(pop && pop.head));
       const rl = pop && pop.rows.find(r => /Restricted Legal/.test(r.t));
       check('1b the colleague who cannot open it is greyed with the reason, the light not on them', !!rl && rl.off && /Can't open MK-B2/.test(rl.t) && !rl.on, JSON.stringify(rl));
-      await page.keyboard.type('Unre'); await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
+      await page.keyboard.type('Unre'); await page.keyboard.press('Enter'); await askBox();
       await until(() => document.querySelector('#sh-letter') && document.documentElement.hasAttribute('data-sh-col') && document.querySelector('#sh-lt-after .sh-lt-btn'), null, 12000);
       await page.waitForTimeout(500);
       const S = await page.evaluate(() => ({ chips: (document.getElementById('sh-col-chips') || {}).textContent, chip: (document.querySelector('[data-sh-as-w="purpose"]') || {}).textContent,
@@ -79,7 +82,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     await part('1i', async () => {
       const ai0 = h.ai ? h.ai.calls.length : 0;
       await page.evaluate(() => { const Hh = intel.history; Hh.push({ role: 'assistant', text: '<p>Payment is due within 30 days.</p>' }); renderIntelDock(); });
-      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.click('#igd-input'); await page.keyboard.type('write an email to Unrestricted summarising the above'); await page.keyboard.press('Enter');
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); await page.click('#igd-input'); await page.keyboard.type('write an email to Unrestricted summarising the above'); await askBox();
       const up = await until(() => document.querySelector('#sh-letter') && document.documentElement.hasAttribute('data-sh-col') && document.querySelector('#sh-lt-after .sh-lt-btn') && (document.getElementById('sh-summary') || {}).value ? true : null, null, 10000);
       const S2 = await page.evaluate(() => ({ chips: (document.getElementById('sh-col-chips') || {}).textContent || '', note: (document.getElementById('sh-summary') || {}).value || '' }));
       check('1i "write an email to … summarising the above" opens the send screen on that colleague, Jambo\'s words the note, no model asked',
@@ -123,16 +126,16 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     await part('3', async () => {
       await page.evaluate(() => { if (window.closeModal) closeModal(); roomHomeLand('MK-B2'); });
       await until(() => !document.querySelector('#sh-letter') && window.intel && intel.paper && intel.paper.id === 'MK-B2' && document.getElementById('igd-input'), null, 12000);
-      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.click('#igd-input'); await page.keyboard.type('share'); await page.keyboard.press('Enter');
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); await page.click('#igd-input'); await page.keyboard.type('share'); await askBox();
       const btn = await until(() => !!document.querySelector('[data-ca-act="sharein"]'), null, 8000);
       check('3a "share" offers Share inside the company', !!btn);
       await page.click('[data-ca-act="sharein"]');
       await until(() => document.getElementById('ca-pop'), null, 4000);
       await page.keyboard.type('Unre'); await page.keyboard.press('Enter');
       const typed = await page.inputValue('#igd-input');
-      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } });
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } });
       if ((await page.inputValue('#igd-input')) !== typed) await page.fill('#igd-input', typed);
-      await page.focus('#igd-input'); await page.keyboard.press('Enter');
+      await page.focus('#igd-input'); await askBox();
       const up = await until(() => document.querySelector('#sh-letter') && document.documentElement.hasAttribute('data-sh-col') && document.querySelector('#sh-lt-after .sh-lt-btn') ? true : null, null, 10000);
       await page.waitForTimeout(400);
       const S = await page.evaluate(() => ({ chips: (document.getElementById('sh-col-chips') || {}).textContent || '', chip: (document.querySelector('[data-sh-as-w="purpose"]') || {}).textContent,
@@ -149,6 +152,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       /* 3j a tab pressed beside the letter shows that tab, and "Before you send" brings the letter's face back
          (owner: "why is dossier empty and all the other panels") */
       const tabs = [];
+      /* RE-POINTED 28 Oct 2026 ("Door above the box"): Jambo's line turned the panel to his conversation, where the head
+         is his name alone; its door above the box goes back to the face, and the tabs with it */
+      if (await page.evaluate(() => typeof pdTalkShows === 'function' && pdTalkShows())) await page.click('#ig-dock [data-jb-door] .jb-door-back');
       for (const k of ['Clauses', 'Dossier']){
         await page.locator('#ig-dock .pd-tab', { hasText: k }).first().click();
         tabs.push(await until(() => !document.getElementById('pd-sendface') && document.querySelector('#sh-letter') ? true : null, null, 4000));
@@ -163,7 +169,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       const m = h.mail.sent.slice(n0).find(x => x.to === 'everything@example.co.ke');
       check('3e the colleague is mailed a review ask, not "Jambo\'s summary"', !!m && /asked you to review MK-B2/.test(m.text) && !/Jambo's summary/.test(m.subject), JSON.stringify(m && m.subject));
       /* the same sentence typed by hand keeps Jambo's own send card (nothing opened) */
-      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.click('#igd-input'); await page.keyboard.type('Send #MK-B2 for review to @Unre'); await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
+      await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); await page.click('#igd-input'); await page.keyboard.type('Send #MK-B2 for review to @Unre'); await page.keyboard.press('Enter'); await askBox();
       const card = await until(() => [...document.querySelectorAll('#igd-feed [data-ca-act="send"]')].length ? true : null, null, 8000);
       const open = await page.evaluate(() => !!document.querySelector('#sh-letter'));
       check('3f typed by hand, it is Jambo\'s send card with the colleague — never the trip to Before you send', !!card && !open, JSON.stringify({ card, open }));
@@ -171,14 +177,14 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
          name — is said on his card, never the trip to Before you send that drops it */
       for (const [k, who, says] of [['3g', 'Amina Otieno', /That is you\. Type @ and pick a colleague/], ['3h', 'Nobody Atall', /Choose who it goes to/]]){
         await page.evaluate(() => { if (window.closeModal) closeModal(); });
-        await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.click('#igd-input'); await page.keyboard.type('share'); await page.keyboard.press('Enter');
+        await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); await page.click('#igd-input'); await page.keyboard.type('share'); await askBox();
         await until(() => [...document.querySelectorAll('[data-ca-act="sharein"]')].length ? true : null, null, 8000);
         await page.locator('[data-ca-act="sharein"]').last().click();
         await page.keyboard.type(who); await page.keyboard.press('Escape');
         { const typed = await page.inputValue('#igd-input');
-          await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } });
+          await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } });
           if ((await page.inputValue('#igd-input')) !== typed) await page.fill('#igd-input', typed); }
-        await page.click('#igd-go');
+        await askBox();
         const W = await until(() => { const H = intel.history, m = H[H.length - 1]; return m && m.act && m.role === 'assistant' && H[H.length - 2] && /@/.test(H[H.length - 2].text || '')
           ? { kind: m.act.kind, nav: m.act.nav ? m.act.nav.act : null, said: [...document.querySelectorAll('#igd-feed [data-ca-card]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(-1)[0] || '' } : null; }, null, 8000);
         check(k + ' "@' + who + '" is said on Jambo\'s card, never the trip to Before you send', !!W && W.kind === 'send' && !W.nav && says.test(W.said), JSON.stringify(W));

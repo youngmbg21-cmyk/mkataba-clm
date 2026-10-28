@@ -76,7 +76,7 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
       return v; };
     const onPaper = async id => { await page.evaluate(i => { setView('dashboard'); igAnalyze(i); }, id);
       return until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('igd-input') && !intel.busy, id, 10000); };
-    const panelAsk = async q => { await page.fill('#igd-input', q); await page.click('#igd-go'); };
+    const panelAsk = async q => { /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => intelAsk(w), q); };
     const stdState = () => page.evaluate(() => ({ view: state.view,
       booksTab: !!document.querySelector('[data-pb-tab="playbook"].on, [data-pb-tab="playbook"][aria-selected="true"]'),
       book: (document.querySelector('[data-sd-book].is-sel') || {}).getAttribute ? document.querySelector('[data-sd-book].is-sel').getAttribute('data-sd-book') : null,

@@ -4994,6 +4994,8 @@ async function aiSubmit(asked){
   /* THE ✦ WINDOW READS WITH THE BRAIN FIRST (owner, 27 Oct 2026: "Go with option 1, AI-first anyway"): words TYPED in
      the window (or its popped-out copy) go to the chat, a page word too — goto takes them there, and the page's own
      controls go with them (aiAskWords {controls}); a chip, a paste's offer and no key keep the free readers below */
+  /* a page's one name moves you there, free, as in every Jambo box (owner, 28 Oct 2026, "Door above the box") */
+  if(!given && !cardOwns && aiWinTypedFirst() && typeof window.jamboPageGo==='function' && jamboPageGo(q)) return;
   if(!given && !cardOwns && aiWinTypedFirst()) return aiAskWords(q, { controls:true });
   /* "What am I looking at?" typed is the chip's free reading; a watch sentence
      is proposed as a card (js/jambopress.js) — both before any other reader */

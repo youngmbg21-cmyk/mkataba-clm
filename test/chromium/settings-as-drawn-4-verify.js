@@ -136,7 +136,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
         const shut = () => page.evaluate(() => { try { if (document.querySelector('body > #st-drawer.open')) stDrawerClose(); } catch (_) {} });
         await shut(); await company();
         await page.evaluate(() => stSideSet('jambo'));
-        await page.fill('#st-jb-q', 'events out'); await page.keyboard.press('Enter');
+        /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#st-jb-q', 'events out'); await H.chipEnter(page, '#st-jb-q');
         const found = await until(() => !!document.querySelector('#st-jb-feed [data-st-jb-turn] .st-jb-card [data-st-panel="webhooks"]'));
         if (found && await press('#st-jb-feed [data-st-jb-turn] .st-jb-card [data-st-panel="webhooks"]', '1e Jambo\'s Open')) {
           const r = await until(() => document.querySelector('#st-dock > #st-drawer.is-docked.open') ? document.querySelector('[data-st-pg="panel"]').getAttribute('data-st-dock-key') : (document.querySelector('body > #st-drawer.open') ? 'drawer' : null));

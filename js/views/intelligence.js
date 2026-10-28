@@ -2310,6 +2310,9 @@ async function intelAsk(qRaw, opts){
      none of the free readers below — a short command too (owner, 26 Oct 2026: "short commands on overview while
      jambo [is] where all questions go to AI and then also can take you to specific places in settings"; the AI's
      goto lands on the place or the setting); a chip, or the ✦ window handing Home a command, keeps its reader */
+  /* ONE WORD THAT NAMES A PAGE MOVES YOU, FREE (owner, 28 Oct 2026, "Door above the box"): asked first of words
+     TYPED in the box, on the landing or in the conversation alike (jamboPageGo); anything longer is the brain's */
+  if(!readied&&opts&&opts.typed&&typeof window.jamboPageGo==='function'&&jamboPageGo(q)) return;
   if(!readied&&opts&&opts.typed&&igBoardTalkFirst()) return igBoardTalkAsk(q);
   /* …and so does every other face's Jambo tab on Home (owner, 27 Oct 2026: "roll out the jambo capabilities from the
      board's jambo to all the jambos across HaTi"): a contract's Dossier, the Contracts place, Explorer, the sheet */
@@ -2724,8 +2727,9 @@ function igBoardTalkFirst(){
   try{
     if(state.view!=='dashboard'||typeof window.hbFace!=='function'||hbFace()!=='board') return false;
     if(igHomePaperFace()===true||igPaperUp()||igHeldAskId()) return false;
-    if(!(window.caAiFirst&&caAiFirst())) return false;
-    return typeof window.pdTalkShows==='function'&&!!pdTalkShows();
+    /* ONE PANEL, TWO FACES (owner, 28 Oct 2026): no Jambo tab to be on — words TYPED in the box are his on the
+       landing too (a page's one name already moved, intelAsk) */
+    return !!(window.caAiFirst&&caAiFirst());
   }catch(_){ return false; }
 }
 /* every Home face's Jambo tab but the Board's (igBoardTalkFirst) and the Calendar's (its own planner, calWireOwn) */
@@ -2733,8 +2737,9 @@ function igTalkFirst(){
   try{
     if(state.view!=='dashboard'||typeof window.hbFace!=='function') return false;
     const f=hbFace(); if(f==='calendar'||f==='board') return false;
-    if(!(window.caAiFirst&&caAiFirst())) return false;
-    return typeof window.pdTalkShows==='function'&&!!pdTalkShows();
+    /* ONE PANEL, TWO FACES (owner, 28 Oct 2026): no Jambo tab to be on — words TYPED in the box are his on the
+       landing too (a page's one name already moved, intelAsk) */
+    return !!(window.caAiFirst&&caAiFirst());
   }catch(_){ return false; }
 }
 function graphAskScreen(){
@@ -8456,7 +8461,7 @@ function renderIntelDock(){
       <span class="flex-1"></span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
-      ${''/* THE BIN: the one builder every Jambo tab carries (jamboBinHtml); Home's keeps its id and its own press below */}${say&&msgs&&!(window.naSheetUp&&naSheetUp())?(typeof window.jamboBinHtml==='function'?jamboBinHtml(true,'igd-history-clear'):`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`):''}
+      ${''/* THE BIN stands in the door above the box now (Door above the box, 28 Oct 2026), beside ‹ Overview */}
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${''/* ONE TRAIL (owner, 19 Oct 2026): while a face is up, one line under the tabs — its one back, then where you are */}${(typeof window.pdTrailHtml==='function')?pdTrailHtml():''}
@@ -8562,6 +8567,13 @@ function renderIntelDock(){
              answers ("/ places · Esc closes", rounds 6–9 and 12) */}
       ${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026: "Ask" sat over the
              words): the words the whole width, + and the round send under them */}
+      ${''/* ONE PANEL, TWO FACES (owner picked "Door above the box", 28 Oct 2026): while the conversation shows, the
+             one way back to the landing stands right above the box, "‹ <landing>", and the bin at its end (Home's
+             keeps its id and its own press below); nothing is drawn here on the landing */}
+      ${talk&&typeof window.jamboDoorHtml==='function'?jamboDoorHtml({ on:true, attr:'data-pd-back', back:'talk', to:(typeof window.pdLandWord==='function')?pdLandWord():i18t('pd_tab_overview'),
+        bin:msgs&&!(window.naSheetUp&&naSheetUp())&&typeof window.jamboBinHtml==='function'?jamboBinHtml(true,'igd-history-clear'):'' })
+        /* …and its mirror on the landing, once something has been said: "Jambo ›" (owner's pick, 28 Oct 2026) */
+        :(!solo&&intel.history.length&&typeof window.jamboFwdHtml==='function'?jamboFwdHtml({ on:true, host:'dock' }):'')}
       ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
     </div>`}${''/* the letter's "Before you send" column waits here unseen while
            ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml())||''}`;
@@ -10040,6 +10052,9 @@ function igPaperWire(host){
     const pin=p.pins.find(x=>String(x.n)===b.getAttribute('data-ig-pin')); if(!pin) return;
     p.on={turn:pin.turn,k:pin.k};
     igPinsPaint();
+    /* ONE PANEL, TWO FACES (Door above the box, 28 Oct 2026): there is no Jambo tab to go back to, so the pin itself
+       turns the panel to the conversation its answer stands in */
+    if(!(typeof window.pdTalkShows==='function'&&pdTalkShows())&&typeof window.pdTalkReopen==='function') try{ pdTalkReopen(); }catch(_){ }
     document.querySelectorAll('#ig-dock .ig-cite.is-on').forEach(x=>x.classList.remove('is-on'));
     const chip=document.querySelector(`#ig-dock .ig-cite[data-ig-cite="${pin.turn}:${pin.k}"]`); if(chip) chip.classList.add('is-on');
     const turn=document.querySelector(`#igd-feed [data-ig-turn="${pin.turn}"]`);

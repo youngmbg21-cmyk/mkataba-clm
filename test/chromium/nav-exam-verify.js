@@ -75,15 +75,18 @@ const ONLY = process.env.NAV_EXAM_ONLY || '';   // a section's name, or its firs
   async function typeInto(P, box, q){
     const fillEnter = async sel => { await P.waitForSelector(sel, { state: 'visible', timeout: 6000 }); await P.fill(sel, q); await P.press(sel, 'Enter'); };
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
-    if (box === 'home' || box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); return fillEnter('#igd-input'); }
+    /* RE-PINNED 28 Oct 2026 (owner picked "Door above the box": every word TYPED in a box is the brain's but a page's
+       one name): this exam is of the free readers, so each box is asked as a chip asks it — its own reader, not typed */
+    const chipAsk = async (sel, fn) => { await P.waitForSelector(sel, { state: 'visible', timeout: 6000 }); await P.evaluate(([f, w]) => window[f](w), [fn, q]); };
+    if (box === 'home' || box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); return chipAsk('#igd-input', 'intelAsk'); }
     if (box === 'chat' || box === 'phone'){
       await P.evaluate(() => { const i = document.getElementById('ai-input'); const shown = i && i.offsetParent;
         if (!shown){ if (typeof aiWinToggle === 'function') aiWinToggle(); else if (typeof openAI === 'function') openAI(); } });
-      return fillEnter('#ai-input');
+      return chipAsk('#ai-input', 'aiSubmit');
     }
-    if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(P); return fillEnter('#jl-q'); }
-    if (box === 'settings'){ await P.evaluate(() => { setView('team'); }); await settle(P); return fillEnter('#st-jb-q'); }
-    if (box === 'calendar'){ await P.evaluate(() => hbOpenCalendar()); await settle(P); return fillEnter('#cal-plan-in'); }
+    if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(P); return chipAsk('#jl-q', 'jlAsk'); }
+    if (box === 'settings'){ await P.evaluate(() => { setView('team'); }); await settle(P); return chipAsk('#st-jb-q', 'stJbBoxAsk'); }
+    if (box === 'calendar'){ await P.evaluate(() => hbOpenCalendar()); await settle(P); return chipAsk('#cal-plan-in', 'calBoxAsk'); }
     if (box === 'editor'){
       await P.evaluate(() => { const c = getContract('MK-A2'); const cl = negoClauseList(c); rlOpenClauseEditor(c, cl[0].clauseId, {}); });
       return fillEnter('#ce-ask');

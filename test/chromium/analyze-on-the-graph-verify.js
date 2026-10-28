@@ -295,9 +295,8 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     /* A pin in the margin finds its answer in the panel. Since 24 Oct 2026 the strip's press
        leaves the panel on Clauses, so the reader goes back to the conversation first (the
        Jambo tab), as a person would; a pin pressed from another tab is a BUGLOG line. */
-    await page.evaluate(() => { const t = document.querySelector("#ig-dock [data-pd-talk]"); if (t) t.click(); });
-    await page.waitForFunction(() => !!document.getElementById('igd-feed'), null, { timeout: 4000 }).catch(() => {});
-    await page.evaluate(() => { const f = document.getElementById('igd-feed'); f.scrollTop = 0; });
+    /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab — the pin itself turns the panel to the conversation */
+    await page.evaluate(() => { const f = document.getElementById('igd-feed'); if (f) f.scrollTop = 0; });
     await page.click('#ig-canvas button.ig-pin[data-ig-pin="1"]');
     await page.waitForTimeout(900);
     const found = await page.evaluate(() => {

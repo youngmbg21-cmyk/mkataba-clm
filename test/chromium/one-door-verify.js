@@ -80,7 +80,7 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
 
     /* 1 the word, on the Contracts place */
     await page.evaluate(() => setView('register')); await until(() => !!document.getElementById('igd-input'));
-    await page.fill('#igd-input', 'new agreement'); await page.press('#igd-input', 'Enter');
+    await page.fill('#igd-input', 'new agreement'); /* RE-PINNED 28 Oct 2026 ("Door above the box"): asked as a chip asks */ await H.chipEnter(page, '#igd-input');
     const s1 = await until(SHEET, null, 8000);
     check('1a "new agreement" opens the one sheet beside Jambo, no card in the chat', !!s1 && s1.one && s1.beside && !s1.chatCard, JSON.stringify(s1 && { one: s1.one, beside: s1.beside, chatCard: s1.chatCard }));
     check('1b with no words yet: "Most used on our paper", three rows, nothing picked', !!s1 && s1.head === 'Most used on our paper' && s1.rows.length === 3 && s1.checked === 0 && !s1.picked, JSON.stringify(s1 && { head: s1.head, rows: s1.rows.length, checked: s1.checked }));
@@ -97,7 +97,7 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
 
     /* 3 the sentence with details, in the side panel */
     await page.evaluate(() => setView('register')); await until(() => !!document.getElementById('igd-input'));
-    await page.fill('#igd-input', SAY); await page.press('#igd-input', 'Enter');
+    await page.fill('#igd-input', SAY); /* RE-PINNED 28 Oct 2026 ("Door above the box"): asked as a chip asks */ await H.chipEnter(page, '#igd-input');
     const s3 = await until(() => { const r = document.getElementById('na-root'); return r && r.classList.contains('is-picked') ? true : null; }, null, 10000) && await page.evaluate(SHEET);
     const from = k => ((s3 && s3.src) || []).find(x => new RegExp(k, 'i').test(x.term));
     check('3a the paper is picked: it is clearly the closest', !!s3 && s3.picked && !!s3.card, JSON.stringify(s3 && { picked: s3.picked, card: s3.card }));
@@ -139,7 +139,7 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
 
     /* 8 their paper, read from the words: the sheet opens on Their paper, says who sent it, and the file is filed under that name */
     await page.evaluate(() => setView('register')); await until(() => !!document.getElementById('igd-input'));
-    await page.fill('#igd-input', 'Distribution agreement Nordkap sent us'); await page.press('#igd-input', 'Enter');
+    await page.fill('#igd-input', 'Distribution agreement Nordkap sent us'); /* RE-PINNED 28 Oct 2026 ("Door above the box"): asked as a chip asks */ await H.chipEnter(page, '#igd-input');
     const s8 = await until(() => { const r = document.getElementById('na-root'); if (!r || r.getAttribute('data-paper') !== 'theirs') return null;
       const vis = el => !!(el && el.getClientRects().length);
       const said = [...document.querySelectorAll('#ig-dock .ca-dr-said')].pop();

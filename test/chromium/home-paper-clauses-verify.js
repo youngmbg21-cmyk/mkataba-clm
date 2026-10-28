@@ -103,8 +103,10 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     /* ===== 3. NO SIGNING TAB; THE ARTIFACT'S SYMBOLS ===== */
     /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel", PR #372): the Jambo tab now always stands beside the four; they are counted without it, and it wears his face */
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): on a computer his face is the ✦ mark (an svg), the bird only on the phone */
-    const talkFace = await page.evaluate(() => !!document.querySelector('#ig-dock .igd-head [data-pd-talk] svg.jambo-face'));
-    ok('3c the Jambo tab stands beside them, wearing his face', talkFace, String(talkFace));
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): no Jambo tab beside them — his face heads the
+       conversation alone, once it is up */
+    const noTab = await page.evaluate(() => !document.querySelector('#ig-dock .igd-head .pd-tab-talk'));
+    ok('3c no Jambo tab beside them on the landing', noTab, String(noTab));
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')].map(b => ({ k: b.getAttribute('data-pd-tab'), g: b.querySelector('.pd-tab-g .jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || '').replace('︎', '') })));
     /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab ... and also delete history") */
     /* RE-POINTED 13 Oct 2026 (owner: "delete the overview tab from document page") */

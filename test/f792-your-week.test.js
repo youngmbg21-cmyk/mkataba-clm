@@ -152,9 +152,11 @@ describe('f792 (4) both pages say it alike', () => {
     /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
        for jambo"; reverses the 24 Oct one window): Overview and a Jambo tab, the talk's trail; still no page word */
     assert.doesNotMatch(p, /class="jl-word"/, 'no page word beside the tabs');
-    assert.match(p, /data-cal-talk-back/, 'Overview is its own tab');
-    assert.match(p, /data-cal-talk /, 'the Jambo tab beside it');
-    assert.match(p, /jamboTalkTrailHtml\('cal',land\)/, 'the talk carries its way back');
+    /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): no Jambo tab to press — Overview heads the landing,
+       his name alone the conversation, and the way back stands right above the box */
+    assert.doesNotMatch(p, /data-cal-talk /, 'no Jambo tab to press');
+    assert.match(p, /jamboTalkLabelHtml\('jl-tab'\)/, 'his name heads the conversation');
+    assert.match(p, /jamboDoorHtml\(\{ on:true, attr:'data-cal-talk-back', back:'cal', to:land/, 'the talk carries its way back, above the box');
     assert.match(p, /placeholder="\$\{_esc\(i18t\('jl_ph_week'\)\)\}"/);
     /* RE-POINTED 20 Oct 2026 (Chambers: no hint line under any Jambo box) */
     assert.doesNotMatch(p, /jamboHintHtml|jb-hint/, 'no hint line under the box');
@@ -162,7 +164,9 @@ describe('f792 (4) both pages say it alike', () => {
   });
   test('4d the box asks through the one reader first, Enter and Ask alike', () => {
     const w = fnBody(CAL, 'calWireOwn');
-    assert.match(w, /caAskAnywhere\(v,\{cal:true\}\)/);
+    /* RE-POINTED 28 Oct 2026: the box's reader is its own function (calBoxAsk), Enter and Ask pass {typed:true} */
+    assert.match(w, /calBoxAsk\(v,\{ typed:true \}\)/);
+    assert.match(fnBody(CAL, 'calBoxAsk'), /caAskAnywhere\(v,\{cal:true\}\)/);
     assert.match(w, /document\.getElementById\('cal-plan-go'\)\?\.addEventListener\('click',ask\)/);
   });
 });

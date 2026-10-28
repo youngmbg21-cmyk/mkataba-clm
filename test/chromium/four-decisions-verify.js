@@ -131,7 +131,8 @@ const blocked = [];
           const send = hd.querySelector('[data-pd-send-back]'), x = document.getElementById('igd-collapse'), xr = x && x.getBoundingClientRect();
           return { tabs, word: send.textContent.trim(), tip: send.title, fold: !!xr && xr.width > 0 && xr.right <= dock.right && xr.left >= dock.left }; });
         const bad = m.tabs.filter(t => t.cut);
-        check(`${at} · Q2 — five tabs, every word whole`, m.tabs.length === 5 && !bad.length, m.tabs.map(t => t.t + (t.cut ? ' (cut)' : '')).join(' · '));
+        /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab, so four */
+        check(`${at} · Q2 — four tabs, every word whole`, m.tabs.length === 4 && !bad.length, m.tabs.map(t => t.t + (t.cut ? ' (cut)' : '')).join(' · '));
         check(`${at} · Q2 — the letter's tab says "Email" (owner, 25 Oct 2026: "calling the tab send makes no sense"), its hover the whole name`, m.word === 'Email' && m.tip === 'Before you send', `"${m.word}" · hover "${m.tip}"`);
         check(`${at} · Q2 — the panel's › stays in the panel`, m.fold);
       }

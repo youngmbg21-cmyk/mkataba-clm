@@ -53,7 +53,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     if (have.length) throw new Error('nothing to drive');
     const chips = () => page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')));
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
-    const ask = async q => { await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { const t = document.querySelector('#ig-dock [data-pd-talk]'); if (t) t.click(); } }); await page.fill('#igd-input', q); await page.click('#igd-go'); await page.waitForTimeout(500); };
+    const ask = async q => { await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); /* asked as a chip asks: typed words are the brain's (Door above the box, 28 Oct 2026) */ await page.evaluate(w => intelAsk(w), q); await page.waitForTimeout(500); };
     const lastCard = () => page.evaluate(() => { const cs = document.querySelectorAll('#igd-feed .ca-card'); const k = cs[cs.length - 1];
       return k ? { title: (k.querySelector('.ca-ct') || {}).textContent || '', why: (k.querySelector('.ca-why') || {}).textContent || '',
         btns: [...k.querySelectorAll('button')].map(b => b.textContent.trim() + (b.disabled ? ' (grey)' : '')) } : null; });
@@ -124,7 +124,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('4b asking for an amendment says why, with no button', !!k4 && /expired/i.test(k4.why) && k4.btns.length === 0, JSON.stringify(k4));
     await shoot('4-expired-amend');
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows stand in the dossier's All acts fold */
-    await page.click('#ig-dock [data-pd-tab="copilot"]');
+    /* RE-POINTED 28 Oct 2026 ("Door above the box"): in the conversation the Dossier is the door above the box, not a tab */
+    if (await page.evaluate(() => typeof pdTalkShows === 'function' && pdTalkShows())) await page.click('#ig-dock [data-jb-door] .jb-door-back');
+    else await page.click('#ig-dock [data-pd-tab="copilot"]');
     await until(page, () => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (!f) return null; f.open = true; return !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired; }, null, 8000);
     const row = await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-m-amend'); return b ? { grey: b.disabled, why: b.title } : null; });
     ok('4c All acts\' amend row is grey with the same reason', !!row && row.grey && /expired/i.test(row.why), JSON.stringify(row));
