@@ -47,8 +47,6 @@
 const _dir = { tab: 'all', q: '', party: 'all', hati: 'all', stream: 'all', shown: 0 };
 const DIR_TABS = ['all', 'ours', 'theirs', 'none'];
 const DIR_PAGE = 12;
-/* the Name column's width while Job title takes the spare room beside it */
-const DIR_NAME_W = 300;
 const DIR_SEAT = 'directory';
 /* A colleague's panel lists this many of their contracts; the rest are one
    press away on the Contracts page. */
@@ -392,9 +390,9 @@ function dirAwayPillHtml(p){
 function dirColDefs(){
   return [
     /* THE JOB TITLE IS A COLUMN (owner, 28 Oct 2026: "take the title from
-       below the name and add it to cover the empty space"): it takes the
-       room the table has to spare; the name holds DIR_NAME_W beside it */
-    { k: 'title', label: i18t('dir_col_title') },
+       below the name and add it to cover the empty space"): a column of its
+       own, 220px; the name takes the rest, up to its ceiling (listCols) */
+    { k: 'title', label: i18t('dir_col_title'), w: 220 },
     { k: 'party', label: i18t('dir_col_party'), w: 220 },
     /* THE SIDE IS A COLUMN AGAIN (owner, 27 Oct 2026: "for people the sap way"): an icon and a word in its tone */
     { k: 'side', label: i18t('dir_col_side'), w: 130 },
@@ -516,10 +514,17 @@ function dirCardHtml(rows, book){
   const keys = (typeof lcShown === 'function') ? lcShown(DIR_SEAT, cols.map(c => c.k)) : cols.map(c => c.k);
   /* how the list is sorted rides the Name column's head (round 19 said it on
      the card's own head, which the list head the Legora way replaced) */
-  const head = [{ t: i18t('dir_col_name'), title: i18t('dir_list_sort'), w: keys.includes('title') ? DIR_NAME_W : 0 }, ...keys.map(k => Object.assign({ t: byK[k].label }, byK[k]))];
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): Name and Party or company always stand; where the room
+     is short Contracts steps aside first, then Job title (back under the name), then Side */
+  const DIR_RANK = { contracts: 1, title: 2, side: 3 };
+  const FIT = typeof listCols === 'function'
+    ? listCols(DIR_SEAT, [{ k: 'name' }, ...keys.map(k => Object.assign({}, byK[k], { rank: DIR_RANK[k] }))], () => dirRepaint())
+    : { cols: [{ k: 'name' }, ...keys.map(k => byK[k])] };
+  keys.splice(0, keys.length, ...FIT.cols.slice(1).map(c => c.k));
+  const head = [Object.assign({ t: i18t('dir_col_name'), title: i18t('dir_list_sort') }, FIT.cols[0], { k: 'name' }), ...FIT.cols.slice(1).map(c => Object.assign({ t: byK[c.k].label }, c))];
   const table = rows.length
-    ? `<table class="ap-table ap-ins dir-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
-      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-dir-col="${_dE(h.k)}"` : ''}${h.title ? ` title="${_dE(h.title)}"` : ''}>${_dE(h.t)}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
+    ? `<table class="ap-table ap-ins dir-table" data-list-seat="${_dE(DIR_SEAT)}"><colgroup>${head.map(h => typeof listColTag === 'function' ? listColTag(h) : `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
+      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k && h.k !== 'name' ? ` data-dir-col="${_dE(h.k)}"` : ''}${h.title ? ` title="${_dE(h.title)}"` : ''}>${_dE(h.t)}${typeof listGripHtml === 'function' ? listGripHtml(DIR_SEAT, h.k) : ''}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
     : empty;
   const foot = [rows.length && typeof lhFootHtml === 'function' ? lhFootHtml(DIR_SEAT, shown, rows.length, DIR_PAGE) : '', dirPartNote() ? `<span>${_dE(dirPartNote())}</span>` : ''].filter(Boolean).join(' ');
   /* THE LIST'S CARD, THE LEGORA WAY: the table and its foot alone — the

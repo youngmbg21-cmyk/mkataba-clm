@@ -156,11 +156,20 @@ function myNotesTableHtml(list){
     const t = (typeof mineList === 'function' && mineList('note').length) ? i18t('mn_none_here') : i18t('mn_empty');
     return typeof emptyStateHtml === 'function' ? emptyStateHtml({ title:t, sub:i18t('mn_empty_sub') }) : `<p class="mn-empty">${_mnE(t)}</p>`;
   }
-  const byK = Object.fromEntries(mnColDefs().map(c => [c.k, c])), keys = mnColKeys().filter(k => byK[k]);
+  const byK = Object.fromEntries(mnColDefs().map(c => [c.k, c]));
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the note and its contract always stand; where the room is
+     short Review steps aside first, then the day written; a reader's own widths are kept */
+  const MN_RANK = { review:1, written:2 }, px = w => Number(String(w).replace('px', '')) || 0;
+  const FIT = typeof listCols === 'function'
+    ? listCols(MN_SEAT, [{ k:'name' }, ...mnColKeys().filter(k => byK[k]).map(k => ({ k, w: k === 'contract' ? 300 : px(byK[k].w), rank: MN_RANK[k] }))], () => renderMyNotes())
+    : { cols:[{ k:'name' }, ...mnColKeys().filter(k => byK[k]).map(k => ({ k, w: px(byK[k].w) || 300 }))] };
+  const keys = FIT.cols.slice(1).map(c => c.k), fitW = Object.fromEntries(FIT.cols.map(c => [c.k, c]));
+  const tag = c => typeof listColTag === 'function' ? listColTag(c) : `<col${c.w ? ` style="width:${c.w}px"` : ''}>`;
+  const grip = k => typeof listGripHtml === 'function' ? listGripHtml(MN_SEAT, k) : '';
   const cell = (k, n, st, c) => k === 'contract' ? `<td class="c">${c ? `${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))} <span class="cp">${_mnE(_mnCtName(c))}</span>` : '<span class="cp">—</span>'}</td>`
     : k === 'review' ? `<td>${mnPillHtml(st)}</td>`
     : `<td class="w">${_mnE(_mnShort(String(n.createdAt || '').slice(0, 10)))}</td>`;
-  return `<table class="ins-lt mn-t"><colgroup><col>${keys.map(k => `<col style="width:${byK[k].w}">`).join('')}</colgroup><thead><tr><th>${_mnE(i18t('mn_col_note'))}</th>${keys.map(k => `<th data-mn-col="${k}">${_mnE(byK[k].label)}</th>`).join('')}</tr></thead><tbody>${
+  return `<table class="ins-lt mn-t" data-list-seat="${_mnE(MN_SEAT)}"><colgroup>${tag(Object.assign({}, FIT.cols[0], { name:true }))}${keys.map(k => tag(fitW[k])).join('')}</colgroup><thead><tr><th>${_mnE(i18t('mn_col_note'))}${grip('name')}</th>${keys.map(k => `<th data-mn-col="${k}">${_mnE(byK[k].label)}${grip(k)}</th>`).join('')}</tr></thead><tbody>${
     list.map(n => { const st = myNoteState(n), c = _mnContract(n.contractId);
       return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? 'is-sel' : ''}${String(n.id) === String(_mn.fresh) ? ' is-fresh' : ''}"${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? ' aria-current="true"' : ''}>
         <td class="t"><span title="${_mnE(n.title)}">${_mnE(n.title)}</span></td>

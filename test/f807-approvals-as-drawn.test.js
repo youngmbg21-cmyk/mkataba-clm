@@ -354,10 +354,13 @@ describe('f807 (10) the party\'s name reads whole beside the panel', () => {
     const f = fnOf(AP, 'renderApprovalsPage');
     /* RE-POINTED 24 Oct 2026 (Round 2): Kind is drawn only where the rows differ (apSameCols) */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference rides the party's grey line, so the party leads with all the room */
-    assert.match(f, /const head=\[\{t:i18t\('reg_col_party'\)\},\.\.\.\(same\.kind\?\[\]:\[\{t:i18t\('ap_wl_kind'\),w:100\}\]\)/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, listCols): the party leads with the room; Kind is drawn only where the rows differ */
+    assert.match(f, /const DEFS=\[\{k:'name',t:i18t\('reg_col_party'\)\},/);
+    assert.match(f, /\.\.\.\(same\.kind\?\[\]:\[\{k:'kind',t:i18t\('ap_wl_kind'\),w:100,rank:2\}\]\)/);
   });
-  test('10b a long name takes a second line, never an ellipsis; the agreement under it keeps its cut', () => {
-    assert.match(HTML, /\.ap-table\.ap-ins \.ap-id \.ap-name\{white-space:normal;overflow-wrap:anywhere;\}/);
+  test('10b a long name takes a second line, then an ellipsis; the agreement under it keeps its cut', () => {
+    /* RE-POINTED 28 Oct 2026 (owner: "the row expands which makes the page look unprofessional"): two lines, then "…" */
+    assert.match(HTML, /\.ap-table \.ap-id \.ap-name\{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;/);
     assert.doesNotMatch(HTML, /\.ap-table\.ap-ins \.ap-name,\.ap-table\.ap-ins \.ap-sub\{white-space:nowrap/);
   });
 });

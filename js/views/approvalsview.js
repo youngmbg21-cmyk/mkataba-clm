@@ -936,7 +936,7 @@ function renderApprovalsPage(o){
   let SP=false;
   const identSub=(c,r,sameKind)=>[SP?'':(window.refHtml?refHtml(c):esc(c.id)), r&&sameKind&&r.type==='signature'?esc(i18t('ap_wl_kind_sig')):'', !SP&&r&&r.who?esc(i18t('ap_row_asked_by',{ who:r.who })):'', !SP&&r&&r.idle!=null?esc(Number(r.idle)===0?i18t('home_today'):i18tn('jl_days_ago',Number(r.idle),{n:Number(r.idle)})):''].filter(Boolean).join(' \u00b7 ');
   const ident=(c,r,sameKind)=>{ const sub=identSub(c,r,sameKind);
-    return `<td><div class="ap-id">${r?apMark(r):apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}<span class="ls-sep"> · </span>${esc(c.name||'')}</span>${sub?`<span class="ap-sub">${sub}</span>`:''}</div></div></td>`; };
+    return `<td><div class="ap-id">${r?apMark(r):apAvHtml(c.counterparty)}<div><span class="ap-name" title="${esc((c.counterparty||'—')+' · '+(c.name||''))}">${esc(c.counterparty||'—')}<span class="ls-sep"> · </span>${esc(c.name||'')}</span>${sub?`<span class="ap-sub" title="${esc(sub.replace(/<[^>]*>/g,''))}">${sub}</span>`:''}</div></div></td>`; };
   /* the rule, a soft chip, and who decides under it (apWhyLines); a signature's sentence as it was */
   const apRuleHtml=r=>{
     if(r.type==='signature'||typeof listChipHtml!=='function') return apWhyHtml(r);
@@ -966,32 +966,42 @@ function renderApprovalsPage(o){
      out where every row says the same, the kind then said in the row's grey line and the turn by its mark.
      The reference rides the grey line, and Our standards is said in words beside the rule. */
   const same=Object.assign({}, apSameCols(W.rows), { why:false });
-  const n0=W.rows.length;
-  const head=[{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),{t:i18t('ap_col_rule'),w:136},...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('reg_col_standards'),w:124},{t:i18t('ap_pg_waiting'),w:120},
-    ...(money?[{t:i18t('reg_col_value'),right:true,w:112}]:[]),...(INS?[]:[{t:'',w:220}])];
-  const SPREAD=[{t:i18t('reg_col_ref'),w:100,spread:1},{t:i18t('ap_col_asked_by'),w:160,spread:1}];
-  SP=typeof listSpread==='function'&&n0>0&&listSpread('approvals',[head[0],...SPREAD,...head.slice(1)],()=>apPaintList());
-  if(SP) head.splice(1,0,...SPREAD);
+  /* THE LIST'S COLUMNS, ONE RULE (owner, 28 Oct 2026, listCols): the party and the wait always stand; where
+     the room is short Our standards steps aside first, then Kind, Rule, Value, Whose turn; the grey line's
+     Ref and Asked by are columns only where there is room for them too; a reader's own widths are kept */
+  const DEFS=[{k:'name',t:i18t('reg_col_party')},
+    {k:'ref',t:i18t('reg_col_ref'),w:100,spread:1},{k:'asker',t:i18t('ap_col_asked_by'),w:160,spread:1},
+    ...(same.kind?[]:[{k:'kind',t:i18t('ap_wl_kind'),w:100,rank:2}]),{k:'rule',t:i18t('ap_col_rule'),w:136,rank:3},
+    ...(same.turn?[]:[{k:'turn',t:i18t('ap_wl_turn'),w:188,rank:5}]),{k:'std',t:i18t('reg_col_standards'),w:124,rank:1},
+    {k:'wait',t:i18t('ap_pg_waiting'),w:120},...(money?[{k:'value',t:i18t('reg_col_value'),right:true,w:112,rank:4}]:[]),
+    ...(INS?[]:[{k:'acts',t:'',w:220}])];
+  const FIT=(typeof listCols==='function')?listCols('approvals',DEFS,()=>apPaintList()):{ cols:DEFS.filter(d=>!d.spread), has:k=>DEFS.some(d=>d.k===k&&!d.spread), spread:false };
+  SP=FIT.spread;
+  const head=FIT.cols;
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
     if(r.done) return `<span class="ap-acts">${apMayUndo(r)?`<button type="button" class="ui-btn ui-btn-sm" data-ap-undo="${esc(r.c.id)}" title="${esc(i18t('ap_pg_undo_title'))}">${esc(i18t('ap_pg_undo'))}</button>`:''}<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`;
     if(apMayDecide(r)) return `<span class="ap-acts"><button type="button" class="ui-btn ui-btn-sm ui-btn-accent" data-ap-approve="${esc(r.c.id)}" title="${esc(i18t('ap_pg_approve_title'))}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ap-refuse="${esc(r.c.id)}" title="${esc(i18t('ap_pg_refuse_title'))}">${esc(i18t('ap_pg_refuse'))}</button><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`;
     return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button>`;
   };
+  const cell={
+    ref:r=>`<td class="ap-ref">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>`,
+    asker:r=>`<td class="ap-asker"${r.who?` title="${esc(r.who)}"`:''}>${r.who?esc(r.who):'<span class="quiet">\u2014</span>'}</td>`,
+    kind:r=>`<td>${apKindHtml(r)}</td>`,
+    rule:r=>`<td class="ap-rule">${apRuleHtml(r)}</td>`,
+    turn:r=>`<td class="ap-turn" title="${esc(apTurnText(r))}">${apTurnHtml(r)}</td>`,
+    std:r=>`<td class="ap-std">${typeof stdRowWordsHtml==='function'?stdRowWordsHtml(r.c):''}</td>`,
+    wait:r=>`<td class="ap-wait${r.done?' done':apLate(r)?' late':''}"${apLate(r)&&!r.done?` title="${esc(i18t('jl_late'))}"`:''}>${apWaitHtml(r)}</td>`,
+    value:r=>`<td class="r mono ap-val">${apValueCell(r.c)}</td>`,
+    acts:r=>`<td class="r">${acts(r)}</td>`,
+  };
   const row=r=>`<tr data-ap-row="${esc(r.c.id)}" data-ap-kind="${r.type}"${INS?' tabindex="-1"':''}>
       ${ident(r.c,r,same.kind)}
-      ${SP?`<td class="ap-ref">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td><td class="ap-asker"${r.who?` title="${esc(r.who)}"`:''}>${r.who?esc(r.who):'<span class="quiet">\u2014</span>'}</td>`:''}
-      ${same.kind?'':`<td>${apKindHtml(r)}</td>`}
-      <td class="ap-rule">${apRuleHtml(r)}</td>
-      ${same.turn?'':`<td class="ap-turn" title="${esc(apTurnText(r))}">${apTurnHtml(r)}</td>`}
-      <td class="ap-std">${typeof stdRowWordsHtml==='function'?stdRowWordsHtml(r.c):''}</td>
-      <td class="ap-wait${r.done?' done':apLate(r)?' late':''}"${apLate(r)&&!r.done?` title="${esc(i18t('jl_late'))}"`:''}>${apWaitHtml(r)}</td>
-      ${money?`<td class="r mono ap-val">${apValueCell(r.c)}</td>`:''}
-      ${INS?'':`<td class="r">${acts(r)}</td>`}
+      ${head.slice(1).map(h=>cell[h.k](r)).join('')}
     </tr>`;
   const n=W.rows.length, total=W.all.rows.length;
   const table=n
-    ? `<table class="ap-table${INS?' ap-ins':''}" data-spread-seat="approvals"><colgroup>${head.map((typeof listColHtml==='function'?listColHtml:(c=>`<col${c&&c.w?` style="width:${c.w}px"`:''}>`))).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${
+    ? `<table class="ap-table${INS?' ap-ins':''}" data-list-seat="approvals"><colgroup>${head.map(c=>typeof listColTag==='function'?listColTag(c):`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}${h.k!=='acts'&&typeof listGripHtml==='function'?listGripHtml('approvals',h.k):''}</th>`).join('')}</tr></thead><tbody>${
         W.rows.map(row).join('')}</tbody></table>`
     : `<div class="ap-empty">${esc(i18t(total?'ap_wl_none_match':'ap_wl_none'))}</div>`;
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */

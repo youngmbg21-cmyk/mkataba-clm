@@ -485,7 +485,7 @@ function pageKit(){
     const after = hid && before && await until(([c, n, lab]) => { const r = window.__lh.rowEls(c)[0]; const t = r && r.closest('table'); if (!t) return null;
       /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD): the room a hidden column gives back may let the grey line's
          facts stand as columns of their own, so the head may grow by those; the hidden one is gone either way */
-      const th = [...t.querySelectorAll('thead th')].filter(window.__lh.vis).map(x => window.__lh.words(x)); return !th.includes(lab) && th.length !== n ? { th, td: r.querySelectorAll('td').length } : null; }, [cfgOf(d), before.th.length, hid.label], 4000);
+      const th = [...t.querySelectorAll('thead th')].filter(window.__lh.vis).map(x => window.__lh.words(x)); return !th.includes(lab) ? { th, td: r.querySelectorAll('td').length } : null; }, [cfgOf(d), before.th.length, hid.label], 4000);
     check(`${tag(d)} 5c hiding a column through Columns takes its head and its cells away`,
       !!(before && hid && after && after.td === after.th.length && !after.th.includes(hid.label)), JSON.stringify({ popped: !!popped, hid, before, after }));
     await ev(() => { const r = [...document.querySelectorAll('[data-lc-pop] [data-lc-reset]')].find(window.__lh.vis); if (r) r.click(); });

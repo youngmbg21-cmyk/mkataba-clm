@@ -2732,15 +2732,24 @@ function renderObligationsList(){
      is the fault the insights panels were rebuilt to stop. */
   /* THE ONE CONVERTER is obwHomeSum, which obMoneyWords asks per direction —
      the very function the wide page's group headings sum through. */
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the full table too — the duty, its day and its acts
+     always stand; where the room is short Side steps aside first, then Who, then Amount; a reader's own widths
+     are kept */
+  const OBT_DEFS = [{ k: 'name', t: i18t('ob_col_what'), cls: 'obw-c' }, { k: 'side', t: i18t('ob_col_side'), cls: 'obw-side', w: 96, rank: 1 },
+    { k: 'who', t: i18t('ob_col_who'), cls: 'obw-who', w: 170, rank: 2 }, ...(money ? [{ k: 'amt', t: i18t('ob_amount'), cls: 'obw-amt', w: 120, rank: 3 }] : []),
+    { k: 'when', t: i18t('ob_col_when'), cls: 'obw-when', w: 130 }, { k: 'acts', t: '', cls: 'obw-acts', w: 220 }];
+  const OBT = typeof listCols === 'function' ? listCols('obligations-all', OBT_DEFS, () => renderObligationsList()) : { cols: OBT_DEFS };
+  const obtK = new Set(OBT.cols.map(c => c.k)), obtKeep = OBT_DEFS.map(d => obtK.has(d.k));
+  const obtTds = html => obtKeep.every(Boolean) ? html : (() => { let i = 0; return String(html).replace(/<td[\s\S]*?<\/td>/g, m => obtKeep[i++] === false ? '' : m); })();
   const banded = OBLIG_BANDS.map(([k, key]) => {
     const mine = rows.filter(r => r.band === k);
     if(!mine.length) return '';
     /* EACH DIRECTION APART (the owner's list, 27 Sep 2026): one figure per
        band added money we owe to money owed to us. */
     const mw = money ? obMoneyWords(mine) : null;
-    return `<tr class="obw-band"><td colspan="${money ? 6 : 5}">${_obEsc(i18t(key))}<b>${mine.length}</b>${
+    return `<tr class="obw-band"><td colspan="${OBT.cols.length}">${_obEsc(i18t(key))}<b>${mine.length}</b>${
       mw && mw.text ? `<i class="obw-bandsum">${_obEsc(_obCap(mw.text))}</i>` : ''}</td></tr>`
-      + mine.map(row).join('');
+      + mine.map(r => obtTds(row(r))).join('');
   }).join('');
   /* ONE TOTAL AT THE FOOT, over every row on the page. Drawn only where there
      is money to state; a foot reading nothing is furniture.
@@ -2823,13 +2832,9 @@ function renderObligationsList(){
              to disagree about how many columns there are. The last column is
              deliberately unnamed: it holds verbs, and a heading over a verb
              column names nothing a reader needs. */}
-      ${rows.length ? `<table class="obw-table"><thead><tr>
-          <th class="obw-c">${_obEsc(i18t('ob_col_what'))}</th>
-          <th class="obw-side">${_obEsc(i18t('ob_col_side'))}</th>
-          <th class="obw-who">${_obEsc(i18t('ob_col_who'))}</th>
-          ${money ? `<th class="obw-amt">${_obEsc(i18t('ob_amount'))}</th>` : ''}
-          <th class="obw-when">${_obEsc(i18t('ob_col_when'))}</th>
-          <th class="obw-acts"><span class="sr-only">${_obEsc(i18t('ob_col_acts'))}</span></th>
+      ${rows.length ? `<table class="obw-table" data-list-seat="obligations-all"><colgroup>${OBT.cols.map(c => typeof listColTag === 'function' ? listColTag(c) : '<col>').join('')}</colgroup><thead><tr>
+          ${OBT.cols.map(c => c.k === 'acts' ? `<th class="obw-acts"><span class="sr-only">${_obEsc(i18t('ob_col_acts'))}</span></th>`
+            : `<th class="${c.cls}">${_obEsc(c.t)}${typeof listGripHtml === 'function' ? listGripHtml('obligations-all', c.k) : ''}</th>`).join('')}
         </tr></thead><tbody>${banded}</tbody></table>${foot}`
         : `<div class="obt-empty">${_obEsc(i18t('ob_none_match'))}</div>`}
     </div></div>`;
@@ -3576,9 +3581,17 @@ function obListHtml(rows, ctx, c1){
     const wcols0 = [{ t: i18t('ob_col_what') }, { t: i18t('ob_col_kind'), w: 104 }, { t: i18t('ob_col_when'), w: 120 }, { t: i18t('ob_col_amount'), w: 112, r: true }, { t: i18t('ob_col_act'), w: 140, r: true }];
     /* Late's card has no day column: its day stands beside its act */
     const lcols = [{ t: i18t('ob_col_what') }, { t: i18t('ob_col_act'), w: 240, r: true }];
-    const OBW_SPREAD = [{ t: i18t('cu_col_customer'), w: 170, spread: 1 }, { t: i18t('reg_col_ref'), w: 100, spread: 1 }, { t: i18t('ob_f_whose'), w: 140, spread: 1 }];
-    _obwSP = typeof listSpread === 'function' && listSpread('obligations', [wcols0[0], ...OBW_SPREAD, ...wcols0.slice(1)], () => obwRepaintRows());
-    if(_obwSP){ wcols0.splice(1, 0, ...OBW_SPREAD); lcols.splice(1, 0, ...OBW_SPREAD); }
+    const OBW_SPREAD = [{ k: 'party', t: i18t('cu_col_customer'), w: 170, spread: 1 }, { k: 'ref', t: i18t('reg_col_ref'), w: 100, spread: 1 }, { k: 'whose', t: i18t('ob_f_whose'), w: 140, spread: 1 }];
+    /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the duty, its day and its act always stand; where the
+       room is short Kind steps aside first, then Amount; one answer for every week's card */
+    const OBW_DEFS = [Object.assign({ k: 'name' }, wcols0[0]), ...OBW_SPREAD, { k: 'kind', t: wcols0[1].t, w: 104, rank: 1 }, { k: 'when', t: wcols0[2].t, w: 120 },
+      { k: 'amount', t: wcols0[3].t, w: 112, r: true, rank: 2 }, { k: 'act', t: wcols0[4].t, w: 140, r: true }];
+    const FIT = typeof listCols === 'function' ? listCols('obligations', OBW_DEFS, () => obwRepaintRows()) : { cols: OBW_DEFS.filter(d => !d.spread), spread: false };
+    _obwSP = !!FIT.spread;
+    const fitK = new Set(FIT.cols.map(c => c.k));
+    _obwKeep = (_obwSP ? OBW_DEFS : OBW_DEFS.filter(d => !d.spread)).map(d => fitK.has(d.k));
+    wcols0.splice(0, wcols0.length, ...FIT.cols.map((c, i) => Object.assign({}, c, i === 0 ? { name: true } : {})));
+    if(_obwSP) lcols.splice(1, 0, ...FIT.cols.filter(c => c.spread));
     let html = '';
     for(const W of obWeekGroups(rows)){
       const wcols = W.k === 'overdue' ? lcols : wcols0;
@@ -3595,11 +3608,11 @@ function obListHtml(rows, ctx, c1){
       const money = obWeekMoneyHtml(own);
       const rng = [W.range, sub].filter(Boolean).join(' · ');
       const head = `<button type="button" class="ob-wk-fold" data-obw-week="${W.k}" aria-expanded="${shut ? 'false' : 'true'}"><i class="ob-wk-car" aria-hidden="true"></i>${_obEsc(W.word)}</button>`;
-      const rowsHtml = W.rows.map(r => r._find ? obwFindsRowHtml(r) : obwWeekRowHtml(r, W)).join('')
+      const rowsHtml = W.rows.map(r => r._find ? obwKeepTds(obwFindsRowHtml(r)) : W.k === 'overdue' ? obwWeekRowHtml(r, W) : obwKeepTds(obwWeekRowHtml(r, W))).join('')
         .replace(/<tr (data-ins-row|class="obw-finds") /g, shut ? '<tr hidden $1 ' : '<tr $1 ');
-      html += `<section class="obw-wk${shut ? ' is-shut' : ''}" data-obw-card="${W.k}"><table class="ins-lt ob-lt obw-wk-lt" data-spread-seat="obligations"><colgroup>${
-        wcols.map((typeof listColHtml==='function'?listColHtml:(c=>`<col${c&&c.w?` style="width:${c.w}px"`:''}>`))).join('')}</colgroup><thead${html || W.k === 'overdue' ? ' class="sr-only"' : ' class="obw-heads"'}><tr>${
-        wcols.map(c => `<th${c.r ? ' class="r"' : ''}>${_obEsc(c.t)}</th>`).join('')}</tr></thead><tbody>`
+      html += `<section class="obw-wk${shut ? ' is-shut' : ''}" data-obw-card="${W.k}"><table class="ins-lt ob-lt obw-wk-lt" data-list-seat="obligations"><colgroup>${
+        wcols.map(c => typeof listColTag === 'function' ? listColTag(c) : `<col${c && c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead${html || W.k === 'overdue' ? ' class="sr-only"' : ' class="obw-heads"'}><tr>${
+        wcols.map(c => `<th${c.r ? ' class="r"' : ''}>${_obEsc(c.t)}${W.k !== 'overdue' && typeof listGripHtml === 'function' && c.k ? listGripHtml('obligations', c.k) : ''}</th>`).join('')}</tr></thead><tbody>`
         + `<tr class="ins-grp${W.fold ? ' is-fold' : ''}${shut ? ' is-shut' : ''}" data-ob-win="${W.win}" data-ob-week="${W.k}"><td colspan="${wcols.length}"><span class="ins-g">${head}<span class="n obw-n">${own.rows.length}</span>${
           rng ? `<span class="ob-wk-rng">${_obEsc(rng)}</span>` : ''}${
           said ? `<span class="ob-wk-said" title="${_obEsc(said)}">${_obEsc(said)}</span>` : ''}${priv}${
@@ -3843,7 +3856,12 @@ function obwRowAvHtml(r, c){
 /* ROOM TO SPREAD (owner, 28 Oct 2026): where the week has the room, the party, the reference and who
    acts are columns of their own (_obwSP, listSpread); what is left of the line (the step, how often, a
    chase, who did it) stays under the duty, and only where there is something to say */
-let _obwSP = false;
+let _obwSP = false, _obwKeep = null;
+/* a week row's cells, the ones this paint keeps (listCols; a table's cells are never nested) */
+function obwKeepTds(html){
+  if(!_obwKeep || _obwKeep.every(Boolean)) return html;
+  let i = 0; return String(html).replace(/<td[\s\S]*?<\/td>/g, m => _obwKeep[i++] === false ? '' : m);
+}
 const obwRefHtml = (r, c) => (window.refHtml && (c || r.cid) ? refHtml(c || r.cid) : _obEsc(r.cid || (c && c.id) || ''));
 /* the line's words stand at the head of their own cell: a capital, as a column says it */
 const obwCap = w => { const t = String(w || ''); return t ? t.charAt(0).toLocaleUpperCase() + t.slice(1) : t; };

@@ -773,26 +773,31 @@ function regColKeys(){
   const keys=regColKeysSeat();
   if(regScope()!=='negotiations') return keys;
   const shown=regNegoColsShown(keys);
-  if(!regNegoSpread(shown)) return shown;
-  /* ROOM TO SPREAD: the grey line's reference, round and lead stand as columns (the latter two where Columns hid them) */
-  const out=shown.slice(); out.splice(out.indexOf('counterparty')+1,0,'mk');
-  ['round','lead'].forEach(k=>{ if(!out.includes(k)) out.push(k); });
-  return out;
+  /* THE LIST'S COLUMNS beside the panel (owner, 28 Oct 2026, regNegoFit) */
+  const fit=regNegoFit(shown);
+  return fit?fit.keys.map(k=>k==='name'?'counterparty':k):shown;
 }
-/* ROOM TO SPREAD (owner, 28 Oct 2026) on Negotiations beside its panel: where the list has the room for
-   the grey line's facts as columns (listSpread over REG_INS_COL_PX), they are columns and the deal stands
-   alone; asked once per paint (_regNegoSpreadPaint), like the place's width */
-let _regNegoSpreadPaint=null;
-function regNegoSpread(shown){
-  if(regScope()!=='negotiations'||!regInspecting()||typeof listSpread!=='function') return false;
-  if(_regNegoSpreadPaint!=null) return _regNegoSpreadPaint;
+/* THE LIST'S COLUMNS ON NEGOTIATIONS BESIDE ITS PANEL (owner, 28 Oct 2026, listCols): the deal and What is
+   open always stand; where the room is short Clauses in play steps aside first, then Value, Waiting; Round and
+   Lead, when the reader chose them under Columns, step aside last — the reader's own choice wins; the grey line's reference, round and lead are columns only where there is
+   room for them too; a reader's own widths are kept. Asked once per paint (_regNegoFitPaint). */
+const REG_NEGO_RANK={ clauses:1, value:2, waiting:3, round:4, lead:4 };
+let _regNegoFitPaint=null;
+function regNegoFit(shown){
+  if(regScope()!=='negotiations'||!regInspecting()||typeof listCols!=='function') return null;
+  if(_regNegoFitPaint) return _regNegoFitPaint;
   const ks=(shown||regNegoColsShown(regColKeysSeat())).filter(k=>k!=='counterparty');
-  ['mk','round','lead'].forEach(k=>{ if(!ks.includes(k)) ks.push(k); });
-  const on=listSpread(REG_NEGO_SEAT,[{}].concat(ks.map(k=>({ w:REG_INS_COL_PX[k]||100 }))),()=>regRepaint());
-  _regNegoSpreadPaint=on;
-  if(typeof queueMicrotask==='function') queueMicrotask(()=>{ _regNegoSpreadPaint=null; }); else _regNegoSpreadPaint=null;
-  return on;
+  const defs=[{ k:'name' }, { k:'mk', w:REG_INS_COL_PX.mk, spread:1 },
+    ...ks.map(k=>({ k, w:REG_INS_COL_PX[k]||100, rank:REG_NEGO_RANK[k] })),
+    ...['round','lead'].filter(k=>!ks.includes(k)).map(k=>({ k, w:REG_INS_COL_PX[k], spread:1 }))];
+  const fit=listCols(REG_NEGO_SEAT,defs,()=>regRepaint());
+  fit.w=Object.fromEntries(fit.cols.map(c=>[c.k==='name'?'counterparty':c.k,c.w]));
+  _regNegoFitPaint=fit;
+  if(typeof queueMicrotask==='function') queueMicrotask(()=>{ _regNegoFitPaint=null; }); else _regNegoFitPaint=null;
+  return fit;
 }
+/* the grey line under the deal stands down where its facts are columns */
+function regNegoSpread(){ const f=regNegoFit(); return !!(f&&f.spread); }
 /* the seat's own columns for this paint's shape, before the reader's choice */
 /* the answer columns standing on the Contracts List (none on its narrow shape) */
 function regCtAskKeys(){ return (!regHomeNarrow()&&typeof window.askColKeys==='function')?askColKeys():[]; }
@@ -3650,7 +3655,7 @@ function renderRegister(opts){
     `<span class="reg-grip" data-reg-grip="${i}" role="separator" aria-orientation="vertical" tabindex="0"
        title="${esc(i18t('reg_col_drag'))}" aria-label="${esc(i18t('reg_col_drag'))}"></span>`;
   const colAt=(extra='',k)=>{ const i=_colN++;
-    if(INS){ const px=REG_INS_COL_PX[k]; return `${px?`width:${px}px;`:''}${extra}`; }
+    if(INS){ const fw=neg&&regNegoFit()?regNegoFit().w[k]:null; const px=fw||REG_INS_COL_PX[k]; return `${px?`width:${Math.round(px)}px;`:''}${extra}`; }
     return `width:${COLW[i]}%;${extra}`; };
   const sortableTh=(key,label,extra='',k)=>{ const i=_colN;
     return `<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${colAt(extra,k)}">${label}${sortCaret(key)}${gripFor(i)}</th>`; };
@@ -4256,7 +4261,7 @@ function renderRegister(opts){
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
           <!-- The whole density mode rides on ONE element as three custom
                properties, so nothing below has to know which mode is on. -->
-          <table data-spread-seat="${neg&&INS?REG_NEGO_SEAT:''}" class="reg-table${INS?' is-ins':''}${!INS&&regNarrowTable()?' is-narrow':''}${HOME?' is-home':''}${HOME&&regHomeNarrow()?' is-hnarrow':''}${HOME&&regHomeWide()?' is-hwide':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
+          <table data-list-seat="${neg&&INS?REG_NEGO_SEAT:''}" class="reg-table${INS?' is-ins':''}${!INS&&regNarrowTable()?' is-narrow':''}${HOME?' is-home':''}${HOME&&regHomeNarrow()?' is-hnarrow':''}${HOME&&regHomeWide()?' is-hwide':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
             <thead>
               <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
                    Sorting is kept on the four columns that carried it before —
@@ -4336,7 +4341,7 @@ function renderRegister(opts){
                   if(k==='round'||k==='changes'||k==='waiting'||k==='lead'||k==='clauses'){ const i=_colN; return `<th style="${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
                   if(k.startsWith('ask:')&&typeof window.askColThHtml==='function'){ const i=_colN; return askColThHtml(k.slice(4),colAt('',k),gripFor(i),R.sort===k?sortCaret(k):''); }
                   return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
-                }).join('')}
+                }).map((h,i,a)=>neg&&INS&&typeof listGripHtml==='function'?h.replace(/<\/th>\s*$/, listGripHtml(REG_NEGO_SEAT, (k=>k==='counterparty'?'name':k)(regColKeys()[i]))+'</th>'):h).join('')}
               </tr>
             </thead>
             <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>

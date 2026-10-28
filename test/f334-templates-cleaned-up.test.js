@@ -612,7 +612,11 @@ describe('f334 (8) — one button weight, and the figures line up', () => {
     /* A Value stream column sits between them since 21 Sep 2026 (the
        redesign's second pass) and is a label over WORDS, so it takes no
        tabular flag — which is exactly the claim. */
-    assert.match(body, /\$\{th\(i18t\('lib_col_version'\),1\)\}\$\{th\(i18t\('lib_col_stream'\)\)\}\$\{th\(i18t\('lib_col_used'\),1\)\}/,
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS): the heads are drawn from the one list of columns, where
+       Version and Used carry num and nothing else does */
+    assert.match(body, /\{ k:'version', t:i18t\('lib_col_version'\), w:80, num:1, rank:1 \}/);
+    assert.match(body, /\{ k:'used', t:i18t\('lib_col_used'\), w:72, num:1 \}/);
+    assert.match(body, /\{ k:'stream', t:i18t\('lib_col_stream'\), w:150, rank:3 \}/,
       'Version and Used, and nothing else — a label over words stays a label');
     assert.match(body, /num\?';font-variant-numeric:tabular-nums':''/);
   });

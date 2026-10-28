@@ -379,8 +379,11 @@ describe('f258 (5) — the columns are draggable, like a spreadsheet', () => {
        three short columns hold pixels (REG_INS_COL_PX) and the counterparty
        takes the rest — and no head carries a grip there, because four columns,
        one of them the give, have nothing worth dragging. */
-    assert.match(REG, /const colAt=\(extra='',k\)=>\{ const i=_colN\+\+;[\s\S]{0,160}return `width:\$\{COLW\[i\]\}%/);
-    assert.match(REG, /if\(INS\)\{ const px=REG_INS_COL_PX\[k\];/, 'the inspector\'s widths are its own list');
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, owner: "you are not able to adjust the size of your column"):
+       beside the panel Negotiations takes the one list rule's widths (regNegoFit → listCols), the reader's own
+       drags included, over REG_INS_COL_PX; its grips are the list rule's (listGripHtml) */
+    assert.match(REG, /const colAt=\(extra='',k\)=>\{ const i=_colN\+\+;[\s\S]{0,260}return `width:\$\{COLW\[i\]\}%/);
+    assert.match(REG, /if\(INS\)\{ const fw=neg&&regNegoFit\(\)\?regNegoFit\(\)\.w\[k\]:null; const px=fw\|\|REG_INS_COL_PX\[k\];/, 'the inspector\'s widths are its own list, or the list rule\'s');
     assert.ok(!/width:\d+%/.test(REG.slice(REG.indexOf('regColKeys().map(k=>{'), REG.indexOf('</tr>', REG.indexOf('regColKeys().map(k=>{')))),
       'no column head still types a width of its own');
     assert.match(REG, /const gripFor=i=>\(INS\|\|i>=COLW\.length-1\) \? '' :/,

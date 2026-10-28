@@ -60,7 +60,8 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
   const h = await H.startHati();
   await H.seedWorkspace(h, { contracts: CONTRACTS, approvalRules: [] });
   const b = await chromium.launch({ executablePath: EXEC });
-  const page = await b.newPage({ viewport: { width: 1440, height: 780 } });
+/* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, the owner's ranking): on a laptop beside the panel the columns a reader adds step aside first; what this file reads in them is read where they all have room */
+  const page = await b.newPage({ viewport: { width: 1920, height: 1000 } });
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   /* a press on a part that may not exist reports instead of waiting out the clock */

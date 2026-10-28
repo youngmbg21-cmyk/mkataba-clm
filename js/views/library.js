@@ -1712,17 +1712,26 @@ function tplPagePaintRows(){
      `tabular-nums`; the heads did not, so the column read ragged even when
      every number under it was right. `num` is passed by the two count
      columns and by nothing else — a label over words stays a label. */
-  const th=(t,num)=>`<th style="font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-500);text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--color-divider);white-space:nowrap${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
+  const th=(t,num)=>`<th style="font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-500);text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--color-divider);white-space:nowrap${num?';font-variant-numeric:tabular-nums':''}">${String(t).split('\u0000')[0]}${String(t).includes('\u0000')&&typeof listGripHtml==='function'?listGripHtml(TPL_WIDE_SEAT,String(t).split('\u0000')[1]):''}</th>`;
   const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
     /* Keyed on the KIND, not on the label's words — comparing the label to
        "Samples" stops being true the moment the label can be translated. */
     .map(([k,n])=>k==='sample'?i18tn('lib_sample_doc',n,{n}):`${n} ${TPL_GROUP_LABEL[k]}`).join(', '):'';
   const count=document.getElementById('tpl-count');
   if(count) count.textContent=i18tn('lib_count',rows.length,{n:rows.length});
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the full table too — the template and Used always stand;
+     where the room is short the version steps aside first, then Came from, then the stream; a reader's own
+     widths are kept */
+  const DEFS=[{ k:'name', t:i18t('lib_col_template') }, { k:'origin', t:i18t('lib_col_origin'), w:150, rank:2 }, { k:'version', t:i18t('lib_col_version'), w:80, num:1, rank:1 },
+    { k:'stream', t:i18t('lib_col_stream'), w:150, rank:3 }, { k:'used', t:i18t('lib_col_used'), w:72, num:1 }, { k:'acts', t:'', w:230 }];
+  const FIT=typeof listCols==='function'?listCols(TPL_WIDE_SEAT,DEFS,()=>tplPagePaintRows()):{ cols:DEFS };
+  const fitK=new Set(FIT.cols.map(c=>c.k)), keep=DEFS.map(d=>fitK.has(d.k));
+  const keepTds=html=>keep.every(Boolean)?html:(()=>{ let i=0; return String(html).replace(/<td[\s\S]*?<\/td>/g,m=>keep[i++]===false?'':m); })();
+  const tag=c=>typeof listColTag==='function'?listColTag(c):`<col${c.w?` style="width:${c.w}px"`:''}>`;
   host.innerHTML=rows.length?`
-    <div class="table-scroll"><table style="border-collapse:collapse;width:100%">
-      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'),1)}${th(i18t('lib_col_stream'))}${th(i18t('lib_col_used'),1)}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
-      ${shown.map(tplPageRowHtml).join('')}
+    <div class="table-scroll"><table data-list-seat="${_tplEsc(TPL_WIDE_SEAT)}" style="border-collapse:collapse;width:100%;table-layout:fixed"><colgroup>${FIT.cols.map(tag).join('')}</colgroup>
+      <tr>${FIT.cols.map(c=>c.k==='acts'?'<th style="border-bottom:1px solid var(--color-divider)"></th>':th(c.t+'\u0000'+c.k,c.num)).join('')}</tr>
+      ${shown.map(r=>keepTds(tplPageRowHtml(r))).join('')}
     </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:var(--t-meta);color:var(--color-neutral-600)">
       ${i18t('lib_more_kinds',{n:hidden,kinds:hiddenKinds})}<span style="flex:1"></span>
@@ -1793,6 +1802,8 @@ function tplReadOf(r){
    in the page's own writer and its own repaint. The classic shape below
    INS_MIN_W is drawn exactly as before. */
 const TPL_LH_LIST='tpl-list', TPL_LH_BOOK='tpl-book';
+/* the full table's own widths (below the panel's mark), kept apart from the list beside the panel */
+const TPL_WIDE_SEAT='tpl-list-all';
 /* the list's columns after the template's own (which always stands first) */
 function tplColDefs(){
   return [{ k:'origin', label:i18t('lib_f_came_from'), w:150 }, { k:'code', label:i18t('lib_col_code'), w:70 },
@@ -1862,15 +1873,25 @@ function tplInsPaint(host){
      name (its kind of paper, where it came from, what it is for) is a column of its own, About, and the
      name stands alone (listSpread) */
   const SPREAD=[{ k:'about', label:i18t('lib_col_about'), w:300, spread:1 }];
-  const SP=typeof listSpread==='function'&&listSpread(TPL_LH_LIST,[{},...SPREAD,...keys.map(k=>byK[k])],()=>tplPagePaintRows());
-  if(SP){ byK.about=SPREAD[0]; keys.unshift('about'); }
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): Template and Used always stand; where the room is short
+     Code steps aside first, then Came from, then Value stream */
+  const TPL_RANK={ code:1, origin:2, stream:3 };
+  const FIT=typeof listCols==='function'
+    ? listCols(TPL_LH_LIST,[{ k:'name' },...SPREAD,...keys.map(k=>Object.assign({},byK[k],{ rank:TPL_RANK[k] }))],()=>tplPagePaintRows())
+    : { cols:[{ k:'name' },...keys.map(k=>byK[k])], spread:false };
+  const SP=FIT.spread;
+  byK.about=SPREAD[0];
+  const fitW=Object.fromEntries(FIT.cols.map(c=>[c.k,c]));
+  keys.splice(0,keys.length,...FIT.cols.slice(1).map(c=>c.k));
   cell.about=r=>`<td class="tpl-about"${r.sub?` title="${_tplEsc(r.sub)}"`:''}>${r.sub?_tplEsc(r.sub):dash}</td>`;
   const tr=r=>`<tr data-ins-row data-tpl-row="${_tplEsc(r.kind+':'+r.id)}" tabindex="-1">
       <td><span class="ins-c2"><b title="${_tplEsc(r.name)}">${_tplEsc(r.name)}${r.draft?` <span class="tpl-draft-tag">${_tplEsc(i18t('lib_draft_tag'))}</span>`:''}</b>${SP?'':`<span>${_tplEsc(r.sub||'')}</span>`}</span></td>
       ${keys.map(k=>cell[k](r)).join('')}
     </tr>`;
-  host.innerHTML=rows.length?`<table class="ins-lt tpl-lt" data-spread-seat="${_tplEsc(TPL_LH_LIST)}"><colgroup><col>${keys.map(k=>(typeof listColHtml==='function'?listColHtml:(c=>`<col${c&&c.w?` style="width:${c.w}px"`:''}>`))(byK[k])).join('')}</colgroup>
-      <thead><tr><th>${_tplEsc(i18t('lib_col_template'))}</th>${keys.map(k=>`<th${byK[k].num?' class="num"':''}>${_tplEsc(byK[k].label)}</th>`).join('')}</tr></thead>
+  const tag=c=>typeof listColTag==='function'?listColTag(c):`<col${c&&c.w?` style="width:${c.w}px"`:''}>`;
+  const grip=k=>typeof listGripHtml==='function'?listGripHtml(TPL_LH_LIST,k):'';
+  host.innerHTML=rows.length?`<table class="ins-lt tpl-lt" data-list-seat="${_tplEsc(TPL_LH_LIST)}"><colgroup>${tag(Object.assign({},FIT.cols[0],{ name:true }))}${keys.map(k=>tag(fitW[k])).join('')}</colgroup>
+      <thead><tr><th>${_tplEsc(i18t('lib_col_template'))}${grip('name')}</th>${keys.map(k=>`<th${byK[k].num?' class="num"':''}>${_tplEsc(byK[k].label)}${grip(k)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map(tr).join('')}</tbody></table>`
     :`<div class="ins-empty-p">${_tplEsc(i18t('lib_nothing_matches'))}</div>`;
   /* ONE FOOT: every row is drawn, so "1–n of n" and nothing to show more */
@@ -4046,21 +4067,33 @@ function sdCountCell(list){
 }
 /* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the grey line under a row's name is
    columns of its own and the name stands alone (listSpread); one answer per table, asked as it is drawn */
-const _sdSP={};
+const _sdSP={}, _sdKeep={};
+/* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): each table's first column and the one beside it always
+   stand; the others step aside in their rank where the room is short; a reader's own widths are kept */
 function sdSpread(seat, cols, spread){
-  const on=typeof listSpread==='function'&&listSpread(seat,[cols[0],...spread,...cols.slice(1)],()=>sdRepaint());
-  _sdSP[seat]=!!on;
-  if(on) cols.splice(1,0,...spread.map(c=>Object.assign({ spread:1 },c)));
-  return !!on;
+  const defs=[Object.assign({ k:'name' },cols[0]), ...spread.map((c,i)=>Object.assign({ k:'s'+i, spread:1 },c)), ...cols.slice(1).map((c,i)=>Object.assign({ k:'c'+i },c))];
+  const FIT=typeof listCols==='function'?listCols(seat,defs,()=>sdRepaint()):{ cols:defs.filter(d=>!d.spread), spread:false };
+  _sdSP[seat]=!!FIT.spread;
+  /* the order the rows write their cells in, and which of them this paint keeps */
+  const full=FIT.spread?[defs[0],...defs.filter(d=>d.spread),...defs.slice(1).filter(d=>!d.spread)]:defs.filter(d=>!d.spread);
+  _sdKeep[seat]=full.map(d=>FIT.cols.some(c=>c.k===d.k));
+  cols.splice(0,cols.length,...FIT.cols.map((c,i)=>Object.assign({},c,i===0?{ name:true }:{})));
+  return !!FIT.spread;
+}
+/* a row's cells, the ones this paint keeps (a table's cells are never nested) */
+function sdKeepTds(seat, html){
+  const keep=_sdKeep[seat]; if(!keep||keep.every(Boolean)) return html;
+  let i=0; return String(html).replace(/<td[\s\S]*?<\/td>/g, m=>keep[i++]===false?'':m);
 }
 function sdTableHtml(cls, cols, body, seat){
-  return `<table class="ins-lt ${cls}"${seat?` data-spread-seat="${esc(seat)}"`:''}><colgroup>${cols.map((typeof listColHtml==='function'?listColHtml:(c=>`<col${c&&c.w?` style="width:${c.w}px"`:''}>`))).join('')}</colgroup><thead><tr>${
-    cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+  const tag=c=>typeof listColTag==='function'?listColTag(c):`<col${c&&c.w?` style="width:${c.w}px"`:''}>`;
+  return `<table class="ins-lt ${cls}"${seat?` data-list-seat="${esc(seat)}"`:''}><colgroup>${cols.map(tag).join('')}</colgroup><thead><tr>${
+    cols.map(c=>`<th>${esc(c.t)}${seat&&typeof listGripHtml==='function'?listGripHtml(seat,c.k):''}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
 }
 const sdIdCmp=(a,b)=>String(sdRef(a)).localeCompare(String(sdRef(b)),undefined,{numeric:true});
 /* ---- 1 · THE CLAUSE LIBRARY ---- */
 function sdClauseListHtml(d){
-  const cols=[{t:i18t('sd_col_standard')},{t:i18t('sd_col_firm'),w:230},{t:i18t('sd_col_fallback'),w:140},{t:i18t('sd_col_departing'),w:150}];
+  const cols=[{t:i18t('sd_col_standard')},{t:i18t('sd_col_firm'),w:230},{t:i18t('sd_col_fallback'),w:140,rank:1},{t:i18t('sd_col_departing'),w:150,rank:2}];
   const SP=sdSpread('sd-lib', cols, [{t:i18t('sd_col_topic'),w:170}]);
   let LL=null; try{ LL=(typeof stdLearned==='function')?stdLearned():null; }catch(_){ LL=null; }
   /* THE ROW SAYS IT (7 Oct 2026, O-18): one small line where this standard's
@@ -4076,7 +4109,7 @@ function sdClauseListHtml(d){
       <td>${d.book.length?sdCountCell(off):`<span class="ins-quiet">—</span>`}</td></tr>`];
   }).filter(r=>sdQHit(r[1]));
   _sdShown.clauses=rows.map(r=>r[0]);
-  const body=rows.map(r=>r[1]).join('')||`<tr class="ins-empty"><td colspan="${cols.length}">${esc(i18t(d.lib.length?'sd_none_q':'set_no_clauses'))}</td></tr>`;
+  const body=rows.map(r=>sdKeepTds('sd-lib',r[1])).join('')||`<tr class="ins-empty"><td colspan="${cols.length}">${esc(i18t(d.lib.length?'sd_none_q':'set_no_clauses'))}</td></tr>`;
   return sdTableHtml('sd-lt sd-lib', cols, body, 'sd-lib');
 }
 /* WHAT YOU HAVE SETTLED FOR — the learned card's own reading, for THIS
@@ -4271,7 +4304,7 @@ function sdClausePanelOpts(cl, d, mayEdit){
 }
 /* ---- 2 · THE NEGOTIATION PLAYBOOK ---- */
 function sdBookListHtml(d){
-  const cols=[{t:i18t('sd_col_book')},{t:i18t('sd_col_standards'),w:140},{t:i18t('sd_col_contracts'),w:120},{t:i18t('sd_col_depart'),w:120}];
+  const cols=[{t:i18t('sd_col_book')},{t:i18t('sd_col_standards'),w:140},{t:i18t('sd_col_contracts'),w:120,rank:1},{t:i18t('sd_col_depart'),w:120,rank:2}];
   const SP=sdSpread('sd-books', cols, [{t:i18t('lib_col_about'),w:220}]);
   const rows=d.keys.map(k=>{
     const b=d.pb[k]||{}, base=k==='_default';
@@ -4285,7 +4318,7 @@ function sdBookListHtml(d){
       <td>${off.length?`<span class="ins-c2"><b class="ins-cnt ${offLegal?'is-bad':'is-warn'}">${off.length}</b><span>${esc(i18t('sd_depart_word'))}</span></span>`:`<span class="ins-quiet">${esc(i18t('sd_none'))}</span>`}</td></tr>`];
   }).filter(r=>sdQHit(r[1]));
   _sdShown.playbook=rows.map(r=>r[0]);
-  const body=rows.map(r=>r[1]).join('')||(d.keys.length?`<tr class="ins-empty"><td colspan="${cols.length}">${esc(i18t('sd_none_q'))}</td></tr>`:'');
+  const body=rows.map(r=>sdKeepTds('sd-books',r[1])).join('')||(d.keys.length?`<tr class="ins-empty"><td colspan="${cols.length}">${esc(i18t('sd_none_q'))}</td></tr>`:'');
   return sdTableHtml('sd-lt sd-books', cols, body, 'sd-books');
 }
 function sdBookPanelOpts(key, d, mayEdit){
@@ -4360,7 +4393,7 @@ function sdDevRowHtml(c){
       <td><span class="ins-c2"><b>${esc(day||'—')}</b><span>${esc(sdByWord(c))}</span></span></td></tr>`;
 }
 function sdDevListHtml(d, rows){
-  const cols=[{t:i18t('sd_col_contract')},{t:i18t('sd_col_departures'),w:160},{t:i18t('sd_col_book'),w:170},{t:i18t('sd_col_checked'),w:140}];
+  const cols=[{t:i18t('sd_col_contract')},{t:i18t('sd_col_departures'),w:160},{t:i18t('sd_col_book'),w:170,rank:2},{t:i18t('sd_col_checked'),w:140,rank:1}];
   sdSpread('sd-dev', cols, [{t:i18t('reg_col_ref'),w:100},{t:i18t('cu_col_customer'),w:180}]);
   /* the box's words narrow the rows by what each row says */
   const html=new Map(rows.map(c=>[c, sdDevRowHtml(c)]));
@@ -4371,7 +4404,7 @@ function sdDevListHtml(d, rows){
     const g=shown.filter(c=>k==='open'?stdOpenToChange(c):!stdOpenToChange(c)).sort(sdDevSort);
     if(!g.length) return;
     order.push(...g);
-    body+=`<tr class="ins-grp" data-sd-grp="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${esc(i18t(lab))}<span class="n">${g.length}</span><span class="ins-g-r">${esc(i18t(right))}</span></span></td></tr>`+g.map(c=>html.get(c)).join('');
+    body+=`<tr class="ins-grp" data-sd-grp="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${esc(i18t(lab))}<span class="n">${g.length}</span><span class="ins-g-r">${esc(i18t(right))}</span></span></td></tr>`+g.map(c=>sdKeepTds('sd-dev',html.get(c))).join('');
   });
   _sdShown.deviations=order.map(c=>c.id);
   if(!shown.length){

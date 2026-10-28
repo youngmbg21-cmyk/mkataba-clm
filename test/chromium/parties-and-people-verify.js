@@ -99,6 +99,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS, the owner's ranking): on a laptop beside the panel the columns a reader adds step aside first; what this file reads in them is read where they all have room */
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 780 } });
     const page = await ctx.newPage();
     page.on('pageerror', e => errors.push(e.message));

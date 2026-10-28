@@ -1428,9 +1428,14 @@ function migStreamOf(r){
 /* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the grey line under the file's name
    (the kind of contract and the party read) is two columns of their own and the file stands alone
    (listSpread); the widths the drawing gives the other columns, for the room it needs */
-const MIG_SPREAD = [{ k:'kind', w:170 }, { k:'party', w:190 }];
-const MIG_COLS_W = [{}, { w:150 }, { w:120 }, { w:110 }, { w:100 }, { w:170 }];
-let _migSP = false;
+const MIG_DEFS = [{ k:'name' }, { k:'kind', w:170, spread:1 }, { k:'party', w:190, spread:1 },
+  { k:'stream', w:150, rank:4 }, { k:'value', w:120, rank:3 }, { k:'ends', w:110, rank:2 }, { k:'done', w:100, rank:1 }, { k:'state', w:170 }];
+let _migSP = false, _migKeep = null;
+/* a row's cells, the ones this paint keeps (a table's cells are never nested) */
+function migKeepTds(html){
+  if (!_migKeep || _migKeep.every(Boolean)) return html;
+  let i = 0; return String(html).replace(/<td[\s\S]*?<\/td>/g, m => _migKeep[i++] === false ? '' : m);
+}
 function migReadOf(r){
   const c = r.c, m = c ? (c.metadata || {}) : (((migState().pending || {})[r.i] || {}).meta || {});
   const blocked = !!(c && c.migration && c.migration.blocked && !m.contractType && !c.counterparty);
@@ -1458,18 +1463,30 @@ function migListHtml(){
   const sh = migShown(migFound(rows));
   const settled = M.queue.filter(q => ['saved', 'duplicate', 'error', 'word', 'skipped', 'dupe'].includes(q.status)).length;
   /* nothing behind the door: said in the list, with the way to every file */
-  _migSP = typeof listSpread === 'function' && listSpread(MIG_SEAT, [MIG_COLS_W[0], ...MIG_SPREAD, ...MIG_COLS_W.slice(1)], () => migListPaint());
-  const none = sh.list.length ? '' : `<tr class="mig-none"><td colspan="${_migSP ? 8 : 6}">${esc(i18t(_migQ.trim() ? 'mig_none_match' : 'mig_none_left'))}</td></tr>`;
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the file and its state always stand; where the room is
+     short Done steps aside first, then Ends, Value, Stream; the grey line's Kind and Party are columns only
+     where there is room for them too; a reader's own widths are kept */
+  const FIT = typeof listCols === 'function'
+    ? listCols(MIG_SEAT, MIG_DEFS, () => migListPaint())
+    : { cols: MIG_DEFS.filter(d => !d.spread), spread: false };
+  _migSP = !!FIT.spread;
+  const fitK = new Set(FIT.cols.map(c => c.k));
+  _migKeep = (_migSP ? MIG_DEFS : MIG_DEFS.filter(d => !d.spread)).map(d => fitK.has(d.k));
+  const migTag = c => typeof listColTag === 'function' ? listColTag(c) : `<col${c.w ? ` style="width:${c.w}px"` : ''}>`;
+  const migGrip = k => typeof listGripHtml === 'function' ? listGripHtml(MIG_SEAT, k) : '';
+  const migTh = (k, words, cls) => fitK.has(k) ? `<th${cls ? ` class="${cls}"` : ''}>${esc(words)}${migGrip(k)}</th>` : '';
+  const none = sh.list.length ? '' : `<tr class="mig-none"><td colspan="${_migKeep ? _migKeep.filter(Boolean).length : 6}">${esc(i18t(_migQ.trim() ? 'mig_none_match' : 'mig_none_left'))}</td></tr>`;
   return `${M.running ? `<div class="mig-run">${typeof busyHtml === 'function' ? busyHtml(i18t('mig_running', { n:settled, of:M.queue.length })) : esc(i18t('mig_running', { n:settled, of:M.queue.length }))}<span class="mig-sp"></span><button type="button" id="mig-cancel" class="ui-btn ui-btn-sm">${esc(i18t('mig_stop_after_current'))}</button></div>` : ''}
     ${M.ocrError ? `<div class="mig-warn is-amber">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — check each one and type its details, or fix the reader and read them again.</div>` : ''}
     ${M.aiDown ? `<div class="mig-warn is-amber">${migEsc(M.aiDownMsg || 'Jambo unavailable')} — the rest of the files were read by HaTi's own rules and wait for you to check them.</div>` : ''}
     <div class="table-scroll">
-      <table class="mig-table" data-spread-seat="${esc(MIG_SEAT)}">
+      <table class="mig-table" data-list-seat="${esc(MIG_SEAT)}">
+        <colgroup>${FIT.cols.map(migTag).join('')}</colgroup>
         <thead><tr>
-          <th>${esc(i18t('mig_col_file'))}</th>${_migSP ? `<th>${esc(i18t('mig_col_kind'))}</th><th>${esc(i18t('cu_col_customer'))}</th>` : ''}<th>${esc(i18t('mig_col_stream'))}</th><th class="mig-td-v">${esc(i18t('mig_col_value'))}</th>
-          <th>${esc(i18t('mig_col_ends'))}</th><th>${esc(i18t('mig_col_done'))}</th><th>${esc(i18t('mig_col_state'))}</th>
+          ${migTh('name', i18t('mig_col_file'))}${migTh('kind', i18t('mig_col_kind'))}${migTh('party', i18t('cu_col_customer'))}${migTh('stream', i18t('mig_col_stream'))}${migTh('value', i18t('mig_col_value'), 'mig-td-v')}
+          ${migTh('ends', i18t('mig_col_ends'))}${migTh('done', i18t('mig_col_done'))}${migTh('state', i18t('mig_col_state'))}
         </tr></thead>
-        <tbody>${sh.list.map(migRowHtml).join('')}${none}</tbody>
+        <tbody>${sh.list.map(r => migKeepTds(migRowHtml(r))).join('')}${none}</tbody>
       </table>
     </div>
     ${(typeof lhFootHtml === 'function') ? lhFootHtml(MIG_SEAT, sh.list.length, sh.of, null, { cls:'mig-foot' }) : ''}`;

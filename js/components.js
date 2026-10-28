@@ -787,9 +787,186 @@ function listSpreadCheck(){
     try { v.repaint(); } catch (_){}
   });
 }
+/* ---- THE LIST'S COLUMNS, ONE RULE ON EVERY LIST (owner, 28 Oct 2026: "there should be a rule that one
+   column should never take that much space"; "the side panel overlapping when it is on a laptop";
+   "you are not able to adjust the size of your column. This needs to be added"; the ranking and the
+   size rules agreed the same day) ----
+   listCols(seat, cols, repaint) is asked by a list at its paint. cols in the order drawn, the first the
+   NAME (no w); each other column {k, w, rank} — rank says when it steps aside where the room is short,
+   the lowest first (none = it always stays), and the grey line's own columns {spread:1} step aside
+   first, all together. The answer: the columns drawn, each with its width; the name holds at least
+   SPREAD_NAME_MIN and at most LIST_NAME_MAX, the rest of the room shared evenly among the others. A
+   reader's own widths (dragged at a head's edge, LIST_COLW_KEY) are kept per list and win, inside each
+   column's floor and ceiling; a double press on the edge forgets one. Nothing that steps aside counts
+   in the list's floor (jlListMin reads data-floor and data-spread), so at rest the panel never lies
+   over a list: the list gives way first. jsdom measures nothing: room 0 draws every column, no spread. */
+const LIST_NAME_MAX = 480;
+const LIST_COLW_KEY = 'hati.v1.colw.';
+const _listFit = new Map();
+function listColWidths(seat){
+  try { const v = JSON.parse(localStorage.getItem(LIST_COLW_KEY + seat) || 'null'); return v && typeof v === 'object' ? v : {}; } catch (_){ return {}; }
+}
+function listColWidthSet(seat, k, w){
+  const all = listColWidths(seat);
+  if (w == null) delete all[k]; else all[k] = Math.round(w);
+  try { if (Object.keys(all).length) localStorage.setItem(LIST_COLW_KEY + seat, JSON.stringify(all)); else localStorage.removeItem(LIST_COLW_KEY + seat); } catch (_){}
+}
+const listColMin = c => c && c.name ? 200 : Math.max(48, Math.round((Number(c && c.w0) || 80) * 0.6));
+const listColMax = c => c && c.name ? 640 : Math.round((Number(c && c.w0) || 80) * 3);
+function listCols(seat, cols, repaint, quiet){
+  const mine = listColWidths(seat);
+  const all = (cols || []).map((c, i) => {
+    const o = Object.assign({}, c, { name: i === 0 || !!c.name, w0: c.w });
+    const u = Number(mine[o.k || (o.name ? 'name' : '')]);
+    if (u > 0) o.w = Math.min(listColMax(o), Math.max(listColMin(o), u)), o.mine = true;
+    return o;
+  });
+  const name = all[0];
+  if (name && !name.k) name.k = 'name';
+  const prev = _listFit.get(seat);
+  let { room, panel } = listSpreadMeasure();
+  if (!panel && prev && prev.panel && prev.room > 0 && room > 0){ room = Math.min(room, prev.room); panel = true; }
+  /* A PAGE THAT DRAWS ITS PANEL AGAIN WITH ITS LIST measures mid-paint a panel not yet in its place; the room
+     measured once the page stood still (after the last paint, or on a resize or a drag) is the one used while
+     the window keeps its width */
+  if (prev && prev.settled > 0 && prev.iw === (typeof innerWidth === 'number' ? innerWidth : 0)){ room = prev.settled; panel = !!prev.settledPanel; }
+  /* the room the table really has differs from the scroller's by the page's own padding; learnt after a paint */
+  const raw = room;
+  if (room > 0) room += (_listOff.get(seat) || 0);
+  let shown = all.slice();
+  const nameNeed = () => (name && name.mine ? name.w : SPREAD_NAME_MIN);
+  const need = () => shown.slice(1).reduce((a, c) => a + (Number(c.w) || 0), 0) + nameNeed();
+  if (!(room > 0)) shown = shown.filter(c => !c.spread);
+  else {
+    if (need() > room) shown = shown.filter(c => !c.spread);
+    const order = shown.filter(c => !c.name && Number.isFinite(c.rank)).sort((a, b) => a.rank - b.rank);
+    while (need() > room && order.length){ const out = order.shift(); shown = shown.filter(c => c !== out); }
+  }
+  /* the name's ceiling: past it the room is shared evenly among the others */
+  if (room > 0 && name && shown.includes(name)){
+    const others = shown.slice(1), fixed = others.reduce((a, c) => a + (Number(c.w) || 0), 0);
+    const nameW = name.mine ? name.w : Math.min(LIST_NAME_MAX, Math.max(SPREAD_NAME_MIN, room - fixed));
+    if (name.mine || room - fixed > LIST_NAME_MAX){
+      name.w = nameW;
+      const spare = room - fixed - nameW;
+      if (spare > 0 && others.length){ const each = Math.floor(spare / others.length); others.forEach(c => { c.w = (Number(c.w) || 0) + each; }); }
+    }
+  }
+  const keys = shown.map(c => c.k);
+  _listFit.set(seat, { room: raw, panel, sig: keys.join('|') + '|' + Math.round((name && name.w) || 0), repaint, cols,
+    settled: prev && prev.settled, settledPanel: prev && prev.settledPanel, iw: prev && prev.iw });
+  if (quiet) return { cols: shown, keys, has: k => keys.includes(k), spread: shown.some(c => c.spread) };
+  listColsWatch();
+  listColsLearn(seat, raw);
+  return { cols: shown, keys, has: k => keys.includes(k), spread: shown.some(c => c.spread) };
+}
+const _listOff = new Map(), _listZeroOnce = new Set();
+/* after the paint: the table's own room against the one measured; a difference is kept for this list and it
+   draws once more — never again for the same difference */
+function listColsLearn(seat, raw){
+  if (typeof requestAnimationFrame !== 'function') return;
+  requestAnimationFrame(() => {
+    const t = document.querySelector(`[data-list-seat="${String(seat).replace(/"/g, '')}"]`);
+    const host = t && t.parentElement; if (!host || t.closest('[hidden]')) return;
+    const cs = getComputedStyle(host);
+    const real = host.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+    if (!(real > 0)) return;
+    /* drawn before its page was in sight (no room measured): measured now, drawn once more */
+    if (!(raw > 0)){
+      if (!(listSpreadMeasure().room > 0) || _listZeroOnce.has(seat)) return;
+      _listZeroOnce.add(seat);
+      const v0 = _listFit.get(seat); if (v0 && typeof v0.repaint === 'function') try { v0.repaint(); } catch (_){}
+      return;
+    }
+    _listZeroOnce.delete(seat);
+    /* the difference is the page's own padding, measured against the room as it stands NOW (a panel drawn
+       after the list changes the room, not the padding) */
+    const fm = listSpreadMeasure(), fresh = fm.room; if (!(fresh > 0)) return;
+    const v = _listFit.get(seat); if (!v) return;
+    const was = _listOff.get(seat) || 0, off = Math.round(real - fresh);
+    if (Math.abs(off - was) > 4) _listOff.set(seat, off);
+    const used = raw + was, now = fresh + (_listOff.get(seat) || 0);
+    /* the room as the page stands still, kept for its next paint */
+    const before = v.settled;
+    v.settled = fresh; v.settledPanel = fm.panel; v.iw = typeof innerWidth === 'number' ? innerWidth : 0;
+    if (Math.abs(now - used) <= 4 || (before > 0 && Math.abs(before - fresh) <= 4 && Math.abs(off - was) <= 4)) return;
+    if (typeof v.repaint === 'function') try { v.repaint(); } catch (_){}
+  });
+}
+let _listFitObs = null;
+function listColsWatch(){
+  if (_listFitObs || typeof ResizeObserver !== 'function' || typeof document === 'undefined') return;
+  const cs = document.getElementById('content-scroll'); if (!cs) return;
+  let queued = false;
+  _listFitObs = new ResizeObserver(() => { if (queued) return; queued = true;
+    (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f => setTimeout(f, 16)))(() => { queued = false; listColsCheck(); }); });
+  _listFitObs.observe(cs);
+}
+/* a list still on screen whose columns would change draws again (a window resized, the panel dragged);
+   the same breath's net as the spread's: asked again after it, never dropped */
+let _listFitLater = null;
+const _listFitFlip = new Map();
+function listColsCheck(){
+  if (typeof document === 'undefined') return;
+  _listFit.forEach((v, seat) => {
+    const t = document.querySelector(`[data-list-seat="${String(seat).replace(/"/g, '')}"]`);
+    if (!t || t.closest('[hidden]') || typeof v.repaint !== 'function') return;
+    const m = listSpreadMeasure(); if (!(m.room > 0)) return;
+    const was = v.sig, iw = typeof innerWidth === 'number' ? innerWidth : 0;
+    const before = Object.assign({}, v, { room: m.room, panel: m.panel, settled: m.room, settledPanel: m.panel, iw });
+    _listFit.set(seat, Object.assign({}, before));
+    listCols(seat, v.cols, v.repaint, true);
+    const now = (_listFit.get(seat) || {}).sig;
+    _listFit.set(seat, before);
+    if (now === was) return;
+    const t0 = Date.now(), last = _listFitFlip.get(seat) || 0;
+    if (t0 - last < 600){ if (!_listFitLater) _listFitLater = setTimeout(() => { _listFitLater = null; listColsCheck(); }, 620 - (t0 - last)); return; }
+    _listFitFlip.set(seat, t0);
+    try { v.repaint(); } catch (_){}
+  });
+}
+/* the drawing: a <col> per column (its key, its width; data-floor on the name, data-spread on one that
+   steps aside), and the grip at a head's right edge */
+const listColTag = c => `<col data-k="${esc(String(c.k || ''))}"${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}${c.name ? ` data-floor="${SPREAD_NAME_MIN}"` : (c.spread || Number.isFinite(c.rank)) ? ' data-spread' : ''}>`;
+const listGripHtml = (seat, k) => `<span class="lc-grip" data-lc-grip="${esc(String(seat))}" data-lc-k="${esc(String(k || ''))}" role="separator" aria-orientation="vertical" title="${esc(typeof i18t === 'function' ? i18t('list_col_grip') : 'Drag to widen; double-press to reset')}"></span>`;
+/* THE GRIP: one listener on the document, bound at load; the column under the press is read at press time */
+const LIST_GRIP_CSS = '.lc-grip{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:2;touch-action:none}'
+  + '.lc-grip::after{content:"";position:absolute;top:25%;bottom:25%;right:0;width:1px;background:transparent}'
+  + 'th:hover>.lc-grip::after,.lc-grip.is-drag::after{background:var(--rule-strong,#c9c9cf)}'
+  + 'th:has(>.lc-grip){position:relative}';
+if (typeof document !== 'undefined' && document.head && !document.getElementById('lc-grip-css')){
+  const st = document.createElement('style'); st.id = 'lc-grip-css'; st.textContent = LIST_GRIP_CSS; document.head.appendChild(st);
+}
+if (typeof document !== 'undefined' && document.addEventListener){
+  document.addEventListener('pointerdown', e => {
+    const g = e.target && e.target.closest && e.target.closest('.lc-grip'); if (!g) return;
+    const seat = g.getAttribute('data-lc-grip'), k = g.getAttribute('data-lc-k');
+    const tbl = g.closest('table'), col = tbl && tbl.querySelector(`col[data-k="${(window.CSS && CSS.escape) ? CSS.escape(k) : k}"]`);
+    const th = g.closest('th'); if (!th) return;
+    e.preventDefault(); e.stopPropagation();
+    const x0 = e.clientX, w0 = th.getBoundingClientRect().width;
+    const v = _listFit.get(seat), def = v && (v.cols || []).find((c, i) => (c.k || (i === 0 ? 'name' : '')) === k);
+    const spec = def ? Object.assign({}, def, { w0: def.w, name: (v.cols || []).indexOf(def) === 0 }) : { w0: w0 };
+    let w = w0; g.classList.add('is-drag'); document.body.style.cursor = 'col-resize';
+    const move = ev => { w = Math.min(listColMax(spec), Math.max(listColMin(spec), w0 + (ev.clientX - x0))); if (col) col.style.width = Math.round(w) + 'px'; };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      g.classList.remove('is-drag'); document.body.style.cursor = '';
+      if (Math.abs(w - w0) >= 2){ listColWidthSet(seat, k, w); if (v && typeof v.repaint === 'function') try { v.repaint(); } catch (_){} } };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  }, true);
+  document.addEventListener('dblclick', e => {
+    const g = e.target && e.target.closest && e.target.closest('.lc-grip'); if (!g) return;
+    e.preventDefault(); e.stopPropagation();
+    const seat = g.getAttribute('data-lc-grip'), k = g.getAttribute('data-lc-k');
+    listColWidthSet(seat, k, null);
+    const v = _listFit.get(seat); if (v && typeof v.repaint === 'function') try { v.repaint(); } catch (_){}
+  }, true);
+  /* a press on the grip is not a press on the head (a sort) */
+  document.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('.lc-grip')){ e.preventDefault(); e.stopPropagation(); } }, true);
+}
 /* the <col> of a column: its width, and data-spread where it is one of the spread ones */
 const listColHtml = c => `<col${c && c.w ? ` style="width:${c.w}px"` : ''}${c && c.spread ? ' data-spread' : ''}>`;
-Object.assign(window,{SPREAD_NAME_MIN,SPREAD_PAD,listSpreadMeasure,listSpreadRoom,listSpreadNeed,listSpread,listSpreadCheck,listColHtml});
+Object.assign(window,{LIST_NAME_MAX,LIST_COLW_KEY,listColWidths,listColWidthSet,listColMin,listColMax,listCols,listColsCheck,listColTag,listGripHtml,SPREAD_NAME_MIN,SPREAD_PAD,listSpreadMeasure,listSpreadRoom,listSpreadNeed,listSpread,listSpreadCheck,listColHtml});
 Object.assign(window,{SPLIT_GRIP,SPLIT_OVER_AT,SPLIT_PEEK,splitKeep,splitOver,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire});
 
 /* ════ ONE GLIDE FOR LISTS (owner, 22 Oct 2026, the motion plan step 3) ════
