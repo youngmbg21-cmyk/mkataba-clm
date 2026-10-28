@@ -969,14 +969,15 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   });
 }
 /* ---- JAMBO IS THINKING (owner, 28 Oct 2026: "while jambo is thinking there needs to be a sign that something is
-   running or thinking so that you do not think the panel has frozen") ----
+   running or thinking so that you do not think the panel has frozen"; then "it should not say jambo is thinking, it
+   should just be a different symbol" — owner picked "The SAP way") ----
    ONE builder for every conversation's waiting turn (Home's panel, the lists and Import, Settings, the ✦ window):
-   a spinner that moves and the words "Jambo is thinking…", in his answer's own bubble, said to a screen reader
-   (WHEN SOMETHING LOADS, SOMETHING MOVES; the Calendar's planner says its own "reading your calendar"). It
-   replaces three 5px dots that read as a frozen panel. Less motion asked = the spinner stands still. */
+   SAP's busy indicator — three dark dots pulsing one after another in his answer's own bubble, NO WORDS on screen;
+   a screen reader hears "Jambo is thinking…" (aria-label). It replaces three faint 5px dots that read as a frozen
+   panel (WHEN SOMETHING LOADS, SOMETHING MOVES; the Calendar's planner says its own "reading your calendar"). */
 function jamboThinkingHtml(){
   const w = (typeof i18t === 'function') ? i18t('jb_thinking') : 'Jambo is thinking…';
-  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span><span>${String(w).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))}</span></div>`;
+  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true" aria-label="${String(w).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))}"><span class="jb-dot" aria-hidden="true"></span><span class="jb-dot" aria-hidden="true"></span><span class="jb-dot" aria-hidden="true"></span></div>`;
 }
 /* the head while the conversation shows: his name, lit, a label — never a second way back */
 function jamboTalkLabelHtml(cls){

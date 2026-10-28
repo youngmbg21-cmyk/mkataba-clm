@@ -5,10 +5,12 @@
    Home's panel, the lists and the ✦ window drew three 5px dots in a pale bubble; Settings drew nothing at all; the
    Calendar's planner already said "Jambo is reading your calendar…" with a spinner. On every panel, with the answer
    held back on the wire:
-     1  within a beat of Enter a sign stands in the conversation: a spinner that MOVES and words saying he is at it
-     2  the sign is read out to a screen reader (role=status)
+     1  within a beat of Enter a sign stands in the conversation that MOVES and carries NO WORDS (owner: "it should
+        not say jambo is thinking, it should just be a different symbol"; picked "The SAP way": three dark dots
+        pulsing in turn, 9px) — the Calendar's planner keeps its own words
+     2  the sign is read out to a screen reader (role=status, an aria-label naming Jambo)
      3  when the answer lands, the sign is gone
-   AT THE PARENT (origin/main 8dd9eff) 1 fails everywhere but the Calendar (the dots carried no words, Settings had
+   AT THE PARENT (origin/main 8dd9eff) 1 fails everywhere but the Calendar (the dots were 5px and faint, Settings had
    no sign), and 2 everywhere.
    Run: node test/chromium/jambo-is-thinking-verify.js   (HATI_THINK_ONLY=settings,board to run some) */
 /* global state, setView, hbSetFace, roomHomeLand, closeModal, jlToWords, jamboTalkUp, jamboTalkBack, aiWinToggle, closeAI */
@@ -65,11 +67,16 @@ const deliver = a => ({ content: [{ type: 'tool_use', id: 'tu_t', name: 'deliver
       const S = await until(P, h0 => { const r = document.querySelector(h0); if (!r) return null;
         const vis = e => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
         const sign = [...r.querySelectorAll('[data-jb-thinking], .cal-plan-busy')].find(vis); if (!sign) return null;
-        const spin = sign.querySelector('.ob-spin'); const cs = spin && getComputedStyle(spin);
-        return { words: sign.textContent.replace(/\s+/g, ' ').trim(), moves: !!cs && cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0,
-          status: sign.getAttribute('role') === 'status' || sign.getAttribute('aria-busy') === 'true' }; }, host, 2500);
-      check(`1 ${key}: while he thinks, a moving spinner and words that say so`, !!S && S.moves && /Jambo/.test(S.words), JSON.stringify(S));
-      check(`2 ${key}: the sign is said to a screen reader`, !!S && S.status, JSON.stringify(S));
+        const cal = sign.classList.contains('cal-plan-busy');
+        const mover = sign.querySelector(cal ? '.ob-spin' : '.jb-dot'); const cs = mover && getComputedStyle(mover);
+        return { cal, words: sign.textContent.replace(/\s+/g, ' ').trim(), dots: sign.querySelectorAll('.jb-dot').length,
+          dotW: mover ? mover.offsetWidth : 0,
+          moves: !!cs && cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0,
+          status: sign.getAttribute('role') === 'status' || sign.getAttribute('aria-busy') === 'true',
+          heard: sign.getAttribute('aria-label') || '' }; }, host, 2500);
+      check(`1 ${key}: while he thinks, a sign that moves${key === 'calendar' ? '' : ' — three dots, no words on screen'}`,
+        !!S && S.moves && (S.cal || (S.dots === 3 && !S.words && S.dotW >= 8)), JSON.stringify(S));
+      check(`2 ${key}: the sign is said to a screen reader`, !!S && S.status && (S.cal || /Jambo/.test(S.heard)), JSON.stringify(S));
       const gone = await until(P, h0 => { const r = document.querySelector(h0); if (!r) return null;
         return ![...r.querySelectorAll('[data-jb-thinking], .cal-plan-busy')].some(e => e.getBoundingClientRect().height > 0) && !(window.ai && ai.busy) && !(window.intel && intel.busy) ? true : null; }, host, HOLD_MS * 3 + 4000);
       check(`3 ${key}: the answer lands and the sign is gone`, !!gone);
