@@ -328,7 +328,10 @@ describe('f739 (7) check #1\'s differences, built', () => {
     const w = sb.cuColDefs().find(c => c.k === 'waiting').w;
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): 166 pays for Ended reading whole in Swedish and On paper's sum;
        parties-and-people-verify 9e measures that nothing on the page is cut, in both languages */
-    assert.ok(w >= 166, `the column is ${w}px`);
+    /* RE-POINTED 28 Oct 2026 (owner picked "Tighten the columns" so Customers' panel slides over where People's
+       does): 114, the words on up to two lines (.cu-wait .ls-word-v wraps); 9e still measures nothing cut */
+    assert.ok(w >= 114, `the column is ${w}px`);
+    assert.match(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/customers.js'), 'utf8'), /\.cu-table td\.cu-wait \.ls-word-v\{white-space:normal/);
   });
   test('7d a fact with nothing in it is left out of the panel, as drawn for Kettle & Co', () => {
     const { sb, doc } = stage();

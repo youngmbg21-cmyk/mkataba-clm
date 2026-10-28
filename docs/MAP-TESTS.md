@@ -418,6 +418,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE SLIDER ON EVERY JAMBO PANEL
 - f830, f394 (3).
 - Past the mark it slides over (24 Oct 2026): f830 3j, 3k, 3l (red at 415b41f); re-pointed 1a, 3d, 3h, 4b, 4e, 4f, 5b, 5c; jambo-slides-in verify 1i re-pointed.
+- Every panel starts to slide over where People's does (28 Oct 2026): test/chromium/panels-slide-over-alike-verify.js (13 pages × the three screens; `HATI_OVER_ONLY=`; red at a5deb6a for Customers and Settings); f739 7c re-pointed (Waiting 114, two lines).
 - The side panel beside the page (22 Oct 2026): test/chromium/jambo-slides-in-verify.js 1d–1l (nothing dimmed, the page's room ends where the panel starts, the edge tab steps away and comes back with the panel's minimise, THE SLIDER widens it and is kept, a double-click puts it back, the three screens); 1d/1e/1f/1h red at ff908e4b.
 
 ## OTHER PAGES AND SERVICES
