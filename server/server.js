@@ -213,6 +213,16 @@ db.exec(`
     ask_id TEXT NOT NULL, contract_id TEXT NOT NULL, input_hash TEXT NOT NULL, json TEXT NOT NULL,
     checked_by TEXT, checked_name TEXT, checked_at TEXT, created_at TEXT NOT NULL,
     PRIMARY KEY (ask_id, contract_id));
+  -- THE THREAD (owner picked it, 28 Oct 2026): a READ is one press over a batch of
+  -- contracts — who, when, which contracts (and where they stood on the list as it
+  -- was shown: from_no–to_no), how many calls. The answers above are what it
+  -- found; this is the act. A press goes out in tens, so the browser names the
+  -- press (run id) and the record grows until the press is done or stopped.
+  CREATE TABLE IF NOT EXISTS column_reads (
+    id TEXT PRIMARY KEY, ask_ids TEXT NOT NULL, pack_id TEXT, kind TEXT NOT NULL DEFAULT 'press',
+    by_id TEXT, by_name TEXT, started_at TEXT NOT NULL, last_at TEXT NOT NULL,
+    ids TEXT NOT NULL DEFAULT '[]', n INTEGER NOT NULL DEFAULT 0, from_no INTEGER, to_no INTEGER,
+    calls INTEGER NOT NULL DEFAULT 0, cached INTEGER NOT NULL DEFAULT 0, stopped INTEGER NOT NULL DEFAULT 0);
   -- The renewal adviser's cache (W2-4), on the same terms as briefs above: its
   -- own table, so writing one never bumps the record's version under an open
   -- editor, and a recommendation is not part of what was agreed or signed.
@@ -9559,7 +9569,8 @@ app.post('/api/ai/brief', auth, briefAsker, rlAiDeep, aiFeature('brief'), aiBudg
    One question asked of the WORDING of many contracts at once, each answer a
    cell on the Contracts list with the sentence it came from. The owner's
    rulings: at most COLUMN_MAX contracts a press, said where it bites (a cap is
-   a fact, never a silent trim); anyone who can edit contracts may ask (the
+   a fact, never a silent trim) — 50 until 28 Oct 2026, when the owner picked
+   "The thread": a press reads 50 or 100, so the wall is 100; anyone who can edit contracts may ask (the
    `editor` gate, as for the brief); an answer shows WHY in Jambo's side panel
    ("The SAP way") and carries a person's tick once checked ("Tick in the
    cell").
@@ -9570,7 +9581,7 @@ app.post('/api/ai/brief', auth, briefAsker, rlAiDeep, aiFeature('brief'), aiBudg
    THE WALLS ARE THE CONTRACT ROUTES' OWN: the stored record is asked, out of
    scope reads exactly like not found, and a code-named deal outside its list
    is refused at the front door (cnRequestIds reads `ids`). */
-const COLUMN_MAX = 50;
+const COLUMN_MAX = 100;
 const COLUMN_AT_ONCE = 4;
 const COLUMN_TONES = ['good', 'watch', 'concern', 'none'];
 const colKey = q => String(q || '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -9817,6 +9828,28 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   }
   const key = todo.length ? aiKey() : null;
   if (todo.length && !key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  /* ---- EACH ANSWER THE MOMENT IT IS READ (the owner, 28 Oct 2026: "the panel said it was reading for a minute
+     or more and then when I started to see the visible runs it was 3 seconds and it was done") ----
+     With `stream` the same route answers as an event stream, the chat's own way (event / data frames, a
+     heartbeat, the usual body as `final`): first the questions (`asks`, so the column stands on the list at
+     once), then one `answer` per contract as it is read — the kept ones straight away — then `final`. Every
+     refusal above is still a plain JSON answer. A reader who goes away starts no further reads: what was read
+     is kept per wording and costs nothing the next time. */
+  const stream = b.stream === true;
+  let clientGone = false;
+  const send = (event, data) => { if (!stream) return; try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {} };
+  const answersOf = id => Object.fromEntries(asks.filter(a => byAsk[a.id][id]).map(a => [a.id, byAsk[a.id][id]]));
+  if (stream) {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+    const beat = setInterval(() => { try { res.write(': keep-alive\n\n'); } catch (_) {} }, 15000);
+    if (typeof beat.unref === 'function') beat.unref();
+    res.on('close', () => { clearInterval(beat); if (!res.writableEnded) clientGone = true; });
+    res.on('finish', () => clearInterval(beat));
+    send('asks', { ask: colAskOut(asks[0]), asks: asks.map(colAskOut) });
+    const reading = new Set(todo.map(t => t.id));
+    for (const id of ids) if (!reading.has(id)) { const m = answersOf(id); if (Object.keys(m).length) send('answer', { id, byAsk: m, calls: 0 }); }
+  }
   const J = orgJx();
   let calls = 0, lastResp = null;
   const readOne = async t => {
@@ -9858,13 +9891,73 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   try {
     const queue = todo.slice();
     await Promise.all(Array.from({ length: Math.min(COLUMN_AT_ONCE, queue.length) }, async () => {
-      while (queue.length) { const t = queue.shift(); try { await readOne(t); } catch (e) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); } }
+      while (queue.length && !clientGone) { const t = queue.shift(); try { await readOne(t); } catch (e) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); }
+        const m = answersOf(t.id); if (Object.keys(m).length) send('answer', { id: t.id, byAsk: m, calls: 1 }); }
     }));
-  } catch (e) { return res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+  } catch (e) {
+    if (stream) { send('error', { message: 'Jambo request failed: ' + e.message }); return res.end(); }
+    return res.status(502).json({ error: 'Jambo request failed: ' + e.message });
+  }
   const first = asks[0];
-  res.json({ ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached,
+  /* EVERY ACT LEAVES A RECORD THE SERVER WRITES (flow rule 8; The thread, 28 Oct 2026): the press, by
+     name. `run` is the browser's name for one press (its batches share it) with where the contracts
+     stood on the list; a call without one is a read of its own — a contract read on arrival is 'arrival' */
+  const run = colRunRecord(req, b.run, asks, b.pack, ids.filter(id => !failed.some(f => f.id === id && f.why === 'notFound')), calls, cached);
+  const out = { ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached, run,
     failed: asks.length === 1 ? failed.map(f => ({ id: f.id, why: f.why, ...(f.error ? { error: f.error } : {}) })) : failed,
-    capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) });
+    capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) };
+  if (stream) { send('final', out); return res.end(); }
+  res.json(out);
+});
+const COLUMN_RUN_ID = /^cr_[a-z0-9]{6,40}$/;
+function colRunRecord(req, run, asks, packId, ids, calls, cached) {
+  const r = (run && typeof run === 'object') ? run : {};
+  const id = COLUMN_RUN_ID.test(String(r.id || '')) ? String(r.id) : 'cr_' + crypto.randomBytes(8).toString('hex');
+  const kind = r.id ? 'press' : (ids.length === 1 ? 'arrival' : 'press');
+  const at = now();
+  const num = v => (Number.isInteger(Number(v)) && Number(v) > 0) ? Number(v) : null;
+  const prev = db.prepare('SELECT * FROM column_reads WHERE id=?').get(id);
+  if (prev) {
+    let had = []; try { had = JSON.parse(prev.ids) || []; } catch (_) { had = []; }
+    const all = [...new Set(had.concat(ids))];
+    const from = [prev.from_no, num(r.from)].filter(x => x != null), to = [prev.to_no, num(r.to)].filter(x => x != null);
+    db.prepare('UPDATE column_reads SET last_at=?, ids=?, n=?, from_no=?, to_no=?, calls=calls+?, cached=cached+?, stopped=? WHERE id=?')
+      .run(at, JSON.stringify(all), all.length, from.length ? Math.min(...from) : null, to.length ? Math.max(...to) : null, calls, cached, r.stopped ? 1 : 0, id);
+  } else {
+    db.prepare(`INSERT INTO column_reads (id,ask_ids,pack_id,kind,by_id,by_name,started_at,last_at,ids,n,from_no,to_no,calls,cached,stopped)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(id, JSON.stringify(asks.map(a => a.id)), packId && db.prepare('SELECT id FROM column_packs WHERE id=?').get(String(packId)) ? String(packId) : null, kind,
+        String(req.user.id), req.user.name || req.user.email || '', at, at, JSON.stringify(ids), ids.length, num(r.from), num(r.to), calls, cached, r.stopped ? 1 : 0);
+  }
+  return { id };
+}
+/* A PRESS THAT WAS STOPPED SAYS SO on its record (the browser's one call after Stop; the rest is a new press) */
+app.post('/api/columns/reads/:id/stop', auth, editor, (req, res) => {
+  const id = String(req.params.id || '');
+  if (!COLUMN_RUN_ID.test(id)) return res.status(404).json({ error: 'No such read' });
+  db.prepare('UPDATE column_reads SET stopped=1, last_at=? WHERE id=?').run(now(), id);
+  res.json({ ok: true });
+});
+/* EVERY READ (The thread, 28 Oct 2026): the presses, newest first, each with its question(s), who, when, how
+   many contracts — counted inside what THIS PERSON may see — and where they stood on the list. The arrival
+   reads of a company fact are many and small, so they come back summed per question (arrivals), never listed. */
+app.get('/api/columns/reads', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  const folders = new Map(db.prepare('SELECT id, folder FROM contracts').all().map(r => [r.id, r.folder]));
+  const seen = id => folders.has(id) && inScope(scope, folders.get(id));
+  const askName = new Map(db.prepare('SELECT id, name FROM column_asks').all().map(r => [r.id, r.name]));
+  const packName = new Map(db.prepare('SELECT id, name FROM column_packs').all().map(r => [r.id, r.name]));
+  const rows = db.prepare('SELECT * FROM column_reads ORDER BY started_at DESC LIMIT 400').all();
+  const reads = [], arrivals = {};
+  for (const r of rows) {
+    let askIds = [], ids = []; try { askIds = JSON.parse(r.ask_ids) || []; } catch (_) { askIds = []; } try { ids = JSON.parse(r.ids) || []; } catch (_) { ids = []; }
+    const n = ids.filter(seen).length;
+    if (r.kind === 'arrival') { for (const a of askIds) { const x = arrivals[a] || (arrivals[a] = { n: 0, calls: 0, last: '' }); x.n += n; x.calls += r.calls; if (r.last_at > x.last) x.last = r.last_at; } continue; }
+    if (!n && !r.calls) continue;
+    reads.push({ id: r.id, askIds, names: askIds.map(a => askName.get(a) || '').filter(Boolean), packId: r.pack_id || '', packName: r.pack_id ? (packName.get(r.pack_id) || '') : '',
+      by: r.by_name || '', byId: r.by_id || '', at: r.started_at, last: r.last_at, n, from: r.from_no, to: r.to_no, calls: r.calls, cached: r.cached, stopped: !!r.stopped });
+  }
+  res.json({ reads, arrivals, me: String(req.user.id) });
 });
 
 /* THE COMPANY'S RULE AND THE COMPANY'S FACT (Discover stages 1 and 4, owner

@@ -964,7 +964,9 @@ function renderApprovalsPage(o){
   /* THE LIST LANGUAGE (owner's yes, 27 Oct 2026: the line above the table may go, "replaced by the rule chip
      on each row"): Why it waits never steps out — each row carries its rule; Kind and Whose turn still step
      out where every row says the same, the kind then said in the row's grey line and the turn by its mark.
-     The reference rides the grey line, and Our standards is said in words beside the rule. */
+     The reference rides the grey line, and Our standards is said in words beside the rule.
+     A TRAFFIC LIGHT (owner, 28 Oct 2026): Our standards' three lamps fit the 124 it had (slim lamps, .ls-lamp), so
+     the list still stands beside Jambo's panel at 1366 (jambos-list-panel-verify 8). */
   const same=Object.assign({}, apSameCols(W.rows), { why:false });
   /* THE LIST'S COLUMNS, ONE RULE (owner, 28 Oct 2026, listCols): the party and the wait always stand; where
      the room is short Our standards steps aside first, then Kind, Rule, Value, Whose turn; the grey line's

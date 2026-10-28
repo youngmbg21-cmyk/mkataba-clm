@@ -106,7 +106,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('2b the name box says Jambo names it if left empty', /Jambo names it/.test(hint), hint);
       await page.fill('#ct-q', '');
       await page.click('[data-ac-ask]');
-      const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11, null, 20000);
+      /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
+         so the card is read once the read has ended */
+      const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11 && !document.querySelector('[data-ac-stop]') && !!document.querySelector('#ig-dock [data-ac-col]'), null, 25000);
       const col = await page.evaluate(() => ({
         heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
         cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }])),
@@ -226,7 +228,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.click('#ig-dock [data-ac-pack]');
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
       const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
-      check('3c the pack opens in the same form: five questions, one read each against five apart', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /about 11 Jambo calls/.test(pf) && /55 Jambo calls/.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
+      check('3c the pack opens in the same form: five questions, one read each against five apart', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /* RE-POINTED 28 Oct 2026 (THE THREAD): one sentence, one read each */ /reads the 11 shown, once each/.test(pf) && /all 5 questions/.test(pf) && /11 Jambo calls/.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
       await page.screenshot({ path: path.join(OUT, '3-pack-form.png') });
       /* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026) */
       const ticks = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ac-pick]').length);
@@ -497,10 +499,11 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.evaluate(() => askColOpen({ question: 'Does this agreement name a court or an arbitrator for disputes?', name: 'Disputes' }));
       await until(page, () => !!document.querySelector('#ac-q'));
       await page.click('#ig-dock [data-ac-ask]');
-      const counting = await until(page, () => /answered/.test((document.querySelector('#ig-dock .ac-busy') || {}).innerText || ''), null, 20000);
+      /* RE-POINTED 28 Oct 2026 (THE READING DESK): the foot line counts done · at risk so far · calls */
+      const counting = await until(page, () => /\d+ done/.test((document.querySelector('#ig-dock .ac-busy') || {}).innerText || ''), null, 20000);
       const line = await page.evaluate(() => (document.querySelector('#ig-dock .ac-busy') || {}).innerText || '');
       const bar = await page.evaluate(() => { const i = document.querySelector('#ig-dock .ac-prog>i'); return i ? i.style.width : ''; });
-      check('11a while he reads, the line counts what has landed and a bar follows it', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ answered/.test(line) && /%/.test(bar), JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
+      check('11a while he reads, the line counts what has landed and a bar follows it', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done · (\d+ at risk so far · )?\d+ Jambo calls/.test(line) && /%/.test(bar), JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
       await page.screenshot({ path: path.join(OUT, '11-reading.png') });
       await page.click('#ig-dock [data-ac-stop]');
       const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);

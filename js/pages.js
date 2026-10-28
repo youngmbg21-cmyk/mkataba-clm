@@ -357,6 +357,8 @@ function pagesLayout(sheet, opts){
   const extra = plan.total - natural;
   if(extra > PG_FUZZ) sheet.style.setProperty('--pg-extra', extra + 'px');
   /* ---- THE LAYER ---- */
+  /* THE GAP FOLLOWS THE GROUND (28 Oct 2026): a host whose ground changes after the paint (Home's paper turns
+     --desk-ground while the Dossier is beside it) names it as --pg-ground, so the band never keeps a stale shade */
   const desk = _pgDeskColour(sheet);
   const n = plan.pages.length;
   const dims = { W, bl, bt, br: parseFloat(cs.borderRightWidth) || 0, mT, mB, pL, pR };
@@ -365,7 +367,7 @@ function pagesLayout(sheet, opts){
     parts.push(..._pgFurniture(o, k, n, p.top - bt, p.h, dims));
     if(k < n - 1){
       const gTop = p.top - bt + p.h;
-      parts.push(`<div class="pg-gap" style="top:${gTop}px;height:${G}px;left:${-bl - PG_BAND_BLEED}px;right:${-dims.br - PG_BAND_BLEED}px;background:${desk}"></div>`);
+      parts.push(`<div class="pg-gap" style="top:${gTop}px;height:${G}px;left:${-bl - PG_BAND_BLEED}px;right:${-dims.br - PG_BAND_BLEED}px;background:var(--pg-ground, ${desk})"></div>`);
     }
   });
   const layer = document.createElement('div');

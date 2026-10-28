@@ -642,7 +642,11 @@ function splitClamp(want, avail, h){
 const SPLIT_OVER_AT = 880;
 function splitOver(w, avail, h){
   if (!h || h.over === false || !(avail > 0)) return 0;
-  const hold = Math.max(Number(h.restMin) || 0, Math.min(SPLIT_OVER_AT, avail - splitRest(h)));
+  /* a host whose room starts right of the page's own left edge (Settings' board, inside its padding) says where
+     the mark falls in ITS room (`overAt`), so the panel starts to slide over at the same spot on the screen as
+     the lists' (owner, 28 Oct 2026: "make Customers and Settings match contacts") */
+  const at = (typeof h.overAt === 'function') ? (Number(h.overAt()) || SPLIT_OVER_AT) : SPLIT_OVER_AT;
+  const hold = Math.max(Number(h.restMin) || 0, Math.min(at, avail - splitRest(h)));
   return Math.max(0, Math.round(hold - (avail - w)));
 }
 const _splitPrefOf = h => (typeof h.pref === 'function') ? h.pref() : splitPref(h.key);

@@ -803,6 +803,8 @@ const CU_CSS = `
   .cu-nda-go{border:0;background:none;padding:0 0 0 4px;font:inherit;font-weight:var(--w-label);color:var(--color-accent);cursor:pointer;white-space:nowrap;}
   .cu-nda-go:hover{text-decoration:underline;}
   .cu-table td.cu-wait{white-space:nowrap;overflow:hidden;}
+  .cu-table td.cu-wait .ls-word-v{white-space:normal;align-items:flex-start;line-height:17px;display:-webkit-inline-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;padding-left:14px;text-indent:-14px;}
+  .cu-table td.cu-wait .ls-word-v i{display:inline-block;margin:0 7px 1px 0;vertical-align:middle;}
   .cu-wait-t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;line-height:1.3;}
   /* the drawn words are regular weight, amber or red (round 19) */
   .cu-table td.cu-wait.amber,.cu-table td.cu-wait.ruby{font-weight:var(--w-body);}
@@ -845,17 +847,20 @@ function cuColDefs(){
     /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the party's stream as a
        soft chip and its standing as a mark and a word; Live, Ended and City are under Columns (the grey line
        counts, Standing says Ended, the panel says the city); Waiting has the room for its dot and words whole */
+    /* NARROWED (owner, 28 Oct 2026: "make Customers … match contacts", picked "Tighten the columns"): Stream,
+       Standing, Next to end and Waiting give up 86px between them, so the table's own floor (jlListMin) is under the mark
+       and the panel slides over at the same spot as on People; Waiting's words take two lines (.cu-wait) */
     { k: 'stream', label: i18t('reg_col_stream'), w: 118 },
-    { k: 'standing', label: i18t('cu_col_standing'), w: 116 },
+    { k: 'standing', label: i18t('cu_col_standing'), w: 100 },
     { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
     /* 88 (Round 2): it holds a count but its head must read whole in Swedish ("Avslutade"); with Waiting's 22 it pays
        for On paper's whole sum (112, Round 1), so the row is as wide as before and fits at 1366 beside the panel */
     { k: 'ended', label: i18t('cu_col_ended'), r: 1, w: 88 },
     ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 112 }] : []),
-    { k: 'next', label: i18t('cu_col_next_end'), w: 108 },
-    /* wide enough for the drawn short words whole ("an approval, for Jonas") */
-    { k: 'waiting', label: i18t('cu_col_waiting'), w: 180 },
+    { k: 'next', label: i18t('cu_col_next_end'), w: 104 },
+    /* the drawn short words ("an approval, for Jonas") on up to two lines (.cu-wait-t), the whole in its title */
+    { k: 'waiting', label: i18t('cu_col_waiting'), w: 114 },
     { k: 'nda', label: i18t('cu_col_nda'), w: 128 },
   ];
 }

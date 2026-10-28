@@ -135,7 +135,9 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const own = (await readList()).find(r => r.key === 'naivas supermarkets');
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const ownPanel = await panelText();
-    ok('2e with Owner on, the row says 2 live, none ended, and its sub-line 2 agreements and since when', !!own && own.by.Live === '2' && own.by.Ended === '—' && /^2 agreements · with us since .+$/.test(own.sub), own && (JSON.stringify(own.by) + ' / ' + own.sub));
+    ok('2e with Owner on, the row says 2 live, none ended, and its sub-line 2 agreements and since when', !!own && own.by.Live === '2' && own.by.Ended === '—'
+      /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD): where the list has the room its grey line stands as two columns */
+      && (/^2 agreements · with us since .+$/.test(own.sub) || (own.by.Agreements === '2' && !!own.by['With us since'])), own && (JSON.stringify(own.by) + ' / ' + own.sub));
     ok('2f …and the side panel says the same: Live agreements 2, and its two agreements', /Live agreements\s*2 · /.test(ownPanel) && /Agreements\s*2/.test(ownPanel), ownPanel.slice(0, 300));
 
     console.log('\n3 · Open party lands on Home\'s wall, narrowed');

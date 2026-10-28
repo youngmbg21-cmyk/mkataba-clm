@@ -25,6 +25,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE UPLOAD
 - f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
 
+- The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
+- The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
 ## THE LEGAL AND LAUNCH AUDITS' FIXES
 - f202, f204, f226, f396 (1c), test/audit/* (sim-d-server-attacks: 0 of 18).
 
@@ -193,6 +195,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Part 8 question 1 = A (22 Oct 2026): wall-of-papers-verify 4 at 1536×730 re-pointed — the second row of papers starts on the screen and the reader scrolls a little.
 
 - THE LIST LANGUAGE (27 Oct 2026): `node --test test/f953-the-list-language.test.js`, with f687, f739, f795, f716, f387, f721, f797, f807, f874 and the Obligations files; in a browser legora-look-verify, legora-lists-verify, sap-lists-verify, the tidy sweep.
+- Our standards as a traffic light (28 Oct 2026): f953 2 re-pointed (three lamps in order, zero grey, the sentence in aria-label/title; red at the parent d866f89); handbook 0.6 pictures re-taken; tidy sweep contracts, approvals, negotiations at the three screens; Approvals keeps 124 (jambos-list-panel-verify 8 at 1366).
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct)
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
@@ -211,6 +214,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - f843, ask-a-column verify.
+- THE READING DESK AND ONE BUTTON (28 Oct 2026): `node test/chromium/reading-desk-verify.js` (2c–2d the first answer within the first round of reads and the count moving by ones, 5c the desk standing at the end — red at the parent; f954 test 5 the stream on the server; the desk with a real quote, the turn to a second answer, the stack, less motion still, Stop's calls spent, the one button and its message, the three screens; red at the parent: no desk). `HANDBOOK_ONLY=5.5 HANDBOOK_SHOTS=1 node test/chromium/handbook-verify.js`; discover-verify 11a and reads-verify 2b/3a/4d re-pointed.
+- THE THREAD (28 Oct 2026): `node --test test/f954-the-thread.test.js` (the plan, the sentence, the record, the page's registration); `node test/chromium/reads-verify.js` (500 contracts: the first 50, the next 50 reads 51–100 and never the first 50 again, the Reads page and its thread, the three screens; pictures with `READS_SHOTS=<dir>`); the Handbook chapter 5.8's pictures (`HANDBOOK_ONLY=5.5,5.8`).
 - THE TWO ROUGH EDGES (26 Oct 2026): f934 (the refusal under #ac-q, focused, no toast; typing clears it; chips filtered), f893 2e (a counting question kept before the rule listed nowhere, not counted), ask-a-column verify 8a–8c (red at the parent: a toast over the panel's foot, the chip drawn).
 - Typing while the team's questions arrive (22 Oct 2026): ask-a-column verify 10 (red at the parent: the caret went to the question box, "Notice ").
 - THE DISCOVER MEASURE (stage 0, 25 Oct 2026): f887 (the exam's truth matches its wording; the marker is fair); `node test/discover-measure.js` by hand (calls only without a key, graded with one). Every Discover stage reruns it and writes its row in docs/PLAN-jambo-discover.md.
@@ -419,6 +424,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE SLIDER ON EVERY JAMBO PANEL
 - f830, f394 (3).
 - Past the mark it slides over (24 Oct 2026): f830 3j, 3k, 3l (red at 415b41f); re-pointed 1a, 3d, 3h, 4b, 4e, 4f, 5b, 5c; jambo-slides-in verify 1i re-pointed.
+- Every panel starts to slide over where People's does (28 Oct 2026): test/chromium/panels-slide-over-alike-verify.js (13 pages × the three screens; `HATI_OVER_ONLY=`; red at a5deb6a for Customers and Settings); f739 7c re-pointed (Waiting 114, two lines).
 - The side panel beside the page (22 Oct 2026): test/chromium/jambo-slides-in-verify.js 1d–1l (nothing dimmed, the page's room ends where the panel starts, the edge tab steps away and comes back with the panel's minimise, THE SLIDER widens it and is kept, a double-click puts it back, the three screens); 1d/1e/1f/1h red at ff908e4b.
 
 ## OTHER PAGES AND SERVICES
