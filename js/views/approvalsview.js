@@ -931,7 +931,7 @@ function renderApprovalsPage(o){
      the reference, the kind where its column stepped out, who asked and how long ago */
   const apMark=r=>(typeof listMarkHtml!=='function')?apAvHtml(r.c.counterparty)
     : r.done?listMarkHtml('green','done'):apLate(r)?listMarkHtml('ruby','late',i18t('jl_late')):r.mine?listMarkHtml('amber','part',apTurnText(r)):listMarkHtml('steel','wait',apTurnText(r));
-  const ident=(c,r,sameKind)=>`<td><div class="ap-id">${r?apMark(r):apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}<span class="ls-sep"> · </span>${esc(c.name||'')}</span><span class="ap-sub">${[window.refHtml?refHtml(c):esc(c.id), r&&sameKind?esc(i18t(r.type==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr')):'', r?esc(apAskedByText(r)):''].filter(Boolean).join(' \u00b7 ')}</span></div></div></td>`;
+  const ident=(c,r,sameKind)=>`<td><div class="ap-id">${r?apMark(r):apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}<span class="ls-sep"> · </span>${esc(c.name||'')}</span><span class="ap-sub">${[window.refHtml?refHtml(c):esc(c.id), r&&sameKind&&r.type==='signature'?esc(i18t('ap_wl_kind_sig')):'', r&&r.who?esc(i18t('ap_row_asked_by',{ who:r.who })):'', r&&r.idle!=null?esc(Number(r.idle)===0?i18t('home_today'):i18tn('jl_days_ago',Number(r.idle),{n:Number(r.idle)})):''].filter(Boolean).join(' \u00b7 ')}</span></div></div></td>`;
   /* the rule, a soft chip, and who decides under it (apWhyLines); a signature's sentence as it was */
   const apRuleHtml=r=>{
     if(r.type==='signature'||typeof listChipHtml!=='function') return apWhyHtml(r);
@@ -942,7 +942,8 @@ function renderApprovalsPage(o){
     if(r.done) return esc(i18t('ap_pg_approved'));
     if(r.idle==null) return '—';
     const late=apLate(r), t=apWaitingText(r.idle);
-    return typeof listWordHtml==='function'?listWordHtml(late?'ruby':'amber', t):esc(t);
+    /* as drawn: the days, and "late" on the grey line under them once it is */
+    return typeof listWordHtml==='function'?listWordHtml(late?'ruby':'amber', t, late?i18t('ap_row_late'):''):esc(t);
   };
   /* the drawing's room (round 15): Whose turn wide enough for "You · for
      Jonas" and "Jonas signs · back Friday", Waiting for "9 days · late" */
@@ -960,7 +961,7 @@ function renderApprovalsPage(o){
      out where every row says the same, the kind then said in the row's grey line and the turn by its mark.
      The reference rides the grey line, and Our standards is said in words beside the rule. */
   const same=Object.assign({}, apSameCols(W.rows), { why:false });
-  const head=[{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),{t:i18t('ap_wl_why'),w:170},...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('reg_col_standards'),w:168},{t:i18t('ap_pg_waiting'),w:120},
+  const head=[{t:i18t('reg_col_party')},...(same.kind?[]:[{t:i18t('ap_wl_kind'),w:100}]),{t:i18t('ap_col_rule'),w:170},...(same.turn?[]:[{t:i18t('ap_wl_turn'),w:188}]),{t:i18t('reg_col_standards'),w:168},{t:i18t('ap_pg_waiting'),w:120},
     ...(money?[{t:i18t('reg_col_value'),right:true,w:112}]:[]),...(INS?[]:[{t:'',w:220}])];
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;

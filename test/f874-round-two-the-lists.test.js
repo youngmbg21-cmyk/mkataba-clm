@@ -76,7 +76,8 @@ describe('f874 (2) the Board', () => {
 describe('f874 (3) Contracts', () => {
   const REG = R('js/views/register.js');
   test('3a the agreement leads, "party · ref" under it; its column sorts by what it says', () => {
-    assert.match(REG, /\$\{coded\?regTitleOf\(c\):placeRows\?esc\(regShortTitle\(c\)\):esc\(cpName\)\}/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, Negotiations as drawn): that list's bold line is "party · agreement" */
+    assert.match(REG, /\$\{coded\?regTitleOf\(c\):placeRows\?esc\(regShortTitle\(c\)\):\(neg&&insOn\)\?`\$\{esc\(cpName\)\}<span class="reg-t-dot"> · <\/span>\$\{esc\(regShortTitle\(c\)\)\}`:esc\(cpName\)\}/);
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stage and when it last moved follow the reference */
     assert.match(REG, /<span class="reg-sub">\$\{placeRows\?`\$\{coded\?esc\(i18t\('igw_kept_list'\)\):esc\(cpName\)\} · \$\{refLine\}\$\{regStageLineHtml\(c\)\}`/);
     assert.match(REG, /const A=String\(byName\?regShortTitle\(a\):\(a\.counterparty\|\|''\)\)\.trim\(\)/);

@@ -2770,7 +2770,7 @@ function regRowsHtml(cs){
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
         <span class="reg-id">${placeRows?regStageMarkHtml(c):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span><span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}`:(neg&&insOn)?regNegoLineHtml(c,refLine):`${regTitleOf(c)}`}</span>
         </span></span>
       </td>`;
@@ -2783,7 +2783,10 @@ function regRowsHtml(cs){
       CELL.round=`<td class="reg-num">${esc(nc.round)}</td>`;
       /* WHAT IS OPEN, IN WORDS (the list language): ours to answer amber, sent and waiting steel, settled green */
       const chTone=c._ngBand==='you'?'amber':c._ngBand==='them'?'steel':'green';
-      CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${window.listWordHtml?listWordHtml(chTone,nc.changes):esc(nc.changes)}</td>`;
+      /* its grey line, as drawn: where the asks are ("in payment and liability"), or what follows a settled word */
+      const chParts=String(nc.changes).split(' · '), chNames=c._ngBand==='you'?regNegoClauseNames(c).slice(0,2).map(n=>n.toLowerCase()):[];
+      const chSub=chParts.length>1?chParts.slice(1).join(' · '):chNames.length?i18t('ngl_ch_in',{ list:chNames.join(i18t('ngl_ch_and')) }):'';
+      CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${window.listWordHtml?listWordHtml(chTone,chParts[0],chSub):esc(nc.changes)}</td>`;
       CELL.clauses=`<td class="reg-cl">${regNegoClauseChips(c)}</td>`;
       const ld=regNegoLeadOf(c);
       CELL.lead=`<td class="reg-lead" title="${esc(ld.name)}">${esc(ld.short)}</td>`;
@@ -2892,11 +2895,11 @@ function regNegoMarkHtml(c){
 }
 function regNegoLineHtml(c,refLine){
   const nc=regNegoCols(c), ld=regNegoLeadOf(c);
-  return `${refLine} · ${esc(i18t('ngl_round_lead',{ n:nc.round, who:ld.short }))} · ${regTitleOf(c)}`;
+  return `${refLine} · ${esc(i18t('ngl_round_lead',{ n:nc.round, who:ld.short }))}`;
 }
 /* THE CLAUSES IN PLAY: the clauses with a change still open, as the paper names them (clauseNameShown,
    its number left off), three at most and the count of the rest; RAW over c.changes */
-function regNegoClauseChips(c){
+function regNegoClauseNames(c){
   const ch=Array.isArray(c&&c.changes)?c.changes:[];
   const seen=new Set(), names=[];
   for(const x of ch){
@@ -2905,6 +2908,10 @@ function regNegoClauseChips(c){
     const shown=(typeof clauseNameShown==='function'?clauseNameShown(raw):raw).replace(/^[\dIVXLCivxlc.()§]+\s+/,'').trim()||raw;
     const k=shown.toLowerCase(); if(seen.has(k)) continue; seen.add(k); names.push(shown);
   }
+  return names;
+}
+function regNegoClauseChips(c){
+  const names=regNegoClauseNames(c);
   if(!names.length) return '<span class="reg-dash">\u2014</span>';
   const chips=names.slice(0,3).map(n=>window.listChipHtml?listChipHtml('gray',n):esc(n)).join(' ');
   return chips+(names.length>3?` <span class="reg-cl-more">+${names.length-3}</span>`:'');
@@ -4582,4 +4589,4 @@ Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSigned
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});

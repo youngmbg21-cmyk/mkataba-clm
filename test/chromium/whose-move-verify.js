@@ -81,9 +81,18 @@ const check = (name, pass, detail) => {
     const facts = (head.match(/\d+ live[^\n]*/) || [''])[0];
     check('2 "Waiting on our side" is the Our move tab\'s own words, no group heading between the rows, and the facts line counts it so',
       A.ourTab === 'Waiting on our side' && !A.bands.length && /2 waiting on our side/.test(facts), JSON.stringify({ ourTab: A.ourTab, bands: A.bands, facts }));
-    check('3a the columns: Ref · Counterparty and agreement · Round · What is open · Waiting · Lead',
-      JSON.stringify(A.heads) === JSON.stringify(['Ref', 'Counterparty and agreement', 'Round', 'What is open', 'Waiting', 'Lead']), JSON.stringify(A.heads));
-    const mine = A.rows['MK-A2'] || {}, theirs = A.rows['MK-B2'] || {};
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, the round and the
+       lead ride the grey line under the counterparty; Round and Lead are one press away under Columns */
+    check('3a the columns: Counterparty and agreement · Clauses in play · What is open · Waiting · Value (Round and Lead under Columns)',
+      ['Counterparty and agreement', 'What is open', 'Waiting'].every(h => A.heads.includes(h)) && !A.heads.includes('Ref') && !A.heads.includes('Lead'), JSON.stringify(A.heads));
+    const seat = await page.evaluate(() => (document.querySelector('[data-lc-btn]') || {}).getAttribute ? document.querySelector('[data-lc-btn]').getAttribute('data-lc-btn') : '');
+    await page.click(`[data-lc-btn="${seat}"]`);
+    await until(() => document.querySelector('[data-lc-pop] [data-lc-k="lead"]:not([disabled])'), null, 8000);
+    await page.click('[data-lc-pop] [data-lc-k="lead"]');
+    await until(() => document.querySelector('#reg-tbody .reg-lead'), null, 8000);
+    await page.click(`[data-lc-btn="${seat}"]`);
+    const B = await page.evaluate(READ);
+    const mine = B.rows['MK-A2'] || {}, theirs = B.rows['MK-B2'] || {};
     check('3b Lead: "You" on the reader\'s own deal; a colleague\'s first name on theirs, the whole name on its hover',
       mine.lead === 'You' && mine.hover === me && theirs.lead === colleague.name.split(' ')[0] && theirs.hover === colleague.name, JSON.stringify({ mine, theirs }));
     check('4 a deal kept to its list is not on the list, nor in its count', !A.coded && A.all === '2', JSON.stringify({ coded: A.coded, all: A.all }));

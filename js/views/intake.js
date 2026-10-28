@@ -1673,7 +1673,7 @@ function ikColDefs(asker){
   return asker
     ? [{ k:'with', label:i18t('ik_f_with'), w:170 }, { k:'promised', label:i18t('ik_f_promised'), w:130 }]
     : [{ k:'kind', label:i18t('ik_col_kind'), w:104 }, { k:'road', label:i18t('ik_f_road'), w:140 }, { k:'with', label:i18t('ik_f_with'), w:148 },
-      { k:'promised', label:i18t('ik_f_promised'), w:120 }, { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }];
+      { k:'promised', label:i18t('ik_f_promised'), w:136 }, { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }];
 }
 function ikRepaint(){ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); }
 const ikPlaceKeep = () => { if(typeof window!=='undefined'&&typeof window.placeSave==='function') try{ placeSave(); }catch(_){} };

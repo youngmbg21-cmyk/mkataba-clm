@@ -268,7 +268,7 @@ const ok = (name, good, detail) => {
       ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'),
       heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
       widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
-      moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .reg-ch')].map(x => x.textContent.trim()),
+      moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .reg-ch')].map(x => ((x.querySelector('.ls-word-v') || x).textContent.trim())), /* RE-POINTED 28 Oct 2026: the reading's words, its grey line under */
       /* the wait's days (27 Oct 2026: whose wait it is rides the line under it) */
       waits: [...document.querySelectorAll('#reg-tbody tr[data-row] td.reg-wait .reg-wait-d')].map(x => x.textContent.trim()),
       bandTabs: [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim()),
