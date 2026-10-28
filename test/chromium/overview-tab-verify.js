@@ -12,8 +12,8 @@
    4 NOTHING IS LOST: every button and link the page's panel offered before (the INVENTORY, test/overview-inventory.json,
      taken at origin/main 6cbdd77 before this change, by running this file with OV_INVENTORY_WRITE=1) is still
      offered by the panel's Overview or the chips under it, by its words;
-   5 on Contracts, Discover stands above the drop area (owner, 26 Oct 2026: "the file uploading feature should be
-     below discover");
+   5 on Contracts, Discover stands above the list's facts, with no drop card (a pop-up now) and no "Ask me" (owner,
+     28 Oct 2026; was "Discover above the drop area", 26 Oct 2026);
    6 Settings' "Open the Menu" is still first.
    AT THE PARENT (origin/main 6cbdd77) claims 1, 2 and 3 FAIL on the list pages, Import, the Board, Explorer and the
    sheet (they were his one window, or led with the greeting), and 5 fails (the drop stood first); 4 is the parent's
@@ -106,8 +106,11 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
           .map(e => (e.getAttribute('aria-label') && !e.textContent.trim() ? e.getAttribute('aria-label') : e.textContent).replace(/\s+/g, ' ').trim()).filter(Boolean);
         const helloIn = [...root.querySelectorAll('[data-jb-hello]')].filter(vis).length;
         const jov = [...root.querySelectorAll('.jov')].filter(vis).length;
-        const disc = root.querySelector('.ac-disc, [data-ac-disc], .ac-discover'), drop = root.querySelector('#pd-drop');
-        const order = disc && drop ? (disc.compareDocumentPosition(drop) & Node.DOCUMENT_POSITION_FOLLOWING ? 'disc-first' : 'drop-first') : null;
+        /* RE-POINTED 28 Oct 2026 (owner: "keep them as is but keep them below the discover features. Also remove the
+           Ask me details"; the drop card is a pop-up): Discover first, the list's facts under it, no drop card, no Ask me */
+        const disc = root.querySelector('.ac-disc, [data-ac-disc], .ac-discover'), facts = root.querySelector('.pd-wall-facts');
+        const order = disc && facts && !root.querySelector('#pd-drop') && !root.querySelector('.jov-asks')
+          ? (disc.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING ? 'disc-first' : 'facts-first') : null;
         const menuFirst = (() => { const d = root.querySelector('[data-st-jb-menu-door]'); if (!d || !vis(d)) return null; const first = press[0] || ''; return d.textContent.includes(first); })();
         return { tabWords, lit: lit ? lit.textContent.replace(/\d+/g, '').replace(/[^\p{L} ]/gu, '').trim() : '', press, helloIn, jov, order, menuFirst };
       }, host);
@@ -121,9 +124,13 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       const norm = s => String(s || '').toLowerCase().replace(/·.*$/, '').replace(/[^\p{L}\p{N}]+/gu, '');
       const now = read.press.map(norm).join('|');
       const was = (inv && inv[key]) || [];
-      const lost = was.filter(w => norm(w) && !now.includes(norm(w)));
+      /* MOVED, NOT LOST (owner, 28 Oct 2026: "the card no longer sits on a panel … it shows up as a pop up card"): the
+         drop card's two presses now live in the pop-up that "upload a document" (still on the panel) opens */
+      const POPUP = { contracts: ['Choose a file', 'Import contracts'] };
+      const viaPopup = w => (POPUP[key] || []).includes(w) && now.includes(norm('upload a document'));
+      const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w));
       check(`4 ${key}: nothing the panel offered before is lost (${was.length} kept)`, !!inv && !lost.length, lost.length ? 'lost: ' + JSON.stringify(lost) : '');
-      if (key === 'contracts') check('5 contracts: Discover stands above the drop area', read.order === 'disc-first', String(read.order));
+      if (key === 'contracts') check('5 contracts: Discover stands above the list\'s facts; no drop card, no Ask me', read.order === 'disc-first', String(read.order));
       if (key === 'settings-you' || key === 'settings-company') check(`6 ${key}: "Open the Menu" is still first`, read.menuFirst === true, String(read.menuFirst));
       /* the Jambo tab's first words are his greeting */
       /* the conversation, turned to as an answer turns it (each host's own reopen), opens on his greeting */

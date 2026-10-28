@@ -25,6 +25,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE UPLOAD
 - f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
 
+- The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
+- The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
 ## THE LEGAL AND LAUNCH AUDITS' FIXES
 - f202, f204, f226, f396 (1c), test/audit/* (sim-d-server-attacks: 0 of 18).
 
@@ -192,6 +194,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Part 8 question 1 = A (22 Oct 2026): wall-of-papers-verify 4 at 1536×730 re-pointed — the second row of papers starts on the screen and the reader scrolls a little.
 
 - THE LIST LANGUAGE (27 Oct 2026): `node --test test/f953-the-list-language.test.js`, with f687, f739, f795, f716, f387, f721, f797, f807, f874 and the Obligations files; in a browser legora-look-verify, legora-lists-verify, sap-lists-verify, the tidy sweep.
+- Our standards as a traffic light (28 Oct 2026): f953 2 re-pointed (three lamps in order, zero grey, the sentence in aria-label/title; red at the parent d866f89); handbook 0.6 pictures re-taken; tidy sweep contracts, approvals, negotiations at the three screens; Approvals keeps 124 (jambos-list-panel-verify 8 at 1366).
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct)
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 

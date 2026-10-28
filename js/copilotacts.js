@@ -1883,11 +1883,16 @@ function caReadPlace(q){
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
-  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'handbook', 'insights', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity'];
+  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'handbook', 'insights', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
+  /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
+     typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
+  'upload'];
 function jamboPageWordOf(q){
   const t = String(q || '').trim().toLowerCase().replace(/[’‘]/g, "'").replace(/^\//, '').replace(/[?.!]+$/, '').trim();
-  if (!t || /\s/.test(t)) return null;
+  if (!t) return null;
   const p = CA_PLACES.find(x => JB_PAGE_PLACES.includes(x.k) && x.w.includes(t)); if (!p) return null;
+  /* a page is ONE word; upload's own phrases too ("ladda upp", "upload a document") */
+  if (/\s/.test(t) && p.k !== 'upload') return null;
   const a = { kind: 'go', place: p.k, cid: null, slash: false, state: 'ready', page: true };
   return (typeof caPlaceStd === 'function') ? caPlaceStd(a, t) : a;
 }

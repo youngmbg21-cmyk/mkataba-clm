@@ -3419,11 +3419,9 @@ function pdWallOverview(){
     const code = (typeof fxHomeCode === 'function') ? fxHomeCode() : undefined;
     if (sum > 0) facts.push({ k: _pdT('jov_ct_value'), v: _pdT('jov_ct_value_v', { sum: fmtMoneyShortIn(sum, code) }) + (miss ? ' · ' + _pdT('jov_ct_value_miss', { list: miss }) : '') });
   }
-  const asks = [];
-  if (ending.length) asks.push({ verb: _pdT('jov_ln_show'), rest: _pdTn('jov_ct_ask_ending', ending.length, { n: ending.length }), run: show(ending, _pdT('jov_ct_ending')) });
-  if (owes.length) asks.push({ verb: _pdT('jov_ln_show'), rest: _pdT('jov_ct_ask_owes'), run: show(owes, _pdT('jov_ct_owes')) });
+  /* no "Ask me" here (owner, 28 Oct 2026: "remove the Ask me details"): each fact keeps its own Show */
   return { head: { b: _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }), s: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view') },
-    facts, src: _pdT('jl_src_list'), asks };
+    facts, src: _pdT('jl_src_list'), asks: [] };
 }
 function pdDropInner(){
   const d = _pdDrop;
@@ -3466,11 +3464,14 @@ function pdDropDoor(){
   if (typeof window === 'undefined' || (window.innerWidth && window.innerWidth < 768)) return false;
   if (typeof hbOpenContracts !== 'function' || !(typeof deskShellOn !== 'function' || deskShellOn())) return false;
   if (!pdDropMay()){ if (typeof draftWallToast === 'function') draftWallToast(); else if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return true; }
-  if (typeof closeModal === 'function' && document.getElementById('modal-root') && document.getElementById('modal-root').children.length) try { closeModal(); } catch (_){}
-  hbOpenContracts();
-  if (typeof intel === 'object' && intel && !intel.dockOpen){ intel.dockOpen = true; if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){} }
-  pdSetTab('copilot');
-  /* LAND ON IT (owner, 18 Oct 2026): the drop area lit, Choose files ready */
+  /* A POP-UP CARD WHERE YOU ARE (owner, 28 Oct 2026: "the card no longer sits on a panel. You simply type upload or
+     press on the upload document link above the entry fields and it shows up as a pop up card"): the same drop card,
+     its stream and its cost, in a dialog over the page you are on; it stays while the file is read and shuts when
+     the contract lands (pdDropTake) */
+  if (typeof openModal !== 'function') return false;
+  if (document.querySelector('#modal-root #pd-drop')){ if (typeof landOn === 'function') landOn('#pd-drop', { focus: '[data-pd-drop-pick]' }); return true; }
+  openModal(`<div class="p-6 pd-drop-dlg"><h2>${_pdE(_pdT('ct_add_received'))}</h2>${pdDropHtml()}<div class="pd-drop-dlg-f"><button type="button" data-dlg-cancel class="ui-btn">${_pdE(_pdT('act_cancel'))}</button></div></div>`);
+  /* LAND ON IT (owner, 18 Oct 2026): Choose a file ready */
   if (typeof landOn === 'function') landOn('#pd-drop', { focus: '[data-pd-drop-pick]' });
   return true;
 }
@@ -3508,9 +3509,17 @@ function pdDropPaint(){
   el.classList.toggle('is-busy', !!(_pdDrop && _pdDrop.state === 'reading'));
   el.innerHTML = pdDropInner();
 }
-/* DISCOVER FIRST, THE DROP BELOW IT (owner, 26 Oct 2026: "the file uploading feature should be below discover"):
-   both stand under the Overview's "Ask me", in that order */
-function pdWallHtml(disc){ return `<div class="pd-wall">${pdWallHelloHtml()}${disc || ''}${pdDropHtml()}</div>`; }
+/* THE PANEL IS NOT OVERWHELMED (owner, 28 Oct 2026: "we are overwhelming the panel with information i can simply
+   ask jambo for. Also the upload contract feature is not needed"; then "keep them as is but keep them below the
+   discover features. Also remove the Ask me details" and "the card no longer sits on a panel"): his one line first,
+   Discover under it, the list's facts under Discover, no "Ask me"; the drop card is a pop-up (pdDropDoor) */
+function pdWallHtml(disc){
+  if (typeof naSheetUp === 'function' && naSheetUp()) return `<div class="pd-wall">${pdWallHelloHtml()}${disc || ''}</div>`;
+  if (typeof jamboOverviewHtml !== 'function') return `<div class="pd-wall">${disc || ''}</div>`;
+  const o = pdWallOverview();
+  const ov = (x, cls, slot) => `<div class="jl-words is-ov ${cls}">${jamboOverviewHtml(x, slot)}</div>`;
+  return `<div class="pd-wall">${ov({ head: o.head }, 'pd-hello', 'pd')}${disc || ''}${ov({ facts: o.facts, src: o.src }, 'pd-wall-facts', 'pdf')}</div>`;
+}
 /* THE FILE PICKER: one input, kept outside the panel (the panel is redrawn
    under it), found at press time, so a chip's press opens it in the press */
 function pdDropInput(){
@@ -3558,7 +3567,11 @@ async function pdDropTake(file, o){
   if (r && r.refused){
     _pdDrop = { state: 'refused', name: file.name, why: r.refused };
     if (typeof toast === 'function') toast(r.refused, 'err');
-  } else _pdDrop = null;
+  } else {
+    _pdDrop = null;
+    /* the contract landed: the pop-up it was dropped on puts itself away */
+    if (typeof closeModal === 'function' && document.querySelector('#modal-root #pd-drop')) try { closeModal(); } catch (_){}
+  }
   pdDropPaint();
   return r;
 }

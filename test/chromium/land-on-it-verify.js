@@ -161,7 +161,8 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
     if (await chip('upload a document')) {
       const L = await until(() => { const d = document.getElementById('pd-drop'); return d && d.classList.contains('is-landed') ? true : null; }, null, 8000);
       const s = await page.evaluate(LIT);
-      check('3a it lands on Jambo\'s drop area on the Contracts place, lit', !!L && s.id === 'pd-drop' && await page.evaluate(() => state.view === 'dashboard'), JSON.stringify(s));
+      /* RE-POINTED 28 Oct 2026 (owner: "it shows up as a pop up card"): the drop card in a pop-up where you are, lit */
+      check('3a it lands on the drop card in its pop-up, lit', !!L && s.id === 'pd-drop' && await page.evaluate(() => !!document.querySelector('#modal-root #pd-drop')), JSON.stringify(s));
       check('3b in sight, no light drawn, Choose files ready', s.inView && /^none/.test(s.ring) && s.focus && /Choose/i.test(s.focusText), JSON.stringify(s));
       await page.waitForTimeout(600);
       check('3c it presses nothing: no file picker opened by itself', pickers === pick0, 'pickers ' + (pickers - pick0));

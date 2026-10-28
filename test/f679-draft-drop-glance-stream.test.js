@@ -401,7 +401,10 @@ describe('f679 (5) a contract at a glance', () => {
   });
   test('5e Jambo\'s tab draws the wall or the glance in place of the generic greeting', () => {
     const { ctx } = pdStage({ paper: null });
-    assert.match(ctx.pdJamboTopHtml(), /id="pd-drop"/);
+    /* RE-POINTED 28 Oct 2026 (owner: "the card no longer sits on a panel"): the wall is his line, Discover, the facts;
+       the drop card is the pop-up's (pdDropDoor) */
+    assert.match(ctx.pdJamboTopHtml(), /class="pd-wall"/);
+    assert.doesNotMatch(ctx.pdJamboTopHtml(), /id="pd-drop"/);
     const p = pdStage();
     assert.match(p.ctx.pdJamboTopHtml(), /id="pd-glance"/);
     /* RE-POINTED 19 Oct 2026 (Jambo as a tab you flip to, and back; the owner:

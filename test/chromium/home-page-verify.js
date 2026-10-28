@@ -432,7 +432,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        Document face's wall (step 4), wearing the same .hm-primary dress; its
        night ink and fill are measured there, and the Board is put back for
        section 9 */
-    await page.evaluate(() => { hbSetFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); });
+    /* RE-POINTED 28 Oct 2026 (owner: the drop card "shows up as a pop up card"): its Choose a file is measured in the pop-up */
+    await page.evaluate(() => { hbSetFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); if (typeof pdDropDoor === 'function') pdDropDoor(); });
     await page.waitForFunction(() => !!document.querySelector('#pd-drop [data-pd-drop-pick]'), null, { timeout: 6000 }).catch(() => {});
     const one = await page.evaluate(() => {
       const b = document.querySelector('#pd-drop [data-pd-drop-pick]'), c = b ? getComputedStyle(b) : null;
@@ -450,6 +451,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('8 and its fill stands off the page',
       one.act && ratio(one.bg, one.page) >= 3, one.act ? `fill ${ratio(one.bg, one.page)}:1` : 'no "Choose a file" drawn');
     await page.screenshot({ path: path.join(OUT, '04-one-look.png') });
+    await page.evaluate(() => { try { closeModal(); } catch (_){} });
     await page.evaluate(() => hbSetFace('board'));
     await page.waitForTimeout(600);
 
