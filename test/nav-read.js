@@ -67,7 +67,8 @@ function navWhereSrc(){
     else if (f) W.pane = ({ fill: 'fill', red: 'redlines', signing: 'sign', amend: 'amend' })[f] || f;
     /* FILL IN IS THE CHECKLIST (owner picked "1 · Checklist", 22 Oct 2026): what is owed, landed on the Dossier */
     else if ((typeof pdTab === 'function') && pdTab() === 'copilot' && document.querySelector('#pd-og .is-landed, #pd-og.is-landed, #pd-glance .is-landed')) W.pane = 'fill';
-    else W.pane = ({ copilot: 'dossier', doc: 'clauses', oblig: 'oblig' })[(typeof pdTab === 'function') ? pdTab() : ''] || '';
+    /* FILL IN IS THE FORM (owner, 28 Oct 2026): the panel's own form tab */
+    else W.pane = ({ copilot: 'dossier', doc: 'clauses', oblig: 'oblig', form: 'fill' })[(typeof pdTab === 'function') ? pdTab() : ''] || '';
     const L = document.querySelector('.is-landed[data-clause], .is-landed[data-pz-clause], .is-landed[data-th-row], .rl-arrived');
     if (L){ const m = String(L.textContent || '').trim().match(/^(?:§\s*)?(\d+)[.)\s]/); if (m) W.clause = m[1]; }
   }

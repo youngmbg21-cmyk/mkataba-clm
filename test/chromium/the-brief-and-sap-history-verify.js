@@ -128,8 +128,12 @@ const BOXES = sel => {
          dates (.ds-ln-st), the old spine's six lines folded away; each named in sentence case */
       const L = await page.evaluate(() => { const st = [...document.querySelectorAll('#ig-dock .ds-ln-st')].filter(x => x.getBoundingClientRect().height > 0);
         const b = st[0] && st[0].querySelector('b'); return { n: st.length, oneLine: st.length > 1 && st.every(x => Math.abs(x.getBoundingClientRect().top - st[0].getBoundingClientRect().top) < 4),
-          cs: b ? getComputedStyle(b).textTransform : null, spine: [...document.querySelectorAll('#ig-dock .ds-sp-st')].filter(x => x.getBoundingClientRect().height > 0).length }; });
-      check('1f the six stages are one line across, named in sentence case; the old six lines are not drawn', L.n === 6 && L.oneLine && L.cs === 'none' && L.spine === 0, JSON.stringify(L));
+          cs: b ? getComputedStyle(b).textTransform : null,
+          /* RE-POINTED 28 Oct 2026 (Fill in the contract, The Legora way as drawn): a stage's old line stands again only as
+             the small head over its rows — 11.5px words, no dot, no door of its own drawn bigger */
+          spine: [...document.querySelectorAll('#ig-dock .ds-sp-st')].filter(x => x.getBoundingClientRect().height > 0)
+            .filter(x => { const w = x.querySelector('b'), d = x.querySelector('.ds-sp-dot'); return !(w && parseFloat(getComputedStyle(w).fontSize) <= 12 && !(d && d.getBoundingClientRect().height > 0)); }).length }; });
+      check('1f the six stages are one line across, named in sentence case; the old six lines are drawn only as small group heads', L.n === 6 && L.oneLine && L.cs === 'none' && L.spine === 0, JSON.stringify(L));
       check('1g Still owed\'s head row takes no room (no band over the grid)', D.thH === 0, D.thH);
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-dossier-1440x780.png') });
     }

@@ -136,29 +136,37 @@ const MEASURE = () => {
     check('2a3 no line between sections or rows (the owner kept The Brief)', await page.evaluate(() => [...document.querySelectorAll('#ig-dock #pd-glance > *, #ig-dock .pd-nx > *, #ig-dock #pd-og tr, #ig-dock .ds-rr')]
       .every(e => { const s = getComputedStyle(e); return ['Top', 'Bottom'].every(k => !(parseFloat(s['border' + k + 'Width']) > 0 && s['border' + k + 'Style'] !== 'none')); })));
     const owed = m0.rows.filter(r => r.key !== 'stream');
-    /* RE-POINTED 23 Oct 2026 (Marquee): one height, 44 */
-    /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix", "the entry is the SAP way: labelled fields at full width ...
-       One Save"): every owed fact shows its field (a door row, the signers, keeps its button), and ONE Save stands */
-    /* the door rows (signers, who else, the web look at the other side) keep their button, not a field */
-    check('2b every owed fact shows its field, labelled above it', owed.length >= 4 && owed.filter(r => !r.door).length >= 4 && owed.filter(r => !r.door).every(r => r.box), JSON.stringify(owed.map(r => [r.key, r.box, r.door])));
-    check('2c one Save for them all, no Confirm on each row', m0.saveAll && owed.filter(r => r.key !== 'signers').every(r => !r.ok), JSON.stringify({ save: m0.saveAll, ok: owed.map(r => [r.key, r.ok]) }));
-    check('2d a missing fact says "Missing" on its line', owed.some(r => /Missing/.test(r.words)), JSON.stringify(owed.map(r => r.words)));
+    /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract", The Legora way, by name): beside a paper the
+       Dossier holds no box — the owed facts are ONE line, "Details · N needed", and its press (the one Fill in door)
+       turns the panel to the form of every one of them: each name over its box, ONE Save, no Confirm on a row.
+       What 2b–2d and 3 asked of the rows is asked of the form; the Dossier's own rows keep their doors. */
+    const FORM = () => { const fm = document.querySelector('#ig-dock .pd-fm'); if (!fm) return null;
+      const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none';
+      return { rows: [...fm.querySelectorAll('tr.pd-fm-row')].map(r => { const lab = r.querySelector('td.pd-og-f b');
+          const box = [...r.querySelectorAll('td.pd-og-v :is(.pd-og-in, .dp-face, select)')].find(vis);
+          const lr = lab && lab.getBoundingClientRect(), br = box && box.getBoundingClientRect();
+          return { key: r.getAttribute('data-pd-og-row'), over: !!(lr && br && lr.bottom <= br.top + 1), ok: vis(r.querySelector('[data-pd-og-ok]')) }; }),
+        save: fm.querySelectorAll('[data-pd-fm-save]').length };
+    };
+    const det = owed.find(r => r.key === 'details') || {};
+    check('2b the owed facts are one line, "Details", and the Dossier holds no box', /^Details\s*\d+ needed/.test(det.words || '') && !det.box
+      && owed.filter(r => r.key !== 'details').every(r => r.door), JSON.stringify(owed.map(r => [r.key, r.box, r.door])));
+    await page.click('#ig-dock .ds-nx [data-pd-ds-fill]');
+    await waitFor(page, () => !!document.querySelector('#ig-dock .pd-fm tr.pd-fm-row'), 6000);
+    const fm0 = await page.evaluate(FORM);
+    check('2c its press opens the form: every fact its box, labelled above it, ONE Save, no Confirm on a row',
+      !!fm0 && fm0.rows.length >= 2 && fm0.rows.every(r => r.over && !r.ok) && fm0.save === 1, JSON.stringify(fm0));
+    check('2d the line says how many are owed ("N needed")', /\d+ needed/.test(det.words || ''), det.words);
     check('2e the order: stage, Needs you, Jambo read, Next acts, then Key terms and the folds',
       m0.order.indexOf('stage') < m0.order.indexOf('owed') && m0.order.indexOf('owed') < m0.order.indexOf('read')
       && m0.order.indexOf('read') < m0.order.indexOf('acts') && m0.order.indexOf('acts') < m0.order.indexOf('pd-kt') + (m0.order.includes('pd-kt') ? 0 : 999),
       JSON.stringify(m0.order));
 
-    console.log('\n3 · a press opens a row, again closes it');
-    const first = owed.find(r => r.open), other = owed.find(r => !r.open && r.key !== 'signers');
-    await page.click(`#ig-dock #pd-og [data-pd-ck-row="${other.key}"]`); await pause(150);
-    const m1 = await page.evaluate(MEASURE);
-    const r1 = k => m1.rows.find(r => r.key === k) || {};
-    check('3a the row pressed is open, the one open before is closed', r1(other.key).open && r1(other.key).box && !r1(first.key).open, JSON.stringify({ was: first.key, now: other.key }));
-    check('3b its field and the one Save stand with it (RE-POINTED 24 Oct 2026, Round 4: one Save)', r1(other.key).box === true && m1.saveAll === true);
-    await page.click(`#ig-dock #pd-og [data-pd-ck-row="${other.key}"]`); await pause(150);
-    const m2 = await page.evaluate(MEASURE);
-    check('3c pressed again it closes, and none is open', m2.rows.every(r => !r.open), JSON.stringify(m2.rows.map(r => [r.key, r.open])));
+    console.log('\n3 · the form, and back');
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): no row opens or closes; the form's way back is the Dossier */
     check('3d nothing left the page for it', await page.evaluate(() => !document.querySelector('.modal-overlay, [role="dialog"]')));
+    await page.click('#ig-dock [data-pd-back="form"]');
+    check('3e its way back is the Dossier', await waitFor(page, () => !document.querySelector('#ig-dock .pd-fm') && !!document.querySelector('#ig-dock #pd-og.is-dossier'), 6000));
 
     console.log('\n5 · Jambo read');
     /* RE-POINTED 23 Oct 2026 (Marquee): the brief's row says its cost */
@@ -186,14 +194,17 @@ const MEASURE = () => {
       boxes: document.querySelectorAll('#ig-dock #pd-og tr[data-pd-og-kind="signer"] input').length }));
     check('7 the only signer door on the Dossier is the Signer line, with no boxes in it', sgDoor.door && sgDoor.boxes === 0 && m0.signerBtns.length === 0, JSON.stringify({ sgDoor, btns: m0.signerBtns }));
 
-    console.log('\n4 · Confirm N read stores a closed row\'s reading');
-    const readRow = m0.rows.find(r => /mutual|Both sides/i.test(r.words));
+    console.log('\n4 · the one Save stores what Jambo read');
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): "Confirm N read" went; the form's one Save stores his readings */
+    const readRow = m0.rows.find(r => /\d+ found/i.test(r.words));
     if (readRow){
-      await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr.is-open .pd-ck-hd'); if (r) r.click(); });
-      await page.click('#ig-dock [data-pd-og-all]');
-      const done = await waitFor(page, k => { const r = document.querySelector(`#ig-dock #pd-og tr[data-pd-og-row="${k}"]`); return !r || r.classList.contains('is-saved'); }, 8000, readRow.key);
-      check('4 the read row is stored though it was closed', done, readRow.key);
-    } else check('4 a row read from the wording is there to confirm', false, JSON.stringify(m0.rows.map(r => r.words)));
+      await page.click('#ig-dock .ds-nx [data-pd-ds-fill]');
+      await waitFor(page, () => !!document.querySelector('#ig-dock .pd-fm tr.pd-fm-row.is-read'), 6000);
+      const key = await page.evaluate(() => (document.querySelector('#ig-dock .pd-fm tr.pd-fm-row.is-read') || {}).getAttribute('data-pd-og-row'));
+      await page.click('#ig-dock [data-pd-fm-save]');
+      const done = await waitFor(page, k => !document.querySelector('#ig-dock .pd-fm') && !pdOgFacts(getContract(pdContract().id)).some(f => f.key === k), 8000, key);
+      check('4 the reading is stored by the one Save', done, key);
+    } else check('4 a fact read from the wording is there to confirm', false, JSON.stringify(m0.rows.map(r => r.words)));
 
     console.log('\n8 · four signers, in order, and the one door');
     const named = await page.evaluate(async id => {

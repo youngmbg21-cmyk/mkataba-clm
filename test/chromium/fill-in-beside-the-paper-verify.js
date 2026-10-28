@@ -119,16 +119,22 @@ const pastFirstWords = async page => {
     await page.evaluate(WATCH);
     await page.evaluate(() => { roomOpenOnTerms('MK-F1'); openWorkspace('MK-F1', { room: true }); });
     const dos1 = await waitFor(page, () => !!document.getElementById('pd-glance') && intel.paper && intel.paper.id === 'MK-F1', 10000);
-    const up1 = await waitFor(page, () => !!document.querySelector('#pd-og[data-pd-og-for="MK-F1"] [data-blankf]'), 10000);
+    /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the Dossier says the owed facts on ONE line, Details,
+       whose door opens the form of every one of them beside the paper */
+    const up1 = await waitFor(page, () => /\d+ needed/.test((document.querySelector('#pd-og[data-pd-og-for="MK-F1"] [data-pd-og-row="details"]') || {}).textContent || ''), 10000);
     let f = await page.evaluate(FACE);
-    check('1a0 it lands on the Dossier, no face, Still owed\'s grid asking each fact on its row', dos1 && up1 && !(await page.evaluate(() => !!document.getElementById('pd-fillface'))), JSON.stringify(f));
+    check('1a0 it lands on the Dossier, no face, the owed facts one line ("Details · N needed")', dos1 && up1 && !(await page.evaluate(() => !!document.getElementById('pd-fillface'))), JSON.stringify(f));
     await page.evaluate(() => pdFillOpen('MK-F1'));
     await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og')), 3000);
     f = await page.evaluate(FACE);
     const frames1 = await page.evaluate(() => [...new Set(window._frames || [])]);
     const room1 = await page.evaluate(() => window._roomSeen);
     check('1a an upload lands on Home\'s paper; a door puts the hand in the grid', f.up && f.view === 'dashboard' && f.face === 'paper' && f.paper === 'MK-F1', JSON.stringify(f));
-    check('1b the cursor is in the first owed box', f.focus === 'counterparty' && f.inFace, f.focus);
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form stands in groups (Money · Dates · Parties · Blanks · Terms);
+       the hand is in its first owed box */
+    const firstOwed = await page.evaluate(() => { const r = document.querySelector('#pd-og.is-form tr.pd-fm-row.is-amb'); const b = r && r.querySelector('[data-kt],[data-blankf],[data-tplf]');
+      return b ? (b.getAttribute('data-kt') || b.getAttribute('data-blankf') || 'tplf') : null; });
+    check('1b the cursor is in the first owed box', !!firstOwed && f.focus === firstOwed && f.inFace, f.focus + ' / ' + firstOwed);
     check('1c the room is never drawn on the way', room1 === 0 && !frames1.some(x => /workspace/.test(x)), JSON.stringify(frames1) + ' room paints ' + room1);
     const tones = await page.evaluate(() => {
       const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
@@ -148,14 +154,15 @@ const pastFirstWords = async page => {
     const echo = await page.evaluate(() => [...document.querySelectorAll('#ig-canvas span.up-blank[data-upblank="up_supplier_address"]')].map(x => x.textContent));
     check('2a the words show on the paper while typing', echo.length > 0 && echo.every(t => t === 'Strandvejen 70, Hellerup'), JSON.stringify(echo));
     await page.screenshot({ path: path.join(OUT, '2-typing.png') });
-    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_supplier_address"]'); await ckConfirm(page, 'up_supplier_address');
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): Enter stores the row through its own writer; the form keeps it,
+       ticked, and the next owed box takes the hand */
+    await page.keyboard.press('Enter');
     await waitFor(page, n => detailsOf(getContract('MK-F1')).left === n - 1, 3000, left0);
-    await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og')), 2000);
+    await waitFor(page, () => { const a = document.activeElement; return !!(a && a.closest && a.closest('#pd-og') && a.getAttribute('data-blankf') !== 'up_supplier_address'); }, 2000);
     f = await page.evaluate(FACE);
     const left1 = await page.evaluate(() => detailsOf(getContract('MK-F1')).left);
-    const saved = await page.evaluate(() => !!document.querySelector('#pd-og tr.is-saved[data-pd-og-row="up_supplier_address"]'));
-    /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix", one Save under the fields): every field stays open, so no hand moves */
-    check('2b Save stores it: the row says saved, the grid shortens', left1 === left0 - 1 && saved && f.rows === rows0 - 1, `${left0} → ${left1} · rows ${rows0} → ${f.rows} · saved ${saved} · focus ${f.focus}`);
+    const saved = await page.evaluate(() => !!document.querySelector('#pd-og tr.is-typed[data-pd-og-row="up_supplier_address"]'));
+    check('2b Enter stores it: the row is ticked, the count shortens, the hand moves on', left1 === left0 - 1 && saved && f.focus && f.focus !== 'up_supplier_address', `${left0} → ${left1} · rows ${rows0} → ${f.rows} · ticked ${saved} · focus ${f.focus}`);
 
     /* ===== 3. A PRESS ON A BLANK ON THE PAPER ===== */
     let sp = null;
@@ -191,7 +198,12 @@ const pastFirstWords = async page => {
     await page.fill('#ce-counterparty', 'Nordic Bites AB');
     await page.click('#na-create');
     await waitFor(page, () => !document.getElementById('na-root'), 10000); await pastFirstWords(page);
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the template's questions stand in the form its door opens */
+    await waitFor(page, () => !!document.querySelector('#pd-og[data-pd-og-for]') && !document.getElementById('na-root'), 10000);
+    await page.evaluate(() => pdFillOpen(intel.paper.id));
     const up5 = await waitFor(page, () => !!document.querySelector('#pd-og [data-tplf]') && !document.getElementById('na-root'), 10000);
+    /* the door puts the hand in the form's first owed box (a bounded beat after the paint): asked for, before typing elsewhere */
+    await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og.is-form')), 4000);
     const site = await page.evaluate(() => getContract(intel.paper.id).templateForm.fields.findIndex(x => x.fieldKey === 'site'));
     await ckOpenRowOf(page, `#pd-og [data-tplf="${site}"]`); await page.click(`#pd-og [data-tplf="${site}"]`);
     await page.keyboard.type('Avenyn 12, Gothenburg', { delay: 10 });
@@ -209,17 +221,21 @@ const pastFirstWords = async page => {
     /* ===== 6. THE LAST ROW: NOTHING OWED, AND THE NEXT STEP ===== */
     await page.evaluate(() => pdFillOpen('MK-F1'));
     await waitFor(page, () => intel.paper && intel.paper.id === 'MK-F1' && !!document.querySelector('#pd-og[data-pd-og-for="MK-F1"]'), 8000);
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): each row stored through its own writer (Enter's, pdOgConfirm), the
+       form keeping it ticked; then the one Save, back to the Dossier */
+    await waitFor(page, () => !!document.querySelector('#pd-og.is-form[data-pd-og-for="MK-F1"]'), 6000);
     for (let i = 0; i < 12; i++) {
-      const next = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)')].find(x => x.querySelector('[data-kt],[data-blankf]'));
+      const next = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved):not(.is-typed):not(.is-read)')].find(x => x.querySelector('[data-kt],[data-blankf]'));
         if (!r) return null; const b = r.querySelector('[data-kt]:not([type=checkbox]),[data-blankf]');
         return { key: r.getAttribute('data-pd-og-row'), sel: b.getAttribute('data-kt') ? '[data-kt="' + b.getAttribute('data-kt') + '"]' : '[data-blankf="' + b.getAttribute('data-blankf') + '"]', type: b.type }; });
       if (!next) break;
       const sel = '#pd-og ' + next.sel;
       if (next.type === 'date') await page.$eval(sel, el => { el.value = '2026-11-01'; el.dispatchEvent(new Event('change', { bubbles: true })); });
       else { await page.click(sel); await page.keyboard.type(/value/.test(next.sel) ? '180000' : /counterparty/.test(next.sel) ? 'Parcelway ApS' : 'Answered', { delay: 5 }); }
-      await ckOpenRowOf(page, `#pd-og [data-pd-og-ok="${next.key}"]`); await ckConfirm(page, `${next.key}`).catch(() => {});
+      await page.evaluate(k => pdOgConfirm(getContract('MK-F1'), k), next.key);
       await pause(300);
     }
+    await page.click('#ig-dock [data-pd-fm-save]');
     await waitFor(page, () => !detailsOf(getContract('MK-F1')).left, 4000);
     const done = await page.evaluate(() => ({ left: detailsOf(getContract('MK-F1')).left,
       owedRows: document.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)[data-pd-og-kind="kt"], #pd-og tr.pd-og-row:not(.is-saved)[data-pd-og-kind="blank"]').length,
@@ -234,10 +250,12 @@ const pastFirstWords = async page => {
     check('7a no face, so nothing to go back from; the box stays', !backs && await page.evaluate(() => !!document.getElementById('igd-input')));
     await page.evaluate(() => pdOpenOnHome('MK-F2', 'copilot')); await pause(400);
     await page.evaluate(() => intelAsk('fill in'));
-    check('7b "fill in" lands on the grid', await waitFor(page, () => !!document.querySelector('#pd-og') && pdTab() === 'copilot' && !document.getElementById('pd-fillface'), 4000));
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the word opens the form */
+    check('7b "fill in" lands on the form', await waitFor(page, () => !!document.querySelector('#pd-og.is-form') && pdTab() === 'form' && !document.getElementById('pd-fillface'), 4000));
 
     /* ===== 8. THE OTHER DOORS; THE ROOM'S TAB STANDS ===== */
-    const onGrid = id => waitFor(page, x => !!document.querySelector(`#pd-og[data-pd-og-for="${x}"]`) && intel.paper && intel.paper.id === x, 6000, id);
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): every Fill in door lands on the form */
+    const onGrid = id => waitFor(page, x => !!document.querySelector(`#pd-og.is-form[data-pd-og-for="${x}"]`) && intel.paper && intel.paper.id === x, 6000, id);
     await page.evaluate(() => setView('register')); await pause(400);
     await page.evaluate(() => needsYouGo('details', 'MK-F2'));
     check('8a the checklist lands on the grid on its contract', await onGrid('MK-F2'));
@@ -266,7 +284,8 @@ const pastFirstWords = async page => {
       await waitFor(page, () => !!document.querySelector('#pd-og [data-kt]'), 5000);
       await pause(400);
       const m = await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const cv = document.getElementById('ig-canvas'); const og = document.getElementById('pd-og');
-        const head = document.querySelector('#pd-needs .pd-gl-h'); const box = document.getElementById('igd-input'); const dock = document.getElementById('ig-dock');
+        /* RE-POINTED 28 Oct 2026 (Fill in the contract): the head is the form's */
+        const head = document.querySelector('#ig-dock .pd-fm-h'); const box = document.getElementById('igd-input'); const dock = document.getElementById('ig-dock');
         const a = document.activeElement;
         const r = el => el ? el.getBoundingClientRect() : null; const hr = r(head), br = r(box), dr = r(dock), ar = r(a && a.closest && a.closest('#pd-og') ? a : null);
         return { w: sc ? Math.round(sc.clientWidth) : null, top: cv ? Math.round(cv.getBoundingClientRect().top) : null,

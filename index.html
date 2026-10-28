@@ -17724,6 +17724,64 @@
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-n{font-size:12px;color:var(--color-neutral-600)}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-b .pd-ck-chev::before{content:'\203A';display:inline-block;transition:transform .15s}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og .pd-og-gh-b[aria-expanded="true"] .pd-ck-chev::before{transform:rotate(90deg)}
+  /* ==== THE DOSSIER, THE LEGORA WAY, AND FILL IN THE CONTRACT (owner picked it by name, 28 Oct 2026) ====
+     Every line beside a paper reads across three columns: the name, what stands, one door; no rings or dots;
+     one left edge and one right edge. The stage names stand over their rows as small group heads (Read · Fill
+     in · Sign …), shown only where the stage has rows. The owed details are one line ("Details"); its door,
+     and the Next card's one button, turn the panel to the form: each name over its box, amber where owed. */
+  #app-shell #ig-dock .pd-dossier.is-mix > .ds-spine.is-sp{display:contents}
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix :is(.ds-sp-st, [data-ds-at], .ds-acts[data-ds-at-now], .ds-nx.is-mq > .is-ck-all){padding-left:0;background:none}
+  #app-shell #ig-dock #igd-feed .pd-nx.ds-nx > :is(.ds-acts[data-ds-at-now], .is-ck-all){padding-left:0;background:none}
+  #app-shell #ig-dock .pd-dossier.is-mix:has([data-ds-at="read"]) .ds-sp-st[data-ds-sp="read"],
+  #app-shell #ig-dock .pd-dossier.is-mix:has([data-ds-at="fill"]) .ds-sp-st[data-ds-sp="fill"],
+  #app-shell #ig-dock .pd-dossier.is-mix:has([data-ds-at="nego"]) .ds-sp-st[data-ds-sp="nego"],
+  #app-shell #ig-dock .pd-dossier.is-mix:has(:is([data-ds-at="sign"], [data-ds-at="ob"])) .ds-sp-st[data-ds-sp="sign"],
+  #app-shell #ig-dock .pd-dossier.is-mix:has([data-ds-at="live"]) .ds-sp-st[data-ds-sp="live"]{display:flex;align-items:baseline;gap:8px;min-height:0;margin:0;padding:14px 0 2px;background:none}
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st > .ds-sp-dot{display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st > b{font-family:inherit;font-size:11.5px;line-height:16px;font-weight:var(--w-body);color:var(--color-quiet)}
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st > .ds-sp-v{font-size:11.5px;line-height:16px;color:var(--color-quiet)}
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st > .ds-sp-v.is-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st > .ds-go{font-size:11.5px}
+  /* the three columns: Jambo read's rows, the grid's lines, the Obligations line — laid out as FLEX (a <button> laid out
+     as grid is sized to its words by Chrome): the name 120 wide, what stands takes the rest, the door at the end */
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-read .ds-row.ds-rr,
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-dossier tr.pd-og-row .pd-ck-hd,
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-ob-line{display:flex;align-items:baseline;gap:12px;width:100%;height:auto;min-height:0;padding:9px 0;margin:0}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr, #pd-og.is-dossier .pd-ck-hd, .ds-ob-line) > .pd-ck-ring{display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-nm, #pd-og.is-dossier .pd-ck-hd > b, .ds-ob-line > b){flex:0 0 120px;width:120px;min-width:0;font-size:13.5px;line-height:20px;font-weight:var(--w-label);color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-val, #pd-og.is-dossier .pd-ck-hd > .pd-ck-v, .ds-ob-line > .ds-this-v){flex:1 1 0;justify-self:start;min-width:0;max-width:none;font-size:13px;line-height:19px;text-align:left;color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > :last-child, #pd-og.is-dossier .pd-ck-hd > .pd-ck-chev, .ds-ob-line > .pd-ck-chev){flex:none;justify-self:end;margin-left:auto}
+  #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-dossier .pd-ck-v .is-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
+  /* ---- the form ---- */
+  #app-shell #ig-dock .pd-fm{display:flex;flex-direction:column;gap:4px;font-size:13px}
+  #app-shell #ig-dock .pd-fm-h h3{margin:0;font-size:16px;line-height:22px;font-weight:var(--w-strong);color:var(--color-text)}
+  #app-shell #ig-dock .pd-fm-h p{margin:2px 0 8px;font-size:12.5px;color:var(--color-text)}
+  #app-shell #ig-dock .pd-fm .is-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
+  #app-shell #ig-dock .pd-fm-bar{height:4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+  #app-shell #ig-dock .pd-fm-bar > i{display:block;height:100%;border-radius:2px;background:var(--color-text)}
+  #app-shell #ig-dock #pd-og.is-form{display:block;width:100%;margin:0}
+  #app-shell #ig-dock #pd-og.is-form > tbody.pd-fm-g{display:flex;flex-direction:column;gap:2px;padding-top:14px}
+  #app-shell #ig-dock #pd-og.is-form tr.pd-fm-gh, #app-shell #ig-dock #pd-og.is-form tr.pd-fm-gh > th{display:flex;align-items:baseline;gap:8px;width:auto;height:auto;padding:0;border:0;background:none;overflow:visible;font-size:11.5px;line-height:16px;font-weight:var(--w-body);letter-spacing:normal;text-transform:none;color:var(--color-quiet);text-align:left}
+  #app-shell #ig-dock #pd-og.is-form tr.pd-fm-row{display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:6px 0;border:0}
+  #app-shell #ig-dock #pd-og.is-form tr.pd-fm-row > td{display:block;width:auto;padding:0;margin:0;text-align:left}
+  #app-shell #ig-dock #pd-og.is-form td.pd-og-f > b{font-size:13px;line-height:18px;font-weight:var(--w-label);color:var(--color-text)}
+  #app-shell #ig-dock #pd-og.is-form td.pd-og-v{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:relative}
+  #app-shell #ig-dock #pd-og.is-form td.pd-og-v > :is(.pd-og-in, .dp-face, .pd-og-sb, select){width:100%;min-width:0;margin:0}
+  #app-shell #ig-dock #pd-og.is-form td.pd-og-v > :is(.pd-og-in:not(textarea), .dp-face, select), #app-shell #ig-dock #pd-og.is-form .pd-og-sb > .pd-og-in{height:32px;font-size:13px}
+  #app-shell #ig-dock #pd-og.is-form .pd-og-nm{font-size:12.5px;color:var(--color-text)}
+  #app-shell #ig-dock #pd-og.is-form td.pd-og-a .pd-ck-src{display:block;font-size:11.5px;line-height:16px;color:var(--color-quiet)}
+  #app-shell #ig-dock #pd-og.is-form td.pd-og-a .pd-og-src{font-size:11.5px;color:var(--color-quiet)}
+  #app-shell #ig-dock #pd-og.is-form td.pd-og-a:not(:has(.pd-ck-src > *)):not(:has(.pd-ck-src:not(:empty))){display:none}
+  #app-shell #ig-dock #pd-og.is-form .pd-fm-jb::before{content:'\2726\00a0';color:var(--accent-ink)}
+  /* the box in the hand: an amber ring; answered: white and ticked */
+  #app-shell #ig-dock #pd-og.is-form tr.pd-fm-row :is(.pd-og-in, .dp-face, select):focus{outline:none;border-color:var(--st-amber-dot);box-shadow:0 0 0 2px var(--st-amber-dot)}
+  #app-shell #ig-dock #pd-og.is-form tr.pd-fm-row.is-typed :is(.pd-og-in, .dp-face, select){background:var(--color-surface)}
+  #app-shell #ig-dock #pd-og.is-form tr.pd-fm-row.is-typed td.pd-og-v::after{content:'\2713';position:absolute;right:10px;top:7px;font-size:13px;font-weight:var(--w-strong);color:var(--st-green-fg);pointer-events:none}
+  #app-shell #ig-dock #pd-og.is-form tr.pd-fm-row.is-typed:has(.dp-face) td.pd-og-v::after{right:34px}
+  #app-shell #ig-dock #pd-og.is-form .pd-fm-done{display:flex;align-items:center;height:32px;padding:0 30px 0 10px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);font-size:13px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #app-shell #ig-dock .pd-fm-f{position:sticky;bottom:-20px;z-index:2;display:flex;align-items:center;gap:8px;margin:12px -16px -20px;padding:12px 16px;background:var(--color-surface);border-top:1px solid var(--color-divider)}
+  #app-shell #ig-dock .pd-fm-f > span{margin-left:auto;font-size:11.5px;line-height:15px;color:var(--color-quiet);text-align:right}
+  #app-shell #ig-dock .pd-fm-none{margin:12px 0;font-size:13px;color:var(--color-text)}
   /* ROUND 3: ONE PLACE TO TYPE — while the ✦'s window is open over the page, the Dossier's own box and its links step aside */
   body:has(#ai-panel.open.floating) #ig-dock .igd-foot, body:has(#ai-panel.open.floating) #ig-dock [data-ig-chips]{visibility:hidden}
   /* ROUND 3: SEND — email not set up is one plain line, not an amber strip */

@@ -270,7 +270,9 @@ const pastFirstWords = async page => {
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.querySelector('#pd-og [data-pd-og-row="stream"]'), 8000);
     const s0 = await page.evaluate(() => { const c = getContract(intel.paper.id); const r = document.querySelector('#pd-og [data-pd-og-row="stream"]');
-      return { folder: c.folder, name: (FOLDERS[c.folder] || {}).name, said: r ? r.textContent : '', box: !!(r && r.querySelector('input, select, button')), ring: !!(r && r.querySelector('.pd-ck-ring.is-done')) }; });
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract, as drawn): the stream's line carries "Edit ›" (Key terms in the
+         middle, its Move open) — a door, never a box to type in */
+      return { folder: c.folder, name: (FOLDERS[c.folder] || {}).name, said: r ? r.textContent : '', box: !!(r && r.querySelector('input, select')), ring: !!(r && r.querySelector('.pd-ck-ring.is-done')) }; });
     /* RE-POINTED 21 Oct 2026 (owner: the grey line under an owed fact was noise): the row names the stream and says Saved */
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): an answered row says so with its filled ring, not the word */
     check('5a Still owed names the stream, saved', !!s0.name && s0.said.includes(s0.name) && s0.ring && !/set when/i.test(s0.said) && !s0.box, s0);
@@ -283,7 +285,10 @@ const pastFirstWords = async page => {
       const rows = [...el.querySelectorAll('[data-pd-gl]')].map(r => [r.getAttribute('data-pd-gl'), r.querySelector('span').textContent]);
       /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance is the dossier — the spine for the stage, What Jambo read, Still owed */
       /* RE-POINTED 20 Oct 2026 (the Legora way): each owed detail is a row of Still owed's grid */
-      const fillRows = [...el.querySelectorAll('#pd-og [data-pd-og-kind]')].filter(r => !['signer', 'people'].includes(r.getAttribute('data-pd-og-kind'))).map(() => 1);
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract): the owed details are ONE line, "Details · N needed · M found by
+         Jambo"; its numbers add up to the count */
+      const det = el.querySelector('#pd-og [data-pd-og-row="details"] .pd-ck-v');
+      const fillRows = det ? (det.textContent.match(/\d+/g) || []).map(Number) : [];
       /* RE-POINTED 22 Oct 2026 (the Checklist): the number leads the risks row's grey value */
       const rk = el.querySelector('[data-pd-ds="risks"] .ds-val');
       /* RE-POINTED 23 Oct 2026 (Spine): no section heads; the stages stand down the spine, one current */
