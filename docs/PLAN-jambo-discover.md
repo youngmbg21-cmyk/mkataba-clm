@@ -182,3 +182,9 @@ NOT DONE, and why: the junk questions already in the owner's workspace are not d
 Delete is on every unkept row in Discover, but deleting is not undoable and the owner has
 not seen the list, so it waits for their yes. The live (graded) measure still needs
 `ANTHROPIC_API_KEY`.
+
+## 9. Reads in batches, and the Reads page — THE THREAD (owner picked it, 28 Oct 2026)
+
+A press reads 50 or 100 of the first NOT YET READ, in the list's order; every press leaves a record (`column_reads`);
+a new page, Reads, lists every read with the next batch on the row. The story, the three options and what was built:
+docs/MAP-HISTORY.md "ASK A COLUMN — READS IN BATCHES, AND THE READS PAGE". Tests: f954, reads-verify.

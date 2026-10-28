@@ -1791,6 +1791,8 @@ const CA_PLACES = [
   { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'standards', 'our standards', 'playbook', 'vårt papper', 'mallar', 'mall', 'standarder', 'våra standarder'] },
   { k: 'import', w: ['import', 'imports', 'import contracts', 'importera', 'importera avtal'] },
   { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
+  /* READS (The thread, 28 Oct 2026): every read of the wording, and the next batch */
+  { k: 'reads', w: ['reads', 'every read', 'all reads', 'past reads', 'previous reads', 'earlier reads', 'read history', 'läsningar', 'läsningarna', 'alla läsningar', 'tidigare läsningar', 'varje läsning'] },
   /* THE HANDBOOK (owner, 26 Oct 2026): the instruction book, one chapter per thing; "how do I …" lands on its chapter (navReadHandbook) */
   { k: 'handbook', w: ['handbook', 'the handbook', 'instructions', 'the instructions', 'user guide', 'manual', 'instruction book', 'handbok', 'handboken', 'instruktioner', 'instruktionerna', 'manualen', 'bruksanvisning'] },
   { k: 'insights', w: ['insights', 'insikter'] },
@@ -1910,7 +1912,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'reads', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2067,6 +2069,8 @@ const CA_GO = {
   ourpaper: (c, a) => { if (!(a && a.std)){ setView('templates'); return; } caOpenStandards(a.book); },
   import: () => !caMayAdd() ? false : setView('migration'),
   mynotes: () => setView('mynotes'),
+  /* Reads, on a question where one was named (The thread, 28 Oct 2026) */
+  reads: (c, a) => (typeof readsOpen === 'function') ? (readsOpen(a && a.ask), true) : setView('reads'),
   /* the Handbook, on a chapter when a "how do I …" read one (26 Oct 2026) */
   handbook: (c, a) => (typeof hbkOpen === 'function') ? hbkOpen(a && a.chapter, { part: a && a.part }) : setView('handbook'),
   insights: () => setView('intel'),
