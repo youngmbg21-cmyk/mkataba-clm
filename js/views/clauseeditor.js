@@ -500,7 +500,9 @@ function clauseEditorCss(){
   /* the writing bar runs end to end, under his card (owner, 28 Oct 2026: "the top bar has to go end to end
      and the jambo goes over it"): the head reaches past its column to the window's right edge, and his card
      stands over its right end */
-  #clause-editor:not(.is-theirs) .ce-head{margin-right:calc(100% - 100vw); position:relative; z-index:1}
+  #clause-editor:not(.is-theirs) .ce-head{margin-right:calc(100% - 100vw); padding-right:calc(100vw - 100%); position:relative; z-index:1}
+  /* only its GROUND runs on: the padding gives back what the margin took, so the tools and the sentence
+     (#ce-say measures its own room) keep to the paper's column and nothing is drawn under his card */
   #clause-editor:not(.is-theirs) .ce-col{overflow:visible}
   #clause-editor:not(.is-theirs) .ce-grid > .ce-rail{z-index:2}
   .ce-spell:empty{display:none}

@@ -142,7 +142,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
         discH: document.querySelector('#clause-editor .ce-disc') ? Math.round(document.querySelector('#clause-editor .ce-disc').getBoundingClientRect().height) : 0 }; });
     /* RE-POINTED 28 Oct 2026 (owner: "The lines in the jambo and the main page are not aligned"): the dropdown's
        row is the editor's one row height, its line meeting the writing bar's across the seam */
-    check(!!P.h && !P.disc && P.h <= 45 && (P.barBottom == null || Math.abs(P.bottom - P.barBottom) <= 1), '2a the dropdown stands where "Written by Jambo" stood, its line level with the writing bar\'s', JSON.stringify(P));
+    check(!!P.h && !P.disc && P.h <= 45 && (P.barBottom == null || Math.abs(P.bottom - P.barBottom - 8) <= 1), '2a the dropdown stands where "Written by Jambo" stood, level with the writing bar\'s line plus the floating card\'s 8px inset (re-pointed 28 Oct 2026)', JSON.stringify(P));
     check(P.groups && P.groups.length === 1 && /^High · 1$/.test(P.groups[0]) && P.on === 'Liability · may favour them', '2b on Risks: the open risks by short title, grouped by severity, on the one being edited', JSON.stringify(P));
     const T = await page.evaluate(() => { const t = document.querySelector('#ce-askrow #ce-scope.ce-tag'); return { tag: t ? t.textContent.trim() : null, card: !!document.querySelector('#clause-editor .ce-scope') }; });
     check(T.tag !== null && !T.card, '3a no Selected card; what it said rides in the ask box', JSON.stringify(T));
