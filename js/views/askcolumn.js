@@ -424,8 +424,44 @@ function askColDeskNowHtml(b){
   return `<div class="ac-desk-now"><span class="ob-spin" aria-hidden="true"></span><span>${_acE(_acT('ac_desk_now'))}</span><span class="ac-desk-refs">${refs}</span></div>`;
 }
 /* the answer the desk shows now, and the three it turned past (newest first) */
-function askColDeskAt(b){ return (b && b.batch && b.batch.length) ? b.batch[Math.min(b.turn || 0, b.batch.length - 1)] : null; }
-function askColDeskPast(b){ return b ? (b.seen || []).concat((b.batch || []).slice(0, b.turn || 0)).slice(-AC_DESK_STACK).reverse() : []; }
+/* THE DESK IS A QUEUE OF ANSWERS THAT LANDED (28 Oct 2026): the first is laid down the moment it arrives;
+   each turn takes the next; when answers come faster than the desk turns it keeps pace by passing over the
+   oldest waiting (they are in their cells on the list), never more than AC_DESK_BEHIND behind */
+const AC_DESK_BEHIND = 3, AC_DESK_LINGER_MS = 5000;
+function askColDeskAt(b){ return (b && b.cur) || null; }
+function askColDeskPast(b){ return b ? (b.seen || []).slice(-AC_DESK_STACK).reverse() : []; }
+function askColDeskAdd(b, askId, cid){
+  if (!b || !askId || !cid || !b.queued || b.queued.has(cid) || !(AC.ans[askId] || {})[cid]) return;
+  b.queued.add(cid);
+  const item = { askId, cid };
+  if (!b.cur){ b.cur = item; b.curAt = Date.now(); askColDeskPaint(true); }
+  else b.queue.push(item);
+}
+/* the foot's counts move with every answer, without repainting the card */
+function askColDeskFootPaint(){
+  const b = AC.busy; if (!b || typeof document === 'undefined') return;
+  const el = document.querySelector('#ac-form .ac-desk-foot .ac-busy'); if (el) el.textContent = askColDeskFootText(b);
+  const bar = document.querySelector('#ac-form .ac-prog > i'); if (bar) bar.style.width = (b.total ? Math.round(b.done / b.total * 100) : 0) + '%';
+}
+/* a cell fills as its answer lands; the list is repainted at most every 400ms however fast they come */
+let _acListT = 0;
+function askColListSoon(now){
+  if (typeof regRepaint !== 'function') return;
+  if (now){ if (_acListT){ clearTimeout(_acListT); _acListT = 0; } regRepaint(); return; }
+  if (_acListT) return;
+  _acListT = setTimeout(() => { _acListT = 0; regRepaint(); }, 400);
+}
+/* bounded: until the queue is shown and the last answer has stood one turn, or Stop, or AC_DESK_LINGER_MS */
+function askColDeskDrain(){
+  const t0 = Date.now();
+  return new Promise(done => {
+    const look = () => { const b = AC.busy;
+      if (!b || b.stop || Date.now() - t0 > AC_DESK_LINGER_MS || typeof document === 'undefined' || !document.querySelector('#ac-form [data-ac-desk]')
+        || (!b.queue.length && (!b.cur || Date.now() - b.curAt >= AC_DESK_TURN_MS))) return done();
+      setTimeout(look, 150); };
+    look();
+  });
+}
 function askColDeskWord(a){ return a.noWording ? _acT('ac_no_wording') : a.found ? [a.answer, a.detail].filter(Boolean).join(', ') : _acT('ac_not_found'); }
 /* the agreement, then the other side where the name does not carry it ("Supply Agreement · Kabras Sugar"), as the list's own row reads */
 function askColDeskNameOf(cid){
@@ -463,22 +499,21 @@ function askColDeskFootText(b){
   if (b.stop) return _acT('ac_stopping');
   return _acTn('ac_desk_foot', b.total, { done: b.done, risk: b.done ? _acTn('ac_desk_risk', askColDeskRisk(b)) : '', calls: _acTn('ac_n_calls', b.calls || 0) }).replace(/ · (?= · )/, '').replace(/ ·  · /g, ' · ');
 }
-/* a batch has landed: the one before it joins what the desk turned past; the desk starts on the new ten */
+/* a batch is whole: every answer of it that is not yet on the desk joins the queue (the plain answer's way) */
 function askColDeskLanded(b, part, lead){
   if (!b) return;
-  b.seen = (b.seen || []).concat(b.batch || []);
-  b.askId = lead || b.askId || null;
-  b.batch = lead ? part.filter(id => (AC.ans[lead] || {})[id]).map(cid => ({ askId: lead, cid })) : [];
-  b.turn = 0;
-  b.doneIds = (b.doneIds || []).concat(part);
+  b.askId = b.askId || lead || null;
+  if (lead) part.forEach(cid => askColDeskAdd(b, lead, cid));
 }
 function askColDeskStart(){ askColDeskStop(); AC.deskTimer = setInterval(askColDeskTick, AC_DESK_TURN_MS); }
 function askColDeskStop(){ if (AC.deskTimer){ clearInterval(AC.deskTimer); AC.deskTimer = null; } }
 function askColDeskTick(){
   const b = AC.busy;
   if (!b || typeof document === 'undefined' || !document.querySelector('#ac-form [data-ac-desk]')){ if (!b) askColDeskStop(); return; }
-  if (!b.batch || (b.turn || 0) >= b.batch.length - 1) return;
-  b.turn = (b.turn || 0) + 1;
+  if (!b.queue.length) return;
+  while (b.queue.length > AC_DESK_BEHIND) b.queue.shift();
+  if (b.cur) b.seen.push(b.cur);
+  b.cur = b.queue.shift(); b.curAt = Date.now();
   askColDeskPaint(true);
 }
 /* only the desk and the stack repaint on a turn; the slide is the browser's own, off under less motion */
@@ -1031,37 +1066,65 @@ function askColDrop(askId){
 async function askColReadRun(base, ids, opts){
   const o = opts || {};
   const got = { calls: 0, cached: 0, failed: [], capped: null, asks: [], err: null, stopped: false, done: 0, left: [] };
-  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '', calls: 0, seen: [], batch: [], turn: 0, doneIds: [], askId: null, asks: [] };
+  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '', calls: 0, seen: [], queue: [], queued: new Set(), cur: null, curAt: 0, doneIds: [], askId: null, asks: [] };
   askColPaintPanel(); askColDeskStart();
+  /* the questions are known: their columns stand on the list before the first answer (the stream says them first) */
+  const takeAsks = (asks, part) => {
+    asks.forEach(a => { AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a); (AC.asked[a.id] || (AC.asked[a.id] = new Set())); part.forEach(x => AC.asked[a.id].add(x)); });
+    if (AC.busy && asks.length){ AC.busy.asks = asks.map(a => a.id); AC.busy.askId = AC.busy.askId || asks[0].id; }
+    if (!got.asks.length && asks.length){ got.asks = asks; if (o.onFirst) o.onFirst(asks); }
+  };
   for (let i = 0; i < ids.length; i += AC_BATCH){
     if (AC.busy.stop){ got.stopped = true; break; }
     const part = ids.slice(i, i + AC_BATCH);
     AC.busy.ids = part;
     if (typeof regRepaint === 'function') regRepaint();
     askColPaintPanel();
-    let r = null;
-    try { r = await api('ai/column', 'POST', { ...base, ids: part, texts: askColTexts(part) }); }
-    catch (e){ got.err = e; break; }
+    const body = { ...base, ids: part, texts: askColTexts(part) };
+    let r = null, streamCalls = 0;
+    /* EACH ANSWER THE MOMENT IT IS READ (the owner, 28 Oct 2026): the same route as a stream — the questions,
+       then one answer per contract as Jambo finishes it, each counted, put in its cell and laid on the desk.
+       Any trouble with the stream falls back to the plain answer: what was read is kept per wording, so the
+       second ask pays only for what the first did not finish. */
+    const onEvent = ev => {
+      if (!AC.busy) return;
+      if (ev.type === 'asks') return takeAsks((ev.asks && ev.asks.length) ? ev.asks : (ev.ask ? [ev.ask] : []), part);
+      if (ev.type !== 'answer' || !ev.id || !ev.byAsk) return;
+      Object.keys(ev.byAsk).forEach(k => { Object.assign(AC.ans[k] || (AC.ans[k] = {}), { [ev.id]: ev.byAsk[k] }); });
+      AC.busy.done++; streamCalls += Number(ev.calls) || 0; AC.busy.calls += Number(ev.calls) || 0;
+      AC.busy.doneIds.push(ev.id);
+      askColDeskAdd(AC.busy, AC.busy.askId || Object.keys(ev.byAsk)[0], ev.id);
+      askColDeskFootPaint(); askColListSoon();
+    };
+    try { r = (typeof apiStream === 'function') ? await apiStream('ai/column', { ...body, stream: true }, onEvent) : null; }
+    catch (_){ r = null; }
+    if (!r){
+      /* the calls the broken stream already spent are still spent: they are counted, never hidden */
+      got.calls += streamCalls;
+      try { r = await api('ai/column', 'POST', body); }
+      catch (e){ got.err = e; break; }
+    }
     got.calls += Number(r.calls) || 0;
     got.cached += Number(r.cached) || 0;
     (r.failed || []).forEach(f => got.failed.push(f));
     if (r.capped) got.capped = r.capped;
     const asks = (r.asks && r.asks.length) ? r.asks : (r.ask ? [r.ask] : []);
-    asks.forEach(a => {
-      AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a);
-      const m = (r.byAsk && r.byAsk[a.id]) || r.answers || {};
-      Object.assign(AC.ans[a.id] || (AC.ans[a.id] = {}), m);
-      (AC.asked[a.id] || (AC.asked[a.id] = new Set())); part.forEach(x => AC.asked[a.id].add(x));
-    });
-    if (!got.asks.length){ got.asks = asks; if (o.onFirst) o.onFirst(asks); }
-    AC.busy.calls = got.calls; AC.busy.asks = asks.map(a => a.id);
-    askColDeskLanded(AC.busy, part, asks[0] && asks[0].id);
-    AC.busy.done += part.length;
+    takeAsks(asks, part);
+    asks.forEach(a => { const m = (r.byAsk && r.byAsk[a.id]) || r.answers || {}; Object.assign(AC.ans[a.id] || (AC.ans[a.id] = {}), m); });
+    /* the batch is whole: the count is exact again (a contract that failed is done too), and any answer the
+       stream did not lay on the desk (the plain answer's) joins its queue */
+    AC.busy.calls = got.calls;
+    askColDeskLanded(AC.busy, part, AC.busy.askId || (asks[0] && asks[0].id));
+    AC.busy.done = i + part.length;
+    AC.busy.doneIds = [...new Set(AC.busy.doneIds.concat(part))];
     got.done = AC.busy.done;
     if (typeof regRepaint === 'function') regRepaint();
     askColPaintPanel();
   }
-  AC.busy = null; askColDeskStop();
+  /* THE DESK DOES NOT VANISH AT THE END: the last answers that landed are turned through first (bounded,
+     and Stop or a failure ends it at once); the line of refs in flight goes, the desk and the counts stay */
+  if (AC.busy && !got.stopped && !got.err && !AC.busy.stop){ AC.busy.ids = []; askColPaintPanel(); await askColDeskDrain(); }
+  AC.busy = null; askColDeskStop(); askColListSoon(true);
   got.left = ids.slice(got.done);
   return got;
 }

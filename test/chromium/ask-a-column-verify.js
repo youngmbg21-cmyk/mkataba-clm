@@ -85,7 +85,9 @@ async function toList(page) {
     await page.screenshot({ path: path.join(OUT, '02-asking.png') });
     const before = h.ai.calls.length;
     await page.click('[data-ac-ask]');
-    const filled = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans').length === 4, null, 15000);
+    /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
+       so the card is read once the read has ended */
+    const filled = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans').length === 4 && !document.querySelector('[data-ac-stop]') && !!document.querySelector('#ig-dock [data-ac-col]'), null, 20000);
     const col = await page.evaluate(() => ({
       heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
       cells: [...document.querySelectorAll('td.ac-cell')].map(td => td.innerText.replace(/\s+/g, ' ').trim()),

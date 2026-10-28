@@ -106,7 +106,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('2b the name box says Jambo names it if left empty', /Jambo names it/.test(hint), hint);
       await page.fill('#ct-q', '');
       await page.click('[data-ac-ask]');
-      const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11, null, 20000);
+      /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
+         so the card is read once the read has ended */
+      const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11 && !document.querySelector('[data-ac-stop]') && !!document.querySelector('#ig-dock [data-ac-col]'), null, 25000);
       const col = await page.evaluate(() => ({
         heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
         cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }])),
