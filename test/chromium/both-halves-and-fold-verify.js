@@ -45,7 +45,9 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     const toBoard = () => page.evaluate(() => { if (window.ai && ai.open) closeAI(); intel.history = []; setView('dashboard'); intel.paper = null; hbSetFace('board'); });
     await toBoard();
     await until(() => !!document.getElementById('igd-input') && !intel.busy);
-    const ask = async q => { await page.fill('#igd-input', q); await page.press('#igd-input', 'Enter'); };
+    /* RE-PINNED 28 Oct 2026 ("Door above the box": every word typed is the brain's but a page's one name): the Board's own
+       reader draws first here, so it is asked as a chip asks */
+    const ask = async q => { await page.evaluate(w => intelAsk(w), q); };
     const turns = () => page.evaluate(() => intel.history.map((m, i) => ({ i, role: m.role, text: String(m.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140), reading: !!m.reading, nextKey: m.nextKey || null })));
 
     console.log('\nA · "tell me more about …" beside the Board: drawn, then explained');

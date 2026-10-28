@@ -152,6 +152,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       /* 3j a tab pressed beside the letter shows that tab, and "Before you send" brings the letter's face back
          (owner: "why is dossier empty and all the other panels") */
       const tabs = [];
+      /* RE-POINTED 28 Oct 2026 ("Door above the box"): Jambo's line turned the panel to his conversation, where the head
+         is his name alone; its door above the box goes back to the face, and the tabs with it */
+      if (await page.evaluate(() => typeof pdTalkShows === 'function' && pdTalkShows())) await page.click('#ig-dock [data-jb-door] .jb-door-back');
       for (const k of ['Clauses', 'Dossier']){
         await page.locator('#ig-dock .pd-tab', { hasText: k }).first().click();
         tabs.push(await until(() => !document.getElementById('pd-sendface') && document.querySelector('#sh-letter') ? true : null, null, 4000));

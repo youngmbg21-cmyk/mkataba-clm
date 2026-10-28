@@ -108,7 +108,9 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     /* 8c asking Jambo for late duties opens the figure's own list, no second panel */
     const panelsBefore = await page.evaluate(() => (hbS().panels || []).length);
     const box = page.locator('#igd-input').first();
-    await box.tap(); await box.fill('Which obligations are overdue?'); await page.keyboard.press('Enter');
+    /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): the Board's own
+       reader is asked as a chip asks; the box is still tapped (a finger on an iPad) */
+    await box.tap(); await page.evaluate(w => intelAsk(w), 'Which obligations are overdue?');
     await waitFor(page, () => (hbS().path || []).slice(-1)[0] === 'f:overdue', 8000);
     const ask = await page.evaluate(() => ({ path: (hbS().path || []).slice(-1)[0], panels: (hbS().panels || []).length }));
     check('8c "Which obligations are overdue?" opens the Obligations overdue list, not a second panel', ask.path === 'f:overdue' && ask.panels === panelsBefore, JSON.stringify({ ask, panelsBefore }));
