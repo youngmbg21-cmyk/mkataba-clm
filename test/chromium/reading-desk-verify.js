@@ -61,6 +61,10 @@ const Q = 'How much notice does each side need to end the contract?';
     await until(page, () => !!document.querySelector('#ac-form [data-ac-ask]:not([disabled])'));
     const btn = await page.evaluate(() => (document.querySelector('#ac-form [data-ac-ask]') || {}).textContent.trim());
     check('1 the form offers 100 at a time: "Ask 100 contracts"', btn === 'Ask 100 contracts', btn);
+    await page.evaluate(() => { const w = window; w._dk = { t0: performance.now(), first: null, counts: new Set() };
+      w._dkT = setInterval(() => { const d = document.querySelector('#ac-form [data-ac-desk] [data-ac-desk-cid]');
+        if (d && w._dk.first == null) w._dk.first = { at: Math.round(performance.now() - w._dk.t0), done: AC.busy ? AC.busy.done : null };
+        const f = document.querySelector('#ac-form .ac-desk-foot .ac-busy'); const m = f && /· (\d+) done/.exec(f.textContent || ''); if (m) w._dk.counts.add(Number(m[1])); }, 40); });
     await page.click('#ac-form [data-ac-ask]');
     const empty = await until(page, () => !!document.querySelector('#ac-form [data-ac-desk] .ac-desk-empty'), null, 8000);
     check('1a before the first ten land, the desk says "Jambo is reading the first ten…"', empty,
@@ -87,8 +91,16 @@ const Q = 'How much notice does each side need to end the contract?';
     const stack = await until(page, () => document.querySelectorAll('#ac-form [data-ac-stack] li').length >= 1, null, 6000);
     const S = await page.evaluate(() => [...document.querySelectorAll('#ac-form [data-ac-stack] li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()));
     check('2a the stack under it holds what the desk turned past, light · name · answer, never more than three', stack && S.length >= 1 && S.length <= 3 && S.every(x => /30 days/.test(x)), S);
-    const batchKept = await page.evaluate(() => { const b = AC.busy; return b ? { turn: b.turn, batch: b.batch.length, seen: b.seen.length, idsOk: b.batch.every(x => !!(AC.ans[x.askId] || {})[x.cid]) } : null; });
-    check('2b everything shown is read off answers already landed (AC.busy, AC.ans), nothing fetched for the desk', !!batchKept && batchKept.idsOk && batchKept.batch <= 10, batchKept);
+    /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the desk is a queue of answers that landed */
+    const batchKept = await page.evaluate(() => { const b = AC.busy; if (!b || !Array.isArray(b.queue)) return null; const all = [b.cur].concat(b.queue, b.seen || []).filter(Boolean);
+      return { shown: !!b.cur, waiting: b.queue.length, seen: (b.seen || []).length, idsOk: all.every(x => !!(AC.ans[x.askId] || {})[x.cid]) }; });
+    check('2b everything shown is read off answers already landed (AC.busy, AC.ans), nothing fetched for the desk; never more than three waiting', !!batchKept && batchKept.idsOk && batchKept.shown && batchKept.waiting <= 3, batchKept);
+    /* EACH ANSWER THE MOMENT IT IS READ (the owner, 28 Oct 2026: "reading for a minute or more … then 3 seconds and it was done").
+       The stand-in answers each contract after 1.8 s and the server reads four at once, so ten take three rounds (about 5.4 s):
+       the first answer must be on the desk in the first round, and the count must move by ones, never only in tens */
+    const DK = await page.evaluate(() => ({ first: window._dk.first, counts: [...window._dk.counts].sort((a, b) => a - b) }));
+    check('2c the first answer reaches the desk in the first round of reads (under 3.5 s), before the ten are whole', !!DK.first && DK.first.at < 3500 && DK.first.done > 0 && DK.first.done < 10, DK.first);
+    check('2d the foot\'s count moves as answers land: it shows counts between the tens', DK.counts.some(n => n % 10 !== 0), DK.counts.join(' '));
 
     /* ---- 3 less motion: no animation on a turn, the spinner still ---- */
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -117,8 +129,14 @@ const Q = 'How much notice does each side need to end the contract?';
     check('5 when the read ends: "100 of the 120 shown read · 20 still to read", ONE filled button "Read the remaining 20 · 20 Jambo calls", no pill (the rest fits), Every read ›',
       ended && !!C && /^100 of the 120 shown read · 20 still to read · /.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20 · 20 Jambo calls']) && C.primary && !C.pill && C.every && !C.timer, C);
     check('5a the message says the same: "Notice to end: 100 of 120 read · 20 still to read"', !!C && /Notice to end: 100 of 120 read · 20 still to read/.test(C.toast), C && C.toast);
+    await page.evaluate(() => { const w = window; w._lg = { all: null, gone: null };
+      w._lgT = setInterval(() => { const d = !!document.querySelector('#ac-form [data-ac-desk] [data-ac-desk-cid]'), now = performance.now();
+        if (d && AC.busy && AC.busy.done >= AC.busy.total && w._lg.all == null) w._lg.all = now;
+        if (!d && w._lg.all != null && w._lg.gone == null) w._lg.gone = now; }, 40); });
     await page.click('#ig-dock [data-ac-next]');
     await until(page, () => !document.querySelector('[data-ac-stop]') && /^All 120 shown are read/.test(((document.querySelector('#ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
+    const LG = await page.evaluate(() => { clearInterval(window._lgT); const l = window._lg; return { stood: l.all != null && l.gone != null ? Math.round(l.gone - l.all) : null }; });
+    check('5c the desk does not vanish at the end: with every answer in, it still stands at least a second before the done line', LG.stood != null && LG.stood >= 1000 && LG.stood <= 6000, LG);
     C = await card();
     const ans = await page.evaluate(() => Object.keys((AC.ans[Object.keys(AC.ans)[0]] || {})).length);
     check('5b pressed, the rest is read: "All 120 shown are read", the button gone, 120 answers; the message "Notice to end: all 120 read"',
@@ -137,6 +155,8 @@ const Q = 'How much notice does each side need to end the contract?';
       const t0 = Date.now();
       const stacked = await until(page, () => document.querySelectorAll('#ac-form [data-ac-stack] li').length >= 1 && !!document.querySelector('#ac-form [data-ac-stop]'), null, 15000);
       const fit = await page.evaluate(() => { const card = document.querySelector('#ac-form'); if (!card) return { none: true, busy: !!AC.busy, form: !!AC.form, stopped: !!AC.stopped, cols: regState().ask, toast: [...document.querySelectorAll('#toast-root *')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).slice(-2), dock: ((document.getElementById('ig-dock') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 300) }; const r = card.getBoundingClientRect(); const dock = document.getElementById('ig-dock');
+        /* the spinning ring is measured standing still: a square's box grows as it turns */
+        card.querySelectorAll('.ob-spin').forEach(el => { el.style.animation = 'none'; });
         const spill = [...card.querySelectorAll('*')].filter(el => { const b = el.getBoundingClientRect(); return b.width && (b.right > r.right + 1 || b.left < r.left - 1); }).map(el => { const b = el.getBoundingClientRect(); return `${el.className || el.tagName} ${Math.round(b.left)}–${Math.round(b.right)} in ${Math.round(r.left)}–${Math.round(r.right)}`; });
         const pad = (() => { const b = card.querySelector('.pd-gl-b'); if (!b) return null; const cs = getComputedStyle(card); return [parseFloat(cs.paddingLeft), parseFloat(cs.paddingRight)]; })();
         return { spill, sideways: dock ? dock.scrollWidth > dock.clientWidth + 1 : null, pad, stack: card.querySelectorAll('[data-ac-stack] li').length, lines: [...card.querySelectorAll('.ac-stack-r, .ac-desk-who, .ac-desk-foot')].every(el => el.getBoundingClientRect().height < 40) }; });

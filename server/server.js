@@ -9828,6 +9828,28 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   }
   const key = todo.length ? aiKey() : null;
   if (todo.length && !key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  /* ---- EACH ANSWER THE MOMENT IT IS READ (the owner, 28 Oct 2026: "the panel said it was reading for a minute
+     or more and then when I started to see the visible runs it was 3 seconds and it was done") ----
+     With `stream` the same route answers as an event stream, the chat's own way (event / data frames, a
+     heartbeat, the usual body as `final`): first the questions (`asks`, so the column stands on the list at
+     once), then one `answer` per contract as it is read — the kept ones straight away — then `final`. Every
+     refusal above is still a plain JSON answer. A reader who goes away starts no further reads: what was read
+     is kept per wording and costs nothing the next time. */
+  const stream = b.stream === true;
+  let clientGone = false;
+  const send = (event, data) => { if (!stream) return; try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {} };
+  const answersOf = id => Object.fromEntries(asks.filter(a => byAsk[a.id][id]).map(a => [a.id, byAsk[a.id][id]]));
+  if (stream) {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+    const beat = setInterval(() => { try { res.write(': keep-alive\n\n'); } catch (_) {} }, 15000);
+    if (typeof beat.unref === 'function') beat.unref();
+    res.on('close', () => { clearInterval(beat); if (!res.writableEnded) clientGone = true; });
+    res.on('finish', () => clearInterval(beat));
+    send('asks', { ask: colAskOut(asks[0]), asks: asks.map(colAskOut) });
+    const reading = new Set(todo.map(t => t.id));
+    for (const id of ids) if (!reading.has(id)) { const m = answersOf(id); if (Object.keys(m).length) send('answer', { id, byAsk: m, calls: 0 }); }
+  }
   const J = orgJx();
   let calls = 0, lastResp = null;
   const readOne = async t => {
@@ -9869,17 +9891,23 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   try {
     const queue = todo.slice();
     await Promise.all(Array.from({ length: Math.min(COLUMN_AT_ONCE, queue.length) }, async () => {
-      while (queue.length) { const t = queue.shift(); try { await readOne(t); } catch (e) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); } }
+      while (queue.length && !clientGone) { const t = queue.shift(); try { await readOne(t); } catch (e) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); }
+        const m = answersOf(t.id); if (Object.keys(m).length) send('answer', { id: t.id, byAsk: m, calls: 1 }); }
     }));
-  } catch (e) { return res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+  } catch (e) {
+    if (stream) { send('error', { message: 'Jambo request failed: ' + e.message }); return res.end(); }
+    return res.status(502).json({ error: 'Jambo request failed: ' + e.message });
+  }
   const first = asks[0];
   /* EVERY ACT LEAVES A RECORD THE SERVER WRITES (flow rule 8; The thread, 28 Oct 2026): the press, by
      name. `run` is the browser's name for one press (its batches share it) with where the contracts
      stood on the list; a call without one is a read of its own — a contract read on arrival is 'arrival' */
   const run = colRunRecord(req, b.run, asks, b.pack, ids.filter(id => !failed.some(f => f.id === id && f.why === 'notFound')), calls, cached);
-  res.json({ ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached, run,
+  const out = { ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached, run,
     failed: asks.length === 1 ? failed.map(f => ({ id: f.id, why: f.why, ...(f.error ? { error: f.error } : {}) })) : failed,
-    capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) });
+    capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) };
+  if (stream) { send('final', out); return res.end(); }
+  res.json(out);
 });
 const COLUMN_RUN_ID = /^cr_[a-z0-9]{6,40}$/;
 function colRunRecord(req, run, asks, packId, ids, calls, cached) {
