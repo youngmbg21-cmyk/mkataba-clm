@@ -976,7 +976,7 @@ function renderApprovalsPage(o){
     ...(same.kind?[]:[{k:'kind',t:i18t('ap_wl_kind'),w:100,rank:2}]),{k:'rule',t:i18t('ap_col_rule'),w:136,rank:3},
     ...(same.turn?[]:[{k:'turn',t:i18t('ap_wl_turn'),w:188,rank:5}]),{k:'std',t:i18t('reg_col_standards'),w:124,rank:1},
     {k:'wait',t:i18t('ap_pg_waiting'),w:120},...(money?[{k:'value',t:i18t('reg_col_value'),right:true,w:112,rank:4}]:[]),
-    ...(INS?[]:[{k:'acts',t:'',w:220}])];
+    ...(INS?[{k:'ok',t:'',w:108}]:[{k:'acts',t:'',w:220}])];
   const FIT=(typeof listCols==='function')?listCols('approvals',DEFS,()=>apPaintList()):{ cols:DEFS.filter(d=>!d.spread), has:k=>DEFS.some(d=>d.k===k&&!d.spread), spread:false };
   SP=FIT.spread;
   const head=FIT.cols;
@@ -996,6 +996,10 @@ function renderApprovalsPage(o){
     wait:r=>`<td class="ap-wait${r.done?' done':apLate(r)?' late':''}"${apLate(r)&&!r.done?` title="${esc(i18t('jl_late'))}"`:''}>${apWaitHtml(r)}</td>`,
     value:r=>`<td class="r mono ap-val">${apValueCell(r.c)}</td>`,
     acts:r=>`<td class="r">${acts(r)}</td>`,
+    /* APPROVE ON THE ROW (round 10, "The Legora way"): beside the panel, one
+       quiet Approve on each row this reader may decide; the chosen row's is
+       filled (CSS, .is-sel). Refuse asks a reason, so it stays in the panel. */
+    ok:r=>`<td class="r ap-ok-c">${!r.done&&r.type!=='signature'&&apMayDecide(r)?`<button type="button" class="ui-btn ui-btn-sm ap-ok" data-ap-approve="${esc(r.c.id)}" title="${esc(i18t('ap_pg_approve_title'))}">${esc(i18t('ap_pg_approve'))}</button>`:''}</td>`,
   };
   const row=r=>`<tr data-ap-row="${esc(r.c.id)}" data-ap-kind="${r.type}"${INS?' tabindex="-1"':''}>
       ${ident(r.c,r,same.kind)}
@@ -1003,7 +1007,7 @@ function renderApprovalsPage(o){
     </tr>`;
   const n=W.rows.length, total=W.all.rows.length;
   const table=n
-    ? `<table class="ap-table${INS?' ap-ins':''}" data-list-seat="approvals"><colgroup>${head.map(c=>typeof listColTag==='function'?listColTag(c):`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}${h.k!=='acts'&&typeof listGripHtml==='function'?listGripHtml('approvals',h.k):''}</th>`).join('')}</tr></thead><tbody>${
+    ? `<table class="ap-table${INS?' ap-ins':''}" data-list-seat="approvals"><colgroup>${head.map(c=>typeof listColTag==='function'?listColTag(c):`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}${h.k!=='acts'&&h.k!=='ok'&&typeof listGripHtml==='function'?listGripHtml('approvals',h.k):''}</th>`).join('')}</tr></thead><tbody>${
         W.rows.map(row).join('')}</tbody></table>`
     : `<div class="ap-empty">${esc(i18t(total?'ap_wl_none_match':'ap_wl_none'))}</div>`;
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */
@@ -1037,6 +1041,15 @@ function apListWire(INS, W){
   document.querySelectorAll('[data-ap-refuse]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apDecide(b.getAttribute('data-ap-refuse'),'refused'); }));
   document.querySelectorAll('[data-ap-undo]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apUndo(b.getAttribute('data-ap-undo')); }));
   document.querySelectorAll('[data-ap-row]').forEach(tr=>tr.addEventListener('click',()=>apOpenSigning(tr.getAttribute('data-ap-row'))));
+}
+/* beside the panel the rows are repainted under the inspector's own wiring:
+   the row's Approve is answered by one listener on the document, bound once */
+if(typeof document!=='undefined'&&document.addEventListener&&!document._apOkWired){
+  document._apOkWired=true;
+  document.addEventListener('click',e=>{
+    const b=e.target&&e.target.closest?e.target.closest('.ap-table.ap-ins [data-ap-approve]'):null; if(!b) return;
+    e.preventDefault(); e.stopPropagation(); apDecide(b.getAttribute('data-ap-approve'),'approved');
+  });
 }
 /* THE SORT, AT THE CHIP ROW'S END: one listener on the document, bound once
    (the head keeps the page's own parts standing through a recount; the old

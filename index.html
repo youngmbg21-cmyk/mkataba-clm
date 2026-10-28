@@ -14937,6 +14937,9 @@
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
   .ap-table.ap-ins :is(td,th){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* APPROVE ON THE ROW (round 10): quiet on every row, filled on the chosen one */
+  .ap-table.ap-ins td.ap-ok-c{overflow:visible;padding-right:16px;}
+  .ap-table.ap-ins tr.is-sel .ap-ok{background:var(--accent-fill);color:#fff;border-color:var(--accent-fill);font-weight:var(--w-label);box-shadow:0 1px 2px var(--btn-lift);}
   /* the party's name reads whole (round 15; at 1366 beside Jambo's panel a
      long one takes a second line), the agreement under it keeps its cut */
   /* ROWS NEVER GROW PAST TWO LINES (owner, 28 Oct 2026: "if there are multiple parties or a long name, the row
