@@ -21849,3 +21849,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - A read of more than 150 contracts inside a quarter of an hour hits the deep route's limit (rlAiDeep, 15 presses a window; a press is a batch of ten) mid-run: the card says stopped with Carry on and the limit's own message, but the form's sentence does not warn that a read of 200 cannot finish in one go. Seen while reading-desk-verify spent 150 calls; the check raises AI_RATE_DEEP for itself.
 - Removed, owner-asked (28 Oct 2026): the drop card ("Drop a Word or PDF file here") no longer stands on the Contracts panel; it opens as a pop-up from "upload a document", the + and the word "upload". The Contracts panel's "Ask me" offers were removed too (the facts' own Show links stay).
 - Removed, owner-asked (28 Oct 2026): the drop card no longer stands on the Contracts panel (it opens as a pop-up from "upload a document", the + and the word "upload"), and the Contracts panel's "Ask me" offers are gone (each fact keeps its Show).
+
+## Noticed, not fixed (28 Oct 2026, Ask a column round 2)
+- docs/MAP-HISTORY.md carries the story "THE UPLOAD · THE DROP CARD IS A POP-UP; THE CONTRACTS PANEL CALMER (28 Oct 2026)" twice, one under the other (already so on main).

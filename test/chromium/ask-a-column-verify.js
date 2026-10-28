@@ -174,20 +174,30 @@ async function toList(page) {
     check('7 "ask a column" in Jambo\'s box opens the same question beside the list', await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q')));
 
     /* ============ 8. THE TWO ROUGH EDGES (owner, 26 Oct 2026) ============
-       A counting question is refused UNDER the question box, never as a toast over the panel's foot (the very
-       box the sentence points to); typing again clears it. And "Asked before" never offers a counting question. */
+       A refusal is said UNDER the question box, never as a toast over the panel's foot (the very box the sentence
+       points to); typing again clears it. And "Asked before" never offers a counting question. */
+    /* RE-POINTED 28 Oct 2026 (JAMBO ASKS, round 3 of the review): a counting question is no longer refused — it opens
+       Jambo's card in the panel (jambo-asks-verify), nothing read and nothing toasted; the refusal under the box is
+       now the too-short one's, and typing again still clears it */
+    const chips = await page.evaluate(() => [...document.querySelectorAll('[data-ac-chip]')].map(b => b.title));
     await page.fill('#ac-q', 'How many contracts have more than 30 days payment terms?');
     const callsBefore = h.ai.calls.length;
     await page.click('[data-ac-ask]');
-    const said = await until(page, () => { const s = document.getElementById('ac-q-say'); return !!s && !s.hidden && /not about the wording of one/.test(s.textContent); });
+    const carded = await until(page, () => !!document.querySelector('#ig-dock [data-ac-count]'));
+    const toastOver = await page.evaluate(() => [...document.querySelectorAll('#toast-root *')].some(e => /not about the wording/.test(e.textContent || '')));
+    check('8a a counting question opens Jambo\'s card, no toast over the panel, nothing read', carded && !toastOver && h.ai.calls.length === callsBefore);
+    await page.click('#ig-dock [data-ac-count-change]');
+    await until(page, () => !!document.querySelector('#ig-dock #ac-q'));
+    await page.fill('#ac-q', 'ab');
+    await page.click('[data-ac-ask]');
+    const said = await until(page, () => { const s = document.getElementById('ac-q-say'); return !!s && !s.hidden && s.textContent.trim().length > 0; });
     const edge = await page.evaluate(() => {
       const s = document.getElementById('ac-q-say'), q = document.getElementById('ac-q'), foot = document.querySelector('#ig-dock .ig-ask, #ig-dock [data-ig-ask], #ig-dock textarea:not(#ac-q), #ig-dock input[type="text"]:not(#ac-name)');
       const r = e => e && e.getBoundingClientRect();
-      const toastOver = [...document.querySelectorAll('#toast-root *')].some(e => /not about the wording/.test(e.textContent || ''));
       const fr = r(foot), top = fr ? document.elementFromPoint(fr.left + 8, fr.top + fr.height / 2) : null;
       return { underBox: !!s && !!q && s.previousElementSibling === q && r(s).top >= r(q).bottom - 1, focus: document.activeElement && document.activeElement.id,
-        toastOver, footClear: fr ? !!top && (foot.contains(top) || top === foot) : 'no foot box found', chips: [...document.querySelectorAll('[data-ac-chip]')].map(b => b.title) }; });
-    check('8a a counting question is refused under the box, the box focused, no toast over the panel, nothing read', said && edge.underBox && edge.focus === 'ac-q' && !edge.toastOver && edge.footClear !== false && h.ai.calls.length === callsBefore, JSON.stringify(edge));
+        footClear: fr ? !!top && (foot.contains(top) || top === foot) : 'no foot box found', chips }; });
+    check('8a′ a question too short is refused under the box, the box focused, nothing read', said && edge.underBox && edge.focus === 'ac-q' && edge.footClear !== false && h.ai.calls.length === callsBefore, JSON.stringify(edge));
     await page.screenshot({ path: path.join(OUT, '08-refused-under-the-box.png') });
     await page.type('#ac-q', ' ');
     check('8b typing in the box again clears the refusal', await until(page, () => { const s = document.getElementById('ac-q-say'); return !!s && s.hidden; }));

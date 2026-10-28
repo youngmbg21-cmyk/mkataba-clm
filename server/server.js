@@ -9811,9 +9811,42 @@ const COLUMN_TOOL = {
     why: { type: 'string', description: 'One plain sentence on what the wording means for the reader. Never advice on whether to sign.' },
     quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
     clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
+    yes: { type: 'boolean', description: 'Only for a question that can be answered yes or no ("Does this contract…?"): true if the answer for this contract is yes, false if no or if the document does not say. Leave it out for any other question.' },
     verdict: { type: 'string', enum: ['in', 'out', ''], description: 'Only for a question that gives OUR RULE: "in" if the answer keeps the rule, "out" if it breaks it. Empty when the question gives no rule, or nothing was found.' },
   }, required: ['q', 'found', 'answer', 'detail', 'tone', 'why'] } } }, required: ['answers'] },
 };
+
+/* JAMBO ASKS (round 3 of the review; the owner picked "Jambo" for the rewording, 28 Oct 2026): a counting
+   question ("How many contracts mention a rebate?") asks about the book, and Ask a column asks each contract
+   one question. On a press that says its cost (1 Jambo call) the words are turned into that one yes-or-no
+   question and the words the count is said in ("mention a rebate"); nothing is read and nothing is kept here.
+   A question that cannot be turned comes back empty, said as such, never guessed. */
+const COLUMN_TURN_TOOL = {
+  name: 'column_turn',
+  description: 'The one yes-or-no question to ask of EACH contract so that counting the yeses answers the person.',
+  input_schema: { type: 'object', properties: {
+    question: { type: 'string', description: 'One yes-or-no question about ONE contract, beginning "Does this contract", "Is this contract", "Can", "Has" or the like, in the person\'s own words where possible: "Does this contract mention a rebate?". Empty if counting yeses cannot answer what they asked.' },
+    says: { type: 'string', description: 'What a yes means, 2 to 6 words, to finish "5 of 16 …": "mention a rebate", "renew by themselves". Empty when question is empty.' },
+  }, required: ['question', 'says'] },
+};
+app.post('/api/ai/column-turn', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
+  const typed = String((req.body || {}).question || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (typed.length < 3) return res.status(400).json({ error: 'Type the question first' });
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const L = (req.user.lang && I18N_STRINGS[req.user.lang]) ? req.user.lang : I18N_DEFAULT;
+  const lang = { en: 'English', sv: 'Swedish' }[L] || 'English';
+  const prompt = `A contract manager typed a question about many contracts at once. Their tool asks EACH contract one question and counts the answers. Turn their words into that one yes-or-no question about a single contract, and the few words a yes means, via column_turn. Write in ${lang}. Keep their meaning; never widen or narrow it. If counting yeses would not answer them (they ask for a total, a sum, a ranking or something no single contract's wording says), leave both empty.\n\nTYPED: ${typed}`;
+  const resp = await anthropicMessages(key, 'fast', { max_tokens: 300, tools: [COLUMN_TURN_TOOL], tool_choice: { type: 'tool', name: 'column_turn' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
+  if (!resp.ok) return res.status(502).json({ error: 'Jambo request failed: ' + String(resp.error || resp.status).slice(0, 200), calls: 1 });
+  const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+  const d = (block && block.input) || {};
+  let question = String(d.question || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  const says = question ? String(d.says || '').replace(/\s+/g, ' ').trim().slice(0, 80) : '';
+  /* the turned question must itself be one a column may ask (the same wall as the ask) */
+  if (question && COLUMN_PORTFOLIO_RE.test(question)) question = '';
+  res.json({ typed, question, says: question ? says : '', calls: 1 });
+});
 
 app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
   const b = req.body || {};
@@ -9914,7 +9947,7 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
       const verdict = !ask.rule ? 'norule' : found && COLUMN_VERDICTS.includes(d.verdict) ? d.verdict : '';
       const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
         tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
-        quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '',
+        quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '', yes: typeof d.yes === 'boolean' ? (found && d.yes) : null,
         truncated: !!resp.truncated, inputCapped: t.capped, at: now(), by: 'jambo', calls: 1, with: t.asks.length };
       db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
         VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
