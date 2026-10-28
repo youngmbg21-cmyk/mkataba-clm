@@ -21852,3 +21852,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed (28 Oct 2026, Ask a column round 2)
 - docs/MAP-HISTORY.md carries the story "THE UPLOAD · THE DROP CARD IS A POP-UP; THE CONTRACTS PANEL CALMER (28 Oct 2026)" twice, one under the other (already so on main).
+
+## Noticed, not fixed (28 Oct 2026, PR #540)
+- stop-and-reads-verify 2b and 3 fail on unchanged main on this machine ("atPress 6, after 8": two more contracts reach the stand-in after Stop; Carry on then reads 32, not 36), yet passed in main's CI run for f50d9eb — the Stop check races the reads already in flight. Ask a column's area, not touched by #540.

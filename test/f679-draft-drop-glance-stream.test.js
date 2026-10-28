@@ -115,7 +115,7 @@ describe('f679 (2) the wall\'s two ways in are Jambo\'s words, in both books', (
     test('2a the chips, ' + lang, () => {
       const { ctx } = caStage({ lang });
       const L = ctx.caPaperChips();
-      assert.deepEqual(J(L.map(x => x.k)), ['upload', 'draft', 'board', 'calendar'], 'upload a document first');
+      assert.deepEqual(J(L.map(x => x.k)), ['upload', 'draft', 'reads', 'calendar'], 'upload a document first');  /* RE-POINTED 28 Oct 2026 (owner: "remove board and add reads") */
       assert.equal(L[0].ask, BOOKS[lang].ca_wall_upload); assert.equal(L[1].ask, BOOKS[lang].ca_wall_draft);
       for (const x of L.slice(0, 2)){
         const a = ctx.caActOf(x.ask);
@@ -125,7 +125,7 @@ describe('f679 (2) the wall\'s two ways in are Jambo\'s words, in both books', (
   }
   test('2a2 a viewer\'s wall has no upload chip, and "upload" is answered with the refusal, once', () => {
     const { ctx, calls } = caStage({ editor: false });
-    assert.deepEqual(J(ctx.caPaperChips().map(x => x.k)), ['draft', 'board', 'calendar']);
+    assert.deepEqual(J(ctx.caPaperChips().map(x => x.k)), ['draft', 'reads', 'calendar']);  /* RE-POINTED 28 Oct 2026 (owner: "remove board and add reads") */
     const a = ctx.caActOf('upload');
     /* RE-POINTED 22 Oct 2026 (round 1 of the first-timer rounds, owner picked "On the card"):
        the refusal says what is true and who lifts it (draftWallSay), once */

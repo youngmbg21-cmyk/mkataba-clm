@@ -233,7 +233,7 @@ describe('f672 (4) the chips lead with the checklist', () => {
     const L = chips();
     assert.deepEqual(J(L.map(x => x.k)), ['redline', 'share', 'sign', 'history']);
     assert.ok(L.every(x => !x.owed));
-    assert.deepEqual(J(chips({ paper: null }).map(x => x.k)), ['upload', 'draft', 'board', 'calendar']);
+    assert.deepEqual(J(chips({ paper: null }).map(x => x.k)), ['upload', 'draft', 'reads', 'calendar']);  /* RE-POINTED 28 Oct 2026 (owner: "remove board and add reads") */
     assert.equal(chips({ face: 'board' }), null, 'the Board keeps its own suggestions');
   });
   /* STAGE 6 (14 Oct 2026): a chip whose door is shut for this contract is not

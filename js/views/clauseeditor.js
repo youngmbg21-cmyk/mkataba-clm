@@ -490,6 +490,21 @@ function clauseEditorCss(){
   .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:6px}
   .ce-railfoot:empty{display:none}
   .ce-spell{flex:none; padding:0 14px 8px; max-height:40%; overflow:auto}
+  /* JAMBO'S PANEL FLOATS, AS ON EVERY OTHER PAGE (owner, 28 Oct 2026: "make it like image 2 where the side
+     panel is not attached to the top bar and remove the horizontal lines from the side panel"): a white card
+     on the grey ground, 8px in from the page's edges (the lists' own #content .ins-panel.is-jambo), its
+     corners rounded and lifted; no line under his head, under the clause picker or over his foot */
+  #clause-editor:not(.is-theirs) .ce-grid > .ce-rail{margin:8px 8px 8px 0; border-radius:20px; box-shadow:var(--shadow-sm); overflow:hidden}
+  #clause-editor:not(.is-theirs) .ce-rail > .ce-ah, #clause-editor:not(.is-theirs) .ce-rail .ce-pick{border-bottom:0}
+  #clause-editor:not(.is-theirs) .ce-rail .ce-feet{border-top:0}
+  /* the writing bar runs end to end, under his card (owner, 28 Oct 2026: "the top bar has to go end to end
+     and the jambo goes over it"): the head reaches past its column to the window's right edge, and his card
+     stands over its right end */
+  #clause-editor:not(.is-theirs) .ce-head{margin-right:calc(100% - 100vw); padding-right:calc(100vw - 100%); position:relative; z-index:1}
+  /* only its GROUND runs on: the padding gives back what the margin took, so the tools and the sentence
+     (#ce-say measures its own room) keep to the paper's column and nothing is drawn under his card */
+  #clause-editor:not(.is-theirs) .ce-col{overflow:visible}
+  #clause-editor:not(.is-theirs) .ce-grid > .ce-rail{z-index:2}
   .ce-spell:empty{display:none}
   .ce-railfoot button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); white-space:nowrap;
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}

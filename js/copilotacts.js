@@ -1413,7 +1413,8 @@ function caMenuPress(i, act){
    nothing chosen (the wall of paper) they are the ways in. A press asks the
    word, so a chip and a typed word are one path (caReadPlace). */
 const CA_CHIPS = ['redline', 'sign', 'history'];
-const CA_CHIPS_WALL = ['upload', 'draft', 'board', 'calendar'];
+/* the Contracts wall's ways in (owner, 28 Oct 2026: "remove board and add reads") */
+const CA_CHIPS_WALL = ['upload', 'draft', 'reads', 'calendar'];
 /* ON THE WALL THE TWO WAYS IN ARE SAID IN FULL (the overnight work order,
    steps 3 and 4): "upload a document" first, "draft a new agreement" — words
    Jambo reads (CA_PLACES), so the chip and the typed word are one path */

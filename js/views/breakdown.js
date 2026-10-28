@@ -543,9 +543,26 @@ function stkDecorate(c, card, rows){
       if (!shown.length && !(fineTab && T.fine)) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
     }
   }
+  stkSpineEnds(card);
   stkDivePaint(c, card);
   /* the tab's number is this reading's "need you" (pdTabCount → stkNeedCount) */
   if (typeof pdTabCountPaint === 'function') try { pdTabCountPaint('doc', c); } catch (_){}
+}
+/* THE SPINE ALWAYS ENDS ON A DOT (owner, 28 Oct 2026: "I want the spine to always end with a ball"): the
+   thread marks its first and last bead over its OWN filter (docThreadStates), so a tab that hides rows
+   (Needs you, Worth a look) left the line running past the dots it kept. Measured over the rows LEFT
+   SHOWING: the first shown row's line starts at its bead, the last one's stops at it, and a title shown
+   above the first bead or below the last draws no line of its own. */
+function stkSpineEnds(card){
+  const list = card && card.querySelector('.doc-th-rows'); if (!list) return;
+  const els = [...list.querySelectorAll(':scope > .doc-th-row, :scope > .doc-th-sec')];
+  els.forEach(el => el.classList.remove('stk-sp-first', 'stk-sp-last', 'stk-sp-off'));
+  const shows = el => !el.hidden && !el.classList.contains('stk-hide');
+  const rows = els.filter(el => el.classList.contains('doc-th-row') && shows(el));
+  if (!rows.length) return;
+  const first = els.indexOf(rows[0]), last = els.indexOf(rows[rows.length - 1]);
+  rows[0].classList.add('stk-sp-first'); rows[rows.length - 1].classList.add('stk-sp-last');
+  els.forEach((el, i) => { if (el.classList.contains('doc-th-sec') && (i < first || i > last)) el.classList.add('stk-sp-off'); });
 }
 /* TWO STEPS (owner, 13 Oct 2026): the list read leaves a point's deep dive
    for its own small read, asked on the press of Deep dive and kept on the

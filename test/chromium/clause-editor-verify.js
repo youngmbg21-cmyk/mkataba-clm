@@ -234,17 +234,19 @@ const dismissNote = async pg => {
         && Math.round(r.height) >= window.innerHeight - 1,
       cols: getComputedStyle(grid).gridTemplateColumns,
       colW: Math.round(cr.width), railW: Math.round(rr.width),
-      railRight: Math.round(Math.abs(rr.right - r.right)) <= 1,
+      /* RE-POINTED 28 Oct 2026 (owner: Jambo's panel floats 8px in, over a writing bar that runs end to end) */ 
+      railRight: Math.abs(Math.round(r.right - rr.right) - 8) <= 1,
       railTop: Math.round(rr.top), railBottom: Math.round(rr.bottom),
       pageTop: Math.round(r.top), pageBottom: Math.round(r.bottom),
       /* The rail runs floor to ceiling, and the header sits INSIDE the left
          column rather than across both — a full-width header pushes the rail
          down by its own height, which is the one thing about this layout that
          was corrected repeatedly before it was built. */
-      railFullHeight: Math.round(rr.top) <= Math.round(r.top) + 1
-        && Math.round(rr.bottom) >= Math.round(r.bottom) - 1,
-      headInsideColumn: Math.round(head.width) <= Math.round(cr.width) + 1
-        && Math.round(head.right) <= Math.round(rr.left) + 1,
+      railFullHeight: Math.abs(Math.round(rr.top - r.top) - 8) <= 1
+        && Math.abs(Math.round(r.bottom - rr.bottom) - 8) <= 1,
+      headInsideColumn: Math.round(head.left) <= Math.round(r.left) + 1
+        && Math.round(head.right) >= Math.round(r.right) - 1
+        && rail.contains(document.elementFromPoint(rr.left + 20, rr.top + 20)),
       headW: Math.round(head.width),
       /* FROM A REDLINES ROW (round 9's gaps, third pass, as drawn): the head
          bar spans the window and both columns start under it */
@@ -266,19 +268,18 @@ const dismissNote = async pg => {
      !!opened && Math.abs(opened.railW / (opened.colW + opened.railW) - 1/3) < 0.02,
      opened && `${opened.railW} of ${opened.colW + opened.railW} = `
        + (opened && (opened.railW/(opened.colW+opened.railW)).toFixed(3)));
-  ck('2d and it is on the right, flush with the window edge',
+  ck('2d and it is on the right, floating 8px in from the window edge',
      !!opened && opened.railRight, opened && `right edge`);
   /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2 — the picked
      drawing's "Where Edit lands"): opened from a Redlines row, the head bar
      spans the window and the rail runs from under it to the floor; opened any
      other way the rail runs floor to ceiling and the strip keeps to the left
      column, as the owner first ruled. */
-  ck('2d2 THE COPILOT RAIL RUNS THE FULL HEIGHT OF THE WINDOW — top to bottom (from a row: from under the bar)',
+  ck('2d2 THE COPILOT RAIL RUNS THE FULL HEIGHT OF THE WINDOW — 8px in from top and floor, a floating card',
      !!opened && opened.railFullHeight,  /* RE-POINTED 20 Oct 2026 (owner): from a row too the strip keeps to the paper's column */
      opened && `rail ${opened.railTop}–${opened.railBottom} of page `
        + `${opened.pageTop}–${opened.pageBottom}`);
-  ck('2d3 and the header sits INSIDE the left column, never across both — a '
-     + 'full-width header is what pushes the rail down',
+  ck('2d3 and the header runs END TO END, with the rail standing OVER it (owner, 28 Oct 2026)',
      !!opened && opened.headInsideColumn,
      opened && `header ${opened.headW}px of a ${opened.colW}px column${opened.rowMode ? ' (from a row: spans ' + opened.pageW + ')' : ''}`);
   /* REVERSED IN PLACE 28 Aug 2026 — the header went, so "the clause is named
@@ -365,7 +366,7 @@ const dismissNote = async pg => {
   ck('2i the tools lead it and the way out ends it',
      !!toolStrip && (toolStrip.rowMode ? !toolStrip.exitLast : (toolStrip.barFirst && toolStrip.exitLast)),  /* from a row (owner, 20 Oct 2026): the trail's back leads, no Exit */
      toolStrip && `bar first ${toolStrip.barFirst}, exit last ${toolStrip.exitLast}`);
-  ck('2j IT STOPS WHERE THE COPILOT CARD STARTS — the owner\'s own instruction (from a row: at the window\'s edge, as drawn)',
+  ck('2j IT STOPS WHERE THE COPILOT CARD STARTS — the owner\'s own instruction (since 28 Oct 2026 only the bar\'s ground runs on under his card)',
      !!toolStrip && Math.abs(toolStrip.right - toolStrip.railLeft) <= 1,
      toolStrip && `strip ends ${toolStrip.right}, rail starts ${toolStrip.railLeft}`);
   ck('2k and a refusal still has somewhere to be spoken on it',
@@ -1492,8 +1493,9 @@ const dismissNote = async pg => {
       /* THE BREAK THAT MUST NOT COME BACK. */
       railTop: Math.round(rr.top), railBottom: Math.round(rr.bottom),
       pageTop: Math.round(pr.top), pageBottom: Math.round(pr.bottom),
-      railFullHeight: Math.round(rr.top) <= Math.round(pr.top) + 1
-        && Math.round(rr.bottom) >= Math.round(pr.bottom) - 1,
+      railFullHeight: Math.abs(Math.round(rr.top - pr.top) - 8) <= 1
+        && Math.abs(Math.round(pr.bottom - rr.bottom) - 8) <= 1,
+      railTrack: Math.round(rr.width + parseFloat(getComputedStyle(rail).marginRight || 0)),
       /* The handle straddles the seam rather than sitting beside it. */
       onSeam: zr ? Math.abs(Math.round(zr.left) - Math.round(rr.left)) <= 1 : false,
       sideways: Math.round(document.documentElement.scrollWidth)
@@ -1546,7 +1548,7 @@ const dismissNote = async pg => {
   ck('16k dragging RIGHT gives it back to the contract',
     narrow.colW > wide.colW + 40, `contract ${wide.colW} -> ${narrow.colW}`);
   ck('16l and the rail never goes below its own 340px floor',
-    narrow.railW >= 339, `${narrow.railW}px`);
+    narrow.railTrack >= 339, `${narrow.railTrack}px (the card plus its 8px inset)`);
   ck('16m at a limit the grip SAYS SO rather than just stopping',
     narrow.atLimit === 'max', `data-rl-at-limit=${narrow.atLimit}`);
 

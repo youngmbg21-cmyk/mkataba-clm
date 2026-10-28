@@ -157,6 +157,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- clauses-legora-way-verify 1c: on every tab (All · Needs you · Worth a look · Fine) the spine starts at the first dot shown and ends at the last (red at the parent: −17 / +15px on the filtered tabs).
 - MARQUEE (23 Oct 2026): clauses-legora-way-verify 1/1b (headline, sentence, tabs with counts; Worth a look narrows, All lets go), clause-list-fixed-verify 6a/6b (Needs you tab), stakes-verify 2, 3b–3d, 3k, 3l (Found by behind Filter, one dropdown per touch), 5c/5e (the tab survives the editor trip), 9 — all re-pointed from the three boxes.
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
 - Plain English first, the missing group's head a button (23 Oct 2026): clauses-legora-way-verify 5c, 5d (red at the parent); photographed at the three screens by hand (a resize inside that check redraws the panel under check 6).
@@ -237,6 +238,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- The wall's ways in (`CA_CHIPS_WALL`): upload · draft · reads · calendar, no board (owner, 28 Oct 2026) — f672 4c, f679 2a/2c, draft-upload-glance-verify 1e/1f ("reads" lands on the Reads page).
 - VALUE SORTS IN ONE CURRENCY (bug log batch 3, 26 Oct 2026): f944 (new; red at the parent) — REG_CMP.value ranks by fxHome, an unrated value last both ways; negoBandCounts adds an unstamped contract to "neither". With contracts-page-verify.
 - f933, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
 - THE FIVE DRAWN TABS (22 Oct 2026, question 2 "B"): f693 (4); legora-lists-verify C2 (exactly the five) and C8a–C8e (the Quick filters group under + Filter by a touch press, one chip and the rows the view reads, ×, the tab row one line at all three screens); contracts-stage-tabs-verify 1e/3a and answer-worklist-verify 1a re-pointed.
@@ -334,6 +336,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f207-D, f245 (26), f733, clause-editor-verify 32–35, clause-door-verify.
 
 ## EDIT WITH COPILOT — THE CLAUSE EDITOR (js/views/clauseeditor.js)
+- Floating panel over the end-to-end bar (28 Oct 2026): photographed by hand at the three screens (head spans the window, rail 8px in, `elementFromPoint` top-right = `.ce-rowhead`); clause-editor-verify, panel-tidy-and-risk-footer-verify, one-copilot-editor-plain-verify.
 - Words typed at a struck run are never lost (26 Oct 2026): their-edit-page-verify 4c, 4d (red at the parent 73a0dfd); section 4 records what rebuilds the box. The check is off KNOWN_RED.
 - f245, f249, f250, f287, f289, f304, f505, f508, f523, f537, f640, f756 8j, f759 (5), clause-editor, clause-door, one-copilot-editor verify.
 - File / Save prominent (23 Oct 2026): deal-in-the-middle-verify 10; one-copilot-editor-verify 5a/5b re-pointed (rows read by their middles; ‹ › small, Save ≥30 tall and ≥110 wide).
