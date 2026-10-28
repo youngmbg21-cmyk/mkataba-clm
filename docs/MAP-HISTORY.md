@@ -35337,3 +35337,8 @@ Eighth pass, the same day: 80084 bytes → 80001 bytes, three phrases of ASK A C
 - (`askColBtnHtml`, `askColPanelHtml`; `AC_MAX` = `COLUMN_MAX` 100)
 
 Last touch: 80001 → 79997 bytes; GAP MAP said "Blocked on the owner: BankID, WhatsApp Business API, Google sign-in.".
+
+## ASK A COLUMN — THE LIGHTS IN THE CARD (owner, 28 Oct 2026; after round 2)
+THE OWNER'S WORDS, over the drawing (C83uss) with the list's column and the card's desk and stack ringed: "you are supposed to build these as well where the reading or results are coming out color coded as well. Have you built these?"
+MEASURED: the list's cells wore their lights; the card did not — the desk's answer and every stack row drew `.ac-ans>i`, but its size and colour were only ever written for `.reg-table`, so in `#ig-dock` it was 0px wide (reading-desk-verify 1f, red at the parent). The drawing also sets the list's short answer in the ink with only the dot coloured; HaTi coloured the words too.
+BUILT: `#ig-dock .ac-ans>i` (8px, the same `--st-*-dot` tones as the cell; "none" a ring) for the desk, the stack, the chosen answer's reading and the count; the list's short answer is the ink, "not found" keeps its grey. Tests: reading-desk-verify 1f, 1g.
