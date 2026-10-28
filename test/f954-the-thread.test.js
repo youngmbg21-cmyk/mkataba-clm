@@ -164,3 +164,43 @@ test('4 · the Reads page is on every list a page must be on', () => {
   for (const fn of ['askColNext', 'askColBring', 'askColTableFor', 'askColOpen', 'regShowOnly']) assert.ok(RD.includes(fn + '('), 'the page opens the existing door ' + fn);
   assert.doesNotMatch(RD, /api\('ai\/column'/, 'the page itself reads nothing');
 });
+
+/* EACH ANSWER THE MOMENT IT IS READ (the owner, 28 Oct 2026: "the panel said it was reading for a minute or more and
+   then when I started to see the visible runs it was 3 seconds and it was done"). With `stream` the same route answers
+   as an event stream: the questions first, then one answer per contract as it is read (the kept ones at once), then the
+   usual body as `final`; without it nothing changes. Every refusal is still plain JSON. */
+test('5 · stream: the questions, an answer per contract as it is read, then the same body', async () => {
+  const h = await startHati();
+  try {
+    const cs = ids(6).map(id => fixtureContract(id, 'Supply Agreement', 'Kabras Sugar', FOLDER_A, 1000000, 'Signed',
+      'SUPPLY AGREEMENT\n\n9. Termination\nEither party may end this agreement on thirty days\' written notice to the other.'));
+    const W = await seedWorkspace(h, { contracts: cs });
+    const Q = 'How much notice does each side need to end the contract?';
+    const frames = t => t.split('\n\n').map(f => { let ev = 'message', d = ''; f.split('\n').forEach(l => { if (l.startsWith('event:')) ev = l.slice(6).trim(); else if (l.startsWith('data:')) d += l.slice(5).trim(); }); return d ? { ev, data: JSON.parse(d) } : null; }).filter(Boolean);
+    /* two already read (kept), four not: the kept two are said before any read */
+    await W.admin.json('/api/ai/column', { method: 'POST', body: { question: Q, name: 'Notice to end', ids: ids(2) } });
+    h.ai.reset();
+    const r = await W.admin.raw('/api/ai/column', { method: 'POST', body: { question: Q, name: 'Notice to end', ids: ids(6), stream: true } });
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('content-type') || '', /text\/event-stream/);
+    const F = frames(r.text);
+    assert.equal(F[0].ev, 'asks', 'the questions come first, so the column can stand at once');
+    assert.equal(F[0].data.ask.name, 'Notice to end');
+    const ans = F.filter(f => f.ev === 'answer');
+    assert.deepEqual(ans.map(f => f.data.id).sort(), ids(6).slice().sort(), 'one answer per contract');
+    assert.deepEqual(ans.slice(0, 2).map(f => [f.data.id, f.data.calls]), [[ids(1)[0], 0], [ids(2)[1], 0]], 'the kept two first, costing nothing');
+    assert.ok(ans.slice(2).every(f => f.data.calls === 1), 'each read one call');
+    const askId = F[0].data.ask.id;
+    assert.ok(ans.every(f => f.data.byAsk[askId] && f.data.byAsk[askId].found === true), 'each answer carries its reading');
+    const fin = F[F.length - 1];
+    assert.equal(fin.ev, 'final');
+    assert.equal(fin.data.calls, 4); assert.equal(fin.data.cached, 2);
+    assert.equal(Object.keys(fin.data.answers).length, 6);
+    assert.equal(h.ai.calls.length, 4, 'nothing read twice');
+    /* without `stream`, the plain answer as before; a refusal is plain JSON either way */
+    const plain = await W.admin.json('/api/ai/column', { method: 'POST', body: { question: Q, name: 'Notice to end', ids: ids(6) } });
+    assert.equal(plain.cached, 6);
+    const bad = await W.admin.raw('/api/ai/column', { method: 'POST', body: { question: Q, ids: [], stream: true } });
+    assert.equal(bad.status, 400); assert.ok(bad.json && bad.json.error);
+  } finally { await h.stop(); }
+});
