@@ -10505,7 +10505,7 @@ const readLangOf = req => {
    should be the one in parenthesis. Plain english should go further to not making people have to pull a
    dictionary. Note that this will be an international platform"): twinned word for word in js/ai.js (f956) */
 const AI_PLAIN_WORDS_RULE = "PLAIN WORDS, FOR A READER ANYWHERE. Write for someone who may read this language as their second or third and must never need a dictionary: everyday words that anyone who finished school knows. When the contract uses a legal, formal or Latin word (Premises, pro-rata, indemnify, force majeure, liquidated damages, in arrears), write the everyday meaning FIRST and put the contract's own word after it in brackets, so the reader can still find it on the paper: \"the property you rent (the contract calls it the Premises)\", \"your fair share, worked out by how much of the building you rent (the contract says pro-rata)\". Never leave such a word standing alone, and never explain an easy word with a harder one. No idioms or figures of speech. Short sentences, one idea each.";
-const PLAIN_FOR_WHOM = '- Write for somebody who finds legal wording frustrating and has no lawyer. ' + AI_PLAIN_WORDS_RULE;
+const PLAIN_FOR_WHOM = '- Write for somebody who finds legal wording frustrating and has no lawyer. Everyday words only. ' + AI_PLAIN_WORDS_RULE;
 const PLAIN_TONE = '- Stay professional. This reads beside the agreement and may be shown to a colleague; it is plain, not chatty.';
 const READ_PLAIN_RULE = [
   'WHAT THIS IS',
