@@ -60,9 +60,9 @@ const book = n => Array.from({ length: n }, (_, i) => fixtureContract(`HC-${3001
     check('2a the cells that were spinning say "not read yet" at once; none spins', cells.spinning === 0 && cells.notRead > 0, cells);
     await page.waitForTimeout(4000);
     check('2b no further contract reaches the stand-in after the press', h.ai.calls.length === atPress, { atPress, after: h.ai.calls.length });
-    const said = await page.evaluate(() => (document.querySelector('#ac-stopped .pd-gl-b .ac-meta') || {}).textContent || '');
-    const m = /^(\d+) of 40 read and kept · (\d+) not read/.exec(said.trim());
-    check('2c it says what was kept and what was not, and the two add up to 40', !!m && Number(m[1]) + Number(m[2]) === 40 && Number(m[1]) > 0, said);
+    const said = await page.evaluate(() => (document.querySelector('#ac-stopped .ac-dk-said') || {}).textContent || '');
+    const m = /^Stopped at (\d+) of 40 · (\d+) answers? kept/.exec(said.trim());
+    check('2c it says where it stopped of the 40 and what was kept', !!m && m[1] === m[2] && Number(m[1]) > 0 && Number(m[1]) < 40, said);
 
     /* ---- 3 Carry on ---- */
     h.ai.slow(0);

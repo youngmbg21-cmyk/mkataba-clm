@@ -60,11 +60,11 @@ function book(){
     await until(page, () => !!document.querySelector('#ac-form .ac-th'));
     let S = await sentence();
     check('1a one sentence, the choice inside it: "the first 50 | 100 of the 500 shown: contracts 1–50 · 50 Jambo calls"',
-      !!S && /reads the first 50100 of the 500 shown: contracts 1–50 · 50 Jambo calls\./.test(S.text) && JSON.stringify(S.pill) === JSON.stringify(['50*', '100']) && S.btn.trim() === 'Ask 50 contracts', S);
+      !!S && /reads the first 50100 of the 500 shown: contracts 1–50 · 50 Jambo calls\./.test(S.text) && JSON.stringify(S.pill) === JSON.stringify(['50*', '100']) && S.btn.trim() === 'Read 50 contracts · 50 Jambo calls', S); /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
     await page.click('#ac-form [data-ac-size="100"]');
     await until(page, () => /1–100/.test((document.querySelector('#ac-form .ac-th') || {}).textContent || ''));
     S = await sentence();
-    check('1b 100 pressed: "contracts 1–100 · 100 Jambo calls", the button "Ask 100 contracts"', !!S && /contracts 1–100 · 100 Jambo calls/.test(S.text) && S.btn.trim() === 'Ask 100 contracts' && S.pill[1] === '100*', S);
+    check('1b 100 pressed: "contracts 1–100 · 100 Jambo calls", the button "Read 100 contracts · 100 Jambo calls"', !!S && /contracts 1–100 · 100 Jambo calls/.test(S.text) && S.btn.trim() === 'Read 100 contracts · 100 Jambo calls' && S.pill[1] === '100*', S);
     await page.click('#ac-form [data-ac-size="50"]');
     await until(page, () => /1–50 /.test((document.querySelector('#ac-form .ac-th') || {}).textContent || ''));
     await page.click('#ac-form [data-ac-ask]');
@@ -78,20 +78,21 @@ function book(){
     await until(page, () => /not yet read/.test((document.querySelector('#ac-form .ac-th') || {}).textContent || ''), null, 15000);
     S = await sentence();
     check('2a the form on the team\'s question: "the next 50 | 100 of the 450 not yet read: contracts 51–100 · 50 Jambo calls. The 50 already read are kept and cost nothing"',
-      !!S && /reads the next 50100 of the 450 not yet read: contracts 51–100 · 50 Jambo calls\. The 50 already read are kept and cost nothing\./.test(S.text) && S.btn.trim() === 'Read the next 50', S);
+      !!S && /reads the next 50100 of the 450 not yet read: contracts 51–100 · 50 Jambo calls\. The 50 already read are kept and cost nothing\./.test(S.text) && S.btn.trim() === 'Read the next 50 · 50 Jambo calls', S);
     await page.screenshot({ path: path.join(OUT, 'form-1440x780.png') });
     await page.evaluate(() => askColClose());
-    const card = async () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-col]'); if (!c) return null; const p = c.querySelector('.ac-th-prog');
-      return { prog: p ? (p.querySelector('.ac-meta') || {}).textContent.replace(/\s+/g, ' ').trim() : '', next: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), every: !!c.querySelector('[data-ac-reads]'), bar: p ? (p.querySelector('.ac-prog > i') || {}).style.width : '' }; });
+    /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
+    const card = async () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-col]'); if (!c) return null; const p = c.querySelector('[data-ac-desk-rest]') || c.querySelector('.ac-th-prog');
+      return { prog: p ? (p.querySelector('.ac-desk-foot .ac-busy') || p.querySelector(':scope > .ac-meta') || {}).textContent.replace(/\s+/g, ' ').trim() : '', next: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), every: !!c.querySelector('[data-ac-reads]'), bar: p && p.querySelector('.ac-prog > i') ? p.querySelector('.ac-prog > i').style.width : '' }; });
     let C = await card();
     /* RE-POINTED 28 Oct 2026 (ONE BUTTON): the line says read and still to read, ONE button sized to what is left, the 50 | 100 pill beside it */
     check('2b the card: "50 of the 500 shown read · 450 still to read", one button "Read the next 50 · 400 left after", the pill, Every read ›',
-      !!C && /^50 of the 500 shown read · 450 still to read/.test(C.prog) && JSON.stringify(C.next) === JSON.stringify(['Read the next 50 · 400 left after']) && C.every && C.bar === '10%', C);
+      !!C && /^50 of the 500 shown read · 450 still to read/.test(C.prog) && JSON.stringify(C.next) === JSON.stringify(['Read the next 50 · 400 left after']) && C.every, C);
     await page.screenshot({ path: path.join(OUT, 'after-1440x780.png') });
 
     /* ---- 3 the next 50 reads 51–100, never the first 50 again ---- */
     await page.click('#ig-dock [data-ac-next][data-ac-n="50"]');
-    await until(page, () => !document.querySelector('[data-ac-stop]') && /^100 of the 500 shown read/.test(((document.querySelector('#ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
+    await until(page, () => !document.querySelector('[data-ac-stop]') && /^100 of the 500 shown read/.test(((document.querySelector('#ig-dock [data-ac-desk-rest] .ac-busy, #ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
     C = await card();
     const reads = await W.admin.json('/api/columns/reads');
     const mine = (reads.reads || []).filter(r => r.askIds.includes(ask.id)).sort((a, b) => a.at.localeCompare(b.at));

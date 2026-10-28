@@ -101,9 +101,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.fill('#ct-q', CAP_Q); await page.press('#ct-q', 'Enter');
       const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value); });
       check('2a a question of the wording in the list box opens the form, filled, nothing read', filled && h.ai.calls.length === calls0);
-      /* 2b the name hint */
-      const hint = await page.evaluate(() => (document.querySelector('#ac-name-say') || {}).textContent || '');
-      check('2b the name box says Jambo names it if left empty', /Jambo names it/.test(hint), hint);
+      /* 2b the name, said */ /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
+      const hint = await page.evaluate(() => (document.querySelector('#ac-named') || {}).textContent || '');
+      check('2b the form says the column\'s name under the question, with Change', /Column: Liability capped\s*Change/.test(hint.replace(/\s+/g, ' ')), hint);
       await page.fill('#ct-q', '');
       await page.click('[data-ac-ask]');
       /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
@@ -503,7 +503,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const counting = await until(page, () => /\d+ done/.test((document.querySelector('#ig-dock .ac-busy') || {}).innerText || ''), null, 20000);
       const line = await page.evaluate(() => (document.querySelector('#ig-dock .ac-busy') || {}).innerText || '');
       const bar = await page.evaluate(() => { const i = document.querySelector('#ig-dock .ac-prog>i'); return i ? i.style.width : ''; });
-      check('11a while he reads, the line counts what has landed and a bar follows it', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done · (\d+ at risk so far · )?\d+ Jambo calls/.test(line) && /%/.test(bar), JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
+      /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
+      check('11a while he reads, the line counts what has landed (no bar: the counts say how far)', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done · (\d+ at risk so far · )?\d+ Jambo calls/.test(line) && bar === '', JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
       await page.screenshot({ path: path.join(OUT, '11-reading.png') });
       await page.click('#ig-dock [data-ac-stop]');
       const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
@@ -511,7 +512,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const spent = h.ai.calls.length - c0;
       const kept = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
       check('11b Stop: it says what was read and kept, what was not, and offers the rest with its cost',
-        stopped && /read and kept/.test(st) && /not read/.test(st) && /Carry on/.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
+        stopped && /Stopped at \d+ of \d+/.test(st) && /kept/.test(st) && /Carry on/.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
       /* RE-POINTED 28 Oct 2026 (STOP MEANS STOP): Stop ends the stream at once, so a batch can be cut midway; the
          reads already with Jambo finish on the server and are kept, so what is shown is at most what was spent */
       check('11c nothing already read is lost, and no more was read after the press', kept <= spent && spent < shownN, JSON.stringify({ kept, spent, shownN }));

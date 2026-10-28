@@ -169,8 +169,35 @@ function askColSentenceHtml(p, o){
   return _acT(k, v);
 }
 /* the ask button's words: the first read "Ask N contracts", the next "Read the next N", again "Ask again · N" */
+/* THE BUTTON SAYS WHAT IT SPENDS (round 2 of the review, 28 Oct 2026): "Read 16 contracts · 16 Jambo calls" */
 function askColAskWords(p){
-  return p.force ? _acT('ac_th_btn_again', { n: p.pick.length }) : p.read ? _acT('ac_th_btn_next', { n: p.pick.length }) : _acTn('ac_ask_n', p.pick.length);
+  const n = p.pick.length, calls = _acTn('ac_n_calls', n);
+  return p.force ? _acT('ac_read_btn_again', { calls }) : p.read ? _acT('ac_read_btn_next', { n, calls }) : _acTn('ac_read_btn', n, { calls });
+}
+/* THE COLUMN'S NAME, BEFORE THE READ (round 2): the server's own rule, twinned (colNameOf), so the form can say
+   "Column: Rebate · Change" instead of asking for a name. Leading question and filler words go; the name runs to
+   the first small word or comma, at most four words. */
+const AC_NAME_LEAD = /^(how|what|which|who|when|where|is|are|does|do|did|can|could|will|would|should|has|have|the|a|an|any|our|their|this|these|that|it|there|much|many|either|each|contract|contracts|agreement|agreements|mention|mentions|include|includes|contain|contains|say|says|state|states|name|names|side|sides|party|parties)$/i;
+const AC_NAME_STOP = /^(does|do|is|are|was|were|need|needs|to|and|or|of|for|in|on|at|by|with|under|if|when|each|either|it|its|the|a|an)$/i;
+function askColNameOf(question){
+  const words = String(question || '').trim().replace(/[?.!]+$/, '').split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  let i = 0; while (i < words.length - 1 && AC_NAME_LEAD.test(words[i].replace(/[,;:]$/, ''))) i++;
+  const out = [];
+  for (let j = i; j < words.length && out.length < 4; j++){
+    const w = words[j], bare = w.replace(/[,;:]$/, '');
+    if (out.length && AC_NAME_STOP.test(bare)) break;
+    out.push(bare);
+    if (bare !== w) break;
+  }
+  const n = (out.length ? out : words.slice(0, 4)).join(' ');
+  return (n.charAt(0).toUpperCase() + n.slice(1)).slice(0, 40);
+}
+function askColNamedHtml(f){
+  if (f.nameEdit) return `<label class="ac-l" for="ac-name">${_acE(_acT('ac_name_label'))}</label><input id="ac-name" class="ac-in" maxlength="40" placeholder="${_acE(_acT('ac_name_ph'))}" value="${_acE(f.name || askColNameOf(f.question))}">`;
+  const name = f.name || askColNameOf(f.question);
+  return name ? `${_acT('ac_named', { name: `<b>${_acE(name)}</b>` })} <button type="button" class="ac-link" data-ac-name-edit>${_acE(_acT('ac_named_change'))}</button>`
+    : _acE(_acT('ac_named_empty'));
 }
 /* a pack's questions are the team's by their words; the asks they already are, where kept */
 function askColPackAskIds(p, f){
@@ -396,13 +423,45 @@ function askColPanelHtml(){
 function askColBusyHtml(){
   const b = AC.busy, pct = b.total ? Math.round(b.done / b.total * 100) : 0;
   const line = b.stop ? _acT('ac_stopping') : _acTn('ac_reading_n', b.total, { done: b.done });
-  return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(b.name || _acT('ac_title'))}</b></div>
-    <div class="pd-gl-b">${askColDeskNowHtml(b)}
+  /* THE READING DESK AS DRAWN (round 2 of the review, 28 Oct 2026: the owner's drawing, artifact C83usssBsvJMimRMC4xZWy):
+     Jambo's grey card; the eyebrow and the question; the refs in flight in the reference face, plain; the white
+     desk and stack; the counts and Stop as a button. No bar: the counts say how far it got. */
+  void pct; void line;
+  return `<div class="ac-card ac-dk-card" id="ac-form" data-ac-desk-card>${askColDeskHeadHtml(b)}
+      ${askColDeskNowHtml(b)}
       <div class="ac-desk" data-ac-desk>${askColDeskHtml(b)}</div>
       <ul class="ac-stack" data-ac-stack>${askColStackHtml(b)}</ul>
-      <div class="ac-prog" role="img" aria-label="${_acE(line)}"><i style="width:${pct}%"></i></div>
-      <div class="ac-desk-foot"><span class="ac-busy" role="status" aria-live="polite">${_acE(askColDeskFootText(b))}</span><button type="button" class="jb-chip" data-ac-stop${b.stop ? ' disabled' : ''}>${_acE(_acT('ac_stop'))}</button></div>
-    </div></div>`;
+      <div class="ac-desk-foot"><span class="ac-busy" role="status" aria-live="polite">${_acE(askColDeskFootText(b))}</span><button type="button" class="ui-btn ui-btn-sm" data-ac-stop${b.stop ? ' disabled' : ''}>${_acE(_acT('ac_stop'))}</button></div>
+    </div>`;
+}
+/* the eyebrow and the question, shared by the card while it reads and the card it leaves behind */
+function askColDeskHeadHtml(b){
+  const pack = (b.qCount || 0) > 1;
+  const eb = pack ? _acT('ac_desk_eb_pack', { name: b.name || '' }) : _acT('ac_desk_eb', { name: b.name || '' });
+  const q = pack ? _acTn('ac_desk_pack_qs', b.qCount) : (b.question || b.name || '');
+  return `<div class="ac-dk-eb">${_acE(eb)}</div><p class="ac-dk-q">${_acE(q)}</p>`;
+}
+/* THE CARD THE READ LEAVES BEHIND (the owner's picture, 28 Oct 2026: the last answer on the desk, the stack under it,
+   "Read 50 contracts · 17 at risk · 50 Jambo calls spent" and one button): it heads the column's card until the
+   next read or a page change; the column's other doors stay under it */
+function askColDeskRestHtml(askId){
+  const r = AC.lastRun; if (!r || r.askId !== askId) return '';
+  const p = askColPlan({ askId }), w = p.unread ? askColNextWords(p.unread, acSize()) : null;
+  /* ONE BUTTON's words stand (the owner's pick): still to read → "100 of the 120 shown read · 20 still to read";
+     every one read in this one press → the owner's picture, "Read 50 contracts · 17 at risk · 50 Jambo calls spent";
+     every one read over several presses → "All 120 shown are read"; at risk counts the whole column */
+  const risk = askColAtRisk(askId).length, spent = _acT('ac_desk_spent', { calls: _acTn('ac_n_calls', r.calls) });
+  const foot = p.unread
+    ? [_acT('ac_th_prog2', { read: p.read, total: p.shown }), _acTn('ac_th_left', p.unread), risk ? _acTn('ac_disc_risk', risk) : '', spent].filter(Boolean).join(' · ')
+    : r.done >= p.shown ? _acTn('ac_desk_rest', r.done, { risk: risk ? _acTn('ac_desk_rest_risk', risk) : '', calls: _acTn('ac_n_calls', r.calls) })
+    : [_acT('ac_th_done', { total: p.shown }), risk ? _acTn('ac_disc_risk', risk) : '', spent].filter(Boolean).join(' · ');
+  const btn = w ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-next="${_acE(askId)}" data-ac-n="${w.n}" title="${_acE(_acT('ac_th_next_title'))}">${_acE(w.label)}</button>`
+    : `<button type="button" class="ui-btn ui-btn-sm" data-ac-again="${_acE(askId)}"${askColMay() ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_desk_again'))}</button>`;
+  return `<div class="ac-card ac-dk-card is-rest" data-ac-desk-rest="${_acE(askId)}">${askColDeskHeadHtml(r)}
+      <div class="ac-desk">${askColDeskHtml(r)}</div>
+      <ul class="ac-stack">${askColStackHtml(r)}</ul>
+      <div class="ac-desk-foot"><span class="ac-busy">${_acE(foot)}</span>${btn}</div>
+    </div>`;
 }
 /* ---- THE READING DESK (the owner picked it, 28 Oct 2026) ----
    While a read runs the card shows, top to bottom: the ten in flight ("Reading
@@ -419,7 +478,7 @@ const AC_DESK_TURN_MS = 1400, AC_DESK_SLIDE_MS = 350, AC_DESK_STACK = 3;
 function askColDeskNowHtml(b){
   const ids = (b && b.ids) || [];
   if (!ids.length || b.stop) return '';
-  const ref = id => { const c = (typeof getContract === 'function') ? getContract(id) : null; return c ? ((typeof refHtml === 'function') ? refHtml(c) : _acE((typeof contractRef === 'function') ? contractRef(c) : c.id)) : _acE(id); };
+  const ref = id => { const c = (typeof getContract === 'function') ? getContract(id) : null; return _acE(c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : id); };
   const refs = ids.length > 1 ? _acT('ac_desk_refs', { a: ref(ids[0]), b: ref(ids[ids.length - 1]) }) : ref(ids[0]);
   return `<div class="ac-desk-now"><span class="ob-spin" aria-hidden="true"></span><span>${_acE(_acT('ac_desk_now'))}</span><span class="ac-desk-refs">${refs}</span></div>`;
 }
@@ -529,13 +588,14 @@ function askColDeskPaint(turned){
     try { inner.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }], { duration: AC_DESK_SLIDE_MS, easing: 'ease-out' }); } catch (_){}
   }
 }
-/* AFTER A STOP: what was kept, what was not, and the rest offered with its cost */
+/* AFTER A STOP, AS DRAWN (round 2): the same grey card the read ran in, its name and question at the head,
+   "Stopped at 8 of 16 · 8 answers kept · 8 Jambo calls spent · nothing else is being read", the rest offered with its cost */
 function askColStoppedHtml(){
   const s = AC.stopped, calls = s.left.length;
-  return `<div class="pd-glance ac-card" id="ac-stopped"><div class="pd-gl-h"><b>${_acE(s.name)}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acT('ac_stopped_word'))}</span></div>
-    <div class="pd-gl-b"><div class="ac-meta">${_acE(_acT('ac_stopped_said', { done: s.done, total: s.total, left: s.left.length, spent: _acTn('ac_n_calls', s.calls || 0) }))}</div>
-      <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-carry>${_acE(_acTn('ac_carry_on', calls, { calls: _acTn('ac_n_calls', calls) }))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-stopped-close>${_acE(_acT('ac_stopped_leave'))}</button></div>
-    </div></div>`;
+  const said = [_acTn('ac_stopped_kept', s.done), _acT('ac_desk_spent', { calls: _acTn('ac_n_calls', s.calls || 0) }), _acT('ac_stopped_none')].join(' · ');
+  return `<div class="ac-card ac-dk-card" id="ac-stopped">${askColDeskHeadHtml({ name: s.name, question: s.question, qCount: s.qCount })}
+    <div class="ac-dk-said"><b>${_acE(_acT('ac_stopped_head', { done: s.done, total: s.total }))}</b> · ${_acE(said)}</div>
+    <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-carry>${_acE(_acTn('ac_carry_on', calls, { calls: _acTn('ac_n_calls', calls) }))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-stopped-close>${_acE(_acT('ac_stopped_leave'))}</button></div></div>`;
 }
 
 /* ---- DISCOVER (stage 3, owner 25 Oct 2026: "Discover", in Jambo's panel beside
@@ -680,7 +740,7 @@ function askColFormHtml(){
   return `<div class="pd-glance ac-card" id="ac-form"><div class="pd-gl-h"><b>${_acE(_acT('ac_title'))}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acTn('ac_shown', shown.length))}</span></div>
     <div class="pd-gl-b">
       <div><label class="ac-l" for="ac-q">${_acE(_acT('ac_q_label'))}</label><textarea id="ac-q" class="ac-in" rows="2" maxlength="300" placeholder="${_acE(_acT('ac_q_ph'))}">${_acE(f.question || '')}</textarea></div>
-      <div><label class="ac-l" for="ac-name">${_acE(_acT('ac_name_label'))}</label><input id="ac-name" class="ac-in" maxlength="40" placeholder="${_acE(_acT('ac_name_ph'))}" value="${_acE(f.name || '')}" aria-describedby="ac-name-say"><small class="ac-hint" id="ac-name-say">${_acE(_acT('ac_name_auto'))}</small></div>
+      <div class="ac-named" id="ac-named">${askColNamedHtml(f)}</div>
       <div class="ac-cost ac-th">${cost}</div>
       ${why ? `<div class="ac-why">${_acE(why)}</div>` : ''}
       <div class="ac-acts">${bring ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-bring="${_acE(f.askId)}">${_acE(_acT('ac_th_bring'))}</button>`
@@ -711,7 +771,7 @@ function askColColumnHtml(askId){
   const prog = askColProgressHtml(askId);
   const chips = s.total ? `<div class="ac-chips ac-next">${risk ? `<button type="button" class="jb-chip" data-ac-risk="${_acE(askId)}">${_acE(_acTn('ac_chip_risk', risk))}</button>` : ''}<button type="button" class="jb-chip" data-ac-draw="${_acE(askId)}" aria-pressed="${drawn ? 'true' : 'false'}">${_acE(_acT(drawn ? 'ac_chip_undraw' : 'ac_chip_draw'))}</button><button type="button" class="jb-chip" data-ac-copy="${_acE(askId)}">${_acE(_acT('ac_chip_copy'))}</button>${askColMoreChipsHtml(askId)}${run ? `<button type="button" class="jb-chip" data-ac-table>${_acE(_acT('ac_tt_open'))}</button>` : ''}</div>` : '';
   return `<div class="pd-glance ac-card" data-ac-col="${_acE(askId)}"><div class="pd-gl-h"><b>${_acE(a.name || '')}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(_acT('ac_col_word'))}</span></div>
-    <div class="pd-gl-b"><div class="ac-meta">${_acE(facts)}</div>${prog}${ck}${chips}${drawn ? askColDrawHtml(askId) : ''}
+    <div class="pd-gl-b">${AC.lastRun && AC.lastRun.askId === askId ? askColDeskRestHtml(askId) + `<div class="ac-chips ac-next"><button type="button" class="jb-chip" data-ac-reads="${_acE(askId)}">${_acE(_acT('ac_th_every_read'))}</button></div>` : `<div class="ac-meta">${_acE(facts)}</div>${prog}`}${ck}${chips}${drawn ? askColDrawHtml(askId) : ''}
       <div class="ac-acts"><button type="button" class="ui-btn ui-btn-sm" data-ac-save="${_acE(askId)}">${_acE(_acT('ac_save_view'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-again="${_acE(askId)}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${_acE(_acT('ac_again'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_remove'))}</button></div>
     </div></div>`;
 }
@@ -1066,7 +1126,9 @@ function askColDrop(askId){
 async function askColReadRun(base, ids, opts){
   const o = opts || {};
   const got = { calls: 0, cached: 0, failed: [], capped: null, asks: [], err: null, stopped: false, done: 0, left: [] };
-  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '', calls: 0, seen: [], queue: [], queued: new Set(), cur: null, curAt: 0, doneIds: [], askId: null, asks: [] };
+  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '', calls: 0, seen: [], queue: [], queued: new Set(), cur: null, curAt: 0, doneIds: [], askId: null, asks: [],
+    question: String((base && base.question) || ''), qCount: Array.isArray(base && base.questions) ? base.questions.length : 1 };
+  AC.lastRun = null;
   askColPaintPanel(); askColDeskStart();
   /* the questions are known: their columns stand on the list before the first answer (the stream says them first) */
   const takeAsks = (asks, part) => {
@@ -1133,13 +1195,19 @@ async function askColReadRun(base, ids, opts){
   const answered = new Set(AC.busy ? AC.busy.doneIds : []);
   if (got.stopped){ got.done = answered.size; got.left = ids.filter(id => !answered.has(id)); }
   else got.left = ids.slice(got.done);
+  const B = AC.busy;
+  if (B && !got.stopped && !got.err && B.askId && B.cur){
+    AC.lastRun = { askId: B.askId, name: (AC.asks[B.askId] || {}).name || B.name, question: B.question || (AC.asks[B.askId] || {}).question || '', qCount: B.qCount,
+      cur: B.cur, seen: B.seen.slice(-AC_DESK_STACK), done: B.done, risk: askColDeskRisk(B), calls: B.calls };
+  }
+  if (B){ got.question = B.question || ''; got.qCount = B.qCount; }
   AC.busy = null; askColDeskStop(); askColListSoon(true);
   return got;
 }
 /* what the reader is told after a run that was stopped or that broke: nothing
    is lost, and the rest is offered again with its own cost */
 function askColRunEnd(got, base, name){
-  AC.stopped = (got.stopped || got.err) && got.left.length ? { base, left: got.left, done: got.done, total: got.done + got.left.length, name, calls: got.calls } : null;
+  AC.stopped = (got.stopped || got.err) && got.left.length ? { base, left: got.left, done: got.done, total: got.done + got.left.length, name, calls: got.calls, question: got.question || '', qCount: got.qCount } : null;
   if (got.err && typeof toast === 'function')
     toast(got.err && (got.err.needsKey || got.err.kind === 'noKey') ? _acT('ac_nokey') : _acT('ac_err', { msg: (got.err && got.err.message) || '' }), 'err');
   else if (got.stopped && typeof toast === 'function') toast(_acT('ac_stopped', { done: got.done, total: got.done + got.left.length }), 'ok');
@@ -1276,7 +1344,8 @@ async function askColRun(){
   if (f.pack) return askColRunPack(f);
   const qEl = document.getElementById('ac-q'), nEl = document.getElementById('ac-name');
   const question = String(qEl ? qEl.value : f.question || '').trim();
-  const name = String(nEl ? nEl.value : f.name || '').trim();
+  /* the name the form said (askColNameOf) is the name sent, unless the reader changed it */
+  const name = String(nEl ? nEl.value : f.name || '').trim() || askColNameOf(String(qEl ? qEl.value : f.question || ''));
   if (question.length < 3){ askColSay(_acT('ac_q_short')); return; }
   /* A COLUMN ASKS THE WORDING (owner, 26 Oct 2026): a counting question is
      about the reader's own book, not about what a contract says — it is handed
@@ -1402,6 +1471,8 @@ if (typeof document !== 'undefined' && !document._acWired){
     /* the tick moved out of the cell into the panel's reading (Lights, 26 Oct 2026) */
     if (t.closest('[data-ac-ck]')){ e.preventDefault(); const ch = AC.chosen; if (ch) askColCheck(ch.askId, ch.cid); return; }
     const sv = t.closest('[data-ac-save]'); if (sv){ e.preventDefault(); askColSave(); return; }
+    if (t.closest('[data-ac-name-edit]') && AC.form){ e.preventDefault(); AC.form.nameEdit = true; AC.form.name = AC.form.name || askColNameOf(AC.form.question);
+      const nm = document.getElementById('ac-named'); if (nm){ nm.innerHTML = askColNamedHtml(AC.form); const i = document.getElementById('ac-name'); if (i){ i.focus(); i.select(); } } return; }
     const ag = t.closest('[data-ac-again]');
     if (ag){ e.preventDefault(); const q = AC.asks[ag.getAttribute('data-ac-again')]; if (q) askColOpen({ question: q.question, name: q.name, askId: q.id, force: true }); return; }
     const rm = t.closest('[data-ac-remove]'); if (rm){ e.preventDefault(); askColRemove(rm.getAttribute('data-ac-remove')); return; }
@@ -1431,7 +1502,9 @@ if (typeof document !== 'undefined' && !document._acWired){
   /* the question's own words: a typed edit is kept across a repaint; Enter asks */
   document.addEventListener('input', e => {
     const t = e.target; if (!AC.form || !t) return;
-    if (t.id === 'ac-q'){ askColSayClear(); AC.form.question = t.value; if (AC.form.askId && !AC.form.force){ AC.form.askId = null; AC.form.kept = 0; } }
+    if (t.id === 'ac-q'){ askColSayClear(); AC.form.question = t.value; if (AC.form.askId && !AC.form.force){ AC.form.askId = null; AC.form.kept = 0; }
+      /* the name said under the box follows the words as they are typed, unless the reader chose one */
+      const nm = document.getElementById('ac-named'); if (nm && !AC.form.nameEdit && !AC.form.name) nm.innerHTML = askColNamedHtml(AC.form); }
     if (t.id === 'ac-name') AC.form.name = t.value;
   });
   /* a rule is saved when its box is left with new words (a change event: once, never per key) */
@@ -1464,7 +1537,7 @@ function askColBtnHtml(){
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
 
-Object.assign(window, { AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { askColNameOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });

@@ -73,15 +73,17 @@ async function toList(page) {
     await page.click('[data-ac-open]');
     const opened = await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
     const form = await page.evaluate(() => { const f = document.querySelector('#ac-form'); return f ? f.innerText : ''; });
-    check('1b the question opens in Jambo\'s panel', opened && /Your question/.test(form) && /Column name/.test(form), form.slice(0, 120));
-    check('1c the cost is said before the press: the contracts and the Jambo calls', /4 contracts/.test(form) && /4 Jambo calls/.test(form) && /Ask 4 contracts/.test(form) && /Cancel/.test(form));
+    /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
+    check('1b the question opens in Jambo\'s panel', opened && /Your question/.test(form) && /named from your question/.test(form), form.slice(0, 120));
+    check('1c the cost is said before the press: the contracts and the Jambo calls', /4 shown/.test(form) && /4 Jambo calls/.test(form) && /Read 4 contracts · 4 Jambo calls/.test(form) && /Cancel/.test(form));
     await page.click('[data-ac-open]');
     check('1d the same press closes it again', await until(page, () => !document.querySelector('#ac-form')));
     await page.screenshot({ path: path.join(OUT, '01-closed.png') });
 
     /* ============ 2. THE COLUMN ============ */
     await page.click('[data-ac-open]'); await until(page, () => !!document.querySelector('#ac-q'));
-    await page.fill('#ac-q', Q); await page.fill('#ac-name', 'Notice to end');
+    /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
+    await page.fill('#ac-q', Q); await page.click('[data-ac-name-edit]'); await page.fill('#ac-name', 'Notice to end');
     await page.screenshot({ path: path.join(OUT, '02-asking.png') });
     const before = h.ai.calls.length;
     await page.click('[data-ac-ask]');
@@ -102,7 +104,7 @@ async function toList(page) {
        panel's reading of the chosen row (3b, 4a below). */
     check('2b each cell is one line: the light and the answer, nothing else', col.cells.every(t => /^30 days$/.test(t.trim())) && col.lights === col.cells.length, JSON.stringify({ cells: col.cells, lights: col.lights }));
     check('2c Owner steps aside while an answer column stands, as drawn', !col.heads.includes('Owner'));
-    check('2d the panel says the column, with its three doors', /Notice to end/.test(col.panel) && /4 answered/.test(col.panel) && /Save as a view/.test(col.panel) && /Ask again/.test(col.panel) && /Remove column/.test(col.panel), col.panel.slice(0, 200));
+    check('2d the panel says the column, with its three doors', /Notice to end/.test(col.panel) && /Read 4 contracts/.test(col.panel) && /Save as a view/.test(col.panel) && /Ask again/.test(col.panel) && /Remove column/.test(col.panel), col.panel.slice(0, 200));
     check('2e the calls said are the calls made', h.ai.calls.length - before === 4, String(h.ai.calls.length - before));
     await page.screenshot({ path: path.join(OUT, '03-column.png') });
 
@@ -220,14 +222,15 @@ async function toList(page) {
     let release; const held = new Promise(r => { release = r; });
     await page.route('**/api/columns', async route => { await held; await route.continue(); });
     await page.click('[data-ac-open]');
-    await until(page, () => !!document.querySelector('#ac-name'));
-    await page.click('#ac-name');
-    await page.keyboard.type('Notice', { delay: 20 });
+    /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
+    await until(page, () => !!document.querySelector('#ac-q'));
+    await page.click('#ac-q');
+    await page.keyboard.type('How much notice', { delay: 20 });
     release();
     await until(page, () => !!document.querySelector('#ac-form .ac-chip, [data-ac-chip]'), null, 3000);
-    await page.keyboard.type(' to end', { delay: 20 });
-    const typed = await page.evaluate(() => { const n = document.querySelector('#ac-name'); return { v: n ? n.value : null, focus: document.activeElement && document.activeElement.id }; });
-    check('10 typing while the team\'s questions arrive keeps every letter and the caret', typed.v === 'Notice to end' && typed.focus === 'ac-name', JSON.stringify(typed));
+    await page.keyboard.type(' to end?', { delay: 20 });
+    const typed = await page.evaluate(() => { const n = document.querySelector('#ac-q'); return { v: n ? n.value : null, focus: document.activeElement && document.activeElement.id, named: (document.querySelector('#ac-named') || {}).textContent }; });
+    check('10 typing while the team\'s questions arrive keeps every letter and the caret; the name said follows', typed.v === 'How much notice to end?' && typed.focus === 'ac-q' && /Column: Notice/.test(typed.named || ''), JSON.stringify(typed));
     await page.unroute('**/api/columns');
     await page.click('[data-ac-cancel]').catch(() => {});
 
