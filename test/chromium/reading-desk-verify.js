@@ -23,7 +23,7 @@ const check = (name, ok, more) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name
 const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
 
 const PARTIES = ['Kabras Sugar', 'Nandi Dairy', 'Juno Logistics', 'Naivas Supermarkets', 'Pixel Agency', 'Mara Logistics', 'Equity Bank', 'Safaricom', 'Bidco Africa', 'Twiga Foods'];
-const TYPES = [['Supply Agreement', 'proc'], ['Distribution Agreement', 'dist'], ['Services Agreement', 'corp'], ['Retail Supply', 'sales'], ['Marketing Services', 'mktg']];
+const TYPES = [['Supply Agreement', 'proc'], ['Distribution Agreement', 'dist'], ['Services Agreement', 'corp'], ['Retail Supply', 'sales'], ['Warehousing and Transportation Services — Alpha Logistics', 'mktg']]  /* one owner-length name (28 Oct 2026) */;
 const BODY = (party, type) => `${type.toUpperCase()}\n\nThis ${type} is made between Highland Corporate Ltd and ${party}.\n\n3. Payment\nPayment is due within thirty days of invoice.\n\n9. Termination\nEither party may end this agreement on thirty days' written notice to the other.`;
 function book(n){
   const out = [];
@@ -193,6 +193,14 @@ const Q = 'How much notice does each side need to end the contract?';
         const pad = (() => { const b = card.querySelector('.pd-gl-b'); if (!b) return null; const cs = getComputedStyle(card); return [parseFloat(cs.paddingLeft), parseFloat(cs.paddingRight)]; })();
         return { spill, sideways: dock ? dock.scrollWidth > dock.clientWidth + 1 : null, pad, stack: card.querySelectorAll('[data-ac-stack] li').length, lines: [...card.querySelectorAll('.ac-stack-r, .ac-desk-who, .ac-desk-foot')].every(el => el.getBoundingClientRect().height < 40) }; });
       check(`6 at ${w}×${hh} the desk fits its card: nothing spills, nothing sideways, every line one line`, stacked && !fit.none && !fit.spill.length && !fit.sideways && fit.lines, Object.assign({ waited: Date.now() - t0, calls: h.ai.calls.length, lastCall: h.ai.calls.length ? Object.keys(h.ai.calls[h.ai.calls.length - 1]).join(',') : '' }, fit));
+      /* NOTHING IS CUT INSIDE THE WHITE BOX (the owner, 28 Oct 2026: "words are going outside the white box inside the grey card"):
+         the ref and § stand whole inside the desk's padding; only a long name gives way, with "…" */
+      const cut = await page.evaluate(() => { const d = document.querySelector('#ac-form [data-ac-desk]'); if (!d) return { none: true };
+        const db = d.getBoundingClientRect(), cs = getComputedStyle(d), inner = db.right - parseFloat(cs.paddingRight) + 1;
+        const meta = d.querySelector('.ac-desk-who .ac-meta'), nm = d.querySelector('.ac-desk-nm');
+        return { meta: meta && meta.textContent, metaCut: !meta || meta.scrollWidth > meta.clientWidth + 1 || meta.getBoundingClientRect().right > inner,
+          nameEll: !nm || nm.scrollWidth <= nm.clientWidth + 1 || getComputedStyle(nm).textOverflow === 'ellipsis' }; });
+      check(`6b at ${w}×${hh} the desk's ref and § stand whole inside the white box; a long name ends in "…"`, !cut.none && !cut.metaCut && cut.nameEll, cut);
       await page.waitForTimeout(450);
       await page.screenshot({ path: path.join(OUT, `desk-${w}x${hh}.png`) });
       /* let the read end at full speed: the one button, then all read, photographed at this screen too */
