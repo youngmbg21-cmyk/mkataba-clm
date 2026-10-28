@@ -99,6 +99,11 @@ const THIRTY = 'Invoices are payable within thirty (30) days.';
     check(!!(read && read.painted && read.why), '1b it is painted, with Ask Jambo more on its card', read);
     check(!!(read && /Escalate|Push back|Take it|Read it/.test(read.text) && read.text.length > 20), '1c it says the verdict and its reason', read && read.text);
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-row-read.png') });
+    /* THE WRONG CONTRACT (owner, 27 Oct 2026: beside MK-398's Redlines Jambo answered "I can't tell which contract you
+       mean"): what the brain is told and the line under his answer name the contract on the paper, the same one */
+    const told = await drive(() => ({ ctx: (window.aiChatContext && aiChatContext().activeContractId) || null,
+      line: (window.aiReadFrom && aiReadFrom().cid) || null }), null, {});
+    check(told.ctx === 'MK-L1' && told.line === 'MK-L1', '1h beside the paper\'s Redlines, the brain is told which contract is open, the same one the line names', told);
     /* RE-POINTED 27 Oct 2026 (owner: "it is taking me to the wrong jambo. I believe it should be taking me to the
        editor jambo"): the press opens the clause editor on this change, from the row, with the card's reading as
        Jambo's first line, and the question is asked THERE — not in the conversation beside the paper. */

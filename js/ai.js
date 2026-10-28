@@ -1403,12 +1403,11 @@ function renderAISuggest(){
 }
 /* a contract's printed reference (refHtml is for the page; this is words) */
 function aiRefOf(c){ return (typeof contractRef==='function'?contractRef(c):(c&&(c.contractNo||c.id)))||''; }
-/* THE CONTRACT ON SCREEN, wherever it is drawn: the room or the negotiation
-   page (aiScreenContractId), else Home's paper */
+/* THE CONTRACT ON SCREEN, wherever it is drawn: ONE reading (aiScreenContractId) for the line under an answer and
+   for what the brain is told, so the two can never name different contracts */
 function aiOnScreenContract(){
   let id=null;
   try{ id=aiScreenContractId(); }catch(_){ id=null; }
-  try{ if(!id && typeof state==='object' && state && state.view==='dashboard' && typeof intel==='object' && intel && intel.paper && intel.paper.id) id=intel.paper.id; }catch(_){}
   return id&&typeof getContract==='function'?getContract(id):null;
 }
 /* ONE CONVERSATION FOLLOWS YOU (owner, 21 Oct 2026): the side panel's talk is
@@ -2302,6 +2301,15 @@ function aiScreenContractId(){
     if (v === 'workspace') return state.activeId || null;
     if (v === 'redline')
       return (typeof window.redlineHeldId === 'function') ? (redlineHeldId() || null) : null;
+    /* HOME, WHERE A COMPUTER OPENS EVERY CONTRACT (owner, 27 Oct 2026: Jambo answered "I can't tell which contract
+       you mean" beside MK-398's Redlines, while the line under the same answer said "Read from MK-398"): the paper
+       with a contract on it (pdOnPaper), or a contract brought up on the Board (bsCardId) — never a paper left
+       behind when the Board, Calendar or Explorer is in front */
+    if (v === 'dashboard'){
+      if (typeof window.pdOnPaper === 'function' && pdOnPaper() && typeof window.pdContract === 'function'){ const c = pdContract(); return c ? c.id : null; }
+      const s = (typeof window.hbS === 'function') ? hbS() : null;
+      return (s && s.face === 'board' && typeof window.bsCardId === 'function') ? (bsCardId() || null) : null;
+    }
     return null;
   }catch(_){ return null; }
 }

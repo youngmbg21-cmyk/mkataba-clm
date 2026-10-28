@@ -88,6 +88,13 @@ function loadAi(opts = {}){
     sandbox.obwRows = () => (opts.obwRows || []);
     sandbox.FOLDERS = { f1: { name: 'Supply chain' } };
     if (opts.intelTab) sandbox.intel = { tab: opts.intelTab };
+    /* Home's own readings: the paper in front with its contract, the Board's face, a contract brought up on it */
+    if (opts.home){
+      sandbox.pdOnPaper = () => !!opts.home.paper;
+      sandbox.pdContract = () => (opts.home.paperId ? contracts.find(c => c.id === opts.home.paperId) || null : null);
+      sandbox.hbS = () => ({ face: opts.home.face || 'paper' });
+      sandbox.bsCardId = () => opts.home.card || null;
+    }
   }
   sandbox.window = sandbox;
   vm.createContext(sandbox);
@@ -127,6 +134,35 @@ describe('f283 (1) a contract is claimed open only where one really is', () => {
       .aiScreenContractId(), 'MK-4');
     assert.equal(loadAi({ view: 'redline', activeId: 'MK-9', held: null })
       .aiScreenContractId(), null, 'the list is up — no contract is on screen');
+  });
+});
+
+/* ---------- (1b) HOME, WHERE A COMPUTER OPENS EVERY CONTRACT ----------
+   Owner, 27 Oct 2026: beside MK-398's Redlines Jambo answered "I can't tell which contract you mean" while the line
+   under the same answer said "Read from MK-398". The line and the brain read two different answers to "which
+   contract is on screen"; now there is one, and it knows Home. */
+describe('f283 (1b) on Home, the contract on the paper is the one on screen', () => {
+  const two = [{ id: 'MK-9', name: 'Warehousing', counterparty: 'Acme', status: 'Signed' },
+    { id: 'MK-398', name: 'Mutual NDA', counterparty: 'Juno LLC', status: 'Under Review' }];
+  test('THE REPORTED FAULT: the paper in front names its contract to the brain', () => {
+    const w = loadAi({ view: 'dashboard', activeId: 'MK-9', contracts: two, home: { paper: true, paperId: 'MK-398' } });
+    assert.equal(w.aiScreenContractId(), 'MK-398');
+    assert.equal(w.aiChatContext().activeContractId, 'MK-398');
+  });
+  test('and the line under the answer reads the same one', () => {
+    const w = loadAi({ view: 'dashboard', activeId: 'MK-9', contracts: two, home: { paper: true, paperId: 'MK-398' } });
+    assert.equal(w.aiReadFrom().cid, 'MK-398');
+  });
+  test('a contract brought up on the Board is on screen too', () => {
+    const w = loadAi({ view: 'dashboard', contracts: two, home: { paper: false, face: 'board', card: 'MK-398' } });
+    assert.equal(w.aiChatContext().activeContractId, 'MK-398');
+  });
+  test('the Board, Calendar or Explorer in front: no contract, though a paper was left behind', () => {
+    for (const face of ['board', 'calendar', 'explorer']){
+      const w = loadAi({ view: 'dashboard', contracts: two, home: { paper: false, paperId: 'MK-398', face } });
+      assert.equal(w.aiChatContext().activeContractId, undefined, face);
+      assert.equal(w.aiReadFrom().cid, null, face);
+    }
   });
 });
 
