@@ -3738,8 +3738,10 @@ function stJbTalkInnerHtml(){
      his, nothing said yet left his tab blank — you pressed Jambo and got an
      empty panel. His greeting stands there until the first turn, the way
      Home's talk view falls back to its welcome line. */
-  if(!H.length) return (typeof jamboHelloHtml==='function')?jamboHelloHtml():`<p class="st-note">${esc(i18t('int_notebook_welcome'))}</p>`;
-  return H.map((m,i)=>jamboTurnHtml(m,i,H,'st')).join('');
+  /* JAMBO IS THINKING (owner, 28 Oct 2026): while his answer is on its way the conversation says so, as every panel's does */
+  const busy=!!(window.ai&&ai.busy)&&typeof jamboThinkingHtml==='function'?`<div class="ai-msg flex gap-2.5">${typeof jamboFaceHtml==='function'?jamboFaceHtml('think',28,'ai-face shrink-0 mt-0.5'):''}${jamboThinkingHtml()}</div>`:'';
+  if(!H.length) return busy||((typeof jamboHelloHtml==='function')?jamboHelloHtml():`<p class="st-note">${esc(i18t('int_notebook_welcome'))}</p>`);
+  return H.map((m,i)=>jamboTurnHtml(m,i,H,'st')).join('')+busy;
 }
 function stJbTalkWrapHtml(hide){ return `<div class="st-jb-talk" data-st-jb-talk data-jt-talk${hide?' hidden':''}>${stJbTalkInnerHtml()}</div>`; }
 /* the whole conversation drawn again in the talk view, taken off the other hosts */

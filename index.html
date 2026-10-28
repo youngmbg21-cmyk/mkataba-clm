@@ -17221,6 +17221,12 @@
   .jb-door-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
   .jb-door .jb-bin{flex:none;cursor:pointer}
   .jb-talk-label{cursor:default}
+  /* JAMBO IS THINKING (owner, 28 Oct 2026): a moving spinner and the words, in his answer's bubble */
+  .jl-bub.jb-thinking{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 18px}
+  .jb-thinking .jb-dot{width:9px;height:9px;border-radius:50%;background:var(--color-text);animation:jb-busy 1.2s infinite ease-in-out}
+  .jb-thinking .jb-dot:nth-child(2){animation-delay:.2s} .jb-thinking .jb-dot:nth-child(3){animation-delay:.4s}
+  @keyframes jb-busy{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.jb-thinking .jb-dot{animation-duration:2.4s}}
   /* a head's tab put away while the other face shows is gone, whatever display its class gives it */
   :is(.jl-head, .igd-head, .st-side-head, .cal-plan-head) :is(.pd-tab, .st-side-tab)[hidden]{display:none}
   /* …and the tab after it stands where it stood: no gap is kept for a tab that is not drawn */

@@ -198,7 +198,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.fill('#jl-q', 'which of these is worth the most?');
       await page.press('#jl-q', 'Enter');
       const ANS = await until(() => { const f = document.getElementById('jl-feed');
-        return f && f.querySelectorAll('.ai-msg').length >= 2 && !f.querySelector('.typing') && /\S/.test((f.querySelector('.ai-msg:last-child') || {}).textContent || '') ? { n: f.querySelectorAll('.ai-msg').length, open: !!(window.ai && ai.open), win: (document.getElementById('ai-feed') || {}).innerHTML === '' } : null; }, null, 15000);
+        return f && f.querySelectorAll('.ai-msg').length >= 2 && !f.querySelector('.typing, [data-jb-thinking]') && /\S/.test((f.querySelector('.ai-msg:last-child') || {}).textContent || '') ? { n: f.querySelectorAll('.ai-msg').length, open: !!(window.ai && ai.open), win: (document.getElementById('ai-feed') || {}).innerHTML === '' } : null; }, null, 15000);
       check('3b a question is said in the panel; the window stays shut and holds no second copy', !!ANS && !ANS.open && ANS.win, JSON.stringify(ANS));
       await shot('r14-negotiations-ask-1440x780.png');
     });
