@@ -378,7 +378,9 @@ const check = (name, ok, detail) => {
     check('5a the rail head names no clause', !!opened && !R.name, String(R.name));
     const clName = await page.evaluate(i => { const c = state.contracts.find(x => x.id === i); const cl = negoClauseList(c)[0]; return (cl && (cl.headingText || cl.title)) || ''; }, id);
     check('5b the top bar or the panel\'s dropdown names the clause it is working on', /^Edit\b/.test(R.crumb) || (!!clName && R.crumb.includes(clName.replace(/\s+/g, ' ').trim())), (R.crumb || 'not drawn') + ' / ' + clName);
-    check('5e and the head row is one line', R.headH != null && R.headH <= 44, `${R.headH}px`);
+    /* RE-POINTED 28 Oct 2026 (owner: "The lines in the jambo and the main page are not aligned"): the head row is
+       the editor's one row height, CE_ROW_H, so its line meets the page's across the seam — still one line */
+    check('5e and the head row is one line', R.headH != null && R.headH <= 45, `${R.headH}px`);
 
     check('no page error along the way', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

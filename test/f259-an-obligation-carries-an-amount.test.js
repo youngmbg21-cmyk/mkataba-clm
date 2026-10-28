@@ -155,7 +155,8 @@ describe('f259 (5) — the totals ride what is already on the screen', () => {
        (obMoneyWords), because one figure added money we owe to money owed to
        us. The claim about WHERE it sits is unchanged. */
     assert.match(OB_CODE, /<div class="obt-band">\$\{_obEsc\(i18t\(key\)\)\}<b>\$\{mine\.length\}<\/b>\$\{\s*bandMw && bandMw\.text \? `<i class="obt-bandsum">/);
-    assert.match(OB_CODE, /<tr class="obw-band"><td colspan="\$\{money \? 6 : 5\}">/,
+    /* RE-POINTED 28 Oct 2026 (THE LIST'S COLUMNS): the columns drawn are the one list's (OBT) */
+    assert.match(OB_CODE, /<tr class="obw-band"><td colspan="\$\{OBT\.cols\.length\}">/,
       'and the worklist band spans the column count it actually draws');
   });
 

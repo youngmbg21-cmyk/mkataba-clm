@@ -14831,7 +14831,11 @@
   .ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* the party's name reads whole (round 15; at 1366 beside Jambo's panel a
      long one takes a second line), the agreement under it keeps its cut */
-  .ap-table.ap-ins .ap-id .ap-name{white-space:normal;overflow-wrap:anywhere;}
+  /* ROWS NEVER GROW PAST TWO LINES (owner, 28 Oct 2026: "if there are multiple parties or a long name, the row
+     expands which makes the page look unprofessional"): the name takes two lines, then "…", the whole of it on
+     its hover; on every shape of the table, beside the panel or not */
+  .ap-table .ap-id .ap-name{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;}
+  .ap-table .ap-id .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table.ap-ins td:not(:has(.ap-id)) .ap-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table .ap-sub.late{color:var(--st-ruby-fg);}
   .ap-table tbody tr[data-ap-row]:focus{outline:none;}
@@ -15558,7 +15562,9 @@
   /* THE WHOLE TITLE (round 20 as drawn: every request's name and who asked
      read whole): on the narrower screens a long one wraps inside its cell
      rather than cutting with an ellipsis */
-  .ik-lt .ins-c2 > b, .ik-lt .ins-c2 > span{white-space:normal;overflow-wrap:anywhere;}
+  .ik-lt .ins-c2 > b{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;}
+  /* its grey line is one line, the rest on its hover (rows never grow past two lines, owner 28 Oct 2026) */
+  .ik-lt .ins-c2 > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* the tab's number as drawn: a small grey figure after the word, no box */
   .sap-page .reg-tabbar.ik-tabbar .reg-vtab .n{background:none;padding:0 0 0 2px;}
   .ins-pill-row{margin-top:var(--s-2);}

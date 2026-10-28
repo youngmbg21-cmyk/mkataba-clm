@@ -389,6 +389,10 @@ function dirAwayPillHtml(p){
    19's Side, Job title, In HaTi and Email columns went with the band. */
 function dirColDefs(){
   return [
+    /* THE JOB TITLE IS A COLUMN (owner, 28 Oct 2026: "take the title from
+       below the name and add it to cover the empty space"): a column of its
+       own, 220px; the name takes the rest, up to its ceiling (listCols) */
+    { k: 'title', label: i18t('dir_col_title'), w: 220 },
     { k: 'party', label: i18t('dir_col_party'), w: 220 },
     /* THE SIDE IS A COLUMN AGAIN (owner, 27 Oct 2026: "for people the sap way"): an icon and a word in its tone */
     { k: 'side', label: i18t('dir_col_side'), w: 130 },
@@ -404,6 +408,7 @@ function dirOurParty(){
    address each say so") */
 function dirNone(word){ return word ? `<span class="dir-none" title="${_dE(word)}" aria-label="${_dE(word)}">—</span>` : `<span class="dir-none">—</span>`; }
 function dirCellHtml(k, p){
+  if (k === 'title') return `<td class="dir-td-cut dir-td-wrap"${p.title ? ` title="${_dE(p.title)}"` : ''}>${p.title ? `<span class="dir-clamp dir-title">${_dE(p.title)}</span>` : dirNone(i18t('dir_no_title'))}</td>`;
   if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut dir-td-wrap"${v ? ` title="${_dE(v)}"` : ''}>${v ? `<span class="dir-clamp">${_dE(v)}</span>` : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
   if (k === 'side'){
     if (p.side !== 'ours' && p.side !== 'theirs') return `<td>${dirNone()}</td>`;
@@ -414,15 +419,17 @@ function dirCellHtml(k, p){
   if (k === 'contracts') return `<td class="n dir-n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
   return '<td></td>';
 }
-/* THE LINE UNDER THE NAME, AS DRAWN ("COO · Editor", "Supply Chain
-   Director"): the job title, and for a colleague their role here (D-2: who
-   is an admin is stated). A missing title says so in the one grey, in the
-   phone's own words, and the role still follows it (f202: an absence
-   describes one person alike on both shells). */
-function dirSubHtml(p){
-  const title = p.title ? `<span class="dir-title">${_dE(p.title)}</span>` : `<span class="dir-none dir-title">${_dE(i18t('dir_no_title'))}</span>`;
-  const role = p.side === 'ours' && p.hati ? ` · <span class="dir-role">${_dE(p.hati)}</span>` : '';
-  return `<span class="dir-sub">${title}${role}</span>`;
+/* THE LINE UNDER THE NAME: a colleague's role here (D-2: who is an admin is
+   stated). The job title left it for its own column (owner, 28 Oct 2026);
+   where a reader hides that column it comes back here, a missing one said
+   in the one grey (f202: an absence describes one person alike on both
+   shells), and the role still follows it. */
+function dirSubHtml(p, keys){
+  const inCol = Array.isArray(keys) && keys.includes('title');
+  const title = inCol ? '' : p.title ? `<span class="dir-title">${_dE(p.title)}</span>` : `<span class="dir-none dir-title">${_dE(i18t('dir_no_title'))}</span>`;
+  const role = p.side === 'ours' && p.hati ? `<span class="dir-role">${_dE(p.hati)}</span>` : '';
+  if (!title && !role) return '';
+  return `<span class="dir-sub">${title}${title && role ? ' · ' : ''}${role}</span>`;
 }
 /* ONE PERSON, ONE ROW. The hooks the phone and the tests share are kept:
    [data-dir-row] is the person, .dir-name the name, .dir-you the reader's own
@@ -443,7 +450,7 @@ function dirRowHtml(p, keys){
   const you = p.you ? ` <span class="dir-you">${_dE(i18t('dir_you_paren'))}</span>` : '';
   const hover = [p.name, p.email].filter(Boolean).join(' · ');
   return `<tr data-dir-row="${_dE(p.key)}" data-dir-letter="${_dE(dirLetterOf(p))}" tabindex="-1">
-    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true"${dirTavTone(p)}>${ini}</span> <span class="dir-nm-w" title="${_dE(hover)}"><span class="dir-nm-l"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span> ${dirSubHtml(p)}</span></span></td>
+    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true"${dirTavTone(p)}>${ini}</span> <span class="dir-nm-w" title="${_dE(hover)}"><span class="dir-nm-l"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span> ${dirSubHtml(p, keys)}</span></span></td>
     ${keys.map(k => dirCellHtml(k, p)).join('')}
   </tr>`;
 }
@@ -507,10 +514,17 @@ function dirCardHtml(rows, book){
   const keys = (typeof lcShown === 'function') ? lcShown(DIR_SEAT, cols.map(c => c.k)) : cols.map(c => c.k);
   /* how the list is sorted rides the Name column's head (round 19 said it on
      the card's own head, which the list head the Legora way replaced) */
-  const head = [{ t: i18t('dir_col_name'), title: i18t('dir_list_sort') }, ...keys.map(k => Object.assign({ t: byK[k].label }, byK[k]))];
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): Name and Party or company always stand; where the room
+     is short Contracts steps aside first, then Job title (back under the name), then Side */
+  const DIR_RANK = { contracts: 1, title: 2, side: 3 };
+  const FIT = typeof listCols === 'function'
+    ? listCols(DIR_SEAT, [{ k: 'name' }, ...keys.map(k => Object.assign({}, byK[k], { rank: DIR_RANK[k] }))], () => dirRepaint())
+    : { cols: [{ k: 'name' }, ...keys.map(k => byK[k])] };
+  keys.splice(0, keys.length, ...FIT.cols.slice(1).map(c => c.k));
+  const head = [Object.assign({ t: i18t('dir_col_name'), title: i18t('dir_list_sort') }, FIT.cols[0], { k: 'name' }), ...FIT.cols.slice(1).map(c => Object.assign({ t: byK[c.k].label }, c))];
   const table = rows.length
-    ? `<table class="ap-table ap-ins dir-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
-      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-dir-col="${_dE(h.k)}"` : ''}${h.title ? ` title="${_dE(h.title)}"` : ''}>${_dE(h.t)}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
+    ? `<table class="ap-table ap-ins dir-table" data-list-seat="${_dE(DIR_SEAT)}"><colgroup>${head.map(h => typeof listColTag === 'function' ? listColTag(h) : `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
+      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k && h.k !== 'name' ? ` data-dir-col="${_dE(h.k)}"` : ''}${h.title ? ` title="${_dE(h.title)}"` : ''}>${_dE(h.t)}${typeof listGripHtml === 'function' ? listGripHtml(DIR_SEAT, h.k) : ''}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
     : empty;
   const foot = [rows.length && typeof lhFootHtml === 'function' ? lhFootHtml(DIR_SEAT, shown, rows.length, DIR_PAGE) : '', dirPartNote() ? `<span>${_dE(dirPartNote())}</span>` : ''].filter(Boolean).join(' ');
   /* THE LIST'S CARD, THE LEGORA WAY: the table and its foot alone — the

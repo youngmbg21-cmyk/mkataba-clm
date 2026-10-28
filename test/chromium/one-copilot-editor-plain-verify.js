@@ -136,10 +136,13 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     check(!/Now I have|Let me|Wait, I should|the user|First try/.test(L.text), '1b no working note and no first try anywhere on the panel');
     check(/Jambo · check before sending/.test(L.foot), '1c "Jambo · check before sending" under the answer', L.foot);
     const P = await page.evaluate(() => { const p = document.getElementById('ce-pick'), s = document.getElementById('ce-pick-sel');
-      return p ? { h: Math.round(p.getBoundingClientRect().height), disc: !!document.querySelector('#clause-editor .ce-disc'),
+      const bar = document.querySelector('#clause-editor .ce-barrow');
+      return p ? { h: Math.round(p.getBoundingClientRect().height), bottom: Math.round(p.getBoundingClientRect().bottom), barBottom: bar ? Math.round(bar.getBoundingClientRect().bottom) : null, disc: !!document.querySelector('#clause-editor .ce-disc'),
         groups: s ? [...s.querySelectorAll('optgroup')].map(g => g.label) : [], on: s ? s.options[s.selectedIndex].textContent : '' } : { disc: !!document.querySelector('#clause-editor .ce-disc'),
         discH: document.querySelector('#clause-editor .ce-disc') ? Math.round(document.querySelector('#clause-editor .ce-disc').getBoundingClientRect().height) : 0 }; });
-    check(!!P.h && !P.disc && P.h <= 34, '2a the dropdown stands where "Written by Jambo" stood, no taller than it (34px, measured at main)', JSON.stringify(P));
+    /* RE-POINTED 28 Oct 2026 (owner: "The lines in the jambo and the main page are not aligned"): the dropdown's
+       row is the editor's one row height, its line meeting the writing bar's across the seam */
+    check(!!P.h && !P.disc && P.h <= 45 && (P.barBottom == null || Math.abs(P.bottom - P.barBottom) <= 1), '2a the dropdown stands where "Written by Jambo" stood, its line level with the writing bar\'s', JSON.stringify(P));
     check(P.groups && P.groups.length === 1 && /^High · 1$/.test(P.groups[0]) && P.on === 'Liability · may favour them', '2b on Risks: the open risks by short title, grouped by severity, on the one being edited', JSON.stringify(P));
     const T = await page.evaluate(() => { const t = document.querySelector('#ce-askrow #ce-scope.ce-tag'); return { tag: t ? t.textContent.trim() : null, card: !!document.querySelector('#clause-editor .ce-scope') }; });
     check(T.tag !== null && !T.card, '3a no Selected card; what it said rides in the ask box', JSON.stringify(T));

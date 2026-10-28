@@ -249,6 +249,8 @@ function ceCanFile(d){
    literal, so a backtick anywhere in it — including in a comment — ends the
    string. Say "terminator" rather than spelling one out.
    ========================================================================== */
+/* one height for each row that meets its neighbour across the seam, its bottom line included */
+const CE_ROW_H = 45;
 function clauseEditorCss(){
   return `<style id="ce-style">
   ${''/* ---- IT COVERS THE PAGE, NOT THE SHELL (owner-asked 25 Aug 2026, off a
@@ -1139,6 +1141,11 @@ function clauseEditorCss(){
          Esc and the bar's ‹ press it; no Exit. */}
   #clause-editor .ce-rowhead[hidden]{display:none}
   #clause-editor.ce-trailed .ce-rowhead{display:flex; align-items:center; gap:10px; min-width:0; flex:1 0 100%; padding:8px 12px; border-bottom:1px solid var(--color-divider)}
+  ${''/* THE LINES MEET ACROSS THE SEAM (owner, 28 Oct 2026: "The lines in the jambo and the main page are not
+         aligned"): with the panel's own edge gone (the Legora way, 27 Oct) the page's rows and the panel's rows
+         read as one line each, so each pair is ONE height, CE_ROW_H with its line: the trail beside Jambo's
+         head, the writing bar beside the clause picker */}
+  #clause-editor .ce-rowhead, #clause-editor .ce-barrow, #clause-editor .ce-ah, #clause-editor.ce-trailed .ce-pick{box-sizing:border-box; min-height:${CE_ROW_H}px}
   .ce-rowback{flex:none; display:inline-flex; align-items:center; gap:3px; height:var(--ctl-h-sm); padding:0 8px 0 5px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); color:var(--accent-ink); font:inherit; font-size:12px; font-weight:var(--w-label); cursor:pointer; white-space:nowrap}
   .ce-rowback:hover{border-color:var(--accent-ink)}

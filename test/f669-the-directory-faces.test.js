@@ -240,7 +240,7 @@ describe('f669 — the table, as drawn', () => {
     /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Name · Party · Side · Contracts.
        RE-POINTED (Part 8, the Legora way): Name · Party · Contracts, as drawn */
     eq([...doc.querySelectorAll('#dir-page thead th')].map(h => h.getAttribute('data-dir-col') || 'name'),
-      ['name', 'party', 'side', 'contracts']);
+      ['name', 'title', 'party', 'side', 'contracts']);
   });
 
   /* RE-POINTED (Part 8, the Legora way): the side is the tab the row stands
@@ -249,7 +249,8 @@ describe('f669 — the table, as drawn', () => {
   test('a row says who, which party, the job title, how many contracts; the side is its tab, the address its hover', () => {
     const w = card('Wanjiru Kamau');
     assert.match(cell(w, 'party').textContent, /Naivas Ltd/);
-    assert.match(w.querySelector('.dir-sub').textContent, /Chief Finance Officer/);
+    /* RE-POINTED 28 Oct 2026 (owner): the job title is its own column */
+    assert.match(cell(w, 'title').textContent, /Chief Finance Officer/);
     assert.equal(cell(w, 'contracts').textContent.trim(), '1');
     assert.match(w.querySelector('.dir-nm-w').getAttribute('title'), /wanjiru@naivas\.co\.ke/);
     assert.equal(w.querySelector('a'), null, 'no address link in the row');
@@ -264,7 +265,8 @@ describe('f669 — the table, as drawn', () => {
   test('a colleague\'s row says their HaTi role under the name and stands on Ours; the reader is marked', () => {
     const a = card('Amina Otieno');
     assert.match(a.querySelector('.dir-sub .dir-role').textContent, /Admin/);
-    assert.match(a.querySelector('.dir-sub').textContent, /General Counsel · Admin/, 'the job title, then the role here');
+    assert.match(cell(a, 'title').textContent, /General Counsel/, 'the job title in its column');
+    assert.equal(a.querySelector('.dir-sub').textContent.trim(), 'Admin', 'the role here under the name');
     eq(sb.dirRows(sb.dirBook(), 'ours').map(p => p.key).includes('a'), true);
     assert.ok(a.querySelector('.dir-you'));
     assert.equal(a.getAttribute('data-dir-row'), 'a', 'a colleague\'s key is their id');
@@ -272,8 +274,8 @@ describe('f669 — the table, as drawn', () => {
 
   test('an absence says so in the one grey both shells share', () => {
     const v = card('Vera Reader');
-    assert.ok(v.querySelector('.dir-sub .dir-none'), 'no job title, said under the name');
-    assert.match(v.querySelector('.dir-sub').textContent, /dir_no_title · Viewer/, 'and the role still follows it');
+    assert.match(cell(v, 'title').querySelector('.dir-none').getAttribute('title'), /dir_no_title/, 'no job title, said in its column');
+    assert.match(v.querySelector('.dir-sub').textContent, /Viewer/, 'and the role still reads under the name');
     assert.ok(cell(v, 'contracts').querySelector('.dir-none'));
     const o = card('Olof Sand');
     eq(sb.dirRows(sb.dirBook(), 'none').map(p => p.name), ['Olof Sand']);

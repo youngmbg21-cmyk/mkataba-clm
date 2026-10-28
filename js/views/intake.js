@@ -1806,7 +1806,32 @@ function ikPaintRows(){
   /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the reference rides the grey
      line under the request, so the Request leads; a mark says what is asked for — a pen for a contract, a
      question for advice — and the Kind is a soft chip in the same tone */
-  const cols=[{ t:i18t('ik_col_request') }, ...keys.map(k=>({ t:byK[k].label, w:byK[k].w, k }))];
+  /* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the grey line under the request is
+     columns of its own — Ref, who asked (or the party, for the asker), the stream, the day asked — and the
+     request stands alone (listSpread) */
+  const SPREAD=(asker
+    ? [{ k:'ref', label:i18t('reg_col_ref'), w:112 }, { k:'party', label:i18t('cu_col_customer'), w:170 }]
+    : [{ k:'ref', label:i18t('reg_col_ref'), w:112 }, { k:'by', label:i18t('ap_col_asked_by'), w:160 }, { k:'stream', label:i18t('reg_col_stream'), w:140 }])
+    .concat(keys.includes('asked')?[]:[{ k:'asked', label:i18t('ik_col_asked'), w:84 }]).map(c=>Object.assign(c,{ spread:1 }));
+  /* THE LIST'S COLUMNS (owner, 28 Oct 2026, listCols): the Request and Promised by always stand; where the room
+     is short Files steps aside first, then Kind, How it is handled, With; Asked, when the reader chose it under
+     Columns, steps aside last — the reader's own choice wins */
+  const IK_RANK={ files:1, kind:2, road:3, with:4, asked:5 };
+  const FIT=typeof listCols==='function'
+    ? listCols(IK_SEAT,[{ k:'name' },...SPREAD,...keys.map(k=>Object.assign({},byK[k],{ rank:IK_RANK[k] }))],()=>ikRepaint())
+    : { cols:[{ k:'name' },...keys.map(k=>byK[k])], spread:false };
+  const SP=FIT.spread;
+  SPREAD.forEach(c=>{ byK[c.k]=c; });
+  keys.splice(0,keys.length,...FIT.cols.slice(1).map(c=>c.k));
+  const cols=[Object.assign({ t:i18t('ik_col_request') },FIT.cols[0]), ...FIT.cols.slice(1).map(c=>Object.assign({ t:byK[c.k].label },c))];
+  const quiet='<span class="ins-quiet">\u2014</span>';
+  const spreadCells=(r,adv)=>({
+    ref:()=>`<td class="ik-ref"><span class="ins-ref">${esc(r.id)}</span></td>`,
+    by:()=>{ const who=adv?[r.by.name, r.company].filter(Boolean).join(' \u00b7 '):(ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''));
+      return `<td class="ik-by"${who?` title="${esc(who)}"`:''}>${who?esc(who):quiet}</td>`; },
+    stream:()=>{ const f=(!adv&&r.folder&&window.FOLDERS&&FOLDERS[r.folder])?FOLDERS[r.folder].name:''; return `<td>${f?esc(f):quiet}</td>`; },
+    party:()=>`<td${r.counterparty?` title="${esc(r.counterparty)}"`:''}>${r.counterparty?esc(r.counterparty):quiet}</td>`,
+  });
   const kindPill=k=>(typeof listChipHtml==='function')?`<span class="ik-kind">${listChipHtml(k==='advice'?'violet':'steel', i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`
     :`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
   const kindMark=k=>(typeof listMarkHtml==='function')?listMarkHtml(k==='advice'?'violet':'steel', k==='advice'?'ask':'draft', i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract')):'';
@@ -1823,9 +1848,9 @@ function ikPaintRows(){
     };
   };
   const advTr=r=>{
-    const c=advCells(r);
+    const c=Object.assign(advCells(r), SP?spreadCells(r,true):{});
     return `<tr data-ins-row data-ik-row="${esc('adv:'+r.id)}" tabindex="-1">
-      <td><span class="ik-req">${kindMark('advice')}<span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span><span class="ins-ref">${esc(r.id)}</span> · ${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></span></td>
+      <td><span class="ik-req">${kindMark('advice')}<span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b>${SP?'':`<span title="${esc([r.id, r.by.name, r.company].filter(Boolean).join(' · '))}"><span class="ins-ref">${esc(r.id)}</span> · ${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span>`}</span></span></td>
       ${keys.map(k=>c[k]()).join('')}
     </tr>`;
   };
@@ -1857,9 +1882,9 @@ function ikPaintRows(){
     const sub=asker
       ? [r.counterparty||'', i18t('ik_row_asked',{date:ikDay(r.createdAt)})].filter(Boolean).join(' · ')
       : [ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''), stream].filter(Boolean).join(' · ');
-    const c=reqCells(r);
+    const c=Object.assign(reqCells(r), SP?spreadCells(r,false):{});
     return `<tr data-ins-row data-ik-row="${esc(r.id)}" tabindex="-1">
-      <td><span class="ik-req">${kindMark('contract')}<span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span><span class="ins-ref">${esc(r.id)}</span> · ${esc(sub)}${asker?'':` · ${esc(i18t('ik_row_asked',{date:ikDay(r.createdAt)}))}`}</span></span></span></td>
+      <td><span class="ik-req">${kindMark('contract')}<span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b>${SP?'':`<span title="${esc([r.id, sub, asker?'':i18t('ik_row_asked',{date:ikDay(r.createdAt)})].filter(Boolean).join(' · '))}"><span class="ins-ref">${esc(r.id)}</span> · ${esc(sub)}${asker?'':` · ${esc(i18t('ik_row_asked',{date:ikDay(r.createdAt)}))}`}</span>`}</span></span></td>
       ${keys.map(k=>c[k]()).join('')}
     </tr>`;
   };
@@ -1870,8 +1895,8 @@ function ikPaintRows(){
     const msg=asker?i18t('ik_mine_empty'):(narrowing.length||q)?i18t('ik_none_match'):(f.view==='open'?i18t('ik_queue_empty'):i18t('ob_none_here'));
     body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing.length?`<br><button type="button" class="ui-link" data-ik-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
   }
-  scroll.innerHTML=`<table class="ins-lt ik-lt${asker?'':' is-team'}"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
-    cols.map(c=>`<th${c.k?` data-ik-col="${esc(c.k)}"`:''}>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+  scroll.innerHTML=`<table class="ins-lt ik-lt${asker?'':' is-team'}" data-list-seat="${esc(IK_SEAT)}"><colgroup>${cols.map(c=>typeof listColTag==='function'?listColTag(c):`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
+    cols.map(c=>`<th${c.k&&c.k!=='name'?` data-ik-col="${esc(c.k)}"`:''}>${esc(c.t)}${typeof listGripHtml==='function'?listGripHtml(IK_SEAT,c.k):''}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
   /* THE FOOT (the list head's one foot): "1–4 of 4", every row drawn — the
      rows behind the tab, the chips and the words. The asker's own sentence
      stays after it. */

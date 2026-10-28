@@ -721,6 +721,16 @@ const REG_COL_W_HOME    = [29,14,18,12,11,10,6];
 const REG_COL_KEYS_HOME_NARROW = ['counterparty','stage','acts'];
 const REG_COL_W_HOME_NARROW    = [62,28,10];
 const REG_HOME_NARROW_W = 600;
+/* ROOM TO SPREAD (owner, 28 Oct 2026: the grey line under a list's name is columns of their own where
+   the list has the room, "big screen gets the extra columns, small screen keeps today's look"): at
+   REG_HOME_WIDE_W of PLACE or more, the agreement's grey line — the party, the reference, the stage —
+   stands in three columns of its own (REG_HOME_SPREAD, right after the agreement, never moved or hidden
+   under Columns) and the agreement stands alone; the shares are REG_COL_W_HOME_WIDE, by position over
+   REG_COL_KEYS_HOME_WIDE. Not while Ask a column's answers stand (their own shape). */
+const REG_HOME_SPREAD = ['party','mk','stage'];
+const REG_COL_KEYS_HOME_WIDE = ['counterparty','party','mk','stage','stream','standards','expiry','value','owner','acts'];
+const REG_COL_W_HOME_WIDE    = [20,12,7,11,10,12,9,10,6,3];
+const REG_HOME_WIDE_W = 1240;
 /* ONE READING PER PAINT (22 Oct 2026, the Board → Paper switch): the width is read once, before the
    paint writes the table, and kept for the rest of that paint — read again after the write, it made
    the browser lay the whole page out in the middle of drawing it */
@@ -732,6 +742,15 @@ function regHomeNarrow(){
   const w=el?el.clientWidth:0;
   return w>0 && w<REG_HOME_NARROW_W;
 }
+let _regWidePaint=null;
+function regHomeWide(){
+  if(!regHome() || regScope()==='negotiations' || typeof document==='undefined') return false;
+  if(_regWidePaint!=null) return _regWidePaint;
+  if(typeof window.askColKeys==='function' && askColKeys().length) return false;
+  const el=document.getElementById((_regOpts&&_regOpts.hostId)||'');
+  const w=el?el.clientWidth:0;
+  return w>=REG_HOME_WIDE_W;
+}
 /* bound once per host: a width that crosses the line repaints the List */
 function regHomeWatch(host){
   if(!host || host.dataset.regWatch || typeof ResizeObserver!=='function') return;
@@ -741,7 +760,7 @@ function regHomeWatch(host){
     (typeof requestAnimationFrame==='function'?requestAnimationFrame:(f=>setTimeout(f,16)))(()=>{ queued=false;
       const t=host.querySelector('.reg-table');
       if(!t || !regHome() || !regPlaceUp()) return;
-      if(regHomeNarrow()!==t.classList.contains('is-hnarrow')) regRepaint(); });
+      if(regHomeNarrow()!==t.classList.contains('is-hnarrow') || regHomeWide()!==t.classList.contains('is-hwide')) regRepaint(); });
   }).observe(host);
 }
 function regInspecting(){ return !regHome() && regMode()!=='board' && typeof insFits==='function' && insFits(); }
@@ -752,8 +771,33 @@ function regColKeys(){
   /* NEGOTIATIONS: the seat's shape, then the reader's own Columns (Part 8 —
      Ref and the counterparty always lead, the rest in the reader's order) */
   const keys=regColKeysSeat();
-  return regScope()==='negotiations' ? regNegoColsShown(keys) : keys;
+  if(regScope()!=='negotiations') return keys;
+  const shown=regNegoColsShown(keys);
+  /* THE LIST'S COLUMNS beside the panel (owner, 28 Oct 2026, regNegoFit) */
+  const fit=regNegoFit(shown);
+  return fit?fit.keys.map(k=>k==='name'?'counterparty':k):shown;
 }
+/* THE LIST'S COLUMNS ON NEGOTIATIONS BESIDE ITS PANEL (owner, 28 Oct 2026, listCols): the deal and What is
+   open always stand; where the room is short Clauses in play steps aside first, then Value, Waiting; Round and
+   Lead, when the reader chose them under Columns, step aside last — the reader's own choice wins; the grey line's reference, round and lead are columns only where there is
+   room for them too; a reader's own widths are kept. Asked once per paint (_regNegoFitPaint). */
+const REG_NEGO_RANK={ clauses:1, value:2, waiting:3, round:4, lead:4 };
+let _regNegoFitPaint=null;
+function regNegoFit(shown){
+  if(regScope()!=='negotiations'||!regInspecting()||typeof listCols!=='function') return null;
+  if(_regNegoFitPaint) return _regNegoFitPaint;
+  const ks=(shown||regNegoColsShown(regColKeysSeat())).filter(k=>k!=='counterparty');
+  const defs=[{ k:'name' }, { k:'mk', w:REG_INS_COL_PX.mk, spread:1 },
+    ...ks.map(k=>({ k, w:REG_INS_COL_PX[k]||100, rank:REG_NEGO_RANK[k] })),
+    ...['round','lead'].filter(k=>!ks.includes(k)).map(k=>({ k, w:REG_INS_COL_PX[k], spread:1 }))];
+  const fit=listCols(REG_NEGO_SEAT,defs,()=>regRepaint());
+  fit.w=Object.fromEntries(fit.cols.map(c=>[c.k==='name'?'counterparty':c.k,c.w]));
+  _regNegoFitPaint=fit;
+  if(typeof queueMicrotask==='function') queueMicrotask(()=>{ _regNegoFitPaint=null; }); else _regNegoFitPaint=null;
+  return fit;
+}
+/* the grey line under the deal stands down where its facts are columns */
+function regNegoSpread(){ const f=regNegoFit(); return !!(f&&f.spread); }
 /* the seat's own columns for this paint's shape, before the reader's choice */
 /* the answer columns standing on the Contracts List (none on its narrow shape) */
 function regCtAskKeys(){ return (!regHomeNarrow()&&typeof window.askColKeys==='function')?askColKeys():[]; }
@@ -770,7 +814,7 @@ function regColKeysSeat(){
        steps aside for them, as drawn (it stays in the filters and the sort) */
     const ask=regCtAskKeys();
     if(ask.length) shown=shown.filter(k=>k!=='owner'&&k!=='stream');
-    return ['counterparty'].concat(shown, ask, ['acts']);
+    return ['counterparty'].concat(!narrow&&regHomeWide()?REG_HOME_SPREAD:[], shown, ask, ['acts']);
   }
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
   return neg ? (ins?REG_COL_KEYS_NEGO_INS:REG_COL_KEYS_NEGO) : (ins?REG_COL_KEYS_INS:REG_COL_KEYS);
@@ -1947,9 +1991,9 @@ function regCtFootHtml(cs){
    column with the give, so the widths still sum to 100 */
 function regHomeColW(keys){
   const ask=keys.filter(k=>String(k).startsWith('ask:'));
-  const narrow=regHomeNarrow();
-  const shape=narrow?REG_COL_KEYS_HOME_NARROW:ask.length?['counterparty','standards','expiry','value'].concat(ask,['acts']):REG_COL_KEYS_HOME;
-  const w=narrow?REG_COL_W_HOME_NARROW:ask.length&&typeof window.askColWidths==='function'?askColWidths(ask.length):REG_COL_W_HOME;
+  const narrow=regHomeNarrow(), wide=!narrow&&!ask.length&&regHomeWide();
+  const shape=narrow?REG_COL_KEYS_HOME_NARROW:ask.length?['counterparty','standards','expiry','value'].concat(ask,['acts']):wide?REG_COL_KEYS_HOME_WIDE:REG_COL_KEYS_HOME;
+  const w=narrow?REG_COL_W_HOME_NARROW:ask.length&&typeof window.askColWidths==='function'?askColWidths(ask.length):wide?REG_COL_W_HOME_WIDE:REG_COL_W_HOME;
   const at=k=>{ const i=shape.indexOf(k); return i>=0&&typeof w[i]==='number'?w[i]:0; };
   const out=keys.map(at);
   const spare=100-out.reduce((a,b)=>a+b,0);
@@ -2767,11 +2811,14 @@ function regRowsHtml(cs){
        the line a party leads is the code name it is known by, and under it the
        Wall's own words for why the party is missing ("Kept to its list") */
     const coded=placeRows&&!!c._codeNamed;
+    /* ROOM TO SPREAD (regHomeWide): the party, the reference and the stage are columns of their own */
+    const spreadOn=placeRows&&regHomeWide();
+    CELL.party=`<td class="reg-party" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(coded?i18t('igw_kept_list'):(pyAll||cpName))}">${coded?esc(i18t('igw_kept_list')):esc(cpName)}</td>`;
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
         <span class="reg-id">${placeRows?regStageMarkHtml(c):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        </span><span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?regNegoLineHtml(c,refLine):`${regTitleOf(c)}`}</span>
+        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
         </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
@@ -3401,7 +3448,8 @@ function renderRegister(opts){
   _regOpts={ scope:o.scope||null, head:o.head||null, nav:o.nav||'register', hostId:o.hostId||'content', home:!!o.home&&!o.scope };
   regSetScope(o.scope);
   _regNarrowPaint=null; _regNarrowPaint=regHomeNarrow();
-  if(typeof queueMicrotask==='function') queueMicrotask(()=>{ _regNarrowPaint=null; }); else _regNarrowPaint=null;
+  _regWidePaint=null; _regWidePaint=regHomeWide();
+  if(typeof queueMicrotask==='function') queueMicrotask(()=>{ _regNarrowPaint=null; _regWidePaint=null; }); else { _regNarrowPaint=null; _regWidePaint=null; }
   const HOME=regHome();
   const neg=regScope()==='negotiations';
   const R=regState();
@@ -3607,7 +3655,7 @@ function renderRegister(opts){
     `<span class="reg-grip" data-reg-grip="${i}" role="separator" aria-orientation="vertical" tabindex="0"
        title="${esc(i18t('reg_col_drag'))}" aria-label="${esc(i18t('reg_col_drag'))}"></span>`;
   const colAt=(extra='',k)=>{ const i=_colN++;
-    if(INS){ const px=REG_INS_COL_PX[k]; return `${px?`width:${px}px;`:''}${extra}`; }
+    if(INS){ const fw=neg&&regNegoFit()?regNegoFit().w[k]:null; const px=fw||REG_INS_COL_PX[k]; return `${px?`width:${Math.round(px)}px;`:''}${extra}`; }
     return `width:${COLW[i]}%;${extra}`; };
   const sortableTh=(key,label,extra='',k)=>{ const i=_colN;
     return `<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${colAt(extra,k)}">${label}${sortCaret(key)}${gripFor(i)}</th>`; };
@@ -4213,7 +4261,7 @@ function renderRegister(opts){
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
           <!-- The whole density mode rides on ONE element as three custom
                properties, so nothing below has to know which mode is on. -->
-          <table class="reg-table${INS?' is-ins':''}${!INS&&regNarrowTable()?' is-narrow':''}${HOME?' is-home':''}${HOME&&regHomeNarrow()?' is-hnarrow':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
+          <table data-list-seat="${neg&&INS?REG_NEGO_SEAT:''}" class="reg-table${INS?' is-ins':''}${!INS&&regNarrowTable()?' is-narrow':''}${HOME?' is-home':''}${HOME&&regHomeNarrow()?' is-hnarrow':''}${HOME&&regHomeWide()?' is-hwide':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
             <thead>
               <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
                    Sorting is kept on the four columns that carried it before —
@@ -4273,6 +4321,8 @@ function renderRegister(opts){
                   if(k==='mk') return sortableTh('ref',i18t('reg_col_ref'),'',k);
                   /* the drawing's word on the Contracts place: the cell is the agreement (Part 8) */
                   if(k==='counterparty') return sortableTh('party',i18t(HOME?'reg_col_agreement':'reg_col_party'),'',k);
+                  /* the spread's party column (regHomeWide) sorts as the agreement's head does: by the party */
+                  if(k==='party') return sortableTh('party',i18t('cu_col_customer'),'',k);
                   /* The head names the LEADING line, and the press sorts by
                          it: the counterparty is what a reader scans down this
                          column. Sorting by title is still offered — in the
@@ -4291,7 +4341,7 @@ function renderRegister(opts){
                   if(k==='round'||k==='changes'||k==='waiting'||k==='lead'||k==='clauses'){ const i=_colN; return `<th style="${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
                   if(k.startsWith('ask:')&&typeof window.askColThHtml==='function'){ const i=_colN; return askColThHtml(k.slice(4),colAt('',k),gripFor(i),R.sort===k?sortCaret(k):''); }
                   return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
-                }).join('')}
+                }).map((h,i,a)=>neg&&INS&&typeof listGripHtml==='function'?h.replace(/<\/th>\s*$/, listGripHtml(REG_NEGO_SEAT, (k=>k==='counterparty'?'name':k)(regColKeys()[i]))+'</th>'):h).join('')}
               </tr>
             </thead>
             <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
@@ -4589,4 +4639,4 @@ Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSigned
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
