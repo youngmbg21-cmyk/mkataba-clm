@@ -3609,6 +3609,13 @@ const ST_SPLIT={
     return Math.max(0, Math.round(cols.getBoundingClientRect().width-gap)); },
   /* the track's right edge (the panel itself bleeds past it into the page's padding) */
   edge:()=>{ const cols=document.querySelector('#set-page .st-cr-cols'); return cols?cols.getBoundingClientRect().right:0; },
+  /* the lists' mark is counted from the page's left edge (#content-scroll) to the panel's edge; the board starts
+     inside the page's padding and the grid's gap stands between it and the panel, so the mark in the board's own
+     room is that much less — the panel slides over at the same spot on the screen as on People */
+  overAt:()=>{ const cols=document.querySelector('#set-page .st-cr-cols'), cs=document.getElementById('content-scroll');
+    if(!cols||!cs) return SPLIT_OVER_AT;
+    try{ const gap=parseFloat(getComputedStyle(cols).columnGap)||0;
+      return SPLIT_OVER_AT-Math.max(0, Math.round(cols.getBoundingClientRect().left-cs.getBoundingClientRect().left+gap)); }catch(_){ return SPLIT_OVER_AT; } },
   /* THE ONE WRITER of the width: the track; folded, the stylesheet's 46 */
   /* past the mark the track stops narrowing the board and the panel lies over it by `over` (splitOver) */
   apply:(w,over)=>{ const page=document.getElementById('set-page'); if(!page||_stSideFold) return; page.style.setProperty('--st-side-w', Math.round(w-(over||0))+'px');
