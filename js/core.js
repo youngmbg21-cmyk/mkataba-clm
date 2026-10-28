@@ -5092,6 +5092,11 @@ function shareSegStyle(on){
   return `border-color:${on?'var(--color-accent)':'var(--btn-edge)'};background:${on?'color-mix(in srgb, var(--color-accent) 10%, var(--color-surface))':'var(--color-surface)'};color:${on?'var(--accent-ink)':'var(--color-text)'};z-index:${on?1:0}`;
 }
 function shareSegPaint(b, on){
+  /* A CHOICE IN A LIST THAT OPENS DOWNWARDS (the SAP Way, owner picked it 28
+     Oct 2026) wears the list's clothes, read off aria-checked by the sheet:
+     no segment dress inline */
+  if(b.classList && b.classList.contains('sh-opt')){
+    b.setAttribute('aria-pressed', on?'true':'false'); b.setAttribute('aria-checked', on?'true':'false'); return; }
   b.style.borderColor=on?'var(--color-accent)':'var(--btn-edge)';
   b.style.background=on?'color-mix(in srgb, var(--color-accent) 10%, var(--color-surface))':'var(--color-surface)';
   b.style.color=on?'var(--accent-ink)':'var(--color-text)';
@@ -5120,6 +5125,25 @@ function sharePurposePickerHtml(c, sel, o={}){
   const out=theySign && typeof handoverActive==='function' && handoverActive(c);
   const shut=k=>theySign&&(k==='sign'||(k==='negotiate'&&out))
     ? ` disabled aria-disabled="true" title="${esc(i18t(k==='sign'?'ho_share_no_sign':'ho_share_no_round'))}"` : '';
+  /* ---- "WHAT THEY CAN DO" IS A LIST THAT OPENS DOWNWARDS (the SAP Way,
+     owner picked it by name 28 Oct 2026: "this should be a vertical dropdown
+     to see everything") ----
+     Every choice with its own sentence, the chosen one ticked; Sign says how
+     many changes are still open, the signing gate's own reading
+     (negoAlignment, RAW). Status and A colleague are answered elsewhere now —
+     "What goes" and "To" — so their two buttons stay in the markup, hidden,
+     as the targets those doors press (one door each, the same wiring). */
+  if(o.menu){
+    let open=0; try{ open=(c && typeof negoAlignment==='function') ? negoAlignment(c).outstanding.length : 0; }catch(_){ open=0; }
+    const row=(k, hide)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
+      const warn=(k==='sign' && open) ? `<span class="sh-opt-warn" data-sh-opt-warn>${esc(i18tn('sh_opt_sign_open', open, { n:open }))}</span>` : '';
+      return `<button type="button" class="sh-opt${hide?' hidden':''}" role="menuitemradio" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}" aria-checked="${on?'true':'false'}"${shut(k)}>
+        <span class="sh-opt-t">${m.label}${warn}</span><span class="sh-opt-s">${esc(m.line)}</span></button>`; };
+    /* SIGN LEADS, as it always has (Young, 02 Aug 2026: most sends are "here
+       it is, sign it"); the drawing put Negotiate first — that order waits on
+       the owner's word, the ruling stands until then */
+    return `<div id="share-purpose" class="sh-opts" role="menu">${row('sign')}${row('negotiate')}${row('view')}${row('advise')}${row('status', true)}${row('colleague', true)}</div>`;
+  }
   if(o.compact){
     const seg=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
       return `<button type="button" class="sh-seg" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"${shut(k)}
@@ -5348,41 +5372,61 @@ function shareLetterPartsHtml(parts){
   }
   return out.join('');
 }
-/* THE CHIPS OF "SENT AS" SAY WHERE EACH CHOICE STANDS, from the controls
-   themselves (the lit segment, the box, the choice), so a chip and the list
-   behind it cannot disagree. */
+/* EACH FIELD SAYS WHERE ITS CHOICE STANDS, from the controls themselves (the
+   lit row, the box, the choice), so a field and the list behind it cannot
+   disagree. THE SAP WAY (28 Oct 2026): a field's face is the choice's own
+   name in sentence case ("Negotiate", "Email", "The contract, round 2"), and
+   a row that does not apply steps out whole — what they can do, on a
+   history or a "Where we are" page; what goes and how, for a colleague. */
 function shareLetterAsPaint(c, st){
   const host=document.getElementById('sh-as-chips'); if(!host) return;
   const s=st||{}, set=(k,v)=>{ const w=host.querySelector(`[data-sh-as-w="${k}"]`); if(w && w.textContent!==v) w.textContent=v; };
   const show=(k,on)=>{ const e=host.querySelector(`[data-sh-as="${k}"]`); if(e) e.classList.toggle('hidden', !on); };
-  const p=s.purpose||'negotiate', hist=p==='history';
-  set('purpose', i18t('sh_as_p_'+(['negotiate','sign','view','advise','status','colleague'].includes(p)?p:'view')));
-  show('purpose', !hist);
+  const rowShow=(id,on)=>{ const e=document.getElementById(id); if(e) e.classList.toggle('hidden', !on); };
+  const p=s.purpose||'negotiate', hist=p==='history', stat=p==='status', col=p==='colleague';
+  const m=SHARE_PURPOSE_COPY[p];
+  set('purpose', m ? m.label : '');
+  /* the chosen answer's own sentence, under the field, from the first paint */
+  const say=document.getElementById('share-purpose-say');
+  if(say && say.hasAttribute('data-compact') && m && say.textContent!==m.line) say.textContent=m.line;
+  rowShow('sh-lt-can-row', !hist && !stat && !col);
   const ch=s.ch||'email';
-  set('ch', i18t('sh_as_c_'+ch));
+  const chB=document.querySelector(`#share-tabs [data-share-ch="${ch}"] .sh-opt-t`);
+  set('ch', chB ? chB.textContent : ch);
   const opts=document.getElementById('sh-link-opts');
   /* a colleague's email has no channel to choose, no link to keep open and
-     nothing else to send instead: those chips stand down (the html's own
+     nothing else to send instead: those rows stand down (the html's own
      data-sh-col hides them too, for the painters that come after) */
-  const col=p==='colleague';
+  rowShow('sh-lt-what-row', !col); rowShow('sh-lt-by-row', !col);
   show('ch', !col); show('what', !col);
   show('link', !col && !!opts && !opts.classList.contains('hidden') && ch!=='word');
   const dur=document.getElementById('sh-durable');
-  set('link', dur && dur.checked ? i18t('sh_as_l_whole') : i18t('sh_as_l_days', { n:Math.min(90, Math.max(1, Number(fval('sh-exp'))||14)) }));
+  const days=Math.min(90, Math.max(1, Number(fval('sh-exp'))||14));
+  const whole=!!(dur && dur.checked);
+  set('link', whole ? i18t('sh_f_whole') : i18t('sh_f_days', { n:days }));
+  if(opts) opts.querySelectorAll('[data-sh-link]').forEach(b=>{ const k=b.getAttribute('data-sh-link');
+    b.setAttribute('aria-checked', String(whole ? k==='whole' : k===String(days))); });
   const pc=(s.payload&&s.payload.contract)||{};
   const live=!!(pc.negotiation || (c && c.negotiation));
-  set('what', hist ? i18t('sh_as_w_history') : p==='status' ? i18t('sh_as_w_status')
-    : live ? i18t('sh_as_w_round', { n:shareRoundOf(pc.negotiation || (c && c.negotiation)) }) : i18t('sh_as_w_contract'));
+  const roundW=live ? i18t('sh_f_round', { n:shareRoundOf(pc.negotiation || (c && c.negotiation)) }) : i18t('sh_f_contract');
+  set('what', hist ? i18t('sh_f_history') : stat ? i18t('sh_f_status') : roundW);
   const row=(k,lbl)=>{ const b=host.querySelector(`[data-sh-as-what="${k}"]`); if(!b) return;
     const src=k==='history'?document.getElementById('share-other'):document.querySelector(`[data-sh-lt-else="${k}"]`);
-    if(b.textContent!==lbl) b.textContent=lbl;
-    const now=(k==='contract'&&!hist&&p!=='status')||(k==='history'&&hist)||(k==='status'&&p==='status');
-    b.setAttribute('aria-current', now?'true':'false');
+    const t=b.querySelector('.sh-opt-t')||b;
+    if(t.textContent!==lbl) t.textContent=lbl;
+    const now=(k==='contract'&&!hist&&!stat)||(k==='history'&&hist)||(k==='status'&&stat);
+    b.setAttribute('aria-current', now?'true':'false'); b.setAttribute('aria-checked', now?'true':'false');
     const dead=!now && !!(src && src.disabled);
     b.disabled=dead; if(dead && src.title) b.title=src.title; else b.removeAttribute('title'); };
-  row('contract', live ? i18t('sh_as_w_round', { n:shareRoundOf(pc.negotiation || (c && c.negotiation)) }) : i18t('sh_as_w_contract'));
-  row('history', i18t('sh_as_w_history'));
-  row('status', i18t('sh_as_w_status'));
+  row('contract', roundW);
+  row('history', i18t('sh_f_history'));
+  row('status', i18t('sh_f_status'));
+  /* To: our own people on a colleague's send, else "A colleague instead" —
+     only while the contract is what goes (the pass carries the contract) */
+  const tk=k=>host.querySelector(`[data-sh-to-kind="${k}"]`);
+  const colB=document.querySelector('#share-purpose [data-share-purpose="colleague"]');
+  if(tk('colleague')) tk('colleague').classList.toggle('hidden', col || hist || stat || !colB || colB.disabled);
+  if(tk('outside')) tk('outside').classList.toggle('hidden', !col);
 }
 /* the chips' lists open and close, bound once per panel: a chip opens its own
    list and closes the others; a choice inside it puts it away; a press
@@ -5403,6 +5447,28 @@ function shareLetterAsWire(panel){
       const src=k==='history'?document.getElementById('share-other'):document.querySelector(`[data-sh-lt-else="${k}"]`);
       if(src && !src.disabled) src.click(); return; }
     if(t.closest('.sh-as-pop [data-share-purpose], .sh-as-pop [data-share-ch]')){ setTimeout(()=>closeAll(null),0); return; }
+    /* + Add a person: the named people's ticks open under To */
+    const mg=t.closest('[data-sh-more-go]');
+    if(mg){ e.preventDefault(); closeAll(null); document.getElementById('sh-more')?.classList.remove('hidden'); mg.classList.add('hidden'); return; }
+    /* how long the link works: one choice sets the two controls the send
+       reads, and says so with their own change (the letter repaints on it) */
+    const lk=t.closest('[data-sh-link]');
+    if(lk){ e.preventDefault(); closeAll(null);
+      const k=lk.getAttribute('data-sh-link'), d=document.getElementById('sh-durable'), x=document.getElementById('sh-exp');
+      if(d) d.checked = k==='whole';
+      if(x && k!=='whole') x.value=k;
+      const ev=n=>{ if(n) n.dispatchEvent(new Event('change', { bubbles:true })); };
+      ev(d); if(k!=='whole') ev(x);
+      return; }
+    /* To's quiet word: a colleague, or someone outside again — it presses the
+       purpose's own button, the one door each has */
+    const tk=t.closest('[data-sh-to-kind]');
+    if(tk){ e.preventDefault(); closeAll(null);
+      const c=(typeof getContract==='function')?getContract(_shCol.cid):null;
+      const k=tk.getAttribute('data-sh-to-kind')==='colleague' ? 'colleague' : (c ? defaultSharePurpose(c) : 'negotiate');
+      const b=document.querySelector(`#share-purpose [data-share-purpose="${k==='colleague'?'colleague':(k==='status'||k==='history'?'negotiate':k)}"]`);
+      if(b && !b.disabled) b.click();
+      return; }
     if(t.closest('#sh-lt-change')){ e.preventDefault(); const L=document.getElementById('sh-letter');
       if(L) L.setAttribute('data-sh-to','open'); const tw=document.getElementById('sh-lt-tosay'); if(tw) tw.classList.add('hidden');
       const w=panel.querySelector('.sh-lt-who'); if(w) w.classList.remove('hidden');
@@ -5431,7 +5497,10 @@ function shareLetterNoteFit(){
     for(const line of text.split('\n')) w=Math.max(w, g.measureText(line).width); }
   const lab=document.getElementById('sh-summary-label');
   const lw=lab ? Math.ceil(lab.scrollWidth) : 0;
-  ta.style.width=Math.min(cap, Math.max(lw, Math.ceil(w)+6, 120))+'px';
+  /* THE SAP WAY (28 Oct 2026): the box runs the letter's width — a white box
+     with a green edge, the one place you type; only its height hugs */
+  if(L.classList.contains('is-sap')) ta.style.width='100%';
+  else ta.style.width=Math.min(cap, Math.max(lw, Math.ceil(w)+6, 120))+'px';
   ta.style.height='auto';
   ta.style.height=ta.scrollHeight+'px';
 }
@@ -5457,6 +5526,8 @@ function shareLetterToPaint(ch){
   if(tw) tw.classList.toggle('hidden', !folded);
   if(who) who.classList.toggle('hidden', folded);
   if(say){ const v=[n, em].filter(Boolean).join(' · '); if(say.textContent!==v) say.textContent=v; }
+  const ini=document.getElementById('sh-lt-toini');
+  if(ini){ const v=String(n||em).split(/[\s@.]+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); if(ini.textContent!==v) ini.textContent=v; }
 }
 /* ============================================================
    "SENT AS: A COLLEAGUE" (owner picked "The Send Screen" by name, 20 Oct
@@ -5599,7 +5670,10 @@ function shareLetterPaint(c, st){
   host.classList.toggle('is-letter', !!L.letter);
   shareColPaint(c, !!L.colleague);
   const nl=document.getElementById('sh-summary-label');
-  if(nl && L.letter){ const v=i18t(L.colleague && _shCol.fromJambo ? 'sh_lt_note_lbl_jambo' : 'sh_lt_note_lbl'); if(nl.textContent!==v) nl.textContent=v; }
+  /* THE SAP WAY: the note's box is named for who reads it ("Your note to
+     Kari"), "optional" at its end (the sheet draws data-opt) */
+  if(nl && L.letter){ const v=L.colleague && _shCol.fromJambo ? i18t('sh_lt_note_lbl_jambo') : i18t('sh_lt_note_to', { who }); if(nl.textContent!==v) nl.textContent=v;
+    nl.setAttribute('data-opt', i18t('sh_lt_note_opt')); }
   /* on the letter the dashed box is the note's frame, so the box inside it
      goes bare (its field clothes are inline: kept, and put back elsewhere) */
   const ta=document.getElementById('sh-summary');
@@ -5622,14 +5696,20 @@ function shareLetterPaint(c, st){
     else if(!L.letter && nl.dataset.shLtBare){ nl.style.cssText=nl.dataset.shLtCss; delete nl.dataset.shLtBare; }
   }
   shareLetterNoteFit();
-  set('sh-lt-jsay', i18t(L.none?'sh_lt_jsay_link':L.wa?'sh_lt_jsay_wa':L.turn?'sh_lt_jsay_turn':'sh_lt_jsay_mail', { who }));
+  /* "This is the email Anna will get, word for word" is gone (the SAP Way,
+     28 Oct 2026): the page it sat beside already says it. The panel opens on
+     its verdict and on what goes. */
+  shareVerdictPaint(c, st);
+  shareGoesPaint(c, st, who);
   /* what they never see, named for who will read it (round 11's gaps: "What
      Anna never sees") */
   set('sh-lt-never-h', i18t('sh_lt_never_h', { who }));
   /* Something else to send: the other two kinds of link, whichever is not
-     this one; a "Where we are" page has nothing else to offer here. */
+     this one. THE CARD IS NOT DRAWN (the SAP Way, 28 Oct 2026): "What goes"
+     asks the same question in the form, and its list presses these same
+     buttons — they stay, out of sight, as the one door each has. */
   const hist=st && st.purpose==='history';
-  document.getElementById('sh-lt-else')?.classList.toggle('hidden', !!(st && st.purpose==='status'));
+  document.getElementById('sh-lt-else')?.classList.add('hidden');
   document.querySelector('[data-sh-lt-else="history"]')?.classList.toggle('hidden', hist);
   document.querySelector('[data-sh-lt-else="contract"]')?.classList.toggle('hidden', !hist);
   set('sh-lt-else-p', i18t(hist?'sh_lt_else_hist_p':'sh_lt_else_p'));
@@ -5740,6 +5820,9 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
     const c=id&&typeof getContract==='function'?getContract(id):null;
     if(c && typeof reviewRemind==='function'){ r.disabled=true; Promise.resolve(reviewRemind(c, { reviewId:r.getAttribute('data-sh-lt-remind') })).finally(()=>{ r.disabled=false; }); }
     return; }
+  const vg=t.closest('[data-sh-v-go]');
+  if(vg){ e.preventDefault(); const b=document.querySelector(`#share-purpose [data-share-purpose="${vg.getAttribute('data-sh-v-go')}"]`);
+    if(b && !b.disabled) b.click(); return; }
   if(t.closest('[data-sh-lt-back]')){ e.preventDefault();
     if(typeof window.pdSendWaitSet==='function') window.pdSendWaitSet(false);
     return; }
@@ -5761,10 +5844,69 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
     if(c && typeof openRedlineWorkbench==='function' && openRedlineWorkbench(c.id)!==false && typeof window.rlLandOnClause==='function') window.rlLandOnClause(cid);
   }
 });
+/* ---- THE VERDICT (the SAP Way, owner picked it 28 Oct 2026) ----
+   One card at the top of "Before you send": READY TO SEND, or — on a signing
+   link while changes are still open (negoAlignment, the signing gate's own
+   reading, RAW) — NOT READY TO SIGN, with the way forward on the same card:
+   "Send it to negotiate instead" presses the purpose's own button. Said only
+   where nothing else already says no: a blocking readiness card, a signing
+   link with nobody named to sign, and a colleague's send keep their own
+   words. */
+function shareVerdictPaint(c, st){
+  const v=document.getElementById('sh-lt-verdict'); if(!v || !c) return;
+  const p=(st && st.purpose) || 'negotiate';
+  let open=0; try{ open=(typeof negoAlignment==='function') ? negoAlignment(c).outstanding.length : 0; }catch(_){ open=0; }
+  const rd=document.getElementById('share-readiness');
+  const blocked=!!(rd && rd.classList.contains('is-block') && !rd.closest('.hidden'));
+  let html='', warn=false;
+  if(p==='sign' && open){
+    warn=true;
+    html=`<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_sign_h'))}</h4><p>${esc(i18tn('sh_v_sign', open, { n:open }))}</p>
+      <div class="sh-lt-acts"><button type="button" class="sh-lt-change" data-sh-v-go="negotiate">${esc(i18t('sh_v_sign_go'))}</button></div>`;
+  } else if(!blocked && p!=='colleague' && !(p==='sign' && typeof shareNeedsSigners==='function' && shareNeedsSigners(c))){
+    let held=0; if(p!=='history' && p!=='status'){ try{ held=shareStaysRows(c).length; }catch(_){ held=0; } }
+    html=`<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}</h4><p>${esc(
+      (p==='history'||p==='status') ? i18t('sh_v_ready_rec') : held ? i18tn('sh_v_ready_held', held, { n:held }) : i18t('sh_v_ready'))}</p>`;
+  }
+  if(v.innerHTML!==html) v.innerHTML=html;
+  v.classList.toggle('hidden', !html);
+  v.classList.toggle('is-warn', warn);
+}
+/* ---- WHAT GOES TO THEM (the SAP Way) ----
+   One line per thing the send carries, read off the copy that travels — the
+   letter's own reading (shareAnswersOf) — so the card and the email cannot
+   disagree: each answer, each new change of ours, the note once typed; a
+   history or a "Where we are" page is one line. */
+function shareGoesPaint(c, st, who){
+  const box=document.getElementById('sh-lt-goes'); if(!box || !c) return;
+  const p=(st && st.purpose) || 'negotiate';
+  const items=[];
+  if(p==='history') items.push(i18t('sh_goes_hist'));
+  else if(p==='status') items.push(i18t('sh_goes_status'));
+  else if(p==='advise') items.push(i18t('sh_goes_advise'));
+  else {
+    let A=null; try{ A=shareAnswersOf((st && st.payload && st.payload.contract) || c, c); }catch(_){ A=null; }
+    const raw=Array.isArray(c.changes)?c.changes:[];
+    for(const l of ((A && A.lines) || [])){
+      const x=raw.find(r=>r && String(r.id)===String(l.id));
+      const k=x && x.status==='accepted' ? 'sh_goes_acc' : x && x.status==='rejected' ? 'sh_goes_rej' : 'sh_goes_ctr';
+      items.push(i18t(k, { clause:l.clause }));
+    }
+    for(const o of ((A && A.own) || [])) items.push(i18t('sh_goes_own', { clause:o.clause }));
+    if(!items.length) items.push(i18t('sh_goes_none'));
+  }
+  if(String(fval('sh-summary')||'').trim()) items.push(i18t('sh_goes_note'));
+  const h=document.getElementById('sh-lt-goes-h'), ul=document.getElementById('sh-lt-goes-l');
+  const hv=i18t('sh_goes_h', { who }); if(h && h.textContent!==hv) h.textContent=hv;
+  const lv=items.map(t=>`<li>${esc(t)}</li>`).join(''); if(ul && ul.innerHTML!==lv) ul.innerHTML=lv;
+}
 function shareSideHtml(c, part){
   const them=esc(c.counterparty||i18t('co_them'));
+  /* THE VERDICT FIRST (the SAP Way, 28 Oct 2026): under Jambo's mark, before
+     anything else the column holds — ready to send, or not ready to sign with
+     its way forward (shareVerdictPaint) */
   if(part==='top') return `<div class="sh-lt-jb">${(typeof aiFaceHtml==='function')?aiFaceHtml():''}<b>${esc(i18t('sh_lt_before'))}</b></div>
-    <p class="sh-lt-say" id="sh-lt-jsay"></p>`;
+    <div class="sh-lt-card sh-lt-verdict hidden" id="sh-lt-verdict"></div>`;
   const histOk=(()=>{ try{ const s=negoChangeSummary(c); return !!(s && s.lines && s.lines.length); }catch(_){ return false; } })();
   return `${shareStaysHtml(c)}
     ${''/* WHAT IS WORTH CHECKING STANDS HERE, NOT UNDER THE LETTER (round 11's
@@ -5773,8 +5915,10 @@ function shareSideHtml(c, part){
            and the email-off line are the screen's own nodes, moved into this
            slot after the paint (shareLetterChecksPlace) with their ids. */}
     <div class="sh-lt-checks" id="sh-lt-checks"></div>
+    ${''/* WHAT GOES TO THEM, one line each (shareGoesPaint) */}
+    <div class="sh-lt-card" id="sh-lt-goes"><h4 id="sh-lt-goes-h"></h4><ul class="sh-lt-goesl" id="sh-lt-goes-l"></ul></div>
     <div class="sh-lt-card"><h4 id="sh-lt-never-h">${i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
-    <div class="sh-lt-card" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
+    <div class="sh-lt-card hidden" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
       <div class="sh-lt-acts">
         <button type="button" class="ui-btn ui-btn-sm" id="share-other" data-sh-lt-else="history"${histOk?'':` disabled title="${esc(i18t('sh_lt_else_hist_none'))}"`}>${esc(i18t('sh_lt_else_hist'))}</button>
         <button type="button" class="ui-btn ui-btn-sm hidden" data-sh-lt-else="contract">${esc(i18t('sh_lt_else_contract'))}</button>
@@ -7937,8 +8081,10 @@ async function openShareModal(c, opts={}){
   /* THE CHANNEL CHOICE IS ONE ROW OF SEGMENTS (the Compact ladder, 26 Sep
      2026; words only since the SAP pop-ups, 10 Oct 2026 — the drawing's
      segments carry no marks, and four marks in a half-width row crowd it). */
+  /* THE SAP WAY (28 Oct 2026): each way it can travel is a row of the list
+     under "Send by", with its own sentence (sh_ch_say_*) */
   const tab=(k,label,active0)=>{ const active=emailOff()?k==='link':active0;
-    return `<button type="button" class="sh-seg" data-share-ch="${k}" aria-pressed="${active?'true':'false'}" style="${shareSegStyle(active)}">${label}</button>`; };
+    return `<button type="button" class="sh-opt" role="menuitemradio" data-share-ch="${k}" aria-pressed="${active?'true':'false'}" aria-checked="${active?'true':'false'}"><span class="sh-opt-t">${label}</span><span class="sh-opt-s">${esc(i18t('sh_ch_say_'+k))}</span></button>`; };
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   /* ---- ONE BUILDER, TWO PAINTS ---- (13 Sep 2026). The send form is built
      here, before anything is fetched, so the frame that opens at once and the
@@ -7990,9 +8136,17 @@ async function openShareModal(c, opts={}){
              puts it. The boxes and segments are the ones this screen always
              had, in the letter's places; shareLetterPaint writes the rest from
              js/sharemail.js, the words the server mails. */}
-      <section class="sh-lt" id="sh-letter">
-      <div class="sh-lt-h">
-      <div class="sh-lt-row"><span class="sh-lt-k">${i18t('sh_lt_from')}</span><b id="sh-lt-from"></b></div>
+      ${''/* ---- THE SAP WAY (owner picked it by name, 28 Oct 2026) ----
+             Two cards. THE FORM: one labelled row per question — To, What
+             goes, What they can do, Send by — each answer a field that opens a
+             list DOWNWARDS with every choice and its own sentence, the chosen
+             one's sentence printed under the field. THE EMAIL: Subject and From,
+             then its words, the note the one white box you type in.
+             The fields are the chips of round 11 in labelled rows: the same
+             boxes, segments, ids and wiring (data-sh-as, shareLetterAsWire),
+             so a choice made in a list is the choice made before. */}
+      <section class="sh-lt is-sap" id="sh-letter">
+      <div class="sh-lt-h" id="sh-as-chips">
       <div class="sh-lt-row sh-lt-to"><span class="sh-lt-k">${i18t('sh_lt_to')}</span>
       <div id="share-fields" class="sh-lt-v">
         ${''/* ---- WHICH PARTY THIS ROUND IS GOING TO (22 Sep 2026) ----
@@ -8008,7 +8162,10 @@ async function openShareModal(c, opts={}){
                2026: "Anna Holm · anna.holm@nordvik.se · Change"): a recipient
                HaTi already knows is a line with Change; Change opens the two
                boxes, which are the same boxes either way. */}
-        <div class="sh-lt-tosay hidden" id="sh-lt-tosay"><span id="sh-lt-towho"></span><button type="button" class="sh-lt-change" id="sh-lt-change">${i18t('sh_lt_change')}</button></div>
+        ${''/* THE SAP WAY, AS DRAWN (28 Oct 2026): the person is a chip — their
+               initials, name and address — and its × opens the two boxes to
+               change them, the same press "Change" was (nothing is cleared). */}
+        <div class="sh-lt-tosay hidden" id="sh-lt-tosay"><span class="sh-to-chip"><span class="sh-to-ini" id="sh-lt-toini" aria-hidden="true"></span><span id="sh-lt-towho"></span><button type="button" class="sh-to-x" id="sh-lt-change" aria-label="${attr(i18t('sh_lt_change'))}" title="${attr(i18t('sh_lt_change'))}">×</button></span></div>
         ${''/* Where the address came from rides as an attribute on the box —
                a test-facing fact — and is no longer a sentence above it: a
                filled box says it is filled. */}
@@ -8023,53 +8180,60 @@ async function openShareModal(c, opts={}){
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
         ${shareColBoxHtml()}
+        ${''/* A COLLEAGUE IS A PERSON, SO HE IS ASKED FOR IN TO (the SAP Way):
+               one quiet word under the box turns To into our own people and
+               back. It PRESSES the purpose's own (hidden) button — the one door
+               the colleague send has always had, the same wiring. */}
+        ${(()=>{ /* "+ ADD A PERSON" (the SAP Way, as drawn): the people already named
+                    on this contract, each with a tick — the list that stood under the
+                    letter, in To now, opened by the press. Drawn only where somebody is
+                    named (shareMoreRowsHtml says '' otherwise). */
+          const more=(typeof shareMoreRowsHtml==='function')?shareMoreRowsHtml(c, purposeSel, pre.email):'';
+          return `<p class="sh-to-kind">${more?`<button type="button" class="sh-lt-change" data-sh-more-go>${esc(i18t('sh_to_add'))}</button>`:''}<button type="button" class="sh-lt-change" data-sh-to-kind="colleague">${esc(i18t('sh_to_colleague'))}</button><button type="button" class="sh-lt-change" data-sh-to-kind="outside">${esc(i18t('sh_to_outside'))}</button></p>
+        <div id="sh-more" class="hidden">${more}</div>`; })()}
       </div></div>
-      <div class="sh-lt-row" id="sh-lt-subj-row"><span class="sh-lt-k">${i18t('sh_lt_subject')}</span><b id="sh-lt-subject"></b></div>
-      <div class="sh-lt-row sh-lt-as"><span class="sh-lt-k">${i18t('sh_lt_as')}</span><div class="sh-lt-v">
-      ${''/* "SENT AS" READS AS A SENTENCE OF SMALL CHOICES (round 11's gaps, 18
-             Oct 2026: "a link to negotiate ▾ · by email ▾ · open for the whole
-             negotiation ▾ · the contract, round 2 ▾"). Each chip opens its own
-             list, and the list holds the controls this screen always had —
-             the same segments, box and choice, the same ids and the same
-             wiring — so a choice made in it is the choice made before; the
-             chip says where it stands (shareLetterAsPaint). A press again, a
-             press outside or Esc puts the list away. */}
-      <div class="sh-as-chips" id="sh-as-chips">
+      <div class="sh-lt-row sh-lt-as" id="sh-lt-what-row"><span class="sh-lt-k">${esc(i18t('sh_lt_what'))}</span><div class="sh-lt-v">
+      <span class="sh-as" data-sh-as="what"><button type="button" class="sh-as-go" data-sh-as-go="what" aria-expanded="false"><span data-sh-as-w="what"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="what"><div class="sh-opts" role="menu">
+        <button type="button" class="sh-opt" role="menuitemradio" data-sh-as-what="contract"><span class="sh-opt-t"></span><span class="sh-opt-s">${esc(i18t('sh_f_say_contract'))}</span></button>
+        <button type="button" class="sh-opt" role="menuitemradio" data-sh-as-what="history"><span class="sh-opt-t"></span><span class="sh-opt-s">${esc(i18t('sh_f_say_history'))}</span></button>
+        <button type="button" class="sh-opt" role="menuitemradio" data-sh-as-what="status"><span class="sh-opt-t"></span><span class="sh-opt-s">${esc(i18t('sh_f_say_status'))}</span></button></div></div></span>
+      </div></div>
+      <div class="sh-lt-row sh-lt-as" id="sh-lt-can-row"><span class="sh-lt-k">${esc(i18t('sh_lt_can'))}</span><div class="sh-lt-v">
       <span class="sh-as" data-sh-as="purpose"><button type="button" class="sh-as-go" data-sh-as-go="purpose" aria-expanded="false"><span data-sh-as-w="purpose"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="purpose">
-      <div id="share-purpose-wrap"${purposeSel==='history'?' class="hidden"':''}>${sharePurposePickerHtml(c, purposeSel, { compact:true })}</div></div></span>
+      <div id="share-purpose-wrap"${purposeSel==='history'?' class="hidden"':''}>${sharePurposePickerHtml(c, purposeSel, { menu:true })}</div></div></span>
+      <p class="sh-lt-say2" id="share-purpose-say" data-compact="1"></p>
+      </div></div>
+      <div class="sh-lt-row sh-lt-as" id="sh-lt-by-row"><span class="sh-lt-k">${esc(i18t('sh_lt_by'))}</span><div class="sh-lt-v"><div class="sh-as-pair">
       <span class="sh-as" data-sh-as="ch"><button type="button" class="sh-as-go" data-sh-as-go="ch" aria-expanded="false"><span data-sh-as-w="ch"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="ch">
-      <div class="sh-by"><span class="sap-lbl">${i18t('co_send_by')}</span>
-      <div id="share-tabs" class="sh-segs">${tab('email','Email',true)}${tab('whatsapp','WhatsApp',false)}${
+      <div id="share-tabs" class="sh-opts" role="menu">${tab('email',i18t('sh_ch_f_email'),true)}${tab('whatsapp','WhatsApp',false)}${
         (server&&window.docxExportTracked)?tab('word',i18t('co_ch_word'),false):''}${tab('link',i18t('co_copy_link'),false)}</div>
+      </div></span>
+      ${server?`<span class="sh-as" data-sh-as="link"><button type="button" class="sh-as-go" data-sh-as-go="link" aria-expanded="false"><span data-sh-as-w="link"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="link"><div id="sh-link-opts" class="sh-opts" role="menu">
+          ${''/* HOW LONG THE LINK WORKS, as one list: the whole negotiation, or
+                 a number of days. Each choice sets the two controls the send
+                 reads (sh-durable, sh-exp), kept in the list, out of sight. A
+                 SIGNING LINK STILL OPENS ONE-SHOT (paintPurpose moves the tick):
+                 a signature binds exactly one copy of exactly one text. */}
+          <button type="button" class="sh-opt" role="menuitemradio" data-sh-link="whole" title="${attr(i18t('sh_f_whole_tip'))}"><span class="sh-opt-t">${esc(i18t('sh_f_whole'))}</span><span class="sh-opt-s">${esc(i18t('sh_f_whole_say'))}</span></button>
+          ${[7,14,30,60].map(d=>`<button type="button" class="sh-opt" role="menuitemradio" data-sh-link="${d}"><span class="sh-opt-t">${esc(i18t('sh_f_days', { n:d }))}</span><span class="sh-opt-s">${esc(i18t('sh_f_days_say'))}</span></button>`).join('')}
+          <span class="sh-link-keep" aria-hidden="true">
+            <input type="checkbox" id="sh-durable" tabindex="-1"${purposeSel==='sign'?'':' checked'}/>
+            <select id="sh-exp" tabindex="-1">${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${i18t('co_in_n_days',{n:d})}</option>`).join('')}</select>
+          </span></div></div></span>`:''}
+      </div>
       ${''/* Spoken only where the channel costs something (a file has no page,
              a copied link mails nothing); empty for email and WhatsApp. */}
-      <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:5px 0 0"></div>
-      </div></div></span>
-      ${server?`<span class="sh-as" data-sh-as="link"><button type="button" class="sh-as-go" data-sh-as-go="link" aria-expanded="false"><span data-sh-as-w="link"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="link"><div id="sh-link-opts" class="sap-row">
-          <div class="sap-f"><span class="sap-lbl">${i18t('co_link_stays_open')}</span>
-          <label class="sh-durable-box">
-            ${''/* A SIGNING LINK OPENS ONE-SHOT: a signature has to bind exactly
-                   one copy of exactly one text, so the standing-channel default
-                   is wrong for it. Still theirs to change. The sentence that
-                   explained the tick is on its hover now (co_keep_link_open_tip). */}
-            <input type="checkbox" id="sh-durable"${purposeSel==='sign'?'':' checked'} style="flex:none"/>
-            <span title="${attr(i18t('co_keep_link_open_tip'))}">${i18t('co_keep_link_open_short')}</span>
-          </label></div>
-          <label class="sap-f"><span class="sap-lbl">${i18t('co_link_expires')}</span>
-          <select id="sh-exp" style="${FLD}">
-            ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${i18t('co_in_n_days',{n:d})}</option>`).join('')}
-          </select></label></div></div></span>`:''}
-      <span class="sh-as" data-sh-as="what"><button type="button" class="sh-as-go" data-sh-as-go="what" aria-expanded="false"><span data-sh-as-w="what"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop sh-as-menu" data-sh-as-pop="what" role="menu">
-        <button type="button" role="menuitem" data-sh-as-what="contract"></button>
-        <button type="button" role="menuitem" data-sh-as-what="history"></button>
-        <button type="button" role="menuitem" data-sh-as-what="status"></button></div></span>
-      </div>
+      <div id="sh-ch-note" class="sh-lt-say2"></div>
       </div></div>
       </div>
+      <div class="sh-lt-mail">
+      <div class="sh-lt-row" id="sh-lt-subj-row"><span class="sh-lt-k">${i18t('sh_lt_subject')}</span><b id="sh-lt-subject"></b></div>
+      <div class="sh-lt-row"><span class="sh-lt-k">${i18t('sh_lt_from')}</span><b id="sh-lt-from"></b></div>
       <div class="sh-lt-b">
       <div id="sh-lt-before"></div>
       <div class="sh-lt-note"><p class="sh-lt-mh" id="sh-lt-msghead"></p>${shareNoteBoxHtml(c, purposeSel==='history')}</div>
       <div id="sh-lt-after"></div>
+      </div>
       </div>
       </section>
       ${''/* ---- A BOX MUST SAY WHERE WHAT YOU TYPE IN IT GOES (13 Aug 2026),
@@ -8087,8 +8251,9 @@ async function openShareModal(c, opts={}){
                — the round, the handover, leaving Draft — happens once, and
                each person named here gets a link of their own addressed to
                them. Drawn only where somebody has been named, and never on the
-               record kind, which travels to a colleague. */}
-      <div id="sh-more">${(typeof shareMoreRowsHtml==='function')?shareMoreRowsHtml(c, purposeSel, pre.email):''}</div>
+               record kind, which travels to a colleague.
+               THE SAP WAY (28 Oct 2026): the list stands in To, behind
+               "+ Add a person" (drawn there, above). */}
       ${''/* THE CHECKS ARE THE CONTRACT'S (Young, 13 Sep 2026: "what does the
              highlighted area have to do with sending negotiation history").
              The readiness list reads the agreement's own blanks and stage; a

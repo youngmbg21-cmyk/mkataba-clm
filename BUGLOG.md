@@ -21855,3 +21855,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed (28 Oct 2026, PR #540)
 - stop-and-reads-verify 2b and 3 fail on unchanged main on this machine ("atPress 6, after 8": two more contracts reach the stand-in after Stop; Carry on then reads 32, not 36), yet passed in main's CI run for f50d9eb — the Stop check races the reads already in flight. Ask a column's area, not touched by #540.
+- 28 Oct 2026 (the SAP Way send screen): REMOVED two bands on purpose, with the owner's pick — Jambo's "This is the email {who} will get, word for word" line in Before you send (sh_lt_jsay_* now inert in both books), and the "Something else to send?" card (its buttons kept hidden; What goes presses them). The old "Sent as" chip words (sh_as_p_*, sh_as_c_*, sh_as_l_*, sh_as_w_*, sh_lt_as, sh_lt_note_lbl) are inert in both books.
+- Noticed, not fixed (28 Oct 2026): on a history send, the "Clause N stays here" review card still shows in Before you send although no contract wording travels with the history.
+- Noticed, not fixed (28 Oct 2026): `[data-share-sap] .sh-as-pop #sh-link-opts{display:grid}` (an id rule) beats `.hidden`, so #sh-link-opts can never be hidden by its own class; only the whole Link field steps out (shareLetterAsPaint) — harmless today.
+- Noticed, not fixed (28 Oct 2026): stop-and-reads-verify 2b/3 is timing-flaky on main too (3 of 6 local runs at 371fc7a fail with {"atPress":5,"after":8}: the count read at the Stop press lands mid-batch).

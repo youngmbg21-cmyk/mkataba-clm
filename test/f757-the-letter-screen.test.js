@@ -85,12 +85,17 @@ describe('f757 (2) To, as the email says it', () => {
 describe('f757 (3) Sent as: four small choices, each the same controls', () => {
   test('3a the four chips say the choice, and each opens its own list of the screen\'s own controls', async () => {
     const m = await openShare(contract());
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the
+       chips are the form's fields now, in its order, each face the choice's
+       own name; the lists behind them are the same controls */
     const chips = [...m.root.querySelectorAll('#sh-as-chips [data-sh-as]')];
-    assert.deepEqual(chips.map(x => x.getAttribute('data-sh-as')), ['purpose', 'ch', 'link', 'what']);
+    assert.deepEqual(chips.map(x => x.getAttribute('data-sh-as')), ['what', 'purpose', 'ch', 'link']);
     const w = k => m.txt(`[data-sh-as-w="${k}"]`);
-    assert.equal(w('purpose'), 'a link to negotiate');
-    assert.equal(w('ch'), 'by email');
-    assert.equal(w('what'), 'the contract, round 1');
+    assert.equal(w('purpose'), 'Negotiate');
+    assert.equal(w('ch'), 'Email');
+    assert.equal(w('what'), 'The contract, round 1');
+    assert.equal(w('link'), 'Open for the whole negotiation');
+    assert.equal(m.txt('#share-purpose-say'), 'They propose changes on their own page. Nothing can be signed on this link.', 'the chosen answer\'s sentence under its field');
     assert.ok(m.$('[data-sh-as="purpose"] .sh-as-pop #share-purpose-wrap'), 'the purpose segments live in the first list');
     assert.ok(m.$('[data-sh-as="ch"] .sh-as-pop #share-tabs'), 'the channel segments in the second');
     assert.ok(m.$('[data-sh-as="link"] .sh-as-pop #sh-link-opts'), 'the link\'s settings in the third');
@@ -107,7 +112,8 @@ describe('f757 (3) Sent as: four small choices, each the same controls', () => {
     m.click(m.$('[data-share-purpose="view"]'));
     await new Promise(r => setTimeout(r, 5));
     assert.ok(!box.classList.contains('is-open'), 'the choice closes it');
-    assert.equal(m.txt('[data-sh-as-w="purpose"]'), 'a link to read');
+    assert.equal(m.txt('[data-sh-as-w="purpose"]'), 'View only');
+    assert.equal(m.txt('#share-purpose-say'), 'They read it and can do nothing else.');
     m.click(go); m.click(go);
     assert.ok(!box.classList.contains('is-open'), 'pressed again, it closes');
   });
@@ -145,7 +151,8 @@ describe('f757 (4) what stays here, and what they never see', () => {
     const m = await openShare(contract());
     assert.equal(m.txt('#sh-lt-never-h'), 'What Anna never sees');
     assert.match(m.root.textContent, /The review, your internal notes and your colleagues' names stay inside /);
-    assert.equal(m.txt('#sh-summary-label'), 'Your note · type here', 'and the one part she reads that you write');
+    /* RE-POINTED, the SAP Way (28 Oct 2026): the box named for who reads it */
+    assert.equal(m.txt('#sh-summary-label'), 'Your note to Anna', 'and the one part she reads that you write');
   });
 });
 

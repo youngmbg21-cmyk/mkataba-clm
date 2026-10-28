@@ -269,24 +269,26 @@ const openFace = async page => {
       await page.setViewportSize({ width: w, height: ht }); await pause(700);
       /* RE-POINTED 20 Oct 2026 (ONE TRAIL's line under the tabs takes a line of the
          panel): the card is scrolled to in the panel, then it must sit clear of the box */
-      await page.evaluate(() => { const e = document.getElementById('sh-lt-else'); if (e) e.scrollIntoView({ block: 'end' }); });
+      /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): "Something else to send?" is not
+         drawn (What goes asks it); the panel's last card, "What … never sees", must sit clear of the box */
+      await page.evaluate(() => { const e = document.getElementById('sh-lt-never-h'); if (e) e.closest('.sh-lt-card').scrollIntoView({ block: 'end' }); });
       await pause(200);
-      const fit = await page.evaluate(() => { const e = document.getElementById('sh-lt-else'); const box = document.querySelector('#ig-dock .igd-ask, #ig-dock #igd-input');
+      const fit = await page.evaluate(() => { const h = document.getElementById('sh-lt-never-h'); const e = h && h.closest('.sh-lt-card'); const box = document.querySelector('#ig-dock .igd-ask, #ig-dock #igd-input');
         const er = e && e.getBoundingClientRect(), br = box && box.getBoundingClientRect();
         const btns = e ? [...e.querySelectorAll('button')].filter(x => x.getClientRects().length).map(x => Math.round(x.getBoundingClientRect().bottom)) : [];
         return { elseBottom: er && Math.round(er.bottom), boxTop: br && Math.round(br.top), btns, sideways: document.documentElement.scrollWidth > innerWidth }; });
-      check(`3d ${w}×${ht}: "Something else to send?" and its buttons sit clear above the ask box, nothing sideways`, !!fit.elseBottom && !!fit.boxTop && fit.elseBottom <= fit.boxTop && fit.btns.every(y => y <= fit.boxTop) && !fit.sideways, JSON.stringify(fit));
+      check(`3d ${w}×${ht}: the panel's last card sits clear above the ask box, nothing sideways`, !!fit.elseBottom && !!fit.boxTop && fit.elseBottom <= fit.boxTop && fit.btns.every(y => y <= fit.boxTop) && !fit.sideways, JSON.stringify(fit));
       await shot(page, `11-letter-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(500);
     const gap = await page.evaluate(() => { const f = document.querySelector('#sh-letter .sh-lt-foot'); const p = f && f.previousElementSibling;
       return f && p ? Math.round(f.getBoundingClientRect().top - p.getBoundingClientRect().bottom) : null; });
     check('3e a gap before the sign-off', gap != null && gap >= 14, String(gap));
-    await page.click('[data-sh-lt-else="history"]', { timeout: 5000 }).catch(() => {});
+    await page.click('[data-sh-as-go="what"]', { timeout: 5000 }).catch(() => {}); await page.click('[data-sh-as-what="history"]', { timeout: 5000 }).catch(() => {});
     const hist = await waitFor(page, () => { const p = document.getElementById('share-hist-preview'); return p && !p.classList.contains('hidden') && /Negotiation history/.test(p.innerText) ? p.innerText.length : null; }, 6000);
     check('3f the history preview keeps its rows', !!hist, String(hist));
     await shot(page, '11-history-1440x780');
-    await page.click('[data-sh-lt-else="contract"]', { timeout: 5000 }).catch(() => {});
+    await page.click('[data-sh-as-go="what"]', { timeout: 5000 }).catch(() => {}); await page.click('[data-sh-as-what="contract"]', { timeout: 5000 }).catch(() => {});
     await waitFor(page, () => { const s = document.getElementById('sh-lt-subject'); return s && /^Round/.test(s.textContent); }, 6000);
 
     /* 4 Go to clause 7: the letter waits */

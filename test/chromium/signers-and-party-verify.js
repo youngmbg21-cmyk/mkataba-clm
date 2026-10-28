@@ -191,14 +191,18 @@ const contract = () => ({
       await openShareModal(c);
       await new Promise(r => setTimeout(r, 1200));
       const btns = [...document.querySelectorAll('[data-share-purpose]')];
-      return { offered: btns.map(b => b.getAttribute('data-share-purpose')),
+      /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the list under "What they can do"
+         offers the four a link is for; Status is a choice of What goes and a colleague is asked for in To,
+         their buttons kept hidden as the targets those doors press */
+      return { offered: btns.filter(b => !b.classList.contains('hidden')).map(b => b.getAttribute('data-share-purpose')),
+        colleagueInTo: !!document.querySelector('[data-sh-to-kind="colleague"]'),
         preselected: btns.filter(b => b.getAttribute('aria-pressed') === 'true')
           .map(b => b.getAttribute('data-share-purpose')) };
     });
     check('the picker offers a read-only link, not only Sign and Negotiate',
       /* Adviser joined as the fourth purpose (THE SEND SCREEN: Sign · Negotiate · View · Adviser)
          RE-POINTED 21 Oct 2026: A COLLEAGUE is a purpose too (passing it to a colleague, caPassSend) */
-      defaults.offered.join(',') === 'sign,negotiate,view,advise,colleague', defaults.offered.join(','));
+      defaults.offered.join(',') === 'sign,negotiate,view,advise' && defaults.colleagueInTo, defaults.offered.join(',') + ' · colleague in To ' + defaults.colleagueInTo);
     check('and with nobody named to sign, the default is one the send will accept',
       defaults.preselected.join(',') === 'negotiate',
       'preselected ' + (defaults.preselected.join(',') || 'nothing')

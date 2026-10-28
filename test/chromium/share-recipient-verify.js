@@ -269,7 +269,7 @@ const ROUTE = [
       const vis = sel => { const el = root.querySelector(sel); if (!el) return null;
         const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
       const read = () => ({ kind: vis('#share-step-kind'), send: vis('#share-step-1'), form: vis('#share-step-2'),
-        email: vis('#sh-email'), other: vis('#share-other'), signers: vis('#share-signers'),
+        email: vis('#sh-email'), other: vis('[data-sh-as-go="what"]'), signers: vis('#share-signers'),
         sendDisabled: !!(root.querySelector('#share-send') || {}).disabled,
         width: Math.round((root.querySelector('.modal-in') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width) });
       const p = openShareModal(getContract(id));          // the plain Share button: no options
@@ -286,6 +286,8 @@ const ROUTE = [
     check('4b. the first frame is the send, not the kind question',
       frames.first.send === true && frames.first.form === true && frames.first.kind === false,
       JSON.stringify(frames.first));
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the quiet door is the form's
+       "What goes" field, whose list holds the history */
     check('4b. the address box and the quiet door are on it from the first frame',
       frames.first.email === true && frames.first.other === true);
     check('4b. Send is greyed until the dialog is wired, then live',
@@ -306,7 +308,7 @@ const ROUTE = [
       if (shown){ await page.click('[data-share-kind="history"]'); await page.click('#share-kind-next'); }
       await page.waitForTimeout(300);
     };
-    await page.click('#share-other');
+    await page.click('[data-sh-as-go="what"]'); await page.click('[data-sh-as-what="history"]');
     await page.waitForTimeout(200);
     const cardLive = await page.evaluate(() => { const b = document.querySelector('[data-share-kind="history"]'); return !!b && !b.disabled; });
     check('4b. the history card is a live choice on a contract with a record', cardLive);
@@ -394,7 +396,7 @@ const ROUTE = [
     await page.waitForTimeout(300);
     await page.evaluate(id => openShareModal(getContract(id)), cid);
     await page.waitForTimeout(1500);
-    await page.click('#share-other');
+    await page.click('[data-sh-as-go="what"]'); await page.click('[data-sh-as-what="history"]');
     await page.waitForTimeout(200);
     await kindStepThrough();
     await pickCh('word');
@@ -418,7 +420,8 @@ const ROUTE = [
     await page.evaluate(id => openShareModal(getContract(id)), cid);
     await page.waitForTimeout(1500);
     const litCh = await page.evaluate(() => {
-      const lit = Array.from(document.querySelectorAll('[data-share-ch]')).find(b => /var\(--color-accent\)/.test(b.style.background));
+      /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the channels are rows of a list, the chosen one ticked */
+      const lit = Array.from(document.querySelectorAll('[data-share-ch]')).find(b => b.getAttribute('aria-checked') === 'true');
       return lit ? lit.getAttribute('data-share-ch') : null;
     });
     /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): it opens where a first open does — Email, or the link where no email
@@ -501,6 +504,10 @@ const ROUTE = [
     await page.waitForTimeout(300);
     await page.evaluate(() => openShareModal(window.getContract(window.state.activeId)));
     await page.waitForTimeout(1200);
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the people stand in To, behind
+       "+ Add a person" — pressed first, then read */
+    const addGo = await page.evaluate(() => { const b = document.querySelector('[data-sh-more-go]'); if (!b || !b.getClientRects().length) return false; b.click(); return true; });
+    check('"+ Add a person" is in To where somebody is named', addGo);
     const more = await page.evaluate(() => {
       const box = document.querySelector('.sh-more-box');
       if (!box) return { drawn: false };
