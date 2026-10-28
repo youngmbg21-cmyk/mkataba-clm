@@ -943,7 +943,7 @@ const HANDBOOK_CHAPTERS = [
     when: [{ en: 'A new colleague starts: a viewer first.', sv: 'En ny kollega börjar: läsare först.' },
       { en: 'Someone keeps signing above what they should: a cap.', sv: 'Någon signerar ständigt över vad de borde: ett tak.' }],
     path: ['door:settings', { en: 'Company', sv: 'Företag' }, { en: 'People', sv: 'Personer' }],
-    how: [{ en: 'On the People page each row says the person\'s side in its own column: "Our side" with a tick, "Their side" with a half circle; their job title and role read under the name.', sv: 'På sidan Personer säger varje rad personens sida i en egen kolumn: "Vår sida" med en bock, "Deras sida" med en halv cirkel; deras titel och roll står under namnet.' },
+    how: [{ en: 'On the People page each row says the person\'s side in its own column: "Our side" with a tick, "Their side" with a half circle; their job title has its own column beside the name, and a colleague\'s role here reads under the name.', sv: 'På sidan Personer säger varje rad personens sida i en egen kolumn: "Vår sida" med en bock, "Deras sida" med en halv cirkel; befattningen har en egen kolumn bredvid namnet, och en kollegas roll här står under namnet.' },
       { en: 'Add the person; the grant rows for their role are asked at once.', sv: 'Lägg till personen; behörighetsraderna för rollen frågas direkt.' },
       { en: 'Open a person to change a grant. Admins are never capped.', sv: 'Öppna en person för att ändra en behörighet. Admins har aldrig tak.' },
       { en: '"{door:roles}" lists the business roles; "{door:access}" is the access review, refused while anyone is undecided.', sv: '"{door:roles}" listar affärsrollerna; "{door:access}" är behörighetsgranskningen, vägrad medan någon är obestämd.' }],

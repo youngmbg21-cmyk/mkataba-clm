@@ -47,6 +47,8 @@
 const _dir = { tab: 'all', q: '', party: 'all', hati: 'all', stream: 'all', shown: 0 };
 const DIR_TABS = ['all', 'ours', 'theirs', 'none'];
 const DIR_PAGE = 12;
+/* the Name column's width while Job title takes the spare room beside it */
+const DIR_NAME_W = 300;
 const DIR_SEAT = 'directory';
 /* A colleague's panel lists this many of their contracts; the rest are one
    press away on the Contracts page. */
@@ -389,6 +391,10 @@ function dirAwayPillHtml(p){
    19's Side, Job title, In HaTi and Email columns went with the band. */
 function dirColDefs(){
   return [
+    /* THE JOB TITLE IS A COLUMN (owner, 28 Oct 2026: "take the title from
+       below the name and add it to cover the empty space"): it takes the
+       room the table has to spare; the name holds DIR_NAME_W beside it */
+    { k: 'title', label: i18t('dir_col_title') },
     { k: 'party', label: i18t('dir_col_party'), w: 220 },
     /* THE SIDE IS A COLUMN AGAIN (owner, 27 Oct 2026: "for people the sap way"): an icon and a word in its tone */
     { k: 'side', label: i18t('dir_col_side'), w: 130 },
@@ -404,6 +410,7 @@ function dirOurParty(){
    address each say so") */
 function dirNone(word){ return word ? `<span class="dir-none" title="${_dE(word)}" aria-label="${_dE(word)}">—</span>` : `<span class="dir-none">—</span>`; }
 function dirCellHtml(k, p){
+  if (k === 'title') return `<td class="dir-td-cut dir-td-wrap"${p.title ? ` title="${_dE(p.title)}"` : ''}>${p.title ? `<span class="dir-clamp dir-title">${_dE(p.title)}</span>` : dirNone(i18t('dir_no_title'))}</td>`;
   if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut dir-td-wrap"${v ? ` title="${_dE(v)}"` : ''}>${v ? `<span class="dir-clamp">${_dE(v)}</span>` : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
   if (k === 'side'){
     if (p.side !== 'ours' && p.side !== 'theirs') return `<td>${dirNone()}</td>`;
@@ -414,15 +421,17 @@ function dirCellHtml(k, p){
   if (k === 'contracts') return `<td class="n dir-n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
   return '<td></td>';
 }
-/* THE LINE UNDER THE NAME, AS DRAWN ("COO · Editor", "Supply Chain
-   Director"): the job title, and for a colleague their role here (D-2: who
-   is an admin is stated). A missing title says so in the one grey, in the
-   phone's own words, and the role still follows it (f202: an absence
-   describes one person alike on both shells). */
-function dirSubHtml(p){
-  const title = p.title ? `<span class="dir-title">${_dE(p.title)}</span>` : `<span class="dir-none dir-title">${_dE(i18t('dir_no_title'))}</span>`;
-  const role = p.side === 'ours' && p.hati ? ` · <span class="dir-role">${_dE(p.hati)}</span>` : '';
-  return `<span class="dir-sub">${title}${role}</span>`;
+/* THE LINE UNDER THE NAME: a colleague's role here (D-2: who is an admin is
+   stated). The job title left it for its own column (owner, 28 Oct 2026);
+   where a reader hides that column it comes back here, a missing one said
+   in the one grey (f202: an absence describes one person alike on both
+   shells), and the role still follows it. */
+function dirSubHtml(p, keys){
+  const inCol = Array.isArray(keys) && keys.includes('title');
+  const title = inCol ? '' : p.title ? `<span class="dir-title">${_dE(p.title)}</span>` : `<span class="dir-none dir-title">${_dE(i18t('dir_no_title'))}</span>`;
+  const role = p.side === 'ours' && p.hati ? `<span class="dir-role">${_dE(p.hati)}</span>` : '';
+  if (!title && !role) return '';
+  return `<span class="dir-sub">${title}${title && role ? ' · ' : ''}${role}</span>`;
 }
 /* ONE PERSON, ONE ROW. The hooks the phone and the tests share are kept:
    [data-dir-row] is the person, .dir-name the name, .dir-you the reader's own
@@ -443,7 +452,7 @@ function dirRowHtml(p, keys){
   const you = p.you ? ` <span class="dir-you">${_dE(i18t('dir_you_paren'))}</span>` : '';
   const hover = [p.name, p.email].filter(Boolean).join(' · ');
   return `<tr data-dir-row="${_dE(p.key)}" data-dir-letter="${_dE(dirLetterOf(p))}" tabindex="-1">
-    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true"${dirTavTone(p)}>${ini}</span> <span class="dir-nm-w" title="${_dE(hover)}"><span class="dir-nm-l"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span> ${dirSubHtml(p)}</span></span></td>
+    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true"${dirTavTone(p)}>${ini}</span> <span class="dir-nm-w" title="${_dE(hover)}"><span class="dir-nm-l"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span> ${dirSubHtml(p, keys)}</span></span></td>
     ${keys.map(k => dirCellHtml(k, p)).join('')}
   </tr>`;
 }
@@ -507,7 +516,7 @@ function dirCardHtml(rows, book){
   const keys = (typeof lcShown === 'function') ? lcShown(DIR_SEAT, cols.map(c => c.k)) : cols.map(c => c.k);
   /* how the list is sorted rides the Name column's head (round 19 said it on
      the card's own head, which the list head the Legora way replaced) */
-  const head = [{ t: i18t('dir_col_name'), title: i18t('dir_list_sort') }, ...keys.map(k => Object.assign({ t: byK[k].label }, byK[k]))];
+  const head = [{ t: i18t('dir_col_name'), title: i18t('dir_list_sort'), w: keys.includes('title') ? DIR_NAME_W : 0 }, ...keys.map(k => Object.assign({ t: byK[k].label }, byK[k]))];
   const table = rows.length
     ? `<table class="ap-table ap-ins dir-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
       head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-dir-col="${_dE(h.k)}"` : ''}${h.title ? ` title="${_dE(h.title)}"` : ''}>${_dE(h.t)}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`

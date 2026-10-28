@@ -118,7 +118,7 @@ describe('f795 (2) the table as drawn', () => {
      as drawn; the card's own head went — the count is the lit tab's, the
      order the Name column's hover, Columns at the end of the head's chip row */
   test('the columns and the list\'s head', () => {
-    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Party or company', 'Side', 'Contracts']);
+    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Job title', 'Party or company', 'Side', 'Contracts']);
     assert.equal(doc.querySelector('.dir-card .ap-card-h'), null, 'the card is the table and its foot');
     assert.equal(sb.LH_PAGES.directory.tabs().find(t => t.k === 'all').n, 15);
     assert.equal(doc.querySelector('#dir-page thead th').getAttribute('title'), 'ours first, then theirs, by name');
@@ -130,15 +130,16 @@ describe('f795 (2) the table as drawn', () => {
   });
   /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): the job title and the
      role here stand under the name; the side is the tab; the address rides
-     the name's hover */
-  test('a row says it all: (you), the job title and role here under the name, party or company, contracts', () => {
+     the name's hover. RE-POINTED 28 Oct 2026 (owner): the job title is its
+     own column; the role here alone stays under the name */
+  test('a row says it all: (you), the role here under the name, the job title, party or company, contracts', () => {
     const r = rowsOf(doc);
     const cells = row => [...row.children].map(td => td.textContent.replace(/\s+/g, ' ').trim());
-    assert.equal(JSON.stringify(cells(r[0])), JSON.stringify(['VR Vera Reader (you) No job title on file · Viewer', 'Highland Corporate Ltd', 'Our side', '—']));
-    assert.equal(JSON.stringify(cells(r[4])), JSON.stringify(['B0 Buyer 01 No job title on file', 'Party 01 Ltd', 'Their side', '1']));
-    assert.match(r[0].querySelector('.dir-sub .dir-none').textContent, /title/i, 'a missing job title still says so');
+    assert.equal(JSON.stringify(cells(r[0])), JSON.stringify(['VR Vera Reader (you) Viewer', '—', 'Highland Corporate Ltd', 'Our side', '—']));
+    assert.equal(JSON.stringify(cells(r[4])), JSON.stringify(['B0 Buyer 01', '—', 'Party 01 Ltd', 'Their side', '1']));
+    assert.match(r[0].children[1].querySelector('.dir-none').getAttribute('title'), /title/i, 'a missing job title still says so');
     assert.match(r[0].querySelector('.dir-nm-w').getAttribute('title'), /v@x\.test/, 'the address on the name\'s hover');
-    assert.match(rowsOf(doc).find(x => nameOf(x) === 'Amina Otieno').querySelector('.dir-sub').textContent, /^General Counsel · Admin$/);
+    assert.match(rowsOf(doc).find(x => nameOf(x) === 'Amina Otieno').querySelector('.dir-sub').textContent, /^Admin$/);
   });
   test('an away colleague wears "Away until <day>"', () => {
     const j = rowsOf(doc).find(r => nameOf(r) === 'Jonas Berg');
@@ -172,7 +173,7 @@ describe('f795 (3) the boxes narrow; twelve at a time; Columns', () => {
     /* the columns as drawn: Party or company · Side · Contracts (27 Oct 2026; Part 8 had no Side) */
     sb.localStorage.setItem('hati.v1.cols.directory', JSON.stringify({ hidden: ['party'] }));
     sb.renderDirectory();
-    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Side', 'Contracts']);
+    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Job title', 'Side', 'Contracts']);
   });
 });
 
@@ -278,8 +279,13 @@ describe('f795 (6) check #2\'s differences, built', () => {
      the name after the job title, the address is the panel's */
   test('6a the job title and the role here read under the name; Side is a column, no In HaTi or Email column', () => {
     const { sb } = stage();
-    assert.deepEqual(Array.from(sb.dirColDefs(), c => c.k), ['party', 'side', 'contracts']);
+    /* RE-POINTED 28 Oct 2026 (owner: the job title moves to its own column,
+       taking the spare room): the role alone reads under the name; with the
+       column hidden the title comes back under it */
+    assert.deepEqual(Array.from(sb.dirColDefs(), c => c.k), ['title', 'party', 'side', 'contracts']);
     const ours = sb.dirBook().find(x => x.side === 'ours' && x.title);
+    assert.match(sb.dirRowHtml(ours, ['title', 'party', 'contracts']), /<span class="dir-sub"><span class="dir-role">Admin<\/span><\/span>/);
+    assert.match(sb.dirCellHtml('title', ours), /General Counsel/);
     assert.match(sb.dirRowHtml(ours, ['party', 'contracts']), /<span class="dir-sub"><span class="dir-title">General Counsel<\/span> · <span class="dir-role">Admin<\/span><\/span>/);
     assert.equal(sb.dirCellHtml('email', ours), '<td></td>');
   });
