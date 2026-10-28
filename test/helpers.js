@@ -83,6 +83,14 @@ function startAiStub() {
             let n = 0; try { n = JSON.parse(facts).agreements || 0; } catch (_) { n = 0; }
             return { brief: `You have ${n} agreements with them. They once asked for 999 days.` };
           })()
+        /* JAMBO ASKS: "How many contracts mention a rebate?" → "Does this contract mention a rebate?", "mention a rebate";
+           a question no count answers ("what is our total spend") comes back empty */
+        : toolName === 'column_turn' ? (() => {
+            const typed = (String(((body.messages || [])[0] || {}).content || '').split('TYPED: ')[1] || '').trim();
+            const rest = typed.replace(/^\s*(how many|which|list|count)( of)?( these| those| my| our| the)?( contracts| ones| agreements)?( that| which)?\s*/i, '').replace(/[?.!\s]+$/, '');
+            if (!rest || /total|sum|spend/i.test(typed)) return { question: '', says: '' };
+            return { question: 'Does this contract ' + rest + '?', says: rest };
+          })()
         : toolName === 'column_answers' ? (() => {
             /* one answer per question asked (Discover: one read, many answers), verdict 'in' where a rule is given */
             const msg = String(((body.messages || [])[0] || {}).content || '');
@@ -92,8 +100,13 @@ function startAiStub() {
             const n = /QUESTIONS \(/.test(head) ? (head.match(/^\d+\. /gm) || []).length : 1;
             /* "out" of a rule where the wording leaves liability unlimited (test/discover-world.js DV-04, DV-05), else "in" */
             const out = /nothing in this (agreement|lease) limits/i.test(txt);
+            const qLine = ((head.match(/QUESTION: ([^\n]*)/) || [])[1] || '');
+            const yesNo = n === 1 && /^(does|is|can|has|do)\b/i.test(qLine);
+            const yesWord = (qLine.replace(/[?.!]+$/, '').trim().split(/\s+/).pop() || '').toLowerCase();
             return { answers: Array.from({ length: n }, (_, i) => ({ q: i + 1, found: true, answer: out ? 'Not capped' : '30 days', detail: out ? 'our side' : 'either side',
-              tone: out ? 'concern' : 'good', why: 'stubbed reason', quote, clause: '9 · Termination', verdict: out ? 'out' : 'in' })) };
+              tone: out ? 'concern' : 'good', why: 'stubbed reason', quote, clause: '9 · Termination', verdict: out ? 'out' : 'in',
+              /* a yes-or-no question ("Does this contract mention a rebate?"): yes where the document carries its last word */
+              ...(yesNo ? { yes: !!yesWord && txt.toLowerCase().includes(yesWord) } : {}) })) };
           })()
         : {};
       res.writeHead(200, { 'Content-Type': 'application/json' });

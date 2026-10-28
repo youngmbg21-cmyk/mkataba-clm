@@ -105,7 +105,9 @@ describe('f866 (4) the walls, asked off the live record', () => {
   test('a person\'s own note is theirs alone', async () => {
     await W.unrestricted.json('/api/me/items', { method: 'POST', body: { kind: 'note', item: { body: 'Ask finance about the pineapple rebate' } } });
     assert.ok((await find(W.unrestricted, 'pineapple rebate')).hits.some(x => x.kind === 'note' && x.mine));
-    assert.equal((await find(W.admin, 'pineapple rebate')).hits.length, 0, 'not even an admin');
+    /* RE-POINTED 28 Oct 2026: the Handbook now says "mention a rebate" (Ask a column, round 3), so the word is found in
+       the book; the wall is that nobody else finds the NOTE */
+    assert.equal((await find(W.admin, 'pineapple rebate')).hits.filter(x => x.kind === 'note').length, 0, 'not even an admin');
   });
   test('a request raised by someone else reaches an editor of its stream, not a viewer of another', async () => {
     const r = await find(W.admin, 'warehouse lease');
