@@ -95,6 +95,7 @@ function loadAi(opts = {}){
       sandbox.hbS = () => ({ face: opts.home.face || 'paper' });
       sandbox.bsCardId = () => opts.home.card || null;
     }
+    if (opts.reads) sandbox.rlRowReadOf = (c, ch) => opts.reads[ch.id] || null;
   }
   sandbox.window = sandbox;
   vm.createContext(sandbox);
@@ -156,6 +157,17 @@ describe('f283 (1b) on Home, the contract on the paper is the one on screen', ()
   test('a contract brought up on the Board is on screen too', () => {
     const w = loadAi({ view: 'dashboard', contracts: two, home: { paper: false, face: 'board', card: 'MK-398' } });
     assert.equal(w.aiChatContext().activeContractId, 'MK-398');
+  });
+  test('what the card said on their asks travels with the question (owner picked A, 28 Oct 2026)', () => {
+    const withAsks = [{ id: 'MK-398', name: 'Mutual NDA', counterparty: 'Juno LLC', status: 'Under Review',
+      changes: [{ id: 'CHG-004', clauseLabel: '4. Governing Law' }, { id: 'CHG-009', clauseLabel: '9. Notices' }] }];
+    const reads = { 'CHG-004': { label: 'Take it', why: 'You agreed to this kind of ask 5 of 5 times before.' } };
+    const w = loadAi({ view: 'dashboard', contracts: withAsks, home: { paper: true, paperId: 'MK-398' }, reads });
+    const got = w.aiChatContext().cardReads;
+    assert.equal(got.length, 1, 'only the asks the card gives a reading for');
+    assert.equal(got[0].id, 'CHG-004'); assert.equal(got[0].verdict, 'Take it'); assert.match(got[0].why, /5 of 5/);
+    const off = loadAi({ view: 'dashboard', contracts: withAsks, home: { paper: false, paperId: 'MK-398', face: 'board' }, reads });
+    assert.equal(off.aiChatContext().cardReads, undefined, 'no contract in front, nothing said about one');
   });
   test('the Board, Calendar or Explorer in front: no contract, though a paper was left behind', () => {
     for (const face of ['board', 'calendar', 'explorer']){
