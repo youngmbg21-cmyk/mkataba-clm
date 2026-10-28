@@ -1025,6 +1025,8 @@ const INS_PAGE_REPAINT = {
   intake: 'renderIntake',
   /* My notes beside Jambo's panel where it fits (round 20, scene "My notes") */
   mynotes: 'renderMyNotes',
+  /* Reads beside Jambo's panel where it fits (The thread, 28 Oct 2026) */
+  reads: 'renderReads',
   /* Not an inspector: the Advice tab of Requests, whose frame follows this
      line so its tab row sits where the Contracts tab's does (gap F). */
   advice: 'renderAdviceDesk',

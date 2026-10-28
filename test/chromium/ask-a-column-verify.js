@@ -146,10 +146,13 @@ async function toList(page) {
     check('5b Remove column takes it off the list', await until(page, () => !document.querySelector('td.ac-cell') && [...document.querySelectorAll('.reg-table thead th')].some(th => th.textContent.trim() === 'Value')));
     await page.click('[data-ac-open]'); await until(page, () => !!document.querySelector('[data-ac-chip]'));
     await page.click('[data-ac-chip]');
-    const kept = await until(page, () => /4 answers are already kept and cost nothing/.test((document.querySelector('#ac-form') || {}).innerText || ''));
+    /* RE-POINTED 28 Oct 2026 (THE THREAD): the form now says every shown
+       contract is read and kept, and offers Bring the answers onto the list
+       (free) instead of asking again */
+    const kept = await until(page, () => /Every one of the 4 shown is read and kept/.test((document.querySelector('#ac-form') || {}).innerText || '') && !!document.querySelector('#ac-form [data-ac-bring]'));
     check('5c the team\'s question is a chip; chosen, the kept answers are said free', kept, await page.evaluate(() => (document.querySelector('#ac-form .ac-cost') || {}).innerText));
     const spent2 = h.ai.calls.length;
-    await page.click('[data-ac-ask]');
+    await page.click('[data-ac-bring]');
     await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans').length === 4, null, 10000);
     check('5d asked again, it costs nothing', h.ai.calls.length === spent2, String(h.ai.calls.length - spent2));
 

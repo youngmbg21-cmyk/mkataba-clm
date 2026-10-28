@@ -9863,6 +9863,14 @@
   /* while he reads: how far he has got, and Stop (owner, 26 Oct 2026) */
   #ig-dock .ac-prog{height:4px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
   #ig-dock .ac-prog>i{display:block;height:100%;background:var(--accent-solid);border-radius:2px;transition:width .2s linear}
+  /* THE THREAD (owner picked it, 28 Oct 2026): the choice 50 | 100 inside the sentence; the progress line under a column's facts */
+  .ac-size{display:inline-flex;background:var(--color-neutral-100);border-radius:999px;padding:2px;vertical-align:middle;margin:0 2px}
+  .ac-size-b{border:0;background:none;font:inherit;font-size:12px;font-weight:var(--w-label);line-height:18px;padding:0 9px;border-radius:999px;color:var(--color-text);cursor:pointer}
+  .ac-size-b.on{background:var(--color-text);color:#fff}
+  .ac-size-b:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  #ig-dock .ac-th b{font-weight:var(--w-label)}
+  #ig-dock .ac-th-prog{display:flex;flex-direction:column;gap:4px;margin-top:2px}
+  #ig-dock .ac-th-prog .ac-next{margin-top:2px}
   /* Discover's rows: the question presses, its two acts sit beside it */
   #ig-dock .ac-disc-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;border-top:1px solid var(--rule)}
   #ig-dock .ac-disc-row:last-of-type{border-bottom:1px solid var(--rule)}

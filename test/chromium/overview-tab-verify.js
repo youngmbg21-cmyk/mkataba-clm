@@ -60,6 +60,7 @@ const PAGES = [
   ['intake', "setView('intake')", 'list'],
   ['templates', "setView('templates')", 'list'],
   ['mynotes', "setView('mynotes')", 'list'],
+  ['reads', "setView('reads')", 'list'],
   ['handbook', "setView('handbook')", 'list'],
   ['migration', "setView('migration')", 'mig'],
   ['settings-you', "setView('team')", 'st'],

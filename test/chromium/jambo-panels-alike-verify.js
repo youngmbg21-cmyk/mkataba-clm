@@ -52,6 +52,7 @@ const PAGES = [
   ['intake', "setView('intake')", '#ins-panel'],
   ['templates', "setView('templates')", '#ins-panel'],
   ['mynotes', "setView('mynotes')", '#ins-panel'],
+  ['reads', "setView('reads')", '#ins-panel'],
   ['handbook', "setView('handbook')", '#ins-panel'],
   ['migration', "setView('migration')", '#mig-side'],
   ['settings-you', "setView('team')", '#st-side'],

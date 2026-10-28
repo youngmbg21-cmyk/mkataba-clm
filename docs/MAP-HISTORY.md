@@ -35031,3 +35031,52 @@ Clauses in play column stays, the week groups stay. "Build the push and merge wh
 - The bar: `--bar-black` with `--bar-sheen` (white words about 18:1); the phone and sign-in draw no bar.
 - Re-pointed (each says why in place): f687, f739, f795, f716, f387, f721, f797, f807, f874, legora-look-verify 6,
   brand-survives-refresh-verify 1b, home-page-verify 1, blue-landing-and-board-tones-verify N-3c.
+
+## ASK A COLUMN — READS IN BATCHES, AND THE READS PAGE (THE THREAD, 28 Oct 2026)
+The owner (28 Oct 2026): "it seems Hati recommends running 50 contracts per run but it should be a choice from 50 to 100.
+But after you choose the first 50 or 100 it is not clear if you have 500 contracts, how do you choose the next batch
+without rerunning the same batch as before" — and "a new page where someone can go back and source previous searches".
+WHAT WAS TRUE: the limit was 50 in two places (`AC_MAX`, `COLUMN_MAX`); every answer was kept per wording, so re-reading
+cost nothing — which was also the trap: the form read "the first 50 of the shown" every time ("0 Jambo calls · 50 answers
+are already kept") and never reached no. 51; the only way on was narrowing the list by hand. HaTi kept the answers but not
+the reads: nobody could see who read which batch, when. Pictured on the real pages with 500 contracts (today-form,
+today-after: scratchpad look/r3).
+THREE OPTIONS, drawn on the real Contracts form, the column's card and a new Reads page (artifact
+https://claude.ai/artifact/44FYa4C14HQev6gYALY2Pp): THE WORKLIST (the SAP way: labelled dropdown "Read at a time",
+a facts table, Reads as a worklist with an inspector listing the batches), THE THREAD (the Legora way: one sentence
+with 50 | 100 inside it, "Next 50 · 51–100 · 50 calls" as links, Reads a quiet list with "Next 50 →" on the row and the
+read told as a thread in the panel), KEEP READING (the job: a third choice "All 450" read in the background a hundred at
+a time, Stop, the bell when done; Reads a job board). Recommended The thread; the owner: "build the thread".
+WHAT THE THREE SHARED, now built: a press reads 50 or 100 (`AC_SIZES`, the reader's last choice kept in this browser,
+`hati.v1.acSize`); the wall is 100 on both hosts; the next are the FIRST NOT YET READ, in the list's order (`askColPlan`
+over `askColUnread`: kept answers never spent again; "Ask again" = `force`, afresh); every press leaves a record the
+server writes (`column_reads`: who, when, which contracts, where they stood on the list as shown — `run` {id, from, to}
+named by the browser so a press's batches of ten share one record; Stop marks it; a read of one contract with no name is
+an 'arrival', summed per fact, never listed); a new page, Reads (`js/views/reads.js`, the "/" word `reads`, the Guide's
+keep stage after Contracts, Handbook 5.8, the Brain parts askcolnext · askcolruns · askcolstop · reads).
+THE SENTENCE (`askColSentenceHtml`, keys `ac_th_*`): "Jambo reads the next 50 | 100 of the 450 not yet read: contracts
+51–100 · 50 Jambo calls. The 50 already read are kept and cost nothing…"; the first read "the first 50 | 100 of the 500
+shown"; fewer left than a size, no choice offered ("the 12 not yet read"); a small book "the 12 shown"; every one read
+offers the kept answers (Bring the answers onto the list) and nothing to read; a batch with a gap is said as "50 down the
+list from no. 51", never a range that is not one. A pack's sentence says "once each, and answers all N questions". The
+button: "Ask 50 contracts" the first time, then "Read the next 50", "Ask again · 50".
+THE CARD (`askColProgressHtml`): a thin line, "50 of 500 read · 6 at risk · Amina Otieno, 28 Oct, 11:07", then Next 50 ·
+contracts 51–100 · 50 Jambo calls, Next 100 · 51–150 · 100 calls (the cost on the link; `askColNext` = the one engine,
+the same as Carry on), Every read ›. Discover's card carries Every read › too.
+THE READS PAGE: the list head (noun `reads`; tabs All · Mine · Packs · Facts, a zero tab stays out), a row = mark (half
+circle partly read, tick every contract read) · name + chips (Pack · N questions, Company fact, Not kept) · grey line
+"“question” · who · read when" · Read (a thin line, "100 of 500") · At risk in words · "Next 50 →" (or Read again); the
+panel: Read the next 50 · 50 calls, Open the table; THE THREAD (Next · 101–150 — the first not yet read, in the list's
+order · 50 calls · or 100; each press newest first; Asked · when — who · kept in Discover); Where the answers are (Show
+the N at risk · Bring the column onto the list). Every door ends on the Contracts list (`rdOnContracts`); the page itself
+never reads. A pack's row counts the fewest answered of its questions. The count "of 500" is the book this person may
+see (`rdTotal`); the server counts a read's contracts inside `folderScopeFor` too.
+NOT AS DRAWN, and why: the drawn Reads page had "Due diligence", "Liability cap" (fact) and "Exclusivity" rows as sample
+data; the real page lists what the team actually read. "Read again" on a fully read row is a quiet link (the ask form
+with Ask again), not dead words. The whole table's foot "Read the next 50" of the earlier round was not in the pick and
+was not built. KEEP READING (the job) was not built; it can be added later on top ("All" as a third choice), since the
+records are the same.
+NOTICED, NOT FIXED: in a probe, `GET /api/columns/summary` answered 401 once when called the instant after sign-in
+(BUGLOG). Tests: f954; reads-verify (red at the parent on 1a: "the first 50 contracts of the 500 shown", no choice).
+
+THE PACK'S BRING DOOR (28 Oct 2026, found by the Handbook's own picture 5.5.5-2): with every ticked question already read for every contract shown, the pack form greyed its Ask button with "Every contract shown is read for every question ticked" and offered nothing else, a dead button wearing a live one's clothes. It now offers Bring the answers onto the list, like the single question's form, one column per ticked question, nothing spent (`askColBringMany`; the picture recipe presses whichever of the two the form shows). The key `ac_th_pack_all_why` is left inert in both books. The Handbook's 5.8 recipes ask one question of one contract first (through the real route), so the Reads page always has a row with a next batch to photograph; the full `HANDBOOK_SHOTS=1` run re-took 54 pictures by pixel drift and only 0.3 (the Guide's new Reads row), 5.5.* and 5.8-* were kept.

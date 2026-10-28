@@ -208,6 +208,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - f843, ask-a-column verify.
+- THE THREAD (28 Oct 2026): `node --test test/f954-the-thread.test.js` (the plan, the sentence, the record, the page's registration); `node test/chromium/reads-verify.js` (500 contracts: the first 50, the next 50 reads 51–100 and never the first 50 again, the Reads page and its thread, the three screens; pictures with `READS_SHOTS=<dir>`); the Handbook chapter 5.8's pictures (`HANDBOOK_ONLY=5.5,5.8`).
 - THE TWO ROUGH EDGES (26 Oct 2026): f934 (the refusal under #ac-q, focused, no toast; typing clears it; chips filtered), f893 2e (a counting question kept before the rule listed nowhere, not counted), ask-a-column verify 8a–8c (red at the parent: a toast over the panel's foot, the chip drawn).
 - Typing while the team's questions arrive (22 Oct 2026): ask-a-column verify 10 (red at the parent: the caret went to the question box, "Notice ").
 - THE DISCOVER MEASURE (stage 0, 25 Oct 2026): f887 (the exam's truth matches its wording; the marker is fair); `node test/discover-measure.js` by hand (calls only without a key, graded with one). Every Discover stage reruns it and writes its row in docs/PLAN-jambo-discover.md.

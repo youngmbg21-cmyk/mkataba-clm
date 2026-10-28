@@ -117,7 +117,7 @@ function deskKeyNow(){
 }
 /* A page's name, read when it is drawn, so it follows the reader's language. */
 const DK_VIEW_WORD = { redline: 'nav_negotiations', customers: 'nav_customers', approvals: 'nav_approvals', obligations: 'nav_obligations',
-  mynotes: 'nav_mynotes', intel: 'nav_insights', jambo: 'nav_jambo', templates: 'nav_tpl_std', playbook: 'nav_tpl_std', migration: 'nav_import',
+  mynotes: 'nav_mynotes', reads: 'nav_reads', intel: 'nav_insights', jambo: 'nav_jambo', templates: 'nav_tpl_std', playbook: 'nav_tpl_std', migration: 'nav_import',
   intake: 'nav_intake', directory: 'nav_directory', team: 'nav_settings_rules', brain: 'nav_brain', register: 'nav_contracts', handbook: 'nav_handbook' };
 function deskTabLabel(k){
   k = String(k || '');

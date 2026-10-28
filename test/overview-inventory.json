@@ -78,5 +78,8 @@
   "who can open Procurement & Raw Materials?",
   "Add a file",
   "Ask"
+ ],
+ "reads": [
+  "Ask a column"
  ]
 }

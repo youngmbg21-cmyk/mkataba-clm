@@ -226,7 +226,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.click('#ig-dock [data-ac-pack]');
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
       const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
-      check('3c the pack opens in the same form: five questions, one read each against five apart', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /about 11 Jambo calls/.test(pf) && /55 Jambo calls/.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
+      check('3c the pack opens in the same form: five questions, one read each against five apart', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /* RE-POINTED 28 Oct 2026 (THE THREAD): one sentence, one read each */ /reads the 11 shown, once each/.test(pf) && /all 5 questions/.test(pf) && /11 Jambo calls/.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
       await page.screenshot({ path: path.join(OUT, '3-pack-form.png') });
       /* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026) */
       const ticks = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ac-pick]').length);

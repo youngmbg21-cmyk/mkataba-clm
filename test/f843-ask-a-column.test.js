@@ -58,7 +58,7 @@ describe('f843 (1) one question, many contracts', () => {
   test('1b the team\'s question is kept once and listed for the next person', async () => {
     await w.unrestricted.json('/api/ai/column', { method: 'POST', body: { question: '  how much NOTICE does each side need to end the contract early? ', name: 'Notice', ids: ['MK-A1'] } });
     const l = await w.restricted.json('/api/columns');
-    assert.equal(l.max, 50);
+    assert.equal(l.max, 100); /* RE-POINTED 28 Oct 2026 (THE THREAD): 50 or 100 a press */
     assert.equal(l.asks.filter(a => /notice/i.test(a.question)).length, 1, 'kept once by its words');
     assert.equal(l.asks[0].name, 'Notice', 'the newest name given wins');
   });
@@ -96,11 +96,12 @@ describe('f843 (3) the walls', () => {
     assert.ok(!r.answers['MK-B1']);
     assert.ok(!/Naivas|Modern Trade/.test(h.ai.allPayloadText()), 'no folder-B wording reached the model');
   });
-  test('3c more than 50 is cut to 50, and said', async () => {
-    const many = Array.from({ length: 60 }, (_, i) => 'NOPE-' + i);
+  /* RE-POINTED 28 Oct 2026 (THE THREAD): the ceiling is 100 a press */
+  test('3c more than 100 is cut to 100, and said', async () => {
+    const many = Array.from({ length: 120 }, (_, i) => 'NOPE-' + i);
     const r = await w.admin.json('/api/ai/column', { method: 'POST', body: { question: Q, ids: many } });
-    assert.deepEqual(r.capped, { asked: 60, read: 50 });
-    assert.equal(r.failed.length, 50);
+    assert.deepEqual(r.capped, { asked: 120, read: 100 });
+    assert.equal(r.failed.length, 100);
   });
 });
 
