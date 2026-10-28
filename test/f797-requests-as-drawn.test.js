@@ -372,7 +372,8 @@ describe('f797 (11) a tab\'s number is the list it opens; advice reads like a re
     const x = withAdv(); x.win.ikFilters().view = 'advice'; x.win.renderIntake();
     const row = id => x.d.querySelector(`.ik-lt [data-ik-row="adv:${id}"]`);
     assert.equal(txt(row('AR-101').querySelector('.ik-road')), 'Standard');
-    assert.equal(txt(row('AR-101').querySelector('.ik-with .ins-nobody')), 'Nobody yet');
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): "Nobody yet" is a reading with its amber dot */
+    assert.equal(txt(row('AR-101').querySelector('.ik-with .ls-word-v') || row('AR-101').querySelector('.ik-with .ins-nobody')), 'Nobody yet');
     assert.equal(txt(row('AR-102').querySelector('.ik-with')), 'Wanjiru Kamau');
   });
   test('11e Jambo counts the advice nobody holds among those nobody holds', () => {
@@ -485,14 +486,15 @@ describe('f797 (14) the list head\'s presses are the page\'s own', () => {
     assert.equal(d.querySelector('[data-lh-seat="intake"] .lh-chip'), null, '× puts it back at rest');
     assert.equal(rowIds(d).length, 3);
   });
-  test('14c Columns hides a column, its head and its cells; Ref and Request always stand', () => {
+  /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference rides the grey line, so Request alone stands first */
+  test('14c Columns hides a column, its head and its cells; Request always stands', () => {
     const { win, d } = world(); win.renderIntake();
     win.lcSave('intake', { order: ['kind', 'road', 'with', 'files', 'asked', 'promised'], hidden: ['kind'] });
     win.renderIntake();
     const heads = [...d.querySelectorAll('.ik-lt thead th')].map(txt);
-    assert.deepEqual(heads, ['Ref', 'Request', 'How it is handled', 'With', 'Files', 'Asked', 'Promised by']);
-    assert.equal(d.querySelector('.ik-lt [data-ik-row]').children.length, 7, 'one cell less a row');
-    assert.equal(d.querySelectorAll('.ik-lt colgroup col').length, 7);
+    assert.deepEqual(heads, ['Request', 'How it is handled', 'With', 'Files', 'Asked', 'Promised by']);
+    assert.equal(d.querySelector('.ik-lt [data-ik-row]').children.length, 6, 'one cell less a row');
+    assert.equal(d.querySelectorAll('.ik-lt colgroup col').length, 6);
     win.lcSave('intake', null);
   });
   test('14d the asker\'s Advice tab is a door to the advice desk, kept at zero, and a press goes there', () => {

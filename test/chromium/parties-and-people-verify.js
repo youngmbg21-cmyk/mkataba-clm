@@ -156,8 +156,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('2a the list\'s count is the lit tab\'s ("Live N", the foot\'s N), "sorted by name" on the Party column, Columns in the head\'s chip row',
         /^Live \d+$/.test(L.lit) && L.lit.endsWith(' ' + ((/of (\d+)/.exec(L.foot) || [])[1])) && L.sort === 'sorted by name' && !L.card && L.columns, JSON.stringify({ lit: L.lit, sort: L.sort, card: L.card, foot: L.foot, columns: L.columns }));
       /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): a column empty for every party steps out (cuEmptyCols) */
-      const ALL = ['Party', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA'];
-      check('2b the columns as drawn, in order, a column empty for everyone left out', L.cols.length >= 5 && L.cols.every(c => ALL.includes(c)) && L.cols.join() === ALL.filter(c => L.cols.includes(c)).join() && ['Party', 'Live', 'Waiting on you'].every(c => L.cols.includes(c)), JSON.stringify(L.cols));
+      /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): Stream and Standing join after Party; Live and Ended are one press away under Columns */
+      const ALL = ['Party', 'Stream', 'Standing', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA'];
+      check('2b the columns as drawn, in order, a column empty for everyone left out', L.cols.length >= 5 && L.cols.every(c => ALL.includes(c)) && L.cols.join() === ALL.filter(c => L.cols.includes(c)).join() && ['Party', 'Stream', 'Standing', 'Waiting on you'].every(c => L.cols.includes(c)), JSON.stringify(L.cols));
       check('2c a party\'s line: "2 agreements · <stream>"', /^2 agreements · \S/.test(L.sub), L.sub);
       /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
          foot is the list head's one foot, "1–10 of N · Show N more" */
@@ -188,6 +189,13 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       }
       await shot('19-party-city-form-1440x780.png');
       await page.click('[data-cu-pr-save]');
+      /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): City is one press away under Columns — shown once a party has a city (an empty column cannot be chosen) */
+      await page.click('[data-lc-btn="customers"]');
+      await until(() => document.querySelector('[data-lc-pop="customers"] [data-lc-k="city"]:not([disabled])'), null, 10000);
+      await page.click('[data-lc-pop="customers"] [data-lc-k="city"]');
+      await until(() => [...document.querySelectorAll('.cu-table thead th')].some(t => t.textContent.trim() === 'City'));
+      await page.click('[data-lc-btn="customers"]');
+      await until(() => !document.querySelector('[data-lc-pop="customers"]'));
       const S = await until(() => { const td = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] td.cu-city'); return td && td.textContent.trim() === 'Kisumu' ? {
         city: td.textContent.trim(), sub: (document.querySelector('#ins-panel .ins-sub') || {}).textContent || '', org: (document.querySelector('#ins-panel [data-ins-fact="org"] dd') || {}).textContent || '' } : null; });
       check('3b the City column and the panel say it: "Kisumu · with us since …", the organisation no. a fact', !!S && /^Kisumu · with us since /.test(S.sub.trim()) && /PVT-AB12CD/.test(S.org), JSON.stringify(S));
@@ -227,7 +235,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('4f "Draft an agreement with Kenya Freight"', !!P && P.draft.trim() === 'Draft an agreement with Kenya Freight', P && P.draft);
       await shot('19-party-panel-1440x780.png');
       /* RE-POINTED 19 Oct 2026 (check #1): the first item whole, not cut; any more under it */
-      const AP = await page.evaluate(() => { const t = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] td.cu-wait .cu-wait-t');
+      /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the first item is the reading's words; any more on the grey line under it */
+      const AP = await page.evaluate(() => { const t = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] td.cu-wait .ls-word-v') || document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] td.cu-wait .cu-wait-t');
         return t ? { t: t.textContent.trim(), cut: t.scrollWidth > t.clientWidth + 1 } : null; });
       check('4i an approval the reader answers for an away colleague: "an approval, for Jonas", whole', !!AP && AP.t === 'an approval, for Jonas' && !AP.cut, JSON.stringify(AP));
       /* a colleague's request about a party waits on the reader */
@@ -254,14 +263,15 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await shot('19-parties-columns-1440x780.png');
       await page.click('[data-lc-pop="customers"] [data-lc-k="city"]');
       const C = await until(() => { const th = [...document.querySelectorAll('.cu-table thead th')].map(t => t.textContent.trim()); return th.includes('City') ? null : { th, open: !!document.querySelector('[data-lc-pop="customers"]') }; });
-      check('5a hiding City takes it off the list, the list stays open to choose more', !!C && C.open && !C.th.includes('City') && C.th.includes('Live'), JSON.stringify(C));
+      check('5a hiding City takes it off the list, the list stays open to choose more', !!C && C.open && !C.th.includes('City') && C.th.includes('Standing'), JSON.stringify(C));
       await page.click('[data-lc-btn="customers"]');
       const shut = await until(() => !document.querySelector('[data-lc-pop="customers"]'));
       check('5b pressed again, it closes', !!shut);
       await page.click('[data-lc-btn="customers"]'); await until(() => document.querySelector('[data-lc-reset]'));
       await page.click('[data-lc-reset]');
-      const back = await until(() => [...document.querySelectorAll('.cu-table thead th')].some(t => t.textContent.trim() === 'City'));
-      check('5c "As it was" puts every column back', !!back);
+      /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): as it was is City, Live and Ended under Columns, Standing in the list */
+      const back = await until(() => { const th = [...document.querySelectorAll('.cu-table thead th')].map(t => t.textContent.trim()); return th.includes('Standing') && !th.includes('City') && !th.includes('Live') ? th : null; });
+      check('5c "As it was" puts the columns back as drawn', !!back, JSON.stringify(back));
       await page.keyboard.press('Escape');
       await until(() => !document.querySelector('[data-lc-pop="customers"]'));
     });
@@ -292,8 +302,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6a one box to search or ask in, "Search N people, or ask Jambo"; Party · Role in HaTi · Stream under + Filter; no labelled band', D.box && !D.old && D.add && /^Search \d+ people, or ask Jambo$/.test(D.ph || ''), JSON.stringify({ box: D.box, old: D.old, add: D.add, ph: D.ph }));
       check('6a2 the sides are the tabs: Everyone · Ours · Theirs', JSON.stringify(D.tabs.slice(0, 3)) === JSON.stringify(['Everyone', 'Ours', 'Theirs']), JSON.stringify(D.tabs));
       check('6b the page is People: "People N", "<n> of ours · <n> at <n> parties"; no A to Z', /^People\s*\d+$/.test(D.title) && /^\d+ of ours · \d+ at \d+ parties$/.test(D.sub) && !D.az, JSON.stringify({ t: D.title, s: D.sub, az: D.az, bar: D.bar }));
-      check('6c the table as drawn: Name · Party or company · Contracts, the job title and role under the name; "ours first, then theirs, by name" on Name',
-        JSON.stringify(D.cols) === JSON.stringify(['Name', 'Party or company', 'Contracts']) && D.sort === 'ours first, then theirs, by name' && /Amina Otieno/.test(D.first) && / · Admin$/.test(D.sub1.trim()), JSON.stringify({ c: D.cols, s: D.sort, f: D.first, sub: D.sub1 }));
+      /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Side is a column again */
+      check('6c the table as drawn: Name · Party or company · Side · Contracts, the job title and role under the name; "ours first, then theirs, by name" on Name',
+        JSON.stringify(D.cols) === JSON.stringify(['Name', 'Party or company', 'Side', 'Contracts']) && D.sort === 'ours first, then theirs, by name' && /Amina Otieno/.test(D.first) && / · Admin$/.test(D.sub1.trim()), JSON.stringify({ c: D.cols, s: D.sort, f: D.first, sub: D.sub1 }));
       check('6d an away colleague wears "Away until …" on their row', D.away.some(x => /Jonas Berg.*Away until/.test(x)), JSON.stringify(D.away));
       check('6e twelve at a time, the cap said: "1–12 of N · Show N more"', D.rows === 12 && /^1–12 of 1\d · Show \d+ more/.test(D.foot.trim()), JSON.stringify({ r: D.rows, f: D.foot }));
       await page.click('#dir-tbody [data-dir-row="' + (await page.evaluate(() => (dirBook().find(p => p.name === 'Jonas Berg') || {}).key)) + '"]');
@@ -398,7 +409,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
             const card = document.querySelector('.cu-card'), p = document.getElementById('ins-panel'), fb = document.querySelector('[data-lh-seat] .lh-chips');
             const cr = card && card.getBoundingClientRect(), pr = p && p.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
             return { side: !!(cr && pr && cr.right <= pr.left + 2 && pr.width > 200), filters: !!(fr && fr.bottom <= innerHeight && fr.top >= 0),
-              sideways: document.documentElement.scrollWidth > innerWidth + 1, panelIn: !!(pr && pr.bottom <= innerHeight + 1) };
+              sideways: document.documentElement.scrollWidth > innerWidth + 1, panelIn: !!(pr && pr.bottom <= innerHeight + 1),
+              over: cr && pr ? Math.round(cr.right - pr.left) : null,
+              cols: [...document.querySelectorAll('.cu-table thead th, .dir-table thead th')].map(t => t.textContent.trim() + ':' + Math.round(t.getBoundingClientRect().width)) };
           });
           check(`7 ${name} at ${w}×${hgt}: the list and the panel side by side, the filters in view, nothing sideways`, G.side && G.filters && !G.sideways && G.panelIn, JSON.stringify(G));
           /* check #1: the drawn words are read whole — the Waiting column's first item, a party's and a job's name */

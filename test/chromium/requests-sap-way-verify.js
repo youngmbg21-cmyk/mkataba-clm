@@ -58,17 +58,23 @@ const check = (name, pass, detail) => {
     });
     await until(() => { if (document.querySelectorAll('.ik-lt [data-ik-row]').length >= 3) return true;
       if (window.__ikList && !_intakeState.list.some(r => r.id === 'REQ-1042')){ _intakeState.list = window.__ikList; renderIntake(); } return null; }, null, 8000);
-    const T = await page.evaluate(() => ({
-      heads: [...document.querySelectorAll('.ik-lt thead th')].map(t => t.textContent.trim()),
-      rows: Object.fromEntries([...document.querySelectorAll('.ik-lt [data-ik-row]')].map(r => { const td = [...r.children];
-        const w = td[4] ? td[4].cloneNode(true) : null; if (w) w.querySelectorAll('.ins-av').forEach(x => x.remove());
-        return [r.getAttribute('data-ik-row'), { with: w ? w.textContent.replace(/\s+/g, ' ').trim() : '', amber: !!(td[4] && td[4].querySelector('.ins-nobody')),
-          files: td[5] ? td[5].textContent.trim() : '', asked: td[6] ? td[6].textContent.trim() : '' }]; })) }));
-    check('1 the columns: Ref · Request · Kind · How it is handled · With · Files · Asked · Promised by',
-      JSON.stringify(T.heads) === JSON.stringify(['Ref', 'Request', 'Kind', 'How it is handled', 'With', 'Files', 'Asked', 'Promised by']), JSON.stringify(T.heads));
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the reference and the day asked ride the request's grey line (Asked one
+       press away under Columns), so the cells are read by their head, not their place */
+    const T = await page.evaluate(() => {
+      const heads = [...document.querySelectorAll('.ik-lt thead th')].map(t => t.textContent.trim());
+      const at = h => heads.indexOf(h);
+      return { heads, rows: Object.fromEntries([...document.querySelectorAll('.ik-lt [data-ik-row]')].map(r => { const td = [...r.children];
+        const wc = td[at('With')], w = wc ? wc.cloneNode(true) : null; if (w) w.querySelectorAll('.ins-av, .ik-av').forEach(x => x.remove());
+        const sub = r.querySelector('td:first-child .ins-c2 > span');
+        return [r.getAttribute('data-ik-row'), { with: w ? w.textContent.replace(/\s+/g, ' ').trim() : '', amber: !!(wc && wc.querySelector('.ins-nobody, .ls-word-v[style*="--st-amber-fg"]')),
+          files: td[at('Files')] ? td[at('Files')].textContent.trim() : '', asked: sub ? (/asked (.+)$/.exec(sub.textContent.trim()) || [])[1] || '' : '' }]; })) };
+    });
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, as drawn): Promised by before Files; a holder wears initials over "holds it" */
+    check('1 the columns: Request · Kind · How it is handled · With · Promised by · Files (Asked under Columns)',
+      JSON.stringify(T.heads) === JSON.stringify(['Request', 'Kind', 'How it is handled', 'With', 'Promised by', 'Files']), JSON.stringify(T.heads));
     const a = T.rows['REQ-1042'] || {}, b = T.rows['REQ-1039'] || {}, c = T.rows['REQ-1037'] || {};
     check('2a With: "You" with the lane that sent it; a colleague by name; "Nobody yet" in amber',
-      /^You\b/.test(a.with) && /NDA lane/.test(a.with) && /Erik Ström/.test(c.with) && /Nobody yet/.test(b.with) && b.amber, JSON.stringify({ a, b, c }));
+      /^You(?!r)/.test(a.with) && /NDA lane/.test(a.with) && /Erik Ström/.test(c.with) && /Nobody yet/.test(b.with) && b.amber, JSON.stringify({ a, b, c }));
     check('2b Files counts the clip, none a dash; Asked says the day', a.files === '1' && c.files === '2' && b.files === '—' && a.asked === days.today, JSON.stringify({ a, b, c, today: days.today }));
     await page.click('.ik-lt [data-ik-row="REQ-1042"]');
     const P = await until(() => { const p = document.getElementById('ins-panel'); const f = p && p.querySelector('[data-ins-fact="with"] dd'); return f && /Kettle|NDA/.test(p.textContent) ? f.textContent.replace(/\s+/g, ' ').trim() : null; });
@@ -80,8 +86,9 @@ const check = (name, pass, detail) => {
       const F = await page.evaluate(() => { const ths = [...document.querySelectorAll('.ik-lt thead th')];
         const cut = ths.filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());
         const t = document.querySelector('.ik-lt'), p = document.getElementById('ins-panel');
-        const req = ths[1] ? Math.round(ths[1].getBoundingClientRect().width) : 0;
-        const cellCut = [...document.querySelectorAll('.ik-lt [data-ik-row] td:first-child .ins-ref, .ik-lt .ik-files-n')].filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > e.closest('td').getBoundingClientRect().right + 1).length;
+        /* the Request column leads now (27 Oct 2026) */
+        const req = ths[0] ? Math.round(ths[0].getBoundingClientRect().width) : 0;
+        const cellCut = [...document.querySelectorAll('.ik-lt .ik-files-n')].filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > e.closest('td').getBoundingClientRect().right + 1).length;
         return { cut, cellCut, req, list: !!t && t.getBoundingClientRect().top < innerHeight, panel: !!p && p.getBoundingClientRect().right <= innerWidth + 1, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`4 ${w}×${ht}: the list and its panel in view, every head, reference and file count whole, the request room to read, nothing sideways`, !F.cut.length && !F.cellCut && F.req >= 150 && F.list && F.panel && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `requests-sap-way-${w}x${ht}.png`) });

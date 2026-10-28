@@ -114,7 +114,8 @@ const ok = (name, good, detail) => {
        List is the new drawing's Agreement · Stage · Ends · Value — the
        reference rides under the party ("kind · ref") and Owner waits under
        Columns — and the row's ⋯ unheaded */
-    ok('1b the List is the drawing\'s four columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Agreement|Stage|Ends|Value|', shape.heads.join(' | '));
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): Stream and Our standards stand where Stage stood */
+    ok('1b the List is the drawing\'s five columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Agreement|Stream|Our standards|Ends|Value|', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');
@@ -267,8 +268,9 @@ const ok = (name, good, detail) => {
       ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'),
       heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
       widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
-      moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .reg-ch')].map(x => x.textContent.trim()),
-      waits: [...document.querySelectorAll('#reg-tbody tr[data-row] td:nth-last-child(2)')].map(x => x.textContent.trim()),
+      moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .reg-ch')].map(x => ((x.querySelector('.ls-word-v') || x).textContent.trim())), /* RE-POINTED 28 Oct 2026: the reading's words, its grey line under */
+      /* the wait's days (27 Oct 2026: whose wait it is rides the line under it) */
+      waits: [...document.querySelectorAll('#reg-tbody tr[data-row] td.reg-wait .reg-wait-d')].map(x => x.textContent.trim()),
       bandTabs: [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim()),
       bands: [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim()),
       views: !!document.querySelector('[data-reg-view]'),
@@ -281,8 +283,10 @@ const ok = (name, good, detail) => {
        columns — Round, Changes, Waiting — and whose move as tabs and bands. */
     /* RE-POINTED 17 Oct 2026 (round 14, "Whose move"): "What is open", and the
        Lead column the owner said yes to, after the wait */
-    ok('2a Negotiations draws the list and the panel, with the round, what is open, the wait and the lead', ng.ins === '1'
-      && ng.heads.join('|') === 'Ref|Counterparty and agreement|Round|What is open|Waiting|Lead', ng.heads.join(' | '));
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, the round and the
+       lead ride the grey line under the counterparty (Round and Lead one press away under Columns) */
+    ok('2a Negotiations draws the list and the panel, with the clauses in play, what is open, the wait and the value', ng.ins === '1'
+      && ng.heads.join('|') === 'Counterparty and agreement|Clauses in play|What is open|Waiting|Value', ng.heads.join(' | '));
     ok('2b the changes say what they ask of whom, and the wait says how long', /* RE-POINTED 18 Oct 2026 (round 14 as drawn): "N redlines to answer", "N sent, no answer yet" */ ng.moves.some(m => /^\d+ redlines? to answer$/.test(m)) && ng.moves.some(m => /^\d+ sent, no answer yet$/.test(m))
       && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
     ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views

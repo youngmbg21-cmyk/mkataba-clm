@@ -76,8 +76,10 @@ describe('f874 (2) the Board', () => {
 describe('f874 (3) Contracts', () => {
   const REG = R('js/views/register.js');
   test('3a the agreement leads, "party · ref" under it; its column sorts by what it says', () => {
-    assert.match(REG, /\$\{coded\?regTitleOf\(c\):placeRows\?esc\(regShortTitle\(c\)\):esc\(cpName\)\}/);
-    assert.match(REG, /<span class="reg-sub">\$\{placeRows\?`\$\{coded\?esc\(i18t\('igw_kept_list'\)\):esc\(cpName\)\} · \$\{refLine\}`/);
+    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, Negotiations as drawn): that list's bold line is "party · agreement" */
+    assert.match(REG, /\$\{coded\?regTitleOf\(c\):placeRows\?esc\(regShortTitle\(c\)\):\(neg&&insOn\)\?`\$\{esc\(cpName\)\}<span class="reg-t-dot"> · <\/span>\$\{esc\(regShortTitle\(c\)\)\}`:esc\(cpName\)\}/);
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stage and when it last moved follow the reference */
+    assert.match(REG, /<span class="reg-sub">\$\{placeRows\?`\$\{coded\?esc\(i18t\('igw_kept_list'\)\):esc\(cpName\)\} · \$\{refLine\}\$\{regStageLineHtml\(c\)\}\$\{stageMove\}\$\{lives\}`/ /* RE-POINTED 28 Oct 2026: where a working file lives, and whose move, ride the grey line */);
     assert.match(REG, /const A=String\(byName\?regShortTitle\(a\):\(a\.counterparty\|\|''\)\)\.trim\(\)/);
   });
   test('3b one count, said plainly at the foot; the box carries none', () => {
@@ -92,9 +94,13 @@ describe('f874 (3) Contracts', () => {
 
 describe('f874 (4) Approvals, Parties, the list panel', () => {
   const AP = R('js/views/approvalsview.js'), CU = R('js/views/customers.js');
-  test('4a a column the same in every row steps out, said once above the table', () => {
+  /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner's yes: the line above the table may go, "replaced by
+     the rule chip on each row"): Why it waits never steps out, so no line is drawn above the table; Kind and
+     Whose turn still step out, said in the row's grey line and by its mark */
+  test('4a a column the same in every row steps out; the rule rides every row, no line above the table', () => {
     assert.match(fnRegion(AP, 'apSameCols'), /if\(L\.length<2\) return \{ kind:false, why:false, turn:false \};/);
-    assert.match(fnRegion(AP, 'renderApprovalsPage'), /\$\{apSameLineHtml\(W\.rows, same\)\}<table/);
+    assert.match(fnRegion(AP, 'renderApprovalsPage'), /const same=Object\.assign\(\{\}, apSameCols\(W\.rows\), \{ why:false \}\);/);
+    assert.doesNotMatch(fnRegion(AP, 'renderApprovalsPage'), /apSameLineHtml\(/);
     assert.equal(BOOKS.en.ap_same_you, 'All {n} wait on you.');
   });
   test('4b "104 days", red already says late', () => {

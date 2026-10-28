@@ -231,7 +231,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const row = await page.evaluate(id => {
       const tr = document.querySelector(`#reg-tbody tr[data-row="${id}"]`);
       if (!tr) return { absent: true };
-      const st = tr.querySelector('.reg-stg') || tr.querySelector('.badge');
+      /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the stage word rides the grey line (.reg-stg-w) */
+      const st = tr.querySelector('.reg-stg-w') || tr.querySelector('.reg-stg') || tr.querySelector('.badge');
       return { chip: st ? st.textContent.trim() : '' };
     }, staged.id);
     check('1h and the contracts list agrees',

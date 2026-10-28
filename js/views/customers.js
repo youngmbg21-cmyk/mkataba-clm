@@ -686,8 +686,8 @@ function cuSinceOf(items){
   }).filter(Boolean).sort();
   return days[0] || '';
 }
-function cuMonthYear(iso){
-  try { return new Date(iso + 'T00:00:00Z').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_){ return iso; }
+function cuMonthYear(iso, short){
+  try { return new Date(iso + 'T00:00:00Z').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: short ? 'short' : 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_){ return iso; }
 }
 /* the party's name as a sentence says it: "People at Nordvik", "Draft an
    agreement with Kabras Sugar" — its legal form left off, never anything else */
@@ -775,6 +775,11 @@ const CU_CSS = `
   .cu-table td.n,.cu-table th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .cu-table td.quiet{color:var(--color-neutral-500);}
   .cu-table td.amber{color:var(--st-amber-fg);font-weight:var(--w-strong);}
+  .cu-standing{display:inline-flex;align-items:center;gap:4px;font-weight:var(--w-label);font-size:13px;white-space:nowrap;}
+  .cu-table .cu-day{display:block;line-height:18px;white-space:nowrap;}
+  .cu-table .cu-soon{display:block;font-size:12px;line-height:16px;color:var(--st-amber-fg);font-weight:var(--w-label);white-space:nowrap;}
+  .cu-table .cu-more{font-size:12px;color:var(--color-text);}
+  .cu-table td.cu-stream{white-space:nowrap;overflow:hidden;}
   .cu-table tbody tr[data-cu-cust]:focus{outline:none;}
   .cu-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .cu-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
@@ -837,6 +842,11 @@ const CU_CSS = `
 function cuColDefs(){
   const money = cuMoney();
   return [
+    /* THE LIST LANGUAGE (owner, 27 Oct 2026: the other lists "the same way"): the party's stream as a
+       soft chip and its standing as a mark and a word; Live, Ended and City are under Columns (the grey line
+       counts, Standing says Ended, the panel says the city); Waiting has the room for its dot and words whole */
+    { k: 'stream', label: i18t('reg_col_stream'), w: 118 },
+    { k: 'standing', label: i18t('cu_col_standing'), w: 116 },
     { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
     /* 88 (Round 2): it holds a count but its head must read whole in Swedish ("Avslutade"); with Waiting's 22 it pays
@@ -845,7 +855,7 @@ function cuColDefs(){
     ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 112 }] : []),
     { k: 'next', label: i18t('cu_col_next_end'), w: 108 },
     /* wide enough for the drawn short words whole ("an approval, for Jonas") */
-    { k: 'waiting', label: i18t('cu_col_waiting'), w: 166 },
+    { k: 'waiting', label: i18t('cu_col_waiting'), w: 180 },
     { k: 'nda', label: i18t('cu_col_nda'), w: 128 },
   ];
 }
@@ -875,17 +885,40 @@ function cuRowsWith(o, all, ndas){
    row: All · Live · Ended; the list still opens on Live */
 const CU_TABS = ['all', 'live', 'ended'];
 const CU_NDA_KEYS = ['inforce', 'unconfirmed', 'none'];
+/* THE PARTY'S STANDING, IN WORDS (the list language): live with a deal still being negotiated, live, or
+   ended — over the same items the row counts (cuView), so the mark never disagrees with the numbers */
+function cuStandingWords(v){
+  const open = (v.active || []).some(c => c && c.negotiation && c.status !== 'Signed' && c.status !== 'Declined');
+  return open ? { tone: 'amber', kind: 'part', k: 'cu_st_nego' } : (v.active || []).length ? { tone: 'green', kind: 'done', k: 'cu_st_live' } : { tone: 'gray', kind: 'todo', k: 'cu_st_ended' };
+}
 function cuCellHtml(k, r, v, ndas){
-  if (k === 'city'){ const city = partyCityOf(r.key); return `<td class="cu-city${city ? '' : ' quiet'}"${city ? ` title="${_cuE(city)}"` : ''}>${_cuE(city || '—')}</td>`; }
+  if (k === 'stream'){
+    const f = v.streams[0]; if (!f || typeof listChipHtml !== 'function') return `<td class="quiet">—</td>`;
+    const short = (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || cuStreamName(f);
+    const more = v.streams.length > 1 ? ` <span class="cu-more">+${v.streams.length - 1}</span>` : '';
+    return `<td class="cu-stream" title="${_cuE(v.streams.map(cuStreamName).join(' · '))}">${listChipHtml(listStreamTone(f), short)}${more}</td>`;
+  }
+  if (k === 'standing'){
+    const w = cuStandingWords(v);
+    return `<td><span class="cu-standing" style="color:var(--st-${w.tone}-fg)">${typeof listMarkHtml === 'function' ? listMarkHtml(w.tone, w.kind) : ''}${_cuE(i18t(w.k))}</span></td>`;
+  }  if (k === 'city'){ const city = partyCityOf(r.key); return `<td class="cu-city${city ? '' : ' quiet'}"${city ? ` title="${_cuE(city)}"` : ''}>${_cuE(city || '—')}</td>`; }
   if (k === 'live') return `<td class="n${v.active.length ? '' : ' quiet'}">${v.active.length || '—'}</td>`;
   if (k === 'ended') return `<td class="n${v.expired.length ? '' : ' quiet'}">${v.expired.length || '—'}</td>`;
   if (k === 'paper'){ const ov = cuMoneyWords(v.active); return `<td class="n${ov ? '' : ' quiet'}">${_cuE(ov || '—')}</td>`; }
-  if (k === 'next') return `<td class="${v.next ? '' : 'quiet'}">${_cuE(v.next ? cuDay(v.next) : '—')}</td>`;
+  if (k === 'next'){
+    if (!v.next) return `<td class="quiet">—</td>`;
+    /* how close, in amber, once it is within the renewal window (90 days, the Contracts list's own) */
+    const d = (typeof daysUntil === 'function') ? daysUntil(v.next) : null;
+    const soon = d != null && d >= 0 && d <= 90 ? `<span class="cu-soon">${_cuE(i18tn('reg_ends_in', d, { n: d }))}</span>` : '';
+    return `<td><span class="cu-day">${_cuE(cuDay(v.next))}</span>${soon}</td>`;
+  }
   if (k === 'waiting'){
     /* the first, whole, as drawn ("an approval, for Jonas"); any more on a
        quiet line under it, the way the Party and NDA cells carry a second line */
     const ws = v.needs.length ? cuNeedShort(v.needs[0]) : '', wAll = v.needs.map(cuNeedTitle).join(' · '), wLate = v.needs.some(x => x.it.urgent);
     const more = v.needs.length > 1 ? `<span class="cu-wait-more">${_cuE(i18t('cu_pp_more', { n: v.needs.length - 1 }))}</span>` : '';
+    /* a reading in words (the list language): a dot and the first, in its tone; the rest under it */
+    if (ws && typeof listWordHtml === 'function') return `<td class="cu-wait" title="${_cuE(wAll)}"><span class="cu-wait-t">${listWordHtml(wLate ? 'ruby' : 'amber', ws, v.needs.length > 1 ? i18t('cu_pp_more', { n: v.needs.length - 1 }) : '')}</span></td>`;
     return `<td class="cu-wait${ws ? (wLate ? ' ruby' : ' amber') : ' quiet'}"${ws ? ` title="${_cuE(wAll)}"` : ''}><span class="cu-wait-t">${_cuE(ws || '—')}</span>${more}</td>`;
   }
   if (k === 'nda') return `<td class="cu-nda-td">${cuNdaCellHtml(cuNdaOf(r.key, ndas))}</td>`;
@@ -920,7 +953,9 @@ function cuCardOf(all, ndas){
   const head = [{ t: i18t('cu_col_customer'), title: i18t('cu_list_sort') }, ...keys.map(k => ({ t: byK[k].label, r: byK[k].r, w: byK[k].w, k }))];
   const body = rows.slice(0, shown).map(r => {
     const v = cuView(r);
-    const sub = [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), cuStreamsSay(v)].filter(Boolean).join(' · ');
+    /* the grey line (the list language): how many agreements, and since when — the streams are their own column now */
+    const since = cuSinceOf(v.items);
+    const sub = [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), since ? i18t('cu_since', { d: cuMonthYear(since, true) }) : ''].filter(Boolean).join(' · ');
     return `<tr data-cu-cust="${_cuE(r.key)}" tabindex="-1">
       <td><span class="cu-who">${cuAvHtml(r.name)} <span class="cu-who-t"><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span> <span class="ap-sub cu-ps" title="${_cuE(sub)}">${_cuE(sub)}</span></span></span></td>
       ${keys.map(k => cuCellHtml(k, r, v, ndas)).join('')}
@@ -995,7 +1030,7 @@ function cuRowsRepaint(){
    what it counts and how it draws again — every press ends in this page's
    own state (_cu), its own repaint and its own place store */
 function cuLcReg(){
-  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint(),
+  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint(), hide: ['live', 'ended', 'city'],
     /* a column stepped out for being empty is greyed in Columns with why, never a live tick that draws nothing */
     off: () => { const all = cuCustomers(), ndas = cuNdaMap(); return Object.fromEntries(cuEmptyCols(cuRowsOf(all, ndas), ndas).map(k => [k, i18t('cu_col_empty')])); } };
   const save = () => { if (typeof placeSave === 'function') placeSave(); };

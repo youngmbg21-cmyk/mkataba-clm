@@ -180,16 +180,20 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const nobody = document.querySelectorAll('.ob-lt .ins-nobody').length;
       const av = document.querySelectorAll('.ob-lt .ob-id .reg-av, .ob-lt .ob-id .obw-av').length;
       const ring = document.querySelectorAll('.ob-lt .ob-id .obw-av.is-nobody').length;
-      return { heads, un: un ? { t: un.textContent.trim(), c: getComputedStyle(un).color } : null, nobody, av, ring,
+      const marks = document.querySelectorAll('.ob-lt tr[data-ins-row] .ob-id .ls-mark svg').length;
+      const rowsN = document.querySelectorAll('.ob-lt tr[data-ins-row]').length;
+      return { heads, un: un ? { t: un.textContent.trim(), c: getComputedStyle(un).color } : null, nobody, av, ring, marks, rowsN,
         amber: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-fg').trim() };
     }) : null;
-    check('3a no money on the list, no Amount column', !!obs && !obs.heads.some(t => /amount/i.test(t)), obs ? obs.heads.join(' | ') : 'page missing');
-    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): the page draws who
-       acts as a face — a grey ring where nobody owns it, and the row's line
-       says "nobody owns it yet" in the quiet grey (never the amber alarm) */
-    check('3b an owner-less duty of ours says so, in grey', !!obs && !!obs.un && obs.un.t === 'nobody owns it yet' && obs.nobody === 0 && obs.ring > 0,
-      obs ? JSON.stringify(obs.un) + ' · nobody ' + obs.nobody + ' · ring ' + obs.ring : 'page missing');
-    check('3c every row carries a face: the other side\'s letters, our colleague\'s initials', !!obs && obs.av > 0, obs ? String(obs.av) : 'page missing');
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the week groups, the proposal as drawn): the
+       duty's Kind, Due and Amount are columns now, the money on the row where the record carries it */
+    check('3a the week names its columns: Obligation · Kind · Due · Amount', !!obs && ['Obligation', 'Kind', 'Due', 'Amount'].every(h => obs.heads.includes(h)), obs ? obs.heads.join(' | ') : 'page missing');
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): who acts is said in the row's line — "yours", a colleague's
+       name, "theirs", or "nobody owns it yet" (never the amber alarm) — and a mark leads in the face's place
+       RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn) */
+    check('3b an owner-less duty of ours says so in its line, never in amber', !!obs && !!obs.un && obs.un.t === 'nobody owns it yet' && obs.nobody === 0 && obs.un.c !== obs.amber,
+      obs ? JSON.stringify(obs.un) + ' · nobody ' + obs.nobody : 'page missing');
+    check('3c every duty carries its mark', !!obs && obs.rowsN > 0 && obs.marks >= obs.rowsN, obs ? obs.marks + ' marks · ' + obs.rowsN + ' rows' : 'page missing');
     if (obUp) {
       await page.evaluate(() => { const r = document.querySelector('.ob-lt tbody tr[data-ins-row]'); if (r) r.click(); });
       await wait(page, () => !!document.querySelector('#ins-panel [data-ob-rem-more]'), null, 4000);

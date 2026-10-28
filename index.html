@@ -221,7 +221,8 @@
        neutral grey, and it is what every white panel sits on. */
     --color-bg:#F5F5F7;   /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' warm #F4F2ED): the soft cool grey every white card floats on. */
     --jb-card-fill:#F2F2F5;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft grey for every card in his answers. */
-    --bar-green:#0B3B36;  /* THE BAR IN COLOUR (owner picked "The SAP way", 24 Oct 2026): the top bar's deep green; white words on it measure about 12:1. */
+    --bar-black:#111113;  /* THE BAR IN BLACK (owner, 27 Oct 2026: "Black it is"; replaces the deep green of 24 Oct): white words on it measure about 18:1. */
+    --bar-sheen:linear-gradient(180deg,#2A2A2E 0%,#151517 55%,#0B0B0C 100%);  /* the faint sheen along its top; the solid --bar-black stands under it */
     --color-surface:#ffffff;
     /* ---- TWO SURFACES BETWEEN THE PAGE AND WHITE ---- (25 Aug 2026)
        The audit's "boxes separated by borders instead of shade" complaint has
@@ -892,6 +893,8 @@
     /* THEIRS (round 16 as drawn, 18 Oct 2026): what the other side owes wears its own tint on the
        Obligations page and the Calendar — their letters, their chips, the key's "Theirs" */
     --st-violet-bg:#F2EDFA; --st-violet-fg:#6A3AA8; --st-violet-dot:#7A44B8; --st-violet-line:#D9CBEF;
+    /* PINK (the list language, 27 Oct 2026): a stream chip's tone only, never a state */
+    --st-pink-bg:#FBEAF3; --st-pink-fg:#9C2F6B; --st-pink-dot:#C2477F; --st-pink-line:#F0C3DA;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
     --tile-steel-bg:#E6ECF6;   --tile-steel-fg:#48639A;
@@ -14318,9 +14321,23 @@
      the name from 7 Oct). regAvatarTone still names a tone; the box wears one. */
   .reg-table .reg-id{display:flex;align-items:center;gap:10px;min-width:0;}
   .reg-table .reg-id-txt{display:block;min-width:0;flex:1;}
+  /* the list language on the Contracts place and Negotiations (27 Oct 2026): the stage's word in the grey line,
+     a wait with its words under it, the clauses in play as chips */
+  .reg-table .reg-stg-w{font-weight:var(--w-label);}
+  .reg-table td.reg-wait .reg-wait-d{display:block;line-height:18px;}
+  .reg-table td.reg-wait.is-mine .reg-wait-d{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .reg-table td.reg-wait .reg-wait-s{display:block;font-size:12px;line-height:16px;color:var(--color-text);}
+  .reg-table td.reg-cl{white-space:nowrap;overflow:hidden;}
+  .reg-table td.reg-cl .ls-chip{max-width:96px;}
+  .reg-table .reg-cl-more{font-size:12px;color:var(--color-text);}
   .reg-av{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;
     font-size:11px;font-weight:var(--w-strong);letter-spacing:.02em;line-height:1;font-family:var(--font-body);}
-  .reg-av,.reg-av.av-0,.reg-av.av-1,.reg-av.av-2,.reg-av.av-3,.reg-av.av-4{background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-weight:var(--w-label);}
+  /* THE INITIALS IN THEIR OWN TONE (the list language, owner, 27 Oct 2026: People "the SAP way", every list
+     "the same way"; replaces Chambers' one outlined box of 20 Oct): regAvatarTone's five, washed in the
+     house's green, steel and violet — never amber or ruby, a party is never a warning */
+  .reg-av,.reg-av.av-0,.reg-av.av-3{background:var(--st-green-bg);border:1px solid transparent;color:var(--st-green-fg);font-weight:var(--w-strong);}
+  .reg-av.av-1,.reg-av.av-4{background:var(--st-steel-bg);border:1px solid transparent;color:var(--st-steel-fg);font-weight:var(--w-strong);}
+  .reg-av.av-2{background:var(--st-violet-bg);border:1px solid transparent;color:var(--st-violet-fg);font-weight:var(--w-strong);}
   .reg-table .reg-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* The Negotiations seat's Type column (21 Sep 2026). It reads at the
      sub-line's own size and shade, because it IS the sub-line's words, moved
@@ -14968,6 +14985,10 @@
   .ins-bar[hidden]{display:none;}
   .ob-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ob-id > .ins-c2{min-width:0;flex:1;}
+  /* the list language on Obligations (27 Oct 2026): the first week's card names its columns; the money right-aligned */
+  .obw-wk-lt thead.obw-heads th{font-size:12px;font-weight:var(--w-label);color:var(--color-text);text-align:left;padding:10px 12px;border-bottom:1px solid var(--color-divider);}
+  .obw-wk-lt thead.obw-heads th.r{text-align:right;}
+  .obw-wk-lt td.obw-amt{font-variant-numeric:tabular-nums;white-space:nowrap;}
   .ins-who{display:inline-flex;align-items:center;gap:7px;color:var(--color-neutral-600);min-width:0;max-width:100%;}
   .ins-who > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ins-av{width:20px;height:20px;border-radius:50%;background:transparent;border:1px solid var(--rule-strong);color:var(--color-quiet);font-size:10px;font-weight:var(--w-title);
@@ -15291,6 +15312,11 @@
   .ap-table .r{text-align:right;}
   .ap-table .mono{font-family:var(--font-mono);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
   .ap-table td.late{color:var(--st-ruby-fg);font-weight:var(--w-strong);}
+  /* the list language on Approvals (27 Oct 2026): the rule a chip with who decides under it, the wait in words */
+  .ap-table td.ap-rule .ls-chip{margin-bottom:2px;}
+  .ap-table td.ap-wait.late{font-weight:inherit;}
+  .ap-table td.ap-val{font-weight:var(--w-label);}
+  .ap-table .ap-id .ls-mark{margin-right:2px;}
   .ap-name{display:block;font-weight:var(--w-label);color:var(--color-text);}
   .ap-sub{display:block;font-size:var(--t-meta);color:var(--color-neutral-500);}
   .ap-n{font-family:var(--font-mono);font-size:var(--t-figure);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:1px 6px;margin-left:4px;font-weight:var(--w-strong);}
@@ -15620,6 +15646,16 @@
   .ik-road.is-close::before{background:var(--st-amber-dot);}
   /* a wrapped title and its asker breathe inside their row */
   .ik-lt .ins-c2{padding:8px 0;}
+  /* the list language (27 Oct 2026): a mark leads the request, the reference in its grey line */
+  .ik-lt .ik-req{display:flex;align-items:center;gap:12px;min-width:0;}
+  .ik-lt .ik-req > .ins-c2{flex:1;}
+  .reg-t-dot{color:var(--color-quiet);font-weight:var(--w-body);}
+  .ik-lt .ik-holder{display:flex;align-items:center;gap:8px;min-width:0;}
+  .ik-lt .ik-holder > .ins-c2{flex:1;min-width:0;}
+  .ik-lt .ik-av{width:24px;height:24px;font-size:10px;}
+  .ik-lt td.ik-pr .ik-pr-day{display:block;white-space:nowrap;}
+  .ik-lt td.ik-pr .ik-pr-sub{display:block;font-size:12px;line-height:16px;white-space:nowrap;}
+  .ik-lt td.ik-pr .ik-pr-none{color:var(--color-text);white-space:nowrap;}
   /* "What <asker> asked for": a small grey label over their words, as drawn */
   #ins-panel .ik-need h3{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
   .ik-lt.is-team td.ik-with{white-space:nowrap;}
@@ -17070,13 +17106,12 @@
      NO backdrop-filter: nothing scrolls under this bar, so the blur would show nothing, and a
      filter makes the bar a stacking context that traps its own menus (Recent went under the
      page; blue-landing-and-board-tones-verify caught it) -- */
-  /* THE BAR IN COLOUR (owner picked "The SAP way" by name, 24 Oct 2026: "the page is too white. We need
-     the top bar on the page to add some color"; reverses Chambers' white bar of 20 Oct, kept by this look):
-     a solid deep green, every word and icon white (the quiet ones at 78%), the search a lighter well inside
-     it. Only the bar: what opens from it (Recent, the search list, the bell, your menu) keeps its white card. */
-  #top-header{--bar-bg:var(--bar-green);--bar-edge:transparent;--bar-ink:#FFFFFF;--bar-ink-2:rgba(255,255,255,.78);
-    --bar-line:rgba(255,255,255,.18);--bar-well:rgba(255,255,255,.14);--bar-hover:rgba(255,255,255,.14);--focus-color:#FFFFFF;
-    background:var(--bar-bg);border-bottom-color:transparent;box-shadow:none}
+  /* THE BAR IN BLACK (owner, 27 Oct 2026: "Black it is"; replaces the deep green of 24 Oct, which had
+     replaced Chambers' white bar of 20 Oct): near-black with a faint sheen along its top, every word and
+     icon white (the quiet ones at 80%), the search a lighter well inside it. Only the bar: what opens from it (Recent, the search list, the bell, your menu) keeps its white card. */
+  #top-header{--bar-bg:var(--bar-black);--bar-edge:transparent;--bar-ink:#FFFFFF;--bar-ink-2:rgba(255,255,255,.80);
+    --bar-line:rgba(255,255,255,.16);--bar-well:rgba(255,255,255,.12);--bar-hover:rgba(255,255,255,.12);--focus-color:#FFFFFF;
+    background:var(--bar-sheen) var(--bar-bg);border-bottom-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.10)}
   #top-header .hdr-icon-btn, #top-header #cmd-ai{border-radius:999px}
   #top-header .cmd-search{border-radius:999px;border-color:transparent;background:var(--bar-well)}
   /* the ⌘K hint sits on its own lighter pill inside the well: the quiet 78% white measured 3.97:1 there
@@ -17085,6 +17120,22 @@
   #top-header #side-avatar{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.32)}
   #top-header #rail-avatar:hover #side-avatar{background:rgba(255,255,255,.26)}
   #top-header #shell-title .crumb-sep{color:rgba(255,255,255,.55)}
+  /* -- THE LIST LANGUAGE (owner, 27 Oct 2026; listMarkHtml, listWordHtml, listChipHtml in js/listlang.js):
+     a mark leads a row, a reading is a dot and words with a grey line under it, a kind is a soft chip -- */
+  .ls-mark{display:inline-grid;place-items:center;width:22px;height:22px;flex:none}
+  .ls-row{display:flex;align-items:center;gap:12px;min-width:0}
+  .ls-txt{display:flex;flex-direction:column;min-width:0}
+  .ls-t{font-weight:var(--w-strong);font-size:13.5px;line-height:18px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ls-m{font-size:12px;line-height:16px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ls-sep{color:var(--color-text);font-weight:400;margin:0 2px}
+  .ls-word{display:inline-flex;flex-direction:column;gap:1px;min-width:0;max-width:100%}
+  .ls-word-v{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:var(--w-label);line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ls-word-v i{width:7px;height:7px;border-radius:50%;flex:none}
+  .ls-word-m{font-size:12px;line-height:16px;color:var(--color-text);padding-left:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ls-chip{display:inline-block;max-width:100%;font-size:12px;font-weight:var(--w-label);line-height:20px;padding:0 9px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+  .ls-quiet{color:var(--color-quiet);font-size:11.5px;white-space:nowrap}
+  .ls-av{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;font-size:11px;font-weight:var(--w-strong);border-radius:50%}
+  .ls-av.is-square{border-radius:6px}
   /* -- JAMBO'S CARDS, THE LEGORA WAY (owner picked it by name, 24 Oct 2026: "the card … should be slightly
      shaded or almost look 3d and the words found without AI should not be literally at the edge of the card"):
      every card in every Jambo — Settings' (.st-jb-card) and his own (.ca-card) — is ONE soft grey fill, no edge

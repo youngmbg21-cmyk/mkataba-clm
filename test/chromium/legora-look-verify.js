@@ -122,7 +122,8 @@ const check = (name, pass, detail) => {
     /* no blur: nothing scrolls under the bar, and a filter would trap its menus (Recent) under the page */
     /* RE-PINNED (owner picked "The SAP way", 24 Oct 2026: "the page is too white"): the bar is a solid deep green, no
        hairline, no filter (one-window-bar-cards-verify B1 measures its words) */
-    check('3a the bar is the deep green, no hairline border, no filter', bar.bg === 'rgb(11, 59, 54)' && (bar.edgeW === '0px' || /rgba\(0, 0, 0, 0\)|transparent/.test(bar.edge)) && (!barSh.blur || barSh.blur === 'none'), JSON.stringify({ ...bar, ...barSh }));
+    /* RE-POINTED 27 Oct 2026 (THE BAR IN BLACK, owner: "Black it is"): its near-black, the sheen over it */
+    check('3a the bar is the near-black, no hairline border, no filter', bar.bg === 'rgb(17, 17, 19)' && (bar.edgeW === '0px' || /rgba\(0, 0, 0, 0\)|transparent/.test(bar.edge)) && (!barSh.blur || barSh.blur === 'none'), JSON.stringify({ ...bar, ...barSh }));
     check('3b the mark is the word "HaTi" in the title serif, no tile', bar.markShown && bar.mark === 'HaTi' && /^"?Source Serif 4/.test(bar.markFace) && /rgba\(0, 0, 0, 0\)|transparent/.test(bar.markBg), JSON.stringify(bar));
     check('3c no theme button, no Blue/Green swatches and no language switch in the bar', !bar.theme && bar.swatches === 0 && !bar.lang, JSON.stringify(bar));
     check('3d the bell\'s count is the ink, not amber', bar.bell === 'rgb(29, 29, 31)', String(bar.bell));
@@ -147,15 +148,20 @@ const check = (name, pass, detail) => {
 
     /* ================= 6. THE CONTRACTS LIST ================================ */
     await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
-    await until(() => !!document.querySelector('#reg-tbody tr[data-row] .reg-stg'));
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): the stage is a
+       word in its own tone in the grey line under the agreement, and a mark leads the row; a party's
+       initials (where a list still draws them) wear their tone's wash, not Chambers' outline */
+    await until(() => !!document.querySelector('#reg-tbody tr[data-row] .reg-stg-w'));
     const list = await page.evaluate(() => {
-      const st = document.querySelector('#reg-tbody .reg-stg'), av = document.querySelector('#reg-tbody .reg-av'), t = document.querySelector('.ct-h');
-      const s = st && getComputedStyle(st), a = av && getComputedStyle(av), ts = t && getComputedStyle(t);
-      return { stBg: s && s.backgroundColor, stPad: s && s.paddingLeft, dot: !!(st && st.querySelector('i')), avBg: a && a.backgroundColor, avEdge: a && a.borderTopWidth,
+      const st = document.querySelector('#reg-tbody .reg-stg-w'), mk = document.querySelector('#reg-tbody .reg-id .ls-mark'), t = document.querySelector('.ct-h');
+      const probe = document.createElement('span'); probe.className = 'reg-av av-1'; document.body.appendChild(probe);
+      const a = getComputedStyle(probe), avBg = a.backgroundColor, avEdge = a.borderTopColor; probe.remove();
+      const s = st && getComputedStyle(st), ts = t && getComputedStyle(t);
+      return { stBg: s && s.backgroundColor, stPad: s && s.paddingLeft, mark: !!(mk && mk.querySelector('svg')), avBg, avEdge,
         title: ts && ts.fontFamily, titleW: ts && ts.fontWeight };
     });
-    check('6a a stage is its dot and its word: no wash behind it, no pill padding', list.dot && /rgba\(0, 0, 0, 0\)|transparent/.test(list.stBg) && list.stPad === '0px', JSON.stringify(list));
-    check('6b a counterparty\'s initials are outlined, not filled', /rgba\(0, 0, 0, 0\)|transparent/.test(list.avBg) && list.avEdge === '1px', JSON.stringify(list));
+    check('6a a stage is its word in its tone, in the grey line: no wash behind it, no pill padding; a mark leads the row', list.mark && /rgba\(0, 0, 0, 0\)|transparent/.test(list.stBg) && list.stPad === '0px', JSON.stringify(list));
+    check('6b a party\'s initials wear their tone\'s wash, no outline', !/rgba\(0, 0, 0, 0\)|transparent/.test(list.avBg) && /rgba\(0, 0, 0, 0\)|transparent/.test(list.avEdge), JSON.stringify(list));
     check('6c the page title is the serif at 500', /^"?Source Serif 4/.test(list.title || '') && list.titleW === '500', JSON.stringify(list));
 
     /* ================= 5. BESIDE A PAPER ==================================== */

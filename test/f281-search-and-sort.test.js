@@ -276,7 +276,9 @@ describe('f281 (5) — every column that can be ordered has a head that orders i
        column from both pages as well but not from the filter") ----
        `stream` left the heads as `name` did and joins the sorts with no column
        of their own: its comparator stays, and the dropdown still offers it. */
-    assert.ok(!head.includes("sortableTh('stream'"), 'the stream is a sort without a column now');
+    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stream is a column again on the Contracts place, its head sorts */
+    assert.ok(head.includes("sortableTh('stream'"), 'the stream\'s head sorts');
+    assert.ok(head.includes("sortableTh('standards'"), 'and Our standards\' head sorts, worst first');
     assert.ok(win.REG_SORTS.some(s => s.k === 'stream'), 'and it is still offered in the dropdown');
     assert.ok(head.includes("sortableTh('kind'"), "the Negotiations seat's Type column sorts");
   });

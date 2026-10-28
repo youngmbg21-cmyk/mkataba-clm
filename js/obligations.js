@@ -3571,7 +3571,9 @@ function obListHtml(rows, ctx, c1){
        face for his finds), what and where, and the row's one act
        (obwRowActHtml). No Whose or Amount column: who is the face and the
        line, the money is the week's. `c1` carries Jambo's finds here. */
-    const wcols0 = [{ t: i18t('ob_col_when'), w: 112 }, { t: i18t('ob_col_what') }, { t: i18t('ob_col_act'), w: 140, r: true }];
+    /* THE LIST LANGUAGE (owner, 27 Oct 2026: "keep" the week groups): the duty leads with its mark, then
+       what kind it is, when it is due, and the money on it, before its one act */
+    const wcols0 = [{ t: i18t('ob_col_what') }, { t: i18t('ob_col_kind'), w: 104 }, { t: i18t('ob_col_when'), w: 120 }, { t: i18t('ob_col_amount'), w: 112, r: true }, { t: i18t('ob_col_act'), w: 140, r: true }];
     /* Late's card has no day column: its day stands beside its act */
     const lcols = [{ t: i18t('ob_col_what') }, { t: i18t('ob_col_act'), w: 240, r: true }];
     let html = '';
@@ -3593,7 +3595,7 @@ function obListHtml(rows, ctx, c1){
       const rowsHtml = W.rows.map(r => r._find ? obwFindsRowHtml(r) : obwWeekRowHtml(r, W)).join('')
         .replace(/<tr (data-ins-row|class="obw-finds") /g, shut ? '<tr hidden $1 ' : '<tr $1 ');
       html += `<section class="obw-wk${shut ? ' is-shut' : ''}" data-obw-card="${W.k}"><table class="ins-lt ob-lt obw-wk-lt"><colgroup>${
-        wcols.map(c => `<col${c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead class="sr-only"><tr>${
+        wcols.map(c => `<col${c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead${html || W.k === 'overdue' ? ' class="sr-only"' : ' class="obw-heads"'}><tr>${
         wcols.map(c => `<th${c.r ? ' class="r"' : ''}>${_obEsc(c.t)}</th>`).join('')}</tr></thead><tbody>`
         + `<tr class="ins-grp${W.fold ? ' is-fold' : ''}${shut ? ' is-shut' : ''}" data-ob-win="${W.win}" data-ob-week="${W.k}"><td colspan="${wcols.length}"><span class="ins-g">${head}<span class="n obw-n">${own.rows.length}</span>${
           rng ? `<span class="ob-wk-rng">${_obEsc(rng)}</span>` : ''}${
@@ -3764,8 +3766,10 @@ function obwFindsRowHtml(x){
   const today = obWeekDay((typeof todayISO === 'function') ? todayISO() : _obIsoLocal(new Date()), false);
   const may = (typeof canEdit !== 'function') || canEdit();
   return `<tr class="obw-finds" data-obw-finds="${_obEsc(c.id)}">
-      <td><span class="ins-c2"><b>${_obEsc(today)}</b><span>${_obEsc(i18t('ob_wk_today'))}</span></span></td>
       <td><span class="ob-id"><i class="obw-av is-jambo" aria-hidden="true">${face}</i><span class="ins-c2"><b title="${_obEsc(i18tn('ob_finds_t', n, { n, doc }))}">${_obEsc(i18tn('ob_finds_t', n, { n, doc }))}</b><span>${_obEsc(i18tn('ob_finds_sub', n, { n }))}</span></span></span></td>
+      <td></td>
+      <td><span class="ins-c2"><b>${_obEsc(today)}</b><span>${_obEsc(i18t('ob_wk_today'))}</span></span></td>
+      <td></td>
       <td class="r">${may ? `<button type="button" class="ui-btn ui-btn-sm obw-act" data-obw-act="review" data-obw-cid="${_obEsc(c.id)}" title="${_obEsc(i18t('ob_finds_go_title'))}">${_obEsc(i18t('ob_finds_go', { n }))}</button>` : ''}</td>
     </tr>`;
 }
@@ -3849,6 +3853,8 @@ function obwLine2(r, c){
     const m = obligationReminderTo(r);
     if(!m) bits.push(`<span class="ins-unassigned">${_obEsc(i18t('ob_wk_nobody'))}</span>`);
     else if(!obligationIsMine(r)) bits.push(_obEsc(m.name || ''));
+    /* yours, said in words now the mark leads the row in the initials' place (the list language) */
+    else bits.push(_obEsc(i18t('ob_wk_yours_1')));
   }
   if(done && r.completedBy) bits.push(_obEsc(i18t('ob_done_by', { who: r.completedBy })));
   return bits.join(' · ');
@@ -3870,6 +3876,27 @@ function obwRowActHtml(r, c){
   if(obligationIsMine(r) || !obligationReminderTo(r)) return btn('done', i18t('ob_mark_done'), '');
   return '';
 }
+/* THE ROW'S MARK (the list language, 27 Oct 2026): done a ticked circle, late a triangle, due this week a
+   half circle in amber, theirs a clock in steel, the rest a dashed circle — read off the same state
+   the row already reads (obState, the week it sits in) */
+function obwRowMarkHtml(r, W){
+  if(typeof listMarkHtml !== 'function') return '';
+  if(obState(r) === 'done') return listMarkHtml('green', 'done');
+  if(W && W.k === 'overdue') return listMarkHtml('ruby', 'late');
+  if(obligationIsTheirs(r)) return listMarkHtml('steel', 'wait');
+  return (W && W.k === 'w0') ? listMarkHtml('amber', 'part') : listMarkHtml('gray', 'todo');
+}
+/* WHAT KIND OF DUTY, as far as the record says: a renewal decision, a payment where money is on it;
+   anything else a dash — never guessed from its words */
+function obwKindHtml(r){
+  const k = r._dec ? ['violet', 'ob_kind_decision'] : obligationHasAmount(r) ? ['amber', 'ob_kind_payment'] : null;
+  return k && typeof listChipHtml === 'function' ? listChipHtml(k[0], i18t(k[1])) : '<span class="ins-quiet">—</span>';
+}
+function obwAmountHtml(r, c){
+  const n = obligationAmount(r); if(n == null) return '<span class="ins-quiet">—</span>';
+  const cur = (typeof contractCurrency === 'function' && c) ? contractCurrency(c) : '';
+  return _obEsc(typeof fmtMoneyShortIn === 'function' ? fmtMoneyShortIn(n, cur || undefined) : String(n));
+}
 function obwWeekRowHtml(r, W){
   const c = r._c;
   const due = obligationDueSay(r, c);
@@ -3887,12 +3914,14 @@ function obwWeekRowHtml(r, W){
   /* LATE, AS DRAWN: the row starts with who acts; its day and how late it is
      stand on the right, in the late ink, before its one act */
   if(W.k === 'overdue') return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1" class="obw-late-row">
-      <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
+      <td><span class="ob-id">${obwRowMarkHtml(r, W)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
       <td class="r obw-act-c"><span class="obw-late-act"><span class="ins-c2 obw-late-when"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span>${obwRowActHtml(r, c)}</span></td>
     </tr>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1"${r._dec ? ' data-obw-dec="1"' : ''}>
+      <td><span class="ob-id">${obwRowMarkHtml(r, W)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
+      <td>${obwKindHtml(r)}</td>
       <td><span class="ins-c2"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span></td>
-      <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
+      <td class="r obw-amt">${obwAmountHtml(r, c)}</td>
       <td class="r obw-act-c">${obwRowActHtml(r, c)}</td>
     </tr>`;
 }

@@ -142,7 +142,8 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
         const inks = ['.dk-mark', '#dk-page', '#cmd-ai', '#hdr-notify'].map(s => document.querySelector('#top-header ' + s)).filter(Boolean).map(el => getComputedStyle(el).color);
         return { bg, inks }; });
       const worst = Math.min(...B.inks.map(c => contrast(c, B.bg)));
-      check(`B1 ${v}: the bar is the deep green and every word and icon in it reads (≥ 4.5:1)`, B.bg === 'rgb(11, 59, 54)' && B.inks.length >= 3 && worst >= 4.5, JSON.stringify(B) + ' · worst ' + worst.toFixed(1));
+      /* RE-POINTED 28 Oct 2026 (owner: "Black it is"): the bar is near-black (--bar-black) */
+      check(`B1 ${v}: the bar is near-black and every word and icon in it reads (≥ 4.5:1)`, B.bg === 'rgb(17, 17, 19)' && B.inks.length >= 3 && worst >= 4.5, JSON.stringify(B) + ' · worst ' + worst.toFixed(1));
     }
     await page.click('#dk-page');
     const B2 = await until(() => { const m = document.getElementById('dk-recent'); return m && m.getClientRects().length ? getComputedStyle(m).backgroundColor : null; }, null, 4000);

@@ -34997,3 +34997,37 @@ The rooms: `.rl-np-tab` is `flex:1 1 0; min-width:0`, inline-flex with the name 
 
 ## THE SHELL — RAIL, BAR, PANELS
 NOTES ONLY WITH A CONTRACT IN FRONT, SECOND PUSH (27 Oct 2026): CI's window-drag-verify (5) went red on PR #519 — a filed change's note opened the drawer while nothing stood in front, and the first push's rule ("no contract in front, no notes face") put it away on the next paint. Real doors do the same: the bell's note alerts (note-mine, note-theirs) and Jambo's "use this reply" open a named contract's notes from the Board. Narrowed: `paintChatDoor` remembers the contract in front (`_chatInFront`) and puts the drawer away only on LEAVING the contract whose notes it shows; the Notes tab stays live while the notes face is showing (`dead=k==='notes'&&!cid&&face!=='notes'`). guide-panel-verify 8 added.
+
+## THE LIST HEAD (js/views/listhead.js) — THE LIST LANGUAGE, AND THE BAR IN BLACK (27 Oct 2026)
+The owner, over a run of design rounds the same evening: "I simply do not think that Hati is ready for market due
+to its look." Shown three named colour options on Contracts and People, then Legora's own screens as inspiration,
+the owner picked: Contracts "the Legora way" but "Our standards seems like we are stealing too much from Legora"
+(the three-colour bar went; "In words" stood, the dot-and-word grammar every status already wears); People "the
+SAP way" under the Legora top card; the top bar "Black it is" (reverses the deep green of 24 Oct, picked because
+"the page is too white"; the lists carry the colour now); then "apply across the other pages ... in a legora way
+but keep it grounded in professionalism", built for Parties, Negotiations, Requests, Obligations and Approvals,
+answered "Yes, keep, keep": Approvals' line above the table may go (replaced by the rule chip on each row), the
+Clauses in play column stays, the week groups stay. "Build the push and merge when green."
+- ONE set of parts, js/listlang.js (a pure module, in the test worlds): `listMarkHtml(tone, kind)` (done a ticked
+  circle, part a half circle, todo a dashed circle, late a triangle, wait a clock, draft a pen, ask a question);
+  `listWordHtml(tone, text, sub)`; `listChipHtml(tone, text)` for a KIND, never a state; `listStreamTone` (the
+  house streams fixed, kept off green and ruby); `listAvatarTone` (off amber and ruby).
+- Contracts (the place): Agreement (mark + title + "party · ref · stage · moved") · Stream · Our standards · Ends ·
+  Value; Stage left its column for the grey line (REG_COL_KEYS_HOME). `stdRowReading`/`stdRowWordsHtml` in
+  js/standards.js read c.playbook RAW: worst first ("2 missing", "1 differs from ours", "All N met"), na counted
+  in neither, no stored check = "Not checked yet" (a cut-short check is never stored).
+- People: a Side column again (removed 21 Oct, Part 8), "Our side"/"Their side" with its mark; initials tinted.
+- Parties: Stream and Standing (Live / In negotiation / Ended, `cuStandingWords`) join; Live under Columns; the grey
+  line "N agreements · with us since ..." (cuSinceOf); Next to end says "in N days" within 90; Waiting in words.
+- Negotiations (the panel's list): the mark is whose move, the grey line "ref · Round N · Lead: X · agreement",
+  Clauses in play (`regNegoClauseChips`, RAW over c.changes), What is open and Waiting in words, Value; Round and
+  Lead one press away under Columns.
+- Requests: the reference rides the grey line (Ref column gone); a pen or a question mark leads; Kind a chip.
+- Obligations: the duty leads with its mark (in the initials' place; "yours" now said in the grey line), then Kind
+  (Decision / Payment only where the record says so, else a dash, never guessed), Due, Amount.
+- Approvals: the line above the table (apSameLineHtml) is no longer called; Why it waits never steps out and carries
+  the rule as a chip; Our standards in words joins; the reference rides the grey line.
+- Initials everywhere: `.reg-av.av-N` washed in green/steel/violet (replaces Chambers' one outline of 20 Oct).
+- The bar: `--bar-black` with `--bar-sheen` (white words about 18:1); the phone and sign-in draw no bar.
+- Re-pointed (each says why in place): f687, f739, f795, f716, f387, f721, f797, f807, f874, legora-look-verify 6,
+  brand-survives-refresh-verify 1b, home-page-verify 1, blue-landing-and-board-tones-verify N-3c.

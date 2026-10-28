@@ -165,7 +165,10 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     assert.ok(!doc.getElementById('reg-tbody'), 'no table on the Wall');
     assert.equal(win.regFiltered().length, 3);
   });
-  /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): the
+  /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): the stage
+     leaves its column for the grey line under the agreement, and Stream and Our standards stand in its
+     place — Agreement · Stream · Our standards · Ends · Value.
+     RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): the
      agreement leads — the party over "kind · ref" — so the Ref column of its
      own goes on the place, and the drawing's Agreement · Stage · Ends · Value
      follow; Owner is hidden until the reader shows it under Columns. */
@@ -173,19 +176,21 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     const { win, doc } = world('list');
     assert.ok(!doc.getElementById('ins-panel') && !doc.querySelector('[data-ins-page]'), 'no inspector, nothing for its width watcher');
     assert.equal(win.regInspecting(), false, 'even where the inspector would fit');
-    assert.deepEqual(J(win.regColKeys()), ['counterparty', 'stage', 'expiry', 'value', 'acts']);
+    assert.deepEqual(J(win.regColKeys()), ['counterparty', 'stream', 'standards', 'expiry', 'value', 'acts']);
     assert.equal(win.REG_COL_W_HOME.reduce((a, b) => a + b, 0), 100, 'the widths sum to 100');
     assert.equal(win.regColWidths().reduce((a, b) => a + b, 0), 100, 'and the drawn ones too, Owner\'s share paid to the agreement');
     assert.deepEqual(J(win.LC_PAGES.contracts.hide), ['owner'], 'Owner is one press away, under Columns');
     const heads = [...doc.querySelectorAll('[data-reg-home] .reg-table thead th')].map(th => th.textContent.trim().replace(/[▲▼]/g, '').trim());
-    assert.deepEqual(heads, ['Agreement', 'Stage', 'Ends', 'Value', ''], 'the drawing\'s four, the ⋯ unheaded');
+    assert.deepEqual(heads, ['Agreement', 'Stream', 'Our standards', 'Ends', 'Value', ''], 'the drawing\'s five, the ⋯ unheaded');
     assert.equal(doc.querySelectorAll('#reg-tbody [data-row] [data-menu]').length, 3, 'every row keeps its ⋯');
     assert.ok(!doc.getElementById('ig-wall'), 'no wall on the List');
     /* the same builder: its Display cog is the page's, Table · Board, density and the amendment fold (f387 4g) */
     for (const sel of ['button[data-reg-mode="board"]', 'button[data-reg-density="comfortable"]', '#reg-flat'])
       assert.ok(doc.querySelector('#reg-display-pop ' + sel), sel + ' in the List\'s Display');
     const row = doc.querySelector('#reg-tbody [data-row="MK-1"]');
-    assert.match(row.querySelector('.reg-sub').textContent.trim(), /^\S.* · MK-1$/, '"kind · ref" under the party');
+    assert.match(row.querySelector('.reg-sub').textContent.trim().replace(/\s+/g, ' '), /^\S.* · MK-1 · \S/, '"party · ref · stage" under the agreement');
+    assert.ok(row.querySelector('.reg-sub .reg-stg-w'), 'the stage\'s word, in its own tone, in the grey line');
+    assert.ok(row.querySelector('.reg-id .ls-mark'), 'a mark leads the row');
     row.click();
     /* 'open' is the reader's own "A contract opens on" (pdOpenTabOf, the
        Control Room built in full, 16 Oct 2026): Jambo unless they chose otherwise */
@@ -218,7 +223,7 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     assert.equal(t.querySelectorAll('thead th').length, 3);
     assert.ok(t.classList.contains('is-home') && t.classList.contains('is-hnarrow'), 'no floor, and marked narrow for the width watch');
     t = at(win.REG_HOME_NARROW_W + 300);
-    assert.deepEqual(J(win.regColKeys()), ['counterparty', 'stage', 'expiry', 'value', 'acts'], 'wide again: the drawing\'s four and the ⋯');
+    assert.deepEqual(J(win.regColKeys()), ['counterparty', 'stream', 'standards', 'expiry', 'value', 'acts'], 'wide again: the drawing\'s five and the ⋯');
     assert.ok(t.classList.contains('is-home') && !t.classList.contains('is-hnarrow'));
     assert.match(HTML, /#reg-scroll>table\.reg-table\.is-home\{min-width:0;\}/, 'the window\'s floor never applies to the place');
   });

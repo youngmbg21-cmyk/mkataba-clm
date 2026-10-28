@@ -47,6 +47,7 @@ const MODULES = [
   'js/graphwhere.js',   // the graph's `where` predicate, one for both hosts (Copilot audit phase 4)
   'js/hatisearch.js',   // the one search's words, both hosts (Jambo works like Copilot, stage 1)
   'js/section.js',      // the section grammar: a pure builder, read by five views
+  'js/listlang.js',     // the list language: a row's mark, its readings in words, its chips (27 Oct 2026)
   'js/richdoc.js',
   'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
   'js/aichart.js',   // the chart recipes: pure functions of state
@@ -713,6 +714,8 @@ function buildWorld(opts = {}) {
      absent-function fallbacks rather than the product. Same reason intelView
      pulls obligations in below. */
   if (opts.payterms || opts.homeView || opts.intelView || opts.registerView) files.push(PAYTERMS);
+  /* the register's Our standards column reads the one row reading (stdRowWordsHtml, 27 Oct 2026) */
+  if (opts.registerView) files.push('js/standards.js');
   /* Insights sits on the obligations model, so asking for the view brings it
      even where the caller did not ask for it by name — a stage that drew the
      report without it would exercise this module's own absent-function
@@ -737,6 +740,11 @@ function buildWorld(opts = {}) {
       questionDot: win.questionDot || (() => ''),
       statusChip: win.statusChip || (c => `<span class="chip">${(c && c.status) || c}</span>`),
       contractStatusChip: win.contractStatusChip || (c => `<span class="chip">${c.status}</span>`),
+      /* the stage's one reading (js/core.js contractStatusMeta): its word and its tone, for the row's mark
+         and the stage in its grey line (the list language, 27 Oct 2026) */
+      contractStatusMeta: win.contractStatusMeta || (c => { const st = (c && c.status) || 'Draft';
+        const t = st === 'Signed' ? 'green' : st === 'Declined' ? 'ruby' : st === 'Draft' ? 'gray' : 'amber';
+        return { label: st, dot: `var(--st-${t}-dot)`, tx: `var(--st-${t}-fg)` }; }),
       statusLabel: win.statusLabel || (s2 => String(s2 || '')),
       familyCounts: win.familyCounts || (cs => ({ agreements: cs.length, documents: cs.length, amendments: 0 })),
       agreementsIn: win.agreementsIn || (cs => cs),
