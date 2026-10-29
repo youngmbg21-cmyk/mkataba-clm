@@ -803,8 +803,9 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       box.drew && box.found === false && box.boxes === 1, JSON.stringify(box));
     check('11 …and what is typed there is the page\'s own query, never Contracts\'',
       typed.nego === 'Naiv' && typed.ct !== 'Naiv', JSON.stringify(typed));
-    check('11 …and the shell bar\'s box above it stays (Q1, "B — keep both boxes")',
-      box.shell === true, `shell search ${box.shell}`);
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes; reverses Q1 "B — keep both boxes"): the bar's search left */
+    check('11 …and the shell bar carries no box above it (round 1)',
+      box.shell === false, `shell search ${box.shell}`);
     check('11 and no "sorts within each group" line under the controls',
       box.note === false, box.note ? '#reg-sort-note still drawn' : 'gone');
     /* ---- REVERSED IN PLACE 10 Sep 2026, AND IT HAD BEEN RED SINCE 31 Aug ----
@@ -821,20 +822,21 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        head's ONE box, and it always says what the shell bar says — never a
        second box of its own (#reg-search), never two boxes disagreeing; the
        filters are "+ Filter" and its chips on one row of one dress */
-    await page.fill('#cmd-search', 'Naiv').catch(() => {});
+    /* RE-POINTED 29 Oct 2026 (round 1): typed into the place's own box; the bar's search left */
+    await page.fill('[data-reg-home] input[data-lh-q]', 'Naiv').catch(() => {});
     await page.waitForTimeout(600);
     const cbox = await page.evaluate(() => {
       const sels = [...document.querySelectorAll('[data-lh-seat="contracts"] .lh-chips .lh-add, [data-lh-seat="contracts"] .lh-chips .lh-chip > label')];
       const g = e => e ? getComputedStyle(e).backgroundColor : null;
       const boxes = [...document.querySelectorAll('[data-reg-home] input[data-lh-q]')];
       return { found: !!document.getElementById('reg-search'), boxes: boxes.length,
-        same: boxes.length === 1 && boxes[0].value === (document.getElementById('cmd-search') || {}).value,
+        same: boxes.length === 1 && boxes[0].value === 'Naiv' && String(regState().query || '') === 'Naiv',
         shell: !!document.getElementById('cmd-search'),
         neighbours: [...new Set(sels.map(g))] };
     });
-    await page.fill('#cmd-search', '').catch(() => {});
-    check('11 CONTRACTS DRAWS ONE LIST BOX, in step with the shell bar — never a box of its own beside it',
-      cbox.found === false && cbox.shell === true && cbox.boxes === 1 && cbox.same, JSON.stringify(cbox));
+    await page.fill('[data-reg-home] input[data-lh-q]', '').catch(() => {});
+    check('11 CONTRACTS DRAWS ONE LIST BOX, saying the page\'s query, and the bar none — never a box of its own beside it',
+      cbox.found === false && cbox.shell === false && cbox.boxes === 1 && cbox.same, JSON.stringify(cbox));
     check('11 …and the filter controls beside it still read as one row',
       cbox.neighbours.length === 1, JSON.stringify(cbox));
 

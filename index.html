@@ -3431,6 +3431,14 @@
     transition:transform var(--dur-1) var(--ease); }
   .st-adv[open] > .st-adv-sum::before{ transform:rotate(90deg); }
   .st-adv > .st-sec:first-of-type{ border-top:0; padding-top:0; margin-top:15px; }
+  /* WHAT JAMBO COULD NOT PLACE (round 8, 29 Oct 2026): one table — the sentence, where it was typed, where the person
+     went, Teach · Fine; a row's Teach opens under it */
+  .st-ls-r{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--color-divider);font-size:var(--t-meta)}
+  .st-ls-r.st-ls-h{border-top:0;padding-top:0;font-weight:var(--w-label)}
+  .st-ls-said{font-weight:var(--w-body);font-family:var(--font-doc);min-width:0;overflow-wrap:anywhere}
+  .st-ls-acts{display:flex;gap:6px;justify-content:flex-end;white-space:nowrap}
+  .st-ls-acts button{white-space:nowrap}
+  .st-ls-teach{padding:4px 0 12px;max-width:420px}
   .st-sec-h{ display:flex; align-items:center; gap:var(--s-2); font-family:var(--font-body);
     font-weight:var(--w-label); font-size:12px; color:var(--color-neutral-600); margin:0 0 10px; }
   /* THE DRAWER'S SECTIONS ARE NOT STEPS (SAP pop-ups, owner's go 10 Oct 2026):
@@ -9651,10 +9659,13 @@
      paper's line while Fill in is open, and no row above the sheet then — the face's host is the switch */
   /* THE NAME STAYS WHOLE BESIDE THE SIGNING COPY (the gaps, round 10, the second check: at
      1366×950 the name and party were cut by its page arrows and size): on a line too short for
-     all of it, Notes and Share say their word in their hover only — the name is never cut first */
+     all of it, Send says its word in its hover only and Ask for review steps aside (it stays in More's
+     "All acts") — the name is never cut first. More keeps its one short word: it has no symbol to fall back on
+     (round 13, 29 Oct 2026) */
   #ig-strip{container:igline / inline-size}
   @container igline (max-width: 1000px){
-    #ig-strip .ig-sc ~ .ig-acts :is(.ig-notes-w, .ig-share-w, .ig-actions-w){display:none}
+    #ig-strip .ig-sc ~ .ig-acts .ig-share-w{display:none}
+    #ig-strip .ig-sc ~ .ig-acts #ws-review{display:none}
   }
   #ig-strip .ig-zc-line{display:none;flex:none}
   #ig-page:has(#pd-fillface) #ig-strip .ig-zc-line{display:inline-flex;align-items:center}
@@ -18055,11 +18066,8 @@
 
     <span style="flex:1 1 auto;min-width:8px;"></span>
 
-    <div class="cmd-search">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true" style="opacity:.85;flex:none;"><use href="#i-search"/></svg>
-      <input id="cmd-search" data-i18n-ph="sh_search_ph" placeholder="Search contracts, clauses, counterparties…"/>
-      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" data-i18n-title="sh_search_hint">⌘K</button>
-    </div>
+    <!-- ONE BOX, AND NO RIVALS (round 1 "The Legora way", owner's yes 29 Oct 2026): the bar's search left; ⌘K puts
+         the hand in Jambo's box on the page (jamboBoxFocus), where "/" lists the places -->
 
     <span style="flex:1 1 auto;min-width:8px;"></span>
 

@@ -53,7 +53,7 @@ const check = (name, ok, detail) => {
 const SHELL_ICONS = [
   /* #brand-mark is RETIRED with the 44px shell bar (24 Aug 2026): a 40px tile
      does not fit, and the wordmark stays as live text. */
-  ['.cmd-search',                'i-search'],
+  /* .cmd-search RETIRED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search left */
   /* #cmd-ai wears Jambo's face, not #i-spark, since 12 Oct 2026 (owner); since 20 Oct 2026
      (Chambers) that face on a computer is the ✦ mark, an inline path; checked below */
   ['#hdr-notify',                'i-bell'],
@@ -263,7 +263,8 @@ const SHELL_ICONS = [
     /* 11 since #cmd-ai (listed twice) became Jambo's face (12 Oct 2026) */
     /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left menu's
        seven icons are not painted on a computer; the bar's are what is left to measure */
-    check('most of the shell was measured, not merely referenced', painted >= 4,
+    /* RE-POINTED 29 Oct 2026 (round 1, owner's yes): the bar's search and its glass left, so one fewer to paint */
+    check('most of the shell was measured, not merely referenced', painted >= 3,
       `${painted} painted`);
     /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers"): on a computer the
        door keeps Jambo's ✦ mark — an inline <svg> path, no picture and no

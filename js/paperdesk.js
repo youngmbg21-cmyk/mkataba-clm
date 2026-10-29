@@ -3132,6 +3132,31 @@ function pdActsPopClose(){
   if (was) pdActsSay(was.id, false);
   return !!el;
 }
+/* ---- MORE, HALVED (round 13 "The Legora way", owner's yes 29 Oct 2026) ----
+   The paper line's More drops a SHORT card: the drawing's nine rows in three groups, each the Dossier's own row by
+   key (so a press does what the row does, pdActsGo), a row this contract does not offer simply absent, a dead one
+   grey with its reason; its last row, "All acts (N)", turns the same card into every act (the Dossier's "All N ›"
+   keeps opening the whole card at once). Nothing leaves the Dossier's list: the short card only chooses. */
+const PD_ACTS_SHORT = [
+  ['pd_menu_work', ['[data-rl-edit-clause]', '#ws-import', '#ws-compare', '[data-ig-memo]']],
+  ['ct_export', ['#ws-pdf', '#ws-word']],
+  ['pd_menu_contract', ['#ws-m-their-way', '#ws-end', '#ws-filing']]
+];
+function pdActsShortHtml(c){
+  const groups = pdMenuGroups(c);
+  if (!groups.length) return '';
+  const box = document.createElement('div');
+  box.innerHTML = groups.map(g => g.rows.join('')).join('');
+  const all = [...box.querySelectorAll('button')].filter(b => dossierRowKey(b)).length;
+  const row = b => { const key = dossierRowKey(b); const x2 = b.cloneNode(true);
+    return `<button type="button" role="menuitem" class="pd-acts-r" data-pd-acts-go="${_pdE(key)}"${b.disabled ? ' disabled aria-disabled="true"' : ''}${b.title ? ` title="${_pdE(b.title)}"` : ''}>${x2.innerHTML}</button>`; };
+  const g = PD_ACTS_SHORT.map(([title, keys]) => {
+    const rows = keys.map(k => box.querySelector(k)).filter(Boolean).map(row).join('');
+    return rows ? `<div class="pd-acts-g" role="group" aria-label="${_pdE(_pdT(title))}"><div class="pd-acts-h">${_pdE(_pdT(title))}</div>${rows}</div>` : '';
+  }).join('');
+  const more = all ? `<div class="pd-acts-g pd-acts-all-g"><button type="button" role="menuitem" class="pd-acts-r pd-acts-all" data-pd-acts-every>${_pdE(_pdT('ig_more_all', { n: all }))}${PD_GO_TXT}</button></div>` : '';
+  return g + more;
+}
 function pdActsPopHtml(c){
   const groups = pdMenuGroups(c);
   if (!groups.length) return '';
@@ -3157,13 +3182,14 @@ function pdActsPlace(){
   el.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
   el.style.maxHeight = Math.max(160, window.innerHeight - top - 12) + 'px';
 }
-function pdActsToggle(id, anchor){
+function pdActsToggle(id, anchor, opts){
   if (!id || typeof document === 'undefined') return false;
   const a = anchor || document.getElementById('ig-actions');
   if (pdActsPopOpen() && _pdActsPop.id === String(id) && _pdActsPop.anchor === a){ pdActsPopClose(); return true; }
   pdActsPopClose();
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c || !a) return false;
-  const html = pdActsPopHtml(c); if (!html) return false;
+  const short = !!(opts && opts.short);
+  const html = short ? (pdActsShortHtml(c) || pdActsPopHtml(c)) : pdActsPopHtml(c); if (!html) return false;
   const el = document.createElement('div');
   el.id = 'pd-acts-pop'; el.className = 'pd-acts-pop'; el.setAttribute('role', 'menu'); el.setAttribute('data-pd-acts-pop', String(id));
   el.setAttribute('aria-label', _pdT('ig_actions'));
@@ -3181,6 +3207,10 @@ if (typeof document !== 'undefined'){
     if (!_pdActsPop) return;
     const t = e.target;
     const row = t && t.closest ? t.closest('#pd-acts-pop [data-pd-acts-go]') : null;
+    /* "All acts (N)" on the short card: the same card, every act, where it stands */
+    const every = t && t.closest ? t.closest('#pd-acts-pop [data-pd-acts-every]') : null;
+    if (every){ e.preventDefault(); const el = document.getElementById('pd-acts-pop'); const c = getContract(_pdActsPop.id);
+      const html = c ? pdActsPopHtml(c) : ''; if (el && html){ el.innerHTML = html; pdActsPlace(); el.querySelector('[data-pd-acts-go]:not([disabled])')?.focus({ preventScroll: true }); } return; }
     if (row){ e.preventDefault(); if (row.disabled) return;
       const id = _pdActsPop.id, key = row.getAttribute('data-pd-acts-go');
       pdActsPopClose();
@@ -6925,7 +6955,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

@@ -600,6 +600,7 @@ function navWhich(list){
 const NAV_LAND_TRIES = 50, NAV_LAND_BEAT_MS = 100;
 function navGo(a){
   const n = a && a.nav; if (!n) return false;
+  if (typeof window !== 'undefined' && typeof window.jamboMovedNow === 'function') window.jamboMovedNow();
   /* a Settings drawer left open would stand over the place this moves to: shut by its own close
      (the same as a press outside it), unless the move is to another Settings spot */
   if (!['you', 'company', 'person', 'stream'].includes(n.k) && typeof document !== 'undefined' && document.querySelector('#st-drawer.open') && typeof stDrawerClose === 'function'){

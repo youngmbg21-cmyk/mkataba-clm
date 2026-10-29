@@ -77,6 +77,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- One box, no rivals (round 1, 29 Oct 2026): keyboard-reach-verify (⌘K → Jambo's box), legora-lists-verify (1c/7f/7g), contracts-page-verify 16b, negotiations-door-verify 11, jambo-map-verify 7, settings-as-drawn-4-verify 1d; f861, f739, f938 (keep handbook words short).
+- The paper's line Send · Ask for review · More (round 13, 29 Oct 2026): paper-actions-verify, paper-line-verify, sign-beside-the-paper-verify, notes-two-rooms-verify, flat-rows-and-alerts-verify; f676, f754; handbook-verify HANDBOOK_ONLY=3.3,5.7.
 - NOTES ONLY WITH A CONTRACT IN FRONT (27 Oct 2026): `node test/chromium/guide-panel-verify.js` — 1a the Notes tab is drawn grey with "Open a contract to read its notes." on Home, 1c a press on it does nothing, 5c live with a contract on the paper, 6a every room tab the same width, 6b a long party name ends in "…" with its count whole and the full name on the hover, 7a turning to the Board puts the notes drawer away, 7b the tab is grey again (red at the parent: 1a, 1c, 6a, 6b, 7a, 7b), 8 the bell's note door opens a contract's notes on the Board and they stay (red at the first push; window-drag-verify 5 caught it in CI). Re-pointed: f841 1b (the tab is always drawn, disabled without a contract), f446 (the name in `.rl-np-nm`). Pictures handbook/img/0.5-*.png re-taken.
 - `node test/chromium/jambo-panels-alike-verify.js` (27 Oct 2026): every Jambo panel's Overview 16px inside, the hand on every head tab, the Jambo tab drawing the one conversation, the bin on every Jambo tab, the AI's "draft" opening the sheet it says it opened. `HATI_PANELS_ONLY=calendar,settings-you` runs a few.
 - THE CARET SURVIVES THE PANEL'S REDRAW (27 Oct 2026): test/chromium/typing-survives-redraw-verify.js (new; red at the parent, 2) — beside Contracts the panel is drawn again when Discover's summary lands; renderIntelDock carries the box's words, focus AND selection, so a word typed mid-sentence stays there; Enter asks the whole sentence.
@@ -245,6 +247,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE FIVE DRAWN TABS (22 Oct 2026, question 2 "B"): f693 (4); legora-lists-verify C2 (exactly the five) and C8a–C8e (the Quick filters group under + Filter by a touch press, one chip and the rows the view reads, ×, the tab row one line at all three screens); contracts-stage-tabs-verify 1e/3a and answer-worklist-verify 1a re-pointed.
 
 ## CALENDAR
+- Opens on the Agenda (29 Oct 2026): calendar-agenda-verify, week-by-week-verify (presses Week), f261, f718; handbook-verify HANDBOOK_ONLY=5.2.
 - 21 Oct 2026 (overnight): calendar-on-home-verify 11b (this week's hours whole at the three screens).
 - f80, f83, f261, f458, f641, f694, f732, f793, f794, calendar-on-home, calendar-day, calendar-redesign, calendar-holds-still, my-calendar, jambo-follows-the-ask, week-as-drawn verify.
 
@@ -460,6 +463,9 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE WORD FILE WE WRITE, AND THE PAGE MEASURE
 - f252, f288, keeps-your-place-verify.
+
+## WHAT JAMBO COULD NOT PLACE BECOMES A LESSON
+- f962 (no person column, admin walls, 90 days, teaching), test/chromium/jambo-lessons-verify.js (kept on the person's own move, not on Jambo's; Teach; taught words move free; three screens); door-exam-verify (the panel's title lands); handbook-verify HANDBOOK_ONLY=7.5.
 
 ## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
 - THE DOOR EXAM (23 Oct 2026; owner: "do what is necessary for jambo to get things right"): test/door-exam.js + test/chromium/door-exam-verify.js — reads HaTi's own lists off the running app (NAV_ACTS, NAV_PLACES, CA_MENU, CA_PLACES, every Settings page and card by its title via `navStTitles`) and FAILS when a door has no sentence; every sentence typed into the Board's, a list's and Settings' box and landed (test/nav-read.js reads dialog, panel, Key terms, folds, strip page, archive, Present, Recent, Findings, watches, new tabs). Required green, no ratchet. One list: `DOOR_EXAM_ONLY=act|place|menu|ca|st`. Red at the parent: every new act and place, 42 Settings titles.

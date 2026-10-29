@@ -97,12 +97,14 @@ const signIn = async (page, base, email, pass) => {
     check('2e. ‹ Settings goes back to the board', !!board);
 
     /* ---- 3. one search ---- */
-    await page.click('#cmd-search');
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's box left; the jump list is "/" */
+    await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); openCommandPalette(); });
+    await until(() => !!document.getElementById('cp-input'));
     await page.keyboard.type('s');
     const pal = await until(() => !!document.getElementById('cmd-palette'));
     await page.keyboard.type('alary');
     const first = await until(() => { const b = document.querySelector('#cp-list [data-cp-i="0"]'); return b && /Signing limits|Signeringsgränser/.test(b.textContent) ? b.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : null; });
-    check('3. on Settings the bar\'s box is ⌘K, and "salary" leads with the signing limits', !!pal && !!first, first);
+    check('3. on Settings the jump list leads "salary" with the signing limits', !!pal && !!first, first);
     await page.keyboard.press('Enter');
     const opened = await until(() => { const t = document.querySelector('#st-dhead .rvd-title'); return t && document.getElementById('st-drawer').classList.contains('open') ? t.textContent.trim() : null; });
     check('3b. Enter opens that rule\'s drawer', !!opened, opened);

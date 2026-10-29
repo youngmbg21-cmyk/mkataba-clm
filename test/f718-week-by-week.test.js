@@ -103,8 +103,9 @@ describe('f718 (4) only the page groups by week', () => {
 
 describe('f718 (5) the calendar, week by week and Monday to Friday', () => {
   test('5a it opens on this week and five more', () => {
-    assert.match(CAL, /let calState = \{ ym:null, view:'week',/);
-    assert.match(fnBody(CAL, 'calView'), /:'week'; \}/);
+    /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week keeps its six weeks */
+    assert.match(CAL, /let calState = \{ ym:null, view:'agenda',/);
+    assert.match(fnBody(CAL, 'calView'), /:'agenda'; \}/);
     assert.match(CAL, /const CAL_WEEKS_SHOWN = 6;/);
     assert.match(fnBody(CAL, 'calWeekHtml'), /\$\{calMoreWeeksHtml\(a,onDay\)\}/);
     assert.match(fnBody(CAL, 'calMoreWeeksHtml'), /for\(let w=1;w<CAL_WEEKS_SHOWN;w\+\+\)/);

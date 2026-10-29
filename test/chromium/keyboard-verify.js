@@ -79,8 +79,15 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.evaluate(() => document.getElementById('kb-probe2').remove());
 
   console.log('\n3 · the palette announces itself');
-  await page.evaluate(() => { const b = document.getElementById('cmd-k-hint'); if (b) b.focus(); });
+  /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box; the jump list is
+     "/" pressed outside a box, off Home */
   await page.keyboard.press(MOD + '+k');
+  await page.waitForTimeout(400);
+  ok('⌘K puts the hand in Jambo\'s box', await page.evaluate(() => { const a = document.activeElement; return !!(a && a.closest && a.closest('.jb-card')); }));
+  await page.evaluate(() => { setView('obligations'); });
+  await page.waitForTimeout(700);
+  await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
+  await page.keyboard.press('/');
   await page.waitForTimeout(500);
   ok('it opened', await page.evaluate(() => !!document.getElementById('cmd-palette')));
   const sem = await page.evaluate(() => {
@@ -116,12 +123,14 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.keyboard.press('Escape');
   await page.waitForTimeout(400);
   ok('the palette closed', await page.evaluate(() => !document.getElementById('cmd-palette')));
-  ok('focus went back to whatever opened it',
-     (await page.evaluate(() => document.activeElement && document.activeElement.id)) === 'cmd-k-hint',
-     '#' + await page.evaluate(() => document.activeElement && document.activeElement.id));
+  /* RE-POINTED 29 Oct 2026 (round 1): opened by "/" with nothing focused, so the page itself has the hand back */
+  ok('focus went back to whatever opened it (the page, for "/")',
+     (await page.evaluate(() => document.activeElement === document.body || !document.activeElement)),
+     await page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName)));
 
   console.log('\n6 · the empty state speaks the reader\'s language');
-  await page.keyboard.press(MOD + '+k');
+  await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
+  await page.keyboard.press('/');
   await page.waitForTimeout(400);
   await page.fill('#cp-input', 'zzzzzznotathing');
   await page.waitForTimeout(500);

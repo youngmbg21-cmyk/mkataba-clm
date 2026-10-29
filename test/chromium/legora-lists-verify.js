@@ -330,7 +330,6 @@ function pageKit(){
     for (;;){ const v = await page.evaluate(fn, arg).catch(() => null); if (v) return v; if (Date.now() >= end) return null; await new Promise(r => setTimeout(r, 100)); } };
   const ev = (fn, arg) => page.evaluate(fn, arg).catch(e => ({ __err: String(e && e.message || e).slice(0, 200) }));
   const shot = n => page.screenshot({ path: path.join(OUT, n + '.png') }).catch(() => {});
-  const quiet = () => until(() => !window.__lh.busy() ? true : null, null, 12000);
   const cfgOf = d => ({ rows: d.rows, hidden: !!d.hidden });
   const signIn = async () => {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -366,7 +365,8 @@ function pageKit(){
     check(`${tag(d)} 1b the head carries one box, input[type=search][data-lh-q]`, S.box && S.type === 'search', JSON.stringify({ box: S.box, type: S.type }));
     if (!S.box) return true;
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Contracts says its count once, at the foot — its box carries none */
-    check(`${tag(d)} 1c the box's words carry a number (Contracts: none, its foot says it) and no ⌘K hint`, (d.key === 'contracts' ? !/\d/.test(S.ph) : /\d/.test(S.ph)) && !/⌘|cmd\s*k|ctrl\s*k/i.test(S.ph), `"${S.ph}"`);
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): a list's box is a quiet filter and says so */
+    check(`${tag(d)} 1c the box says "Filter this list", and no ⌘K hint`, S.ph === 'Filter this list' && !/⌘|cmd\s*k|ctrl\s*k/i.test(S.ph), `"${S.ph}"`);
     const under = S.titleR && S.boxR && S.boxR.t >= S.titleR.b - 1;
     const above = !S.tlR ? d.tabs === false : S.boxR.b <= S.tlR.t + 1;
     check(`${tag(d)} 1d the box sits under the title${d.tabs === false ? '' : ' and above the tab row'}`, !!(under && above),
@@ -578,52 +578,25 @@ function pageKit(){
       await boxClear();
       await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfg, before.total], 4000);
     } else note(`${tag(d)} 7e no row here names Visa, so "Visa" is not tried`, JSON.stringify(visa));
-    /* a question does not narrow; Enter hands it to the page's own Jambo.
-       Measured against the rows drawn at rest just before it is typed: words
-       typed and cleared above put a paged list back on its first page (Show
-       more pressed earlier is not kept), which is no narrowing by the question */
-    const rest = await ev(c => window.__lh.rows(c), cfg);
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes; reverses "a question does not narrow; Enter hands it
+       to the page's own Jambo"): a question is words like any other — it narrows the list, Enter sends nothing, no
+       Jambo turn and no call; questions go to Jambo's box at the panel's foot */
     await boxFocus(); await page.keyboard.type(QUESTION);
-    const held = await until(([c, n, q]) => { const b = window.__lh.box(); return b && b.value === q && window.__lh.total(c) === n ? true : null; }, [cfg, before.total, QUESTION], 4000);
-    const qn = await ev(c => ({ total: window.__lh.total(c), rows: window.__lh.rows(c), focus: document.activeElement === window.__lh.box() }), cfg);
-    check(`${tag(d)} 7f "${QUESTION}" does not narrow the list, the caret kept`, !!held && qn.rows === rest && qn.focus, JSON.stringify({ before: before.total, rest, now: qn }));
+    await until(([c, q]) => { const b = window.__lh.box(); return b && b.value === q ? true : null; }, [cfg, QUESTION], 4000);
+    await recounted(cfg);
+    const qn = await ev(c => ({ total: window.__lh.total(c), focus: document.activeElement === window.__lh.box() }), cfg);
+    check(`${tag(d)} 7f "${QUESTION}" narrows like any words, the caret kept`, qn.total <= before.total && qn.focus, JSON.stringify({ before: before.total, now: qn }));
     const asked0 = await ev(q => window.__lh.asked(q), QUESTION);
-    const home = d.key === 'contracts';
-    /* ANSWERED BESIDE THE LIST (owner, 22 Oct 2026: Part 8's question 3 =
-       A): what the list shows is read just before Enter — the tabs with their
-       numbers and the lit one, the chips, the rows — and must be the same
-       after; the model is asked nothing for a question the Board's own
-       reader answers free (the AI stand-in's requests are counted) */
-    const spotOf = c => ({ tabs: window.__lh.tabs().filter(t => !t.saved).map(t => `${t.label} ${t.n}${t.lit ? '*' : ''}`), chips: window.__lh.chips().map(x => x.t), ids: window.__lh.ids(c) });
-    /* the head counts again once the typing pauses (lhHeadSyncSoon): read it settled */
-    if (!home) await until(() => window.__lh.synced() ? true : null, null, 3000);
-    const spot0 = home ? null : await ev(spotOf, cfg);
     const calls0 = h.ai.calls.length;
     await page.keyboard.press('Enter');
-    const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 10000);
-    await quiet();
-    /* the panel's conversation: the question's turn, then Jambo's answer after it */
-    const said = ([p, q]) => { const pn = document.querySelector(p); const f = pn && pn.querySelector('#jl-feed'); if (!f) return null;
-      const T = [...f.querySelectorAll('.jb-turn')], w = e => e.textContent.replace(/\s+/g, ' ').trim();
-      let i = -1; T.forEach((e, k) => { if (w(e) === q) i = k; });
-      const a = i >= 0 ? T[i + 1] : null;
-      return a && w(a) && w(a) !== q ? { q: true, answer: w(a).slice(0, 160) } : null; };
-    const ans = home ? null : await until(said, [d.panel, QUESTION], 6000);
-    const after2 = await ev(([c, p, q]) => { const pn = document.querySelector(p); const b = window.__lh.box();
-      return { view: state.view, head: !!window.__lh.seat(), box: b ? b.value : null, total: window.__lh.total(c),
-        panel: !!(pn && pn.textContent.includes(q)), intel: !!(window.intel && Array.isArray(intel.history) && intel.history.some(m => m && m.role === 'user' && String(m.text || '').trim() === q)) }; }, [cfg, d.panel, QUESTION]);
-    const calls = h.ai.calls.length - calls0;
-    if (home) check(`${tag(d)} 7g Enter hands the question to Home's dock (intel.history grew by it), the box is empty`,
-      !!went && (after2.view !== before.view || (after2.head && after2.box === '')) && after2.intel,
-      JSON.stringify({ asked: !!went, ...after2, wasView: before.view, before: before.total }));
-    else {
-      const spot1 = await ev(spotOf, cfg);
-      const same = !!spot0 && !!spot1 && JSON.stringify(spot0) === JSON.stringify(spot1);
-      check(`${tag(d)} 7g Enter on "${QUESTION}" is answered IN the list's own panel: the reader stays on the page, the tab, chips and rows as they were, the box empty, the question and Jambo's answer in the panel, no Jambo call`,
-        !!went && after2.view === before.view && after2.head && after2.box === '' && same && !!ans && calls === 0,
-        JSON.stringify({ asked: !!went, view: after2.view, wasView: before.view, head: after2.head, box: after2.box, same, was: spot0 && { tabs: spot0.tabs, chips: spot0.chips, rows: spot0.ids.length },
-          now: spot1 && { tabs: spot1.tabs, chips: spot1.chips, rows: spot1.ids.length }, answer: ans, calls }));
-    }
+    const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 1500);
+    const st7 = await ev(() => ({ box: (window.__lh.box() || {}).value, view: state.view }));
+    check(`${tag(d)} 7g Enter on "${QUESTION}" sends nothing: no Jambo turn, no call, the words stay`,
+      !went && h.ai.calls.length === calls0 && st7.box === QUESTION && st7.view === before.view, JSON.stringify({ went: !!went, calls: h.ai.calls.length - calls0, ...st7 }));
+    /* the words narrowed the list: it comes back whole before what follows (as 7d and 7e wait for it) */
+    await boxClear();
+    await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfg, before.total], 4000);
+    await recounted(cfg);
     /* leave the box empty for what follows */
     if (await ev(() => !!(window.__lh.box() && window.__lh.box().value)) === true) await boxClear();
   }
@@ -829,6 +802,9 @@ function pageKit(){
     await page.click('[data-ac-name-edit]').catch(() => {}); await page.fill('#ac-name', 'Notice to end').catch(() => {});
     await ev(() => document.querySelector('[data-ac-ask]').click());
     const filled = await until(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length > 0 ? true : null, null, 30000);
+    /* the read runs to its end before a cell is pressed: answers still arriving repaint the rows, and a press on a row
+       being replaced chooses nothing (the whole list is read here since round 1, 29 Oct 2026, not a few rows) */
+    if (filled) await until(() => (typeof AC === 'undefined' || !AC.busy) ? true : null, null, 30000);
     /* RE-POINTED (the owner picked "Lights", 26 Oct 2026): the § chip came OUT
        of the cell, which now says one thing — the light and the short answer.
        The clause, the words it was read from and the tick stand in the panel's
@@ -838,7 +814,8 @@ function pageKit(){
       return { cid: td && td.getAttribute('data-ac-cid'), t: window.__lh.words(td), lines: td.getClientRects().length, chip: !!td.querySelector('.ac-cite'), tick: !!td.querySelector('[data-ac-ck]') }; }, null, 4000);
     if (!cell){ check('contracts C7 an answer cell is one light and one answer', false, filled ? 'no answered cell found' : 'no answer came back to the list'); return; }
     check('contracts C7 an answer cell is one light and one answer, with no § chip or tick squeezing it', !cell.chip && !cell.tick && !/\n/.test(cell.t), JSON.stringify(cell));
-    await ev(cid => { const a = document.querySelector(`td.ac-cell[data-ac-cid="${CSS.escape(cid)}"] .ac-a`); if (a) a.click(); }, cell.cid);
+    /* the cell in sight (a second drawing of the table may stand hidden behind it) */
+    await ev(cid => { const a = [...document.querySelectorAll(`td.ac-cell[data-ac-cid="${CSS.escape(cid)}"] .ac-a`)].find(window.__lh.vis); if (a) a.click(); }, cell.cid);
     const go = await until(() => document.querySelector('#ig-dock [data-ac-go]') ? true : null, null, 5000);
     if (go) await ev(() => document.querySelector('#ig-dock [data-ac-go]').click());
     const open = await until(cid => window.pdContract && pdContract() && String(pdContract().id) === cid ? true : null, cell.cid, 10000);

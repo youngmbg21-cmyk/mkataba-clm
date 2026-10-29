@@ -91,12 +91,12 @@ const blocked = [];
 
       /* ---- 1 · THE CALENDAR ---- */
       if (on(1) || on(3) || on(8)) {
-        await clean(); await ev(() => setView('dashboard')); await until(() => document.querySelector('#ig-dock'), undefined, 4000); await ev(() => setView('calendar'));
+        await clean(); await ev(() => setView('dashboard')); await until(() => document.querySelector('#ig-dock'), undefined, 4000); /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is pressed */ await ev(() => { setView('calendar'); calSetView('week'); });
         /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
            for jambo"): the Calendar's panel opens on Overview (Your week); his greeting is under the Jambo tab, as in Settings */
         const ready = () => document.querySelectorAll('#hb-cal .cal-wkm-lab b').length >= 5 && document.querySelector('.cal-head') && document.querySelector('.cal-cop .cal-plan-tab');
         /* the first page after signing in may still be settling on the Board: asked once more, bounded */
-        const there = (await until(ready, undefined, 5000)) || (await ev(() => setView('calendar')), await until(ready));
+        const there = (await until(ready, undefined, 5000)) || (await ev(() => { setView('calendar'); calSetView('week'); }), await until(ready));
         await settle(); await shot('calendar');
         if (on(1)) {
           if (!there) check(`${at} · 1 — the Calendar opened`, false);

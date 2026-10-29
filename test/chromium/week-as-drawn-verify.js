@@ -315,7 +315,7 @@ const weekOf = () => {
       check(`5 ${w}×${ht}: every act in the week list is one width, its word inside it, and the widest word of either book fits that width`,
         actW.n >= 2 && actW.ws.length === 1 && actW.fit && actW.probe.length === 1 && actW.probe[0] === actW.ws[0], actW);
       if (OUT) await page.screenshot({ path: path.join(OUT, `16-obligations-${w}x${ht}.png`) });
-      await page.evaluate(() => setView('calendar'));
+      await page.evaluate(() => (setView('calendar'), calSetView('week')));
       await until(() => !!document.querySelector('#cal-wk-more'));
       await page.waitForTimeout(400);
       const fitC = await page.evaluate(() => {

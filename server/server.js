@@ -18294,6 +18294,77 @@ app.post('/api/users/:id/invite', auth, admin, async (req, res) => {
   res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id)), ...mailReport(mailed) });
 });
 
+/* ---- WHAT JAMBO COULD NOT PLACE BECOMES A LESSON (round 8 "The SAP way", owner's yes 29 Oct 2026: "No names",
+   "90 days") ----
+   A sentence typed in a Jambo box that no free reader moved, after which the person went to another page themselves
+   (the browser holds it a minute, jamboUnplacedNext). The row keeps the words, the page they were typed on, the
+   contract on the paper (its reference) and where the person went — NO PERSON: no id, no name, no address. Rows go
+   after JAMBO_UNPLACED_DAYS. Only an admin reads them (GET) and teaches one (PUT /api/jambo/lessons: the phrase means a
+   page); a taught phrase moves every box's reader free (jamboLessonOf), and its waiting rows are cleared. */
+db.exec(`CREATE TABLE IF NOT EXISTS jambo_unplaced (
+  id TEXT PRIMARY KEY, text TEXT NOT NULL, phrase TEXT NOT NULL, page TEXT NOT NULL DEFAULT '', ref TEXT NOT NULL DEFAULT '',
+  next TEXT NOT NULL DEFAULT '', at TEXT NOT NULL)`);
+db.exec(`CREATE TABLE IF NOT EXISTS jambo_lessons (phrase TEXT PRIMARY KEY, place TEXT NOT NULL, by_name TEXT NOT NULL DEFAULT '', at TEXT NOT NULL)`);
+const JAMBO_UNPLACED_DAYS = 90;
+const JAMBO_UNPLACED_MAX = 500;        // rows an admin is shown at once (a cap is said: `more`)
+const JB_VIEW_RE = /^[a-z][a-z0-9-]{0,29}$/;
+const JB_PLACE_RE = /^[a-z][a-z0-9]{1,19}$/;
+const jbPhrase = t => String(t || '').trim().toLowerCase().replace(/[\u2019\u2018]/g, "'").replace(/^\//, '').replace(/[?.!]+$/, '').replace(/\s+/g, ' ').trim().slice(0, 200);
+function jamboUnplacedSweep(){
+  const since = new Date(Date.now() - JAMBO_UNPLACED_DAYS * 864e5).toISOString();
+  db.prepare('DELETE FROM jambo_unplaced WHERE at < ?').run(since);
+}
+const jbUnplacedRow = r => ({ id: r.id, text: r.text, page: r.page || '', ref: r.ref || '', next: r.next || '', at: r.at });
+app.post('/api/jambo/unplaced', auth, rlIntake, (req, res) => {
+  const b = req.body || {};
+  const text = myText(b.text, 200), phrase = jbPhrase(text);
+  if (!phrase) return res.status(400).json({ error: 'Nothing to keep' });
+  const page = JB_VIEW_RE.test(String(b.page || '')) ? String(b.page) : '';
+  const next = JB_VIEW_RE.test(String(b.next || '')) ? String(b.next) : '';
+  const ref = myText(b.ref, 30).replace(/[^A-Za-z0-9._#-]/g, '');
+  /* a phrase already taught is placed: nothing to keep */
+  if (db.prepare('SELECT 1 FROM jambo_lessons WHERE phrase=?').get(phrase)) return res.json({ ok: true, taught: true });
+  jamboUnplacedSweep();
+  const id = 'JU-' + rid(8).toUpperCase();
+  db.prepare('INSERT INTO jambo_unplaced (id,text,phrase,page,ref,next,at) VALUES (?,?,?,?,?,?,?)').run(id, text, phrase, page, ref, next, now());
+  res.json({ ok: true, id });
+});
+app.get('/api/jambo/unplaced', auth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin reads what Jambo could not place' });
+  jamboUnplacedSweep();
+  const all = db.prepare('SELECT COUNT(*) n FROM jambo_unplaced').get().n;
+  const week = db.prepare('SELECT COUNT(*) n FROM jambo_unplaced WHERE at >= ?').get(new Date(Date.now() - 7 * 864e5).toISOString()).n;
+  const rows = db.prepare('SELECT * FROM jambo_unplaced ORDER BY at DESC LIMIT ?').all(JAMBO_UNPLACED_MAX);
+  res.json({ rows: rows.map(jbUnplacedRow), total: all, week, more: Math.max(0, all - rows.length), days: JAMBO_UNPLACED_DAYS });
+});
+/* "Fine": nothing to teach — the row goes */
+app.delete('/api/jambo/unplaced/:id', auth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin clears what Jambo could not place' });
+  const r = db.prepare('DELETE FROM jambo_unplaced WHERE id=?').run(String(req.params.id || ''));
+  if (!r.changes) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+app.get('/api/jambo/lessons', auth, (req, res) => {
+  const rows = db.prepare('SELECT * FROM jambo_lessons ORDER BY phrase').all();
+  const lessons = {}; rows.forEach(r => { lessons[r.phrase] = r.place; });
+  res.json({ lessons, list: req.user.role === 'admin' ? rows.map(r => ({ phrase: r.phrase, place: r.place, by: r.by_name || '', at: r.at })) : undefined });
+});
+app.put('/api/jambo/lessons', auth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin teaches Jambo' });
+  const b = req.body || {};
+  const phrase = jbPhrase(b.phrase);
+  if (!phrase) return res.status(400).json({ error: 'Say the words to teach' });
+  if (b.remove === true){
+    db.prepare('DELETE FROM jambo_lessons WHERE phrase=?').run(phrase);
+    return res.json({ ok: true, removed: phrase });
+  }
+  const place = String(b.place || '');
+  if (!JB_PLACE_RE.test(place)) return res.status(400).json({ error: 'Choose the page it means' });
+  db.prepare('INSERT INTO jambo_lessons (phrase,place,by_name,at) VALUES (?,?,?,?) ON CONFLICT(phrase) DO UPDATE SET place=excluded.place, by_name=excluded.by_name, at=excluded.at')
+    .run(phrase, place, req.user.name || '', now());
+  const cleared = db.prepare('DELETE FROM jambo_unplaced WHERE phrase=?').run(phrase).changes;
+  res.json({ ok: true, phrase, place, cleared });
+});
 /* ============================================================
    ASK AN ADMIN (16 Oct 2026, the Control Room built in full, piece 19; the
    owner took the tracked version: "go with your advice")

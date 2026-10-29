@@ -97,7 +97,8 @@ describe('f739 (1) the head, the Legora way', () => {
     assert.equal(doc.querySelector('.cu-page .cu-fb, .cu-page .reg-tabbar, .cu-page .cu-find-l, .cu-page .reg-f-l'), null, 'no labelled band');
     const q = doc.getElementById('cu-q');
     assert.ok(q && q.hasAttribute('data-lh-q') && q.closest('[data-lh-seat="customers"]'), 'the box keeps the page\'s id');
-    assert.equal(q.getAttribute('placeholder'), 'Search, or ask across 14 parties');
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): a list's box is a quiet filter */
+    assert.equal(q.getAttribute('placeholder'), 'Filter this list');
     assert.ok(q.closest('.lh-ask').querySelector('svg'), 'the box wears its glass');
   });
   test('Status is the tabs: All · Live · Ended, opening on Live; Stream · Owner · NDA wait under + Filter', () => {
