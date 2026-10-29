@@ -85,10 +85,12 @@ try { new PerformanceObserver(l => { for (const e of l.getEntries()) { if (e.had
       await page.waitForTimeout(800);
 
       /* B — the notes drawer */
-      const hasNotes = await page.evaluate(() => !!document.getElementById('hdr-chat'));
-      if (!hasNotes) check(`${W}: B the notes door is on the paper's line`, false, 'no #hdr-chat');
+      /* RE-POINTED 29 Oct 2026 (round 13 "The Legora way", owner's yes): Notes left the paper's line; the drawer is opened
+         as the side panel's Notes tab opens it (openNotesPanel) */
+      const hasNotes = await page.evaluate(() => typeof openNotesPanel === 'function' && !!chatContractId());
+      if (!hasNotes) check(`${W}: B the notes drawer has a door for the contract on the paper`, false, 'no openNotesPanel / chatContractId');
       else {
-        const open = await page.evaluate(() => window.__pjWatch(() => document.getElementById('hdr-chat').click(), 600));
+        const open = await page.evaluate(() => window.__pjWatch(() => openNotesPanel(chatContractId(), null, { force: true }), 600));
         const opened = await page.evaluate(() => !!(document.getElementById('context-panel') || {}).classList?.contains('open'));
         await page.screenshot({ path: path.join(OUT, `B-notes-open-${W}x${H}.png`) });
         const shut = await page.evaluate(() => window.__pjWatch(() => { if (typeof closeContextPanel === 'function') closeContextPanel(); }, 600));
@@ -173,7 +175,7 @@ try { new PerformanceObserver(l => { for (const e of l.getEntries()) { if (e.had
           const mid = p.style.transform;
           return new Promise(res => setTimeout(() => { ev('pointerup', to); res(mid); }, 400));
         }, frac);
-        await page.evaluate(() => document.getElementById('hdr-chat').click());
+        await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));
         await until(() => document.getElementById('context-panel').classList.contains('open'));
         const short = await swipe(0.15);
         await page.waitForTimeout(400);
@@ -183,7 +185,7 @@ try { new PerformanceObserver(l => { for (const e of l.getEntries()) { if (e.had
         await page.waitForTimeout(500);
         const shut = await page.evaluate(() => !document.getElementById('context-panel').classList.contains('open'));
         check('I dragged past a third of its width, the drawer goes away', /translateX\(\d+/.test(long) && shut, long);
-        const moused = await page.evaluate(() => { document.getElementById('hdr-chat').click(); const p = document.getElementById('context-panel');
+        const moused = await page.evaluate(() => { openNotesPanel(chatContractId(), null, { force: true }); const p = document.getElementById('context-panel');
           const tgt = [...p.querySelectorAll('div')].find(x => x.getBoundingClientRect().width > 40) || p; const b = tgt.getBoundingClientRect();
           tgt.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: b.left + 10, clientY: b.top + 5, bubbles: true }));
           document.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: b.left + 300, clientY: b.top + 5, bubbles: true }));
