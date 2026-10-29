@@ -3846,10 +3846,20 @@ function guideHereKey(){
 }
 /* a page this reader cannot use is not listed (Import needs the right to add) */
 function guideRowShown(k){ return k!=='import'||(typeof caMayAdd!=='function')||caMayAdd(); }
+/* THE GUIDE IS THE MAP (round 7, "The Legora way", owner's overnight build of 28 Oct 2026): every row says the one
+   word that opens its page from any Jambo box, read off the box's own reader (jamboPageWordOf), so the Guide teaches
+   the box; a row with no such word says none */
+function guideWordOf(k){
+  if(typeof jamboPageWordOf!=='function') return '';
+  const opens=w=>{ try{ const a=jamboPageWordOf(w); return !!(a&&a.place===k); }catch(_){ return false; } };
+  const own=i18t('ca_w_'+k); if(own&&own!=='ca_w_'+k&&!/\s/.test(own)&&opens(own)) return own;
+  const P=(typeof CA_PLACES!=='undefined'&&Array.isArray(CA_PLACES))?CA_PLACES.find(x=>x.k===k):null;
+  return P?((P.w||[]).find(w=>!/\s/.test(w)&&opens(w))||''):'';
+}
 function guideRowHtml(k, here, cls){
-  const c=guideCountOf(k), on=here===k;
+  const c=guideCountOf(k), on=here===k, w=guideWordOf(k);
   return `<button type="button" class="gd-row${on?' is-here':''}${cls?' '+cls:''}" data-gd-go="${k}"${on?' aria-current="page"':''}>
-    <span class="gd-tx"><span class="gd-nm">${esc(i18t('gd_p_'+k))}</span><span class="gd-why">${esc(i18t('gd_w_'+k))}</span></span>
+    <span class="gd-tx"><span class="gd-nm">${esc(i18t('gd_p_'+k))}</span><span class="gd-why">${esc(i18t('gd_w_'+k))}</span>${w?`<span class="gd-word">${esc(i18t('gd_say_word',{ w }))}</span>`:''}</span>
     ${on?`<span class="gd-pill is-here">${esc(i18t('gd_here'))}</span>`:c?`<span class="gd-pill is-owed">${esc(c.w)}</span>`:''}
     <span class="gd-go" aria-hidden="true">›</span></button>`;
 }

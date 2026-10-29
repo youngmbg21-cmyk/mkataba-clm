@@ -1889,6 +1889,8 @@ const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
   'upload'];
 function jamboPageWordOf(q){
+  /* "?" alone opens the Guide (round 7: the map teaches the box) */
+  if (String(q || '').trim() === '?') return { kind: 'go', place: 'guide', cid: null, slash: false, state: 'ready', page: true };
   const t = String(q || '').trim().toLowerCase().replace(/[’‘]/g, "'").replace(/^\//, '').replace(/[?.!]+$/, '').trim();
   if (!t) return null;
   const p = CA_PLACES.find(x => JB_PAGE_PLACES.includes(x.k) && x.w.includes(t)); if (!p) return null;
