@@ -245,6 +245,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE FIVE DRAWN TABS (22 Oct 2026, question 2 "B"): f693 (4); legora-lists-verify C2 (exactly the five) and C8a–C8e (the Quick filters group under + Filter by a touch press, one chip and the rows the view reads, ×, the tab row one line at all three screens); contracts-stage-tabs-verify 1e/3a and answer-worklist-verify 1a re-pointed.
 
 ## CALENDAR
+- Opens on the Agenda (29 Oct 2026): calendar-agenda-verify, week-by-week-verify (presses Week), f261, f718; handbook-verify HANDBOOK_ONLY=5.2.
 - 21 Oct 2026 (overnight): calendar-on-home-verify 11b (this week's hours whole at the three screens).
 - f80, f83, f261, f458, f641, f694, f732, f793, f794, calendar-on-home, calendar-day, calendar-redesign, calendar-holds-still, my-calendar, jambo-follows-the-ask, week-as-drawn verify.
 

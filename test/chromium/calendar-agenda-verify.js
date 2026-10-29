@@ -40,7 +40,8 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     await P.evaluate(() => setView('calendar'));
     const seg = await until(P, () => document.querySelectorAll('[data-cal-view]').length >= 4, null, 10000);
     const s1 = await P.evaluate(() => ({ view: calView(), tabs: [...document.querySelectorAll('[data-cal-view]')].map(x => x.getAttribute('data-cal-view')) }));
-    check(seg && s1.view === 'week' && s1.tabs[0] === 'agenda' && s1.tabs.join() === 'agenda,month,week,horizon', '1 it opens on Week; Agenda is the first tab', s1);
+    /* RE-POINTED 29 Oct 2026 (round 12's last part, owner's yes): the calendar opens on the Agenda, its first tab */
+    check(seg && s1.view === 'agenda' && s1.tabs[0] === 'agenda' && s1.tabs.join() === 'agenda,month,week,horizon', '1 it opens on the Agenda, its first tab', s1);
 
     await settled(P);
     await P.click('[data-cal-view="agenda"]');
