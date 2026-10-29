@@ -61,7 +61,8 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(600);
     await page.evaluate(() => setView('calendar'));
     const views = await until(() => { const v = [...document.querySelectorAll('[data-cal-view]')].map(e => e.getAttribute('data-cal-view')); return v.length ? v : null; });
-    check('1. the views are Month · Week · Horizon', !!views && views.join(' ') === 'month week horizon', views && views.join(' '));
+    /* RE-POINTED 29 Oct 2026 (round 12): the Agenda tab leads Month · Week · Horizon */
+    check('1. the views are Agenda · Month · Week · Horizon', !!views && views.join(' ') === 'agenda month week horizon', views && views.join(' '));
 
     /* 2. a new event, from the button, on the Week */
     await page.evaluate(day => { calState.wk = day; calSetView('week'); }, D.day);
