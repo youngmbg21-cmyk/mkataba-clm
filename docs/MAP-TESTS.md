@@ -509,3 +509,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ONE READER FOR EVERY BOX — JAMBO SAYS WHAT HE DID (round 4, 28 Oct 2026)
 - test/chromium/jambo-says-what-he-did-verify.js (new; red at unmodified main): a sentence typed beside MK-A2's paper lands on MK-C1's History with his card on top quoting it; Change what I said refills the box, free; Not this, go back returns to MK-A2's paper; a question that moves nothing draws no card; three screens.
+
+## THE SHELL — THE GUIDE IS THE MAP (round 7, 28 Oct 2026)
+- test/chromium/guide-is-the-map-verify.js (new; red at unmodified main): "?" opens the Guide free; every row with a one-word door says it and the word reads back to that row (New agreement has none); "negotiations" typed opens Negotiations; three screens.
