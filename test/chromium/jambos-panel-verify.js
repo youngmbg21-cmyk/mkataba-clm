@@ -90,7 +90,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       return { before: gl.contains(el) && !!read && !!(el.compareDocumentPosition(read) & Node.DOCUMENT_POSITION_FOLLOWING),
         title: (el.querySelector('.pd-gl-h b').textContent + ' ' + ((el.querySelector('.pd-gl-h .ds-ck-n') || {}).textContent || '')).trim(), n: ((el.querySelector('.pd-gl-h .ds-ck-n') || {}).textContent || '').trim(),
         /* RE-POINTED 20 Oct 2026 (the Legora way): the owed facts are the grid's rows */
-        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved):not(.is-named)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('.nd-read')),
+        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved):not(.is-named)').length, firstJw: !!jw, /* RE-POINTED 29 Oct 2026 (one grid): the row's name says whose it is, "Jambo’s work" */ jwFace: !!(jw && (jw.querySelector('.nd-read') || /^Jambo’s work$/.test(((jw.querySelector('.ds-nm') || {}).textContent || '').trim()))),
         kinds: rows.map(r => r.getAttribute('data-pd-nd-kind') || 'jw'),
         all: (el.querySelector('[data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount(),
         badge: (document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '' }; }, null, 10000);

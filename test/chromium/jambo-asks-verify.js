@@ -92,8 +92,9 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     /* ---- 4 the read, then the count ---- */
     c0 = h.ai.calls.length;
     await page.click('#ig-dock [data-ac-count-go]');
-    const r4 = await until(page, () => !AC.busy && !!document.querySelector('#ig-dock [data-ac-desk-rest] .ac-dk-count'), null, 40000);
-    const line = await page.evaluate(() => { const l = document.querySelector('#ig-dock [data-ac-desk-rest] .ac-dk-count'); return l ? l.innerText.replace(/\s+/g, ' ').trim() : ''; });
+    /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the count stands in the question's own card */
+    const r4 = await until(page, () => !AC.busy && !!document.querySelector('#ig-dock .ac-col.is-open .ac-dk-count'), null, 40000);
+    const line = await page.evaluate(() => { const l = document.querySelector('#ig-dock .ac-col.is-open .ac-dk-count'); return l ? l.innerText.replace(/\s+/g, ' ').trim() : ''; });
     check('4 after the read the card counts the yeses: "5 of 16 mention a rebate · Show those 5"', r4 && /^5 of 16 mention a rebate\s*Show those 5$/.test(line) && h.ai.calls.length === c0 + 16, { line, calls: h.ai.calls.length - c0 });
     for (const [w, ht] of SCREENS){ await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(250); await page.screenshot({ path: path.join(OUT, `counted-${w}x${ht}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });

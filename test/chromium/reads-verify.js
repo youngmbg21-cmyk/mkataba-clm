@@ -82,21 +82,23 @@ function book(){
     await page.screenshot({ path: path.join(OUT, 'form-1440x780.png') });
     await page.evaluate(() => askColClose());
     /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
-    const card = async () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-col]'); if (!c) return null; const p = c.querySelector('[data-ac-desk-rest]') || c.querySelector('.ac-th-prog');
-      return { prog: p ? (p.querySelector('.ac-desk-foot .ac-busy') || p.querySelector(':scope > .ac-meta') || {}).textContent.replace(/\s+/g, ' ').trim() : '', next: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), every: !!c.querySelector('[data-ac-reads]'), bar: p && p.querySelector('.ac-prog > i') ? p.querySelector('.ac-prog > i').style.width : '' }; });
+    /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the card says it in one sentence
+       ("… 50 of 500 are read, 450 to go."); Every read › sits under More… */
+    const card = async () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-col]'); if (!c) return null;
+      return { prog: ((c.querySelector('.ac-col-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(), next: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), every: !!c.querySelector('[data-ac-more]'), bar: c.querySelector('.ac-gbar') ? 'drawn' : '' }; });
     let C = await card();
     /* RE-POINTED 28 Oct 2026 (ONE BUTTON): the line says read and still to read, ONE button sized to what is left, the 50 | 100 pill beside it */
     check('2b the card: "50 of the 500 shown read · 450 still to read", one button "Read the next 50 · 400 left after", the pill, Every read ›',
-      !!C && /^50 of the 500 shown read · 450 still to read/.test(C.prog) && JSON.stringify(C.next) === JSON.stringify(['Read the next 50 · 400 left after']) && C.every, C);
+      !!C && /50 of 500 are read, 450 to go\./.test(C.prog) && JSON.stringify(C.next) === JSON.stringify(['Read the next 50 · 400 left after']) && C.every, C);
     await page.screenshot({ path: path.join(OUT, 'after-1440x780.png') });
 
     /* ---- 3 the next 50 reads 51–100, never the first 50 again ---- */
     await page.click('#ig-dock [data-ac-next][data-ac-n="50"]');
-    await until(page, () => !document.querySelector('[data-ac-stop]') && /^100 of the 500 shown read/.test(((document.querySelector('#ig-dock [data-ac-desk-rest] .ac-busy, #ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
+    await until(page, () => !document.querySelector('[data-ac-stop]') && /100 of 500 are read/.test(((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim()), null, 60000);
     C = await card();
     const reads = await W.admin.json('/api/columns/reads');
     const mine = (reads.reads || []).filter(r => r.askIds.includes(ask.id)).sort((a, b) => a.at.localeCompare(b.at));
-    check('3a the button read 51–100: "100 of the 500 shown read · 400 still to read", the next offered', !!C && /^100 of the 500 shown read · 400 still to read/.test(C.prog) && C.next[0] === 'Read the next 50 · 350 left after', C);
+    check('3a the button read 51–100: "100 of the 500 shown read · 400 still to read", the next offered', !!C && /100 of 500 are read, 400 to go\./.test(C.prog) && C.next[0] === 'Read the next 50 · 350 left after', C);
     check('3b the server kept two reads, 1–50 and 51–100, 50 contracts and 50 calls each, nothing cached', mine.length === 2 && mine[0].from === 1 && mine[0].to === 50 && mine[1].from === 51 && mine[1].to === 100
       && mine.every(r => r.n === 50 && r.calls === 50 && r.cached === 0) && mine.every(r => r.by === 'Amina Otieno'), mine.map(r => `${r.from}–${r.to} · ${r.n} · ${r.calls} calls · ${r.cached} cached · ${r.by}`).join(' | '));
     const sum = await W.admin.json('/api/columns/summary?all=1');
@@ -104,6 +106,7 @@ function book(){
     check('3c the kept answers: 100, each contract once', !!a2 && a2.read === 100, a2 && a2.read);
 
     /* ---- 4 the Reads page ---- */
+    if (!await page.$('#ig-dock [data-ac-reads]')) await page.click('#ig-dock [data-ac-more]');   /* Every read › sits under More… (29 Oct 2026) */
     await page.click('#ig-dock [data-ac-reads]');
     const landed = await until(page, () => state.view === 'reads' && !!document.querySelector('#rd-page .rd-t tbody tr[data-rd-row].is-sel') && !!document.querySelector('#ins-panel .rd-thread'), null, 15000);
     const R = await page.evaluate(() => { const tr = document.querySelector('#rd-page .rd-t tbody tr.is-sel'); const p = document.getElementById('ins-panel');
@@ -130,7 +133,7 @@ function book(){
       await page.screenshot({ path: path.join(OUT, `page-${w}x${ht}.png`) });
       if (w !== 1440){ await list(); await page.evaluate(a => askColOpen({ askId: a.id, question: a.question, name: a.name }), ask);
         await until(page, () => /not yet read/.test((document.querySelector('#ac-form .ac-th') || {}).textContent || ''), null, 15000); await page.screenshot({ path: path.join(OUT, `form-${w}x${ht}.png`) });
-        await page.evaluate(() => askColClose()); await until(page, () => !!document.querySelector('#ig-dock .ac-th-prog')); await page.screenshot({ path: path.join(OUT, `after-${w}x${ht}.png`) });
+        await page.evaluate(() => askColClose()); await until(page, () => !!document.querySelector('#ig-dock .ac-col.is-open')); await page.screenshot({ path: path.join(OUT, `after-${w}x${ht}.png`) });
         await page.evaluate(() => setView('reads')); await until(page, () => !!document.querySelector('#rd-page')); }
     }
     const errs = await page.evaluate(() => (window.__pageErrors || []).length);

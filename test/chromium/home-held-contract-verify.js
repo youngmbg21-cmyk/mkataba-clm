@@ -264,7 +264,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       return { card: window.bsCardId && bsCardId(), word: ((document.querySelector('#ig-dock .igd-head-w') || {}).textContent || '').trim(), ph: (document.getElementById('igd-input') || {}).placeholder,
         /* RE-POINTED 23 Oct 2026 (Spine): no section heads; the stage lines down the spine, Live the one we are in */
         head: [...g.querySelectorAll('.ds-sp-st b')].map(b => b.textContent).join(' | '), pill: !!g.querySelector('.ds-spine .ds-sp-st.is-cur[data-ds-sp="live"]'),
-        rows: [...g.querySelectorAll('[data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-gl'), t: (r.querySelector('span') || {}).textContent.replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
+        /* RE-POINTED 29 Oct 2026 (the Dossier's rows, one grid): the row is name · value · press; its whole sentence on the hover */
+        rows: [...g.querySelectorAll('[data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-gl'), t: (r.getAttribute('title') || (r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), nm: ((r.querySelector('.ds-nm') || {}).textContent || '').trim(), v: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
         fam: ((g.querySelector('[data-ds-fold="family"] summary') || {}).textContent || '').trim(),
         chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()),
         foot: document.querySelectorAll('#ig-dock [data-ig-chips]').length,
@@ -282,7 +283,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const rk = P7 ? P7.rows.map(r => r.k) : [];
     /* RE-POINTED 29 Oct 2026 (the owner: one grey pill per row, no arrow) */
     check('2b Still owed: the obligation late (→ Open); the signed amendment in the Family fold',
-      rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].b === 'Open'
+      rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].nm === 'Obligations' && P7.rows[rk.indexOf('late')].v === 'Check the September invoice, 7 days late' && P7.rows[rk.indexOf('late')].b === 'Open'
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the fold's line is "Family" and what stands, a row like the rest */
       && /^Family\s*Original and 1 more in its family/.test(P7.fam), JSON.stringify(P7 && { rows: P7.rows, fam: P7.fam }));
     check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask Jambo about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));

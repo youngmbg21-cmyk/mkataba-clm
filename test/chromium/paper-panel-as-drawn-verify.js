@@ -119,10 +119,11 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     console.log('\n1 · a note of yours, in Needs you here');
     await onPaper();
     const nt = await until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="mynote"]'); if (!r) return null;
-      return { title: r.querySelector('b').textContent.trim(), sub: r.querySelector('small').textContent.trim(), btn: (r.querySelector('[data-pd-nd-note]') || {}).textContent || '',
+      /* RE-POINTED 29 Oct 2026 (the Dossier's rows, one grid): Your note · Due today · Open; its own words and "only you" on the hover */
+      return { title: ((r.querySelector('.ds-nm') || {}).textContent || '').trim(), val: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), sub: (r.getAttribute('title') || '').trim(), btn: (r.querySelector('[data-pd-nd-note]') || {}).textContent || '',
         n: Number(((document.querySelector('#pd-needs .pd-gl-h .ds-ck-n') || {}).textContent || '').replace(/\D+/g, '') || 0), rows: document.querySelectorAll('#pd-needs .pd-gl-row:not(.is-done), #pd-needs #pd-og tr.pd-og-row:not(.is-saved):not(.is-named)').length,
         all: (document.querySelector('#pd-needs [data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount() }; }, null, 10000);
-    check('1a "1 note due today", its own words and "only you", with Open note', !!nt && nt.title === '1 note due today' && nt.sub === '“Check Nordvik\'s insurance broker.” · only you' && nt.btn === 'Open note', JSON.stringify(nt));
+    check('1a "Your note · Due today", its own words and "only you" on the hover, with Open', !!nt && nt.title === 'Your note' && nt.val === 'Due today' && nt.sub === '“Check Nordvik\'s insurance broker.” · only you' && nt.btn === 'Open', JSON.stringify(nt));
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): Needs you here's rows are the dossier's Still owed card,
        "Still owed · N" counting its rows; its head says "everything, one list" where "all N" stood */
     /* RE-POINTED 21 Oct 2026 (the Legora way, owner 20 Oct 2026): the owed FACTS are rows of the grid
@@ -146,29 +147,31 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     /* RE-POINTED 23 Oct 2026 (the rest of Round A, as drawn: "Nordvik Logistik's answer · 5 of 6 /
        Jambo read … · waiting 8 days · Look"): past the standard, their redlines are the answer
        Jambo prepared for them — ONE row carrying their wait, late — never a second row */
-    const q9 = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r) return null; const sm = r.querySelector('small');
-      if (!sm || !sm.querySelector('.late')) return null;
-      return { title: r.querySelector('b').textContent.trim(), sub: sm.textContent.trim(), late: !!sm.querySelector('.late'), btn: (r.querySelector('[data-pd-nd-jw]') || {}).textContent.trim(),
+    /* RE-POINTED 29 Oct 2026 (one grid): Jambo's work · their answer · Look, late in amber, the wait on the hover */
+    const q9 = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r || !r.classList.contains('is-hot')) return null;
+      return { title: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), name: ((r.querySelector('.ds-nm') || {}).textContent || '').trim(), sub: (r.getAttribute('title') || '').trim(), late: r.classList.contains('is-hot'), btn: (r.querySelector('[data-pd-nd-jw]') || {}).textContent.trim(),
         quietRow: !!document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]') }; }, null, 6000);
     const c9 = await counts();
     check('1f (pass 3) past the standard: "Answer Nordvik Logistik AB’s 2 redlines" · Waiting N days · clauses 7 and 11 · Open redlines, counted with the rows',
-      !!q9 && /^Nordvik Logistik AB’s answer/.test(q9.title) && /waiting 9 days/.test(q9.sub) && q9.late && q9.btn === 'Look' && !q9.quietRow && c9.quietOwed && c9.pill === c9.rows, JSON.stringify({ q9, c9 }));
+      !!q9 && q9.name === 'Jambo’s work' && /^Nordvik Logistik AB’s answer/.test(q9.title) && /waiting 9 days/.test(q9.sub) && q9.late && q9.btn === 'Look' && !q9.quietRow && c9.quietOwed && c9.pill === c9.rows, JSON.stringify({ q9, c9 }));
     await shot(page, '3-panel-asks-past-the-standard-1440x780');
     await page.evaluate(() => { const at = new Date().toISOString();
       (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
 
     console.log('\n1g · Jambo\'s work here, in the drawing\'s words');
-    const jw = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r) return null; const sm = r.querySelector('small');
-      return { title: r.querySelector('b').textContent.trim(), sub: sm ? sm.textContent.trim() : '', cut: sm ? sm.scrollWidth > sm.clientWidth + 1 : null, lines: sm ? Math.round(sm.getBoundingClientRect().height / parseFloat(getComputedStyle(sm).lineHeight)) : 0 }; }, null, 6000);
+    /* RE-POINTED 29 Oct 2026 (one grid): the row is Jambo's work · their answer; what he read and its step on the hover, the answer never cut */
+    const jw = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r) return null; const v = r.querySelector('.ds-val');
+      return { name: ((r.querySelector('.ds-nm') || {}).textContent || '').trim(), title: v ? v.textContent.trim() : '', sub: (r.getAttribute('title') || '').trim(), cut: v ? v.scrollWidth > v.clientWidth + 1 : null }; }, null, 6000);
     /* RE-POINTED 23 Oct 2026 (as drawn): the one desk's row — its title and step, what Jambo read */
-    check('1g "Jambo’s work · Nordvik’s answer", its line said whole (never cut)', !!jw && /^Nordvik Logistik AB’s answer\d+ of \d+$/.test(jw.title) && /^Jambo read .+/.test(jw.sub) && jw.cut === false, JSON.stringify(jw));
+    check('1g "Jambo’s work · Nordvik’s answer", its line said whole (never cut)', !!jw && jw.name === 'Jambo’s work' && /^Nordvik Logistik AB’s answer$/.test(jw.title) && /^\d+ of \d+ · Jambo read .+/.test(jw.sub) && jw.cut === false, JSON.stringify(jw));
 
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance became the dossier — the spine for the stage,
        What Jambo read, and Still owed as one list (each empty detail, the signer, their asks · Reply ›) */
     console.log('\n2 · the dossier as drawn');
     const gl = await page.evaluate(() => { const g = document.getElementById('pd-glance'); const owed = g.querySelector('[data-pd-ds-card="owed"]');
       const rows = [...owed.querySelectorAll('.pd-gl-row:not(.is-done)')];
-      const row = k => rows.filter(r => r.getAttribute('data-pd-gl') === k).map(r => ({ say: r.querySelector('span').firstChild.textContent.trim(), sub: ((r.querySelector('small') || {}).textContent || '').trim(), btn: ((r.querySelector('button') || {}).textContent || '').trim() }));
+      /* RE-POINTED 29 Oct 2026 (one grid): Their redlines · the ask in its own words · Reply; how long it waits on the hover */
+      const row = k => rows.filter(r => r.getAttribute('data-pd-gl') === k).map(r => ({ say: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), sub: ((r.getAttribute('title') || '').split(' · ').pop() || '').trim(), btn: ((r.querySelector('button') || {}).textContent || '').trim() }));
       const rk = g.querySelector('[data-pd-ds="risks"]');
       const D = dossierOf(getContract('MK-0382')), want = D.stages.find(x => x.k === 'nego').n;
       /* RE-POINTED 23 Oct 2026 (Spine): the stage is a line down the spine; its number on its hover as before */

@@ -50,7 +50,8 @@ const book = n => Array.from({ length: n }, (_, i) => fixtureContract(`HC-${3001
     const going = await until(page, () => !!AC.busy && AC.busy.done >= 1 && !!document.querySelector('#ac-form [data-ac-stop]'), null, 20000);
     const t0 = Date.now();
     await page.click('#ac-form [data-ac-stop]');
-    const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
+    /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the stop is said in its own question's card */
+    const stopped = await until(page, () => /^You stopped at/.test(((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim()), null, 20000);
     const took = Date.now() - t0;
     /* WHAT WAS WITH JAMBO AT THE PRESS is counted once the server has heard it (a beat after the card): the moment
        the first answers come back the server has already handed the next few to Jambo, and those finish and are
@@ -65,8 +66,8 @@ const book = n => Array.from({ length: n }, (_, i) => fixtureContract(`HC-${3001
     check('2a the cells that were spinning say "not read yet" at once; none spins', cells.spinning === 0 && cells.notRead > 0, cells);
     await page.waitForTimeout(4000);
     check('2b no further contract reaches the stand-in after the press', h.ai.calls.length === atPress, { atPress, after: h.ai.calls.length });
-    const said = await page.evaluate(() => (document.querySelector('#ac-stopped .ac-dk-said') || {}).textContent || '');
-    const m = /^Stopped at (\d+) of 40 · (\d+) answers? kept/.exec(said.trim());
+    const said = await page.evaluate(() => (document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '');
+    const m = /^You stopped at (\d+) of 40\. (\d+) of 40 are read/.exec(said.trim());
     check('2c it says where it stopped of the 40 and what was kept', !!m && m[1] === m[2] && Number(m[1]) > 0 && Number(m[1]) < 40, said);
 
     /* ---- 3 Carry on ---- */
