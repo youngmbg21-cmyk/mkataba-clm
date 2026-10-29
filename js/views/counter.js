@@ -1001,12 +1001,50 @@ function ndBundleGo(){
   if (typeof regShowOnly === 'function'){ regShowOnly(ids, _cnT('nd_bundle_said')); return true; }
   return false;
 }
-/* THE CHIPS UNDER THE BOX: the four places, the Board always first (owner, 27 Oct 2026: "remove the highlighted sign
-   contract and add board as always an option to press when you are in the home page" — the lead chip, the first row's
-   short name, is gone: Needs you right under it already carries that row and its button). All wear the same plain pill. */
-function cnChipsHtml(){
+/* THE CHIPS UNDER THE BOX: the Board always first (owner, 27 Oct 2026: "add board as always an option to press when
+   you are in the home page"). THE BOX PREDICTS (round 5, the Legora way; owner's yes 29 Oct 2026: "bring them to home
+   page", which reverses 27 Oct's "remove the highlighted sign contract"): "Likely next:" and the next three things that
+   wait, each said as a whole task ("answer Nandi Dairy's 2 changes") off the one desk's reading (ndRead, in Needs you's
+   own order right under it: Jambo's prepared work, then your move), each pressing its own row's door (ndParts' attrs) — nothing is asked of Jambo and
+   nothing costs. Nothing waiting: the usual places, board · contracts · calendar · draft a new agreement (owner: "the
+   usual links apart from reads"). All wear the same underlined link. */
+const CN_LIKELY_MAX = 3;
+/* a sentence's first word made small only where it is a plain word ("A chase…" → "a chase…"), never a name ("Nordvik…") */
+const CN_LK_SMALL = ['a', 'an', 'the', 'your', 'their', 'our', 'en', 'ett', 'din', 'ditt', 'dina', 'deras', 'vår', 'vårt', 'våra'];
+const _cnLow = s => { s = String(s || '').trim(); const w = s.split(/\s+/)[0].toLowerCase(); return CN_LK_SMALL.includes(w) ? s.charAt(0).toLowerCase() + s.slice(1) : s; };
+/* a waiting thing said as the task it asks for — the short name's own reading (cnNeedShort's), with its verb */
+function cnLikelyWords(r){
+  if (!r) return '';
+  if (r.bundle) return _cnTn('cn_lk_bundle', r.n, { n: r.n });
+  /* a piece Jambo prepared is looked at before it goes anywhere: "review a chase to Kettle & Co" */
+  if (r.g === 'jambo'){ const t = _cnLow(ndParts(r).title); return t ? _cnT('cn_lk_piece', { what: t }) : ''; }
+  if (r.al || r.setup) return _cnLow(ndParts(r).title);
+  const y = r.y; if (!y) return '';
+  if (y.k === 'note') return y.urgent ? _cnT('cn_lk_mynote_late') : _cnT('cn_lk_mynote');
+  if (y.k === 'watch') return _cnLow((typeof watchFiredWords === 'function') ? watchFiredWords(y.w || {}) : _cnT('wt_sh'));
+  if (y.k === 'req'){ const what = cnReqWhat(y.r), who = _cnWho(_cnFirst((y.r && y.r.by && y.r.by.name) || ''));
+    return what ? _cnT('cn_lk_request_what', { ...who, what }) : _cnT('cn_lk_request', who); }
+  const x = y.x, c = x.c, it = x.it, cp = String(c.counterparty || c.name || '').trim(), n = it.n || 1;
+  if (it.kind === 'approval') return y.fw ? _cnT('cn_lk_approval_for', _cnWho(_cnFirst(y.fw.name))) : _cnT('cn_lk_approval', { who: cp });
+  if (it.kind === 'quiet') return _cnTn('cn_lk_redlines', n, { ..._cnWho(cp), n });
+  if (it.kind === 'details') return _cnTn('cn_lk_details', n, { ..._cnWho(cp), n });
+  if (it.kind === 'promises') return _cnTn('cn_lk_promises', n, { ..._cnWho(cp), n });
+  if (['renewal', 'sign', 'copies'].includes(it.kind)) return _cnT('cn_lk_' + it.kind, _cnWho(cp));
+  if (['review', 'look', 'refused', 'join', 'note', 'suggest'].includes(it.kind) && it.who) return _cnT('cn_lk_' + it.kind, _cnWho(_cnFirst(it.who)));
+  return _cnLow((typeof hbNyWhat === 'function') ? hbNyWhat(x) : '');
+}
+/* the next things that wait, in Needs you's order, each with its words and its row's door */
+function cnLikely(D){
+  const B = ndOnBoard(D && Array.isArray(D.you) ? D : ndRead());
+  return B.jambo.concat(B.you).map(r => ({ r, words: cnLikelyWords(r), attrs: ndParts(r).attrs })).filter(t => t.words && t.attrs).slice(0, CN_LIKELY_MAX);
+}
+function cnChipsHtml(D){
   const w = k => _cnT(k);
-  return [w('ca_w_board'), w('nav_contracts').toLowerCase(), w('ca_w_calendar'), w('ca_wall_draft')].map(word => `<button type="button" class="cn-chip" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`).join('');
+  const chip = word => `<button type="button" class="cn-chip" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`;
+  let L = []; try { L = cnLikely(D); } catch (_){ L = []; }
+  if (!L.length) return [w('ca_w_board'), w('nav_contracts').toLowerCase(), w('ca_w_calendar'), w('ca_wall_draft')].map(chip).join('');
+  return `<span class="cn-lk-h">${_cnE(_cnT('cn_lk_head'))}</span>${chip(w('ca_w_board'))}`
+    + L.map(t => `<button type="button" class="cn-chip cn-lk" data-cn-lk="${_cnE(t.r.key)}" ${t.attrs}>${_cnE(t.words)}</button>`).join('');
 }
 /* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
    a page loaded without it (a test's one-file world) draws the bare parts */
@@ -1030,7 +1068,7 @@ function counterHtml(){
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
     <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
       <div class="cn-wrap">${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */}${_cnJbCard({ cls: 'cn-card-box', field: `<textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea>`, send: _cnJbSend('data-cn-send', _cnT('cn_ask')) })}<div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
-      <div class="cn-chips" id="cn-chips">${cnChipsHtml()}</div></section>
+      <div class="cn-chips" id="cn-chips">${cnChipsHtml(D)}</div></section>
     <section class="cn-card cn-needs nd-home" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${D.n}</span>${sum ? `<span class="nd-sum">${_cnE(sum)}</span>` : ''}</header>${rows}</section>
     ${pick}</div></div>`;
 }
@@ -1220,7 +1258,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
+Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnLikely, cnLikelyWords, CN_LIKELY_MAX, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
   ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });
