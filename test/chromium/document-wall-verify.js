@@ -151,16 +151,16 @@ const check = (name, pass, detail) => {
       fit.w >= 110 && fit.w <= 160 && Math.abs(fit.w / fit.h - 1.55) < 0.08, JSON.stringify(fit));
     check('2c the first paper is painted where it stands', fit.painted);
 
-    /* ================= 3. SEARCH NARROWS (the top bar's box, the place's one search) ================= */
+    /* ================= 3. SEARCH NARROWS (the place's own box; RE-POINTED 29 Oct 2026, round 1: the bar's search left) ================= */
     const one = await page.evaluate(() => contractRef(regFiltered()[0]));
-    await page.fill('#cmd-search', one);
+    await page.fill('[data-reg-home] input[data-lh-q]', one);
     await page.waitForTimeout(400);
     const found = await page.evaluate(() => ({ refs: [...document.querySelectorAll('#ig-paper .igw-ref')].map(e => e.textContent.trim()),
       place: !!document.querySelector('#ig-paper [data-reg-home][data-ct-show="wall"]'),
-      focus: document.activeElement && document.activeElement.id === 'cmd-search' }));
+      focus: !!(document.activeElement && document.activeElement.matches && document.activeElement.matches('[data-reg-home] input[data-lh-q]')) }));
     check('3a typing a contract number narrows the wall to it, where it stands, and the box keeps the caret',
       found.place && found.refs.includes(one) && found.refs.length >= 1 && found.refs.length < all.want && found.focus, JSON.stringify({ one, ...found }));
-    await page.fill('#cmd-search', '');
+    await page.fill('[data-reg-home] input[data-lh-q]', '');
     await page.waitForTimeout(400);
 
     /* ================= 4. SORT (the List's Sort, on the wall's count line) ================= */

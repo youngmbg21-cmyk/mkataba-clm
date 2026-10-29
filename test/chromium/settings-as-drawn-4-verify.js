@@ -120,17 +120,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
         }
       }
       if (W === 1440) {
-        /* ⌘K: a setting's row */
+        /* 1d RETIRED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box, which finds a
+           setting itself (the half below); the old jump list's settings row went with ⌘K */
         await company();
         await page.keyboard.press('Control+k');
-        const cp = await until(() => !!document.getElementById('cp-input'));
-        if (cp) {
-          await page.fill('#cp-input', 'Monthly report');
-          const row = await until(() => { const r = [...document.querySelectorAll('#cmd-palette [data-kind="setting"], #cmd-palette .cp-row, #cmd-palette [role="option"]')].find(x => /Monthly report/i.test(x.textContent)); return r ? true : null; });
-          if (row) { await page.keyboard.press('Enter'); }
-          const r = await until(() => { const dr = document.querySelector('#st-dock > #st-drawer.is-docked.open'); return dr ? document.querySelector('[data-st-pg="panel"]').getAttribute('data-st-dock-key') : (document.querySelector('body > #st-drawer.open') ? 'drawer' : null); });
-          check('1d ⌘K\'s "Monthly report" row opens its page with ‹ Settings', r === 'report', String(r));
-        } else check('1d ⌘K opens', false, 'no palette');
+        const kb = await until(() => { const a = document.activeElement; return a && a.closest && a.closest('.jb-card') ? true : null; });
+        check('1d ⌘K on Settings puts the hand in Jambo\'s box', !!kb);
         /* Jambo's Open on a setting he found (a drawer left over the page by a
            build without this pass is shut first, so each half reports alone) */
         const shut = () => page.evaluate(() => { try { if (document.querySelector('body > #st-drawer.open')) stDrawerClose(); } catch (_) {} });
