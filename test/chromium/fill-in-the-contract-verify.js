@@ -145,10 +145,11 @@ const white = bg => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(bg); retur
     const rights = [...new Set(withAll.map(r => r.d.r))];
     check('1d every door ends on one right edge', rights.length === 1, rights.join(','));
     check('1e no ring or dot before a line', d0.rows.every(r => !r.ring));
-    check('1f the stage names stand as group heads (Read, Fill in, Sign)', ['Read', 'Fill in', 'Sign'].every(w => d0.heads.includes(w)), d0.heads.join(' · '));
+    /* RE-POINTED 29 Oct 2026 (the owner: "remove the filler words", the Dossier's stage heads among them): one even list, no group heads */
+    check('1f no stage name stands as a group head (Read, Fill in, Sign)', !['Read', 'Fill in', 'Sign'].some(w => d0.heads.includes(w)), d0.heads.join(' · '));
 
     console.log('\n2 · the owed details are one line');
-    check('2a "Details · N needed · Fill in ›"', /^Details\s*\d+ needed.*Fill in ›$/.test(d0.details), d0.details);
+    check('2a "Details · N needed · Fill in"', /^Details\s*\d+ needed.*Fill in$/.test(d0.details), d0.details);
     check('2b the Dossier holds no box to type in', d0.boxes === 0, d0.boxes);
 
     console.log('\n3 · the Next card has one button');

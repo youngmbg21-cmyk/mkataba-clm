@@ -103,7 +103,7 @@ describe('f748 (1) their round and each of their asks', () => {
     const { ctx, c } = glance();
     const html = ctx.pdGlanceHtml(c);
     /* RE-POINTED 20 Oct 2026 (the Dossier, #386): Still owed names each of their asks, how long it waits, and Reply › onto the Redlines */
-    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>[^<]+<small>waits 4 days ago<\/small><\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply ›<\/button>/);
+    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>[^<]+<small>waits 4 days ago<\/small><\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply<\/button>/);
     const today = glance({ asks: [ask('a', '7. Limitation of liability', SWAP, { createdAt: new Date().toISOString() })] });
     assert.equal(today.ctx.pdGlMoveSay(today.c, today.c.changes), 'Nordvik Logistik AB sent 1 redline today.');
   });
@@ -138,7 +138,7 @@ describe('f748 (1) their round and each of their asks', () => {
     const rows = J(ctx.pdGlanceRows(c).map(r => Object.assign({}, r, { ch: undefined })));
     assert.equal(rows.filter(r => r.kind === 'ask').length, ctx.PD_GL_ASKS_MAX);
     assert.deepEqual(J(rows.find(r => r.k === 'asks-more')), { k: 'asks-more', n: 5 - ctx.PD_GL_ASKS_MAX });
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="ask-more"><span>2 more of their asks\.<\/span>|data-pd-gl="ask"><span>2 more of their asks\.<\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply ›</);
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="ask-more"><span>2 more of their asks\.<\/span>|data-pd-gl="ask"><span>2 more of their asks\.<\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply</);
   });
   test('1e our own asks, a decided ask and a withdrawn one are not theirs waiting', () => {
     const { ctx, c } = glance({ asks: [ask('a', '7. X', SWAP, { authorSide: 'owner' }), ask('b', '8. Y', SWAP, { status: 'accepted' })] });
