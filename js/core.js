@@ -2244,17 +2244,19 @@ function renderAuth(mode){
      rather than per-element, so a panel added later cannot forget. */
   document.body.classList.add('pre-auth');
   const root=document.getElementById('auth-root');
-  const shell = inner => `
+  /* A SIGN-IN THAT SAYS WHAT HaTi IS (round 11, "The Legora way", owner's overnight build of 28 Oct 2026): on the
+     sign-in page one sentence in the serif under the wordmark, and under the form what stays private */
+  const shell = (inner, o = {}) => `
   <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:var(--s-10) var(--s-4);">
     <div style="width:100%;max-width:420px;">
       ${''/* CHAMBERS (owner picked it by name, 20 Oct 2026): the wordmark is the
            word "HaTi" in the title serif, no tile; the card is a hairline */}
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:20px;line-height:1.15;">
         <div style="font-family:var(--font-title);font-weight:600;font-size:26px;color:var(--color-text);">HaTi</div>
-        <div style="font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('co_clm')}</div>
+        ${o.say?`<div class="li-say" style="font-family:var(--font-title);font-size:17px;line-height:1.45;color:var(--color-text);text-align:center;max-width:46ch;margin-top:10px;text-wrap:balance;">${o.say}</div>`:`<div style="font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('co_clm')}</div>`}
       </div>
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:26px;">${inner}</div>
-      <p style="text-align:center;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:14px;line-height:1.6;">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
+      <p class="li-foot" style="text-align:center;font-size:var(--t-label);color:var(--color-neutral-600);margin:14px auto 0;line-height:1.6;max-width:52ch;">${o.foot&&REMOTE?o.foot:REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
     </div>
   </div>`;
   const input=(id,label,type='text',ph='')=>`
@@ -2308,14 +2310,14 @@ function renderAuth(mode){
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
   } else if(mode==='login'){
     root.innerHTML = shell(`
-      <h1 style="${H1}">${i18t('co_sign_in_to',{org:getOrg()?.name||i18t('co_your_workspace')})}</h1>
-      <p style="${SUB}">${i18t('co_use_credentials')}</p>
-      ${input('li-email',i18t('co_email'),'email')}
+      <h1 style="${H1};margin-bottom:18px;">${i18t('co_sign_in_to',{org:getOrg()?.name||i18t('co_your_workspace')})}</h1>
+      ${input('li-email',i18t('co_work_email'),'email')}
       ${input('li-pass',i18t('co_password'),'password')}
       <button id="li-go" class="ui-btn ui-btn-primary" style="${PBTN}">${i18t('co_sign_in')}</button>
       <p id="li-err" class="hidden" style="text-align:center;font-size:var(--t-meta);color:var(--st-ruby-dot);margin-top:var(--s-3);"></p>
       ${REMOTE?`<button id="li-forgot" style="${LINKBTN}">${i18t('co_forgot_password')}</button>`:''}
-      ${REMOTE?'':`<button id="li-reset" style="${LINKBTN}">${i18t('co_reset_workspace')}</button>`}`);
+      ${REMOTE?'':`<button id="li-reset" style="${LINKBTN}">${i18t('co_reset_workspace')}</button>`}`,
+      { say:window.esc(i18t('co_li_say')), foot:window.esc(i18t('co_li_private',{org:getOrg()?.name||i18t('co_your_workspace')})) });
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
     document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
