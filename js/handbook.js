@@ -51,7 +51,7 @@ const HANDBOOK_CHAPTERS = [
     eyebrow: { en: 'The first screen', sv: 'Första skärmen' },
     what: { en: 'On a computer HaTi opens on Home. Jambo\'s box is at the top, Needs you under it (everything waiting on you, the contract\'s number first on every row), then your book: the Board, your contracts, the Calendar and the Explorer.',
       sv: 'På en dator öppnar HaTi på Hem. Jambos ruta överst, Behöver dig under den (allt som väntar på dig, avtalets nummer först på varje rad), sedan din bok: Tavlan, dina avtal, Kalendern och Utforskaren.' },
-    when: [{ en: 'Every morning: what is waiting, and whose move it is.', sv: 'Varje morgon: vad som väntar, och vems drag det är.' },
+    when: [{ en: 'Every morning: what is waiting, and whose move it is. You sign in with your {ui:co_work_email} and password; the sign-in page says in one sentence what HaTi is, and under the form what stays inside your company.', sv: 'Varje morgon: vad som väntar, och vems drag det är. Du loggar in med din {ui:co_work_email} och ditt lösenord; inloggningssidan säger i en mening vad HaTi är, och under formuläret vad som stannar inom ert företag.' },
       { en: 'When you are lost: the bar\'s HaTi mark always brings you back here.', sv: 'När du tappat bort dig: HaTi-märket i listen tar dig alltid hit.' }],
     path: ['door:counter', { en: 'or press HaTi in the bar', sv: 'eller tryck HaTi i listen' }],
     how: [{ en: 'Read Needs you. Each row has one button with one word ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): press it and you land on that act.', sv: 'Läs Behöver dig. Varje rad har en knapp med ett ord ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): tryck och du landar på den handlingen.' },

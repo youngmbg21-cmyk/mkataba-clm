@@ -503,3 +503,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## CALENDAR — THE AGENDA TAB (round 12, 28 Oct 2026)
 - test/chromium/calendar-agenda-verify.js (new; red at unmodified main: no Agenda tab): opens on Week, Agenda first tab; every date of 90 days a row with mark, contract, one word; a run of empty weeks one line; foot counts; Open lands; kept across a refresh; three screens. f261 (5), f148 SAME_IN_BOTH and calendar-redesign 1/4 re-pointed to four tabs.
+
+## THE SIGN-IN PAGE (round 11, 28 Oct 2026)
+- test/chromium/sign-in-says-verify.js (new; red at unmodified main): the serif sentence under the wordmark, Work email and no grey line under the heading, the private line naming the company, three screens, sign-in still works.
