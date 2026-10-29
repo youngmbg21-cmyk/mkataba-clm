@@ -427,10 +427,11 @@ describe('f754 (9) the road, the third pass', () => {
     const f = strip(PD.slice(PD.indexOf('function pdSignWire('), PD.indexOf('async function pdRoadPress(')));
     assert.match(f, /hbOpenView\(ob\.getAttribute\('data-pd-sf-oblig'\), 'oblig'\);\s*if \(typeof landOn === 'function'\) landOn\(\(\) => document\.querySelector\('#obw-one-host table, #obw-one-host \.obt, #obw-one-host'\), \{ block: 'start', focus: false \}\);/);
   });
-  test('9j beside the signing copy the name stays whole: Notes and Share keep their word in their hover on a short line', () => {
+  test('9j beside the signing copy the name stays whole: Send keeps its word in its hover, Ask for review steps aside', () => {
     assert.match(IX, /#ig-strip\{container:igline \/ inline-size\}/);
-    assert.match(IX, /@container igline \(max-width: 1000px\)\{\s*#ig-strip \.ig-sc ~ \.ig-acts :is\(\.ig-notes-w, \.ig-share-w, \.ig-actions-w\)\{display:none\}/, 'Actions (23 Oct 2026) gives its word up with them');
-    assert.match(IG, /<span class="ig-share-w">\$\{igEsc\(i18t\('ct_share'\)\)\}<\/span>/);
+    /* RE-POINTED 29 Oct 2026 (round 13, owner's yes): the line is Send · Ask for review · More; More has no symbol, so keeps its word */
+    assert.match(IX, /@container igline \(max-width: 1000px\)\{\s*#ig-strip \.ig-sc ~ \.ig-acts \.ig-share-w\{display:none\}\s*#ig-strip \.ig-sc ~ \.ig-acts #ws-review\{display:none\}/);
+    assert.match(IG, /<span class="ig-share-w">\$\{igEsc\(sendWord\)\}<\/span>/);
   });
 });
 

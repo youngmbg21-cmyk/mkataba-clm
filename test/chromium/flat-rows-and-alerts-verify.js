@@ -307,8 +307,11 @@ const SEED_UNSENT = async () => {
        WHAT THESE CHECKS WERE REALLY FOR — that this row speaks with ONE voice,
        nothing bold and nothing filled — is 3c, 3d and the new 3e below, and it
        is now absolute rather than led by one named button. */
-    check('3a the row carries no send of its own any more',
-      Array.isArray(acts) && !acts.some(b => /publish|send/i.test(b.text)),
+    /* REVERSED 29 Oct 2026 (round 13 "The Legora way", owner's yes: "Build … round 13"): the line is the stage's
+       two words and More — Send (the one filled button, the round's Send all while changes wait) · Ask for review ·
+       More. The drawing is the owner's yes to the filled Send this check refused since 27 Aug. */
+    check('3a the row is Send · Ask for review · More, Send first',
+      Array.isArray(acts) && acts.length === 3 && /^(Send|Share)/.test(acts[0].text) && /review/i.test(acts[1].text) && /^More$/.test(acts[2].text),
       Array.isArray(acts) ? acts.map(b => b.text) : acts);
     /* FILLED means a tint. RE-POINTED 20 Sep 2026 (the redesign order): every
        secondary button wears the reference's white face — the page SURFACE —
@@ -321,8 +324,8 @@ const SEED_UNSENT = async () => {
        every act on the row wears ONE face. */
     const plainBg = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--surface-2)';
       document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; });
-    check('3b and nothing on it is filled — the row leads by position',
-      Array.isArray(acts) && acts.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg || b.bg === plainBg) && new Set(acts.map(b => b.bg)).size === 1,
+    check('3b only Send is filled; the rest wear the one plain face',
+      Array.isArray(acts) && acts.length === 3 && ![surfaceBg, plainBg, 'rgba(0, 0, 0, 0)'].includes(acts[0].bg) && acts.slice(1).every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg || b.bg === plainBg),
       Array.isArray(acts) ? acts.map(b => [b.text, b.bg]) : acts);
     /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it):
        "not bold" was measured as "at most 400", which was the row's weight that

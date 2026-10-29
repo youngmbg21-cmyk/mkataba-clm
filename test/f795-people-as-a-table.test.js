@@ -99,8 +99,8 @@ describe('f795 (1) the band as drawn', () => {
     assert.equal(doc.querySelector('#dir-page .cu-fb, #dir-page select[data-dir-f], #dir-page .cu-find-l, #dir-page .dir-az'), null, 'no labelled band, no A to Z edge');
     const q = doc.getElementById('dir-q');
     assert.ok(q && q.hasAttribute('data-lh-q'), 'the box keeps the page\'s id');
-    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
-    assert.equal(q.getAttribute('placeholder'), 'Search 15 people');
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): a list's box is a quiet filter */ 
+    assert.equal(q.getAttribute('placeholder'), 'Filter this list');
     const pg = sb.LH_PAGES.directory;
     assert.equal(pg.tabAttr, 'data-dir-tab');
     assert.equal(pg.tabNow(), 'all');

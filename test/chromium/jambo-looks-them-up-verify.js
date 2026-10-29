@@ -130,7 +130,9 @@ const TEXT = [
     /* RE-POINTED 25 Oct 2026 (the owner picked "Two lines"): "Who else is on this agreement" may take a second
        line, so the web row is measured against a one-line door row (the Signer's), and Who else against it as one
        line or two (owner's pick: a door row's name takes two lines before "…") */
-    check(!!(row && row.afterPeople && row.h === row.hs && (row.hp === row.hs || row.hp === row.hs + 20)), '1c right after Who else, a door row of the same dress (one line as the Signer\'s; Who else one or two lines)', row && { afterPeople: row.afterPeople, h: row.h, hp: row.hp, hs: row.hs });
+    /* RE-POINTED 29 Oct 2026 (the owner: every row 11 above and 11 below, the 22px pill the one line's height): Who else's
+       second line of words adds less than a full 20 over the pill's 22 */
+    check(!!(row && row.afterPeople && row.h === row.hs && (row.hp === row.hs || (row.hp > row.hs && row.hp <= row.hs + 20))), '1c right after Who else, a door row of the same dress (one line as the Signer\'s; Who else one or two lines)', row && { afterPeople: row.afterPeople, h: row.h, hp: row.hp, hs: row.hs });
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-dossier-line.png') });
     await drive(s => document.querySelector(s + ' [data-pd-web]').click(), ROW, null);
     const dlg = await until(P, () => !!document.querySelector('.pw-dlg [data-pw-go]'), null, 5000);

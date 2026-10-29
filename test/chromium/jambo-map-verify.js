@@ -156,28 +156,18 @@ const check = (name, pass, detail) => {
     check('5b and Jambo says it in Svenska', sv === svWant && /dagar/.test(svWant), JSON.stringify({ sv, svWant }));
     await page.evaluate(() => window.langSet('en'));
 
+    /* 7 RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box; on Home "/"
+       is that box's own list of places. The sentence-to-task reading the old ⌘K list showed is the box's (5a above). */
     console.log('\n7 · ⌘K');
-    const palette = async q => { await page.evaluate(() => { const p = document.getElementById('cmd-palette'); if (p) p.remove(); });
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+    await toCounter();
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+    const k7 = await until(() => { const a = document.activeElement; return a && a.closest && a.closest('.jb-card') ? (a.id || a.tagName) : null; });
+    check('7a ⌘K on Home puts the hand in Jambo\'s box', !!k7, String(k7));
+    /* the jump list itself still reads the map's sentences (its door is "/" outside a box, off Home): opened as its door does */
+    const palette = async q => { await page.evaluate(() => { const p = document.getElementById('cmd-palette'); if (p) p.remove(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); openCommandPalette(); });
       if (!(await until(() => !!document.getElementById('cp-input')))) return null;
       await page.fill('#cp-input', q); await page.waitForTimeout(250);
       return page.evaluate(() => [...document.querySelectorAll('#cp-list [data-cp-i]')].map(b => ({ text: b.innerText.replace(/\s+/g, ' ').trim(), sel: b.getAttribute('aria-selected') === 'true' }))); };
-    await toCounter();
-    const p1 = await palette('which contracts are expiring soon');
-    const want1 = await page.evaluate(() => ({ t: i18t('jm_t_expiring'), s: i18t('jm_s_expiring'), tag: i18t('jm_tag') }));
-    check('7a ⌘K: a sentence gives its task as the first row, described and tagged as a task', !!p1 && p1.length > 0 && p1[0].sel && p1[0].text.includes(want1.t) && p1[0].text.includes(want1.s) && p1[0].text.includes(want1.tag), JSON.stringify(p1 && p1.slice(0, 3)));
-    for (const [w, hh] of SCREENS){
-      await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(250);
-      const fit = await page.evaluate(() => { const l = document.getElementById('cp-list'), b = l && l.querySelector('[data-cp-i]'); if (!b) return null;
-        const r = b.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return { noScroll: l.scrollWidth <= l.clientWidth + 1, hit: !!el && b.contains(el) }; });
-      check(`7b the rows fit ⌘K at ${w}×${hh}, the first one pressable`, !!fit && fit.noScroll && fit.hit, JSON.stringify(fit));
-      await page.screenshot({ path: path.join(OUT, `7-command-k-${w}x${hh}.png`) });
-    }
-    await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(250);
-    await page.press('#cp-input', 'Enter');
-    const p1go = await until(() => !document.getElementById('cmd-palette') && state.view === 'dashboard' && !!document.getElementById('ct-place') && regState().view === 'expiring90');
-    check('7c Enter opens it: the Contracts place, the next 90 days', !!p1go);
     await toCounter();
     const p2 = await palette('how do I set signing limits');
     /* rows whose TITLE is the signing limits (the "Ask Jambo: …" row only repeats the words typed) */
@@ -198,30 +188,8 @@ const check = (name, pass, detail) => {
       check('7g its press is the send-for-signing card beside the paper, waiting for its own press', card === 'MK-B2', String(card));
     }
 
-    console.log('\n8 · the top bar\'s box');
-    await toCounter();
-    await page.fill('#cmd-search', 'where do I change my language'); await page.waitForTimeout(300);
-    await page.press('#cmd-search', 'Enter');
-    const tb = await until(() => { const k = document.querySelector('[data-st-you-card="lang"]');
-      return state.view === 'team' && settingsTab() === 'you' && k && k.classList.contains('is-landed'); });
-    check('8a Enter on "where do I change my language" opens You with Language lit', !!tb);
-    const left = await page.evaluate(() => ({ box: document.getElementById('cmd-search').value, query: (regSetScope(null), regState().query) }));
-    check('8b the words leave the box and the Contracts list', left.box === '' && !left.query, JSON.stringify(left));
-    await page.screenshot({ path: path.join(OUT, '8-top-bar-language-1440x780.png') });
-    await toCounter();
-    await page.fill('#cmd-search', 'Retail'); await page.waitForTimeout(300);
-    await page.press('#cmd-search', 'Enter'); await page.waitForTimeout(400);
-    const stay = await page.evaluate(() => ({ view: state.view, place: !!document.getElementById('ct-place'), query: regState().query, n: regFiltered().length }));
-    check('8c a contract\'s name stays a search: Enter changes nothing', stay.view === 'dashboard' && stay.place && stay.query === 'Retail' && stay.n > 0, JSON.stringify(stay));
-    await page.fill('#cmd-search', ''); await page.evaluate(() => { const R = regState(); R.query = ''; });
-    await toCounter();
-    await page.fill('#cmd-search', 'how do I get them to sign MK-B2'); await page.waitForTimeout(300);
-    const n1 = await page.evaluate(() => intel.history.length);
-    await page.press('#cmd-search', 'Enter');
-    const tbCard = await until(n => { if (state.view !== 'dashboard' || intel.history.length < n + 2) return null;
-      const m = intel.history[intel.history.length - 1]; return m.act && m.act.kind === 'door' ? m.act.door + ':' + m.act.cid : null; }, n1, 6000);
-    check('8d an act from the top bar is Jambo\'s card beside the Board, on the contract named', tbCard === 'signlink:MK-B2', String(tbCard));
-
+    /* 8 RETIRED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the top bar's box left; its words are read by
+       Jambo's box on every page (sections 5 and 9 here) */
     console.log('\n9 · Explorer, the 31st task');
     const onExplorer = () => until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'explorer' && !!document.getElementById('ig-cv'));
     const whereNow = () => page.evaluate(() => JSON.stringify({ view: state.view, face: typeof hbFace === 'function' ? hbFace() : null, canvas: !!document.getElementById('ig-cv') }));

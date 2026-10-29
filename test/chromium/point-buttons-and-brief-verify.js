@@ -132,7 +132,8 @@ const BREAKDOWN = { head: 'Fix the cap first', sub: 'Their cover stops at three 
     const btn = await until(page, () => { const b = document.querySelector('#pd-glance [data-pd-gl-brief]'); return b && b.getBoundingClientRect().width > 0 ? { tag: b.tagName, words: b.textContent.trim() } : null; }, null, 10000);
     /* RE-POINTED 21 Oct 2026 (owner, "WHAT JAMBO READ, FOUR EVEN ROWS"): the brief is a row of What
        Jambo read — figure · name · door — its door "Read ›" */
-    check('6a What Jambo read carries the brief\'s door, "Read ›"', !!btn && btn.tag === 'BUTTON' && btn.words === 'Read ›', JSON.stringify(btn));
+    /* RE-POINTED 29 Oct 2026 (the owner: every last-column press one grey pill, no arrow): "Read" */
+    check('6a What Jambo read carries the brief\'s door, "Read"', !!btn && btn.tag === 'BUTTON' && btn.words === 'Read', JSON.stringify(btn));
     check('6b no "The brief" label is left', await page.evaluate(() => !/The brief/.test((document.getElementById('pd-glance') || {}).textContent || '')));
     await shot(page, '6-brief-button');
     if (btn) await page.click('#pd-glance [data-pd-gl-brief]');

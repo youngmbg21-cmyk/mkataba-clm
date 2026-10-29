@@ -208,7 +208,8 @@ describe('f784 (7) the cards: the drawing\'s facts and doors', () => {
     const g = company();
     /* RE-POINTED 25 Oct 2026 (Discover stage 4, the owner's plan: the company's facts are a rule, kept in Settings):
        Jambo's card gains a third door, Company facts */
-    assert.deepEqual(doorsOf(g, 'copilot'), ['Jambo’s agents', S.en.st_p_boardwords || doorsOf(g, 'copilot')[1], S.en.fa_title]);
+    /* RE-POINTED 29 Oct 2026 (round 8, owner's yes): a fourth door, the sentences Jambo could not place */
+    assert.deepEqual(doorsOf(g, 'copilot'), ['Jambo’s agents', S.en.st_p_boardwords || doorsOf(g, 'copilot')[1], S.en.fa_title, S.en.st_p_lessons]);
     /* RE-POINTED (third pass): every card door opens its page with ‹ Settings
        — the agents' own page, not his house */
     const ag = g.q('[data-st-card="copilot"] .st-door');

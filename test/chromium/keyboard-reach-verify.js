@@ -115,8 +115,17 @@ async function tabAround(page, sel, n = 25) {
     check('and focus goes back to the bell that opened it', back === 'hdr-notify', String(back));
   }
 
-  /* ---------- 4 · THE COMMAND PALETTE ---------- */
+  /* ---------- 4 · THE COMMAND PALETTE ----------
+     RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box; the jump list is
+     "/" pressed outside a box */
   await page.keyboard.press('Control+k'); await pause(400);
+  {
+    const k = await page.evaluate(() => { const a = document.activeElement; return { jb: !!(a && a.closest && a.closest('.jb-card')), tag: a && a.tagName }; });
+    check('⌘K puts the hand in Jambo\'s box', k.jb, JSON.stringify(k));
+  }
+  await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); setView('obligations'); }); await pause(600);
+  await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
+  await page.keyboard.press('/'); await pause(400);
   {
     const start = await page.evaluate(() => document.activeElement && document.activeElement.id);
     check('the palette focuses its own box', start === 'cp-input', String(start));

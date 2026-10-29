@@ -177,11 +177,11 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
 
     /* 3 the history in place */
     await page.evaluate(() => { const pg = document.querySelector('#modal-root .modal-in[data-sh-page]'); if (pg) pg.setAttribute('data-c2-same', '1'); });
-    const subj0 = await page.evaluate(() => (document.getElementById('sh-lt-subject') || {}).textContent || '');
+    const subj0 = await page.evaluate(() => (document.getElementById('sh-lt-subject') || {}).value || '');
     /* RE-POINTED, the SAP Way (28 Oct 2026): the history is a choice in What goes */
     await press('[data-sh-as-what="history"]');
     const Hs = await waitFor(page, () => {
-      const s = (document.getElementById('sh-lt-subject') || {}).textContent || '';
+      const s = (document.getElementById('sh-lt-subject') || {}).value || '';
       if (!/^The negotiation history of /.test(s)) return null;
       const pg = document.querySelector('#modal-root .modal-in[data-sh-page]');
       const kind = document.getElementById('share-step-kind');
@@ -199,7 +199,7 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
     await shot(page, '11-history-in-place-1440x780');
     check('3c "The contract" is offered in What goes', !!Hs && Hs.back);
     await press('[data-sh-as-what="contract"]');
-    const back = await waitFor(page, s0 => { const s = (document.getElementById('sh-lt-subject') || {}).textContent || ''; return s === s0 ? s : null; }, 6000, subj0);
+    const back = await waitFor(page, s0 => { const s = (document.getElementById('sh-lt-subject') || {}).value || ''; return s === s0 ? s : null; }, 6000, subj0);
     check('3d and turns it back to the round, on the same page', !!back && await page.evaluate(() => !!document.querySelector('#modal-root .modal-in[data-sh-page][data-c2-same="1"]')), back);
 
     /* 4 sent by email: the page closes and says what went */
@@ -229,7 +229,7 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
     check('5- the owner\'s browser knows the code name', coded === 'Project Falcon', String(coded));
     await onHome('MK-0412');
     await openLetter('MK-0412');
-    const C = await page.evaluate(() => ({ s: (document.getElementById('sh-lt-subject') || {}).textContent || '',
+    const C = await page.evaluate(() => ({ s: (document.getElementById('sh-lt-subject') || {}).value || '',
       letter: (document.getElementById('sh-letter') || {}).textContent.replace(/\s+/g, ' ') }));
     /* the drawing's "Round 2" is its example's round; this fixture's round is its own */
     const nC = (/^Round (\d+) of /.exec(C.s) || [])[1];
@@ -259,7 +259,7 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
       check(`6 ${w}×${ht}: the letter beside the panel, its note inside it, the checks in the panel, nothing sideways`, Z1.beside && Z1.note && Z1.checks && Z1.side, JSON.stringify(Z1));
       await shot(page, `11-letter2-${w}x${ht}`);
       await press('[data-sh-as-what="history"]');
-      await waitFor(page, () => /^The negotiation history of /.test((document.getElementById('sh-lt-subject') || {}).textContent || ''), 6000);
+      await waitFor(page, () => /^The negotiation history of /.test((document.getElementById('sh-lt-subject') || {}).value || ''), 6000);
       const Z2 = await page.evaluate(() => ({ side: document.documentElement.scrollWidth <= innerWidth + 1, face: !!document.querySelector('#pd-sendface .sh-lt-side') }));
       check(`6 ${w}×${ht}: the history letter in place, nothing sideways`, Z2.side && Z2.face, JSON.stringify(Z2));
       await shot(page, `11-history-${w}x${ht}`);

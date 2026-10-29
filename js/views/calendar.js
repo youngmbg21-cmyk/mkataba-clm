@@ -39,7 +39,7 @@
    and CAL_AGENDA_DAYS is a const declared below it, so naming it here is a read
    inside its own temporal dead zone — the getter trap this codebase records,
    one keyword along. calAgendaDays() supplies the default. */
-let calState = { ym:null, view:'week', scope:'all', days:null, wk:null, lay:{ ct:true, me:true, cp:true } };
+let calState = { ym:null, view:'agenda', scope:'all', days:null, wk:null, lay:{ ct:true, me:true, cp:true } };
 /* ---- THREE TABS, THE DESIGN'S OWN (owner-ruled 24 Aug 2026) ----
    Month · Horizon · Obligations. 'quarter' and 'list' are RETIRED: Quarter drew
    three compact months of the same grid, which is the Month view three times
@@ -62,8 +62,8 @@ let calState = { ym:null, view:'week', scope:'all', days:null, wk:null, lay:{ ct
 const CAL_VIEWS = ['agenda','month','week','horizon'];
 /* ---- AGENDA (round 10's sister, round 12 "The Legora way", owner's overnight build of 28 Oct 2026) ----
    A quiet dated list of the next ninety days: the day on the left, each date under it with its kind as a colour mark,
-   the contract and its one act; a week with nothing says "nothing due" once. A tab beside the others — the calendar
-   still opens on this week by the hour (round 16), so the landing is unchanged. */
+   the contract and its one act; a week with nothing says "nothing due" once. The FIRST tab, and the one the calendar
+   opens on (round 12's last part, owner's yes 29 Oct 2026). */
 const CAL_AGENDA_VIEW_DAYS = 90;
 const CAL_AGENDA_VIEW_ROWS = 80;
 /* ---- THE AGENDA'S WINDOW IS A CONTROL (owner-asked 31 Aug 2026, J-5.4) ----
@@ -107,8 +107,9 @@ const CAL_AGENDA_ROWS = 40;
 function calPlace(){ return { ...calState }; }
 function calPlacePut(p){ if(p) Object.keys(calState).forEach(k=>{ if(k in p) calState[k]=p[k]; }); }
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
-/* the calendar opens on this week by the hour and five more (round 16) */
-function calView(){ return CAL_VIEWS.includes(calState.view)?calState.view:'week'; }
+/* the calendar opens on the Agenda, the next 90 days by day (round 12, owner's yes 29 Oct 2026; reverses "it opens on
+   this week by the hour and five more", round 16) — a view chosen is kept across a reload (calPlace) */
+function calView(){ return CAL_VIEWS.includes(calState.view)?calState.view:'agenda'; }
 function calScope(){ return calState.scope==='mine'?'mine':'all'; }
 
 /* ---- FOUR TONES, AND EACH IS A TOKEN ----
@@ -2282,6 +2283,9 @@ function calTurnsAfter(){
 }
 async function calPlanAsk(q, ref){
   if(_calPlan.busy) return;
+  /* HIS PLAN STANDS ON THE WEEK (round 12, 29 Oct 2026): the calendar opens on the Agenda, where a plan's blocks are
+     not drawn — an ask from there turns the calendar to Week first; Month and Horizon stay as they were */
+  if(calView()==='agenda'){ calState.view='week'; try{ renderCalendar(); }catch(_){ } }
   const a=calWeekStart(), from=_isoLocal(a)<calToday()?calToday():_isoLocal(a), to=_isoLocal(calAddDays(new Date(from+'T00:00:00'),13));
   const ask=q==='week'?i18t('cal_plan_p_week'):q==='due'?i18t('cal_plan_p_due'):q==='hour'?i18t('cal_plan_p_hour',{ref:ref||''}):String(q||'').trim();
   if(!ask) return;

@@ -928,8 +928,9 @@ const check = (name, ok, detail) => {
     check('16a the Contracts place draws one box of its own, the list head\'s, and no old full-text box',
       boxes.head === true && boxes.own === false && boxes.ownShown === false,
       JSON.stringify({ head: boxes.head, old: boxes.own }));
-    check('16b …and the shell bar still carries one',
-      boxes.shell === true, boxes.shell ? `"${boxes.shellPh.slice(0, 42)}"` : 'no box in the header');
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search left — one box per page, Jambo's */
+    check('16b …and the shell bar carries none',
+      boxes.shell === false, boxes.shell ? `"${boxes.shellPh.slice(0, 42)}"` : 'no box in the header');
 
     await page.evaluate(() => { if (window.regSetScope) regSetScope('negotiations');
       if (window.renderNegotiationsList) renderNegotiationsList(); else renderRegister(); });
@@ -989,8 +990,9 @@ const check = (name, ok, detail) => {
       const t = document.querySelector('tr[data-row] td.reg-cell-title');
       return t ? (String(t.title || '').trim().split(/\s+/)[0] || '') : '';
     });
+    /* RE-POINTED 29 Oct 2026 (round 1): typed into the list's own box (the bar's search left) */
     const searched = await page.evaluate(async (q) => {
-      const box = document.getElementById('cmd-search');
+      const box = document.querySelector('[data-lh-seat="contracts"] input[data-lh-q]');
       const before = document.querySelectorAll('tr[data-row]').length;
       box.focus(); box.value = q;
       box.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1024,37 +1026,14 @@ const check = (name, ok, detail) => {
       b.focus(); b.value = ''; b.dispatchEvent(new Event('input', { bubbles: true }));
       await new Promise(r => setTimeout(r, 500));
       return { rows: document.querySelectorAll('tr[data-row]').length,
-        box: document.getElementById('cmd-search').value,
         q: regState().query };
     });
-    check('17d emptying the page\'s box widens the list AND empties the bar\'s box too',
-      !cleared.err && cleared.rows === searched.before && cleared.box === '' && cleared.q === '',
+    check('17d emptying the page\'s box widens the list',
+      !cleared.err && cleared.rows === searched.before && cleared.q === '',
       JSON.stringify(cleared));
 
-    /* ---- IT WRITES TO THE SEAT IT LANDS ON ----
-       MEASURED before the fix: typed from Negotiations the query went onto
-       state.regNego and Contracts opened with an empty one. */
-    await page.evaluate(async () => {
-      /* Whatever the check above did, this one starts from a clean page. */
-      const b = document.getElementById('cmd-search');
-      if (b){ b.value = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
-      await new Promise(r => setTimeout(r, 400));
-    });
-    const seat = await page.evaluate(async () => {
-      if (window.regSetScope) regSetScope('negotiations');
-      const box = document.getElementById('cmd-search');
-      if (!box) return { err: 'no shell box' };
-      box.value = 'lease';
-      box.dispatchEvent(new Event('input', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 700));
-      const out = { view: state.view, contracts: (state.reg || {}).query, nego: (state.regNego || {}).query };
-      box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 400));
-      return out;
-    });
-    check('17e typed from the other seat, it still narrows the page it opens',
-      !seat.err && seat.contracts === 'lease' && !seat.nego, JSON.stringify(seat));
-
+    /* 17e RETIRED 29 Oct 2026 (round 1 "The Legora way", owner's yes): it measured the bar's search typed from another
+       seat; the bar's search left, and a list's box writes only its own seat's query */
     /* ============ 18. EVERY COLUMN THAT CAN BE ORDERED SORTS ============
        PRESSED, not read: the attribute and the handler are wired separately
        and either one alone leaves a dead control — this file's own recorded

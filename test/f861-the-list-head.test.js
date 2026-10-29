@@ -256,9 +256,8 @@ describe('f861 (6) the box', () => {
     const inp = head.querySelector('input[data-lh-q]');
     assert.equal(inp.value, evil);
     assert.equal(head.querySelector('img'), null);
-    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Contracts says its count once, at the foot */
-    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
-    assert.equal(inp.getAttribute('placeholder'), 'Search contracts');
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the box is a quiet filter and says so */
+    assert.equal(inp.getAttribute('placeholder'), 'Filter this list');
     assert.equal(inp.getAttribute('type'), 'search');
   });
   test('plain words narrow through the page\'s own query; Enter spends nothing', () => {
@@ -270,26 +269,16 @@ describe('f861 (6) the box', () => {
     assert.deepEqual(P.S.asked, [], 'a search never reaches Jambo');
     assert.equal(inp.value, 'Nordkap');
   });
-  /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo
-     panel"): the box only searches — a question narrows the list like any
-     words, and Enter sends nothing to Jambo and keeps the words. */
-  test('a question narrows the list like any words; Enter sends nothing to Jambo and keeps the box', () => {
-    need(); const x = stage(); const P = page(x.sb, { state: { q: 'which ones' } }); paint(x);
+  /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes; reverses "a question typed in a list's box goes to
+     the page's Jambo"): every word narrows the list, a question too, and Enter sends nothing */
+  test('a question is words like any other: it narrows the list, and Enter sends nothing', () => {
+    need(); const x = stage(); const P = page(x.sb); paint(x);
     const inp = x.doc.querySelector('input[data-lh-q]');
     inp.value = 'which ones end soon'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
-    assert.deepEqual(P.S.queries, ['which ones end soon'], 'the question narrows the list');
+    assert.deepEqual(P.S.queries, ['which ones end soon']);
     inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    assert.deepEqual(P.S.asked, [], 'nothing reaches Jambo');
+    assert.deepEqual(P.S.asked, [], 'nothing reaches Jambo from a list\'s box');
     assert.equal(inp.value, 'which ones end soon');
-  });
-  test('a Jambo still answering changes nothing in the box: no ask, no warning, the words stay', () => {
-    need(); const x = stage(); const P = page(x.sb, { busy: true }); paint(x);
-    const inp = x.doc.querySelector('input[data-lh-q]');
-    inp.value = 'is it signed?'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
-    inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    assert.deepEqual(P.S.asked, []);
-    assert.equal(inp.value, 'is it signed?');
-    assert.deepEqual(x.toasts, []);
   });
   test('the tab and chip rows repaint while the box — and its caret — stay', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
@@ -332,8 +321,7 @@ describe('f861 (8) both books carry every lh_ word', () => {
       assert.equal((src.match(new RegExp(`\\n    ${k}:`, 'g')) || []).length, 2, `${k} once in each book`);
     }
     for (const n of NOUNS) if (n !== 'contracts') assert.match(EN['lh_ph_' + n + '_other'], /\{n\}/, n + ' counts its book');
-    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
-    assert.equal(EN.lh_ph_contracts_other, 'Search contracts', 'Contracts says its count once, at the foot (Round 2)');
+    assert.equal(EN.lh_ph_contracts_other, 'Search contracts', 'Contracts says its count once, at the foot (Round 2); no "or ask Jambo" since 29 Oct 2026');
     assert.equal(EN.lh_range, '{a}–{b} of {n}');
     assert.equal(EN.lh_more, 'Show {n} more');
     assert.ok(!/⌘K|—/.test(EN.lh_ph_contracts_other), 'no example after a dash, no ⌘K hint');
@@ -444,13 +432,10 @@ describe('f861 (10) the page\'s own parts stand across a recount', () => {
 
 describe('f861 (11) the box shows the page\'s query', () => {
   const ask = (x, w) => { const inp = x.doc.querySelector('input[data-lh-q]'); inp.value = w; inp.dispatchEvent(new x.win.Event('input', { bubbles: true })); return inp; };
-  test('a question typed, then the page\'s query written elsewhere: the repaint shows the page\'s query', () => {
+  test('the box shows the page\'s query on a repaint, whatever was typed (round 1: no question stands in it)', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
     ask(x, 'which ones end soon');
-    /* RE-POINTED 29 Oct 2026 (the box only searches): a question IS the page's query */
-    assert.equal(P.S.q, 'which ones end soon', 'a question narrows like any words');
-    paint(x);
-    assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'which ones end soon', 'a repaint draws the question back');
+    assert.equal(P.S.q, 'which ones end soon', 'the words narrowed the list');
     P.S.q = 'Nordkap';
     paint(x);
     assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'Nordkap', 'the page\'s query wins');
@@ -467,27 +452,23 @@ describe('f861 (11) the box shows the page\'s query', () => {
     P.S.q = 'Kaffe';
     assert.equal(x.sb.lhBoxSet(), 1, 'with no seat (the top bar), every head shows its own page\'s query');
     assert.equal(inp.value, 'Kaffe');
-    P.S.q = '';
+    /* round 1: a question typed is the page's query like any words, so nothing is left standing apart */
     ask(x, 'which ones end soon');
-    assert.equal(x.sb.lhBoxSet(), 0, 'a question stands where its page\'s query is empty');
+    assert.equal(x.sb.lhBoxSet(), 0, 'the box already shows the page\'s query');
     assert.equal(inp.value, 'which ones end soon');
   });
-  test('the top bar\'s search tells the list head\'s box what it wrote', () => {
+  /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search left; ⌘K puts the hand in Jambo's box */
+  test('the top bar has no search box; ⌘K focuses Jambo\'s box', () => {
+    assert.doesNotMatch(read('index.html'), /<input id="cmd-search"/);
     const app = read('js/app.js').replace(/\/\*[\s\S]*?\*\//g, ' ');
-    const at = app.indexOf("const search=document.getElementById('cmd-search');");
-    assert.ok(at > 0, 'the bar\'s search is wired in app.js');
-    const input = app.slice(at, app.indexOf("search.addEventListener('keydown'", at));
-    assert.match(input, /R\.query=q;[\s\S]*if\(window\.lhBoxSet\) lhBoxSet\(\);/);
+    assert.match(app, /\(e\.key==='k'\|\|e\.key==='K'\)\)\{ e\.preventDefault\(\); jamboBoxFocus\(\); return; \}/);
   });
   test('a page left and come back to starts from its own query', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
-    ask(x, 'which ones end soon');
-    P.S.q = 'Nordkap';
+    ask(x, 'which ones end soon'); P.S.q = '';
     x.doc.getElementById('content').innerHTML = '<p>another page</p>';
     paint(x);
-    /* RE-POINTED 29 Oct 2026 (the box only searches): what is typed is the page's
-       query, so the claim is asked with the query moved elsewhere meanwhile */
-    assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'Nordkap');
+    assert.equal(x.doc.querySelector('input[data-lh-q]').value, '');
   });
 });
 

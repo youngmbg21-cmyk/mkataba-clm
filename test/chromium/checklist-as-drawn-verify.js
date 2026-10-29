@@ -13,7 +13,7 @@
         it closes; nothing leaves the page
      4  "Confirm N read" stores what Jambo read even though its row is closed
      5  Jambo read under Needs you: Brief and Risks, each "Not read …" and Read
-     6  Next acts: the stage's acts as equal buttons on one line; "All acts N ›"
+     6  Next acts: the stage's two acts on one line at the panel's foot, after the links; every act in the paper's Actions
         opens the room's whole list under them and folds it again
      7  the ONLY signer button on the Dossier is "Add or order signers ›"
      8  four signers named: the row is green, "4 named · 4 steps"; opened, the
@@ -176,15 +176,21 @@ const MEASURE = () => {
     console.log('\n6 · Next acts');
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the first act filled in its whole name, the next in its short
        word, "All N ›" at the end of the same line */
+    /* RE-POINTED 29 Oct 2026 (the owner: every press in the last column one grey pill, Decide's): "All N", no arrow */
+    /* RE-POINTED 29 Oct 2026 (the owner: "remove it [All N] and bring these 2 buttons to the bottom of the panel"):
+       the two acts, one line, below the links; no All N; the paper's Actions still drops every act */
     const a0 = m0.acts;
-    check('6a the stage\'s acts: the first in its whole name, the next, and All N at the end, on one line',
-      a0.length === 3 && /^Import their Word file$/.test(a0[0].t) && /^All \d+ ›$/.test(a0[2].t) && Math.abs(a0[0].top - a0[2].top) <= 4, JSON.stringify(a0));
-    await page.click('#ig-dock [data-pd-acts-all]'); await pause(150);
+    const foot = await page.evaluate(() => { const a = document.querySelector('#ig-dock .ds-acts.is-foot'), l = document.querySelector('#ig-dock .ds-this.is-links');
+      return a && l ? { below: a.getBoundingClientRect().top >= l.getBoundingClientRect().bottom - 1, all: !!document.querySelector('#ig-dock [data-pd-acts-all]') } : null; });
+    check('6a the stage\'s two acts, the first in its whole name, on one line at the panel\'s foot, no All N',
+      a0.length === 2 && /^Import their Word file$/.test(a0[0].t) && Math.abs(a0[0].top - a0[1].top) <= 4 && !!foot && foot.below && !foot.all, JSON.stringify({ a0, foot }));
     const m3 = await page.evaluate(MEASURE);
-    /* RE-POINTED 24 Oct 2026 (Round 3, "The SAP Way"): All N › drops the same menu card as Actions; the Dossier never moves */
+    if (await page.locator('#ig-actions').count()) await page.click('#ig-actions');
+    await pause(150);
     const pop1 = await page.evaluate(() => !!document.getElementById('pd-acts-pop'));
-    check('6b "All N ›" drops the room\'s whole list as its own menu card, the Dossier untouched', pop1 && m3.allOpen === false, JSON.stringify({ pop1, fold: m3.allOpen }));
-    await page.click('#ig-dock [data-pd-acts-all]'); await pause(150);
+    check('6b the paper\'s Actions still drops the room\'s whole list as its own menu card, the Dossier untouched', pop1 && m3.allOpen === false, JSON.stringify({ pop1, fold: m3.allOpen }));
+    if (await page.locator('#ig-actions').count()) await page.click('#ig-actions');
+    await pause(150);
     check('6c pressed again it goes', !(await page.evaluate(() => !!document.getElementById('pd-acts-pop'))));
 
     console.log('\n7 · one signer button');

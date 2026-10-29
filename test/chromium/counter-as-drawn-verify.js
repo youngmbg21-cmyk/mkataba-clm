@@ -161,14 +161,28 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
         dress: [cs.borderTopColor, cs.fontWeight, cs.backgroundColor, cs.color].join('|') }; }),
       first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#cn-needs .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
     check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'Ask Jambo, or type / for a place', JSON.stringify([head.h1, head.ph]));
-    /* RE-POINTED 27 Oct 2026 (owner: "remove the highlighted sign contract and add board as always an option to press
-       when you are in the home page"): no owed row as a chip; the Board always first */
-    check('1b the chips: board · contracts · calendar · draft a new agreement — no owed row, no upload, no "jambo\'s work"',
-      head.chips.length === 4 && !head.chips.some(c => c.lead || c.door)
-      && head.chips.map(c => c.t).join('|') === 'board|contracts|calendar|draft a new agreement', JSON.stringify(head.chips));
+    /* RE-POINTED 29 Oct 2026 (round 5, "the box predicts"; owner: "bring them to home page"): the Board first, then the
+       next three things that wait said as tasks, each pressing its own row's door; the places only on a quiet day */
+    const lk = await page.evaluate(() => ({ head: ((document.querySelector('.cn-chips .cn-lk-h') || {}).textContent || '').trim(),
+      tasks: [...document.querySelectorAll('.cn-chips .cn-lk')].map(b => ({ t: b.textContent.trim(), key: b.getAttribute('data-cn-lk') })),
+      rows: [...document.querySelectorAll('#cn-needs [data-nd-row]')].map(r => r.getAttribute('data-nd-row')) }));
+    check('1b the chips: "Likely next:", board, then up to three tasks in Needs you\'s own order — no places while work waits',
+      lk.head === 'Likely next:' && head.chips[0] && head.chips[0].t === 'board' && lk.tasks.length >= 1 && lk.tasks.length <= 3
+      && head.chips.length === 1 + lk.tasks.length && lk.tasks.every((t, i) => t.key === lk.rows[i])
+      && !head.chips.some(c => ['contracts', 'calendar', 'draft a new agreement'].includes(c.t)), JSON.stringify(lk));
     /* RE-POINTED 20 Oct 2026 (Chambers): the hint line is not drawn — no .cn-hint under Needs you, no hint under the box */
     check('1c no hint line: no "each row\'s button opens its page" under Needs you, no hint under the box', head.hint.el === 0 && !head.hint.said, JSON.stringify(head.hint));
-    check('1d the four chips wear one dress, as drawn (the lead is not louder)', head.chips.length === 4 && new Set(head.chips.map(c => c.dress)).size === 1, JSON.stringify(head.chips.map(c => c.dress)));
+    check('1d every chip wears one dress, as drawn (a task is not louder)', head.chips.length >= 2 && new Set(head.chips.map(c => c.dress)).size === 1, JSON.stringify(head.chips.map(c => c.dress)));
+    /* 1e a task presses its row's own door: the first is Jambo's prepared piece, which lands on the Board's card, on it */
+    if (lk.tasks[0] && await press('.cn-chips .cn-lk', '1e press the first task')){
+      const k = String(lk.tasks[0].key || '').replace(/^p:/, '');
+      const landed = await until(k0 => { const el = document.querySelector(`[data-hb-ag-item="${CSS.escape(k0)}"]`);
+        if (!el) return null; const r = el.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.top < innerHeight ? { view: state.view, top: Math.round(r.top) } : null; }, k);
+      check('1e the first task ("' + lk.tasks[0].t + '") lands on its own row\'s door: the Board\'s card, its piece in view', !!landed, JSON.stringify(landed));
+      /* the piece it opened is folded again, so the card reads as the later stages expect */
+      await page.evaluate(() => { if (typeof hbAgLookSet === 'function') hbAgLookSet(null); });
+      await toCounter();
+    }
     const type = await page.evaluate(() => { const h = document.querySelector('.cn-ask h1'), b = document.querySelector('#cn-needs .nd-r .cn-w b');
       const root = getComputedStyle(document.documentElement);
       const cs = e => e ? getComputedStyle(e) : null; return { h1: cs(h) && [cs(h).fontSize, cs(h).fontWeight].join(' '), fam: cs(h) && cs(h).fontFamily, title: root.getPropertyValue('--font-title').trim(), wSerif: root.getPropertyValue('--w-title-serif').trim(),

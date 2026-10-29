@@ -241,7 +241,7 @@ describe('f757 (8) the note box as drawn', () => {
 describe('f757 (9) a code-named deal: its code and number only', () => {
   test('9a the subject on the screen is "Round N of Project Falcon (MK-0412)", and the real name is nowhere in the letter', async () => {
     const m = await openShare(contract({ contractNo: 'MK-0412', _codeName: { code: 'Project Falcon' } }));
-    assert.match(m.txt('#sh-lt-subject'), /^Round \d+ of Project Falcon \(MK-0412\)$/);
+    assert.match(m.$('#sh-lt-subject').value, /^Round \d+ of Project Falcon \(MK-0412\)$/);
     assert.ok(!m.$('#sh-letter').textContent.includes('Master services agreement'), 'the real name never in the letter');
   });
 });

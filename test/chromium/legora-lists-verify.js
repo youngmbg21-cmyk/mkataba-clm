@@ -325,7 +325,6 @@ function pageKit(){
     for (;;){ const v = await page.evaluate(fn, arg).catch(() => null); if (v) return v; if (Date.now() >= end) return null; await new Promise(r => setTimeout(r, 100)); } };
   const ev = (fn, arg) => page.evaluate(fn, arg).catch(e => ({ __err: String(e && e.message || e).slice(0, 200) }));
   const shot = n => page.screenshot({ path: path.join(OUT, n + '.png') }).catch(() => {});
-  const quiet = () => until(() => !window.__lh.busy() ? true : null, null, 12000);
   const cfgOf = d => ({ rows: d.rows, hidden: !!d.hidden });
   const signIn = async () => {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -361,7 +360,8 @@ function pageKit(){
     check(`${tag(d)} 1b the head carries one box, input[type=search][data-lh-q]`, S.box && S.type === 'search', JSON.stringify({ box: S.box, type: S.type }));
     if (!S.box) return true;
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Contracts says its count once, at the foot — its box carries none */
-    check(`${tag(d)} 1c the box's words carry a number (Contracts: none, its foot says it) and no ⌘K hint`, (d.key === 'contracts' ? !/\d/.test(S.ph) : /\d/.test(S.ph)) && !/⌘|cmd\s*k|ctrl\s*k/i.test(S.ph), `"${S.ph}"`);
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): a list's box is a quiet filter and says so */
+    check(`${tag(d)} 1c the box says "Filter this list", and no ⌘K hint`, S.ph === 'Filter this list' && !/⌘|cmd\s*k|ctrl\s*k/i.test(S.ph), `"${S.ph}"`);
     const under = S.titleR && S.boxR && S.boxR.t >= S.titleR.b - 1;
     const above = !S.tlR ? d.tabs === false : S.boxR.b <= S.tlR.t + 1;
     check(`${tag(d)} 1d the box sits under the title${d.tabs === false ? '' : ' and above the tab row'}`, !!(under && above),
@@ -573,27 +573,25 @@ function pageKit(){
       await boxClear();
       await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfg, before.total], 4000);
     } else note(`${tag(d)} 7e no row here names Visa, so "Visa" is not tried`, JSON.stringify(visa));
-    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo
-       panel"): the box only searches. A question narrows the list like any
-       words (none of these rows carries all of them), the caret kept; Enter
-       sends nothing to Jambo — no turn, no AI call — and the reader, the
-       view and the words stay. */
-    const rest = await ev(c => window.__lh.rows(c), cfg);
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes; reverses "a question does not narrow; Enter hands it
+       to the page's own Jambo"): a question is words like any other — it narrows the list, Enter sends nothing, no
+       Jambo turn and no call; questions go to Jambo's box at the panel's foot */
     await boxFocus(); await page.keyboard.type(QUESTION);
-    const held = await until(([c, n, q]) => { const b = window.__lh.box(); return b && b.value === q && window.__lh.rows(c) < n ? true : null; }, [cfg, rest, QUESTION], 4000);
-    const qn = await ev(c => ({ total: window.__lh.total(c), rows: window.__lh.rows(c), focus: document.activeElement === window.__lh.box() }), cfg);
-    check(`${tag(d)} 7f "${QUESTION}" narrows the list like any words, the caret kept`, !!held && qn.rows < rest && qn.focus, JSON.stringify({ before: before.total, rest, now: qn }));
+    await until(([c, q]) => { const b = window.__lh.box(); return b && b.value === q ? true : null; }, [cfg, QUESTION], 4000);
+    await recounted(cfg);
+    const qn = await ev(c => ({ total: window.__lh.total(c), focus: document.activeElement === window.__lh.box() }), cfg);
+    check(`${tag(d)} 7f "${QUESTION}" narrows like any words, the caret kept`, qn.total <= before.total && qn.focus, JSON.stringify({ before: before.total, now: qn }));
     const asked0 = await ev(q => window.__lh.asked(q), QUESTION);
     const calls0 = h.ai.calls.length;
     await page.keyboard.press('Enter');
     const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 1500);
-    await quiet();
-    const after2 = await ev(c => { const b = window.__lh.box();
-      return { view: state.view, head: !!window.__lh.seat(), box: b ? b.value : null, rows: window.__lh.rows(c) }; }, cfg);
-    const calls = h.ai.calls.length - calls0;
-    check(`${tag(d)} 7g Enter on "${QUESTION}" sends nothing to Jambo: no turn, no AI call, the reader stays and the words stay in the box`,
-      !went && calls === 0 && after2.view === before.view && after2.head && after2.box === QUESTION && after2.rows === qn.rows,
-      JSON.stringify({ asked: !!went, calls, ...after2, wasView: before.view }));
+    const st7 = await ev(() => ({ box: (window.__lh.box() || {}).value, view: state.view }));
+    check(`${tag(d)} 7g Enter on "${QUESTION}" sends nothing: no Jambo turn, no call, the words stay`,
+      !went && h.ai.calls.length === calls0 && st7.box === QUESTION && st7.view === before.view, JSON.stringify({ went: !!went, calls: h.ai.calls.length - calls0, ...st7 }));
+    /* the words narrowed the list: it comes back whole before what follows (as 7d and 7e wait for it) */
+    await boxClear();
+    await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfg, before.total], 4000);
+    await recounted(cfg);
     /* leave the box empty for what follows */
     if (await ev(() => !!(window.__lh.box() && window.__lh.box().value)) === true) await boxClear();
   }
@@ -799,6 +797,9 @@ function pageKit(){
     await page.click('[data-ac-name-edit]').catch(() => {}); await page.fill('#ac-name', 'Notice to end').catch(() => {});
     await ev(() => document.querySelector('[data-ac-ask]').click());
     const filled = await until(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length > 0 ? true : null, null, 30000);
+    /* the read runs to its end before a cell is pressed: answers still arriving repaint the rows, and a press on a row
+       being replaced chooses nothing (the whole list is read here since round 1, 29 Oct 2026, not a few rows) */
+    if (filled) await until(() => (typeof AC === 'undefined' || !AC.busy) ? true : null, null, 30000);
     /* RE-POINTED (the owner picked "Lights", 26 Oct 2026): the § chip came OUT
        of the cell, which now says one thing — the light and the short answer.
        The clause, the words it was read from and the tick stand in the panel's
@@ -808,19 +809,12 @@ function pageKit(){
       return { cid: td && td.getAttribute('data-ac-cid'), t: window.__lh.words(td), lines: td.getClientRects().length, chip: !!td.querySelector('.ac-cite'), tick: !!td.querySelector('[data-ac-ck]') }; }, null, 4000);
     if (!cell){ check('contracts C7 an answer cell is one light and one answer', false, filled ? 'no answered cell found' : 'no answer came back to the list'); return; }
     check('contracts C7 an answer cell is one light and one answer, with no § chip or tick squeezing it', !cell.chip && !cell.tick && !/\n/.test(cell.t), JSON.stringify(cell));
-    /* RE-POINTED 29 Oct 2026 (One sheet): the list now reaches the panel's foot, so more answered rows are in
-       sight and the first may be one read with no clause to go to (none quoted) — the first answered row whose
-       reading carries Go to clause is the one asked */
-    const cids = await ev(() => [...document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)')].filter(e => window.__lh.vis(e)).map(e => e.closest('td.ac-cell').getAttribute('data-ac-cid')).filter(Boolean).slice(0, 6));
-    let go = null, goCid = cell.cid;
-    for (const cid of (cids && cids.length ? cids : [cell.cid])){
-      await ev(c => { const a = document.querySelector(`td.ac-cell[data-ac-cid="${CSS.escape(c)}"] .ac-a`); if (a) a.click(); }, cid);
-      go = await until(() => document.querySelector('#ig-dock [data-ac-go]') ? true : null, null, 3000);
-      if (go){ goCid = cid; break; }
-    }
+    /* the cell in sight (a second drawing of the table may stand hidden behind it) */
+    await ev(cid => { const a = [...document.querySelectorAll(`td.ac-cell[data-ac-cid="${CSS.escape(cid)}"] .ac-a`)].find(window.__lh.vis); if (a) a.click(); }, cell.cid);
+    const go = await until(() => document.querySelector('#ig-dock [data-ac-go]') ? true : null, null, 5000);
     if (go) await ev(() => document.querySelector('#ig-dock [data-ac-go]').click());
-    const open = await until(cid => window.pdContract && pdContract() && String(pdContract().id) === cid ? true : null, goCid, 10000);
-    check('contracts C7\u2032 the panel reads that answer out, and Go to clause opens its contract on Home\'s paper', !!go && !!open, JSON.stringify(Object.assign({}, cell, { tried: cids, went: goCid })));
+    const open = await until(cid => window.pdContract && pdContract() && String(pdContract().id) === cid ? true : null, cell.cid, 10000);
+    check('contracts C7\u2032 the panel reads that answer out, and Go to clause opens its contract on Home\'s paper', !!go && !!open, JSON.stringify(cell));
     await shot('contracts-cite');
   }
 

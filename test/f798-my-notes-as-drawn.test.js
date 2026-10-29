@@ -88,8 +88,7 @@ describe('f798 (1) the band', () => {
     assert.ok(!head.querySelector('.ik-fb, .reg-fb'), 'no labelled boxes');
     const box = head.querySelector('input[type="search"][data-lh-q]#mn-q');
     assert.ok(box, 'the one box keeps its id');
-    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
-    assert.equal(box.getAttribute('placeholder'), 'Search your 5 notes');
+    assert.equal(box.getAttribute('placeholder'), 'Filter this list'); /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): a list's box is a quiet filter */ 
     assert.deepEqual([...head.querySelectorAll('select[data-lh-add] optgroup')].map(g => g.getAttribute('label')), ['Contract']);
     assert.deepEqual([...head.querySelectorAll('select[data-lh-add] optgroup option')].map(txt), ['MK-A2 · Nandi Dairy (2)', 'MK-A1 · Kabras Sugar (2)', 'No contract (1)']);
     assert.ok(!head.querySelector('.lh-chip'), 'no chip until one is added');
@@ -247,9 +246,8 @@ describe('f798 (10) the list head, the Legora way', () => {
     assert.ok(wire.length > 200, 'myNotesWire found');
     assert.doesNotMatch(wire, /data-mn-tab|data-mn-f|'mn-q'/, 'no per-element tab, box or Contract binding left');
   });
-  /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo
-     panel"): the box only searches, so a question narrows like any words. */
-  test('10b plain words narrow the rows only; a question narrows them too', async () => {
+  /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): a question is words like any other — it narrows */
+  test('10b words narrow the rows only, a question too', async () => {
     const x = await painted();
     const box = x.d.getElementById('mn-q');
     box.value = 'broker'; box.dispatchEvent(new x.win.Event('input', { bubbles: true }));
@@ -257,7 +255,7 @@ describe('f798 (10) the list head, the Legora way', () => {
     assert.equal(x.d.getElementById('mn-q'), box, 'the box is never redrawn under the reader');
     assert.equal(txt(x.d.querySelector('[data-lh-foot="mynotes"]')), '1–1 of 1');
     box.value = 'which notes are due this week?'; box.dispatchEvent(new x.win.Event('input', { bubbles: true }));
-    assert.equal(x.d.querySelectorAll('.mn-t [data-mn-row]').length, 0, 'a question narrows the list like any words — no note says it');
+    assert.ok(x.d.querySelectorAll('.mn-t [data-mn-row]').length < 5, 'a question narrows like any words');
     assert.equal(x.win.mnPlace().q, 'which notes are due this week?', 'and is kept as the page\'s words');
   });
   test('10c the Contract filter offers only what gives rows behind the tab and the words', async () => {

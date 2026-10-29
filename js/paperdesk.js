@@ -2966,13 +2966,14 @@ function pdNextUpHtml(c, o){
   /* MARQUEE (owner, 23 Oct 2026): the stage's first act filled in its WHOLE name, the next in its short
      word, and "All N ›" at the row's end — one row under the head, no title of its own */
   const btns = acts.map((a, i) => `<button type="button" class="ui-btn ui-btn-sm${i === 0 ? ' ui-btn-primary' : ''}" data-pd-mn-go="${_pdE(a.key)}" aria-label="${_pdE(a.word)}" title="${_pdE(a.tip || a.word)}">${_pdE(i === 0 || !PD_ACT_SHORT[a.key] ? a.word : _pdT(PD_ACT_SHORT[a.key]))}</button>`).join('');
+  /* (owner, 29 Oct 2026) "All N" left the Dossier: every act is pressed from the paper's own More menu
+     (#ig-actions, pdActsToggle). THE FOLD STAYS, CLOSED AND UNSEEN: it is the room's rows wired once (pdMenuWire),
+     and the More menu presses the very row in it (pdActsToggle's click); its summary is never drawn */
   const all = groups.reduce((n, g) => n + g.rows.length, 0);
-  const allGo = all ? `<button type="button" class="pd-go ds-go ds-acts-all" data-pd-acts-all aria-expanded="false">${_pdE(_pdT('dos_mq_all', { n: all }))}${PD_GO_TXT}</button>` : '';
-  /* SPINE: the acts stand under the stage we are in (its order on the sheet, DOSSIER_SP_ORDER) */
-  const at = (DOSSIER_STAGES.indexOf(dossierNowStage(c)) + 1) * 10;
-  const actsCard = (acts.length || all) ? `<div class="pd-glance ds-card ds-acts is-mq" style="order:${at + 5}" data-ds-at-now data-pd-ds-card="acts"><div class="ds-acts-b is-ck is-mq">${btns}${allGo}</div></div>` : '';
-  /* ALL ACTS: the room's rows, folded under the acts; its head is the link above (data-pd-acts-all) */
-  const allFold = all ? `<details class="ds-fold is-ck-all" style="order:${at + 6}" data-ds-fold="acts"><summary><span>${_pdE(_pdT('dos_next_acts'))}</span><span class="pd-mn-n">${all}</span></summary>
+  /* AT THE PANEL'S FOOT (owner, 29 Oct 2026: "bring these 2 buttons to the bottom of the panel"): after the links,
+     whatever the stage (order 95; DOSSIER_SP_ORDER no longer places them) */
+  const actsCard = acts.length ? `<div class="pd-glance ds-card ds-acts is-mq is-foot" style="order:95" data-ds-at-now data-pd-ds-card="acts"><div class="ds-acts-b is-ck is-mq">${btns}</div></div>` : '';
+  const allFold = all ? `<details class="ds-fold is-ck-all" style="order:96" data-ds-fold="acts"><summary><span>${_pdE(_pdT('dos_next_acts'))}</span><span class="pd-mn-n">${all}</span></summary>
     ${groups.map(g => `<div class="pd-mn-g"><div class="ds-fold-h">${_pdE(g.title)}</div><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></div>`).join('')}</details>` : '';
   return `<div class="pd-menu pd-nx ds-nx is-mq" data-pd-menu="${_pdE(c.id)}">${actsCard}${allFold}${dossierThisHtml(c, o)}</div>`;
 }
@@ -3135,6 +3136,31 @@ function pdActsPopClose(){
   if (was) pdActsSay(was.id, false);
   return !!el;
 }
+/* ---- MORE, HALVED (round 13 "The Legora way", owner's yes 29 Oct 2026) ----
+   The paper line's More drops a SHORT card: the drawing's nine rows in three groups, each the Dossier's own row by
+   key (so a press does what the row does, pdActsGo), a row this contract does not offer simply absent, a dead one
+   grey with its reason; its last row, "All acts (N)", turns the same card into every act (the Dossier's "All N ›"
+   keeps opening the whole card at once). Nothing leaves the Dossier's list: the short card only chooses. */
+const PD_ACTS_SHORT = [
+  ['pd_menu_work', ['[data-rl-edit-clause]', '#ws-import', '#ws-compare', '[data-ig-memo]']],
+  ['ct_export', ['#ws-pdf', '#ws-word']],
+  ['pd_menu_contract', ['#ws-m-their-way', '#ws-end', '#ws-filing']]
+];
+function pdActsShortHtml(c){
+  const groups = pdMenuGroups(c);
+  if (!groups.length) return '';
+  const box = document.createElement('div');
+  box.innerHTML = groups.map(g => g.rows.join('')).join('');
+  const all = [...box.querySelectorAll('button')].filter(b => dossierRowKey(b)).length;
+  const row = b => { const key = dossierRowKey(b); const x2 = b.cloneNode(true);
+    return `<button type="button" role="menuitem" class="pd-acts-r" data-pd-acts-go="${_pdE(key)}"${b.disabled ? ' disabled aria-disabled="true"' : ''}${b.title ? ` title="${_pdE(b.title)}"` : ''}>${x2.innerHTML}</button>`; };
+  const g = PD_ACTS_SHORT.map(([title, keys]) => {
+    const rows = keys.map(k => box.querySelector(k)).filter(Boolean).map(row).join('');
+    return rows ? `<div class="pd-acts-g" role="group" aria-label="${_pdE(_pdT(title))}"><div class="pd-acts-h">${_pdE(_pdT(title))}</div>${rows}</div>` : '';
+  }).join('');
+  const more = all ? `<div class="pd-acts-g pd-acts-all-g"><button type="button" role="menuitem" class="pd-acts-r pd-acts-all" data-pd-acts-every>${_pdE(_pdT('ig_more_all', { n: all }))}${PD_GO_TXT}</button></div>` : '';
+  return g + more;
+}
 function pdActsPopHtml(c){
   const groups = pdMenuGroups(c);
   if (!groups.length) return '';
@@ -3160,13 +3186,14 @@ function pdActsPlace(){
   el.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
   el.style.maxHeight = Math.max(160, window.innerHeight - top - 12) + 'px';
 }
-function pdActsToggle(id, anchor){
+function pdActsToggle(id, anchor, opts){
   if (!id || typeof document === 'undefined') return false;
   const a = anchor || document.getElementById('ig-actions');
   if (pdActsPopOpen() && _pdActsPop.id === String(id) && _pdActsPop.anchor === a){ pdActsPopClose(); return true; }
   pdActsPopClose();
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c || !a) return false;
-  const html = pdActsPopHtml(c); if (!html) return false;
+  const short = !!(opts && opts.short);
+  const html = short ? (pdActsShortHtml(c) || pdActsPopHtml(c)) : pdActsPopHtml(c); if (!html) return false;
   const el = document.createElement('div');
   el.id = 'pd-acts-pop'; el.className = 'pd-acts-pop'; el.setAttribute('role', 'menu'); el.setAttribute('data-pd-acts-pop', String(id));
   el.setAttribute('aria-label', _pdT('ig_actions'));
@@ -3184,6 +3211,10 @@ if (typeof document !== 'undefined'){
     if (!_pdActsPop) return;
     const t = e.target;
     const row = t && t.closest ? t.closest('#pd-acts-pop [data-pd-acts-go]') : null;
+    /* "All acts (N)" on the short card: the same card, every act, where it stands */
+    const every = t && t.closest ? t.closest('#pd-acts-pop [data-pd-acts-every]') : null;
+    if (every){ e.preventDefault(); const el = document.getElementById('pd-acts-pop'); const c = getContract(_pdActsPop.id);
+      const html = c ? pdActsPopHtml(c) : ''; if (el && html){ el.innerHTML = html; pdActsPlace(); el.querySelector('[data-pd-acts-go]:not([disabled])')?.focus({ preventScroll: true }); } return; }
     if (row){ e.preventDefault(); if (row.disabled) return;
       const id = _pdActsPop.id, key = row.getAttribute('data-pd-acts-go');
       pdActsPopClose();
@@ -3938,8 +3969,11 @@ const PD_GO_TXT = ' ›';
    have to click and fill in the fields just like it is in the top"): Signer, Who else, On the web, a field's
    own line and Obligations carry the word the Risks and Standards rows carry, not a bare arrow; a row that
    only folds a group keeps its arrow */
-function pdCkGo(word){ return `<span class="pd-ck-chev is-word" aria-hidden="true">${_pdE(_pdT(word || 'dos_go_open'))}${PD_GO_TXT}</span>`; }
-function dossierGo(attr, word, extra){ return `<button type="button" class="pd-go ds-go" ${attr}${extra || ''}>${_pdE(word)}${PD_GO_TXT}</button>`; }
+/* ONE PILL, ONE WORD (owner, 29 Oct 2026, over the Dossier: "the presses in the last column should all be a pill and
+   the same size pill from top to bottom similar to the decide pill"): the door's word alone, no arrow; the pill is
+   CSS's (.ds-go / .pd-ck-chev.is-word in .pd-dossier) */
+function pdCkGo(word){ return `<span class="pd-ck-chev is-word" aria-hidden="true">${_pdE(_pdT(word || 'dos_go_open'))}</span>`; }
+function dossierGo(attr, word, extra){ return `<button type="button" class="pd-go ds-go" ${attr}${extra || ''}>${_pdE(word)}</button>`; }
 /* JAMBO READ, THE CHECKLIST'S ROWS (owner picked "1 · Checklist" by name, 22 Oct 2026; was "four even
    rows", 21 Oct): one line a row — the name, what stands (grey, at the right), one door. The brief
    not yet read carries the reading's own press ("Read", its cost on hover); the head carries Read
@@ -3951,9 +3985,23 @@ function dossierReadHtml(c, D){
   const readGo = may ? `<button type="button" class="pd-go ds-go" data-pd-ds-read title="${_pdE(_pdT('jb_read_cost'))}">${_pdE(_pdT('dos_go_read'))}</button>` : '';
   rows.push(R.brief ? row('brief', _pdT('dos_k_brief'), R.at ? _pdT('dos_read_on', { when: dossierDay(R.at) }) : '', dossierGo('data-pd-gl-brief', _pdT('dos_go_read')))
     : row('brief', _pdT('dos_k_brief'), _pdT(R.read || !may ? 'dos_k_not_yet_c' : 'dos_k_not_yet_cost'), R.read ? '' : readGo));
+  /* THE ARRIVAL CHECK STANDS RIGHT UNDER THE BRIEF (owner, 29 Oct 2026; named "Arrival check" the same day, was
+     "A read of …"): Jambo's read of a new paper against our standards is a row of this group, its name and Look —
+     not a row under the stage we are in (dossierReadPieces; the owed list leaves it out, its count stands). The
+     contract is the one in front, so the row is named without it; Home and the Board say whose (ag_pc_read). */
+  dossierReadPieces(D).forEach(r => {
+    const P = (r.nd && typeof ndParts === 'function') ? ndParts(r.nd) : null;
+    const mid = pdMidUp('jw:' + String(r.key || r.k));
+    /* the name takes the row (its step and what Jambo read on its hover) */
+    const tip = [P && P.step ? _pdT('nd_step', P.step) : '', P && P.line ? String(P.line).replace(/<[^>]*>/g, '') : ''].filter(Boolean).join(' · ');
+    rows.push(`<div class="pd-gl-row ds-row ds-rr is-jw${mid ? ' is-mid' : ''}" data-pd-ds="jw-read"${tip ? ` title="${_pdE(tip)}"` : ''}><i class="pd-ck-ring is-none" aria-hidden="true"></i><span class="ds-nm">${_pdE(_pdT('dos_k_arrival'))}</span><button type="button" class="pd-go ds-go" aria-pressed="${mid}" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('nd_btn_look'))}</button></div>`);
+  });
+  /* the reading out of date: its press, a row of the group (the stage's head line is not drawn on the panel) */
+  if (R.read && R.stale && may) rows.push(row('again', _pdT('dos_k_stale'), R.at ? _pdT('dos_read_on', { when: dossierDay(R.at) }) : '',
+    `<button type="button" class="pd-go ds-go" data-pd-ds-read title="${_pdE(_pdT('jb_read_cost'))}">${_pdE(_pdT('dos_read_again'))}</button>`));
   /* a door this contract has shut is grey with its reason (the Redlines face's own rule, negoMayStartLine) */
   let shut = ''; try { shut = (typeof negoMayStartLine === 'function') ? (negoMayStartLine(c) || '') : ''; } catch (_){ shut = ''; }
-  const risksGo = shut ? `<button type="button" class="pd-go ds-go" disabled aria-disabled="true" title="${_pdE(shut)}">${_pdE(_pdT('dos_go_open'))}${PD_GO_TXT}</button>` : dossierGo('data-pd-gl-risks', _pdT('dos_go_open'));
+  const risksGo = shut ? `<button type="button" class="pd-go ds-go" disabled aria-disabled="true" title="${_pdE(shut)}">${_pdE(_pdT('dos_go_open'))}</button>` : dossierGo('data-pd-gl-risks', _pdT('dos_go_open'));
   if (R.risks) rows.push(R.risks.n ? row('risks', _pdT('dos_k_risks'), _pdTn('dos_risks_n', R.risks.n, { n: R.risks.n }), risksGo)
     : row('risks', _pdT('dos_risks_none'), '', ''));
   else if (R.mayScan) rows.push(row('risks', _pdT('dos_k_risks'), _pdT('dos_k_not_yet_free_c'), `<button type="button" class="pd-go ds-go" data-pd-gl-scan title="${_pdE(_pdT('pd_gl_scan_cost'))}">${_pdE(_pdT('dos_go_read'))}</button>`));
@@ -3972,6 +4020,8 @@ function dossierReadHtml(c, D){
   if (typeof askColOddHtml === 'function') rows.push(askColOddHtml(c));
   return `<div class="pd-glance ds-card ds-read" data-ds-at="read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_head'))}</b><span class="pd-gl-sp"></span></div><div class="pd-gl-b">${rows.join('')}</div></div>`;
 }
+/* Jambo's prepared reads of their paper, drawn in the Read group under the Brief (dossierReadHtml) */
+function dossierReadPieces(D){ return ((D && D.owed) || []).filter(r => r && r.need && r.need.jw && r.need.pk === 'read').map(r => r.need); }
 function dossierOwedHtml(c, D, o){
   const held = !!(o && o.held);
   const said = r => r.kind === 'fill' ? (r.more ? _pdTn('dos_fill_more', r.more, { n: r.more }) : _pdT('dos_owed_empty', { label: r.label }))
@@ -3983,24 +4033,33 @@ function dossierOwedHtml(c, D, o){
   /* THE FACTS ARE THE GRID (the Legora way): the rows below are the rest */
   const isFact = r => r.kind === 'fill' || r.kind === 'signer';
   const grid = pdOgHtml(c, { held });
-  const rest = grid ? D.owed.filter(r => !isFact(r)) : D.owed;
+  const rest = (grid ? D.owed.filter(r => !isFact(r)) : D.owed).filter(r => !(r.need && r.need.jw && r.need.pk === 'read'));
   const mine = rest.filter(r => !r.need);
   const done = pdGlanceDone(c, mine, said);
+  /* ONE GRID (owner, 29 Oct 2026: "the smaller font words ruin the whole format of the panel"; drawing
+     XmhHqN2tRyY8EATL4iK9Jj): every row owed is a row like Jambo read's — its name, what it says, one press —
+     "4 changes not sent." is Changes · 4 not sent · Send; the whole sentence rides the row's hover */
   const rowHtml = r => {
     if (r.need) return needHtml(r);
-    const amb = (r.kind === 'fill' && !r.more) ? `<span class="ds-owed-l">${_pdE(r.label)}</span> ${_pdE(_pdT('dos_owed_empty_w'))}`
-      : r.kind === 'signer' ? `<span class="ds-owed-l">${_pdE(_pdT('dos_signer'))}</span> ${_pdE(_pdT('dos_signer_w'))}` : _pdE(said(r));
-    const sub = r.ch ? `<small>${_pdE(_pdT('dos_waits', { ago: pdGlAgo(r.ch.createdAt || r.ch.at) }))}</small>` : '';
+    const nm = (r.kind === 'fill' && !r.more) ? r.label : r.kind === 'fill' ? _pdT('dos_row_details')
+      : r.kind === 'signer' ? _pdT('dos_signer') : (r.k === 'asks-more' || r.ch) ? _pdT('dos_row_their')
+      : r.kind === 'share' ? _pdT('dos_row_changes') : r.kind === 'late' ? _pdT('tab_obligations') : said(r);
+    const val = (r.kind === 'fill' && !r.more) ? _pdT('dos_owed_empty_w') : r.kind === 'fill' ? _pdTn('dos_row_more', r.more, { n: r.more })
+      : r.kind === 'signer' ? _pdT('dos_signer_w') : r.k === 'asks-more' ? _pdTn('dos_row_more_asks', r.more, { n: r.more })
+      : r.ch ? pdAskSay(c, r.ch) : r.kind === 'share' ? _pdTn('dos_row_unsent', r.n, { n: r.n })
+      : r.kind === 'late' ? _pdTn('dos_row_late', r.n, { n: r.n, what: r.what, days: r.days }) : '';
+    const tip = [said(r), r.ch ? _pdT('dos_waits', { ago: pdGlAgo(r.ch.createdAt || r.ch.at) }) : ''].filter(Boolean).join(' · ');
     const door = r.kind === 'fill' ? dossierGo(`data-pd-ds-fill="${_pdE(r.key || '')}"`, _pdT('dos_go_fill_in'))
       : r.kind === 'signer' ? dossierGo('data-pd-glance="sign"', _pdT('dos_go_name'))
       : r.kind === 'ask' ? dossierGo('data-pd-glance="redline"', _pdT('dos_go_reply'))
       : r.kind === 'share' ? dossierGo('data-pd-glance="share"', _pdT('dos_go_send'))
       : r.kind === 'late' ? dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')) : '';
-    return `<div class="pd-gl-row ds-row" data-ds-at="${_pdE(at(r))}" data-pd-gl="${_pdE(r.kind === 'signer' ? 'sign' : r.kind)}"${r.ch ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''}><span>${amb}${sub}</span>${door}</div>`;
+    const amb = r.kind === 'late' || (r.kind === 'fill' && !r.more) || r.kind === 'signer';
+    return `<div class="pd-gl-row ds-row ds-rr" data-ds-at="${_pdE(at(r))}" data-pd-gl="${_pdE(r.kind === 'signer' ? 'sign' : r.kind)}"${r.ch ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''} title="${_pdE(tip)}"><i class="pd-ck-ring is-miss" aria-hidden="true"></i><span class="ds-nm">${_pdE(nm)}</span><span class="ds-val${amb ? ' is-amb' : ''}">${_pdE(val)}</span>${door}</div>`;
   };
   /* SPINE: every row stands under its own stage (DOSSIER_STAGE_OF), the one desk's rows too */
   const at = r => DOSSIER_STAGE_OF[r.kind] || D.now;
-  const needHtml = r => pdNeedRowHtml(c, r.need).replace(/^<div /, `<div data-ds-at="${_pdE(at(r))}" `);
+  const needHtml = r => pdNeedRowHtml(c, r.need, { grid: true }).replace(/^<div /, `<div data-ds-at="${_pdE(at(r))}" `);
   /* a ticked-off row names its kind (fill · signer · ask · share), as the old glance's did */
   const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-ds-at="${_pdE(DOSSIER_STAGE_OF[String(d.k).split(':')[0].replace(/-more$/, '').replace(/^need$/, '')] || D.now)}" data-pd-gl-done="${_pdE(String(d.k).split(':')[0].replace(/-more$/, '').replace(/^signer$/, 'sign'))}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
   /* FILL THE DOCUMENT, the company template's one press, where the answers are owed to the wording
@@ -4397,7 +4456,7 @@ function pdOgHtml(c, o){
        "+ Add another signer" and the Acts' "Add signers" went) */
     const route = (!held && may && f.kind === 'signer' && typeof openSignerPlanEditor === 'function')
       ? `<button type="button" class="ui-btn ui-btn-sm pd-og-order" data-pd-og-route="${E(c.id)}">${E(_pdT('og_sg_order'))}</button>` : '';
-    const act = held ? `<button type="button" class="pd-go ds-go" data-pd-og-go="${E(f.key)}" title="${E(_pdT('og_fill_beside'))}">${E(_pdT('dos_go_fill_in'))}${PD_GO_TXT}</button>`
+    const act = held ? `<button type="button" class="pd-go ds-go" data-pd-og-go="${E(f.key)}" title="${E(_pdT('og_fill_beside'))}">${E(_pdT('dos_go_fill_in'))}</button>`
       : `<span class="pd-ck-src">${pdOgFromHtml(c, f)}${isPaper(f) && paper.length > 1 ? step(f) : ''}</span><span class="pd-ck-acts">${route}${(may && !f.pay) ? `<button type="button" class="ui-btn ui-btn-sm pd-og-ok is-word" data-pd-og-ok="${E(f.key)}">${E(_pdT('og_confirm'))}</button>` : ''}</span>`;
     return `<tr class="pd-og-row${f.read ? ' is-read' : ' is-amb'}${open ? ' is-open' : ''}" data-ds-at="${f.kind === 'signer' ? 'sign' : 'fill'}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"${isPaper(f) ? ' data-pd-og-paper' : ''}><td class="pd-og-f">${hd}</td><td class="pd-og-v">${box}</td><td class="pd-og-a">${act}</td></tr>`;
   };
@@ -5977,7 +6036,41 @@ if (typeof document !== 'undefined' && !document._pdMidWired){
     e.preventDefault(); pdMidClose();
   });
 }
-function pdNeedRowHtml(c, r){
+/* THE DOSSIER'S ROW OF THE SAME (o.grid; owner, 29 Oct 2026): a name, what it says, one press — the same three
+   columns as every other row of the Dossier, one size of words, no second line; what the second line said rides the
+   row's hover. The other cards that draw these rows keep their two lines. */
+const PD_ND_NAME = { quiet: 'pd_nd_nm_quiet', review: 'pd_nd_nm_review', look: 'pd_nd_nm_look', approval: 'pd_nd_nm_approval', refused: 'pd_nd_nm_refused', join: 'pd_nd_nm_join',
+  note: 'pd_nd_nm_note', suggest: 'pd_nd_nm_suggest', details: 'pd_nd_nm_details', sign: 'pd_nd_nm_sign', copies: 'pd_nd_nm_copies', promises: 'pd_nd_nm_promises', renewal: 'pd_nd_nm_renewal' };
+function pdNeedGridRowHtml(c, r){
+  const row = (cls, attrs, nm, val, amb, tip, btn) => `<div class="pd-gl-row ds-row ds-rr pd-nd-row${cls}" ${attrs} title="${_pdE(tip)}"><i class="pd-ck-ring is-miss" aria-hidden="true"></i><span class="ds-nm">${_pdE(nm)}</span><span class="ds-val${amb ? ' is-amb' : ''}">${_pdE(val)}</span>${btn}</div>`;
+  if (r.note){
+    const words = String((r.first && (r.first.title || r.first.body)) || '').replace(/\s+/g, ' ').trim();
+    let day = ''; try { day = (typeof regDotDate === 'function') ? regDotDate(r.first.reviewBy) : String(r.first.reviewBy || ''); } catch (_){ day = String(r.first.reviewBy || ''); }
+    const val = r.late ? _pdTn('pd_nd_note_due_late', r.n, { n: r.n, day }) : _pdTn('pd_nd_note_due_today', r.n, { n: r.n });
+    const tip = [words ? '\u201c' + words + '\u201d' : '', _pdT('pd_nd_only_you')].filter(Boolean).join(' · ');
+    return row(` is-note${r.late ? ' is-hot' : ''}`, 'data-pd-nd-kind="mynote"', _pdTn('pd_nd_nm_mine', r.n), val, r.late, tip,
+      `<button type="button" class="pd-go ds-go" data-pd-nd-note="${_pdE((r.first && r.first.id) || '')}">${_pdE(_pdT('dos_go_open'))}</button>`);
+  }
+  if (r.jw){
+    const P = (r.nd && typeof ndParts === 'function') ? ndParts(r.nd) : null;
+    const mid = pdMidUp('jw:' + String(r.key || r.k));
+    const title = (P && P.title) || _pdT('ag_' + r.k);
+    const when = P && P.when ? (r.nd.age != null && !/^(chase|renewal|notice)/.test(String(r.pk || '')) ? _pdT('pd_nd_waiting', { days: P.when }) : P.when) : '';
+    const tip = [P && P.step ? _pdT('nd_step', P.step) : '', P && P.read ? _pdT('nd_read') + ' ' + P.read : '', when, P && P.line ? String(P.line).replace(/<[^>]*>/g, '') : ''].filter(Boolean).join(' · ');
+    return row(` is-jw${mid ? ' is-mid' : ''}${P && P.late ? ' is-hot' : ''}`, `data-pd-nd-kind="jw"`, _pdT('pd_nd_nm_jw'), mid ? _pdT('pd_stage_showing') : title, !!(P && P.late), tip,
+      `<button type="button" class="pd-go ds-go" aria-pressed="${mid}" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('nd_btn_look'))}</button>`);
+  }
+  let w = null; try { w = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; } catch (_){ w = null; }
+  const verb = (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[r.it.kind]) ? _pdT(INS_NEED_VERB[r.it.kind]) : _pdT('cn_open');
+  const cl = r.it.kind === 'quiet' ? pdAskClausesSay(c) : '';
+  const title = (w && w.title) || '', plain = [(w && w.plain) || '', cl].filter(Boolean).join(' · ');
+  const nm = PD_ND_NAME[r.it.kind] ? _pdT(PD_ND_NAME[r.it.kind]) : title;
+  const val = PD_ND_NAME[r.it.kind] ? (plain || title) : plain;
+  return row(r.it.urgent ? ' is-hot' : '', `data-pd-nd-kind="${_pdE(r.it.kind)}"`, nm, val, !!r.it.urgent, [title, plain].filter(Boolean).join(' · '),
+    `<button type="button" class="pd-go ds-go" data-pd-nd="${_pdE(r.it.kind)}" data-pd-nd-id="${_pdE(c.id)}">${_pdE(verb)}</button>`);
+}
+function pdNeedRowHtml(c, r, o){
+  if (o && o.grid) return pdNeedGridRowHtml(c, r);
   if (r.note){
     const words = String((r.first && (r.first.title || r.first.body)) || '').replace(/\s+/g, ' ').trim();
     const q = words.length > 60 ? words.slice(0, 59) + '…' : words;
@@ -6909,7 +7002,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

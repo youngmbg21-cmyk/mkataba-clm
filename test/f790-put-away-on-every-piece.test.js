@@ -72,10 +72,17 @@ describe('f790 (1) every piece can be put away', () => {
     const { win } = staged({ canEdit: false });
     for (const it of ready(win)) assert.ok(win.agActsOf(it).some(a => a.act === 'away'), it.kind);
   });
+  /* RE-POINTED 29 Oct 2026 (their round, the Legora way): a round's acts stand in its rows
+     (agActsInBody), so its Put away is the last text button of the body, and the panel draws no
+     second row; every other piece keeps it at the end of the panel's acts. */
   test('1c the panel draws it as the ladder\'s text button, as the desk rows always did', () => {
     const { win } = staged();
-    const ans = ready(win).find(i => i.kind === 'answer');
-    assert.match(win.agPanelActs(ans), /<button type="button" class="ui-link" data-ag-act="away">Put away<\/button>$/);
+    const its = ready(win);
+    const ans = its.find(i => i.kind === 'answer');
+    assert.equal(win.agPanelActs(ans), '', 'a round draws no second row of acts');
+    assert.match(win.agPanelBody(ans), /<button type="button" class="ui-link ag-rnd-away" data-ag-act="away">Put away<\/button>/, 'its body carries Put away');
+    const chase = its.find(i => i.kind === 'chase');
+    assert.match(win.agPanelActs(chase), /<button type="button" class="ui-link" data-ag-act="away">Put away<\/button>$/);
   });
 });
 

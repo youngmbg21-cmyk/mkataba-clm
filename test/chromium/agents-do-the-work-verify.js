@@ -169,7 +169,7 @@ const answer = body => {
       await page.click('[data-ag-open="answer:MK-DW1"]');
       await page.waitForTimeout(700);
       const prep = await page.evaluate(() => { const p = document.querySelector('[data-ag-panel] .ag-prep'); return p ? p.textContent.replace(/\s+/g, ' ').trim() : null; });
-      ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', !!prep && /Jambo: counter/.test(prep) && /Rests on: Payment terms/.test(prep)
+      ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', !!prep && /^Counter\b/.test(prep) && /Based on your standard: Payment terms/.test(prep)
         && /sixty \(60\)/.test(await page.evaluate(() => (document.querySelector('[data-ag-panel] .ag-prep .ag-words-b') || {}).textContent || '')), prep);
       const opened = await page.evaluate(() => { const b = document.querySelector('[data-ag-panel] [data-ag-sb-open]'); if (!b) return false; b.click();
         const box = document.querySelector('[data-ag-panel] .ag-sb-box'); return !!box && !box.hidden; });
@@ -179,8 +179,10 @@ const answer = body => {
         await page.fill('[data-ag-panel] .ag-sb-note', 'For this buyer our fallback is 45 days.');
         await page.click('[data-ag-panel] [data-ag-sb-go]');
         await page.waitForTimeout(1800);
-        const note = await page.evaluate(() => { const p = document.querySelector('[data-ag-panel] .ag-prep'); return p ? p.textContent.replace(/\s+/g, ' ') : ''; });
-        ok('3d sent back: Copilot answered again and the panel says who sent it back and why', /Redone at Amina Otieno’s request: “For this buyer our fallback is 45 days\.”/.test(note), note.slice(0, 220));
+        /* the Legora way (29 Oct 2026): "redone at your request" in the source line, the note itself on its hover */
+        const note = await page.evaluate(() => { const p = document.querySelector('[data-ag-panel] .ag-prep'); const s = p && p.querySelector('.ag-prep-src');
+          return p ? p.textContent.replace(/\s+/g, ' ') + ' | ' + ((s && s.getAttribute('title')) || '') : ''; });
+        ok('3d sent back: Copilot answered again and the panel says who sent it back and why', /redone at your request/.test(note) && /For this buyer our fallback is 45 days\./.test(note), note.slice(0, 260));
       } else ok('3d sent back: Copilot answered again and the panel says who sent it back and why', false, 'no box');
       await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     } else { ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', false, 'no card'); ok('3c "Ask Copilot to redo this" opens its one box — the note is the question', false); ok('3d sent back: Copilot answered again and the panel says who sent it back and why', false); }

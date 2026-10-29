@@ -30,7 +30,8 @@ describe('f877 attention to detail', () => {
   });
   test('2 a Dossier row you press to fill says "Open ›"', () => {
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the word is "Open" unless a line names its own (Fill in ›, Edit ›) */
-    assert.match(PD, /function pdCkGo\(word\)\{ return `<span class="pd-ck-chev is-word" aria-hidden="true">\$\{_pdE\(_pdT\(word \|\| 'dos_go_open'\)\)\}\$\{PD_GO_TXT\}<\/span>`; \}/);
+    /* RE-POINTED 29 Oct 2026 (the owner: every press in the Dossier's last column one grey pill, Decide's): the word alone, no arrow */
+    assert.match(PD, /function pdCkGo\(word\)\{ return `<span class="pd-ck-chev is-word" aria-hidden="true">\$\{_pdE\(_pdT\(word \|\| 'dos_go_open'\)\)\}<\/span>`; \}/);
     for (const row of ['data-pd-ck-row="signers"', 'data-pd-og-row="people"', 'data-pd-og-row="web"', 'class="ds-ob-line']){
       const i = PD.indexOf(row); assert.ok(i >= 0, row);
       const line = PD.slice(PD.lastIndexOf('\n', i), PD.indexOf('\n', PD.indexOf('</button>', i)));

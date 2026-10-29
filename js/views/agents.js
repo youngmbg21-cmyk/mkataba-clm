@@ -145,6 +145,13 @@ function _agDay(iso){
   const t = Date.parse(String(iso));
   return isNaN(t) ? String(iso) : new Date(t).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'short' });
 }
+/* THE SAME DAY INSIDE A SENTENCE: "since today", "Arrived today", never "since
+   Today" — the history tab's "Today" is a heading word, so mid-sentence it is
+   the agents' own lower-case "today" (ag_on_today). Any other day as _agDay. */
+function _agDayIn(iso){
+  const d = _agDay(iso);
+  return (d && d === _agT('ct_hist_today')) ? _agT('ag_on_today') : d;
+}
 function _agDaysSince(iso){
   const t = Date.parse(String(iso || ''));
   return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null;
@@ -921,10 +928,10 @@ function agCardParts(it){
   } else if (it.kind === 'notice'){
     kind = _agT('desk_kind_notice');
     sum = _agT(it.noticeKind === 'non-renewal' ? 'desk_nt_t_nonren' : 'desk_nt_t_term', { who });
-    urg = _agTn('desk_days', it.days, { n: it.days }) + ' · ' + _agT('desk_nt_by', { date: _agDay(it.by) });
+    urg = _agTn('desk_days', it.days, { n: it.days }) + ' · ' + _agT('desk_nt_by', { date: _agDayIn(it.by) });
   } else if (it.kind === 'renewal'){
     kind = _agT('ag_k_renewal');
-    const bits = [_agT('desk_ren_by', { date: _agDay(it.w && it.w.decideBy) })];
+    const bits = [_agT('desk_ren_by', { date: _agDayIn(it.w && it.w.decideBy) })];
     if (it.memo) bits.push(_agT(it.prepared ? 'desk_ren_ready' : 'desk_ren_memo'));
     if (it.flags) bits.push(_agTn('desk_ren_flags', it.flags, { n: it.flags }));
     sum = bits.join(' · ');
@@ -963,7 +970,7 @@ function agCardParts(it){
   } else if (it.kind === 'soon' || it.kind === 'soon-sign'){
     kind = _agT('ag_k_soon');
     const X = it.soon || {};
-    sum = _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDay(X.ends) });
+    sum = _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDayIn(X.ends) });
     urg = _agTn('ag_soon_left', it.left || 0, { n: it.left || 0 });
   } else if (it.kind === 'ours'){
     kind = _agT('ag_k_ours');
@@ -971,7 +978,7 @@ function agCardParts(it){
     urg = it.days < 0 ? _agTn('desk_late', -it.days, { n: -it.days }) : it.days === 0 ? _agT('ag_ours_today') : _agTn('ag_ours_in', it.days, { n: it.days });
   } else if (it.kind === 'chase-firm'){
     kind = _agT('ag_k_chase_firm');
-    sum = _agT('ag_firm_sum', { what: String((it.ob && it.ob.desc) || ''), date: _agDay(it.ob && it.ob.chasedAt) });
+    sum = _agT('ag_firm_sum', { what: String((it.ob && it.ob.desc) || ''), date: _agDayIn(it.ob && it.ob.chasedAt) });
     urg = _agTn('desk_late', it.days, { n: it.days }) + (it.noAddress ? ' · ' + _agT('desk_chase_noaddr') : '');
   }
   let whoNow = who;
@@ -993,7 +1000,7 @@ function agCardParts(it){
     const by = t => it.evs.filter(e => e.type === t).length;
     sum = [_agTn('ag_wk_n', it.n, { n: it.n }), by('obligation') ? _agTn('ag_wk_duties', by('obligation'), { n: by('obligation') }) : '',
       by('renewal') ? _agTn('ag_wk_decisions', by('renewal'), { n: by('renewal') }) : '', by('expiry') ? _agTn('ag_wk_ends', by('expiry'), { n: by('expiry') }) : ''].filter(Boolean).join(' · ');
-    urg = _agT('ag_wk_first', { date: _agDay(it.evs[0].date) });
+    urg = _agT('ag_wk_first', { date: _agDayIn(it.evs[0].date) });
   } else if (it.kind === 'quiet'){
     kind = _agT('ag_k_quiet');
     sum = _agT('ag_qt_sum', { who: (it.note && it.note.who) || who });
@@ -1058,15 +1065,15 @@ function agForWords(name, full){
 /* WHEN, where the record carries a day for this item. A notice and a renewal
    carry theirs on the card's urgency line already, so they print none here. */
 function agWhen(it){
-  if (it.kind === 'answer') return it.since ? _agT('ag_w_arrived', { date: _agDay(it.since) }) : '';
-  if (it.kind === 'read') return it.at ? _agT('ag_read_at', { date: _agDay(it.at) }) : '';
+  if (it.kind === 'answer') return it.since ? _agT('ag_w_arrived', { date: _agDayIn(it.since) }) : '';
+  if (it.kind === 'read') return it.at ? _agT('ag_read_at', { date: _agDayIn(it.at) }) : '';
   if (it.kind === 'chase'){
     const o = it.ob || {};
     const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || '');
-    return due ? _agT('ag_w_was_due', { date: _agDay(due) }) : '';
+    return due ? _agT('ag_w_was_due', { date: _agDayIn(due) }) : '';
   }
-  if (it.kind === 'import') return it.at ? _agT('ag_w_imported', { date: _agDay(it.at) }) : '';
-  if (it.kind === 'ours') return it.due ? _agT(it.days < 0 ? 'ag_w_was_due' : 'ag_w_due', { date: _agDay(it.due) }) : '';
+  if (it.kind === 'import') return it.at ? _agT('ag_w_imported', { date: _agDayIn(it.at) }) : '';
+  if (it.kind === 'ours') return it.due ? _agT(it.days < 0 ? 'ag_w_was_due' : 'ag_w_due', { date: _agDayIn(it.due) }) : '';
   /* WHO IT LAST WENT TO is the fact this card is about, so it takes the slot. */
   if (['reply', 'sign', 'party', 'soon', 'soon-sign'].includes(it.kind)){
     const L = it.kind === 'sign' ? it.sign : it.kind === 'party' ? it.party : (it.kind === 'soon' || it.kind === 'soon-sign') ? it.soon : it.last;
@@ -1564,35 +1571,112 @@ function agAnswerBody(it){
     catch (_){ return raw; }
   };
   const byId = new Map((Array.isArray(c && c.changes) ? c.changes : []).filter(Boolean).map(x => [String(x.id), x]));
-  const rows = (it.plan || []).map(r => {
+  /* THE LEGORA WAY (owner picked it, 29 Oct 2026): nothing boxed but Jambo's
+     answer. Each ask is one row — where it sits on the paper (§ and name),
+     their changed words quoted (rlRowExcerptHtml, the Redlines row's own
+     excerpt), what was settled before, Jambo's answer in grey, and the row's
+     own buttons. The note that "it decides nothing" went: each answer says
+     what it rests on. The buttons press the Redlines row's own verbs
+     (agRoundAct); nothing is decided or filed from the card itself. */
+  const plan = it.plan || [];
+  const ed = !(typeof canEdit === 'function' && !canEdit());
+  const rows = plan.map((r, i) => {
     const v = (window.RLP_VERDICTS && RLP_VERDICTS[r.verdict]) || { label: r.verdict, tone: 'steel' };
-    /* THEIR WORDING is drawn by rlChangeWordingHtml, the ONE builder for "what
-       this change proposed", from our chair — in a native <details>, so it
-       needs no listener and a press repaints nothing. */
-    let words = '';
     const ch = byId.get(String(r.id));
+    const a = (typeof roundPrepOf === 'function' && ch) ? roundPrepOf(c, ch) : null;
+    /* THEIR WHOLE WORDING stays one press away under the quote (rlChangeWordingHtml,
+       the ONE builder for "what this change proposed", in a native <details>) */
+    let words = '';
     if (ch && typeof rlChangeWordingHtml === 'function'){ try { words = rlChangeWordingHtml(ch, { side: 'owner' }); } catch (_){ words = ''; } }
+    let sec = '';
+    try { sec = (ch && typeof rlRowSecOf === 'function') ? rlRowSecOf(ch) : ''; } catch (_){ sec = ''; }
+    const nm = String(name(r) || _agT('ng_this_clause'));
+    /* the clause's number off its own name where the row's reading has none ("4. Governing Law" → §4) */
+    if (!sec){ const m = nm.match(/^\s*(\d+(?:\.\d+)*)[.)]?\s/); if (m) sec = '§' + m[1]; }
+    const bare = sec ? (nm.replace(/^\s*\d+(?:\.\d+)*[.)]?\s+/, '') || nm) : nm;
+    let ex = '';
+    try { ex = (ch && typeof rlRowExcerptHtml === 'function') ? rlRowExcerptHtml(ch) : ''; } catch (_){ ex = ''; }
+    const quote = ex ? ex.replace('<div class="rl-card-ex">', '<div class="ag-chg-q">“').replace(/<\/div>$/, '”</div>')
+      : (r.summary ? `<div class="ag-chg-ask">${_agE(_agT('ag_they_ask', { what: r.summary }))}</div>` : '');
+    const last = i === plan.length - 1;
     return `<div class="ag-chg">
-        <div class="ag-chg-t"><b>${_agE(name(r) || _agT('ng_this_clause'))}</b><span class="ag-tag ${AG_TONE[v.tone] || 'is-steel'}">${_agE(v.label)}</span></div>
-        ${r.summary ? `<div class="ag-chg-ask">${_agE(_agT('ag_they_ask', { what: r.summary }))}</div>` : ''}
-        ${(!r.prepared && (r.why || []).length) ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
-        ${r.precedent ? `<div class="ag-chg-prec">${_agE(r.precedent)}</div>` : ''}
+        <div class="ag-chg-t">${sec ? `<span class="ag-chg-sec">${_agE(sec)} ·</span>` : ''}<b>${_agE(bare)}</b>${a ? '' : `<span class="ag-tag ${AG_TONE[v.tone] || 'is-steel'}">${_agE(v.label)}</span>`}</div>
+        ${quote}
         ${words ? `<details class="ag-words"><summary>${_agE(_agT('ag_show_wording'))}</summary><div class="ag-words-b">${words}</div></details>` : ''}
+        ${(!a && !r.prepared && (r.why || []).length) ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
+        ${r.precedent ? `<div class="ag-chg-prec">${_agE(r.precedent)}</div>` : ''}
         ${agPrepHtml(c, ch)}
+        ${ed ? agRoundActsHtml(c, ch, a, last && plan.length === 1) : ''}
       </div>`;
   }).join('');
   /* An ask the plan could not reach (a stage without js/redlineplan.js) is
      COUNTED rather than dropped: the reader is told how many are waiting. */
-  const missing = Math.max(0, it.n - (it.plan || []).length);
+  const missing = Math.max(0, it.n - plan.length);
   /* WHICH BOOK OF YOUR STANDARDS it was measured against — the playbook's own
      name for it, the one the co-pilot read. */
   let book = '';
   try { if (typeof resolvePlaybook === 'function' && typeof playbookKeyFor === 'function'){ const pb = resolvePlaybook(playbookKeyFor(c)); book = (pb && pb.label) || ''; } } catch (_){ book = ''; }
-  return `<p class="ag-p-meta">${_agE(_agT('ag_round_meta', { r: it.round, date: _agDay(it.since) }))}${book ? ' · ' + _agE(_agT('ag_round_book', { book })) : ''}</p>
-    <div class="ag-tally"><b>${_agE(_agTn('ag_changes', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}</div>
-    <p class="ag-p-note">${_agE(_agT('ag_round_rests'))}</p>
+  /* Put away stands in the one row's own line; with several asks it ends the card, quiet and last */
+  const away = ed && plan.length !== 1 ? `<div class="ag-rnd-acts is-end"><button type="button" class="ui-link ag-rnd-away" data-ag-act="away">${_agE(_agT('desk_discard'))}</button></div>` : '';
+  return `<div class="ag-tally ag-rnd-top"><b>${_agE(_agTn('ag_rnd_waiting', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}<span class="ag-p-meta">${_agE(_agT('ag_round_meta_since', { r: it.round, date: _agDayIn(it.since) }))}${book ? ' · ' + _agE(_agT('ag_round_book', { book })) : ''}</span></div>
     <div class="ag-chgs">${rows}</div>
-    ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}`;
+    ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}${away}`;
+}
+/* ---- THE ROW'S OWN BUTTONS (the Legora way, 29 Oct 2026) ----
+   One filled button per ask, named for Jambo's answer; Accept theirs beside
+   it; Change the suggestion where Jambo prepared one; Put away last when the
+   card holds one ask. Each press is the Redlines row's own verb (agRoundAct),
+   so the one door stays the one door. */
+function agRoundActsHtml(c, ch, a, withAway){
+  if (!ch || ch.status !== 'pending' || ch.withdrawn) return '';
+  const id = String(ch.id);
+  const B = (how, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ag-act="rnd|${_agE(how)}|${_agE(id)}">${_agE(_agT(label))}</button>`;
+  const v = a && a.verdict;
+  let btns = '';
+  if (v === 'counter') btns = B('counter', 'ag_rnd_counter', true) + B('accept', 'ag_rnd_accept');
+  else if (v === 'accept') btns = B('accept', 'ag_rnd_accept', true) + B('counter', 'ag_rnd_counter_plain');
+  else if (v === 'reject') btns = B('reject', 'ag_rnd_reject', true) + B('accept', 'ag_rnd_accept');
+  else if (v === 'escalate') btns = B('review', 'rv_ask_btn', true) + B('accept', 'ag_rnd_accept');
+  /* no prepared answer: the row's one act, so its one filled button */
+  else btns = `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ag-act="nego">${_agE(_agT('ag_a_answer'))}</button>`;
+  const key = (a && typeof roundPrepKey === 'function') ? roundPrepKey(ch.clauseId, ch.newText) : '';
+  const redo = a ? agSendBackHtml('round', key) : '';
+  const away = withAway ? `<button type="button" class="ui-link ag-rnd-away" data-ag-act="away">${_agE(_agT('desk_discard'))}</button>` : '';
+  return `<div class="ag-rnd-acts">${btns}${redo}${away}</div>`;
+}
+/* ---- A ROW'S BUTTON, PRESSED: the Redlines row's own verb ----
+   Every button opens Jambo's Redlines face on the contract and presses that
+   row's own button there: Counter opens the clause editor on the ask with
+   Jambo's wording as a card to Apply; Accept, Reject and Ask for review are
+   taken by the negotiation's own code. A button that never shows says so and leaves you
+   on Redlines. */
+const AG_RND_TRIES = 40, AG_RND_MS = 100;
+const AG_RND_SEL = {
+  counter: id => `[data-rl-cp-editor-row][data-rl-cp-editor-change="${id}"]`,
+  accept: id => `[data-nego-accept="${id}"]`,
+  reject: id => `[data-nego-reject="${id}"]`,
+  review: () => '[data-rl-review-go]:not(:disabled), [data-rl-review]',
+};
+function agRoundAct(it, how, chId){
+  const c = (typeof getContract === 'function' && getContract(it.cid)) || it.c;
+  const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
+  if (!c || !ch || ch.status !== 'pending') return agGo('nego', it.cid);
+  if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+  const sel = AG_RND_SEL[how];
+  if (!sel || typeof pdRedOpen !== 'function' || !pdRedOpen(c.id)) return agGo('nego', it.cid);
+  const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v).replace(/"/g, '\\"');
+  let n = 0;
+  const wait = () => {
+    const ready = typeof pdRedShows !== 'function' || pdRedShows();
+    const b = ready ? document.querySelector(sel(css(String(ch.id)))) : null;
+    if (b){ b.click(); return; }
+    /* a question the walls ask (blanks first) is answered at the reader's pace */
+    if (!document.querySelector('#modal-root [role="dialog"]')) n++;
+    if (n < AG_RND_TRIES) { setTimeout(wait, AG_RND_MS); return; }
+    if (typeof toast === 'function') toast(_agT('ag_rnd_lost'), 'warn');
+  };
+  setTimeout(wait, 0);
+  return true;
 }
 
 /* ---- COPILOT'S PREPARED ANSWER TO ONE ASK (27 Sep 2026) ----
@@ -1608,14 +1692,20 @@ function agPrepHtml(c, ch){
   const a = (typeof roundPrepOf === 'function' && ch) ? roundPrepOf(c, ch) : null;
   if (!a) return '';
   const key = (typeof roundPrepKey === 'function') ? roundPrepKey(ch.clauseId, ch.newText) : '';
-  const ed = !(typeof canEdit === 'function' && !canEdit());
+  /* WHO ASKED FOR THE REDO, said in the source line; their note rides the hover */
+  let redone = '';
+  if (a.sentBack){
+    let me = '';
+    try { me = String(((typeof currentUser === 'function') && currentUser() || {}).name || ''); } catch (_){ me = ''; }
+    const by = String(a.sentBack.by || '');
+    redone = (!by || by === me) ? _agT('ag_prep_redone_me') : _agT('ag_prep_redone_by', { who: by });
+  }
+  const src = [a.standard ? _agT('ag_prep_based', { what: a.standard }) : '', redone].filter(Boolean).join(' · ');
+  const note = a.sentBack && a.sentBack.note ? ` title="${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note }))}"` : '';
   return `<div class="ag-prep" data-ag-prep="${_agE(key)}">
-      <div class="ag-prep-h"><span class="ag-tag ${AG_PREP_TONE[a.verdict] || 'is-steel'}">${_agE(_agT('ag_prep_' + a.verdict))}</span>${
-        a.standard ? `<span class="ag-sub">${_agE(_agT('ag_prep_rests', { what: a.standard }))}</span>` : ''}</div>
-      ${a.why ? `<p class="ag-p-text">${_agE(a.why)}</p>` : ''}
-      ${a.wording ? `<details class="ag-words"><summary>${_agE(_agT('ag_prep_wording'))}</summary><div class="ag-words-b">${_agE(a.wording)}</div></details>` : ''}
-      ${a.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note || '' }))}</p>` : ''}
-      ${ed ? agSendBackHtml('round', key) : ''}
+      <div class="ag-prep-h"><span class="ag-tag ${AG_PREP_TONE[a.verdict] || 'is-steel'}">${_agE(_agT('ag_prep_v_' + a.verdict))}</span></div>
+      ${(a.why || a.wording) ? `<p class="ag-p-text">${a.why ? _agE(a.why) : ''}${a.wording ? `${a.why ? ' ' : ''}${_agE(_agT('ag_prep_puts_back'))} <span class="ag-words-b">“${_agE(a.wording)}”</span>` : ''}</p>` : ''}
+      ${src ? `<p class="ag-prep-src"${note}>${_agE(src)}</p>` : ''}
     </div>`;
 }
 /* ---- SEND BACK WITH A NOTE: one small box under what is being sent back —
@@ -1624,11 +1714,11 @@ function agSendBackHtml(agent, key){
   return `<div class="ag-sb" data-ag-sb="${_agE(agent)}" data-ag-sb-key="${_agE(key || '')}">
       <button type="button" class="ui-link" data-ag-sb-open>${_agE(_agT('ag_sendback'))}</button>
       <div class="ag-sb-box" hidden>
-        <textarea class="ag-sb-note" rows="2" maxlength="600" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}height:auto;min-height:var(--field-h)"
-          placeholder="${_agE(_agT('ag_sendback_ph'))}" aria-label="${_agE(_agT('ag_sendback'))}"></textarea>
-        <div class="ag-sb-acts"><button type="button" class="ui-btn ui-btn-primary" data-ag-sb-go>${_agE(_agT('ag_sendback_go'))}</button>
-          <button data-dlg-cancel type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button>
-          <span class="ag-sub">${_agE(_agT('ag_sendback_cost'))}</span></div>
+        <input type="text" class="ag-sb-note" maxlength="600" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}"
+          placeholder="${_agE(_agT('ag_sendback_ph'))}" aria-label="${_agE(_agT('ag_sendback_ph'))}">
+        <div class="ag-sb-acts"><button type="button" class="ui-btn ui-btn-sm" data-ag-sb-go>${_agE(_agT('ag_sendback_go'))}</button>
+          <span class="ag-sub">${_agE(_agT('ag_sendback_cost'))}</span>
+          <button data-dlg-cancel type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button></div>
       </div>
     </div>`;
 }
@@ -1709,10 +1799,10 @@ function agNoticeBody(it){
     [_agT('ag_f_must_go'), it.by ? _agDay(it.by) + ' · ' + _agTn('desk_days', it.days, { n: it.days }) : ''],
     [_agT('ag_f_renews'), _agT(auto ? 'ag_renews_yes' : 'ag_renews_no')],
   ]);
-  let why = _agT(auto ? 'ag_nt_why_auto' : 'ag_nt_why_end', { who: (c && c.counterparty) || '', date: _agDay(auto ? it.by : it.ends) });
+  let why = _agT(auto ? 'ag_nt_why_auto' : 'ag_nt_why_end', { who: (c && c.counterparty) || '', date: _agDayIn(auto ? it.by : it.ends) });
   let d = null;
   try { d = (typeof renewalDecisionOf === 'function') ? renewalDecisionOf(c) : null; } catch (_){ d = null; }
-  if (d && d.answer && !d.served) why += ' ' + _agT('ag_decided', { date: _agDay(d.at), what: _agT('rn_decided_' + d.answer) });
+  if (d && d.answer && !d.served) why += ' ' + _agT('ag_decided', { date: _agDayIn(d.at), what: _agT('rn_decided_' + d.answer) });
   const letter = (nd && nd.ok && nd.text) ? `<pre class="ag-letter">${_agE(nd.text)}</pre><p class="ag-p-note">${_agE(_agT('ag_notice_note'))}</p>` : '';
   return facts + agSecHtml(_agT('ag_s_why_notice'), `<p class="ag-p-text">${_agE(why)}</p>`) + agSecHtml(_agT('ag_s_letter'), letter);
 }
@@ -1769,7 +1859,7 @@ function agMemoHtml(it){
       ${because.length ? `<ul class="ag-went">${because.map(x => `<li>${_agE(x)}</li>`).join('')}</ul>` : ''}
       ${push.length ? `<p class="ag-p-sub2">${_agE(_agT('ag_memo_push'))}</p><ol class="ag-asks">${push.map(x => `<li>${_agE(x)}</li>`).join('')}</ol>` : ''}
       ${d.watchIf ? `<p class="ag-p-note">${_agE(_agT('ag_memo_watch', { what: d.watchIf }))}</p>` : ''}
-      ${a.at ? `<p class="ag-p-note">${_agE(_agT(a.overnight ? 'ag_memo_by_night' : 'ag_memo_by_you', { date: _agDay(a.at) }))}</p>` : ''}
+      ${a.at ? `<p class="ag-p-note">${_agE(_agT(a.overnight ? 'ag_memo_by_night' : 'ag_memo_by_you', { date: _agDayIn(a.at) }))}</p>` : ''}
       ${a.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note || '' }))}</p>` : ''}
       ${(typeof canEdit === 'function' && !canEdit()) ? '' : agSendBackHtml('renew', '')}`);
   }
@@ -2040,7 +2130,7 @@ function agLinkBody(it){
   if (it.kind === 'soon' || it.kind === 'soon-sign'){
     const X = it.soon || {};
     return agKv([
-      [_agT('ag_f_situation'), _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDay(X.ends) })],
+      [_agT('ag_f_situation'), _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDayIn(X.ends) })],
       [_agT('ag_f_sent_to'), agSentTo(X)],
       [_agT('ag_f_left'), _agTn('ag_stuck_n', it.left || 0, { n: it.left || 0 })],
     ]) + `<p class="ag-p-note">${_agE(_agT('ag_keep_note'))}</p>`;
@@ -2138,7 +2228,14 @@ function agActsOf(it){
   B('away', _agT('desk_discard'), 'link');
   return L;
 }
+/* A ROUND'S ACTS STAND IN ITS ROWS (the Legora way, 29 Oct 2026): for an
+   editor the body carries each ask's own buttons and Put away, so the hosts
+   draw no second row of acts under it. A reader keeps the acts as before. */
+function agActsInBody(it){
+  return !!(it && it.kind === 'answer' && !(typeof canEdit === 'function' && !canEdit()) && (it.plan || []).length);
+}
 function agPanelActs(it, o){
+  if (agActsInBody(it)) return '';
   const skip = (o && o.skip) || [];
   return agActsOf(it).filter(a => !skip.includes(a.act)).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}"${a.tip ? ` title="${_agE(a.tip)}"` : ''}>${_agE(a.label)}</button>`).join('');
 }
@@ -2223,7 +2320,7 @@ function agPieceTitle(it){
 function agPieceRefHtml(it){
   if (!it) return '';
   if (it.c) return (typeof refHtml === 'function') ? refHtml(it.c) : _agE(_agRef(it.c));
-  if (it.kind === 'import' && it.at) return _agE(_agT('ag_pc_import_ref', { day: _agDay(it.at) }));
+  if (it.kind === 'import' && it.at) return _agE(_agT('ag_pc_import_ref', { day: _agDayIn(it.at) }));
   return '';
 }
 /* "a, b and c" in the reader's words */
@@ -2278,9 +2375,9 @@ function _agPieceLine(it){
     const amended = c && typeof effectiveExpiryFrom === 'function' ? effectiveExpiryFrom(c) : null;
     const end = (c && typeof effectiveExpiry === 'function' && effectiveExpiry(c)) || w.expiry || '';
     const out = [];
-    if (end) out.push(_agT(amended ? 'ag_ln_ends_amended' : 'ag_ln_ends', { day: _agDay(end) }));
+    if (end) out.push(_agT(amended ? 'ag_ln_ends_amended' : 'ag_ln_ends', { day: _agDayIn(end) }));
     if (w.decideBy) out.push(end && String(w.decideBy).slice(0, 10) === String(end).slice(0, 10) && !w.auto ? _agT('ag_ln_decide_end')
-      : _agT(w.auto ? 'ag_ln_notice_due' : 'ag_ln_decide_due', { day: _agDay(w.decideBy) }));
+      : _agT(w.auto ? 'ag_ln_notice_due' : 'ag_ln_decide_due', { day: _agDayIn(w.decideBy) }));
     if (it.prepared){
       const me = (typeof currentUser === 'function') ? currentUser() : null;
       const owner = c && c.owner ? c.owner : null;
@@ -2289,7 +2386,7 @@ function _agPieceLine(it){
     } else if (it.memo) out.push(_agT('ag_ln_memo'));
     return out.length ? out.join(' ') : [p.sum, p.urg].filter(Boolean).join(' · ');
   }
-  if (it.kind === 'notice' && it.by) return String(p.sum || '').replace(/[.\s]+$/, '') + '. ' + _agT('ag_ln_notice_by', { day: _agDay(it.by) });
+  if (it.kind === 'notice' && it.by) return String(p.sum || '').replace(/[.\s]+$/, '') + '. ' + _agT('ag_ln_notice_by', { day: _agDayIn(it.by) });
   if (it.kind === 'chase' || it.kind === 'chase-firm'){
     const desc = String((it.ob && it.ob.desc) || '').trim();
     const days = Number(it.days) || 0;
@@ -2298,7 +2395,7 @@ function _agPieceLine(it){
     const w = (typeof chaseWhatOf === 'function') ? chaseWhatOf(desc) : { thing: false };
     const late = w.thing ? _agTn('ag_ln_late_their', days, { n: days, what: w.noun }) : _agTn('ag_ln_late', days, { n: days, what: desc });
     if (it.noAddress) return late + ' ' + _agT('ag_ln_chase_noaddr');
-    return late + ' ' + (it.kind === 'chase-firm' ? _agT('ag_ln_chase_firm', { day: _agDay(it.ob && it.ob.chasedAt) }) : _agT('ag_ln_chase_ready'));
+    return late + ' ' + (it.kind === 'chase-firm' ? _agT('ag_ln_chase_firm', { day: _agDayIn(it.ob && it.ob.chasedAt) }) : _agT('ag_ln_chase_ready'));
   }
   if (it.kind === 'import'){
     const cs = (Array.isArray(it.cs) ? it.cs : []).filter(x => x && x.migration && x.migration.needsReview);
@@ -2399,7 +2496,7 @@ function agDrawPanel(key){
     const sb = t.closest('[data-ag-sb]');
     if (!sb) return;
     const box = sb.querySelector('.ag-sb-box');
-    if (t.closest('[data-ag-sb-open]')){ if (box){ box.hidden = false; const n = box.querySelector('textarea'); if (n) n.focus(); } return; }
+    if (t.closest('[data-ag-sb-open]')){ if (box){ box.hidden = !box.hidden; const n = box.hidden ? null : box.querySelector('.ag-sb-note'); if (n) n.focus(); } return; }
     if (t.closest('[data-ag-sb-cancel]')){ if (box) box.hidden = true; return; }
     if (t.closest('[data-ag-sb-go]')) agSendBackPress(_agOpenKey || key, sb);
   });
@@ -2496,6 +2593,8 @@ async function agRunAct(key, act){
      is not using the work, so the doors below say nothing. */
   const said = (o, ref) => { try { if (typeof agPieceSay === 'function') agPieceSay(it.agent, it.cid || '', o, ref || ''); } catch (_){} };
   /* a row's own door: "go|<contract>|<tab>" (Week ahead's rows) */
+  /* a round's row: the Redlines row's own verb (agRoundAct) */
+  if (String(act).startsWith('rnd|')){ const [, how, chId] = String(act).split('|'); return agRoundAct(it, how, chId); }
   if (String(act).startsWith('go|')){ const [, cid, tab] = String(act).split('|'); return agGo(tab === 'oblig' ? 'oblig' : 'terms', cid); }
   if (act === 'approve' || act === 'refuse'){
     if (!c || typeof approvalDecideAsk !== 'function') return agGo('sign', it.cid);
@@ -2543,7 +2642,7 @@ async function agRunAct(key, act){
     try { r = await shareKeepOpen(c, it.soon.token); }
     catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
     if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
-    if (typeof toast === 'function') toast(_agT('ag_kept_open', { date: _agDay(r && r.expiresAt) }), 'ok');
+    if (typeof toast === 'function') toast(_agT('ag_kept_open', { date: _agDayIn(r && r.expiresAt) }), 'ok');
     said('used');
     agRepaint();
     return;
@@ -2705,4 +2804,4 @@ Object.assign(window, { agReportPrepared, agPreparedSettled, agWeekKey, AG_REPLY
   agLinkItems, agLinkDone, agLinkHow, agLinkBody, agFreshLink, agSignTurnWords, agSentTo,
   agRowInner, agPaintList, agShowAgent, agOnDay,
   agStatusOf, agMoneyShown, agNextWords, agRunResultWords, agRunsHtml, agRunNowPress, AG_SPENDS, AG_SIGN_STUCK,
-  agLateFirmItems, agPrepHtml, agSendBackHtml, agSendBackPress, AG_PREP_TONE });
+  agLateFirmItems, agPrepHtml, agRoundActsHtml, agRoundAct, AG_RND_SEL, agActsInBody, agSendBackHtml, agSendBackPress, AG_PREP_TONE });

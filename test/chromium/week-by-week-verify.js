@@ -96,8 +96,11 @@ const check = (name, pass, detail) => {
     check('2b "Open every week" opens them all, and turns to fold them again', !!ALL && ALL.hidden === 0 && /Fold/.test(ALL.word), JSON.stringify(ALL));
     await page.click('[data-obw-weeks]');
 
-    /* ---- 3 the Calendar opens on this week and five more ---- */
+    /* ---- 3 the Calendar's Week holds this week and five more ----
+       RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is its own tab */
     await page.evaluate(() => setView('calendar'));
+    await until(() => document.querySelectorAll('[data-cal-view]').length >= 4, null, 10000);
+    await page.evaluate(() => calSetView('week'));
     await until(() => !!document.querySelector('#cal-week #cal-wk-more'), null, 10000);
     const C = await page.evaluate(d => {
       const rows = [...document.querySelectorAll('#cal-wk-more .cal-wkm-row')];
@@ -108,7 +111,7 @@ const check = (name, pass, detail) => {
         sat: fri ? [...fri.querySelectorAll('.cal-chip')].map(x => x.textContent) : [], satWord: d.satWord,
         wk2: rows[1] ? rows[1].getAttribute('data-cal-wkm') : '' };
     }, D);
-    check('3a it opens on this week by the hour, five more weeks under it, Monday to Friday',
+    check('3a Week holds this week by the hour, five more weeks under it, Monday to Friday',
       C.view === 'week' && C.hours && C.rows === 5 && C.days === 5, JSON.stringify({ view: C.view, hours: C.hours, rows: C.rows, days: C.days }));
     /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn: "26–30 Oct · 3 due"):
        a week whose dates are all work owed says "N due", else "N dates" */

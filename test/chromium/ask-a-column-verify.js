@@ -12,7 +12,7 @@
      2 THE COLUMN: Ask fills one column per question, each contract a cell
        with its answer and the line under it, "not checked" until a person
        ticks; Owner steps aside, as drawn; the panel says the column (the
-       question, counts, Save as a view · Ask again · Remove column).
+       question, counts, Ask again, More… with Save as a view · Remove column).
      3 THE SAP WAY: a press on an answer CHOOSES it (the row lit, the row's
        contract not opened) and the panel says Answer · Why · Source · Clause ·
        Read with Go to clause; a second press lets it go.
@@ -104,7 +104,13 @@ async function toList(page) {
        panel's reading of the chosen row (3b, 4a below). */
     check('2b each cell is one line: the light and the answer, nothing else', col.cells.every(t => /^30 days$/.test(t.trim())) && col.lights === col.cells.length, JSON.stringify({ cells: col.cells, lights: col.lights }));
     check('2c Owner steps aside while an answer column stands, as drawn', !col.heads.includes('Owner'));
-    check('2d the panel says the column, with its three doors', /Notice to end/.test(col.panel) && /Read 4 contracts/.test(col.panel) && /Save as a view/.test(col.panel) && /Ask again/.test(col.panel) && /Remove column/.test(col.panel), col.panel.slice(0, 200));
+    /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): one sentence of what was read, the one button (all
+       read: Ask again), three links and More…, which holds Save as a view and Remove column (last) */
+    await page.click('#ig-dock [data-ac-more]');
+    const more = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .ac-col-more .ac-link')].map(b => b.textContent.trim()));
+    check('2d the panel says the column, with its doors', /Notice to end/.test(col.panel) && /Jambo read 4 just now/.test(col.panel) && /All 4 are read/.test(col.panel) && /Ask again/.test(col.panel) && /More…/.test(col.panel)
+      && more.includes('Save as a view') && more[more.length - 1] === 'Remove column', { panel: col.panel.slice(0, 200), more });
+    await page.click('#ig-dock [data-ac-more]');
     check('2e the calls said are the calls made', h.ai.calls.length - before === 4, String(h.ai.calls.length - before));
     await page.screenshot({ path: path.join(OUT, '03-column.png') });
 
@@ -144,6 +150,7 @@ async function toList(page) {
     await page.evaluate(() => { regPlaceSet({ show: 'list', only: null }); setView('register'); });
     const back = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans').length === 4, null, 10000);
     check('5a a refresh keeps the column and its answers, and spends nothing', back && h.ai.calls.length === spent, String(h.ai.calls.length - spent));
+    if (!await page.$('#ig-dock [data-ac-remove]')) await page.click('#ig-dock [data-ac-more]');
     await page.click('[data-ac-remove]');
     /* RE-POINTED 21 Oct 2026 (Part 8): Owner is hidden at rest under Columns
        now, so the list comes back to the drawing's four, not to Owner */

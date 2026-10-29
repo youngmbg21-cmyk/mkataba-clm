@@ -68,7 +68,7 @@ const NOTE = 'We can meet you at 45 days on payment.';
       const rows = [...L.querySelectorAll('.sh-lt-row')].filter(r => r.getClientRects().length).map(r => r.querySelector('.sh-lt-k').textContent.trim());
       const ps = sel => [...L.querySelectorAll(sel + ' .sh-lt-p')].map(p => (p.querySelector('[data-sh-lt-link]') ? '{LINK}' : p.querySelector('[data-sh-lt-btn]') ? { btn: p.textContent.trim() } : p.textContent.trim()));
       const mh = document.getElementById('sh-lt-msghead');
-      return { rows, from: t('sh-lt-from'), subject: document.getElementById('sh-lt-subj-row').classList.contains('hidden') ? null : t('sh-lt-subject'),
+      return { rows, from: t('sh-lt-from'), subject: document.getElementById('sh-lt-subj-row').classList.contains('hidden') ? null : document.getElementById('sh-lt-subject').value,
         before: ps('#sh-lt-before'), after: ps('#sh-lt-after'), mh: mh && !mh.classList.contains('hidden') ? { t: mh.textContent, off: mh.classList.contains('is-off') } : null,
         noteIn: !!L.querySelector('.sh-lt-b #sh-summary'), toIn: !!L.querySelector('.sh-lt-to #sh-email') && !!L.querySelector('.sh-lt-to #sh-name'),
         asIn: !!L.querySelector('.sh-lt-as #share-purpose') && !!L.querySelector('.sh-lt-as #share-tabs'),

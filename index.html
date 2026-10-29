@@ -1555,6 +1555,9 @@
   [data-share-sap] :is(.sh-lt-as, .sh-lt-to) > .sh-lt-k{ padding-top:8px; }
   [data-share-sap] .sh-lt-k{ font-size:var(--t-label); color:var(--color-neutral-600); }
   [data-share-sap] .sh-lt-row > b{ min-width:0; font-weight:var(--w-label); font-size:var(--t-body); color:var(--color-text); overflow-wrap:anywhere; }
+  /* the subject box (owner, 29 Oct 2026): a field where the sender may type; where HaTi writes the whole email it reads as words */
+  [data-share-sap] #sh-lt-subject{ min-width:0; }
+  [data-share-sap] #sh-lt-subject.is-fixed{ border-color:transparent; background:transparent; padding-left:0; padding-right:0; font-weight:var(--w-label); cursor:default; text-overflow:ellipsis; }
   [data-share-sap] .sh-lt-v{ min-width:0; }
   [data-share-sap] .sh-lt-who{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:8px; }
   [data-share-sap] .sh-lt-as .sh-pick-row{ grid-template-columns:minmax(0,1fr); gap:8px; margin:0 0 8px; }
@@ -3428,6 +3431,14 @@
     transition:transform var(--dur-1) var(--ease); }
   .st-adv[open] > .st-adv-sum::before{ transform:rotate(90deg); }
   .st-adv > .st-sec:first-of-type{ border-top:0; padding-top:0; margin-top:15px; }
+  /* WHAT JAMBO COULD NOT PLACE (round 8, 29 Oct 2026): one table — the sentence, where it was typed, where the person
+     went, Teach · Fine; a row's Teach opens under it */
+  .st-ls-r{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--color-divider);font-size:var(--t-meta)}
+  .st-ls-r.st-ls-h{border-top:0;padding-top:0;font-weight:var(--w-label)}
+  .st-ls-said{font-weight:var(--w-body);font-family:var(--font-doc);min-width:0;overflow-wrap:anywhere}
+  .st-ls-acts{display:flex;gap:6px;justify-content:flex-end;white-space:nowrap}
+  .st-ls-acts button{white-space:nowrap}
+  .st-ls-teach{padding:4px 0 12px;max-width:420px}
   .st-sec-h{ display:flex; align-items:center; gap:var(--s-2); font-family:var(--font-body);
     font-weight:var(--w-label); font-size:12px; color:var(--color-neutral-600); margin:0 0 10px; }
   /* THE DRAWER'S SECTIONS ARE NOT STEPS (SAP pop-ups, owner's go 10 Oct 2026):
@@ -9648,10 +9659,13 @@
      paper's line while Fill in is open, and no row above the sheet then — the face's host is the switch */
   /* THE NAME STAYS WHOLE BESIDE THE SIGNING COPY (the gaps, round 10, the second check: at
      1366×950 the name and party were cut by its page arrows and size): on a line too short for
-     all of it, Notes and Share say their word in their hover only — the name is never cut first */
+     all of it, Send says its word in its hover only and Ask for review steps aside (it stays in More's
+     "All acts") — the name is never cut first. More keeps its one short word: it has no symbol to fall back on
+     (round 13, 29 Oct 2026) */
   #ig-strip{container:igline / inline-size}
   @container igline (max-width: 1000px){
-    #ig-strip .ig-sc ~ .ig-acts :is(.ig-notes-w, .ig-share-w, .ig-actions-w){display:none}
+    #ig-strip .ig-sc ~ .ig-acts .ig-share-w{display:none}
+    #ig-strip .ig-sc ~ .ig-acts #ws-review{display:none}
   }
   #ig-strip .ig-zc-line{display:none;flex:none}
   #ig-page:has(#pd-fillface) #ig-strip .ig-zc-line{display:inline-flex;align-items:center}
@@ -9974,6 +9988,77 @@
   #ig-dock .ac-bar>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #ig-dock .ac-bar>b{text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-label)}
   #ig-dock .ac-bar-t{display:block;height:10px;border-radius:5px;background:var(--color-neutral-100);overflow:hidden}
+  /* NO GREY (owner, 29 Oct 2026, the Legora way): yes green, no blue, a plain fact its answer's own colour,
+     nothing found an empty ring; red is a risk alone. One set of rules for every place an answer is drawn
+     (the list, Jambo's panel, Reads, the read table, Key terms), at an id's weight so the older scoped
+     rules above give way. The five value colours sit beside the status tones: violet, pink, teal, cocoa, indigo (none near amber, green or the blue of no). */
+  :root{--ac-v1:var(--st-violet-dot);--ac-v2:var(--st-pink-dot);--ac-v3:#1F8A8A;--ac-v4:#8C5A3C;--ac-v5:#4F5BD5;--ac-more:#1D1D1F;--ac-no:var(--st-steel-dot)}
+  :is(#ig-dock, html) .ac-ans.tone-green>i, :is(#ig-dock, html) i.ac-lg-green{background:var(--st-green-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-steel>i, :is(#ig-dock, html) i.ac-lg-steel{background:var(--ac-no);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-amber>i, :is(#ig-dock, html) i.ac-lg-amber{background:var(--st-amber-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-ruby>i, :is(#ig-dock, html) i.ac-lg-ruby{background:var(--st-ruby-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v1>i, :is(#ig-dock, html) i.ac-lg-v1{background:var(--ac-v1);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v2>i, :is(#ig-dock, html) i.ac-lg-v2{background:var(--ac-v2);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v3>i, :is(#ig-dock, html) i.ac-lg-v3{background:var(--ac-v3);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v4>i, :is(#ig-dock, html) i.ac-lg-v4{background:var(--ac-v4);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v5>i, :is(#ig-dock, html) i.ac-lg-v5{background:var(--ac-v5);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-more>i, :is(#ig-dock, html) i.ac-lg-more{background:var(--ac-more);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-none>i, :is(#ig-dock, html) i.ac-lg-none{background:transparent;box-shadow:inset 0 0 0 1.8px var(--ac-no)}
+  :is(#ig-dock, html) .ac-ans.tone-none{color:var(--st-steel-fg);font-style:italic}
+  :is(#ig-dock, html) .ac-gbar i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
+  :is(#ig-dock, html) .ac-bar-t i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
+  /* THE QUESTION'S CARD, THE LEGORA WAY (as drawn, 29 Oct 2026): nothing boxed; the question, one sentence,
+     the coloured bar, one row per answer, the quote, one button, three links and More… */
+  #ig-dock .ac-col.is-open{display:flex;flex-direction:column;gap:12px;background:transparent;border:0;box-shadow:none;padding:0}
+  #ig-dock .ac-col-h{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer}
+  #ig-dock .ac-col-h .ac-dk-eb{font-size:13px;color:var(--color-text)}
+  #ig-dock .ac-col-q{font-weight:var(--w-strong);font-size:15px;line-height:1.35}
+  #ig-dock .ac-col-say{margin:0;font-size:14px;line-height:1.5}
+  #ig-dock .ac-col-say b{font-weight:var(--w-strong)}
+  #ig-dock .ac-col-say .ac-link.is-risk{color:var(--st-ruby-fg)}
+  #ig-dock .ac-gbar{display:flex;height:6px;border-radius:999px;background:var(--color-divider);overflow:hidden}
+  #ig-dock .ac-gbar.is-mini{height:4px}
+  #ig-dock .ac-gbar i{display:block;height:100%;flex:none}
+  #ig-dock .ac-tally{display:flex;flex-direction:column;gap:2px}
+  #ig-dock .ac-tl{display:flex;align-items:center;gap:8px;min-height:32px}
+  /* the chosen answer's shade reaches 6px past its words on each side as paint only, so the row's box stays inside the card */
+  #ig-dock .ac-tl.is-on{background:var(--jb-card-fill);box-shadow:-6px 0 0 0 var(--jb-card-fill),6px 0 0 0 var(--jb-card-fill)}
+  #ig-dock .ac-tl-b{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;font:inherit;font-size:14px;color:inherit;text-align:left;cursor:pointer}
+  #ig-dock .ac-tl-n{min-width:24px;text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-strong)}
+  #ig-dock .ac-tl-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-tl-names{color:var(--color-text)}
+  #ig-dock .ac-tl .ac-link{flex:none;font-size:14px}
+  #ig-dock .ac-qw{display:flex;flex-direction:column;gap:4px}
+  #ig-dock .ac-qw-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px}
+  #ig-dock .ac-qw-st{display:inline-flex;gap:4px;flex:none}
+  #ig-dock .ac-qw-b{width:26px;height:26px;border-radius:999px;border:0;background:var(--jb-card-fill);font:inherit;font-size:15px;line-height:1;cursor:pointer;color:var(--color-text)}
+  #ig-dock .ac-qw-b:hover{background:var(--color-divider)}
+  #ig-dock .ac-qw-q{margin:0;font-family:var(--font-doc);font-style:italic;font-size:14.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  #ig-dock .ac-qw-q.is-none{font-style:normal;font-family:inherit;font-size:14px}
+  #ig-dock .ac-qw-src{align-self:flex-start;background:none;border:0;padding:0;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--color-divider);text-underline-offset:3px}
+  #ig-dock .ac-col-go{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #ig-dock .ac-col-links{display:flex;flex-wrap:wrap;gap:6px 16px;padding-top:12px;border-top:1px solid var(--color-divider)}
+  #ig-dock .ac-col-links .ac-link, #ig-dock .ac-col-more .ac-link{font-size:14px}
+  #ig-dock .ac-col-more{display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:var(--jb-card-fill);border-radius:var(--radius);padding:12px 16px}
+  #ig-dock .ac-col-more .ac-link.is-danger{color:var(--st-ruby-fg)}
+  #ig-dock .ac-col .ac-ckline{font-size:13px}
+  #ig-dock .ac-col-eb{font-size:13px;margin:8px 0 -4px}
+  #ig-dock .ac-col-fold{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:var(--jb-card-fill);border:0;border-radius:var(--radius);padding:12px 16px;font:inherit;color:inherit;cursor:pointer}
+  #ig-dock .ac-col-fold:hover{background:var(--color-divider)}
+  #ig-dock .ac-fd-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+  #ig-dock .ac-fd-h b{font-weight:var(--w-strong);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-fd-n{flex:none;font-size:13px;white-space:nowrap}
+  #ig-dock .ac-fd-cs{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:13px}
+  #ig-dock .ac-fd-c{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  /* STOP STANDS STILL (29 Oct 2026): Stop heads the running card; the desk and the stack keep one size */
+  #ig-dock .ac-dk-card.is-running .ac-dk-top{display:flex;align-items:center;gap:10px;min-width:0;min-height:28px}
+  #ig-dock .ac-dk-card.is-running .ac-dk-top .ac-desk-now{flex:1;min-width:0}
+  #ig-dock .ac-dk-card.is-running .ac-dk-stop{flex:none;background:var(--color-surface);border:1px solid var(--st-ruby-line);color:var(--st-ruby-fg);border-radius:999px}
+  #ig-dock .ac-dk-card.is-running .ac-dk-q{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #ig-dock .ac-dk-card.is-running .ac-desk{height:128px;min-height:128px;justify-content:flex-start;overflow:hidden}
+  #ig-dock .ac-dk-card.is-running .ac-desk-q{-webkit-line-clamp:2}
+  #ig-dock .ac-dk-card.is-running .ac-stack-r{height:30px;flex:none}
+  #ig-dock .ac-dk-card.is-running .ac-stack-r.is-keep{visibility:hidden}
   #ig-dock .ac-bar-t i{display:block;height:100%;width:0;border-radius:5px;min-width:0}
   /* BREATHING ROOM (owner, 28 Oct 2026: "the feedback or response is very close the entry field"): a line of
      words under an entry box stands 8px below it — the hint under the name, and the refusal under the question */
@@ -16223,6 +16308,29 @@
   .ag-sb-box{display:grid;gap:6px;width:100%;}
   .ag-sb-box[hidden]{display:none;}
   .ag-sb-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  /* THEIR ROUND, THE LEGORA WAY (owner picked it, 29 Oct 2026): nothing boxed but Jambo's answer;
+     each ask a row under a hairline, its quote in the paper's type, its own buttons, Put away last */
+  .ag-rnd-top{gap:8px;}
+  .ag-rnd-top .ag-p-meta{font-size:var(--t-label);}
+  .ag-chgs{border:0;border-radius:0;}
+  .ag-chgs .ag-chg{padding:14px 0 4px;gap:8px;border-top:1px solid var(--color-divider);}
+  .ag-chgs .ag-chg:first-child{margin-top:12px;}
+  .ag-chgs .ag-chg-t{justify-content:flex-start;gap:4px;}
+  .ag-chgs .ag-chg-t .ag-tag{margin-left:auto;}
+  .ag-chg-sec{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;}
+  .ag-chg-q{font-family:var(--font-doc);font-size:15px;line-height:1.55;color:var(--color-text);overflow-wrap:anywhere;}
+  .ag-chg-q del{color:var(--st-ruby-fg);text-decoration-color:var(--st-ruby-fg);}
+  .ag-chg-q ins{color:var(--st-green-fg);background:var(--st-green-bg);text-decoration:underline;text-decoration-color:var(--st-green-fg);}
+  .ag-chgs .ag-prep{margin-top:0;padding:12px 16px;background:var(--jb-card-fill);}
+  .ag-prep .ag-p-text .ag-words-b{display:inline;margin:0;padding:0;border-radius:0;background:none;font-family:var(--font-doc);}
+  .ag-prep-src{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ag-rnd-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .ag-rnd-acts.is-end{justify-content:flex-end;padding-top:12px;border-top:1px solid var(--color-divider);margin-top:4px;}
+  .ag-rnd-acts .ag-sb{display:contents;}
+  .ag-rnd-acts .ag-sb-box{order:10;flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .ag-rnd-acts .ag-sb-box[hidden]{display:none;}
+  .ag-rnd-acts .ag-sb-note{flex:1 1 220px;min-width:0;width:auto;}
+  .ag-rnd-acts .ag-rnd-away{margin-left:auto;color:var(--color-neutral-600);}
   .ag-panel .br-fig{font-weight:var(--w-title);color:var(--accent-ink);}
   .ag-watch{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
   .ag-watch li{display:grid;gap:2px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot);color:var(--color-text);}
@@ -16873,6 +16981,9 @@
   .jb-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600);margin:4px 0 0}
   /* a question of judgement says the stronger model weighed it, and its cost to an admin (aiDeepLineHtml) */
   .jb-deep{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600);margin:6px 0 0}
+  /* Jambo's note for the send screen: quoted as the words that would go, one press under it (aiSendNoteHtml) */
+  .ai-send-note-q{margin:0 0 8px;padding:2px 0 2px 12px;border-left:3px solid var(--color-divider);white-space:normal;overflow-wrap:anywhere}
+  .ai-send-note-cap{margin:0;font-size:var(--t-label);color:var(--color-neutral-600)}
   .jb-read.is-ig{padding-left:36px}
   .igd-popped{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
   /* ==== THE REPORT, SIMPLIFIED (owner, 21 Oct 2026; "Three quieter surfaces", tab 3) ====
@@ -17461,6 +17572,8 @@
   #cn-page .cn-ask .jb-card .jb-plus{width:34px;height:34px}
   #cn-page .cn-ask .jb-card .jb-send{width:36px;height:36px}
   #cn-page .cn-chips{gap:6px 18px;margin-top:14px}
+  /* THE BOX PREDICTS (round 5): "Likely next:" leads the links in the ink, plain; a task is one line, never cut mid-word */
+  #cn-page .cn-chips .cn-lk-h{font-size:12.5px;line-height:1.45;padding:1px 0;color:var(--hb-ink-2);white-space:nowrap}
   #cn-page .cn-needs .cn-h{padding:14px 22px 10px;border-bottom:0;align-items:baseline;gap:10px}
   #cn-page .cn-needs .nd-g{margin:0 10px;padding:8px 12px;border:0;border-radius:12px;background:var(--color-bg);align-items:center;gap:8px}
   #cn-page .cn-needs .nd-g .nd-all{font-weight:var(--w-strong)}
@@ -17757,14 +17870,19 @@
   #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st > .ds-go{font-size:11.5px}
   /* the three columns: Jambo read's rows, the grid's lines, the Obligations line — laid out as FLEX (a <button> laid out
      as grid is sized to its words by Chrome): the name 120 wide, what stands takes the rest, the door at the end */
-  #app-shell #ig-dock .pd-dossier.is-mix .ds-read .ds-row.ds-rr,
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read, .ds-owed) .ds-row.ds-rr,
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-dossier tr.pd-og-row .pd-ck-hd,
   #app-shell #ig-dock .pd-dossier.is-mix .ds-ob-line{display:flex;align-items:baseline;gap:12px;width:100%;height:auto;min-height:0;padding:9px 0;margin:0}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr, #pd-og.is-dossier .pd-ck-hd, .ds-ob-line) > .pd-ck-ring{display:none}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-nm, #pd-og.is-dossier .pd-ck-hd > b, .ds-ob-line > b){flex:0 0 120px;width:120px;min-width:0;font-size:13.5px;line-height:20px;font-weight:var(--w-label);color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-val, #pd-og.is-dossier .pd-ck-hd > .pd-ck-v, .ds-ob-line > .ds-this-v){flex:1 1 0;justify-self:start;min-width:0;max-width:none;font-size:13px;line-height:19px;text-align:left;color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > :last-child, #pd-og.is-dossier .pd-ck-hd > .pd-ck-chev, .ds-ob-line > .pd-ck-chev){flex:none;justify-self:end;margin-left:auto}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr, .ds-owed .ds-rr, #pd-og.is-dossier .pd-ck-hd, .ds-ob-line) > .pd-ck-ring{display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-nm, .ds-owed .ds-rr > .ds-nm, #pd-og.is-dossier .pd-ck-hd > b, .ds-ob-line > b){flex:0 0 120px;width:120px;min-width:0;font-size:13.5px;line-height:20px;font-weight:var(--w-label);color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-val, .ds-owed .ds-rr > .ds-val, #pd-og.is-dossier .pd-ck-hd > .pd-ck-v, .ds-ob-line > .ds-this-v){flex:1 1 0;justify-self:start;min-width:0;max-width:none;font-size:13px;line-height:19px;text-align:left;color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > :last-child, .ds-owed .ds-rr > :last-child, #pd-og.is-dossier .pd-ck-hd > .pd-ck-chev, .ds-ob-line > .pd-ck-chev){flex:none;justify-self:end;margin-left:auto}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-dossier .pd-ck-v .is-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
+  /* ONE GRID (owner, 29 Oct 2026): the rows owed and the rows of the one desk are the same three columns — the one
+     desk's two-line row (.pd-nd-row > span, a column) is a plain name and value here; amber says late or missing */
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-owed .ds-row.ds-rr.pd-nd-row{margin:0;border-radius:0;background:none}
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-owed .ds-row.ds-rr.pd-nd-row > span{display:block;gap:0}
+  #app-shell #ig-dock #pd-glance.pd-dossier.is-mix .ds-owed .ds-rr > .ds-val.is-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
   /* ---- the form ---- */
   #app-shell #ig-dock .pd-fm{display:flex;flex-direction:column;gap:4px;font-size:13px}
   #app-shell #ig-dock .pd-fm-h h3{margin:0;font-size:16px;line-height:22px;font-weight:var(--w-strong);color:var(--color-text)}
@@ -18093,6 +18211,27 @@
   #modal-root .modal-in[data-sh-page] .sh-lt.is-sap{gap:0}
   #modal-root .modal-in[data-sh-page] .sh-lt.is-sap > :is(.sh-lt-h, .sh-lt-mail){border:0;border-radius:0;box-shadow:none}
   #modal-root .modal-in[data-sh-page] .sh-lt.is-sap > .sh-lt-mail{border-top:1px solid var(--color-divider)}
+  /* THE DOSSIER, ONE EVEN LIST (owner, 29 Oct 2026): no stage heads ("Fill in · 1 to do", "Negotiate · 2 to do")
+     and no small grey line under a row ("Jambo read the whole contract and your standards", its words on the
+     row's hover); every press in the last column ONE grey pill, one size, the Decide pill's (.pd-nd-row .ui-btn) */
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .ds-sp-st[data-ds-sp]{display:none}
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-nd-row small{display:none}
+  #app-shell #ig-dock :is(.pd-dossier, .ds-acts) :is(.ds-go, .pd-ck-chev.is-word, .pd-nd-row > .ui-btn:not(.ui-btn-primary)){display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;flex:none;width:auto;min-width:76px;height:22px;min-height:22px;margin:0 0 0 8px;padding:0 10px;border:1px solid transparent;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-family:var(--font-heading);font-size:12px;font-weight:var(--w-strong);line-height:1;text-decoration:none;white-space:nowrap}
+  /* EVERY PRESS IN THE LAST COLUMN IS ONE SIZE (owner, 29 Oct 2026: "all the buttons always have to be the same
+     size"; a floor of 76 let "Read again" and "Open note" grow): one width, set by the widest word of either book
+     ("Skicka igen", "Redigera"), the word centred; the foot's two acts keep their own width */
+  #app-shell #ig-dock .pd-dossier :is(.ds-go, .pd-ck-chev.is-word, .pd-nd-row > .ui-btn:not(.ui-btn-primary)):not(.ds-acts *){width:96px;min-width:96px;max-width:96px;padding:0 6px}
+  #app-shell #ig-dock :is(.pd-dossier, .ds-acts) :is(.ds-go, .pd-nd-row > .ui-btn:not(.ui-btn-primary)):hover:not(:disabled), #app-shell #ig-dock .pd-dossier :hover > .pd-ck-chev.is-word{background:var(--color-divider);text-decoration:none}
+  #app-shell #ig-dock .pd-dossier .ds-go:disabled{color:var(--color-quiet);background:var(--surface-2);cursor:not-allowed}
+  /* the stage's two acts at the panel's foot, after the links (owner, 29 Oct 2026), a field's space above them */
+  #app-shell #ig-dock :is(#igd-feed, #pd-body, .pd-held-dos) .pd-nx > .ds-acts.is-mq.is-foot[data-ds-at-now]{margin-top:16px}
+  /* the space between the fields is one: every row 11 above and 11 below its line, the pill's 22 the line's height
+     (a single-line field 44 tall, whatever kind of row draws it); a long name takes two lines, then "…" */
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-glance .ds-row.ds-rr{min-height:44px;padding:11px 0;align-items:center}
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-glance .ds-row.ds-rr > .ds-nm{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-glance .ds-row.ds-rr.is-jw > .ds-nm{flex:1 1 auto;width:auto;max-width:none;min-width:0}
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix :is(#pd-og, .pd-og) tr.pd-og-row:is(.is-saved, .is-door, .is-named) .pd-ck-hd{min-height:44px;padding-top:11px;padding-bottom:11px}
+  #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .ds-ob-line{min-height:44px;padding-top:11px;padding-bottom:11px}
 </style>
 
 
@@ -18154,11 +18293,8 @@
 
     <span style="flex:1 1 auto;min-width:8px;"></span>
 
-    <div class="cmd-search">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true" style="opacity:.85;flex:none;"><use href="#i-search"/></svg>
-      <input id="cmd-search" data-i18n-ph="sh_search_ph" placeholder="Search contracts, clauses, counterparties…"/>
-      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" data-i18n-title="sh_search_hint">⌘K</button>
-    </div>
+    <!-- ONE BOX, AND NO RIVALS (round 1 "The Legora way", owner's yes 29 Oct 2026): the bar's search left; ⌘K puts
+         the hand in Jambo's box on the page (jamboBoxFocus), where "/" lists the places -->
 
     <span style="flex:1 1 auto;min-width:8px;"></span>
 

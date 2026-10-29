@@ -2523,6 +2523,7 @@ function startApp(){
   refreshOrgBranding().then(()=>{ if(window.ORG_BRANDING&&state.view==='workspace'&&window.renderWorkspace) renderWorkspace(); });
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
+  window.jamboLessonsLoad&&jamboLessonsLoad();   // the phrases an admin taught Jambo (round 8): they move like a page's name
   /* 'redline' and the template surfaces belong on this list: both render an
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the
@@ -5356,6 +5357,65 @@ function shareLetterOf(c, st){
     round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc, c),
     codeOn:!!(typeof linkCodeCfg==='function' && linkCodeCfg().on) }), head:true, letter:true };
 }
+/* THE SUBJECT BOX (owner, 29 Oct 2026): HaTi's subject stands in it until the sender types
+   (data-typed); a letter to the other side and a Word file's mail take a typed one, the rest
+   (a signing turn, a colleague, WhatsApp) are HaTi's words whole and the box reads as words */
+function shareSubjectOwn(L){ return !!(L && L.subject && ((L.letter && !L.colleague) || L.file)); }
+function shareSubjectPaint(L){
+  const el=document.getElementById('sh-lt-subject'); if(!el) return;
+  const own=shareSubjectOwn(L), hati=String((L&&L.subject)||'');
+  el.readOnly=!own; el.tabIndex=own?0:-1;
+  el.classList.toggle('is-fixed', !own);
+  if(el.placeholder!==hati) el.placeholder=hati;
+  if(!own || el.dataset.typed!=='1'){ if(el.value!==hati) el.value=hati; if(!own) delete el.dataset.typed; }
+}
+/* what the press mails as the subject: the sender's own, or '' for HaTi's */
+function shareSubjectTyped(){
+  const el=document.getElementById('sh-lt-subject');
+  if(!el || el.readOnly || el.dataset.typed!=='1') return '';
+  return (typeof shareSubjectClean==='function') ? shareSubjectClean(el.value) : String(el.value||'').trim();
+}
+if(typeof document!=='undefined') document.addEventListener('input',e=>{
+  const el=e.target; if(!el || el.id!=='sh-lt-subject' || el.readOnly) return;
+  if(String(el.value||'').trim()) el.dataset.typed='1'; else delete el.dataset.typed;
+});
+/* WHAT THE SEND SCREEN HOLDS, FOR JAMBO (owner, 29 Oct 2026: asked to "draft an email to send the
+   redlines", he wrote a second whole email in the chat, with its own subject and a change that was
+   not in the round). Read off the screen's own letter (shareLetterOf), nothing composed: who it goes
+   to, its subject, the lines that say what this send carries, and the note as it stands. Only where
+   the sender writes a note to the other side (not a signing turn, a colleague, or a copied link). */
+function shareScreenSays(){
+  try{
+    const host=document.getElementById('sh-letter');
+    if(!host || !host._shNow || !host.getClientRects().length) return null;
+    const { c, st }=host._shNow(); if(!c) return null;
+    const L=shareLetterOf(c, st);
+    if(!L || L.none || L.turn || L.colleague) return null;
+    const goes=(L.parts||[]).filter(p=>(p.k==='say' && p.list) || p.k==='ans').map(p=>String(p.t||'')).filter(Boolean);
+    const subj=document.getElementById('sh-lt-subject');
+    return { contract:(typeof contractRef==='function')?contractRef(c):c.id, contractId:c.id, name:c.name||'',
+      to:String(fval('sh-name')||'').trim() || c.counterparty || '', subject:subj?String(subj.value||''):String(L.subject||''),
+      by:L.wa?'WhatsApp':L.file?'a Word file by email':'email', goes, note:String(fval('sh-summary')||'').trim(),
+      noteMax:(typeof SHARE_MAIL_NOTE_MAX==='number')?SHARE_MAIL_NOTE_MAX:1000 };
+  }catch(_){ return null; }
+}
+/* JAMBO'S NOTE INTO THE BOX — only on a press, only while that contract's send screen is open;
+   it fills the box and sends nothing (the person reads it and presses Send). False = not placed. */
+function shareNoteFill(id, text){
+  const host=document.getElementById('sh-letter');
+  const now=host && host._shNow ? host._shNow() : null;
+  const ta=document.getElementById('sh-summary');
+  const words=String(text||'').trim();
+  const max=(typeof SHARE_MAIL_NOTE_MAX==='number')?SHARE_MAIL_NOTE_MAX:1000;
+  if(!now || !now.c || String(now.c.id)!==String(id) || !ta || !words || words.length>max) return false;
+  ta.value=words;
+  ta.dispatchEvent(new Event('input', { bubbles:true }));
+  try{ shareLetterNoteFit(); }catch(_){}
+  /* lands on the box (landOn), the words ready to read and change; nothing pressed */
+  if(typeof landOn==='function') landOn(ta, { focus:false, block:'center' });
+  if(typeof fieldFocus==='function') fieldFocus(ta);
+  return true;
+}
 function shareLetterPartsHtml(parts){
   const out=[];
   const list=parts.filter(p=>p.k!=='msgHead' && p.k!=='msg');
@@ -5638,6 +5698,8 @@ function shareLetterPaint(c, st){
   /* the whole letter again, from where every choice stood last (Jambo's face
      coming back, pdSendBack) */
   host._shPaint=()=>{ try{ shareLetterPaint(c, st); }catch(_){} };
+  /* what is on the screen now, for Jambo (shareScreenSays) */
+  host._shNow=()=>({ c, st });
   /* the checks stand beside the letter, whichever paint comes first */
   shareLetterChecksPlace();
   const L=shareLetterOf(c, st);
@@ -5648,7 +5710,7 @@ function shareLetterPaint(c, st){
   set('sh-lt-from', L.wa ? i18t('sh_lt_from_wa', { who:me.name||'' }) : i18t('sh_lt_from_v', { who:me.name||'', org:FIRST_PARTY }));
   const subj=document.getElementById('sh-lt-subj-row');
   if(subj) subj.classList.toggle('hidden', !L.subject);
-  set('sh-lt-subject', L.subject||'');
+  shareSubjectPaint(L);
   /* THE NOTE SITS WHERE THE EMAIL PUTS IT: after the first line — under its
      own heading on a file or a signing email; straight after "Hello Anna," on
      the letter, where the email carries it with no heading (as drawn), the box
@@ -8229,7 +8291,11 @@ async function openShareModal(c, opts={}){
       </div></div>
       </div>
       <div class="sh-lt-mail">
-      <div class="sh-lt-row" id="sh-lt-subj-row"><span class="sh-lt-k">${i18t('sh_lt_subject')}</span><b id="sh-lt-subject"></b></div>
+      ${''/* THE SUBJECT IS THEIRS TO CHANGE (owner, 29 Oct 2026): a box holding HaTi's own
+             subject until the sender types; what they type is the subject mailed (the
+             route reads it, js/sharemail.js shareSubjectClean). Emptied, HaTi's again.
+             Where HaTi writes the whole email (a signing turn, a colleague) it is words. */}
+      <div class="sh-lt-row" id="sh-lt-subj-row"><label class="sh-lt-k" for="sh-lt-subject">${i18t('sh_lt_subject')}</label><input id="sh-lt-subject" type="text" maxlength="${(typeof SHARE_SUBJECT_MAX==='number')?SHARE_SUBJECT_MAX:200}" autocomplete="off" spellcheck="true" style="${FLD}"/></div>
       <div class="sh-lt-row"><span class="sh-lt-k">${i18t('sh_lt_from')}</span><b id="sh-lt-from"></b></div>
       <div class="sh-lt-b">
       <div id="sh-lt-before"></div>
@@ -9039,8 +9105,8 @@ async function openShareModal(c, opts={}){
         r = reuse
           /* the letter the screen shows is the email that goes, on the link
              they already hold too (round 11's gaps): the note and the name */
-          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name } })
-          : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
+          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}) } })
+          : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}),
               recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
               durable:wantDurable, purpose:payloadObj.purpose,
               /* Only on the Word channel, and only ever the bytes this dialog
@@ -10874,4 +10940,4 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

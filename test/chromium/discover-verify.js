@@ -58,6 +58,9 @@ const ONLY = process.env.HATI_DV_ONLY || '';
 let pass = 0, fail = 0;
 const check = (name, ok, detail) => { ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null && !ok ? ' — ' + detail : ''}`); };
 const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
+/* the column card's More… list, opened if it is shut (the column card, the Legora way, 29 Oct 2026) */
+let page = null;
+const openMore = async () => { if (page && !await page.$('#ig-dock .ac-col-more')){ const m = await page.$('#ig-dock [data-ac-more]'); if (m) await m.click(); await page.waitForTimeout(150); } };
 const CAP_Q = 'Is our liability capped, and at what?';
 
 async function signIn(page, base){
@@ -85,7 +88,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
+    page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
     page.on('pageerror', e => errors.push(String(e)));
     await signIn(page, h.base);
     check('0 the Contracts list is up', await toList(page));
@@ -95,16 +98,18 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
     await W.admin.json('/api/columns/' + k.ask.id, { method: 'PUT', body: { rule: 'Capped at no more than one year of fees' } });
 
     if (stage(2)){
-      /* 2a the list's own box hands a question of the wording to the form */
+      /* 2a RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the list's own box is a quiet filter and hands
+         nothing on; the form's door is "Ask a column" — opened, the question typed, nothing read */
       const calls0 = h.ai.calls.length;
-      await until(page, () => !!document.querySelector('#ct-q'));
-      await page.fill('#ct-q', CAP_Q); await page.press('#ct-q', 'Enter');
-      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value); });
-      check('2a a question of the wording in the list box opens the form, filled, nothing read', filled && h.ai.calls.length === calls0);
+      await until(page, () => !!document.querySelector('[data-ac-open]'));
+      await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ac-open]')].find(x => x.getClientRects().length); if (b) b.click(); });
+      await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
+      await page.fill('#ig-dock #ac-form #ac-q', CAP_Q);
+      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value) && !!document.querySelector('#ac-named'); });
+      check('2a Ask a column opens the form; the question typed there, nothing read', filled && h.ai.calls.length === calls0);
       /* 2b the name, said */ /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
       const hint = await page.evaluate(() => (document.querySelector('#ac-named') || {}).textContent || '');
       check('2b the form says the column\'s name under the question, with Change', /Column: Liability capped\s*Change/.test(hint.replace(/\s+/g, ' ')), hint);
-      await page.fill('#ct-q', '');
       await page.click('[data-ac-ask]');
       /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
          so the card is read once the read has ended */
@@ -129,9 +134,10 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('2f′ the card offers Show the 2 at risk · Draw it · Copy the table', /Show the 2 at risk/.test(card) && /Draw it/.test(card) && /Copy the table/.test(card), card.slice(0, 300));
       const callsDraw = h.ai.calls.length;
       await page.click('[data-ac-draw]');
-      const bars = await until(page, () => document.querySelectorAll('#ig-dock .ac-draw .ac-bar').length === 4);
+      /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): Draw it draws one bar per answer, in its colour */
+      const bars = await until(page, () => document.querySelectorAll('#ig-dock .ac-draw .ac-bar').length === 2);
       const drawn = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .ac-draw .ac-bar')].map(b => b.innerText.replace(/\s+/g, ' ').trim()));
-      check('2g Draw it draws the counts in the card (9 inside, 2 outside: DV-11 has its template paper from its template), no call spent', bars && drawn.some(t => /outside our rule 2$/.test(t)) && drawn.some(t => /inside our rule 9$/.test(t)) && h.ai.calls.length === callsDraw, JSON.stringify(drawn));
+      check('2g Draw it draws the counts in the card (9 inside, 2 outside: DV-11 has its template paper from its template), no call spent', bars && drawn.some(t => /^Not capped 2$/.test(t)) && drawn.some(t => /^30 days 9$/.test(t)) && h.ai.calls.length === callsDraw, JSON.stringify(drawn));
       await page.screenshot({ path: path.join(OUT, '2-drawn.png') });
       await page.click('[data-ac-draw]');
       check('2g′ pressed again, the drawing goes', await until(page, () => !document.querySelector('#ig-dock .ac-draw')));
@@ -213,6 +219,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
          get the full report … They should all have the door to the full
          report"). Here one column stands on the list and no pack was run:
          red at the parent, where the door only appeared after a pack's read. */
+      /* RE-POINTED 29 Oct 2026: the door stands under the card's More… */
+      if (!await page.$('#ig-dock [data-ac-col] [data-ac-table]') && await page.$('#ig-dock [data-ac-col] [data-ac-more]')) await page.click('#ig-dock [data-ac-col] [data-ac-more]');
       const door = await until(page, () => !!document.querySelector('#ig-dock [data-ac-col] [data-ac-table]'));
       check('3b′ a column asked on its own carries the door to the full report', door,
         await page.evaluate(() => ((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '(no card)').replace(/\s+/g, ' ').slice(0, 220)));
@@ -284,6 +292,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const lk = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Governing law', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-07') }), LAW);
       await page.evaluate(id => { regState().ask = [id]; regState().only = null; regRepaint(); }, lk.ask.id);
       await page.evaluate(id => askColBring(id), lk.ask.id);
+      /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): Keep as a company fact and the watch stand under More… */
+      await until(page, () => !!document.querySelector('#ig-dock [data-ac-fact], #ig-dock [data-ac-more]'));
+      await openMore();
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-fact]'));
       const chip = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-fact]') || {}).textContent || '');
       check('4a′ an admin\'s column card offers "Keep as a company fact"', /Keep as a company fact/.test(chip), chip);
@@ -372,7 +383,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-05'),
         texts: { 'DV-11': contractPlainText(getContract('DV-11')) } }), Q5);
       await page.evaluate(id => { regState().ask = [id]; regState().only = null; regRepaint(); return askColSummary(true).then(() => askColBring(id)); }, ck.ask.id);
-      await until(page, () => /answered/.test((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || ''), null, 10000);
+      await until(page, () => /are read/.test((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || ''), null, 10000);
+      await until(page, () => !!document.querySelector('#ig-dock [data-ac-watch], #ig-dock [data-ac-more]'), null, 10000);
+      await openMore();
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-watch]'), null, 10000);
       const wc = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-watch]') || {}).textContent || '');
       check('5a′ a company fact\'s card offers the watch', /Tell me when a new contract answers at risk/.test(wc),
@@ -507,19 +520,20 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('11a while he reads, the line counts what has landed (no bar: the counts say how far)', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done · (\d+ at risk so far · )?\d+ Jambo calls/.test(line) && bar === '', JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
       await page.screenshot({ path: path.join(OUT, '11-reading.png') });
       await page.click('#ig-dock [data-ac-stop]');
-      const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
-      const st = await page.evaluate(() => (document.querySelector('#ig-dock #ac-stopped') || {}).innerText || '');
+      /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the stop is said in the question's own card, whose one button carries on */
+      const stopped = await until(page, () => /You stopped at/.test((document.querySelector('#ig-dock .ac-col.is-open') || {}).innerText || ''), null, 20000);
+      const st = await page.evaluate(() => (document.querySelector('#ig-dock .ac-col.is-open') || {}).innerText || '');
       const spent = h.ai.calls.length - c0;
       const kept = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
       check('11b Stop: it says what was read and kept, what was not, and offers the rest with its cost',
-        stopped && /Stopped at \d+ of \d+/.test(st) && /kept/.test(st) && /Carry on/.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
+        stopped && /You stopped at \d+ of \d+\. \d+ of \d+ are read, \d+ to go\./.test(st) && /Carry on · \d+ contracts? · \d+ Jambo calls?/.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
       /* RE-POINTED 28 Oct 2026 (STOP MEANS STOP): Stop ends the stream at once, so a batch can be cut midway; the
          reads already with Jambo finish on the server and are kept, so what is shown is at most what was spent */
       check('11c nothing already read is lost, and no more was read after the press', kept <= spent && spent < shownN, JSON.stringify({ kept, spent, shownN }));
       await page.screenshot({ path: path.join(OUT, '11-stopped.png') });
       h.ai.slow(0);
       await page.click('#ig-dock [data-ac-carry]');
-      const done = await until(page, n => !document.querySelector('#ig-dock #ac-stopped') && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= n - 1, shownN, 30000);
+      const done = await until(page, n => !AC.busy && !document.querySelector('#ig-dock #ac-stopped') && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= n - 1, shownN, 30000);
       const all = h.ai.calls.length - c0;
       const cells = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
       check('11d Carry on reads only the rest: every contract answered, each read once', done && all === cells, JSON.stringify({ calls: all, cells, shownN }));

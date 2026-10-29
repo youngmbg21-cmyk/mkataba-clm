@@ -119,7 +119,8 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
        names each contract's reference beside its counterparty. There, as
        before: at least one, MK-RF1 among them, Geist Mono, one line, not cut
        at 1024. A Horizon that prints none REPORTS. */
-    try { await page.evaluate(() => setView('calendar')); } catch (e) { check(false, 'Calendar opens', e.message); }
+    /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is pressed */ 
+    try { await page.evaluate(() => { setView('calendar'); calSetView('week'); }); } catch (e) { check(false, 'Calendar opens', e.message); }
     const calChips = await until(page, () => { const xs = [...document.querySelectorAll('#content .cal-chip')].filter(x => /MK-RF1/.test(x.title || ''));
       return xs.length ? xs.map(x => ({ t: x.textContent.trim(), title: x.title })) : null; }, null, 10000);
     await shot('calendar.png');
@@ -149,7 +150,7 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
     await pageCheck('the room head', () => openWorkspace('MK-RF2', { room: true }), () => !!document.querySelector('.room-head'), '.room-head');
     /* RE-POINTED 23 Oct 2026 (owner: "yes" — the paper's line drops the ref; the bar names it) */
     await pageCheck('Negotiate', () => roomGoTab(getContract('MK-RF2'), 'redline'), () => !!document.querySelector('.redline-page'), '#content', { none: true });
-    await pageCheck('the search palette', () => { setView('contracts'); if (typeof window.openPalette === 'function') window.openPalette('MK-RF'); else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })); },
+    await pageCheck('the search palette', () => { setView('contracts'); /* RE-POINTED 29 Oct 2026 (round 1: Ctrl+K now puts the hand in Jambo's box) — open the palette by its own door */ openCommandPalette('MK-RF'); },
       () => /MK-RF/.test(document.body.textContent), null);
   } catch (e){
     console.log('  FAIL — stopped: ' + (e && e.message));

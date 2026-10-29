@@ -121,7 +121,9 @@ const MEASURE = `(() => {
     if (cs.whiteSpace === 'normal' && cs.display === 'block') continue; /* a paragraph-like link: wraps by rule */
     /* two lines BY DESIGN: a figure's word over its number (Your book's row, the card's tile), a tab's count over its word, a sentence with its act in it */
     /* …and the Dossier's stage line (Round 4, owner's "mix", 24 Oct 2026): a stage's name over its date or "N to do" */
-    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st')) continue;
+    /* …and the Dossier's door rows (owner picked "Two lines", 25 Oct 2026; CLAUDE.md: a long name takes two lines, then "…"):
+       with the last column's one grey pill (29 Oct 2026) a value like "Warehousing & Distribution" reads whole on two lines */
+    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
     /* THE LINES THE WORDS TOOK, not the box's height: a tag with a fixed height folds its words inside it and the box never grows */

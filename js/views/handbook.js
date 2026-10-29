@@ -125,7 +125,7 @@ function hbkPicHtml(c){
   return shots.map((sh, i) => { const cap = sh.cap ? _hbkW(sh.cap) : '';
     return `<figure class="hbk-fig"><div class="hbk-pic-wrap"><img class="hbk-pic" src="${_hbkE(hbkPicFile(c, i))}" alt="${_hbkE(cap)}" loading="lazy" data-hbk-pic="${_hbkE(c.k)}-${i + 1}" tabindex="0"><div class="hbk-ph" hidden>${_hbkE(_hbkT('hbk_pic_soon'))}</div></div>${cap ? `<figcaption>${_hbkE(cap)}</figcaption>` : ''}</figure>`; }).join('');
 }
-const HBK_TONES = { ok: 'is-ok', warn: 'is-warn', risk: 'is-risk', none: 'is-none' };
+const HBK_TONES = { ok: 'is-ok', warn: 'is-warn', risk: 'is-risk', none: 'is-none', no: 'is-no', fact: 'is-fact' };
 function hbkChapterHtml(c){
   const blk = (h, inner) => `<div class="hbk-blk"><h3>${_hbkE(_hbkT(h))}</h3>${inner}</div>`;
   const path = (c.path || []).map(p => typeof p === 'string' && p.startsWith('door:') ? hbkDoorChip(p.slice(5)) : `<span class="hbk-chip">${hbkText(p)}</span>`).join('<i>›</i>');
@@ -227,7 +227,7 @@ function hbkCss(){
   #hbk-page .hbk-key{ display:flex; flex-wrap:wrap; gap:12px; font-size:13px; margin-bottom:6px; }
   #hbk-page .hbk-key span{ display:inline-flex; align-items:center; gap:6px; }
   #hbk-page .hbk-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; background:var(--color-neutral-400); }
-  #hbk-page .hbk-dot.is-ok{ background:var(--st-green-dot, #2E8B57); } #hbk-page .hbk-dot.is-warn{ background:var(--st-amber-dot, #B7791F); } #hbk-page .hbk-dot.is-risk{ background:var(--st-red-dot, #C0392B); } #hbk-page .hbk-dot.is-none{ background:var(--color-neutral-400); }
+  #hbk-page .hbk-dot.is-ok{ background:var(--st-green-dot, #2E8B57); } #hbk-page .hbk-dot.is-warn{ background:var(--st-amber-dot, #B7791F); } #hbk-page .hbk-dot.is-risk{ background:var(--st-red-dot, #C0392B); } #hbk-page .hbk-dot.is-none{ background:transparent; box-shadow:inset 0 0 0 1.8px var(--st-steel-dot, #6F86BF); } #hbk-page .hbk-dot.is-no{ background:var(--st-steel-dot, #6F86BF); } #hbk-page .hbk-dot.is-fact{ background:var(--st-violet-dot, #7A44B8); }
   #hbk-page .hbk-tip{ background:var(--color-accent-50); border-radius:var(--radius); padding:12px 14px; font-size:13px; line-height:1.5; }
   #hbk-page .hbk-foot{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--color-neutral-600); }
   #hbk-page .hbk-cost{ display:inline-block; font-size:12px; font-weight:var(--w-label); padding:1px 8px; border-radius:999px; background:var(--color-neutral-100); color:var(--color-neutral-700); border:1px solid var(--hbk-rule); white-space:nowrap; }

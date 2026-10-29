@@ -31,7 +31,8 @@ test('2 · the form has one box and says the name; the card is Jambo\'s grey car
   const busy = slice(A, 'function askColBusyHtml', 'function askColDeskHeadHtml');
   assert.match(busy, /ac-dk-card/); assert.match(busy, /askColDeskHeadHtml\(b\)/);
   assert.doesNotMatch(busy.replace(/\/\*[\s\S]*?\*\//g, ''), /class="ac-prog"/, 'no bar on the reading card');
-  assert.match(busy, /class="ui-btn ui-btn-sm" data-ac-stop/, 'Stop is a button');
+  /* RE-POINTED 29 Oct 2026 (Stop stands still): Stop is a button, heading the card beside what is in flight */
+  assert.match(busy, /class="ac-dk-top">\$\{askColDeskNowHtml\(b\)\}<button type="button" class="ui-btn ui-btn-sm ac-dk-stop" data-ac-stop/, 'Stop is a button, at the head of the card');
   const stop = slice(A, 'function askColStoppedHtml', '\n}\n');
   assert.match(stop, /ac-dk-card/, 'the stopped card is the same grey card'); assert.match(stop, /askColDeskHeadHtml\(/);
   const I = read('js/i18n.js');

@@ -468,55 +468,12 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
 
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(300);
-    const btn = await page.evaluate(() => {
-      const b = document.getElementById('hdr-chat');
-      if (!b) return { there: false };
-      const r = b.getBoundingClientRect();
-      const svg = b.querySelector('svg');
-      let box = null;
-      try { box = svg.getBBox ? svg.getBBox() : null; } catch (_){}
-      /* RE-POINTED 11 Oct 2026: the Chat door LEFT THE SHELL BAR on 20 Sep
-         2026 — it is roomChatDoorHtml in the contract's own acts row, beside
-         More (MAP-HISTORY "ONE PANEL, THREE FACES"). */
-      /* RE-POINTED AGAIN 19 Oct 2026: the room and its acts row retired on 15
-         Oct (step 8) and every door onto Negotiate lands on Home's paper, so
-         this asked for a More that is no longer drawn there (red since that
-         day, on KNOWN_RED). The same door, roomChatDoorHtml, is drawn on the
-         paper's ONE LINE now (round 6, "One line", 17 Oct 2026: Notes with its
-         word, then Share, and NO ⋯ on the line), so the claim it kept — the
-         door is the contract's, not the shell bar's — is measured there: on
-         the paper's line, beside Share, on the same line. */
-      const line = document.querySelector('#ig-strip');
-      const share = line && line.querySelector('#ws-share');
-      return { there: true, painted: r.width > 0 && r.height > 0,
-        drawn: !!(box && box.width > 0 && box.height > 0),
-        between: !!line && line.contains(b) && !b.closest('#app-header, .shell-bar, header.shell')
-          && !!share && b.parentElement === share.parentElement
-          && Math.abs(share.getBoundingClientRect().top - r.top) < 12,
-        dead: b.disabled, title: b.title };
-    });
-    check('the Chat door is drawn on the contract', btn.there && btn.painted);
-    check('its SYMBOL really resolves — a missing one paints an empty box in silence',
-      btn.drawn === true);
-    check('and it sits on the paper\'s own line, beside Share (round 6, "One line")',
-      btn.between === true);
-    check('it is live on a contract, with what it is on its hover',
-      btn.dead === false && /chat/i.test(btn.title || ''), btn.title);
-
-    /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner: one Notes door): beside the
-       Redlines face the paper's Notes turns the column to the notes in place
-       (measured, then the face put away); with no face up it opens the drawer,
-       which the rest of this file measures as before */
-    const turned = await page.evaluate(async () => {
-      if (!(window.pdRedShows && pdRedShows())) return 'no face';
-      document.getElementById('hdr-chat').click();
-      await new Promise(r => setTimeout(r, 400));
-      const ok = !!document.querySelector('#pd-redface .rl-fn') && !document.querySelector('#context-panel.open');
-      pdRedClose(); await new Promise(r => setTimeout(r, 400));
-      return ok;
-    });
-    check('beside the Redlines face, the paper\'s Notes turns the column, no drawer', turned === true || turned === 'no face', String(turned));
-    await page.click('#hdr-chat');
+    /* RE-POINTED 29 Oct 2026 (round 13 "The Legora way", owner's yes): Notes LEFT the paper's line (Send · Ask for
+       review · More). The drawer is reached by the side panel's Notes tab, by typing "notes", and by the Redlines
+       column's own Notes; the rest of this file opens it as the Notes tab does (openNotesPanel). */
+    const btn = await page.evaluate(() => ({ onLine: !!document.querySelector('#ig-strip #hdr-chat'), line: !!document.querySelector('#ig-strip') }));
+    check('Notes left the paper\'s line (round 13)', btn.line && !btn.onLine, JSON.stringify(btn));
+    await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));
     await page.waitForTimeout(600);
     const chat = await page.evaluate(() => {
       const p = document.querySelector('#context-panel');
@@ -552,7 +509,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('the drawer\'s × shuts it',
       (await page.evaluate(() =>
         !document.querySelector('#context-panel').classList.contains('open'))) === true);
-    await page.click('#hdr-chat');
+    await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));
     await page.waitForFunction(() => document.querySelector('#context-panel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
     check('and Chat opens it again',
       (await page.evaluate(() =>
@@ -572,7 +529,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         return page.evaluate(() =>
           !document.querySelector('#context-panel').classList.contains('open')); })()) === true);
     /* Back to Chat for the rest of the section. */
-    await page.click('#hdr-chat');
+    await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));
     await page.waitForTimeout(600);
     check('and the heading says Chat, not Notes — two scopes, one shell',
       /chat|chatt/i.test(chat.title || ''), chat.title);
@@ -694,7 +651,6 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         const g = id => document.getElementById(id);
         const p = g('context-panel'), dot = g('hdr-notify-dot');
         r({ page: !!g('clause-editor'),
-          chat: { dead: g('hdr-chat').disabled, title: g('hdr-chat').title },
           bell: { dead: g('hdr-notify').disabled, title: g('hdr-notify').title },
           act:  { dead: g('cmd-panel').disabled, title: g('cmd-panel').title },
           panelOpen: p.classList.contains('open'),
@@ -716,9 +672,6 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        remedy moved to the other side of the same collision — the page sits at
        38, under both slide-overs — so the doors are live because the press
        WORKS, which is the only honest way to un-grey a control. */
-    check('CHAT IS LIVE WHILE THE EDITOR IS UP, with its ordinary hover',
-      covered.chat.dead === false && !/covers this panel|t\u00e4cker/i.test(covered.chat.title || ''),
-      (covered.chat.title || '').slice(0, 60));
     check('THE BELL IS LIVE TOO',
       covered.bell.dead === false && !/covers this panel|t\u00e4cker/i.test(covered.bell.title || ''),
       (covered.bell.title || '').slice(0, 60));
@@ -741,14 +694,14 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       rlCloseClauseEditor({});
       return new Promise(r => setTimeout(() => {
         const g = id => document.getElementById(id);
-        r({ chat: g('hdr-chat').disabled, bell: g('hdr-notify').disabled,
+        r({ bell: g('hdr-notify').disabled,
           act: g('cmd-panel').disabled,
           panelOpen: g('context-panel').classList.contains('open') });
       }, 600));
     });
     check('and all three are still live on the way out',
-      back.chat === false && back.bell === false && back.act === false,
-      `chat ${back.chat} · bell ${back.bell} · activity ${back.act}`);
+      back.bell === false && back.act === false,
+      `bell ${back.bell} · activity ${back.act}`);
     /* The reader's own choice is never written here, so the drawer they left
        open is the drawer they get back — on the way in AND on the way out. */
     check('with the drawer the reader had open', back.panelOpen === true);
@@ -817,25 +770,20 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         text: '@' + me.name + ' what do you think of change 009?',
         mentions: [{ id: me.id, name: me.name }] });
       paintChatDoor();
-      const dot = document.getElementById('hdr-chat-dot');
-      return { n: negoMentionsWaiting(c), text: dot.textContent, shown: !dot.hidden,
-        title: document.getElementById('hdr-chat').title };
+      return { n: negoMentionsWaiting(c) };
     });
-    check('THE CHAT SYMBOL CARRIES A MARK when somebody has named you',
-      mark.shown === true && mark.text === '1', JSON.stringify(mark));
-    check('and the hover says what it is', /named you|name you/i.test(mark.title || ''),
-      (mark.title || '').slice(0, 60));
+    /* RE-POINTED 29 Oct 2026 (round 13): the line's Notes door and its mark left with it; the count it read stays */
+    check('a note that names you is counted as waiting', mark.n === 1, JSON.stringify(mark));
 
     const cleared = await page.evaluate(() => {
       const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
       openNotesPanel(c.id);
       return new Promise(r => setTimeout(() => {
-        const dot = document.getElementById('hdr-chat-dot');
-        r({ shown: !dot.hidden, n: negoMentionsWaiting(c) });
+        r({ n: negoMentionsWaiting(c) });
       }, 700));
     });
     check('READING CHAT CLEARS IT — both halves, or the mark never goes',
-      cleared.shown === false && cleared.n === 0, JSON.stringify(cleared));
+      cleared.n === 0, JSON.stringify(cleared));
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(200);
 

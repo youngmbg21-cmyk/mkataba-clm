@@ -101,7 +101,8 @@ describe('f261 (2) — the heading IS the control', () => {
     /* RE-POINTED 10 Oct 2026 (Young: Month · Week · Horizon, with layers): the
        week and the layers join the per-sitting state, still unstored. */
     /* the calendar opens on this week and five more since round 16 (17 Oct 2026) */
-    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'week', scope:'all', days:null, wk:null, lay:\{ ct:true, me:true, cp:true \} \};/);
+    /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda */
+    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'agenda', scope:'all', days:null, wk:null, lay:\{ ct:true, me:true, cp:true \} \};/);
     assert.ok(!/regColSetWidths|localStorage[^)]*calState\.days/.test(CAL_CODE), 'nothing stores it');
     /* AND IT IS NOT IN ITS OWN TEMPORAL DEAD ZONE: calState is built at load
        and CAL_AGENDA_DAYS is a const declared below it. */
@@ -153,7 +154,7 @@ describe('f261 (5) — nothing else on that page moved', () => {
     /* RE-POINTED 28 Oct 2026 (round 12, the Agenda as a tab, owner's overnight build): Agenda leads the tabs; Week,
        Month and Horizon stay, and the calendar still opens on Week */
     assert.match(CAL_CODE, /const CAL_VIEWS = \['agenda','month','week','horizon'\];/, 'Week joined Month and Horizon (Young, 10 Oct 2026); the Agenda leads (28 Oct 2026)');
-    assert.match(CAL_CODE, /CAL_VIEWS\.includes\(calState\.view\)\?calState\.view:'week'/, 'and the calendar still opens on Week');
+    assert.match(CAL_CODE, /CAL_VIEWS\.includes\(calState\.view\)\?calState\.view:'agenda'/, 'and the calendar opens on the Agenda (round 12, owner\'s yes 29 Oct 2026)');
   });
 
   test('and the Done button on an obligation row', () => {
