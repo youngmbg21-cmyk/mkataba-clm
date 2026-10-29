@@ -49,7 +49,8 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     /* RE-POINTED 13 Oct 2026: the Overview tab is gone from Home's panel (owner); its old doors land on Jambo */
     /* the Menu tab, drawn as "Next up", stands beside Obligations (owner, 15 Oct 2026) */
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is retired into the dossier's All acts fold */
-    assert.deepEqual([...v('PD_TABS')], ['copilot', 'doc', 'oblig']);
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form of every owed detail is a tab state of its own, drawn with its trail back */
+    assert.deepEqual([...v('PD_TABS')], ['copilot', 'doc', 'oblig', 'form']);
     /* RE-POINTED 23 Oct 2026 (Spine): the row drawn beside a paper is Dossier · Clauses · Redlines; Obligations is its line under Sign */
     assert.deepEqual([...v('PD_TABS_SHOWN')], ['copilot', 'doc', 'red']);
     assert.equal(v('PD_TAB_ALIAS').menu, 'copilot', 'an old Menu door lands on the dossier');

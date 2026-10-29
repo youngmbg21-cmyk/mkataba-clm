@@ -89,7 +89,9 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
       await until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('ig-canvas'), id);
       const firstAt = await page.evaluate(PAPER_AT);
       await page.evaluate(i => pdFillOpen(i), id);
-      await until(i => !!document.querySelector(`#pd-og[data-pd-og-for="${i}"] tr.pd-og-row`), id);
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract): the door opens the form; it is up once its first box is in the hand */
+      await until(i => !!document.querySelector(`#pd-og.is-form[data-pd-og-for="${i}"] tr.pd-og-row`)
+        && !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og.is-form')), id);
       await page.waitForTimeout(300);
       return firstAt; };
 
@@ -98,7 +100,12 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     const F = await page.evaluate(FACE);
     check('1a Still owed\'s grid: one row per owed fact (detailsOf\'s count), the details and the paper\'s questions alike',
       !!F && F.rows.length === F.left && F.rows.every(r => r.vis && r.top > F.headTop) && F.rows.some(r => /Start date/.test(r.label)) && F.rows.some(r => /Effective/.test(r.label)), JSON.stringify(F));
-    check('1b the answered ones are Key terms\' lines, one line under the grid', !!F && /^Key terms/.test(F.fold) && F.ktRows.length > 0 && F.ktRows.every(r => !r.vis) && F.foldTop > Math.max(...F.rows.map(r => r.top)) && !F.open, F && F.fold);
+    /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the owed facts stand in the form the Fill in door
+       opens; the answered ones are Key terms' one line on the Dossier, the form's way back */
+    await page.evaluate(() => pdFormClose());
+    await until(() => !!document.querySelector('#ig-dock [data-pd-kt-mid] > summary'), null, 4000);
+    const FD = await page.evaluate(FACE);
+    check('1b the answered ones are Key terms\' lines, one line on the Dossier', !!FD && /^Key terms/.test(FD.fold) && FD.ktRows.length > 0 && FD.ktRows.every(r => !r.vis) && !FD.open, FD && FD.fold);
     await page.click('#ig-dock [data-pd-kt-mid] > summary');
     await until(() => !!document.querySelector('[data-pd-mid-kt] #pd-kt tr'), null, 4000); await page.waitForTimeout(300);
     const opened = await page.evaluate(FACE);
@@ -117,8 +124,9 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     const after = await page.evaluate(() => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'); return { top: b ? Math.round(b.getBoundingClientRect().top) : null, inGrid: !!b, left: detailsOf(pdContract()).left }; });
     check('2a stored as the box is left, the row stays where it is while the hand is in the grid', before != null && after.top === before && after.inGrid && after.left === F.left - 1, JSON.stringify({ before, after }));
     await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
-    const again = await until(() => !document.querySelector('#pd-og tr:not(.is-saved) [data-blankf="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 4000);
-    check('2b the hand gone, it is drawn again: no longer owed, a Key terms line', !!again);
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form keeps the row it opened with, ticked */
+    const again = await until(() => !!document.querySelector('#pd-og.is-form tr:is(.is-typed, .is-read)[data-pd-og-row="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 4000);
+    check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again);
 
     /* 3 the paper holds still */
     const at1 = await page.evaluate(PAPER_AT);
@@ -130,15 +138,17 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
       return { items: d.items.filter(x => x.kind === 'nda').map(x => x.key + ':' + x.open), left: d.left,
         rows: [...document.querySelectorAll('#pd-og tr[data-pd-og-row^="nda"]')].map(r => ({ k: r.getAttribute('data-pd-og-row'), cls: r.className, t: r.textContent.replace(/\s+/g, ' ').trim(), ok: !!r.querySelector('[data-pd-og-ok]'),
           dir: (r.querySelector('[data-pd-og-nda="dir"]') || {}).value || '' })) }; });
-    check('4a an NDA owes its two facts: two rows of the grid, in the count, each with Confirm',
-      JSON.stringify(N.items) === JSON.stringify(['ndaDir:true', 'ndaEnds:true']) && N.rows.length === 2 && N.rows.every(r => r.ok), JSON.stringify(N));
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): no Confirm on a row; the form's ONE Save stores them */
+    check('4a an NDA owes its two facts: two rows of the form, in the count, its one Save under them',
+      JSON.stringify(N.items) === JSON.stringify(['ndaDir:true', 'ndaEnds:true']) && N.rows.length === 2 && N.rows.every(r => !r.ok)
+      && await page.evaluate(() => !!document.querySelector('#ig-dock .pd-fm [data-pd-fm-save]')), JSON.stringify(N));
     /* this upload carries no read text, so the grid says the wording was not read for it — never a guess */
     /* RE-POINTED 21 Oct 2026 (owner: no grey line under an owed fact): an unread row is amber instead of saying "not in the wording" */
     check('4b the wording\'s reading is in the box as a suggestion, else the row is amber', N.rows.every(r => /suggested by|read from/.test(r.t) || /is-amb/.test(r.cls)), JSON.stringify(N.rows));
     await ckOpenRowOf(page, '#pd-og [data-pd-og-nda="dir"]'); await page.selectOption('#pd-og [data-pd-og-nda="dir"]', 'mutual');
     await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="ndaDir"]'); await ckConfirm(page, 'ndaDir');
     const ed = await until(() => { const c = getContract('MK-0406'); return !!(c.nda && c.nda.dir === 'mutual'); }, null, 6000);
-    check('4c Confirm is the facts\' own writer (ndaSet): who keeps it secret is stored', !!ed);
+    check('4c Save is the facts\' own writer (ndaSet): who keeps it secret is stored', !!ed);
     const paid = await page.evaluate(async () => { const c = getContract('MK-0406'); const was = detailsOf(c).left;
       const ok = await ndaSet(c, { dir: 'mutual', ends: '2031-12-31', forGood: false }); const d = detailsOf(getContract('MK-0406'));
       return { ok, was, now: d.left, ndaOpen: d.items.some(x => x.kind === 'nda' && x.open) }; });

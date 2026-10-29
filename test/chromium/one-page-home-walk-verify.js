@@ -122,6 +122,10 @@ const WATCH = () => { window._walk = {}; const tick = () => {
 
     /* ===== 2. FILL IN ===== */
     const left0 = id ? await page.evaluate(i => detailsOf(getContract(i)).left, id) : 0;
+    /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the Next card's one button opens the form beside
+       the paper; every owed box stands there */
+    if (id){ await page.click('#ig-dock .ds-nx [data-pd-ds-fill]').catch(() => {});
+      await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og.is-form')), 6000); }
     for (let i = 0; i < 16 && id; i++) {
       const next = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved) [data-blankf], #pd-og tr.pd-og-row:not(.is-saved) [data-kt]:not([type="checkbox"])')]
         /* a date wears HaTi's own picker (datePickDress), its real box behind it */
@@ -132,10 +136,13 @@ const WATCH = () => { window._walk = {}; const tick = () => {
       const type = await page.$eval(sel, el => el.type).catch(() => '');
       if (type === 'date') await page.$eval(sel, el => { el.value = '2026-11-02'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
       else { await page.click(sel); await page.keyboard.type(/value/.test(next) ? '240000' : /counterparty/.test(next) ? 'Parcelway ApS' : 'Nairobi', { delay: 5 }); }
-      /* each row is Confirmed, as drawn */
-      await page.evaluate(x => { const b = document.querySelector(x); const r = b && b.closest('tr'); const ok = r && r.querySelector('[data-pd-og-ok]'); if (ok) ok.click(); }, sel);
+      /* each row is stored through its own writer (Enter's, pdOgConfirm), the form keeping it ticked */
+      await page.evaluate(([x, i]) => { const b = document.querySelector(x); const r = b && b.closest('tr'); const ok = r && r.querySelector('[data-pd-og-ok]');
+        if (ok) ok.click(); else if (r) pdOgConfirm(getContract(i), r.getAttribute('data-pd-og-row')); }, [sel, id]);
       await pause(300);
     }
+    /* then the one Save, back to the Dossier */
+    if (id) await page.click('#ig-dock [data-pd-fm-save]').catch(() => {});
     const filled = id ? await waitFor(page, i => !detailsOf(getContract(i)).left, 5000, id) : false;
     check('2 every owed box is filled in beside the paper, nothing owed after', left0 > 0 && filled && await page.evaluate(() => state.view === 'dashboard'),
       JSON.stringify({ before: left0, open: id && await page.evaluate(i => detailsOf(getContract(i)).items.filter(x => x.open).map(x => x.key), id),

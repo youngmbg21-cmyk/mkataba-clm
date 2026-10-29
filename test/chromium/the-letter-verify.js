@@ -72,7 +72,7 @@ const NOTE = 'We can meet you at 45 days on payment.';
         before: ps('#sh-lt-before'), after: ps('#sh-lt-after'), mh: mh && !mh.classList.contains('hidden') ? { t: mh.textContent, off: mh.classList.contains('is-off') } : null,
         noteIn: !!L.querySelector('.sh-lt-b #sh-summary'), toIn: !!L.querySelector('.sh-lt-to #sh-email') && !!L.querySelector('.sh-lt-to #sh-name'),
         asIn: !!L.querySelector('.sh-lt-as #share-purpose') && !!L.querySelector('.sh-lt-as #share-tabs'),
-        file: !!L.querySelector('.sh-lt-file'), jsay: t('sh-lt-jsay') }; };
+        file: !!L.querySelector('.sh-lt-file'), jsay: t('sh-lt-jsay'), goes: [...document.querySelectorAll('#sh-lt-goes-l li')].map(li => li.textContent.trim()) }; };
     const press = sel => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.click(); return true; }, sel);
 
     const ok = await open();
@@ -83,7 +83,8 @@ const NOTE = 'We can meet you at 45 days on payment.';
 
     /* 1 the email, drawn */
     const R1 = await page.evaluate(READ);
-    check('1a the letter\'s head: From, To, Subject, Sent as', R1 && JSON.stringify(R1.rows) === JSON.stringify(['From', 'To', 'Subject', 'Sent as']), JSON.stringify(R1 && R1.rows));
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): a labelled form over the email */
+    check('1a the form and the email: To, What goes, What they can do, Send by; Subject, From', R1 && JSON.stringify(R1.rows) === JSON.stringify(['To', 'What goes', 'What they can do', 'Send by', 'Subject', 'From']), JSON.stringify(R1 && R1.rows));
     check('1b the two boxes are its To row, the purpose and the channel its "Sent as", the note a box in its words', R1 && R1.toIn && R1.asIn && R1.noteIn, JSON.stringify(R1 && { to: R1.toIn, as: R1.asIn, note: R1.noteIn }));
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn: "Maria
        Lindgren, Lindqvist & Co AB · sent by HaTi"; the email "Hello Anna,", the
@@ -94,13 +95,14 @@ const NOTE = 'We can meet you at 45 days on payment.';
     await page.fill('#sh-name', 'Anna Holm'); await page.fill('#sh-email', 'anna.holm@nordvik.example');
     const R2a = await page.evaluate(READ);
     const lbl = await page.evaluate(() => ((document.getElementById('sh-summary-label') || {}).textContent || '').trim());
-    check('3a the note is the email\'s own paragraph: a box under "Hello", no "Message from" heading', R2a && !R2a.mh && lbl === 'Your note · type here', JSON.stringify({ mh: R2a && R2a.mh, lbl }));
+    check('3a the note is the email\'s own paragraph: a box under "Hello", no "Message from" heading', R2a && !R2a.mh && lbl === 'Your note to Anna', JSON.stringify({ mh: R2a && R2a.mh, lbl }));
     await page.fill('#sh-summary', NOTE);
     const R2 = await page.evaluate(READ);
     check('3b the name is in the first line, as the email writes it', R2 && R2.before[0] === 'Hello Anna,', JSON.stringify(R2 && R2.before));
     check('3c with a note there is still no heading over it, and Send names her', R2 && !R2.mh
       && await page.evaluate(() => (document.getElementById('share-send') || {}).textContent.trim() === 'Send to Anna'), JSON.stringify(R2 && R2.mh));
-    check('3d Jambo says it is word for word, and the note is the only part written', R2 && /This is the email Anna will get, word for word\. Your note is the only part you write\./.test(R2.jsay || ''), R2 && R2.jsay);
+    /* RE-POINTED, the SAP Way (28 Oct 2026): the "word for word" line is gone; Jambo's panel lists what goes */
+    check('3d Jambo lists what goes to Anna, the note last once typed', R2 && R2.jsay === null && R2.goes.length && R2.goes[R2.goes.length - 1] === 'Your note', JSON.stringify(R2 && { jsay: R2.jsay, goes: R2.goes }));
 
     /* 2 every choice redraws it */
     await press('[data-share-purpose="negotiate"]');

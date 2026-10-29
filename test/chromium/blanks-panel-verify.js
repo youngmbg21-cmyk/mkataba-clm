@@ -72,10 +72,18 @@ const signIn = async (page, base, email, pass) => {
    Change; after Done "‹ Paper" brings the paper back, as a person would */
 const typeInto = async (page, sel, value, ev) => {
   const k = (/data-blankf="([^"]+)"/.exec(sel) || [])[1]; if (!k) return false;
+  /* RE-POINTED 28 Oct 2026 (Fill in the contract): a box still owed stands in the form; not up, its door opens it */
+  await page.evaluate(k => { if (document.querySelector(`#pd-og tr:not(.is-saved) :is([data-blankf="${k}"],[data-kt="${k}"])`)) return;
+    const c = window.intel && intel.paper ? getContract(intel.paper.id) : null;
+    if (c && pdFormRows(c).some(f => String(f.key) === k)) pdFillOpen(c.id, { key: k }); }, k);
+  await page.waitForFunction(k => !!document.querySelector(`#pd-og tr:not(.is-saved) :is([data-blankf="${k}"],[data-kt="${k}"])`)
+    || !pdFormRows(getContract(intel.paper.id)).some(f => String(f.key) === k), k, { timeout: 3000 }).catch(() => {});
   const where = await page.evaluate(k => {
     if (document.querySelector(`#pd-og tr:not(.is-saved) :is([data-blankf="${k}"],[data-kt="${k}"])`)) return 'og';
     const c = window.intel && intel.paper ? getContract(intel.paper.id) : null; if (!c) return null;
     if (!pdKtFacts(c).some(f => f.key === k)) return null;
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): Key terms is a line of the Dossier, the form's way back */
+    if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose();
     const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (line) line.click();
     const r = document.querySelector(`[data-pd-mid-kt] #pd-kt tr[data-pd-og-row="${k}"]`); if (!r) return null;
     const b = r.querySelector('[data-pd-kt-change]'); if (b) b.click(); return 'kt'; }, k);
@@ -88,8 +96,10 @@ const typeInto = async (page, sel, value, ev) => {
   await page.dispatchEvent(box, 'input');
   await page.dispatchEvent(box, ev);
   /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the grid's rows carry no Confirm of their own; ONE Save stands under them */
-  const okSel = where === 'og' ? ((await page.isVisible(`#pd-og [data-pd-og-ok="${k}"]`).catch(() => false)) ? `#pd-og [data-pd-og-ok="${k}"]` : '#pd-og [data-pd-og-saveall]') : `#pd-kt [data-pd-kt-done="${k}"]`;
-  await page.click(okSel).catch(() => {});
+  /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): an owed box stands in the form; Enter stores its row
+     through its own writer (pdOgConfirm) and the form stays up, the row ticked */
+  if (where === 'og' && !(await page.isVisible(`#pd-og [data-pd-og-ok="${k}"]`).catch(() => false))) await page.press(box, 'Enter').catch(() => {});
+  else await page.click(where === 'og' ? `#pd-og [data-pd-og-ok="${k}"]` : `#pd-kt [data-pd-kt-done="${k}"]`).catch(() => {});
   if (where === 'kt') await page.click('#ig-dock [data-pd-mid-back]').catch(() => {});
   await page.waitForTimeout(700);
   return true;
@@ -104,8 +114,9 @@ const typeInto = async (page, sel, value, ev) => {
 /* RE-POINTED 20 Oct 2026 (the Legora way): the same door lands on the Dossier's grid beside Home's paper */
 const openRoom = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
+    /* RE-POINTED 28 Oct 2026 (Fill in the contract): the door lands on the form of the owed facts, else the Dossier */
     if (await page.evaluate(x => state.view === 'dashboard' && !!document.querySelector('#ig-canvas')
-      && !!document.querySelector(`#ig-dock #pd-glance[data-pd-glance-for="${x}"]`) && !!(window.intel && intel.paper && intel.paper.id === x), id)) break;
+      && !!document.querySelector(`#ig-dock :is(#pd-og.is-form[data-pd-og-for="${x}"], #pd-glance[data-pd-glance-for="${x}"])`) && !!(window.intel && intel.paper && intel.paper.id === x), id)) break;
     await page.evaluate(x => { roomGoTab(getContract(x), 'details'); }, id);
     await page.waitForTimeout(400);
   }
@@ -130,7 +141,8 @@ const PANEL = () => {
   const dock = document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="fill"]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]') || document.querySelector('#ig-dock');
   if (!og && !kt) return { there: false };
   const r = dock.getBoundingClientRect();
-  const owedRows = og ? [...og.querySelectorAll('tr[data-pd-og-row]:not(.is-saved)')].filter(x => !['signers', 'stream', 'people'].includes(x.getAttribute('data-pd-og-row'))) : [];
+  /* RE-POINTED 28 Oct 2026 (Fill in the contract): a row answered in the form stays drawn, ticked — it is not owed */
+  const owedRows = og ? [...og.querySelectorAll('tr[data-pd-og-row]:not(.is-saved):not(.is-typed)')].filter(x => !['signers', 'stream', 'people'].includes(x.getAttribute('data-pd-og-row'))) : [];
   const ktRows = kt ? [...kt.querySelectorAll('tr[data-pd-og-row]')] : [];
   const gridBoxes = og ? [...og.querySelectorAll('tr:not(.is-saved) [data-blankf]')] : [];
   const boxes = gridBoxes.map(b => ({ key: b.getAttribute('data-blankf'), label: ((b.closest('tr').querySelector('.pd-og-f b') || {}).textContent || '').trim(),
@@ -330,6 +342,8 @@ const CONTRACT = (id, over) => Object.assign({
     /* every blank of this contract is answered by now: its box is its Key terms line's, opened by Change */
     /* RE-POINTED 21 Oct 2026 (THE MIDDLE): Key terms' line brings its table to the middle, then Change */
     await page.evaluate(() => { if (document.querySelector('#pd-og tr:not(.is-saved) [data-blankf]')) return;
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract): Key terms is a line of the Dossier, the form's way back */
+      if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose();
       const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (line && !document.querySelector('[data-pd-mid-kt]')) line.click();
       const rows = [...document.querySelectorAll('#pd-kt tr[data-pd-og-kind="blank"]')];
       const r = rows[rows.length - 1]; const b = r && r.querySelector('[data-pd-kt-change]'); if (b) b.click(); });
@@ -520,6 +534,7 @@ const CONTRACT = (id, over) => Object.assign({
       const s = document.getElementById('ig-paper-scroll');
       /* the ANSWERED one: its Key terms line opened by Change, its box in the hand */
       /* RE-POINTED 21 Oct 2026 (THE MIDDLE): Key terms' line brings its table to the middle, then Change */
+      if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose();   /* RE-POINTED 28 Oct 2026: Key terms is the Dossier's line */
       const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (line && !document.querySelector('[data-pd-mid-kt]')) line.click();
       const ch = document.querySelector('#pd-kt tr[data-pd-og-kind="tplf"] [data-pd-kt-change]'); if (ch) ch.click();
       await new Promise(r => setTimeout(r, 400));

@@ -70,10 +70,12 @@ describe('f678 (1) the Workspace door opens Home, never the room', () => {
     vm.createContext(ctx); vm.runInContext(region + '\nthis.roomHomeLand=roomHomeLand; this.roomOpenOnTerms=roomOpenOnTerms; this.roomArrivesOnHome=roomArrivesOnHome;', ctx);
     return { ctx, calls };
   };
-  test('1a details owed and the reader may write: Fill in beside the paper', () => {
+  /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract", the walk-through's "The contract opens"): owed or not,
+     the Workspace door lands on the paper and its Dossier; the form is its own door's (pdFillOpen) */
+  test('1a details owed and the reader may write: the paper and its Dossier, plain (its Next card carries the form\'s door)', () => {
     const { ctx, calls } = stage();
     assert.equal(ctx.roomHomeLand('MK-1'), true);
-    assert.deepEqual(J(calls), [['fill', 'MK-1']]);
+    assert.deepEqual(J(calls), [['home', 'MK-1', 'plain']]);
   });
   test('1b nothing owed, or a reader who may not write: the paper on Jambo, plain (no face left up)', () => {
     let s = stage({ left: 0 }); assert.equal(s.ctx.roomHomeLand('MK-1'), true); assert.deepEqual(J(s.calls), [['home', 'MK-1', 'plain']]);

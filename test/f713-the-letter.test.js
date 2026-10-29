@@ -132,15 +132,20 @@ describe('f713 (2) the screen draws the letter', () => {
   test('2a From, To, Subject, Sent as; the boxes in the letter\'s places; the subject the module\'s', async () => {
     const m = await openShare(contract());
     assert.ok(m.$('#sh-letter'), 'the letter is drawn');
-    assert.deepEqual([...m.root.querySelectorAll('#sh-letter .sh-lt-k')].map(x => x.textContent.trim()), ['From', 'To', 'Subject', 'Sent as']);
+    /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): a form
+       of labelled questions over the email — To, What goes, What they can do,
+       Send by — then the email's own Subject and From */
+    assert.deepEqual([...m.root.querySelectorAll('#sh-letter .sh-lt-k')].map(x => x.textContent.trim()),
+      ['To', 'What goes', 'What they can do', 'Send by', 'Subject', 'From']);
     assert.ok(m.$('.sh-lt-to #sh-name') && m.$('.sh-lt-to #sh-email'), 'the To row holds the two boxes');
-    assert.ok(m.$('.sh-lt-as #share-purpose') && m.$('.sh-lt-as #share-tabs') && m.$('.sh-lt-as #sh-link-opts'), 'Sent as holds the purpose, the channel and the link\'s settings');
+    assert.ok(m.$('#sh-lt-can-row #share-purpose') && m.$('#sh-lt-by-row #share-tabs') && m.$('#sh-lt-by-row #sh-link-opts'),
+      'the purpose under What they can do; the channel and the link\'s settings under Send by');
     assert.ok(m.$('.sh-lt-b #sh-summary'), 'the note is a box in the letter\'s words');
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn) */
     assert.equal(m.txt('#sh-lt-subject'), 'Round 1 of the Master services agreement, from ' + m.win.FIRST_PARTY);
     assert.match(m.txt('#sh-lt-from'), /^Maria Lindgren, .+ · sent by HaTi$/);
-    assert.deepEqual([...m.root.querySelectorAll('#sh-letter [data-sh-as]')].map(x => x.getAttribute('data-sh-as')), ['purpose', 'ch', 'link', 'what'],
-      'Sent as: four small choices, each opening its own list of the same controls');
+    assert.deepEqual([...m.root.querySelectorAll('#sh-letter [data-sh-as]')].map(x => x.getAttribute('data-sh-as')), ['what', 'purpose', 'ch', 'link'],
+      'four fields, each opening its own list of the same controls');
   });
   test('2b a keystroke and a choice redraw it', async () => {
     const m = await openShare(contract());
@@ -151,7 +156,10 @@ describe('f713 (2) the screen draws the letter', () => {
     assert.equal(m.txt('#sh-lt-before'), 'Hello Anna,');
     assert.equal(m.txt('#share-send').trim(), 'Send to Anna', 'Send names its first name');
     m.type('sh-summary', 'We can meet you at 45 days.');
-    assert.match(m.txt('#sh-lt-jsay'), /^This is the email Anna will get, word for word\./);
+    /* RE-POINTED, the SAP Way (28 Oct 2026): Jambo's "word for word" line is
+       gone; his panel says what goes, the note once typed */
+    assert.equal(m.txt('#sh-lt-goes-h'), 'What goes to Anna');
+    assert.match(m.txt('#sh-lt-goes-l'), /Your note/);
     m.$('[data-share-purpose="view"]').click();
     assert.equal(m.txt('#sh-lt-subject'), 'The Master services agreement, from ' + m.win.FIRST_PARTY);
     m.$('[data-share-ch="link"]').click();
@@ -167,9 +175,14 @@ describe('f713 (2) the screen draws the letter', () => {
     const m = await openShare(contract());
     assert.match(m.txt('.sh-lt-jb'), /Before you send/);
     const heads = [...m.root.querySelectorAll('#share-step-1 .sh-lt-card h4')].map(x => x.textContent);
-    assert.ok(heads.includes('What Nordvik Logistik AB never sees') && heads.includes('Something else to send?'), JSON.stringify(heads));
-    assert.ok(m.$('#share-other[data-sh-lt-else="history"]'), 'the history is the rare question\'s one door, in the card');
+    assert.ok(heads.includes('What Nordvik Logistik AB never sees'), JSON.stringify(heads));
+    /* RE-POINTED, the SAP Way (28 Oct 2026): "Something else to send?" is not
+       drawn — the form's What goes asks it, and its list presses these same
+       two buttons, kept out of sight as the one door each has */
+    assert.ok(m.$('#sh-lt-else').classList.contains('hidden'), 'the card is not drawn');
+    assert.ok(m.$('#share-other[data-sh-lt-else="history"]'), 'the history\'s one door is still there to press');
     assert.ok(m.$('[data-sh-lt-else="status"]'), 'and the Where we are page');
+    assert.deepEqual([...m.root.querySelectorAll('[data-sh-as="what"] [data-sh-as-what]')].map(b => b.getAttribute('data-sh-as-what')), ['contract', 'history', 'status']);
     const win = m.win;
     const c = contract(); win.negoInit(c);
     win.reviewWithheldIds = () => new Set(['CH-1', 'CH-2']);

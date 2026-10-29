@@ -213,7 +213,9 @@ const E = {
   copilot: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'copilot',
   /* RE-POINTED 21 Oct 2026 — THE LEGORA WAY (owner, 20 Oct 2026, "Why should I have to go elsewhere
      to enter the details?"): no Fill in face; Fill in is the Dossier with its grid's owed row in the hand */
-  fill: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'copilot' && L.og,
+  /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): a Fill in door turns the panel to the form of every
+     owed detail (a tab state under the Dossier), its first owed box in the hand */
+  fill: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'form' && L.og,
   red: id => L => E.paper(id)(L) && L.pd === 'red',
   signing: id => L => E.paper(id)(L) && L.pd === 'signing',
   obTab: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'oblig',
@@ -243,7 +245,7 @@ const E = {
   page: v => L => L.view === v && !L.room,
   ngList: L => L.view === 'redline' && L.rlList,
 };
-const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the Dossier beside the paper, Still owed\'s row in the hand', red: 'Redlines beside the paper',
+const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the form beside the paper (Fill in the contract), its first owed box in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
   strip: 'its strip on the Board', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)', kt: 'its paper on Home, Key terms in the middle' };
@@ -353,7 +355,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
   const atStart = async () => { await goPage('approvals'); };   // a neutral page that is not Home and opens no contract
   const owedFor = id => page.evaluate(i => { const c = getContract(i); let left = 0; try { left = detailsOf(c).left; } catch (_) { left = 0; }
     return !!left && ((typeof canEdit !== 'function') || canEdit()); }, id);
-  const wsExpect = async id => (await owedFor(id)) ? E.fill(id) : E.copilot(id);
+  /* RE-POINTED 28 Oct 2026 (Fill in the contract, the walk-through's "The contract opens"): a Workspace door lands on
+     the paper and its Dossier, owed or not; its Next card carries the form's one button */
+  const wsExpect = async id => { void owedFor; return E.copilot(id); };
   const dbl = sel => page.$(sel).then(async el => { if (!el) return false; await el.dblclick(); return true; });
   const enter = sel => page.$(sel).then(async el => { if (!el) return false; await el.click(); await page.keyboard.press('Enter'); return true; });
   const click = sel => page.$(sel).then(async el => { if (!el) return false; await el.click(); return true; });
@@ -910,7 +914,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       ['on the Redlines face (MK-R1)', () => page.evaluate(() => pdRedOpen('MK-R1')), E.red('MK-R1'), SAYS.red, null],
       /* RE-POINTED 21 Oct 2026 (the Legora way): Fill in is the Dossier with a row in the hand; a refresh
          comes back to the Dossier (a hand in a box is not a place a refresh can keep) */
-      ['on Fill in (MK-A2)', () => page.evaluate(() => pdFillOpen('MK-A2')), E.copilot('MK-A2'), SAYS.copilot, null],
+      /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form is a place of the panel (its tab state is kept), so a
+         refresh standing on it comes back to it — A REFRESH LANDS AT THE SAME SPOT */
+      ['on Fill in (MK-A2)', () => page.evaluate(() => pdFillOpen('MK-A2')), L => E.paper('MK-A2')(L) && L.pd === '' && L.tab === 'form', 'the form beside the paper (Fill in the contract)', null],
       ['on Before you sign (MK-A2)', () => page.evaluate(() => pdSignOpen('MK-A2')), E.signing('MK-A2'), SAYS.signing, null],
       ['on the Obligations page narrowed to a contract (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.obPage('MK-A1'), SAYS.obPage, null],
       ['on the wall narrowed to a party', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],

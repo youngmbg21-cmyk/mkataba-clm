@@ -135,6 +135,9 @@ const pastFirstWords = async page => {
     await pastFirstWords(page);
 
     /* ===== 5. IN STILL OWED'S GRID, AN OWED DATE IS AMBER TOO ===== */
+    /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the owed boxes stand in the form the Dossier's one
+       Fill in door opens (pdFillOpen), not on the Dossier */
+    await page.evaluate(() => { const c = pdContract(); if (c) pdFillOpen(c.id); });
     await waitFor(page, () => !!document.querySelector('#pd-og .pd-og-row.is-amb .dp-face'), 5000);
     const cdt = await page.evaluate(() => {
       const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);

@@ -131,8 +131,11 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
           hand: !!(a && a.closest && a.closest('#pd-og')), tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; }, null, 8000);
       /* the landing is bounded beats after the paint: the hand is asked for, not assumed at the first frame */
       if (ff && !ff.hand) ff.hand = !!(await until(() => { const a = document.activeElement; return !!(a && a.closest && a.closest('#pd-og')); }, null, 4000));
-      check('3b Fill in: no face — the tabs stay, the Dossier is the tab, its grid\'s row in the hand',
-        !!ff && !ff.face && ff.tab === 'copilot' && ff.hand && ff.tabs.split(',').length > 1, JSON.stringify(ff));
+      /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the door turns the panel to the form of every
+         owed detail — a tab state under the Dossier (the Dossier tab stays lit), not a face — its first box in the hand */
+      const lit = await page.evaluate(() => !!document.querySelector('#ig-dock .igd-head [data-pd-tab="copilot"].on'));
+      check('3b Fill in: no face — the tabs stay, the Dossier lit, the form up, its first box in the hand',
+        !!ff && !ff.face && ff.tab === 'form' && lit && ff.hand && ff.tabs.split(',').length > 1, JSON.stringify(Object.assign({ lit }, ff)));
       await shot(page, 'jambos-panel-fill-1440x780');
       check('3c nothing to go back from: no "‹" for a face that is not there', !!ff && !ff.back);
     }
