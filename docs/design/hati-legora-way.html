@@ -1,0 +1,523 @@
+<title>HaTi, the Legora Way</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Instrument+Sans:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400;1,7..72,500&display=swap">
+<style>
+/* Layout: a review page (its own light/dark chrome) holding four full-size pictures of HaTi
+   at 1440×780, scaled to fit, each drawable in three type pairings. Inside a picture every
+   value is HaTi's own: ground #F5F5F7 · ink #1D1D1F · quiet #4B4B50 · hairline #E6E6EA ·
+   chip #F0F0F3 · desk #EFEEEB · Jambo's card #F2F2F5 · bar #111113 · link #087363 · radius 10. */
+:root{
+  --bg:#F5F5F7; --fg:#1D1D1F; --mute:#4B4B50; --line:#E6E6EA; --card:#FFFFFF; --chip:#F0F0F3;
+  --acc:#087363; --warn:#B7791F; --bad:#B42318;
+  --font-page:'Geist','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  --font-page-doc:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#141416; --fg:#F2F2F5; --mute:#A2A2A8; --line:#2A2A2E; --card:#1C1C1F; --chip:#26262A;
+  --acc:#5CC4A6; --warn:#E0A54A; --bad:#F08C80; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#141416; --fg:#F2F2F5; --mute:#A2A2A8; --line:#2A2A2E; --card:#1C1C1F; --chip:#26262A;
+  --acc:#5CC4A6; --warn:#E0A54A; --bad:#F08C80; color-scheme:dark }
+
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-page);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1480px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--font-page-doc);font-weight:600;font-size:34px;line-height:1.15;margin:0 0 6px;text-wrap:balance}
+h2{font-family:var(--font-page-doc);font-weight:600;font-size:24px;margin:34px 0 8px}
+.lede{max-width:70ch;margin:0 0 20px;color:var(--mute)}
+.lede b{color:var(--fg);font-weight:500}
+
+.sw{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.sw .lab{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600;margin-right:4px}
+.sw button{font:inherit;cursor:pointer;height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-weight:500;display:inline-flex;align-items:center;gap:8px}
+.sw button .k{font-size:12px;color:var(--mute);font-weight:400}
+.sw button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.sw button[aria-pressed="true"] .k{color:inherit;opacity:.7}
+.sw button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.sw2{margin-left:auto}
+@media (max-width:900px){.sw2{margin-left:0}}
+
+/* the type specimens, each in its own pairing whatever is chosen */
+.spec{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 16px}
+.spec>div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-width:0;color:var(--fg)}
+.spec .nm{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600;margin-bottom:8px;font-family:var(--font-page)}
+.spec .t{font-size:24px;line-height:1.2;font-weight:500;font-family:var(--sd)}
+.spec .p{font-size:15px;line-height:1.6;margin:6px 0 8px;font-family:var(--sd)}
+.spec .u{font-size:13px;line-height:1.45;font-family:var(--su);letter-spacing:var(--st,0)}
+.spec .u b{font-weight:600}.spec .u i{font-style:normal;color:var(--acc);text-decoration:underline;text-underline-offset:3px}
+.spec .who{font-size:12px;color:var(--mute);margin-top:8px;font-family:var(--font-page)}
+@media (max-width:900px){.spec{grid-template-columns:1fr}}
+
+.stage{position:relative;width:100%;aspect-ratio:1440/780;max-width:100%;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.08),0 24px 60px -30px rgba(0,0,0,.45);background:#F5F5F7}
+/* the three pairings, as variables the picture reads */
+.stage.t-today{--font-ui:'Geist','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;--font-doc:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;--paper-size:15px;--paper-lh:1.62;--ui-track:0;--title-w:500}
+.stage.t-editorial{--font-ui:'Inter','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;--font-doc:'Newsreader','IBM Plex Serif',Georgia,'Times New Roman',serif;--paper-size:16px;--paper-lh:1.6;--ui-track:-.006em;--title-w:500}
+.stage.t-bookish{--font-ui:'Instrument Sans','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;--font-doc:'Literata','IBM Plex Serif',Georgia,'Times New Roman',serif;--paper-size:14.5px;--paper-lh:1.64;--ui-track:0;--title-w:500}
+.frame{position:absolute;top:0;left:0;width:1440px;height:780px;transform-origin:0 0;transform:scale(var(--s,1));
+  background:#F5F5F7;color:#1D1D1F;font-family:var(--font-ui);letter-spacing:var(--ui-track);font-size:13px;line-height:1.45;display:none;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+.frame.on{display:flex}
+.frame *{box-sizing:border-box}
+
+.notes{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:28px;margin:22px 0 10px}
+.notes>div{min-width:0}
+.notes h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600;margin:0 0 8px}
+.notes p,.notes li{margin:0 0 8px;font-size:15px}
+.notes ul{padding-left:18px;margin:0}
+.notes .idea{font-family:var(--font-page-doc);font-size:21px;line-height:1.35;font-weight:500;margin:0 0 10px;text-wrap:balance}
+.ask{border-left:2px solid var(--warn);padding-left:12px}
+.ask b{font-weight:600}
+.scr{display:none}.scr.on{display:block}
+@media (max-width:900px){.notes{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0 0}
+th,td{text-align:left;vertical-align:top;padding:12px 14px 12px 0;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600}
+td:first-child{font-weight:600;white-space:nowrap}
+.tbl{overflow-x:auto}
+.pick{margin-top:22px;padding:22px 24px;background:var(--card);border:1px solid var(--line);border-radius:12px;max-width:74ch}
+.pick h2{margin:0 0 8px}
+.pick p{margin:0 0 10px}
+
+/* =============================== INSIDE THE PICTURE =============================== */
+.bar{height:48px;flex:none;background:#111113;background-image:linear-gradient(180deg,#2A2A2E 0%,#151517 55%,#0B0B0C 100%);display:flex;align-items:center;padding:0 16px;gap:20px;color:#fff}
+.bar .bk{width:20px;opacity:.9;font-size:18px}
+.bar .mark{font-family:var(--font-doc);font-weight:700;font-size:19px;letter-spacing:.01em}
+.bar .pg{font-size:13.5px;display:flex;gap:8px;align-items:center}
+.bar .pg i{font-style:normal;font-size:10px;opacity:.8}
+.bar .sp{flex:1}
+.bar .ic{width:26px;height:26px;display:grid;place-items:center;font-size:14px;position:relative}
+.bar .ic b{position:absolute;top:-3px;right:-3px;font-size:9px;font-weight:600;background:#111113;padding:0 2px;border-radius:6px}
+.bar .av{width:28px;height:28px;border-radius:50%;background:#E6E6EA;color:#1D1D1F;font-weight:600;font-size:11px;display:grid;place-items:center}
+.body{flex:1;min-height:0;display:flex;gap:12px;padding:12px 16px 16px}
+.sheet{flex:1;min-width:0;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.panel{flex:none;width:384px;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22);display:flex;flex-direction:column;overflow:hidden}
+.panel .ph{height:56px;flex:none;display:flex;align-items:center;padding:0 12px 0 10px;border-bottom:1px solid #E6E6EA;gap:2px}
+.panel .ph .more{margin-left:auto;color:#4B4B50;font-size:16px;padding-right:4px}
+.ptab{height:30px;padding:0 10px;border-radius:999px;display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:13px;white-space:nowrap}
+.ptab.on{background:#F0F0F3}
+.ptab .n{font-size:12px;font-weight:500;color:#087363;background:#DCE7E1;border-radius:999px;padding:0 6px;line-height:18px}
+.panel .pb{flex:1;min-height:0;overflow:hidden;padding:16px}
+.panel .pf{flex:none;padding:12px 16px 16px;border-top:1px solid #E6E6EA}
+.pf .lk{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:12px}
+.jbox{height:44px;border:1px solid #087363;border-radius:999px;display:flex;align-items:center;padding:0 6px 0 16px;gap:12px;color:#4B4B50;font-size:13.5px;background:#fff}
+.jbox .plus{font-size:20px;color:#1D1D1F;line-height:1;margin-top:-2px}
+.jbox .go{margin-left:auto;width:32px;height:32px;border-radius:50%;background:#D1D1D6;display:grid;place-items:center;color:#fff;font-size:14px}
+.pill{height:28px;padding:0 12px;border-radius:999px;background:#F0F0F3;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;white-space:nowrap;color:#1D1D1F}
+.pill.sm{height:24px;font-size:12px;padding:0 10px}
+.btn-k{height:28px;padding:0 12px;border-radius:999px;background:#1D1D1F;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;white-space:nowrap}
+.lnk{color:#087363;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.q{color:#4B4B50;font-size:11.5px}
+.eye{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#4B4B50;font-weight:600}
+.ref{font-family:'Geist Mono',ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.02em}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;margin-right:5px}
+.st-rev{color:#B7791F}.st-ok{color:#087363}.st-late{color:#B42318}.st-neg{color:#1F4D3B}
+.d-rev{background:#D9A400}.d-ok{background:#087363}.d-late{background:#B42318}.d-neg{background:#3A6B57}
+.jface{display:inline-block;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#7C3AED 0%,#2563EB 55%,#EC4899 100%);vertical-align:middle;flex:none}
+.jface.sm{width:14px;height:14px}
+.row-lk{display:inline-flex;align-items:center;gap:6px}
+.amber{color:#B7791F}.red{color:#B42318}
+.sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#4B4B50;font-weight:600;padding:14px 0 4px}
+.g-row{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:8px 0}
+.jcard{background:#F2F2F5;border-radius:10px;padding:16px}
+.turn{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
+.turn .jface{margin-top:2px}
+.turn .t{font-size:13.5px;line-height:1.5}
+
+.pline{height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #E6E6EA}
+.pline .t{font-size:14px;font-weight:500}
+.pline .sp{flex:1}
+.desk{flex:1;min-height:0;background:#EFEEEB;position:relative;overflow:hidden}
+.zoom{position:absolute;top:12px;right:28px;height:28px;background:#fff;border:1px solid #E6E6EA;border-radius:999px;display:inline-flex;align-items:center;gap:12px;padding:0 12px;font-size:13px;font-weight:500}
+.paper{width:720px;background:#fff;box-shadow:0 1px 2px rgba(38,55,74,.05),0 18px 44px -22px rgba(38,55,74,.28);padding:40px 52px 60px;font-family:var(--font-doc);font-size:var(--paper-size,15px);line-height:var(--paper-lh,1.62);color:#1C1A16;position:absolute;left:50%;transform:translateX(-50%);top:40px;letter-spacing:0}
+.paper .peye{font-family:var(--font-ui);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#4B4B50;text-align:center;font-weight:500}
+.paper h1{font-size:1.15em;font-weight:700;text-align:center;margin:20px 0 6px;font-family:var(--font-doc);line-height:1.3}
+.paper .btw{text-align:center;color:#3B4A48}
+.paper hr{width:60px;border:0;border-top:1px solid #c9ccd1;margin:16px auto 22px}
+.paper h2{font-size:1em;font-weight:700;margin:14px 0 2px;font-family:var(--font-doc)}
+.paper p{margin:0 0 6px}
+.paper .blank{display:inline-block;min-width:22px;padding:0 6px;background:#FFF1C9;border-bottom:2px solid #D9A400;color:#8A6400;font-size:13px;line-height:20px;text-align:center}
+.paper .fact{background:#F0F0F3;padding:0 4px;border-radius:2px}
+.paper .party{background:#F0F0F3;padding:0 3px}
+.ins{background:#E4F1EA;color:#047857;text-decoration:underline;text-decoration-color:#047857;text-underline-offset:2px}
+.del{background:#FFE4E6;color:#BE123C;text-decoration:line-through}
+.ndot{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#1D1D1F;color:#fff;font-family:var(--font-ui);font-size:10px;font-weight:600;vertical-align:middle;margin-left:6px;line-height:1}
+
+/* Home, the Legora way */
+.lg-page{padding:30px 40px 0;flex:1;min-height:0;display:flex;flex-direction:column}
+.lg-hello{font-family:var(--font-doc);font-size:27px;font-weight:var(--title-w,500);line-height:1.2;margin:0}
+.lg-say{font-size:15.5px;line-height:1.5;margin:6px 0 14px;max-width:72ch}
+.lg-list{flex:1;min-height:0;overflow:hidden}
+.lg-row{display:grid;grid-template-columns:300px 1fr 120px;gap:20px;align-items:start;padding:11px 0;border-top:1px solid #E6E6EA}
+.lg-row:first-child{border-top:0}
+.lg-row .nm{font-size:14.5px;font-weight:500;line-height:1.3}
+.lg-row .ln{font-size:12px;margin-top:2px}
+.lg-row .fx{font-size:13.5px;line-height:1.45}
+.lg-row .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48;font-size:1.02em}
+.lg-row .sec-ref{font-weight:500;white-space:nowrap}
+.lg-row .ac{text-align:right;font-size:13.5px;font-weight:500;padding-top:1px}
+.lg-foot{display:flex;align-items:center;gap:14px;padding:14px 0 18px;border-top:1px solid #E6E6EA;font-size:13px;margin-top:auto;white-space:nowrap}
+.lg-foot .sp{flex:1}
+.lg-foot .col{display:inline-flex;align-items:center;gap:8px}
+.lights{display:inline-flex;gap:3px;vertical-align:middle}
+.lights i{display:block;width:8px;height:8px;border-radius:50%;background:#087363}
+.lights i.no{background:#5F6D6B}.lights i.un{background:#fff;border:1px solid #6A6A6F}
+/* the margin */
+.desk.legora .paper{left:40px;transform:none;width:640px;top:28px;padding:36px 44px 60px}
+.mnotes{position:absolute;left:720px;right:24px;top:28px;bottom:0}
+.mn{position:absolute;left:34px;right:0;font-size:12.5px;line-height:1.4;padding-left:12px;border-left:1.5px solid #D1D1D6}
+.mn:before{content:"";position:absolute;left:-34px;top:9px;width:32px;height:1px;background:#D1D1D6}
+.mn:after{content:"";position:absolute;left:-38px;top:6px;width:7px;height:7px;border-radius:50%;background:#D1D1D6}
+.mn.owe{border-left-color:#D9A400}.mn.owe:before{background:#D9A400}.mn.owe:after{background:#D9A400}
+.mn.risk{border-left-color:#B7791F}.mn.risk:after{background:#B7791F}.mn.risk:before{background:#B7791F}
+.mn.ask{border-left-color:#1D1D1F}.mn.ask:after{background:#1D1D1F}.mn.ask:before{background:#1D1D1F}
+.mn .k{font-weight:500}
+.mn .w{font-size:11.5px;color:#4B4B50}
+.lg-spine{font-size:13.5px;line-height:1.6;margin:0 0 12px}
+.lg-spine b{font-weight:600;color:#B7791F}
+.lg-spine span{color:#4B4B50}
+.lg-next{font-size:14px;margin:0 0 6px}
+.lg-fact{display:flex;gap:10px;padding:9px 0;border-top:1px solid #E6E6EA;font-size:13.5px;align-items:baseline}
+.lg-fact .l{width:92px;flex:none}
+.lg-fact .v{flex:1}
+.lg-fact .s{flex:none;font-size:11.5px;color:#4B4B50}
+
+/* Redlines, the Legora way */
+.rl-lead{font-size:13px;line-height:1.5;margin:0 0 2px}
+.rl-row{padding:10px 0 8px;border-top:1px solid #E6E6EA}
+.rl-row .h{display:flex;align-items:baseline;gap:8px;font-size:13.5px;white-space:nowrap}
+.rl-row .ch{font-size:13px;margin-top:1px}
+.rl-row .h b{font-weight:600}
+.rl-row .h .sp{flex:1}
+.rl-ask{font-family:var(--font-doc);font-style:italic;color:#3B4A48;font-size:13.5px;margin:4px 0 2px}
+.rl-j{background:#F2F2F5;border-radius:10px;padding:10px 14px;margin:6px 0 8px;font-size:13px;line-height:1.5}
+.rl-j .b{font-weight:500}
+.rl-acts{display:flex;gap:6px;align-items:center}
+.rl-acts .q{margin-left:auto}
+.pill.prep{background:#DCE7E1;color:#0A1C15}
+
+/* Contracts, the Legora way: questions as columns */
+.ct-head{padding:26px 40px 0}
+.ct-head .tt{font-family:var(--font-doc);font-size:24px;font-weight:var(--title-w,500);line-height:1.15;display:flex;align-items:baseline;gap:12px}
+.ct-head .tt small{font-family:var(--font-ui);font-size:13px;font-weight:400;letter-spacing:var(--ui-track)}
+.ct-head .tt .sp{flex:1}
+.ct-line{display:flex;align-items:center;gap:16px;padding:14px 0 10px;font-size:13.5px}
+.ct-line .box{flex:1;height:34px;border-bottom:1px solid #D1D1D6;display:flex;align-items:center;gap:8px;color:#4B4B50}
+.ct-line .tabs{display:flex;gap:14px}
+.ct-line .tabs span.on{font-weight:600;border-bottom:2px solid #1D1D1F;padding-bottom:4px}
+.ct{flex:1;min-height:0;overflow:hidden;padding:0 40px}
+.ct .hd,.ct .r{display:grid;grid-template-columns:26px 1.3fr 92px 1.4fr 1.15fr 96px 92px;gap:14px;align-items:start}
+.ct .hd{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#4B4B50;font-weight:600;padding:8px 0;border-bottom:1px solid #E6E6EA;align-items:end}
+.ct .hd .qh{text-transform:none;letter-spacing:var(--ui-track);font-size:12.5px;font-weight:500;color:#1D1D1F;line-height:1.3}
+.ct .hd .qh small{display:block;font-size:11px;color:#4B4B50;font-weight:400;letter-spacing:0;text-transform:none}
+.ct .r{padding:11px 0;border-bottom:1px solid #E6E6EA;font-size:13.5px}
+.ct .r .nm{font-weight:500;font-size:14px;line-height:1.3}
+.ct .r .ln{font-size:12px;margin-top:2px}
+.ct .r .mon{text-align:right;font-variant-numeric:tabular-nums}
+.ct .r .an{display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.ct .r .an .lt{width:9px;height:9px;border-radius:50%;flex:none;margin-top:6px;background:#087363}
+.ct .r .an .lt.no{background:#5F6D6B}.ct .r .an .lt.un{background:#fff;border:1px solid #6A6A6F}.ct .r .an .lt.ask{background:#D9A400}
+.ct .r .an .s{font-size:11.5px;color:#4B4B50;white-space:nowrap}
+.ct .r .an .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48;display:block;font-size:12.5px}
+.ct .ft{display:flex;align-items:center;gap:14px;padding:12px 0 16px;font-size:12.5px;color:#4B4B50;margin-top:auto}
+.ct .ft .sp{flex:1}
+.mark-c{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1.5px solid #087363;color:#087363;font-size:10px;flex:none}
+.mark-h{display:inline-block;width:18px;height:18px;border-radius:50%;border:1.5px solid #D9A400;background:linear-gradient(90deg,#D9A400 50%,transparent 50%);flex:none}
+.mark-n{display:inline-block;width:18px;height:18px;border-radius:50%;border:1.5px solid #3A6B57;background:linear-gradient(90deg,#3A6B57 50%,transparent 50%);flex:none}
+.qcard{margin-top:6px}
+.qcard .qq{font-size:14px;font-weight:500;line-height:1.35}
+.qcard .bar2{display:flex;height:6px;border-radius:3px;overflow:hidden;margin:10px 0 8px;background:#E6E6EA}
+.qcard .bar2 i{display:block;height:100%}
+.qcard .one{font-size:13px;line-height:1.5;margin-top:8px}
+.qcard .one .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48}
+</style>
+<div class="wrap">
+  <h1>HaTi, the Legora Way, taken further</h1>
+  <p class="lede">You liked the contract screen and asked for more. Here are <b>four screens</b> in this way (Home, a contract, Redlines, and Contracts with questions as columns), and <b>three type pairings</b> you can switch on any of them. Everything is drawn at your 1440×780 with your own book. The margin notes now lay themselves out so they never overlap, whatever font is on screen.</p>
+
+  <div class="sw" role="tablist" aria-label="Screen">
+    <span class="lab">Screen</span>
+    <button data-p="home" aria-pressed="true">Home</button>
+    <button data-p="contract" aria-pressed="false">A contract</button>
+    <button data-p="redlines" aria-pressed="false">Redlines</button>
+    <button data-p="contracts" aria-pressed="false">Contracts <span class="k">questions as columns</span></button>
+    <div class="sw sw2" role="tablist" aria-label="Type" style="margin-bottom:0">
+      <span class="lab">Type</span>
+      <button data-t="today" aria-pressed="true">Today <span class="k">Geist · Source Serif</span></button>
+      <button data-t="editorial" aria-pressed="false">Editorial <span class="k">Inter · Newsreader</span></button>
+      <button data-t="bookish" aria-pressed="false">Bookish <span class="k">Instrument Sans · Literata</span></button>
+    </div>
+  </div>
+
+  <div class="spec">
+    <div style="--su:'Geist',system-ui,sans-serif;--sd:'Source Serif 4',Georgia,serif;--st:0"><div class="nm">Today</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">What HaTi wears now. Even, modern, slightly technical.</div></div>
+    <div style="--su:'Inter',system-ui,sans-serif;--sd:'Newsreader',Georgia,serif;--st:-.006em"><div class="nm">Editorial</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">A newspaper's serif with the most legible small sans there is. Warmer, more lawyerly.</div></div>
+    <div style="--su:'Instrument Sans',system-ui,sans-serif;--sd:'Literata',Georgia,serif;--st:0"><div class="nm">Bookish</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">A book serif made for screens, with a rounder sans. Softer, more human.</div></div>
+  </div>
+
+  <div class="stage t-today" id="stage">
+
+<!-- ====================================================== HOME ====================================================== -->
+<div class="frame on" data-f="home">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Home <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="lg-page">
+        <p class="lg-hello">Good morning, Amina.</p>
+        <p class="lg-say">Eight things wait on you, one of them late. Overnight I read your week ahead, answered Parcelway's two changes from your standard, and found two blanks on the Cold Room Lease. Every line below says which words on the paper it rests on.</p>
+        <div class="lg-list">
+          <div class="lg-row"><div><div class="nm">Return the pallets</div><div class="ln">Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span></div></div><div class="fx"><span class="red">2 days late</span> · <span class="sec-ref">§ 4 Delivery</span> — <span class="src">“pallets shall be returned to the Supplier within 14 days of each delivery”</span></div><div class="ac"><span class="lnk">Mark done</span></div></div>
+          <div class="lg-row"><div><div class="nm">Parcel Delivery SaaS</div><div class="ln">Parcelway · <span class="ref">MK-R1</span> · KES 2.4M</div></div><div class="fx">Their 2 changes, answered from your standard, not sent · <span class="sec-ref">§ 5 Payment</span> — <span class="src">“within 60 days”</span> · <span class="sec-ref">§ 26 Liability</span> — <span class="src">“six months of Charges”</span></div><div class="ac"><span class="lnk">Review</span></div></div>
+          <div class="lg-row"><div><div class="nm">Retail Supply — Coast</div><div class="ln">Naivas Supermarkets · <span class="ref">MK-B2</span> · KES 78M</div></div><div class="fx">Approval asked today by Wanjiru Kamau · <span class="sec-ref">§ 5 Payment</span> — <span class="src">“Customer shall pay each correct invoice within 90 days of receipt.”</span></div><div class="ac"><span class="lnk">Approve</span></div></div>
+          <div class="lg-row"><div><div class="nm">Raw Milk Collection</div><div class="ln">Nandi Dairy · <span class="ref">MK-A2</span> · KES 36M</div></div><div class="fx">Approval asked by the rule “over KES 20M” · <span class="sec-ref">§ 2 Price</span> — <span class="src">“The estimated annual contract value is KES 36,000,000”</span></div><div class="ac"><span class="lnk">Approve</span></div></div>
+          <div class="lg-row"><div><div class="nm">Cold Room Lease</div><div class="ln">Tana Cold Stores · <span class="ref">MK-CR</span> · KES 900K</div></div><div class="fx">Two blanks on the paper · <span class="sec-ref">preamble</span> — <span class="src">“made on ___ between”</span> · <span class="sec-ref">§ 2 Rent</span> — <span class="src">“a monthly rent of KES ___”</span></div><div class="ac"><span class="lnk">Fill in</span></div></div>
+          <div class="lg-row"><div><div class="nm row-lk"><span class="jface sm"></span> Your week ahead</div><div class="ln">Prepared by Jambo · read at 06:10</div></div><div class="fx">Seven days read: two duties, two approvals, nothing on Friday. I put nothing in your calendar.</div><div class="ac"><span class="lnk">Review</span></div></div>
+          <div class="lg-row"><div><div class="nm">Send the monthly supply report</div><div class="ln">Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span></div></div><div class="fx">Due Sunday 1 November · <span class="sec-ref">§ 6 Reporting</span> — <span class="src">“a monthly supply report by the first day of each month”</span></div><div class="ac"><span class="lnk">Mark done</span></div></div>
+          <div class="lg-row"><div><div class="nm">Modern Trade Listing</div><div class="ln">Naivas Supermarkets · <span class="ref">MK-B1</span> · KES 85M</div></div><div class="fx">Wanjiru asks you to look over the term · <span class="sec-ref">§ 12 Term</span> — <span class="src">“an initial term of three (3) years, renewing for one (1) year unless notice is given”</span></div><div class="ac"><span class="lnk">Look</span></div></div>
+        </div>
+        <div class="lg-foot">
+          <span class="lnk">Board</span><span class="lnk">Contracts 7</span><span class="lnk">Calendar</span><span class="lnk">Explorer</span><span class="lnk">Reads</span>
+          <span class="sp"></span>
+          <span class="col">“Can we end it for convenience?” <span class="lights"><i></i><i></i><i></i><i class="no"></i><i class="no"></i><i class="un"></i><i class="un"></i></span> <span class="q">5 of 7 read · yes 3</span> <span class="lnk">Read 2 more</span> <span class="q">2 calls</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on"><span class="jface sm"></span> Jambo</span><span class="more">🗑</span></div>
+      <div class="pb">
+        <div class="jcard">
+          <div style="font-size:13.5px;line-height:1.55">The late one first: the pallets were due Tuesday, and nobody owns that duty. Shall I <span class="lnk">ask Otieno to own it</span>? He signed the delivery note.</div>
+          <div class="q" style="margin-top:10px">Read from § 4 and the delivery record · no call</div>
+        </div>
+        <div class="turn"><span class="jface"></span><div class="t">Both approvals rest on payment terms longer than your standard of 60 days. If you approve Naivas at 90, I will note it as a precedent for the next one. <span class="lnk">Compare the two</span></div></div>
+        <div class="turn"><span class="jface"></span><div class="t">Parcelway's two changes have answers waiting: 45 days instead of their 60, and nine months of liability instead of their six. Nothing goes until you press Send. <span class="lnk">Open the redlines</span></div></div>
+        <div class="sec" style="padding-top:18px">Likely next</div>
+        <div class="g-row"><span class="lnk">Mark the pallets done</span><span class="q">free</span></div>
+        <div class="g-row"><span class="lnk">Send Parcelway the two answers</span><span class="q">free</span></div>
+        <div class="g-row"><span class="lnk">Plan my week around what is due</span><span class="q">1 call</span></div>
+      </div>
+      <div class="pf"><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== A CONTRACT ====================================================== -->
+<div class="frame" data-f="contract">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Nandi Dairy · MK-A2 <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="pline"><span class="t">Raw Milk Collection</span><span class="st-rev" style="font-size:13px"><span class="dot d-rev"></span>In review</span><span class="sp"></span><span class="btn-k">⇪ Share</span><span class="pill">Ask for review</span><span class="pill">More</span></div>
+      <div class="desk legora">
+        <div class="paper">
+          <div class="peye">Kenya · Raw material supply</div>
+          <h1>Raw Milk Collection</h1>
+          <div class="btw">Between Highland Corporate Ltd and Nandi Dairy</div>
+          <hr>
+          <p>This Raw Material Supply Agreement is made on <span class="blank">—</span> between <b>Highland Corporate Ltd</b> (the "Buyer") and <span class="party">Nandi Dairy</span> (the "Supplier") for the supply of <span class="blank">—</span> into the Buyer's production facilities in Kenya.</p>
+          <h2>1. Supply &amp; Specification</h2>
+          <p>The Supplier shall supply an estimated <span class="fact">5000</span> metric tonnes per annum meeting the agreed specification and the applicable KEBS standard, delivered DDP to the Buyer's plant.</p>
+          <h2>2. Price &amp; Contract Value</h2>
+          <p>The estimated annual contract value is KES <span class="fact">36,000,000</span>, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT and invoices fall due within <span class="fact">30</span> days of receipt.</p>
+          <h2>3. Quality &amp; Rejection</h2>
+          <p>Consignments failing specification or Public Health / KEBS requirements may be rejected within <span class="fact">3</span> days of delivery, with replacement at the Supplier's cost.</p>
+          <h2>4. Term and Renewal</h2>
+          <p>This agreement runs until <span class="fact">30 June 2027</span> and renews for one year unless either party gives ninety days' notice.</p>
+        </div>
+        <div class="mnotes">
+          <div class="mn owe" data-top="180"><div class="k">Date of agreement — blank</div><div class="w">Nothing on the paper or the record says it.</div><div><span class="lnk">Fill in</span></div></div>
+          <div class="mn owe" data-top="236"><div class="k">What is supplied — blank</div><div class="w">The title says raw milk; the clause does not.</div><div><span class="lnk">Fill in</span></div></div>
+          <div class="mn" data-top="300"><div class="k">Volume 5,000 t a year</div><div class="w">Read here · Key terms</div></div>
+          <div class="mn ask" data-top="400"><div class="k">Value KES 36,000,000 · paid in 30 days</div><div class="w">Read here · counted on the Board · the approval rests on this line (rule “over KES 20M”)</div><div><span class="lnk">Approve</span> · <span class="lnk">Ask Wanjiru</span></div></div>
+          <div class="mn risk" data-top="500"><div class="k">Rejection window: 3 days</div><div class="w">Your standard says 7. Nandi's last two agreements said 5.</div><div><span class="lnk">Start redlining</span> · <span class="lnk">Deep dive</span> <span class="q">1 call</span></div></div>
+          <div class="mn" data-top="600"><div class="k">Ends 30 Jun 2027 · renews by itself</div><div class="w">Notice by 1 April 2027 · a duty, drawn on the Calendar</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on">Dossier <span class="n">3</span></span><span class="ptab">Clauses</span><span class="ptab">Redlines</span><span class="more">›</span></div>
+      <div class="pb">
+        <p class="lg-spine">Arrived 18:38 <span>·</span> Read <span>·</span> <b>Fill, 1 to do</b> <span>·</span> Negotiate <span>·</span> <b>Sign, 2 to do</b> <span>·</span> Live</p>
+        <p class="lg-next">Fill in the date of agreement before anyone signs, then answer the approval. <span class="lnk">Fill in</span></p>
+        <div class="q" style="margin-bottom:10px">Jambo read the paper once on arrival · nothing filed</div>
+        <div class="lg-fact"><div class="l">Value</div><div class="v">KES 36,000,000</div><div class="s">§ 2</div></div>
+        <div class="lg-fact"><div class="l">Ends</div><div class="v">30 Jun 2027, renews by itself</div><div class="s">§ 4</div></div>
+        <div class="lg-fact"><div class="l">Signer</div><div class="v">Amina O. · theirs not named yet</div><div class="s">route</div></div>
+        <div class="lg-fact"><div class="l">Stream</div><div class="v">Procurement &amp; Raw Materials</div><div class="s">filed</div></div>
+        <div class="lg-fact"><div class="l">Approval</div><div class="v"><span class="amber">Asked of you today</span> · rule “over KES 20M”</div><div class="s">§ 2</div></div>
+        <div class="lg-fact"><div class="l">Standards</div><div class="v">Not checked yet · <span class="lnk">Check</span> <span class="q">1 call</span></div><div class="s"></div></div>
+        <div class="turn"><span class="jface"></span><div class="t">The three-day rejection window is the one thing I would change before signing. Say “redline” and I draft it from your standard.</div></div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">fill in</span><span class="lnk">redline</span><span class="lnk">share</span><span class="lnk">history</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo about MK-A2…<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+<!-- ====================================================== REDLINES ====================================================== -->
+<div class="frame" data-f="redlines">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Parcelway · MK-R1 <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="pline"><span class="t">Parcel Delivery SaaS</span><span class="st-neg" style="font-size:13px"><span class="dot d-neg"></span>Negotiating · their round 2</span><span class="sp"></span><span class="btn-k">Send all · 2 not sent</span><span class="pill">Ask for review</span><span class="pill">More</span></div>
+      <div class="desk legora">
+        <div class="paper">
+          <div class="peye">Kenya · Software as a service</div>
+          <h1>Software as a Service Agreement</h1>
+          <div class="btw">Between Highland Corporate Ltd and Parcelway Logistics Ltd</div>
+          <hr>
+          <h2>1. Scope</h2>
+          <p>The Supplier shall deliver the Services described in Schedule 1 to the Customer for the Term, at the service levels in Schedule 2.</p>
+          <h2>5. Payment</h2>
+          <p>Customer shall pay each correct invoice within <span class="del">30 days</span> <span class="ins">60 days</span> of receipt. <span class="ins">Disputed amounts may be withheld until the dispute is resolved under clause 24.</span><span class="ndot">1</span></p>
+          <h2>12. Data</h2>
+          <p>Each Party shall process personal data only as the Data Processing Schedule allows and shall notify the other of a breach within seventy-two (72) hours.</p>
+          <h2>26. Limitation of liability</h2>
+          <p>Each Party's total liability under this agreement shall not exceed <span class="del">twelve (12) months</span> <span class="ins">six (6) months</span> of Charges paid or payable in the year the claim arises.<span class="ndot">2</span></p>
+          <h2>27. Governing law</h2>
+          <p>This agreement is governed by the laws of Kenya and the courts of Nairobi have exclusive jurisdiction.</p>
+        </div>
+        <div class="mnotes">
+          <div class="mn ask" data-top="292"><div class="k">① Parcelway asks 60 days, and to withhold disputed sums</div><div class="w">Your standard: 30 days, 45 at most. Parcelway's last agreement with you: 45.</div><div><span class="lnk">Counter at 45</span> · <span class="lnk">Show their reason</span></div></div>
+          <div class="mn ask" data-top="508"><div class="k">② Parcelway asks six months of Charges</div><div class="w">Your standard never goes below nine. Two precedents at nine, none lower.</div><div><span class="lnk">Counter at nine</span> · <span class="lnk">Reject</span></div></div>
+          <div class="mn" data-top="612"><div class="k">Untouched: scope, data, governing law</div><div class="w">Nothing of theirs on 25 other clauses this round.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab">Dossier</span><span class="ptab">Clauses</span><span class="ptab on">Redlines <span class="n">2</span></span><span class="more">›</span></div>
+      <div class="pb">
+        <p class="rl-lead">Their round came Tuesday 18:12 from Erik at Parcelway. Two asks. I answered both from your standard; nothing goes until you press.</p>
+        <div class="rl-row">
+          <div class="h"><b>① § 5 Payment</b><span class="sp"></span><span class="q">their move</span></div><div class="ch">30 → 60 days, and withholding of disputed sums</div>
+          <div class="rl-ask">“Customer shall pay each correct invoice within 60 days of receipt. Disputed amounts may be withheld…”</div>
+          <div class="rl-j"><span class="b">Counter at 45 days, keep withholding out.</span> Based on your standard (30, never past 45) and Parcelway's own last agreement with you at 45. Withholding has no precedent in your book.</div>
+          <div class="rl-acts"><span class="pill sm">Accept</span><span class="pill sm">Reject</span><span class="pill sm prep">Counter · 45 days ✓ prepared</span><span class="q">free</span></div>
+        </div>
+        <div class="rl-row">
+          <div class="h"><b>② § 26 Liability</b><span class="sp"></span><span class="q">their move</span></div><div class="ch">twelve → six months of Charges</div>
+          <div class="rl-ask">“…shall not exceed six (6) months of Charges paid or payable…”</div>
+          <div class="rl-j"><span class="b">Counter at nine months.</span> Your standard never goes below nine; two precedents at nine, none lower.</div>
+          <div class="rl-acts"><span class="pill sm">Accept</span><span class="pill sm">Reject</span><span class="pill sm prep">Counter · 9 months ✓ prepared</span><span class="q">free</span></div>
+        </div>
+        <div class="turn" style="margin-top:8px"><span class="jface"></span><div class="t">Give on payment, hold on liability: 45 days costs little; nine months is the line your standard draws. <span class="lnk">Change a suggestion</span> <span class="q">1 call</span></div></div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">ladder</span><span class="lnk">notes</span><span class="lnk">their view</span><span class="lnk">history</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo about MK-R1…<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== CONTRACTS, QUESTIONS AS COLUMNS ====================================================== -->
+<div class="frame" data-f="contracts">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Contracts <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="ct-head">
+        <div class="tt">Contracts <small>7 · KES 251M on paper · 3 signed</small><span class="sp"></span><span class="pill">List</span><span class="pill">Wall</span><span class="btn-k">+ New agreement</span></div>
+        <div class="ct-line"><div class="box">⌕ Filter this list</div><div class="tabs"><span class="on">All 7</span><span>Needs you 3</span><span>Signed 3</span></div><span class="lnk">+ Ask a column</span><span class="pill sm">Columns</span></div>
+      </div>
+      <div class="ct">
+        <div class="hd"><span></span><span>Agreement</span><span>Standing</span><span class="qh">Can we end it for convenience?<small>Kept question · 5 of 7 read · yes 3</small></span><span class="qh">Payment, days<small>Kept · read from each § Payment</small></span><span>Ends</span><span style="text-align:right">Value</span></div>
+        <div class="r"><span class="mark-c">✓</span><div><div class="nm">Refined Sugar Supply</div><div class="ln">Kabras Sugar · <span class="ref">MK-A1</span></div></div><div><span class="st-ok">Executed</span></div><div class="an"><span class="lt no"></span><div>No, only for breach <span class="s">§ 14</span><span class="src">“either party may terminate for material breach not remedied within 30 days”</span></div></div><div class="an"><span class="lt"></span><div>30 <span class="s">§ 3</span></div></div><div>30 Jun 2027</div><div class="mon">KES 48M</div></div>
+        <div class="r"><span class="mark-h"></span><div><div class="nm">Raw Milk Collection</div><div class="ln">Nandi Dairy · <span class="ref">MK-A2</span></div></div><div><span class="st-rev">In review</span></div><div class="an"><span class="lt un"></span><div>Not read yet <span class="s">1 call</span></div></div><div class="an"><span class="lt"></span><div>30 <span class="s">§ 2</span></div></div><div>30 Jun 2027</div><div class="mon">KES 36M</div></div>
+        <div class="r"><span class="mark-c">✓</span><div><div class="nm">Modern Trade Listing</div><div class="ln">Naivas Supermarkets · <span class="ref">MK-B1</span></div></div><div><span class="st-ok">Executed</span></div><div class="an"><span class="lt"></span><div>Yes, 90 days' notice <span class="s">§ 18</span><span class="src">“either party may terminate on ninety (90) days' written notice”</span></div></div><div class="an"><span class="lt"></span><div>60 <span class="s">§ 7</span></div></div><div>31 Dec 2027</div><div class="mon">KES 85M</div></div>
+        <div class="r"><span class="mark-h"></span><div><div class="nm">Retail Supply — Coast</div><div class="ln">Naivas Supermarkets · <span class="ref">MK-B2</span></div></div><div><span class="st-rev">In review</span></div><div class="an"><span class="lt"></span><div>Yes, 60 days' notice <span class="s">§ 16</span></div></div><div class="an"><span class="lt ask"></span><div>90 <span class="s">§ 5</span> · <span class="amber">unusual for you</span></div></div><div>31 Mar 2028</div><div class="mon">KES 78M</div></div>
+        <div class="r"><span class="mark-h"></span><div><div class="nm">Cold Room Lease</div><div class="ln">Tana Cold Stores · <span class="ref">MK-CR</span></div></div><div><span class="st-rev">In review</span></div><div class="an"><span class="lt no"></span><div>No <span class="s">§ 9</span></div></div><div class="an"><span class="lt"></span><div>14 <span class="s">§ 4</span></div></div><div>31 Dec 2029</div><div class="mon">KES 900K</div></div>
+        <div class="r"><span class="mark-c">✓</span><div><div class="nm">Transport Services</div><div class="ln">Rift Haulage · <span class="ref">MK-CL</span></div></div><div><span class="st-ok">Executed</span></div><div class="an"><span class="lt"></span><div>Yes, 30 days' notice <span class="s">§ 11</span></div></div><div class="an"><span class="lt"></span><div>45 <span class="s">§ 6</span></div></div><div>30 Jun 2027</div><div class="mon">KES 700K</div></div>
+        <div class="r"><span class="mark-n"></span><div><div class="nm">Parcel Delivery SaaS</div><div class="ln">Parcelway · <span class="ref">MK-R1</span></div></div><div><span class="st-neg">Negotiating</span></div><div class="an"><span class="lt un"></span><div>Not read yet <span class="s">1 call</span></div></div><div class="an"><span class="lt ask"></span><div>30, they ask 60 <span class="s">§ 5</span></div></div><div>—</div><div class="mon">KES 2.4M</div></div>
+        <div class="ft"><span>7 contracts</span><span class="sp"></span><span>Counted from the list · the two columns were read once each and are kept · nothing is spent again</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on">Overview <span class="n">7</span></span><span class="more">›</span></div>
+      <div class="pb">
+        <div style="font-size:14px;line-height:1.5"><b style="font-weight:600">7 contracts, 3 signed.</b> Two questions are kept on this list. One answer stands out.</div>
+        <div class="sec">Unusual for you</div>
+        <div style="font-size:13.5px;line-height:1.5">Retail Supply — Coast pays in <b style="font-weight:600">90 days</b>; your other five say 14 to 60. Read from each § Payment, no call. <span class="lnk">Open the clause</span></div>
+        <div class="sec">Kept question</div>
+        <div class="qcard">
+          <div class="qq">Can we end it for convenience?</div>
+          <div class="bar2"><i style="width:43%;background:#087363"></i><i style="width:28%;background:#5F6D6B"></i><i style="width:29%;background:#E6E6EA"></i></div>
+          <div class="q">yes 3 · no 2 · not read 2</div>
+          <div class="one"><b style="font-weight:600">Modern Trade Listing</b> — <span class="src">“either party may terminate on ninety (90) days' written notice”</span> <span class="q">§ 18</span></div>
+          <div class="g-row" style="padding-top:12px"><span class="pill sm">Read the 2 not yet read</span><span class="q">2 calls</span></div>
+        </div>
+        <div class="sec">Ask</div>
+        <div class="g-row"><span class="lnk">Which of these let us assign to a group company?</span><span class="q">7 calls</span></div>
+        <div class="g-row"><span class="lnk">Due diligence pack · 5 questions</span><span class="q">35 calls</span></div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">upload a document</span><span class="lnk">draft a new agreement</span><span class="lnk">reads</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /stage -->
+
+  <!-- ---------------- notes per screen ---------------- -->
+  <div class="scr on" data-n="home"><div class="notes">
+    <div><p class="idea">Home is a sheet of type. Your name, Jambo's three sentences, then one list where every row quotes the words it rests on.</p><p>No tiles, no cards, no big box in the middle. The verb at the end of each row is the only thing to press. Jambo's panel on the right is his conversation; his box stays at its foot.</p></div>
+    <div><h3>What is new since the last round</h3><ul><li>Jambo's answers to the other side's changes appear as a row of their own, with their two quotes, so a negotiation waits on Home like everything else.</li><li>The panel says what he prepared overnight and offers the press, with its cost (free, or 1 call).</li><li>The kept question across your book sits in the foot, with its lights and what one more read costs.</li></ul></div>
+    <div><h3>Asks the owner first</h3><p class="ask"><b>Jambo's sentences on Home.</b> They are the panel's Overview sentence moved onto the page. Not a band, but your rule says ask before a page says something new.</p></div>
+  </div></div>
+  <div class="scr" data-n="contract"><div class="notes">
+    <div><p class="idea">The paper with its margin. Every note stands beside the line it was read from, in the colour of what it is: amber for a blank, brown for a risk, black for something that waits on you.</p><p>The notes lay themselves out after the fonts load, so they never overlap, whatever type is on screen. That is what went wrong in your screenshot.</p></div>
+    <div><h3>What is new since the last round</h3><ul><li>The approval is a note on the value line it rests on (the rule “over KES 20M”), with Approve and Ask Wanjiru right there.</li><li>The margin's colours: amber blanks, brown risks, black asks, grey facts.</li><li>The Dossier is a list of facts with their sources; the spine is one line of words.</li></ul></div>
+    <div><h3>Cost</h3><p>On the iPad (1366 wide) the paper narrows to about 560 px, or the margin folds into the panel as the list you see on the right.</p></div>
+  </div></div>
+  <div class="scr" data-n="redlines"><div class="notes">
+    <div><p class="idea">The other side's changes are marks on the paper, numbered; each number has its note in the margin and its row in the panel, with Jambo's answer already prepared from your standard and your precedents.</p><p>Nothing is sent by typing. The one filled button in the paper's line is Send all, and it says how many wait.</p></div>
+    <div><h3>What is on it</h3><ul><li>Struck red is what they want gone, green what they want in; the dot after each ask is its number.</li><li>Each row in the panel: the ask in their words, Jambo's grey answer with its reasons (your standard, their last agreement with you, your precedents), then Accept · Reject · Counter, the prepared one marked.</li><li>Jambo says where to give and where to hold, in one sentence, and what changing a suggestion costs.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>The rows' verbs, Send all with its count, the ladder, the notes and Their view are today's doors. Only the drawing changes.</p></div>
+  </div></div>
+  <div class="scr" data-n="contracts"><div class="notes">
+    <div><p class="idea">Questions as columns. Ask one question of every contract once, and the answer stands in the list with its § and quote, kept, never spent again.</p><p>This is the one thing Harvey and Legora are known for, drawn HaTi's way: a quiet list, a light before each answer, the quote under it, and the cost of reading the rest said before you press.</p></div>
+    <div><h3>What is on it</h3><ul><li>Two kept questions as columns: a yes/no one with its quote, and a number read from each payment clause.</li><li>“Unusual for you” is counted from the column, no call: one contract pays in 90 days where the others say 14 to 60.</li><li>The panel shows the question's bar (yes · no · not read), the one answer that stands out with its quote, and one button sized to what is left, with its cost.</li></ul></div>
+    <div><h3>Cost</h3><p>Each question is one call per contract the first time; the list says it before the press. A changed question drops its answers.</p></div>
+  </div></div>
+
+  <h2>The type, in one table</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Name</th><th>The pairing</th><th>How it reads</th><th>When it wins</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td>Today</td><td>Geist for the app, Source Serif 4 for the paper and titles</td><td>Even, modern, a little technical; very clear at 12 to 13 px.</td><td>You want HaTi to feel like a tool: precise, quiet, no fuss.</td><td>Its sans is a touch cool; the paper reads like a web page more than a document.</td></tr>
+      <tr><td>Editorial</td><td>Inter for the app, Newsreader for the paper and titles</td><td>Warmer and more lawyerly; the serif has real contrast and the sans is the most legible small type there is.</td><td>You want the paper to look like a paper and the app to disappear around it.</td><td>Inter is everywhere; the look is less its own. Newsreader needs a size up (16 px) to read well.</td></tr>
+      <tr><td>Bookish</td><td>Instrument Sans for the app, Literata for the paper and titles</td><td>Softer and more human; Literata was made for long reading on screens.</td><td>You want HaTi to feel like a good book: calm, generous, readable for hours.</td><td>Literata is wide, so lines hold fewer words; the rounder sans is less crisp in a dense list.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="pick">
+    <h2>My recommendation</h2>
+    <p><b style="font-weight:600">The way: The Legora Way</b>, as drawn here. It is the direction you leaned to, and these four screens show it holds across the whole day: what waits, a paper, a negotiation, and a question across the book.</p>
+    <p><b style="font-weight:600">The type: Editorial.</b> Your product is about paper, and Newsreader makes the paper look like one; Inter beside it keeps every list and label readable at the small sizes HaTi uses. It is the pairing where the paper is the hero and the app steps back, which is exactly the Legora Way's idea. If you want HaTi to stay more its own, keep Today: it is a good pairing and nothing is wrong with it.</p>
+    <p style="margin:0">To pick, answer with two names: the way, and the type. Only those get built, and they come back to you drawn-against-built at your three screens before anything merges.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var P=['home','contract','redlines','contracts'], T=['today','editorial','bookish'];
+  var p='home', t='today';
+  var stage=document.getElementById('stage');
+  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|contract|redlines|contracts)(?:-(today|editorial|bookish))?$/); if(m){p=m[1]; t=m[2]||'today';} else {p='home'; t='today';} }
+  function layNotes(f){ var prev=-1e9; f.querySelectorAll('.mn').forEach(function(n){ var want=+n.dataset.top||0; var top=Math.max(want, prev+12); n.style.top=top+'px'; prev=top+n.offsetHeight; }); }
+  function paint(){
+    document.querySelectorAll('.sw [data-p]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.p===p));});
+    document.querySelectorAll('.sw [data-t]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.t===t));});
+    stage.className='stage t-'+t;
+    document.querySelectorAll('.frame').forEach(function(f){f.classList.toggle('on', f.dataset.f===p);});
+    document.querySelectorAll('.scr').forEach(function(n){n.classList.toggle('on', n.dataset.n===p);});
+    var f=document.querySelector('.frame.on'); if(f) layNotes(f);
+  }
+  function go(np,nt){ p=np||p; t=nt||t; var h='#'+p+(t==='today'?'':'-'+t); if(location.hash!==h){ try{history.replaceState(null,'',h);}catch(e){} } paint(); }
+  document.querySelectorAll('.sw [data-p]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.p,null);});});
+  document.querySelectorAll('.sw [data-t]').forEach(function(b){b.addEventListener('click',function(){go(null,b.dataset.t);});});
+  window.addEventListener('hashchange',function(){read();paint();});
+  document.addEventListener('keydown',function(e){
+    if(e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if(e.key==='ArrowRight'){ go(P[(P.indexOf(p)+1)%P.length],null); }
+    else if(e.key==='ArrowLeft'){ go(P[(P.indexOf(p)+P.length-1)%P.length],null); }
+    else if(e.key==='ArrowDown'){ go(null,T[(T.indexOf(t)+1)%T.length]); }
+    else if(e.key==='ArrowUp'){ go(null,T[(T.indexOf(t)+T.length-1)%T.length]); }
+  });
+  function fit(){ var w=stage.clientWidth||1440; stage.style.setProperty('--s', String(w/1440)); }
+  if(window.ResizeObserver){ new ResizeObserver(fit).observe(stage); } else { window.addEventListener('resize',fit); }
+  read(); paint(); fit();
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(paint); }
+  setTimeout(paint, 1500);
+})();
+</script>
