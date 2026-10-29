@@ -119,7 +119,8 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
        names each contract's reference beside its counterparty. There, as
        before: at least one, MK-RF1 among them, Geist Mono, one line, not cut
        at 1024. A Horizon that prints none REPORTS. */
-    try { await page.evaluate(() => setView('calendar')); } catch (e) { check(false, 'Calendar opens', e.message); }
+    /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is pressed */ 
+    try { await page.evaluate(() => { setView('calendar'); calSetView('week'); }); } catch (e) { check(false, 'Calendar opens', e.message); }
     const calChips = await until(page, () => { const xs = [...document.querySelectorAll('#content .cal-chip')].filter(x => /MK-RF1/.test(x.title || ''));
       return xs.length ? xs.map(x => ({ t: x.textContent.trim(), title: x.title })) : null; }, null, 10000);
     await shot('calendar.png');
