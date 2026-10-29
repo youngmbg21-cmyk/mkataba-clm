@@ -473,9 +473,10 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
         if (!el) return null; const cs = getComputedStyle(el);
         return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius, pad: cs.padding }; });
       check('8b "Put it in plain words" spends one call and the brief is said there', said && h.ai.calls.length - c0 === 1, String(h.ai.calls.length - c0));
-      check('8b′ it comes back in Jambo\'s own card: his name on it, the soft grey fill, 18px corners, 16px inside',
+      /* RE-POINTED 29 Oct 2026 (ONE CORNER): his card is 10px round, like every card */
+      check('8b′ it comes back in Jambo\'s own card: his name on it, the soft grey fill, the card corner, 16px inside',
         !!say && /jb-say/.test(say.cls) && /Jambo/.test(say.head) && /In plain words/.test(say.head)
-        && say.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(say.r) >= 16 && parseFloat(say.pad) >= 16, JSON.stringify(say));
+        && say.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(say.r) >= 10 && parseFloat(say.pad) >= 16, JSON.stringify(say));
       check('8c Approve and Refuse are where they were', await page.evaluate(() => !!document.querySelector('#ins-panel [data-ins-act="approve"]') && !!document.querySelector('#ins-panel [data-ins-act="refuse"]')));
     }
 
@@ -495,7 +496,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
         if (!el) return null; const cs = getComputedStyle(el);
         return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius }; });
       check('9b\u2032 the two minutes wear the same card as the approver\'s brief (one builder, both panels)',
-        !!psay && /jb-say/.test(psay.cls) && /The two minutes/.test(psay.head) && psay.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(psay.r) >= 16, JSON.stringify(psay));
+        !!psay && /jb-say/.test(psay.cls) && /The two minutes/.test(psay.head) && psay.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(psay.r) >= 10, JSON.stringify(psay));
     }
     /* ============ 11. STOP WHILE HE READS (the owner's note 1, 26 Oct 2026) ============ */
     if (stage(11)){

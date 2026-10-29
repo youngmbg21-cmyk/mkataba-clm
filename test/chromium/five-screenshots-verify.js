@@ -34,6 +34,9 @@
    that the room's own Focus button was never broken, that the real document
    builder yields clauses and the edition paints, and that no page error fires.
 
+   RETIRED 29 Oct 2026: sections 1 and 2 measured the Insights page (the
+   friction KPIs, Portfolio's "Biggest" card), which the owner had deleted.
+
    Run: node test/chromium/five-screenshots-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -85,14 +88,13 @@ const drive = async (page, fn, arg, fallback) => {
     await page.click('#li-go');
     await pause(2600);
 
-    /* ═══════════ 1 · THE FRICTION FIGURES ARE KPI CARDS ═══════════
-       THE STAGE IS BUILT FIRST, because the seeded book has no negotiations at
-       all and the friction page then draws its empty state — measured, `deals`
-       came back 0 and not one figure resolved, so every claim under it would
-       have passed on a page with nothing on it. Real changes are filed through
-       the real funnel and decided through the real act, so the four readings
-       are counted from the record exactly as they are in the product. */
-    const seeded = await drive(page, async () => {
+    /* ═══════════ 1 AND 2 RETIRED 29 Oct 2026 ═══════════
+       They measured the Insights page, which the owner had deleted: 1 the
+       friction figures as KPI tiles, 2 "Biggest by contracted value" gone from
+       Portfolio and its counterparty door. The real negotiation is still
+       filed here through the real funnel, because the pages measured below
+       (the negotiate page) are measured on a book that has one. */
+    await drive(page, async () => {
       const live = (state.contracts || []).filter(c => c.status !== 'Declined').slice(0, 3);
       let n = 0;
       for (const c of live){
@@ -114,95 +116,9 @@ const drive = async (page, fn, arg, fallback) => {
         try { if (chs[0]) await negoResolve(c, chs[0].id, 'accepted'); } catch (_) {}
         try { if (chs[1]) await negoResolve(c, chs[1].id, 'rejected'); } catch (_) {}
       }
-      return { filed: n, deals: (typeof intelFrictionStats === 'function')
-        ? intelFrictionStats(null).deals : -1 };
-    }, undefined, { filed: 0, deals: -1 });
+      return { filed: n };
+    }, undefined, { filed: 0 });
     await pause(1200);
-    await drive(page, () => { setView('intel'); }, undefined, null);
-    await pause(700);
-    await drive(page, () => { intelGoTab('friction'); }, undefined, null);
-    await pause(1600);
-
-    /* ---- RE-POINTED IN PLACE 28 Sep 2026: THE OWNER'S LATER RULING ----
-       "Clause Ledger": the four KPI cards became a strip of SIX figures, and a
-       figure with a list behind it is a DOOR onto that list now (Home's own
-       rule, which the 19 Sep note said none of those four could meet). What
-       these checks were really measuring survives: every figure is drawn on a
-       white ground in a container with an edge and a corner, one ground across
-       all of them (no verdict colour), the label leads — and a figure with NO
-       list behind it (the average, the decision time) still promises no press. */
-    /* RE-POINTED IN PLACE 29 Sep 2026 ("Fit to Screen", owner-picked): the six
-       figures are the shared Insights grammar's tiles now (.igx-figs of
-       .igx-fig), and each TILE carries its own edge and corner where the old
-       strip drew one frame round all six. 1c asks it of every tile. */
-    const fr = await drive(page, () => {
-      const host = document.getElementById('ig-friction');
-      const strip = document.querySelector('#ig-friction .igx-figs');
-      const cards = Array.from(document.querySelectorAll('#ig-friction .igx-figs > .igx-fig'));
-      const box = el => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
-        return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x), y: Math.round(r.y),
-          bg: cs.backgroundColor, key: el.getAttribute('data-igf-fig'),
-          side: parseFloat(cs.borderLeftWidth) || 0, radius: parseFloat(cs.borderTopLeftRadius) || 0,
-          tag: el.tagName, label: (el.querySelector('.igx-fig-t') || {}).textContent,
-          n: (el.querySelector('.igx-fig-n') || {}).textContent };
-      };
-      const scs = strip ? getComputedStyle(strip) : null;
-      return { drawn: !!host && host.getBoundingClientRect().height > 0,
-        n: cards.length, cards: cards.map(box),
-        strip: scs ? { side: scs.borderLeftWidth, radius: scs.borderTopLeftRadius } : null };
-    }, undefined, { drawn: false, n: 0, cards: [], strip: null });
-
-    check('1a CONTROL — the friction page draws off a real negotiation',
-      fr.drawn === true && seeded.deals > 0, `${seeded.deals} deals, ${seeded.filed} changes filed`);
-    check('1b every figure the page has is drawn in the strip — six of them', fr.n === 6, `${fr.n} figures`);
-    const white = (fr.cards || []).filter(c => /rgb\(255, 255, 255\)/.test(c.bg));
-    const framed = (fr.cards || []).filter(c => c.side >= 1 && c.radius >= 1);
-    check('1c every one sits on white, a tile with its own edge and corner, in the strip',
-      fr.n > 0 && white.length === fr.n && framed.length === fr.n && !!fr.strip,
-      `${white.length} of ${fr.n} white · ${framed.length} framed`);
-    /* `every` on an empty list is true, so each of these says FIGURES EXIST as
-       well as what is true of them. */
-    const tones = [...new Set((fr.cards || []).map(c => c.bg))];
-    check('1d one ground across all six — no verdict colour on a cell', fr.n > 0 && tones.length === 1, tones.join(' | '));
-    check('1e the label leads and the figure follows',
-      (fr.cards || []).length > 0
-        && fr.cards.every(c => (c.label || '').trim().length > 3 && (c.n || '').trim().length > 0),
-      (fr.cards || []).map(c => (c.label || '').trim() + '=' + (c.n || '').trim()).join(' · '));
-    const tagOf = k => ((fr.cards || []).find(c => c.key === k) || {}).tag;
-    check('1f a figure with no list behind it promises no press; the book count is a door onto its list',
-      tagOf('rounds') === 'DIV' && tagOf('decide') === 'DIV' && tagOf('deals') === 'BUTTON',
-      (fr.cards || []).map(c => c.key + ':' + c.tag).join(','));
-    await page.screenshot({ path: path.join(OUT, '01-friction-kpis.png') });
-
-    /* ═══════════ 2 · BIGGEST BY CONTRACTED VALUE IS NOT PAINTED ═══════════ */
-    /* THE PORTFOLIO TAB'S KEY IS 'frame' — IG_TABS names it, and a probe
-       asking for 'portfolio' silently stayed where it was and made the claim
-       under it pass on the wrong page. */
-    await drive(page, () => { intelGoTab('frame'); }, undefined, null);
-    await pause(1600);
-    const pf = await drive(page, () => {
-      /* THE HOST IS #ig-frame — the Portfolio tab is painted INTO the Insights
-         frame, not into a panel of its own. A probe looking for a host that
-         never existed reports "not drawn" and makes the claim under it pass on
-         an empty page, which is a description. */
-      const host = document.getElementById('ig-frame');
-      const cards = Array.from(host ? host.querySelectorAll('*') : [])
-        .filter(el => el.children.length === 0 && /biggest/i.test(el.textContent || ''));
-      return { drawn: !!host && host.getBoundingClientRect().height > 0
-          && host.querySelectorAll('[data-pf-cat],[data-pf-cp],[data-pf-open]').length > 0,
-        biggest: cards.length,
-        text: cards.map(e => (e.textContent || '').trim().slice(0, 40)),
-        cpDoors: document.querySelectorAll('[data-pf-cp]').length };
-    }, undefined, { drawn: false, biggest: -1, text: [], cpDoors: -1 });
-
-    check('2a CONTROL — the Portfolio tab draws', pf.drawn === true, String(pf.drawn));
-    check('2b nothing on the page says "biggest" any more', pf.biggest === 0,
-      `${pf.biggest}: ${(pf.text || []).join(' | ')}`);
-    /* THE DOOR SURVIVES THE CARD. Every row of that table pressed data-pf-cp;
-       so does every dot of the risk map, and one handler answers both. */
-    check('2c CONTROL — the counterparty filter is still on the page', pf.cpDoors > 0,
-      `${pf.cpDoors} doors`);
-    await page.screenshot({ path: path.join(OUT, '02-portfolio.png') });
 
     /* ═══════════ 3 · THE SHADING FILLS THE WHOLE SHADED HALF ═══════════
        Measured as two rects, because that is the whole report: the lit half

@@ -20,6 +20,9 @@
    {{lower_snake_case}}) and it must come back with its braces on, or a reader
    who asks Copilot how to mark a blank is told the wrong thing.
 
+   RETIRED 29 Oct 2026: section 1 (Copilot's read on the friction tab)
+   measured the Insights page, which the owner had deleted.
+
    Run: node test/chromium/no-braces-in-copilot-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -58,22 +61,6 @@ const GARBLED = [
 
 const answer = () => ([{ type: 'tool_use', id: 'tu_' + Math.random().toString(36).slice(2),
   name: 'deliver_answer', input: { answer: GARBLED, citations: [] } }]);
-
-/* WHAT THE READER SEES: the element's own text, with no markup in it. A brace
-   inside an attribute is not on the page; a brace in the text is. */
-const PAINTED = sel => {
-  const el = document.querySelector(sel);
-  if (!el) return { err: 'not drawn: ' + sel };
-  return { text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
-    tones: el.querySelectorAll('.ai-tone').length,
-    pos: el.querySelectorAll('.ai-tone-pos').length,
-    neg: el.querySelectorAll('.ai-tone-neg').length,
-    warn: el.querySelectorAll('.ai-tone-warn').length,
-    strong: el.querySelectorAll('strong').length,
-    /* THE RELATION, not a tally: bold anywhere on the page proves nothing —
-       the shape that was broken is a bold figure INSIDE a marker. */
-    boldInTone: el.querySelectorAll('.ai-tone strong').length };
-};
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -129,46 +116,10 @@ const PAINTED = sel => {
     check('0b CONTROL — Copilot is switched on, so the button does something',
       seeded.keyed === true, String(seeded.keyed));
 
-    /* ═══════════ 1 · COPILOT'S READ, THE SCREEN IN THE REPORT ═══════════ */
-    ai.script(answer());
-    await drive(page, () => { setView('intel'); }, undefined, null);
-    await pause(700);
-    await drive(page, () => { intelGoTab('friction'); }, undefined, null);
-    await pause(1500);
-    const pressed = await drive(page, async () => {
-      const b = document.getElementById('igf-ai-ask');
-      if (!b) return { err: 'no Interpret button on the friction page' };
-      b.click();
-      return { ok: true };
-    }, undefined, { err: 'blocked' });
-    await pause(3000);
-    const read = pressed.err ? { err: pressed.err }
-      : await drive(page, PAINTED, '.igf-ai-read', { err: 'blocked' });
-    await page.screenshot({ path: path.join(OUT, '01-copilots-read.png'), fullPage: true });
-
-    check('1a the read really arrived', !read.err && (read.text || '').length > 80,
-      read.err || `${(read.text || '').length} characters`);
-    const readLeft = (read.text || '').replace(/\{\{counterparty\}\}/g, '');
-    check('1b NO BRACE IS PAINTED — this is the report',
-      !read.err && !/[{}]/.test(readLeft),
-      read.err || (readLeft.match(/.{0,26}[{}].{0,26}/g) || ['none']).join(' | '));
-    /* GATED ON THE COLOUR STILL LANDING, or "no braces" is satisfied by a fix
-       that simply stopped marking anything — which would be a worse product
-       and a green run. */
-    check('1c and the colours still land — all three tones the answer used',
-      !read.err && read.pos >= 1 && read.neg >= 1 && read.warn >= 1,
-      read.err || `pos ${read.pos} · neg ${read.neg} · warn ${read.warn} (${read.tones} total)`);
-    check('1d a BOLD figure inside a marker keeps both — the prompt asks for both',
-      !read.err && read.boldInTone >= 1 && /21% of deals/.test(read.text || ''),
-      read.err || `${read.boldInTone} bold runs inside a tone (${read.strong} bold on the page)`);
-    check('1e THE WALL — a template blank keeps its braces',
-      !read.err && /\{\{counterparty\}\}/.test(read.text || ''),
-      read.err || ((read.text || '').match(/.{0,12}counterparty.{0,4}/) || ['the blank lost its braces'])[0]);
-    check('1f and the words the model wrote are all still there',
-      !read.err && /sign within round 1/.test(read.text || '')
-      && /2\.0 rounds per deal/.test(read.text || '')
-      && /2 hours/.test(read.text || ''),
-      read.err || 'nothing was dropped');
+    /* ═══════════ 1 · COPILOT'S READ — RETIRED 29 Oct 2026 ═══════════
+       1a-1f measured the Insights page, which the owner had deleted: the
+       Interpret button and its read were drawn on the friction tab. The same
+       answer is still read back off the chat, below. */
 
     /* ═══════════ 2 · THE CHAT BUBBLE, THE OTHER SCREEN NAMED ═══════════
        openAI(prefill) submits, so this is the panel a reader types into, not a

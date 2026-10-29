@@ -325,7 +325,6 @@ function commandMeta(view){
     case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
-    case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
     case 'calendar':  return [i18t('nav_calendar'), ''];
     case 'mynotes':   return [i18t('nav_mynotes'), ''];
     case 'reads':     return [i18t('nav_reads'), ''];     // READS (The thread, 28 Oct 2026)
@@ -1273,6 +1272,14 @@ function setView(view){
   if(view==='agents' && typeof window!=='undefined' && typeof window.hbOpenAgent==='function'){
     window.hbOpenAgent(typeof window.agSelKey==='function'?window.agSelKey():null);
     return;
+  }
+  /* ---- INSIGHTS IS GONE (owner, 29 Oct 2026: "delete insights from HaTi itself") ----
+     Its every door went; any way in that still names the page (a refresh restoring it, an old link, a
+     saved place) lands on the Board, which carries the book's figures. Its counting stays: the Board,
+     the Explorer and Jambo read the same panels. */
+  if(view==='intel'){
+    if(window.intel && intel.tab==='map' && typeof window.hbOpenExplorer==='function'){ hbOpenExplorer(); return; }
+    view='dashboard';
   }
   /* The layer over the page area is asked about BEFORE anything is drawn — a
      page rendered behind a guard the reader then cancels is a navigation that

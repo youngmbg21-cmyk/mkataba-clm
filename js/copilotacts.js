@@ -1796,7 +1796,6 @@ const CA_PLACES = [
   { k: 'reads', w: ['reads', 'every read', 'all reads', 'past reads', 'previous reads', 'earlier reads', 'read history', 'läsningar', 'läsningarna', 'alla läsningar', 'tidigare läsningar', 'varje läsning'] },
   /* THE HANDBOOK (owner, 26 Oct 2026): the instruction book, one chapter per thing; "how do I …" lands on its chapter (navReadHandbook) */
   { k: 'handbook', w: ['handbook', 'the handbook', 'instructions', 'the instructions', 'user guide', 'manual', 'instruction book', 'handbok', 'handboken', 'instruktioner', 'instruktionerna', 'manualen', 'bruksanvisning'] },
-  { k: 'insights', w: ['insights', 'insikter'] },
   { k: 'house', w: ["jambo's agents", 'agents', "jambo's house", 'house', 'jambos agenter', 'agenter', 'jambos hus'] },
   { k: 'settings', w: ['settings', 'settings and rules', 'setup', 'inställningar'] },
   { k: 'brain', w: ['brain', 'hjärnan', 'hjärna'] },
@@ -1884,7 +1883,7 @@ function caReadPlace(q){
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
-  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'handbook', 'insights', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
+  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'handbook', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
   /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
   'upload'];
@@ -1974,7 +1973,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'reads', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'reads', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2140,7 +2139,6 @@ const CA_GO = {
   reads: (c, a) => (typeof readsOpen === 'function') ? (readsOpen(a && a.ask), true) : setView('reads'),
   /* the Handbook, on a chapter when a "how do I …" read one (26 Oct 2026) */
   handbook: (c, a) => (typeof hbkOpen === 'function') ? hbkOpen(a && a.chapter, { part: a && a.part }) : setView('handbook'),
-  insights: () => setView('intel'),
   house: () => setView('jambo'),
   settings: () => setView('team'),
   brain: () => setView('brain'),
@@ -2444,7 +2442,7 @@ const CA_AND_JOIN = /^(?:,\s*)?(?:and(?:\s+then|\s+only)?|then|with|where|showin
 /* a place named after "in", "on", "at" at the end ("drafts on the map") */
 const CA_AND_TAIL = /\s(?:in|on|at|inside|within|i|på)\s+/giu;
 /* the places that hold contracts and may be named with a narrowing, and the other words for them */
-const CA_AND_PLACES = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig', 'parties', 'approvals', 'requests', 'import', 'calendar', 'people', 'mynotes', 'ourpaper', 'insights', 'counter', 'work', 'needs', 'house', 'settings', 'brain'];
+const CA_AND_PLACES = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig', 'parties', 'approvals', 'requests', 'import', 'calendar', 'people', 'mynotes', 'ourpaper', 'counter', 'work', 'needs', 'house', 'settings', 'brain'];
 const CA_AND_WORDS = [['map', 'explorer'], ['the map', 'explorer'], ['contract map', 'explorer'], ['kartan', 'explorer'], ['karta', 'explorer'], ['avtalskartan', 'explorer'],
   ['contracts page', 'contracts'], ['contracts list', 'contracts'], ['contract list', 'contracts'], ['the contracts', 'contracts'], ['workspace', 'contracts'], ['the workspace', 'contracts'], ['arbetsytan', 'contracts'], ['avtalen', 'contracts'],
   ['dashboard', 'board'], ['the board', 'board'], ['obligations page', 'oblig'], ['negotiations page', 'negotiations']];

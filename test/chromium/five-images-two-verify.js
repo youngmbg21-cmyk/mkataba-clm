@@ -71,8 +71,10 @@ const ok = (name, good, detail) => {
        card"), so the rail has no door of its own for it. */
     /* RE-POINTED 11 Oct 2026: the Calendar is Home's second tab and has no
        rail door, so Insights sits directly after My notes */
-    ok('1 Copilot\'s work has no rail door (it lives on the Board), no Calendar row, and Insights sits directly after My notes',
-      rail.indexOf('agents') === -1 && rail.indexOf('calendar') === -1 && rail.indexOf('intel') === rail.indexOf('mynotes') + 1,
+    /* RE-POINTED 29 Oct 2026: the Insights page was deleted (owner), so its
+       place after My notes is RETIRED; that it has no door left is asked instead. */
+    ok('1 Copilot\'s work has no rail door (it lives on the Board), no Calendar row, and no Insights door',
+      rail.indexOf('agents') === -1 && rail.indexOf('calendar') === -1 && rail.indexOf('intel') === -1,
       rail.slice(0, 9).join(' → '));
 
     /* A DATE IS DATA: the artifact sets both columns in the figure face at the

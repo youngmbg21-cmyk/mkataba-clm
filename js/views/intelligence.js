@@ -8060,8 +8060,8 @@ function intelPayTermsHtml(){
    two lines. An unknown key falls through to the page's own guard. */
 function intelGoTab(k){
   if(k==='map' && typeof window.hbOpenExplorer==='function'){ hbOpenExplorer(); return; }
-  if(IG_TABS.indexOf(k) >= 0) intel.tab = k;
-  setView('intel');
+  /* Insights is gone (29 Oct 2026): every other tab lands on the Board. */
+  setView('dashboard');
 }
 
 /* ---- right-hand Copilot dock ---- */

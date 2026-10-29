@@ -6224,7 +6224,7 @@ const SET_PANELS={
     chip(){ const n=(typeof approvalRules==='function'?approvalRules():[]).length; return n?String(n):''; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_rules_sub')}</p>
       <div id="approval-rules"></div>
-      <button id="ar-add" style="margin-top:var(--s-2);${ST_BTN2}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
+      <button id="ar-add" style="margin-top:var(--s-2);${ST_BTN2};border-color:transparent;background:var(--surface-2);color:var(--color-text);border-radius:999px">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
       ${''/* THE SIGNING LIMIT AND THE FOLDER RULE LEFT THIS DRAWER (4 Oct 2026,
              the process review) for rows of their own under "Before anyone
              signs" — see signcap and signfolder. THE OVERSEER SWITCH left it

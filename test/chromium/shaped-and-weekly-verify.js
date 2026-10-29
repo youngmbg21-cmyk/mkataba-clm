@@ -60,11 +60,6 @@ const SEED = () => {
   return state.contracts.length;
 };
 
-const FRAME = () => {
-  const h = document.getElementById('ig-frame');
-  return h ? h.textContent : '';
-};
-
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -113,17 +108,16 @@ const FRAME = () => {
        still decides is what is COUNTED and handed to Copilot (pfPanelsData,
        the INSIGHTS block and get_insights_panel), and the renewal runway, the
        one standing panel, is still drawn. The renderers are kept with no
-       caller, so "the business's own word" is asked of them directly. */
-    await page.evaluate(() => window.setView('intel'));
-    await page.waitForTimeout(1200);
-    const both = await page.evaluate(FRAME);
-    const PROJECT_TITLES = ['The workload runway', 'Money held back', 'Promises still live', 'Jobs won and lost'];
+       caller, so "the business's own word" is asked of them directly.
+       RETIRED 29 Oct 2026: every check here that read the drawn Portfolio
+       tab measured the Insights page, which the owner had deleted. What the
+       setting decides is COUNTED (pfPanelsData) — that is what stays. */
     const counted = await page.evaluate(() => Object.keys(window.pfPanelsData()).sort().join(','));
     check('all five shaped panels are counted for Copilot when both shapes are present',
       counted === 'money_held_back,promises_live,renewal_runway,won_and_lost,workload_runway', counted);
-    check('the renewal runway is drawn and the four project panels are not (Fit to Screen)',
-      both.includes('The renewal runway') && !PROJECT_TITLES.some(w => both.includes(w)),
-      PROJECT_TITLES.filter(w => both.includes(w)).join(', ') || 'none of the four drawn');
+    /* "the renewal runway is drawn and the four project panels are not (Fit
+       to Screen)" RETIRED 29 Oct 2026: measured the Insights page, which the
+       owner had deleted. */
     const wordNow = await page.evaluate(() => window.pfWonLost() + window.pfWorkloadRunway());
     check('and they use the business\'s own word, not ours',
       wordNow.includes('Jobs won and lost') && /each job actually runs/.test(wordNow));
@@ -142,39 +136,32 @@ const FRAME = () => {
     check('so the conversion rate is not stuck at 100%', pct !== null && pct < 100, `${pct}% by count`);
 
     /* ---- 3. TURNING A SHAPE OFF ---- */
-    await page.evaluate(() => { window.wsSet(['standing'], 'job'); window.renderIntel(); });
-    await page.waitForTimeout(700);
-    const standingOnly = await page.evaluate(FRAME);
+    await page.evaluate(() => { window.wsSet(['standing'], 'job'); });
+    await page.waitForTimeout(300);
     const standingCounted = await page.evaluate(() => Object.keys(window.pfPanelsData()).join(','));
     check('turning the job shape off takes its four panels out of what Copilot is handed',
-      standingCounted === 'renewal_runway'
-      && !PROJECT_TITLES.some(w => standingOnly.includes(w)), standingCounted);
-    check('and leaves the renewal runway and the universal six standing',
-      standingOnly.includes('The renewal runway') && standingOnly.includes('Where the value sits'));
+      standingCounted === 'renewal_runway', standingCounted);
+    /* "and leaves the renewal runway and the universal six standing" RETIRED
+       29 Oct 2026: measured the Insights page, which the owner had deleted
+       (it read the drawn Portfolio tab). */
 
-    await page.evaluate(() => { window.wsSet(['project'], 'matter'); window.renderIntel(); });
-    await page.waitForTimeout(700);
-    const projectOnly = await page.evaluate(FRAME);
+    await page.evaluate(() => { window.wsSet(['project'], 'matter'); });
+    await page.waitForTimeout(300);
     const projectCounted = await page.evaluate(() => Object.keys(window.pfPanelsData()).sort().join(','));
     check('turning standing off removes the renewal runway',
-      !projectOnly.includes('The renewal runway') && !projectCounted.includes('renewal_runway')
+      !projectCounted.includes('renewal_runway')
       && projectCounted.includes('workload_runway'), projectCounted);
     const matterNow = await page.evaluate(() => window.pfWonLost() + window.pfWorkloadRunway());
     check('and changing the word changes every panel that names it',
       matterNow.includes('Matters won and lost') && /each matter actually runs/.test(matterNow),
       'the same panels now read "matter"');
-    await page.evaluate(() => { window.wsSet(['standing', 'project'], 'job'); window.renderIntel(); });
-    await page.waitForTimeout(600);
+    await page.evaluate(() => { window.wsSet(['standing', 'project'], 'job'); });
+    await page.waitForTimeout(300);
 
-    /* ---- 4. THE CATCH-UP ROUTE ---- */
-    const nudge = await page.evaluate(() => {
-      const n = state.contracts.filter(c => c.status !== 'Declined' && !((c.metadata || {}).category)).length;
-      return { n, shown: !!document.querySelector('[data-pf-fixcats]'), text: FRAMEHACK() };
-      function FRAMEHACK(){ const h = document.getElementById('ig-frame'); return h ? h.textContent : ''; }
-    });
-    check('the uncountable pile is surfaced with a way to fix it',
-      nudge.n > 0 ? (nudge.shown && /cannot be grouped yet/.test(nudge.text)) : !nudge.shown,
-      `${nudge.n} without a category`);
+    /* ---- 4. THE CATCH-UP ROUTE ----
+       "the uncountable pile is surfaced with a way to fix it" RETIRED 29 Oct
+       2026: measured the Insights page, which the owner had deleted (the
+       nudge was drawn on its Portfolio tab). */
 
     /* ---- 5. THE WEEKLY REVIEW ---- */
     const wk = await page.evaluate(() => {
@@ -219,9 +206,10 @@ const FRAME = () => {
     /* ---- 6. SWEDISH ---- */
     await page.evaluate(() => window.langSet && window.langSet('sv'));
     await page.waitForTimeout(800);
-    /* The page, plus the four project renderers kept with no caller (29 Sep
-       2026) — they still speak the reader's language when they are drawn. */
-    const svFrame = await page.evaluate(FRAME) + await page.evaluate(() => [window.pfWorkloadRunway(),
+    /* The four project renderers kept with no caller (29 Sep 2026) — they
+       still speak the reader's language when they are drawn. (The drawn
+       Portfolio tab went with the Insights page, 29 Oct 2026.) */
+    const svFrame = await page.evaluate(() => [window.pfWorkloadRunway(),
       window.pfMoneyHeld(), window.pfPromisesLive(), window.pfWonLost()].join(' ').replace(/<[^>]+>/g, ' '));
     const svLeaks = ['The workload runway', 'Money held back', 'Promises still live',
       'won and lost', 'The renewal runway', 'contracts'].filter(w => svFrame.includes(w));

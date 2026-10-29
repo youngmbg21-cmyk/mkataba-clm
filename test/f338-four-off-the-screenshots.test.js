@@ -170,11 +170,10 @@ describe('f338 (3) — markup order, and nothing else', () => {
      assumed, because a badge left behind would sit on whatever door happened
      to be there. */
   test('3c the "New" badge is inside the Insights door it moved with', () => {
-    /* RE-POINTED 12 Oct 2026: Insights is a fold now (Insights · Jambo's agents),
-       so the door is found by its own button, not by the first mention of its name */
-    const from = nav.indexOf('data-view="intel" class="nav-item"');
-    const btn = nav.slice(from, nav.indexOf('</button>', from));
-    assert.match(btn, /id="nav-intel-new"/);
+    /* RE-POINTED 29 Oct 2026 (owner: "delete insights from HaTi itself"): the Insights door and its badge are gone
+       together — no badge is left behind on whatever door is there now */
+    assert.ok(!/<button[^>]*data-view="intel"/.test(nav), 'the Insights door is gone');
+    assert.equal(nav.indexOf('id="nav-intel-new"'), -1, 'and its "New" badge with it');
   });
   /* IT IS ORDER AND NOTHING ELSE. Every door keeps its own data-view, so the
      handler, the route, the state and the count are untouched; and the four
@@ -186,13 +185,13 @@ describe('f338 (3) — markup order, and nothing else', () => {
        Contracts ITEM went and its opener is the Contracts door, so 'register'
        is asked of the opener's own attribute (setView('register') still
        answers it) */
+    /* 'intel' left 29 Oct 2026 (owner: "delete insights from HaTi itself") */
     for (const v of ['dashboard', 'redline', 'mynotes', 'templates',
-      'obligations', 'intel', 'intake'])
+      'obligations', 'intake'])
       assert.ok(at(v) >= 0, v + ' lost its door');
     assert.ok(nav.indexOf('data-nav-fold-open="register"') >= 0, 'register lost its door (the fold\'s opener)');
   });
   test('3e the svg rules name the attribute, never a position', () => {
-    assert.match(HTML, /\.nav-item\[data-view="intel"\] svg\{/);
     assert.ok(!/nav-item:nth-child\(\d\) svg/.test(HTML),
       'a rule keyed on place would dress whatever moved into it');
   });

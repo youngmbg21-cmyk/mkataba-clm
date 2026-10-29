@@ -64,7 +64,7 @@ const check = (name, pass, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(2400);
-    await page.evaluate(() => { try { localStorage.removeItem('hati.v1.igDockW'); } catch (_) {} intel.tab = 'frame'; setView('intel'); });
+    await page.evaluate(() => { try { localStorage.removeItem('hati.v1.igDockW'); } catch (_) {} setView('dashboard'); });
     await page.waitForTimeout(1500);
 
     /* ================= 1. THE NAME =========================================
@@ -72,8 +72,8 @@ const check = (name, pass, detail) => {
        tabs"; Home is the board and the map): Explorer left the Insights row
        for Home's Board | Explorer switch. The name is the switch's word now,
        and the old key still reaches it (intelGoTab('map')). */
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('[data-ig-tab]')].map(b => ({ k: b.getAttribute('data-ig-tab'), t: b.textContent.trim() })));
-    check('1a Insights draws no Explorer tab any more', !tabs.some(t => t.k === 'map'), JSON.stringify(tabs.map(t => t.t)));
+    /* 1a RETIRED 29 Oct 2026: measured the Insights page, which the owner had
+       deleted ("Insights draws no Explorer tab any more"). */
     await page.evaluate(() => intelGoTab('map'));
     await page.waitForTimeout(1600);
     /* RE-POINTED 18 Oct 2026 (the SAP way): the bar names the page in front */

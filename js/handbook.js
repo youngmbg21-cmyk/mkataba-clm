@@ -85,7 +85,7 @@ const HANDBOOK_CHAPTERS = [
       { en: 'Ask about HaTi itself on any page ("what can I do here?", "who can change the rates?", "what is the Handbook about?"): Jambo answers from this book, in steps, with the chapter as a button under the answer. You stay where you asked.', sv: 'Fråga om HaTi självt på vilken sida som helst ("vad kan jag göra här?", "vem kan ändra kurserna?", "vad handlar Handboken om?"): Jambo svarar ur den här boken, steg för steg, med kapitlet som en knapp under svaret. Du stannar där du frågade.'  },
       { en: 'When your words move you somewhere, Jambo\'s card stands at the top of the panel you land on: what you said and what he did, with {ui:ca_echo_back} (back to where you typed) and {ui:ca_echo_reword} (your words back in the box, nothing sent).', sv: 'När dina ord flyttar dig någonstans står Jambos kort överst i panelen du landar i: vad du sa och vad han gjorde, med {ui:ca_echo_back} (tillbaka dit du skrev) och {ui:ca_echo_reword} (dina ord tillbaka i rutan, inget skickas).' }],
     tip: { en: 'Typing never acts. A send, a signature or a change always waits for your press, with its cost said first.', sv: 'Att skriva utför aldrig något. Ett utskick, en signatur eller en ändring väntar alltid på ditt tryck, med kostnaden sagd först.' },
-    cost: { en: 'Free to move by a page\'s one name, a contract\'s number, "/" or a chip; anything else typed is one call to the brain', sv: 'Gratis att flytta med en sidas namn, ett avtals nummer, "/" eller en knapp; allt annat du skriver är ett anrop till hjärnan' }, doors: ['help', 'back', 'next', 'insights'], acts: [],
+    cost: { en: 'Free to move by a page\'s one name, a contract\'s number, "/" or a chip; anything else typed is one call to the brain', sv: 'Gratis att flytta med en sidas namn, ett avtals nummer, "/" eller en knapp; allt annat du skriver är ett anrop till hjärnan' }, doors: ['help', 'back', 'next'], acts: [],
     words: { en: ['ask jambo', 'jambo box', 'slash', 'type a place', 'talk to jambo', 'chat'], sv: ['fråga jambo', 'jambos ruta', 'snedstreck', 'chatta'] },
     shots: [
       { go: [{ place: 'counter' }, { type: '/' }], boxes: [{ sel: '#cn-q', step: 1 }, { sel: '#cn-pop', step: 1 }], cap: { en: 'Type / and the places you use most are listed (1).', sv: 'Skriv / så listas platserna du använder mest (1).' } },
@@ -273,7 +273,8 @@ const HANDBOOK_CHAPTERS = [
     when: [{ en: 'You want to see what paper the company has before drafting.', sv: 'Du vill se vilket papper företaget har innan du skriver.' },
       { en: 'Legal wants a new standard NDA.', sv: 'Juristerna vill ha ett nytt standard-sekretessavtal.' }],
     path: ['door:ourpaper'],
-    how: [{ en: 'Press a template: its page opens with Jambo beside it, saying what it is for.', sv: 'Tryck på en mall: dess sida öppnas med Jambo bredvid, som säger vad den är till för.' },
+    how: [{ en: 'The book, Templates and Our standards are three tabs at the right end of the line above the list, in the same place on each.', sv: 'Boken, Mallar och Våra standarder är tre flikar längst till höger på raden ovanför listan, på samma plats på var och en.' },
+      { en: 'Press a template: its page opens with Jambo beside it, saying what it is for.', sv: 'Tryck på en mall: dess sida öppnas med Jambo bredvid, som säger vad den är till för.' },
       { en: '{ui:tl_new_contract} opens the one New agreement sheet with this paper chosen.', sv: '{ui:tl_new_contract} öppnar det enda Nytt avtal-arket med detta papper valt.' },
       { en: 'A new standard: press the new-standard button and the builder opens. A section moves whole ({ui:tb_move_up} · {ui:tb_move_down}); a note is never wording.', sv: 'En ny standard: tryck på knappen för ny standard så öppnas byggaren. Ett avsnitt flyttas helt ({ui:tb_move_up} · {ui:tb_move_down}); en anteckning är aldrig avtalstext.' }],
     tip: { en: 'A template\'s form fills the wording only when you press {ui:pd_doc_form_go}; until then the form\'s answers are owed and block the signature.', sv: 'En malls formulär fyller texten först när du trycker {ui:pd_doc_form_go}; tills dess saknas formulärets svar och blockerar signaturen.' },
@@ -961,21 +962,21 @@ const HANDBOOK_CHAPTERS = [
       { go: [{ place: 'house' }], boxes: [{ sel: '#jh-log', step: 1 }, { sel: '[data-jh-tab="jobs"]', step: 1 }], cap: { en: 'The work log, and the jobs (1).', sv: 'Arbetsloggen, och jobben (1).' } }] },
 
   { k: '6.4', part: 'see', round: 2,
-    title: { en: 'Insights and the Brain', sv: 'Insikter och Hjärnan' },
-    eyebrow: { en: 'Insights · the Brain (admins)', sv: 'Insikter · Hjärnan (admins)' },
-    what: { en: 'Insights counts the book (exposure, renewals, who waits on whom) and draws each count as a tile that is a door. The Brain is HaTi\'s map of itself: every part, every flow, the lanes, and a stack view of what is running; every change to HaTi names its part there.',
-      sv: 'Insikter räknar boken (exponering, förnyelser, vem som väntar på vem) och ritar varje antal som en platta som är en dörr. Hjärnan är HaTis karta över sig själv: varje del, varje flöde, banorna, och en stackvy av vad som körs; varje ändring i HaTi namnger sin del där.' },
-    when: [{ en: 'A board meeting wants the exposure by stream.', sv: 'Ett styrelsemöte vill ha exponeringen per ström.' },
-      { en: 'You want to know how a thing in HaTi is wired (admins).', sv: 'Du vill veta hur något i HaTi är kopplat (admins).' }],
-    path: ['door:insights', { en: '·', sv: '·' }, 'door:brain'],
-    how: [{ en: 'Press a tile: the contracts behind it.', sv: 'Tryck på en platta: avtalen bakom.' },
-      { en: 'In the Brain, press a part for its body and what hands to it; the lanes view is a process map.', sv: 'I Hjärnan, tryck på en del för dess innehåll och vad som lämnar till den; banvyn är en processkarta.' }],
-    tip: { en: 'Counting is not drawing: a number is read once and every tile reads it.', sv: 'Att räkna är inte att rita: en siffra läses en gång och varje platta läser den.' },
-    cost: _hbkFree, doors: ['insights', 'brain'], acts: [],
-    words: { en: ['insights', 'exposure', 'the brain', 'how hati works', 'process map'], sv: ['insikter', 'exponering', 'hjärnan', 'hur hati fungerar', 'processkarta'] },
+    /* INSIGHTS IS GONE (owner, 29 Oct 2026: "delete insights from HaTi itself"): the book's figures are on the Board
+       (its chapter); this chapter keeps the Brain */
+    title: { en: 'The Brain', sv: 'Hjärnan' },
+    eyebrow: { en: 'The Brain (admins)', sv: 'Hjärnan (admins)' },
+    what: { en: 'The Brain is HaTi\'s map of itself: every part, every flow, the lanes, and a stack view of what is running; every change to HaTi names its part there. The book\'s own figures (exposure, renewals, who waits on whom) are on the Board.',
+      sv: 'Hjärnan är HaTis karta över sig själv: varje del, varje flöde, banorna, och en stackvy av vad som körs; varje ändring i HaTi namnger sin del där. Bokens egna siffror (exponering, förnyelser, vem som väntar på vem) finns på Tavlan.' },
+    when: [{ en: 'You want to know how a thing in HaTi is wired (admins).', sv: 'Du vill veta hur något i HaTi är kopplat (admins).' }],
+    path: ['door:brain'],
+    how: [{ en: 'Press a part for its body and what hands to it.', sv: 'Tryck på en del för dess innehåll och vad som lämnar till den.' },
+      { en: 'The lanes view is a process map.', sv: 'Banvyn är en processkarta.' }],
+    tip: { en: 'Every change to HaTi names its part in the Brain in the same change.', sv: 'Varje ändring i HaTi namnger sin del i Hjärnan i samma ändring.' },
+    cost: _hbkFree, doors: ['brain'], acts: [],
+    words: { en: ['the brain', 'how hati works', 'process map'], sv: ['hjärnan', 'hur hati fungerar', 'processkarta'] },
     shots: [
-      { go: [{ place: 'insights' }], boxes: [{ sel: '[data-pf-go="book"]', step: 1 }, { sel: '[data-pf-go="soon"]', step: 1 }], cap: { en: 'Each tile opens the contracts behind it (1).', sv: 'Varje platta öppnar avtalen bakom den (1).' } },
-      { go: [{ place: 'brain' }], boxes: [{ sel: '[data-br-flow="upload"]', step: 2 }, { sel: '[data-br-view="3"]', step: 2 }], cap: { en: 'The Brain: a flow to follow, and the Lanes view (2).', sv: 'Hjärnan: ett flöde att följa, och vyn Banor (2).' } }] },
+      { go: [{ place: 'brain' }], boxes: [{ sel: '[data-br-flow="upload"]', step: 1 }, { sel: '[data-br-view="3"]', step: 2 }], cap: { en: 'The Brain: a flow to follow (1), and the Lanes view (2).', sv: 'Hjärnan: ett flöde att följa (1), och vyn Banor (2).' } }] },
 
   /* ======================= PART 7 — SETTINGS & RULES ======================= */
   { k: '7.1', part: 'settings', round: 2,
@@ -1183,7 +1184,7 @@ function hbkPlainFor(k, lang, word){
    chapter is a GAP the Handbook owes (test/f938's gap list), never a guess. */
 const HBK_VIEW_DOORS = {
   dashboard: ['counter', 'needs'], register: ['contracts', 'list', 'wall'], folder: ['contracts', 'list'], workspace: ['document'],
-  redline: ['negotiations', 'redline'], intel: ['insights'], reports: ['insights'], obligations: ['oblig', 'week'],
+  redline: ['negotiations', 'redline'], reports: ['board'], obligations: ['oblig', 'week'],
   approvals: ['approvals'], pipeline: ['approvals'], customers: ['parties'], agents: ['house'], jambo: ['house'], brain: ['brain'],
   calendar: ['calendar'], mynotes: ['mynotes'], reads: ['reads'], handbook: ['handbook'], templates: ['ourpaper'], playbook: ['ourpaper'],
   intake: ['requests'], advice: ['requests'], directory: ['people'], team: ['settings', 'company'], migration: ['import'] };

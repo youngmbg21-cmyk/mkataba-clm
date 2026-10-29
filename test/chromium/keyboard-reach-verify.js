@@ -378,28 +378,9 @@ async function tabAround(page, sel, n = 25) {
     } else check('a figure with something behind it is on Your book', false, 'no live figure');
   }
 
-  /* ---------- 11c · INSIGHTS' FILTERS TAKE THE KEYBOARD ---------- */
-  await page.evaluate(() => setView('intel')); await pause(1100);
-  {
-    const dot = await page.evaluate(() => {
-      const g = document.querySelector('[data-pf-cp]');
-      return g ? { tag: g.tagName.toLowerCase(), tab: g.tabIndex,
-                   role: g.getAttribute('role'), name: !!g.getAttribute('aria-label') } : null;
-    });
-    check('a risk-map dot is reachable and named',
-      !!dot && dot.tab === 0 && !!dot.role, JSON.stringify(dot));
-    const fired = await page.evaluate(async () => {
-      const g = document.querySelector('[data-pf-cp]');
-      if (!g) return null;
-      const key = g.getAttribute('data-pf-cp');
-      g.focus();
-      g.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-      await new Promise(r => setTimeout(r, 700));
-      return { key, on: (typeof pfState === 'function') ? pfState().cp : undefined };
-    });
-    check('and pressing Enter on it narrows the page',
-      !!fired && fired.on === fired.key, JSON.stringify(fired));
-  }
+  /* ---------- 11c · RETIRED 29 Oct 2026 ----------
+     Measured the Insights page, which the owner had deleted: the risk-map
+     dots on its Portfolio tab taking the keyboard. */
 
   /* ---------- 12 · THE PHONE'S SHEETS ---------- */
   await ctx.close();

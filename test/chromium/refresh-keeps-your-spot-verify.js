@@ -120,13 +120,10 @@ const check = (name, pass, detail) => {
       return state.view === 'dashboard' && p && p.getClientRects().length && getComputedStyle(p).display !== 'none' ? 'history' : null; });
     check('2c the History page comes back as History, on that contract\'s strip', ht === 'history', JSON.stringify({ ht, now: await page.evaluate(() => [state.view, window.hbFace && hbFace(), (document.querySelector('#bs-strips > .bs-strip') || { getAttribute: () => null }).getAttribute('data-bs-on')]) }));
 
-    /* ================= 3. INSIGHTS: THE TAB, AND THE EXPLORER'S PICTURE ====== */
-    await page.evaluate(() => { intel.tab = 'friction'; setView('intel'); });
-    await page.waitForTimeout(800);
-    await reload();
-    const it = await until(() => window.intel && intel.tab === 'friction' && document.querySelector('[data-ig-tab="friction"].on') ? intel.tab : null);
-    check('3a the Insights tab comes back on Negotiation friction, not Portfolio', it === 'friction', it);
-    await page.evaluate(() => { intel.tab = 'map'; setView('intel'); });
+    /* ================= 3. THE EXPLORER'S PICTURE ============================ */
+    /* 3a RETIRED 29 Oct 2026: measured the Insights page, which the owner had
+       deleted — its tab (Negotiation friction) coming back after a refresh. */
+    await page.evaluate(() => { hbOpenExplorer(); });
     await until(() => window.IG && IG.hubs && IG.hubs.length >= 3);
     await page.evaluate(() => { igRecipeSet({ ...igRecipeNow(), floorsBy: 'owner', view: 2 }); rebuildIntelGraph(); });
     await until(() => intel.cam.w[2] > 0.95);

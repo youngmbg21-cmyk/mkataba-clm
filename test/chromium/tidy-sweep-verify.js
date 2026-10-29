@@ -276,7 +276,8 @@ const LEVEL = `(() => {
   if ([document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')].some(el => el && el.scrollTop > 0 && !panel.contains(el))) return null;
   const cards = [...document.querySelectorAll('#content *, #page-head *')].filter(el => {
     if (!vis(el) || panel.contains(el) || el.contains(panel) || el.closest('#modal-root')) return false; const r = el.getBoundingClientRect(); if (r.right > pr.left + 2 || r.width < 200) return false;
-    const cs = getComputedStyle(el); return cs.backgroundColor === 'rgb(255, 255, 255)' && parseFloat(cs.borderTopLeftRadius) >= 8; });
+    /* ONE SHEET (29 Oct 2026): a part joined under a head has square top corners and its round ones below */
+    const cs = getComputedStyle(el); return cs.backgroundColor === 'rgb(255, 255, 255)' && Math.max(parseFloat(cs.borderTopLeftRadius) || 0, parseFloat(cs.borderBottomLeftRadius) || 0) >= 8; });
   const outer = cards.filter(c => !cards.some(o => o !== c && o.contains(c)));
   /* the builder's head card is a row drawn by a 6px ring (box-shadow), its painted edge outside its box */
   const strip = document.querySelector('#tb-page .tb-strip'); if (vis(strip) || (strip && strip.getBoundingClientRect().height > 0)) outer.push({ getBoundingClientRect: () => { const r = strip.getBoundingClientRect(); return { top: r.top - 6, bottom: r.bottom + 6 }; } });

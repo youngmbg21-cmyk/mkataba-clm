@@ -43,7 +43,7 @@ describe('f877 attention to detail', () => {
     /* RE-POINTED 26 Oct 2026 (f939 (4), the owner: "the bottom card is not aligned with the top one on the right
        edge"): the body keeps its scrollbar's gutter and the head is given the same room */
     assert.match(I, /#modal-root \[data-pd-mid\^="deal:"\] \.dlg-pg-body\{background:transparent;padding:10px 12px 12px;scrollbar-gutter:stable\}/);
-    assert.match(I, /#modal-root \[data-pd-mid\^="deal:"\] \.dlg-pg-body > \.deal-mid\{max-width:none;background:var\(--color-surface\);border-radius:20px;/);
+    assert.match(I, /#modal-root \[data-pd-mid\^="deal:"\] \.dlg-pg-body > \.deal-mid\{max-width:none;background:var\(--color-surface\);border-radius:var\(--radius-lg\);/);
   });
   test('4 one thin scrollbar wherever none is named', () => {
     assert.match(I, /:where\(html\) \*\{scrollbar-width:thin;scrollbar-color:var\(--color-neutral-300\) transparent\}/);

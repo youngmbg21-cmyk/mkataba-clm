@@ -191,15 +191,18 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
     check('every alert names a contract this reader can actually open',
       scoped.length === 0, scoped.join(', ') || 'all in scope');
 
-    /* ---- 7. INSIGHTS WORKS LIKE EVERY OTHER PAGE ----
+    /* ---- 7. THE MAP WORKS LIKE EVERY OTHER PAGE (was: INSIGHTS) ----
        REVERSED 13 Aug 2026, owner-reported: "the alerts and the activity
        buttons stop working when I am in the insights tab." They did. The
        suppression was written when this panel was a COLUMN and would have
        fought the Intelligence dock for the width; it is a slide-over now and
        takes no width at all — which the product had already accepted on this
        very page, since the Copilot panel overlays the same space there and was
-       never suppressed. */
-    await page.evaluate(() => setView('intel'));
+       never suppressed.
+       RE-POINTED 29 Oct 2026: the owner had the Insights page deleted; the
+       map and its dock (what the suppression fought) live on Home's Explorer,
+       so the same claims are asked there. */
+    await page.evaluate(() => hbOpenExplorer());
     await page.waitForTimeout(1400);
     const onIntel = await page.evaluate(async box => {
       const b = document.getElementById('hdr-notify');
@@ -211,7 +214,7 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
         title: (document.getElementById('panel-title') || {}).textContent || '',
         panIcon: (document.getElementById('cmd-panel') || {}).disabled };
     }, BOX);
-    check('on Insights both header buttons are live',
+    check('on Home\'s Explorer both header buttons are live',
       !onIntel.off && !onIntel.panIcon,
       `bell disabled=${onIntel.off} activity disabled=${onIntel.panIcon}`);
     check('and the bell opens its panel over the page, like anywhere else',
