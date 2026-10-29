@@ -59,7 +59,13 @@ let calState = { ym:null, view:'week', scope:'all', days:null, wk:null, lay:{ ct
    to make it one calendar ... combine it with the horizon view") ----
    One calendar, three views: Month to see everything, Week to plan the
    person's own hours (js/mine.js), Horizon for the year of contracts. */
-const CAL_VIEWS = ['month','week','horizon'];
+const CAL_VIEWS = ['agenda','month','week','horizon'];
+/* ---- AGENDA (round 10's sister, round 12 "The Legora way", owner's overnight build of 28 Oct 2026) ----
+   A quiet dated list of the next ninety days: the day on the left, each date under it with its kind as a colour mark,
+   the contract and its one act; a week with nothing says "nothing due" once. A tab beside the others — the calendar
+   still opens on this week by the hour (round 16), so the landing is unchanged. */
+const CAL_AGENDA_VIEW_DAYS = 90;
+const CAL_AGENDA_VIEW_ROWS = 80;
 /* ---- THE AGENDA'S WINDOW IS A CONTROL (owner-asked 31 Aug 2026, J-5.4) ----
    *"the highlighted area that shows the next 14 days, change that to a filter
    where you can look next 14, 30, 60, 90 days."*
@@ -250,6 +256,8 @@ function calEventMine(e, u){
 function calPeriod(){
   const {y,m}=calMonth(), view=calView();
   if(view==='week'){ const a=calWeekStart(), z=calAddDays(a,7*(CAL_WEEKS_SHOWN-1)+CAL_WEEK_DAYS-1);
+    return { months:[{y:a.getFullYear(),m:a.getMonth()}], from:_isoLocal(a), to:_isoLocal(z) }; }
+  if(view==='agenda'){ const a=new Date(calToday()+'T00:00:00'), z=calAddDays(a,CAL_AGENDA_VIEW_DAYS);
     return { months:[{y:a.getFullYear(),m:a.getMonth()}], from:_isoLocal(a), to:_isoLocal(z) }; }
   const months=[{y,m}];
   if(view!=='month') for(let i=1;i<3;i++){ const d=new Date(y,m+i,1); months.push({y:d.getFullYear(),m:d.getMonth()}); }
@@ -848,6 +856,43 @@ function calOnScreen(){
   if(state.view==='calendar') return true;
   return state.view==='dashboard' && typeof window.hbFace==='function' && hbFace()==='calendar' && !!document.getElementById('hb-cal');
 }
+/* THE AGENDA'S ROWS: one reading of the contract dates the screen may draw (calUpcoming over ninety days), grouped by
+   day; each row the chip's own words and act (calChipLook, calChipAct — one door with the grid's chips) */
+function calAgendaViewHtml(evs){
+  const today=calToday(), tmr=_isoLocal(calAddDays(new Date(today+'T00:00:00'),1));
+  const up=calUpcoming(evs, CAL_AGENDA_VIEW_DAYS);
+  const shown=up.slice(0,CAL_AGENDA_VIEW_ROWS);
+  const byDay=new Map(); shown.forEach(e=>{ if(!byDay.has(e.date)) byDay.set(e.date,[]); byDay.get(e.date).push(e); });
+  const f=(iso,o)=>new Date(iso+'T00:00:00').toLocaleDateString(langLocale(),o);
+  const dayHtml=iso=>`<div class="cal-ag-d"><b>${_esc(f(iso,{weekday:'short',day:'numeric',month:'short'}))}</b>${iso===today?`<small>${_esc(i18t('cal_today').toLowerCase())}</small>`:iso===tmr?`<small>${_esc(i18t('cal_ag_tomorrow'))}</small>`:''}</div>`;
+  const evHtml=e=>{
+    const L=calChipLook(e), ev=CAL_EVENT[e.type]||CAL_EVENT.round;
+    const act=calChipAct(e,L);
+    const words=act==='chase'?i18t('cal_ag_chase'):act==='decide'?i18t('cal_ag_decide'):i18t('cal_ag_open');
+    const sub=[e.cname&&L&&L.text.indexOf(e.cname)<0?e.cname:'', e.cref||e.cid].filter(Boolean).join(' · ');
+    return `<div class="cal-ag-ev" data-cal-ag="${_esc(e.cid)}"><span class="cal-ag-w"><i class="cal-ag-k" style="background:${ev.dot}"></i><span class="cal-ag-t">${_esc(L?L.text:calChipText(e))}</span>${sub?`<span class="cal-ag-s">${_esc(sub)}</span>`:''}</span>`
+      +`<button type="button" class="cal-ag-a" data-cal-ct="${_esc(e.cid)}"${act?` data-cal-act="${act}" data-cal-ob="${_esc(e.obId||'')}"`:''}>${_esc(words)}</button></div>`;
+  };
+  /* a week (Monday to Sunday) inside the window with nothing in it is said once, on its Monday */
+  const rows=[];
+  const start=new Date(today+'T00:00:00'), end=calAddDays(start,CAL_AGENDA_VIEW_DAYS);
+  const days=[...byDay.keys()];
+  /* a run of empty weeks is one line, on its first day: "Nothing due this week" or "Nothing due for 3 weeks" */
+  let wk=calAddDays(start,-((start.getDay()+6)%7)), gap=null;
+  const shut=()=>{ if(!gap) return;
+    rows.push(`<div class="cal-ag-day is-none">${dayHtml(gap.from)}<div class="cal-ag-evs"><div class="cal-ag-ev"><span class="cal-ag-w"><i class="cal-ag-k is-none"></i><span class="cal-ag-t">${_esc(gap.n>1?i18t('cal_ag_none_weeks',{n:gap.n}):i18t('cal_ag_none_week'))}</span></span></div></div></div>`);
+    gap=null; };
+  while(wk<=end){
+    const a=_isoLocal(wk), z=_isoLocal(calAddDays(wk,6));
+    const inWk=days.filter(d=>d>=a&&d<=z);
+    if(inWk.length){ shut(); inWk.forEach(d=>rows.push(`<div class="cal-ag-day">${dayHtml(d)}<div class="cal-ag-evs">${byDay.get(d).map(evHtml).join('')}</div></div>`)); }
+    else if(up.length<=shown.length){ if(gap) gap.n++; else gap={ from:a<today?today:a, n:1 }; }
+    wk=calAddDays(wk,7);
+  }
+  shut();
+  const foot=up.length>shown.length?i18t('cal_showing_of',{shown:shown.length,total:up.length}):i18tn('cal_ag_foot',up.length,{n:up.length,d:CAL_AGENDA_VIEW_DAYS});
+  return `<div class="cal-ag">${rows.join('')}</div><div class="cal-ag-ft">${_esc(foot)}</div>`;
+}
 function renderCalendar(){
   const onHome=window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&!!document.getElementById('hb-cal');
   const host=onHome?document.getElementById('hb-cal'):document.getElementById('content');
@@ -879,6 +924,9 @@ function renderCalendar(){
        about the card, and under the grid it is furniture about the month. */
     main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section></div>`;
     legendEvs=evs.filter(e=>calInPeriod(e,p));
+  } else if(view==='agenda'){
+    main=`<div class="cal-month"><section class="cal-card cal-ag-card" id="cal-ag">${calAgendaViewHtml(grid)}</section></div>`;
+    legendEvs=grid.filter(e=>calInPeriod(e,p));
   } else if(view==='week'){
     main=`<div class="cal-month cal-weekwrap"><section class="cal-card cal-wk-card">${calWeekHtml(grid)}</section></div>`;
     legendEvs=grid.filter(e=>calInPeriod(e,p)).concat(calOwnEvents(p.from,p.to));
@@ -896,8 +944,8 @@ function renderCalendar(){
          days left the page with it (Young chose "Remove it", 11 Oct 2026): the
          same dates are on the month itself and in Horizon. The page head keeps
          the name and the ⋯ (Export, Share, Print, Open register), ids kept. */
-  const title=view==='month'?calMonthName(y,m):view==='week'?calWeekTitle():i18t('cal_hz_bar');
-  const navOff=view==='horizon'?' disabled':'';
+  const title=view==='month'?calMonthName(y,m):view==='week'?calWeekTitle():view==='agenda'?i18t('cal_ag_bar',{n:CAL_AGENDA_VIEW_DAYS}):i18t('cal_hz_bar');
+  const navOff=(view==='horizon'||view==='agenda')?' disabled':'';
   /* ON HOME the page head is Home's (the greeting and the tabs), so the
      calendar draws no head of its own and its ⋯ stands at the end of its
      first bar, ids kept */
@@ -927,7 +975,7 @@ function renderCalendar(){
       <span class="cal-head-l"><span class="ttl">${_esc(i18t('nav_calendar'))}</span><span class="cal-head-sub" id="cal-head-sub">${_esc(calHeadFacts())}</span></span>
       <span class="g"></span>
       <span class="cal-head-r">
-        <span class="cal-seg cal-seg-view" role="group" aria-label="${_esc(i18t('cal_v_group'))}">${seg('month',i18t('cal_v_month'),null)}${seg('week',i18t('cal_v_week'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
+        <span class="cal-seg cal-seg-view" role="group" aria-label="${_esc(i18t('cal_v_group'))}">${seg('agenda',i18t('cal_v_agenda'),null)}${seg('month',i18t('cal_v_month'),null)}${seg('week',i18t('cal_v_week'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
         ${view==='horizon'?'':`<span class="cal-seg cal-seg-scope">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
         <button class="ui-btn cal-new-btn" id="cal-new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${_esc(i18t('cal_new_event_drawn'))}</button>`}
         ${moreHtml}
@@ -1572,6 +1620,23 @@ function calStyleCss(){ return `
   .cal-view .cal-month > .cal-card{flex:1 1 auto;min-width:0}
   .cal-view .cal-grid{border:0;box-shadow:none;background:none;padding:0}
   .cal-view .cal-wk-card{border:0;box-shadow:none;padding:0}
+  .cal-view .cal-ag-card{border:0;box-shadow:none;background:none;padding:0}
+  .cal-ag{display:flex;flex-direction:column}
+  .cal-ag-day{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;padding:10px 0;border-top:1px solid var(--color-divider)}
+  .cal-ag-day:first-child{border-top:0}
+  .cal-ag-d{display:flex;flex-direction:column;gap:2px;font-size:13.5px;color:var(--color-text);font-variant-numeric:tabular-nums}
+  .cal-ag-d b{font-weight:var(--w-label)}
+  .cal-ag-d small{font-size:11.5px;color:var(--color-quiet)}
+  .cal-ag-evs{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .cal-ag-ev{display:flex;align-items:baseline;gap:12px;min-width:0}
+  .cal-ag-w{display:flex;align-items:baseline;gap:8px;min-width:0;flex:1;font-size:13.5px;color:var(--color-text)}
+  .cal-ag-k{flex:none;width:8px;height:8px;border-radius:50%;align-self:center}
+  .cal-ag-k.is-none{background:var(--st-green-dot)}
+  .cal-ag-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .cal-ag-s{flex:none;font-size:12.5px;color:var(--color-text);white-space:nowrap}
+  .cal-ag-a{flex:none;background:none;border:0;padding:0;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  .cal-ag-day.is-none .cal-ag-t{color:var(--color-text)}
+  .cal-ag-ft{margin-top:8px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:11.5px;color:var(--color-quiet)}
   .cal-day[data-cal-week]{cursor:pointer}
   .cal-day[data-cal-week]:hover{border-color:var(--color-accent-100)}
   .cal-day[data-cal-week]:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
@@ -2399,6 +2464,6 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
 Object.assign(window,{CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
-  CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
+  CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,CAL_AGENDA_VIEW_DAYS,CAL_AGENDA_VIEW_ROWS,calAgendaViewHtml,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
   calLayers,calChipAct,calChipGo,calWkmFit,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});
