@@ -423,7 +423,11 @@ function readsOpen(askId){
   if (state.view !== 'reads' && typeof setView === 'function') setView('reads'); else renderReads();
 }
 /* to the Contracts list, then the act there (the one door: a read goes out from where the answers land) */
+/* EVERY PRESS FROM READS LANDS ON THE READ, never first on Jambo's conversation (owner, 29 Oct 2026: the row's
+   "Next 50 →" showed the talk, then the read; the panel's button, only drawn on Overview, did not): the words said
+   on Reads count as seen before Contracts is painted (pdTalkSeenAll), so both presses are one door */
 function rdOnContracts(then){
+  if (typeof pdTalkSeenAll === 'function') try { pdTalkSeenAll(); } catch (_){}
   const go = () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); if (typeof setView === 'function') setView('register'); };
   if (typeof dkLeavePageThen === 'function') dkLeavePageThen(go); else go();
   let n = 0;

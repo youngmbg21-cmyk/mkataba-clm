@@ -443,7 +443,10 @@ describe('f264 (5) — the drawer reads the record for its shape', () => {
 describe('f264 (6) — the gesture that means done, means done', () => {
   test('one reading answers for the pencil and for the File button', () => {
     /* RE-POINTED 28 Sep 2026: the reading takes the box as typed (see f245). */
-    assert.match(CE, /function ceCanFile\(d\)\{[\s\S]{0,120}?return \(tx !== _ceBase \|\| hd !== _ceHeadBase\)\s*&& clauseEditorOpen\(\) && \(tx !== _ceOpenText \|\| hd !== _ceOpenHead\);/,
+    /* RE-POINTED 29 Oct 2026: a third answer joins them — the box put back to
+       what stands over THEIR ask is something to file (ceKeepsStanding: Save
+       presses the row's Reject). */
+    assert.match(CE, /function ceCanFile\(d\)\{[\s\S]{0,120}?return \(\(tx !== _ceBase \|\| hd !== _ceHeadBase\)\s*&& clauseEditorOpen\(\) && \(tx !== _ceOpenText \|\| hd !== _ceOpenHead\)\)\s*\|\| \(clauseEditorOpen\(\) && !!ceKeepsStanding\(d\)\);/,
       'the two questions joined: the wording has moved from what STANDS, and '
       + 'there is something the RECORD does not already hold');
     assert.match(CE, /const anyToFile = ceCanFile\(now\);/, 'the foot asks it');

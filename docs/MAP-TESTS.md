@@ -217,6 +217,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f399, f412, f561, f564, f720, f738, f739, f796; customers, contracts-page 12, parties-sap-way, parties-nda-column, parties-and-people verify.
 
 ## ASK A COLUMN (js/views/askcolumn.js)
+- Next 50 → on a Reads row lands on the read, never on the conversation (29 Oct 2026): reads-next-lands-on-read-verify (1b red at the parent: 10 frames of talk).
 - THE QUESTION'S CARD, THE LEGORA WAY, NO GREY, STOP STANDS STILL, NEXT 50 SHOWS THE READ (29 Oct 2026): `node test/chromium/column-card-legora-verify.js` (new; 13 red at the parent 0ec7b90 before it threw at 3a; 7 alone red at the parent: Next 50 after a question on Reads landed on Jambo's conversation). The stand-in reads the COUNTRY where the question says "country" and the paper has "12. Governing law" (test/helpers.js). Re-pointed: f956 2 (Stop heads the card), reading-desk-verify 2a 4 5 5b 5c 6 6a, ask-a-column-verify 2d 5b (More… holds Save as a view, Remove column), reads-verify 2b 3 4, stop-and-reads-verify 2 2c, jambo-asks-verify 4, discover-verify 2g (Draw it: one bar per answer) 3b′ 4a′ 5a 11b 11d (More…, the stop in the question's card).
 - stop-and-reads-verify: counts what was with Jambo once the server heard the Stop (29 Oct 2026); run it in the headless shell too (`CHROMIUM_BIN=/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell`), which is what CI runs.
 - f843, ask-a-column verify.
@@ -349,6 +350,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Floating panel over the end-to-end bar (28 Oct 2026): photographed by hand at the three screens (head spans the window, rail 8px in, `elementFromPoint` top-right = `.ce-rowhead`); clause-editor-verify, panel-tidy-and-risk-footer-verify, one-copilot-editor-plain-verify.
 - Words typed at a struck run are never lost (26 Oct 2026): their-edit-page-verify 4c, 4d (red at the parent 73a0dfd); section 4 records what rebuilds the box. The check is off KNOWN_RED.
 - f245, f249, f250, f287, f289, f304, f505, f508, f523, f537, f640, f756 8j, f759 (5), clause-editor, clause-door, one-copilot-editor verify.
+- Save after an Apply that puts their change back (29 Oct 2026): save-keeps-standing-verify (1a/1b red at the parent 543997e: Save grey, "No changes yet"); f264 (6) re-pointed to the third answer; f245 (25) "files no decision" still holds.
 - File / Save prominent (23 Oct 2026): deal-in-the-middle-verify 10; one-copilot-editor-verify 5a/5b re-pointed (rows read by their middles; ‹ › small, Save ≥30 tall and ≥110 wide).
 
 ## NOTES AND COMMENTS

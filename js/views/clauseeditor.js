@@ -225,8 +225,24 @@ const clauseEditorDirty = () => clauseEditorOpen()
    before, clauseEditorDirty's own question written out. */
 function ceCanFile(d){
   const tx = d ? d.text : _ceText, hd = d ? d.head : _ceHead;
-  return (tx !== _ceBase || hd !== _ceHeadBase)
-    && clauseEditorOpen() && (tx !== _ceOpenText || hd !== _ceOpenHead);
+  return ((tx !== _ceBase || hd !== _ceHeadBase)
+    && clauseEditorOpen() && (tx !== _ceOpenText || hd !== _ceOpenHead))
+    || (clauseEditorOpen() && !!ceKeepsStanding(d));
+}
+/* ---- THE BOX PUT BACK TO WHAT STANDS, OVER THEIR ASK (owner, 29 Oct 2026:
+   "when you apply a redline, the save button does not active") ----
+   Their ask opened the box with their wording; a playbook standard (or the
+   reader's own typing) put it back to exactly what stands. That is not
+   "nothing to file" — it is an answer: keep our wording, turn their change
+   down. The funnel refuses it as a change (it proposes nothing), so Save
+   answers it through the ONE door for that, negoResolve(…'rejected'), with
+   the same question the Redlines row's Reject asks. Only THEIR pending ask
+   that is the lead itself; a counter of ours over a parked ask is not this. */
+function ceKeepsStanding(d){
+  const tx = d ? d.text : _ceText, hd = d ? d.head : _ceHead;
+  if (tx !== _ceBase || hd !== _ceHeadBase) return null;
+  const on = ceStacksOn();
+  return (on && on === _ceLead && on.status === 'pending') ? on : null;
 }
 
 /* ============================================================================
@@ -4467,9 +4483,10 @@ function ceRenderFoot(){
      shows you what you are filing — and it is the honest one. */
   const live = ceEditableReading();
   const draft = _ceQ('#ce-draft');
+  const keeps = ceKeepsStanding();
   if (draft) draft.innerHTML = moved
     ? _cet('ce_draft_saved', { at: `<b>${_cee(_ceSavedAt || ceNowHm())}</b>` })
-    : _cee(_cet('ce_no_changes_yet'));
+    : _cee(_cet(keeps ? 'ce_keeps_standing' : 'ce_no_changes_yet'));
   const undo = _ceQ('#ce-undo');
   if (undo){
     undo.disabled = _ceStep === 0 || !live;
@@ -4570,6 +4587,7 @@ function ceRenderFoot(){
        Save is the one act that files, and the note drawer opens on the
        filing. Said on the control's hover, no band. */
     if (!live) b.setAttribute('title', _cet('ce_reading_only'));
+    else if (b === save && ceKeepsStanding(now)) b.setAttribute('title', _cet('ce_save_rejects', { id: _ceLead.id }));
     else if (b === save) b.setAttribute('title', (_ceLead ? _cet('ce_save_to_long', { id: _ceLead.id }) + ' — ' : '') + _cet('ce_save_opens_note'));
     else b.removeAttribute('title');
     if (b.textContent !== word) b.textContent = word;
@@ -6902,6 +6920,8 @@ async function ceFile(why){
   /* A note kept from the ladder card rides the filing as its reason. */
   if (!why && _ceHeldNote) why = _ceHeldNote;
   if (_ceBusy) return null;
+  const keep = ceKeepsStanding();
+  if (keep) return ceRejectTheirs(keep);
   if (_ceText === _ceBase && _ceHead === _ceHeadBase){ ceSay(_cet('ce_nothing_to_file')); return null; }
   const c = _ceC, clauseId = _ceClauseId;
   /* ---- ONE EDITOR, TWO KINDS OF ASK ----
@@ -7030,6 +7050,32 @@ async function ceFile(why){
      unfiled work behind a read-only view. No caller written before this reads
      the value, so it is additive and nothing else behaves differently. */
   return ch;
+}
+
+/* SAVE OVER THEIR ASK, WITH WHAT STANDS IN THE BOX (see ceKeepsStanding):
+   THIS PAGE STILL FILES NO DECISION (f245 (25)). Save presses the Redlines
+   row's own Reject under the page — the one door, as Jambo's round rows do
+   (AG_RND_SEL): its reason question, its walls, its record and its toast.
+   Once the row has answered, the page is re-read from the record, which now
+   has nothing pending on this clause. No row to press says where it is. */
+const CE_REJECT_SEL = id => `[data-nego-reject="${(window.CSS && CSS.escape) ? CSS.escape(String(id)) : String(id).replace(/"/g, '\\"')}"]`;
+const CE_REJECT_WAIT_MS = 150;
+async function ceRejectTheirs(on){
+  const c = _ceC, page = document.getElementById('clause-editor');
+  const btn = [...document.querySelectorAll(CE_REJECT_SEL(on.id))].find(b => !(page && page.contains(b)) && !b.disabled);
+  if (!btn){ ceSay(_cet('ce_reject_on_row', { id: on.id })); return null; }
+  btn.click();
+  /* the row asks why (its own dialog); the press is answered when the ask
+     is no longer pending, or the dialog has gone without an answer */
+  for (;;){
+    await new Promise(r => setTimeout(r, CE_REJECT_WAIT_MS));
+    if (!clauseEditorOpen() || _ceC !== c) return null;
+    if (on.status !== 'pending') break;
+    if (!document.querySelector('#prompt-overlay, #modal-root [role="dialog"]')) return null;
+  }
+  ceSeedDraft();
+  ceRenderAll();
+  return on;
 }
 
 /* ============================================================================
