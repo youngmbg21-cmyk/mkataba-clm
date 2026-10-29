@@ -5400,6 +5400,10 @@ const STRINGS = {
     sh_lt_change: 'Change',
     sh_lt_note_lbl: 'Your note \u00b7 type here',
     sh_lt_send_to: 'Send to {who}',
+    ai_send_note_put: 'Put this in the note',
+    ai_send_note_done: 'Jambo\'s note is in your note box. Read it, change it as you like, then press Send.',
+    ai_send_note_gone: 'The send screen for this contract is not open any more. Open Send again, then press this.',
+    ai_send_note_cap: 'This note is {n} characters; the note box holds {max}. Ask Jambo for a shorter one.',
     /* THE SAP WAY (owner picked it by name, 28 Oct 2026): the send screen as a
        labelled form over the email, each field a list that opens downwards */
     sh_lt_what: 'What goes',
@@ -26670,6 +26674,10 @@ const STRINGS = {
     sh_lt_change: 'Ändra',
     sh_lt_note_lbl: 'Din anteckning \u00b7 skriv här',
     sh_lt_send_to: 'Skicka till {who}',
+    ai_send_note_put: 'Lägg in det här i meddelandet',
+    ai_send_note_done: 'Jambos meddelande ligger i rutan. Läs det, ändra som du vill och tryck sedan Skicka.',
+    ai_send_note_gone: 'Skicka-skärmen för det här avtalet är inte öppen längre. Öppna Skicka igen och tryck sedan här.',
+    ai_send_note_cap: 'Meddelandet är {n} tecken; rutan rymmer {max}. Be Jambo om ett kortare.',
     sh_lt_what: 'Vad som skickas',
     sh_lt_can: 'Vad de kan göra',
     sh_lt_by: 'Skicka med',

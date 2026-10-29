@@ -85,7 +85,7 @@ describe('f713 (1) the email\'s words, written once', () => {
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass): the server also
        takes the code-name reading (shareMailNameOf) from the same module */
     assert.match(SRV, /const \{ shareMailOf, (?:shareMailNameOf, )?signerTurnMailOf, shareRoundOf, shareAnswersOf \} = require\('\.\.\/js\/sharemail\.js'\);/);
-    assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'email', purpose: purp, sender: req\.user\.name, title: req\.user\.title \|\| '', org: payload\.org,\n\s+cName, recName: rec\.name, message, link, expires,\n\s+round: shareRoundOf\(pc\.negotiation\), answers: shareAnswersOf\(pc, shareId \? srvStoredContract\(shareId\) : null\), codeOn: shareCodeOn\(\) && purp !== 'status',\n\s+\.\.\.srvMailCodeOf\(shareId\) \}\);/);
+    assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'email', purpose: purp, sender: req\.user\.name, title: req\.user\.title \|\| '', org: payload\.org,\n\s+cName, recName: rec\.name, message, (?:subject, )?link, expires,\n\s+round: shareRoundOf\(pc\.negotiation\), answers: shareAnswersOf\(pc, shareId \? srvStoredContract\(shareId\) : null\), codeOn: shareCodeOn\(\) && purp !== 'status',\n\s+\.\.\.srvMailCodeOf\(shareId\) \}\);/);
     assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'email', purpose: sharePurposeOf\(s\), sender: req\.user\.name,[\s\S]{0,400}?round: shareRoundOf\(pc\.negotiation\), answers: shareAnswersOf\(pc, s\.contract_id \? srvStoredContract\(s\.contract_id\) : null\), codeOn: shareNeedsCode\(s\),\n\s+\.\.\.srvMailCodeOf\(s\.contract_id\) \}\);\n\s+const r = await sendEmail\(s\.recipient_email, mail\.subject, mail\.body, `share letter: \$\{link\}`, \{ html: mail\.html \}\);/);
     assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'word', purpose: histFile \? 'history' : null, sender: req\.user\.name,/);
     assert.match(SRV, /const m = signerTurnMailOf\(\{ signer, plan,/);
@@ -142,7 +142,7 @@ describe('f713 (2) the screen draws the letter', () => {
       'the purpose under What they can do; the channel and the link\'s settings under Send by');
     assert.ok(m.$('.sh-lt-b #sh-summary'), 'the note is a box in the letter\'s words');
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn) */
-    assert.equal(m.txt('#sh-lt-subject'), 'Round 1 of the Master services agreement, from ' + m.win.FIRST_PARTY);
+    assert.equal(m.$('#sh-lt-subject').value, 'Round 1 of the Master services agreement, from ' + m.win.FIRST_PARTY);
     assert.match(m.txt('#sh-lt-from'), /^Maria Lindgren, .+ · sent by HaTi$/);
     assert.deepEqual([...m.root.querySelectorAll('#sh-letter [data-sh-as]')].map(x => x.getAttribute('data-sh-as')), ['what', 'purpose', 'ch', 'link'],
       'four fields, each opening its own list of the same controls');
@@ -161,7 +161,7 @@ describe('f713 (2) the screen draws the letter', () => {
     assert.equal(m.txt('#sh-lt-goes-h'), 'What goes to Anna');
     assert.match(m.txt('#sh-lt-goes-l'), /Your note/);
     m.$('[data-share-purpose="view"]').click();
-    assert.equal(m.txt('#sh-lt-subject'), 'The Master services agreement, from ' + m.win.FIRST_PARTY);
+    assert.equal(m.$('#sh-lt-subject').value, 'The Master services agreement, from ' + m.win.FIRST_PARTY);
     m.$('[data-share-ch="link"]').click();
     assert.ok(m.$('#sh-lt-subj-row').classList.contains('hidden'), 'a copied link has no subject');
     assert.match(m.txt('#sh-lt-before'), /^Nothing is sent from here/);

@@ -1555,6 +1555,9 @@
   [data-share-sap] :is(.sh-lt-as, .sh-lt-to) > .sh-lt-k{ padding-top:8px; }
   [data-share-sap] .sh-lt-k{ font-size:var(--t-label); color:var(--color-neutral-600); }
   [data-share-sap] .sh-lt-row > b{ min-width:0; font-weight:var(--w-label); font-size:var(--t-body); color:var(--color-text); overflow-wrap:anywhere; }
+  /* the subject box (owner, 29 Oct 2026): a field where the sender may type; where HaTi writes the whole email it reads as words */
+  [data-share-sap] #sh-lt-subject{ min-width:0; }
+  [data-share-sap] #sh-lt-subject.is-fixed{ border-color:transparent; background:transparent; padding-left:0; padding-right:0; font-weight:var(--w-label); cursor:default; text-overflow:ellipsis; }
   [data-share-sap] .sh-lt-v{ min-width:0; }
   [data-share-sap] .sh-lt-who{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:8px; }
   [data-share-sap] .sh-lt-as .sh-pick-row{ grid-template-columns:minmax(0,1fr); gap:8px; margin:0 0 8px; }
@@ -16869,6 +16872,9 @@
   .jb-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600);margin:4px 0 0}
   /* a question of judgement says the stronger model weighed it, and its cost to an admin (aiDeepLineHtml) */
   .jb-deep{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600);margin:6px 0 0}
+  /* Jambo's note for the send screen: quoted as the words that would go, one press under it (aiSendNoteHtml) */
+  .ai-send-note-q{margin:0 0 8px;padding:2px 0 2px 12px;border-left:3px solid var(--color-divider);white-space:normal;overflow-wrap:anywhere}
+  .ai-send-note-cap{margin:0;font-size:var(--t-label);color:var(--color-neutral-600)}
   .jb-read.is-ig{padding-left:36px}
   .igd-popped{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
   /* ==== THE REPORT, SIMPLIFIED (owner, 21 Oct 2026; "Three quieter surfaces", tab 3) ====
