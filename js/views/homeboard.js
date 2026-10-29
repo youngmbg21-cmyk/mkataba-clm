@@ -1679,12 +1679,13 @@ function hbNdLookHtml(it){
   const T = (fn, d) => { try { return (typeof window[fn] === 'function') ? window[fn](it) : d; } catch (_){ return d; } };
   const act = T('agRowActOf', null);
   const rest = typeof agActsOf === 'function' ? agActsOf(it).filter(a => a.act !== 'away' && !(act && a.act === act.act)) : [];
-  const acts = (act ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ag-act="${_hbE(act.act)}"${act.tip ? ` title="${_hbE(act.tip)}"` : ''}>${_hbE(act.label)}</button>` : '')
+  const inBody = typeof agActsInBody === 'function' && agActsInBody(it);
+  const acts = inBody ? '' : (act ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ag-act="${_hbE(act.act)}"${act.tip ? ` title="${_hbE(act.tip)}"` : ''}>${_hbE(act.label)}</button>` : '')
     + rest.map(a => `<button type="button" class="${a.cls === 'link' ? 'ui-link' : 'ui-btn ui-btn-sm'}" data-ag-act="${_hbE(a.act)}"${a.tip ? ` title="${_hbE(a.tip)}"` : ''}>${_hbE(a.label)}</button>`).join('')
     + `<button type="button" class="ui-link hb-pc-away" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button>`;
   const body = T('agLookHtml', '') || T('agPanelBody', '');
   const mail = it.kind === 'chase' || it.kind === 'chase-firm';
-  return `<div class="hb-pc-body nd-body${mail ? ' is-mail' : ''}">${body}<div class="ag-p-acts hb-pc-more">${acts}</div></div>`;
+  return `<div class="hb-pc-body nd-body${mail ? ' is-mail' : ''}">${body}${acts ? `<div class="ag-p-acts hb-pc-more">${acts}</div>` : ''}</div>`;
 }
 /* ---- HOW FAR THE AGENTS MAY GO, UNDER THE CARD (round 23's drawing, "All
    seven agents: Ask me first · set by Sara for everyone · Ask an admin";
@@ -5471,15 +5472,17 @@ function hbAgPieceHtml(it){
   const act = T('agRowActOf', null);
   const col = (typeof jhAgentColour === 'function') ? jhAgentColour(it.agent) : '';
   const tag = `<span class="hb-pc-tag"${col ? ` style="--hb-pc-c:${_hbE(col)}"` : ''}><i aria-hidden="true"></i>${_hbE(i18t('ag_' + it.agent))}</span>`;
-  const actBtn = act ? `<button type="button" class="ui-btn ui-btn-sm${look ? ' ui-btn-primary' : ''}" data-ag-act="${_hbE(act.act)}"${act.tip ? ` title="${_hbE(act.tip)}"` : ''}>${_hbE(act.label)}</button>` : '';
+  /* a round opened here carries its own buttons in each row (agActsInBody): the line keeps only Look */
+  const inBody = look && typeof agActsInBody === 'function' && agActsInBody(it);
+  const actBtn = act && !inBody ? `<button type="button" class="ui-btn ui-btn-sm${look ? ' ui-btn-primary' : ''}" data-ag-act="${_hbE(act.act)}"${act.tip ? ` title="${_hbE(act.tip)}"` : ''}>${_hbE(act.label)}</button>` : '';
   /* the piece's other acts, under it while it is open: none is lost by folding */
-  const rest = look && typeof agActsOf === 'function' ? agActsOf(it).filter(a => a.act !== 'away' && !(act && a.act === act.act)) : [];
+  const rest = look && typeof agActsOf === 'function' && !inBody ? agActsOf(it).filter(a => a.act !== 'away' && !(act && a.act === act.act)) : [];
   const restHtml = rest.length ? `<div class="ag-p-acts hb-pc-more">${rest.map(a => `<button type="button" class="${a.cls === 'link' ? 'ui-link' : 'ui-btn ui-btn-sm'}" data-ag-act="${_hbE(a.act)}"${a.tip ? ` title="${_hbE(a.tip)}"` : ''}>${_hbE(a.label)}</button>`).join('')}</div>` : '';
   const body = look ? (T('agLookHtml', '') || T('agPanelBody', '')) : '';
   const mail = look && (it.kind === 'chase' || it.kind === 'chase-firm');
   return `<div class="hb-ag-work is-line${look ? ' is-look' : ''}" data-hb-ag-item="${_hbE(it.key)}"><div class="hb-pc-r">
       <div class="hb-pc-w"><b class="hb-pc-t">${tag}<span class="hb-pc-name">${_hbE(title)}</span>${ref ? `<span class="hb-pc-ref">${ref}</span>` : ''}</b><span class="hb-pc-line"${look ? '' : ` title="${_hbE(line)}"`}>${_hbE(line)}</span></div>
-      <div class="hb-pc-acts"><button type="button" class="ui-link hb-pc-look${look ? ' is-on' : ''}" data-hb-ag-look="${_hbE(it.key)}" aria-pressed="${look}" aria-expanded="${look}">${_hbE(i18t('cn_jw_look'))}</button>${actBtn}<button type="button" class="ui-link hb-pc-away" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button></div></div>
+      <div class="hb-pc-acts"><button type="button" class="ui-link hb-pc-look${look ? ' is-on' : ''}" data-hb-ag-look="${_hbE(it.key)}" aria-pressed="${look}" aria-expanded="${look}">${_hbE(i18t('cn_jw_look'))}</button>${actBtn}${inBody ? '' : `<button type="button" class="ui-link hb-pc-away" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button>`}</div></div>
     ${look ? `<div class="hb-pc-body${mail ? ' is-mail' : ''}">${body}${restHtml}</div>` : ''}</div>`;
 }
 /* Home's Look opens the piece on the Board, open (ndOpenBoard) */
@@ -5557,7 +5560,7 @@ function hbAgentWorkPress(el){
   }
   const sb = el.closest('[data-ag-sb]'); if (!sb) return false;
   const box = sb.querySelector('.ag-sb-box');
-  if (el.closest('[data-ag-sb-open]')){ if (box){ box.hidden = false; const n = box.querySelector('textarea'); if (n) n.focus(); } return true; }
+  if (el.closest('[data-ag-sb-open]')){ if (box){ box.hidden = !box.hidden; const n = box.hidden ? null : box.querySelector('.ag-sb-note'); if (n) n.focus(); } return true; }
   if (el.closest('[data-ag-sb-cancel]')){ if (box) box.hidden = true; return true; }
   if (el.closest('[data-ag-sb-go]')){ if (typeof agSendBackPress === 'function') agSendBackPress(key, sb); return true; }
   return false;

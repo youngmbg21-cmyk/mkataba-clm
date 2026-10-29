@@ -332,15 +332,22 @@ describe('f399 (5) — the page, drawn', () => {
     assert.equal(w.tagName, 'DIV', 'and it is not a button — there is nothing to review yet');
     assert.equal(w.hasAttribute('data-ag-open'), false);
   });
-  test('5c the round\'s panel says what each ask is and offers ONE door: the negotiation', async () => {
+  /* THE LEGORA WAY (owner picked it, 29 Oct 2026; reverses "ONE door: the
+     negotiation"): each ask carries its own buttons in its row, and each is
+     the Redlines row's own verb (rnd|accept|… presses [data-nego-accept]
+     there; rnd|counter opens the clause editor) — nothing decides on the card. */
+  test('5c the round\'s panel says what each ask is, and each row answers through the Redlines row\'s own verbs', async () => {
     const { win } = await staged();
     const it = win.agentsData().agents.round.ready.find(x => x.cid === 'MK-SUP-1');
     const body = win.agPanelBody(it);
     assert.match(body, /ag-chg/, 'one row per ask');
     assert.match(body, /ag-tag is-(green|amber|ruby|steel)/, 'with the co-pilot\'s verdict');
-    const acts = win.agPanelActs(it);
-    assert.match(acts, /data-ag-act="nego"/, 'answering is on the negotiation page');
-    assert.ok(!/accept|reject|counter/i.test(acts.replace(/data-ag-act="[a-z]+"/g, '')), 'no decision is taken here');
+    assert.match(body, /data-ag-act="(rnd\|(counter|accept|reject|review)\|[^"]+|nego)"/, 'each row carries its own button');
+    assert.match(body, /data-ag-act="away"/, 'and Put away');
+    assert.equal(win.agPanelActs(it), '', 'no second row of acts under the body');
+    assert.deepEqual(Object.keys(win.AG_RND_SEL).sort(), ['accept', 'counter', 'reject', 'review']);
+    assert.match(win.AG_RND_SEL.accept('7'), /data-nego-accept="7"/, 'Accept presses the Redlines row\'s own button');
+    assert.doesNotMatch(body, /ag_round_rests|decides nothing/i, 'the "decides nothing" note is gone');
   });
 });
 
