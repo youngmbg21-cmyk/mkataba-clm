@@ -2966,12 +2966,16 @@ function pdNextUpHtml(c, o){
   /* MARQUEE (owner, 23 Oct 2026): the stage's first act filled in its WHOLE name, the next in its short
      word, and "All N ›" at the row's end — one row under the head, no title of its own */
   const btns = acts.map((a, i) => `<button type="button" class="ui-btn ui-btn-sm${i === 0 ? ' ui-btn-primary' : ''}" data-pd-mn-go="${_pdE(a.key)}" aria-label="${_pdE(a.word)}" title="${_pdE(a.tip || a.word)}">${_pdE(i === 0 || !PD_ACT_SHORT[a.key] ? a.word : _pdT(PD_ACT_SHORT[a.key]))}</button>`).join('');
-  /* (owner, 29 Oct 2026) "All N" and its folded list left the Dossier: every act stays in the paper's own
-     Actions menu (#ig-actions, pdActsToggle); the two acts stand at the panel's foot, after the links */
+  /* (owner, 29 Oct 2026) "All N" left the Dossier: every act is pressed from the paper's own More menu
+     (#ig-actions, pdActsToggle). THE FOLD STAYS, CLOSED AND UNSEEN: it is the room's rows wired once (pdMenuWire),
+     and the More menu presses the very row in it (pdActsToggle's click); its summary is never drawn */
+  const all = groups.reduce((n, g) => n + g.rows.length, 0);
   /* AT THE PANEL'S FOOT (owner, 29 Oct 2026: "bring these 2 buttons to the bottom of the panel"): after the links,
      whatever the stage (order 95; DOSSIER_SP_ORDER no longer places them) */
   const actsCard = acts.length ? `<div class="pd-glance ds-card ds-acts is-mq is-foot" style="order:95" data-ds-at-now data-pd-ds-card="acts"><div class="ds-acts-b is-ck is-mq">${btns}</div></div>` : '';
-  return `<div class="pd-menu pd-nx ds-nx is-mq" data-pd-menu="${_pdE(c.id)}">${actsCard}${dossierThisHtml(c, o)}</div>`;
+  const allFold = all ? `<details class="ds-fold is-ck-all" style="order:96" data-ds-fold="acts"><summary><span>${_pdE(_pdT('dos_next_acts'))}</span><span class="pd-mn-n">${all}</span></summary>
+    ${groups.map(g => `<div class="pd-mn-g"><div class="ds-fold-h">${_pdE(g.title)}</div><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></div>`).join('')}</details>` : '';
+  return `<div class="pd-menu pd-nx ds-nx is-mq" data-pd-menu="${_pdE(c.id)}">${actsCard}${allFold}${dossierThisHtml(c, o)}</div>`;
 }
 const DOSSIER_MQ_ACTS = 2;
 /* ---- THIS AGREEMENT (Marquee, 23 Oct 2026): one list of rows the same height as Needs you's —

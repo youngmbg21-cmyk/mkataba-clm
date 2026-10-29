@@ -147,7 +147,8 @@ const blocked = [];
         const parts = [b.querySelector(':scope > b'), b.querySelector(':scope > .pd-ck-v')].filter(Boolean);
         return { cut: parts.filter(p => p.scrollHeight > p.clientHeight + 1 || p.scrollWidth > p.clientWidth + 1).map(p => p.textContent.trim()), lines: parts.map(p => Math.round(p.getBoundingClientRect().height / 20)) }; });
       check(`${at} · Q3 — the Dossier's "Who else" row reads whole, two lines at most`, who && !who.cut.length && who.lines.every(n => n <= 2), JSON.stringify(who));
-      const one = await ev(() => [...document.querySelectorAll('#ig-dock tr:is(.is-saved, .is-door, .is-named) button.pd-ck-hd')].filter(b => b.getBoundingClientRect().height && [...b.children].every(c => c.getBoundingClientRect().height <= 21)).map(b => Math.round(b.getBoundingClientRect().height)));
+      const one = await ev(() => [...document.querySelectorAll('#ig-dock tr:is(.is-saved, .is-door, .is-named) button.pd-ck-hd')].filter(b => b.getBoundingClientRect().height && [...b.children].filter(c => !c.matches('.pd-ck-chev')).every(c => c.getBoundingClientRect().height <= 21)).map(b => Math.round(b.getBoundingClientRect().height)));
+      /* RE-POINTED 29 Oct 2026 (the owner: every last-column press a 22px grey pill): the pill is not a line of words */
       check(`${at} · Q3 — a one-line door row keeps its 44px`, one && one.length && one.every(x => x === 44), JSON.stringify(one));
       const labels = await ev(() => [...document.querySelectorAll('#ig-dock #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd')].filter(b => b.getBoundingClientRect().height).map(b => Math.round(b.getBoundingClientRect().height)));
       check(`${at} · Q3 — a field's label line above its box stays one 20px line`, labels && labels.every(x => x <= 21), JSON.stringify(labels));
