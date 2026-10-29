@@ -181,9 +181,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
           box: !!r.querySelector('input'), door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]') })),
         scan: rk ? { say: ((rk.querySelector('.ds-nm') || {}).textContent || '').replace(/\s+/g, ' ').trim(), val: ((rk.querySelector('.ds-val') || {}).textContent || '').trim(), btn: ((rk.querySelector('[data-pd-gl-scan]') || {}).textContent || '').trim(), tip: ((rk.querySelector('[data-pd-gl-scan]') || {}).title || '') } : null }; });
     check('2a the spine: Negotiate lit, its number the owed rows filed under it (their two asks among them)', /is-(?:cur|owed)/.test(gl.nego) && gl.negoN === String(gl.want) && gl.want >= 2, JSON.stringify({ nego: gl.nego, n: gl.negoN, want: gl.want }));
-    check('2c one row per ask, in its own words — what the number is of, which way it moved · waits · Reply ›',
+    /* RE-POINTED 29 Oct 2026 (the owner: one grey pill per row, no arrow) */
+    check('2c one row per ask, in its own words — what the number is of, which way it moved · waits · Reply',
       gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days to pay, up from 30.')
-      && gl.asks.every(a => /^waits /.test(a.sub) && a.btn === 'Reply ›'), JSON.stringify(gl.asks));
+      && gl.asks.every(a => /^waits /.test(a.sub) && a.btn === 'Reply'), JSON.stringify(gl.asks));
     /* RE-POINTED 22 Oct 2026 (owner: the signer boxes went): the Signer line is the signing route editor's door */
     check('2d nobody named to sign: the signer is one grid row, no boxes, its line the signing route\'s door', gl.sign.length === 1 && !gl.sign[0].box && gl.sign[0].door, JSON.stringify(gl.sign));
     check('2e the risks not read yet, in What Jambo read: "free" said before the press, and Read it (the owner\'s answer 6)',

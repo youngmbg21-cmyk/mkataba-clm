@@ -269,12 +269,12 @@ describe('Share is two steps, and the summary travels', () => {
     m.$('#share-other').click();
     assert.ok(m.$('#share-step-kind').className.includes('hidden'), 'the old question is not opened');
     assert.ok(!m.$('#share-step-1').className.includes('hidden'), 'the send stays');
-    assert.match(m.$('#sh-lt-subject').textContent, /^The negotiation history of /, 'the letter is the history\'s');
+    assert.match(m.$('#sh-lt-subject').value, /^The negotiation history of /, 'the letter is the history\'s');
 
     m.$('[data-sh-lt-else="contract"]').click();
     assert.ok(!m.$('#share-step-1').className.includes('hidden'), 'and the contract comes back');
     assert.ok(!m.$('#share-step-2').className.includes('hidden'), 'whole');
-    assert.doesNotMatch(m.$('#sh-lt-subject').textContent, /negotiation history/, 'the round\'s letter again');
+    assert.doesNotMatch(m.$('#sh-lt-subject').value, /negotiation history/, 'the round\'s letter again');
   });
 
   test('the readiness warnings stay on the send step, where they were', async () => {
