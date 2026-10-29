@@ -48,11 +48,16 @@ const book = n => Array.from({ length: n }, (_, i) => fixtureContract(`HC-${3001
     h.ai.slow(1500);
     await page.click('#ac-form [data-ac-ask]');
     const going = await until(page, () => !!AC.busy && AC.busy.done >= 1 && !!document.querySelector('#ac-form [data-ac-stop]'), null, 20000);
-    const atPress = h.ai.calls.length;
     const t0 = Date.now();
     await page.click('#ac-form [data-ac-stop]');
     const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
     const took = Date.now() - t0;
+    /* WHAT WAS WITH JAMBO AT THE PRESS is counted once the server has heard it (a beat after the card): the moment
+       the first answers come back the server has already handed the next few to Jambo, and those finish and are
+       kept. Counted before the press, that hand-over raced the count (red on a slower browser, 29 Oct 2026). A
+       server that ignored the Stop starts another four within 1.5 s, which the 4 s wait below still catches. */
+    await page.waitForTimeout(300);
+    const atPress = h.ai.calls.length;
     const cells = await page.evaluate(() => ({ spinning: document.querySelectorAll('td.ac-cell .ob-spin').length,
       notRead: [...document.querySelectorAll('td.ac-cell .ac-a')].filter(x => /not read yet/.test(x.textContent)).length }));
     await page.screenshot({ path: path.join(OUT, 'stopped-1440x780.png') });

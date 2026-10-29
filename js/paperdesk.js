@@ -91,8 +91,14 @@ function pdTab(){ return _pdTab; }
 function pdOnPaper(){
   try { return typeof igHomePaperFace === 'function' && igHomePaperFace() === true && !!pdContract(); } catch (_){ return false; }
 }
+/* THE ONE SHEET OWNS THE PANEL (owner, 28 Oct 2026, relayed from the "Email page redesign" session: New agreement
+   started over another contract's paper kept that contract's tabs, Redlines and "Risks to look at · 11" beside the
+   uncreated agreement): while the sheet is up (a computer only — the phone keeps its own form) the panel draws the
+   sheet's guide and the box, no contract tabs, no face; the paper's tab and face are kept, and come back as they were
+   when the sheet is put away */
+function pdSheetOwns(){ try { return typeof naSheetUp === 'function' && !!naSheetUp(); } catch (_){ return false; } }
 /* the panel shows a contract tab (not Copilot's conversation) */
-function pdShowsDesk(){ return pdOnPaper() && _pdTab !== 'copilot' && !pdSendShows(); }
+function pdShowsDesk(){ return pdOnPaper() && _pdTab !== 'copilot' && !pdSendShows() && !pdSheetOwns(); }
 function pdContract(){
   const p = (typeof intel === 'object' && intel) ? intel.paper : null;
   return p && typeof getContract === 'function' ? getContract(p.id) : null;
@@ -403,8 +409,11 @@ function pdOpenOnHome(id, tab){
     pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab)); } finally { pdOpenOnHome._in = false; } }
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* FILL IN THE CONTRACT IS ITS OWN DOOR'S: any other door that opens a paper puts the form away (the Fill in door,
-     pdFillOpen, asks for it again once the paper is up — what was answered there stays, _pdForm) */
+     pdFillOpen, asks for it again once the paper is up — what was answered there stays, _pdForm). A Fill in landing
+     still on its way is let go too, or its next beat turns the panel back to the form over the door just pressed
+     (pdFillOpen lands again after this returns) */
   if (typeof pdTab === 'function' && pdTab() === 'form') pdSetTab('copilot');
+  _pdOgLand = null;
   if (tab === 'open') tab = pdOpenTabOf(c);
   /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
      stage 4, 14 Oct 2026): the Board's own view for this contract — the
@@ -1873,6 +1882,7 @@ function pdSendFacePaint(){
    same spot; stage 5 — the Negotiate page a refresh used to land back on
    folded into the Redlines face): the face's door word, or '' */
 function pdFaceNow(){
+  if (pdSheetOwns()) return '';
   if (pdAmendShows()) return 'amend';
   if (pdSignShows()) return 'signing';
   if (pdRedShows()) return 'red';
@@ -3228,7 +3238,7 @@ function pdHeadHtml(brain){
   const gd = !face && !pdOnPaper() && typeof igGuideTabOn === 'function' && igGuideTabOn();
   /* THE TABS STAY WHILE A FACE IS UP (ONE TRAIL, owner 19 Oct 2026): the
      face lives under Jambo's tab; Clauses and back to Jambo brings it back */
-  const tabs = pdOnPaper() ? PD_TABS_SHOWN : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
+  const tabs = (pdOnPaper() && !pdSheetOwns()) ? PD_TABS_SHOWN : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
   /* ONE WINDOW (pdSolo): his conversation is the panel, under its one tab "Jambo" — his sign and his name (owner,
      24 Oct 2026: "bring them back") — beside the map's own Findings and Guide where they stand */
   if (pdSolo()){
@@ -6063,6 +6073,8 @@ function pdJamboTopHtml(){
   /* A CONTRACT HELD WITH NO PAPER UP (the redesign's gaps, 18 Oct 2026): a
      paper chosen on the wall (round 13), a contract brought up as a page
      (round 7) or its History (round 12) — Jambo says that contract */
+  /* the one sheet first, over any paper or page behind it (pdSheetOwns) */
+  if (pdSheetOwns()) return pdWallHelloHtml();
   const held = pdHeldTopHtml(); if (held != null) return held;
   /* THE ONE SHEET IS UP, WHATEVER FACE IS BEHIND IT (the detail round, 25 Oct 2026: over the Board the panel
      drew the Board's greeting, which the sheet stands down, and so stood empty): he says what the sheet is for */
@@ -6898,7 +6910,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
