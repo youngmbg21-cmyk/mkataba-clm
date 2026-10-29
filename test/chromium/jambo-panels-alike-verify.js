@@ -53,6 +53,7 @@ const PAGES = [
   ['templates', "setView('templates')", '#ins-panel'],
   ['mynotes', "setView('mynotes')", '#ins-panel'],
   ['reads', "setView('reads')", '#ins-panel'],
+  ['pulse', "setView('pulse')", '#ins-panel'],   /* THE PULSE BOARD (29 Oct 2026) */
   ['handbook', "setView('handbook')", '#ins-panel'],
   ['migration', "setView('migration')", '#mig-side'],
   ['settings-you', "setView('team')", '#st-side'],
