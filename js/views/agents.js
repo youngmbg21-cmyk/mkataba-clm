@@ -1564,35 +1564,111 @@ function agAnswerBody(it){
     catch (_){ return raw; }
   };
   const byId = new Map((Array.isArray(c && c.changes) ? c.changes : []).filter(Boolean).map(x => [String(x.id), x]));
-  const rows = (it.plan || []).map(r => {
+  /* THE LEGORA WAY (owner picked it, 29 Oct 2026): nothing boxed but Jambo's
+     answer. Each ask is one row — where it sits on the paper (§ and name),
+     their changed words quoted (rlRowExcerptHtml, the Redlines row's own
+     excerpt), what was settled before, Jambo's answer in grey, and the row's
+     own buttons. The note that "it decides nothing" went: each answer says
+     what it rests on. The buttons press the Redlines row's own verbs
+     (agRoundAct); nothing is decided or filed from the card itself. */
+  const plan = it.plan || [];
+  const ed = !(typeof canEdit === 'function' && !canEdit());
+  const rows = plan.map((r, i) => {
     const v = (window.RLP_VERDICTS && RLP_VERDICTS[r.verdict]) || { label: r.verdict, tone: 'steel' };
-    /* THEIR WORDING is drawn by rlChangeWordingHtml, the ONE builder for "what
-       this change proposed", from our chair — in a native <details>, so it
-       needs no listener and a press repaints nothing. */
-    let words = '';
     const ch = byId.get(String(r.id));
+    const a = (typeof roundPrepOf === 'function' && ch) ? roundPrepOf(c, ch) : null;
+    /* THEIR WHOLE WORDING stays one press away under the quote (rlChangeWordingHtml,
+       the ONE builder for "what this change proposed", in a native <details>) */
+    let words = '';
     if (ch && typeof rlChangeWordingHtml === 'function'){ try { words = rlChangeWordingHtml(ch, { side: 'owner' }); } catch (_){ words = ''; } }
+    let sec = '';
+    try { sec = (ch && typeof rlRowSecOf === 'function') ? rlRowSecOf(ch) : ''; } catch (_){ sec = ''; }
+    const nm = String(name(r) || _agT('ng_this_clause'));
+    /* the clause's number off its own name where the row's reading has none ("4. Governing Law" → §4) */
+    if (!sec){ const m = nm.match(/^\s*(\d+(?:\.\d+)*)[.)]?\s/); if (m) sec = '§' + m[1]; }
+    const bare = sec ? (nm.replace(/^\s*\d+(?:\.\d+)*[.)]?\s+/, '') || nm) : nm;
+    let ex = '';
+    try { ex = (ch && typeof rlRowExcerptHtml === 'function') ? rlRowExcerptHtml(ch) : ''; } catch (_){ ex = ''; }
+    const quote = ex ? ex.replace('<div class="rl-card-ex">', '<div class="ag-chg-q">“').replace(/<\/div>$/, '”</div>')
+      : (r.summary ? `<div class="ag-chg-ask">${_agE(_agT('ag_they_ask', { what: r.summary }))}</div>` : '');
+    const last = i === plan.length - 1;
     return `<div class="ag-chg">
-        <div class="ag-chg-t"><b>${_agE(name(r) || _agT('ng_this_clause'))}</b><span class="ag-tag ${AG_TONE[v.tone] || 'is-steel'}">${_agE(v.label)}</span></div>
-        ${r.summary ? `<div class="ag-chg-ask">${_agE(_agT('ag_they_ask', { what: r.summary }))}</div>` : ''}
-        ${(!r.prepared && (r.why || []).length) ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
-        ${r.precedent ? `<div class="ag-chg-prec">${_agE(r.precedent)}</div>` : ''}
+        <div class="ag-chg-t">${sec ? `<span class="ag-chg-sec">${_agE(sec)} ·</span>` : ''}<b>${_agE(bare)}</b>${a ? '' : `<span class="ag-tag ${AG_TONE[v.tone] || 'is-steel'}">${_agE(v.label)}</span>`}</div>
+        ${quote}
         ${words ? `<details class="ag-words"><summary>${_agE(_agT('ag_show_wording'))}</summary><div class="ag-words-b">${words}</div></details>` : ''}
+        ${(!a && !r.prepared && (r.why || []).length) ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
+        ${r.precedent ? `<div class="ag-chg-prec">${_agE(r.precedent)}</div>` : ''}
         ${agPrepHtml(c, ch)}
+        ${ed ? agRoundActsHtml(c, ch, a, last && plan.length === 1) : ''}
       </div>`;
   }).join('');
   /* An ask the plan could not reach (a stage without js/redlineplan.js) is
      COUNTED rather than dropped: the reader is told how many are waiting. */
-  const missing = Math.max(0, it.n - (it.plan || []).length);
+  const missing = Math.max(0, it.n - plan.length);
   /* WHICH BOOK OF YOUR STANDARDS it was measured against — the playbook's own
      name for it, the one the co-pilot read. */
   let book = '';
   try { if (typeof resolvePlaybook === 'function' && typeof playbookKeyFor === 'function'){ const pb = resolvePlaybook(playbookKeyFor(c)); book = (pb && pb.label) || ''; } } catch (_){ book = ''; }
-  return `<p class="ag-p-meta">${_agE(_agT('ag_round_meta', { r: it.round, date: _agDay(it.since) }))}${book ? ' · ' + _agE(_agT('ag_round_book', { book })) : ''}</p>
-    <div class="ag-tally"><b>${_agE(_agTn('ag_changes', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}</div>
-    <p class="ag-p-note">${_agE(_agT('ag_round_rests'))}</p>
+  /* Put away stands in the one row's own line; with several asks it ends the card, quiet and last */
+  const away = ed && plan.length !== 1 ? `<div class="ag-rnd-acts is-end"><button type="button" class="ui-link ag-rnd-away" data-ag-act="away">${_agE(_agT('desk_discard'))}</button></div>` : '';
+  return `<div class="ag-tally ag-rnd-top"><b>${_agE(_agTn('ag_rnd_waiting', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}<span class="ag-p-meta">${_agE(_agT('ag_round_meta_since', { r: it.round, date: _agDay(it.since) }))}${book ? ' · ' + _agE(_agT('ag_round_book', { book })) : ''}</span></div>
     <div class="ag-chgs">${rows}</div>
-    ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}`;
+    ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}${away}`;
+}
+/* ---- THE ROW'S OWN BUTTONS (the Legora way, 29 Oct 2026) ----
+   One filled button per ask, named for Jambo's answer; Accept theirs beside
+   it; Change the suggestion where Jambo prepared one; Put away last when the
+   card holds one ask. Each press is the Redlines row's own verb (agRoundAct),
+   so the one door stays the one door. */
+function agRoundActsHtml(c, ch, a, withAway){
+  if (!ch || ch.status !== 'pending' || ch.withdrawn) return '';
+  const id = String(ch.id);
+  const B = (how, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ag-act="rnd|${_agE(how)}|${_agE(id)}">${_agE(_agT(label))}</button>`;
+  const v = a && a.verdict;
+  let btns = '';
+  if (v === 'counter') btns = B('counter', 'ag_rnd_counter', true) + B('accept', 'ag_rnd_accept');
+  else if (v === 'accept') btns = B('accept', 'ag_rnd_accept', true) + B('counter', 'ag_rnd_counter_plain');
+  else if (v === 'reject') btns = B('reject', 'ag_rnd_reject', true) + B('accept', 'ag_rnd_accept');
+  else if (v === 'escalate') btns = B('review', 'rv_ask_btn', true) + B('accept', 'ag_rnd_accept');
+  else btns = `<button type="button" class="ui-btn ui-btn-sm" data-ag-act="nego">${_agE(_agT('ag_a_answer'))}</button>`;
+  const key = (a && typeof roundPrepKey === 'function') ? roundPrepKey(ch.clauseId, ch.newText) : '';
+  const redo = a ? agSendBackHtml('round', key) : '';
+  const away = withAway ? `<button type="button" class="ui-link ag-rnd-away" data-ag-act="away">${_agE(_agT('desk_discard'))}</button>` : '';
+  return `<div class="ag-rnd-acts">${btns}${redo}${away}</div>`;
+}
+/* ---- A ROW'S BUTTON, PRESSED: the Redlines row's own verb ----
+   Every button opens Jambo's Redlines face on the contract and presses that
+   row's own button there: Counter opens the clause editor on the ask with
+   Jambo's wording as a card to Apply; Accept, Reject and Ask for review are
+   taken by the negotiation's own code. A button that never shows says so and leaves you
+   on Redlines. */
+const AG_RND_TRIES = 40, AG_RND_MS = 100;
+const AG_RND_SEL = {
+  counter: id => `[data-rl-cp-editor-row][data-rl-cp-editor-change="${id}"]`,
+  accept: id => `[data-nego-accept="${id}"]`,
+  reject: id => `[data-nego-reject="${id}"]`,
+  review: () => '[data-rl-review-go]:not(:disabled), [data-rl-review]',
+};
+function agRoundAct(it, how, chId){
+  const c = (typeof getContract === 'function' && getContract(it.cid)) || it.c;
+  const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
+  if (!c || !ch || ch.status !== 'pending') return agGo('nego', it.cid);
+  if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+  const sel = AG_RND_SEL[how];
+  if (!sel || typeof pdRedOpen !== 'function' || !pdRedOpen(c.id)) return agGo('nego', it.cid);
+  const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v).replace(/"/g, '\\"');
+  let n = 0;
+  const wait = () => {
+    const ready = typeof pdRedShows !== 'function' || pdRedShows();
+    const b = ready ? document.querySelector(sel(css(String(ch.id)))) : null;
+    if (b){ b.click(); return; }
+    /* a question the walls ask (blanks first) is answered at the reader's pace */
+    if (!document.querySelector('#modal-root [role="dialog"]')) n++;
+    if (n < AG_RND_TRIES) { setTimeout(wait, AG_RND_MS); return; }
+    if (typeof toast === 'function') toast(_agT('ag_rnd_lost'), 'warn');
+  };
+  setTimeout(wait, 0);
+  return true;
 }
 
 /* ---- COPILOT'S PREPARED ANSWER TO ONE ASK (27 Sep 2026) ----
@@ -1608,14 +1684,20 @@ function agPrepHtml(c, ch){
   const a = (typeof roundPrepOf === 'function' && ch) ? roundPrepOf(c, ch) : null;
   if (!a) return '';
   const key = (typeof roundPrepKey === 'function') ? roundPrepKey(ch.clauseId, ch.newText) : '';
-  const ed = !(typeof canEdit === 'function' && !canEdit());
+  /* WHO ASKED FOR THE REDO, said in the source line; their note rides the hover */
+  let redone = '';
+  if (a.sentBack){
+    let me = '';
+    try { me = String(((typeof currentUser === 'function') && currentUser() || {}).name || ''); } catch (_){ me = ''; }
+    const by = String(a.sentBack.by || '');
+    redone = (!by || by === me) ? _agT('ag_prep_redone_me') : _agT('ag_prep_redone_by', { who: by });
+  }
+  const src = [a.standard ? _agT('ag_prep_based', { what: a.standard }) : '', redone].filter(Boolean).join(' · ');
+  const note = a.sentBack && a.sentBack.note ? ` title="${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note }))}"` : '';
   return `<div class="ag-prep" data-ag-prep="${_agE(key)}">
-      <div class="ag-prep-h"><span class="ag-tag ${AG_PREP_TONE[a.verdict] || 'is-steel'}">${_agE(_agT('ag_prep_' + a.verdict))}</span>${
-        a.standard ? `<span class="ag-sub">${_agE(_agT('ag_prep_rests', { what: a.standard }))}</span>` : ''}</div>
-      ${a.why ? `<p class="ag-p-text">${_agE(a.why)}</p>` : ''}
-      ${a.wording ? `<details class="ag-words"><summary>${_agE(_agT('ag_prep_wording'))}</summary><div class="ag-words-b">${_agE(a.wording)}</div></details>` : ''}
-      ${a.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note || '' }))}</p>` : ''}
-      ${ed ? agSendBackHtml('round', key) : ''}
+      <div class="ag-prep-h"><span class="ag-tag ${AG_PREP_TONE[a.verdict] || 'is-steel'}">${_agE(_agT('ag_prep_v_' + a.verdict))}</span></div>
+      ${(a.why || a.wording) ? `<p class="ag-p-text">${a.why ? _agE(a.why) : ''}${a.wording ? `${a.why ? ' ' : ''}${_agE(_agT('ag_prep_puts_back'))} <span class="ag-words-b">“${_agE(a.wording)}”</span>` : ''}</p>` : ''}
+      ${src ? `<p class="ag-prep-src"${note}>${_agE(src)}</p>` : ''}
     </div>`;
 }
 /* ---- SEND BACK WITH A NOTE: one small box under what is being sent back —
@@ -1624,11 +1706,11 @@ function agSendBackHtml(agent, key){
   return `<div class="ag-sb" data-ag-sb="${_agE(agent)}" data-ag-sb-key="${_agE(key || '')}">
       <button type="button" class="ui-link" data-ag-sb-open>${_agE(_agT('ag_sendback'))}</button>
       <div class="ag-sb-box" hidden>
-        <textarea class="ag-sb-note" rows="2" maxlength="600" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}height:auto;min-height:var(--field-h)"
-          placeholder="${_agE(_agT('ag_sendback_ph'))}" aria-label="${_agE(_agT('ag_sendback'))}"></textarea>
-        <div class="ag-sb-acts"><button type="button" class="ui-btn ui-btn-primary" data-ag-sb-go>${_agE(_agT('ag_sendback_go'))}</button>
-          <button data-dlg-cancel type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button>
-          <span class="ag-sub">${_agE(_agT('ag_sendback_cost'))}</span></div>
+        <input type="text" class="ag-sb-note" maxlength="600" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}"
+          placeholder="${_agE(_agT('ag_sendback_ph'))}" aria-label="${_agE(_agT('ag_sendback_ph'))}">
+        <div class="ag-sb-acts"><button type="button" class="ui-btn ui-btn-sm" data-ag-sb-go>${_agE(_agT('ag_sendback_go'))}</button>
+          <span class="ag-sub">${_agE(_agT('ag_sendback_cost'))}</span>
+          <button data-dlg-cancel type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button></div>
       </div>
     </div>`;
 }
@@ -2138,7 +2220,14 @@ function agActsOf(it){
   B('away', _agT('desk_discard'), 'link');
   return L;
 }
+/* A ROUND'S ACTS STAND IN ITS ROWS (the Legora way, 29 Oct 2026): for an
+   editor the body carries each ask's own buttons and Put away, so the hosts
+   draw no second row of acts under it. A reader keeps the acts as before. */
+function agActsInBody(it){
+  return !!(it && it.kind === 'answer' && !(typeof canEdit === 'function' && !canEdit()) && (it.plan || []).length);
+}
 function agPanelActs(it, o){
+  if (agActsInBody(it)) return '';
   const skip = (o && o.skip) || [];
   return agActsOf(it).filter(a => !skip.includes(a.act)).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}"${a.tip ? ` title="${_agE(a.tip)}"` : ''}>${_agE(a.label)}</button>`).join('');
 }
@@ -2399,7 +2488,7 @@ function agDrawPanel(key){
     const sb = t.closest('[data-ag-sb]');
     if (!sb) return;
     const box = sb.querySelector('.ag-sb-box');
-    if (t.closest('[data-ag-sb-open]')){ if (box){ box.hidden = false; const n = box.querySelector('textarea'); if (n) n.focus(); } return; }
+    if (t.closest('[data-ag-sb-open]')){ if (box){ box.hidden = !box.hidden; const n = box.hidden ? null : box.querySelector('.ag-sb-note'); if (n) n.focus(); } return; }
     if (t.closest('[data-ag-sb-cancel]')){ if (box) box.hidden = true; return; }
     if (t.closest('[data-ag-sb-go]')) agSendBackPress(_agOpenKey || key, sb);
   });
@@ -2496,6 +2585,8 @@ async function agRunAct(key, act){
      is not using the work, so the doors below say nothing. */
   const said = (o, ref) => { try { if (typeof agPieceSay === 'function') agPieceSay(it.agent, it.cid || '', o, ref || ''); } catch (_){} };
   /* a row's own door: "go|<contract>|<tab>" (Week ahead's rows) */
+  /* a round's row: the Redlines row's own verb (agRoundAct) */
+  if (String(act).startsWith('rnd|')){ const [, how, chId] = String(act).split('|'); return agRoundAct(it, how, chId); }
   if (String(act).startsWith('go|')){ const [, cid, tab] = String(act).split('|'); return agGo(tab === 'oblig' ? 'oblig' : 'terms', cid); }
   if (act === 'approve' || act === 'refuse'){
     if (!c || typeof approvalDecideAsk !== 'function') return agGo('sign', it.cid);
@@ -2705,4 +2796,4 @@ Object.assign(window, { agReportPrepared, agPreparedSettled, agWeekKey, AG_REPLY
   agLinkItems, agLinkDone, agLinkHow, agLinkBody, agFreshLink, agSignTurnWords, agSentTo,
   agRowInner, agPaintList, agShowAgent, agOnDay,
   agStatusOf, agMoneyShown, agNextWords, agRunResultWords, agRunsHtml, agRunNowPress, AG_SPENDS, AG_SIGN_STUCK,
-  agLateFirmItems, agPrepHtml, agSendBackHtml, agSendBackPress, AG_PREP_TONE });
+  agLateFirmItems, agPrepHtml, agRoundActsHtml, agRoundAct, AG_RND_SEL, agActsInBody, agSendBackHtml, agSendBackPress, AG_PREP_TONE });

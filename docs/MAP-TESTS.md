@@ -436,6 +436,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - The house no wider than the page (22 Oct 2026): `tidy-sweep-verify.js` jambo place (the door's count badge; 3px sideways at e05849a).
 - jambos-work-open-verify (Home's Jambo's work · Open, and the house's door, land on the Board's Jambo's work card even when a contract's report was held there: bsCardLeave first; never "nothing prepared" over waiting work; three screens).
 - f667, f724, f790, f800–f803, jambo-agents, open-in-place, counter-as-drawn verify.
+- Their round, the Legora way (29 Oct 2026): f399 5c (each row's own buttons, `AG_RND_SEL`, no second acts row; re-pointed from "ONE door"); agents-do-the-work-verify 3b, 3d re-pointed (Counter · "Based on your standard" · "redone at your request", the note on hover); agents-page-verify 2b2 (their wording kept), counter-with-copilot-verify.
 
 ## THE SLIDER ON EVERY JAMBO PANEL
 - f830, f394 (3).
