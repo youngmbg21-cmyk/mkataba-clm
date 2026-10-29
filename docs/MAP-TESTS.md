@@ -500,3 +500,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SAP BENCHMARK, BATCH 1 — APPROVE ON THE ROW (round 10, 28 Oct 2026)
 - test/chromium/approve-on-row-verify.js (new; red at unmodified main): Approve on every decidable row beside the panel, filled on the chosen row only and moving with it; a press approves that row without choosing or opening it; inside its row at the three screens. jambos-list-panel 10e re-pointed to the wait cell by its class.
+
+## CALENDAR — THE AGENDA TAB (round 12, 28 Oct 2026)
+- test/chromium/calendar-agenda-verify.js (new; red at unmodified main: no Agenda tab): opens on Week, Agenda first tab; every date of 90 days a row with mark, contract, one word; a run of empty weeks one line; foot counts; Open lands; kept across a refresh; three screens. f261 (5), f148 SAME_IN_BOTH and calendar-redesign 1/4 re-pointed to four tabs.

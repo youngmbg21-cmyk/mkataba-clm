@@ -169,8 +169,9 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     check('1 and its ⋯ stands at the end of that head', homeHead.moreHead);
     check('1 the head prints no decisions line (the drawing has none)', shape.stat === '', shape.stat);
     /* RE-POINTED 10 Oct 2026 (Young: "one calendar" — Month · Week · Horizon) */
-    check('1 three views, plain words, no count on the live one',
-      shape.tabs.length === 3 && shape.tabs.join(' ') === 'Month Week Horizon', shape.tabs);
+    /* RE-POINTED 28 Oct 2026 (round 12): the Agenda leads the tabs */
+    check('1 four views, plain words, no count on the live one',
+      shape.tabs.length === 4 && shape.tabs.join(' ') === 'Agenda Month Week Horizon', shape.tabs);
     /* ---- ONE WHITE BAND, NOT TWO (owner-reported 24 Aug 2026: "remove the
            line in the highlighted area") ----
        The head and the control bar are two elements, both white and touching,
@@ -331,8 +332,8 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     check('4 Quarter, List and Obligations are retired, control and markup alike',
       !retired.q && !retired.l && !retired.o && !retired.qm && !retired.lr && !retired.ot,
       JSON.stringify(retired));
-    check('4 and the tab row is exactly Month, Week and Horizon',
-      String(retired.tabs) === String(['month', 'week', 'horizon']), retired.tabs);
+    check('4 and the tab row is exactly Agenda, Month, Week and Horizon (the Agenda since 28 Oct 2026)',
+      String(retired.tabs) === String(['agenda', 'month', 'week', 'horizon']), retired.tabs);
 
     /* ---- 5. ALL DATES / MINE ---- */
     await page.click('[data-cal-view="month"]');

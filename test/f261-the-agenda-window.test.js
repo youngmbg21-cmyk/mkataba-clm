@@ -150,7 +150,10 @@ describe('f261 (5) — nothing else on that page moved', () => {
     for (const anchor of ['function calMonthGridHtml', 'function calHorizonHtml',
                           'const CAL_EVENT', 'function calSetScope', 'data-cal-scope'])
       assert.ok(CAL_CODE.includes(anchor), anchor + ' is untouched');
-    assert.match(CAL_CODE, /const CAL_VIEWS = \['month','week','horizon'\];/, 'Week joined Month and Horizon (Young, 10 Oct 2026)');
+    /* RE-POINTED 28 Oct 2026 (round 12, the Agenda as a tab, owner's overnight build): Agenda leads the tabs; Week,
+       Month and Horizon stay, and the calendar still opens on Week */
+    assert.match(CAL_CODE, /const CAL_VIEWS = \['agenda','month','week','horizon'\];/, 'Week joined Month and Horizon (Young, 10 Oct 2026); the Agenda leads (28 Oct 2026)');
+    assert.match(CAL_CODE, /CAL_VIEWS\.includes\(calState\.view\)\?calState\.view:'week'/, 'and the calendar still opens on Week');
   });
 
   test('and the Done button on an obligation row', () => {
