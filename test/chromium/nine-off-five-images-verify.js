@@ -211,8 +211,9 @@ const MARK = cid => {
     /* RE-POINTED 21 Oct 2026 (Chambers): the card corner is --radius-lg, RESOLVED. */
     check('3c with the platform\'s card corner, not a square one',
       parseFloat(menu.radius) > 0 && parseFloat(menu.radius) === parseFloat(menu.card), menu.radius + ' (card ' + menu.card + ')');
-    check('3d and its rows with the platform\'s control corner',
-      parseFloat(menu.rowRadius) > 0 && parseFloat(menu.rowRadius) < parseFloat(menu.radius),
+    /* RE-POINTED 29 Oct 2026 (ONE CORNER): the control corner and the card corner are one 10px now */
+    check('3d and its rows with the platform\'s control corner, never rounder than the list',
+      parseFloat(menu.rowRadius) > 0 && parseFloat(menu.rowRadius) <= parseFloat(menu.radius),
       menu.rowRadius);
     /* [RELATION] the lit row is the workspace's own accent resolved live,
        never a colour typed here — so a brand change moves it. */

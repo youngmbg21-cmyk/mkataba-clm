@@ -141,7 +141,8 @@ for (let i = 1; i <= 12; i++)
        that reached one.
        ============================================================ */
     /* 'calendar' left this list 11 Oct 2026: it is Home's tab (calendar-on-home-verify 11 asks its refresh) */
-    const PAGES = ['register', 'templates', 'playbook', 'intel', 'mynotes', 'reports',
+    /* 'intel' left 29 Oct 2026: the Insights page is deleted (owner) */
+    const PAGES = ['register', 'templates', 'playbook', 'mynotes', 'reports',
       'migration', 'team', 'directory', 'intake', 'redline', 'workspace'];
     const lost = [];
     for (const v of PAGES){
