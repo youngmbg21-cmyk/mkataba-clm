@@ -35390,3 +35390,6 @@ Built from the options artifact's "The Legora way" in the owner's overnight buil
 
 ## THE SHELL — THE GUIDE IS THE MAP (round 7, 28 Oct 2026)
 Built from the options artifact's "The Legora way" in the owner's overnight build: no rail; each Guide row gains "Say “<word>”", the word read off the box's own reader (`guideWordOf` → `jamboPageWordOf`, the language's `ca_w_<k>` first, else the first one-word entry of the place's words that reads back to it), so a word shown always works; New agreement has no one word (it opens the sheet), so says none. "?" alone in any Jambo box opens the Guide (`jamboPageWordOf`).
+
+## CONTRACTS — THE SAMPLE TAG (round 16, 28 Oct 2026)
+Built from the options artifact's "The Legora way" in the owner's overnight build, in part: a contract stamped `seeded` (origin, never name) wears a quiet grey "Sample" chip right after its name on the Contracts list (`sampleTag`, `reg_sample_tag`; the title shrinks to its words so the chip follows them, and takes the "…" before the chip is cut). Settings' Demo & sample data already removed them all in one press. LEFT OUT: "every page has sample work on it" (seeding requests, approvals, obligations… is a server seeding job of its own) and "the sentences to try are the Likely-next links" (round 5, left out because it brings back chips the owner removed on 27 Oct).

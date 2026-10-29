@@ -512,3 +512,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SHELL — THE GUIDE IS THE MAP (round 7, 28 Oct 2026)
 - test/chromium/guide-is-the-map-verify.js (new; red at unmodified main): "?" opens the Guide free; every row with a one-word door says it and the word reads back to that row (New agreement has none); "negotiations" typed opens Negotiations; three screens.
+
+## CONTRACTS — THE SAMPLE TAG (round 16, 28 Oct 2026)
+- test/chromium/sample-tag-verify.js (new; red at unmodified main): seeded contracts wear "Sample" beside the name, the company's own none; a long name never cuts it; Settings counts the same; three screens.
