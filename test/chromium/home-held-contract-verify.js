@@ -280,8 +280,9 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         sfoot: ((st.querySelector('.bs-head [data-bs-open]') || {}).textContent || '').trim() }; }, null, 15000);
     check('2a Life line and details brings up its page, and Jambo says "MK-0377 · Dossier" beside it, its spine at Live', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 · Dossier' && /^Arrived \| Read \| Fill in \| Negotiate \| Sign \| Live$/.test(P7.head) && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
     const rk = P7 ? P7.rows.map(r => r.k) : [];
-    check('2b Still owed: the obligation late (→ Open ›); the signed amendment in the Family fold',
-      rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].b === 'Open ›'
+    /* RE-POINTED 29 Oct 2026 (the owner: one grey pill per row, no arrow) */
+    check('2b Still owed: the obligation late (→ Open); the signed amendment in the Family fold',
+      rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].b === 'Open'
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the fold's line is "Family" and what stands, a row like the rest */
       && /^Family\s*Original and 1 more in its family/.test(P7.fam), JSON.stringify(P7 && { rows: P7.rows, fam: P7.fam }));
     check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask Jambo about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));

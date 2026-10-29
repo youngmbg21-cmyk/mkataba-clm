@@ -150,7 +150,7 @@ async function mkUser(h, admin, name, email){
       const ps = sel => [...document.querySelectorAll(sel + ' .sh-lt-p')].map(p => p.querySelector('[data-sh-lt-btn]') ? '{BTN:' + p.textContent.trim() + '}' : p.textContent.replace(/\s+/g, ' ').trim());
       const cs = getComputedStyle(document.querySelector('#sh-letter .sh-lt-note label'));
       return { from: t('sh-lt-from'), to: t('sh-lt-towho'), toShown: !document.getElementById('sh-lt-tosay').classList.contains('hidden'),
-        boxesHidden: document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), subject: t('sh-lt-subject'), chips,
+        boxesHidden: document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), subject: document.getElementById('sh-lt-subject').value, chips,
         before: ps('#sh-lt-before'), after: ps('#sh-lt-after'), noteLbl: t('sh-summary-label'), dashed: cs.borderTopStyle,
         head: (document.getElementById('sh-lt-msghead') || {}).className || '' };
     });
@@ -200,7 +200,7 @@ async function mkUser(h, admin, name, email){
       c1.open && c1.seg && !c2.open && c2.page && !c3, JSON.stringify({ c1, c2, c3 }));
     await press('[data-sh-as-go="purpose"]'); await press('[data-sh-as="purpose"] [data-share-purpose="view"]');
     /* the list puts itself away a beat after the choice (shareLetterAsWire's setTimeout 0): ask for that state, bounded */
-    const c4read = () => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, s: document.getElementById('sh-lt-subject').textContent,
+    const c4read = () => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, s: document.getElementById('sh-lt-subject').value,
       open: document.querySelector('[data-sh-as="purpose"]').classList.contains('is-open') });
     await waitFor(page, () => !document.querySelector('[data-sh-as="purpose"]').classList.contains('is-open'), 3000);
     const c4 = await page.evaluate(c4read);
@@ -239,7 +239,7 @@ async function mkUser(h, admin, name, email){
     /* 5 sent, the same email */
     const shown = await page.evaluate(() => {
       const ps = sel => [...document.querySelectorAll(sel + ' .sh-lt-p')].map(p => p.querySelector('[data-sh-lt-btn]') ? { btn: p.textContent.trim() } : p.textContent.replace(/\s+/g, ' ').trim());
-      return { subject: document.getElementById('sh-lt-subject').textContent, before: ps('#sh-lt-before'), after: ps('#sh-lt-after') }; });
+      return { subject: document.getElementById('sh-lt-subject').value, before: ps('#sh-lt-before'), after: ps('#sh-lt-after') }; });
     h.mail.reset();
     await press('#share-send');
     if (process.env.C2_DEBUG) { await pause(3000); console.log('DEBUG', await page.evaluate(() => ({ res: (document.getElementById('sh-result') || {}).innerText, top: [...document.querySelectorAll('[data-top-overlay]')].map(x => x.innerText).join(' | '), lbl: (document.getElementById('sh-send-lbl') || {}).textContent, toasts: [...document.querySelectorAll('.toast, [role=status]')].map(x => x.innerText).join(' | ') }))); }

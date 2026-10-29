@@ -289,7 +289,7 @@ const openFace = async page => {
     check('3f the history preview keeps its rows', !!hist, String(hist));
     await shot(page, '11-history-1440x780');
     await page.click('[data-sh-as-go="what"]', { timeout: 5000 }).catch(() => {}); await page.click('[data-sh-as-what="contract"]', { timeout: 5000 }).catch(() => {});
-    await waitFor(page, () => { const s = document.getElementById('sh-lt-subject'); return s && /^Round/.test(s.textContent); }, 6000);
+    await waitFor(page, () => { const s = document.getElementById('sh-lt-subject'); return s && /^Round/.test(s.value); }, 6000);
 
     /* 4 Go to clause 7: the letter waits */
     await page.fill('#sh-summary', 'Here is our round.', { timeout: 5000 }).catch(() => {});

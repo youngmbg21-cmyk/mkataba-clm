@@ -27,6 +27,14 @@
    ============================================================ */
 
 const SHARE_MAIL_NOTE_MAX = 1000;
+/* THE SUBJECT IS THE SENDER'S TO CHANGE (owner, 29 Oct 2026): a subject typed on
+   the send screen replaces HaTi's own on the email and the Word file's mail.
+   One line, at most SHARE_SUBJECT_MAX characters, no line breaks (a header);
+   empty means HaTi's own. A cap is a fact: the screen's box holds no more. */
+const SHARE_SUBJECT_MAX = 200;
+function shareSubjectClean(v){
+  return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, SHARE_SUBJECT_MAX);
+}
 
 function _smJoin(parts){
   /* the server's own joins, kept byte for byte: each part after the lead
@@ -221,7 +229,7 @@ function shareMailOf(o){
       parts.push({ k: 'say', t: `Mark it up in Word and send the file back to ${sender} — they will bring your changes into HaTi.` });
     }
     parts.push({ k: 'foot', t: `Replies to this email reach ${sender} directly.` });
-    const subject = hist ? `${sender} sent you the negotiation history of "${cName}"` : `${sender} sent you "${cName}" to mark up`;
+    const subject = shareSubjectClean(x.subject) || (hist ? `${sender} sent you the negotiation history of "${cName}"` : `${sender} sent you "${cName}" to mark up`);
     return { subject, parts, body: _smJoin(parts) };
   }
   const kind = SHARE_MAIL_KIND[x.purpose] || SHARE_MAIL_KIND.any;
@@ -246,9 +254,9 @@ function shareMailOf(o){
   parts.push({ k: 'foot', t: [sender, String(x.title || '').trim(), org].filter(Boolean).join(' · ') });
   /* a code-named deal: the code and number only, as drawn ("Round 2 of
      Project Falcon (MK-0412)") — a proper name takes no "the" */
-  const subject = coded
+  const subject = shareSubjectClean(x.subject) || (coded
     ? (x.purpose === 'negotiate' ? `Round ${round} of ${coded}` : kind.subj({ cName: coded, org, coded: true }, round))
-    : kind.subj({ cName, org }, round);
+    : kind.subj({ cName, org }, round));
   return { subject, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
 }
 /* THE LETTER'S JOINS: a blank line between its blocks; the answers under
@@ -388,7 +396,7 @@ function passMailOf(o){
   return { subject, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
 }
 
-const SHARE_MAIL_API = { PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
+const SHARE_MAIL_API = { PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, SHARE_SUBJECT_MAX, shareSubjectClean, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
   shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;

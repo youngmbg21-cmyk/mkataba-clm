@@ -89,10 +89,10 @@ const MID = () => {
   const click = sel => page.click(sel, { timeout: 3000 }).then(() => true, () => false);
   const open = async () => {
     await page.evaluate(id => { if (typeof closeModal === 'function') closeModal(); pdOpenOnHome(id, 'copilot'); }, ID);
-    return waitFor(page, () => !!document.querySelector('#ig-dock #pd-needs [data-pd-nd-jw]') && !!document.querySelector('#ig-dock [data-pd-kt-mid]'), 12000);
+    return waitFor(page, () => !!document.querySelector('#ig-dock .pd-dossier [data-pd-nd-jw]') && !!document.querySelector('#ig-dock [data-pd-kt-mid]'), 12000);
   };
   const gone = () => waitFor(page, () => !document.querySelector('#modal-root [data-pd-mid]') && !document.querySelector('#ig-dock [data-pd-mid-back]') && !!document.getElementById('ig-canvas'), 5000);
-  const seeIt = async () => { if (!(await click('#ig-dock #pd-needs [data-pd-nd-jw]'))) return null; return waitFor(page, () => { const p = document.querySelector('#modal-root [data-pd-mid] .ag-panel'); return p && !!p.querySelector('.ag-p-acts [data-ag-act]'); }, 8000); };
+  const seeIt = async () => { if (!(await click('#ig-dock .pd-dossier [data-pd-nd-jw]'))) return null; return waitFor(page, () => { const p = document.querySelector('#modal-root [data-pd-mid] .ag-panel'); return p && !!p.querySelector('.ag-p-acts [data-ag-act]'); }, 8000); };
   try {
     check('0 the contract is staged', !!(put && put.ok), JSON.stringify(put).slice(0, 160));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -113,8 +113,10 @@ const MID = () => {
     check('1c the Dossier stays in sight and pressable beside it; the page ends at its edge', m1.dockShown && m1.right <= m1.dockLeft + 1 && m1.w >= 480, JSON.stringify(m1));
     check('1d "‹ Paper" leads the chips under the Dossier, and is pressable', !!(m1.back && m1.back.first && m1.back.text === '‹ Paper' && m1.back.hit), JSON.stringify(m1.back));
     check('1e the crumb is the row\'s own words: Paper › Jambo\'s work · New paper', /* RE-POINTED 24 Oct 2026 (Round 3): "‹ Back to the paper" stands before the crumb */ /(^|paper)Paper › Jambo['’]s work · New paper$/.test(m1.crumb), m1.crumb);
-    const row1 = await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-needs .pd-nd-row.is-jw'); return r ? { mid: r.classList.contains('is-mid'), say: (r.querySelector('small') || {}).textContent || '', pressed: r.querySelector('[data-pd-nd-jw]').getAttribute('aria-pressed') } : null; });
-    check('1f the row says "Showing in the middle"', !!(row1 && row1.mid && row1.say === 'Showing in the middle' && row1.pressed === 'true'), JSON.stringify(row1));
+    const row1 = await page.evaluate(() => { const r = document.querySelector('#ig-dock .pd-dossier .is-jw[data-pd-ds="jw-read"]'); return r ? { mid: r.classList.contains('is-mid'), say: (r.querySelector('small') || {}).textContent || '', pressed: r.querySelector('[data-pd-nd-jw]').getAttribute('aria-pressed') } : null; });
+    /* RE-POINTED 29 Oct 2026 (the owner: the Arrival check stands under the Brief, no small grey line under a row):
+       the row is marked and its Look pressed while the piece stands in the middle */
+    check('1f the row is marked and its Look pressed while it shows in the middle', !!(row1 && row1.mid && row1.pressed === 'true'), JSON.stringify(row1));
     const body1 = await page.evaluate(() => { const p = document.querySelector('#modal-root [data-pd-mid] .ag-panel'); if (!p) return null;
       return { acts: [...p.querySelectorAll('[data-ag-act]')].map(b => b.getAttribute('data-ag-act')), deps: [...p.querySelectorAll('.ag-dep b')].map(b => b.textContent.trim()) }; });
     check('1g it carries the two standards to look at', !!body1 && body1.deps.includes('Payment terms') && body1.deps.includes('Liability cap'), JSON.stringify(body1));
@@ -124,7 +126,7 @@ const MID = () => {
     /* ===== 2. the ways back ===== */
     console.log('\n2 · the ways back to the paper');
     /* each way back is asked only of a middle that stood (a build without it reports, never passes by doing nothing) */
-    const was2a = !!p1; await click('#ig-dock #pd-needs [data-pd-nd-jw]');
+    const was2a = !!p1; await click('#ig-dock .pd-dossier [data-pd-nd-jw]');
     check('2a See it pressed again brings the paper back', was2a && !!(await gone()));
     const was2b = !!(await seeIt()); await click('#ig-dock [data-pd-mid-back]');
     check('2b "‹ Paper" brings the paper back', was2b && !!(await gone()));
