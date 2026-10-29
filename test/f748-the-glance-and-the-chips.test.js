@@ -103,14 +103,15 @@ describe('f748 (1) their round and each of their asks', () => {
     const { ctx, c } = glance();
     const html = ctx.pdGlanceHtml(c);
     /* RE-POINTED 20 Oct 2026 (the Dossier, #386): Still owed names each of their asks, how long it waits, and Reply › onto the Redlines */
-    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>[^<]+<small>waits 4 days ago<\/small><\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply<\/button>/);
+    /* RE-POINTED 29 Oct 2026 (the Dossier's rows, one grid): Their redlines · what the ask says · Reply, how long it waits on the hover */
+    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a" title="[^"]+ · waits 4 days ago"><i class="pd-ck-ring is-miss" aria-hidden="true"><\/i><span class="ds-nm">Their redlines<\/span><span class="ds-val">[^<]+<\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply<\/button>/);
     const today = glance({ asks: [ask('a', '7. Limitation of liability', SWAP, { createdAt: new Date().toISOString() })] });
     assert.equal(today.ctx.pdGlMoveSay(today.c, today.c.changes), 'Nordvik Logistik AB sent 1 redline today.');
   });
   test('1c each ask in its own stored words — what goes, what comes — with Go to it', () => {
     const { ctx, c } = glance();
     const html = ctx.pdGlanceHtml(c);
-    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>Clause 7: they ask for 100% of the fees, up from 50%\.<small>/);
+    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a" title="[^"]*"><i[^>]*><\/i><span class="ds-nm">Their redlines<\/span><span class="ds-val">Clause 7: they ask for 100% of the fees, up from 50%\.<\/span>/);
     assert.match(html, /Clause 11: they ask for 60 days to pay, up from 30\./, 'days in a payment clause are days to pay (as drawn)');
     const say = (ops, extra) => ctx.pdAskSay(c, ask('x', '4. Fees', ops, extra));
     /* what the number is OF: the words after it, to a stop, without a dangling "of the" */
@@ -138,7 +139,7 @@ describe('f748 (1) their round and each of their asks', () => {
     const rows = J(ctx.pdGlanceRows(c).map(r => Object.assign({}, r, { ch: undefined })));
     assert.equal(rows.filter(r => r.kind === 'ask').length, ctx.PD_GL_ASKS_MAX);
     assert.deepEqual(J(rows.find(r => r.k === 'asks-more')), { k: 'asks-more', n: 5 - ctx.PD_GL_ASKS_MAX });
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="ask-more"><span>2 more of their asks\.<\/span>|data-pd-gl="ask"><span>2 more of their asks\.<\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply</);
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="ask" title="2 more of their asks\."><i[^>]*><\/i><span class="ds-nm">Their redlines<\/span><span class="ds-val">2 more waiting<\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply</);
   });
   test('1e our own asks, a decided ask and a withdrawn one are not theirs waiting', () => {
     const { ctx, c } = glance({ asks: [ask('a', '7. X', SWAP, { authorSide: 'owner' }), ask('b', '8. Y', SWAP, { status: 'accepted' })] });

@@ -4036,21 +4036,30 @@ function dossierOwedHtml(c, D, o){
   const rest = (grid ? D.owed.filter(r => !isFact(r)) : D.owed).filter(r => !(r.need && r.need.jw && r.need.pk === 'read'));
   const mine = rest.filter(r => !r.need);
   const done = pdGlanceDone(c, mine, said);
+  /* ONE GRID (owner, 29 Oct 2026: "the smaller font words ruin the whole format of the panel"; drawing
+     XmhHqN2tRyY8EATL4iK9Jj): every row owed is a row like Jambo read's — its name, what it says, one press —
+     "4 changes not sent." is Changes · 4 not sent · Send; the whole sentence rides the row's hover */
   const rowHtml = r => {
     if (r.need) return needHtml(r);
-    const amb = (r.kind === 'fill' && !r.more) ? `<span class="ds-owed-l">${_pdE(r.label)}</span> ${_pdE(_pdT('dos_owed_empty_w'))}`
-      : r.kind === 'signer' ? `<span class="ds-owed-l">${_pdE(_pdT('dos_signer'))}</span> ${_pdE(_pdT('dos_signer_w'))}` : _pdE(said(r));
-    const sub = r.ch ? `<small>${_pdE(_pdT('dos_waits', { ago: pdGlAgo(r.ch.createdAt || r.ch.at) }))}</small>` : '';
+    const nm = (r.kind === 'fill' && !r.more) ? r.label : r.kind === 'fill' ? _pdT('dos_row_details')
+      : r.kind === 'signer' ? _pdT('dos_signer') : (r.k === 'asks-more' || r.ch) ? _pdT('dos_row_their')
+      : r.kind === 'share' ? _pdT('dos_row_changes') : r.kind === 'late' ? _pdT('tab_obligations') : said(r);
+    const val = (r.kind === 'fill' && !r.more) ? _pdT('dos_owed_empty_w') : r.kind === 'fill' ? _pdTn('dos_row_more', r.more, { n: r.more })
+      : r.kind === 'signer' ? _pdT('dos_signer_w') : r.k === 'asks-more' ? _pdTn('dos_row_more_asks', r.more, { n: r.more })
+      : r.ch ? pdAskSay(c, r.ch) : r.kind === 'share' ? _pdTn('dos_row_unsent', r.n, { n: r.n })
+      : r.kind === 'late' ? _pdTn('dos_row_late', r.n, { n: r.n, what: r.what, days: r.days }) : '';
+    const tip = [said(r), r.ch ? _pdT('dos_waits', { ago: pdGlAgo(r.ch.createdAt || r.ch.at) }) : ''].filter(Boolean).join(' · ');
     const door = r.kind === 'fill' ? dossierGo(`data-pd-ds-fill="${_pdE(r.key || '')}"`, _pdT('dos_go_fill_in'))
       : r.kind === 'signer' ? dossierGo('data-pd-glance="sign"', _pdT('dos_go_name'))
       : r.kind === 'ask' ? dossierGo('data-pd-glance="redline"', _pdT('dos_go_reply'))
       : r.kind === 'share' ? dossierGo('data-pd-glance="share"', _pdT('dos_go_send'))
       : r.kind === 'late' ? dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')) : '';
-    return `<div class="pd-gl-row ds-row" data-ds-at="${_pdE(at(r))}" data-pd-gl="${_pdE(r.kind === 'signer' ? 'sign' : r.kind)}"${r.ch ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''}><span>${amb}${sub}</span>${door}</div>`;
+    const amb = r.kind === 'late' || (r.kind === 'fill' && !r.more) || r.kind === 'signer';
+    return `<div class="pd-gl-row ds-row ds-rr" data-ds-at="${_pdE(at(r))}" data-pd-gl="${_pdE(r.kind === 'signer' ? 'sign' : r.kind)}"${r.ch ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''} title="${_pdE(tip)}"><i class="pd-ck-ring is-miss" aria-hidden="true"></i><span class="ds-nm">${_pdE(nm)}</span><span class="ds-val${amb ? ' is-amb' : ''}">${_pdE(val)}</span>${door}</div>`;
   };
   /* SPINE: every row stands under its own stage (DOSSIER_STAGE_OF), the one desk's rows too */
   const at = r => DOSSIER_STAGE_OF[r.kind] || D.now;
-  const needHtml = r => pdNeedRowHtml(c, r.need).replace(/^<div /, `<div data-ds-at="${_pdE(at(r))}" `);
+  const needHtml = r => pdNeedRowHtml(c, r.need, { grid: true }).replace(/^<div /, `<div data-ds-at="${_pdE(at(r))}" `);
   /* a ticked-off row names its kind (fill · signer · ask · share), as the old glance's did */
   const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-ds-at="${_pdE(DOSSIER_STAGE_OF[String(d.k).split(':')[0].replace(/-more$/, '').replace(/^need$/, '')] || D.now)}" data-pd-gl-done="${_pdE(String(d.k).split(':')[0].replace(/-more$/, '').replace(/^signer$/, 'sign'))}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
   /* FILL THE DOCUMENT, the company template's one press, where the answers are owed to the wording
@@ -6027,7 +6036,41 @@ if (typeof document !== 'undefined' && !document._pdMidWired){
     e.preventDefault(); pdMidClose();
   });
 }
-function pdNeedRowHtml(c, r){
+/* THE DOSSIER'S ROW OF THE SAME (o.grid; owner, 29 Oct 2026): a name, what it says, one press — the same three
+   columns as every other row of the Dossier, one size of words, no second line; what the second line said rides the
+   row's hover. The other cards that draw these rows keep their two lines. */
+const PD_ND_NAME = { quiet: 'pd_nd_nm_quiet', review: 'pd_nd_nm_review', look: 'pd_nd_nm_look', approval: 'pd_nd_nm_approval', refused: 'pd_nd_nm_refused', join: 'pd_nd_nm_join',
+  note: 'pd_nd_nm_note', suggest: 'pd_nd_nm_suggest', details: 'pd_nd_nm_details', sign: 'pd_nd_nm_sign', copies: 'pd_nd_nm_copies', promises: 'pd_nd_nm_promises', renewal: 'pd_nd_nm_renewal' };
+function pdNeedGridRowHtml(c, r){
+  const row = (cls, attrs, nm, val, amb, tip, btn) => `<div class="pd-gl-row ds-row ds-rr pd-nd-row${cls}" ${attrs} title="${_pdE(tip)}"><i class="pd-ck-ring is-miss" aria-hidden="true"></i><span class="ds-nm">${_pdE(nm)}</span><span class="ds-val${amb ? ' is-amb' : ''}">${_pdE(val)}</span>${btn}</div>`;
+  if (r.note){
+    const words = String((r.first && (r.first.title || r.first.body)) || '').replace(/\s+/g, ' ').trim();
+    let day = ''; try { day = (typeof regDotDate === 'function') ? regDotDate(r.first.reviewBy) : String(r.first.reviewBy || ''); } catch (_){ day = String(r.first.reviewBy || ''); }
+    const val = r.late ? _pdTn('pd_nd_note_due_late', r.n, { n: r.n, day }) : _pdTn('pd_nd_note_due_today', r.n, { n: r.n });
+    const tip = [words ? '\u201c' + words + '\u201d' : '', _pdT('pd_nd_only_you')].filter(Boolean).join(' · ');
+    return row(` is-note${r.late ? ' is-hot' : ''}`, 'data-pd-nd-kind="mynote"', _pdTn('pd_nd_nm_mine', r.n), val, r.late, tip,
+      `<button type="button" class="pd-go ds-go" data-pd-nd-note="${_pdE((r.first && r.first.id) || '')}">${_pdE(_pdT('dos_go_open'))}</button>`);
+  }
+  if (r.jw){
+    const P = (r.nd && typeof ndParts === 'function') ? ndParts(r.nd) : null;
+    const mid = pdMidUp('jw:' + String(r.key || r.k));
+    const title = (P && P.title) || _pdT('ag_' + r.k);
+    const when = P && P.when ? (r.nd.age != null && !/^(chase|renewal|notice)/.test(String(r.pk || '')) ? _pdT('pd_nd_waiting', { days: P.when }) : P.when) : '';
+    const tip = [P && P.step ? _pdT('nd_step', P.step) : '', P && P.read ? _pdT('nd_read') + ' ' + P.read : '', when, P && P.line ? String(P.line).replace(/<[^>]*>/g, '') : ''].filter(Boolean).join(' · ');
+    return row(` is-jw${mid ? ' is-mid' : ''}${P && P.late ? ' is-hot' : ''}`, `data-pd-nd-kind="jw"`, _pdT('pd_nd_nm_jw'), mid ? _pdT('pd_stage_showing') : title, !!(P && P.late), tip,
+      `<button type="button" class="pd-go ds-go" aria-pressed="${mid}" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('nd_btn_look'))}</button>`);
+  }
+  let w = null; try { w = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; } catch (_){ w = null; }
+  const verb = (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[r.it.kind]) ? _pdT(INS_NEED_VERB[r.it.kind]) : _pdT('cn_open');
+  const cl = r.it.kind === 'quiet' ? pdAskClausesSay(c) : '';
+  const title = (w && w.title) || '', plain = [(w && w.plain) || '', cl].filter(Boolean).join(' · ');
+  const nm = PD_ND_NAME[r.it.kind] ? _pdT(PD_ND_NAME[r.it.kind]) : title;
+  const val = PD_ND_NAME[r.it.kind] ? (plain || title) : plain;
+  return row(r.it.urgent ? ' is-hot' : '', `data-pd-nd-kind="${_pdE(r.it.kind)}"`, nm, val, !!r.it.urgent, [title, plain].filter(Boolean).join(' · '),
+    `<button type="button" class="pd-go ds-go" data-pd-nd="${_pdE(r.it.kind)}" data-pd-nd-id="${_pdE(c.id)}">${_pdE(verb)}</button>`);
+}
+function pdNeedRowHtml(c, r, o){
+  if (o && o.grid) return pdNeedGridRowHtml(c, r);
   if (r.note){
     const words = String((r.first && (r.first.title || r.first.body)) || '').replace(/\s+/g, ' ').trim();
     const q = words.length > 60 ? words.slice(0, 59) + '…' : words;

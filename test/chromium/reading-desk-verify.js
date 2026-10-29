@@ -115,8 +115,10 @@ const Q = 'How much notice does each side need to end the contract?';
     const turned = await until(page, cid => { const d = document.querySelector('#ac-form [data-ac-desk] [data-ac-desk-cid]'); return !!d && d.getAttribute('data-ac-desk-cid') !== cid; }, first, 6000);
     D = await desk();
     check('2 the desk turns to a second real answer of the ten that last landed', turned && D && D.cid !== first && /Highland Corporate|thirty days/.test(D.quote), { first, now: D && D.cid });
-    const stack = await until(page, () => document.querySelectorAll('#ac-form [data-ac-stack] li').length >= 1, null, 6000);
-    const S = await page.evaluate(() => [...document.querySelectorAll('#ac-form [data-ac-stack] li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()));
+    /* RE-POINTED 29 Oct 2026 (Stop stands still): the stack keeps its three rows' room from the start; the rows it
+       holds are the ones with an answer (li:not(.is-keep)) */
+    const stack = await until(page, () => document.querySelectorAll('#ac-form [data-ac-stack] li:not(.is-keep)').length >= 1, null, 6000);
+    const S = await page.evaluate(() => [...document.querySelectorAll('#ac-form [data-ac-stack] li:not(.is-keep)')].map(li => li.textContent.replace(/\s+/g, ' ').trim()));
     check('2a the stack under it holds what the desk turned past, light · name · answer, never more than three', stack && S.length >= 1 && S.length <= 3 && S.every(x => /30 days/.test(x)), S);
     /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the desk is a queue of answers that landed */
     const batchKept = await page.evaluate(() => { const b = AC.busy; if (!b || !Array.isArray(b.queue)) return null; const all = [b.cur].concat(b.queue, b.seen || []).filter(Boolean);
@@ -140,39 +142,42 @@ const Q = 'How much notice does each side need to end the contract?';
 
     /* ---- 4 Stop keeps what landed and says the calls spent; Carry on reads the rest ---- */
     await page.click('#ac-form [data-ac-stop]');
-    const stopped = await until(page, () => !!document.querySelector('#ig-dock #ac-stopped'), null, 20000);
-    const ST = await page.evaluate(() => ({ said: (document.querySelector('#ac-stopped .ac-dk-said') || {}).textContent.trim(), grey: !!document.querySelector('#ac-stopped.ac-dk-card .ac-dk-q'), carry: (document.querySelector('[data-ac-carry]') || {}).textContent, timer: !!AC.deskTimer }));
-    check('4 Stop, in the same grey card with the question: "Stopped at N of 100 · N answers kept · N Jambo calls spent · nothing else is being read", Carry on with its cost; the desk\'s timer is cleared', stopped && ST.grey && (m4 => !!m4 && m4[1] === m4[2])(/^Stopped at (\d+) of 100 · (\d+) answers? kept · \d+ Jambo calls? spent · nothing else is being read$/.exec(ST.said)) && /^Carry on · \d+ contracts · \d+ Jambo calls$/.test(ST.carry) && !ST.timer, ST);
+    /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): no second card; the stop is said in the question's own
+       card, "You stopped at N of 100. N of 120 are read, M to go.", and its one button carries on with its cost */
+    const stopped = await until(page, () => /^You stopped at/.test(((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim()), null, 20000);
+    const ST = await page.evaluate(() => ({ said: ((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim(), q: ((document.querySelector('#ig-dock .ac-col.is-open .ac-col-q') || {}).textContent || ''), second: !!document.querySelector('#ac-stopped'), carry: (document.querySelector('[data-ac-carry]') || {}).textContent, timer: !!AC.deskTimer }));
+    check('4 Stop, in the question\'s own card: "You stopped at N of 100. N of 120 are read, M to go.", Carry on with its cost; no second card; the desk\'s timer is cleared', stopped && !ST.second && /How much notice/.test(ST.q) && (m4 => !!m4 && m4[1] === m4[2])(/^You stopped at (\d+) of 100\. (\d+) of 120 are read, \d+ to go\.$/.exec(ST.said)) && /^Carry on · \d+ contracts · \d+ Jambo calls$/.test(ST.carry) && !ST.timer, ST);
     /* RE-POINTED 28 Oct 2026 (STOP MEANS STOP): a stop can now cut a batch midway, so the counts need not be tens;
        (round 2) the stopped card is the grey card as drawn, its words "Stopped at 8 of 16 · 8 answers kept · …" */
     h.ai.slow(0);
     await page.click('[data-ac-carry]');
-    const ended = await until(page, () => !document.querySelector('[data-ac-stop]') && !document.querySelector('#ac-stopped') && !!document.querySelector('#ig-dock [data-ac-prog], #ig-dock [data-ac-desk-rest]'), null, 60000);
+    const ended = await until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]') && !document.querySelector('#ac-stopped') && !!document.querySelector('#ig-dock .ac-col.is-open'), null, 60000);
 
     /* ---- 5 ONE BUTTON ---- */
     /* RE-POINTED 28 Oct 2026 (round 2): when a read ends its card is left at the head of the column's card, and its foot says the One button line */
-    const card = async () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-col]'); if (!c) return null; const rest = c.querySelector('[data-ac-desk-rest]');
-      return { prog: rest ? (rest.querySelector('.ac-busy') || {}).textContent.replace(/\s+/g, ' ').trim() : '', rest: !!rest, restQ: rest ? (rest.querySelector('.ac-dk-q') || {}).textContent : '', restDesk: !!(rest && rest.querySelector('[data-ac-desk-cid]')), again: !!(rest && rest.querySelector('[data-ac-again]')), btn: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-        primary: !!c.querySelector('[data-ac-next].ui-btn-primary'), pill: !!c.querySelector('.ac-th-prog [data-ac-size]'), every: !!c.querySelector('[data-ac-reads]'),
+    /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the question's card says it in one sentence, with a
+       real quote under the answers, one button, and Every read › under More… */
+    const card = async () => page.evaluate(() => { const c = document.querySelector('#ig-dock .ac-col.is-open'); if (!c) return null;
+      return { prog: ((c.querySelector('.ac-col-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(), rest: true, restQ: (c.querySelector('.ac-col-q') || {}).textContent || '', restDesk: !!c.querySelector('.ac-qw-q'), again: !!c.querySelector('.ac-col-go [data-ac-again]'), btn: [...c.querySelectorAll('[data-ac-next]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+        primary: !!c.querySelector('[data-ac-next].ui-btn-primary'), pill: !!c.querySelector('[data-ac-size]'), every: !!c.querySelector('[data-ac-more]'),
         toast: [...document.querySelectorAll('#toast-root *')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).pop() || '', timer: !!AC.deskTimer }; });
     /* who and when come from the reads' record, fetched as the read ends: asked for, bounded */
-    await until(page, () => / · \S/.test(((document.querySelector('#ig-dock [data-ac-desk-rest] .ac-busy, #ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').replace(/^.*still to read/, '')), null, 5000);
     let C = await card();
     check('5 when the read ends: "100 of the 120 shown read · 20 still to read", ONE filled button "Read the remaining 20 · 20 Jambo calls", no pill (the rest fits), Every read ›',
-      ended && !!C && C.rest && C.restDesk && /How much notice/.test(C.restQ) && /^100 of the 120 shown read · 20 still to read · /.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20 · 20 Jambo calls']) && C.primary && !C.pill && C.every && !C.timer, C);
+      ended && !!C && C.rest && C.restDesk && /How much notice/.test(C.restQ) && /100 of 120 are read, 20 to go\.$/.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20 · 20 Jambo calls']) && C.primary && !C.pill && C.every && !C.timer, C);
     check('5a the message says the same: "Notice to end: 100 of 120 read · 20 still to read"', !!C && /Notice to end: 100 of 120 read · 20 still to read/.test(C.toast), C && C.toast);
     await page.evaluate(() => { const w = window; w._lg = { all: null, gone: null };
       w._lgT = setInterval(() => { const d = !!document.querySelector('#ac-form [data-ac-desk] [data-ac-desk-cid]'), now = performance.now();
         if (d && AC.busy && AC.busy.done >= AC.busy.total && w._lg.all == null) w._lg.all = now;
         if (!d && w._lg.all != null && w._lg.gone == null) w._lg.gone = now; }, 40); });
     await page.click('#ig-dock [data-ac-next]');
-    await until(page, () => !document.querySelector('[data-ac-stop]') && /^All 120 shown are read/.test(((document.querySelector('#ig-dock [data-ac-desk-rest] .ac-busy, #ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
+    await until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]') && /All 120 are read\./.test(((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim()), null, 60000);
     const LG = await page.evaluate(() => { clearInterval(window._lgT); const l = window._lg; return { stood: l.all != null && l.gone != null ? Math.round(l.gone - l.all) : null }; });
     check('5c the desk does not vanish at the end: with every answer in, it still stands at least a second before the done line', LG.stood != null && LG.stood >= 1000 && LG.stood <= 6000, LG);
     C = await card();
     const ans = await page.evaluate(() => Object.keys((AC.ans[Object.keys(AC.ans)[0]] || {})).length);
     check('5b pressed, the rest is read: "All 120 shown are read", the button gone, 120 answers; the message "Notice to end: all 120 read"',
-      !!C && /^All 120 shown are read · /.test(C.prog) && C.btn.length === 0 && C.again && C.every && ans === 120 && /Notice to end: all 120 read/.test(C.toast), C);
+      !!C && /All 120 are read\.$/.test(C.prog) && C.btn.length === 0 && C.again && C.every && ans === 120 && /Notice to end: all 120 read/.test(C.toast), C);
 
     /* ---- 6 the three screens: the desk fits ---- */
     for (const [w, hh] of SCREENS){
@@ -185,7 +190,7 @@ const Q = 'How much notice does each side need to end the contract?';
       await until(page, () => !!document.querySelector('#ac-form [data-ac-ask]:not([disabled])'));
       await page.click('#ac-form [data-ac-ask]');
       const t0 = Date.now();
-      const stacked = await until(page, () => document.querySelectorAll('#ac-form [data-ac-stack] li').length >= 1 && !!document.querySelector('#ac-form [data-ac-stop]'), null, 15000);
+      const stacked = await until(page, () => document.querySelectorAll('#ac-form [data-ac-stack] li:not(.is-keep)').length >= 1 && !!document.querySelector('#ac-form [data-ac-stop]'), null, 15000);
       const fit = await page.evaluate(() => { const card = document.querySelector('#ac-form'); if (!card) return { none: true, busy: !!AC.busy, form: !!AC.form, stopped: !!AC.stopped, cols: regState().ask, toast: [...document.querySelectorAll('#toast-root *')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).slice(-2), dock: ((document.getElementById('ig-dock') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 300) }; const r = card.getBoundingClientRect(); const dock = document.getElementById('ig-dock');
         /* the spinning ring is measured standing still: a square's box grows as it turns */
         card.querySelectorAll('.ob-spin').forEach(el => { el.style.animation = 'none'; });
@@ -205,14 +210,14 @@ const Q = 'How much notice does each side need to end the contract?';
       await page.screenshot({ path: path.join(OUT, `desk-${w}x${hh}.png`) });
       /* let the read end at full speed: the one button, then all read, photographed at this screen too */
       h.ai.slow(0);
-      const over = await until(page, () => !document.querySelector('[data-ac-stop]') && /^100 of the 120 shown read · 20 still to read/.test(((document.querySelector('#ig-dock [data-ac-desk-rest] .ac-busy, #ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
-      const fitB = await page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-col]'); if (!c) return { none: true }; const r = c.getBoundingClientRect();
+      const over = await until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]') && /100 of 120 are read, 20 to go\./.test(((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim()), null, 60000);
+      const fitB = await page.evaluate(() => { const c = document.querySelector('#ig-dock .ac-col.is-open'); if (!c) return { none: true }; const r = c.getBoundingClientRect();
         const btn = c.querySelector('[data-ac-next]'); const b = btn ? btn.getBoundingClientRect() : null;
         return { btnOneLine: !!b && b.height < 40 && b.right <= r.right + 1, spill: [...c.querySelectorAll('*')].filter(el => { const x = el.getBoundingClientRect(); return x.width && (x.right > r.right + 1 || x.left < r.left - 1); }).length }; });
       check(`6a at ${w}×${hh} the one button stands on one line inside the card`, over && fitB.btnOneLine && !fitB.spill, fitB);
       await page.screenshot({ path: path.join(OUT, `after-${w}x${hh}.png`) });
       await page.click('#ig-dock [data-ac-next]');
-      await until(page, () => !document.querySelector('[data-ac-stop]') && /^All 120 shown are read/.test(((document.querySelector('#ig-dock [data-ac-desk-rest] .ac-busy, #ig-dock .ac-th-prog .ac-meta') || {}).textContent || '').trim()), null, 60000);
+      await until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]') && /All 120 are read\./.test(((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim()), null, 60000);
       await page.waitForTimeout(300);
       await page.screenshot({ path: path.join(OUT, `done-${w}x${hh}.png`) });
     }

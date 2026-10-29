@@ -182,7 +182,7 @@ function rdTableRows(r){
     .filter(x => x.c && x.a.some(Boolean));
 }
 const rdTableYesNo = (r, rows) => r.askIds.length === 1 && rows.some(x => x.a[0] && typeof x.a[0].yes === 'boolean');
-const _rdTone = a => (typeof askColToneOf === 'function') ? askColToneOf(a) : 'gray';
+const _rdTone = (a, askId) => (typeof askColToneOf === 'function') ? askColToneOf(a, askId) : 'none';
 function rdTableIn(x, tab, yn){
   if (tab === 'yes') return !!(x.a[0] && x.a[0].yes === true);
   if (tab === 'no') return !(x.a[0] && x.a[0].yes === true);
@@ -206,10 +206,10 @@ function rdTableShown(r){
   if (!tabs.some(([k]) => k === t.tab)) t.tab = 'all';
   return { rows, yn, boxed, tabs, list: boxed.filter(x => rdTableIn(x, t.tab, yn)) };
 }
-function rdTableCellHtml(a){
+function rdTableCellHtml(a, askId){
   if (!a) return `<span class="rd-quiet">${_rdE(_rdT('rd_tt_unread'))}</span>`;
   const num = (typeof askColClauseNo === 'function') ? askColClauseNo(a) : '';
-  return `<span class="rdt-ans"><span class="ac-ans tone-${a.noWording ? 'gray' : _rdTone(a)}"><i></i><span class="rdt-w">${_rdE(_rdWord(a))}${a.found && a.detail ? `, ${_rdE(a.detail)}` : ''}</span></span>${num ? `<span class="rdt-sec">§ ${_rdE(num)}</span>` : ''}</span>`;
+  return `<span class="rdt-ans"><span class="ac-ans tone-${_rdTone(a, askId)}"><i></i><span class="rdt-w">${_rdE(_rdWord(a))}${a.found && a.detail ? `, ${_rdE(a.detail)}` : ''}</span></span>${num ? `<span class="rdt-sec">§ ${_rdE(num)}</span>` : ''}</span>`;
 }
 function rdTableCheckedHtml(x){
   const ck = x.a.map(a => a && a.checked).filter(Boolean);
@@ -235,7 +235,7 @@ function rdTableHtml(r){
       S.list.map(x => { const on = x.id === t.cid, who = [x.c.counterparty, _rdRef(x.c)].filter(Boolean).join(' · ');
         return `<tr data-rdt-row="${_rdE(x.id)}" tabindex="0" class="${on ? 'is-sel' : ''}"${on ? ' aria-current="true"' : ''}>
           <td><span class="rd-who-t"><span class="ap-name rd-n"><span class="rd-nm" title="${_rdE(_rdName(x.c))}">${_rdE(_rdName(x.c))}</span></span><span class="ap-sub rd-sub" title="${_rdE(who)}">${_rdE(who)}</span></span></td>
-          ${x.a.map(a => `<td>${rdTableCellHtml(a)}</td>`).join('')}<td>${rdTableCheckedHtml(x)}</td></tr>`; }).join('')
+          ${x.a.map((a, j) => `<td>${rdTableCellHtml(a, r.askIds[j])}</td>`).join('')}<td>${rdTableCheckedHtml(x)}</td></tr>`; }).join('')
     }</tbody></table>`;
   const say = [_rdTn('ac_n_contracts', S.list.length), S.yn ? _rdTn('rd_tt_say_yes', yes) : risk ? _rdTn('ac_disc_risk', risk) : ''].filter(Boolean).join(' · ');
   const foot = S.list.length && typeof lhFootHtml === 'function' ? lhFootHtml(RD_SEAT, S.list.length, S.list.length, 0, { cls: 'ins-foot', say }) : '';
@@ -254,9 +254,9 @@ function rdTableSidePaint(r){
   const acts = `<div class="ac-acts rdt-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-rdt-go="${_rdE(askId)}">${_rdE(num ? _rdT('ac_go_clause', { n: num }) : _rdT('ac_go_it'))}</button>${a.noWording ? ''
     : `<button type="button" class="ui-btn ui-btn-sm" data-rdt-ck="${_rdE(askId)}"${may ? '' : ` disabled title="${_rdE(_rdT('ac_mark_viewer'))}"`}>${_rdE(a.checked ? _rdT('rd_tt_untick') : _rdT('rd_tt_tick'))}</button>`}</div>`;
   const row = (k, v) => v ? `<dt>${_rdE(_rdT(k))}</dt><dd>${v}</dd>` : '';
-  const many = x.a.length > 1 ? x.a.map((b, j) => b ? `<li><b>${_rdE(((AC.asks || {})[r.askIds[j]] || {}).name || '')}</b> ${rdTableCellHtml(b)}</li>` : '').join('') : '';
+  const many = x.a.length > 1 ? x.a.map((b, j) => b ? `<li><b>${_rdE(((AC.asks || {})[r.askIds[j]] || {}).name || '')}</b> ${rdTableCellHtml(b, r.askIds[j])}</li>` : '').join('') : '';
   const body = `<div class="rd-side rdt-side" id="rd-side"><dl class="ac-fl">
-      ${row('ac_f_answer', `<span class="ac-ans tone-${a.noWording ? 'gray' : _rdTone(a)}"><i></i><b>${_rdE([_rdWord(a), a.found ? a.detail : ''].filter(Boolean).join(', '))}</b></span>`)}
+      ${row('ac_f_answer', `<span class="ac-ans tone-${_rdTone(a, askId)}"><i></i><b>${_rdE([_rdWord(a), a.found ? a.detail : ''].filter(Boolean).join(', '))}</b></span>`)}
       ${row('rd_tt_where', a.clause ? _rdE('§ ' + a.clause.replace(/\s*·\s*/, ' ')) : '')}
       ${row('rd_tt_words', a.quote ? `<blockquote class="ac-quote rdt-quote">“${_rdE(a.quote)}”</blockquote>` : '')}
       ${row('ac_f_why', a.why ? _rdE(a.why) : '')}
