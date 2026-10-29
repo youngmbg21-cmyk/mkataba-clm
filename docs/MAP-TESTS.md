@@ -349,6 +349,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Floating panel over the end-to-end bar (28 Oct 2026): photographed by hand at the three screens (head spans the window, rail 8px in, `elementFromPoint` top-right = `.ce-rowhead`); clause-editor-verify, panel-tidy-and-risk-footer-verify, one-copilot-editor-plain-verify.
 - Words typed at a struck run are never lost (26 Oct 2026): their-edit-page-verify 4c, 4d (red at the parent 73a0dfd); section 4 records what rebuilds the box. The check is off KNOWN_RED.
 - f245, f249, f250, f287, f289, f304, f505, f508, f523, f537, f640, f756 8j, f759 (5), clause-editor, clause-door, one-copilot-editor verify.
+- Save after an Apply that puts their change back (29 Oct 2026): save-keeps-standing-verify (1a/1b red at the parent 543997e: Save grey, "No changes yet"); f264 (6) re-pointed to the third answer; f245 (25) "files no decision" still holds.
 - File / Save prominent (23 Oct 2026): deal-in-the-middle-verify 10; one-copilot-editor-verify 5a/5b re-pointed (rows read by their middles; ‹ › small, Save ≥30 tall and ≥110 wide).
 
 ## NOTES AND COMMENTS
