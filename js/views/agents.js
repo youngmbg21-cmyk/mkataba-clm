@@ -1637,7 +1637,8 @@ function agRoundActsHtml(c, ch, a, withAway){
   else if (v === 'accept') btns = B('accept', 'ag_rnd_accept', true) + B('counter', 'ag_rnd_counter_plain');
   else if (v === 'reject') btns = B('reject', 'ag_rnd_reject', true) + B('accept', 'ag_rnd_accept');
   else if (v === 'escalate') btns = B('review', 'rv_ask_btn', true) + B('accept', 'ag_rnd_accept');
-  else btns = `<button type="button" class="ui-btn ui-btn-sm" data-ag-act="nego">${_agE(_agT('ag_a_answer'))}</button>`;
+  /* no prepared answer: the row's one act, so its one filled button */
+  else btns = `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ag-act="nego">${_agE(_agT('ag_a_answer'))}</button>`;
   const key = (a && typeof roundPrepKey === 'function') ? roundPrepKey(ch.clauseId, ch.newText) : '';
   const redo = a ? agSendBackHtml('round', key) : '';
   const away = withAway ? `<button type="button" class="ui-link ag-rnd-away" data-ag-act="away">${_agE(_agT('desk_discard'))}</button>` : '';
