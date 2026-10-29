@@ -21863,3 +21863,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Noticed, not fixed (29 Oct 2026, overnight build): since #542, amendment-blanks-and-clauses-verify 8 fails on main — the "Fill in the contract" form left standing from an earlier step keeps roomGoTab(c,'sign') from putting the Before you sign face up (red at b87cff6 and e8cc344, green at 444fd09).
 - Noticed, not fixed (29 Oct 2026): the round card's meta says "since Today" with a capital T (_agDay returns "Today" mid-sentence).
 - Noticed, not fixed (29 Oct 2026): opening a Board piece by hbOpenAgent from code leaves a focus ring on its first filled button (seen on the round card's Counter with this); a mouse press of Look may do the same, not measured.
+- Fixed (29 Oct 2026): "since Today" — every sentence on Jambo's work cards now says "today" (_agDayIn); headings and table cells keep "Today".
+- Not a fault (29 Oct 2026): the focus ring on the round card's Counter with this shows only when the card is opened from the keyboard (fieldFocus, by design); after a mouse or finger press there is none — measured.
+- Noticed, not fixed (29 Oct 2026): other screens that put histWhen's day inside a sentence may also say "Today" with a capital T (js/views/inspector.js, js/paperdesk.js) — not measured.

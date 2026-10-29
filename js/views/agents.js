@@ -145,6 +145,13 @@ function _agDay(iso){
   const t = Date.parse(String(iso));
   return isNaN(t) ? String(iso) : new Date(t).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'short' });
 }
+/* THE SAME DAY INSIDE A SENTENCE: "since today", "Arrived today", never "since
+   Today" — the history tab's "Today" is a heading word, so mid-sentence it is
+   the agents' own lower-case "today" (ag_on_today). Any other day as _agDay. */
+function _agDayIn(iso){
+  const d = _agDay(iso);
+  return (d && d === _agT('ct_hist_today')) ? _agT('ag_on_today') : d;
+}
 function _agDaysSince(iso){
   const t = Date.parse(String(iso || ''));
   return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null;
@@ -921,10 +928,10 @@ function agCardParts(it){
   } else if (it.kind === 'notice'){
     kind = _agT('desk_kind_notice');
     sum = _agT(it.noticeKind === 'non-renewal' ? 'desk_nt_t_nonren' : 'desk_nt_t_term', { who });
-    urg = _agTn('desk_days', it.days, { n: it.days }) + ' · ' + _agT('desk_nt_by', { date: _agDay(it.by) });
+    urg = _agTn('desk_days', it.days, { n: it.days }) + ' · ' + _agT('desk_nt_by', { date: _agDayIn(it.by) });
   } else if (it.kind === 'renewal'){
     kind = _agT('ag_k_renewal');
-    const bits = [_agT('desk_ren_by', { date: _agDay(it.w && it.w.decideBy) })];
+    const bits = [_agT('desk_ren_by', { date: _agDayIn(it.w && it.w.decideBy) })];
     if (it.memo) bits.push(_agT(it.prepared ? 'desk_ren_ready' : 'desk_ren_memo'));
     if (it.flags) bits.push(_agTn('desk_ren_flags', it.flags, { n: it.flags }));
     sum = bits.join(' · ');
@@ -963,7 +970,7 @@ function agCardParts(it){
   } else if (it.kind === 'soon' || it.kind === 'soon-sign'){
     kind = _agT('ag_k_soon');
     const X = it.soon || {};
-    sum = _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDay(X.ends) });
+    sum = _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDayIn(X.ends) });
     urg = _agTn('ag_soon_left', it.left || 0, { n: it.left || 0 });
   } else if (it.kind === 'ours'){
     kind = _agT('ag_k_ours');
@@ -971,7 +978,7 @@ function agCardParts(it){
     urg = it.days < 0 ? _agTn('desk_late', -it.days, { n: -it.days }) : it.days === 0 ? _agT('ag_ours_today') : _agTn('ag_ours_in', it.days, { n: it.days });
   } else if (it.kind === 'chase-firm'){
     kind = _agT('ag_k_chase_firm');
-    sum = _agT('ag_firm_sum', { what: String((it.ob && it.ob.desc) || ''), date: _agDay(it.ob && it.ob.chasedAt) });
+    sum = _agT('ag_firm_sum', { what: String((it.ob && it.ob.desc) || ''), date: _agDayIn(it.ob && it.ob.chasedAt) });
     urg = _agTn('desk_late', it.days, { n: it.days }) + (it.noAddress ? ' · ' + _agT('desk_chase_noaddr') : '');
   }
   let whoNow = who;
@@ -993,7 +1000,7 @@ function agCardParts(it){
     const by = t => it.evs.filter(e => e.type === t).length;
     sum = [_agTn('ag_wk_n', it.n, { n: it.n }), by('obligation') ? _agTn('ag_wk_duties', by('obligation'), { n: by('obligation') }) : '',
       by('renewal') ? _agTn('ag_wk_decisions', by('renewal'), { n: by('renewal') }) : '', by('expiry') ? _agTn('ag_wk_ends', by('expiry'), { n: by('expiry') }) : ''].filter(Boolean).join(' · ');
-    urg = _agT('ag_wk_first', { date: _agDay(it.evs[0].date) });
+    urg = _agT('ag_wk_first', { date: _agDayIn(it.evs[0].date) });
   } else if (it.kind === 'quiet'){
     kind = _agT('ag_k_quiet');
     sum = _agT('ag_qt_sum', { who: (it.note && it.note.who) || who });
@@ -1058,15 +1065,15 @@ function agForWords(name, full){
 /* WHEN, where the record carries a day for this item. A notice and a renewal
    carry theirs on the card's urgency line already, so they print none here. */
 function agWhen(it){
-  if (it.kind === 'answer') return it.since ? _agT('ag_w_arrived', { date: _agDay(it.since) }) : '';
-  if (it.kind === 'read') return it.at ? _agT('ag_read_at', { date: _agDay(it.at) }) : '';
+  if (it.kind === 'answer') return it.since ? _agT('ag_w_arrived', { date: _agDayIn(it.since) }) : '';
+  if (it.kind === 'read') return it.at ? _agT('ag_read_at', { date: _agDayIn(it.at) }) : '';
   if (it.kind === 'chase'){
     const o = it.ob || {};
     const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || '');
-    return due ? _agT('ag_w_was_due', { date: _agDay(due) }) : '';
+    return due ? _agT('ag_w_was_due', { date: _agDayIn(due) }) : '';
   }
-  if (it.kind === 'import') return it.at ? _agT('ag_w_imported', { date: _agDay(it.at) }) : '';
-  if (it.kind === 'ours') return it.due ? _agT(it.days < 0 ? 'ag_w_was_due' : 'ag_w_due', { date: _agDay(it.due) }) : '';
+  if (it.kind === 'import') return it.at ? _agT('ag_w_imported', { date: _agDayIn(it.at) }) : '';
+  if (it.kind === 'ours') return it.due ? _agT(it.days < 0 ? 'ag_w_was_due' : 'ag_w_due', { date: _agDayIn(it.due) }) : '';
   /* WHO IT LAST WENT TO is the fact this card is about, so it takes the slot. */
   if (['reply', 'sign', 'party', 'soon', 'soon-sign'].includes(it.kind)){
     const L = it.kind === 'sign' ? it.sign : it.kind === 'party' ? it.party : (it.kind === 'soon' || it.kind === 'soon-sign') ? it.soon : it.last;
@@ -1611,7 +1618,7 @@ function agAnswerBody(it){
   try { if (typeof resolvePlaybook === 'function' && typeof playbookKeyFor === 'function'){ const pb = resolvePlaybook(playbookKeyFor(c)); book = (pb && pb.label) || ''; } } catch (_){ book = ''; }
   /* Put away stands in the one row's own line; with several asks it ends the card, quiet and last */
   const away = ed && plan.length !== 1 ? `<div class="ag-rnd-acts is-end"><button type="button" class="ui-link ag-rnd-away" data-ag-act="away">${_agE(_agT('desk_discard'))}</button></div>` : '';
-  return `<div class="ag-tally ag-rnd-top"><b>${_agE(_agTn('ag_rnd_waiting', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}<span class="ag-p-meta">${_agE(_agT('ag_round_meta_since', { r: it.round, date: _agDay(it.since) }))}${book ? ' · ' + _agE(_agT('ag_round_book', { book })) : ''}</span></div>
+  return `<div class="ag-tally ag-rnd-top"><b>${_agE(_agTn('ag_rnd_waiting', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}<span class="ag-p-meta">${_agE(_agT('ag_round_meta_since', { r: it.round, date: _agDayIn(it.since) }))}${book ? ' · ' + _agE(_agT('ag_round_book', { book })) : ''}</span></div>
     <div class="ag-chgs">${rows}</div>
     ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}${away}`;
 }
@@ -1791,10 +1798,10 @@ function agNoticeBody(it){
     [_agT('ag_f_must_go'), it.by ? _agDay(it.by) + ' · ' + _agTn('desk_days', it.days, { n: it.days }) : ''],
     [_agT('ag_f_renews'), _agT(auto ? 'ag_renews_yes' : 'ag_renews_no')],
   ]);
-  let why = _agT(auto ? 'ag_nt_why_auto' : 'ag_nt_why_end', { who: (c && c.counterparty) || '', date: _agDay(auto ? it.by : it.ends) });
+  let why = _agT(auto ? 'ag_nt_why_auto' : 'ag_nt_why_end', { who: (c && c.counterparty) || '', date: _agDayIn(auto ? it.by : it.ends) });
   let d = null;
   try { d = (typeof renewalDecisionOf === 'function') ? renewalDecisionOf(c) : null; } catch (_){ d = null; }
-  if (d && d.answer && !d.served) why += ' ' + _agT('ag_decided', { date: _agDay(d.at), what: _agT('rn_decided_' + d.answer) });
+  if (d && d.answer && !d.served) why += ' ' + _agT('ag_decided', { date: _agDayIn(d.at), what: _agT('rn_decided_' + d.answer) });
   const letter = (nd && nd.ok && nd.text) ? `<pre class="ag-letter">${_agE(nd.text)}</pre><p class="ag-p-note">${_agE(_agT('ag_notice_note'))}</p>` : '';
   return facts + agSecHtml(_agT('ag_s_why_notice'), `<p class="ag-p-text">${_agE(why)}</p>`) + agSecHtml(_agT('ag_s_letter'), letter);
 }
@@ -1851,7 +1858,7 @@ function agMemoHtml(it){
       ${because.length ? `<ul class="ag-went">${because.map(x => `<li>${_agE(x)}</li>`).join('')}</ul>` : ''}
       ${push.length ? `<p class="ag-p-sub2">${_agE(_agT('ag_memo_push'))}</p><ol class="ag-asks">${push.map(x => `<li>${_agE(x)}</li>`).join('')}</ol>` : ''}
       ${d.watchIf ? `<p class="ag-p-note">${_agE(_agT('ag_memo_watch', { what: d.watchIf }))}</p>` : ''}
-      ${a.at ? `<p class="ag-p-note">${_agE(_agT(a.overnight ? 'ag_memo_by_night' : 'ag_memo_by_you', { date: _agDay(a.at) }))}</p>` : ''}
+      ${a.at ? `<p class="ag-p-note">${_agE(_agT(a.overnight ? 'ag_memo_by_night' : 'ag_memo_by_you', { date: _agDayIn(a.at) }))}</p>` : ''}
       ${a.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note || '' }))}</p>` : ''}
       ${(typeof canEdit === 'function' && !canEdit()) ? '' : agSendBackHtml('renew', '')}`);
   }
@@ -2122,7 +2129,7 @@ function agLinkBody(it){
   if (it.kind === 'soon' || it.kind === 'soon-sign'){
     const X = it.soon || {};
     return agKv([
-      [_agT('ag_f_situation'), _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDay(X.ends) })],
+      [_agT('ag_f_situation'), _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDayIn(X.ends) })],
       [_agT('ag_f_sent_to'), agSentTo(X)],
       [_agT('ag_f_left'), _agTn('ag_stuck_n', it.left || 0, { n: it.left || 0 })],
     ]) + `<p class="ag-p-note">${_agE(_agT('ag_keep_note'))}</p>`;
@@ -2312,7 +2319,7 @@ function agPieceTitle(it){
 function agPieceRefHtml(it){
   if (!it) return '';
   if (it.c) return (typeof refHtml === 'function') ? refHtml(it.c) : _agE(_agRef(it.c));
-  if (it.kind === 'import' && it.at) return _agE(_agT('ag_pc_import_ref', { day: _agDay(it.at) }));
+  if (it.kind === 'import' && it.at) return _agE(_agT('ag_pc_import_ref', { day: _agDayIn(it.at) }));
   return '';
 }
 /* "a, b and c" in the reader's words */
@@ -2367,9 +2374,9 @@ function _agPieceLine(it){
     const amended = c && typeof effectiveExpiryFrom === 'function' ? effectiveExpiryFrom(c) : null;
     const end = (c && typeof effectiveExpiry === 'function' && effectiveExpiry(c)) || w.expiry || '';
     const out = [];
-    if (end) out.push(_agT(amended ? 'ag_ln_ends_amended' : 'ag_ln_ends', { day: _agDay(end) }));
+    if (end) out.push(_agT(amended ? 'ag_ln_ends_amended' : 'ag_ln_ends', { day: _agDayIn(end) }));
     if (w.decideBy) out.push(end && String(w.decideBy).slice(0, 10) === String(end).slice(0, 10) && !w.auto ? _agT('ag_ln_decide_end')
-      : _agT(w.auto ? 'ag_ln_notice_due' : 'ag_ln_decide_due', { day: _agDay(w.decideBy) }));
+      : _agT(w.auto ? 'ag_ln_notice_due' : 'ag_ln_decide_due', { day: _agDayIn(w.decideBy) }));
     if (it.prepared){
       const me = (typeof currentUser === 'function') ? currentUser() : null;
       const owner = c && c.owner ? c.owner : null;
@@ -2378,7 +2385,7 @@ function _agPieceLine(it){
     } else if (it.memo) out.push(_agT('ag_ln_memo'));
     return out.length ? out.join(' ') : [p.sum, p.urg].filter(Boolean).join(' · ');
   }
-  if (it.kind === 'notice' && it.by) return String(p.sum || '').replace(/[.\s]+$/, '') + '. ' + _agT('ag_ln_notice_by', { day: _agDay(it.by) });
+  if (it.kind === 'notice' && it.by) return String(p.sum || '').replace(/[.\s]+$/, '') + '. ' + _agT('ag_ln_notice_by', { day: _agDayIn(it.by) });
   if (it.kind === 'chase' || it.kind === 'chase-firm'){
     const desc = String((it.ob && it.ob.desc) || '').trim();
     const days = Number(it.days) || 0;
@@ -2387,7 +2394,7 @@ function _agPieceLine(it){
     const w = (typeof chaseWhatOf === 'function') ? chaseWhatOf(desc) : { thing: false };
     const late = w.thing ? _agTn('ag_ln_late_their', days, { n: days, what: w.noun }) : _agTn('ag_ln_late', days, { n: days, what: desc });
     if (it.noAddress) return late + ' ' + _agT('ag_ln_chase_noaddr');
-    return late + ' ' + (it.kind === 'chase-firm' ? _agT('ag_ln_chase_firm', { day: _agDay(it.ob && it.ob.chasedAt) }) : _agT('ag_ln_chase_ready'));
+    return late + ' ' + (it.kind === 'chase-firm' ? _agT('ag_ln_chase_firm', { day: _agDayIn(it.ob && it.ob.chasedAt) }) : _agT('ag_ln_chase_ready'));
   }
   if (it.kind === 'import'){
     const cs = (Array.isArray(it.cs) ? it.cs : []).filter(x => x && x.migration && x.migration.needsReview);
@@ -2634,7 +2641,7 @@ async function agRunAct(key, act){
     try { r = await shareKeepOpen(c, it.soon.token); }
     catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
     if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
-    if (typeof toast === 'function') toast(_agT('ag_kept_open', { date: _agDay(r && r.expiresAt) }), 'ok');
+    if (typeof toast === 'function') toast(_agT('ag_kept_open', { date: _agDayIn(r && r.expiresAt) }), 'ok');
     said('used');
     agRepaint();
     return;
