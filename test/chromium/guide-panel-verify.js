@@ -86,7 +86,7 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     check('2c six numbered stages, in the order a contract lives', R2.stages.map(s => s.n + ' ' + s.h).join(' | ') === '1 Someone asks | 2 Draft it | 3 Agree the words | 4 Sign | 5 Keep it alive | 6 See the whole book',
       R2.stages.map(s => s.n + ' ' + s.h).join(' | '));
     /* RE-POINTED 28 Oct 2026 (THE THREAD): Reads joins Keep it alive (rule 9c) */
-    check('2d each stage holds its pages as drawn', JSON.stringify(R2.stages.map(s => s.rows)) === JSON.stringify([['requests', 'import'], ['ourpaper', 'draft'], ['document', 'negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'], ['board', 'explorer', 'house']]),
+    check('2d each stage holds its pages as drawn', JSON.stringify(R2.stages.map(s => s.rows)) === JSON.stringify([['requests', 'import'], ['ourpaper', 'draft'], ['document', 'negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'], ['board', 'pulse', 'explorer', 'house']]),   /* RE-POINTED 29 Oct 2026 (THE PULSE BOARD): the Pulse board joins See it whole, beside the Board (rule 9c) */
       JSON.stringify(R2.stages.map(s => s.rows)));
     check('2e Home is the page in front: "You are here"', R2.here.join() === 'counter', JSON.stringify(R2.here));
     const tabNew = await page.evaluate(() => (document.querySelector('#panel-tabs [data-pt-face="guide"]') || {}).textContent.trim());

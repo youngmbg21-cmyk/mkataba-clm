@@ -530,3 +530,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## NEW AGREEMENT — THE ONE SHEET OWNS THE PANEL (28 Oct 2026)
 - test/chromium/new-agreement-owns-the-panel-verify.js (new; red at unmodified main 1, 3b): over MK-A2's Redlines face the sheet's guide and box, no contract tabs, no Redlines/Risks; Cancel brings the tabs and the face back; over the Dossier too; three screens.
+
+## THE PULSE BOARD (29 Oct 2026)
+- test/f963-the-pulse-board.test.js (new; red at unmodified main): the Board head's order (Summarise, then the Pulse board, last); written by Jambo split into open · cleared · sent unchecked; the four rules' order; reading never writes; every page list names it, every word in both books.
+- test/chromium/pulse-verify.js (new; red at unmodified main 1): the head at the three screens; the press lands with every contract and its strand; a contract given a late duty climbs and says "▲ N"; Written by Jambo leads with unchecked wording and the panel says why at no cost; Pause; nothing sideways.
+- Re-pointed: f841 and guide-panel-verify (the Pulse board joins See it whole); the tidy sweep, every-jambo-tab, jambo-panels-alike and overview-tab sweeps carry the page; handbook-verify HANDBOOK_ONLY=6.1,6.1.1 re-took 6.1-1 (the head's new button) and took 6.1.1-1, 6.1.1-2.

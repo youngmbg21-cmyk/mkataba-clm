@@ -236,6 +236,8 @@ const NAV_PAGES = [
   ['mynotes', / (my (private |own )?notes|mina (privata |egna )?anteckningar) /],
   /* READS (The thread, 28 Oct 2026): every read of the wording, where the next batch is */
   ['reads', / (every read|all reads|the reads|reads page|past reads|previous reads|earlier reads|read history|varje läsning|alla läsningar|tidigare läsningar|läsningarna) /],
+  /* THE PULSE BOARD (29 Oct 2026): every contract ranked live */
+  ['pulse', / (pulse board|the pulse|pulse page|contract ranking|ranking of (my |the )?contracts|pulstavla|pulstavlan|rankning av avtal) /],
   ['needs', /^ (what )?(needs me|needs you|is waiting on me|waits for me|väntar på mig) $/],
 ];
 function navReadPage(raw, t){

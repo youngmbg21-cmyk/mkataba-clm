@@ -316,6 +316,8 @@ const PLACES = [
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },
   /* READS (The thread, 28 Oct 2026) */
   { k: 'reads', name: 'Reads', go: `setView('reads')`, wait: `document.querySelector('.rd-page')` },
+  /* THE PULSE BOARD (29 Oct 2026) */
+  { k: 'pulse', name: 'Pulse board', go: `setView('pulse')`, wait: `document.querySelector('#pu-tbody tr')` },
   { k: 'jambo', name: "Jambo's house", go: `setView('jambo')`, wait: `document.querySelector('#jh-log, #jh-office')` },
   /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Jambo's work is the Board's Needs you card, its rows .nd-br */
   { k: 'agents', name: "Jambo's work", go: `hbOpenAgent()`, wait: `document.querySelector('#hm-agents .nd-br')` },
