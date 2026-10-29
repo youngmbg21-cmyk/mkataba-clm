@@ -976,7 +976,7 @@ function renderApprovalsPage(o){
     ...(same.kind?[]:[{k:'kind',t:i18t('ap_wl_kind'),w:100,rank:2}]),{k:'rule',t:i18t('ap_col_rule'),w:136,rank:3},
     ...(same.turn?[]:[{k:'turn',t:i18t('ap_wl_turn'),w:188,rank:5}]),{k:'std',t:i18t('reg_col_standards'),w:124,rank:1},
     {k:'wait',t:i18t('ap_pg_waiting'),w:120},...(money?[{k:'value',t:i18t('reg_col_value'),right:true,w:112,rank:4}]:[]),
-    ...(INS?[{k:'ok',t:'',w:108}]:[{k:'acts',t:'',w:220}])];
+    ...(INS?[{k:'ok',t:'',w:92,rank:1.5}]:[{k:'acts',t:'',w:220}])];
   const FIT=(typeof listCols==='function')?listCols('approvals',DEFS,()=>apPaintList()):{ cols:DEFS.filter(d=>!d.spread), has:k=>DEFS.some(d=>d.k===k&&!d.spread), spread:false };
   SP=FIT.spread;
   const head=FIT.cols;
@@ -996,7 +996,8 @@ function renderApprovalsPage(o){
     wait:r=>`<td class="ap-wait${r.done?' done':apLate(r)?' late':''}"${apLate(r)&&!r.done?` title="${esc(i18t('jl_late'))}"`:''}>${apWaitHtml(r)}</td>`,
     value:r=>`<td class="r mono ap-val">${apValueCell(r.c)}</td>`,
     acts:r=>`<td class="r">${acts(r)}</td>`,
-    /* APPROVE ON THE ROW (round 10, "The Legora way"): beside the panel, one
+    /* APPROVE ON THE ROW (round 10, "The Legora way"): beside the panel, one (its column steps aside after Our
+       standards and before Kind where room is short — rank 1.5; the panel's Approve always stands)
        quiet Approve on each row this reader may decide; the chosen row's is
        filled (CSS, .is-sel). Refuse asks a reason, so it stays in the panel. */
     ok:r=>`<td class="r ap-ok-c">${!r.done&&r.type!=='signature'&&apMayDecide(r)?`<button type="button" class="ui-btn ui-btn-sm ap-ok" data-ap-approve="${esc(r.c.id)}" title="${esc(i18t('ap_pg_approve_title'))}">${esc(i18t('ap_pg_approve'))}</button>`:''}</td>`,
