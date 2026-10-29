@@ -34510,7 +34510,7 @@ const STRINGS = {
     dos_mq_all: 'Alla {n}',
     ig_actions: 'Åtgärder',
     ig_actions_title: 'Allt du kan göra med avtalet: exportera, avsluta, radera ett utkast med mera',
-    ig_more_title: 'Stegets övriga handlingar; sista raden listar allt du kan göra med avtalet',
+    ig_more_title: 'Stegets övriga handlingar; den nedersta raden listar allt du kan göra med avtalet',
     ig_more_all: 'Alla handlingar ({n})',
     dos_hp_brief: 'sammanfattning',
     dos_hp_blanks: '{n} värden hittade',

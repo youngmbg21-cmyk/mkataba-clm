@@ -95,16 +95,18 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
     await W.admin.json('/api/columns/' + k.ask.id, { method: 'PUT', body: { rule: 'Capped at no more than one year of fees' } });
 
     if (stage(2)){
-      /* 2a the list's own box hands a question of the wording to the form */
+      /* 2a RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the list's own box is a quiet filter and hands
+         nothing on; the form's door is "Ask a column" — opened, the question typed, nothing read */
       const calls0 = h.ai.calls.length;
-      await until(page, () => !!document.querySelector('#ct-q'));
-      await page.fill('#ct-q', CAP_Q); await page.press('#ct-q', 'Enter');
-      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value); });
-      check('2a a question of the wording in the list box opens the form, filled, nothing read', filled && h.ai.calls.length === calls0);
+      await until(page, () => !!document.querySelector('[data-ac-open]'));
+      await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ac-open]')].find(x => x.getClientRects().length); if (b) b.click(); });
+      await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
+      await page.fill('#ig-dock #ac-form #ac-q', CAP_Q);
+      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value) && !!document.querySelector('#ac-named'); });
+      check('2a Ask a column opens the form; the question typed there, nothing read', filled && h.ai.calls.length === calls0);
       /* 2b the name, said */ /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
       const hint = await page.evaluate(() => (document.querySelector('#ac-named') || {}).textContent || '');
       check('2b the form says the column\'s name under the question, with Change', /Column: Liability capped\s*Change/.test(hint.replace(/\s+/g, ' ')), hint);
-      await page.fill('#ct-q', '');
       await page.click('[data-ac-ask]');
       /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
          so the card is read once the read has ended */

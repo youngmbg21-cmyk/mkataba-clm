@@ -6335,7 +6335,7 @@ const SET_PANELS={
      keeps none). Teach says which page the words mean (PUT /api/jambo/lessons) — every box then moves there free —
      and Fine lets a row go. Admins only, and only where there is a server. */
   lessons:{
-    tab:'platform', group:'copilot', mandatory:false, show:stApiOnly,
+    tab:'platform', group:'facts', mandatory:false, show:stApiOnly,
     title:()=>i18t('st_p_lessons'),
     sub:()=>i18t('st_lessons_sub'),
     state(){ const n=(_stLessons&&_stLessons.total)||0, t=(_stLessons&&_stLessons.taught||[]).length;

@@ -150,7 +150,7 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
     await pageCheck('the room head', () => openWorkspace('MK-RF2', { room: true }), () => !!document.querySelector('.room-head'), '.room-head');
     /* RE-POINTED 23 Oct 2026 (owner: "yes" — the paper's line drops the ref; the bar names it) */
     await pageCheck('Negotiate', () => roomGoTab(getContract('MK-RF2'), 'redline'), () => !!document.querySelector('.redline-page'), '#content', { none: true });
-    await pageCheck('the search palette', () => { setView('contracts'); if (typeof window.openPalette === 'function') window.openPalette('MK-RF'); else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })); },
+    await pageCheck('the search palette', () => { setView('contracts'); /* RE-POINTED 29 Oct 2026 (round 1: Ctrl+K now puts the hand in Jambo's box) — open the palette by its own door */ openCommandPalette('MK-RF'); },
       () => /MK-RF/.test(document.body.textContent), null);
   } catch (e){
     console.log('  FAIL — stopped: ' + (e && e.message));
