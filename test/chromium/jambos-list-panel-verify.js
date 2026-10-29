@@ -40,9 +40,9 @@
    PASS 4 (18 Oct 2026, evening, the checker's second pass):
      5i "Since last look" when the value moved after the question was put
      10a the whose-move pill right after the party's name
-     10b–d at three screens: the list's card ends after its rows, its foot
-        right under them; Approvals' white head, grey ground, then the card,
-        Approval rules inside the head; every party's name reads whole
+     10b–d at three screens (RE-POINTED 29 Oct 2026, ONE SHEET): the head and the
+        list card one sheet, the card reaching the foot of Jambo's panel, its foot
+        inside it; Approval rules inside the head; every party's name reads whole
      10e a colleague's signature says how long it has waited
      10f an away signer: Jambo says the rule and the proper step, with its door
      10g the list panel's ask reads as the Counter's: a party's name and
@@ -325,22 +325,29 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       if (!card || !last || !foot) return null;
       const c = card.getBoundingClientRect(), l = last.getBoundingClientRect(), f = foot.getBoundingClientRect();
       const rules = document.querySelector('[data-ap-rules]'), hr = head ? head.getBoundingClientRect() : null;
+      /* ONE SHEET (owner, 29 Oct 2026): the list head's sheet and the card meet with no ground between, and the card reaches the foot of Jambo's panel */
+      const lh = document.querySelector('[data-lh-seat]'), lr = lh && lh.getBoundingClientRect(), pn = document.getElementById('ins-panel'), pr = pn && pn.getClientRects().length ? pn.getBoundingClientRect() : null;
       return { footUnder: Math.round(f.top - l.bottom), cardEnd: Math.round(c.bottom - f.bottom), ground: Math.round(innerHeight - c.bottom),
-        headGround: hr ? Math.round(c.top - hr.bottom) : null, rulesIn: rules && hr ? Math.round(hr.bottom - rules.getBoundingClientRect().bottom) : null }; };
+        headGround: hr ? Math.round(c.top - hr.bottom) : null, rulesIn: rules && hr ? Math.round(hr.bottom - rules.getBoundingClientRect().bottom) : null,
+        sheetGap: lr ? Math.round(c.top - lr.bottom) : null, panelFoot: pr ? Math.round(pr.bottom - c.bottom) : null }; };
     for (const [w, ht] of SCREENS) {
       await page.setViewportSize({ width: w, height: ht });
       await part('10b the card ends after its rows ' + w, async () => {
         await page.evaluate(() => openNegotiations({ list: true }));
         await until(() => document.querySelector('#reg-tbody tr[data-row="MK-A2"]'), null, 8000); await page.waitForTimeout(300);
         const N = await page.evaluate(CARD, { card: '#content .reg-card', rows: '#reg-tbody tr', foot: '#reg-showing' });
-        check(`10b Negotiations ${w}×${ht}: the card ends after its last row, "Showing …" right under the rows, grey ground below`,
-          !!N && N.footUnder >= 0 && N.footUnder <= 12 && N.cardEnd <= 12 && N.ground >= 40, JSON.stringify(N));
+        /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — the head and the list are one sheet, and the list card
+           reaches the foot of Jambo's panel; REVERSES rounds 14–15's "the card ends after its last row") */
+        check(`10b Negotiations ${w}×${ht}: one sheet — the card meets the head with no ground, reaches the foot of Jambo's panel, "Showing …" inside it at its foot`,
+          !!N && N.sheetGap != null && Math.abs(N.sheetGap) <= 1 && N.panelFoot != null && Math.abs(N.panelFoot) <= 2 && N.footUnder >= 0 && N.cardEnd >= 0 && N.cardEnd <= 12, JSON.stringify(N));
         await page.evaluate(() => setView('approvals'));
         await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000); await page.waitForTimeout(300);
         /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's own */
         const A = await page.evaluate(CARD, { card: '#content .ap-card', rows: '.ap-table tbody tr', foot: '[data-lh-foot="approvals"]' });
-        check(`10c Approvals ${w}×${ht}: the card ends after its rows; the white head, then grey ground, then the card; Approval rules inside the head`,
-          !!A && A.footUnder >= 0 && A.footUnder <= 2 && A.cardEnd <= 2 && A.ground >= 40 && A.headGround >= 8 && A.rulesIn >= 6, JSON.stringify(A));
+        /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET): no grey ground between the head and the card; the card reaches
+           the foot of Jambo's panel; the foot still right under the rows, inside the card */
+        check(`10c Approvals ${w}×${ht}: one sheet — head and card meet with no ground, the card reaches the foot of Jambo's panel, the foot right under the rows; Approval rules inside the head`,
+          !!A && A.footUnder >= 0 && A.footUnder <= 2 && A.cardEnd >= 0 && A.sheetGap != null && Math.abs(A.sheetGap) <= 1 && A.panelFoot != null && Math.abs(A.panelFoot) <= 2 && A.rulesIn >= 6, JSON.stringify(A));
         const C = await page.evaluate(() => [...document.querySelectorAll('.ap-table .ap-id .ap-name')].filter(e => e.scrollWidth > e.clientWidth + 1 || /…$/.test(e.textContent)).map(e => e.textContent));
         check(`10d Approvals ${w}×${ht}: every party's name reads whole`, !C.length, JSON.stringify(C));
         await shot(`r15-approvals-frame-${w}x${ht}.png`);

@@ -1148,20 +1148,6 @@ function jhJamboDoorHtml(){
   const name = _jhT('pd_tab_copilot'), open = _jhT('int_open_panel');
   return `<aside class="jh-jambo" id="jh-jambo" aria-label="${_jhE(name)}"><button type="button" class="igd-door" data-jh-jambo title="${_jhE(open)}" aria-label="${_jhE(n ? _jhT('pd_tab_n', { name, n }) : open)}"><span class="igd-door-i">${face}${n ? `<span class="pd-tab-n is-warn" data-jh-jambo-n>${n > 99 ? '99+' : n}</span>` : ''}</span><span class="igd-door-w">${_jhE(name)}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg></button></aside>`;
 }
-/* JAMBO'S PANEL ON THE RIGHT, AS ON EVERY OTHER PAGE (owner, 29 Oct 2026: "Add the right jambo here not the one
-   from the top"): the list pages' own panel (insPaintPanel → jlFrame), its Overview read off the one desk's
-   prepared pieces (counterWorkByAgent), no Jambo call; its door is the existing one to Jambo's work (hbOpenAgent). */
-function jhSideSay(){
-  let n = 0; try { n = (typeof counterWorkByAgent === 'function') ? Number(counterWorkByAgent().ready) || 0 : 0; } catch (_) { n = 0; }
-  const look = () => { if (typeof hbOpenAgent === 'function') hbOpenAgent(); };
-  return { head: { html: _jhE(_jhT(n ? 'jh_jl_head' : 'jh_jl_head_none')) },
-    facts: n ? [{ k: _jhT('jh_jl_wait_k'), v: _jhT('jh_desk_waiting', { n: _jhFmt(n) }), link: _jhT('jh_jl_look'), run: look }] : [],
-    src: _jhT('jh_jl_src') };
-}
-function jhSidePaint(){
-  if (typeof insPaintPanel !== 'function' || !document.getElementById('ins-panel')) return;
-  try { insPaintPanel({ seat: 'jambo', jlSay: jhSideSay, jlHome: _jhT('pd_tab_overview') }); } catch (_) { /* the page stands without its panel */ }
-}
 function renderJamboHouse(opts){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof cancelAnimationFrame === 'function' && _jh.raf){ cancelAnimationFrame(_jh.raf); _jh.raf = 0; }
@@ -1175,9 +1161,8 @@ function renderJamboHouse(opts){
     jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse({ fromLoad: true }); });
   }
   const body = _jh.tab === 'jobs' ? (_jh.data ? jhJobsHtml() : jhHouseHtml()) : _jh.tab === 'how' ? jhHowHtml() : jhHouseHtml();
-  host.innerHTML = `<style>${JH_CSS}</style><div class="jh-wrap"><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}<aside id="ins-panel" class="ins-panel" aria-label="${_jhE(_jhT('pd_tab_copilot'))}"></aside></div></div>`;
+  host.innerHTML = `<style>${JH_CSS}</style><div class="jh-wrap"><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>${jhJamboDoorHtml()}</div>`;
   jhWire(host);
-  jhSidePaint();
   if (typeof setActiveNav === 'function') setActiveNav('jambo');
   if (_jh.tab === 'house' && document.getElementById('jh-cv')){
     jhFitCanvas(); _jhFitW = document.getElementById('jh-stage').clientWidth;
@@ -1536,7 +1521,7 @@ const JH_CSS = `
   @media (max-width:1179px){.jh-split{grid-template-columns:minmax(0,1fr)}}
   .jh-left{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
   .jh-housecard{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;min-width:0}
-  .jh-sh{display:flex;align-items:center;gap:8px 10px;padding:16px;border-bottom:1px solid var(--color-divider)}
+  .jh-sh{display:flex;align-items:center;gap:8px 10px;padding:8px 12px;border-bottom:1px solid var(--color-divider)}
   .jh-stage{position:relative;background:var(--color-surface);overflow:hidden;min-width:0}
   .jh-stage canvas{display:block;width:100%;height:auto}
   .jh-tip{position:absolute;z-index:5;width:310px;max-width:calc(100% - 16px);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px;box-shadow:var(--shadow-pop,0 14px 34px -12px rgba(0,0,0,.25));font-size:var(--t-meta);pointer-events:none}

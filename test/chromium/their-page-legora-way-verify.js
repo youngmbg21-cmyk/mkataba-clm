@@ -73,7 +73,9 @@ const until = async (page, fn, arg, ms = 8000) => { const t0 = Date.now(); for (
         const tr = document.querySelector('.pw-tabs').getBoundingClientRect();
         const doc = cs('#rl-doc'), side = cs('#rl-side');
         const first = document.querySelector('#rl-doc .nego-doc h1, #rl-doc .nego-doc h2, #rl-doc .nego-doc p, #rl-doc .rl-paper p');
-        return { track: tabs.backgroundColor, trackWant: g('var(--surface-2)'), onBg: on.backgroundColor, white: g('var(--color-surface)'),
+        const radP = document.createElement('span'); radP.style.borderTopLeftRadius = 'var(--radius-lg)'; document.body.appendChild(radP);
+        const radLg = getComputedStyle(radP).borderTopLeftRadius; radP.remove();
+        return { radLg, track: tabs.backgroundColor, trackWant: g('var(--surface-2)'), onBg: on.backgroundColor, white: g('var(--color-surface)'),
           onFw: parseInt(on.fontWeight, 10), offFw: parseInt(off.fontWeight, 10), onUl: parseFloat(on.borderBottomWidth) > 0 && on.borderBottomStyle !== 'none',
           rowH: rr ? Math.round(rr.height) : null, tabsH: Math.round(tr.height),
           docCard: { bg: doc.backgroundColor, r: doc.borderTopLeftRadius, sh: doc.boxShadow }, sideCard: { bg: side.backgroundColor, r: side.borderTopLeftRadius, sh: side.boxShadow, bl: side.borderLeftWidth },
@@ -83,7 +85,8 @@ const until = async (page, fn, arg, ms = 8000) => { const t0 = Date.now(); for (
       const tag = `${w}x${hh}:`;
       check(M.track === M.trackWant && M.onBg === M.white && M.onFw > M.offFw && !M.onUl, `1  ${tag} the tabs are the grey track with the chosen one a white pill, heavier, no underline`, M);
       check(M.rowH != null && M.rowH <= 28, `1  ${tag} the tab row is no taller for the pill (28px, as the underlined row was)`, { row: M.rowH, tabs: M.tabsH });
-      const floats = c => c.bg === M.white && parseFloat(c.r) >= 16 && /8px 28px/.test(c.sh || '');
+      /* RE-POINTED 29 Oct 2026 (owner: ONE CORNER, every card 10px): the card's corner is the token --radius-lg, never below 10 */
+      const floats = c => c.bg === M.white && parseFloat(c.r) === parseFloat(M.radLg) && parseFloat(c.r) >= 10 && /8px 28px/.test(c.sh || '');
       check(floats(M.docCard) && floats(M.sideCard) && M.sideCard.bl === '0px', `2  ${tag} the paper and the change list are two floating white cards`, { doc: M.docCard, side: M.sideCard });
       check(M.first === 258, `2  ${tag} the wording's first line stands where it stood (258)`, M.first);
 

@@ -336,15 +336,16 @@ describe('f803 (7) Jambo\'s house says the Board card\'s count', () => {
     /* RE-POINTED 18 Oct 2026: main measured the same overlap and draws no work line where it would not clear the seat */
     assert.match(fnBody(JH, 'jhDrawOffice'), /if \(!cp && ly2\(c\) \+ 4 <= r\.seat\.y - 25\)\{/);
   });
-  /* RE-POINTED 29 Oct 2026 (owner: "Add the right jambo here not the one from the top"): the folded door to
-     the side panel is gone; the house carries the list pages' own Jambo panel on the right (#ins-panel, painted
-     by insPaintPanel → jlFrame), its Overview read off the one desk's prepared pieces, no Jambo call. */
-  test('7e Jambo\'s panel stands on the right of his house, as on every list page', () => {
-    assert.match(fnBody(JH, 'renderJamboHouse'), /\$\{jhBandHtml\(\)\}\$\{body\}<aside id="ins-panel" class="ins-panel"/);
-    assert.match(fnBody(JH, 'renderJamboHouse'), /jhSidePaint\(\);/);
-    assert.match(fnBody(JH, 'jhSidePaint'), /insPaintPanel\(\{ seat: 'jambo', jlSay: jhSideSay/);
-    assert.match(fnBody(JH, 'jhSideSay'), /counterWorkByAgent\(\)\.ready/);
-    assert.match(fnBody(JH, 'jhSideSay'), /hbOpenAgent\(\)/);
+  test('7e Jambo folded to the right edge beside his house: his face, the Counter\'s count, his name, ‹ — a press opens him', () => {
+    const f = fnBody(JH, 'jhJamboDoorHtml');
+    assert.match(f, /counterNeedsCount\(\)/);
+    assert.match(f, /class="igd-door" data-jh-jambo/);
+    assert.match(f, /_jhT\('pd_tab_copilot'\)/);
+    assert.match(f, /<use href="#i-left"\/>/);
+    assert.match(fnBody(JH, 'renderJamboHouse'), /\$\{jhBandHtml\(\)\}\$\{body\}<\/div>\$\{jhJamboDoorHtml\(\)\}<\/div>/);
+    /* the press slides Jambo in as a side panel and takes him out again (owner, 21 Oct 2026: "let jambo slide in") */
+    assert.match(JH, /if \(t\.closest\('\[data-jh-jambo\]'\)\)\{ if \(typeof aiSideToggle === 'function'\) aiSideToggle\(\); else if \(typeof openAI === 'function'\) openAI\(\); return; \}/);
+    assert.match(R('index.html'), /:is\(#ig-dock,#jh-jambo\) \.igd-door\{height:100%/, 'Home\'s folded strip\'s own clothes');
   });
 });
 
