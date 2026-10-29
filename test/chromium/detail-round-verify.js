@@ -110,7 +110,8 @@ const blocked = [];
             check(`${at} · 1a — every later week's label stays in its own cell`, lab && lab.length >= 5 && worst.over <= 0, `${worst.t || '?'} ends ${worst.over}px into the next day`);
             const head = await ev(() => { const e = document.querySelector('.cal-head'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.parentElement.getBoundingClientRect();
               return { rad: parseFloat(cs.borderTopLeftRadius), shadow: cs.boxShadow !== 'none', inset: Math.round(r.left - pr.left) }; });
-            check(`${at} · 1b — the Calendar's head floats as a card`, head && head.rad >= 16 && head.shadow && head.inset >= 8, JSON.stringify(head));
+            /* RE-POINTED 29 Oct 2026 (ONE CORNER): every card is 10px round now, "half as round" */
+            check(`${at} · 1b — the Calendar's head floats as a card`, head && head.rad >= 10 && head.shadow && head.inset >= 8, JSON.stringify(head));
           }
         }
         if (on(3)){ await ev(() => { const t = document.querySelector('.cal-cop [data-cal-talk]'); if (t) t.click(); }); await until(() => document.querySelector('.cal-cop .jb-hello'), undefined, 4000);
@@ -258,7 +259,7 @@ const blocked = [];
           else {
             const hd = await ev(() => { const e = document.querySelector('#modal-root .modal-in[data-sh-page] .sh-hd'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.closest('.modal-in').getBoundingClientRect();
               return { rad: parseFloat(cs.borderTopLeftRadius), shadow: cs.boxShadow !== 'none', inset: Math.round(r.left - pr.left) }; });
-            check(`${at} · 2a — the Send screen's head floats as a card`, hd && hd.rad >= 16 && hd.shadow && hd.inset >= 8, JSON.stringify(hd));
+            check(`${at} · 2a — the Send screen's head floats as a card`, hd && hd.rad >= 10 && hd.shadow && hd.inset >= 8, JSON.stringify(hd));
             if (on(8)) await levelCheck('Send screen', '#modal-root .modal-in[data-sh-page] .sh-hd');
             const ln = await ev(() => { const p = document.querySelector('#sh-noemail'); if (!p || !p.getBoundingClientRect().width) return null;
               const box = p.previousElementSibling || p.parentElement.previousElementSibling; const card = [...document.querySelectorAll('#pd-sendface .sh-lt-card')].find(e => e.getClientRects().length); /* RE-POINTED, the SAP Way (28 Oct 2026): the first card SHOWN — the verdict card leads and steps out where a blocking check says no */
