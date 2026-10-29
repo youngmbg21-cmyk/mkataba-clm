@@ -2283,9 +2283,9 @@ function calTurnsAfter(){
 }
 async function calPlanAsk(q, ref){
   if(_calPlan.busy) return;
-  /* HIS PLAN STANDS ON THE WEEK (round 12, 29 Oct 2026): the calendar opens on the Agenda, but a plan's blocks are
-     drawn in the Week's hours — an ask for one turns the calendar to Week first (nothing else moves) */
-  if(calView()!=='week'){ calState.view='week'; try{ renderCalendar(); }catch(_){ } }
+  /* HIS PLAN STANDS ON THE WEEK (round 12, 29 Oct 2026): the calendar opens on the Agenda, where a plan's blocks are
+     not drawn — an ask from there turns the calendar to Week first; Month and Horizon stay as they were */
+  if(calView()==='agenda'){ calState.view='week'; try{ renderCalendar(); }catch(_){ } }
   const a=calWeekStart(), from=_isoLocal(a)<calToday()?calToday():_isoLocal(a), to=_isoLocal(calAddDays(new Date(from+'T00:00:00'),13));
   const ask=q==='week'?i18t('cal_plan_p_week'):q==='due'?i18t('cal_plan_p_due'):q==='hour'?i18t('cal_plan_p_hour',{ref:ref||''}):String(q||'').trim();
   if(!ask) return;
