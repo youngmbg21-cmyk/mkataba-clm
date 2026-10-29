@@ -409,8 +409,11 @@ function pdOpenOnHome(id, tab){
     pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab)); } finally { pdOpenOnHome._in = false; } }
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* FILL IN THE CONTRACT IS ITS OWN DOOR'S: any other door that opens a paper puts the form away (the Fill in door,
-     pdFillOpen, asks for it again once the paper is up — what was answered there stays, _pdForm) */
+     pdFillOpen, asks for it again once the paper is up — what was answered there stays, _pdForm). A Fill in landing
+     still on its way is let go too, or its next beat turns the panel back to the form over the door just pressed
+     (pdFillOpen lands again after this returns) */
   if (typeof pdTab === 'function' && pdTab() === 'form') pdSetTab('copilot');
+  _pdOgLand = null;
   if (tab === 'open') tab = pdOpenTabOf(c);
   /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
      stage 4, 14 Oct 2026): the Board's own view for this contract — the
