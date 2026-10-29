@@ -567,10 +567,9 @@ function _lhInput(e){
   const seat = head.getAttribute('data-lh-seat'), pg = _lhPage(seat); if (!pg) return;
   const w = inp.value;
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
-  /* a question narrows nothing: the list stands whole while it is typed, and
-     the box holds it (_lhAskingNow) */
-  if (lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
-  else if (typeof pg.setQuery === 'function') pg.setQuery(w);
+  /* THE LIST'S BOX ONLY SEARCHES (owner, 29 Oct 2026: "AI questions should only go to the jambo panel"):
+     whatever is typed narrows the list, a question too; nothing here goes to Jambo */
+  if (typeof pg.setQuery === 'function' && w !== now) pg.setQuery(w);
   lhHeadSyncSoon(seat);
 }
 function _lhKey(e){
@@ -578,15 +577,11 @@ function _lhKey(e){
   const inp = e.target; if (!inp || !inp.matches || !inp.matches('input[data-lh-q]')) return;
   const head = inp.closest('[data-lh-seat]'); if (!head) return;
   const seat = head.getAttribute('data-lh-seat'), pg = _lhPage(seat); if (!pg) return;
-  const w = String(inp.value || '').trim();
-  /* plain words stay a search: nothing is sent, nothing is spent */
-  if (!lhIsQuestion(w)) return;
+  /* Enter is a search too: nothing is sent, nothing is spent (owner, 29 Oct 2026; questions go to Jambo's panel) */
   e.preventDefault();
-  if (!lhAsk(seat, w)) return;              /* said ('warn'); the words stay */
-  inp.value = '';
-  if (!inp.isConnected) return;
+  const w = String(inp.value || '');
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
-  if (now && typeof pg.setQuery === 'function') pg.setQuery('');
+  if (typeof pg.setQuery === 'function' && w !== now) pg.setQuery(w);
   lhHeadSync(seat);
 }
 if (typeof document !== 'undefined' && document.addEventListener && typeof window !== 'undefined' && !window._lhWired){

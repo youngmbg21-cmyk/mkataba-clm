@@ -5277,7 +5277,7 @@ function sharePartyPick(c){
 }
 
 function shareNoteBoxHtml(c, hist){
-  return `<label style="display:block"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${
+  return `<label style="display:var(--sh-note-d,block)"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${
         hist?i18t('co_note_with_record')
             :i18t('co_note_to', { who:esc(c.counterparty||i18t('co_them')) })}</span>
         <textarea id="sh-summary" rows="3" style="${HATI_FLD}height:auto;min-height:var(--field-h)" placeholder="${
@@ -5688,7 +5688,7 @@ function shareLetterPaint(c, st){
     else if(!L.letter && ta.dataset.shLtBare){ ta.style.cssText=ta.dataset.shLtCss; delete ta.dataset.shLtBare; ta.rows=3; }
     /* its frame (the label) hugs it too: the label's own inline block stands down on the letter */
     const fr=ta.closest('label');
-    if(fr) fr.style.display=L.letter?'':'block';
+    if(fr) fr.style.display=L.letter?'':'var(--sh-note-d,block)';
   }
   /* the label is small and grey on the letter ("Your note · type here"): its
      own inline dress stands down there, so the letter's rule dresses it */

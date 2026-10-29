@@ -248,12 +248,6 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('5-ref the reference control really is on screen and resting',
       ref && /agreed|changes|board|redline/i.test(ref._txt), ref && ref._txt);
 
-    const sameAsRef = (got) => {
-      if (!ref || !got) return { ok: false, why: 'missing' };
-      const bad = TYPE.filter(p => String(got[p]) !== String(ref[p]));
-      return { ok: bad.length === 0, why: bad.map(p => `${p}: ${got[p]} vs ${ref[p]}`) };
-    };
-
     /* ================= 3 · THE SIDEBAR COUNTS ============================== */
     /* STANDING ON NEGOTIATIONS ON PURPOSE — see the header. This is the seat
        where the amber rule was measured losing to the .active rule. */
@@ -285,7 +279,6 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        amber where work is owed. So "plain" is the UNTONED counts. */
     const plain = real.filter(r => !r.tone);
     const wash = real.filter(r => r.tone === 'teal');
-    const tag = counts.rows.find(r => r.id === 'nav-intel-new');
 
     /* ---- REVERSED IN PLACE 24 Aug 2026, and the RULE is what survives ----
        These three were written for a DARK column: no box on any count, white
@@ -312,9 +305,8 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('3d and at least one of those amber counts IS the active door '
       + '(or this check proves nothing)',
       amber.some(r => r.active), amber.map(r => `${r.view} active=${r.active}`));
-    check('3e "New" is a tag, not a count, and keeps its pill',
-      !!tag && tag.bg !== 'rgba(0, 0, 0, 0)' && tag.padLeft !== '0px',
-      tag && { bg: tag.bg, pad: tag.padLeft });
+    /* 3e RETIRED 29 Oct 2026: measured the Insights page, which the owner had
+       deleted — the "New" tag rode the Insights menu entry (nav-intel-new). */
 
     /* ================= 4 · THE HOME PAGE'S OWN HEADING LINES ================
        REVERSED IN PLACE 24 Aug 2026. This section measured the pipeline card's
@@ -372,31 +364,8 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       homeLine.margins.every(m => m != null && m >= 8 && m <= 48), { margins: homeLine.margins });
 
     /* ================= 5 · A RESTING TAB IS DARK INK ======================= */
-    await page.evaluate(() => setView('intel'));
-    await pause(2600);
-    await page.screenshot({ path: path.join(OUT, '04-insights.png') });
-    const igTabs = await page.evaluate(READ_TYPE, { sel: '[data-ig-tab]', props: TYPE });
-    const igRest = igTabs.filter(t => !t._on);
-    check('5a the Insights tabs rest on the same ink as the reference',
-      igRest.length > 0 && igRest.every(t => sameAsRef(t).ok),
-      igRest.map(t => `${t._txt}: ${sameAsRef(t).why || 'match'}`));
-
-    /* THE SEGMENTS ONLY EXIST ON THE FRICTION TAB, so the tab is pressed
-       first: read from Portfolio the selector matches nothing and the check
-       passes having proved nothing, which is the fault this suite keeps
-       recording. It asserts the row was FOUND as well as that it matches. */
-    await page.evaluate(() => {
-      const b = document.querySelector('[data-ig-tab="friction"]'); if (b) b.click();
-    });
-    await pause(1800);
-    await page.screenshot({ path: path.join(OUT, '04b-friction.png') });
-    const ffSegs = await page.evaluate(READ_TYPE, { sel: '[data-igf-days]', props: TYPE });
-    const ffRest = ffSegs.filter(t => !t._on);
-    check('5b the friction segments beside them really drew', ffRest.length > 0,
-      { found: ffSegs.length, resting: ffRest.length });
-    check('5b and they rest on that same ink (colour only — they are 13px by design)',
-      ffRest.length > 0 && ffRest.every(t => t.color === ref.color),
-      ffRest.map(t => `${t._txt}: ${t.color}`));
+    /* 5a, 5b RETIRED 29 Oct 2026: measured the Insights page, which the owner
+       had deleted — its tabs and the friction segments beside them. */
 
     /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): the owner asked for
        Settings' tabs "just like in the home page", so its reference is Home's

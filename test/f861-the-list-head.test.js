@@ -257,7 +257,8 @@ describe('f861 (6) the box', () => {
     assert.equal(inp.value, evil);
     assert.equal(head.querySelector('img'), null);
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Contracts says its count once, at the foot */
-    assert.equal(inp.getAttribute('placeholder'), 'Search contracts, or ask Jambo');
+    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
+    assert.equal(inp.getAttribute('placeholder'), 'Search contracts');
     assert.equal(inp.getAttribute('type'), 'search');
   });
   test('plain words narrow through the page\'s own query; Enter spends nothing', () => {
@@ -269,23 +270,26 @@ describe('f861 (6) the box', () => {
     assert.deepEqual(P.S.asked, [], 'a search never reaches Jambo');
     assert.equal(inp.value, 'Nordkap');
   });
-  test('a question narrows nothing; Enter hands it to the page\'s Jambo and empties the box', () => {
+  /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo
+     panel"): the box only searches — a question narrows the list like any
+     words, and Enter sends nothing to Jambo and keeps the words. */
+  test('a question narrows the list like any words; Enter sends nothing to Jambo and keeps the box', () => {
     need(); const x = stage(); const P = page(x.sb, { state: { q: 'which ones' } }); paint(x);
     const inp = x.doc.querySelector('input[data-lh-q]');
     inp.value = 'which ones end soon'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
-    assert.deepEqual(P.S.queries, [''], 'the list stands whole while a question is typed');
+    assert.deepEqual(P.S.queries, ['which ones end soon'], 'the question narrows the list');
     inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    assert.deepEqual(P.S.asked, ['which ones end soon']);
-    assert.equal(inp.value, '');
+    assert.deepEqual(P.S.asked, [], 'nothing reaches Jambo');
+    assert.equal(inp.value, 'which ones end soon');
   });
-  test('a Jambo still answering takes nothing: it is said, and the words stay', () => {
+  test('a Jambo still answering changes nothing in the box: no ask, no warning, the words stay', () => {
     need(); const x = stage(); const P = page(x.sb, { busy: true }); paint(x);
     const inp = x.doc.querySelector('input[data-lh-q]');
     inp.value = 'is it signed?'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
     inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    assert.deepEqual(P.S.asked, ['is it signed?']);
+    assert.deepEqual(P.S.asked, []);
     assert.equal(inp.value, 'is it signed?');
-    assert.deepEqual(x.toasts, [[EN.lh_busy, 'warn']]);
+    assert.deepEqual(x.toasts, []);
   });
   test('the tab and chip rows repaint while the box — and its caret — stay', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
@@ -328,7 +332,8 @@ describe('f861 (8) both books carry every lh_ word', () => {
       assert.equal((src.match(new RegExp(`\\n    ${k}:`, 'g')) || []).length, 2, `${k} once in each book`);
     }
     for (const n of NOUNS) if (n !== 'contracts') assert.match(EN['lh_ph_' + n + '_other'], /\{n\}/, n + ' counts its book');
-    assert.equal(EN.lh_ph_contracts_other, 'Search contracts, or ask Jambo', 'Contracts says its count once, at the foot (Round 2)');
+    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
+    assert.equal(EN.lh_ph_contracts_other, 'Search contracts', 'Contracts says its count once, at the foot (Round 2)');
     assert.equal(EN.lh_range, '{a}–{b} of {n}');
     assert.equal(EN.lh_more, 'Show {n} more');
     assert.ok(!/⌘K|—/.test(EN.lh_ph_contracts_other), 'no example after a dash, no ⌘K hint');
@@ -442,7 +447,8 @@ describe('f861 (11) the box shows the page\'s query', () => {
   test('a question typed, then the page\'s query written elsewhere: the repaint shows the page\'s query', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
     ask(x, 'which ones end soon');
-    assert.equal(P.S.q, '', 'a question narrows nothing');
+    /* RE-POINTED 29 Oct 2026 (the box only searches): a question IS the page's query */
+    assert.equal(P.S.q, 'which ones end soon', 'a question narrows like any words');
     paint(x);
     assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'which ones end soon', 'a repaint draws the question back');
     P.S.q = 'Nordkap';
@@ -474,11 +480,14 @@ describe('f861 (11) the box shows the page\'s query', () => {
     assert.match(input, /R\.query=q;[\s\S]*if\(window\.lhBoxSet\) lhBoxSet\(\);/);
   });
   test('a page left and come back to starts from its own query', () => {
-    need(); const x = stage(); page(x.sb); paint(x);
+    need(); const x = stage(); const P = page(x.sb); paint(x);
     ask(x, 'which ones end soon');
+    P.S.q = 'Nordkap';
     x.doc.getElementById('content').innerHTML = '<p>another page</p>';
     paint(x);
-    assert.equal(x.doc.querySelector('input[data-lh-q]').value, '');
+    /* RE-POINTED 29 Oct 2026 (the box only searches): what is typed is the page's
+       query, so the claim is asked with the query moved elsewhere meanwhile */
+    assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'Nordkap');
   });
 });
 

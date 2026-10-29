@@ -86,7 +86,8 @@ describe('f797 (1) the list head: the box, the tabs, + Filter', () => {
     assert.deepEqual([...head.children].map(e => e.className.split(' ')[0]), ['lh-ask', 'reg-views', 'lh-chips'], 'the box, the tabs, the chips');
     const box = head.querySelector('input#ik-q[type="search"][data-lh-q][data-ik-q]');
     assert.ok(box, 'the box keeps the page\'s own id and attribute');
-    assert.equal(box.getAttribute('placeholder'), 'Search 3 requests, or ask Jambo');
+    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
+    assert.equal(box.getAttribute('placeholder'), 'Search 3 requests');
     const groups = [...head.querySelectorAll('[data-lh-add] optgroup')];
     assert.deepEqual(groups.map(g => g.getAttribute('label')), ['Stream', 'With']);
     assert.deepEqual([...groups[0].querySelectorAll('option')].map(txt), ['Sales (2)', 'Procurement (1)'], 'the streams that hold a request, counted');

@@ -31,15 +31,10 @@
         and "Show N more" adds exactly min(step, n − k) rows
      7  THE BOX: typing a party narrows to the rows that carry it and the tab
         numbers follow; the caret stays in the box at every keystroke; "Visa"
-        or a party name is never a question; "which ones are waiting on us?"
-        does not narrow; Enter hands it to the page's OWN Jambo (on Contracts
-        Home's dock conversation grows by it); on a list page it is ANSWERED
-        IN the list's own panel (owner, 22 Oct 2026: Part 8's question 3 =
-        A, "Answer beside the list"): the reader stays on the page with the
-        tab, chips and rows as they were, the box is empty, the panel shows
-        the question and Jambo's answer after it, and the AI stand-in is
-        asked nothing (the Board's own reader answers it free); Enter on
-        plain words stays a search (no Jambo turn)
+        or a party name narrows like any word; RE-POINTED 29 Oct 2026 (owner:
+        "AI questions should only go to the jambo panel"): the box only
+        searches — "which ones are waiting on us?" narrows the list like any
+        words, and Enter on it, or on plain words, sends nothing to Jambo
      8  A REFRESH LANDS AT THE SAME SPOT: a tab lit, a chip added and words
         typed come back after a reload, with the same rows
    CONTRACTS ONLY: the Archive button still stands beside List | Wall; the
@@ -519,7 +514,7 @@ function pageKit(){
     check(`${tag(d)} 6c Show ${N} more adds exactly ${N} rows, and the foot says so`, !!grown && now.f && (now.f.k === f.k + N || new RegExp('^' + (f.k + N) + ' contracts?\\b').test(now.f.text || '')), JSON.stringify({ was: f.k, now: now.rows, foot: now.f && now.f.text }));
   }
 
-  /* ===== 7 · THE BOX: SEARCH, OR ASK THE PAGE'S OWN JAMBO ===== */
+  /* ===== 7 · THE BOX: IT ONLY SEARCHES (29 Oct 2026) ===== */
   const boxFocus = () => ev(() => { const b = window.__lh.box(); if (!b) return false; b.focus(); return document.activeElement === b; });
   /* the head's recount after typing is one per pause (lhHeadSyncSoon): asked
      for as a state — the lit tab says the rows shown — and bounded */
@@ -530,7 +525,7 @@ function pageKit(){
     const has = await ev(() => !!window.__lh.box());
     if (has !== true){
       check(`${tag(d)} 7a typing a party in the box narrows the list, the caret kept`, false, 'no input[data-lh-q] in the head to type in');
-      check(`${tag(d)} 7e a question does not narrow, and Enter hands it to the page's own Jambo`, false, 'no box to ask in');
+      check(`${tag(d)} 7f a question narrows like any words, and Enter sends nothing to Jambo`, false, 'no box to type in');
       return;
     }
     const cfg = cfgOf(d);
@@ -578,52 +573,27 @@ function pageKit(){
       await boxClear();
       await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfg, before.total], 4000);
     } else note(`${tag(d)} 7e no row here names Visa, so "Visa" is not tried`, JSON.stringify(visa));
-    /* a question does not narrow; Enter hands it to the page's own Jambo.
-       Measured against the rows drawn at rest just before it is typed: words
-       typed and cleared above put a paged list back on its first page (Show
-       more pressed earlier is not kept), which is no narrowing by the question */
+    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo
+       panel"): the box only searches. A question narrows the list like any
+       words (none of these rows carries all of them), the caret kept; Enter
+       sends nothing to Jambo — no turn, no AI call — and the reader, the
+       view and the words stay. */
     const rest = await ev(c => window.__lh.rows(c), cfg);
     await boxFocus(); await page.keyboard.type(QUESTION);
-    const held = await until(([c, n, q]) => { const b = window.__lh.box(); return b && b.value === q && window.__lh.total(c) === n ? true : null; }, [cfg, before.total, QUESTION], 4000);
+    const held = await until(([c, n, q]) => { const b = window.__lh.box(); return b && b.value === q && window.__lh.rows(c) < n ? true : null; }, [cfg, rest, QUESTION], 4000);
     const qn = await ev(c => ({ total: window.__lh.total(c), rows: window.__lh.rows(c), focus: document.activeElement === window.__lh.box() }), cfg);
-    check(`${tag(d)} 7f "${QUESTION}" does not narrow the list, the caret kept`, !!held && qn.rows === rest && qn.focus, JSON.stringify({ before: before.total, rest, now: qn }));
+    check(`${tag(d)} 7f "${QUESTION}" narrows the list like any words, the caret kept`, !!held && qn.rows < rest && qn.focus, JSON.stringify({ before: before.total, rest, now: qn }));
     const asked0 = await ev(q => window.__lh.asked(q), QUESTION);
-    const home = d.key === 'contracts';
-    /* ANSWERED BESIDE THE LIST (owner, 22 Oct 2026: Part 8's question 3 =
-       A): what the list shows is read just before Enter — the tabs with their
-       numbers and the lit one, the chips, the rows — and must be the same
-       after; the model is asked nothing for a question the Board's own
-       reader answers free (the AI stand-in's requests are counted) */
-    const spotOf = c => ({ tabs: window.__lh.tabs().filter(t => !t.saved).map(t => `${t.label} ${t.n}${t.lit ? '*' : ''}`), chips: window.__lh.chips().map(x => x.t), ids: window.__lh.ids(c) });
-    /* the head counts again once the typing pauses (lhHeadSyncSoon): read it settled */
-    if (!home) await until(() => window.__lh.synced() ? true : null, null, 3000);
-    const spot0 = home ? null : await ev(spotOf, cfg);
     const calls0 = h.ai.calls.length;
     await page.keyboard.press('Enter');
-    const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 10000);
+    const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 1500);
     await quiet();
-    /* the panel's conversation: the question's turn, then Jambo's answer after it */
-    const said = ([p, q]) => { const pn = document.querySelector(p); const f = pn && pn.querySelector('#jl-feed'); if (!f) return null;
-      const T = [...f.querySelectorAll('.jb-turn')], w = e => e.textContent.replace(/\s+/g, ' ').trim();
-      let i = -1; T.forEach((e, k) => { if (w(e) === q) i = k; });
-      const a = i >= 0 ? T[i + 1] : null;
-      return a && w(a) && w(a) !== q ? { q: true, answer: w(a).slice(0, 160) } : null; };
-    const ans = home ? null : await until(said, [d.panel, QUESTION], 6000);
-    const after2 = await ev(([c, p, q]) => { const pn = document.querySelector(p); const b = window.__lh.box();
-      return { view: state.view, head: !!window.__lh.seat(), box: b ? b.value : null, total: window.__lh.total(c),
-        panel: !!(pn && pn.textContent.includes(q)), intel: !!(window.intel && Array.isArray(intel.history) && intel.history.some(m => m && m.role === 'user' && String(m.text || '').trim() === q)) }; }, [cfg, d.panel, QUESTION]);
+    const after2 = await ev(c => { const b = window.__lh.box();
+      return { view: state.view, head: !!window.__lh.seat(), box: b ? b.value : null, rows: window.__lh.rows(c) }; }, cfg);
     const calls = h.ai.calls.length - calls0;
-    if (home) check(`${tag(d)} 7g Enter hands the question to Home's dock (intel.history grew by it), the box is empty`,
-      !!went && (after2.view !== before.view || (after2.head && after2.box === '')) && after2.intel,
-      JSON.stringify({ asked: !!went, ...after2, wasView: before.view, before: before.total }));
-    else {
-      const spot1 = await ev(spotOf, cfg);
-      const same = !!spot0 && !!spot1 && JSON.stringify(spot0) === JSON.stringify(spot1);
-      check(`${tag(d)} 7g Enter on "${QUESTION}" is answered IN the list's own panel: the reader stays on the page, the tab, chips and rows as they were, the box empty, the question and Jambo's answer in the panel, no Jambo call`,
-        !!went && after2.view === before.view && after2.head && after2.box === '' && same && !!ans && calls === 0,
-        JSON.stringify({ asked: !!went, view: after2.view, wasView: before.view, head: after2.head, box: after2.box, same, was: spot0 && { tabs: spot0.tabs, chips: spot0.chips, rows: spot0.ids.length },
-          now: spot1 && { tabs: spot1.tabs, chips: spot1.chips, rows: spot1.ids.length }, answer: ans, calls }));
-    }
+    check(`${tag(d)} 7g Enter on "${QUESTION}" sends nothing to Jambo: no turn, no AI call, the reader stays and the words stay in the box`,
+      !went && calls === 0 && after2.view === before.view && after2.head && after2.box === QUESTION && after2.rows === qn.rows,
+      JSON.stringify({ asked: !!went, calls, ...after2, wasView: before.view }));
     /* leave the box empty for what follows */
     if (await ev(() => !!(window.__lh.box() && window.__lh.box().value)) === true) await boxClear();
   }
@@ -838,11 +808,19 @@ function pageKit(){
       return { cid: td && td.getAttribute('data-ac-cid'), t: window.__lh.words(td), lines: td.getClientRects().length, chip: !!td.querySelector('.ac-cite'), tick: !!td.querySelector('[data-ac-ck]') }; }, null, 4000);
     if (!cell){ check('contracts C7 an answer cell is one light and one answer', false, filled ? 'no answered cell found' : 'no answer came back to the list'); return; }
     check('contracts C7 an answer cell is one light and one answer, with no § chip or tick squeezing it', !cell.chip && !cell.tick && !/\n/.test(cell.t), JSON.stringify(cell));
-    await ev(cid => { const a = document.querySelector(`td.ac-cell[data-ac-cid="${CSS.escape(cid)}"] .ac-a`); if (a) a.click(); }, cell.cid);
-    const go = await until(() => document.querySelector('#ig-dock [data-ac-go]') ? true : null, null, 5000);
+    /* RE-POINTED 29 Oct 2026 (One sheet): the list now reaches the panel's foot, so more answered rows are in
+       sight and the first may be one read with no clause to go to (none quoted) — the first answered row whose
+       reading carries Go to clause is the one asked */
+    const cids = await ev(() => [...document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)')].filter(e => window.__lh.vis(e)).map(e => e.closest('td.ac-cell').getAttribute('data-ac-cid')).filter(Boolean).slice(0, 6));
+    let go = null, goCid = cell.cid;
+    for (const cid of (cids && cids.length ? cids : [cell.cid])){
+      await ev(c => { const a = document.querySelector(`td.ac-cell[data-ac-cid="${CSS.escape(c)}"] .ac-a`); if (a) a.click(); }, cid);
+      go = await until(() => document.querySelector('#ig-dock [data-ac-go]') ? true : null, null, 3000);
+      if (go){ goCid = cid; break; }
+    }
     if (go) await ev(() => document.querySelector('#ig-dock [data-ac-go]').click());
-    const open = await until(cid => window.pdContract && pdContract() && String(pdContract().id) === cid ? true : null, cell.cid, 10000);
-    check('contracts C7\u2032 the panel reads that answer out, and Go to clause opens its contract on Home\'s paper', !!go && !!open, JSON.stringify(cell));
+    const open = await until(cid => window.pdContract && pdContract() && String(pdContract().id) === cid ? true : null, goCid, 10000);
+    check('contracts C7\u2032 the panel reads that answer out, and Go to clause opens its contract on Home\'s paper', !!go && !!open, JSON.stringify(Object.assign({}, cell, { tried: cids, went: goCid })));
     await shot('contracts-cite');
   }
 

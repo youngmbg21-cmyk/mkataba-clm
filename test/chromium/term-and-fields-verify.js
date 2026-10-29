@@ -60,29 +60,10 @@ const check = (name, pass, detail) => {
       labels.pf.every(l => !/\b\d{1,2}$/.test(l.trim())), labels.pf.join(' · '));
     check('the reports strip names the month the same way', /2027/.test(labels.rep), labels.rep);
 
-    /* The renewal runway is where it was reported. Read the axis off the page. */
-    await page.evaluate(() => {
-      const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
-      state.contracts.push({ id: 'RW1', name: 'Freight & Distribution — EAC', counterparty: 'Lori Systems',
-        folder: 'dist', value: 500000, status: 'Signed', expiry: day(160),
-        metadata: { expiryDate: day(160), effectiveDate: day(-900), renewalType: 'auto-renew' },
-        rounds: [], audit: [], changes: [] });
-    });
-    await page.evaluate(() => { window.wsSet(['standing', 'project'], 'job'); setView('intel'); });
-    await page.waitForTimeout(1400);
-    /* RE-POINTED 11 Oct 2026: the runway is no longer an SVG — it is the
-       Fit-to-Screen grid (pfRenewalRunway, 29 Sep 2026): the bars carry the
-       label, and the months are the .pf-vaxis cells under them. */
-    const axis = await page.evaluate(() => {
-      const bars = Array.from(document.querySelectorAll('[aria-label]'))
-        .find(s => /ending in each/i.test(s.getAttribute('aria-label') || ''));
-      const run = bars && bars.closest('.pf-run');
-      const cells = run ? run.querySelectorAll('.pf-vaxis span') : (bars ? bars.querySelectorAll('text') : []);
-      return bars ? Array.from(cells).map(t => t.textContent.trim()) : null;
-    });
-    check('the renewal runway itself draws four-digit years',
-      axis && axis.some(t => /[A-Za-zÅÄÖåäö]{3}.*\d{4}/.test(t)),
-      axis ? axis.filter(t => /\d/.test(t)).slice(0, 6).join(' · ') : 'no renewal chart drawn');
+    /* "the renewal runway itself draws four-digit years" RETIRED 29 Oct 2026:
+       measured the Insights page, which the owner had deleted — the runway
+       was drawn only on its Portfolio tab. The month label it printed is
+       still measured above (pfMonthLabel, the reports strip). */
 
     /* ================= 2. A TEMPLATE ASKS ONLY WHAT ITS PAPER SAYS ========= */
     const fields = await page.evaluate(() => {

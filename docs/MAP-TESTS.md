@@ -520,3 +520,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## NEW AGREEMENT — THE ONE SHEET OWNS THE PANEL (28 Oct 2026)
 - test/chromium/new-agreement-owns-the-panel-verify.js (new; red at unmodified main 1, 3b): over MK-A2's Redlines face the sheet's guide and box, no contract tabs, no Redlines/Risks; Cancel brings the tabs and the face back; over the Dossier too; three screens.
+
+## ONE SHEET AND THREE BUTTONS (owner, 29 Oct 2026)
+- Node: f876, f877, f881 (corners at `--radius-lg`), f193 (no overflow rule on #content), f803 7e (Jambo's panel on his house), f861 / f798 / f739 / f795 / f797 / f874 / f875 (the list box only searches).
+- Browser: legora-look-verify 12f/12g and one-window-bar-cards-verify C1/C4 (10px), parties-and-people-verify 3 and 5 (a head's pop-ups are never clipped), legora-lists-verify 7f/7g, tidy-sweep-verify, pages-read-alike-verify.

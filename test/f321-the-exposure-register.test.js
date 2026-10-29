@@ -78,10 +78,11 @@ describe('f321 (1) a sixth tab, and it is a name added in one place', () => {
     assert.match(CODE, /IG_TABS\.indexOf\(intel\.tab\)<0/);
     assert.match(CODE, /IG_TABS\.map\(k=>tabBtn\(k,i18t\(IG_TAB_LABEL\[k\]\)\)\)/);
   });
-  test('1c intelGoTab reaches it, because it asks IG_TABS too', () => {
-    const w = world(book());
-    w.intelGoTab('exposure');
-    assert.equal(w.intel.tab, 'exposure');
+  /* RE-POINTED 29 Oct 2026: the Insights page is gone (owner: "delete insights
+     from HaTi itself"); its door onto a tab now lands on the Board, the map on
+     Home's Explorer. The register's counting stays and is read below. */
+  test('1c intelGoTab lands on the Board now that Insights is gone', () => {
+    assert.match(CODE, /function intelGoTab\(k\)\{[\s\S]*?setView\('dashboard'\);\s*\}/);
   });
   test('1d the label is a KEY, resolved at draw time, in both books', () => {
     assert.equal(world(book()).IG_TAB_LABEL.exposure, 'int_exposure');

@@ -160,7 +160,7 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     const C1 = await until(() => { const c = document.querySelector('#st-side .st-jb-card'); if (!c) return null; const f = c.querySelector('.st-jb-fine'); const cs = getComputedStyle(c);
       const r = c.getBoundingClientRect(), fr = f ? f.getBoundingClientRect() : null;
       return { bg: cs.backgroundColor, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, fineIn: fr ? Math.round(fr.left - r.left + parseFloat(getComputedStyle(f).paddingLeft)) : null, fineBottom: fr ? Math.round(r.bottom - fr.bottom) : null }; });
-    check('C1 a Settings card: one soft grey, no edge, 18px round', !!C1 && C1.bg === 'rgb(242, 242, 245)' && C1.border === '0px' && C1.radius === '18px', JSON.stringify(C1));
+    check('C1 a Settings card: one soft grey, no edge, 10px round (29 Oct 2026)', !!C1 && C1.bg === 'rgb(242, 242, 245)' && C1.border === '0px' && C1.radius === '10px', JSON.stringify(C1));
     check('C2 "Found without AI · free" sits inside the card, never at its edge', !!C1 && C1.fineIn >= 12 && C1.fineBottom >= 0, JSON.stringify(C1));
     /* the same card in the ✦ window (.jb-turn), where the footnote had no spacing */
     await page.evaluate(() => { if (!(ai.open && ai.win)) openAI(null, { win: true }); });
@@ -177,7 +177,7 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await homeFace('board'); await until(() => !!document.getElementById('igd-input'));
     await page.evaluate(() => intelAsk('help'));
     const C4 = await until(() => { const c = document.querySelector('#ig-dock .ca-card'); if (!c) return null; const cs = getComputedStyle(c); return { bg: cs.backgroundColor, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, pad: cs.paddingLeft }; });
-    check('C4 his own card (Words I know): the same grey, no edge, 18px round, 16px inside', !!C4 && C4.bg === 'rgb(242, 242, 245)' && C4.border === '0px' && C4.radius === '18px' && C4.pad === '16px', JSON.stringify(C4));
+    check('C4 his own card (Words I know): the same grey, no edge, 10px round, 16px inside', !!C4 && C4.bg === 'rgb(242, 242, 245)' && C4.border === '0px' && C4.radius === '10px' && C4.pad === '16px', JSON.stringify(C4));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `C-cards-${w}x${hh}.png`) }); }
 
     check('D no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

@@ -715,14 +715,8 @@ function mWireScreen(root){
   /* Search: repaint the list only, and put the caret back where it was. A full
      repaint on every keystroke would otherwise take the keyboard down. */
   const q = root.querySelector('#m-reg-q');
-  /* ROUND 6: the box narrows the list as you type; a QUESTION sent with Enter goes to Jambo (lhIsQuestion, the
-     computer's list-head reading), so "or ask Jambo" is true */
-  mHeadOnce(q,'mbAsk','keydown', e=>{
-    if(e.key!=='Enter') return;
-    const words = String(q.value||'').trim();
-    if(!words || typeof lhIsQuestion!=='function' || !lhIsQuestion(words)) return;
-    e.preventDefault(); if(window.openAI) openAI(words);
-  });
+  /* the box narrows the list as you type and only searches (owner, 29 Oct 2026: "AI questions should only go
+     to the jambo panel"; it said "or ask Jambo" and sent a question there since round 6) */
   /* Home's ask box IS Jambo: its words go to his one conversation */
   const ask = root.querySelector('[data-m-ask]');
   mHeadOnce(ask,'mbHomeAsk','submit', e=>{
@@ -776,7 +770,7 @@ function mWireScreen(root){
     };
     if(go && go.nav==='redline'){ mGo('negotiations'); return; }
     if(go && go.nav){ mGo('handoff', { deskView:go.nav }); return; }
-    if(go && go.intelTab){ mGo('handoff', { deskView:'intel' }); return; }
+    if(go && go.intelTab){ mGo('handoff', { deskView:'dashboard' }); return; } /* Insights is gone (29 Oct 2026): its figures are on the Board */
     if(go && go.copilot==='unread'){
       const live = (state.contracts||[]).filter(c=>c && !c.archived && c.status!=='Declined');
       onlyIds(live.filter(c=>!(window.copilotRead && copilotRead(c))).map(c=>c.id), kpi.label);

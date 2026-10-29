@@ -915,7 +915,7 @@ function hmMapData(sl){
   let hurt=null;
   if(typeof exposureData==='function'){
     try{ const e=exposureData(); const r=((e&&e.rows)||[]).find(x=>x.k===e.lead)||null;
-      hurt=r?{ k:r.k, title:String(r.title||''), n:r.n||0, v:money?r.value:null }:{ k:null, n:0 }; }catch(_){ hurt=null; }
+      hurt=r?{ k:r.k, title:String(r.title||''), n:r.n||0, v:money?r.value:null, ids:(r.ids||[]).slice() }:{ k:null, n:0, ids:[] }; }catch(_){ hurt=null; }
   }
   const owed = S.owedW || (typeof hmOwed==='function' ? hmOwed(cs, money) : { n:0, late:0, sum:0, left:0, canMoney:false });
   /* TURNAROUND IS THE TILE'S OWN AVERAGE, and its door opens exactly the
@@ -1088,7 +1088,8 @@ function hmMapWire(el, d){
       let name=''; try{ name=new Date(M.y,M.m,1).toLocaleDateString(langLocale(),{month:'long',year:'numeric'}); }catch(_){}
       only(M.ids,i18t('home_map_ending_in',{month:name})); return; }
     if(kind==='window'){ only(d.win.ids,i18t('home_map_window_label',{d:d.win.d})); return; }
-    if(kind==='hurt'){ if(window.intelGoTab) intelGoTab('exposure'); else setView('intel'); return; }
+    /* Insights is gone (29 Oct 2026): the line opens the contracts it counts, on Contracts */
+    if(kind==='hurt'){ only(d.hurt&&d.hurt.ids, d.hurt?d.hurt.title:''); return; }
     if(kind==='owed'){ if(window.obwGoFiltered) obwGoFiltered({state:'open', side:'theirs'}); else setView('obligations'); return; }
     if(kind==='turn'){ only(d.turn&&d.turn.ids,i18t('home_map_turn_label')); return; }
   });

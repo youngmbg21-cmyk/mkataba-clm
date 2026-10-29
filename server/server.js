@@ -13962,7 +13962,7 @@ function copilotNotNewPaper(question, final) {
    what needs you, the calendar or a list — the answer stays in the box it was asked in, on every page. A trip
    with no exact door to one of these places is dropped; "how do I get to…", "where / show me" still go, and a
    place that is an ACT (draft, upload, share, sign, a setting, the brief, our paper, our standards) keeps its trip */
-const COPILOT_LOOK_TASKS = ['needs', 'contracts', 'expiring', 'oblig', 'history', 'calendar', 'approvals', 'parties', 'people', 'requests', 'board', 'insights', 'explorer'];
+const COPILOT_LOOK_TASKS = ['needs', 'contracts', 'expiring', 'oblig', 'history', 'calendar', 'approvals', 'parties', 'people', 'requests', 'board', 'explorer'];
 const COPILOT_WAY_RE = /\b(how (do|can|would|should) (i|we) (get|go|reach|find)|get to|go to|navigate|bring me|hur (kommer|hittar) (jag|vi)|gå till|ta mig)\b/i;
 /* A CHAPTER IS A BUTTON, NEVER A MOVE (26 Oct 2026): the answer already carries the chapter's steps, so the reader
    stays where they asked and the chapter waits under the answer as one press ("Handbook › 4.2 Before you sign"),

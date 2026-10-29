@@ -83,7 +83,6 @@ const M_VIEW_FOR_SCREEN = {
    no door is a screen the reader assumes has been taken away; a door onto an
    honest "not here" is a screen they know where to find. */
 const M_DESK = [
-  { view:'intel',      get label(){ return i18t('m_insights'); },        get note(){ return i18t('m_insights_sub'); } },
   { view:'reports',    get label(){ return i18t('m_reports'); },         get note(){ return i18t('m_reports_sub'); } },
   { view:'calendar',   get label(){ return i18t('m_calendar'); },        get note(){ return i18t('m_calendar_sub'); } },
   { view:'templates',  get label(){ return i18t('m_templates'); },       get note(){ return i18t('m_templates_sub'); } },

@@ -18,7 +18,7 @@
  *      Escape brings everything back;
  *   9. the Board's light screen wears the platform's own ink (RE-POINTED
  *      20 Oct 2026: there is no dark platform and no Light | Dark switch);
- *  10. Insights has no Explorer tab, and an old door to it lands on Home.
+ *  10. An old door to Explorer lands on Home (10a, about the Insights page, retired 29 Oct 2026).
  * Every driven half is guarded, so a missing feature REPORTS rather than
  * times out (the house rule). */
 const fs = require('node:fs');
@@ -263,11 +263,9 @@ const CONTRACTS = [
     ok('9a the Board\'s light screen writes in the platform\'s own ink, and nothing switches it dark', !!ink.hb && ink.hb === ink.text && !ink.dark && !ink.sw, JSON.stringify(ink));
     await page.screenshot({ path: path.join(OUT, '9-light-board-ink.png') });
 
-    /* ===== 10. INSIGHTS KEEPS THE DETAIL ===== */
-    await page.evaluate(() => setView('intel'));
-    await until(page, () => state.view === 'intel' && !!document.querySelector('[data-ig-tab]'));
-    ok('10a Insights has no Explorer tab', await page.evaluate(() =>
-      !!document.querySelector('[data-ig-tab="frame"]') && !document.querySelector('[data-ig-tab="map"]')));
+    /* ===== 10. AN OLD DOOR TO EXPLORER LANDS ON HOME =====
+       10a RETIRED 29 Oct 2026: measured the Insights page, which the owner had
+       deleted ("Insights has no Explorer tab"). */
     await page.evaluate(() => { intel.tab = 'map'; setView('intel'); });
     ok('10b an old door to Explorer lands on Home\'s Explorer side', await until(page, () =>
       state.view === 'dashboard' && hbS().face === 'explorer' && igMapUp(), null, 10000));

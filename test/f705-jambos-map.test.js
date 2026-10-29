@@ -126,8 +126,10 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
   /* RE-POINTED 22 Oct 2026 (owner: "take me to my settings for jambo", "take me to jambo points"):
      Jambo's own two rows of Settings › You are the 35th and 36th, read only where he is named */
   test('1a thirty-six tasks, each named once, the brief the 32nd, Ask a column the 33rd, Our standards the 34th, Jambo\'s two the 35th and 36th', () => {
-    assert.equal(T.length, 36);
-    assert.equal(new Set(T.map(x => x.k)).size, 36);
+    /* 35 since 29 Oct 2026: the Insights task went with the page (owner: "delete insights from HaTi itself"); its words are the Board's */
+    assert.equal(T.length, 35);
+    assert.equal(new Set(T.map(x => x.k)).size, 35);
+    assert.ok(!T.some(x => x.k === 'insights'), 'no task leads to Insights');
     assert.ok(T.some(x => x.k === 'jamboset' && x.jambo === true && x.to.st === 'you:work'));
     assert.ok(T.some(x => x.k === 'jambopts' && x.jambo === true && x.to.st === 'you:points'));
     assert.ok(T.some(x => x.k === 'standards' && x.to.place === 'ourpaper' && x.to.std === true));
@@ -201,7 +203,7 @@ const EXAM = [
   ['I need help from legal', 'requests'], ['how do I ask the lawyers for a contract?', 'requests'], ['jag behöver juridisk hjälp', 'requests'],
   ['where are our standard templates?', 'ourpaper'], ['open the clause library', 'ourpaper'], ['var finns våra mallar?', 'ourpaper'],
   ['show me the dashboard', 'board'], ['where are the key figures?', 'board'], ['visa nyckeltalen', 'board'],
-  ['import from excel', 'import'], ['I want to see reports', 'insights'], ['spend analysis by supplier', 'insights'], ['visa statistik', 'insights'],
+  ['import from excel', 'import'], ['I want to see reports', 'board'], ['spend analysis by supplier', 'board'], ['visa statistik', 'board'],
   /* the 31st task (owner, 18 Oct 2026): Explorer, every contract on one map */
   ['how are our contracts connected?', 'explorer'], ['show me all our contracts on a map', 'explorer'], ['where can I see the outliers?', 'explorer'],
   ['jag vill utforska alla avtal', 'explorer'], ['visa avtalen på en karta', 'explorer'],

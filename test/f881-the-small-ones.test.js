@@ -37,7 +37,7 @@ describe('f881 (12) — the page and the panel are level', () => {
   test('the builder\'s panel floats as every panel does, its top on the head card\'s ring', () => {
     assert.match(TB, /@media \(min-width:1101px\)\{[\s\S]*?#tb-railslot\{margin:-6px calc\(8px - var\(--page-pad-x\)\) calc\(8px - var\(--page-pad-b\)\) 0\}/);
     assert.match(TB, /\.tb-page:not\(\.no-rail\) > \.tb-left\{margin-bottom:calc\(8px - var\(--page-pad-b\)\)\}/);
-    assert.match(TB, /\.tb-rail\.tb-jl\{border-left:0;border-radius:20px;box-shadow:var\(--shadow-sm\)\}/);
+    assert.match(TB, /\.tb-rail\.tb-jl\{border-left:0;border-radius:var\(--radius-lg\);box-shadow:var\(--shadow-sm\)\}/);
   });
   test('Our paper, the Calendar and the Board meet the panel\'s lines', () => {
     assert.match(LIB, /class="view-enter sap-page tpl-page" style="padding:var\(--page-pad\);padding-bottom:var\(--tpl-pb,var\(--page-pad\)\)"/);

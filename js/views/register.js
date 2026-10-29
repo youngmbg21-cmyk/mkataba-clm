@@ -3811,7 +3811,7 @@ function renderRegister(opts){
          The bottom stays a typed 14 — it is the gap above the table, not a
          join with anything. */}
   ${HOME?`<div class="sap-page ct-page" data-reg-home="1" data-ct-show="${esc(R.show==='list'?'list':'wall')}">`
-  :`<div class="view-enter sap-page${neg?' ngl-page':''}" data-ins-page="register" data-ins="${INS?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">`}
+  :`<div class="view-enter sap-page${neg?' ngl-page':''}" data-ins-page="register" data-ins="${INS?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) var(--ngl-pb,14px);display:flex;flex-direction:column">`}
     <style>
       /* ---- THE PROTOTYPE'S TABLE ----
          The reference is a rounded card with an uppercase 10px header band, p-4

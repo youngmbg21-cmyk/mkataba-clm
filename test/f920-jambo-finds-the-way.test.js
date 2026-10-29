@@ -136,7 +136,7 @@ const EXAM = [
   ['I want to ask legal for help', 'requests'], ['where do I submit a contract request?', 'requests'],
   ['where are the templates?', 'ourpaper'], ['take me to our paper', 'ourpaper'], ['visa mallarna', 'ourpaper'],
   ['go to the dashboard', 'board'], ['take me home', 'place:counter'],
-  ['open the reports', 'insights'], ['where are the analytics?', 'insights'],
+  ['open the reports', 'board'], ['where are the analytics?', 'board'],
   ['open explorer', 'explorer'], ['a map of all our contracts', 'explorer'],
   ['give me the brief of this contract', 'brief'],
   ['where do I add a new user?', 'team'], ['invite someone to HaTi', 'team'],

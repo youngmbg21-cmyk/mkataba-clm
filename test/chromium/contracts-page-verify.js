@@ -315,8 +315,9 @@ const check = (name, ok, detail) => {
     check('8b the page name, the box, its views and its filters sit on one white card',
       !!band.head && band.head.bg === band.surface && band.head.bg !== band.ground,
       `head ${band.head && band.head.bg} · surface ${band.surface} · ground ${band.ground}`);
-    check('8c and the list\'s own card follows at the page\'s gap, its table at its top',
-      !!band.head && !!band.card && !!band.body && Math.abs((band.card.top - band.head.bottom) - band.gap) <= 2 && band.body.top - band.card.top <= 2,
+    /* RE-POINTED 29 Oct 2026 (One sheet, the owner's pick): the head and the list are one sheet, no gap */
+    check('8c and the list\'s own card follows with no gap (one sheet), its table at its top',
+      !!band.head && !!band.card && !!band.body && Math.abs(band.card.top - band.head.bottom) <= 1 && band.body.top - band.card.top <= 2,
       band.card ? `head ends ${band.head.bottom}, card starts ${band.card.top} (gap ${band.gap}), table at ${band.body.top}` : 'missing');
     check('8d the two cards share one edge, level with each other',
       !!band.card && !!band.head && Math.abs(band.card.left - band.head.left) <= 1 && Math.abs(band.card.right - band.head.right) <= 1,
@@ -481,14 +482,17 @@ const check = (name, ok, detail) => {
       const c = getComputedStyle(a); return { bc: c.borderTopColor, bs: c.borderTopStyle, fg: c.color, r: c.borderTopLeftRadius }; };
     const rest = await page.evaluate(ADD);
     const ruleStrong = await page.evaluate(RESOLVE, '--rule-strong');
-    check('12a "+ Filter" at rest wears the hairline, dashed, as drawn',
-      !!rest && rest.bc === ruleStrong && rest.bs === 'dashed', rest ? `${rest.bc} ${rest.bs} · token ${ruleStrong}` : 'no + Filter');
+    /* RE-POINTED 29 Oct 2026 (THREE BUTTON STYLES, the owner's ruling): "+ Filter" is a grey pill, no edge, the ink */
+    const pillBg = await page.evaluate(() => { const d = document.createElement('div'); d.style.background = 'var(--surface-2)'; document.body.appendChild(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
+    const restBg = await page.evaluate(() => { const a = document.querySelector('[data-lh-seat="contracts"] .lh-add'); return a ? getComputedStyle(a).backgroundColor : null; });
+    check('12a "+ Filter" at rest is a grey pill: the pill ground, no visible edge',
+      !!rest && restBg === pillBg && rest.bc === 'rgba(0, 0, 0, 0)', rest ? `${restBg} · edge ${rest.bc} · pill ${pillBg}` : 'no + Filter');
     check('12a2 …and the search box it used to walk is gone from the row',
       !(await page.evaluate(() => !!document.getElementById('reg-search'))), 'not drawn');
     const btnEdge = await page.evaluate(RESOLVE, '--btn-edge');
     const ctlRadius = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--radius').trim());
-    check('12b and it wears the soft control corner, as the mockup draws it',
-      !!rest && parseFloat(rest.r) === parseFloat(ctlRadius), `radius ${rest && rest.r} vs --radius ${ctlRadius}`);
+    check('12b and it is round as a pill',
+      !!rest && parseFloat(rest.r) >= 99, `radius ${rest && rest.r} (--radius ${ctlRadius})`);
     check('12c the button\'s own edge is a real colour',
       /^(rgba?|color)\(/.test(btnEdge), btnEdge);
     /* A FILTER IN FORCE SAYS SO: a chip, its value at the strong weight beside
@@ -505,11 +509,12 @@ const check = (name, ok, detail) => {
     check('12d a filter in force stands as a chip, its value at a heavier weight than its label (both the ink)',
       !!act && act.bw > act.lw && act.bfg === act.lfg, JSON.stringify(act));
     check('12e and "+ Filter" beside it stays resting, so the narrowing is legible',
-      !!actAdd && actAdd.bc === ruleStrong && actAdd.bs === 'dashed', actAdd && `${actAdd.bc} ${actAdd.bs}`);
+      !!actAdd && actAdd.bc === 'rgba(0, 0, 0, 0)' && actAdd.bc !== act.bc, actAdd && `${actAdd.bc} ${actAdd.bs} · chip ${act && act.bc}`);
     /* RE-POINTED 20 Oct 2026 (Chambers, no dark mode) and 21 Oct 2026 (Part 8) */
     const accentInk = await page.evaluate(INK, '--accent-ink');
-    check('12f "+ Filter"\'s ink is the accent ink token, --accent-ink, as drawn',
-      !!actAdd && actAdd.fg === accentInk, `+ Filter ${actAdd && actAdd.fg} · token ${accentInk}`);
+    const textInk = await page.evaluate(INK, '--color-text');
+    check('12f "+ Filter"\'s ink is the text ink, as every grey pill\'s (the accent is for links)',
+      !!actAdd && actAdd.fg === textInk && textInk !== accentInk, `+ Filter ${actAdd && actAdd.fg} · text ${textInk}`);
     check('12f and the chip wears the hairline, --chip-edge reading --rule-strong',
       !!act && act.bc === chipEdge && chipEdge === ruleStrong, act && act.bc);
     const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),

@@ -356,7 +356,11 @@ const SEED = async () => {
          it cannot fit in — the state a full register puts it in every day
          (shorter than its rows now the group headings no longer add theirs,
          and still taller than the header). */
-      const want = Math.max(Math.round(th.getBoundingClientRect().height) + 24, Math.min(150, sc.scrollHeight - 30));
+      /* RE-POINTED 29 Oct 2026 (One sheet): the list's card now reaches the panel's foot, so the scroller is
+         taller than its rows at rest — the rows' own height, not the scroller's, says what will not fit */
+      const tbl = sc.querySelector('.reg-table');
+      const rowsH = tbl ? Math.round(tbl.getBoundingClientRect().height) : sc.scrollHeight;
+      const want = Math.max(Math.round(th.getBoundingClientRect().height) + 24, Math.min(150, rowsH - 30));
       sc.style.height = want + 'px'; sc.style.flex = 'none';
       await new Promise(r => requestAnimationFrame(r));
       const scR = sc.getBoundingClientRect();
@@ -674,7 +678,8 @@ const SEED = async () => {
       ['Contracts',    () => setView('register')],
       ['Negotiations', () => openNegotiations({ list: true })],
       ['Calendar',     () => setView('calendar')],
-      ['Insights',     () => setView('intel')],
+      /* Insights RETIRED 29 Oct 2026: measured the Insights page, which the
+         owner had deleted (its door now lands on Home). */
       ['Templates',    () => setView('templates')],
       ['Settings',     () => setView('team')],
       ['Reports',      () => setView('reports')],

@@ -7,21 +7,14 @@
    f267 pins the reading in jsdom. THIS file asks the questions jsdom cannot,
    because jsdom lays nothing out and buildWorld never loads the shell:
 
-   1  IS THE TAB REALLY THERE, in fifth place, and does pressing it DRAW?
-      A new tab that draws, registers its press and then redraws the OVERVIEW
-      is this page's own recorded defect — nothing failed and nothing logged,
-      and it was found by looking. So the press is driven and what arrives is
-      read off the page.
-   2  DOES THE CHART AGREE WITH ITS OWN DATA? Every bar's printed figure is
-      checked against the number payTermsData counted, and the bars are
-      measured as PAINT — a chart that quietly disagreed with the reading
-      behind it would pass every source check ever written.
-   3  IS THE EXCEPTION LIST A DOOR? Pressed for real, and the contract it
-      names has to arrive.
-   4  DOES THE TILE LAND HERE? The destination is the tab rather than the
-      register, and a tile that opened the wrong page looks identical in the
-      markup.
-   5  NOTHING SCROLLS SIDEWAYS at any laptop width.
+   RETIRED 29 Oct 2026: everything that measured the Payment terms TAB
+   (sections 1-6, 8, 9, 10, 11f-11h, 14, 15) measured the Insights page, which
+   the owner had deleted. What stays measures payment terms where it still
+   lives:
+   7   the phone's Portfolio tile counts both sides; the desktop Home has none
+   11  the two targets on Settings — drawer, refusal, stored pair, Menu row
+   12  payment terms on the map's Group by, on Home's Explorer
+   13  payment terms under + Filter on Contracts, and its chip
 
    Screenshots go to test/chromium/shots/payment-terms/.
    Run: node test/chromium/payment-terms-verify.js */
@@ -119,261 +112,10 @@ const EXTRA = [
     const seeded = await seedBook();
     check('0 the book is seeded on real records', seeded >= BOOK.length, `${seeded} live contracts`);
 
-    /* ─── 1 · the tab is on the row, fifth, after Obligations ─── */
-    await page.evaluate(() => { if (window.intel) intel.tab = 'frame'; setView('intel'); });
-    await page.waitForTimeout(900);
-
-    const row = await page.evaluate(() => Array.from(document.querySelectorAll('[data-ig-tab]'))
-      .map(b => ({ k: b.getAttribute('data-ig-tab'), text: b.textContent.trim(),
-                   w: b.getBoundingClientRect().width, x: Math.round(b.getBoundingClientRect().left) })));
-    check('1a the row draws five tabs', row.length === 5, row.map(r => r.k).join(' · '));
-    check('1b payment terms sits after obligations',
-      row[3] && row[3].k === 'payterms' && row[2] && row[2].k === 'obligations',
-      row.map(r => r.k).join(' > '));
-    /* RE-POINTED 11 Oct 2026: the contract graph (Explorer) moved to Home
-       (INSIGHTS: IG_TABS Portfolio · Friction · Obligations · Payment terms ·
-       Exposure, "Explorer on Home"), so Exposure closes the row. */
-    check('1c and before Exposure, with the graph gone to Home', row[4] && row[4].k === 'exposure' && !row.some(r => r.k === 'map'), row.map(r => r.k).join(' > '));
-    check('1d it is painted, not merely present',
-      row[3] && row[3].w > 40, row[3] && `${Math.round(row[3].w)}px wide at x=${row[3].x}`);
-    check('1e it is translated, not a raw key',
-      row[3] && !/^pt_/.test(row[3].text) && row[3].text.length > 2, row[3] && row[3].text);
-
-    /* ─── 2 · the press DRAWS this page, not the overview ─── */
-    await page.click('[data-ig-tab="payterms"]');
-    await page.waitForTimeout(900);
-    const arrived = await page.evaluate(() => ({
-      tab: window.intel && intel.tab,
-      body: !!document.getElementById('ig-pt-body'),
-      inner: !!document.getElementById('ig-pt'),
-      /* the overview's own host, which is what a dead press would redraw */
-      frame: !!document.getElementById('ig-frame'),
-      live: (document.querySelector('[data-ig-tab="payterms"]') || {}).style
-        ? getComputedStyle(document.querySelector('[data-ig-tab="payterms"]')).fontWeight : '',
-    }));
-    check('2a the press moves the page to this tab', arrived.tab === 'payterms', arrived.tab);
-    check('2b the tab body really drew', arrived.body && arrived.inner,
-      `body ${arrived.body} · inner ${arrived.inner}`);
-    check('2c it did NOT redraw the overview', !arrived.frame,
-      arrived.frame ? 'the portfolio frame is on screen' : 'the frame is gone');
-    check('2d the live tab is bold', Number(arrived.live) >= 600, arrived.live);
-    await page.screenshot({ path: path.join(OUT, '01-tab.png'), fullPage: true });
-
-    /* ─── 3 · the heroes, against the reading behind them ─── */
-    const d = await reading();
-    const heroText = await page.evaluate(() => (document.getElementById('ig-pt') || {}).textContent || '');
-    check('3a both sides are counted and printed',
-      d.cust != null && d.supp != null && heroText.includes(String(d.cust)) && heroText.includes(String(d.supp)),
-      `wait ${d.cust}d across ${d.custN} · pay ${d.supp}d across ${d.suppN}`);
-    check('3b the gap is the difference between them',
-      d.gap === d.cust - d.supp && heroText.includes(String(Math.abs(d.gap))),
-      `${d.cust} - ${d.supp} = ${d.gap}`);
-
-    /* ─── 4 · the chart agrees with its own data ─── */
-    const chart = await page.evaluate(() => {
-      const root = document.getElementById('ig-pt');
-      const plot = root && root.querySelector('[role="img"] > div');
-      if (!plot) return null;
-      const cols = Array.from(plot.children).filter(el => el.tagName === 'SPAN' && el.children.length === 2);
-      return {
-        cols: cols.length,
-        bars: cols.map(col => Array.from(col.children).map(b => {
-          const r = b.getBoundingClientRect();
-          return { h: Math.round(r.height), w: Math.round(r.width),
-                   label: (b.textContent || '').trim(), bg: getComputedStyle(b).backgroundColor };
-        })),
-        axis: Array.from(root.querySelectorAll('[role="img"] > div:nth-child(2) > span')).map(s => s.textContent.trim()),
-        /* THE BOUNDARY IS A LINE PER SIDE NOW, and its caption is a sibling row
-           under the axis rather than text hanging off the line. Read as PAINT:
-           x, colour and the caption's own centre, because "is the caption on
-           the line" is a geometry question and cannot be asked of markup. */
-        lines: Array.from(plot.querySelectorAll('span')).filter(el =>
-          getComputedStyle(el).borderLeftStyle === 'dashed').map(el => {
-            const r = el.getBoundingClientRect();
-            return { x: Math.round(r.left), ink: getComputedStyle(el).borderLeftColor };
-          }),
-        caps: Array.from(root.querySelectorAll('[role="img"] > div:nth-child(n+3) > span')).map(el => {
-          const r = el.getBoundingClientRect();
-          return { text: el.textContent.trim(), mid: Math.round(r.left + r.width / 2),
-                   top: Math.round(r.top), ink: getComputedStyle(el).color };
-        }),
-        axisTop: Math.round(root.querySelector('[role="img"] > div:nth-child(2)').getBoundingClientRect().top),
-        /* THE THING THE OWNER RINGED: a filled block running from the standard
-           to the right edge. Measured as a painted box inside the plot rather
-           than as a class, because a rule that lost a cascade fight would look
-           perfectly correct in the source. */
-        shaded: Array.from(plot.children).filter(el => {
-          const st = getComputedStyle(el);
-          const bg = st.backgroundColor;
-          return el.children.length === 0 && bg && bg !== 'rgba(0, 0, 0, 0)' &&
-                 el.getBoundingClientRect().width > 40;
-        }).length,
-        marks: Array.from(plot.querySelectorAll('[data-pt-n]')).map(el => ({
-          text: el.textContent.trim(), ink: getComputedStyle(el).color })),
-        /* the ruby token resolved on this page, in this theme — 4j asks for
-           it by name rather than by a number typed into the test (20 Sep 2026) */
-        ruby: (() => { const e = document.createElement('i'); e.style.color = 'var(--st-ruby-fg)';
-          plot.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; })(),
-        plotBox: { x: Math.round(plot.getBoundingClientRect().left), w: Math.round(plot.getBoundingClientRect().width) },
-      };
-    });
-    check('4a the chart drew a column per bucket', chart && chart.cols === 5, chart && chart.cols);
-    const labelsMatch = chart && chart.bars.every((col, i) =>
-      Number(col[0].label) === d.buckets.c[i] && Number(col[1].label) === d.buckets.s[i]);
-    check('4b every printed figure is the figure the reading counted', labelsMatch,
-      chart ? chart.bars.map((c, i) => `${c[0].label}/${c[1].label}`).join(' ') +
-        ' vs ' + d.buckets.c.map((n, i) => `${n}/${d.buckets.s[i]}`).join(' ') : 'no chart');
-    /* A TALLER BAR IS A BIGGER NUMBER. A chart whose heights did not follow its
-       own counts would still print the right labels. */
-    const heightsFollow = chart && chart.bars.every((col, i) => chart.bars.every((other, j) =>
-      d.buckets.c[i] <= d.buckets.c[j] ? col[0].h <= other[0].h + 1 : true));
-    check('4c a taller bar is a bigger count', heightsFollow,
-      chart && chart.bars.map((c, i) => `${d.buckets.c[i]}=${c[0].h}px`).join(' '));
-    check('4d the two sides are tellable apart as colour',
-      chart && chart.bars[0] && chart.bars[0][0].bg !== chart.bars[0][1].bg,
-      chart && chart.bars[0] && `${chart.bars[0][0].bg} vs ${chart.bars[0][1].bg}`);
-    check('4e the axis names every bucket', chart && chart.axis.length === 5, chart && chart.axis.join(' '));
-    /* 4f-4j REVERSED IN PLACE (owner-reported 2 Sep 2026: "i do not understand
-       this chart", off a screenshot with the shaded right-hand side ringed).
-       The claim was never "a rule is drawn" -- it was that a reader can see
-       where the boundary is. It is a line per side now, captioned under the
-       axis, and nothing at all is shaded. */
-    check('4f nothing is shaded — the block the owner ringed is gone',
-      chart && chart.shaded === 0, chart && `${chart.shaded} filled box(es) behind the bars`);
-    check('4g a boundary line is drawn and sits inside the plot',
-      chart && chart.lines.length >= 1 &&
-        chart.lines.every(L => L.x >= chart.plotBox.x - 1 && L.x <= chart.plotBox.x + chart.plotBox.w + 1),
-      chart && `${chart.lines.length} line(s) at ${chart.lines.map(L => L.x).join(', ')} in ${chart.plotBox.x}..${chart.plotBox.x + chart.plotBox.w}`);
-    check('4h the caption names the number and sits UNDER the axis',
-      chart && chart.caps.length === chart.lines.length && chart.caps.length > 0 &&
-        chart.caps.some(c => c.text.includes(String(d.standard))) &&
-        chart.caps.every(c => c.top > chart.axisTop),
-      chart && chart.caps.map(c => `"${c.text}" @${c.top} (axis ${chart.axisTop})`).join(' · '));
-    check('4i and it is centred ON its own line, not hanging beside it',
-      chart && chart.caps.length > 0 &&
-        chart.caps.every((c, i) => Math.abs(c.mid - chart.lines[i].x) <= 6),
-      chart && chart.caps.map((c, i) => `cap ${c.mid} vs line ${chart.lines[i] && chart.lines[i].x}`).join(' · '));
-    /* A BAND PAST THE LINE IS MARKED, AND NEVER IN A SIDE'S OWN COLOUR — amber
-       is already the money-going-out side on this chart. */
-    const rubyMarks = chart ? chart.marks.filter(m => m.ink === chart.ruby) : [];
-    check('4j a band past its side\'s line is marked, in neither side colour',
-      rubyMarks.length > 0 && rubyMarks.every(m => Number(m.text) > 0),
-      chart && chart.marks.map(m => `${m.text}:${m.ink}`).join(' '));
-
-    /* ─── 5 · ONE TABLE, AND IT IS A DOOR ───
-       REVERSED IN PLACE 2 Sep 2026 (owner-asked: "make this one scrollable
-       table with only 'What is driving the gap'. It should have columns for
-       contract number, value stream, and value as well"). The two cards became
-       one table; what this section was always about — a row per contract, as
-       visible pixels, in the reading's own order, and pressing one opens that
-       contract — is unchanged and is asked of the table. */
-    const tbl = await page.evaluate(() => {
-      const card = Array.from(document.querySelectorAll('#ig-pt > section')).find(sec =>
-        /driving the gap|driver gapet/i.test(sec.textContent || ''));
-      if (!card) return { card:false, rows:[], heads:[] };
-      const scroller = card.querySelector('[style*="max-height"]');
-      const rows = Array.from(card.querySelectorAll('[data-pt-open]')).map(b => {
-        const r = b.getBoundingClientRect();
-        return { id:b.getAttribute('data-pt-open'), text:(b.textContent || '').replace(/\s+/g, ' ').trim(),
-                 cells:Array.from(b.children).map(c => (c.textContent || '').trim()),
-                 w:Math.round(r.width), h:Math.round(r.height) };
-      });
-      const headRow = card.querySelector('div[style*="grid-template-columns"]');
-      return { card:true, rows,
-        heads: headRow ? Array.from(headRow.children).map(c => (c.textContent || '').trim()) : [],
-        headCols: headRow ? getComputedStyle(headRow).gridTemplateColumns : '',
-        rowCols: rows.length ? getComputedStyle(card.querySelector('[data-pt-open]')).gridTemplateColumns : '',
-        scrolls: !!scroller && getComputedStyle(scroller).overflowY === 'auto',
-        maxH: scroller ? Math.round(parseFloat(getComputedStyle(scroller).maxHeight)) : 0,
-        /* STICKY INSIDE THE SCROLLER, not a sibling above it: a sibling is not
-           the same width the moment the scroller grows a scrollbar, and then
-           the head and the rows stop lining up. */
-        headSticky: !!(scroller && headRow && scroller.contains(headRow) &&
-                       getComputedStyle(headRow).position === 'sticky'),
-      };
-    });
-    /* REVERSED IN PLACE 2 Sep 2026, owner-ruled: "the card should have
-       contracts that put you at a disadvantage when it comes to payment
-       terms." The population is `against`, not every counted contract. */
-    check('5a one table, holding exactly the contracts that are against you',
-      tbl.card && tbl.rows.length === Math.min(d.against.length, tbl.rows.length) &&
-        tbl.rows.every(r => d.against.some(a => a.id === r.id)) &&
-        d.against.length > 0 && d.against.length < d.custN + d.suppN,
-      `${tbl.rows.length} rows · against ${d.against.length} of ${d.custN + d.suppN} counted`);
-    check('5b the second card is gone, not stacked below it',
-      tbl.card && !(await page.evaluate(() => /outside your standard/i.test(
-        (document.getElementById('ig-pt') || {}).textContent || ''))),
-      'one list');
-    check('5c every row is visible pixels', tbl.rows.length > 0 && tbl.rows.every(r => r.w > 100 && r.h > 10),
-      tbl.rows.map(r => `${r.w}x${r.h}`).join(' '));
-    check('5d it is in the reading\'s own order, largest first',
-      JSON.stringify(tbl.rows.map(r => r.id)) ===
-        JSON.stringify(d.against.map(a => a.id).slice(0, tbl.rows.length)),
-      `${tbl.rows.map(r => r.id).join(',')} · reading ${d.against.map(a => a.id).join(',')}`);
-    check('5e it has the three columns the owner asked for, and they are labelled',
-      tbl.heads.length === 7 && /contract/i.test(tbl.heads[0]) &&
-        /value stream/i.test(tbl.heads[2]) && /value/i.test(tbl.heads[6]),
-      tbl.heads.join(' | '));
-    check('5f the head row and the data rows share ONE column template',
-      tbl.headCols && tbl.headCols === tbl.rowCols, `${tbl.headCols} vs ${tbl.rowCols}`);
-    check('5g every row carries its reference, its stream and its value',
-      tbl.rows.length > 0 && tbl.rows.every(r => /^MK-|^PT-/.test(r.cells[0]) && r.cells[2] && r.cells[6]),
-      tbl.rows[0] && tbl.rows[0].cells.join(' | '));
-    check('5h each row names its side in words',
-      tbl.rows.every(r => /customer|supplier|kund|leverant/i.test(r.text)),
-      tbl.rows[0] && tbl.rows[0].text.slice(0, 70));
-    /* REVERSED IN PLACE 2 Sep 2026: "This table should be the same height as
-       the chart above it. If the list is long then it will have pages to click
-       to." A paged box never grows a scrollbar, which is what lets the head row
-       be a plain sibling again.
-       REVERSED AGAIN 29 Sep 2026 (owner-picked "Fit to Screen": "update fit to
-       screen where the graph is above the what is driving the gap card"). The
-       chart sits ABOVE the table, both full width, and the table's rows scroll
-       INSIDE its card under a head row that sticks inside the same scroller. */
-    const box = await page.evaluate(() => {
-      const card = document.getElementById('ig-pt-table');
-      const chart = document.getElementById('ig-pt-chart');
-      const rows = document.getElementById('ig-pt-rows');
-      const head = rows && rows.querySelector('.pt-head');
-      const R = el => el ? el.getBoundingClientRect() : null;
-      const c = R(chart), t = R(card);
-      return {
-        chartAbove: !!(c && t && c.bottom <= t.top + 1),
-        widths: c && t ? [Math.round(c.width), Math.round(t.width)] : [],
-        rowsOverflow: rows ? getComputedStyle(rows).overflowY : '',
-        headInRows: !!(rows && head && rows.firstElementChild === head),
-        headSticky: head ? getComputedStyle(head).position : '',
-      };
-    });
-    check('5i the chart sits ABOVE the table, and both are full width',
-      box.chartAbove && box.widths.length === 2 && Math.abs(box.widths[0] - box.widths[1]) <= 1,
-      `above ${box.chartAbove} · widths ${box.widths.join(' / ')}`);
-    check('5j the rows scroll inside the card, under a head row that sticks inside the same scroller',
-      box.rowsOverflow === 'auto' && box.headInRows && box.headSticky === 'sticky',
-      `overflow ${box.rowsOverflow} · head in scroller ${box.headInRows} · ${box.headSticky}`);
-
-    const target = tbl.rows[0] && tbl.rows[0].id;
-    await page.click(`#ig-pt [data-pt-open="${target}"]`);
-    await page.waitForTimeout(1400);
-    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): a row's door opens
-       the contract's strip on Home's Board, at the top, the room not drawn */
-    /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): its paper on Home, the Dossier beside it */
-    const landed = await page.evaluate(() => ({ view: state.view, id: state.activeId, strip: window.intel && intel.paper ? intel.paper.id : null, room: !!document.getElementById('ws-tabs') }));
-    check('5k pressing a row opens that contract (its paper on Home)',
-      landed.view === 'dashboard' && landed.id === target && landed.strip === target && !landed.room,
-      `${landed.view} · ${landed.id} · strip ${landed.strip} (wanted ${target})`);
-
-    /* ─── 6 · nothing is folded away ─── */
-    await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });
-    await page.waitForTimeout(900);
-    const honest = await page.evaluate(() => (document.getElementById('ig-pt') || {}).textContent || '');
-    check('6a what could not be read is counted out AND named',
-      d.noTerms === 0 || honest.includes(String(d.noTerms)),
-      `${d.noTerms} with no terms on file`);
-    check('6b a contract on neither side says so',
-      d.noSide === 0 || honest.includes(String(d.noSide)), `${d.noSide} with no category`);
-    check('6c the honest limit is on the page',
-      /bank|accounting/i.test(honest), 'it says what it cannot see');
+    /* ─── 1-6 · RETIRED 29 Oct 2026: measured the Insights page, which the owner had deleted ───
+       The Payment terms tab itself: its place on the row, the press drawing
+       it, the heroes, the chart against its reading, the "driving the gap"
+       table and its door, and the honest counts printed on it. */
 
     /* ─── 7 · the Home tile ───
        RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home Options":
@@ -432,112 +174,9 @@ const EXTRA = [
     check('7d the desktop Home carries no tile — the Board is Home',
       !onDesk.tile && onDesk.board, `tile ${onDesk.tile} · board ${onDesk.board} · map ${onDesk.map}`);
 
-    /* ─── 8 · no page scrolls sideways ─── */
-    await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });
-    for (const w of [1280, 1366, 1440, 1920]) {
-      await page.setViewportSize({ width: w, height: 900 });
-      await page.waitForTimeout(500);
-      const over = await page.evaluate(() => {
-        const el = document.getElementById('ig-pt-body');
-        return el ? { sw: el.scrollWidth, cw: el.clientWidth, body: document.body.scrollWidth <= window.innerWidth + 1 } : null;
-      });
-      check(`8 no sideways scroll at ${w}`,
-        over && over.sw <= over.cw + 1 && over.body,
-        over ? `${over.sw} in ${over.cw}` : 'no body');
-    }
-    await page.setViewportSize({ width: 1500, height: 1100 });
-
-    /* ─── 9 · both languages ─── */
-    await page.evaluate(() => { window.langSet('sv'); intel.tab = 'payterms'; setView('intel'); });
-    await page.waitForTimeout(1000);
-    const sv = await page.evaluate(() => ({
-      tab: (document.querySelector('[data-ig-tab="payterms"]') || {}).textContent || '',
-      body: (document.getElementById('ig-pt') || {}).textContent || '',
-    }));
-    check('9a the tab turns over into Swedish', /Betalningsvillkor/.test(sv.tab), sv.tab.trim());
-    check('9b and so does the page', /Vi v.ntar|Gapet/.test(sv.body), sv.body.slice(0, 60).replace(/\s+/g, ' '));
-    check('9c no key leaked through untranslated', !/\bpt_[a-z_]+/.test(sv.body),
-      (sv.body.match(/\bpt_[a-z_]+/g) || []).slice(0, 3).join(' ') || 'clean');
-    await page.screenshot({ path: path.join(OUT, '03-swedish.png'), fullPage: true });
-
-    await page.evaluate(() => { window.langSet('en'); });
-
-    /* ─── 10 · THE GRAPH FILTERS THE TABLE (owner-asked 2 Sep 2026) ───
-       *"make the page interactive so that when you click on the graphs they
-       filter the table accordingly."* A bar that draws and filters nothing
-       looks identical in the markup, so every press here is DRIVEN and the
-       table is counted off the page afterwards. */
-    await seedBook();
-    await page.evaluate(() => { intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null }; setView('intel'); });
-    await page.waitForTimeout(900);
-    const rowsNow = () => page.evaluate(() =>
-      Array.from(document.querySelectorAll('#ig-pt [data-pt-open]')).map(b => b.getAttribute('data-pt-open')));
-    const bars = await page.evaluate(() => Array.from(document.querySelectorAll('[data-pt-bar]')).map(b => ({
-      k:b.getAttribute('data-pt-bar'), off:b.disabled, tag:b.tagName })));
-    const d3 = await reading();
-    check('10a every bar is a real button, so it is reachable without a mouse',
-      bars.length === 10 && bars.every(b => b.tag === 'BUTTON'), `${bars.length} bars`);
-    check('10b an empty bar is disabled — a press that could only empty the table is dead',
-      bars.filter(b => b.off).length > 0 &&
-        bars.every(b => b.off === !d3.rows.some(r => r.side + '|' + r.bucket === b.k)),
-      /* the chart counts the whole book, so a bar is live wherever the CHART
-         has a contract — the table then explains that none of them is against
-         you, which beats a press that does nothing */
-      bars.map(b => `${b.k}${b.off ? '·off' : ''}`).join(' '));
-
-    const live = bars.find(b => !b.off);
-    /* GUARDED, not optimistic: on a build whose bars are not controls there is
-       nothing to press, and a click on a selector that cannot match times the
-       whole file out instead of failing the four claims it was written for. */
-    if (!live) {
-      ['10c pressing a bar really narrows the table',
-       '10d the narrowing SAYS so and carries the way back',
-       '10e pressing the same bar again clears it — the way back is on what was pressed',
-       '10f the legend narrows to one side',
-       '10g Show all puts the whole table back'].forEach(k => check(k, false, 'no pressable bar'));
-    } else {
-      const want = d3.against.filter(r => r.side + '|' + r.bucket === live.k).map(r => r.id);
-      await page.click(`[data-pt-bar="${live.k}"]`);
-      await page.waitForTimeout(700);
-      const after = await rowsNow();
-      check('10c pressing a bar really narrows the table',
-        JSON.stringify(after) === JSON.stringify(want) && after.length < d3.against.length,
-        `${after.join(',')} · wanted ${want.join(',')} (of ${d3.against.length})`);
-      const said = await page.evaluate(() => {
-        const el = Array.from(document.querySelectorAll('#ig-pt *')).find(x =>
-          /showing \d+ of \d+/i.test(x.textContent || '') && x.children.length === 0);
-        return { text: el ? el.textContent.trim() : '', back: !!document.querySelector('[data-pt-clear]') };
-      });
-      check('10d the narrowing SAYS so and carries the way back', !!said.text && said.back,
-        `"${said.text}" · clear ${said.back}`);
-
-      await page.click(`[data-pt-bar="${live.k}"]`);
-      await page.waitForTimeout(700);
-      check('10e pressing the same bar again clears it — the way back is on what was pressed',
-        (await rowsNow()).length === d3.against.length, `${(await rowsNow()).length} of ${d3.against.length}`);
-
-      const sideBtn = await page.evaluate(() => {
-        const b = Array.from(document.querySelectorAll('[data-pt-side]')).find(x => !x.disabled);
-        return b ? b.getAttribute('data-pt-side') : null;
-      });
-      if (sideBtn) {
-        await page.click(`[data-pt-side="${sideBtn}"]`);
-        await page.waitForTimeout(700);
-        const bySide = await rowsNow();
-        check('10f the legend narrows to one side',
-          JSON.stringify(bySide) === JSON.stringify(d3.against.filter(r => r.side === sideBtn).map(r => r.id)),
-          `${sideBtn}: ${bySide.join(',')}`);
-        await page.click('[data-pt-clear]');
-        await page.waitForTimeout(700);
-        check('10g Show all puts the whole table back',
-          (await rowsNow()).length === d3.against.length, `${(await rowsNow()).length} of ${d3.against.length}`);
-      } else {
-        check('10f the legend narrows to one side', false, 'no live legend chip');
-        check('10g Show all puts the whole table back', false, 'no live legend chip');
-      }
-    }
-
-    check('10h no page errors through the presses', errors.length === 0, errors.join(' | ') || 'clean');
+    /* ─── 8, 9, 10 · RETIRED 29 Oct 2026: measured the Insights page, which the owner had deleted ───
+       The tab's sideways scroll, its Swedish, and its chart filtering its
+       table. */
 
     /* ─── 11 · TWO TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ───
        Typed into the real panel, saved through the real route, and the tab has
@@ -598,41 +237,22 @@ const EXTRA = [
       check('11e the Menu row states it without the drawer, read off the one reading',
         /30/.test(saved.row) && /30/.test(saved.reading) && /75/.test(saved.reading), `${saved.row.trim()} | ${saved.reading}`);
 
-      await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });
-      await page.waitForTimeout(1100);
-      const two = await page.evaluate(() => {
-        const x = payTermsData();
-        const root = document.getElementById('ig-pt');
-        const plot = root && root.querySelector('[role="img"] > div');
-        const lines = plot ? Array.from(plot.querySelectorAll('span')).filter(el =>
-          getComputedStyle(el).borderLeftStyle === 'dashed').map(el => ({
-            x: Math.round(el.getBoundingClientRect().left), ink: getComputedStyle(el).borderLeftColor })) : [];
-        const caps = root ? Array.from(root.querySelectorAll('[role="img"] > div:nth-child(n+3) > span'))
-          .map(el => el.textContent.trim()) : [];
-        return { lines, caps, cs: x.customer.standard, ss: x.supplier.standard, drivers: x.drivers.length };
-      });
-      check('11f the tab measures each side against its own target',
-        two.cs === 30 && two.ss === 75, `coming in ${two.cs}, going out ${two.ss}`);
-      check('11g so the chart draws TWO boundaries, in the two side colours',
-        two.lines.length === 2 && two.lines[0].ink !== two.lines[1].ink && two.lines[0].x !== two.lines[1].x,
-        two.lines.map(L => `${L.x}:${L.ink}`).join(' · '));
-      check('11h and each caption names its own side and number',
-        two.caps.length === 2 && two.caps.join(' ').includes('30') && two.caps.join(' ').includes('75'),
-        two.caps.join(' · '));
-      /* SHUT THE DRAWER FIRST. A screenshot of the tab with the settings panel
-         still over half of it documents nothing. */
+      /* 11f-11h RETIRED 29 Oct 2026: measured the Insights page, which the owner had deleted — the tab
+         measuring each side against its own target, two boundaries, two
+         captions. */
       await page.evaluate(() => { if (window.stDrawerClose) stDrawerClose(); });
       await page.waitForTimeout(500);
-      await page.screenshot({ path: path.join(OUT, '04-two-targets.png'), fullPage: true });
     } else {
-      ['11b','11c','11d','11e','11f','11g','11h'].forEach(k => check(k + ' (skipped)', false, 'no panel row'));
+      ['11b','11c','11d','11e'].forEach(k => check(k + ' (skipped)', false, 'no panel row'));
     }
 
     /* ─── 12 · PAYMENT TERMS AS A GRAPH LENS (owner-asked 2 Sep 2026) ───
        "add the payment terms to the Group by in the contract graph." The option
        has to be on the control AND the graph has to regroup when it is chosen —
        an option that draws and regroups nothing looks identical in the markup. */
-    await page.evaluate(() => { intel.tab = 'map'; setView('intel'); });
+    /* RE-POINTED 29 Oct 2026: the map lives on Home's Explorer (the Insights
+       page was deleted). */
+    await page.evaluate(() => { hbOpenExplorer(); });
     await page.waitForTimeout(1600);
     const opt = await page.evaluate(() => {
       const sel = document.getElementById('ig-group');
@@ -730,131 +350,9 @@ const EXTRA = [
       cleared.v === 'all' && cleared.gone, `${cleared.v} · off the bar ${cleared.gone}`);
     await page.screenshot({ path: path.join(OUT, '06-contracts-filter.png'), fullPage: true });
 
-    /* ─── 14 · A LONG LIST SCROLLS IN ITS CARD, AND NONE IS LEFT OUT ───
-       REVERSED IN PLACE 29 Sep 2026 (owner-picked "Fit to Screen"). This
-       section drove the 2 Sep pager ("If the list is long then it will have
-       pages to click to"). The rows scroll inside their card now, so the same
-       long book is asked the questions the pager answered: every row is there
-       in the reading's order, the list scrolls rather than spilling, the head
-       stays put while it scrolls, a cut starts again at the top, and the
-       figure tile over the page puts the whole list back. */
-    await page.evaluate(() => {
-      state.contracts = state.contracts.filter(c => !/^PG-/.test(c.id));
-      for(let i = 1; i <= 14; i++) state.contracts.push({
-        id:'PG-' + String(i).padStart(2, '0'), name:'PG ' + i, counterparty:'Pager Co ' + i,
-        status:'Signed', value:1000000 + i, valueType:'fixed', folder:'sales',
-        metadata:{ paymentTerms:(100 + i) + ' days', category:'customer', currency:'KES' } });
-      intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null };
-      setView('intel');
-    });
-    await page.waitForFunction(() => document.querySelectorAll('#ig-pt-rows [data-pt-open]').length > 10, null, { timeout: 8000 }).catch(() => {});
-    const pg1 = await page.evaluate(() => {
-      const rowsEl = document.getElementById('ig-pt-rows');
-      const rows = Array.from(document.querySelectorAll('#ig-pt-rows [data-pt-open]')).map(b => b.getAttribute('data-pt-open'));
-      /* DEFENSIVE, like every other reading here: run against a build with no
-         `against` list this must REPORT rather than throw. */
-      const x = payTermsData();
-      const ag = x.against || [];
-      const card = document.getElementById('ig-pt-table');
-      const cr = card ? card.getBoundingClientRect() : null;
-      return { rows, total:ag.length, order:ag.map(r => r.id),
-               pagers: document.querySelectorAll('[data-pt-page]').length,
-               scrolls: !!rowsEl && getComputedStyle(rowsEl).overflowY === 'auto' && rowsEl.scrollHeight > rowsEl.clientHeight,
-               cardSpill: card ? card.scrollHeight - card.clientHeight : -1,
-               cardInView: !!cr && cr.bottom <= window.innerHeight + 1 };
-    });
-    check('14a a long list is drawn whole — no pager, no row left out',
-      pg1.total > 10 && pg1.rows.length === pg1.total && pg1.pagers === 0,
-      `${pg1.rows.length} drawn of ${pg1.total} against you · ${pg1.pagers} pager button(s)`);
-    check('14b in the reading\'s order', JSON.stringify(pg1.rows) === JSON.stringify(pg1.order), pg1.rows.slice(0, 6).join(','));
-    check('14c it scrolls inside its card rather than stretching the page',
-      pg1.scrolls && pg1.cardSpill <= 0 && pg1.cardInView,
-      `scrolls ${pg1.scrolls} · card spill ${pg1.cardSpill} · in view ${pg1.cardInView}`);
-
-    const held = await page.evaluate(() => {
-      const rowsEl = document.getElementById('ig-pt-rows');
-      if (!rowsEl) return null;
-      rowsEl.scrollTop = 200;
-      const head = rowsEl.querySelector('.pt-head');
-      const hr = head && head.getBoundingClientRect(), rr = rowsEl.getBoundingClientRect();
-      /* what is PAINTED at the head's own centre: the head, never a row under it */
-      const hit = hr ? document.elementFromPoint(hr.left + 20, hr.top + hr.height / 2) : null;
-      return { scrolled: rowsEl.scrollTop, headTop: hr ? Math.round(hr.top) : -1, rowsTop: Math.round(rr.top),
-               headPainted: !!(hit && head && head.contains(hit)) };
-    });
-    check('14d scrolled, the head row stays at the top of the list and is what is painted there',
-      !!held && held.scrolled > 0 && Math.abs(held.headTop - held.rowsTop) <= 1 && held.headPainted,
-      held && `scrolled ${held.scrolled} · head ${held.headTop} vs list ${held.rowsTop} · painted ${held.headPainted}`);
-
-    const narrowBtn = await page.evaluate(() => {
-      const b = Array.from(document.querySelectorAll('[data-pt-side]')).find(x => !x.disabled && x.getAttribute('data-pt-side') === 'customer');
-      if (b) b.click();
-      return !!b;
-    });
-    await page.waitForTimeout(400);
-    const afterCut = await page.evaluate(() => ({
-      top: (document.getElementById('ig-pt-rows') || {}).scrollTop,
-      rows: document.querySelectorAll('#ig-pt-rows [data-pt-open]').length,
-    }));
-    check('14e a cut starts again at the top of the list rather than mid-way down',
-      narrowBtn && afterCut.top === 0 && afterCut.rows > 0, `pressed ${narrowBtn} · top ${afterCut.top} · ${afterCut.rows} rows`);
-
-    const door = await page.$('[data-pt-all]');
-    if (!door) {
-      check('14f the "driving the gap" figure puts the whole list back', false, 'no figure door');
-    } else {
-      await door.click();
-      await page.waitForTimeout(400);
-      const all = await page.evaluate(() => ({ rows: document.querySelectorAll('#ig-pt-rows [data-pt-open]').length,
-        cut: intel.ptCut && intel.ptCut.side, n: (document.querySelector('[data-pt-all] .igx-fig-n') || {}).textContent }));
-      check('14f the "driving the gap" figure puts the whole list back',
-        all.rows === pg1.total && !all.cut && Number(all.n) === pg1.total,
-        `${all.rows} rows · figure ${all.n} · cut ${all.cut}`);
-    }
-    await page.screenshot({ path: path.join(OUT, '07-long-list.png'), fullPage: true });
-
-    /* ─── 15 · ONE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026) ───
-       Measured as paint at the owner's two monitor sizes: the tab does not
-       scroll, the cards reach the bottom with no empty band, nothing spills
-       except inside a list's own scroller, and below 1080px it stacks and the
-       page scrolls instead. */
-    const fitAt = async (w, hgt) => {
-      await page.setViewportSize({ width: w, height: hgt });
-      await page.evaluate(() => { intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null }; setView('intel'); });
-      await page.waitForFunction(() => !!document.querySelector('#ig-pt .igx-figs'), null, { timeout: 8000 }).catch(() => {});
-      await page.waitForTimeout(300);
-      return page.evaluate(() => {
-        const host = document.getElementById('ig-pt-body'), fit = document.getElementById('ig-pt');
-        if (!host || !fit) return null;
-        const hr = host.getBoundingClientRect(), pb = parseFloat(getComputedStyle(host).paddingBottom);
-        const kids = Array.from(fit.children);
-        const last = kids[kids.length - 1].getBoundingClientRect();
-        const ids = kids.map(k => k.id || k.className);
-        const spill = Array.from(fit.querySelectorAll('.igx-card, .igx-fig'))
-          .filter(el => el.scrollHeight > el.clientHeight + 1).map(el => el.id || el.className);
-        /* DEFENSIVE: a build without the two named cards REPORTS, never throws */
-        const ce = document.getElementById('ig-pt-chart'), te = document.getElementById('ig-pt-table');
-        const c = ce ? ce.getBoundingClientRect() : null, t = te ? te.getBoundingClientRect() : null;
-        return { scrolls: host.scrollHeight > host.clientHeight + 1, gap: Math.round(hr.bottom - pb - last.bottom),
-                 ids, spill, chartAbove: !!(c && t && c.bottom <= t.top + 1),
-                 sameLeft: !!(c && t && Math.abs(c.left - t.left) <= 1 && Math.abs(c.width - t.width) <= 1),
-                 chartH: c ? Math.round(c.height) : 0, tableH: t ? Math.round(t.height) : 0 };
-      });
-    };
-    for (const [w, hgt] of [[1440, 900], [1920, 1080]]) {
-      const f = await fitAt(w, hgt);
-      check(`15a ${w}x${hgt} the tab fits the screen and does not scroll`, f && !f.scrolls, f && JSON.stringify(f));
-      check(`15b ${w}x${hgt} the cards reach the bottom with no empty band`, f && Math.abs(f.gap) <= 1, f && `gap ${f.gap}px`);
-      check(`15c ${w}x${hgt} figures first, then the chart ABOVE the table, full width`,
-        f && /igx-figs/.test(f.ids[0]) && f.ids[1] === 'ig-pt-chart' && f.ids[2] === 'ig-pt-table' && f.chartAbove && f.sameLeft,
-        f && f.ids.join(' · '));
-      check(`15d ${w}x${hgt} nothing spills out of a card`, f && f.spill.length === 0, f && (f.spill.join(', ') || 'none'));
-      await page.screenshot({ path: path.join(OUT, `08-fit-${w}.png`) });
-    }
-    const nar = await fitAt(1000, 800);
-    check('15e below 1080px it stacks and the page scrolls instead', nar && nar.scrolls && nar.chartAbove,
-      nar && JSON.stringify({ scrolls: nar.scrolls, chartAbove: nar.chartAbove }));
-    await page.setViewportSize({ width: 1500, height: 1100 });
+    /* ─── 14, 15 · RETIRED 29 Oct 2026: measured the Insights page, which the owner had deleted ───
+       The tab's long list scrolling in its card, and the tab fitting one
+       screen. */
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

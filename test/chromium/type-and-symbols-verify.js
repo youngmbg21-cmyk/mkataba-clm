@@ -64,7 +64,8 @@ const SHELL_ICONS = [
   ['[data-view="redline"]',      'i-nego'],
   /* [data-view="calendar"] left the rail on 11 Oct 2026: the Calendar is
      Home's second tab (WORKORDER-four-builds item 1) */
-  ['[data-view="intel"]',        'i-insight'],
+  /* [data-view="intel"] RETIRED 29 Oct 2026: measured the Insights page,
+     which the owner had deleted — its menu door is gone. */
   ['[data-view="templates"]',    'i-tpl'],
   ['[data-view="intake"]',       'i-req'],
   ['[data-view="directory"]',    'i-people'],

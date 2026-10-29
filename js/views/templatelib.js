@@ -865,7 +865,7 @@ async function openTemplateLibDetail(id) {
   ].filter(Boolean);
   const INS = typeof insFits === 'function' && !!insFits() && typeof insPaintPanel === 'function';
   document.getElementById('content').innerHTML = `
-  <div class="view-enter tpl-dt" id="tpl-dt" style="padding:var(--page-pad)">
+  <div class="view-enter tpl-dt" id="tpl-dt" style="padding:var(--page-pad);padding-bottom:var(--tpl-dt-pb,var(--page-pad))">
     <div class="ph-card tpl-dt-line">
       <button id="tpllib-back" type="button" class="ui-btn ui-btn-sm tpl-dt-back">‹ ${i18t('tl_dt_library')}</button>
       <h1 class="tpl-dt-name" title="${esc(t.name)}">${esc(t.name)}</h1>

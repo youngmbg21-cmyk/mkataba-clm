@@ -86,7 +86,8 @@ describe('f874 (3) Contracts', () => {
     const f = fnRegion(REG, 'regCtFootHtml');
     assert.match(f, /i18tn\('reg_foot_n',n,/);
     assert.match(f, /n!==Number\(countAll\)&&regNarrowed\(\)/, '"(of N total)" only while narrowed');
-    assert.equal(BOOKS.en.lh_ph_contracts_other, 'Search contracts, or ask Jambo');
+    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
+    assert.equal(BOOKS.en.lh_ph_contracts_other, 'Search contracts');
     assert.equal(BOOKS.en.reg_foot_n_other, '{n} contracts');
     assert.match(fnRegion(R('js/views/listhead.js'), 'lhFootHtml'), /const said = \(opt\.say && left <= 0\) \? String\(opt\.say\) : _lhE\(range\);/);
   });

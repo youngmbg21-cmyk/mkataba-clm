@@ -136,7 +136,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('1a one box to search or ask in, under the title and over the tabs; no labelled band', !!B && B.box && B.order && !B.old, JSON.stringify(B));
       check('1a2 Status is the tabs: All · Live · Ended, the list opening on Live; the filters wait under + Filter', !!B
         && JSON.stringify(B.tabs.map(t => t.k)) === JSON.stringify(['all', 'live', 'ended']) && (B.tabs.find(t => t.on) || {}).k === 'live' && B.add, JSON.stringify(B && B.tabs));
-      check('1b the box says "Search, or ask across N parties"; a hairline under the title row', !!B && /^Search, or ask across \d+ parties$/.test(B.ph || '') && B.hair === 'solid', JSON.stringify(B && { ph: B.ph, hair: B.hair }));
+      /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
+      check('1b the box says "Search N parties"; a hairline under the title row', !!B && /^Search \d+ parties$/.test(B.ph || '') && B.hair === 'solid', JSON.stringify(B && { ph: B.ph, hair: B.hair }));
       check('1c the head: "Parties N" and "… on paper with live parties", and + Draft new agreement', !!B && /^Parties\s*\d+$/.test(B.title.trim()) && /on paper with live parties$/.test(B.sub.trim()) && B.draft, JSON.stringify(B && { t: B.title, s: B.sub }));
     });
 
@@ -300,7 +301,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           away: [...document.querySelectorAll('#dir-tbody [data-dir-row]')].filter(r => r.querySelector('.dir-away')).map(r => r.textContent.replace(/\s+/g, ' ').trim()),
           first: (document.querySelector('#dir-tbody [data-dir-row] .dir-name') || {}).textContent || '', bar: (document.getElementById('dk-page') || {}).textContent || '' };
       });
-      check('6a one box to search or ask in, "Search N people, or ask Jambo"; Party · Role in HaTi · Stream under + Filter; no labelled band', D.box && !D.old && D.add && /^Search \d+ people, or ask Jambo$/.test(D.ph || ''), JSON.stringify({ box: D.box, old: D.old, add: D.add, ph: D.ph }));
+      /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
+      check('6a one box to search in, "Search N people"; Party · Role in HaTi · Stream under + Filter; no labelled band', D.box && !D.old && D.add && /^Search \d+ people$/.test(D.ph || ''), JSON.stringify({ box: D.box, old: D.old, add: D.add, ph: D.ph }));
       check('6a2 the sides are the tabs: Everyone · Ours · Theirs', JSON.stringify(D.tabs.slice(0, 3)) === JSON.stringify(['Everyone', 'Ours', 'Theirs']), JSON.stringify(D.tabs));
       check('6b the page is People: "People N", "<n> of ours · <n> at <n> parties"; no A to Z', /^People\s*\d+$/.test(D.title) && /^\d+ of ours · \d+ at \d+ parties$/.test(D.sub) && !D.az, JSON.stringify({ t: D.title, s: D.sub, az: D.az, bar: D.bar }));
       /* RE-POINTED 27 Oct 2026 (owner: "for people the sap way"): Side is a column again.
