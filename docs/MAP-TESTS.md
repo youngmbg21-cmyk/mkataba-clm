@@ -217,6 +217,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f399, f412, f561, f564, f720, f738, f739, f796; customers, contracts-page 12, parties-sap-way, parties-nda-column, parties-and-people verify.
 
 ## ASK A COLUMN (js/views/askcolumn.js)
+- Next 50 → on a Reads row lands on the read, never on the conversation (29 Oct 2026): reads-next-lands-on-read-verify (1b red at the parent: 10 frames of talk).
 - THE QUESTION'S CARD, THE LEGORA WAY, NO GREY, STOP STANDS STILL, NEXT 50 SHOWS THE READ (29 Oct 2026): `node test/chromium/column-card-legora-verify.js` (new; 13 red at the parent 0ec7b90 before it threw at 3a; 7 alone red at the parent: Next 50 after a question on Reads landed on Jambo's conversation). The stand-in reads the COUNTRY where the question says "country" and the paper has "12. Governing law" (test/helpers.js). Re-pointed: f956 2 (Stop heads the card), reading-desk-verify 2a 4 5 5b 5c 6 6a, ask-a-column-verify 2d 5b (More… holds Save as a view, Remove column), reads-verify 2b 3 4, stop-and-reads-verify 2 2c, jambo-asks-verify 4, discover-verify 2g (Draw it: one bar per answer) 3b′ 4a′ 5a 11b 11d (More…, the stop in the question's card).
 - stop-and-reads-verify: counts what was with Jambo once the server heard the Stop (29 Oct 2026); run it in the headless shell too (`CHROMIUM_BIN=/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell`), which is what CI runs.
 - f843, ask-a-column verify.
