@@ -1,7 +1,8 @@
 /* THE PULSE BOARD (owner, 29 Oct 2026: "Build it"; "add a button to take you to the pulse board to the right of the
    summarize my board and move summarize my board to where the highlight is"). Driven on a book of 24 contracts whose
    dates are counted from the day it runs (never a fixed day):
-     1 · the Board's head: Summarise my board stands left of the Pulse board's button, which is the head's last control
+     1 · the Board's head: Summarise my board (no cost on its face, the cost in its hover), then the Pulse board, then
+         Explorer, the head's last control, all on one line; Explorer opens the map
      2 · the press lands on the Pulse board: one row per live contract, ranked, each with its strand; four rules as chips
      3 · LIVE: the last-ranked contract is given a late duty and an ask of theirs; read again, it climbs and says how far
          ("▲ N"), and its row flashes once
@@ -66,10 +67,18 @@ function book(){
 
       /* ---- 1 the head ---- */
       const hd = await page.evaluate(() => { const row = document.querySelector('#hb-bhead .hb-bh-r'); if (!row) return null;
-        const bs = row.querySelector('.hb-bs-go'), pu = row.querySelector('[data-hb-pulse]'), ctl = [...row.querySelectorAll('button')];
+        const bs = row.querySelector('.hb-bs-go'), pu = row.querySelector('[data-hb-pulse]'), ex = row.querySelector('[data-hb-explorer]'), ctl = [...row.querySelectorAll('button')];
         const r = e => e ? e.getBoundingClientRect() : null;
-        return { pulse: !!pu, last: ctl[ctl.length - 1] === pu, left: !!(bs && pu) && r(bs).right <= r(pu).left, sameLine: !!(bs && pu) && Math.abs(r(bs).top - r(pu).top) < 4, word: pu ? pu.textContent.trim() : '' }; });
-      check(`${nm} 1 the head: Summarise my board stands left of the Pulse board, the head's last control, on one line`, !!hd && hd.pulse && hd.last && hd.left && hd.sameLine && hd.word === 'Pulse board', hd);
+        return { pulse: !!pu, explorer: !!ex, last: ctl[ctl.length - 1] === ex, left: !!(bs && pu && ex) && r(bs).right <= r(pu).left && r(pu).right <= r(ex).left,
+          sameLine: !!(bs && pu && ex) && Math.abs(r(bs).top - r(pu).top) < 4 && Math.abs(r(pu).top - r(ex).top) < 4, word: pu ? pu.textContent.trim() : '', exWord: ex ? ex.textContent.trim() : '',
+          bsWord: bs ? bs.textContent.trim() : '', noFaceCost: !!bs && !bs.querySelector('.hb-bs-cost') }; });
+      check(`${nm} 1 the head: Summarise my board, then the Pulse board, then Explorer last, on one line; no cost on Summarise's face`, !!hd && hd.pulse && hd.explorer && hd.last && hd.left && hd.sameLine && hd.word === 'Pulse board' && hd.exWord === 'Explorer' && hd.bsWord === 'Summarise my board' && hd.noFaceCost, hd);
+      if (nm === 'laptop-a' && hd && hd.explorer){
+        await page.click('#hb-bhead [data-hb-explorer]');
+        const ex = await until(page, () => typeof hbFace === 'function' && hbFace() === 'explorer');
+        check('1b Explorer\'s button opens the map', ex);
+        await until(page, () => { if (!(state.view === 'dashboard' && hbFace() === 'board')) { try { caGo({ kind: 'go', place: 'board' }); } catch (_){} } return !!document.querySelector('#hb-bhead [data-hb-pulse]'); }, null, 20000);
+      }
       const head = await page.$('#hb-bhead'); if (head) await head.screenshot({ path: path.join(OUT, `head-${nm}.png`) });
 
       /* ---- 2 the page ---- */

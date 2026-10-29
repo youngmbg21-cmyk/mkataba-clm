@@ -77,7 +77,9 @@ describe('f745 (1) the Board\'s head is one card', () => {
     assert.match(html, /^<section class="hb-card hb-bhead" id="hb-bhead"><div class="hb-note hb-bh-r"><h2 class="hb-bh-t">Board<\/h2>/);
     assert.ok(html.includes(`<span class="hb-bh-s">${BOOKS.en.hb_bh_sub}</span>`), 'your book against six months ago');
     assert.match(html, /<span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/);
-    assert.match(html, /class="hb-btn is-sm hb-bs-go"[\s\S]*<span class="hb-bs-cost">1 Jambo call<\/span><\/button>/, 'its cost on the button');
+    /* RE-POINTED 29 Oct 2026 (owner: "the jambo count next to summarise my board disappears"): the cost is said in its hover, not on its face */
+    assert.match(html, /class="hb-btn is-sm hb-bs-go"[^>]* title="1 Jambo call · /, 'its cost said when the pointer rests on it');
+    assert.ok(!/hb-bs-cost/.test(html), 'no cost segment on the button');
     assert.ok(!/data-hb-pack-dl/.test(html), 'no Make a pack while no view is kept');
     assert.match(w.hbBoardHeadHtml('08:02', 'Juno', bs, '<button type="button" class="hb-btn is-sm" data-hb-pack-dl>Make a pack</button>'), /· counted 08:02 · Juno<\/span>[\s\S]*data-hb-pack-dl/, 'a set is named; a kept view brings Make a pack');
   });

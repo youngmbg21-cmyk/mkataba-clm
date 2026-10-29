@@ -36,7 +36,9 @@ const ch = (id, o) => Object.assign({ id, clauseLabel: '9. Termination', newText
 test('1 · the Board\'s head: Summarise my board, then the Pulse board, the last control', () => {
   const HB = read('js/views/homeboard.js');
   const head = HB.slice(HB.indexOf('function hbBoardHeadHtml('), HB.indexOf('function hbBoardHeadHtml(') + 900);
-  assert.match(head, /\$\{bs\.btn\}\$\{hbPulseBtnHtml\(\)\}<\/div>/, 'Summarise, then the Pulse board, then the row ends');
+  /* RE-POINTED 29 Oct 2026 (owner: "the explorer page has a button next to the pulse"): Explorer ends the row */
+  assert.match(head, /\$\{bs\.btn\}\$\{hbPulseBtnHtml\(\)\}\$\{hbExplorerBtnHtml\(\)\}<\/div>/, 'Summarise, the Pulse board, Explorer, then the row ends');
+  assert.match(HB, /if \(on\('\[data-hb-explorer\]'\)\)\{ if \(typeof caGo === 'function'\) caGo\(\{ kind: 'go', place: 'explorer' \}\)/, 'Explorer\'s button moves through the one mover');
   const btn = HB.slice(HB.indexOf('function hbPulseBtnHtml('), HB.indexOf('function hbPulseBtnHtml(') + 500);
   assert.match(btn, /class="hb-btn is-sm hb-pulse-go" data-hb-pulse/, 'outlined like Summarise, one door');
   assert.doesNotMatch(btn, /is-primary/, 'no filled button on the head');
