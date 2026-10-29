@@ -56,13 +56,14 @@ const HANDBOOK_CHAPTERS = [
     path: ['door:counter', { en: 'or press HaTi in the bar', sv: 'eller tryck HaTi i listen' }],
     how: [{ en: 'Read Needs you. Each row has one button with one word ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): press it and you land on that act.', sv: 'Läs Behöver dig. Varje rad har en knapp med ett ord ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): tryck och du landar på den handlingen.' },
       { en: 'Jambo\'s ready pieces come first; "Show all N" opens the whole desk on the Board.', sv: 'Jambos färdiga stycken kommer först; "Visa alla N" öppnar hela disken på Tavlan.' },
+      { en: 'Right under the box, "Likely next:" says the next three things that wait as whole tasks ("answer Nordvik Logistik\'s 2 changes"), after the Board; a press does what that row\'s button does. With nothing waiting, the links are the Board, contracts, the calendar and a new agreement.', sv: 'Direkt under rutan säger "Troligen härnäst:" de tre nästa sakerna som väntar som hela uppgifter ("svara på Nordvik Logistiks 2 ändringar"), efter Tavlan; ett tryck gör det radens knapp gör. När inget väntar är länkarna Tavlan, avtal, kalendern och ett nytt avtal.' },
       { en: 'Under it, your book: {door:board} for the figures, {door:contracts} for every contract, {door:calendar} and {door:explorer}.', sv: 'Under det, din bok: {door:board} för siffrorna, {door:contracts} för alla avtal, {door:calendar} och {door:explorer}.' }],
     tip: { en: 'There is no menu on the left. Every page is a word: type it in Jambo\'s box, or type / and pick from the list.', sv: 'Det finns ingen meny till vänster. Varje sida är ett ord: skriv det i Jambos ruta, eller skriv / och välj i listan.' },
     cost: _hbkFree, doors: ['counter', 'needs', 'board', 'work'], acts: [],
     words: { en: ['home', 'start page', 'first screen', 'needs you', 'needs me', 'what is waiting'], sv: ['hem', 'startsidan', 'behöver mig', 'vad väntar'] },
     shots: [
       { go: [{ place: 'counter' }], boxes: [{ sel: '#cn-needs .nd-btn', step: 1 }, { sel: '[data-nd-all="jambo"]', step: 2 }], cap: { en: 'Each row of Needs you has one button with one word (1); Jambo\'s ready pieces come first, with Show all (2).', sv: 'Varje rad i Behöver dig har en knapp med ett ord (1); Jambos färdiga stycken kommer först, med Visa alla (2).' } },
-      { go: [{ place: 'counter' }], boxes: [{ sel: '#cn-chips', step: 3 }], cap: { en: 'Under the box, the doors to your book: the Board, contracts, the calendar, a new agreement (3).', sv: 'Under rutan, dörrarna till din bok: Tavlan, avtal, kalendern, ett nytt avtal (3).' } }] },
+      { go: [{ place: 'counter' }], boxes: [{ sel: '#cn-chips', step: 3 }], cap: { en: 'Under the box, the Board and the next three things that wait, said as tasks (3).', sv: 'Under rutan, Tavlan och de tre nästa sakerna som väntar, sagda som uppgifter (3).' } }] },
 
   { k: '0.2', part: 'around', round: 1,
     title: { en: 'Ask Jambo, or type "/"', sv: 'Fråga Jambo, eller skriv "/"' },

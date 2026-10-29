@@ -90,9 +90,9 @@ function counter(rows, extra){
   ctx.window = ctx;
   vm.createContext(ctx);
   /* THE ONE DESK (Round A, 22 Oct 2026): Home's card is drawn from ndRead, so its parts load beside Home's */
-  const names = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnFace', 'counterHtml',
+  const names = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnLikely', 'cnLikelyWords', 'ndOnBoard', 'cnFace', 'counterHtml',
     'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndHomeHtml', 'ndSig'];
-  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', '_cnJbCard', '_cnJbSend', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE',
+  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', '_cnJbCard', '_cnJbSend', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE', 'CN_LIKELY_MAX', 'CN_LK_SMALL', '_cnLow',
     'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', 'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'].map(n => constLine(CN, n)).join('\n')
     + '\nlet _cnSig = "", _ndMemo = null, _nd = { tab: "all", kind: "any", q: "", more: 0 };\n' + names.map(n => fnBody(CN, n)).join('\n'), ctx);
   return ctx;
@@ -106,15 +106,25 @@ const req = { k: 'req', kind: 'request', urgent: false, r: { id: 'REQ-1', title:
 const details = n => ({ k: 'c', kind: 'details', urgent: false, x: { c: C('MK-9' + n, 'Freight terms', 'Baltic Freight'), it: { kind: 'details', n: 3 }, age: null } });
 
 describe('f803 (1) the chips', () => {
-  /* RE-POINTED 27 Oct 2026 (owner: "remove the highlighted sign contract and add board as always an option to press
-     when you are in the home page"): no lead chip — the first owed row stays in Needs you — and the Board leads */
-  test('1a an owed row is never a chip; the four places, the Board first', () => {
+  /* RE-POINTED 29 Oct 2026 (round 5, "the box predicts", owner: "bring them to home page"; reverses 27 Oct's "no lead
+     chip"): the Board first, then the next three things that wait said as tasks, each pressing its row's own door */
+  test('1a what waits leads as tasks: "Likely next:", the Board, then each task pressing its own row\'s door', () => {
     const w = counter([approval, redlines]);
-    const html = w.cnChipsHtml([approval, redlines]);
-    const chips = [...html.matchAll(/<button type="button" class="cn-chip" ([^>]*)>([^<]*)<\/button>/g)].map(m => ({ attrs: m[1], t: m[2] }));
-    assert.equal(chips.map(c => c.t).join('|'), 'board|contracts|calendar|draft a new agreement');
-    assert.ok(chips.every(c => /^data-cn-ask="/.test(c.attrs)), 'each a place word, pressed as typed');
-    assert.doesNotMatch(html, /data-cn-lead|data-cn-need|is-lead/);
+    const html = w.cnChipsHtml(w.ndRead());
+    assert.match(html, /^<span class="cn-lk-h">Likely next:<\/span><button type="button" class="cn-chip" data-cn-ask="board">board<\/button>/);
+    const tasks = [...html.matchAll(/<button type="button" class="cn-chip cn-lk" data-cn-lk="([^"]*)" ([^>]*)>([^<]*)<\/button>/g)].map(m => ({ key: m[1], attrs: m[2], t: m[3] }));
+    /* in Needs you's own order, right under it */
+    assert.deepEqual(tasks.map(t => t.t), ['answer Jonas’s approval', 'answer Nordvik Logistik’s 2 changes']);
+    assert.match(tasks[0].attrs, /data-cn-need="approval" data-cn-id="MK-1"/);
+    assert.match(tasks[1].attrs, /data-cn-need="quiet" data-cn-id="MK-2"/);
+    assert.doesNotMatch(html, /contracts<|calendar<|draft a new agreement</, 'the places step aside while work waits');
+  });
+  test('1a2 never more than three tasks; a name keeps its capital, a plain first word does not', () => {
+    const w = counter([redlines, approval, details(1), note, req]);
+    const html = w.cnChipsHtml(w.ndRead());
+    assert.equal([...html.matchAll(/class="cn-chip cn-lk"/g)].length, 3);
+    assert.equal(vm.runInContext('_cnLow("A chase to Kettle & Co")', w), 'a chase to Kettle & Co');
+    assert.equal(vm.runInContext('_cnLow("Nordvik Logistik’s answer")', w), 'Nordvik Logistik’s answer');
   });
   test('1b nothing owed: the same four', () => {
     assert.equal([...counter([]).cnChipsHtml([]).matchAll(/>([^<]+)<\/button>/g)].map(m => m[1]).join('|'), 'board|contracts|calendar|draft a new agreement');
@@ -351,8 +361,8 @@ describe('f803 (8) third pass: Home as drawn', () => {
     const rows = ctx.cnRows();
     assert.deepEqual(rows.map(r => r.x.c.id), ['MK-1', 'MK-2'], 'Jonas\'s approval above their late redlines, as drawn');
     const w = counter(rows.map(r => r.x.c.id === 'MK-1' ? approval : redlines));
-    /* RE-POINTED 27 Oct 2026: it no longer leads the chips (no lead chip, f803 (1)) */
-    assert.match(w.cnChipsHtml([approval, redlines]), /^<button type="button" class="cn-chip" data-cn-ask="board">board<\/button>/);
+    /* RE-POINTED 29 Oct 2026 (round 5): it leads the tasks under the box too, after the Board (f803 (1)) */
+    assert.match(w.cnChipsHtml(w.ndRead()), /data-cn-ask="board">board<\/button><button type="button" class="cn-chip cn-lk" data-cn-lk="c:MK-1:approval"/);
   });
   test('8c time in words: "in 40 days", never "in 40d"; a day the way a person says it', () => {
     const w = counter([]);

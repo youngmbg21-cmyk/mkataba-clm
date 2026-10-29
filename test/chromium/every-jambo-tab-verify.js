@@ -157,9 +157,10 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
       await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
       await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
       ai.reset();
-      await P.click('#cn-page [data-cn-ask="contracts"]');
-      const H2 = await until(P, () => (state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper') ? true : null, null, 6000);
-      check('H2 a chip pressed on Home keeps its free reader: Contracts opens, nothing spent', !!H2 && ai.calls.length === 0, `${!!H2} · ${ai.calls.length}×`);
+      /* RE-POINTED 29 Oct 2026 (round 5: while work waits the chips are the Board and the tasks; the Board is always there) */
+      await P.click('#cn-page [data-cn-ask="board"]');
+      const H2 = await until(P, () => (state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? true : null, null, 6000);
+      check('H2 a chip pressed on Home keeps its free reader: the Board opens, nothing spent', !!H2 && ai.calls.length === 0, `${!!H2} · ${ai.calls.length}×`);
     }
 
     console.log('\n· E: Overview keeps its free readers');
