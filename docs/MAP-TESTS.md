@@ -506,3 +506,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SIGN-IN PAGE (round 11, 28 Oct 2026)
 - test/chromium/sign-in-says-verify.js (new; red at unmodified main): the serif sentence under the wordmark, Work email and no grey line under the heading, the private line naming the company, three screens, sign-in still works.
+
+## ONE READER FOR EVERY BOX — JAMBO SAYS WHAT HE DID (round 4, 28 Oct 2026)
+- test/chromium/jambo-says-what-he-did-verify.js (new; red at unmodified main): a sentence typed beside MK-A2's paper lands on MK-C1's History with his card on top quoting it; Change what I said refills the box, free; Not this, go back returns to MK-A2's paper; a question that moves nothing draws no card; three screens.

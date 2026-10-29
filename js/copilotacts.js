@@ -1935,6 +1935,8 @@ function jamboRefGo(q){
   /* already in front of the reader: a question about it is the brain's, here */
   let here = false; try { here = !!(typeof aiOnScreenContract === 'function' && aiOnScreenContract() && aiOnScreenContract().id === R.c.id); } catch (_){ here = false; }
   if (R.question && here) return false;
+  /* where the words were typed, for round 4's "Not this, go back" when the question then moves on from here */
+  if (R.question) jamboRefGo._from = { q: R.question, p: caPlaceNow(), at: Date.now() };
   let landed = false;
   try { landed = !!(typeof roomHomeLand === 'function' && roomHomeLand(R.c.id)); } catch (_){ landed = false; }
   if (!landed){ try { if (typeof openWorkspace === 'function'){ openWorkspace(R.c.id); landed = true; } } catch (_){ landed = false; } }
@@ -2020,6 +2022,11 @@ function caTrailLabel(p){
 function caTrailBack(){
   const p = caTrailTop(); if (!p) return false;
   _caTrail.pop();
+  return caPlaceGo(p);
+}
+/* a remembered place, opened again (the trail's step back; round 4's "Not this, go back") */
+function caPlaceGo(p){
+  if (!p) return false;
   if (p.view !== 'dashboard'){
     const pc = p.id && typeof getContract === 'function' ? getContract(p.id) : null;
     if (pc && p.view === 'redline' && typeof openRedlineWorkbench === 'function') openRedlineWorkbench(pc.id);
@@ -3148,9 +3155,40 @@ function caGoCardHtml(a, i){
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_rest'))}</p>
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_book'))}</p></div>`;
   }
+  /* JAMBO SAYS WHAT HE DID (round 4, "The Legora way", owner's overnight build of 28 Oct 2026): under his line on
+     the newest turn that moved the reader, the way back and the way to say it again — in his conversation, no band */
+  if (a.said && !a.missing && typeof intel !== 'undefined' && intel && Array.isArray(intel.history) && i === intel.history.length - 1){
+    return `<div class="ca-echo" data-ca-card="${i}"><button type="button" class="ui-btn ui-btn-sm" data-ca-act="goback" data-ca-turn="${i}">${_caE(_caT('ca_echo_back'))}</button>`
+      + `<button type="button" class="ui-link" data-ca-act="reword" data-ca-turn="${i}">${_caE(_caT('ca_echo_reword'))}</button></div>`;
+  }
   return '';
 }
+/* THE SAME, AT THE TOP OF THE FACE HE LANDED ON (round 4 as drawn): while the newest turn is the move and the
+   conversation itself is not on screen, his card stands under the panel's trail — what you said, what he did, and
+   the two presses; the next word asked, or Not this, puts it away */
+function caEchoHtml(){
+  if (typeof intel === 'undefined' || !intel || !Array.isArray(intel.history) || !intel.history.length) return '';
+  const i = intel.history.length - 1, m = intel.history[i], a = m && m.act;
+  if (!a || a.kind !== 'go' || !a.said || a.missing) return '';
+  if (typeof jamboSayCardHtml !== 'function') return '';
+  const line = _caT('ca_echo_said', { words: a.said }) + ' ' + caGoSay(a);
+  const foot = `<button type="button" class="ui-btn ui-btn-sm" data-ca-act="goback" data-ca-turn="${i}">${_caE(_caT('ca_echo_back'))}</button>`
+    + `<button type="button" class="ui-link" data-ca-act="reword" data-ca-turn="${i}">${_caE(_caT('ca_echo_reword'))}</button>`;
+  return `<div class="ca-echo-top">${jamboSayCardHtml({ text: line, foot, attrs: ' data-ca-echo' })}</div>`;
+}
 function caGoPress(a, act){
+  /* round 4: "Not this, go back" returns to where the words were typed; "Change what I said" puts the words back in
+     the box, ready to edit, and sends nothing */
+  if (act === 'goback'){ a.said = '';
+    /* back to where the words were typed (a.from, read as they were sent) */
+    const ok = a.from ? caPlaceGo(a.from) : caGo({ kind: 'go', place: 'back', state: 'ready' });
+    if (typeof caGoRepaint === 'function') caGoRepaint(); return ok; }
+  if (act === 'reword'){
+    const inp = document.getElementById('igd-input'); const w = String(a.said || '');
+    if (inp){ inp.value = w; try { inp.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){}
+      if (typeof fieldFocus === 'function') fieldFocus(inp); else inp.focus(); try { inp.setSelectionRange(w.length, w.length); } catch (_){} }
+    return !!inp;
+  }
   /* "Upload their paper" is the reader's own press: the picker itself */
   if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload'){ if (!caMayAdd()) return; if (typeof pdDropPick === 'function') pdDropPick(); else CA_GO.upload(); } return; }
   /* a page that cannot narrow as asked: the Contracts place narrowed, or the page itself */
@@ -3240,6 +3278,10 @@ function caHomeRun(q, a){
   }
   if (a.kind !== 'go') return false;
   const card = (caIsCardWord(a.place) || !!a.narrowOff) && !a.missing;
+  /* JAMBO SAYS WHAT HE DID (round 4): the words that moved the reader ride on the act, for "Change what I said" */
+  if (!card && !a.missing){ a.said = String(q || '');
+    /* a contract's number in the words first opened it (jamboRefGo): the place before that is where they were typed */
+    const f = jamboRefGo._from; a.from = (f && f.q === q && Date.now() - f.at < 15000) ? f.p : caPlaceNow(); jamboRefGo._from = null; }
   intel.history.push({ role: 'user', text: q }, Object.assign({ role: 'assistant', text: _caE(caGoSay(a)), act: a }, caAnswerIds(a)));
   paint();
   caGo(a);
@@ -3252,7 +3294,7 @@ Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_
   caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
 Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, JB_REF_OPEN_RE, jamboRefOf, jamboRefGo, jamboRefAskThere, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
-  CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
+  caEchoHtml, caPlaceGo, CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
 Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, CA_HERE_ALL_RE, CA_HERE_EXTRA_RE, CA_HERE_GROUP_PLACES, CA_HERE_OTHER_RE, CA_HERE_CONTRACT_RE, CA_HERE_MAX, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });

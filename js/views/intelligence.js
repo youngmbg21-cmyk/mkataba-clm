@@ -8464,7 +8464,7 @@ function renderIntelDock(){
       ${''/* THE BIN stands in the door above the box now (Door above the box, 28 Oct 2026), beside ‹ Overview */}
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
-    ${''/* ONE TRAIL (owner, 19 Oct 2026): while a face is up, one line under the tabs — its one back, then where you are */}${(typeof window.pdTrailHtml==='function')?pdTrailHtml():''}
+    ${''/* ONE TRAIL (owner, 19 Oct 2026): while a face is up, one line under the tabs — its one back, then where you are */}${(typeof window.pdTrailHtml==='function')?pdTrailHtml():''}${''/* JAMBO SAYS WHAT HE DID (round 4): under the trail, while his words are not the face */}${(!say&&typeof window.caEchoHtml==='function')?caEchoHtml():''}
     ${intel.lenses.length&&!(window.pdShowsDesk&&pdShowsDesk())?`
     <div class="px-3.5 py-2 border-b border-hair shrink-0 flex flex-wrap items-center gap-1.5">
       ${intel.lenses.map(l=>`
