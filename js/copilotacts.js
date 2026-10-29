@@ -1900,11 +1900,54 @@ function jamboPageWordOf(q){
   return (typeof caPlaceStd === 'function') ? caPlaceStd(a, t) : a;
 }
 function jamboPageGo(q){
-  const a = jamboPageWordOf(q);
-  if (!a) return jamboRefGo(q);
+  /* a phrase an admin taught moves like a page's name, free (round 8) */
+  const a = jamboPageWordOf(q) || jamboLessonOf(q);
+  if (!a){ const r = jamboRefGo(q); if (!r) jamboUnplacedNote(q); return r; }
   let ok = false; try { ok = !!caGo(a); } catch (_){ ok = false; }
   return ok;
 }
+/* ---- WHAT JAMBO COULD NOT PLACE BECOMES A LESSON (round 8 "The SAP way", owner's yes 29 Oct 2026: no names,
+   kept 90 days) ----
+   Words TYPED in a Jambo box that no free reader moved (not a page's name, not a contract's number, not a taught
+   phrase) go to his brain as before; they are only HELD here, in this tab, for a minute. If in that minute the
+   person moves to another page THEMSELVES (not by Jambo's own move: caGo, navGo and his goto stamp jamboMovedNow),
+   the words were not placed where they meant — the sentence, the page it was typed on, the contract on the paper
+   (its reference, never a name) and where they went next are sent (POST /api/jambo/unplaced). Nothing names who
+   typed it: the server keeps no person on the row, and drops it after 90 days. An admin teaches a sentence from
+   Settings › Jambo ("means Approvals"); the taught phrase then moves like a page's name, free (jamboLessonOf). */
+const JB_UNPLACED_NEXT_MS = 60000;   // how long held words wait for the person's next move
+const JB_OWN_MOVE_MS = 4000;         // a page change this soon after Jambo's own move is his, not the person's
+let _jbUnplaced = null, _jbMovedAt = 0, _jbLessons = null;
+function jamboMovedNow(){ _jbMovedAt = Date.now(); }
+function jamboLessonKey(q){ return String(q || '').trim().toLowerCase().replace(/[’‘]/g, "'").replace(/^\//, '').replace(/[?.!]+$/, '').replace(/\s+/g, ' ').trim().slice(0, 200); }
+function jamboLessonOf(q){
+  const k = jamboLessonKey(q); if (!k || !_jbLessons) return null;
+  const place = _jbLessons[k]; if (!place || !JB_PAGE_PLACES.includes(place) || !CA_PLACES.some(x => x.k === place)) return null;
+  return { kind: 'go', place, cid: null, slash: false, state: 'ready', page: true, taught: true };
+}
+async function jamboLessonsLoad(){
+  if (typeof api !== 'function' || !(typeof API_MODE === 'function' && API_MODE())) return _jbLessons;
+  try { const r = await api('jambo/lessons'); _jbLessons = (r && r.lessons) || {}; } catch (_){ _jbLessons = _jbLessons || {}; }
+  return _jbLessons;
+}
+function jamboLessonsSet(map){ _jbLessons = map || {}; }
+function jamboUnplacedNote(q){
+  const text = String(q || '').trim(); if (!text || text.length > 200) return;
+  const v = (typeof state === 'object' && state) ? state.view : '';
+  let ref = ''; try { const c = (typeof pdContract === 'function') ? pdContract() : null; ref = c ? String((typeof contractRef === 'function') ? contractRef(c) : c.id) : ''; } catch (_){ ref = ''; }
+  _jbUnplaced = { text, page: v, ref, at: Date.now() };
+}
+function jamboUnplacedNext(view){
+  const u = _jbUnplaced; if (!u) return false;
+  if (Date.now() - u.at > JB_UNPLACED_NEXT_MS){ _jbUnplaced = null; return false; }
+  if (!view || view === u.page) return false;
+  _jbUnplaced = null;
+  if (Date.now() - _jbMovedAt < JB_OWN_MOVE_MS) return false;
+  if (typeof api !== 'function' || !(typeof API_MODE === 'function' && API_MODE())) return false;
+  api('jambo/unplaced', 'POST', { text: u.text, page: u.page, ref: u.ref, next: view }, { quiet: true }).catch(() => {});
+  return true;
+}
+Object.assign(window, { JB_UNPLACED_NEXT_MS, JB_OWN_MOVE_MS, jamboMovedNow, jamboLessonKey, jamboLessonOf, jamboLessonsLoad, jamboLessonsSet, jamboUnplacedNote, jamboUnplacedNext });
 /* ---- A CONTRACT NUMBER OPENS THE CONTRACT, FREE (owner, 28 Oct 2026, round 17: "Contract numbers should not go
    to AI brain. They should be rule and take you to contracts workspace for the contract in question") ----
    Asked with the page's name by every Jambo box, for words TYPED in it (jamboPageGo). A number ON ITS OWN ("MK-469",
@@ -2166,6 +2209,7 @@ function caGoSay(a){
 /* THE ONE PLACE A WORD MOVES THE READER: intelAsk calls it after the line is
    said; the top bar's search calls it with no conversation. */
 function caGo(a){
+  jamboMovedNow();
   /* one press, one panel (igDockBatch, js/views/intelligence.js) */
   if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !caGo._in){
     caGo._in = true; try { return window.igDockBatch(() => caGo(a)); } finally { caGo._in = false; } }

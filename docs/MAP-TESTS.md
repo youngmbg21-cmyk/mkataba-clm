@@ -462,6 +462,9 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE WORD FILE WE WRITE, AND THE PAGE MEASURE
 - f252, f288, keeps-your-place-verify.
 
+## WHAT JAMBO COULD NOT PLACE BECOMES A LESSON
+- f962 (no person column, admin walls, 90 days, teaching), test/chromium/jambo-lessons-verify.js (kept on the person's own move, not on Jambo's; Teach; taught words move free; three screens); door-exam-verify (the panel's title lands); handbook-verify HANDBOOK_ONLY=7.5.
+
 ## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
 - THE DOOR EXAM (23 Oct 2026; owner: "do what is necessary for jambo to get things right"): test/door-exam.js + test/chromium/door-exam-verify.js — reads HaTi's own lists off the running app (NAV_ACTS, NAV_PLACES, CA_MENU, CA_PLACES, every Settings page and card by its title via `navStTitles`) and FAILS when a door has no sentence; every sentence typed into the Board's, a list's and Settings' box and landed (test/nav-read.js reads dialog, panel, Key terms, folds, strip page, archive, Present, Recent, Findings, watches, new tabs). Required green, no ratchet. One list: `DOOR_EXAM_ONLY=act|place|menu|ca|st`. Red at the parent: every new act and place, 42 Settings titles.
 - THE OVERVIEW OR THE BOARD WITH A CONTRACT NAMED (23 Oct 2026): f811 B4b (new; "take me to the board and show me the overview of contact mk 345" from Settings, a list or the window → its strip on the Board, on Overview; "contact" before the number read as "contract"; a named page keeps its own) and C6b (Settings hands a contract named, or "take me" no setting answers, to Jambo). nav-exam 201/202.

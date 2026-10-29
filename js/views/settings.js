@@ -1274,7 +1274,7 @@ const ST_CARDS=[
   /* "Jambo's agents ›" opens their page with ‹ Settings (round 25 as drawn,
      the gaps' third pass: every card door is a page on the desk) — the
      agents' own panel, how far each may go; his house stays its own place */
-  { key:'copilot', groups:['copilot','facts'], facts:['copilot','agents'], doors:()=>[{ panel:'agents' }, { panel:'boardwords' }, { panel:'facts' }] },
+  { key:'copilot', groups:['copilot','facts'], facts:['copilot','agents'], doors:()=>[{ panel:'agents' }, { panel:'boardwords' }, { panel:'facts' }, { panel:'lessons' }] },
   /* Housekeeping says how the book is kept and when the record last left
      (round 25 as drawn); Data & backup opens on The trail (round 26) */
   { key:'house', groups:['house'], own:()=>stHouseFacts(),
@@ -5616,6 +5616,76 @@ function stAccCopy(id,btn){
   try{ navigator.clipboard.writeText(line).then(done,()=>stAccCopyFallback(line,btn)); }catch(_){ stAccCopyFallback(line,btn); }
 }
 function stAccCopyFallback(line,btn){ const t=document.createElement('textarea'); t.value=line; t.style.cssText='width:100%;margin-top:6px;font-family:var(--font-code);font-size:12px'; t.readOnly=true; (btn&&btn.parentElement||document.body).after(t); t.select(); }
+/* ---- WHAT JAMBO COULD NOT PLACE: the table, Teach and Fine (round 8) ---- */
+let _stLessons=null;          // { rows, total, week, more, days, taught:[{phrase,place,by,at}] }
+let _stLessonOpen=null;       // the row whose Teach is open
+/* the pages a phrase can mean: the ones a page's one name opens, named as the Guide names them */
+function stLessonPlaces(){
+  const ks=(window.JB_PAGE_PLACES||[]).filter(k=>k!=='upload');
+  return ks.map(k=>({ k, label:i18t('gd_p_'+k) })).filter(x=>x.label&&x.label!=='gd_p_'+x.k);
+}
+function stLessonPlaceLabel(k){ const x=stLessonPlaces().find(p=>p.k===k); return x?x.label:k; }
+function stLessonPageLabel(v){ try{ return (window.shellTitleFor&&shellTitleFor(v))||v||''; }catch(_){ return v||''; } }
+async function stLessonsLoad(){
+  try{
+    const [u,l]=await Promise.all([api('jambo/unplaced'),api('jambo/lessons')]);
+    _stLessons=Object.assign({},u||{},{ taught:(l&&l.list)||[] });
+    if(window.jamboLessonsSet) jamboLessonsSet((l&&l.lessons)||{});
+  }catch(e){ _stLessons={ rows:[], total:0, taught:[], err:(e&&e.message)||'' }; }
+  stLessonsPaint(); if(typeof stRepaintRow==='function') stRepaintRow('lessons');
+}
+function stLessonsPaint(){
+  const host=document.getElementById('st-lessons'), taught=document.getElementById('st-lessons-taught'); if(!host) return;
+  const L=_stLessons||{ rows:[], taught:[] };
+  if(L.err){ host.innerHTML=`<p class="st-note" style="margin:0">${esc(L.err)}</p>`; return; }
+  const places=stLessonPlaces();
+  const head=`<div class="st-ls-r st-ls-h"><span>${esc(i18t('st_lessons_col_said'))}</span><span>${esc(i18t('st_lessons_col_on'))}</span><span>${esc(i18t('st_lessons_col_next'))}</span><span></span></div>`;
+  const row=r=>{
+    const on=stLessonPageLabel(r.page)+(r.ref?' · '+r.ref:''), next=r.next?stLessonPageLabel(r.next):i18t('st_lessons_next_none');
+    const open=_stLessonOpen===r.id;
+    const guess=places.find(p=>p.label===stLessonPageLabel(r.next));
+    const teach=open?`<div class="st-ls-teach"><label><span style="${window.RV_LBL||''}">${esc(i18t('st_lessons_means'))}</span><select data-ls-place="${esc(r.id)}" style="${window.RV_FLD||ST_INPUT}"><option value="">${esc(i18t('st_lessons_choose'))}</option>${places.map(p=>`<option value="${esc(p.k)}"${guess&&guess.k===p.k?' selected':''}>${esc(p.label)}</option>`).join('')}</select></label>
+      <div style="display:flex;gap:8px;margin-top:8px"><button data-ls-save="${esc(r.id)}" style="${ST_BTN_SM}">${esc(i18t('st_lessons_save'))}</button><button data-ls-cancel style="${ST_BTN2}">${esc(i18t('act_cancel'))}</button></div></div>`:'';
+    return `<div class="st-ls-r" data-ls-row="${esc(r.id)}"><b class="st-ls-said">“${esc(r.text)}”</b><span>${esc(on)}</span><span>${esc(next)}</span>
+      <span class="st-ls-acts"><button data-ls-teach="${esc(r.id)}" style="${ST_BTN2}"${open?' aria-expanded="true"':''}>${esc(i18t('st_lessons_teach'))}</button><button data-ls-fine="${esc(r.id)}" style="${ST_BTN2}">${esc(i18t('st_lessons_fine'))}</button></span></div>${teach}`;
+  };
+  const rows=L.rows||[];
+  host.innerHTML=rows.length
+    ? `<p class="st-note" style="margin:0 0 8px">${esc(i18tn('st_lessons_week',L.week||0,{ n:L.week||0, days:L.days||90 }))}${L.more?' · '+esc(i18tn('st_lessons_more',L.more,{ n:L.more })):''}</p>${head}${rows.map(row).join('')}`
+    : `<p class="st-note" style="margin:0">${esc(i18t('st_lessons_empty'))}</p>`;
+  if(taught) taught.innerHTML=(L.taught||[]).length
+    ? (L.taught||[]).map(t=>`<div class="st-ls-r st-ls-t"><b class="st-ls-said">“${esc(t.phrase)}”</b><span>${esc(i18t('st_lessons_goes',{ page:stLessonPlaceLabel(t.place) }))}</span><span class="st-note" style="margin:0">${esc(t.by||'')}</span><span class="st-ls-acts"><button data-ls-forget="${esc(t.phrase)}" style="${ST_BTN2}">${esc(i18t('st_words_remove'))}</button></span></div>`).join('')
+    : `<p class="st-note" style="margin:0">${esc(i18t('st_lessons_taught_none'))}</p>`;
+}
+async function stLessonTeach(id){
+  stDrawerClearRefusal();
+  const r=((_stLessons&&_stLessons.rows)||[]).find(x=>x.id===id); if(!r) return;
+  const place=(document.querySelector(`[data-ls-place="${CSS.escape(id)}"]`)||{}).value||'';
+  if(!place) return stDrawerRefuse(i18t('st_lessons_pick'));
+  try{ await api('jambo/lessons','PUT',{ phrase:r.text, place }); _stLessonOpen=null;
+    toast(i18t('st_lessons_taught',{ words:r.text, page:stLessonPlaceLabel(place) }),'ok'); await stLessonsLoad(); }
+  catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
+async function stLessonFine(id){
+  stDrawerClearRefusal();
+  try{ await api('jambo/unplaced/'+encodeURIComponent(id),'DELETE'); toast(i18t('st_lessons_let_go'),'ok'); await stLessonsLoad(); }
+  catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
+async function stLessonForget(phrase){
+  stDrawerClearRefusal();
+  try{ await api('jambo/lessons','PUT',{ phrase, remove:true }); toast(i18t('st_lessons_forgot',{ words:phrase }),'ok'); await stLessonsLoad(); }
+  catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
+/* one listener, at load, for the panel's presses (the panel is drawn again on every load) */
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const t=e.target; if(!t||!t.closest||!t.closest('#st-lessons, #st-lessons-taught')) return;
+  let b;
+  if((b=t.closest('[data-ls-teach]'))){ const id=b.getAttribute('data-ls-teach'); _stLessonOpen=_stLessonOpen===id?null:id; stLessonsPaint(); return; }
+  if((b=t.closest('[data-ls-cancel]'))){ _stLessonOpen=null; stLessonsPaint(); return; }
+  if((b=t.closest('[data-ls-save]'))){ stLessonTeach(b.getAttribute('data-ls-save')); return; }
+  if((b=t.closest('[data-ls-fine]'))){ stLessonFine(b.getAttribute('data-ls-fine')); return; }
+  if((b=t.closest('[data-ls-forget]'))){ stLessonForget(b.getAttribute('data-ls-forget')); return; }
+});
 /* ---- THE BOARD'S WORD BOOK: the list, the value box, the save ---- */
 function stWordMeansText(m){
   if(!m) return '';
@@ -6257,6 +6327,24 @@ const SET_PANELS={
       document.getElementById('st-w-kind')?.addEventListener('change',stWordsValueSlot);
       document.getElementById('st-w-add')?.addEventListener('click',()=>stWordsSave());
       document.getElementById('st-w-review')?.addEventListener('click',()=>stDrawerOpen('boardaccuracy')); },
+  },
+
+  /* ---- WHAT JAMBO COULD NOT PLACE (round 8 "The SAP way", owner's yes 29 Oct 2026: no names, kept 90 days) ----
+     A table of the sentences typed in a Jambo box that no free reader moved, after which the person went to another
+     page themselves: the words, where they were typed, where the person went. No person is on a row (the server
+     keeps none). Teach says which page the words mean (PUT /api/jambo/lessons) — every box then moves there free —
+     and Fine lets a row go. Admins only, and only where there is a server. */
+  lessons:{
+    tab:'platform', group:'copilot', mandatory:false, show:stApiOnly,
+    title:()=>i18t('st_p_lessons'),
+    sub:()=>i18t('st_lessons_sub'),
+    state(){ const n=(_stLessons&&_stLessons.total)||0, t=(_stLessons&&_stLessons.taught||[]).length;
+      return { dot:n||t?'ok':'off', text:n?i18tn('st_lessons_n',n,{ n }):(t?i18tn('st_lessons_taught_n',t,{ n:t }):i18t('st_lessons_none')) }; },
+    find:()=>[i18t('st_lessons_find'),i18t('st_lessons_teach')],
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('st_lessons_note'))}</p>
+      <div id="st-lessons">${esc(i18t('st_acc_loading'))}</div>
+      <section class="st-sec" style="margin-top:var(--s-3)"><h3 class="st-sec-h">${esc(i18t('st_lessons_taught_h'))}</h3><div id="st-lessons-taught"></div></section>`; },
+    wire(){ stLessonsLoad(); },
   },
 
   /* ---- COPILOT ACCURACY (the board that answers right, Part 7, 5 Oct
@@ -9970,6 +10058,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});

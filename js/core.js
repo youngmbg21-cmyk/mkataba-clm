@@ -2523,6 +2523,7 @@ function startApp(){
   refreshOrgBranding().then(()=>{ if(window.ORG_BRANDING&&state.view==='workspace'&&window.renderWorkspace) renderWorkspace(); });
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
+  window.jamboLessonsLoad&&jamboLessonsLoad();   // the phrases an admin taught Jambo (round 8): they move like a page's name
   /* 'redline' and the template surfaces belong on this list: both render an
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the

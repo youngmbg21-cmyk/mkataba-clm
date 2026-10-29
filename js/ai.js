@@ -2670,6 +2670,7 @@ function aiGotoTake(since){ const g=_aiGoto; _aiGoto=null; return (g&&g.at>=(sin
    press is Jambo's card; said in his conversation (jmGotoAct, js/jambomap.js) */
 function aiGotoRun(g, q){
   if(!g) return false;
+  if(typeof window.jamboMovedNow==='function') window.jamboMovedNow();
   /* THE EXACT SPOT (navigable by typing, stage 4): the AI's words for the one thing are read by the same
      free map a typed ask is (navRead) — its walls, its "which did you mean", its "there is no such" — and
      the task is the fallback when the map cannot place them */
