@@ -184,7 +184,8 @@ const FACE = () => {
     /* ===== 7. THE PAPER'S LINE ===== */
     const acts = await page.evaluate(() => ({ chat: !!document.querySelector('#ig-strip .ig-acts #hdr-chat'), share: !!document.querySelector('#ig-strip .ig-acts #ws-share'), more: !!document.querySelector('#ig-strip .ig-acts #ws-more') }));
     /* RE-POINTED 15 Oct 2026 (owner, answer B): the ⋯ left the paper's line; its rows are the panel's Menu tab */
-    check('7a the paper\'s line carries Notes · Share, and no ⋯', acts.chat && acts.share && !acts.more, JSON.stringify(acts));
+    /* RE-POINTED 29 Oct 2026 (round 13, owner's yes): Send · Ask for review · More; Notes left the line */
+    check('7a the paper\'s line carries Send and no Notes, and no ⋯', !acts.chat && acts.share && !acts.more, JSON.stringify(acts));
     /* RE-POINTED 18 Oct 2026: while a face is up the panel's row is Jambo's tab
        and the face's word only (rounds 8–11 as drawn); ‹ Jambo brings the
        contract's tabs back, the Menu among them */

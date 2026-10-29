@@ -9648,10 +9648,13 @@
      paper's line while Fill in is open, and no row above the sheet then — the face's host is the switch */
   /* THE NAME STAYS WHOLE BESIDE THE SIGNING COPY (the gaps, round 10, the second check: at
      1366×950 the name and party were cut by its page arrows and size): on a line too short for
-     all of it, Notes and Share say their word in their hover only — the name is never cut first */
+     all of it, Send says its word in its hover only and Ask for review steps aside (it stays in More's
+     "All acts") — the name is never cut first. More keeps its one short word: it has no symbol to fall back on
+     (round 13, 29 Oct 2026) */
   #ig-strip{container:igline / inline-size}
   @container igline (max-width: 1000px){
-    #ig-strip .ig-sc ~ .ig-acts :is(.ig-notes-w, .ig-share-w, .ig-actions-w){display:none}
+    #ig-strip .ig-sc ~ .ig-acts .ig-share-w{display:none}
+    #ig-strip .ig-sc ~ .ig-acts #ws-review{display:none}
   }
   #ig-strip .ig-zc-line{display:none;flex:none}
   #ig-page:has(#pd-fillface) #ig-strip .ig-zc-line{display:inline-flex;align-items:center}

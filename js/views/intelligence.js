@@ -9346,16 +9346,24 @@ function igPaperClauseMarks(c){
 function igStripActsHtml(c){
   if(!c||PORTAL_MODE) return '';
   const may=(typeof canEdit!=='function')||canEdit();
-  const share=(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm" title="${igEsc(i18t('ct_share_with_cp'))}" aria-label="${igEsc(i18t('ct_share'))}">${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(i18t('ct_share'))}</span></button>`:'';
-  /* THE ⋯ LEFT THE LINE (owner, 15 Oct 2026: "add these lists in a new tab
-     next to obligation called Menu", and yes to one door): its rows are Jambo's
-     Menu tab now (pdMenuHtml), wired there (pdMenuWire) */
-  const notes=window.roomChatDoorHtml?roomChatDoorHtml({ word:true }):'';
-  /* ACTIONS (owner, 23 Oct 2026: "the all button is hidden and impossible to know what is there.
-     Please add it to the right of share"): the door onto the Dossier's whole list of acts, the
-     same list "All N ›" folds open (pdActsToggle) — never a second copy of it */
-  const acts=window.pdActsToggle?`<button type="button" id="ig-actions" class="ui-btn ui-btn-sm" aria-expanded="false" title="${igEsc(i18t('ig_actions_title'))}" aria-label="${igEsc(i18t('ig_actions'))}">${icon('list','w-3.5 h-3.5')}<span class="ig-actions-w">${igEsc(i18t('ig_actions'))}</span></button>`:'';
-  return `<span class="ig-acts">${notes}${share}${acts}</span>`;
+  /* ---- THE ACTIONS MENU, HALVED (round 13 "The Legora way", owner's yes 29 Oct 2026; reverses "Notes, Share and
+     Actions" on this line) ---- two words for this stage and one More. SEND is the one filled button: while changes
+     wait it is the Redlines column's Send all, named for the round it sends (sh_hd_round off shareRoundOf, the send
+     screen's own head), else the first Share as before — ONE send door (pdSendWaiting / openShareModal), its id kept.
+     ASK FOR REVIEW is the review's own door (rlReviewDoor), the row the menu carried. MORE (#ig-actions) drops the
+     short card (pdActsToggle with the line's anchor, PD_ACTS_SHORT); its last row opens every act. Notes left the
+     line: their drawer stays the side panel's Notes tab and the Redlines column's Notes chip. */
+  const unsent=!!(window.pdHasUnsent&&pdHasUnsent(c));
+  const sendWord=unsent&&window.shareRoundOf?i18t('sh_hd_round',{ n:shareRoundOf(c.negotiation) }):i18t('ct_share');
+  const share=(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm ui-btn-primary" title="${igEsc(i18t(unsent?'pd_send_waiting_title':'ct_share_with_cp'))}" aria-label="${igEsc(sendWord)}"${unsent?' data-ws-send-all':''}>${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(sendWord)}</span></button>`:'';
+  const sealed=!!(window.negoExecuted&&negoExecuted(c));
+  let review='';
+  if(may&&!sealed&&window.rlReviewDoorState&&window.rlReviewDoor){
+    const d=rlReviewDoorState(c);
+    review=`<button type="button" id="ws-review" class="ui-btn ui-btn-sm"${d.nobody?` disabled aria-disabled="true" title="${igEsc(i18t('rv_no_colleagues'))}"`:` title="${igEsc(i18t('rv_head_title'))}"`}>${igEsc(d.label)}</button>`;
+  }
+  const acts=window.pdActsToggle?`<button type="button" id="ig-actions" class="ui-btn ui-btn-sm" aria-expanded="false" aria-haspopup="menu" title="${igEsc(i18t('ig_more_title'))}" aria-label="${igEsc(i18t('ct_more'))}"><span class="ig-actions-w">${igEsc(i18t('ct_more'))}</span></button>`:'';
+  return `<span class="ig-acts">${share}${review}${acts}</span>`;
 }
 /* THE NEGOTIATE PAGE'S OWN ROWS, for the Menu tab (they rode in the ⋯ before
    15 Oct 2026): Ask for review (rlReviewDoor), Review vs Playbook and the
@@ -9379,8 +9387,12 @@ function igStripActsWire(c){
   /* the line was drawn again: its page and size say where the signing copy stands */
   if(strip.querySelector('[data-ig-sc]')){ try{ if(window.scApplyZoom) scApplyZoom(); if(window.scPaintPage) scPaintPage(); }catch(_){ } }
   strip.querySelector('#ws-walk')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(getContract(c.id)||c); });
-  strip.querySelector('#ws-share')?.addEventListener('click',()=>{ if(window.openShareModal) openShareModal(getContract(c.id)||c); });
-  strip.querySelector('#ig-actions')?.addEventListener('click',()=>{ if(window.pdActsToggle) pdActsToggle(c.id); });
+  strip.querySelector('#ws-share')?.addEventListener('click',()=>{ const k=getContract(c.id)||c;
+    if(window.pdHasUnsent&&pdHasUnsent(k)&&window.pdSendWaiting){ pdSendWaiting(k); return; }
+    if(window.openShareModal) openShareModal(k); });
+  strip.querySelector('#ws-review')?.addEventListener('click',ev=>{ if(ev.currentTarget.disabled) return;
+    if(window.rlReviewDoor) rlReviewDoor(getContract(c.id)||c,()=>{ if(window.igPaintPaper) try{ igPaintPaper(); }catch(_){ } if(window.renderIntelDock) renderIntelDock(); }); });
+  strip.querySelector('#ig-actions')?.addEventListener('click',ev=>{ if(window.pdActsToggle) pdActsToggle(c.id,ev.currentTarget,{ short:true }); });
   if(window.paintChatDoor) try{ paintChatDoor(); }catch(_){ }
 }
 /* ---- ONE LINE (round 6 of the redesign; the owner picked "One line" by

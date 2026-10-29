@@ -97,7 +97,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         notesIn: !!(n && s.contains(n)), share: !!s.querySelector('#ws-share'), more: !!s.querySelector('#ws-more, [data-more], .ig-more'), back: !!s.querySelector('[data-ig-pick-again]') };
     });
     /* the three views are drawn where the paper has redlines to show (pdRedOk), as before */
-    check('3a Clean · Redline · Their view where there are redlines, Notes with its word, Share', acts.views.length === (acts.red ? 3 : 0) && acts.notesIn && /^Notes/.test(acts.notes || '') && acts.share, JSON.stringify(acts));
+    /* RE-POINTED 29 Oct 2026 (round 13, owner's yes): Notes left the line; Send · Ask for review · More */
+    check('3a Clean · Redline · Their view where there are redlines; Send, and no Notes on the line', acts.views.length === (acts.red ? 3 : 0) && !acts.notesIn && acts.share, JSON.stringify(acts));
     check('3b no ⋯ on the line (its rows are the dossier\'s All acts) and no "‹ Contracts" (the frame\'s tabs are the way back)', !acts.more && !acts.back, JSON.stringify(acts));
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the ⋯ rows are the dossier's All acts fold */
     const menu = await page.evaluate(() => !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]') && !document.querySelector('#ig-dock [data-pd-tab="menu"]'));

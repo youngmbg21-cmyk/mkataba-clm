@@ -350,7 +350,7 @@ const HANDBOOK_CHAPTERS = [
     when: [{ en: 'Sending the other side your changes, or the paper for the first time.', sv: 'Skicka motparten dina ändringar, eller papperet för första gången.' },
       { en: 'Sending a colleague the contract with a note: press {ui:sh_to_colleague} under {ui:sh_lt_to}.', sv: 'Skicka en kollega avtalet med en anteckning: tryck {ui:sh_to_colleague} under {ui:sh_lt_to}.' },
       { en: 'Giving an outside adviser a few clauses only, or sending the negotiation history or a Where we are page instead of the contract.', sv: 'Ge en extern rådgivare bara några klausuler, eller skicka förhandlingshistoriken eller en Var vi står-sida i stället för avtalet.' }],
-    path: ['door:share', { en: 'or {ui:ng_unsent_send}, or the Dossier\'s Send line', sv: 'eller {ui:ng_unsent_send}, eller Dossierns Skicka-rad' }],
+    path: ['door:share', { en: 'or the filled Send on the paper\'s line (it names the round while changes wait), or {ui:ng_unsent_send}, or the Dossier\'s Send line', sv: 'eller den fyllda Skicka på papperets rad (den namnger rundan medan ändringar väntar), eller {ui:ng_unsent_send}, eller Dossierns Skicka-rad' }],
     how: [{ en: 'Press {ui:dos_go_send} wherever you see it. The form and the letter open.', sv: 'Tryck {ui:dos_go_send} var du än ser det. Formuläret och brevet öppnas.' },
       { en: 'Check {ui:sh_lt_to}: the person is a chip, and its × opens their name and address to change them. {ui:sh_to_add} offers the people already named on this contract; {ui:sh_to_colleague} turns it into your own people (a colleague who may not open the stream is greyed with why).', sv: 'Kontrollera {ui:sh_lt_to}: personen är en bricka, och dess × öppnar namn och adress för ändring. {ui:sh_to_add} erbjuder de personer som redan är namngivna på avtalet; {ui:sh_to_colleague} gör det till era egna (en kollega som inte får öppna strömmen är grå med skäl).' },
       { en: 'Choose {ui:sh_lt_what}: the contract, the negotiation history, or a Where we are page with no wording on it.', sv: 'Välj {ui:sh_lt_what}: avtalet, förhandlingshistoriken eller en Var vi står-sida utan avtalstext.' },
@@ -362,7 +362,7 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['share'], acts: ['send'],
     words: { en: ['send', 'send it', 'share', 'send for review', 'send to the other side', 'send to a colleague', 'adviser link', 'the letter', 'what they can do', 'send by'], sv: ['skicka', 'dela', 'skicka på granskning', 'skicka till motparten', 'skicka till en kollega', 'rådgivarlänk', 'brevet', 'vad de kan göra', 'skicka med'] },
     shots: [
-      { go: [{ open: 'MK-A2', face: 'copilot' }], boxes: [{ sel: '#ws-share', step: 1 }], cap: { en: 'Share on the paper\'s strip opens the form and the letter (1).', sv: 'Dela på papperets list öppnar formuläret och brevet (1).' } },
+      { go: [{ open: 'MK-A2', face: 'copilot' }], boxes: [{ sel: '#ws-share', step: 1 }], cap: { en: 'Send on the paper\'s line, the one filled button, opens the form and the letter (1).', sv: 'Skicka på papperets rad, den enda fyllda knappen, öppnar formuläret och brevet (1).' } },
       { go: [{ open: 'MK-A2', face: 'copilot' }, { fn: 'openShareModal', ref: 'MK-A2', arg: 'c' }], boxes: [{ sel: '[data-sh-as-go="what"]', step: 3 }, { sel: '[data-sh-as-go="purpose"]', step: 4 }, { sel: '#sh-lt-verdict:not(.hidden), #share-readiness', step: 6 }], cap: { en: 'What goes (3) and what they can do (4), each a list that opens downwards; the verdict first in Before you send (6).', sv: 'Vad som skickas (3) och vad de kan göra (4), var och en en lista som öppnas nedåt; beskedet först i Innan du skickar (6).' } }] },
 
   { k: '3.4', part: 'agree', round: 1,
@@ -888,7 +888,7 @@ const HANDBOOK_CHAPTERS = [
     when: [{ en: 'A deal ended years ago and clutters the list: archive it.', sv: 'En affär slutade för år sedan och skräpar ned listan: arkivera den.' },
       { en: 'A dispute: put it on hold so nothing can change.', sv: 'En tvist: sätt stopp så inget kan ändras.' },
       { en: 'An acquisition only three people may know about: a code name.', sv: 'Ett förvärv bara tre personer får känna till: ett kodnamn.' }],
-    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: '⋯ › {ui:ct_archive} · {ui:st_kp_legal_hold} · {ui:cn_dlg_title}', sv: '⋯ › {ui:ct_archive} · {ui:st_kp_legal_hold} · {ui:cn_dlg_title}' }],
+    path: ['door:contracts', { en: 'press a contract', sv: 'tryck på ett avtal' }, { en: '{ui:ct_more} on the paper\'s line › All acts › {ui:ct_archive} · {ui:st_kp_legal_hold} · {ui:cn_dlg_title}', sv: '{ui:ct_more} på papperets rad › Alla handlingar › {ui:ct_archive} · {ui:st_kp_legal_hold} · {ui:cn_dlg_title}' }],
     how: [{ en: '{ui:ct_archive}: the contract leaves the lists; "{door:archived}" shows them again; {ui:reg_restore} brings one back.', sv: '{ui:ct_archive}: avtalet lämnar listorna; "{door:archived}" visar dem igen; {ui:reg_restore} tar ett tillbaka.' },
       { en: 'Legal hold: a grant per person; while held, every save is refused with the reason.', sv: 'Rättsligt stopp: en behörighet per person; medan det hålls vägras varje sparning med skälet.' },
       { en: '{ui:cn_dlg_title}: name it, name who knows the real name. The real name never leaves the server for anyone else.', sv: '{ui:cn_dlg_title}: namnge det, namnge vem som känner det riktiga namnet. Det riktiga namnet lämnar aldrig servern för någon annan.' }],
@@ -896,7 +896,7 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['archived'], acts: ['codename'],
     words: { en: ['archive', 'archived', 'legal hold', 'hold', 'code name', 'hide the name', 'private deal'], sv: ['arkiv', 'arkivera', 'rättsligt stopp', 'kodnamn', 'dölj namnet', 'privat affär'] },
     shots: [
-      { go: [{ open: 'MK-B1', face: 'copilot' }], boxes: [{ sel: '#ig-actions', step: 1 }], cap: { en: 'Actions on the paper\'s strip holds Archive, the hold and the code name (1).', sv: 'Åtgärder på papperets list rymmer Arkiv, stoppet och kodnamnet (1).' } }] },
+      { go: [{ open: 'MK-B1', face: 'copilot' }], boxes: [{ sel: '#ig-actions', step: 1 }], cap: { en: 'More on the paper\'s line; its last row, All acts, holds Archive, the hold and the code name (1).', sv: 'Mer på papperets rad; dess sista rad, Alla handlingar, rymmer Arkiv, stoppet och kodnamnet (1).' } }] },
 
   /* ======================= PART 6 — SEE THE WHOLE BOOK ======================= */
   { k: '6.1', part: 'see', round: 2,
