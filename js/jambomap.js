@@ -142,12 +142,11 @@ const JM_TASKS = [
   { k: 'import', to: { place: 'import' }, w: {
     en: ['import old contracts', 'bulk upload', 'migrate our contracts', 'upload many contracts at once', 'bring in our archive', 'load all our old agreements', 'from excel', 'from a spreadsheet'],
     sv: ['importera gamla avtal', 'ladda upp många avtal', 'flytta in våra avtal', 'massuppladdning', 'ta in vårt arkiv'] } },
+  /* INSIGHTS IS GONE (owner, 29 Oct 2026: "delete insights from HaTi itself"): its everyday words now mean the Board,
+     which carries the book's figures */
   { k: 'board', to: { place: 'board' }, w: {
-    en: ['dashboard', 'overview', 'key figures', 'kpis', 'the numbers', 'the board'],
-    sv: ['översikt', 'nyckeltal', 'siffrorna', 'instrumentpanel', 'tavlan'] } },
-  { k: 'insights', to: { place: 'insights' }, w: {
-    en: ['reports', 'analytics', 'statistics', 'charts', 'spend analysis', 'trends', 'portfolio report'],
-    sv: ['rapporter', 'analys', 'statistik', 'diagram', 'trender'] } },
+    en: ['dashboard', 'overview', 'key figures', 'kpis', 'the numbers', 'the board', 'reports', 'analytics', 'statistics', 'charts', 'spend analysis', 'trends', 'portfolio report'],
+    sv: ['översikt', 'nyckeltal', 'siffrorna', 'instrumentpanel', 'tavlan', 'rapporter', 'analys', 'statistik', 'diagram', 'trender'] } },
   /* the 31st (owner, 18 Oct 2026: "add Explorer as the 31st task"): every
      contract as a dot on one map, grouped, coloured and sized as asked */
   /* Ask a column (owner picked "In Jambo's panel", 20 Oct 2026): the Contracts list with the question open beside it (R.askOpen, read once by askColSync) */

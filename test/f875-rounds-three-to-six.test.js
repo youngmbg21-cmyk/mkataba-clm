@@ -145,7 +145,8 @@ describe('f875 (6) the phone', () => {
     assert.doesNotMatch(f, /class="m-stripe"/);
     assert.match(f, /e&&e!=='\\u2014'\?/);
     assert.equal(BOOKS.en.m_new_short, '+ New');
-    assert.equal(BOOKS.en.m_search_contracts, 'Search contracts, or ask Jambo');
+    /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
+    assert.equal(BOOKS.en.m_search_contracts, 'Search contracts');
   });
   test('6e a status is a dot and a word', () => {
     const f = fnRegion(MJ, 'mPill');

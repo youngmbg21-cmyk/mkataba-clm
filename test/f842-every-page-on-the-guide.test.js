@@ -43,7 +43,6 @@ const NOT_A_PAGE = {
 };
 /* the 20 Oct 2026 debt — only shrinks */
 const PAGES_NOT_ON_THE_GUIDE = {
-  insights: 'Insights (view intel)',
   brain: 'The Brain map (view brain)',
 };
 

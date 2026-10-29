@@ -123,13 +123,20 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
         order: rows.map(r => r.querySelector('.ins-c2 b').textContent),
         cardNote: open ? open.getAttribute('title') : '',
         foot: foot ? foot.textContent.trim() : '', footUnder: !!(foot && rows.length && box(foot).top - box(rows[rows.length - 1]).bottom < 4),
-        cardEnds: !!card && box(card).bottom < innerHeight - 60 };
+        cardEnds: !!card && box(card).bottom < innerHeight - 60,
+        /* ONE SHEET (owner, 29 Oct 2026): the foot sits inside the card, under the rows, and the card reaches the foot of Jambo's panel */
+        footIn: !!(foot && card && rows.length && box(foot).top >= box(rows[rows.length - 1]).bottom - 1 && box(foot).bottom <= box(card).bottom + 1),
+        panelFoot: (() => { const p = document.getElementById('ins-panel'); return p && card && p.getClientRects().length ? Math.round(box(p).bottom - box(card).bottom) : null; })(),
+        sheetGap: lh && card ? Math.round(box(card).top - box(lh).bottom) : null };
     });
     check('1a the list head: the box, the tabs under it, + Filter under them; no labelled band, no card head', B.stacked && B.gone === 0, JSON.stringify({ stacked: B.stacked, gone: B.gone }));
     check('1b the head: "4 open · what colleagues ask Legal for · advice too"', JSON.stringify(B.head) === '["4 open","what colleagues ask Legal for · advice too"]', JSON.stringify(B.head));
     check('1c oldest waiting first, as the Open tab says on hover', B.order[0] === 'Event venue booking, March kick-off' && B.order[3] === 'Mutual NDA with Naivas Supermarkets'
       && /oldest waiting first/.test(B.cardNote), JSON.stringify({ order: B.order, note: B.cardNote }));
-    check('1d the card ends after its rows, "1–4 of 4" right under them', B.foot === '1–4 of 4' && B.footUnder && B.cardEnds, JSON.stringify({ foot: B.foot, under: B.footUnder, ends: B.cardEnds }));
+    /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — the list card reaches the foot of Jambo's panel; REVERSES "the card ends after its rows") */
+    check('1d one sheet: the card meets the head and reaches the foot of Jambo\'s panel, "1–4 of 4" inside it under the rows',
+      B.foot === '1–4 of 4' && B.footIn && B.panelFoot != null && Math.abs(B.panelFoot) <= 2 && B.sheetGap != null && Math.abs(B.sheetGap) <= 1,
+      JSON.stringify({ foot: B.foot, footIn: B.footIn, panelFoot: B.panelFoot, sheetGap: B.sheetGap }));
 
     /* ---- 2 · the request in Jambo's panel ---- */
     await press(`.ik-lt [data-ik-row="${r1.id}"]`);

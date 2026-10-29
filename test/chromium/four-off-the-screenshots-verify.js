@@ -30,6 +30,9 @@
    new one rather than a fix), 1f, 2c, 2d, 3 (the stage earned the Insights
    door), 3b, 3d, 3e, 3f, 4e, 4j, 4l, 4m (THE ARITHMETIC WALL) and 9.
 
+   RETIRED 29 Oct 2026: 3, 3a, 3e, 3f (the Insights menu door) and 4a-4l (the
+   Exposure tab) measured the Insights page, which the owner had deleted.
+
    Run: node test/chromium/four-off-the-screenshots-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -228,19 +231,14 @@ const SEED = () => {
       return { order: items.map(b => b.getAttribute('data-view')),
         tops: items.map(b => Math.round(b.getBoundingClientRect().top)),
         disp: items.map(b => getComputedStyle(b).display),
-        badgeInside: (() => { const n = document.getElementById('nav-intel-new');
-          return n ? n.closest('.nav-item[data-view]').getAttribute('data-view') : 'absent'; })(),
-        svg: (() => { const b = document.querySelector('.nav-item[data-view="intel"]');
-          return b ? getComputedStyle(b.querySelector('svg')).color : null; })(),
       };
     });
-    const iOb = nav.order.indexOf('obligations'), iIn = nav.order.indexOf('intel');
-    const iTp = nav.order.indexOf('templates'), iRq = nav.order.indexOf('intake');
+    const iOb = nav.order.indexOf('obligations'), iTp = nav.order.indexOf('templates');
     /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): on a computer the
        left menu is not drawn, so its doors are not painted; Insights is a place Jambo opens.
        The menu's order (3a, 3b) is still its source's. */
-    check('3 · Insights is a place Jambo opens, in his "/" list',
-      await page.evaluate(() => (caReadPlace('insights') || {}).place === 'insights' && caSlashRows('insights', { max: 5 }).some(r => r.k === 'insights')));
+    /* 3 RETIRED 29 Oct 2026: measured the Insights page, which the owner had
+       deleted ("Insights is a place Jambo opens, in his / list"). */
     /* RE-POINTED 20 Sep 2026 (DECIDE 4 of the redesign order): the rail is
        three groups — Work, Library, Company — so Insights (Company) is painted
        after Obligations (Work) as the 19 Sep ask wanted, but Requests
@@ -255,9 +253,8 @@ const SEED = () => {
     /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 1): the Calendar is
        Home's second tab and has no rail door, so Insights closes Work
        directly after My notes */
-    const iCa = nav.order.indexOf('mynotes');
-    check('3a · Insights is painted after Obligations and directly after My notes, before Library — and no Calendar row',
-      iOb >= 0 && iIn > iOb && iIn === iCa + 1 && iTp > iIn && iRq > iIn && nav.order.indexOf('calendar') < 0, nav.order.join(' · '));
+    /* 3a RETIRED 29 Oct 2026: measured the Insights page, which the owner had
+       deleted — where its menu door was painted. */
     check('3b · and Work leads Library — Obligations is painted before Templates',
       iTp >= 0 && iOb < iTp, nav.order.join(' · '));
     check('3c · the menu is not painted on a computer (its doors are Jambo\'s words)',
@@ -272,118 +269,13 @@ const SEED = () => {
            disagree. */
         return items.every(b => !b.hasAttribute('tabindex'));
       }));
-    check('3e · the "New" badge travelled inside the block it lives in',
-      nav.badgeInside === 'intel', nav.badgeInside);
-    check('3f · the svg colour rule still reaches it — keyed on the attribute, not the place',
-      lum(nav.svg) != null, nav.svg);
+    /* 3e, 3f RETIRED 29 Oct 2026: measured the Insights page, which the owner
+       had deleted — the "New" badge and icon on its menu door. */
 
-    /* ================= 4 · THE EXPOSURE PAGE SAYS WHERE TO LOOK ============ */
-    await page.evaluate(() => setView('intel'));
-    await pause(1500);
-    await page.click('[data-ig-tab="exposure"]');
-    await pause(900);
-    await page.screenshot({ path: path.join(OUT, '02-exposure.png'), fullPage: true });
-
-    /* RE-POINTED 28 Sep 2026 — the Exposure tab is the PATTERN GRID (the
-       owner picked it by name). The rows are the grid's row labels
-       (`.exp-pg-rl[data-exp-row]`), a row's door is its squares and its total
-       (`data-exp-cell`), and the coverage reading is a row UNDER THE RULE
-       (`.exp-pg-sep`). Every claim below is the one this section always made
-       — worst first, a zero row stands down and is not hidden, ONE ruby bar,
-       the bar reserved, coverage set apart with its door — asked of the new
-       drawing. 4h asked for "one figure at the leading rung", which the grid
-       does not draw; it asks now that the RUBY is the lead's bar alone and no
-       square is shaded in it (the grid's ramp is the accent's). */
-    const exp = await page.evaluate(() => {
-      const d0 = (typeof exposureData === 'function') ? exposureData() : null;
-      const rows = [...document.querySelectorAll('.exp-pg-rl[data-exp-row]')]
-        .filter(el => !['any', 'unread'].includes(el.getAttribute('data-exp-row')))
-        .map(el => {
-          const k = el.getAttribute('data-exp-row');
-          const s = getComputedStyle(el);
-          const row = d0 && d0.rows.find(r => r.k === k);
-          return {
-            k, n: row ? row.n : null,
-            titleInk: s.color,
-            bar: s.borderLeftColor, barW: parseFloat(s.borderLeftWidth),
-            verb: !!document.querySelector('[data-exp-cell="' + k + '"]'),
-            top: Math.round(el.getBoundingClientRect().top),
-            left: Math.round(el.getBoundingClientRect().left + parseFloat(s.borderLeftWidth) + parseFloat(s.paddingLeft)),
-          };
-        });
-      const host = document.getElementById('ig-exp-body');
-      const sep = document.querySelector('.exp-pg-sep');
-      const cov = document.querySelector('.exp-pg-rl[data-exp-row="unread"]');
-      const cells = [...document.querySelectorAll('button.exp-pg-cell')].map(b => getComputedStyle(b).backgroundColor);
-      return { rows, host: !!host, cells,
-        sepBelowFive: (sep && rows.length) ? sep.getBoundingClientRect().top > Math.max(...rows.map(r => r.top)) : null,
-        covBelow: (cov && sep) ? cov.getBoundingClientRect().top > sep.getBoundingClientRect().bottom : null,
-        fxLine: !!host && host.textContent.replace(/\s+/g, ' ').includes('no exchange rate'),
-        data: (typeof exposureData === 'function') ? (() => { const d = exposureData();
-          return { lead: d.lead, order: d.rows.map(r => r.k),
-            vals: d.rows.map(r => r.value), ns: d.rows.map(r => r.n),
-            unread: d.unread.n }; })() : null,
-      };
-    });
-    const nonZero = exp.rows.filter(r => r.n > 0);
-    const zero = exp.rows.filter(r => !r.n);
-    check('4a · the rows are painted worst-first, biggest value at the top',
-      exp.rows.length >= 5
-      && exp.rows.every((r, i) => i === 0 || exp.rows[i - 1].top < r.top)
-      && exp.data && exp.data.vals.every((v, i) => i === 0 || exp.data.vals[i - 1] >= v)
-      && exp.rows.map(r => r.k).join() === exp.data.order.join(),
-      exp.data && exp.data.order.map((k, i) => k + ':' + exp.data.vals[i]));
-    check('4b · a zero row sinks by construction — every zero is below every non-zero',
-      nonZero.length && zero.length
-      && Math.max(...nonZero.map(r => r.top)) < Math.min(...zero.map(r => r.top)),
-      { nonZero: nonZero.map(r => r.k), zero: zero.map(r => r.k) });
-    /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
-    check('4c · a zero row wears the ink like a live row (its standing down is the bar it has no claim to, 4e–4f)',
-      zero.length && nonZero.length
-      && zero[0].titleInk === nonZero[0].titleInk,
-      { zero: zero[0] && zero[0].titleInk, live: nonZero[0] && nonZero[0].titleInk });
-    check('4d · and it is NOT hidden — "no contract has this" is a fact worth reading',
-      zero.length >= 2, zero.map(r => r.k));
-    check('4e · a zero row draws no square to press, because a press over nothing opens nothing',
-      zero.length > 0 && nonZero.length > 0 && zero.every(r => !r.verb) && nonZero.every(r => r.verb),
-      exp.rows.map(r => r.k + ':' + (r.verb ? 'verb' : '-')));
-    check('4f · EXACTLY ONE row carries a painted bar, and it is the leading one',
-      exp.rows.filter(r => lum(r.bar) != null && r.barW >= 3).length === 1
-      && lum(exp.rows[0].bar) != null && exp.rows[0].barW >= 3,
-      exp.rows.map(r => r.k + ':' + r.bar + '/' + r.barW));
-    check('4g · the bar is RESERVED on every row, so no row’s words shift under it',
-      new Set(exp.rows.map(r => r.left)).size === 1 && exp.rows.every(r => r.barW >= 3),
-      exp.rows.map(r => r.k + '@' + r.left));
-    check('4h · the ruby is the lead’s bar alone — no square is shaded in it',
-      exp.cells.length > 0 && exp.rows[0] && lum(exp.rows[0].bar) != null && !exp.cells.includes(exp.rows[0].bar),
-      { bar: exp.rows[0] && exp.rows[0].bar, cells: [...new Set(exp.cells)] });
-    check('4i · the unread row is NOT an exposure — it stands under the rule, below the five',
-      exp.sepBelowFive === true && exp.covBelow === true
-      && !exp.rows.some(r => r.k === 'unread'),
-      { sep: exp.sepBelowFive, below: exp.covBelow });
-    check('4j · and it kept its door, so nothing behind it was lost',
-      exp.data && exp.data.unread >= 0
-      && await page.evaluate(() => !!document.querySelector('[data-exp-cell="unread"]')));
-    const fx = await page.evaluate(() => {
-      const d = exposureData();
-      const h = document.getElementById('ig-exp-body');
-      return { left: d.fxLeft, rowLeft: d.rows.map(r => r.left),
-        star: !!h && /\*/.test(h.textContent),
-        line: !!h && h.textContent.replace(/\s+/g, ' ').includes('no exchange rate') };
-    });
-    check('4k · the asterisk earns a sentence — what was left out is counted and SAID',
-      fx.left > 0 && fx.star && fx.line && exp.fxLine, fx);
-    /* THE HOST IS `#ig-exp-body`, NEVER document.body — a first run read the
-       whole document, matched the word "scores" inside a source comment about
-       CSS specificity, and reported the product as carrying a rating. A check
-       reading the wrong element is a description. */
-    check('4l · and the tab still carries no score, no rating, no chart',
-      exp.host && await page.evaluate(() => {
-        const h = document.getElementById('ig-exp-body');
-        return !!h && !/score|rating|out of 100/i.test(h.textContent)
-          && !h.querySelector('canvas');
-      }), { host: exp.host });
-
+    /* ================= 4 · THE EXPOSURE COUNTING ============================
+       4a-4l RETIRED 29 Oct 2026: measured the Insights page, which the owner
+       had deleted — the Exposure tab's painted rows, bars and coverage line.
+       4m is kept: exposureData still counts for the Board and Jambo. */
     /* THE WALL: this was an ORDERING AND WEIGHT change, never an arithmetic
        one. Every figure is the reading it was — asserted against the rows'
        own counts, which is the one thing a presentation pass may not move. */

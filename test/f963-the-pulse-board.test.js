@@ -99,7 +99,7 @@ test('5 · every page list names it (rule 9c)', () => {
   assert.match(APP, /\{ k: 'see', rows: \['board', 'pulse', 'explorer', 'house'\] \}/, 'the Guide row, beside the Board');
   assert.match(CORE, /'handbook','pulse'/, 'setView knows it at start');
   assert.match(CA, /\{ k: 'pulse', w: \['pulse', 'pulse board'/, 'the "/" word');
-  assert.match(CA, /'reads', 'pulse', 'handbook', 'insights'/, 'its name typed moves there free');
+  assert.match(CA, /'reads', 'pulse', 'handbook'/, 'its name typed moves there free');   /* RE-POINTED 29 Oct 2026: Insights left the list on main */
   assert.match(NAV, /\['pulse', \/ \(pulse board\|/, 'navigable by typing');
   assert.ok(BR.includes("['pulse', 'renderPulse', 'see', 0]"), 'the Brain names it');
   assert.match(BR, /\[\/\^js\\\/views\\\/pulse\\\.js\$\/, 'see'\]/, 'and gives the file its area');

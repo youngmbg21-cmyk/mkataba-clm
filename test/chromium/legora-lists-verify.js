@@ -31,15 +31,10 @@
         and "Show N more" adds exactly min(step, n − k) rows
      7  THE BOX: typing a party narrows to the rows that carry it and the tab
         numbers follow; the caret stays in the box at every keystroke; "Visa"
-        or a party name is never a question; "which ones are waiting on us?"
-        does not narrow; Enter hands it to the page's OWN Jambo (on Contracts
-        Home's dock conversation grows by it); on a list page it is ANSWERED
-        IN the list's own panel (owner, 22 Oct 2026: Part 8's question 3 =
-        A, "Answer beside the list"): the reader stays on the page with the
-        tab, chips and rows as they were, the box is empty, the panel shows
-        the question and Jambo's answer after it, and the AI stand-in is
-        asked nothing (the Board's own reader answers it free); Enter on
-        plain words stays a search (no Jambo turn)
+        or a party name narrows like any word; RE-POINTED 29 Oct 2026 (owner:
+        "AI questions should only go to the jambo panel"): the box only
+        searches — "which ones are waiting on us?" narrows the list like any
+        words, and Enter on it, or on plain words, sends nothing to Jambo
      8  A REFRESH LANDS AT THE SAME SPOT: a tab lit, a chip added and words
         typed come back after a reload, with the same rows
    CONTRACTS ONLY: the Archive button still stands beside List | Wall; the
@@ -519,7 +514,7 @@ function pageKit(){
     check(`${tag(d)} 6c Show ${N} more adds exactly ${N} rows, and the foot says so`, !!grown && now.f && (now.f.k === f.k + N || new RegExp('^' + (f.k + N) + ' contracts?\\b').test(now.f.text || '')), JSON.stringify({ was: f.k, now: now.rows, foot: now.f && now.f.text }));
   }
 
-  /* ===== 7 · THE BOX: SEARCH, OR ASK THE PAGE'S OWN JAMBO ===== */
+  /* ===== 7 · THE BOX: IT ONLY SEARCHES (29 Oct 2026) ===== */
   const boxFocus = () => ev(() => { const b = window.__lh.box(); if (!b) return false; b.focus(); return document.activeElement === b; });
   /* the head's recount after typing is one per pause (lhHeadSyncSoon): asked
      for as a state — the lit tab says the rows shown — and bounded */
@@ -530,7 +525,7 @@ function pageKit(){
     const has = await ev(() => !!window.__lh.box());
     if (has !== true){
       check(`${tag(d)} 7a typing a party in the box narrows the list, the caret kept`, false, 'no input[data-lh-q] in the head to type in');
-      check(`${tag(d)} 7e a question does not narrow, and Enter hands it to the page's own Jambo`, false, 'no box to ask in');
+      check(`${tag(d)} 7f a question narrows like any words, and Enter sends nothing to Jambo`, false, 'no box to type in');
       return;
     }
     const cfg = cfgOf(d);

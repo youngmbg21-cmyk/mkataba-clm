@@ -135,7 +135,8 @@ const CONTRACTS = [
     await toCounter();
     await page.locator('#cn-q').click(); await page.keyboard.press('/');
     const slash = await until(() => { const w = [...document.querySelectorAll('#cn-pop [data-cn-pop] b')].map(b => b.textContent); return w.length ? w : null; });
-    const want = ['/approvals', '/parties', '/people', '/requests', '/our-paper', '/settings', '/negotiations', '/my-notes', '/import', '/insights'];
+    /* RE-POINTED 29 Oct 2026: '/insights' left with the Insights page (owner deleted it) */
+    const want = ['/approvals', '/parties', '/people', '/requests', '/our-paper', '/settings', '/negotiations', '/my-notes', '/import'];
     check('3d "/" lists every page the menu held', !!slash && want.every(w => slash.includes(w)), slash && slash.join(' '));
     check('3e and leaves out the words that need an open contract', !!slash && !['/redline', '/sign', '/share', '/fill-in'].some(w => slash.includes(w)));
     await page.keyboard.press('Escape');

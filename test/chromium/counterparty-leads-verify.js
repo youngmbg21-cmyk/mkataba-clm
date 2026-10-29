@@ -198,6 +198,12 @@ const check = (name, ok, detail) => {
         pageBg: (() => { const d = document.createElement('div');
           d.style.background = 'var(--color-bg)'; document.body.appendChild(d);
           const v = getComputedStyle(d).backgroundColor; d.remove(); return v; })(),
+        /* ONE SHEET (owner, 29 Oct 2026): what the sheet stands on, and the sheet's own lift and hairline */
+        behindBg: (() => { let n = body && body.parentElement; while (n) { const c = getComputedStyle(n).backgroundColor; if (!/rgba\(0, 0, 0, 0\)|transparent/.test(c)) return c; n = n.parentElement; } return null; })(),
+        bodyLift: cs(body) && cs(body).boxShadow, bodyTop: cs(body) && (parseFloat(cs(body).borderTopWidth) ? cs(body).borderTopColor : null),
+        cardSides: cs(card) && ['Right', 'Bottom', 'Left'].map(k => parseFloat(cs(card)['border' + k + 'Width'])),
+        cardTop: cs(card) && (parseFloat(cs(card).borderTopWidth) ? cs(card).borderTopColor : null),
+        divider: (() => { const d = document.createElement('div'); d.style.color = 'var(--color-divider)'; document.body.appendChild(d); const v = getComputedStyle(d).color; d.remove(); return v; })(),
         cardBg: cs(card) && cs(card).backgroundColor, cardEdge: cs(card) && (parseFloat(cs(card).borderTopWidth) === 0 ? 'transparent' : cs(card).borderColor), cardLift: cs(card) && cs(card).boxShadow,
         lobH: lob && lob.getClientRects().length ? Math.round(lob.getBoundingClientRect().height) : null,
         fieldH: inp ? Math.round(inp.getBoundingClientRect().height) : null,
@@ -249,13 +255,18 @@ const check = (name, ok, detail) => {
        and transparent-against-white already read as a difference, so the
        claim passed on a screen the owner had just called too white. It is
        the PAGE'S OWN GROUND, resolved live — the thing that was missing. */
-    check('3a the cards have the page’s own ground to be white against',
-      !!P.bodyBg && P.bodyBg === P.pageBg && P.bodyBg !== P.cardBg,
-      `body ${P.bodyBg} · page ${P.pageBg} · card ${P.cardBg}`);
+    /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — New agreement's title bar, the ask, the papers and Filed in
+       are one white sheet): the sheet (.na-body) is white, and it stands on the page's own ground */
+    check('3a the sheet is white against the page’s own ground',
+      !!P.bodyBg && P.bodyBg === P.cardBg && P.behindBg === P.pageBg && P.bodyBg !== P.pageBg,
+      `sheet ${P.bodyBg} · behind it ${P.behindBg} · page ${P.pageBg} · card ${P.cardBg}`);
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2, the owner's drawn New agreement): a card has no
        outline; it stands off the grey by its lift (--shadow-sm) — still something that stays visible on it */
-    check('3b and the card stands off the ground by its lift, with no outline',
-      /rgba\(0, 0, 0, 0\)|transparent/.test(P.cardEdge || '') && !!P.cardLift && P.cardLift !== 'none', `${P.cardEdge} · ${P.cardLift}`);
+    /* RE-POINTED 29 Oct 2026 (ONE SHEET): the SHEET stands off the ground by its lift; a card inside it has no
+       outline, only the one hairline where it meets the part above (the divider) */
+    check('3b and the sheet stands off the ground by its lift; the card inside has no outline, only the hairline above it',
+      !!P.bodyLift && P.bodyLift !== 'none' && (P.cardSides || []).every(w => w === 0) && (P.cardTop === null || P.cardTop === P.divider),
+      `sheet lift ${P.bodyLift} · card sides ${JSON.stringify(P.cardSides)} · card top ${P.cardTop} (divider ${P.divider})`);
     /* RE-POINTED 12 Oct 2026 (the Search list): the line of business moved
        to Settings → Company; the control in the rail now is its own search. */
     check('3c the rail\'s search is the size of the controls beside it',

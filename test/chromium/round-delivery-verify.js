@@ -350,7 +350,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        this section describes — and its real collection is measured below. */
     const HOLD_COLLECT = /\/api\/shares\/pending(\?|$)/;
     await own.route(HOLD_COLLECT, r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
-    await own.evaluate(() => setView('intel'));
+    /* RE-POINTED 29 Oct 2026: Insights was the page about no contract; the
+       owner had it deleted, so Templates stands in. */
+    await own.evaluate(() => setView('templates'));
     await pause(600);
     const readyBtn = await cp2.evaluate(() => {
       const b = document.getElementById('pt-nego-ready');
@@ -403,10 +405,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check('7 the stage holds — their readiness is still uncollected when the change lands',
       heldClaim === 1, heldClaim + ' waiting for ' + other);
 
-    await own.evaluate(() => setView('intel'));
+    await own.evaluate(() => setView('templates'));
     await pause(1500);
     check('7 the reader is on a page about no contract at all',
-      (await own.evaluate(() => state.view)) === 'intel');
+      (await own.evaluate(() => state.view)) === 'templates');
 
     const seenBoxes = [];
     for (let i = 0; i < 4; i++){

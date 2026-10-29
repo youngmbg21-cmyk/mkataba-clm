@@ -138,13 +138,8 @@ const NIGHT = () => {
       await pause(1300);
       await look(v);
     }
-    await page.evaluate(() => setView('intel')); await pause(1500);
-    for (const t of ['portfolio', 'friction', 'obligations', 'payterms', 'exposure']){
-      const went = await page.evaluate(x => { try { intelGoTab(x); return true; } catch (_){ return false; } }, t);
-      if (!went){ ok('2 Insights ' + t + ' opens', false, 'intelGoTab refused'); continue; }
-      await pause(1300);
-      await look('intel/' + t);
-    }
+    /* The five Insights tabs RETIRED from the walk 29 Oct 2026: they measured
+       the Insights page, which the owner had deleted. */
     const opened = await page.evaluate(() => {
       const c = state.contracts[0];
       if (!c || typeof openWorkspace !== 'function') return null;
@@ -160,7 +155,9 @@ const NIGHT = () => {
         await look('room/' + tab);
       }
     }
-    ok('2b the walk really covered the platform', walked.length >= 20, walked.length + ' screens');
+    /* 15, not 20, since 29 Oct 2026: the five Insights tabs left the walk with
+       the page (19 screens possible now, the same slack of four). */
+    ok('2b the walk really covered the platform', walked.length >= 15, walked.length + ' screens');
     /* A NET FOR WHAT COMES NEXT: a rule written for a night that no longer
        exists is dead weight at best, and at worst a night half come back. */
     ok('2c and on not one of them does the night come back, nor any rule written for it',

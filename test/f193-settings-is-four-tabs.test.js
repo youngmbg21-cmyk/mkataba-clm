@@ -764,7 +764,9 @@ describe('f193 — the tab row does not scroll away', () => {
     const page = /\.st-page\{[^}]*\}/.exec(HTML);
     assert.ok(page, '.st-page still has a rule');
     assert.ok(!/overflow/.test(page[0]), '.st-page states no overflow');
-    assert.ok(!/#content\{/.test(HTML), '#content carries no rule at all');
+    /* RE-POINTED 29 Oct 2026: One sheet lets #content stand as a column on two pages that fill to the panel's
+       foot (Import, a template's page); what sticky needs is that no rule on it clips */
+    assert.ok(!/#content\{[^}]*overflow/.test(HTML), '#content carries no overflow rule');
   });
 });
 

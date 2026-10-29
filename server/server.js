@@ -9797,8 +9797,9 @@ function colAskKeep(req, q, at, keep) {
    never as the exam's own questions: wording that says a thing CANNOT happen or
    does NOT apply is an answer, not silence; ending early is not stopping a
    renewal; and a document that answers the point under its own name for it
-   (rent where the question says invoice) answers it. */
-const COLUMN_READ_RULE = 'HOW TO READ: (1) Wording that says a thing cannot happen, does not apply or does not exist ANSWERS the question: set found to true, say so in the answer ("Cannot end early", "Does not renew", "None needed"), and quote that sentence. found is false only when the document says nothing at all on the point. (2) Ending or leaving a contract early is not the same as stopping it from renewing: a question about ending, cancelling or walking away is answered from the termination wording; if that wording says it cannot be ended early, the answer says so, and a notice to stop a renewal goes only in the detail. (3) Where the document answers the point under its own name for the thing (rent for a payment, a lease for an agreement, a fee for a price), answer with it and name it in the detail.';
+   (rent where the question says invoice) answers it. And (owner, 29 Oct 2026: the answers grouped and
+   coloured on the panel) the same thing is written the same way in every contract, the yes or no kept apart. */
+const COLUMN_READ_RULE = 'HOW TO READ: (1) Wording that says a thing cannot happen, does not apply or does not exist ANSWERS the question: set found to true, say so in the answer ("Cannot end early", "Does not renew", "None needed"), and quote that sentence. found is false only when the document says nothing at all on the point. (2) Ending or leaving a contract early is not the same as stopping it from renewing: a question about ending, cancelling or walking away is answered from the termination wording; if that wording says it cannot be ended early, the answer says so, and a notice to stop a renewal goes only in the detail. (3) Where the document answers the point under its own name for the thing (rent for a payment, a lease for an agreement, a fee for a price), answer with it and name it in the detail. (4) The answer is the plain value alone, written the same way for the same thing in every contract ("Kenya", "Sweden", "90 days", "Not capped"): never begin it with Yes or No and never repeat the question; for a yes-or-no question the yes or no goes in yes, and anything that qualifies the value goes in the detail.';
 const COLUMN_TOOL = {
   name: 'column_answers',
   description: 'One short answer per QUESTION for this contract, each as it would sit in one cell of a table, with the wording it rests on.',
@@ -13979,7 +13980,7 @@ function copilotNotNewPaper(question, final) {
    what needs you, the calendar or a list — the answer stays in the box it was asked in, on every page. A trip
    with no exact door to one of these places is dropped; "how do I get to…", "where / show me" still go, and a
    place that is an ACT (draft, upload, share, sign, a setting, the brief, our paper, our standards) keeps its trip */
-const COPILOT_LOOK_TASKS = ['needs', 'contracts', 'expiring', 'oblig', 'history', 'calendar', 'approvals', 'parties', 'people', 'requests', 'board', 'insights', 'explorer'];
+const COPILOT_LOOK_TASKS = ['needs', 'contracts', 'expiring', 'oblig', 'history', 'calendar', 'approvals', 'parties', 'people', 'requests', 'board', 'explorer'];
 const COPILOT_WAY_RE = /\b(how (do|can|would|should) (i|we) (get|go|reach|find)|get to|go to|navigate|bring me|hur (kommer|hittar) (jag|vi)|gå till|ta mig)\b/i;
 /* A CHAPTER IS A BUTTON, NEVER A MOVE (26 Oct 2026): the answer already carries the chapter's steps, so the reader
    stays where they asked and the chapter waits under the answer as one press ("Handbook › 4.2 Before you sign"),

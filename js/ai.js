@@ -2283,7 +2283,7 @@ function aiInsightsBrief(panels, tab){
 const AI_HOME_FACE_NAMES = { board: 'Home (the Board)', paper: 'Home (the paper side)', calendar: 'Home (the Calendar)', explorer: 'Explorer (the map of the book)' };
 const AI_PAGE_NAMES = {
   dashboard: 'Home', register: 'Contracts', folder: 'Contracts',
-  redline: 'Negotiations', workspace: 'a contract', intel: 'Insights',
+  redline: 'Negotiations', workspace: 'a contract',
   obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Customers', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Reads', pulse: 'the Pulse board', handbook: 'Handbook', templates: 'Templates',
   playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
   directory: 'Directory', team: 'Settings & rules', reports: 'Reports',
@@ -2645,7 +2645,7 @@ const AI_BRIEF_OFF_RULE="A CONTRACT'S BRIEF IS KEPT: when the person asks for a 
 const aiNavigateLocalOn=()=>!(typeof state!=='undefined'&&state&&state.settings&&state.settings.aiNavigate===false);
 /* A PAGE TO LOOK AT IS NO TRIP FOR A PLAIN QUESTION (owner, 24 Oct 2026, "fix the other pages too"): the
    server's copilotQuestionStays for a trip with no exact door, word for word, for the local-mode chat */
-const AI_LOOK_TASKS=['needs','contracts','expiring','oblig','history','calendar','approvals','parties','people','requests','board','insights','explorer'];
+const AI_LOOK_TASKS=['needs','contracts','expiring','oblig','history','calendar','approvals','parties','people','requests','board','explorer'];
 const AI_ASKS_RE=/^\s*(what|whats|when|who|whos|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
 const AI_SHOW_RE=/\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
 const AI_WAY_RE=/\b(how (do|can|would|should) (i|we) (get|go|reach|find)|get to|go to|navigate|bring me|hur (kommer|hittar) (jag|vi)|gå till|ta mig)\b/i;

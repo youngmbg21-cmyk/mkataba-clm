@@ -804,7 +804,7 @@
 
        True circles use border-radius:50% (or .rounded-full) and are not this
        token: a circle is not a corner. */
-    --radius:10px; --radius-sm:8px; --radius-md:12px; --radius-lg:18px;  /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' 2px/3px): soft corners; a card is --radius-lg, a control a pill (.ui-btn) */
+    --radius:10px; --radius-sm:8px; --radius-md:10px; --radius-lg:10px;  /* ONE CORNER (owner, 29 Oct 2026: "half as round", every card and Jambo panel 10px, pills unchanged). THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' 2px/3px): soft corners; a card is --radius-lg, a control a pill (.ui-btn) */
 
     --shadow-sm:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.05);   /* the Legora look: a card floats, the faintest lift (23 Oct 2026) */
     --shadow-md:0 8px 24px rgba(0,0,0,.08);
@@ -9988,6 +9988,77 @@
   #ig-dock .ac-bar>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #ig-dock .ac-bar>b{text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-label)}
   #ig-dock .ac-bar-t{display:block;height:10px;border-radius:5px;background:var(--color-neutral-100);overflow:hidden}
+  /* NO GREY (owner, 29 Oct 2026, the Legora way): yes green, no blue, a plain fact its answer's own colour,
+     nothing found an empty ring; red is a risk alone. One set of rules for every place an answer is drawn
+     (the list, Jambo's panel, Reads, the read table, Key terms), at an id's weight so the older scoped
+     rules above give way. The five value colours sit beside the status tones: violet, pink, teal, cocoa, indigo (none near amber, green or the blue of no). */
+  :root{--ac-v1:var(--st-violet-dot);--ac-v2:var(--st-pink-dot);--ac-v3:#1F8A8A;--ac-v4:#8C5A3C;--ac-v5:#4F5BD5;--ac-more:#1D1D1F;--ac-no:var(--st-steel-dot)}
+  :is(#ig-dock, html) .ac-ans.tone-green>i, :is(#ig-dock, html) i.ac-lg-green{background:var(--st-green-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-steel>i, :is(#ig-dock, html) i.ac-lg-steel{background:var(--ac-no);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-amber>i, :is(#ig-dock, html) i.ac-lg-amber{background:var(--st-amber-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-ruby>i, :is(#ig-dock, html) i.ac-lg-ruby{background:var(--st-ruby-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v1>i, :is(#ig-dock, html) i.ac-lg-v1{background:var(--ac-v1);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v2>i, :is(#ig-dock, html) i.ac-lg-v2{background:var(--ac-v2);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v3>i, :is(#ig-dock, html) i.ac-lg-v3{background:var(--ac-v3);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v4>i, :is(#ig-dock, html) i.ac-lg-v4{background:var(--ac-v4);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v5>i, :is(#ig-dock, html) i.ac-lg-v5{background:var(--ac-v5);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-more>i, :is(#ig-dock, html) i.ac-lg-more{background:var(--ac-more);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-none>i, :is(#ig-dock, html) i.ac-lg-none{background:transparent;box-shadow:inset 0 0 0 1.8px var(--ac-no)}
+  :is(#ig-dock, html) .ac-ans.tone-none{color:var(--st-steel-fg);font-style:italic}
+  :is(#ig-dock, html) .ac-gbar i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
+  :is(#ig-dock, html) .ac-bar-t i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
+  /* THE QUESTION'S CARD, THE LEGORA WAY (as drawn, 29 Oct 2026): nothing boxed; the question, one sentence,
+     the coloured bar, one row per answer, the quote, one button, three links and More… */
+  #ig-dock .ac-col.is-open{display:flex;flex-direction:column;gap:12px;background:transparent;border:0;box-shadow:none;padding:0}
+  #ig-dock .ac-col-h{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer}
+  #ig-dock .ac-col-h .ac-dk-eb{font-size:13px;color:var(--color-text)}
+  #ig-dock .ac-col-q{font-weight:var(--w-strong);font-size:15px;line-height:1.35}
+  #ig-dock .ac-col-say{margin:0;font-size:14px;line-height:1.5}
+  #ig-dock .ac-col-say b{font-weight:var(--w-strong)}
+  #ig-dock .ac-col-say .ac-link.is-risk{color:var(--st-ruby-fg)}
+  #ig-dock .ac-gbar{display:flex;height:6px;border-radius:999px;background:var(--color-divider);overflow:hidden}
+  #ig-dock .ac-gbar.is-mini{height:4px}
+  #ig-dock .ac-gbar i{display:block;height:100%;flex:none}
+  #ig-dock .ac-tally{display:flex;flex-direction:column;gap:2px}
+  #ig-dock .ac-tl{display:flex;align-items:center;gap:8px;min-height:32px}
+  /* the chosen answer's shade reaches 6px past its words on each side as paint only, so the row's box stays inside the card */
+  #ig-dock .ac-tl.is-on{background:var(--jb-card-fill);box-shadow:-6px 0 0 0 var(--jb-card-fill),6px 0 0 0 var(--jb-card-fill)}
+  #ig-dock .ac-tl-b{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;font:inherit;font-size:14px;color:inherit;text-align:left;cursor:pointer}
+  #ig-dock .ac-tl-n{min-width:24px;text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-strong)}
+  #ig-dock .ac-tl-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-tl-names{color:var(--color-text)}
+  #ig-dock .ac-tl .ac-link{flex:none;font-size:14px}
+  #ig-dock .ac-qw{display:flex;flex-direction:column;gap:4px}
+  #ig-dock .ac-qw-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px}
+  #ig-dock .ac-qw-st{display:inline-flex;gap:4px;flex:none}
+  #ig-dock .ac-qw-b{width:26px;height:26px;border-radius:999px;border:0;background:var(--jb-card-fill);font:inherit;font-size:15px;line-height:1;cursor:pointer;color:var(--color-text)}
+  #ig-dock .ac-qw-b:hover{background:var(--color-divider)}
+  #ig-dock .ac-qw-q{margin:0;font-family:var(--font-doc);font-style:italic;font-size:14.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  #ig-dock .ac-qw-q.is-none{font-style:normal;font-family:inherit;font-size:14px}
+  #ig-dock .ac-qw-src{align-self:flex-start;background:none;border:0;padding:0;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--color-divider);text-underline-offset:3px}
+  #ig-dock .ac-col-go{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #ig-dock .ac-col-links{display:flex;flex-wrap:wrap;gap:6px 16px;padding-top:12px;border-top:1px solid var(--color-divider)}
+  #ig-dock .ac-col-links .ac-link, #ig-dock .ac-col-more .ac-link{font-size:14px}
+  #ig-dock .ac-col-more{display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:var(--jb-card-fill);border-radius:var(--radius);padding:12px 16px}
+  #ig-dock .ac-col-more .ac-link.is-danger{color:var(--st-ruby-fg)}
+  #ig-dock .ac-col .ac-ckline{font-size:13px}
+  #ig-dock .ac-col-eb{font-size:13px;margin:8px 0 -4px}
+  #ig-dock .ac-col-fold{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:var(--jb-card-fill);border:0;border-radius:var(--radius);padding:12px 16px;font:inherit;color:inherit;cursor:pointer}
+  #ig-dock .ac-col-fold:hover{background:var(--color-divider)}
+  #ig-dock .ac-fd-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+  #ig-dock .ac-fd-h b{font-weight:var(--w-strong);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ac-fd-n{flex:none;font-size:13px;white-space:nowrap}
+  #ig-dock .ac-fd-cs{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:13px}
+  #ig-dock .ac-fd-c{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  /* STOP STANDS STILL (29 Oct 2026): Stop heads the running card; the desk and the stack keep one size */
+  #ig-dock .ac-dk-card.is-running .ac-dk-top{display:flex;align-items:center;gap:10px;min-width:0;min-height:28px}
+  #ig-dock .ac-dk-card.is-running .ac-dk-top .ac-desk-now{flex:1;min-width:0}
+  #ig-dock .ac-dk-card.is-running .ac-dk-stop{flex:none;background:var(--color-surface);border:1px solid var(--st-ruby-line);color:var(--st-ruby-fg);border-radius:999px}
+  #ig-dock .ac-dk-card.is-running .ac-dk-q{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #ig-dock .ac-dk-card.is-running .ac-desk{height:128px;min-height:128px;justify-content:flex-start;overflow:hidden}
+  #ig-dock .ac-dk-card.is-running .ac-desk-q{-webkit-line-clamp:2}
+  #ig-dock .ac-dk-card.is-running .ac-stack-r{height:30px;flex:none}
+  #ig-dock .ac-dk-card.is-running .ac-stack-r.is-keep{visibility:hidden}
   #ig-dock .ac-bar-t i{display:block;height:100%;width:0;border-radius:5px;min-width:0}
   /* BREATHING ROOM (owner, 28 Oct 2026: "the feedback or response is very close the entry field"): a line of
      words under an entry box stands 8px below it — the hint under the name, and the refusal under the question */
@@ -10411,7 +10482,7 @@
      body scrolls and gives its scrollbar's width to the gutter; the head stands outside the scroller, so it is
      given the same room (--dlg-sbw, measured by dlgPageAdopt) and both cards end on one line */
   #modal-root [data-pd-mid^="deal:"] .dlg-pg-head.dlg-pg-head{margin-right:calc(12px + var(--dlg-sbw,0px))}
-  #modal-root [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:none;background:var(--color-surface);border-radius:20px;box-shadow:var(--shadow-sm);padding:12px 24px 24px}
+  #modal-root [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:none;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:12px 24px 24px}
   /* THE CLOSE PLAN (owner picked it, 25 Oct 2026): the head says how many points stand open, the road beside it
      where they sit; every point a quiet row under what to do with it — name and §, why, where it stands, its doors */
   [data-pd-mid^="deal:"] .dlg-pg-crumb{display:flex;align-items:center;gap:10px}
@@ -16033,9 +16104,13 @@
   /* the page's switch at the head's right, on the box's line (the title's
      line keeps one height on every page); the tab and chip rows under both */
   .sap-page .lh.lh-paper{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--s-3);row-gap:var(--s-2);align-items:center;}
-  .sap-page .lh.lh-paper > .lh-ask{grid-column:1;grid-row:1;}
-  .sap-page .lh.lh-paper > .reg-seg.paper-seg{grid-column:2;grid-row:1;align-self:center;}
-  .sap-page .lh.lh-paper > :not(.lh-ask):not(.paper-seg){grid-column:1 / -1;}
+  /* THE BOOK · TEMPLATES · OUR STANDARDS STANDS ON THE LINE ABOVE THE LIST (owner, 29 Oct 2026, option 1):
+     the search keeps its whole line, the three sit at the right end of the next line (beside the tabs where
+     the page has them, alone on The book), in the same place on all three; Filter comes after. */
+  .sap-page .lh.lh-paper > .lh-ask{grid-column:1 / -1;grid-row:1;}
+  .sap-page .lh.lh-paper > .reg-seg.paper-seg{grid-column:2;grid-row:2;align-self:center;}
+  .sap-page .lh.lh-paper > .reg-views{grid-column:1;grid-row:2;}
+  .sap-page .lh.lh-paper > :not(.lh-ask):not(.paper-seg):not(.reg-views){grid-column:1 / -1;}
   .sap-page .lh.lh-paper > .reg-seg.paper-seg button{display:inline-flex;align-items:center;}
   :is(.tpl-ins,.sd-ins) .ins-card > :is(.tpl-foot,.sd-foot){flex:none;}
   :is(.tpl-ins,.sd-ins) .ins-card > :is(.tpl-foot,.sd-foot):empty{display:none;}
@@ -17419,7 +17494,7 @@
   /* -- Jambo's box: the one coloured edge on the page, a pill at rest -- */
   /* ONE CALM GREEN EDGE (Round 2, owner's yes 24 Oct 2026): the teal-violet-coral ring ended in red and read as an error */
   .jb-card{border:1.5px solid var(--accent-ink);border-radius:999px;background:var(--color-surface)}
-  .jb-card.is-tall{border-radius:20px}
+  .jb-card.is-tall{border-radius:var(--radius-lg)}
   .jb-card:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px rgba(10,124,107,.12)}
   /* -- ONE PANEL, TWO FACES: the door above the box (owner picked "Door above the box", 28 Oct 2026) — "‹ Overview" on
      the left, the bin at the end, standing on the box's own line of sight; nothing on the landing -- */
@@ -17453,7 +17528,7 @@
   /* a blank or fact marked on the paper keeps a small corner: it is the wording, not a chip over it */
   .doc-surface .field-frozen{border-radius:3px}
   /* -- the two halves float: white cards on the grey ground (Home beside a paper, and every list) -- */
-  #content .ins-panel.is-jambo{right:8px;top:calc(var(--jl-top,88px) + 8px);bottom:8px;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  #content .ins-panel.is-jambo{right:8px;top:calc(var(--jl-top,88px) + 8px);bottom:8px;border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
   /* the panel floats 8px in, still 384 wide (JL_W): a page that never scrolls as a whole (.view-fixed,
      most lists) lets it stand over its own empty 16px right margin, so the list keeps every pixel (the
      Parties column kept its 186 at 1366, parties-nda-column 4); a page with a scrollbar steps 8px aside
@@ -17461,13 +17536,13 @@
   #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:calc(var(--jl-room,var(--jl-w,384px)) + 8px);}
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:54px;}
   @media (min-width:981px){
-    .st-cr .st-side{top:8px;margin:calc(8px - var(--page-pad-t)) calc(8px - var(--page-pad-x)) 0 0;height:calc(var(--st-side-h,560px) - 16px);border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+    .st-cr .st-side{top:8px;margin:calc(8px - var(--page-pad-t)) calc(8px - var(--page-pad-x)) 0 0;height:calc(var(--st-side-h,560px) - 16px);border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
   }
   #context-panel .pt-tabs{border-bottom:0}
-  #app-shell #ig-page:not(.hb-dark) #ig-dock{margin:8px 8px 8px 0;border:0;border-radius:20px;box-shadow:var(--shadow-sm);background:var(--color-surface)}
-  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:8px 12px 8px 8px;border-radius:20px;background:var(--color-surface);box-shadow:var(--shadow-sm);overflow:hidden;flex-direction:column}
+  #app-shell #ig-page:not(.hb-dark) #ig-dock{margin:8px 8px 8px 0;border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);background:var(--color-surface)}
+  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:8px 12px 8px 8px;border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-sm);overflow:hidden;flex-direction:column}
   #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #ig-strip{background:transparent;border-bottom:0}
-  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #ig-paper{margin:0 8px 8px;border-radius:16px;overflow:hidden}
+  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #ig-paper{margin:0 8px 8px;border-radius:var(--radius-lg);overflow:hidden}
   /* THE WORDING DOES NOT MOVE (THE CONTRACT'S PIXELS): the card's 8px inset is taken back from the paper's
      line, 47px → 39px (its buttons are 28), never from the room above the sheet, so the zoom keeps its 6px
      and the sheet its 40px under the line, as on every other paper (one-zoom 6, one-paper-everywhere 1) */
@@ -17489,7 +17564,7 @@
      group a soft grey ROUNDED row inset 10px carrying "Show all N", each row roomy (wait 110 in the ruby, ONE act
      100 wide). The TEXT keeps HaTi's own sizes (owner, 23 Oct 2026: "13px"). Scoped to #cn-page: the Board's own Needs you keeps its table. */
   #cn-page .cn-in{width:880px}
-  #cn-page .cn-card{border-radius:22px}
+  #cn-page .cn-card{border-radius:var(--radius-lg)}
   #cn-page .cn-ask{padding:24px 30px 20px;gap:0}
   #cn-page .cn-ask > svg.jambo-mark, #cn-page .cn-ask .cn-face{display:block;flex:none;width:28px;height:28px;padding:7px;box-sizing:border-box;border-radius:50%;color:#fff;
     background:linear-gradient(135deg,#0A7C6B,#6D5DFC,#FF7A59);margin:0}
@@ -17530,7 +17605,7 @@
      both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
   /* 16PX INSIDE EVERY CARD (owner, 25 Oct 2026: "go with 16px, apply it everywhere"; it was 0 above the clause
      name — the top room was the head's, and the row face has none — 16 below, 18 at the sides) */
-  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:16px;margin-bottom:8px;border-bottom:0}
+  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:var(--radius-lg);padding:16px;margin-bottom:8px;border-bottom:0}
   :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:0}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
   /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
@@ -17541,7 +17616,7 @@
      Anything above them should have the grey color they always had"): one rounded box, the reason inside it
      with no box of its own (it read as white in the middle once the card was pressed); the ONE SHADE deepens
      it one amber step on hover and once pressed, and gives it back its amber when another card takes it */
-  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:16px;padding:16px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
+  :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone){border:0;border-radius:var(--radius-lg);padding:16px;margin-bottom:8px;background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone) .rk-why{background:transparent;padding:0}
   :is(#ig-dock, body) .redline-page .rk-row:not(.is-none):not(.is-gone):is(:hover, .is-linked){background:var(--st-amber-bg)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover):not(.is-none):not(.is-gone){background:color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))}
@@ -17556,7 +17631,7 @@
   #app-shell .reg-table .reg-av{border-radius:8px}
   /* A PAGE'S HEAD IS A FLOATING WHITE CARD (the drawn New agreement: "Contracts › New agreement", its title and
      its acts on a card set in on the grey), on every page-shaped pop-up */
-  #modal-root [data-dlg-page] .dlg-pg-head{margin:4px 12px 0;padding-top:8px;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  #modal-root [data-dlg-page] .dlg-pg-head{margin:4px 12px 0;padding-top:8px;border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
   /* Company · HaTi over the templates: the drawn grey track, the chosen one a white pill */
   #modal-root [data-dlg-page] .na-head{border-bottom:0}   /* the drawn subtitle stands on the grey with no rule under it */
   #modal-root .na-tabs{gap:2px;padding:3px;border:0;border-radius:999px;background:var(--surface-2)}
@@ -17573,9 +17648,9 @@
   #pw-page .pw-tab{height:26px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600);white-space:nowrap}
   #pw-page .pw-tab[aria-selected="true"]{background:var(--color-surface);color:var(--color-text);box-shadow:0 1px 2px rgba(0,0,0,.10)}
   #pw-page .redline-page.rl-embed #rl-grid{gap:8px}
-  #pw-page .redline-page.rl-embed #rl-doc{background:var(--color-surface);border-radius:18px;box-shadow:var(--shadow-sm);padding:8px}
-  #pw-page .redline-page.rl-embed #nego-scroll-work{background:var(--desk-ground);border-radius:14px;padding-top:21px}
-  #pw-page .redline-page.rl-embed :is(#rl-side, #rl-cp){border:0;border-radius:18px;box-shadow:var(--shadow-sm);overflow:hidden}
+  #pw-page .redline-page.rl-embed #rl-doc{background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:8px}
+  #pw-page .redline-page.rl-embed #nego-scroll-work{background:var(--desk-ground);border-radius:var(--radius-lg);padding-top:21px}
+  #pw-page .redline-page.rl-embed :is(#rl-side, #rl-cp){border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
   /* the change's place on the paper ("§2 · “…”") and the pile chips, as drawn */
   #pw-page .rl-card-sec{font-family:var(--font-ref);font-size:12px;color:var(--color-neutral-600)}
   #pw-page .rl-pile-chips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 8px}
@@ -17650,7 +17725,7 @@
   #na-root.na-one .na-file-b .na-seg{max-width:none;flex:1 1 auto}
   #na-root.na-one .na-file-b .na-seg-b{border-radius:999px}
   #na-root.na-one .na-file-cost{margin:8px 0 0;text-align:left}
-  #na-root.na-one .na-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 18px;border:1.5px dashed var(--rule-strong);border-radius:14px;text-align:center;color:var(--color-neutral-600)}
+  #na-root.na-one .na-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 18px;border:1.5px dashed var(--rule-strong);border-radius:var(--radius-lg);text-align:center;color:var(--color-neutral-600)}
   #na-root.na-one .na-drop.is-over{border-color:var(--accent-ink);background:var(--color-accent-50)}
   #na-root.na-one .na-drop b{color:var(--color-text);font-weight:var(--w-strong)}
   #na-root.na-one .na-theirs-file{color:var(--color-text);font-weight:var(--w-label)}
@@ -17797,14 +17872,19 @@
   #app-shell #ig-dock .pd-dossier.is-mix .ds-sp-st > .ds-go{font-size:11.5px}
   /* the three columns: Jambo read's rows, the grid's lines, the Obligations line — laid out as FLEX (a <button> laid out
      as grid is sized to its words by Chrome): the name 120 wide, what stands takes the rest, the door at the end */
-  #app-shell #ig-dock .pd-dossier.is-mix .ds-read .ds-row.ds-rr,
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read, .ds-owed) .ds-row.ds-rr,
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-dossier tr.pd-og-row .pd-ck-hd,
   #app-shell #ig-dock .pd-dossier.is-mix .ds-ob-line{display:flex;align-items:baseline;gap:12px;width:100%;height:auto;min-height:0;padding:9px 0;margin:0}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr, #pd-og.is-dossier .pd-ck-hd, .ds-ob-line) > .pd-ck-ring{display:none}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-nm, #pd-og.is-dossier .pd-ck-hd > b, .ds-ob-line > b){flex:0 0 120px;width:120px;min-width:0;font-size:13.5px;line-height:20px;font-weight:var(--w-label);color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-val, #pd-og.is-dossier .pd-ck-hd > .pd-ck-v, .ds-ob-line > .ds-this-v){flex:1 1 0;justify-self:start;min-width:0;max-width:none;font-size:13px;line-height:19px;text-align:left;color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
-  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > :last-child, #pd-og.is-dossier .pd-ck-hd > .pd-ck-chev, .ds-ob-line > .pd-ck-chev){flex:none;justify-self:end;margin-left:auto}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr, .ds-owed .ds-rr, #pd-og.is-dossier .pd-ck-hd, .ds-ob-line) > .pd-ck-ring{display:none}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-nm, .ds-owed .ds-rr > .ds-nm, #pd-og.is-dossier .pd-ck-hd > b, .ds-ob-line > b){flex:0 0 120px;width:120px;min-width:0;font-size:13.5px;line-height:20px;font-weight:var(--w-label);color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > .ds-val, .ds-owed .ds-rr > .ds-val, #pd-og.is-dossier .pd-ck-hd > .pd-ck-v, .ds-ob-line > .ds-this-v){flex:1 1 0;justify-self:start;min-width:0;max-width:none;font-size:13px;line-height:19px;text-align:left;color:var(--color-text);white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+  #app-shell #ig-dock .pd-dossier.is-mix :is(.ds-read .ds-rr > :last-child, .ds-owed .ds-rr > :last-child, #pd-og.is-dossier .pd-ck-hd > .pd-ck-chev, .ds-ob-line > .pd-ck-chev){flex:none;justify-self:end;margin-left:auto}
   #app-shell #ig-dock .pd-dossier.is-mix #pd-og.is-dossier .pd-ck-v .is-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
+  /* ONE GRID (owner, 29 Oct 2026): the rows owed and the rows of the one desk are the same three columns — the one
+     desk's two-line row (.pd-nd-row > span, a column) is a plain name and value here; amber says late or missing */
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-owed .ds-row.ds-rr.pd-nd-row{margin:0;border-radius:0;background:none}
+  #app-shell #ig-dock .pd-dossier.is-mix .ds-owed .ds-row.ds-rr.pd-nd-row > span{display:block;gap:0}
+  #app-shell #ig-dock #pd-glance.pd-dossier.is-mix .ds-owed .ds-rr > .ds-val.is-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
   /* ---- the form ---- */
   #app-shell #ig-dock .pd-fm{display:flex;flex-direction:column;gap:4px;font-size:13px}
   #app-shell #ig-dock .pd-fm-h h3{margin:0;font-size:16px;line-height:22px;font-weight:var(--w-strong);color:var(--color-text)}
@@ -17874,7 +17954,7 @@
      scroller now wears the paper's thin grey one. :where() weighs nothing, so a rule naming its own bar
      (none, or a set width) still wins */
   :where(html) *{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent}
-  .pd-acts-pop{position:fixed;z-index:72;width:288px;overflow:auto;padding:6px;background:var(--color-surface);border-radius:14px;box-shadow:0 12px 32px -8px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.04)}
+  .pd-acts-pop{position:fixed;z-index:72;width:288px;overflow:auto;padding:6px;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:0 12px 32px -8px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.04)}
   .pd-acts-pop .pd-acts-g + .pd-acts-g{margin-top:4px;padding-top:4px;border-top:1px solid var(--color-divider)}
   .pd-acts-pop .pd-acts-h{padding:8px 10px 4px;font-size:12px;color:var(--color-neutral-600)}
   .pd-acts-pop .pd-acts-r{display:flex;align-items:center;gap:10px;width:100%;min-height:32px;padding:6px 10px;border:0;border-radius:8px;background:none;color:var(--color-text);font:inherit;font-size:13px;text-align:left;cursor:pointer;white-space:nowrap}
@@ -17936,9 +18016,9 @@
      work and the obligations review kept a square 880px sheet narrower than their floating head */
   #modal-root [data-pd-mid]{background:var(--color-bg)}
   #modal-root [data-pd-mid] .dlg-pg-body{background:transparent;padding:10px 12px 12px}
-  #modal-root [data-pd-mid] .dlg-pg-body > *{max-width:none;margin:0;border:0;background:var(--color-surface);border-radius:20px;box-shadow:var(--shadow-sm);padding:20px 24px}
+  #modal-root [data-pd-mid] .dlg-pg-body > *{max-width:none;margin:0;border:0;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:20px 24px}
   /* THE SEND SCREEN'S HEAD FLOATS AS EVERY PAGE'S DOES (2): set in on the grey, level with the panel */
-  #modal-root .modal-in[data-sh-page] .sh-hd{top:8px;margin:8px 12px 0;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  #modal-root .modal-in[data-sh-page] .sh-hd{top:8px;margin:8px 12px 0;border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
   /* …and "Email is not set up yet" stands with the cards' words beside it, clear of the box above (2) */
   #pd-sendface #sh-noemail{margin:12px 0 0;padding:0 15px}
   /* THE DOSSIER'S ACTS KEEP THEIR WORDS (6): a row too narrow for them wraps, never cuts "Import their Word file" */
@@ -18015,12 +18095,134 @@
   :is(#app-shell, #modal-root) #na-root.na-one #wz-pick.na-rail{padding:11px 16px 5px}
   /* the Calendar's head card on Home (10 above, 12 below) */
   #app-shell .cal-page.is-home .cal-head{padding:16px}
+  /* ═══ ONE SHEET (owner, 29 Oct 2026: "Build One sheet with the three buttons") ════════════════════
+     In the middle, a page's head and what it heads are ONE white sheet: no grey gap between them, one
+     hairline where they meet, the 10px corner only on the sheet's outer corners, and the sheet reaches
+     the foot of Jambo's panel. Jambo's panel stays its own sheet. The lift (--shadow-sm) is CLIPPED
+     where two parts meet: the upper part throws none downward (a head carries pop-ups — Columns, Filter — so it is
+     never clipped), the lower part's is clipped at its top (clip-path). Left as they were, by
+     the owner's word: the Board, Settings (corners only) and Jambo's agents (corners only). */
+  /* (1) THE LIST PAGES: the head's last part (the shared head's lower half, or a band that names its
+     page, or the Handbook's head) meets the list under it */
+  #content .sap-page > :is(.sap-band.ph-foot, .sap-band.ph-card, .hbk-head),
+  #content .sap-page > div > .sap-band.ph-card{border-bottom-left-radius:0;border-bottom-right-radius:0;
+    box-shadow:0 -1px 2px rgba(0,0,0,.04)}
+  #content .sap-page > .sap-band.ph-foot{box-shadow:none}
+  /* every list page ends level with Jambo's panel (Negotiations kept 14 below, the rest 8) */
+  #content .sap-page.ngl-page{--ngl-pb:8px}
+  #content .sap-page > :is(.sap-band.ph-foot, .sap-band.ph-card, .hbk-head) ~ :is(.ins-body, .ap-body, .reg-body),
+  #content .sap-page > div > .sap-band.ph-card ~ .reg-body{margin-top:calc(-1 * var(--s-3))}
+  /* the list's card reaches the panel's foot (REVERSES "the list's card ends after its last row", rounds 14–15):
+     its one row is the body's height, so a long list still scrolls inside its card */
+  #content .sap-page :is(.ins-body, .ap-body, .reg-body):has(> :is(.ins-card, .ap-card, .reg-card)){grid-template-rows:minmax(0,1fr)}
+  #content .sap-page :is(.ins-body, .ap-body, .reg-body) > :is(.ins-card, .ap-card, .reg-card){align-self:stretch;
+    border-top-width:0;border-top-left-radius:0;border-top-right-radius:0;clip-path:inset(0 -40px -40px -40px)}
+  /* Obligations: the week groups are rows of the one sheet, a hairline between them */
+  #content .obw-ins .ins-card.obw-weeks{background:var(--color-surface);border:1px solid var(--color-divider);border-top-width:0;
+    border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;gap:0}
+  #content .obw-ins .obw-weeks .obw-scroll{gap:0}
+  #content .obw-ins .obw-weeks .obw-wk{border:0;border-radius:0;box-shadow:none;margin:0}
+  #content .obw-ins .obw-weeks .obw-wk + .obw-wk{border-top:1px solid var(--color-divider)}
+  #content .obw-ins .obw-weeks .lh-foot{padding:12px 16px}
+  /* a long list scrolls under its foot inside the card: the foot is painted above the rows */
+  #content .ap-body.is-ins .ap-card > .ap-foot{z-index:1}
+  /* READS: Columns comes up onto the tabs line, at its right end, so the list starts a line higher
+     (owner, 29 Oct 2026; every other page's Filter line stays as it is) */
+  #content .sap-page > .lh.rd-band{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--s-3);row-gap:var(--s-2)}
+  #content .sap-page > .lh.rd-band > *{grid-column:1 / -1}
+  #content .sap-page > .lh.rd-band > .reg-views{grid-column:1;grid-row:3}
+  #content .sap-page > .lh.rd-band > .lh-chips{grid-column:2;grid-row:3;align-self:center}
+  /* ═══ THREE BUTTON STYLES (owner, 29 Oct 2026: "one main black button per area, grey pills for everything
+     else, green links for 'go somewhere'"): the dashed "+ Filter" and the outlined back and Deal buttons wear the
+     grey pill every other second act wears (.ui-btn's Legora dress). Fields, the Import drop area, chosen tabs,
+     round icon buttons and the amber "Filed in" choices keep their own. */
+  #content .sap-page .lh-add,
+  #app-shell #ig-dock [data-ig-chips] .pd-mid-back,
+  #modal-root [data-pd-mid] .dlg-pg-crumb .pd-back,
+  :is(#app-shell, #modal-root) .redline-page .rl-head-deal,
+  #clause-editor .ce-rowback{border:1px solid transparent;border-radius:999px;background:var(--surface-2);color:var(--color-text)}
+  #content .sap-page .lh-add:is(:hover, :focus-within),
+  #app-shell #ig-dock [data-ig-chips] .pd-mid-back:hover,
+  #modal-root [data-pd-mid] .dlg-pg-crumb .pd-back:hover,
+  :is(#app-shell, #modal-root) .redline-page .rl-head-deal:hover,
+  #clause-editor .ce-rowback:hover{border-color:transparent;background:var(--color-neutral-200)}
+  :is(#app-shell, #modal-root) .redline-page .rl-head-deal.is-on{border-color:transparent;background:var(--color-neutral-200);color:var(--color-text)}
+  /* one black per area: in the Dossier the Next card's act is the one; a stage's own act under it is a grey pill */
+  #app-shell #ig-dock:has(.ds-nx-b .ui-btn-primary) .ds-acts-b .ui-btn.ui-btn-primary{border-color:transparent;background:var(--surface-2);color:var(--color-text)}
+  #app-shell #ig-dock:has(.ds-nx-b .ui-btn-primary) .ds-acts-b .ui-btn.ui-btn-primary:hover{border-color:transparent;background:var(--color-neutral-200)}
+  /* Our paper: the head, the list of papers and the open paper (The book), or the list (Templates) */
+  #content .tpl-page > .tpl-band.ph-card{margin-bottom:0}
+  #content .tpl-page .tpl-pf{gap:0}
+  #content .tpl-page .tpl-pf > :is(.tpl-pf-idx, .tpl-pf-paper){border-top-width:0;border-top-left-radius:0;border-top-right-radius:0}
+  #content .tpl-page .tpl-pf > .tpl-pf-idx{border-bottom-right-radius:0;clip-path:inset(0 0 -40px -40px)}
+  #content .tpl-page .tpl-pf > .tpl-pf-paper{border-left-width:0;border-bottom-left-radius:0;clip-path:inset(0 -40px -40px 0)}
+  /* Import: the head's lower half, the drop card and, once files are in, their list */
+  #content .mig-page > .mig-card{margin-top:calc(-1 * var(--s-3));border-top-width:0;border-top-left-radius:0;border-top-right-radius:0;
+    clip-path:inset(0 -40px -40px -40px)}
+  #content .mig-page > .mig-card + .mig-card:not(.is-empty-hidden){border-top:1px solid var(--color-divider)}
+  #content-scroll:has(> #content > .mig-page) > #content{display:flex;flex-direction:column;min-height:100%}
+  #content > .mig-page{flex:1 0 auto}
+  #content .mig-page > .mig-card.mig-drop-card:has(+ .mig-card.is-empty-hidden),
+  #content .mig-page > .mig-card:last-of-type:not(.is-empty-hidden){flex:1 0 auto}
+  #content .mig-page > .mig-card:has(+ .mig-card:not(.is-empty-hidden)){border-bottom-left-radius:0;border-bottom-right-radius:0;clip-path:inset(0 -40px 0 -40px)}
+  /* a template's page: its line, the paper and Version history */
+  #content-scroll:has(> #content > #tpl-dt) > #content{display:flex;flex-direction:column;min-height:100%}
+  #content #tpl-dt.tpl-dt{gap:0;flex:1 0 auto;--tpl-dt-pb:8px}
+  #content #tpl-dt > section:last-of-type{flex:1 0 auto}
+  #content #tpl-dt > .tpl-dt-line{border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:0 -1px 2px rgba(0,0,0,.04)}
+  #content #tpl-dt > .tpl-dt-line ~ section{border-top-width:0;border-radius:0;box-shadow:var(--shadow-sm);clip-path:inset(0 -40px 0 -40px)}
+  #content #tpl-dt > .tpl-dt-line ~ section:last-of-type{border-radius:0 0 var(--radius-lg) var(--radius-lg);clip-path:inset(0 -40px -40px -40px)}
+  /* (2) HOME: the ask card and Needs you */
+  #app-shell #cn-page .cn-in > .cn-card:first-child{border-bottom-width:0;border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:0 -1px 2px rgba(0,0,0,.04)}
+  #app-shell #cn-page .cn-in > .cn-card + .cn-card{margin-top:calc(-1 * var(--s-3));border-top:1px solid var(--color-divider);border-top-left-radius:0;border-top-right-radius:0;
+    clip-path:inset(0 -40px -40px -40px)}
+  /* (3) THE CALENDAR on Home: its head and the week */
+  #app-shell .cal-page.is-home .cal-head{border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:0 -1px 2px rgba(0,0,0,.04)}
+  #app-shell .cal-page.is-home .cal-body{padding-top:0}
+  #app-shell .cal-page.is-home .cal-stage{border-top-left-radius:0;border-top-right-radius:0}
+  /* (4) THE MIDDLE (Key terms, Jambo's work, the Deal plan): its title bar and what it opens */
+  #modal-root [data-pd-mid] .dlg-pg-head{border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:0 -1px 2px rgba(0,0,0,.04)}
+  #modal-root [data-pd-mid] .dlg-pg-body.dlg-pg-body{padding-top:0;padding-bottom:8px}
+  #modal-root [data-pd-mid] .dlg-pg-body > *{min-height:100%;border-top:1px solid var(--color-divider);
+    border-top-left-radius:0;border-top-right-radius:0;clip-path:inset(0 -40px -40px -40px)}
+  /* (5) NEW AGREEMENT: the title bar, the ask, the papers and Filed in */
+  #modal-root .modal-in:has(#na-root.na-one) .dlg-pg-head{border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:0 -1px 2px rgba(0,0,0,.04)}
+  #modal-root .modal-in:has(#na-root.na-one) .dlg-pg-body{padding:0;display:flex;flex-direction:column}
+  #modal-root .dlg-pg-body > #na-root.na-one{flex:1 0 auto;display:flex;flex-direction:column}
+  #modal-root #na-root.na-one > .na-body{flex:1 0 auto;margin:0 12px 8px;gap:0;padding:0;background:var(--color-surface);
+    border-top:1px solid var(--color-divider);border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:var(--shadow-sm);
+    clip-path:inset(0 -40px -40px -40px);align-content:start}
+  #modal-root #na-root.na-one > .na-body > :is(.na-field, .na-rail, .na-card){border:0;border-radius:0;box-shadow:none;margin:0}
+  #modal-root #na-root.na-one > .na-body > :is(.na-field, .na-rail, .na-card) ~ :is(.na-field, .na-rail, .na-card){border-top:1px solid var(--color-divider)}
+  /* (6) SEND: the title bar and the letter */
+  #modal-root .modal-in[data-sh-page] .sh-hd{border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:0 -1px 2px rgba(0,0,0,.04)}
+  #modal-root .modal-in[data-sh-page] .sh-letter{display:flex;flex-direction:column;min-height:100%}
+  #modal-root .modal-in[data-sh-page] .sh-letter > .sh-lt-grid{flex:1 0 auto;display:flex;flex-direction:column}
+  /* the note box grows to fill the sheet (owner, 29 Oct 2026: "make the field area bigger") */
+  #modal-root .modal-in[data-sh-page] .sh-lt-grid > #share-step-2:not(.hidden),
+  #modal-root .modal-in[data-sh-page] #share-step-2 > .sh-lt.is-sap,
+  #modal-root .modal-in[data-sh-page] .sh-lt.is-sap > .sh-lt-mail,
+  #modal-root .modal-in[data-sh-page] .sh-lt-mail > .sh-lt-b,
+  #modal-root .modal-in[data-sh-page] .sh-lt-b > .sh-lt-note,
+  #modal-root .modal-in[data-sh-page] .sh-lt-note > label{flex:1 0 auto;display:flex;flex-direction:column}
+  #modal-root .modal-in[data-sh-page] #sh-letter .sh-lt-note > label{--sh-note-d:flex;display:flex;flex-direction:column;flex:1 0 auto}
+  #modal-root .modal-in[data-sh-page] #sh-letter .sh-lt-note textarea{flex:1 0 auto}
+  #modal-root .modal-in[data-sh-page] .sh-lt-grid{margin:0 12px 8px;padding:0 20px 24px;background:var(--color-surface);
+    border-top:1px solid var(--color-divider);border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:var(--shadow-sm);
+    clip-path:inset(0 -40px -40px -40px)}
+  #modal-root .modal-in[data-sh-page] .sh-lt.is-sap{gap:0}
+  #modal-root .modal-in[data-sh-page] .sh-lt.is-sap > :is(.sh-lt-h, .sh-lt-mail){border:0;border-radius:0;box-shadow:none}
+  #modal-root .modal-in[data-sh-page] .sh-lt.is-sap > .sh-lt-mail{border-top:1px solid var(--color-divider)}
   /* THE DOSSIER, ONE EVEN LIST (owner, 29 Oct 2026): no stage heads ("Fill in · 1 to do", "Negotiate · 2 to do")
      and no small grey line under a row ("Jambo read the whole contract and your standards", its words on the
      row's hover); every press in the last column ONE grey pill, one size, the Decide pill's (.pd-nd-row .ui-btn) */
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .ds-sp-st[data-ds-sp]{display:none}
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-nd-row small{display:none}
   #app-shell #ig-dock :is(.pd-dossier, .ds-acts) :is(.ds-go, .pd-ck-chev.is-word, .pd-nd-row > .ui-btn:not(.ui-btn-primary)){display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;flex:none;width:auto;min-width:76px;height:22px;min-height:22px;margin:0 0 0 8px;padding:0 10px;border:1px solid transparent;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-family:var(--font-heading);font-size:12px;font-weight:var(--w-strong);line-height:1;text-decoration:none;white-space:nowrap}
+  /* EVERY PRESS IN THE LAST COLUMN IS ONE SIZE (owner, 29 Oct 2026: "all the buttons always have to be the same
+     size"; a floor of 76 let "Read again" and "Open note" grow): one width, set by the widest word of either book
+     ("Skicka igen", "Redigera"), the word centred; the foot's two acts keep their own width */
+  #app-shell #ig-dock .pd-dossier :is(.ds-go, .pd-ck-chev.is-word, .pd-nd-row > .ui-btn:not(.ui-btn-primary)):not(.ds-acts *){width:96px;min-width:96px;max-width:96px;padding:0 6px}
   #app-shell #ig-dock :is(.pd-dossier, .ds-acts) :is(.ds-go, .pd-nd-row > .ui-btn:not(.ui-btn-primary)):hover:not(:disabled), #app-shell #ig-dock .pd-dossier :hover > .pd-ck-chev.is-word{background:var(--color-divider);text-decoration:none}
   #app-shell #ig-dock .pd-dossier .ds-go:disabled{color:var(--color-quiet);background:var(--surface-2);cursor:not-allowed}
   /* the stage's two acts at the panel's foot, after the links (owner, 29 Oct 2026), a field's space above them */
@@ -18338,26 +18540,14 @@
                It carries NO count: Jambo's work ready for the reader is counted on
                the Board's own card and nowhere else (Young, 7 Oct 2026; f-verify
                home-prepared-by-copilot 2c). -->
-          <div class="nav-fold" data-nav-fold="insights">
-            <button type="button" class="nav-item nav-fold-head" data-nav-fold-open="insights" aria-haspopup="menu" aria-expanded="false" title="Insights and Jambo's agents" data-i18n-title="nav_insights_group_title">
+          <!-- INSIGHTS IS GONE (owner, 29 Oct 2026: "delete insights from HaTi itself"): its fold held Insights and
+               Jambo's agents; with one row left the fold is no fold, so Jambo's agents is a plain row. Old doors to the
+               page land on the Board (setView). -->
+          <button data-view="jambo" class="nav-item" title="Jambo's agents — his house, his jobs and his points" data-i18n-title="nav_jambo_title">
             <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-            <span style="flex:1;" data-i18n="nav_insights">Insights</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><i class="nav-fold-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 2.5 3.5 3.5-3.5 3.5"/></svg></i>
+            <img data-jambo-face="hello" data-ink-exempt class="jambo-face nav-jambo-face" width="16" height="16" alt="" draggable="false">
+            <span style="flex:1;" data-i18n="nav_jambo">Jambo's agents</span>
           </button>
-            <div class="nav-sub" role="menu" aria-label="Insights" data-i18n-aria="nav_insights">
-            <button data-view="intel" class="nav-item" role="menuitem" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
-              <span class="nav-rail"></span>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-              <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-                title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
-            </button>
-            <button data-view="jambo" class="nav-item" role="menuitem" title="Jambo's agents — his house, his jobs and his points" data-i18n-title="nav_jambo_title">
-              <span class="nav-rail"></span>
-              <img data-jambo-face="hello" data-ink-exempt class="jambo-face nav-jambo-face" width="16" height="16" alt="" draggable="false">
-              <span style="flex:1;" data-i18n="nav_jambo">Jambo's agents</span>
-            </button>
-            </div>
-          </div>
         </div>
       </div>
 

@@ -335,8 +335,8 @@ const check = (name, pass, detail) => {
       const shr = sheets.length ? [...new Set(sheets.map(e => getComputedStyle(e).borderTopLeftRadius))].join(',') : null;
       const diag = sheets.map(e => e.tagName + '.' + String(e.className).slice(0, 30)).join(' | ');
       return { dock: g('ig-dock'), col: g('hb-col'), paper: g('ig-paper'), tab: tc ? { bg: tc.backgroundColor, r: tc.borderTopLeftRadius, h: Math.round(t.getBoundingClientRect().height), after: ta.content } : null, sheetR: shr, diag }; });
-    check('12f beside a paper Jambo\'s panel floats: an 8px margin, 20px corners, the faint lift, white', !!fl.dock && fl.dock.m === '8px 8px 8px' && fl.dock.r === '20px' && /0px 8px 28px/.test(fl.dock.sh) && fl.dock.bg === 'rgb(255, 255, 255)', JSON.stringify(fl.dock));
-    check('12g … and so does the paper\'s half: a white card, its canvas inset with 16px corners', !!fl.col && fl.col.r === '20px' && fl.col.bg === 'rgb(255, 255, 255)' && !!fl.paper && fl.paper.r === '16px', JSON.stringify({ col: fl.col, paper: fl.paper }));
+    check('12f beside a paper Jambo\'s panel floats: an 8px margin, 10px corners (29 Oct 2026, "half as round"), the faint lift, white', !!fl.dock && fl.dock.m === '8px 8px 8px' && fl.dock.r === '10px' && /0px 8px 28px/.test(fl.dock.sh) && fl.dock.bg === 'rgb(255, 255, 255)', JSON.stringify(fl.dock));
+    check('12g … and so does the paper\'s half: a white card, its canvas inset, all at the one 10px corner', !!fl.col && fl.col.r === '10px' && fl.col.bg === 'rgb(255, 255, 255)' && !!fl.paper && fl.paper.r === '10px', JSON.stringify({ col: fl.col, paper: fl.paper }));
     check('12h the panel\'s chosen tab is a slim filled pill (no underline mark)', !!fl.tab && fl.tab.bg === GREY && pill(fl.tab.r) && fl.tab.h <= 32 && (fl.tab.after === 'none' || fl.tab.after === 'normal'), JSON.stringify(fl.tab));
     check('12i the paper itself keeps its square corners — it reads as a document, not a card', fl.sheetR === '0px', String(fl.sheetR) + ' ' + fl.diag);
     await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('explorer'); });

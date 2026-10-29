@@ -16,6 +16,9 @@
    own scroller inside #content (#ig-frame) and the shell's never moves. Wired
    up as it stood, the fix would have shipped and the jump would have stayed.
 
+   RETIRED 29 Oct 2026: the Insights half below measured the Insights page,
+   which the owner had deleted; what is left measures the templates book.
+
    RUN IT AGAINST THE PARENT COMMIT AND IT REPORTS THE JUMP — that is the
    condition on trusting it, and it is this rulebook's own rule about a browser
    file being a description otherwise.  */
@@ -53,138 +56,11 @@ const check = (name, pass, detail) => {
     await page.click('#li-go');
     await page.waitForTimeout(2400);
 
-    /* Enough contracts that the findings list pages and the page is long
-       enough to scroll — the reported state needs both. */
-    await page.evaluate(() => {
-      const day = off => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+off);
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-      /* EACH CARRIES A SCAN WITH FINDINGS, because the findings card is what
-         the pager belongs to and pfFindingsOf reads c.scan — without one the
-         card draws its empty state and the reported button is not on the page
-         at all. Three findings apiece past the page size of ten. */
-      const scan = i => ({ dismissed: [], findings: [
-        { id: 'f' + i + 'a', sev: 'high', clause: 'c1', title: 'Liability uncapped',
-          detail: 'No cap on the supplier\u2019s liability.' },
-        { id: 'f' + i + 'b', sev: 'med', clause: 'c2', title: 'Payment terms long',
-          detail: 'Ninety days against a standard of thirty.' },
-        { id: 'f' + i + 'c', sev: 'low', clause: 'c3', title: 'No governing law',
-          detail: 'The agreement names no forum.' } ] });
-      const mk = i => ({ id: 'MK-J' + i, name: 'Works package ' + i, counterparty: 'Naivas',
-        status: i % 3 ? 'Under Review' : 'Signed', value: 1000000 + i * 90000,
-        expiry: day(30 + i * 5), valueType: 'standard', audit: [], rounds: [], folder: 'proc',
-        scan: scan(i),
-        /* TWO CATEGORIES, so pressing a category chip is a real narrowing —
-           with one, the chip filters to the whole book and proves nothing. */
-        metadata: { category: i % 2 ? 'works' : 'services', retentionPct: 10, warrantyMonths: 12 } });
-      state.contracts = Array.from({ length: 40 }, (_, i) => mk(i + 1));
-      setView('intel');
-    });
-    await page.waitForTimeout(1800);
-    /* RE-POINTED IN PLACE 28 Sep 2026: the three cards that closed the
-       Portfolio page went (Young ruled the Overview, "kill the bottom 3
-       cards"), and ten findings a page were what made this book outrun the
-       window. The book is PROJECT work (retention, warranties) and the stage
-       now says the workspace does that work, so the project cards the page
-       draws for it — the workload runway, won and lost, money held back,
-       promises still live — are on screen and the page is long for the
-       reason a real one would be.
-       RE-POINTED AGAIN 29 Sep 2026: Insights FITS THE SCREEN (owner-picked
-       "Fit to Screen") — on a window 1080px or wider Portfolio no longer
-       scrolls at all, and the four project cards are no longer drawn. Below
-       1080px the page is a plain scrolling column, which is where a reader can
-       still be parked partway down and a filter press can still throw them;
-       so the claim is asked there, at 1000 by 600 (the four cards that made
-       this book long are gone, so a short window is what gives it room), and
-       the window goes back after. */
-    await page.setViewportSize({ width: 1000, height: 600 });
-    await page.evaluate(() => { if (window.wsSet) wsSet(['standing', 'project'], 'job'); setView('intel'); });
-    await page.waitForTimeout(1200);
-
-    /* WHICH ELEMENT SCROLLS IS ASKED, NOT ASSUMED — the whole defect was a
-       helper that measured the wrong one. */
-    const scroller = await page.evaluate(() => {
-      const ids = ['ig-frame', 'ig-friction', 'ig-oblig', 'content-scroll'];
-      for (const id of ids){
-        const el = document.getElementById(id);
-        if (el && el.scrollHeight > el.clientHeight + 40) return id;
-      }
-      return null;
-    });
-    const sizes = await page.evaluate(() => ['ig-frame', 'content-scroll'].map(id => {
-      const el = document.getElementById(id); return el ? `${id} ${el.scrollHeight}/${el.clientHeight}` : id + ' none'; }).join(' · '));
-    check('the Insights page scrolls inside its own element, not the shell',
-      scroller && scroller !== 'content-scroll', `${scroller} (${sizes})`);
-
-    const scrollTo = async y => page.evaluate(([id, top]) => {
-      const el = document.getElementById(id); el.scrollTop = top; return el.scrollTop;
-    }, [scroller, y]);
-    const at = () => page.evaluate(id => document.getElementById(id) ? document.getElementById(id).scrollTop : -1, scroller);
-
-    const parked = await scrollTo(600);
-    check('the reader can be parked partway down it', parked > 100, parked + 'px');
-    await page.screenshot({ path: path.join(OUT, '01-parked.png') });
-
-    /* ---- THE REPORTED PRESS ---- */
-    /* PRESSED IN THE PAGE, NOT THROUGH THE DRIVER, AND THAT IS NOT A SHORTCUT.
-       Playwright scrolls an element into view before it clicks it — so on a
-       control above the fold the DRIVER moves the scroller and the check then
-       measures its own actionability rather than the product's behaviour. It
-       cost an hour: the category chip reported 461 → 0 with the fix working
-       perfectly. A dispatched click runs the same delegated handler a mouse
-       does and touches nothing else.
-
-       THE PAGER THE OWNER RINGED IS GONE WITH ITS CARD (28 Sep 2026), so the
-       reported claim is carried by the Overview's new filter — a STAGE row,
-       which repaints the same page through the same again() the pager used. */
-    const hasStage = await page.evaluate(() => !!document.querySelector('[data-pf-stage]'));
-    check('a stage row, the Overview\'s own filter, is on the page', hasStage);
-    if (hasStage){
-      await page.evaluate(() => document.querySelector('[data-pf-stage]').click());
-      await page.waitForTimeout(700);
-      const room = await page.evaluate(id => { const el = document.getElementById(id);
-        return el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0; }, scroller);
-      const after = await at();
-      await page.screenshot({ path: path.join(OUT, '02-after-stage.png') });
-      check('A FILTER PRESS DOES NOT THROW THE READER TO THE TOP',
-        after >= Math.min(parked, room) - 60, `${parked} → ${after} (room ${room})`);
-      await page.evaluate(() => { const c = document.querySelector('[data-pf-clear]'); if (c) c.click(); });
-      await page.waitForTimeout(500);
-    }
-
-    /* ---- AND IT IS NOT ONE BUTTON: every filter on that page is the same
-       funnel, which is why the fix is at again() rather than at the press. ---- */
-    await scrollTo(600);
-    const hasCat = await page.evaluate(() => !!document.querySelector('[data-pf-cat]'));
-    if (hasCat){
-      const before = await at();
-      await page.evaluate(() => document.querySelector('[data-pf-cat]').click());
-      await page.waitForTimeout(700);
-      /* A FILTER MAKES THE PAGE SHORTER, so "kept the place" can only mean as
-         far as the new page allows: the honest claim is that the reader is
-         where they were, or at the new bottom, and never thrown to the top of a
-         page that still has room to hold them. */
-      const room = await page.evaluate(id => { const el = document.getElementById(id);
-        return el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0; }, scroller);
-      const after = await at();
-      check('nor does the category filter beside it',
-        after >= Math.min(before, room) - 60, `${before} → ${after} (room ${room})`);
-    } else check('nor does the category filter beside it', true, 'no category filter in this book');
-
-    /* ---- A TAB MAY LAND AT THE TOP, and that is the rule rather than a miss.
-       Different content arrives, so a remembered offset would drop the reader
-       at an arbitrary point in it. ---- */
-    await scrollTo(600);
-    const hasTab = await page.evaluate(() => !!document.querySelector('[data-ig-tab="friction"]'));
-    if (hasTab){
-      await page.evaluate(() => document.querySelector('[data-ig-tab="friction"]').click());
-      await page.waitForTimeout(1200);
-      const nowScroller = await page.evaluate(() => {
-        const el = document.getElementById('ig-friction');
-        return el ? el.scrollTop : -1;
-      });
-      check('a TAB is navigation and may start at the top', nowScroller <= 40, String(nowScroller));
-    } else check("a TAB is navigation and may start at the top", true, 'no friction tab in this book');
-    await page.setViewportSize({ width: 1500, height: 900 });
+    /* THE INSIGHTS HALF RETIRED 29 Oct 2026: measured the Insights page, which
+       the owner had deleted — its own scroller, the stage and category
+       filters on Portfolio keeping the reader's place, and its tabs starting
+       at the top. keepScroll itself is still wired on other pages (the
+       obligations list); this file no longer drives it. */
 
     /* ---- AND THE PAGE FILLS THE SCREEN IT IS ON (owner-ruled 29 Aug 2026) ----
        Measured, not read: what a page shows now depends on the window, so the

@@ -103,6 +103,14 @@ function startAiStub() {
             const qLine = ((head.match(/QUESTION: ([^\n]*)/) || [])[1] || '');
             const yesNo = n === 1 && /^(does|is|can|has|do)\b/i.test(qLine);
             const yesWord = (qLine.replace(/[?.!]+$/, '').trim().split(/\s+/).pop() || '').toLowerCase();
+            /* a question about the COUNTRY (column-card-legora-verify): the country the wording names, a plain
+               fact (tone none), or nothing found where it names none; yes-or-no where the question asks one */
+            if (n === 1 && /\bcountry\b/i.test(qLine) && /\n12\. Governing law\n/.test(txt)){
+              const land = (txt.match(/laws of ([A-Z][a-z]+)/) || [])[1] || '';
+              const lq = (txt.match(/[^.\n]*laws of [A-Z][a-z]+[^.\n]*\./) || [''])[0].trim();
+              return { answers: [{ q: 1, found: !!land, answer: land, detail: land ? 'governing law' : 'a governing law clause', tone: 'none', why: 'stubbed reason',
+                quote: lq, clause: land ? '12 · Governing law' : '', verdict: '', ...(yesNo ? { yes: !!land && txt.toLowerCase().includes(yesWord) && qLine.toLowerCase().includes(land.toLowerCase()) } : {}) }] };
+            }
             return { answers: Array.from({ length: n }, (_, i) => ({ q: i + 1, found: true, answer: out ? 'Not capped' : '30 days', detail: out ? 'our side' : 'either side',
               tone: out ? 'concern' : 'good', why: 'stubbed reason', quote, clause: '9 · Termination', verdict: out ? 'out' : 'in',
               /* a yes-or-no question ("Does this contract mention a rebate?"): yes where the document carries its last word */

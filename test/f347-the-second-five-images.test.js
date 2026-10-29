@@ -73,8 +73,11 @@ test('F347 — the second five images', async t => {
     /* RE-POINTED 12 Oct 2026 (Young: Insights opens to the right with two
        folders, Insights and Jambo's agents): the Insights fold still closes
        Work, its two doors inside it, Insights first */
-    assert.deepEqual(doors.slice(-2), ['intel', 'jambo'], 'at the foot of the Work group, inside the Insights fold');
-    assert.ok(rail.indexOf('data-nav-fold="insights"') >= 0 && rail.indexOf('data-nav-fold="insights"') < rail.indexOf('data-view="intel" class="nav-item'), 'both doors sit inside the Insights fold');
+    /* RE-POINTED 29 Oct 2026 (owner: "delete insights from HaTi itself"): Insights and its fold are gone; Jambo's
+       agents, the fold's other row, now closes Work as a plain door */
+    assert.equal(doors[doors.length - 1], 'jambo', 'Jambo\'s agents closes the Work group');
+    assert.equal(doors.indexOf('intel'), -1, 'no Insights door');
+    assert.equal(rail.indexOf('data-nav-fold="insights"'), -1, 'no Insights fold');
   });
 
   await t.test('(1d) the density segment wears the artifact\'s own word', () => {

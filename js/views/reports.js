@@ -339,7 +339,7 @@ function renderReports(){
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
-        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:7px var(--s-3);cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
+        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid transparent;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:999px;padding:7px var(--s-3);cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
         ${''/* THE WEEKLY REVIEW sits beside the health report because they are the
                same kind of thing — a deterministic document, opened in a tab,
                with no model anywhere near it. The size lives next to the button
@@ -349,7 +349,7 @@ function renderReports(){
           <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
             ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
           </select></label>
-        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
+        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid transparent;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:999px;padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
         <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--accent-fill);color:#fff;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
       </div>
       <section class="rp-stats" style="display:grid;gap:14px">

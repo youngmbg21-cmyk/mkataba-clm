@@ -55,8 +55,8 @@ describe('f876 advice or no advice', () => {
   /* RE-POINTED 25 Oct 2026 (owner: "go with 16px, apply it everywhere"): 16 on every side, the card's own */
   test('3 room inside the card: 16 on every side; the risk card the same', () => {
     const I = R('index.html');
-    assert.match(I, /\.redline-page \.rl-pile :is\(\.rl-card-d, \.rl-band \+ \.rl-card-d\)\{background:var\(--color-bg\);border-radius:16px;padding:16px;/);
+    assert.match(I, /\.redline-page \.rl-pile :is\(\.rl-card-d, \.rl-band \+ \.rl-card-d\)\{background:var\(--color-bg\);border-radius:var\(--radius-lg\);padding:16px;/);
     assert.match(I, /:is\(#ig-dock, body\) \.redline-page \.rl-card-d \.rl-card-head\{padding-top:0\}/);
-    assert.match(I, /\.redline-page \.rk-row:not\(\.is-none\):not\(\.is-gone\)\{border:0;border-radius:16px;padding:16px;/);
+    assert.match(I, /\.redline-page \.rk-row:not\(\.is-none\):not\(\.is-gone\)\{border:0;border-radius:var\(--radius-lg\);padding:16px;/);
   });
 });

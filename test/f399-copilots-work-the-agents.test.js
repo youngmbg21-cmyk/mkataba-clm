@@ -117,13 +117,14 @@ describe('f399 (2) — registered everywhere a view must be', () => {
     const work = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('data-section="library"'));
     assert.ok(!work.includes('data-view="agents"'), 'no Copilot\'s work door');
   });
-  test('2e and Insights sits below Calendar ("then move insights to below calendar")', () => {
+  /* RE-POINTED 29 Oct 2026: the Insights page is gone (owner: "delete insights from HaTi itself"), so no door to it */
+  test('2e no Calendar and no Insights door in Work (Insights deleted 29 Oct 2026)', () => {
     const work = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('data-section="library"'));
     const doors = [...work.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
     /* RE-POINTED 11 Oct 2026: the Calendar is Home's second tab and has no
        rail door; Insights sits below My notes, at the foot of Work */
     assert.equal(doors.indexOf('calendar'), -1, 'no Calendar rail door: ' + doors.join(' · '));
-    assert.equal(doors[doors.indexOf('mynotes') + 1], 'intel', doors.join(' · '));
+    assert.equal(doors.indexOf('intel'), -1, 'no Insights door: ' + doors.join(' · '));
   });
 });
 
