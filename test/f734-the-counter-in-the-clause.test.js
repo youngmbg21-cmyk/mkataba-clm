@@ -81,7 +81,8 @@ describe('f734 (4) the marks come off cleanly', () => {
 
 describe('f734 (5) and (6) the reader\'s typing and their page', () => {
   test('click-to-type counts past his inserted words', () => {
-    assert.match(NEGO, /p\.closest\('del, \.nego-del, \.hati-del, \.rl-sug-ins'\)\) continue;/);
+    /* RE-POINTED 28 Oct 2026 (round 9): the numbered dots on the paper are skipped too */
+    assert.match(NEGO, /p\.closest\('del, \.nego-del, \.hati-del, \.rl-sug-ins, \.rl-pt'\)\) continue;/);
   });
   test('their page draws none of it', () => {
     const f = NEGO.slice(NEGO.indexOf('function rlPaintCopilotAnswers('), NEGO.indexOf('\n}', NEGO.indexOf('function rlPaintCopilotAnswers(')));
