@@ -80,7 +80,12 @@ function lhIsQuestion(words){
    page left and come back to starts from its own query. */
 const _lhBoxes = seat => (typeof document === 'undefined' || !document.querySelectorAll) ? []
   : Array.from(document.querySelectorAll(`[data-lh-seat="${_lhSel(seat)}"] input[data-lh-q]`));
+/* ONE BOX, AND NO RIVALS (round 1 "The Legora way", owner's yes 29 Oct 2026; reverses "a question typed in a list's
+   box goes to the page's Jambo"): a list's box is a quiet FILTER — every word narrows the list, nothing is sent and
+   nothing is spent; questions go to Jambo's box at the panel's foot. No question stands in a box any more. */
+const LH_BOX_ASKS = false;
 function _lhAskingNow(seat, q){
+  if (!LH_BOX_ASKS) return null;
   if (q != null && String(q) !== '') return null;
   const boxes = _lhBoxes(seat);
   const b = boxes.find(x => x === document.activeElement) || boxes[0];
@@ -107,7 +112,7 @@ function lhBoxSet(seat, words){
     const pg = _lhPage(head.getAttribute('data-lh-seat'));
     if (!pg || typeof pg.q !== 'function') return;
     const q = qOf(pg);
-    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if (!q && lhIsQuestion(inp.value)) return; put(inp, q); });
+    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if (LH_BOX_ASKS && !q && lhIsQuestion(inp.value)) return; put(inp, q); });
   });
   return n;
 }
@@ -122,14 +127,15 @@ function lhBoxHtml(seat, o){
   const id = opt.id || pg.boxId || 'lh-q';
   const total = (typeof pg.total === 'function') ? pg.total() : null;
   const noun = pg.noun || seat;
-  const ph = (typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_box_label');
+  /* a filter says so, and only so (round 1): "Filter this list"; the old "Search, or ask across N …" words stay inert */
+  const ph = (LH_BOX_ASKS && typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_filter_ph');
   const qNow = (typeof pg.q === 'function') ? pg.q() : '';
   const asking = _lhAskingNow(seat, qNow);
   const q = asking != null ? asking : qNow;
   const extra = Object.entries(Object.assign({}, pg.boxAttrs || {}, opt.attrs || {}))
     .filter(([k, v]) => /^[a-z][\w-]*$/i.test(k) && v != null && v !== false)
     .map(([k, v]) => v === true ? ` ${k}` : ` ${k}="${_lhE(v)}"`).join('');
-  return `<label class="lh-ask" title="${_lhE(_lhT('lh_box_title'))}">${_lhIc('search')}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT('lh_box_label'))}"${extra}></label>`;
+  return `<label class="lh-ask" title="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_title' : 'lh_filter_title'))}">${_lhIc('search')}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_label' : 'lh_filter_ph'))}"${extra}></label>`;
 }
 
 /* ---- A PAGE'S OWN PARTS STAND ----
@@ -569,7 +575,7 @@ function _lhInput(e){
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
   /* a question narrows nothing: the list stands whole while it is typed, and
      the box holds it (_lhAskingNow) */
-  if (lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
+  if (LH_BOX_ASKS && lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
   else if (typeof pg.setQuery === 'function') pg.setQuery(w);
   lhHeadSyncSoon(seat);
 }
@@ -579,8 +585,8 @@ function _lhKey(e){
   const head = inp.closest('[data-lh-seat]'); if (!head) return;
   const seat = head.getAttribute('data-lh-seat'), pg = _lhPage(seat); if (!pg) return;
   const w = String(inp.value || '').trim();
-  /* plain words stay a search: nothing is sent, nothing is spent */
-  if (!lhIsQuestion(w)) return;
+  /* plain words stay a search: nothing is sent, nothing is spent — and since round 1 every word is plain */
+  if (!LH_BOX_ASKS || !lhIsQuestion(w)) return;
   e.preventDefault();
   if (!lhAsk(seat, w)) return;              /* said ('warn'); the words stay */
   inp.value = '';

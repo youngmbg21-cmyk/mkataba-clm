@@ -82,7 +82,6 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       check(`0b. ${screen}: the Board is the light screen though an old Dark choice is stored, and draws no Light | Dark switch`,
         look.light && !look.dark && !look.html && !look.switch, JSON.stringify(look));
       const rgba = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
-      const lum = c => c ? (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255 : null;
       /* 1 + 2: a mouse press on the Split choice */
       await stand();
       const btn = await page.evaluate(() => { const b = document.querySelector('[data-hb-pid="pa"] [data-hb-drawn]');
@@ -112,28 +111,10 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       await page.focus('[data-hb-pid="pa"] [data-hb-drawn][data-kb]'); await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Tab');
       const ring = await page.evaluate(() => { const a = document.activeElement; const cs = getComputedStyle(a); return { on: a.matches('[data-hb-drawn]'), style: cs.outlineStyle, w: parseFloat(cs.outlineWidth) }; });
       check(`3. ${screen}: a keyboard Tab onto a choice shows a 2px ring`, ring.on && ring.style !== 'none' && ring.w >= 2, JSON.stringify(ring));
-      /* 4 + 5: the search field */
-      await page.mouse.click(4, 400);
-      const rest = await page.evaluate(() => { const f = document.querySelector('#top-header .cmd-search'), cs = getComputedStyle(f);
-        const probe = document.createElement('i'); probe.style.color = 'var(--bar-line)'; document.getElementById('top-header').appendChild(probe);
-        const line = getComputedStyle(probe).color; probe.remove();
-        return { edge: cs.borderTopColor, w: cs.borderTopWidth, shadow: cs.boxShadow, line }; });
-      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the field at rest is a filled grey pill with no
-         edge at all (the drawing's search); still no thick boundary and no glow */
-      check(`4. ${screen}: the search field at rest has no thick boundary — no drawn edge, no glow`,
-        parseFloat(rest.w) <= 1 && /rgba\(0, 0, 0, 0\)|transparent/.test(rest.edge) && rest.shadow === 'none', JSON.stringify(rest));
-      await page.click('#cmd-search');
-      /* the field eases its edge in (a short transition): ask until it has
-         settled, bounded, then read it whatever it says */
-      const readOn = () => { const f = document.querySelector('#top-header .cmd-search'); if (!f.matches(':focus-within')) return null; const cs = getComputedStyle(f), is = getComputedStyle(f.querySelector('input'));
-        return { bg: cs.backgroundColor, w: cs.borderTopWidth, edge: cs.borderTopColor, shadow: cs.boxShadow, ink: is.color, inner: is.boxShadow + ' · ' + is.outlineStyle }; };
-      await until(f => { const v = eval(f)(); return v && !/, 0\)$/.test(v.edge) && !/0\.\d+\)$/.test(v.edge) ? v : null; }, readOn.toString(), 2000);
-      const on = await page.evaluate(f => eval(f)(), readOn.toString());
-      await page.keyboard.type('supply');
-      await page.screenshot({ path: path.join(OUT, `2-search-${screen}.png`), clip: { x: 0, y: 0, width: 1440, height: 60 } });
-      const bg = on && rgba(on.bg), ink = on && rgba(on.ink);
-      check(`5. ${screen}: pressed = one 1px edge, no glow`, !!on && on.w === '1px' && on.shadow === 'none' && on.inner === 'none · none' && rgba(on.edge).a === 1, JSON.stringify(on));
-      check('5. light: the pressed field is white with dark text', !!bg && bg.a === 1 && lum(bg) > 0.97 && lum(ink) < 0.3, on && `${on.bg} · ${on.ink}`);
+      /* 4 + 5 RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search field left — one box per
+         page, Jambo's; the field's rest and pressed dress went with it */
+      const none = await page.evaluate(() => !document.querySelector('#top-header .cmd-search, #cmd-search'));
+      check(`4. ${screen}: the bar carries no search field`, none);
       await page.close();
     }
     check('6. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

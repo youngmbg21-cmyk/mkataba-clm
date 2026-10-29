@@ -864,11 +864,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* "bring up" in Jambo's box on the Board (step 8): the strip, below Today's insights */
     await door(D, 'Jambo\'s box on the Board, "bring up MK-A2"', { start: async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); }); await waitFor(page, () => !!document.getElementById('igd-input'), 8000); },
       press: say('bring up MK-A2'), expect: E.strip('MK-A2'), says: SAYS.strip });
-    await door(D, 'the top bar\'s search', { start: atStart,
-      press: async () => { if (!(await page.$('#cmd-search'))) return false; await page.fill('#cmd-search', 'Kabras'); return true; },
-      expect: E.wall(null), says: 'Home\'s Contracts place' });
-    await page.evaluate(() => { const s = document.getElementById('cmd-search'); if (s){ s.value = ''; } if (window.regState) regState().query = ''; });
-
+    /* the top bar's search RETIRED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar carries no box */
     lap('Jambo');
     /* ================= E · THE PAPER'S ⋯ MENU ================= */
     /* RE-POINTED 15 Oct 2026 (owner, answer B): the paper's ⋯ went; its rows are the panel's Menu tab */

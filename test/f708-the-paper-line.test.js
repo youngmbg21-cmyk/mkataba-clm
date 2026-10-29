@@ -88,8 +88,9 @@ describe('f708 (2) who is on it now', () => {
 });
 
 describe('f708 (3) the paper\'s own acts', () => {
-  test('3a Notes says its word on the line: the same door, id and dot', () => {
-    assert.match(fnBody(IG, 'igStripActsHtml'), /roomChatDoorHtml\(\{ word:true \}\)/);
+  /* RE-POINTED 29 Oct 2026 (round 13 "The Legora way", owner's yes): Notes LEFT the line; the door's builder stays (the room by name draws it) */
+  test('3a Notes left the line; the door\'s builder keeps its id and dot for the room', () => {
+    assert.doesNotMatch(fnBody(IG, 'igStripActsHtml'), /roomChatDoorHtml/);
     const b = fnBody(CT, 'roomChatDoorHtml');
     assert.match(b, /id="hdr-chat" class="\$\{word\?'ui-btn ui-btn-sm room-chat ig-notes':'room-check room-chat'\}"/);
     assert.match(b, /<span class="ig-notes-w">\$\{esc\(i18t\('ig_line_notes'\)\)\}<\/span>/);

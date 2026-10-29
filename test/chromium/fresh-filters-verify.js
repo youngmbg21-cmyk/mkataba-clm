@@ -105,7 +105,8 @@ function book(){
         lit: [...document.querySelectorAll('[data-lh-seat="contracts"] [data-lh-chip]')].map(c => c.getAttribute('data-lh-chip')),
         only: (document.getElementById('reg-only-chip') || {}).textContent || '',
         stage: R.stage, type: R.type, query: R.query, onlyIds: R.only ? R.only.ids.slice().sort() : null,
-        box: (document.getElementById('cmd-search') || {}).value };
+        /* RE-POINTED 29 Oct 2026 (round 1): the list's own box (the bar's search left) */
+        box: (document.querySelector('[data-lh-seat="contracts"] input[data-lh-q]') || {}).value };
     });
     const goHome = async () => {
       await page.evaluate(() => hbOpenHome());
@@ -159,7 +160,7 @@ function book(){
     await page.evaluate(f => { const s = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
       if (s){ s.value = JSON.stringify(['type', String(f)]); s.dispatchEvent(new Event('change', { bubbles: true })); } }, FOLDER_A);
     await page.waitForTimeout(600);
-    await page.fill('#cmd-search', 'Raw');
+    await page.fill('[data-lh-seat="contracts"] input[data-lh-q]', 'Raw');
     await page.waitForTimeout(700);
     const b0 = await onContracts();
     check('B0 typed on Contracts, the search narrows inside what is there — the stream stays (control)',
@@ -181,22 +182,17 @@ function book(){
       /* the Stage chip stands for the stage the door chose (Part 8); no other chip stands */
       b1.type === 'all' && b1.query === '' && b1.onlyIds === null && b1.lit.filter(l => l !== 'stage').length === 0 && b1.tab === 'Signed',
       `stream ${b1.type} · query "${b1.query}" · named set ${JSON.stringify(b1.onlyIds)} · lit ${JSON.stringify(b1.lit)} · tab ${b1.tab}`);
-    check('B3 the shell bar\'s box no longer says "Raw" over a list it does not narrow',
+    check('B3 the list\'s box no longer says "Raw" over a list it does not narrow',
       b1.box === '', `box "${b1.box}"`);
 
-    /* ================ C. THE SHELL SEARCH TYPED ON HOME ==================== */
+    /* ================ C. (C1 RETIRED 29 Oct 2026, round 1 "The Legora way": the bar's search typed on Home left;
+       Home's own box is Jambo's) ==================== */
     await goHome();
-    await page.fill('#cmd-search', 'Naivas');
-    await page.waitForTimeout(1100);
-    const c1 = await onContracts();
-    await page.screenshot({ path: path.join(OUT, '04-search-from-home.png') });
-    check('C1 a search typed on Home lands on every match, whatever stage was left on',
-      c1.view === 'contracts-place' && c1.stage === 'all' && c1.query === 'Naivas' && c1.rows.join(',') === 'MK-R2,MK-S3',
-      `stage ${c1.stage} · query "${c1.query}" · ${c1.rows.join(', ') || 'nothing'}`);
-
+    await page.evaluate(() => { regState().stage = 'all'; regState().query = ''; regPlaceSet({ show: 'list' }); setView('register'); });
+    await page.waitForTimeout(900);
     await page.selectOption('[data-lh-seat="contracts"] select[data-lh-add]', JSON.stringify(['stage', 'Signed'])).catch(() => {});
     await page.waitForTimeout(600);
-    await page.fill('#cmd-search', 'Naiv');
+    await page.fill('[data-lh-seat="contracts"] input[data-lh-q]', 'Naiv');
     await page.waitForTimeout(700);
     const c2 = await onContracts();
     check('C2 typed while Contracts is on screen, the search keeps the stage chosen there (control)',

@@ -256,8 +256,8 @@ describe('f861 (6) the box', () => {
     const inp = head.querySelector('input[data-lh-q]');
     assert.equal(inp.value, evil);
     assert.equal(head.querySelector('img'), null);
-    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Contracts says its count once, at the foot */
-    assert.equal(inp.getAttribute('placeholder'), 'Search contracts, or ask Jambo');
+    /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the box is a quiet filter and says so */
+    assert.equal(inp.getAttribute('placeholder'), 'Filter this list');
     assert.equal(inp.getAttribute('type'), 'search');
   });
   test('plain words narrow through the page\'s own query; Enter spends nothing', () => {
@@ -269,23 +269,16 @@ describe('f861 (6) the box', () => {
     assert.deepEqual(P.S.asked, [], 'a search never reaches Jambo');
     assert.equal(inp.value, 'Nordkap');
   });
-  test('a question narrows nothing; Enter hands it to the page\'s Jambo and empties the box', () => {
-    need(); const x = stage(); const P = page(x.sb, { state: { q: 'which ones' } }); paint(x);
+  /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes; reverses "a question typed in a list's box goes to
+     the page's Jambo"): every word narrows the list, a question too, and Enter sends nothing */
+  test('a question is words like any other: it narrows the list, and Enter sends nothing', () => {
+    need(); const x = stage(); const P = page(x.sb); paint(x);
     const inp = x.doc.querySelector('input[data-lh-q]');
     inp.value = 'which ones end soon'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
-    assert.deepEqual(P.S.queries, [''], 'the list stands whole while a question is typed');
+    assert.deepEqual(P.S.queries, ['which ones end soon']);
     inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    assert.deepEqual(P.S.asked, ['which ones end soon']);
-    assert.equal(inp.value, '');
-  });
-  test('a Jambo still answering takes nothing: it is said, and the words stay', () => {
-    need(); const x = stage(); const P = page(x.sb, { busy: true }); paint(x);
-    const inp = x.doc.querySelector('input[data-lh-q]');
-    inp.value = 'is it signed?'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
-    inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    assert.deepEqual(P.S.asked, ['is it signed?']);
-    assert.equal(inp.value, 'is it signed?');
-    assert.deepEqual(x.toasts, [[EN.lh_busy, 'warn']]);
+    assert.deepEqual(P.S.asked, [], 'nothing reaches Jambo from a list\'s box');
+    assert.equal(inp.value, 'which ones end soon');
   });
   test('the tab and chip rows repaint while the box — and its caret — stay', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
@@ -439,12 +432,10 @@ describe('f861 (10) the page\'s own parts stand across a recount', () => {
 
 describe('f861 (11) the box shows the page\'s query', () => {
   const ask = (x, w) => { const inp = x.doc.querySelector('input[data-lh-q]'); inp.value = w; inp.dispatchEvent(new x.win.Event('input', { bubbles: true })); return inp; };
-  test('a question typed, then the page\'s query written elsewhere: the repaint shows the page\'s query', () => {
+  test('the box shows the page\'s query on a repaint, whatever was typed (round 1: no question stands in it)', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
     ask(x, 'which ones end soon');
-    assert.equal(P.S.q, '', 'a question narrows nothing');
-    paint(x);
-    assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'which ones end soon', 'a repaint draws the question back');
+    assert.equal(P.S.q, 'which ones end soon', 'the words narrowed the list');
     P.S.q = 'Nordkap';
     paint(x);
     assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'Nordkap', 'the page\'s query wins');
@@ -461,21 +452,20 @@ describe('f861 (11) the box shows the page\'s query', () => {
     P.S.q = 'Kaffe';
     assert.equal(x.sb.lhBoxSet(), 1, 'with no seat (the top bar), every head shows its own page\'s query');
     assert.equal(inp.value, 'Kaffe');
-    P.S.q = '';
+    /* round 1: a question typed is the page's query like any words, so nothing is left standing apart */
     ask(x, 'which ones end soon');
-    assert.equal(x.sb.lhBoxSet(), 0, 'a question stands where its page\'s query is empty');
+    assert.equal(x.sb.lhBoxSet(), 0, 'the box already shows the page\'s query');
     assert.equal(inp.value, 'which ones end soon');
   });
-  test('the top bar\'s search tells the list head\'s box what it wrote', () => {
+  /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search left; ⌘K puts the hand in Jambo's box */
+  test('the top bar has no search box; ⌘K focuses Jambo\'s box', () => {
+    assert.doesNotMatch(read('index.html'), /<input id="cmd-search"/);
     const app = read('js/app.js').replace(/\/\*[\s\S]*?\*\//g, ' ');
-    const at = app.indexOf("const search=document.getElementById('cmd-search');");
-    assert.ok(at > 0, 'the bar\'s search is wired in app.js');
-    const input = app.slice(at, app.indexOf("search.addEventListener('keydown'", at));
-    assert.match(input, /R\.query=q;[\s\S]*if\(window\.lhBoxSet\) lhBoxSet\(\);/);
+    assert.match(app, /\(e\.key==='k'\|\|e\.key==='K'\)\)\{ e\.preventDefault\(\); jamboBoxFocus\(\); return; \}/);
   });
   test('a page left and come back to starts from its own query', () => {
-    need(); const x = stage(); page(x.sb); paint(x);
-    ask(x, 'which ones end soon');
+    need(); const x = stage(); const P = page(x.sb); paint(x);
+    ask(x, 'which ones end soon'); P.S.q = '';
     x.doc.getElementById('content').innerHTML = '<p>another page</p>';
     paint(x);
     assert.equal(x.doc.querySelector('input[data-lh-q]').value, '');

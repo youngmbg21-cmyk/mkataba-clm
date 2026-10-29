@@ -709,6 +709,28 @@ function shellCrumbHome(){
    Settings the bar's box finds a setting, a person or a word — it IS the ⌘K
    box, opened there with what was typed; everywhere else it filters
    contracts, as it always has. The placeholder says which. */
+/* ---- ⌘K PUTS THE HAND IN JAMBO'S BOX (round 1 "The Legora way", owner's yes 29 Oct 2026; reverses "⌘K opens the
+   jump palette" and the bar's search) ---- the one box on every page is Jambo's, at his panel's foot (Home's own
+   box on Home): the first one in sight takes the hand; with his panel folded or none drawn, his window (the ✦)
+   opens with its box ready. "/" in any of them lists the places. Nothing is sent and nothing is spent. */
+const JB_BOX_SEL='.jb-card textarea, .jb-card input:not([type=file]):not([type=checkbox])';
+function jamboBoxFocus(){
+  if(typeof document==='undefined') return false;
+  const shown=el=>{ if(!el||el.disabled) return false; const r=el.getBoundingClientRect(); return r.width>0&&r.height>0; };
+  /* in sight first (nothing over it); else any drawn box (a panel still sliding shut over it) */
+  const seen=el=>{ if(!shown(el)) return false; const r=el.getBoundingClientRect();
+    const at=document.elementFromPoint(Math.min(innerWidth-1,Math.max(0,r.left+r.width/2)),Math.min(innerHeight-1,Math.max(0,r.top+r.height/2)));
+    return !!(at&&(at===el||el.contains(at)||(at.closest&&at.closest('.jb-card')===el.closest('.jb-card')))); };
+  const pick=()=>{ const all=[...document.querySelectorAll(JB_BOX_SEL)]; return all.find(seen)||all.find(shown)||null; };
+  const take=el=>{ if(typeof fieldFocus==='function') fieldFocus(el,{ preventScroll:true }); else el.focus({ preventScroll:true }); return true; };
+  const box=pick(); if(box) return take(box);
+  if(typeof window.aiWinToggle!=='function') return false;
+  try{ const A=window.ai; if(!(A&&A.open&&A.win)) window.aiWinToggle(); }catch(_){ }
+  let n=0; const again=()=>{ const b=pick(); if(b){ take(b); return; } if(++n<JB_BOX_TRIES) setTimeout(again,60); };
+  setTimeout(again,60);
+  return true;
+}
+const JB_BOX_TRIES=12;
 function paintSearchFace(view){
   const b=document.getElementById('cmd-search'); if(!b) return;
   const k=view==='team'?'st_find_ph':'sh_search_ph';
@@ -716,6 +738,8 @@ function paintSearchFace(view){
 }
 function renderPageHeader(view){
   paintShellTitle(view);
+  /* words Jambo could not place: the person's next page is their own move (round 8, jamboUnplacedNext) */
+  try{ if(window.jamboUnplacedNext) jamboUnplacedNext(view); }catch(_){ }
   /* THE RAIL SAYS WHOSE WORKSPACE THIS IS (the redesign, 20 Sep 2026): the
      brand mark at the top of the column carries the company's name in the
      quiet ink beside it. FIRST_PARTY is the WORKSPACE (js/core.js), read
@@ -4242,35 +4266,37 @@ function wireShell(){
         if(window.caHandHome) caHandHome(q,u); return; }
       if(window.jmRunAct) jmRunAct(a,q);
     });
-    document.addEventListener('keydown',e=>{
-      // Cmd/Ctrl+K → global jump palette (works even while typing in a field)
-      if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); openCommandPalette(); return; }
-      /* ⌘B / Ctrl+B → collapse or open the sidebar. The settled binding —
-         verified in shadcn's own source, which is the de-facto modern
-         dashboard implementation, and the same key Vercel and Linear use.
-         toggleRail() already knows the difference between the two worlds: above
-         the float line it flips the stored preference, below it opens and
-         closes the floating layer and leaves the preference alone.
-
-         IT IS GUARDED WHERE ⌘K IS NOT, AND THAT IS THE WHOLE CARE HERE.
-         ⌘K is deliberately allowed while typing — a jump palette is useful
-         mid-sentence. ⌘B is BOLD in a rich-text editor, and this product has
-         ten contenteditable surfaces: js/richpaste.js:400 binds ⌘B/I/U on the
-         editor element itself for exactly that. That handler calls
-         preventDefault but NOT stopPropagation, so the event still reaches
-         this one — unguarded, typing ⌘B in a clause editor would bold the
-         words AND collapse the sidebar. Both belts: an editable target is
-         skipped outright, and a already-handled event is left alone. */
-      if((e.metaKey||e.ctrlKey)&&(e.key==='b'||e.key==='B')){
-        if(e.defaultPrevented) return;
-        const t=e.target;
-        if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||''))) return;
-        e.preventDefault(); toggleRail(); return;
-      }
-      if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){ e.preventDefault(); openCommandPalette(); }
-    });
   }
 
+  document.addEventListener('keydown',e=>{
+    /* THE KEYS ARE THE SHELL'S, NOT THE BAR'S SEARCH'S (round 1, 29 Oct 2026): wired here, so the bar's box leaving
+     takes none of them with it. Cmd/Ctrl+K → Jambo's box (works even while typing in a field) */
+    if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); jamboBoxFocus(); return; }
+    /* ⌘B / Ctrl+B → collapse or open the sidebar. The settled binding —
+       verified in shadcn's own source, which is the de-facto modern
+       dashboard implementation, and the same key Vercel and Linear use.
+       toggleRail() already knows the difference between the two worlds: above
+       the float line it flips the stored preference, below it opens and
+       closes the floating layer and leaves the preference alone.
+
+       IT IS GUARDED WHERE ⌘K IS NOT, AND THAT IS THE WHOLE CARE HERE.
+       ⌘K is deliberately allowed while typing — a jump palette is useful
+       mid-sentence. ⌘B is BOLD in a rich-text editor, and this product has
+       ten contenteditable surfaces: js/richpaste.js:400 binds ⌘B/I/U on the
+       editor element itself for exactly that. That handler calls
+       preventDefault but NOT stopPropagation, so the event still reaches
+       this one — unguarded, typing ⌘B in a clause editor would bold the
+       words AND collapse the sidebar. Both belts: an editable target is
+       skipped outright, and a already-handled event is left alone. */
+    if((e.metaKey||e.ctrlKey)&&(e.key==='b'||e.key==='B')){
+      if(e.defaultPrevented) return;
+      const t=e.target;
+      if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||''))) return;
+      e.preventDefault(); toggleRail(); return;
+    }
+    if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){ e.preventDefault(); openCommandPalette(); }
+  });
+  // global jump palette (⌘K hint button in the search box)
   // global jump palette (⌘K hint button in the search box)
   document.getElementById('cmd-k-hint')?.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); openCommandPalette(); });
 
@@ -4557,5 +4583,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,
-  buildAlerts,alertCount,updateAlertBadge,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

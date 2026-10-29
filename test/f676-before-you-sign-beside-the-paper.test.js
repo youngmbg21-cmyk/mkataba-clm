@@ -215,9 +215,10 @@ describe('f676 (5) the Negotiate page folds into Home', () => {
 describe('f676 (6) the paper\'s line takes the contract\'s acts', () => {
   test('6a Notes · Share on the paper\'s line; the ⋯ rows are the panel\'s Menu tab, from the same builders (owner, 15 Oct 2026)', () => {
     const a = strip(fnBody(IG, 'igStripActsHtml'));
-    /* RE-POINTED 17 Oct 2026 (round 6, "One line"): Home's line draws the same door with its word */
-    assert.match(a, /roomChatDoorHtml\(\{ word:true \}\)/);
+    /* RE-POINTED 29 Oct 2026 (round 13, owner's yes): Send · Ask for review · More; Notes left the line */
+    assert.doesNotMatch(a, /roomChatDoorHtml/);
     assert.match(a, /id="ws-share"/);
+    assert.match(a, /id="ws-review"/);
     assert.doesNotMatch(a, /roomMoreMenuHtml|ws-more/, 'no ⋯ on the paper\'s line');
     assert.match(strip(fnBody(PD, 'pdMenuGroups')), /roomMoreMenuHtml\(c, \{ menuRow: clause \+ nego, noFocus: true \}\)/);
     const rows = strip(fnBody(IG, 'igNegoRowsHtml'));

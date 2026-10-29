@@ -65,7 +65,8 @@ const ID = 'MK-PA1';
 
     console.log('\n1 · the line');
     const l1 = await waitFor(page, async () => !!document.getElementById('ig-actions'), 4000) ? await line() : { actions: false };
-    check('1 the paper\'s line reads Notes · Share · Actions: right of Share, one row, inside the line, painted', l1.actions && l1.word === 'Actions' && l1.rightOfShare && l1.oneRow && l1.inside && l1.painted, JSON.stringify(l1));
+    /* RE-POINTED 29 Oct 2026 (round 13 "The Legora way", owner's yes): Send · Ask for review · More */
+    check('1 the paper\'s line reads Send · Ask for review · More: right of Send, one row, inside the line, painted', l1.actions && l1.word === 'More' && l1.rightOfShare && l1.oneRow && l1.inside && l1.painted, JSON.stringify(l1));
     await page.screenshot({ path: path.join(OUT, '1-line-1440x780.png') });
 
     console.log('\n2 · the press');
@@ -81,7 +82,14 @@ const ID = 'MK-PA1';
         return { rows, under: r.top >= a.bottom - 1 && r.top <= a.bottom + 12, right: Math.abs(r.right - a.right) <= 2, painted: !!(at && p.contains(at)), heads: [...p.querySelectorAll('.pd-acts-h')].map(h => h.textContent),
           last: (p.querySelector('.pd-acts-g:last-child .pd-acts-r:last-child') || {}).className || '' }; }, 5000);
       check('2a Actions drops its own menu card from the button, over the paper, painted, its groups headed', !!card && card.under && card.right && card.painted && card.rows.length > 3 && card.heads.includes('Work on it'), JSON.stringify(card && { under: card.under, right: card.right, painted: card.painted, n: card.rows.length, heads: card.heads }));
-      check('2b a draft\'s list ends in "Delete this draft", in red', !!card && /Delete this draft/.test(card.rows[card.rows.length - 1] || '') && /is-danger/.test(card.last), card && card.rows.slice(-2).join(' | '));
+      /* RE-POINTED 29 Oct 2026 (round 13): More's card is the SHORT one, its last row "All acts (N)"; pressed, the same
+         card lists every act and a draft's still ends in "Delete this draft", in red */
+      const shortEnd = !!card && /^All acts \(\d+\)/.test(card.rows[card.rows.length - 1] || '') && card.rows.length <= 10;
+      await click('#pd-acts-pop [data-pd-acts-every]');
+      const every = await waitFor(page, () => { const p = document.getElementById('pd-acts-pop'); if (!p || p.querySelector('[data-pd-acts-every]')) return null;
+        return { rows: [...p.querySelectorAll('.pd-acts-r')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), last: (p.querySelector('.pd-acts-g:last-child .pd-acts-r:last-child') || {}).className || '' }; }, 3000);
+      check('2b More\'s short card ends in "All acts (N)"; pressed, every act, a draft\'s ending in "Delete this draft", in red', shortEnd && !!every && every.rows.length > card.rows.length && /Delete this draft/.test(every.rows[every.rows.length - 1] || '') && /is-danger/.test(every.last),
+        JSON.stringify({ short: card && card.rows.slice(-2), every: every && every.rows.slice(-2) }));
       check('2c the button says it is open, and the Dossier did not move', (await line()).expanded === 'true' && (await dockTop()) === t0, JSON.stringify({ t0, t1: await dockTop() }));
       await page.screenshot({ path: path.join(OUT, '2-open-1440x780.png') });
 
@@ -105,7 +113,7 @@ const ID = 'MK-PA1';
     console.log('\n5 · Swedish');
     await page.evaluate(id => { langSet('sv'); pdOpenOnHome(id, 'copilot'); }, ID);
     const sv = await waitFor(page, () => { const a = document.getElementById('ig-actions'); return a ? a.textContent.trim() : null; }, 5000);
-    check('5 in Swedish it reads "Åtgärder"', sv === 'Åtgärder', String(sv));
+    check('5 in Swedish it reads "Mer"', sv === 'Mer', String(sv));
     await page.evaluate(id => { langSet('en'); pdOpenOnHome(id, 'copilot'); }, ID);
 
     console.log('\n6 · the owner\'s three screens');
@@ -115,7 +123,7 @@ const ID = 'MK-PA1';
       await pause(300);
       const m = await line();
       const side = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
-      check(`6 ${w}x${hh}: Actions on the line, right of Share, one row, inside, painted, nothing sideways`, m.actions && m.rightOfShare && m.oneRow && m.inside && m.painted && m.oneLine && !side, JSON.stringify(m));
+      check(`6 ${w}x${hh}: More on the line, right of Send, one row, inside, painted, nothing sideways`, m.actions && m.rightOfShare && m.oneRow && m.inside && m.painted && m.oneLine && !side, JSON.stringify(m));
       await page.screenshot({ path: path.join(OUT, `line-${w}x${hh}.png`) });
     }
     /* 7 THE LIST'S CLAUSE ROWS WORK FROM HERE (owner, 23 Oct 2026: "edit clause or add a clause features
@@ -138,6 +146,9 @@ const ID = 'MK-PA1';
       const fresh = await page.evaluate(() => !(window.pdRedShows && pdRedShows()));
       await click('#ig-actions');
       await waitFor(page, () => !!document.getElementById('pd-acts-pop'), 5000);
+      /* a row the short card leaves out is one press further: "All acts (N)" (round 13) */
+      if (!(await page.$(`#pd-acts-pop [data-pd-acts-go="${sel}"]`))) await click('#pd-acts-pop [data-pd-acts-every]');
+      await waitFor(page, s2 => !!document.querySelector(`#pd-acts-pop [data-pd-acts-go="${s2}"]`), 3000, sel);
       const pressed = await click(`#pd-acts-pop [data-pd-acts-go="${sel}"]`);
       const ed = await waitFor(page, () => { const e = document.getElementById('clause-editor'); if (!e || !e.getClientRects().length) return null;
         const pick = e.querySelector('select'); return pick ? pick.options[pick.selectedIndex].textContent.trim() : 'open'; }, 8000);
