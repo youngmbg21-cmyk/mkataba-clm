@@ -325,7 +325,6 @@ function commandMeta(view){
     case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
-    case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
     case 'calendar':  return [i18t('nav_calendar'), ''];
     case 'mynotes':   return [i18t('nav_mynotes'), ''];
     case 'reads':     return [i18t('nav_reads'), ''];     // READS (The thread, 28 Oct 2026)
