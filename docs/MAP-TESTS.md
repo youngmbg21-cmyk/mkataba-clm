@@ -515,3 +515,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## CONTRACTS — THE SAMPLE TAG (round 16, 28 Oct 2026)
 - test/chromium/sample-tag-verify.js (new; red at unmodified main): seeded contracts wear "Sample" beside the name, the company's own none; a long name never cuts it; Settings counts the same; three screens.
+
+## NEW AGREEMENT — THE ONE SHEET OWNS THE PANEL (28 Oct 2026)
+- test/chromium/new-agreement-owns-the-panel-verify.js (new; red at unmodified main 1, 3b): over MK-A2's Redlines face the sheet's guide and box, no contract tabs, no Redlines/Risks; Cancel brings the tabs and the face back; over the Dossier too; three screens.

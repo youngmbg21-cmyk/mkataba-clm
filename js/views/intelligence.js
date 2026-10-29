@@ -8412,6 +8412,8 @@ function renderIntelDock(){
   /* ONE WINDOW WHERE THERE IS NOTHING ELSE TO SHOW (owner, 24 Oct 2026; pdSolo): the panel holds only his words,
      so the conversation is drawn under his greeting in the one window — never a flip to another */
   const solo=!!(window.pdSolo&&pdSolo());
+  /* THE ONE SHEET OWNS THE PANEL (28 Oct 2026): no contract's face beside an agreement not yet made (pdSheetOwns) */
+  const _sheet=!!(window.pdSheetOwns&&pdSheetOwns());
   const say=talk||solo;
   if(say&&typeof window.jamboReadStamp==='function') jamboReadStamp();
   const _popped=!!(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped()));
@@ -8478,18 +8480,18 @@ function renderIntelDock(){
            by the face while the letter is a page on the desk; Jambo's answers
            under it */}
     ${talk?`<div id="igd-feed" class="igd-talk flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent" data-jt-talk>${(msgs&&String(msgs).trim())||typing?msgs:(typeof window.jamboHelloHtml==='function'?jamboHelloHtml():`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`)}${typing}</div>${(window.pdSendShows&&pdSendShows())?`<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>`:''}`
-    :(window.pdSendShows&&pdSendShows())?`<div id="pd-sendface" class="pd-sendface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdSendFaceHtml()}<div id="igd-feed" class="px-3.5 pb-3 space-y-3">${msgs}${typing}</div></div>`
+    :(!_sheet&&window.pdSendShows&&pdSendShows())?`<div id="pd-sendface" class="pd-sendface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdSendFaceHtml()}<div id="igd-feed" class="px-3.5 pb-3 space-y-3">${msgs}${typing}</div></div>`
     :(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE FILL IN FACE (the one-page Home plan, stage 2): where the
        conversation stands, the box and the chips kept at the foot */
-    :(window.pdFillShows&&pdFillShows())?`<div id="pd-fillface" class="pd-fillface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdFillFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    :(!_sheet&&window.pdFillShows&&pdFillShows())?`<div id="pd-fillface" class="pd-fillface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdFillFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE REDLINES FACE (stage 3): the Negotiate page's own column, the box
        and the chips kept at the foot */
-    :(window.pdRedShows&&pdRedShows())?`<div id="pd-redface" class="pd-redface flex-1 min-h-0">${pdRedFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    :(!_sheet&&window.pdRedShows&&pdRedShows())?`<div id="pd-redface" class="pd-redface flex-1 min-h-0">${pdRedFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE BEFORE YOU SIGN FACE (stage 5): the Signing column's four slots,
        filled by its own painter; the box and the chips kept at the foot */
-    :(window.pdAmendShows&&pdAmendShows())?`<div id="pd-amendface" class="pd-signface pd-amendface flex-1 min-h-0">${pdAmendFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
-    :(window.pdSignShows&&pdSignShows())?`<div id="pd-signface" class="pd-signface flex-1 min-h-0">${pdSignFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    :(!_sheet&&window.pdAmendShows&&pdAmendShows())?`<div id="pd-amendface" class="pd-signface pd-amendface flex-1 min-h-0">${pdAmendFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    :(!_sheet&&window.pdSignShows&&pdSignShows())?`<div id="pd-signface" class="pd-signface flex-1 min-h-0">${pdSignFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* FINDINGS (Explorer stage 4): the findings colleagues kept on the map, beside Jambo */
     :igFindingsShows()?`<div id="ig-fd" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3" role="tabpanel">${igFindingsHtml()}</div><div id="igd-feed" hidden></div>`
     /* THE GUIDE (19 Oct 2026): what the view in front can do */
