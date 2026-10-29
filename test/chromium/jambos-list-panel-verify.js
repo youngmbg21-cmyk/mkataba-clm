@@ -348,7 +348,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     }
     await page.setViewportSize({ width: 1440, height: 780 });
     await part('10e a signature row says how long it has waited', async () => {
-      const S = await page.evaluate(() => ['MK-SG1'].map(id => { const r = document.querySelector(`[data-ap-row="${id}"]`); return r ? r.children[5].textContent.trim() : null; }));
+      const S = await page.evaluate(() => ['MK-SG1'].map(id => { const r = document.querySelector(`[data-ap-row="${id}"]`); return r ? (r.querySelector('td.ap-wait') || { textContent: '' }).textContent.trim() : null; }));
+      /* RE-POINTED 28 Oct 2026 (round 10, Approve on the row): the wait is read by its own cell, not its place — the
+         row's Approve column can make a ranked column step aside (listCols), moving the place */
       check('10e round 15: "Jonas signs" waits "today" / "N days", never "—" while the trail holds a day', S.every(x => x && x !== '—'), JSON.stringify(S));
     });
     await part('10f an away signer: the rule, the proper step, its door', async () => {

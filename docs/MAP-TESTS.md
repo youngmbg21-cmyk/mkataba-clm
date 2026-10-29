@@ -497,3 +497,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE TRACKED-CHANGES COLUMN — NUMBERED DOTS ON THE PAPER (round 9, 28 Oct 2026)
 - f961; test/chromium/paper-dots-verify.js (new; nothing to find at unmodified main): dot 1 after their words; its words the card's reading; press opens painted, again shuts, Esc and elsewhere shut; a prepared answer said; ours and their seat none; three screens.
+
+## THE SAP BENCHMARK, BATCH 1 — APPROVE ON THE ROW (round 10, 28 Oct 2026)
+- test/chromium/approve-on-row-verify.js (new; red at unmodified main): Approve on every decidable row beside the panel, filled on the chosen row only and moving with it; a press approves that row without choosing or opening it; inside its row at the three screens. jambos-list-panel 10e re-pointed to the wait cell by its class.
