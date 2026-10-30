@@ -378,9 +378,60 @@ td:first-child{font-weight:600;white-space:nowrap}
 .stage.f-page .panel.ce-panel{top:0;right:0;bottom:0;border-radius:0;box-shadow:none;border-left:1px solid #E6E6EA}
 .stage.f-page .ce-foot{padding-right:408px}
 </style>
+<style>
+/* ---------- THE BOARD, JOINED SHELL (owner, 30 Oct 2026): the bar, the page's edge and Jambo are one white frame; the Board's work stays in today's cards ---------- */
+.jn{flex:1;min-height:0;display:flex;background:#fff}
+.jn-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.jn-bar{height:56px;flex:none;display:flex;align-items:center;gap:18px;padding:0 16px 0 14px;border-bottom:1px solid #E6E6EA;color:#1D1D1F;background:#fff}
+.jn-bar .bk{font-size:18px;width:18px;color:#1D1D1F}
+.jn-bar .mark{font-family:var(--font-doc);font-weight:700;font-size:19px}
+.jn-bar .pg{font-size:13.5px;font-weight:500;display:flex;gap:8px;align-items:center}
+.jn-bar .pg i{font-style:normal;font-size:10px}
+.jn-bar .sp{flex:1}
+.jn-bar .ic{width:28px;height:28px;display:grid;place-items:center;font-size:14px;position:relative;border-radius:999px}
+.jn-bar .ic b{position:absolute;top:-2px;right:-3px;font-size:9px;font-weight:600;background:#fff;padding:0 2px;border-radius:6px}
+.jn-bar .av{width:28px;height:28px;border-radius:50%;background:#1D1D1F;color:#fff;font-weight:600;font-size:11px;display:grid;place-items:center}
+.jn-well{flex:1;min-height:0;overflow:hidden;background:#F5F5F7;padding:12px 16px 0;display:flex;flex-direction:column;gap:12px}
+.stage .jn .panel.jn-panel{border-radius:0;box-shadow:none;border-left:1px solid #E6E6EA;width:384px}
+.bc{background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22);flex:none;overflow:hidden}
+.bc-head{display:flex;align-items:center;gap:10px;padding:16px 16px;font-size:13px}
+.bc-head .tt{font-family:var(--font-doc);font-size:21px;font-weight:var(--title-w,500);line-height:1.1}
+.bc-head .sp{flex:1}
+.bc-head .live{display:inline-flex;align-items:center;gap:6px}
+.bc-head .live:before{content:"";width:7px;height:7px;border-radius:50%;background:#087363}
+.bc-sum{display:inline-flex;align-items:center;border:1px solid #E6E6EA;border-radius:999px;overflow:hidden;font-size:13px;height:30px}
+.bc-sum span{padding:0 12px;display:inline-flex;align-items:center;height:100%}
+.bc-sum span+span{border-left:1px solid #E6E6EA;font-size:12px}
+.bc-sum b{font-weight:600;color:#1F4D3B}
+.bc-cap{display:flex;align-items:baseline;gap:10px;padding:14px 16px 10px;font-size:12.5px;border-bottom:1px solid #E6E6EA}
+.bc-cap b{font-size:14px;font-weight:600}
+.bc-cap .sp{flex:1}
+.fig{display:grid;grid-template-columns:1fr 120px 120px 70px 250px;gap:12px;align-items:center;padding:0 16px;font-size:13.5px}
+.fig.hd{height:30px;font-size:12px;border-bottom:1px solid #E6E6EA}
+.fig.r{min-height:36px;border-bottom:1px solid #E6E6EA;padding-top:4px;padding-bottom:4px}
+.fig .n{text-align:right;font-variant-numeric:tabular-nums}
+.fig .n.b{font-weight:600}
+.fig .sub{display:block;font-size:11.5px;color:#4B4B50}
+.fig .ch.up{color:#B42318}.fig .ch.gd{color:#087363}
+.stk{display:grid;grid-template-columns:70px 1fr 30px;gap:10px;align-items:center;padding:6px 16px;font-size:12.5px}
+.stk .s{display:flex;height:12px;border-radius:2px;overflow:hidden}
+.stk .s i{display:block;height:100%}
+.stk-key{display:flex;gap:16px;padding:6px 16px 14px 96px;font-size:12px;align-items:center}
+.stk-key i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.nd-tabs{display:flex;align-items:center;gap:6px;padding:10px 16px;border-bottom:1px solid #E6E6EA;font-size:13px}
+.nd-tabs .t{height:30px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;font-weight:500}
+.nd-tabs .t.on{background:#F0F0F3}
+.nd-tabs .sp{flex:1}
+.nd-tabs .find{height:28px;width:240px;border-radius:999px;background:#F0F0F3;display:flex;align-items:center;padding:0 12px;font-size:12.5px;color:#4B4B50}
+.nd-r{display:grid;grid-template-columns:1fr 1.25fr 100px 96px;gap:12px;align-items:center;padding:0 16px;min-height:40px;border-bottom:1px solid #E6E6EA;font-size:13.5px}
+.nd-r.hd{min-height:30px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#4B4B50;font-weight:600;background:#FAFAFC}
+.nd-r .w{font-weight:500}
+.nd-r .a{font-size:12.5px}
+.nd-r .x{display:flex;justify-content:flex-end}
+</style>
 <div class="wrap">
   <h1>HaTi, the Legora Way, taken further</h1>
-  <p class="lede"><b>New on top: the Page frame.</b> The cards are gone: HaTi's page and Jambo's panel are one surface, divided by a single line, the way Claude's side panel sits beside its main area. Switch <b>Frame</b> to Cards to see the earlier drawing; nothing else changed.  Here are <b>eleven screens</b> in this way (Home, a contract, Redlines, Contracts with questions as columns, the Board, the Calendar, Obligations, Before you sign, Send, New agreement and the clause editor), and <b>three type pairings</b> you can switch on any of them. Everything is drawn at your 1440×780 with your own book. The margin notes now lay themselves out so they never overlap, whatever font is on screen.</p>
+  <p class="lede"><b>New on top: the Page frame.</b> The cards are gone: HaTi's page and Jambo's panel are one surface, divided by a single line, the way Claude's side panel sits beside its main area. Switch <b>Frame</b> to Cards to see the earlier drawing; nothing else changed.  Here are <b>eleven screens</b> in this way (Home, a contract, Redlines, Contracts with questions as columns, the Board (two ways), the Calendar, Obligations, Before you sign, Send, New agreement and the clause editor), and <b>three type pairings</b> you can switch on any of them. Everything is drawn at your 1440×780 with your own book. The margin notes now lay themselves out so they never overlap, whatever font is on screen.</p>
 
   <div class="sw" role="tablist" aria-label="Screen">
     <span class="lab">Screen</span>
@@ -388,7 +439,8 @@ td:first-child{font-weight:600;white-space:nowrap}
     <button data-p="contract" aria-pressed="false">A contract</button>
     <button data-p="redlines" aria-pressed="false">Redlines</button>
     <button data-p="contracts" aria-pressed="false">Contracts <span class="k">questions as columns</span></button>
-    <button data-p="board" aria-pressed="false">Board</button>
+    <button data-p="board" aria-pressed="false">Board <span class="k">joined, cards as today</span></button>
+    <button data-p="boardread" aria-pressed="false">Board · read down</button>
     <button data-p="calendar" aria-pressed="false">Calendar</button>
     <button data-p="obligations" aria-pressed="false">Obligations</button>
     <button data-p="sign" aria-pressed="false">Before you sign</button>
@@ -606,7 +658,7 @@ td:first-child{font-weight:600;white-space:nowrap}
 </div>
 
 <!-- ====================================================== THE BOARD ====================================================== -->
-<div class="frame" data-f="board">
+<div class="frame" data-f="boardread">
   <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Board <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
   <div class="body">
     <div class="sheet">
@@ -643,6 +695,54 @@ td:first-child{font-weight:600;white-space:nowrap}
         <div class="turn"><span class="jface"></span><div class="t">One thing to watch: Naivas is 65% of your signed money and both of their agreements end within fourteen months. <span class="lnk">Put a note in the Calendar</span></div></div>
       </div>
       <div class="pf"><div class="lk"><span class="lnk">contracts</span><span class="lnk">calendar</span><span class="lnk">explorer</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== THE BOARD, JOINED SHELL, CARDS AS TODAY ====================================================== -->
+<div class="frame" data-f="board">
+  <div class="jn">
+    <div class="jn-main">
+      <div class="jn-bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Board <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+      <div class="jn-well">
+        <div class="bc"><div class="bc-head"><span class="tt">Board</span><span>your book against six months ago</span><span class="live">Live · counted 08:39</span><span class="sp"></span><span class="bc-sum"><span><b>✳ Summarise my board</b></span><span>1 Jambo call</span></span></div></div>
+        <div class="bc">
+          <div class="bc-cap"><b>Your book</b><span>30 April against today · each figure opens the list behind it</span><span class="sp"></span><span>⫶</span></div>
+          <div class="fig hd"><span>Figure</span><span class="n">30 April</span><span class="n">Today</span><span>Change</span><span>Six months</span></div>
+          <div class="fig r"><span>Live contracts</span><span class="n">6</span><span class="n b">7</span><span class="ch gd">+1</span><svg width="230" height="22" viewBox="0 0 230 22" fill="none"><polyline points="2,15 46,15 92,15 138,15 184,15 226,7" stroke="#1F4D3B" stroke-width="1.5" fill="none"/><circle cx="226" cy="7" r="3" fill="#1F4D3B"/></svg></div>
+          <div class="fig r"><span>Value under contract<span class="sub">in KES</span></span><span class="n">KES 248.6M</span><span class="n b">KES 251.0M</span><span class="ch gd">+1%</span><svg width="230" height="22" viewBox="0 0 230 22" fill="none"><polyline points="2,12 46,12 92,12 138,12 184,12 226,9" stroke="#1F4D3B" stroke-width="1.5" fill="none"/><circle cx="226" cy="9" r="3" fill="#1F4D3B"/></svg></div>
+          <div class="fig r"><span>Ending in 90 days</span><span class="n">0</span><span class="n b">0</span><span>Same</span><svg width="230" height="22" viewBox="0 0 230 22" fill="none"><polyline points="2,15 46,15 92,15 138,15 184,15 226,15" stroke="#1F4D3B" stroke-width="1.5" fill="none"/><circle cx="226" cy="15" r="3" fill="#1F4D3B"/></svg></div>
+          <div class="fig r"><span>Past end date</span><span class="n">0</span><span class="n b">0</span><span>Same</span><svg width="230" height="22" viewBox="0 0 230 22" fill="none"><polyline points="2,15 46,15 92,15 138,15 184,15 226,15" stroke="#1F4D3B" stroke-width="1.5" fill="none"/><circle cx="226" cy="15" r="3" fill="#1F4D3B"/></svg></div>
+          <div class="fig r" style="border-bottom:0"><span>Obligations overdue<span class="sub">1 ours · 0 theirs</span></span><span class="n">0</span><span class="n b">1</span><span class="ch up">+1</span><svg width="230" height="22" viewBox="0 0 230 22" fill="none"><polyline points="2,17 46,17 92,17 138,17 184,17 226,5" stroke="#1F4D3B" stroke-width="1.5" fill="none"/><circle cx="226" cy="5" r="3" fill="#1F4D3B"/></svg></div>
+          <div style="border-top:1px solid #E6E6EA;padding-top:10px">
+            <div class="stk"><span>30 April</span><div class="s"><i style="width:50%;background:#C98A1E"></i><i style="width:50%;background:#3A8A5F"></i></div><span>6</span></div>
+            <div class="stk"><span>Today</span><div class="s"><i style="width:43%;background:#C98A1E"></i><i style="width:14%;background:#1F4D3B"></i><i style="width:43%;background:#3A8A5F"></i></div><span>7</span></div>
+            <div class="stk-key"><span><i style="background:#D1D1D6"></i>Drafting 0 (0)</span><span><i style="background:#C98A1E"></i>In review <b style="font-weight:600">3</b> (3)</span><span><i style="background:#1F4D3B"></i>Negotiating <b style="font-weight:600">1</b> (0)</span><span><i style="background:#3A8A5F"></i>Executed <b style="font-weight:600">3</b> (3)</span><span class="q">April in brackets</span></div>
+          </div>
+        </div>
+        <div class="bc">
+          <div class="bc-cap"><b>Needs you</b><span>8 things · <span class="red">1 late</span></span><span class="sp"></span><span>Home shows the top 4 · this is all of it</span><span class="pill sm">Hide</span></div>
+          <div class="nd-tabs"><span class="t on">All 8</span><span class="t">Your move 7</span><span class="t">Jambo prepared 1</span><span class="sp"></span><span class="find">Find a contract or a person…</span></div>
+          <div class="nd-r hd"><span>What waits</span><span>Agreement</span><span>Waited</span><span style="text-align:right">Next</span></div>
+          <div class="nd-r"><span class="w red">Overdue: Return the pallets</span><span class="a"><span class="ref">MK-A1</span> · Refined Sugar Supply · Kabras Sugar</span><span>3 days</span><span class="x"><span class="pill sm">Open</span></span></div>
+          <div class="nd-r"><span class="w">Answer Parcelway's 2 changes</span><span class="a"><span class="ref">MK-R1</span> · Parcel Delivery SaaS · answers prepared</span><span>2 days</span><span class="x"><span class="pill sm">Review</span></span></div>
+          <div class="nd-r"><span class="w">Answer an approval</span><span class="a"><span class="ref">MK-B2</span> · Retail Supply — Coast · KES 78M</span><span>1 day</span><span class="x"><span class="pill sm">Approve…</span></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel jn-panel">
+      <div class="ph"><span class="ptab on">Overview <span class="n">8</span></span><span class="more">›</span></div>
+      <div class="pb">
+        <div style="font-size:14px;line-height:1.5"><b style="font-weight:600">Your book on one page.</b> Every figure opens the list behind it; Summarise my board is the one press here that uses a Jambo call, and it says so first.</div>
+        <div class="lg-fact" style="margin-top:12px"><div class="l">Needs you</div><div class="v amber">8 things · 1 prepared by Jambo · 1 late</div><div class="s lnk">Show all</div></div>
+        <div class="lg-fact"><div class="l">Your book</div><div class="v">7 contracts · 3 signed · 1 negotiating</div><div class="s lnk">Open</div></div>
+        <div class="q" style="padding-top:8px;border-top:1px solid #E6E6EA">Counted at 08:39 from the contracts you can see · no Jambo call</div>
+        <div class="sec" style="padding-top:16px">Ask me</div>
+        <div class="g-row"><span class="lnk">Value by stream</span><span class="q">free</span></div>
+        <div class="g-row"><span class="lnk">What needs me</span><span class="q">free</span></div>
+        <div class="g-row"><span class="lnk">Plan my week</span><span class="q">1 Jambo call</span></div>
+      </div>
+      <div class="pf"><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div>
     </div>
   </div>
 </div>
@@ -905,6 +1005,11 @@ td:first-child{font-weight:600;white-space:nowrap}
   </div></div>
 
   <div class="scr" data-n="board"><div class="notes">
+    <div><p class="idea">The frame is one surface; the Board's work stays in cards. The top bar and Jambo's panel are one white frame around the page, joined by lines; inside it, the Board's cards sit on the grey ground as they do today.</p><p>This screen draws the same in both frames: the frame is the point of it.</p></div>
+    <div><h3>What changes</h3><ul><li>The top bar turns white and becomes part of the page. Its line runs straight on into the line under Jambo's tabs.</li><li>Jambo's panel runs from the top of the window to the bottom, joined to the page by one line, no card.</li><li>The Board's head, Your book, Needs you and the insight charts below stay cards, in today's order, with today's contents.</li></ul></div>
+    <div><h3>Asks the owner first</h3><p class="ask"><b>The black bar.</b> A bar that is one with the page turns white; on 27 October you picked black. The bar is shared by every page, so in the app it would change everywhere, not only on the Board. Say if that is what you want, or if the bar should stay black.</p></div>
+  </div></div>
+  <div class="scr" data-n="boardread"><div class="notes">
     <div><p class="idea">The Board, read down. Numbers as sentences, each saying where it was counted from, and one quiet chart. Every figure is a door to its rows.</p><p>No tiles. A sentence carries a number and its meaning at once (“two thirds of the book is with one party”), which a tile cannot.</p></div>
     <div><h3>What is on it</h3><ul><li>Five sentences: money, endings, streams and parties, negotiations, duties. Each with its source on the right and the page it opens.</li><li>One chart, drawn to scale from the same rows: what ends in which quarter, and how much.</li><li>The panel: Dig deeper with its cost, the fact check (every figure counted again against the stored records), and one thing to watch.</li></ul></div>
     <div><h3>What it keeps from today</h3><p>Every number a door, the fact check, Jambo explaining what the Board drew for free, the Needs you list and the Board's views (Deal board, History) in the foot.</p></div>
@@ -975,10 +1080,10 @@ td:first-child{font-weight:600;white-space:nowrap}
 
 <script>
 (function(){
-  var P=['home','contract','redlines','contracts','board','calendar','obligations','sign','send','draft','editor'], T=['today','editorial','bookish'];
+  var P=['home','contract','redlines','contracts','board','boardread','calendar','obligations','sign','send','draft','editor'], T=['today','editorial','bookish'];
   var p='home', t='today', fr='page';
   var stage=document.getElementById('stage');
-  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|contract|redlines|contracts|board|calendar|obligations|sign|send|draft|editor)(?:-(today|editorial|bookish))?(?:-(cards|page))?$/); if(m){p=m[1]; t=m[2]||'today'; fr=m[3]||'page';} else {p='home'; t='today'; fr='page';} }
+  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|contract|redlines|contracts|board|boardread|calendar|obligations|sign|send|draft|editor)(?:-(today|editorial|bookish))?(?:-(cards|page))?$/); if(m){p=m[1]; t=m[2]||'today'; fr=m[3]||'page';} else {p='home'; t='today'; fr='page';} }
   function layNotes(f){ var prev=-1e9; f.querySelectorAll('.mn').forEach(function(n){ var want=+n.dataset.top||0; var top=Math.max(want, prev+12); n.style.top=top+'px'; prev=top+n.offsetHeight; }); }
   function paint(){
     document.querySelectorAll('.sw [data-p]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.p===p));});
