@@ -127,14 +127,14 @@ svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .node{transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .4s}
 .node circle{transition:fill .4s,stroke .4s,r .5s}
 .node.party circle{fill:#fff;stroke:#1D1D1F;stroke-width:1.4}
-.node.stream circle{fill:#F0F0F3;stroke:#D1D1D6;stroke-width:1}
+.node.stream circle{fill:#F0F0F3;stroke:#D1D1D6;stroke-width:1}.node.stream text,.node.party text{font-weight:600;font-size:11.5px}
 .node.contract circle{fill:#DCE7E1;stroke:#087363;stroke-width:1.2}
 .node.contract.hit circle{fill:#087363;stroke:#087363}
 .node.contract.hit.red circle{fill:#C2453B;stroke:#C2453B}
 .node.contract.hit.amber circle{fill:#C98A14;stroke:#C98A14}
 .node.contract.hit.ring circle{fill:#fff;stroke:#C98A14;stroke-width:2;stroke-dasharray:3 2}
 .node.dim{opacity:.22}
-.node text{font-family:var(--font-ui);font-size:11px;fill:#1D1D1F;pointer-events:none}
+.node text{font-family:var(--font-ui);font-size:11px;fill:#1D1D1F;pointer-events:none;transition:x .5s}
 .node text.sub{font-size:10px;fill:#4B4B50}
 .node.contract text.sub{font-family:var(--font-mono);letter-spacing:.02em}
 .edge{stroke:#D1D1D6;stroke-width:1;transition:opacity .4s,x1 .7s,y1 .7s,x2 .7s,y2 .7s}
@@ -331,25 +331,31 @@ function buildMap(){ mapBuilt=true; const host=$('#mp-exp'); const r=host.getBou
   const axis=document.createElementNS(NS,'g'); axis.setAttribute('class','axis'); axis.style.opacity=0; svg.appendChild(axis); svg._axis=axis;
   const eg=document.createElementNS(NS,'g'); svg.appendChild(eg);
   nodes=[]; edges=[];
-  const mk=(kind,d,rad,label,sub)=>{ const g=document.createElementNS(NS,'g'); g.setAttribute('class','node '+kind); const c=document.createElementNS(NS,'circle'); c.setAttribute('r',rad); g.appendChild(c); const t=document.createElementNS(NS,'text'); t.setAttribute('text-anchor','middle'); t.setAttribute('y',kind==='party'?-(rad+6):rad+13); t.textContent=label; g.appendChild(t); if(sub){ const s=document.createElementNS(NS,'text'); s.setAttribute('class','sub'); s.setAttribute('text-anchor','middle'); s.setAttribute('y',rad+25); s.textContent=sub; g.appendChild(s);} svg.appendChild(g); const n={kind,d,el:g,r:rad,x:W/2,y:H/2}; nodes.push(n); return n; };
-  STREAMS.forEach(s=>mk('stream',s,22,s.name.split(' &')[0]));
-  PARTIES.forEach(p=>mk('party',p,8,p.name.replace(' Supermarkets','').replace(' Logistics','')));
-  C.forEach(c=>mk('contract',c,Math.max(7,Math.sqrt(c.value)/700),c.name.length>20?c.name.slice(0,19)+'…':c.name,c.id));
-  C.forEach(c=>{ const a=nodes.find(n=>n.kind==='party'&&n.d.id===c.party), b=nodes.find(n=>n.kind==='contract'&&n.d.id===c.id); const l=document.createElementNS(NS,'line'); l.setAttribute('class','edge'); eg.appendChild(l); edges.push({a,b,el:l}); const s=nodes.find(n=>n.kind==='stream'&&n.d.id===c.stream); const l2=document.createElementNS(NS,'line'); l2.setAttribute('class','edge'); eg.appendChild(l2); edges.push({a:s,b:a,el:l2}); });
+  const mk=(kind,d,rad,label,sub)=>{ const g=document.createElementNS(NS,'g'); g.setAttribute('class','node '+kind); const c=document.createElementNS(NS,'circle'); c.setAttribute('r',rad); g.appendChild(c); const t=document.createElementNS(NS,'text'); if(kind==='contract'){ t.setAttribute('x',rad+8); t.setAttribute('y',4); } else { t.setAttribute('text-anchor','middle'); t.setAttribute('y',rad+14); } t.textContent=label; g.appendChild(t); if(sub){ const s=document.createElementNS(NS,'text'); s.setAttribute('class','sub'); s.setAttribute('x',rad+8); s.setAttribute('y',17); s.textContent=sub; g.appendChild(s);} svg.appendChild(g); const n={kind,d,el:g,r:rad,x:W/2,y:H/2}; nodes.push(n); return n; };
+  STREAMS.forEach(s=>mk('stream',s,5,s.name.split(' &')[0]));
+  PARTIES.forEach(p=>mk('party',p,5,p.name.replace(' Supermarkets','').replace(' Logistics','')));
+  C.forEach(c=>mk('contract',c,Math.max(7,Math.sqrt(c.value)/700),c.name.length>22?c.name.slice(0,21)+'…':c.name,PARTIES.find(p=>p.id===c.party).name.replace(' Supermarkets','').replace(' Logistics','')+' · '+c.id));
   layout('stream'); buildDna(); place();
   new ResizeObserver(()=>{ const r=host.getBoundingClientRect(); if(!r.width) return; W=r.width; H=Math.max(300,r.height); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); layout(Q&&Q.group||'stream'); place(); }).observe(host);
 }
-function layout(mode){ const pad=46; svg._axis.style.opacity=0; svg._axis.innerHTML='';
-  if(mode==='time'){ const xs=d=>{ const t=new Date(d).getTime(), a=new Date('2026-10-01').getTime(), b=new Date('2030-03-01').getTime(); return pad+ (t-a)/(b-a)*(W-2*pad); };
-    const NS='http://www.w3.org/2000/svg'; const y0=H*0.62; ['2027','2028','2029','2030'].forEach(yr=>{ const x=xs(yr+'-01-01'); const l=document.createElementNS(NS,'line'); l.setAttribute('x1',x);l.setAttribute('x2',x);l.setAttribute('y1',y0-120);l.setAttribute('y2',y0+40); svg._axis.appendChild(l); const t=document.createElementNS(NS,'text'); t.setAttribute('x',x+4); t.setAttribute('y',y0+54); t.textContent=yr; svg._axis.appendChild(t); }); const tt=document.createElementNS(NS,'text'); tt.setAttribute('x',pad); tt.setAttribute('y',26); tt.textContent='End date · soonest left · no end date at the far right'; svg._axis.appendChild(tt); svg._axis.style.opacity=1;
-    let stackA=0; nodes.forEach(n=>{ if(n.kind==='contract'){ if(n.d.ends){ n.x=xs(n.d.ends); const same=nodes.filter(m=>m.kind==='contract'&&m.d.ends===n.d.ends); const k=same.indexOf(n); n.y=y0-k*58; } else { n.x=W-pad; n.y=y0; } } else if(n.kind==='party'){ const c=nodes.find(m=>m.kind==='contract'&&m.d.party===n.d.id); n.x=c.x; n.y=c.y; n.el.style.opacity=0; } else { n.el.style.opacity=0; n.x=W/2; n.y=H+60; } }); return; }
-  nodes.forEach(n=>n.el.style.opacity='');
-  const groups=mode==='party'? PARTIES.map(p=>({key:p.id,members:nodes.filter(n=>n.kind==='contract'&&n.d.party===p.id),anchor:nodes.find(n=>n.kind==='party'&&n.d.id===p.id)})) : STREAMS.map(s=>({key:s.id,members:nodes.filter(n=>n.kind==='contract'&&n.d.stream===s.id),anchor:nodes.find(n=>n.kind==='stream'&&n.d.id===s.id)}));
-  const cols=groups.length; groups.forEach((g,i)=>{ const cx=pad+ (i+0.5)*(W-2*pad)/cols, cy=H*0.5; g.anchor.x=cx; g.anchor.y=cy; const m=g.members.length; g.members.forEach((n,k)=>{ const ang=-Math.PI/2+ k*(2*Math.PI/Math.max(m,1))+(m===1?Math.PI/2:0); const rr=m===1?70:Math.min(96,(W-2*pad)/cols*0.36); n.x=cx+Math.cos(ang)*rr; n.y=cy+Math.sin(ang)*rr; }); });
-  if(mode!=='party'){ nodes.filter(n=>n.kind==='party').forEach(p=>{ const cs=nodes.filter(n=>n.kind==='contract'&&n.d.party===p.d.id); const s=nodes.find(n=>n.kind==='stream'&&n.d.id===p.d.stream); const mx=cs.reduce((a,c)=>a+c.x,0)/cs.length, my=cs.reduce((a,c)=>a+c.y,0)/cs.length; p.x=(mx*0.55+s.x*0.45); p.y=(my*0.55+s.y*0.45); }); }
-  else { nodes.filter(n=>n.kind==='stream').forEach(s=>{ s.el.style.opacity=0; s.x=W/2; s.y=H+80; }); }
+function layout(mode){ const pad=24; svg._axis.style.opacity=0; svg._axis.innerHTML='';
+  const NS='http://www.w3.org/2000/svg';
+  const labelSide=(n,side)=>{ const [t,sub]=n.el.querySelectorAll('text'); if(side==='below'){ t.setAttribute('text-anchor','middle'); t.setAttribute('x',0); t.setAttribute('y',n.r+14); if(sub){ sub.setAttribute('text-anchor','middle'); sub.setAttribute('x',0); sub.setAttribute('y',n.r+27);} } else if(side==='left'){ t.setAttribute('text-anchor','end'); t.setAttribute('x',-(n.r+8)); t.setAttribute('y',4); if(sub){ sub.setAttribute('text-anchor','end'); sub.setAttribute('x',-(n.r+8)); sub.setAttribute('y',17);} } else { t.setAttribute('text-anchor','start'); t.setAttribute('x',n.r+8); t.setAttribute('y',4); if(sub){ sub.setAttribute('text-anchor','start'); sub.setAttribute('x',n.r+8); sub.setAttribute('y',17);} } };
+  if(mode==='time'){ const left=pad+10, right=W-pad-40; const xs=d=>{ const t=new Date(d).getTime(), a=new Date('2026-10-01').getTime(), b=new Date('2030-06-01').getTime(); return left+(t-a)/(b-a)*(right-left); };
+    const top=44, rowH=Math.min(50,(H-top-50)/7); const bottom=top+rowH*7;
+    ['2027','2028','2029','2030'].forEach(yr=>{ const x=xs(yr+'-01-01'); const l=document.createElementNS(NS,'line'); l.setAttribute('x1',x);l.setAttribute('x2',x);l.setAttribute('y1',top-10);l.setAttribute('y2',bottom); svg._axis.appendChild(l); const t=document.createElementNS(NS,'text'); t.setAttribute('x',x+4); t.setAttribute('y',bottom+14); t.textContent=yr; svg._axis.appendChild(t); }); const tt=document.createElementNS(NS,'text'); tt.setAttribute('x',pad); tt.setAttribute('y',20); tt.textContent='End date · soonest first · no end date last'; svg._axis.appendChild(tt); svg._axis.style.opacity=1;
+    const cs=nodes.filter(n=>n.kind==='contract').sort((a,b)=>(a.d.ends||'9999').localeCompare(b.d.ends||'9999'));
+    nodes.forEach(n=>{ if(n.kind!=='contract'){ n.el.style.opacity=0; n.x=W/2; n.y=H+60; } });
+    cs.forEach((n,k)=>{ n.el.style.opacity=''; n.x=n.d.ends?xs(n.d.ends):right; n.y=top+rowH*k+rowH/2; labelSide(n,n.x>W*0.6?'left':'right'); }); return; }
+  const byParty=mode==='party';
+  const cols=byParty? PARTIES.map(p=>({anchor:nodes.find(n=>n.kind==='party'&&n.d.id===p.id),members:nodes.filter(n=>n.kind==='contract'&&n.d.party===p.id)})) : STREAMS.map(st=>({anchor:nodes.find(n=>n.kind==='stream'&&n.d.id===st.id),members:nodes.filter(n=>n.kind==='contract'&&n.d.stream===st.id)}));
+  nodes.forEach(n=>{ n.el.style.opacity=(n.kind==='party'&&!byParty)||(n.kind==='stream'&&byParty)?0:''; if(n.el.style.opacity==='0'){ n.x=W/2; n.y=H+60; } });
+  if(byParty){ const per=3, rows=Math.ceil(cols.length/per); const colW=(W-2*pad)/per, rowH=(H-24)/rows;
+    cols.forEach((c,i)=>{ const x0=pad+(i%per)*colW, y0=16+Math.floor(i/per)*rowH; c.anchor.x=x0+colW/2; c.anchor.y=y0+14; c.members.forEach((n,k)=>{ n.x=x0+26; n.y=y0+66+k*50; labelSide(n,'right'); }); }); return; }
+  const colW=(W-2*pad)/cols.length; const maxM=Math.max(...cols.map(c=>c.members.length)); const top=84; const gap=Math.min(74,(H-top-30)/Math.max(1,maxM));
+  cols.forEach((c,i)=>{ const x0=pad+i*colW; c.anchor.x=x0+colW/2; c.anchor.y=36; c.members.forEach((n,k)=>{ n.x=x0+30; n.y=top+k*gap+gap/2-6; labelSide(n,'right'); }); });
 }
-function place(){ nodes.forEach(n=>{ n.el.setAttribute('transform',`translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`); }); edges.forEach(e=>{ e.el.setAttribute('x1',e.a.x);e.el.setAttribute('y1',e.a.y);e.el.setAttribute('x2',e.b.x);e.el.setAttribute('y2',e.b.y); e.el.style.opacity=(e.a.el.style.opacity==='0'||e.b.el.style.opacity==='0')?0:''; }); }
+function place(){ nodes.forEach(n=>{ n.el.setAttribute('transform',`translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`); }); }
 function buildDna(){ const host=$('#mp-dna'); host.innerHTML=C.map(c=>{ const tot=c.cl.reduce((a,x)=>a+x[3],0); const worst=c.cl.some(x=>x[2]==='r')?['red',c.cl.filter(x=>x[2]==='r').length+' missing']:c.cl.some(x=>x[2]==='b')?['amber',c.cl.filter(x=>x[2]==='b').length+' blanks']:c.cl.some(x=>x[2]==='a')?['amber',c.cl.filter(x=>x[2]==='a').length+' differs']:['','all met'];
   return `<div class="row" data-id="${c.id}"><div><div class="nm">${c.name}</div><div class="ln">${PARTIES.find(p=>p.id===c.party).name} · <span class="ref">${c.id}</span> · ${c.cl.length} clauses</div></div><div><div class="strand">${c.cl.map(x=>`<i class="${x[2]}" style="--w:${x[3]}" data-k="${x[1]}" data-m="${x[2]}" title="§ ${x[0]} ${x[1]}"></i>`).join('')}</div><div class="ticks">${c.cl.map(x=>`<i style="--w:${x[3]}">${x[0]===0?'pre':x[0]}</i>`).join('')}</div></div><div class="w ${worst[0]}">${worst[1]}</div></div>`; }).join(''); }
 
@@ -359,7 +365,6 @@ function ask(text){ const t=(text||'').trim().toLowerCase(); if(!t){ reset(); re
   Q=q; $('#mp-ask').value=''; layout(q.group||'stream'); place();
   // explorer: light the hits, fade the rest
   nodes.forEach(n=>{ n.el.classList.remove('hit','red','amber','ring','dim'); if(n.kind==='contract'){ const h=q.hit?q.hit(n.d):(q.party?n.d.party===q.party:false); const s=q.soft&&q.soft(n.d); if(h){ n.el.classList.add('hit'); if(q.tone) n.el.classList.add(q.tone); } else if(s){ n.el.classList.add('hit'); } else if(q.hit||q.party) n.el.classList.add('dim'); } else if(n.kind==='party'&&q.party){ if(n.d.id!==q.party) n.el.classList.add('dim'); } });
-  edges.forEach(e=>{ e.el.classList.toggle('dim',e.a.el.classList.contains('dim')||e.b.el.classList.contains('dim')); });
   $('#mp-exp-say').textContent= q.group==='time'?'laid out by end date':q.group==='party'?'grouped by party · sized by value':'grouped by stream · sized by value';
   // dna: light the clauses the question is about
   document.querySelectorAll('#mp-dna .row').forEach(row=>{ const c=C.find(x=>x.id===row.dataset.id); const st=row.querySelector('.strand'); const asked=!!(q.kinds||q.markHit||q.party); st.classList.toggle('asked',asked); st.querySelectorAll('i').forEach(i=>{ let hit=false; if(q.markHit) hit=q.markHit([0,i.dataset.k,i.dataset.m]); else if(q.kinds) hit=q.kinds.includes(i.dataset.k); else if(q.party) hit=c.party===q.party; i.classList.toggle('hit',hit); }); });
@@ -369,7 +374,7 @@ function ask(text){ const t=(text||'').trim().toLowerCase(); if(!t){ reset(); re
   $('#mp-facts').innerHTML='<div class="sec">Read for you</div>'+q.facts.map(f=>`<div class="fact"><div class="l">${f[0]}</div><div class="v">${f[1]}</div><div class="s">${f[2]==='red'?'<span class="dot" style="background:#B42318"></span>red':f[2]==='amber'?'<span class="dot" style="background:#C98A14"></span>amber':''}</div></div>`).join('');
   $('#mp-doors').innerHTML='<div class="sec">Doors</div>'+q.doors.map(d=>`<div class="g-row"><button type="button" class="lnk">${d[0]}</button><span class="q">${d[1]}</span></div>`).join('');
 }
-function reset(){ Q=null; [...chips.children].forEach(b=>b.setAttribute('aria-pressed','false')); layout('stream'); place(); nodes.forEach(n=>n.el.classList.remove('hit','red','amber','ring','dim')); edges.forEach(e=>e.el.classList.remove('dim')); document.querySelectorAll('#mp-dna .strand').forEach(s=>{ s.classList.remove('asked'); s.querySelectorAll('i.hit').forEach(i=>i.classList.remove('hit')); }); $('#mp-exp-say').textContent='sized by value · grouped by stream'; $('#mp-dna-say').textContent='a segment is a clause · length its weight · colour its mark'; $('#mp-say').innerHTML='Ask the map a question and both pictures redraw to answer it: the Explorer lights the contracts it is about, the strands light the clauses. I then say what was drawn. Every answer here is read from the kept checks, so it costs nothing.'; $('#mp-facts').innerHTML=''; $('#mp-doors').innerHTML=''; $('#mp-ask').value=''; }
+function reset(){ Q=null; [...chips.children].forEach(b=>b.setAttribute('aria-pressed','false')); layout('stream'); place(); nodes.forEach(n=>n.el.classList.remove('hit','red','amber','ring','dim')); document.querySelectorAll('#mp-dna .strand').forEach(s=>{ s.classList.remove('asked'); s.querySelectorAll('i.hit').forEach(i=>i.classList.remove('hit')); }); $('#mp-exp-say').textContent='sized by value · grouped by stream'; $('#mp-dna-say').textContent='a segment is a clause · length its weight · colour its mark'; $('#mp-say').innerHTML='Ask the map a question and both pictures redraw to answer it: the Explorer lights the contracts it is about, the strands light the clauses. I then say what was drawn. Every answer here is read from the kept checks, so it costs nothing.'; $('#mp-facts').innerHTML=''; $('#mp-doors').innerHTML=''; $('#mp-ask').value=''; }
 $('#mp-form').addEventListener('submit',e=>{ e.preventDefault(); ask($('#mp-ask').value); });
 $('#mp-reset').addEventListener('click',reset);
 $('#rd-ask').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; say.innerHTML=`“${v}” is a question about the wording. The free read above answers facts; this needs one call: <button type="button" class="lnk">Ask it</button> <span class="q">1 call</span>. Nothing is sent or filed.`; e.target.value=''; } });
