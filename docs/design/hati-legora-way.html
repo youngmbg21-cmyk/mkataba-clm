@@ -117,6 +117,7 @@ td:first-child{font-weight:600;white-space:nowrap}
 .amber{color:#B7791F}.red{color:#B42318}
 .sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#4B4B50;font-weight:600;padding:14px 0 4px}
 .g-row{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:8px 0}
+.g-row>.lnk{white-space:nowrap}
 .jcard{background:#F2F2F5;border-radius:10px;padding:16px}
 .turn{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
 .turn .jface{margin-top:2px}
@@ -229,9 +230,145 @@ td:first-child{font-weight:600;white-space:nowrap}
 .qcard .one{font-size:13px;line-height:1.5;margin-top:8px}
 .qcard .one .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48}
 </style>
+<style>
+/* ---------- the Board, read down ---------- */
+.bd-page{padding:28px 40px 0;flex:1;min-height:0;display:flex;flex-direction:column}
+.bd-row{display:grid;grid-template-columns:1fr 250px;gap:24px;align-items:baseline;padding:11px 0;border-top:1px solid #E6E6EA;font-size:15px;line-height:1.5}
+.bd-row:first-of-type{border-top:0}
+.bd-row b{font-weight:600}
+.bd-row .s{font-size:12px;color:#1D1D1F}
+.bd-row .s .q{display:block}
+.chart{display:grid;grid-template-columns:150px 1fr 118px;gap:8px 14px;align-items:center;font-size:13px;margin-top:6px}
+.chart .cb{height:14px;background:#1F4D3B;border-radius:3px}
+.chart .cb.lo{background:#B5CDC1}
+.chart .cv{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chart .cl{white-space:nowrap}
+.bd-foot{display:flex;align-items:center;gap:14px;padding:12px 0 18px;border-top:1px solid #E6E6EA;font-size:13px;margin-top:auto;white-space:nowrap}
+.bd-foot .sp{flex:1}
+/* ---------- the Agenda ---------- */
+.ag-page{padding:26px 40px 0;flex:1;min-height:0;display:flex;flex-direction:column}
+.ag-head{display:flex;align-items:baseline;gap:14px}
+.ag-head .tt{font-family:var(--font-doc);font-size:24px;font-weight:var(--title-w,500)}
+.ag-head .tabs{display:flex;gap:14px;font-size:13.5px;margin-left:8px}
+.ag-head .tabs span.on{font-weight:600;border-bottom:2px solid #1D1D1F;padding-bottom:3px}
+.ag-head .sp{flex:1}
+.ag-list{flex:1;min-height:0;overflow:hidden;margin-top:10px}
+.ag-row{display:grid;grid-template-columns:150px 1fr 110px;gap:16px;align-items:start;padding:9px 0;border-top:1px solid #E6E6EA;font-size:13.5px}
+.ag-row:first-child{border-top:0}
+.ag-row .d{font-weight:500;white-space:nowrap}
+.ag-row .d small{display:block;font-size:11.5px;color:#4B4B50;font-weight:400}
+.ag-row .w .ln{font-size:12px;margin-top:1px}
+.ag-row .ac{text-align:right;font-weight:500}
+.ag-row.empty{color:#4B4B50;font-size:12.5px;padding:6px 0}
+.ag-row.late .d{color:#B42318}
+.seg{display:inline-flex;background:#F0F0F3;border-radius:999px;padding:2px;gap:2px}
+.seg span{height:24px;padding:0 10px;border-radius:999px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:500}
+.seg span.on{background:#1D1D1F;color:#fff}
+/* ---------- Obligations, week by week ---------- */
+.ob-page{padding:26px 40px 0;flex:1;min-height:0;display:flex;flex-direction:column}
+.ob-grp{display:flex;align-items:baseline;gap:10px;font-size:13.5px;padding:14px 0 4px}
+.ob-grp b{font-weight:600}
+.ob-grp .sp{flex:1}
+.ob-grp .q{font-size:12px}
+.ob-row{display:grid;grid-template-columns:1fr 1.1fr 150px 110px;gap:16px;align-items:start;padding:10px 0;border-top:1px solid #E6E6EA;font-size:13.5px}
+.ob-row .nm{font-weight:500;font-size:14px}
+.ob-row .ln{font-size:12px;margin-top:1px}
+.ob-row .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48;font-size:13.5px;line-height:1.45}
+.ob-row .wn{white-space:nowrap}
+.ob-row .wn small{display:block;font-size:11.5px;color:#4B4B50}
+.ob-row .ac{text-align:right;font-weight:500}
+/* ---------- Before you sign ---------- */
+.desk.sign .paper{width:620px;left:50%;transform:translateX(-50%);top:36px;padding:44px 56px 60px;outline:1px solid #DCE2E0}
+.copy-mark{position:absolute;top:12px;left:28px;font-size:11.5px;color:#4B4B50;display:flex;gap:14px}
+.sig-block{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:26px;font-family:var(--font-ui);font-size:12.5px}
+.sig-block .sg{border-top:1px solid #1C1A16;padding-top:6px}
+.sig-block .sg .sn{font-family:var(--font-doc);font-style:italic;font-size:19px;color:#1C1A16;height:34px}
+.sig-block .sg .sn.empty{border-bottom:1px dashed #D1D1D6;height:34px}
+.road-list{display:flex;flex-direction:column}
+.stop-row{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:7px 0;border-top:1px solid #E6E6EA;font-size:13.5px;align-items:start}
+.stop-row:first-child{border-top:0}
+.stop-row .c{width:16px;height:16px;border-radius:50%;border:1.5px solid #D1D1D6;margin-top:2px;display:grid;place-items:center;font-size:10px;color:#fff}
+.stop-row.done .c{background:#1D1D1F;border-color:#1D1D1F}
+.stop-row.now .c{border-color:#D9A400;border-width:2px}
+.stop-row .t b{font-weight:600}
+.stop-row .t small{display:block;font-size:12px;color:#1D1D1F;margin-top:1px}
+.stop-row .t .q{display:block}
+.signfoot{margin-top:10px;background:#F2F2F5;border-radius:10px;padding:14px 16px}
+.signfoot .h{font-weight:600;font-size:14px;margin-bottom:4px}
+.signfoot .r{display:flex;align-items:center;gap:10px;margin-top:10px}
+/* ---------- Send ---------- */
+.sd-page{padding:26px 40px 0;flex:1;min-height:0;display:grid;grid-template-columns:380px 1fr;grid-template-rows:auto 1fr;gap:20px 36px;align-content:start}
+.sd-head{grid-column:1/-1;display:flex;align-items:baseline;gap:14px;margin-bottom:4px}
+.sd-head .tt{font-family:var(--font-doc);font-size:24px;font-weight:var(--title-w,500)}
+.sd-head .sp{flex:1}
+.sd-form .f{padding:10px 0;border-top:1px solid #E6E6EA;font-size:13.5px}
+.sd-form .f:first-child{border-top:0}
+.sd-form .f .l{font-size:11.5px;color:#4B4B50;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.sd-form .f .v{margin-top:2px;line-height:1.45}
+.sd-form .f .v .sub{font-size:12px;display:block}
+.letter{background:#FFFDF9;border:1px solid #ECE6D8;border-radius:10px;padding:28px 32px 26px;font-family:var(--font-doc);font-size:15px;line-height:1.6;color:#1C1A16;position:relative;min-height:0;overflow:hidden}
+.letter .subj{font-family:var(--font-ui);font-size:13.5px;letter-spacing:var(--ui-track);border-bottom:1px solid #D1D1D6;padding-bottom:8px;margin-bottom:14px;display:flex;gap:10px}
+.letter .subj .l{color:#4B4B50;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding-top:3px}
+.letter p{margin:0 0 10px}
+.letter .meta{font-family:var(--font-ui);font-size:11.5px;color:#4B4B50;letter-spacing:var(--ui-track);margin-top:14px}
+.verdict{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.verdict .ok{width:10px;height:10px;border-radius:50%;background:#087363}
+/* ---------- New agreement ---------- */
+.na-page{padding:26px 40px 0;flex:1;min-height:0;display:flex;flex-direction:column}
+.na-head{display:flex;align-items:baseline;gap:16px}
+.na-head .tt{font-family:var(--font-doc);font-size:24px;font-weight:var(--title-w,500)}
+.na-head .tabs{display:flex;gap:14px;font-size:13.5px}
+.na-head .tabs span.on{font-weight:600;border-bottom:2px solid #1D1D1F;padding-bottom:3px}
+.na-head .sp{flex:1}
+.na-ask{margin-top:12px;height:46px;border:1px solid #087363;border-radius:999px;display:flex;align-items:center;gap:12px;padding:0 6px 0 18px;font-size:14.5px}
+.na-ask .go{margin-left:auto;width:34px;height:34px;border-radius:50%;background:#1D1D1F;color:#fff;display:grid;place-items:center}
+.na-fit{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.na-card{border:1px solid #E6E6EA;border-radius:10px;padding:16px;font-size:13px;line-height:1.45}
+.na-card.on{outline:2px solid #1D1D1F;outline-offset:-1px}
+.na-card .nm{font-size:14.5px;font-weight:500;display:flex;align-items:center;gap:8px}
+.na-card .nm .chk{width:16px;height:16px;border-radius:50%;background:#1D1D1F;color:#fff;display:grid;place-items:center;font-size:10px}
+.na-card .use{font-size:12px;color:#1D1D1F;margin:2px 0 6px}
+.na-rows{margin-top:16px;flex:1;min-height:0;overflow:hidden}
+.na-row{display:grid;grid-template-columns:150px 1fr 1fr;gap:16px;padding:9px 0;border-top:1px solid #E6E6EA;font-size:13.5px;align-items:baseline}
+.na-row.hd{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#4B4B50;font-weight:600;border-top:0;padding-bottom:4px}
+.na-row .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48}
+.na-row .owe{color:#B7791F}
+.na-foot{display:flex;align-items:center;gap:14px;padding:12px 0 16px;border-top:1px solid #E6E6EA;margin-top:auto;font-size:13px}
+.na-foot .sp{flex:1}
+.btn-k.off{background:#D1D1D6;color:#fff}
+/* ---------- the clause editor ---------- */
+.ce{flex:1;min-height:0;display:flex;flex-direction:column;background:#F5F5F7;position:relative}
+.ce-trail{height:44px;display:flex;align-items:center;gap:14px;padding:0 24px;font-size:13.5px;background:#fff;border-bottom:1px solid #E6E6EA}
+.ce-trail .bk{font-weight:500}
+.ce-trail .crumbs{color:#1D1D1F}
+.ce-trail .crumbs span{color:#4B4B50}
+.ce-main{flex:1;min-height:0;display:flex;justify-content:flex-start;padding:24px 0 0 64px}
+.ce-box{width:900px;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22);padding:24px 32px;display:flex;flex-direction:column;gap:10px}
+.ce-box .h{display:flex;align-items:baseline;gap:12px;font-size:13.5px}
+.ce-box .h b{font-weight:600;font-size:15px}
+.ce-box .h .sp{flex:1}
+.ce-text{font-family:var(--font-doc);font-size:var(--paper-size,15px);line-height:1.7;color:#1C1A16;border:1px solid #D1D1D6;border-radius:6px;padding:18px 20px;min-height:150px}
+.ce-text .caret{display:inline-block;width:1px;height:1.1em;background:#1D1D1F;vertical-align:text-bottom;margin-left:1px}
+.ce-why{font-size:12.5px;color:#1D1D1F;display:flex;gap:10px;align-items:baseline}
+.ce-why .l{font-size:11.5px;color:#4B4B50;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.ce-foot{height:56px;flex:none;background:#fff;border-top:1px solid #E6E6EA;display:flex;align-items:center;gap:10px;padding:0 416px 0 24px;font-size:13.5px}
+.ce-foot .sp{flex:1}
+.ce-foot .walk{display:inline-flex;align-items:center;gap:10px}
+.panel.ce-panel{position:absolute;top:8px;right:8px;bottom:8px;width:384px;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(20,31,29,.08),0 12px 30px -14px rgba(20,31,29,.35);display:flex;flex-direction:column;overflow:hidden}
+.ce-card{border:1px solid #E6E6EA;border-radius:10px;padding:11px 14px;margin-top:8px;font-size:13px;line-height:1.45}
+.ce-card .h{font-weight:600;font-size:13.5px;margin-bottom:4px;display:flex;gap:8px;align-items:baseline}
+.ce-card .h .q{margin-left:auto}
+.ce-card .acts{display:flex;gap:6px;margin-top:8px;align-items:center}
+.ce-card.applied{background:#F2F2F5;border-color:transparent}
+.rung{display:flex;align-items:center;gap:10px;font-size:13px;padding:3px 0}
+.rung .c{width:10px;height:10px;border-radius:50%;border:1.5px solid #D1D1D6;flex:none}
+.rung.on .c{background:#1D1D1F;border-color:#1D1D1F}
+.rung .q{margin-left:auto}
+</style>
+
 <div class="wrap">
   <h1>HaTi, the Legora Way, taken further</h1>
-  <p class="lede">You liked the contract screen and asked for more. Here are <b>four screens</b> in this way (Home, a contract, Redlines, and Contracts with questions as columns), and <b>three type pairings</b> you can switch on any of them. Everything is drawn at your 1440×780 with your own book. The margin notes now lay themselves out so they never overlap, whatever font is on screen.</p>
+  <p class="lede">You liked the contract screen and asked for more. Here are <b>eleven screens</b> in this way (Home, a contract, Redlines, Contracts with questions as columns, the Board, the Calendar, Obligations, Before you sign, Send, New agreement and the clause editor), and <b>three type pairings</b> you can switch on any of them. Everything is drawn at your 1440×780 with your own book. The margin notes now lay themselves out so they never overlap, whatever font is on screen.</p>
 
   <div class="sw" role="tablist" aria-label="Screen">
     <span class="lab">Screen</span>
@@ -239,6 +376,13 @@ td:first-child{font-weight:600;white-space:nowrap}
     <button data-p="contract" aria-pressed="false">A contract</button>
     <button data-p="redlines" aria-pressed="false">Redlines</button>
     <button data-p="contracts" aria-pressed="false">Contracts <span class="k">questions as columns</span></button>
+    <button data-p="board" aria-pressed="false">Board</button>
+    <button data-p="calendar" aria-pressed="false">Calendar</button>
+    <button data-p="obligations" aria-pressed="false">Obligations</button>
+    <button data-p="sign" aria-pressed="false">Before you sign</button>
+    <button data-p="send" aria-pressed="false">Send</button>
+    <button data-p="draft" aria-pressed="false">New agreement</button>
+    <button data-p="editor" aria-pressed="false">Clause editor</button>
     <div class="sw sw2" role="tablist" aria-label="Type" style="margin-bottom:0">
       <span class="lab">Type</span>
       <button data-t="today" aria-pressed="true">Today <span class="k">Geist · Source Serif</span></button>
@@ -446,6 +590,281 @@ td:first-child{font-weight:600;white-space:nowrap}
   </div>
 </div>
 
+<!-- ====================================================== THE BOARD ====================================================== -->
+<div class="frame" data-f="board">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Board <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="bd-page">
+        <div class="eye">Thursday 30 October · counted from the records, no call</div>
+        <p class="lg-hello" style="margin-top:4px">Your book, read down.</p>
+        <div style="margin-top:12px">
+          <div class="bd-row"><div><b>KES 251M</b> is on paper across 7 agreements; <b>KES 133.7M</b> of it is signed, the rest in review or in negotiation.</div><div class="s">Counted from the list <span class="q">Contracts · press to see the rows</span></div></div>
+          <div class="bd-row"><div><b>3</b> agreements end within a year. The first is Refined Sugar Supply on <b>30 June 2027</b>, worth KES 48M; two of the three renew by themselves unless notice is given.</div><div class="s">Read from each § Term <span class="q">Calendar · the notice days are drawn</span></div></div>
+          <div class="bd-row"><div><b>Sales</b> carries KES 163M in two agreements, both with Naivas; <b>Procurement</b> carries KES 85.6M in four. One party holds two thirds of the book.</div><div class="s">Filed streams and parties <span class="q">Explorer · Naivas's shelf</span></div></div>
+          <div class="bd-row"><div><b>2</b> negotiations are open. Parcelway's two changes have your answers waiting; Nandi Dairy has nothing of theirs on the table yet.</div><div class="s">Negotiations <span class="q">the Redlines on each</span></div></div>
+          <div class="bd-row"><div><b>1</b> duty is late and <b>2</b> are due this week. Nothing to pay this month.</div><div class="s">Obligations <span class="q">week by week</span></div></div>
+        </div>
+        <div class="sec" style="padding-top:18px">Ending, by quarter · value on paper</div>
+        <div class="chart">
+          <span class="cl">Apr–Jun 2027</span><div><div class="cb" style="width:100%"></div></div><span class="cv">KES 84.7M · 3</span>
+          <span class="cl">Oct–Dec 2027</span><div><div class="cb" style="width:100%"></div></div><span class="cv">KES 85M · 1</span>
+          <span class="cl">Jan–Mar 2028</span><div><div class="cb lo" style="width:92%"></div></div><span class="cv">KES 78M · 1</span>
+          <span class="cl">Oct–Dec 2029</span><div><div class="cb lo" style="width:2%"></div></div><span class="cv">KES 900K · 1</span>
+        </div>
+        <div class="bd-foot"><span class="lnk">Needs you 8</span><span class="lnk">Contracts 7</span><span class="lnk">Calendar</span><span class="lnk">Explorer</span><span class="lnk">Deal board</span><span class="lnk">History</span><span class="sp"></span><span class="q">Print · Share · Download, each view as it looks here</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on">Overview <span class="n">7</span></span><span class="more">›</span></div>
+      <div class="pb">
+        <div style="font-size:14px;line-height:1.5">I drew what the records say. Nothing on this page needed a call, and every number opens its rows.</div>
+        <div class="sec">Dig deeper</div>
+        <div class="g-row"><span class="lnk">Why is two thirds of the book with one party?</span><span class="q">1 call</span></div>
+        <div class="g-row"><span class="lnk">Which of the three ending renew by themselves?</span><span class="q">free</span></div>
+        <div class="g-row"><span class="lnk">Show the signed money by stream</span><span class="q">free</span></div>
+        <div class="sec">Fact check</div>
+        <div style="font-size:13.5px;line-height:1.5">Every figure above was counted again just now against the stored records: 7 of 7 agree. The last figure that did not (KES 2.4M for Parcelway, a draft value) was corrected on 28 October.</div>
+        <div class="turn"><span class="jface"></span><div class="t">One thing to watch: Naivas is 65% of your signed money and both of their agreements end within fourteen months. <span class="lnk">Put a note in the Calendar</span></div></div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">contracts</span><span class="lnk">calendar</span><span class="lnk">explorer</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== THE CALENDAR, AGENDA ====================================================== -->
+<div class="frame" data-f="calendar">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Calendar <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="ag-page">
+        <div class="ag-head"><span class="tt">Calendar</span><div class="tabs"><span class="on">Agenda · 90 days</span><span>Week</span></div><span class="sp"></span><span class="pill">Mon–Fri</span><span class="pill">Print</span></div>
+        <div class="ag-list">
+          <div class="ag-row late"><div class="d">Late<small>since Tue 27 Oct</small></div><div class="w">Return the pallets<div class="ln">Refined Sugar Supply · Kabras Sugar · nobody owns it yet · § 4 Delivery</div></div><div class="ac"><span class="lnk">Mark done</span></div></div>
+          <div class="ag-row"><div class="d">Today, Thu 30 Oct</div><div class="w">Approve Retail Supply — Coast, then Raw Milk Collection<div class="ln">Asked yesterday by Wanjiru Kamau · the rule “over KES 20M”</div></div><div class="ac"><span class="lnk">Approve</span></div></div>
+          <div class="ag-row"><div class="d">Fri 31 Oct</div><div class="w">Nothing due. Jambo reads Parcelway's reply if it comes.</div><div class="ac"></div></div>
+          <div class="ag-row"><div class="d">Sun 1 Nov</div><div class="w">Send the monthly supply report<div class="ln">Refined Sugar Supply · Kabras Sugar · § 6 Reporting · every month</div></div><div class="ac"><span class="lnk">Mark done</span></div></div>
+          <div class="ag-row"><div class="d">Tue 4 Nov</div><div class="w">Look over the term for Wanjiru<div class="ln">Modern Trade Listing · Naivas · she asked on 28 Oct</div></div><div class="ac"><span class="lnk">Look</span></div></div>
+          <div class="ag-row empty"><div class="d">Week of 10 Nov</div><div class="w">Nothing due</div><div></div></div>
+          <div class="ag-row empty"><div class="d">Week of 17 Nov</div><div class="w">Nothing due</div><div></div></div>
+          <div class="ag-row"><div class="d">Mon 1 Dec</div><div class="w">Send the monthly supply report<div class="ln">Refined Sugar Supply · every month</div></div><div class="ac"><span class="lnk">Open</span></div></div>
+          <div class="ag-row"><div class="d">Thu 1 Jan 2027</div><div class="w">Send the monthly supply report · Insurance certificate due from Rift Haulage<div class="ln">Transport Services · theirs · § 9 Insurance · Chase a week before</div></div><div class="ac"><span class="lnk">Open</span></div></div>
+          <div class="ag-row"><div class="d">Wed 20 Jan 2027<small>in 82 days</small></div><div class="w">Notice window opens: Transport Services<div class="ln">Renews 30 Jun 2027 unless notice by 1 Apr · § 12 Term</div></div><div class="ac"><span class="lnk">Decide</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on">Overview <span class="n">4</span></span><span class="more">›</span></div>
+      <div class="pb">
+        <div style="font-size:14px;line-height:1.5"><b style="font-weight:600">This week:</b> 1 late, 1 due and 2 approvals, all on your side. Nothing to pay.</div>
+        <div class="q" style="margin-top:6px">Counted from your duties and asks · no call</div>
+        <div class="sec">Ask me</div>
+        <div class="g-row"><span class="lnk">Plan my week</span><span class="q">1 call · blocks around your own events, nothing added until you press Add</span></div>
+        <div class="g-row"><span class="lnk">Find time for what is due</span><span class="q">1 call</span></div>
+        <div class="sec">Jambo may change my calendar</div>
+        <div class="seg"><span>On his own</span><span class="on">Ask me first</span><span>Never</span></div>
+        <div class="turn"><span class="jface"></span><div class="t">The two approvals and the report fall on three different days. If you want one sitting, Thursday after two is free on your calendar. <span class="lnk">Book it</span> <span class="q">free</span></div></div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">obligations</span><span class="lnk">board</span><span class="lnk">week</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== OBLIGATIONS ====================================================== -->
+<div class="frame" data-f="obligations">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Obligations <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="ob-page">
+        <div class="ag-head"><span class="tt">Obligations</span><span style="font-size:13.5px">5 open · <span class="red">1 late</span></span><span class="sp"></span><span class="pill">+ Add an obligation</span></div>
+        <div class="ct-line" style="padding-top:12px"><div class="box">⌕ Filter this list</div><div class="tabs"><span class="on">Outstanding 5</span><span>Ours 4</span><span>Theirs 1</span><span>Completed 3</span></div></div>
+        <div class="ob-grp"><b class="red">Late · 1</b><span>work somebody could do now</span></div>
+        <div class="ob-row"><div><div class="nm">Return the pallets</div><div class="ln">Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span> · nobody owns it yet</div></div><div class="src">“pallets shall be returned to the Supplier within 14 days of each delivery” · § 4</div><div class="wn"><span class="red">Tue 27 Oct</span><small>3 days late</small></div><div class="ac"><span class="lnk">Mark done</span></div></div>
+        <div class="ob-grp"><b>This week · 1</b><span>27–31 October</span><span class="sp"></span><span class="q">nothing to pay</span></div>
+        <div class="ob-row"><div><div class="nm">Send the monthly supply report</div><div class="ln">Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span> · ours</div></div><div class="src">“a monthly supply report by the first day of each month” · § 6</div><div class="wn">Sun 1 Nov<small>in 2 days</small></div><div class="ac"><span class="lnk">Mark done</span></div></div>
+        <div class="ob-grp"><b>Later · 3</b><span>the next 90 days</span></div>
+        <div class="ob-row"><div><div class="nm">Insurance certificate current</div><div class="ln">Transport Services · Rift Haulage · <span class="ref">MK-CL</span> · theirs</div></div><div class="src">“the Carrier shall keep goods-in-transit insurance current and provide the certificate annually” · § 9</div><div class="wn">Thu 1 Jan 2027<small>Chase a week before</small></div><div class="ac"><span class="lnk">Chase</span></div></div>
+        <div class="ob-row"><div><div class="nm">Decide on renewal</div><div class="ln">Transport Services · Rift Haulage · <span class="ref">MK-CL</span> · ours</div></div><div class="src">“renews for one year unless notice is given ninety days before expiry” · § 12</div><div class="wn">by Thu 1 Apr 2027<small>window opens 20 Jan</small></div><div class="ac"><span class="lnk">Decide</span></div></div>
+        <div class="ob-row"><div><div class="nm">Send the monthly supply report</div><div class="ln">Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span> · ours · every month</div></div><div class="src">“a monthly supply report by the first day of each month” · § 6</div><div class="wn">Mon 1 Dec<small>then 1 Jan, 1 Feb</small></div><div class="ac"><span class="lnk">Open</span></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on">Overview <span class="n">5</span></span><span class="more">›</span></div>
+      <div class="pb">
+        <div style="font-size:14px;line-height:1.5"><b style="font-weight:600">This week:</b> 1 late and 1 due, both ours. One of theirs due in January.</div>
+        <div class="sec">Late</div>
+        <div style="font-size:13.5px;line-height:1.5"><span class="red">Return the pallets</span> · 3 days · nobody owns it. Otieno signed the delivery note on 13 Oct. <span class="lnk">Ask him to own it</span> <span class="q">free</span></div>
+        <div class="sec">Read from the paper</div>
+        <div style="font-size:13.5px;line-height:1.5">Every duty above carries the words it comes from. Two were found by Jambo on arrival (§ 4, § 9); three were written by you or your template. <span class="lnk">Show the ones Jambo found</span></div>
+        <div class="sec">Ask me</div>
+        <div class="g-row"><span class="lnk">Plan my week</span><span class="q">1 call</span></div>
+        <div class="g-row"><span class="lnk">Which duties has nobody picked up?</span><span class="q">free</span></div>
+        <div class="sec">Jambo may change my calendar</div>
+        <div class="seg"><span>On his own</span><span class="on">Ask me first</span><span>Never</span></div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">calendar</span><span class="lnk">contracts</span><span class="lnk">history</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== BEFORE YOU SIGN ====================================================== -->
+<div class="frame" data-f="sign">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Nandi Dairy · MK-A2 <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>7</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="pline"><span class="t">Raw Milk Collection</span><span class="st-rev" style="font-size:13px"><span class="dot d-rev"></span>Ready to sign · Nandi signed 08:40</span><span class="sp"></span><span class="pill">⇪ Share</span><span class="pill">Ask for review</span><span class="pill">More</span></div>
+      <div class="desk sign">
+        <div class="copy-mark"><span>Signing copy · A4 · page 1 of 6</span><span>·</span><span>the working copy is unchanged</span></div>
+        <div class="zoom">− <span>100%</span> +</div>
+        <div class="paper">
+          <div class="peye">Kenya · Raw material supply</div>
+          <h1>Raw Milk Collection</h1>
+          <div class="btw">Between Highland Corporate Ltd and Nandi Dairy</div>
+          <hr>
+          <p>This Raw Material Supply Agreement is made on <span class="fact">30 October 2026</span> between <b>Highland Corporate Ltd</b> (the "Buyer") and <b>Nandi Dairy</b> (the "Supplier") for the supply of <span class="fact">raw milk</span> into the Buyer's production facilities in Kenya.</p>
+          <h2>1. Supply &amp; Specification</h2>
+          <p>The Supplier shall supply an estimated 5000 metric tonnes per annum meeting the agreed specification and the applicable KEBS standard, delivered DDP to the Buyer's plant.</p>
+          <h2>2. Price &amp; Contract Value</h2>
+          <p>The estimated annual contract value is KES 36,000,000, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT and invoices fall due within 30 days of receipt.</p>
+          <div class="sig-block">
+            <div class="sg"><div class="sn">Joseph Rotich</div>For Nandi Dairy · Joseph Rotich, Director<br><span class="q">Signed 30 Oct 2026 08:40 · by link · code checked</span></div>
+            <div class="sg"><div class="sn empty"></div>For Highland Corporate Ltd · Amina Otieno, Head of Procurement<br><span class="q">Your signature goes here</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on">Before you sign</span><span class="ptab">Dossier</span><span class="ptab">Clauses</span><span class="more">›</span></div>
+      <div class="pb">
+        <div class="road-list">
+          <div class="stop-row done"><div class="c">✓</div><div class="t"><b>Details filled</b><small>Date 30 Oct 2026 · raw milk · signers on both sides</small></div></div>
+          <div class="stop-row done"><div class="c">✓</div><div class="t"><b>Our standards checked</b><small>1 differs: rejection in 3 days, yours says 7 · accepted with a note</small></div></div>
+          <div class="stop-row done"><div class="c">✓</div><div class="t"><b>Approval</b><small>Wanjiru Kamau, today 09:12, rule “over KES 20M”</small></div></div>
+          <div class="stop-row done"><div class="c">✓</div><div class="t"><b>Nandi Dairy signed</b><small>Joseph Rotich, 08:40, by their link, code checked</small></div></div>
+          <div class="stop-row now"><div class="c"></div><div class="t"><b>Your turn</b><small>As Amina Otieno for Highland Corporate Ltd · your cap covers it</small></div></div>
+          <div class="stop-row"><div class="c"></div><div class="t"><b>Then</b><small>Both copies sealed and sent; the duties start</small></div></div>
+        </div>
+        <div class="signfoot">
+          <div class="h">Nothing blocks you.</div>
+          <div style="font-size:13px;line-height:1.5">The pad asks you to draw once. You sign the copy on the left; the working copy stays as it is.</div>
+          <div class="r"><span class="btn-k">Sign</span><span class="pill">Read it first</span><span class="q" style="margin-left:auto">no call</span></div>
+        </div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">dossier</span><span class="lnk">clauses</span><span class="lnk">history</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo about MK-A2…<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+<!-- ====================================================== SEND ====================================================== -->
+<div class="frame" data-f="send">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Parcelway · MK-R1 · Send <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="sd-page">
+        <div class="sd-head"><span class="tt">Send to Parcelway</span><span style="font-size:13.5px">Parcel Delivery SaaS · your 2 answers to their round 2</span><span class="sp"></span><span class="pill">Cancel</span><span class="btn-k">Send</span></div>
+        <div class="sd-form">
+          <div class="f"><div class="l">To</div><div class="v">Erik Lindqvist, Parcelway Logistics Ltd<span class="sub">erik@parcelway.example · their link from round 1 stays live</span><span class="sub"><span class="lnk">Add a colleague of yours</span> · they get a note inside HaTi, not the link</span></div></div>
+          <div class="f"><div class="l">What goes</div><div class="v">Your 2 answers, the paper as redlined, the Word file<span class="sub">Nothing is held back for review · the Word file carries the same 2 changes</span></div></div>
+          <div class="f"><div class="l">What they can do</div><div class="v">Reply with their own changes<span class="sub">Not sign: the route is not open yet</span></div></div>
+          <div class="f"><div class="l">Send by</div><div class="v">Email, with their link<span class="sub">A code is asked when they open it, as your setting says</span></div></div>
+          <div class="f"><div class="l">From</div><div class="v">Amina Otieno, Highland Corporate Ltd<span class="sub">Replies come to you and to the record</span></div></div>
+        </div>
+        <div class="letter">
+          <div class="subj"><span class="l">Subject</span><span>Parcel Delivery SaaS — our answers to your two changes</span></div>
+          <p>Dear Erik,</p>
+          <p>Thank you for your round. On payment we can meet you part of the way: 45 days rather than 60, which is where our last agreement with Parcelway landed. We have left out the withholding of disputed sums; clause 24 already says how a dispute is resolved.</p>
+          <p>On liability, nine months of Charges is where our standard holds, and we have answered at nine.</p>
+          <p>The redlined paper is attached and your link opens the same copy. Both changes are marked so you can accept or answer each on its own.</p>
+          <p>Kind regards,<br>Amina Otieno</p>
+          <div class="meta">Jambo wrote this note from your two answers · 1 call, spent · edit it freely · nothing leaves until you press Send</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on">Before you send</span><span class="more">›</span></div>
+      <div class="pb">
+        <div class="verdict"><span class="ok"></span>Ready to send.</div>
+        <div class="lg-fact" style="margin-top:12px"><div class="l">Goes</div><div class="v">2 answers · the paper · the Word file</div><div class="s">same</div></div>
+        <div class="lg-fact"><div class="l">Held back</div><div class="v">Nothing. No review is open on this contract.</div><div class="s"></div></div>
+        <div class="lg-fact"><div class="l">Their link</div><div class="v">Live · opened 3 times, last Tuesday 18:12</div><div class="s">round 1</div></div>
+        <div class="lg-fact"><div class="l">Names</div><div class="v">Yours and Wanjiru's travel with the changes; the review and who was asked do not.</div><div class="s">wall</div></div>
+        <div class="lg-fact"><div class="l">Mail</div><div class="v">Will say “sent” only when it has left; otherwise it says why.</div><div class="s"></div></div>
+        <div class="turn"><span class="jface"></span><div class="t">If you want the note shorter, I can cut it to three lines; the two answers stay as they are. <span class="lnk">Shorter</span> <span class="q">1 call</span></div></div>
+      </div>
+      <div class="pf"><div class="lk"><span class="lnk">redlines</span><span class="lnk">their view</span><span class="lnk">history</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo to change the note…<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== NEW AGREEMENT ====================================================== -->
+<div class="frame" data-f="draft">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">New agreement <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="body">
+    <div class="sheet">
+      <div class="na-page">
+        <div class="na-head"><span class="tt">New agreement</span><div class="tabs"><span class="on">Our paper</span><span>Their paper</span></div><span class="sp"></span><span class="q">Nothing is created until you press Create</span></div>
+        <div class="na-ask"><span>an NDA with Volvo Trucks for the cold-chain pilot, two years, Swedish law</span><span class="go">↑</span></div>
+        <div class="na-fit">
+          <div class="na-card on"><div class="nm"><span class="chk">✓</span>Mutual NDA</div><div class="use">Your standard · used 14 times · last with Scania in March</div>Fits: two parties, a term in years, a governing law. Use when both sides share secrets.</div>
+          <div class="na-card"><div class="nm">One-way NDA</div><div class="use">Used 3 times</div>Fits if only Volvo shares. Your sentence says a pilot, which usually runs both ways.</div>
+          <div class="na-card"><div class="nm">Pilot agreement</div><div class="use">Used 2 times</div>A fuller paper: scope, fees, data. Not an NDA; use it after the NDA, for the pilot itself.</div>
+        </div>
+        <div class="na-rows">
+          <div class="na-row hd"><span>Term</span><span>What it says</span><span>Where it came from</span></div>
+          <div class="na-row"><span>Counterparty</span><span>Volvo Trucks</span><span class="src">your sentence · “with Volvo Trucks”</span></div>
+          <div class="na-row"><span>Purpose</span><span>The cold-chain pilot</span><span class="src">your sentence · “for the cold-chain pilot”</span></div>
+          <div class="na-row"><span>Term</span><span>2 years</span><span class="src">your sentence · “two years”</span></div>
+          <div class="na-row"><span>Governing law</span><span>Sweden</span><span class="src">your sentence · “Swedish law”</span></div>
+          <div class="na-row"><span>Our entity</span><span>Highland Corporate Ltd</span><span class="src">the workspace</span></div>
+          <div class="na-row"><span>Stream</span><span class="owe">Choose one: <span class="lnk">Sales</span> · <span class="lnk">Procurement</span> · <span class="lnk">Legal</span></span><span class="src">the company's list · Create waits for it</span></div>
+          <div class="na-row"><span>Value</span><span>None, an NDA carries no money</span><span class="src">the paper</span></div>
+        </div>
+        <div class="na-foot"><span class="q">Read from your sentence without a call. Change a line and the paper follows.</span><span class="sp"></span><span class="lnk">Nothing fits → ask for a paper</span><span class="btn-k off">Create</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ptab on"><span class="jface sm"></span> Jambo</span><span class="more">🗑</span></div>
+      <div class="pb">
+        <div class="jcard"><div style="font-size:13.5px;line-height:1.55">Three papers fit your sentence. The Mutual NDA is the one you used last with a Swedish party, Scania in March, and it already carries Swedish law and a two-year term. I filled four lines from your words; the stream is yours to choose.</div><div class="q" style="margin-top:10px">Read from your sentence and your book · no call</div></div>
+        <div class="turn"><span class="jface"></span><div class="t">Scania's NDA had a three-year survival clause after the term. Want the same here? <span class="lnk">Yes, as Scania's</span> · <span class="lnk">Show it</span> <span class="q">free</span></div></div>
+        <div class="sec" style="padding-top:18px">After Create</div>
+        <div style="font-size:13.5px;line-height:1.5">The paper lands with its Dossier beside it. I read it once on arrival and say what is still blank.</div>
+      </div>
+      <div class="pf"><div class="jbox"><span class="plus">+</span>Change what I said…<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== THE CLAUSE EDITOR ====================================================== -->
+<div class="frame" data-f="editor">
+  <div class="bar"><span class="bk">‹</span><span class="mark">HaTi</span><span class="pg">Parcelway · MK-R1 · Edit § 5 <i>▼</i></span><span class="sp"></span><span class="ic">✦</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>8</b></span><span class="ic">◷</span><span class="av">AO</span><span class="ic">⇥</span></div>
+  <div class="ce">
+    <div class="ce-trail"><span class="bk">‹ Redlines</span><span class="crumbs">Jambo <span>/</span> Redlines <span>/</span> § 5 Payment <span>/</span> our counter to ①</span></div>
+    <div class="ce-main">
+      <div class="ce-box">
+        <div class="h"><b>§ 5 Payment</b><span>our counter to Parcelway's ask ①</span><span class="sp"></span><span class="q">the box is the redline: what you type is the change</span></div>
+        <div class="ce-text">Customer shall pay each correct invoice within <span class="del">60 days</span> <span class="ins">45 days</span> of receipt<span class="caret"></span>. <span class="del">Disputed amounts may be withheld until the dispute is resolved under clause 24.</span> Interest on late payment runs at the Central Bank rate plus two per cent from the due date.</div>
+        <div class="ce-why"><span class="l">Why this change</span><span>Our standard is 30 days, never past 45; Parcelway's last agreement with us was at 45. Withholding has no precedent in our book.</span></div>
+        <div class="q">Spelling checked · nothing new to flag · the numbering is the paper's own</div>
+      </div>
+    </div>
+    <div class="ce-foot"><span class="walk"><span class="pill sm">‹</span><span>1 of 2 asks</span><span class="pill sm">›</span></span><span class="q">Next: § 26 Liability, their ask ②</span><span class="sp"></span><span class="pill">Discard</span><span class="btn-k">Save</span><span class="q">files the counter, sends nothing</span></div>
+    <div class="panel ce-panel">
+      <div class="ph"><span class="ptab on">Playbook</span><span class="ptab">Risks <span class="n">1</span></span><span class="ptab">Ladder</span><span class="more">›</span></div>
+      <div class="pb">
+        <div class="ce-card applied" style="margin-top:0"><div class="h">45 days, not 60 <span class="q">applied</span></div>Your standard: 30 days, 45 at most. The counter sits on the line your book draws.<div class="acts"><span class="pill sm">Undo</span></div></div>
+        <div class="ce-card applied"><div class="h">Withholding taken out <span class="q">applied</span></div>Risk: an open set-off with no cap. Clause 24 already resolves disputes; the sentence adds nothing you want.<div class="acts"><span class="pill sm">Undo</span></div></div>
+        <div class="ce-card"><div class="h">Interest at bank rate + 2% <span class="q">suggested</span></div>Your standard says bank rate plus three. Keeping two is within what you have accepted twice before.<div class="acts"><span class="pill sm prep">Apply</span><span class="pill sm">Discard</span><span class="q" style="margin-left:auto">free</span></div></div>
+        <div class="sec">Ladder · payment days</div>
+        <div class="rung"><span class="c"></span><span>30 · your standard</span></div>
+        <div class="rung on"><span class="c"></span><span>45 · this counter</span><span class="q">Parcelway's last</span></div>
+        <div class="rung"><span class="c"></span><span>60 · their ask</span></div>
+        <div class="rung"><span class="c"></span><span>Walk-away: not set</span><span class="q"><span class="lnk">Set it</span></span></div>
+      </div>
+      <div class="pf"><div class="jbox"><span class="plus">+</span>Ask Jambo about this clause…<span class="go">↑</span></div></div>
+    </div>
+  </div>
+</div>
+
   </div><!-- /stage -->
 
   <!-- ---------------- notes per screen ---------------- -->
@@ -470,6 +889,42 @@ td:first-child{font-weight:600;white-space:nowrap}
     <div><h3>Cost</h3><p>Each question is one call per contract the first time; the list says it before the press. A changed question drops its answers.</p></div>
   </div></div>
 
+  <div class="scr" data-n="board"><div class="notes">
+    <div><p class="idea">The Board, read down. Numbers as sentences, each saying where it was counted from, and one quiet chart. Every figure is a door to its rows.</p><p>No tiles. A sentence carries a number and its meaning at once (“two thirds of the book is with one party”), which a tile cannot.</p></div>
+    <div><h3>What is on it</h3><ul><li>Five sentences: money, endings, streams and parties, negotiations, duties. Each with its source on the right and the page it opens.</li><li>One chart, drawn to scale from the same rows: what ends in which quarter, and how much.</li><li>The panel: Dig deeper with its cost, the fact check (every figure counted again against the stored records), and one thing to watch.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>Every number a door, the fact check, Jambo explaining what the Board drew for free, the Needs you list and the Board's views (Deal board, History) in the foot.</p></div>
+  </div></div>
+  <div class="scr" data-n="calendar"><div class="notes">
+    <div><p class="idea">The agenda: ninety days as one list, by day. Empty weeks are one grey line. The late thing is at the top in red, with its date.</p><p>Each row names the duty, the contract and the words it comes from, and carries one verb.</p></div>
+    <div><h3>What is on it</h3><ul><li>Late, today, then the days with something, then the notice windows that open months ahead (renewals that run by themselves).</li><li>The panel: this week in one sentence, Plan my week with its cost, and the switch for what Jambo may do to your calendar.</li><li>Jambo offers one sitting for the three things that fall on different days, free, from your own calendar.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>Agenda first, Week beside it, Mon to Fri, the plan that adds nothing until you press Add, and the one writer for the calendar level.</p></div>
+  </div></div>
+  <div class="scr" data-n="obligations"><div class="notes">
+    <div><p class="idea">Obligations, week by week, with the clause under each. Late first, then this week, then the next ninety days. One verb per row.</p><p>A duty found by Jambo on arrival looks the same as one you wrote; the panel says which is which.</p></div>
+    <div><h3>What is on it</h3><ul><li>Each row: the duty, the contract and whose it is, the quote it rests on with its §, the date with its distance, one verb (Mark done, Chase, Decide, Open).</li><li>“Theirs” duties carry Chase; a renewal that runs by itself carries Decide, with the day the window opens.</li><li>The panel: the late one with who could own it, which duties Jambo found, Ask me with costs.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>One builder for the list, one completion writer, Chase as a record, the review desk with nothing pre-ticked, the week groups.</p></div>
+  </div></div>
+  <div class="scr" data-n="sign"><div class="notes">
+    <div><p class="idea">Before you sign: the road as a list of what has happened and what is next, and the signing copy on the left, page by page, with the other side's signature already on it.</p><p>Sign is the one filled button, and it appears only in your own stop.</p></div>
+    <div><h3>What is on it</h3><ul><li>Six stops: details, standards, approval, their signature, your turn, then. Each done stop says who, when and by what rule.</li><li>The signing copy at A4 with the mark “the working copy is unchanged”, and both signature blocks on the paper itself.</li><li>“Nothing blocks you” is the one list the Sign button reads; it would name the blocker if there were one.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>The one blockers list, the stages, the pad with intent, the signing copy as a separate drawing, the cap check, the receipt after.</p></div>
+  </div></div>
+  <div class="scr" data-n="send"><div class="notes">
+    <div><p class="idea">Send: the form on the left as quiet rows, the letter on the right as a letter. Before you send is beside it, verdict first.</p><p>Jambo writes only the note, and says so under it. Nothing leaves until Send, and “sent” means sent.</p></div>
+    <div><h3>What is on it</h3><ul><li>To · What goes · What they can do · Send by · From, each a choice with its sentence under it.</li><li>The letter with its subject line, written from the two answers, editable; the cost already spent is said.</li><li>The panel: Ready to send, then what goes, what is held back, the link's state, whose names travel, and what the mail will say.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>The form's five choices, the one send door, the held-back list, the subject box, the colleague pass, the words module for every sentence.</p></div>
+  </div></div>
+  <div class="scr" data-n="draft"><div class="notes">
+    <div><p class="idea">New agreement from a sentence. Type what you want; the three closest papers stand up; the details are read from your words without a call; Create waits until a paper and a stream are chosen.</p></div>
+    <div><h3>What is on it</h3><ul><li>Our paper · Their paper, one ask box, three papers with when each is used and how often.</li><li>Rows Term · What it says · Where it came from: your sentence, the workspace, the paper, the company's list.</li><li>Jambo remembers the last Swedish party and offers Scania's survival clause, free.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>The one sheet, the three closest, details read without AI, Create greyed until a paper and a stream, nothing minted before Create, “nothing fits” to Requests.</p></div>
+  </div></div>
+  <div class="scr" data-n="editor"><div class="notes">
+    <div><p class="idea">The clause editor: the box is the redline. What you type is the change, in the marks. One panel beside it with Playbook, Risks and Ladder, each a card with Apply or Undo. One foot that walks their asks and saves.</p></div>
+    <div><h3>What is on it</h3><ul><li>The trail “‹ Redlines · Jambo / Redlines / § 5” so you always know the way back.</li><li>Two applied cards (45 days, withholding out), one suggested (interest), with the cost said.</li><li>The ladder: standard, this counter, their ask, walk-away not set.</li><li>Save files the counter and sends nothing; the foot says so.</li></ul></div>
+    <div><h3>What it keeps from today</h3><p>Files only through the one funnel, the one panel, the one foot, the trail, the floating panel over an end-to-end bar, spell check before Save.</p></div>
+  </div></div>
+
   <h2>The type, in one table</h2>
   <div class="tbl"><table>
     <thead><tr><th>Name</th><th>The pairing</th><th>How it reads</th><th>When it wins</th><th>Cost</th></tr></thead>
@@ -490,10 +945,10 @@ td:first-child{font-weight:600;white-space:nowrap}
 
 <script>
 (function(){
-  var P=['home','contract','redlines','contracts'], T=['today','editorial','bookish'];
+  var P=['home','contract','redlines','contracts','board','calendar','obligations','sign','send','draft','editor'], T=['today','editorial','bookish'];
   var p='home', t='today';
   var stage=document.getElementById('stage');
-  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|contract|redlines|contracts)(?:-(today|editorial|bookish))?$/); if(m){p=m[1]; t=m[2]||'today';} else {p='home'; t='today';} }
+  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|contract|redlines|contracts|board|calendar|obligations|sign|send|draft|editor)(?:-(today|editorial|bookish))?$/); if(m){p=m[1]; t=m[2]||'today';} else {p='home'; t='today';} }
   function layNotes(f){ var prev=-1e9; f.querySelectorAll('.mn').forEach(function(n){ var want=+n.dataset.top||0; var top=Math.max(want, prev+12); n.style.top=top+'px'; prev=top+n.offsetHeight; }); }
   function paint(){
     document.querySelectorAll('.sw [data-p]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.p===p));});
