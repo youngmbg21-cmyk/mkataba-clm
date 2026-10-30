@@ -9,6 +9,7 @@
      4 · Written by Jambo: the rows with Jambo's unchecked wording lead; the panel says why, at no cost
      5 · Pause holds the order still and says so; Resume lets it move
      6 · the three screens: the list beside Jambo's panel, nothing sideways; pictures saved
+     7 · compact rows (29 Oct 2026): every name on one line, 30% more rows on screen than the old 93px row
    At the parent (before this change) 1 fails: the head has no Pulse board button.
    Run: node test/chromium/pulse-verify.js   (pictures: PULSE_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -92,6 +93,14 @@ function book(){
       check(`${nm} 2 the press lands on the Pulse board: every live contract ranked, each with its strand and today's line`, landed && P.rows === 24 && P.strands === 24 && P.ranks.join() === '1,2,3', P);
       check(`${nm} 2b four rules as chips, What needs you chosen`, JSON.stringify(P.chips) === JSON.stringify(['What needs you', 'Money at stake', 'Days left', 'Written by Jambo']) && P.on === 'What needs you', P.chips);
       check(`${nm} 6 the list beside Jambo's panel, nothing sideways`, P.panel && !P.sideways, P);
+      /* THE COMPACT ROW (owner, 29 Oct 2026: "make the names shorter and the lines more compact so we can fit 30% to
+         40% more contracts strands on the page"): the name on one line, ref · party · stage on one small line under it,
+         and the row low enough that 30% more fit than the 93px row did (5 on laptop-a, 7 on the iPad) */
+      const C = await page.evaluate(() => { const sc = document.getElementById('pu-scroll').getBoundingClientRect(); const rows = [...document.querySelectorAll('#pu-tbody tr[data-pu-row]')];
+        const nm = rows.map(r => r.querySelector('.pu-nm')).filter(Boolean), lh = nm.length ? parseFloat(getComputedStyle(nm[0]).lineHeight) : 0;
+        return { rowH: Math.round(rows[0].getBoundingClientRect().height), oneLine: nm.every(n => n.getBoundingClientRect().height <= lh + 1), meta: rows.every(r => !!r.querySelector('.pu-meta .pu-ref')),
+          fit: rows.filter(r => { const b = r.getBoundingClientRect(); return b.top >= sc.top - 1 && b.bottom <= sc.bottom + 1; }).length }; });
+      check(`${nm} 7 compact rows: every name on one line, the ref on the line under it, 30% more rows on screen than the 93px row`, C.oneLine && C.meta && C.rowH <= 93 / 1.3 && C.fit >= Math.ceil((nm === 'ipad' ? 7 : 5) * 1.3), C);
       await page.screenshot({ path: path.join(OUT, `pulse-${nm}.png`) });
 
       if (nm === 'laptop-a'){

@@ -3124,8 +3124,10 @@ function updateAlertBadge(){
   const dot=document.getElementById('hdr-notify-dot');
   const btn=document.getElementById('hdr-notify');
   const pan=document.getElementById('cmd-panel');
+  const nav=document.getElementById('hdr-nav');
   const off=panelSuppressed();
   if(btn){ btn.disabled=off; btn.style.opacity=off?'.45':''; }
+  if(nav){ nav.disabled=off; nav.style.opacity=off?'.45':''; }
   if(pan){ pan.disabled=off; pan.style.opacity=off?'.45':'';
     pan.title=off?i18t('ap_activity_not_here'):i18t('sh_toggle_panel'); }
   /* THE COUNT WAITS FOR A QUIET MOMENT (the rest of Round A, 23 Oct 2026): the bell counts the one
@@ -3509,6 +3511,9 @@ function applyPanelLayout(){
   }
   const btn=document.getElementById('cmd-panel');
   if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
+  /* the nav panel's door says whether the Guide is the face showing */
+  const nb=document.getElementById('hdr-nav');
+  if(nb) nb.setAttribute('aria-expanded',show&&panelFace()==='guide'?'true':'false');
   /* ---- THE KEYBOARD STAYS IN THE PANEL WHILE IT IS UP ---- (25 Aug 2026)
      Every row in here is a DOOR — that is this panel's whole design — and Tab
      used to walk out of it into the page behind, where the rows the reader
@@ -4373,6 +4378,8 @@ function wireShell(){
 
   document.getElementById('cmd-panel')?.addEventListener('click',()=>openPanel('activity'));
   document.getElementById('hdr-notify')?.addEventListener('click',()=>openPanel('alerts'));
+  /* the nav panel's door beside the bell (owner, 29 Oct 2026): the same panel, landing on its Guide face */
+  document.getElementById('hdr-nav')?.addEventListener('click',()=>openPanel('guide'));
   /* CHAT IS THE CONTRACT'S CONVERSATION, so it opens the notes face with no
      change named — openNotesPanel is the one door onto that face and this is
      the press arriving there, never a second way of putting the panel up.
