@@ -183,13 +183,13 @@ td:first-child{font-weight:600;white-space:nowrap}
 
 /* Redlines, the Legora way */
 .rl-lead{font-size:13px;line-height:1.5;margin:0 0 2px}
-.rl-row{padding:10px 0 8px;border-top:1px solid #E6E6EA}
+.rl-row{padding:8px 0 6px;border-top:1px solid #E6E6EA}
 .rl-row .h{display:flex;align-items:baseline;gap:8px;font-size:13.5px;white-space:nowrap}
 .rl-row .ch{font-size:13px;margin-top:1px}
 .rl-row .h b{font-weight:600}
 .rl-row .h .sp{flex:1}
 .rl-ask{font-family:var(--font-doc);font-style:italic;color:#3B4A48;font-size:13.5px;margin:4px 0 2px}
-.rl-j{background:#F2F2F5;border-radius:10px;padding:10px 14px;margin:6px 0 8px;font-size:13px;line-height:1.5}
+.rl-j{background:#F2F2F5;border-radius:10px;padding:10px 14px;margin:4px 0 6px;font-size:13px;line-height:1.5}
 .rl-j .b{font-weight:500}
 .rl-acts{display:flex;gap:6px;align-items:center}
 .rl-acts .q{margin-left:auto}
@@ -365,10 +365,22 @@ td:first-child{font-weight:600;white-space:nowrap}
 .rung.on .c{background:#1D1D1F;border-color:#1D1D1F}
 .rung .q{margin-left:auto}
 </style>
-
+<style>
+/* ---------- THE PAGE FRAME (owner, 30 Oct 2026): no cards, one surface, one hairline to Jambo ---------- */
+.stage.f-page .frame{background:#fff}
+.stage.f-page .body{padding:0;gap:0}
+.stage.f-page .sheet{border-radius:0;box-shadow:none}
+.stage.f-page .panel{border-radius:0;box-shadow:none;border-left:1px solid #E6E6EA}
+.stage.f-page .pline{height:56px}
+.stage.f-page .ce{background:#fff}
+.stage.f-page .ce-trail{height:56px}
+.stage.f-page .ce-box{box-shadow:none;border:0;padding:8px 0 0}
+.stage.f-page .panel.ce-panel{top:0;right:0;bottom:0;border-radius:0;box-shadow:none;border-left:1px solid #E6E6EA}
+.stage.f-page .ce-foot{padding-right:408px}
+</style>
 <div class="wrap">
   <h1>HaTi, the Legora Way, taken further</h1>
-  <p class="lede">You liked the contract screen and asked for more. Here are <b>eleven screens</b> in this way (Home, a contract, Redlines, Contracts with questions as columns, the Board, the Calendar, Obligations, Before you sign, Send, New agreement and the clause editor), and <b>three type pairings</b> you can switch on any of them. Everything is drawn at your 1440×780 with your own book. The margin notes now lay themselves out so they never overlap, whatever font is on screen.</p>
+  <p class="lede"><b>New on top: the Page frame.</b> The cards are gone: HaTi's page and Jambo's panel are one surface, divided by a single line, the way Claude's side panel sits beside its main area. Switch <b>Frame</b> to Cards to see the earlier drawing; nothing else changed.  Here are <b>eleven screens</b> in this way (Home, a contract, Redlines, Contracts with questions as columns, the Board, the Calendar, Obligations, Before you sign, Send, New agreement and the clause editor), and <b>three type pairings</b> you can switch on any of them. Everything is drawn at your 1440×780 with your own book. The margin notes now lay themselves out so they never overlap, whatever font is on screen.</p>
 
   <div class="sw" role="tablist" aria-label="Screen">
     <span class="lab">Screen</span>
@@ -383,12 +395,15 @@ td:first-child{font-weight:600;white-space:nowrap}
     <button data-p="send" aria-pressed="false">Send</button>
     <button data-p="draft" aria-pressed="false">New agreement</button>
     <button data-p="editor" aria-pressed="false">Clause editor</button>
-    <div class="sw sw2" role="tablist" aria-label="Type" style="margin-bottom:0">
-      <span class="lab">Type</span>
+  </div>
+  <div class="sw" role="tablist" aria-label="Frame and type">
+      <span class="lab">Frame</span>
+      <button data-fr="page" aria-pressed="true">Page <span class="k">new · one line to Jambo</span></button>
+      <button data-fr="cards" aria-pressed="false">Cards <span class="k">as before</span></button>
+      <span class="lab" style="margin-left:16px">Type</span>
       <button data-t="today" aria-pressed="true">Today <span class="k">Geist · Source Serif</span></button>
       <button data-t="editorial" aria-pressed="false">Editorial <span class="k">Inter · Newsreader</span></button>
       <button data-t="bookish" aria-pressed="false">Bookish <span class="k">Instrument Sans · Literata</span></button>
-    </div>
   </div>
 
   <div class="spec">
@@ -397,7 +412,7 @@ td:first-child{font-weight:600;white-space:nowrap}
     <div style="--su:'Instrument Sans',system-ui,sans-serif;--sd:'Literata',Georgia,serif;--st:0"><div class="nm">Bookish</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">A book serif made for screens, with a rounder sans. Softer, more human.</div></div>
   </div>
 
-  <div class="stage t-today" id="stage">
+  <div class="stage t-today f-page" id="stage">
 
 <!-- ====================================================== HOME ====================================================== -->
 <div class="frame on" data-f="home">
@@ -526,11 +541,11 @@ td:first-child{font-weight:600;white-space:nowrap}
     <div class="panel">
       <div class="ph"><span class="ptab">Dossier</span><span class="ptab">Clauses</span><span class="ptab on">Redlines <span class="n">2</span></span><span class="more">›</span></div>
       <div class="pb">
-        <p class="rl-lead">Their round came Tuesday 18:12 from Erik at Parcelway. Two asks. I answered both from your standard; nothing goes until you press.</p>
+        <p class="rl-lead">Erik's round, Tuesday 18:12. Two asks, both answered from your standard; nothing goes until you press.</p>
         <div class="rl-row">
           <div class="h"><b>① § 5 Payment</b><span class="sp"></span><span class="q">their move</span></div><div class="ch">30 → 60 days, and withholding of disputed sums</div>
           <div class="rl-ask">“Customer shall pay each correct invoice within 60 days of receipt. Disputed amounts may be withheld…”</div>
-          <div class="rl-j"><span class="b">Counter at 45 days, keep withholding out.</span> Based on your standard (30, never past 45) and Parcelway's own last agreement with you at 45. Withholding has no precedent in your book.</div>
+          <div class="rl-j"><span class="b">Counter at 45 days, keep withholding out.</span> Your standard stops at 45, and so did Parcelway's last agreement with you.</div>
           <div class="rl-acts"><span class="pill sm">Accept</span><span class="pill sm">Reject</span><span class="pill sm prep">Counter · 45 days ✓ prepared</span><span class="q">free</span></div>
         </div>
         <div class="rl-row">
@@ -925,6 +940,20 @@ td:first-child{font-weight:600;white-space:nowrap}
     <div><h3>What it keeps from today</h3><p>Files only through the one funnel, the one panel, the one foot, the trail, the floating panel over an end-to-end bar, spell check before Save.</p></div>
   </div></div>
 
+  <h2>The frame: pages, not cards</h2>
+  <div class="notes" style="margin-top:6px">
+    <div><p class="idea">One page, one line. HaTi's page and Jambo's panel are one surface; a single hairline divides them, the way Claude's side panel sits beside its main area.</p><p>Jambo stops looking like a visitor in a floating box and reads as part of HaTi, always there on the right, with his own head line level with the page's.</p></div>
+    <div><h3>What changes</h3><ul><li>No grey ground around the page, no rounded corners, no shadow on the page or on Jambo's panel.</li><li>The page's top line and Jambo's tab line are the same height, so the line under them runs straight across.</li><li>The paper keeps its shadow on its desk, and pop-ups keep theirs: those are things lying on top of the page.</li><li>The clause editor's panel docks to the side instead of floating.</li></ul></div>
+    <div><h3>What it gives</h3><p>At 1440×780 the page gains about 43 px of width and 28 px of height. On a contract the first line of wording moves up 8 px.</p><h3>Asks the owner first</h3><p class="ask"><b>Two earlier rulings change.</b> “Cards float by their lift” and the 29 October “one white sheet, 10px on its outer corners” are both replaced. Your pick of Page would be the yes to that.</p></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Frame</th><th>The idea</th><th>When it wins</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td>Page</td><td>One surface; one hairline between the page and Jambo; head lines level across it.</td><td>Calm screens, more room, Jambo felt as part of HaTi. Best on the laptops and the iPad, where every pixel counts.</td><td>Less depth: parts inside a page need their own head lines to stay apart. Replaces two earlier rulings.</td></tr>
+      <tr><td>Cards</td><td>Each area floats on the grey ground with soft corners and a lift.</td><td>Separate things look separate at a glance; good on a large screen.</td><td>About 44 px of width lost to gutters; more edges to read; Jambo looks like a box beside the page rather than part of it.</td></tr>
+    </tbody>
+  </table></div>
+
   <h2>The type, in one table</h2>
   <div class="tbl"><table>
     <thead><tr><th>Name</th><th>The pairing</th><th>How it reads</th><th>When it wins</th><th>Cost</th></tr></thead>
@@ -939,28 +968,31 @@ td:first-child{font-weight:600;white-space:nowrap}
     <h2>My recommendation</h2>
     <p><b style="font-weight:600">The way: The Legora Way</b>, as drawn here. It is the direction you leaned to, and these four screens show it holds across the whole day: what waits, a paper, a negotiation, and a question across the book.</p>
     <p><b style="font-weight:600">The type: Editorial.</b> Your product is about paper, and Newsreader makes the paper look like one; Inter beside it keeps every list and label readable at the small sizes HaTi uses. It is the pairing where the paper is the hero and the app steps back, which is exactly the Legora Way's idea. If you want HaTi to stay more its own, keep Today: it is a good pairing and nothing is wrong with it.</p>
-    <p style="margin:0">To pick, answer with two names: the way, and the type. Only those get built, and they come back to you drawn-against-built at your three screens before anything merges.</p>
+    <p><b style="font-weight:600">The frame: Page.</b> It gives the paper more room on your two laptops and the iPad, and it makes Jambo part of the page rather than a box beside it. Keep the shadow only where something really lies on top: the paper on its desk, and pop-ups.</p>
+    <p style="margin:0">To pick, answer with three names: the way, the type and the frame. Only those get built, and they come back to you drawn-against-built at your three screens before anything merges.</p>
   </div>
 </div>
 
 <script>
 (function(){
   var P=['home','contract','redlines','contracts','board','calendar','obligations','sign','send','draft','editor'], T=['today','editorial','bookish'];
-  var p='home', t='today';
+  var p='home', t='today', fr='page';
   var stage=document.getElementById('stage');
-  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|contract|redlines|contracts|board|calendar|obligations|sign|send|draft|editor)(?:-(today|editorial|bookish))?$/); if(m){p=m[1]; t=m[2]||'today';} else {p='home'; t='today';} }
+  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|contract|redlines|contracts|board|calendar|obligations|sign|send|draft|editor)(?:-(today|editorial|bookish))?(?:-(cards|page))?$/); if(m){p=m[1]; t=m[2]||'today'; fr=m[3]||'page';} else {p='home'; t='today'; fr='page';} }
   function layNotes(f){ var prev=-1e9; f.querySelectorAll('.mn').forEach(function(n){ var want=+n.dataset.top||0; var top=Math.max(want, prev+12); n.style.top=top+'px'; prev=top+n.offsetHeight; }); }
   function paint(){
     document.querySelectorAll('.sw [data-p]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.p===p));});
     document.querySelectorAll('.sw [data-t]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.t===t));});
-    stage.className='stage t-'+t;
+    document.querySelectorAll('.sw [data-fr]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.fr===fr));});
+    stage.className='stage t-'+t+' f-'+fr;
     document.querySelectorAll('.frame').forEach(function(f){f.classList.toggle('on', f.dataset.f===p);});
     document.querySelectorAll('.scr').forEach(function(n){n.classList.toggle('on', n.dataset.n===p);});
     var f=document.querySelector('.frame.on'); if(f) layNotes(f);
   }
-  function go(np,nt){ p=np||p; t=nt||t; var h='#'+p+(t==='today'?'':'-'+t); if(location.hash!==h){ try{history.replaceState(null,'',h);}catch(e){} } paint(); }
+  function go(np,nt,nf){ p=np||p; t=nt||t; fr=nf||fr; var h='#'+p+(t==='today'?'':'-'+t)+(fr==='page'?'':'-cards'); if(location.hash!==h){ try{history.replaceState(null,'',h);}catch(e){} } paint(); }
   document.querySelectorAll('.sw [data-p]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.p,null);});});
   document.querySelectorAll('.sw [data-t]').forEach(function(b){b.addEventListener('click',function(){go(null,b.dataset.t);});});
+  document.querySelectorAll('.sw [data-fr]').forEach(function(b){b.addEventListener('click',function(){go(null,null,b.dataset.fr);});});
   window.addEventListener('hashchange',function(){read();paint();});
   document.addEventListener('keydown',function(e){
     if(e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
