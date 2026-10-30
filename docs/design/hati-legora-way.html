@@ -649,30 +649,97 @@ td:first-child{font-weight:600;white-space:nowrap}
 .ls-lamp.is-off i{background:#6A6A6F;opacity:.45}
 .ls-quiet{color:#4B4B50;font-size:13px}
 </style>
-<div class="wrap">
-  <h1>HaTi, the Legora Way, taken further</h1>
-  <p class="lede"><b>Every page of HaTi, in the new theme.</b> Thirty-eight screens in four groups, each drawn at your 1440×780 with your own book: the black bar end to end, Jambo beneath it joined to the page by one line, every fact with the words it rests on. The Board keeps its cards inside, as you asked. Switch the type on any of them; the Frame switch shows the earlier card look for comparison. Nothing is built: pick, change, and we build from the drawings.</p>
-
-  <div class="sw sw-g" role="tablist" aria-label="Every day"><span class="lab">Every day</span><button data-p="home" aria-pressed="true">Home</button><button data-p="board" aria-pressed="false">Board</button><button data-p="boardread" aria-pressed="false">Board · read down</button><button data-p="calendar" aria-pressed="false">Agenda</button><button data-p="week" aria-pressed="false">Week</button><button data-p="obligations" aria-pressed="false">Obligations</button><button data-p="alerts" aria-pressed="false">The bell</button><button data-p="guide" aria-pressed="false">The Guide</button></div>
-  <div class="sw sw-g" role="tablist" aria-label="A contract"><span class="lab">A contract</span><button data-p="contract" aria-pressed="false">A contract</button><button data-p="clauses" aria-pressed="false">Clauses</button><button data-p="fillin" aria-pressed="false">Fill in</button><button data-p="redlines" aria-pressed="false">Redlines</button><button data-p="editor" aria-pressed="false">Clause editor</button><button data-p="deal" aria-pressed="false">The close plan</button><button data-p="stands" aria-pressed="false">Where we are</button><button data-p="history" aria-pressed="false">History</button><button data-p="sign" aria-pressed="false">Before you sign</button><button data-p="send" aria-pressed="false">Send</button><button data-p="upload" aria-pressed="false">Upload</button></div>
-  <div class="sw sw-g" role="tablist" aria-label="The book"><span class="lab">The book</span><button data-p="contracts" aria-pressed="false">Contracts</button><button data-p="wall" aria-pressed="false">Wall</button><button data-p="negotiations" aria-pressed="false">Negotiations</button><button data-p="approvals" aria-pressed="false">Approvals & signing</button><button data-p="parties" aria-pressed="false">Parties</button><button data-p="people" aria-pressed="false">People</button><button data-p="requests" aria-pressed="false">Requests</button><button data-p="import" aria-pressed="false">Import</button><button data-p="reads" aria-pressed="false">Reads</button><button data-p="ourpaper" aria-pressed="false">Our paper</button><button data-p="draft" aria-pressed="false">New agreement</button><button data-p="mynotes" aria-pressed="false">My notes</button><button data-p="explorer" aria-pressed="false">Explorer</button></div>
-  <div class="sw sw-g" role="tablist" aria-label="The house"><span class="lab">The house</span><button data-p="settings" aria-pressed="false">Settings</button><button data-p="agents" aria-pressed="false">Jambo's agents</button><button data-p="handbook" aria-pressed="false">Handbook</button><button data-p="portal" aria-pressed="false">The other side's page</button><button data-p="phone" aria-pressed="false">The phone</button><button data-p="signin" aria-pressed="false">Sign-in</button></div>
-  <div class="sw" role="tablist" aria-label="Frame and type">
-      <span class="lab">Frame</span>
-      <button data-fr="page" aria-pressed="true">Page <span class="k">new · one line to Jambo</span></button>
-      <button data-fr="cards" aria-pressed="false">Cards <span class="k">as before</span></button>
-      <span class="lab" style="margin-left:16px">Type</span>
-      <button data-t="today" aria-pressed="true">Today <span class="k">Geist · Source Serif</span></button>
-      <button data-t="editorial" aria-pressed="false">Editorial <span class="k">Inter · Newsreader</span></button>
-      <button data-t="bookish" aria-pressed="false">Bookish <span class="k">Instrument Sans · Literata</span></button>
+<style>
+/* ---------- THE REVIEW ROOM: a page list on the left, one page at a time, a note per page ---------- */
+html,body{height:100%}
+.app{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100%}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--card);padding-left:max(0px,env(safe-area-inset-left,0px))}
+.nav-h{padding:20px 20px 14px;border-bottom:1px solid var(--line)}
+.nav-mark{font-family:var(--font-page-doc);font-weight:700;font-size:22px;line-height:1}
+.nav-sub{font-size:13px;color:var(--mute);margin-top:4px}
+.nav-list{flex:1;min-height:0;overflow:auto;padding:8px 10px 16px}
+.ng{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600;padding:14px 10px 4px}
+.ni{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:4px 10px;border:0;border-radius:8px;background:none;color:var(--fg);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.ni:hover{background:var(--chip)}
+.ni[aria-current="page"]{background:var(--fg);color:var(--bg)}
+.ni:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.ni-l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ni-m{flex:none;font-size:11.5px;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.ni-m.draft:before,.ni-m.saved:before,.ni-m.sent:before,.ni-m.done:before{content:"";width:8px;height:8px;border-radius:50%;display:inline-block}
+.ni-m.draft:before{border:1.5px solid var(--warn)}
+.ni-m.saved:before{background:var(--warn)}
+.ni-m.sent:before{background:var(--fg)}
+.ni-m.done:before{background:var(--acc)}
+.ni[aria-current="page"] .ni-m.sent:before{background:var(--bg)}
+.nav-foot{border-top:1px solid var(--line);padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.nav-key{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--mute);margin-bottom:10px}
+.nav-key span{display:inline-flex;align-items:center;gap:5px}
+.btn-sub{width:100%;height:40px;border-radius:999px;border:0;background:var(--fg);color:var(--bg);font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+.btn-sub:disabled{background:var(--chip);color:var(--mute);cursor:default}
+.btn-sub:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.sub-say{font-size:12.5px;line-height:1.45;color:var(--mute);margin-top:8px;min-height:18px}
+.sub-say b{color:var(--fg);font-weight:600}
+.main{min-width:0;padding-block:20px 56px;padding-left:28px;padding-right:max(28px,env(safe-area-inset-right,0px))}
+.mh{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.mh .eye2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.mh h1{font-size:28px;margin:2px 0 0}
+.mh .sp{flex:1}
+.mh .ctl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mh .ctl .lab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600;margin-right:2px}
+.mh .ctl button,.pn{font:inherit;cursor:pointer;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:13px;font-weight:500}
+.mh .ctl button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.mh .ctl button:focus-visible,.pn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.pn{width:34px;padding:0}
+.m-pick{display:none;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-size:14px;padding:0 10px;max-width:100%}
+.nb{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.nb label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
+.nb label .q2{font-weight:400;color:var(--mute);font-size:13px;margin-left:6px}
+.nb textarea{width:100%;min-height:110px;resize:vertical;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;font-size:15px;line-height:1.5;padding:10px 12px}
+.nb textarea:focus{outline:2px solid var(--acc);outline-offset:0;border-color:transparent}
+.nb-f{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+.nb-f .sp{flex:1}
+.nb-state{font-size:13px;color:var(--mute)}
+.nb-state.warn{color:var(--warn)}
+.nb-state.bad{color:var(--bad)}
+.btn-save{height:36px;padding:0 18px;border-radius:999px;border:0;background:var(--fg);color:var(--bg);font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+.btn-save:disabled{background:var(--chip);color:var(--mute);cursor:default}
+.btn-save:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.nb-reply{margin-top:12px;border-left:2px solid var(--acc);padding:2px 0 2px 12px;font-size:14px;line-height:1.5}
+.nb-reply .who{font-size:12px;color:var(--mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:2px}
+.view[hidden]{display:none!important}
+#v-about .lede{max-width:72ch;color:var(--fg)}
+#v-about .steps{max-width:72ch;padding-left:20px;margin:0 0 18px}
+#v-about .steps li{margin-bottom:6px}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .nav{display:none}
+  .m-pick{display:block;width:100%}
+  .main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .mh .ctl{width:100%}
+  .sub-bar{display:block!important}
+}
+.sub-bar{display:none;margin-top:16px}
+</style>
+<div class="app">
+<nav class="nav" aria-label="Pages">
+  <div class="nav-h"><div class="nav-mark">HaTi</div><div class="nav-sub">the Legora Way · 38 pages</div></div>
+  <div class="nav-list"><button type="button" class="ni" data-p="about"><span class="ni-l">Read me first</span><span class="ni-m"></span></button><div class="ng">Every day</div><button type="button" class="ni" data-p="home"><span class="ni-l">Home</span><span class="ni-m" data-mark="home"></span></button><button type="button" class="ni" data-p="board"><span class="ni-l">Board</span><span class="ni-m" data-mark="board"></span></button><button type="button" class="ni" data-p="boardread"><span class="ni-l">Board · read down</span><span class="ni-m" data-mark="boardread"></span></button><button type="button" class="ni" data-p="calendar"><span class="ni-l">Agenda</span><span class="ni-m" data-mark="calendar"></span></button><button type="button" class="ni" data-p="week"><span class="ni-l">Week</span><span class="ni-m" data-mark="week"></span></button><button type="button" class="ni" data-p="obligations"><span class="ni-l">Obligations</span><span class="ni-m" data-mark="obligations"></span></button><button type="button" class="ni" data-p="alerts"><span class="ni-l">The bell</span><span class="ni-m" data-mark="alerts"></span></button><button type="button" class="ni" data-p="guide"><span class="ni-l">The Guide</span><span class="ni-m" data-mark="guide"></span></button><div class="ng">A contract</div><button type="button" class="ni" data-p="contract"><span class="ni-l">A contract</span><span class="ni-m" data-mark="contract"></span></button><button type="button" class="ni" data-p="clauses"><span class="ni-l">Clauses</span><span class="ni-m" data-mark="clauses"></span></button><button type="button" class="ni" data-p="fillin"><span class="ni-l">Fill in</span><span class="ni-m" data-mark="fillin"></span></button><button type="button" class="ni" data-p="redlines"><span class="ni-l">Redlines</span><span class="ni-m" data-mark="redlines"></span></button><button type="button" class="ni" data-p="editor"><span class="ni-l">Clause editor</span><span class="ni-m" data-mark="editor"></span></button><button type="button" class="ni" data-p="deal"><span class="ni-l">The close plan</span><span class="ni-m" data-mark="deal"></span></button><button type="button" class="ni" data-p="stands"><span class="ni-l">Where we are</span><span class="ni-m" data-mark="stands"></span></button><button type="button" class="ni" data-p="history"><span class="ni-l">History</span><span class="ni-m" data-mark="history"></span></button><button type="button" class="ni" data-p="sign"><span class="ni-l">Before you sign</span><span class="ni-m" data-mark="sign"></span></button><button type="button" class="ni" data-p="send"><span class="ni-l">Send</span><span class="ni-m" data-mark="send"></span></button><button type="button" class="ni" data-p="upload"><span class="ni-l">Upload</span><span class="ni-m" data-mark="upload"></span></button><div class="ng">The book</div><button type="button" class="ni" data-p="contracts"><span class="ni-l">Contracts</span><span class="ni-m" data-mark="contracts"></span></button><button type="button" class="ni" data-p="wall"><span class="ni-l">Wall</span><span class="ni-m" data-mark="wall"></span></button><button type="button" class="ni" data-p="negotiations"><span class="ni-l">Negotiations</span><span class="ni-m" data-mark="negotiations"></span></button><button type="button" class="ni" data-p="approvals"><span class="ni-l">Approvals &amp; signing</span><span class="ni-m" data-mark="approvals"></span></button><button type="button" class="ni" data-p="parties"><span class="ni-l">Parties</span><span class="ni-m" data-mark="parties"></span></button><button type="button" class="ni" data-p="people"><span class="ni-l">People</span><span class="ni-m" data-mark="people"></span></button><button type="button" class="ni" data-p="requests"><span class="ni-l">Requests</span><span class="ni-m" data-mark="requests"></span></button><button type="button" class="ni" data-p="import"><span class="ni-l">Import</span><span class="ni-m" data-mark="import"></span></button><button type="button" class="ni" data-p="reads"><span class="ni-l">Reads</span><span class="ni-m" data-mark="reads"></span></button><button type="button" class="ni" data-p="ourpaper"><span class="ni-l">Our paper</span><span class="ni-m" data-mark="ourpaper"></span></button><button type="button" class="ni" data-p="draft"><span class="ni-l">New agreement</span><span class="ni-m" data-mark="draft"></span></button><button type="button" class="ni" data-p="mynotes"><span class="ni-l">My notes</span><span class="ni-m" data-mark="mynotes"></span></button><button type="button" class="ni" data-p="explorer"><span class="ni-l">Explorer</span><span class="ni-m" data-mark="explorer"></span></button><div class="ng">The house</div><button type="button" class="ni" data-p="settings"><span class="ni-l">Settings</span><span class="ni-m" data-mark="settings"></span></button><button type="button" class="ni" data-p="agents"><span class="ni-l">Jambo's agents</span><span class="ni-m" data-mark="agents"></span></button><button type="button" class="ni" data-p="handbook"><span class="ni-l">Handbook</span><span class="ni-m" data-mark="handbook"></span></button><button type="button" class="ni" data-p="portal"><span class="ni-l">The other side's page</span><span class="ni-m" data-mark="portal"></span></button><button type="button" class="ni" data-p="phone"><span class="ni-l">The phone</span><span class="ni-m" data-mark="phone"></span></button><button type="button" class="ni" data-p="signin"><span class="ni-l">Sign-in</span><span class="ni-m" data-mark="signin"></span></button></div>
+  <div class="nav-foot">
+    <div class="nav-key"><span><span class="ni-m draft"></span>not saved</span><span><span class="ni-m saved"></span>saved</span><span><span class="ni-m sent"></span>submitted</span><span><span class="ni-m done"></span>changed</span></div>
+    <button type="button" class="btn-sub" id="submit-all" disabled>Submit notes</button>
+    <div class="sub-say" id="sub-say" aria-live="polite"></div>
   </div>
-
-  <div class="spec">
-    <div style="--su:'Geist',system-ui,sans-serif;--sd:'Source Serif 4',Georgia,serif;--st:0"><div class="nm">Today</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">What HaTi wears now. Even, modern, slightly technical.</div></div>
-    <div style="--su:'Inter',system-ui,sans-serif;--sd:'Newsreader',Georgia,serif;--st:-.006em"><div class="nm">Editorial</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">A newspaper's serif with the most legible small sans there is. Warmer, more lawyerly.</div></div>
-    <div style="--su:'Instrument Sans',system-ui,sans-serif;--sd:'Literata',Georgia,serif;--st:0"><div class="nm">Bookish</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">A book serif made for screens, with a rounder sans. Softer, more human.</div></div>
+</nav>
+<main class="main">
+  <div class="mh">
+    <div><div class="eye2" id="m-eye">Every day</div><h1 id="m-title">Home</h1></div>
+    <select class="m-pick" id="m-pick" aria-label="Choose a page"><option value="about">Read me first</option><optgroup label="Every day"><option value="home">Home</option><option value="board">Board</option><option value="boardread">Board · read down</option><option value="calendar">Agenda</option><option value="week">Week</option><option value="obligations">Obligations</option><option value="alerts">The bell</option><option value="guide">The Guide</option></optgroup><optgroup label="A contract"><option value="contract">A contract</option><option value="clauses">Clauses</option><option value="fillin">Fill in</option><option value="redlines">Redlines</option><option value="editor">Clause editor</option><option value="deal">The close plan</option><option value="stands">Where we are</option><option value="history">History</option><option value="sign">Before you sign</option><option value="send">Send</option><option value="upload">Upload</option></optgroup><optgroup label="The book"><option value="contracts">Contracts</option><option value="wall">Wall</option><option value="negotiations">Negotiations</option><option value="approvals">Approvals &amp; signing</option><option value="parties">Parties</option><option value="people">People</option><option value="requests">Requests</option><option value="import">Import</option><option value="reads">Reads</option><option value="ourpaper">Our paper</option><option value="draft">New agreement</option><option value="mynotes">My notes</option><option value="explorer">Explorer</option></optgroup><optgroup label="The house"><option value="settings">Settings</option><option value="agents">Jambo's agents</option><option value="handbook">Handbook</option><option value="portal">The other side's page</option><option value="phone">The phone</option><option value="signin">Sign-in</option></optgroup></select>
+    <span class="sp"></span>
+    <div class="ctl" role="group" aria-label="Type"><span class="lab">Type</span><button type="button" data-t="today" aria-pressed="true">Today</button><button type="button" data-t="editorial" aria-pressed="false">Editorial</button><button type="button" data-t="bookish" aria-pressed="false">Bookish</button></div>
+    <div class="ctl" role="group" aria-label="Frame"><span class="lab">Frame</span><button type="button" data-fr="page" aria-pressed="true">Page</button><button type="button" data-fr="cards" aria-pressed="false">Cards</button></div>
+    <div class="ctl"><button type="button" class="pn" id="m-prev" aria-label="Previous page">‹</button><button type="button" class="pn" id="m-next" aria-label="Next page">›</button></div>
   </div>
-
+  <section class="view" id="v-screen">
   <div class="stage t-today f-page" id="stage">
 
 <!-- ====================================================== HOME ====================================================== -->
@@ -1443,9 +1510,14 @@ td:first-child{font-weight:600;white-space:nowrap}
  </div>
  <div class="pg-foot"><span>Sun 1 Nov: the monthly supply report · outside the working week, shown on Monday</span><span class="sp"></span><span>Mon to Fri · this week and five more</span></div></div></div><div class="panel"><div class="ph"><span class="ptab on">Overview <span class="n">4</span></span><span class="more">›</span></div><div class="pb"><div style="font-size:14px;line-height:1.5"><b style="font-weight:600">This week:</b> 1 late, 1 due, 2 approvals and 1 signature, all yours. Nothing to pay.</div><div class="sec">Proposed · not added</div><div class="lg-fact"><div class="l">Thu 14:00</div><div class="v">One sitting for both approvals</div><div class="s">free</div></div><div class="lg-fact"><div class="l">Fri 10:00</div><div class="v">Send Parcelway the answers</div><div class="s">free</div></div><div class="sec">Jambo may change my calendar</div><div class="seg"><span>On his own</span><span class="on">Ask me first</span><span>Never</span></div><div class="turn"><span class="jface"></span><div class="t">Your own events are read, never written; I put blocks around them and add nothing until you press Add on a dashed block.</div></div></div><div class="pf"><div class="lk"><span class="lnk">agenda</span><span class="lnk">obligations</span><span class="lnk">board</span></div><div class="jbox"><span class="plus">+</span>Ask Jambo, or type / for a place<span class="go">↑</span></div></div></div></div></div>
   </div><!-- /stage -->
-
-  <!-- ---------------- notes per screen ---------------- -->
-  <div class="scr on" data-n="home"><div class="notes">
+  <div class="nb">
+    <label for="note-text">Your notes on <span id="nb-name">Home</span><span class="q2">what should change on this page: a word, a button, a whole idea</span></label>
+    <textarea id="note-text" placeholder="For example: the list should show the counterparty first; I don't like the green links; make Approve a button."></textarea>
+    <div class="nb-f"><span class="nb-state" id="nb-state" aria-live="polite">No note yet</span><span class="sp"></span><span class="nb-state">Ctrl or ⌘ + Enter saves</span><button type="button" class="btn-save" id="note-save" disabled>Save note</button></div>
+    <div class="nb-reply" id="nb-reply" hidden></div>
+  </div>
+  <div class="sub-bar"><button type="button" class="btn-sub" id="submit-all-m" disabled>Submit notes</button><div class="sub-say" id="sub-say-m"></div></div>
+  <div class="scr" data-n="home"><div class="notes">
     <div><p class="idea">Home is a sheet of type. Your name, Jambo's three sentences, then one list where every row quotes the words it rests on.</p><p>No tiles, no cards, no big box in the middle. The verb at the end of each row is the only thing to press. Jambo's panel on the right is his conversation; his box stays at its foot.</p></div>
     <div><h3>What is new since the last round</h3><ul><li>Jambo's answers to the other side's changes appear as a row of their own, with their two quotes, so a negotiation waits on Home like everything else.</li><li>The panel says what he prepared overnight and offers the press, with its cost (free, or 1 call).</li><li>The kept question across your book sits in the foot, with its lights and what one more read costs.</li></ul></div>
     <div><h3>Asks the owner first</h3><p class="ask"><b>Jambo's sentences on Home.</b> They are the panel's Overview sentence moved onto the page. Not a band, but your rule says ask before a page says something new.</p></div>
@@ -1533,7 +1605,22 @@ td:first-child{font-weight:600;white-space:nowrap}
   <div class="scr" data-n="alerts"><div class="notes"><div><p class="idea">The bell: the same eight things Needs you lists, in the panel, each with its one button that lands on the act. News under it, never counted.</p></div><div><h3>What is on it</h3><ul><li>The bell and Home always agree: one list, one number.</li><li>A press on Open lands on the contract, on the act it asks for.</li><li>News asks nothing of you and is not counted.</li></ul></div><div><h3>What it keeps from today</h3><p>The bell counts Needs you, News never counted, the four-faced panel, Open lands on the act.</p></div></div></div>
   <div class="scr" data-n="guide"><div class="notes"><div><p class="idea">The Guide: the map of every page in the order a contract lives, with the page's own count and the one word that opens it. There is no menu on the left; this is where things are.</p></div><div><h3>What is on it</h3><ul><li>A press lands on the page and the panel lets go.</li><li>Amber counts are things that need you; plain counts are sizes.</li><li>The Handbook is the Guide's last row but one.</li></ul></div><div><h3>What it keeps from today</h3><p>The Guide as a face of the one panel, every page a word, counts amber only above zero, "?" opens it.</p></div></div></div>
   <div class="scr" data-n="week"><div class="notes"><div><p class="idea">The week: Monday to Friday, this week and five more, each day a column of quiet chips. Jambo's proposals are dashed and cost nothing until Add; your own events are read, never written.</p></div><div><h3>What is on it</h3><ul><li>The late thing stands on its day in red.</li><li>A chip says the contract and the § under the act.</li><li>Weekend duties are shown on the Monday, said so in the foot.</li></ul></div><div><h3>What it keeps from today</h3><p>Mon to Fri, this week plus five, the plan that adds nothing until Add, one writer for the calendar level, bookings handed off.</p></div></div></div>
-  <h2>The frame: pages, not cards</h2>
+
+  </section>
+  <section class="view" id="v-about" hidden>
+    <p class="lede"><b>Every page of HaTi, in the new theme.</b> Thirty-eight pages, each drawn at your 1440×780 with your own book: the black bar end to end, Jambo beneath it joined to the page by one line, every fact with the words it rests on. The Board keeps its cards inside. Nothing is built yet.</p>
+    <ol class="steps">
+      <li><b>Open a page</b> from the list on the left. The arrows at the top right, or ← and →, walk through them in order.</li>
+      <li><b>Write what should change</b> in the box under the picture, then press <b>Save note</b>. A saved page gets an amber dot in the list. You can come back and change a note at any time.</li>
+      <li><b>When you are done, press Submit notes</b> at the bottom of the list. Then say <b>“notes submitted”</b> in the chat, and Claude reads every note and redraws those pages.</li>
+      <li><b>When a page has been changed</b> its dot turns green, and Claude's answer stands under your note saying what changed.</li>
+    </ol>
+    <div class="spec">
+    <div style="--su:'Geist',system-ui,sans-serif;--sd:'Source Serif 4',Georgia,serif;--st:0"><div class="nm">Today</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">What HaTi wears now. Even, modern, slightly technical.</div></div>
+    <div style="--su:'Inter',system-ui,sans-serif;--sd:'Newsreader',Georgia,serif;--st:-.006em"><div class="nm">Editorial</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">A newspaper's serif with the most legible small sans there is. Warmer, more lawyerly.</div></div>
+    <div style="--su:'Instrument Sans',system-ui,sans-serif;--sd:'Literata',Georgia,serif;--st:0"><div class="nm">Bookish</div><div class="t">Raw Milk Collection</div><div class="p">The estimated annual contract value is KES 36,000,000, payable within 30 days of receipt.</div><div class="u">Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> · KES 78M · <i>Approve</i></div><div class="who">A book serif made for screens, with a rounder sans. Softer, more human.</div></div>
+  </div>
+      <h2>The frame: pages, not cards</h2>
   <div class="notes" style="margin-top:6px">
     <div><p class="idea">One page, one line. HaTi's page and Jambo's panel are one surface; a single hairline divides them, the way Claude's side panel sits beside its main area.</p><p>Jambo stops looking like a visitor in a floating box and reads as part of HaTi, always there on the right, with his own head line level with the page's.</p></div>
     <div><h3>What changes</h3><ul><li>No grey ground around the page, no rounded corners, no shadow on the page or on Jambo's panel.</li><li>The page's top line and Jambo's tab line are the same height, so the line under them runs straight across.</li><li>The paper keeps its shadow on its desk, and pop-ups keep theirs: those are things lying on top of the page.</li><li>The clause editor's panel docks to the side instead of floating.</li></ul></div>
@@ -1562,42 +1649,141 @@ td:first-child{font-weight:600;white-space:nowrap}
     <p><b style="font-weight:600">The way: The Legora Way</b>, as drawn here. It is the direction you leaned to, and these four screens show it holds across the whole day: what waits, a paper, a negotiation, and a question across the book.</p>
     <p><b style="font-weight:600">The type: Editorial.</b> Your product is about paper, and Newsreader makes the paper look like one; Inter beside it keeps every list and label readable at the small sizes HaTi uses. It is the pairing where the paper is the hero and the app steps back, which is exactly the Legora Way's idea. If you want HaTi to stay more its own, keep Today: it is a good pairing and nothing is wrong with it.</p>
     <p><b style="font-weight:600">The frame: Page.</b> It gives the paper more room on your two laptops and the iPad, and it makes Jambo part of the page rather than a box beside it. Keep the shadow only where something really lies on top: the paper on its desk, and pop-ups.</p>
-    <p style="margin:0">To pick, answer with three names: the way, the type and the frame. Only those get built, and they come back to you drawn-against-built at your three screens before anything merges.</p>
+    <p style="margin:0">To pick, write it in the notes on this page, or answer in the chat with three names: the way, the type and the frame. Only those get built, and they come back to you drawn-against-built at your three screens before anything merges.</p>
   </div>
+  </section>
+</main>
 </div>
-
 <script>
 (function(){
-  var P=["home","board","boardread","calendar","week","obligations","alerts","guide","contract","clauses","fillin","redlines","editor","deal","stands","history","sign","send","upload","contracts","wall","negotiations","approvals","parties","people","requests","import","reads","ourpaper","draft","mynotes","explorer","settings","agents","handbook","portal","phone","signin"], T=['today','editorial','bookish'];
+  var META={"home":{"label":"Home","group":"Every day"},"board":{"label":"Board","group":"Every day"},"boardread":{"label":"Board · read down","group":"Every day"},"calendar":{"label":"Agenda","group":"Every day"},"week":{"label":"Week","group":"Every day"},"obligations":{"label":"Obligations","group":"Every day"},"alerts":{"label":"The bell","group":"Every day"},"guide":{"label":"The Guide","group":"Every day"},"contract":{"label":"A contract","group":"A contract"},"clauses":{"label":"Clauses","group":"A contract"},"fillin":{"label":"Fill in","group":"A contract"},"redlines":{"label":"Redlines","group":"A contract"},"editor":{"label":"Clause editor","group":"A contract"},"deal":{"label":"The close plan","group":"A contract"},"stands":{"label":"Where we are","group":"A contract"},"history":{"label":"History","group":"A contract"},"sign":{"label":"Before you sign","group":"A contract"},"send":{"label":"Send","group":"A contract"},"upload":{"label":"Upload","group":"A contract"},"contracts":{"label":"Contracts","group":"The book"},"wall":{"label":"Wall","group":"The book"},"negotiations":{"label":"Negotiations","group":"The book"},"approvals":{"label":"Approvals & signing","group":"The book"},"parties":{"label":"Parties","group":"The book"},"people":{"label":"People","group":"The book"},"requests":{"label":"Requests","group":"The book"},"import":{"label":"Import","group":"The book"},"reads":{"label":"Reads","group":"The book"},"ourpaper":{"label":"Our paper","group":"The book"},"draft":{"label":"New agreement","group":"The book"},"mynotes":{"label":"My notes","group":"The book"},"explorer":{"label":"Explorer","group":"The book"},"settings":{"label":"Settings","group":"The house"},"agents":{"label":"Jambo's agents","group":"The house"},"handbook":{"label":"Handbook","group":"The house"},"portal":{"label":"The other side's page","group":"The house"},"phone":{"label":"The phone","group":"The house"},"signin":{"label":"Sign-in","group":"The house"}};
+  var P=['about'].concat(Object.keys(META)), T=['today','editorial','bookish'];
   var p='home', t='today', fr='page';
   var stage=document.getElementById('stage');
-  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^(home|board|boardread|calendar|week|obligations|alerts|guide|contract|clauses|fillin|redlines|editor|deal|stands|history|sign|send|upload|contracts|wall|negotiations|approvals|parties|people|requests|import|reads|ourpaper|draft|mynotes|explorer|settings|agents|handbook|portal|phone|signin)(?:-(today|editorial|bookish))?(?:-(cards|page))?$/); if(m){p=m[1]; t=m[2]||'today'; fr=m[3]||'page';} else {p='home'; t='today'; fr='page';} }
+  var $=function(id){return document.getElementById(id);};
+  var notes={}, db=null, busy=false, LSK='hati.review.drafts';
+  function drafts(){ try{ return JSON.parse(localStorage.getItem(LSK)||'{}')||{}; }catch(e){ return {}; } }
+  function setDraft(k,v){ try{ var d=drafts(); if(v==null) delete d[k]; else d[k]=v; localStorage.setItem(LSK,JSON.stringify(d)); }catch(e){} }
+  function savedText(k){ var n=notes[k]; return n && typeof n.text==='string' ? n.text : ''; }
+  function shown(k){ var d=drafts(); return Object.prototype.hasOwnProperty.call(d,k) ? d[k] : savedText(k); }
+  function isDraft(k){ var d=drafts(); return Object.prototype.hasOwnProperty.call(d,k) && d[k].trim()!==savedText(k).trim(); }
+  function mark(k){ if(isDraft(k)) return 'draft'; var n=notes[k]; if(!n||!(n.text||'').trim()) return ''; return n.status==='done'?'done':n.status==='submitted'?'sent':'saved'; }
+  var WORDS={draft:'not saved',saved:'saved',sent:'submitted',done:'changed'};
+  function when(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return ''; return d.toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'}); }
+  function pending(){ return Object.keys(META).filter(function(k){ return isDraft(k) ? shown(k).trim()!=='' || !!savedText(k) : (notes[k] && notes[k].status==='saved' && (notes[k].text||'').trim()); }); }
+  function read(){ var h=(location.hash||'').replace('#',''); var m=h.match(/^([a-z]+)(?:-(today|editorial|bookish))?(?:-(cards|page))?$/); if(m && P.indexOf(m[1])>=0){p=m[1]; t=m[2]||'today'; fr=m[3]||'page';} else {p='home'; t='today'; fr='page';} }
   function layNotes(f){ var prev=-1e9; f.querySelectorAll('.mn').forEach(function(n){ var want=+n.dataset.top||0; var top=Math.max(want, prev+12); n.style.top=top+'px'; prev=top+n.offsetHeight; }); }
+  function paintMarks(){
+    document.querySelectorAll('[data-mark]').forEach(function(el){ var m=mark(el.dataset.mark); el.className='ni-m'+(m?' '+m:''); el.title=m?WORDS[m]:''; el.setAttribute('aria-label', m?WORDS[m]:''); });
+    var n=pending().length, label=n ? 'Submit '+n+' note'+(n===1?'':'s') : 'Submit notes';
+    var say;
+    if(!db) say='Notes are kept in this browser only. Open this page on claude.ai to send them to Claude.';
+    else if(n) say=n+' page'+(n===1?'':'s')+' with notes not yet submitted.';
+    else { var sent=Object.keys(notes).filter(function(k){return notes[k].status==='submitted';}).length; say = sent ? '<b>'+sent+' submitted.</b> Say “notes submitted” in the chat and Claude starts.' : 'Write notes on any page, then submit them together.'; }
+    ['submit-all','submit-all-m'].forEach(function(id){ var b=$(id); if(b){ b.textContent=label; b.disabled=!db||!n||busy; } });
+    ['sub-say','sub-say-m'].forEach(function(id){ var s=$(id); if(s && !s.dataset.hold) s.innerHTML=say; });
+  }
+  function paintNote(){
+    if(p==='about') return;
+    var ta=$('note-text'), st=$('nb-state'), sv=$('note-save'), rp=$('nb-reply');
+    $('nb-name').textContent=META[p].label;
+    if(document.activeElement!==ta || ta.dataset.k!==p){ ta.value=shown(p); ta.dataset.k=p; }
+    var n=notes[p], m=mark(p);
+    st.className='nb-state';
+    if(m==='draft'){ st.textContent='Not saved yet'; st.className='nb-state warn'; }
+    else if(m==='saved') st.textContent='Saved '+when(n.savedAt)+' · not yet submitted';
+    else if(m==='sent') st.textContent='Submitted '+when(n.submittedAt)+' · waiting for Claude';
+    else if(m==='done') st.textContent='Changed by Claude '+when(n.doneAt);
+    else st.textContent= db ? 'No note yet' : 'No note yet · kept in this browser only';
+    sv.disabled = busy || !isDraft(p);
+    if(n && n.reply){ rp.hidden=false; rp.innerHTML=''; var w=document.createElement('span'); w.className='who'; w.textContent='Claude'+(n.doneAt?', '+when(n.doneAt):''); var tx=document.createElement('span'); tx.textContent=n.reply; rp.appendChild(w); rp.appendChild(tx); }
+    else rp.hidden=true;
+  }
   function paint(){
-    document.querySelectorAll('.sw [data-p]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.p===p));});
-    document.querySelectorAll('.sw [data-t]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.t===t));});
-    document.querySelectorAll('.sw [data-fr]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.fr===fr));});
+    document.querySelectorAll('.ni').forEach(function(b){ if(b.dataset.p===p) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+    document.querySelectorAll('[data-t]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.t===t));});
+    document.querySelectorAll('[data-fr]').forEach(function(b){b.setAttribute('aria-pressed', String(b.dataset.fr===fr));});
+    $('m-pick').value=p;
+    var about=p==='about';
+    $('v-about').hidden=!about; $('v-screen').hidden=about;
+    $('m-eye').textContent= about ? 'HaTi, the Legora Way' : META[p].group;
+    $('m-title').textContent= about ? 'Read me first' : META[p].label;
     stage.className='stage t-'+t+' f-'+fr;
     document.querySelectorAll('.frame').forEach(function(f){f.classList.toggle('on', f.dataset.f===p);});
     document.querySelectorAll('.scr').forEach(function(n){n.classList.toggle('on', n.dataset.n===p);});
     var f=document.querySelector('.frame.on'); if(f) layNotes(f);
+    fit(); paintNote(); paintMarks();
   }
-  function go(np,nt,nf){ p=np||p; t=nt||t; fr=nf||fr; var h='#'+p+(t==='today'?'':'-'+t)+(fr==='page'?'':'-cards'); if(location.hash!==h){ try{history.replaceState(null,'',h);}catch(e){} } paint(); }
-  document.querySelectorAll('.sw [data-p]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.p,null);});});
-  document.querySelectorAll('.sw [data-t]').forEach(function(b){b.addEventListener('click',function(){go(null,b.dataset.t);});});
-  document.querySelectorAll('.sw [data-fr]').forEach(function(b){b.addEventListener('click',function(){go(null,null,b.dataset.fr);});});
+  function go(np,nt,nf){ p=np||p; t=nt||t; fr=nf||fr; var h='#'+p+(t==='today'?'':'-'+t)+(fr==='page'?'':'-cards'); if(location.hash!==h){ try{history.replaceState(null,'',h);}catch(e){} } paint(); var a=document.querySelector('.ni[aria-current]'); if(a && a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
+  function step(d){ go(P[(P.indexOf(p)+d+P.length)%P.length]); window.scrollTo(0,0); }
+  document.querySelectorAll('.ni').forEach(function(b){b.addEventListener('click',function(){ go(b.dataset.p); window.scrollTo(0,0); });});
+  document.querySelectorAll('[data-t]').forEach(function(b){b.addEventListener('click',function(){go(null,b.dataset.t);});});
+  document.querySelectorAll('[data-fr]').forEach(function(b){b.addEventListener('click',function(){go(null,null,b.dataset.fr);});});
+  $('m-pick').addEventListener('change',function(e){ go(e.target.value); });
+  $('m-prev').addEventListener('click',function(){step(-1);});
+  $('m-next').addEventListener('click',function(){step(1);});
   window.addEventListener('hashchange',function(){read();paint();});
   document.addEventListener('keydown',function(e){
-    if(e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
-    if(e.key==='ArrowRight'){ go(P[(P.indexOf(p)+1)%P.length],null); }
-    else if(e.key==='ArrowLeft'){ go(P[(P.indexOf(p)+P.length-1)%P.length],null); }
-    else if(e.key==='ArrowDown'){ go(null,T[(T.indexOf(t)+1)%T.length]); }
-    else if(e.key==='ArrowUp'){ go(null,T[(T.indexOf(t)+T.length-1)%T.length]); }
+    var tg=e.target && e.target.tagName; if(/INPUT|TEXTAREA|SELECT/.test(tg||'')) return;
+    if(e.key==='ArrowRight'){ step(1); } else if(e.key==='ArrowLeft'){ step(-1); }
   });
+  var ta=$('note-text');
+  ta.addEventListener('input',function(){ if(ta.dataset.k!==p) return; if(ta.value.trim()===savedText(p).trim()) setDraft(p,null); else setDraft(p,ta.value); paintNote(); paintMarks(); });
+  ta.addEventListener('keydown',function(e){ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); save(p); } });
+  $('note-save').addEventListener('click',function(){ save(p); });
+  function errWords(e){ var c=e && e.code; if(c==='invalid_argument') return 'This page is open for viewing only, so notes cannot be saved here.'; if(c==='quota_exceeded') return 'The notes store is full.'; if(c==='resource_exhausted') return 'Too many saves at once. Wait a moment and try again.'; return 'The note could not be saved. Try again in a moment.'; }
+  function body(k,text,status,extra){ var n=notes[k]||{}; var b={screen:k,label:META[k].label,group:META[k].group,text:text,status:status,savedAt:n.savedAt||null,submittedAt:n.submittedAt||null,doneAt:n.doneAt||null,reply:n.reply||null}; for(var x in extra) b[x]=extra[x]; return b; }
+  async function write(k){
+    var text=shown(k);
+    if(!db){ setDraft(k,text); return; }
+    if(!text.trim()){ await db.doc('notes/'+k).delete(); delete notes[k]; setDraft(k,null); return; }
+    var b=body(k,text,'saved',{savedAt:new Date().toISOString()});
+    await db.doc('notes/'+k).set(b); notes[k]=b; setDraft(k,null);
+  }
+  async function save(k){
+    if(busy || !isDraft(k)) return;
+    if(!db){ $('nb-state').textContent='Kept in this browser only. Open this page on claude.ai to send notes to Claude.'; return; }
+    busy=true; $('nb-state').textContent='Saving…'; $('note-save').disabled=true;
+    try{ await write(k); busy=false; paintNote(); paintMarks(); }
+    catch(e){ busy=false; paintNote(); paintMarks(); var s=$('nb-state'); s.textContent=errWords(e); s.className='nb-state bad'; }
+  }
+  async function submitAll(){
+    if(busy||!db) return; var list=pending(); if(!list.length) return;
+    busy=true; paintMarks(); var at=new Date().toISOString(), done=[];
+    ['sub-say','sub-say-m'].forEach(function(id){ var s=$(id); if(s){ s.dataset.hold='1'; s.textContent='Submitting…'; } });
+    try{
+      for(var i=0;i<list.length;i++){ var k=list[i];
+        if(isDraft(k)) await write(k);
+        if(!notes[k]) continue;
+        var b=body(k,notes[k].text,'submitted',{submittedAt:at});
+        await db.doc('notes/'+k).set(b); notes[k]=b; done.push(k); }
+      if(done.length) await db.collection('submissions').add({at:at,screens:done,count:done.length});
+      busy=false;
+      ['sub-say','sub-say-m'].forEach(function(id){ var s=$(id); if(s){ delete s.dataset.hold; } });
+      paintNote(); paintMarks();
+      ['sub-say','sub-say-m'].forEach(function(id){ var s=$(id); if(s) s.innerHTML='<b>'+done.length+' note'+(done.length===1?'':'s')+' submitted.</b> Now say “notes submitted” in the chat and Claude starts.'; });
+    }catch(e){
+      busy=false; ['sub-say','sub-say-m'].forEach(function(id){ var s=$(id); if(s){ delete s.dataset.hold; s.textContent=errWords(e)+' '+done.length+' of '+list.length+' were submitted.'; } });
+      paintNote(); paintMarks();
+    }
+  }
+  $('submit-all').addEventListener('click',submitAll);
+  $('submit-all-m').addEventListener('click',submitAll);
   function fit(){ var w=stage.clientWidth||1440; stage.style.setProperty('--s', String(w/1440)); }
   if(window.ResizeObserver){ new ResizeObserver(fit).observe(stage); } else { window.addEventListener('resize',fit); }
-  read(); paint(); fit();
+  read(); paint();
   if(document.fonts && document.fonts.ready){ document.fonts.ready.then(paint); }
   setTimeout(paint, 1500);
+  (async function(){
+    try{
+      var c=window.claude; db = c && c.use ? await c.use('db') : null;
+      if(!db){ paintNote(); paintMarks(); return; }
+      db.collection('notes').onSnapshot(function(snap){
+        var next={}; snap.docs.forEach(function(d){ if(d.exists) next[d.id]=d.data(); });
+        notes=next; if(!busy){ paintNote(); paintMarks(); }
+      }, function(){ db=null; paintNote(); paintMarks(); });
+      paintNote(); paintMarks();
+    }catch(e){ db=null; paintNote(); paintMarks(); }
+  })();
 })();
 </script>
