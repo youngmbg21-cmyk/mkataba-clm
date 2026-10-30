@@ -18335,6 +18335,12 @@
     <!-- THE BELL OPENS ALERTS: the things actually waiting on this person. The
          count is real and `hidden` at zero — nothing marks an alert as merely
          seen, so the number goes down when the work does. -->
+    <!-- THE NAV PANEL'S DOOR (owner, 29 Oct 2026: "next to the alerts sign, add a nav panel sign which when pressed
+         you will open up the alerts panel but the landing would be the guide panel"): the same one panel, on its
+         Guide face (openPanel('guide')); pressed again it closes, as the bell does -->
+    <button id="hdr-nav" class="hdr-icon-btn" title="Guide — every page, in the order a contract lives" data-i18n-title="sh_nav_title" aria-expanded="false">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
+    </button>
     <button id="hdr-notify" class="hdr-icon-btn" title="Alerts — what is waiting on you" data-i18n-title="sh_alerts_title">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg>
       <span id="hdr-notify-dot" hidden></span>

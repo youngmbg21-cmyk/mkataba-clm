@@ -16211,6 +16211,7 @@ const STRINGS = {
     sh_ask_copilot: 'Ask Jambo',
     sh_notifications: 'Alerts — what is waiting on you',
     sh_alerts_title: 'Alerts — what is waiting on you',
+    sh_nav_title: 'Guide — every page, in the order a contract lives',
     sh_alerts: 'Alerts',
     sh_activity: 'Activity',
     /* THE GUIDE (owner picked "Journey", 19 Oct 2026) */
@@ -37300,6 +37301,7 @@ const STRINGS = {
     sh_ask_copilot: 'Fråga Jambo',
     sh_notifications: 'Aviseringar — vad som väntar på dig',
     sh_alerts_title: 'Aviseringar — vad som väntar på dig',
+    sh_nav_title: 'Guide — varje sida, i den ordning ett avtal lever',
     sh_alerts: 'Aviseringar',
     sh_activity: 'Aktivitet',
     /* THE GUIDE (owner picked "Journey", 19 Oct 2026) */

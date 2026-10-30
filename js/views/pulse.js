@@ -220,7 +220,7 @@ function puMovedOf(r){
 /* THE STRAND: a horizontal double helix from the start to the end, today dashed across, a rung per dated thing */
 /* the strand is drawn in the column's own pixels (PU_W follows it, puStrandFit), so a turn is PU_PER wide on every screen */
 let PU_W = 600;
-const PU_H = 44, PU_MID = 22, PU_AMP = 13, PU_PER = 64;
+const PU_H = 34, PU_MID = 17, PU_AMP = 11, PU_PER = 56;
 let _puPhase = 0;
 function puXOf(r, day){
   const s = r.span.start, today = _puToday();
@@ -253,7 +253,7 @@ function puRowHtml(r, N){
   const party = String(c.counterparty || '').trim();
   return `<tr class="pu-row${_pu.sel === r.id ? ' is-sel' : ''}" data-pu-row="${_puE(r.id)}" tabindex="0" aria-selected="${_pu.sel === r.id}">
     <td class="pu-rk"><b>${r.rank}</b><small>${_puE(_puT('pu_of', { n: N }))}</small></td>
-    <td class="pu-who"><span class="pu-ref">${ref}</span><span class="pu-nm" title="${_puE(_puName(c))}">${_puE(_puName(c))}${party && !_puName(c).includes(party) ? ` <span class="pu-pty">· ${_puE(party)}</span>` : ''}</span>${puStatusHtml(c)}</td>
+    <td class="pu-who" title="${_puE([_puName(c), party].filter(Boolean).join(' · '))}"><span class="pu-nm">${_puE(_puName(c))}</span><span class="pu-meta"><span class="pu-ref">${ref}</span>${party && !_puName(c).includes(party) ? `<span class="pu-pty">${_puE(party)}</span>` : ''}${puStatusHtml(c)}</span></td>
     <td class="pu-dna">${puStrandHtml(r)}</td>
     <td class="pu-sc"><b>${_puE(big.n)}</b>${big.w ? `<small>${_puE(big.w)}</small>` : ''}</td>
     <td class="pu-mv is-${mv.cls}" title="${_puE(mv.title)}">${_puE(mv.t)}</td></tr>`;
@@ -422,28 +422,35 @@ function puCss(){ return `
   #pu-page .pu-card{width:100%;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--hb-shadow,0 1px 2px rgba(0,0,0,.05));overflow:hidden}
   #pu-page .pu-wrap{flex:1 1 auto;min-height:0;overflow:auto}
   #pu-page .pu-t{width:100%;border-collapse:collapse;table-layout:fixed}
-  #pu-page .pu-c-rk{width:56px} #pu-page .pu-c-who{width:30%} #pu-page .pu-c-sc{width:112px} #pu-page .pu-c-mv{width:64px}
+  #pu-page .pu-c-rk{width:56px} #pu-page .pu-c-who{width:25%} #pu-page .pu-c-sc{width:112px} #pu-page .pu-c-mv{width:64px}
   #pu-page .pu-t th{position:sticky;top:0;z-index:2;background:var(--color-surface);text-align:left;font-size:var(--t-micro);font-weight:var(--w-label);letter-spacing:.3px;text-transform:uppercase;color:var(--color-quiet);padding:10px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap}
   #pu-page .pu-t th:first-child,#pu-page .pu-t td:first-child{padding-left:var(--s-4,16px)} #pu-page .pu-t th:last-child,#pu-page .pu-t td:last-child{padding-right:var(--s-4,16px)}
   #pu-page .pu-t th.is-r{text-align:right}
   #pu-page .pu-row{cursor:pointer;background:var(--color-surface)}
-  #pu-page .pu-row td{padding:10px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
+  #pu-page .pu-row td{padding:7px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
   #pu-page .pu-row:hover{background:var(--color-neutral-50,#FAFAFC)}
   #pu-page .pu-row.is-sel{background:var(--accent-soft,#E6F3F0);box-shadow:inset 3px 0 0 var(--accent-solid)}
   #pu-page .pu-row:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px}
   #pu-page .pu-row.is-hit td{animation:pu-hit 1.2s ease-out}
   @keyframes pu-hit{0%{background:var(--st-amber-bg,#FBEFDD)}100%{background:transparent}}
-  #pu-page .pu-rk b{display:block;font-family:var(--font-title);font-size:20px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
-  #pu-page .pu-rk small{display:block;margin-top:4px;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap}
+  #pu-page .pu-rk b{display:block;font-family:var(--font-title);font-size:18px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+  #pu-page .pu-rk small{display:block;margin-top:2px;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap}
   #pu-page .pu-who{min-width:0}
-  #pu-page .pu-ref{display:block;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #pu-page .pu-nm{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:var(--t-card);font-weight:var(--w-strong);line-height:1.3;color:var(--color-text)}
-  #pu-page .pu-pty{font-weight:400}
+  /* THE COMPACT ROW (owner, 29 Oct 2026: "the names are too long and take so much of the space the strand needs"):
+     the name on ONE line, cut with … (the whole name and party on the row's hover and in Jambo's panel), then ONE
+     small line: ref · party · stage */
+  #pu-page .pu-nm{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:var(--t-card);font-weight:var(--w-strong);line-height:1.3;color:var(--color-text)}
+  #pu-page .pu-meta{display:flex;align-items:center;gap:6px;min-width:0;margin-top:2px;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  #pu-page .pu-meta>*{flex:none}
+  #pu-page .pu-meta .pu-pty{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #pu-page .pu-meta .pu-ref{color:var(--color-quiet)}
+  #pu-page .pu-meta>*+*::before{content:'·';margin-right:6px;color:var(--color-quiet)}
+  #pu-page .pu-meta .pu-st{margin:0;font-size:var(--t-micro)}
   .pu-st{display:inline-flex;align-items:center;gap:6px;margin-top:3px;font-size:var(--t-label);white-space:nowrap}
   .pu-st i{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
   #pu-page .pu-dna{min-width:0}
-  #pu-page .pu-strand{position:relative;height:44px}
-  #pu-page .pu-strand svg{display:block;width:100%;height:44px;overflow:visible}
+  #pu-page .pu-strand{position:relative;height:34px}
+  #pu-page .pu-strand svg{display:block;width:100%;height:34px;overflow:visible}
   #pu-page .pu-hx{fill:none;stroke:var(--color-text);stroke-width:2.2;vector-effect:non-scaling-stroke}
   #pu-page .pu-hx.is-pa{stroke-opacity:.9} #pu-page .pu-hx.is-pb{stroke-opacity:.45} #pu-page .pu-hx.is-fa{stroke-opacity:.26} #pu-page .pu-hx.is-fb{stroke-opacity:.13}
   #pu-page .pu-today{stroke:var(--color-text);stroke-opacity:.5;stroke-width:2;stroke-dasharray:3 4;vector-effect:non-scaling-stroke}
@@ -455,11 +462,11 @@ function puCss(){ return `
   .pu-rung.is-ob,.pu-key b.is-ob,.pu-trail i.is-ob{stroke:var(--st-green-dot);background:var(--st-green-dot)}
   .pu-rung.is-warn,.pu-key b.is-warn,.pu-trail i.is-warn{stroke:var(--st-amber-dot);background:var(--st-amber-dot)}
   .pu-rung.is-bad,.pu-key b.is-bad,.pu-trail i.is-bad{stroke:var(--st-ruby-dot);background:var(--st-ruby-dot)}
-  #pu-page .pu-cap{position:absolute;left:0;top:-4px;font-size:10.5px;color:var(--color-quiet);pointer-events:none;white-space:nowrap}
+  #pu-page .pu-cap{position:absolute;left:0;top:-6px;font-size:10.5px;color:var(--color-quiet);pointer-events:none;white-space:nowrap}
   #pu-page .pu-cap.is-r{left:auto;right:0}
   #pu-page .pu-sc{text-align:right;font-variant-numeric:tabular-nums}
-  #pu-page .pu-sc b{display:block;font-size:18px;font-weight:var(--w-strong);line-height:1;white-space:nowrap}
-  #pu-page .pu-sc small{display:block;margin-top:4px;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #pu-page .pu-sc b{display:block;font-size:16px;font-weight:var(--w-strong);line-height:1;white-space:nowrap}
+  #pu-page .pu-sc small{display:block;margin-top:2px;font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #pu-page .pu-mv{text-align:right;font-size:var(--t-meta);white-space:nowrap;font-variant-numeric:tabular-nums}
   #pu-page .pu-mv.is-up{color:var(--st-ruby-fg,var(--st-ruby-dot))} #pu-page .pu-mv.is-down{color:var(--accent-ink)} #pu-page .pu-mv.is-same{color:var(--color-quiet)}
   #pu-page .pu-foot{flex:none;display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px var(--s-4,16px);border-top:1px solid var(--color-divider);font-size:var(--t-meta)}
