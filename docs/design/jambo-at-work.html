@@ -78,6 +78,7 @@ svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
 .view{display:none;flex:1;min-height:0;flex-direction:column}
 .view.on{display:flex}
+.body[hidden]{display:none!important}
 
 /* ============ the reading desk ============ */
 .desk{flex:1;min-height:0;background:var(--desk);position:relative;overflow:auto;padding:28px 24px 40px;margin-top:14px}
@@ -267,8 +268,8 @@ function resetRead(){ clearTimeout(timer); running=false; idx=0; found={party:0,
 $('#rd-again').addEventListener('click',resetRead);
 play.addEventListener('click',()=>{ if(running){ running=false; clearTimeout(timer); play.innerHTML='<svg class="i" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg> Continue'; st.textContent='Paused at clause '+idx+' · nothing filed'; return; } if(idx>=CLAUSES.length){ resetRead(); } running=true; play.innerHTML='<svg class="i" viewBox="0 0 24 24"><path d="M6 5h4v14H6z"/><path d="M14 5h4v14h-4z"/></svg> Pause'; step(); });
 function addFact(m){ let g=groups[m.kind]; if(!g){ g=document.createElement('div'); g.innerHTML=`<div class="sec">${GROUP[m.kind]}</div>`; groups[m.kind]=g; facts.appendChild(g); }
-  const [l,v,s]=m.note.split(' · '); const owe=m.kind==='blank'; const row=document.createElement('div'); row.className='fact'+(owe?' owe':''); const sec=m.ci? '§ '+CLAUSES[m.ci].n : 'preamble';
-  row.innerHTML=`<div class="l">${l}</div><div class="v">${owe?'<b>'+v+'</b>':v}${s?' · '+s:''}<br><span class="src">“${m.words}”</span></div><div class="s">${sec}</div>`; g.appendChild(row); found[m.kind]++; }
+  const parts=m.note.split(' · '); const l=parts[0]; const v=parts.length>1?parts[1]:m.words; const s=parts.length>2?parts[2]:''; const owe=m.kind==='blank'; const row=document.createElement('div'); row.className='fact'+(owe?' owe':''); const sec=m.ci? '§ '+CLAUSES[m.ci].n : 'preamble';
+  row.innerHTML=`<div class="l">${l}</div><div class="v">${owe?'<b>'+v+'</b>':v}${s?' · '+s:''}${v!==m.words?'<br><span class="src">“'+m.words+'”</span>':''}</div><div class="s">${sec}</div>`; g.appendChild(row); found[m.kind]++; }
 function step(){ if(!running) return; if(idx>=CLAUSES.length){ finish(); return; }
   const el=paper.querySelector(`.cl[data-i="${idx}"]`); const dur=reduced?0:Math.max(260,(420+el.textContent.length*4.2)*speed);
   el.classList.add('reading'); if(!reduced){ el.animate([{'--p':'0%'},{'--p':'100%'}],{duration:dur,fill:'forwards'}); }
@@ -330,7 +331,7 @@ function buildMap(){ mapBuilt=true; const host=$('#mp-exp'); const r=host.getBou
   const axis=document.createElementNS(NS,'g'); axis.setAttribute('class','axis'); axis.style.opacity=0; svg.appendChild(axis); svg._axis=axis;
   const eg=document.createElementNS(NS,'g'); svg.appendChild(eg);
   nodes=[]; edges=[];
-  const mk=(kind,d,rad,label,sub)=>{ const g=document.createElementNS(NS,'g'); g.setAttribute('class','node '+kind); const c=document.createElementNS(NS,'circle'); c.setAttribute('r',rad); g.appendChild(c); const t=document.createElementNS(NS,'text'); t.setAttribute('text-anchor','middle'); t.setAttribute('y',rad+13); t.textContent=label; g.appendChild(t); if(sub){ const s=document.createElementNS(NS,'text'); s.setAttribute('class','sub'); s.setAttribute('text-anchor','middle'); s.setAttribute('y',rad+25); s.textContent=sub; g.appendChild(s);} svg.appendChild(g); const n={kind,d,el:g,r:rad,x:W/2,y:H/2}; nodes.push(n); return n; };
+  const mk=(kind,d,rad,label,sub)=>{ const g=document.createElementNS(NS,'g'); g.setAttribute('class','node '+kind); const c=document.createElementNS(NS,'circle'); c.setAttribute('r',rad); g.appendChild(c); const t=document.createElementNS(NS,'text'); t.setAttribute('text-anchor','middle'); t.setAttribute('y',kind==='party'?-(rad+6):rad+13); t.textContent=label; g.appendChild(t); if(sub){ const s=document.createElementNS(NS,'text'); s.setAttribute('class','sub'); s.setAttribute('text-anchor','middle'); s.setAttribute('y',rad+25); s.textContent=sub; g.appendChild(s);} svg.appendChild(g); const n={kind,d,el:g,r:rad,x:W/2,y:H/2}; nodes.push(n); return n; };
   STREAMS.forEach(s=>mk('stream',s,22,s.name.split(' &')[0]));
   PARTIES.forEach(p=>mk('party',p,8,p.name.replace(' Supermarkets','').replace(' Logistics','')));
   C.forEach(c=>mk('contract',c,Math.max(7,Math.sqrt(c.value)/700),c.name.length>20?c.name.slice(0,19)+'…':c.name,c.id));
@@ -348,7 +349,7 @@ function layout(mode){ const pad=46; svg._axis.style.opacity=0; svg._axis.innerH
   if(mode!=='party'){ nodes.filter(n=>n.kind==='party').forEach(p=>{ const cs=nodes.filter(n=>n.kind==='contract'&&n.d.party===p.d.id); const s=nodes.find(n=>n.kind==='stream'&&n.d.id===p.d.stream); const mx=cs.reduce((a,c)=>a+c.x,0)/cs.length, my=cs.reduce((a,c)=>a+c.y,0)/cs.length; p.x=(mx*0.55+s.x*0.45); p.y=(my*0.55+s.y*0.45); }); }
   else { nodes.filter(n=>n.kind==='stream').forEach(s=>{ s.el.style.opacity=0; s.x=W/2; s.y=H+80; }); }
 }
-function place(){ nodes.forEach(n=>{ n.el.setAttribute('transform',`translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`); }); edges.forEach(e=>{ e.el.setAttribute('x1',e.a.x);e.el.setAttribute('y1',e.a.y);e.el.setAttribute('x2',e.b.x);e.el.setAttribute('y2',e.b.y); }); }
+function place(){ nodes.forEach(n=>{ n.el.setAttribute('transform',`translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`); }); edges.forEach(e=>{ e.el.setAttribute('x1',e.a.x);e.el.setAttribute('y1',e.a.y);e.el.setAttribute('x2',e.b.x);e.el.setAttribute('y2',e.b.y); e.el.style.opacity=(e.a.el.style.opacity==='0'||e.b.el.style.opacity==='0')?0:''; }); }
 function buildDna(){ const host=$('#mp-dna'); host.innerHTML=C.map(c=>{ const tot=c.cl.reduce((a,x)=>a+x[3],0); const worst=c.cl.some(x=>x[2]==='r')?['red',c.cl.filter(x=>x[2]==='r').length+' missing']:c.cl.some(x=>x[2]==='b')?['amber',c.cl.filter(x=>x[2]==='b').length+' blanks']:c.cl.some(x=>x[2]==='a')?['amber',c.cl.filter(x=>x[2]==='a').length+' differs']:['','all met'];
   return `<div class="row" data-id="${c.id}"><div><div class="nm">${c.name}</div><div class="ln">${PARTIES.find(p=>p.id===c.party).name} · <span class="ref">${c.id}</span> · ${c.cl.length} clauses</div></div><div><div class="strand">${c.cl.map(x=>`<i class="${x[2]}" style="--w:${x[3]}" data-k="${x[1]}" data-m="${x[2]}" title="§ ${x[0]} ${x[1]}"></i>`).join('')}</div><div class="ticks">${c.cl.map(x=>`<i style="--w:${x[3]}">${x[0]===0?'pre':x[0]}</i>`).join('')}</div></div><div class="w ${worst[0]}">${worst[1]}</div></div>`; }).join(''); }
 
