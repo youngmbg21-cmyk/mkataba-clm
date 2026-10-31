@@ -558,3 +558,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - `node --test test/f967-the-new-look-switch.test.js` — the switch: an admin's own, off by default, the server's wall; every new-look rule waits on `html.lg-new`.
 - `node test/chromium/new-look-frame-verify.js` — the Page frame at the three screens: the panel square at the bar, side and foot behind one hairline; one-sheet pages edge to edge; card pages on the well 12 · 16; the box 44 and its 16; the line above the doors; the bar's order and "?"; one line to Jambo, green on hover; the Board joined; off = nothing moved; a non-admin refused.
 - `HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js` — the tidy sweep with the switch on (and without it, today's look).
+
+## THE NEW LOOK — HOME (round 2 rebuilt behind the switch)
+- `node --test test/f968-home-in-the-new-look.test.js` — one list most urgent first, the sentence counted from it, the paper's words only where known, behind the switch.
+- `node test/chromium/home-morning-verify.js` — Home in the new look at the three screens (the sheet beside Jambo's panel, the greeting, the counts, your week, the one list, his panel, his work in place, the first day; off = today's Home).
+- `HATI_TIDY_ONLY=home HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js`; `node test/chromium/doors-verify.js` (Home's doors above the box in his panel).

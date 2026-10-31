@@ -18365,6 +18365,80 @@
   html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot.jl-foot, .st-cr .st-jb-ask.st-jb-ask){padding:12px var(--jb-g,16px) var(--well-b)}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot, .st-cr #st-jb-form, #ai-panel.is-side > footer, #cn-page) .jb-card:not(.is-tall){box-sizing:border-box;min-height:var(--jb-box-h)}
+  /* ==== THE NEW LOOK: HOME (round 2 rebuilt, owner, 31 Oct 2026; js/views/counter.js cn2*) ====
+     As drawn: the warm top (the greeting in the title serif, one sentence, the coloured counts, your week), then ONE list —
+     the other side's initials, the name and its line, the kind and what waits with the paper's words where known, the
+     verb a green link — then the foot; Jambo's panel beside it. The first day: three doors and the company's line. */
+  html.lg-new #content-scroll:has(#cn2-page){scrollbar-gutter:auto}
+  html.lg-new #cn2-page .ins-body{height:100%}
+  html.lg-new #cn2-page .cn2-sheet.cn2-sheet{border:0;border-radius:0;box-shadow:none}
+  html.lg-new #cn2-page .cn2-sheet{display:flex;flex-direction:column;min-height:0;height:100%;background:var(--color-surface);overflow:hidden}
+  html.lg-new #cn2-page .cn2-top{flex:none;padding:24px 40px 12px;background:linear-gradient(180deg,var(--morning-warm) 0%,var(--color-surface) 100%);border-bottom:1px solid var(--color-divider)}
+  html.lg-new #cn2-page .cn2-top.is-plain{background:var(--color-surface);border-bottom:0;padding-top:32px}
+  html.lg-new #cn2-page .cn2-hello{margin:0;font-family:var(--font-title);font-size:27px;font-weight:var(--w-title-serif);line-height:1.2;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-say{margin:6px 0 0;font-size:15px;line-height:1.45;max-width:72ch;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-say.is-strong{font-weight:var(--w-label)}
+  html.lg-new #cn2-page .cn-counts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}
+  html.lg-new #cn2-page .cn-ct{display:inline-flex;align-items:center;gap:7px;height:var(--ctl-h);padding:0 12px;border:0;border-radius:999px;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new #cn2-page .cn-ct i{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+  html.lg-new #cn2-page .cn-ct.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new #cn2-page .cn-ct.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #cn2-page .cn-ct.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new #cn2-page .cn-ct.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #cn2-page .cn-ct.is-gray{background:var(--surface-2);color:var(--color-text)}
+  html.lg-new #cn2-page .cn-ct.is-gray i{background:var(--st-gray-dot)}
+  html.lg-new #cn2-page .cn-week{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:10px 0 0;font-size:11.5px;line-height:16px;color:var(--color-quiet)}
+  html.lg-new #cn2-page .cn-wk-t{margin-right:8px;white-space:nowrap}
+  html.lg-new #cn2-page .cn-wk-d{display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:34px;padding:2px 0;border:0;border-radius:var(--radius);background:none;font:inherit;color:var(--color-text)}
+  html.lg-new #cn2-page button.cn-wk-d{cursor:pointer}
+  @media (hover:hover){ html.lg-new #cn2-page button.cn-wk-d:hover{background:var(--surface-2)} }
+  html.lg-new #cn2-page .cn-wk-d b{font-weight:var(--w-label);font-size:12px}
+  html.lg-new #cn2-page .cn-wk-d.is-today b{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #cn2-page .cn-wk-d i{width:6px;height:6px;border-radius:50%;background:var(--color-divider)}
+  html.lg-new #cn2-page .cn-wk-d i.is-ruby{background:var(--st-ruby-dot)}
+  html.lg-new #cn2-page .cn-wk-d i.is-amber{background:var(--st-amber-dot)}
+  html.lg-new #cn2-page .cn-wk-d i.is-green{background:var(--st-green-dot)}
+  html.lg-new #cn2-page .cn-wk-say{margin-left:8px;min-width:0}
+  html.lg-new #cn2-page .cn2-list{flex:1;min-height:0;overflow:auto;padding:0 40px}
+  html.lg-new #cn2-page .cn2-row{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr) auto;gap:20px;align-items:start;padding:11px 0;border-top:1px solid var(--color-divider)}
+  html.lg-new #cn2-page .cn2-row:first-child{border-top:0}
+  html.lg-new #cn2-page .cn2-row.is-open{background:var(--surface-2);margin:0 -16px;padding-left:16px;padding-right:16px}
+  html.lg-new #cn2-page .cn2-who{display:flex;gap:10px;align-items:flex-start;min-width:0}
+  html.lg-new #cn2-page .cn2-who .nd-av{width:28px;height:28px;border-radius:50%;flex:none}
+  html.lg-new #cn2-page .cn2-who .nd-av svg{width:14px;height:14px}
+  html.lg-new #cn2-page .cn2-who .nd-av.is-jambo{background:var(--jb-card-fill);color:var(--st-violet-fg);border:1px solid transparent}
+  html.lg-new #cn2-page .cn2-w{min-width:0}
+  html.lg-new #cn2-page .cn2-nm{font-size:14.5px;font-weight:var(--w-label);line-height:1.3;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  html.lg-new #cn2-page .cn2-ln{font-size:12px;line-height:1.4;color:var(--color-text);margin-top:2px}
+  html.lg-new #cn2-page .cn2-fx{font-size:13.5px;line-height:1.45;min-width:0;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-late{color:var(--st-ruby-fg)}
+  html.lg-new #cn2-page .cn2-sec{font-weight:var(--w-label)}
+  html.lg-new #cn2-page .cn2-src{font-family:var(--font-doc);font-style:italic}
+  html.lg-new #cn2-page .cn2-ac{text-align:right;white-space:nowrap;padding-top:1px}
+  html.lg-new #cn2-page .nd-btn.nd-link{width:auto;min-width:0;height:auto;min-height:0;padding:0;border:0;background:none;color:var(--accent-ink);font:inherit;font-size:13.5px;font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;white-space:nowrap;cursor:pointer}
+  html.lg-new #cn2-page .nd-kind{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;font-size:11px;line-height:16px;font-weight:var(--w-label);white-space:nowrap;vertical-align:1px}
+  html.lg-new #cn2-page .nd-kind.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new #cn2-page .nd-kind.is-you{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #cn2-page .nd-kind.is-jambo{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new #cn2-page .nd-kind.is-week{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #cn2-page .cn2-look{margin:0 0 12px 316px;padding:8px 0 8px 18px;border-left:2px solid var(--color-text)}
+  html.lg-new #cn2-page .cn2-none{padding:24px 0;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 40px 14px;border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-fds{margin-top:8px;border-top:1px solid var(--color-divider)}
+  html.lg-new #cn2-page .cn2-fd{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #cn2-page .cn2-fd-i{width:40px;height:40px;border-radius:var(--radius);background:var(--surface-2);display:grid;place-items:center;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-fd-s{font-size:13.5px;line-height:1.45;margin-top:2px;max-width:62ch;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-fd-lk{display:flex;gap:16px}
+  html.lg-new #cn2-page .ui-link{margin:0;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;background:none;border:0;padding:0;font:inherit;cursor:pointer}
+  /* Jambo's panel on Home: his eyebrows, the rules he keeps, the set-up links, his prepared work, Likely next with its cost */
+  html.lg-new #cn2-page .cn2-eye{margin:18px 0 6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-quiet);font-weight:var(--w-strong)}
+  html.lg-new #cn2-page .cn2-pr{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;padding:9px 0;border-top:1px solid var(--color-divider);font-size:13.5px;line-height:1.4}
+  html.lg-new #cn2-page .cn2-lk{display:flex;align-items:baseline;gap:8px;padding:6px 0;font-size:13.5px}
+  html.lg-new #cn2-page .cn2-q{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new #cn2-page .cn2-turn{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:13.5px;line-height:1.45}
+  html.lg-new #cn2-page .cn2-dot{width:12px;height:12px;border-radius:50%;background:var(--st-violet-dot);flex:none;margin-top:4px}
+  html.lg-new #cn2-page .cn2-turn .ui-link{margin-left:4px}
+  html.lg-new #cn2-page .cn2-who-j{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-quiet);font-weight:var(--w-strong)}
 </style>
 
 
