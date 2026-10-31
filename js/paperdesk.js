@@ -4731,6 +4731,18 @@ function pd2FormRegroup(c){
     G[k].forEach(tr => tb.appendChild(tr)); host.appendChild(tb); });
   host.setAttribute('data-pd2-grouped', '');
   try { pdFormCount(); } catch (_){}
+  /* THE FOOT, AS DRAWN: how far, and that nothing is saved until Save, on the left; Discard and Save on the right */
+  const ft = document.querySelector('[data-pd-mid^="form:"] .pd-fm-f');
+  if (ft){ const back = ft.querySelector('[data-pd-back="form"]'); if (back) back.textContent = _pdT('pd2_fp_discard');
+    ft.querySelectorAll('.ui-btn-sm').forEach(b => b.classList.remove('ui-btn-sm'));
+    const say = ft.querySelector(':scope > span'); if (say) say.setAttribute('data-pd2-fm-say', '');
+    pd2FormFootSay(); }
+}
+function pd2FormFootSay(){
+  const fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'), say = document.querySelector('[data-pd-mid^="form:"] [data-pd2-fm-say]'); if (!fm || !say) return;
+  const rows = [...fm.querySelectorAll('tr.pd-fm-row')], n = rows.length;
+  const k = rows.filter(r => r.classList.contains('is-saved') || r.classList.contains('is-typed') || r.classList.contains('is-read') || pdFormBoxHas(r)).length;
+  say.textContent = _pdT('pd2_fm_foot', { k, n });
 }
 /* the Dossier while the form is up: what is typed, row by row, as it is typed */
 function pd2FormFaceHtml(c, D){
@@ -4748,6 +4760,7 @@ function pd2FormFaceHtml(c, D){
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   if (!(e.target && e.target.closest && e.target.closest('[data-pd-mid] #pd-og.is-form'))) return;
   const c = pdContract(), list = document.querySelector('#ig-dock [data-pd2-ft-list]'); if (!c || !list) return;
+  try { pd2FormFootSay(); } catch (_){}
   const t = document.createElement('div'); t.innerHTML = pd2FormFaceHtml(c, dossierOf(c));
   const nu = t.querySelector('[data-pd2-ft-list]'); if (nu && nu.innerHTML !== list.innerHTML) list.innerHTML = nu.innerHTML;
 }));

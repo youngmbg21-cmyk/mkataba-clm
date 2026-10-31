@@ -18546,9 +18546,20 @@
   html.lg-new .pd2-fm-mid tr.pd2-fm-sg :is(.pd-og-ml:first-child, [data-pd-og-sg="ours"]){display:none}
   html.lg-new .pd2-fm-mid tr.pd2-fm-sg .pd-og-ml{display:none}
   html.lg-new .pd2-fm-mid .pd2-nw{white-space:nowrap}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-sg .pd-og-sb:has([data-pd-og-sg="ours"]){display:none}
+  html.lg-new .pd2-fm-mid .pd-og-sb{position:relative;max-width:260px}
+  html.lg-new .pd2-fm-mid .pd-og-sb > svg{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--color-quiet);pointer-events:none}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-sg td.pd-og-v [data-pd-og-sg="temail"]{margin-top:8px}
   html.lg-new .pd2-fm-mid td.pd-og-a{font-size:12.5px;color:var(--color-text)}
-  html.lg-new .pd2-fm-mid .pd-fm-f{display:flex;flex-direction:row-reverse;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--color-divider)}
-  html.lg-new .pd2-fm-mid .pd-fm-f > span{margin-right:auto;font-size:12.5px;color:var(--color-quiet)}
+  /* the form's foot: one bar across the page's foot, a hairline above it, its words left, Discard and Save right, full size */
+  html.lg-new .pd2-fm-mid .pd-fm-h p{display:none}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-body > .pd2-fm-mid{min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+  html.lg-new .pd2-fm-mid > .pd-fm{flex:1 0 auto;display:flex;flex-direction:column}
+  html.lg-new .pd2-fm-mid table.pd-og.is-form{margin-bottom:24px}
+  html.lg-new .pd2-fm-mid .pd-fm-f{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;margin:auto -40px -24px;padding:12px 40px;background:var(--color-surface);border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-fm-mid .pd-fm-f > span{margin-right:auto;font-size:13px;color:var(--color-text)}
+  html.lg-new .pd2-fm-mid .pd-fm-f .ui-btn{height:var(--ctl-h);padding:0 18px;border-radius:999px;font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .pd2-fm-mid .pd-fm-f .ui-btn:not(.ui-btn-primary){background:var(--surface-2);border:0;color:var(--color-text)}
   /* the read, watched: the head's speed choice, the clause being read and those read, the lit words, the foot's bar */
   html.lg-new #ig-page.is-pd2-walk #ig-strip{display:none}
   html.lg-new .pd2-walk-head .pd2-fh-m{white-space:normal;max-width:210px;flex:none}
