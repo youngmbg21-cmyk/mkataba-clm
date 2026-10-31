@@ -7288,6 +7288,103 @@ function pd2RedNotes(c, cv){
   }
   return out;
 }
+/* ---- THE DIAL (the new look's Negotiate, the owner's yes, 31 Oct 2026: "Build it") ----
+   The figure in their ask (the paper's own mark of their insertion) carries a grip. Pressed or dragged, a scale stands
+   under the clause: your figure at one end, theirs at the other, your standard's limit marked between. As it moves the
+   figure on the paper says the value; letting go files the counter at it through the one funnel (rlOnePressCounter →
+   negoEditClause, on top of their ask), a draft until Send; back at their figure nothing is filed; at your own figure it
+   is the row's own Reject. Arrow keys move it, Enter files, Esc puts it back. Painted, never stored. */
+let _pd2Dial = null;     // { id, v, O, fig, scale } while a dial is held
+function pd2DialFigOf(sec, O){
+  const want = new RegExp(`(^|\\D)${O.asked}(\\D|$)`);
+  return [...sec.querySelectorAll('ins')].find(x => want.test(x.textContent || '')) || null;
+}
+function pd2DialsPaint(c, cv){
+  if (_pd2Dial && !document.contains(_pd2Dial.fig)) _pd2Dial = null;     // the paper was drawn again under it
+  if (!c || !cv || typeof window.rlOnePressOf !== 'function') return;
+  if ((typeof canEdit === 'function') && !canEdit()) return;
+  (Array.isArray(c.changes) ? c.changes : []).forEach(ch => {
+    let O = null; try { O = window.rlOnePressOf(c, ch, 'owner'); } catch (_){ O = null; } if (!O) return;
+    const sec = cv.querySelector(`section[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]`); if (!sec) return;
+    const fig = pd2DialFigOf(sec, O); if (!fig || fig.hasAttribute('data-pd2-dial')) return;
+    fig.setAttribute('data-pd2-dial', String(ch.id)); fig.setAttribute('data-pd2-was', fig.textContent);
+    fig.setAttribute('role', 'slider'); fig.setAttribute('tabindex', '0');
+    fig.setAttribute('aria-valuemin', String(Math.min(O.ours, O.asked))); fig.setAttribute('aria-valuemax', String(Math.max(O.ours, O.asked)));
+    fig.setAttribute('aria-valuenow', String(O.asked)); fig.setAttribute('aria-label', _pdT('pd2_dial_aria', { v: `${O.asked} ${O.unit}`.trim() }));
+    fig.insertAdjacentHTML('beforeend', '<i class="pd2-dial-grip" aria-hidden="true"></i>');
+  });
+}
+function pd2DialSay(O, v){
+  const u = n => `${n} ${O.unit}`.trim(), lim = O.lim;
+  const inside = lim == null ? null : (O.op === '<=' ? v <= lim : v >= lim);
+  if (v === O.asked) return _pdT(inside ? 'pd2_dial_theirs_in' : 'pd2_dial_theirs_out', { v: u(v) });
+  if (v === O.ours) return _pdT('pd2_dial_hold', { v: u(v) });
+  return _pdT(v === lim ? 'pd2_dial_at_lim' : inside ? 'pd2_dial_in' : 'pd2_dial_out', { v: u(v) });
+}
+function pd2DialOpen(fig){
+  const c = pdContract(); if (!c) return null;
+  const id = fig.getAttribute('data-pd2-dial'); const ch = (c.changes || []).find(x => String(x.id) === id); if (!ch) return null;
+  const O = window.rlOnePressOf(c, ch, 'owner'); if (!O) return null;
+  let R = null; try { R = (typeof rlpRangeFor === 'function') ? rlpRangeFor(c, O.key) : null; } catch (_){ R = null; }
+  O.lim = R ? Number(R.value) : null; O.op = R ? R.op : '<=';
+  if (_pd2Dial && _pd2Dial.id !== id) pd2DialClose(true);
+  if (_pd2Dial && _pd2Dial.id === id) return _pd2Dial;
+  const sec = fig.closest('section'); const body = sec && sec.querySelector('.nego-body'); if (!body) return null;
+  const lo = Math.min(O.ours, O.asked), hi = Math.max(O.ours, O.asked), at = n => ((n - lo) / Math.max(1, hi - lo)) * 100;
+  const E = _pdE, mark = (n, w, cls) => `<span class="pd2-dial-mk ${cls}" style="left:${at(n)}%"><b>${E(n)}</b><em>${E(w)}</em></span>`;
+  const sc = document.createElement('div'); sc.className = 'pd2-dial'; sc.setAttribute('data-pd2-dial-for', id); sc.setAttribute('contenteditable', 'false');
+  sc.innerHTML = `<div class="pd2-dial-track">${mark(O.ours, _pdT('pd2_dial_yours'), 'is-ours')}${O.lim != null && O.lim > lo && O.lim < hi ? mark(O.lim, _pdT('pd2_dial_lim'), 'is-lim') : ''}${mark(O.asked, _pdT('pd2_dial_ask'), 'is-ask')}<i class="pd2-dial-knob" style="left:${at(O.asked)}%"></i></div><div class="pd2-dial-say" aria-live="polite">${E(pd2DialSay(O, O.asked))}</div>`;
+  body.after(sc);
+  _pd2Dial = { id, v: O.asked, O, fig, scale: sc, lo, hi, at };
+  return _pd2Dial;
+}
+function pd2DialSet(v){
+  const D = _pd2Dial; if (!D) return;
+  v = Math.max(D.lo, Math.min(D.hi, Math.round(v))); D.v = v;
+  const was = D.fig.getAttribute('data-pd2-was') || '';
+  /* the figure on the paper says the value, in the form it was written ("60" → "45"; "six (6)" → "nine (9)") */
+  const said = (typeof window.rlFigureSwap === 'function' && window.rlFigureSwap(was, D.O.asked, v)) || String(v);
+  if (D.fig.firstChild && D.fig.firstChild.nodeType === 3) D.fig.firstChild.nodeValue = said; else D.fig.insertBefore(document.createTextNode(said), D.fig.firstChild);
+  D.fig.setAttribute('aria-valuenow', String(v)); D.fig.classList.toggle('is-moved', v !== D.O.asked);
+  const k = D.scale.querySelector('.pd2-dial-knob'); if (k) k.style.left = D.at(v) + '%';
+  const sy = D.scale.querySelector('.pd2-dial-say'); if (sy) sy.textContent = pd2DialSay(D.O, v);
+}
+function pd2DialClose(back){
+  const D = _pd2Dial; if (!D) return; _pd2Dial = null;
+  if (back){ const was = D.fig.getAttribute('data-pd2-was') || ''; if (D.fig.firstChild && D.fig.firstChild.nodeType === 3) D.fig.firstChild.nodeValue = was; D.fig.classList.remove('is-moved'); }
+  if (D.scale) D.scale.remove();
+}
+/* let go: their figure files nothing; yours is the row's Reject; anything between is the counter */
+function pd2DialFile(){
+  const D = _pd2Dial; if (!D) return;
+  const c = pdContract(); const v = D.v, O = D.O, id = D.id;
+  if (v === O.asked){ pd2DialClose(true); return; }
+  if (v === O.ours){ pd2DialClose(true); const own = document.querySelector(`#ig-dock [data-nego-reject="${CSS.escape(id)}"]`); if (own && !own.disabled) own.click(); return; }
+  D.scale.classList.add('is-filing');
+  Promise.resolve(c && typeof window.rlOnePressCounter === 'function' ? window.rlOnePressCounter(c.id, id, v) : false).then(ok => { if (!ok) pd2DialClose(true); else _pd2Dial = null; });
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
+  document.addEventListener('pointerdown', e => {
+    const fig = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-pd2-dial]') : null;
+    const tr = !fig && e.target && e.target.closest ? e.target.closest('#ig-canvas .pd2-dial-track') : null;
+    if (!fig && !tr) return;
+    e.preventDefault();
+    const D = fig ? pd2DialOpen(fig) : _pd2Dial; if (!D) return;
+    const track = D.scale.querySelector('.pd2-dial-track');
+    const move = ev => { const r = track.getBoundingClientRect(); pd2DialSet(D.lo + ((ev.clientX - r.left) / Math.max(1, r.width)) * (D.hi - D.lo)); };
+    if (tr) move(e);
+    let moved = !!tr;
+    const mv = ev => { moved = true; move(ev); };
+    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); if (moved) pd2DialFile(); };
+    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+  }, true);
+  document.addEventListener('keydown', e => {
+    const fig = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-pd2-dial]') : null; if (!fig) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){ e.preventDefault(); const D = pd2DialOpen(fig); if (D) pd2DialSet(D.v + (e.key === 'ArrowRight' ? 1 : -1)); return; }
+    if (e.key === 'Enter' && _pd2Dial){ e.preventDefault(); pd2DialFile(); return; }
+    if (e.key === 'Escape' && _pd2Dial){ e.preventDefault(); pd2DialClose(true); }
+  }, true);
+}
 /* the first place on the paper a note's words stand: an element, or a Range over the first needle found */
 function pd2Find(cv, at){
   if (at.sel){ const el = cv.querySelector(at.sel); return el ? { el } : null; }
@@ -7332,6 +7429,7 @@ function pd2NotesPaint(c){
   const red = !!(zoom && zoom.querySelector('.ig-redpaper')) && !(zoom.querySelector('.ig-redpaper.is-clean'));
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-signpaper') || (zoom.querySelector('.ig-redpaper') && !red) || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
+  if (red) try { pd2DialsPaint(c, cv); } catch (_){}
   const notes = (red ? pd2RedNotes(c, cv) : pd2Notes(c)).map(n => Object.assign(n, { hit: n.hit || pd2Find(cv, n.at) })).filter(n => n.hit)
     .map(n => Object.assign(n, { y: (n.hit.el || n.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
   if (!notes.length){ pd2NotesOff(); return; }
@@ -7814,7 +7912,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && _pd2Walk && !(e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]'))){ pd2WalkClose(); }
 });
-Object.assign(window, { pd2ClauseTint, pd2DiveOn });
+Object.assign(window, { pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });

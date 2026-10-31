@@ -22550,7 +22550,11 @@ async function rlOnePressCounter(cid, chId, at){
   const c = (typeof getContract === 'function') ? getContract(cid) : null;
   const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
   if (!c || !ch || !ch.clauseId) return false;
-  const O = rlOnePressOf(c, ch, 'owner'); if (!O || Number(at) !== O.at) return false;
+  const O = rlOnePressOf(c, ch, 'owner'); if (!O) return false;
+  /* any figure between your own and theirs (the dial's), the one-press's own included; theirs is no counter */
+  const v = Math.round(Number(at)), lo = Math.min(O.ours, O.asked), hi = Math.max(O.ours, O.asked);
+  if (!(v >= lo && v <= hi) || v === O.asked) return false;
+  O.at = v;
   const now = (typeof negoClauseNowById === 'function') ? negoClauseNowById(c, ch.clauseId) : null;
   const body = (now && now.bodyHtml) || (now && now.text ? '<p>' + _ne(now.text) + '</p>' : '');
   const html = body ? rlFigureSwap(body, O.ours, O.at) : null;
