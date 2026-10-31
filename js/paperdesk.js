@@ -1394,6 +1394,8 @@ let _pdRedTop = null;        // a scroll the next paint puts back, once
    scoped to this host, and the scroll put back */
 function pdRedFacePaint(c, top){
   const host = document.getElementById('pd-redface'); if (!host || !c) return;
+  /* the Redlines face and Where we are do not stand together: its middle page is put away when Redlines comes up */
+  try { if (typeof pd2StandsUp === 'function' && pd2StandsUp(c.id)) pdMidClose(); } catch (_){}
   const opts = pdRedOpts(c);
   const root = host.querySelector('.redline-page'); if (root) root._rlRerender = opts.rerender;
   try { if (typeof wireNegotiationTab === 'function') wireNegotiationTab(c, opts); } catch (_){}
