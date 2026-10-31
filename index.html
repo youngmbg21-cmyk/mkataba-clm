@@ -179,6 +179,7 @@
   <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.15" fill="currentColor"/><circle cx="8" cy="8" r="1.15" fill="currentColor"/><circle cx="13" cy="8" r="1.15" fill="currentColor"/></symbol>
   <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 2.6v10.8M2.6 8h10.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 16 16"><path d="M3 3v10M8 3v10M13 3v10" fill="none" stroke="currentColor"/><path d="M1.6 6h2.8M6.6 9.4h2.8M11.6 5h2.8" fill="none" stroke="currentColor"/></symbol>
+  <symbol id="i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.4 6.4a1.6 1.6 0 1 1 2.3 1.5c-.5.3-.7.6-.7 1.1" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M8 11.2h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
   <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.8V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
   <!-- ADDED 26 Aug 2026 for the change card's overflow menu, which the owner
        asked to carry a symbol on EVERY row. The menu's two decision verbs had
@@ -18281,6 +18282,87 @@
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-glance .ds-row.ds-rr.is-jw > .ds-nm{flex:1 1 auto;width:auto;max-width:none;min-width:0}
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix :is(#pd-og, .pd-og) tr.pd-og-row:is(.is-saved, .is-door, .is-named) .pd-ck-hd{min-height:44px;padding-top:11px;padding-bottom:11px}
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .ds-ob-line{min-height:44px;padding-top:11px;padding-bottom:11px}
+  /* ==== THE NEW LOOK: THE FRAME (round 1 of the Legora way rebuilt page by page; owner, 31 Oct 2026: "start with the frame",
+     the paper may move 4px down, Jambo's box 44) ====
+     Every rule here waits on html.lg-new (newLookApply: an admin's own preview), so with the switch off nothing moves.
+     As drawn in the review room: the black bar; under it the grey ground, 12 under the bar, 16 at the sides and the foot;
+     the page's white sheet and Jambo's white panel side by side, 12 apart, the hairline in the gap the slider (green
+     while pressed or hovered); the panel's tabs pills with their count in a small green pill; one line above the doors,
+     then the doors, then the box. The frame's measures are four tokens, read by every host below. */
+  html.lg-new{--fr-t:12px;--fr-s:16px;--fr-b:16px;--fr-g:12px;--fr-gutter:10px;--jb-box-h:44px;--page-pad-t:var(--fr-t);
+    --shadow-sm:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22)}
+  .lg-only{display:none}
+  html.lg-new .lg-only{display:inline-block}
+  html.lg-new .lg-not{display:none}
+  /* -- the bar: Jambo · the bell · the Guide · recent · you · sign out; the Guide wears "?"; your initials on a light disc -- */
+  html.lg-new #top-header #cmd-ai{order:1}
+  html.lg-new #top-header #hdr-notify{order:2}
+  html.lg-new #top-header #hdr-nav{order:3}
+  html.lg-new #top-header #cmd-panel{order:4}
+  html.lg-new #top-header #rail-avatar{order:5}
+  html.lg-new #top-header #side-logout{order:6}
+  html.lg-new #top-header #side-avatar{background:var(--color-divider);border-color:transparent;color:var(--color-text)}
+  html.lg-new #top-header #rail-avatar:hover #side-avatar{background:var(--color-neutral-300)}
+  /* -- Home's faces (a paper, Contracts, the Calendar): the page fills the window, so no gutter is kept; the panel 12 · 16 · 16 -- */
+  html.lg-new #content-scroll:has(#ig-page){scrollbar-gutter:auto}
+  html.lg-new #app-shell #ig-page:not(.hb-dark) #ig-dock{margin:var(--fr-t) var(--fr-s) var(--fr-b) 0}
+  html.lg-new #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:var(--fr-t) var(--fr-g) var(--fr-b) var(--fr-s)}
+  html.lg-new #ig-page .sap-page.ct-page{padding:var(--fr-t) var(--fr-g) var(--fr-b) var(--fr-s)}
+  /* the grip stands in the gap's middle: Home's is placed on the panel's edge by igFitSplit, so it is carried left by the
+     panel's 16 and half the gap (its strip is 14 wide) */
+  html.lg-new #ig-resizer{transform:translateX(calc(-1 * (var(--fr-s) + var(--fr-g) / 2) - 7px))}
+  /* -- every list's panel (jl): 12 under the bar, 16 at the side and the foot; the page gives the gap -- */
+  html.lg-new #content .ins-panel.is-jambo{right:var(--fr-s);top:calc(var(--jl-top,88px) + var(--fr-t));bottom:var(--fr-b)}
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) :is(#content-scroll, #page-head){margin-right:calc(var(--jl-room,var(--jl-w,384px)) + var(--fr-g))}
+  html.lg-new #content .view-enter:has(.ins-panel.is-jambo){padding-bottom:var(--fr-b)}
+  /* a list that scrolls as a whole keeps its scrollbar's strip (--fr-gutter, the page's own scroll-thin), so the gap is taken net of it */
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed),
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:calc(var(--jl-room,var(--jl-w,384px)) + var(--fr-g) - var(--fr-gutter))}
+  /* the Handbook and the Flow map start their sheet 12 under the bar, as every page does */
+  html.lg-new #content .view-enter.ins-page:is(.hbk-page, .fm-page){padding-top:var(--fr-t)}
+  /* the Calendar on Home: its head and its body 16 from the window, 12 from the panel */
+  html.lg-new #app-shell .cal-page.is-home .cal-head{margin:var(--fr-t) var(--fr-g) 0 var(--fr-s)}
+  html.lg-new #app-shell .cal-page.is-home .cal-body{padding:0 var(--fr-g) var(--fr-b) var(--fr-s)}
+  html.lg-new #content .ins-panel.is-jambo > .ig-resizer{left:calc(-1 * var(--fr-g) - 1px);width:var(--fr-g)}
+  /* -- Settings: the same 12 · 16 · 16 and the same gap (its page scrolls, so the panel stands clear of the scrollbar) -- */
+  html.lg-new .st-cr .st-cr-cols{column-gap:var(--fr-g)}
+  @media (min-width:981px){
+    html.lg-new .st-cr.st-page{padding-right:calc(var(--fr-s) - var(--fr-gutter))}
+    html.lg-new .st-cr .st-side{top:var(--fr-t);margin:calc(var(--fr-t) - var(--page-pad-t)) 0 0 0;height:calc(var(--st-side-h,560px) - var(--fr-t) - var(--fr-b))}
+  }
+  html.lg-new .st-cr .st-side > .ig-resizer{left:calc(-1 * var(--fr-g) - 1px);width:var(--fr-g)}
+  /* -- the Board, JOINED (owner, 30 Oct 2026, as drawn): under the black bar the page's head and Jambo's panel are one white
+     frame, the panel square on the right behind one hairline (the slider on the seam), the head a white strip 56 tall
+     that stays while the cards scroll in the grey well under it (12 · 16 round them, 12 between). A page laid over the
+     Board (New agreement, a page dialog) is not the Board: it keeps the frame every page has -- */
+  /* under a page laid over it the Board keeps the plain frame: its first card 12 under the bar, level with the panel */
+  html.lg-new #ig-page[data-hb-side="board"] #hb-board{padding-top:var(--fr-t)}
+  html.lg-new:not(:has(#modal-root [data-dlg-page])) #app-shell #ig-page[data-hb-side="board"]:not(.hb-dark) #ig-dock{margin:0;border-radius:0;box-shadow:none;border-left:1px solid var(--color-divider)}
+  html.lg-new:not(:has(#modal-root [data-dlg-page])) #ig-page[data-hb-side="board"] #ig-resizer{transform:translateX(-7px)}
+  html.lg-new:not(:has(#modal-root [data-dlg-page])) #ig-page[data-hb-side="board"] #hb-board{padding:0 var(--fr-s) 24px;gap:var(--fr-g)}
+  html.lg-new:not(:has(#modal-root [data-dlg-page])) #ig-page[data-hb-side="board"] #hb-bhead{position:sticky;top:0;z-index:5;box-sizing:border-box;min-height:56px;margin:0 calc(-1 * var(--fr-s));padding:0 24px;display:flex;align-items:center;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;box-shadow:none;background:var(--color-surface)}
+  html.lg-new:not(:has(#modal-root [data-dlg-page])) #ig-page[data-hb-side="board"] #hb-bhead > .hb-bh-r{flex:1;min-width:0}
+  /* -- a page laid over another (New agreement, Send, what a Dossier line opens in the middle): the same 12 · 16 and the
+     same gap; its parts already stand 12 in from its own edges, so the page itself steps 4 more from the window -- */
+  html.lg-new #modal-root [data-dlg-page]{padding-left:calc(var(--fr-s) - 12px)}
+  html.lg-new #modal-root [data-dlg-page] .dlg-pg-head{margin-top:var(--fr-t)}
+  html.lg-new #modal-root #na-root.na-one > .na-body{margin-bottom:var(--fr-b)}
+  html.lg-new #modal-root [data-pd-mid] .dlg-pg-body.dlg-pg-body{padding-bottom:var(--fr-b)}
+  /* -- the slider: a hairline the height of the gap, green and a pixel wider while hovered, pressed or reached by keyboard -- */
+  html.lg-new .ig-resizer span{opacity:1;width:1px;height:auto;align-self:stretch;border-radius:0;background:var(--color-divider)}
+  html.lg-new .ig-resizer:is(:hover, [data-drag], :focus-visible) span{width:2px;background:var(--accent-ink)}
+  html.lg-new .ig-resizer[data-at-limit] span{background:var(--color-divider)}
+  /* the list's and Settings' panels clip what spills from them; their slider stands in the gap beside them, so the clip
+     reaches one gap out on that side (overflow-clip-margin), and nothing else of the panel shows past its edge */
+  html.lg-new :is(#content .ins-panel.is-jambo, .st-cr .st-side){overflow:clip;overflow-clip-margin:var(--fr-g)}
+  /* -- the panel's head: a tab's count is a small green pill beside its word -- */
+  html.lg-new :is(#ig-dock, #content .ins-panel.is-jambo, #st-side) .pd-tab:not(.igd-door) > .pd-tab-n{position:static;display:inline-block;min-width:0;height:18px;margin-left:6px;padding:0 6px;border:0;border-radius:999px;background:var(--st-green-bg);color:var(--accent-ink);font-size:12px;font-weight:var(--w-label);line-height:18px}
+  html.lg-new :is(#ig-dock, #content .ins-panel.is-jambo, #st-side) .pd-tab:not(.igd-door) > .pd-tab-n.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
+  html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
+  html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot.jl-foot){padding:12px var(--jb-g,16px) var(--fr-b)}
+  html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot, .st-cr #st-jb-form, #ai-panel.is-side > footer, #cn-page) .jb-card:not(.is-tall){box-sizing:border-box;min-height:var(--jb-box-h)}
 </style>
 
 
@@ -18386,7 +18468,8 @@
          you will open up the alerts panel but the landing would be the guide panel"): the same one panel, on its
          Guide face (openPanel('guide')); pressed again it closes, as the bell does -->
     <button id="hdr-nav" class="hdr-icon-btn" title="Guide — every page, in the order a contract lives" data-i18n-title="sh_nav_title" aria-expanded="false">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
+      <svg class="lg-not" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
+      <svg class="lg-only" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-help"/></svg>
     </button>
     <button id="hdr-notify" class="hdr-icon-btn" title="Alerts — what is waiting on you" data-i18n-title="sh_alerts_title">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg>

@@ -2318,7 +2318,7 @@ async function stChipsSet(on){
 async function stNewLookSet(on){
   if(await stPrefSet('newLook', on)){ if(typeof newLookApply==='function') newLookApply();
     /* the frame's own measures (the panels' widths, the slider) read the page again */
-    try{ window.dispatchEvent(new Event('resize')); }catch(_){}
+    try{ globalThis.dispatchEvent(new Event('resize')); }catch(_){}
     toast(i18t(on?'st_you_newlook_on':'st_you_newlook_off'),'ok'); stYouCardRepaint('work'); return true; }
   stYouCardRepaint('work'); return false;
 }
