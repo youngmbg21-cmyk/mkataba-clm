@@ -7288,13 +7288,16 @@ function pd2RedNotes(c, cv){
     out.push({ tone: 'ask', n, k, w, acts, hit: at, at: { sel: `[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]` } });
   });
   /* what they left alone this round, said once, at the paper's foot */
-  let all = []; try { all = (typeof negoClauseList === 'function') ? negoClauseList(c).filter(x => x && x.clauseId && x.clauseId !== 'front') : []; } catch (_){ all = []; }
-  const touched = new Set(L.map(ch => String(ch.clauseId)));
-  const left = all.filter(x => !touched.has(String(x.clauseId)));
+  /* READ OFF THE PAINTED PAPER (a reading never initialises a negotiation): its numbered headings, less those a change names */
+  const norm = t => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  /* a clause is known by its number ("5. Payment" on the paper, "Clause 5 · Payment" on the change), else its name */
+  const keyOf = t => { const m = norm(t).match(/(\d+(?:\.\d+)*)/); return m ? m[1] : norm(t).replace(/^clause\s*/, ''); };
+  const touched = new Set(L.map(ch => keyOf(ch.clauseLabel || ch.headingText)));
+  const left = [...cv.querySelectorAll('h2, h3, h4')].map(h => h.textContent).filter(t => /^\s*\d/.test(t) && !touched.has(keyOf(t)));
   if (L.length && left.length){
-    const names = left.slice(0, 3).map(x => String((typeof clauseNameShown === 'function' ? clauseNameShown((typeof clauseLabel === 'function' ? clauseLabel(x) : '') || x.headingText || '') : (x.headingText || ''))).replace(/^\d+(\.\d+)*\.?\s*/, '').toLowerCase()).filter(Boolean);
+    const names = left.slice(0, 3).map(t => norm(t).replace(/^\d+(\.\d+)*\.?\s*/, '')).filter(Boolean);
     const last = cv.querySelectorAll('h2, h3, h4'); const el = last.length ? last[last.length - 1] : null;
-    if (el) out.push({ tone: 'fact', k: _pdT('pd2_rn_untouched', { what: names.join(', ') }), w: _pdTn('pd2_rn_untouched_w', left.length, { n: left.length }), acts: '', hit: { el } });
+    if (el) out.push({ tone: 'fact', k: _pdT('pd2_rn_untouched', { what: names.join(', ') }), w: _pdTn('pd2_rn_untouched', left.length, { n: left.length }), acts: '', hit: { el } });
   }
   return out;
 }
