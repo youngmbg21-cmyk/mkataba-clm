@@ -18667,6 +18667,48 @@
   html.lg-new .dl2-cmp-f .sp,html.lg-new .dl2-foot .sp{flex:1}
   html.lg-new .dl2-only{color:var(--color-quiet);font-size:11.5px}
   html.lg-new .dl2-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px 0;border-top:1px solid var(--color-divider);background:var(--color-surface);font-size:12.5px;color:var(--color-text)}
+  /* SEND, AS DRAWN ("Lines that open", owner's pick in the Negotiate round): the questions a
+     column of lines on the left — the label, the choice in words, its sentence; a press on the line
+     opens its list (the same list, the same wiring) — and the letter on paper beside it */
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:36px;align-items:start}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h{background:none;border:0;border-radius:0;padding:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-row{display:block;min-height:0;padding:12px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-row:last-child{border-bottom:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-k{display:block;padding:0;margin:0 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as{display:block}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair{display:block}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go{height:auto;min-width:0;width:100%;justify-content:flex-start;padding:0;background:none;border-radius:0;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);text-align:left}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h [data-sh-as] .sh-as-go{min-width:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go svg{opacity:.45}
+  @media (hover:hover){ html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go:hover{background:none;text-decoration:underline;text-underline-offset:3px} }
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as.is-open .sh-as-go{background:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as{margin-top:4px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as .sh-as-go{font-weight:400;font-size:12.5px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2{margin:3px 0 0;font-size:12.5px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail{padding:16px 32px 24px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row{margin:0;padding:8px 0 12px;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;border-bottom:1px solid var(--color-divider)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row .sh-lt-k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail #sh-lt-subject{border:0;background:none;padding:0;height:auto;font-weight:var(--w-label);font-size:13.5px;box-shadow:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap .sh-lt-b{padding:16px 0 0;font-family:var(--font-doc);font-size:15px;line-height:1.55;color:var(--color-doc-text)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap .sh-lt-b textarea{font-family:var(--font-doc);font-size:15px;line-height:1.55;border-color:var(--color-divider);background:var(--color-surface)}
+  html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid > #share-step-2:not(.hidden){max-width:none;width:100%;align-self:stretch}
+  html.lg-new #modal-root .modal-in[data-sh-page] #share-step-2 > #sh-letter.sh-lt.is-sap{display:grid;padding-top:16px}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap > .sh-lt-mail{border:1px solid var(--color-divider);border-radius:var(--radius);min-height:100%}
+  /* Before you send, as drawn: the verdict, then rows — a short label, what it says */
+  html.lg-new #ig-dock .sh-lt-card,html.lg-new .sh-lt-side .sh-lt-card{border:0;border-radius:0;box-shadow:none;background:none;padding:12px 0;border-bottom:1px solid var(--color-divider);display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 12px;align-items:start}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card > h4{margin:0;font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card > :not(h4){grid-column:2;margin:0;font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card.sh-lt-verdict{display:block}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-checks .sh-lt-card{display:block}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-checks .sh-noemail{margin:0;padding:12px 0;border-bottom:1px solid var(--color-divider);font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-verdict > h4{font-size:14px;margin-bottom:10px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv > span{font-weight:var(--w-label)}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv > p{margin:0}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl{margin:0;font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li{display:inline;padding:0}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li::before{display:none}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li + li::before{display:inline;position:static;content:" · ";background:none;width:auto;height:auto}
   html.lg-new .rl-1p-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
   html.lg-new .rl-1p{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
   @media (hover:hover){ html.lg-new .rl-1p:hover{box-shadow:inset 0 0 0 1px var(--color-text)} }

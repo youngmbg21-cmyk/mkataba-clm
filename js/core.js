@@ -5580,6 +5580,11 @@ function shareLetterNoteFit(){
 function shareLetterChecksPlace(){
   const slot=document.getElementById('sh-lt-checks'); if(!slot) return false;
   ['share-readiness-wrap','sh-noemail'].forEach(id=>{ const n=document.getElementById(id); if(n && n.parentElement!==slot) slot.appendChild(n); });
+  /* THE NEW LOOK, AS DRAWN: From is the last of the lines on the left, not the letter's head */
+  if(typeof newLookOn==='function' && newLookOn()){
+    const from=document.getElementById('sh-lt-from'), row=from && from.closest('.sh-lt-row'), lines=document.getElementById('sh-as-chips');
+    if(row && lines && row.parentElement!==lines) lines.appendChild(row);
+  }
   return true;
 }
 /* WHO IT GOES TO, AS A LINE (round 11's gaps): a recipient HaTi already knows
@@ -5773,7 +5778,7 @@ function shareLetterPaint(c, st){
   shareGoesPaint(c, st, who);
   /* what they never see, named for who will read it (round 11's gaps: "What
      Anna never sees") */
-  set('sh-lt-never-h', i18t('sh_lt_never_h', { who }));
+  set('sh-lt-never-h', (typeof newLookOn==='function' && newLookOn()) ? i18t('sh_kv_names') : i18t('sh_lt_never_h', { who }));
   /* Something else to send: the other two kinds of link, whichever is not
      this one. THE CARD IS NOT DRAWN (the SAP Way, 28 Oct 2026): "What goes"
      asks the same question in the form, and its list presses these same
@@ -5935,8 +5940,11 @@ function shareVerdictPaint(c, st){
       <div class="sh-lt-acts"><button type="button" class="sh-lt-change" data-sh-v-go="negotiate">${esc(i18t('sh_v_sign_go'))}</button></div>`;
   } else if(!blocked && p!=='colleague' && !(p==='sign' && typeof shareNeedsSigners==='function' && shareNeedsSigners(c))){
     let held=0; if(p!=='history' && p!=='status'){ try{ held=shareStaysRows(c).length; }catch(_){ held=0; } }
-    html=`<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}</h4><p>${esc(
-      (p==='history'||p==='status') ? i18t('sh_v_ready_rec') : held ? i18tn('sh_v_ready_held', held, { n:held }) : i18t('sh_v_ready'))}</p>`;
+    const said=(p==='history'||p==='status') ? i18t('sh_v_ready_rec') : held ? i18tn('sh_v_ready_held', held, { n:held }) : i18t('sh_v_ready');
+    html=(typeof newLookOn==='function' && newLookOn())
+      /* the new look's Before you send: the verdict, then labelled rows (as drawn) */
+      ? `<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}.</h4><div class="sh-kv"><span>${esc(i18t('sh_kv_held'))}</span><p>${esc(said)}</p></div>`
+      : `<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}</h4><p>${esc(said)}</p>`;
   }
   if(v.innerHTML!==html) v.innerHTML=html;
   v.classList.toggle('hidden', !html);
@@ -5967,7 +5975,7 @@ function shareGoesPaint(c, st, who){
   }
   if(String(fval('sh-summary')||'').trim()) items.push(i18t('sh_goes_note'));
   const h=document.getElementById('sh-lt-goes-h'), ul=document.getElementById('sh-lt-goes-l');
-  const hv=i18t('sh_goes_h', { who }); if(h && h.textContent!==hv) h.textContent=hv;
+  const hv=(typeof newLookOn==='function' && newLookOn()) ? i18t('sh_kv_goes') : i18t('sh_goes_h', { who }); if(h && h.textContent!==hv) h.textContent=hv;
   const lv=items.map(t=>`<li>${esc(t)}</li>`).join(''); if(ul && ul.innerHTML!==lv) ul.innerHTML=lv;
 }
 function shareSideHtml(c, part){
@@ -5987,7 +5995,7 @@ function shareSideHtml(c, part){
     <div class="sh-lt-checks" id="sh-lt-checks"></div>
     ${''/* WHAT GOES TO THEM, one line each (shareGoesPaint) */}
     <div class="sh-lt-card" id="sh-lt-goes"><h4 id="sh-lt-goes-h"></h4><ul class="sh-lt-goesl" id="sh-lt-goes-l"></ul></div>
-    <div class="sh-lt-card"><h4 id="sh-lt-never-h">${i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
+    <div class="sh-lt-card"><h4 id="sh-lt-never-h">${(typeof newLookOn==='function' && newLookOn()) ? esc(i18t('sh_kv_names')) : i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
     <div class="sh-lt-card hidden" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
       <div class="sh-lt-acts">
         <button type="button" class="ui-btn ui-btn-sm" id="share-other" data-sh-lt-else="history"${histOk?'':` disabled title="${esc(i18t('sh_lt_else_hist_none'))}"`}>${esc(i18t('sh_lt_else_hist'))}</button>
