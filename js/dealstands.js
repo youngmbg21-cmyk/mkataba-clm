@@ -277,8 +277,98 @@ function dsUpdatedAt(c){
   return (days[0] && days[0].at) || c.updatedAt || c.lastAction || null;
 }
 
+/* ============================================================
+   THE PAGE AS DRAWN (the new look, owner 31 Oct 2026: "Both pages as drawn")
+   ============================================================
+   The review room's "Where the deal stands": the six stages, each open point with each side's position and whose
+   move it is, and what is agreed. ONE READING for BOTH hosts — this file is also required by the server, so the
+   owner's tab and the status link read the same words off the same STORED record. Still the overlap: party names,
+   never a person, no review, no notes, no advice. Pure: it reads its argument, writes nothing. */
+const DP_STAGES = ['arrive', 'read', 'fill', 'nego', 'sign', 'live'];
+const DP_SIDE_MAX = 64;
+function dpText(c){
+  const n = c && c.negotiation;
+  return String((n && n.baselineBody) || (c && (c.redlineText || c.text)) || '');
+}
+/* a blank still on the paper: a bracketed placeholder ("[DATE]") or a line to write on */
+function dpBlankLeft(c){ return /\[[A-Z][A-Z0-9 _-]{1,30}\]|_{4,}/.test(dpText(c).replace(/<[^>]+>/g, ' ')); }
+/* the six stages, off the record: arrived (when), read (a brief read or a triage kept), filled (no blank left),
+   negotiating (the round and whose move), signing, live */
+function dpStages(c, D){
+  const arrived = String((c && c.upload && c.upload.uploadedAt) || (c && (c.createdAt || c.created)) || '');
+  const read = !!(c && ((c.briefRead && typeof c.briefRead === 'object' && Object.keys(c.briefRead).length) || c.triage));
+  const fill = !dpBlankLeft(c);
+  const neg = !!(D && (D.total || (c && c.negotiation)));
+  return [
+    { k: 'arrive', state: 'done', at: arrived },
+    { k: 'read', state: read ? 'done' : 'later' },
+    { k: 'fill', state: fill ? 'done' : 'later' },
+    { k: 'nego', state: D && D.agreed ? 'done' : neg ? 'now' : 'later', round: D ? D.round : 1, move: dpShort(D && D.move && D.move.party) },
+    { k: 'sign', state: D && D.executed ? 'done' : D && D.agreed ? 'now' : 'later' },
+    { k: 'live', state: D && D.executed ? 'now' : 'later' }
+  ];
+}
+/* a change's two positions in a few words: what it takes out and what it puts in, a lone figure carrying the word
+   after it ("30 days" / "60 days"), each cut to DP_SIDE_MAX with … and how much more there is */
+function dpSidesOf(ch){
+  const ops = (ch && Array.isArray(ch.ops) && ch.ops.length) ? ch.ops : [{ op: 'del', text: (ch && ch.oldText) || '' }, { op: 'ins', text: (ch && ch.newText) || '' }];
+  const words = t => String(t || '').replace(/\s+/g, ' ').trim();
+  const pick = kind => {
+    const out = [];
+    ops.forEach((o, i) => {
+      if (!o || o.op !== kind) return;
+      let t = words(o.text); if (!t) return;
+      if (/^\S+$/.test(t)){
+        const nx = ops.slice(i + 1).find(x => x && x.op !== 'ins' && x.op !== 'del');
+        const w = nx ? words(nx.text).split(' ')[0] : '';
+        if (w && /^[A-Za-zÅÄÖåäö]/.test(w)) t += ' ' + w.replace(/[.,;:]+$/, '');
+      }
+      out.push(t.replace(/[.,;:]+$/, ''));
+    });
+    const all = out.join(', ');
+    if (all.length <= DP_SIDE_MAX) return { words: all, more: 0 };
+    const cut = all.slice(0, DP_SIDE_MAX).replace(/\s+\S*$/, '');
+    return { words: cut + '…', more: Math.max(1, Math.round((all.length - cut.length) / 60)) };
+  };
+  return { removed: pick('del'), added: pick('ins') };
+}
+/* "Clause 5 · Payment" or "5. Payment" → "§ 5 Payment", as the drawing names a point */
+function dpSec(t){ const m = String(t || '').match(/^(?:clause\s+)?(\d+(?:\.\d+)*)\.?\s*(?:·\s*)?(.*)$/i); return m ? ('§ ' + m[1] + (m[2] ? ' ' + m[2] : '')) : String(t || ''); }
+/* a party by its first word, as the drawing heads its column ("Highland") */
+function dpShort(n){ return String(n || '').trim().split(/\s+/)[0] || ''; }
+/* the drawn table's rows and the agreed line, both hosts */
+function dpPage(c, D){
+  const parties = (D && D.parties) || [];
+  const us = parties.find(p => p.ours) || null, them = dsThem(parties);
+  const rows = [];
+  const seen = new Set();
+  for (const ch of dsOpen(c)){
+    const key = String(ch.clauseId || ch.id || '');
+    if (seen.has(key)) continue; seen.add(key);
+    const S = dpSidesOf(ch);
+    const theirs = ch.authorSide !== 'owner';
+    const holder = theirs ? us : them;
+    rows.push({ clause: dpSec(dsClauseOf(ch)), ours: theirs ? S.removed : S.added, theirs: theirs ? S.added : S.removed, move: dpShort(holder && holder.name) });
+    if (rows.length >= DEAL_POINTS_MAX) break;
+  }
+  /* AGREED: every numbered clause of the paper no live change touches, and every point settled by acceptance */
+  /* a clause is known by its number on both sides ("5. Payment" on the paper, "Clause 5 · Payment" on a change) */
+  const numOf = t => { const m = String(t || '').match(/(\d+(?:\.\d+)*)/); return m ? m[1] : ''; };
+  const touched = new Set(dsLive(c).filter(x => x.status !== 'accepted').map(x => numOf(x.clauseLabel)).filter(Boolean));
+  const heads = [];
+  dpText(c).replace(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/gi, (m, inner) => {
+    const t = String(inner).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (/^\d/.test(t) && !touched.has(numOf(t))) heads.push(t);
+    return m;
+  });
+  const sentAt = ((c && c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : []).map(r => r && (r.sentAt || r.closedAt)).filter(Boolean).sort()[0] || '';
+  return { us: dpShort(us && us.name), them: dpShort(them && them.name), usFull: (us && us.name) || '', themFull: (them && them.name) || '', rows, agreed: heads.map(dpSec), sentAt, stages: dpStages(c, D) };
+}
+const DEAL_PAGE_API = { DP_STAGES, dpStages, dpSidesOf, dpPage, dpBlankLeft, dpSec, dpShort, dealStands };
+if (typeof module !== 'undefined' && module.exports) Object.assign(module.exports, DEAL_PAGE_API);
+
 if (typeof window !== 'undefined') Object.assign(window, {
-  dealStands, DEAL_STEPS, DEAL_LATELY_MAX, DEAL_POINTS_MAX,
+  dealStands, DEAL_STEPS, DP_STAGES, dpStages, dpSidesOf, dpPage, dpBlankLeft, DEAL_LATELY_MAX, DEAL_POINTS_MAX,
   dsChanges, dsRounds, dsRound, dsLive, dsOpen, dsPartyNames, dsPoints, dsSettled, dsLately, dsUpdatedAt, dsSinceDays,
   dsWaiting, dsClauseOf, DS_INSIDE_ID, dsThem,
 });
@@ -413,6 +503,31 @@ function standsHtml(c, opts = {}){
     </div>
   </section>`;
 }
+/* THE PAGE AS DRAWN, for the owner's tab (the new look): ‹ Paper is the page's own way back; the title and its line;
+   the six stages; Still open with each side's position and whose move; Agreed; the foot. Built from dpPage only. */
+function standsDrawnHtml(c, opts = {}){
+  const D = dealStands(c); if (!D) return '';
+  const P = dpPage(c, D);
+  const day = iso => dsDay(iso);
+  const stg = P.stages.map(st => {
+    const sub = st.k === 'arrive' ? day(st.at) : st.k === 'nego' && st.state === 'now' ? [dsT('ds2_round', { n: st.round }), st.move ? dsT('ds2_move_of', { who: st.move }) : ''].filter(Boolean).join(' · ')
+      : st.state === 'done' && st.k !== 'read' ? dsT('ds2_done') : '';
+    return `<li class="ds2-st is-${st.state}"><i aria-hidden="true"></i><b>${dsEsc(dsT('dos_st_' + st.k))}</b>${sub ? `<span>${dsEsc(sub)}</span>` : ''}</li>`;
+  }).join('');
+  const side = x => `${dsEsc(x.words || '—')}${x.more ? ` <small>${dsEsc(dsTn('ds2_more', x.more, { n: x.more }))}</small>` : ''}`;
+  const rows = P.rows.map(r => `<tr><td class="ds2-cl">${dsEsc(r.clause || dsT('ds_a_clause'))}</td><td>${side(r.ours)}</td><td>${side(r.theirs)}</td><td>${dsEsc(r.move)}</td></tr>`).join('');
+  const agreed = P.agreed.length ? `<tr class="ds2-ag"><td>${dsEsc(P.agreed.join(' · '))}</td><td colspan="3">${dsEsc(P.sentAt ? dsT('ds2_as_sent', { when: day(P.sentAt) }) : dsT('ds2_as_drafted'))}</td></tr>` : '';
+  return `<section class="ds2" data-ds2>
+    <div class="ds2-head"><h2 class="ds2-h">${dsEsc(dsT('ds_eyebrow'))}</h2><span class="ds2-sp"></span>${opts.acts || ''}</div>
+    <p class="ds2-sub">${dsEsc([D.name, dsT('ds2_between', { us: P.usFull, them: P.themFull }), dsT('ds2_overlap'), D.updatedAt ? dsT('ds_last_moved', { when: day(D.updatedAt) }) : ''].filter(Boolean).join(' · '))}</p>
+    ${opts.head || ''}
+    <ol class="ds2-spine">${stg}</ol>
+    <table class="ds2-t"><thead><tr><th>${dsEsc(dsT('ds2_open', { n: D.open }))}</th><th>${dsEsc(P.us)}</th><th>${dsEsc(P.them)}</th><th>${dsEsc(dsT('ds2_whose'))}</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="4" class="ds2-none">${dsEsc(dsT('ds_none_open'))}</td></tr>`}</tbody>
+      ${agreed ? `<tbody><tr class="ds2-agh"><th colspan="4">${dsEsc(dsT('ds2_agreed'))}</th></tr>${agreed}</tbody>` : ''}</table>
+    <p class="ds2-foot">${dsEsc(dsT('ds2_foot'))}</p>
+  </section>`;
+}
 /* The owner's tab. A SLOT painted on arrival, because what it says moves with
    every change filed or answered. */
 /* A SECOND HOST (the overnight work order, step 8): the contract strip on
@@ -429,12 +544,13 @@ function paintStandsPane(c, at){
      would say nothing at all on a slow morning. */
   /* NO SEAT WORD HERE: our tab is word for word what the other parties read,
      so every figure names its party (opts.you is the counterparty page's). */
-  host.innerHTML = standsHtml(c, { acts: dsOwnerActsHtml(c) });
+  host.innerHTML = (typeof window !== 'undefined' && typeof window.newLookOn === 'function' && window.newLookOn())
+    ? standsDrawnHtml(c, { acts: dsOwnerActsHtml(c) }) : standsHtml(c, { acts: dsOwnerActsHtml(c) });
   dsWireOwner();
   dsLoadShares(c);
 }
 if (typeof window !== 'undefined') Object.assign(window, {
-  standsHtml, paintStandsPane, dsEventText, dsRoleWord, dsDay, dsEsc, dsClauseWord,
+  standsHtml, standsDrawnHtml, paintStandsPane, dsEventText, dsRoleWord, dsDay, dsEsc, dsClauseWord,
 });
 
 /* ============================================================

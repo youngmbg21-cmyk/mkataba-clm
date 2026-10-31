@@ -235,6 +235,32 @@ function shareMailOf(o){
   const kind = SHARE_MAIL_KIND[x.purpose] || SHARE_MAIL_KIND.any;
   const round = Number(x.round) > 0 ? Number(x.round) : 1;
   const first = _smFirst(x.recName);
+  /* THE LETTER AS DRAWN (the new look; owner, 31 Oct 2026: "Email as drawn"): Dear, the note, their link as one plain
+     line, Kind regards and the sender. With no note the answers are said instead, so the letter is never empty. */
+  if (x.drawn && x.purpose !== 'colleague'){
+    parts.push({ k: 'hello', t: first ? `Dear ${first},` : 'Hello,' });
+    if (msg) parts.push({ k: 'msg', t: msg });
+    else {
+      const A0 = (x.purpose === 'negotiate' && x.answers) ? x.answers : null;
+      if (A0 && A0.lines && A0.lines.length){
+        parts.push({ k: 'say', t: A0.lines.length === 1 ? `${org} has answered your redline:` : `${org} has answered ${A0.lines.length} of your redlines:`, list: 'ans' });
+        for (const l of A0.lines) parts.push({ k: 'ans', t: `${l.clause}: ${l.say}`, clause: l.clause, rest: l.say });
+      }
+      if (A0 && A0.own && A0.own.length){
+        parts.push({ k: 'say', t: `${org} proposes ${A0.own.length === 1 ? 'a change' : A0.own.length + ' changes'} of its own:`, list: 'own' });
+        for (const l of A0.own) parts.push({ k: 'ans', t: `${l.clause}.`, clause: l.clause, rest: '' });
+      }
+    }
+    parts.push({ k: 'say', t: kind.btn(round) + ':', list: 'link' });
+    parts.push({ k: 'link', t: link, at: true });
+    if (x.codeOn && x.purpose !== 'status') parts.push({ k: 'say', t: SHARE_MAIL_CODE });
+    parts.push({ k: 'say', t: 'Kind regards,', list: 'sign' });
+    parts.push({ k: 'sign', t: sender });
+    const subject0 = shareSubjectClean(x.subject) || (coded
+      ? (x.purpose === 'negotiate' ? `Round ${round} of ${coded}` : kind.subj({ cName: coded, org, coded: true }, round))
+      : kind.subj({ cName, org }, round));
+    return { subject: subject0, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
+  }
   parts.push({ k: 'hello', t: first ? `Hello ${first},` : 'Hello,' });
   if (msg) parts.push({ k: 'msg', t: msg });
   const A = (x.purpose === 'negotiate' && x.answers) ? x.answers : null;
@@ -265,7 +291,7 @@ function _smLetterJoin(parts){
   const out = [];
   for (const p of parts){
     const t = p.t == null ? '' : p.t;
-    if (p.k === 'ans' || p.k === 'link') out.push('\n' + t);
+    if (p.k === 'ans' || p.k === 'link' || p.k === 'sign') out.push('\n' + t);
     else if (p.k === 'btn') out.push((out.length ? '\n\n' : '') + t + ':');
     else out.push((out.length ? '\n\n' : '') + t);
   }
@@ -273,13 +299,17 @@ function _smLetterJoin(parts){
 }
 /* AND THE SAME LETTER AS HTML, for the inbox that draws one: the button a
    button. A standalone document carries no :root — literal values only. */
+/* the letter's one green (a standalone email carries no :root — a literal, written once) */
+const SM_LINK_INK = '#0b7a5f';
 function _smLetterHtml(parts){
   const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const link = (parts.find(p => p.k === 'link') || {}).t;
   const out = [];
   for (let i = 0; i < parts.length; i++){
     const p = parts[i];
-    if (p.k === 'link') continue;
+    /* a letter with no button carries its link as one plain line (the drawn letter) */
+    if (p.k === 'link'){ if (!parts.some(b => b.k === 'btn') && link) out.push(`<p style="margin:0 0 14px"><a href="${e(link)}" style="color:${SM_LINK_INK}">${e(link)}</a></p>`); continue; }
+    if (p.k === 'sign'){ out.push(`<p style="margin:0 0 14px">${e(p.t)}</p>`); continue; }
     if (p.k === 'ans'){
       const run = [];
       while (i < parts.length && parts[i].k === 'ans'){ run.push(parts[i]); i++; }
@@ -287,7 +317,7 @@ function _smLetterHtml(parts){
       out.push(`<div style="margin:0 0 14px;padding:2px 0 2px 12px;border-left:3px solid #d0d5dd">${run.map(r =>
         `<p style="margin:0 0 4px"><b>${e(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + e(r.rest) : ''}</p>`).join('')}</div>`);
     } else if (p.k === 'btn'){
-      out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="display:inline-block;background:#0b7a5f;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">${e(p.t)}</a></p>`
+      out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="display:inline-block;background:${SM_LINK_INK};color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">${e(p.t)}</a></p>`
         : `<p style="margin:0 0 14px"><b>${e(p.t)}</b></p>`);
     } else if (p.k === 'msg'){
       out.push(`<p style="margin:0 0 14px;white-space:pre-wrap">${e(p.t)}</p>`);

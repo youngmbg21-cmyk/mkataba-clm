@@ -8796,6 +8796,7 @@ function roomHistoryEvents(c,f={}){
       if(f.actor&&String(e.actor||'')!==String(f.actor)) return false;
       if(f.round&&Number(e.round)!==Number(f.round)) return false;
       if(f.outcome&&oc(e)!==f.outcome) return false;
+      if(f.quick&&!histQuickHit(e,f.quick)) return false;
       if(f.side){
         if(e._k==='opened'||e._k==='access') return oursOnly;
         if(e._k==='system') return f.side==='owner'&&ours.has(String(e.actor||'').trim().toLowerCase());
@@ -9090,7 +9091,7 @@ function roomHistoryHtml(c,f={},opts={}){
      is still ONE handle on f.side — the Side dropdown left the fold with it.
      The Filter button counts the four it holds. */
   const onF=HIST_FOLD_FILTERS.filter(k=>f&&f[k]).length;
-  const on=onF+((f&&f.side)?1:0)+(q?1:0);
+  const on=onF+((f&&f.side)?1:0)+((f&&f.quick)?1:0)+(q?1:0);
   const row=e=>{
     const m=HIST_KIND[e._k]||HIST_KIND.system;
     /* ---- THE TIME LEADS THE ROW (owner-approved render, 24 Aug 2026) ----
@@ -9317,7 +9318,27 @@ function histFilterChoices(c){
   const opens=all.some(e=>e._k==='opened');
   return { clause, person, round, outcome, opens };
 }
+/* THE NEW LOOK'S QUICK LINKS (owner, Negotiate round, 31 Oct 2026: "Quick links as drawn"; replaces the dropdowns
+   there): theirs · sent · decisions · Jambo, each one press over the same trail; a link that would give nothing is not drawn */
+const HIST_QUICK=['theirs','sent','decisions','jambo'];
+function histQuickHit(e,k){
+  if(!e) return false;
+  if(k==='theirs') return e.side==='counterparty';
+  if(k==='sent') return e._k==='handover'||e._k==='round-closed';
+  if(k==='decisions'){ const o=(typeof histOutcomeKey==='function')?histOutcomeKey(e):String(e.outcome||''); return o==='accepted'||o==='rejected'; }
+  if(k==='jambo') return /^(jambo|copilot)\b/i.test(String(e.actor||'').trim());
+  return true;
+}
+function histQuickHtml(c,f){
+  const all=roomHistoryEvents(c,{});
+  const on=HIST_QUICK.filter(k=>all.some(e=>histQuickHit(e,k)));
+  const any=!!(f&&f.quick)||!!String(_histQ||'').trim();
+  return `<div class="hist-filters hist-quick">${on.length?`<span class="hist-qk-l">${esc(i18t('ct_hq_filters'))}</span>${on.map((k,i)=>`${i?'<i aria-hidden="true"> · </i>':''}<button type="button" class="hist-qk" data-ht-quick="${k}" aria-pressed="${f&&f.quick===k?'true':'false'}">${esc(i18t('ct_hq_'+k))}</button>`).join('')}`:''}
+    <span class="hist-f-sp"></span>
+    <button id="ht-clear" type="button" class="hist-clear"${any?'':` disabled title="${esc(i18t('ct_hist_clear_none'))}"`}>${i18t('ct_clear2')}</button></div>`;
+}
 function roomHistoryFiltersHtml(c,f){
+  if(typeof newLookOn==='function'&&newLookOn()) return histQuickHtml(c,f);
   const C=histFilterChoices(c);
   /* THE SAP WAY (21 Oct 2026): each filter a labelled box in the band — its name inside it, then
      what it holds — in the drawing's order: Person · Clause · Outcome · Round · Opens */
@@ -9367,7 +9388,11 @@ function roomPaintHistory(c,f={},at){
      column back through a door nobody remembered. */
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     const sd=host.querySelector('[data-ht-side][aria-pressed="true"]');
-    return {clauseId:g('clauseId'),actor:g('actor'),side:sd?sd.getAttribute('data-ht-side'):'',round:g('round'),outcome:g('outcome'),opens:g('opens')}; };
+    const qk=host.querySelector('[data-ht-quick][aria-pressed="true"]');
+    return {clauseId:g('clauseId'),actor:g('actor'),side:sd?sd.getAttribute('data-ht-side'):'',round:g('round'),outcome:g('outcome'),opens:g('opens'),quick:qk?qk.getAttribute('data-ht-quick'):''}; };
+  /* a quick link: one press narrows, the same press again lets go */
+  host.querySelectorAll('[data-ht-quick]').forEach(b=>
+    b.addEventListener('click',()=>{ const k=b.getAttribute('data-ht-quick'); roomPaintHistory(c,Object.assign(read(),{ quick:b.getAttribute('aria-pressed')==='true'?'':k }),at); }));
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
     s.addEventListener('change',()=>roomPaintHistory(c,read(),at)));
   /* the side switch, in the open: one press, the list follows */

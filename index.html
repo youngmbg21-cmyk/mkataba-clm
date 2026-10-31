@@ -18364,6 +18364,7 @@
   html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
   html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
   /* on a contract the row above the box is the paper's own links (the one row, as drawn): the same line above it, none under it */
+  html.lg-new #ig-dock.pd-face-up [data-ig-chips]:has([data-ca-chip="rl_ladder"]){display:flex}
   html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]){border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0;background:var(--color-surface)}
   html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]) + .igd-foot{border-top-color:transparent}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot.jl-foot, .st-cr .st-jb-ask.st-jb-ask){padding:12px var(--jb-g,16px) var(--well-b)}
@@ -18473,6 +18474,7 @@
   html.lg-new #pd2-notes .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
   html.lg-new #pd2-notes .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
   html.lg-new #pd2-notes .pd2-mn-k{font-weight:400}
+  html.lg-new #pd2-notes .pd2-mn-n{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:5px;border:1px solid var(--color-text);border-radius:50%;font-size:10px;line-height:1;vertical-align:1px}
   html.lg-new #pd2-notes .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
   html.lg-new #pd2-notes .pd2-mn-a{margin-top:1px;font-size:12px}
   html.lg-new #pd2-notes .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
@@ -18631,6 +18633,224 @@
   html.lg-new #ig-dock .pd-th .stk-pre-ring{position:absolute;left:3px;top:11px;width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:2px solid var(--st-amber-dot)}
   html.lg-new #ig-dock .pd-th .stk-pre-v{justify-self:end;font-size:12px;color:var(--st-amber-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
   html.lg-new #ig-dock .pd-th .stk-pre-a{display:flex;gap:12px;align-items:baseline;margin-top:4px;font-size:12px;color:var(--color-quiet)}
+  /* ==== THE NEW LOOK: NEGOTIATE (round 4, 31 Oct 2026) ==== the one-press answers on their ask */
+  /* THE CLOSE PLAN, AS DRAWN: one flat table, a point opens to compare */
+  html.lg-new .deal-mid.dl2{display:flex;flex-direction:column;min-height:100%}
+  html.lg-new .dl2-h.deal-h{display:block;flex:1 1 100%;font-family:var(--font-doc);font-size:22px;font-weight:400;margin:4px 0 0}
+  html.lg-new #modal-root [data-dlg-page]:has(.dl2) .pd-trail-w{display:none}
+  html.lg-new .dl2-h.deal-h .deal-sub{display:block;margin:8px 0 0;padding:0;font-family:var(--font-body);font-size:13px;font-weight:var(--w-label);line-height:1.45;color:var(--color-text)}
+  html.lg-new .dl2 .deal-list{flex:1}
+  html.lg-new .dl2-t{margin-top:20px}
+  html.lg-new .dl2-th,html.lg-new .dl2-r{display:grid;grid-template-columns:minmax(0,1fr) 174px 174px 130px;gap:0 16px;align-items:start}
+  html.lg-new .dl2-th{padding:0 0 10px;border-bottom:1px solid var(--color-divider);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .dl2-r{padding:18px 0;border-bottom:1px solid var(--color-divider);font-size:13.5px;line-height:1.4}
+  html.lg-new .dl2-pt b{display:block;font-weight:400;color:var(--color-text)}
+  html.lg-new .dl2-q{display:block;margin:3px 0 0 6px;font-family:var(--font-doc);font-size:13px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dl2-long{margin-top:3px;font-size:12.5px;color:var(--color-text)}
+  html.lg-new .dl2-us,html.lg-new .dl2-them{font-weight:var(--w-label);color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .dl2-us span{display:block;font-weight:var(--w-label)}
+  html.lg-new .dl2-st{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new .dl2-st.is-give,html.lg-new .dl2-st.is-agreed{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .dl2-st.is-hold{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .dl2-st.is-rule{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .dl2-st.is-wait{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .dl2-a{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .dl2-cmp{margin:16px 0;padding:16px;border-radius:var(--radius);background:var(--color-bg)}
+  html.lg-new .dl2-cmp-h{display:flex;align-items:baseline;gap:12px;font-size:13px}
+  html.lg-new .dl2-cmp-h b{font-weight:var(--w-label)}
+  html.lg-new .dl2-cmp-h span{flex:1;font-size:12px;color:var(--color-text)}
+  html.lg-new .dl2-cmp-b{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:12px}
+  html.lg-new .dl2-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin-bottom:6px}
+  html.lg-new .dl2-w{font-family:var(--font-doc);font-size:14px;line-height:1.5;color:var(--color-doc-text)}
+  html.lg-new .dl2-w p{margin:0 0 6px}
+  html.lg-new .dl2-cmp-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12.5px}
+  html.lg-new .dl2-why{color:var(--color-text);min-width:0}
+  html.lg-new .dl2-cmp-f .sp,html.lg-new .dl2-foot .sp{flex:1}
+  html.lg-new .dl2-only{color:var(--color-quiet);font-size:11.5px}
+  html.lg-new .dl2-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px 0;border-top:1px solid var(--color-divider);background:var(--color-surface);font-size:12.5px;color:var(--color-text)}
+  /* SEND, AS DRAWN ("Lines that open", owner's pick in the Negotiate round): the questions a
+     column of lines on the left — the label, the choice in words, its sentence; a press on the line
+     opens its list (the same list, the same wiring) — and the letter on paper beside it */
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:36px;align-items:start}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h{background:none;border:0;border-radius:0;padding:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-row{display:block;min-height:0;padding:12px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-row:last-child{border-bottom:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-k{display:block;padding:0;margin:0 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as{display:block}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair{display:block}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go{height:auto;min-width:0;width:100%;justify-content:flex-start;padding:0;background:none;border-radius:0;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);text-align:left}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h [data-sh-as] .sh-as-go{min-width:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go svg{opacity:.45}
+  @media (hover:hover){ html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go:hover{background:none;text-decoration:underline;text-underline-offset:3px} }
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as.is-open .sh-as-go{background:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as{margin-top:4px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as .sh-as-go{font-weight:400;font-size:12.5px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2{margin:3px 0 0;font-size:12.5px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail{padding:16px 32px 24px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row{margin:0;padding:8px 0 12px;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;border-bottom:1px solid var(--color-divider)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row .sh-lt-k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail #sh-lt-subject{border:0;background:none;padding:0;height:auto;font-weight:var(--w-label);font-size:13.5px;box-shadow:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap .sh-lt-b{padding:16px 0 0;font-family:var(--font-doc);font-size:15px;line-height:1.55;color:var(--color-doc-text)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap .sh-lt-b textarea{font-family:var(--font-doc);font-size:15px;line-height:1.55;border-color:var(--color-divider);background:var(--color-surface)}
+  html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid > #share-step-2:not(.hidden){max-width:none;width:100%;align-self:stretch}
+  html.lg-new #modal-root .modal-in[data-sh-page] #share-step-2 > #sh-letter.sh-lt.is-sap{display:grid;padding-top:16px}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap > .sh-lt-mail{border:1px solid var(--color-divider);border-radius:var(--radius);min-height:100%}
+  /* Before you send, as drawn: the verdict, then rows — a short label, what it says */
+  html.lg-new #ig-dock .sh-lt-card,html.lg-new .sh-lt-side .sh-lt-card{border:0;border-radius:0;box-shadow:none;background:none;padding:12px 0;border-bottom:1px solid var(--color-divider);display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 12px;align-items:start}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card > h4{margin:0;font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card > :not(h4){grid-column:2;margin:0;font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card.sh-lt-verdict{display:block}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-checks .sh-lt-card{display:block}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-checks .sh-noemail{margin:0;padding:12px 0;border-bottom:1px solid var(--color-divider);font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-verdict > h4{font-size:14px;margin-bottom:10px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv > span{font-weight:var(--w-label)}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv > p{margin:0}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl{margin:0;font-size:13px}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li{display:inline;padding:0}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li::before{display:none}
+  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li + li::before{display:inline;position:static;content:" · ";background:none;width:auto;height:auto}
+  /* THE CLAUSE EDITOR, AS DRAWN: the paper in the paper's type, the Redline pill filled, the suggested wording in a box */
+  html.lg-new #ce-doc,html.lg-new #ce-doc :is(p,li,div,span):not(.rl-seg){font-family:var(--font-doc)}
+  html.lg-new #ce-doc #ce-clausebody{font-size:15px;line-height:1.55}
+  html.lg-new .rl-segwrap.rl-readwrap .rl-seg.on{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
+  html.lg-new .ce-lcard .ce-lc-sug{margin:2px 0 6px;padding:12px 14px;border-radius:var(--radius);background:var(--color-surface);border:1px solid var(--color-divider);font-family:var(--font-doc);font-size:14px;line-height:1.5;color:var(--color-doc-text)}
+  html.lg-new .ce-lcard .ce-lc-sug :is(ins,del){margin:0 1px}
+  html.lg-new .ce-lcard .acts{display:flex;align-items:center;gap:8px}
+  html.lg-new .ce-lcard .acts .sp{flex:1}
+  html.lg-new .ce-lcard .ce-lc-link{border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  /* HISTORY, AS DRAWN: quick links for filters, plain side and names, small capital column heads */
+  html.lg-new .hist-tools .hist-filters.hist-quick{display:flex;flex:1;align-items:center;gap:4px;padding:0 0 0 12px;background:none;border:0;box-shadow:none;font-size:12.5px}
+  html.lg-new .hist-quick .hist-qk-l{color:var(--color-text);margin-right:4px}
+  html.lg-new .hist-quick i{font-style:normal;color:var(--color-text)}
+  html.lg-new .hist-quick .hist-qk{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .hist-quick .hist-qk[aria-pressed="true"]{font-weight:var(--w-strong);text-decoration-thickness:2px}
+  html.lg-new .hist-quick .hist-clear{border:0;background:none;padding:0;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .hist-quick .hist-clear:disabled{color:var(--color-quiet);text-decoration:none;cursor:default}
+  html.lg-new .hist-trail.is-table .hist-who .reg-av{display:none}
+  html.lg-new .hist-trail.is-table .hist-sd{color:var(--color-text)}
+  html.lg-new .hist-trail.is-table .hist-sd::before,html.lg-new .hist-trail.is-table .hist-sd i{display:none}
+  html.lg-new .hist-trail.is-table .hist-th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .hist-trail.is-table .hist-ocw{text-transform:lowercase}
+  /* WHERE WE ARE, AS DRAWN (owner: restyle, the same facts as their link): flat on the page, one column, small capital heads */
+  html.lg-new #hb-board .ds-sheet{display:block;padding:8px 24px 24px}
+  html.lg-new #hb-board .ds-sheet .ds-card{border:0;border-radius:0;box-shadow:none;background:none;padding:0;margin:0}
+  html.lg-new #hb-board .ds-sheet .ds-h1{font-family:var(--font-doc);font-size:22px;font-weight:400}
+  html.lg-new #hb-board .ds-sheet .ds-cols{display:block;margin-top:20px}
+  html.lg-new #hb-board .ds-sheet .ds-side{display:block}
+  html.lg-new #hb-board .ds-sheet .ds-cols .ds-card{margin-top:20px}
+  html.lg-new #hb-board .ds-sheet .ds-ch{padding:0 0 8px;border-bottom:1px solid var(--color-divider);background:none}
+  html.lg-new #hb-board .ds-sheet .ds-ch .ds-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #hb-board .ds-sheet .ds-pt-table th{background:none;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #hb-board .ds-sheet .ds-pt-table td{font-size:13.5px}
+  html.lg-new #hb-board .ds-sheet .ds-pt-table :is(th,td):first-child{padding-left:0}
+  html.lg-new #hb-board .ds-sheet :is(.ds-li,.ds-late){padding-left:0}
+  html.lg-new #hb-board .ds-sheet .ds-list{padding:0}
+  html.lg-new #hb-board .ds-sheet .ds-late .ds-r{background:none;padding:0;color:var(--color-quiet)}
+  html.lg-new #hb-board .ds-sheet .ds-by .reg-av,html.lg-new #hb-board .ds-sheet .ds-pch .reg-av{display:none}
+  html.lg-new #hb-board .ds-sheet .ds-pch{border:0;background:none;padding:0 16px 0 0}
+  html.lg-new #hb-board .ds-sheet .ds-tag{background:none;padding:0;color:var(--color-text)}
+  /* THE REDLINE AS DRAWN (owner, 31 Oct 2026: "build as drawn"; REVERSES 13-14 Sep's "colour says who" on the new look only):
+     added words green and underlined, struck words red on a pink wash, whoever wrote them */
+  html.lg-new .rl-doc ins:is(.rl-them,.rl-us),html.lg-new .nego-doc ins:is(.rl-them,.rl-us),html.lg-new .rl-cp-src ins:is(.rl-them,.rl-us),html.lg-new .rl-col ins:is(.rl-them,.rl-us),html.lg-new .pv-sheet ins:is(.rl-them,.rl-us),html.lg-new .ag-words ins:is(.rl-them,.rl-us),html.lg-new #ig-canvas ins:is(.rl-them,.rl-us),html.lg-new .dl2-w ins:is(.rl-them,.rl-us){background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:underline;text-decoration-color:currentColor}
+  html.lg-new .rl-doc del:is(.rl-them,.rl-us),html.lg-new .nego-doc del:is(.rl-them,.rl-us),html.lg-new .rl-cp-src del:is(.rl-them,.rl-us),html.lg-new .rl-col del:is(.rl-them,.rl-us),html.lg-new .pv-sheet del:is(.rl-them,.rl-us),html.lg-new .ag-words del:is(.rl-them,.rl-us),html.lg-new #ig-canvas del:is(.rl-them,.rl-us),html.lg-new .dl2-w del:is(.rl-them,.rl-us){background:var(--st-ruby-bg);color:var(--st-ruby-fg);text-decoration:line-through;text-decoration-color:currentColor}
+  html.lg-new #ig-page .ig-red.is-nl-red{display:none}
+  html.lg-new #share-send svg{display:none}
+  html.lg-new .sh-nl-jb{margin:10px 0 0;font-family:var(--font-body);font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .sh-nl-jb .sh-nl-write{border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new #sh-letter .sh-lt-p.sh-lt-sign{margin-top:0}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter .sh-lt-link{display:inline;padding:0;border:0;border-radius:0;background:none;color:var(--accent-ink);font-weight:400;text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #modal-root .sh-hd-acts{display:flex}
+  html.lg-new #modal-root .sh-hd-acts #share-close{order:-1}
+  /* the letter as drawn: the note is typed into the letter itself, no box or label round it; the subject is words */
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note > label{border:0;padding:0;background:none;box-shadow:none}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note #sh-summary-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note textarea{border:0;padding:0;background:none;box-shadow:none;font-family:var(--font-doc);font-size:15px;line-height:1.55;resize:none}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap #sh-lt-subject{border:0;background:none;padding:0;box-shadow:none}
+  /* Before you send as drawn: Goes first, then the rest */
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes){display:flex;flex-direction:column}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-goes{order:-1}
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > *{align-self:stretch}
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-jb{order:-3}
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-verdict{order:-2}
+  html.lg-new .rl-pile.rl-pile-nlfold:not(.is-open) > :not(.rl-band){display:none}
+  html.lg-new #ig-dock .rl-band.rl-band-nl{display:flex;align-items:center;width:100%;gap:8px;padding:10px 0;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new #ig-dock .rl-band.rl-band-nl span{flex:1}
+  html.lg-new #ig-dock .rl-band.rl-band-nl b{font-weight:400}
+  html.lg-new #ig-dock .rl-band.rl-band-nl i{font-style:normal}
+  html.lg-new #ig-dock .rl-face .rl-unsent-go{display:none}
+  html.lg-new .rl-pt{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
+  /* the close plan's panel, as drawn */
+  html.lg-new .dl2-panel{padding:12px 16px 16px;font-size:13px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .dl2-panel .dl2-pl{margin:0 0 16px;font-weight:var(--w-label)}
+  html.lg-new .dl2-panel .dl2-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 6px}
+  html.lg-new .dl2-panel .dl2-road{margin-bottom:16px}
+  html.lg-new .dl2-panel .dl2-road > div{display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-divider);align-items:baseline}
+  html.lg-new .dl2-panel .dl2-road b{font-weight:var(--w-label)}
+  html.lg-new .dl2-panel .dl2-road i{font-style:normal;font-size:12px}
+  html.lg-new .dl2-panel .dl2-j{display:flex;gap:10px;margin:4px 0 18px}
+  html.lg-new .dl2-panel .dl2-jdot{flex:none;width:12px;height:12px;margin-top:3px;border-radius:50%;background:var(--accent-ink)}
+  html.lg-new .dl2-panel .dl2-j p{margin:0;font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .dl2-panel .dl2-doors > div{display:flex;align-items:baseline;gap:10px;padding:6px 0}
+  html.lg-new .dl2-panel .dl2-doors span{font-size:11.5px;color:var(--color-quiet)}
+  /* WHERE THE DEAL STANDS, AS DRAWN */
+  html.lg-new .ds2{padding:8px 24px 24px;color:var(--color-text)}
+  html.lg-new .ds2-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  html.lg-new .ds2-h{margin:0;font-family:var(--font-doc);font-size:22px;font-weight:400}
+  html.lg-new .ds2-sp{flex:1}
+  html.lg-new .ds2-sub{margin:8px 0 20px;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .ds2-spine{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 20px;padding:0;list-style:none;position:relative}
+  html.lg-new .ds2-spine::before{content:"";position:absolute;left:8%;right:8%;top:7px;height:1px;background:var(--color-divider)}
+  html.lg-new .ds2-st{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+  html.lg-new .ds2-st i{width:14px;height:14px;border-radius:50%;background:var(--color-surface);border:1.5px solid var(--color-neutral-300);margin-bottom:6px}
+  html.lg-new .ds2-st.is-done i{background:var(--color-text);border-color:var(--color-text)}
+  html.lg-new .ds2-st.is-now i{border-color:var(--st-amber-fg);border-width:2px}
+  html.lg-new .ds2-st b{font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .ds2-st span{font-size:11.5px;color:var(--color-text)}
+  html.lg-new .ds2-st.is-now span{color:var(--st-amber-fg)}
+  html.lg-new .ds2-t{width:100%;border-collapse:collapse;font-size:13.5px}
+  html.lg-new .ds2-t th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);padding:10px 12px 8px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .ds2-t td{padding:12px 12px 12px 0;border-bottom:1px solid var(--color-divider);vertical-align:top;font-weight:var(--w-label)}
+  html.lg-new .ds2-t td small{font-size:11.5px;font-weight:400}
+  html.lg-new .ds2-t tr.ds2-agh th{padding-top:20px}
+  html.lg-new .ds2-foot{margin:16px 0 0;font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .pd2-br-head [data-pd-mid-back]:focus:not(:focus-visible){outline:none;box-shadow:none}
+  html.lg-new .pd2-stands .ds2{padding:4px 40px 32px;max-width:1000px}
+  html.lg-new .pd2-st-face{padding:12px 16px;font-size:13px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .pd2-st-lead{margin:0 0 16px;font-weight:var(--w-label);font-size:13.5px}
+  html.lg-new .pd2-st-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 6px}
+  html.lg-new .pd2-st-row{display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-divider);align-items:baseline}
+  html.lg-new .pd2-st-row b{font-weight:var(--w-label)}
+  html.lg-new .pd2-st-row i{font-style:normal;font-size:12px}
+  html.lg-new .pd2-st-face .dl2-j{display:flex;gap:10px;margin:18px 0 0}
+  html.lg-new .pd2-st-face .dl2-jdot{flex:none;width:12px;height:12px;margin-top:3px;border-radius:50%;background:var(--accent-ink)}
+  html.lg-new .pd2-st-face .dl2-j p{margin:0;font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .rl-1p-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+  html.lg-new .rl-1p{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  @media (hover:hover){ html.lg-new .rl-1p:hover{box-shadow:inset 0 0 0 1px var(--color-text)} }
+  html.lg-new .rl-1p:disabled{opacity:.55;cursor:default}
+  /* the Redlines face as drawn: no trail over the head (the tabs say where you are), Reject red on the face */
+  html.lg-new #ig-dock #pd-redface .pd-trail,html.lg-new #ig-dock .pd-trail[data-pd-trail="red"]{display:none}
+  html.lg-new #ig-dock .rl-card-verbs .rl-rej{color:var(--color-text)}
+  html.lg-new #ig-dock .rl-card-verbs .rl-rej svg,html.lg-new #ig-dock :is(.rl-head-deal,.rl-head-notes,.rl-head-review) svg{display:none}
+  /* the dial: the figure in their ask carries a grip; pressed, a scale under the clause, your figure to theirs */
+  html.lg-new #ig-canvas [data-pd2-dial]{cursor:ew-resize;position:relative;outline:none}
+  html.lg-new #ig-canvas [data-pd2-dial]:focus-visible{box-shadow:0 0 0 2px var(--accent-ink)}
+  html.lg-new #ig-canvas [data-pd2-dial].is-moved{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #ig-canvas .pd2-dial-grip{display:inline-block;width:6px;height:12px;margin-left:4px;border-left:2px solid currentColor;border-right:2px solid currentColor;opacity:.45;vertical-align:-1px}
+  html.lg-new #ig-canvas .pd2-dial{margin:6px 0 10px;padding:22px 12px 4px;font-family:var(--font-body);user-select:none}
+  html.lg-new #ig-canvas .pd2-dial-track{position:relative;height:4px;border-radius:2px;background:var(--color-divider);cursor:ew-resize;touch-action:none}
+  html.lg-new #ig-canvas .pd2-dial-mk{position:absolute;top:-22px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none;white-space:nowrap}
+  html.lg-new #ig-canvas .pd2-dial-mk b{font-size:11.5px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #ig-canvas .pd2-dial-mk em{font-style:normal;font-size:11px;color:var(--color-quiet)}
+  html.lg-new #ig-canvas .pd2-dial-mk.is-lim b{color:var(--st-amber-fg)}
+  html.lg-new #ig-canvas .pd2-dial-knob{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--color-text);box-shadow:0 0 0 3px var(--color-surface);transform:translate(-50%,-50%);transition:left .08s}
+  html.lg-new #ig-canvas .pd2-dial-say{margin-top:26px;font-size:12px;color:var(--color-text)}
+  html.lg-new #ig-canvas .pd2-dial.is-filing{opacity:.6}
+  @media (prefers-reduced-motion: reduce){ html.lg-new #ig-canvas .pd2-dial-knob{transition:none} }
+  /* a contract's own page brought up on the desk (History, Where we are, the Overview): one white surface, edge to edge, as drawn */
+  html.lg-new #ig-page[data-hb-side] #hb-board:has(.bs-strip.bs-on-desk){padding:0;background:var(--color-surface)}
+  html.lg-new #ig-page[data-hb-side] #hb-board .bs-strip.bs-on-desk.hb-card{border-radius:0;box-shadow:none;border:0;min-height:100%;margin:0}
 </style>
 
 

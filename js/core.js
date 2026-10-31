@@ -5289,8 +5289,20 @@ function shareNoteBoxHtml(c, hist){
             :i18t('co_note_to', { who:esc(c.counterparty||i18t('co_them')) })}</span>
         <textarea id="sh-summary" rows="3" style="${HATI_FLD}height:auto;min-height:var(--field-h)" placeholder="${
           hist?'e.g. The full record of our negotiation, for your file.'
-             :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>`;
+             :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>${
+    /* THE NEW LOOK, AS DRAWN: Jambo writes the note from your answers on a press, its cost on it (owner: "Jambo on press") */
+    (!hist && typeof newLookOn==='function' && newLookOn()) ? `<p class="sh-nl-jb" id="sh-nl-jb"><button type="button" class="sh-nl-write" data-sh-nl-write="${esc(c.id)}">${esc(i18t('sh_nl_write'))}</button> <span>${esc(i18t('sh_nl_write_cost'))}</span></p>` : ''}`;
 }
+/* "Write it for me": the question goes to Jambo through the one box (1 call); his note lands in the box itself (aiSendNoteHtml
+   sees the press), and the line under it says who wrote it and what it cost — nothing is sent until Send */
+if(typeof document!=='undefined' && document.addEventListener) document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest?e.target.closest('[data-sh-nl-write]'):null; if(!b) return;
+  e.preventDefault();
+  const c=(typeof getContract==='function')?getContract(b.getAttribute('data-sh-nl-write')):null; if(!c) return;
+  window._shNlWrite=String(c.id);
+  const who=String(fval('sh-name')||'').trim().split(/\s+/)[0]||String(c.counterparty||'').split(/\s+/)[0];
+  if(typeof intelAsk==='function') intelAsk(i18t('sh_nl_write_q', { who }), { typed:true });
+});
 /* ============================================================
    THE LETTER (round 11 of the redesign: the owner picked "The letter" by
    name, 17 Oct 2026, and answered "1. Keep it.": the note stays the only part
@@ -5359,7 +5371,7 @@ function shareLetterOf(c, st){
      and the sign-off is the sender's own job title; the one-time code is said
      where the company asks for it (the link's own gate, linkCodeCfg). */
   const pc=(s.payload&&s.payload.contract)||{};
-  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(),
+  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(), drawn:(typeof newLookOn==='function'&&newLookOn()),
     round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc, c),
     codeOn:!!(typeof linkCodeCfg==='function' && linkCodeCfg().on) }), head:true, letter:true };
 }
@@ -5446,6 +5458,31 @@ function shareLetterPartsHtml(parts){
    name in sentence case ("Negotiate", "Email", "The contract, round 2"), and
    a row that does not apply steps out whole — what they can do, on a
    history or a "Where we are" page; what goes and how, for a colleague. */
+/* SEND'S LINES IN THE DRAWING'S WORDS (the new look, "Lines that open"): what goes as your answers and what is held back;
+   what they can do as the act ("Reply with their own changes") and, where signing cannot happen yet, why; email with
+   their link, and the code where the admin asks one. Readings only: the same lists the send itself reads. */
+function shareNlLinesPaint(c, s, set, host){
+  const p=s.purpose||'negotiate';
+  if(p==='history'||p==='status'||p==='colleague') return;
+  const say=(rowId, id, v)=>{ const row=document.getElementById(rowId), v0=row&&row.querySelector('.sh-lt-v'); if(!v0) return;
+    let e=document.getElementById(id); if(!e){ e=document.createElement('p'); e.id=id; e.className='sh-lt-say2'; v0.appendChild(e); }
+    if(e.textContent!==v) e.textContent=v; e.hidden=!v; };
+  let A=null; try{ A=shareAnswersOf((s.payload&&s.payload.contract)||c, c); }catch(_){ A=null; }
+  const n=((A&&A.lines)||[]).length+((A&&A.own)||[]).length;
+  let held=0; try{ held=(typeof shareStaysRows==='function')?shareStaysRows(c).length:0; }catch(_){ held=0; }
+  if(n) set('what', i18tn('sh_nl_what', n, { n }));
+  say('sh-lt-what-row', 'sh-nl-what-say', held?i18tn('sh_nl_held', held, { n:held }):i18t('sh_nl_held_none'));
+  if(p==='negotiate'){
+    set('purpose', i18t('sh_nl_can_neg'));
+    const open=(typeof signingRouteOpen==='function')?signingRouteOpen(c):true;
+    const ps=document.getElementById('share-purpose-say'); const v=open?(ps&&ps.textContent)||'':i18t('sh_nl_cannot_sign');
+    if(ps && !open && ps.textContent!==v) ps.textContent=v;
+  }
+  const ch=s.ch||'email';
+  if(ch==='email') set('ch', i18t('sh_nl_ch_email'));
+  const code=(typeof linkCodeCfg==='function')&&linkCodeCfg().on;
+  say('sh-lt-by-row', 'sh-nl-by-say', ch==='email'&&code?i18t('sh_nl_code'):'');
+}
 function shareLetterAsPaint(c, st){
   const host=document.getElementById('sh-as-chips'); if(!host) return;
   const s=st||{}, set=(k,v)=>{ const w=host.querySelector(`[data-sh-as-w="${k}"]`); if(w && w.textContent!==v) w.textContent=v; };
@@ -5487,6 +5524,7 @@ function shareLetterAsPaint(c, st){
     const dead=!now && !!(src && src.disabled);
     b.disabled=dead; if(dead && src.title) b.title=src.title; else b.removeAttribute('title'); };
   row('contract', roundW);
+  if(typeof newLookOn==='function' && newLookOn()) shareNlLinesPaint(c, s, set, host);
   row('history', i18t('sh_f_history'));
   row('status', i18t('sh_f_status'));
   /* To: our own people on a colleague's send, else "A colleague instead" —
@@ -5580,6 +5618,11 @@ function shareLetterNoteFit(){
 function shareLetterChecksPlace(){
   const slot=document.getElementById('sh-lt-checks'); if(!slot) return false;
   ['share-readiness-wrap','sh-noemail'].forEach(id=>{ const n=document.getElementById(id); if(n && n.parentElement!==slot) slot.appendChild(n); });
+  /* THE NEW LOOK, AS DRAWN: From is the last of the lines on the left, not the letter's head */
+  if(typeof newLookOn==='function' && newLookOn()){
+    const from=document.getElementById('sh-lt-from'), row=from && from.closest('.sh-lt-row'), lines=document.getElementById('sh-as-chips');
+    if(row && lines && row.parentElement!==lines) lines.appendChild(row);
+  }
   return true;
 }
 /* WHO IT GOES TO, AS A LINE (round 11's gaps): a recipient HaTi already knows
@@ -5773,7 +5816,7 @@ function shareLetterPaint(c, st){
   shareGoesPaint(c, st, who);
   /* what they never see, named for who will read it (round 11's gaps: "What
      Anna never sees") */
-  set('sh-lt-never-h', i18t('sh_lt_never_h', { who }));
+  set('sh-lt-never-h', (typeof newLookOn==='function' && newLookOn()) ? i18t('sh_kv_names') : i18t('sh_lt_never_h', { who }));
   /* Something else to send: the other two kinds of link, whichever is not
      this one. THE CARD IS NOT DRAWN (the SAP Way, 28 Oct 2026): "What goes"
      asks the same question in the form, and its list presses these same
@@ -5792,7 +5835,7 @@ function shareLetterPaint(c, st){
     /* a colleague's letter is named for the colleague in To, never the other side's hidden Name box */
     const colTo=st && st.purpose==='colleague' && _shCol.picks[0] ? _shCol.picks[0].name : '';
     const first=String(colTo || (st && st.purpose==='colleague' ? '' : fval('sh-name')) || '').trim().split(/\s+/)[0];
-    const v=first ? i18t('sh_lt_send_to', { who:first }) : i18t('co_send_by_email');
+    const v=(typeof newLookOn==='function' && newLookOn()) ? i18t('sh_nl_send') : first ? i18t('sh_lt_send_to', { who:first }) : i18t('co_send_by_email');
     if(lbl.textContent!==v && !/^(Sending|Sent)/.test(lbl.textContent)) lbl.textContent=v;
   }
 }
@@ -5935,8 +5978,11 @@ function shareVerdictPaint(c, st){
       <div class="sh-lt-acts"><button type="button" class="sh-lt-change" data-sh-v-go="negotiate">${esc(i18t('sh_v_sign_go'))}</button></div>`;
   } else if(!blocked && p!=='colleague' && !(p==='sign' && typeof shareNeedsSigners==='function' && shareNeedsSigners(c))){
     let held=0; if(p!=='history' && p!=='status'){ try{ held=shareStaysRows(c).length; }catch(_){ held=0; } }
-    html=`<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}</h4><p>${esc(
-      (p==='history'||p==='status') ? i18t('sh_v_ready_rec') : held ? i18tn('sh_v_ready_held', held, { n:held }) : i18t('sh_v_ready'))}</p>`;
+    const said=(p==='history'||p==='status') ? i18t('sh_v_ready_rec') : held ? i18tn('sh_v_ready_held', held, { n:held }) : i18t('sh_v_ready');
+    html=(typeof newLookOn==='function' && newLookOn())
+      /* the new look's Before you send: the verdict, then labelled rows (as drawn) */
+      ? `<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}.</h4><div class="sh-kv"><span>${esc(i18t('sh_kv_held'))}</span><p>${esc(said)}</p></div>`
+      : `<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}</h4><p>${esc(said)}</p>`;
   }
   if(v.innerHTML!==html) v.innerHTML=html;
   v.classList.toggle('hidden', !html);
@@ -5967,7 +6013,7 @@ function shareGoesPaint(c, st, who){
   }
   if(String(fval('sh-summary')||'').trim()) items.push(i18t('sh_goes_note'));
   const h=document.getElementById('sh-lt-goes-h'), ul=document.getElementById('sh-lt-goes-l');
-  const hv=i18t('sh_goes_h', { who }); if(h && h.textContent!==hv) h.textContent=hv;
+  const hv=(typeof newLookOn==='function' && newLookOn()) ? i18t('sh_kv_goes') : i18t('sh_goes_h', { who }); if(h && h.textContent!==hv) h.textContent=hv;
   const lv=items.map(t=>`<li>${esc(t)}</li>`).join(''); if(ul && ul.innerHTML!==lv) ul.innerHTML=lv;
 }
 function shareSideHtml(c, part){
@@ -5987,7 +6033,8 @@ function shareSideHtml(c, part){
     <div class="sh-lt-checks" id="sh-lt-checks"></div>
     ${''/* WHAT GOES TO THEM, one line each (shareGoesPaint) */}
     <div class="sh-lt-card" id="sh-lt-goes"><h4 id="sh-lt-goes-h"></h4><ul class="sh-lt-goesl" id="sh-lt-goes-l"></ul></div>
-    <div class="sh-lt-card"><h4 id="sh-lt-never-h">${i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
+    ${(typeof newLookOn==='function' && newLookOn())?`<div class="sh-lt-card sh-nl-mail"><h4>${esc(i18t('sh_nl_mail_k'))}</h4><p>${esc(i18t('sh_nl_mail'))}</p></div>`:''}
+    <div class="sh-lt-card"><h4 id="sh-lt-never-h">${(typeof newLookOn==='function' && newLookOn()) ? esc(i18t('sh_kv_names')) : i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
     <div class="sh-lt-card hidden" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
       <div class="sh-lt-acts">
         <button type="button" class="ui-btn ui-btn-sm" id="share-other" data-sh-lt-else="history"${histOk?'':` disabled title="${esc(i18t('sh_lt_else_hist_none'))}"`}>${esc(i18t('sh_lt_else_hist'))}</button>
@@ -6008,6 +6055,14 @@ function shareLeadTitle(c, s, purposeSel){
     : purposeSel==='status' ? i18t('sh_hd_status')
     : (s && s.lines.length) ? i18t('sh_hd_round', { n:shareRoundOf(c.negotiation) })
     : i18t('sh_hd_contract');
+  /* THE NEW LOOK, AS DRAWN: "Send to Parcelway" and, quieter, "Parcel Delivery SaaS · your 2 answers to their round 2" */
+  if(typeof newLookOn==='function' && newLookOn() && purposeSel!=='history' && purposeSel!=='status'){
+    const short=String(c.counterparty||'').trim().split(/\s+/)[0]||who;
+    let A=null; try{ A=(typeof shareAnswersOf==='function')?shareAnswersOf(c, c):null; }catch(_){ A=null; }
+    const n=((A&&A.lines)||[]).length, r=(c.negotiation&&Number(c.negotiation.round))||1;
+    const sub=n?i18tn('sh_nl_sub', n, { name:c.name||ref, n, r }):(c.name||ref);
+    return `${esc(i18t('sh_nl_title', { who:short }))} <span class="sh-hd-to">${esc(sub)}</span>`;
+  }
   return `${esc(main)} <span class="sh-hd-to">${i18t('sh_hd_to', { who, ref })}</span>`;
 }
 function shareLeadHeadHtml(c, purposeSel){
@@ -8070,7 +8125,9 @@ function shareLetterPage(c){
   const acts=panel.querySelector('.sh-hd-acts');
   const send=document.getElementById('share-send'), cancel=document.getElementById('share-close');
   const off=document.getElementById('share-send-off');
-  if(acts){ if(send && send.parentElement!==acts) acts.appendChild(send); if(off && off.parentElement!==acts) acts.appendChild(off); if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); }
+  /* THE NEW LOOK, AS DRAWN: Cancel, then Send */
+  if(acts && typeof newLookOn==='function' && newLookOn()){ if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); if(send && send.parentElement!==acts) acts.appendChild(send); if(off && off.parentElement!==acts) acts.appendChild(off); }
+  else if(acts){ if(send && send.parentElement!==acts) acts.appendChild(send); if(off && off.parentElement!==acts) acts.appendChild(off); if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); }
   /* "Before you send" goes beside it, as a face of Jambo's panel */
   /* the panel's own column (a fill draws a new one; the face lets the old go) */
   const side=panel.querySelector('#share-step-1');
@@ -9111,8 +9168,8 @@ async function openShareModal(c, opts={}){
         r = reuse
           /* the letter the screen shows is the email that goes, on the link
              they already hold too (round 11's gaps): the note and the name */
-          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}) } })
-          : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}),
+          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}) }, ...((typeof newLookOn==='function'&&newLookOn())?{ drawnLetter:true }:{}) })
+          : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}), ...((typeof newLookOn==='function'&&newLookOn())?{ drawnLetter:true }:{}),
               recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
               durable:wantDurable, purpose:payloadObj.purpose,
               /* Only on the Word channel, and only ever the bytes this dialog

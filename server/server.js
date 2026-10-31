@@ -21,6 +21,8 @@ const { shareMailOf, shareMailNameOf, signerTurnMailOf, shareRoundOf, shareAnswe
 /* THE CHASE (round 23's gaps, 18 Oct 2026): the reminder the Counter's Look draws, written once */
 const { chaseMailOf, chaseDayWords } = require('../js/sharemail.js');
 const { passMailOf, PASS_NOTE_MAX } = require('../js/sharemail.js');
+/* WHERE THE DEAL STANDS, AS DRAWN: the page's one reading, shared with the owner's tab (js/dealstands.js) */
+const { dpPage } = require('../js/dealstands.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -12146,8 +12148,44 @@ app.get('/deal/:token', (req, res) => {
   let D = null; try { D = srvDealStands(c); } catch (_) { D = null; }
   if (!D) return gone('This contract could not be read.');
   let org = ''; try { org = ((getSetting('org') || {}).name) || ''; } catch (_) { org = ''; }
-  res.type('html').send(dealPageHtml(D, org));
+  res.type('html').send(process.env.NEW_LOOK_PUBLIC === '1' ? dealPageDrawnHtml(c, D, org) : dealPageHtml(D, org));
 });
+/* THE STATUS PAGE AS DRAWN (the new look; owner, 31 Oct 2026: "Both pages as drawn"): the same page the owner's tab
+   draws (standsDrawnHtml), built from the same reading (dpPage) off the STORED record, in literal values (a standalone
+   document carries no :root). Served once the new look is public (NEW_LOOK_PUBLIC=1, the release's switch). */
+const DEAL_STAGE_WORDS = { arrive: 'Arrive', read: 'Read', fill: 'Fill', nego: 'Negotiate', sign: 'Sign', live: 'Live' };
+function dealPageDrawnHtml(c, D, org) {
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
+  const day = d => { if (!d) return ''; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_) { return String(d).slice(0, 10); } };
+  const P = dpPage(c, D);
+  const dot = st => st.state === 'done' ? 'background:#1D1D1F;border:1.5px solid #1D1D1F' : st.state === 'now' ? 'background:#fff;border:2px solid #8A5A0A' : 'background:#fff;border:1.5px solid #C7C7CC';
+  const sub = st => st.k === 'arrive' ? day(st.at) : st.k === 'nego' && st.state === 'now' ? ['round ' + st.round, st.move ? st.move + '’s move' : ''].filter(Boolean).join(' · ') : st.state === 'done' && st.k !== 'read' ? 'done' : '';
+  const stg = P.stages.map(st => `<td style="text-align:center;vertical-align:top;width:16.6%"><div style="width:14px;height:14px;border-radius:50%;margin:0 auto 8px;${dot(st)}"></div>
+    <div style="font-size:13px;font-weight:500">${e(DEAL_STAGE_WORDS[st.k])}</div><div style="font-size:11.5px;color:${st.state === 'now' ? '#8A5A0A' : '#1D1D1F'}">${e(sub(st))}</div></td>`).join('');
+  const side = x => `${e(x.words || '—')}${x.more ? ` <small style="font-size:11.5px;font-weight:400">${x.more} more line${x.more === 1 ? '' : 's'}</small>` : ''}`;
+  const th = 'text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:500;color:#4B4B50;padding:10px 12px 8px 0;border-bottom:1px solid #E6E6EA';
+  const td = 'padding:12px 12px 12px 0;border-bottom:1px solid #E6E6EA;vertical-align:top;font-weight:500';
+  const rows = P.rows.length ? P.rows.map(r => `<tr><td style="${td}">${e(r.clause || 'a clause')}</td><td style="${td}">${side(r.ours)}</td><td style="${td}">${side(r.theirs)}</td><td style="${td}">${e(r.move)}</td></tr>`).join('')
+    : `<tr><td colspan="4" style="${td}">Nothing is open.</td></tr>`;
+  const agreed = P.agreed.length ? `<tr><th colspan="4" style="${th};padding-top:20px">Agreed</th></tr><tr><td style="${td}">${e(P.agreed.join(' · '))}</td><td colspan="3" style="${td}">${e(P.sentAt ? 'as sent on ' + day(P.sentAt) : 'as drafted')}</td></tr>` : '';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="format-detection" content="telephone=no,email=no,address=no,date=no">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/fonts/geist.css"><link rel="stylesheet" href="/fonts/source-serif-4.css">
+  <title>Where the deal stands</title></head>
+  <body style="margin:0;background:#fff;font:14px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1D1D1F">
+    <div style="border-bottom:1px solid #E6E6EA;padding:0 26px;height:48px;display:flex;align-items:center;gap:12px;font-size:12.5px">
+      <b style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif">HaTi</b><span style="flex:1"></span><span>${e(D.name)} &middot; ${e(D.ref)}</span></div>
+    <div style="padding:24px 26px 40px;max-width:1000px;margin:0 auto">
+      <h1 style="font:400 22px/1.25 'Source Serif 4','Iowan Old Style',Georgia,serif;margin:0">Where the deal stands</h1>
+      <p style="margin:8px 0 20px;font-size:13px;font-weight:500">${e([D.name, P.usFull + ' and ' + P.themFull, 'what both parties see, nothing more', D.updatedAt ? 'last moved ' + day(D.updatedAt) : ''].filter(Boolean).join(' · '))}</p>
+      <table style="width:100%;border-collapse:collapse;margin:0 0 20px"><tr>${stg}</tr></table>
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px"><tr><th style="${th}">Still open &middot; ${D.open}</th><th style="${th}">${e(P.us)}</th><th style="${th}">${e(P.them)}</th><th style="${th}">Whose move</th></tr>${rows}${agreed}</table>
+      <p style="margin:16px 0 0;font-size:11.5px;color:#4B4B50">Only what every party may see &middot; the same page opens from the status link${org ? ' &middot; shared by ' + e(org) : ''}</p>
+    </div>
+  </body></html>`;
+}
 
 
 /* ---------- the renewal adviser (W2-4, WORKORDER-gap-map.md) ----------
@@ -20156,6 +20194,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        gate). The inbox that draws HTML gets the same words with a button. */
     const pc = (payload && payload.contract) || {};
     const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
+      drawn: (req.body || {}).drawnLetter === true,
       cName, recName: rec.name, message, subject, link, expires,
       round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status',
       ...srvMailCodeOf(shareId) });
@@ -21648,6 +21687,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     const note = String(letter.message || '').slice(0, 1000);
     if (note) db.prepare('UPDATE shares SET message=? WHERE token=?').run(note, s.token);
     const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
+      drawn: (req.body || {}).drawnLetter === true,
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
       message: note, subject: letter.subject, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
       ...srvMailCodeOf(s.contract_id) });
