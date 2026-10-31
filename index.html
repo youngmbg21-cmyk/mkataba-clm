@@ -2314,6 +2314,7 @@
      a brand colour this rulebook records as one that must not flip. This is a
      second token for a second job, not a redefinition of the first. */
   :root{ --accent-fill:var(--accent-solid); } /* CHAMBERS (20 Oct 2026): a filled control is the ink, black (18.3:1 under white); was accent-600 (7 Oct). See .ui-btn-primary */
+  :root{ --morning-warm:#FBF7EE; }  /* MORNING LIGHT (round 2 of the Legora way, owner picked it 31 Oct 2026): the warm top behind Home's greeting */
   :root{ --accent-ink:#087363; --accent-ink-700:#065A4D; }  /* the Legora look: a link is the drawing's teal one step deeper (#0A7C6B measured 4.49:1 on the grey pill): 5.8:1 on white, 5.1 on the pill (23 Oct 2026; Chambers' was the deep green) */
 
   /* ═══ AND THE TWO PALE RUNGS, WHICH CARRY A SURFACE ══════════════════════
@@ -17578,6 +17579,16 @@
   #cn-page .cn-ask .jb-card .jb-plus{width:34px;height:34px}
   #cn-page .cn-ask .jb-card .jb-send{width:36px;height:36px}
   #cn-page .cn-chips{gap:6px 18px;margin-top:14px}
+  /* MORNING LIGHT (round 2 of the Legora way, 31 Oct 2026): the warm top, and the desk's counts as coloured words under the greeting */
+  #cn-page .cn-ask{background:linear-gradient(180deg,var(--morning-warm) 0%,var(--color-surface) 100%)}
+  #cn-page .cn-counts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+  #cn-page .cn-counts[hidden]{display:none}
+  #cn-page .cn-ct{display:inline-flex;align-items:center;gap:7px;height:var(--ctl-h);padding:0 12px;border:0;border-radius:999px;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  #cn-page .cn-ct i{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+  #cn-page .cn-ct.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  #cn-page .cn-ct.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  #cn-page .cn-ct.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  #cn-page .cn-wrap > .jb-doors{margin:12px 0 8px}
   /* THE BOX PREDICTS (round 5): "Likely next:" leads the links in the ink, plain; a task is one line, never cut mid-word */
   #cn-page .cn-chips .cn-lk-h{font-size:12.5px;line-height:1.45;padding:1px 0;color:var(--hb-ink-2);white-space:nowrap}
   #cn-page .cn-needs .cn-h{padding:14px 22px 10px;border-bottom:0;align-items:baseline;gap:10px}

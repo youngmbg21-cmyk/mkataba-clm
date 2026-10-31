@@ -1051,6 +1051,16 @@ function cnChipsHtml(D){
 const _cnJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
 const _cnJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
 
+/* ---- MORNING LIGHT: THE COUNTS AS COLOURED WORDS (round 2 of the Legora way, owner picked "Morning light", 31 Oct 2026) ----
+   Under the greeting, the one desk's own counts (ndRead) as words you can press: late in ruby, waiting on you in amber,
+   prepared by Jambo in violet; a count of nothing is not drawn. Each opens the Board's Needs you on that list (ndOpenBoard).
+   A dot and a word, never the colour alone. Counted from the desk; no call. */
+function cnCountsHtml(D){
+  const you = ndThings(D.you), jb = ndThings(D.jambo);
+  const one = (tone, tab, n, key) => n ? `<button type="button" class="cn-ct is-${tone}" data-cn-count="${tab}"><i aria-hidden="true"></i>${_cnE(_cnT(key, { n }))}</button>` : '';
+  const html = one('ruby', 'all', D.late, 'cn_ct_late') + one('amber', 'you', you, 'cn_ct_you') + one('violet', 'jambo', jb, 'cn_ct_jambo');
+  return `<div class="cn-counts" id="cn-counts"${html ? '' : ' hidden'}>${html}</div>`;
+}
 function counterHtml(){
   const me = (typeof currentUser === 'function') ? currentUser() : null;
   const name = String((me && me.name) || '').trim().split(/\s+/)[0] || _cnT('home_greet_there');
@@ -1066,7 +1076,7 @@ function counterHtml(){
     `<div class="cn-r"><div class="cn-w"><b>${_cnE(deskTabLabel(t.k))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-dk-go="${_cnE(t.k)}">${_cnE(_cnT('cn_open'))}</button></div>`).join('')}</section>` : '';
   _cnSig = ndSig(D);
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
-    <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
+    <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>${cnCountsHtml(D)}
       <div class="cn-wrap">${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */}${_cnJbCard({ cls: 'cn-card-box', field: `<textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea>`, send: _cnJbSend('data-cn-send', _cnT('cn_ask')) })}<div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
       <div class="cn-chips" id="cn-chips">${cnChipsHtml(D)}</div></section>
     <section class="cn-card cn-needs nd-home" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${D.n}</span>${sum ? `<span class="nd-sum">${_cnE(sum)}</span>` : ''}</header>${rows}</section>
@@ -1104,6 +1114,8 @@ function counterRepaint(){
   const card = document.getElementById('cn-needs'); if (!card) return;
   const t = document.createElement('div'); t.innerHTML = counterHtml();
   const fresh = t.querySelector('#cn-needs'); if (fresh) card.replaceWith(fresh);
+  const cts = document.getElementById('cn-counts'), fct = t.querySelector('#cn-counts');
+  if (cts && fct && cts.outerHTML !== fct.outerHTML) cts.replaceWith(fct);
   const chips = document.getElementById('cn-chips'), fc = t.querySelector('#cn-chips');
   if (chips && fc && chips.innerHTML !== fc.innerHTML) chips.innerHTML = fc.innerHTML;
 }
@@ -1198,6 +1210,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
     const inPanel = !!t.closest('#panel-body .nd-pan');
     const step = () => { if (inPanel && typeof closeContextPanel === 'function') try { closeContextPanel(); } catch (_){} };
     if ((el = t.closest('[data-nd-all]'))){ ndOpenBoard(el.getAttribute('data-nd-all')); return; }
+    if ((el = t.closest('[data-cn-count]'))){ ndOpenBoard(el.getAttribute('data-cn-count')); return; }
     if ((el = t.closest('[data-nd-look]'))){ step(); ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
     if ((el = t.closest('[data-nd-bundle]'))){ step(); ndBundleGo(); return; }
     /* a bell signal's row presses the bell's own door; from the slide-out panel the panel steps aside first */
@@ -1260,5 +1273,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnLikely, cnLikelyWords, CN_LIKELY_MAX, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });

@@ -21659,6 +21659,9 @@ const STRINGS = {
     /* ---- THE ONE DESK (Round A, the owner picked "The Legora Way", 22 Oct 2026; js/views/counter.js nd*):
        Needs you as one reading, drawn short on Home and whole on the Board under Your book ---- */
     nd_g_jambo: 'Prepared by Jambo',
+    cn_ct_late: '{n} late',
+    cn_ct_you: '{n} waiting on you',
+    cn_ct_jambo: '{n} prepared by Jambo',
     nd_g_you: 'Waiting on you',
     nd_late_one: '{n} late',
     nd_late_other: '{n} late',
@@ -42665,6 +42668,9 @@ const STRINGS = {
     cn_pick_up: 'Fortsätt där du slutade',
     /* ---- DET ENDA SKRIVBORDET (runda A, "The Legora Way", 22 okt 2026) ---- */
     nd_g_jambo: 'Förberett av Jambo',
+    cn_ct_late: '{n} försenade',
+    cn_ct_you: '{n} väntar på dig',
+    cn_ct_jambo: '{n} förberedda av Jambo',
     nd_g_you: 'Väntar på dig',
     nd_late_one: '{n} sen',
     nd_late_other: '{n} sena',

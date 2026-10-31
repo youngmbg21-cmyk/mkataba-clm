@@ -74,6 +74,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - node --test test/f965-the-tokens-are-the-law.test.js — docs/design/tokens.json is :root (re-export with node test/tokens-export.js); no file gains a hand-typed colour (test/tokens-known.json only shrinks).
 - node --test test/f966-no-typed-mark-leads-a-button.test.js — no button's label starts with a typed mark; the drawn marks exist.
 - node test/chromium/doors-verify.js — round 1: the map's doors above Jambo's box on a list page, Obligations, Home's own box, the Board and Settings; a contract's faces only with a contract in front; a press moves through caGo and the doors follow the page; the three screens.
+- node test/chromium/home-morning-verify.js — round 2: Home's warm top; the desk's counts as coloured words (late ruby, waiting amber, Jambo violet), none for a zero, a dot and a word; the doors above the box; a count opens the Board; the three screens.
 - node test/chromium/flowmap-verify.js — the word moves there; every place under its stage; a press lights step, doors and likely next with Jambo's words and Open; a second press lets go; a refresh keeps the place; the three screens.
 
 ## THE HANDBOOK — HOW TO DO EACH THING (owner, 26 Oct 2026)
