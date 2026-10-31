@@ -6301,6 +6301,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const gt = t.closest('[data-pd-glance-tab]');
     if (gt){ e.preventDefault(); pdSetTab(gt.getAttribute('data-pd-glance-tab')); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if (t.closest('[data-pd-gl-brief]')){ e.preventDefault(); const cc = pdContract();
+      if (cc && pd2On()){ pd2BriefOpen(cc.id); return; }
       if (cc && typeof openCheckPanel === 'function') openCheckPanel(getContract(cc.id) || cc, 'brief'); return; }
     /* THE DOSSIER'S DOORS (owner, 20 Oct 2026): each lands where its work is done */
     const full = () => { const cc = pdContract(); return cc && ((typeof getContract === 'function' && getContract(cc.id)) || cc); };
@@ -7087,13 +7088,17 @@ function pd2TurnHtml(c){
 }
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
+  if (pd2BriefUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-brief" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2BriefFaceHtml(c, D)}</div>`;
   const N = dossierNextOf(c, D, dossierFocusOf(D)), b = N.btns[0];
   const link = b ? ` <button type="button" class="ui-link" ${b.attr}${b.title ? ` title="${E(b.title)}"` : ''}>${E(b.short || b.word)}</button>${b.title ? ` <span class="pd2-q">${E(b.title)}</span>` : ''}` : '';
   const R = D.read || {};
   const may = (typeof canEdit !== 'function') || !!canEdit();
   /* not read yet: its own press, the cost said before it (unless the sentence above already offers it) */
   const readGo = (!R.read && may && !(b && /data-pd-ds-read/.test(b.attr))) ? ` · <button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('dos_go_read'))}</button> <span class="pd2-q">${E(_pdT('pd2_read_cost'))}</span>` : '';
-  const readSay = R.read ? `${E(_pdT('pd2_read_once'))}${R.brief ? ` · <button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''}` : E(_pdT('pd2_read_not')) + readGo;
+  /* the brief, wherever one is written (it may come before the arrival read): its link opens it in the middle */
+  const hasBrief = !!(R.brief || (c._brief && c._brief.data && c._brief.data.overview));
+  const briefGo = hasBrief ? ` · <button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : '';
+  const readSay = (R.read ? E(_pdT('pd2_read_once')) : E(_pdT('pd2_read_not')) + readGo) + briefGo;
   const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo" ${f.go}>${E(f.s || _pdT('dos_go_open'))}</button>` : E(f.s || '')}</span></div>`).join('');
   return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2SpineHtml(D)}<p class="pd2-next" data-pd2-next>${E(N.head)}${link}</p><p class="pd2-read">${readSay}</p><div class="pd2-facts">${facts}</div>${pd2TurnHtml(c)}</div>`;
 }
@@ -7206,6 +7211,122 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   else if (go === 'approve' && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(c, 'approved')).then(() => { try { pdGlanceRepaint(); pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, () => {});
   else if (go === 'redline' && typeof riskEditStart === 'function') riskEditStart(c, key);
 });
+/* ---- THE BRIEF IN THE MIDDLE (the contract round, part 2; owner's answers: "Record it, signing waits (as drawn)",
+   the reader who must have read it "the person signing") ----
+   The brief stands where the paper was, as a sheet: what this is, then money, dates and what to watch, every line
+   with the clause it rests on and the paper's own words (found on the paper, no AI; a line whose words are not found
+   says no §). Its foot is "I have read it" (briefReadFootHtml, the one writer briefMarkRead). The signing wall is the
+   one that already stands (sgBriefReadOwed on the server): nothing new is enforced here. While it is up the Dossier
+   turns to what the brief is for: who has read it, and what still waits before signing. */
+const PD2_QUOTE_MAX = 110;
+const PD2_FIG_RE = /[A-Z]{3}\s?\d[\d,.]*\d|\b\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b|\b\d[\d,]*\d(?:\.\d+)?\b/g;
+function pd2Sentences(c){
+  const out = [];
+  pd2Clauses(c).forEach(cl => { const m = String(cl.headingText || cl.title || '').trim().match(/^(\d+(?:\.\d+)*)/); const sec = m ? '§ ' + m[1] : '';
+    String(cl.text || '').replace(/\s+/g, ' ').split(/(?<=[.;])\s+/).forEach(t => { if (t.trim()) out.push({ sec, t: t.trim() }); }); });
+  return out;
+}
+/* where a line rests: its own quote's clause, else the paper's sentence carrying one of its figures */
+function pd2RestsOn(S, line, quote){
+  const norm = x => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (quote){ const q = norm(quote).slice(0, 40); const hit = q && S.find(x => norm(x.t).indexOf(q) >= 0); return { sec: hit ? hit.sec : '', quote: String(quote) }; }
+  const figs = (String(line || '').match(PD2_FIG_RE) || []).map(norm).filter(f => f.replace(/\D/g, '').length >= 2);
+  for (const f of figs){ const hit = S.find(x => norm(x.t).indexOf(f) >= 0); if (hit) return { sec: hit.sec, quote: hit.t.length > PD2_QUOTE_MAX ? hit.t.slice(0, PD2_QUOTE_MAX - 1) + '…' : hit.t }; }
+  return { sec: '', quote: '' };
+}
+function pd2BriefReaders(c){
+  const key = (typeof briefReadKey === 'function') ? briefReadKey(c) : ''; if (!key) return [];
+  return Object.values((c && c.briefRead) || {}).filter(r => r && r.at && String(r.key || '') === key);
+}
+function pd2BriefMeta(c){
+  const b = c._brief || {}, me = (typeof briefReadBy === 'function') && briefReadBy(c);
+  const mine = (typeof briefReadOf === 'function') ? briefReadOf(c) : null;
+  const others = pd2BriefReaders(c).filter(r => !(mine && r.at === mine.at && r.by === mine.by)).map(r => r.by).filter(Boolean);
+  return [_pdT('pd2_br_written', { when: b.at ? dossierDay(b.at) : '' }), _pdT('pd2_br_this'),
+    others.length ? _pdT('pd2_br_read_by', { who: others.join(', ') }) : '', _pdT(me ? 'pd2_br_read_you' : 'pd2_br_not_you')].filter(Boolean).join(' · ');
+}
+function pd2BriefHeadHtml(c){
+  const E = _pdE;
+  return `<div class="pd2-br-head"><button type="button" class="ui-link" data-pd-mid-back>‹ ${E(_pdT('pd_stage_paper'))}</button><b class="pd2-br-t">${E(_pdT('pd2_brief'))}</b><span class="pd2-br-m" data-pd2-br-meta>${E(pd2BriefMeta(c))}</span><span class="pd2-br-sp"></span><span class="pd2-br-cost">${E(_pdT('pd2_br_cost'))}</span></div>`;
+}
+function pd2BriefHtml(c){
+  const E = _pdE, d = (c._brief && c._brief.data) || {}, S = pd2Sentences(c);
+  const mark = t => (typeof briefMark === 'function') ? briefMark(t) : E(t);
+  const line = (txt, quote, why) => { const r = pd2RestsOn(S, txt, quote);
+    return `<div class="pd2-br-ln"><div class="pd2-br-say">${mark(txt)}${why ? `<span class="pd2-br-why">${E(why)}</span>` : ''}</div><div class="pd2-br-src">${r.sec ? `<b>${E(r.sec)}</b>` : ''}${r.quote ? `<q>${E(r.quote)}</q>` : ''}</div></div>`; };
+  const sect = (k, rows) => rows.length ? `<div class="pd2-br-sec"><div class="pd2-br-eye">${E(_pdT(k))}</div>${rows.join('')}</div>` : '';
+  const m = d.money || {}, t = d.term || {};
+  const money = [m.value, m.paymentTerms].filter(Boolean).map(x => line(x));
+  const dates = [t.start, t.end, t.notice].filter(Boolean).map(x => line(x));
+  const watch = (d.watchouts || []).filter(w => w && w.point).map(w => line(w.point, w.quote, w.why));
+  const odd = (d.unusual || []).filter(Boolean).map(u => (typeof u === 'object') ? u : { point: String(u) }).filter(u => u.point).map(u => line(u.point, u.quote, u.why));
+  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+  return `<div class="pd2-brief" data-pd2-brief="${E(c.id)}"><div class="pd2-br-sheet" id="pd2-br-top">
+    <div class="pd2-br-kick">${E([_pdT('pd2_br_kick'), c.name, c.counterparty, ref].filter(Boolean).join(' · '))}</div>
+    <div class="pd2-br-what">${E(_pdT('pd2_br_what'))}</div><div class="pd2-br-lead">${mark(d.overview || '')}</div>
+    ${sect('pd2_br_money', money)}${sect('pd2_br_dates', dates)}${sect('pd2_br_watch', watch)}${sect('pd2_br_odd', odd)}
+    ${c._brief && c._brief.truncated ? `<p class="pd2-br-cut">${E(_pdT('br_partial'))}</p>` : ''}
+    <div class="pd2-br-foot" data-pd2-br-foot>${(typeof briefReadFootHtml === 'function') ? briefReadFootHtml(c) : ''}</div>
+  </div><div class="pd2-br-pfoot"><span>${E(_pdT('pd2_br_f1'))}</span><span>${E(_pdT('pd2_br_f2'))}</span></div></div>`;
+}
+function pd2BriefUp(id){ return pdMidUp('brief:' + String(id)); }
+async function pd2BriefOpen(id){
+  const mk = 'brief:' + String(id);
+  if (pdMidUp(mk)) return pdMidClose();
+  const c0 = pdContract(); if (!c0 || String(c0.id) !== String(id) || !pdOnPaper() || !pdMidMay()) return false;
+  let c = (typeof getContract === 'function' && getContract(id)) || c0;
+  if (c._light && !c._loaded && typeof ensureFull === 'function'){ try { await ensureFull(c); } catch (_){} c = getContract(id) || c; }
+  /* no brief written, or one too thin to draw: the brief's own panel, as before (it carries Write) */
+  if (!(c._brief && c._brief.data)){ if (typeof openCheckPanel === 'function') openCheckPanel(c, 'brief'); return false; }
+  openModal(pd2BriefHtml(c), { maxWidth: 'none', label: _pdT('pd2_brief'), page: { crumbHtml: pd2BriefHeadHtml(c), beside: '#ig-dock' },
+    onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} } });
+  pdMidOn(mk);
+  try { pdGlanceRepaint(); } catch (_){}
+  return true;
+}
+/* the brief's "I have read it": the one writer (briefMarkRead), its line in the trail, saved; then the page, its head
+   and the Dossier say so */
+function pd2BriefRead(c){
+  if (!c || typeof briefMarkRead !== 'function' || !briefMarkRead(c)) return false;
+  if (typeof logAudit === 'function') logAudit(c, 'Record', 'Read the brief before signing');
+  if (typeof persist === 'function') persist(c);
+  const f = document.querySelector('[data-pd2-br-foot]'); if (f && typeof briefReadFootHtml === 'function') f.innerHTML = briefReadFootHtml(c);
+  const m = document.querySelector('[data-pd2-br-meta]'); if (m) m.textContent = pd2BriefMeta(c);
+  try { pdGlanceRepaint(); } catch (_){}
+  if (typeof toast === 'function') toast(_pdT('pd2_br_read_ok'), 'ok');
+  return true;
+}
+/* the Dossier while the brief is up: who read it, and what still waits before signing — each with its own door */
+function pd2BriefFaceHtml(c, D){
+  const E = _pdE, me = (typeof briefReadBy === 'function') && briefReadBy(c), readers = pd2BriefReaders(c);
+  const others = readers.filter(r => !(me && r.by === ((typeof currentUser === 'function' && currentUser()) || {}).name)).map(r => r.by).filter(Boolean);
+  const row = (k, l, v, go) => `<div class="pd2-fact" data-pd2-fact="${k}"><span class="pd2-l">${E(l)}</span><span class="pd2-v">${v}</span><span class="pd2-s">${go || ''}</span></div>`;
+  const pill = (attr, w) => `<button type="button" class="pd2-pill" ${attr}>${E(w)}</button>`;
+  const say = me ? _pdT('pd2_bf_read', { when: dossierDay(((typeof briefReadOf === 'function' && briefReadOf(c)) || {}).at || '') })
+    : _pdT('pd2_bf_say') + (others.length ? ' ' + _pdTn('pd2_bf_others', others.length, { who: others.join(', ') }) : '');
+  const groups = [];
+  groups.push(['pd2_bf_arrival', row('brief', _pdT('pd2_bf_brief'), E(pd2BriefMeta(c)).replace(E(_pdT('pd2_br_not_you')), `<span class="pd2-amb">${E(_pdT('pd2_br_not_you'))}</span>`), pill('data-pd2-br-top', _pdT('pd2_bf_top')))]);
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  const open = (d && d.live) ? d.items.filter(x => x && x.open) : [];
+  if (open.length) groups.push(['pd2_bf_fill', row('details', _pdT('pd2_bf_details'), `<span class="pd2-amb">${E(_pdTn('pd2_bf_owed', open.length, { n: open.length }))}</span> · ${E(open.slice(0, 3).map(x => x.label).join(', '))}`, pill('data-pd-ds-fill=""', _pdT('pd2_fill')))]);
+  const sign = [];
+  if (!me) sign.push(row('check', _pdT('pd2_bf_check'), `<span class="pd2-amb">${E(_pdT('pd2_bf_check_v'))}</span>`, pill('data-pd2-br-sign', _pdT('pd2_bf_sign'))));
+  let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+  if (ap && ap.required && !ap.ok){ let mine = false; try { mine = !!approvalDecidableNow(c); } catch (_){ mine = false; }
+    sign.push(row('approval', _pdT('pd2_f_approval'), (mine ? `<span class="pd2-amb">${E(_pdT('pd2_ap_you'))}</span>` : E(_pdT('pd2_ap_waits', { who: ap.approverLabel || '' }))) + (ap.next && ap.next.name ? ' · ' + E(_pdT('pd2_ap_rule', { rule: ap.next.name })) : ''), mine ? pill('data-pd2-br-sign', _pdT('pd2_bf_decide')) : '')); }
+  if (sign.length) groups.push(['pd2_bf_sign_h', sign.join('')]);
+  if (readers.length) groups.push(['pd2_bf_readby', readers.map(r => `<div class="pd2-fact"><span class="pd2-l">${E(r.by || '')}</span><span class="pd2-v">${E(dossierDay(r.at))} · ${E(_pdT('pd2_br_this'))}</span><span class="pd2-s"></span></div>`).join('')]);
+  return `${pd2SpineHtml(D)}<p class="pd2-next" data-pd2-next>${E(say)}</p>${groups.map(([h, body]) => `<div class="pd2-eye">${E(_pdT(h))}</div><div class="pd2-facts">${body}</div>`).join('')}`;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  const rd = t.closest('[data-pd2-brief] [data-brief-read]');
+  if (rd){ e.preventDefault(); e.stopPropagation(); const h = rd.closest('[data-pd2-brief]'); const c = h && getContract(h.getAttribute('data-pd2-brief')); if (c){ rd.disabled = true; if (!pd2BriefRead(c)) rd.disabled = false; } return; }
+  if (t.closest('#ig-dock [data-pd2-br-top]')){ e.preventDefault(); const top = document.getElementById('pd2-br-top'); if (top && typeof landOn === 'function') landOn(top, { block: 'start', focus: false }); else if (top) top.scrollIntoView({ block: 'start' }); return; }
+  /* Before you sign / Decide: the paper comes back first, then the signing face (the Dossier's own Sign door) */
+  if (t.closest('#ig-dock [data-pd2-br-sign]')){ e.preventDefault(); pdMidClose(); const row = PD_GLANCE.sign; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); return; }
+}, true);
+Object.assign(window, { pd2BriefOpen, pd2BriefUp, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });
 Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,

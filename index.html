@@ -18477,6 +18477,37 @@
   html.lg-new #pd2-notes .pd2-mn.is-risk .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-risk::after,html.lg-new #pd2-notes .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
   html.lg-new #pd2-notes .pd2-mn.is-ask .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-ask::after,html.lg-new #pd2-notes .pd2-mn.is-ask::before{background:var(--color-text)}
   html.lg-new ::highlight(pd2-fact){background-color:var(--surface-2)}
+  /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
+  html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new .pd2-br-head{display:flex;align-items:baseline;gap:14px;min-width:0;padding:4px 0}
+  html.lg-new .pd2-br-head .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;font-size:13.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .pd2-br-t{font-family:var(--font-title);font-size:24px;font-weight:var(--w-title-serif);white-space:nowrap}
+  html.lg-new .pd2-br-m{font-size:13.5px;font-weight:var(--w-label);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .pd2-br-sp{flex:1}
+  html.lg-new .pd2-br-cost{font-size:11.5px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-head{display:flex;align-items:center;height:56px;padding:0 24px;box-sizing:border-box}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-crumb{flex:1;min-width:0;margin:0;padding:0}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-row{display:none}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-body{background:var(--desk-ground);padding:0}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-body > .pd2-brief{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;padding:0;min-height:100%;display:flex;flex-direction:column;background:var(--desk-ground)}
+  html.lg-new .pd2-br-sheet{width:min(720px,calc(100% - 64px));margin:28px auto 40px;padding:40px 56px 36px;background:var(--color-surface);box-shadow:var(--shadow-sm);font-family:var(--font-doc);color:var(--color-text)}
+  html.lg-new .pd2-br-kick{text-align:center;font-family:var(--font-body);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-text)}
+  html.lg-new .pd2-br-what{margin:22px 0 4px;text-align:center;font-size:17px;font-weight:var(--w-title)}
+  html.lg-new .pd2-br-lead{font-size:16px;line-height:1.6}
+  html.lg-new .pd2-br-eye{margin:26px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--color-divider);font-family:var(--font-body);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  html.lg-new .pd2-br-ln{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,40%);gap:24px;padding:10px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .pd2-br-say{font-size:15px;line-height:1.5}
+  html.lg-new .pd2-br-why{display:block;margin-top:3px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .pd2-br-src{font-size:12.5px;line-height:1.4}
+  html.lg-new .pd2-br-src b{display:block;font-family:var(--font-body);font-weight:var(--w-label);font-size:12px}
+  html.lg-new .pd2-br-src q{font-style:italic}
+  html.lg-new .pd2-br-foot{margin-top:22px;font-family:var(--font-body);font-size:13.5px}
+  html.lg-new .pd2-br-foot .br-read{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-br-foot .br-read-n{flex:1 1 200px;color:var(--color-quiet);font-size:12.5px}
+  html.lg-new .pd2-br-foot .br-read-done{margin:0;padding-top:14px;border-top:1px solid var(--color-divider);color:var(--st-green-fg)}
+  html.lg-new .pd2-br-cut{margin:18px 0 0;color:var(--st-amber-fg);font-size:13px}
+  html.lg-new .pd2-br-pfoot{position:sticky;bottom:0;margin-top:auto;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text)}
 </style>
 
 

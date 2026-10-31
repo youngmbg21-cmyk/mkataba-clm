@@ -101,6 +101,32 @@ const READ = () => {
         await page.click('#pd2-notes [data-pd2-go="fill"][data-pd2-key="up_date"]');
         const landed = await until(page, () => !!document.querySelector('#ig-dock #pd-og.is-form'), null, 15000);
         check('5 a note\'s Fill in opens the one Fill in form', landed);
+        /* 7 THE BRIEF IN THE MIDDLE (part 2): its link on the Dossier; every line with its clause and the paper's words;
+           "I have read it" recorded for this wording; the Dossier says who read it; ‹ Paper brings the paper back */
+        await page.evaluate(() => { pdMidClose(); if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose(); const c = getContract('MK-A2');
+          c._brief = { v: 1, at: new Date(Date.now() - 3600e3).toISOString(), by: 'Jambo', truncated: false, data: {
+            overview: 'A supply agreement for raw milk from Nandi Dairy, worth about KES 36M a year.',
+            money: { value: 'KES 36,000,000 a year, estimated.', paymentTerms: 'Invoices fall due within 30 days of receipt.' },
+            term: { end: 'Runs to 30 June 2027 and renews for a year.' },
+            watchouts: [{ point: 'The rejection window is 3 days.', why: 'Your standard says 7.', quote: 'may be rejected within 3 days of delivery' }], unusual: [] } };
+          c.briefRead = { u9: { at: new Date(Date.now() - 1800e3).toISOString(), by: 'Wanjiru K.', key: briefReadKey(c) } };
+          pdGlanceRepaint(); });
+        await until(page, () => !!document.querySelector('#ig-dock .pd2-dossier [data-pd-gl-brief]'), null, 10000);
+        await page.click('#ig-dock .pd2-dossier [data-pd-gl-brief]');
+        const up = await until(page, () => !!document.querySelector('[data-pd-mid^="brief:"] .pd2-br-sheet') && !!document.querySelector('#ig-dock .pd2-dossier.is-brief'), null, 10000);
+        const B = await page.evaluate(() => ({ secs: [...document.querySelectorAll('.pd2-br-ln .pd2-br-src b')].map(b => b.textContent),
+          quotes: document.querySelectorAll('.pd2-br-ln .pd2-br-src q').length, meta: (document.querySelector('[data-pd2-br-meta]') || {}).textContent || '',
+          face: (document.querySelector('#ig-dock .pd2-next') || {}).textContent || '', bg: getComputedStyle(document.querySelector('.pd2-brief')).backgroundColor,
+          head: Math.round(document.querySelector('[data-pd-mid^="brief:"] .dlg-pg-head').getBoundingClientRect().height) }));
+        check('7 the brief in the middle: each line\'s clause and words, who read it, the Dossier turned to it, head 56, on the grey desk',
+          up && B.secs.join() === '§ 2,§ 2,§ 4,§ 3' && B.quotes === 4 && /read by Wanjiru K\. · not yet by you/.test(B.meta) && /Wanjiru K\. has read it/.test(B.face)
+          && B.head === 56 && B.bg !== 'rgb(255, 255, 255)', B);
+        await page.evaluate(() => { const b = document.querySelector('[data-pd2-brief] [data-brief-read]'); if (b) b.click(); });
+        const read = await until(page, () => briefReadBy(getContract('MK-A2')) && /read by you/.test(document.querySelector('[data-pd2-br-meta]').textContent) && /You read the brief/.test(document.querySelector('#ig-dock .pd2-next').textContent), null, 10000);
+        check('8 "I have read it" is recorded for this wording, and the page and the Dossier say so', read);
+        await page.click('[data-pd-mid^="brief:"] .pd2-br-head [data-pd-mid-back]');
+        const back = await until(page, () => !document.querySelector('[data-pd-mid]') && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-brief)'), null, 10000);
+        check('9 ‹ Paper brings the paper and the Dossier back', back);
         await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); roomHomeLand('MK-A2'); });
         /* the crossfade's ghost of the face before (no ids) is gone a moment later */
         await until(page, () => !!document.querySelector('#ig-dock .pd-dossier') && !document.querySelector('.pd2-dossier'), null, 20000);
