@@ -64,7 +64,7 @@ const face = async (page, id) => {
   await page.evaluate(i => openRedlineWorkbench(i), id);
   return until(page, () => !!document.querySelector('#ig-dock [data-nego-reject]'), null, 20000);
 };
-const back = async page => { await page.keyboard.press('Escape'); await page.waitForTimeout(150); };
+const back = async page => { await page.keyboard.press('Escape'); await until(page, () => !document.querySelector('#modal-root [data-dlg-page]'), null, 3000); };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -120,8 +120,7 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       await back(page);
       /* 4 · Send */
       await page.evaluate(id => openShareModal(getContract(id)), ID);
-      await until(page, () => !!document.querySelector('#sh-letter.is-sap'), null, 10000);
-      await page.waitForTimeout(400);
+      await until(page, () => !!document.querySelector('#sh-letter.is-sap') && getComputedStyle(document.getElementById('sh-letter')).display === 'grid' && !!document.querySelector('#sh-as-chips #sh-lt-from'), null, 10000);
       const s4 = await page.evaluate(() => {
         const L = document.getElementById('sh-letter'), lines = document.getElementById('sh-as-chips'), mail = L && L.querySelector('.sh-lt-mail');
         const a = lines && lines.getBoundingClientRect(), b = mail && mail.getBoundingClientRect();
@@ -133,16 +132,16 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       check(`${nm} 4 Send: lines on the left, the letter beside them, a line opens its list, From among the lines, Before you send in rows`,
         s4.grid === 'grid' && s4.beside && s4.from && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
       await page.screenshot({ path: path.join(OUT, `send-${nm}.png`) });
-      await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+      await page.keyboard.press('Escape'); await until(page, () => !document.querySelector('[data-sh-as].is-open'), null, 3000);
       await page.evaluate(() => { const x = document.querySelector('#modal-root [data-dlg-cancel]'); if (x) x.click(); });
-      await page.waitForTimeout(300);
+      await until(page, () => !document.querySelector('#sh-letter'), null, 5000);
       /* 5 · History */
       await face(page, ID);
       await page.click('#ig-dock [data-ca-chip="history"]').catch(() => {});
       await until(page, () => !!document.querySelector('.hist-quick'), null, 10000);
       const h5a = await page.evaluate(() => ({ links: [...document.querySelectorAll('.hist-quick [data-ht-quick]')].map(b => b.textContent.trim()), rows: document.querySelectorAll('.hist-trail .hist-ev').length, selects: document.querySelectorAll('.hist-tools select').length }));
       await page.click('.hist-quick [data-ht-quick="theirs"]').catch(() => {});
-      await page.waitForTimeout(300);
+      await until(page, () => !!document.querySelector('.hist-quick [data-ht-quick="theirs"][aria-pressed="true"]'), null, 5000);
       const h5b = await page.evaluate(() => ({ rows: document.querySelectorAll('.hist-trail .hist-ev').length, sides: [...document.querySelectorAll('.hist-trail .hist-ev .hist-sd')].map(s => s.textContent.trim()) }));
       check(`${nm} 5 History: quick links that give rows, one press narrows`, h5a.links.join(' · ') === 'theirs' && h5a.selects === 0
         && h5b.rows === 2 && h5a.rows > h5b.rows && h5b.sides.every(s => s === 'Theirs'), { h5a, h5b });
@@ -166,7 +165,7 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       await until(page, () => !!document.querySelector('.ce-lcard .ce-lc-sug'), null, 15000);
       const e7a = await page.evaluate(() => ({ sug: !!document.querySelector('.ce-lcard .ce-lc-sug ins'), apply: (document.querySelector('[data-ce-act="ladder-apply"]') || {}).textContent || '' }));
       await page.click('[data-ce-act="ladder-apply"]').catch(() => {});
-      await page.waitForTimeout(400);
+      await until(page, () => /45/.test((document.getElementById('ce-clausebody') || {}).textContent || ''), null, 5000);
       const e7b = await page.evaluate(() => (document.getElementById('ce-clausebody') || {}).textContent || '');
       check(`${nm} 7 the editor's card: the suggested wording marked against theirs; Apply puts it in the box`, e7a.sug && e7a.apply.trim() === 'Apply' && /45/.test(e7b), { e7a, e7b: e7b.slice(0, 80) });
       await page.screenshot({ path: path.join(OUT, `editor-${nm}.png`) });
@@ -187,9 +186,9 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       const dial = await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-dial]'), null, 10000);
       if (dial){
         const f = await page.$('#ig-canvas [data-pd2-dial]'); const b = await f.boundingBox();
-        await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(150);
+        await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await until(page, () => !!document.querySelector('#ig-canvas .pd2-dial-track'), null, 3000);
         const t = await page.$('#ig-canvas .pd2-dial-track'); const tb = t ? await t.boundingBox() : null;
-        if (tb){ await page.mouse.move(tb.x + tb.width * (20 / 30), tb.y + 2, { steps: 8 }); await page.waitForTimeout(150); }
+        if (tb){ await page.mouse.move(tb.x + tb.width * (20 / 30), tb.y + 2, { steps: 8 }); await until(page, () => /50/.test((document.querySelector('#ig-canvas .pd2-dial') || {}).textContent || ''), null, 3000); }
         await page.mouse.up();
         await until(page, () => (getContract('MK-R5').changes || []).some(x => x.authorSide === 'owner'), null, 8000);
       }
@@ -201,7 +200,7 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       await open(page, h.base, false);
       await page.evaluate(THEIR_ROUND, 'MK-R6');
       await face(page, 'MK-R6');
-      await page.waitForTimeout(800);
+      await until(page, () => !!document.querySelector('#ig-canvas .ig-redpaper, #ig-canvas'), null, 5000);
       const off = await page.evaluate(() => ({ notes: document.querySelectorAll('#pd2-notes .pd2-mn').length }));
       await page.evaluate(() => pdDealOpen('MK-R6'));
       await until(page, () => !!document.querySelector('#modal-root [data-deal-mid]'), null, 10000);
