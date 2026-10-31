@@ -1039,7 +1039,7 @@ function jhFiltersHtml(){
   return `<div class="jh-fb">${range}
       <span class="jh-combo jh-box"><svg class="jh-combo-ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
         <input id="jh-one" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-label="${_jhE(_jhT('jh_contract'))}" aria-expanded="false" aria-controls="jh-one-list" aria-autocomplete="list" placeholder="${_jhE(_jhT('jh_contract_ph'))}">
-        <button type="button" class="jh-combo-x" id="jh-one-x" aria-label="${_jhE(_jhT('jh_contract_all'))}" hidden>×</button>
+        <button type="button" class="jh-combo-x" id="jh-one-x" aria-label="${_jhE(_jhT('jh_contract_all'))}" hidden>${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>
         <span class="jh-combo-list" id="jh-one-list" role="listbox" hidden></span></span>
       ${jhBoxSel('jh-look', _jhT('jh_look'), [[0, _jhT('jh_look_plan')], [1, _jhT('jh_look_drawing')]], _jh.look)}
       ${jhBoxSel('jh-speed', _jhT('jh_speed'), JH_SPEEDS.map(v => [v, _jhT('jh_sp_' + String(v).replace('.', ''))]), _jh.speed)}
@@ -1081,7 +1081,7 @@ function jhHouseHtml(){
           <canvas id="jh-cv" width="${_jhW}" height="${_jhH}" role="img" aria-label="${_jhE(_jhT('jh_house_aria'))}"></canvas>
           <button type="button" class="sr-only" data-jh-work>${_jhE(_jhT('jh_wait_open'))}</button>
           <div class="jh-tip" id="jh-tip" role="tooltip" hidden></div>
-          <div class="jh-end" id="jh-end" hidden><div class="jh-end-card" role="dialog" aria-labelledby="jh-end-t"><button type="button" class="jh-end-x" data-jh-end-x aria-label="${_jhE(_jhT('jh_end_close'))}" title="${_jhE(_jhT('jh_end_close'))}">×</button>${(typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 56, 'jh-end-face') : ''}
+          <div class="jh-end" id="jh-end" hidden><div class="jh-end-card" role="dialog" aria-labelledby="jh-end-t"><button type="button" class="jh-end-x" data-jh-end-x aria-label="${_jhE(_jhT('jh_end_close'))}" title="${_jhE(_jhT('jh_end_close'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>${(typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 56, 'jh-end-face') : ''}
             <h3 id="jh-end-t"></h3><p id="jh-end-l"></p><p class="jh-end-r" id="jh-end-r"></p><p class="jh-quiet">${_jhE(_jhT('jh_end_hint'))}</p>
             <button type="button" class="ui-btn ui-btn-primary" data-jh-restart>${_jhE(_jhT('jh_again'))}</button></div></div>
         </div>

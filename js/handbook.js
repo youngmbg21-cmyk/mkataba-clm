@@ -170,6 +170,22 @@ const HANDBOOK_CHAPTERS = [
       { go: [{ place: 'contracts' }], boxes: [{ sel: '[data-ct-archive]', step: 3 }, { sel: '[data-reg-view="expiring90"]', step: 2 }], cap: { en: 'A tab narrows to what it counts (2); the archive is one press away (3).', sv: 'En flik smalnar till det den räknar (2); arkivet är ett tryck bort (3).' } },
       { go: [{ place: 'contracts' }], boxes: [{ sel: '#ig-dock .jov-facts', step: 4 }, { sel: '#ac-disc', step: 4 }], cap: { en: 'Beside the list: Jambo\'s Overview counts it, then Discover (4).', sv: 'Bredvid listan: Jambos översikt räknar den, sedan Upptäck (4).' } }] },
 
+  /* THE FLOW MAP (owner, 31 Oct 2026): every page on the contract's life and how each reaches the next */
+  { k: '0.7', part: 'around', round: 1,
+    title: { en: 'The flow map: how every page reaches the next', sv: 'Flödeskartan: hur varje sida når nästa' },
+    eyebrow: { en: 'Finding your way', sv: 'Hitta rätt' },
+    what: { en: 'One page that draws every place in HaTi on the contract\'s life: arrive, read and fill, negotiate, approve and sign, live, then the book and the house. The paper with its Dossier is the hub in the middle.',
+      sv: 'En sida som ritar varje plats i HaTi på avtalets väg: kommer in, läs och fyll i, förhandla, godkänn och signera, gäller, sedan avtalsboken och huset. Pappret med sin dossier är navet i mitten.' },
+    when: [{ en: 'When you want to know where a page leads, or how to get somewhere you have not been yet.', sv: 'När du vill veta vart en sida leder, eller hur du kommer någonstans du inte varit än.' }],
+    path: ['door:flowmap', { en: 'or type flowmap in any Jambo box', sv: 'eller skriv flödeskarta i valfri Jambo-ruta' }],
+    how: [{ en: 'Press a place. Its lines light: black for the step HaTi takes you with no press, green for the doors above Jambo\'s box, dashed for what Jambo predicts you press next.', sv: 'Tryck på en plats. Dess linjer tänds: svart för steget HaTi tar dig utan tryck, grönt för dörrarna ovanför Jambos ruta, streckat för vad Jambo tror du trycker på härnäst.' },
+      { en: 'Jambo\'s panel says the same in words. Open takes you there; press the place again or Esc to let it go.', sv: 'Jambos panel säger samma sak i ord. Öppna tar dig dit; tryck på platsen igen eller Esc för att släppa den.' }],
+    tip: { en: 'Every change to a page updates this map in the same change, so it is always the app as it is.', sv: 'Varje ändring av en sida uppdaterar kartan i samma ändring, så den är alltid appen som den är.' },
+    cost: _hbkFree, doors: ['flowmap'], acts: [],
+    words: { en: ['flow map', 'map of pages', 'how pages connect', 'where does this lead'], sv: ['flödeskarta', 'sidkarta', 'hur sidor hänger ihop'] },
+    shots: [
+      { go: [{ place: 'flowmap' }], boxes: [{ sel: '#fm-page .fm-node.is-hub', step: 1 }, { sel: '#fm-page .fm-key', step: 2 }], cap: { en: 'The paper with its Dossier is the hub (1); the three kinds of line (2).', sv: 'Pappret med sin dossier är navet (1); de tre sorternas linjer (2).' } }] },
+
   /* ======================= PART 1 — SOMEONE ASKS ======================= */
   { k: '1.1', part: 'ask', round: 2,
     title: { en: 'Requests: ask legal for a contract or advice', sv: 'Förfrågningar: be juristerna om ett avtal eller råd' },
@@ -1208,7 +1224,7 @@ const HBK_VIEW_DOORS = {
   dashboard: ['counter', 'needs'], register: ['contracts', 'list', 'wall'], folder: ['contracts', 'list'], workspace: ['document'],
   redline: ['negotiations', 'redline'], reports: ['board'], obligations: ['oblig', 'week'],
   approvals: ['approvals'], pipeline: ['approvals'], customers: ['parties'], agents: ['house'], jambo: ['house'], brain: ['brain'],
-  calendar: ['calendar'], mynotes: ['mynotes'], reads: ['reads'], handbook: ['handbook'], pulse: ['pulse'], templates: ['ourpaper'], playbook: ['ourpaper'],
+  calendar: ['calendar'], mynotes: ['mynotes'], reads: ['reads'], handbook: ['handbook'], flowmap: ['flowmap'], pulse: ['pulse'], templates: ['ourpaper'], playbook: ['ourpaper'],
   intake: ['requests'], advice: ['requests'], directory: ['people'], team: ['settings', 'company'], migration: ['import'] };
 const HBK_FACE_DOORS = { board: ['board'], paper: ['document'], calendar: ['calendar'], explorer: ['explorer'] };
 function hbkChaptersForPage(view, face){

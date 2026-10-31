@@ -238,6 +238,8 @@ const NAV_PAGES = [
   ['reads', / (every read|all reads|the reads|reads page|past reads|previous reads|earlier reads|read history|varje läsning|alla läsningar|tidigare läsningar|läsningarna) /],
   /* THE PULSE BOARD (29 Oct 2026): every contract ranked live */
   ['pulse', / (pulse board|the pulse|pulse page|contract ranking|ranking of (my |the )?contracts|pulstavla|pulstavlan|rankning av avtal) /],
+  /* THE FLOW MAP (31 Oct 2026): every page and how each reaches the next */
+  ['flowmap', / (flow map|the flow map|map of (the )?pages|page map|how (the )?pages connect|how do pages connect|where does each page lead|flödeskarta|flödeskartan|sidkarta|sidkartan) /],
   ['needs', /^ (what )?(needs me|needs you|is waiting on me|waits for me|väntar på mig) $/],
 ];
 function navReadPage(raw, t){

@@ -1814,7 +1814,7 @@ function tbPaperHtml() {
         ? `<${lv} class="tb-h tb-rh lv-${lv.slice(1)}"><span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="rheading" data-tb-lv="${lv}" data-ph="${i18t('tb_ph_heading')}">${tbRichChipsHtml(tbRichInner(b.content))}</span></${lv}>`
         : `<h3 class="tb-h">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3>`;
       html += `<div class="tb-sec${sec && sec.k === _tb.focus ? ' is-on' : ''}${st ? ' is-' + st : ''}${sec && !tbSectionText(sec) ? ' is-empty' : ''}" data-tb-sec="${b._k}">
-        <div class="tb-row tb-row-h" data-tb-row="${i}">${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
+        <div class="tb-row tb-row-h" data-tb-row="${i}">${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : '✦'}</button>` : '')}
           ${head}<span class="tb-smv">${mvAt.has(i) ? `
             <button type="button" data-tb-sec-up="${b._k}" ${mvAt.get(i) === 0 ? 'disabled' : ''} title="${i18t('tb_sec_up_tip')}">${icon('chevU')}${i18t('tb_sec_up')}</button>
             <button type="button" data-tb-sec-down="${b._k}" ${mvAt.get(i) === movable.length - 1 ? 'disabled' : ''} title="${i18t('tb_sec_down_tip')}">${icon('chevD')}${i18t('tb_sec_down')}</button>` : ''}
@@ -2124,7 +2124,7 @@ function tbAskHtml() {
      question), the word Ask on its button, "/" the places (data-ca-slash,
      leaving through tbLeave so nothing typed is lost) */
   const ph2 = opening || _tb.refine ? ph : i18t('jl_ph_any');
-  const tag = sec && !opening ? `<div class="tb-tagline"><span class="tb-tag"><span class="w">${esc(i18t('tb_this_section'))}</span><button type="button" data-tb-untag title="${esc(i18t('tb_untag'))}" aria-label="${esc(i18t('tb_untag'))}">×</button></span></div>` : '';
+  const tag = sec && !opening ? `<div class="tb-tagline"><span class="tb-tag"><span class="w">${esc(i18t('tb_this_section'))}</span><button type="button" data-tb-untag title="${esc(i18t('tb_untag'))}" aria-label="${esc(i18t('tb_untag'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button></span></div>` : '';
   /* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */
   return `<div class="tb-foot">${_tbJbCard({ id: 'tb-askrow', field: `<textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" data-ca-slash placeholder="${esc(ph2)}" title="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>`,
     ctx: tag,

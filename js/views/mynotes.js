@@ -249,7 +249,7 @@ function myNoteFormHtml(f, o){
     <label for="mn-body">${_mnE(i18t('mn_f_note'))}<textarea id="mn-body" rows="5" maxlength="4000" placeholder="${_mnE(i18t('mn_f_note_ph'))}">${_mnE(f.body || '')}</textarea></label>
     <label for="mn-title">${_mnE(i18t('mn_f_title'))} <span class="mn-hint">${_mnE(i18t('mn_f_title_hint'))}</span><input id="mn-title" type="text" maxlength="120" value="${_mnE(f.title || '')}"></label>
     <div class="mn-field"><label for="mn-ct">${_mnE(i18t('mn_f_contract'))} <span class="mn-hint">${_mnE(i18t('mn_optional'))}</span></label>
-      ${c ? `<div class="mn-chosen">${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))}<span>${_mnE(c.name || '')} · ${_mnE(_mnCtName(c))}</span><button type="button" data-mn-act="ct-clear" aria-label="${_mnE(i18t('mn_ct_clear'))}">×</button></div>`
+      ${c ? `<div class="mn-chosen">${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))}<span>${_mnE(c.name || '')} · ${_mnE(_mnCtName(c))}</span><button type="button" data-mn-act="ct-clear" aria-label="${_mnE(i18t('mn_ct_clear'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button></div>`
         : `<div class="mn-picker"><input id="mn-ct" type="text" autocomplete="off" value="${_mnE(f.query || '')}" placeholder="${_mnE(i18t('mn_f_contract_ph'))}">${
           f.listOpen ? `<div class="mn-list" role="listbox">${hits.length ? hits.map(x => `<button type="button" role="option" data-mn-ct="${_mnE(x.id)}"><span class="r">${_mnE(_mnRef(x))}</span><span>${_mnE(x.name || '')}</span><span></span><span class="mn-hint">${_mnE(_mnCtName(x))}</span></button>`).join('')
             : `<p class="mn-hint">${_mnE(i18t('mn_ct_none'))}</p>`}</div>` : ''}</div>`}

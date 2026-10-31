@@ -2534,7 +2534,7 @@ function startApp(){
   if(window._cnSignedIn && window.deskShellOn && deskShellOn()) state.view='counter';
   window._cnSignedIn=false;
   const _place=window.placeResume?placeResume():null;
-  setView(['brain','dashboard','counter','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reads','handbook','pulse','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
+  setView(['brain','dashboard','counter','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reads','handbook','pulse','flowmap','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
   if(_place&&window.placeScrollBack) placeScrollBack(_place);
   /* MY OWN EVENTS AND NOTES (10 Oct 2026): loaded once, so the rail's count
      and the bell know what is due before either page is opened. */
@@ -5632,7 +5632,7 @@ function shareColRows(){
 function shareColPaint(c, on){
   shareColAttr(on);
   const chips=document.getElementById('sh-col-chips');
-  if(chips){ const h=_shCol.picks.map(p=>`<span class="sh-col-chip" data-sh-col-chip="${esc(p.id)}"><span class="av" aria-hidden="true">${esc(String(p.name).split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase())}</span>${esc(p.name)}<button type="button" data-sh-col-x="${esc(p.id)}" aria-label="${esc(i18t('sh_col_remove', { who:p.name }))}" title="${esc(i18t('sh_col_remove', { who:p.name }))}">×</button></span>`).join('');
+  if(chips){ const h=_shCol.picks.map(p=>`<span class="sh-col-chip" data-sh-col-chip="${esc(p.id)}"><span class="av" aria-hidden="true">${esc(String(p.name).split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase())}</span>${esc(p.name)}<button type="button" data-sh-col-x="${esc(p.id)}" aria-label="${esc(i18t('sh_col_remove', { who:p.name }))}" title="${esc(i18t('sh_col_remove', { who:p.name }))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button></span>`).join('');
     if(chips.innerHTML!==h) chips.innerHTML=h; }
   const pop=document.getElementById('sh-col-pop');
   if(pop){
@@ -8229,7 +8229,7 @@ async function openShareModal(c, opts={}){
         ${''/* THE SAP WAY, AS DRAWN (28 Oct 2026): the person is a chip — their
                initials, name and address — and its × opens the two boxes to
                change them, the same press "Change" was (nothing is cleared). */}
-        <div class="sh-lt-tosay hidden" id="sh-lt-tosay"><span class="sh-to-chip"><span class="sh-to-ini" id="sh-lt-toini" aria-hidden="true"></span><span id="sh-lt-towho"></span><button type="button" class="sh-to-x" id="sh-lt-change" aria-label="${attr(i18t('sh_lt_change'))}" title="${attr(i18t('sh_lt_change'))}">×</button></span></div>
+        <div class="sh-lt-tosay hidden" id="sh-lt-tosay"><span class="sh-to-chip"><span class="sh-to-ini" id="sh-lt-toini" aria-hidden="true"></span><span id="sh-lt-towho"></span><button type="button" class="sh-to-x" id="sh-lt-change" aria-label="${attr(i18t('sh_lt_change'))}" title="${attr(i18t('sh_lt_change'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button></span></div>
         ${''/* Where the address came from rides as an attribute on the box —
                a test-facing fact — and is no longer a sentence above it: a
                filled box says it is filled. */}

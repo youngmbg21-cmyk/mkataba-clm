@@ -1,0 +1,545 @@
+<title>Jambo at Work</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: HaTi's own shell. Black bar end to end, the page left, Jambo's panel right behind one hairline. One light look, by choice. */
+:root{
+  --ground:#F5F5F7; --sheet:#FFFFFF; --ink:#1D1D1F; --quiet:#4B4B50; --hair:#E6E6EA; --chip:#F0F0F3; --desk:#EFEEEB; --jcard:#F3F2F8;
+  --green:#087363; --amber:#946300; --amber-mark:#C98A14; --red:#B42318; --steel:#5F6D6B; --bar:#111113;
+  --font-ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif; --font-doc:"Source Serif 4",Georgia,"Times New Roman",serif; --font-mono:"Geist Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-ui);font-size:13.5px;line-height:1.45;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100%}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:999px}
+svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
+.pill svg.i,.btn svg.i{width:14px;height:14px;vertical-align:-2px}
+
+/* the bar */
+.bar{height:48px;flex:none;background:var(--bar);background-image:linear-gradient(180deg,#2A2A2E 0%,#151517 55%,#0B0B0C 100%);color:#fff;display:flex;align-items:center;gap:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar .mark{font-family:var(--font-doc);font-weight:700;font-size:19px;letter-spacing:.01em}
+.bar .pg{font-size:13.5px;opacity:.95}
+.bar .sp{flex:1}
+.bar .tabs{display:flex;gap:4px}
+.bar .tabs button{height:30px;padding:0 12px;border-radius:999px;color:#fff;opacity:.75;font-weight:500;font-size:13px;white-space:nowrap}
+.bar .tabs button[aria-selected="true"]{background:rgba(255,255,255,.14);opacity:1}
+@media (max-width:760px){.bar .pg{display:none}.bar{gap:10px}.bar .tabs button{padding:0 9px;font-size:12px}}
+.bar .av{width:28px;height:28px;border-radius:50%;background:#E6E6EA;color:var(--ink);font-weight:600;font-size:11px;display:grid;place-items:center}
+
+/* the page and the panel */
+.body{flex:1;min-height:0;display:flex;gap:12px;padding:12px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.sheet{flex:1;min-width:0;background:var(--sheet);border-radius:10px;box-shadow:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.panel{flex:none;width:384px;background:var(--sheet);border-radius:10px;box-shadow:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22);display:flex;flex-direction:column;overflow:hidden}
+.ph{height:56px;flex:none;display:flex;align-items:center;gap:2px;padding:0 12px 0 10px;border-bottom:1px solid var(--hair)}
+.ptab{height:32px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:13px;background:var(--chip)}
+.pb{flex:1;min-height:0;overflow:auto;padding:16px}
+.pf{flex:none;padding:12px 16px 16px;border-top:1px solid var(--hair)}
+.jbox{height:44px;border:1px solid var(--green);border-radius:999px;display:flex;align-items:center;gap:10px;padding:0 6px 0 14px;background:#fff}
+.jbox input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:13.5px;color:var(--ink);background:transparent}
+.jbox input::placeholder{color:#8A8A90}
+.jbox .go{width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none}
+.jbox .go svg.i{stroke-width:2.2}
+.jbox.quiet{border-color:#D1D1D6}
+.jbox.quiet .go{background:#D1D1D6}
+.jface{display:inline-block;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#7C3AED 0%,#2563EB 55%,#EC4899 100%);flex:none}
+.jface.sm{width:14px;height:14px}
+.jcard{background:var(--jcard);border-radius:10px;padding:16px;font-size:13.5px;line-height:1.45}
+.q{color:var(--quiet);font-size:11.5px}
+.sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:16px 0 4px}
+.fact{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--hair);font-size:13.5px;align-items:baseline;animation:in .35s ease-out both}
+.fact .l{width:84px;flex:none}
+.fact .v{flex:1;min-width:0}
+.fact .s{flex:none;font-size:11.5px;color:var(--quiet);white-space:nowrap}
+.fact .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48}
+.fact.owe .v b{color:var(--amber)}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.lnk{color:var(--green);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.g-row{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:7px 0}
+.turn{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
+.turn .t{font-size:13.5px;line-height:1.45;min-width:0}
+.turn .who{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--quiet);font-weight:600;margin-bottom:2px}
+
+/* controls */
+.pill{height:32px;padding:0 14px;border-radius:999px;background:var(--chip);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;white-space:nowrap;color:var(--ink);line-height:1}
+.pill.sm{height:24px;font-size:12px;padding:0 10px}
+.pill.on{background:var(--ink);color:#fff}
+.btn{height:32px;padding:0 14px;border-radius:999px;background:var(--ink);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;white-space:nowrap;line-height:1}
+.btn[disabled]{background:#D1D1D6;cursor:default}
+.pg-head{display:flex;align-items:center;gap:8px;padding:18px 24px 0;flex-wrap:wrap}
+.pg-head .tt{font-family:var(--font-doc);font-size:22px;font-weight:500;line-height:1.2;white-space:nowrap}
+.pg-head .sub{font-size:13px;color:var(--quiet);margin-left:4px}
+.pg-head .sp{flex:1}
+.pg-head .grp{display:flex;gap:8px;align-items:center}
+.pg-head .grp+.grp{margin-left:8px}
+.seg{display:inline-flex;background:var(--chip);border-radius:999px;padding:2px;gap:2px}
+.seg button{height:28px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.on{display:flex}
+.body[hidden]{display:none!important}
+
+/* ============ the reading desk ============ */
+.desk{flex:1;min-height:0;background:var(--desk);position:relative;overflow:auto;padding:28px 24px 40px;margin-top:14px}
+.paper{width:min(680px,100%);margin:0 auto;background:#fff;box-shadow:0 1px 2px rgba(38,55,74,.05),0 18px 44px -22px rgba(38,55,74,.28);padding:40px 52px 56px;font-family:var(--font-doc);font-size:15px;line-height:1.62;color:#1C1A16}
+@media (max-width:700px){.paper{padding:28px 20px 40px}}
+.paper .peye{font-family:var(--font-ui);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--quiet);text-align:center;font-weight:500}
+.paper h1{font-size:1.15em;font-weight:700;text-align:center;margin:18px 0 6px;line-height:1.3}
+.paper .btw{text-align:center;color:#3B4A48;margin-bottom:22px}
+.paper .cl{position:relative;border-radius:4px;transition:background .4s}
+.paper .cl h2{font-size:1em;font-weight:700;margin:14px 0 2px}
+.paper .cl p{margin:0 0 6px}
+.paper .cl.reading{background:linear-gradient(90deg,#F3F2F8 0%,#F3F2F8 var(--p,0%),transparent var(--p,0%))}
+.paper .cl .rd{position:absolute;left:-28px;top:.35em;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#7C3AED 0%,#2563EB 55%,#EC4899 100%);opacity:0;transform:scale(.6);transition:opacity .25s,transform .25s}
+.paper .cl.reading .rd,.paper .cl.read .rd{opacity:1;transform:none}
+.paper .cl.read .rd{opacity:.35}
+.paper .cl .dn{position:absolute;left:-28px;top:.35em;width:16px;height:16px;border-radius:50%;background:#E6E6EA;display:grid;place-items:center;opacity:0;transition:opacity .3s}
+.paper .cl .dn svg.i{width:10px;height:10px;stroke-width:3;color:var(--green)}
+.paper .cl.read .dn{opacity:1}
+.paper .cl.read .rd{opacity:0}
+.m{border-radius:2px;transition:background .3s,color .3s,box-shadow .3s}
+.m.party.lit{background:#F0F0F3;padding:0 3px}
+.m.date.lit,.m.money.lit{background:#F0F0F3;padding:0 4px}
+.m.blank{display:inline-block;min-width:22px;padding:0 6px;color:#A08A5A;border-bottom:2px solid #E6E6EA;font-size:13px;line-height:20px;text-align:center;font-family:var(--font-ui)}
+.m.blank.lit{background:#FFF1C9;border-bottom-color:#D9A400;color:#8A6400}
+.m.duty.lit{text-decoration:underline;text-decoration-color:var(--green);text-underline-offset:3px;text-decoration-thickness:1.5px}
+.m.risk.lit{background:#FBEFD9}
+.rd-foot{display:flex;align-items:center;gap:14px;padding:12px 24px 14px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--quiet);flex-wrap:wrap}
+.rd-foot .sp{flex:1}
+.prog{height:4px;background:var(--hair);border-radius:2px;position:relative;overflow:hidden;flex:1;min-width:120px;max-width:360px}
+.prog i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--green);transition:width .3s}
+.count{font-variant-numeric:tabular-nums;color:var(--ink)}
+.summary{display:none}
+.summary.on{display:block}
+
+/* ============ the map ============ */
+.map-wrap{flex:1;min-height:0;display:grid;grid-template-columns:1.15fr 1fr;gap:0;margin-top:12px;border-top:1px solid var(--hair)}
+@media (max-width:1000px){.map-wrap{grid-template-columns:1fr;grid-auto-rows:minmax(300px,auto)}}
+.map-col{min-width:0;min-height:0;display:flex;flex-direction:column;padding:12px 24px 16px;overflow:hidden}
+.map-col+.map-col{border-left:1px solid var(--hair)}
+@media (max-width:1000px){.map-col+.map-col{border-left:0;border-top:1px solid var(--hair)}}
+.map-col .hd{display:flex;align-items:baseline;gap:10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:4px 0 8px}
+.map-col .hd .sp{flex:1}
+.map-col .hd .n{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px}
+.explorer{flex:1;min-height:280px;position:relative;min-width:0;overflow:hidden}
+.explorer svg{width:100%;height:100%;display:block}
+.node{transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .4s}
+.node circle{transition:fill .4s,stroke .4s,r .5s}
+.node.party circle{fill:#fff;stroke:#1D1D1F;stroke-width:1.4}
+.node.stream circle{fill:#F0F0F3;stroke:#D1D1D6;stroke-width:1}.node.stream text,.node.party text{font-weight:600;font-size:11.5px}
+.node.contract circle{fill:#DCE7E1;stroke:#087363;stroke-width:1.2}
+.node.contract.hit circle{fill:#087363;stroke:#087363}
+.node.contract.hit.red circle{fill:#C2453B;stroke:#C2453B}
+.node.contract.hit.amber circle{fill:#C98A14;stroke:#C98A14}
+.node.contract.hit.ring circle{fill:#fff;stroke:#C98A14;stroke-width:2;stroke-dasharray:3 2}
+.node.dim{opacity:.22}
+.node text{font-family:var(--font-ui);font-size:11px;fill:#1D1D1F;pointer-events:none;transition:x .5s}
+.node text.sub{font-size:10px;fill:#4B4B50}
+.node.contract text.sub{font-family:var(--font-mono);letter-spacing:.02em}
+.edge{stroke:#D1D1D6;stroke-width:1;transition:opacity .4s,x1 .7s,y1 .7s,x2 .7s,y2 .7s}
+.edge.dim{opacity:.15}
+.axis text{font-family:var(--font-ui);font-size:10.5px;fill:#4B4B50}
+.axis line{stroke:#E6E6EA}
+.axis{transition:opacity .4s}
+.dna{overflow:auto;flex:1;min-height:0}
+.dna .row{display:grid;grid-template-columns:150px minmax(0,1fr) 96px;gap:14px;padding:9px 0;border-bottom:1px solid var(--hair);align-items:center}
+@media (max-width:560px){.dna .row{grid-template-columns:1fr;gap:6px}.dna .row .w{text-align:left}}
+.dna .nm{font-size:13px;font-weight:500;line-height:1.3}
+.dna .ln{font-size:11.5px;color:var(--quiet)}
+.dna .ln .ref{font-family:var(--font-mono);font-size:11px}
+.strand{display:flex;gap:2px;height:14px}
+.strand i{display:block;height:100%;border-radius:2px;background:#D1D1D6;flex:var(--w) 0 0;min-width:4px;transition:opacity .4s,background .4s,transform .3s;position:relative}
+.strand i.g{background:#3A8A62}.strand i.a{background:#C98A14}.strand i.r{background:#C2453B}.strand i.s{background:#5F6D6B}.strand i.u{background:#E6E6EA}.strand i.b{background:#fff;box-shadow:inset 0 0 0 1.5px #C98A14}
+.strand.asked i{opacity:.18}
+.strand.asked i.hit{opacity:1;transform:scaleY(1.35)}
+.ticks{display:flex;gap:2px;margin-top:3px;font-size:10px;color:var(--quiet);font-variant-numeric:tabular-nums}
+.ticks i{display:block;flex:var(--w) 0 0;min-width:4px;font-style:normal;white-space:nowrap;overflow:hidden}
+.dna .w{font-size:12px;text-align:right;line-height:1.3}
+.dna .w.amber{color:var(--amber)}.dna .w.red{color:var(--red)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:12px 24px 0}
+.chips button{height:28px;padding:0 12px;border-radius:999px;border:1px solid var(--hair);font-size:12.5px;color:var(--green);background:#fff;white-space:nowrap}
+.chips button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--chip)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--quiet);padding:10px 24px 0}
+.legend i{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;margin-right:5px}
+
+/* ============ one map, three ways ============ */
+.ways-head{display:flex;align-items:center;gap:8px;padding:0 24px;margin-top:12px;flex-wrap:wrap}
+.ways-head .q{margin-left:auto}
+.ways-stage{flex:1;min-height:0;overflow:auto;padding:14px 24px 20px;border-top:1px solid var(--hair);margin-top:12px}
+.opt{display:none}.opt.on{display:block}
+.look{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:var(--chip);font-size:12.5px;font-weight:500}
+.one .hd{display:grid;grid-template-columns:232px minmax(0,1fr) 110px;gap:16px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:6px 0 8px;border-bottom:1px solid var(--hair)}
+.one .grp{font-size:12.5px;font-weight:600;padding:12px 0 2px;display:flex;gap:8px;align-items:baseline}.one .grp .q{font-weight:400}
+.one .row{display:grid;grid-template-columns:232px minmax(0,1fr) 110px;gap:16px;align-items:center;padding:8px 0;border-bottom:1px solid var(--hair);transition:opacity .3s}
+.one .row.dim{opacity:.35}
+.one .who{display:flex;align-items:center;gap:10px;min-width:0}
+.bub{flex:none;border-radius:50%;background:#DCE7E1;border:1.2px solid var(--green);display:grid;place-items:center}
+.bub.hit{background:var(--green)}.bub.hit.red{background:#C2453B;border-color:#C2453B}.bub.hit.amber{background:#C98A14;border-color:#C98A14}
+.one .nm{font-size:13px;font-weight:500;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.one .ln{font-size:11.5px;color:var(--quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.one .ln .ref{font-family:var(--font-mono);font-size:11px}
+.one .w{font-size:12px;text-align:right;line-height:1.3}.one .w.red{color:var(--red)}.one .w.amber{color:var(--amber)}
+.two .band{height:150px;position:relative;border-bottom:1px solid var(--hair);margin-bottom:6px}
+.two .band svg{width:100%;height:100%;display:block}
+.two .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:8px 0 6px}
+.three svg{width:100%;height:520px;display:block}
+.three .ring{transition:opacity .3s}
+.three .ring.dim{opacity:.22}
+.three text{font-family:var(--font-ui);font-size:11px;fill:#1D1D1F}.three text.sub{font-size:10px;fill:#4B4B50}.three text.col{font-weight:600;font-size:11.5px}
+.cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:18px}
+.cmp th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:8px 10px 8px 0;border-bottom:1px solid var(--hair)}
+.cmp td{vertical-align:top;padding:9px 10px 9px 0;border-bottom:1px solid var(--hair);line-height:1.4}
+.cmp td:first-child{font-weight:600;white-space:nowrap}
+.cmp tr.rec td{background:#F3F8F5}
+.cmp tr.rec td:first-child::after{content:" · recommended";font-weight:400;color:var(--green)}
+/* ============ home, three ways ============ */
+#v-home{flex-direction:column;gap:12px}
+.hm-pick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px}
+.hm-pick .q{margin-left:auto}
+.hm-stage{flex:1;min-height:0;display:flex;gap:12px}
+.hm-stage>.sheet,.hm-stage>.panel{min-height:560px}
+.hm-page{padding:26px 40px 0;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.hm-hello{font-family:var(--font-doc);font-size:27px;font-weight:500;line-height:1.2;margin:0}
+.hm-say{font-size:15px;line-height:1.45;margin:6px 0 14px;max-width:72ch}
+.hm-row{display:grid;grid-template-columns:300px 1fr 110px;gap:20px;align-items:start;padding:10px 0;border-top:1px solid var(--hair)}
+.hm-row .nm{font-size:14.5px;font-weight:500;line-height:1.3}.hm-row .ln{font-size:12px;color:var(--quiet);margin-top:2px}.hm-row .fx{font-size:13.5px;line-height:1.45}.hm-row .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48}.hm-row .ac{text-align:right;font-size:13.5px;font-weight:500}
+.hm-row .ref{font-family:var(--font-mono);font-size:11.5px}
+.hm-grp{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;padding:16px 0 4px}.hm-grp .q{font-weight:400}
+.hm-grp i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.hm-foot{display:flex;align-items:center;gap:14px;padding:12px 0 16px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--quiet);margin-top:auto}.hm-foot .sp{flex:1}
+.hm-av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:600;flex:none}
+.hm-who{display:flex;gap:10px;align-items:flex-start}
+/* SAP */
+.sap-band{background:#fff;border-bottom:1px solid var(--hair);padding:18px 40px 14px}
+.sap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.tile{border:1px solid var(--hair);border-radius:10px;padding:12px 14px 12px 16px;position:relative;background:#fff;cursor:pointer}
+.tile::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--tone)}
+.tile .n{font-size:24px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}.tile .l{font-size:12.5px;margin-top:4px}.tile .s{font-size:11.5px;color:var(--quiet);margin-top:2px}
+.sap-filters{display:flex;gap:8px;padding:12px 40px 0;align-items:center}.sap-filters .q{margin-left:auto}
+.sap-table{padding:0 40px;flex:1;min-height:0;overflow:hidden}
+.sap-table .hd{display:grid;grid-template-columns:28px 1.1fr 1.6fr 90px 100px;gap:14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:12px 0 8px;border-bottom:1px solid var(--hair)}
+.sap-table .r{display:grid;grid-template-columns:28px 1.1fr 1.6fr 90px 100px;gap:14px;align-items:center;padding:9px 0;border-bottom:1px solid var(--hair);font-size:13.5px}
+.sap-table .r .ac{text-align:right}
+/* morning */
+.ml-top{background:linear-gradient(180deg,#FBF7EE 0%,#fff 100%);padding:26px 40px 10px;border-bottom:1px solid var(--hair)}
+.ml-counts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ml-c{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:500;background:var(--bg,#F0F0F3);color:var(--fg,#1D1D1F)}
+.ml-c i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.9}
+.ml-week{display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--quiet);margin-top:12px}
+.ml-week .d{width:34px;text-align:center}.ml-week .d b{display:block;font-weight:500;color:var(--ink);font-size:12px}.ml-week .d i{display:block;margin:3px auto 0;width:6px;height:6px;border-radius:50%;background:#E6E6EA}
+.ml-chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;margin-right:6px;vertical-align:1px;font-weight:500}
+/* phone: the panel below the page */
+@media (max-width:1000px){.body{flex-direction:column}.panel{width:auto;max-height:46vh}.pb{overflow:auto}}
+@media (prefers-reduced-motion:reduce){.node,.edge,.strand i,.m,.paper .cl,.fact{transition:none;animation:none}}
+</style>
+
+<div class="bar"><span class="mark">HaTi</span><span class="pg">Jambo at work · two things to watch</span><span class="sp"></span>
+  <div class="tabs" role="tablist"><button type="button" role="tab" id="tab-read" aria-selected="true" aria-controls="v-read">Reading on arrival</button><button type="button" role="tab" id="tab-map" aria-selected="false" aria-controls="v-map">Ask the map</button><button type="button" role="tab" id="tab-ways" aria-selected="false" aria-controls="v-ways">One map · three ways</button><button type="button" role="tab" id="tab-home" aria-selected="false" aria-controls="v-home">Home · three ways</button></div>
+  <span class="av">AO</span></div>
+
+<!-- ======================= 1 · READING ON ARRIVAL ======================= -->
+<div class="body" id="v-read" role="tabpanel">
+  <div class="sheet">
+    <div class="view on" style="height:100%">
+      <div class="pg-head"><span class="tt">Raw Milk Collection</span><span class="sub">Nandi Dairy · just uploaded · 13 clauses</span><span class="sp"></span>
+        <div class="grp"><button type="button" class="btn" id="rd-play"><svg class="i" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg> Watch the read</button><button type="button" class="pill" id="rd-again"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg> Start again</button></div>
+        <div class="grp"><span class="q">Speed</span><div class="seg" id="rd-speed"><button type="button" data-s="1.6" aria-pressed="false">Slow</button><button type="button" data-s="1" aria-pressed="true">Normal</button><button type="button" data-s="0.45" aria-pressed="false">Fast</button></div></div>
+      </div>
+      <div class="desk" id="rd-desk"><div class="paper" id="rd-paper"></div></div>
+      <div class="rd-foot"><span id="rd-state">Not read yet · the read is free and files nothing</span><span class="sp"></span><div class="prog"><i id="rd-bar"></i></div><span class="count" id="rd-count">0 of 13</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="ptab"><span class="jface sm"></span> Jambo</span></div>
+    <div class="pb" id="rd-pb">
+      <div class="jcard" id="rd-say">A paper has arrived. Press <b>Watch the read</b> and I read it clause by clause, in front of you: the parties, the dates, the money, the blanks and the duties. Each fact lands here with the words it rests on. Nothing is filed.</div>
+      <div id="rd-facts"></div>
+      <div class="summary" id="rd-summary"></div>
+    </div>
+    <div class="pf"><div class="jbox quiet"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg><input id="rd-ask" placeholder="Ask Jambo about this paper…" aria-label="Ask Jambo about this paper"><span class="go"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></span></div></div>
+  </div>
+</div>
+
+<!-- ======================= 2 · ASK THE MAP ======================= -->
+<div class="body" id="v-map" role="tabpanel" hidden>
+  <div class="sheet">
+    <div class="view on" style="height:100%">
+      <div class="pg-head"><span class="tt">Explorer and DNA</span><span class="sub">7 contracts · 6 parties · 2 streams · read from the records, no call</span><span class="sp"></span><div class="grp"><button type="button" class="pill" id="mp-reset"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg> Reset</button></div></div>
+      <div class="chips" id="mp-chips" aria-label="Questions to try"></div>
+      <div class="legend"><span><i style="background:#3A8A62"></i>within your standard</span><span><i style="background:#C98A14"></i>differs or a risk</span><span><i style="background:#C2453B"></i>missing</span><span><i style="background:#fff;box-shadow:inset 0 0 0 1.5px #C98A14"></i>blank</span><span><i style="background:#5F6D6B"></i>asked about</span><span><i style="background:#E6E6EA"></i>read, nothing to say</span></div>
+      <div class="map-wrap">
+        <div class="map-col"><div class="hd">Explorer<span class="sp"></span><span class="n" id="mp-exp-say">sized by value · grouped by stream</span></div><div class="explorer" id="mp-exp"></div></div>
+        <div class="map-col"><div class="hd">DNA by contract<span class="sp"></span><span class="n" id="mp-dna-say">a segment is a clause · length its weight · colour its mark</span></div><div class="dna" id="mp-dna"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="ptab"><span class="jface sm"></span> Jambo</span></div>
+    <div class="pb" id="mp-pb">
+      <div class="jcard" id="mp-say">Ask the map a question and both pictures redraw to answer it: the Explorer lights the contracts it is about, the strands light the clauses. I then say what was drawn. Every answer here is read from the kept checks, so it costs nothing.</div>
+      <div id="mp-facts"></div>
+      <div id="mp-doors"></div>
+    </div>
+    <div class="pf"><form class="jbox" id="mp-form"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg><input id="mp-ask" placeholder="Ask the map… try “where is insurance missing”" aria-label="Ask the map" autocomplete="off"><button type="submit" class="go" aria-label="Ask"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></button></form></div>
+  </div>
+</div>
+
+<!-- ======================= 3 · ONE MAP, THREE WAYS ======================= -->
+<div class="body" id="v-ways" role="tabpanel" hidden>
+  <div class="sheet">
+    <div class="view on" style="height:100%">
+      <div class="pg-head"><span class="tt">One map</span><span class="sub">the Explorer and the DNA on one page · drawn answering “where is insurance missing?”</span><span class="sp"></span><div class="seg" id="ways-pick" role="tablist"><button type="button" data-o="one" aria-pressed="true">One strand each</button><button type="button" data-o="two" aria-pressed="false">Map above, strands below</button><button type="button" data-o="three" aria-pressed="false">Rings</button></div></div>
+      <div class="ways-head"><span class="look">Look: by stream <svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span><span class="look">Size: value <svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span><span class="q" id="ways-say">7 contracts · lit: insurance clauses · 1 missing</span></div>
+      <div class="ways-stage" id="ways-stage"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="ptab"><span class="jface sm"></span> Jambo</span></div>
+    <div class="pb">
+      <div class="jcard" id="ways-card"></div>
+      <div class="sec">What the box understands</div>
+      <div class="fact"><div class="l">A clause</div><div class="v">any clause word: insurance, payment, liability, notice, exclusivity, data…</div><div class="s">lights segments</div></div>
+      <div class="fact"><div class="l">A party</div><div class="v">a name, or “who”: the party's papers come forward</div><div class="s">lights bubbles</div></div>
+      <div class="fact"><div class="l">A date</div><div class="v">a year, “this year”, “ends”, “renews”: the rows lay out by date</div><div class="s">re-orders</div></div>
+      <div class="fact"><div class="l">A sum</div><div class="v">“over 50M”, “under 1M”, “pays after 45 days”</div><div class="s">filters</div></div>
+      <div class="fact"><div class="l">A state</div><div class="v">missing, differs, blank, in review, late, negotiating</div><div class="s">lights marks</div></div>
+      <div class="fact"><div class="l">Anything else</div><div class="v">a question of the wording becomes a column, its cost said first</div><div class="s">N calls</div></div>
+    </div>
+    <div class="pf"><div class="jbox"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg><input placeholder="Ask the map: a clause, a party, a date, a sum, a state…" aria-label="Ask the map"><span class="go"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></span></div></div>
+  </div>
+</div>
+
+<!-- ======================= 4 · HOME, THREE WAYS ======================= -->
+<div class="body" id="v-home" role="tabpanel" hidden>
+  <div class="hm-pick"><div class="seg" id="home-pick"><button type="button" data-o="sap" aria-pressed="false">The SAP Way</button><button type="button" data-o="legora" aria-pressed="true">The Legora Way</button><button type="button" data-o="morning" aria-pressed="false">Morning light</button></div><span class="q" id="home-say"></span></div>
+  <div class="hm-stage" id="home-stage"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r)=> (r||document).querySelector(s);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CHECK='<svg class="i" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg>';
+
+/* ---------------- tabs ---------------- */
+const tabs={read:[$('#tab-read'),$('#v-read')],map:[$('#tab-map'),$('#v-map')],ways:[$('#tab-ways'),$('#v-ways')],home:[$('#tab-home'),$('#v-home')]};
+function show(k){ for(const [key,[t,v]] of Object.entries(tabs)){ const on=key===k; t.setAttribute('aria-selected',on); v.hidden=!on; } if(k==='map' && !mapBuilt) buildMap(); if(k==='ways' && !waysBuilt) buildWays(); if(k==='home' && !homeBuilt) buildHome(); try{ if(location.hash!=='#'+k) history.replaceState(null,'','#'+k);}catch(e){} }
+tabs.read[0].addEventListener('click',()=>show('read')); tabs.map[0].addEventListener('click',()=>show('map')); tabs.ways[0].addEventListener('click',()=>show('ways')); tabs.home[0].addEventListener('click',()=>show('home'));
+addEventListener('hashchange',()=>{ const k=location.hash.replace('#',''); if(tabs[k]) show(k); });
+
+/* =====================================================================
+   1 · READING ON ARRIVAL
+   ===================================================================== */
+// each clause: its number, title and text; {{kind|words|what Jambo notes}} marks a fact
+const CLAUSES=[
+ {n:0,t:null,p:'This Raw Material Supply Agreement is made on {{blank|—|Date of agreement · blank}} between {{party|Highland Corporate Ltd|Our entity}} (the “Buyer”) and {{party|Nandi Dairy|Counterparty}} (the “Supplier”) for the supply of {{blank|—|What is supplied · blank}} into the Buyer\'s production facilities in Kenya.'},
+ {n:1,t:'Supply & Specification',p:'The Supplier shall supply an estimated {{money|5,000|Volume · 5,000 t a year}} metric tonnes per annum meeting the agreed specification and the applicable KEBS standard, delivered DDP to the Buyer\'s plant.'},
+ {n:2,t:'Price & Contract Value',p:'The estimated annual contract value is KES {{money|36,000,000|Value · KES 36M a year}}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT and invoices fall due within {{money|30|Payment · 30 days · within your standard}} days of receipt.'},
+ {n:3,t:'Quality & Rejection',p:'Consignments failing specification or Public Health / KEBS requirements may be rejected within {{risk|3 days|Rejection window · 3 days · your standard says 7}} of delivery, with replacement at the Supplier\'s cost.'},
+ {n:4,t:'Term and Renewal',p:'This agreement runs until {{date|30 June 2027|Ends · 30 Jun 2027}} and renews for one year unless either party gives {{date|ninety days\' notice|Notice · 90 days · by 1 Apr 2027}} before expiry.'},
+ {n:5,t:'Termination',p:'Either party may terminate for material breach not remedied within thirty (30) days of written notice. The Buyer may terminate for convenience on {{date|sixty (60) days\'|Convenience · 60 days · within your standard}} notice.'},
+ {n:6,t:'Limitation of Liability',p:'Each party\'s total liability under this agreement shall not exceed {{money|twelve (12) months|Liability cap · 12 months of Charges · within your standard}} of Charges paid or payable in the year the claim arises.'},
+ {n:7,t:'Confidentiality',p:'Each party shall keep the other\'s confidential information secret for the Term and {{date|three (3) years|Survives · 3 years}} after it ends.'},
+ {n:8,t:'Data Protection',p:'Each party shall process personal data only as the Data Processing Schedule allows and shall notify the other of a breach within {{duty|seventy-two (72) hours|Duty · notify a breach within 72 hours}}.'},
+ {n:9,t:'Insurance',p:'The Supplier shall {{duty|keep product liability insurance of not less than KES 50,000,000|Duty · keep insurance of KES 50M}} and {{duty|provide the certificate annually|Duty · certificate each year · theirs}}.'},
+ {n:10,t:'Reporting',p:'The Supplier shall {{duty|deliver a monthly quality report by the fifth day of each month|Duty · monthly quality report · theirs}}.'},
+ {n:11,t:'Assignment',p:'Neither party may assign this agreement without the other\'s written consent, not to be unreasonably withheld.'},
+ {n:12,t:'Governing Law',p:'This agreement is governed by the laws of {{date|Kenya|Law · Kenya}} and the courts of Nairobi have exclusive jurisdiction.'}
+];
+const GROUP={party:'Parties',blank:'Blanks',date:'Dates',money:'Money',duty:'Duties',risk:'Watch'};
+const paper=$('#rd-paper'); let marks=[];
+function buildPaper(){
+  marks=[]; let html='<div class="peye">Kenya · Raw material supply</div><h1>Raw Milk Collection</h1><div class="btw">Between Highland Corporate Ltd and Nandi Dairy</div>';
+  CLAUSES.forEach((c,ci)=>{ let p=c.p.replace(/\{\{(\w+)\|([^|]*)\|([^}]*)\}\}/g,(m,kind,words,note)=>{ const id='m'+marks.length; marks.push({id,kind,words,note,ci}); return `<span class="m ${kind}" id="${id}">${words}</span>`; });
+    html+=`<div class="cl" data-i="${ci}"><span class="rd"></span><span class="dn">${CHECK}</span>${c.t?`<h2>${c.n}. ${c.t}</h2>`:''}<p>${p}</p></div>`; });
+  paper.innerHTML=html;
+}
+buildPaper();
+const facts=$('#rd-facts'), say=$('#rd-say'), summ=$('#rd-summary'), bar=$('#rd-bar'), cnt=$('#rd-count'), st=$('#rd-state'), play=$('#rd-play');
+let speed=1, idx=0, running=false, timer=null, found={party:0,blank:0,date:0,money:0,duty:0,risk:0}, groups={};
+$('#rd-speed').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; speed=+b.dataset.s; [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b)); });
+function resetRead(){ clearTimeout(timer); running=false; idx=0; found={party:0,blank:0,date:0,money:0,duty:0,risk:0}; groups={}; buildPaper(); facts.innerHTML=''; summ.className='summary'; summ.innerHTML=''; bar.style.width='0'; cnt.textContent='0 of 13'; st.textContent='Not read yet · the read is free and files nothing'; say.innerHTML='A paper has arrived. Press <b>Watch the read</b> and I read it clause by clause, in front of you: the parties, the dates, the money, the blanks and the duties. Each fact lands here with the words it rests on. Nothing is filed.'; play.innerHTML='<svg class="i" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg> Watch the read'; play.disabled=false; $('#rd-desk').scrollTop=0; }
+$('#rd-again').addEventListener('click',resetRead);
+play.addEventListener('click',()=>{ if(running){ running=false; clearTimeout(timer); play.innerHTML='<svg class="i" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg> Continue'; st.textContent='Paused at clause '+idx+' · nothing filed'; return; } if(idx>=CLAUSES.length){ resetRead(); } running=true; play.innerHTML='<svg class="i" viewBox="0 0 24 24"><path d="M6 5h4v14H6z"/><path d="M14 5h4v14h-4z"/></svg> Pause'; step(); });
+function addFact(m){ let g=groups[m.kind]; if(!g){ g=document.createElement('div'); g.innerHTML=`<div class="sec">${GROUP[m.kind]}</div>`; groups[m.kind]=g; facts.appendChild(g); }
+  const parts=m.note.split(' · '); const l=parts[0]; const v=parts.length>1?parts[1]:m.words; const s=parts.length>2?parts[2]:''; const owe=m.kind==='blank'; const row=document.createElement('div'); row.className='fact'+(owe?' owe':''); const sec=m.ci? '§ '+CLAUSES[m.ci].n : 'preamble';
+  row.innerHTML=`<div class="l">${l}</div><div class="v">${owe?'<b>'+v+'</b>':v}${s?' · '+s:''}${v!==m.words?'<br><span class="src">“'+m.words+'”</span>':''}</div><div class="s">${sec}</div>`; g.appendChild(row); found[m.kind]++; }
+function step(){ if(!running) return; if(idx>=CLAUSES.length){ finish(); return; }
+  const el=paper.querySelector(`.cl[data-i="${idx}"]`); const dur=reduced?0:Math.max(260,(420+el.textContent.length*4.2)*speed);
+  el.classList.add('reading'); if(!reduced){ el.animate([{'--p':'0%'},{'--p':'100%'}],{duration:dur,fill:'forwards'}); }
+  const desk=$('#rd-desk'); const r=el.getBoundingClientRect(), d=desk.getBoundingClientRect(); if(r.bottom>d.bottom-40||r.top<d.top) desk.scrollTo({top:desk.scrollTop+(r.top-d.top)-80,behavior:reduced?'auto':'smooth'});
+  st.textContent=`Reading ${idx?'§ '+CLAUSES[idx].n+' · '+CLAUSES[idx].t:'the preamble'} · free`;
+  const mine=marks.filter(m=>m.ci===idx);
+  mine.forEach((m,k)=>{ setTimeout(()=>{ if(!running) return; $('#'+m.id).classList.add('lit'); addFact(m); facts.lastElementChild && (facts.parentElement.scrollTop=facts.parentElement.scrollHeight); },reduced?0:dur*(0.35+0.5*k/Math.max(1,mine.length))); });
+  timer=setTimeout(()=>{ if(!running) return; el.classList.remove('reading'); el.classList.add('read'); idx++; bar.style.width=(idx/CLAUSES.length*100)+'%'; cnt.textContent=idx+' of 13'; step(); },dur+(reduced?0:120*speed));
+}
+function finish(){ running=false; play.innerHTML='<svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg> Read again'; st.textContent='Read whole · 13 clauses · nothing filed yet';
+  say.innerHTML=`Read whole. <b>Two blanks</b> stand in the way of a signature: the date of agreement and what is supplied. Payment, liability and convenience are inside your standards; the <b>rejection window is three days</b> where your standard says seven. Four duties live on this paper, two of them theirs. Nothing is filed until you press.`;
+  summ.className='summary on'; summ.innerHTML=`<div class="sec">Next</div><div class="g-row"><button type="button" class="lnk">Fill in the two blanks</button><span class="q">free · opens Details</span></div><div class="g-row"><button type="button" class="lnk">Add the four duties</button><span class="q">free · you decide each</span></div><div class="g-row"><button type="button" class="lnk">Start a redline on § 3</button><span class="q">free · the editor</span></div><div class="g-row"><button type="button" class="lnk">Deep read all 13 in plain English</button><span class="q">13 calls</span></div><div class="q" style="margin-top:10px">Read once per wording; the next person who opens this paper sees the same read, free.</div>`;
+  summ.scrollIntoView({behavior:reduced?'auto':'smooth',block:'end'}); }
+
+/* =====================================================================
+   2 · ASK THE MAP
+   ===================================================================== */
+const STREAMS=[{id:'proc',name:'Procurement & Raw Materials'},{id:'sales',name:'Sales'},{id:'it',name:'IT & Services'}];
+const PARTIES=[{id:'kabras',name:'Kabras Sugar',stream:'proc'},{id:'nandi',name:'Nandi Dairy',stream:'proc'},{id:'naivas',name:'Naivas Supermarkets',stream:'sales'},{id:'tana',name:'Tana Cold Stores',stream:'proc'},{id:'rift',name:'Rift Haulage',stream:'proc'},{id:'parcel',name:'Parcelway Logistics',stream:'it'}];
+// clauses: n, kind, mark (g met · a differs/risk · r missing · b blank · s asked · u nothing), w weight
+const C=[
+ {id:'MK-A1',name:'Refined Sugar Supply',party:'kabras',stream:'proc',value:48e6,ends:'2027-06-30',pay:30,status:'Executed',cl:[[1,'scope','u',2],[2,'price','g',3],[3,'quality','u',2],[4,'delivery','a',3],[5,'term','g',2],[6,'liability','g',3],[7,'insurance','g',2],[8,'data','u',2],[9,'force','u',1],[10,'notices','u',1],[11,'assign','u',1],[12,'law','g',1]]},
+ {id:'MK-A2',name:'Raw Milk Collection',party:'nandi',stream:'proc',value:36e6,ends:'2027-06-30',pay:30,status:'In review',blanks:2,cl:[[0,'blank','b',2],[1,'scope','u',2],[2,'price','g',3],[3,'quality','a',2],[4,'term','g',2],[5,'termination','g',2],[6,'liability','g',3],[7,'confidentiality','u',1],[8,'data','u',2],[9,'insurance','g',2],[10,'reporting','u',1],[12,'law','g',1]]},
+ {id:'MK-B1',name:'Modern Trade Listing',party:'naivas',stream:'sales',value:85e6,ends:'2027-12-31',pay:60,status:'Executed',cl:[[1,'scope','u',2],[3,'listing','u',2],[5,'price','a',3],[7,'delivery','g',2],[9,'quality','u',1],[11,'liability','g',2],[12,'insurance','s',2],[14,'data','u',2],[16,'term','g',2],[18,'notice','g',2],[20,'law','g',1]]},
+ {id:'MK-B2',name:'Retail Supply — Coast',party:'naivas',stream:'sales',value:78e6,ends:'2028-03-31',pay:90,status:'In review',cl:[[1,'scope','u',2],[3,'listing','u',2],[5,'price','a',3],[7,'delivery','g',2],[9,'quality','u',1],[11,'liability','g',2],[13,'insurance','g',2],[15,'data','u',2],[16,'term','g',2],[18,'notice','g',2]]},
+ {id:'MK-CR',name:'Cold Room Lease',party:'tana',stream:'proc',value:9e5,ends:'2029-12-31',pay:14,status:'In review',blanks:2,cl:[[0,'blank','b',2],[1,'premises','u',2],[2,'blank','b',2],[3,'rent','u',2],[4,'payment','a',3],[5,'insurance','r',2],[6,'repairs','u',2],[7,'liability','r',2],[8,'term','g',2],[9,'access','u',2],[10,'notices','g',1],[12,'law','u',1]]},
+ {id:'MK-CL',name:'Transport Services',party:'rift',stream:'proc',value:7e5,ends:'2027-06-30',pay:45,status:'Executed',cl:[[1,'scope','u',2],[3,'rates','g',3],[5,'liability','g',2],[6,'insurance','g',2],[8,'data','u',2],[9,'service','g',2],[11,'term','u',1],[12,'law','g',1]]},
+ {id:'MK-R1',name:'Parcel Delivery SaaS',party:'parcel',stream:'it',value:2.4e6,ends:null,pay:60,status:'Negotiating',cl:[[1,'scope','u',2],[3,'service','g',2],[5,'payment','a',3],[7,'data','g',2],[9,'security','u',2],[12,'insurance','s',2],[14,'liability','a',2],[18,'exclusivity','r',3],[21,'service levels','a',2],[26,'liability cap','a',2],[27,'law','g',1]]}
+];
+const fmtM=v=>v>=1e6?'KES '+(v/1e6).toFixed(v>=10e6?0:1)+'M':'KES '+Math.round(v/1e3)+'K';
+let mapBuilt=false, Q=null;
+const QUESTIONS=[
+ {chip:'Where is insurance missing?',match:/insur/,kinds:['insurance'],tone:'red',hit:c=>c.cl.some(x=>x[1]==='insurance'&&x[2]==='r'),soft:c=>c.cl.some(x=>x[1]==='insurance'&&x[2]==='s'),
+  say:'Insurance is <b>missing on one paper</b>: Cold Room Lease, § 5. Two more have it only because you asked about it: Modern Trade Listing § 12 and Parcel Delivery SaaS § 12 rest on your kept question, not on your standard. The other four meet it.',
+  facts:[['Missing','Cold Room Lease · § 5 · no insurance clause at all','red'],['Asked about','MK-B1 § 12 · MK-R1 § 12 · from your kept question',''],['Met','four papers · certificate each year','']],doors:[['Open Cold Room Lease § 5','free'],['Add insurance to your standards','free · Settings'],['Ask Tana to insure','1 call · drafts the note']]},
+ {chip:'Who pays after 45 days?',match:/pay|days|45|invoice/,kinds:['payment','price'],tone:'amber',hit:c=>c.pay>45,
+  say:'Three pay later than 45 days: <b>Retail Supply — Coast at 90</b>, Modern Trade Listing at 60, and Parcel Delivery SaaS at 60, which is their ask this round, not yet agreed. Your standard is 30, 45 at most. Both long ones are Naivas.',
+  facts:[['90 days','Retail Supply — Coast · § 5 · in review, approval asked','amber'],['60 days','Modern Trade Listing · § 5 · executed 2025','amber'],['60 asked','Parcel Delivery SaaS · § 5 · your counter at 45 is prepared','amber']],doors:[['Open the Coast approval','free'],['Send Parcelway the counter','free'],['Make 45 the hard line','free · Settings']]},
+ {chip:'Naivas',match:/naivas/,party:'naivas',group:'party',
+  say:'<b>Naivas Supermarkets</b>: two agreements, KES 163M, two thirds of your signed money. Both pay late against your standard, 60 and 90 days, and both end within fourteen months of each other. The Coast deal waits on your approval today.',
+  facts:[['Money','KES 163M · 65% of the book',''],['Pays','60 days · 90 days · your standard 30','amber'],['Ends','31 Dec 2027 · 31 Mar 2028 · notice 90 days','']],doors:[['Open the party','free'],['Approve or decline the Coast deal','free'],['Compare the two payment clauses','free']]},
+ {chip:'What ends in 2027?',match:/end|expir|2027|renew|this year/,kinds:['term','notice','termination'],tone:'',hit:c=>c.ends&&c.ends.startsWith('2027'),group:'time',
+  say:'<b>Four end in 2027</b>: three on 30 June, KES 84.7M together, and Modern Trade Listing on 31 December. Two renew by themselves unless notice is given by 1 April. Parcel Delivery SaaS has no end date yet; it is still being negotiated.',
+  facts:[['30 Jun 2027','Refined Sugar · Raw Milk · Transport · KES 84.7M',''],['31 Dec 2027','Modern Trade Listing · 90 days\' notice by 2 Oct',''],['Renew alone','Refined Sugar · Raw Milk · unless notice by 1 Apr','amber']],doors:[['Open the Horizon','free'],['Decide the two renewals','free'],['Put the notice dates on my calendar','free']]},
+ {chip:'Where are the blanks?',match:/blank|missing field|fill/,kinds:['blank'],tone:'ring',hit:c=>!!c.blanks,
+  say:'<b>Four blanks on two papers</b>, both in review: Raw Milk Collection has no date of agreement and no description of what is supplied; Cold Room Lease has no start date and no rent figure. A blank stops the signature; nothing else does.',
+  facts:[['Raw Milk','date of agreement · what is supplied · preamble','amber'],['Cold Room','start date · rent · § 0, § 2','amber']],doors:[['Fill in Raw Milk','free · Details'],['Fill in Cold Room','free · Details'],['Ask Nandi for the two','1 call']]},
+ {chip:'By stream',match:/stream|folder|function/,group:'stream',say:'Grouped by stream. <b>Procurement</b> holds five papers and KES 85.6M; <b>Sales</b> holds two and KES 163M; <b>IT & Services</b> one, still negotiating. Money follows Sales, work follows Procurement.',facts:[['Procurement','5 · KES 85.6M · 2 need you',''],['Sales','2 · KES 163M · 1 approval',''],['IT & Services','1 · KES 2.4M · your move','']],doors:[['Open Procurement','free'],['Open Sales','free']]},
+ {chip:'By party',match:/party|parties|counterpart|who/,group:'party',say:'Grouped by party. Six counterparties; Naivas alone is two thirds of the money. Two parties have no NDA with you: Tana Cold Stores and Parcelway.',facts:[['Most money','Naivas · KES 163M · 2 deals',''],['No NDA','Tana Cold Stores · Parcelway','amber']],doors:[['Open Parties','free'],['Draft an NDA with Parcelway','free']]},
+ {chip:'What differs from my standards?',match:/differ|standard|risk|outside/,kinds:null,tone:'amber',hit:c=>c.cl.some(x=>x[2]==='a'||x[2]==='r'),markHit:x=>x[2]==='a'||x[2]==='r',
+  say:'<b>Five papers differ somewhere</b>; two are red. Cold Room Lease is missing insurance and a liability cap. Parcel Delivery SaaS has an exclusivity clause your standard refuses. The amber ones are payment terms and a three-day rejection window.',
+  facts:[['Red','Cold Room § 5, § 7 · Parcelway § 18','red'],['Amber','payment on 3 · delivery on 1 · quality on 1','amber'],['All met','Transport Services · every point','']],doors:[['Open the two red papers','free'],['Prepare redlines on Parcelway § 18','free']]}
+];
+const chips=$('#mp-chips'); QUESTIONS.forEach((q,i)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=q.chip; b.setAttribute('aria-pressed','false'); b.addEventListener('click',()=>ask(q.chip)); chips.appendChild(b); });
+
+let svg, W=600, H=360, nodes=[], edges=[];
+function buildMap(){ mapBuilt=true; const host=$('#mp-exp'); const r=host.getBoundingClientRect(); W=Math.max(360,r.width||600); H=Math.max(300,r.height||360);
+  const NS='http://www.w3.org/2000/svg'; svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); host.innerHTML=''; host.appendChild(svg);
+  const axis=document.createElementNS(NS,'g'); axis.setAttribute('class','axis'); axis.style.opacity=0; svg.appendChild(axis); svg._axis=axis;
+  const eg=document.createElementNS(NS,'g'); svg.appendChild(eg);
+  nodes=[]; edges=[];
+  const mk=(kind,d,rad,label,sub)=>{ const g=document.createElementNS(NS,'g'); g.setAttribute('class','node '+kind); const c=document.createElementNS(NS,'circle'); c.setAttribute('r',rad); g.appendChild(c); const t=document.createElementNS(NS,'text'); if(kind==='contract'){ t.setAttribute('x',rad+8); t.setAttribute('y',4); } else { t.setAttribute('text-anchor','middle'); t.setAttribute('y',rad+14); } t.textContent=label; g.appendChild(t); if(sub){ const s=document.createElementNS(NS,'text'); s.setAttribute('class','sub'); s.setAttribute('x',rad+8); s.setAttribute('y',17); s.textContent=sub; g.appendChild(s);} svg.appendChild(g); const n={kind,d,el:g,r:rad,x:W/2,y:H/2}; nodes.push(n); return n; };
+  STREAMS.forEach(s=>mk('stream',s,5,s.name.split(' &')[0]));
+  PARTIES.forEach(p=>mk('party',p,5,p.name.replace(' Supermarkets','').replace(' Logistics','')));
+  C.forEach(c=>mk('contract',c,Math.max(7,Math.sqrt(c.value)/700),c.name.length>22?c.name.slice(0,21)+'…':c.name,PARTIES.find(p=>p.id===c.party).name.replace(' Supermarkets','').replace(' Logistics','')+' · '+c.id));
+  layout('stream'); buildDna(); place();
+  new ResizeObserver(()=>{ const r=host.getBoundingClientRect(); if(!r.width) return; W=r.width; H=Math.max(300,r.height); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); layout(Q&&Q.group||'stream'); place(); }).observe(host);
+}
+function layout(mode){ const pad=24; svg._axis.style.opacity=0; svg._axis.innerHTML='';
+  const NS='http://www.w3.org/2000/svg';
+  const labelSide=(n,side)=>{ const [t,sub]=n.el.querySelectorAll('text'); if(side==='below'){ t.setAttribute('text-anchor','middle'); t.setAttribute('x',0); t.setAttribute('y',n.r+14); if(sub){ sub.setAttribute('text-anchor','middle'); sub.setAttribute('x',0); sub.setAttribute('y',n.r+27);} } else if(side==='left'){ t.setAttribute('text-anchor','end'); t.setAttribute('x',-(n.r+8)); t.setAttribute('y',4); if(sub){ sub.setAttribute('text-anchor','end'); sub.setAttribute('x',-(n.r+8)); sub.setAttribute('y',17);} } else { t.setAttribute('text-anchor','start'); t.setAttribute('x',n.r+8); t.setAttribute('y',4); if(sub){ sub.setAttribute('text-anchor','start'); sub.setAttribute('x',n.r+8); sub.setAttribute('y',17);} } };
+  if(mode==='time'){ const left=pad+10, right=W-pad-40; const xs=d=>{ const t=new Date(d).getTime(), a=new Date('2026-10-01').getTime(), b=new Date('2030-06-01').getTime(); return left+(t-a)/(b-a)*(right-left); };
+    const top=44, rowH=Math.min(50,(H-top-50)/7); const bottom=top+rowH*7;
+    ['2027','2028','2029','2030'].forEach(yr=>{ const x=xs(yr+'-01-01'); const l=document.createElementNS(NS,'line'); l.setAttribute('x1',x);l.setAttribute('x2',x);l.setAttribute('y1',top-10);l.setAttribute('y2',bottom); svg._axis.appendChild(l); const t=document.createElementNS(NS,'text'); t.setAttribute('x',x+4); t.setAttribute('y',bottom+14); t.textContent=yr; svg._axis.appendChild(t); }); const tt=document.createElementNS(NS,'text'); tt.setAttribute('x',pad); tt.setAttribute('y',20); tt.textContent='End date · soonest first · no end date last'; svg._axis.appendChild(tt); svg._axis.style.opacity=1;
+    const cs=nodes.filter(n=>n.kind==='contract').sort((a,b)=>(a.d.ends||'9999').localeCompare(b.d.ends||'9999'));
+    nodes.forEach(n=>{ if(n.kind!=='contract'){ n.el.style.opacity=0; n.x=W/2; n.y=H+60; } });
+    cs.forEach((n,k)=>{ n.el.style.opacity=''; n.x=n.d.ends?xs(n.d.ends):right; n.y=top+rowH*k+rowH/2; labelSide(n,n.x>W*0.6?'left':'right'); }); return; }
+  const byParty=mode==='party';
+  const cols=byParty? PARTIES.map(p=>({anchor:nodes.find(n=>n.kind==='party'&&n.d.id===p.id),members:nodes.filter(n=>n.kind==='contract'&&n.d.party===p.id)})) : STREAMS.map(st=>({anchor:nodes.find(n=>n.kind==='stream'&&n.d.id===st.id),members:nodes.filter(n=>n.kind==='contract'&&n.d.stream===st.id)}));
+  nodes.forEach(n=>{ n.el.style.opacity=(n.kind==='party'&&!byParty)||(n.kind==='stream'&&byParty)?0:''; if(n.el.style.opacity==='0'){ n.x=W/2; n.y=H+60; } });
+  if(byParty){ const per=3, rows=Math.ceil(cols.length/per); const colW=(W-2*pad)/per, rowH=(H-24)/rows;
+    cols.forEach((c,i)=>{ const x0=pad+(i%per)*colW, y0=16+Math.floor(i/per)*rowH; c.anchor.x=x0+colW/2; c.anchor.y=y0+14; c.members.forEach((n,k)=>{ n.x=x0+26; n.y=y0+66+k*50; labelSide(n,'right'); }); }); return; }
+  const colW=(W-2*pad)/cols.length; const maxM=Math.max(...cols.map(c=>c.members.length)); const top=84; const gap=Math.min(74,(H-top-30)/Math.max(1,maxM));
+  cols.forEach((c,i)=>{ const x0=pad+i*colW; c.anchor.x=x0+colW/2; c.anchor.y=36; c.members.forEach((n,k)=>{ n.x=x0+30; n.y=top+k*gap+gap/2-6; labelSide(n,'right'); }); });
+}
+function place(){ nodes.forEach(n=>{ n.el.setAttribute('transform',`translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`); }); }
+function buildDna(){ const host=$('#mp-dna'); host.innerHTML=C.map(c=>{ const tot=c.cl.reduce((a,x)=>a+x[3],0); const worst=c.cl.some(x=>x[2]==='r')?['red',c.cl.filter(x=>x[2]==='r').length+' missing']:c.cl.some(x=>x[2]==='b')?['amber',c.cl.filter(x=>x[2]==='b').length+' blanks']:c.cl.some(x=>x[2]==='a')?['amber',c.cl.filter(x=>x[2]==='a').length+' differs']:['','all met'];
+  return `<div class="row" data-id="${c.id}"><div><div class="nm">${c.name}</div><div class="ln">${PARTIES.find(p=>p.id===c.party).name} · <span class="ref">${c.id}</span> · ${c.cl.length} clauses</div></div><div><div class="strand">${c.cl.map(x=>`<i class="${x[2]}" style="--w:${x[3]}" data-k="${x[1]}" data-m="${x[2]}" title="§ ${x[0]} ${x[1]}"></i>`).join('')}</div><div class="ticks">${c.cl.map(x=>`<i style="--w:${x[3]}">${x[0]===0?'pre':x[0]}</i>`).join('')}</div></div><div class="w ${worst[0]}">${worst[1]}</div></div>`; }).join(''); }
+
+function ask(text){ const t=(text||'').trim().toLowerCase(); if(!t){ reset(); return; }
+  const q=QUESTIONS.find(q=>q.match.test(t)); [...chips.children].forEach(b=>b.setAttribute('aria-pressed',q&&b.textContent===q.chip));
+  if(!q){ $('#mp-say').innerHTML=`I can draw what the records hold: insurance, payment days, a party, end dates, blanks, streams, or what differs from your standards. “${text}” needs a reading of the wording, and that is a column: <button type="button" class="lnk">Ask it as a column</button> <span class="q">7 calls · kept</span>.`; $('#mp-facts').innerHTML=''; $('#mp-doors').innerHTML=''; return; }
+  Q=q; $('#mp-ask').value=''; layout(q.group||'stream'); place();
+  // explorer: light the hits, fade the rest
+  nodes.forEach(n=>{ n.el.classList.remove('hit','red','amber','ring','dim'); if(n.kind==='contract'){ const h=q.hit?q.hit(n.d):(q.party?n.d.party===q.party:false); const s=q.soft&&q.soft(n.d); if(h){ n.el.classList.add('hit'); if(q.tone) n.el.classList.add(q.tone); } else if(s){ n.el.classList.add('hit'); } else if(q.hit||q.party) n.el.classList.add('dim'); } else if(n.kind==='party'&&q.party){ if(n.d.id!==q.party) n.el.classList.add('dim'); } });
+  $('#mp-exp-say').textContent= q.group==='time'?'laid out by end date':q.group==='party'?'grouped by party · sized by value':'grouped by stream · sized by value';
+  // dna: light the clauses the question is about
+  document.querySelectorAll('#mp-dna .row').forEach(row=>{ const c=C.find(x=>x.id===row.dataset.id); const st=row.querySelector('.strand'); const asked=!!(q.kinds||q.markHit||q.party); st.classList.toggle('asked',asked); st.querySelectorAll('i').forEach(i=>{ let hit=false; if(q.markHit) hit=q.markHit([0,i.dataset.k,i.dataset.m]); else if(q.kinds) hit=q.kinds.includes(i.dataset.k); else if(q.party) hit=c.party===q.party; i.classList.toggle('hit',hit); }); });
+  $('#mp-dna-say').textContent= q.kinds?('lit: '+q.kinds.join(', ')+' clauses'):q.markHit?'lit: every clause that differs':q.party?'lit: this party\'s papers':'a segment is a clause · colour its mark';
+  // jambo
+  $('#mp-say').innerHTML=q.say+' <span class="q">free · read from the kept checks</span>';
+  $('#mp-facts').innerHTML='<div class="sec">Read for you</div>'+q.facts.map(f=>`<div class="fact"><div class="l">${f[0]}</div><div class="v">${f[1]}</div><div class="s">${f[2]==='red'?'<span class="dot" style="background:#B42318"></span>red':f[2]==='amber'?'<span class="dot" style="background:#C98A14"></span>amber':''}</div></div>`).join('');
+  $('#mp-doors').innerHTML='<div class="sec">Doors</div>'+q.doors.map(d=>`<div class="g-row"><button type="button" class="lnk">${d[0]}</button><span class="q">${d[1]}</span></div>`).join('');
+}
+function reset(){ Q=null; [...chips.children].forEach(b=>b.setAttribute('aria-pressed','false')); layout('stream'); place(); nodes.forEach(n=>n.el.classList.remove('hit','red','amber','ring','dim')); document.querySelectorAll('#mp-dna .strand').forEach(s=>{ s.classList.remove('asked'); s.querySelectorAll('i.hit').forEach(i=>i.classList.remove('hit')); }); $('#mp-exp-say').textContent='sized by value · grouped by stream'; $('#mp-dna-say').textContent='a segment is a clause · length its weight · colour its mark'; $('#mp-say').innerHTML='Ask the map a question and both pictures redraw to answer it: the Explorer lights the contracts it is about, the strands light the clauses. I then say what was drawn. Every answer here is read from the kept checks, so it costs nothing.'; $('#mp-facts').innerHTML=''; $('#mp-doors').innerHTML=''; $('#mp-ask').value=''; }
+$('#mp-form').addEventListener('submit',e=>{ e.preventDefault(); ask($('#mp-ask').value); });
+$('#mp-reset').addEventListener('click',reset);
+$('#rd-ask').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; say.innerHTML=`“${v}” is a question about the wording. The free read above answers facts; this needs one call: <button type="button" class="lnk">Ask it</button> <span class="q">1 call</span>. Nothing is sent or filed.`; e.target.value=''; } });
+
+
+/* =====================================================================
+   3 · ONE MAP, THREE WAYS (drawn answering “insurance”)
+   ===================================================================== */
+let waysBuilt=false;
+const WAYS={
+ one:{card:'<b>One strand each.</b> The Explorer and the DNA become one list: the bubble is the contract\'s size, the strand is its clauses, the mark at the end is its worst. “Look” groups and orders the rows; a question lights bubbles and segments in place. Seven rows fit without a scroll; fifty scroll like any list.'},
+ two:{card:'<b>Map above, strands below.</b> The Explorer keeps a short band for the shape of the book, the strands sit under it as the detail. One question lights both at once. Costs 150px of height for the band, which is why it is second.'},
+ three:{card:'<b>Rings.</b> Every contract is one bubble and its strand is bent around it as a ring. Densest of the three and the most striking, but § numbers need a hover and a long paper\'s ring gets crowded. Best on a wall of fifty, weakest for reading one clause.'}
+};
+const insHit=c=>c.cl.some(x=>x[1]==='insurance'&&x[2]==='r'), insSoft=c=>c.cl.some(x=>x[1]==='insurance'&&x[2]==='s'), insAny=c=>c.cl.some(x=>x[1]==='insurance');
+const strandHtml=(c,lit)=>'<div class="strand'+(lit?' asked':'')+'">'+c.cl.map(x=>'<i class="'+x[2]+(lit&&x[1]==='insurance'?' hit':'')+'" style="--w:'+x[3]+'" title="§ '+x[0]+' '+x[1]+'"></i>').join('')+'</div><div class="ticks">'+c.cl.map(x=>'<i style="--w:'+x[3]+'">'+(x[0]===0?'pre':x[0])+'</i>').join('')+'</div>';
+const worstOf=c=>c.cl.some(x=>x[2]==='r')?['red',c.cl.filter(x=>x[2]==='r').length+' missing']:c.cl.some(x=>x[2]==='b')?['amber',c.cl.filter(x=>x[2]==='b').length+' blanks']:c.cl.some(x=>x[2]==='a')?['amber',c.cl.filter(x=>x[2]==='a').length+' differs']:['','all met'];
+const bubble=(c,size)=>{ const d=Math.max(14,Math.round(Math.sqrt(c.value)/300)); const hit=insHit(c)?' hit red':insSoft(c)?' hit':''; return '<span class="bub'+hit+'" style="width:'+Math.min(d,36)+'px;height:'+Math.min(d,36)+'px"></span>'; };
+const PNAME=id=>PARTIES.find(p=>p.id===id).name;
+function oneHtml(){ let out='<div class="one"><div class="hd"><span>Agreement · size is value</span><span>The strand · § in paper order · lit: insurance</span><span style="text-align:right">Worst mark</span></div>';
+  STREAMS.forEach(s=>{ const cs=C.filter(c=>c.stream===s.id); const sum=cs.reduce((a,c)=>a+c.value,0); out+='<div class="grp">'+s.name+'<span class="q">'+cs.length+' · '+fmtM(sum)+'</span></div>'; cs.forEach(c=>{ const w=worstOf(c); const dim=!(insHit(c)||insSoft(c)); out+='<div class="row'+(dim?' dim':'')+'"><div class="who">'+bubble(c)+'<div style="min-width:0"><div class="nm">'+c.name+'</div><div class="ln">'+PNAME(c.party)+' · <span class="ref">'+c.id+'</span> · '+fmtM(c.value)+'</div></div></div><div>'+strandHtml(c,true)+'</div><div class="w '+w[0]+'">'+(insHit(c)?'insurance missing · § 5':insSoft(c)?'insurance asked about':insAny(c)?'insurance met':w[1])+'</div></div>'; }); });
+  return out+'</div>'; }
+function twoHtml(){ const W=900,H=150; let svg='<svg viewBox="0 0 '+W+' '+H+'">'; const colW=(W-40)/3;
+  STREAMS.forEach((s,i)=>{ const x0=20+i*colW; svg+='<text x="'+(x0+colW/2)+'" y="18" text-anchor="middle" style="font-family:var(--font-ui);font-size:11.5px;font-weight:600;fill:#1D1D1F">'+s.name.split(' &')[0]+'</text>'; const cs=C.filter(c=>c.stream===s.id); cs.forEach((c,k)=>{ const r=Math.max(7,Math.sqrt(c.value)/700); const x=x0+30+k*((colW-60)/Math.max(1,cs.length-1||1)); const y=85; const hit=insHit(c), soft=insSoft(c); const fill=hit?'#C2453B':soft?'#087363':'#DCE7E1', stroke=hit?'#C2453B':'#087363', op=(hit||soft)?1:.3; svg+='<g opacity="'+op+'"><circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.2"/><text x="'+x+'" y="'+(y+r+14)+'" text-anchor="middle" style="font-family:var(--font-ui);font-size:10.5px;fill:#1D1D1F">'+c.id+'</text></g>'; }); });
+  svg+='</svg>'; let out='<div class="two"><div class="band">'+svg+'</div><div class="lbl">DNA by contract · lit: insurance</div><div class="dna" style="overflow:visible">'; C.forEach(c=>{ const w=worstOf(c); out+='<div class="row"><div><div class="nm">'+c.name+'</div><div class="ln">'+PNAME(c.party)+' · <span class="ref">'+c.id+'</span></div></div><div>'+strandHtml(c,true)+'</div><div class="w '+w[0]+'">'+(insHit(c)?'insurance missing':insSoft(c)?'asked about':insAny(c)?'met':w[1])+'</div></div>'; }); return out+'</div></div>'; }
+function threeHtml(){ const W=900,H=520; let svg='<svg viewBox="0 0 '+W+' '+H+'">'; const colW=(W-40)/3; const COL={g:'#3A8A62',a:'#C98A14',r:'#C2453B',s:'#5F6D6B',u:'#E6E6EA',b:'#fff'};
+  STREAMS.forEach((s,i)=>{ const x0=20+i*colW; svg+='<text class="col" x="'+(x0+colW/2)+'" y="20" text-anchor="middle">'+s.name.split(' &')[0]+'</text>'; const cs=C.filter(c=>c.stream===s.id); const perRow= cs.length>2?2:cs.length; cs.forEach((c,k)=>{ const R=Math.max(26,Math.min(50,Math.sqrt(c.value)/190)); const cx=x0+colW/2+((k%perRow)-(perRow-1)/2)*Math.min(colW/perRow,150); const cy=100+Math.floor(k/perRow)*155; const tot=c.cl.reduce((a,x)=>a+x[3],0); let ang=-Math.PI/2; const dim=!(insHit(c)||insSoft(c)); svg+='<g class="ring'+(dim?' dim':'')+'">'; c.cl.forEach(x=>{ const a0=ang, a1=ang+2*Math.PI*x[3]/tot-0.03; ang+=2*Math.PI*x[3]/tot; const r1=R+6, r2=R+(x[1]==='insurance'?18:13); const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)]; const [ax,ay]=p(r2,a0),[bx,by]=p(r2,a1),[cx2,cy2]=p(r1,a1),[dx,dy]=p(r1,a0); const large=(a1-a0)>Math.PI?1:0; const col=x[2]==='b'?'#fff':COL[x[2]]; svg+='<path d="M'+ax+' '+ay+' A'+r2+' '+r2+' 0 '+large+' 1 '+bx+' '+by+' L'+cx2+' '+cy2+' A'+r1+' '+r1+' 0 '+large+' 0 '+dx+' '+dy+' Z" fill="'+col+'" stroke="'+(x[2]==='b'?'#C98A14':'#fff')+'" stroke-width="'+(x[2]==='b'?1.2:0.6)+'" opacity="'+(x[1]==='insurance'?1:0.45)+'"><title>§ '+x[0]+' '+x[1]+'</title></path>'; });
+    svg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+(insHit(c)?'#C2453B':insSoft(c)?'#087363':'#F0F0F3')+'" stroke="'+(insHit(c)?'#C2453B':'#087363')+'" stroke-width="1.2"/><text x="'+cx+'" y="'+(cy+4)+'" text-anchor="middle" style="fill:'+((insHit(c)||insSoft(c))?'#fff':'#1D1D1F')+';font-weight:600">'+c.id+'</text><text x="'+cx+'" y="'+(cy+R+32)+'" text-anchor="middle">'+(c.name.length>22?c.name.slice(0,21)+'…':c.name)+'</text><text class="sub" x="'+cx+'" y="'+(cy+R+45)+'" text-anchor="middle">'+PNAME(c.party).replace(' Supermarkets','').replace(' Logistics','')+' · '+fmtM(c.value)+'</text></g>'; }); });
+  return '<div class="three">'+svg+'</svg></div>'; }
+const CMP='<table class="cmp"><thead><tr><th>Idea</th><th>When it wins</th><th>Cost</th></tr></thead><tbody><tr class="rec"><td>One strand each</td><td>Reading and acting: every row is a contract with its size, its clauses and its worst mark; a question lights the row in place; Look re-orders. Scales to a long book like any list.</td><td>The book\'s overall shape is read row by row, not at a glance; grouping heads carry the sums.</td></tr><tr><td>Map above, strands below</td><td>When the shape of the book matters as much as the detail: who is big, which stream holds what, then the clauses.</td><td>150px of height for the band; two pictures to read; the band gets busy past twenty contracts.</td></tr><tr><td>Rings</td><td>A wall of many contracts where each is one glyph: the eye finds the red ring at once; striking in a demo.</td><td>§ numbers only on hover; a long paper\'s ring crowds; the weakest for reading one clause and acting on it.</td></tr></tbody></table>';
+function buildWays(){ waysBuilt=true; showWay('one'); $('#ways-pick').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; showWay(b.dataset.o); }); }
+function showWay(o){ [...$('#ways-pick').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o)); const html=o==='one'?oneHtml():o==='two'?twoHtml():threeHtml(); $('#ways-stage').innerHTML=html+CMP; $('#ways-card').innerHTML=WAYS[o].card+' <span class="q">drawn answering “where is insurance missing?” · the same data as Ask the map</span>'; $('#ways-stage').scrollTop=0; }
+
+
+/* =====================================================================
+   4 · HOME, THREE WAYS
+   ===================================================================== */
+let homeBuilt=false;
+const TONE={late:['#B42318','Late'],move:['#946300','Your move'],prep:['#4A3C8C','Prepared by Jambo'],week:['#087363','This week']};
+const AV={kabras:['KS','#E8F1EC','#0A1C15'],parcel:['PL','#F3F2F8','#2B2560'],naivas:['NS','#FBEFD9','#5A3E00'],nandi:['ND','#E6EEF8','#1E3A5F'],tana:['TC','#F0F0F3','#1D1D1F'],jambo:['✦','linear-gradient(135deg,#7C3AED,#2563EB 55%,#EC4899)','#fff']};
+const ROWS=[
+ {kind:'late',nm:'Return the pallets',ln:'Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span>',fx:'<span style="color:#B42318">2 days late</span> · <b>§ 4 Delivery</b> — <span class="src">“pallets shall be returned to the Supplier within 14 days of each delivery”</span>',ac:'Mark done',av:'kabras',waited:'3 days'},
+ {kind:'move',nm:'Parcel Delivery SaaS',ln:'Parcelway · <span class="ref">MK-R1</span> · KES 2.4M',fx:'Their 2 changes, answered from your standard, not sent · <b>§ 5 Payment</b> — <span class="src">“within 60 days”</span> · <b>§ 26 Liability</b> — <span class="src">“six months of Charges”</span>',ac:'Review',av:'parcel',waited:'2 days'},
+ {kind:'move',nm:'Retail Supply — Coast',ln:'Naivas Supermarkets · <span class="ref">MK-B2</span> · KES 78M',fx:'Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> — <span class="src">“within 90 days of receipt”</span>',ac:'Approve',av:'naivas',waited:'today'},
+ {kind:'move',nm:'Raw Milk Collection',ln:'Nandi Dairy · <span class="ref">MK-A2</span> · KES 36M',fx:'Approval asked by the rule “over KES 20M” · <b>§ 2 Price</b> — <span class="src">“KES 36,000,000”</span>',ac:'Approve',av:'nandi',waited:'today'},
+ {kind:'move',nm:'Cold Room Lease',ln:'Tana Cold Stores · <span class="ref">MK-CR</span> · KES 900K',fx:'Two blanks on the paper · <b>preamble</b> — <span class="src">“made on ___”</span> · <b>§ 2 Rent</b> — <span class="src">“KES ___”</span>',ac:'Fill in',av:'tana',waited:'1 day'},
+ {kind:'prep',nm:'Your week ahead',ln:'Prepared by Jambo · read at 06:10',fx:'Seven days read: two duties, two approvals, nothing on Friday. I put nothing in your calendar.',ac:'Review',av:'jambo',waited:'06:10'},
+ {kind:'week',nm:'Send the monthly supply report',ln:'Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span>',fx:'Due Sunday 1 November · <b>§ 6 Reporting</b> — <span class="src">“a monthly supply report by the first day of each month”</span>',ac:'Mark done',av:'kabras',waited:'Sun'},
+ {kind:'week',nm:'Modern Trade Listing',ln:'Naivas Supermarkets · <span class="ref">MK-B1</span> · KES 85M',fx:'Wanjiru asks you to look over the term · <b>§ 12 Term</b> — <span class="src">“an initial term of three (3) years”</span>',ac:'Look',av:'naivas',waited:'2 days'}
+];
+const av=k=>{ const a=AV[k]; return '<span class="hm-av" style="background:'+a[1]+';color:'+a[2]+'">'+a[0]+'</span>'; };
+const PANEL_HOME=(card)=>'<div class="panel"><div class="ph"><span class="ptab"><span class="jface sm"></span> Jambo</span></div><div class="pb">'+card+'<div class="turn"><span class="jface"></span><div class="t"><span class="who">Jambo</span>Both approvals rest on payment terms longer than your standard. If you approve Naivas at 90, I note it as a precedent. <button type="button" class="lnk">Compare the two</button></div></div><div class="sec">Likely next</div><div class="g-row"><button type="button" class="lnk">Mark the pallets done</button><span class="q">free</span></div><div class="g-row"><button type="button" class="lnk">Send Parcelway the two answers</button><span class="q">free</span></div><div class="g-row"><button type="button" class="lnk">Plan my week around what is due</button><span class="q">1 call</span></div></div><div class="pf"><div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:12px"><button type="button" class="lnk">board</button><button type="button" class="lnk">contracts 7</button><button type="button" class="lnk">calendar</button><button type="button" class="lnk">explorer</button><button type="button" class="lnk">reads</button></div><div class="jbox"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg><input placeholder="Ask Jambo, or type / for a place" aria-label="Ask Jambo"><span class="go"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></span></div></div></div>';
+const CARD='<div class="jcard">The late one first: the pallets were due Tuesday, and nobody owns that duty. Shall I <button type="button" class="lnk">ask Otieno to own it</button>? He signed the delivery note.<div class="q" style="margin-top:10px">Read from § 4 and the delivery record · no call</div></div>';
+const BARH='<div class="bar" style="border-radius:10px 10px 0 0;height:44px"><span class="mark">HaTi</span><span class="pg">Home</span><span class="sp"></span><span class="av">AO</span></div>';
+function rowsBy(kind){ return ROWS.filter(r=>r.kind===kind); }
+function legoraHtml(){ let out='<div class="sheet"><div class="hm-page"><p class="hm-hello">Good morning, Amina.</p><p class="hm-say">Eight things wait on you, one of them late. Overnight I read your week ahead and answered Parcelway\'s two changes from your standard. Every line says which words on the paper it rests on.</p><div style="flex:1;min-height:0;overflow:hidden">';
+  Object.keys(TONE).forEach(k=>{ const rs=rowsBy(k); out+='<div class="hm-grp"><i style="background:'+TONE[k][0]+'"></i><span style="color:'+TONE[k][0]+'">'+TONE[k][1]+'</span><span class="q">'+rs.length+'</span></div>'; rs.forEach(r=>{ out+='<div class="hm-row"><div class="hm-who">'+av(r.av)+'<div><div class="nm">'+r.nm+'</div><div class="ln">'+r.ln+'</div></div></div><div class="fx">'+r.fx+'</div><div class="ac"><button type="button" class="lnk">'+r.ac+'</button></div></div>'; }); });
+  out+='</div><div class="hm-foot"><span>Eight things · the doors are beside Jambo\'s box</span><span class="sp"></span><span>“Can we end it for convenience?” 5 of 7 read · yes 3 · <button type="button" class="lnk">Read 2 more</button> 2 calls</span></div></div></div>'+PANEL_HOME(CARD); return out; }
+function sapHtml(){ let out='<div class="sheet"><div class="sap-band"><div style="display:flex;align-items:baseline;gap:14px"><span class="hm-hello" style="font-size:24px">Good morning, Amina</span><span class="q">Friday 31 October · counted 08:39 from the contracts you can see</span></div><div class="sap-tiles">';
+  [['1','Late','pallets · 2 days','#B42318'],['4','Your move','2 approvals · 2 answers · 2 blanks','#946300'],['2','Prepared by Jambo','week ahead · Parcelway\'s answers','#4A3C8C'],['3','Signed this month','KES 169M on paper','#087363']].forEach(t=>{ out+='<div class="tile" style="--tone:'+t[3]+'"><div class="n" style="color:'+t[3]+'">'+t[0]+'</div><div class="l">'+t[1]+'</div><div class="s">'+t[2]+'</div></div>'; });
+  out+='</div></div><div class="sap-filters"><span class="pill on">All 8</span><span class="pill">Late 1</span><span class="pill">Your move 4</span><span class="pill">Prepared 1</span><span class="pill">This week 2</span><span class="q">Needs you · one row per thing · the verb at the row\'s end</span></div><div class="sap-table"><div class="hd"><span></span><span>Agreement</span><span>What it rests on</span><span>Waited</span><span style="text-align:right">Next</span></div>';
+  ROWS.forEach(r=>{ out+='<div class="r"><span class="dot" style="background:'+TONE[r.kind][0]+';width:8px;height:8px;margin:0 auto"></span><div><div class="nm" style="font-weight:500">'+r.nm+'</div><div class="ln" style="font-size:12px;color:var(--quiet)">'+r.ln+'</div></div><div class="fx" style="font-size:13px;line-height:1.4">'+r.fx+'</div><span style="color:var(--quiet)">'+r.waited+'</span><span class="ac"><span class="pill sm">'+r.ac+'</span></span></div>'; });
+  out+='</div></div>'+PANEL_HOME(CARD); return out; }
+function morningHtml(){ let out='<div class="sheet"><div class="ml-top"><p class="hm-hello">Good morning, Amina.</p><p class="hm-say" style="margin-bottom:0">One thing is late, four wait on you, and I prepared two overnight. Nothing is due Friday.</p><div class="ml-counts"><span class="ml-c" style="--bg:#FBE9E7;--fg:#B42318"><i></i>1 late</span><span class="ml-c" style="--bg:#FBEFD9;--fg:#946300"><i></i>4 your move</span><span class="ml-c" style="--bg:#F3F2F8;--fg:#4A3C8C"><i></i>2 prepared by Jambo</span><span class="ml-c" style="--bg:#E8F1EC;--fg:#087363"><i></i>2 this week</span><span class="ml-c"><i style="background:#9A9AA0"></i>3 signed this month · KES 169M</span></div><div class="ml-week"><span style="margin-right:6px">Your week</span>'+[['Mon','#B42318'],['Tue','#946300'],['Wed','#946300'],['Thu','#E6E6EA'],['Fri','#E6E6EA'],['Sat','#E6E6EA'],['Sun','#087363']].map(d=>'<span class="d"><b>'+d[0]+'</b><i style="background:'+d[1]+'"></i></span>').join('')+'<span style="margin-left:8px">late Mon · approvals Tue, Wed · report Sun</span></div></div><div class="hm-page" style="padding-top:4px"><div style="flex:1;min-height:0;overflow:hidden">';
+  ROWS.forEach(r=>{ const t=TONE[r.kind]; out+='<div class="hm-row"><div class="hm-who">'+av(r.av)+'<div><div class="nm">'+r.nm+'</div><div class="ln">'+r.ln+'</div></div></div><div class="fx"><span class="ml-chip" style="background:'+t[0]+'1A;color:'+t[0]+'">'+t[1]+'</span>'+r.fx+'</div><div class="ac"><button type="button" class="lnk">'+r.ac+'</button></div></div>'; });
+  out+='</div><div class="hm-foot"><span>Eight things · the doors are beside Jambo\'s box</span><span class="sp"></span><span>“Can we end it for convenience?” 5 of 7 read · yes 3 · <button type="button" class="lnk">Read 2 more</button> 2 calls</span></div></div></div>'+PANEL_HOME('<div class="jcard" style="background:linear-gradient(135deg,#F3F2F8,#EEF4F1)">'+CARD.replace('<div class="jcard">','').replace(/<\/div>$/,'')); return out; }
+const HOME_SAY={sap:'The SAP Way: a white band with four tiles, each a door with a coloured stripe; labelled filters; one worklist with the verb as a pill at the row\'s end.',legora:'The Legora Way: nothing boxed. The eight things grouped under four coloured words, Late · Your move · Prepared by Jambo · This week, each row with its counterparty\'s initials and the words it rests on. Recommended.',morning:'Morning light: a warm top, the counts as coloured words you can press, your week as seven dots, each row wearing its kind as a tinted chip. The most colour of the three.'};
+function buildHome(){ homeBuilt=true; showHome('legora'); $('#home-pick').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; showHome(b.dataset.o); }); }
+function showHome(o){ [...$('#home-pick').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o)); $('#home-stage').innerHTML=(o==='sap'?sapHtml():o==='morning'?morningHtml():legoraHtml()); $('#home-say').textContent=HOME_SAY[o]; }
+
+const start=location.hash.replace('#',''); show(tabs[start]?start:'read');
+})();
+</script>
