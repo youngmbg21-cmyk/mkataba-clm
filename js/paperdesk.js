@@ -7448,9 +7448,7 @@ async function pd2BriefOpen(id){
 /* the brief's "I have read it": the one writer (briefMarkRead), its line in the trail, saved; then the page, its head
    and the Dossier say so */
 function pd2BriefRead(c){
-  if (!c || typeof briefMarkRead !== 'function' || !briefMarkRead(c)) return false;
-  if (typeof logAudit === 'function') logAudit(c, 'Record', 'Read the brief before signing');
-  if (typeof persist === 'function') persist(c);
+  if (!c || typeof briefReadSave !== 'function' || !briefReadSave(c)) return false;
   const f = document.querySelector('[data-pd2-br-foot]'); if (f && typeof briefReadFootHtml === 'function') f.innerHTML = briefReadFootHtml(c);
   const m = document.querySelector('[data-pd2-br-meta]'); if (m) m.textContent = pd2BriefMeta(c);
   try { pdGlanceRepaint(); } catch (_){}
@@ -7571,10 +7569,11 @@ function pd2FillCount(c){
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
   const c = getContract(_pd2Fill.id); if (!c || typeof contractBlankSet !== 'function') return 0;
+  /* every box through the one writer, held; the last one written without hold, so the writer saves once */
+  const moved = pd2FillBlanks(c).map(b => ({ b, v: String(_pd2Fill.vals[b.key] == null ? '' : _pd2Fill.vals[b.key]).trim() }))
+    .filter(x => x.v !== String(_pd2Fill.was[x.b.key] || '').trim());
   let n = 0;
-  pd2FillBlanks(c).forEach(b => { const v = String(_pd2Fill.vals[b.key] == null ? '' : _pd2Fill.vals[b.key]).trim();
-    if (v !== String(_pd2Fill.was[b.key] || '').trim() && contractBlankSet(c, b.key, v, { hold: true })) n++; });
-  if (n && typeof persist === 'function') persist(c);
+  moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) n++; });
   pd2FillStop();
   if (typeof toast === 'function') toast(n ? _pdTn('pd2_fp_saved', n, { n }) : _pdT('pd2_fp_nothing'), n ? 'ok' : 'warn');
   return n;

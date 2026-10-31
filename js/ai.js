@@ -5606,9 +5606,7 @@ function renderBriefSection(c){
   host.querySelector('[data-brief-read]')?.addEventListener('click',async ev=>{
     const btn=ev.currentTarget; btn.disabled=true;
     try{
-      if(window.briefMarkRead) briefMarkRead(c);
-      if(window.logAudit) logAudit(c,'Record','Read the brief before signing');
-      if(window.persist) persist(c);
+      if(window.briefReadSave) briefReadSave(c);
       renderBriefSection(c);
       /* THE SIGNING COLUMN IS THE CARD THAT REPORTS IT, and renderSignSide is
          its own painter — the same one every verb on that card calls when it
