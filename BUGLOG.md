@@ -21880,3 +21880,5 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Noticed, not fixed (30 Oct 2026, building the compact Pulse rows): the Handbook exam reads 60 of 63 on main itself — "how do I ask jambo something" (wants 0.2) and "what has jambo done on his own" (wants 6.3) now miss besides the older "where are the instructions for hati"; same score with or without this change.
 - Noticed, not fixed (31 Oct 2026): Home's Likely next link and a Needs you row read "Overdue:" with nothing after the colon (seen on the seeded Refined Sugar Supply, MK-911, in home-morning-verify's picture).
 - Noticed, not fixed (31 Oct 2026): the Handbook page's "Which one do I need?" table runs under Jambo's panel at 1440×780 (its last columns hidden behind the panel), in today's look and the new one.
+
+- Noticed, not fixed (31 Oct 2026): `HATI_TIDY_ONLY=paper,checklist,board-card HATI_TIDY_NEW_LOOK=1` fails "board-card" at laptop-b and iPad (the Board's side list never opens after the two paper cases ran in the same page); the same at the parent; alone, and in the full sweep's order, it passes.

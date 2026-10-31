@@ -775,6 +775,9 @@ function igFitSplit(){
 /* The map re-measures once the width has settled — the same reaction the
    panel's fold has always had (igSyncDockWidth), never on every pointer move. */
 let _igSplitT=0;
+/* the contract's own next-step links were drawn in this paint (the doors row then stands down) */
+let _igCaChipsDrawn=false;
+function igCaChipsNote(h){ _igCaChipsDrawn=!!h&&igHomePaperFace()===true&&!!(window.pdContract&&pdContract()); return h; }
 function igSplitSettle(){
   if(_igSplitT) clearTimeout(_igSplitT);
   _igSplitT=setTimeout(()=>{ _igSplitT=0; if(igMapUp()) rebuildIntelGraph(); },280);
@@ -8534,12 +8537,13 @@ function renderIntelDock(){
          pass 3), a paper chosen on the wall has none (as drawn); null where
          it holds none of these and the panel's own chips stand */
       const held=(state.view==='dashboard'&&typeof window.pdPanelChipsHtml==='function')?pdPanelChipsHtml():null;
+      _igCaChipsDrawn=false;
       if(held!==null) return '';
       return !talk&&!(window.pdShowsDesk&&pdShowsDesk())&&!igFindingsShows()&&!igGuideShows()&&!(window.jamboChipsOn&&!jamboChipsOn())&&!(state.view==='dashboard'&&typeof window.hbBoardHelloOn==='function'&&hbBoardHelloOn())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${/* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10,
            18 Oct 2026: nothing between the face and the ask box but Jambo
-           perched) — the row stays, empty, as his perch */''}${(window.pdChipsQuiet&&pdChipsQuiet())?'':(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||(igSugOnMap()?igViewSuggestions():IG_SUGGESTIONS.slice(0,3))).map(igSugChipHtml).join('')}
+           perched) — the row stays, empty, as his perch */''}${(window.pdChipsQuiet&&pdChipsQuiet())?'':(typeof window.caChipsHtml==='function'&&igCaChipsNote(caChipsHtml()))||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||(igSugOnMap()?igViewSuggestions():IG_SUGGESTIONS.slice(0,3))).map(igSugChipHtml).join('')}
     </div>`:''; })()}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
@@ -8552,7 +8556,7 @@ function renderIntelDock(){
            tab asks"): Dossier, Clauses, Obligations, Findings and the Guide all
            carry the box; words asked turn the panel to the conversation over
            the tab (pdTalkSync), its back returns to the tab as it was left. */}
-    ${''/* the doors above the box (round 1), drawn WITH the panel so a repaint keeps its height and its scroll */}${typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function' ? jamboWaysHtml(jamboWaysHere(), 'is-above-foot') : ''}
+    ${''/* the doors above the box (round 1), drawn WITH the panel so a repaint keeps its height and its scroll */}${''/* THE CONTRACT'S ONE ROW (the contract round, 31 Oct 2026, as drawn): where the paper's own next-step links stand, they ARE the row; no second row of doors */}${!_igCaChipsDrawn && typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function' ? jamboWaysHtml(jamboWaysHere(), 'is-above-foot') : ''}
     ${`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
@@ -10054,6 +10058,8 @@ function igPaintPaper(){
   igPaperPaginate(c);
   igPinsPaint();
   igStrandPaint(c);
+  /* the notes beside the paper (the new look's contract, as drawn): laid out after the paper is up */
+  if(typeof window.pd2NotesPaint==='function') try{ pd2NotesPaint(c); }catch(_){ }
   /* the clause marks Follow me walks to, on a paper drawn without them, and
      the faces on the line drawn again now that they can (or cannot) be pressed */
   if(igPaperClauseMarks(c)&&homePaper===true&&typeof window.presencePaint==='function') try{ presencePaint(c.id); }catch(_){ }

@@ -5749,12 +5749,14 @@ function dossierHappenedHtml(D){
   const rows = D.stages.filter(s => s.state === 'done' && !s.n).map(s => `<div class="ds-hp-r"><b>${_pdE(_pdT('dos_st_' + s.k))}</b><span>${_pdE(dossierStageSay(D, s).words)}</span></div>`).join('');
   return rows ? `<div class="ds-hp" data-ds-happened>${rows}</div>` : '';
 }
-function dossierNextHtml(c, D, focus){
-  const E = _pdE, may = (typeof canEdit !== 'function') || !!canEdit();
+/* THE NEXT CARD'S READING (the contract round, 31 Oct 2026): what it says and the presses it offers, read once;
+   the old card (dossierNextHtml) and the new look's one sentence (pd2Html) both draw it */
+function dossierNextOf(c, D, focus){
+  const may = (typeof canEdit !== 'function') || !!canEdit();
   const s = D.stages.find(x => x.k === focus) || { n: 0 };
   const owed = D.owed.filter(r => (DOSSIER_STAGE_OF[r.kind] || D.now) === focus);
-  let head = '', sub = '', bar = null, btns = '';
-  const go = (attr, word, primary) => `<button type="button" class="ui-btn ui-btn-sm${primary ? ' ui-btn-primary' : ''}" ${attr}>${E(word)}</button>`;
+  let head = '', sub = '', bar = null; const btns = [];
+  const go = (attr, word, title) => btns.push({ attr, word, title: title || '' });
   if (focus === 'fill' && s.n){
     let readN = 0; try { readN = pdOgReadN(c); } catch (_){ readN = 0; }
     let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
@@ -5764,25 +5766,30 @@ function dossierNextHtml(c, D, focus){
     /* FILL IN THE CONTRACT (owner, 28 Oct 2026): ONE button, the one Fill in door (pdFillOpen → the form); it
        replaces "Confirm N read" (the form's Save stores Jambo's readings) and "Open in the middle" */
     let rows = []; try { rows = pdFormRows(c); } catch (_){ rows = []; }
-    if (may && rows.length) btns += `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-pd-ds-fill="">${E(_pdT('og_form_go'))}${PD_GO_TXT}</button>`;
+    if (may && rows.length) btns.push({ attr: 'data-pd-ds-fill=""', word: _pdT('og_form_go'), arrow: true, short: _pdT('pd2_fill') });
   } else if (focus === 'read' && !(D.read && D.read.read)){
     head = _pdT('dos_nx_read'); sub = _pdT('dos_nx_read_sub');
-    if (may) btns = `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-pd-ds-read title="${E(_pdT('jb_read_cost'))}">${E(_pdT('dos_go_read'))}</button>`;
+    if (may) go('data-pd-ds-read', _pdT('dos_go_read'), _pdT('jb_read_cost'));
   } else if (focus === 'nego' && s.n){
     const share = owed.find(r => r.kind === 'share'), asks = owed.filter(r => r.kind === 'ask').reduce((n, r) => n + dossierRowN(r), 0);
-    if (asks){ head = _pdTn('dos_nx_asks', asks, { n: asks }); btns = go('data-pd-glance="redline"', _pdT('dos_go_reply'), true); }
-    else if (share){ head = _pdTn('dos_nx_share', share.n, { n: share.n }); btns = go('data-pd-glance="share"', _pdT('dos_go_send'), true); }
-    else { head = _pdTn('dos_nx_nego', s.n, { n: s.n }); btns = go('data-pd-glance="redline"', _pdT('dos_go_open'), true); }
+    if (asks){ head = _pdTn('dos_nx_asks', asks, { n: asks }); go('data-pd-glance="redline"', _pdT('dos_go_reply')); }
+    else if (share){ head = _pdTn('dos_nx_share', share.n, { n: share.n }); go('data-pd-glance="share"', _pdT('dos_go_send')); }
+    else { head = _pdTn('dos_nx_nego', s.n, { n: s.n }); go('data-pd-glance="redline"', _pdT('dos_go_open')); }
   } else if (focus === 'sign' && s.n){
-    if (owed.some(r => r.kind === 'signer')){ head = _pdT('dos_nx_signer'); btns = may ? go(`data-pd-og-route="${E(c.id)}"`, _pdT('dos_go_name'), true) : ''; }
-    else { head = _pdTn('dos_nx_sign', s.n, { n: s.n }); btns = go('data-pd-glance="sign"', _pdT('dos_go_open'), true); }
+    if (owed.some(r => r.kind === 'signer')){ head = _pdT('dos_nx_signer'); if (may) go(`data-pd-og-route="${_pdE(c.id)}"`, _pdT('dos_go_name')); }
+    else { head = _pdTn('dos_nx_sign', s.n, { n: s.n }); go('data-pd-glance="sign"', _pdT('dos_go_open')); }
   } else if (focus === 'live' && s.n){
-    head = _pdTn('dos_nx_live', s.n, { n: s.n }); btns = go('data-pd-glance-tab="oblig"', _pdT('dos_go_open'), true);
+    head = _pdTn('dos_nx_live', s.n, { n: s.n }); go('data-pd-glance-tab="oblig"', _pdT('dos_go_open'));
   } else {
     head = D.owedN ? _pdT('dos_nx_here_none') : _pdT('dos_owed_none');
   }
-  const barH = bar == null ? '' : `<div class="ds-nx-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(bar * 100)}"><i style="width:${Math.round(bar * 100)}%"></i></div>`;
-  return `<div class="ds-nx" data-ds-next="${E(focus)}"><span class="ds-nx-k">${E(_pdT('dos_nx_k'))}</span><b class="ds-nx-h">${E(head)}</b>${sub ? `<span class="ds-nx-s">${E(sub)}</span>` : ''}${barH}${btns ? `<div class="ds-nx-b">${btns}</div>` : ''}</div>`;
+  return { head, sub, bar, btns };
+}
+function dossierNextHtml(c, D, focus){
+  const E = _pdE, N = dossierNextOf(c, D, focus);
+  const btns = N.btns.map((b, i) => `<button type="button" class="ui-btn ui-btn-sm${i === 0 ? ' ui-btn-primary' : ''}" ${b.attr}${b.title ? ` title="${E(b.title)}"` : ''}>${E(b.word)}${b.arrow ? PD_GO_TXT : ''}</button>`).join('');
+  const barH = N.bar == null ? '' : `<div class="ds-nx-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(N.bar * 100)}"><i style="width:${Math.round(N.bar * 100)}%"></i></div>`;
+  return `<div class="ds-nx" data-ds-next="${E(focus)}"><span class="ds-nx-k">${E(_pdT('dos_nx_k'))}</span><b class="ds-nx-h">${E(N.head)}</b>${N.sub ? `<span class="ds-nx-s">${E(N.sub)}</span>` : ''}${barH}${btns ? `<div class="ds-nx-b">${btns}</div>` : ''}</div>`;
 }
 function pdGlanceHtml(c, o){
   if (!c) return '';
@@ -6154,8 +6161,9 @@ function pdGlanceRepaint(){
   const c = pdContract(); if (!c || String(c.id) !== el.getAttribute('data-pd-glance-for')) return;
   /* a hand in the grid keeps its box: drawn again once it leaves */
   if (pdOgHolds()){ _pdOgPending = true; return; }
-  const t = document.createElement('div'); t.innerHTML = pdGlanceHtml(c, { noKt: true });
+  const t = document.createElement('div'); t.innerHTML = pd2On() ? pd2Html(c) : pdGlanceHtml(c, { noKt: true });
   const nu = t.firstElementChild; if (nu && nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
+  if (pd2On()){ pdOgPaint(); return; }
   /* Key terms stands under Next acts now (the Checklist): drawn again in its own place */
   const kt = document.querySelector('#ig-dock .pd-nx #pd-kt, #ig-dock .pd-nx [data-pd-kt-mid]');
   if (kt){ const k = document.createElement('div'); k.innerHTML = pdKtHtml(c);
@@ -6188,7 +6196,7 @@ function pdJamboTopHtml(){
   /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
   /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
   const disc = (!c && !ac && typeof askColDiscoverHtml === 'function') ? askColDiscoverHtml() : '';
-  return c ? pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true }) : (ac || pdWallHtml(disc));
+  return c ? (pd2On() ? pd2Html(c) : pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true })) : (ac || pdWallHtml(disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll
@@ -7005,6 +7013,200 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
+/* ============================================================
+   THE CONTRACT IN THE NEW LOOK (the contract round, part 1, 31 Oct 2026; the review room's "A contract", the
+   Page frame; behind the switch, newLookOn): the Dossier is ONE line of stages, ONE sentence with its one link,
+   what Jambo read, then the facts each with where they were read, then Jambo's one remark; beside the paper,
+   notes stand by the line each was read from (pd2Notes). READING ONLY: every fact comes off a reading the page
+   already makes (dossierOf, dossierNextOf, ktFactReads, pdCkSignerSay, approvalState, deviationSummary,
+   riskOpenOf, contractBlanks); every press is an existing door's own attribute; nothing here writes.
+   ============================================================ */
+function pd2On(){ return typeof newLookOn === 'function' && !!newLookOn(); }
+/* WHERE A FACT WAS READ: the clause of the paper whose words carry it, said as "§ n" off its own heading.
+   Read off the paper's markup (docBody), split once per wording (clauseSegment keeps its own memo) */
+function pd2Clauses(c){
+  let html = ''; try { html = (typeof docBody === 'function') ? docBody(c) : ''; } catch (_){ html = ''; }
+  if (!html || typeof clauseSegment !== 'function') return [];
+  try { return clauseSegment(html); } catch (_){ return []; }
+}
+function pd2Needles(c, k){
+  const out = [];
+  if (k === 'value'){ const v = Number(c && c.value); if (!(v > 0)) return out;
+    out.push(v.toLocaleString('en-US'), v.toLocaleString('en-US').replace(/,/g, ' '), v.toLocaleString('en-US').replace(/,/g, '.'), String(v)); }
+  if (k === 'expiry'){ const iso = String((c && (c.expiry || (c.metadata || {}).expiryDate)) || '').slice(0, 10); const d = new Date(iso + 'T12:00:00Z'); if (isNaN(d)) return out;
+    const f = (loc, o) => { try { return d.toLocaleDateString(loc, Object.assign({ timeZone: 'UTC' }, o)); } catch (_){ return ''; } };
+    out.push(f('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), f('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      f('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), f('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' }), iso,
+      f('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })); }
+  return out.filter(Boolean);
+}
+function pd2SectionOf(c, k, cls){
+  const N = pd2Needles(c, k); if (!N.length) return '';
+  const L = cls || pd2Clauses(c);
+  const cl = L.find(x => { const t = String(x.text || '') + ' ' + String(x.headingText || x.title || ''); return N.some(n => t.indexOf(n) >= 0); });
+  if (!cl) return '';
+  const m = String(cl.headingText || cl.title || '').trim().match(/^(\d+(?:\.\d+)*)/);
+  return m ? '§ ' + m[1] : '';
+}
+/* the stages as ONE line of words: a stage with work owed says how much, in amber */
+function pd2SpineHtml(D){
+  const E = _pdE;
+  return `<p class="pd2-spine" data-pd2-spine>${D.stages.map(st => {
+    let w = _pdT('dos_st_' + st.k);
+    if (st.k === 'arrive'){ const c = D.c || {}, up = c.upload || {}, at = up.uploadedAt || c.createdAt || c._raisedAt || ''; if (at) w = _pdT('pd2_arrived', { when: dossierDay(at) }); }
+    return st.n ? `<b>${E(_pdT('pd2_st_owed', { name: _pdT('dos_st_' + st.k), n: st.n }))}</b>` : `<span class="pd2-st is-${st.state}">${E(w)}</span>`;
+  }).join('<i aria-hidden="true">·</i>')}</p>`;
+}
+/* the facts, each with where it was read; a fact the record does not hold is not drawn */
+function pd2Facts(c, D){
+  const E = _pdE, R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {}, cls = pd2Clauses(c), out = [];
+  if (R.money) out.push({ k: 'value', l: _pdT('pd2_f_value'), v: R.money, s: pd2SectionOf(c, 'value', cls) });
+  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+    out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), s: pd2SectionOf(c, 'expiry', cls) }); }
+  let signer = ''; try { signer = pdCkSignerSay(c); } catch (_){ signer = ''; }
+  out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'), go: `data-pd-og-route="${E(c.id)}"` });
+  if (R.stream) out.push({ k: 'stream', l: _pdT('pd2_f_stream'), v: R.stream, s: _pdT('pd2_src_filed') });
+  let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+  if (ap && ap.required){
+    const mine = (() => { try { return !!(typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ return false; } })();
+    const rule = ap.next ? ap.next.name : ((ap.chain[0] || {}).name || '');
+    const st = ap.ok ? E(_pdT('pd2_ap_ok')) : mine ? `<span class="pd2-amb">${E(_pdT('pd2_ap_you'))}</span>` : E(_pdT('pd2_ap_waits', { who: ap.approverLabel || '' }));
+    out.push({ k: 'approval', l: _pdT('pd2_f_approval'), v: st + (rule ? ' · ' + E(_pdT('pd2_ap_rule', { rule })) : ''), s: pd2SectionOf(c, 'value', cls) });
+  }
+  const sd = D.read && D.read.std;
+  if (sd){ const off = sd.dev + sd.miss; out.push({ k: 'std', l: _pdT('pd2_f_std'), v: E(off ? _pdTn('pd2_std_off', off, { n: off, total: sd.total }) : _pdT('pd2_std_all')), s: '', go: 'data-pd-ds-std' }); }
+  else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · <button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button> <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
+  return out;
+}
+/* Jambo's one remark: the worst risk he read, with its why (nothing read, nothing said) */
+function pd2TurnHtml(c){
+  let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
+  const it = L[0]; if (!it) return '';
+  const t = (typeof riskTitleOf === 'function') ? riskTitleOf(it) : '', w = (typeof riskWhyOf === 'function') ? riskWhyOf(it) : '';
+  return `<div class="pd2-turn" data-pd2-turn><i class="pd2-jface" aria-hidden="true"></i><div><b>${_pdE(_pdT('cn2_jambo'))}</b><p>${_pdE(_pdT('pd2_turn', { what: t, why: w || t }))}</p></div></div>`;
+}
+function pd2Html(c){
+  const E = _pdE, D = dossierOf(c); if (!D) return '';
+  const N = dossierNextOf(c, D, dossierFocusOf(D)), b = N.btns[0];
+  const link = b ? ` <button type="button" class="ui-link" ${b.attr}${b.title ? ` title="${E(b.title)}"` : ''}>${E(b.short || b.word)}</button>${b.title ? ` <span class="pd2-q">${E(b.title)}</span>` : ''}` : '';
+  const R = D.read || {};
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  /* not read yet: its own press, the cost said before it (unless the sentence above already offers it) */
+  const readGo = (!R.read && may && !(b && /data-pd-ds-read/.test(b.attr))) ? ` · <button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('dos_go_read'))}</button> <span class="pd2-q">${E(_pdT('pd2_read_cost'))}</span>` : '';
+  const readSay = R.read ? `${E(_pdT('pd2_read_once'))}${R.brief ? ` · <button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''}` : E(_pdT('pd2_read_not')) + readGo;
+  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo" ${f.go}>${E(f.s || _pdT('dos_go_open'))}</button>` : E(f.s || '')}</span></div>`).join('');
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2SpineHtml(D)}<p class="pd2-next" data-pd2-next>${E(N.head)}${link}</p><p class="pd2-read">${readSay}</p><div class="pd2-facts">${facts}</div>${pd2TurnHtml(c)}</div>`;
+}
+/* ---- THE NOTES BESIDE THE PAPER (the contract round, part 1; owner: "Only what HaTi has read") ----
+   Each note stands beside the line it was read from, in the colour of what it is: amber a blank, brown a risk,
+   black what waits on you, grey a fact. They are laid out after the paper (and its fonts) is drawn and never
+   overlap. PAINTED, NEVER STORED: nothing is written to the paper's words or the record; the facts are marked with
+   the browser's own highlight (CSS.highlights), so the paper's markup is never touched. Plain paper only: the
+   redlined and the signing copies keep their own marks. */
+const PD2_NOTE_GAP = 12, PD2_SHEET_LEFT = 40, PD2_NOTES_MIN = 220, PD2_NOTES_MAX = 320, PD2_NOTES_GUTTER = 32, PD2_SHEET_MIN = 480;
+function pd2Notes(c){
+  const E = _pdE, out = [];
+  let blanks = []; try { blanks = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ blanks = []; }
+  blanks.filter(b => b && !String(b.value || '').trim()).forEach(b => out.push({ tone: 'owe', k: _pdT('pd2_n_blank', { label: b.label || b.key }), w: _pdT('pd2_n_blank_w'),
+    acts: `<button type="button" class="ui-link" data-pd2-go="fill" data-pd2-key="${E(b.key)}">${E(_pdT('pd2_fill'))}</button>`,
+    at: { sel: `[data-upblank="${CSS.escape(b.key)}"], [data-field-key="${CSS.escape(b.key)}"], [data-field="${CSS.escape(b.key)}"], [data-sync="${CSS.escape(b.key)}"]` } }));
+  const R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {};
+  if (R.money){
+    let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+    let mine = false; try { mine = !!(typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ mine = false; }
+    const rule = ap && ap.required && !ap.ok ? (ap.next ? ap.next.name : '') : '';
+    out.push({ tone: mine ? 'ask' : 'fact', k: _pdT('pd2_n_value', { v: R.money.replace(/<[^>]*>/g, '') }),
+      w: _pdT('pd2_n_value_w') + (rule ? _pdT('pd2_n_value_ap', { rule }) : ''),
+      acts: mine ? `<button type="button" class="ui-link" data-pd2-go="approve">${E(_pdT('pd2_n_approve'))}</button>` : '',
+      at: { text: pd2Needles(c, 'value') }, mark: true });
+  }
+  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+    out.push({ tone: 'fact', k: _pdT('pd2_n_ends', { d: R.expiry.replace(/<[^>]*>/g, '') }) + (renews ? ' · ' + _pdT('pd2_renews') : ''), w: _pdT('pd2_n_ends_w'), acts: '',
+      at: { text: pd2Needles(c, 'expiry') }, mark: true }); }
+  let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
+  L.filter(it => it && it.quote).forEach(it => out.push({ tone: 'risk', k: (typeof riskTitleOf === 'function') ? riskTitleOf(it) : String(it.title || ''),
+    w: (typeof riskWhyOf === 'function') ? riskWhyOf(it) : '',
+    acts: `<button type="button" class="ui-link" data-pd2-go="redline" data-pd2-key="${E(it.key)}">${E(_pdT('pd2_n_redline'))}</button>`,
+    at: { text: [String(it.quote).replace(/\s+/g, ' ').trim().slice(0, 60)] } }));
+  return out;
+}
+/* the first place on the paper a note's words stand: an element, or a Range over the first needle found */
+function pd2Find(cv, at){
+  if (at.sel){ const el = cv.querySelector(at.sel); return el ? { el } : null; }
+  const needles = (at.text || []).filter(Boolean); if (!needles.length) return null;
+  const w = document.createTreeWalker(cv, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()){
+    const t = n.nodeValue.replace(/ /g, ' ');
+    for (const nd of needles){ const i = t.indexOf(nd); if (i >= 0){ const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + nd.length); return { range: r }; } }
+  }
+  return null;
+}
+function pd2NotesOff(){
+  document.querySelectorAll('#ig-paper .ig-zoom.has-pd2').forEach(z => { z.classList.remove('has-pd2'); z.style.removeProperty('--doc-sheet-max'); });
+  document.querySelectorAll('#ig-paper [data-pd2-left]').forEach(sh => { sh.style.marginLeft = 'auto'; sh.removeAttribute('data-pd2-left'); });
+  document.querySelectorAll('#pd2-notes').forEach(n => n.remove());
+  try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete('pd2-fact'); } catch (_){}
+}
+function pd2NotesPaint(c){
+  if (typeof document === 'undefined') return;
+  const zoom = document.querySelector('#ig-paper .ig-zoom'), cv = document.getElementById('ig-canvas');
+  if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-redpaper, .ig-signpaper') || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
+  /* in the paper's own order, top to bottom, whatever order they were read in */
+  const notes = pd2Notes(c).map(n => Object.assign(n, { hit: pd2Find(cv, n.at) })).filter(n => n.hit)
+    .map(n => Object.assign(n, { y: (n.hit.el || n.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
+  if (!notes.length){ pd2NotesOff(); return; }
+  /* THE PAPER MOVES TO THE LEFT AND NARROWS ONLY AS FAR AS THE NOTES NEED (the drawing's iPad note: "the paper narrows") */
+  const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
+  /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
+  const sc = zoom.parentElement, inset = sc ? Math.max(0, (zoom.getBoundingClientRect().left - sc.getBoundingClientRect().left) / f) : 0;
+  const left = Math.round(PD2_SHEET_LEFT - inset);
+  const room = W - left - PD2_NOTES_GUTTER - 16;
+  const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
+  const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));
+  zoom.classList.add('has-pd2'); zoom.style.setProperty('--doc-sheet-max', sheetW + 'px');
+  /* the sheet's own margin is written on it (margin:0 auto), so its left is moved where it is written, and given back on the way out */
+  const sh = zoom.querySelector(':scope > .pg-sheet, :scope > .blueprint'); if (sh){ sh.style.marginLeft = left + 'px'; sh.setAttribute('data-pd2-left', '1'); }
+  let host = document.getElementById('pd2-notes');
+  if (!host){ host = document.createElement('div'); host.id = 'pd2-notes'; host.className = 'pd2-notes'; host.setAttribute('aria-label', _pdT('pd2_notes')); zoom.appendChild(host); }
+  host.setAttribute('data-pd2-for', String(c.id));
+  host.style.left = (left + sheetW + PD2_NOTES_GUTTER) + 'px'; host.style.width = notesW + 'px';
+  const E = _pdE;
+  host.innerHTML = notes.map((n, i) => `<div class="pd2-mn is-${n.tone}" data-pd2-note="${i}"><i class="pd2-mn-dot" aria-hidden="true"></i><div class="pd2-mn-k">${E(n.k)}</div>${n.w ? `<div class="pd2-mn-w">${E(n.w)}</div>` : ''}${n.acts ? `<div class="pd2-mn-a">${n.acts}</div>` : ''}</div>`).join('');
+  pd2NotesPlace(notes, zoom, host, f);
+  try {
+    if (typeof CSS !== 'undefined' && CSS.highlights && typeof globalThis.Highlight === 'function'){
+      const rs = notes.filter(n => n.mark && n.hit.range).map(n => n.hit.range);
+      if (rs.length) CSS.highlights.set('pd2-fact', new globalThis.Highlight(...rs)); else CSS.highlights.delete('pd2-fact');
+    }
+  } catch (_){}
+  /* again once the fonts are in (the line a note stands by moves when they land), and when the paper's width moves */
+  if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { const z = document.querySelector('#ig-paper .ig-zoom'); const h = document.getElementById('pd2-notes'); if (z && h && h.getAttribute('data-pd2-for') === String(c.id)) pd2NotesPlace(notes, z, h, parseFloat(z.style.zoom) || 1); });
+  if (!zoom._pd2RO && typeof ResizeObserver === 'function'){ let w0 = zoom.clientWidth; zoom._pd2RO = new ResizeObserver(() => { if (zoom.clientWidth === w0) return; w0 = zoom.clientWidth; const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); }); zoom._pd2RO.observe(zoom); }
+}
+/* each note at its line's height, pushed down past the one above so none overlap */
+function pd2NotesPlace(notes, zoom, host, f){
+  const top0 = zoom.getBoundingClientRect().top;
+  let floor = 0;
+  notes.forEach((n, i) => {
+    const el = host.querySelector(`[data-pd2-note="${i}"]`); if (!el) return;
+    const r = n.hit.el ? n.hit.el.getBoundingClientRect() : n.hit.range.getBoundingClientRect();
+    const want = Math.max(0, (r.top - top0) / f - 2);
+    const at = Math.max(want, floor);
+    el.style.top = at + 'px';
+    floor = at + el.offsetHeight + PD2_NOTE_GAP;
+  });
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-go]') : null; if (!b) return;
+  e.preventDefault();
+  const h = b.closest('#pd2-notes'), id = h && h.getAttribute('data-pd2-for'), c = id && typeof getContract === 'function' ? getContract(id) : null; if (!c) return;
+  const go = b.getAttribute('data-pd2-go'), key = b.getAttribute('data-pd2-key') || '';
+  /* every press is an existing door: the one Fill in (pdFillOpen), the one decision (approvalDecideAsk), the risk's own Edit (riskEditStart) */
+  if (go === 'fill') pdFillOpen(c.id, key ? { key } : {});
+  else if (go === 'approve' && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(c, 'approved')).then(() => { try { pdGlanceRepaint(); pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, () => {});
+  else if (go === 'redline' && typeof riskEditStart === 'function') riskEditStart(c, key);
+});
+Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });
 Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,

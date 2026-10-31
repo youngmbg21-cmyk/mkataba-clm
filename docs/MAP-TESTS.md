@@ -563,3 +563,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - `node --test test/f968-home-in-the-new-look.test.js` — one list most urgent first, the sentence counted from it, the paper's words only where known, behind the switch.
 - `node test/chromium/home-morning-verify.js` — Home in the new look at the three screens (the sheet beside Jambo's panel, the greeting, the counts, your week, the one list, his panel, his work in place, the first day; off = today's Home).
 - `HATI_TIDY_ONLY=home HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js`; `node test/chromium/doors-verify.js` (Home's doors above the box in his panel).
+
+## THE NEW LOOK — A CONTRACT (round 3, behind the switch)
+- `node test/chromium/contract-new-look-verify.js` — part 1 at the three screens: the Dossier as one line of stages, one sentence with one link, what Jambo read, the facts with where each was read (§ off the paper, route, filed), his one remark; one row of links above the box; the notes beside the paper (blanks amber, the value with its approval, the risk, the end date) each by its line, none overlapping, right of the paper; the paper 40 from the edge; a note's Fill in opens the one form; off = the old Dossier, no notes.
+- `node test/chromium/doors-verify.js` (the doors row still stands where no contract paper is up); `HATI_TIDY_ONLY=paper,checklist HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js`.

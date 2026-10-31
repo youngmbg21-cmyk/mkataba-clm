@@ -18439,6 +18439,44 @@
   html.lg-new #cn2-page .cn2-dot{width:12px;height:12px;border-radius:50%;background:var(--st-violet-dot);flex:none;margin-top:4px}
   html.lg-new #cn2-page .cn2-turn .ui-link{margin-left:4px}
   html.lg-new #cn2-page .cn2-who-j{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-quiet);font-weight:var(--w-strong)}
+  /* ==== THE NEW LOOK: A CONTRACT (the contract round, part 1, 31 Oct 2026; js/paperdesk.js pd2*) ====
+     As drawn: the Dossier is one line of stages, one sentence with its link, what Jambo read, the facts each with where
+     it was read, then Jambo's one remark. */
+  html.lg-new #ig-dock .pd2-dossier{display:flex;flex-direction:column;font-size:13.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine{margin:0;font-size:13.5px;line-height:1.5}
+  html.lg-new #ig-dock .pd2-spine i{font-style:normal;margin:0 5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-spine b{font-weight:var(--w-label);color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd2-next{margin:12px 0 0;font-size:14px;line-height:1.45}
+  html.lg-new #ig-dock .pd2-read{margin:4px 0 10px;font-size:11.5px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-q{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-dossier .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
+  html.lg-new #ig-dock .pd2-facts{border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd2-fact{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd2-l{color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-v{min-width:0;overflow-wrap:anywhere}
+  html.lg-new #ig-dock .pd2-s{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;text-align:right}
+  html.lg-new #ig-dock .pd2-sgo{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--color-quiet);cursor:pointer}
+  @media (hover:hover){ html.lg-new #ig-dock .pd2-sgo:hover{color:var(--accent-ink);text-decoration:underline} }
+  html.lg-new #ig-dock .pd2-amb{color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd2-turn{display:flex;gap:10px;align-items:flex-start;margin-top:20px}
+  html.lg-new #ig-dock .pd2-turn b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-turn p{margin:2px 0 0}
+  html.lg-new #ig-dock .pd2-jface{width:12px;height:12px;border-radius:50%;background:var(--st-violet-dot);flex:none;margin-top:4px}
+  /* the notes beside the paper: the sheet stands left, the notes in the margin, each by the line it was read from */
+  html.lg-new #ig-paper .ig-zoom.has-pd2{position:relative}
+  html.lg-new #pd2-notes{position:absolute;top:0;font-size:13px;line-height:1.4;color:var(--color-text)}
+  html.lg-new #pd2-notes .pd2-mn{position:absolute;left:0;right:0;padding:0 0 0 46px}
+  html.lg-new #pd2-notes .pd2-mn::before{content:"";position:absolute;left:34px;top:2px;bottom:2px;width:1px;background:var(--color-divider)}
+  html.lg-new #pd2-notes .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
+  html.lg-new #pd2-notes .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
+  html.lg-new #pd2-notes .pd2-mn-k{font-weight:400}
+  html.lg-new #pd2-notes .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
+  html.lg-new #pd2-notes .pd2-mn-a{margin-top:1px;font-size:12px}
+  html.lg-new #pd2-notes .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
+  html.lg-new #pd2-notes .pd2-mn.is-owe .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-owe::after,html.lg-new #pd2-notes .pd2-mn.is-owe::before{background:var(--st-amber-dot)}
+  html.lg-new #pd2-notes .pd2-mn.is-risk .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-risk::after,html.lg-new #pd2-notes .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
+  html.lg-new #pd2-notes .pd2-mn.is-ask .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-ask::after,html.lg-new #pd2-notes .pd2-mn.is-ask::before{background:var(--color-text)}
+  html.lg-new ::highlight(pd2-fact){background-color:var(--surface-2)}
 </style>
 
 
