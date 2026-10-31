@@ -22377,6 +22377,14 @@ app.put('/api/me/prefs', auth, (req, res) => {
     if (typeof req.body.jamboChips !== 'boolean') return res.status(400).json({ error: 'jamboChips must be true or false' });
     if (req.body.jamboChips) delete prefs.jamboChips; else prefs.jamboChips = false;
   }
+  /* THE NEW LOOK (owner, 31 Oct 2026: the review room is built page by page behind a switch, "only you see until you
+     approve each one"): this person's own preview of the Legora way's frame. Absent = off; only an admin may turn it on,
+     so nobody else meets an unapproved page; off is always allowed. */
+  if ('newLook' in (req.body || {})) {
+    if (typeof req.body.newLook !== 'boolean') return res.status(400).json({ error: 'newLook must be true or false' });
+    if (req.body.newLook && !(req.user && req.user.role === 'admin')) return res.status(403).json({ error: 'Only an admin can try the new look while it is being built.' });
+    if (req.body.newLook) prefs.newLook = true; else delete prefs.newLook;
+  }
   if ('opensOn' in (req.body || {})) {
     const v = req.body.opensOn;
     if (v === null || v === 'jambo') delete prefs.opensOn;

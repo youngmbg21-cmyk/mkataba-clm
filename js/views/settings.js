@@ -2253,7 +2253,9 @@ function stYouCardHtml(it){
     const chips=(typeof jamboChipsOn!=='function')||jamboChipsOn();
     const opens=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
     rows=stSrHtml(esc(i18t('st_you_chips')), `${stSwHtml('chips',chips,i18t('st_you_chips'))}${sub(esc(i18t('st_you_chips_box')))}`, '', 'is-sw')
-      +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '');
+      +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '')
+      /* THE NEW LOOK (owner, 31 Oct 2026): an admin's own preview of the Legora way while it is built page by page */
+      +((typeof isAdmin==='function'&&isAdmin())?stSrHtml(esc(i18t('st_you_newlook')), `${stSwHtml('newlook',(typeof newLookOn==='function')&&newLookOn(),i18t('st_you_newlook'))}${sub(esc(i18t('st_you_newlook_sub')))}`, '', 'is-sw'):'');
   } else if(it.key==='data'){
     rows=stSrHtml(esc(i18t('st_you_data_line')), sub(esc(i18t(apiOn?'st_you_data_kept':'st_you_data_sub'))), `<button type="button" class="ui-btn ui-btn-sm" data-st-mycopy>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_you_download'))}</button>`);
   } else if(it.key==='design'){
@@ -2311,6 +2313,13 @@ async function stChipsSet(on){
     /* the chips beside this page follow at once */
     stJbFeedRepaint();
     return true; }
+  stYouCardRepaint('work'); return false;
+}
+async function stNewLookSet(on){
+  if(await stPrefSet('newLook', on)){ if(typeof newLookApply==='function') newLookApply();
+    /* the frame's own measures (the panels' widths, the slider) read the page again */
+    try{ window.dispatchEvent(new Event('resize')); }catch(_){}
+    toast(i18t(on?'st_you_newlook_on':'st_you_newlook_off'),'ok'); stYouCardRepaint('work'); return true; }
   stYouCardRepaint('work'); return false;
 }
 async function stOpensSet(v){
@@ -2386,6 +2395,7 @@ if(typeof document!=='undefined' && !window._stSheetWired){
     if((el=t.closest('[data-st-sw]'))){ const k=el.getAttribute('data-st-sw'), on=el.getAttribute('aria-checked')!=='true';
       el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
       if(k==='chips') stChipsSet(on);
+      if(k==='newlook') stNewLookSet(on);
       if(k==='push' && typeof pushToggle==='function'){ el.disabled=true;
         pushToggle(on).then(r=>{ _stPush=r.state; stPushPaint(); }); }
       return; }
@@ -10046,7 +10056,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
+  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stNewLookSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
