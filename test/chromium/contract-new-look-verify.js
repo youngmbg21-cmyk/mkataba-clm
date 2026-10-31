@@ -183,7 +183,9 @@ const READ = () => {
               points: [{ clause: '3', region: 1, status: 'need', missing: false, title: 'Three days to reject a load', stake: 'Your standard says seven.', quote: 'may be rejected within 3 days of delivery', links: [] }] }; };
           pdOpenOnHome('MK-A2', 'doc'); });
         await until(page, () => [...document.querySelectorAll('#pd-thread .doc-th-row')].some(r => /Quality/.test(r.textContent)), null, 15000);
-        await page.evaluate(() => { const q = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /Quality/.test(r.textContent)); (q.querySelector('button') || q).click(); });
+        /* the clause that needs you opens first (as drawn), by itself */
+        const firstOpen = await until(page, () => /Quality/.test(((document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-name') || {}).textContent || '')), null, 10000);
+        check('13a Clauses opens on the clause that needs you', firstOpen);
         const tinted = await until(page, () => [...document.querySelectorAll('#ig-canvas .pd2-cl-on')].some(e => /rejected within 3 days/.test(e.textContent)), null, 10000);
         const Cl = await page.evaluate(() => ({ notes: !!document.getElementById('pd2-notes'), rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')) }));
         check('13 Clauses: no notes beside the paper, the one row of links, the open clause tinted', tinted && !Cl.notes && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);

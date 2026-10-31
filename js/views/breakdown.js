@@ -555,6 +555,21 @@ function stkDecorate(c, card, rows){
       if (!shown.length && !(fineTab && T.fine)) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
     }
   }
+  /* THE OPEN CLAUSE AS DRAWN (new look): "What to watch:" before what is at stake, Deep dive's cost beside it; and on a
+     contract's first sitting the clause that needs you opens first (the paper is not moved) */
+  if (stkNewLookOn() && list){
+    list.querySelectorAll('.stk-card.is-mq .stk-st').forEach(p => { if (!p.querySelector('.stk-watch')) p.insertAdjacentHTML('afterbegin', `<b class="stk-watch">${_bdE(i18t('stk_watch_lead'))}</b> `); });
+    list.querySelectorAll('.stk-card.is-mq [data-stk-dive]').forEach(d => { if (!(d.nextElementSibling && d.nextElementSibling.classList.contains('stk-cost-n'))) d.insertAdjacentHTML('afterend', `<span class="stk-cost-n">${_bdE(i18tn('pd2_n_calls', 1, { n: 1 }))}</span>`); });
+    if (b && _stk.firstOpen !== String(c.id)){
+      _stk.firstOpen = String(c.id);
+      const need = list.querySelector('.doc-th-row.stk-b-need, .doc-th-row.stk-b-look');
+      const at = need ? Number(need.getAttribute('data-th-row')) : -1;
+      if (at >= 0 && !need.classList.contains('is-open') && typeof window.docThreadOpen === 'function')
+        setTimeout(() => { try { window.docThreadOpen(c, at); } catch (_){} setTimeout(() => { try { if (typeof window.pd2ClauseTint === 'function') window.pd2ClauseTint(); } catch (_){} }, 350); }, 0);
+    }
+    /* the paper's tint follows whichever clause is open, after the list is drawn */
+    if (typeof window.pd2ClauseTint === 'function') setTimeout(() => { try { window.pd2ClauseTint(); } catch (_){} }, 30);
+  }
   /* THE PREAMBLE AND ITS BLANKS, FIRST (the new look, as drawn): the paper's own blanks still open before the first clause,
      read off the paper (free), with the one door that fills them on the paper; a blank is filled, never redlined */
   if (stkNewLookOn() && list && typeof window.pd2FillBlanks === 'function'){

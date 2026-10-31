@@ -7260,7 +7260,7 @@ function pd2ClauseTint(){
   const cv = document.getElementById('ig-canvas');
   if (!cv || !pd2On() || _pdTab === 'copilot' || cv.closest('.ig-redpaper, .ig-signpaper')) return;
   const row = document.querySelector('#ig-dock #pd-thread .doc-th-row.is-open'); if (!row) return;
-  const name = (row.querySelector('.doc-th-h, b, strong, .doc-th-t') || row).textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+  const name = (row.querySelector('.doc-th-name') || row).textContent.replace(/\s+/g, ' ').trim().toLowerCase();
   const sec = pd2WalkSections(cv).find(x => x.head && name.indexOf(String(x.head.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()) === 0);
   if (sec) sec.els.forEach(e => { if (e !== sec.head) e.classList.add('pd2-cl-on'); });
 }

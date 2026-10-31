@@ -18577,10 +18577,39 @@
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead{background:var(--st-green-dot);border-color:var(--st-green-dot)}
   html.lg-new #ig-dock .pd-th .stk-n.is-say{display:inline-block;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
   html.lg-new #ig-dock .pd-th .stk-n.is-say.is-fine{color:var(--color-text)}
+  /* the list as drawn: small filled dots, no line down the list, tight rows, a hairline between them; the reading small on the right */
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row::before{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row{padding-left:22px;border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-go{padding:3px 0;gap:8px;align-items:baseline}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-name{font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-bead{left:4px;top:9px;width:8px;height:8px;border:0;background:var(--st-gray-dot);box-shadow:none}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-need .doc-th-bead,html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border:0}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead{background:var(--st-green-dot);border:0}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-state{font-size:11.5px;color:var(--color-text);white-space:nowrap}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-need,html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-look{color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-say{max-width:160px;font-size:11.5px}
+  /* the open clause: a dark bar at the panel's edge, its Plain English press filled, the reading and what to watch, the doors as links */
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open{border-bottom:0;margin-bottom:0;box-shadow:none}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open::after{content:"";position:absolute;top:0;bottom:0;left:calc(var(--pd2-bar-x, -13px));width:2px;background:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open .doc-th-name{font-weight:var(--w-strong)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open .doc-th-bead{box-shadow:none}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-ask .ui-btn{height:26px;padding:0 12px;border:0;border-radius:999px;background:var(--bar-black);color:var(--color-surface);font-size:12px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-ask{gap:8px;margin:2px 0 4px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-in,html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-home-plain{padding:0}
+  html.lg-new #ig-dock .pd-th .stk-pre{position:relative}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-cost{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq{border:0;box-shadow:none;background:none;padding:2px 0 8px;margin:0}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-ct{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-st{margin:0 0 6px;font-size:12.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-cacts{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-left:0}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-a{height:auto;padding:0;border:0;background:none;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mk .stk-ring{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mks{margin-left:0}
+  html.lg-new #ig-dock .pd-th .stk-cost-n{font-size:11.5px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd-th .stk-pre{padding:6px 0 8px 22px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new #ig-dock .pd-th .stk-pre-h{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13.5px}
+  html.lg-new #ig-dock .pd-th .stk-pre-h{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13.5px}
   html.lg-new #ig-dock .pd-th .stk-pre-h b{font-weight:var(--w-label)}
-  html.lg-new #ig-dock .pd-th .stk-pre-ring{width:9px;height:9px;border-radius:50%;border:2px solid var(--st-amber-dot);margin-left:-20px}
+  html.lg-new #ig-dock .pd-th .stk-pre-ring{position:absolute;left:3px;top:11px;width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:2px solid var(--st-amber-dot)}
   html.lg-new #ig-dock .pd-th .stk-pre-v{justify-self:end;font-size:12px;color:var(--st-amber-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
   html.lg-new #ig-dock .pd-th .stk-pre-a{display:flex;gap:12px;align-items:baseline;margin-top:4px;font-size:12px;color:var(--color-quiet)}
 </style>
