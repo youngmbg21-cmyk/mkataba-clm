@@ -19963,7 +19963,8 @@ function redlineChangeCardsHtml(c, opts = {}){
       if (ourSeat && acc && door && !/is-locked/.test(door)){
         out.push(relabel(door, i18t('ng_counter')).replace('class="', 'class="rl-verb-lead '), acc, rej);
         if (askCol) out.push(askCol);
-        foldFrom = 2;
+        /* the new look, as drawn: Counter · Accept · Reject on the face, the rest behind More */
+        foldFrom = (typeof window.newLookOn === 'function' && window.newLookOn() && rej) ? 3 : 2;
       } else {
         out.push(acc, rej, relabel(door, i18t('ng_counter')));
         if (askCol) out.push(askCol);
