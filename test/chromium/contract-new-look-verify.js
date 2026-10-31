@@ -182,6 +182,10 @@ const READ = () => {
         const tinted = await until(page, () => [...document.querySelectorAll('#ig-canvas .pd2-cl-on')].some(e => /rejected within 3 days/.test(e.textContent)), null, 10000);
         const Cl = await page.evaluate(() => ({ notes: !!document.getElementById('pd2-notes'), rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')) }));
         check('13 Clauses: no notes beside the paper, the one row of links, the open clause tinted', tinted && !Cl.notes && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);
+        const Cd = await page.evaluate(() => ({ head: ((document.querySelector('#pd-thread .stk-view') || {}).textContent || '').trim(), tabs: !!document.querySelector('#pd-thread .stk-tabs'),
+          say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n.is-say') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));
+        check('13b Clauses as drawn (your answer): "Clause review · one view for the whole company", no filter tabs, the row says its reading, the Preamble first with its blanks',
+          /^Clause review\s*one view for the whole company/.test(Cd.head) && !Cd.tabs && Cd.say === 'Three days to reject a load' && /^Preamble/.test(Cd.pre) && /date/i.test(Cd.pre) && /Fill it in/.test(Cd.pre), Cd);
         await page.evaluate(() => { window.api = window.__apiWas; pdSetTab('copilot'); renderIntelDock(); });
         /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
         await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);

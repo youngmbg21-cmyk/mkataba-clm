@@ -7170,7 +7170,9 @@ function pd2Notes(c){
     const rule = ap && ap.required && !ap.ok ? (ap.next ? ap.next.name : '') : '';
     out.push({ tone: mine ? 'ask' : 'fact', k: _pdT('pd2_n_value', { v: R.money.replace(/<[^>]*>/g, '') }),
       w: _pdT('pd2_n_value_w') + (rule ? _pdT('pd2_n_value_ap', { rule }) : ''),
-      acts: mine ? `<button type="button" class="ui-link" data-pd2-go="approve">${E(_pdT('pd2_n_approve'))}</button>` : '',
+      /* Approve where it is yours to decide; Ask a colleague wherever an approval is open (the Send screen on "a colleague", the one door) */
+      acts: [mine ? `<button type="button" class="ui-link" data-pd2-go="approve">${E(_pdT('pd2_n_approve'))}</button>` : '',
+        (rule && (typeof canEdit !== 'function' || canEdit())) ? `<button type="button" class="ui-link" data-pd2-go="ask" data-pd2-key="${E(rule)}">${E(_pdT('pd2_n_ask'))}</button>` : ''].filter(Boolean).join(' · '),
       at: { text: pd2Needles(c, 'value') }, mark: true });
   }
   if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
@@ -7179,7 +7181,7 @@ function pd2Notes(c){
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
   L.filter(it => it && it.quote).forEach(it => out.push({ tone: 'risk', k: (typeof riskTitleOf === 'function') ? riskTitleOf(it) : String(it.title || ''),
     w: (typeof riskWhyOf === 'function') ? riskWhyOf(it) : '',
-    acts: `<button type="button" class="ui-link" data-pd2-go="redline" data-pd2-key="${E(it.key)}">${E(_pdT('pd2_n_redline'))}</button>`,
+    acts: `<button type="button" class="ui-link" data-pd2-go="redline" data-pd2-key="${E(it.key)}">${E(_pdT('pd2_n_redline'))}</button> · <button type="button" class="ui-link" data-pd2-go="dive" data-pd2-key="${E(it.quote)}">${E(_pdT('pd2_n_dive'))}</button> <span class="pd2-q">${E(_pdTn('pd2_n_calls', c.breakdown ? 1 : 2, { n: c.breakdown ? 1 : 2 }))}</span>`,
     at: { text: [String(it.quote).replace(/\s+/g, ' ').trim().slice(0, 60)] } }));
   return out;
 }
@@ -7279,7 +7281,28 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   if (go === 'fill'){ if (!(key && pd2FillStart(c.id, key))) pdFillOpen(c.id, key ? { key } : {}); }
   else if (go === 'approve' && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(c, 'approved')).then(() => { try { pdGlanceRepaint(); pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, () => {});
   else if (go === 'redline' && typeof riskEditStart === 'function') riskEditStart(c, key);
+  else if (go === 'ask' && typeof openShareModal === 'function') openShareModal(c, { purpose: 'colleague', note: _pdT('pd2_n_ask_note', { rule: key }) });
+  else if (go === 'dive') pd2DiveOn(c, key);
 });
+/* DEEP DIVE FROM A NOTE: the clause the risk's words stand in, opened on Clauses, and its own Deep dive pressed there (the one
+   door, the list's; 1 call, or the clauses' read first where none is kept); a clause with no point to dive is landed on */
+function pd2DiveOn(c, quote){
+  const q = String(quote || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 40);
+  pdOpenOnHome(c.id, 'doc');
+  let tries = 0;
+  const go = () => {
+    const rows = [...document.querySelectorAll('#ig-dock #pd-thread .doc-th-row')];
+    const sec = pd2Sentences(c).find(x => q && x.t.toLowerCase().indexOf(q.slice(0, 30)) >= 0);
+    const n = sec && sec.sec ? sec.sec.replace(/^§\s*/, '') : '';
+    const row = rows.find(r => n && new RegExp('^\\s*' + n.replace('.', '\\.') + '[.)\\s]').test(r.textContent));
+    if (!row){ if (++tries < 40) return setTimeout(go, 250); return; }
+    const dive = row.querySelector('[data-stk-dive]');
+    if (dive){ dive.click(); return; }
+    if (!row.classList.contains('is-open')) (row.querySelector('button') || row).click();
+    setTimeout(() => { const d = row.querySelector('[data-stk-dive]'); if (d) d.click(); else if (typeof landOn === 'function') landOn(row, { block: 'center', focus: false }); }, 300);
+  };
+  setTimeout(go, 0);
+}
 /* ---- THE BRIEF IN THE MIDDLE (the contract round, part 2; owner's answers: "Record it, signing waits (as drawn)",
    the reader who must have read it "the person signing") ----
    The brief stands where the paper was, as a sheet: what this is, then money, dates and what to watch, every line
@@ -7687,7 +7710,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && _pd2Walk && !(e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]'))){ pd2WalkClose(); }
 });
-Object.assign(window, { pd2ClauseTint });
+Object.assign(window, { pd2ClauseTint, pd2DiveOn });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });

@@ -372,8 +372,12 @@ function stkClauseName(at){
   const x = (_stk.rows || [])[at], h = String((x && x.row && (x.row.heading || x.row.title)) || '').trim();
   return h.replace(/^\s*(?:clause\s+|§\s*)?[0-9IVXLCivxlc]+(?:\.\d+)*[.)]?\s+/, '').trim() || h;
 }
+/* THE NEW LOOK'S HEAD (the contract round, the owner's "as drawn", 31 Oct 2026; reverses Marquee and The SAP Way on the
+   new look only): "Clause review · one view for the whole company", no count, no tabs — each row says its own reading */
+function stkNewLookOn(){ return typeof window.newLookOn === 'function' && !!window.newLookOn(); }
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
+  if (stkNewLookOn()) return `${stkViewHtml()}${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}`;
   /* THE SAME HEAD AS REDLINES (owner picked "The SAP Way", 24 Oct 2026): the name in the serif, its count, then a
      grey line of what needs you — "Clauses 9 · 3 need you · 5 worth a look" — then the tabs */
   const said = [T.need ? i18t('stk_mq_need', { n: T.need }) : '', T.look ? i18t('stk_mq_look', { n: T.look }) : ''].filter(Boolean).join(' \u00b7 ');
@@ -450,6 +454,8 @@ function stkRowWords(live){
 function stkDecorate(c, card, rows){
   if (!c || !card) return;
   if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; _stk.more = false; _stk.missShut = new Set(); }
+  /* the new look draws no filter tabs: nothing narrows the list behind the reader's back */
+  if (stkNewLookOn() && (_stk.f.sev || _stk.f.reg || _stk.f.by || _stk.more)){ _stk.f = { reg: '', sev: '', by: '' }; _stk.more = false; }
   const b = stkOf(c);
   _stk.rows = rows || null;
   _stk.nums = stkNumsOf(rows || []);
@@ -466,7 +472,8 @@ function stkDecorate(c, card, rows){
     if (typeof selectFaceDress === 'function') try { selectFaceDress(head); } catch (_){} }
   card.querySelectorAll('.stk-line, .stk-miss, .stk-rsq, .stk-nomatch').forEach(el => el.remove());
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
-  card.querySelectorAll('.stk-b-need, .stk-b-look, .stk-b-note, .stk-b-none').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look', 'stk-b-note', 'stk-b-none'));
+  card.querySelectorAll('.stk-b-need, .stk-b-look, .stk-b-note, .stk-b-none, .stk-b-ok').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look', 'stk-b-note', 'stk-b-none', 'stk-b-ok'));
+  card.querySelectorAll('.stk-pre').forEach(el => el.remove());
   const list = card.querySelector('.doc-th-rows');
   if (b && list){
     const nums = _stk.nums;
@@ -494,7 +501,12 @@ function stkDecorate(c, card, rows){
         rest.forEach(el => { if (el.classList.contains('is-read') && words){ el.classList.add('stk-read'); el.textContent = i18t('stk_read_after'); } });
         /* MARQUEE: a clause with nothing live on it says so ("Fine") */
         const fine = !words && !mine.some(p => !p.done && p.status !== 'fine');
-        const parts = (words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : fine ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
+        /* THE NEW LOOK, AS DRAWN: each row says its own short reading, the first point Jambo read on it, in its tone
+           ("Three days to reject a load"; a clause read as fine says what it was read as, its dot green) */
+        const say = stkNewLookOn() ? (mine.find(p => !p.done && p.status !== 'fine') || mine.find(p => p.status === 'fine') || null) : null;
+        if (say && !words) row.classList.replace('stk-b-none', 'stk-b-ok');
+        const parts = (say ? [`<span class="stk-n is-${words ? words.worst : 'fine'} is-say" title="${_bdE(say.stake || say.title)}">${_bdE(say.title)}</span>`]
+          : words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : (fine && !stkNewLookOn()) ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
         st.innerHTML = parts.join('<span class="doc-th-dot"> · </span>');
       }
       /* the open clause's cards, in the one order (stkReview), drawn once — UNDER its Plain English
@@ -542,6 +554,12 @@ function stkDecorate(c, card, rows){
       });
       if (!shown.length && !(fineTab && T.fine)) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
     }
+  }
+  /* THE PREAMBLE AND ITS BLANKS, FIRST (the new look, as drawn): the paper's own blanks still open before the first clause,
+     read off the paper (free), with the one door that fills them on the paper; a blank is filled, never redlined */
+  if (stkNewLookOn() && list && typeof window.pd2FillBlanks === 'function'){
+    let bl = []; try { bl = window.pd2FillBlanks(c).filter(x => x && !String(x.value || '').trim() && (!x.section || x.section === c.name)); } catch (_){ bl = []; }
+    if (bl.length) list.insertAdjacentHTML('afterbegin', `<div class="stk-pre" role="listitem"><div class="stk-pre-h"><i class="stk-pre-ring" aria-hidden="true"></i><b>${_bdE(i18t('pd2_fp_preamble').replace(/^./, ch => ch.toUpperCase()))}</b><span class="stk-pre-v">${_bdE(bl.map(x => String(x.label || x.key).toLowerCase()).join(' \u00b7 '))}</span></div><div class="stk-pre-a"><button type="button" class="stk-a is-link" data-stk-pre-fill="${_bdE(bl[0].key)}">${_bdE(i18t('stk_fill_it'))}</button><span>${_bdE(i18t('stk_pre_never'))}</span></div></div>`);
   }
   stkSpineEnds(card);
   stkDivePaint(c, card);
@@ -842,3 +860,8 @@ if (typeof document !== 'undefined' && !document._stkWired){
 }
 
 Object.assign(window, { stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, stkReview, stkNeedCount, stkMarkReviewed, stkPointKey });
+/* the Preamble row's Fill it in: the paper's blanks filled where they stand (the new look's one door for them) */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('[data-stk-pre-fill]') : null; if (!b) return;
+  e.preventDefault(); const c = stkContract(); if (c && typeof window.pd2FillStart === 'function') window.pd2FillStart(c.id, b.getAttribute('data-stk-pre-fill'));
+});
