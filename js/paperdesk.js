@@ -1319,7 +1319,6 @@ function pdRedFaceHtml(c){
     let p = ''; try { p = dealPanelNewHtml(c); } catch (_){ p = ''; }
     if (p) return `<div class="redline-page rl-face" data-pd-rf="${_pdE(c.id)}">${p}</div>`;
   }
-  if (typeof pd2On === 'function' && pd2On() && pd2StandsUp(c.id)) return `<div class="redline-page rl-face" data-pd-rf="${_pdE(c.id)}">${pd2StandsFaceHtml(c)}</div>`;
   try { if (typeof negoEnsureStyle === 'function') negoEnsureStyle(); } catch (_){}
   try { if (typeof redlineLayoutCss === 'function') redlineLayoutCss(); } catch (_){}
   let col = '';
@@ -7629,6 +7628,8 @@ function pd2StandsOpen(id){
   const mk = 'stands:' + String(id);
   if (pdMidUp(mk)) return pdMidClose();
   const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper() || !pdMidMay() || typeof standsDrawnHtml !== 'function') return false;
+  /* as drawn, its panel is the Dossier's face (pd2Html): a Redlines face up is put away first; Redlines pressed later comes back */
+  try { if (typeof pdRedShows === 'function' && pdRedShows() && typeof pdRedClose === 'function') pdRedClose(); } catch (_){}
   openModal(`<div class="pd2-stands" data-ds-cid="${_pdE(c.id)}">${standsDrawnHtml(c, {})}</div>`, { maxWidth: 'none', label: _pdT('pd2_st_title'),
     page: { crumbHtml: pd2StandsHeadHtml(c), beside: '#ig-dock' }, onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} try { if (typeof pdRedShows === 'function' && pdRedShows() && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} } });
   pdMidOn(mk);
