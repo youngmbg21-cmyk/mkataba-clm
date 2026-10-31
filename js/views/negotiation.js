@@ -18994,7 +18994,8 @@ function rlPaintPoints(root, c){
     if (!body) continue;
     const r = rlPointReadOf(c, ch);
     if (!r) continue;
-    const k = (perClause.get(sec) || 0) + 1; perClause.set(sec, k);
+    /* the new look counts down the whole paper (①, ②, as drawn), so a note beside it can name its dot */
+    const k = (typeof window.newLookOn === 'function' && window.newLookOn()) ? [...perClause.values()].reduce((a, v) => a + v, 0) + 1 : (perClause.get(sec) || 0) + 1; perClause.set(sec, (perClause.get(sec) || 0) + 1);
     const dot = document.createElement('span');
     dot.className = 'rl-pt' + (r.hot ? ' is-hot' : '');
     dot.setAttribute('role', 'button'); dot.setAttribute('tabindex', '0');
@@ -20947,7 +20948,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>${rlRowByHtml(ch, _short)}` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side), lock = rlRowLockHtml(c, ch, side), line = rlRowLineHtml(ch, sub, fromRiskRow), read = rlRowReadHtml(c, ch, side);
+          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side), lock = rlRowLockHtml(c, ch, side), line = rlRowLineHtml(ch, sub, fromRiskRow), read = rlRowReadHtml(c, ch, side) + rlOnePressHtml(c, ch, side);
             return (why || keeps || lock || read) ? `<div class="rl-card-sumw">${line}${why}${read}${keeps}${lock}</div>` : line; })()}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
@@ -22498,6 +22499,80 @@ function rlRowReadOf(c, ch, side){
   if (!V) return null;
   return { key: j.verdict, tone: V.tone, label: V.label, why: String((j.why || [])[0] || '').trim(), more: true };
 }
+/* ---- ONE-PRESS ANSWERS (the new look's Negotiate, the owner's yes, 31 Oct 2026) ----
+   On their ask, where its figure is one HaTi measures (payment in days, liability in months …): Counter at the figure your
+   standard gives, Accept theirs, Reject and hold yours. READ, NEVER GUESSED: the figures are the judgement's own (rlpJudge's
+   topic, your playbook's range, your wording before their ask); no AI. Every press is the existing door: Accept and Reject
+   are the row's own verbs (data-nego-accept / data-nego-reject), the counter is filed through the one funnel on top of
+   their ask (negoEditClause, onTop) as an unsent draft — the same filing the clause editor makes. */
+function rlOnePressOf(c, ch, side){
+  if (side === 'counterparty' || PORTAL_MODE || !c || !ch) return null;
+  if (!(typeof window.newLookOn === 'function' && window.newLookOn())) return null;
+  if (ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded || ch.countered) return null;
+  if (typeof precedentTopicOf !== 'function' || typeof rlpRangeFor !== 'function') return null;
+  let t = null; try { t = precedentTopicOf(ch); } catch (_) { t = null; }
+  if (!t || typeof t.num !== 'function') return null;
+  const asked = t.num(ch.newText || ''), ours = t.num(ch.oldText || '');
+  if (asked == null || ours == null || asked === ours) return null;
+  const R = rlpRangeFor(c, t.key);
+  const lim = R ? Number(R.value) : null, worse = R ? (R.op === '<=' ? asked > lim : asked < lim) : false;
+  /* the counter stands at your limit, where their ask is past it and the limit is not simply your own figure */
+  const at = (R && worse && lim !== ours) ? lim : null;
+  return { asked, ours, at, unit: t.unit || '', key: t.key };
+}
+function rlOnePressHtml(c, ch, side){
+  const O = rlOnePressOf(c, ch, side); if (!O) return '';
+  const u = n => `${n} ${O.unit}`.trim();
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  if (!may) return '';
+  const b = (attrs, w) => `<button type="button" class="rl-1p" ${attrs}>${_ne(w)}</button>`;
+  /* on the card, only what its own verbs do not already say: the counter at your figure (Accept and Reject are its verbs) */
+  return O.at != null ? `<div class="rl-1p-row" data-rl-1p="${_nea(ch.id)}">${b(`data-rl-1p-counter="${_nea(ch.id)}" data-rl-1p-at="${O.at}"`, i18t('rl_1p_counter', { v: u(O.at) }))}</div>` : '';
+}
+/* the counter's words: YOUR wording as it stands, your figure moved to the one the press names, in the same form
+   ("30 days" → "45 days"; "twelve (12) months" → "nine (9) months"); measured on their ask, whatever they added is struck */
+const RL_NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const RL_TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+function rlNumWords(n){
+  if (n < 20) return RL_NUM_WORDS[n];
+  if (n < 100) return RL_TENS[Math.floor(n / 10)] + (n % 10 ? '-' + RL_NUM_WORDS[n % 10] : '');
+  if (n < 1000) return RL_NUM_WORDS[Math.floor(n / 100)] + ' hundred' + (n % 100 ? ' and ' + rlNumWords(n % 100) : '');
+  return String(n);
+}
+function rlFigureSwap(html, from, to){
+  const words = new RegExp(`\\b([A-Za-z-]+(?:\\s+hundred(?:\\s+and\\s+[A-Za-z-]+)?)?)\\s*\\(${from}\\)`, 'i');
+  if (words.test(html)) return html.replace(words, (m, w) => (/^[A-Z]/.test(w) ? rlNumWords(to).replace(/^./, x => x.toUpperCase()) : rlNumWords(to)) + ` (${to})`);
+  const bare = new RegExp(`\\b${from}\\b`);
+  return bare.test(html) ? html.replace(bare, String(to)) : null;
+}
+async function rlOnePressCounter(cid, chId, at){
+  const c = (typeof getContract === 'function') ? getContract(cid) : null;
+  const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
+  if (!c || !ch || !ch.clauseId) return false;
+  const O = rlOnePressOf(c, ch, 'owner'); if (!O || Number(at) !== O.at) return false;
+  const now = (typeof negoClauseNowById === 'function') ? negoClauseNowById(c, ch.clauseId) : null;
+  const body = (now && now.bodyHtml) || (now && now.text ? '<p>' + _ne(now.text) + '</p>' : '');
+  const html = body ? rlFigureSwap(body, O.ours, O.at) : null;
+  if (!html){ if (typeof toast === 'function') toast(i18t('rl_1p_cannot'), 'warn'); return false; }
+  let out = null;
+  try { out = await negoEditClause(c, ch.clauseId, html, { side: 'owner', onTop: ch.id }); }
+  catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
+  if (!out){ if (typeof toast === 'function') toast(i18t('ng_nothing_changed_no_fp'), 'warn'); return false; }
+  if (typeof persist === 'function') persist(c);
+  if (typeof toast === 'function') toast(i18t('rl_1p_filed', { v: `${O.at} ${O.unit}`.trim() }), 'ok');
+  if (typeof window.pdRedRepaint === 'function') try { window.pdRedRepaint(); } catch (_) {}
+  return true;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._rl1pWired){
+  document._rl1pWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-rl-1p-counter]') : null; if (!b || b.disabled) return;
+    e.preventDefault(); e.stopPropagation();
+    const c = (typeof pdContract === 'function' && pdContract()) || ((typeof state === 'object' && state && state.activeId != null && typeof getContract === 'function') ? getContract(state.activeId) : null);
+    if (!c) return; b.disabled = true;
+    Promise.resolve(rlOnePressCounter(c.id, b.getAttribute('data-rl-1p-counter'), b.getAttribute('data-rl-1p-at'))).finally(() => { b.disabled = false; });
+  }, true);
+}
 function rlRowReadHtml(c, ch, side){
   const R = rlRowReadOf(c, ch, side);
   /* NEGOTIATION MEMORY (Discover stage 7, owner 25 Oct 2026): under the verdict, what this party settled before
@@ -23450,6 +23525,7 @@ function redlineSyncProxies(host){
   });
 }
 
+if (typeof window !== 'undefined') Object.assign(window, { rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
 if (typeof window !== 'undefined') Object.assign(window, { RL_PLAIN_FIG, rlPlainFigs, rlPlainFigureOf, rlPlainReasonOf, rlAskColleague });
 if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,

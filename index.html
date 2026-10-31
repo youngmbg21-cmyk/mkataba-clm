@@ -18473,6 +18473,7 @@
   html.lg-new #pd2-notes .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
   html.lg-new #pd2-notes .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
   html.lg-new #pd2-notes .pd2-mn-k{font-weight:400}
+  html.lg-new #pd2-notes .pd2-mn-n{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:5px;border:1px solid var(--color-text);border-radius:50%;font-size:10px;line-height:1;vertical-align:1px}
   html.lg-new #pd2-notes .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
   html.lg-new #pd2-notes .pd2-mn-a{margin-top:1px;font-size:12px}
   html.lg-new #pd2-notes .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
@@ -18631,6 +18632,11 @@
   html.lg-new #ig-dock .pd-th .stk-pre-ring{position:absolute;left:3px;top:11px;width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:2px solid var(--st-amber-dot)}
   html.lg-new #ig-dock .pd-th .stk-pre-v{justify-self:end;font-size:12px;color:var(--st-amber-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
   html.lg-new #ig-dock .pd-th .stk-pre-a{display:flex;gap:12px;align-items:baseline;margin-top:4px;font-size:12px;color:var(--color-quiet)}
+  /* ==== THE NEW LOOK: NEGOTIATE (round 4, 31 Oct 2026) ==== the one-press answers on their ask */
+  html.lg-new .rl-1p-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+  html.lg-new .rl-1p{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  @media (hover:hover){ html.lg-new .rl-1p:hover{box-shadow:inset 0 0 0 1px var(--color-text)} }
+  html.lg-new .rl-1p:disabled{opacity:.55;cursor:default}
 </style>
 
 

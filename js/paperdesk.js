@@ -7254,6 +7254,40 @@ function pd2Notes(c){
     at: { text: [String(it.quote).replace(/\s+/g, ' ').trim().slice(0, 60)] } }));
   return out;
 }
+/* THE NOTES BESIDE THE REDLINED PAPER (the new look's Negotiate, as drawn): each of their asks waiting on us, numbered as
+   the paper's own dot, by that dot: what they ask, what your standard and your past say (the row's own reading, no AI),
+   and the one-press answers — Counter at your figure (the one funnel), Reject · hold yours (the row's own verb, pressed);
+   last, in grey, the clauses they left untouched this round. Our seat only. */
+function pd2RedNotes(c, cv){
+  if (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return [];
+  /* the other side by its first word, as the drawing names them ("Parcelway") */
+  const E = _pdE, out = [], cp = String(c.counterparty || '').trim().split(/\s+/)[0] || '';
+  const L = (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && !ch.withdrawn && !ch.superseded);
+  L.forEach(ch => {
+    const dot = cv.querySelector(`[data-rl-pt="${CSS.escape(String(ch.id))}"]`) || null;
+    const n = dot ? String(dot.firstChild && dot.firstChild.nodeValue || '').trim() : '';
+    let O = null; try { O = (typeof window.rlOnePressOf === 'function') ? window.rlOnePressOf(c, ch, 'owner') : null; } catch (_){ O = null; }
+    let R = null; try { R = (typeof window.rlRowReadOf === 'function') ? window.rlRowReadOf(c, ch, 'owner') : null; } catch (_){ R = null; }
+    let M = null; try { M = (typeof precedentMemoryOf === 'function') ? precedentMemoryOf(c, ch) : null; } catch (_){ M = null; }
+    const name = (typeof clauseNameShown === 'function' ? clauseNameShown(ch.clauseLabel || '') : '') || ch.clauseLabel || '';
+    const k = (O ? _pdT('pd2_rn_asks_fig', { who: cp || _pdT('pd2_rn_they'), v: `${O.asked} ${O.unit}`.trim() }) : _pdT('pd2_rn_asks', { who: cp || _pdT('pd2_rn_they'), what: name }));
+    const w = [R && R.why, M && M.line ? String(M.line).replace(/<[^>]*>/g, '') : ''].filter(Boolean).join(' ');
+    const acts = [O && O.at != null ? `<button type="button" class="ui-link" data-rl-1p-counter="${E(ch.id)}" data-rl-1p-at="${O.at}">${E(_pdT('rl_1p_counter', { v: `${O.at} ${O.unit}`.trim() }))}</button>` : '',
+      `<button type="button" class="ui-link" data-pd2-go="press" data-pd2-key="${E('[data-nego-reject="' + ch.id + '"]')}">${E(O ? _pdT('rl_1p_reject', { v: `${O.ours} ${O.unit}`.trim() }) : _pdT('pd2_rn_reject'))}</button>`].filter(Boolean).join(' · ');
+    const at = dot ? { el: dot } : null;
+    out.push({ tone: 'ask', n, k, w, acts, hit: at, at: { sel: `[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]` } });
+  });
+  /* what they left alone this round, said once, at the paper's foot */
+  let all = []; try { all = (typeof negoClauseList === 'function') ? negoClauseList(c).filter(x => x && x.clauseId && x.clauseId !== 'front') : []; } catch (_){ all = []; }
+  const touched = new Set(L.map(ch => String(ch.clauseId)));
+  const left = all.filter(x => !touched.has(String(x.clauseId)));
+  if (L.length && left.length){
+    const names = left.slice(0, 3).map(x => String((typeof clauseNameShown === 'function' ? clauseNameShown((typeof clauseLabel === 'function' ? clauseLabel(x) : '') || x.headingText || '') : (x.headingText || ''))).replace(/^\d+(\.\d+)*\.?\s*/, '').toLowerCase()).filter(Boolean);
+    const last = cv.querySelectorAll('h2, h3, h4'); const el = last.length ? last[last.length - 1] : null;
+    if (el) out.push({ tone: 'fact', k: _pdT('pd2_rn_untouched', { what: names.join(', ') }), w: _pdTn('pd2_rn_untouched_w', left.length, { n: left.length }), acts: '', hit: { el } });
+  }
+  return out;
+}
 /* the first place on the paper a note's words stand: an element, or a Range over the first needle found */
 function pd2Find(cv, at){
   if (at.sel){ const el = cv.querySelector(at.sel); return el ? { el } : null; }
@@ -7293,11 +7327,12 @@ function pd2NotesPaint(c){
   if (_pd2Walk && (!c || String(_pd2Walk.id) !== String(c.id) || !pd2On())){ clearTimeout(_pd2Walk.timer); _pd2Walk = null; document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk'); }
   if (c && pd2WalkOn(c.id)){ pd2NotesOff(); pd2WalkPaint(); return; }
   /* the notes stand beside the paper with the Dossier; Clauses and Redlines mark the paper their own way */
-  if (_pdTab !== 'copilot'){ pd2NotesOff(); pd2ClauseTint(); return; }
+  if (_pdTab !== 'copilot' && !red){ pd2NotesOff(); pd2ClauseTint(); return; }
   if (c && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
-  if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-redpaper, .ig-signpaper') || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
+  const red = !!(zoom && zoom.querySelector('.ig-redpaper')) && !(zoom.querySelector('.ig-redpaper.is-clean'));
+  if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-signpaper') || (zoom.querySelector('.ig-redpaper') && !red) || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
-  const notes = pd2Notes(c).map(n => Object.assign(n, { hit: pd2Find(cv, n.at) })).filter(n => n.hit)
+  const notes = (red ? pd2RedNotes(c, cv) : pd2Notes(c)).map(n => Object.assign(n, { hit: n.hit || pd2Find(cv, n.at) })).filter(n => n.hit)
     .map(n => Object.assign(n, { y: (n.hit.el || n.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
   if (!notes.length){ pd2NotesOff(); return; }
   /* THE PAPER MOVES TO THE LEFT AND NARROWS ONLY AS FAR AS THE NOTES NEED (the drawing's iPad note: "the paper narrows") */
@@ -7310,13 +7345,13 @@ function pd2NotesPaint(c){
   const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));
   zoom.classList.add('has-pd2'); zoom.style.setProperty('--doc-sheet-max', sheetW + 'px');
   /* the sheet's own margin is written on it (margin:0 auto), so its left is moved where it is written, and given back on the way out */
-  const sh = zoom.querySelector(':scope > .pg-sheet, :scope > .blueprint'); if (sh){ sh.style.marginLeft = left + 'px'; sh.setAttribute('data-pd2-left', '1'); }
+  const sh = zoom.querySelector(':scope > .pg-sheet, :scope > .blueprint, :scope > .ig-redpaper > article'); if (sh){ sh.style.marginLeft = left + 'px'; sh.setAttribute('data-pd2-left', '1'); }
   let host = document.getElementById('pd2-notes');
   if (!host){ host = document.createElement('div'); host.id = 'pd2-notes'; host.className = 'pd2-notes'; host.setAttribute('aria-label', _pdT('pd2_notes')); zoom.appendChild(host); }
   host.setAttribute('data-pd2-for', String(c.id));
   host.style.left = (left + sheetW + PD2_NOTES_GUTTER) + 'px'; host.style.width = notesW + 'px';
   const E = _pdE;
-  host.innerHTML = notes.map((n, i) => `<div class="pd2-mn is-${n.tone}" data-pd2-note="${i}"><i class="pd2-mn-dot" aria-hidden="true"></i><div class="pd2-mn-k">${E(n.k)}</div>${n.w ? `<div class="pd2-mn-w">${E(n.w)}</div>` : ''}${n.acts ? `<div class="pd2-mn-a">${n.acts}</div>` : ''}</div>`).join('');
+  host.innerHTML = notes.map((n, i) => `<div class="pd2-mn is-${n.tone}" data-pd2-note="${i}"><i class="pd2-mn-dot" aria-hidden="true"></i><div class="pd2-mn-k">${n.n ? `<span class="pd2-mn-n">${E(n.n)}</span>` : ''}${E(n.k)}</div>${n.w ? `<div class="pd2-mn-w">${E(n.w)}</div>` : ''}${n.acts ? `<div class="pd2-mn-a">${n.acts}</div>` : ''}</div>`).join('');
   pd2NotesPlace(notes, zoom, host, f);
   try {
     if (typeof CSS !== 'undefined' && CSS.highlights && typeof globalThis.Highlight === 'function'){
@@ -7352,6 +7387,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   else if (go === 'redline' && typeof riskEditStart === 'function') riskEditStart(c, key);
   else if (go === 'ask' && typeof openShareModal === 'function') openShareModal(c, { purpose: 'colleague', note: _pdT('pd2_n_ask_note', { rule: key }) });
   else if (go === 'dive') pd2DiveOn(c, key);
+  else if (go === 'press'){ const own = document.querySelector('#ig-dock ' + key); if (own && !own.disabled) own.click(); }
 });
 /* DEEP DIVE FROM A NOTE: the clause the risk's words stand in, opened on Clauses, and its own Deep dive pressed there (the one
    door, the list's; 1 call, or the clauses' read first where none is kept); a clause with no point to dive is landed on */
