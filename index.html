@@ -18755,6 +18755,20 @@
   html.lg-new .rl-doc ins:is(.rl-them,.rl-us),html.lg-new .nego-doc ins:is(.rl-them,.rl-us),html.lg-new .rl-cp-src ins:is(.rl-them,.rl-us),html.lg-new .rl-col ins:is(.rl-them,.rl-us),html.lg-new .pv-sheet ins:is(.rl-them,.rl-us),html.lg-new .ag-words ins:is(.rl-them,.rl-us),html.lg-new #ig-canvas ins:is(.rl-them,.rl-us),html.lg-new .dl2-w ins:is(.rl-them,.rl-us){background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:underline;text-decoration-color:currentColor}
   html.lg-new .rl-doc del:is(.rl-them,.rl-us),html.lg-new .nego-doc del:is(.rl-them,.rl-us),html.lg-new .rl-cp-src del:is(.rl-them,.rl-us),html.lg-new .rl-col del:is(.rl-them,.rl-us),html.lg-new .pv-sheet del:is(.rl-them,.rl-us),html.lg-new .ag-words del:is(.rl-them,.rl-us),html.lg-new #ig-canvas del:is(.rl-them,.rl-us),html.lg-new .dl2-w del:is(.rl-them,.rl-us){background:var(--st-ruby-bg);color:var(--st-ruby-fg);text-decoration:line-through;text-decoration-color:currentColor}
   html.lg-new #ig-page .ig-red.is-nl-red{display:none}
+  html.lg-new #share-send svg{display:none}
+  html.lg-new #modal-root .sh-hd-acts{display:flex}
+  html.lg-new #modal-root .sh-hd-acts #share-close{order:-1}
+  /* the letter as drawn: the note is typed into the letter itself, no box or label round it; the subject is words */
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note > label{border:0;padding:0;background:none;box-shadow:none}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note #sh-summary-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note textarea{border:0;padding:0;background:none;box-shadow:none;font-family:var(--font-doc);font-size:15px;line-height:1.55;resize:none}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap #sh-lt-subject{border:0;background:none;padding:0;box-shadow:none}
+  /* Before you send as drawn: Goes first, then the rest */
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes){display:flex;flex-direction:column}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-goes{order:-1}
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > *{align-self:stretch}
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-jb{order:-3}
+  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-verdict{order:-2}
   html.lg-new .rl-pt{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
   html.lg-new .rl-1p-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
   html.lg-new .rl-1p{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}

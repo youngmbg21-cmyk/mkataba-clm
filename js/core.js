@@ -5446,6 +5446,31 @@ function shareLetterPartsHtml(parts){
    name in sentence case ("Negotiate", "Email", "The contract, round 2"), and
    a row that does not apply steps out whole — what they can do, on a
    history or a "Where we are" page; what goes and how, for a colleague. */
+/* SEND'S LINES IN THE DRAWING'S WORDS (the new look, "Lines that open"): what goes as your answers and what is held back;
+   what they can do as the act ("Reply with their own changes") and, where signing cannot happen yet, why; email with
+   their link, and the code where the admin asks one. Readings only: the same lists the send itself reads. */
+function shareNlLinesPaint(c, s, set, host){
+  const p=s.purpose||'negotiate';
+  if(p==='history'||p==='status'||p==='colleague') return;
+  const say=(rowId, id, v)=>{ const row=document.getElementById(rowId), v0=row&&row.querySelector('.sh-lt-v'); if(!v0) return;
+    let e=document.getElementById(id); if(!e){ e=document.createElement('p'); e.id=id; e.className='sh-lt-say2'; v0.appendChild(e); }
+    if(e.textContent!==v) e.textContent=v; e.hidden=!v; };
+  let A=null; try{ A=shareAnswersOf((s.payload&&s.payload.contract)||c, c); }catch(_){ A=null; }
+  const n=((A&&A.lines)||[]).length+((A&&A.own)||[]).length;
+  let held=0; try{ held=(typeof shareStaysRows==='function')?shareStaysRows(c).length:0; }catch(_){ held=0; }
+  if(n) set('what', i18tn('sh_nl_what', n, { n }));
+  say('sh-lt-what-row', 'sh-nl-what-say', held?i18tn('sh_nl_held', held, { n:held }):i18t('sh_nl_held_none'));
+  if(p==='negotiate'){
+    set('purpose', i18t('sh_nl_can_neg'));
+    const open=(typeof signingRouteOpen==='function')?signingRouteOpen(c):true;
+    const ps=document.getElementById('share-purpose-say'); const v=open?(ps&&ps.textContent)||'':i18t('sh_nl_cannot_sign');
+    if(ps && !open && ps.textContent!==v) ps.textContent=v;
+  }
+  const ch=s.ch||'email';
+  if(ch==='email') set('ch', i18t('sh_nl_ch_email'));
+  const code=(typeof linkCodeCfg==='function')&&linkCodeCfg().on;
+  say('sh-lt-by-row', 'sh-nl-by-say', ch==='email'&&code?i18t('sh_nl_code'):'');
+}
 function shareLetterAsPaint(c, st){
   const host=document.getElementById('sh-as-chips'); if(!host) return;
   const s=st||{}, set=(k,v)=>{ const w=host.querySelector(`[data-sh-as-w="${k}"]`); if(w && w.textContent!==v) w.textContent=v; };
@@ -5487,6 +5512,7 @@ function shareLetterAsPaint(c, st){
     const dead=!now && !!(src && src.disabled);
     b.disabled=dead; if(dead && src.title) b.title=src.title; else b.removeAttribute('title'); };
   row('contract', roundW);
+  if(typeof newLookOn==='function' && newLookOn()) shareNlLinesPaint(c, s, set, host);
   row('history', i18t('sh_f_history'));
   row('status', i18t('sh_f_status'));
   /* To: our own people on a colleague's send, else "A colleague instead" —
@@ -5797,7 +5823,7 @@ function shareLetterPaint(c, st){
     /* a colleague's letter is named for the colleague in To, never the other side's hidden Name box */
     const colTo=st && st.purpose==='colleague' && _shCol.picks[0] ? _shCol.picks[0].name : '';
     const first=String(colTo || (st && st.purpose==='colleague' ? '' : fval('sh-name')) || '').trim().split(/\s+/)[0];
-    const v=first ? i18t('sh_lt_send_to', { who:first }) : i18t('co_send_by_email');
+    const v=(typeof newLookOn==='function' && newLookOn()) ? i18t('sh_nl_send') : first ? i18t('sh_lt_send_to', { who:first }) : i18t('co_send_by_email');
     if(lbl.textContent!==v && !/^(Sending|Sent)/.test(lbl.textContent)) lbl.textContent=v;
   }
 }
@@ -5995,6 +6021,7 @@ function shareSideHtml(c, part){
     <div class="sh-lt-checks" id="sh-lt-checks"></div>
     ${''/* WHAT GOES TO THEM, one line each (shareGoesPaint) */}
     <div class="sh-lt-card" id="sh-lt-goes"><h4 id="sh-lt-goes-h"></h4><ul class="sh-lt-goesl" id="sh-lt-goes-l"></ul></div>
+    ${(typeof newLookOn==='function' && newLookOn())?`<div class="sh-lt-card sh-nl-mail"><h4>${esc(i18t('sh_nl_mail_k'))}</h4><p>${esc(i18t('sh_nl_mail'))}</p></div>`:''}
     <div class="sh-lt-card"><h4 id="sh-lt-never-h">${(typeof newLookOn==='function' && newLookOn()) ? esc(i18t('sh_kv_names')) : i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
     <div class="sh-lt-card hidden" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
       <div class="sh-lt-acts">
@@ -6016,6 +6043,14 @@ function shareLeadTitle(c, s, purposeSel){
     : purposeSel==='status' ? i18t('sh_hd_status')
     : (s && s.lines.length) ? i18t('sh_hd_round', { n:shareRoundOf(c.negotiation) })
     : i18t('sh_hd_contract');
+  /* THE NEW LOOK, AS DRAWN: "Send to Parcelway" and, quieter, "Parcel Delivery SaaS · your 2 answers to their round 2" */
+  if(typeof newLookOn==='function' && newLookOn() && purposeSel!=='history' && purposeSel!=='status'){
+    const short=String(c.counterparty||'').trim().split(/\s+/)[0]||who;
+    let A=null; try{ A=(typeof shareAnswersOf==='function')?shareAnswersOf(c, c):null; }catch(_){ A=null; }
+    const n=((A&&A.lines)||[]).length, r=(c.negotiation&&Number(c.negotiation.round))||1;
+    const sub=n?i18tn('sh_nl_sub', n, { name:c.name||ref, n, r }):(c.name||ref);
+    return `${esc(i18t('sh_nl_title', { who:short }))} <span class="sh-hd-to">${esc(sub)}</span>`;
+  }
   return `${esc(main)} <span class="sh-hd-to">${i18t('sh_hd_to', { who, ref })}</span>`;
 }
 function shareLeadHeadHtml(c, purposeSel){
@@ -8078,7 +8113,9 @@ function shareLetterPage(c){
   const acts=panel.querySelector('.sh-hd-acts');
   const send=document.getElementById('share-send'), cancel=document.getElementById('share-close');
   const off=document.getElementById('share-send-off');
-  if(acts){ if(send && send.parentElement!==acts) acts.appendChild(send); if(off && off.parentElement!==acts) acts.appendChild(off); if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); }
+  /* THE NEW LOOK, AS DRAWN: Cancel, then Send */
+  if(acts && typeof newLookOn==='function' && newLookOn()){ if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); if(send && send.parentElement!==acts) acts.appendChild(send); if(off && off.parentElement!==acts) acts.appendChild(off); }
+  else if(acts){ if(send && send.parentElement!==acts) acts.appendChild(send); if(off && off.parentElement!==acts) acts.appendChild(off); if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); }
   /* "Before you send" goes beside it, as a face of Jambo's panel */
   /* the panel's own column (a fill draws a new one; the face lets the old go) */
   const side=panel.querySelector('#share-step-1');
