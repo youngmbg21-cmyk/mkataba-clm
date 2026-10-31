@@ -553,3 +553,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 29 Oct 2026 (the head's right end): f745 1a and board-as-drawn 1b re-pointed (Summarise's cost in its hover, no segment on its face); f963 1 and pulse-verify 1 re-pointed (Summarise · Pulse board · Explorer, Explorer last; 1b Explorer's button opens the map); handbook-verify re-took 6.1-1 and 6.2-1.
 - 30 Oct 2026 (compact rows): pulse-verify 7 (every name one line, the ref under it, 30% more rows than the 93px row). handbook-verify re-took 6.1.1-1, 6.1.1-2 and 0.5-1..3.
 - 30 Oct 2026 (the nav panel's door): test/chromium/nav-panel-door-verify.js (new; red at unmodified main 1): #hdr-nav just left of the bell at the three screens, the same size; a press opens the Guide face, again closes; from Alerts it swaps to the Guide and the bell swaps back; aria-expanded follows the Guide.
+
+## THE NEW LOOK — THE FRAME (round 1 of the Legora way, rebuilt page by page behind one switch)
+- `node --test test/f967-the-new-look-switch.test.js` — the switch: an admin's own, off by default, the server's wall; every new-look rule waits on `html.lg-new`.
+- `node test/chromium/new-look-frame-verify.js` — the Page frame at the three screens: the panel square at the bar, side and foot behind one hairline; one-sheet pages edge to edge; card pages on the well 12 · 16; the box 44 and its 16; the line above the doors; the bar's order and "?"; one line to Jambo, green on hover; the Board joined; off = nothing moved; a non-admin refused.
+- `HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js` — the tidy sweep with the switch on (and without it, today's look).

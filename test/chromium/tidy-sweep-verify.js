@@ -272,11 +272,13 @@ const LEVEL = `(() => {
   const panel = ['#ins-panel.is-jambo', '#ig-dock', '#st-side', '#tb-rail', '.cal-cop'].map(s => document.querySelector(s)).find(vis);
   if (!panel || innerWidth <= 1100 || document.querySelector('.hb-dark')) return null;
   const pr = panel.getBoundingClientRect();
-  /* THE BOARD JOINED (the new look, as drawn 30 Oct 2026): the panel stands square against the bar and the window's foot,
-     and the page's head is the white strip level with it; the cards scroll under it in the well */
-  const hd = document.getElementById('hb-bhead');
-  if (document.documentElement.classList.contains('lg-new') && panel.id === 'ig-dock' && getComputedStyle(panel).borderTopLeftRadius === '0px' && vis(hd))
-    return { dTop: Math.round(hd.getBoundingClientRect().top - pr.top), dBot: 0 };
+  /* THE PAGE FRAME (the new look, as drawn 30 Oct 2026): the panel stands square against the bar and the window's foot and
+     the page is one surface beside it, so there is no card to level; the Board's head is the white strip level with it.
+     The frame's own measures are new-look-frame-verify's */
+  if (document.documentElement.classList.contains('lg-new') && getComputedStyle(panel).borderTopLeftRadius === '0px'){
+    const hd = document.getElementById('hb-bhead');
+    return vis(hd) && panel.id === 'ig-dock' ? { dTop: Math.round(hd.getBoundingClientRect().top - pr.top), dBot: 0 } : null;
+  }
   if (pr.top < 40 || pr.bottom > innerHeight) return null;
   /* a page a door scrolled down (Jambo's work lands on the Board's card) is measured where it starts, not here */
   if ([document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')].some(el => el && el.scrollTop > 0 && !panel.contains(el))) return null;

@@ -1,11 +1,15 @@
 /* THE NEW LOOK: THE FRAME (round 1 of the Legora way, rebuilt page by page behind one switch; owner, 31 Oct 2026:
-   "start with the frame", the paper may move 4px down, Jambo's box 44). With the switch on, at the owner's three screens:
-     1 · every page's frame as drawn: Jambo's panel 12 under the bar, 16 from the window's side and foot, the page's
-         sheet 12 under the bar, 16 from the left, 12 from the panel (a list, a list that scrolls, a contract, the
-         Calendar, Settings, the Handbook)
+   "start with the frame", Jambo's box 44, the contract's wording may sit lower, a light grey behind a page still made
+   of cards). THE PAGE FRAME, as the review room draws it (owner, 30 Oct 2026: "no cards, one surface, one hairline to
+   Jambo"). With the switch on, at the owner's three screens:
+     1 · every page's frame as drawn: Jambo's panel square against the bar, the window's side and its foot; a page that is
+         one sheet runs from the bar and the window's left edge to the seam (a list, a list that scrolls, a contract,
+         the Handbook); a page still made of cards keeps them on the grey well, 12 under the bar and 16 in (the
+         Calendar, Settings, whose page scrolls, so its panel stands left of the scrollbar)
      2 · Jambo's box 44 tall; one line above the doors, none between the doors and the box
      3 · the bar in the drawn order: Jambo · the bell · the Guide ("?") · recent · you · sign out; your initials on a light disc
-     4 · the slider: a hairline in the gap's middle, green while hovered
+     4 · ONE LINE TO JAMBO (owner, 31 Oct 2026): the panel's edge is the only hairline; the slider lies on it, drawing
+         nothing at rest, a green line two pixels wide while hovered
      5 · the Board joined: the panel square against the window's edge with one hairline, the head a white strip 56 tall,
          the first card 12 under it
      6 · nothing sideways
@@ -29,7 +33,7 @@ const BODY = 'SUPPLY AGREEMENT\n\n1. Parties\nThis agreement is made between Hig
 /* the frame as the page draws it: the panel that holds Jambo's box, and the page's white sheet beside it */
 const FRAME = () => {
   const box = [...document.querySelectorAll('.jb-card')].find(b => b.getBoundingClientRect().width > 0);
-  const panel = box && box.closest('#ig-dock, #ins-panel, #st-side, aside');
+  const panel = box && (box.closest('#ig-dock') || box.closest('#ins-panel, #st-side, aside'));
   if (!panel) return null;
   const bar = document.getElementById('top-header').getBoundingClientRect().bottom;
   const p = panel.getBoundingClientRect();
@@ -37,7 +41,8 @@ const FRAME = () => {
     const b = e.getBoundingClientRect(); return b.width > 300 && b.height > 40 && b.right <= p.left + 1 && b.top < innerHeight && getComputedStyle(e).backgroundColor === 'rgb(255, 255, 255)'; });
   const B = whites.map(e => e.getBoundingClientRect());
   const ways = panel.querySelector('.jb-ways.is-above-foot'), foot = ways && ways.nextElementSibling;
-  return { top: Math.round(p.top - bar), right: Math.round(innerWidth - p.right), bottom: Math.round(innerHeight - p.bottom),
+  const bx = box.getBoundingClientRect();
+  return { boxIn: [Math.round(bx.left - p.left - (parseFloat(getComputedStyle(panel).borderLeftWidth) || 0)), Math.round(p.right - bx.right), Math.round(p.bottom - bx.bottom)], seam: getComputedStyle(panel).borderLeftWidth, top: Math.round(p.top - bar), right: Math.round(innerWidth - p.right), bottom: Math.round(innerHeight - p.bottom),
     gap: Math.round(p.left - Math.max(...B.map(b => b.right))), sheetTop: Math.round(Math.min(...B.map(b => b.top)) - bar), sheetLeft: Math.round(Math.min(...B.map(b => b.left))),
     boxH: Math.round(box.getBoundingClientRect().height), lineAboveDoors: !!ways && getComputedStyle(ways).borderTopWidth === '1px',
     noLineUnder: !foot || getComputedStyle(foot).borderTopColor === 'rgba(0, 0, 0, 0)', sideways: document.documentElement.scrollWidth - innerWidth };
@@ -76,9 +81,13 @@ const FRAME = () => {
         await until(page, () => { const b = [...document.querySelectorAll('.jb-card')].find(x => x.getBoundingClientRect().width > 0); return !!b; }, null, 15000);
         await page.waitForTimeout(900);
         const F = await page.evaluate(FRAME);
-        check(`${nm} 1 ${pg}: the panel 12 · 16 · 16, the sheet 12 under the bar, 16 from the left, 12 from the panel`,
-          !!F && F.top === 12 && F.right === 16 && F.bottom === 16 && F.sheetTop === 12 && F.sheetLeft === 16 && Math.abs(F.gap - 12) <= 1, F);
-        check(`${nm} 2 ${pg}: Jambo's box 44; a line above the doors and none under them`, !!F && F.boxH === 44 && F.lineAboveDoors && F.noLineUnder, F && { boxH: F.boxH, above: F.lineAboveDoors, under: F.noLineUnder });
+        /* Settings and Import scroll as a whole: their scrollbar keeps its strip by the seam (10px) */
+        const cards = pg === 'calendar' || pg === 'settings', scrolls = pg === 'settings', strip = pg === 'import' ? 10 : 0;
+        check(`${nm} 1 ${pg}: the panel square at the bar, the side and the foot behind one hairline; ` + (cards ? 'its cards on the well, 12 under the bar and 16 in' : 'the page one surface from the bar and the left edge to the seam'),
+          !!F && F.top === 0 && F.bottom === 0 && F.right === (scrolls ? 10 : 0) && F.seam === '1px'
+          && (cards ? F.sheetTop === 12 && F.sheetLeft === 16 && F.gap >= 16 && F.gap <= 17 : F.sheetTop === 0 && F.sheetLeft === 0 && F.gap === strip), F);
+        check(`${nm} 2 ${pg}: Jambo's box 44, 16 in from the panel's sides and foot; a line above the doors and none under them`,
+          !!F && F.boxH === 44 && F.boxIn.every(v => v === 16) && F.lineAboveDoors && F.noLineUnder, F && { boxH: F.boxH, boxIn: F.boxIn, above: F.lineAboveDoors, under: F.noLineUnder });
         check(`${nm} 6 ${pg}: nothing sideways`, !!F && F.sideways <= 0, F && F.sideways);
         await page.screenshot({ path: path.join(OUT, `${nm}-${pg}.png`) });
       }
@@ -92,12 +101,12 @@ const FRAME = () => {
       check(`${nm} 3 the bar: Jambo · bell · Guide "?" · recent · you · sign out; your initials on a light disc`, BAR.inOrder && BAR.help && BAR.oldHidden && BAR.av === 'rgb(230, 230, 234)', BAR);
       const SL = await page.evaluate(() => { const r = document.querySelector('#st-side > .ig-resizer, #content .ins-panel.is-jambo > .ig-resizer, #ig-resizer');
         if (!r || r.hidden) return null; const s = r.querySelector('span'); const b = s.getBoundingClientRect(); const panel = r.closest('#st-side, .ins-panel') || document.getElementById('ig-dock');
-        return { w: Math.round(b.width), h: Math.round(b.height), mid: Math.round(b.left + b.width / 2), panelLeft: Math.round(panel.getBoundingClientRect().left), bg: getComputedStyle(s).backgroundColor, rect: [Math.round(r.getBoundingClientRect().left), Math.round(r.getBoundingClientRect().top), Math.round(r.getBoundingClientRect().width), Math.round(r.getBoundingClientRect().height)] }; });
-      check(`${nm} 4 the slider: a 1px hairline the height of the gap, in its middle`, !!SL && SL.w === 1 && SL.h > 300 && Math.abs(SL.mid - (SL.panelLeft - 6)) <= 2 && SL.bg === 'rgb(230, 230, 234)', SL);
+        return { w: Math.round(b.width), h: Math.round(b.height), mid: Math.round(b.left + b.width / 2), panelLeft: Math.round(panel.getBoundingClientRect().left), bg: getComputedStyle(s).backgroundColor, seam: getComputedStyle(panel).borderLeftWidth, rect: [Math.round(r.getBoundingClientRect().left), Math.round(r.getBoundingClientRect().top), Math.round(r.getBoundingClientRect().width), Math.round(r.getBoundingClientRect().height)] }; });
+      check(`${nm} 4 one line to Jambo: the panel's edge is the hairline; the slider lies on it and draws nothing at rest`, !!SL && SL.seam === '1px' && SL.h > 300 && Math.abs(SL.mid - SL.panelLeft) <= 2 && SL.bg === 'rgba(0, 0, 0, 0)', SL);
       if (SL){
         await page.mouse.move(SL.rect[0] + SL.rect[2] / 2, SL.rect[1] + SL.rect[3] / 2); await page.waitForTimeout(250);
         const hov = await page.evaluate(() => { const s = document.querySelector('#st-side > .ig-resizer span, #content .ins-panel.is-jambo > .ig-resizer span, #ig-resizer span'); return { w: Math.round(s.getBoundingClientRect().width), bg: getComputedStyle(s).backgroundColor }; });
-        check(`${nm} 4b hovered, it turns green and a pixel wider`, hov.w === 2 && hov.bg === 'rgb(8, 115, 99)', hov);
+        check(`${nm} 4b hovered, a green line two pixels wide lies on the seam`, hov.w === 2 && hov.bg === 'rgb(8, 115, 99)', hov);
         await page.mouse.move(10, 300);
       }
       await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
