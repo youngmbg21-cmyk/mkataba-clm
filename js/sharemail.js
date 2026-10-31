@@ -299,6 +299,8 @@ function _smLetterJoin(parts){
 }
 /* AND THE SAME LETTER AS HTML, for the inbox that draws one: the button a
    button. A standalone document carries no :root — literal values only. */
+/* the letter's one green (a standalone email carries no :root — a literal, written once) */
+const SM_LINK_INK = '#0b7a5f';
 function _smLetterHtml(parts){
   const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const link = (parts.find(p => p.k === 'link') || {}).t;
@@ -306,7 +308,7 @@ function _smLetterHtml(parts){
   for (let i = 0; i < parts.length; i++){
     const p = parts[i];
     /* a letter with no button carries its link as one plain line (the drawn letter) */
-    if (p.k === 'link'){ if (!parts.some(b => b.k === 'btn') && link) out.push(`<p style="margin:0 0 14px"><a href="${e(link)}" style="color:#0b7a5f">${e(link)}</a></p>`); continue; }
+    if (p.k === 'link'){ if (!parts.some(b => b.k === 'btn') && link) out.push(`<p style="margin:0 0 14px"><a href="${e(link)}" style="color:${SM_LINK_INK}">${e(link)}</a></p>`); continue; }
     if (p.k === 'sign'){ out.push(`<p style="margin:0 0 14px">${e(p.t)}</p>`); continue; }
     if (p.k === 'ans'){
       const run = [];
@@ -315,7 +317,7 @@ function _smLetterHtml(parts){
       out.push(`<div style="margin:0 0 14px;padding:2px 0 2px 12px;border-left:3px solid #d0d5dd">${run.map(r =>
         `<p style="margin:0 0 4px"><b>${e(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + e(r.rest) : ''}</p>`).join('')}</div>`);
     } else if (p.k === 'btn'){
-      out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="display:inline-block;background:#0b7a5f;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">${e(p.t)}</a></p>`
+      out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="display:inline-block;background:${SM_LINK_INK};color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">${e(p.t)}</a></p>`
         : `<p style="margin:0 0 14px"><b>${e(p.t)}</b></p>`);
     } else if (p.k === 'msg'){
       out.push(`<p style="margin:0 0 14px;white-space:pre-wrap">${e(p.t)}</p>`);
