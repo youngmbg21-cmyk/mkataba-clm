@@ -1017,6 +1017,8 @@ function insListOff(tbody){ if (tbody) tbody.setAttribute('data-ins-on', '0'); }
    inside the room and repaints for whichever contract the room holds. */
 const INS_PAGE_REPAINT = {
   register: 'regRepaint',
+  /* Home in the new look beside Jambo's panel where it fits (round 2 rebuilt, 31 Oct 2026) */
+  counter: 'renderCounter',
   approvals: 'renderApprovalsPage',
   customers: 'renderCustomers',
   /* the Directory's wall of faces takes the inspector where it fits (13 Oct 2026) */

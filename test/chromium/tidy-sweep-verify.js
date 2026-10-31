@@ -299,7 +299,7 @@ const LEVEL = `(() => {
    Each is guarded: a door that is not there reports, never throws.
    ============================================================ */
 const PLACES = [
-  { k: 'home', name: 'Home', go: `setView('counter')`, wait: `document.querySelector('#cn-needs, #cn-q')` },
+  { k: 'home', name: 'Home', go: `setView('counter')`, wait: `document.querySelector('#cn-needs, #cn-q, #cn2-page #cn2-list')` },
   { k: 'board', name: 'Board', go: `setView('dashboard')`, wait: `document.querySelector('#hb-board .hb-card')` },
   { k: 'board-sheet', name: 'Board · side list', go: `setView('dashboard'); setTimeout(() => { const el = [...document.querySelectorAll('svg.hb-svg [data-hb-dig], .hb-chart [data-hb-dig], .hb-chart-bars [data-hb-dig], .hb-ctab [data-hb-dig], .hb-small [data-hb-dig], .hb-stagebar [data-hb-dig], .hb-stagekey [data-hb-dig]')].find(e => !e.disabled); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, 600)`, wait: `document.querySelector('.hb-sheet tr[data-hb-sheet-c]')` },
   { k: 'board-card', name: 'Board · a row of the side list, landed on its Dossier', go: `setView('dashboard'); let t1 = 0; const w1 = setInterval(() => { const el = document.querySelector('.hb-stagekey [data-hb-dig="st:Under Review"]'); if (!el && ++t1 < 25) return; clearInterval(w1); if (!el) return; el.dispatchEvent(new MouseEvent('click', { bubbles: true })); let t2 = 0; const w2 = setInterval(() => { const tr = document.querySelector('.hb-sheet tr[data-hb-sheet-c="MK-400"]'); if (!tr && ++t2 < 25) return; clearInterval(w2); if (tr) tr.click(); }, 200); }, 200)`, wait: `document.querySelector('#pd-glance') && /MK-400/.test((document.querySelector('#dk-page') || document.body).textContent) && !document.querySelector('.hb-sheet')` },

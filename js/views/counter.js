@@ -1103,11 +1103,13 @@ function cnCountsHtml(D){
 const CN_WEEK_DAYS = 7;
 function cnWeekOf(D){
   if (typeof calendarEvents !== 'function' || typeof calToday !== 'function') return null;
-  const today = calToday(), t0 = new Date(today + 'T00:00:00');
+  /* this week, Monday to Sunday, as drawn; today is marked where it falls */
+  const today = calToday(), td = new Date(today + 'T00:00:00'), t0 = new Date(td.getFullYear(), td.getMonth(), td.getDate() - ((td.getDay() + 6) % 7));
   const iso = d => { const x = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
   const days = Array.from({ length: CN_WEEK_DAYS }, (_, i) => iso(i));
   let evs = [];
-  try { evs = calendarEvents().filter(e => e && e.date >= days[0] && e.date <= days[CN_WEEK_DAYS - 1]
+  /* the days already gone this week stay plain: what was missed on them is late, and said on today */
+  try { evs = calendarEvents().filter(e => e && e.date >= today && e.date <= days[CN_WEEK_DAYS - 1]
     && (e.type === 'renewal' || e.type === 'expiry' || (e.type === 'obligation' && !e.done && !e.theirs && !e.waiting))); } catch (_){ evs = []; }
   return days.map(d => {
     const E = evs.filter(e => e.date === d);
@@ -1183,6 +1185,8 @@ function ndSig(D){
 function renderCounter(){
   const host = document.getElementById('content'); if (!host) return;
   _cnPop = null;
+  /* the new look's Home, behind the switch and where Jambo's panel fits (cn2On) */
+  if (cn2On()){ renderCounter2(host); if (typeof mineLoad === 'function') try { mineLoad().then(counterFollow, () => {}); } catch (_){} return; }
   host.innerHTML = counterHtml();
   /* the box takes the keys straight away where there is a keyboard to type with */
   let fine = false; try { fine = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches); } catch (_){ fine = false; }
@@ -1194,6 +1198,7 @@ function renderCounter(){
 /* the list's own data moved (a save, a new item): only the Needs card is drawn again */
 function counterRepaint(){
   if (typeof state === 'undefined' || !state || state.view !== 'counter') return;
+  if (document.getElementById('cn2-page')){ cn2Repaint(); return; }
   const card = document.getElementById('cn-needs'); if (!card) return;
   const t = document.createElement('div'); t.innerHTML = counterHtml();
   const fresh = t.querySelector('#cn-needs'); if (fresh) card.replaceWith(fresh);
@@ -1207,7 +1212,7 @@ function counterRepaint(){
 /* asked after the side's counts are worked out (updateSidebarCounts) and when
    My notes arrive: the Counter is drawn again only where what it lists moved */
 function counterFollow(){
-  if (typeof state === 'undefined' || !state || state.view !== 'counter' || !document.getElementById('cn-needs')) return;
+  if (typeof state === 'undefined' || !state || state.view !== 'counter' || !(document.getElementById('cn-needs') || document.getElementById('cn2-page'))) return;
   let sig = ''; try { sig = ndSig(ndRead()); } catch (_){ return; }
   if (sig !== _cnSig) counterRepaint();
 }
@@ -1271,6 +1276,167 @@ function counterPopTake(i){
   const r = _cnPop && _cnPop.rows[i]; if (!r) return;
   const q = document.getElementById('cn-q'); if (q) q.value = '';
   counterPopClose(); counterAsk(r.word);
+}
+
+/* ==== HOME, THE NEW LOOK (round 2 of the Legora way rebuilt; owner, 31 Oct 2026: "start Home", the six answers:
+   one list, the box in Jambo's panel, the paper's words only where known, approvals off the week line, Jambo says only
+   what he has read, his work opens in place) ====
+   Drawn on the review room's Home: under the black bar the sheet (the warm top — the greeting, one sentence, the counts,
+   your week — then ONE list of everything waiting, most urgent first, then its foot) and Jambo's panel beside it behind
+   one line (his notes from what he has read, Likely next with each one's cost, the doors, his box). Behind the switch
+   (newLookOn) and only where the panel fits (insFits); everything it reads is the one desk's (ndRead, ndParts); every
+   press is an existing door. The first day (no contract yet) is its own sheet: three doors, and Jambo's set-up words. */
+const CN2_SEAT = 'counter';
+const CN2_RANK = { late: 0, you: 1, jambo: 2, week: 3 };
+let _cn2Look = null;
+function cn2On(){ return typeof newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
+/* the one list: late, then your move, then Jambo's prepared work, then what falls this week; the desk's own order inside each */
+function cn2Rows(D){
+  return D.jambo.concat(D.you).filter(r => !r.setup).map((r, i) => ({ r, i, k: ndKindOfRow(r) }))
+    .sort((a, b) => ((CN2_RANK[a.k] ?? 1) - (CN2_RANK[b.k] ?? 1)) || (a.i - b.i));
+}
+function cn2Name(){ const me = (typeof currentUser === 'function') ? currentUser() : null; return String((me && me.name) || '').trim().split(/\s+/)[0] || _cnT('home_greet_there'); }
+function cn2Greet(){ const h = new Date().getHours(); return _cnT(h < 12 ? 'cn2_greet_m' : h < 18 ? 'cn2_greet_a' : 'cn2_greet_e', { name: cn2Name() }); }
+/* the sentence under the greeting, counted from the list: "1 thing is late, 4 wait on you and I prepared 2 for you." */
+function cn2Say(L){
+  const n = k => L.filter(x => x.k === k).length;
+  const parts = [n('late') ? _cnTn('cn2_s_late', n('late'), { n: n('late') }) : '', n('you') + n('week') ? _cnTn('cn2_s_you', n('you') + n('week'), { n: n('you') + n('week') }) : '',
+    n('jambo') ? _cnTn('cn2_s_jambo', n('jambo'), { n: n('jambo') }) : ''].filter(Boolean);
+  if (!parts.length) return _cnT('cn2_s_none');
+  const s = parts.length > 1 ? parts.slice(0, -1).join(', ') + _cnT('cn2_s_and') + parts[parts.length - 1] : parts[0];
+  return s.charAt(0).toUpperCase() + s.slice(1) + '.';
+}
+/* signed this calendar month, and their value where it may be seen and added (fxCounted; a missing rate adds nothing) */
+function cn2Signed(){
+  const ym = (typeof todayISO === 'function' ? todayISO() : new Date().toISOString()).slice(0, 7);
+  const L = (state.contracts || []).filter(c => { let d = ''; try { d = String((typeof contractSignedAt === 'function' && contractSignedAt(c)) || ''); } catch (_){ d = ''; } return d.slice(0, 7) === ym; });
+  let sum = 0, code = '';
+  const see = typeof canViewValues === 'function' ? canViewValues() : true;
+  if (see) L.forEach(c => { const h = (typeof fxCounted === 'function') ? fxCounted(c) : (typeof fxHome === 'function' ? fxHome(c) : null); if (h && !h.missing && h.v){ sum += h.v; code = code || (typeof fxHomeCode === 'function' ? fxHomeCode() : h.code); } });
+  return { ids: L.map(c => c.id), n: L.length, value: sum && see && typeof fmtMoneyShortIn === 'function' ? fmtMoneyShortIn(sum, code) : '' };
+}
+function cn2CountsHtml(L){
+  const n = k => L.filter(x => x.k === k).length, S = cn2Signed();
+  const one = (tone, num, words, attr) => num ? `<button type="button" class="cn-ct is-${tone}" ${attr}><i aria-hidden="true"></i>${_cnE(words)}</button>` : '';
+  return `<div class="cn-counts" id="cn2-counts">${one('ruby', n('late'), _cnT('cn_ct_late', { n: n('late') }), 'data-cn-count="all"')}`
+    + one('amber', n('you'), _cnT('cn2_ct_you', { n: n('you') }), 'data-cn-count="you"')
+    + one('violet', n('jambo'), _cnT('cn_ct_jambo', { n: n('jambo') }), 'data-cn-count="jambo"')
+    + one('green', n('week'), _cnT('cn2_ct_week', { n: n('week') }), 'data-cn2-cal')
+    + one('gray', S.n, S.value ? _cnT('cn2_ct_signed_v', { n: S.n, v: S.value }) : _cnT('cn2_ct_signed', { n: S.n }), 'data-cn2-signed') + `</div>`;
+}
+/* THE PAPER'S WORDS, ONLY WHERE THEY ARE KNOWN (owner's answer 3): their changes quote the words they propose; owed
+   details name the section their blanks stand in; every other row says only what waits */
+function cn2QuoteHtml(r){
+  const y = r && r.y, x = y && y.x, c = x && x.c, it = x && x.it; if (!c || !it) return '';
+  if (it.kind === 'quiet'){
+    const chs = (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && ch.newText).slice(0, 2);
+    return chs.map(ch => { const lab = String(ch.clauseLabel || ''), m = lab.match(/^\s*(\d+(?:\.\d+)*)[.)]?\s*(.*)$/);
+      const sec = m ? '§ ' + m[1] + (m[2] ? ' ' + m[2].charAt(0) + m[2].slice(1).toLowerCase() : '') : lab;
+      const w = String(ch.newText).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); const short = w.length > 70 ? w.slice(0, 69).replace(/\s+\S*$/, '') + '…' : w;
+      return ` · <b class="cn2-sec">${_cnE(sec)}</b> — <q class="cn2-src">${_cnE(short)}</q>`; }).join('');
+  }
+  if (it.kind === 'details' && typeof contractBlanks === 'function'){
+    let B = []; try { B = contractBlanks(c).filter(b => b && !b.value && b.section); } catch (_){ B = []; }
+    return [...new Set(B.map(b => b.section))].slice(0, 2).map(t => ` · <b class="cn2-sec">${_cnE(t)}</b>`).join('');
+  }
+  return '';
+}
+function cn2RowHtml(x){
+  const r = x.r, P = ndParts(r), jb = r.g === 'jambo', key = jb && r.it ? r.it.key : '';
+  const named = !!P.name, head = named ? P.name : P.title;
+  const party = P.party && !String(head).toLowerCase().includes(P.party.toLowerCase()) ? P.party : '';
+  const line = jb ? [_cnE(_cnT('nd_kind_jambo')), _cnE(P.when || '')].filter(Boolean).join(' · ') : [_cnE(party), P.ref, _cnE(P.money || '')].filter(Boolean).join(' · ');
+  const what = jb ? _ndText(P.line || P.read) : (named ? P.title : P.deal);
+  const when = !jb && P.when ? `<span class="${P.late ? 'cn2-late' : 'cn2-when'}">${_cnE(P.when)}</span> · ` : '';
+  const open = jb && _cn2Look === key;
+  const verb = jb ? `<button type="button" class="ui-link nd-btn nd-link" data-cn2-look="${_cnE(key)}" aria-expanded="${open}">${_cnE(_cnT(open ? 'cn2_close' : 'nd_btn_review'))}</button>` : _ndLinkHtml(P);
+  const look = open ? `<div class="cn2-look" data-hb-ag-item="${_cnE(key)}">${typeof hbNdLookHtml === 'function' ? hbNdLookHtml(r.it) : ''}</div>` : '';
+  return `<div class="cn2-row${open ? ' is-open' : ''}" data-nd-row="${_cnE(r.key)}"><div class="cn2-who">${ndAvHtml(r, P)}<div class="cn2-w"><div class="cn2-nm">${_cnE(head)}</div><div class="cn2-ln">${line}</div></div></div>`
+    + `<div class="cn2-fx">${ndKindHtml(r)}${when}${_cnE(what || '')}${jb ? '' : cn2QuoteHtml(r)}</div><div class="cn2-ac">${verb}</div></div>${look}`;
+}
+function cn2Html(){
+  if (!(state.contracts || []).length) return cn2FirstDayHtml();
+  const D = ndRead(), L = cn2Rows(D);
+  return `<div class="view-enter sap-page ins-page cn2-page" id="cn2-page" data-ins-page="${CN2_SEAT}" data-ins="1"><div class="ins-body">`
+    + `<section class="ins-card cn2-sheet" aria-label="${_cnE(_cnT('nav_home'))}"><header class="cn2-top"><h1 class="cn2-hello">${_cnE(cn2Greet())}</h1><p class="cn2-say">${_cnE(cn2Say(L))}</p>${cn2CountsHtml(L)}${cnWeekHtml(D)}</header>`
+    + `<div class="cn2-list scroll-thin" id="cn2-list">${L.length ? L.map(cn2RowHtml).join('') : `<p class="cn2-none">${_cnE(_cnT('cn_nothing'))}</p>`}</div>`
+    + `<footer class="cn2-foot"><span>${_cnE(_cnTn('cn2_foot', L.length, { n: L.length }))}</span></footer></section>`
+    + `<aside id="ins-panel" class="ins-panel" aria-label="${_cnE(_cnT('cn2_jambo'))}"></aside></div></div>`;
+}
+/* THE FIRST DAY (as drawn): nothing filed yet — three doors, each saying what it does, and the company's line */
+function cn2FirstDayHtml(){
+  const row = (k, ic, t, s, b, filled) => `<div class="cn2-fd"><span class="cn2-fd-i" aria-hidden="true">${typeof icon === 'function' ? icon(ic, 'w-4 h-4') : ''}</span><div class="cn2-fd-w"><div class="cn2-nm">${_cnE(_cnT(t))}</div><div class="cn2-fd-s">${_cnE(_cnT(s))}</div></div>`
+    + `<button type="button" class="ui-btn${filled ? ' ui-btn-primary' : ''}" data-cn2-first="${k}">${_cnE(_cnT(b))}</button></div>`;
+  const org = (typeof FIRST_PARTY !== 'undefined' && FIRST_PARTY) ? FIRST_PARTY : '';
+  return `<div class="view-enter sap-page ins-page cn2-page is-first" id="cn2-page" data-ins-page="${CN2_SEAT}" data-ins="1"><div class="ins-body"><section class="ins-card cn2-sheet">`
+    + `<header class="cn2-top is-plain"><h1 class="cn2-hello">${_cnE(cn2Greet())}</h1><p class="cn2-say is-strong">${_cnE(_cnT('cn2_fd_say'))}</p></header>`
+    + `<div class="cn2-list" id="cn2-list"><div class="cn2-fds">${row('upload', 'filenew', 'cn2_fd_up', 'cn2_fd_up_s', 'cn2_fd_up_b', true)}${row('draft', 'pencil', 'cn2_fd_dr', 'cn2_fd_dr_s', 'cn2_fd_dr_b')}${row('import', 'upload', 'cn2_fd_im', 'cn2_fd_im_s', 'cn2_fd_im_b')}</div></div>`
+    + `<footer class="cn2-foot"><span class="cn2-fd-lk"><button type="button" class="ui-link" data-cn2-go="settings">${_cnE(_cnT('cn2_fd_settings'))}</button><button type="button" class="ui-link" data-cn2-go="handbook">${_cnE(_cnT('cn2_fd_handbook'))}</button></span>`
+    + `${org ? `<span>${_cnE(_cnT('cn2_fd_org', { org }))}</span>` : ''}</footer></section><aside id="ins-panel" class="ins-panel" aria-label="${_cnE(_cnT('cn2_jambo'))}"></aside></div></div>`;
+}
+/* JAMBO'S PANEL ON HOME: only what he has read or prepared (owner's answer 5), free; Likely next with each one's cost */
+function cn2JlSay(){
+  if (!(state.contracts || []).length){
+    const never = ['send', 'change', 'guess'].map(k => `<div class="cn2-pr"><b>${_cnE(_cnT('cn2_never_' + k))}</b><span>${_cnE(_cnT('cn2_never_' + k + '_s'))}</span><span class="cn2-q">${_cnE(_cnT('cn2_rule'))}</span></div>`).join('');
+    const once = [['people', 'cn2_once_people', 'cn2_once_people_s'], ['settings', 'cn2_once_streams', 'cn2_once_streams_s'], ['standards', 'cn2_once_std', 'cn2_once_std_s']]
+      .map(([g, t, w]) => `<div class="cn2-lk"><button type="button" class="ui-link" data-cn2-go="${g}">${_cnE(_cnT(t))}</button><span class="cn2-q">${_cnE(_cnT(w))}</span></div>`).join('');
+    return { lines: [_cnE(_cnT('cn2_fd_jb'))], head: { html: _cnE(_cnT('cn2_fd_jb')) }, src: _cnT('cn2_fd_jb_src'),
+      after: `<p class="cn2-eye">${_cnE(_cnT('cn2_never'))}</p>${never}<p class="cn2-eye">${_cnE(_cnT('cn2_once'))}</p>${once}` };
+  }
+  const D = ndRead(), L = cn2Rows(D);
+  const late = L.find(x => x.k === 'late');
+  let head;
+  if (late){ const P = ndParts(late.r); head = _cnT('cn2_jb_late', { what: P.name ? P.title : P.title, on: P.name || _ndText(P.deal) || '', when: P.when || '' }); }
+  else if (L.length){ const P = ndParts(L[0].r); head = _cnTn('cn2_jb_first', L.length, { n: L.length, what: P.name || P.title }); }
+  else head = _cnT('cn2_jb_none');
+  const turns = D.jambo.slice(0, 3).map(r => { const P = ndParts(r); const k = r.it && r.it.key;
+    return `<div class="cn2-turn"><span class="cn2-dot" aria-hidden="true"></span><div><b class="cn2-who-j">Jambo</b><span>${_cnE(_ndText(P.line || P.read || P.title))}</span>${k ? ` <button type="button" class="ui-link" data-cn2-look="${_cnE(k)}">${_cnE(_cnT('cn2_open_here'))}</button>` : ''}</div></div>`; }).join('');
+  let lk = []; try { lk = cnLikely(D); } catch (_){ lk = []; }
+  const likely = lk.length ? `<p class="cn2-eye">${_cnE(_cnT('cn_lk_head').replace(/:\s*$/, ''))}</p>` + lk.map(t => `<div class="cn2-lk"><button type="button" class="ui-link" ${t.attrs}>${_cnE(t.words.charAt(0).toUpperCase() + t.words.slice(1))}</button><span class="cn2-q">${_cnE(_cnT('cn2_free'))}</span></div>`).join('') : '';
+  /* `lines` too: the panel reads a page's words through them (jlWordsHtml), and keeps the source line only with them */
+  return { lines: [_cnE(head)], head: { html: _cnE(head) }, src: _cnT('cn2_jb_src'), after: turns + likely };
+}
+function cn2PanelPaint(){
+  if (typeof insPaintPanel !== 'function' || !document.getElementById('ins-panel')) return;
+  insPaintPanel({ seat: CN2_SEAT, jlSay: cn2JlSay, jlWord: _cnT('cn2_jambo'), jlHome: _cnT('cn2_jambo') });
+  /* on Home the panel is his, as drawn: its tab says "Jambo", with no count (the counts stand on the page) */
+  const tab = document.querySelector('#ins-panel [data-jl-home]');
+  if (tab){ const w = tab.querySelector('.pd-tab-w'); if (w) w.textContent = _cnT('cn2_jambo'); tab.setAttribute('title', _cnT('cn2_jambo'));
+    tab.querySelectorAll('[data-jl-n]').forEach(n => { n.hidden = true; }); }
+}
+function renderCounter2(host){
+  const list = document.getElementById('cn2-list'), keep = list ? list.scrollTop : 0;
+  host.innerHTML = cn2Html();
+  cn2PanelPaint();
+  const L2 = document.getElementById('cn2-list'); if (L2 && keep) L2.scrollTop = keep;
+  if (typeof insWatchWidth === 'function') insWatchWidth();
+  try { _cnSig = ndSig(ndRead()); } catch (_){}
+}
+function cn2Repaint(){ if (typeof state === 'undefined' || !state || state.view !== 'counter' || !document.getElementById('cn2-page')) return; const host = document.getElementById('content'); if (host) renderCounter2(host); }
+/* a piece of Jambo's work opened in place under its row (owner's answer 6), and closed by the same press */
+function cn2LookToggle(key){
+  _cn2Look = _cn2Look === key ? null : key;
+  if (typeof hbAgLookSet === 'function') hbAgLookSet(_cn2Look);
+  cn2Repaint();
+  if (_cn2Look){ const el = document.querySelector(`#cn2-list [data-hb-ag-item="${CSS.escape(_cn2Look)}"]`); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
+}
+function cn2FirstGo(k){
+  if (k === 'upload'){ if (typeof pdDropDoor === 'function') pdDropDoor(); else if (typeof openUploadModal === 'function') openUploadModal(); return; }
+  if (k === 'draft'){ if (typeof openNewAgreement === 'function') openNewAgreement(); return; }
+  if (k === 'import' && typeof setView === 'function') setView('import');
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !window._cn2Wired){
+  window._cn2Wired = true;
+  document.addEventListener('click', e => {
+    const t = e.target; if (!t || !t.closest) return;
+    let el;
+    if ((el = t.closest('[data-cn2-look]'))){ cn2LookToggle(el.getAttribute('data-cn2-look')); return; }
+    if ((el = t.closest('#cn2-page .cn2-look'))){ if (typeof hbAgentWorkPress === 'function' && hbAgentWorkPress(t)) setTimeout(cn2Repaint, 400); return; }
+    if ((el = t.closest('[data-cn2-first]'))){ cn2FirstGo(el.getAttribute('data-cn2-first')); return; }
+    if ((el = t.closest('[data-cn2-go]'))){ if (typeof caGo === 'function') caGo({ kind: 'go', place: el.getAttribute('data-cn2-go'), cid: null }); return; }
+    if ((el = t.closest('[data-cn2-cal]'))){ if (typeof hbOpenCalendar === 'function') hbOpenCalendar(); return; }
+    if ((el = t.closest('[data-cn2-signed]'))){ const S = cn2Signed(); if (S.n && typeof regShowOnly === 'function') regShowOnly(S.ids, _cnT('cn2_ct_signed', { n: S.n })); return; }
+  });
 }
 
 /* ---------------- PRESSES, ONE LISTENER EACH, ARMED ONCE ---------------- */
@@ -1359,5 +1525,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnLikely, cnLikelyWords, CN_LIKELY_MAX, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndKindOfRow, ndKindHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndKindOfRow, ndKindHtml, CN2_SEAT, CN2_RANK, cn2On, cn2Rows, cn2Say, cn2Signed, cn2CountsHtml, cn2QuoteHtml, cn2RowHtml, cn2Html, cn2FirstDayHtml, cn2JlSay, cn2PanelPaint, renderCounter2, cn2Repaint, cn2LookToggle, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });

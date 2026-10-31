@@ -51,12 +51,13 @@ const doorsOf = page => page.evaluate(() => { const n = document.querySelector('
       await until(page, () => !!document.querySelector('.jb-ways[data-jb-ways="oblig"]'));
       const O = await doorsOf(page);
       check(`${nm} 1b Obligations: calendar · contracts · home`, !!O && O.doors.join() === 'calendar,contracts,counter' && O.above && O.inside, O);
-      /* Home's own box */
+      /* Home's own box — RE-POINTED 31 Oct 2026 (Home in the new look, owner's answer 2: his box moves into his panel):
+         Home's doors stand above the box at the foot of Jambo's panel, as on every page */
       await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
-      await until(page, () => !!document.querySelector('#cn-page .jb-ways[data-jb-ways="counter"]'), null, 20000);
-      const H0 = await page.evaluate(() => { const n = document.querySelector('#cn-page .jb-ways'); const c = document.querySelector('#cn-page .jb-card');
+      await until(page, () => !!document.querySelector('#cn2-page #ins-panel .jb-ways[data-jb-ways="counter"]'), null, 20000);
+      const H0 = await page.evaluate(() => { const n = document.querySelector('#cn2-page #ins-panel .jb-ways'); const c = document.querySelector('#cn2-page #ins-panel .jb-card');
         return n ? { doors: [...n.querySelectorAll('[data-jb-way]')].map(b => b.getAttribute('data-jb-way')), above: !!c && n.getBoundingClientRect().bottom <= c.getBoundingClientRect().top + 1, sideways: document.documentElement.scrollWidth - innerWidth } : null; });
-      check(`${nm} 1c Home: board · contracts · calendar · explorer · reads, on the counts' line above the box`, !!H0 && H0.doors.join() === 'board,contracts,calendar,explorer,reads' && H0.above && H0.sideways <= 0, H0);
+      check(`${nm} 1c Home: board · contracts · calendar · explorer · reads, above the box in Jambo's panel`, !!H0 && H0.doors.join() === 'board,contracts,calendar,explorer,reads' && H0.above && H0.sideways <= 0, H0);
       await page.screenshot({ path: path.join(OUT, `home-${nm}.png`) });
 
       /* 2 the Board; Settings */
