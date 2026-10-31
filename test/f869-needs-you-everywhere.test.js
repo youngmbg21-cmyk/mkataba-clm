@@ -50,9 +50,9 @@ const BOOKS = (() => {
 const fill = (s, v) => String(s || '').replace(/\{(\w+)\}/g, (_, k) => (v && k in v) ? v[k] : '{' + k + '}');
 
 const NAMES = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnNeedDoorAttrs', 'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead',
-  'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndPanelHtml'];
+  'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndAvHtml', 'ndKindOfRow', 'ndPanelHtml'];
 const CONSTS = ['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED',
-  'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'];
+  'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml', '_ndLinkHtml', 'ndKindHtml', 'CN_WEEK_DAYS'];
 const C = (id, cp) => ({ id, name: 'Agreement ' + id, counterparty: cp || 'Party ' + id, value: 1e6 });
 const BOOK = { 'MK-1': C('MK-1', 'Nordvik Logistik'), 'MK-2': C('MK-2', 'Kettle & Co'), 'MK-3': C('MK-3', 'Helio Energy AB') };
 function world({ rows = [], pieces = [], alerts = [], company = [] } = {}){

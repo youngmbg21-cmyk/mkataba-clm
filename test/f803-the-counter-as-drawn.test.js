@@ -90,10 +90,10 @@ function counter(rows, extra){
   ctx.window = ctx;
   vm.createContext(ctx);
   /* THE ONE DESK (Round A, 22 Oct 2026): Home's card is drawn from ndRead, so its parts load beside Home's */
-  const names = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnLikely', 'cnLikelyWords', 'ndOnBoard', 'cnFace', 'cnCountsHtml', 'counterHtml',
-    'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndHomeHtml', 'ndSig'];
+  const names = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnLikely', 'cnLikelyWords', 'ndOnBoard', 'cnFace', 'cnCountsHtml', 'cnWeekOf', 'cnWeekHtml', 'counterHtml',
+    'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndAvHtml', 'ndKindOfRow', 'ndHomeHtml', 'ndSig'];
   vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', '_cnJbCard', '_cnJbSend', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE', 'CN_LIKELY_MAX', 'CN_LK_SMALL', '_cnLow',
-    'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', 'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'].map(n => constLine(CN, n)).join('\n')
+    'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', 'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml', '_ndLinkHtml', 'ndKindHtml', 'CN_WEEK_DAYS'].map(n => constLine(CN, n)).join('\n')
     + '\nlet _cnSig = "", _ndMemo = null, _nd = { tab: "all", kind: "any", q: "", more: 0 };\n' + names.map(n => fnBody(CN, n)).join('\n'), ctx);
   return ctx;
 }
@@ -139,18 +139,19 @@ describe('f803 (2) the rows', () => {
   test('2a the agreement · "for Jonas · away until <day>" · number · party · the ask · value · Approve…', () => {
     const html = row(counter([]), approval);
     assert.match(html, /<b><span class="nd-t">Power purchase agreement<\/span> <span class="cn-pill"><svg data-ic="users"><\/svg>for Jonas · away until [A-Z][a-z]+day<\/span><\/b>/);
-    assert.match(html, /<span>MK-1 · Helio Energy AB · Answer an approval for Jonas · KES 8\.10M<\/span>/);
+    /* RE-POINTED 31 Oct 2026 (Morning light's row, owner's yes "build both, green link as drawn"): its kind leads the second line */
+    assert.match(html, /<span><span class="nd-kind is-you">Your move<\/span>MK-1 · Helio Energy AB · Answer an approval for Jonas · KES 8\.10M<\/span>/);
     assert.match(html, /data-cn-need="approval" data-cn-id="MK-1">Approve…<\/button>/);
     assert.match(html, /title="MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M"/, 'the reference rides the hover');
   });
   test('2b their redlines: the party is in the title, so the line does not repeat it; how long, in red', () => {
     const html = row(counter([]), redlines);
-    assert.match(html, /<b><span class="nd-t">Master services agreement<\/span><\/b><span>MK-2 · Answer Nordvik Logistik’s 2 redlines<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
+    assert.match(html, /<b><span class="nd-t">Master services agreement<\/span><\/b><span><span class="nd-kind is-late">Late<\/span>MK-2 · Answer Nordvik Logistik’s 2 redlines<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
     assert.match(html, />Review<\/button>/);
   });
   test('2c "Fill in 2 details", a salary\'s job title in place of the person', () => {
     const html = row(counter([]), pay);
-    assert.match(html, /<b><span class="nd-t">Employment agreement<\/span><\/b><span>MK-3 · Chief financial officer · Fill in 2 details<\/span>/);
+    assert.match(html, /<b><span class="nd-t">Employment agreement<\/span><\/b><span><span class="nd-kind is-you">Your move<\/span>MK-3 · Chief financial officer · Fill in 2 details<\/span>/);
     assert.match(html, />Fill in<\/button>/);
   });
   test('2d whom an approval is answered for: the step\'s own approver, read through the away rule', () => {
@@ -247,7 +248,7 @@ describe('f803 (5) Jambo\'s rows, and the words', () => {
   test('5a a piece is a row: the agreement, the number and what Jambo prepared, Review', () => {
     const w = world([]);
     const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
-    assert.match(html, /<b><span class="nd-t">Master services agreement<\/span><\/b><span><span class="hati-ref">MK-2<\/span> · Nordvik Logistik’s answer<\/span>/);
+    assert.match(html, /<b><span class="nd-t">Master services agreement<\/span><\/b><span><span class="nd-kind is-jambo">Prepared by Jambo<\/span><span class="hati-ref">MK-2<\/span> · Nordvik Logistik’s answer<\/span>/);
     assert.match(html, /data-nd-look="round:MK-2">Review<\/button>/);
     assert.match(html, /title="Two changes: take one, push back on one\."/, 'what he found rides the hover');
   });

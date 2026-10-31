@@ -17588,6 +17588,34 @@
   /* a short screen (the 1536×730 laptop): the warm card gives back the line the counts take, so Needs you still ends on screen */
   @media (max-height:760px){ #cn-page .cn-ask{padding-top:14px;padding-bottom:12px} #cn-page .cn-counts{margin:6px 0 8px} #cn-page .cn-chips{margin-top:8px} }
   #cn-page .cn-counts[hidden]{display:none}
+  /* YOUR WEEK (round 2 of the Legora way, 31 Oct 2026): seven days as dots under the counts, read from the Calendar's
+     own reading; a day with something on it is a button onto the Calendar, an empty one is not */
+  #cn-page .cn-week{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0 0 12px;font-size:11.5px;line-height:16px;color:var(--color-quiet)}
+  #cn-page .cn-wk-t{margin-right:4px;white-space:nowrap}
+  #cn-page .cn-wk-d{display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:30px;padding:2px 0;border:0;border-radius:var(--radius);background:none;font:inherit;color:var(--color-text)}
+  #cn-page button.cn-wk-d{cursor:pointer}
+  @media (hover:hover){ #cn-page button.cn-wk-d:hover{background:var(--surface-2)} }
+  #cn-page .cn-wk-d b{font-weight:var(--w-label)}
+  #cn-page .cn-wk-d.is-today b{text-decoration:underline;text-underline-offset:3px}
+  #cn-page .cn-wk-d i{width:10px;height:10px;border-radius:50%;background:var(--color-divider)}
+  #cn-page .cn-wk-d i.is-ruby{background:var(--st-ruby-dot)}
+  #cn-page .cn-wk-d i.is-amber{background:var(--st-amber-dot)}
+  #cn-page .cn-wk-d i.is-green{background:var(--st-green-dot)}
+  #cn-page .cn-wk-say{margin-left:6px;min-width:0}
+  @media (max-height:760px){ #cn-page .cn-week{margin-bottom:8px} }
+  /* MORNING LIGHT'S ROW (round 2, 31 Oct 2026): the other side's initials lead it, its kind a tinted word, its verb a green link */
+  .nd-r > .nd-av{width:28px;height:28px}
+  .nd-r > .nd-av.is-jambo{background:var(--jb-card-fill);color:var(--st-violet-fg);border:1px solid transparent}
+  .nd-r > .nd-av.is-none{background:var(--surface-2);color:var(--color-quiet);border:1px solid transparent}
+  .nd-r > .nd-av svg{width:14px;height:14px}
+  .nd-kind{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;font-size:11px;line-height:16px;font-weight:var(--w-label);white-space:nowrap;vertical-align:1px}
+  .nd-kind.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .nd-kind.is-you{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .nd-kind.is-jambo{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  .nd-kind.is-week{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .nd-r .nd-btn.nd-link{width:auto;min-width:0;height:auto;min-height:0;padding:0;border:0;background:none;color:var(--accent-ink);font-size:13px;font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;white-space:nowrap}
+  #cn-page .cn-needs .nd-r .nd-btn.nd-link{width:auto;height:auto;min-height:0;font-weight:var(--w-label)}
+  #cn-page .cn-needs .nd-r .nd-btn.nd-link:hover{background:none;color:var(--accent-ink-700)}
   #cn-page .cn-ct{display:inline-flex;align-items:center;gap:7px;height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   #cn-page .cn-ct i{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
   #cn-page .cn-ct.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
