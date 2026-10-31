@@ -4980,9 +4980,17 @@ function ceLadderCardHtml(){
       const words = (typeof window.ladderWords === 'function') ? ladderWords(reply) : String(reply);
       const note = _cet('ce_lc_note_fig', { words, n: reply, unit, clause: clauseName.toLowerCase() });
       _ceLadderReply = { text, note };
-      replyHtml = `<div class="k">${_cee(_cet('ce_lc_reply'))}</div><div><b>${_cee(_cet('ce_lc_reply_fig', { words, n: reply, unit }))}</b></div>
+      const nl = typeof window.newLookOn === 'function' && newLookOn() && typeof window.diffHtml === 'function';
+      /* THE NEW LOOK, AS DRAWN: the suggested wording itself, marked against theirs, in a box under its label */
+      replyHtml = nl
+        ? `<div class="k">${_cee(_cet('ce_lc_wording'))}</div><div class="ce-lc-sug">${diffHtml(ceWords(theirs.text), text)}</div>
+        <div class="k">${_cee(_cet('ce_lc_note'))}</div><div class="said">“${_cee(note)}”</div>`
+        : `<div class="k">${_cee(_cet('ce_lc_reply'))}</div><div><b>${_cee(_cet('ce_lc_reply_fig', { words, n: reply, unit }))}</b></div>
         <div class="k">${_cee(_cet('ce_lc_note'))}</div><div class="said">“${_cee(note)}”</div>`;
-      acts = `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-apply">${_cee(_cet('ce_lc_apply'))}</button>
+      acts = nl
+        ? `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-apply">${_cee(_cet('ce_lc_apply_short'))}</button><span class="sp"></span>
+        <button type="button" class="ce-lc-link" data-ce-act="ladder-note">${_cee(_cet('ce_lc_keep_short'))}</button></div>`
+        : `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-apply">${_cee(_cet('ce_lc_apply'))}</button>
         <button type="button" class="ui-btn" data-ce-act="ladder-note">${_cee(_cet('ce_lc_keep_note'))}</button></div>`;
     }
   } else if (acceptable && theirs){
