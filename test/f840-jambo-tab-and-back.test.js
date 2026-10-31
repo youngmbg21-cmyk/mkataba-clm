@@ -198,7 +198,9 @@ describe('f840 (2) Home\'s panel', () => {
     assert.match(f, /const lead=solo;/, 'his greeting leads only a one-window panel, never an Overview');
     assert.match(f, /msgs&&String\(msgs\)\.trim\(\)\)\|\|typing\?msgs:\(typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\)/, 'the Jambo tab opens on his greeting');
     assert.match(f, /return \(lead&&top&&typeof window\.jamboHelloHtml==='function'\?jamboHelloHtml\(\):''\)\+\(top\|\|`<div class="ig-welcome/, 'the landing: its own words, his greeting first');
-    assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');
+    /* RE-POINTED 31 Oct 2026 (the new look's contract, owner approved: one row of links on every tab of a contract):
+       the chips still stand down beside a desk face, except in the new look on a contract's paper (pd2Row) */
+    assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)&&!pd2Row\)/, 'chips only on the landing (and on a contract in the new look)');
     /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the box stands under every tab, no condition */
     assert.match(f, /\$\{`<div class="igd-foot p-3 border-t/, 'the box on both views, under every tab');
     /* (19 Oct 2026) the go's words count as heard even when the view has

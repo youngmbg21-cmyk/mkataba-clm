@@ -8536,8 +8536,8 @@ function renderIntelDock(){
          this foot row — a page's own sit right under its card (pdHeldChipsHtml,
          pass 3), a paper chosen on the wall has none (as drawn); null where
          it holds none of these and the panel's own chips stand */
-      const held=(state.view==='dashboard'&&typeof window.pdPanelChipsHtml==='function')?pdPanelChipsHtml():null;
       _igCaChipsDrawn=false;
+      const held=(state.view==='dashboard'&&typeof window.pdPanelChipsHtml==='function')?pdPanelChipsHtml():null;
       if(held!==null) return '';
       /* THE CONTRACT'S ONE ROW ON EVERY TAB (the new look, as drawn): its next-step links stand under Clauses and Redlines too */
       const pd2Row=!!(window.pd2On&&pd2On()&&igHomePaperFace()===true&&window.pdContract&&pdContract());
