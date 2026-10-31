@@ -20194,6 +20194,10 @@ function redlineChangeCardsHtml(c, opts = {}){
     const label = bandLabel(b);
     /* SETTLED, FOLDED (round 9, "Piles"): what is finished this round stands
        behind its own heading, a press opens it and a press again shuts it */
+    /* THE NEW LOOK, AS DRAWN (Drawing 1, owner 31 Oct 2026): what waits on you stands open; every other pile is one line,
+       its name and count, opened by a press */
+    if (rlPileFoldsNl(b)) return `<button type="button" class="rl-band rl-band-fold rl-band-nl" data-rl-band="${_nea(b)}" data-rl-nlfold="${_nea(b)}" aria-expanded="${_rlNlOpen.has(b) ? 'true' : 'false'}"><span>${
+      _ne(label)}</span><b>${n}</b><i aria-hidden="true">›</i></button>`;
     if (RL_QUIET_BANDS.includes(b)) return `<button type="button" class="rl-band rl-band-fold" data-rl-band="${_nea(b)}" data-rl-settled-fold aria-expanded="${_rlSettledOpen ? 'true' : 'false'}"><span>${
       _ne(label)}</span><b>${n}</b><i aria-hidden="true">${_rlSettledOpen ? '▴' : '▾'}</i></button>`;
     return `<div class="rl-band" role="presentation" data-rl-band="${_nea(b)}"><span>${
@@ -21136,7 +21140,7 @@ function redlineChangeCardsHtml(c, opts = {}){
   for (const ch of shown){
     const h = bandHead(ch);
     if (h){ if (open) out += '</section>';
-      out += `<section class="rl-pile${RL_QUIET_BANDS.includes(lastBand) ? ' rl-pile-quiet' : ''}" data-rl-pile="${_nea(lastBand)}"${pileOn !== 'all' && pileOn !== lastBand ? ' hidden' : ''}>${h}`; open = true; }
+      out += `<section class="rl-pile${RL_QUIET_BANDS.includes(lastBand) ? ' rl-pile-quiet' : ''}${rlPileFoldsNl(lastBand) ? ' rl-pile-nlfold' + (_rlNlOpen.has(lastBand) ? ' is-open' : '') : ''}" data-rl-pile="${_nea(lastBand)}"${pileOn !== 'all' && pileOn !== lastBand ? ' hidden' : ''}>${h}`; open = true; }
     out += oneCard(ch);
   }
   return out + (open ? '</section>' : '');
@@ -22411,6 +22415,18 @@ function redlinePanesHtml(c, opts = {}){
    in their words (negoReasonOf, the one reading of it). The settled piles
    fold behind their heading, shut until pressed, for the sitting. */
 let _rlSettledOpen = false;
+/* the new look's folded piles (Drawing 1): every pile but what waits on you, and the refused, is one line until pressed */
+const _rlNlOpen = new Set();
+function rlPileFoldsNl(b){
+  return typeof window.newLookOn === 'function' && newLookOn() && !PORTAL_MODE && !!b && b !== 'awaiting' && b !== 'refused' && !RL_QUIET_BANDS.includes(b);
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target.closest('[data-rl-nlfold]') : null; if (!t) return;
+  e.preventDefault();
+  const b = t.getAttribute('data-rl-nlfold'); if (_rlNlOpen.has(b)) _rlNlOpen.delete(b); else _rlNlOpen.add(b);
+  const on = _rlNlOpen.has(b);
+  document.querySelectorAll(`[data-rl-nlfold="${CSS.escape(b)}"]`).forEach(x => { x.setAttribute('aria-expanded', String(on)); const sec = x.closest('.rl-pile'); if (sec) sec.classList.toggle('is-open', on); });
+});
 function rlAgoWords(iso){
   const t = Date.parse(String(iso || '')); if (!isFinite(t)) return '';
   const day = s => { const d = new Date(s); d.setHours(0, 0, 0, 0); return d.getTime(); };

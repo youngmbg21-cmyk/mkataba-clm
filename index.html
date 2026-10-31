@@ -18773,6 +18773,12 @@
   html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > *{align-self:stretch}
   html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-jb{order:-3}
   html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-verdict{order:-2}
+  html.lg-new .rl-pile.rl-pile-nlfold:not(.is-open) > :not(.rl-band){display:none}
+  html.lg-new #ig-dock .rl-band.rl-band-nl{display:flex;align-items:center;width:100%;gap:8px;padding:10px 0;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new #ig-dock .rl-band.rl-band-nl span{flex:1}
+  html.lg-new #ig-dock .rl-band.rl-band-nl b{font-weight:400}
+  html.lg-new #ig-dock .rl-band.rl-band-nl i{font-style:normal}
+  html.lg-new #ig-dock .rl-face .rl-unsent-go{display:none}
   html.lg-new .rl-pt{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
   /* the close plan's panel, as drawn */
   html.lg-new .dl2-panel{padding:12px 16px 16px;font-size:13px;line-height:1.45;color:var(--color-text)}
