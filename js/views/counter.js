@@ -1059,7 +1059,9 @@ function cnCountsHtml(D){
   const you = ndThings(D.you), jb = ndThings(D.jambo);
   const one = (tone, tab, n, key) => n ? `<button type="button" class="cn-ct is-${tone}" data-cn-count="${tab}"><i aria-hidden="true"></i>${_cnE(_cnT(key, { n }))}</button>` : '';
   const html = one('ruby', 'all', D.late, 'cn_ct_late') + one('amber', 'you', you, 'cn_ct_you') + one('violet', 'jambo', jb, 'cn_ct_jambo');
-  return `<div class="cn-counts" id="cn-counts"${html ? '' : ' hidden'}>${html}</div>`;
+  /* the doors above the box (round 1) share this line on Home, at its end, so the card grows by one line, not two */
+  const ways = (typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function') ? jamboWaysHtml(jamboWaysHere(), 'is-home') : '';
+  return `<div class="cn-counts" id="cn-counts"${html || ways ? '' : ' hidden'}>${html}${ways}</div>`;
 }
 function counterHtml(){
   const me = (typeof currentUser === 'function') ? currentUser() : null;

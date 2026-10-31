@@ -90,9 +90,9 @@ test('f964 (5) the check bites: a place dropped, a door to nowhere, six doors', 
 });
 test('f964 (6) the doors above Jambo\'s box are the map\'s (round 1, 31 Oct 2026)', () => {
   const C = R('js/components.js');
-  const i = C.indexOf('function jamboDoorsHere('); assert.ok(i >= 0, 'jamboDoorsHere is found');
+  const i = C.indexOf('function jamboWaysHere('); assert.ok(i >= 0, 'jamboWaysHere is found');
   const body = C.slice(i, C.indexOf('\n}', i));
   assert.match(body, /flowMapRow\(k\)/, 'the doors are read from the flow map, never typed beside the box');
   assert.match(body, /row\.d\.filter/, 'the row\'s own doors');
-  assert.match(C, /document\.addEventListener\('click'[\s\S]{0,200}data-jb-door[\s\S]{0,200}caGo\(/, 'a door moves through the one mover');
+  assert.match(C, /document\.addEventListener\('click'[\s\S]{0,200}data-jb-way[\s\S]{0,200}caGo\(/, 'a door moves through the one mover');
 });

@@ -566,57 +566,58 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 /* ---- THE DOORS ABOVE JAMBO'S BOX (round 1 of the Legora way, owner, 31 Oct 2026: "above the jambo entry field
    should be the doors to board and others with the green links") ----
    Read from the flow map (FLOW_MAP, js/flowmap.js): the doors of the page in front, at most five, each the word
-   that opens it from any box, as a green link; a press moves through Jambo's one mover (caGo). Drawn above the
-   box in Jambo's panels (Home's and the paper's dock, every list panel, Settings), kept in step with the page by
-   one sync after any repaint; a contract's own faces are offered only with a contract in front. Moves nothing,
-   writes nothing. A page with no row on the map draws none. */
-const JB_DOOR_FEET = ['#ig-dock .igd-foot', '#app-shell .jl-foot', '.st-cr #st-jb-form', '#cn-page .cn-wrap'];
-const JB_DOOR_FACES = new Set(['document', 'brief', 'fill', 'sign', 'share', 'history', 'redline', 'next']);
-function jamboDoorsHere(){
+   that opens it from any box, as a green link; a press moves through Jambo's one mover (caGo). In Jambo's panels
+   (Home's and the paper's dock, every list panel, Settings) they stand just above the panel's foot, so the foot
+   keeps its 56; on Home they share the counts' line (cnCountsHtml). Kept in step with the page by one sync after
+   any repaint; a contract's own faces are offered only with a contract in front. Named "ways" so they never meet
+   the way back above the box (.jb-door, jamboDoorHtml). Moves nothing, writes nothing. */
+const JB_WAY_FEET = ['#ig-dock .igd-foot', '#app-shell .jl-foot', '.st-cr #st-jb-form'];
+const JB_WAY_FACES = new Set(['document', 'brief', 'fill', 'sign', 'share', 'history', 'redline', 'next']);
+function jamboWaysHere(){
   let k = null;
   try { k = (typeof window.guideHereKey === 'function') ? window.guideHereKey() : null; } catch (_){ k = null; }
   if (!k && typeof state !== 'undefined' && state && state.view) k = state.view;
   const row = (k && typeof window.flowMapRow === 'function') ? window.flowMapRow(k) : null;
   if (!row) return { k: k || '', doors: [] };
-  const face = JB_DOOR_FACES.has(k);
-  return { k, doors: row.d.filter(d => d !== k && (face || !JB_DOOR_FACES.has(d))) };
+  const face = JB_WAY_FACES.has(k);
+  return { k, doors: row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d))) };
 }
-function jamboDoorWord(k){ const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
-function jamboDoorsHtml(here){
+function jamboWayWord(k){ const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
+function jamboWaysHtml(here, cls){
   if (!here.doors.length) return '';
-  return `<nav class="jb-doors" data-jb-doors="${esc(here.k)}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => `<button type="button" class="jb-door" data-jb-door="${esc(d)}">${esc(jamboDoorWord(d))}</button>`).join('')}</nav>`;
+  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => `<button type="button" class="jb-way" data-jb-way="${esc(d)}">${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
 }
-function jamboDoorsSync(){
+function jamboWaysSync(){
   if (typeof document === 'undefined') return;
-  const here = jamboDoorsHere();
-  for (const sel of JB_DOOR_FEET){
+  const here = jamboWaysHere();
+  for (const sel of JB_WAY_FEET){
     document.querySelectorAll(sel).forEach(foot => {
-      const card = foot.querySelector(':scope > .jb-card, :scope .jb-card'); if (!card) return;
-      const old = foot.querySelector(':scope > .jb-doors');
-      if (old && old.getAttribute('data-jb-doors') === here.k && old.childElementCount === here.doors.length) return;
+      if (!foot.querySelector('.jb-card')) return;
+      const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
+      if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
       if (old) old.remove();
-      const html = jamboDoorsHtml(here); if (!html) return;
-      foot.insertAdjacentHTML('afterbegin', html);
+      const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
+      foot.insertAdjacentHTML('beforebegin', html);
     });
   }
 }
-let _jbDoorsQueued = false;
-function jamboDoorsQueue(){ if (_jbDoorsQueued) return; _jbDoorsQueued = true; const run = () => { _jbDoorsQueued = false; try { jamboDoorsSync(); } catch (_){ /* a convenience */ } };
+let _jbWaysQueued = false;
+function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else setTimeout(run, 0); }
 if (typeof document !== 'undefined'){
   /* a door's press: the one mover */
   document.addEventListener('click', e => {
-    const b = e.target && e.target.closest && e.target.closest('[data-jb-door]'); if (!b) return;
-    if (typeof window.caGo === 'function') window.caGo({ kind: 'go', place: b.getAttribute('data-jb-door'), cid: null });
+    const b = e.target && e.target.closest && e.target.closest('[data-jb-way]'); if (!b) return;
+    if (typeof window.caGo === 'function') window.caGo({ kind: 'go', place: b.getAttribute('data-jb-way'), cid: null });
   });
   /* kept in step with the page: any repaint queues one sync (bound once, at load) */
   if (typeof MutationObserver === 'function'){
-    const start = () => { if (!document.body) return; new MutationObserver(muts => { for (const m of muts){ if (m.target && m.target.closest && m.target.closest('.jb-doors')) continue; jamboDoorsQueue(); return; } }).observe(document.body, { childList: true, subtree: true }); jamboDoorsQueue(); };
+    const start = () => { if (!document.body) return; new MutationObserver(muts => { for (const m of muts){ if (m.target && m.target.closest && m.target.closest('.jb-ways')) continue; jamboWaysQueue(); return; } }).observe(document.body, { childList: true, subtree: true }); jamboWaysQueue(); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   }
 }
 Object.assign(window,{JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
-Object.assign(window,{JB_DOOR_FEET,jamboDoorsHere,jamboDoorsHtml,jamboDoorsSync,jamboDoorWord});
+Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
    "all the new jambo panels do not have a slider like in the redline page.

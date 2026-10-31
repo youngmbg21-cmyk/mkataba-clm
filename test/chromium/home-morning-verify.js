@@ -42,7 +42,7 @@ const BODY = 'SUPPLY AGREEMENT\n\n3. Payment\nPayment is due within thirty days 
       await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
       const on = await until(page, () => state.view === 'counter' && !!document.querySelector('#cn-page .cn-ask'), null, 20000);
       check(`${nm} Home stands`, on); if (!on){ await page.close(); continue; }
-      await until(page, () => !!document.querySelector('#cn-counts .cn-ct') && !!document.querySelector('#cn-page .jb-doors'), null, 15000);
+      await until(page, () => !!document.querySelector('#cn-counts .cn-ct') && !!document.querySelector('#cn-page .jb-ways'), null, 15000);
       const M = await page.evaluate(() => {
         const ask = document.querySelector('#cn-page .cn-ask'), bg = getComputedStyle(ask).backgroundImage;
         const cts = [...document.querySelectorAll('#cn-counts .cn-ct')].map(b => ({ tab: b.getAttribute('data-cn-count'), tone: [...b.classList].find(c => c.startsWith('is-')), word: b.textContent.trim(), dot: !!b.querySelector('i'), h: Math.round(b.getBoundingClientRect().height) }));
@@ -51,7 +51,7 @@ const BODY = 'SUPPLY AGREEMENT\n\n3. Payment\nPayment is due within thirty days 
         return { warm: /gradient/.test(bg), cts, late: D.late, you: D.you.reduce((s, r) => s + r.n, 0), jambo: D.jambo.reduce((s, r) => s + r.n, 0),
           oneLine: cts.length ? new Set([...document.querySelectorAll('#cn-counts .cn-ct')].map(b => Math.round(b.getBoundingClientRect().top))).size === 1 : true,
           inside: box.left >= card.left && box.right <= card.right, sideways: document.documentElement.scrollWidth - innerWidth,
-          doors: [...document.querySelectorAll('#cn-page .jb-doors [data-jb-door]')].map(x => x.getAttribute('data-jb-door')) };
+          doors: [...document.querySelectorAll('#cn-page .jb-ways [data-jb-way]')].map(x => x.getAttribute('data-jb-way')) };
       });
       check(`${nm} 1 the warm top`, M.warm, M.warm);
       const want = [M.late ? 'all' : null, M.you ? 'you' : null, M.jambo ? 'jambo' : null].filter(Boolean);
