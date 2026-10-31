@@ -32,7 +32,8 @@
    are carried by a scroller and never painted (now `clipped`).
 
    Run: node test/chromium/tidy-sweep-verify.js
-        HATI_TIDY_ONLY=board,draft node test/chromium/tidy-sweep-verify.js */
+        HATI_TIDY_ONLY=board,draft node test/chromium/tidy-sweep-verify.js
+   The new look's frame:  HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -271,6 +272,13 @@ const LEVEL = `(() => {
   const panel = ['#ins-panel.is-jambo', '#ig-dock', '#st-side', '#tb-rail', '.cal-cop'].map(s => document.querySelector(s)).find(vis);
   if (!panel || innerWidth <= 1100 || document.querySelector('.hb-dark')) return null;
   const pr = panel.getBoundingClientRect();
+  /* THE PAGE FRAME (the new look, as drawn 30 Oct 2026): the panel stands square against the bar and the window's foot and
+     the page is one surface beside it, so there is no card to level; the Board's head is the white strip level with it.
+     The frame's own measures are new-look-frame-verify's */
+  if (document.documentElement.classList.contains('lg-new') && getComputedStyle(panel).borderTopLeftRadius === '0px'){
+    const hd = document.getElementById('hb-bhead');
+    return vis(hd) && panel.id === 'ig-dock' ? { dTop: Math.round(hd.getBoundingClientRect().top - pr.top), dBot: 0 } : null;
+  }
   if (pr.top < 40 || pr.bottom > innerHeight) return null;
   /* a page a door scrolled down (Jambo's work lands on the Board's card) is measured where it starts, not here */
   if ([document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')].some(el => el && el.scrollTop > 0 && !panel.contains(el))) return null;
@@ -350,6 +358,9 @@ const only = (process.env.HATI_TIDY_ONLY || '').split(',').map(s => s.trim()).fi
     await page.click('#su-go');
     await page.waitForTimeout(3500);
     await page.keyboard.press('Escape').catch(() => {});
+    /* THE NEW LOOK (31 Oct 2026): HATI_TIDY_NEW_LOOK=1 sweeps the same places with the admin's switch on, so the new
+       frame is held to the same tidiness as today's look */
+    if (process.env.HATI_TIDY_NEW_LOOK) await page.evaluate(async () => { if (typeof stPrefSet === 'function') await stPrefSet('newLook', true); if (typeof newLookApply === 'function') newLookApply(); });
     check('0 — signed in with the sample book', await drive(page, () => Array.isArray(state.contracts) && state.contracts.length > 5, undefined, false));
     /* THE OWNER'S OWN NAMES: the faults in both pictures are content-shaped —
        a long party name, a long paper name, a clause's name in capitals — and

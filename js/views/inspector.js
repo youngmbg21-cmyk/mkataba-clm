@@ -1270,7 +1270,8 @@ function jlAskHtml(o){
   const ph = opt.placeholder || i18t('jl_ph_any');
   /* the cost before the press: what is said free beside the list, and what is one call (jlAsk) */
   const cost = i18t('jl_ask_cost_list');
-  return `<div class="jl-foot">
+  /* the doors above the box (round 1), drawn WITH the panel so a repaint keeps its height and its scroll */
+  return `${typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function' ? jamboWaysHtml(jamboWaysHere(), 'is-above-foot') : ''}<div class="jl-foot">
     <form class="jl-ask" data-jl-ask autocomplete="off" title="${esc(cost)}">
       <div class="ca-pop jl-pop" data-jl-pop hidden></div>
       ${''/* the door back, and the bin, right above the box while the conversation shows (Door above the box) */}${typeof jamboDoorHtml === 'function' ? jamboDoorHtml({ on: false, back: 'list', to: i18t('pd_tab_overview'), bin: typeof jamboBinHtml === 'function' ? jamboBinHtml(false) : '' }) : ''}${typeof jamboFwdHtml === 'function' ? jamboFwdHtml({ on: false, host: 'list' }) : ''}

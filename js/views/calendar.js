@@ -886,7 +886,7 @@ function calAgendaViewHtml(evs){
   while(wk<=end){
     const a=_isoLocal(wk), z=_isoLocal(calAddDays(wk,6));
     const inWk=days.filter(d=>d>=a&&d<=z);
-    if(inWk.length){ shut(); inWk.forEach(d=>rows.push(`<div class="cal-ag-day">${dayHtml(d)}<div class="cal-ag-evs">${byDay.get(d).map(evHtml).join('')}</div></div>`)); }
+    if(inWk.length){ shut(); inWk.forEach(d=>rows.push(`<div class="cal-ag-day" data-cal-ag-day="${d}">${dayHtml(d)}<div class="cal-ag-evs">${byDay.get(d).map(evHtml).join('')}</div></div>`)); }
     else if(up.length<=shown.length){ if(gap) gap.n++; else gap={ from:a<today?today:a, n:1 }; }
     wk=calAddDays(wk,7);
   }

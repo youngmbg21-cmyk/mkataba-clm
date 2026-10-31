@@ -179,6 +179,7 @@
   <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.15" fill="currentColor"/><circle cx="8" cy="8" r="1.15" fill="currentColor"/><circle cx="13" cy="8" r="1.15" fill="currentColor"/></symbol>
   <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 2.6v10.8M2.6 8h10.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 16 16"><path d="M3 3v10M8 3v10M13 3v10" fill="none" stroke="currentColor"/><path d="M1.6 6h2.8M6.6 9.4h2.8M11.6 5h2.8" fill="none" stroke="currentColor"/></symbol>
+  <symbol id="i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.4 6.4a1.6 1.6 0 1 1 2.3 1.5c-.5.3-.7.6-.7 1.1" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M8 11.2h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
   <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.8V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
   <!-- ADDED 26 Aug 2026 for the change card's overflow menu, which the owner
        asked to carry a symbol on EVERY row. The menu's two decision verbs had
@@ -220,7 +221,7 @@
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
     --color-bg:#F5F5F7;   /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' warm #F4F2ED): the soft cool grey every white card floats on. */
-    --jb-card-fill:#F2F2F5;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft grey for every card in his answers. */
+    --jb-card-fill:#F2F2F5;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft grey for every card in his answers; the new look takes the design's faint indigo (owner, 31 Oct 2026: "change to the design"; html.lg-new). */
     --bar-black:#111113;  /* THE BAR IN BLACK (owner, 27 Oct 2026: "Black it is"; replaces the deep green of 24 Oct): white words on it measure about 18:1. */
     --bar-sheen:linear-gradient(180deg,#2A2A2E 0%,#151517 55%,#0B0B0C 100%);  /* the faint sheen along its top; the solid --bar-black stands under it */
     --color-surface:#ffffff;
@@ -2314,6 +2315,7 @@
      a brand colour this rulebook records as one that must not flip. This is a
      second token for a second job, not a redefinition of the first. */
   :root{ --accent-fill:var(--accent-solid); } /* CHAMBERS (20 Oct 2026): a filled control is the ink, black (18.3:1 under white); was accent-600 (7 Oct). See .ui-btn-primary */
+  :root{ --morning-warm:#FBF7EE; --jb-card-fill-new:#F3F2F8; }  /* MORNING LIGHT (round 2 of the Legora way, owner picked it 31 Oct 2026): the warm top behind Home's greeting */
   :root{ --accent-ink:#087363; --accent-ink-700:#065A4D; }  /* the Legora look: a link is the drawing's teal one step deeper (#0A7C6B measured 4.49:1 on the grey pill): 5.8:1 on white, 5.1 on the pill (23 Oct 2026; Chambers' was the deep green) */
 
   /* ═══ AND THE TWO PALE RUNGS, WHICH CARRY A SURFACE ══════════════════════
@@ -14919,6 +14921,13 @@
      words the whole width, + and "Asking about" left and the send right on
      the row under them. Grows to six lines, then a thin bar with no arrows;
      back to one line when emptied. ONE builder, jamboCardHtml (components.js). */
+  /* THE DOORS ABOVE JAMBO'S BOX (round 1 of the Legora way, 31 Oct 2026): the page's doors off the flow map, green links,
+     just above a panel's foot (the foot keeps its 56); on Home at the end of the counts' line */
+  .jb-ways{display:flex;flex-wrap:wrap;gap:4px 12px;flex:none;min-width:0}
+  .jb-ways.is-above-foot{padding:8px var(--jb-g,16px) 6px;background:var(--color-surface)}
+  .jb-ways.is-home{margin-left:auto;align-items:center}
+  .jb-way{background:none;border:0;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer;white-space:nowrap}
+  @media (hover:hover){ .jb-way:hover{color:var(--accent-ink-700)} }
   .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}  /* Chambers: a hairline box with square-ish corners (20 Oct 2026; was a 20px pill) */
   .jb-card > textarea{order:3;flex:1 1 auto}
   .jb-card:not(.is-tall) .jb-row{display:contents}
@@ -17574,6 +17583,45 @@
   #cn-page .cn-ask .jb-card .jb-plus{width:34px;height:34px}
   #cn-page .cn-ask .jb-card .jb-send{width:36px;height:36px}
   #cn-page .cn-chips{gap:6px 18px;margin-top:14px}
+  /* MORNING LIGHT (round 2 of the Legora way, 31 Oct 2026): the warm top, and the desk's counts as coloured words under the greeting */
+  html.lg-new #cn-page .cn-ask{background:linear-gradient(180deg,var(--morning-warm) 0%,var(--color-surface) 100%)}
+  #cn-page .cn-counts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 12px}
+  /* a short screen (the 1536×730 laptop): the warm card gives back the line the counts take, so Needs you still ends on screen */
+  @media (max-height:760px){ html.lg-new #cn-page .cn-ask{padding-top:14px;padding-bottom:12px} html.lg-new #cn-page .cn-counts{margin:6px 0 8px} html.lg-new #cn-page .cn-chips{margin-top:8px} }
+  #cn-page .cn-counts[hidden]{display:none}
+  /* YOUR WEEK (round 2 of the Legora way, 31 Oct 2026): seven days as dots under the counts, read from the Calendar's
+     own reading; a day with something on it is a button onto the Calendar, an empty one is not */
+  #cn-page .cn-week{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0 0 12px;font-size:11.5px;line-height:16px;color:var(--color-quiet)}
+  #cn-page .cn-wk-t{margin-right:4px;white-space:nowrap}
+  #cn-page .cn-wk-d{display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:30px;padding:2px 0;border:0;border-radius:var(--radius);background:none;font:inherit;color:var(--color-text)}
+  #cn-page button.cn-wk-d{cursor:pointer}
+  @media (hover:hover){ #cn-page button.cn-wk-d:hover{background:var(--surface-2)} }
+  #cn-page .cn-wk-d b{font-weight:var(--w-label)}
+  #cn-page .cn-wk-d.is-today b{text-decoration:underline;text-underline-offset:3px}
+  #cn-page .cn-wk-d i{width:10px;height:10px;border-radius:50%;background:var(--color-divider)}
+  #cn-page .cn-wk-d i.is-ruby{background:var(--st-ruby-dot)}
+  #cn-page .cn-wk-d i.is-amber{background:var(--st-amber-dot)}
+  #cn-page .cn-wk-d i.is-green{background:var(--st-green-dot)}
+  #cn-page .cn-wk-say{margin-left:6px;min-width:0}
+  @media (max-height:760px){ #cn-page .cn-week{margin-bottom:8px} }
+  /* MORNING LIGHT'S ROW (round 2, 31 Oct 2026): the other side's initials lead it, its kind a tinted word, its verb a green link */
+  .nd-r > .nd-av{width:28px;height:28px}
+  .nd-r > .nd-av.is-jambo{background:var(--jb-card-fill);color:var(--st-violet-fg);border:1px solid transparent}
+  .nd-r > .nd-av.is-none{background:var(--surface-2);color:var(--color-quiet);border:1px solid transparent}
+  .nd-r > .nd-av svg{width:14px;height:14px}
+  .nd-kind{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;font-size:11px;line-height:16px;font-weight:var(--w-label);white-space:nowrap;vertical-align:1px}
+  .nd-kind.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .nd-kind.is-you{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .nd-kind.is-jambo{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  .nd-kind.is-week{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .nd-r .nd-btn.nd-link{width:auto;min-width:0;height:auto;min-height:0;padding:0;border:0;background:none;color:var(--accent-ink);font-size:13px;font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;white-space:nowrap}
+  #cn-page .cn-needs .nd-r .nd-btn.nd-link{width:auto;height:auto;min-height:0;font-weight:var(--w-label)}
+  #cn-page .cn-needs .nd-r .nd-btn.nd-link:hover{background:none;color:var(--accent-ink-700)}
+  #cn-page .cn-ct{display:inline-flex;align-items:center;gap:7px;height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  #cn-page .cn-ct i{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+  #cn-page .cn-ct.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  #cn-page .cn-ct.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  #cn-page .cn-ct.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
   /* THE BOX PREDICTS (round 5): "Likely next:" leads the links in the ink, plain; a task is one line, never cut mid-word */
   #cn-page .cn-chips .cn-lk-h{font-size:12.5px;line-height:1.45;padding:1px 0;color:var(--hb-ink-2);white-space:nowrap}
   #cn-page .cn-needs .cn-h{padding:14px 22px 10px;border-bottom:0;align-items:baseline;gap:10px}
@@ -18234,6 +18282,89 @@
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-glance .ds-row.ds-rr.is-jw > .ds-nm{flex:1 1 auto;width:auto;max-width:none;min-width:0}
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix :is(#pd-og, .pd-og) tr.pd-og-row:is(.is-saved, .is-door, .is-named) .pd-ck-hd{min-height:44px;padding-top:11px;padding-bottom:11px}
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .ds-ob-line{min-height:44px;padding-top:11px;padding-bottom:11px}
+  /* ==== THE NEW LOOK: THE FRAME (round 1 of the Legora way rebuilt page by page; owner, 31 Oct 2026: "start with the frame";
+     Jambo's box 44; the contract's wording may sit lower as the Page frame draws it; a light grey stays behind a page still
+     made of cards until its own round) ====
+     Every rule here waits on html.lg-new (newLookApply: an admin's own preview), so with the switch off nothing moves.
+     THE PAGE FRAME, as the review room draws it by default (owner, 30 Oct 2026: "no cards, one surface, one hairline to
+     Jambo"): under the black bar the page is one white surface edge to edge and Jambo's panel stands square beside it
+     behind one hairline, which is the slider (green while pressed or hovered). A page still made of cards (Settings, the
+     Calendar, the Board's figures) keeps its cards on the light grey well inside that frame (--well-*), as the Board is
+     drawn. The panel's tabs are pills with their count in a small green pill; one line above the doors, then the doors,
+     then the box. */
+  html.lg-new{--jb-card-fill:var(--jb-card-fill-new);--fr-gutter:10px;--jb-box-h:44px;--well-t:12px;--well-s:16px;--well-b:16px;--well-g:12px;
+    --shadow-sm:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22)}
+  .lg-only{display:none}
+  html.lg-new .lg-only{display:inline-block}
+  html.lg-new .lg-not{display:none}
+  /* -- the bar: Jambo · the bell · the Guide · recent · you · sign out; the Guide wears "?"; your initials on a light disc -- */
+  html.lg-new #top-header #cmd-ai{order:1}
+  html.lg-new #top-header #hdr-notify{order:2}
+  html.lg-new #top-header #hdr-nav{order:3}
+  html.lg-new #top-header #cmd-panel{order:4}
+  html.lg-new #top-header #rail-avatar{order:5}
+  html.lg-new #top-header #side-logout{order:6}
+  html.lg-new #top-header #side-avatar{background:var(--color-divider);border-color:transparent;color:var(--color-text)}
+  html.lg-new #top-header #rail-avatar:hover #side-avatar{background:var(--color-neutral-300)}
+  /* -- the seam: every panel stands square, flush to the bar, the window's side and its foot, one hairline on its left -- */
+  html.lg-new #content-scroll:has(#ig-page){scrollbar-gutter:auto}
+  html.lg-new #app-shell #ig-page:not(.hb-dark) #ig-dock,
+  html.lg-new #content .ins-panel.is-jambo,
+  html.lg-new .st-cr .st-side{border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none}
+  html.lg-new #app-shell #ig-page:not(.hb-dark) #ig-dock{margin:0}
+  html.lg-new #content .ins-panel.is-jambo{right:0;top:var(--jl-top,88px);bottom:0}
+  /* -- ONE SURFACE: a page that is one sheet (every list, Contracts, the Handbook, the Flow map) runs edge to edge, its
+     parts square and without lift, from the bar to the window's foot and up to the seam -- */
+  html.lg-new :is(#page-head, #content .view-enter.sap-page:not(.st-page), #ig-page .sap-page.ct-page, #modal-root [data-dlg-page]){--radius-lg:0px;--shadow-sm:none}
+  html.lg-new #page-head{--page-pad-t:0px;--page-pad-x:0px}
+  html.lg-new #content .view-enter.sap-page:not(.st-page):not(.cal-page){--page-pad-t:0px;padding:0}
+  html.lg-new #ig-page .sap-page.ct-page{padding:0}
+  /* Our paper sets its padding through its own token on the element */
+  html.lg-new #content .view-enter.tpl-page{--page-pad:0px;--tpl-pb:0px}
+  /* a page head's card and its lower half keep only the line under them: their side and top edges are the surface's */
+  html.lg-new :is(#page-head, #content .view-enter.sap-page:not(.st-page), #ig-page .sap-page.ct-page) :is(.ph-card, .ph-foot){border-left-color:transparent;border-right-color:transparent;border-top-color:transparent}
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) :is(#content-scroll, #page-head),
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed),
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:var(--jl-room,var(--jl-w,384px))}
+  /* -- A CONTRACT: the paper's line and Jambo's head one height, 56 (the contract's pixels: the owner's yes, 31 Oct 2026),
+     the desk flush under the line -- */
+  html.lg-new #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:56px}
+  html.lg-new #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:0;border-radius:0;box-shadow:none}
+  html.lg-new #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #ig-paper{margin:0;border-radius:0}
+  /* -- a page laid over another (New agreement, Send, what a Dossier line opens in the middle): the same one surface -- */
+  html.lg-new #modal-root [data-dlg-page] .dlg-pg-head{margin:0;border-radius:0;box-shadow:none}
+  html.lg-new #modal-root #na-root.na-one > .na-body{margin:0;box-shadow:none;border-radius:0}
+  html.lg-new #modal-root [data-pd-mid] .dlg-pg-body.dlg-pg-body{padding:0}
+  /* -- A PAGE STILL MADE OF CARDS keeps them on the light grey well, 12 under the bar, 16 from the window and the seam --
+     the Calendar on Home */
+  html.lg-new #app-shell .cal-page.is-home .cal-head{margin:var(--well-t) var(--well-s) 0}
+  html.lg-new #app-shell .cal-page.is-home .cal-body{padding:0 var(--well-s) var(--well-b)}
+  /* Settings: its cards on the well; its panel square at the seam (the page scrolls as a whole, so its scrollbar keeps the window's edge) */
+  html.lg-new .st-cr .st-cr-cols{column-gap:var(--well-s)}
+  @media (min-width:981px){
+    html.lg-new .st-cr.st-page{padding:var(--well-t) 0 0 var(--well-s);--page-pad-t:var(--well-t);--page-pad-x:0px}
+    html.lg-new .st-cr .st-side{top:0;margin:calc(-1 * var(--well-t)) 0 0 0;height:var(--st-side-h,560px)}
+  }
+  /* the Board, JOINED (owner, 30 Oct 2026, as drawn): its head a white strip 56 tall that stays while the figures' cards
+     scroll on the well under it, 12 · 16 round them, 12 between */
+  html.lg-new #ig-page[data-hb-side="board"] #hb-board{padding:0 var(--well-s) 24px;gap:var(--well-g)}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead{position:sticky;top:0;z-index:5;box-sizing:border-box;min-height:56px;margin:0 calc(-1 * var(--well-s));padding:0 24px;display:flex;align-items:center;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;box-shadow:none;background:var(--color-surface)}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead > .hb-bh-r{flex:1;min-width:0}
+  /* -- the slider IS the seam: its strip straddles the hairline, the line drawn by the panel's own edge; hovered, pressed or
+     reached by keyboard, a green line two pixels wide lies over it (Home's grip is placed on the panel's edge by igFitSplit) -- */
+  html.lg-new #ig-resizer{transform:translateX(-7px)}
+  html.lg-new :is(#content .ins-panel.is-jambo, .st-cr .st-side) > .ig-resizer{left:-8px;width:14px}
+  html.lg-new :is(#content .ins-panel.is-jambo, .st-cr .st-side){overflow:clip;overflow-clip-margin:8px}
+  html.lg-new .ig-resizer span{opacity:1;width:2px;height:auto;align-self:stretch;border-radius:0;background:transparent}
+  html.lg-new .ig-resizer:is(:hover, [data-drag], :focus-visible) span{background:var(--accent-ink)}
+  /* -- the panel's head: a tab's count is a small green pill beside its word -- */
+  html.lg-new :is(#ig-dock, #content .ins-panel.is-jambo, #st-side) .pd-tab:not(.igd-door) > .pd-tab-n{position:static;display:inline-block;min-width:0;height:18px;margin-left:6px;padding:0 6px;border:0;border-radius:999px;background:var(--st-green-bg);color:var(--accent-ink);font-size:12px;font-weight:var(--w-label);line-height:18px}
+  html.lg-new :is(#ig-dock, #content .ins-panel.is-jambo, #st-side) .pd-tab:not(.igd-door) > .pd-tab-n.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
+  html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
+  html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot.jl-foot, .st-cr .st-jb-ask.st-jb-ask){padding:12px var(--jb-g,16px) var(--well-b)}
+  html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot, .st-cr #st-jb-form, #ai-panel.is-side > footer, #cn-page) .jb-card:not(.is-tall){box-sizing:border-box;min-height:var(--jb-box-h)}
 </style>
 
 
@@ -18339,7 +18470,8 @@
          you will open up the alerts panel but the landing would be the guide panel"): the same one panel, on its
          Guide face (openPanel('guide')); pressed again it closes, as the bell does -->
     <button id="hdr-nav" class="hdr-icon-btn" title="Guide — every page, in the order a contract lives" data-i18n-title="sh_nav_title" aria-expanded="false">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
+      <svg class="lg-not" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
+      <svg class="lg-only" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-help"/></svg>
     </button>
     <button id="hdr-notify" class="hdr-icon-btn" title="Alerts — what is waiting on you" data-i18n-title="sh_alerts_title">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg>

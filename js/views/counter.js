@@ -858,10 +858,39 @@ function ndHomeRowHtml(r){
     ? [P.ref, _cnE(party), _cnE(P.title), _cnE(P.note || ''), _cnE(P.money || '')].filter(Boolean).join(' · ')
     : (P.ref ? P.ref + ' · ' : '') + (r.g === 'jambo' ? `<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}` : _cnE(P.deal));
   const hover = r.g === 'jambo' ? P.line : [_ndText(P.ref), P.deal].filter(Boolean).join(' · ');
-  const btn = r.g === 'jambo' ? _ndBtnHtml(Object.assign({}, P, { btn: 'review' })) : _ndBtnHtml(P);
-  return `<div class="cn-r nd-r${named ? ' nd-named' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(head)}</span>${named ? '' : _ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
+  /* MORNING LIGHT'S ROW (round 2 of the Legora way; owner, 31 Oct 2026: "build both, green link as drawn"):
+     the other side's initials lead it (Jambo's own work wears his mark), its kind is a tinted word at the head
+     of its second line, and its verb is a green link at the end, pressing the same door the button did */
+  /* the new look's (built behind the switch until Home is approved); today's row keeps its one grey button */
+  const nl = typeof newLookOn === 'function' && newLookOn();
+  const bP = r.g === 'jambo' ? Object.assign({}, P, { btn: 'review' }) : P;
+  const btn = nl ? _ndLinkHtml(bP) : _ndBtnHtml(bP);
+  return `<div class="cn-r nd-r${named ? ' nd-named' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}>${nl ? ndAvHtml(r, P) : ''}<div class="cn-w"><b><span class="nd-t">${_cnE(head)}</span>${named ? '' : _ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${nl ? ndKindHtml(r) : ''}${sub}</span></div>`
     + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${btn}</div>`;
 }
+/* the verb as a green link: the button's own words and door, dressed as a link (the row's one press) */
+const _ndLinkHtml = P => `<button type="button" class="ui-link nd-btn nd-link" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
+/* whose it is: the other side's initials in their own washed tone (the list language, regAvatarHtml), Jambo's mark on his */
+function ndAvHtml(r, P){
+  if (r.g === 'jambo') return `<span class="reg-av nd-av is-jambo" aria-hidden="true">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''}</span>`;
+  /* the other side, else the agreement, else (a request) whoever asked; a row about no one has a quiet drawn mark, never letters read off its own title */
+  const who = String(P.party || P.name || (r.y && r.y.k === 'req' ? P.who : '') || '').trim();
+  if (who && typeof regAvatarHtml === 'function') return regAvatarHtml(who).replace('class="reg-av ', 'class="reg-av nd-av ');
+  const ic = r.company ? 'building' : r.setup ? 'cog' : r.bundle ? 'list' : (r.y && r.y.k === 'note') ? 'pencil' : (r.y && r.y.k === 'watch') ? 'target' : 'info';
+  return `<span class="reg-av nd-av is-none" aria-hidden="true">${typeof icon === 'function' ? icon(ic, 'w-3.5 h-3.5') : ''}</span>`;
+}
+/* its kind, in the one desk's own reading: late · prepared by Jambo · due this week · your move */
+function ndKindOfRow(r){
+  if (r.late) return 'late';
+  if (r.g === 'jambo') return 'jambo';
+  const due = String((r.y && r.y.x && r.y.x.it && r.y.x.it.due) || '').slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(due) && typeof calToday === 'function'){
+    const d = Math.round((new Date(due + 'T00:00:00') - new Date(calToday() + 'T00:00:00')) / 864e5);
+    if (d >= 0 && d < CN_WEEK_DAYS) return 'week';
+  }
+  return 'you';
+}
+const ndKindHtml = r => { const k = ndKindOfRow(r); return `<span class="nd-kind is-${k}">${_cnE(_cnT('nd_kind_' + k))}</span>`; };
 function ndHomeHtml(D){
   const group = (g, L) => {
     if (!L.length) return '';
@@ -1051,6 +1080,70 @@ function cnChipsHtml(D){
 const _cnJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
 const _cnJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
 
+/* ---- MORNING LIGHT: THE COUNTS AS COLOURED WORDS (round 2 of the Legora way, owner picked "Morning light", 31 Oct 2026) ----
+   Under the greeting, the one desk's own counts (ndRead) as words you can press: late in ruby, waiting on you in amber,
+   prepared by Jambo in violet; a count of nothing is not drawn. Each opens the Board's Needs you on that list (ndOpenBoard).
+   A dot and a word, never the colour alone. Counted from the desk; no call. */
+function cnCountsHtml(D){
+  /* the new look's (owner, 31 Oct 2026): today's Home draws no counts line */
+  if (!(typeof newLookOn === 'function' && newLookOn())) return '';
+  const you = ndThings(D.you), jb = ndThings(D.jambo);
+  const one = (tone, tab, n, key) => n ? `<button type="button" class="cn-ct is-${tone}" data-cn-count="${tab}"><i aria-hidden="true"></i>${_cnE(_cnT(key, { n }))}</button>` : '';
+  const html = one('ruby', 'all', D.late, 'cn_ct_late') + one('amber', 'you', you, 'cn_ct_you') + one('violet', 'jambo', jb, 'cn_ct_jambo');
+  /* the doors above the box (round 1) share this line on Home, at its end, so the card grows by one line, not two */
+  const ways = (typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function') ? jamboWaysHtml(jamboWaysHere(), 'is-home') : '';
+  return `<div class="cn-counts" id="cn-counts"${html || ways ? '' : ' hidden'}>${html}${ways}</div>`;
+}
+/* ---- YOUR WEEK (round 2 of the Legora way, Morning light; owner, 31 Oct 2026: "build both") ----
+   Seven days from today as seven dots under the counts, read from the Calendar's own reading (calendarEvents)
+   and the one desk's late count; nothing is moved or stored. Today is red while anything is late; a day with a
+   decision or an end date amber; a day with one of our duties due green; nothing grey. The words at the line's end
+   say the same. A day with something on it opens the Calendar's agenda ON that day (navLandWhen); today, red with
+   nothing dated, opens what is late (the count's own door). An empty day is not a button. */
+const CN_WEEK_DAYS = 7;
+function cnWeekOf(D){
+  if (typeof calendarEvents !== 'function' || typeof calToday !== 'function') return null;
+  const today = calToday(), t0 = new Date(today + 'T00:00:00');
+  const iso = d => { const x = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+  const days = Array.from({ length: CN_WEEK_DAYS }, (_, i) => iso(i));
+  let evs = [];
+  try { evs = calendarEvents().filter(e => e && e.date >= days[0] && e.date <= days[CN_WEEK_DAYS - 1]
+    && (e.type === 'renewal' || e.type === 'expiry' || (e.type === 'obligation' && !e.done && !e.theirs && !e.waiting))); } catch (_){ evs = []; }
+  return days.map(d => {
+    const E = evs.filter(e => e.date === d);
+    const decide = E.filter(e => e.type === 'renewal').length, ends = E.filter(e => e.type === 'expiry').length, due = E.filter(e => e.type === 'obligation').length;
+    const late = d === today && !!(D && D.late);
+    return { iso: d, today: d === today, late, decide, ends, due, n: E.length,
+      tone: late ? 'ruby' : (decide || ends) ? 'amber' : due ? 'green' : 'none' };
+  });
+}
+function cnWeekHtml(D){
+  if (!(typeof newLookOn === 'function' && newLookOn())) return '';
+  const W = cnWeekOf(D); if (!W) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  const dow = d => new Date(d.iso + 'T00:00:00').toLocaleDateString(loc, { weekday: 'short' }).replace(/\.$/, '');
+  const list = f => W.filter(f).map(dow).join(', ');
+  const say = [W.some(d => d.late) ? _cnT('cn_wk_late') : '',
+    W.some(d => d.decide) ? _cnT('cn_wk_decide', { days: list(d => d.decide) }) : '',
+    W.some(d => d.ends) ? _cnT('cn_wk_ends', { days: list(d => d.ends) }) : '',
+    W.some(d => d.due) ? _cnT('cn_wk_due', { days: list(d => d.due) }) : ''].filter(Boolean).join(' · ') || _cnT('cn_wk_none');
+  const day = d => {
+    const inner = `<b>${_cnE(dow(d))}</b><i class="is-${d.tone}" aria-hidden="true"></i>`;
+    const go = d.n ? `data-cn-wk="${d.iso}"` : d.late ? 'data-cn-count="all"' : '';
+    if (!go) return `<span class="cn-wk-d${d.today ? ' is-today' : ''}">${inner}</span>`;
+    const tip = d.n ? _cnT('cn_wk_open', { day: new Date(d.iso + 'T00:00:00').toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }) }) : _cnT('cn_wk_open_late');
+    return `<button type="button" class="cn-wk-d${d.today ? ' is-today' : ''}" ${go} title="${_cnE(tip)}">${inner}</button>`;
+  };
+  return `<div class="cn-week" id="cn-week" role="group" aria-label="${_cnE(_cnT('cn_wk_title'))}"><span class="cn-wk-t">${_cnE(_cnT('cn_wk_title'))}</span>${W.map(day).join('')}<span class="cn-wk-say">${_cnE(say)}</span></div>`;
+}
+/* a day pressed: the Calendar, on its agenda, landed ON that day's row (the one lander, nothing pressed) */
+function cnWeekGo(iso){
+  if (typeof hbOpenCalendar !== 'function') return;
+  hbOpenCalendar();
+  if (typeof calSetView === 'function') try { calSetView('agenda'); } catch (_){}
+  const find = () => document.querySelector(`#hb-cal [data-cal-ag-day="${String(iso).replace(/[^0-9-]/g, '')}"]`);
+  if (typeof navLandWhen === 'function') navLandWhen(find, _cnT('cn_wk_missing'));
+}
 function counterHtml(){
   const me = (typeof currentUser === 'function') ? currentUser() : null;
   const name = String((me && me.name) || '').trim().split(/\s+/)[0] || _cnT('home_greet_there');
@@ -1066,7 +1159,7 @@ function counterHtml(){
     `<div class="cn-r"><div class="cn-w"><b>${_cnE(deskTabLabel(t.k))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-dk-go="${_cnE(t.k)}">${_cnE(_cnT('cn_open'))}</button></div>`).join('')}</section>` : '';
   _cnSig = ndSig(D);
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
-    <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
+    <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>${cnCountsHtml(D)}${cnWeekHtml(D)}
       <div class="cn-wrap">${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */}${_cnJbCard({ cls: 'cn-card-box', field: `<textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea>`, send: _cnJbSend('data-cn-send', _cnT('cn_ask')) })}<div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
       <div class="cn-chips" id="cn-chips">${cnChipsHtml(D)}</div></section>
     <section class="cn-card cn-needs nd-home" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${D.n}</span>${sum ? `<span class="nd-sum">${_cnE(sum)}</span>` : ''}</header>${rows}</section>
@@ -1104,6 +1197,10 @@ function counterRepaint(){
   const card = document.getElementById('cn-needs'); if (!card) return;
   const t = document.createElement('div'); t.innerHTML = counterHtml();
   const fresh = t.querySelector('#cn-needs'); if (fresh) card.replaceWith(fresh);
+  const cts = document.getElementById('cn-counts'), fct = t.querySelector('#cn-counts');
+  if (cts && fct && cts.outerHTML !== fct.outerHTML) cts.replaceWith(fct);
+  const wk = document.getElementById('cn-week'), fwk = t.querySelector('#cn-week');
+  if (wk && fwk && wk.outerHTML !== fwk.outerHTML) wk.replaceWith(fwk);
   const chips = document.getElementById('cn-chips'), fc = t.querySelector('#cn-chips');
   if (chips && fc && chips.innerHTML !== fc.innerHTML) chips.innerHTML = fc.innerHTML;
 }
@@ -1198,6 +1295,8 @@ if (typeof document !== 'undefined' && !window._cnWired){
     const inPanel = !!t.closest('#panel-body .nd-pan');
     const step = () => { if (inPanel && typeof closeContextPanel === 'function') try { closeContextPanel(); } catch (_){} };
     if ((el = t.closest('[data-nd-all]'))){ ndOpenBoard(el.getAttribute('data-nd-all')); return; }
+    if ((el = t.closest('[data-cn-count]'))){ ndOpenBoard(el.getAttribute('data-cn-count')); return; }
+    if ((el = t.closest('[data-cn-wk]'))){ cnWeekGo(el.getAttribute('data-cn-wk')); return; }
     if ((el = t.closest('[data-nd-look]'))){ step(); ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
     if ((el = t.closest('[data-nd-bundle]'))){ step(); ndBundleGo(); return; }
     /* a bell signal's row presses the bell's own door; from the slide-out panel the panel steps aside first */
@@ -1260,5 +1359,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnLikely, cnLikelyWords, CN_LIKELY_MAX, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndKindOfRow, ndKindHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });

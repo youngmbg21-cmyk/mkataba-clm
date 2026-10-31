@@ -8552,6 +8552,7 @@ function renderIntelDock(){
            tab asks"): Dossier, Clauses, Obligations, Findings and the Guide all
            carry the box; words asked turn the panel to the conversation over
            the tab (pdTalkSync), its back returns to the tab as it was left. */}
+    ${''/* the doors above the box (round 1), drawn WITH the panel so a repaint keeps its height and its scroll */}${typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function' ? jamboWaysHtml(jamboWaysHere(), 'is-above-foot') : ''}
     ${`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a

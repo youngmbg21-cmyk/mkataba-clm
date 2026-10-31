@@ -70,14 +70,14 @@ const FLOW_MAP = [
     p: [['redline', _w('the round that is your move', 'rundan där det är ditt drag')]] },
   /* ---- APPROVE & SIGN ---- */
   { k: 'approvals', st: 'sign', s: _w('decide and sign', 'besluta och signera'),
-    a: [['sign', _w('Approve → Before you sign, for the signer', 'Godkänn → innan du signerar, för den som signerar')]], d: ['brief', 'document', 'history'],
+    a: [['sign', _w('Approve → Before you sign, for the signer', 'Godkänn → innan du signerar, för den som signerar')]], d: ['negotiations', 'contracts', 'calendar'],
     p: [['brief', _w('read the brief first', 'läs sammanfattningen först')]] },
   { k: 'sign', st: 'sign', s: _w('the one list, then the pad', 'den enda listan, sedan blocket'),
     a: [['history', _w('signed by all → the receipt, the seal, the copies sent', 'signerat av alla → kvittot, förseglingen, kopiorna skickade')], ['oblig', _w('then the duties found, to add', 'sedan pliktema som hittats, att lägga till')]],
     d: ['document', 'brief', 'approvals'], p: [['fill', _w('the blank that stops you', 'tomrummet som stoppar dig')]] },
   /* ---- LIVE ---- */
   { k: 'oblig', st: 'live', s: _w('what each side owes', 'vad varje sida är skyldig'),
-    a: [], d: ['calendar', 'document', 'history'], p: [['oblig', _w('the late one: mark done or chase', 'den försenade: markera klar eller påminn')]] },
+    a: [], d: ['calendar', 'contracts', 'counter'], p: [['oblig', _w('the late one: mark done or chase', 'den försenade: markera klar eller påminn')]] },
   { k: 'calendar', st: 'live', s: _w('agenda, week and horizon', 'agenda, vecka och horisont'),
     a: [], d: ['oblig', 'board', 'counter'], p: [['oblig', _w('what is due this week', 'det som förfaller denna vecka')]] },
   { k: 'history', st: 'live', s: _w('the trail', 'spåret'),
