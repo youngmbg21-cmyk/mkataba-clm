@@ -86,14 +86,19 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
         const ns = host ? [...host.querySelectorAll('.pd2-mn')].map(n => ({ t: n.textContent.replace(/\s+/g, ' ').trim().slice(0, 70), left: n.getBoundingClientRect().left })) : [];
         return { up: true, ns, counters: host ? [...host.querySelectorAll('[data-rl-1p-counter]')].map(b => b.textContent.trim()) : [], holds: host ? [...host.querySelectorAll('[data-pd2-go="press"]')].map(b => b.textContent.trim()) : [], sheetRight: sheet ? sheet.getBoundingClientRect().right : null, sideways: document.documentElement.scrollWidth - innerWidth };
       });
-      check(`${nm} 1 their asks beside the paper, numbered, Counter at the limit (or Reject · hold where the limit is ours); what they left alone said once`, up && n1.ns.length >= 3
+      check(`${nm} 1 their asks beside the paper, numbered, Counter at the limit, else Reject; what they left alone said once`, up && n1.ns.length >= 3
         && /^1\s*Parcelway asks 60 days/.test(n1.ns[0].t) && /^2\s*Parcelway asks 6 months/.test(n1.ns[1].t)
         && n1.ns.some(n => /^Untouched: scope, data, governing law/.test(n.t))
-        && n1.counters.some(t => /Counter at 45/.test(t)) && n1.holds.some(t => /Reject · hold 12 months/.test(t))
+        && n1.counters.some(t => /Counter at 45/.test(t)) && n1.holds.some(t => /^Reject$/.test(t))
         && n1.ns.every(n => n1.sheetRight != null && n.left >= n1.sheetRight) && n1.sideways <= 0, n1);
       /* 2 · the face's four links above the box */
       const links = await page.evaluate(() => { const r = document.querySelector('#ig-dock [data-ig-chips]'); return r && r.getBoundingClientRect().height ? [...r.querySelectorAll('[data-ca-chip]')].map(b => b.textContent.trim()).join(' · ') : ''; });
-      check(`${nm} 2 four links above Jambo's box`, links === 'ladder · notes · their view · history', links);
+      const line = await page.evaluate(() => { const b = document.getElementById('ws-share'), sw = document.querySelector('#ig-page .ig-red');
+        const mk = document.querySelector('#ig-canvas ins.rl-them');
+        return { send: b ? b.textContent.trim() : '', off: !!(b && b.disabled), sw: !!(sw && sw.getBoundingClientRect().width), ins: mk ? getComputedStyle(mk).color : '',
+          chips: [...document.querySelectorAll('#ig-dock :is(.rl-head-review,.rl-head-notes,.rl-head-deal)')].map(x => x.textContent.trim()).join(' · ') }; });
+      check(`${nm} 2 four links above Jambo's box; Send all grey until something is drafted; no Clean · Redline switch; their additions green; Ask for review · Notes · Deal · Ladder`,
+        links === 'ladder · notes · their view · history' && line.send === 'Send all' && line.off && !line.sw && line.chips.split(' · ').sort().join('|') === 'Ask for review|Deal|Ladder|Notes' && line.ins === 'rgb(31, 77, 59)', { links, line });
       await page.screenshot({ path: path.join(OUT, `redlines-${nm}.png`) });
       /* 3 · the close plan */
       await page.evaluate(id => pdDealOpen(id), ID);
@@ -114,7 +119,7 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       await page.screenshot({ path: path.join(OUT, `close-plan-${nm}.png`) });
       await back(page);
       /* 4 · Send */
-      await page.evaluate(() => { const b = document.getElementById('ws-share'); if (b) b.click(); });
+      await page.evaluate(id => openShareModal(getContract(id)), ID);
       await until(page, () => !!document.querySelector('#sh-letter.is-sap'), null, 10000);
       await page.waitForTimeout(400);
       const s4 = await page.evaluate(() => {
