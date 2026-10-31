@@ -147,12 +147,18 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       check(`${nm} 5 History: quick links that give rows, one press narrows`, h5a.links.join(' · ') === 'theirs' && h5a.selects === 0
         && h5b.rows === 2 && h5a.rows > h5b.rows && h5b.sides.every(s => s === 'Theirs'), { h5a, h5b });
       await page.screenshot({ path: path.join(OUT, `history-${nm}.png`) });
-      /* 6 · Where we are */
+      /* 6 · Where we are, as drawn: in the middle beside the paper, the six stages, each side's position, the overlap panel */
       await page.evaluate(id => hbStripBring(id, 'where'), ID);
-      await until(page, () => !!document.querySelector('#hb-board .ds-sheet'), null, 10000);
-      const w6 = await page.evaluate(() => { const a = document.querySelector('#hb-board .ds-sheet .ds-open'), b = document.querySelector('#hb-board .ds-sheet .ds-side');
-        return { stacked: !!(a && b && b.getBoundingClientRect().top >= a.getBoundingClientRect().bottom - 1), border: a ? getComputedStyle(a).borderTopWidth : '' }; });
-      check(`${nm} 6 Where we are: one column, flat`, w6.stacked && w6.border === '0px', w6);
+      await until(page, () => !!document.querySelector('.pd2-stands .ds2'), null, 10000);
+      const w6 = await page.evaluate(() => ({
+        stages: [...document.querySelectorAll('.pd2-stands .ds2-st b')].map(b => b.textContent.trim()).join(' · '),
+        heads: [...document.querySelectorAll('.pd2-stands .ds2-t thead th')].map(t => t.textContent.trim()).join(' | '),
+        first: [...((document.querySelector('.pd2-stands .ds2-t tbody tr') || {}).cells || [])].map(td => td.textContent.trim()).join(' | '),
+        back: !!document.querySelector('#modal-root [data-pd-mid-back]'),
+        panel: !!document.querySelector('#ig-dock .pd2-st-face') }));
+      check(`${nm} 6 Where we are as drawn: in the middle, six stages, each side's position and whose move, the overlap panel`,
+        w6.stages === 'Arrive · Read · Fill · Negotiate · Sign · Live' && /^Still open · 2 \| Highland \| Parcelway \| Whose move$/.test(w6.heads)
+        && /^§ 5 Payment \| 30 days \| 60 days/.test(w6.first) && /Highland$/.test(w6.first) && w6.back && w6.panel, w6);
       await page.screenshot({ path: path.join(OUT, `where-${nm}.png`) });
       /* 7 · the clause editor's card */
       await face(page, ID);
