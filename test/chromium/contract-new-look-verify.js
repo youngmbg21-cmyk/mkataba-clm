@@ -193,6 +193,23 @@ const READ = () => {
           say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n.is-say') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));
         check('13b Clauses as drawn (your answer): "Clause review · one view for the whole company", no filter tabs, the row says its reading, the Preamble first with its blanks',
           /^Clause review\s*one view for the whole company/.test(Cd.head) && !Cd.tabs && Cd.say === 'Three days to reject a load' && /^Preamble/.test(Cd.pre) && /date/i.test(Cd.pre) && /Fill it in/.test(Cd.pre), Cd);
+        /* 13c ALL N IN PLAIN ENGLISH, ONE AT A TIME (owner, 31 Oct 2026): one press reads each clause not yet read, one
+           clause per reading, in order (the single-clause reader stood in for: no key in a test); Stop ends it */
+        const Al = await page.evaluate(async () => { window.__calls = []; const real = window.docReadRun;
+          window.docReadRun = async (c, o) => { window.__calls.push((o.only || []).slice()); await new Promise(r => setTimeout(r, 250)); return true; };
+          const before = (document.querySelector('#pd-thread [data-stk-all]') || {}).textContent || '';
+          document.querySelector('[data-stk-all-go]').click(); await new Promise(r => setTimeout(r, 350));
+          const going = (document.querySelector('#pd-thread [data-stk-all]') || {}).textContent || '';
+          document.querySelector('[data-stk-all-stop]').click(); await new Promise(r => setTimeout(r, 700));
+          window.docReadRun = real; return { before, going, calls: window.__calls }; });
+        check('13c "All N in plain English" reads one clause at a time, in order, says how far, and Stop ends it',
+          /^All \d+ in plain English\s*\d+ calls/.test(Al.before) && /Reading one at a time · 1 of \d+/.test(Al.going) && Al.calls.every(x => x.length === 1) && Al.calls.length >= 1 && Al.calls.length <= 2 && (Al.calls.length < 2 || Al.calls[0][0] < Al.calls[1][0]), Al);
+        /* 13d the Preamble's Mark reviewed: the record the server keeps, its Undo; the blanks still owed */
+        await page.click('#pd-thread [data-stk-pre-review=""]');
+        const rv = await until(page, () => /Reviewed ·/.test((document.querySelector('#pd-thread .stk-pre') || {}).textContent || ''), null, 10000);
+        await page.click('#pd-thread [data-stk-pre-review="undo"]');
+        const un = await until(page, () => !!document.querySelector('#pd-thread [data-stk-pre-review=""]') && !(getContract('MK-A2').pointReviews || {}).pblpreamble, null, 10000);
+        check('13d the Preamble: Fill it in · Mark reviewed (kept, and undone) · a blank is filled, never redlined', rv && un);
         await page.evaluate(() => { window.api = window.__apiWas; pdSetTab('copilot'); renderIntelDock(); });
         /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
         await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);

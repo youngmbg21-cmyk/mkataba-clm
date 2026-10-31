@@ -19259,7 +19259,7 @@ Object.assign(window,{signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DO
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
   DOC_READ_MIN_W,docReadFits,docReadOn,docReadItems,
-  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadTonesNow,docThreadKeepTones,docThreadFlatSay,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,
+  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadTonesNow,docThreadKeepTones,docThreadFlatSay,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,docThreadNoAi,
   docThreadRowHtml,docThreadBodyHtml,docThreadExplainHtml,docThreadUnrunHtml,docThreadPlain,docThreadStates,docThreadFill,
   /* the Drawer, the colour filter and Plain (Young, 5 Oct 2026) */
   docPanelHas,docThreadLanding,docThreadWantIndex,docThreadLandOn,docThreadWantClause,docThreadWantPending,docThreadWantDrop,docThreadShowsClauses,docThreadDrawerShowing,docThreadDrawerSet,docThreadPlace,docThreadPlacePut,

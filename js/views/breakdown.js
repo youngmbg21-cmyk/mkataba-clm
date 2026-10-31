@@ -377,7 +377,7 @@ function stkClauseName(at){
 function stkNewLookOn(){ return typeof window.newLookOn === 'function' && !!window.newLookOn(); }
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
-  if (stkNewLookOn()) return `${stkViewHtml()}${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}`;
+  if (stkNewLookOn()) return `${stkViewHtml()}${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
   /* THE SAME HEAD AS REDLINES (owner picked "The SAP Way", 24 Oct 2026): the name in the serif, its count, then a
      grey line of what needs you — "Clauses 9 · 3 need you · 5 worth a look" — then the tabs */
   const said = [T.need ? i18t('stk_mq_need', { n: T.need }) : '', T.look ? i18t('stk_mq_look', { n: T.look }) : ''].filter(Boolean).join(' \u00b7 ');
@@ -574,9 +574,15 @@ function stkDecorate(c, card, rows){
      read off the paper (free), with the one door that fills them on the paper; a blank is filled, never redlined */
   if (stkNewLookOn() && list && typeof window.pd2FillBlanks === 'function'){
     let bl = []; try { bl = window.pd2FillBlanks(c).filter(x => x && !String(x.value || '').trim() && (!x.section || x.section === c.name)); } catch (_){ bl = []; }
-    if (bl.length) list.insertAdjacentHTML('afterbegin', `<div class="stk-pre" role="listitem"><div class="stk-pre-h"><i class="stk-pre-ring" aria-hidden="true"></i><b>${_bdE(i18t('pd2_fp_preamble').replace(/^./, ch => ch.toUpperCase()))}</b><span class="stk-pre-v">${_bdE(bl.map(x => String(x.label || x.key).toLowerCase()).join(' \u00b7 '))}</span></div><div class="stk-pre-a"><button type="button" class="stk-a is-link" data-stk-pre-fill="${_bdE(bl[0].key)}">${_bdE(i18t('stk_fill_it'))}</button><span>${_bdE(i18t('stk_pre_never'))}</span></div></div>`);
+    /* Mark reviewed: the existing review record (POST …/points/:key/review), one key for the preamble's blanks; a reviewed
+       blank is still a blank — signing still waits on it being filled */
+    const rv = (c.pointReviews || {})[STK_PRE_KEY], why = stkReviewWhy(), busy = !!_stk.marking[STK_PRE_KEY];
+    const mark = rv ? `<span class="stk-pre-done">${_bdE(i18t('stk_pre_reviewed', { who: String(rv.name || '').split(' ')[0] || '' }))}</span> <button type="button" class="stk-a is-link" data-stk-pre-review="undo"${busy ? ' disabled' : ''}>${_bdE(i18t('stk_undo'))}</button>`
+      : `<button type="button" class="stk-a is-link" data-stk-pre-review=""${why ? ` disabled aria-disabled="true" title="${_bdE(why)}"` : ''}${busy ? ' disabled' : ''}>${_bdE(i18t('stk_mark_reviewed'))}</button>`;
+    if (bl.length) list.insertAdjacentHTML('afterbegin', `<div class="stk-pre${rv ? ' is-reviewed' : ''}" role="listitem"><div class="stk-pre-h"><i class="stk-pre-ring" aria-hidden="true"></i><b>${_bdE(i18t('pd2_fp_preamble').replace(/^./, ch => ch.toUpperCase()))}</b><span class="stk-pre-v">${_bdE(bl.map(x => String(x.label || x.key).toLowerCase()).join(' \u00b7 '))}</span></div><div class="stk-pre-a"><button type="button" class="stk-a is-link" data-stk-pre-fill="${_bdE(bl[0].key)}">${_bdE(i18t('stk_fill_it'))}</button>${mark}<span>${_bdE(i18t('stk_pre_never'))}</span></div></div>`);
   }
   stkSpineEnds(card);
+  if (stkNewLookOn()) stkAllPaint(c, card);
   stkDivePaint(c, card);
   /* the tab's number is this reading's "need you" (pdTabCount → stkNeedCount) */
   if (typeof pdTabCountPaint === 'function') try { pdTabCountPaint('doc', c); } catch (_){}
@@ -880,3 +886,52 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   const b = e.target && e.target.closest ? e.target.closest('[data-stk-pre-fill]') : null; if (!b) return;
   e.preventDefault(); const c = stkContract(); if (c && typeof window.pd2FillStart === 'function') window.pd2FillStart(c.id, b.getAttribute('data-stk-pre-fill'));
 });
+/* ---- ALL N IN PLAIN ENGLISH, ONE AT A TIME (owner, 31 Oct 2026: "Reverse but you choose to translate one at a time";
+   REVERSES 6 Oct's "there should never be an option to translate all clauses", on the new look) ----
+   One press walks the clauses not yet read, one clause per reading, in order — each the same single-clause reading a
+   row's own Plain English press asks (docReadRun({only:[i]}), the route's one-clause rule kept) — and says how far it has
+   gone; Stop ends it after the clause in hand. Clauses already read cost nothing and are not read again. */
+const STK_PRE_KEY = 'pblpreamble';
+const _stkAll = { id: '', run: false, stop: false, done: 0, total: 0 };
+function stkAllRows(card){
+  const rows = [...card.querySelectorAll('.doc-th-rows .doc-th-row[data-th-row]')].filter(r => !r.hidden);
+  const read = r => !!r.querySelector('[data-th-state] .is-read, [data-th-state] .stk-read');
+  return { all: rows.map(r => Number(r.getAttribute('data-th-row'))), left: rows.filter(r => !read(r)).map(r => Number(r.getAttribute('data-th-row'))) };
+}
+function stkAllPaint(c, card){
+  const slot = card && card.querySelector('[data-stk-all]'); if (!slot) return;
+  const R = stkAllRows(card), n = R.all.length, k = R.left.length, E = _bdE;
+  if (!n){ slot.innerHTML = ''; return; }
+  const noAi = typeof window.docThreadNoAi === 'function' ? window.docThreadNoAi() : !(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured);
+  const going = _stkAll.run && _stkAll.id === String(c.id);
+  let html;
+  if (going) html = `<button type="button" class="stk-all-b" data-stk-all-stop>${E(i18t('stk_all_stop'))}</button><span class="stk-cost-n">${E(i18t('stk_all_going', { k: _stkAll.done, n: _stkAll.total }))}</span>`;
+  else if (!k) html = `<span class="stk-cost-n">${E(i18tn('stk_all_done', n, { n }))}</span>`;
+  else html = `<button type="button" class="stk-all-b" data-stk-all-go${noAi ? ` disabled aria-disabled="true" title="${E(i18t('th_no_ai'))}"` : ''}>${E(i18tn('stk_all_go', n, { n }))}</button><span class="stk-cost-n">${E([i18tn('pd2_n_calls', k, { n: k }), n - k ? i18tn('stk_all_read', n - k, { n: n - k }) : ''].filter(Boolean).join(' · '))}</span>`;
+  if (slot.innerHTML !== html) slot.innerHTML = html;
+}
+async function stkAllRun(c){
+  const card = c && document.querySelector('#pd-thread'); if (!card || _stkAll.run || typeof window.docReadRun !== 'function') return;
+  const left = stkAllRows(card).left; if (!left.length) return;
+  Object.assign(_stkAll, { id: String(c.id), run: true, stop: false, done: 0, total: left.length });
+  stkAllPaint(c, card);
+  for (const i of left){
+    if (_stkAll.stop || _stkAll.id !== String(c.id)) break;
+    const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+    try { await window.docReadRun(live, { only: [i], out: { asked: false, why: '' } }); } catch (_){}
+    _stkAll.done++;
+    const cur = (typeof getContract === 'function' && getContract(c.id)) || live;
+    try { if (typeof window.docThreadPaint === 'function') window.docThreadPaint(cur); } catch (_){}
+    const cd = document.querySelector('#pd-thread'); if (cd) stkAllPaint(cur, cd);
+  }
+  _stkAll.run = false;
+  const cd = document.querySelector('#pd-thread'); if (cd) stkAllPaint((typeof getContract === 'function' && getContract(c.id)) || c, cd);
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  if (t.closest('[data-stk-all-go]')){ e.preventDefault(); const c = stkContract(); if (c) stkAllRun(c); return; }
+  if (t.closest('[data-stk-all-stop]')){ e.preventDefault(); _stkAll.stop = true; return; }
+  const pr = t.closest('[data-stk-pre-review]');
+  if (pr){ e.preventDefault(); if (pr.disabled) return; const c = stkContract(); if (c) stkMarkReviewed(c, { key: STK_PRE_KEY, title: i18t('stk_pre_title') }, pr.getAttribute('data-stk-pre-review') === 'undo'); return; }
+});
+Object.assign(window, { stkAllRun, stkAllPaint, STK_PRE_KEY });
