@@ -7453,9 +7453,9 @@ function pd2NotesPaint(c){
   if (_pd2Walk && (!c || String(_pd2Walk.id) !== String(c.id) || !pd2On())){ clearTimeout(_pd2Walk.timer); _pd2Walk = null; document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk'); }
   if (c && pd2WalkOn(c.id)){ pd2NotesOff(); pd2WalkPaint(); return; }
   /* the notes stand beside the paper with the Dossier; Clauses and Redlines mark the paper their own way */
+  const red = !!(zoom && zoom.querySelector('.ig-redpaper')) && !(zoom.querySelector('.ig-redpaper.is-clean'));
   if (_pdTab !== 'copilot' && !red){ pd2NotesOff(); pd2ClauseTint(); return; }
   if (c && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
-  const red = !!(zoom && zoom.querySelector('.ig-redpaper')) && !(zoom.querySelector('.ig-redpaper.is-clean'));
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-signpaper') || (zoom.querySelector('.ig-redpaper') && !red) || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
   if (red) try { pd2DialsPaint(c, cv); } catch (_){}
