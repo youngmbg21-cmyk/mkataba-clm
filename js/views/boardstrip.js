@@ -125,6 +125,12 @@ function bsCardLeave(){
    would hide the strips), lit once and brought into view. A light row is
    loaded whole behind it: the brief and the trail ride the heavy record. */
 function hbStripBring(id, page, opts){
+  /* THE NEW LOOK, AS DRAWN: Where we are stands in the middle beside its paper (pd2StandsOpen), the paper first */
+  if (page === 'where' && typeof window.pd2On === 'function' && window.pd2On() && typeof window.pd2StandsOpen === 'function' && typeof window.roomHomeLand === 'function'){
+    const pc = (typeof window.pdContract === 'function') ? window.pdContract() : null;
+    if (pc && String(pc.id) === String(id)){ if (window.pd2StandsOpen(id)) return true; }
+    else { try { window.roomHomeLand(id); } catch (_){} setTimeout(() => { try { window.pd2StandsOpen(id); } catch (_){} }, 400); return true; }
+  }
   const c = bsContract(id); if (!c) return false;
   if (typeof window.codeNameStop === 'function' && codeNameStop(c)) return false;
   if (bsPhone() || typeof hbS !== 'function' || typeof hbSave !== 'function') return false;
