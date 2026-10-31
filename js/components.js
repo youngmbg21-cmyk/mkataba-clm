@@ -596,6 +596,8 @@ function jamboWaysSync(){
   for (const sel of JB_WAY_FEET){
     document.querySelectorAll(sel).forEach(foot => {
       if (!foot.querySelector('.jb-card')) return;
+      /* THE CONTRACT'S ONE ROW (the contract round, as drawn): its own next-step links stand above the box instead */
+      if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]') && document.querySelector('#ig-paper:not([hidden]) #ig-canvas')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); return; }
       const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
       if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
       if (old) old.remove();

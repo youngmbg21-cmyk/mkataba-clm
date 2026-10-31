@@ -382,6 +382,13 @@ function briefMarkRead(c, user){
   return c.briefRead[who];
 }
 
+/* "I HAVE READ IT", PRESSED: the one writer, its line in the trail, saved — one act for every card that offers it */
+function briefReadSave(c){
+  const r = briefMarkRead(c); if (!r) return null;
+  if (typeof logAudit === 'function') logAudit(c, 'Record', 'Read the brief before signing');
+  if (typeof persist === 'function') persist(c);
+  return r;
+}
 /* ---- THE ONE READING, AND THE ONLY THING THE CARD IS ALLOWED TO ASK ---- */
 function signCheck(c){
   if (!c) return null;
@@ -843,7 +850,7 @@ function signCheckLinkHolds(c){
   if (typeof f !== 'function' || !c) return [];
   try { return f(c, { gate: signCheckGate(), isAdmin: signCheckIsAdminId }) || []; } catch (_) { return []; }
 }
-if (typeof window !== 'undefined') Object.assign(window, { signReadinessFor, signCheckLinkHolds, signCheckIsAdminId });
+if (typeof window !== 'undefined') Object.assign(window, { signReadinessFor, signCheckLinkHolds, signCheckIsAdminId, briefReadSave });
 if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_FIELD_OF, SIGN_BOX_FIELD, signFieldMarks,
   briefReadKey, briefReadOf, briefReadBy, briefMarkRead, briefReadWho, signCheckBriefStands,
