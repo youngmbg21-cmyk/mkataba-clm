@@ -117,11 +117,17 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
 
     /* 2 a box answered stays put under the hand */
     await ckOpenRowOf(page, '#pd-og [data-blankf="up_notice_period"]'); await page.click('#pd-og [data-blankf="up_notice_period"]');
-    const before = await page.evaluate(() => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'); return b ? Math.round(b.getBoundingClientRect().top) : null; });
+    /* RE-POINTED 31 Oct 2026 (round 1 of the Legora way, the doors above Jambo's box): measured inside the form, not
+       on the screen. The doors take a line at the panel's foot, so Tab's next box can sit a few pixels under it and the
+       browser scrolls the form to show it; that is the browser's own reveal, not a repaint moving the row. A row that
+       jumps on a repaint still moves inside the form, and fails here. */
+    const IN_FORM = () => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'), f = document.getElementById('pd-og');
+      return b && f ? Math.round(b.getBoundingClientRect().top - f.getBoundingClientRect().top) : null; };
+    const before = await page.evaluate(IN_FORM);
     await page.keyboard.type('6 months');
     await page.keyboard.press('Tab');
     await until(l => detailsOf(pdContract()).left === l - 1, F.left, 5000);
-    const after = await page.evaluate(() => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'); return { top: b ? Math.round(b.getBoundingClientRect().top) : null, inGrid: !!b, left: detailsOf(pdContract()).left }; });
+    const after = { top: await page.evaluate(IN_FORM), ...(await page.evaluate(() => ({ inGrid: !!document.querySelector('#pd-og [data-blankf="up_notice_period"]'), left: detailsOf(pdContract()).left }))) };
     check('2a stored as the box is left, the row stays where it is while the hand is in the grid', before != null && after.top === before && after.inGrid && after.left === F.left - 1, JSON.stringify({ before, after }));
     await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form keeps the row it opened with, ticked */

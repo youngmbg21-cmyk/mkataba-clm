@@ -603,7 +603,8 @@ function jamboWaysSync(){
 }
 let _jbWaysQueued = false;
 function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else setTimeout(run, 0); }
+  /* its own small task after the repaint, never inside the frame that drew it (home-speed-verify: a switch's freeze) */
+  setTimeout(run, 0); }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
   /* a door's press: the one mover */
   document.addEventListener('click', e => {
