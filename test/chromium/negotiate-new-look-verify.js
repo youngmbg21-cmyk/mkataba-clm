@@ -2,7 +2,7 @@
    The close plan, Where we are, History, Send; behind the switch). A SaaS agreement on which the other side asked two
    figures: 60 days to pay (the standard is 45 at most) and 6 months' liability (the standard is 12 at least). With the
    switch on, at the owner's three screens:
-     1 · their asks beside the redlined paper, numbered, each with Counter at the limit; one grey note for what they left alone
+     1 · their asks beside the redlined paper, numbered, Counter at the limit where it is not ours (else Reject · hold ours); one grey note for what they left alone
      2 · the Redlines face's four links above Jambo's box: ladder · notes · their view · history
      3 · the close plan: one table (Point · us · them · Stand), a point opens to compare, the two wordings side by side
      4 · Send: the questions a column of lines, the letter beside them; a line pressed opens its list; From among the lines;
@@ -84,12 +84,12 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       const n1 = await page.evaluate(() => {
         const host = document.getElementById('pd2-notes'), sheet = document.querySelector('#ig-paper .ig-zoom article, #ig-paper .ig-zoom .pg-sheet');
         const ns = host ? [...host.querySelectorAll('.pd2-mn')].map(n => ({ t: n.textContent.replace(/\s+/g, ' ').trim().slice(0, 70), left: n.getBoundingClientRect().left })) : [];
-        return { up: true, ns, counters: host ? [...host.querySelectorAll('[data-rl-1p-counter]')].map(b => b.textContent.trim()) : [], sheetRight: sheet ? sheet.getBoundingClientRect().right : null, sideways: document.documentElement.scrollWidth - innerWidth };
+        return { up: true, ns, counters: host ? [...host.querySelectorAll('[data-rl-1p-counter]')].map(b => b.textContent.trim()) : [], holds: host ? [...host.querySelectorAll('[data-pd2-go="press"]')].map(b => b.textContent.trim()) : [], sheetRight: sheet ? sheet.getBoundingClientRect().right : null, sideways: document.documentElement.scrollWidth - innerWidth };
       });
-      check(`${nm} 1 their asks beside the paper, numbered, Counter at the limit; what they left alone said once`, up && n1.ns.length >= 3
+      check(`${nm} 1 their asks beside the paper, numbered, Counter at the limit (or Reject · hold where the limit is ours); what they left alone said once`, up && n1.ns.length >= 3
         && /^1\s*Parcelway asks 60 days/.test(n1.ns[0].t) && /^2\s*Parcelway asks 6 months/.test(n1.ns[1].t)
         && n1.ns.some(n => /^Untouched: scope, data, governing law/.test(n.t))
-        && n1.counters.some(t => /Counter at 45/.test(t)) && n1.counters.some(t => /Counter at 12/.test(t))
+        && n1.counters.some(t => /Counter at 45/.test(t)) && n1.holds.some(t => /Reject · hold 12 months/.test(t))
         && n1.ns.every(n => n1.sheetRight != null && n.left >= n1.sheetRight) && n1.sideways <= 0, n1);
       /* 2 · the face's four links above the box */
       const links = await page.evaluate(() => { const r = document.querySelector('#ig-dock [data-ig-chips]'); return r && r.getBoundingClientRect().height ? [...r.querySelectorAll('[data-ca-chip]')].map(b => b.textContent.trim()).join(' · ') : ''; });
@@ -194,7 +194,7 @@ const back = async page => { await page.keyboard.press('Escape'); await page.wai
       const off = await page.evaluate(() => ({ notes: document.querySelectorAll('#pd2-notes .pd2-mn').length }));
       await page.evaluate(() => pdDealOpen('MK-R6'));
       await until(page, () => !!document.querySelector('#modal-root [data-deal-mid]'), null, 10000);
-      off.dl2 = !!document.querySelector && await page.evaluate(() => !!document.querySelector('#modal-root .dl2'));
+      off.dl2 = await page.evaluate(() => !!document.querySelector('#modal-root .dl2'));
       check('10 the switch off: no notes beside the paper, the close plan as before', off.notes === 0 && !off.dl2, off);
       await page.close(); }
   } finally { await browser.close(); await h.stop(); }
