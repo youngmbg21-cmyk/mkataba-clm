@@ -6358,6 +6358,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
     if (t.closest('[data-pd-send-back]')){ e.preventDefault(); pdSendBack(); return; }
     /* THE DEAL (owner, 23 Oct 2026): the face's button, its tabs, a point's clause, its way back */
+    if (t.closest('[data-rl-head-ladder]')){ e.preventDefault(); const b = document.querySelector('#ig-dock [data-rl-ladder]'); if (b && !b.disabled) b.click(); return; }
     const dl = t.closest('[data-rl-deal]');
     if (dl){ e.preventDefault(); pdDealOpen(dl.getAttribute('data-rl-deal')); return; }
     /* a point waiting on them: Chase opens the Send screen, the one door to the other side */
@@ -7281,9 +7282,18 @@ function pd2RedNotes(c, cv){
     let M = null; try { M = (typeof precedentMemoryOf === 'function') ? precedentMemoryOf(c, ch) : null; } catch (_){ M = null; }
     const name = (typeof clauseNameShown === 'function' ? clauseNameShown(ch.clauseLabel || '') : '') || ch.clauseLabel || '';
     const k = (O ? _pdT('pd2_rn_asks_fig', { who: cp || _pdT('pd2_rn_they'), v: `${O.asked} ${O.unit}`.trim() }) : _pdT('pd2_rn_asks', { who: cp || _pdT('pd2_rn_they'), what: name }));
-    const w = [R && R.why, M && M.line ? String(M.line).replace(/<[^>]*>/g, '') : ''].filter(Boolean).join(' ');
-    const acts = [O && O.at != null ? `<button type="button" class="ui-link" data-rl-1p-counter="${E(ch.id)}" data-rl-1p-at="${O.at}">${E(_pdT('rl_1p_counter', { v: `${O.at} ${O.unit}`.trim() }))}</button>` : '',
-      `<button type="button" class="ui-link" data-pd2-go="press" data-pd2-key="${E('[data-nego-reject="' + ch.id + '"]')}">${E(O ? _pdT('rl_1p_reject', { v: `${O.ours} ${O.unit}`.trim() }) : _pdT('pd2_rn_reject'))}</button>`].filter(Boolean).join(' · ');
+    /* AS DRAWN: the standard in figures ("Your standard: 30 days, 45 at most." / "never goes below nine"), then the precedent */
+    const inWords = O && typeof window.rlNumWords === 'function' && new RegExp('\\b' + rlNumWords(O.asked) + '\\b', 'i').test(String(ch.newText || ''));
+    const fig = v => inWords ? rlNumWords(v) : String(v);
+    const std = O && O.lim != null && isFinite(O.lim)
+      ? (O.lim === O.ours ? _pdT(O.op === '<=' ? 'pd2_rn_std_above' : 'pd2_rn_std_below', { lim: fig(O.lim) })
+        : _pdT(O.op === '<=' ? 'pd2_rn_std_most' : 'pd2_rn_std_least', { ours: `${fig(O.ours)} ${O.unit}`.trim(), lim: fig(O.lim) })) : '';
+    const w = [std || (R && R.why), M && M.line ? String(M.line).replace(/<[^>]*>/g, '') : ''].filter(Boolean).join(' ');
+    const why = (typeof negoReasonOf === 'function') ? String(negoReasonOf(ch) || '').trim() : String(ch.why || '').trim();
+    const acts = [O && O.at != null ? `<button type="button" class="ui-link" data-rl-1p-counter="${E(ch.id)}" data-rl-1p-at="${O.at}">${E(_pdT('rl_1p_counter', { v: fig(O.at) }))}</button>` : '',
+      why ? `<button type="button" class="ui-link" data-pd2-why aria-expanded="false">${E(_pdT('pd2_rn_reason'))}</button>`
+        : `<button type="button" class="ui-link" data-pd2-go="press" data-pd2-key="${E('[data-nego-reject="' + ch.id + '"]')}">${E(_pdT('pd2_rn_reject'))}</button>`].filter(Boolean).join(' · ')
+      + (why ? `<span class="pd2-mn-why" hidden>“${E(why)}”</span>` : '');
     const at = dot ? { el: dot } : null;
     out.push({ tone: 'ask', n, k, w, acts, hit: at, at: { sel: `[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]` } });
   });
@@ -7474,6 +7484,12 @@ function pd2NotesPaint(c){
   if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { const z = document.querySelector('#ig-paper .ig-zoom'); const h = document.getElementById('pd2-notes'); if (z && h && h.getAttribute('data-pd2-for') === String(c.id)) pd2NotesPlace(notes, z, h, parseFloat(z.style.zoom) || 1); });
   if (!zoom._pd2RO && typeof ResizeObserver === 'function'){ let w0 = zoom.clientWidth; zoom._pd2RO = new ResizeObserver(() => { if (zoom.clientWidth === w0) return; w0 = zoom.clientWidth; const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); }); zoom._pd2RO.observe(zoom); }
 }
+/* "Show their reason": their own words, opened in the note (a reading; nothing pressed) */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-why]') : null; if (!b) return;
+  e.preventDefault(); const w = b.closest('.pd2-mn') && b.closest('.pd2-mn').querySelector('.pd2-mn-why'); if (!w) return;
+  w.hidden = !w.hidden; b.setAttribute('aria-expanded', w.hidden ? 'false' : 'true');
+});
 /* each note at its line's height, pushed down past the one above so none overlap */
 function pd2NotesPlace(notes, zoom, host, f){
   const top0 = zoom.getBoundingClientRect().top;

@@ -9362,7 +9362,14 @@ function igStripActsHtml(c){
      line: their drawer stays the side panel's Notes tab and the Redlines column's Notes chip. */
   const unsent=!!(window.pdHasUnsent&&pdHasUnsent(c));
   const sendWord=unsent&&window.shareRoundOf?i18t('sh_hd_round',{ n:shareRoundOf(c.negotiation) }):i18t('ct_share');
-  const share=(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm ui-btn-primary" title="${igEsc(i18t(unsent?'pd_send_waiting_title':'ct_share_with_cp'))}" aria-label="${igEsc(sendWord)}"${unsent?' data-ws-send-all':''}>${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(sendWord)}</span></button>`:'';
+  /* THE NEW LOOK'S REDLINES, AS DRAWN: "Send all · N not sent", no icon; with nothing drafted it stands grey and says why */
+  let nlSend=null;
+  if(may&&c.status!=='Declined'&&window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='red'){
+    let n=0; try{ n=(c.negotiation&&typeof rlUnsentCount==='function')?rlUnsentCount(c,{}):0; }catch(_){ n=0; }
+    const w=n?i18tn('ig_send_all_n',n,{ n }):i18t('ig_send_all');
+    nlSend=`<button type="button" id="ws-share" class="ui-btn ui-btn-sm ui-btn-primary" aria-label="${igEsc(w)}"${n?` data-ws-send-all title="${igEsc(i18t('pd_send_waiting_title'))}"`:` disabled title="${igEsc(i18t('ig_send_all_none'))}"`}><span class="ig-share-w">${igEsc(w)}</span></button>`;
+  }
+  const share=nlSend!=null?nlSend:(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm ui-btn-primary" title="${igEsc(i18t(unsent?'pd_send_waiting_title':'ct_share_with_cp'))}" aria-label="${igEsc(sendWord)}"${unsent?' data-ws-send-all':''}>${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(sendWord)}</span></button>`:'';
   const sealed=!!(window.negoExecuted&&negoExecuted(c));
   let review='';
   if(may&&!sealed&&window.rlReviewDoorState&&window.rlReviewDoor){
@@ -9461,7 +9468,7 @@ function igStripHtml(c,p){
        row's twin, while the signing copy is up (signWalkHtml) */''}${up&&onHome&&igSignOn(c)&&window.signWalkHtml?signWalkHtml(c,{ home:true }).replace('class="ui-btn"','class="ui-btn ui-btn-sm"'):''}
     ${up&&onHome&&!igSignOn(c)&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=igRedOn(c);
       const theirs=igTheirsOn(c);
-      return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><i class="ig-red-th" aria-hidden="true"></i><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red&&!theirs?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button><button type="button" data-ig-red="theirs" aria-pressed="${theirs?'true':'false'}" title="${igEsc(i18t('int_red_theirs_title'))}">${igEsc(i18t('int_red_theirs'))}</button></span>`; })():''}
+      return `<span class="ig-red${window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='red'?' is-nl-red':''}" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><i class="ig-red-th" aria-hidden="true"></i><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red&&!theirs?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button><button type="button" data-ig-red="theirs" aria-pressed="${theirs?'true':'false'}" title="${igEsc(i18t('int_red_theirs_title'))}">${igEsc(i18t('int_red_theirs'))}</button></span>`; })():''}
     ${/* NO FOCUS ON HOME'S PAPER (owner, 8 Oct 2026: "the removal of the focus
        button from the paper tab"); the map's own paper keeps it */''}${up&&igHomePaperFace()!==true?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
     ${/* THE ZOOM LEFT THIS STRIP for the paper's own ground (owner, 11 Oct

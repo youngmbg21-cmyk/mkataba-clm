@@ -1524,7 +1524,9 @@ function caNextSteps(c){
    their own row (edit a clause, amend) or door (answer the redlines → the
    Redlines face; name a signer → the route editor) */
 const CA_RED_LINKS = ['rl_ladder', 'rl_notes', 'rl_theirs', 'history'];
-const CA_RED_PRESS = { rl_ladder: '#ig-dock [data-rl-ladder]', rl_notes: '#ig-dock [data-rl-notes-all]', rl_theirs: '[data-ig-red="theirs"]' };
+/* their view is the paper's own switch (kept out of sight on the new look's Redlines): pressed again, back to the redline */
+const CA_RED_PRESS = { rl_ladder: () => '#ig-dock [data-rl-ladder]', rl_notes: () => '#ig-dock [data-rl-notes-all]',
+  rl_theirs: () => (document.querySelector('[data-ig-red="theirs"][aria-pressed="true"]') ? '[data-ig-red="1"]' : '[data-ig-red="theirs"]') };
 const CA_NEXT_GO = ['edit', 'amend', 'answer', 'signer', 'rl_ladder', 'rl_notes', 'rl_theirs'];
 function caNextLabel(k){ return CA_NEXT_GO.includes(k) ? _caT('ca_next_' + k) : _caT('ca_w_' + k); }
 /* a step pressed: a place is asked as its word (one path with typing,
@@ -1534,7 +1536,7 @@ function caNextRun(c, k){
   if (k === 'edit'){ const b = caEditChipBtn(c); return b ? rlEditClausePress(getContract(c.id) || c, b) : false; }
   if (k === 'amend') return (typeof pdAmendOpen === 'function') ? pdAmendOpen(c.id) : false;
   if (k === 'answer') return CA_GO.redline(c);
-  if (CA_RED_PRESS[k]){ const b = document.querySelector(CA_RED_PRESS[k]); if (b && !b.disabled){ b.click(); return true; } return false; }
+  if (CA_RED_PRESS[k]){ const b = document.querySelector(CA_RED_PRESS[k]()); if (b && !b.disabled){ b.click(); return true; } return false; }
   if (k === 'signer') return (typeof openSignerPlanEditor === 'function') ? (openSignerPlanEditor(getContract(c.id) || c), true) : CA_GO.sign(c);
   if (typeof intelAsk === 'function') return intelAsk(_caT('ca_w_' + k));
   return false;

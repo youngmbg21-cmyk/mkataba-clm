@@ -18750,13 +18750,20 @@
   html.lg-new #hb-board .ds-sheet .ds-by .reg-av,html.lg-new #hb-board .ds-sheet .ds-pch .reg-av{display:none}
   html.lg-new #hb-board .ds-sheet .ds-pch{border:0;background:none;padding:0 16px 0 0}
   html.lg-new #hb-board .ds-sheet .ds-tag{background:none;padding:0;color:var(--color-text)}
+  /* THE REDLINE AS DRAWN (owner, 31 Oct 2026: "build as drawn"; REVERSES 13-14 Sep's "colour says who" on the new look only):
+     added words green and underlined, struck words red on a pink wash, whoever wrote them */
+  html.lg-new .rl-doc ins:is(.rl-them,.rl-us),html.lg-new .nego-doc ins:is(.rl-them,.rl-us),html.lg-new .rl-cp-src ins:is(.rl-them,.rl-us),html.lg-new .rl-col ins:is(.rl-them,.rl-us),html.lg-new .pv-sheet ins:is(.rl-them,.rl-us),html.lg-new .ag-words ins:is(.rl-them,.rl-us),html.lg-new #ig-canvas ins:is(.rl-them,.rl-us),html.lg-new .dl2-w ins:is(.rl-them,.rl-us){background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:underline;text-decoration-color:currentColor}
+  html.lg-new .rl-doc del:is(.rl-them,.rl-us),html.lg-new .nego-doc del:is(.rl-them,.rl-us),html.lg-new .rl-cp-src del:is(.rl-them,.rl-us),html.lg-new .rl-col del:is(.rl-them,.rl-us),html.lg-new .pv-sheet del:is(.rl-them,.rl-us),html.lg-new .ag-words del:is(.rl-them,.rl-us),html.lg-new #ig-canvas del:is(.rl-them,.rl-us),html.lg-new .dl2-w del:is(.rl-them,.rl-us){background:var(--st-ruby-bg);color:var(--st-ruby-fg);text-decoration:line-through;text-decoration-color:currentColor}
+  html.lg-new #ig-page .ig-red.is-nl-red{display:none}
+  html.lg-new .rl-pt{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
   html.lg-new .rl-1p-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
   html.lg-new .rl-1p{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
   @media (hover:hover){ html.lg-new .rl-1p:hover{box-shadow:inset 0 0 0 1px var(--color-text)} }
   html.lg-new .rl-1p:disabled{opacity:.55;cursor:default}
   /* the Redlines face as drawn: no trail over the head (the tabs say where you are), Reject red on the face */
   html.lg-new #ig-dock #pd-redface .pd-trail,html.lg-new #ig-dock .pd-trail[data-pd-trail="red"]{display:none}
-  html.lg-new #ig-dock .rl-card-verbs .rl-rej{color:var(--st-ruby-fg)}
+  html.lg-new #ig-dock .rl-card-verbs .rl-rej{color:var(--color-text)}
+  html.lg-new #ig-dock .rl-card-verbs .rl-rej svg,html.lg-new #ig-dock :is(.rl-head-deal,.rl-head-notes,.rl-head-review) svg{display:none}
   /* the dial: the figure in their ask carries a grip; pressed, a scale under the clause, your figure to theirs */
   html.lg-new #ig-canvas [data-pd2-dial]{cursor:ew-resize;position:relative;outline:none}
   html.lg-new #ig-canvas [data-pd2-dial]:focus-visible{box-shadow:0 0 0 2px var(--accent-ink)}

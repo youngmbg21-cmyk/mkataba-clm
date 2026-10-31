@@ -21020,7 +21020,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>${rlRowByHtml(ch, _short)}` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side), lock = rlRowLockHtml(c, ch, side), line = rlRowLineHtml(ch, sub, fromRiskRow), read = rlRowReadHtml(c, ch, side) + rlOnePressHtml(c, ch, side);
+          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side), lock = rlRowLockHtml(c, ch, side), line = rlRowLineHtml(ch, sub, fromRiskRow), read = rlRowReadHtml(c, ch, side);
             return (why || keeps || lock || read) ? `<div class="rl-card-sumw">${line}${why}${read}${keeps}${lock}</div>` : line; })()}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
@@ -22590,16 +22590,7 @@ function rlOnePressOf(c, ch, side){
   const lim = R ? Number(R.value) : null, worse = R ? (R.op === '<=' ? asked > lim : asked < lim) : false;
   /* the counter stands at your limit, where their ask is past it and the limit is not simply your own figure */
   const at = (R && worse && lim !== ours) ? lim : null;
-  return { asked, ours, at, unit: t.unit || '', key: t.key };
-}
-function rlOnePressHtml(c, ch, side){
-  const O = rlOnePressOf(c, ch, side); if (!O) return '';
-  const u = n => `${n} ${O.unit}`.trim();
-  const may = (typeof canEdit !== 'function') || !!canEdit();
-  if (!may) return '';
-  const b = (attrs, w) => `<button type="button" class="rl-1p" ${attrs}>${_ne(w)}</button>`;
-  /* on the card, only what its own verbs do not already say: the counter at your figure (Accept and Reject are its verbs) */
-  return O.at != null ? `<div class="rl-1p-row" data-rl-1p="${_nea(ch.id)}">${b(`data-rl-1p-counter="${_nea(ch.id)}" data-rl-1p-at="${O.at}"`, i18t('rl_1p_counter', { v: u(O.at) }))}</div>` : '';
+  return { asked, ours, at, lim, op: R ? R.op : '', unit: t.unit || '', key: t.key };
 }
 /* the counter's words: YOUR wording as it stands, your figure moved to the one the press names, in the same form
    ("30 days" → "45 days"; "twelve (12) months" → "nine (9) months"); measured on their ask, whatever they added is struck */
@@ -22952,7 +22943,9 @@ function rlHeadNotesHtml(c, opts = {}){
 function rlHeadDealHtml(c, opts = {}){
   if (!c || !opts.dealDoor || !rlHeadOurs(opts)) return '';
   const on = typeof window.pdMidUp === 'function' && pdMidUp('deal:' + c.id);
-  return `<button type="button" class="rl-head-deal${on ? ' is-on' : ''}" data-rl-deal="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_deal_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><path d="M2 5h10M9.5 2.5 12 5 9.5 7.5M14 11H4M6.5 8.5 4 11l2.5 2.5"/></svg><span>${_ne(i18t('ng_deal'))}</span></button>`;
+  /* THE NEW LOOK, AS DRAWN: Ladder beside Deal, pressing the first row's own Ladder (the one door) */
+  const ladder = (typeof window.newLookOn === 'function' && newLookOn()) ? `<button type="button" class="rl-head-deal rl-head-ladder" data-rl-head-ladder="${_nea(c.id)}">${_ne(i18t('ng_row_ladder'))}</button>` : '';
+  return `<button type="button" class="rl-head-deal${on ? ' is-on' : ''}" data-rl-deal="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_deal_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><path d="M2 5h10M9.5 2.5 12 5 9.5 7.5M14 11H4M6.5 8.5 4 11l2.5 2.5"/></svg><span>${_ne(i18t('ng_deal'))}</span></button>` + ladder;
 }
 function rlHeadHereHtml(c, opts = {}){
   if (!c || !rlHeadOurs(opts)) return '';
