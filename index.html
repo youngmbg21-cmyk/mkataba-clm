@@ -18363,6 +18363,9 @@
   /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
   html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
   html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  /* on a contract the row above the box is the paper's own links (the one row, as drawn): the same line above it, none under it */
+  html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]){border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0;background:var(--color-surface)}
+  html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]) + .igd-foot{border-top-color:transparent}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot.jl-foot, .st-cr .st-jb-ask.st-jb-ask){padding:12px var(--jb-g,16px) var(--well-b)}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot, .st-cr #st-jb-form, #ai-panel.is-side > footer, #cn-page) .jb-card:not(.is-tall){box-sizing:border-box;min-height:var(--jb-box-h)}
   /* ==== THE NEW LOOK: HOME (round 2 rebuilt, owner, 31 Oct 2026; js/views/counter.js cn2*) ====
