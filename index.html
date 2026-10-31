@@ -18508,6 +18508,19 @@
   html.lg-new .pd2-br-foot .br-read-done{margin:0;padding-top:14px;border-top:1px solid var(--color-divider);color:var(--st-green-fg)}
   html.lg-new .pd2-br-cut{margin:18px 0 0;color:var(--st-amber-fg);font-size:13px}
   html.lg-new .pd2-br-pfoot{position:sticky;bottom:0;margin-top:auto;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text)}
+  /* fill in on the paper: the blanks are boxes where they stand, a head over the paper's line, a foot under the paper */
+  html.lg-new #ig-canvas span.pd2-bl,html.lg-new #ig-canvas span.up-blank.pd2-bl{background:none;border:0;padding:0;margin:0;box-shadow:none;outline:0}
+  html.lg-new #ig-canvas .pd2-bl-in{font:inherit;font-family:var(--font-body);font-size:13px;line-height:20px;height:24px;padding:0 8px;margin:0 2px;border:0;border-bottom:2px solid var(--st-amber-dot);border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg);vertical-align:baseline}
+  html.lg-new #ig-canvas .pd2-bl-in:focus{outline:2px solid var(--st-amber-dot);outline-offset:1px}
+  html.lg-new #ig-canvas .pd2-bl-in::placeholder{color:var(--st-amber-fg)}
+  html.lg-new #ig-page.is-pd2-fill #ig-strip{display:none}
+  html.lg-new .pd2-fill-head{display:flex;align-items:center;gap:16px;min-height:var(--ig-bar-h,56px);padding:8px 24px 8px 40px;box-sizing:border-box;background:var(--color-surface);border-bottom:1px solid var(--color-divider)}
+  html.lg-new .pd2-fh-t{font-family:var(--font-title);font-size:24px;font-weight:var(--w-title-serif);white-space:nowrap}
+  html.lg-new .pd2-fh-m{font-size:13.5px;font-weight:var(--w-label);max-width:220px}
+  html.lg-new .pd2-fh-hint{font-size:11.5px;color:var(--color-quiet);max-width:330px}
+  html.lg-new .pd2-fill-head .pd2-br-sp{flex:1}
+  html.lg-new .pd2-fill-foot{flex:none;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text);z-index:2}
+  html.lg-new #ig-dock .pd2-fp.is-typed [data-pd2-fp-state]{color:var(--color-text)}
 </style>
 
 

@@ -98,9 +98,26 @@ const READ = () => {
       check(`${nm} 4 the paper 40 from the page's edge, nothing sideways`, R.sheetLeft != null && Math.abs(R.sheetLeft - 40) <= 2 && R.sideways <= 0, { sheetLeft: R.sheetLeft, sideways: R.sideways });
       await page.screenshot({ path: path.join(OUT, `contract-${nm}.png`) });
       if (nm === 'laptop-a'){
+        /* 4b the paper scrolls in its own scroller (it once grew to its whole length and stood still) */
+        const S = await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); return { client: sc.clientHeight, whole: sc.scrollHeight }; });
+        check('4b the paper scrolls', S.whole > S.client + 100, S);
+        /* 5 FILL IN ON THE PAPER (part 3): a note's Fill in turns the paper's blanks into boxes where they stand; what is
+           typed is in the panel's list; nothing is saved until Save; Save stores it (the server holds it) */
         await page.click('#pd2-notes [data-pd2-go="fill"][data-pd2-key="up_date"]');
-        const landed = await until(page, () => !!document.querySelector('#ig-dock #pd-og.is-form'), null, 15000);
-        check('5 a note\'s Fill in opens the one Fill in form', landed);
+        const boxes = await until(page, () => document.querySelectorAll('#ig-canvas [data-pd2-bl]').length === 2 && !!document.getElementById('pd2-fill-head') && !!document.querySelector('#ig-dock .pd2-dossier.is-fill'), null, 15000);
+        await page.keyboard.type('31 October 2026');
+        const F = await page.evaluate(() => ({ list: (document.querySelector('#ig-dock [data-pd2-fp-row="up_date"] [data-pd2-fp-state]') || {}).textContent || '',
+          stored: (getContract('MK-A2').fields || {}).up_date || '', count: (document.querySelector('[data-pd2-ff-n]') || {}).textContent || '',
+          scrolls: document.getElementById('ig-paper-scroll').scrollHeight > document.getElementById('ig-paper-scroll').clientHeight + 100 }));
+        check('5 a note\'s Fill in fills on the paper: the boxes, the head, the list beside it, nothing saved yet, the paper still scrolls',
+          boxes && /31 October 2026/.test(F.list) && !F.stored && /^1 of 2 filled/.test(F.count) && F.scrolls, F);
+        await page.click('[data-pd2-fill-save]');
+        const saved = await until(page, async () => !document.getElementById('pd2-fill-head') && (getContract('MK-A2').fields || {}).up_date === '31 October 2026', null, 10000);
+        /* the save is on its way (persist): asked of the server until it holds it, bounded */
+        const srv = await page.evaluate(async () => { for (let i = 0; i < 40; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); const v = ((j.contract || j).fields || {}).up_date || ''; if (v) return v; await new Promise(z => setTimeout(z, 250)); } return ''; });
+        check('5b Save stores it through the one writer, and the server holds it', saved && srv === '31 October 2026', { srv });
+        /* put back as it was, so the screens after this one read the same paper */
+        await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_date', '', { quiet: true, hold: true }); await persist(c); igPaperRefresh(); });
         /* 7 THE BRIEF IN THE MIDDLE (part 2): its link on the Dossier; every line with its clause and the paper's words;
            "I have read it" recorded for this wording; the Dossier says who read it; ‹ Paper brings the paper back */
         await page.evaluate(() => { pdMidClose(); if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose(); const c = getContract('MK-A2');

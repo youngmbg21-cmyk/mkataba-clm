@@ -7088,6 +7088,7 @@ function pd2TurnHtml(c){
 }
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
+  if (pd2FillOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-fill" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2FillFaceHtml(c, D)}</div>`;
   if (pd2BriefUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-brief" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2BriefFaceHtml(c, D)}</div>`;
   const N = dossierNextOf(c, D, dossierFocusOf(D)), b = N.btns[0];
   const link = b ? ` <button type="button" class="ui-link" ${b.attr}${b.title ? ` title="${E(b.title)}"` : ''}>${E(b.short || b.word)}</button>${b.title ? ` <span class="pd2-q">${E(b.title)}</span>` : ''}` : '';
@@ -7155,6 +7156,8 @@ function pd2NotesOff(){
 function pd2NotesPaint(c){
   if (typeof document === 'undefined') return;
   const zoom = document.querySelector('#ig-paper .ig-zoom'), cv = document.getElementById('ig-canvas');
+  if (_pd2Fill && (!c || String(_pd2Fill.id) !== String(c.id) || !pd2On())){ _pd2Fill = null; document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill'); }
+  if (c && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-redpaper, .ig-signpaper') || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
   const notes = pd2Notes(c).map(n => Object.assign(n, { hit: pd2Find(cv, n.at) })).filter(n => n.hit)
@@ -7207,7 +7210,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   const h = b.closest('#pd2-notes'), id = h && h.getAttribute('data-pd2-for'), c = id && typeof getContract === 'function' ? getContract(id) : null; if (!c) return;
   const go = b.getAttribute('data-pd2-go'), key = b.getAttribute('data-pd2-key') || '';
   /* every press is an existing door: the one Fill in (pdFillOpen), the one decision (approvalDecideAsk), the risk's own Edit (riskEditStart) */
-  if (go === 'fill') pdFillOpen(c.id, key ? { key } : {});
+  if (go === 'fill'){ if (!(key && pd2FillStart(c.id, key))) pdFillOpen(c.id, key ? { key } : {}); }
   else if (go === 'approve' && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(c, 'approved')).then(() => { try { pdGlanceRepaint(); pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, () => {});
   else if (go === 'redline' && typeof riskEditStart === 'function') riskEditStart(c, key);
 });
@@ -7326,6 +7329,138 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   /* Before you sign / Decide: the paper comes back first, then the signing face (the Dossier's own Sign door) */
   if (t.closest('#ig-dock [data-pd2-br-sign]')){ e.preventDefault(); pdMidClose(); const row = PD_GLANCE.sign; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); return; }
 }, true);
+/* ---- FILL IN ON THE PAPER (the contract round, part 3; owner: "Only the paper's blanks") ----
+   The paper's own blanks (an upload's placeholders, our template's fields; never a record fact, a signer or a stream)
+   become boxes where they stand. What is typed lands in every place on the paper that blank stands, and in the panel's
+   list; NOTHING IS SAVED until Save, which stores each answer through the one writer for a blank (contractBlankSet),
+   then once (persist). Discard, Esc on a box, another contract or another page leave the paper as it was. A suggestion
+   is only a reading HaTi already makes: what Jambo read for that blank, or what this workspace usually puts there
+   (contractBlankUsual, three alike); none is guessed. */
+let _pd2Fill = null;             // { id, vals: {key: typed}, was: {key: at start} } while the paper is being filled
+function pd2FillBlanks(c){
+  let L = []; try { L = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ L = []; }
+  return L.filter(b => b && b.kind !== 'sync');
+}
+function pd2FillOn(id){ return !!(_pd2Fill && String(_pd2Fill.id) === String(id)); }
+function pd2FillSuggest(c, b){
+  let F = []; try { F = pdOgFacts(c); } catch (_){ F = []; }
+  const f = F.find(x => x && String(x.key) === String(b.key));
+  if (f && f.read && f.read.words) return { v: String(f.read.words), from: _pdT('pd2_fp_from_read') };
+  let u = null; try { u = (typeof contractBlankUsual === 'function') ? contractBlankUsual(c, b.key) : null; } catch (_){ u = null; }
+  if (u && u.v) return { v: String(u.v), from: _pdTn('pd2_fp_from_usual', u.n || 0, { n: u.n || 0 }) };
+  return null;
+}
+function pd2FillStart(id, key){
+  const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c || !pd2On()) return false;
+  if ((typeof canEdit === 'function') && !canEdit()) return false;
+  const L = pd2FillBlanks(c); if (!L.length) return false;
+  if (!pd2FillOn(id)){ const was = {}; L.forEach(b => { was[b.key] = String(b.value || ''); });
+    _pd2Fill = { id: String(id), vals: Object.assign({}, was), was }; }
+  if (pdMidUp()) pdMidClose();
+  pd2NotesOff();
+  pd2FillPaint(c);
+  try { pdGlanceRepaint(); } catch (_){}
+  const box = document.querySelector(key ? `#ig-canvas [data-pd2-bl="${CSS.escape(String(key))}"]` : '#ig-canvas [data-pd2-bl]');
+  if (box){ if (typeof landOn === 'function') landOn(box, { block: 'center', focus: false }); try { box.focus({ preventScroll: true }); } catch (_){} }
+  return true;
+}
+function pd2FillStop(){
+  if (!_pd2Fill) return;
+  _pd2Fill = null;
+  document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove());
+  const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill');
+  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+  try { pdGlanceRepaint(); } catch (_){}
+}
+/* the boxes on the paper, the head over the paper's line and the foot under it; drawn again after any repaint */
+function pd2FillPaint(c){
+  const cv = document.getElementById('ig-canvas'), pg = document.getElementById('ig-page'); if (!cv || !pg || !pd2FillOn(c.id)) return;
+  const E = _pdE, L = pd2FillBlanks(c), lab = {}; L.forEach(b => { lab[b.key] = b.label || b.key; });
+  cv.querySelectorAll('[data-upblank], .hati-field[data-field-key]').forEach(sp => {
+    const k = sp.getAttribute('data-upblank') || sp.getAttribute('data-field-key'); if (!(k in lab) || sp.querySelector('[data-pd2-bl]')) return;
+    if (!sp.hasAttribute('data-pd2-was')) sp.setAttribute('data-pd2-was', '1');
+    sp.classList.add('pd2-bl');
+    sp.innerHTML = `<input type="text" class="pd2-bl-in" data-pd2-bl="${E(k)}" value="${E(_pd2Fill.vals[k] || '')}" placeholder="${E(lab[k])}" aria-label="${E(lab[k])}" size="${Math.max(8, Math.min(28, (_pd2Fill.vals[k] || lab[k]).length + 2))}">`;
+  });
+  pg.classList.add('is-pd2-fill');
+  const strip = document.getElementById('ig-strip');
+  if (strip && !document.getElementById('pd2-fill-head')){
+    const h = document.createElement('div'); h.id = 'pd2-fill-head'; h.className = 'pd2-fill-head';
+    const st = (typeof window.statusLabel === 'function') ? window.statusLabel(c.status) : String(c.status || '');
+    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-fh-hint">${E(_pdT('pd2_fp_hint'))}</span><span class="pd2-br-sp"></span><button type="button" class="ui-btn" data-pd2-fill-discard>${E(_pdT('pd2_fp_discard'))}</button><button type="button" class="ui-btn ui-btn-primary" data-pd2-fill-save>${E(_pdT('og_save'))}</button>`;
+    h.setAttribute('data-pd2-fh-st', [c.counterparty, st].filter(Boolean).join(' · '));
+    strip.parentElement.insertBefore(h, strip);
+  }
+  /* the foot under the paper: last in the column the paper's line heads (a flex column), so the paper keeps its scroll */
+  const col = strip ? strip.parentElement : null;
+  if (col && !document.getElementById('pd2-fill-foot')){
+    const f = document.createElement('div'); f.id = 'pd2-fill-foot'; f.className = 'pd2-fill-foot';
+    f.innerHTML = `<span data-pd2-ff-n></span><span>${E(_pdT('pd2_fp_keys'))}</span>`;
+    col.appendChild(f);
+  }
+  pd2FillCount(c);
+}
+function pd2FillCount(c){
+  if (!_pd2Fill) return;
+  const L = pd2FillBlanks(c), owed = L.filter(b => !String(b.value || '').trim()), n = owed.length;
+  const done = owed.filter(b => String(_pd2Fill.vals[b.key] || '').trim()).length;
+  const h = document.querySelector('[data-pd2-fh-m]'); if (h) h.textContent = [document.getElementById('pd2-fill-head').getAttribute('data-pd2-fh-st'), _pdTn('pd2_fp_owed', n, { n })].filter(Boolean).join(' · ');
+  const f = document.querySelector('[data-pd2-ff-n]'); if (f) f.textContent = _pdT('pd2_fp_count', { k: done, n });
+  const sv = document.querySelector('[data-pd2-fill-save]'); if (sv) sv.disabled = !L.some(b => String(_pd2Fill.vals[b.key] || '') !== String(_pd2Fill.was[b.key] || ''));
+  document.querySelectorAll('#ig-dock [data-pd2-fp-row]').forEach(r => { const k = r.getAttribute('data-pd2-fp-row'); const has = !!String(_pd2Fill.vals[k] || '').trim();
+    r.classList.toggle('is-typed', has); const w = r.querySelector('[data-pd2-fp-state]'); if (w) w.textContent = has ? '“' + _pd2Fill.vals[k] + '”' : _pdT('pd2_fp_owed_w'); });
+}
+function pd2FillSave(){
+  if (!_pd2Fill) return 0;
+  const c = getContract(_pd2Fill.id); if (!c || typeof contractBlankSet !== 'function') return 0;
+  let n = 0;
+  pd2FillBlanks(c).forEach(b => { const v = String(_pd2Fill.vals[b.key] == null ? '' : _pd2Fill.vals[b.key]).trim();
+    if (v !== String(_pd2Fill.was[b.key] || '').trim() && contractBlankSet(c, b.key, v, { hold: true })) n++; });
+  if (n && typeof persist === 'function') persist(c);
+  pd2FillStop();
+  if (typeof toast === 'function') toast(n ? _pdTn('pd2_fp_saved', n, { n }) : _pdT('pd2_fp_nothing'), n ? 'ok' : 'warn');
+  return n;
+}
+/* the Dossier while the paper is being filled: what is owed on the paper, each with its suggestion, and Jambo's line */
+function pd2FillFaceHtml(c, D){
+  const E = _pdE, L = pd2FillBlanks(c).filter(b => !String(b.value || '').trim());
+  const rows = L.map(b => { const s = pd2FillSuggest(c, b);
+    return `<div class="pd2-fact pd2-fp" data-pd2-fp-row="${E(b.key)}"><span class="pd2-l">${E(b.label || b.key)}</span><span class="pd2-v"><span class="pd2-amb" data-pd2-fp-state>${E(_pdT('pd2_fp_owed_w'))}</span>${s ? `<br>${E(_pdT('pd2_fp_suggest'))} <button type="button" class="ui-link" data-pd2-fp-use="${E(b.key)}" data-pd2-fp-v="${E(s.v)}">${E(s.v)}</button> <span class="pd2-q">· ${E(s.from)}</span>` : ''}</span><span class="pd2-s">${E(b.section && b.section !== c.name ? b.section : _pdT('pd2_fp_preamble'))}</span></div>`; }).join('');
+  return `${pd2SpineHtml(D)}<p class="pd2-next">${E(_pdTn('pd2_fp_say', L.length, { n: L.length }))}</p><div class="pd2-eye">${E(_pdT('pd2_fp_owed_h'))}</div><div class="pd2-facts">${rows}</div><div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_pdT('cn2_jambo'))}</b><p>${E(_pdT('pd2_fp_jb'))}</p></div></div>`;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
+  /* a blank pressed on the paper, in the new look: it is filled where it stands (the old look keeps the form) */
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !pd2On()) return;
+    if (t.closest('[data-pd2-bl]')) return;
+    const sp = t.closest('#ig-canvas [data-upblank], #ig-canvas .hati-field[data-field-key]');
+    if (sp && !sp.closest('.ig-redpaper, .ig-signpaper')){ const c = pdContract(); if (!c) return;
+      const k = sp.getAttribute('data-upblank') || sp.getAttribute('data-field-key');
+      if (pd2FillBlanks(c).some(b => String(b.key) === String(k))){ e.preventDefault(); e.stopPropagation(); pd2FillStart(c.id, k); } return; }
+    if (t.closest('[data-pd2-fill-save]')){ e.preventDefault(); pd2FillSave(); return; }
+    if (t.closest('[data-pd2-fill-discard]')){ e.preventDefault(); pd2FillStop(); return; }
+    const use = t.closest('#ig-dock [data-pd2-fp-use]');
+    if (use && _pd2Fill){ e.preventDefault(); const k = use.getAttribute('data-pd2-fp-use'), v = use.getAttribute('data-pd2-fp-v') || '';
+      _pd2Fill.vals[k] = v; document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(b => { b.value = v; });
+      const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c); return; }
+  }, true);
+  /* what is typed lands in every place that blank stands, and in the panel's list */
+  document.addEventListener('input', e => {
+    const b = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-pd2-bl]') : null; if (!b || !_pd2Fill) return;
+    const k = b.getAttribute('data-pd2-bl'); _pd2Fill.vals[k] = b.value;
+    document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { if (x !== b) x.value = b.value; });
+    b.size = Math.max(8, Math.min(28, (b.value || b.placeholder).length + 2));
+    const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c);
+  });
+  /* Esc leaves a blank as it was when the filling began */
+  document.addEventListener('keydown', e => {
+    const b = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-pd2-bl]') : null; if (!b || !_pd2Fill || e.key !== 'Escape') return;
+    e.preventDefault(); e.stopPropagation(); const k = b.getAttribute('data-pd2-bl'); const was = _pd2Fill.was[k] || '';
+    _pd2Fill.vals[k] = was; document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { x.value = was; }); b.blur();
+    const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c);
+  }, true);
+}
+Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
 Object.assign(window, { pd2BriefOpen, pd2BriefUp, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });
 Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
