@@ -1027,6 +1027,8 @@ const INS_PAGE_REPAINT = {
   mynotes: 'renderMyNotes',
   /* Reads beside Jambo's panel where it fits (The thread, 28 Oct 2026) */
   reads: 'renderReads',
+  /* the Pulse board beside Jambo's panel where it fits (29 Oct 2026) */
+  pulse: 'renderPulse',
   /* Not an inspector: the Advice tab of Requests, whose frame follows this
      line so its tab row sits where the Contracts tab's does (gap F). */
   advice: 'renderAdviceDesk',
