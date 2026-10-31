@@ -738,7 +738,7 @@ function brLanesFrame(){
 function brPbOpen(n, from){
   const pb = BRAIN_PROBLEMS.find(x => x.n === n); const box = document.getElementById('br-pbpop'); if (!pb || !box) return;
   const p = BRAIN_PARTS.find(x => x.id === pb.part);
-  box.innerHTML = '<div class="br-pb-h"><span class="br-pb-k">' + _brEsc(_brT('brn_pb_head', { n })) + '</span><button type="button" class="br-pb-x" data-br-pbx="1" aria-label="' + _brEsc(_brT('brn_pb_close')) + '">×</button></div>'
+  box.innerHTML = '<div class="br-pb-h"><span class="br-pb-k">' + _brEsc(_brT('brn_pb_head', { n })) + '</span><button type="button" class="br-pb-x" data-br-pbx="1" aria-label="' + _brEsc(_brT('brn_pb_close')) + '">' + (typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×') + '</button></div>'
     + '<b>' + _brEsc(_brT('brn_pb_' + n)) + '</b>'
     + '<div class="br-pb-w">' + _brEsc((p ? _brT('brn_p_' + p.id) : '') + (p ? ' · ' + brLaneSay(brainLaneOf(p.id) || 'hati') : '')) + '</div>'
     + '<div class="br-pb-c">' + _brEsc(_brT('brn_pb_why')) + '</div><p>' + _brEsc(_brT('brn_pb_' + n + '_why')) + '</p>'

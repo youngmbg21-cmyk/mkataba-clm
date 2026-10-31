@@ -2822,7 +2822,7 @@ function negoRoomActionsHtml(c, opts){
             Sharing is not lost: the workspace's own Share and the contracts
             list both open the same dialog, for the cases this room is not the
             right place for — a third party, a re-send, a link for signature. */}
-    <button class="nego-tbtn ghost" id="nego-copilot" title="${i18t('ng_ask_about_contract')}">✦ Ask Jambo</button>
+    <button class="nego-tbtn ghost" id="nego-copilot" title="${i18t('ng_ask_about_contract')}">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : '✦'} Ask Jambo</button>
     ${canAct ? `<button class="nego-tbtn ghost" id="nego-insert-lib" title="${i18t('ng_insert_preferred')}">+ Insert clause</button>` : ''}
     ${(() => { const bs = negoBulkState(c, side, canAct);   /* see negoBulkState */
       const t = (own, dflt) => comparing ? 'Not while you are comparing versions' : (own || dflt);

@@ -727,7 +727,7 @@ function bsStripHtml(st, o){
   /* ONE ⋯ ON HISTORY (pass 3, round 12 as drawn): the History page's own
      toolbar ends with its ⋯ (Verify · Export · Print · the whole trail), so
      the head draws none — "‹ Overview" is the way to the page's others */
-  const dots = page === 'hist' ? '' : `<span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">⋯</button>${menu}</span>`;
+  const dots = page === 'hist' ? '' : `<span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button>${menu}</span>`;
   /* ON THE DESK THE TAB'S × PUTS IT AWAY (round 7): the card draws none of its own */
   const x = desk ? '' : `<button type="button" class="hb-ib hb-x" data-bs-x="${id}" aria-label="${bsE(bsT('bs_close'))}" title="${bsE(bsT('bs_close'))}">${_bsX}</button>`;
   return `<section class="hb-card bs-strip${desk ? ' bs-on-desk' : ''}${_bsArrive === String(c.id) && !desk ? ' is-new' : ''}${open ? ' is-menu' : ''}" id="bs-strip-${id}" data-bs-id="${id}" data-bs-on="${page}" aria-label="${bsE(bsT('bs_aria', { ref: bsRef(c) }))}">

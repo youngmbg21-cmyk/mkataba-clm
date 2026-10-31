@@ -71,7 +71,7 @@ function openSignaturePad(opts={}){
           <p style="font-size:var(--t-meta);color:${N6};margin:6px 0 var(--s-3);line-height:1.5;">${i18t('si_draw_type_upload')}</p>
           <div id="sig-tabs" style="display:flex;gap:var(--s-1);border-bottom:1px solid ${C};">
             ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-heading);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'Draw':k==='type'?'Type':'Upload'}</button>`).join('')}
-            ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">★ Saved</button>`:''}
+            ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${typeof icon === 'function' ? icon('star', 'w-3.5 h-3.5') : '★'} Saved</button>`:''}
           </div>
         </div>
         <div style="padding:var(--s-4) 20px var(--s-1)">

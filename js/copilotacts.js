@@ -1798,6 +1798,8 @@ const CA_PLACES = [
   { k: 'pulse', w: ['pulse', 'pulse board', 'the pulse board', 'pulse page', 'ranking', 'rankings', 'the ranking', 'puls', 'pulstavla', 'pulstavlan', 'rankning', 'rankningen'] },
   /* THE HANDBOOK (owner, 26 Oct 2026): the instruction book, one chapter per thing; "how do I …" lands on its chapter (navReadHandbook) */
   { k: 'handbook', w: ['handbook', 'the handbook', 'instructions', 'the instructions', 'user guide', 'manual', 'instruction book', 'handbok', 'handboken', 'instruktioner', 'instruktionerna', 'manualen', 'bruksanvisning'] },
+  /* THE FLOW MAP (owner, 31 Oct 2026): every page on the contract's life and how each reaches the next (js/flowmap.js) */
+  { k: 'flowmap', w: ['flowmap', 'flow map', 'the flow map', 'page map', 'map of pages', 'how pages connect', 'flödeskarta', 'flödeskartan', 'sidkarta', 'sidkartan'] },
   { k: 'house', w: ["jambo's agents", 'agents', "jambo's house", 'house', 'jambos agenter', 'agenter', 'jambos hus'] },
   { k: 'settings', w: ['settings', 'settings and rules', 'setup', 'inställningar'] },
   { k: 'brain', w: ['brain', 'hjärnan', 'hjärna'] },
@@ -1885,7 +1887,7 @@ function caReadPlace(q){
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
-  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
+  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
   /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
   'upload'];
@@ -1975,7 +1977,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2143,6 +2145,8 @@ const CA_GO = {
   pulse: () => (typeof pulseOpen === 'function') ? (pulseOpen(), true) : setView('pulse'),
   /* the Handbook, on a chapter when a "how do I …" read one (26 Oct 2026) */
   handbook: (c, a) => (typeof hbkOpen === 'function') ? hbkOpen(a && a.chapter, { part: a && a.part }) : setView('handbook'),
+  /* the flow map (31 Oct 2026) */
+  flowmap: () => setView('flowmap'),
   house: () => setView('jambo'),
   settings: () => setView('team'),
   brain: () => setView('brain'),

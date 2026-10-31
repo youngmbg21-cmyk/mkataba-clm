@@ -2284,7 +2284,7 @@ const AI_HOME_FACE_NAMES = { board: 'Home (the Board)', paper: 'Home (the paper 
 const AI_PAGE_NAMES = {
   dashboard: 'Home', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract',
-  obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Customers', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Reads', pulse: 'the Pulse board', handbook: 'Handbook', templates: 'Templates',
+  obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Customers', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Reads', pulse: 'the Pulse board', handbook: 'Handbook', flowmap: 'the Flow map', templates: 'Templates',
   playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
   directory: 'Directory', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',

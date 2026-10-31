@@ -5933,7 +5933,7 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + _hbMi(`data-hb-saveq="${k}"`, _HB_MI.save, i18t('hb_myq_btn'))
     + _hbMi(`data-hb-whatif="${k}" aria-pressed="${_hbWhatIf.has(D.key)}"`, _HB_MI.wi, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
     + (board && p && hbMayVerify(p) ? _hbMi('data-hb-act="verify"', _HB_MI.ver, i18t('hb_ver_menu')) : '');
-  const more = `<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
+  const more = `<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button>`
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>';
   return `<span class="hb-edge hb-open-tools" data-hb-copy-t="${_hbE(M.title || '')}" data-hb-copy-s="${_hbE(M.by || '')}" data-hb-copy-n="${M.n || 0}">${drawn}${table}${more}${board ? hbCardXHtml(gift) : ''}</span>`;
 }
@@ -5950,7 +5950,7 @@ function hbKindToolsHtml(p, gift){
     + '<hr>' + _hbMi(`data-hb-dd-on="${_hbE(key)}"${hbDdLive() ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}`, _HB_MI.why, i18t('hb_dd_btn'))
     + _hbMi(`data-hb-why-follow="${_hbE(key)}"`, _HB_MI.ask, i18t('hb_tip_ask'))
     + (gift && gift.from ? '' : '<hr>' + _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…'));
-  return `<span class="hb-edge">${drawn}<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
+  return `<span class="hb-edge">${drawn}<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button>`
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>' + hbCardXHtml(gift) + '</span>';
 }
 function hbPanelHtml(p, lens, gift){
@@ -10957,7 +10957,7 @@ function hbAskPopHtml(P){
   const secHead = r => P.mode === 'gallery' ? i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head') : i18t(r.kind === 'place' ? 'hb_pop_places' : 'hb_pop_slash');
   const rows = P.rows.slice(0, grouped ? HB_ASKPOP_LONG : HB_ASKPOP_MAX).map((r, i) => {
     const sec = grouped && r.kind !== lastKind ? `<h5>${_hbE(secHead(r))}</h5>` : ''; lastKind = r.kind;
-    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}" data-hb-pop-kind="${_hbE(r.kind || '')}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${''/* THE ROW SAYS WHAT IT DOES (owner picked "The Legora way", 25 Oct 2026): a chart row ends in "Draw ›", as the Dossier's door rows end in "Open ›" */}${r.kind === 'gal' || r.kind === 'myq' ? `<span class="hb-pop-go" aria-hidden="true">${_hbE(i18t('hb_pop_draw'))} ›</span>` : ''}${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">×</button>` : ''}${r.kind === 'place' && r.n ? `<em class="hb-pop-n">${_hbE(i18t('hb_pop_used', { n: r.n }))}</em>` : ''}${r.kind === 'place' && typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`; }).join('');
+    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}" data-hb-pop-kind="${_hbE(r.kind || '')}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${''/* THE ROW SAYS WHAT IT DOES (owner picked "The Legora way", 25 Oct 2026): a chart row ends in "Draw ›", as the Dossier's door rows end in "Open ›" */}${r.kind === 'gal' || r.kind === 'myq' ? `<span class="hb-pop-go" aria-hidden="true">${_hbE(i18t('hb_pop_draw'))} ›</span>` : ''}${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>` : ''}${r.kind === 'place' && r.n ? `<em class="hb-pop-n">${_hbE(i18t('hb_pop_used', { n: r.n }))}</em>` : ''}${r.kind === 'place' && typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`; }).join('');
   return `${grouped ? '' : `<h5>${_hbE(head)}</h5>`}<div role="listbox">${rows}</div><p class="ca-hint">${_hbE(i18t(P.mode === 'by' || P.mode === 'in' ? 'hb_pop_keys_tab' : 'hb_pop_keys'))}</p>`;
 }
 function hbAskPopClose(){ _hbPop = null; const el = document.getElementById('hb-askpop'); if (el) el.remove(); }
