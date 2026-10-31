@@ -604,7 +604,7 @@ function jamboWaysSync(){
 let _jbWaysQueued = false;
 function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else setTimeout(run, 0); }
-if (typeof document !== 'undefined'){
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
   /* a door's press: the one mover */
   document.addEventListener('click', e => {
     const b = e.target && e.target.closest && e.target.closest('[data-jb-way]'); if (!b) return;
