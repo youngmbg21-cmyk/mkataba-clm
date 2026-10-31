@@ -192,13 +192,49 @@ svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .cmp td:first-child{font-weight:600;white-space:nowrap}
 .cmp tr.rec td{background:#F3F8F5}
 .cmp tr.rec td:first-child::after{content:" · recommended";font-weight:400;color:var(--green)}
+/* ============ home, three ways ============ */
+#v-home{flex-direction:column;gap:12px}
+.hm-pick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px}
+.hm-pick .q{margin-left:auto}
+.hm-stage{flex:1;min-height:0;display:flex;gap:12px}
+.hm-stage>.sheet,.hm-stage>.panel{min-height:560px}
+.hm-page{padding:26px 40px 0;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.hm-hello{font-family:var(--font-doc);font-size:27px;font-weight:500;line-height:1.2;margin:0}
+.hm-say{font-size:15px;line-height:1.45;margin:6px 0 14px;max-width:72ch}
+.hm-row{display:grid;grid-template-columns:300px 1fr 110px;gap:20px;align-items:start;padding:10px 0;border-top:1px solid var(--hair)}
+.hm-row .nm{font-size:14.5px;font-weight:500;line-height:1.3}.hm-row .ln{font-size:12px;color:var(--quiet);margin-top:2px}.hm-row .fx{font-size:13.5px;line-height:1.45}.hm-row .src{font-family:var(--font-doc);font-style:italic;color:#3B4A48}.hm-row .ac{text-align:right;font-size:13.5px;font-weight:500}
+.hm-row .ref{font-family:var(--font-mono);font-size:11.5px}
+.hm-grp{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;padding:16px 0 4px}.hm-grp .q{font-weight:400}
+.hm-grp i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.hm-foot{display:flex;align-items:center;gap:14px;padding:12px 0 16px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--quiet);margin-top:auto}.hm-foot .sp{flex:1}
+.hm-av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:600;flex:none}
+.hm-who{display:flex;gap:10px;align-items:flex-start}
+/* SAP */
+.sap-band{background:#fff;border-bottom:1px solid var(--hair);padding:18px 40px 14px}
+.sap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.tile{border:1px solid var(--hair);border-radius:10px;padding:12px 14px 12px 16px;position:relative;background:#fff;cursor:pointer}
+.tile::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--tone)}
+.tile .n{font-size:24px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}.tile .l{font-size:12.5px;margin-top:4px}.tile .s{font-size:11.5px;color:var(--quiet);margin-top:2px}
+.sap-filters{display:flex;gap:8px;padding:12px 40px 0;align-items:center}.sap-filters .q{margin-left:auto}
+.sap-table{padding:0 40px;flex:1;min-height:0;overflow:hidden}
+.sap-table .hd{display:grid;grid-template-columns:28px 1.1fr 1.6fr 90px 100px;gap:14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:12px 0 8px;border-bottom:1px solid var(--hair)}
+.sap-table .r{display:grid;grid-template-columns:28px 1.1fr 1.6fr 90px 100px;gap:14px;align-items:center;padding:9px 0;border-bottom:1px solid var(--hair);font-size:13.5px}
+.sap-table .r .ac{text-align:right}
+/* morning */
+.ml-top{background:linear-gradient(180deg,#FBF7EE 0%,#fff 100%);padding:26px 40px 10px;border-bottom:1px solid var(--hair)}
+.ml-counts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ml-c{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:500;background:var(--bg,#F0F0F3);color:var(--fg,#1D1D1F)}
+.ml-c i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.9}
+.ml-week{display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--quiet);margin-top:12px}
+.ml-week .d{width:34px;text-align:center}.ml-week .d b{display:block;font-weight:500;color:var(--ink);font-size:12px}.ml-week .d i{display:block;margin:3px auto 0;width:6px;height:6px;border-radius:50%;background:#E6E6EA}
+.ml-chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;margin-right:6px;vertical-align:1px;font-weight:500}
 /* phone: the panel below the page */
 @media (max-width:1000px){.body{flex-direction:column}.panel{width:auto;max-height:46vh}.pb{overflow:auto}}
 @media (prefers-reduced-motion:reduce){.node,.edge,.strand i,.m,.paper .cl,.fact{transition:none;animation:none}}
 </style>
 
 <div class="bar"><span class="mark">HaTi</span><span class="pg">Jambo at work · two things to watch</span><span class="sp"></span>
-  <div class="tabs" role="tablist"><button type="button" role="tab" id="tab-read" aria-selected="true" aria-controls="v-read">Reading on arrival</button><button type="button" role="tab" id="tab-map" aria-selected="false" aria-controls="v-map">Ask the map</button><button type="button" role="tab" id="tab-ways" aria-selected="false" aria-controls="v-ways">One map · three ways</button></div>
+  <div class="tabs" role="tablist"><button type="button" role="tab" id="tab-read" aria-selected="true" aria-controls="v-read">Reading on arrival</button><button type="button" role="tab" id="tab-map" aria-selected="false" aria-controls="v-map">Ask the map</button><button type="button" role="tab" id="tab-ways" aria-selected="false" aria-controls="v-ways">One map · three ways</button><button type="button" role="tab" id="tab-home" aria-selected="false" aria-controls="v-home">Home · three ways</button></div>
   <span class="av">AO</span></div>
 
 <!-- ======================= 1 · READING ON ARRIVAL ======================= -->
@@ -273,6 +309,12 @@ svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;str
   </div>
 </div>
 
+<!-- ======================= 4 · HOME, THREE WAYS ======================= -->
+<div class="body" id="v-home" role="tabpanel" hidden>
+  <div class="hm-pick"><div class="seg" id="home-pick"><button type="button" data-o="sap" aria-pressed="false">The SAP Way</button><button type="button" data-o="legora" aria-pressed="true">The Legora Way</button><button type="button" data-o="morning" aria-pressed="false">Morning light</button></div><span class="q" id="home-say"></span></div>
+  <div class="hm-stage" id="home-stage"></div>
+</div>
+
 <script>
 (function(){
 'use strict';
@@ -281,9 +323,9 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CHECK='<svg class="i" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg>';
 
 /* ---------------- tabs ---------------- */
-const tabs={read:[$('#tab-read'),$('#v-read')],map:[$('#tab-map'),$('#v-map')],ways:[$('#tab-ways'),$('#v-ways')]};
-function show(k){ for(const [key,[t,v]] of Object.entries(tabs)){ const on=key===k; t.setAttribute('aria-selected',on); v.hidden=!on; } if(k==='map' && !mapBuilt) buildMap(); if(k==='ways' && !waysBuilt) buildWays(); try{ if(location.hash!=='#'+k) history.replaceState(null,'','#'+k);}catch(e){} }
-tabs.read[0].addEventListener('click',()=>show('read')); tabs.map[0].addEventListener('click',()=>show('map')); tabs.ways[0].addEventListener('click',()=>show('ways'));
+const tabs={read:[$('#tab-read'),$('#v-read')],map:[$('#tab-map'),$('#v-map')],ways:[$('#tab-ways'),$('#v-ways')],home:[$('#tab-home'),$('#v-home')]};
+function show(k){ for(const [key,[t,v]] of Object.entries(tabs)){ const on=key===k; t.setAttribute('aria-selected',on); v.hidden=!on; } if(k==='map' && !mapBuilt) buildMap(); if(k==='ways' && !waysBuilt) buildWays(); if(k==='home' && !homeBuilt) buildHome(); try{ if(location.hash!=='#'+k) history.replaceState(null,'','#'+k);}catch(e){} }
+tabs.read[0].addEventListener('click',()=>show('read')); tabs.map[0].addEventListener('click',()=>show('map')); tabs.ways[0].addEventListener('click',()=>show('ways')); tabs.home[0].addEventListener('click',()=>show('home'));
 addEventListener('hashchange',()=>{ const k=location.hash.replace('#',''); if(tabs[k]) show(k); });
 
 /* =====================================================================
@@ -460,6 +502,43 @@ function threeHtml(){ const W=900,H=520; let svg='<svg viewBox="0 0 '+W+' '+H+'"
 const CMP='<table class="cmp"><thead><tr><th>Idea</th><th>When it wins</th><th>Cost</th></tr></thead><tbody><tr class="rec"><td>One strand each</td><td>Reading and acting: every row is a contract with its size, its clauses and its worst mark; a question lights the row in place; Look re-orders. Scales to a long book like any list.</td><td>The book\'s overall shape is read row by row, not at a glance; grouping heads carry the sums.</td></tr><tr><td>Map above, strands below</td><td>When the shape of the book matters as much as the detail: who is big, which stream holds what, then the clauses.</td><td>150px of height for the band; two pictures to read; the band gets busy past twenty contracts.</td></tr><tr><td>Rings</td><td>A wall of many contracts where each is one glyph: the eye finds the red ring at once; striking in a demo.</td><td>§ numbers only on hover; a long paper\'s ring crowds; the weakest for reading one clause and acting on it.</td></tr></tbody></table>';
 function buildWays(){ waysBuilt=true; showWay('one'); $('#ways-pick').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; showWay(b.dataset.o); }); }
 function showWay(o){ [...$('#ways-pick').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o)); const html=o==='one'?oneHtml():o==='two'?twoHtml():threeHtml(); $('#ways-stage').innerHTML=html+CMP; $('#ways-card').innerHTML=WAYS[o].card+' <span class="q">drawn answering “where is insurance missing?” · the same data as Ask the map</span>'; $('#ways-stage').scrollTop=0; }
+
+
+/* =====================================================================
+   4 · HOME, THREE WAYS
+   ===================================================================== */
+let homeBuilt=false;
+const TONE={late:['#B42318','Late'],move:['#946300','Your move'],prep:['#4A3C8C','Prepared by Jambo'],week:['#087363','This week']};
+const AV={kabras:['KS','#E8F1EC','#0A1C15'],parcel:['PL','#F3F2F8','#2B2560'],naivas:['NS','#FBEFD9','#5A3E00'],nandi:['ND','#E6EEF8','#1E3A5F'],tana:['TC','#F0F0F3','#1D1D1F'],jambo:['✦','linear-gradient(135deg,#7C3AED,#2563EB 55%,#EC4899)','#fff']};
+const ROWS=[
+ {kind:'late',nm:'Return the pallets',ln:'Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span>',fx:'<span style="color:#B42318">2 days late</span> · <b>§ 4 Delivery</b> — <span class="src">“pallets shall be returned to the Supplier within 14 days of each delivery”</span>',ac:'Mark done',av:'kabras',waited:'3 days'},
+ {kind:'move',nm:'Parcel Delivery SaaS',ln:'Parcelway · <span class="ref">MK-R1</span> · KES 2.4M',fx:'Their 2 changes, answered from your standard, not sent · <b>§ 5 Payment</b> — <span class="src">“within 60 days”</span> · <b>§ 26 Liability</b> — <span class="src">“six months of Charges”</span>',ac:'Review',av:'parcel',waited:'2 days'},
+ {kind:'move',nm:'Retail Supply — Coast',ln:'Naivas Supermarkets · <span class="ref">MK-B2</span> · KES 78M',fx:'Approval asked today by Wanjiru Kamau · <b>§ 5 Payment</b> — <span class="src">“within 90 days of receipt”</span>',ac:'Approve',av:'naivas',waited:'today'},
+ {kind:'move',nm:'Raw Milk Collection',ln:'Nandi Dairy · <span class="ref">MK-A2</span> · KES 36M',fx:'Approval asked by the rule “over KES 20M” · <b>§ 2 Price</b> — <span class="src">“KES 36,000,000”</span>',ac:'Approve',av:'nandi',waited:'today'},
+ {kind:'move',nm:'Cold Room Lease',ln:'Tana Cold Stores · <span class="ref">MK-CR</span> · KES 900K',fx:'Two blanks on the paper · <b>preamble</b> — <span class="src">“made on ___”</span> · <b>§ 2 Rent</b> — <span class="src">“KES ___”</span>',ac:'Fill in',av:'tana',waited:'1 day'},
+ {kind:'prep',nm:'Your week ahead',ln:'Prepared by Jambo · read at 06:10',fx:'Seven days read: two duties, two approvals, nothing on Friday. I put nothing in your calendar.',ac:'Review',av:'jambo',waited:'06:10'},
+ {kind:'week',nm:'Send the monthly supply report',ln:'Refined Sugar Supply · Kabras Sugar · <span class="ref">MK-A1</span>',fx:'Due Sunday 1 November · <b>§ 6 Reporting</b> — <span class="src">“a monthly supply report by the first day of each month”</span>',ac:'Mark done',av:'kabras',waited:'Sun'},
+ {kind:'week',nm:'Modern Trade Listing',ln:'Naivas Supermarkets · <span class="ref">MK-B1</span> · KES 85M',fx:'Wanjiru asks you to look over the term · <b>§ 12 Term</b> — <span class="src">“an initial term of three (3) years”</span>',ac:'Look',av:'naivas',waited:'2 days'}
+];
+const av=k=>{ const a=AV[k]; return '<span class="hm-av" style="background:'+a[1]+';color:'+a[2]+'">'+a[0]+'</span>'; };
+const PANEL_HOME=(card)=>'<div class="panel"><div class="ph"><span class="ptab"><span class="jface sm"></span> Jambo</span></div><div class="pb">'+card+'<div class="turn"><span class="jface"></span><div class="t"><span class="who">Jambo</span>Both approvals rest on payment terms longer than your standard. If you approve Naivas at 90, I note it as a precedent. <button type="button" class="lnk">Compare the two</button></div></div><div class="sec">Likely next</div><div class="g-row"><button type="button" class="lnk">Mark the pallets done</button><span class="q">free</span></div><div class="g-row"><button type="button" class="lnk">Send Parcelway the two answers</button><span class="q">free</span></div><div class="g-row"><button type="button" class="lnk">Plan my week around what is due</button><span class="q">1 call</span></div></div><div class="pf"><div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:12px"><button type="button" class="lnk">board</button><button type="button" class="lnk">contracts 7</button><button type="button" class="lnk">calendar</button><button type="button" class="lnk">explorer</button><button type="button" class="lnk">reads</button></div><div class="jbox"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg><input placeholder="Ask Jambo, or type / for a place" aria-label="Ask Jambo"><span class="go"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></span></div></div></div>';
+const CARD='<div class="jcard">The late one first: the pallets were due Tuesday, and nobody owns that duty. Shall I <button type="button" class="lnk">ask Otieno to own it</button>? He signed the delivery note.<div class="q" style="margin-top:10px">Read from § 4 and the delivery record · no call</div></div>';
+const BARH='<div class="bar" style="border-radius:10px 10px 0 0;height:44px"><span class="mark">HaTi</span><span class="pg">Home</span><span class="sp"></span><span class="av">AO</span></div>';
+function rowsBy(kind){ return ROWS.filter(r=>r.kind===kind); }
+function legoraHtml(){ let out='<div class="sheet"><div class="hm-page"><p class="hm-hello">Good morning, Amina.</p><p class="hm-say">Eight things wait on you, one of them late. Overnight I read your week ahead and answered Parcelway\'s two changes from your standard. Every line says which words on the paper it rests on.</p><div style="flex:1;min-height:0;overflow:hidden">';
+  Object.keys(TONE).forEach(k=>{ const rs=rowsBy(k); out+='<div class="hm-grp"><i style="background:'+TONE[k][0]+'"></i><span style="color:'+TONE[k][0]+'">'+TONE[k][1]+'</span><span class="q">'+rs.length+'</span></div>'; rs.forEach(r=>{ out+='<div class="hm-row"><div class="hm-who">'+av(r.av)+'<div><div class="nm">'+r.nm+'</div><div class="ln">'+r.ln+'</div></div></div><div class="fx">'+r.fx+'</div><div class="ac"><button type="button" class="lnk">'+r.ac+'</button></div></div>'; }); });
+  out+='</div><div class="hm-foot"><span>Eight things · the doors are beside Jambo\'s box</span><span class="sp"></span><span>“Can we end it for convenience?” 5 of 7 read · yes 3 · <button type="button" class="lnk">Read 2 more</button> 2 calls</span></div></div></div>'+PANEL_HOME(CARD); return out; }
+function sapHtml(){ let out='<div class="sheet"><div class="sap-band"><div style="display:flex;align-items:baseline;gap:14px"><span class="hm-hello" style="font-size:24px">Good morning, Amina</span><span class="q">Friday 31 October · counted 08:39 from the contracts you can see</span></div><div class="sap-tiles">';
+  [['1','Late','pallets · 2 days','#B42318'],['4','Your move','2 approvals · 2 answers · 2 blanks','#946300'],['2','Prepared by Jambo','week ahead · Parcelway\'s answers','#4A3C8C'],['3','Signed this month','KES 169M on paper','#087363']].forEach(t=>{ out+='<div class="tile" style="--tone:'+t[3]+'"><div class="n" style="color:'+t[3]+'">'+t[0]+'</div><div class="l">'+t[1]+'</div><div class="s">'+t[2]+'</div></div>'; });
+  out+='</div></div><div class="sap-filters"><span class="pill on">All 8</span><span class="pill">Late 1</span><span class="pill">Your move 4</span><span class="pill">Prepared 1</span><span class="pill">This week 2</span><span class="q">Needs you · one row per thing · the verb at the row\'s end</span></div><div class="sap-table"><div class="hd"><span></span><span>Agreement</span><span>What it rests on</span><span>Waited</span><span style="text-align:right">Next</span></div>';
+  ROWS.forEach(r=>{ out+='<div class="r"><span class="dot" style="background:'+TONE[r.kind][0]+';width:8px;height:8px;margin:0 auto"></span><div><div class="nm" style="font-weight:500">'+r.nm+'</div><div class="ln" style="font-size:12px;color:var(--quiet)">'+r.ln+'</div></div><div class="fx" style="font-size:13px;line-height:1.4">'+r.fx+'</div><span style="color:var(--quiet)">'+r.waited+'</span><span class="ac"><span class="pill sm">'+r.ac+'</span></span></div>'; });
+  out+='</div></div>'+PANEL_HOME(CARD); return out; }
+function morningHtml(){ let out='<div class="sheet"><div class="ml-top"><p class="hm-hello">Good morning, Amina.</p><p class="hm-say" style="margin-bottom:0">One thing is late, four wait on you, and I prepared two overnight. Nothing is due Friday.</p><div class="ml-counts"><span class="ml-c" style="--bg:#FBE9E7;--fg:#B42318"><i></i>1 late</span><span class="ml-c" style="--bg:#FBEFD9;--fg:#946300"><i></i>4 your move</span><span class="ml-c" style="--bg:#F3F2F8;--fg:#4A3C8C"><i></i>2 prepared by Jambo</span><span class="ml-c" style="--bg:#E8F1EC;--fg:#087363"><i></i>2 this week</span><span class="ml-c"><i style="background:#9A9AA0"></i>3 signed this month · KES 169M</span></div><div class="ml-week"><span style="margin-right:6px">Your week</span>'+[['Mon','#B42318'],['Tue','#946300'],['Wed','#946300'],['Thu','#E6E6EA'],['Fri','#E6E6EA'],['Sat','#E6E6EA'],['Sun','#087363']].map(d=>'<span class="d"><b>'+d[0]+'</b><i style="background:'+d[1]+'"></i></span>').join('')+'<span style="margin-left:8px">late Mon · approvals Tue, Wed · report Sun</span></div></div><div class="hm-page" style="padding-top:4px"><div style="flex:1;min-height:0;overflow:hidden">';
+  ROWS.forEach(r=>{ const t=TONE[r.kind]; out+='<div class="hm-row"><div class="hm-who">'+av(r.av)+'<div><div class="nm">'+r.nm+'</div><div class="ln">'+r.ln+'</div></div></div><div class="fx"><span class="ml-chip" style="background:'+t[0]+'1A;color:'+t[0]+'">'+t[1]+'</span>'+r.fx+'</div><div class="ac"><button type="button" class="lnk">'+r.ac+'</button></div></div>'; });
+  out+='</div><div class="hm-foot"><span>Eight things · the doors are beside Jambo\'s box</span><span class="sp"></span><span>“Can we end it for convenience?” 5 of 7 read · yes 3 · <button type="button" class="lnk">Read 2 more</button> 2 calls</span></div></div></div>'+PANEL_HOME('<div class="jcard" style="background:linear-gradient(135deg,#F3F2F8,#EEF4F1)">'+CARD.replace('<div class="jcard">','').replace(/<\/div>$/,'')); return out; }
+const HOME_SAY={sap:'The SAP Way: a white band with four tiles, each a door with a coloured stripe; labelled filters; one worklist with the verb as a pill at the row\'s end.',legora:'The Legora Way: nothing boxed. The eight things grouped under four coloured words, Late · Your move · Prepared by Jambo · This week, each row with its counterparty\'s initials and the words it rests on. Recommended.',morning:'Morning light: a warm top, the counts as coloured words you can press, your week as seven dots, each row wearing its kind as a tinted chip. The most colour of the three.'};
+function buildHome(){ homeBuilt=true; showHome('legora'); $('#home-pick').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; showHome(b.dataset.o); }); }
+function showHome(o){ [...$('#home-pick').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o)); $('#home-stage').innerHTML=(o==='sap'?sapHtml():o==='morning'?morningHtml():legoraHtml()); $('#home-say').textContent=HOME_SAY[o]; }
 
 const start=location.hash.replace('#',''); show(tabs[start]?start:'read');
 })();
