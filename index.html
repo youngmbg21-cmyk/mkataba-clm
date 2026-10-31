@@ -220,7 +220,7 @@
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
     --color-bg:#F5F5F7;   /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' warm #F4F2ED): the soft cool grey every white card floats on. */
-    --jb-card-fill:#F2F2F5;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft grey for every card in his answers. */
+    --jb-card-fill:#F3F2F8;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft grey for every card in his answers; a faint indigo wash, his face's hue (round 1 of the Legora way, 31 Oct 2026: the design room's tokens page, owner: "the build has to strictly follow the design token"). */
     --bar-black:#111113;  /* THE BAR IN BLACK (owner, 27 Oct 2026: "Black it is"; replaces the deep green of 24 Oct): white words on it measure about 18:1. */
     --bar-sheen:linear-gradient(180deg,#2A2A2E 0%,#151517 55%,#0B0B0C 100%);  /* the faint sheen along its top; the solid --bar-black stands under it */
     --color-surface:#ffffff;
@@ -14919,6 +14919,10 @@
      words the whole width, + and "Asking about" left and the send right on
      the row under them. Grows to six lines, then a thin bar with no arrows;
      back to one line when emptied. ONE builder, jamboCardHtml (components.js). */
+  /* THE DOORS ABOVE JAMBO'S BOX (round 1 of the Legora way, 31 Oct 2026): the page's doors off the flow map, green links */
+  .jb-doors{display:flex;flex-wrap:wrap;gap:4px 12px;flex:none;width:100%;min-width:0}
+  .jb-door{background:none;border:0;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer;white-space:nowrap}
+  @media (hover:hover){ .jb-door:hover{color:var(--accent-ink-700)} }
   .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}  /* Chambers: a hairline box with square-ish corners (20 Oct 2026; was a 20px pill) */
   .jb-card > textarea{order:3;flex:1 1 auto}
   .jb-card:not(.is-tall) .jb-row{display:contents}
