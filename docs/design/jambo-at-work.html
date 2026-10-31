@@ -164,13 +164,41 @@ svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .legend i{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;margin-right:5px}
 
+/* ============ one map, three ways ============ */
+.ways-head{display:flex;align-items:center;gap:8px;padding:0 24px;margin-top:12px;flex-wrap:wrap}
+.ways-head .q{margin-left:auto}
+.ways-stage{flex:1;min-height:0;overflow:auto;padding:14px 24px 20px;border-top:1px solid var(--hair);margin-top:12px}
+.opt{display:none}.opt.on{display:block}
+.look{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:var(--chip);font-size:12.5px;font-weight:500}
+.one .hd{display:grid;grid-template-columns:232px minmax(0,1fr) 110px;gap:16px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:6px 0 8px;border-bottom:1px solid var(--hair)}
+.one .grp{font-size:12.5px;font-weight:600;padding:12px 0 2px;display:flex;gap:8px;align-items:baseline}.one .grp .q{font-weight:400}
+.one .row{display:grid;grid-template-columns:232px minmax(0,1fr) 110px;gap:16px;align-items:center;padding:8px 0;border-bottom:1px solid var(--hair);transition:opacity .3s}
+.one .row.dim{opacity:.35}
+.one .who{display:flex;align-items:center;gap:10px;min-width:0}
+.bub{flex:none;border-radius:50%;background:#DCE7E1;border:1.2px solid var(--green);display:grid;place-items:center}
+.bub.hit{background:var(--green)}.bub.hit.red{background:#C2453B;border-color:#C2453B}.bub.hit.amber{background:#C98A14;border-color:#C98A14}
+.one .nm{font-size:13px;font-weight:500;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.one .ln{font-size:11.5px;color:var(--quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.one .ln .ref{font-family:var(--font-mono);font-size:11px}
+.one .w{font-size:12px;text-align:right;line-height:1.3}.one .w.red{color:var(--red)}.one .w.amber{color:var(--amber)}
+.two .band{height:150px;position:relative;border-bottom:1px solid var(--hair);margin-bottom:6px}
+.two .band svg{width:100%;height:100%;display:block}
+.two .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:8px 0 6px}
+.three svg{width:100%;height:520px;display:block}
+.three .ring{transition:opacity .3s}
+.three .ring.dim{opacity:.22}
+.three text{font-family:var(--font-ui);font-size:11px;fill:#1D1D1F}.three text.sub{font-size:10px;fill:#4B4B50}.three text.col{font-weight:600;font-size:11.5px}
+.cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:18px}
+.cmp th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--quiet);font-weight:600;padding:8px 10px 8px 0;border-bottom:1px solid var(--hair)}
+.cmp td{vertical-align:top;padding:9px 10px 9px 0;border-bottom:1px solid var(--hair);line-height:1.4}
+.cmp td:first-child{font-weight:600;white-space:nowrap}
+.cmp tr.rec td{background:#F3F8F5}
+.cmp tr.rec td:first-child::after{content:" · recommended";font-weight:400;color:var(--green)}
 /* phone: the panel below the page */
 @media (max-width:1000px){.body{flex-direction:column}.panel{width:auto;max-height:46vh}.pb{overflow:auto}}
 @media (prefers-reduced-motion:reduce){.node,.edge,.strand i,.m,.paper .cl,.fact{transition:none;animation:none}}
 </style>
 
 <div class="bar"><span class="mark">HaTi</span><span class="pg">Jambo at work · two things to watch</span><span class="sp"></span>
-  <div class="tabs" role="tablist"><button type="button" role="tab" id="tab-read" aria-selected="true" aria-controls="v-read">Reading on arrival</button><button type="button" role="tab" id="tab-map" aria-selected="false" aria-controls="v-map">Ask the map</button></div>
+  <div class="tabs" role="tablist"><button type="button" role="tab" id="tab-read" aria-selected="true" aria-controls="v-read">Reading on arrival</button><button type="button" role="tab" id="tab-map" aria-selected="false" aria-controls="v-map">Ask the map</button><button type="button" role="tab" id="tab-ways" aria-selected="false" aria-controls="v-ways">One map · three ways</button></div>
   <span class="av">AO</span></div>
 
 <!-- ======================= 1 · READING ON ARRIVAL ======================= -->
@@ -220,6 +248,31 @@ svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;str
   </div>
 </div>
 
+<!-- ======================= 3 · ONE MAP, THREE WAYS ======================= -->
+<div class="body" id="v-ways" role="tabpanel" hidden>
+  <div class="sheet">
+    <div class="view on" style="height:100%">
+      <div class="pg-head"><span class="tt">One map</span><span class="sub">the Explorer and the DNA on one page · drawn answering “where is insurance missing?”</span><span class="sp"></span><div class="seg" id="ways-pick" role="tablist"><button type="button" data-o="one" aria-pressed="true">One strand each</button><button type="button" data-o="two" aria-pressed="false">Map above, strands below</button><button type="button" data-o="three" aria-pressed="false">Rings</button></div></div>
+      <div class="ways-head"><span class="look">Look: by stream <svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span><span class="look">Size: value <svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span><span class="q" id="ways-say">7 contracts · lit: insurance clauses · 1 missing</span></div>
+      <div class="ways-stage" id="ways-stage"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="ptab"><span class="jface sm"></span> Jambo</span></div>
+    <div class="pb">
+      <div class="jcard" id="ways-card"></div>
+      <div class="sec">What the box understands</div>
+      <div class="fact"><div class="l">A clause</div><div class="v">any clause word: insurance, payment, liability, notice, exclusivity, data…</div><div class="s">lights segments</div></div>
+      <div class="fact"><div class="l">A party</div><div class="v">a name, or “who”: the party's papers come forward</div><div class="s">lights bubbles</div></div>
+      <div class="fact"><div class="l">A date</div><div class="v">a year, “this year”, “ends”, “renews”: the rows lay out by date</div><div class="s">re-orders</div></div>
+      <div class="fact"><div class="l">A sum</div><div class="v">“over 50M”, “under 1M”, “pays after 45 days”</div><div class="s">filters</div></div>
+      <div class="fact"><div class="l">A state</div><div class="v">missing, differs, blank, in review, late, negotiating</div><div class="s">lights marks</div></div>
+      <div class="fact"><div class="l">Anything else</div><div class="v">a question of the wording becomes a column, its cost said first</div><div class="s">N calls</div></div>
+    </div>
+    <div class="pf"><div class="jbox"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg><input placeholder="Ask the map: a clause, a party, a date, a sum, a state…" aria-label="Ask the map"><span class="go"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></span></div></div>
+  </div>
+</div>
+
 <script>
 (function(){
 'use strict';
@@ -228,9 +281,9 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CHECK='<svg class="i" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg>';
 
 /* ---------------- tabs ---------------- */
-const tabs={read:[$('#tab-read'),$('#v-read')],map:[$('#tab-map'),$('#v-map')]};
-function show(k){ for(const [key,[t,v]] of Object.entries(tabs)){ const on=key===k; t.setAttribute('aria-selected',on); v.hidden=!on; } if(k==='map' && !mapBuilt) buildMap(); try{ if(location.hash!=='#'+k) history.replaceState(null,'','#'+k);}catch(e){} }
-tabs.read[0].addEventListener('click',()=>show('read')); tabs.map[0].addEventListener('click',()=>show('map'));
+const tabs={read:[$('#tab-read'),$('#v-read')],map:[$('#tab-map'),$('#v-map')],ways:[$('#tab-ways'),$('#v-ways')]};
+function show(k){ for(const [key,[t,v]] of Object.entries(tabs)){ const on=key===k; t.setAttribute('aria-selected',on); v.hidden=!on; } if(k==='map' && !mapBuilt) buildMap(); if(k==='ways' && !waysBuilt) buildWays(); try{ if(location.hash!=='#'+k) history.replaceState(null,'','#'+k);}catch(e){} }
+tabs.read[0].addEventListener('click',()=>show('read')); tabs.map[0].addEventListener('click',()=>show('map')); tabs.ways[0].addEventListener('click',()=>show('ways'));
 addEventListener('hashchange',()=>{ const k=location.hash.replace('#',''); if(tabs[k]) show(k); });
 
 /* =====================================================================
@@ -378,6 +431,35 @@ function reset(){ Q=null; [...chips.children].forEach(b=>b.setAttribute('aria-pr
 $('#mp-form').addEventListener('submit',e=>{ e.preventDefault(); ask($('#mp-ask').value); });
 $('#mp-reset').addEventListener('click',reset);
 $('#rd-ask').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; say.innerHTML=`“${v}” is a question about the wording. The free read above answers facts; this needs one call: <button type="button" class="lnk">Ask it</button> <span class="q">1 call</span>. Nothing is sent or filed.`; e.target.value=''; } });
+
+
+/* =====================================================================
+   3 · ONE MAP, THREE WAYS (drawn answering “insurance”)
+   ===================================================================== */
+let waysBuilt=false;
+const WAYS={
+ one:{card:'<b>One strand each.</b> The Explorer and the DNA become one list: the bubble is the contract\'s size, the strand is its clauses, the mark at the end is its worst. “Look” groups and orders the rows; a question lights bubbles and segments in place. Seven rows fit without a scroll; fifty scroll like any list.'},
+ two:{card:'<b>Map above, strands below.</b> The Explorer keeps a short band for the shape of the book, the strands sit under it as the detail. One question lights both at once. Costs 150px of height for the band, which is why it is second.'},
+ three:{card:'<b>Rings.</b> Every contract is one bubble and its strand is bent around it as a ring. Densest of the three and the most striking, but § numbers need a hover and a long paper\'s ring gets crowded. Best on a wall of fifty, weakest for reading one clause.'}
+};
+const insHit=c=>c.cl.some(x=>x[1]==='insurance'&&x[2]==='r'), insSoft=c=>c.cl.some(x=>x[1]==='insurance'&&x[2]==='s'), insAny=c=>c.cl.some(x=>x[1]==='insurance');
+const strandHtml=(c,lit)=>'<div class="strand'+(lit?' asked':'')+'">'+c.cl.map(x=>'<i class="'+x[2]+(lit&&x[1]==='insurance'?' hit':'')+'" style="--w:'+x[3]+'" title="§ '+x[0]+' '+x[1]+'"></i>').join('')+'</div><div class="ticks">'+c.cl.map(x=>'<i style="--w:'+x[3]+'">'+(x[0]===0?'pre':x[0])+'</i>').join('')+'</div>';
+const worstOf=c=>c.cl.some(x=>x[2]==='r')?['red',c.cl.filter(x=>x[2]==='r').length+' missing']:c.cl.some(x=>x[2]==='b')?['amber',c.cl.filter(x=>x[2]==='b').length+' blanks']:c.cl.some(x=>x[2]==='a')?['amber',c.cl.filter(x=>x[2]==='a').length+' differs']:['','all met'];
+const bubble=(c,size)=>{ const d=Math.max(14,Math.round(Math.sqrt(c.value)/300)); const hit=insHit(c)?' hit red':insSoft(c)?' hit':''; return '<span class="bub'+hit+'" style="width:'+Math.min(d,36)+'px;height:'+Math.min(d,36)+'px"></span>'; };
+const PNAME=id=>PARTIES.find(p=>p.id===id).name;
+function oneHtml(){ let out='<div class="one"><div class="hd"><span>Agreement · size is value</span><span>The strand · § in paper order · lit: insurance</span><span style="text-align:right">Worst mark</span></div>';
+  STREAMS.forEach(s=>{ const cs=C.filter(c=>c.stream===s.id); const sum=cs.reduce((a,c)=>a+c.value,0); out+='<div class="grp">'+s.name+'<span class="q">'+cs.length+' · '+fmtM(sum)+'</span></div>'; cs.forEach(c=>{ const w=worstOf(c); const dim=!(insHit(c)||insSoft(c)); out+='<div class="row'+(dim?' dim':'')+'"><div class="who">'+bubble(c)+'<div style="min-width:0"><div class="nm">'+c.name+'</div><div class="ln">'+PNAME(c.party)+' · <span class="ref">'+c.id+'</span> · '+fmtM(c.value)+'</div></div></div><div>'+strandHtml(c,true)+'</div><div class="w '+w[0]+'">'+(insHit(c)?'insurance missing · § 5':insSoft(c)?'insurance asked about':insAny(c)?'insurance met':w[1])+'</div></div>'; }); });
+  return out+'</div>'; }
+function twoHtml(){ const W=900,H=150; let svg='<svg viewBox="0 0 '+W+' '+H+'">'; const colW=(W-40)/3;
+  STREAMS.forEach((s,i)=>{ const x0=20+i*colW; svg+='<text x="'+(x0+colW/2)+'" y="18" text-anchor="middle" style="font-family:var(--font-ui);font-size:11.5px;font-weight:600;fill:#1D1D1F">'+s.name.split(' &')[0]+'</text>'; const cs=C.filter(c=>c.stream===s.id); cs.forEach((c,k)=>{ const r=Math.max(7,Math.sqrt(c.value)/700); const x=x0+30+k*((colW-60)/Math.max(1,cs.length-1||1)); const y=85; const hit=insHit(c), soft=insSoft(c); const fill=hit?'#C2453B':soft?'#087363':'#DCE7E1', stroke=hit?'#C2453B':'#087363', op=(hit||soft)?1:.3; svg+='<g opacity="'+op+'"><circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.2"/><text x="'+x+'" y="'+(y+r+14)+'" text-anchor="middle" style="font-family:var(--font-ui);font-size:10.5px;fill:#1D1D1F">'+c.id+'</text></g>'; }); });
+  svg+='</svg>'; let out='<div class="two"><div class="band">'+svg+'</div><div class="lbl">DNA by contract · lit: insurance</div><div class="dna" style="overflow:visible">'; C.forEach(c=>{ const w=worstOf(c); out+='<div class="row"><div><div class="nm">'+c.name+'</div><div class="ln">'+PNAME(c.party)+' · <span class="ref">'+c.id+'</span></div></div><div>'+strandHtml(c,true)+'</div><div class="w '+w[0]+'">'+(insHit(c)?'insurance missing':insSoft(c)?'asked about':insAny(c)?'met':w[1])+'</div></div>'; }); return out+'</div></div>'; }
+function threeHtml(){ const W=900,H=520; let svg='<svg viewBox="0 0 '+W+' '+H+'">'; const colW=(W-40)/3; const COL={g:'#3A8A62',a:'#C98A14',r:'#C2453B',s:'#5F6D6B',u:'#E6E6EA',b:'#fff'};
+  STREAMS.forEach((s,i)=>{ const x0=20+i*colW; svg+='<text class="col" x="'+(x0+colW/2)+'" y="20" text-anchor="middle">'+s.name.split(' &')[0]+'</text>'; const cs=C.filter(c=>c.stream===s.id); const perRow= cs.length>2?2:cs.length; cs.forEach((c,k)=>{ const R=Math.max(26,Math.min(50,Math.sqrt(c.value)/190)); const cx=x0+colW/2+((k%perRow)-(perRow-1)/2)*Math.min(colW/perRow,150); const cy=100+Math.floor(k/perRow)*155; const tot=c.cl.reduce((a,x)=>a+x[3],0); let ang=-Math.PI/2; const dim=!(insHit(c)||insSoft(c)); svg+='<g class="ring'+(dim?' dim':'')+'">'; c.cl.forEach(x=>{ const a0=ang, a1=ang+2*Math.PI*x[3]/tot-0.03; ang+=2*Math.PI*x[3]/tot; const r1=R+6, r2=R+(x[1]==='insurance'?18:13); const p=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)]; const [ax,ay]=p(r2,a0),[bx,by]=p(r2,a1),[cx2,cy2]=p(r1,a1),[dx,dy]=p(r1,a0); const large=(a1-a0)>Math.PI?1:0; const col=x[2]==='b'?'#fff':COL[x[2]]; svg+='<path d="M'+ax+' '+ay+' A'+r2+' '+r2+' 0 '+large+' 1 '+bx+' '+by+' L'+cx2+' '+cy2+' A'+r1+' '+r1+' 0 '+large+' 0 '+dx+' '+dy+' Z" fill="'+col+'" stroke="'+(x[2]==='b'?'#C98A14':'#fff')+'" stroke-width="'+(x[2]==='b'?1.2:0.6)+'" opacity="'+(x[1]==='insurance'?1:0.45)+'"><title>§ '+x[0]+' '+x[1]+'</title></path>'; });
+    svg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+(insHit(c)?'#C2453B':insSoft(c)?'#087363':'#F0F0F3')+'" stroke="'+(insHit(c)?'#C2453B':'#087363')+'" stroke-width="1.2"/><text x="'+cx+'" y="'+(cy+4)+'" text-anchor="middle" style="fill:'+((insHit(c)||insSoft(c))?'#fff':'#1D1D1F')+';font-weight:600">'+c.id+'</text><text x="'+cx+'" y="'+(cy+R+32)+'" text-anchor="middle">'+(c.name.length>22?c.name.slice(0,21)+'…':c.name)+'</text><text class="sub" x="'+cx+'" y="'+(cy+R+45)+'" text-anchor="middle">'+PNAME(c.party).replace(' Supermarkets','').replace(' Logistics','')+' · '+fmtM(c.value)+'</text></g>'; }); });
+  return '<div class="three">'+svg+'</svg></div>'; }
+const CMP='<table class="cmp"><thead><tr><th>Idea</th><th>When it wins</th><th>Cost</th></tr></thead><tbody><tr class="rec"><td>One strand each</td><td>Reading and acting: every row is a contract with its size, its clauses and its worst mark; a question lights the row in place; Look re-orders. Scales to a long book like any list.</td><td>The book\'s overall shape is read row by row, not at a glance; grouping heads carry the sums.</td></tr><tr><td>Map above, strands below</td><td>When the shape of the book matters as much as the detail: who is big, which stream holds what, then the clauses.</td><td>150px of height for the band; two pictures to read; the band gets busy past twenty contracts.</td></tr><tr><td>Rings</td><td>A wall of many contracts where each is one glyph: the eye finds the red ring at once; striking in a demo.</td><td>§ numbers only on hover; a long paper\'s ring crowds; the weakest for reading one clause and acting on it.</td></tr></tbody></table>';
+function buildWays(){ waysBuilt=true; showWay('one'); $('#ways-pick').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; showWay(b.dataset.o); }); }
+function showWay(o){ [...$('#ways-pick').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o)); const html=o==='one'?oneHtml():o==='two'?twoHtml():threeHtml(); $('#ways-stage').innerHTML=html+CMP; $('#ways-card').innerHTML=WAYS[o].card+' <span class="q">drawn answering “where is insurance missing?” · the same data as Ask the map</span>'; $('#ways-stage').scrollTop=0; }
 
 const start=location.hash.replace('#',''); show(tabs[start]?start:'read');
 })();
