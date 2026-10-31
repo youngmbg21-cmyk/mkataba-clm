@@ -1314,6 +1314,11 @@ function pdRedTheirsNoteHtml(c){
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
+  /* THE NEW LOOK, AS DRAWN: while the close plan stands in the middle, the panel beside it is the plan's own (dealPanelNewHtml) */
+  if (typeof pd2On === 'function' && pd2On() && pdMidUp('deal:' + c.id) && typeof dealPanelNewHtml === 'function'){
+    let p = ''; try { p = dealPanelNewHtml(c); } catch (_){ p = ''; }
+    if (p) return `<div class="redline-page rl-face" data-pd-rf="${_pdE(c.id)}">${p}</div>`;
+  }
   try { if (typeof negoEnsureStyle === 'function') negoEnsureStyle(); } catch (_){}
   try { if (typeof redlineLayoutCss === 'function') redlineLayoutCss(); } catch (_){}
   let col = '';

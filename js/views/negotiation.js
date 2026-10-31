@@ -8385,6 +8385,44 @@ function dealViewNewHtml(c, side, f, memo){
     <div class="dl2-foot"><span>${_ne(i18t('dl2_foot'))}</span><span class="sp"></span>${chase}${ask}${open}${send}</div>
   </div>`;
 }
+/* THE CLOSE PLAN'S PANEL, AS DRAWN (the new look): Jambo's face beside the plan — one sentence, the road (their round,
+   your answers, then), his one remark and the doors. Every word read off the plan (dealPlanFacts), no call. */
+function dealPanelNewHtml(c){
+  const f = dealPlanFacts(c, 'owner'); if (!f.rows.length) return '';
+  const id = _nea(String(c.id));
+  const names = k => f.by[k].map(x => dealSecOf(x.r).name.toLowerCase());
+  const list = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' ' + i18t('dl2_and') + ' ' + a[a.length - 1];
+  const mine = f.by.give.length + f.by.hold.length + f.by.rule.length;
+  const prepared = f.plan.filter(x => x.p.unsent).length;
+  const rule = names('rule');
+  const lead = [i18t('dl2_p_mine', { k: mine, n: f.plan.length }),
+    prepared ? i18tn('dl2_p_prepared', prepared, { n: prepared }) : '',
+    rule.length ? i18tn('dl2_p_rule', rule.length, { n: rule.length, what: list(rule) }) : ''].filter(Boolean).join(' ');
+  /* the road: their round as the record has it, your answers, then */
+  const neg = c.negotiation || {};
+  const r = Number(neg.round) || 1;
+  const theirs = (Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'counterparty' && Number(x.roundN || r) === r);
+  const since = (typeof window.negoRoundSince === 'function') ? negoRoundSince(c) : null;
+  let when = ''; if (since){ const d = new Date(since); if (!isNaN(d.getTime())) try { when = d.toLocaleString(window.langLocale ? langLocale() : 'en-GB', { weekday: 'long', hour: '2-digit', minute: '2-digit' }); } catch (_){ when = ''; } }
+  const who = String((theirs[0] && theirs[0].author) || '').trim().split(/\s+/)[0];
+  const road = [[i18t('dl2_road_theirs', { n: r }), [when, i18tn('dl2_road_asks', theirs.length, { n: theirs.length })].filter(Boolean).join(' · '), _ne(who)],
+    [i18t('dl2_road_yours'), prepared ? i18t('dl2_road_prepared') : i18t('dl2_road_none'), prepared ? `<button type="button" class="dl2-a" data-deal-sendall="${id}">${_ne(i18t('ig_send_all'))}</button>` : ''],
+    [i18t('dl2_road_then'), i18t('dl2_road_then_w'), '']];
+  const give = names('give'), hold = names('hold');
+  const say = [give.length ? i18t('dl2_j_give', { what: list(give) }) : '', hold.length ? i18t('dl2_j_hold', { what: list(hold) }) : '',
+    rule.length ? i18t('dl2_j_rule', { what: list(rule) }) : ''].filter(Boolean).join(' ');
+  const admin = typeof window.isAdmin === 'function' && isAdmin();
+  const doors = [prepared ? [`<button type="button" class="dl2-a" data-deal-sendall="${id}">${_ne(i18tn('dl2_d_send', prepared, { n: prepared }))}</button>`, i18t('dl2_free')] : null,
+    f.by.wait.length ? [`<button type="button" class="dl2-a" data-deal-chase="${id}">${_ne(who ? i18t('dl2_d_chase_who', { who }) : i18t('ng_plan_chase'))}</button>`, i18t('dl2_free')] : null,
+    rule.length ? [`<button type="button" class="dl2-a" data-deal-ask="${_nea(f.by.rule[0].r.clauseId)}" data-deal-ask-cat="${_nea((f.by.rule[0].p.std && f.by.rule[0].p.std.category) || dealSecOf(f.by.rule[0].r).name)}">${_ne(i18t(admin ? 'dl2_d_set_rule' : 'dl2_d_ask_rule'))}</button>`, i18t(admin ? 'dl2_free' : 'dl2_free_record')] : null].filter(Boolean);
+  return `<div class="dl2-panel" data-dl2-panel="${id}">
+    <p class="dl2-pl">${_ne(lead)}</p>
+    <div class="dl2-cap">${_ne(i18t('dl2_road'))}</div>
+    <div class="dl2-road">${road.map(x => `<div><b>${_ne(x[0])}</b><span>${_ne(x[1])}</span><i>${x[2]}</i></div>`).join('')}</div>
+    ${say ? `<div class="dl2-j"><span class="dl2-jdot" aria-hidden="true"></span><div><div class="dl2-cap">Jambo</div><p>${_ne(say)}</p></div></div>` : ''}
+    ${doors.length ? `<div class="dl2-cap">${_ne(i18t('dl2_doors'))}</div><div class="dl2-doors">${doors.map(d => `<div>${d[0]}<span>${_ne(d[1])}</span></div>`).join('')}</div>` : ''}
+  </div>`;
+}
 /* COPY AS MEMO, the plan in words: the head, then each group and its points */
 function dealPlanMemoText(c){
   if (!c) return '';
@@ -23701,7 +23739,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
-  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealPlanOf, dealPlanFacts, dealPlanMemoText, dealStandardOf, DEAL_PLAN_GROUPS, dealRowToggle, dealRowOpen,
+  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealPanelNewHtml, dealPlanOf, dealPlanFacts, dealPlanMemoText, dealStandardOf, DEAL_PLAN_GROUPS, dealRowToggle, dealRowOpen,
   dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
