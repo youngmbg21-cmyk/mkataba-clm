@@ -262,7 +262,11 @@ describe('f353 (5) what moved is read off the record', () => {
   });
 
   test('and the trail says the same thing', () => {
-    assert.ok(/Read the brief before signing/.test(AI), 'one English audit line');
+    /* RE-POINTED 31 Oct 2026 (the new look's contract, f563): the line moved into the ONE act both brief cards press,
+       briefReadSave in js/signcheck.js; the brief's own card presses it */
+    const SC = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'signcheck.js'), 'utf8');
+    assert.ok(/function briefReadSave[\s\S]{0,300}Read the brief before signing/.test(SC), 'one English audit line');
+    assert.ok(/briefReadSave\(c\)/.test(AI), 'the brief card presses the one act');
   });
 
   test('every new key is in both books', () => {

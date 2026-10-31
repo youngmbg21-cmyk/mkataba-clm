@@ -18363,6 +18363,9 @@
   /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
   html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
   html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  /* on a contract the row above the box is the paper's own links (the one row, as drawn): the same line above it, none under it */
+  html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]){border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0;background:var(--color-surface)}
+  html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]) + .igd-foot{border-top-color:transparent}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot.jl-foot, .st-cr .st-jb-ask.st-jb-ask){padding:12px var(--jb-g,16px) var(--well-b)}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot, .st-cr #st-jb-form, #ai-panel.is-side > footer, #cn-page) .jb-card:not(.is-tall){box-sizing:border-box;min-height:var(--jb-box-h)}
   /* ==== THE NEW LOOK: HOME (round 2 rebuilt, owner, 31 Oct 2026; js/views/counter.js cn2*) ====
@@ -18439,6 +18442,195 @@
   html.lg-new #cn2-page .cn2-dot{width:12px;height:12px;border-radius:50%;background:var(--st-violet-dot);flex:none;margin-top:4px}
   html.lg-new #cn2-page .cn2-turn .ui-link{margin-left:4px}
   html.lg-new #cn2-page .cn2-who-j{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-quiet);font-weight:var(--w-strong)}
+  /* ==== THE NEW LOOK: A CONTRACT (the contract round, part 1, 31 Oct 2026; js/paperdesk.js pd2*) ====
+     As drawn: the Dossier is one line of stages, one sentence with its link, what Jambo read, the facts each with where
+     it was read, then Jambo's one remark. */
+  html.lg-new #ig-dock .pd2-dossier{display:flex;flex-direction:column;font-size:13.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine{margin:0;font-size:13.5px;line-height:1.5}
+  html.lg-new #ig-dock .pd2-spine i{font-style:normal;margin:0 5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-spine b{font-weight:var(--w-label);color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd2-next{margin:12px 0 0;font-size:14px;line-height:1.45}
+  html.lg-new #ig-dock .pd2-read{margin:4px 0 10px;font-size:11.5px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-q{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-dossier .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
+  html.lg-new #ig-dock .pd2-facts{border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd2-fact{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd2-l{color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-v{min-width:0;overflow-wrap:anywhere}
+  html.lg-new #ig-dock .pd2-s{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;text-align:right}
+  html.lg-new #ig-dock .pd2-sgo{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--color-quiet);cursor:pointer}
+  @media (hover:hover){ html.lg-new #ig-dock .pd2-sgo:hover{color:var(--accent-ink);text-decoration:underline} }
+  html.lg-new #ig-dock .pd2-amb{color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd2-turn{display:flex;gap:10px;align-items:flex-start;margin-top:20px}
+  html.lg-new #ig-dock .pd2-turn b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-turn p{margin:2px 0 0}
+  html.lg-new #ig-dock .pd2-jface{width:12px;height:12px;border-radius:50%;background:var(--st-violet-dot);flex:none;margin-top:4px}
+  /* the notes beside the paper: the sheet stands left, the notes in the margin, each by the line it was read from */
+  html.lg-new #ig-paper .ig-zoom.has-pd2{position:relative}
+  html.lg-new #pd2-notes{position:absolute;top:0;font-size:13px;line-height:1.4;color:var(--color-text)}
+  html.lg-new #pd2-notes .pd2-mn{position:absolute;left:0;right:0;padding:0 0 0 46px}
+  html.lg-new #pd2-notes .pd2-mn::before{content:"";position:absolute;left:34px;top:2px;bottom:2px;width:1px;background:var(--color-divider)}
+  html.lg-new #pd2-notes .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
+  html.lg-new #pd2-notes .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
+  html.lg-new #pd2-notes .pd2-mn-k{font-weight:400}
+  html.lg-new #pd2-notes .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
+  html.lg-new #pd2-notes .pd2-mn-a{margin-top:1px;font-size:12px}
+  html.lg-new #pd2-notes .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
+  html.lg-new #pd2-notes .pd2-mn.is-owe .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-owe::after,html.lg-new #pd2-notes .pd2-mn.is-owe::before{background:var(--st-amber-dot)}
+  html.lg-new #pd2-notes .pd2-mn.is-risk .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-risk::after,html.lg-new #pd2-notes .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
+  html.lg-new #pd2-notes .pd2-mn.is-ask .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-ask::after,html.lg-new #pd2-notes .pd2-mn.is-ask::before{background:var(--color-text)}
+  html.lg-new ::highlight(pd2-fact){background-color:var(--surface-2)}
+  /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
+  html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new .pd2-br-head{display:flex;align-items:baseline;gap:14px;min-width:0;padding:4px 0}
+  html.lg-new .pd2-br-head .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;font-size:13.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .pd2-br-t{font-family:var(--font-title);font-size:24px;font-weight:var(--w-title-serif);white-space:nowrap}
+  html.lg-new .pd2-br-m{font-size:13.5px;font-weight:var(--w-label);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .pd2-br-sp{flex:1}
+  html.lg-new .pd2-br-cost{font-size:11.5px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-head{display:flex;align-items:center;height:56px;padding:0 24px;box-sizing:border-box}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-crumb{flex:1;min-width:0;margin:0;padding:0}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-row{display:none}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-body{background:var(--desk-ground);padding:0}
+  html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-body > .pd2-brief{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;padding:0;min-height:100%;display:flex;flex-direction:column;background:var(--desk-ground)}
+  html.lg-new .pd2-br-sheet{width:min(720px,calc(100% - 64px));margin:28px auto 40px;padding:40px 56px 36px;background:var(--color-surface);box-shadow:var(--shadow-sm);font-family:var(--font-doc);color:var(--color-text)}
+  html.lg-new .pd2-br-kick{text-align:center;font-family:var(--font-body);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-text)}
+  html.lg-new .pd2-br-what{margin:22px 0 4px;text-align:center;font-size:17px;font-weight:var(--w-title)}
+  html.lg-new .pd2-br-lead{font-size:16px;line-height:1.6}
+  html.lg-new .pd2-br-eye{margin:26px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--color-divider);font-family:var(--font-body);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  html.lg-new .pd2-br-ln{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,40%);gap:24px;padding:10px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .pd2-br-say{font-size:15px;line-height:1.5}
+  html.lg-new .pd2-br-why{display:block;margin-top:3px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .pd2-br-src{font-size:12.5px;line-height:1.4}
+  html.lg-new .pd2-br-src b{display:block;font-family:var(--font-body);font-weight:var(--w-label);font-size:12px}
+  html.lg-new .pd2-br-src q{font-style:italic}
+  html.lg-new .pd2-br-foot{margin-top:22px;font-family:var(--font-body);font-size:13.5px}
+  html.lg-new .pd2-br-foot .br-read{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-br-foot .br-read-n{flex:1 1 200px;color:var(--color-quiet);font-size:12.5px}
+  html.lg-new .pd2-br-foot .br-read-done{margin:0;padding-top:14px;border-top:1px solid var(--color-divider);color:var(--st-green-fg)}
+  html.lg-new .pd2-br-cut{margin:18px 0 0;color:var(--st-amber-fg);font-size:13px}
+  html.lg-new .pd2-br-pfoot{position:sticky;bottom:0;margin-top:auto;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text)}
+  /* fill in on the paper: the blanks are boxes where they stand, a head over the paper's line, a foot under the paper */
+  html.lg-new #ig-canvas span.pd2-bl,html.lg-new #ig-canvas span.up-blank.pd2-bl{background:none;border:0;padding:0;margin:0;box-shadow:none;outline:0}
+  html.lg-new #ig-canvas .pd2-bl-in{font:inherit;font-family:var(--font-body);font-size:13px;line-height:20px;height:24px;padding:0 8px;margin:0 2px;border:0;border-bottom:2px solid var(--st-amber-dot);border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg);vertical-align:baseline}
+  html.lg-new #ig-canvas .pd2-bl-in:focus{outline:2px solid var(--st-amber-dot);outline-offset:1px}
+  html.lg-new #ig-canvas .pd2-bl-in::placeholder{color:var(--st-amber-fg)}
+  html.lg-new #ig-page.is-pd2-fill #ig-strip{display:none}
+  html.lg-new .pd2-fill-head{display:flex;align-items:center;gap:16px;min-height:var(--ig-bar-h,56px);padding:8px 24px 8px 40px;box-sizing:border-box;background:var(--color-surface);border-bottom:1px solid var(--color-divider)}
+  html.lg-new .pd2-fh-t{font-family:var(--font-title);font-size:24px;font-weight:var(--w-title-serif);white-space:nowrap}
+  html.lg-new .pd2-fh-m{font-size:13.5px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new .pd2-fill-head .pd2-br-sp{flex:1}
+  html.lg-new .pd2-fill-foot{flex:none;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text);z-index:2}
+  html.lg-new #ig-dock .pd2-fp.is-typed [data-pd2-fp-state]{color:var(--color-text)}
+  /* the Fill in form in the middle, laid flat: the page white, its head "‹ Paper" over the title and its line; rows wide */
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-head{padding:16px 40px 12px}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-crumb{margin:0 0 6px;padding:0}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-back{margin:0;padding:0;border:0;background:none;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-t{font-family:var(--font-title);font-size:24px;font-weight:var(--w-title-serif);margin:0}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-m{margin-top:4px;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-body{background:var(--color-surface)}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-body > .pd2-fm-mid{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;padding:8px 40px 24px;background:var(--color-surface);min-height:0}
+  html.lg-new .pd2-fm-mid .pd-fm-h{margin:0 0 4px}
+  html.lg-new .pd2-fm-mid .pd-fm-h p{margin:0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid .pd-fm-bar{display:none}
+  html.lg-new .pd2-fm-mid table.pd-og.is-form{width:100%;border-collapse:collapse;table-layout:fixed}
+  html.lg-new .pd2-fm-mid .pd-fm-gh th{padding:18px 0 6px;text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid .pd-fm-gh th .is-amb{margin-left:10px;letter-spacing:0;text-transform:none;color:var(--st-amber-fg)}
+  html.lg-new .pd2-fm-mid tr.pd-fm-row > td{padding:10px 0;border-top:1px solid var(--color-divider);vertical-align:top;font-size:13.5px;line-height:1.45}
+  html.lg-new .pd2-fm-mid td.pd-og-f{width:190px;padding-right:18px}
+  html.lg-new .pd2-fm-mid td.pd-og-f b{font-weight:var(--w-label)}
+  html.lg-new .pd2-fm-mid td.pd-og-v{width:42%;padding-right:24px}
+  html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea){width:100%;max-width:260px;height:30px;box-sizing:border-box;border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px;font:inherit}
+  html.lg-new .pd2-fm-mid tr.pd-fm-row.is-amb td.pd-og-v :is(input:not([type=checkbox]),select){color:var(--st-amber-fg)}
+  html.lg-new .pd2-fm-mid td.pd-og-v input::placeholder{color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-known > td{padding:10px 0;border-top:1px solid var(--color-divider);vertical-align:top;font-size:13.5px;line-height:1.45}
+  html.lg-new .pd2-fm-mid td.pd-og-a q{font-family:var(--font-doc);font-style:italic;font-size:12.5px}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-sg :is(.pd-og-ml:first-child, [data-pd-og-sg="ours"]){display:none}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-sg .pd-og-ml{display:none}
+  html.lg-new .pd2-fm-mid .pd2-nw{white-space:nowrap}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-sg .pd-og-sb:has([data-pd-og-sg="ours"]){display:none}
+  html.lg-new .pd2-fm-mid .pd-og-sb{position:relative;max-width:260px}
+  html.lg-new .pd2-fm-mid .pd-og-sb > svg{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--color-quiet);pointer-events:none}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-sg td.pd-og-v [data-pd-og-sg="temail"]{margin-top:8px}
+  html.lg-new .pd2-fm-mid td.pd-og-a{font-size:12.5px;color:var(--color-text)}
+  /* the form's foot: one bar across the page's foot, a hairline above it, its words left, Discard and Save right, full size */
+  html.lg-new .pd2-fm-mid .pd-fm-h p{display:none}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-body > .pd2-fm-mid{min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+  html.lg-new .pd2-fm-mid > .pd-fm{flex:1 0 auto;display:flex;flex-direction:column}
+  html.lg-new .pd2-fm-mid table.pd-og.is-form{margin-bottom:24px}
+  html.lg-new .pd2-fm-mid .pd-fm-f{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;margin:auto -40px -24px;padding:12px 40px;background:var(--color-surface);border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-fm-mid .pd-fm-f > span{margin-right:auto;font-size:13px;color:var(--color-text)}
+  html.lg-new .pd2-fm-mid .pd-fm-f .ui-btn{height:var(--ctl-h);padding:0 18px;border-radius:999px;font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .pd2-fm-mid .pd-fm-f .ui-btn:not(.ui-btn-primary){background:var(--surface-2);border:0;color:var(--color-text)}
+  /* the read, watched: the head's speed choice, the clause being read and those read, the lit words, the foot's bar */
+  html.lg-new #ig-page.is-pd2-walk #ig-strip{display:none}
+  html.lg-new .pd2-walk-head .pd2-fh-m{white-space:normal;max-width:210px;flex:none}
+  html.lg-new .pd2-wk-sp{font-size:12px;color:var(--color-quiet);margin-left:6px}
+  html.lg-new .pd2-fill-head > :is(.ui-btn, .pd2-seg, .pd2-wk-sp){flex:none}
+  html.lg-new .pd2-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new .pd2-seg button{height:26px;padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
+  html.lg-new .pd2-seg button[aria-pressed="true"]{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .pd2-wk-x{flex:none;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-2);font:inherit;font-size:16px;color:var(--color-text);cursor:pointer}
+  html.lg-new #ig-canvas .pd2-wk-on{background:var(--st-violet-bg);transition:background .3s}
+  html.lg-new #ig-canvas .pd2-wk-done{opacity:.72}
+  html.lg-new ::highlight(pd2-walk){background-color:var(--st-amber-bg)}
+  html.lg-new #ig-canvas .pd2-wk-lit{box-shadow:inset 0 -2px 0 0 var(--st-amber-dot)}
+  html.lg-new .pd2-wk-prog{display:inline-flex;align-items:center;gap:14px}
+  html.lg-new .pd2-wk-bar{display:inline-block;width:320px;height:3px;border-radius:2px;background:var(--color-divider);overflow:hidden}
+  html.lg-new .pd2-wk-bar > i{display:block;height:100%;background:var(--color-text);transition:width .25s}
+  html.lg-new #ig-dock .pd2-wk-say{padding:14px 16px;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13.5px;line-height:1.45}
+  html.lg-new #ig-dock .pd2-wk-q{font-family:var(--font-doc);font-style:italic;font-size:12px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-wk-nx{display:flex;align-items:baseline;gap:8px;padding:5px 0}
+  @media (prefers-reduced-motion: reduce){ html.lg-new #ig-canvas .pd2-wk-on, html.lg-new .pd2-wk-bar > i{transition:none} }
+  html.lg-new #ig-canvas .pd2-cl-on{background:var(--st-amber-bg);box-shadow:0 0 0 6px var(--st-amber-bg)}
+  /* Clauses, as drawn: the head says what the list is; each row's own reading on its right; a fine clause's dot green; the Preamble first */
+  html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view{display:flex;align-items:baseline;gap:8px}
+  html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view b{font-family:var(--font-title);font-size:17px;font-weight:var(--w-title-serif)}
+  html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view-sub{font-size:12px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead{background:var(--st-green-dot);border-color:var(--st-green-dot)}
+  html.lg-new #ig-dock .pd-th .stk-n.is-say{display:inline-block;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+  html.lg-new #ig-dock .pd-th .stk-n.is-say.is-fine{color:var(--color-text)}
+  /* the list as drawn: small filled dots, no line down the list, tight rows, a hairline between them; the reading small on the right */
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row::before{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row{padding-left:22px;border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-go{padding:3px 0;gap:8px;align-items:baseline}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-name{font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-bead{left:4px;top:9px;width:8px;height:8px;border:0;background:var(--st-gray-dot);box-shadow:none}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-need .doc-th-bead,html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border:0}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead{background:var(--st-green-dot);border:0}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-state{font-size:11.5px;color:var(--color-text);white-space:nowrap}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-need,html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-look{color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-say{max-width:160px;font-size:11.5px}
+  /* the open clause: a dark bar at the panel's edge, its Plain English press filled, the reading and what to watch, the doors as links */
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open{border-bottom:0;margin-bottom:0;box-shadow:none}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open::after{content:"";position:absolute;top:0;bottom:0;left:calc(var(--pd2-bar-x, -13px));width:2px;background:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open .doc-th-name{font-weight:var(--w-strong)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open .doc-th-bead{box-shadow:none}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-ask .ui-btn{height:26px;padding:0 12px;border:0;border-radius:999px;background:var(--bar-black);color:var(--color-surface);font-size:12px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-ask{gap:8px;margin:2px 0 4px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-in,html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-home-plain{padding:0}
+  html.lg-new #ig-dock .pd-th .stk-pre{position:relative}
+  html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-cost{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq{border:0;box-shadow:none;background:none;padding:2px 0 8px;margin:0}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-ct{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-st{margin:0 0 6px;font-size:12.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-cacts{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-left:0}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-a{height:auto;padding:0;border:0;background:none;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mk .stk-ring{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mks{margin-left:0}
+  html.lg-new #ig-dock .pd-th .stk-cost-n{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd-th .stk-all{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
+  html.lg-new #ig-dock .pd-th .stk-all-b{height:28px;padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new #ig-dock .pd-th .stk-all-b:disabled{opacity:.55;cursor:default}
+  html.lg-new #ig-dock .pd-th .stk-pre-a .stk-a{height:auto;padding:0;border:0;background:none;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new #ig-dock .pd-th .stk-pre-done{font-size:12px;color:var(--st-green-fg)}
+  html.lg-new #ig-dock .pd-th .stk-pre{padding:6px 0 8px 22px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd-th .stk-pre-h{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13.5px}
+  html.lg-new #ig-dock .pd-th .stk-pre-h b{font-weight:var(--w-label)}
+  html.lg-new #ig-dock .pd-th .stk-pre-ring{position:absolute;left:3px;top:11px;width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:2px solid var(--st-amber-dot)}
+  html.lg-new #ig-dock .pd-th .stk-pre-v{justify-self:end;font-size:12px;color:var(--st-amber-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+  html.lg-new #ig-dock .pd-th .stk-pre-a{display:flex;gap:12px;align-items:baseline;margin-top:4px;font-size:12px;color:var(--color-quiet)}
 </style>
 
 

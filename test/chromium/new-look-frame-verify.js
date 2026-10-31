@@ -40,7 +40,8 @@ const FRAME = () => {
   const whites = [...document.querySelectorAll('#app-shell *')].filter(e => { if (e.closest('#top-header') || panel.contains(e)) return false;
     const b = e.getBoundingClientRect(); return b.width > 300 && b.height > 40 && b.right <= p.left + 1 && b.top < innerHeight && getComputedStyle(e).backgroundColor === 'rgb(255, 255, 255)'; });
   const B = whites.map(e => e.getBoundingClientRect());
-  const ways = panel.querySelector('.jb-ways.is-above-foot'), foot = ways && ways.nextElementSibling;
+  /* RE-POINTED 31 Oct 2026 (the contract round, owner approved): on a contract the row above the box is the paper's own links */
+  const ways = panel.querySelector('.jb-ways.is-above-foot') || panel.querySelector('[data-ig-chips]:has([data-ca-chip])'), foot = ways && ways.nextElementSibling;
   const bx = box.getBoundingClientRect();
   return { boxIn: [Math.round(bx.left - p.left - (parseFloat(getComputedStyle(panel).borderLeftWidth) || 0)), Math.round(p.right - bx.right), Math.round(p.bottom - bx.bottom)], seam: getComputedStyle(panel).borderLeftWidth, top: Math.round(p.top - bar), right: Math.round(innerWidth - p.right), bottom: Math.round(innerHeight - p.bottom),
     gap: Math.round(p.left - Math.max(...B.map(b => b.right))), sheetTop: Math.round(Math.min(...B.map(b => b.top)) - bar), sheetLeft: Math.round(Math.min(...B.map(b => b.left))),

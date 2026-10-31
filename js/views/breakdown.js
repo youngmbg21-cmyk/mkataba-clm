@@ -372,8 +372,12 @@ function stkClauseName(at){
   const x = (_stk.rows || [])[at], h = String((x && x.row && (x.row.heading || x.row.title)) || '').trim();
   return h.replace(/^\s*(?:clause\s+|§\s*)?[0-9IVXLCivxlc]+(?:\.\d+)*[.)]?\s+/, '').trim() || h;
 }
+/* THE NEW LOOK'S HEAD (the contract round, the owner's "as drawn", 31 Oct 2026; reverses Marquee and The SAP Way on the
+   new look only): "Clause review · one view for the whole company", no count, no tabs — each row says its own reading */
+function stkNewLookOn(){ return typeof window.newLookOn === 'function' && !!window.newLookOn(); }
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
+  if (stkNewLookOn()) return `${stkViewHtml()}${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
   /* THE SAME HEAD AS REDLINES (owner picked "The SAP Way", 24 Oct 2026): the name in the serif, its count, then a
      grey line of what needs you — "Clauses 9 · 3 need you · 5 worth a look" — then the tabs */
   const said = [T.need ? i18t('stk_mq_need', { n: T.need }) : '', T.look ? i18t('stk_mq_look', { n: T.look }) : ''].filter(Boolean).join(' \u00b7 ');
@@ -450,6 +454,8 @@ function stkRowWords(live){
 function stkDecorate(c, card, rows){
   if (!c || !card) return;
   if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; _stk.more = false; _stk.missShut = new Set(); }
+  /* the new look draws no filter tabs: nothing narrows the list behind the reader's back */
+  if (stkNewLookOn() && (_stk.f.sev || _stk.f.reg || _stk.f.by || _stk.more)){ _stk.f = { reg: '', sev: '', by: '' }; _stk.more = false; }
   const b = stkOf(c);
   _stk.rows = rows || null;
   _stk.nums = stkNumsOf(rows || []);
@@ -466,7 +472,8 @@ function stkDecorate(c, card, rows){
     if (typeof selectFaceDress === 'function') try { selectFaceDress(head); } catch (_){} }
   card.querySelectorAll('.stk-line, .stk-miss, .stk-rsq, .stk-nomatch').forEach(el => el.remove());
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
-  card.querySelectorAll('.stk-b-need, .stk-b-look, .stk-b-note, .stk-b-none').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look', 'stk-b-note', 'stk-b-none'));
+  card.querySelectorAll('.stk-b-need, .stk-b-look, .stk-b-note, .stk-b-none, .stk-b-ok').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look', 'stk-b-note', 'stk-b-none', 'stk-b-ok'));
+  card.querySelectorAll('.stk-pre').forEach(el => el.remove());
   const list = card.querySelector('.doc-th-rows');
   if (b && list){
     const nums = _stk.nums;
@@ -494,7 +501,12 @@ function stkDecorate(c, card, rows){
         rest.forEach(el => { if (el.classList.contains('is-read') && words){ el.classList.add('stk-read'); el.textContent = i18t('stk_read_after'); } });
         /* MARQUEE: a clause with nothing live on it says so ("Fine") */
         const fine = !words && !mine.some(p => !p.done && p.status !== 'fine');
-        const parts = (words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : fine ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
+        /* THE NEW LOOK, AS DRAWN: each row says its own short reading, the first point Jambo read on it, in its tone
+           ("Three days to reject a load"; a clause read as fine says what it was read as, its dot green) */
+        const say = stkNewLookOn() ? (mine.find(p => !p.done && p.status !== 'fine') || mine.find(p => p.status === 'fine') || null) : null;
+        if (say && !words) row.classList.replace('stk-b-none', 'stk-b-ok');
+        const parts = (say ? [`<span class="stk-n is-${words ? words.worst : 'fine'} is-say" title="${_bdE(say.stake || say.title)}">${_bdE(say.title)}</span>`]
+          : words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : (fine && !stkNewLookOn()) ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
         st.innerHTML = parts.join('<span class="doc-th-dot"> · </span>');
       }
       /* the open clause's cards, in the one order (stkReview), drawn once — UNDER its Plain English
@@ -543,7 +555,34 @@ function stkDecorate(c, card, rows){
       if (!shown.length && !(fineTab && T.fine)) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
     }
   }
+  /* THE OPEN CLAUSE AS DRAWN (new look): "What to watch:" before what is at stake, Deep dive's cost beside it; and on a
+     contract's first sitting the clause that needs you opens first (the paper is not moved) */
+  if (stkNewLookOn() && list){
+    list.querySelectorAll('.stk-card.is-mq .stk-st').forEach(p => { if (!p.querySelector('.stk-watch')) p.insertAdjacentHTML('afterbegin', `<b class="stk-watch">${_bdE(i18t('stk_watch_lead'))}</b> `); });
+    list.querySelectorAll('.stk-card.is-mq [data-stk-dive]').forEach(d => { if (!(d.nextElementSibling && d.nextElementSibling.classList.contains('stk-cost-n'))) d.insertAdjacentHTML('afterend', `<span class="stk-cost-n">${_bdE(i18tn('pd2_n_calls', 1, { n: 1 }))}</span>`); });
+    if (b && _stk.firstOpen !== String(c.id)){
+      _stk.firstOpen = String(c.id);
+      const need = list.querySelector('.doc-th-row.stk-b-need, .doc-th-row.stk-b-look');
+      const at = need ? Number(need.getAttribute('data-th-row')) : -1;
+      if (at >= 0 && !need.classList.contains('is-open') && typeof window.docThreadOpen === 'function')
+        setTimeout(() => { try { window.docThreadOpen(c, at); } catch (_){} setTimeout(() => { try { if (typeof window.pd2ClauseTint === 'function') window.pd2ClauseTint(); } catch (_){} }, 350); }, 0);
+    }
+    /* the paper's tint follows whichever clause is open, after the list is drawn */
+    if (typeof window.pd2ClauseTint === 'function') setTimeout(() => { try { window.pd2ClauseTint(); } catch (_){} }, 30);
+  }
+  /* THE PREAMBLE AND ITS BLANKS, FIRST (the new look, as drawn): the paper's own blanks still open before the first clause,
+     read off the paper (free), with the one door that fills them on the paper; a blank is filled, never redlined */
+  if (stkNewLookOn() && list && typeof window.pd2FillBlanks === 'function'){
+    let bl = []; try { bl = window.pd2FillBlanks(c).filter(x => x && !String(x.value || '').trim() && (!x.section || x.section === c.name)); } catch (_){ bl = []; }
+    /* Mark reviewed: the existing review record (POST …/points/:key/review), one key for the preamble's blanks; a reviewed
+       blank is still a blank — signing still waits on it being filled */
+    const rv = (c.pointReviews || {})[STK_PRE_KEY], why = stkReviewWhy(), busy = !!_stk.marking[STK_PRE_KEY];
+    const mark = rv ? `<span class="stk-pre-done">${_bdE(i18t('stk_pre_reviewed', { who: String(rv.name || '').split(' ')[0] || '' }))}</span> <button type="button" class="stk-a is-link" data-stk-pre-review="undo"${busy ? ' disabled' : ''}>${_bdE(i18t('stk_undo'))}</button>`
+      : `<button type="button" class="stk-a is-link" data-stk-pre-review=""${why ? ` disabled aria-disabled="true" title="${_bdE(why)}"` : ''}${busy ? ' disabled' : ''}>${_bdE(i18t('stk_mark_reviewed'))}</button>`;
+    if (bl.length) list.insertAdjacentHTML('afterbegin', `<div class="stk-pre${rv ? ' is-reviewed' : ''}" role="listitem"><div class="stk-pre-h"><i class="stk-pre-ring" aria-hidden="true"></i><b>${_bdE(i18t('pd2_fp_preamble').replace(/^./, ch => ch.toUpperCase()))}</b><span class="stk-pre-v">${_bdE(bl.map(x => String(x.label || x.key).toLowerCase()).join(' \u00b7 '))}</span></div><div class="stk-pre-a"><button type="button" class="stk-a is-link" data-stk-pre-fill="${_bdE(bl[0].key)}">${_bdE(i18t('stk_fill_it'))}</button>${mark}<span>${_bdE(i18t('stk_pre_never'))}</span></div></div>`);
+  }
   stkSpineEnds(card);
+  if (stkNewLookOn()) stkAllPaint(c, card);
   stkDivePaint(c, card);
   /* the tab's number is this reading's "need you" (pdTabCount → stkNeedCount) */
   if (typeof pdTabCountPaint === 'function') try { pdTabCountPaint('doc', c); } catch (_){}
@@ -842,3 +881,57 @@ if (typeof document !== 'undefined' && !document._stkWired){
 }
 
 Object.assign(window, { stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, stkReview, stkNeedCount, stkMarkReviewed, stkPointKey });
+/* the Preamble row's Fill it in: the paper's blanks filled where they stand (the new look's one door for them) */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('[data-stk-pre-fill]') : null; if (!b) return;
+  e.preventDefault(); const c = stkContract(); if (c && typeof window.pd2FillStart === 'function') window.pd2FillStart(c.id, b.getAttribute('data-stk-pre-fill'));
+});
+/* ---- ALL N IN PLAIN ENGLISH, ONE AT A TIME (owner, 31 Oct 2026: "Reverse but you choose to translate one at a time";
+   REVERSES 6 Oct's "there should never be an option to translate all clauses", on the new look) ----
+   One press walks the clauses not yet read, one clause per reading, in order — each the same single-clause reading a
+   row's own Plain English press asks (docReadRun({only:[i]}), the route's one-clause rule kept) — and says how far it has
+   gone; Stop ends it after the clause in hand. Clauses already read cost nothing and are not read again. */
+const STK_PRE_KEY = 'pblpreamble';
+const _stkAll = { id: '', run: false, stop: false, done: 0, total: 0 };
+function stkAllRows(card){
+  const rows = [...card.querySelectorAll('.doc-th-rows .doc-th-row[data-th-row]')].filter(r => !r.hidden);
+  const read = r => !!r.querySelector('[data-th-state] .is-read, [data-th-state] .stk-read');
+  return { all: rows.map(r => Number(r.getAttribute('data-th-row'))), left: rows.filter(r => !read(r)).map(r => Number(r.getAttribute('data-th-row'))) };
+}
+function stkAllPaint(c, card){
+  const slot = card && card.querySelector('[data-stk-all]'); if (!slot) return;
+  const R = stkAllRows(card), n = R.all.length, k = R.left.length, E = _bdE;
+  if (!n){ slot.innerHTML = ''; return; }
+  const noAi = typeof window.docThreadNoAi === 'function' ? window.docThreadNoAi() : !(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured);
+  const going = _stkAll.run && _stkAll.id === String(c.id);
+  let html;
+  if (going) html = `<button type="button" class="stk-all-b" data-stk-all-stop>${E(i18t('stk_all_stop'))}</button><span class="stk-cost-n">${E(i18t('stk_all_going', { k: _stkAll.done, n: _stkAll.total }))}</span>`;
+  else if (!k) html = `<span class="stk-cost-n">${E(i18tn('stk_all_done', n, { n }))}</span>`;
+  else html = `<button type="button" class="stk-all-b" data-stk-all-go${noAi ? ` disabled aria-disabled="true" title="${E(i18t('th_no_ai'))}"` : ''}>${E(i18tn('stk_all_go', n, { n }))}</button><span class="stk-cost-n">${E([i18tn('pd2_n_calls', k, { n: k }), n - k ? i18tn('stk_all_read', n - k, { n: n - k }) : ''].filter(Boolean).join(' · '))}</span>`;
+  if (slot.innerHTML !== html) slot.innerHTML = html;
+}
+async function stkAllRun(c){
+  const card = c && document.querySelector('#pd-thread'); if (!card || _stkAll.run || typeof window.docReadRun !== 'function') return;
+  const left = stkAllRows(card).left; if (!left.length) return;
+  Object.assign(_stkAll, { id: String(c.id), run: true, stop: false, done: 0, total: left.length });
+  stkAllPaint(c, card);
+  for (const i of left){
+    if (_stkAll.stop || _stkAll.id !== String(c.id)) break;
+    const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+    try { await window.docReadRun(live, { only: [i], out: { asked: false, why: '' } }); } catch (_){}
+    _stkAll.done++;
+    const cur = (typeof getContract === 'function' && getContract(c.id)) || live;
+    try { if (typeof window.docThreadPaint === 'function') window.docThreadPaint(cur); } catch (_){}
+    const cd = document.querySelector('#pd-thread'); if (cd) stkAllPaint(cur, cd);
+  }
+  _stkAll.run = false;
+  const cd = document.querySelector('#pd-thread'); if (cd) stkAllPaint((typeof getContract === 'function' && getContract(c.id)) || c, cd);
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  if (t.closest('[data-stk-all-go]')){ e.preventDefault(); const c = stkContract(); if (c) stkAllRun(c); return; }
+  if (t.closest('[data-stk-all-stop]')){ e.preventDefault(); _stkAll.stop = true; return; }
+  const pr = t.closest('[data-stk-pre-review]');
+  if (pr){ e.preventDefault(); if (pr.disabled) return; const c = stkContract(); if (c) stkMarkReviewed(c, { key: STK_PRE_KEY, title: i18t('stk_pre_title') }, pr.getAttribute('data-stk-pre-review') === 'undo'); return; }
+});
+Object.assign(window, { stkAllRun, stkAllPaint, STK_PRE_KEY });
