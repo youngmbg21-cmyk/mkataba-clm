@@ -584,11 +584,14 @@ function jamboWaysHere(){
 }
 function jamboWayWord(k){ const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
 function jamboWaysHtml(here, cls){
+  /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
+  if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
   if (!here.doors.length) return '';
   return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => `<button type="button" class="jb-way" data-jb-way="${esc(d)}">${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
 }
 function jamboWaysSync(){
   if (typeof document === 'undefined') return;
+  if (typeof window.newLookOn === 'function' && !window.newLookOn()){ document.querySelectorAll('.jb-ways.is-above-foot').forEach(w => w.remove()); return; }
   const here = jamboWaysHere();
   for (const sel of JB_WAY_FEET){
     document.querySelectorAll(sel).forEach(foot => {

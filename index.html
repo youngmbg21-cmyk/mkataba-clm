@@ -221,7 +221,7 @@
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
     --color-bg:#F5F5F7;   /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' warm #F4F2ED): the soft cool grey every white card floats on. */
-    --jb-card-fill:#F3F2F8;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft fill for every card in his answers; the design's faint indigo (owner, 31 Oct 2026: "change to the design", reverses the plain grey #F2F2F5). */
+    --jb-card-fill:#F2F2F5;  /* JAMBO'S CARDS, THE LEGORA WAY (owner, 24 Oct 2026): one soft grey for every card in his answers; the new look takes the design's faint indigo (owner, 31 Oct 2026: "change to the design"; html.lg-new). */
     --bar-black:#111113;  /* THE BAR IN BLACK (owner, 27 Oct 2026: "Black it is"; replaces the deep green of 24 Oct): white words on it measure about 18:1. */
     --bar-sheen:linear-gradient(180deg,#2A2A2E 0%,#151517 55%,#0B0B0C 100%);  /* the faint sheen along its top; the solid --bar-black stands under it */
     --color-surface:#ffffff;
@@ -2315,7 +2315,7 @@
      a brand colour this rulebook records as one that must not flip. This is a
      second token for a second job, not a redefinition of the first. */
   :root{ --accent-fill:var(--accent-solid); } /* CHAMBERS (20 Oct 2026): a filled control is the ink, black (18.3:1 under white); was accent-600 (7 Oct). See .ui-btn-primary */
-  :root{ --morning-warm:#FBF7EE; }  /* MORNING LIGHT (round 2 of the Legora way, owner picked it 31 Oct 2026): the warm top behind Home's greeting */
+  :root{ --morning-warm:#FBF7EE; --jb-card-fill-new:#F3F2F8; }  /* MORNING LIGHT (round 2 of the Legora way, owner picked it 31 Oct 2026): the warm top behind Home's greeting */
   :root{ --accent-ink:#087363; --accent-ink-700:#065A4D; }  /* the Legora look: a link is the drawing's teal one step deeper (#0A7C6B measured 4.49:1 on the grey pill): 5.8:1 on white, 5.1 on the pill (23 Oct 2026; Chambers' was the deep green) */
 
   /* ═══ AND THE TWO PALE RUNGS, WHICH CARRY A SURFACE ══════════════════════
@@ -17584,10 +17584,10 @@
   #cn-page .cn-ask .jb-card .jb-send{width:36px;height:36px}
   #cn-page .cn-chips{gap:6px 18px;margin-top:14px}
   /* MORNING LIGHT (round 2 of the Legora way, 31 Oct 2026): the warm top, and the desk's counts as coloured words under the greeting */
-  #cn-page .cn-ask{background:linear-gradient(180deg,var(--morning-warm) 0%,var(--color-surface) 100%)}
+  html.lg-new #cn-page .cn-ask{background:linear-gradient(180deg,var(--morning-warm) 0%,var(--color-surface) 100%)}
   #cn-page .cn-counts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 12px}
   /* a short screen (the 1536×730 laptop): the warm card gives back the line the counts take, so Needs you still ends on screen */
-  @media (max-height:760px){ #cn-page .cn-ask{padding-top:14px;padding-bottom:12px} #cn-page .cn-counts{margin:6px 0 8px} #cn-page .cn-chips{margin-top:8px} }
+  @media (max-height:760px){ html.lg-new #cn-page .cn-ask{padding-top:14px;padding-bottom:12px} html.lg-new #cn-page .cn-counts{margin:6px 0 8px} html.lg-new #cn-page .cn-chips{margin-top:8px} }
   #cn-page .cn-counts[hidden]{display:none}
   /* YOUR WEEK (round 2 of the Legora way, 31 Oct 2026): seven days as dots under the counts, read from the Calendar's
      own reading; a day with something on it is a button onto the Calendar, an empty one is not */
@@ -18292,7 +18292,7 @@
      Calendar, the Board's figures) keeps its cards on the light grey well inside that frame (--well-*), as the Board is
      drawn. The panel's tabs are pills with their count in a small green pill; one line above the doors, then the doors,
      then the box. */
-  html.lg-new{--fr-gutter:10px;--jb-box-h:44px;--well-t:12px;--well-s:16px;--well-b:16px;--well-g:12px;
+  html.lg-new{--jb-card-fill:var(--jb-card-fill-new);--fr-gutter:10px;--jb-box-h:44px;--well-t:12px;--well-s:16px;--well-b:16px;--well-g:12px;
     --shadow-sm:0 1px 2px rgba(20,31,29,.06),0 8px 22px -14px rgba(20,31,29,.22)}
   .lg-only{display:none}
   html.lg-new .lg-only{display:inline-block}

@@ -861,8 +861,11 @@ function ndHomeRowHtml(r){
   /* MORNING LIGHT'S ROW (round 2 of the Legora way; owner, 31 Oct 2026: "build both, green link as drawn"):
      the other side's initials lead it (Jambo's own work wears his mark), its kind is a tinted word at the head
      of its second line, and its verb is a green link at the end, pressing the same door the button did */
-  const btn = _ndLinkHtml(r.g === 'jambo' ? Object.assign({}, P, { btn: 'review' }) : P);
-  return `<div class="cn-r nd-r${named ? ' nd-named' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}>${ndAvHtml(r, P)}<div class="cn-w"><b><span class="nd-t">${_cnE(head)}</span>${named ? '' : _ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${ndKindHtml(r)}${sub}</span></div>`
+  /* the new look's (built behind the switch until Home is approved); today's row keeps its one grey button */
+  const nl = typeof newLookOn === 'function' && newLookOn();
+  const bP = r.g === 'jambo' ? Object.assign({}, P, { btn: 'review' }) : P;
+  const btn = nl ? _ndLinkHtml(bP) : _ndBtnHtml(bP);
+  return `<div class="cn-r nd-r${named ? ' nd-named' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}>${nl ? ndAvHtml(r, P) : ''}<div class="cn-w"><b><span class="nd-t">${_cnE(head)}</span>${named ? '' : _ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${nl ? ndKindHtml(r) : ''}${sub}</span></div>`
     + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${btn}</div>`;
 }
 /* the verb as a green link: the button's own words and door, dressed as a link (the row's one press) */
@@ -1082,6 +1085,8 @@ const _cnJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamb
    prepared by Jambo in violet; a count of nothing is not drawn. Each opens the Board's Needs you on that list (ndOpenBoard).
    A dot and a word, never the colour alone. Counted from the desk; no call. */
 function cnCountsHtml(D){
+  /* the new look's (owner, 31 Oct 2026): today's Home draws no counts line */
+  if (!(typeof newLookOn === 'function' && newLookOn())) return '';
   const you = ndThings(D.you), jb = ndThings(D.jambo);
   const one = (tone, tab, n, key) => n ? `<button type="button" class="cn-ct is-${tone}" data-cn-count="${tab}"><i aria-hidden="true"></i>${_cnE(_cnT(key, { n }))}</button>` : '';
   const html = one('ruby', 'all', D.late, 'cn_ct_late') + one('amber', 'you', you, 'cn_ct_you') + one('violet', 'jambo', jb, 'cn_ct_jambo');
@@ -1113,6 +1118,7 @@ function cnWeekOf(D){
   });
 }
 function cnWeekHtml(D){
+  if (!(typeof newLookOn === 'function' && newLookOn())) return '';
   const W = cnWeekOf(D); if (!W) return '';
   const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
   const dow = d => new Date(d.iso + 'T00:00:00').toLocaleDateString(loc, { weekday: 'short' }).replace(/\.$/, '');

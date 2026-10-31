@@ -49,6 +49,9 @@ const BODY = 'SUPPLY AGREEMENT\n\n3. Payment\nPayment is due within thirty days 
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 2 && typeof caGo === 'function', null, 40000);
+      /* THE NEW LOOK (owner, 31 Oct 2026): these parts are built behind the admin's own switch until approved for everyone */
+      await until(page, () => typeof currentUser === 'function' && !!currentUser() && typeof stPrefSet === 'function', null, 20000);
+      await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
       await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
       const on = await until(page, () => state.view === 'counter' && !!document.querySelector('#cn-page .cn-ask'), null, 20000);
       check(`${nm} Home stands`, on); if (!on){ await page.close(); continue; }

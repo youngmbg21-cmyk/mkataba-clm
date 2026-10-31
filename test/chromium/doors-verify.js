@@ -37,6 +37,9 @@ const doorsOf = page => page.evaluate(() => { const n = document.querySelector('
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 1 && typeof caGo === 'function', null, 40000);
+      /* THE NEW LOOK (owner, 31 Oct 2026): these parts are built behind the admin's own switch until approved for everyone */
+      await until(page, () => typeof currentUser === 'function' && !!currentUser() && typeof stPrefSet === 'function', null, 20000);
+      await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
 
       /* 1 a list page */
       await page.evaluate(() => caGo({ kind: 'go', place: 'approvals' }));

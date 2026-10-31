@@ -121,11 +121,8 @@ describe('f925 (2) Home', () => {
   test('2b a piece leads with its agreement, says what Jambo prepared, and its button says Review', () => {
     const w = world([], [chase]);
     const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
-    /* RE-POINTED 31 Oct 2026 (Morning light's row, owner's yes "build both, green link as drawn"): Jambo's mark leads,
-       the kind leads the second line, and the verb is a green link pressing the same door */
-    assert.match(html, /^<div class="cn-r nd-r[^"]*"[^>]*><span class="reg-av nd-av is-jambo" aria-hidden="true"><svg data-ic="sparkle"><\/svg><\/span>/);
-    assert.match(html, /<b><span class="nd-t">Agreement MK-3<\/span><\/b><span><span class="nd-kind is-late">Late<\/span>MK-3 · Kettle &amp; Co · /);
-    assert.match(html, /<span class="nd-when cn-late">5 days late<\/span><button type="button" class="ui-link nd-btn nd-link" data-nd-look="late:MK-3">Review<\/button>/);
+    assert.match(html, /<b><span class="nd-t">Agreement MK-3<\/span><\/b><span>MK-3 · Kettle &amp; Co · /);
+    assert.match(html, /<span class="nd-when cn-late">5 days late<\/span><button type="button" class="ui-btn ui-btn-sm nd-btn" data-nd-look="late:MK-3">Review<\/button>/);
   });
   test('2c Home\'s presses: Show all and Look land on the Board through the one opener', () => {
     assert.match(CN, /if \(\(el = t\.closest\('\[data-nd-all\]'\)\)\)\{ ndOpenBoard\(el\.getAttribute\('data-nd-all'\)\); return; \}/);
