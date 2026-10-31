@@ -170,6 +170,19 @@ const READ = () => {
         await page.click('[data-pd2-wk-close]');
         const gone = await until(page, () => !document.getElementById('pd2-walk-head') && !document.querySelector('#ig-canvas .pd2-wk-on, #ig-canvas .pd2-wk-done') && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-walk)'), null, 10000);
         check('12 × puts the walk away: the paper as it was and its Dossier back', gone);
+        /* 13 CLAUSES (part 5): the notes step aside, the same one row of links stands, and the clause open in the list is
+           tinted on the paper (its read stubbed: no key in a test) */
+        await page.evaluate(() => { state.aiConfigured = true; const o = window.api; window.__apiWas = o;
+          window.api = async function (p, ...a){ if (p !== 'ai/breakdown') return o.call(this, p, ...a);
+            return { head: 'The rejection window first', sub: '', links: [], regions: [{ name: 'Quality', status: 'need', kind: 'protect', headline: '', items: [{ ref: '3', title: 'Rejection' }], quotes: [] }],
+              points: [{ clause: '3', region: 1, status: 'need', missing: false, title: 'Three days to reject a load', stake: 'Your standard says seven.', quote: 'may be rejected within 3 days of delivery', links: [] }] }; };
+          pdOpenOnHome('MK-A2', 'doc'); });
+        await until(page, () => [...document.querySelectorAll('#pd-thread .doc-th-row')].some(r => /Quality/.test(r.textContent)), null, 15000);
+        await page.evaluate(() => { const q = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /Quality/.test(r.textContent)); (q.querySelector('button') || q).click(); });
+        const tinted = await until(page, () => [...document.querySelectorAll('#ig-canvas .pd2-cl-on')].some(e => /rejected within 3 days/.test(e.textContent)), null, 10000);
+        const Cl = await page.evaluate(() => ({ notes: !!document.getElementById('pd2-notes'), rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')) }));
+        check('13 Clauses: no notes beside the paper, the one row of links, the open clause tinted', tinted && !Cl.notes && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);
+        await page.evaluate(() => { window.api = window.__apiWas; pdSetTab('copilot'); renderIntelDock(); });
         /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
         await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);
           for (let i = 0; i < 40; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); if (!(((j.contract || j).fields || {}).up_goods)) return; await new Promise(z => setTimeout(z, 250)); } });

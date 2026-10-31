@@ -85,7 +85,9 @@ function pdSolo(){
 function pdLandHasPress(){
   try { const top = (typeof pdJamboTopHtml === 'function') ? pdJamboTopHtml() : ''; return /<(?:a|button)\b/i.test(String(top || '')); } catch (_){ return false; }
 }
-function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t; if (PD_TABS.includes(t)) _pdTab = t; }
+function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t; if (!PD_TABS.includes(t)) return; const was = _pdTab; _pdTab = t;
+  /* the new look's notes beside the paper follow the tab (the Dossier's own), after the panel is drawn */
+  if (was !== t && typeof pd2On === 'function' && pd2On()) setTimeout(() => { try { const c = pdContract(); if (c) pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, 0); }
 function pdTab(){ return _pdTab; }
 /* the contract's tabs are drawn only while Home's Paper holds a contract */
 function pdOnPaper(){
@@ -7192,6 +7194,21 @@ function pd2Find(cv, at){
   }
   return null;
 }
+/* THE OPEN CLAUSE, TINTED ON THE PAPER (the contract round, part 5, as drawn): while Clauses is open in the new look, the
+   clause whose row is open in the list has its wording washed amber on the paper; painted, never stored */
+function pd2ClauseTint(){
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('#ig-canvas .pd2-cl-on').forEach(e => e.classList.remove('pd2-cl-on'));
+  const cv = document.getElementById('ig-canvas');
+  if (!cv || !pd2On() || _pdTab === 'copilot' || cv.closest('.ig-redpaper, .ig-signpaper')) return;
+  const row = document.querySelector('#ig-dock #pd-thread .doc-th-row.is-open'); if (!row) return;
+  const name = (row.querySelector('.doc-th-h, b, strong, .doc-th-t') || row).textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+  const sec = pd2WalkSections(cv).find(x => x.head && name.indexOf(String(x.head.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()) === 0);
+  if (sec) sec.els.forEach(e => { if (e !== sec.head) e.classList.add('pd2-cl-on'); });
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  if (e.target && e.target.closest && e.target.closest('#ig-dock #pd-thread') && pd2On()) setTimeout(pd2ClauseTint, 0);
+});
 function pd2NotesOff(){
   document.querySelectorAll('#ig-paper .ig-zoom.has-pd2').forEach(z => { z.classList.remove('has-pd2'); z.style.removeProperty('--doc-sheet-max'); });
   document.querySelectorAll('#ig-paper [data-pd2-left]').forEach(sh => { sh.style.marginLeft = 'auto'; sh.removeAttribute('data-pd2-left'); });
@@ -7204,6 +7221,8 @@ function pd2NotesPaint(c){
   if (_pd2Fill && (!c || String(_pd2Fill.id) !== String(c.id) || !pd2On())){ _pd2Fill = null; document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill'); }
   if (_pd2Walk && (!c || String(_pd2Walk.id) !== String(c.id) || !pd2On())){ clearTimeout(_pd2Walk.timer); _pd2Walk = null; document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk'); }
   if (c && pd2WalkOn(c.id)){ pd2NotesOff(); pd2WalkPaint(); return; }
+  /* the notes stand beside the paper with the Dossier; Clauses and Redlines mark the paper their own way */
+  if (_pdTab !== 'copilot'){ pd2NotesOff(); pd2ClauseTint(); return; }
   if (c && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-redpaper, .ig-signpaper') || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
@@ -7668,6 +7687,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && _pd2Walk && !(e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]'))){ pd2WalkClose(); }
 });
+Object.assign(window, { pd2ClauseTint });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });

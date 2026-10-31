@@ -8539,7 +8539,9 @@ function renderIntelDock(){
       const held=(state.view==='dashboard'&&typeof window.pdPanelChipsHtml==='function')?pdPanelChipsHtml():null;
       _igCaChipsDrawn=false;
       if(held!==null) return '';
-      return !talk&&!(window.pdShowsDesk&&pdShowsDesk())&&!igFindingsShows()&&!igGuideShows()&&!(window.jamboChipsOn&&!jamboChipsOn())&&!(state.view==='dashboard'&&typeof window.hbBoardHelloOn==='function'&&hbBoardHelloOn())?`
+      /* THE CONTRACT'S ONE ROW ON EVERY TAB (the new look, as drawn): its next-step links stand under Clauses and Redlines too */
+      const pd2Row=!!(window.pd2On&&pd2On()&&igHomePaperFace()===true&&window.pdContract&&pdContract());
+      return !talk&&!(window.pdShowsDesk&&pdShowsDesk()&&!pd2Row)&&!igFindingsShows()&&!igGuideShows()&&!(window.jamboChipsOn&&!jamboChipsOn())&&!(state.view==='dashboard'&&typeof window.hbBoardHelloOn==='function'&&hbBoardHelloOn())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${/* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10,
            18 Oct 2026: nothing between the face and the ask box but Jambo
