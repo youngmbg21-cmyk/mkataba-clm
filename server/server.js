@@ -20194,6 +20194,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        gate). The inbox that draws HTML gets the same words with a button. */
     const pc = (payload && payload.contract) || {};
     const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
+      drawn: (req.body || {}).drawnLetter === true,
       cName, recName: rec.name, message, subject, link, expires,
       round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status',
       ...srvMailCodeOf(shareId) });
@@ -21686,6 +21687,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     const note = String(letter.message || '').slice(0, 1000);
     if (note) db.prepare('UPDATE shares SET message=? WHERE token=?').run(note, s.token);
     const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
+      drawn: (req.body || {}).drawnLetter === true,
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
       message: note, subject: letter.subject, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
       ...srvMailCodeOf(s.contract_id) });

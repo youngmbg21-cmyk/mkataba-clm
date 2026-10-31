@@ -2756,6 +2756,11 @@ function aiSendNoteHtml(note){
   const S=(typeof window.shareScreenSays==='function')?shareScreenSays():null; if(!S) return '';
   const quote=`<blockquote class="ai-send-note-q">${_aiEsc(words).replace(/\n/g,'<br>')}</blockquote>`;
   if(words.length>S.noteMax) return `<div class="mt-1.5 ai-send-note">${quote}<p class="ai-send-note-cap">${_aiEsc(i18t('ai_send_note_cap',{ n:words.length, max:S.noteMax }))}</p></div>`;
+  /* asked for by "Write it for me" on the letter: the press was the ask, so the note goes straight into the box */
+  if(window._shNlWrite && String(window._shNlWrite)===String(S.contractId) && typeof window.shareNoteFill==='function'){
+    window._shNlWrite=null;
+    setTimeout(()=>{ if(shareNoteFill(S.contractId, words)){ const f=document.getElementById('sh-nl-jb'); if(f) f.textContent=i18t('sh_nl_wrote'); } },0);
+  }
   return `<div class="mt-1.5 ai-send-note">${quote}<button type="button" class="ui-btn ui-btn-sm" data-ai-send-note="${_aiEsc(S.contractId)}" data-ai-send-words="${_aiEsc(words)}">${_aiEsc(i18t('ai_send_note_put'))}</button></div>`;
 }
 if(typeof document!=='undefined' && document.addEventListener) document.addEventListener('click',e=>{

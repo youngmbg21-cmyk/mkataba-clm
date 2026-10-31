@@ -5289,8 +5289,20 @@ function shareNoteBoxHtml(c, hist){
             :i18t('co_note_to', { who:esc(c.counterparty||i18t('co_them')) })}</span>
         <textarea id="sh-summary" rows="3" style="${HATI_FLD}height:auto;min-height:var(--field-h)" placeholder="${
           hist?'e.g. The full record of our negotiation, for your file.'
-             :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>`;
+             :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>${
+    /* THE NEW LOOK, AS DRAWN: Jambo writes the note from your answers on a press, its cost on it (owner: "Jambo on press") */
+    (!hist && typeof newLookOn==='function' && newLookOn()) ? `<p class="sh-nl-jb" id="sh-nl-jb"><button type="button" class="sh-nl-write" data-sh-nl-write="${esc(c.id)}">${esc(i18t('sh_nl_write'))}</button> <span>${esc(i18t('sh_nl_write_cost'))}</span></p>` : ''}`;
 }
+/* "Write it for me": the question goes to Jambo through the one box (1 call); his note lands in the box itself (aiSendNoteHtml
+   sees the press), and the line under it says who wrote it and what it cost — nothing is sent until Send */
+if(typeof document!=='undefined' && document.addEventListener) document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest?e.target.closest('[data-sh-nl-write]'):null; if(!b) return;
+  e.preventDefault();
+  const c=(typeof getContract==='function')?getContract(b.getAttribute('data-sh-nl-write')):null; if(!c) return;
+  window._shNlWrite=String(c.id);
+  const who=String(fval('sh-name')||'').trim().split(/\s+/)[0]||String(c.counterparty||'').split(/\s+/)[0];
+  if(typeof intelAsk==='function') intelAsk(i18t('sh_nl_write_q', { who }), { typed:true });
+});
 /* ============================================================
    THE LETTER (round 11 of the redesign: the owner picked "The letter" by
    name, 17 Oct 2026, and answered "1. Keep it.": the note stays the only part
@@ -5359,7 +5371,7 @@ function shareLetterOf(c, st){
      and the sign-off is the sender's own job title; the one-time code is said
      where the company asks for it (the link's own gate, linkCodeCfg). */
   const pc=(s.payload&&s.payload.contract)||{};
-  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(),
+  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(), drawn:(typeof newLookOn==='function'&&newLookOn()),
     round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc, c),
     codeOn:!!(typeof linkCodeCfg==='function' && linkCodeCfg().on) }), head:true, letter:true };
 }
@@ -9156,8 +9168,8 @@ async function openShareModal(c, opts={}){
         r = reuse
           /* the letter the screen shows is the email that goes, on the link
              they already hold too (round 11's gaps): the note and the name */
-          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}) } })
-          : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}),
+          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}) }, ...((typeof newLookOn==='function'&&newLookOn())?{ drawnLetter:true }:{}) })
+          : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg, ...(shareSubjectTyped()?{ subject:shareSubjectTyped() }:{}), ...((typeof newLookOn==='function'&&newLookOn())?{ drawnLetter:true }:{}),
               recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
               durable:wantDurable, purpose:payloadObj.purpose,
               /* Only on the Word channel, and only ever the bytes this dialog
