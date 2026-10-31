@@ -612,7 +612,7 @@ function pdFillOpen(id, opts){
   _pdFillFloor = null; _pdFillKey = null;
   /* FILL IN THE CONTRACT ALREADY UP ON THIS PAPER (a spot pressed on it, a door asked again): the form is not drawn
      again — a choice picked and not yet saved stays — the hand only moves to the box asked for */
-  if (pdFormShows()){ const fc = pdContract(); const fm = document.querySelector('#ig-dock #pd-og.is-form');
+  if (pdFormShows()){ const fc = pdContract(); const fm = document.querySelector(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form');
     if (fc && fm && String(fc.id) === String(id) && fm.getAttribute('data-pd-og-for') === String(id)){ pdOgLand(id, o.key || ''); return true; } }
   const ok = pdOpenOnHome(id, 'plain');
   /* and again once the paper is open: his conversation comes back with the paper it was said beside */
@@ -4589,7 +4589,7 @@ function pdFormHtml(c){
 }
 /* the head's count and bar follow the boxes as they are answered, in place (no repaint under the hand) */
 function pdFormCount(){
-  const fm = (typeof document !== 'undefined') ? document.querySelector('#ig-dock .pd-fm') : null; if (!fm) return;
+  const fm = (typeof document !== 'undefined') ? document.querySelector(':is(#ig-dock, [data-pd-mid]) .pd-fm') : null; if (!fm) return;
   const rows = [...fm.querySelectorAll('tr.pd-fm-row')];
   const has = r => r.classList.contains('is-typed') || r.classList.contains('is-read');
   const total = rows.length, ready = rows.filter(has).length, need = total - ready;
@@ -4617,7 +4617,7 @@ function pdFormMark(row){
 }
 /* the next box still owed takes the hand (EVERY STEP STARTS THE NEXT) */
 function pdFormNext(after){
-  const fm = (typeof document !== 'undefined') ? document.querySelector('#ig-dock #pd-og.is-form') : null; if (!fm) return false;
+  const fm = (typeof document !== 'undefined') ? document.querySelector(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form') : null; if (!fm) return false;
   const rows = [...fm.querySelectorAll('tr.pd-fm-row:not(.is-saved)')];
   const i = after ? rows.indexOf(after) : -1;
   const owed = r => !r.classList.contains('is-read') && !pdFormBoxHas(r);
@@ -4632,28 +4632,70 @@ function pdFormNext(after){
 function pdFormOpen(id){
   const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper()) return false;
   if (!pdFormRows(c).length) return false;
+  /* THE NEW LOOK (the contract round, part 3b, as drawn): the form stands IN THE MIDDLE where the paper was, laid flat;
+     the Dossier stays beside it and says what is typed. Same rows, same boxes, same one Save (#pd-og.is-form). */
+  if (pd2On() && pdMidMay()) return pd2FormMidOpen(c);
   /* the rows it opened with stay until it is put away (pdFormClose): a spot pressed on the paper, which opens the
      paper again on its way here, keeps the form as it stands */
   if (_pdTab !== 'form') pdSetTab('form');
   /* already standing for this contract: nothing is drawn again (what is typed or picked stays) */
-  const fm = document.querySelector('#ig-dock #pd-og.is-form');
+  const fm = document.querySelector(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form');
   if (fm && fm.getAttribute('data-pd-og-for') === String(id)) return true;
   if (typeof renderIntelDock === 'function') renderIntelDock();
   return true;
 }
 function pdFormClose(){
+  if (pdFormMidUp()){ pdMidClose(); return; }
   const c = pdContract(); if (c) _pdForm.delete(String(c.id));
   /* a landing still on its way (a door pressed a beat ago) is let go: the reader asked to go back */
   _pdOgLand = null;
   const a = (typeof document !== 'undefined') ? document.activeElement : null;
-  if (a && a.closest && a.closest('#ig-dock .pd-fm') && typeof a.blur === 'function') a.blur();
+  if (a && a.closest && a.closest(':is(#ig-dock, [data-pd-mid]) .pd-fm') && typeof a.blur === 'function') a.blur();
   pdSetTab('copilot');
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
-function pdFormShows(){ return _pdTab === 'form' && pdOnPaper(); }
+function pdFormShows(){ return (_pdTab === 'form' && pdOnPaper()) || pdFormMidUp(); }
+function pdFormMidUp(){ return !!(_pdMid && String(_pdMid.key).indexOf('form:') === 0); }
+function pd2FormHeadHtml(c, n){
+  const E = _pdE;
+  /* the page's own head: "‹ Paper" over the title (the form's own h3, which the page lifts into its title) and the line under it */
+  return { back: `<button type="button" class="ui-link pd2-fm-back" data-pd-mid-back>‹ ${E(_pdT('pd_stage_paper'))}</button>`,
+    under: `<div id="pd2-fm-under" class="pd2-fm-m">${E([c.name, _pdTn('pd2_fm_owed', n, { n }), _pdT('pd2_fm_how')].filter(Boolean).join(' · '))}</div>` };
+}
+function pd2FormMidOpen(c){
+  const id = String(c.id), mk = 'form:' + id;
+  if (pdMidUp(mk)) return true;
+  const n = pdFormRows(c).filter(f => !f.read).length;
+  const H = pd2FormHeadHtml(c, n);
+  openModal(`<div class="pd2-fm-mid">${pdFormHtml(c).replace('<div class="pd-fm-h">', '<div class="pd-fm-h"><h3 class="pd2-fm-t">' + _pdE(_pdT('og_form_title')) + '</h3>' + H.under).replace(/<h3>[^<]*<\/h3>/, '')}</div>`, { maxWidth: 'none', label: _pdT('og_form_title'), page: { crumbHtml: H.back, under: '#pd2-fm-under', beside: '#ig-dock' },
+    onClose: () => { _pdForm.delete(id); _pdOgLand = null; pdMidOff(); try { pdGlanceRepaint(); } catch (_){} } });
+  pdMidOn(mk);
+  const host = document.querySelector('[data-pd-mid] #pd-og.is-form'); if (host) pdOgPaint(host);
+  try { pdGlanceRepaint(); } catch (_){}
+  return true;
+}
+/* the Dossier while the form is up: what is typed, row by row, as it is typed */
+function pd2FormFaceHtml(c, D){
+  const E = _pdE, fm = document.querySelector('[data-pd-mid] #pd-og.is-form');
+  const rows = fm ? [...fm.querySelectorAll('tr.pd-fm-row')].map(r => {
+    const k = r.getAttribute('data-pd-og-row'), l = ((r.querySelector('.pd-og-f b') || {}).textContent || k).trim();
+    const el = r.querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea');
+    const raw = el ? String(el.tagName === 'SELECT' && el.selectedOptions[0] && el.value ? el.selectedOptions[0].textContent : el.value || '').trim() : ((r.querySelector('.pd-fm-done') || {}).textContent || '').trim();
+    const v = (el && el.type === 'date' && raw) ? pdOgDay(raw) : raw;
+    const has = !!v, st = r.classList.contains('is-saved') ? 'saved' : has ? 'filled' : 'owed';
+    return `<div class="pd2-fact" data-pd2-ft="${E(k)}"><span class="pd2-l">${E(l)}</span><span class="pd2-v${has ? '' : ' pd2-amb'}">${E(has ? '\u201c' + v + '\u201d' : _pdT('pd2_ft_blank'))}</span><span class="pd2-s">${E(_pdT('pd2_ft_' + st))}</span></div>`; }).join('') : '';
+  return `${pd2SpineHtml(D)}<p class="pd2-next">${E(_pdT('pd2_ft_say'))}</p><div class="pd2-eye">${E(_pdT('pd2_ft_h'))}</div><div class="pd2-facts" data-pd2-ft-list>${rows}</div>`;
+}
+/* typing in the middle's form: the Dossier's list follows, in place */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+  if (!(e.target && e.target.closest && e.target.closest('[data-pd-mid] #pd-og.is-form'))) return;
+  const c = pdContract(), list = document.querySelector('#ig-dock [data-pd2-ft-list]'); if (!c || !list) return;
+  const t = document.createElement('div'); t.innerHTML = pd2FormFaceHtml(c, dossierOf(c));
+  const nu = t.querySelector('[data-pd2-ft-list]'); if (nu && nu.innerHTML !== list.innerHTML) list.innerHTML = nu.innerHTML;
+}));
 /* ONE SAVE: every box holding an answer through its own writer, Jambo's readings included; then the Dossier */
 function pdFormSave(){
-  const fm = document.querySelector('#ig-dock #pd-og.is-form'); const c = pdOgContract(fm); if (!fm || !c) return 0;
+  const fm = document.querySelector(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form'); const c = pdOgContract(fm); if (!fm || !c) return 0;
   /* what is said is every detail the form now holds an answer for (stored as typed, by Enter, or by this Save) */
   const held = () => [...fm.querySelectorAll('tr.pd-fm-row')].filter(r => r.classList.contains('is-saved') || r.classList.contains('is-typed') || pdFormBoxHas(r)).length;
   if (!held()){ pdOgSay(_pdT('og_form_nothing')); pdFormNext(null); return 0; }
@@ -4668,23 +4710,23 @@ if (typeof document !== 'undefined' && !document._pdFormWired){
   document._pdFormWired = true;
   /* a box answered: its row ticked, the head's count follows; a date or a choice picked moves the hand on */
   document.addEventListener('change', e => {
-    const t = e.target; const row = t && t.closest ? t.closest('#ig-dock #pd-og.is-form tr.pd-fm-row') : null; if (!row) return;
+    const t = e.target; const row = t && t.closest ? t.closest(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form tr.pd-fm-row') : null; if (!row) return;
     pdFormMark(row);
     if ((t.type === 'date' || t.tagName === 'SELECT') && pdFormBoxHas(row)) setTimeout(() => pdFormNext(row), 0);
   });
   document.addEventListener('input', e => {
-    const t = e.target; const row = t && t.closest ? t.closest('#ig-dock #pd-og.is-form tr.pd-fm-row') : null; if (row) pdFormMark(row);
+    const t = e.target; const row = t && t.closest ? t.closest(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form tr.pd-fm-row') : null; if (row) pdFormMark(row);
   });
   /* the box in the hand: its spot on the paper is lit and brought into view (contractFieldLight, the form's own link) */
   document.addEventListener('focusin', e => {
-    const t = e.target; const row = t && t.closest ? t.closest('#ig-dock #pd-og.is-form tr.pd-fm-row') : null; if (!row) return;
+    const t = e.target; const row = t && t.closest ? t.closest(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form tr.pd-fm-row') : null; if (!row) return;
     const k = row.getAttribute('data-pd-og-row');
     let spot = null; try { spot = (typeof contractFieldPeer === 'function') ? contractFieldPeer(k, 'paper') : null; } catch (_){ spot = null; }
     if (spot && typeof contractFieldLight === 'function') try { contractFieldLight(spot); } catch (_){}
   });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    if (t.closest('#ig-dock [data-pd-fm-save]')){ e.preventDefault(); pdFormSave(); return; }
+    if (t.closest(':is(#ig-dock, [data-pd-mid]) [data-pd-fm-save]')){ e.preventDefault(); pdFormSave(); return; }
     const se = t.closest('#ig-dock [data-pd-stream-edit]');
     if (se){ e.preventDefault(); const id = se.getAttribute('data-pd-stream-edit');
       if (pdKtMid(id) !== false){ _pdKtMoving = true; pdKtMidRepaint(true);
@@ -5211,7 +5253,7 @@ function pdOgWire(host, c){
 /* a hand in the grid is never repainted under (renderIntelDock asks this too) */
 function pdOgHolds(){
   const a = (typeof document !== 'undefined') ? document.activeElement : null;
-  return !!(a && a.closest && a.closest('#ig-dock #pd-og, #ig-dock #pd-kt, [data-pd-mid-kt] #pd-kt'));
+  return !!(a && a.closest && a.closest('#ig-dock #pd-og, [data-pd-mid] #pd-og, #ig-dock #pd-kt, [data-pd-mid-kt] #pd-kt'));
 }
 /* after the grid is drawn: HaTi's own date and choice faces, and the boxes' writers */
 function pdOgPaint(host){
@@ -5376,7 +5418,7 @@ let _pdSgUp = false;             // a list is up somewhere: a press elsewhere ne
 function pdSgListClose(){
   if (typeof document === 'undefined' || !_pdSgUp) return;
   _pdSgUp = false;
-  [...document.querySelectorAll('#ig-dock #pd-og .pd-og-dd')].forEach(el => {
+  [...document.querySelectorAll(':is(#ig-dock, [data-pd-mid]) #pd-og .pd-og-dd')].forEach(el => {
     const box = el.parentNode && el.parentNode.querySelector('[data-pd-og-sb]');
     if (box) box.setAttribute('aria-expanded', 'false');
     el.remove();
@@ -5447,7 +5489,7 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
      ↑↓ walk it, Enter picks the lit row, Esc takes it down and only it */
   document.addEventListener('keydown', e => {
     const t = e.target;
-    const box = t && t.closest ? t.closest('#ig-dock #pd-og [data-pd-og-sb]') : null; if (!box) return;
+    const box = t && t.closest ? t.closest(':is(#ig-dock, [data-pd-mid]) #pd-og [data-pd-og-sb]') : null; if (!box) return;
     const up = pdSgListShowing(box);
     if (e.key === 'Escape'){ if (!up) return; pdSgListClose(); e.stopPropagation(); e.preventDefault(); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
@@ -5462,14 +5504,14 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
   /* a press inside the list keeps the hand in the box (so no repaint lands under it) */
   document.addEventListener('pointerdown', e => {
     const t = e.target;
-    if (t && t.closest && t.closest('#ig-dock #pd-og .pd-og-dd')){ e.preventDefault(); return; }
-    if (t && t.closest && t.closest('#ig-dock #pd-og .pd-og-sb')) return;
+    if (t && t.closest && t.closest(':is(#ig-dock, [data-pd-mid]) #pd-og .pd-og-dd')){ e.preventDefault(); return; }
+    if (t && t.closest && t.closest(':is(#ig-dock, [data-pd-mid]) #pd-og .pd-og-sb')) return;
     pdSgListClose();
   }, true);
   /* TYPING FILTERS: the list is rebuilt under the box, and a name typed over a picked
      person is no longer that person */
   document.addEventListener('input', e => {
-    const box = e.target && e.target.closest ? e.target.closest('#ig-dock #pd-og [data-pd-og-sb]') : null; if (!box) return;
+    const box = e.target && e.target.closest ? e.target.closest(':is(#ig-dock, [data-pd-mid]) #pd-og [data-pd-og-sb]') : null; if (!box) return;
     box.setAttribute('data-og-id', '');
     box.setAttribute('data-og-picked', '');
     if (!pdSgListOpen(box)) pdSgListClose();
@@ -7088,6 +7130,7 @@ function pd2TurnHtml(c){
 }
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
+  if (pdFormMidUp() && String(_pdMid.key) === 'form:' + String(c.id)) return `<div id="pd-glance" class="pd2-dossier is-form" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2FormFaceHtml(c, D)}</div>`;
   if (pd2FillOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-fill" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2FillFaceHtml(c, D)}</div>`;
   if (pd2BriefUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-brief" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2BriefFaceHtml(c, D)}</div>`;
   const N = dossierNextOf(c, D, dossierFocusOf(D)), b = N.btns[0];
@@ -7387,7 +7430,7 @@ function pd2FillPaint(c){
   if (strip && !document.getElementById('pd2-fill-head')){
     const h = document.createElement('div'); h.id = 'pd2-fill-head'; h.className = 'pd2-fill-head';
     const st = (typeof window.statusLabel === 'function') ? window.statusLabel(c.status) : String(c.status || '');
-    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-fh-hint">${E(_pdT('pd2_fp_hint'))}</span><span class="pd2-br-sp"></span><button type="button" class="ui-btn" data-pd2-fill-discard>${E(_pdT('pd2_fp_discard'))}</button><button type="button" class="ui-btn ui-btn-primary" data-pd2-fill-save>${E(_pdT('og_save'))}</button>`;
+    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-br-sp"></span><button type="button" class="ui-btn" data-pd2-fill-discard>${E(_pdT('pd2_fp_discard'))}</button><button type="button" class="ui-btn ui-btn-primary" data-pd2-fill-save>${E(_pdT('og_save'))}</button>`;
     h.setAttribute('data-pd2-fh-st', [c.counterparty, st].filter(Boolean).join(' · '));
     strip.parentElement.insertBefore(h, strip);
   }
@@ -7460,6 +7503,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c);
   }, true);
 }
+Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
 Object.assign(window, { pd2BriefOpen, pd2BriefUp, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });

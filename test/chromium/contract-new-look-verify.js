@@ -144,6 +144,15 @@ const READ = () => {
         await page.click('[data-pd-mid^="brief:"] .pd2-br-head [data-pd-mid-back]');
         const back = await until(page, () => !document.querySelector('[data-pd-mid]') && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-brief)'), null, 10000);
         check('9 ‹ Paper brings the paper and the Dossier back', back);
+        /* 10 THE FORM IN THE MIDDLE (part 3b): the Dossier's Fill in lays the form flat where the paper was; what is typed is
+           said in the Dossier as it is typed; the one Save stores it and brings the paper back */
+        await page.evaluate(() => pdFillOpen('MK-A2'));
+        const fm = await until(page, () => !!document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form tr[data-pd-og-row="up_goods"] input') && !!document.querySelector('#ig-dock .pd2-dossier.is-form'), null, 15000);
+        await page.fill('[data-pd-mid^="form:"] tr[data-pd-og-row="up_goods"] input', 'raw milk');
+        const said = await until(page, () => /raw milk/.test((document.querySelector('#ig-dock [data-pd2-ft="up_goods"]') || {}).textContent || ''), null, 5000);
+        await page.click('[data-pd-mid^="form:"] [data-pd-fm-save]');
+        const kept = await until(page, () => !document.querySelector('[data-pd-mid]') && (getContract('MK-A2').fields || {}).up_goods === 'raw milk' && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-form)'), null, 10000);
+        check('10 the form in the middle: typed, said beside it, stored by the one Save, the paper back', fm && said && kept, { fm, said, kept });
         await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); roomHomeLand('MK-A2'); });
         /* the crossfade's ghost of the face before (no ids) is gone a moment later */
         await until(page, () => !!document.querySelector('#ig-dock .pd-dossier') && !document.querySelector('.pd2-dossier'), null, 20000);

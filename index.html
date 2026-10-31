@@ -18516,11 +18516,34 @@
   html.lg-new #ig-page.is-pd2-fill #ig-strip{display:none}
   html.lg-new .pd2-fill-head{display:flex;align-items:center;gap:16px;min-height:var(--ig-bar-h,56px);padding:8px 24px 8px 40px;box-sizing:border-box;background:var(--color-surface);border-bottom:1px solid var(--color-divider)}
   html.lg-new .pd2-fh-t{font-family:var(--font-title);font-size:24px;font-weight:var(--w-title-serif);white-space:nowrap}
-  html.lg-new .pd2-fh-m{font-size:13.5px;font-weight:var(--w-label);max-width:220px}
-  html.lg-new .pd2-fh-hint{font-size:11.5px;color:var(--color-quiet);max-width:330px}
+  html.lg-new .pd2-fh-m{font-size:13.5px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   html.lg-new .pd2-fill-head .pd2-br-sp{flex:1}
   html.lg-new .pd2-fill-foot{flex:none;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text);z-index:2}
   html.lg-new #ig-dock .pd2-fp.is-typed [data-pd2-fp-state]{color:var(--color-text)}
+  /* the Fill in form in the middle, laid flat: the page white, its head "‹ Paper" over the title and its line; rows wide */
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-head{padding:16px 40px 12px}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-crumb{margin:0 0 6px;padding:0}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-back{margin:0;padding:0;border:0;background:none;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-t{font-family:var(--font-title);font-size:24px;font-weight:var(--w-title-serif);margin:0}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-m{margin-top:4px;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-body{background:var(--color-surface)}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-body > .pd2-fm-mid{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;padding:8px 40px 24px;background:var(--color-surface);min-height:0}
+  html.lg-new .pd2-fm-mid .pd-fm-h{margin:0 0 4px}
+  html.lg-new .pd2-fm-mid .pd-fm-h p{margin:0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid .pd-fm-bar{display:none}
+  html.lg-new .pd2-fm-mid table.pd-og.is-form{width:100%;border-collapse:collapse;table-layout:fixed}
+  html.lg-new .pd2-fm-mid .pd-fm-gh th{padding:18px 0 6px;text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid .pd-fm-gh th .is-amb{margin-left:10px;letter-spacing:0;text-transform:none;color:var(--st-amber-fg)}
+  html.lg-new .pd2-fm-mid tr.pd-fm-row > td{padding:10px 0;border-top:1px solid var(--color-divider);vertical-align:top;font-size:13.5px;line-height:1.45}
+  html.lg-new .pd2-fm-mid td.pd-og-f{width:190px;padding-right:18px}
+  html.lg-new .pd2-fm-mid td.pd-og-f b{font-weight:var(--w-label)}
+  html.lg-new .pd2-fm-mid td.pd-og-v{width:42%;padding-right:24px}
+  html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea){width:100%;max-width:260px;height:30px;box-sizing:border-box;border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px;font:inherit}
+  html.lg-new .pd2-fm-mid tr.pd-fm-row.is-amb td.pd-og-v :is(input:not([type=checkbox]),select){color:var(--st-amber-fg)}
+  html.lg-new .pd2-fm-mid td.pd-og-v input::placeholder{color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid td.pd-og-a{font-size:12.5px;color:var(--color-text)}
+  html.lg-new .pd2-fm-mid .pd-fm-f{display:flex;flex-direction:row-reverse;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-fm-mid .pd-fm-f > span{margin-right:auto;font-size:12.5px;color:var(--color-quiet)}
 </style>
 
 
