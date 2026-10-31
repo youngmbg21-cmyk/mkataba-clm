@@ -8264,6 +8264,7 @@ function dealViewHtml(c, side){
       <p class="deal-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
   }
   const h = dealPlanHead(c, f);
+  if (typeof window.newLookOn === 'function' && newLookOn()) return dealViewNewHtml(c, side, f, memo);
   const cnt = k => f.by[k].length;
   /* THE ROAD: one bar, a segment per kind of point, the legend its words and counts */
   const seg = [['go', cnt('give') + cnt('hold'), i18t('ng_plan_road_go')], ['rule', cnt('rule'), i18t('ng_plan_g_rule')],
@@ -8312,6 +8313,76 @@ function dealViewHtml(c, side){
   return `<div class="deal-mid is-plan" data-deal-mid="${id}" data-db-host="${id}">
     <h2 class="deal-h deal-plan-h">${_ne(h.head)}<small class="deal-sub">${_ne(h.sub)}</small></h2>${memo}${road}
     <div class="deal-list">${groups}</div>
+  </div>`;
+}
+/* THE CLOSE PLAN, AS DRAWN (the new look, Negotiate round): flat on the page, one table —
+   Point (name, § and their words quoted) · us · them · Stand. The stand is the plan's own reading
+   (dealPlanOf, no call); a point they asked something on opens to compare, the two wordings side by
+   side with only the differences marked. Doors only Send, Open clause, Counter, Chase, Ask an admin,
+   each pressing the one it always pressed. */
+/* their words where they moved them: two words before the first insertion, the insertion, three after */
+function dl2QuoteOf(ch){
+  if (!ch) return '';
+  const ops = rlChangeOps(ch);
+  const k = ops.findIndex(o => o && o.op === 'ins' && String(o.text || '').trim());
+  if (k < 0) return '';
+  const words = t => String(t || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  const pre = words(ops.slice(0, k).filter(o => o.op !== 'ins' && o.op !== 'del').map(o => o.text).join('')).slice(-2);
+  const mid = words(ops[k].text).slice(0, 10);
+  const post = words(ops.slice(k + 1).filter(o => o.op !== 'del').map(o => o.text).join('')).slice(0, 3);
+  return pre.concat(mid, post).join(' ').replace(/[.,;:]+$/, '');
+}
+function dealViewNewHtml(c, side, f, memo){
+  const id = _nea(String(c.id));
+  const names = rlLegendNames(c, side);
+  const cut = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t; };
+  const tagOf = p => p.k === 'wait' ? i18t('ng_plan_g_wait', { cp: i18t('dl2_them') }) : i18t('ng_plan_g_' + p.k, { cp: f.cp });
+  const pill = p => `<span class="dl2-st is-${p.k}" title="${_nea(p.why)}">${_ne(tagOf(p))}</span>`;
+  const admin = typeof window.isAdmin === 'function' && isAdmin();
+  const mine = f.plan.filter(x => x.p.k !== 'agreed' && x.p.k !== 'wait').length;
+  const fig = (r, n) => n == null ? '' : n + (r.unit ? ' ' + r.unit : '');
+  const row = ({ r, p }) => {
+    const s = dealSecOf(r);
+    const th = r.theirs && r.theirs.ch ? dealWordsOf(r.theirs.ch, 'del') : '';
+    const heldW = dealHeldWords(r);
+    const q = cut(dl2QuoteOf(r.theirs && r.theirs.ch) || th || heldW, 70);
+    let press = null; try { press = (r.theirs && typeof rlOnePressOf === 'function') ? rlOnePressOf(c, r.theirs.ch, side) : null; } catch (_){ press = null; }
+    const ours = r.ourFig != null ? fig(r, r.ourFig) : cut(heldW, 60);
+    const oursMore = p.unsent ? i18t('dl2_unsent') : (press && press.at != null) ? i18t('dl2_counter_at', { v: press.at + (press.unit ? ' ' + press.unit : '') }) : '';
+    const theirs = r.theirFig != null ? fig(r, r.theirFig) : (r.theirs ? cut(th, 60) : '—');
+    const canCmp = !!(r.theirs && r.theirs.ch), cmp = canCmp && dealRowOpen(r.clauseId);
+    const lines = Math.max(1, Math.round((th || heldW).length / 90));
+    const long = (th || heldW).length > 300;
+    const opener = canCmp && !cmp ? `<div class="dl2-long">${long ? _ne(i18t('dl2_long', { n: lines })) + ' · ' : ''}<button type="button" class="dl2-a" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="false">${_ne(i18t('dl2_open_cmp'))}</button></div>` : '';
+    const main = `<div class="dl2-r${cmp ? ' is-open' : ''}" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
+      <div class="dl2-pt"><b>${_ne(s.name)}</b>${q ? `<i class="dl2-q">${s.sec ? _ne(s.sec) + ' · ' : ''}“${_ne(q)}”</i>` : ''}${opener}</div>
+      <div class="dl2-us">${_ne(ours)}${oursMore ? `<span>${_ne(oursMore)}</span>` : ''}</div>
+      <div class="dl2-them">${_ne(theirs)}</div>
+      <div class="dl2-stc">${pill(p)}</div></div>`;
+    if (!cmp) return main;
+    const heldCh = r.state === 'settled' && r.accepted ? r.accepted.ch : r.ours ? r.ours.ch : null;
+    const left = heldCh ? rlChangeWordingHtml(heldCh, { side, changedOnly: true }) : `<p>${_ne(heldW || '—')}</p>`;
+    const counter = p.k !== 'agreed' && p.k !== 'wait' ? ` · <button type="button" class="dl2-a" data-deal-counter="${_nea(r.clauseId)}">${_ne(i18t('ng_counter'))}</button>` : '';
+    return `<div class="dl2-cmp" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
+      <div class="dl2-cmp-h"><b>${s.sec ? _ne(s.sec) + ' ' : ''}${_ne(s.name)}</b><span>${_ne(i18t(long ? 'dl2_cmp_long' : 'dl2_cmp', { n: lines }))}</span>
+        <button type="button" class="dl2-a" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="true">${_ne(i18t('dl2_close'))}</button></div>
+      <div class="dl2-cmp-b"><div><div class="dl2-cap">${_ne(names.us)}</div><div class="dl2-w rl-cp-src">${left}</div></div>
+        <div><div class="dl2-cap">${_ne(names.them)}</div><div class="dl2-w rl-cp-src">${rlChangeWordingHtml(r.theirs.ch, { side, changedOnly: true })}</div></div></div>
+      <div class="dl2-cmp-f">${pill(p)}<span class="dl2-why">${_ne(p.why)}</span><span class="sp"></span>
+        <button type="button" class="dl2-a" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))}</button>${counter}<span class="dl2-only">${_ne(i18t('dl2_only_diff'))}</span></div></div>`;
+  };
+  const order = ['give', 'hold', 'rule', 'wait', 'agreed'];
+  const rows = f.plan.slice().sort((a, b) => order.indexOf(a.p.k) - order.indexOf(b.p.k)).map(row).join('');
+  const rule = f.by.rule[0], wait = f.by.wait[0];
+  const firstMine = f.plan.find(x => x.p.k !== 'agreed' && x.p.k !== 'wait');
+  const ask = rule ? `<button type="button" class="dl2-a" data-deal-ask="${_nea(rule.r.clauseId)}" data-deal-ask-cat="${_nea((rule.p.std && rule.p.std.category) || dealSecOf(rule.r).name)}">${_ne(i18t(admin ? 'dl2_set_rule' : 'dl2_ask_rule', { name: dealSecOf(rule.r).name.toLowerCase() }))}</button>` : '';
+  const chase = wait ? `<button type="button" class="dl2-a" data-deal-chase="${id}">${_ne(i18t('ng_plan_chase'))}</button>` : '';
+  const open = firstMine ? `<button type="button" class="ui-btn" data-deal-open="${_nea(firstMine.r.clauseId)}">${_ne(i18t('ng_deal_open'))}</button>` : '';
+  const send = `<button type="button" class="ui-btn ui-btn-primary" data-deal-sendall="${id}">${_ne(i18t('ng_send'))}</button>`;
+  return `<div class="deal-mid is-plan dl2" data-deal-mid="${id}" data-db-host="${id}">
+    <h2 class="deal-h dl2-h">${_ne(i18t('dl2_title'))}<small class="deal-sub">${_ne(i18t('dl2_sub', { n: f.plan.length, m: mine }))}</small></h2>${memo}
+    <div class="deal-list"><div class="dl2-t"><div class="dl2-th"><span>${_ne(i18t('dl2_point'))}</span><span>${_ne(names.us)}</span><span>${_ne(names.them)}</span><span>${_ne(i18t('dl2_stand'))}</span></div>${rows}</div></div>
+    <div class="dl2-foot"><span>${_ne(i18t('dl2_foot'))}</span><span class="sp"></span>${chase}${ask}${open}${send}</div>
   </div>`;
 }
 /* COPY AS MEMO, the plan in words: the head, then each group and its points */

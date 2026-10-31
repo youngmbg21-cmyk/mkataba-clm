@@ -5210,7 +5210,7 @@ function pdDealRepaint(){
   const c = (typeof getContract === 'function') ? getContract(root.getAttribute('data-deal-mid')) : null; if (!c) return;
   const tmp = document.createElement('div'); tmp.innerHTML = dealViewHtml(c, 'owner');
   const now = tmp.querySelector('[data-deal-mid]'); if (!now) return;
-  [['.deal-list'], ['#deal-road']].forEach(([s]) => { const a = document.querySelector('#modal-root [data-dlg-page] ' + s), b = now.querySelector(s); if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; });
+  [['.deal-list'], ['#deal-road'], ['.dl2-foot']].forEach(([s]) => { const a = document.querySelector('#modal-root [data-dlg-page] ' + s), b = now.querySelector(s); if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; });
   const h = document.querySelector('#modal-root [data-dlg-page] .deal-h'), h2 = now.querySelector('.deal-h');
   if (h && h2 && h.innerHTML !== h2.innerHTML) h.innerHTML = h2.innerHTML;
 }
@@ -6379,6 +6379,16 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (dsd){ e.preventDefault(); const own = document.querySelector(`#ig-dock [data-rl-send="${CSS.escape(dsd.getAttribute('data-deal-send'))}"]`);
       if (own && !own.disabled){ own.click(); return; }
       const h = dsd.closest('[data-deal-mid]'), row = dsd.closest('[data-deal-row]'); if (h && row) pdDealGoClause(h.getAttribute('data-deal-mid'), row.getAttribute('data-deal-row')); return; }
+    /* the drawn plan's Counter: the middle shuts, the clause's own row opens its editor (the one door) */
+    const dct = t.closest('[data-deal-counter]');
+    if (dct){ e.preventDefault(); const cid = dct.getAttribute('data-deal-counter'), h = dct.closest('[data-deal-mid]');
+      _pdDealStay = true; pdMidClose();
+      const door = document.querySelector(`#ig-dock [data-rl-cp-editor-row="${CSS.escape(cid)}"]`);
+      if (door && !door.disabled) door.click(); else if (h) pdDealGoClause(h.getAttribute('data-deal-mid'), cid);
+      return; }
+    /* the drawn plan's Send: the paper's own Send (Send all while changes wait, else the Send screen) */
+    if (t.closest('[data-deal-sendall]')){ e.preventDefault(); _pdDealStay = true; pdMidClose();
+      const ws = document.getElementById('ws-share'); if (ws) ws.click(); return; }
     const dgo = t.closest('[data-deal-open]');
     if (dgo){ e.preventDefault(); const h = dgo.closest('[data-deal-mid]'); if (h) pdDealGoClause(h.getAttribute('data-deal-mid'), dgo.getAttribute('data-deal-open')); return; }
     if (t.closest('[data-pd-deal-back]')){ e.preventDefault(); pdMidClose(); return; }

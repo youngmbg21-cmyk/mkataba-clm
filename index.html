@@ -18633,6 +18633,40 @@
   html.lg-new #ig-dock .pd-th .stk-pre-v{justify-self:end;font-size:12px;color:var(--st-amber-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
   html.lg-new #ig-dock .pd-th .stk-pre-a{display:flex;gap:12px;align-items:baseline;margin-top:4px;font-size:12px;color:var(--color-quiet)}
   /* ==== THE NEW LOOK: NEGOTIATE (round 4, 31 Oct 2026) ==== the one-press answers on their ask */
+  /* THE CLOSE PLAN, AS DRAWN: one flat table, a point opens to compare */
+  html.lg-new .deal-mid.dl2{display:flex;flex-direction:column;min-height:100%}
+  html.lg-new .dl2-h.deal-h{display:block;flex:1 1 100%;font-family:var(--font-doc);font-size:22px;font-weight:400;margin:4px 0 0}
+  html.lg-new #modal-root [data-dlg-page]:has(.dl2) .pd-trail-w{display:none}
+  html.lg-new .dl2-h.deal-h .deal-sub{display:block;margin:8px 0 0;padding:0;font-family:var(--font-body);font-size:13px;font-weight:var(--w-label);line-height:1.45;color:var(--color-text)}
+  html.lg-new .dl2 .deal-list{flex:1}
+  html.lg-new .dl2-t{margin-top:20px}
+  html.lg-new .dl2-th,html.lg-new .dl2-r{display:grid;grid-template-columns:minmax(0,1fr) 174px 174px 130px;gap:0 16px;align-items:start}
+  html.lg-new .dl2-th{padding:0 0 10px;border-bottom:1px solid var(--color-divider);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .dl2-r{padding:18px 0;border-bottom:1px solid var(--color-divider);font-size:13.5px;line-height:1.4}
+  html.lg-new .dl2-pt b{display:block;font-weight:400;color:var(--color-text)}
+  html.lg-new .dl2-q{display:block;margin:3px 0 0 6px;font-family:var(--font-doc);font-size:13px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dl2-long{margin-top:3px;font-size:12.5px;color:var(--color-text)}
+  html.lg-new .dl2-us,html.lg-new .dl2-them{font-weight:var(--w-label);color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .dl2-us span{display:block;font-weight:var(--w-label)}
+  html.lg-new .dl2-st{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new .dl2-st.is-give,html.lg-new .dl2-st.is-agreed{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .dl2-st.is-hold{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .dl2-st.is-rule{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .dl2-st.is-wait{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .dl2-a{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .dl2-cmp{margin:16px 0;padding:16px;border-radius:var(--radius);background:var(--color-bg)}
+  html.lg-new .dl2-cmp-h{display:flex;align-items:baseline;gap:12px;font-size:13px}
+  html.lg-new .dl2-cmp-h b{font-weight:var(--w-label)}
+  html.lg-new .dl2-cmp-h span{flex:1;font-size:12px;color:var(--color-text)}
+  html.lg-new .dl2-cmp-b{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:12px}
+  html.lg-new .dl2-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin-bottom:6px}
+  html.lg-new .dl2-w{font-family:var(--font-doc);font-size:14px;line-height:1.5;color:var(--color-doc-text)}
+  html.lg-new .dl2-w p{margin:0 0 6px}
+  html.lg-new .dl2-cmp-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12.5px}
+  html.lg-new .dl2-why{color:var(--color-text);min-width:0}
+  html.lg-new .dl2-cmp-f .sp,html.lg-new .dl2-foot .sp{flex:1}
+  html.lg-new .dl2-only{color:var(--color-quiet);font-size:11.5px}
+  html.lg-new .dl2-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px 0;border-top:1px solid var(--color-divider);background:var(--color-surface);font-size:12.5px;color:var(--color-text)}
   html.lg-new .rl-1p-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
   html.lg-new .rl-1p{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
   @media (hover:hover){ html.lg-new .rl-1p:hover{box-shadow:inset 0 0 0 1px var(--color-text)} }
