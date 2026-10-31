@@ -7130,6 +7130,7 @@ function pd2TurnHtml(c){
 }
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
+  if (pd2WalkOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-walk" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2WalkFaceHtml(c)}</div>`;
   if (pdFormMidUp() && String(_pdMid.key) === 'form:' + String(c.id)) return `<div id="pd-glance" class="pd2-dossier is-form" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2FormFaceHtml(c, D)}</div>`;
   if (pd2FillOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-fill" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2FillFaceHtml(c, D)}</div>`;
   if (pd2BriefUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-brief" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2BriefFaceHtml(c, D)}</div>`;
@@ -7142,7 +7143,8 @@ function pd2Html(c){
   /* the brief, wherever one is written (it may come before the arrival read): its link opens it in the middle */
   const hasBrief = !!(R.brief || (c._brief && c._brief.data && c._brief.data.overview));
   const briefGo = hasBrief ? ` · <button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : '';
-  const readSay = (R.read ? E(_pdT('pd2_read_once')) : E(_pdT('pd2_read_not')) + readGo) + briefGo;
+  const walkGo = ` · <button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button>`;
+  const readSay = (R.read ? E(_pdT('pd2_read_once')) : E(_pdT('pd2_read_not')) + readGo) + briefGo + walkGo;
   const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo" ${f.go}>${E(f.s || _pdT('dos_go_open'))}</button>` : E(f.s || '')}</span></div>`).join('');
   return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2SpineHtml(D)}<p class="pd2-next" data-pd2-next>${E(N.head)}${link}</p><p class="pd2-read">${readSay}</p><div class="pd2-facts">${facts}</div>${pd2TurnHtml(c)}</div>`;
 }
@@ -7200,6 +7202,8 @@ function pd2NotesPaint(c){
   if (typeof document === 'undefined') return;
   const zoom = document.querySelector('#ig-paper .ig-zoom'), cv = document.getElementById('ig-canvas');
   if (_pd2Fill && (!c || String(_pd2Fill.id) !== String(c.id) || !pd2On())){ _pd2Fill = null; document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill'); }
+  if (_pd2Walk && (!c || String(_pd2Walk.id) !== String(c.id) || !pd2On())){ clearTimeout(_pd2Walk.timer); _pd2Walk = null; document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk'); }
+  if (c && pd2WalkOn(c.id)){ pd2NotesOff(); pd2WalkPaint(); return; }
   if (c && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-redpaper, .ig-signpaper') || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
@@ -7503,6 +7507,168 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c);
   }, true);
 }
+/* ---- THE READ, WATCHED (the contract round, part 4; owner: "Build the arrival walk") ----
+   A paper that has just arrived offers "Watch the read": Jambo moves down the paper clause by clause, the words he
+   read light as he passes them, and each fact lands in his panel in its group with the clause it rests on. IT IS A
+   SHOWING OF WHAT HaTi ALREADY READ, never a new reading: the parties named on the record, the paper's blanks, the
+   value and the end date found in the words, the risks with their quotes, the duties Jambo found with theirs. Free;
+   nothing is filed; the paper's words are untouched (the lit words are the browser's own highlight). Pause, Start
+   again and three speeds; less motion asked = everything at once. At the end one sentence and the next doors, each an
+   existing one with its cost. */
+const PD2_WALK_SPEEDS = { slow: 1.6, normal: 1, fast: 0.5 };
+const PD2_WALK_GROUPS = ['party', 'blank', 'money', 'date', 'risk', 'duty'];
+let _pd2Walk = null;            // { id, i, run, speed, lit: [mark idx], done, timer }
+function pd2WalkOn(id){ return !!(_pd2Walk && String(_pd2Walk.id) === String(id)); }
+/* the paper's clauses as it is drawn: the blocks before the first heading are the preamble, then one per heading */
+function pd2WalkSections(cv){
+  const els = [...cv.querySelectorAll('h1, h2, h3, h4, h5, p, li')].filter(e => !e.closest('header') && !(e.parentElement && e.parentElement.closest && e.parentElement.closest('p, li')));
+  const out = []; let cur = { head: null, els: [] };
+  els.forEach(e => { if (/^H[1-5]$/.test(e.tagName)){ if (cur.els.length || cur.head) out.push(cur); cur = { head: e, els: [e] }; } else cur.els.push(e); });
+  if (cur.els.length || cur.head) out.push(cur);
+  return out.filter(x => x.els.length);
+}
+function pd2WalkSecName(sec){ const m = sec && sec.head ? String(sec.head.textContent || '').trim().match(/^(\d+(?:\.\d+)*)\.?\s*(.*)$/) : null;
+  return sec && sec.head ? { n: m ? '§ ' + m[1] : '', t: m ? m[2] : String(sec.head.textContent || '').trim() } : { n: _pdT('pd2_fp_preamble'), t: '' }; }
+/* what was read, each found on the paper: { kind, l, v, words, hit, si } */
+function pd2WalkMarks(c, cv, S){
+  const out = [], R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {}, txt = h => String(h || '').replace(/<[^>]*>/g, '');
+  const put = (kind, l, v, at) => { const hit = pd2Find(cv, at); if (!hit) return; const node = hit.el || hit.range.startContainer;
+    const si = S.findIndex(x => x.els.some(e => e === node || e.contains(node))); if (si < 0) return;
+    out.push({ kind, l, v, words: hit.range ? hit.range.toString() : '', hit, si }); };
+  let ours = ''; try { ours = (typeof contractParty === 'function') ? contractParty(c) : ''; } catch (_){ ours = ''; }
+  if (ours) put('party', _pdT('pd2_wk_ours'), ours, { text: [ours] });
+  if (c.counterparty) put('party', _pdT('pd2_wk_theirs'), c.counterparty, { text: [c.counterparty] });
+  pd2FillBlanks(c).filter(b => !String(b.value || '').trim()).forEach(b => put('blank', b.label || b.key, _pdT('pd2_wk_blank'), { sel: `[data-upblank="${CSS.escape(b.key)}"], [data-field-key="${CSS.escape(b.key)}"]` }));
+  if (R.money) put('money', _pdT('pd2_f_value'), txt(R.money), { text: pd2Needles(c, 'value') });
+  if (R.expiry) put('date', _pdT('pd2_f_ends'), txt(R.expiry), { text: pd2Needles(c, 'expiry') });
+  let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
+  L.filter(it => it && it.quote).forEach(it => put('risk', (typeof riskTitleOf === 'function') ? riskTitleOf(it) : String(it.title || ''), (typeof riskWhyOf === 'function') ? riskWhyOf(it) : '', { text: [String(it.quote).replace(/\s+/g, ' ').trim().slice(0, 60)] }));
+  let D = []; try { D = (typeof triageHeldObligations === 'function') ? triageHeldObligations(c) : []; } catch (_){ D = []; }
+  D.filter(d => d && d.quote).forEach(d => put('duty', _pdT('pd2_wk_duty'), String(d.desc || ''), { text: [String(d.quote).replace(/\s+/g, ' ').trim().slice(0, 60)] }));
+  return out.sort((a, b) => a.si - b.si);
+}
+function pd2WalkCtx(){
+  const c = _pd2Walk && getContract(_pd2Walk.id), cv = document.getElementById('ig-canvas'); if (!c || !cv) return null;
+  const S = pd2WalkSections(cv); return { c, cv, S, M: pd2WalkMarks(c, cv, S) };
+}
+function pd2WalkOpen(id){
+  const c = getContract(id); if (!c || !pd2On() || !pdOnPaper()) return false;
+  const cv = document.getElementById('ig-canvas'); if (!cv || cv.closest('.ig-redpaper, .ig-signpaper')) return false;
+  if (pd2FillOn(id)) pd2FillStop();
+  if (pdMidUp()) pdMidClose();
+  _pd2Walk = { id: String(id), i: 0, run: false, speed: (_pd2Walk && _pd2Walk.speed) || 'normal', lit: [], done: false, timer: 0 };
+  pd2NotesOff(); pd2WalkPaint(); try { pdGlanceRepaint(); } catch (_){}
+  return true;
+}
+/* a paper that has just arrived (roomHomeLand's arrival) offers the walk; nothing plays until it is pressed */
+function pd2WalkArrive(id){ if (!pd2On()) return false; setTimeout(() => { const c = pdContract(); if (c && String(c.id) === String(id)) pd2WalkOpen(id); }, 0); return true; }
+function pd2WalkClose(){
+  if (!_pd2Walk) return;
+  clearTimeout(_pd2Walk.timer); _pd2Walk = null;
+  document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove());
+  const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk');
+  try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete('pd2-walk'); } catch (_){}
+  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+  try { pdGlanceRepaint(); } catch (_){}
+}
+function pd2WalkReduced(){ try { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (_){ return false; } }
+/* the head over the paper's line, the foot under the paper, the clause marks and the lit words */
+function pd2WalkPaint(){
+  const X = pd2WalkCtx(); if (!X) return; const { c, S } = X, W = _pd2Walk, E = _pdE;
+  const pg = document.getElementById('ig-page'), strip = document.getElementById('ig-strip'); if (!pg || !strip) return;
+  pg.classList.add('is-pd2-walk');
+  let h = document.getElementById('pd2-walk-head');
+  if (!h){ h = document.createElement('div'); h.id = 'pd2-walk-head'; h.className = 'pd2-fill-head pd2-walk-head'; strip.parentElement.insertBefore(h, strip); }
+  const up = c.upload || {}, at = up.uploadedAt || c.createdAt || c._raisedAt || '';
+  const fresh = at && (Date.now() - new Date(at).getTime() < 864e5);
+  const meta = [c.counterparty, fresh ? _pdT('pd2_wk_just') : (at ? _pdT('pd2_arrived', { when: dossierDay(at) }) : ''), _pdTn('pd2_wk_clauses', S.length, { n: S.length })].filter(Boolean).join(' · ');
+  const play = W.run ? _pdT('pd2_wk_pause') : W.done ? _pdT('pd2_wk_again') : W.i ? _pdT('pd2_wk_go_on') : _pdT('pd2_wk_watch');
+  const seg = Object.keys(PD2_WALK_SPEEDS).map(k => `<button type="button" data-pd2-wk-speed="${k}" aria-pressed="${W.speed === k}">${E(_pdT('pd2_wk_sp_' + k))}</button>`).join('');
+  h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m">${E(meta)}</span><button type="button" class="ui-btn ui-btn-primary" data-pd2-wk-play>${E(play)}</button><button type="button" class="ui-btn" data-pd2-wk-reset>${E(_pdT('pd2_wk_reset'))}</button><span class="pd2-wk-sp">${E(_pdT('pd2_wk_speed'))}</span><span class="pd2-seg" role="group" aria-label="${E(_pdT('pd2_wk_speed'))}">${seg}</span><span class="pd2-br-sp"></span><button type="button" class="pd2-wk-x" data-pd2-wk-close aria-label="${E(_pdT('pd_mid_close'))}" title="${E(_pdT('pd_mid_close'))}">×</button>`;
+  let f = document.getElementById('pd2-walk-foot');
+  if (!f){ f = document.createElement('div'); f.id = 'pd2-walk-foot'; f.className = 'pd2-fill-foot pd2-walk-foot'; strip.parentElement.appendChild(f); }
+  const sec = S[Math.min(W.i, S.length - 1)], nm = sec ? pd2WalkSecName(sec) : { n: '', t: '' };
+  const say = W.done ? _pdTn('pd2_wk_st_done', S.length, { n: S.length }) : W.run ? _pdT('pd2_wk_st_reading', { what: [nm.n, nm.t].filter(Boolean).join(' · ') }) : W.i ? _pdT('pd2_wk_st_paused', { k: W.i }) : _pdT('pd2_wk_st_ready');
+  f.innerHTML = `<span>${E(say)}</span><span class="pd2-wk-prog"><i class="pd2-wk-bar"><i style="width:${S.length ? Math.round(W.i * 100 / S.length) : 0}%"></i></i><b>${E(_pdT('pd2_wk_of', { k: W.i, n: S.length }))}</b></span>`;
+  /* the clause being read and those read; the words lit so far */
+  S.forEach((x, i) => x.els.forEach(e => { e.classList.toggle('pd2-wk-on', W.run && i === W.i); e.classList.toggle('pd2-wk-done', i < W.i); }));
+  try { if (typeof CSS !== 'undefined' && CSS.highlights && typeof globalThis.Highlight === 'function'){
+    const rs = W.lit.map(k => X.M[k]).filter(m => m && m.hit.range).map(m => m.hit.range);
+    if (rs.length) CSS.highlights.set('pd2-walk', new globalThis.Highlight(...rs)); else CSS.highlights.delete('pd2-walk'); } } catch (_){}
+  X.M.forEach((m, k) => { if (m.hit.el) m.hit.el.classList.toggle('pd2-wk-lit', W.lit.includes(k)); });
+}
+function pd2WalkStep(){
+  const W = _pd2Walk; if (!W || !W.run) return;
+  const X = pd2WalkCtx(); if (!X) return pd2WalkClose();
+  if (W.i >= X.S.length){ W.run = false; W.done = true; pd2WalkPaint(); try { pdGlanceRepaint(); pd2WalkPanelDown(); } catch (_){} return; }
+  const sec = X.S[W.i], quick = pd2WalkReduced();
+  const len = sec.els.reduce((n, e) => n + String(e.textContent || '').length, 0);
+  const dur = quick ? 0 : Math.max(260, (420 + len * 4.2) * PD2_WALK_SPEEDS[W.speed]);
+  pd2WalkPaint();
+  const sc = document.getElementById('ig-paper-scroll'), r = sec.els[0].getBoundingClientRect();
+  if (sc){ const b = sc.getBoundingClientRect(); if (r.top < b.top || r.top > b.bottom - 120) sc.scrollTo({ top: sc.scrollTop + (r.top - b.top) - 80, behavior: quick ? 'auto' : 'smooth' }); }
+  const mine = X.M.map((m, k) => ({ m, k })).filter(x => x.m.si === W.i);
+  mine.forEach((x, j) => { const t = quick ? 0 : dur * (0.35 + 0.5 * j / Math.max(1, mine.length));
+    setTimeout(() => { if (!_pd2Walk || _pd2Walk !== W || !W.run || W.lit.includes(x.k)) return; W.lit.push(x.k); pd2WalkPaint(); try { pdGlanceRepaint(); pd2WalkPanelDown(); } catch (_){} }, t); });
+  W.timer = setTimeout(() => { if (!_pd2Walk || _pd2Walk !== W || !W.run) return; W.i++; pd2WalkStep(); }, dur + (quick ? 0 : 120 * PD2_WALK_SPEEDS[W.speed]));
+}
+/* the panel follows the facts down as they land (the drawing's own), so the next doors are in sight at the end */
+function pd2WalkPanelDown(){
+  let el = document.querySelector('#ig-dock .pd2-dossier.is-walk'); if (!el) return;
+  while (el && el !== document.body){ const st = getComputedStyle(el); if (/(auto|scroll)/.test(st.overflowY) && el.scrollHeight > el.clientHeight){ el.scrollTop = el.scrollHeight; return; } el = el.parentElement; }
+}
+function pd2WalkPlay(){
+  const W = _pd2Walk; if (!W) return;
+  if (W.run){ W.run = false; clearTimeout(W.timer); pd2WalkPaint(); try { pdGlanceRepaint(); } catch (_){} return; }
+  if (W.done){ W.i = 0; W.lit = []; W.done = false; }
+  W.run = true; pd2WalkStep(); try { pdGlanceRepaint(); } catch (_){}
+}
+function pd2WalkReset(){ const W = _pd2Walk; if (!W) return; clearTimeout(W.timer); Object.assign(W, { i: 0, run: false, lit: [], done: false });
+  const sc = document.getElementById('ig-paper-scroll'); if (sc) sc.scrollTop = 0; pd2WalkPaint(); try { pdGlanceRepaint(); } catch (_){} }
+/* Jambo's panel while the read is watched: his line, then each fact in its group with its clause; at the end, the doors */
+function pd2WalkFaceHtml(c){
+  const E = _pdE, W = _pd2Walk, X = pd2WalkCtx(); if (!X) return '';
+  const lit = W.lit.map(k => X.M[k]).filter(Boolean);
+  const say = W.done ? pd2WalkSum(c, X.M) : _pdT('pd2_wk_say');
+  const groups = PD2_WALK_GROUPS.map(g => { const rows = lit.filter(m => m.kind === g); if (!rows.length) return '';
+    return `<div class="pd2-eye">${E(_pdT('pd2_wk_g_' + g))}</div><div class="pd2-facts">${rows.map(m => { const sec = pd2WalkSecName(X.S[m.si]);
+      return `<div class="pd2-fact" data-pd2-wk-fact="${E(m.kind)}"><span class="pd2-l">${E(m.l)}</span><span class="pd2-v${m.kind === 'blank' ? ' pd2-amb' : ''}">${E(m.v)}${m.words && String(m.v).indexOf(m.words) < 0 ? `<br><q class="pd2-wk-q">${E(m.words)}</q>` : ''}</span><span class="pd2-s">${E(sec.n)}</span></div>`; }).join('')}</div>`; }).join('');
+  let next = '';
+  if (W.done){
+    const n = k => X.M.filter(m => m.kind === k).length, risk = X.M.find(m => m.kind === 'risk');
+    const row = (attr, w, q) => `<div class="pd2-wk-nx"><button type="button" class="ui-link" ${attr}>${E(w)}</button><span class="pd2-q">${E(q)}</span></div>`;
+    next = `<div class="pd2-eye">${E(_pdT('pd2_wk_next'))}</div>`
+      + (n('blank') ? row('data-pd2-wk-go="fill"', _pdTn('pd2_wk_nx_fill', n('blank'), { n: n('blank') }), _pdT('pd2_wk_free')) : '')
+      + (n('duty') ? row('data-pd-ds-obl', _pdTn('pd2_wk_nx_duty', n('duty'), { n: n('duty') }), _pdT('pd2_wk_free_each')) : '')
+      + (risk ? row(`data-pd2-wk-go="redline" data-pd2-wk-key="${E(((riskOpenOf(c) || []).find(it => ((typeof riskTitleOf === 'function') ? riskTitleOf(it) : '') === risk.l) || {}).key || '')}"`, _pdT('pd2_wk_nx_red', { sec: pd2WalkSecName(X.S[risk.si]).n }), _pdT('pd2_wk_free')) : '')
+      + `<p class="pd2-q">${E(_pdT('pd2_wk_once'))}</p>`;
+  }
+  return `<div class="pd2-wk-say">${E(say)}</div>${groups}${next}`;
+}
+function pd2WalkSum(c, M){
+  const n = k => M.filter(m => m.kind === k).length;
+  return [_pdT('pd2_wk_sum_head'), n('blank') ? _pdTn('pd2_wk_sum_blank', n('blank'), { n: n('blank') }) : '', n('risk') ? _pdTn('pd2_wk_sum_risk', n('risk'), { n: n('risk') }) : '',
+    n('duty') ? _pdTn('pd2_wk_sum_duty', n('duty'), { n: n('duty') }) : '', _pdT('pd2_wk_sum_tail')].filter(Boolean).join(' ');
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  if (t.closest('#ig-dock [data-pd2-wk-open]')){ e.preventDefault(); const c = pdContract(); if (c) pd2WalkOpen(c.id); return; }
+  if (!_pd2Walk) return;
+  if (t.closest('[data-pd2-wk-play]')){ e.preventDefault(); pd2WalkPlay(); return; }
+  if (t.closest('[data-pd2-wk-reset]')){ e.preventDefault(); pd2WalkReset(); return; }
+  if (t.closest('[data-pd2-wk-close]')){ e.preventDefault(); pd2WalkClose(); return; }
+  const sp = t.closest('[data-pd2-wk-speed]'); if (sp){ e.preventDefault(); _pd2Walk.speed = sp.getAttribute('data-pd2-wk-speed'); pd2WalkPaint(); return; }
+  const go = t.closest('#ig-dock [data-pd2-wk-go]');
+  if (go){ e.preventDefault(); const id = _pd2Walk.id, k = go.getAttribute('data-pd2-wk-go'), key = go.getAttribute('data-pd2-wk-key') || '';
+    pd2WalkClose(); const c = getContract(id); if (!c) return;
+    if (k === 'fill') pd2FillStart(id); else if (k === 'redline' && key && typeof riskEditStart === 'function') riskEditStart(c, key); return; }
+  /* Add the duties: the existing review (the Dossier's own door) — the walk is put away first */
+  if (t.closest('#ig-dock .pd2-dossier.is-walk [data-pd-ds-obl]')) pd2WalkClose();
+}, true);
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && _pd2Walk && !(e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]'))){ pd2WalkClose(); }
+});
+Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
 Object.assign(window, { pd2BriefOpen, pd2BriefUp, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });

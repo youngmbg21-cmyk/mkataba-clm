@@ -18544,6 +18544,26 @@
   html.lg-new .pd2-fm-mid td.pd-og-a{font-size:12.5px;color:var(--color-text)}
   html.lg-new .pd2-fm-mid .pd-fm-f{display:flex;flex-direction:row-reverse;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--color-divider)}
   html.lg-new .pd2-fm-mid .pd-fm-f > span{margin-right:auto;font-size:12.5px;color:var(--color-quiet)}
+  /* the read, watched: the head's speed choice, the clause being read and those read, the lit words, the foot's bar */
+  html.lg-new #ig-page.is-pd2-walk #ig-strip{display:none}
+  html.lg-new .pd2-walk-head .pd2-fh-m{white-space:normal;max-width:210px;flex:none}
+  html.lg-new .pd2-wk-sp{font-size:12px;color:var(--color-quiet);margin-left:6px}
+  html.lg-new .pd2-fill-head > :is(.ui-btn, .pd2-seg, .pd2-wk-sp){flex:none}
+  html.lg-new .pd2-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new .pd2-seg button{height:26px;padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
+  html.lg-new .pd2-seg button[aria-pressed="true"]{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .pd2-wk-x{flex:none;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-2);font:inherit;font-size:16px;color:var(--color-text);cursor:pointer}
+  html.lg-new #ig-canvas .pd2-wk-on{background:var(--st-violet-bg);transition:background .3s}
+  html.lg-new #ig-canvas .pd2-wk-done{opacity:.72}
+  html.lg-new ::highlight(pd2-walk){background-color:var(--st-amber-bg)}
+  html.lg-new #ig-canvas .pd2-wk-lit{box-shadow:inset 0 -2px 0 0 var(--st-amber-dot)}
+  html.lg-new .pd2-wk-prog{display:inline-flex;align-items:center;gap:14px}
+  html.lg-new .pd2-wk-bar{display:inline-block;width:320px;height:3px;border-radius:2px;background:var(--color-divider);overflow:hidden}
+  html.lg-new .pd2-wk-bar > i{display:block;height:100%;background:var(--color-text);transition:width .25s}
+  html.lg-new #ig-dock .pd2-wk-say{padding:14px 16px;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13.5px;line-height:1.45}
+  html.lg-new #ig-dock .pd2-wk-q{font-family:var(--font-doc);font-style:italic;font-size:12px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-wk-nx{display:flex;align-items:baseline;gap:8px;padding:5px 0}
+  @media (prefers-reduced-motion: reduce){ html.lg-new #ig-canvas .pd2-wk-on, html.lg-new .pd2-wk-bar > i{transition:none} }
 </style>
 
 

@@ -153,6 +153,26 @@ const READ = () => {
         await page.click('[data-pd-mid^="form:"] [data-pd-fm-save]');
         const kept = await until(page, () => !document.querySelector('[data-pd-mid]') && (getContract('MK-A2').fields || {}).up_goods === 'raw milk' && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-form)'), null, 10000);
         check('10 the form in the middle: typed, said beside it, stored by the one Save, the paper back', fm && said && kept, { fm, said, kept });
+        /* 11 THE READ, WATCHED (part 4): the Dossier's "Watch the read" puts the walk over the paper; played fast it walks
+           every clause, each fact lands in its group with its clause, it ends in one sentence and the next doors; it files
+           nothing; × puts it away and the paper and its Dossier come back */
+        const before = await page.evaluate(() => { const c = getContract('MK-A2'); return JSON.stringify([c.fields, (c.audit || []).length, c.obligations]); });
+        await page.click('#ig-dock .pd2-dossier [data-pd2-wk-open]');
+        const ready = await until(page, () => !!document.getElementById('pd2-walk-head') && /^0 of \d+$/.test(((document.querySelector('#pd2-walk-foot b') || {}).textContent || '').trim()), null, 10000);
+        await page.click('[data-pd2-wk-speed="fast"]'); await page.click('[data-pd2-wk-play]');
+        const ended = await until(page, () => /Read whole/.test((document.querySelector('#pd2-walk-foot') || {}).textContent || '') && !!document.querySelector('#ig-dock .pd2-wk-nx'), null, 30000);
+        const Wk = await page.evaluate(() => ({ groups: [...document.querySelectorAll('#ig-dock .pd2-dossier.is-walk [data-pd2-wk-fact]')].map(f => f.getAttribute('data-pd2-wk-fact') + ':' + f.querySelector('.pd2-s').textContent),
+          say: (document.querySelector('#ig-dock .pd2-wk-say') || {}).textContent || '', next: [...document.querySelectorAll('#ig-dock .pd2-wk-nx .ui-link')].map(b => b.textContent),
+          same: JSON.stringify((c => [c.fields, (c.audit || []).length, c.obligations])(getContract('MK-A2'))) }));
+        check('11 the read, watched: every clause, the facts in their groups with their clauses, one sentence, the next doors, nothing filed',
+          ready && ended && Wk.groups.includes('party:preamble') && Wk.groups.includes('money:§ 2') && Wk.groups.includes('date:§ 4') && Wk.groups.includes('risk:§ 3')
+          && /^Read whole\./.test(Wk.say) && Wk.next.some(w => /redline on § 3/.test(w)) && Wk.same === before, Wk);
+        await page.click('[data-pd2-wk-close]');
+        const gone = await until(page, () => !document.getElementById('pd2-walk-head') && !document.querySelector('#ig-canvas .pd2-wk-on, #ig-canvas .pd2-wk-done') && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-walk)'), null, 10000);
+        check('12 × puts the walk away: the paper as it was and its Dossier back', gone);
+        /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
+        await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);
+          for (let i = 0; i < 40; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); if (!(((j.contract || j).fields || {}).up_goods)) return; await new Promise(z => setTimeout(z, 250)); } });
         await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); roomHomeLand('MK-A2'); });
         /* the crossfade's ghost of the face before (no ids) is gone a moment later */
         await until(page, () => !!document.querySelector('#ig-dock .pd-dossier') && !document.querySelector('.pd2-dossier'), null, 20000);

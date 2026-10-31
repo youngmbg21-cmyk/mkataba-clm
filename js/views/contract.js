@@ -5016,7 +5016,7 @@ function roomHomeLand(id, opts){
      Jambo's Dossier beside it, whose Still owed list carries Fill in › for
      the reader to press. REVERSES 14 Oct's "new paper lands on Fill in"; the
      Workspace doors below keep their rule. */
-  if(opts&&opts.arrived) return !!pdOpenOnHome(c.id,'plain');
+  if(opts&&opts.arrived){ const ok=!!pdOpenOnHome(c.id,'plain'); /* the new look offers the read, watched (part 4 of its contract round); nothing plays until pressed */ if(ok&&typeof window.pd2WalkArrive==='function') window.pd2WalkArrive(c.id); return ok; }
   let owed=false; try{ owed=!!detailsOf(c).left; }catch(_){ owed=false; }
   const may=(typeof canEdit!=='function')||canEdit();
   /* 'plain', not 'copilot': a face an earlier press left open on this
