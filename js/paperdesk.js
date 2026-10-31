@@ -4672,16 +4672,72 @@ function pd2FormMidOpen(c){
   openModal(`<div class="pd2-fm-mid">${pdFormHtml(c).replace('<div class="pd-fm-h">', '<div class="pd-fm-h"><h3 class="pd2-fm-t">' + _pdE(_pdT('og_form_title')) + '</h3>' + H.under).replace(/<h3>[^<]*<\/h3>/, '')}</div>`, { maxWidth: 'none', label: _pdT('og_form_title'), page: { crumbHtml: H.back, under: '#pd2-fm-under', beside: '#ig-dock' },
     onClose: () => { _pdForm.delete(id); _pdOgLand = null; pdMidOff(); try { pdGlanceRepaint(); } catch (_){} } });
   pdMidOn(mk);
+  try { pd2FormRegroup(c); } catch (_){}
   const host = document.querySelector('[data-pd-mid] #pd-og.is-form'); if (host) pdOgPaint(host);
   try { pdGlanceRepaint(); } catch (_){}
   return true;
+}
+/* THE FORM AS DRAWN (the owner's answer, 31 Oct 2026): Arrive · Fill · Sign. The form's own rows (its boxes, its one Save)
+   are moved into the three groups; the facts already known stand among them, read only, each with where it came from (the
+   paper's sentence and its §, or "filed", or "the route"); the other side's signer is the existing signer box (its writer
+   saves only once their name is typed). Nothing new is stored. */
+function pd2QuoteOf(c, needles){
+  const N = (needles || []).filter(Boolean).map(x => String(x).toLowerCase()); if (!N.length) return null;
+  const hits = pd2Sentences(c).filter(x => N.some(n => x.t.toLowerCase().indexOf(n) >= 0)); if (!hits.length) return null;
+  /* the first that carries it, unless a shorter one in the same clause says it alone */
+  const hit = hits.filter(x => x.sec === hits[0].sec).sort((a, b) => a.t.length - b.t.length)[0];
+  /* the words around what was found, cut at words: the sentence where it is short, else a window either side */
+  let q = hit.t;
+  if (q.length > PD2_QUOTE_MAX){ const n = N.find(x => hit.t.toLowerCase().indexOf(x) >= 0), i = hit.t.toLowerCase().indexOf(n);
+    const a = Math.max(0, i - 40), b = Math.min(hit.t.length, i + n.length + 40);
+    q = (a ? '…' : '') + hit.t.slice(a, b).replace(/^\S*\s/, a ? '' : '$&').replace(/\s\S*$/, b < hit.t.length ? '' : '$&') + (b < hit.t.length ? '…' : ''); }
+  return { sec: hit.sec || _pdT('pd2_fp_preamble'), quote: q };
+}
+function pd2FormRegroup(c){
+  const host = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (!host || host.hasAttribute('data-pd2-grouped')) return;
+  const E = _pdE, R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {};
+  /* the reads are escaped for the page; the row escapes them again, so they are read back to words first */
+  const txt = h => { const d = document.createElement('div'); d.innerHTML = String(h || ''); return d.textContent || ''; };
+  const byKey = new Map(pdOgFacts(c).map(f => [String(f.key), f]));
+  const G = { arrive: [], fill: [], sign: [] };
+  host.querySelectorAll('tr.pd-fm-row').forEach(tr => { const f = byKey.get(tr.getAttribute('data-pd-og-row')); const g = f ? pdOgGroupOf(f) : 'terms';
+    G[g === 'parties' ? 'arrive' : g === 'signers' ? 'sign' : 'fill'].push(tr); });
+  const src = q => q ? `<span class="pd-og-src"><q>${E(q.quote)}</q> · <span class="pd2-nw">${E(q.sec)}</span></span>` : '';
+  const known = (k, l, v, from) => { const tr = document.createElement('tr'); tr.className = 'pd2-fm-known'; tr.setAttribute('data-pd2-known', k);
+    tr.innerHTML = `<td class="pd-og-f"><b>${E(l)}</b></td><td class="pd-og-v">${E(v)}</td><td class="pd-og-a">${from}</td>`; return tr; };
+  if (c.counterparty) G.arrive.unshift(known('counterparty', _pdT('pd2_fm_cp'), c.counterparty, src(pd2QuoteOf(c, [c.counterparty]))));
+  if (R.stream) G.arrive.push(known('stream', _pdT('pd2_f_stream'), txt(R.stream), E(_pdT('pd2_src_filed'))));
+  if (R.money) G.fill.push(known('value', _pdT('pd2_f_value'), txt(R.money), src(pd2QuoteOf(c, pd2Needles(c, 'value')))));
+  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+    G.fill.push(known('ends', _pdT('pd2_f_ends'), txt(R.expiry) + (renews ? ' · ' + _pdT('pd2_renews') : ''), src(pd2QuoteOf(c, pd2Needles(c, 'expiry'))))); }
+  /* the signers: ours as the route has it; theirs the existing signer box while one is owed */
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(x => x && x.name);
+  const ours = plan.find(x => x.party !== 'counterparty'), theirs = plan.find(x => x.party === 'counterparty');
+  /* the route's own signer; none named yet, the reader the route would name (pdCkSignerSay's first), said in full */
+  let ourName = ours ? ours.name : ''; if (!ourName){ const me = (typeof currentUser === 'function' && currentUser()) || null; ourName = (me && me.name) || ''; }
+  if (ourName) G.sign.push(known('ours', _pdT('pd2_fm_ours'), ourName, E(_pdT('pd2_fm_route'))));
+  if (theirs) G.sign.push(known('theirs', _pdT('pd2_fm_theirs'), theirs.name, E(_pdT('pd2_fm_route'))));
+  else { const f = byKey.get('signers');
+    if (f && f.kind === 'signer' && ((typeof canEdit !== 'function') || canEdit())){ const tr = document.createElement('tr');
+      tr.className = 'pd-og-row pd-fm-row is-amb pd2-fm-sg'; tr.setAttribute('data-pd-og-row', 'signers'); tr.setAttribute('data-pd-og-kind', 'signer');
+      tr.innerHTML = `<td class="pd-og-f"><b>${E(_pdT('pd2_fm_theirs'))}</b></td><td class="pd-og-v">${pdOgBoxHtml(c, f)}</td><td class="pd-og-a"><span class="pd2-amb">${E(_pdT('pd2_ft_owed'))}</span> · ${E(_pdT('pd2_fm_theirs_w'))}</td>`;
+      G.sign.push(tr); } }
+  const need = rows => rows.filter(r => r.classList.contains('pd-fm-row') && !r.classList.contains('is-read')).length;
+  host.querySelectorAll('tbody').forEach(t => t.remove());
+  ['arrive', 'fill', 'sign'].forEach(k => { if (!G[k].length) return;
+    const tb = document.createElement('tbody'); tb.className = 'pd-fm-g'; tb.setAttribute('data-pd-fm-g', k);
+    const n = need(G[k]);
+    tb.innerHTML = `<tr class="pd-fm-gh"><th colspan="3" scope="rowgroup"><span>${E(_pdT('pd2_fm_g_' + k))}</span>${n ? `<span class="is-amb">${E(_pdT('og_g_needed', { n }))}</span>` : ''}</th></tr>`;
+    G[k].forEach(tr => tb.appendChild(tr)); host.appendChild(tb); });
+  host.setAttribute('data-pd2-grouped', '');
+  try { pdFormCount(); } catch (_){}
 }
 /* the Dossier while the form is up: what is typed, row by row, as it is typed */
 function pd2FormFaceHtml(c, D){
   const E = _pdE, fm = document.querySelector('[data-pd-mid] #pd-og.is-form');
   const rows = fm ? [...fm.querySelectorAll('tr.pd-fm-row')].map(r => {
     const k = r.getAttribute('data-pd-og-row'), l = ((r.querySelector('.pd-og-f b') || {}).textContent || k).trim();
-    const el = r.querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea');
+    const el = r.querySelector('td.pd-og-v [data-pd-og-sg="tname"]') || r.querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea');
     const raw = el ? String(el.tagName === 'SELECT' && el.selectedOptions[0] && el.value ? el.selectedOptions[0].textContent : el.value || '').trim() : ((r.querySelector('.pd-fm-done') || {}).textContent || '').trim();
     const v = (el && el.type === 'date' && raw) ? pdOgDay(raw) : raw;
     const has = !!v, st = r.classList.contains('is-saved') ? 'saved' : has ? 'filled' : 'owed';
@@ -7315,7 +7371,7 @@ const PD2_FIG_RE = /[A-Z]{3}\s?\d[\d,.]*\d|\b\d{1,2}\s+(?:January|February|March
 function pd2Sentences(c){
   const out = [];
   pd2Clauses(c).forEach(cl => { const m = String(cl.headingText || cl.title || '').trim().match(/^(\d+(?:\.\d+)*)/); const sec = m ? '§ ' + m[1] : '';
-    String(cl.text || '').replace(/\s+/g, ' ').split(/(?<=[.;])\s+/).forEach(t => { if (t.trim()) out.push({ sec, t: t.trim() }); }); });
+    String(cl.text || '').split(/\n+/).forEach(par => par.replace(/\s+/g, ' ').split(/(?<=[.;])\s+/).forEach(t => { if (t.trim()) out.push({ sec, t: t.trim() }); })); });
   return out;
 }
 /* where a line rests: its own quote's clause, else the paper's sentence carrying one of its figures */
@@ -7712,7 +7768,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 });
 Object.assign(window, { pd2ClauseTint, pd2DiveOn });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
-Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml });
+Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
 Object.assign(window, { pd2BriefOpen, pd2BriefUp, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });

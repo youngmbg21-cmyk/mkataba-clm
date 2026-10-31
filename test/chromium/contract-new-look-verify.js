@@ -148,6 +148,11 @@ const READ = () => {
            said in the Dossier as it is typed; the one Save stores it and brings the paper back */
         await page.evaluate(() => pdFillOpen('MK-A2'));
         const fm = await until(page, () => !!document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form tr[data-pd-og-row="up_goods"] input') && !!document.querySelector('#ig-dock .pd2-dossier.is-form'), null, 15000);
+        const Fg = await page.evaluate(() => ({ groups: [...document.querySelectorAll('[data-pd-mid^="form:"] tbody.pd-fm-g')].map(t => t.getAttribute('data-pd-fm-g')),
+          known: [...document.querySelectorAll('[data-pd-mid^="form:"] tr.pd2-fm-known')].map(r => r.getAttribute('data-pd2-known') + ':' + r.querySelector('td.pd-og-a').textContent.trim()),
+          signer: !!document.querySelector('[data-pd-mid^="form:"] tbody[data-pd-fm-g="sign"] tr.pd2-fm-sg [data-pd-og-sg="tname"]') }));
+        check('10a the form as drawn (your answer): Arrive · Fill · Sign, the known facts with where they came from, their signer to name',
+          Fg.groups.join() === 'arrive,fill,sign' && Fg.known.some(k => /^counterparty:.*preamble$/.test(k)) && Fg.known.some(k => /^value:.*§ 2$/.test(k)) && Fg.known.some(k => /^ends:.*§ 4$/.test(k)) && Fg.known.some(k => /^ours:/.test(k)) && Fg.signer, Fg);
         await page.fill('[data-pd-mid^="form:"] tr[data-pd-og-row="up_goods"] input', 'raw milk');
         const said = await until(page, () => /raw milk/.test((document.querySelector('#ig-dock [data-pd2-ft="up_goods"]') || {}).textContent || ''), null, 5000);
         await page.click('[data-pd-mid^="form:"] [data-pd-fm-save]');
