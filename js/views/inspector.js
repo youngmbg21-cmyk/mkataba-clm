@@ -770,7 +770,7 @@ function insPanelHtml(c, o){
     + insKvHtml([{ k: 'party', label: i18t('cn_panel_party'), v: esc(i18t('cn_panel_party_v')), wide: true }, { k: 'stage', label: i18t('cn_panel_stage'), v: esc(String(c.status || '')) }]);
   let order = opt.order || ['facts', 'table', 'reads', 'latest'];
   /* Jambo's panel says what is owed as its own section, before what he read */
-  if (opt._jl && !order.includes('needs')){
+  if (opt._jl && !order.includes('needs') && !opt.noNeeds){
     const at = order.indexOf('reads');
     order = at < 0 ? order.concat('needs') : [...order.slice(0, at), 'needs', ...order.slice(at)];
   }
@@ -782,7 +782,7 @@ function insPanelHtml(c, o){
     reads: () => insReadsHtml(c, !!opt._jl),
     latest: () => insLatestHtml(c, opt.latestState),
   };
-  return insHeadHtml(c, opt) + order.map(k => (part[k] ? part[k]() : '')).join('');
+  return (opt.noHead ? '' : insHeadHtml(c, opt)) + order.map(k => (part[k] ? part[k]() : '')).join('');
 }
 function insPanelEmptyHtml(msg){
   return `<div class="ins-sec ins-empty"><p class="ins-note">${esc(msg || i18t('ins_none'))}</p></div>`;
@@ -824,6 +824,7 @@ function insPaintPanel(o){
   if (jl) host._jlSolo = false;
   const body = jl ? jlFrame(host, opt) : host;
   if (jl) jlHeadPaint(host, opt, !!(c || item) && !soloItem);
+  if (jl) jlOwnPaint(host, opt);
   if (jl) jlGreetPut(host, true);
   if (jl && !c && !item){ body.innerHTML = jlWordsHtml(opt); }
   else if (soloItem){ body.innerHTML = opt.body || ''; }
@@ -1309,8 +1310,29 @@ function jlHeadPaint(host, opt, holds){
   const word = holds ? (opt.jlWord || i18t(opt.c ? 'jl_w_contract' : 'jl_w_item')) : (opt.jlHome || jlPageWord());
   if (w){ w.textContent = word; w.setAttribute('title', word); }
   const b = host.querySelector('[data-jl-back]'); if (b) b.hidden = !holds;
-  const n = jlCount();
+  const n = opt.jlTabWord ? 0 : jlCount();
   host.querySelectorAll('[data-jl-n]').forEach(el => { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); });
+}
+/* A CHOSEN ROW'S OWN TAB AND LINKS (the new look's Approvals, round 5, as drawn): the landing tab may carry the
+   row's own word ("Before you decide") and a second tab that is an existing door ("Dossier"); its own links stand
+   above the box instead of the page's (jamboWaysSync leaves a foot that carries them). Painted with the panel,
+   put back the moment a row without them is painted. */
+function jlOwnPaint(host, opt){
+  const home = host.querySelector('[data-jl-home] .pd-tab-w');
+  const word = opt.jlTabWord || i18t('pd_tab_overview');
+  if (home && home.textContent !== word) home.textContent = word;
+  host.querySelectorAll('[data-jl-tab2]').forEach(b => b.remove());
+  if (opt.jlTab2 && opt.jlTab2.label){
+    const at = host.querySelector('[data-jl-home]');
+    if (at){ at.insertAdjacentHTML('afterend', `<button type="button" class="pd-tab jl-tab" data-jl-tab2><span class="pd-tab-w">${esc(opt.jlTab2.label)}</span></button>`);
+      const b = host.querySelector('[data-jl-tab2]'); const run = opt.jlTab2.run; b.addEventListener('click', () => { if (typeof run === 'function') run(); }); }
+  }
+  const foot = host.querySelector(':scope > .jl-foot');
+  host.querySelectorAll(':scope > .jb-ways.is-own').forEach(w => w.remove());
+  if (opt.jlLinks && foot){
+    const prev = foot.previousElementSibling; if (prev && prev.classList && prev.classList.contains('jb-ways')) prev.remove();
+    foot.insertAdjacentHTML('beforebegin', `<nav class="jb-ways is-above-foot is-own" data-jb-ways="own">${opt.jlLinks}</nav>`);
+  } else if (typeof jamboWaysQueue === 'function') jamboWaysQueue();
 }
 /* A DAY SAID THE WAY A PERSON SAYS IT (rounds 15 and 19: "back Friday",
    "away until Fri"): the weekday within the coming week, else the date */

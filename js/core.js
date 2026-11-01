@@ -3806,12 +3806,17 @@ function dlgPageAdopt(root, panel, page){
        lost (--dlg-sbw) and a page that floats its head beside its body gives the head that much more room */
     const bd=panel.querySelector('.dlg-pg-body'); const sbw=bd?Math.max(0,bd.offsetWidth-bd.clientWidth):0;
     frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:${right}px;bottom:0;z-index:70;display:flex;--dlg-sbw:${sbw}px;`;
+    /* page.below: the page stands under that element (a list's own head and tabs stay in sight), from its left edge */
+    const bel=page.below?document.querySelector(page.below):null;
+    if(bel&&bel.getClientRects().length){ const br=bel.getBoundingClientRect(); frame.style.top=Math.round(br.bottom)+'px'; frame.style.left=Math.round(br.left)+'px';
+      if(side&&side.getClientRects().length) frame.style.right=Math.max(right,Math.round((window.innerWidth||0)-side.getBoundingClientRect().left))+'px'; }
   };
   if(page.beside&&typeof ResizeObserver==='function'){ ro=new ResizeObserver(()=>place()); const cs=document.getElementById('content-scroll'); if(cs) ro.observe(cs); }
   place(); window.addEventListener('resize',place);
   panel.setAttribute('data-dlg-page','');
+  if(page.bare) panel.setAttribute('data-dlg-bare','');
   Object.assign(panel.style,{ width:'100%', maxWidth:'none', height:'100%', maxHeight:'none', borderRadius:'0',
-    boxShadow:'none', border:'0', background:'var(--color-bg)', overflow:'hidden', display:'flex', flexDirection:'column' });
+    boxShadow:'none', border:'0', background:page.bare?'var(--color-surface)':'var(--color-bg)', overflow:'hidden', display:'flex', flexDirection:'column' });
   const body=document.createElement('div');
   body.className='dlg-pg-body scroll-thin';
   while(panel.firstChild) body.appendChild(panel.firstChild);

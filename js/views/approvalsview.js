@@ -97,6 +97,7 @@ function apApprovalRows(){
       rule:req?(typeof saStepName==='function'?saStepName(sa.need):apRuleText(x.st)):apRuleText(x.st),
       ruleSub:req?i18t('sa_pg_rule_sub'):'',
       who:(ask&&ask.by&&ask.by.name)||(req?((req.askedBy&&req.askedBy.name)||''):owner),
+      whoId:(ask&&ask.by&&ask.by.id)||(req&&req.askedBy&&req.askedBy.id)||'',
       waitsOn:(x.st&&x.st.approverLabel)||'',
       /* An approval nobody has sent is not "waiting on" its approver — it is
          the lead's move, and the row says so. */
@@ -806,16 +807,20 @@ function apInsPaint(rows){
     /* JAMBO'S PANEL (round 15, "One worklist" as drawn): "Approval" or
        "Signature", the stand-in's "for Jonas" beside the party, the facts as
        rows and "Your answer"; anything else owed is the Needs you section */
-    insPaintPanel({ seat, c:r?r.c:null, acts, lead:apLeadJlHtml(tab,r,acts), moveSuffix:false,
+    const nl=typeof newLookOn==='function'&&newLookOn()&&r&&r.type==='approval'&&!done;
+    insPaintPanel({ seat, c:r?r.c:null, acts, lead:nl?apnLeadHtml(r,acts):apLeadJlHtml(tab,r,acts), moveSuffix:false,
       statusBeside:true,
       statusHtml:done?apApprovedPillHtml():fw?apForPillHtml(fw):null,
       needsHtml:!r?null:done?apDoneLineHtml():null,
       needsSkip:skip,
-      order:['lead','reads'],
+      order:nl?['lead']:['lead','reads'],
+      /* BEFORE YOU DECIDE, AS DRAWN (round 5): no head of facts (the lead names it), its tab and the Dossier's beside it,
+         the row's own three links above the box (open the clause · history · ask the asker), the box about this contract */
+      noHead:nl, noNeeds:nl, jlTabWord:nl?i18t('apn_p_tab'):'', jlTab2:nl?{ label:i18t('pd_tab_dossier'), run:()=>roomHomeLand(r.c.id) }:null,
+      jlLinks:nl?apnLinksHtml(r):'', jlPh:nl?i18t('int_ask_contract',{ ref:(typeof contractRef==='function'?contractRef(r.c):r.c.id) }):i18t('jl_ph_list'),
       empty:i18t('ap_wl_none'),
       jlWord:i18t(tab==='signatures'?'jl_w_signature':'jl_w_approval'),
       jlHome:i18t('nav_approvals'),
-      jlPh:i18t('jl_ph_list'),
       jlSay:()=>apSay(rows) });
   };
   if(!same) paint(id);
@@ -823,6 +828,51 @@ function apInsPaint(rows){
     onSelect:pid=>{ insSelect(seat,pid); insMarkRow(tb,'[data-ap-row]',idOf,pid); paint(pid); },
     onOpen:pid=>apOpenSigning(pid) });
 }
+/* BEFORE YOU DECIDE, AS DRAWN (the new look): one sentence, what the paper says in rows (each with where it was read),
+   Jambo's remark and what happens after — every word a reading this page already makes, no call; the acts are the panel's own */
+function apnLeadHtml(r, acts){
+  const c=r.c, q=apnQuote(c), [rule]=apWhyLines(r);
+  const money=!(typeof canViewValues==='function'&&!canViewValues());
+  const cp=String(c.counterparty||'').split(/\s+/)[0];
+  const row=(k,v,src)=>`<div class="apn-pr"><b>${esc(k)}</b><span>${v}</span><i>${esc(src||'')}</i></div>`;
+  /* AS DRAWN: each standard the paper departs from (its own words, its §), the standards' reading with its day, the
+     value with the reader's signing cap and whether the asker's covers it — all read off the record, no call */
+  const deps=apnDepartures(c).slice(0,2).map(v=>{ let sec=''; try{ const qq=v.quote&&typeof pd2QuoteOf==='function'?pd2QuoteOf(c,[String(v.quote)]):null; sec=qq?qq.sec:''; }catch(_){ sec=''; }
+    return row(String(v.category||i18t('apn_p_std')), esc(String(v.position||v.quote||'')), sec); }).join('');
+  const chk=c.playbook&&c.playbook.at?i18t('apn_p_checked',{ d:(typeof regDotDate==='function'?regDotDate(String(c.playbook.at).slice(0,10)):String(c.playbook.at).slice(0,10)) }):'';
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  let cap=''; try{ const k=typeof signCapOf==='function'?signCapOf(me):null; if(k&&k.answered&&k.limit!=null) cap=i18t('apn_p_your_cap',{ v:(typeof fmtMoneyShort==='function'?fmtMoneyShort(k.limit):String(k.limit)) }); }catch(_){ cap=''; }
+  const valLine=[typeof fmtMoneyShortOf==='function'?fmtMoneyShortOf(c):String(c.value||''), cap].filter(Boolean).join(' · ');
+  const rows=[deps,
+    row(i18t('apn_p_std'), typeof stdRowWordsHtml==='function'?stdRowWordsHtml(c):'', chk),
+    money?row(i18t('apn_p_value'), esc(valLine), i18t('apn_p_rule')):''].filter(Boolean).join('');
+  const lead=esc(i18t(r.who?'apn_p_lead_who':'apn_p_lead',{ name:'\u0001', who:String(r.who||'').split(/\s+/)[0], rule:rule||'' })).replace('\u0001',`<b>${esc(c.name||'')}</b>`);
+  return `<div class="apn-panel"><p class="apn-pl">${lead}</p>
+    <div class="apn-pcap">${esc(i18t('apn_p_says'))}</div>${rows}
+    <div class="apn-pj"><span class="apn-pdot" aria-hidden="true"></span><div><div class="apn-pcap">Jambo</div><p>${esc(i18t('apn_p_jambo',{ cp }))}</p></div></div>
+    <div class="apn-pcap">${esc(i18t('apn_p_after_h'))}</div><p class="apn-pafter">${esc(i18t(r.who?'apn_p_after_who':'apn_p_after',{ who:String(r.who||'').split(/\s+/)[0] }))}</p></div>`;
+}
+/* the chosen approval's three links (as drawn): each an existing door — the paper at the quoted words, its history, a colleague's note */
+function apnLinksHtml(r){
+  const id=esc(r.c.id), first=String(r.who||'').split(/\s+/)[0];
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  const ask=first&&!(r.whoId&&String(r.whoId)===String(me.id))&&!(r.who&&r.who===me.name);
+  return `<button type="button" class="jb-way" data-apn-go="clause" data-id="${id}">${esc(i18t('apn_l_clause'))}</button>`
+    +`<button type="button" class="jb-way" data-apn-go="hist" data-id="${id}">${esc(i18t('apn_l_hist'))}</button>`
+    +(ask?`<button type="button" class="jb-way" data-apn-go="ask" data-id="${id}">${esc(i18t('apn_l_ask',{ who:first }))}</button>`:'');
+}
+function apnGo(go, id){
+  const c=typeof getContract==='function'?getContract(id):null; if(!c) return;
+  if(go==='hist'){ if(typeof hbStripBring==='function') hbStripBring(id,'hist'); return; }
+  if(go==='ask'){ const r=(apWorkRows().rows||[]).find(x=>x.c.id===id); const first=String((r&&r.who)||'').split(/\s+/)[0];
+    if(typeof openShareModal==='function') openShareModal(c,{ purpose:'colleague', colleagues:r&&r.whoId?[{ id:r.whoId, name:r.who }]:undefined, note:i18t('apn_l_ask_note',{ who:first, name:c.name||'' }) }); return; }
+  /* the clause: the paper on Home, then the quoted words found and brought into view (bounded) */
+  const q=apnQuote(c); if(typeof roomHomeLand==='function') roomHomeLand(id);
+  if(!q||typeof igQuoteGo!=='function') return;
+  let n=0; const t=setInterval(()=>{ n++; if(document.querySelector('#ig-paper:not([hidden]) #ig-canvas')){ clearInterval(t); igQuoteGo(String(q.quote).replace(/^…|…$/g,'')); } else if(n>40) clearInterval(t); },100);
+}
+if(typeof document!=='undefined'&&!document._apnGoWired){ document._apnGoWired=true;
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-apn-go]'):null; if(!b) return; e.preventDefault(); apnGo(b.getAttribute('data-apn-go'),b.getAttribute('data-id')); }); }
 /* "for Jonas" — a stand-in's answer says whom it is for (the pill beside the party) */
 function apForPillHtml(fw){
   return `<span class="reg-stg ap-for-pill" title="${esc(i18t('jl_for',{who:fw.name}))}">${typeof icon==='function'?icon('user','ap-for-ic'):''}${esc(i18t('jl_for',{who:String(fw.name).split(/\s+/)[0]}))}</span>`;
@@ -870,7 +920,10 @@ function apSay(rows){
    Approval rules at its end — an admin's door to Settings */
 function apPaintHead(){
   const W=apWorkRows();
-  const facts=[W.yours.length?i18tn('ap_wl_n_yours',W.yours.length,{n:W.yours.length}):'', W.others.length?i18tn('ap_wl_n_others',W.others.length,{n:W.others.length}):''].filter(Boolean).join(' \u00b7 ');
+  let facts=[W.yours.length?i18tn('ap_wl_n_yours',W.yours.length,{n:W.yours.length}):'', W.others.length?i18tn('ap_wl_n_others',W.others.length,{n:W.others.length}):''].filter(Boolean).join(' \u00b7 ');
+  /* the new look, as drawn: "2 to decide · 1 to sign" */
+  if(typeof newLookOn==='function'&&newLookOn()){ const nd=W.yours.filter(r=>r.type==='approval'&&!r.done).length, ns=W.yours.filter(r=>r.type==='signature'&&!r.done).length;
+    facts=[nd?i18tn('apn_to_decide',nd,{ n:nd }):'', ns?i18tn('apn_to_sign',ns,{ n:ns }):''].filter(Boolean).join(' \u00b7 ')||i18t('apn_nothing'); }
   const f=document.getElementById('page-head-facts'); if(f){ f.setAttribute('data-ap-facts',''); f.textContent=facts||i18t('ap_wl_none'); }
   const a=document.getElementById('page-head-acts');
   if(a){
@@ -1013,6 +1066,8 @@ function renderApprovalsPage(o){
     : `<div class="ap-empty">${esc(i18t(total?'ap_wl_none_match':'ap_wl_none'))}</div>`;
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */
   const foot=n&&typeof lhFootHtml==='function'?lhFootHtml('approvals',n,n,0,{ cls:'ap-foot ap-wl-foot' }):'';
+  /* THE NEW LOOK, AS DRAWN (round 5): its own head and its own table — the switch's page, the old one untouched */
+  if(INS&&typeof newLookOn==='function'&&newLookOn()) return apnRender(W);
   const page=document.querySelector('#content .ap-page[data-ins-page="approvals"]');
   const sec=document.getElementById('ap-scroll');
   if(listOnly&&page&&sec&&page.getAttribute('data-ins')===(INS?'1':'0')){
@@ -1030,6 +1085,106 @@ function renderApprovalsPage(o){
   apListWire(INS, W);
   if(INS&&typeof insWatchWidth==='function') insWatchWidth();
   setActiveNav('approvals');
+}
+/* ═══ APPROVALS & SIGNING, AS DRAWN (the new look, round 5; owner 1 Nov 2026: Approve AND Decline on every row) ═══
+   The title with what waits ("2 to decide · 1 to sign"), the box that filters, three tabs — Mine · Waiting on others ·
+   Done — and ONE table: Agreement · What it rests on (the paper's own words and §, then the standards' reading) · Rule ·
+   Waited, the row's acts at its end. Under Mine the approvals first, then a "Signing" group. Done holds what was
+   decided and what was signed lately (its receipt). Every press is a door the page already had: Approve and Decline
+   are apDecide (Decline asks its reason first), Sign and Receipt open the paper's signing (apOpenSigning). */
+let _apnTab='mine', _apnQ='';
+const APN_DONE_DAYS=60;
+function apnDoneRows(W){
+  const decided=W.rows.filter(r=>r.done);
+  const ids=new Set(decided.map(r=>String(r.c.id)));
+  const since=Date.now()-APN_DONE_DAYS*864e5;
+  const signed=(state.contracts||[]).filter(c=>c&&!ids.has(String(c.id))&&typeof negoExecuted==='function'&&negoExecuted(c)&&Date.parse(c.signedAt||'')>=since)
+    .map(c=>({ c, type:'receipt', done:true, idle:null }));
+  return decided.concat(signed);
+}
+function apnTabRows(W){
+  if(_apnTab==='done') return apnDoneRows(W.all);
+  /* a row under Mine waits on the reader, a signature too (apWorkRows puts every signature of theirs there) */
+  if(_apnTab==='others') return W.all.others.filter(r=>!r.done);
+  /* as drawn: the last contract sealed closes the Signing group, grey, its Receipt one press away (not counted) */
+  const last=apnDoneRows(W.all).filter(r=>r.type==='receipt').sort((a,b)=>String(b.c.signedAt||'').localeCompare(String(a.c.signedAt||''))).slice(0,1);
+  return W.all.yours.filter(r=>!r.done).map(r=>Object.assign({},r,{ _mine:true })).concat(last);
+}
+/* what the decision rests on (as drawn): the words of the first standard this paper departs from, else the value's line */
+function apnDepartures(c){ return ((c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[]).filter(v=>v&&(v.status==='deviation'||v.status==='missing')&&!(v.accepted&&v.accepted.at)); }
+function apnQuote(c){
+  if(typeof pd2QuoteOf!=='function') return null;
+  const d=apnDepartures(c).find(v=>v.quote);
+  if(d){ try{ const q=pd2QuoteOf(c,[String(d.quote)]); if(q) return Object.assign({ why:String(d.position||'') },q); }catch(_){ } }
+  const fig=Number(c&&c.value)||0; if(!fig) return null;
+  try{ return pd2QuoteOf(c, [fig.toLocaleString('en-US'), String(fig)]); }catch(_){ return null; }
+}
+function apnRowHtml(r){
+  const c=r.c, me=(typeof currentUser==='function'&&currentUser())||{};
+  const money=!(typeof canViewValues==='function'&&!canViewValues());
+  const ref=window.refHtml?refHtml(c):esc(c.id);
+  const val=money&&typeof fmtMoneyShortOf==='function'?esc(fmtMoneyShortOf(c)):'';
+  let sub, rests, rule='—', waited='—', acts='';
+  if(r.type==='receipt'){
+    sub=[esc(c.counterparty||''), ref, esc(i18t('apn_executed',{ day:(typeof regDotDate==='function'?regDotDate(String(c.signedAt).slice(0,10)):String(c.signedAt).slice(0,10)) }))].filter(Boolean).join(' · ');
+    rests=`<span class="apn-plain">${esc(i18t('apn_sealed'))}</span>`;
+    acts=`<button type="button" class="apn-link" data-ap-open="${esc(c.id)}">${esc(i18t('apn_receipt'))}</button>`;
+  } else if(r.type==='signature'){
+    const theirs=(c.signatures||[]).filter(x=>x&&x.party==='counterparty').sort((a,b)=>String(a.at||'').localeCompare(String(b.at||''))).pop();
+    const when=theirs&&theirs.at?new Date(theirs.at).toLocaleTimeString(window.langLocale?langLocale():'en-GB',{ hour:'2-digit', minute:'2-digit' }):'';
+    sub=[esc(c.counterparty||''), ref, theirs?esc(i18t('apn_they_signed',{ who:String(c.counterparty||'').split(/\s+/)[0], when })):''].filter(Boolean).join(' · ');
+    let capOk=true; try{ capOk=!(typeof signCapBlocker==='function'&&signCapBlocker(c)); }catch(_){ capOk=true; }
+    rests=`<span class="apn-plain">${esc([r._mine?i18t('apn_your_turn',{ me:me.name||'', org:(window.FIRST_PARTY||'') }):apTurnText(r), r._mine&&capOk?i18t('apn_cap_ok'):''].filter(Boolean).join(' · '))}</span>`;
+    waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
+    acts=r._mine?`<button type="button" class="ui-btn ui-btn-sm" data-ap-open="${esc(c.id)}">${esc(i18t('apn_sign'))}</button>`:'';
+  } else {
+    sub=[esc(c.counterparty||''), ref, val, r.who?esc(i18t('apn_asked_by',{ who:r.who })):esc(i18t('apn_by_rule'))].filter(Boolean).join(' · ');
+    const q=apnQuote(c);
+    const std=typeof stdRowWordsHtml==='function'?stdRowWordsHtml(c):'';
+    rests=`${q?`<i class="apn-q">“${esc(q.quote)}”</i> <span class="apn-sec">${esc(q.sec)}</span>`:''}<div class="apn-read">${q&&q.why?esc(q.why):std}</div>`;
+    rule=esc(apWhyLines(r)[0]||'—');
+    waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
+    acts=apMayDecide(r)?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-ap-approve="${esc(c.id)}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-ap-refuse="${esc(c.id)}">${esc(i18t('apn_decline'))}</button>`:'';
+  }
+  return `<tr data-ap-row="${esc(c.id)}" data-ap-kind="${r.type}" class="${r.type==='receipt'?'is-done':''}" tabindex="-1">
+    <td><div class="apn-name">${esc(c.name||'')}</div><div class="apn-sub">${sub}</div></td>
+    <td class="apn-rests">${rests}</td><td class="apn-rule">${rule}</td><td class="apn-wait">${waited}</td><td class="apn-acts">${acts}</td></tr>`;
+}
+function apnRender(W){
+  const q=String(_apnQ||'').trim().toLowerCase();
+  const all=apnTabRows(W).filter(r=>!q||[r.c.name,r.c.counterparty,r.c.id,r.c.contractNo].some(v=>String(v||'').toLowerCase().includes(q)));
+  const ap=all.filter(r=>r.type==='approval'), sg=all.filter(r=>r.type!=='approval');
+  const nDecide=W.all.yours.filter(r=>r.type==='approval'&&!r.done).length, nSign=W.all.yours.filter(r=>r.type==='signature'&&!r.done).length;
+  const tabs=[['mine',i18t('apn_tab_mine'),W.all.yours.filter(r=>!r.done).length],['others',i18t('apn_tab_others'),W.all.others.filter(r=>!r.done).length],['done',i18t('apn_tab_done'),apnDoneRows(W.all).length]]
+    .filter(t=>t[2]||t[0]===_apnTab||t[0]==='mine');
+  void nDecide; void nSign;
+  const head=`<div class="apn-bar"><label class="apn-box">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_apnQ)}"></label><span class="apn-sp"></span>
+    ${tabs.map(t=>`<button type="button" class="apn-tab${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>`;
+  const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}</th><th>${esc(i18t('apn_col_rests'))}</th><th>${esc(i18t('apn_col_rule'))}</th><th>${esc(i18t('apn_col_waited'))}</th><th></th></tr></thead>`;
+  const group=sg.length&&ap.length&&_apnTab!=='done'?`<tr class="apn-group"><td colspan="5">${esc(i18t('apn_group_sign'))}</td></tr>`:'';
+  const body=all.length?`<tbody>${ap.map(apnRowHtml).join('')}${group}${sg.map(apnRowHtml).join('')}</tbody>`:`<tbody><tr><td colspan="5" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr></tbody>`;
+  const shown=ap.concat(sg);
+  const table=`<table class="ap-table ap-ins apn-table" data-list-seat="approvals"><colgroup><col><col style="width:36%"><col style="width:120px"><col style="width:96px"><col style="width:150px"></colgroup>${th}${body}</table>`;
+  const foot=`<div class="apn-foot">${esc(i18tn('apn_for_you',W.all.yours.filter(r=>!r.done).length,{ n:W.all.yours.filter(r=>!r.done).length }))}</div>`;
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter sap-page ap-page is-ins apn-page" data-ins-page="approvals" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card" id="ap-scroll">${head}${table}${foot}</section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>
+  </div>`;
+  apPaintHead();
+  apInsPaint(shown);
+  if(typeof insWatchWidth==='function') insWatchWidth();
+  setActiveNav('approvals');
+  const box=document.getElementById('apn-q');
+  if(box) box.addEventListener('input',()=>{ _apnQ=box.value; const caret=box.selectionStart; apnRender(W); const b2=document.getElementById('apn-q'); if(b2){ b2.focus(); try{ b2.setSelectionRange(caret,caret); }catch(_){} } });
+}
+if(typeof document!=='undefined'&&document.addEventListener&&!document._apnWired){
+  document._apnWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+    const tab=t.closest('.apn-page [data-apn-tab]'); if(tab){ e.preventDefault(); _apnTab=tab.getAttribute('data-apn-tab'); renderApprovalsPage(); return; }
+    const no=t.closest('.apn-table [data-ap-refuse]'); if(no){ e.preventDefault(); e.stopPropagation(); apDecide(no.getAttribute('data-ap-refuse'),'refused'); return; }
+    const op=t.closest('.apn-table [data-ap-open]'); if(op){ e.preventDefault(); e.stopPropagation(); apOpenSigning(op.getAttribute('data-ap-open')); return; }
+  });
 }
 /* the words in the box narrow the rows: the list's card alone is drawn again */
 function apPaintList(){ return renderApprovalsPage({ listOnly:true }); }
@@ -1066,6 +1221,6 @@ if(typeof document!=='undefined'&&document.addEventListener&&typeof window!=='un
 }
 Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
-  apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
+  apInsSeat,apLeadHtml,apInsActs,apInsPaint,apnLeadHtml,apnRender,apnRowHtml,apnDoneRows,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,
   AP_VIEWS,AP_F_DEF,apListAtRest,apBook,apStreamName,apRowWords,apListNow,apTabs,apFilters,apSortHtml,apHeadRegister,apPlace,apPlacePut,apShowRow,apPaintList,apListWire});

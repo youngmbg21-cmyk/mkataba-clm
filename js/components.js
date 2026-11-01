@@ -599,12 +599,22 @@ function jamboWaysSync(){
       /* THE CONTRACT'S ONE ROW (the contract round, as drawn): its own next-step links stand above the box instead */
       if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]') && document.querySelector('#ig-paper:not([hidden]) #ig-canvas')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); return; }
       const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
+      /* a chosen row's or a face's own links (jlOwnPaint, jamboOwnWays) stand there instead, while what drew them stands */
+      if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)) return; }
       if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
       if (old) old.remove();
       const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
       foot.insertAdjacentHTML('beforebegin', html);
     });
   }
+}
+/* a face's own links above Jambo's box (as drawn: Before you sign's "dossier · clauses · history"), kept while `forSel` stands */
+function jamboOwnWays(footSel, html, forSel){
+  if (typeof document === 'undefined') return;
+  const foot = document.querySelector(footSel); if (!foot) return;
+  const prev = foot.previousElementSibling; if (prev && prev.classList && prev.classList.contains('jb-ways')) prev.remove();
+  /* an empty row is held too (a face drawn with no links above its box keeps the page's away) */
+  if (html != null) foot.insertAdjacentHTML('beforebegin', `<nav class="jb-ways is-above-foot is-own" data-jb-ways="own" data-own-for="${esc(forSel || '')}"${html ? '' : ' hidden'}>${html}</nav>`);
 }
 let _jbWaysQueued = false;
 function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
@@ -623,7 +633,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   }
 }
 Object.assign(window,{JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
-Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord});
+Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
    "all the new jambo panels do not have a slider like in the redline page.

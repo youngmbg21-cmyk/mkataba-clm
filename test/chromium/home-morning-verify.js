@@ -58,6 +58,13 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
         await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
         const old = await until(page, () => state.view === 'counter' && !!document.querySelector('#cn-page #cn-q') && !document.getElementById('cn2-page'), null, 20000);
         check('10 the switch off: today\'s Home, unchanged (the centred card and its box)', old);
+        /* 10b the switch turned on WHILE Home is showing (the owner, 1 Nov 2026: "not converting to the new page design even when
+           changed"): Home is drawn again at once in the new look, Jambo's panel beside it; turned off again, the old Home at once */
+        await page.evaluate(() => stNewLookSet(true));
+        const nowNew = await until(page, () => state.view === 'counter' && !!document.getElementById('cn2-page') && !!document.querySelector('#ins-panel .jb-card'), null, 10000);
+        await page.evaluate(() => stNewLookSet(false));
+        const backOld = await until(page, () => state.view === 'counter' && !document.getElementById('cn2-page') && !!document.querySelector('#cn-page #cn-q'), null, 10000);
+        check('10b the switch turned on while Home shows: Home is drawn again in the new look at once; turned off, the old Home at once', nowNew && backOld, { nowNew, backOld });
       }
       await newLook(page, true);
       await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));

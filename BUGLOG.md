@@ -21882,3 +21882,9 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Noticed, not fixed (31 Oct 2026): the Handbook page's "Which one do I need?" table runs under Jambo's panel at 1440×780 (its last columns hidden behind the panel), in today's look and the new one.
 
 - Noticed, not fixed (31 Oct 2026): `HATI_TIDY_ONLY=paper,checklist,board-card HATI_TIDY_NEW_LOOK=1` fails "board-card" at laptop-b and iPad (the Board's side list never opens after the two paper cases ran in the same page); the same at the parent; alone, and in the full sweep's order, it passes.
+
+## Noticed, not fixed (1 Nov 2026)
+- f322 (3f "the median is over what actually FINISHED this month") and f177 ("the months along a chart follow the reader") fail on main itself on 1 Nov 2026, the first day of a month — both read "this month" off the day they run (CLAUDE.md: a test whose answer depends on the day it runs is worse than no test). Found on PR #567 (Home follows the new-look switch), which does not touch either.
+
+## Noticed, not fixed (1 Nov 2026, round 5)
+- Opening "Before you sign" on a contract that was never negotiated starts a negotiation (redlineText gains clause ids, c.changes/c.negotiation appear). The wording hash moves, so an approval already given turns "stale" just by looking. Reproduced on HEAD with the old look too (pdSignOpen on MK-A2 in test/round5-world.js). Reading must not write.
