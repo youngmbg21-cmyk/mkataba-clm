@@ -63,6 +63,9 @@ function r5Contracts(){
   /* Nandi's signature is added in the page (R5_IN_PAGE), after its negotiation stands: the server freezes the wording at the first signature */
   Object.assign(a2, { format: 'rich', expiry: day(243), counterpartyEmail: 'joseph@nandidairy.example' });
   const b2 = fixtureContract('MK-B2', 'Retail Supply — Coast', 'Naivas Supermarkets', 'proc', 78000000, 'Under Review', COAST);
+  /* as drawn: our standards checked, one differs — payment at 90 against our 60 */
+  b2.playbook = { at: iso(-4), standards: 15, checked: 15, verdicts: Array.from({ length: 14 }, (_, i) => ({ id: 'a' + i, category: 'Standard ' + (i + 1), status: 'aligned' }))
+    .concat([{ id: 'p1', category: 'Payment', status: 'deviation', position: '90 days · 30 past your standard of 60', quote: 'within 90 days of receipt' }]) };
   /* as drawn: Wanjiru raised it and asked a day ago */
   Object.assign(b2, { format: 'rich', expiry: day(880), lastAction: iso(-1), owner: { id: 'u-wanjiru', name: 'Wanjiru Kamau' } });
   const b1 = fixtureContract('MK-B1', 'Modern Trade Listing', 'Naivas Supermarkets', 'proc', 85000000, 'Signed');

@@ -571,3 +571,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE NEW LOOK — NEGOTIATE (round 4, behind the switch)
 - `node test/chromium/negotiate-new-look-verify.js` — at the three screens: their asks beside the redlined paper (numbered, Counter at the limit, the untouched note), the Redlines face's four links, the close plan's one table and compare, Send's lines and letter, History's quick links narrowing, Where we are in one column, the editor card's marked suggestion and Apply; once: a note's Counter files ours on top, the dial files 50; off: none of it. Long (over ten minutes); run it alone.
 - f563 (the desk never saves itself: `briefReadSave`, the blank writer), f148 (`ct_hq_jambo` same in both), f232, f965.
+
+## THE NEW LOOK, ROUND 5 — APPROVE, SIGN, LIVE (1 Nov 2026)
+- `node test/chromium/round5-new-look-verify.js` (world: test/round5-world.js): Approvals' one worklist and Before you decide, Before you sign's six lines and card, Obligations and Proposed, the Calendar's Agenda and Horizon, History with the wording, Amend's two papers; the switch off as before. Red at origin/main on 1–7.

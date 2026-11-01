@@ -835,11 +835,17 @@ function apnLeadHtml(r, acts){
   const money=!(typeof canViewValues==='function'&&!canViewValues());
   const cp=String(c.counterparty||'').split(/\s+/)[0];
   const row=(k,v,src)=>`<div class="apn-pr"><b>${esc(k)}</b><span>${v}</span><i>${esc(src||'')}</i></div>`;
-  let end=''; try{ end=(typeof effectiveExpiry==='function'?effectiveExpiry(c):'')||c.expiry||''; }catch(_){ end=c.expiry||''; }
-  const rows=[money?row(i18t('apn_p_value'), esc(typeof fmtMoneyShortOf==='function'?fmtMoneyShortOf(c):String(c.value||'')), q?q.sec:''):'',
-    row(i18t('apn_p_std'), typeof stdRowWordsHtml==='function'?stdRowWordsHtml(c):'', ''),
-    end?row(i18t('apn_p_ends'), esc(typeof regDotDate==='function'?regDotDate(String(end).slice(0,10)):String(end).slice(0,10)), ''):'',
-    row(i18t('apn_p_why'), esc(apWhyLines(r).filter(Boolean).join(' · ')), i18t('apn_p_rule'))].filter(Boolean).join('');
+  /* AS DRAWN: each standard the paper departs from (its own words, its §), the standards' reading with its day, the
+     value with the reader's signing cap and whether the asker's covers it — all read off the record, no call */
+  const deps=apnDepartures(c).slice(0,2).map(v=>{ let sec=''; try{ const qq=v.quote&&typeof pd2QuoteOf==='function'?pd2QuoteOf(c,[String(v.quote)]):null; sec=qq?qq.sec:''; }catch(_){ sec=''; }
+    return row(String(v.category||i18t('apn_p_std')), esc(String(v.position||v.quote||'')), sec); }).join('');
+  const chk=c.playbook&&c.playbook.at?i18t('apn_p_checked',{ d:(typeof regDotDate==='function'?regDotDate(String(c.playbook.at).slice(0,10)):String(c.playbook.at).slice(0,10)) }):'';
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  let cap=''; try{ const k=typeof signCapOf==='function'?signCapOf(me):null; if(k&&k.answered&&k.limit!=null) cap=i18t('apn_p_your_cap',{ v:(typeof fmtMoneyShort==='function'?fmtMoneyShort(k.limit):String(k.limit)) }); }catch(_){ cap=''; }
+  const valLine=[typeof fmtMoneyShortOf==='function'?fmtMoneyShortOf(c):String(c.value||''), cap].filter(Boolean).join(' · ');
+  const rows=[deps,
+    row(i18t('apn_p_std'), typeof stdRowWordsHtml==='function'?stdRowWordsHtml(c):'', chk),
+    money?row(i18t('apn_p_value'), esc(valLine), i18t('apn_p_rule')):''].filter(Boolean).join('');
   const lead=esc(i18t(r.who?'apn_p_lead_who':'apn_p_lead',{ name:'\u0001', who:String(r.who||'').split(/\s+/)[0], rule:rule||'' })).replace('\u0001',`<b>${esc(c.name||'')}</b>`);
   return `<div class="apn-panel"><p class="apn-pl">${lead}</p>
     <div class="apn-pcap">${esc(i18t('apn_p_says'))}</div>${rows}
@@ -1104,8 +1110,13 @@ function apnTabRows(W){
   const last=apnDoneRows(W.all).filter(r=>r.type==='receipt').sort((a,b)=>String(b.c.signedAt||'').localeCompare(String(a.c.signedAt||''))).slice(0,1);
   return W.all.yours.filter(r=>!r.done).map(r=>Object.assign({},r,{ _mine:true })).concat(last);
 }
+/* what the decision rests on (as drawn): the words of the first standard this paper departs from, else the value's line */
+function apnDepartures(c){ return ((c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[]).filter(v=>v&&(v.status==='deviation'||v.status==='missing')&&!(v.accepted&&v.accepted.at)); }
 function apnQuote(c){
-  const fig=Number(c&&c.value)||0; if(!fig||typeof pd2QuoteOf!=='function') return null;
+  if(typeof pd2QuoteOf!=='function') return null;
+  const d=apnDepartures(c).find(v=>v.quote);
+  if(d){ try{ const q=pd2QuoteOf(c,[String(d.quote)]); if(q) return Object.assign({ why:String(d.position||'') },q); }catch(_){ } }
+  const fig=Number(c&&c.value)||0; if(!fig) return null;
   try{ return pd2QuoteOf(c, [fig.toLocaleString('en-US'), String(fig)]); }catch(_){ return null; }
 }
 function apnRowHtml(r){
@@ -1130,7 +1141,7 @@ function apnRowHtml(r){
     sub=[esc(c.counterparty||''), ref, val, r.who?esc(i18t('apn_asked_by',{ who:r.who })):esc(i18t('apn_by_rule'))].filter(Boolean).join(' · ');
     const q=apnQuote(c);
     const std=typeof stdRowWordsHtml==='function'?stdRowWordsHtml(c):'';
-    rests=`${q?`<i class="apn-q">“${esc(q.quote)}”</i> <span class="apn-sec">${esc(q.sec)}</span>`:''}<div class="apn-read">${std}</div>`;
+    rests=`${q?`<i class="apn-q">“${esc(q.quote)}”</i> <span class="apn-sec">${esc(q.sec)}</span>`:''}<div class="apn-read">${q&&q.why?esc(q.why):std}</div>`;
     rule=esc(apWhyLines(r)[0]||'—');
     waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
     acts=apMayDecide(r)?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-ap-approve="${esc(c.id)}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-ap-refuse="${esc(c.id)}">${esc(i18t('apn_decline'))}</button>`:'';

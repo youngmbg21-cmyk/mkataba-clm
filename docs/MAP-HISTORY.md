@@ -35527,3 +35527,12 @@ Round 2 (Home, Morning light, the owner's pick by name), built the same night: t
 
 ## THE NEW LOOK — APPROVE, SIGN, LIVE (1 Nov 2026, round 5)
 - The owner's answers (a questionnaire): APPROVALS "As drawn" — Approve AND Decline on every decidable row (Decline asks its reason first); REVERSES round 10's one Approve per row, on the new look only. AMENDMENT "As drawn" — no "New end date" / "New value" boxes: a clause pressed on the sealed paper, or the change said in Jambo's box (he writes the amendment clause, 1 call); the new end date and value are READ from the amendment's wording.
+
+## THE NEW LOOK, ROUND 5 — APPROVE, SIGN, LIVE (1 Nov 2026)
+The owner: "Build all the round 5 pages then show me the side by side." Built behind the switch, each page off the review room's drawing:
+Approvals (one worklist, Approve and Decline on the row, Before you decide with the paper's departures, standards, value and cap, and its own three links),
+Before you sign (six lines and one card, the line's "Ready to sign", the paper ending in two ruled lines), Obligations (box and tabs on one line, Late · This week · Later
+with the words each duty rests on) and Proposed (standing under the tabs with its own panel), the Calendar (views as words, the agenda a quiet row a day, Horizon's
+rows with their own months), History with the wording (plain sentences, an outcome on every row, the words each event carried, one row per person-round-moment), and
+Amend (two papers side by side, the amended deal as a reading, a change said in Jambo's box through the amendment reader, one call; no boxes, the owner's answer).
+Found on the way and logged, not fixed: opening Before you sign on a never-negotiated contract starts a negotiation and makes a given approval stale (BUGLOG).
