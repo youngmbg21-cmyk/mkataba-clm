@@ -9765,7 +9765,7 @@ function igWallBodyHtml(rows,o){
     ? lhFootHtml('wall', S.k, S.n, IG_WALL_STEP, { cls:'igw-foot' })
     : `<div class="igw-foot"><span class="igw-shown" role="status" aria-live="polite">${igEsc(i18t('igw_shown',{ k:S.k, n:S.n }))}</span></div>`):'';
   return `<div class="igw-chips igw-line reg-filterbar"><span class="igw-count" role="status" aria-live="polite">${igEsc(igWallCountWords(list,opts))}</span>${order?`<span class="igw-order">${igEsc(order)}</span>`:''}${opts.tools||''}</div>
-    ${list.length?`<div class="igw-grid" role="list">${shown.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>${foot}`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}${igWallNlFootHtml(list,shown)}`;
+    ${list.length?`<div class="igw-grid" role="list">${shown.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>${foot}`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}${(typeof newLookOn==='function'&&newLookOn())?igWallNlFootHtml(list,shown):''}`;
 }
 /* THE WALL'S TWO LINES, AS DRAWN (the new look, round 6): under the papers what the press does (and which one is
    chosen), and at the page's foot how many, and that a file dropped on the wall is read (the one drop door) */

@@ -6915,7 +6915,7 @@ function pd2ChosenHtml(c){
 }
 function pdChosenHtml(c){
   if (!c) return '';
-  if (pd2On() && !c._codeNamed) return pd2ChosenHtml(c);
+  if (typeof pd2On === 'function' && pd2On() && !c._codeNamed) return pd2ChosenHtml(c);
   const id = _pdE(c.id), ref = (typeof contractRef === 'function') ? contractRef(c) : String(c.id);
   const facts = pdChosenFacts(c);
   const lock = (typeof icon === 'function') ? icon('lock', 'w-3 h-3') : '';

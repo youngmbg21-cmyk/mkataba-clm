@@ -1542,8 +1542,9 @@ function openNewAgreement(o){
     if(document.getElementById('na-root')){ _naClaimed=false; if(one&&typeof pdLandOnDossier==='function') pdLandOnDossier(false);
       if(btn) btn.innerHTML=was; acts.forEach(b=>{ b.disabled=false; }); light(); } };
   const createOurs=goCreate(()=>api.create());
+  /* From scratch's Create (round 6): its own listener, before the sheet's one (which stays the one door to create) */
   document.getElementById('na-create')?.addEventListener('click', ev=>{
-    if(one&&paper==='scratch'){ if(!scr.drafted||!streamPicked) return;
+    if(one&&paper==='scratch'){ ev.stopImmediatePropagation(); if(!scr.drafted||!streamPicked) return;
       const who=String((o.words&&o.words.who)||'').trim(), ours=(typeof window.FIRST_PARTY==='string'&&window.FIRST_PARTY)||'';
       const L=naScratchSecs().filter(x=>x.on&&x.text);
       const txt=[naScratchTitle(), who?i18t('nsc_between',{ a:ours, b:who }):'', ''].concat(L.map((x,i)=>`${i+1}. ${x.h}\n${x.text}\n`)).join('\n');
@@ -1551,7 +1552,9 @@ function openNewAgreement(o){
       _naClaimed=true; closeModal();
       if(typeof pdDropTake==='function') pdDropTake(f, { folder:streamPicked, counterparty:who });
       else if(typeof uploadFromDrop==='function') uploadFromDrop(f, { folder:streamPicked, counterparty:who });
-      return; }
+      }
+  });
+  document.getElementById('na-create')?.addEventListener('click', ev=>{
     if(!(one&&paper==='theirs')) return createOurs(ev);
     if(!theirFile||!streamPicked) return;
     /* your words, if any, still name the other company (as drawn, 24 Oct 2026) */

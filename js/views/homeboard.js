@@ -6135,8 +6135,9 @@ function hbDnaPanelHtml(){
 function hbDnaBtnHtml(){
   return `<button type="button" class="hb-btn is-sm hb-pulse-go hb-dna-go" data-hb-dna title="${_hbE(i18t('dna_tip'))}">${_hbE(i18t('dna_btn'))}</button>`;
 }
-if (typeof document !== 'undefined' && !document._hbDnaWired){ document._hbDnaWired = true;
-  document.addEventListener('click', e => {
+/* its own presses, caught on the window before the board's one listener (which stays the board's one, f447) */
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && !document._hbDnaWired){ document._hbDnaWired = true;
+  window.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
     if ((el = t.closest('[data-hb-dna]'))){ e.preventDefault(); e.stopPropagation(); _hbDna = true; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if ((el = t.closest('[data-dna-back]'))){ e.preventDefault(); _hbDna = false; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }

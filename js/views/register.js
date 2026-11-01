@@ -433,9 +433,10 @@ const REG_VIEWS=[
      DRAFTS is the Drafting stage as a view; Stage stays a filter of its own. */
   {k:'needs',      get label(){ return i18t('reg_view_needs'); }, get title(){ return i18t('reg_view_needs_title'); }},
   {k:'drafts',     get label(){ return i18t('reg_view_drafts'); }, get title(){ return i18t('reg_view_drafts_title'); }},
-  /* SIGNED (the new look's list, round 6, as drawn: All · Needs you · Signed) */
-  {k:'signed',     get label(){ return i18t('reg_view_signed'); }},
 ];
+/* SIGNED (the new look's list, round 6, as drawn: All · Needs you · Signed): the new look's own view, kept off the
+   phone's and today's list (REG_VIEWS) */
+const REG_VIEW_SIGNED={k:'signed', get label(){ return i18t('reg_view_signed'); }};
 /* ---- WHICH PAGE THIS TABLE IS ON (added 2026-08-12) ----
    The register's machinery — its filters, its row builder, its body renderer,
    its wiring — now draws TWO pages: Contracts, and Negotiations. The owner
@@ -1860,7 +1861,7 @@ function regCtViews(){
     const by=regCutCount('view',[q].concat(VS));
     const n=k=>by?(by.get(k)||0):null;
     return [{ k:'', label:i18t('reg_tab_all'), n:n(q||''), keep:true }].concat(VS.map(k=>{
-      const v=REG_VIEWS.find(x=>x.k===k)||{};
+      const v=REG_VIEWS.concat([REG_VIEW_SIGNED]).find(x=>x.k===k)||{};
       return { k, label:v.label||k, n:n(k), title:v.title||'' }; }));
   });
 }
@@ -2091,7 +2092,7 @@ function regNlFootHtml(cs){
   const more=inF&&all>n?` · <button type="button" class="reg-nl-all" data-ctf-tab="all">${esc(i18t('reg_nl_show_all',{ n:all }))}</button>`:'';
   const ask=typeof window.askColKeys==='function'&&askColKeys().length;
   const right=[ask?i18t('reg_nl_foot_ask'):'', i18t('reg_nl_foot_std')].filter(Boolean).join(' \u00b7 ');
-  return `<span id="reg-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span><span class="reg-nl-foot-r">${esc(right)}</span>`;
+  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span><span class="reg-nl-foot-r">${esc(right)}</span>`;
 }
 function regCtFootHtml(cs){
   if(regNl()) return regNlFootHtml(cs);
@@ -3143,6 +3144,8 @@ function renderRegisterBody(){
   /* …and the Contracts place's ("1–40 of 189 · Show 40 more", regCtFootHtml),
      the same way (Part 8) */
   const ctSeat=!negSeat&&regHome();
+  /* the new look's foot is two halves in its own row: the row is written again whole */
+  const nlf=regNl()&&document.getElementById('reg-nl-showing'); if(nlf&&nlf.parentElement) nlf.parentElement.innerHTML=regNlFootHtml(cs);
   const sh=document.getElementById('reg-showing'); if(sh){ if(negSeat) regFootPut(sh,regNegoFootHtml(cs)); else if(ctSeat) regFootPut(sh,regCtFootHtml(cs)); else sh.innerHTML=regFooterText(cs); }
   if((negSeat||ctSeat)&&typeof window.lhHeadSyncSoon==='function') lhHeadSyncSoon(negSeat?REG_NEGO_SEAT:REG_CT_SEAT);
   const tt=document.getElementById('reg-tt'); if(tt){ tt.innerHTML=regListTitle(cs); }
