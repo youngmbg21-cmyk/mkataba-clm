@@ -61,6 +61,15 @@ async function R6_IN_PAGE(){
     ['Tana Cold Stores', 'Malindi', 'P051-3390'], ['Rift Haulage', 'Nakuru', 'P051-1188'], ['Parcelway Logistics Ltd', 'Nairobi', '']]){
     try { await partyRecordSet(name, { city, orgNo }); } catch (_){ /* a party the reader cannot see */ }
   }
+  /* the notes, as drawn on My notes: one due today on the Coast approval, one about Nandi's signing day, one reviewed */
+  if (typeof mineSave === 'function'){
+    const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+    const t = (typeof todayISO === 'function') ? todayISO() : day(0);
+    const notes = [{ title: 'Ask Naivas about the Coast store closing before I approve the 90 days', body: "Ask Naivas about the Coast store closing before I approve the 90 days. Wanjiru's request says it closes in March; the listing runs to 2028.", contractId: 'MK-B2', reviewBy: t },
+      { title: 'Rotich prefers to sign Fridays; send links Thursday', body: 'Rotich prefers to sign Fridays; send links Thursday.', contractId: 'MK-A2' },
+      { title: 'Check whether the Parcelway cap should follow the SaaS standard or the supply one', body: 'Check whether the Parcelway cap should follow the SaaS standard or the supply one.', contractId: 'MK-IT', reviewBy: day(14), reviewedAt: new Date(Date.now() - 4 * 864e5).toISOString() }];
+    for (const n of notes){ try { await mineSave('note', n); } catch (_){ /* a note the page draws without */ } }
+  }
   const all = ids.concat('MK-A2');
   try { const t = contractPlainText(getContract('MK-A2')); if (t && t.length >= 120) texts['MK-A2'] = t; } catch (_){ /* stored body */ }
   const r2 = await api('ai/column', 'POST', { question: 'Within how many days must we pay?', name: 'Payment days', ids: all, texts });
