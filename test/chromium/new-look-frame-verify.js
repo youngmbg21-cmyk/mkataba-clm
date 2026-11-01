@@ -83,7 +83,8 @@ const FRAME = () => {
         await page.waitForTimeout(900);
         const F = await page.evaluate(FRAME);
         /* Settings and Import scroll as a whole: their scrollbar keeps its strip by the seam (10px) */
-        const cards = pg === 'calendar' || pg === 'settings', scrolls = pg === 'settings', strip = pg === 'import' ? 10 : 0;
+        /* RE-POINTED 1 Nov 2026 (round 5, the owner's "approve round 5"): the Calendar is one white page as drawn, no cards on the well */
+        const cards = pg === 'settings', scrolls = pg === 'settings', strip = pg === 'import' ? 10 : 0;
         check(`${nm} 1 ${pg}: the panel square at the bar, the side and the foot behind one hairline; ` + (cards ? 'its cards on the well, 12 under the bar and 16 in' : 'the page one surface from the bar and the left edge to the seam'),
           !!F && F.top === 0 && F.bottom === 0 && F.right === (scrolls ? 10 : 0) && F.seam === '1px'
           && (cards ? F.sheetTop === 12 && F.sheetLeft === 16 && F.gap >= 16 && F.gap <= 17 : F.sheetTop === 0 && F.sheetLeft === 0 && F.gap === strip), F);
