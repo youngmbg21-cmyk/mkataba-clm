@@ -3024,7 +3024,7 @@ function renderRegisterBody(){
    foot from the rows as narrowed — never the head above it */
 function regWallRepaint(){
   const wall=document.getElementById('ig-wall');
-  if(!wall){ if(regPlaceUp()) regRepaint(); return; }
+  if(!wall){ if(regPlaceUp()) regRepaint(); ctfDockAgain(); return; }
   const tmp=document.createElement('div');
   tmp.innerHTML=regHomeWallHtml(regFiltered(), regSortIconHtml(regSortOptsHtml(regState(),false)));
   const fresh=tmp.firstElementChild; if(fresh) wall.replaceWith(fresh);
@@ -3459,6 +3459,8 @@ function regRepaint(){ renderRegister(_regOpts); }
    streams' own door in Settings. A card opens that folder's list (the register's own stream filter, R.type); the tab
    row Folders · All · Needs you is the page's views. Reads only. */
 let _ctFolders = true;
+/* Jambo's panel follows the page's face (the folders' reading, or the list's) */
+function ctfDockAgain(){ if (typeof window.renderIntelDock === 'function') setTimeout(() => { try { renderIntelDock(); } catch (_){} }, 0); }
 const CTF_WORDS = { sign:'ctf_n_sign', approval:'ctf_n_approval', details:'ctf_n_details', review:'ctf_n_review', note:'ctf_n_note', suggest:'ctf_n_suggest', look:'ctf_n_look', refused:'ctf_n_refused', quiet:'ctf_n_quiet', join:'ctf_n_join' };
 function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }
 function regFolderRead(cs){
@@ -3503,15 +3505,15 @@ if (typeof document !== 'undefined' && !document._ctfWired){ document._ctfWired 
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const f = t.closest('[data-ctf-folder]');
-    if (f){ e.preventDefault(); const R = regState(); R.type = f.getAttribute('data-ctf-folder'); _ctFolders = false; regRepaint(); return; }
-    if (t.closest('[data-ctf-ended]')){ e.preventDefault(); const R = regState(); R.view = 'archived'; _ctFolders = false; regRepaint(); return; }
+    if (f){ e.preventDefault(); const R = regState(); R.type = f.getAttribute('data-ctf-folder'); _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
+    if (t.closest('[data-ctf-ended]')){ e.preventDefault(); const R = regState(); R.view = 'archived'; _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
     if (t.closest('[data-ctf-new]')){ e.preventDefault(); if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
     const tab = t.closest('[data-ctf-tab]');
     if (tab){ e.preventDefault(); const k = tab.getAttribute('data-ctf-tab'), R = regState();
       if (k === 'folders'){ _ctFolders = true; R.type = 'all'; if (R.view === 'archived') R.view = null; }
       else { _ctFolders = false; R.type = 'all'; R.view = k === 'needs' ? 'needs' : null; }
-      regRepaint(); return; }
-    if (t.closest('[data-ctf-back]')){ e.preventDefault(); const R = regState(); _ctFolders = true; R.type = 'all'; if (R.view === 'archived') R.view = null; regRepaint(); return; }
+      regRepaint(); ctfDockAgain(); return; }
+    if (t.closest('[data-ctf-back]')){ e.preventDefault(); const R = regState(); _ctFolders = true; R.type = 'all'; if (R.view === 'archived') R.view = null; regRepaint(); ctfDockAgain(); return; }
   });
 }
 function regFoldersHeadHtml(){
@@ -3530,7 +3532,7 @@ if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const s = t.closest('[data-ctf-show]');
-    if (s){ e.preventDefault(); const R = regState(); _ctFolders = false; R.show = s.getAttribute('data-ctf-show') === 'wall' ? 'wall' : 'list'; regRepaint(); return; }
+    if (s){ e.preventDefault(); const R = regState(); _ctFolders = false; R.show = s.getAttribute('data-ctf-show') === 'wall' ? 'wall' : 'list'; regRepaint(); ctfDockAgain(); return; }
     if (t.closest('[data-ctf-draft]')){ e.preventDefault(); if (typeof openNewAgreement === 'function') openNewAgreement(); return; }
   });
   /* words typed in the box leave the folders for the list, the words carried (the register's own query) */
@@ -4625,9 +4627,9 @@ function renderRegister(opts){
   regStageTabsWire();
   document.getElementById('reg-view-sel')?.addEventListener('change',async e=>{
     const v=e.target.value||'';
-    if(v==='act:save'){ await regSaveViewAsk(); regRepaint(); return; }
-    if(v.startsWith('act:forget:')){ await regForgetViewAsk(v.slice(11)); regRepaint(); return; }
-    if(v.startsWith('saved:')){ if(regApplySaved(v.slice(6))) regRepaint(); return; }
+    if(v==='act:save'){ await regSaveViewAsk(); regRepaint(); ctfDockAgain(); return; }
+    if(v.startsWith('act:forget:')){ await regForgetViewAsk(v.slice(11)); regRepaint(); ctfDockAgain(); return; }
+    if(v.startsWith('saved:')){ if(regApplySaved(v.slice(6))) regRepaint(); ctfDockAgain(); return; }
     R.view=v||null; R.page=1; regRepaint(); });
   /* the whose-move tabs are the list head's (js/views/listhead.js: one press,
      delegated, ending in the page's own tab(k)); their per-element binding

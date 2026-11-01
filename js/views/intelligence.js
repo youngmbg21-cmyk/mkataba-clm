@@ -9606,6 +9606,14 @@ function igWallCardHtml(c,need){
     +(priv?`<span class="igw-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:'');
   /* the paper chosen with one press wears the accent's edge (round 13): its panel says it */
   const chosen=igWallChosenId()===String(c.id);
+  /* THE WALL AS DRAWN (the new look, round 6): each paper a sheet, its stage's mark at its corner, the party and the
+     value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel) */
+  if(window.newLookOn&&newLookOn()){
+    const mark=typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'';
+    return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
+    ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>
+    <span class="igw2-foot"><span>${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></button>`;
+  }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}
     <span class="igw-m"><span class="igw-dot" style="background:${dot}"></span><span>${igEsc(word)}</span></span>

@@ -1338,6 +1338,71 @@ if (typeof document !== 'undefined' && document.addEventListener) document.addEv
 });
 
 /* ---- THE PAGE ---- */
+/* ---- PARTIES, AS DRAWN (the new look, round 6) ----
+   One list: the party (its city, organisation no. and streams under it), how many deals, the money on paper, where the
+   newest live deal stands, the NDA (signed with its year, confirmed, or none), and what waits on you in words, late in
+   red, with Open party on the row. Tabs All · Waiting on you · NDA missing. Every reading is the page's own (cuView,
+   cuNdaMap, partyRecordOf); the row's press is the list's own (cuWireList). Reads only. */
+let _cun = 'all';
+const CUN_WORDS = { suggest:'ctf_n_suggest', quiet:'ctf_n_quiet', join:'ctf_n_join' };
+function cunRowHtml(v, nda){
+  const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
+  const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : i18t('cun_org_none');
+  const sub = [rec.city || '', org, v.streams.map(f => (typeof cuStreamName === 'function' ? cuStreamName(f) : f)).filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  const money = !(typeof canViewValues === 'function' && !canViewValues());
+  const val = v.items.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
+  const lead = v.items.filter(c => !c.archived).sort((a, b) => String(b.updatedAt || b.lastAction || '').localeCompare(String(a.updatedAt || a.lastAction || '')))[0] || v.items[0];
+  let sm = null; try { sm = lead && typeof contractStatusMeta === 'function' ? contractStatusMeta(lead) : null; } catch (_){ sm = null; }
+  const stand = sm ? `<span class="cun-st"><i style="background:${sm.dot}"></i>${esc(sm.label || '')}</span>` : '—';
+  const n = nda || { state: 'none' };
+  const yr = n.c && n.c.signedAt ? String(n.c.signedAt).slice(0, 4) : '';
+  const ndaW = n.state === 'inforce' ? (yr ? i18t('cun_nda_signed', { y: yr }) : i18t('cun_nda_conf')) : n.state === 'unconfirmed' ? i18t('cun_nda_conf') : n.state === 'ended' ? i18t('cun_nda_ended') : n.state === 'draft' ? i18t('cun_nda_draft') : i18t('cun_nda_none');
+  const ndaH = `<span class="cun-st${n.state === 'none' || n.state === 'ended' ? ' is-none' : ''}"><i></i>${esc(ndaW)}</span>`;
+  const needs = (v.needs || []).filter(x => x && x.it);
+  const verb = x => { const k = x.it.kind, n = x.it.n || 1;
+    return k === 'approval' ? i18t('cun_w_approve', { name: x.c.name || '' }) : k === 'sign' ? i18t('cun_w_sign') : k === 'details' ? i18tn('cun_w_details', n, { n })
+      : k === 'move' ? i18t('cun_w_move') : k === 'look' ? i18t('cun_w_look') : k === 'note' ? i18t('cun_w_note') : k === 'review' ? i18t('cun_w_review') : k === 'refused' ? i18t('cun_w_refused')
+      : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : ''); };
+  const words = needs.slice(0, 2).map(x => { const w = verb(x); return w ? (x.it.urgent ? `${esc(w)} · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : esc(w)) : ''; }).filter(Boolean).join(' · ');
+  return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
+    <td><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${esc(sub)}</div></td>
+    <td class="cun-num">${v.items.length}</td><td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>
+    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait">${words || '—'}</td>
+    <td class="cun-go"><button type="button" class="pd2-link" data-cun-open="${esc(v.key)}">${esc(i18t('cun_open'))}</button></td></tr>`;
+}
+function cunRender(host, INS){
+  const all = (typeof cuCustomers === 'function' ? cuCustomers() : []).map(r => cuView(r)).filter(Boolean);
+  const nda = cuNdaMap();
+  const q = String(((state.cu || {}).q) || (document.getElementById('cun-q') || {}).value || '').trim().toLowerCase();
+  const waiting = all.filter(v => (v.needs || []).length), missing = all.filter(v => { const s = (nda.get(v.key) || { state: 'none' }).state; return s === 'none' || s === 'ended'; });
+  const list = (_cun === 'wait' ? waiting : _cun === 'nda' ? missing : all).filter(v => !q || v.name.toLowerCase().includes(q))
+    .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
+  const tabs = [['all', i18t('ctf_tab_all'), all.length], ['wait', i18t('cun_tab_wait'), waiting.length], ['nda', i18t('cun_tab_nda'), missing.length]].filter(t => t[2] || t[0] === 'all' || t[0] === _cun);
+  const agreements = all.reduce((s, v) => s + v.items.length, 0);
+  host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
+  <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
+    <div class="ap-body is-ins"><section class="ap-card apn-card">
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2><span class="ctf-hf">${esc(i18tn('cun_n', all.length, { n: all.length }))}</span></div>
+      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
+        ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
+      <div class="cu-scroll"><table class="apn-table cun-table"><colgroup><col style="width:26%"><col style="width:70px"><col style="width:110px"><col style="width:130px"><col style="width:130px"><col><col style="width:96px"></colgroup>
+        <thead><tr><th>${esc(i18t('cun_c_party'))}</th><th>${esc(i18t('cun_c_deals'))}</th><th>${esc(i18t('cun_c_paper'))}</th><th>${esc(i18t('cun_c_standing'))}</th><th>${esc(i18t('cun_c_nda'))}</th><th>${esc(i18t('cun_c_wait'))}</th><th></th></tr></thead>
+        <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key))).join('') || `<tr><td colspan="7" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
+      <div class="apn-foot">${esc(i18t('cun_foot', { n: all.length, m: agreements }))}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  cuWireList(host, INS);
+  if (INS && typeof insWatchWidth === 'function') insWatchWidth();
+  if (typeof setActiveNav === 'function') setActiveNav('customers');
+}
+if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const tab = t.closest('[data-cun-tab]'); if (tab){ e.preventDefault(); _cun = tab.getAttribute('data-cun-tab'); renderCustomers(); return; }
+    const o = t.closest('[data-cun-open]'); if (o){ e.preventDefault(); e.stopPropagation(); cuOpenCustomer(o.getAttribute('data-cun-open')); }
+  }, true);
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'cun-q'){ state.cu = state.cu || {}; state.cu.q = e.target.value; renderCustomers();
+    const q = document.getElementById('cun-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_){} } } });
+}
 function renderCustomers(){
   const host = document.getElementById('content'); if (!host) return;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
@@ -1346,6 +1411,8 @@ function renderCustomers(){
   const typing = document.activeElement && document.activeElement.id === 'cu-q';
   const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cu-pr-form') ? document.activeElement.id : '';
   cuLcReg();
+  /* the new look draws Parties as drawn (round 6); the old look is unchanged */
+  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS); return; }
   host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     ${cuListHtml(INS)}

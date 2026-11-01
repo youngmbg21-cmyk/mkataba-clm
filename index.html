@@ -19061,6 +19061,29 @@
   html.lg-new #ct-place .ct-page .ct-arch{display:none}
   html.lg-new #ig-page #ct-place .ct-page .ph-card.ct-head{box-shadow:none;border:0;border-radius:0;background:transparent;padding-left:0;padding-right:0}
   html.lg-new #ig-page #ct-place .ct-page .ph-card.ct-head + *{border-radius:0;box-shadow:none}
+  /* THE WALL AS DRAWN: papers on the page itself (no box around them), each a sheet with its mark at the corner and the party and value at its foot */
+  html.lg-new #ct-place .ct-wall{border:0;box-shadow:none;background:transparent;padding:0}
+  html.lg-new .igw-card.is-nl{position:relative;display:flex;flex-direction:column;gap:0;padding:0 0 12px;border:1px solid var(--color-divider);border-radius:2px;background:var(--color-surface);box-shadow:var(--shadow-paper);min-height:198px;text-align:left}
+  html.lg-new .igw-card.is-nl.is-chosen{border-color:var(--color-text);box-shadow:0 0 0 1px var(--color-text)}
+  html.lg-new .igw-card.is-nl .igw-sheet{border:0;box-shadow:none;background:transparent}
+  html.lg-new .igw-card.is-nl .igw-sheet{padding-top:26px}
+  html.lg-new .igw2-foot > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .igw2-mark{position:absolute;top:6px;left:8px;line-height:0}
+  html.lg-new .igw2-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:auto;padding:0 12px;font-size:12px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .igw2-foot b{font-weight:var(--w-strong);white-space:nowrap}
+  /* PARTIES, AS DRAWN */
+  html.lg-new .cun-head{display:flex;align-items:baseline;gap:16px;margin:4px 0 10px}
+  html.lg-new .cun-name{font-size:14px;font-weight:var(--w-label)}
+  html.lg-new .cun-sub{font-size:12px;font-weight:var(--w-label);margin-top:3px}
+  html.lg-new .cun-num{font-weight:var(--w-strong)}
+  html.lg-new .cun-st{display:inline-flex;align-items:center;gap:7px;font-weight:var(--w-label)}
+  html.lg-new .cun-st i{width:8px;height:8px;border-radius:50%;background:var(--accent-ink)}
+  html.lg-new .cun-st.is-none i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--color-quiet)}
+  html.lg-new .cun-wait{font-weight:var(--w-label)}
+  html.lg-new .cun-late{color:var(--st-ruby-fg)}
+  html.lg-new .cun-go{text-align:right}
+  html.lg-new .cun-page .cu-scroll{flex:1;min-height:0;overflow:auto}
+  html.lg-new .dirn-who{display:flex;gap:12px;align-items:flex-start}
   html.lg-new .ctfp-door{margin:4px 0 10px;font-size:13px}
   html.lg-new .ctfp-door span{font-size:12px}
   html.lg-new .ctf-foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--color-divider);font-size:13px;font-weight:var(--w-label)}
