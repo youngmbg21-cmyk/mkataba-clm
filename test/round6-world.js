@@ -70,6 +70,12 @@ async function R6_IN_PAGE(){
       { title: 'Check whether the Parcelway cap should follow the SaaS standard or the supply one', body: 'Check whether the Parcelway cap should follow the SaaS standard or the supply one.', contractId: 'MK-IT', reviewBy: day(14), reviewedAt: new Date(Date.now() - 4 * 864e5).toISOString() }];
     for (const n of notes){ try { await mineSave('note', n); } catch (_){ /* a note the page draws without */ } }
   }
+  /* the requests, as drawn on Requests: an NDA a colleague asked for, the milk collection's next term */
+  for (const q of [{ title: 'NDA for the Volvo pilot', need: 'We need an NDA with Volvo Trucks before the cold-chain pilot starts in January.', counterparty: 'Volvo Trucks', folder: 'proc' },
+    { title: 'Renew the milk collection', need: 'The collection agreement needs its next term.', counterparty: 'Nandi Dairy', folder: 'proc' }]){
+    try { await api('intake', 'POST', q); } catch (_){ /* a request the page draws without */ }
+  }
+  if (typeof loadIntake === 'function'){ try { await loadIntake(); } catch (_){ /* the page loads it */ } }
   const all = ids.concat('MK-A2');
   try { const t = contractPlainText(getContract('MK-A2')); if (t && t.length >= 120) texts['MK-A2'] = t; } catch (_){ /* stored body */ }
   const r2 = await api('ai/column', 'POST', { question: 'Within how many days must we pay?', name: 'Payment days', ids: all, texts });
