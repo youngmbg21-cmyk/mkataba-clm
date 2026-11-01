@@ -8945,6 +8945,8 @@ function stPagePaint(admin){
      head and the You · Company tabs step aside (data-st-sub, the head hidden
      by scope), and "‹ Settings" on the page is the way back */
   const sub=(admin&&face==='company'&&_stPage)?_stPage:'';
+  /* THE NEW LOOK (round 7, as drawn): one list of sentences; the pages inside Settings (People & roles, Streams…) stay as they are */
+  if(!_stPage && typeof stnOn==='function' && stnOn()){ stnPaint(admin); return; }
   /* a docked drawer lives in the page: it is lifted out before the page is
      drawn again, and put back after (stDockPaint) — nothing typed is lost */
   { const dr=document.getElementById('st-drawer');
@@ -10074,3 +10076,122 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
 Object.assign(window,{stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
+
+/* ═══ SETTINGS & RULES, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
+   One list of sentences: each setting says its state, who may change it and what it gates. You first; the company
+   for admins. A menu down the left lands on a row (or opens People & roles, Streams, the trail and Jambo's lessons
+   as today); every Change opens the drawer that changes it today. The panel: Needs an admin (stNeedsAll), Ask an
+   admin (a record), Jambo's lessons (the phrases nobody could place). Nothing here writes but the existing doors. */
+function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && typeof insFits==='function' && insFits() && typeof insPaintPanel==='function'; }
+function stnRow(id, label, value, sub, act){
+  return `<div class="stn-row" id="stn-${id}" data-stn-row="${id}"><div class="stn-l">${esc(label)}</div><div class="stn-v"><div class="stn-val">${value}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-a">${act||''}</div></div>`;
+}
+const stnDoor=(attr,w)=>`<button type="button" class="ui-link stn-go" ${attr}>${esc(w)}</button>`;
+function stnStateText(k){ const st=stStateOf(k); return st&&st.text?esc(stShortState(st.text)):''; }
+function stnAgentsSaid(){
+  const keys=(typeof AG_KEYS!=='undefined'&&Array.isArray(AG_KEYS))?AG_KEYS:[];
+  if(!keys.length||typeof agLevelOf!=='function') return '';
+  const by={}; keys.forEach(k=>{ let v='ask'; try{ v=agLevelOf(k)||'ask'; }catch(_){ v='ask'; } by[v]=(by[v]||0)+1; });
+  const lv=Object.keys(by);
+  if(lv.length===1) return i18t('stn_ag_all',{ n:keys.length, level:i18t('st_agents_lv_'+lv[0]) });
+  return lv.map(v=>i18t('stn_ag_n',{ n:by[v], level:i18t('st_agents_lv_'+v) })).join(' · ');
+}
+function stnRatesSaid(){
+  const rates=(state.settings&&state.settings.fxRates)||{}, codes=Object.keys(rates).sort();
+  if(!codes.length) return { v:esc(i18t('stn_fx_none')), stale:false };
+  const cur=(typeof jxCurrency==='function')?jxCurrency():'';
+  const r=rates[codes[0]]||{};
+  const v=i18t('stn_fx_line',{ code:codes[0], rate:Number(r.rate).toLocaleString(undefined,{ maximumFractionDigits:2, minimumFractionDigits:2 }), cur, day:r.at?stDay(r.at):'' })+(codes.length>1?' · '+i18tn('stn_fx_more',codes.length-1,{ n:codes.length-1 }):'');
+  return { v:esc(v), at:r.at||'' };
+}
+function stnApprovalsOpen(){
+  let n=0; (state.contracts||[]).forEach(c=>{ try{ const s=window.approvalState?approvalState(c):null; if(s&&s.required&&!s.ok&&c.status!=='Signed') n++; }catch(_){ /* not counted */ } });
+  return n;
+}
+function stnYouHtml(){
+  const u=(typeof currentUser==='function'&&currentUser())||{};
+  const api=(typeof API_MODE==='function')&&API_MODE();
+  const name=[u.name||u.email||'', u.title||u.jobTitle||''].filter(Boolean).join(' · ');
+  const L=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]), now=(typeof langId==='function')?langId():'';
+  const langName=(L.find(l=>l.id===now)||{}).name||now;
+  const seg=`<span class="st-yseg stn-seg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===now?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>`;
+  const ps=_stPush;
+  const push=ps?esc(ps==='on'?i18t('stn_push_on'):(typeof pushStateSaid==='function'?pushStateSaid(ps):ps)):'';
+  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ if(st!==_stPush){ _stPush=st; if(document.querySelector('.stn-page')) stnPaint(stIsAdmin()); } }).catch(()=>{}); },0);
+  let out=`<h3 class="stn-h" id="stn-sec-you">${esc(i18t('stn_about_you'))}</h3>`
+    +stnRow('name', i18t('st_you_name_row'), esc(name), '', stnDoor('data-st-panel="me:name"', i18t('st_you_change')))
+    +stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg);
+  if(api) out+=stnRow('twostep', i18t('ts_title'), esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change')));
+  if(api) out+=stnRow('push', i18t('stn_push'), push||esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):'');
+  const ag=stnAgentsSaid();
+  if(ag) out+=stnRow('agents', i18t('stn_agents'), esc(ag), i18t('stn_agents_sub'), stnDoor('data-st-view="jambo"', i18t('stn_open')));
+  return out;
+}
+function stnCompanyHtml(){
+  const ap=stnApprovalsOpen(), fx=stnRatesSaid();
+  return `<h3 class="stn-h" id="stn-sec-co">${esc(i18t('stn_company'))}</h3>`
+    +stnRow('approvals', SET_PANELS.approvals.title(), stnStateText('approvals'), ap?i18tn('stn_ap_open',ap,{ n:ap }):'', stnDoor('data-st-panel="approvals"', i18t('stn_add_rule')))
+    +stnRow('review', i18t('stn_review'), stnStateText('review'), i18t('stn_review_sub'), stnDoor('data-st-panel="review"', i18t('st_you_change')))
+    +stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change')))
+    +stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change')))
+    +stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update')))
+    +stnRow('mail', i18t('stn_mail'), stnStateText('mail'), '', stnDoor('data-st-panel="mail"', i18t('stn_health')));
+}
+function stnMenuHtml(admin){
+  const go=(attr,w)=>`<button type="button" class="stn-mi" ${attr}>${esc(w)}</button>`;
+  const api=(typeof API_MODE==='function')&&API_MODE();
+  let h=`<div class="stn-mh">${esc(i18t('stn_m_you'))}</div>`+go('data-stn-to="name"',i18t('stn_about_you_m'))
+    +(api?go('data-stn-to="twostep"',i18t('stn_m_signin'))+go('data-stn-to="push"',i18t('stn_push')):'')+go('data-stn-to="agents"',i18t('stn_agents'));
+  if(admin) h+=`<div class="stn-mh">${esc(i18t('stn_m_company'))}</div>`+go('data-st-page="team"',i18t('stn_m_people'))+go('data-st-page="streams"',i18t('stn_m_streams'))
+    +go('data-stn-to="approvals"',SET_PANELS.approvals.title())+go('data-stn-to="review"',i18t('stn_m_review'))+go('data-stn-to="signcap"',i18t('stn_m_signing'))
+    +go('data-stn-to="rates"',i18t('stn_m_rates'))+go('data-stn-to="mail"',i18t('stn_m_mail'))+go('data-st-panel="lessons"',i18t('stn_m_lessons'))
+    +(typeof stTrailOn==='function'&&stTrailOn()?go('data-st-panel="trail"',i18t('stn_m_trail')):'');
+  return h;
+}
+const STN_NEED_KIND={ ask:'stn_nk_ask', backup:'stn_nk_rule', limits:'stn_nk_caps', invite:'stn_nk_people', access:'stn_nk_access' };
+function stnPanelHtml(admin){
+  const E=esc;
+  const row=(l,v,src,attr)=>`<div class="pd2-ch-r${attr?' stn-pr':''}"${attr?` ${attr} role="button" tabindex="0"`:''}><span>${E(l)}</span><b>${E(v)}</b><i>${E(src||'')}</i></div>`;
+  let h=`<div class="pd2-chosen cun-panel stn-panel"><p class="pd2-ch-head">${E(i18t('stn_p_head'))}</p>`;
+  const needs=admin&&typeof stNeedsAll==='function'?stNeedsAll():[];
+  if(needs.length){ h+=`<div class="pd2-ch-cap">${E(i18tn('stn_p_needs',needs.length,{ n:needs.length }))}</div><div class="pd2-ch-tbl">`
+    +needs.slice(0,4).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
+      const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):'');
+      const what=k==='panel'?(sub?stShortState(sub):r.text):r.text, more=k==='panel'?'':sub;
+      return `<div class="pd2-ch-r stn-nd stn-pr" ${r.btn||''} role="button" tabindex="0"><span>${E(lab)}</span><b>${E(what)}${more?`<small>${E(more)}</small>`:''}</b><i></i></div>`; }).join('')+`</div>`; }
+  h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_ask'))}</div><p class="stn-pp">${E(i18t('stn_p_ask_s'))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-ask-head="">${E(i18t('st_ask_go'))}</button><span>${E(i18t('stn_p_ask_cost'))}</span></div>`;
+  if(admin){
+    const L=_stLessons; const rows=(L&&L.rows)||[];
+    if(L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
+    if(rows.length){ const shown=rows.slice(0,3).map(r=>'“'+String(r.text||'')+'”').join(', ');
+      h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_lessons'))}</div><p class="stn-pp">${E(i18tn('stn_p_lessons_s',rows.length,{ n:rows.length, list:shown }))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-panel="lessons">${E(i18tn('stn_p_teach',Math.min(rows.length,3),{ n:Math.min(rows.length,3) }))}</button><span>${E(i18t('pd2_ch_free'))}</span></div>`; }
+  }
+  return h+`</div>`;
+}
+function stnPanelPaint(){
+  if(!document.getElementById('ins-panel')) return;
+  insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stnPanelHtml(stIsAdmin()) });
+}
+function stnPaint(admin){
+  const host=document.getElementById('content'); if(!host) return;
+  host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page" data-st-face="you" data-ins-page="team" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card stn-card">
+      <h2 class="ctf-h stn-title">${esc(i18t('stn_title'))}</h2>
+      <div class="stn-cols"><nav class="stn-menu" aria-label="${esc(i18t('stn_title'))}">${stnMenuHtml(admin)}</nav>
+      <div class="stn-main scroll-thin" id="stn-main">${stnYouHtml()}${admin?stnCompanyHtml():''}</div></div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  stWireDrawerOnce();
+  stnPanelPaint();
+  if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
+  if(typeof insWatchWidth==='function') insWatchWidth();
+  if(typeof setActiveNav==='function') setActiveNav('team');
+}
+if(typeof document!=='undefined' && !document._stnWired){ document._stnWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('.stn-page')) return;
+    const to=t.closest('[data-stn-to]'); if(!to) return;
+    const el=document.getElementById('stn-'+to.getAttribute('data-stn-to')); if(!el) return;
+    if(typeof landOn==='function') landOn(el,{ block:'start', focus:false }); else try{ el.scrollIntoView({ block:'start' }); }catch(_){ /* nothing to scroll */ }
+  });
+}
+Object.assign(window,{stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnAgentsSaid});

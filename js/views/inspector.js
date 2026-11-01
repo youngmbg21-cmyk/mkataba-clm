@@ -1310,7 +1310,8 @@ function jlHeadPaint(host, opt, holds){
   const word = holds ? (opt.jlWord || i18t(opt.c ? 'jl_w_contract' : 'jl_w_item')) : (opt.jlHome || jlPageWord());
   if (w){ w.textContent = word; w.setAttribute('title', word); }
   const b = host.querySelector('[data-jl-back]'); if (b) b.hidden = !holds;
-  const n = opt.jlTabWord ? 0 : jlCount();
+  /* a page may count its own tab, as drawn (Negotiations: its live ones; round 7) */
+  const n = opt.jlTabWord ? 0 : (opt.tabCount != null ? Number(opt.tabCount) || 0 : jlCount());
   host.querySelectorAll('[data-jl-n]').forEach(el => { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); });
 }
 /* A CHOSEN ROW'S OWN TAB AND LINKS (the new look's Approvals, round 5, as drawn): the landing tab may carry the
