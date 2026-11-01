@@ -232,6 +232,8 @@ const SAME_IN_BOTH = new Set([ 'pd2_wk_sp_normal' /* 'Normal' is the Swedish wor
   'cu_owner_more', 'mig_side_word',
   /* 19 Oct 2026: the panel's Guide ("Journey") — "Guide" and "Import" are Swedish words too */
   'gd_title', 'gd_tab', 'gd_p_import',
+  /* round 6 (the new look): People's foot for one ("1 person" is Swedish too) and the Parties list's NDA head */
+  'dirn_foot_one', 'cun_c_nda', 'pd2_ch_risk',
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

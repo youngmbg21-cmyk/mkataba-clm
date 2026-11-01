@@ -433,6 +433,8 @@ const REG_VIEWS=[
      DRAFTS is the Drafting stage as a view; Stage stays a filter of its own. */
   {k:'needs',      get label(){ return i18t('reg_view_needs'); }, get title(){ return i18t('reg_view_needs_title'); }},
   {k:'drafts',     get label(){ return i18t('reg_view_drafts'); }, get title(){ return i18t('reg_view_drafts_title'); }},
+  /* SIGNED (the new look's list, round 6, as drawn: All · Needs you · Signed) */
+  {k:'signed',     get label(){ return i18t('reg_view_signed'); }},
 ];
 /* ---- WHICH PAGE THIS TABLE IS ON (added 2026-08-12) ----
    The register's machinery — its filters, its row builder, its body renderer,
@@ -745,6 +747,7 @@ function regHomeNarrow(){
 let _regWidePaint=null;
 function regHomeWide(){
   if(!regHome() || regScope()==='negotiations' || typeof document==='undefined') return false;
+  if(regNl()) return false;
   if(_regWidePaint!=null) return _regWidePaint;
   if(typeof window.askColKeys==='function' && askColKeys().length) return false;
   const el=document.getElementById((_regOpts&&_regOpts.hostId)||'');
@@ -763,6 +766,9 @@ function regHomeWatch(host){
       if(regHomeNarrow()!==t.classList.contains('is-hnarrow') || regHomeWide()!==t.classList.contains('is-hwide')) regRepaint(); });
   }).observe(host);
 }
+/* THE NEW LOOK'S CONTRACTS LIST (round 6, as drawn): the place's table on the new look — one Standing column, the kept
+   questions, Our standards, Ends, Value; no spread, no row menu */
+function regNl(){ return regHome() && regScope()!=='negotiations' && typeof window.newLookOn==='function' && newLookOn(); }
 function regInspecting(){ return !regHome() && regMode()!=='board' && typeof insFits==='function' && insFits(); }
 /* THE ONE READING OF WHICH COLUMNS THIS PAINT DRAWS — the head, the rows, an
    empty row's span and a band's span all ask it, so a column can never sit
@@ -816,6 +822,7 @@ function regColKeysSeat(){
     if(ask.length) shown=shown.filter(k=>k!=='owner'&&k!=='stream');
     /* inside one folder the stream is the same on every row: it steps out (the new look's folder list, as drawn) */
     { const R0=regState(); if(typeof window.newLookOn==='function'&&newLookOn()&&R0.type&&R0.type!=='all') shown=shown.filter(k=>k!=='stream'); }
+    if(!narrow&&regNl()) return ['counterparty','standing'].concat(ask, shown);
     return ['counterparty'].concat(!narrow&&regHomeWide()?REG_HOME_SPREAD:[], shown, ask, ['acts']);
   }
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
@@ -1214,9 +1221,12 @@ function regHomeHeadHtml(R){
         ${regArchiveBtnHtml(R)}
         <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
           `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
+        ${nlF&&((typeof canEdit!=='function')||canEdit())?`<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${esc(i18t('ctf_new_agreement'))}</button>`:''}
       </div>`;
   if(typeof window.lhHtml!=='function'||!(window.LH_PAGES&&LH_PAGES[REG_CT_SEAT])) return `<div class="reg-band sap-band ph-card ct-head">${top}</div>`;
-  return lhHtml(REG_CT_SEAT, { frame:'card', top, cls:'reg-band ct-head' });
+  const head=lhHtml(REG_CT_SEAT, { frame:'card', top, cls:'reg-band ct-head' });
+  /* the Wall as drawn: "upload a document" closes the tabs' line (the one drop door, pdDropDoor) */
+  return nlF&&show==='wall'&&typeof window.pdDropDoor==='function'?head.replace(/<\/div>\s*$/,`<button type="button" class="ctf-up" data-ctf-upload>${esc(i18t('ctf_upload'))}</button></div>`):head;
 }
 /* THE WALL UNDER THE SAME HEAD: the papers igWallBodyHtml draws, of the very
    rows the list holds (regFiltered), its count line carrying the list's own
@@ -1846,9 +1856,10 @@ function regCutCount(k, values){
 function regCtViews(){
   return regOnCt(R=>{
     const q=regCtQuickOf(R);
-    const by=regCutCount('view',[q].concat(REG_CT_VIEWS));
+    const VS=regNl()?['needs','signed']:REG_CT_VIEWS;
+    const by=regCutCount('view',[q].concat(VS));
     const n=k=>by?(by.get(k)||0):null;
-    return [{ k:'', label:i18t('reg_tab_all'), n:n(q||''), keep:true }].concat(REG_CT_VIEWS.map(k=>{
+    return [{ k:'', label:i18t('reg_tab_all'), n:n(q||''), keep:true }].concat(VS.map(k=>{
       const v=REG_VIEWS.find(x=>x.k===k)||{};
       return { k, label:v.label||k, n:n(k), title:v.title||'' }; }));
   });
@@ -1973,7 +1984,114 @@ function regCtHeadReg(){
    on it (#reg-showing, the live region), and the words the old foot carried
    after the count kept: "(of N total)" while the list is narrowed, and
    "N agreements · M documents" where amendments are in it */
+/* the standards' missing ones by name, under the lights (as drawn: "missing: insurance, liability cap") */
+function regStdMissHtml(c){
+  const vs=(c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+  const miss=vs.filter(v=>v&&v.status==='missing').map(v=>String(v.category||v.name||'').toLowerCase()).filter(Boolean);
+  return miss.length?`<span class="reg-std-miss" title="${esc(miss.join(', '))}">${esc(i18t('reg_std_missing',{ list:miss.slice(0,2).join(', ') }))}</span>`:'';
+}
+/* ---- A FOLDER'S PANEL, AS DRAWN (round 6): what Jambo reads of the folder in front, all from what is kept, no call ----
+   one sentence (how many are checked against your standards, and whether one answer stands out), UNUSUAL FOR YOU
+   (a kept question's answer one contract alone gives, against at least three others that agree — the precedent floor),
+   the KEPT QUESTION on the list (its bar, its counts, one quote, the press that reads the rest) and ASK (the other kept
+   questions and the packs, each with its cost in calls). A chosen cell, the ask form or a read in flight keeps the
+   question's own card. */
+const RFP_ODD_MIN = 3;
+const _rfpLoading = new Set();
+function regFolderPanelOn(){
+  if(!regNl() || !regPlaceUp()) return false;
+  const R=regState(), A=window.AC;
+  return R.show!=='wall' && !!R.type && R.type!=='all' && !R.only && !!A && !A.form && !A.busy && !A.chosen;
+}
+function regFolderAns(askId, cs){
+  const A=window.AC; if(!A) return null;
+  const got=A.ans&&A.ans[askId];
+  if(!got){ if(!_rfpLoading.has(askId)&&typeof window.askColLoad==='function'){ _rfpLoading.add(askId);
+      Promise.resolve(askColLoad(askId, cs.map(c=>String(c.id)))).catch(()=>{}).then(()=>ctfDockAgain()); }
+    return null; }
+  return got;
+}
+/* the one answer that stands apart: a number below or above every other, or a yes/no alone against the rest */
+function regFolderOdd(cs){
+  const A=window.AC; if(!A||!Array.isArray(A.summary)) return null;
+  for(const q of A.summary.filter(a=>a&&a.kept)){
+    const got=regFolderAns(q.id, cs); if(!got) continue;
+    const rows=cs.map(c=>({ c, a:got[String(c.id)] })).filter(r=>r.a&&r.a.found);
+    if(rows.length<RFP_ODD_MIN+1) continue;
+    const num=rows.map(r=>{ const m=/(\d+(?:\.\d+)?)/.exec(String(r.a.answer||'')); return m?Number(m[1]):null; });
+    if(num.every(x=>x!=null)){
+      for(const i of [num.indexOf(Math.min(...num)), num.indexOf(Math.max(...num))]){
+        const rest=num.filter((_,j)=>j!==i);
+        if(num[i]<Math.min(...rest)||num[i]>Math.max(...rest)){ const lo=Math.min(...rest), hi=Math.max(...rest);
+          return { r:rows[i], q, others:rest.length, said:lo===hi?String(lo):i18t('reg_fp_range',{ lo, hi }) }; }
+      }
+      continue;
+    }
+    if(rows.every(r=>typeof r.a.yes==='boolean')){
+      const yes=rows.filter(r=>r.a.yes), no=rows.filter(r=>!r.a.yes);
+      const lone=yes.length===1&&no.length>=RFP_ODD_MIN?yes[0]:no.length===1&&yes.length>=RFP_ODD_MIN?no[0]:null;
+      if(lone) return { r:lone, q, others:rows.length-1, said:i18t(lone.a.yes?'reg_fp_say_no':'reg_fp_say_yes') };
+    }
+  }
+  return null;
+}
+function regFolderPanelHtml(){
+  let cs=[]; try{ cs=regFiltered(); }catch(_){ cs=[]; }
+  const A=window.AC||{}, n=cs.length;
+  const checked=cs.filter(c=>c&&c.playbook&&Array.isArray(c.playbook.verdicts)&&c.playbook.verdicts.length).length;
+  const odd=regFolderOdd(cs);
+  const head=(checked===n?i18t('reg_fp_head_all',{ n }):i18t('reg_fp_head',{ k:checked, n, left:n-checked }))+(odd?' '+i18t('reg_fp_odd_single'):'');
+  const cap=t=>`<div class="rfp-cap">${esc(t)}</div>`;
+  const title=c=>typeof regShortTitle==='function'?regShortTitle(c):(c.name||'');
+  const oddHtml=odd?`${cap(i18t('reg_fp_odd_h'))}<p class="rfp-p"><b>${esc(i18t('reg_fp_odd_line',{ name:title(odd.r.c), ans:String(odd.r.a.answer||'').toLowerCase(), n:odd.others, said:odd.said }))}</b> ${esc(i18t('reg_fp_odd_src',{ q:odd.q.name||odd.q.question||'' }))} <button type="button" class="rfp-a" data-rfp-open="${esc(odd.r.c.id)}" data-rfp-quote="${esc(odd.r.a.quote||'')}">${esc(i18t('reg_fp_open_clause'))}</button></p>`:'';
+  /* the kept question on the list (the first up), else none */
+  const up=typeof window.askColKeys==='function'?askColKeys().map(k=>String(k).slice(4)):[];
+  const askId=up[0]||null;
+  let kept='';
+  if(askId){
+    const q=(A.asks||{})[askId]||{}, got=(A.ans||{})[askId]||{};
+    const rows=cs.map(c=>({ c, a:got[String(c.id)] }));
+    const yes=rows.filter(r=>r.a&&r.a.found&&r.a.yes===true).length, no=rows.filter(r=>r.a&&(r.a.yes===false||!r.a.found)).length;
+    const other=rows.filter(r=>r.a&&r.a.found&&typeof r.a.yes!=='boolean').length, unread=rows.filter(r=>!r.a).length;
+    const w=x=>(x/Math.max(1,n)*100).toFixed(2)+'%';
+    const bar=`<div class="rfp-bar" aria-hidden="true"><i class="is-yes" style="width:${w(yes)}"></i><i class="is-no" style="width:${w(no+other)}"></i></div>`;
+    const counts=[yes||no?i18t('reg_fp_yes_n',{ n:yes }):'', yes||no?i18t('reg_fp_no_n',{ n:no }):'', other?i18tn('reg_fp_other_n',other,{ n:other }):'', unread?i18t('reg_fp_unread_n',{ n:unread }):''].filter(Boolean).join(' · ');
+    const pick=rows.find(r=>r.a&&r.a.found&&r.a.yes===true&&r.a.quote)||rows.find(r=>r.a&&r.a.found&&r.a.quote);
+    const clauseNo=a=>{ const m=/^\s*(\d+)/.exec(String(a.clause||'')); return m?' § '+m[1]:''; };
+    const quote=pick?`<div class="rfp-q"><b>${esc(title(pick.c))} —</b><p><i>“${esc(String(pick.a.quote).slice(0,140))}${String(pick.a.quote).length>140?'…':''}”</i><span>${esc(clauseNo(pick.a))}</span></p></div>`:'';
+    let next='';
+    try{ const p=askColPlan({ askId }); if(p.unread&&typeof askColNextWords==='function'){ const nw=askColNextWords(p.unread, typeof acSize==='function'?acSize():50);
+      next=`<div class="rfp-next"><button type="button" class="rfp-pill" data-ac-next="${esc(askId)}" data-ac-n="${nw.n}">${esc(i18tn('reg_fp_read_n',nw.n,{ n:nw.n }))}</button><span>${esc(i18tn('reg_fp_calls',nw.n,{ n:nw.n }))}</span></div>`; } }catch(_){ next=''; }
+    kept=`${cap(i18t('reg_fp_kept_h'))}<p class="rfp-qq">${esc(q.question||q.name||'')}</p>${bar}<div class="rfp-counts">${esc(counts)}</div>${quote}${next}`;
+  }
+  /* ASK: the other kept questions, then the packs, each with what it costs over this folder */
+  const unreadOf=id=>{ const got=(A.ans||{})[id]; return got?cs.filter(c=>!got[String(c.id)]).length:n; };
+  const asks=(Array.isArray(A.summary)?A.summary:[]).filter(a=>a&&a.kept&&a.id!==askId).slice(0,3)
+    .map(a=>`<div class="rfp-ask"><button type="button" class="rfp-a" data-ac-bring="${esc(a.id)}">${esc(a.question||a.name||'')}</button><span>${esc(i18tn('reg_fp_calls',unreadOf(a.id),{ n:unreadOf(a.id) }))}</span></div>`);
+  const packs=(Array.isArray(A.packs)?A.packs:[]).slice(0,2)
+    .map(p=>`<div class="rfp-ask"><button type="button" class="rfp-a" data-ac-pack="${esc(p.id)}">${esc(i18t('reg_fp_pack',{ name:p.name, n:(p.questions||[]).length }))}</button><span>${esc(i18tn('reg_fp_calls',n,{ n }))}</span></div>`);
+  const ask=asks.length||packs.length?`${cap(i18t('reg_fp_ask_h'))}${asks.join('')}${packs.join('')}`:'';
+  return `<div class="rfp-panel"><p class="rfp-head">${esc(head)}</p>${oddHtml}${kept}${ask}</div>`;
+}
+if(typeof document!=='undefined'&&!document._rfpWired){ document._rfpWired=true;
+  document.addEventListener('click',e=>{
+    const b=e.target&&e.target.closest?e.target.closest('[data-rfp-open]'):null; if(!b) return;
+    e.preventDefault(); const id=b.getAttribute('data-rfp-open'), qt=b.getAttribute('data-rfp-quote')||'';
+    if(typeof window.askColLandOn==='function') askColLandOn(id, qt); else regOpenContract(id);
+  });
+}
+/* THE NEW LOOK'S FOOT, AS DRAWN: how many in this folder · Show all N, and on the right what the columns are */
+function regNlFootHtml(cs){
+  const R=regState(), n=(cs||[]).length, inF=R.type&&R.type!=='all';
+  let all=0; try{ all=regRestBase().length; }catch(_){ all=0; }
+  const left=inF?i18tn('reg_nl_foot_folder',n,{ n }):i18tn('reg_foot_n',n,{ n:n.toLocaleString(jxLocale()) });
+  const more=inF&&all>n?` · <button type="button" class="reg-nl-all" data-ctf-tab="all">${esc(i18t('reg_nl_show_all',{ n:all }))}</button>`:'';
+  const ask=typeof window.askColKeys==='function'&&askColKeys().length;
+  const right=[ask?i18t('reg_nl_foot_ask'):'', i18t('reg_nl_foot_std')].filter(Boolean).join(' \u00b7 ');
+  return `<span id="reg-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span><span class="reg-nl-foot-r">${esc(right)}</span>`;
+}
 function regCtFootHtml(cs){
+  if(regNl()) return regNlFootHtml(cs);
   const list=cs||[], n=list.length;
   /* the board shape draws every card: its foot says so */
   const shown=regMode()==='board'?n:Math.min(n, regCurPage(list)*REG_PAGE);
@@ -1993,8 +2111,16 @@ function regCtFootHtml(cs){
    full set, its narrow set, or the answers' shape while Ask a column stands
    — and a column the reader hid pays its share to the agreement, the
    column with the give, so the widths still sum to 100 */
+const REG_COL_W_NL={ standing:12, stream:11, standards:19, expiry:12, value:11, owner:10 };
 function regHomeColW(keys){
   const ask=keys.filter(k=>String(k).startsWith('ask:'));
+  if(regNl()&&!regHomeNarrow()){
+    const o=keys.map(k=>String(k).startsWith('ask:')?24:k==='counterparty'?0:(REG_COL_W_NL[k]||10));
+    let rest=o.reduce((a,b)=>a+b,0); const i=keys.indexOf('counterparty');
+    if(rest>78){ const f=78/rest; for(let j=0;j<o.length;j++) o[j]=Math.round(o[j]*f*100)/100; rest=o.reduce((a,b)=>a+b,0); }
+    if(i>=0) o[i]=Math.round((100-rest)*100)/100;
+    return o;
+  }
   const narrow=regHomeNarrow(), wide=!narrow&&!ask.length&&regHomeWide();
   const shape=narrow?REG_COL_KEYS_HOME_NARROW:ask.length?['counterparty','standards','expiry','value'].concat(ask,['acts']):wide?REG_COL_KEYS_HOME_WIDE:REG_COL_KEYS_HOME;
   const w=narrow?REG_COL_W_HOME_NARROW:ask.length&&typeof window.askColWidths==='function'?askColWidths(ask.length):wide?REG_COL_W_HOME_WIDE:REG_COL_W_HOME;
@@ -2087,8 +2213,9 @@ function regViewOptsHtml(R, o={}){
    Negotiations page has its own head. */
 function regHeadFactsHtml(){
   /* the new look's folder list says its own folder: how many, the money on paper, how many signed (as drawn) */
-  { const R0=regState(); if(typeof window.newLookOn==='function'&&newLookOn()&&R0.type&&R0.type!=='all'&&typeof regFolderRead==='function'){
-    const r=regFolderRead(state.contracts.filter(c=>c&&!c.archived&&c.folder===R0.type&&!c._codeNamed));
+  { const R0=regState(); if(typeof window.newLookOn==='function'&&newLookOn()&&R0.view!=='archived'&&typeof regFolderRead==='function'){
+    const inF=R0.type&&R0.type!=='all';
+    const r=regFolderRead(state.contracts.filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c.parentId&&(!inF||c.folder===R0.type)&&!c._codeNamed));
     return [String(r.n), r.val?i18t('ctf_on_paper',{ v:fmtMoneyShort(r.val) }):'', r.signed?i18t('ctf_n_signed',{ n:r.signed }):''].filter(Boolean).map(esc).join(' · '); } }
   const book=state.contracts.filter(c=>!c.archived&&c.status!=='Declined'&&!c.parentId);
   const n=(state.serverStats&&state.serverStats.total!=null&&Number(state.serverStats.total)>state.contracts.length)
@@ -2366,6 +2493,7 @@ function regFiltered(o){
   else if(R.view==='needs'){ const ids=regNeedsIds(); cs=cs.filter(c=>ids.has(String(c.id))); }
   /* DRAFTS (Part 8): the Drafting stage, as a view */
   else if(R.view==='drafts') cs=cs.filter(c=>c.status==='Draft');
+  else if(R.view==='signed') cs=cs.filter(c=>c.status==='Signed');
   }
   /* ---- THE TEXT FILTER, ON THE SEAT THAT HAS A BOX FOR IT ----
      (owner-reported 10 Sep 2026: *"the search feature is not working."*
@@ -2830,7 +2958,7 @@ function regRowsHtml(cs){
         <span class="reg-id">${placeRows?regStageMarkHtml(c):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
-        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
+        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regNl()?'':regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
         </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
@@ -2866,7 +2994,8 @@ function regRowsHtml(cs){
       /* the stream's short word where the house has one (STREAM_SHORT), its whole name on the hover */
       const short=(window.STREAM_SHORT&&STREAM_SHORT[c.folder])||n;
       return listChipHtml(listStreamTone(c.folder),short).replace(/ title="[^"]*"/,` title="${esc(n)}"`); })()}</td>`;
-    CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}</td>`;
+    CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}${regNl()?regStdMissHtml(c):''}</td>`;
+    if(regNl()){ const st=regStageTone(c); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)">${esc((st.m&&st.m.label)||'')}</td>`; }
     /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
        7: in Home's narrower column "· in 25 days" was cut on every screen) —
        the row is two lines already, so it costs no height; the hover says
@@ -3451,7 +3580,7 @@ let _regOpts={};
    file used to call renderRegister() bare, which with two pages sharing the
    renderer would have turned Negotiations into Contracts on the first press of
    a dropdown — the scope reset to null by the argument nobody passed. */
-function regRepaint(){ renderRegister(_regOpts); }
+function regRepaint(){ renderRegister(_regOpts); if(typeof regFolderPanelOn==='function'&&regFolderPanelOn()) ctfDockAgain(); }
 /* ---- CONTRACTS BY FOLDER, AS DRAWN (the new look, round 6) ----
    The place opens on the company's own folders (streams): a card each says how many, the money on paper and how many
    are signed or in review, and what in it needs you, in words (needsYouOf, the one checklist), amber; a green dot where
@@ -3479,7 +3608,7 @@ function regFolderNeedWords(r){
 function regFoldersHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed);
   const fids = Object.keys(FOLDERS || {}).filter(f => (typeof canAccessFolder !== 'function' || canAccessFolder(f)));
-  const ended = live.filter(c => c.archived || c.status === 'Declined' || (typeof window.contractEnded === 'function' && window.contractEnded(c)));
+  const ended = live.filter(c => c.archived || c.status === 'Declined' || (c.status === 'Signed' && c.expiry && typeof todayISO === 'function' && String(c.expiry).slice(0, 10) < todayISO()));
   const endIds = new Set(ended.map(c => c.id));
   const money = v => v == null ? '' : (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(v) : String(v));
   const cards = fids.map(fid => {
@@ -3534,6 +3663,7 @@ if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired
     const s = t.closest('[data-ctf-show]');
     if (s){ e.preventDefault(); const R = regState(); _ctFolders = false; R.show = s.getAttribute('data-ctf-show') === 'wall' ? 'wall' : 'list'; regRepaint(); ctfDockAgain(); return; }
     if (t.closest('[data-ctf-draft]')){ e.preventDefault(); if (typeof openNewAgreement === 'function') openNewAgreement(); return; }
+    if (t.closest('[data-ctf-upload]')){ e.preventDefault(); if (typeof pdDropDoor === 'function') pdDropDoor(); return; }
   });
   /* words typed in the box leave the folders for the list, the words carried (the register's own query) */
   document.addEventListener('input', e => {
@@ -3553,7 +3683,7 @@ function regFoldersPanelHtml(){
     .map(x => Object.assign(x, { r: regFolderRead(x.cs) }));
   const short = n => String(n).split(/\s+[&—-]\s+|\s+/)[0];
   const work = rows.slice().sort((a, b) => b.r.needN - a.r.needN)[0], rich = rows.slice().sort((a, b) => (b.r.val || 0) - (a.r.val || 0))[0];
-  const head = work && work.r.needN ? i18t(rich && rich.fid !== work.fid && rich.r.val ? 'ctfp_head' : 'ctfp_head_one', { work: short(work.name), what: regFolderNeedWords(work.r) || i18tn('ctf_need_n', work.r.needN, { n: work.r.needN }), rich: rich ? short(rich.name) : '' }) : i18t('ctfp_quiet');
+  const head = work && work.r.needN ? i18t(rich && rich.fid !== work.fid && rich.r.val ? 'ctfp_head' : 'ctfp_head_single', { work: short(work.name), what: regFolderNeedWords(work.r) || i18tn('ctf_need_n', work.r.needN, { n: work.r.needN }), rich: rich ? short(rich.name) : '' }) : i18t('ctfp_quiet');
   const money = v => v == null ? '' : (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(v) : String(v));
   const line = x => [String(x.r.n), x.r.val ? money(x.r.val) : '', x.r.needN ? i18tn('ctf_need_n', x.r.needN, { n: x.r.needN }) : (x.r.signed === x.r.n ? i18t('ctfp_all_signed') : '')].filter(Boolean).join(' · ');
   let gaps = [];
@@ -4469,8 +4599,9 @@ function renderRegister(opts){
                   if(k==='signed') return sortableTh('signed',i18t('reg_col_signed'),'',k);
                   if(k==='expiry') return sortableTh('expiry',i18t('reg_col_ends'),'',k);
                   if(k==='stage') return sortableTh('stage',i18t('reg_col_stage'),'',k);
+                  if(k==='standing') return sortableTh('stage',i18t('reg_col_standing'),'',k);
                   if(k==='stream') return sortableTh('stream',i18t('reg_col_stream'),'',k);
-                  if(k==='standards') return sortableTh('standards',i18t('reg_col_standards'),'',k);
+                  if(k==='standards') return regNl()?sortableTh('standards',i18t('reg_col_standards'),'',k).replace(/<\/th>\s*$/,`<span class="reg-th-sub">${esc(i18t('reg_nl_std_sub'))}</span></th>`):sortableTh('standards',i18t('reg_col_standards'),'',k);
                   if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="${INS?'':'text-align:right;'}${colAt('',k)}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
                     : sortableTh('move',i18t('ngl_col_move'),'',k);
                   if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);
@@ -4759,7 +4890,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regFoldersUp,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,

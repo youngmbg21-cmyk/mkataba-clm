@@ -21,8 +21,51 @@ function r6Contracts(){
       signatures: [{ party: 'first', name: 'Amina Otieno', at: iso(at) }, { party: 'counterparty', name: cp, at: iso(at) }] }));
   return cs.concat([cr, it, nda], old);
 }
+/* THE KEPT QUESTION AS DRAWN: "Can we end it for convenience?" — the sugar supply only for breach, the cold room no,
+   the transport yes on 30 days' notice; the milk collection not read yet. The stand-in answers each contract by its
+   party, quoting the document's own first long sentence so the route's quote check passes as it would live. */
+const R6_Q = 'Can we end it for convenience?';
+const R6_ANS = [[/Kabras/, { answer: 'No, only for breach', detail: '', yes: false, clause: '14 · Termination' }],
+  [/Tana Cold/, { answer: 'No', detail: '', yes: false, clause: '9 · Term' }],
+  [/Rift Haulage/, { answer: "Yes, 30 days' notice", detail: '', yes: true, clause: '11 · Ending early' }]];
+/* the second kept question (not on the list): how many days we have to pay — the cold room alone says 14 */
+const R6_Q2 = 'Within how many days must we pay?';
+const R6_PAY = [[/Kabras/, '30 days'], [/Nandi/, '45 days'], [/Rift Haulage/, '30 days'], [/Tana Cold/, '14 days']];
+function r6Answer(tool, body){
+  if (tool !== 'column_answers') return null;
+  const msg = String(((body.messages || [])[0] || {}).content || '');
+  const txt = msg.split('DOCUMENT:\n')[1] || '';
+  const quote = (txt.match(/[^.\n]{40,200}\./) || [''])[0].trim();
+  if (msg.includes(R6_Q2)){ const p = R6_PAY.find(([re]) => re.test(txt));
+    return { answers: [{ q: 1, found: true, answer: p ? p[1] : '30 days', detail: '', tone: 'none', why: 'stubbed reason', quote, clause: '5 · Payment', verdict: '' }] }; }
+  if (!msg.includes(R6_Q)) return null;
+  const hit = R6_ANS.find(([re]) => re.test(txt));
+  const a = hit ? hit[1] : { answer: 'No', detail: '', yes: false, tone: 'concern', clause: '' };
+  return { answers: [Object.assign({ q: 1, found: true, why: 'stubbed reason', quote, verdict: '' }, a)] };
+}
 async function seedRound6(h){
   const out = await seedWorkspace(h, { contracts: r6Contracts(), approvalRules: R5.R5_RULES });
+  if (h.ai && typeof h.ai.answerWith === 'function') h.ai.answerWith(r6Answer);
   return out;
 }
-module.exports = { r6Contracts, seedRound6, iso, day };
+/* in the page, once signed in: the question read over three of the folder's four and kept (the fourth not yet read) */
+async function R6_IN_PAGE(){
+  const ids = ['MK-A1', 'MK-CR', 'MK-CL'];
+  const texts = {};
+  ids.forEach(id => { try { const t = contractPlainText(getContract(id)); if (t && t.length >= 120) texts[id] = t; } catch (_){ /* the stored body is read instead */ } });
+  const r = await api('ai/column', 'POST', { question: 'Can we end it for convenience?', name: 'Can we end it for convenience?', ids, texts });
+  const id = r && ((r.ask && r.ask.id) || (r.asks && r.asks[0] && r.asks[0].id));
+  if (id){ await api('columns/' + encodeURIComponent(id) + '/keep', 'POST', { kept: true }); window.__r6Ask = id; }
+  const all = ids.concat('MK-A2');
+  try { const t = contractPlainText(getContract('MK-A2')); if (t && t.length >= 120) texts['MK-A2'] = t; } catch (_){ /* stored body */ }
+  const r2 = await api('ai/column', 'POST', { question: 'Within how many days must we pay?', name: 'Payment days', ids: all, texts });
+  const id2 = r2 && r2.ask && r2.ask.id;
+  if (id2) await api('columns/' + encodeURIComponent(id2) + '/keep', 'POST', { kept: true });
+}
+/* on a folder's list: the kept question brought up as its column */
+async function R6_BRING(){
+  if (!window.__r6Ask || typeof askColBring !== 'function') return;
+  if (typeof askColSummary === 'function') await askColSummary(true);
+  await askColBring(window.__r6Ask);
+}
+module.exports = { r6Contracts, seedRound6, R6_IN_PAGE, R6_BRING, R6_Q, R6_Q2, iso, day };

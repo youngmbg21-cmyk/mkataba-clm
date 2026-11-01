@@ -19061,6 +19061,80 @@
   html.lg-new #ct-place .ct-page .ct-arch{display:none}
   html.lg-new #ig-page #ct-place .ct-page .ph-card.ct-head{box-shadow:none;border:0;border-radius:0;background:transparent;padding-left:0;padding-right:0}
   html.lg-new #ig-page #ct-place .ct-page .ph-card.ct-head + *{border-radius:0;box-shadow:none}
+  /* the list's head as drawn: the title row (‹ Folders › name · facts · List · Wall · + New agreement), then ONE line —
+     the box, the tabs, + Ask a column, Columns; the stream chip, + Filter, sort, display and the bulk acts are not drawn */
+  html.lg-new #ig-page #ct-place .ct-page .ct-head.lh{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 16px}
+  html.lg-new #ct-place .ct-page .ct-head.lh > .ct-top{flex:1 0 100%;display:flex;align-items:center;gap:10px;border-bottom:0;margin-bottom:12px}
+  html.lg-new #ct-place .ct-page .ct-head .ct-name{flex:1;min-width:0}
+  html.lg-new #ct-place .ct-page .ct-head .ct-facts{font-size:14px;font-weight:var(--w-label);margin-left:10px}
+  html.lg-new #ct-place .ct-page .ct-head .ct-seg{display:flex;gap:10px;background:transparent;padding:0;border:0;box-shadow:none}
+  html.lg-new #ct-place .ct-page .ct-head .ct-seg button{height:var(--ctl-h-lg);padding:0 16px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-size:13.5px;font-weight:var(--w-label);box-shadow:none}
+  html.lg-new #ct-place .ct-page .ct-head .ct-seg button svg{display:none}
+  html.lg-new #ct-place .ct-page .ct-head .ct-seg button[aria-pressed="true"]{font-weight:var(--w-strong)}
+  html.lg-new #ct-place .ct-page .ct-head .lh-ask{flex:1 1 320px;min-width:0;max-width:none;height:38px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:transparent;box-shadow:none}
+  html.lg-new #ct-place .ct-page .ct-head .reg-views{order:2;margin:0;border:0}
+  html.lg-new #ct-place .ct-page .ct-head .lh-chips{display:contents}
+  html.lg-new #ct-place .ct-page .ct-head :is(.lh-chip,.lh-add,.lh-sp,.reg-filterbar,.ct-cohort,.lh-save){display:none}
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn{order:3;border:0;background:none;box-shadow:none;padding:0;height:auto;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn svg{display:none}
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn::before{content:"+ "}
+  html.lg-new #ct-place .ct-page .ct-head .lc-wrap{order:4}
+  html.lg-new #ct-place .ct-page .ct-head .lc-btn{border-radius:999px;background:var(--surface-2);border:0;box-shadow:none}
+  html.lg-new #ct-place .reg-table .reg-standing{font-weight:var(--w-label)}
+  html.lg-new #ct-place .reg-std-miss{display:block;margin-top:4px;font-size:12px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ct-place .reg-nl-foot-l,html.lg-new #ct-place .reg-nl-foot-r{font-size:12.5px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #ct-place .reg-nl-all{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  /* the Wall's lines as drawn: no count-and-sort line over the papers; the press's rule under them; the page's foot */
+  html.lg-new #ct-place .ct-wall .igw-line{display:none}
+  html.lg-new .igw-card.is-nl .igw-t{font-size:11.5px;white-space:normal;text-align:center;line-height:1.25;overflow:visible;text-overflow:clip;display:block}
+  html.lg-new .igw-card.is-nl .igw-p{font-size:8.5px;line-height:1.3;white-space:normal;text-align:center}
+  html.lg-new #ct-place .ct-page .ct-head .ctf-up{order:5;border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .igw2-hint,html.lg-new .igw2-pfoot{display:flex;justify-content:space-between;gap:16px;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .igw2-hint{margin-top:16px}
+  html.lg-new #ig-page #ct-place .sap-page.ct-page:not(.ctf-page){display:flex;flex-direction:column;min-height:100%;box-sizing:border-box}
+  html.lg-new #ct-place .ct-page .ct-wall{flex:1 0 auto;display:flex;flex-direction:column}
+  html.lg-new .igw2-pfoot{margin-top:auto;padding-top:12px;border-top:1px solid var(--color-divider)}
+  html.lg-new #ct-place .ct-wall.is-over{outline:2px dashed var(--accent-ink);outline-offset:6px}
+  html.lg-new .igw-card.is-nl .igw2-foot > span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  /* a paper chosen on the Wall, as drawn */
+  html.lg-new .pd2-chosen{padding:4px 0 16px;font-size:13px;color:var(--color-text)}
+  html.lg-new .pd2-ch-head{margin:0 0 16px;font-size:14px;font-weight:var(--w-strong);line-height:1.45}
+  html.lg-new .pd2-ch-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0 0 6px}
+  html.lg-new .pd2-ch-tbl{margin:0 0 20px;border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-ch-r{display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);align-items:baseline}
+  html.lg-new .pd2-ch-r span{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .pd2-ch-r b{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .pd2-ch-r i{font-style:normal;font-size:12px;white-space:nowrap}
+  html.lg-new .pd2-ch-door{display:flex;align-items:baseline;gap:8px;margin:0 0 12px}
+  html.lg-new .pd2-ch-door .rfp-a{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .pd2-ch-door span{font-size:12px;font-weight:var(--w-label)}
+  html.lg-new .pd2-chosen .pd2-turn{margin-top:20px}
+  /* a folder's panel, as drawn */
+  html.lg-new .rfp-panel{font-size:13px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .rfp-head{margin:0 0 18px;font-size:14px;font-weight:var(--w-strong)}
+  html.lg-new .rfp-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0 0 8px}
+  html.lg-new .rfp-p{margin:0 0 18px;font-size:13.5px}
+  html.lg-new .rfp-p b{font-weight:var(--w-label)}
+  html.lg-new .rfp-a{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left}
+  html.lg-new .rfp-qq{margin:0 0 10px;font-size:14px;font-weight:var(--w-label)}
+  html.lg-new .rfp-bar{display:flex;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-bottom:8px}
+  html.lg-new .rfp-bar i.is-yes{background:var(--accent-ink)}
+  html.lg-new .rfp-bar i.is-no{background:var(--st-steel-dot)}
+  html.lg-new .rfp-counts{font-size:12px;font-weight:var(--w-label);margin-bottom:10px}
+  html.lg-new .rfp-q b{font-weight:var(--w-strong)}
+  html.lg-new .rfp-q p{margin:2px 0 0 8px;font-family:var(--font-doc);font-size:12.5px}
+  html.lg-new .rfp-q p span{font-family:var(--font-ui, inherit);font-size:12px;margin-left:6px}
+  html.lg-new .rfp-next{display:flex;align-items:center;gap:10px;margin:12px 0 22px}
+  html.lg-new .rfp-next span,html.lg-new .rfp-ask span{font-size:12px;font-weight:var(--w-label)}
+  html.lg-new .rfp-pill{height:26px;padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
+  html.lg-new .rfp-ask{display:flex;align-items:baseline;gap:8px;margin:0 0 12px}
+  html.lg-new .rfp-ask .rfp-a{font-size:13.5px;font-weight:var(--w-label)}
+  /* the list's heads as drawn: small capitals on the white page, two lines where the head names both */
+  html.lg-new #ct-place .ct-page .reg-table thead th .reg-th-sub{display:block;text-transform:none;letter-spacing:0;font-size:11px;font-weight:var(--w-label);margin-top:2px;white-space:normal}
+  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl{text-transform:none;letter-spacing:0;font-size:12.5px;white-space:normal}
+  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl .ac-th-w{white-space:normal;overflow:visible}
+  html.lg-new .rfp-panel{padding:4px 0 16px}
+  html.lg-new #ct-place .ct-page .reg-table thead th{background:var(--color-surface);text-transform:uppercase;font-size:11px;letter-spacing:.06em;font-weight:var(--w-label);vertical-align:bottom}
   /* THE WALL AS DRAWN: papers on the page itself (no box around them), each a sheet with its mark at the corner and the party and value at its foot */
   html.lg-new #ct-place .ct-wall{border:0;box-shadow:none;background:transparent;padding:0}
   html.lg-new .igw-card.is-nl{position:relative;display:flex;flex-direction:column;gap:0;padding:0 0 12px;border:1px solid var(--color-divider);border-radius:2px;background:var(--color-surface);box-shadow:var(--shadow-paper);min-height:198px;text-align:left}

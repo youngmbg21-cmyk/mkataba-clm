@@ -70,7 +70,9 @@ function startAiStub() {
       calls.push({ url: req.url, body, raw });
       const toolName = (body.tool_choice && body.tool_choice.name)
         || (Array.isArray(body.tools) && body.tools.length ? body.tools[0].name : 'deliver_answer');
-      const input = toolName === 'deliver_answer'
+      /* a world may answer a tool its own way (round 6: the folder's kept question, one answer per contract) */
+      const own = state.answer ? state.answer(toolName, body) : null;
+      const input = own ? own : toolName === 'deliver_answer'
         ? { answer: 'stubbed answer', citations: [] }
         : toolName === 'render_graph' ? { note: 'stub', answer: 'stub' }
         : toolName === 'answer_portfolio' ? { answer: 'stub', matches: [] }
@@ -133,6 +135,7 @@ function startAiStub() {
         calls,
         reset() { calls.length = 0; },
         slow(ms) { state.slowMs = Number(ms) || 0; },
+        answerWith(fn) { state.answer = typeof fn === 'function' ? fn : null; },
         /* Every character HaTi sent to the provider on the last call — prompts,
            system prompt, tool results, the lot. This is the string the
            "no folder-B contract reached the model" assertions run against. */
