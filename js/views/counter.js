@@ -1198,6 +1198,8 @@ function renderCounter(){
 /* the list's own data moved (a save, a new item): only the Needs card is drawn again */
 function counterRepaint(){
   if (typeof state === 'undefined' || !state || state.view !== 'counter') return;
+  /* the look changed under a Home already drawn (the switch turned on or off): Home is drawn again whole, in the look now on */
+  if (!!document.getElementById('cn2-page') !== cn2On()){ renderCounter(); return; }
   if (document.getElementById('cn2-page')){ cn2Repaint(); return; }
   const card = document.getElementById('cn-needs'); if (!card) return;
   const t = document.createElement('div'); t.innerHTML = counterHtml();
