@@ -2007,7 +2007,10 @@ function regFolderAns(askId, cs){
   const A=window.AC; if(!A) return null;
   const got=A.ans&&A.ans[askId];
   if(!got){ if(!_rfpLoading.has(askId)&&typeof window.askColLoad==='function'){ _rfpLoading.add(askId);
-      Promise.resolve(askColLoad(askId, cs.map(c=>String(c.id)))).catch(()=>{}).then(()=>ctfDockAgain()); }
+      Promise.resolve(askColLoad(askId, cs.map(c=>String(c.id)))).catch(()=>{}).then(()=>{
+        /* the column on the list shows these same answers: it is drawn again with them, not left saying "not read" */
+        const up=typeof window.askColKeys==='function'&&askColKeys().includes('ask:'+askId);
+        if(up&&regPlaceUp()) regRepaint(); else ctfDockAgain(); }); }
     return null; }
   return got;
 }

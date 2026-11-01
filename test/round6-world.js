@@ -56,12 +56,6 @@ async function seedRound6(h){
 }
 /* in the page, once signed in: the question read over three of the folder's four and kept (the fourth not yet read) */
 async function R6_IN_PAGE(){
-  const ids = ['MK-A1', 'MK-CR', 'MK-CL'];
-  const texts = {};
-  ids.forEach(id => { try { const t = contractPlainText(getContract(id)); if (t && t.length >= 120) texts[id] = t; } catch (_){ /* the stored body is read instead */ } });
-  const r = await api('ai/column', 'POST', { question: 'Can we end it for convenience?', name: 'Can we end it for convenience?', ids, texts });
-  const id = r && ((r.ask && r.ask.id) || (r.asks && r.asks[0] && r.asks[0].id));
-  if (id){ await api('columns/' + encodeURIComponent(id) + '/keep', 'POST', { kept: true }); window.__r6Ask = id; }
   /* the parties' own facts, as drawn on Parties: city and organisation no. (the record's one writer) */
   for (const [name, city, orgNo] of [['Naivas Supermarkets', 'Mombasa', 'P051-2231'], ['Kabras Sugar', 'Kakamega', 'P051-0417'], ['Nandi Dairy', 'Nandi Hills', ''],
     ['Tana Cold Stores', 'Malindi', 'P051-3390'], ['Rift Haulage', 'Nakuru', 'P051-1188'], ['Parcelway Logistics Ltd', 'Nairobi', '']]){
@@ -82,6 +76,14 @@ async function R6_IN_PAGE(){
     try { await api('intake', 'POST', q); } catch (_){ /* a request the page draws without */ }
   }
   if (typeof loadIntake === 'function'){ try { await loadIntake(); } catch (_){ /* the page loads it */ } }
+  /* the kept questions last, so the wording they were read over is the wording the page shows (a party's record
+     changes the parties line, and an answer read before it would be said stale) */
+  const ids = ['MK-A1', 'MK-CR', 'MK-CL'];
+  const texts = {};
+  ids.forEach(id => { try { const t = contractPlainText(getContract(id)); if (t && t.length >= 120) texts[id] = t; } catch (_){ /* the stored body is read instead */ } });
+  const r = await api('ai/column', 'POST', { question: 'Can we end it for convenience?', name: 'Can we end it for convenience?', ids, texts });
+  const id = r && ((r.ask && r.ask.id) || (r.asks && r.asks[0] && r.asks[0].id));
+  if (id){ await api('columns/' + encodeURIComponent(id) + '/keep', 'POST', { kept: true }); window.__r6Ask = id; }
   const all = ids.concat('MK-A2');
   try { const t = contractPlainText(getContract('MK-A2')); if (t && t.length >= 120) texts['MK-A2'] = t; } catch (_){ /* stored body */ }
   const r2 = await api('ai/column', 'POST', { question: 'Within how many days must we pay?', name: 'Payment days', ids: all, texts });
