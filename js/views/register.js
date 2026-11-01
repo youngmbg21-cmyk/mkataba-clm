@@ -2094,6 +2094,8 @@ function regNlFootHtml(cs){
   const right=[ask?i18t('reg_nl_foot_ask'):'', i18t('reg_nl_foot_std')].filter(Boolean).join(' \u00b7 ');
   return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span><span class="reg-nl-foot-r">${esc(right)}</span>`;
 }
+/* the new look's foot is two halves in its own row: as the list narrows, the row is written again whole */
+function regNlFootPut(cs){ const f=regNl()&&document.getElementById('reg-nl-showing'); if(f&&f.parentElement) f.parentElement.innerHTML=regNlFootHtml(cs); }
 function regCtFootHtml(cs){
   if(regNl()) return regNlFootHtml(cs);
   const list=cs||[], n=list.length;
@@ -3144,8 +3146,6 @@ function renderRegisterBody(){
   /* …and the Contracts place's ("1–40 of 189 · Show 40 more", regCtFootHtml),
      the same way (Part 8) */
   const ctSeat=!negSeat&&regHome();
-  /* the new look's foot is two halves in its own row: the row is written again whole */
-  const nlf=regNl()&&document.getElementById('reg-nl-showing'); if(nlf&&nlf.parentElement) nlf.parentElement.innerHTML=regNlFootHtml(cs);
   const sh=document.getElementById('reg-showing'); if(sh){ if(negSeat) regFootPut(sh,regNegoFootHtml(cs)); else if(ctSeat) regFootPut(sh,regCtFootHtml(cs)); else sh.innerHTML=regFooterText(cs); }
   if((negSeat||ctSeat)&&typeof window.lhHeadSyncSoon==='function') lhHeadSyncSoon(negSeat?REG_NEGO_SEAT:REG_CT_SEAT);
   const tt=document.getElementById('reg-tt'); if(tt){ tt.innerHTML=regListTitle(cs); }
@@ -3153,6 +3153,7 @@ function renderRegisterBody(){
   /* The search narrows from the shell bar, which repaints only this body — so
      the way back has to follow it here rather than waiting for a full render. */
   regPaintClear();
+  regNlFootPut(cs);
   /* A body repaint can take the chosen contract off the page (a search, a page
      turn): the panel follows the list, never the other way round. */
   regInsPaint();
@@ -4898,7 +4899,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
