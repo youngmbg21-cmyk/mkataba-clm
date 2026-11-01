@@ -35536,3 +35536,6 @@ with the words each duty rests on) and Proposed (standing under the tabs with it
 rows with their own months), History with the wording (plain sentences, an outcome on every row, the words each event carried, one row per person-round-moment), and
 Amend (two papers side by side, the amended deal as a reading, a change said in Jambo's box through the amendment reader, one call; no boxes, the owner's answer).
 Found on the way and logged, not fixed: opening Before you sign on a never-negotiated contract starts a negotiation and makes a given approval stale (BUGLOG).
+
+## THE NEW LOOK, ROUND 6 — THE BOOK: THE OWNER'S TWO ANSWERS (1 Nov 2026)
+The owner said "start round 6" and answered the plan's two questions by name: the one map is "One strand each" (DNA by contract as drawn: one row per contract, its clauses in paper order as coloured segments, the worst mark in words at the row's end); From scratch opens for the people with the new-paper grant only (`mayMakeNewPaper`), admins included, everyone else keeps Our paper and Their paper.

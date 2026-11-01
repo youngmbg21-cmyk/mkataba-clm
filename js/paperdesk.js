@@ -6497,6 +6497,8 @@ function pdJamboTopHtml(){
   if (typeof hbFace === 'function' && hbFace() === 'explorer' && typeof igOverviewHtml === 'function') return igOverviewHtml();
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
+  /* the new look's Contracts on its folders (round 6, as drawn): the panel reads across the folders */
+  if (!c && typeof regFoldersUp === 'function' && regFoldersUp() && typeof regFoldersPanelHtml === 'function') return regFoldersPanelHtml();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
      Contracts list his panel holds the question, then the answers' why */
   const ac = (!c && typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';

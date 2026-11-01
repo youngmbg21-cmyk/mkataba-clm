@@ -19031,6 +19031,41 @@
   html.lg-new .pd2-sg-card ul{margin:6px 0 0;padding-left:18px}
   html.lg-new .pd2-sg-acts{display:flex;align-items:center;gap:10px}
   html.lg-new .pd2-sg-acts span{margin-left:auto;font-size:12px}
+  /* CONTRACTS BY FOLDER, AS DRAWN (round 6): one white page; a card per folder with its tab, the facts, what needs you in amber */
+  html.lg-new #ig-page #ct-place .sap-page.ct-page.ctf-page,html.lg-new .ctf-page{background:var(--color-surface);padding:24px 40px 16px;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+  html.lg-new .ctf-head{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+  html.lg-new .ctf-h{font-family:var(--font-title);font-size:26px;font-weight:400;margin:0;color:var(--color-text)}
+  html.lg-new .ctf-hf{font-size:14px;font-weight:var(--w-label)}
+  html.lg-new .ctf-sp{flex:1}
+  html.lg-new .ctf-pill{height:var(--ctl-h-lg);padding:0 16px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
+  html.lg-new .ctf-new{height:var(--ctl-h-lg);border-radius:999px;padding:0 16px;gap:8px}
+  html.lg-new .ctf-bar{margin-bottom:24px}
+  html.lg-new .ctf-hint{font-size:12px;margin-left:8px;white-space:nowrap}
+  html.lg-new .ctf-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  html.lg-new .ctf-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:118px;padding:24px 16px 16px;margin-top:10px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .ctf-card .ctf-tab{position:absolute;top:-10px;left:-1px;width:86px;height:10px;border:1px solid var(--color-divider);border-bottom:0;border-radius:6px 6px 0 0;background:var(--color-surface)}
+  @media (hover:hover){ html.lg-new .ctf-card:hover{border-color:var(--color-text)} html.lg-new .ctf-card:hover .ctf-tab{border-color:var(--color-text)} }
+  html.lg-new .ctf-card.is-new{border-style:dashed}
+  html.lg-new .ctf-name{font-size:15px;font-weight:var(--w-label);padding-right:40px}
+  html.lg-new .ctf-facts{font-size:12.5px;font-weight:var(--w-label)}
+  html.lg-new .ctf-need{margin-top:auto;font-size:13px;font-weight:var(--w-label);color:var(--st-amber-fg)}
+  html.lg-new .ctf-quiet{margin-top:auto;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .ctf-dots{position:absolute;top:14px;right:16px;display:flex;gap:10px}
+  html.lg-new .ctf-dot{width:9px;height:9px;border-radius:50%}
+  html.lg-new .ctf-dot.is-need{background:var(--st-amber-dot)}
+  html.lg-new .ctf-dot.is-live{background:var(--accent-ink)}
+  /* a folder's list, as drawn: the same white page, the folder's name in the serif after "‹ Folders ›"; the shelf is its own card on the folders, so no Archive button */
+  html.lg-new #ig-page #ct-place .sap-page.ct-page:not(.ctf-page){background:var(--color-surface);padding:16px 40px 16px}
+  html.lg-new #ct-place .ct-page .ct-h{font-family:var(--font-title);font-size:26px;font-weight:400}
+  html.lg-new #ct-place .ct-page .ct-name{display:flex;align-items:center;gap:6px}
+  html.lg-new #ct-place .ct-page .ct-arch{display:none}
+  html.lg-new #ig-page #ct-place .ct-page .ph-card.ct-head{box-shadow:none;border:0;border-radius:0;background:transparent;padding-left:0;padding-right:0}
+  html.lg-new #ig-page #ct-place .ct-page .ph-card.ct-head + *{border-radius:0;box-shadow:none}
+  html.lg-new .ctfp-door{margin:4px 0 10px;font-size:13px}
+  html.lg-new .ctfp-door span{font-size:12px}
+  html.lg-new .ctf-foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--color-divider);font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .ctf-back{border:0;background:none;padding:0;font:inherit;font-size:15px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;margin-right:8px}
+  html.lg-new .ctf-crumb{margin-right:10px}
   html.lg-new .apn-panel{padding:16px;font-size:13px;line-height:1.45;color:var(--color-text)}
   html.lg-new .apn-panel .apn-pl{margin:0 0 14px;font-size:14px}
   html.lg-new .apn-panel .apn-pl b{font-weight:var(--w-strong)}
