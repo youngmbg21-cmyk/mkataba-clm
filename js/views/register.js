@@ -2961,7 +2961,7 @@ function regRowsHtml(cs){
         <span class="reg-id">${placeRows?regStageMarkHtml(c):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
-        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regNl()?'':regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
+        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
         </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
@@ -3108,6 +3108,8 @@ function regNegoClauseChips(c){
   return chips+(names.length>3?` <span class="reg-cl-more">+${names.length-3}</span>`:'');
 }
 function regStageLineHtml(c){
+  /* the new look's list says the stage in its own Standing column (round 6), not on the grey line */
+  if(regNl()) return '';
   const { m }=regStageTone(c); if(!m) return '';
   const at=c&&(c._lastAuditAt||c.updatedAt||c.lastAction);
   const ago=at&&typeof window.rlAgoWords==='function'?rlAgoWords(at):'';
