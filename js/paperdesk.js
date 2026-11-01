@@ -2837,8 +2837,8 @@ async function pd2AmSay(text){
   const say = (m, tone) => { if (host){ host.hidden = false; host.className = 'pd2-am-say' + (tone ? ' is-' + tone : ''); host.textContent = m; } };
   say(_pdT('fa_reading'));
   try {
-    const r = await api('ai/amend', 'POST', { text: amendParentText(c), ask: String(text).trim(), ref: (typeof contractRef === 'function') ? contractRef(c) : c.id,
-      facts: { expiry: (typeof dateOnly === 'function' ? dateOnly(c.expiry) : '') || '', value: Number(c.value) || 0, currency: (typeof contractCurrency === 'function') ? contractCurrency(c) : '' } });
+    const r = (typeof amendSayAsk === 'function') ? await amendSayAsk(c, text) : null;
+    if (!r) throw new Error(_pdT('fa_ai_failed'));
     const items = (r && Array.isArray(r.items)) ? r.items : [];
     const cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : [];
     items.forEach(it => { if (_pdAm.items.length >= PD_AMEND_ITEMS_MAX) return; const hit = cls.find(x => x.num && it.clauseNumber && String(x.num) === String(it.clauseNumber));

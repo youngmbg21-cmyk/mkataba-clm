@@ -783,7 +783,7 @@ function calHorizonHtml(){
     const none=(state.contracts||[]).filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c._codeNamed&&!((window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry));
     foot=`<div class="cal-hz-foot"><span>${_esc(i18t('cal_nl_hz_foot',{ n:rows.length }))}</span><span>${none.length===1?_esc(i18t('cal_nl_hz_noend',{ name:none[0].name||'' })):none.length?_esc(i18t('cal_nl_hz_noend_n',{ n:none.length })):''}</span></div>`;
   }
-  return `<section class="cal-card cal-grid cal-hz-card${nl?' is-nl':''}">
+  return `<section class="cal-card cal-grid cal-hz-card">
     <div class="cal-ladder">${bands}</div>
     <div class="cal-hz scroll-thin">
       <div class="cal-hz-ruler"><span class="cal-hz-col">${_esc(i18t('cal_hz_agreement'))}</span>${nl?'<span class="g"></span>':`<div class="cal-hz-months">${heads.join('')}</div>`}<span class="cal-hz-col cal-hz-col-dec">${_esc(i18t('cal_hz_decision'))}</span></div>

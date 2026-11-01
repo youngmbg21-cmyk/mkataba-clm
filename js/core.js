@@ -3805,11 +3805,11 @@ function dlgPageAdopt(root, panel, page){
        edge by the scrollbar's width): the head stands outside the scroller, so it is told the gutter the body
        lost (--dlg-sbw) and a page that floats its head beside its body gives the head that much more room */
     const bd=panel.querySelector('.dlg-pg-body'); const sbw=bd?Math.max(0,bd.offsetWidth-bd.clientWidth):0;
+    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:${right}px;bottom:0;z-index:70;display:flex;--dlg-sbw:${sbw}px;`;
     /* page.below: the page stands under that element (a list's own head and tabs stay in sight), from its left edge */
-    let T=top, L=r.left;
     const bel=page.below?document.querySelector(page.below):null;
-    if(bel&&bel.getClientRects().length){ const br=bel.getBoundingClientRect(); T=br.bottom; L=br.left; if(side&&side.getClientRects().length) right=Math.max(right,Math.round((window.innerWidth||0)-side.getBoundingClientRect().left)); }
-    frame.style.cssText=`position:fixed;top:${Math.round(T)}px;left:${Math.round(L)}px;right:${right}px;bottom:0;z-index:70;display:flex;--dlg-sbw:${sbw}px;`;
+    if(bel&&bel.getClientRects().length){ const br=bel.getBoundingClientRect(); frame.style.top=Math.round(br.bottom)+'px'; frame.style.left=Math.round(br.left)+'px';
+      if(side&&side.getClientRects().length) frame.style.right=Math.max(right,Math.round((window.innerWidth||0)-side.getBoundingClientRect().left))+'px'; }
   };
   if(page.beside&&typeof ResizeObserver==='function'){ ro=new ResizeObserver(()=>place()); const cs=document.getElementById('content-scroll'); if(cs) ro.observe(cs); }
   place(); window.addEventListener('resize',place);

@@ -1401,6 +1401,13 @@ function amendParentHtml(parent){
   }catch(_){}
   return '';
 }
+/* SAY THE CHANGE (the new look's Amend, round 5): the dialog's own reader, asked from Jambo's box beside the two papers —
+   one call, the same route and the same facts the dialog sends */
+async function amendSayAsk(parent, text){
+  const ref=(typeof contractRef==='function')?contractRef(parent):parent.id;
+  return api('ai/amend','POST',{ text:amendParentText(parent), ask:String(text||'').trim(), ref, facts:{ expiry:ownExpiry(parent)||'', value:Number(parent.value)||0,
+    currency:(window.contractCurrency?contractCurrency(parent):'') } });
+}
 function amendParentClauses(parent){
   const html=amendParentHtml(parent);
   if(!html||!window.clauseSegment) return [];
@@ -1427,7 +1434,7 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendSayAsk,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,familyActs,familyActRun,familyDrawnRowsHtml,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,
