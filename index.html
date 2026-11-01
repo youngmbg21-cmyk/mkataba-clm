@@ -19146,6 +19146,25 @@
   html.lg-new .igw2-mark{position:absolute;top:6px;left:8px;line-height:0}
   html.lg-new .igw2-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:auto;padding:0 12px;font-size:12px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new .igw2-foot b{font-weight:var(--w-strong);white-space:nowrap}
+  /* OUR PAPER, AS DRAWN: the chosen paper small on the left, standards and shelves on the right; the page's own box and switch rest */
+  html.lg-new .tpln{display:grid;grid-template-columns:300px minmax(0,1fr);gap:36px;padding:8px 40px 16px;min-height:100%;box-sizing:border-box;background:var(--color-surface)}
+  html.lg-new .tpln-sheet{border:1px solid var(--color-divider);box-shadow:var(--shadow-paper);background:var(--color-surface);overflow:hidden;max-height:calc(100vh - 160px)}
+  html.lg-new .tpln-zoom{zoom:.42}
+  html.lg-new .tpln-zoom .tpl-pf-sheet{border:0;box-shadow:none;margin:0}
+  html.lg-new .tpln-side{display:flex;flex-direction:column;min-width:0}
+  html.lg-new .tpln-top{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}
+  html.lg-new .tpln-line{flex:1;margin:0;font-size:14px;font-weight:var(--w-label);line-height:1.45}
+  html.lg-new .tpln-acts{display:flex;gap:10px;flex:none}
+  html.lg-new .tpln-go{height:var(--ctl-h-lg);border-radius:999px;padding:0 16px}
+  html.lg-new .tpln-list{border-top:1px solid var(--color-divider);margin-bottom:20px}
+  html.lg-new .tpln-r{display:grid;grid-template-columns:minmax(0,1fr) 90px 130px;gap:12px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .tpln-r.is-shelf{cursor:default}
+  html.lg-new .tpln-r.is-on{background:var(--surface-2)}
+  html.lg-new .tpln-n{font-size:13.5px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln-u,html.lg-new .tpln-l{font-size:12.5px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new #content [data-tpl-head="book"]{display:none}
+  html.lg-new .pd2-chosen .pd2-turn + .pd2-ch-cap{margin-top:20px}
+  html.lg-new .tpln-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--color-divider);text-align:right}
   /* READS, AS DRAWN */
   html.lg-new :is(.rdn-page) .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .rdn-a{display:inline-flex;align-items:center;gap:6px;margin-right:12px;white-space:nowrap;font-weight:var(--w-label)}

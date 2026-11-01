@@ -2917,8 +2917,50 @@ function tplPfVerbs(card){
   }
   return out;
 }
+/* ---- OUR PAPER, AS DRAWN (the new look, round 6) ----
+   The chosen paper as a small sheet on the left; on the right one line of what it is (its shelf, how often it
+   was used, how many came back changed), STANDARDS — every paper by its use, its last party and month, a press
+   chooses — and SHELVES (the list of templates, Our standards), each Open; the foot's New standard is the one
+   door to a new standard (#tpl-new's own act). The panel reads the chosen paper's use. */
+function tplnLastOf(card){
+  let cs = []; try { cs = tplRowContracts({ kind: card.kind, id: card.id }) || []; } catch (_){ cs = []; }
+  const last = cs.slice().sort((a, b) => String(b.signedAt || b.createdAt || b.updatedAt || '').localeCompare(String(a.signedAt || a.createdAt || a.updatedAt || '')))[0];
+  if (!last) return { cs, word: '' };
+  const at = String(last.signedAt || last.createdAt || last.updatedAt || '').slice(0, 10);
+  let mon = ''; try { mon = at ? new Date(at + 'T12:00:00').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: 'short', year: at.slice(0, 4) === new Date().toISOString().slice(0, 4) ? undefined : 'numeric' }) : ''; } catch (_){ mon = ''; }
+  const who = String(last.counterparty || '').trim().split(/\s+/)[0] || '';
+  return { cs, word: [who, mon].filter(Boolean).join(' \u00b7 '), who, mon };
+}
+function tplnHtml(d, groups, card){
+  const all = groups.flatMap(g => g.cards).filter(c => c.kind !== 'sample');
+  const statOf = c => tplPfStats(c);
+  const rows = all.map(c => ({ c, st: statOf(c), last: tplnLastOf(c) })).sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name)));
+  const on = c => card && tplPfKey(c) === tplPfKey(card);
+  const stdRows = rows.map(x => `<button type="button" class="tpln-r${on(x.c) ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(x.c))}" aria-pressed="${on(x.c) ? 'true' : 'false'}"><span class="tpln-n">${_tplEsc(x.c.name)}</span><span class="tpln-u">${_tplEsc(i18tn('tpln_uses', x.last.cs.length, { n: x.last.cs.length }))}</span><span class="tpln-l">${_tplEsc(x.last.word || '\u2014')}</span></button>`).join('');
+  const stdN = (typeof paperStandardsCount === 'function') ? paperStandardsCount() : null;
+  const shelves = `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_list', all.length, { n: all.length }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="list">${_tplEsc(i18t('tpln_open'))}</button></div>`
+    + (stdN != null ? `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_std', stdN, { n: stdN }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="standards">${_tplEsc(i18t('tpln_open'))}</button></div>` : '');
+  let line = '', paper = `<p class="tpl-empty">${_tplEsc(i18t('lib_nothing_matches'))}</p>`, acts = '';
+  if (card){
+    const st = statOf(card), last = tplnLastOf(card);
+    let blanks = 0; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).length : 0; } catch (_){ blanks = 0; }
+    line = [card.name, tplOvBucketLabel({ key: card.kind, sec: 'library' }), last.cs.length ? i18tn('tpln_used', last.cs.length, { n: last.cs.length, who: last.who || '', mon: last.mon || '' }) : i18t('tpln_unused'),
+      st.changed ? i18tn('lib_pf_came_back', st.changed, { n: st.changed }) : '', blanks ? i18tn('tpln_blanks', blanks, { n: blanks }) : ''].filter(Boolean).join(' \u00b7 ');
+    paper = tplPfPaperHtml(card);
+    const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
+    acts = verbs.map((a, i) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
+  }
+  const newGo = tplCanManage() && !(typeof newPaperBlocked === 'function' && newPaperBlocked()) ? `<button type="button" class="rfp-a" data-tpln-new>${_tplEsc(i18t('tpln_new'))}</button>` : '';
+  return `<div class="tpl-book tpl-pf tpln">
+    <aside class="tpln-sheet"><div class="tpln-zoom">${paper}</div></aside>
+    <section class="tpln-side"><div class="tpln-top"><p class="tpln-line">${_tplEsc(line)}</p><div class="tpln-acts">${acts}</div></div>
+      <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_std_h'))}</div><div class="tpln-list">${stdRows}</div>
+      <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_shelves_h'))}</div><div class="tpln-list">${shelves}</div>
+      <div class="tpln-foot">${newGo}</div></section></div>`;
+}
 function tplPfHtml(d){
   const groups = tplPfGroups(d), card = tplPfChosen(d);
+  if (typeof window.newLookOn === 'function' && newLookOn() && tplListIns()) return tplnHtml(d, groups, card);
   const shelfWord = k => tplOvBucketLabel({ key:k, sec:'library' });
   const stats = new Map();
   const statOf = c => { const k = tplPfKey(c); if (!stats.has(k)) stats.set(k, tplPfStats(c)); return stats.get(k); };
@@ -3088,6 +3130,41 @@ function tplPfPageSay(d){
   return { lines:[_tplEsc(i18tn('lib_pf_j_page', f.n, { n:f.n })), _tplEsc(i18tn('lib_pf_j_page2', f.used, { n:f.used, c:f.changed }))],
     src:i18t('lib_pf_j_src'), chips };
 }
+/* the chosen paper's panel, as drawn: one sentence; HOW IT HAS BEEN USED (agreements made from it — signed, live,
+   declined —, the standards they departed from, the blanks a draft fills); Jambo's remark where one standard keeps
+   coming back changed; DOORS (draft from it, the departures on Contracts). Counted, no call. */
+function tplnPanelHtml(card){
+  const E = _tplEsc, st = tplPfStats(card), last = tplnLastOf(card), cs = last.cs;
+  const signed = cs.filter(c => c.status === 'Signed').length, declined = cs.filter(c => c.status === 'Declined').length, live = cs.length - signed - declined;
+  let blanks = []; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).map(f => f.label || f.key).filter(Boolean) : []; } catch (_){ blanks = []; }
+  const head = cs.length ? i18tn('tpln_p_head', cs.length, { name: card.name, n: cs.length, c: st.changed }) : i18t('tpln_p_unused', { name: card.name });
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+  const rows = (cs.length ? row(i18tn('tpln_p_ags', cs.length, { n: cs.length }), [signed ? i18t('tpln_p_signed', { n: signed }) : '', live ? i18t('tpln_p_live', { n: live }) : '', declined ? i18t('tpln_p_declined', { n: declined }) : ''].filter(Boolean).join(' \u00b7 '), i18t('tpln_p_src_book')) : '')
+    + (st.byCat.length ? row(i18t('tpln_p_dep'), st.byCat.slice(0, 2).map(x => i18tn('tpln_p_dep_v', x.n, { n: x.n, what: String(x.category).toLowerCase() })).join('; '), i18t('tpln_p_src_learned')) : '')
+    + (blanks.length ? row(i18t('tpln_p_blanks'), blanks.slice(0, 4).join(' \u00b7 '), String(blanks.length)) : '');
+  const top = st.byCat[0];
+  const turn = top && top.n >= 2 ? `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(i18t('tpln_p_jambo', { n: top.n, of: st.used, what: String(top.category).toLowerCase() }))}</p></div></div>` : '';
+  const verbs = _tplPf.acts || [];
+  const di = verbs.findIndex(a => a.k === 'draft');
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  const doors = (di >= 0 && !verbs[di].off ? door(`data-tpl-pf-act="${di}"`, verbs[di].label, i18t('pd2_ch_free')) : '')
+    + (st.changed ? door(`data-tpln-changed="${E(tplPfKey(card))}"`, i18tn('tpln_p_see_changed', st.changed, { n: st.changed }), i18t('pd2_ch_free')) : '');
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${rows ? `<div class="pd2-ch-cap">${E(i18t('tpln_p_used_h'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${turn}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
+}
+if (typeof document !== 'undefined' && !document._tplnWired){ document._tplnWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const tb = t.closest('[data-tpln-tab]');
+    if (tb){ e.preventDefault(); const k = tb.getAttribute('data-tpln-tab');
+      if (k === 'list') tplPageSetTab('list'); else { const b = [...document.querySelectorAll('[data-paper-tab="standards"]')].find(x => !x.closest('.tpln')); if (b) b.click(); } return; }
+    const pa = t.closest('#ins-panel [data-tpl-pf-act]');
+    if (pa){ e.preventDefault(); const a = (_tplPf.acts || [])[Number(pa.getAttribute('data-tpl-pf-act'))]; if (a && a.run && !a.off) a.run(); return; }
+    if (t.closest('[data-tpln-new]')){ e.preventDefault(); const b = document.getElementById('tpl-new'); if (b && !b.disabled) b.click(); else if (typeof openNewStandard === 'function') openNewStandard(); return; }
+    const ch = t.closest('[data-tpln-changed]');
+    if (ch){ e.preventDefault(); const st = (() => { const d = tplOverviewData(); const c = tplPfChosen(d); return c ? tplPfStats(c) : null; })();
+      if (st && st.ids.length && typeof regShowOnly === 'function'){ if (typeof setView === 'function') setView('register'); regShowOnly(st.ids, i18t('tpln_changed_label')); } }
+  });
+}
 function tplPfPanelPaint(){
   if (typeof insPaintPanel !== 'function' || !tplListIns() || tplPageTab() !== 'book') return;
   const host = document.getElementById('ins-panel'); if (!host) return;
@@ -3095,6 +3172,7 @@ function tplPfPanelPaint(){
   const base = { seat:'tpl-book', jlPh:i18t('jl_ph_any'), jlHome:i18t('nav_tpl_std'), jlSay:() => tplPfPageSay(d) };
   if (!card || insLetGone('tpl-book')){ insPaintPanel(Object.assign(base, { c:null, item:null })); return; }
   const read = _tplPf.read && _tplPf.read.key === tplPfKey(card) ? _tplPf.read : null;
+  if (typeof window.newLookOn === 'function' && newLookOn()){ insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, solo:true, jlWord:card.name, body:tplnPanelHtml(card), acts:[] })); return; }
   insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, solo:true, jlWord:card.name, body:tplPfJamboHtml(card, read), acts:[] }));
 }
 /* the head's facts: "24 templates · 41 contracts drafted from them in 12
