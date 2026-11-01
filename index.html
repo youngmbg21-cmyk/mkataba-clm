@@ -1320,6 +1320,8 @@
      #26302E at night and all but vanishes on the dark ground, so the dark edge
      stays the visible #36423F it was (--rule-strong's night value). */
   :root{ --btn-edge:var(--rule-strong); }
+  /* THE REDLINE AS DRAWN (the new look, round 5's History with the wording): the review room's own red and green */
+  :root{ --rl2-del-ink:#BE123C; --rl2-del-bg:#FFE4E6; --rl2-ins-ink:#047857; --rl2-ins-bg:#E4F1EA; }
   /* ---- SAID TO A SCREEN READER, DRAWN FOR NOBODY ---- (25 Aug 2026)
      A keyboard affordance nobody is told about is one nobody uses, and some
      of those sentences have no visible home — the KPI row's Alt+Arrow reorder
@@ -18965,6 +18967,10 @@
   html.lg-new #ig-dock .pd-sf.is-road.is-pd2 > :not(.pd2-sg-w){display:none}
   html.lg-new .ig-line-sg{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:var(--w-label);color:var(--st-amber-fg);white-space:nowrap}
   html.lg-new .ig-line-sg i{width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  /* the signing copy at the drawing's width (620; the type keeps its size, so the pages are more) with its line over it */
+  html.lg-new #ig-paper .ig-signpaper .pg-sheet.pg-sign{width:620px}
+  html.lg-new #ig-paper .ig-sg-cap{font-size:12px;font-weight:var(--w-label);color:var(--color-quiet);padding:4px 0 10px;display:flex;gap:8px}
+  html.lg-new .ig-sg-cap-sp{margin:0 4px}
   html.lg-new .sig2{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:40px 0 8px;font-family:var(--font-body)}
   html.lg-new .sig2-line{height:44px;border-top:1px solid var(--color-text);display:flex;align-items:flex-end;padding-bottom:4px}
   html.lg-new .sig2-line.is-open{border-bottom:1px dashed var(--color-divider)}
@@ -18974,6 +18980,10 @@
   html.lg-new .sig2-at{font-size:11px;color:var(--color-quiet);margin-top:2px}
   html.lg-new #hist-detail[aria-pressed="true"]{background:var(--bar-black);color:var(--color-surface);box-shadow:none}
   html.lg-new .jb-ways.is-own[hidden]{display:none}
+  html.lg-new .hist-trail > .hist-wfull > .hist-redline del{background:var(--rl2-del-bg);color:var(--rl2-del-ink);text-decoration:line-through;text-decoration-color:currentColor}
+  html.lg-new .hist-trail > .hist-wfull > .hist-redline ins{background:var(--rl2-ins-bg);color:var(--rl2-ins-ink);text-decoration:underline;text-decoration-color:currentColor;text-underline-offset:2px}
+  html.lg-new .hist-trail > .hist-wfull{padding-left:240px}
+  html.lg-new .hist-trail > .hist-wfull > .hist-redline{background:var(--color-bg);font-size:14px;line-height:1.6}
   html.lg-new .hist-wcap{font-family:var(--font-body);font-size:11.5px;color:var(--color-quiet);margin-top:6px}
   html.lg-new .hist-redline.is-quote{font-family:var(--font-doc)}
   html.lg-new .hist-trail > .hist-wfull > .hist-redline{border-left:0;border-radius:var(--radius)}

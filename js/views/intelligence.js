@@ -9956,7 +9956,7 @@ function igPaperKey(c){ return c.id+(igSignOn(c)?':sign':igTheirsOn(c)?':theirs'
 function igPaperHtml(c){
   let sheet='';
   const clean=igCleanOnRed(c);
-  if(igSignOn(c)){ try{ sheet=`<div class="ig-signpaper">${signCopySheetHtml(c,{ canvasId:'ig-canvas', wrapId:'ig-signwrap' })}</div>`; }catch(_){ sheet=''; } }
+  if(igSignOn(c)){ try{ sheet=`<div class="ig-signpaper">${window.newLookOn&&newLookOn()?`<div class="ig-sg-cap">${igEsc(i18t('sg2_cap'))} · <span data-sg-cap-page></span><span class="ig-sg-cap-sp">·</span>${igEsc(i18t('sg2_cap_same'))}</div>`:''}${signCopySheetHtml(c,{ canvasId:'ig-canvas', wrapId:'ig-signwrap' })}</div>`; }catch(_){ sheet=''; } }
   if(sheet){ /* the signing copy, drawn above */ }
   else if(igRedOn(c)||clean){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }

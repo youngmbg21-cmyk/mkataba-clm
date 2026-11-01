@@ -3457,6 +3457,8 @@ function scPaintPage(){
   const info=sheet._pgInfo; if(!info) return;
   const at=pagesAtView(sheet,sc);
   out.textContent=window.pagesNumberLabel?pagesNumberLabel(at,info.n):`${at} / ${info.n}`;
+  /* the new look's line over the signing copy says the page in words (as drawn) */
+  document.querySelectorAll('[data-sg-cap-page]').forEach(x=>{ x.textContent=i18t('sg2_cap_page',{ at, n:info.n }); });
   const prev=document.getElementById('sc-page-prev'), next=document.getElementById('sc-page-next');
   if(prev) prev.disabled=at<=1;
   if(next) next.disabled=at>=info.n;
@@ -8985,7 +8987,7 @@ function histNlFold(evs, c){
       }
       out.push(e); return;
     }
-    const a = e._audit || {}, act = String(a.action || ''), det = String(a.detail || '');
+    const a = e._audit || {}, act = String(a.action || ''), det = String(a.detail || (e._k === 'sealed' ? e.text : '') || '');
     if (e._k === 'link' || (e._k === 'system' && act === 'Shared') || e._k === 'handover'){
       const m = det.match(/round\s+(\d+)/i) || String(e.text || '').match(/round\s+(\d+)/i);
       const chs = m ? sentChs(m[1]) : [];
@@ -9206,7 +9208,7 @@ function roomHistoryHtml(c,f={},opts={}){
     /* the new look: every event that carried words shows them (histNlFold), a caption under them */
     const cap=e._cap?`<div class="hist-wcap">${esc(e._cap)}</div>`:'';
     const bodyNl=(_histDetail&&e._quote)?`<div class="hist-wfull" role="row"><div class="hist-redline is-quote" role="cell">${esc(e._quote.charAt(0)==='“'?e._quote:'… '+e._quote+' …')}${cap}</div></div>`
-      :(_histDetail&&e._chs&&e._chs.length)?`<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${e._chs.map(x=>`<div>${histWordingHtml(x)}</div>`).join('')}${cap}</div></div>`:'';
+      :(_histDetail&&e._chs&&e._chs.length)?`<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${e._chs.map(x=>`<div>… ${histWordingHtml(x)} …</div>`).join('')}${cap}</div></div>`:'';
     const body=(_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch)
       ? `<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${histWordingHtml(e.ch)}</div></div>` : '';
     const why=e.note?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';

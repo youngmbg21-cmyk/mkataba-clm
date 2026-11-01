@@ -2827,7 +2827,8 @@ function pd2AmPaperPaint(c){
   const sheet = zoom.querySelector(':scope > .blueprint');
   if (sheet && !sheet.previousElementSibling?.classList?.contains('pd2-am-lab')) sheet.insertAdjacentHTML('beforebegin', `<div class="pd2-am-lab is-l"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>${_pdE(_pdT('pd2_am_lab_l', { ref }).toUpperCase())}</div>`);
   zoom.insertAdjacentHTML('beforeend', `<div class="pd2-am-lab is-r">${_pdE(_pdT('pd2_am_lab_r', { n: pd2AmNo(c), ref }).toUpperCase())}</div><div class="pd2-am-col">${pd2AmSheetHtml(c)}</div>`);
-  if (wrap) wrap.insertAdjacentHTML('beforeend', `<div class="pd2-am-foot"><span>${_pdE(_pdTn('pd2_am_foot_l', _pdAm.items.length, { n: _pdAm.items.length }))}</span><span>${_pdE(_pdT('pd2_am_foot_r'))}</span></div>`);
+  /* no band at the foot (the owner, 1 Nov 2026: "remove the bar at the bottom of the page"), nothing above the box */
+  if (typeof jamboOwnWays === 'function') setTimeout(() => { if (pdAmendShows()) jamboOwnWays('#ig-dock .igd-foot', '', '#pd-amendface'); }, 0);
 }
 /* SAY THE CHANGE (as drawn): Jambo's box, while Amend is up, sends the words to the amendment reader — one call */
 async function pd2AmSay(text){
