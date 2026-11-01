@@ -2961,6 +2961,8 @@ function pdAmendFacePaint(){
   pdAmendWire(host);
   pdAmendPaperPaint();
   if (pd2On() && typeof igStripRepaint === 'function') igStripRepaint();
+  /* as drawn: nothing above the box while Amend is up (the box takes the change) */
+  if (pd2On() && typeof jamboOwnWays === 'function') jamboOwnWays('#ig-dock .igd-foot', '', '#pd-amendface');
 }
 /* a press on a clause of the signed paper while the face is up adds it —
    never while words are being highlighted (that is the highlight menu's) */

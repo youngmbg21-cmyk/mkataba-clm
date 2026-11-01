@@ -613,7 +613,8 @@ function jamboOwnWays(footSel, html, forSel){
   if (typeof document === 'undefined') return;
   const foot = document.querySelector(footSel); if (!foot) return;
   const prev = foot.previousElementSibling; if (prev && prev.classList && prev.classList.contains('jb-ways')) prev.remove();
-  if (html) foot.insertAdjacentHTML('beforebegin', `<nav class="jb-ways is-above-foot is-own" data-jb-ways="own" data-own-for="${esc(forSel || '')}">${html}</nav>`);
+  /* an empty row is held too (a face drawn with no links above its box keeps the page's away) */
+  if (html != null) foot.insertAdjacentHTML('beforebegin', `<nav class="jb-ways is-above-foot is-own" data-jb-ways="own" data-own-for="${esc(forSel || '')}"${html ? '' : ' hidden'}>${html}</nav>`);
 }
 let _jbWaysQueued = false;
 function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
