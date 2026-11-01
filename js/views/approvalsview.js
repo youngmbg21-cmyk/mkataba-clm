@@ -816,7 +816,7 @@ function apInsPaint(rows){
       order:nl?['lead']:['lead','reads'],
       /* BEFORE YOU DECIDE, AS DRAWN (round 5): no head of facts (the lead names it), its tab and the Dossier's beside it,
          the row's own three links above the box (open the clause · history · ask the asker), the box about this contract */
-      noHead:nl, noNeeds:nl, jlTabWord:nl?i18t('apn_p_tab'):'', jlTab2:nl?{ label:i18t('apn_p_tab_dossier'), run:()=>roomHomeLand(r.c.id) }:null,
+      noHead:nl, noNeeds:nl, jlTabWord:nl?i18t('apn_p_tab'):'', jlTab2:nl?{ label:i18t('pd_tab_dossier'), run:()=>roomHomeLand(r.c.id) }:null,
       jlLinks:nl?apnLinksHtml(r):'', jlPh:nl?i18t('int_ask_contract',{ ref:(typeof contractRef==='function'?contractRef(r.c):r.c.id) }):i18t('jl_ph_list'),
       empty:i18t('ap_wl_none'),
       jlWord:i18t(tab==='signatures'?'jl_w_signature':'jl_w_approval'),

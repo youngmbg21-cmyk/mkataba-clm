@@ -632,7 +632,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   }
 }
 Object.assign(window,{JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
-Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord});
+Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
    "all the new jambo panels do not have a slider like in the redline page.
@@ -1591,5 +1591,4 @@ function jamboSayAskHtml(o = {}){
   return `<div class="jb-say is-ask"${o.id ? ` id="${E(o.id)}"` : ''}${o.attrs || ''}>
     <div class="jb-say-b">${o.body || ''}</div>${o.foot ? `<div class="jb-say-f">${o.foot}</div>` : ''}</div>`;
 }
-Object.assign(window, { jamboOwnWays });
 Object.assign(window, { jamboSayCardHtml, jamboSayAskHtml });

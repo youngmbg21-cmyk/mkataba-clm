@@ -37,6 +37,22 @@ function r5Contracts(){
       { desc: 'Keep the goods-in-transit insurance current', due: day(61), recurring: 'yearly', clause: '9', party: 'theirs', quote: 'shall keep goods-in-transit insurance current' },
       { desc: 'Send the monthly supply report', due: day(30), recurring: 'monthly', clause: '6', quote: 'a monthly supply report by the first day of each month' }] } } } });
   a1.metadata = Object.assign({}, a1.metadata, { expiryDate: day(243), autoRenew: true, renewalType: 'auto-renew', noticePeriodDays: 90 });
+  /* its past, as History draws it: round 1 sent with two changes, both accepted; the approval with its note; the
+     seal; a duty marked done; Jambo's nudge on the late one */
+  const at = (off, h, m) => { const d = new Date(Date.now() + off * DAY); d.setHours(h, m, 0, 0); return d.toISOString(); };
+  const ch = (id, label, oldText, newText) => ({ id, clauseId: 'cl_' + id, clauseLabel: label, authorSide: 'owner', author: 'Amina Otieno', changeType: 'edit',
+    summary: 'Edited ' + label, oldText, newText, status: 'accepted', createdAt: at(-51, 10, 20), resolvedAt: at(-50, 16, 40), resolvedBy: 'James Wekesa' });
+  a1.negotiation = { round: 2, turn: 'owner', rounds: [{ n: 1, at: at(-50, 16, 40), changes: [
+    ch('CHG-001', '§ 3 Payment', 'each correct invoice within forty-five (45) days of receipt', 'each correct invoice within thirty (30) days of receipt'),
+    ch('CHG-002', '§ 4 Delivery', 'pallets shall be returned to the Supplier within twenty-one (21) days of each delivery', 'pallets shall be returned to the Supplier within fourteen (14) days of each delivery')] }] };
+  a1.changes = [];
+  a1.audit = [
+    { at: at(-52, 9, 0), user: 'Amina Otieno', action: 'Created', detail: 'Uploaded Kabras_Sugar_Supply.docx' },
+    { at: at(-51, 10, 20), user: 'Amina Otieno', action: 'Shared', detail: 'Round 1 sent to James Wekesa by email with a link · 2 changes' },
+    { at: at(-49, 9, 12), user: 'Wanjiru Kamau', action: 'Approved', detail: 'Step "Over KES 20M" approved by Wanjiru Kamau (Admin) — Within standard on every point checked; payment at 30 days as we asked.' },
+    { at: at(-50, 16, 5), user: 'HaTi', action: 'Signed', detail: 'Executed & sealed by HaTi the moment the last signature landed — both copies sent to Amina Otieno and Kabras Sugar' },
+    { at: at(-18, 11, 42), user: 'Otieno Mwangi', action: 'Obligation', detail: 'Completed: Deliver the first batch · delivery note attached' },
+    { at: at(-1, 6, 10), user: 'Jambo', action: 'Nudge', detail: 'Return the pallets is overdue · to nobody, no owner yet' }];
   const a2 = fixtureContract('MK-A2', 'Raw Milk Collection', 'Nandi Dairy', 'proc', 36000000, 'Under Review', MILK);
   a2.metadata = Object.assign({}, a2.metadata, { expiryDate: day(243), renewalType: 'auto-renew', noticePeriodDays: 90 });
   /* as drawn: our standards checked, one difference accepted with a note */

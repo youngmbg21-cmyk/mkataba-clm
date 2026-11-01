@@ -9080,6 +9080,8 @@ function igAskPlaceholder(){
      2026): "Ask for a number, a list or a contract…" — the Board's own words;
      the letter's Before you send and every other face keep "Ask about MK-…" */
   if(window.pdRedShows&&pdRedShows()&&!(window.pdSendShows&&pdSendShows())) return i18t('hb_ask_ph');
+  /* amend, as drawn: the box takes the change in words (one call) */
+  if(window.newLookOn&&newLookOn()&&window.pdAmendShows&&pdAmendShows()) return i18t('pd2_am_ph');
   const c=igPaperUp()?getContract(intel.paper.id):null;
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
@@ -9369,6 +9371,11 @@ function igStripActsHtml(c){
     const w=n?i18tn('ig_send_all_n',n,{ n }):i18t('ig_send_all');
     nlSend=`<button type="button" id="ws-share" class="ui-btn ui-btn-sm ui-btn-primary" aria-label="${igEsc(w)}"${n?` data-ws-send-all title="${igEsc(i18t('pd_send_waiting_title'))}"`:` disabled title="${igEsc(i18t('ig_send_all_none'))}"`}><span class="ig-share-w">${igEsc(w)}</span></button>`;
   }
+  /* AMEND, AS DRAWN (round 5): the line says how to make a change and carries Discard and Create the amendment (grey until there is one) */
+  if(window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='amend'){
+    const ready=!!(window.pdAmendReady&&pdAmendReady());
+    return `<span class="ig-acts"><span class="ig-am-hint">${igEsc(i18t('pd2_am_hint'))}</span><button type="button" class="ui-btn ui-btn-sm" data-pd2-am-discard>${igEsc(i18t('pd2_am_discard'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-pd2-am-create${ready?'':` disabled title="${igEsc(i18t('pd_am_go_why'))}"`}>${igEsc(i18t('pd2_am_create'))}</button></span>`;
+  }
   /* before you sign, as drawn: Sign is the area's one filled button, so Share stands grey */
   const signUp=!!(window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='signing');
   const share=nlSend!=null?nlSend:(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm${signUp?'':' ui-btn-primary'}" title="${igEsc(i18t(unsent?'pd_send_waiting_title':'ct_share_with_cp'))}" aria-label="${igEsc(sendWord)}"${unsent?' data-ws-send-all':''}>${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(sendWord)}</span></button>`:'';
@@ -9428,6 +9435,12 @@ function igLineIdHtml(c,ref){
   const party=String(c.counterparty||'').trim();
   const n=igLineRound(c);
   let pill=''; try{ pill=(typeof contractStatusTextHtml==='function')?contractStatusTextHtml(c,n?i18t('ig_line_round',{ n }):''):''; }catch(_){ pill=''; }
+  /* AMEND, AS DRAWN: "Executed · sealed 12 Sep · amendment 1, drafting" */
+  try{ if(typeof window.pd2On==='function'&&pd2On()&&typeof window.pdAmendShows==='function'&&pdAmendShows()){
+    const sd=String(c.signedAt||'').slice(0,10); const day=sd?new Date(sd+'T12:00:00').toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ day:'numeric', month:'short' }):'';
+    const n=(typeof window.pd2AmNo==='function')?pd2AmNo(c):1;
+    pill=`<span class="ig-line-sg is-sealed"><i aria-hidden="true"></i>${igEsc([i18t('ig_line_executed'), day?i18t('ig_line_sealed_on',{ d:day }):'', i18t('ig_line_amend_n',{ n })].filter(Boolean).join(' · '))}</span>`;
+  } }catch(_){ }
   /* BEFORE YOU SIGN, AS DRAWN (the new look, round 5): while its face is up the line says where signing stands —
      "Ready to sign · Nandi signed 08:40" — off the one list (signBlockers) and the signatures on file */
   try{ if(typeof window.pd2On==='function'&&pd2On()&&typeof window.pdSignShows==='function'&&pdSignShows()&&c.status!=='Signed'){
@@ -9445,6 +9458,12 @@ function igLineIdHtml(c,ref){
   const kind=(typeof bsShortName==='function')?bsShortName(c):(c.name||'');
   /* THE REF ONCE (owner, 23 Oct 2026: "yes" to taking it off the line — the bar above carries it) */
   return `<span class="ig-strip-ref ig-line-id" title="${igEsc([ref,c.name,party].filter(Boolean).join(' · '))}"><span class="ig-line-t">${igEsc(kind)}</span></span>${mark}${pill?`<span class="ig-line-st">${pill}</span>`:''}`;
+}
+/* the line over Home's paper, drawn again in place (a face that changes what it says — Amend, Before you sign — asks it) */
+function igStripRepaint(){
+  const strip=document.getElementById('ig-strip'); if(!strip||strip.hidden) return;
+  const p=intel&&intel.paper; const c=p&&p.id&&typeof getContract==='function'?getContract(p.id):null; if(!c) return;
+  strip.innerHTML=igStripHtml(c,p); igStripWire(); if(igHomePaperFace()!==null) igStripActsWire(c);
 }
 function igStripHtml(c,p){
   const up=p.mode==='paper';
@@ -10537,7 +10556,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
+Object.assign(window,{igStripRepaint,igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
 Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockBatch,igDockPaintCount,igPaperDown,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

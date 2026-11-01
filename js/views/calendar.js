@@ -1070,7 +1070,7 @@ function renderCalendar(){
      parts are still the layers' switches (calKeyHtml). */
   const cardTitle=view==='week'?calWeekCardTitle():title;
   host.innerHTML=`
-  <div class="view-enter cal-page${onHome?' is-home':''}">
+  <div class="view-enter cal-page${onHome?' is-home':''}${nl?' is-nl':''}">
     <style>${calStyleCss()}</style>
     ${nl?`<div class="cal-head is-nl">
       <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
@@ -1083,7 +1083,7 @@ function renderCalendar(){
         ${moreHtml}
       </span>
     </div>`:''}
-    <div class="cal-head"${nl?' hidden':''}>
+    <div class="cal-head">
       <span class="cal-head-l"><span class="ttl">${_esc(i18t('nav_calendar'))}</span><span class="cal-head-sub" id="cal-head-sub">${_esc(calHeadFacts())}</span></span>
       <span class="g"></span>
       <span class="cal-head-r">
@@ -1103,7 +1103,7 @@ function renderCalendar(){
               <button type="button" class="ui-btn ui-btn-sm cal-nb" id="cal-next"${navOff} title="${_esc(i18t(view==='week'?'cal_next_week':'cal_next_month'))}" aria-label="${_esc(i18t(view==='week'?'cal_next_week':'cal_next_month'))}">${icon('chevR','w-3.5 h-3.5')}</button>
             </span>
             <span class="cal-title" id="cal-title">${_esc(cardTitle)}</span>
-            ${view==='horizon'?(nl?`<span class="cal-hz-key">${_esc(i18t('cal_nl_hz_key'))}</span>`:''):calKeyHtml(legendEvs)}
+            ${view==='horizon'?'':calKeyHtml(legendEvs)}${nl&&view==='horizon'?`<span class="cal-hz-key">${_esc(i18t('cal_nl_hz_key'))}</span>`:''}
           </div>
           <div class="cal-view${view==='horizon'?' is-wide':''}">${main}</div>
         </div>

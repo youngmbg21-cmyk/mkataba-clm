@@ -8614,6 +8614,8 @@ const histTone=e=>{ const m=HIST_KIND[e&&e._k]||HIST_KIND.system;
    session but not stored on the contract: it is how somebody is reading, not
    something true about the agreement. */
 let _histDetail=false;
+/* whether History shows the wording under its rows (its panel says so, as drawn) */
+function histWordingShown(){ return !!_histDetail; }
 /* THE HISTORY TAB, AS DRAWN (SAP batch 3): a search over the trail and the
    five filters folded behind one Filter button — per sitting, in memory. A
    filter in force keeps the fold open, so nothing narrows the list unseen. */
@@ -8622,6 +8624,7 @@ let _histQ='';   /* the Filter button's fold (_histFiltersOpen) went with the SA
    answer, else the trail's action word (a RECORD word, kept as written). */
 function histOutcome(e){
   if(!e) return null;
+  if(e._oc) return e._oc;   /* the new look's outcome for an entry (histNlFold) */
   if(e._k==='decided'&&e.outcome==='accepted') return { w:i18t('ct_hf_accepted'), t:'g' };
   if(e._k==='decided'&&e.outcome==='rejected') return { w:i18t('ct_hf_rejected'), t:'r' };
   if(e._k==='withdrawn') return { w:i18t('ct_hf_withdrawn'), t:'n' };
@@ -8899,6 +8902,7 @@ function histWhen(at, now){
    on its stream — and an entry nobody can place sit on the middle line.
    A reading of the row only: nothing is filtered, moved or counted by it. */
 function histLaneOf(e, ours){
+  if(e&&e._lane) return e._lane;   /* the new look's side for an entry (histNlFold) */
   if(!e) return 'mid';
   if(e._k==='opened'||e._k==='access') return 'mid';
   if(e.side==='owner') return 'ours';
@@ -8954,7 +8958,68 @@ function histTrailSaysOf(e){
   }
   return String(e.text||'');
 }
+/* ---- HISTORY WITH THE WORDING, AS DRAWN (the new look, round 5) ----
+   The same trail, said the drawn way: a nudge, a duty done, an approval and the seal in plain words, each with its
+   outcome; the words an event carried under it — the duty's clause, the approver's note, the round a send carried —
+   and the answers one person gave to one round at one moment as ONE row ("Accepted both changes of round 1").
+   Reads the events roomHistoryEvents already made; nothing is written. */
+function histNlFold(evs, c){
+  const out = [];
+  const obs = Array.isArray(c && c.obligations) ? c.obligations : [];
+  const rounds = (c && c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [];
+  const sentChs = n => { const r = rounds.find(x => x && Number(x.n) === Number(n)); return ((r && r.changes) || []).filter(x => x && x.authorSide !== 'counterparty'); };
+  const secOf = ch => { const m = String(ch.clauseLabel || '').match(/§\s*[\w.]+/); return m ? m[0] : ''; };
+  const used = new Set();
+  evs.forEach((e, i) => {
+    if (used.has(i)) return;
+    /* our own proposals that a send carried are said under that send */
+    if (e._k === 'proposed' && e.ch && e.ch.authorSide !== 'counterparty' && rounds.some(r => (r.changes || []).includes(e.ch))) return;
+    if (e._k === 'round-closed') return;
+    if (e._k === 'decided' && e.ch){
+      const same = evs.map((x, j) => [x, j]).filter(([x, j]) => !used.has(j) && x._k === 'decided' && x.ch && x.actor === e.actor && x.outcome === e.outcome && x.round === e.round && x.at === e.at);
+      same.forEach(([, j]) => used.add(j));
+      if (same.length > 1){
+        out.push(Object.assign({}, e, { _chs: same.map(([x]) => x.ch), _say: i18t(same.length === 2 ? (e.outcome === 'accepted' ? 'hist2_acc_two' : 'hist2_rej_two') : (e.outcome === 'accepted' ? 'hist2_acc_all' : 'hist2_rej_all'), { n: same.length, round: e.round }),
+          _oc: { w: i18t('hist2_settled'), t: 'g' }, _cap: [same.map(([x]) => secOf(x.ch)).filter(Boolean).join(' · '), i18t(e.outcome === 'accepted' ? 'hist2_as_accepted' : 'hist2_as_rejected')].filter(Boolean).join(' · ') }));
+        return;
+      }
+      out.push(e); return;
+    }
+    const a = e._audit || {}, act = String(a.action || ''), det = String(a.detail || '');
+    if (e._k === 'link' || (e._k === 'system' && act === 'Shared') || e._k === 'handover'){
+      const m = det.match(/round\s+(\d+)/i) || String(e.text || '').match(/round\s+(\d+)/i);
+      const chs = m ? sentChs(m[1]) : [];
+      out.push(Object.assign({}, e, { _say: det || e.text, _oc: { w: i18t('ct_hist_sent'), t: 'g' }, _lane: 'ours', _chs: chs.length ? chs : null,
+        _cap: chs.length ? [chs.map(secOf).filter(Boolean).join(' · '), i18t('hist2_kept_either')].filter(Boolean).join(' · ') : '' }));
+      return;
+    }
+    if (e._k === 'system' && act === 'Nudge'){
+      const ob = obs.find(o => o && o.desc && det.indexOf(o.desc) === 0);
+      out.push(Object.assign({}, e, { _say: i18t('hist2_nudged', { what: det }), _lane: 'ours', _oc: ob && ob.status !== 'done' ? { w: i18t('hist2_open'), t: 'a' } : { w: i18t('hist2_done'), t: 'g' },
+        _quote: ob && ob.quote ? ob.quote : '', _cap: ob && ob.quote ? [ob.clause ? '§ ' + ob.clause : '', i18t('hist2_rests_on')].filter(Boolean).join(' · ') : '' }));
+      return;
+    }
+    if (e._k === 'system' && act === 'Obligation' && /^Completed:/i.test(det)){
+      out.push(Object.assign({}, e, { _say: i18t('hist2_marked_done', { what: det.replace(/^Completed:\s*/i, '') }), _lane: 'ours', _oc: { w: i18t('hist2_done'), t: 'g' } })); return;
+    }
+    if (e._k === 'system' && act === 'Approved'){
+      const rule = (det.match(/Step "([^"]+)"/) || [])[1] || '';
+      const note = (det.split(' — ')[1] || '').trim();
+      out.push(Object.assign({}, e, { _say: i18t('hist2_approved', { rule }), _lane: 'ours', _oc: { w: i18t('hist2_approved_w'), t: 'g' },
+        _quote: note && !/^for /i.test(note) ? '“' + note + '”' : '', _cap: note && !/^for /i.test(note) ? i18t('hist2_note_kept') : '' }));
+      return;
+    }
+    if (e._k === 'sealed' || (e._k === 'system' && act === 'Signed')){
+      const to = (det.split(' — ')[1] || '').trim();
+      out.push(Object.assign({}, e, { _say: [i18t('hist2_sealed'), /sent/i.test(to) ? to : ''].filter(Boolean).join(' · '), _oc: { w: i18t('ct_hist_sealed'), t: 'g' } })); return;
+    }
+    out.push(e);
+  });
+  return out;
+}
 function histSaysOf(e){
+  /* the new look's own words for an entry (histNlFold) */
+  if(e&&e._say) return e._say;
   if(!e||!e.ch||!(e._k==='proposed'||e._k==='decided'||e._k==='withdrawn')) return histTrailSaysOf(e);
   const ch=e.ch, cl=histClauseWords(e.clauseLabel);
   const what=String(ch.summary||'').replace(/\s+/g,' ').trim();
@@ -9088,7 +9153,8 @@ function roomHistoryHtml(c,f={},opts={}){
      stable sort reversed puts two entries stamped at one instant in the order
      they were written, latest first, which is what newest first means. */
   const q=String(_histQ||'').trim().toLowerCase();
-  const evs=roomHistoryEvents(c,f).slice().reverse()
+  const nlH=typeof window.newLookOn==='function'&&newLookOn();
+  const evs=(nlH?histNlFold(roomHistoryEvents(c,f),c):roomHistoryEvents(c,f)).slice().reverse()
     .filter(e=>!q||[e.text,histSaysOf(e),e.actor,e.clauseLabel].some(x=>String(x||'').toLowerCase().includes(q)));
   /* The total is the UNFILTERED list, counted the same way — merged twins are
      one event in both, so "7 of 11" can never appear over a page that is
@@ -9137,6 +9203,10 @@ function roomHistoryHtml(c,f={},opts={}){
        rides the time's hover, never printed here */
     /* THE WORDING TAKES THE WHOLE WIDTH (Round 2, owner's yes 24 Oct 2026): under its row, from the Time
        column to the right edge, in the paper's own type, never squeezed into What happened */
+    /* the new look: every event that carried words shows them (histNlFold), a caption under them */
+    const cap=e._cap?`<div class="hist-wcap">${esc(e._cap)}</div>`:'';
+    const bodyNl=(_histDetail&&e._quote)?`<div class="hist-wfull" role="row"><div class="hist-redline is-quote" role="cell">${esc(e._quote.charAt(0)==='“'?e._quote:'… '+e._quote+' …')}${cap}</div></div>`
+      :(_histDetail&&e._chs&&e._chs.length)?`<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${e._chs.map(x=>`<div>${histWordingHtml(x)}</div>`).join('')}${cap}</div></div>`:'';
     const body=(_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch)
       ? `<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${histWordingHtml(e.ch)}</div></div>` : '';
     const why=e.note?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';
@@ -9191,7 +9261,7 @@ function roomHistoryHtml(c,f={},opts={}){
     const sideW=lane==='ours'?`<span class="hist-sd is-ours">${esc(i18t('ct_hist_side_ours'))}</span>`
       :lane==='theirs'?`<span class="hist-sd is-theirs">${esc(i18t('ct_hist_side_theirs'))}</span>`:'<span class="hist-sd is-none">\u2014</span>';
     /* an entry nobody can place (HaTi's own) or only we can see carries no initials and no outcome (as drawn; round 12's rule kept) */
-    const ocW=oc&&lane!=='mid'?`<span class="hist-ocw is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'';
+    const ocW=oc&&(lane!=='mid'||e._oc)?`<span class="hist-ocw is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'';
     const mark=e._k==='opened'?dot:e._k==='access'?`<span class="hist-lock" aria-hidden="true">${icon('lock','w-3 h-3')}</span>`:'';
     /* WHO IS FILLED FROM THE SIDE (Round 2): their entry with no person named says their party */
     const theirName=lane==='theirs'&&!e.actor?String(e.partyName||c.counterparty||'').trim():'';
@@ -9202,7 +9272,7 @@ function roomHistoryHtml(c,f={},opts={}){
     return `<div class="hist-ev hist-tr is-${lane}${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}" role="row">
       <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span><span class="hist-c hist-c-side" role="cell">${sideW}</span>
       <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${why}${reply}</div>
-      <span class="hist-c hist-c-oc hist-oc" role="cell">${ocW}</span></div>${body}`;
+      <span class="hist-c hist-c-oc hist-oc" role="cell">${ocW}</span></div>${bodyNl||body}`;
   };
   const ours=_histOurPeople();
   /* the table's column head (the SAP way): the words above the columns */
@@ -9418,6 +9488,9 @@ function roomPaintHistory(c,f={},at){
     const again=host.querySelector('#hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(caret,caret); }catch(_){} } });
   host.querySelector('#hist-detail')?.addEventListener('click',()=>{
     _histDetail=!_histDetail; roomPaintHistory(c,read(),at);
+    /* the new look's panel says whether the wording shows (as drawn): its glance is drawn again */
+    if(typeof window.newLookOn==='function'&&newLookOn()&&document.getElementById('pd-histglance')&&typeof window.pdHistGlanceHtml==='function'){
+      const g=document.getElementById('pd-histglance'); try{ g.outerHTML=pdHistGlanceHtml(c); }catch(_){ } }
   });
   /* THE MENU SAYS WHETHER IT IS OPEN. Now that the button carries a word and a
      chevron, aria-expanded is what turns the chevron over and what a screen
@@ -19252,7 +19325,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{histWordingShown,histNlFold,signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read
