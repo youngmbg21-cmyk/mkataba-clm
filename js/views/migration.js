@@ -1456,9 +1456,60 @@ function migRowHtml(r){
     <td class="mig-td-st">${migStateCell(r)}</td>
   </tr>`;
 }
+/* ---- IMPORT, AS DRAWN (the new look, round 6) ----
+   One table of the batch's files: the file (its pages, a scan), what Jambo read (kind · parties · term) with why it
+   waits, how it looks (signed, or unsigned in amber), its stream (or Choose), its value, and its one word — Fill in,
+   Name it, Open — each the page's own door (the check view, the contract); the ones that need you first, then
+   "Read whole · N". A row press chooses it for the panel, as before. */
+function migNlRowHtml(r){
+  const c = r.c, q = r.q, st = r.st;
+  const pages = c && c.migration && c.migration.ocrTotalPages ? c.migration.ocrTotalPages : (c && c.upload && c.upload.pages) || (q && q.pages) || 0;
+  const scan = c && c.migration && typeof isOcrText === 'function' && isOcrText(c.migration.textSource);
+  const sub = [pages ? i18tn('mign_pages', pages, { n: pages }) : '', scan ? i18t('mign_scan') : ''].filter(Boolean).join(' \u00b7 ');
+  let read = '', looks = '\u2014', stream = '\u2014', value = '\u2014';
+  if (c){
+    const f = Object.fromEntries(migSideFacts(c).map(x => [x.k, x]));
+    const ours = String(window.FIRST_PARTY || '').split(/\s+/)[0];
+    const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' \u2013 ');
+    read = [f.contractType && f.contractType.text, c.counterparty ? i18t('mign_between', { a: ours, b: c.counterparty }) : '', term].filter(Boolean).join(' \u00b7 ');
+    looks = st.k === 'none' ? '\u2014' : c.status === 'Signed' ? i18t('mign_signed') : i18t('mign_unsigned');
+    stream = c.folder && window.FOLDERS && FOLDERS[c.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[c.folder]) || FOLDERS[c.folder].name) : '';
+    value = f.value && f.value.text ? f.value.text : '\u2014';
+  } else read = st.why || '';
+  if (!read) read = i18t('mign_nothing');
+  const need = MIG_NEEDS.includes(st.k);
+  const word = st.k === 'none' ? 'mign_name_it' : need ? 'mign_fill' : 'mign_open';
+  const act = c ? `<button type="button" class="${need ? 'rfp-pill' : 'rfp-a'}" data-mign-go="${esc(r.key)}" data-mign-need="${need ? 1 : 0}">${esc(i18t(word))}</button>` : '';
+  const choose = !stream && c && need ? `<button type="button" class="rfp-a" data-mign-go="${esc(r.key)}" data-mign-need="1">${esc(i18t('mign_choose'))}</button>` : esc(stream || '\u2014');
+  return `<tr data-row="${esc(r.key)}" class="${_migPick === r.key ? 'is-picked' : ''}${need ? '' : ' is-done'}" tabindex="-1"><td><div class="cun-name">${esc(r.file || '')}</div>${sub ? `<div class="cun-sub">${esc(sub)}</div>` : ''}</td>
+    <td class="cun-wait"><b class="mign-read">${esc(read)}</b>${need && st.why ? `<div class="cun-sub">${esc(st.why)}</div>` : ''}</td>
+    <td class="cun-wait${looks === i18t('mign_unsigned') ? ' mign-amb' : ''}">${esc(looks)}</td><td class="cun-wait">${choose}</td><td class="cun-wait">${esc(value)}</td><td class="cun-go">${act}</td></tr>`;
+}
+function migNlListHtml(rows){
+  const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)), rest = rows.filter(r => !MIG_NEEDS.includes(r.st.k));
+  const q = String(_migQ || '').trim().toLowerCase();
+  const hit = r => !q || [r.file, r.c && r.c.counterparty, r.c && r.c.name].some(x => String(x || '').toLowerCase().includes(q));
+  const sh = migShown(migFound(rows)), on = new Set(sh.list.map(r => r.key));
+  const A = need.filter(r => on.has(r.key) && hit(r)), B = rest.filter(r => on.has(r.key) && hit(r));
+  return `
+    <table class="apn-table cun-table mign-table mig-table"><colgroup><col style="width:22%"><col style="width:32%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col></colgroup>
+    <thead><tr><th>${esc(i18t('mign_c_file'))}</th><th>${esc(i18t('mign_c_read'))}</th><th>${esc(i18t('mign_c_looks'))}</th><th>${esc(i18t('mig_col_stream'))}</th><th>${esc(i18t('reg_col_value'))}</th><th></th></tr></thead>
+    <tbody>${A.map(migNlRowHtml).join('')}${B.length && A.length ? `<tr class="rdn-grp"><td colspan="6">${esc(i18t('mign_read_whole', { n: rest.length }))}</td></tr>` : ''}${B.map(migNlRowHtml).join('')}</tbody></table>
+    <div class="apn-foot rdn-foot"><span>${esc(i18tn('mign_foot', rows.length, { n: rows.length }))}</span><span>${esc(i18t('mign_foot_r'))}</span></div>`;
+}
+let _mign = 'all';
+if (typeof document !== 'undefined' && !document._mignWired){ document._mignWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('.mig-page')) return; let el;
+    if ((el = t.closest('[data-mign-tab]'))){ e.preventDefault(); _mign = el.getAttribute('data-mign-tab'); renderMigration(); return; }
+    if ((el = t.closest('[data-mign-go]'))){ e.preventDefault(); e.stopPropagation(); const key = el.getAttribute('data-mign-go');
+      if (el.getAttribute('data-mign-need') === '1') migCheckOpen(key); else { const r = migRowByKey(key); if (r && r.c && typeof regOpenContract === 'function') regOpenContract(r.c.id); } }
+  }, true);
+}
 function migListHtml(){
   const M = migState(), rows = migRows();
   if (!rows.length) return `<div class="mig-empty">${esc(i18t('mig_none_yet2'))}</div>`;
+  if (typeof window.newLookOn === 'function' && newLookOn() && !M.running) return migNlListHtml(rows);
   /* the box's words first, then the door; every row that needs you stands */
   const sh = migShown(migFound(rows));
   const settled = M.queue.filter(q => ['saved', 'duplicate', 'error', 'word', 'skipped', 'dupe'].includes(q.status)).length;

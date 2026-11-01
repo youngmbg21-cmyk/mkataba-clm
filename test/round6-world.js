@@ -19,7 +19,13 @@ function r6Contracts(){
   const old = [['MK-X1', 'Packaging Supply 2024', 'Kenpoly', 'proc', 18000000, -700], ['MK-X2', 'Distributor Agreement — Rift', 'Rift Traders', 'sales', 14000000, -500], ['MK-X3', 'Audit Engagement 2025', 'KPMG Kenya', 'corp', 10000000, -330]]
     .map(([id, name, cp, f, v, at]) => Object.assign(fixtureContract(id, name, cp, f, v, 'Signed'), { archived: true, signedAt: iso(at), expiry: day(at + 365),
       signatures: [{ party: 'first', name: 'Amina Otieno', at: iso(at) }, { party: 'counterparty', name: cp, at: iso(at) }] }));
-  return cs.concat([cr, it, nda], old);
+  /* the files an import brought in, as drawn on Import: one with no end date read, one with no readable text, two filed */
+  const imp = (id, name, cp, f, v, file, mg, extra) => Object.assign(fixtureContract(id, name, cp, f, v, 'Signed'), { upload: { fileName: file }, migration: Object.assign({ importedAt: iso(-1), aiSource: 'ai' }, mg) }, extra || {});
+  const imports = [imp('MK-I1', 'Agency agreement Mombasa', 'Pwani Agents', 'sales', 0, 'Agency agreement Mombasa.docx', { needsReview: true }, { expiry: '', metadata: { contractType: 'Agency' } }),
+    imp('MK-I2', 'IMG_4471', '', '', 0, 'IMG_4471.jpg', { blocked: true }, { expiry: '', metadata: {} }),
+    imp('MK-I3', 'Sugar supply 2023', 'Kabras Sugar', 'proc', 41000000, 'Sugar supply 2023.pdf', {}, { signedAt: iso(-700), expiry: day(-60), metadata: { contractType: 'Supply' } }),
+    imp('MK-I4', 'Transport SLA Rift', 'Rift Haulage', 'proc', 700000, 'Transport SLA Rift.pdf', {}, { signedAt: iso(-500), expiry: day(240), metadata: { contractType: 'Service level' } })];
+  return cs.concat([cr, it, nda], old, imports);
 }
 /* THE KEPT QUESTION AS DRAWN: "Can we end it for convenience?" — the sugar supply only for breach, the cold room no,
    the transport yes on 30 days' notice; the milk collection not read yet. The stand-in answers each contract by its
