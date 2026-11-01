@@ -2442,6 +2442,69 @@ function pdRoadPaint(c){
     const line = btn && btn.nextElementSibling; if (line && line.tagName === 'P') line.style.display = show ? '' : 'none';
     foot.toggleAttribute('data-pd-road-mine', show); }
 }
+/* ---- BEFORE YOU SIGN, AS DRAWN (the new look, round 5) ----
+   One list down the face: Details filled · Our standards checked · Approval · each side's signature (theirs given,
+   your turn) · Then; every line read off a reading the road already makes (detailsOf, stdRowReading and the
+   standards' accepted notes, approvalState, signSteps, signBlockers). Under it ONE card: nothing blocks you — Sign
+   (the Signing column's own button, #sign-btn, pressed) and Read it first (the brief, its own door) — or what
+   still holds, in the list's own words. Writes nothing. */
+function pd2SignRowsHtml(c){
+  const E = _pdE, T = _pdT;
+  const rows = [];
+  const row = (st, t, sub) => rows.push(`<div class="pd2-sg-r is-${st}"><i class="pd2-sg-i" aria-hidden="true">${st === 'done' ? '&#10003;' : ''}</i><div><b>${E(t)}</b>${sub ? `<small>${E(sub)}</small>` : ''}</div></div>`);
+  const day = iso => { if (!iso) return ''; const d = new Date(iso); const loc = typeof langLocale === 'function' ? langLocale() : undefined;
+    const t = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+    return (typeof pdDayWord === 'function' ? pdDayWord(String(iso).slice(0, 10)) : String(iso).slice(0, 10)) + ' ' + t; };
+  const closed = pdSignState(c).closed;
+  /* details */
+  let D = { left: 0, items: [] }; try { D = (typeof detailsOf === 'function') ? detailsOf(c) : D; } catch (_){}
+  const filled = (D.items || []).filter(x => !x.open).map(x => x.label).slice(0, 3);
+  if (closed || !D.left) row('done', T('pd2_sg_details'), filled.join(' · '));
+  else row('now', T('pd2_sg_details_left'), _pdTn('pd2_sg_n_left', D.left, { n: D.left }));
+  /* our standards */
+  const R = (typeof stdRowReading === 'function') ? stdRowReading(c) : null;
+  if (R && R.total){
+    const vs = (c.playbook && c.playbook.verdicts) || [];
+    const acc = vs.filter(v => v && v.accepted && v.accepted.at && (v.status === 'deviation' || v.status === 'missing'));
+    const open = R.miss + R.off - acc.length;
+    const sub = R.off || R.miss ? [R.off ? T('pd2_sg_differs', { n: R.off, what: acc.map(v => String(v.category || '').toLowerCase()).filter(Boolean).join(', ') || '' }) : '',
+      acc.length ? _pdTn('pd2_sg_accepted', acc.length, { n: acc.length }) : ''].filter(Boolean).join(' · ') : T('pd2_sg_all_met', { n: R.total });
+    row(open > 0 ? 'now' : 'done', T(open > 0 ? 'pd2_sg_std_open' : 'pd2_sg_std'), sub);
+  } else row('now', T('pd2_sg_std_none'), T('pd2_sg_std_none_s'));
+  /* the approval */
+  let A = null; try { A = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ A = null; }
+  if (A && A.required){
+    const last = (A.chain || []).filter(x => x && x.status === 'approved').pop();
+    if (A.ok && last) row('done', T('pd2_sg_appr'), T('pd2_sg_appr_by', { who: last.by || '', when: day(last.at), rule: last.name || '' }));
+    else row('now', T('pd2_sg_appr_wait'), (A.chain || []).filter(x => x && x.status !== 'approved').map(x => x.name).join(' · '));
+  }
+  /* each side's signature, in the route's order */
+  let steps = []; try { steps = (typeof signSteps === 'function') ? signSteps(c) : []; } catch (_){ steps = []; }
+  const now = (typeof signStepNow === 'function') ? signStepNow(c) : 0;
+  const me = (typeof currentUser === 'function' && currentUser()) || {};
+  let ours = ''; try { ours = (typeof contractParty === 'function') ? String(contractParty(c) || '') : ''; } catch (_){ ours = ''; }
+  const holds = (typeof signBlockers === 'function') ? (signBlockers(c) || []) : [];
+  let capOk = true; try { capOk = !(typeof signCapBlocker === 'function' && signCapBlocker(c)); } catch (_){ capOk = true; }
+  steps.forEach(st => {
+    const theirs = st.rows.every(r => r && r.party === 'counterparty');
+    const party = theirs ? (String(c.counterparty || '').trim() || T('ng_the_counterparty')) : (ours || T('pd_rd_us'));
+    const done = st.rows.every(r => r && r.signed);
+    const names = st.rows.map(r => String((r && r.name) || '').trim()).filter(Boolean).join(' · ');
+    if (done){ const at = st.rows.map(r => r && r.at).filter(Boolean).sort().pop();
+      row('done', T('pd2_sg_signed', { party }), [names, at ? day(at) : '', theirs ? T('pd2_sg_by_link') : ''].filter(Boolean).join(', ')); return; }
+    const mine = st.n === now && st.rows.some(r => r && r.party === 'internal' && String(r.memberId || '') === String(me.id || ''));
+    if (mine) row('turn', T('pd2_sg_turn'), [T('pd2_sg_as', { me: me.name || '', org: ours }), capOk ? T('apn_cap_ok') : ''].filter(Boolean).join(' · '));
+    else row(st.n === now ? 'turn' : 'later', T('pd2_sg_signs', { party }), names);
+  });
+  if (!steps.length) row('now', T('pd_rd_who'), T('pd_rd_nobody'));
+  row(closed ? 'done' : 'later', T('pd2_sg_then'), T('pd2_sg_then_s'));
+  /* the card */
+  const mineNow = steps.some(st => st.n === now && st.rows.some(r => r && r.party === 'internal' && String(r.memberId || '') === String(me.id || '') && !r.signed));
+  const card = closed ? '' : !holds.length && mineNow
+    ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_clear'))}</b><p>${E(T('pd2_sg_clear_s'))}</p><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd2-sign>${E(T('apn_sign'))}</button><button type="button" class="ui-btn" data-pd2-sign-read>${E(T('pd2_sg_read'))}</button><span>${E(T('pd2_sg_no_call'))}</span></div></div>`
+    : `<div class="pd2-sg-card is-held"><b>${E(holds.length ? _pdTn('pd2_sg_holds', holds.length, { n: holds.length }) : T('pd2_sg_not_yours'))}</b>${holds.length ? `<ul>${holds.map(h => `<li>${E(String(h.short || h.label || ''))}</li>`).join('')}</ul>` : ''}</div>`;
+  return `<div class="pd2-sg">${rows.join('')}${card}</div>`;
+}
 function pdSignFaceHtml(c){
   if (!c) return '';
   _pdActs.clear();
@@ -2450,7 +2513,8 @@ function pdSignFaceHtml(c){
      line and the copies, then the record of who approved and signed */
   const closed = pdSignState(c).closed;
   const wrap = `<div id="sign-wrap"></div>`;
-  return `<div class="pd-sf is-road${closed ? ' is-closed' : ''}" data-pd-sf="${_pdE(c.id)}">
+  return `<div class="pd-sf is-road${closed ? ' is-closed' : ''}${pd2On() ? ' is-pd2' : ''}" data-pd-sf="${_pdE(c.id)}">
+    ${pd2On() ? `<div class="pd2-sg-w" data-pd2-sg>${pd2SignRowsHtml(c)}</div>` : ''}
     <div class="pd-sf-h" data-pd-sf-head>${pdSignHeadHtml(c)}</div>
     <div class="pd-road-w" data-pd-road></div>
     <div class="pd-sf-body scroll-thin sign-one">
@@ -2481,6 +2545,7 @@ function pdSignCounts(c){
   if (!c || String(c.id) !== _pdSign) return;
   const head = host.querySelector('[data-pd-sf-head]'); if (head) head.innerHTML = pdSignHeadHtml(c);
   const next = host.querySelector('[data-pd-sf-next]'); if (next) next.innerHTML = pdSignNextHtml(c);
+  const sg = host.querySelector('[data-pd2-sg]'); if (sg){ const h = pd2SignRowsHtml(c); if (sg.innerHTML !== h) sg.innerHTML = h; }
   pdRoadPaint(c);
   /* the face's shape follows the contract closing (the Sign button's foot
      becomes the receipt's line), and the paper takes a signature given */
@@ -2498,6 +2563,9 @@ function pdSignWire(host){
   host.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (t.closest('[data-pd-sf-close]')){ e.preventDefault(); pdSignClose(); return; }
+    /* the drawn card: Sign presses the Signing column's own button; Read it first opens the brief (its own door) */
+    if (t.closest('[data-pd2-sign]')){ e.preventDefault(); const b = document.getElementById('sign-btn'); if (b && !b.disabled) b.click(); else if (typeof toast === 'function') toast(_pdT('sa_gone'), 'warn'); return; }
+    if (t.closest('[data-pd2-sign-read]')){ e.preventDefault(); const cc = pdContract(); if (cc && typeof pd2BriefOpen === 'function') pd2BriefOpen(cc.id); return; }
     const ob = t.closest('[data-pd-sf-oblig]');
     if (ob && typeof hbOpenView === 'function'){ e.preventDefault(); hbOpenView(ob.getAttribute('data-pd-sf-oblig'), 'oblig');
       /* LAND ON IT (owner, 18 Oct 2026): on the contract's own obligations, lit — the one lander */
@@ -2558,6 +2626,8 @@ async function pdRoadPress(e, t){
 function pdSignFacePaint(c){
   const host = document.getElementById('pd-signface'); if (!host) return;
   c = c || pdContract(); if (!c) return;
+  /* as drawn: the face's own three links above the box — the Dossier (its way back), Clauses, History */
+  if (pd2On() && typeof jamboOwnWays === 'function') jamboOwnWays('#ig-dock .igd-foot', `<button type="button" class="jb-way" data-pd-back="signing">${_pdE(_pdT('pd2_sg_l_dossier'))}</button><button type="button" class="jb-way" data-pd-tab="doc">${_pdE(_pdT('pd2_sg_l_clauses'))}</button><button type="button" class="jb-way" data-pd2-sg-hist="${_pdE(c.id)}">${_pdE(_pdT('pd2_sg_l_hist'))}</button>`, '#pd-signface');
   try { if (typeof renderSignButton === 'function') renderSignButton(c); } catch (e){
     const side = document.getElementById('sign-side'); if (side) side.innerHTML = pdNote((e && e.message) || String(e));
   }
@@ -3293,6 +3363,17 @@ function pdHeadHtml(brain){
   }
   /* the conversation up: his name alone heads the panel; the door above the box goes back (Door above the box) */
   if (pdTalkShows()) return pdTalkTabHtml();
+  /* BEFORE YOU SIGN AND AMEND, AS DRAWN (the new look, round 5): the face's own name is the first tab, lit; the
+     Dossier beside it is the way back (the trail's own back, PD_BACK_CLOSE), then Clauses — no trail line over it */
+  const fNow = pd2On() && pdOnPaper() && !pdSheetOwns() ? pdFaceNow() : '';
+  if (fNow === 'signing' || fNow === 'amend'){
+    const cc = pdContract();
+    const tab = (attrs, name, on) => `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" ${attrs} aria-selected="${!!on}" title="${_pdE(name)}"><span class="pd-tab-w">${_pdE(name)}</span></button>`;
+    return tab('data-pd2-face-tab', _pdT(fNow === 'amend' ? 'pd2_amend_tab' : 'pd_face_w_signing'), true)
+      + tab(`data-pd-back="${fNow}"`, pdLandName(), false)
+      + (fNow === 'signing' ? PD_TABS_SHOWN.filter(t => t === 'doc').map(t => { const name = _pdT(PD_TAB_NAME[t]), cnt = pdTabCount(t, cc);
+        return `<button type="button" role="tab" class="pd-tab" data-pd-tab="${t}" aria-selected="false" title="${_pdE(name)}"><span class="pd-tab-w">${_pdE(name)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n}</span>` : ''}</button>`; }).join('') : '');
+  }
   const lit = face === 'red' ? 'red' : face ? 'copilot' : (pdOnPaper() && (_pdTab === 'oblig' || _pdTab === 'form')) ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings'
     : gd && typeof igGuideShows === 'function' && igGuideShows() ? 'guide' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
@@ -6363,6 +6444,8 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (t.closest('[data-pd-drop-import]')){ e.preventDefault(); if (typeof setView === 'function') setView('migration'); return; }
     const back = t.closest('[data-pd-back]');
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
+    /* Before you sign's own "history" link (as drawn) */
+    const hb = t.closest('[data-pd2-sg-hist]'); if (hb){ e.preventDefault(); if (typeof hbStripBring === 'function') hbStripBring(hb.getAttribute('data-pd2-sg-hist'), 'hist'); return; }
     if (t.closest('[data-pd-send-back]')){ e.preventDefault(); pdSendBack(); return; }
     /* THE DEAL (owner, 23 Oct 2026): the face's button, its tabs, a point's clause, its way back */
     if (t.closest('[data-rl-head-ladder]')){ e.preventDefault(); const b = document.querySelector('#ig-dock [data-rl-ladder]'); if (b && !b.disabled) b.click(); return; }

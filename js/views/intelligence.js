@@ -9369,7 +9369,9 @@ function igStripActsHtml(c){
     const w=n?i18tn('ig_send_all_n',n,{ n }):i18t('ig_send_all');
     nlSend=`<button type="button" id="ws-share" class="ui-btn ui-btn-sm ui-btn-primary" aria-label="${igEsc(w)}"${n?` data-ws-send-all title="${igEsc(i18t('pd_send_waiting_title'))}"`:` disabled title="${igEsc(i18t('ig_send_all_none'))}"`}><span class="ig-share-w">${igEsc(w)}</span></button>`;
   }
-  const share=nlSend!=null?nlSend:(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm ui-btn-primary" title="${igEsc(i18t(unsent?'pd_send_waiting_title':'ct_share_with_cp'))}" aria-label="${igEsc(sendWord)}"${unsent?' data-ws-send-all':''}>${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(sendWord)}</span></button>`:'';
+  /* before you sign, as drawn: Sign is the area's one filled button, so Share stands grey */
+  const signUp=!!(window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='signing');
+  const share=nlSend!=null?nlSend:(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm${signUp?'':' ui-btn-primary'}" title="${igEsc(i18t(unsent?'pd_send_waiting_title':'ct_share_with_cp'))}" aria-label="${igEsc(sendWord)}"${unsent?' data-ws-send-all':''}>${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(sendWord)}</span></button>`:'';
   const sealed=!!(window.negoExecuted&&negoExecuted(c));
   let review='';
   if(may&&!sealed&&window.rlReviewDoorState&&window.rlReviewDoor){
@@ -9426,6 +9428,15 @@ function igLineIdHtml(c,ref){
   const party=String(c.counterparty||'').trim();
   const n=igLineRound(c);
   let pill=''; try{ pill=(typeof contractStatusTextHtml==='function')?contractStatusTextHtml(c,n?i18t('ig_line_round',{ n }):''):''; }catch(_){ pill=''; }
+  /* BEFORE YOU SIGN, AS DRAWN (the new look, round 5): while its face is up the line says where signing stands —
+     "Ready to sign · Nandi signed 08:40" — off the one list (signBlockers) and the signatures on file */
+  try{ if(typeof window.pd2On==='function'&&pd2On()&&typeof window.pdSignShows==='function'&&pdSignShows()&&c.status!=='Signed'){
+    const holds=(typeof signBlockers==='function')?(signBlockers(c)||[]):[];
+    const th=(c.signatures||[]).filter(x=>x&&x.party==='counterparty'&&x.at).sort((a,b)=>String(a.at).localeCompare(String(b.at))).pop();
+    const when=th?new Date(th.at).toLocaleTimeString((typeof langLocale==='function')?langLocale():undefined,{ hour:'2-digit', minute:'2-digit' }):'';
+    const said=[i18t(holds.length?'ig_line_sign_held':'ig_line_sign_ready'), th?i18t('ig_line_they_signed',{ who:String(party).split(/\s+/)[0], when }):''].filter(Boolean).join(' · ');
+    pill=`<span class="ig-line-sg${holds.length?' is-held':''}"><i aria-hidden="true"></i>${igEsc(said)}</span>`;
+  } }catch(_){ }
   const cn=c._codeName&&c._codeName.code?String(c._codeName.code):'';
   const mark=cn?`<span class="ig-line-cn" title="${igEsc(i18t('ig_line_cn_title',{ code:cn, ref }))}">${icon('lock','w-3 h-3')}${igEsc(cn)}</span>`:'';
   /* THE PARTY ONCE (owner, 21 Oct 2026): the bar above already names it, so

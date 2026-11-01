@@ -4068,6 +4068,18 @@ function signatureBlock(c){
      marks render here exactly as they will on the executed face; the seal
      still only applies when every party has signed. */
   const sofar=(c.signatures||[]);
+  /* PARTLY SIGNED, AS DRAWN (the new look, round 5): the paper ends the way paper ends — a ruled line per side, the
+     signature given written over its line with who and when under it, ours "Your signature goes here" */
+  if(sofar.length&&typeof window.newLookOn==='function'&&newLookOn()){
+    let ours=''; try{ ours=(typeof contractParty==='function')?String(contractParty(c)||''):''; }catch(_){ ours=''; }
+    const theirs=String(c.counterparty||'').trim();
+    const col=(party,s)=>{ const img=s&&window.sigImageSrc?sigImageSrc(s.image):''; const cap=s&&window.signatureCapacity?(signatureCapacity(s)||''):'';
+      return `<div class="sig2-col"><div class="sig2-line${s?'':' is-open'}">${s?(img?`<img src="${img}" alt="${esc(i18t('sgx_sig_of',{name:s.name||''}))}">`:`<i>${esc(s.name||'')}</i>`):''}</div>
+        <div class="sig2-for">${esc(i18t('sig2_for',{ party }))}${s&&s.name?' · '+esc(s.name)+(cap?', '+esc(cap):''):''}</div>
+        <div class="sig2-at">${s?esc([i18t('sig2_signed',{ when:s.at?fmtDT(s.at):'' }), s.party==='counterparty'?i18t('sig2_by_link'):''].filter(Boolean).join(' · ')):esc(i18t('sig2_yours'))}</div></div>`; };
+    const th=sofar.filter(x=>x&&x.party==='counterparty').pop(), us=sofar.filter(x=>x&&x.party!=='counterparty').pop();
+    return `<div class="sig2" data-anchor="sig">${col(theirs,th)}${col(ours,us)}</div>`;
+  }
   if(sofar.length){
     /* the reader's language (14 Oct 2026): this block is a status, not the
        record — the executed card above, the sealed record, keeps its words */

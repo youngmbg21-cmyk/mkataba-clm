@@ -599,14 +599,21 @@ function jamboWaysSync(){
       /* THE CONTRACT'S ONE ROW (the contract round, as drawn): its own next-step links stand above the box instead */
       if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]') && document.querySelector('#ig-paper:not([hidden]) #ig-canvas')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); return; }
       const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
-      /* a chosen row's own links (jlOwnPaint) stand there instead */
-      if (old && old.classList.contains('is-own')) return;
+      /* a chosen row's or a face's own links (jlOwnPaint, jamboOwnWays) stand there instead, while what drew them stands */
+      if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)) return; }
       if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
       if (old) old.remove();
       const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
       foot.insertAdjacentHTML('beforebegin', html);
     });
   }
+}
+/* a face's own links above Jambo's box (as drawn: Before you sign's "dossier · clauses · history"), kept while `forSel` stands */
+function jamboOwnWays(footSel, html, forSel){
+  if (typeof document === 'undefined') return;
+  const foot = document.querySelector(footSel); if (!foot) return;
+  const prev = foot.previousElementSibling; if (prev && prev.classList && prev.classList.contains('jb-ways')) prev.remove();
+  if (html) foot.insertAdjacentHTML('beforebegin', `<nav class="jb-ways is-above-foot is-own" data-jb-ways="own" data-own-for="${esc(forSel || '')}">${html}</nav>`);
 }
 let _jbWaysQueued = false;
 function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
@@ -1584,4 +1591,5 @@ function jamboSayAskHtml(o = {}){
   return `<div class="jb-say is-ask"${o.id ? ` id="${E(o.id)}"` : ''}${o.attrs || ''}>
     <div class="jb-say-b">${o.body || ''}</div>${o.foot ? `<div class="jb-say-f">${o.foot}</div>` : ''}</div>`;
 }
+Object.assign(window, { jamboOwnWays });
 Object.assign(window, { jamboSayCardHtml, jamboSayAskHtml });

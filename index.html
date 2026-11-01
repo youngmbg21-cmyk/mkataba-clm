@@ -18856,6 +18856,137 @@
   html.lg-new .apn-table tr.is-sel{background:var(--color-bg)}
   html.lg-new .apn-none{color:var(--color-quiet)}
   html.lg-new .apn-foot{margin-top:auto;padding:14px 0;border-top:1px solid var(--color-divider);font-size:12.5px;font-weight:var(--w-label)}
+  /* THE CALENDAR, AS DRAWN (round 5): one white page, the name in the serif with its four views as words beside it,
+     All dates | Mine black on the chosen, New event and Print as pills; the agenda one quiet row a day */
+  html.lg-new #app-shell .cal-page{background:var(--color-surface)}
+  html.lg-new #app-shell .cal-page .cal-head[hidden],html.lg-new #app-shell .cal-page .cal-bar1[hidden]{display:none}
+  html.lg-new #app-shell .cal-page.is-home .cal-head.is-nl{margin:0}
+  html.lg-new #app-shell .cal-page .cal-head.is-nl{display:flex;align-items:center;gap:28px;padding:24px 40px 10px;background:transparent;border:0;box-shadow:none}
+  html.lg-new .cal-page .cal-head.is-nl .ttl{font-family:var(--font-title);font-size:26px;font-weight:400;letter-spacing:0;color:var(--color-text)}
+  html.lg-new .cal-nl-tabs{display:flex;gap:16px;align-self:flex-end;padding-bottom:4px}
+  html.lg-new .cal-nl-tabs a{font-size:14px;font-weight:var(--w-label);color:var(--color-text);padding:4px 0;border-bottom:2px solid transparent;cursor:pointer;text-decoration:none}
+  html.lg-new .cal-nl-tabs a.on{border-bottom-color:var(--accent-ink)}
+  html.lg-new .cal-page .cal-head.is-nl .g{flex:1}
+  html.lg-new .cal-page .cal-head.is-nl .cal-head-r{display:flex;align-items:center;gap:12px}
+  html.lg-new .cal-page .cal-head.is-nl .cal-seg-scope{display:inline-flex;padding:3px;border-radius:999px;background:var(--surface-2);border:0;gap:0}
+  html.lg-new .cal-page .cal-head.is-nl .cal-seg-scope span{padding:4px 11px;border-radius:999px;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;border:0;background:transparent}
+  html.lg-new .cal-page .cal-head.is-nl .cal-seg-scope span.on{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .cal-page .cal-head.is-nl .cal-new-btn,html.lg-new .cal-page .cal-head.is-nl .cal-print{height:var(--ctl-h-lg);padding:0 16px;border-radius:999px;border:0;background:var(--surface-2);font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);box-shadow:none}
+  html.lg-new .cal-page .cal-head.is-nl .cal-acts{display:none}
+  html.lg-new #app-shell .cal-page.is-home .cal-body{padding:0 24px 16px}
+  html.lg-new #app-shell .cal-page .cal-stage{background:transparent;border:0;box-shadow:none;border-radius:0}
+  html.lg-new #app-shell .cal-page .cal-card{background:transparent;border:0;box-shadow:none;border-radius:0;padding:0}
+  html.lg-new #app-shell .cal-page .cal-bar1{padding:6px 0 12px 16px;border:0}
+  html.lg-new #app-shell .cal-page .cal-title{font-size:14px;font-weight:var(--w-label)}
+  html.lg-new .cal-nl{display:flex;flex-direction:column}
+  html.lg-new .cal-nl-r{display:grid;grid-template-columns:166px minmax(0,1fr) auto;gap:16px;padding:12px 0;border-bottom:1px solid var(--color-divider);font-size:14px;line-height:1.35}
+  html.lg-new .cal-nl-r small{display:block;font-size:12px;color:var(--color-text);margin-top:3px}
+  html.lg-new .cal-nl-w small{color:var(--color-quiet)}
+  html.lg-new .cal-nl-t b{font-weight:var(--w-label)}
+  html.lg-new .cal-nl-t small{font-weight:var(--w-label)}
+  html.lg-new .cal-nl-r.is-none{padding:9px 0;font-size:13px}
+  html.lg-new .cal-nl-r.is-none .cal-nl-w,html.lg-new .cal-nl-r.is-none .cal-nl-t b{color:var(--color-quiet);font-weight:400}
+  html.lg-new .cal-nl-late{color:var(--st-ruby-fg)}
+  html.lg-new .cal-nl-go{border:0;background:none;padding:0;font:inherit;font-size:14px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  /* Horizon, as drawn: open tiles under a coloured rule, each row with its own months, a thin dark bar, the decision a word over its terms */
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-ladder{gap:16px;padding:0 0 22px;background:transparent;border:0}
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-lad{border:0;border-top:3px solid;border-radius:0;box-shadow:none;background:transparent;padding:12px 0 0}
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-lad-k{font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-lad-n{font-size:22px;font-weight:400;color:var(--color-text)}
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-lad-v{font-size:12px;color:var(--color-text)}
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-hz-ruler{grid-template-columns:280px minmax(0,1fr) 200px;background:transparent;border:0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-hz-col{padding:8px 0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #app-shell .cal-hz-card.is-nl .cal-hz-col-dec{text-align:right}
+  html.lg-new #app-shell .cal-hz-row.is-nl{grid-template-columns:280px minmax(0,1fr) 200px;align-items:start;border-bottom:1px solid var(--color-divider);padding:14px 0}
+  html.lg-new #app-shell .cal-hz-row.is-nl:hover{background:transparent}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab{padding:14px 0 0}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab .n{font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab .m{font-size:12px;font-weight:var(--w-label);color:var(--color-text);margin-top:3px}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-track{height:52px;margin:0 20px 0 0;background:none}
+  html.lg-new #app-shell .cal-hz-rm{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));font-size:11px;color:var(--color-quiet);height:16px}
+  html.lg-new #app-shell .cal-hz-rm span{text-align:left;padding-left:2px}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-bar{top:21px;height:7px;border-radius:2px;background:var(--color-accent-700);opacity:1}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-nip{top:15px;color:var(--color-text);transform:translateX(-50%)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-note{top:32px;font-size:12px;font-weight:var(--w-label);color:var(--color-text);transform:none;margin-left:6px}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-note.is-far{top:24px;margin-left:0}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec{padding:14px 0 0;text-align:right;font-size:13px;color:var(--color-text)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec b{display:block;font-weight:var(--w-strong)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec.is-open b{color:var(--st-amber-fg)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec small{display:block;font-size:12px;margin-top:3px;white-space:normal}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec{white-space:normal}
+  html.lg-new #app-shell .cal-hz-row.is-nl.is-far .cal-hz-lab,html.lg-new #app-shell .cal-hz-row.is-nl.is-far .cal-hz-note,html.lg-new #app-shell .cal-hz-row.is-nl.is-far .cal-hz-dec,html.lg-new #app-shell .cal-hz-row.is-nl.is-far .cal-hz-lab .n,html.lg-new #app-shell .cal-hz-row.is-nl.is-far .cal-hz-lab .m{color:var(--color-quiet);font-weight:400}
+  html.lg-new #app-shell .cal-hz-row.is-nl.is-far .cal-hz-rm{opacity:.7}
+  html.lg-new #app-shell .cal-hz-row.is-nl.is-far{padding:10px 0}
+  html.lg-new #app-shell .cal-hz-foot{display:flex;justify-content:space-between;padding:14px 0 6px;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new #app-shell .cal-hz-key{margin-left:auto;font-size:12px;color:var(--color-text)}
+  /* OBLIGATIONS, AS DRAWN (round 5): the duty, the words it rests on in the paper's type with its §, the day, one link */
+  html.lg-new .apn-tab.is-prop{color:var(--st-amber-fg)}
+  html.lg-new .apn-tab{white-space:nowrap}
+  html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
+  html.lg-new .obn-table tr.obn-g td{padding:18px 16px 10px 0;font-size:14px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .obn-table tr.obn-g b{font-weight:var(--w-label)}
+  html.lg-new .obn-table tr.obn-g.is-late b{color:var(--st-ruby-fg)}
+  html.lg-new .obn-table tr.obn-g span{margin-left:10px;font-weight:var(--w-label)}
+  html.lg-new .obn-table td.obn-g-r{text-align:right;font-size:12px;color:var(--color-text)}
+  html.lg-new .obn-what{font-size:14px;font-weight:var(--w-label)}
+  html.lg-new .obn-sub{font-size:12px;font-weight:var(--w-label);margin-top:4px;line-height:1.4}
+  html.lg-new .obn-q{font-size:14px;line-height:1.4}
+  html.lg-new .obn-q i{font-family:var(--font-doc);font-style:italic;font-weight:600}
+  html.lg-new .obn-q span{font-family:var(--font-doc);font-style:italic}
+  html.lg-new .obn-when b{display:block;font-size:14px;font-weight:var(--w-label)}
+  html.lg-new .obn-when b.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .obn-when small{display:block;font-size:12px;margin-top:3px}
+  html.lg-new .obn-act{text-align:right}
+  html.lg-new .obn-none{color:var(--color-quiet);padding:24px 0}
+  html.lg-new .obn-table tr[data-ins-row]{cursor:pointer}
+  html.lg-new .obn-table tr[data-ins-row].is-sel td,html.lg-new .obn-table tr[data-ins-row][aria-selected="true"] td{background:var(--surface-2)}
+  /* Proposed, where the list stands: Jambo's line, the kinds as plain tabs, the table and the item beside it */
+  html.lg-new [data-dlg-bare] .dlg-pg-head{display:none}
+  html.lg-new [data-dlg-bare] .dlg-pg-body{padding:16px 24px 0}
+  html.lg-new [data-dlg-bare] .obd{display:flex;flex-direction:column;min-height:100%}
+  html.lg-new [data-dlg-bare] .obd-top.is-nl{display:flex;gap:10px;align-items:flex-start;padding:0;border:0}
+  html.lg-new [data-dlg-bare] .obd-jdot{flex:none;width:12px;height:12px;margin-top:4px;border-radius:50%;background:var(--accent-ink)}
+  html.lg-new [data-dlg-bare] .obd-top.is-nl .obd-sub{margin:0;font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new [data-dlg-bare] .obd-filters{padding:12px 0 8px;gap:16px;border:0}
+  html.lg-new [data-dlg-bare] .obd-filters button{border:0;background:none;border-radius:0;padding:4px 0;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);border-bottom:2px solid transparent;box-shadow:none}
+  html.lg-new [data-dlg-bare] .obd-filters button[aria-pressed="true"]{border-bottom-color:var(--accent-ink);background:none}
+  html.lg-new [data-dlg-bare] .obd-tb thead{display:none}
+  html.lg-new [data-dlg-bare] .obd-band td{background:transparent;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new [data-dlg-bare] .obd-row.is-sel td{background:var(--surface-2)}
+  html.lg-new [data-dlg-bare] .obd-ih{font-size:16px;font-weight:var(--w-label)}
+  html.lg-new [data-dlg-bare] .obd-quote{font-family:var(--font-doc);font-style:italic;font-weight:600;font-size:15px;border:0;padding:0;color:var(--color-text)}
+  html.lg-new [data-dlg-bare] .obd-switch{display:inline-flex;padding:3px;border-radius:999px;background:var(--surface-2);gap:0}
+  html.lg-new [data-dlg-bare] .obd-switch button{border:0;background:transparent;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new [data-dlg-bare] .obd-switch button[aria-pressed="true"]{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new [data-dlg-bare] .obd-acts-say{margin-left:auto;font-size:12px;align-self:center}
+  html.lg-new [data-dlg-bare] .obd-foot{margin-top:auto;border-top:1px solid var(--color-divider);background:transparent}
+  /* BEFORE YOU SIGN, AS DRAWN (round 5): one list, a filled tick for what is done, an amber ring for your turn, a grey ring for what follows; one card */
+  html.lg-new #ig-dock .pd-trail[data-pd-trail="signing"],html.lg-new #ig-dock .pd-trail[data-pd-trail="amend"]{display:none}
+  html.lg-new #ig-dock .pd-sf.is-pd2 > :not(.pd2-sg-w){display:none}
+  html.lg-new .ig-line-sg{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:var(--w-label);color:var(--st-amber-fg);white-space:nowrap}
+  html.lg-new .ig-line-sg i{width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-new .sig2{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:40px 0 8px;font-family:var(--font-body)}
+  html.lg-new .sig2-line{height:44px;border-top:1px solid var(--color-text);display:flex;align-items:flex-end;padding-bottom:4px}
+  html.lg-new .sig2-line.is-open{border-bottom:1px dashed var(--color-divider)}
+  html.lg-new .sig2-line i{font-family:var(--font-doc);font-style:italic;font-size:20px;font-weight:600}
+  html.lg-new .sig2-line img{height:40px;max-width:200px;object-fit:contain}
+  html.lg-new .sig2-for{font-size:12px;font-weight:var(--w-label);margin-top:6px}
+  html.lg-new .sig2-at{font-size:11px;color:var(--color-quiet);margin-top:2px}
+  html.lg-new .pd2-sg-w{padding:12px 16px;overflow:auto;flex:1;min-height:0}
+  html.lg-new .pd2-sg-r{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:1.4}
+  html.lg-new .pd2-sg-r b{display:block;font-size:14px;font-weight:var(--w-strong)}
+  html.lg-new .pd2-sg-r small{display:block;font-size:12px;font-weight:var(--w-label);margin-top:2px}
+  html.lg-new .pd2-sg-i{flex:none;width:18px;height:18px;border-radius:50%;margin-top:1px;display:grid;place-items:center;font-style:normal;font-size:11px;color:var(--color-surface);box-sizing:border-box}
+  html.lg-new .pd2-sg-r.is-done .pd2-sg-i{background:var(--bar-black)}
+  html.lg-new .pd2-sg-r.is-turn .pd2-sg-i,html.lg-new .pd2-sg-r.is-now .pd2-sg-i{border:2px solid var(--st-amber-dot)}
+  html.lg-new .pd2-sg-r.is-later .pd2-sg-i{border:1.5px solid var(--color-divider)}
+  html.lg-new .pd2-sg-r:last-of-type{border-bottom:0}
+  html.lg-new .pd2-sg-card{margin:8px 0 0;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px;line-height:1.45}
+  html.lg-new .pd2-sg-card b{display:block;font-size:14px;font-weight:var(--w-strong)}
+  html.lg-new .pd2-sg-card p{margin:4px 0 12px;font-weight:var(--w-label)}
+  html.lg-new .pd2-sg-card ul{margin:6px 0 0;padding-left:18px}
+  html.lg-new .pd2-sg-acts{display:flex;align-items:center;gap:10px}
+  html.lg-new .pd2-sg-acts span{margin-left:auto;font-size:12px}
   html.lg-new .apn-panel{padding:16px;font-size:13px;line-height:1.45;color:var(--color-text)}
   html.lg-new .apn-panel .apn-pl{margin:0 0 14px;font-size:14px}
   html.lg-new .apn-panel .apn-pl b{font-weight:var(--w-strong)}

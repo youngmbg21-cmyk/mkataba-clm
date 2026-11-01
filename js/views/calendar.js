@@ -193,7 +193,7 @@ function calendarEvents(){
            this month" — carried neither the obligation's description nor its
            owner, only the contract's name. A row reading "Nandi Dairy ·
            Obligation · MK-2 · 12d" does not tell anybody what to do. */
-        assignee:o.assignee||'', done:o.status==='done',
+        assignee:o.assignee||'', done:o.status==='done', clause:o.clause||'', recur:o.recurring||'', cparty:c.counterparty||'',
         /* A STEP HELD BACK BY AN EARLIER ONE is waiting, never late, never due
            (round 16: "Waiting on a step is never counted as late or chased") —
            the Obligations page's own reading */
@@ -679,6 +679,7 @@ function calHorizonDecision(r){
 }
 function calHorizonHtml(){
   const rows=calHorizonRows();
+  const nl=typeof window.newLookOn==='function'&&newLookOn();
   const t=new Date();
   const heads=[];
   for(let i=0;i<CAL_HORIZON_MONTHS;i++){
@@ -711,6 +712,29 @@ function calHorizonHtml(){
     const nip = r.notice ? `<i class="cal-hz-nip" style="left:${(calHorizonPos(r.notice)*100).toFixed(2)}%"
       title="${_esc(i18t('cal_hz_notice',{d:window.regDotDate?regDotDate(r.notice):r.notice}))}">&#9662;</i>` : '';
     const dec = calHorizonDecision(r);
+    if(nl){
+      /* as drawn (round 5): the months over each row's own bar, the ▾ at the notice day, beyond a year a quiet row with no bar,
+         the decision a word over its terms ("renews by itself · notice by …", "… · window opens …") */
+      const W=(typeof window.renewalWindow==='function')?renewalWindow(r.c):null;
+      const auto=!!(W&&W.auto)||(r.c.metadata&&r.c.metadata.renewalType)==='auto-renew';
+      const day=x=>window.regDotDate?regDotDate(x):x;
+      const opens=r.notice&&W&&!W.inWindow?_isoLocal(calAddDays(new Date(r.notice+'T00:00:00'),-(window.RENEWAL_WINDOW_DAYS||90))):'';
+      /* open only inside the notice window (the window's own reading); before it, no decision yet */
+      const open=dec.k==='is-open'&&!!(W&&W.inWindow);
+      if(dec.k==='is-open'&&!open) dec.k='is-none';
+      const decWord=open?i18t('cal_nl_hz_open'):dec.k==='is-done'?dec.text:i18t('cal_hz_dec_none');
+      const decSub=beyond||dec.k==='is-done'?'':[auto?i18t('cal_nl_hz_auto'):'', r.notice?i18t('cal_nl_hz_notice',{ d:day(r.notice) }):'', !auto&&opens?i18t('cal_nl_hz_opens',{ d:day(opens) }):''].filter(Boolean).join(' · ');
+      const meta=[r.c.counterparty?_esc(r.c.counterparty):'', (window.refHtml?refHtml(r.c):_esc(r.c.id)),
+        ((typeof canViewValues!=='function'||canViewValues())&&Number(r.c.value)>0)?_esc(window.fmtMoneyShortOf?fmtMoneyShortOf(r.c):fmtMoneyShort(r.c.value)):''].filter(Boolean).join(' · ');
+      const noteTxt=_esc(window.regDotDate?regDotDate(r.exp):r.exp)+' · '+(beyond?_esc(i18t('cal_hz_beyond')):_esc(i18t('cal_nl_hz_d',{ n:r.days })));
+      const decHtml=beyond?_esc(i18t('cal_hz_beyond')):('<b>'+_esc(decWord)+'</b>'+(decSub?'<small>'+_esc(decSub)+'</small>':''));
+      return '<div class="cal-hz-row is-nl'+(beyond?' is-far':'')+'" data-sel="'+_esc(r.c.id)+'" role="button" tabindex="0">'
+        +'<div class="cal-hz-lab"><span class="n">'+_esc(r.c.name)+'</span><span class="m">'+meta+'</span></div>'
+        +'<div class="cal-hz-track"><div class="cal-hz-rm">'+heads.join('')+'</div>'
+        +(beyond?'':'<span class="cal-hz-bar" style="width:'+(end*100).toFixed(2)+'%"></span>'+nip)
+        +'<span class="cal-hz-note'+(beyond?' is-far':'')+'" style="left:'+(beyond?0:(end*100).toFixed(2))+'%">'+noteTxt+'</span></div>'
+        +'<div class="cal-hz-dec '+dec.k+'">'+decHtml+'</div></div>';
+    }
     return `<div class="cal-hz-row" data-sel="${_esc(r.c.id)}" role="button" tabindex="0">
       <div class="cal-hz-lab">
         <span class="n">${_esc(r.c.name)}</span>
@@ -753,12 +777,18 @@ function calHorizonHtml(){
          it. The ruler was already sticky and the CARD was not the scroller —
          the whole page moved instead, so the header went with it. The table
          has its own scroller now and the card is the height it is given. */
-  return `<section class="cal-card cal-grid cal-hz-card">
+  /* the foot, as drawn: how many carry an end date, soonest first, and the live ones that carry none named */
+  let foot='';
+  if(nl){
+    const none=(state.contracts||[]).filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c._codeNamed&&!((window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry));
+    foot=`<div class="cal-hz-foot"><span>${_esc(i18t('cal_nl_hz_foot',{ n:rows.length }))}</span><span>${none.length===1?_esc(i18t('cal_nl_hz_noend',{ name:none[0].name||'' })):none.length?_esc(i18t('cal_nl_hz_noend_n',{ n:none.length })):''}</span></div>`;
+  }
+  return `<section class="cal-card cal-grid cal-hz-card${nl?' is-nl':''}">
     <div class="cal-ladder">${bands}</div>
     <div class="cal-hz scroll-thin">
-      <div class="cal-hz-ruler"><span class="cal-hz-col">${_esc(i18t('cal_hz_agreement'))}</span><div class="cal-hz-months">${heads.join('')}</div><span class="cal-hz-col cal-hz-col-dec">${_esc(i18t('cal_hz_decision'))}</span></div>
+      <div class="cal-hz-ruler"><span class="cal-hz-col">${_esc(i18t('cal_hz_agreement'))}</span>${nl?'<span class="g"></span>':`<div class="cal-hz-months">${heads.join('')}</div>`}<span class="cal-hz-col cal-hz-col-dec">${_esc(i18t('cal_hz_decision'))}</span></div>
       <div class="cal-hz-rows">${body}</div>
-    </div>
+    </div>${foot}
   </section>`;
 }
 
@@ -859,6 +889,75 @@ function calOnScreen(){
 }
 /* THE AGENDA'S ROWS: one reading of the contract dates the screen may draw (calUpcoming over ninety days), grouped by
    day; each row the chip's own words and act (calChipLook, calChipAct — one door with the grid's chips) */
+/* ---- THE AGENDA, AS DRAWN (the new look, round 5) ----
+   One row a day: when · what (its contract, party, owner, § and repeat under it) · ONE link. What is late leads, today
+   carries the approvals waiting on you (the Approvals page's own rows, apWorkRows), an empty week is one quiet line.
+   Every link is an existing door: Mark done (openObligationDone), Chase / Decide (calChipGo), Approve (the Approvals
+   page), Open (the contract on Home). Reads only. */
+if(typeof document!=='undefined'&&!document._calNlWired){ document._calNlWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+    const d=t.closest('[data-cal-done]');
+    if(d){ e.preventDefault(); const c=typeof getContract==='function'?getContract(d.getAttribute('data-cal-done')):null; const id=d.getAttribute('data-cal-ob');
+      const i=c?(c.obligations||[]).findIndex(o=>String(o.id)===String(id)):-1; if(i>=0&&typeof openObligationDone==='function') openObligationDone(c,i); return; }
+    if(t.closest('[data-cal-approvals]')){ e.preventDefault(); if(typeof caGo==='function') caGo({ kind:'go', place:'approvals' }); else setView('approvals'); return; }
+    if(t.closest('[data-cal-print]')){ e.preventDefault(); window.print(); return; }
+  });
+}
+function calAgendaNlHtml(evs){
+  const today=calToday(), T=new Date(today+'T00:00:00');
+  const f=(iso,o)=>new Date(iso+'T00:00:00').toLocaleDateString(langLocale(),o);
+  /* "Sun 1 Nov", "Fri 1 Jan 2027": the parts in the language's own words, joined without the locale's comma */
+  const dayW=iso=>[f(iso,{weekday:'short'}), f(iso,{day:'numeric',month:'short'}), iso.slice(0,4)!==today.slice(0,4)?iso.slice(0,4):''].filter(Boolean).join(' ');
+  const rows=[];
+  const row=(when,sub,title,under,act,cls)=>rows.push(`<div class="cal-nl-r${cls?' '+cls:''}"><div class="cal-nl-w">${when}${sub?`<small>${_esc(sub)}</small>`:''}</div><div class="cal-nl-t"><b>${_esc(title)}</b>${under?`<small>${_esc(under)}</small>`:''}</div><div class="cal-nl-a">${act||''}</div></div>`);
+  const underOf=e=>{
+    if(e.type!=='obligation') return [e.cname, e.cparty].filter(Boolean).join(' · ');
+    const who=e.theirs?i18t('cal_nl_theirs'):(e.assignee?String(e.owner||e.assignee):i18t('cal_nl_nobody'));
+    const rec=e.recur&&e.recur!=='none'?i18t('cal_nl_every_'+e.recur):'';
+    return [e.cname, e.cparty, who, e.clause?'§ '+e.clause:'', rec&&rec!=='cal_nl_every_'+e.recur?rec:''].filter(Boolean).join(' · ');
+  };
+  const may=(typeof canEdit!=='function')||canEdit();
+  const actOf=e=>{
+    const L=calChipLook(e), a=calChipAct(e,L);
+    if(a) return `<button type="button" class="cal-nl-go" data-cal-ct="${_esc(e.cid)}" data-cal-act="${a}" data-cal-ob="${_esc(e.obId||'')}">${_esc(i18t(a==='chase'?'cal_ag_chase':'cal_ag_decide'))}</button>`;
+    if(e.type==='obligation'&&!e.theirs&&!e.done&&!e.waiting&&e.obId&&may&&daysUntil(e.date)<=7) return `<button type="button" class="cal-nl-go" data-cal-done="${_esc(e.cid)}" data-cal-ob="${_esc(e.obId)}">${_esc(i18t('cal_nl_done'))}</button>`;
+    return `<button type="button" class="cal-nl-go" data-cal-ct="${_esc(e.cid)}">${_esc(i18t('cal_ag_open'))}</button>`;
+  };
+  const textOf=e=>{ const L=calChipLook(e); return L?L.text:calChipText(e); };
+  /* late: what is owed and past its day */
+  evs.filter(e=>e.type==='obligation'&&!e.done&&!e.waiting&&e.date<today).sort((a,b)=>a.date.localeCompare(b.date))
+    .forEach(e=>row(`<span class="cal-nl-late">${_esc(i18t('cal_nl_late'))}</span>`, i18t('cal_nl_since',{ d:dayW(e.date) }), String(e.note||''), underOf(e), actOf(e), 'is-late'));
+  /* today: the approvals waiting on you */
+  let ap=[]; try{ ap=(typeof apWorkRows==='function'?(apWorkRows().yours||[]):[]).filter(r=>r.type==='approval'&&!r.done&&r.mine); }catch(_){ ap=[]; }
+  const upAll=calUpcoming(evs, CAL_AGENDA_VIEW_DAYS);
+  const byDay=new Map(); upAll.forEach(e=>{ if(!byDay.has(e.date)) byDay.set(e.date,[]); byDay.get(e.date).push(e); });
+  const dayRow=(d,list,pre)=>{ const first=list[0];
+    row(_esc((pre?pre+', ':'')+dayW(d)), d!==today&&daysUntil(d)>CAL_AGENDA_NL_SOON?'':(d===today?'':i18tn('cal_nl_in_days',daysUntil(d),{ n:daysUntil(d) })),
+      list.map(textOf).join(' · '), underOf(first), actOf(first)); };
+  if(ap.length){
+    const r0=ap[0], who=String(r0.who||'').trim();
+    row(_esc(i18t('cal_nl_today',{ d:dayW(today) })),'', i18t(ap.length>1?'cal_nl_approve_more':'cal_nl_approve',{ a:ap[0].c.name||'', b:(ap[1]&&ap[1].c.name)||'', n:ap.length-1 }),
+      [who?i18t('cal_nl_asked_by',{ who }):'', r0.rule?i18t('cal_nl_rule',{ rule:r0.rule }):''].filter(Boolean).join(' · '),
+      `<button type="button" class="cal-nl-go" data-cal-approvals>${_esc(i18t('ap_pg_approve'))}</button>`);
+    if(byDay.has(today)){ dayRow(today, byDay.get(today)); byDay.delete(today); }
+  } else if(byDay.has(today)){ dayRow(today, byDay.get(today), i18t('cal_nl_today_w')); byDay.delete(today); }
+  else row(_esc(i18t('cal_nl_today',{ d:dayW(today) })),'', i18t('cal_nl_nothing'),'','','is-none');
+  /* the days ahead; a week with nothing in it is one quiet line */
+  const end=calAddDays(T,CAL_AGENDA_VIEW_DAYS);
+  let wk=calAddDays(T,7-((T.getDay()+6)%7)), cur=T;
+  const days=[...byDay.keys()].sort();
+  days.filter(d=>d<_isoLocal(wk)).forEach(d=>dayRow(d,byDay.get(d)));
+  while(wk<=end){
+    const a=_isoLocal(wk), z=_isoLocal(calAddDays(wk,6));
+    const inWk=days.filter(d=>d>=a&&d<=z);
+    if(inWk.length) inWk.forEach(d=>dayRow(d,byDay.get(d)));
+    else row(_esc(i18t('cal_nl_week_of',{ d:f(a,{day:'numeric',month:'short'}) })),'', i18t('cal_nl_none'),'','','is-none');
+    wk=calAddDays(wk,7); void cur;
+  }
+  return `<div class="cal-nl">${rows.join('')}</div>`;
+}
+const CAL_AGENDA_NL_SOON = 7;
 function calAgendaViewHtml(evs){
   const today=calToday(), tmr=_isoLocal(calAddDays(new Date(today+'T00:00:00'),1));
   const up=calUpcoming(evs, CAL_AGENDA_VIEW_DAYS);
@@ -914,6 +1013,7 @@ function renderCalendar(){
   const scopeSeg=(k,label)=>`<span class="${calScope()===k?'on':''}" data-cal-scope="${k}" role="button" tabindex="0">${_esc(label)}</span>`;
 
   let main='', legendEvs=[];
+  const nl=typeof window.newLookOn==='function'&&newLookOn();
   if(view==='month'){
     /* ---- THE GRID IS THE WIDTH OF THE PAGE, AND THE KEY READS UNDER IT
        (Young ruled 21 Sep 2026: the calendar must look exactly like the
@@ -926,7 +1026,7 @@ function renderCalendar(){
     main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section></div>`;
     legendEvs=evs.filter(e=>calInPeriod(e,p));
   } else if(view==='agenda'){
-    main=`<div class="cal-month"><section class="cal-card cal-ag-card" id="cal-ag">${calAgendaViewHtml(grid)}</section></div>`;
+    main=`<div class="cal-month"><section class="cal-card cal-ag-card" id="cal-ag">${nl?calAgendaNlHtml(grid):calAgendaViewHtml(grid)}</section></div>`;
     legendEvs=grid.filter(e=>calInPeriod(e,p));
   } else if(view==='week'){
     main=`<div class="cal-month cal-weekwrap"><section class="cal-card cal-wk-card">${calWeekHtml(grid)}</section></div>`;
@@ -972,7 +1072,18 @@ function renderCalendar(){
   host.innerHTML=`
   <div class="view-enter cal-page${onHome?' is-home':''}">
     <style>${calStyleCss()}</style>
-    <div class="cal-head">
+    ${nl?`<div class="cal-head is-nl">
+      <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
+      <nav class="cal-nl-tabs" aria-label="${_esc(i18t('cal_v_group'))}">${['agenda','month','week','horizon'].map(k=>`<a class="${view===k?'on':''}" data-cal-view="${k}" role="button" tabindex="0">${_esc(i18t('cal_v_'+k))}</a>`).join('')}</nav>
+      <span class="g"></span>
+      <span class="cal-head-r">
+        <span class="cal-seg cal-seg-scope">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
+        <button class="ui-btn cal-new-btn" id="cal-new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${_esc(i18t('cal_new_event_drawn'))}</button>
+        <button type="button" class="ui-btn cal-print" data-cal-print>${_esc(i18t('cal_nl_print'))}</button>
+        ${moreHtml}
+      </span>
+    </div>`:''}
+    <div class="cal-head"${nl?' hidden':''}>
       <span class="cal-head-l"><span class="ttl">${_esc(i18t('nav_calendar'))}</span><span class="cal-head-sub" id="cal-head-sub">${_esc(calHeadFacts())}</span></span>
       <span class="g"></span>
       <span class="cal-head-r">
@@ -985,14 +1096,14 @@ function renderCalendar(){
     <div class="cal-body">
       <section class="cal-stage${view==='horizon'?' is-hz':''}${onHome?' is-home':''}" id="cal-stage">
         <div class="cal-main">
-          <div class="cal-bar1">
+          <div class="cal-bar1"${nl&&view==='agenda'?' hidden':''}>
             <span class="cal-nav">
               <button type="button" class="ui-btn ui-btn-sm cal-nb" id="cal-prev"${navOff} title="${_esc(i18t(view==='week'?'cal_prev_week':'cal_prev_month'))}" aria-label="${_esc(i18t(view==='week'?'cal_prev_week':'cal_prev_month'))}">${icon('chevL','w-3.5 h-3.5')}</button>
               <button type="button" class="ui-btn ui-btn-sm" id="cal-today"${navOff}>${_esc(i18t('cal_today'))}</button>
               <button type="button" class="ui-btn ui-btn-sm cal-nb" id="cal-next"${navOff} title="${_esc(i18t(view==='week'?'cal_next_week':'cal_next_month'))}" aria-label="${_esc(i18t(view==='week'?'cal_next_week':'cal_next_month'))}">${icon('chevR','w-3.5 h-3.5')}</button>
             </span>
             <span class="cal-title" id="cal-title">${_esc(cardTitle)}</span>
-            ${view==='horizon'?'':calKeyHtml(legendEvs)}
+            ${view==='horizon'?(nl?`<span class="cal-hz-key">${_esc(i18t('cal_nl_hz_key'))}</span>`:''):calKeyHtml(legendEvs)}
           </div>
           <div class="cal-view${view==='horizon'?' is-wide':''}">${main}</div>
         </div>
@@ -2233,8 +2344,9 @@ function calPlanHtml(){
              planner's two asks (their cost said) and the Calendar's own setting under them — nothing boxed */}
       <div class="jl-words is-ov cal-yw" data-jt-land${talk?' hidden':''}>${typeof window.jamboOverviewHtml==='function'?jamboOverviewHtml({
         head:week?{ html:week }:null,
-        facts:((typeof window.obYourWeekFacts==='function')?obYourWeekFacts():[]).concat(offer?[{ html:_esc(offer) }]:[]),
-        src:week?i18t('ob_yw_src'):'',
+        /* as drawn (the new look, round 5): the sentence, where it was counted from, then Ask me — the list itself carries the late and the due */
+        facts:(typeof window.newLookOn==='function'&&newLookOn())?[]:((typeof window.obYourWeekFacts==='function')?obYourWeekFacts():[]).concat(offer?[{ html:_esc(offer) }]:[]),
+        src:week?i18t((typeof window.newLookOn==='function'&&newLookOn())?'cal_nl_src':'ob_yw_src'):'',
         asks:[{ label:i18t('ob_yw_chip_week'), title:i18t('cal_plan_p_week'), attr:`data-cal-plan-q="week"${off}` }, { label:i18t('ob_yw_chip_due'), title:i18t('cal_plan_p_due'), attr:`data-cal-plan-q="due"${off}` }],
         after:calLevelSegHtml() },'cal'):''}</div>
       ${''/* ONE CONVERSATION EVERYWHERE (owner, 21 Oct 2026; found missing here 27 Oct 2026): the Jambo tab draws what

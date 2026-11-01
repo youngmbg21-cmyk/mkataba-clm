@@ -34,30 +34,68 @@ function r5Contracts(){
       { id: 'ob3', desc: 'Deliver the first batch', due: day(-18), recurring: 'none', assignee: '', status: 'done', party: 'ours', clause: '4', quote: 'Deliveries are made weekly' }],
     triage: { steps: { oblig: { ok: true, cut: '', found: [
       { desc: 'Return the pallets within 14 days of each delivery', due: day(13), recurring: 'none', clause: '4', quote: 'pallets shall be returned to the Supplier within fourteen (14) days of each delivery' },
-      { desc: 'Keep the goods-in-transit insurance current', due: day(61), recurring: 'yearly', clause: '9', party: 'theirs', quote: 'shall keep goods-in-transit insurance current' }] } } } });
-  a1.metadata = Object.assign({}, a1.metadata, { expiryDate: day(243), autoRenew: true });
+      { desc: 'Keep the goods-in-transit insurance current', due: day(61), recurring: 'yearly', clause: '9', party: 'theirs', quote: 'shall keep goods-in-transit insurance current' },
+      { desc: 'Send the monthly supply report', due: day(30), recurring: 'monthly', clause: '6', quote: 'a monthly supply report by the first day of each month' }] } } } });
+  a1.metadata = Object.assign({}, a1.metadata, { expiryDate: day(243), autoRenew: true, renewalType: 'auto-renew', noticePeriodDays: 90 });
   const a2 = fixtureContract('MK-A2', 'Raw Milk Collection', 'Nandi Dairy', 'proc', 36000000, 'Under Review', MILK);
-  Object.assign(a2, { format: 'rich', counterpartyEmail: 'joseph@nandidairy.example', signatures: [{ party: 'counterparty', name: 'Joseph Rotich', at: iso(-0.1) }] });
+  a2.metadata = Object.assign({}, a2.metadata, { expiryDate: day(243), renewalType: 'auto-renew', noticePeriodDays: 90 });
+  /* as drawn: our standards checked, one difference accepted with a note */
+  a2.playbook = { at: iso(-1), standards: 4, checked: 4, verdicts: [{ id: 's1', category: 'Payment', status: 'aligned' }, { id: 's2', category: 'Price', status: 'aligned' }, { id: 's3', category: 'Supply', status: 'aligned' },
+    { id: 's4', category: 'Quality & rejection', status: 'deviation', position: 'Seven days to reject a consignment', quote: 'may be rejected within 3 days of delivery',
+      accepted: { by: 'Amina Otieno', at: iso(-1), why: 'Three days is the dairy\'s practice; accepted with a note.' } }] };
+  a2.fields = Object.assign({}, a2.fields, { effDate: day(-2), material: 'raw milk' });
+  /* Nandi's signature is added in the page (R5_IN_PAGE), after its negotiation stands: the server freezes the wording at the first signature */
+  Object.assign(a2, { format: 'rich', expiry: day(243), counterpartyEmail: 'joseph@nandidairy.example' });
   const b2 = fixtureContract('MK-B2', 'Retail Supply — Coast', 'Naivas Supermarkets', 'proc', 78000000, 'Under Review', COAST);
-  Object.assign(b2, { format: 'rich', expiry: day(880) });
+  /* as drawn: Wanjiru raised it and asked a day ago */
+  Object.assign(b2, { format: 'rich', expiry: day(880), lastAction: iso(-1), owner: { id: 'u-wanjiru', name: 'Wanjiru Kamau' } });
   const b1 = fixtureContract('MK-B1', 'Modern Trade Listing', 'Naivas Supermarkets', 'proc', 85000000, 'Signed');
   Object.assign(b1, { signedAt: iso(-50), expiry: day(425), signatures: [{ party: 'first', name: 'Amina Otieno', at: iso(-50) }, { party: 'counterparty', name: 'Naivas', at: iso(-50) }] });
   const cl = fixtureContract('MK-CL', 'Transport Services', 'Rift Haulage', 'proc', 700000, 'Signed');
   Object.assign(cl, { signedAt: iso(-120), expiry: day(243), signatures: [{ party: 'first', name: 'Amina Otieno', at: iso(-120) }, { party: 'counterparty', name: 'Rift', at: iso(-120) }],
     obligations: [{ id: 'oc1', desc: 'Insurance certificate current', due: day(61), recurring: 'yearly', assignee: '', status: 'open', party: 'theirs', clause: '9', quote: 'the Carrier shall keep goods-in-transit insurance current and provide the certificate annually' }] });
-  cl.metadata = Object.assign({}, cl.metadata, { expiryDate: day(243), autoRenew: true });
+  cl.metadata = Object.assign({}, cl.metadata, { expiryDate: day(243), noticePeriodDays: 90 });
   return [a1, a2, b2, b1, cl];
 }
 const R5_RULES = [{ id: 'r1', order: 1, name: 'Over KES 20M', cond: { type: 'value', op: '>=', value: 20000000 }, approver: { kind: 'role', role: 'admin' } }];
-async function seedRound5(h){ return seedWorkspace(h, { contracts: r5Contracts(), approvalRules: R5_RULES }); }
+async function seedRound5(h){
+  const out = await seedWorkspace(h, { contracts: r5Contracts(), approvalRules: R5_RULES });
+  /* the briefs Jambo wrote on arrival (their own table, as the server keeps them) */
+  const path = require('path'); const { DatabaseSync } = require('node:sqlite');
+  const db = new DatabaseSync(path.join(h.dataDir, 'hati.db')); db.exec('PRAGMA busy_timeout = 5000');
+  const put = (id, overview) => db.prepare('INSERT OR REPLACE INTO briefs (contract_id, json, created_at) VALUES (?,?,?)').run(id, JSON.stringify({ v: 1, at: iso(-1), data: { overview, watchouts: [], unusual: [] } }), iso(-1));
+  put('MK-A2', 'Nandi Dairy supplies raw milk to Highland\'s plant for a year at an estimated KES 36M, priced per tonne and reviewed quarterly.');
+  put('MK-A1', 'Kabras Sugar supplies refined sugar weekly to Highland\'s Nairobi plant until 30 June 2027, renewing yearly unless notice is given.');
+  db.close();
+  return out;
+}
 /* in the page, as the admin: the milk contract's signing route (us and them), their signature, and its approval given — your turn to sign */
 const R5_IN_PAGE = async () => {
   const me = currentUser();
   const c = getContract('MK-A2'); if (window.ensureFull) await ensureFull(c);
-  c.signerPlan = [{ id: 's1', party: 'internal', name: me.name, memberId: me.id, order: 1 }, { id: 's2', party: 'counterparty', name: 'Joseph Rotich', email: 'joseph@nandidairy.example', order: 2 }];
+  const save = async () => { try { if (typeof persist === 'function') await persist(c); } catch (_) {} };
+  /* its negotiation stands first, as on a contract that came through Negotiate (opening Before you sign starts one on
+     a contract never negotiated, which would move the wording's stamp after the yes — BUGLOG, 1 Nov 2026) */
+  try { if (typeof negoInit === 'function') negoInit(c); } catch (_) {}
+  await save();
+  /* as drawn: Nandi signs first (by their link), then it is your turn */
+  const sigAt = new Date(Date.now() - 2.5 * 36e5).toISOString();
+  c.signerPlan = [{ id: 's1', party: 'counterparty', name: 'Joseph Rotich', email: 'joseph@nandidairy.example', order: 1 },
+    { id: 's2', party: 'internal', name: me.name, memberId: me.id, order: 2 }];
   if (typeof saveSignerPlan === 'function') { try { await saveSignerPlan(c, c.signerPlan); } catch (_) {} }
+  /* the duties read against this wording (the promises check), and the brief Jambo wrote, read by you */
+  try { c.obligationsReadHash = playbookHashOf(obligationsText(c)); c.obligationsReadAt = new Date().toISOString(); } catch (_) {}
+  try { if (typeof briefMarkRead === 'function') briefMarkRead(c); } catch (_) {}
+  await save();
   /* the rule's yes, given through the one decision writer */
   if (typeof approveContract === 'function') { try { await approveContract(getContract('MK-A2') || c); } catch (_) {} }
+  /* then Nandi signs, by their link */
+  const cc = getContract('MK-A2') || c;
+  cc.signatures = [{ party: 'counterparty', name: 'Joseph Rotich', at: sigAt }];
+  cc.signerPlan = (cc.signerPlan || []).map(r => r.id === 's1' ? Object.assign({}, r, { signed: true, at: sigAt }) : r);
+  /* the promises check, read on the wording as it now stands on file */
+  try { cc.obligationsReadHash = playbookHashOf(obligationsText(cc)); cc.obligationsReadAt = new Date().toISOString(); } catch (_) {}
+  try { if (typeof persist === 'function') await persist(cc); } catch (_) {}
   return true;
 };
 module.exports = { r5Contracts, R5_RULES, seedRound5, R5_IN_PAGE, iso, day };

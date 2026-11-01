@@ -1099,7 +1099,10 @@ function apnDoneRows(W){
 function apnTabRows(W){
   if(_apnTab==='done') return apnDoneRows(W.all);
   /* a row under Mine waits on the reader, a signature too (apWorkRows puts every signature of theirs there) */
-  return _apnTab==='others'?W.all.others.filter(r=>!r.done):W.all.yours.filter(r=>!r.done).map(r=>Object.assign({},r,{ _mine:true }));
+  if(_apnTab==='others') return W.all.others.filter(r=>!r.done);
+  /* as drawn: the last contract sealed closes the Signing group, grey, its Receipt one press away (not counted) */
+  const last=apnDoneRows(W.all).filter(r=>r.type==='receipt').sort((a,b)=>String(b.c.signedAt||'').localeCompare(String(a.c.signedAt||''))).slice(0,1);
+  return W.all.yours.filter(r=>!r.done).map(r=>Object.assign({},r,{ _mine:true })).concat(last);
 }
 function apnQuote(c){
   const fig=Number(c&&c.value)||0; if(!fig||typeof pd2QuoteOf!=='function') return null;
