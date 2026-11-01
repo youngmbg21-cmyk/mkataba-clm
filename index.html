@@ -19218,6 +19218,56 @@
   html.lg-new .hb-board > .dna-page{margin:0 -16px -24px;min-height:100%;border:0;border-radius:0;box-shadow:none}
   /* the Board's Needs you as drawn: its tabs and the find box, no row of kind chips */
   html.lg-new .hb-board #hm-agents .nd-chips{display:none}
+  /* NEW AGREEMENT, AS DRAWN (the new look): the tabs as words, underlined; the closest papers three cards in a row,
+     the chosen one dark-edged and ticked; the cards stay while a paper is chosen; the rows read as text until pressed */
+  html.lg-new #na-root.na-one .na-ptabs{background:transparent;padding:0;gap:22px;border-radius:0}
+  html.lg-new #na-root.na-one .na-ptab{height:30px;padding:0 0 4px;border-radius:0;font-size:14.5px;color:var(--color-text);box-shadow:none;background:transparent;border-bottom:2px solid transparent}
+  html.lg-new #na-root.na-one .na-ptab[aria-selected="true"]{background:transparent;box-shadow:none;border-bottom-color:var(--accent-ink)}
+  html.lg-new #na-root.na-one .na-askbox{border-color:var(--accent-ink);border-radius:999px;padding:8px 8px 8px 18px;align-items:center}
+  html.lg-new #na-root.na-one.is-picked #wz-pick{display:flex}
+  html.lg-new #na-root.na-one .na-closest{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close{border:1px solid var(--color-divider);border-radius:var(--radius);padding:14px 16px;background:var(--color-surface);align-items:flex-start;min-height:118px}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close:last-child{border-bottom:1px solid var(--color-divider)}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close.on{border:2px solid var(--color-text);background:var(--color-surface);padding:13px 15px}
+  html.lg-new #na-root.na-one .na-closest .na-radio{display:none}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close.on .na-pick-n::before{content:"\2713";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;border-radius:50%;background:var(--color-text);color:var(--color-surface);font-size:11px}
+  html.lg-new #na-root.na-one .na-lr-t .na-pick-m{white-space:normal}
+  html.lg-new #na-root.na-one .na-lr-used{display:none}
+  html.lg-new #na-root.na-one .na-kt-grid input:not([type="checkbox"]):not([type="radio"]),html.lg-new #na-root.na-one .na-kt-grid select{border-color:transparent;background:transparent;box-shadow:none;padding-left:0}
+  @media (hover:hover){ html.lg-new #na-root.na-one .na-kt-grid input:not([type="checkbox"]):not([type="radio"]):hover{border-color:var(--color-divider)} }
+  html.lg-new #na-root.na-one .na-kt-grid input:focus{border-color:var(--accent-ink);background:var(--color-surface);padding-left:8px}
+  html.lg-new #na-root.na-one .na-src{font-family:var(--font-doc);font-style:italic}
+  /* FROM SCRATCH: what goes in on the left, the paper assembling on the right */
+  html.lg-new #na-root.na-one:not([data-paper="scratch"]) #na-scratch{display:none}
+  html.lg-new #na-root.na-one[data-paper="scratch"] :is(#wz-pick,#na-card,#dr-read,#na-read,#na-theirs){display:none}
+  html.lg-new #na-root.na-one .na-scratch{display:grid;grid-template-columns:300px minmax(0,1fr);gap:0;padding:0;min-height:420px}
+  html.lg-new .nsc-left{padding:12px 20px 12px 0;border-right:1px solid var(--color-divider);overflow:auto}
+  html.lg-new .nsc-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0 0 4px}
+  html.lg-new .nsc-sum{font-size:12px;font-weight:var(--w-label);margin:0 0 10px}
+  html.lg-new .nsc-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--color-divider);cursor:pointer}
+  html.lg-new .nsc-row input{margin-top:3px;accent-color:var(--color-text)}
+  html.lg-new .nsc-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .nsc-t b{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .nsc-t span{font-size:12px;font-weight:var(--w-label)}
+  html.lg-new .nsc-pill{flex:none;font-size:11.5px;font-weight:var(--w-label);padding:3px 9px;border-radius:999px;background:var(--surface-2);white-space:nowrap}
+  html.lg-new .nsc-pill.is-std{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .nsc-pill.is-ai{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .nsc-more{margin-top:12px;font-size:12.5px}
+  html.lg-new .nsc-right{background:var(--desk-ground, var(--surface-2));padding:24px;overflow:auto}
+  html.lg-new .nsc-sheet{max-width:620px;margin:0 auto;background:var(--color-surface);box-shadow:var(--shadow-paper);padding:40px 48px;font-family:var(--font-doc)}
+  html.lg-new .nsc-kick{text-align:center;font-family:var(--font-ui, inherit);font-size:11px;letter-spacing:.14em}
+  html.lg-new .nsc-title{text-align:center;font-size:20px;font-weight:600;margin:14px 0 6px}
+  html.lg-new .nsc-between{text-align:center;font-size:15px;margin-bottom:24px}
+  html.lg-new .nsc-empty{border:1px dashed var(--rule-strong);border-radius:var(--radius);padding:16px 24px;text-align:center;font-family:var(--font-ui, inherit);font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .nsc-sec{margin:0 0 16px;font-size:14px;line-height:1.55}
+  html.lg-new .nsc-sec p{margin:4px 0 0}
+  html.lg-new .nsc-from{font-family:var(--font-ui, inherit);font-size:11px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .nsc-owed{color:var(--st-amber-fg)}
+  html.lg-new .nsc-p-draft{display:flex;align-items:center;gap:10px}
+  html.lg-new .nsc-go{border-radius:999px}
+  html.lg-new .nsc-p-draft span,html.lg-new .nsc-p-more span,html.lg-new .nao-src{font-size:12px;font-weight:var(--w-label)}
+  html.lg-new .nsc-p-head{background:var(--jb-card-fill, var(--surface-2));border-radius:var(--radius);padding:14px 16px}
+  html.lg-new .nao-after{margin:0;font-size:13.5px;font-weight:var(--w-label)}
   /* READS, AS DRAWN */
   html.lg-new :is(.rdn-page) .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .rdn-a{display:inline-flex;align-items:center;gap:6px;margin-right:12px;white-space:nowrap;font-weight:var(--w-label)}

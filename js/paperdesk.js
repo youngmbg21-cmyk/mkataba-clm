@@ -3647,6 +3647,24 @@ function pdWallHelloHtml(){
   /* .pd-hello is the wall's own (it stands down while the sheet is up); the sheet's is .pd-sheet-hello */
   const ov = (o, cls) => (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov ${cls || 'pd-hello'}">${jamboOverviewHtml(o, 'pd')}</div>` : '';
   /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for and what he can do there */
+  /* the new look (round 6, as drawn): beside From scratch his reading of the words and the one press that spends;
+     beside Our paper the papers that fit, what he filled, and what happens after Create */
+  if (typeof naSheetUp === 'function' && naSheetUp() && pd2On()){
+    const S = (typeof naScratchNow === 'function') ? naScratchNow() : null, E = _pdE;
+    const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+    if (S){ const d = S.says();
+      const head = _pdT('nsc_p_head', { s: d.std, w: d.said, a: d.aiAll });
+      const rows = (d.who ? row(_pdT('cun_c_party'), d.who, _pdT('nsc_src_said')) : '') + d.facts.map(f => row(_pdT('na_rd_k_' + f.k), f.say, _pdT('nsc_src_said'))).join('')
+        + row(_pdT('reg_chip_stream'), d.stream || _pdT('nsc_p_stream_choose'), d.stream ? _pdT('nsc_src_chosen') : '');
+      const act = d.drafted ? `<p class="nsc-p-done">${E(_pdT('nsc_p_drafted'))}</p>`
+        : `<div class="nsc-p-draft"><button type="button" class="ui-btn ui-btn-primary nsc-go" data-nsc-draft${d.busy ? ' disabled' : ''}>${E(_pdT('nsc_draft'))}</button><span>${E(_pdTn('nsc_p_calls', d.ai, { n: d.ai }))}</span></div>`
+          + (d.proposed ? '' : `<p class="nsc-p-more"><button type="button" class="ui-link" data-nsc-propose-p${d.busy ? ' disabled' : ''}>${E(_pdT('nsc_propose'))}</button> <span>${E(_pdT('nsc_one_call'))}</span></p>`);
+      return `<div class="pd2-chosen cun-panel nsc-panel"><p class="pd2-ch-head nsc-p-head">${E(head)}</p><div class="pd2-ch-cap">${E(_pdT('nsc_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div><div class="pd2-ch-cap">${E(_pdT('nsc_p_draft_h'))}</div>${act}</div>`; }
+    const O = (typeof naOursNow === 'function') ? naOursNow() : null;
+    if (O){ const cl = O.closest(), ch = O.chosen(), n = O.read();
+      const head = O.asked() ? [_pdTn('nao_p_fit', cl.length, { n: cl.length, best: ch || cl[0] || '' }), n ? _pdTn('nao_p_filled', n, { n }) : ''].filter(Boolean).join(' ') : _pdT('nao_p_say');
+      return `<div class="pd2-chosen cun-panel nsc-panel"><p class="pd2-ch-head nsc-p-head">${E(head)}</p><p class="nao-src">${E(_pdT('nao_p_src'))}</p><div class="pd2-ch-cap">${E(_pdT('nao_p_after_h'))}</div><p class="nao-after">${E(_pdT('nao_p_after'))}</p></div>`; }
+  }
   if (typeof naSheetUp === 'function' && naSheetUp())
     return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
       facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');

@@ -9006,6 +9006,53 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
+/* ---------- FROM SCRATCH: ONE SECTION OF A NEW PAPER (the new look, round 6; the owner's pick, 1 Nov 2026) ----------
+   New agreement's From scratch tab builds a paper nobody has yet: the parties and the term come from the person's
+   own sentence and the company's own clause library ("your standard"), both free; a section neither covers is
+   written here, ONE CALL PER SECTION, each press said before it is made. Contract wording, third person, the
+   company's market; a fact the sentence does not give is left as a bracketed blank for a person to fill, never
+   invented. The company's standards that touch the section ride in as positions it must keep. Nothing is filed:
+   the browser assembles the paper and a person presses Create (the one creator, the upload's own). Editors only. */
+const SECTION_SENTENCE_MAX = 2000, SECTION_TEXT_MAX = 2400;
+app.post('/api/ai/section', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const b = req.body || {};
+  const said = String(b.sentence || '').trim().slice(0, SECTION_SENTENCE_MAX);
+  const heading = clean(b.heading).slice(0, 120);
+  if (!said || !heading) return res.status(400).json({ error: 'A sentence and a heading are required' });
+  const intent = clean(b.intent).slice(0, 300);
+  const keep = (Array.isArray(b.standards) ? b.standards : []).slice(0, 12)
+    .map(x => x && typeof x === 'object' ? `${clean(x.category).slice(0, 80)}: ${clean(x.rule).slice(0, 240)}` : '').filter(Boolean);
+  const J = orgJx();
+  const tool = {
+    name: 'write_section',
+    description: 'Write the wording of one section of a new contract.',
+    input_schema: { type: 'object', properties: {
+      text: { type: 'string', description: 'The section wording only: one to four short paragraphs, contract language, third person, no heading, no number.' },
+      note: { type: 'string', description: 'One plain sentence for the reader: a fact you left as a [bracketed] blank, or what you were unsure of. Empty if nothing.' } },
+      required: ['text'] },
+  };
+  const prompt = `A drafter is writing a new contract, governed by ${J.adjective} law. They described it as: "${said}"\n\n`
+    + `Write the wording of ONE section: "${heading}".` + (intent ? ` It has to settle: ${intent}` : '') + `\n\n`
+    + `Rules:\n`
+    + `- Contract wording only, in the third person ("the Supplier shall …"). No heading, no number, no commentary.\n`
+    + `- Use only facts the description gives. Any other fact (a name, a figure, a date) is left as a [bracketed] blank for a person to fill. Never invent one.\n`
+    + `- Keep it short: one to four paragraphs a lawyer would accept as a first draft.\n`
+    + (keep.length ? `- The company's own standards apply; the wording must keep within them: ${keep.join('; ')}.\n` : '')
+    + `\nReturn via the write_section tool.`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'write_section' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const out = (block && block.input) || {};
+    const text = String(out.text || '').trim().slice(0, SECTION_TEXT_MAX);
+    /* a cut-short answer is not empty, and is said; an empty one is refused, never filed as a section */
+    if (!text) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before writing this section. Try again.' : 'Jambo wrote nothing for this section' });
+    res.json({ text, note: typeof out.note === 'string' ? out.note.slice(0, 300) : '', ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
 /* ---------- Copilot obligation extraction (E3) ----------
    Propose obligations (payment milestones, notice deadlines, deliverables,
    reporting duties) from a contract's text, each with a clause quote. The

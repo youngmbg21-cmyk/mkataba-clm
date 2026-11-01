@@ -953,6 +953,61 @@ function openNewAgreement(o){
      the sentence, hidden, so that press reads it as Find always has. */
   /* WHAT THE PRESSES COST, said in Jambo calls (owner, 18 Oct 2026: costs stay
      in calls, never money, no price per call) */
+  /* ---- FROM SCRATCH (the new look, round 6; the owner's pick: the new-paper grant only, admins included) ----
+     A paper nobody has yet, built in front of the reader: the parties and the term from the words (free), the
+     company's own clause library as "your standard" (free, its preferred wording), and what neither covers —
+     proposed by Jambo (one call, the outline) and each section written by him on Draft the paper (one call each,
+     said first). Every line can be unticked. Nothing is created until Create, which hands the assembled paper to the
+     one creator a dropped file goes through (pdDropTake), filed in the stream chosen. */
+  const naScratchOk=one&&typeof newLookOn==='function'&&newLookOn()&&(typeof mayMakeNewPaper!=='function'||mayMakeNewPaper());
+  const scr={ secs:null, busy:'', drafted:false, err:'', proposed:false };
+  const naScratchSecs=()=>{ if(scr.secs) return scr.secs;
+    const w=o.words||{}, who=String(w.who||'').trim(), ours=(typeof window.FIRST_PARTY==='string'&&window.FIRST_PARTY)||'';
+    const L=[{ k:'parties', h:i18t('nsc_h_parties'), src:'said', text:who?i18t('nsc_parties',{ a:ours, b:who }):'', sub:who?i18t('nsc_sub_parties',{ a:ours.split(/\s+/)[0], b:who }):i18t('nsc_sub_who'), on:true }];
+    const lib=(typeof clauseLibrary==='function')?(clauseLibrary()||[]):[];
+    lib.filter(c=>c&&c.category&&String(c.preferred||'').trim()).forEach(c=>L.push({ k:'lib:'+c.id, h:String(c.category), src:'std', text:String(c.preferred), sub:String(c.name||'').toLowerCase()+' \u00b7 '+i18t('nsc_your_std'), on:true }));
+    const term=facts.find(f=>f.k==='term'&&f.months);
+    if(term) L.push({ k:'term', h:i18t('nsc_h_term'), src:'said', text:i18t('nsc_term',{ n:term.months }), sub:String(term.say||'')+' \u00b7 '+i18t('nsc_from_said'), on:true });
+    scr.secs=L; return L; };
+  const naScratchTitle=()=>{ const w=String((o.words&&o.words.what)||'').replace(/^(?:an?|the|en|ett)\s+/i,'').trim(); return w?naCap(w):i18t('nsc_untitled'); };
+  const naScratchAi=()=>naScratchSecs().filter(x=>x.on&&x.src==='ai'&&!x.text);
+  const naScratchListHtml=()=>{ const L=naScratchSecs(), std=L.filter(x=>x.src==='std').length, ai=L.filter(x=>x.src==='ai').length, said=L.filter(x=>x.src==='said').length;
+    const pill=x=>x.src==='ai'?(x.text?`<span class="nsc-pill is-ai">${esc(i18t('nsc_pill_ai_done'))}</span>`:`<span class="nsc-pill is-ai">${esc(i18t('nsc_pill_ai'))}</span>`)
+      :x.src==='std'?`<span class="nsc-pill is-std">${esc(i18t('nsc_pill_std'))}</span>`:`<span class="nsc-pill">${esc(i18t('nsc_pill_said'))}</span>`;
+    return `<div class="nsc-cap">${esc(i18t('nsc_goes_in'))}</div><div class="nsc-sum">${esc(i18tn('nsc_sum',L.length,{ n:L.length, s:std, a:ai, w:said }))}</div>
+      ${L.map((x,i)=>`<label class="nsc-row"><input type="checkbox" data-nsc-on="${i}"${x.on?' checked':''}><span class="nsc-t"><b>${esc(x.h)}</b><span>${esc(x.err||x.sub||x.intent||'')}</span></span>${pill(x)}</label>`).join('')}
+      ${scr.proposed?'':`<div class="nsc-more"><button type="button" class="ui-link" data-nsc-propose${scr.busy?' disabled':''}>${esc(i18t('nsc_propose'))}</button> <span>${esc(i18t('nsc_one_call'))}</span></div>`}`; };
+  const naScratchPaperHtml=()=>{ const who=String((o.words&&o.words.who)||'').trim(), ours=(typeof window.FIRST_PARTY==='string'&&window.FIRST_PARTY)||'';
+    const kicker=[typeof jxName==='function'?jxName():'', naScratchTitle()].filter(Boolean).join(' \u00b7 ').toUpperCase();
+    const head=`<div class="nsc-kick">${esc(kicker)}</div><h3 class="nsc-title">${esc(naScratchTitle())}</h3><div class="nsc-between">${esc(who?i18t('nsc_between',{ a:ours, b:who }):ours)}</div>`;
+    if(!scr.drafted) return `<div class="nsc-sheet">${head}<div class="nsc-empty">${scr.busy?(typeof busyHtml==='function'?busyHtml(scr.busy):esc(scr.busy)):esc(i18t('nsc_empty'))}</div></div>`;
+    const L=naScratchSecs().filter(x=>x.on);
+    return `<div class="nsc-sheet">${head}${L.map((x,i)=>`<div class="nsc-sec"><b>${i+1}. ${esc(x.h)}</b> <span class="nsc-from">${esc(x.src==='ai'?i18t('nsc_from_ai'):x.src==='std'?i18t('nsc_from_std'):i18t('nsc_from_said'))}</span><p>${x.text?esc(x.text):`<span class="nsc-owed">${esc(x.err||i18t('nsc_not_written'))}</span>`}</p></div>`).join('')}</div>`; };
+  const naScratchHtml=()=>naScratchOk?`<section class="na-field na-scratch" id="na-scratch"><div class="nsc-left" id="nsc-left"></div><div class="nsc-right" id="nsc-right"></div></section>`:'';
+  const naScratchPaint=()=>{ const l=document.getElementById('nsc-left'), r=document.getElementById('nsc-right'); if(!l||!r) return;
+    l.innerHTML=naScratchListHtml(); r.innerHTML=naScratchPaperHtml();
+    if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } };
+  const naScratchStds=()=>{ let pb={}; try{ pb=(typeof playbook==='function'&&playbook())||{}; }catch(_){ pb={}; }
+    const d=pb._default||{}; return (d.ranges||[]).map(r=>({ category:r.label, rule:String(r.note||'') })).concat((d.positions||[]).map(p=>({ category:p.category, rule:String(p.note||'') }))); };
+  const naScratchPropose=async()=>{ if(scr.busy||scr.proposed) return;
+    scr.busy=i18t('nsc_busy_propose'); naScratchPaint();
+    try{ const d=await window.api('ai/outline','POST',{ sentence:asked||naScratchTitle(), kind:'', required:naScratchSecs().map(x=>x.h) });
+      const have=new Set(naScratchSecs().map(x=>x.h.toLowerCase()));
+      (d&&d.sections||[]).filter(x=>x&&x.heading&&!have.has(String(x.heading).toLowerCase())).forEach(x=>scr.secs.push({ k:'ai:'+x.heading, h:x.heading, src:'ai', text:'', intent:x.intent||'', sub:x.intent||'', on:!x.optional }));
+      scr.proposed=true; scr.err='';
+    }catch(e){ scr.err=String((e&&e.message)||e); if(typeof toast==='function') toast(scr.err,'err'); }
+    scr.busy=''; naScratchPaint(); light(); };
+  const naScratchDraft=async()=>{ if(scr.busy) return;
+    const todo=naScratchAi(); const stds=naScratchStds();
+    for(let i=0;i<todo.length;i++){ const x=todo[i]; scr.busy=i18t('nsc_busy_draft',{ k:i+1, n:todo.length, h:x.h }); naScratchPaint();
+      try{ const d=await window.api('ai/section','POST',{ sentence:asked||naScratchTitle(), heading:x.h, intent:x.intent||'', standards:stds }); x.text=String((d&&d.text)||''); x.err=''; }
+      catch(e){ x.err=i18t('nsc_not_written_why',{ why:String((e&&e.message)||e) }); } }
+    scr.busy=''; scr.drafted=true; naScratchPaint(); light(); };
+  /* what the panel beside says while From scratch is up (paperdesk's sheet face) */
+  const naScratchSays=()=>{ const L=naScratchSecs(), std=L.filter(x=>x.on&&x.src==='std').length, said=L.filter(x=>x.on&&x.src==='said').length, ai=naScratchAi().length, aiAll=L.filter(x=>x.on&&x.src==='ai').length;
+    const w=o.words||{};
+    return { scratch:true, std, said, ai, aiAll, drafted:scr.drafted, busy:!!scr.busy, proposed:scr.proposed, stream:streamPicked&&typeof FOLDERS==='object'&&FOLDERS[streamPicked]?FOLDERS[streamPicked].name:'',
+      who:String(w.who||'').trim(), what:naScratchTitle(), facts:facts.map(f=>({ k:f.k, say:f.say })) }; };
   const naFillCost=()=>i18t('na_words_cost');
   const naReadCost=()=>i18t('na_file_read');
   const naCap=t=>{ const x=String(t||'').trim(); return x?x.charAt(0).toUpperCase()+x.slice(1):''; };
@@ -960,7 +1015,7 @@ function openNewAgreement(o){
      arrow (or Enter) reads them again, still without AI (naReask); the tabs are
      whose paper it is */
   const naAskHtml=()=>`<section class="na-field na-ask" id="na-words">
-      <div class="na-ask-top"><div class="na-ptabs" role="tablist" aria-label="${esc(i18t('na_ptabs'))}">${['ours','theirs'].map(k=>
+      <div class="na-ask-top"><div class="na-ptabs" role="tablist" aria-label="${esc(i18t('na_ptabs'))}">${['ours','theirs'].concat(naScratchOk?['scratch']:[]).map(k=>
         `<button type="button" role="tab" class="na-ptab" data-na-paper="${k}" aria-selected="${paper===k}">${esc(i18t('na_tab_'+k))}</button>`).join('')}</div>
         <span class="na-ask-r"><span class="na-hint">${esc(i18t('na_ask_noai'))}</span><button type="button" id="dr-read" class="ui-link na-fill"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t(asked?'na_words_fill_rest':'na_words_fill'))} <em id="na-w-cost">· ${esc(naFillCost())}</em></button></span></div>
       <div class="na-askbox"><textarea id="dr-say" class="na-say" rows="1" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('na_say_ph'))}" autocomplete="off" aria-label="${esc(i18t('na_say_ph'))}">${esc(asked)}</textarea>
@@ -1076,7 +1131,7 @@ function openNewAgreement(o){
                this screen now (openNewDoors), and a second way to one dialog is
                two doors. na_upload / na_received are inert in both books. */}
       </div>
-      ${one?naReadHtml()+naTheirsHtml():''}
+      ${one?naReadHtml()+naTheirsHtml()+naScratchHtml():''}
       ${naCard}
       ${one?`<section class="na-field na-file" id="na-file">
         <div class="na-file-b"><span class="na-file-l">${esc(i18t('na_filed_in'))}</span><div class="na-seg" id="na-file-seg" role="group" aria-label="${esc(i18t('na_filed_in'))}"></div><span class="na-need" id="na-file-need">${esc(i18t('na_file_need'))}</span></div>
@@ -1188,12 +1243,13 @@ function openNewAgreement(o){
     let why=!api?i18t('na_pick_first'):i18t('na_stream_first');
     /* THEIR PAPER: Create needs their file and a stream (the drop's own two) */
     if(one&&paper==='theirs'){ on=!!theirFile&&!!streamPicked; why=!theirFile?i18t('na_theirs_need'):i18t('na_stream_first'); }
+    if(one&&paper==='scratch'){ on=scr.drafted&&!scr.busy&&!!streamPicked; why=!scr.drafted?i18t('nsc_draft_first'):i18t('na_stream_first'); }
     if(one){ root.setAttribute('data-paper',paper); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===paper)));
       const th=document.getElementById('na-theirs'); if(th) th.hidden=paper!=='theirs'; }
     ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
       b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):why; });
     /* their paper is created as theirs, not drafted (as drawn: "Create") — never while the press turns */
-    if(one){ const cb=document.getElementById('na-create'); if(cb&&!cb.querySelector('.ob-spin')) cb.textContent=i18t(paper==='theirs'?'act_create':'tl_create_draft'); }
+    if(one){ const cb=document.getElementById('na-create'); if(cb&&!cb.querySelector('.ob-spin')) cb.textContent=i18t(paper==='theirs'||paper==='scratch'?'act_create':'tl_create_draft'); }
     /* as drawn, the reason is said beside Create, not only on its hover */
     const wy=document.getElementById('na-why'); if(wy) wy.textContent=on?'':String(why).replace(/\.\s*$/,'');
     naForPaint(); };
@@ -1487,6 +1543,15 @@ function openNewAgreement(o){
       if(btn) btn.innerHTML=was; acts.forEach(b=>{ b.disabled=false; }); light(); } };
   const createOurs=goCreate(()=>api.create());
   document.getElementById('na-create')?.addEventListener('click', ev=>{
+    if(one&&paper==='scratch'){ if(!scr.drafted||!streamPicked) return;
+      const who=String((o.words&&o.words.who)||'').trim(), ours=(typeof window.FIRST_PARTY==='string'&&window.FIRST_PARTY)||'';
+      const L=naScratchSecs().filter(x=>x.on&&x.text);
+      const txt=[naScratchTitle(), who?i18t('nsc_between',{ a:ours, b:who }):'', ''].concat(L.map((x,i)=>`${i+1}. ${x.h}\n${x.text}\n`)).join('\n');
+      const f=new File([txt], naScratchTitle().replace(/[\\/:*?"<>|]+/g,' ').trim()+'.txt', { type:'text/plain' });
+      _naClaimed=true; closeModal();
+      if(typeof pdDropTake==='function') pdDropTake(f, { folder:streamPicked, counterparty:who });
+      else if(typeof uploadFromDrop==='function') uploadFromDrop(f, { folder:streamPicked, counterparty:who });
+      return; }
     if(!(one&&paper==='theirs')) return createOurs(ev);
     if(!theirFile||!streamPicked) return;
     /* your words, if any, still name the other company (as drawn, 24 Oct 2026) */
@@ -1507,7 +1572,7 @@ function openNewAgreement(o){
     if(typeof renderIntelDock==='function') setTimeout(()=>{ try{ renderIntelDock(); }catch(_){ } },0);
     const mroot=document.getElementById('modal-root');
     if(mroot&&typeof MutationObserver==='function'){
-      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect(); _naBack=null;
+      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect(); _naBack=null; _naScr=null; _naOurs=null;
         if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
         /* the bar names the page in front again */
         if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ } });
@@ -1534,8 +1599,18 @@ function openNewAgreement(o){
       const l=document.getElementById('na-closest'); if(l) try{ l.scrollIntoView({ block:'nearest' }); }catch(_){} });
     /* OUR PAPER · THEIR PAPER: the tab is whose paper it is */
     root.querySelector('.na-ptabs')?.addEventListener('click',e=>{ const b=e.target.closest('[data-na-paper]'); if(!b) return;
-      paper=b.getAttribute('data-na-paper'); light(); naFilePaint();
+      paper=b.getAttribute('data-na-paper'); light(); naFilePaint(); if(paper==='scratch') naScratchPaint(); else if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
       if(paper==='theirs'){ const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
+    /* FROM SCRATCH's own presses: a section ticked or not, Propose the rest (1 call); the panel's Draft the paper */
+    if(naScratchOk){
+      root.addEventListener('change',e=>{ const c=e.target&&e.target.closest?e.target.closest('[data-nsc-on]'):null; if(!c) return;
+        const x=naScratchSecs()[Number(c.getAttribute('data-nsc-on'))]; if(x) x.on=!!c.checked; naScratchPaint(); light(); });
+      root.addEventListener('click',e=>{ if(e.target&&e.target.closest&&e.target.closest('[data-nsc-propose]')){ e.preventDefault(); naScratchPropose(); } });
+      _naScr={ up:()=>paper==='scratch'&&naSheetUp(), says:naScratchSays, draft:naScratchDraft, propose:naScratchPropose };
+    }
+    /* Our paper's own words for the panel (the new look): the closest papers, the one chosen, the lines filled from the words */
+    _naOurs={ up:()=>paper==='ours'&&naSheetUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
+      read:()=>naReadRows().length, asked:()=>!!asked };
     /* THEIR FILE: chosen or dropped, one at a time, read only at Create */
     const tIn=document.getElementById('na-theirs-input');
     const tSet=f=>{ theirFile=f||null; const el=document.getElementById('na-theirs-file');
@@ -1618,6 +1693,14 @@ function openNewAgreement(o){
    window with no Jambo — "Always open beside Jambo"): on a computer, where his panel is not on screen,
    the form goes to Home first and stands beside it; the page it came from (deskSheetFrom) is where a
    way out without a draft lands again (naBackFrom). The phone keeps its own screens. Returns that page, or null. */
+/* From scratch's hand to the panel beside it (paperdesk): while that tab is up, what it holds and its presses */
+let _naScr=null, _naOurs=null;
+function naOursNow(){ try { return _naOurs && _naOurs.up() ? _naOurs : null; } catch (_){ return null; } }
+if (typeof document !== 'undefined' && !document._nscWired){ document._nscWired = true;
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-nsc-draft],[data-nsc-propose-p]') : null; if (!b) return;
+    const S = naScratchNow(); if (!S) return; e.preventDefault(); if (b.hasAttribute('data-nsc-draft')) S.draft(); else S.propose(); });
+}
+function naScratchNow(){ try { return _naScr && _naScr.up() ? _naScr : null; } catch (_){ return null; } }
 function naHomeFirst(){
   if(typeof document==='undefined'||typeof setView!=='function') return null;
   if(typeof mPhone==='function'&&mPhone()) return null;
@@ -1700,4 +1783,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{naScratchNow,naOursNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

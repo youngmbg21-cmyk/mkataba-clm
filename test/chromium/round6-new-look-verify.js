@@ -16,9 +16,11 @@
      9 · Requests: Request · Where it stands · Asked by · Lane, Start the draft on the row
     10 · Import: What Jambo read · Looks · Stream · Value, the ones that need you first
     11 · DNA by contract: one strand each, its worst mark, the Board's DNA door
+    13 · New agreement: the papers as cards; From scratch for the new-paper grant: your standards free, Jambo proposes and writes
+         the rest (one call each), Create files the paper through the one creator
    And the switch off:
     12 · Contracts opens on the list (no folders), Parties and Reads are drawn as before
-   At the parent (before this round) 1–11 fail: none of it is drawn.
+   At the parent (before this round) 1–11 and 13 fail: none of it is drawn.
    Run: node test/chromium/round6-new-look-verify.js   (pictures: ROUND6_SHOTS=<dir>) */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -182,6 +184,31 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     check('11 DNA by contract: one strand each, the missing in red, its worst mark; the panel reads across the book', up && cr && cr.red && /missing/.test(cr.worst) && panel, cr);
     await page.evaluate(() => { const b = document.querySelector('[data-dna-back]'); if (b) b.click(); });
   } catch (e) { check('11 DNA by contract', false, String(e).slice(0, 200)); }
+
+  /* 13 · New agreement, and From scratch for the new-paper grant */
+  try {
+    await page.evaluate(() => openNewAgreement({ asked: 'a two-year supply agreement with Nandi Dairy for raw milk', words: { who: 'Nandi Dairy', what: 'supply agreement', facts: [{ k: 'term', say: 'two years', months: 24, quote: 'two-year' }] } }));
+    const up = await until(page, () => !!document.querySelector('#na-root.na-one [data-na-paper="scratch"]'), null, 10000);
+    const cards = await page.evaluate(() => getComputedStyle(document.querySelector('#na-root .na-closest')).display);
+    const gated = await page.evaluate(() => typeof mayMakeNewPaper === 'function' && mayMakeNewPaper({ role: 'editor' }) === false);
+    if (up) await page.evaluate(() => document.querySelector('[data-na-paper="scratch"]').click());
+    const list = up && await until(page, () => document.querySelectorAll('#nsc-left .nsc-row').length >= 3, null, 8000);
+    const std = await page.evaluate(() => document.querySelectorAll('#nsc-left .nsc-pill.is-std').length);
+    await page.evaluate(() => naScratchNow() && naScratchNow().propose());
+    const proposed = await until(page, () => document.querySelectorAll('#nsc-left .nsc-pill.is-ai').length >= 2, null, 10000);
+    const before = await page.evaluate(() => /The paper is empty/.test((document.querySelector('#nsc-right') || {}).innerText || ''));
+    await shot('13a-scratch');
+    await page.evaluate(() => naScratchNow() && naScratchNow().draft());
+    const drafted = await until(page, () => (document.querySelectorAll('#nsc-right .nsc-sec').length >= 5) && !/Not written/.test(document.querySelector('#nsc-right').innerText), null, 15000);
+    await page.evaluate(() => { const b = document.querySelector('#na-file-seg button'); if (b) b.click(); });
+    const n0 = await page.evaluate(() => state.contracts.length);
+    const can = await until(page, () => { const b = document.getElementById('na-create'); return b && !b.disabled; }, null, 5000);
+    await shot('13b-scratch-drafted');
+    if (can) await page.evaluate(() => document.getElementById('na-create').click());
+    const made = can && await until(page, n => state.contracts.length > n && /Nandi Dairy/.test(state.contracts[0].counterparty || ''), n0, 15000);
+    check('13 New agreement: the papers as cards; From scratch (new-paper grant only): your standards free, Jambo proposes and writes the rest, Create files it',
+      up && cards === 'grid' && gated && list && std >= 3 && proposed && before && drafted && can && made, { cards, gated, std, proposed, before, drafted, can, made });
+  } catch (e) { check('13 New agreement and From scratch', false, String(e).slice(0, 200)); }
 
   /* 12 · the switch off */
   try {

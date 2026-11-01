@@ -80,6 +80,15 @@ function startAiStub() {
         /* ASK A COLUMN: an answer resting on the document's own first long
            sentence, so the route's quote check passes as it would live */
         /* THE PARTY'S TWO MINUTES: one figure from the facts (the agreements counted) and one that is not (999) */
+        /* THE OUTLINE (the builder's scratch start, New agreement's From scratch): two sections no standard names */
+        : toolName === 'propose_sections' ? { sections: [{ heading: 'Supply & Specification', intent: 'What is supplied, how much, to what standard.' },
+            { heading: 'Quality & Rejection', intent: 'How goods are checked and what happens to goods that fail.' }], note: '' }
+        /* FROM SCRATCH: one section's wording, naming the heading it was asked for */
+        : toolName === 'write_section' ? (() => {
+            const msg = String(((body.messages || [])[0] || {}).content || '');
+            const head = (msg.match(/ONE section: "([^"]+)"/) || [])[1] || 'this section';
+            return { text: `The parties agree the terms of ${head.toLowerCase()} as set out in this section.`, note: '' };
+          })()
         : toolName === 'party_brief' ? (() => {
             const facts = String(((body.messages || [])[0] || {}).content || '').split('FACTS:\n')[1] || '{}';
             let n = 0; try { n = JSON.parse(facts).agreements || 0; } catch (_) { n = 0; }
