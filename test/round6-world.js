@@ -56,6 +56,11 @@ async function R6_IN_PAGE(){
   const r = await api('ai/column', 'POST', { question: 'Can we end it for convenience?', name: 'Can we end it for convenience?', ids, texts });
   const id = r && ((r.ask && r.ask.id) || (r.asks && r.asks[0] && r.asks[0].id));
   if (id){ await api('columns/' + encodeURIComponent(id) + '/keep', 'POST', { kept: true }); window.__r6Ask = id; }
+  /* the parties' own facts, as drawn on Parties: city and organisation no. (the record's one writer) */
+  for (const [name, city, orgNo] of [['Naivas Supermarkets', 'Mombasa', 'P051-2231'], ['Kabras Sugar', 'Kakamega', 'P051-0417'], ['Nandi Dairy', 'Nandi Hills', ''],
+    ['Tana Cold Stores', 'Malindi', 'P051-3390'], ['Rift Haulage', 'Nakuru', 'P051-1188'], ['Parcelway Logistics Ltd', 'Nairobi', '']]){
+    try { await partyRecordSet(name, { city, orgNo }); } catch (_){ /* a party the reader cannot see */ }
+  }
   const all = ids.concat('MK-A2');
   try { const t = contractPlainText(getContract('MK-A2')); if (t && t.length >= 120) texts['MK-A2'] = t; } catch (_){ /* stored body */ }
   const r2 = await api('ai/column', 'POST', { question: 'Within how many days must we pay?', name: 'Payment days', ids: all, texts });
