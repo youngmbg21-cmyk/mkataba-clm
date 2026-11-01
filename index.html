@@ -19189,6 +19189,30 @@
   html.lg-new .mign-table tr.is-picked td{background:var(--surface-2)}
   html.lg-new .mign-table tr.is-done td{color:var(--color-quiet)}
   html.lg-new .mign-table tbody tr{cursor:pointer}
+  /* DNA BY CONTRACT, AS DRAWN */
+  html.lg-new .dna-page{background:var(--color-surface);padding:24px 40px 16px;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+  html.lg-new .dna-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:nowrap}
+  html.lg-new .dna-head .ctf-back,html.lg-new .dna-head .ctf-h,html.lg-new .dna-head .ctf-hf{white-space:nowrap;flex:none}
+  html.lg-new .dna-legend{flex:1 1 auto;min-width:0}
+  html.lg-new .dna-legend{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:flex-end}
+  html.lg-new .dna-table td{vertical-align:middle}
+  html.lg-new .dna-lg{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new .dna-lg .dna-s{width:12px;height:10px;flex:none}
+  html.lg-new .dna-strand{display:flex;gap:2px;align-items:flex-start;min-width:0}
+  html.lg-new .dna-seg{flex:1 1 0;min-width:6px;border:0;background:none;padding:0;display:flex;flex-direction:column;gap:3px;cursor:pointer;font:inherit}
+  html.lg-new .dna-s{display:block;height:14px;border-radius:2px;background:var(--surface-2)}
+  html.lg-new .dna-s.is-ok{background:var(--accent-ink)}
+  html.lg-new .dna-s.is-off{background:var(--st-amber-dot)}
+  html.lg-new .dna-s.is-miss{background:var(--st-ruby-dot)}
+  html.lg-new .dna-s.is-blank{background:transparent;box-shadow:inset 0 0 0 1.5px var(--st-amber-dot)}
+  html.lg-new .dna-s.is-asked{background:var(--st-steel-dot)}
+  html.lg-new .dna-s.is-read{background:var(--color-divider)}
+  @media (hover:hover){ html.lg-new .dna-seg:hover .dna-s{outline:1.5px solid var(--color-text)} }
+  html.lg-new .dna-no{font-size:10.5px;font-weight:var(--w-label);text-align:left;min-height:12px;white-space:nowrap}
+  html.lg-new .dna-worst{text-align:right;font-size:12.5px;font-weight:var(--w-label)}
+  html.lg-new .dna-worst.is-ruby{color:var(--st-ruby-fg)}
+  html.lg-new .dna-worst.is-amber{color:var(--st-amber-fg)}
+  html.lg-new .dna-page .apn-foot{margin-top:auto}
   /* READS, AS DRAWN */
   html.lg-new :is(.rdn-page) .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .rdn-a{display:inline-flex;align-items:center;gap:6px;margin-right:12px;white-space:nowrap;font-weight:var(--w-label)}
