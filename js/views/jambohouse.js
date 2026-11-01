@@ -159,7 +159,7 @@ const _jh = { log: [], ptab: 'log', tab: 'house', range: 30, look: 0, speed: 1, 
 function jhPlace(){ const p = { tab: _jh.tab, range: _jh.range, speed: _jh.speed }; if (!jhServerKeeps()) p.look = _jh.look; return p; }
 function jhPlacePut(p){
   if (!p || typeof p !== 'object') return;
-  if (JH_TABS.includes(p.tab)) _jh.tab = p.tab;
+  if (JH_TABS.includes(p.tab) || p.tab === 'agents') _jh.tab = p.tab;
   if (jhDaysOk(Number(p.range))) _jh.range = Number(p.range);
   if ((p.look === 0 || p.look === 1) && !jhServerKeeps()) _jh.look = p.look;
   if (JH_SPEEDS.includes(Number(p.speed))) _jh.speed = Number(p.speed);
@@ -1160,8 +1160,13 @@ function renderJamboHouse(opts){
     if (_jh.data && _jh.data.error) _jh.data = null;
     jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse({ fromLoad: true }); });
   }
-  const body = _jh.tab === 'jobs' ? (_jh.data ? jhJobsHtml() : jhHouseHtml()) : _jh.tab === 'how' ? jhHowHtml() : jhHouseHtml();
-  host.innerHTML = `<style>${JH_CSS}</style><div class="jh-wrap"><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>${jhJamboDoorHtml()}</div>`;
+  const nl = jhnOn();
+  if (!nl && _jh.tab === 'agents') _jh.tab = 'house';
+  const body = _jh.tab === 'agents' ? jhnAgentsHtml() : _jh.tab === 'jobs' ? (_jh.data ? jhJobsHtml() : jhHouseHtml()) : _jh.tab === 'how' ? jhHowHtml() : jhHouseHtml();
+  /* THE NEW LOOK (round 7, as drawn): one white page, the tabs beside the title, Jambo's panel beside it */
+  if (nl) host.innerHTML = `<style>${JH_CSS}</style><div class="view-enter sap-page ap-page is-ins apn-page jh-page jhn-page" data-jh-tab-on="${_jh.tab}" data-ins-page="jambo" data-ins="1"><div class="ap-body is-ins"><section class="ap-card apn-card jhn-card">${jhnHeadHtml()}${body}</section><aside id="ins-panel" class="ins-panel" aria-label="${_jhE(_jhT('ins_panel_label'))}"></aside></div></div>`;
+  else host.innerHTML = `<style>${JH_CSS}</style><div class="jh-wrap"><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>${jhJamboDoorHtml()}</div>`;
+  if (nl && typeof insPaintPanel === 'function'){ insPaintPanel({ seat: 'jambo', jlWord: _jhT('nav_jambo'), item: { id: 'jambo' }, head: false, tabCount: 0, body: jhnPanelHtml() }); if (typeof insWatchWidth === 'function') insWatchWidth(); }
   jhWire(host);
   if (typeof setActiveNav === 'function') setActiveNav('jambo');
   if (_jh.tab === 'house' && document.getElementById('jh-cv')){
@@ -1616,3 +1621,86 @@ try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 Object.assign(window, { jhAgentColour, jhLevelPickHtml, jhWaitNow, jhLinkAt, jhLinks: () => _jhLinks.slice(), jhJamboDoorHtml, AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
   agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE, _jhPlaying: () => _jh.playing, jhOverlapAudit,
   jhOfficeOf: () => ({ floors: _jhF, desk: _jhDesk && { f: _jhDesk.f, x0: _jhDesk.card.x, x1: _jhDesk.card.x + _jhDesk.card.w }, shared: _jhShared.map(s => ({ id: s.id, f: s.f })), rooms: _jhRooms.map(r => ({ k: r.k, f: r.f, reading: !!r.reading })) }) });
+
+
+/* ═══ JAMBO'S AGENTS, THE NEW LOOK (round 7, second half, as drawn; behind the admin's "Try the new look") ═══
+   One white page: the title with the tabs beside it (The house · Agents · Jobs · How points work) and the period
+   and the look as grey pills on the right; Jambo's panel beside it in place of the folded strip. AGENTS is the list
+   as drawn: what each did this week, MAY HE — On his own · Ask me first · Never (the owner's mapping, 1 Nov 2026:
+   On his own = Just do it, still the admin's and only where an agent may act alone; Never = I'll do it myself) —
+   and its points. A person moves an agent DOWN for themselves (agentLevelMineSet); On his own opens the admin's own
+   setting (Settings › Jambo's agents), never written from here. */
+function jhnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
+const JHN_TABS = ['house', 'agents', 'jobs', 'how'];
+function jhnWeek(){ const from = Date.now() - 7 * 864e5; return ((_jh.data && _jh.data.pieces) || []).filter(p => (Date.parse(p.at || '') || 0) >= from); }
+function jhnHeadHtml(){
+  const keys = agPointsKeys(), wk = jhnWeek();
+  const facts = _jh.tab === 'agents' ? [_jhTn('jhn_agents_n', keys.length, { n: keys.length }), _jhTn('jhn_pieces_week', wk.length, { n: wk.length })].join(' \u00b7 ') : '';
+  const tab = t => `<button type="button" role="tab" class="jhn-tab" data-jh-tab="${t}" aria-selected="${_jh.tab === t}">${_jhE(_jhT(t === 'agents' ? 'jhn_tab_agents' : 'jh_tab_' + t))}${t === 'jobs' ? ` <span>${keys.length}</span>` : ''}</button>`;
+  return `<div class="jhn-head"><h2 class="ctf-h">${_jhE(_jhT('nav_jambo'))}</h2>${facts ? `<span class="ctf-hf">${_jhE(facts)}</span>` : ''}<div class="jhn-tabs" role="tablist">${JHN_TABS.map(tab).join('')}</div><span class="ctf-sp"></span>`
+    + `${_jh.tab === 'agents' || _jh.tab === 'how' ? '' : jhFiltersHtml()}<button type="button" class="ui-btn jhn-pill" data-jh-points>${_jhE(_jhT('jh_change_points'))}</button></div>`;
+}
+/* what one agent did this week, in the list's words: its pieces, how many you decided, how many wait */
+function jhnWeekSaid(k){
+  const L = jhnWeek().filter(p => p.agent === k); if (!L.length) return _jhT('jhn_week_none');
+  const open = L.filter(p => !p.outcome).length, done = L.length - open;
+  return [_jhTn('jhn_week_pieces', L.length, { n: L.length }), done ? _jhTn('jhn_week_decided', done, { n: done }) : '', open ? _jhTn('jhn_week_wait', open, { n: open }) : ''].filter(Boolean).join(' \u00b7 ');
+}
+/* MAY HE: the three, the one in force pressed; what this reader may not choose is grey with its reason */
+function jhnMayHtml(k){
+  if (typeof AG_READINGS !== 'undefined' && Array.isArray(AG_READINGS) && AG_READINGS.includes(k)) return `<span class="jhn-reads">${_jhE(_jhT('jh_reads_only'))}</span>`;
+  const now = (typeof agLevelOf === 'function') ? agLevelOf(k) : 'ask', co = (typeof agLevelCo === 'function') ? agLevelCo(k) : 'ask';
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  /* the server lets only link-only acts run alone (AGENT_AUTO_OK, server/server.js): the link agent */
+  const autoOk = k === 'link';
+  const rank = { auto: 0, ask: 1, mine: 2 };
+  const why = v => v === 'auto' ? (!autoOk ? _jhT('jhn_why_auto_never') : !admin ? _jhT('jhn_why_auto_admin') : '') : (rank[v] < rank[co] ? _jhT('jhn_why_up', { lv: _jhT('st_agents_lv_' + co) }) : '');
+  const b = (v, w) => { const no = why(v); return `<button type="button" data-jhn-may="${_jhE(k)}" data-jhn-lv="${v}" aria-pressed="${now === v}"${no ? ` disabled title="${_jhE(no)}"` : ''}>${_jhE(_jhT(w))}</button>`; };
+  return `<span class="jhn-seg" role="group" aria-label="${_jhE(_jhT('jhn_c_may'))}">${b('auto', 'jhn_lv_auto')}${b('ask', 'jhn_lv_ask')}${b('mine', 'jhn_lv_mine')}</span>`;
+}
+function jhnAgentsHtml(){
+  if (!_jh.data) return jhHouseHtml();
+  const pieces = jhPieces();
+  const rows = agPointsKeys().map(k => `<tr data-jhn-row="${_jhE(k)}"><td><div class="cun-name"><i class="jhn-dot" aria-hidden="true"></i>${_jhE(_jhT('ag_' + k))}</div><div class="cun-sub">${_jhE(_jhT('ag_' + k + '_does'))}</div></td>`
+    + `<td class="jhn-wk">${_jhE(jhnWeekSaid(k))}</td><td>${jhnMayHtml(k)}</td><td class="n">${_jhFmt(agPointsTally(k, pieces, Infinity).pts)}</td></tr>`).join('');
+  return `<div class="cu-scroll"><table class="apn-table cun-table jhn-table"><colgroup><col style="width:34%"><col><col style="width:268px" data-floor="268"><col style="width:72px" data-floor="72"></colgroup>
+    <thead><tr><th>${_jhE(_jhT('jh_col_agent'))}</th><th>${_jhE(_jhT('jhn_c_week'))}</th><th>${_jhE(_jhT('jhn_c_may'))}</th><th class="n">${_jhE(_jhT('jhn_c_points'))}</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="apn-foot rdn-foot"><span>${_jhE(_jhT('jhn_foot'))}</span><button type="button" class="rfp-a" data-jh-tab="house">${_jhE(_jhTn('jhn_foot_log', jhnWeek().length, { n: jhnWeek().length }))}</button></div>`;
+}
+function jhnPanelHtml(){
+  const E = _jhE, wk = jhnWeek(), keys = agPointsKeys();
+  const open = wk.filter(p => !p.outcome), put = wk.filter(p => p.outcome === 'thrown').length, done = wk.length - open.length;
+  const lv = keys.filter(k => !(typeof AG_READINGS !== 'undefined' && AG_READINGS.includes(k))).map(k => (typeof agLevelOf === 'function') ? agLevelOf(k) : 'ask');
+  const allAsk = lv.length && lv.every(v => v === 'ask');
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  if (_jh.tab === 'agents'){
+    const head = (allAsk ? _jhTn('jhn_p_all_ask', lv.length, { n: lv.length }) + ' ' : '') + _jhT('jhn_p_week', { n: wk.length, d: done, a: put, w: open.length });
+    const by = {}; open.forEach(p => { by[p.agent] = (by[p.agent] || 0) + 1; });
+    const waits = Object.keys(by).map(k => row(_jhT('ag_' + k), _jhTn('jhn_p_waits_n', by[k], { n: by[k] }), '')).join('');
+    return `<div class="pd2-chosen cun-panel jhn-panel"><p class="pd2-ch-head">${E(head)}</p>${waits ? `<div class="pd2-ch-cap">${E(_jhT('jhn_p_waits'))}</div><div class="pd2-ch-tbl">${waits}</div>` : ''}`
+      + `<div class="pd2-ch-cap">${E(_jhT('jhn_p_ladder'))}</div><p class="stn-pp">${E(_jhT('jhn_p_ladder_s'))}</p>`
+      + `<div class="pd2-ch-cap">${E(_jhT('pd2_ch_doors'))}</div>${door('data-jh-tab="house"', _jhT('jhn_d_log'), _jhT('pd2_ch_free'))}${typeof isAdmin === 'function' && isAdmin() ? door('data-jh-points', _jhT('jhn_d_points'), _jhT('pd2_ch_free')) : ''}</div>`;
+  }
+  const lead = open.length ? _jhTn('jhn_p_desk', open.length, { n: open.length }) : _jhT('jhn_p_desk_none');
+  return `<div class="pd2-chosen cun-panel jhn-panel"><div class="cn2-jcard"><p>${E(lead)}</p><small>${E(_jhT('jhn_p_desk_src'))}</small></div>`
+    + `<div class="pd2-ch-cap">${E(_jhT('jhn_p_house'))}</div><p class="stn-pp">${E(_jhT('jhn_p_house_s'))}</p>`
+    + `<div class="pd2-ch-cap">${E(_jhT('pd2_ch_doors'))}</div>${door('data-jhn-board', _jhT('jhn_d_board'), _jhT('pd2_ch_free'))}${typeof isAdmin === 'function' && isAdmin() ? door('data-jh-points', _jhT('jhn_d_points'), _jhT('pd2_ch_free')) : ''}${door('data-jh-tab="agents"', _jhT('jhn_d_never'), _jhT('pd2_ch_free'))}</div>`;
+}
+/* MAY HE pressed: down for oneself through the person's own writer; On his own opens the admin's own setting */
+async function jhnMaySet(k, v){
+  if (v === 'auto'){ if (typeof openSettingsAt === 'function') openSettingsAt('company', 'agents'); return; }
+  const co = (typeof agLevelCo === 'function') ? agLevelCo(k) : 'ask';
+  try { const ok = await agentLevelMineSet(k, v === co ? null : v); if (!ok) return;
+    if (typeof toast === 'function') toast(_jhT('ag_lv_saved', { lv: _jhT('st_agents_lv_' + agLevelOf(k)) }), 'ok');
+    renderJamboHouse(); }
+  catch (err){ if (typeof toast === 'function') toast(_jhT('st_pref_failed') + ' ' + ((err && err.message) || ''), 'err'); }
+}
+if (typeof document !== 'undefined' && !document._jhnWired){ document._jhnWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t || typeof state === 'undefined' || state.view !== 'jambo') return; let el;
+    if ((el = t.closest('[data-jhn-may]'))){ e.preventDefault(); if (!el.disabled) jhnMaySet(el.getAttribute('data-jhn-may'), el.getAttribute('data-jhn-lv')); return; }
+    if (t.closest('[data-jhn-board]')){ e.preventDefault(); if (typeof caGo === 'function') caGo({ kind: 'go', place: 'board' }); }
+  });
+}
+Object.assign(window, { jhnOn, JHN_TABS, jhnHeadHtml, jhnAgentsHtml, jhnPanelHtml, jhnMayHtml, jhnWeekSaid, jhnMaySet });

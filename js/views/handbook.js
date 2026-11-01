@@ -248,6 +248,7 @@ function hbkCss(){
 function renderHandbook(){
   const host = document.getElementById('content'); if (!host) return;
   const wide = typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function';
+  if (wide && typeof window.newLookOn === 'function' && newLookOn()){ hbknRender(host); return; }
   const scroller = document.querySelector('#hbk-page .hbk-body'); const keepScroll = scroller ? scroller.scrollTop : null;
   host.innerHTML = `<div class="view-enter sap-page ins-page hbk-page${wide ? '' : ' is-narrow'}" id="hbk-page" data-ins-page="${HBK_SEAT}" data-ins="${wide ? 1 : 0}"><style>${hbkCss()}</style>
     ${hbkHeadHtml()}
@@ -281,6 +282,8 @@ function hbkMarkChapter(){
 }
 /* A PART OPENS AT ITS TOP: the middle alone is drawn again, the contents' lit row moved, Jambo's panel untouched */
 function hbkShowPart(){
+  /* the new look draws one chapter at a time: the page is drawn again on the part's first chapter */
+  if (document.querySelector('.hbkn-page')){ renderHandbook(); return true; }
   const sc = document.getElementById('hbk-body'); if (!sc) return false;
   sc.innerHTML = hbkPartHtml(); sc.scrollTop = 0;
   document.querySelectorAll('#hbk-page .hbk-toc-row').forEach(r => { const on = r.getAttribute('data-hbk-part') === _hbk.part;
@@ -294,6 +297,7 @@ function hbkOpen(chapter, opts = {}){
   if (c){ _hbk.part = c.part; _hbk.chapter = c.k; }
   else if (opts.part && hbkPartOf(opts.part)){ _hbk.part = opts.part; _hbk.chapter = null; }
   if (typeof state !== 'undefined' && state && state.view === 'handbook' && document.getElementById('hbk-body')){
+    if (document.querySelector('.hbkn-page')){ renderHandbook(); _hbkKeep(); return true; }
     if (_hbk.part !== was || !(c && document.getElementById('hbk-' + c.k))) hbkShowPart();
     if (_hbk.chapter) hbkScrollTo(_hbk.chapter);
     hbkMarkChapter();
@@ -332,4 +336,69 @@ function hbkZoom(src, alt){
   page.appendChild(z);
 }
 
+/* ═══ THE HANDBOOK, THE NEW LOOK (round 7, second half, as drawn; behind the admin's "Try the new look") ═══
+   One chapter at a time: the parts down the left with the open part's chapters under it, the chapter in the middle
+   (its number and where, its title, what it is, the steps numbered, its pictures two by two with their captions, the
+   tip and its cost; when to use it and where it is follow, so nothing the book says is lost), Svenska and Print at
+   the top. Jambo's panel: he answers from this book (no call) and the chapters people ask about most, each a door. */
+function hbknChapter(){
+  const chs = hbkChaptersOf(_hbk.part);
+  return (_hbk.chapter && hbkChapterOf(_hbk.chapter)) || chs[0] || HANDBOOK_CHAPTERS[0];
+}
+function hbknNavHtml(){
+  const cur = hbknChapter();
+  return `<nav class="hbkn-nav" aria-label="${_hbkE(_hbkT('hbk_contents'))}">${HANDBOOK_PARTS.map((p, i) => { const w = hbkPartWords(p), on = p.k === _hbk.part;
+    return `<button type="button" class="hbkn-part${on ? ' is-on' : ''}" data-hbk-part="${p.k}">${_hbkE(i + ' \u00b7 ' + w.w)}</button>`
+      + (on ? hbkChaptersOf(p.k).map(c => `<button type="button" class="hbkn-ch${c.k === cur.k ? ' is-on' : ''}" data-hbkn-ch="${_hbkE(c.k)}"${c.k === cur.k ? ' aria-current="true"' : ''}>${_hbkE(_hbkW(c.title))}</button>`).join('') : ''); }).join('')}</nav>`;
+}
+function hbknChapterHtml(c){
+  const shots = hbkShotsOf(c);
+  const pics = shots.length ? `<div class="hbkn-pics">${shots.map((sh, i) => { const cap = sh.cap ? _hbkW(sh.cap) : '';
+    return `<figure class="hbk-fig"><div class="hbk-pic-wrap"><img class="hbk-pic" src="${_hbkE(hbkPicFile(c, i))}" alt="${_hbkE(cap)}" loading="lazy" data-hbk-pic="${_hbkE(c.k)}-${i + 1}" tabindex="0"><div class="hbk-ph" hidden>${_hbkE(_hbkT('hbk_pic_soon'))}</div></div>${cap ? `<figcaption>${_hbkE(cap)}</figcaption>` : ''}</figure>`; }).join('')}</div>` : '';
+  const path = (c.path || []).map(p => typeof p === 'string' && p.startsWith('door:') ? hbkDoorChip(p.slice(5)) : `<span class="hbk-chip">${hbkText(p)}</span>`).join('<i>›</i>');
+  return `<article class="hbkn-chapter" id="hbk-${_hbkE(c.k)}" data-hbk-ch="${_hbkE(c.k)}">
+    <div class="hbkn-eye">${_hbkE(c.k)} \u00b7 ${hbkText(c.eyebrow)}</div><h2 class="hbkn-t">${_hbkE(_hbkW(c.title))}</h2>
+    <p class="hbkn-what">${hbkText(c.what)}</p>
+    <ol class="hbkn-steps">${(c.how || []).map(h => `<li>${hbkText(h)}</li>`).join('')}</ol>
+    ${pics}
+    <p class="hbkn-tip">${c.tip ? hbkText(c.tip) + ' ' : ''}${_hbkE(_hbkT('hbkn_cost'))} ${hbkCostHtml(c)}</p>
+    ${(c.when || []).length ? `<div class="hbkn-more"><h3>${_hbkE(_hbkT('hbk_sec_when'))}</h3><ul>${c.when.map(w => `<li>${hbkText(w)}</li>`).join('')}</ul></div>` : ''}
+    ${path ? `<div class="hbkn-more"><h3>${_hbkE(_hbkT('hbk_sec_where'))}</h3><div class="hbk-path">${path}</div></div>` : ''}
+  </article>`;
+}
+/* the chapters people ask about most, as doors (no call): one per later part, its own title */
+function hbknOftenAsked(){
+  return ['negotiate', 'sign', 'keep', 'settings'].map(k => (HANDBOOK_PARTS.find(p => p.k === k) ? hbkChaptersOf(k)[0] : null)).filter(Boolean).slice(0, 3);
+}
+function hbknPanelHtml(){
+  const E = _hbkE;
+  const rows = hbknOftenAsked().map(c => `<div class="pd2-ch-door"><button type="button" class="rfp-a" data-hbkn-ch="${E(c.k)}">${E(_hbkW(c.title))}</button><span>${E(_hbkT('hbkn_free_ch', { k: c.k }))}</span></div>`).join('');
+  return `<div class="pd2-chosen cun-panel hbkn-panel"><p class="pd2-ch-head">${E(_hbkT('hbkn_p_head'))}</p>${rows ? `<div class="pd2-ch-cap">${E(_hbkT('hbkn_p_often'))}</div>${rows}` : ''}`
+    + `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_hbkT('cn2_jambo'))}</b><p>${E(_hbkT('hbkn_p_turn'))}</p></div></div></div>`;
+}
+function hbknRender(host){
+  const c = hbknChapter(); _hbk.part = c.part || _hbk.part;
+  const sv = _hbkLang() === 'sv';
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page hbkn-page" id="hbk-page" data-ins-page="${HBK_SEAT}" data-ins="1"><style>${hbkCss()}</style>
+    <div class="ap-body is-ins"><section class="ap-card apn-card hbkn-card" aria-label="${_hbkE(_hbkT('nav_handbook'))}">
+      <div class="cun-head"><h2 class="ctf-h">${_hbkE(_hbkT('nav_handbook'))}</h2><span class="ctf-hf">${_hbkE(_hbkT('hbkn_checked', { d: (typeof regDotDate === 'function' ? regDotDate(HANDBOOK_CHECKED) : HANDBOOK_CHECKED) }))}</span><span class="ctf-sp"></span>
+        <button type="button" class="ui-btn hbkn-pill" data-hbkn-lang="${sv ? 'en' : 'sv'}">${_hbkE(sv ? 'English' : 'Svenska')}</button><button type="button" class="ui-btn hbkn-pill" data-hbkn-print>${_hbkE(_hbkT('hbkn_print'))}</button></div>
+      <div class="hbkn-cols">${hbknNavHtml()}<div class="hbkn-body hbk-body scroll-thin" id="hbk-body">${hbknChapterHtml(c)}</div></div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${_hbkE(_hbkT('hbk_panel_label'))}"></aside></div></div>`;
+  insPaintPanel({ seat: HBK_SEAT, jlWord: _hbkT('nav_handbook'), item: { id: 'handbook' }, head: false, tabCount: 0, body: hbknPanelHtml() });
+  hbkWire(host);
+  const page = document.getElementById('hbk-page');
+  if (page && !page.dataset.hbknBound){ page.dataset.hbknBound = '1';
+    page.addEventListener('click', e => { const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
+      if ((el = t.closest('[data-hbkn-lang]'))){ if (typeof langSet === 'function') langSet(el.getAttribute('data-hbkn-lang')); return; }
+      if (t.closest('[data-hbkn-print]')){ if (typeof window.print === 'function') window.print(); } }); }
+  if (typeof setActiveNav === 'function') setActiveNav('handbook');
+  if (typeof insWatchWidth === 'function') insWatchWidth();
+}
+/* a chapter pressed in the list or the panel: the middle shows it, at its top (the panel lives outside the page) */
+if (typeof document !== 'undefined' && !document._hbknWired){ document._hbknWired = true;
+  document.addEventListener('click', e => { const el = e.target && e.target.closest && e.target.closest('[data-hbkn-ch]'); if (!el || typeof state === 'undefined' || state.view !== 'handbook') return;
+    e.preventDefault(); const c = hbkChapterOf(el.getAttribute('data-hbkn-ch')); if (!c) return; _hbk.part = c.part; _hbk.chapter = c.k; _hbkKeep(); renderHandbook(); });
+}
+Object.assign(window, { hbknRender, hbknChapter, hbknChapterHtml, hbknPanelHtml, hbknOftenAsked });
 Object.assign(window, { hbkShotsOf, hbkPicFile, hbkShowPart, hbkMarkChapter, hbkPlace, hbkPlacePut, renderHandbook, hbkOpen, hbkGoDoor, hbkDoorInfo, hbkLabel, hbkText, hbkChapterHtml, hbkPanelPaint, hbkJlSay });
