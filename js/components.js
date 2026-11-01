@@ -599,6 +599,8 @@ function jamboWaysSync(){
       /* THE CONTRACT'S ONE ROW (the contract round, as drawn): its own next-step links stand above the box instead */
       if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]') && document.querySelector('#ig-paper:not([hidden]) #ig-canvas')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); return; }
       const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
+      /* a chosen row's own links (jlOwnPaint) stand there instead */
+      if (old && old.classList.contains('is-own')) return;
       if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
       if (old) old.remove();
       const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
