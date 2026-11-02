@@ -912,6 +912,20 @@ function ndPanelHtml(D){
   return (sum ? `<div class="nd-pan-sum">${_cnE(sum)}</div>` : '') + group('jambo', D.jambo) + group('you', D.you);
 }
 
+/* ---- THE BELL, THE NEW LOOK (round 7, as drawn) ----
+   The same eight things Home lists (ndRead, in Home's own order, cn2Rows), each a dot in its kind's tone, what it
+   is and where, and ONE Open that presses the row's own door; News under it, never counted (ndIsNews). */
+function ndBellNlHtml(D){
+  const L = cn2Rows(D), news = D.news || [];
+  const row = x => { const r = x.r, P = ndParts(r);
+    const title = P.title || P.name || '';
+    const sub = r.g === 'jambo' ? _ndText(P.deal || P.line || '') : [P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
+    return `<div class="ndb-r" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}</div>`
+      + `<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('act_open'))}</button></div>`; };
+  const newsRow = (a, i) => `<button type="button" class="ndb-r is-news" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
+  return `<div class="ndb">${L.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_need', { n: ndThings(D.jambo) + ndThings(D.you) }))}</div>${L.map(row).join('')}` : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`
+    + (news.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_news'))}</div>${news.map(newsRow).join('')}` : '') + `</div>`;
+}
 /* ---- THE BOARD: ALL OF IT, UNDER YOUR BOOK ----
    Tabs (All · Your move · Jambo prepared), the kinds there are (a kind with
    nothing in the tab is not listed), a find box, five columns, twelve rows at
@@ -1372,20 +1386,32 @@ function cn2FirstDayHtml(){
   const org = (typeof FIRST_PARTY !== 'undefined' && FIRST_PARTY) ? FIRST_PARTY : '';
   return `<div class="view-enter sap-page ins-page cn2-page is-first" id="cn2-page" data-ins-page="${CN2_SEAT}" data-ins="1"><div class="ins-body"><section class="ins-card cn2-sheet">`
     + `<header class="cn2-top is-plain"><h1 class="cn2-hello">${_cnE(cn2Greet())}</h1><p class="cn2-say is-strong">${_cnE(_cnT('cn2_fd_say'))}</p></header>`
-    + `<div class="cn2-list" id="cn2-list"><div class="cn2-fds">${row('upload', 'filenew', 'cn2_fd_up', 'cn2_fd_up_s', 'cn2_fd_up_b', true)}${row('draft', 'pencil', 'cn2_fd_dr', 'cn2_fd_dr_s', 'cn2_fd_dr_b')}${row('import', 'upload', 'cn2_fd_im', 'cn2_fd_im_s', 'cn2_fd_im_b')}</div></div>`
+    + `<div class="cn2-list" id="cn2-list"><div class="cn2-fds">${row('upload', 'filenew', 'cn2_fd_up', 'cn2_fd_up_s', 'cn2_fd_up_b', true)}${row('draft', 'pencil', 'cn2_fd_dr', 'cn2_fd_dr_s', 'cn2_fd_dr_b')}${row('import', 'upload', 'cn2_fd_im', 'cn2_fd_im_s', 'cn2_fd_im_b')}</div>${typeof pdDropTake === 'function' ? `<p class="cn2-fd-drop">${_cnE(_cnT('cn2_fd_drop'))}</p>` : ''}</div>`
     + `<footer class="cn2-foot"><span class="cn2-fd-lk"><button type="button" class="ui-link" data-cn2-go="settings">${_cnE(_cnT('cn2_fd_settings'))}</button><button type="button" class="ui-link" data-cn2-go="handbook">${_cnE(_cnT('cn2_fd_handbook'))}</button></span>`
-    + `${org ? `<span>${_cnE(_cnT('cn2_fd_org', { org }))}</span>` : ''}</footer></section><aside id="ins-panel" class="ins-panel" aria-label="${_cnE(_cnT('cn2_jambo'))}"></aside></div></div>`;
+    + `${org ? `<span>${_cnE(_cnT('cn2_fd_org', { org }))}${typeof isAdmin === 'function' && isAdmin() ? _cnE(_cnT('cn2_fd_admin')) : ''}</span>` : ''}</footer></section><aside id="ins-panel" class="ins-panel" aria-label="${_cnE(_cnT('cn2_jambo'))}"></aside></div></div>`;
 }
 /* JAMBO'S PANEL ON HOME: only what he has read or prepared (owner's answer 5), free; Likely next with each one's cost */
 function cn2JlSay(){
   if (!(state.contracts || []).length){
     const never = ['send', 'change', 'guess'].map(k => `<div class="cn2-pr"><b>${_cnE(_cnT('cn2_never_' + k))}</b><span>${_cnE(_cnT('cn2_never_' + k + '_s'))}</span><span class="cn2-q">${_cnE(_cnT('cn2_rule'))}</span></div>`).join('');
-    const once = [['people', 'cn2_once_people', 'cn2_once_people_s'], ['settings', 'cn2_once_streams', 'cn2_once_streams_s'], ['standards', 'cn2_once_std', 'cn2_once_std_s']]
+    const once = [['settings', 'cn2_once_streams', 'cn2_once_streams_s'], ['people', 'cn2_once_people', 'cn2_once_people_s'], ['standards', 'cn2_once_std', 'cn2_once_std_s']]
       .map(([g, t, w]) => `<div class="cn2-lk"><button type="button" class="ui-link" data-cn2-go="${g}">${_cnE(_cnT(t))}</button><span class="cn2-q">${_cnE(_cnT(w))}</span></div>`).join('');
-    return { lines: [_cnE(_cnT('cn2_fd_jb'))], head: { html: _cnE(_cnT('cn2_fd_jb')) }, src: _cnT('cn2_fd_jb_src'),
+    const card = `<div class="cn2-jcard"><p>${_cnE(_cnT('cn2_fd_jb'))}</p><small>${_cnE(_cnT('cn2_fd_jb_src'))}</small></div>`;
+    return { lines: [card], head: { html: card }, src: false,
       after: `<p class="cn2-eye">${_cnE(_cnT('cn2_never'))}</p>${never}<p class="cn2-eye">${_cnE(_cnT('cn2_once'))}</p>${once}` };
   }
   const D = ndRead(), L = cn2Rows(D);
+  /* A PIECE OPEN UNDER ITS ROW (round 7, as drawn): his panel says what he read and what each press does — the
+     week's three presses as they really work (a calendar file; put away until its dates change, Undo just after) */
+  const open = _cn2Look ? D.jambo.find(r => r.it && r.it.key === _cn2Look) : null;
+  if (open && open.it && open.it.kind === 'week'){
+    const P = ndParts(open);
+    const card = `<div class="cn2-jcard"><p>${_cnE(_cnT('cn2_wk_read', { what: _ndText(P.deal || P.line || '') }))}</p><small>${_cnE(_cnT('cn2_wk_by'))}</small></div>`;
+    const pr = (a, b, c) => `<div class="pd2-ch-r"><span>${_cnE(_cnT(a))}</span><b>${_cnE(_cnT(b))}</b><i>${_cnE(_cnT(c))}</i></div>`;
+    const tbl = `<div class="pd2-ch-cap">${_cnE(_cnT('cn2_wk_presses'))}</div><div class="pd2-ch-tbl">${pr('ag_a_calendar', 'cn2_wk_cal', 'cn2_free')}${pr('cn2_wk_add', 'cn2_wk_add_s', 'cn2_free')}${pr('cn2_wk_away', 'cn2_wk_away_s', 'cn2_wk_away_c')}</div>`;
+    const turn = `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${_cnE(_cnT('cn2_jambo'))}</b><p>${_cnE(_cnT('cn2_wk_plan'))}</p></div></div>`;
+    return { lines: [card], head: { html: card }, src: false, after: `<div class="pd2-chosen">${tbl}${turn}</div>` };
+  }
   const late = L.find(x => x.k === 'late');
   let head;
   if (late){ const P = ndParts(late.r); head = _cnT('cn2_jb_late', { what: P.name ? P.title : P.title, on: P.name || _ndText(P.deal) || '', when: P.when || '' }); }
@@ -1527,5 +1553,12 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnLikely, cnLikelyWords, CN_LIKELY_MAX, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndKindOfRow, ndKindHtml, CN2_SEAT, CN2_RANK, cn2On, cn2Rows, cn2Say, cn2Signed, cn2CountsHtml, cn2QuoteHtml, cn2RowHtml, cn2Html, cn2FirstDayHtml, cn2JlSay, cn2PanelPaint, renderCounter2, cn2Repaint, cn2LookToggle, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndKindOfRow, ndKindHtml, CN2_SEAT, CN2_RANK, cn2On, cn2Rows, cn2Say, cn2Signed, cn2CountsHtml, cn2QuoteHtml, cn2RowHtml, cn2Html, cn2FirstDayHtml, cn2JlSay, cn2PanelPaint, renderCounter2, cn2Repaint, cn2LookToggle, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });
+
+/* THE FIRST DAY TAKES A DROPPED FILE ANYWHERE ON THE PAGE (round 7, as drawn): the drop area's own reader (pdDropTake) */
+if (typeof document !== 'undefined' && !document._cn2FdDrop){ document._cn2FdDrop = true;
+  document.addEventListener('dragover', e => { if (e.target && e.target.closest && e.target.closest('#cn2-page.is-first') && typeof pdDropTake === 'function'){ e.preventDefault(); } });
+  document.addEventListener('drop', e => { const pg = e.target && e.target.closest && e.target.closest('#cn2-page.is-first'); if (!pg || typeof pdDropTake !== 'function') return;
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return; e.preventDefault(); pdDropTake(f, {}); });
+}
