@@ -5043,7 +5043,7 @@ function ngnRender(host){
         ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
       <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:23%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:27%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
         <thead><tr><th>${esc(i18t('ngn_c_agreement'))}</th><th>${esc(i18t('ngn_c_round'))}</th><th>${esc(i18t('ngn_c_move'))}</th><th>${esc(i18t('ngn_c_asks'))}</th><th>${esc(i18t('ngn_c_lead'))}</th><th>${esc(i18t('ngn_c_last'))}</th></tr></thead>
-        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel))).join('') || `<tr><td colspan="6" class="apn-none">${esc(i18t('ng_door_none'))}</td></tr>`}</tbody></table></div>
+        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel))).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ngn_foot', all.length, { n: all.length, live }))}</span><span></span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const r = rows.find(x => String(x.c.id) === String(_ngnSel)) || null;
