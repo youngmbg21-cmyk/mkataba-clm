@@ -35559,3 +35559,17 @@ Built behind the switch and approved by the owner ("Approve round 6"): Contracts
 - ASK FOR A NEW LINK: POST /api/shares/:token/ask-new (public, rate-limited, only a link that ran out; one ask per link) writes `c.linkAsks` (that route's alone; the save route keeps the stored list) and a history line, emails the sender (`linkAskMailOf`, js/sharemail.js; the app's address, never a token); the bell's `linkask` row opens the Send screen; a new link to the same address answers it. f974; round8-outside-verify.
 - SAID, NOT AS DRAWN: the sign-in's wrong-guess line says what the server does (ten in a short while, fifteen minutes), not "five, ten minutes"; the expired page's response-code box is not built (HaTi has no step that takes a code on an expired link); the sender is named, not given a pronoun.
 - The other side's page and the phone are round 8's second half.
+
+## THE NEW LOOK, ROUND 8 (SECOND HALF) — THE OTHER SIDE'S PAGE AND THE PHONE (2 Nov 2026)
+- THE OTHER SIDE'S PAGE, behind the company's setting (`portalOutOn` = `outsideLookOn`, js/views/portal.js "THE NEW LOOK FOR PEOPLE OUTSIDE"):
+  - the black bar (`portalOutBarHtml`: their party · your view of the agreement with us · the reader, "signed in by code" only when this browser holds a code ticket);
+  - the tabs underlined, Redlines counting the answers waiting on them; Download Word (`data-pt-copy="word"`) and More;
+  - More (`#pol-more` → `#pol-pop`) GATHERS today's head without rebuilding it: the bell, Notes, More's copies, `#pt-nego-foot` (Ready to sign · Decline · Share a read-only copy · Edit), Compare wording and Focus, same ids and handlers;
+  - on Redlines the change column steps aside (CSS) for "Where we are" (`portalOutSideHtml`, off `dealStands`): the sentence, the six stops, Still open, Agreed, the overlap line, and Reply → the Notes drawer;
+  - a numbered dot after each of our asks and a note beside the paper (`portalOutPaintNotes`, painted, never stored): Accept · Counter · Reject press the hidden card's OWN verbs (`POL_VERB`), Undo once decided;
+  - the foot bar: Save for later (`portalSaveHeld` + an 'ok' toast) and Send back · N of M, which presses the column's own postbox (`portalPressSend`).
+- THE PHONE, behind the admin's own switch (`mNlOn`):
+  - Home borrows the computer's one desk (`ndRead` → `cn2Rows`, `ndParts`, `cn2QuoteHtml`, `cn2Greet`, `cn2Say` over the rows drawn); a row about no one contract is left to the computer;
+  - a contract carries its own black bar (back · name · the pill's word) with the tabs kept, and the sheet under the paper reads `dossierNowStage` for the six stops.
+- KEPT, NOT AS DRAWN: the phone's tab bar stays Home · Contracts · Negotiate · Approvals (the drawing's Calendar and Alerts have no phone page yet: ASKED); the phone contract keeps its five tabs (the drawing shows none); the phone sheet says wsNextAction's sentence, not the drawing's "approved 09:12; signed 08:40" line; Still open says "was N" (the drawing's "you asked N" is only true when the standing words were theirs).
+- Checks: test/chromium/round8-their-page-verify.js and round8-phone-verify.js (red at the parent, green on both browsers).
