@@ -782,6 +782,13 @@ function mHeadHtml(){
   /* ONE LOOK (owner, 20 Oct 2026): the theme button went with dark mode and
      the Blue / Green swatches; the phone keeps who you are and the way out. */
   const initials = String(name).trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || 'HT';
+  /* THE NEW LOOK (round 8, the admin's own switch): the black bar — HaTi, and who you are as your initials */
+  if(typeof window.newLookOn==='function' && window.newLookOn()){
+    const me = (typeof currentUser==='function') ? currentUser() : null;
+    const mine = String((me&&me.name)||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || initials;
+    return `<div class="m-head m-nl-bar"><div class="m-nl-mark">HaTi</div><span style="flex:1"></span>
+      <button class="m-head-btn m-nl-me" data-m-act="account" aria-label="${i18t('m_account_and_jx')}">${mEsc(mine)}</button></div>`;
+  }
   return `
     <div class="m-head">
       <div class="m-head-mark">${mEsc(initials)}</div>
@@ -1125,7 +1132,9 @@ function mRender(){
      is a tabbed screen (it is the door's own landing); a negotiation itself is
      not, and takes the whole shell (see onRedline above). */
   const tabbed = ['home','contracts','approvals','negotiations'].includes(s.screen);
-  root.innerHTML = mHeadHtml()
+  /* the new look's contract page carries its own black bar (back · the agreement · its state) in place of HaTi's */
+  const ownBar = s.screen==='contract' && typeof window.newLookOn==='function' && window.newLookOn() && typeof mContract==='function' && !!mContract();
+  root.innerHTML = (ownBar ? '' : mHeadHtml())
     + `<div class="m-screen">${body}</div>`
     + (tabbed ? mTabsHtml() : '')
     + (typeof mAiLauncherHtml==='function' ? mAiLauncherHtml() : '')

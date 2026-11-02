@@ -40,6 +40,27 @@ function mContractHeadHtml(c){
   const s = mS();
   const tab = k => `<button class="m-ctab${s.tab===k?' on':''}" data-m-ctab="${k}">`;
   const party = (typeof cParty==='function' ? cParty(c) : c.counterparty) || 'No counterparty yet';
+  /* THE NEW LOOK (round 8, the admin's own switch): the black bar — back, the agreement, its state in amber words;
+     the tabs stay under it, underlined, and More keeps its place at the bar's end */
+  if(typeof window.newLookOn==='function' && window.newLookOn()){
+    /* the state word is the phone's own pill's (mPill: the one reading), said as words */
+    const word = String(mPill(c)).replace(/<[^>]*>/g,'').trim();
+    return `<div class="m-nl-cbar">
+        <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <span class="m-nl-cname">${mEsc(c.name||(window.contractRef?contractRef(c):c.id))}</span>
+        <span class="m-nl-cst">${mEsc(word)}</span>
+        <button class="m-head-btn" data-m-act="overflow" aria-label="${i18t('mc_more_actions')}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></button>
+      </div>
+      <div class="m-nl-ctabs">
+        ${tab('det')}${i18t('tab_details')}${mDetCountHtml(c)}</button>
+        ${tab('doc')}${i18t('tab_document')}</button>
+        ${tab('terms')}${i18t('tab_overview')}</button>
+        ${tab('oblig')}${i18t('tab_obligations')}${mObligCountHtml(c)}</button>
+        ${tab('hist')}${i18t('tab_history')}</button>
+      </div>`;
+  }
   return `
     <div class="m-pagehead" style="padding:var(--s-2) var(--s-2) 0">
       <div style="display:flex;align-items:center;gap:2px;padding-bottom:var(--s-2)">
@@ -669,6 +690,23 @@ function mActionBarHtml(c){
       bl.slice(0, M_BL_SHOWN).map(x=>`<li>${mEsc(String(x.short||x.label||''))}</li>`).join('')}${
       bl.length>M_BL_SHOWN?`<li>${mEsc(i18tn('ins_more_asks', bl.length-M_BL_SHOWN, { n: bl.length-M_BL_SHOWN }))}</li>`:''}</ul>
       <div class="m-note" style="margin-bottom:8px">${mEsc(i18t('mc_settle_on_computer'))}</div>` : '';
+  /* THE NEW LOOK (round 8): the sheet under the paper — the six stops with the one you stand at (the Dossier's own
+     reading, dossierNowStage), the sentence in bold, what still holds signing, the act and "Read it first" */
+  if(typeof window.newLookOn==='function' && window.newLookOn()){
+    let now = ''; try{ now = (typeof dossierNowStage==='function') ? dossierNowStage(c) : ''; }catch(_){ now = ''; }
+    const ST = ['arrive','read','fill','nego','sign','live'], at = ST.indexOf(now);
+    const yours = btn && !bl.length;
+    const road = at < 0 ? '' : `<div class="m-nl-road">${ST.map((k,i)=>i===at
+      ? `<b>${mEsc(i18t('pol_rd_'+k))}${yours?', '+mEsc(i18t('pol_your_move')):''}</b>` : `<span class="${i<at?'is-done':''}">${mEsc(i18t('pol_rd_'+k))}</span>`).join(' · ')}</div>`;
+    const sign = btn && (na.kind==='sign'||na.kind==='sign-scroll');
+    return `<div class="m-actionbar m-nl-sheet">${road}
+      <div class="m-nl-guide">${guide}</div>${blHtml}
+      ${btn?`<div class="m-nl-btns">${bl.length
+        ? `<button class="m-nl-go" data-m-na="${mEsc(na.kind)}" disabled aria-disabled="true">${mEsc(na.label)}</button>`
+        : `<button class="m-nl-go" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`}${
+        sign?`<button class="m-nl-pill" data-m-nl-read>${mEsc(i18t('m_nl_read_first'))}</button>`:''}</div>`:''}
+    </div>`;
+  }
   return `
     <div class="m-actionbar">
       <div class="m-note" style="margin-bottom:${btn?'8px':'0'}">${guide}</div>
@@ -1191,6 +1229,11 @@ function mWireContract(root){
   const s = mS();
   root.querySelectorAll('[data-m-ctab]').forEach(b=>b.addEventListener('click',()=>{
     s.tab = b.getAttribute('data-m-ctab'); mRender();
+  }));
+  /* Read it first: the paper, from its top */
+  root.querySelectorAll('[data-m-nl-read]').forEach(b=>b.addEventListener('click',()=>{
+    if(s.tab!=='doc'){ s.tab='doc'; mRender(); }
+    const sc = document.querySelector('#m-root .m-scroll'); if(sc) sc.scrollTop = 0;
   }));
   mDetWire(root);
   root.querySelectorAll('[data-m-hist]').forEach(b=>b.addEventListener('click',()=>{
