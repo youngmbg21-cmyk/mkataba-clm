@@ -149,7 +149,7 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
       const F = await page.evaluate(() => ({ doors: [...document.querySelectorAll('#cn2-page [data-cn2-first]')].map(b => ({ k: b.getAttribute('data-cn2-first'), filled: b.classList.contains('ui-btn-primary') })),
         never: document.querySelectorAll('#ins-panel .cn2-pr').length, once: [...document.querySelectorAll('#ins-panel [data-cn2-go]')].map(b => b.getAttribute('data-cn2-go')) }));
       check('11 the first day: three doors (Upload filled, Draft, Import); Jambo\'s three rules he keeps and the set-up links',
-        F.doors.map(d => d.k).join() === 'upload,draft,import' && F.doors[0].filled && !F.doors[1].filled && F.never === 3 && F.once.join() === 'people,settings,standards', F);
+        F.doors.map(d => d.k).join() === 'upload,draft,import' && F.doors[0].filled && !F.doors[1].filled && F.never === 3 && F.once.join() === 'settings,people,standards' /* RE-POINTED 2 Nov 2026 (round 7, as drawn): streams first */, F);
       await page.screenshot({ path: path.join(OUT, 'home-first-day.png') });
       await newLook(page, false);
     } else check('11 the first day signed in', false);

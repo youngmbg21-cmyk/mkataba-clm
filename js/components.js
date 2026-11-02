@@ -593,6 +593,8 @@ function jamboWaysSync(){
   if (typeof document === 'undefined') return;
   if (typeof window.newLookOn === 'function' && !window.newLookOn()){ document.querySelectorAll('.jb-ways.is-above-foot').forEach(w => w.remove()); return; }
   const here = jamboWaysHere();
+  /* the first day has nothing behind the doors yet (round 7, as drawn): none above the box */
+  if (document.querySelector('#cn2-page.is-first')) here.doors = [];
   for (const sel of JB_WAY_FEET){
     document.querySelectorAll(sel).forEach(foot => {
       if (!foot.querySelector('.jb-card')) return;

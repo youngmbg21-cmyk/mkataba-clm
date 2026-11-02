@@ -96,4 +96,4 @@ async function R6_BRING(){
   if (typeof askColSummary === 'function') await askColSummary(true);
   await askColBring(window.__r6Ask);
 }
-module.exports = { r6Contracts, seedRound6, R6_IN_PAGE, R6_BRING, R6_Q, R6_Q2, iso, day };
+module.exports = { r6Contracts, r6Answer, seedRound6, R6_IN_PAGE, R6_BRING, R6_Q, R6_Q2, iso, day };

@@ -10516,6 +10516,8 @@ function renderNegotiationsList(host){
      setView, so nothing else repainted the bar. The held contract is already
      let go on every path that arrives here. */
   if (typeof rlBoardPaintTitle === 'function') rlBoardPaintTitle();
+  /* THE NEW LOOK (round 7, as drawn): one quiet list with the chosen row read in Jambo's panel */
+  if (typeof window.ngnOn === 'function' && ngnOn()){ ngnRender(el); return; }
   const live = negoLiveList();
   /* ---- AN EMPTY GROUP IS INFORMATION; THREE OVER NOTHING IS NOT ----
      With no live negotiation anywhere, this is not a table that filtered to

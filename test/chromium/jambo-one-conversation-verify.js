@@ -59,7 +59,11 @@ const CONTRACTS = [
     await page.evaluate(() => { setView('dashboard'); if (window.hbFace && hbFace() !== 'board') hbSetFace('board'); intel.dockOpen = true; renderIntelDock(); });
     await until(() => !!document.getElementById('igd-input'), null, 8000);
   };
-  const homeTalk = async () => { await page.evaluate(() => { if (window.pdTalkReopen) pdTalkReopen(); }); await quiet(); };
+  /* RE-POINTED 2 Nov 2026 (round 7's PR): a contract just opened may draw Jambo's panel again as it settles (its
+     arrival's own repaint), so the conversation is reopened until it is up — Settings' own step below does the same */
+  const homeTalk = async () => { await quiet();
+    await until(() => { if (window.pdTalkReopen && !(window.pdTalkShows && pdTalkShows())) pdTalkReopen(); return window.pdTalkShows && pdTalkShows() ? true : null; }, null, 6000);
+    await quiet(); };
   const toSettings = async () => {
     await page.evaluate(() => setView('team'));
     await until(() => !!document.getElementById('st-jb-feed'), null, 8000);

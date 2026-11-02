@@ -756,6 +756,7 @@ function renderPageHeader(view){
   const host=document.getElementById('page-head'); if(!host) return;
   /* the new look draws Requests' own head (round 6, as drawn) */
   const ownsHead=PAGE_OWNS_HEADER.includes(view)||(view==='intake'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof canEdit==='function'&&canEdit()&&typeof insFits==='function'&&insFits())
+    ||(view==='team'&&typeof window.stnOn==='function'&&stnOn()&&typeof isAdmin==='function'&&isAdmin())
     ||(view==='migration'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof insFits==='function'&&insFits()&&typeof migRows==='function'&&migRows().length>0);
   if(ownsHead){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
   /* ---- NO SENTENCE UNDER ANY HEADER (owner-asked 25 Aug 2026, off a
@@ -3913,7 +3914,43 @@ function guideRowHtml(k, here, cls){
     ${on?`<span class="gd-pill is-here">${esc(i18t('gd_here'))}</span>`:c?`<span class="gd-pill is-owed">${esc(c.w)}</span>`:''}
     <span class="gd-go" aria-hidden="true">›</span></button>`;
 }
+/* THE GUIDE, THE NEW LOOK (round 7, as drawn): you are here, then the pages by stage, each with the word that opens
+   it and its count — amber where something needs you, plain where it is a size. Every page the Guide had stays on it
+   (rule 9c): the drawing's rows, and the pages it did not draw in the stage they belong to. */
+const GUIDE_NL=[
+  { k:'arrive', rows:[['contracts'],['requests'],['import'],['ourpaper'],['draft']] },
+  { k:'negsign', rows:[['negotiations'],['approvals'],['document']] },
+  { k:'live', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
+  { k:'book', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
+];
+function guideSizeOf(k){
+  try{
+    if(k==='contracts') return (state.contracts||[]).filter(c=>c&&!c.archived).length||0;
+    if(k==='ourpaper') return (window.TEMPLATES?Object.keys(window.TEMPLATES).length:0)+(window.customTemplates?customTemplates().length:0)+(window.tplLibCount?tplLibCount():0);
+    return 0;
+  }catch(_){ return 0; }
+}
+function guideNlCount(k){
+  if(k==='settings'){ let n=0; try{ n=(typeof stNeedsAll==='function')?stNeedsAll().length:0; }catch(_){ n=0; } return n?{ n, owed:true }:null; }
+  const c=guideCountOf(k); if(c) return { n:c.n, owed:true };
+  const s=guideSizeOf(k); return s?{ n:s, owed:false }:null;
+}
+function guideNlRowHtml(keys, here){
+  const shown=keys.filter(guideRowShown); if(!shown.length) return '';
+  const words=shown.map(guideWordOf).filter(Boolean).map(w=>'\u201c'+w+'\u201d');
+  const cnt=shown.length===1?guideNlCount(shown[0]):null;
+  return `<div class="gdn-r${shown.includes(here)?' is-here':''}"><span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
+    +`${words.length?`<span class="gdn-say">${esc(i18t('gdn_say',{ words:words.join(' \u00b7 ') }))}</span>`:''}<span class="gdn-n${cnt&&cnt.owed?' is-owed':''}">${cnt?cnt.n:''}</span></div>`;
+}
+function guidePanelNlHtml(){
+  const here=guideHereKey()||'counter';
+  const inStages=new Set(GUIDE_NL.flatMap(s=>s.rows.flat()));
+  const hereRow=inStages.has(here)||here==='counter'?[here]:['counter'];
+  return `<div class="gdn"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${guideNlRowHtml(hereRow,here)}`
+    +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${rows}`:''; }).join('')+`</div>`;
+}
 function guidePanelHtml(){
+  if(typeof window.newLookOn==='function'&&newLookOn()) return guidePanelNlHtml();
   const here=guideHereKey();
   return `<div class="gd">
     <p class="gd-say"><b>${esc(i18t('gd_say_b'))}</b> ${esc(i18t('gd_say'))}</p>
@@ -3955,7 +3992,9 @@ function panelTabsPaint(face){
   const cid=(typeof chatContractId==='function')?chatContractId():null;
   const tabs=[['guide','gd_tab'],['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
   host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid&&face!=='notes';
-    return `<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}"${dead?` disabled aria-disabled="true" title="${esc(i18t('ng_chat_none'))}"`:''}>${esc(i18t(w))}${k==='guide'&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`; }).join('');
+    const nl=typeof window.newLookOn==='function'&&newLookOn();
+    let cnt=''; if(nl&&k==='alerts'){ let n=0; try{ n=(typeof counterNeedsCount==='function')?Number(counterNeedsCount())||0:0; }catch(_){ n=0; } if(n) cnt=`<span class="pt-n">${n>99?'99+':n}</span>`; }
+    return `<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}"${dead?` disabled aria-disabled="true" title="${esc(i18t('ng_chat_none'))}"`:''}>${esc(i18t(w))}${cnt}${k==='guide'&&!nl&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`; }).join('');
   host.querySelectorAll('[data-pt-face]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-pt-face'); if(k===panelFace()||b.disabled) return;
     if(k==='notes'){ const id=(typeof chatContractId==='function')?chatContractId():null; if(id) openNotesPanel(id,null,{ force:true }); return; }
@@ -4085,6 +4124,8 @@ function alertsListHtml(rows){
           </div>`; }).join('');
 }
 function alertsPanelHtml(given){
+  /* THE NEW LOOK (round 7, as drawn): one list, the same things Home lists, then News, not counted */
+  if(!given&&typeof window.newLookOn==='function'&&newLookOn()&&typeof window.ndBellNlHtml==='function'){ try{ return ndBellNlHtml(ndRead()); }catch(_){ /* the list below */ } }
   if(given) return `<div style="padding:10px var(--s-3);">
         <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span style="width:6px;height:6px;border-radius:50%;background:${given.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
@@ -4611,6 +4652,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{GUIDE_NL,guidePanelNlHtml,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

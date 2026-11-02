@@ -18835,6 +18835,10 @@
   html.lg-new .apn-bar{display:flex;align-items:center;gap:18px;margin:0 0 6px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .apn-box{display:flex;align-items:center;gap:8px;flex:0 1 720px;height:36px;color:var(--color-text)}
   html.lg-new .apn-box input{flex:1;border:0;background:none;font:inherit;font-size:13.5px;outline:none}
+  /* the box gives way before a tab does: the tabs stay whole beside a panel (round 7, the iPad) */
+  html.lg-new .apn-box{min-width:120px}
+  html.lg-new .apn-box input{min-width:0;width:100%}
+  html.lg-new .apn-bar .apn-tab{flex:none}
   html.lg-new .apn-sp{flex:1}
   html.lg-new .apn-tab{border:0;background:none;padding:8px 0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
   html.lg-new .apn-tab.is-on{border-bottom-color:var(--accent-ink)}
@@ -19181,6 +19185,129 @@
   html.lg-new .ikn-table tr.is-done td{color:var(--color-quiet)}
   html.lg-new .ikn-table tbody tr{cursor:pointer}
   html.lg-new .ikn-go{border-radius:999px;white-space:nowrap}
+  /* JAMBO'S AGENTS, THE NEW LOOK (round 7, second half): one white page, the tabs beside the title, MAY HE as three pills */
+  html.lg-new .jhn-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
+  html.lg-new .jhn-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 16px}
+  html.lg-new .jhn-tabs{display:flex;gap:18px;margin-left:8px}
+  html.lg-new .jhn-tab{border:0;background:none;padding:6px 0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  html.lg-new .jhn-tab[aria-selected="true"]{border-bottom-color:var(--accent-ink)}
+  html.lg-new .jhn-tab span{font-weight:400}
+  html.lg-new .jhn-head .jh-fb{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  html.lg-new .jhn-head .jh-box{border:0;border-radius:999px;background:var(--surface-2);padding:0 12px;height:var(--ctl-h-sm)}
+  html.lg-new .jhn-head .jh-box-l{display:none}
+  html.lg-new .jhn-head .jh-box select{border:0;background:none;font:inherit;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .jhn-pill{border-radius:999px}
+  html.lg-new .jhn-page .jh-band,html.lg-new .jhn-page .jh-jambo{display:none}
+  html.lg-new .jhn-table tbody td{vertical-align:middle}
+  html.lg-new .jhn-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--st-violet-dot);margin-right:10px}
+  html.lg-new .jhn-wk{font-weight:var(--w-label)}
+  html.lg-new .jhn-seg{display:inline-flex;border-radius:999px;background:var(--surface-2);padding:3px;gap:2px}
+  html.lg-new .jhn-seg > button{appearance:none;border:0;border-radius:999px;background:transparent;font:inherit;font-size:13px;font-weight:var(--w-label);padding:0 11px;height:var(--ctl-h-sm);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new .jhn-seg > button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .jhn-seg > button:disabled{color:var(--color-quiet);cursor:default}
+  html.lg-new .jhn-reads{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .jhn-table .cun-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  html.lg-new .jhn-table th.n,html.lg-new .jhn-table td.n{text-align:right;font-weight:var(--w-strong)}
+  /* THE HANDBOOK, THE NEW LOOK (round 7, second half): the parts and the open part's chapters down the left, one chapter in the middle */
+  html.lg-new .hbkn-page .ap-card.apn-card{padding-left:40px;padding-right:40px;display:flex;flex-direction:column;min-height:0}
+  html.lg-new .hbkn-pill{border-radius:999px}
+  html.lg-new .hbkn-cols{display:grid;grid-template-columns:240px minmax(0,1fr);gap:40px;min-height:0;flex:1;margin-top:20px}
+  html.lg-new .hbkn-nav{display:flex;flex-direction:column;align-items:flex-start;overflow-y:auto;min-height:0}
+  html.lg-new .hbkn-part,html.lg-new .hbkn-ch{border:0;background:none;font:inherit;text-align:left;cursor:pointer;color:var(--color-text);font-weight:var(--w-label)}
+  html.lg-new .hbkn-part{font-size:13.5px;padding:7px 0}
+  html.lg-new .hbkn-ch{font-size:13.5px;padding:5px 0 5px 12px}
+  html.lg-new .hbkn-ch.is-on{box-shadow:inset 2px 0 0 var(--color-text);padding-left:14px;margin-left:-2px}
+  html.lg-new .hbkn-body{overflow-y:auto;min-height:0;padding:0 6px 24px 0;max-width:720px}
+  html.lg-new .hbkn-eye{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label)}
+  html.lg-new .hbkn-t{font-family:var(--font-doc);font-weight:400;font-size:24px;margin:8px 0 12px}
+  html.lg-new .hbkn-what{margin:0 0 12px;font-size:14px;font-weight:var(--w-label);line-height:1.5}
+  html.lg-new .hbkn-steps{margin:0 0 16px;padding-left:20px;font-size:14px;font-weight:var(--w-label);line-height:1.5}
+  html.lg-new .hbkn-page .hbkn-steps li{margin:0 0 6px;list-style:decimal;display:list-item}
+  html.lg-new .hbkn-pics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 16px}
+  html.lg-new .hbkn-pics .hbk-fig{margin:0}
+  html.lg-new .hbkn-pics figcaption{font-size:12px;font-weight:var(--w-label);margin-top:6px}
+  html.lg-new .hbkn-tip{font-size:14px;font-weight:var(--w-label);line-height:1.5;margin:0 0 16px}
+  html.lg-new .hbkn-more h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:16px 0 6px}
+  html.lg-new .hbkn-more ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.5}
+  /* THE SIDE PANEL, THE NEW LOOK (round 7): the tabs are its head (no title line), the × at their end; the bell is
+     one list with one Open each, News under it; the Guide is the pages by stage with the word that opens each */
+  html.lg-new #panel-title{display:none}
+  html.lg-new #context-panel > header{position:absolute;top:0;right:0;z-index:2;padding:12px 12px 0 0;background:none}
+  html.lg-new #panel-tabs{padding:12px 48px 12px 16px;min-height:56px;align-items:center}
+  html.lg-new #context-panel .pt-tab{font-size:13.5px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #context-panel .pt-n{margin-left:6px;display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--st-green-bg);color:var(--accent-ink);font-size:11.5px;font-weight:var(--w-strong);text-align:center}
+  html.lg-new .ndb{padding:12px 16px 16px}
+  html.lg-new .ndb-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);padding:10px 0 8px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .ndb-h ~ .ndb-h{margin-top:16px}
+  html.lg-new .ndb-r{display:flex;align-items:flex-start;gap:12px;width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;text-align:left;color:var(--color-text)}
+  html.lg-new button.ndb-r{cursor:pointer}
+  html.lg-new .ndb-dot{width:6px;height:6px;border-radius:50%;flex:none;margin:7px 3px 0;background:var(--st-amber-dot)}
+  html.lg-new .ndb-dot.is-late{background:var(--st-ruby-dot)}
+  html.lg-new .ndb-dot.is-jambo{width:12px;height:12px;margin:4px 0 0;background:var(--st-violet-dot)}
+  html.lg-new .ndb-dot.is-week{background:var(--st-green-dot)}
+  html.lg-new .ndb-dot.is-news{background:var(--color-divider)}
+  html.lg-new .ndb-w{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .ndb-w b{font-size:13.5px;font-weight:var(--w-label);line-height:1.35}
+  html.lg-new .ndb-w span{font-size:12px;font-weight:var(--w-label);line-height:1.35}
+  html.lg-new .ndb-open{flex:none;border-radius:999px;align-self:center}
+  html.lg-new .ndb-none{margin:16px 0;font-size:13.5px}
+  html.lg-new .gdn{padding:16px}
+  html.lg-new .gdn-say-top{margin:0 0 8px;font-size:14px;font-weight:var(--w-label);line-height:1.45}
+  html.lg-new .gdn-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);padding:12px 0 6px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .gdn-r{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .gdn-nm{display:inline-flex;flex-wrap:wrap;align-items:baseline}
+  html.lg-new .gdn-go{border:0;background:none;padding:0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new .gdn-go:hover{color:var(--accent-ink)}
+  html.lg-new .gdn-nm i{font-style:normal;font-size:13.5px;font-weight:var(--w-label);margin:0 4px}
+  html.lg-new .gdn-say{font-size:11.5px;color:var(--color-quiet);flex:1;min-width:0}
+  html.lg-new .gdn-n{margin-left:auto;font-size:13.5px;font-weight:var(--w-strong);flex:none}
+  html.lg-new .gdn-n.is-owed{color:var(--st-amber-fg)}
+  html.lg-new #cn2-page .cn2-fd-drop{margin:16px 0 0;font-size:12px;font-weight:var(--w-label)}
+  /* HOME: a piece open under its row turns his panel to what he read and what each press does (round 7) */
+  html.lg-new #ins-panel .cn2-jcard{background:var(--surface-2);border-radius:var(--radius);padding:16px;margin:0 0 16px}
+  html.lg-new #ins-panel .cn2-jcard p{margin:0;font-size:14px;font-weight:var(--w-label);line-height:1.45}
+  html.lg-new #ins-panel .cn2-jcard small{display:block;margin-top:10px;font-size:11.5px;color:var(--color-quiet)}
+  /* SETTINGS & RULES, THE NEW LOOK (round 7): a menu down the left, one list of sentences, a Change at each row's end */
+  html.lg-new .stn-page .ap-card.apn-card{padding-left:40px;padding-right:40px;display:flex;flex-direction:column;min-height:0}
+  html.lg-new .stn-title{margin:0 0 20px}
+  html.lg-new .stn-cols{display:grid;grid-template-columns:216px minmax(0,1fr);gap:40px;min-height:0;flex:1}
+  html.lg-new .stn-menu{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+  html.lg-new .stn-mh{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:12px 0 6px}
+  html.lg-new .stn-mh:first-child{margin-top:0}
+  html.lg-new .stn-mi{border:0;background:none;padding:5px 0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;text-align:left}
+  html.lg-new .stn-mi:hover{color:var(--accent-ink)}
+  html.lg-new .stn-main{overflow-y:auto;overflow-x:hidden;min-height:0;padding:0 6px 24px 0}
+  html.lg-new .stn-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0;padding:0 0 8px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .stn-h + .stn-row{border-top:0}
+  html.lg-new .stn-row ~ .stn-h{margin-top:24px}
+  html.lg-new .stn-row{display:grid;grid-template-columns:minmax(120px,30%) minmax(0,1fr) auto;gap:16px;padding:12px 0;border-bottom:1px solid var(--color-divider);align-items:baseline}
+  html.lg-new .stn-l{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .stn-val{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .stn-sub{font-size:11.5px;color:var(--color-quiet);margin-top:2px}
+  html.lg-new .stn-a{justify-self:end;white-space:nowrap}
+  html.lg-new .stn-go{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .stn-row .stn-seg{align-self:center}
+  html.lg-new .stn-pp{margin:0 0 8px;font-size:13.5px;line-height:1.45}
+  html.lg-new .stn-panel .stn-pr{cursor:pointer}
+  html.lg-new .stn-page .st-yseg{display:inline-flex;border:0;border-radius:999px;background:var(--surface-2);padding:3px;gap:2px}
+  html.lg-new .stn-page .st-yseg > button{appearance:none;border:0;border-radius:999px;background:transparent;font:inherit;font-size:13px;font-weight:var(--w-label);padding:0 12px;height:var(--ctl-h-sm);color:var(--color-text);cursor:pointer}
+  html.lg-new .stn-page .st-yseg > button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .stn-panel .stn-nd b small{display:block;font-size:11.5px;font-weight:400;color:var(--color-quiet);margin-top:2px}
+  /* NEGOTIATIONS, THE NEW LOOK (round 7): your move lifted, settled faded, their words in the paper's type */
+  html.lg-new .ngn-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
+  html.lg-new .ngn-table tbody tr{cursor:pointer}
+  html.lg-new .ngn-table tr.is-yours td{background:var(--surface-2)}
+  html.lg-new .ngn-table tr.is-settled td,html.lg-new .ngn-table tr.is-settled .cun-name{color:var(--color-quiet)}
+  html.lg-new .ngn-table tr.is-sel:not(.is-yours) td{background:var(--color-bg)}
+  html.lg-new .ngn-table td:first-child{padding-left:12px}
+  html.lg-new .ngn-table th:first-child{padding-left:12px}
+  html.lg-new .ngn-ref{font-family:var(--font-mono);font-weight:var(--w-strong)}
+  html.lg-new .ngn-rd,html.lg-new .ngn-mv,html.lg-new .ngn-open,html.lg-new .ngn-last{font-weight:var(--w-label)}
+  html.lg-new .ngn-mv.is-you{color:var(--st-amber-fg)}
+  html.lg-new .ngn-q{font-family:var(--font-doc);font-style:italic;font-weight:400;quotes:'\201C' '\201D'}
+  html.lg-new .ngn-s{font-family:var(--font-doc);font-style:italic;font-weight:400}
+  html.lg-new .ngn-lead{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:var(--w-label)}
+  html.lg-new .ngn-av{width:24px;height:24px;border-radius:50%;background:var(--st-green-bg);color:var(--color-text);font-size:10px;font-weight:var(--w-strong);display:inline-flex;align-items:center;justify-content:center;flex:none}
   /* IMPORT, AS DRAWN */
   html.lg-new .mig-page:has(.mign-table) .mig-drop-card{display:none}
   html.lg-new .mign-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
