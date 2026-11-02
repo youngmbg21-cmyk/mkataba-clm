@@ -374,6 +374,7 @@ const BRAIN_PARTS = [
   ['passroute', 'POST /api/contracts/:id/pass', 'wall', 2],
   ['agentlevel', 'agentLevel', 'wall', 2],
   ['linkkeep', 'srvShareExtend', 'wall', 2],
+  ['linkask', 'POST /api/shares/:token/ask-new', 'wall', 2],
   ['readings', 'agApproveItems', 'see', 1],
   /* the nine flow rules 3 and 8 (8 Oct 2026): a pass is a tracked hand-off —
      a `look` question in the colleague's checklist and bell, reminded, the
@@ -622,7 +623,7 @@ const BRAIN_FLOWS = [
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview', 'stripfamily']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'streamside', 'youform', 'myemail', 'mycopy', 'acctrec']] },
-  { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'whosemove']] }
+  { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'linkask', 'whosemove']] }
 ];
 
 /* THE LANES (Young picked "Swimlane", 8 Oct 2026, and approved its rule): the
@@ -653,7 +654,7 @@ const BRAIN_LANE_OF = {
     'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
     'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'scratchsection', 'askcolread', 'askcolturn', 'askcolruns', 'askcolstop', 'partybrief', 'askcolkept', 'askcolteam', 'askcolcheck', 'askcolrule', 'askcolkeep', 'askcoldel', 'askcolsum', 'askcolfacts', 'askcolodd', 'partyfacts', 'ptreview', 'breakread', 'breakdive', 'agentpieces', 'roundsettle', 'piecesget', 'agentoutcome', 'agentprepared', 'agentrebuild', 'agentpoints', 'invite', 'settingswhy', 'settingsasks', 'fdlist', 'fdpin', 'fddel', 'fdreply', 'fdsend', 'fdseen', 'watchget', 'watchadd', 'watchset', 'watchdel', 'watchrun', 'watchsweep'],
   /* the counterparty: their link, the code that proves it is them */
-  them: ['cplink', 'guestcode', 'theirsign']
+  them: ['cplink', 'guestcode', 'theirsign', 'linkask']
 };
 const BRAIN_FLOW_STAGES = {
   upload: ['create', 'create', 'create', 'create', 'prepare', 'prepare', 'prepare', 'prepare', 'prepare', 'prepare'],

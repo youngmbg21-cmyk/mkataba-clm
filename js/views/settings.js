@@ -2399,6 +2399,9 @@ if(typeof document!=='undefined' && !window._stSheetWired){
       el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
       if(k==='chips') stChipsSet(on);
       if(k==='newlook') stNewLookSet(on);
+      /* the new look for people outside the company (round 8): the company's setting, an admin's, saved with the rest */
+      if(k==='outsidelook'){ state.settings=state.settings||{}; state.settings.outsideLook={ on };
+        Promise.resolve(typeof saveSettings==='function'?saveSettings():null).then(()=>{ window._outsideLook=on; if(typeof toast==='function') toast(i18t(on?'stn_out_on_t':'stn_out_off_t'),'ok'); }); }
       if(k==='push' && typeof pushToggle==='function'){ el.disabled=true;
         pushToggle(on).then(r=>{ _stPush=r.state; stPushPaint(); }); }
       return; }
@@ -10135,7 +10138,8 @@ function stnCompanyHtml(){
     +stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change')))
     +stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change')))
     +stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update')))
-    +stnRow('mail', i18t('stn_mail'), stnStateText('mail'), '', stnDoor('data-st-panel="mail"', i18t('stn_health')));
+    +stnRow('mail', i18t('stn_mail'), stnStateText('mail'), '', stnDoor('data-st-panel="mail"', i18t('stn_health')))
+    +stnRow('outsidelook', i18t('stn_out'), esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')));
 }
 function stnMenuHtml(admin){
   const go=(attr,w)=>`<button type="button" class="stn-mi" ${attr}>${esc(w)}</button>`;

@@ -3099,6 +3099,8 @@ async function portalFetchShare(token){
   const t=portalTicket(token);
   const r=await fetch('api/shares/'+encodeURIComponent(token)+(t?('?t='+encodeURIComponent(t)):''));
   const d=await r.json().catch(()=>null);
+  /* THE NEW LOOK FOR PEOPLE OUTSIDE (round 8): every answer says whether the company shows it */
+  if(d && typeof d.outsideLook==='boolean'){ window._outsideLook=d.outsideLook; if(typeof window.outsideLookApply==='function') outsideLookApply(); }
   return { status:r.status, ok:r.ok, d };
 }
 /* Repaint from the server's current answer, keeping the reader where they were
@@ -4803,6 +4805,7 @@ function renderSharePortal(p, opts={}){
     (p.contract.source==='upload' || !!p.contract.redlineText || !!TEMPLATES[p.contract.template]);
   if(!validDoc){
     const gone=opts.gone;   // 'expired' | 'revoked' — the link was real but is no longer active
+    if(gone && typeof window.outsideLookOn==='function' && outsideLookOn()){ root.innerHTML=portalGoneNlHtml(opts); portalGoneNlWire(opts); return; }
     root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 var(--s-4);">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:var(--s-8);text-align:center;max-width:24rem;">
         <div style="color:${gone?'var(--st-amber-dot)':'var(--st-ruby-dot)'};margin-bottom:var(--s-3);display:flex;justify-content:center;">${icon(gone?'clock':'ban','w-8 h-8')}</div>
@@ -6297,6 +6300,33 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+/* ═══ AN EXPIRED OR WITHDRAWN LINK, THE NEW LOOK (round 8, as drawn; the company's "new look for people outside") ═══
+   Nothing from the agreement: who sent it and the day it stopped, what the holder can do — ask for a new link (the
+   one press, POST /api/shares/:token/ask-new: the sender is told in HaTi and by email) and that no assistant answers
+   here. The drawing's response-code box is not built: HaTi has no step that takes a code on an expired link. */
+function portalGoneNlHtml(opts){
+  const w = opts.goneWho || {}, org = w.org || i18t('pnl_the_sender'), sender = w.sender || org, exp = opts.gone === 'expired';
+  const day = w.expiredAt ? (()=>{ try{ return new Date(w.expiredAt).toLocaleDateString(typeof langLocale==='function'?langLocale():'en-GB',{ day:'numeric', month:'long' }); }catch(_){ return ''; } })() : '';
+  const head = exp ? (day ? i18t('pnl_exp_said', { org, day }) : i18t('pnl_exp_said_nodate', { org })) : i18t('pnl_rev_said', { org });
+  const tok = PORTAL_OPTS && PORTAL_OPTS.token || opts.token || (location.hash.match(/^#share=t:([^&]+)/) || [])[1] || '';
+  const asked = !!w.linkAsked;
+  const askRow = exp && tok ? `<div class="pnl-row"><span>${esc(i18t('pnl_ask_new'))}</span><b id="pnl-ask-said">${esc(asked ? i18t('pnl_asked', { who: sender }) : i18t('pnl_ask_who', { who: sender }))}</b>${asked ? '<i></i>' : `<button type="button" class="ui-link" id="pnl-ask" data-tok="${esc(tok)}">${esc(i18t('pnl_ask'))}</button>`}</div>` : '';
+  return `<div class="pnl-wrap"><header class="pnl-bar"><b>HaTi</b><span>${esc(w.contractName ? i18t('pnl_bar_from', { org }) : i18t('pnl_bar_from', { org }))}</span><span class="pnl-sp"></span><span>${esc(i18t('pnl_not_signed'))}</span></header>
+    <main class="pnl-gone"><span class="pnl-ic" aria-hidden="true">${typeof icon==='function'?icon(exp?'clock':'ban','w-5 h-5'):''}</span>
+      <h1>${esc(i18t(exp ? 'pnl_exp_h' : 'pnl_rev_h'))}</h1><p class="pnl-say">${esc(head)} ${esc(i18t('pnl_nothing'))}</p>
+      <div class="pnl-cap">${esc(i18t('pnl_can_do'))}</div>
+      ${askRow}
+      <p class="pnl-foot">${esc(i18t('pnl_no_assistant', { org }))}</p></main></div>`;
+}
+function portalGoneNlWire(opts){
+  const b = document.getElementById('pnl-ask');
+  if (b) b.addEventListener('click', async () => { b.disabled = true;
+    try{ const r = await fetch('api/shares/' + encodeURIComponent(b.getAttribute('data-tok')) + '/ask-new', { method:'POST', headers:{ 'content-type':'application/json' }, body:'{}' });
+      if (!r.ok) throw new Error(((await r.json().catch(()=>({}))).error) || 'refused');
+      const w = opts.goneWho || {}, said = document.getElementById('pnl-ask-said'); if (said) said.textContent = i18t('pnl_asked', { who: w.sender || w.org || i18t('pnl_the_sender') }); b.remove();
+      if (typeof toast === 'function') toast(i18t('pnl_asked_toast'), 'ok'); }
+    catch(e){ b.disabled = false; if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); } });
+}
+Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

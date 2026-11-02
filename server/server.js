@@ -20,6 +20,7 @@ const { ndaClean, ndaFacts } = require('../js/nda.js');
 const { shareMailOf, shareMailNameOf, signerTurnMailOf, shareRoundOf, shareAnswersOf } = require('../js/sharemail.js');
 /* THE CHASE (round 23's gaps, 18 Oct 2026): the reminder the Counter's Look draws, written once */
 const { chaseMailOf, chaseDayWords } = require('../js/sharemail.js');
+const { linkAskMailOf } = require('../js/sharemail.js');
 const { passMailOf, PASS_NOTE_MAX } = require('../js/sharemail.js');
 /* WHERE THE DEAL STANDS, AS DRAWN: the page's one reading, shared with the owner's tab (js/dealstands.js) */
 const { dpPage } = require('../js/dealstands.js');
@@ -3871,7 +3872,7 @@ app.get('/api/status', (req, res) => {
   // Expose the deployed build so "did my change go live?" is a one-second check:
   // visit /api/status and compare `version` to the latest git commit. Render sets
   // RENDER_GIT_COMMIT/RENDER_GIT_BRANCH on every deploy.
-  res.json({ mode: 'api', setup: !!org, orgName: org?.name || null, authed: !!readSession(req),
+  res.json({ mode: 'api', setup: !!org, orgName: org?.name || null, authed: !!readSession(req), outsideLook: outsideLookOn(),
     version: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'dev',
     branch: process.env.RENDER_GIT_BRANCH || null });
 });
@@ -5316,6 +5317,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      a colleague arrived would echo back a map without them — taking somebody
      out of a room they are sitting in. The STORED map wins, always. */
   if (prev && prev.here) c.here = prev.here; else delete c.here;
+  /* the asks for a new link are POST /api/shares/:token/ask-new's alone (round 8): the stored list wins */
+  if (prev && Array.isArray(prev.linkAsks)) c.linkAsks = prev.linkAsks; else delete c.linkAsks;
   /* ---- AND WHICH POINTS A PERSON MARKED REVIEWED (21 Oct 2026) ----
      `pointReviews` is written by POST /api/contracts/:id/points/:key/review
      and by nothing else — the same rule as `here`: the stored map wins. */
@@ -20270,6 +20273,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         const recent = Date.now() - 120000;
         const already = trail.some(a => a && /^Shared$/i.test(String(a.action || ''))
           && Date.parse(a.at || '') >= recent);
+        /* a new link to the same address answers their ask for one (round 8) */
+        if (email && Array.isArray(cj.linkAsks)){ const left = cj.linkAsks.filter(a => !(a && String(a.email || '').toLowerCase() === String(email).toLowerCase()));
+          if (left.length !== cj.linkAsks.length){ if (left.length) cj.linkAsks = left; else delete cj.linkAsks; if (already) db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), shareId); } }
         if (!already) {
           const who = String(rec.name || email || phone || 'a recipient');
           cj.audit = trail.concat([{
@@ -20637,6 +20643,9 @@ function contractExecution(contractId) {
 /* THE SAME BLOB EVERY OTHER WALL LIVES IN (appSettings), and read from the
    STORED settings rather than from a request — the browser's copy of a rule is
    cosmetics, as deskRuleOn beside it records. */
+/* THE NEW LOOK FOR PEOPLE OUTSIDE THE COMPANY (round 8, owner's answer 1 Nov 2026): an admin's company setting, off by
+   default; the sign-in, the other side's page and an expired link read it (a boolean only, nothing else). */
+const outsideLookOn = () => { try { return !!((getSetting('appSettings') || {}).outsideLook || {}).on; } catch (_) { return false; } };
 const shareCodeOn = () => { try { return !!((getSetting('appSettings') || {}).linkCode || {}).on; } catch (_) { return false; } };
 /* WHICH LINKS ASK. One reading, so the gate, the code route and the browser
    cannot disagree about whether a code is coming. */
@@ -20685,6 +20694,41 @@ function shareDoorOtpOk(token, t) {
    410 now carries the contract's title and the sender's name off the stored
    copy — the two facts the holder needs to ask for a new link, and nothing
    else about the deal. */
+/* ---- ASK FOR A NEW LINK (round 8, the owner's yes 1 Nov 2026) ----
+   The expired page's one press: the link's holder asks its sender for a new one. Only a link that has RUN OUT may ask
+   (a withdrawn one was taken back on purpose); one ask per link. It is written on the contract (`linkAsks`, this
+   route's alone, kept by the save route as the stored copy) with a line in its history, and the sender is told by
+   email (the app's address, never a token); the bell reads the record. A new link sent to the same address clears
+   it (POST /api/shares). Nothing from the agreement goes back to the asker. */
+const LINK_ASKS_MAX = 10;
+const rlLinkAsk = rateLimit('linkask', 5, 15 * 60 * 1000, { message: 'Too many requests. Try again in a few minutes.' });
+function shareLinkAsked(s) {
+  try { const row = s && s.contract_id ? db.prepare('SELECT json FROM contracts WHERE id=?').get(String(s.contract_id)) : null;
+    const c = row ? JSON.parse(row.json) || {} : {}; return (Array.isArray(c.linkAsks) ? c.linkAsks : []).some(a => a && a.token === s.token); } catch (_) { return false; }
+}
+app.post('/api/shares/:token/ask-new', rlLinkAsk, async (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s || s.revoked_at || !shareExpired(s) || !s.contract_id) return res.status(404).json({ error: 'This link cannot ask for a new one.' });
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(s.contract_id));
+  if (!row) return res.status(404).json({ error: 'This link cannot ask for a new one.' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Not readable' }); }
+  const asks = Array.isArray(c.linkAsks) ? c.linkAsks.filter(a => a && typeof a === 'object') : [];
+  if (asks.some(a => a.token === s.token)) return res.json({ ok: true, already: true });
+  const at = now(), who = String(s.recipient_name || s.recipient_email || '').slice(0, 120);
+  asks.push({ token: s.token, at, who, email: String(s.recipient_email || '').slice(0, 200), by: String(s.created_by || '') });
+  const line = { at, user: who || 'The other side', action: 'Link asked', detail: `${who || 'The other side'} asked for a new link: the one sent ${String(s.created_at || '').slice(0, 10)} has expired` };
+  const next = { ...c, linkAsks: asks.slice(-LINK_ASKS_MAX), audit: (Array.isArray(c.audit) ? c.audit : []).concat([line]) };
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), String(s.contract_id));
+  const u = s.created_by ? db.prepare('SELECT name, email FROM users WHERE id=?').get(String(s.created_by)) : null;
+  let mail = { emailSent: false };
+  if (u && /.+@.+\..+/.test(String(u.email || ''))) {
+    const L = langForEmail(u.email);
+    const M = linkAskMailOf({ t: (k, v) => tFor(L, k, v), sender: u.name || '', who, ref: String(c.contractNo || c.id || '').slice(0, 40), cName: c.name || '',
+      sentOn: String(s.created_at || '').slice(0, 10), link: contractUrl(req, String(s.contract_id)) });
+    mail = mailReport(await sendEmail(u.email, M.subject, M.body, `link ask: ${s.contract_id}`, { html: M.html }));
+  }
+  res.json({ ok: true, told: !!(u && u.email), ...mail });
+});
 function shareGoneWho(s) {
   try {
     const p = JSON.parse((s && s.payload) || 'null') || {};
@@ -20693,6 +20737,8 @@ function shareGoneWho(s) {
   } catch (_) { return {}; }
 }
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
+  /* every answer says whether the company shows people outside the new look (round 8): a boolean, nothing else */
+  { const _j = res.json.bind(res); res.json = b => _j(b && typeof b === 'object' && !Array.isArray(b) ? { outsideLook: outsideLookOn(), ...b } : b); }
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   /* ---- A STATUS LINK IS NOT A COPY OF THE CONTRACT (idea 15, 4 Oct 2026) ----
@@ -20705,7 +20751,8 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (shareIsStatus(s)) return res.status(403).json({
     error: 'This is a status link. It opens a read-only page at /deal/' + req.params.token + ' and carries no copy of the contract.' });
   if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked', ...shareGoneWho(s) });
-  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired', ...shareGoneWho(s) });
+  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired', expiredAt: s.expires_at || null, ...shareGoneWho(s),
+    linkAsked: shareLinkAsked(s) });
   /* ---- AND A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
      ---- The wall is HERE, on the route that hands over the contract, and not
      in the browser: a page can be skipped, a payload cannot. It answers with

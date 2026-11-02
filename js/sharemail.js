@@ -426,7 +426,26 @@ function passMailOf(o){
   return { subject, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
 }
 
-const SHARE_MAIL_API = { PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, SHARE_SUBJECT_MAX, shareSubjectClean, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
+/* ---- THEY ASKED FOR A NEW LINK (round 8, the owner's yes 1 Nov 2026) ----
+   To the person who sent a link that has run out, when its holder presses "Ask for a new link" on the expired page:
+   who asked, about which agreement, and the door to the contract (the app's address, never a link token).
+   o = { t, sender, who, ref, cName, code, sentOn, link } */
+function linkAskMailOf(o){
+  const x = o || {};
+  const t = typeof x.t === 'function' ? x.t : (k => k);
+  const ref = String(x.ref || '');
+  const cName = shareMailNameOf({ code: x.code, ref }) || x.cName || ref || 'a contract';
+  const who = String(x.who || '') || t('mail_la_someone');
+  const first = _smFirst(x.sender);
+  const parts = [{ k: 'hello', t: first ? `${t('mail_hello')} ${first},` : `${t('mail_hello')},` },
+    { k: 'say', t: t('mail_la_line', { who, name: cName, on: String(x.sentOn || '') }) },
+    { k: 'say', t: t('mail_la_next') },
+    { k: 'btn', t: t('mail_la_btn', { ref: ref || cName }) },
+    { k: 'link', t: x.link == null ? null : String(x.link), at: true }];
+  return { subject: t('mail_la_subject', { who, name: cName }), parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
+}
+
+const SHARE_MAIL_API = { linkAskMailOf, PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, SHARE_SUBJECT_MAX, shareSubjectClean, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
   shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;
