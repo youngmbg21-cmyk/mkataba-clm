@@ -4721,7 +4721,7 @@ if (typeof document !== 'undefined' && !document._polWired){
   });
   /* the notes stand beside the paper as laid out NOW: redrawn when Redlines comes into view and when the window changes */
   let _polRz = 0;
-  window.addEventListener('resize', () => { clearTimeout(_polRz); _polRz = setTimeout(() => { if (_polCtx && portalOutOn()) portalOutPaintNotes(_polCtx.c, _polCtx.p); }, 120); });
+  if (typeof window.addEventListener === 'function') window.addEventListener('resize', () => { clearTimeout(_polRz); _polRz = setTimeout(() => { if (_polCtx && portalOutOn()) portalOutPaintNotes(_polCtx.c, _polCtx.p); }, 120); });
   document.addEventListener('keydown', ev => {
     if (ev.key !== 'Escape') return;
     const pop = document.getElementById('pol-pop');
