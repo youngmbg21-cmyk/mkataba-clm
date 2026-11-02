@@ -106,7 +106,9 @@ describe('f603 (D13) — a good sign-in clears what the bad tries left', () => {
   test('every successful start clears the toasts first', () => {
     assert.match(CORE, /function toastsClear\(\)\{/);
     const n = (CORE.match(/toastsClear\(\); startApp\(\);/g) || []).length;
-    assert.equal(n, 5, 'setup (server and local), sign-in (server and local), the two-step code');
+    /* six since round 8 of the new look (2 Nov 2026): the new sign-in for people outside asks the two-step code on
+       its own page (doLogin's #li-code-f), and its success clears first like the others */
+    assert.equal(n, 6, 'setup (server and local), sign-in (server and local), the two-step code, the new sign-in\'s code');
   });
 });
 

@@ -54,8 +54,10 @@ test('f967 (3) with it off nothing moves: every new-look rule waits on html.lg-n
     const css = b.replace(/\/\*[\s\S]*?\*\//g, '');
     const rules = [...css.matchAll(/([^{}]+)\{[^{}]*\}/g)].map(m => m[1].trim()).filter(sel => !/^@media/.test(sel));
     assert.ok(rules.length > 10, 'rules read');
-    const loose = rules.filter(sel => topLevel(sel).some(one => { const s = one.trim().replace(/^@media[^{]*\{\s*/, ''); return s && !/^html\.lg-new\b/.test(s) && s !== '.lg-only'; }));
-    assert.deepEqual(loose, [], 'every rule is scoped under html.lg-new');
+    const loose = rules.filter(sel => topLevel(sel).some(one => { const s = one.trim().replace(/^@media[^{]*\{\s*/, ''); return s && !/^html\.lg-(?:new|out)\b/.test(s) && s !== '.lg-only'; }));
+    /* html.lg-out is the company's own switch for the pages people outside see (round 8, 2 Nov 2026; off by default,
+       outsideLookApply): it waits on its switch exactly as the admin's waits on html.lg-new */
+    assert.deepEqual(loose, [], 'every rule is scoped under html.lg-new or html.lg-out');
   }
 });
 
