@@ -597,7 +597,7 @@ function jamboWaysSync(){
     document.querySelectorAll(sel).forEach(foot => {
       if (!foot.querySelector('.jb-card')) return;
       /* THE CONTRACT'S ONE ROW (the contract round, as drawn): its own next-step links stand above the box instead */
-      if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]') && document.querySelector('#ig-paper:not([hidden]) #ig-canvas')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); return; }
+      if (!(typeof window.regFoldersUp === 'function' && window.regFoldersUp()) && foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]') && (document.querySelector('#ig-paper:not([hidden]) #ig-canvas') || document.querySelector('[data-reg-home]'))){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); return; }
       const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
       /* a chosen row's or a face's own links (jlOwnPaint, jamboOwnWays) stand there instead, while what drew them stands */
       if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)) return; }

@@ -305,6 +305,13 @@ function askColThHtml(askId, style, grip, caret){
      in the head of the column it belongs to. Nothing where none are. */
   const risk = askColAtRisk(askId).length;
   const tally = risk ? `<span class="ac-th-risk">${_acE(_acTn('ac_disc_risk', risk))}</span>` : '';
+  /* the new look (round 6, as drawn): the question itself, and under it "Kept question · 3 of 4 read · yes 1" */
+  if (typeof regNl === 'function' && regNl()){
+    const shown = askColShown(), got = AC.ans[askId] || {};
+    const read = shown.filter(id => got[id]).length, yes = shown.filter(id => got[id] && got[id].yes === true).length;
+    const sub = _acT('ac_th_kept_sub', { k: read, n: shown.length, y: yes });
+    return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.question || a.name || '')}</span>${caret || ''}<span class="reg-th-sub">${_acE(sub)}</span>${grip || ''}</th>`;
+  }
   return `<th class="reg-th-sort ac-th${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.name || '')}</span>${spark}${tally}${caret || ''}${grip || ''}</th>`;
 }
 function askColInitials(name){

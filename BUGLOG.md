@@ -21888,3 +21888,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed (1 Nov 2026, round 5)
 - Opening "Before you sign" on a contract that was never negotiated starts a negotiation (redlineText gains clause ids, c.changes/c.negotiation appear). The wording hash moves, so an approval already given turns "stale" just by looking. Reproduced on HEAD with the old look too (pdSignOpen on MK-A2 in test/round5-world.js). Reading must not write.
+
+## Noticed, not fixed (1 Nov 2026, round 6 of the new look)
+- New agreement: with words typed in the sheet, pressing Board (caGo board) while already on Home does nothing — the sheet stays open and no "Leave without creating?" is asked (naAskLeave runs only on a page change, and Board is the same view).

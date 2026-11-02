@@ -398,6 +398,8 @@ function renderReads(){
       <div class="ins-scroll rd-wrap scroll-thin" id="rd-scroll">${readsTableHtml(list)}</div>
       ${rdFootHtml(list)}
     </section>`;
+  /* the new look (round 6, as drawn): its own page — kept questions and packs as one table, the panel reads the chosen one */
+  if (!tr && wide && typeof window.newLookOn === 'function' && newLookOn()){ rdnRender(host); return; }
   host.innerHTML = `<div class="view-enter sap-page ins-page rd-page rd-ins${wide ? '' : ' is-narrow'}" id="rd-page" data-ins-page="reads" data-ins="${wide ? 1 : 0}"><style>${readsCss()}</style>
     ${readsBandHtml()}
     <div class="ins-body">${card}${wide ? `<aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside>` : ''}</div></div>`;
@@ -412,6 +414,125 @@ function renderReads(){
   readsWire();
   if (typeof setActiveNav === 'function') setActiveNav('reads');
   if (typeof insWatchWidth === 'function') insWatchWidth();
+}
+/* ---- READS, AS DRAWN (the new look, round 6) ----
+   "Reads · 2 kept questions · 1 pack not yet run"; the box and the tabs Kept · Packs, what was spent this month;
+   one table — Question (and what it is: kept, a column on Contracts, its rule), Answers (yes · no · not read, or
+   the answers' own words), Read "5 of 7", Spent, and the row's one press (Read N more, or Open the table); the
+   packs under their own line, each "Run on N · N calls"; the foot "A kept answer is never read again" and The
+   read table. Every press is an existing door (readsNext, readsTableOpen, askColOpen on Contracts). */
+let _rdn = 'kept';
+const _rdnLoading = new Set();
+function rdnAnswers(askId){
+  const A = (typeof AC !== 'undefined') ? AC : null; if (!A) return null;
+  const got = A.ans && A.ans[askId];
+  if (!got && !_rdnLoading.has(askId) && typeof askColLoad === 'function'){
+    _rdnLoading.add(askId);
+    const ids = (state.contracts || []).filter(c => c && !c.archived && !c._codeNamed).map(c => String(c.id));
+    Promise.resolve(askColLoad(askId, ids)).catch(() => {}).then(() => { if (state.view === 'reads') renderReads(); });
+  }
+  return got || null;
+}
+function rdnAnswerWords(r){
+  const got = rdnAnswers(r.askIds[0]); if (!got) return '';
+  const xs = Object.values(got).filter(a => a && a.found);
+  const yes = xs.filter(a => a.yes === true).length, no = xs.filter(a => a.yes === false).length;
+  const unread = Math.max(0, r.total - r.read);
+  const dot = (cls, t) => `<span class="rdn-a"><i class="${cls}"></i>${_rdE(t)}</span>`;
+  if (yes || no) return [yes ? dot('is-yes', _rdT('rdn_yes', { n: yes })) : '', no ? dot('is-no', _rdT('rdn_no', { n: no })) : '', unread ? dot('is-none', _rdT('rdn_unread', { n: unread })) : ''].join('');
+  const by = new Map(); xs.forEach(a => { const k = String(a.answer || '').trim(); if (k) by.set(k, (by.get(k) || 0) + 1); });
+  const top = [...by.entries()].sort((x, y) => y[1] - x[1]).slice(0, 2);
+  return top.map(([k, n], i) => dot(i ? 'is-amb' : 'is-yes', k + ' ' + n)).join('') + (unread ? dot('is-none', _rdT('rdn_unread', { n: unread })) : '');
+}
+function rdnRowHtml(r){
+  const a = (typeof AC !== 'undefined' && AC.asks) ? (AC.asks[r.askIds[0]] || {}) : {};
+  const sub = [r.kept ? _rdT('rdn_kept') : _rdT('rdn_asked'), _rdT('rdn_column'), a.rule ? _rdT('rdn_rule', { rule: a.rule }) : ''].filter(Boolean).join(' · ');
+  const unread = Math.max(0, r.total - r.read);
+  const act = unread ? `<button type="button" class="rfp-pill" data-rd-next="${_rdE(r.key)}">${_rdE(_rdT('rdn_more', { n: Math.min(unread, rdSizeNow()), calls: _rdTn('rd_calls', Math.min(unread, rdSizeNow())) }))}</button>`
+    : `<button type="button" class="rfp-a" data-rdn-table="${_rdE(r.key)}">${_rdE(_rdT('rdn_open_table'))}</button>`;
+  return `<tr data-rd-row="${_rdE(r.key)}" class="${_rd.sel === r.key ? 'is-sel' : ''}" tabindex="-1"><td><div class="cun-name">${_rdE(r.q || r.name)}</div><div class="cun-sub">${_rdE(sub)}</div></td>
+    <td class="cun-wait">${rdnAnswerWords(r) || '—'}</td><td class="cun-wait">${_rdE(_rdT('rdn_of', { k: r.read, n: r.total }))}</td><td class="cun-wait">${_rdE(r.calls ? _rdTn('rd_calls', r.calls) : '—')}</td><td class="cun-go">${act}</td></tr>`;
+}
+function rdnPacks(){
+  const packs = (typeof AC !== 'undefined' && Array.isArray(AC.packs)) ? AC.packs : [];
+  const ran = new Set((_rd.rows || []).filter(r => r.pack).map(r => r.pack.id));
+  const total = rdTotal();
+  return packs.map(p => ({ p, ran: ran.has(p.id), row: (_rd.rows || []).find(r => r.pack && r.pack.id === p.id) || null, total }));
+}
+function rdnPackRowHtml(x){
+  const qs = (x.p.questions || []).map(q => String(q.name || q.question || '').toLowerCase()).filter(Boolean).join(' · ');
+  const n = (x.p.questions || []).length, read = x.row ? x.row.read : 0;
+  return `<tr><td><div class="cun-name">${_rdE(_rdT('rdn_pack', { name: x.p.name, n }))}</div><div class="cun-sub">${_rdE(qs)}</div></td>
+    <td class="cun-wait">${_rdE(x.ran ? _rdT('rdn_ran') : _rdT('rdn_not_run'))}</td><td class="cun-wait">${_rdE(_rdT('rdn_of', { k: read, n: x.total }))}</td><td class="cun-wait">${_rdE(x.row && x.row.calls ? _rdTn('rd_calls', x.row.calls) : '—')}</td>
+    <td class="cun-go"><button type="button" class="rfp-pill" data-rdn-pack="${_rdE(x.p.id)}">${_rdE(_rdT('rdn_run_on', { n: x.total, calls: _rdTn('rd_calls', x.total) }))}</button></td></tr>`;
+}
+function rdnRender(host){
+  const rows = (_rd.rows || []).filter(r => !r.pack);
+  const q = rdWords();
+  const kept = rows.filter(r => rdHit(r, q));
+  const packs = rdnPacks().filter(x => !q || String(x.p.name || '').toLowerCase().includes(q));
+  const notRun = rdnPacks().filter(x => !x.ran).length;
+  const month = (typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10)).slice(0, 7);
+  const calls = (((typeof AC !== 'undefined' && AC.reads && AC.reads.reads) || []).filter(r => String(r.at || '').slice(0, 7) === month).reduce((n, r) => n + (r.calls || 0), 0));
+  const facts = [_rdTn('rdn_n_kept', rows.length), notRun ? _rdTn('rdn_n_notrun', notRun) : ''].filter(Boolean).join(' · ');
+  const tab = (k, w, n) => `<button type="button" class="apn-tab${_rdn === k ? ' is-on' : ''}" data-rdn-tab="${k}">${_rdE(w)} <span>${n}</span></button>`;
+  const body = (_rdn !== 'packs' ? kept.map(rdnRowHtml).join('') : '')
+    + (packs.length ? `<tr class="rdn-grp"><td colspan="5">${_rdE(_rdT('rd_tab_packs'))}</td></tr>${packs.map(rdnPackRowHtml).join('')}` : '');
+  if (!_rd.sel || !rows.some(r => r.key === _rd.sel)) _rd.sel = kept[0] ? kept[0].key : null;
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page rdn-page" id="rd-page" data-ins-page="reads" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card">
+      <div class="cun-head"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="ctf-hf">${_rdE(facts)}</span></div>
+      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="rdn-q" type="search" autocomplete="off" placeholder="${_rdE(_rdT('lh_filter_ph'))}" value="${_rdE(_rd.q || '')}"></label><span class="apn-sp"></span>
+        ${tab('kept', _rdT('rdn_tab_kept'), rows.length)}${tab('packs', _rdT('rd_tab_packs'), rdnPacks().length)}<span class="rdn-spent">${_rdE(_rdT('rdn_spent', { calls: _rdTn('rd_calls', calls) }))}</span></div>
+      <div class="cu-scroll"><table class="apn-table cun-table rdn-table"><colgroup><col style="width:34%"><col style="width:22%"><col style="width:14%"><col style="width:12%"><col></colgroup>
+        <thead><tr><th>${_rdE(_rdT('rdn_c_q'))}</th><th>${_rdE(_rdT('rdn_c_a'))}</th><th>${_rdE(_rdT('rd_col_read'))}</th><th>${_rdE(_rdT('rdn_c_spent'))}</th><th></th></tr></thead>
+        <tbody>${body || `<tr><td colspan="5" class="apn-none">${_rdE(_rdT('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
+      <div class="apn-foot rdn-foot"><span>${_rdE(_rdT('rdn_foot'))}</span>${_rd.sel ? `<button type="button" class="rfp-a" data-rdn-table="${_rdE(_rd.sel)}">${_rdE(_rdT('rdn_the_table'))}</button>` : ''}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside></div></div>`;
+  rdnPanelPaint(rows);
+  readsWire();
+  if (typeof setActiveNav === 'function') setActiveNav('reads');
+  if (typeof insWatchWidth === 'function') insWatchWidth();
+}
+function rdnPanelPaint(rows){
+  if (typeof insPaintPanel !== 'function') return;
+  const r = rows.find(x => x.key === _rd.sel) || null;
+  const E = _rdE;
+  const risk = rows.reduce((n, x) => n + (x.risk || 0), 0);
+  const head = [_rdTn('rdn_p_kept', rows.length), risk ? _rdTn('rdn_p_risk', risk) : ''].filter(Boolean).join(' ');
+  let card = '';
+  if (r){
+    const got = rdnAnswers(r.askIds[0]) || {};
+    const xs = Object.entries(got).filter(([, a]) => a && a.found);
+    const yes = xs.filter(([, a]) => a.yes === true).length, no = xs.filter(([, a]) => a.yes === false).length, other = xs.length - yes - no;
+    const unread = Math.max(0, r.total - r.read), n = Math.max(1, r.total);
+    const w = k => (k / n * 100).toFixed(2) + '%';
+    const pick = xs.find(([, a]) => a.yes === true && a.quote) || xs.find(([, a]) => a.quote);
+    const pc = pick && typeof getContract === 'function' ? getContract(pick[0]) : null;
+    const m = pick ? /^\s*(\d+)/.exec(String(pick[1].clause || '')) : null;
+    card = `<div class="pd2-ch-cap">${E(r.q || r.name)}</div><div class="rfp-bar"><i class="is-yes" style="width:${w(yes)}"></i><i class="is-no" style="width:${w(no + other)}"></i></div>
+      <div class="rfp-counts">${E([yes || no ? _rdT('rdn_yes', { n: yes }) : '', yes || no ? _rdT('rdn_no', { n: no }) : '', other ? _rdTn('rdn_other', other) : '', unread ? _rdT('rdn_unread', { n: unread }) : ''].filter(Boolean).join(' · '))}</div>
+      ${pick ? `<div class="rfp-q"><b>${E((pc && pc.name) || pick[0])} —</b><p><i>“${E(String(pick[1].quote).slice(0, 140))}${String(pick[1].quote).length > 140 ? '…' : ''}”</i><span>${m ? '§ ' + m[1] : ''}</span></p></div>` : ''}`;
+  }
+  const others = rows.filter(x => !r || x.key !== r.key).slice(0, 2).map(x => `<div class="rfp-ask"><button type="button" class="rfp-a" data-rd-row="${E(x.key)}">${E(x.q || x.name)}</button><span>${E(_rdTn('rd_calls', Math.max(0, x.total - x.read)))}</span></div>`);
+  const packs = rdnPacks().filter(x => !x.ran).slice(0, 2).map(x => `<div class="rfp-ask"><button type="button" class="rfp-a" data-rdn-pack="${E(x.p.id)}">${E(_rdT('rdn_run_pack', { name: String(x.p.name || '').toLowerCase() }))}</button><span>${E(_rdTn('rd_calls', x.total))}</span></div>`);
+  const ask = others.length || packs.length ? `<div class="pd2-ch-cap">${E(_rdT('reg_fp_ask_h'))}</div>${others.join('')}${packs.join('')}` : '';
+  const turn = `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_rdT('cn2_jambo'))}</b><p>${E(_rdT('rdn_p_jambo'))}</p></div></div>`;
+  insPaintPanel({ seat: RD_SEAT, item: { id: (r && r.key) || '__reads' }, head: false, body: `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${card}${ask}${turn}</div>`,
+    jlHome: _rdT('nav_reads'), jlPh: _rdT('jl_ph_any'), jlSay: rdJlSay });
+}
+if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired = true;
+  document.addEventListener('click', e => {
+    if (typeof state === 'undefined' || state.view !== 'reads') return;
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    let el;
+    if ((el = t.closest('[data-rdn-tab]'))){ e.preventDefault(); _rdn = el.getAttribute('data-rdn-tab'); renderReads(); return; }
+    if ((el = t.closest('[data-rdn-table]'))){ e.preventDefault(); e.stopPropagation(); readsTableOpen(el.getAttribute('data-rdn-table')); return; }
+    if ((el = t.closest('[data-rdn-pack]'))){ e.preventDefault(); e.stopPropagation(); const p = ((typeof AC !== 'undefined' && AC.packs) || []).find(x => x.id === el.getAttribute('data-rdn-pack'));
+      if (p) rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen({ pack: p }); }); }
+  }, true);
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'rdn-q' && typeof state !== 'undefined' && state.view === 'reads'){ _rd.q = e.target.value; renderReads();
+    const q = document.getElementById('rdn-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_){} } } });
 }
 /* THE DOORS, EVERY ONE AN EXISTING ONE */
 function readsOpen(askId){

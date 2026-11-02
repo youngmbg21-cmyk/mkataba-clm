@@ -754,7 +754,10 @@ function renderPageHeader(view){
   paintScrollGutter(view);
   paintSearchFace(view);
   const host=document.getElementById('page-head'); if(!host) return;
-  if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
+  /* the new look draws Requests' own head (round 6, as drawn) */
+  const ownsHead=PAGE_OWNS_HEADER.includes(view)||(view==='intake'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof canEdit==='function'&&canEdit()&&typeof insFits==='function'&&insFits())
+    ||(view==='migration'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof insFits==='function'&&insFits()&&typeof migRows==='function'&&migRows().length>0);
+  if(ownsHead){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
   /* ---- NO SENTENCE UNDER ANY HEADER (owner-asked 25 Aug 2026, off a
      screenshot of Import contracts with its line ringed: "remove these
      explanations below the headers in all pages where the explanation is

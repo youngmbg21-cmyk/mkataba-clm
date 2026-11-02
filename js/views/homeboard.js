@@ -6025,6 +6025,8 @@ function hbExplorerBtnHtml(){
 }
 function hbPulseBtnHtml(){
   if (typeof renderPulse !== 'function') return '';
+  /* the new look draws DNA where the Pulse board's button stood (round 6, as drawn) */
+  if (typeof window.newLookOn === 'function' && newLookOn()) return hbDnaBtnHtml();
   return `<button type="button" class="hb-btn is-sm hb-pulse-go" data-hb-pulse title="${_hbE(i18t('hb_pulse_tip'))}">${typeof icon === 'function' ? icon('trend', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_pulse_btn'))}</button>`;
 }
 /* SAVED VIEWS ARE CHIPS IN THE HEAD (round 17 as drawn; they moved from the
@@ -6051,7 +6053,104 @@ function hbSavedViewChipsHtml(){
   }).join('');
   return `<div class="hb-bh-views" role="group" aria-label="${_hbE(i18t('int_saved_views'))}"><span class="hb-bh-l">${_hbE(i18t('int_saved_views'))}</span>${chips}</div>`;
 }
+/* ---- DNA BY CONTRACT, AS DRAWN (the new look, round 6; the owner's pick "One strand each") ----
+   Each live contract one strand: its clauses in paper order, a segment's length the clause's weight in the paper,
+   coloured by what HaTi already read of it — within your standard (green), differs or a risk (amber), missing (red),
+   a blank still to fill (a ring), asked about by a kept question (steel), read with nothing to say (grey) — and on
+   the right its worst mark. A press opens that clause on Home's paper. Readings only (the standards check, the
+   blanks, the risks, the kept answers); free. */
+let _hbDna = false;
+function hbDnaUp(){ return !!_hbDna && typeof window.newLookOn === 'function' && newLookOn() && hbS().face === 'board'; }
+const HB_DNA_MAX = 40;
+function hbDnaOf(c){
+  let cls = []; try { cls = (typeof pd2Clauses === 'function') ? pd2Clauses(c) : []; } catch (_){ cls = []; }
+  if (!cls.length) return null;
+  const vs = (c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+  const word = s => String(s || '').toLowerCase();
+  const head = x => word(x.headingText || x.title || '');
+  const segs = cls.map((x, i) => {
+    const m = /^\s*(\d+)/.exec(String(x.headingText || x.title || ''));
+    return { i, no: m ? m[1] : (i === 0 ? 'pre' : ''), id: x.id || '', name: String(x.headingText || x.title || '').replace(/^\s*\d+(\.\d+)*\.?\s*/, ''), w: Math.max(1, String(x.text || '').length), k: 'read' };
+  });
+  const findSeg = cat => { const w = word(cat).split(/\s+/).filter(t => t.length > 3); return segs.find(sg => w.some(t => head(cls[sg.i]).includes(t))); };
+  const extra = [];
+  vs.forEach(v => { if (!v) return; const sg = findSeg(v.category);
+    const k = v.status === 'missing' ? 'miss' : (v.status === 'aligned' || v.status === 'ok') ? 'ok' : v.status === 'na' ? '' : 'off';
+    if (!k) return;
+    if (sg){ const rank = { miss: 3, off: 2, ok: 1, read: 0 }; if ((rank[k] || 0) > (rank[sg.k] || 0)) { sg.k = k; sg.why = v.category; } }
+    else if (k !== 'ok') extra.push({ i: segs.length + extra.length, no: '', name: v.category, w: 600, k, why: v.category, id: '' }); });
+  let risks = []; try { risks = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ risks = []; }
+  risks.forEach(r => { const q = word(r.quote).slice(0, 40); const sg = q && segs.find(x => word(cls[x.i].text).includes(q)); if (sg && sg.k !== 'miss'){ sg.k = 'off'; sg.why = (typeof riskTitleOf === 'function') ? riskTitleOf(r) : ''; sg.risk = true; } });
+  let blanks = []; try { blanks = (typeof contractBlanks === 'function') ? contractBlanks(c).filter(b => b && !String(b.value || '').trim()) : []; } catch (_){ blanks = []; }
+  if (blanks.length && segs[0] && segs[0].k === 'read') segs[0].k = 'blank';
+  /* a kept question's answer that names a clause marks it asked about */
+  try { const A = window.AC; if (A && A.ans) Object.values(A.ans).forEach(got => { const a = got && got[String(c.id)]; const m = a && /^\s*(\d+)/.exec(String(a.clause || ''));
+    const sg = m && segs.find(x => x.no === m[1]); if (sg && sg.k === 'read') sg.k = 'asked'; }); } catch (_){ /* nothing asked */ }
+  const all = segs.concat(extra);
+  const n = k => all.filter(x => x.k === k).length;
+  const miss = all.filter(x => x.k === 'miss').map(x => String(x.why || x.name).toLowerCase());
+  const off = all.filter(x => x.k === 'off');
+  const worst = miss.length ? { tone: 'ruby', t: i18tn('dna_w_miss', miss.length, { n: miss.length, what: miss.slice(0, 2).join(', ') }) }
+    : off.length ? { tone: 'amber', t: off[0].risk ? i18tn('dna_w_risk', off.length, { n: off.length }) + (blanks.length ? ' \u00b7 ' + i18tn('dna_w_blanks', blanks.length, { n: blanks.length }) : '') : i18tn('dna_w_off', off.length, { n: off.length, at: off[0].no ? '\u00a7 ' + off[0].no + ' ' + off[0].name : off[0].name }) }
+    : blanks.length ? { tone: 'amber', t: i18tn('dna_w_blanks', blanks.length, { n: blanks.length }) }
+    : { tone: '', t: n('asked') ? i18t('dna_w_met_asked', { n: n('asked') }) : i18t('dna_w_met') };
+  return { c, segs: all, clauses: segs.length, worst, miss, off: off.map(x => String(x.why || x.name).toLowerCase()), blanks: blanks.length, asked: all.filter(x => x.k === 'asked').map(x => x.no) };
+}
+function hbDnaRows(){
+  return (state.contracts || []).filter(c => c && !c.archived && !c._codeNamed && c.status !== 'Declined' && !c.migration && !(typeof jamboOnPress === 'function' && jamboOnPress(c)))
+    .slice(0, HB_DNA_MAX).map(hbDnaOf).filter(Boolean);
+}
+function hbDnaHtml(){
+  const rows = hbDnaRows();
+  const legend = [['ok', 'dna_k_ok'], ['off', 'dna_k_off'], ['miss', 'dna_k_miss'], ['blank', 'dna_k_blank'], ['asked', 'dna_k_asked'], ['read', 'dna_k_read']]
+    .map(([k, w]) => `<span class="dna-lg"><i class="dna-s is-${k}"></i>${_hbE(i18t(w))}</span>`).join('');
+  const strand = d => `<div class="dna-strand">${d.segs.map((sg, j) => `<button type="button" class="dna-seg" style="flex-grow:${sg.w}" data-dna-open="${_hbE(d.c.id)}" data-dna-clause="${_hbE(sg.id || '')}" title="${_hbE([sg.no ? '\u00a7 ' + sg.no : '', sg.name, sg.why && sg.why !== sg.name ? sg.why : ''].filter(Boolean).join(' \u00b7 '))}"><i class="dna-s is-${sg.k}"></i><span class="dna-no">${j % 2 === 0 || d.segs.length < 12 ? _hbE(sg.no) : ''}</span></button>`).join('')}</div>`;
+  const ref = c => (typeof refHtml === 'function') ? refHtml(c) : _hbE(c.id);
+  const body = rows.map(d => `<tr><td><div class="cun-name">${_hbE(d.c.name || '')}</div><div class="cun-sub">${_hbE(d.c.counterparty || '')} \u00b7 ${ref(d.c)} \u00b7 ${_hbE(i18tn('dna_clauses', d.clauses, { n: d.clauses }))}</div></td>
+    <td>${strand(d)}</td><td class="dna-worst${d.worst.tone ? ' is-' + d.worst.tone : ''}">${_hbE(d.worst.t)}</td></tr>`).join('');
+  return `<div class="dna-page apn-card"><div class="dna-head"><button type="button" class="ctf-back" data-dna-back>\u2039 ${_hbE(i18t('hb_face_board'))}</button><span class="ctf-crumb">\u203a</span><h2 class="ctf-h">${_hbE(i18t('dna_title'))}</h2><span class="ctf-hf">${_hbE(i18tn('dna_n', rows.length, { n: rows.length }))}</span><span class="ctf-sp"></span><span class="dna-legend">${legend}</span></div>
+    <table class="apn-table cun-table dna-table"><colgroup><col style="width:24%"><col><col style="width:150px"></colgroup>
+      <thead><tr><th>${_hbE(i18t('reg_col_agreement'))}</th><th>${_hbE(i18t('dna_c_strand'))}</th><th style="text-align:right">${_hbE(i18t('dna_c_worst'))}</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="3" class="apn-none">${_hbE(i18t('dna_none'))}</td></tr>`}</tbody></table>
+    <div class="apn-foot">${_hbE(i18tn('dna_foot', rows.length, { n: rows.length }))}</div></div>`;
+}
+/* the DNA's panel: what the strands say across the book, the doors that follow, his note on reading a strand */
+function hbDnaPanelHtml(){
+  const rows = hbDnaRows(), E = _hbE;
+  const tally = key => { const m = new Map(); rows.forEach(d => (d[key] || []).forEach(w => { if (!w) return; const e = m.get(w) || { w, n: 0, ids: [] }; e.n++; e.ids.push(d.c.id); m.set(w, e); })); return [...m.values()].sort((a, b) => b.n - a.n); };
+  const miss = tally('miss'), off = tally('off');
+  const blanks = rows.filter(d => d.blanks), asked = rows.filter(d => d.asked.length);
+  const reds = rows.reduce((n, d) => n + d.miss.length, 0);
+  const head = [reds ? i18tn('dna_p_red', reds, { n: reds }) : i18t('dna_p_no_red'), off[0] ? i18tn('dna_p_off', off[0].n, { what: off[0].w, n: off[0].n }) : ''].filter(Boolean).join(' ');
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+  const list = xs => xs.slice(0, 2).map(x => i18tn('dna_p_on', x.n, { what: x.w, n: x.n })).join(' \u00b7 ');
+  const rowsH = (miss.length ? row(i18t('dna_p_missing'), list(miss), i18t('dna_src_red')) : '') + (off.length ? row(i18t('dna_p_differs'), list(off), i18t('dna_src_amber')) : '')
+    + (blanks.length ? row(i18t('dna_p_blanks'), i18tn('dna_p_blanks_v', blanks.length, { n: blanks.reduce((s, d) => s + d.blanks, 0), p: blanks.length }), i18t('dna_src_ring')) : '')
+    + (asked.length ? row(i18t('dna_p_asked'), i18tn('dna_p_asked_v', asked.length, { n: asked.length }), i18t('dna_src_steel')) : '');
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  const doors = miss[0] ? door(`data-dna-show="${E(miss[0].ids.join(','))}" data-dna-label="${E(i18t('dna_label_miss', { what: miss[0].w }))}"`, i18tn('dna_p_open_miss', miss[0].n, { n: miss[0].n, what: miss[0].w }), i18t('pd2_ch_free')) : '';
+  const turn = `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(i18t('dna_p_jambo'))}</p></div></div>`;
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${rowsH ? `<div class="pd2-ch-cap">${E(i18t('dna_p_read'))}</div><div class="pd2-ch-tbl">${rowsH}</div>` : ''}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}${turn}</div>`;
+}
+function hbDnaBtnHtml(){
+  return `<button type="button" class="hb-btn is-sm hb-pulse-go hb-dna-go" data-hb-dna title="${_hbE(i18t('dna_tip'))}">${_hbE(i18t('dna_btn'))}</button>`;
+}
+/* its own presses, caught on the window before the board's one listener (which stays the board's one, f447) */
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && !document._hbDnaWired){ document._hbDnaWired = true;
+  window.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
+    if ((el = t.closest('[data-hb-dna]'))){ e.preventDefault(); e.stopPropagation(); _hbDna = true; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
+    if ((el = t.closest('[data-dna-back]'))){ e.preventDefault(); _hbDna = false; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
+    if ((el = t.closest('[data-dna-show]'))){ e.preventDefault(); const ids = el.getAttribute('data-dna-show').split(',').filter(Boolean);
+      _hbDna = false; if (typeof setView === 'function') setView('register'); if (typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-dna-label') || ''); return; }
+    if ((el = t.closest('[data-dna-open]'))){ e.preventDefault(); const id = el.getAttribute('data-dna-open'), cl = el.getAttribute('data-dna-clause');
+      _hbDna = false; if (typeof regOpenContract === 'function') regOpenContract(id);
+      if (cl && typeof igPaperGoClause === 'function'){ let n = 0; const tick = () => { const c = typeof pdContract === 'function' ? pdContract() : null;
+        if (c && String(c.id) === String(id) && document.getElementById('ig-canvas')){ igPaperGoClause(cl); return; } if (++n < 40) setTimeout(tick, 100); }; setTimeout(tick, 150); } }
+  }, true);
+}
 function hbBoardHtml(){
+  if (hbDnaUp()) return hbDnaHtml();
   /* A CONTRACT BROUGHT UP IS A PAGE ON THE DESK (round 7, "Read down"): the
      card alone, none of the Board's own furniture */
   if (typeof window.bsCardId === 'function' && window.bsCardId() && typeof window.bsStripsHtml === 'function') return window.bsStripsHtml();
@@ -11120,6 +11219,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
+Object.assign(window, { hbDnaUp, hbDnaHtml, hbDnaOf, hbDnaRows, hbDnaPanelHtml, hbDnaBtnHtml });
 Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,

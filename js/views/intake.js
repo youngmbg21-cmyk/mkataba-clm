@@ -1735,8 +1735,97 @@ function ikBase(f, asker){
   const base=asker?all:all.concat(ikAdviceRows()).filter(r=>ikPassChips(r,f));
   return base.filter(r=>ikHit(r,f.q));
 }
+/* ---- REQUESTS, AS DRAWN (the new look, round 6) ----
+   "Requests · 3 open · 1 needs an editor"; the box and the tabs Open · Mine · Drafted · Advice; one table — the
+   request and the asker's own words, where it stands (the paper that fits, read without AI; what it became),
+   who asked and when, its lane, and its one press (Start the draft — the one form —, or Open); the foot "Advice is
+   a request too". The panel reads the chosen request: what the ask says, the paper that fits, the doors. */
+let _ikn = 'open';
+function ikFirstLast(name){ const p = String(name || '').trim().split(/\s+/).filter(Boolean); return p.length > 1 ? `${p[0]} ${p[p.length - 1][0]}.` : (p[0] || ''); }
+function iknRows(){
+  const all = ((_intake && _intake.list) || []).concat(ikAdviceRows());
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const q = String(ikFilters().q || '').trim().toLowerCase();
+  const on = r => _ikn === 'open' ? (!r._adv && IK_LIVE.includes(r.status) && !r.contractId) : _ikn === 'mine' ? (!r._adv && me && ((r.assignee && r.assignee.id === me.id) || (r.by && r.by.id === me.id)))
+    : _ikn === 'drafted' ? (!r._adv && !!r.contractId) : _ikn === 'advice' ? !!r._adv : true;
+  return { all, list: all.filter(r => ikHit(r, q) && on(r)), n: k => { const keep = _ikn; _ikn = k; const x = all.filter(r => on(r)).length; _ikn = keep; return x; } };
+}
+function iknStands(r){
+  if (r._adv) return { t: i18t('ikn_advice', { s: String(r.status || '') }) };
+  if (r.contractId){ const c = typeof getContract === 'function' ? getContract(r.contractId) : null;
+    let m = null; try { m = c && typeof contractStatusMeta === 'function' ? contractStatusMeta(c) : null; } catch (_){ m = null; }
+    return { t: c ? i18t('ikn_became', { name: c.name || '', ref: typeof contractRef === 'function' ? contractRef(c) : c.id, stage: String((m && m.label) || c.status || '').toLowerCase() }) : i18t('ikn_drafted') }; }
+  const fit = ikFitOf(r);
+  return { t: fit && fit.strong ? i18t('ikn_fits', { name: fit.name }) : i18t('ikn_open'), sub: r.assignee ? '' : i18t('ikn_needs_editor'), fit };
+}
+function iknRowHtml(r, may){
+  const st = iknStands(r);
+  const lane = [r.folder && window.FOLDERS && FOLDERS[r.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[r.folder]) || FOLDERS[r.folder].name) : '', r.assignee ? String(r.assignee.name || '').split(/\s+/)[0] : (r.holder || '')].filter(Boolean).join(' \u00b7 ');
+  const act = r._adv ? '' : r.contractId ? `<button type="button" class="rfp-a" data-ikn-open="${esc(r.contractId)}">${esc(i18t('ikn_open_go'))}</button>`
+    : may ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm ikn-go" data-ikn-draft="${esc(r.id)}">${esc(i18t('ikn_start'))}</button>` : '';
+  const sel = String(r.id) === String(_iknSel);
+  return `<tr data-ikn-row="${esc(r.id)}" class="${sel ? 'is-sel' : ''}${r.contractId ? ' is-done' : ''}" tabindex="-1"><td><div class="cun-name">${esc(r.title || '')}</div>${r._adv ? `<div class="cun-sub">${esc(i18t('ikn_advice_w'))}</div>` : ''}${r.need ? `<div class="ikn-q">\u201c${esc(String(r.need).slice(0, 120))}${String(r.need).length > 120 ? '\u2026' : ''}\u201d</div>` : ''}</td>
+    <td class="cun-wait">${esc(st.t)}${st.sub ? `<div class="cun-sub">${esc(st.sub)}</div>` : ''}</td>
+    <td class="cun-wait">${esc([ikFirstLast(r.by && r.by.name), typeof ikAgeWords === 'function' ? ikAgeWords(r) : ''].filter(Boolean).join(' \u00b7 '))}</td><td class="cun-wait">${esc(lane || '\u2014')}</td><td class="cun-go">${act}</td></tr>`;
+}
+let _iknSel = null;
+function iknRender(host){
+  const may = (typeof canEdit === 'function' && canEdit());
+  const R = iknRows();
+  const open = R.n('open'), noEd = (R.all.filter(r => !r._adv && IK_LIVE.includes(r.status) && !r.contractId && !r.assignee)).length;
+  if (!_iknSel || !R.list.some(r => String(r.id) === String(_iknSel))) _iknSel = R.list[0] ? R.list[0].id : null;
+  const tabs = [['open', i18t('ik_v_open'), open], ['mine', i18t('ik_v_mine'), R.n('mine')], ['drafted', i18t('ikn_tab_drafted'), R.n('drafted')], ['advice', i18t('rq_kind_advice'), R.n('advice')]];
+  const facts = [i18tn('ik_hf_open', open, { n: open }), noEd ? i18tn('ikn_noed', noEd, { n: noEd }) : ''].filter(Boolean).join(' \u00b7 ');
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ikn-page" data-ins-page="intake" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card">
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
+        <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
+      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label><span class="apn-sp"></span>
+        ${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
+      <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:32%"><col style="width:26%"><col style="width:15%"><col style="width:14%"><col></colgroup>
+        <thead><tr><th>${esc(i18t('ikn_c_req'))}</th><th>${esc(i18t('ikn_c_stands'))}</th><th>${esc(i18t('ikn_c_by'))}</th><th>${esc(i18t('ikn_c_lane'))}</th><th></th></tr></thead>
+        <tbody>${R.list.map(r => iknRowHtml(r, may)).join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
+      <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span><span>${esc(i18t('ikn_foot_adv'))}</span></div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  const r = R.list.find(x => String(x.id) === String(_iknSel)) || null;
+  if (typeof insPaintPanel === 'function'){
+    if (r) insPaintPanel({ seat: IK_SEAT, jlWord: i18t('jl_w_request'), item: { id: String(r.id) }, head: false, body: iknPanelHtml(r, may) });
+    else insPaintPanel({ seat: IK_SEAT, empty: i18t('ik_panel_none') });
+  }
+  if (typeof setActiveNav === 'function') setActiveNav('intake');
+  if (typeof insWatchWidth === 'function') insWatchWidth();
+}
+function iknPanelHtml(r, may){
+  const E = esc, st = iknStands(r);
+  const fit = st.fit && st.fit.strong ? st.fit : null;
+  const head = r.contractId ? st.t + '.' : fit ? i18t('ikn_p_fits', { title: r.title || '', name: fit.name }) : i18t('ikn_p_open', { title: r.title || '' });
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+  const rows = (r.counterparty ? row(i18t('cun_c_party'), r.counterparty, i18t('ikn_src_ask')) : '')
+    + (r.folder && window.FOLDERS && FOLDERS[r.folder] ? row(i18t('reg_chip_stream'), FOLDERS[r.folder].name, i18t('ikn_src_ask')) : '')
+    + (fit ? row(i18t('ikn_paper'), fit.name, i18t('ikn_src_fits')) : '')
+    + ((r.files || []).length ? row(i18t('ikn_files'), i18tn('ikn_files_n', r.files.length, { n: r.files.length }), '') : '');
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  const doors = r._adv ? '' : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
+    : may ? door(`data-ikn-draft="${E(r.id)}"`, i18t('ikn_start'), i18t('ikn_start_cost')) : '';
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${r.need ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_words'))}</div><div class="mnn-note"><p>${E(r.need)}</p></div>` : ''}
+    ${rows ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
+}
+if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired = true;
+  document.addEventListener('click', e => {
+    if (typeof state === 'undefined' || state.view !== 'intake') return;
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
+    if ((el = t.closest('[data-ikn-tab]'))){ e.preventDefault(); _ikn = el.getAttribute('data-ikn-tab'); renderIntake(); return; }
+    if ((el = t.closest('[data-ikn-draft]'))){ e.preventDefault(); e.stopPropagation(); intakeDraft(el.getAttribute('data-ikn-draft')); return; }
+    if ((el = t.closest('[data-ikn-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-ikn-open'); if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open')) && typeof openWorkspace === 'function') openWorkspace(id); return; }
+    if ((el = t.closest('#ik-new')) && t.closest('.ikn-page')){ e.preventDefault(); openIntakeForm(); return; }
+    if ((el = t.closest('[data-ikn-row]'))){ const id = el.getAttribute('data-ikn-row'); if (String(id) === String(_iknSel)) return; _iknSel = id; renderIntake(); }
+  });
+  document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ikn-q' || typeof state === 'undefined' || state.view !== 'intake') return;
+    ikFilters().q = e.target.value; renderIntake(); const q = document.getElementById('ikn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
+}
 function renderIntakeInspector(host){
   const may=(typeof canEdit==='function'&&canEdit());
+  if (may && typeof window.newLookOn === 'function' && newLookOn()){ iknRender(host); return; }
   const asker=!may;
   const f=ikFilters();
   const V=asker?IK_V_ASKER:IK_V_TEAM;

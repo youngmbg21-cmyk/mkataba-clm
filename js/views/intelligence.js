@@ -9574,7 +9574,10 @@ function igWallStageWord(k){
    instead of a value, and "Kept to its list" instead of a party. */
 function igWallSheetHtml(c,opening){
   if(c&&c._codeNamed) return `<span class="igw-sheet is-coded" aria-hidden="true"><span class="igw-cn">${typeof icon==='function'?icon('tag','w-3.5 h-3.5'):''}<span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(i18t('igw_code_name'))}</span></span>${opening?igOpeningHtml():''}</span>`;
-  return `<span class="igw-sheet" aria-hidden="true"><span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(c.counterparty||'')}</span><span class="igw-ln"></span>${opening?igOpeningHtml():''}</span>`;
+  /* the new look (round 6, as drawn): the sheet names both parties, "Highland Corporate Ltd and Nandi Dairy" */
+  let us=''; if(typeof newLookOn==='function'&&newLookOn()){ try{ us=typeof contractParty==='function'?String(contractParty(c)||''):''; }catch(_){ us=''; } }
+  const between=us&&c.counterparty?i18t('igw2_between',{ a:us, b:c.counterparty }):(c.counterparty||'');
+  return `<span class="igw-sheet" aria-hidden="true"><span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(between)}</span><span class="igw-ln"></span>${opening?igOpeningHtml():''}</span>`;
 }
 /* the number's companion under the paper: its value, read as the List reads
    it (fmtMoneyShortOf: pay is a dash), a dash where no money passes, nothing
@@ -9606,6 +9609,14 @@ function igWallCardHtml(c,need){
     +(priv?`<span class="igw-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:'');
   /* the paper chosen with one press wears the accent's edge (round 13): its panel says it */
   const chosen=igWallChosenId()===String(c.id);
+  /* THE WALL AS DRAWN (the new look, round 6): each paper a sheet, its stage's mark at its corner, the party and the
+     value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel) */
+  if(window.newLookOn&&newLookOn()){
+    const mark=typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'';
+    return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
+    ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>
+    <span class="igw2-foot"><span>${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></button>`;
+  }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}
     <span class="igw-m"><span class="igw-dot" style="background:${dot}"></span><span>${igEsc(word)}</span></span>
@@ -9754,7 +9765,16 @@ function igWallBodyHtml(rows,o){
     ? lhFootHtml('wall', S.k, S.n, IG_WALL_STEP, { cls:'igw-foot' })
     : `<div class="igw-foot"><span class="igw-shown" role="status" aria-live="polite">${igEsc(i18t('igw_shown',{ k:S.k, n:S.n }))}</span></div>`):'';
   return `<div class="igw-chips igw-line reg-filterbar"><span class="igw-count" role="status" aria-live="polite">${igEsc(igWallCountWords(list,opts))}</span>${order?`<span class="igw-order">${igEsc(order)}</span>`:''}${opts.tools||''}</div>
-    ${list.length?`<div class="igw-grid" role="list">${shown.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>${foot}`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}`;
+    ${list.length?`<div class="igw-grid" role="list">${shown.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>${foot}`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}${(typeof newLookOn==='function'&&newLookOn())?igWallNlFootHtml(list,shown):''}`;
+}
+/* THE WALL'S TWO LINES, AS DRAWN (the new look, round 6): under the papers what the press does (and which one is
+   chosen), and at the page's foot how many, and that a file dropped on the wall is read (the one drop door) */
+function igWallNlFootHtml(list, shown){
+  if(typeof newLookOn!=='function'||!newLookOn()) return '';
+  const ch=igWallChosenId(), c=ch?shown.find(x=>String(x.id)===ch):null;
+  const left=c?i18t('ctf_wall_chosen',{ name:c.name||'' }):'';
+  return `<div class="igw2-hint"><span>${igEsc(left)}</span><span>${igEsc(i18tn('ctf_wall_rule',shown.length,{ n:shown.length }))}</span></div>
+    <div class="igw2-pfoot"><span>${igEsc(i18tn('ctf_wall_n',list.length,{ n:list.length }))}</span>${typeof window.pdDropDoor==='function'?`<span>${igEsc(i18t('ctf_wall_drop'))}</span>`:''}</div>`;
 }
 /* THE PLACE'S FRAME on Home's paper with nothing chosen; the register draws
    the place into it (renderRegister, home) and lights the rail's Contracts */
@@ -9802,6 +9822,9 @@ function igWallChosenPaint(){
     b.classList.toggle('is-chosen',on);
     if(on) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current');
   });
+  /* the new look's line under the papers says which is chosen */
+  const hint=document.querySelector('#ig-wall .igw2-hint > span');
+  if(hint){ const c=id&&typeof getContract==='function'?getContract(id):null; hint.textContent=c?i18t('ctf_wall_chosen',{ name:c.name||'' }):''; }
 }
 function igWallChoose(id){
   const c=(typeof getContract==='function')?getContract(id):null; if(!c) return false;

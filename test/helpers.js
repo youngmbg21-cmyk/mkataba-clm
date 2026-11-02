@@ -70,7 +70,9 @@ function startAiStub() {
       calls.push({ url: req.url, body, raw });
       const toolName = (body.tool_choice && body.tool_choice.name)
         || (Array.isArray(body.tools) && body.tools.length ? body.tools[0].name : 'deliver_answer');
-      const input = toolName === 'deliver_answer'
+      /* a world may answer a tool its own way (round 6: the folder's kept question, one answer per contract) */
+      const own = state.answer ? state.answer(toolName, body) : null;
+      const input = own ? own : toolName === 'deliver_answer'
         ? { answer: 'stubbed answer', citations: [] }
         : toolName === 'render_graph' ? { note: 'stub', answer: 'stub' }
         : toolName === 'answer_portfolio' ? { answer: 'stub', matches: [] }
@@ -78,6 +80,15 @@ function startAiStub() {
         /* ASK A COLUMN: an answer resting on the document's own first long
            sentence, so the route's quote check passes as it would live */
         /* THE PARTY'S TWO MINUTES: one figure from the facts (the agreements counted) and one that is not (999) */
+        /* THE OUTLINE (the builder's scratch start, New agreement's From scratch): two sections no standard names */
+        : toolName === 'propose_sections' ? { sections: [{ heading: 'Supply & Specification', intent: 'What is supplied, how much, to what standard.' },
+            { heading: 'Quality & Rejection', intent: 'How goods are checked and what happens to goods that fail.' }], note: '' }
+        /* FROM SCRATCH: one section's wording, naming the heading it was asked for */
+        : toolName === 'write_section' ? (() => {
+            const msg = String(((body.messages || [])[0] || {}).content || '');
+            const head = (msg.match(/ONE section: "([^"]+)"/) || [])[1] || 'this section';
+            return { text: `The parties agree the terms of ${head.toLowerCase()} as set out in this section.`, note: '' };
+          })()
         : toolName === 'party_brief' ? (() => {
             const facts = String(((body.messages || [])[0] || {}).content || '').split('FACTS:\n')[1] || '{}';
             let n = 0; try { n = JSON.parse(facts).agreements || 0; } catch (_) { n = 0; }
@@ -133,6 +144,7 @@ function startAiStub() {
         calls,
         reset() { calls.length = 0; },
         slow(ms) { state.slowMs = Number(ms) || 0; },
+        answerWith(fn) { state.answer = typeof fn === 'function' ? fn : null; },
         /* Every character HaTi sent to the provider on the last call — prompts,
            system prompt, tool results, the lot. This is the string the
            "no folder-B contract reached the model" assertions run against. */

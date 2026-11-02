@@ -662,6 +662,13 @@ function dirPaintPanel(p, book){
      Email; the facts as rows — Email · In HaTi · Streams · Named on · Away;
      what waits on them, each with its own door; the contracts they are named
      on with their stage, and "All N on Contracts ›" */
+  /* the new look (round 6, as drawn): the person in one sentence, RIGHT NOW, DOORS */
+  if (typeof window.newLookOn === 'function' && newLookOn() && (p.side === 'ours' || p.side === 'theirs')){
+    insPaintPanel({ seat: DIR_SEAT, item: { id: p.key }, head: false, body: dirnPanelHtml(p),
+      jlWord: i18t('jl_w_person'), jlHome: DIR_JL.jlHome(), jlPh: DIR_JL.jlPh(), jlSay: dirSay });
+    dirPanelWire();
+    return;
+  }
   const rowsOf = list => (typeof insRowsHtml === 'function') ? insRowsHtml(list) : kv(list);
   const first = String(p.name || p.email || '').split(/\s+/)[0];
   const av = `<span class="jl-av" aria-hidden="true">${_dE(dirInitials(p.name || p.email))}</span>`;
@@ -827,6 +834,96 @@ function dirSelect(key){
 }
 
 /* ---- THE PAGE ---- */
+/* ---- PEOPLE, AS DRAWN (the new look, round 6) ----
+   One list: the person (their title and side under the name), their role, what they do for you on the book, what
+   waits on them, and how to reach them (Email, the phone their newest link carried); yours first, then the outside
+   people under their own line. Tabs All · Yours · Outside · Waiting on them. Every reading is the page's own
+   (dirBook, dirDoesFor, dirWaitingOn, dirPhoneOf); a row's press is the list's (dirWireList). Reads only. */
+let _dirn = 'all';
+/* A PERSON'S PANEL, AS DRAWN (round 6): "{name}, {role}." and what they do for you; RIGHT NOW (what waits on them,
+   whether they are away); DOORS (Show their contracts, Email, each with its cost). Readings the row already makes. */
+function dirnPanelHtml(p){
+  const E = _dE, ours = p.side === 'ours';
+  const roles = [...(p.roles || [])];
+  const hati = p.hati ? String(p.hati).toLowerCase() : '';
+  const role = ours ? [p.title || hati, roles.includes('approver') ? i18t('dirn_approver').toLowerCase() : ''].filter(Boolean).join(', ')
+    : (roles.includes('negotiate') ? i18t('dirn_their_lead') : roles.includes('cpsign') ? i18t('dirn_their_signer') : i18t('dirn_their_side')).toLowerCase();
+  const ids = [...(p.on ? p.on.keys() : [])];
+  let does = '';
+  if (ours) does = ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : '';
+  else { const c = ids[0] && typeof getContract === 'function' ? getContract(ids[0]) : null; does = (c && dirDoesFor(roles, c, c.name || '')) || ''; }
+  const head = i18t('dirn_p_head', { name: p.name || p.email || '', role: role || (ours ? i18t('jl_side_ours') : p.partyName || '') })
+    + (does ? ' ' + does.charAt(0).toLocaleUpperCase() + does.slice(1) + '.' : '');
+  let w = []; try { w = dirWaitingOn(p) || []; } catch (_){ w = []; }
+  const waitV = w.length ? w.slice(0, 2).map(x => `${i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr')} · ${x.c.name || x.c.id}`).join('; ') : i18t('dirn_nothing');
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+  let away = '';
+  if (ours && p.id != null){ const aw = (typeof jlAwayOf === 'function') ? jlAwayOf(p.id) : null; const today = (typeof todayISO === 'function') ? todayISO() : '';
+    away = aw && aw.to && (!today || aw.to >= today) ? i18t('dirn_p_away_until', { day: (typeof jlDayWord === 'function') ? jlDayWord(aw.to, true) : aw.to, who: aw.deputyName || i18t('dirn_p_none_set') }) : i18t('dirn_p_not_away'); }
+  const rows = row(i18t('dirn_p_waiting'), waitV) + (away ? row(i18t('dirn_p_away'), away) : '');
+  const n = p.contracts.length;
+  const door = (attr, w2, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w2)}</button><span>${E(cost)}</span></div>`;
+  const doors = (n ? door(`data-dirn-contracts="${E(p.key)}"`, i18tn('dirn_p_show', n, { n }), i18t('pd2_ch_free')) : '')
+    + (p.email ? door(`data-dirn-mail="${E(p.key)}"`, i18t('dirn_p_email'), i18t('dirn_p_mail_cost')) : '');
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p><div class="pd2-ch-cap">${E(i18t('dirn_p_now'))}</div><div class="pd2-ch-tbl">${rows}</div>${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
+}
+if (typeof document !== 'undefined' && !document._dirnPanelWired){ document._dirnPanelWired = true;
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-dirn-contracts]') : null; if (!b) return; e.preventDefault();
+    const p = dirBook().find(x => x.key === b.getAttribute('data-dirn-contracts')); if (p) dirShowContracts(p); });
+}
+function dirnRowHtml(p){
+  const ours = p.side === 'ours';
+  const hati = p.hati ? String(p.hati).charAt(0).toUpperCase() + String(p.hati).slice(1) : '';
+  const roles = [...(p.roles || [])];
+  const role = ours ? [p.title || hati, roles.includes('approver') ? i18t('dirn_approver') : ''].filter(Boolean).join(', ')
+    : (roles.includes('negotiate') ? i18t('dirn_their_lead') : roles.includes('cpsign') ? i18t('dirn_their_signer') : i18t('dirn_their_side'));
+  const sub = [p.title && ours ? '' : p.title, ours ? (window.FIRST_PARTY || '') : (p.partyName || ''), ours && p.hati ? String(p.hati).toLowerCase() : '', p.you ? i18t('dirn_you') : ''].filter(Boolean).join(' · ');
+  const ids = [...(p.on ? p.on.keys() : [])];
+  let does = '';
+  if (ours) does = ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : '—';
+  else { const id = ids[0], c = id && typeof getContract === 'function' ? getContract(id) : null; does = (c && dirDoesFor(roles, c, c.name || '')) || (ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : '—'); }
+  let w = []; try { w = dirWaitingOn(p) || []; } catch (_){ w = []; }
+  const wait = w.length ? i18tn('dirn_things', w.length, { n: w.length }) : i18t('dirn_nothing');
+  let ph = null; try { ph = dirPhoneOf(p); } catch (_){ ph = null; }
+  const reach = [p.email ? `<button type="button" class="pd2-link" data-dirn-mail="${_dE(p.key)}">${_dE(i18t('dirn_email'))}</button>` : '', ph ? _dE(String(ph.phone || ph)) : ''].filter(Boolean).join(' · ') || '—';
+  return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who">${typeof regAvatarHtml === 'function' ? regAvatarHtml(p.name || p.email || '?') : ''}<div><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
+    <td class="cun-wait">${_dE(role || '—')}</td><td class="cun-wait">${_dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '')}</td><td class="cun-wait">${_dE(wait)}</td><td class="cun-wait">${reach}</td></tr>`;
+}
+function dirnRender(host, INS, book){
+  const q = String(_dir.q || '').trim().toLowerCase();
+  const all = book.filter(p => p && (p.side === 'ours' || p.side === 'theirs'));
+  const waitOf = p => { try { return (dirWaitingOn(p) || []).length; } catch (_){ return 0; } };
+  const yours = all.filter(p => p.side === 'ours'), outside = all.filter(p => p.side === 'theirs'), waiting = all.filter(p => waitOf(p) > 0);
+  const pick = _dirn === 'yours' ? yours : _dirn === 'outside' ? outside : _dirn === 'wait' ? waiting : all;
+  const list = pick.filter(p => !q || [p.name, p.email, p.partyName, p.title].some(v => String(v || '').toLowerCase().includes(q)));
+  const ours = list.filter(p => p.side === 'ours').sort((a, b) => (b.you ? 1 : 0) - (a.you ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
+  const theirs = list.filter(p => p.side === 'theirs').sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const tabs = [['all', i18t('ctf_tab_all'), all.length], ['yours', i18t('dirn_tab_yours'), yours.length], ['outside', i18t('dirn_tab_outside'), outside.length], ['wait', i18t('dirn_tab_wait'), waiting.length]].filter(t => t[2] || t[0] === 'all' || t[0] === _dirn);
+  const body = ours.map(dirnRowHtml).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="5">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(dirnRowHtml).join('');
+  host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
+  <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
+    <div class="ap-body is-ins dir-body"><section class="ap-card apn-card">
+      <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2><span class="ctf-hf">${_dE(i18t('dirn_head', { n: all.length, y: yours.length, o: outside.length }))}</span></div>
+      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(i18t('lh_filter_ph'))}" value="${_dE(_dir.q || '')}"></label><span class="apn-sp"></span>
+        ${tabs.map(t => `<button type="button" class="apn-tab${_dirn === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${_dE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
+      <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table"><colgroup><col style="width:28%"><col style="width:15%"><col><col style="width:17%"><col style="width:17%"></colgroup>
+        <thead><tr><th>${_dE(i18t('dirn_c_name'))}</th><th>${_dE(i18t('dirn_c_role'))}</th><th>${_dE(i18t('dirn_c_does'))}</th><th>${_dE(i18t('dirn_c_wait'))}</th><th>${_dE(i18t('dirn_c_reach'))}</th></tr></thead>
+        <tbody id="dir-tbody">${body || `<tr><td colspan="5" class="apn-none">${_dE(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
+      <div class="apn-foot">${_dE(i18tn('dirn_foot', all.length, { n: all.length }))}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div></div>`;
+  dirWire(host, INS, book);
+  if (INS && typeof insWatchWidth === 'function') insWatchWidth();
+  if (typeof setActiveNav === 'function') setActiveNav('directory');
+}
+if (typeof document !== 'undefined' && !document._dirnWired){ document._dirnWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const tab = t.closest('[data-dirn-tab]'); if (tab){ e.preventDefault(); _dirn = tab.getAttribute('data-dirn-tab'); renderDirectory(); return; }
+    const m = t.closest('[data-dirn-mail]'); if (m){ e.preventDefault(); e.stopPropagation(); const p = dirBook().find(x => x.key === m.getAttribute('data-dirn-mail')); if (p && p.email){ try { window.location.href = 'mailto:' + p.email; } catch (_){} } }
+  }, true);
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'dirn-q'){ _dir.q = e.target.value; renderDirectory();
+    const q = document.getElementById('dirn-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_){} } } });
+}
 function renderDirectory(){
   const host = document.getElementById('content'); if (!host) return;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
@@ -836,6 +933,8 @@ function renderDirectory(){
   const book = dirBook();
   const rows = dirRows(book, _dir.tab);
   dirLcReg();
+  /* the new look draws People as drawn (round 6); the old look is unchanged */
+  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ void rows; dirnRender(host, INS, book); return; }
   const card = dirCardHtml(rows, book);
   host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page dir-page${INS ? ' is-ins' : ''}" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">

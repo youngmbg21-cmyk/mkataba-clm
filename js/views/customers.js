@@ -433,6 +433,12 @@ function cuOpenCustomer(key){
   const v = cuView(cuCustomerOf(key));
   if (!v || !v.items.length) return;
   const phone = typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768));
+  /* the new look (round 6, as drawn): a party opens its own page — its facts, what waits on you, its agreements */
+  if (!phone && typeof window.newLookOn === 'function' && newLookOn()){
+    _cunParty = v.key;
+    if (typeof state !== 'undefined' && state.view !== 'customers' && typeof setView === 'function') setView('customers'); else renderCustomers();
+    return;
+  }
   if (typeof regShowOnly === 'function') regShowOnly(cuIdsOf(v), phone ? `${v.name} · ${v.items.length}` : v.name, { party: true });
   /* LAND ON IT: the narrowed place's first paper, lit (People's Show their contracts) */
   if (!phone && typeof jlLand === 'function') jlLand('list');
@@ -1195,6 +1201,12 @@ function cuPaintCustomerPanel(tb){
     const r = key ? cuView(cuCustomerOf(key)) : null;
     if (!r){ _cu.edit = null; insPaintPanel({ seat, c: null, item: null, empty: i18t('cu_panel_none'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay }); return; }
     if (_cu.edit && _cu.edit !== r.key) _cu.edit = null;
+    /* the new look (round 6, as drawn): the party in one sentence, its own facts, its doors, Jambo's remark */
+    if (typeof window.newLookOn === 'function' && newLookOn()){
+      insPaintPanel({ seat, jlWord: i18t('jl_w_party'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay, item: { id: r.key }, head: false,
+        body: (_cu.edit === r.key ? cuPrFormHtml(r) : '') + cunPanelHtml(r) });
+      return;
+    }
     const may = partyRecordMay();
     const org = partyOrgNoOf(r.key);
     const orgHtml = org ? `${_cuE(org)}${may ? ` <button type="button" class="ui-link cu-org-go" data-cu-pr-edit="${_cuE(r.key)}">${_cuE(i18t('cu_pr_change'))}</button>` : ''}`
@@ -1338,6 +1350,253 @@ if (typeof document !== 'undefined' && document.addEventListener) document.addEv
 });
 
 /* ---- THE PAGE ---- */
+/* ---- PARTIES, AS DRAWN (the new look, round 6) ----
+   One list: the party (its city, organisation no. and streams under it), how many deals, the money on paper, where the
+   newest live deal stands, the NDA (signed with its year, confirmed, or none), and what waits on you in words, late in
+   red, with Open party on the row. Tabs All · Waiting on you · NDA missing. Every reading is the page's own (cuView,
+   cuNdaMap, partyRecordOf); the row's press is the list's own (cuWireList). Reads only. */
+let _cun = 'all';
+const CUN_WORDS = { suggest:'ctf_n_suggest', quiet:'ctf_n_quiet', join:'ctf_n_join' };
+/* THE PARTY'S PANEL, AS DRAWN (round 6): how much of your signed money they hold and when it ends, THE PARTY'S OWN
+   FACTS (the record's city and organisation no., the person who last signed for them, the NDA), DOORS (Open party,
+   the web search with its cost, Edit the party record) and Jambo's one remark (the NDAs missing where paper is live).
+   Every figure a reading the page already makes; nothing is asked of the AI. */
+function cunPanelHtml(r){
+  const E = _cuE, money = !(typeof canViewValues === 'function' && !canViewValues());
+  const signedVal = cs => cs.filter(c => c.status === 'Signed' && !c.archived).reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
+  const mine = signedVal(r.items), all = signedVal((state.contracts || []).filter(c => c && !c._codeNamed));
+  const pct = money && all > 0 && mine > 0 ? Math.round(mine / all * 100) : 0;
+  const next = cuNextSay(r);
+  const head = [pct ? i18tn('cun_p_head', r.items.length, { name: r.name, pct, n: r.items.length }) : i18tn('cun_p_head_n', r.items.length, { name: r.name, n: r.items.length }),
+    next ? i18t('cun_p_next', { next }) : ''].filter(Boolean).join(' ');
+  const rec = (typeof partyRecordOf === 'function' && partyRecordOf(r.key)) || {};
+  const people = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(r.key) : [];
+  const signer = people.find(p => p && p.signs) || people[0] || null;
+  const nda = cuNdaOf(r.key);
+  const ndaV = !nda || nda.state === 'none' ? i18t('cu_nda_none') : nda.state === 'inforce' && nda.c && nda.c.signedAt ? i18t('cun_p_nda_signed', { d: cuDay(String(nda.c.signedAt).slice(0, 10)) }) : i18t('cun_nda_conf');
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src)}</i></div>`;
+  const facts = [rec.city ? row(i18t('cun_p_city'), rec.city, i18t('cun_p_src_rec')) : '', row(i18t('cun_p_org'), rec.orgNo || i18t('cu_org_none'), rec.orgNo ? i18t('cun_p_src_rec') : ''),
+    signer ? row(i18t('cun_p_signer'), [signer.name, signer.title].filter(Boolean).join(', '), i18t('cun_p_src_link')) : '',
+    row(i18t('cu_col_nda'), ndaV, nda && nda.c && typeof contractRef === 'function' ? contractRef(nda.c) : '')].join('');
+  const lead = r.items.find(c => !c.archived) || r.items[0];
+  const short = cuShortName(r.name);
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  const doors = door(`data-cun-open="${E(r.key)}"`, i18tn('cun_p_open', r.items.length, { n: r.items.length }), i18t('pd2_ch_free'))
+    + (lead && typeof partyWebOpen === 'function' && typeof partyLookupMay === 'function' && partyLookupMay() ? door(`data-cun-web="${E(lead.id)}"`, i18t('cun_p_web', { name: short }), i18t('cun_p_web_cost')) : '')
+    + (typeof partyRecordMay === 'function' && partyRecordMay() ? door(`data-cu-pr-edit="${E(r.key)}"`, i18t('cun_p_edit'), i18t('pd2_ch_free')) : '');
+  /* his remark: the parties with live paper and no NDA on file */
+  const map = cuNdaMap(), live = (typeof cuCustomers === 'function' ? cuCustomers() : []).map(x => cuView(x)).filter(Boolean)
+    .filter(v => v.items.some(c => !c.archived && c.status !== 'Signed' && c.status !== 'Declined') && ['none', 'ended'].includes((map.get(v.key) || { state: 'none' }).state));
+  const names = live.map(v => cuShortName(v.name));
+  const say = names.length ? i18tn('cun_p_jambo', names.length, { n: names.length, list: (() => { try { return new Intl.ListFormat((typeof langLocale === 'function') ? langLocale() : undefined, { type: 'conjunction' }).format(names.slice(0, 3)); } catch (_){ return names.slice(0, 3).join(i18t('cun_p_and')); } })() }) : '';
+  const turn = say ? `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(say)}</p></div></div>` : '';
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p><div class="pd2-ch-cap">${E(i18t('cun_p_facts'))}</div><div class="pd2-ch-tbl">${facts}</div><div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}${turn}</div>`;
+}
+if (typeof document !== 'undefined' && !document._cunPanelWired){ document._cunPanelWired = true;
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-cun-web]') : null; if (!b) return; e.preventDefault(); if (typeof partyWebOpen === 'function') partyWebOpen(b.getAttribute('data-cun-web')); });
+}
+function cunRowHtml(v, nda){
+  const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
+  const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : i18t('cun_org_none');
+  const sub = [rec.city || '', org, v.streams.map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f)).filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  const money = !(typeof canViewValues === 'function' && !canViewValues());
+  const val = v.items.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
+  const lead = v.items.filter(c => !c.archived).sort((a, b) => String(b.updatedAt || b.lastAction || '').localeCompare(String(a.updatedAt || a.lastAction || '')))[0] || v.items[0];
+  let sm = null; try { sm = lead && typeof contractStatusMeta === 'function' ? contractStatusMeta(lead) : null; } catch (_){ sm = null; }
+  const stand = sm ? `<span class="cun-st"><i style="background:${sm.dot}"></i>${esc(sm.label || '')}</span>` : '—';
+  const n = nda || { state: 'none' };
+  const yr = n.c && n.c.signedAt ? String(n.c.signedAt).slice(0, 4) : '';
+  const ndaW = n.state === 'inforce' ? (yr ? i18t('cun_nda_signed', { y: yr }) : i18t('cun_nda_conf')) : n.state === 'unconfirmed' ? i18t('cun_nda_conf') : n.state === 'ended' ? i18t('cun_nda_ended') : n.state === 'draft' ? i18t('cun_nda_draft') : i18t('cun_nda_none');
+  const ndaH = `<span class="cun-st${n.state === 'none' || n.state === 'ended' ? ' is-none' : ''}"><i></i>${esc(ndaW)}</span>`;
+  const needs = (v.needs || []).filter(x => x && x.it);
+  const verb = x => { const k = x.it.kind, n = x.it.n || 1;
+    return k === 'approval' ? i18t('cun_w_approve', { name: x.c.name || '' }) : k === 'sign' ? i18t('cun_w_sign') : k === 'details' ? i18tn('cun_w_details', n, { n })
+      : k === 'move' ? i18t('cun_w_move') : k === 'look' ? i18t('cun_w_look') : k === 'note' ? i18t('cun_w_note') : k === 'review' ? i18t('cun_w_review') : k === 'refused' ? i18t('cun_w_refused')
+      : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : ''); };
+  const words = needs.slice(0, 2).map(x => { const w = verb(x); return w ? (x.it.urgent ? `${esc(w)} · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : esc(w)) : ''; }).filter(Boolean).join(' · ');
+  return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
+    <td><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${esc(sub)}</div></td>
+    <td class="cun-num">${v.items.length}</td><td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>
+    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait">${words || '—'}</td>
+    <td class="cun-go"><button type="button" class="pd2-link" data-cun-open="${esc(v.key)}">${esc(i18t('cun_open'))}</button></td></tr>`;
+}
+let _cunParty = null;
+function cunRender(host, INS){
+  if (_cunParty && cuCustomerOf(_cunParty)) return cunPartyRender(host, INS, _cunParty);
+  _cunParty = null;
+  const all = (typeof cuCustomers === 'function' ? cuCustomers() : []).map(r => cuView(r)).filter(Boolean);
+  const nda = cuNdaMap();
+  const q = String(((state.cu || {}).q) || (document.getElementById('cun-q') || {}).value || '').trim().toLowerCase();
+  const waiting = all.filter(v => (v.needs || []).length), missing = all.filter(v => { const s = (nda.get(v.key) || { state: 'none' }).state; return s === 'none' || s === 'ended'; });
+  const list = (_cun === 'wait' ? waiting : _cun === 'nda' ? missing : all).filter(v => !q || v.name.toLowerCase().includes(q))
+    .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
+  const tabs = [['folders', i18t('ctf_tab_folders'), null], ['all', i18t('cun_tab_list'), all.length], ['wait', i18t('cun_tab_wait'), waiting.length], ['nda', i18t('cun_tab_nda'), missing.length]].filter(t => t[2] || t[0] === 'all' || t[0] === 'folders' || t[0] === _cun);
+  const agreements = all.reduce((s, v) => s + v.items.length, 0);
+  host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
+  <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
+    <div class="ap-body is-ins"><section class="ap-card apn-card">
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2><span class="ctf-hf">${esc(i18tn('cun_n', all.length, { n: all.length }))}</span></div>
+      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
+        ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])}${t[2] == null ? '' : ` <span>${t[2]}</span>`}</button>`).join('')}${_cun === 'folders' ? `<span class="ctf-hint">${esc(i18t('cun_f_hint'))}</span>` : ''}</div>
+      ${_cun === 'folders' ? `<div class="cu-scroll"><div class="ctf-grid cunf-grid">${list.map(v => cunFolderCardHtml(v, nda.get(v.key))).join('')}</div></div>` : ''}
+      <div class="cu-scroll"${_cun === 'folders' ? ' hidden' : ''}><table class="apn-table cun-table"><colgroup><col style="width:26%"><col style="width:70px"><col style="width:110px"><col style="width:130px"><col style="width:130px"><col><col style="width:96px"></colgroup>
+        <thead><tr><th>${esc(i18t('cun_c_party'))}</th><th>${esc(i18t('cun_c_deals'))}</th><th>${esc(i18t('cun_c_paper'))}</th><th>${esc(i18t('cun_c_standing'))}</th><th>${esc(i18t('cun_c_nda'))}</th><th>${esc(i18t('cun_c_wait'))}</th><th></th></tr></thead>
+        <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key))).join('') || `<tr><td colspan="7" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
+      <div class="apn-foot">${esc(i18t('cun_foot', { n: all.length, m: agreements }))}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  cuWireList(host, INS);
+  if (_cun === 'folders' && INS) cunFoldersPanelPaint(all, nda);
+  if (INS && typeof insWatchWidth === 'function') insWatchWidth();
+  if (typeof setActiveNav === 'function') setActiveNav('customers');
+}
+/* ---- PARTIES AS FOLDERS, AS DRAWN (round 6): a card per party — where it is and its streams, its deals, the money
+   on paper and the NDA, and what waits on you in amber (late in red); a press opens the party's page ---- */
+function cunNdaWords(n){
+  const x = n || { state: 'none' }, yr = x.c && x.c.signedAt ? String(x.c.signedAt).slice(0, 4) : '';
+  return x.state === 'inforce' ? (yr ? i18t('cun_f_nda_signed', { y: yr }) : i18t('cun_f_nda_conf')) : x.state === 'unconfirmed' ? i18t('cun_f_nda_conf') : i18t('cun_f_nda_none');
+}
+function cunMoney(v){
+  if (typeof canViewValues === 'function' && !canViewValues()) return 0;
+  return v.items.filter(c => !c.archived).reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
+}
+function cunWaitWords(v){
+  const needs = (v.needs || []).filter(x => x && x.it);
+  if (!needs.length) return '';
+  const w = needs.slice(0, 2).map(x => cuNeedTitle(x)).filter(Boolean).map(t => t.charAt(0).toLowerCase() + t.slice(1));
+  return needs.length > 1 ? i18t('cun_f_wait_n', { n: needs.length, what: w.join(', ') }) : (w[0] ? w[0].charAt(0).toUpperCase() + w[0].slice(1) : '');
+}
+function cunFolderCardHtml(v, n){
+  const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
+  const streams = v.streams.map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || cuStreamName(f)).filter(Boolean).join(', ');
+  const val = cunMoney(v);
+  const facts = [i18tn('cun_f_deals', v.items.length, { n: v.items.length }), val ? (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '', cunNdaWords(n)].filter(Boolean).join(' \u00b7 ');
+  const late = (v.needs || []).some(x => x && x.it && x.it.urgent);
+  const wait = cunWaitWords(v);
+  const st = (n || {}).state;
+  const dots = (wait ? '<i class="ctf-dot is-need"></i>' : '') + (v.items.some(c => c.status === 'Signed' && !c.archived) ? '<i class="ctf-dot is-live"></i>' : '') + (st === 'none' || st === 'ended' || !st ? '<i class="ctf-dot is-hollow"></i>' : '');
+  return `<button type="button" class="ctf-card cunf-card" data-cun-open="${esc(v.key)}"><span class="ctf-tab" aria-hidden="true"></span><span class="ctf-dots">${dots}</span>
+    <b class="ctf-name">${esc(v.name)}</b><span class="ctf-facts">${esc([rec.city || '', streams].filter(Boolean).join(' \u00b7 '))}</span><span class="ctf-facts">${esc(facts)}</span>
+    ${wait ? `<span class="ctf-need">${esc(wait)}${late ? ` \u00b7 <span class="cun-late">${esc(i18t('cun_late'))}</span>` : ''}</span>` : `<span class="ctf-quiet">${esc(i18t('cun_f_quiet'))}</span>`}</button>`;
+}
+/* the folders' panel: who holds the most money, which have no NDA, what is late — read across, no call */
+function cunFoldersPanelPaint(all, nda){
+  const money = all.map(v => ({ v, m: cunMoney(v) })).sort((a, b) => b.m - a.m);
+  const total = money.reduce((s, x) => s + x.m, 0), top = money[0];
+  const noNda = all.filter(v => ['none', 'ended'].includes((nda.get(v.key) || { state: 'none' }).state));
+  const late = all.filter(v => (v.needs || []).some(x => x && x.it && x.it.urgent));
+  const waiting = all.filter(v => (v.needs || []).length);
+  const short = v => cuShortName(v.name);
+  const head = [top && top.m && total ? i18t('cun_fp_top', { name: short(top.v), pct: Math.round(top.m / total * 100) }) : '', noNda.length ? i18tn('cun_fp_nonda', noNda.length, { n: noNda.length }) : '', waiting.length ? i18tn('cun_fp_wait', waiting.length, { n: waiting.length }) : ''].filter(Boolean).join('; ');
+  const row = (l, v2, src) => `<div class="pd2-ch-r"><span>${esc(l)}</span><b>${esc(v2)}</b><i>${esc(src || '')}</i></div>`;
+  const rows = (top && top.m ? row(i18t('cun_fp_most'), [short(top.v), typeof fmtMoneyShort === 'function' ? fmtMoneyShort(top.m) : '', i18tn('cun_f_deals', top.v.items.length, { n: top.v.items.length })].filter(Boolean).join(' \u00b7 '), total ? Math.round(top.m / total * 100) + '%' : '') : '')
+    + (noNda.length ? row(i18t('cun_fp_no_nda'), noNda.slice(0, 3).map(short).join(' \u00b7 '), String(noNda.length)) : '')
+    + (late.length ? row(i18t('cun_fp_late'), late.slice(0, 3).map(short).join(' \u00b7 '), String(late.length)) : '');
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${esc(w)}</button><span>${esc(cost)}</span></div>`;
+  const doors = (top ? door(`data-cun-open="${esc(top.v.key)}"`, i18t('cun_fp_open', { name: short(top.v) }), i18t('pd2_ch_free')) : '') + door('data-cun-tab="all"', i18t('cun_fp_list'), i18t('pd2_ch_free'));
+  const body = `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${esc(head ? head + '.' : '')}</p>${rows ? `<div class="pd2-ch-cap">${esc(i18t('cun_fp_cap'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}<div class="pd2-ch-cap">${esc(i18t('pd2_ch_doors'))}</div>${doors}</div>`;
+  insPaintPanel({ seat: 'customers', jlWord: i18t('jl_w_party'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay, item: { id: '__folders' }, head: false, body });
+}
+/* ---- A PARTY'S OWN PAGE, AS DRAWN (round 6) ----
+   ‹ Parties › name, its facts in one line, Edit the record · Web search · 1 call · + New agreement; THE PARTY'S OWN
+   FACTS beside WAITING ON YOU (each its own door); the agreements with them (Standing, What stands out, Ends,
+   Value); the panel is the party's (cunPanelHtml). Readings the Parties list already makes; nothing new is filed. */
+function cunStandsOut(c){
+  let dep = []; try { dep = (typeof stdDepartures === 'function') ? stdDepartures(c) : []; } catch (_){ dep = []; }
+  if (dep[0]) return { amber: true, t: i18t('cun_pp_differs', { what: String(dep[0].category || '') }) };
+  const end = String(c.expiry || '').slice(0, 10), today = (typeof todayISO === 'function') ? todayISO() : '';
+  if (end && today && end >= today){ const m = Math.round((Date.parse(end) - Date.parse(today)) / (30.44 * 864e5)); if (m <= 18) return { t: i18tn('cun_pp_ends_in', m, { n: m }) }; }
+  return { t: '' };
+}
+/* the party page's panel, as drawn: the sentence, READ FOR YOU (the notice owed on the next renewal, the people), and
+   DOORS (the first thing waiting on you by its own door, the web search, a new agreement with them) */
+function cunPartyPanelHtml(v){
+  const E = esc, full = cunPanelHtml(v), head = (/<p class="pd2-ch-head">([\s\S]*?)<\/p>/.exec(full) || [])[1] || '';
+  const row = (l, val, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(val)}</b><i>${E(src || '')}</i></div>`;
+  const today = (typeof todayISO === 'function') ? todayISO() : '';
+  const notice = v.items.filter(c => !c.archived && c.status === 'Signed' && c.expiry && Number((c.metadata || {}).noticePeriodDays) > 0 && String(c.expiry).slice(0, 10) >= today)
+    .map(c => { const days = Number(c.metadata.noticePeriodDays); const by = new Date(Date.parse(String(c.expiry).slice(0, 10)) - days * 864e5).toISOString().slice(0, 10); return { c, days, by }; })
+    .sort((a, b) => a.by.localeCompare(b.by))[0];
+  const people = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(v.key) : [];
+  const ppl = people.slice(0, 2).map(p => { const r = [...(p.roles || [])]; return i18t(r.includes('cpsign') ? 'cun_pp_signs' : 'cun_pp_negotiates', { name: p.name || p.email || '' }); }).join(' · ');
+  const rows = (notice ? row(i18t('cun_pp_notice'), i18t('cun_pp_notice_v', { name: notice.c.name || '', n: notice.days, d: cuDay(notice.by) }), '') : '') + (ppl ? row(i18t('cun_pp_people'), ppl, i18t('cun_pp_links')) : '');
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  const need = (v.needs || []).find(x => x && x.it && x.c);
+  const lead = v.items.find(c => !c.archived) || v.items[0];
+  const short = cuShortName(v.name);
+  const doors = (need ? door(`data-cu-need="${E(need.it.kind)}" data-cu-id="${E(need.c.id)}"`, cuNeedTitle(need), i18t('pd2_ch_free')) : '')
+    + (lead && typeof partyWebOpen === 'function' && typeof partyLookupMay === 'function' && partyLookupMay() ? door(`data-cun-web="${E(lead.id)}"`, i18t('cun_p_web', { name: short }), i18t('cun_p_web_cost')) : '')
+    + ((typeof canEdit !== 'function' || canEdit()) ? door(`data-cu-draft-with="${E(v.key)}"`, i18t('cun_pp_new', { name: short }), i18t('pd2_ch_free')) : '');
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${head}</p>${rows ? `<div class="pd2-ch-cap">${E(i18t('cun_pp_read'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}</div>`;
+}
+function cunPartyRender(host, INS, key){
+  const v = cuView(cuCustomerOf(key)); const E = esc;
+  const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
+  const streams = v.streams.map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || cuStreamName(f)).filter(Boolean).join(', ');
+  const val = cunMoney(v);
+  const facts = [i18tn('cun_pp_n', v.items.length, { n: v.items.length }), val ? (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : '') : '', streams, rec.city || ''].filter(Boolean).join(' \u00b7 ');
+  const may = partyRecordMay(), lead = v.items.find(c => !c.archived) || v.items[0];
+  const nda = cuNdaOf(v.key);
+  const people = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(v.key) : [];
+  const signer = people.find(p => p && (p.roles || []).includes && [...(p.roles || [])].includes('cpsign'));
+  const theirLead = people.find(p => p && [...(p.roles || [])].includes('negotiate'));
+  let sm = null; try { sm = lead && typeof contractStatusMeta === 'function' ? contractStatusMeta(lead) : null; } catch (_){ sm = null; }
+  const signedN = v.items.filter(c => c.status === 'Signed').length, rest = v.items.length - signedN;
+  const row = (l, val2, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(val2)}</b><i>${E(src || '')}</i></div>`;
+  const ndaV = !nda || nda.state === 'none' ? i18t('cu_nda_none') : nda.state === 'inforce' && nda.c && nda.c.signedAt ? i18t('cun_p_nda_signed', { d: cuDay(String(nda.c.signedAt).slice(0, 10)) }) : i18t('cun_nda_conf');
+  const own = (rec.city ? row(i18t('cun_p_city'), rec.city, i18t('cun_p_src_rec')) : '') + row(i18t('cun_p_org'), rec.orgNo || i18t('cu_org_none'), rec.orgNo ? i18t('cun_p_src_rec') : '')
+    + (signer ? row(i18t('cun_p_signer'), [signer.name, signer.title].filter(Boolean).join(', '), i18t('cun_p_src_link')) : '')
+    + (theirLead ? row(i18t('cun_pp_lead'), theirLead.name || theirLead.email || '', i18t('cun_pp_src_link')) : '')
+    + row(i18t('cu_col_nda'), ndaV, nda && nda.c && typeof contractRef === 'function' ? contractRef(nda.c) : '')
+    + (sm ? row(i18t('cun_c_standing'), [sm.label, signedN ? i18t('cun_pp_signed', { n: signedN }) : '', rest ? i18t('cun_pp_rest', { n: rest }) : ''].filter(Boolean).join(' \u00b7 '), i18t('cun_pp_src_read')) : '');
+  const needs = (v.needs || []).filter(x => x && x.it && x.c);
+  const waits = needs.length ? needs.slice(0, 4).map(x => `<div class="cunp-w"><div><b>${E(cuNeedTitle(x))}</b><span>${E(x.c.name || '')}</span></div><button type="button" class="rfp-a" data-cu-need="${E(x.it.kind)}" data-cu-id="${E(x.c.id)}">${E(i18t(CU_NEED_DOOR[x.it.kind] || 'cu_need_go_move'))}</button></div>`).join('')
+    : `<p class="cunp-none">${E(i18t('cun_f_quiet'))}</p>`;
+  const money = !(typeof canViewValues === 'function' && !canViewValues());
+  const ags = v.items.slice().sort((a, b) => String(a.archived ? 1 : 0).localeCompare(String(b.archived ? 1 : 0))).map(c => {
+    const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+    let m2 = null; try { m2 = (typeof regStageTone === 'function') ? regStageTone(c) : null; } catch (_){ m2 = null; }
+    const so = cunStandsOut(c);
+    const sub = [ref, c.signedAt ? i18t('cun_pp_signed_on', { d: cuDay(String(c.signedAt).slice(0, 10)) }) : ''].filter(Boolean).join(' \u00b7 ');
+    return `<tr data-cu-ag="${E(c.id)}"><td class="cunp-mk">${typeof regStageMarkHtml === 'function' ? regStageMarkHtml(c) : ''}</td><td><div class="cun-name">${E(c.name || ref)}</div><div class="cun-sub">${E(sub)}</div></td>
+      <td style="color:var(--st-${(m2 && m2.tone) || 'gray'}-fg)" class="cun-wait">${E((m2 && m2.m && m2.m.label) || c.status || '')}</td>
+      <td class="cun-wait${so.amber ? ' cunp-amb' : ''}">${E(so.t || '\u2014')}</td><td class="cun-wait">${E(c.expiry ? cuDay(String(c.expiry).slice(0, 10)) : '\u2014')}</td>
+      <td class="cun-wait" style="text-align:right">${money && Number(c.value) && typeof fmtMoneyShortOf === 'function' ? E(fmtMoneyShortOf(c)) : '\u2014'}</td></tr>`;
+  }).join('');
+  host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
+  <div class="view-enter sap-page ap-page is-ins apn-page cun-page cunp-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="party">
+    <div class="ap-body is-ins"><section class="ap-card apn-card">
+      <div class="cun-head cunp-head"><button type="button" class="ctf-back" data-cunp-back>\u2039 ${E(i18t('nav_customers'))}</button><span class="ctf-crumb">\u203a</span><h2 class="ctf-h">${E(v.name)}</h2><span class="ctf-hf">${E(facts)}</span><span class="ctf-sp"></span>
+        ${may ? `<button type="button" class="ctf-pill" data-cu-pr-edit="${E(v.key)}">${E(i18t('cun_pp_edit'))}</button>` : ''}
+        ${lead && typeof partyWebOpen === 'function' && typeof partyLookupMay === 'function' && partyLookupMay() ? `<button type="button" class="ctf-pill" data-cun-web="${E(lead.id)}">${E(i18t('cun_pp_web'))}</button>` : ''}
+        ${typeof canEdit !== 'function' || canEdit() ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-cu-draft-with="${E(v.key)}">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${E(i18t('ctf_new_agreement'))}</button>` : ''}</div>
+      <div class="cu-scroll"><div class="cunp-two"><div><div class="pd2-ch-cap">${E(i18t('cun_p_facts'))}</div><div class="pd2-ch-tbl">${own}</div></div>
+        <div><div class="pd2-ch-cap">${E(i18t('cu_col_waiting'))}</div><div class="cunp-waits">${waits}</div></div></div>
+      <div class="pd2-ch-cap cunp-agh">${E(i18t('cun_pp_ags', { name: cuShortName(v.name), n: v.items.length }))}</div>
+      <table class="apn-table cun-table cunp-table"><colgroup><col style="width:36px"><col style="width:30%"><col style="width:120px"><col><col style="width:120px"><col style="width:100px"></colgroup>
+        <thead><tr><th></th><th>${E(i18t('reg_col_agreement'))}</th><th>${E(i18t('cun_c_standing'))}</th><th>${E(i18t('cun_pp_out'))}</th><th>${E(i18t('reg_col_ends'))}</th><th style="text-align:right">${E(i18t('reg_col_value'))}</th></tr></thead>
+        <tbody>${ags}</tbody></table></div>
+      <div class="apn-foot">${E([i18tn('cun_pp_n', v.items.length, { n: v.items.length }), val ? i18t('ctf_on_paper', { v: typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : '' }) : ''].filter(Boolean).join(' \u00b7 '))}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${E(i18t('ins_panel_label'))}"></aside></div></div>`;
+  if (INS) insPaintPanel({ seat: 'customers', jlWord: i18t('jl_w_party'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay, item: { id: v.key }, head: false,
+    body: (_cu.edit === v.key ? cuPrFormHtml(v) : '') + cunPartyPanelHtml(v) });
+  if (INS && typeof insWatchWidth === 'function') insWatchWidth();
+  if (typeof setActiveNav === 'function') setActiveNav('customers');
+}
+if (typeof document !== 'undefined' && !document._cunpWired){ document._cunpWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-cunp-back]')){ e.preventDefault(); _cunParty = null; renderCustomers(); return; }
+  });
+}
+if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const tab = t.closest('[data-cun-tab]'); if (tab){ e.preventDefault(); _cun = tab.getAttribute('data-cun-tab'); renderCustomers(); return; }
+    const o = t.closest('[data-cun-open]'); if (o){ e.preventDefault(); e.stopPropagation(); cuOpenCustomer(o.getAttribute('data-cun-open')); }
+  }, true);
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'cun-q'){ state.cu = state.cu || {}; state.cu.q = e.target.value; renderCustomers();
+    const q = document.getElementById('cun-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_){} } } });
+}
 function renderCustomers(){
   const host = document.getElementById('content'); if (!host) return;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
@@ -1346,6 +1605,8 @@ function renderCustomers(){
   const typing = document.activeElement && document.activeElement.id === 'cu-q';
   const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cu-pr-form') ? document.activeElement.id : '';
   cuLcReg();
+  /* the new look draws Parties as drawn (round 6); the old look is unchanged */
+  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS); return; }
   host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     ${cuListHtml(INS)}
@@ -1430,7 +1691,7 @@ function partyHistorySay(h){
   if (h.pushed) out.push(String(h.pushed));
   return out.join(' ');
 }
-Object.assign(window, { partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cunPanelHtml, cunPartyRender, cunFolderCardHtml, cunFoldersPanelPaint, cunStandsOut, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */

@@ -116,6 +116,8 @@ const BRAIN_PARTS = [
   /* the drop area on Jambo's panel (the overnight work order, step 4): a file dropped or chosen, through the upload's own path */
   ['dropin', 'pdDropTake', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
+  /* From scratch (round 6, the owner's pick, 1 Nov 2026): one section of a paper nobody has yet, written by Jambo, one call each */
+  ['scratchsection', 'POST /api/ai/section', 'ai', 2],
   /* Jambo's New agreement card opens the one form with the sentence's facts in it (step 3) */
   ['draftform', 'caDraftForm', 'ai', 1],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -615,7 +617,7 @@ const BRAIN_FLOWS = [
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
-  { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
+  { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview', 'stripfamily']] },
@@ -649,7 +651,7 @@ const BRAIN_LANE_OF = {
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'govrule', 'aigoto', 'factsheet', 'dealfacts',
     'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
-    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'askcolread', 'askcolturn', 'askcolruns', 'askcolstop', 'partybrief', 'askcolkept', 'askcolteam', 'askcolcheck', 'askcolrule', 'askcolkeep', 'askcoldel', 'askcolsum', 'askcolfacts', 'askcolodd', 'partyfacts', 'ptreview', 'breakread', 'breakdive', 'agentpieces', 'roundsettle', 'piecesget', 'agentoutcome', 'agentprepared', 'agentrebuild', 'agentpoints', 'invite', 'settingswhy', 'settingsasks', 'fdlist', 'fdpin', 'fddel', 'fdreply', 'fdsend', 'fdseen', 'watchget', 'watchadd', 'watchset', 'watchdel', 'watchrun', 'watchsweep'],
+    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'scratchsection', 'askcolread', 'askcolturn', 'askcolruns', 'askcolstop', 'partybrief', 'askcolkept', 'askcolteam', 'askcolcheck', 'askcolrule', 'askcolkeep', 'askcoldel', 'askcolsum', 'askcolfacts', 'askcolodd', 'partyfacts', 'ptreview', 'breakread', 'breakdive', 'agentpieces', 'roundsettle', 'piecesget', 'agentoutcome', 'agentprepared', 'agentrebuild', 'agentpoints', 'invite', 'settingswhy', 'settingsasks', 'fdlist', 'fdpin', 'fddel', 'fdreply', 'fdsend', 'fdseen', 'watchget', 'watchadd', 'watchset', 'watchdel', 'watchrun', 'watchsweep'],
   /* the counterparty: their link, the code that proves it is them */
   them: ['cplink', 'guestcode', 'theirsign']
 };

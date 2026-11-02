@@ -3647,6 +3647,24 @@ function pdWallHelloHtml(){
   /* .pd-hello is the wall's own (it stands down while the sheet is up); the sheet's is .pd-sheet-hello */
   const ov = (o, cls) => (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov ${cls || 'pd-hello'}">${jamboOverviewHtml(o, 'pd')}</div>` : '';
   /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for and what he can do there */
+  /* the new look (round 6, as drawn): beside From scratch his reading of the words and the one press that spends;
+     beside Our paper the papers that fit, what he filled, and what happens after Create */
+  if (typeof naSheetUp === 'function' && naSheetUp() && pd2On()){
+    const S = (typeof naScratchNow === 'function') ? naScratchNow() : null, E = _pdE;
+    const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+    if (S){ const d = S.says();
+      const head = _pdT('nsc_p_head', { s: d.std, w: d.said, a: d.aiAll });
+      const rows = (d.who ? row(_pdT('cun_c_party'), d.who, _pdT('nsc_src_said')) : '') + d.facts.map(f => row(_pdT('na_rd_k_' + f.k), f.say, _pdT('nsc_src_said'))).join('')
+        + row(_pdT('reg_chip_stream'), d.stream || _pdT('nsc_p_stream_choose'), d.stream ? _pdT('nsc_src_chosen') : '');
+      const act = d.drafted ? `<p class="nsc-p-done">${E(_pdT('nsc_p_drafted'))}</p>`
+        : `<div class="nsc-p-draft"><button type="button" class="ui-btn ui-btn-primary nsc-go" data-nsc-draft${d.busy ? ' disabled' : ''}>${E(_pdT('nsc_draft'))}</button><span>${E(_pdTn('nsc_p_calls', d.ai, { n: d.ai }))}</span></div>`
+          + (d.proposed ? '' : `<p class="nsc-p-more"><button type="button" class="ui-link" data-nsc-propose-p${d.busy ? ' disabled' : ''}>${E(_pdT('nsc_propose'))}</button> <span>${E(_pdT('nsc_one_call'))}</span></p>`);
+      return `<div class="pd2-chosen cun-panel nsc-panel"><p class="pd2-ch-head nsc-p-head">${E(head)}</p><div class="pd2-ch-cap">${E(_pdT('nsc_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div><div class="pd2-ch-cap">${E(_pdT('nsc_p_draft_h'))}</div>${act}</div>`; }
+    const O = (typeof naOursNow === 'function') ? naOursNow() : null;
+    if (O){ const cl = O.closest(), ch = O.chosen(), n = O.read();
+      const head = O.asked() ? [_pdTn('nao_p_fit', cl.length, { n: cl.length, best: ch || cl[0] || '' }), n ? _pdTn('nao_p_filled', n, { n }) : ''].filter(Boolean).join(' ') : _pdT('nao_p_say');
+      return `<div class="pd2-chosen cun-panel nsc-panel"><p class="pd2-ch-head nsc-p-head">${E(head)}</p><p class="nao-src">${E(_pdT('nao_p_src'))}</p><div class="pd2-ch-cap">${E(_pdT('nao_p_after_h'))}</div><p class="nao-after">${E(_pdT('nao_p_after'))}</p></div>`; }
+  }
   if (typeof naSheetUp === 'function' && naSheetUp())
     return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
       facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');
@@ -6495,8 +6513,14 @@ function pdJamboTopHtml(){
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
   /* EXPLORER HAS ITS OVERVIEW TOO (owner, 26 Oct 2026: "Yes, every page"): what the map in front holds */
   if (typeof hbFace === 'function' && hbFace() === 'explorer' && typeof igOverviewHtml === 'function') return igOverviewHtml();
+  /* DNA by contract (round 6, as drawn): the strands read across the book */
+  if (typeof hbDnaUp === 'function' && hbDnaUp() && typeof hbDnaPanelHtml === 'function') return hbDnaPanelHtml();
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
+  /* the new look's Contracts on its folders (round 6, as drawn): the panel reads across the folders */
+  if (!c && typeof regFoldersUp === 'function' && regFoldersUp() && typeof regFoldersPanelHtml === 'function') return regFoldersPanelHtml();
+  /* a folder's list (round 6, as drawn): the folder's own reading, until a cell is chosen or a question asked */
+  if (!c && typeof regFolderPanelOn === 'function' && regFolderPanelOn() && typeof regFolderPanelHtml === 'function') return regFolderPanelHtml();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
      Contracts list his panel holds the question, then the answers' why */
   const ac = (!c && typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
@@ -6521,7 +6545,8 @@ function pdJamboPinHtml(){
 /* the presses, delegated once: the panel is redrawn under them */
 if (typeof document !== 'undefined' && !document._pdJamboTopWired){
   document._pdJamboTopWired = true;
-  const zone = e => (e.target && e.target.closest) ? e.target.closest('#pd-drop') : null;
+  /* the new look's Wall is a drop area too (round 6, as drawn: "Drop a file anywhere · Jambo reads it, free") */
+  const zone = e => (e.target && e.target.closest) ? (e.target.closest('#pd-drop') || (pd2On() && pdDropMay() ? e.target.closest('#ct-place .ct-wall') : null)) : null;
   document.addEventListener('dragover', e => { const z = zone(e); if (!z) return; e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; z.classList.add('is-over'); });
   document.addEventListener('dragleave', e => { const z = zone(e); if (z && !(e.relatedTarget && z.contains(e.relatedTarget))) z.classList.remove('is-over'); });
   document.addEventListener('drop', e => { const z = zone(e); if (!z) return; e.preventDefault(); z.classList.remove('is-over');
@@ -6864,8 +6889,33 @@ function pdChosenFacts(c){
   out.push({ k: 'last', label: _pdT('pd_ch_last'), v: lm ? lm.text : '—', sub: lm ? pdAgoWords(lm.at) : '' });
   return out;
 }
+/* A PAPER CHOSEN ON THE WALL, AS DRAWN (the new look, round 6): one sentence (chosen, its stage, what it owes),
+   READ OFF ITS PAPER (value, ends, the open risk, each with the § it was read from), DOORS (Open it, then the rows
+   still owed, each the checklist's own door, all free) and Jambo's one remark. Nothing new is read: the Dossier's
+   own readings (ktFactReads, pd2SectionOf, pdNeedsRows, riskOpenOf). */
+function pd2ChosenHtml(c){
+  const E = _pdE, id = E(c.id), R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {}, cls = pd2Clauses(c);
+  let m = null; try { m = (typeof contractStatusMeta === 'function') ? contractStatusMeta(c) : null; } catch (_){ m = null; }
+  const stage = String((m && m.label) || c.status || '');
+  const nd = pdNeedsRows(c, { details: true }).filter(r => !r.jw && !r.note && r.it);
+  const words = r => { try { const w = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; return w && w.title ? String(w.title) : ''; } catch (_){ return ''; } };
+  const owes = nd.map(words).filter(Boolean).map(t => t.charAt(0).toLowerCase() + t.slice(1));
+  const head = _pdT(owes.length ? 'pd2_ch_head' : 'pd2_ch_head_quiet', { name: c.name || '', stage: stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase(), owes: owes.join(', ') });
+  const rows = [];
+  if (R.money) rows.push([_pdT('pd2_f_value'), R.money, pd2SectionOf(c, 'value', cls)]);
+  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+    rows.push([_pdT('pd2_f_ends'), R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), pd2SectionOf(c, 'expiry', cls)]); }
+  let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
+  if (L[0]) rows.push([_pdT('pd2_ch_risk'), E((typeof riskTitleOf === 'function') ? riskTitleOf(L[0]) : String(L[0].title || '')), '']);
+  const read = rows.length ? `<div class="pd2-ch-cap">${E(_pdT('pd2_ch_read'))}</div><div class="pd2-ch-tbl">${rows.map(r => `<div class="pd2-ch-r"><span>${E(r[0])}</span><b>${r[1]}</b><i>${E(r[2])}</i></div>`).join('')}</div>` : '';
+  const verb = r => (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[r.it.kind]) ? _pdT(INS_NEED_VERB[r.it.kind]) : _pdT('cn_open');
+  const doors = [`<div class="pd2-ch-door"><button type="button" class="rfp-a" data-pd-ch-open="${id}">${E(_pdT('pd2_ch_open'))}</button><span>${E(_pdT('pd2_ch_free'))}</span></div>`]
+    .concat(nd.map(r => `<div class="pd2-ch-door"><button type="button" class="rfp-a" data-pd-nd="${E(r.it.kind)}" data-pd-nd-id="${id}">${E(verb(r))}</button><span>${E(_pdT('pd2_ch_free'))}</span></div>`)).join('');
+  return `<div id="pd-chosen" class="pd-chosen pd2-chosen" data-pd-chosen-for="${id}"><p class="pd2-ch-head">${E(head)}</p>${read}<div class="pd2-ch-cap">${E(_pdT('pd2_ch_doors'))}</div>${doors}${pd2TurnHtml(c)}</div>`;
+}
 function pdChosenHtml(c){
   if (!c) return '';
+  if (typeof pd2On === 'function' && pd2On() && !c._codeNamed) return pd2ChosenHtml(c);
   const id = _pdE(c.id), ref = (typeof contractRef === 'function') ? contractRef(c) : String(c.id);
   const facts = pdChosenFacts(c);
   const lock = (typeof icon === 'function') ? icon('lock', 'w-3 h-3') : '';
@@ -8205,7 +8255,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && _pd2Walk && !(e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]'))){ pd2WalkClose(); }
 });
-Object.assign(window, { pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
+Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });

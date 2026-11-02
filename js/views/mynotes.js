@@ -332,6 +332,8 @@ function renderMyNotes(){
   const n = _mn.sel ? (typeof mineGet === 'function' ? mineGet(_mn.sel) : null) : null;
   const keep = document.activeElement && document.activeElement.id && document.activeElement.closest && document.activeElement.closest('#mn-page') ? document.activeElement.id : '';
   const caret = keep ? document.activeElement.selectionStart : null;
+  /* the new look (round 6, as drawn): its own page and the note's panel */
+  if (wide && _mn.mode !== 'new' && typeof window.newLookOn === 'function' && newLookOn()){ mnnRender(host, list, n); return; }
   /* the head says, at this render, what it draws (before it is drawn) */
   mnHeadReg();
   const card = `<section class="ins-card mn-card2" aria-label="${_mnE(i18t('nav_mynotes'))}">
@@ -356,6 +358,85 @@ function renderMyNotes(){
   myNotesWire();
   if (typeof setActiveNav === 'function') setActiveNav('mynotes');
   if (typeof insWatchWidth === 'function') insWatchWidth();
+}
+/* ---- MY NOTES, AS DRAWN (the new look, round 6) ----
+   "My notes · Private · 4 notes · 1 due", + New note; the box and the tabs All · Due · Reviewed; one table — the
+   note (its words and when it was written or reviewed), its contract, when it is due (today in amber), and its one
+   word (Review, Review again, Open); the foot "Never on a contract, a share or the history". The panel: the note in
+   one sentence, THE NOTE in its own grey, BESIDE IT, READ FOR YOU (its contract's approval and end), Jambo's line
+   and the DOORS — every press the page's own (data-mn-act, the contract's own door). */
+function mnnWhen(n){
+  const st = myNoteState(n);
+  if (st.k === 'done') return i18t('mnn_reviewed', { d: _mnShort(String(n.reviewedAt).slice(0, 10)), again: n.reviewBy ? _mnShort(n.reviewBy) : '' });
+  return i18t('mnn_written', { d: _mnShort(String(n.createdAt || '').slice(0, 10)) });
+}
+function mnnRowHtml(n){
+  const st = myNoteState(n), c = _mnContract(n.contractId);
+  const due = st.k === 'today' || st.k === 'late' ? `<span class="mnn-due">${_mnE(st.k === 'late' ? st.word : i18t('mnn_today'))}</span>` : n.reviewBy ? _mnE(_mnShort(n.reviewBy)) : '—';
+  const word = st.k === 'done' ? 'mn_review_again' : st.k === 'today' || st.k === 'late' ? 'mnn_review' : 'mnn_open';
+  const on = String(n.id) === String(_mn.sel);
+  return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${on ? 'is-sel' : ''}"><td><div class="cun-name">${_mnE(n.title || n.body || '')}</div><div class="cun-sub">${_mnE(mnnWhen(n))}</div></td>
+    <td class="cun-wait"><b class="mnn-ct">${c ? _mnE(c.name || '') + ' · ' + (typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))) : '—'}</b></td><td class="cun-wait">${due}</td>
+    <td class="cun-go"><span class="rfp-a">${_mnE(i18t(word))}</span></td></tr>`;
+}
+function mnnRender(host, list, n){
+  const all = typeof mineList === 'function' ? mineList('note') : [];
+  const due = all.filter(x => ['today', 'late'].includes(myNoteState(x).k)).length;
+  const done = all.filter(x => myNoteState(x).k === 'done').length;
+  const tabs = [['all', i18t('mn_tab_all'), all.length], ['today', i18t('mnn_tab_due'), due], ['done', i18t('mn_tab_done'), done]];
+  const tab = mnTabNow();
+  const facts = [i18t('mnn_private'), i18tn('mnn_n', all.length, { n: all.length }), due ? i18t('mnn_n_due', { n: due }) : ''].filter(Boolean).join(' · ');
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page" id="mn-page" data-ins-page="mynotes" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card">
+      <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="ctf-hf">${_mnE(facts)}</span><span class="ctf-sp"></span>
+        <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
+      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('lh_filter_ph'))}" value="${_mnE(_mn.q || '')}"></label><span class="apn-sp"></span>
+        ${tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab${tab === t[0] ? ' is-on' : ''}" data-mnn-tab="${t[0]}">${_mnE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
+      <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col style="width:42%"><col style="width:30%"><col style="width:12%"><col></colgroup>
+        <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('mnn_c_due'))}</th><th></th></tr></thead>
+        <tbody>${list.map(mnnRowHtml).join('') || `<tr><td colspan="4" class="apn-none">${_mnE(all.length ? i18t('mn_none_here') : i18t('mn_empty'))}</td></tr>`}</tbody></table></div>
+      <div class="apn-foot">${_mnE(i18t('mnn_foot'))}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${_mnE(i18t('mn_panel_label'))}"></aside></div></div>`;
+  if (typeof insPaintPanel === 'function'){
+    const base = { seat: MN_SEAT, jlSay: mnJlSay, jlWord: i18t('jl_w_note') };
+    if (n) insPaintPanel(Object.assign(base, { item: { id: n.id }, head: false, body: mnnPanelHtml(n) }));
+    else insPaintPanel(Object.assign(base, { empty: i18t('mn_pick') }));
+  }
+  myNotesWire();
+  if (typeof setActiveNav === 'function') setActiveNav('mynotes');
+  if (typeof insWatchWidth === 'function') insWatchWidth();
+}
+function mnnPanelHtml(n){
+  const E = _mnE, st = myNoteState(n), c = _mnContract(n.contractId);
+  const head = (st.k === 'today' || st.k === 'late' ? i18t('mnn_p_due', { what: String(n.title || n.body || '') }) : st.k === 'done' ? i18t('mnn_p_done', { what: String(n.title || n.body || '') }) : String(n.title || n.body || ''));
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+  let rows = '';
+  if (c){
+    let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+    if (ap && ap.required && !ap.ok) rows += row(i18t('mnn_p_approval'), [c.name || '', i18t('mnn_p_asked')].filter(Boolean).join(', '), _mnRef(c));
+    if (c.expiry){ const nd = Number((c.metadata || {}).noticePeriodDays) || 0; rows += row(i18t('mnn_p_ends'), [_mnShort(String(c.expiry).slice(0, 10)), nd ? i18t('mnn_p_notice', { n: nd }) : ''].filter(Boolean).join(' · '), _mnRef(c)); }
+  }
+  let mine = false; try { mine = !!(c && typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ mine = false; }
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  const doors = (c ? (mine ? door(`data-mnn-ap="${E(c.id)}"`, i18t('mnn_p_open_ap'), i18t('pd2_ch_free')) : door('data-mn-act="open"', i18t('mn_open', { ref: _mnRef(c) }), i18t('pd2_ch_free'))) : '')
+    + (n.reviewedAt ? door('data-mn-act="unreview"', i18t('mn_review_again'), i18t('pd2_ch_free')) : door('data-mn-act="reviewed"', i18t('mn_mark_reviewed'), i18t('pd2_ch_free')))
+    + door('data-mn-act="delete"', i18t('mn_delete_note'), '');
+  return `<div class="pd2-chosen cun-panel" id="mn-side"><p class="pd2-ch-head">${E(head)}</p><div class="pd2-ch-cap">${E(i18t('mnn_p_note'))}</div><div class="mnn-note">${n.quote ? `<q>${E(n.quote)}</q>` : ''}<p>${E(n.body || '')}</p></div>
+    ${rows ? `<div class="pd2-ch-cap">${E(i18t('mnn_p_beside'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}
+    <div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(i18t('mnn_p_jambo'))}</p></div></div>
+    <div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}</div>`;
+}
+if (typeof document !== 'undefined' && !document._mnnWired){ document._mnnWired = true;
+  document.addEventListener('click', e => {
+    if (typeof state === 'undefined' || state.view !== 'mynotes') return;
+    const ap = e.target && e.target.closest ? e.target.closest('[data-mnn-ap]') : null;
+    if (ap){ e.preventDefault(); e.stopPropagation(); const id = ap.getAttribute('data-mnn-ap');
+      if (typeof apShowRow === 'function') apShowRow(id); if (typeof insSelect === 'function') insSelect('approvals', id); if (typeof setView === 'function') setView('approvals'); return; }
+    const t = e.target && e.target.closest ? e.target.closest('[data-mnn-tab]') : null; if (!t) return;
+    e.preventDefault(); _mn.filter = t.getAttribute('data-mnn-tab'); renderMyNotes();
+  });
+  document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mnn-q' || typeof state === 'undefined' || state.view !== 'mynotes') return;
+    _mn.q = e.target.value; renderMyNotes(); const q = document.getElementById('mnn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
 }
 /* A NEW NOTE, from + New note, a contract's ⋯ menu or a highlight on the
    paper (the contract and the words already filled in). */
