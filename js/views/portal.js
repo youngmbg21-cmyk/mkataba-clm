@@ -2845,6 +2845,7 @@ function wirePortalNego(c, p){
   });
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
+  portalOutPaint(c, p);
   /* ---- "REVIEW WHAT CHANGED" IS NOT WIRED HERE ANY MORE ----
      It used to unhide a read-only mount of this same workbench on the signing
      screen, so its listener lived at the bottom of this function — below the
@@ -4038,6 +4039,7 @@ function portalSetTab(k, o={}){
   if(where){ where.hidden = k!=='where'; if(k==='where') portalPaintWhere(); }
   if(hist){ hist.hidden = k!=='history'; if(k==='history') portalPaintHistoryPane(); }
   if(sign){ sign.hidden = k!=='signing'; if(k==='signing') portalPaintSignPane(); }
+  if(k==='redlines' && _polCtx && portalOutOn()) requestAnimationFrame(()=>portalOutPaintNotes(_polCtx.c, _polCtx.p));
   if(o.save!==false) portalPlaceSave();
 }
 function wirePortalTabs(c, p){
@@ -4343,6 +4345,7 @@ function renderShareWorkbench(p, opts={}){
      drafted a clause, or that a desk exists at all.
      Discovering a new name at the top of a page with no explanation is how a
      counterparty comes to feel handled; this is the difference. */
+  const out=portalOutOn();
   const handover=(p&&p.leadNotice)
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128100;</span><span>${esc(p.leadNotice)}</span></div>` : '';
   root.innerHTML=`
@@ -4377,6 +4380,7 @@ function renderShareWorkbench(p, opts={}){
            "Counterparty ready to sign", which is our reading of THEM. And the
            quiet line names who it is FROM, because on this page "with" named
            the reader's own company back to them. */}
+    ${out?portalOutBarHtml(c,p,opts):''}
     <section class="pw-id">
       <span class="pw-id-badge">HaTi</span>
       <span class="pw-id-main">
@@ -4403,6 +4407,7 @@ function renderShareWorkbench(p, opts={}){
              themselves what was outstanding. The owner's cannot be reused —
              it lives in the app shell, which this page hides completely — so
              this is its own, wearing the same shape. See portalAlerts. */}
+      ${out?'<div class="pol-pop" id="pol-pop" hidden>':''}
       ${portalBellHtml()}
       ${portalNotesDoorHtml()}
       ${''/* ---- AND MORE COMES BACK, CARRYING THE COPIES (Young ruled 4 Oct
@@ -4466,6 +4471,7 @@ function renderShareWorkbench(p, opts={}){
              refill site, portalSetBusy and f180's roll call reach it exactly as
              before; only its parent changed. */}
       <div id="pt-nego-foot" class="pw-foot"></div>
+      ${out?`<span class="pol-pop-tools">${portalReadingBtnsHtml({ noHist:true })}${portalFocusBtnHtml()}</span></div>`:''}
       ${''/* ---- THE SECOND ROW IS THE NEGOTIATION PAGE'S CONTROL ROW (28 Sep
              2026, Mirror) ----
              The reading switch, then the key naming whose colour is whose (it
@@ -4481,6 +4487,7 @@ function renderShareWorkbench(p, opts={}){
              Focus) is drawn on the Redlines tab only. */}
       <div class="pw-id-row2">
         ${portalTabsHtml()}
+        ${out?`<span class="pw-id-sp"></span>${portalOutTopHtml()}`:`
         <span class="pw-rl-only">${window.rlCtlLegendHtml ? rlCtlLegendHtml(c, 'counterparty') : ''}</span>
         <span class="pw-id-sp"></span>
         <span class="pw-rl-only pw-rl-tools">
@@ -4488,7 +4495,7 @@ function renderShareWorkbench(p, opts={}){
           ${''/* the zoom moved onto the paper's own ground, top right
                  (owner, 11 Oct 2026): redlinePanesHtml draws it */}
           ${portalFocusBtnHtml()}
-        </span>
+        </span>`}
       </div>
     </section>
     <div class="pw-notes">
@@ -4503,7 +4510,8 @@ function renderShareWorkbench(p, opts={}){
            where things stand. See portalSetTab. */}
       <div class="pw-pane" id="pt-where-pane" role="tabpanel" aria-labelledby="pt-tab-where" hidden></div>
       <div class="pw-pane" id="pt-hist-pane" role="tabpanel" aria-labelledby="pt-hist" hidden></div>
-      <div class="pw-pane" id="pt-sign-pane" role="tabpanel" aria-labelledby="pt-tab-signing" hidden></div></div>
+      <div class="pw-pane" id="pt-sign-pane" role="tabpanel" aria-labelledby="pt-tab-signing" hidden></div>${
+      out?'<aside class="pol-side" id="pol-side" aria-label="'+esc(i18t('po_tab_where'))+'"></aside><div class="pol-foot" id="pol-foot"></div>':''}</div>
   </div>
   ${''/* The panel is a LAYER over the page, rendered beside .pw-page rather
          than inside the workbench mount — the embed rebuilds that mount on
@@ -4548,6 +4556,177 @@ function renderShareWorkbench(p, opts={}){
      Starting it from the renderer passed the wrong arguments AND left a live
      interval behind on every render, which under the test harness is a node
      process that never exits. */
+}
+
+/* ---- THE NEW LOOK FOR PEOPLE OUTSIDE: THEIR NEGOTIATION PAGE (round 8, second half; the review room's drawing,
+   behind the company's own setting, outsideLookOn) ----
+   The black bar says whose view of what; the tabs underline; Download Word and More at the right, every verb of
+   today's head kept under More (the bell, Notes, More's copies, Ready to sign, Decline, Share a read-only copy,
+   Edit, Compare wording, Focus) — the same elements with their own ids and handlers, only gathered. On Redlines the
+   change column steps aside for "Where we are" (dealStands, the one reading every party sees) and each ask of
+   ours still waiting gets a numbered dot on the paper and a note beside it whose Accept · Counter · Reject press
+   the column card's OWN verbs (POL_VERB) — nothing new is filed and nothing is sent. The foot bar's Send back
+   presses the column's own postbox (portalPressSend). READS RAW: c.changes only, never negoChanges. */
+function portalOutOn(){ return typeof window.outsideLookOn === 'function' && !!window.outsideLookOn(); }
+const POL_VERB = { accept: id => `[data-nego-accept="${id}"]`, reject: id => `[data-nego-reject="${id}"]`,
+  counter: id => `[data-rl-cp-editor-change="${id}"]`, undo: id => `[data-nego-undo="${id}"]` };
+/* our asks this reader answers: still pending, or answered here and held (heldByMe / the decisions store) */
+function portalOutAsks(c){
+  return (c && Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'owner' && !x.withdrawn && !x.superseded
+    && (x.status === 'pending' || x.heldByMe || PORTAL_NEGO_DECISIONS[x.id]));
+}
+function portalOutDecided(ch){ return !!(ch && (ch.heldByMe || PORTAL_NEGO_DECISIONS[ch.id])); }
+function portalOutClause(ch){
+  let l = String((ch && ch.clauseLabel) || '');
+  try { if (l && window.clauseNameShown) l = clauseNameShown(l) || l; } catch (_) {}
+  return l.replace(/^(\d+(?:\.\d+)*)\.?\s+/, '§ $1 ');
+}
+function portalOutBarHtml(c, p, opts){
+  const org = (p && p.org) || i18t('pt_the_sender');
+  const mine = portalMyPartyName(p);
+  const who = portalResponderName() || '';
+  const t = (opts && opts.token) || (PORTAL_OPTS && PORTAL_OPTS.token) || '';
+  const byCode = !!(t && portalTicket(t));
+  return `<header class="pol-bar"><span class="pol-mark">HaTi</span>
+    <span class="pol-what">${esc(i18t(mine ? 'pol_bar_what' : 'pol_bar_what_nm', { mine, name: c.name || i18t('reg_col_contract'), org }))}</span>
+    <span class="pol-who">${esc(who)}${who && byCode ? ' · ' : ''}${byCode ? esc(i18t('pol_by_code')) : ''}</span></header>`;
+}
+function portalOutTopHtml(){
+  return `<span class="pol-top"><button type="button" class="pol-pill" data-pt-copy="word">${esc(i18t('pol_download_word'))}</button>
+    <button type="button" class="pol-pill" id="pol-more" aria-haspopup="true" aria-expanded="false" aria-controls="pol-pop">${esc(i18t('pol_more'))}</button></span>`;
+}
+/* the road the drawing draws, read off the shared reading: before anything was agreed the first three are behind
+   us and Negotiate is now; agreed, Sign is now; executed, all six are done */
+const POL_ROAD = ['arrive', 'read', 'fill', 'nego', 'sign', 'live'];
+function portalOutRoadHtml(D, mineMove){
+  const at = D && D.executed ? 6 : D && D.agreed ? 4 : 3;
+  return `<ol class="pol-road">${POL_ROAD.map((k, i) => `<li class="${i < at ? 'is-done' : i === at ? 'is-now' : ''}"><span class="pol-rd-dot" aria-hidden="true"></span>
+    <span class="pol-rd-k">${esc(i18t('pol_rd_' + k))}</span>${i === at && mineMove != null ? `<span class="pol-rd-mv">${esc(mineMove ? i18t('pol_your_move') : i18t('pol_their_move'))}</span>` : ''}</li>`).join('')}</ol>`;
+}
+function portalOutSideHtml(c, p){
+  const org = (p && p.org) || i18t('pt_the_sender');
+  const mine = portalMyPartyName(p) || i18t('pol_you');
+  const seat = (p && p.party && p.party.id) || '';
+  const D = typeof dealStands === 'function' ? dealStands(c, seat ? { seat } : undefined) : null;
+  const asks = portalOutAsks(c), left = asks.filter(x => !portalOutDecided(x));
+  const theirs = (c.changes || []).filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending' && !x.withdrawn && !x.superseded);
+  const say = D && D.executed ? i18t('pol_say_done')
+    : left.length ? i18tn('pol_say_yours', left.length, { org, mine, n: left.length })
+    : asks.length ? i18tn('pol_say_ready', asks.length, { org, n: asks.length })
+    : theirs.length ? i18t('pol_say_theirs', { org }) : i18t('pol_say_none');
+  const mineMove = D && D.executed ? null : (left.length || asks.length) ? true : theirs.length ? false : null;
+  const open = [...asks, ...theirs];
+  const seen = new Set();
+  const openRows = open.filter(ch => { const k = String(ch.clauseId || ch.id); if (seen.has(k)) return false; seen.add(k); return true; }).map(ch => {
+    const F = typeof rlPlainFigureOf === 'function' ? rlPlainFigureOf(ch) : null;
+    const ours = ch.authorSide === 'owner';
+    const v = F ? i18t(ours ? 'pol_open_offered' : 'pol_open_asked', { now: F.now, was: F.was, org })
+      : i18t(ours ? 'pol_open_from' : 'pol_open_yours', { org });
+    return `<li><span class="pol-o-k">${esc(portalOutClause(ch) || i18t('ds_a_clause'))}</span><span class="pol-o-v">${esc(v)}</span></li>`;
+  }).join('');
+  const agreed = D ? (D.settledPoints || []).filter(x => x && x.settled && x.clause) : [];
+  const last = agreed.map(x => x.at).filter(Boolean).sort().pop();
+  const agreedRow = agreed.length ? `<li><span class="pol-o-k">${esc(agreed.map(x => portalOutClause({ clauseLabel: x.clause }).replace(/^§ (\S+).*$/, '§ $1')).join(' · '))}</span>
+    <span class="pol-o-v">${esc(last ? i18t('pol_agreed_on', { when: portalDayWords(last) }) : i18t('pol_agreed'))}</span></li>` : '';
+  return `<div class="pol-side-in"><div class="pol-side-hd"><span class="pol-pill is-on">${esc(i18t('po_tab_where'))}</span></div>
+    <div class="pol-side-body"><p class="pol-say">${esc(say)}</p>${portalOutRoadHtml(D, mineMove)}
+      ${openRows ? `<h3 class="pol-h">${esc(i18t('pol_still_open'))}</h3><ul class="pol-open">${openRows}</ul>` : ''}
+      ${agreedRow ? `<h3 class="pol-h">${esc(i18t('pol_agreed_h'))}</h3><ul class="pol-open">${agreedRow}</ul>` : ''}
+      <p class="pol-small">${esc(i18t('pol_both_see'))}</p></div>
+    <div class="pol-side-ft">${PORTAL_OPTS && PORTAL_OPTS.token
+      ? `${esc(i18t('pol_questions', { org }))} <button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('pol_reply_box'))}</button>.`
+      : esc(i18t('pol_questions_none', { org }))}</div></div>`;
+}
+function portalOutFootHtml(c, p){
+  const org = (p && p.org) || i18t('pt_the_sender');
+  const asks = portalOutAsks(c), done = asks.filter(portalOutDecided).length;
+  const box = document.getElementById('nego-send-decisions');
+  const can = !!(box && !box.disabled) && !portalReadOnly();
+  return `<span class="pol-ft-say">${esc(i18t('pol_foot_say', { org }))}</span>
+    <button type="button" class="pol-pill" id="pol-later"${portalReadOnly() ? ' disabled' : ''}>${esc(i18t('pol_later'))}</button>
+    <button type="button" class="pol-send" id="pol-send"${can ? '' : ' disabled'}>${esc(i18t('pol_send_back', { n: done, of: asks.length }))}</button>`;
+}
+/* the dots and the notes beside the paper: painted after the workbench, never into the record */
+function portalOutPaintNotes(c, p){
+  const host = document.getElementById('pt-nego'); if (!host) return 0;
+  host.querySelectorAll('.pol-dot, .pol-note').forEach(e => e.remove());
+  const zoom = host.querySelector('.rl-zoom'), paper = zoom && zoom.querySelector('.rl-paper');
+  if (!zoom || !paper) return 0;
+  const org = (p && p.org) || i18t('pt_the_sender');
+  const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v).replace(/"/g, '\\"');
+  let n = 0, floor = 0;
+  for (const ch of portalOutAsks(c)){
+    const sec = paper.querySelector(`section[data-nego-card-anchor~="${css(ch.id)}"]`);
+    const body = sec && sec.querySelector('.nego-body'); if (!body) continue;
+    n++;
+    const dot = document.createElement('span');
+    dot.className = 'pol-dot'; dot.setAttribute('contenteditable', 'false'); dot.setAttribute('data-pol-dot', ch.id); dot.textContent = String(n);
+    const ins = body.querySelectorAll('ins');
+    if (ins.length) ins[ins.length - 1].after(dot);
+    else { const bl = body.querySelectorAll('p, li'); (bl.length ? bl[bl.length - 1] : body).appendChild(dot); }
+    const F = typeof rlPlainFigureOf === 'function' ? rlPlainFigureOf(ch) : null;
+    const why = String((window.negoReasonOf ? negoReasonOf(ch) : ch.why) || '').trim();
+    const dec = portalOutDecided(ch) ? ((PORTAL_NEGO_DECISIONS[ch.id] || {}).status || ch.status) : '';
+    const live = !portalReadOnly();
+    const act = (k, w) => host.querySelector(POL_VERB[k](css(ch.id))) ? `<button type="button" class="ui-link" data-pol-act="${k}" data-pol-id="${esc(ch.id)}">${esc(w)}</button>` : '';
+    const acts = !live ? '' : dec
+      ? `<span class="pol-nt-dec">${esc(i18t(dec === 'rejected' ? 'pol_dec_rejected' : 'pol_dec_accepted'))}</span>${act('undo', i18t('pol_undo')) ? ' · ' + act('undo', i18t('pol_undo')) : ''}`
+      : [act('accept', i18t('ng_accept')), act('counter', i18t('pol_counter')), act('reject', i18t('ng_reject'))].filter(Boolean).join(' · ');
+    const note = document.createElement('div');
+    note.className = 'pol-note' + (dec ? ' is-dec' : ''); note.setAttribute('data-pol-note', ch.id);
+    note.innerHTML = `<span class="pol-nt-n">${n}</span><div class="pol-nt-b"><div class="pol-nt-t">${esc(F ? i18t('pol_note_fig', { org, now: F.now }) : i18t('pol_note_asks', { org, clause: portalOutClause(ch) || i18t('ds_a_clause') }))}</div>${
+      why ? `<div class="pol-nt-q">“${esc(why)}”</div>` : ''}${acts ? `<div class="pol-nt-a">${acts}</div>` : ''}</div>`;
+    zoom.appendChild(note);
+    const left = paper.offsetLeft + paper.offsetWidth + 24;
+    note.style.left = left + 'px';
+    const sc = host.querySelector('#nego-scroll-work'), room = Math.min(zoom.clientWidth, sc ? sc.clientWidth - (zoom.offsetLeft || 0) : zoom.clientWidth);
+    note.style.width = Math.max(170, Math.min(300, room - left - 16)) + 'px';
+    const zr = zoom.getBoundingClientRect(), dr = dot.getBoundingClientRect();
+    const top = Math.max(floor, Math.round(dr.top - zr.top - 6));
+    note.style.top = top + 'px';
+    floor = top + note.offsetHeight + 12;
+  }
+  return n;
+}
+let _polCtx = null;
+function portalOutPaint(c, p){
+  if (!portalOutOn()) return;
+  _polCtx = { c, p };
+  const side = document.getElementById('pol-side'), foot = document.getElementById('pol-foot');
+  if (side) side.innerHTML = portalOutSideHtml(c, p);
+  if (foot) foot.innerHTML = portalOutFootHtml(c, p);
+  portalOutPaintNotes(c, p);
+  requestAnimationFrame(() => portalOutPaintNotes(c, p));
+  const red = document.getElementById('pt-tab-redlines');
+  if (red){ const left = portalOutAsks(c).filter(x => !portalOutDecided(x)).length;
+    red.textContent = left ? i18tn('pol_tab_redlines', left, { n: left }) : i18t('po_tab_redlines'); }
+}
+/* one listener, at load: the More pop, the notes' presses (the card's own verbs), Save for later, Send back */
+if (typeof document !== 'undefined' && !document._polWired){
+  document._polWired = true;
+  document.addEventListener('click', ev => {
+    const t = ev.target; if (!t || !t.closest || !portalOutOn()) return;
+    const pop = document.getElementById('pol-pop'), more = document.getElementById('pol-more');
+    if (t.closest('#pol-more')){ ev.preventDefault(); const open = pop && pop.hidden; if (pop) pop.hidden = !open; more.setAttribute('aria-expanded', open ? 'true' : 'false'); return; }
+    if (pop && !pop.hidden && !t.closest('#pol-pop') && !t.closest('#pt-alerts') && !t.closest('.pt-more-menu')){ pop.hidden = true; if (more) more.setAttribute('aria-expanded', 'false'); }
+    const a = t.closest('[data-pol-act]');
+    if (a){ ev.preventDefault(); const k = a.dataset.polAct, id = a.dataset.polId;
+      const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
+      const b = document.querySelector('#pt-nego ' + POL_VERB[k](css(id)));
+      if (b && !b.disabled) b.click(); return; }
+    if (t.closest('#pol-send')){ ev.preventDefault(); portalPressSend(); return; }
+    if (t.closest('#pol-later')){ ev.preventDefault(); portalSaveHeld();
+      const org = (PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || i18t('pt_the_sender');
+      if (typeof toast === 'function') toast(i18t('pol_later_done', { org }), 'ok'); }
+  });
+  /* the notes stand beside the paper as laid out NOW: redrawn when Redlines comes into view and when the window changes */
+  let _polRz = 0;
+  window.addEventListener('resize', () => { clearTimeout(_polRz); _polRz = setTimeout(() => { if (_polCtx && portalOutOn()) portalOutPaintNotes(_polCtx.c, _polCtx.p); }, 120); });
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return;
+    const pop = document.getElementById('pol-pop');
+    if (pop && !pop.hidden){ pop.hidden = true; const m = document.getElementById('pol-more'); if (m){ m.setAttribute('aria-expanded', 'false'); m.focus(); } }
+  });
 }
 
 /* ---- W7: THE WAITING PAGE A DORMANT SIGNING LINK OPENS TO ----
@@ -6327,6 +6506,6 @@ function portalGoneNlWire(opts){
       if (typeof toast === 'function') toast(i18t('pnl_asked_toast'), 'ok'); }
     catch(e){ b.disabled = false; if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); } });
 }
-Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

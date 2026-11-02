@@ -19211,6 +19211,75 @@
   html.lg-out .pnl-row{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-divider);align-items:baseline}
   html.lg-out .pnl-row span,html.lg-out .pnl-row b{font-size:13.5px;font-weight:var(--w-label)}
   html.lg-out .pnl-foot{margin:18px 0 0;font-size:11.5px;color:var(--color-quiet)}
+  /* THEIR NEGOTIATION PAGE, THE NEW LOOK (round 8, second half): the black bar, the tabs underlined with Download
+     Word and More at the right (today's verbs gathered in More's pop), the paper with numbered notes beside it,
+     "Where we are" on the right and the foot bar with Send back — on Redlines only; the other tabs as today */
+  html.lg-out .pw-page{padding:0;gap:0;background:var(--color-surface)}
+  html.lg-out .pol-bar{flex:none;height:48px;display:flex;align-items:center;gap:16px;padding:0 16px;background:var(--bar-black);color:var(--color-surface);font-size:13.5px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-out .pol-mark{font-family:var(--font-title);font-weight:600;font-size:17px}
+  html.lg-out .pol-what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-out .pol-who{flex:none}
+  html.lg-out #pw-page .pw-id{position:relative;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;box-shadow:none;padding:0 24px;min-height:56px}
+  html.lg-out #pw-page .pw-id > .pw-id-badge,html.lg-out #pw-page .pw-id > .pw-id-main{display:none}
+  html.lg-out #pw-page .pw-id-row2{flex:1 1 100%;display:flex;align-items:center;gap:12px;min-height:56px}
+  html.lg-out #pw-page .pw-tabs{gap:22px;align-self:center;margin:0;padding:0;background:none;border-radius:0;box-shadow:none}
+  html.lg-out #pw-page .pw-tab{height:auto;border-radius:0;background:none;padding:6px 0;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);border-bottom:2px solid transparent}
+  html.lg-out #pw-page .pw-tab[aria-selected="true"]{font-weight:var(--w-label);border-bottom-color:var(--accent-ink);background:none;box-shadow:none}
+  html.lg-out .pol-top{display:inline-flex;gap:8px}
+  html.lg-out .pol-pill{height:var(--ctl-h-sm);padding:0 14px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:13px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-out .pol-pill:disabled{cursor:default;color:var(--color-quiet)}
+  html.lg-out .pol-pop{position:absolute;right:24px;top:52px;z-index:60;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:260px;padding:16px;background:var(--color-surface);border-radius:var(--radius);box-shadow:var(--shadow-lg)}
+  html.lg-out .pol-pop[hidden]{display:none}
+  html.lg-out .pol-pop > *,html.lg-out .pol-pop .pw-foot,html.lg-out .pol-pop .pol-pop-tools,html.lg-out .pol-pop .pw-id-read{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0}
+  html.lg-out .pol-pop .pw-foot:empty{display:none}
+  html.lg-out .pol-pop .ui-btn{justify-content:flex-start;width:100%}
+  html.lg-out .pw-notes:has(> *){padding:8px 24px}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount{display:grid;grid-template-columns:minmax(0,1fr) var(--pol-side-w,384px);grid-template-rows:minmax(0,1fr) auto}
+  html.lg-out .pw-mount > .pol-side,html.lg-out .pw-mount > .pol-foot{display:none}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > #pt-nego{grid-column:1;grid-row:1;min-height:0}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--color-divider);background:var(--color-surface)}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-foot{grid-column:1;grid-row:2;display:flex;align-items:center;gap:8px;min-height:60px;padding:0 24px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
+  @media (max-width:1499px){ html.lg-out #pw-page{--pol-side-w:340px} }
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-id{padding-right:calc(var(--pol-side-w,384px) + 24px)}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{position:relative;z-index:2;margin-top:-57px}
+  html.lg-out #pw-page #pt-nego #rl-side,html.lg-out #pw-page #pt-nego #rl-cp,html.lg-out #pw-page #pt-nego #rl-resizer{display:none}
+  html.lg-out #pw-page #pt-nego #rl-grid{display:flex;padding:0;margin:0;gap:0;height:100%}
+  html.lg-out #pw-page #pt-nego #rl-doc{flex:1;min-width:0;margin:0;padding:0;border:0;border-radius:0;box-shadow:none}
+  html.lg-out #pw-page #pt-nego #nego-scroll-work{margin:0;inset:0;border-radius:0}
+  html.lg-out #pw-page #pt-nego .redline-page,html.lg-out #pw-page #pt-nego #nego-root{padding:0;gap:0;row-gap:0}
+  html.lg-out #pw-page #pt-nego .rl-zoom{position:relative}
+  html.lg-out #pw-page #pt-nego .rl-zoom > .rl-paper{margin-left:32px;margin-right:auto}
+  html.lg-out .pol-dot{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin:0 2px 0 6px;border-radius:50%;background:var(--color-text);color:var(--color-surface);font-family:var(--font-ui);font-size:11px;font-weight:var(--w-label);line-height:1;vertical-align:1px}
+  html.lg-out .pol-note{position:absolute;display:flex;gap:6px;padding-left:44px;box-sizing:border-box;font-size:12.5px;line-height:1.4;color:var(--color-text)}
+  html.lg-out .pol-note::before{content:"";position:absolute;left:0;top:9px;width:36px;height:1px;background:var(--color-text)}
+  html.lg-out .pol-note::after{content:"";position:absolute;left:-3px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--color-text)}
+  html.lg-out .pol-nt-n{flex:none;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1px solid var(--color-text);border-radius:50%;font-size:11px}
+  html.lg-out .pol-nt-t{font-weight:var(--w-label)}
+  html.lg-out .pol-nt-q{margin-top:2px;font-size:11.5px;color:var(--color-quiet)}
+  html.lg-out .pol-nt-a{margin-top:4px;font-weight:var(--w-label)}
+  html.lg-out .pol-nt-a .ui-link{text-decoration:underline}
+  html.lg-out .pol-nt-dec{color:var(--accent-ink)}
+  html.lg-out .pol-side-in{display:flex;flex-direction:column;height:100%;min-height:0}
+  html.lg-out .pol-side-hd{flex:none;height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--color-divider)}
+  html.lg-out .pol-pill.is-on{display:inline-flex;align-items:center;cursor:default}
+  html.lg-out .pol-side-body{flex:1;min-height:0;overflow:auto;padding:16px}
+  html.lg-out .pol-say{margin:0 0 16px;font-size:14px;font-weight:var(--w-label);line-height:1.45}
+  html.lg-out .pol-road{list-style:none;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 20px;padding:0;position:relative}
+  html.lg-out .pol-road::before{content:"";position:absolute;left:8%;right:8%;top:7px;height:1px;background:var(--color-divider)}
+  html.lg-out .pol-road li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:var(--w-label);text-align:center}
+  html.lg-out .pol-rd-dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--color-divider);background:var(--color-surface)}
+  html.lg-out .pol-road li.is-done .pol-rd-dot{background:var(--color-text);border-color:var(--color-text)}
+  html.lg-out .pol-road li.is-now .pol-rd-dot{border-color:var(--st-amber-dot)}
+  html.lg-out .pol-rd-mv{margin-top:-4px;font-size:11px;color:var(--st-amber-fg)}
+  html.lg-out .pol-h{margin:0;padding:0 0 6px;border-bottom:1px solid var(--color-divider);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label)}
+  html.lg-out .pol-open{list-style:none;margin:0 0 16px;padding:0}
+  html.lg-out .pol-open li{display:grid;grid-template-columns:100px minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;font-weight:var(--w-label)}
+  html.lg-out .pol-small{margin:0;font-size:11.5px;color:var(--color-quiet);line-height:1.5}
+  html.lg-out .pol-side-ft{flex:none;min-height:48px;box-sizing:border-box;padding:16px;border-top:1px solid var(--color-divider);font-size:11.5px;color:var(--color-quiet)}
+  html.lg-out .pol-side-ft .ui-link{font-size:11.5px}
+  html.lg-out .pol-ft-say{flex:1;min-width:0;font-size:13px;font-weight:var(--w-label)}
+  html.lg-out .pol-send{height:var(--ctl-h-sm);padding:0 16px;border:0;border-radius:999px;background:var(--color-text);color:var(--color-surface);font:inherit;font-size:13px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-out .pol-send:disabled{background:var(--surface-2);color:var(--color-quiet);cursor:default}
   /* JAMBO'S AGENTS, THE NEW LOOK (round 7, second half): one white page, the tabs beside the title, MAY HE as three pills */
   html.lg-new .jhn-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .jhn-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 16px}
