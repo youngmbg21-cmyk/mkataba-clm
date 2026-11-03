@@ -63,7 +63,10 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
-    await page.waitForFunction(() => typeof setView === 'function' && state && state.contracts && state.contracts.length > 0, null, { timeout: 15000 });
+    /* RE-POINTED 3 Nov 2026 (the root of #509 and #530): the book can land before the app knows WHO is signed in, and
+       a list painted then reads Needs you for nobody (needsYouOf returns nothing without currentUser), so its tab was
+       drawn missing and never redrawn — waiting longer for the row could not help. Wait for the person too. */
+    await page.waitForFunction(() => typeof setView === 'function' && typeof currentUser === 'function' && !!currentUser() && state && state.contracts && state.contracts.length > 0, null, { timeout: 15000 });
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.regSavedViews'); } catch (_) {} (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForSelector('#reg-tbody [data-row]', { timeout: 10000 }).catch(() => {});
 

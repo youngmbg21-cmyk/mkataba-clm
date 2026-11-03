@@ -910,7 +910,8 @@ function calAgendaNlHtml(evs){
   /* "Sun 1 Nov", "Fri 1 Jan 2027": the parts in the language's own words, joined without the locale's comma */
   const dayW=iso=>[f(iso,{weekday:'short'}), f(iso,{day:'numeric',month:'short'}), iso.slice(0,4)!==today.slice(0,4)?iso.slice(0,4):''].filter(Boolean).join(' ');
   const rows=[];
-  const row=(when,sub,title,under,act,cls)=>rows.push(`<div class="cal-nl-r${cls?' '+cls:''}"><div class="cal-nl-w">${when}${sub?`<small>${_esc(sub)}</small>`:''}</div><div class="cal-nl-t"><b>${_esc(title)}</b>${under?`<small>${_esc(under)}</small>`:''}</div><div class="cal-nl-a">${act||''}</div></div>`);
+  /* a row that stands for a day carries that day (data-cal-ag-day), the hook Home's week line lands on (cnWeekGo) */
+  const row=(when,sub,title,under,act,cls,day)=>rows.push(`<div class="cal-nl-r${cls?' '+cls:''}"${day?` data-cal-ag-day="${_esc(day)}"`:''}><div class="cal-nl-w">${when}${sub?`<small>${_esc(sub)}</small>`:''}</div><div class="cal-nl-t"><b>${_esc(title)}</b>${under?`<small>${_esc(under)}</small>`:''}</div><div class="cal-nl-a">${act||''}</div></div>`);
   const underOf=e=>{
     if(e.type!=='obligation') return [e.cname, e.cparty].filter(Boolean).join(' · ');
     const who=e.theirs?i18t('cal_nl_theirs'):(e.assignee?String(e.owner||e.assignee):i18t('cal_nl_nobody'));
@@ -934,15 +935,15 @@ function calAgendaNlHtml(evs){
   const byDay=new Map(); upAll.forEach(e=>{ if(!byDay.has(e.date)) byDay.set(e.date,[]); byDay.get(e.date).push(e); });
   const dayRow=(d,list,pre)=>{ const first=list[0];
     row(_esc((pre?pre+', ':'')+dayW(d)), d!==today&&daysUntil(d)>CAL_AGENDA_NL_SOON?'':(d===today?'':i18tn('cal_nl_in_days',daysUntil(d),{ n:daysUntil(d) })),
-      list.map(textOf).join(' · '), underOf(first), actOf(first)); };
+      list.map(textOf).join(' · '), underOf(first), actOf(first), '', d); };
   if(ap.length){
     const r0=ap[0], who=String(r0.who||'').trim();
     row(_esc(i18t('cal_nl_today',{ d:dayW(today) })),'', i18t(ap.length>1?'cal_nl_approve_more':'cal_nl_approve',{ a:ap[0].c.name||'', b:(ap[1]&&ap[1].c.name)||'', n:ap.length-1 }),
       [who?i18t('cal_nl_asked_by',{ who }):'', r0.rule?i18t('cal_nl_rule',{ rule:r0.rule }):''].filter(Boolean).join(' · '),
-      `<button type="button" class="cal-nl-go" data-cal-approvals>${_esc(i18t('ap_pg_approve'))}</button>`);
+      `<button type="button" class="cal-nl-go" data-cal-approvals>${_esc(i18t('ap_pg_approve'))}</button>`, '', byDay.has(today)?'':today);
     if(byDay.has(today)){ dayRow(today, byDay.get(today)); byDay.delete(today); }
   } else if(byDay.has(today)){ dayRow(today, byDay.get(today), i18t('cal_nl_today_w')); byDay.delete(today); }
-  else row(_esc(i18t('cal_nl_today',{ d:dayW(today) })),'', i18t('cal_nl_nothing'),'','','is-none');
+  else row(_esc(i18t('cal_nl_today',{ d:dayW(today) })),'', i18t('cal_nl_nothing'),'','','is-none',today);
   /* the days ahead; a week with nothing in it is one quiet line */
   const end=calAddDays(T,CAL_AGENDA_VIEW_DAYS);
   let wk=calAddDays(T,7-((T.getDay()+6)%7)), cur=T;
