@@ -2230,6 +2230,8 @@ const ALERT_KINDS = [
      beside the other colleague waiting on this reader by name. Amber, both:
      work owed, not a fault. */
   { k:'desk-quiet',  tone:'amber', ic:'&#9203;' },
+  /* THEY ASKED FOR A NEW LINK (round 8): the holder of a link that ran out pressed "Ask for a new link"; to its sender */
+  { k:'linkask',     tone:'amber', ic:'&#x1F517;' },
   /* ---- OUT WITH THEM FOR SIGNATURE (26 Sep 2026, redline here, sign there) ----
      To the person who handed it over (or the contract's owner), and only when
      something is owed: they have signed and ours is next, the fifth working
@@ -2713,6 +2715,13 @@ function buildAlerts(){
        It is the desk flag's own count and word (dk_stale_tag), as it is
        everywhere the flag is printed — the rail that re-measured it in
        calendar days left with the card. */
+    /* THEY ASKED FOR A NEW LINK (round 8): written by the expired page's one press (POST /api/shares/:token/ask-new) on
+       the record; to the person who sent the link, until a new link to the same address answers it. Its door is the
+       contract's Send screen, the one door to the other side. */
+    if(me) cs.forEach(c=>{ (Array.isArray(c.linkAsks)?c.linkAsks:[]).filter(a=>a&&String(a.by||'')===String(me.id)).forEach(a=>{
+      push('linkask',c,i18t('al_linkask',{ who:a.who||i18t('al_linkask_someone') }),
+        ()=>{ if(typeof window.openShareModal==='function') openShareModal(c); else openWorkspace(c.id); },
+        { sub:i18t('al_linkask_sub',{ day:String(a.at||'').slice(0,10) }) }); }); });
     (D.myStaleDesks||[]).forEach(x=>{ const st=x.stale||{};
       const sub=[st.days!=null?i18t('dk_stale_tag',{n:(window.deskWaitDays&&deskWaitDays(st)!=null)?deskWaitDays(st):st.days}):'',
         st.n?(window.deskStaleSub?deskStaleSub(st):i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''})):''].filter(Boolean).join(' · ');
@@ -4558,6 +4567,8 @@ if(state.panelOpen===undefined) state.panelOpen=false;
   const rs=location.hash.match(/^#reset=(.+)$/);
   let st=null;
   try{ const r=await fetch('api/status',{credentials:'same-origin'}); if(r.ok) st=await r.json(); }catch(e){}
+  /* THE NEW LOOK FOR PEOPLE OUTSIDE (round 8): the company's own setting, read before anyone signs in */
+  window._outsideLook=!!(st&&st.outsideLook); if(typeof window.outsideLookApply==='function') outsideLookApply();
   if(st && st.mode==='api'){
     REMOTE={ org:st.orgName?{name:st.orgName}:null, me:null, users:[] };
     if(rs){ renderAuth('reset:'+rs[1]); return; }

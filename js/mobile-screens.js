@@ -160,7 +160,50 @@ function mKpiHtml(D){
   return `<div class="m-kpi-grid">${cards}</div>`;
 }
 
+/* ---- THE PHONE'S HOME, THE NEW LOOK (round 8, second half; the review room's drawing, behind the admin's own switch) ----
+   The computer's new Home, phone-shaped: the greeting, its one sentence, and THE ONE DESK (ndRead, ordered by cn2Rows)
+   — each row the agreement, then how late or when, the other side, and the paper's own words where they are known
+   (cn2QuoteHtml), one word at the right for the act. NOTHING IS COUNTED HERE: the sentence reads the rows drawn. A row
+   opens its contract (the phone's one door, data-m-open); a row about no one contract is left to the computer. The ask
+   box is Jambo's, under the list as drawn; Portfolio and More stay below it. */
+function mNlOn(){ return typeof window.newLookOn==='function' && !!window.newLookOn(); }
+function mNlRowOf(x){
+  const r = x.r;
+  const c = (r.y && r.y.x && r.y.x.c) || (r.it && r.it.c) || (r.bundle && r.bundle[0] && r.bundle[0].x && r.bundle[0].x.c) || null;
+  if(!c || typeof ndParts!=='function') return null;
+  let P = null; try{ P = ndParts(r); }catch(_){ P = null; }
+  if(!P) return null;
+  const jb = r.g==='jambo';
+  const head = r.bundle ? P.title : (P.name || c.name || (window.contractRef?contractRef(c):c.id));
+  const party = r.bundle ? P.deal : (P.party || ((typeof cParty==='function'?cParty(c):c.counterparty)||''));
+  const what = jb ? String(P.line||P.read||'').replace(/<[^>]*>/g,'') : (P.name ? P.title : P.deal);
+  const when = P.when ? `<span class="${P.late?'m-nl-late':'m-nl-when'}">${mEsc(P.when)}</span> · ` : '';
+  let q = ''; try{ q = (!jb && typeof cn2QuoteHtml==='function') ? cn2QuoteHtml(r) : ''; }catch(_){ q = ''; }
+  const word = String(i18t('nd_btn_'+(jb?'review':P.btn)) || i18t('nd_btn_open')).replace(/\u2026$/,'');
+  return { k:x.k, html: `<button class="m-nl-row" data-m-open="${mEsc(c.id)}">
+      <span class="m-nl-main"><span class="m-nl-nm">${mEsc(head)}</span>
+        <span class="m-nl-ln">${when}${mEsc(party)}${what&&!r.bundle?' · '+mEsc(what):''}${q}</span></span>
+      <span class="m-nl-act">${mEsc(word)}</span></button>` };
+}
+function mHomeNlHtml(){
+  let L = [];
+  try{ L = (typeof ndRead==='function' && typeof cn2Rows==='function') ? cn2Rows(ndRead()) : []; }catch(_){ L = []; }
+  const rows = L.map(x=>({ x, row: mNlRowOf(x) })).filter(y=>y.row);
+  const say = typeof cn2Say==='function' ? cn2Say(rows.map(y=>y.x)) : '';
+  const greet = typeof cn2Greet==='function' ? cn2Greet() : '';
+  return `<div class="m-scroll m-nl-home">
+      <h1 class="m-nl-hello">${mEsc(greet)}</h1>
+      <p class="m-nl-say">${mEsc(say)}</p>
+      <div class="m-nl-list">${rows.length ? rows.map(y=>y.row.html).join('') : `<p class="m-nl-none">${mEsc(i18t('m_nothing_needs_you'))}</p>`}</div>
+      <form class="m-ask m-nl-ask" data-m-ask role="search"><input id="m-ask" type="text" enterkeyhint="send" autocomplete="off" placeholder="${mEsc(i18t('m_ask_ph'))}" aria-label="${mEsc(i18t('m_ask_ph'))}"></form>
+      <div class="m-card m-list m-nl-more">
+        <button class="m-row" data-m-act="portfolio"><span style="flex:1">${i18t('m_portfolio')}</span>${M_CHEV}</button>
+        <button class="m-row" data-m-act="more"><span style="flex:1">${i18t('m_more')}</span>${M_CHEV}</button>
+      </div>
+    </div>`;
+}
 function mHomeHtml(){
+  if(mNlOn()) return mHomeNlHtml();
   const D = mSlices();
   const needs = mNeedsYou(D);
   const expiring = (D && D.expiring) || [];
@@ -852,5 +895,5 @@ function mWireScreen(root){
   if(typeof mWireContract==='function') mWireContract(root);
 }
 
-Object.assign(window,{ mHomeHtml, mContractsHtml, mBookLine, mNegotiationsHtml, mApprovalsHtml, mPortfolioHtml,
+Object.assign(window,{ mNlOn, mNlRowOf, mHomeNlHtml, mHomeHtml, mContractsHtml, mBookLine, mNegotiationsHtml, mApprovalsHtml, mPortfolioHtml,
   mKpiSheetHtml, mNewSheetHtml, mNeedsYou, mApprovalItems, mSlices, mScreenAct, mWireScreen });
