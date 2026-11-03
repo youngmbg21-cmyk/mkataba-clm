@@ -6002,8 +6002,41 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
    where nothing else already says no: a blocking readiness card, a signing
    link with nobody named to sign, and a colleague's send keep their own
    words. */
+/* ---- WHEN IT GOES WRONG, AS DRAWN (round 9 of the new look; the owner kept today's way, 3 Nov 2026) ----
+   A send whose email did not go is said in Before you send, where the reader is looking: Not sent and why; what was
+   tried; their link — made and safe, as today (the owner's answer: no change to sending); what the history says;
+   how the mail has gone lately (emailHealth). Two buttons press today's OWN doors: Try again is #share-send, Copy the
+   link to send yourself is #share-by-hand (the hand-over HaTi records). Nothing here sends or files by itself. */
+let _shNotSent = null;
+function shareNotSentSet(c, o){ _shNotSent = c && o ? Object.assign({ cid: c.id }, o) : null; }
+function shareNotSentHtml(c){
+  const N = _shNotSent; if (!N || !c || N.cid !== c.id) return '';
+  const row = (k, v, src) => `<div class="sh-ns-r"><span>${esc(k)}</span><b>${esc(v)}</b><i>${esc(src)}</i></div>`;
+  const h = emailHealth();
+  const why = N.queued ? i18t('sh_ns_why_queued') : i18t('sh_ns_why_refused', { why: N.why || i18t('sh_ns_no_reason') });
+  const health = h && h.configured && h.recent ? i18t('sh_ns_health_v', { n: h.recent, ok: h.recent - (h.failed || 0), bad: h.failed || 0 }) : i18t('sh_ns_health_none');
+  return `<h4 class="sh-ns-h"><i class="sh-ns-dot" aria-hidden="true"></i>${esc(i18t('sh_ns_h'))}</h4><p class="sh-ns-why">${esc(why)}</p>
+    <div class="sh-ns-tbl">${row(i18t('sh_ns_tried'), i18t('sh_ns_tried_v', { at: N.at || '' }), i18t('sh_ns_src_server'))}
+      ${N.link ? row(i18t('sh_ns_link'), i18t('sh_ns_link_v'), i18t('sh_ns_src_link')) : ''}
+      ${row(i18t('sh_ns_record'), i18t('sh_ns_record_v'), i18t('sh_ns_src_trail'))}
+      ${row(i18t('sh_ns_health'), health, i18t('sh_ns_src_settings'))}</div>
+    <div class="sh-ns-acts"><button type="button" class="sh-ns-go" data-sh-ns="again">${esc(i18t('sh_ns_again'))}</button>${
+      N.link ? `<button type="button" class="sh-ns-pill" data-sh-ns="hand">${esc(i18t('sh_ns_hand'))}</button>` : ''}</div>
+    ${N.link ? `<p class="sh-ns-note">${esc(i18t('sh_ns_hand_note'))}</p>` : ''}`;
+}
+if (typeof document !== 'undefined' && !document._shNsWired){ document._shNsWired = true;
+  document.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-sh-ns]'); if (!b) return;
+    ev.preventDefault();
+    const t = document.getElementById(b.getAttribute('data-sh-ns') === 'hand' ? 'share-by-hand' : 'share-send');
+    if (t && !t.disabled) t.click();
+  });
+}
 function shareVerdictPaint(c, st){
   const v=document.getElementById('sh-lt-verdict'); if(!v || !c) return;
+  /* a send that did not go speaks here first (the new look's When it goes wrong) */
+  if(typeof newLookOn==='function' && newLookOn()){ const ns=shareNotSentHtml(c); if(ns){ if(v.innerHTML!==ns) v.innerHTML=ns; v.classList.remove('hidden'); v.classList.add('is-warn','is-notsent'); return; } }
+  v.classList.remove('is-notsent');
   const p=(st && st.purpose) || 'negotiate';
   let open=0; try{ open=(typeof negoAlignment==='function') ? negoAlignment(c).outstanding.length : 0; }catch(_){ open=0; }
   const rd=document.getElementById('share-readiness');
@@ -8194,6 +8227,7 @@ function shareFillModal(html){
 let _shNoteTyped=false;
 if(typeof document!=='undefined') document.addEventListener('input',e=>{ if(e.isTrusted&&e.target&&e.target.id==='sh-summary') _shNoteTyped=true; });
 async function openShareModal(c, opts={}){
+  shareNotSentSet(null);
   _shNoteTyped=false;
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
@@ -9385,6 +9419,7 @@ async function openShareModal(c, opts={}){
             emailSent:!!r.emailSent, emailConfigured:!!r.emailConfigured }); }catch(e){}
       };
       if(reached){
+        if(_shNotSent){ shareNotSentSet(null); const rh=document.getElementById(qsActive?'qs-result':'sh-result'); if(rh) rh.classList.remove('is-ns-folded'); }
         /* "Copy the link" copies it: the link channel puts the made link in the reader's hands (Round 3) */
         if(ch==='link'&&r.link){ try{ await navigator.clipboard.writeText(r.link); }catch(_){} }
         /* what the confirmation after Send says (round 11's gaps, second pass) */
@@ -9414,6 +9449,13 @@ async function openShareModal(c, opts={}){
           await handOver(`${me} ${ch==='word'?'downloaded the Word file':'copied the link'} to send to ${rcptLabel}${addr} themselves — HaTi's email did not go${purposeSel==='sign'?' (signing link)':''}`);
           toast(i18t('co_by_hand_done',{ who:rcptLabel }),'ok');
         });
+      }
+      /* the new look says it in Before you send, as drawn; the result box folds (its by-hand button stays the door) */
+      if(typeof newLookOn==='function' && newLookOn()){
+        let at=''; try{ at=new Date().toLocaleTimeString(langLocale(),{ hour:'2-digit', minute:'2-digit' }); }catch(_){ at=''; }
+        shareNotSentSet(c, { queued, why:r.emailError||'', link:!!(canHand && document.getElementById('share-by-hand')), at });
+        if(host) host.classList.add('is-ns-folded');
+        try{ shareVerdictPaint(c, { purpose:payloadObj.purpose }); }catch(_){}
       }
       return queued ? 'queued' : 'failed';
     } else {
@@ -9456,7 +9498,7 @@ async function openShareModal(c, opts={}){
        A queued one stays as it is (the box below holds the way forward); a
        refusal re-arms after a beat so the sender can try again. */
     if(ok==='queued'||ok==='failed'){
-      if(lbl) lbl.textContent=i18t(ok==='queued'?'co_send_queued_btn':'co_send_failed_btn');
+      if(lbl) lbl.textContent=i18t(ok==='queued'?'co_send_queued_btn':(typeof newLookOn==='function'&&newLookOn()?'co_send_failed_beside':'co_send_failed_btn'));
       if(ok==='failed') setTimeout(()=>{ if(lbl) lbl.textContent=was;
         shareSendBtn.disabled=false; shareSendBtn.style.opacity='1'; delete shareSendBtn.dataset.busy; },2500);
       else shareSendBtn.style.opacity='1';
@@ -9500,7 +9542,7 @@ async function openShareModal(c, opts={}){
     b.disabled=true; b.style.opacity='.75';
     const ok=await doSend();
     if(ok==='queued'||ok==='failed'){
-      b.textContent=i18t(ok==='queued'?'co_send_queued_btn':'co_send_failed_btn'); b.style.opacity='1';
+      b.textContent=i18t(ok==='queued'?'co_send_queued_btn':(typeof newLookOn==='function'&&newLookOn()?'co_send_failed_beside':'co_send_failed_btn')); b.style.opacity='1';
       if(ok==='failed') setTimeout(()=>{ b.disabled=false; },2500);
     } else if(ok){
       b.innerHTML=`${icon('check2','w-3.5 h-3.5')} Sent`;
@@ -11040,4 +11082,4 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

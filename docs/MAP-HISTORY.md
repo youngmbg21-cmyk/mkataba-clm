@@ -35577,3 +35577,24 @@ Built behind the switch and approved by the owner ("Approve round 6"): Contracts
 ## THE TWO CHECKS THAT FAILED ON MAIN TOO (3 Nov 2026; the owner: "fix the two flaky checks")
 - home-morning-verify 9b was a REAL FAULT, not the day: the new look's agenda (`calAgendaNlHtml`) drew its day rows without `data-cal-ag-day`, so a day pressed on Home's week line (`cnWeekGo` → `navLandWhen`) opened the Calendar and landed nowhere. Each row that stands for a day now carries its day (today's "nothing" and approvals rows too).
 - contracts-stage-tabs-verify 3a (#509, #530: twice given longer to wait) opened Contracts the moment the book landed, BEFORE the app knew who was signed in; needsYouOf returns nothing without `currentUser()`, so the Needs you tab was drawn missing and never redrawn. The check now waits for the person as well. Measured: about 1 failing run in 3 before, 8 of 8 green after.
+
+## THE NEW LOOK, ROUND 9 — YOUR BOOK READ DOWN, AND WHEN IT GOES WRONG (3 Nov 2026)
+- The owner's answers (questionnaire, 3 Nov 2026):
+  - read down is a SECOND view of the Board (not a replacement);
+  - a failed send keeps today's way (the link is made and handed over), only drawn in the new look;
+  - the phone keeps Home · Contracts · Negotiate · Approvals.
+- READ DOWN (js/views/homeboard.js, `hbRdUp`/`hbRdHtml`/`hbRdPanelHtml`, a button beside DNA, `data-hb-rd`):
+  - five sentences from existing readings (`hbRdRead`: fxCounted, effectiveExpiry + c.autoRenew, FOLDERS, negoIsLive + dealStands' move, obState/obligationDue/obligationIsTheirs), each with where it was read and a door (caGo);
+  - the quarters by value on paper; the doors at the foot; Print;
+  - Jambo's panel reads the same figures, with free doors only.
+- NOT AS DRAWN:
+  - Share and Download are not built (Print is);
+  - "Why is two thirds with one party? 1 call" is not built (the free "open the agreements with them" is);
+  - the fact-check line is not built (every figure is the record's own reading);
+  - "Put a note in the Calendar" is not built (Jambo writes nothing).
+- WHEN IT GOES WRONG (js/core.js, `shareNotSentHtml`, `_shNotSent`): a refused or queued email is said in Before you send (`#sh-lt-verdict.is-notsent`):
+  - Not sent, why, Tried · Their link · Record · Mail health;
+  - Try again presses #share-send; Copy the link to send yourself presses today's #share-by-hand (the recorded hand-over);
+  - the box under the form folds; the button says "see beside" (`co_send_failed_beside`).
+- Mail health is the figure read at sign-in, said as "before this one" rather than guessed. Jambo's "away" line is not drawn: this failure is the mail's, not the model's.
+- Check: test/chromium/round9-new-look-verify.js (red at the parent).
