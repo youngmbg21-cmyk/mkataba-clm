@@ -134,6 +134,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING
+- THE NEW LOOK'S HOME TAKES ITS PRESSES (owner-reported 6 Nov 2026): home-new-look-buttons-verify 2–4 (new, red at the parent: Approve…, Fill in and "Company needs you · Open" did nothing on #cn2-page); 1 and 5 keep Look, the counts, the week, the panel's Open links and its ways moving.
 - THE BOX PREDICTS (round 5, 29 Oct 2026): f803 1a/1a2 (new, red at the parent 64b84ca1: the four places only) — "Likely next:", board, up to three tasks in Needs you's order, each with its row's door; names keep their capital. RE-POINTED f803 8b (the held approval leads the tasks too), counter-as-drawn 1b/1d (+1e new: the first task lands on the Board's card, its piece in view), every-jambo-tab H2 (presses board, not contracts). Handbook 0.1 (a step, the caption, picture 0.1-2 retaken).
 - THE CARD FOLDS TO ITS HEAD (owner, 25 Oct 2026): f925 3e (new, red at the parent 0c1acc9) — Hide/Show on the head, the count kept, kept in the Board's state, a door opens it. RE-POINTED f925 3d ("never folds" → "never closes"). Browser: both-halves-and-fold-verify D0–D9 at the three screens.
 - f925 (new, red at the parent df2a3e3: no ndRead) — one reading, the merge keeping the wait and the red, the bundle, Home's groups, the Board's tabs/kinds/find/twelve, one button width, both books.

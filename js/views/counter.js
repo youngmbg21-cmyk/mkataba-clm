@@ -1503,7 +1503,9 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-nd-kind]'))){ _nd = { ..._nd, kind: el.getAttribute('data-nd-kind'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-more]'))){ _nd = { ..._nd, more: (_nd.more || 0) + 1 }; ndRowsRepaint(); return; }
     /* a row of your move on the Board's card presses the same door as on Home */
-    if (!t.closest('#cn-page') && !t.closest('#hm-agents.nd-card') && !inPanel) return;
+    /* the new look's Home (#cn2-page) draws the same rows with the same doors (ndParts' attrs), so its presses are taken here
+       too (owner-reported 6 Nov 2026: Look, Decide and Open did nothing there) */
+    if (!t.closest('#cn-page') && !t.closest('#cn2-page') && !t.closest('#hm-agents.nd-card') && !inPanel) return;
     if (inPanel && t.closest('[data-cn-note],[data-cn-watch],[data-cn-req],[data-cn-need],[data-cn-setup],[data-cn-co]')) step();
     if ((el = t.closest('[data-cn-pop]'))){ counterPopTake(Number(el.getAttribute('data-cn-pop'))); return; }
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
