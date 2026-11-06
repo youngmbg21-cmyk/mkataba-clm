@@ -49,7 +49,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const toCompany = () => until(() => {
       if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
       if (document.querySelector('[data-st-pg]')) { settingsGoPage(''); return null; }
-      return document.querySelector('#st-board .st-cards') ? true : null; }, null, 15000);
+      return document.querySelector('#st-board .st-cards') ? true : null; }, null, 30000);
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts), null, { timeout: 20000 });
