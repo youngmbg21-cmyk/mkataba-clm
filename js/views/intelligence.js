@@ -777,7 +777,10 @@ function igFitSplit(){
 let _igSplitT=0;
 /* the contract's own next-step links were drawn in this paint (the doors row then stands down) */
 let _igCaChipsDrawn=false;
-function igCaChipsNote(h){ _igCaChipsDrawn=!!h&&igHomePaperFace()===true&&!!(window.pdContract&&pdContract()); return h; }
+/* ONE ROW ABOVE THE BOX (owner, 6 Nov 2026: "duplication of links or buttons above the jambo entry fields"): wherever the
+   chips are doors (data-ca-chip: the paper's next steps, the Contracts place's upload · draft · reads), they ARE the row and
+   the flow map's doors stand down — on the paper, the list, the wall and the folders alike; question chips stand with them */
+function igCaChipsNote(h){ _igCaChipsDrawn=!!h&&/data-ca-chip=/.test(h); return h; }
 function igSplitSettle(){
   if(_igSplitT) clearTimeout(_igSplitT);
   _igSplitT=setTimeout(()=>{ _igSplitT=0; if(igMapUp()) rebuildIntelGraph(); },280);

@@ -76,8 +76,12 @@ const doorsOf = page => page.evaluate(() => { const n = document.querySelector('
         await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
         await until(page, () => !!document.querySelector('.jb-ways[data-jb-ways="board"] [data-jb-way="contracts"]'), null, 20000);
         await page.click('.jb-ways [data-jb-way="contracts"]');
-        const moved = await until(page, () => !!document.querySelector('.jb-ways[data-jb-ways="contracts"]'), null, 20000);
-        check('3 a door moves through the one mover and the doors follow the page', moved, await doorsOf(page));
+        /* RE-POINTED 6 Nov 2026 (one row above the box, owner: "duplication of links or buttons above the jambo entry
+           fields"): on the Contracts place its own chips (upload · draft · reads · calendar) ARE the row, folders included;
+           the flow map's doors stand down, so the page is up with ONE row above the box and no doors row */
+        const moved = await until(page, () => !!document.querySelector('[data-reg-home]') && !!document.querySelector('#ig-dock [data-ig-chips] [data-ca-chip]'), null, 20000);
+        const one = await page.evaluate(() => ({ ways: document.querySelectorAll('#ig-dock .jb-ways:not([hidden])').length, chips: [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')) }));
+        check('3 a door moves through the one mover; on Contracts its own chips are the one row (no doors row)', moved && one.ways === 0 && one.chips.length >= 2, one);
       }
       await page.close();
     }
