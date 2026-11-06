@@ -8074,19 +8074,15 @@ function pd2StdGo(c){
       return; }
     if (has(live) && typeof toast === 'function') toast(_pdT('pd2_std_all_met'), 'ok');
   };
+  /* the run and its keeping are the standards page's own Check again (sdCheckAgain: asks first where it costs a call,
+     reads the whole record, saves, says so); the desk itself writes nothing (f563) */
   const run = async () => {
     const live = (typeof getContract === 'function' && getContract(c.id)) || c;
-    if (typeof ensureFull === 'function' && live._light && !live._loaded){ try { await ensureFull(live); } catch (_){} }
-    const done = (typeof toast === 'function') ? toast(_pdT('pd2_std_checking'), 'ok', { busy: true }) : null;
-    let res = null; try { res = await runPlaybookReview(live); } catch (_){ res = null; }
-    try { if (done && typeof done.close === 'function') done.close(); } catch (_){}
-    if (res && !res.error && res.verdicts){ live.playbook = res;
-      if (typeof logAudit === 'function') logAudit(live, 'Playbook', `Reviewed against ${res.label} — ${deviationSummary(live).dev} deviation(s), ${deviationSummary(live).miss} missing`);
-      if (typeof persist === 'function') persist(live);
-      try { pdGlanceRepaint(); } catch (_){} land(); return; }
-    if (typeof toast === 'function') toast(_pdT('pd2_std_failed'), 'err');
+    try { await sdCheckAgain(live); } catch (_){}
+    const now = (typeof getContract === 'function' && getContract(c.id)) || live;
+    if (has(now)){ try { pdGlanceRepaint(); } catch (_){} land(); }
   };
-  const may = (typeof canEdit !== 'function' || canEdit()) && typeof runPlaybookReview === 'function';
+  const may = (typeof canEdit !== 'function' || canEdit()) && typeof sdCheckAgain === 'function';
   const act = () => { const live = (typeof getContract === 'function' && getContract(c.id)) || c; if (!has(live) && may) run(); else land(); };
   if (here()){ act(); return true; }
   if (typeof roomHomeLand !== 'function') return false;

@@ -72,9 +72,12 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await page.waitForTimeout(400);
   const none = await page.evaluate(() => !document.querySelector('#pd2-notes .pd2-mg-i.is-std'));
   const chk = await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-ds-std]'); if (b){ b.click(); return true; } return false; });
+  /* the standards page's own Check again asks first where it costs a call: answered yes */
+  const asked5 = await until(page, () => !!document.getElementById('confirm-overlay'), null, 4000);
+  if (asked5) await page.evaluate(() => { const o = document.getElementById('confirm-overlay'); const b = o && [...o.querySelectorAll('button')].find(x => !/Cancel/.test(x.textContent)); if (b) b.click(); });
   const back = await until(page, () => !!document.querySelector('#pd2-notes .pd2-mg-i.is-std') && !!getContract('MK-CR').playbook, null, 8000);
   const r5 = await R();
-  check('5 · no check kept: Check runs it and the notes appear (no side panel)', none && chk && back && !r5.side, { none, chk, back, side: r5.side });
+  check('5 · no check kept: Check runs it and the notes appear (no side panel)', none && chk && back && !r5.side, { none, chk, asked5, back, side: r5.side });
 
   /* 6 the new look off */
   await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); openCheckPanel(getContract('MK-CR'), 'playbook'); });
