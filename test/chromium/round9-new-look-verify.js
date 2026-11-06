@@ -43,7 +43,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
     await until(page, () => !!document.querySelector('#hb-bhead'), null, 20000);
-    const rd = await page.evaluate(() => !!document.querySelector('[data-hb-rd]'));
+    const rd = await page.evaluate(() => !!document.querySelector('[data-hb-rdn]'));
     await send();
     const S = await page.evaluate(() => ({ box: /Not delivered/.test((document.getElementById('sh-result') || {}).innerText || ''), ns: !!document.querySelector('#sh-lt-verdict.is-notsent') }));
     check('1 off: no Read down on the Board; a refused email says today\'s box under the form', !rd && S.box && !S.ns, { rd, ...S });
@@ -57,12 +57,12 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
     await until(page, () => state.view === 'counter', null, 15000);
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
-    const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rd]') && !!document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
-    if (btn) await page.click('#hb-bhead [data-hb-rd]');
+    const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !!document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
+    if (btn) await page.click('#hb-bhead [data-hb-rdn]');
     const up = await until(page, () => !!document.querySelector('#rd-page') && /Read from the records/i.test((document.querySelector('#ig-dock') || document.body).innerText), null, 15000);
     const S = up ? await page.evaluate(() => ({ eyebrow: document.querySelector('.rd-eyebrow').textContent, h: document.querySelector('.rd-h').textContent,
       rows: [...document.querySelectorAll('.rd-row')].map(r => ({ t: r.querySelector('.rd-t').textContent, src: r.querySelector('.rd-src b').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
-      qs: document.querySelectorAll('.rd-q').length, foot: [...document.querySelectorAll('.rd-foot [data-rd-go]')].map(b => b.dataset.rdGo), n: hbRdBook().length })) : null;
+      qs: document.querySelectorAll('.rd-q').length, foot: [...document.querySelectorAll('.rd-foot [data-rd-go]')].map(b => b.dataset.rdGo), n: hbRdnBook().length })) : null;
     check('2a Read down sits beside DNA in the Board\'s head', btn);
     check('2b the page as drawn: no call said, the title, five sentences each with its source and door, the quarters, the doors at the foot', !!S && /no call/i.test(S.eyebrow) && S.h === 'Your book, read down.'
       && S.rows.length === 5 && S.rows.every(r => r.src && r.go) && S.qs >= 1 && S.foot.join() === 'needs,contracts,calendar,explorer,negotiations,activity', S && { rows: S.rows.map(r => r.go), qs: S.qs, foot: S.foot });
@@ -74,8 +74,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await page.click('.rd-row [data-rd-go="calendar"]');
     const went = await until(page, () => !document.querySelector('#rd-page') && !!document.querySelector('#hb-cal'), null, 15000);
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
-    await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rd]'), null, 15000);
-    await page.click('#hb-bhead [data-hb-rd]');
+    await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]'), null, 15000);
+    await page.click('#hb-bhead [data-hb-rdn]');
     await until(page, () => !!document.querySelector('#rd-page'), null, 10000);
     await page.click('[data-rd-back]');
     const back = await until(page, () => !document.querySelector('#rd-page') && !!document.querySelector('#hb-bhead'), null, 10000);

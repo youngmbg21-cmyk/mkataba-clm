@@ -6026,7 +6026,7 @@ function hbExplorerBtnHtml(){
 function hbPulseBtnHtml(){
   if (typeof renderPulse !== 'function') return '';
   /* the new look draws DNA where the Pulse board's button stood (round 6, as drawn) */
-  if (typeof window.newLookOn === 'function' && newLookOn()) return hbRdBtnHtml() + hbDnaBtnHtml();
+  if (typeof window.newLookOn === 'function' && newLookOn()) return hbRdnBtnHtml() + hbDnaBtnHtml();
   return `<button type="button" class="hb-btn is-sm hb-pulse-go" data-hb-pulse title="${_hbE(i18t('hb_pulse_tip'))}">${typeof icon === 'function' ? icon('trend', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_pulse_btn'))}</button>`;
 }
 /* SAVED VIEWS ARE CHIPS IN THE HEAD (round 17 as drawn; they moved from the
@@ -6139,7 +6139,7 @@ function hbDnaBtnHtml(){
 if (typeof window !== 'undefined' && typeof document !== 'undefined' && !document._hbDnaWired){ document._hbDnaWired = true;
   window.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
-    if ((el = t.closest('[data-hb-dna]'))){ e.preventDefault(); e.stopPropagation(); _hbDna = true; _hbRd = false; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
+    if ((el = t.closest('[data-hb-dna]'))){ e.preventDefault(); e.stopPropagation(); _hbDna = true; _hbRdn = false; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if ((el = t.closest('[data-dna-back]'))){ e.preventDefault(); _hbDna = false; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if ((el = t.closest('[data-dna-show]'))){ e.preventDefault(); const ids = el.getAttribute('data-dna-show').split(',').filter(Boolean);
       _hbDna = false; if (typeof setView === 'function') setView('register'); if (typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-dna-label') || ''); return; }
@@ -6156,13 +6156,13 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && !documen
    opens that page. Under them what ends, quarter by quarter, by value on paper. EVERY FIGURE IS AN EXISTING READING:
    fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, c.autoRenew, FOLDERS, negoIsLive and
    dealStands' move, obState / obligationDue / obligationIsTheirs; values only where canViewValues allows. */
-let _hbRd = false;
-function hbRdUp(){ return !!_hbRd && typeof window.newLookOn === 'function' && newLookOn() && hbS().face === 'board'; }
-function hbRdBook(){
+let _hbRdn = false;
+function hbRdnUp(){ return !!_hbRdn && typeof window.newLookOn === 'function' && newLookOn() && hbS().face === 'board'; }
+function hbRdnBook(){
   return (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined' && !c.migration);
 }
-function hbRdRead(){
-  const L = hbRdBook(), see = typeof canViewValues === 'function' ? canViewValues() : true;
+function hbRdnRead(){
+  const L = hbRdnBook(), see = typeof canViewValues === 'function' ? canViewValues() : true;
   const code = typeof fxHomeCode === 'function' ? fxHomeCode() : '';
   const val = c => { if (!see) return 0; let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; };
   const money = v => see && v > 0 && typeof fmtMoneyShortIn === 'function' ? fmtMoneyShortIn(v, code || undefined) : '';
@@ -6194,12 +6194,12 @@ function hbRdRead(){
   const quarters = [...qs.values()].sort((a, b) => a.k.localeCompare(b.k)).slice(0, 6);
   return { L, see, money, total, sig, sigV, ending, autoEnd, streams, top, share, nego, ours, late, week, pay, quarters, exp };
 }
-function hbRdSentences(R){
+function hbRdnSentences(R){
   const m = R.money, out = [];
   out.push({ t: R.total ? i18tn('rd_s_paper', R.L.length, { v: m(R.total), n: R.L.length, s: m(R.sigV) || i18t('rd_none_v') }) : i18tn('rd_s_paper_nv', R.L.length, { n: R.L.length, s: R.sig.length }),
     src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
   const f = R.ending[0];
-  out.push({ t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdDay(R.exp(f)), v: m(hbRdVal(f)) ? i18t('rd_worth', { v: m(hbRdVal(f)) }) : '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
+  out.push({ t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), v: m(hbRdnVal(f)) ? i18t('rd_worth', { v: m(hbRdnVal(f)) }) : '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
     src: i18t('rd_src_term'), door: i18t('rd_door_cal'), go: 'calendar' });
   const s = R.streams;
   out.push({ t: (s.length ? s.slice(0, 2).map(x => m(x.v) ? i18tn('rd_s_stream', x.cs.length, { s: x.n, v: m(x.v), n: x.cs.length }) : i18tn('rd_s_stream_nv', x.cs.length, { s: x.n, n: x.cs.length })).join('; ') + '. ' : '')
@@ -6211,10 +6211,10 @@ function hbRdSentences(R){
     src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
   return out;
 }
-function hbRdVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
-function hbRdDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
-function hbRdHtml(){
-  const R = hbRdRead(), E = _hbE, S = hbRdSentences(R);
+function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
+function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
+function hbRdnHtml(){
+  const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
   let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
   const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><p class="rd-t">${E(x.t)}</p><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></div></div>`).join('');
   const max = Math.max(1, ...R.quarters.map(q => q.v || q.n));
@@ -6229,12 +6229,12 @@ function hbRdHtml(){
     <div class="rd-foot"><span class="rd-foot-l">${foot}</span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div></div>`;
 }
 /* the read down's panel: what was read, the next questions (the cost said), Jambo's line on the book */
-function hbRdPanelHtml(){
-  const R = hbRdRead(), E = _hbE, m = R.money;
+function hbRdnPanelHtml(){
+  const R = hbRdnRead(), E = _hbE, m = R.money;
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
   const f = R.ending[0];
   const rows = row(i18t('rd_p_paper'), [m(R.total), i18tn('rd_p_n', R.L.length, { n: R.L.length }), i18t('rd_p_signed', { n: R.sig.length })].filter(Boolean).join(' · '), i18t('rd_p_src_list'))
-    + row(i18t('rd_p_ending'), f ? [String(R.ending.length), i18t('rd_p_first', { d: hbRdDay(R.exp(f)) })].join(' · ') : i18t('rd_p_none'), i18t('rd_p_src_term'))
+    + row(i18t('rd_p_ending'), f ? [String(R.ending.length), i18t('rd_p_first', { d: hbRdnDay(R.exp(f)) })].join(' · ') : i18t('rd_p_none'), i18t('rd_p_src_term'))
     + (R.top ? row(i18t('rd_p_conc'), i18t('rd_p_conc_v', { p: R.top.p, pc: R.share }), i18t('rd_p_src_parties')) : '')
     + row(i18t('rd_p_open'), [i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }), i18tn('rd_late', R.late, { n: R.late })].join(' · '), i18t('rd_p_src_desk'));
   const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
@@ -6244,24 +6244,24 @@ function hbRdPanelHtml(){
   const turn = `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(say)}</p></div></div>`;
   return `<div class="pd2-chosen cun-panel rd-panel"><p class="pd2-ch-head">${E(i18t('rd_p_head'))}</p><div class="pd2-ch-cap">${E(i18t('rd_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div>${doors ? `<div class="pd2-ch-cap">${E(i18t('rd_p_deeper'))}</div>${doors}` : ''}${turn}</div>`;
 }
-function hbRdBtnHtml(){
-  return `<button type="button" class="hb-btn is-sm hb-pulse-go hb-rd-go" data-hb-rd title="${_hbE(i18t('rd_tip'))}">${_hbE(i18t('rd_btn'))}</button>`;
+function hbRdnBtnHtml(){
+  return `<button type="button" class="hb-btn is-sm hb-pulse-go hb-rdn-go" data-hb-rdn title="${_hbE(i18t('rd_tip'))}">${_hbE(i18t('rd_btn'))}</button>`;
 }
-if (typeof window !== 'undefined' && typeof document !== 'undefined' && !document._hbRdWired){ document._hbRdWired = true;
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && !document._hbRdnWired){ document._hbRdnWired = true;
   window.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
     const repaint = () => { hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); };
-    if ((el = t.closest('[data-hb-rd]'))){ e.preventDefault(); e.stopPropagation(); _hbRd = true; _hbDna = false; repaint(); return; }
-    if ((el = t.closest('[data-rd-back]'))){ e.preventDefault(); _hbRd = false; repaint(); return; }
+    if ((el = t.closest('[data-hb-rdn]'))){ e.preventDefault(); e.stopPropagation(); _hbRdn = true; _hbDna = false; repaint(); return; }
+    if ((el = t.closest('[data-rd-back]'))){ e.preventDefault(); _hbRdn = false; repaint(); return; }
     if ((el = t.closest('[data-rd-print]'))){ e.preventDefault(); try { window.print(); } catch (_){} return; }
-    if ((el = t.closest('[data-rd-go]'))){ e.preventDefault(); const k = el.getAttribute('data-rd-go'); _hbRd = false;
+    if ((el = t.closest('[data-rd-go]'))){ e.preventDefault(); const k = el.getAttribute('data-rd-go'); _hbRdn = false;
       if (typeof caGo === 'function') caGo({ kind: 'go', place: k }); return; }
     if ((el = t.closest('[data-rd-show]'))){ e.preventDefault(); const ids = el.getAttribute('data-rd-show').split(',').filter(Boolean);
-      _hbRd = false; if (typeof setView === 'function') setView('register'); if (typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-rd-label') || ''); }
+      _hbRdn = false; if (typeof setView === 'function') setView('register'); if (typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-rd-label') || ''); }
   }, true);
 }
 function hbBoardHtml(){
-  if (hbRdUp()) return hbRdHtml();
+  if (hbRdnUp()) return hbRdnHtml();
   if (hbDnaUp()) return hbDnaHtml();
   /* A CONTRACT BROUGHT UP IS A PAGE ON THE DESK (round 7, "Read down"): the
      card alone, none of the Board's own furniture */
@@ -11331,7 +11331,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbRdUp, hbRdBook, hbRdRead, hbRdSentences, hbRdHtml, hbRdPanelHtml, hbRdBtnHtml, hbDnaUp, hbDnaHtml, hbDnaOf, hbDnaRows, hbDnaPanelHtml, hbDnaBtnHtml });
+Object.assign(window, { hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml, hbDnaUp, hbDnaHtml, hbDnaOf, hbDnaRows, hbDnaPanelHtml, hbDnaBtnHtml });
 Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,

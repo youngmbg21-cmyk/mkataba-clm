@@ -35583,8 +35583,8 @@ Built behind the switch and approved by the owner ("Approve round 6"): Contracts
   - read down is a SECOND view of the Board (not a replacement);
   - a failed send keeps today's way (the link is made and handed over), only drawn in the new look;
   - the phone keeps Home · Contracts · Negotiate · Approvals.
-- READ DOWN (js/views/homeboard.js, `hbRdUp`/`hbRdHtml`/`hbRdPanelHtml`, a button beside DNA, `data-hb-rd`):
-  - five sentences from existing readings (`hbRdRead`: fxCounted, effectiveExpiry + c.autoRenew, FOLDERS, negoIsLive + dealStands' move, obState/obligationDue/obligationIsTheirs), each with where it was read and a door (caGo);
+- READ DOWN (js/views/homeboard.js, `hbRdnUp`/`hbRdnHtml`/`hbRdnPanelHtml`, a button beside DNA, `data-hb-rdn`):
+  - five sentences from existing readings (`hbRdnRead`: fxCounted, effectiveExpiry + c.autoRenew, FOLDERS, negoIsLive + dealStands' move, obState/obligationDue/obligationIsTheirs), each with where it was read and a door (caGo);
   - the quarters by value on paper; the doors at the foot; Print;
   - Jambo's panel reads the same figures, with free doors only.
 - NOT AS DRAWN:
