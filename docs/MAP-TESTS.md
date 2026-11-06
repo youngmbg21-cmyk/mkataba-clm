@@ -186,6 +186,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f919; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- AN OBLIGATION OPENS ON ITS CONTRACT'S PAPER IN THE NEW LOOK (the platform review, 6 Nov 2026): obligation-opens-on-the-paper-verify 1–2 (new, red at the parent: the list's open landed on the old narrowed page with no Jambo panel), 3 (old look: the narrowed page as before).
 - A SERVED NOTICE IS THE DECISION ON THE SERVER (bug log batch 3, 26 Oct 2026): f943 (new; red at the parent) — srvRenewalDecision reads notice.servedOn as lapse: no 90/60/30 warning, no renewal memo; the control still warned.
 - Promises Jambo found on a signed contract are on Needs you until decided (26 Oct 2026, flag E): test/chromium/found-promises-verify.js (11 checks: one row, not urgent, "Jambo found 2 promises to confirm", on the one desk; none on a live contract; Review opens the desk with nothing ticked; skipping both removes the row; the three screens; red at the parent bbff1c4: 1a, 1b, 1c, 3, 4, 5×3).
 - Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
