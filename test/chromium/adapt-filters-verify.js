@@ -41,7 +41,9 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   const land = async () => {
-    await page.waitForFunction(() => typeof setView === 'function' && window.state && state.contracts && state.contracts.length > 0, null, { timeout: 20000 });
+    /* RE-POINTED 6 Nov 2026 (the root contracts-stage-tabs had, #571): the book can land before the app knows who is signed in;
+       a list read then counts for nobody ("7 groups for 0"). Wait for the person too. */
+    await page.waitForFunction(() => typeof setView === 'function' && typeof currentUser === 'function' && !!currentUser() && window.state && state.contracts && state.contracts.length > 0, null, { timeout: 20000 });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForFunction(S => !!document.querySelector(S) && !!document.querySelector('#reg-tbody [data-row]'), SEAT, { timeout: 10000 }).catch(() => {});
   };

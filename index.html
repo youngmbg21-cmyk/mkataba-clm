@@ -18328,6 +18328,11 @@
   html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) :is(#content-scroll, #page-head),
   html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed),
   html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:var(--jl-room,var(--jl-w,384px))}
+  /* FOLDED, THE PAGE TAKES THE ROOM BACK (owner-reported 6 Nov 2026, Reads: folding Jambo left the sheet at its old width
+     with a grey gap beside it): the folded strip is JL_FOLDED wide, so that is all the page gives up */
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) :is(#content-scroll, #page-head),
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed),
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)):has(#content-scroll:not(.view-fixed)) #page-head{margin-right:46px}
   /* -- A CONTRACT: the paper's line and Jambo's head one height, 56 (the contract's pixels: the owner's yes, 31 Oct 2026),
      the desk flush under the line -- */
   html.lg-new #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:56px}
@@ -18502,6 +18507,8 @@
   html.lg-new .pd2-br-kick{text-align:center;font-family:var(--font-body);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-text)}
   html.lg-new .pd2-br-what{margin:22px 0 4px;text-align:center;font-size:17px;font-weight:var(--w-title)}
   html.lg-new .pd2-br-lead{font-size:16px;line-height:1.6}
+  html.lg-new .pd2-br-none{text-align:center}
+  html.lg-new .pd2-br-none-act{margin:22px 0 4px;text-align:center}
   html.lg-new .pd2-br-eye{margin:26px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--color-divider);font-family:var(--font-body);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
   html.lg-new .pd2-br-ln{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,40%);gap:24px;padding:10px 0;border-bottom:1px solid var(--color-divider)}
   html.lg-new .pd2-br-say{font-size:15px;line-height:1.5}

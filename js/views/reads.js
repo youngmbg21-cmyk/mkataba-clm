@@ -549,7 +549,7 @@ function readsOpen(askId){
    on Reads count as seen before Contracts is painted (pdTalkSeenAll), so both presses are one door */
 function rdOnContracts(then){
   if (typeof pdTalkSeenAll === 'function') try { pdTalkSeenAll(); } catch (_){}
-  const go = () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); if (typeof setView === 'function') setView('register'); };
+  const go = () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); if (typeof regFoldersShut === 'function') regFoldersShut(); if (typeof setView === 'function') setView('register'); };
   if (typeof dkLeavePageThen === 'function') dkLeavePageThen(go); else go();
   let n = 0;
   const tick = () => { if (document.querySelector('#reg-tbody') && typeof askColOn === 'function' && askColOn()){ then(); return; } if (++n < 40) setTimeout(tick, 100); };

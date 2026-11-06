@@ -35598,3 +35598,19 @@ Built behind the switch and approved by the owner ("Approve round 6"): Contracts
   - the box under the form folds; the button says "see beside" (`co_send_failed_beside`).
 - Mail health is the figure read at sign-in, said as "before this one" rather than guessed. Jambo's "away" line is not drawn: this failure is the mail's, not the model's.
 - Check: test/chromium/round9-new-look-verify.js (red at the parent).
+
+## READS IN THE NEW LOOK — TWO FAULTS THE OWNER MET (6 Nov 2026)
+- "Read 50 more" did nothing but change the page. `rdOnContracts` asks Contracts for the LIST (`regPlaceSet({show:'list'})`) and waits for `#reg-tbody`, but the new look's Contracts opens on its folders (`_ctFolders`), so the list never came and the read never started.
+  - Fix: one door, `regFoldersShut` (js/views/register.js), called by both doors that ask for the list by name: `rdOnContracts` and Jambo's place word `list` (js/copilotacts.js).
+- Folding Jambo's panel left the page at its old width with a grey gap. The new look's margin rule (`html.lg-new … #content-scroll{margin-right:var(--jl-room…)}`) had no folded case.
+  - Fix: a folded twin, 46px (JL_FOLDED). It is one shared rule, so every list page with the panel is mended.
+- Check: test/chromium/reads-new-look-fixes-verify.js (red at the parent).
+- NOTICED, NOT FIXED: after a read finishes on Contracts, coming back to Reads still shows the old "4 of 12" and "Read 8 more" until a refresh, while the answers already show the new ones. Told to the owner.
+## THE ONE DESK — NEEDS YOU, ONE READING · THE NEW LOOK'S HOME TAKES ITS PRESSES (owner-reported, 6 Nov 2026)
+The owner, with the new look on: "it seems the open and look and decide buttons do not work. Review all the buttons in the home page are functioning accordingly."
+Cause: the new look draws Home as `#cn2-page` with the same rows and the same doors (ndParts' attrs), but the row handler in js/views/counter.js (`_cnWired`) returned early unless the press was inside `#cn-page`, the Board's card or the panel. Measured at the parent by pressing every button: Approve… (2 rows), Fill in (3 rows) and "Company needs you · Open" did nothing; Look/Review, the other Open, the counts, the week's days, the panel's Open links and its ways (board · contracts · calendar · explorer · reads), Add a file and Collapse all worked. Fix: the gate also lets `#cn2-page` through. Every Home button pressed again after: all move something.
+
+## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU · EVERY BRIEF DOOR LANDS ON THE ONE BRIEF PAGE (owner, 6 Nov 2026)
+The owner, with two screenshots: "Hati is giving me two types of brief. The old version in image one and the new version in image 2. What is going on?" Then: "fix the brief and show me options for 2, 3 and 4 along with the current version" (2 Our standards, 3 the negotiation memo, 4 Jambo's work off the paper — all still the old side panel, no new-look design drawn).
+Cause: the new look's brief page (`pd2BriefOpen`) was reached only from the Dossier's brief line; every other door (Write the brief, the Board strip's Brief, Jambo's "brief" `caBriefOpen`, the arrival card, the Scan panel, a brief piece of Jambo's work, the old Home card) presses `openCheckPanel(c,'brief')`, which drew the old side panel; and `pd2BriefOpen` itself fell back to it when no brief was kept.
+Fix: `openCheckPanel(c,'brief')` asks `pd2BriefGo(c)` first (new look, desk shell): on the paper the page opens (`stay`: a door that opens never shuts it, it repaints `pd2BriefRepaint`); off the paper the paper comes first (`roomHomeLand`) then the page. No brief kept: the same sheet says so (`pd2BriefNoneHtml`, `br_none_write` / `br_kt_none_viewer`) with Write the brief, which writes and draws it in place; the head says no "written by" until there is one. `briefPanelToggle` shuts the middle page on the same press. Look off: unchanged.

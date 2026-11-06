@@ -7841,7 +7841,7 @@ function pd2BriefMeta(c){
 }
 function pd2BriefHeadHtml(c){
   const E = _pdE;
-  return `<div class="pd2-br-head"><button type="button" class="ui-link" data-pd-mid-back>‹ ${E(_pdT('pd_stage_paper'))}</button><b class="pd2-br-t">${E(_pdT('pd2_brief'))}</b><span class="pd2-br-m" data-pd2-br-meta>${E(pd2BriefMeta(c))}</span><span class="pd2-br-sp"></span><span class="pd2-br-cost">${E(_pdT('pd2_br_cost'))}</span></div>`;
+  return `<div class="pd2-br-head"><button type="button" class="ui-link" data-pd-mid-back>‹ ${E(_pdT('pd_stage_paper'))}</button><b class="pd2-br-t">${E(_pdT('pd2_brief'))}</b><span class="pd2-br-m" data-pd2-br-meta>${E(pd2BriefHas(c) ? pd2BriefMeta(c) : '')}</span><span class="pd2-br-sp"></span><span class="pd2-br-cost">${E(_pdT('pd2_br_cost'))}</span></div>`;
 }
 function pd2BriefHtml(c){
   const E = _pdE, d = (c._brief && c._brief.data) || {}, S = pd2Sentences(c);
@@ -7864,19 +7864,70 @@ function pd2BriefHtml(c){
   </div><div class="pd2-br-pfoot"><span>${E(_pdT('pd2_br_f1'))}</span><span>${E(_pdT('pd2_br_f2'))}</span></div></div>`;
 }
 function pd2BriefUp(id){ return pdMidUp('brief:' + String(id)); }
-async function pd2BriefOpen(id){
-  const mk = 'brief:' + String(id);
-  if (pdMidUp(mk)) return pdMidClose();
+/* NO BRIEF WRITTEN YET, IN THE NEW LOOK'S OWN PAGE (owner, 6 Nov 2026: "Hati is giving me two types of brief"): the
+   same sheet, its sentence and the one Write press with its cost (br_none_write), never the old side panel */
+function pd2BriefNoneHtml(c){
+  const E = _pdE, ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+  const may = (typeof canEdit !== 'function' || canEdit()) && typeof runContractBrief === 'function';
+  return `<div class="pd2-brief" data-pd2-brief="${E(c.id)}"><div class="pd2-br-sheet" id="pd2-br-top">
+    <div class="pd2-br-kick">${E([_pdT('pd2_br_kick'), c.name, c.counterparty, ref].filter(Boolean).join(' · '))}</div>
+    <div class="pd2-br-what">${E(_pdT('pd2_br_what'))}</div>
+    <p class="pd2-br-lead pd2-br-none">${E(_pdT(may ? 'br_none_write' : 'br_kt_none_viewer'))}</p>
+    ${may ? `<p class="pd2-br-none-act"><button type="button" class="ui-btn ui-btn-primary" data-pd2-br-write="${E(c.id)}">${E(_pdT('br_write'))}</button></p>` : ''}
+  </div></div>`;
+}
+function pd2BriefHas(c){ return !!(c && c._brief && c._brief.data); }
+/* opts.stay: a door that OPENS (the one brief door, openCheckPanel) never shuts a page already up; it draws it again */
+async function pd2BriefOpen(id, opts){
+  const mk = 'brief:' + String(id), stay = !!(opts && opts.stay);
+  if (pdMidUp(mk) && !stay) return pdMidClose();
   const c0 = pdContract(); if (!c0 || String(c0.id) !== String(id) || !pdOnPaper() || !pdMidMay()) return false;
   let c = (typeof getContract === 'function' && getContract(id)) || c0;
   if (c._light && !c._loaded && typeof ensureFull === 'function'){ try { await ensureFull(c); } catch (_){} c = getContract(id) || c; }
-  /* no brief written, or one too thin to draw: the brief's own panel, as before (it carries Write) */
-  if (!(c._brief && c._brief.data)){ if (typeof openCheckPanel === 'function') openCheckPanel(c, 'brief'); return false; }
-  openModal(pd2BriefHtml(c), { maxWidth: 'none', label: _pdT('pd2_brief'), page: { crumbHtml: pd2BriefHeadHtml(c), beside: '#ig-dock' },
+  if (pdMidUp(mk)){ pd2BriefRepaint(c); return true; }
+  const has = pd2BriefHas(c);
+  openModal(has ? pd2BriefHtml(c) : pd2BriefNoneHtml(c), { maxWidth: 'none', label: _pdT('pd2_brief'), page: { crumbHtml: pd2BriefHeadHtml(c), beside: '#ig-dock' },
     onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} } });
   pdMidOn(mk);
   try { pdGlanceRepaint(); } catch (_){}
   return true;
+}
+/* the page already standing draws what the record now holds (a brief just written, or written again) */
+function pd2BriefRepaint(c){
+  const el = document.querySelector(`[data-pd2-brief="${CSS.escape(String(c.id))}"]`); if (!el) return false;
+  const t = document.createElement('div'); t.innerHTML = pd2BriefHas(c) ? pd2BriefHtml(c) : pd2BriefNoneHtml(c);
+  el.replaceWith(t.firstElementChild);
+  const m = document.querySelector('[data-pd2-br-meta]'); if (m) m.textContent = pd2BriefHas(c) ? pd2BriefMeta(c) : '';
+  return true;
+}
+/* EVERY BRIEF DOOR LANDS ON THE NEW PAGE (owner, 6 Nov 2026): asked by openCheckPanel(c,'brief') — the one door the
+   Board's strip, Write the brief, Jambo's "brief", the arrival card and the Scan panel already press. Off the paper,
+   the paper comes first (roomHomeLand), then the page. False = not this look or no room: the old panel answers. */
+function pd2BriefGo(c){
+  if (!c || !pd2On() || typeof document === 'undefined') return false;
+  if (typeof deskShellOn === 'function' && !deskShellOn()) return false;
+  const here = () => { const pc = pdContract(); return !!(pc && String(pc.id) === String(c.id) && pdOnPaper() && pdMidMay()); };
+  if (here()){ pd2BriefOpen(c.id, { stay: true }); return true; }
+  if (typeof roomHomeLand !== 'function') return false;
+  if (pdMidUp() && typeof closeModal === 'function') try { closeModal(); } catch (_){}
+  try { if (roomHomeLand(c.id) === false) return false; } catch (_){ return false; }
+  let n = 0; const tick = () => { if (here()){ pd2BriefOpen(c.id, { stay: true }); return; } if (++n < 40) setTimeout(tick, 100); };
+  setTimeout(tick, 50);
+  return true;
+}
+if (typeof document !== 'undefined' && !window._pd2BrWrite){
+  window._pd2BrWrite = true;
+  document.addEventListener('click', async e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-pd2-br-write]') : null; if (!b || b.disabled) return;
+    e.preventDefault();
+    const id = b.getAttribute('data-pd2-br-write'); const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c) return;
+    b.disabled = true; if (typeof busySet === 'function') busySet(b, _pdT('ct_working')); else b.textContent = _pdT('ct_working');
+    let r = null; try { r = await runContractBrief(c, { force: !!c._brief }); } catch (_){ r = null; }
+    const live = (typeof getContract === 'function' && getContract(id)) || c;
+    if (r && pd2BriefUp(id)){ pd2BriefRepaint(live); try { pdGlanceRepaint(); } catch (_){} return; }
+    b.disabled = false; b.textContent = _pdT('br_write');
+    if (!r && typeof toast === 'function') toast(_pdT('br_failed'), 'err');
+  });
 }
 /* WHERE THE DEAL STANDS IN THE MIDDLE, AS DRAWN (the new look): ‹ Paper, the page both parties read (standsDrawnHtml), its
    two acts on the head (Share this page · status link — the one status door — and Print), and Jambo's panel beside it
@@ -8261,7 +8312,7 @@ Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, 
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
-Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
+Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });
 Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,

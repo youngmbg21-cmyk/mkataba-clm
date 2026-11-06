@@ -10848,6 +10848,8 @@ function briefPanelOpenFor(c){
     && (!sp.dataset.cid || sp.dataset.cid===String(c&&c.id)));
 }
 function briefPanelToggle(c){
+  /* the new look's brief page in the middle shuts on the same press (pd2BriefGo opens it) */
+  if(window.pd2On&&pd2On()&&window.pd2BriefUp&&pd2BriefUp(c&&c.id)&&window.pdMidClose){ pdMidClose(); return false; }
   if(briefPanelOpenFor(c)){ closeModal(); return false; }
   openCheckPanel(c,'brief'); return true;
 }
@@ -10883,6 +10885,8 @@ function riskViewOpen(c){
 }
 function openCheckPanel(c,kind){
   if(kind==='risk'||kind==='scan'){ riskViewOpen(c); return; }
+  /* THE NEW LOOK: every brief door lands on the one brief page in the middle (owner, 6 Nov 2026: "two types of brief") */
+  if(kind==='brief'&&window.pd2BriefGo&&pd2BriefGo(c)) return;
   const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':kind==='brief'?'brief-section':'scan-section';
   const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_risk_scan');
   /* THE BRIEF GETS A QUARTER MORE ROOM (owner-asked, 19 Aug 2026). It is the
