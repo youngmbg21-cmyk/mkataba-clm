@@ -8258,7 +8258,10 @@ function dealViewHtml(c, side){
   side = side || 'owner';
   const f = dealPlanFacts(c, side);
   const id = _nea(String(c.id));
-  const memo = `<button type="button" class="ui-btn" id="deal-memo" data-rl-board-memo data-deal-memo="${id}" title="${_nea(i18t('ng_plan_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
+  const memo = `<button type="button" class="ui-btn" id="deal-memo" data-rl-board-memo data-deal-memo="${id}" title="${_nea(i18t('ng_plan_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`
+    /* THE MEMO LIVES IN THE CLOSE PLAN (owner picked "Inside the close plan", 6 Nov 2026): sent as it is copied, to a colleague */
+    + ((typeof window.newLookOn === 'function' && newLookOn() && f.rows.length && negoMemoRecipients().length)
+      ? `<button type="button" class="ui-btn" id="deal-memo-send" data-deal-memo-send="${id}">${_ne(i18t('ng_memo_send'))}</button>` : '');
   if (!f.rows.length){
     return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}"><h2 class="deal-h">${_ne(i18t('ng_deal'))}</h2>${memo}
       <p class="deal-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
@@ -10174,6 +10177,8 @@ function negoMemoText(m){
    Escape, and it navigates nowhere: the reader is left exactly where they
    were. It DECIDES NOTHING and FILES NOTHING — f269 greps for that. */
 function openNegoMemo(c){
+  /* THE NEW LOOK: the memo is the close plan's to copy or send (owner picked "Inside the close plan", 6 Nov 2026) */
+  if (c && typeof window.pd2DealGo === 'function' && window.pd2DealGo(c)) return true;
   if (!c || typeof window.openSidePanel !== 'function') return null;
   const m = negoMemo(c);
   /* A VERB THAT CANNOT WORK IS NOT DRAWN — the product's own rule, and the
@@ -10254,8 +10259,29 @@ function negoMemoRecipients(){
    NOTHING IS WRITTEN TO THE RECORD, on purpose. The memo decides nothing and
    files nothing, and that property is exactly what lets it be opened on an
    executed contract. */
-function openNegoMemoShare(c, m){
-  if (!c || !m || m.empty || typeof window.openModal !== 'function') return null;
+/* o.lines / o.html: the words to send when they are another page's (the close plan's Copy as memo, owner picked "Inside
+   the close plan", 6 Nov 2026: what is sent is what is copied); o.back: where the reader goes when this dialog shuts */
+function dealMemoSend(c){
+  if (!c) return null;
+  const text = dealPlanMemoText(c); if (!text) return null;
+  const lines = text.split('\n');
+  const html = lines.map(l => l ? `<p style="margin:0 0 4px">${_ne(l)}</p>` : '<p style="margin:0 0 8px"></p>').join('');
+  /* the way back is the close plan, opened once this dialog has quite gone (its close is not instant) */
+  const back = () => { let n = 0; const tick = () => {
+    if (document.querySelector('#modal-root [role="dialog"]') && ++n < 40) return setTimeout(tick, 50);
+    if (typeof window.pdDealOpen === 'function' && !(window.pdMidUp && pdMidUp())) pdDealOpen(c.id); }; tick(); };
+  return openNegoMemoShare(c, negoMemo(c), { lines, html, back });
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !window._dealMemoSendWired){
+  window._dealMemoSendWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-deal-memo-send]') : null; if (!b) return;
+    e.preventDefault(); const c = typeof getContract === 'function' ? getContract(b.getAttribute('data-deal-memo-send')) : null; if (c) dealMemoSend(c);
+  });
+}
+function openNegoMemoShare(c, m, o){
+  o = o || {};
+  if (!c || !m || (m.empty && !o.lines) || typeof window.openModal !== 'function') return null;
   const people = negoMemoRecipients();
   if (!people.length){ if (typeof toast === 'function') toast(i18t('ng_memo_send_nobody'), 'warn'); return null; }
   const fld = 'width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);'
@@ -10284,19 +10310,19 @@ function openNegoMemoShare(c, m){
     <div class="rvd-foot">
       <button data-dlg-cancel class="ui-btn" data-close>${_ne(i18t('act_cancel'))}</button>
       <button class="ui-btn ui-btn-primary" id="ng-memo-go">${_ne(i18t('ng_memo_send_go'))}</button>
-    </div>`, { maxWidth: '520px' });
+    </div>`, Object.assign({ maxWidth: '520px' }, typeof o.back === 'function' ? { onClose: () => setTimeout(() => { try { o.back(); } catch (_){} }, 0) } : {}));
   document.querySelectorAll('#modal-root [data-close]').forEach(b => b.addEventListener('click', closeModal));
   document.getElementById('ng-memo-go')?.addEventListener('click', async () => {
     const btn = document.getElementById('ng-memo-go');
     const err = document.getElementById('ng-memo-err');
     const toId = document.getElementById('ng-memo-who')?.value || '';
     const note = String(document.getElementById('ng-memo-note')?.value || '').slice(0, 1000);
-    const lines = negoMemoText(m).split('\n');
+    const lines = o.lines || negoMemoText(m).split('\n');
     /* BOTH FLAVOURS TRAVEL, exactly as they do onto the clipboard: the route
        mails them as one message and the reader's own mail client picks which
        to show. The body is composed HERE and nowhere else, so the panel, the
        paste and the inbox cannot say different things. */
-    const html = negoMemoRichHtml(m);
+    const html = o.html || negoMemoRichHtml(m);
     btn.disabled = true; (window.busySet?busySet(btn,i18t('ng_memo_sending')):(btn.textContent=i18t('ng_memo_sending')));
     try {
       const r = await api('contracts/' + encodeURIComponent(c.id) + '/memo', 'POST', { toId, note, lines, html });
@@ -23680,7 +23706,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   negoBlanksOpen, negoBlanksAsk, negoBlanksFill, NG_BLANKS_NAMED,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
-  rlPrepareRedlines, rlPrepareRowHtml, rlEmptyColumnActsHtml, rlFirstClauseId,
+  rlPrepareRedlines, rlPrepareRowHtml, rlEmptyColumnActsHtml, rlFirstClauseId, dealMemoSend,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,

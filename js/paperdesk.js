@@ -5413,6 +5413,8 @@ function pdDealOpen(id){
   /* THE CLOSE PLAN as drawn: Copy as memo on the way-back line, the road beside the head */
   const cr = document.querySelector('#modal-root [data-dlg-page] .dlg-pg-crumb'), memo = document.querySelector('#modal-root #deal-memo');
   if (cr && memo) cr.appendChild(memo);
+  /* …and Send to a colleague beside it (the memo lives in the close plan, owner picked 6 Nov 2026) */
+  const ms = document.querySelector('#modal-root #deal-memo-send'); if (cr && ms) cr.appendChild(ms);
   pdRedRepaint();
   return true;
 }
@@ -7551,7 +7553,35 @@ function pd2Notes(c){
     w: (typeof riskWhyOf === 'function') ? riskWhyOf(it) : '',
     acts: `<button type="button" class="ui-link" data-pd2-go="redline" data-pd2-key="${E(it.key)}">${E(_pdT('pd2_n_redline'))}</button> · <button type="button" class="ui-link" data-pd2-go="dive" data-pd2-key="${E(it.quote)}">${E(_pdT('pd2_n_dive'))}</button> <span class="pd2-q">${E(_pdTn('pd2_n_calls', c.breakdown ? 1 : 2, { n: c.breakdown ? 1 : 2 }))}</span>`,
     at: { text: [String(it.quote).replace(/\s+/g, ' ').trim().slice(0, 60)] } }));
+  return out.concat(pd2StdNotes(c));
+}
+/* OUR STANDARDS BESIDE THE PAPER (owner picked "Beside the paper", 6 Nov 2026; no side panel in the new look): what the
+   last finished check found (c.playbook, the one review; read, never run here). A standard the paper differs from stands by
+   the words it differs in (its quote) and joins that clause's group; one with no words on the paper, and every missing
+   one, gather in their own group at the paper's end. Both acts are the one door that drafts our standards
+   (rlPrepareRedlines: it asks first and says what it costs). */
+function pd2StdNotes(c){
+  const E = _pdE, out = [];
+  const V = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+  if (!V.length) return out;
+  const may = (typeof canEdit !== 'function' || canEdit()) && !(typeof negoExecuted === 'function' && negoExecuted(c));
+  const go = k => may ? `<button type="button" class="ui-link" data-pd2-go="std-draft">${E(_pdT(k))}</button>` : '';
+  const say = v => (typeof pbVerdictWords === 'function') ? String(pbVerdictWords(v) || '') : String(v.position || '');
+  V.filter(v => v && v.status === 'deviation' && v.category).forEach(v => {
+    const q = String(v.quote || '').replace(/\s+/g, ' ').trim();
+    out.push({ tone: 'owe', std: true, word: _pdT('pd2_std_differs'), k: String(v.category), w: say(v), acts: go('pd2_std_redline'),
+      /* the quote whole, else its words up to the first figure (a filled box splits the line on the paper) */
+      at: { text: [q.slice(0, 60), (q.split(/\d/)[0] || '').trim()].filter(t => t.length >= 12) }, orOwn: _pdT('pd2_std_own') });
+  });
+  const miss = V.filter(v => v && v.status === 'missing' && v.category);
+  if (miss.length) out.push({ tone: 'miss', std: true, own: _pdT('pd2_std_missing_h'), k: miss.map(v => String(v.category)).join(' · '),
+    w: _pdT('pd2_std_missing_w'), acts: go('pd2_std_add'), at: { text: [] } });
   return out;
+}
+/* the paper's last line: where the standards with no words on the paper gather */
+function pd2EndHit(cv){
+  const all = cv ? [...cv.querySelectorAll('h1, h2, h3, h4, p, li')].filter(e => (e.textContent || '').trim()) : [];
+  return all.length ? { el: all[all.length - 1] } : null;
 }
 /* THE NOTES BESIDE THE REDLINED PAPER (the new look's Negotiate, as drawn): each of their asks waiting on us, numbered as
    the paper's own dot, by that dot: what they ask, what your standard and your past say (the row's own reading, no AI),
@@ -7741,7 +7771,11 @@ function pd2NotesPaint(c){
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-signpaper') || (zoom.querySelector('.ig-redpaper') && !red) || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
   if (red) try { pd2DialsPaint(c, cv); } catch (_){}
-  const notes = (red ? pd2RedNotes(c, cv) : pd2Notes(c)).map(n => Object.assign(n, { hit: n.hit || pd2Find(cv, n.at) })).filter(n => n.hit)
+  const notes = (red ? pd2RedNotes(c, cv) : pd2Notes(c)).map(n => { const hit = n.hit || (n.own ? null : pd2Find(cv, n.at));
+      if (hit) return Object.assign(n, { hit });
+      /* a standard with no words on the paper: the paper's end, in its own group */
+      if (n.own || n.orOwn) return Object.assign(n, { own: n.own || n.orOwn, hit: pd2EndHit(cv) });
+      return n; }).filter(n => n.hit)
     .map(n => Object.assign(n, { y: (n.hit.el || n.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
   const groups = red ? [] : pd2Groups(c, cv, notes);
   if (red ? !notes.length : !groups.length){ pd2NotesOff(); return; }
@@ -7792,22 +7826,24 @@ function pd2Groups(c, cv, notes){
   const rowOf = node => { let k = -1; rows.forEach((r, i) => { if (!r.el) return; if (r.el === node || r.el.contains(node) || (r.el.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) k = i; }); return k; };
   const by = new Map(), get = at => { if (!by.has(at)) by.set(at, { at, el: at >= 0 && rows[at] ? rows[at].el : null, label: at >= 0 && rows[at] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[at]) : _pdT('pd2_g_opening'), items: [], marks: [] }); return by.get(at); };
   pts.forEach(({ p, at }) => get(at).items.push({ tone: 'owe', clause: true, word: _pdT(p.missing ? 'pd2_g_missing' : p.status === 'need' ? 'pd2_g_need' : 'pd2_g_look'), k: String(p.title || ''), quote: String(p.quote || '').trim(), status: p.status }));
-  notes.forEach(n => { const node = n.hit.el || (n.hit.range && n.hit.range.startContainer); const g = get(node ? rowOf(node) : -1);
+  notes.forEach(n => { if (n.own){ const key = 'own:' + n.own; if (!by.has(key)) by.set(key, { at: key, el: null, hit: n.hit, label: n.own, items: [] });
+      by.get(key).items.push({ tone: n.tone, word: n.word, std: n.std, k: n.k, w: n.w, acts: n.acts, note: n }); return; }
+    const node = n.hit.el || (n.hit.range && n.hit.range.startContainer); const g = get(node ? rowOf(node) : -1);
     if (g.at < 0 && !g.el) g.el = n.hit.el || null, g.hit = g.hit || n.hit;
-    g.items.push({ tone: n.tone, k: n.k, w: n.w, acts: n.acts, note: n }); });
+    g.items.push({ tone: n.tone, word: n.word, std: n.std, k: n.k, w: n.w, acts: n.acts, note: n }); });
   return [...by.values()].map(g => Object.assign(g, { cid: c.id, hit: g.el ? { el: g.el } : (g.hit || (g.items[0].note && g.items[0].note.hit)) })).filter(g => g.hit && g.items.length)
     .map(g => Object.assign(g, { y: (g.hit.el || g.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
 }
 function pd2GroupHtml(g, i){
   const E = _pdE;
-  const tone = g.items.some(x => x.tone === 'owe') ? 'owe' : g.items.some(x => x.tone === 'risk') ? 'risk' : g.items.some(x => x.tone === 'ask') ? 'ask' : 'fact';
+  const tone = g.items.some(x => x.tone === 'miss') ? 'miss' : g.items.some(x => x.tone === 'owe') ? 'owe' : g.items.some(x => x.tone === 'risk') ? 'risk' : g.items.some(x => x.tone === 'ask') ? 'ask' : 'fact';
   let quoted = false;
   const line = (x, k) => { const q = x.clause && x.quote && !quoted ? (quoted = true, `<div class="pd2-mg-q">“${E(x.quote)}”</div>`) : '';
-    return `<div class="pd2-mg-i is-${x.tone}${k ? ' is-more' : ''}"><div class="pd2-mg-l"><i class="pd2-mn-dot" aria-hidden="true"></i>${x.word ? `<b>${E(x.word)}</b> · ` : ''}${E(x.k)}</div>${q}${!x.clause && x.w ? `<div class="pd2-mn-w">${E(x.w)}</div>` : ''}${x.acts ? `<div class="pd2-mn-a">${x.acts}</div>` : ''}</div>`; };
+    return `<div class="pd2-mg-i is-${x.tone}${k ? ' is-more' : ''}${x.std ? ' is-std' : ''}"><div class="pd2-mg-l"><i class="pd2-mn-dot" aria-hidden="true"></i>${x.word ? `<b>${E(x.word)}</b> · ` : ''}${E(x.k)}</div>${q}${!x.clause && x.w ? `<div class="pd2-mn-w">${E(x.w)}</div>` : ''}${x.acts ? `<div class="pd2-mn-a">${x.acts}</div>` : ''}</div>`; };
   const open = g.items.some(x => x.clause) && g.at >= 0 ? `<div class="pd2-mn-a"><button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${g.at}">${E(_pdT('pd2_g_open'))}</button></div>` : '';
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
   const kept = _pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '';
-  return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${g.at}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${open}</div>`;
+  return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${open}</div>`;
 }
 /* each group at its clause's height, pushed down past the one above; one that would drift more than a few lines from its
    clause folds to its first line and "+ N more here" (opened in place, then laid out again) */
@@ -7868,6 +7904,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   else if (go === 'ask' && typeof openShareModal === 'function') openShareModal(c, { purpose: 'colleague', note: _pdT('pd2_n_ask_note', { rule: key }) });
   else if (go === 'dive') pd2DiveOn(c, key);
   else if (go === 'clause') pd2OpenInClauses(c, Number(key));
+  else if (go === 'std-draft' && typeof rlPrepareRedlines === 'function') Promise.resolve(rlPrepareRedlines(getContract(c.id) || c)).then(() => { try { const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); } catch (_){} }, () => {});
   else if (go === 'press'){ const own = document.querySelector('#ig-dock ' + key); if (own && !own.disabled) own.click(); }
 });
 /* DEEP DIVE FROM A NOTE: the clause the risk's words stand in, opened on Clauses, and its own Deep dive pressed there (the one
@@ -7996,6 +8033,66 @@ function pd2BriefGo(c){
   if (pdMidUp() && typeof closeModal === 'function') try { closeModal(); } catch (_){}
   try { if (roomHomeLand(c.id) === false) return false; } catch (_){ return false; }
   let n = 0; const tick = () => { if (here()){ pd2BriefOpen(c.id, { stay: true }); return; } if (++n < 40) setTimeout(tick, 100); };
+  setTimeout(tick, 50);
+  return true;
+}
+/* OUR STANDARDS' ONE DOOR IN THE NEW LOOK (owner picked "Beside the paper", 6 Nov 2026): asked by openCheckPanel(c,'playbook')
+   — the Dossier's Standards line, the room's check, the Checks card. The paper with its Dossier comes first, then the
+   reader lands on the first standard beside it; no check kept yet, it is run first (its line said "1 call"); all met is said.
+   False = not this look or no room: the old panel answers. */
+/* THE MEMO'S ONE DOOR IN THE NEW LOOK (owner picked "Inside the close plan", 6 Nov 2026): the close plan (Deal), where the
+   same points stand, with Copy as memo and Send to a colleague. The paper first where the reader is elsewhere. False = not
+   this look or no room: the old memo panel answers. */
+function pd2DealGo(c){
+  if (!c || !pd2On() || typeof document === 'undefined' || typeof pdDealOpen !== 'function') return false;
+  if (typeof deskShellOn === 'function' && !deskShellOn()) return false;
+  const here = () => { const pc = pdContract(); return !!(pc && String(pc.id) === String(c.id) && pdOnPaper() && pdMidMay()); };
+  const open = () => { if (!pdMidUp('deal:' + c.id)) pdDealOpen(c.id); };
+  if (here()){ open(); return true; }
+  if (typeof roomHomeLand !== 'function') return false;
+  if (pdMidUp() && typeof closeModal === 'function') try { closeModal(); } catch (_){}
+  try { if (roomHomeLand(c.id) === false) return false; } catch (_){ return false; }
+  let n = 0; const tick = () => { if (here()){ open(); return; } if (++n < 40) setTimeout(tick, 100); };
+  setTimeout(tick, 50);
+  return true;
+}
+function pd2StdGo(c){
+  if (!c || !pd2On() || typeof document === 'undefined') return false;
+  if (typeof deskShellOn === 'function' && !deskShellOn()) return false;
+  const here = () => { const pc = pdContract(); return !!(pc && String(pc.id) === String(c.id) && pdOnPaper()); };
+  const has = x => !!(x && x.playbook && Array.isArray(x.playbook.verdicts) && x.playbook.verdicts.length);
+  const land = () => {
+    const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+    if (pdMidUp()) pdMidClose();
+    if (_pdTab !== 'copilot'){ pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
+    try { pd2NotesPaint(live); } catch (_){}
+    const it = document.querySelector('#pd2-notes .pd2-mg-i.is-std');
+    if (it){ const g = it.closest('.pd2-mg');
+      if (g && g.classList.contains('is-folded')){ const b = g.querySelector('[data-pd2-unfold]'); if (b) b.click(); }
+      const at = document.querySelector('#pd2-notes .pd2-mg-i.is-std') || it;
+      if (typeof landOn === 'function') landOn(at.closest('.pd2-mg') || at, { block: 'center' }); else (at.closest('.pd2-mg') || at).scrollIntoView({ block: 'center' });
+      return; }
+    if (has(live) && typeof toast === 'function') toast(_pdT('pd2_std_all_met'), 'ok');
+  };
+  const run = async () => {
+    const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+    if (typeof ensureFull === 'function' && live._light && !live._loaded){ try { await ensureFull(live); } catch (_){} }
+    const done = (typeof toast === 'function') ? toast(_pdT('pd2_std_checking'), 'ok', { busy: true }) : null;
+    let res = null; try { res = await runPlaybookReview(live); } catch (_){ res = null; }
+    try { if (done && typeof done.close === 'function') done.close(); } catch (_){}
+    if (res && !res.error && res.verdicts){ live.playbook = res;
+      if (typeof logAudit === 'function') logAudit(live, 'Playbook', `Reviewed against ${res.label} — ${deviationSummary(live).dev} deviation(s), ${deviationSummary(live).miss} missing`);
+      if (typeof persist === 'function') persist(live);
+      try { pdGlanceRepaint(); } catch (_){} land(); return; }
+    if (typeof toast === 'function') toast(_pdT('pd2_std_failed'), 'err');
+  };
+  const may = (typeof canEdit !== 'function' || canEdit()) && typeof runPlaybookReview === 'function';
+  const act = () => { const live = (typeof getContract === 'function' && getContract(c.id)) || c; if (!has(live) && may) run(); else land(); };
+  if (here()){ act(); return true; }
+  if (typeof roomHomeLand !== 'function') return false;
+  if (pdMidUp() && typeof closeModal === 'function') try { closeModal(); } catch (_){}
+  try { if (roomHomeLand(c.id) === false) return false; } catch (_){ return false; }
+  let n = 0; const tick = () => { if (here()){ act(); return; } if (++n < 40) setTimeout(tick, 100); };
   setTimeout(tick, 50);
   return true;
 }
@@ -8396,7 +8493,7 @@ Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, 
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
-Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
+Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,

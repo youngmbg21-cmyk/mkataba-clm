@@ -296,6 +296,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - RE-POINTED 22 Oct 2026 for the Checklist: `ckOpenRowOf(page, sel)` (test/helpers.js) opens a fact's row before a check types in it (blanks-panel, fill-in-beside-the-paper, fill-the-document, owed-first, owed-first-as-drawn, signer-row-as-drawn, still-owed-sap-way); the count is read off `.ds-ck-n`; "Needs you" sits above "Jambo read"; the risks row says "Not read · free" and Read; the acts wear short words (whole name on hover); the-brief 1e allows only the Checklist's rings and the Missing tag (the owner said no lines); f312 pins the route at the XL rung; f918 4a, jambos-panel 1f and checklist-as-drawn 2a2 pin the Dossier tab's number to this contract's Needs you; checklist-as-drawn 2a3 finds no line between sections or rows.
 - KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
+- THE MEMO LIVES IN THE CLOSE PLAN (new look, owner picked "Inside the close plan" 6 Nov 2026): memo-in-close-plan-verify 1–4 (new, red at the parent: the memo opened its old side panel; Deal had no Send to a colleague), 5 (look off: the memo panel as before). Its step 1 asks openNegoMemo directly: the More menu's rows press nothing in the new look (BUGLOG 6 Nov 2026).
 - EVERY BRIEF DOOR LANDS ON THE ONE BRIEF PAGE (new look, owner 6 Nov 2026): brief-one-page-new-look-verify 1–3 (new, red at the parent: Jambo's brief door, Write the brief and a second press opened the old side panel), 4 (look off: the old panel as before). Re-pointed: none; f484 (5) keeps reading the risk line first in openCheckPanel.
 - THE DEAL'S TWO CARDS END ON ONE LINE (26 Oct 2026): f939 (4), f877 3 and f750 3b re-pointed; measured head.right = .deal-mid.right at 1440×780, 1536×730, 1366×950.
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f918 (the jw row's door).
@@ -406,6 +407,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f558.
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
+- OUR STANDARDS BESIDE THE PAPER (new look, owner picked "Beside the paper" 6 Nov 2026): standards-beside-paper-verify 1–5 (new, red at the parent: no standards in the margin, the Dossier's Standards line opened the old side panel), 6 (look off: the side panel as before).
 - UNDO UNDOES (bug log batch 2, 26 Oct 2026): f942 (new; red at the parent) — toast() presses onClick; every toast action in js/ is handed as onClick (sdLearnApply's Undo was `run`).
 - f133, f222, f272, f279, f295, f296, f314, f318, f372, f545, prepare-redlines, standards-page verify.
 
