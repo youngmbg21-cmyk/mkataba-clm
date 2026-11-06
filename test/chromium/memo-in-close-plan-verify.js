@@ -1,6 +1,6 @@
 /* THE NEW LOOK: THE MEMO LIVES IN THE CLOSE PLAN (owner picked "Inside the close plan", 6 Nov 2026). The memo and the
    Deal page said the same open points; the memo's own side panel is not opened in the new look.
-     1 · The memo's door opens the close plan (Deal) in the middle, not the old memo side panel
+     1 · Negotiation memo (the paper's More menu) opens the close plan (Deal) in the middle, not the old memo side panel
      2 · Deal's head line carries Copy as memo and Send to a colleague
      3 · Send to a colleague sends what Copy as memo copies (the close plan's words), to the colleague picked
      4 · After sending, the reader is back on Deal
@@ -31,9 +31,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await page.evaluate(W.R7_IN_PAGE);
   await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-IT'); });
   await until(page, () => window.pdContract && pdContract() && pdContract().id === 'MK-IT' && pdOnPaper() && !!document.getElementById('ig-actions'), null, 15000);
-  /* 1 · the memo's one door (openNegoMemo: the More menu's Negotiation memo, Redlines' Memo, Jambo's "memo"). The More menu's
-     rows are pressed nowhere in the new look today (BUGLOG 6 Nov 2026), so the door is asked as those rows ask it */
-  const btn = await page.evaluate(() => openNegoMemo(getContract('MK-IT')) === true);
+  /* 1 · Negotiation memo, in the paper's More menu (the row presses the room's own row: pdMenuRowsHtml) */
+  await page.click('#ig-actions');
+  const btn = await until(page, () => [...document.querySelectorAll('#pd-acts-pop [data-pd-acts-go]')].some(b => /Negotiation memo/.test(b.textContent)), null, 8000);
+  if (btn) await page.evaluate(() => [...document.querySelectorAll('#pd-acts-pop [data-pd-acts-go]')].find(b => /Negotiation memo/.test(b.textContent)).click());
   const deal = await until(page, () => !!document.querySelector('#modal-root [data-deal-mid="MK-IT"]'), null, 8000);
   const s1 = await page.evaluate(() => ({ side: !!document.querySelector('#side-panel #ng-memo-copy') }));
   check('1 · Memo opens the close plan in the middle, not the memo side panel', btn && deal && !s1.side, { btn, deal, ...s1 });

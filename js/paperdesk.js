@@ -3242,6 +3242,15 @@ function dossierFamilyFoldHtml(c){
   /* MARQUEE: "Family" and what stands, a row like the rest; Where we are and History are rows of their own now */
   return `<details class="ds-fold ds-this-fold" data-ds-fold="family"><summary><i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${_pdE(_pdT('dos_mq_family'))}</b><span class="ds-this-v">${_pdE(said)}</span></summary>${fam}${actsHtml ? `<div class="ds-acts-b">${actsHtml}</div>` : ''}</details>`;
 }
+/* THE ROOM'S ROWS, UNSEEN, BESIDE THE NEW LOOK'S DOSSIER (owner, 6 Nov 2026: "fix the More menu"): the paper's More menu
+   presses the very row (pdActsPopHtml → the row in .pd-nx[data-pd-menu], else pdMenuPress), and only the old Dossier drew
+   them (pdNextUpHtml's closed fold), so in the new look every More row pressed nothing. The same rows, never shown, wired
+   once by the dock's own pass (pdMenuWire on #ig-dock .pd-nx): no second door, the row's own wiring decides */
+function pdMenuRowsHtml(c){
+  if (!c) return '';
+  const groups = pdMenuGroups(c); if (!groups.length) return '';
+  return `<div class="pd-menu pd-nx pd-nx-rows" data-pd-menu="${_pdE(c.id)}" hidden aria-hidden="true">${groups.map(g => `<div class="pd-mn-g"><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></div>`).join('')}</div>`;
+}
 function pdMenuHtml(c){
   if (!c) return '';
   const groups = pdMenuGroups(c);
@@ -6532,7 +6541,7 @@ function pdJamboTopHtml(){
   /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
   /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
   const disc = (!c && !ac && typeof askColDiscoverHtml === 'function') ? askColDiscoverHtml() : '';
-  return c ? (pd2On() ? pd2Html(c) : pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true })) : (ac || pdWallHtml(disc));
+  return c ? (pd2On() ? pd2Html(c) + pdMenuRowsHtml(c) : pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true })) : (ac || pdWallHtml(disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll
