@@ -40,7 +40,10 @@ const READ = () => {
   const facts = d ? [...d.querySelectorAll('.pd2-fact')].map(f => ({ k: f.getAttribute('data-pd2-fact'), s: f.querySelector('.pd2-s').textContent.trim(), v: f.querySelector('.pd2-v').textContent.trim() })) : [];
   const zoom = document.querySelector('#ig-paper .ig-zoom'), sheet = zoom && zoom.querySelector(':scope > .pg-sheet'), sc = document.getElementById('ig-paper-scroll');
   const host = document.getElementById('pd2-notes');
-  const notes = host ? [...host.querySelectorAll('.pd2-mn')].map(n => { const r = n.getBoundingClientRect(); return { tone: n.className.replace('pd2-mn', '').trim(), k: n.querySelector('.pd2-mn-k').textContent, top: r.top, bottom: r.bottom, left: r.left, right: r.right }; }) : [];
+  /* RE-POINTED 6 Nov 2026 (the owner picked "The Legora Way": one group per clause): a note is a line of its clause's group;
+     where it stands is its group's place (the group stands by its clause; its lines stack under its name) */
+  const notes = host ? [...host.querySelectorAll('.pd2-mg-i')].map(n => { const g = n.closest('.pd2-mg'), r = n.getBoundingClientRect(), gr = g.getBoundingClientRect();
+    return { tone: ([...n.classList].find(x => /^is-(owe|ask|risk|fact)$/.test(x)) || ''), k: n.querySelector('.pd2-mg-l').textContent.replace(/^[^·]*·\s*/, m => /Needs you|Worth a look|Not in the contract/.test(m) ? '' : m).trim(), top: r.top, bottom: r.bottom, gTop: gr.top, left: gr.left, right: gr.right, clause: !!n.querySelector('.pd2-mg-l b') }; }) : [];
   const anchorTop = re => { const w = document.createTreeWalker(document.getElementById('ig-canvas'), NodeFilter.SHOW_TEXT);
     for (let n = w.nextNode(); n; n = w.nextNode()){ const i = n.nodeValue.search(re); if (i >= 0){ const rg = document.createRange(); rg.setStart(n, i); rg.setEnd(n, i + 1); return rg.getBoundingClientRect().top; } } return null; };
   return {
@@ -78,7 +81,7 @@ const READ = () => {
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser(), null, 40000);
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-A2'); });
-      const drawn = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mn').length >= 5 && !!document.querySelector('#ig-dock .pd2-turn'), null, 20000);
+      const drawn = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mg-i').length >= 5 && !!document.querySelector('#ig-dock .pd2-turn'), null, 20000);
       check(`${nm} 0 the contract's new look is drawn`, drawn);
       await page.evaluate(() => document.fonts && document.fonts.ready);
       const R = await page.evaluate(READ);
@@ -89,12 +92,15 @@ const READ = () => {
         && F.signer && F.signer.s === 'route' && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === '§ 2' && F.std && /1 call/.test(F.std.v)
         && /Rejection window/.test(R.turn) && !R.old, { spine: R.spine, next: R.next, facts: R.facts, turn: R.turn.slice(0, 80) });
       check(`${nm} 2 one row of links above Jambo's box`, R.rows.length === 1 && R.rows[0] === 'fill in · redline · share · history', R.rows);
-      const tones = R.notes.map(n => n.tone).join(',');
+      /* the four notes HaTi read; a Clauses point (once Clauses is read) joins its clause's group and is checked in 14 */
+      const four = R.notes.filter(n => !n.clause);
+      const tones = four.map(n => n.tone).join(',');
       const ordered = R.notes.every((n, i) => !i || n.top >= R.notes[i - 1].bottom);
-      const byLine = (re, a) => { const n = R.notes.find(x => re.test(x.k)); return !!n && a != null && Math.abs(n.top - a) <= 14; };
+      /* by its line: its clause's group stands at the clause, at most a few lines above the words (never below them) */
+      const byLine = (re, a) => { const n = four.find(x => re.test(x.k)); return !!n && a != null && n.gTop <= a + 14 && a - n.gTop <= 90; };
       check(`${nm} 3 the notes: the blanks, the value, the risk, the end date — each by its line, none overlapping, right of the paper`,
         tones === 'is-owe,is-owe,is-ask,is-risk,is-fact' && ordered && R.notes.every(n => n.left >= R.sheetRight + 8 && n.right <= R.scRight)
-        && byLine(/^Date/, R.anchors.date) && byLine(/^Value/, R.anchors.value) && byLine(/^Rejection/, R.anchors.risk), { tones, notes: R.notes.map(n => [n.k, Math.round(n.top)]), anchors: R.anchors, sheetRight: R.sheetRight });
+        && byLine(/^Date/, R.anchors.date) && byLine(/^Value/, R.anchors.value) && byLine(/^Rejection/, R.anchors.risk), { tones, notes: four.map(n => [n.k, Math.round(n.top)]), anchors: R.anchors, sheetRight: R.sheetRight });
       check(`${nm} 4 the paper 40 from the page's edge, nothing sideways`, R.sheetLeft != null && Math.abs(R.sheetLeft - 40) <= 2 && R.sideways <= 0, { sheetLeft: R.sheetLeft, sideways: R.sideways });
       await page.screenshot({ path: path.join(OUT, `contract-${nm}.png`) });
       if (nm === 'laptop-a'){

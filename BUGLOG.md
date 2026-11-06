@@ -21891,3 +21891,5 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed (1 Nov 2026, round 6 of the new look)
 - New agreement: with words typed in the sheet, pressing Board (caGo board) while already on Home does nothing — the sheet stays open and no "Leave without creating?" is asked (naAskLeave runs only on a page change, and Board is the same view).
+- 6 Nov 2026 · Noticed, not fixed · New look, the paper's More menu (#ig-actions → #pd-acts-pop): every row does nothing (Edit clause, Import their Word file, Compare versions, Negotiation memo, PDF, Word, Hand it over, End or pause, Filing and stream). The row presses pdMenuPress, which waits for the old Dossier's menu (#ig-dock .pd-nx[data-pd-menu]); the new look's Dossier does not draw it. With the look off the same rows work. Measured by pressing each row on MK-IT (round 7 world).
+- 6 Nov 2026 · Fixed (owner: "fix the More menu") · the new look's More menu rows: the room's rows are now drawn unseen beside the new look's Dossier (pdMenuRowsHtml), so each More row presses its own action; more-menu-new-look-verify.

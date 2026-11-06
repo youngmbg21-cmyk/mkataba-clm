@@ -10887,6 +10887,8 @@ function openCheckPanel(c,kind){
   if(kind==='risk'||kind==='scan'){ riskViewOpen(c); return; }
   /* THE NEW LOOK: every brief door lands on the one brief page in the middle (owner, 6 Nov 2026: "two types of brief") */
   if(kind==='brief'&&window.pd2BriefGo&&pd2BriefGo(c)) return;
+  /* …and Our standards beside the paper (owner picked "Beside the paper", 6 Nov 2026) */
+  if(kind==='playbook'&&window.pd2StdGo&&pd2StdGo(c)) return;
   const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':kind==='brief'?'brief-section':'scan-section';
   const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_risk_scan');
   /* THE BRIEF GETS A QUARTER MORE ROOM (owner-asked, 19 Aug 2026). It is the
