@@ -466,7 +466,11 @@ describe('f177 — a named shape is honoured in code, not only in the prompt', (
      where it was seen — f148 owns the rule and the sweep. */
   test('the months along a chart follow the reader, not the workspace', () => {
     const w = seeded();
-    const dates = ['2026-08-30', '2026-09-27', '2026-10-15'];
+    /* RE-POINTED 6 Nov 2026: these were fixed days (Aug–Oct 2026), so once they passed the chart had no months
+       ahead to draw and said 'no config' — a check whose answer depended on the day it ran. Now the 15th of the
+       next three months, counted from today, so the months are always ahead of the reader. */
+    const ahead = n => { const d = new Date(); d.setDate(15); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
+    const dates = [ahead(1), ahead(2), ahead(3)];
     w.state.contracts.forEach((c, i) => { c.expiry = dates[i] || c.expiry; });
     w.jxSet('sweden');
     w.langSet('en', { repaint: false });

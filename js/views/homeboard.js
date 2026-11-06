@@ -6026,7 +6026,7 @@ function hbExplorerBtnHtml(){
 function hbPulseBtnHtml(){
   if (typeof renderPulse !== 'function') return '';
   /* the new look draws DNA where the Pulse board's button stood (round 6, as drawn) */
-  if (typeof window.newLookOn === 'function' && newLookOn()) return hbDnaBtnHtml();
+  if (typeof window.newLookOn === 'function' && newLookOn()) return hbRdnBtnHtml() + hbDnaBtnHtml();
   return `<button type="button" class="hb-btn is-sm hb-pulse-go" data-hb-pulse title="${_hbE(i18t('hb_pulse_tip'))}">${typeof icon === 'function' ? icon('trend', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_pulse_btn'))}</button>`;
 }
 /* SAVED VIEWS ARE CHIPS IN THE HEAD (round 17 as drawn; they moved from the
@@ -6139,7 +6139,7 @@ function hbDnaBtnHtml(){
 if (typeof window !== 'undefined' && typeof document !== 'undefined' && !document._hbDnaWired){ document._hbDnaWired = true;
   window.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
-    if ((el = t.closest('[data-hb-dna]'))){ e.preventDefault(); e.stopPropagation(); _hbDna = true; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
+    if ((el = t.closest('[data-hb-dna]'))){ e.preventDefault(); e.stopPropagation(); _hbDna = true; _hbRdn = false; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if ((el = t.closest('[data-dna-back]'))){ e.preventDefault(); _hbDna = false; hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if ((el = t.closest('[data-dna-show]'))){ e.preventDefault(); const ids = el.getAttribute('data-dna-show').split(',').filter(Boolean);
       _hbDna = false; if (typeof setView === 'function') setView('register'); if (typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-dna-label') || ''); return; }
@@ -6149,7 +6149,119 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && !documen
         if (c && String(c.id) === String(id) && document.getElementById('ig-canvas')){ igPaperGoClause(cl); return; } if (++n < 40) setTimeout(tick, 100); }; setTimeout(tick, 150); } }
   }, true);
 }
+/* ---- YOUR BOOK, READ DOWN (round 9 of the new look; the owner: "a second view", 3 Nov 2026) ----
+   The Board said in five sentences, each counted from the records now (no call): what is on paper and how much of it
+   is signed; what ends within a year, the first and how many renew by themselves; how the streams and the parties
+   carry the book; the negotiations open and whose move; the duties late and due. Each says where it was read and
+   opens that page. Under them what ends, quarter by quarter, by value on paper. EVERY FIGURE IS AN EXISTING READING:
+   fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, c.autoRenew, FOLDERS, negoIsLive and
+   dealStands' move, obState / obligationDue / obligationIsTheirs; values only where canViewValues allows. */
+let _hbRdn = false;
+function hbRdnUp(){ return !!_hbRdn && typeof window.newLookOn === 'function' && newLookOn() && hbS().face === 'board'; }
+function hbRdnBook(){
+  return (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined' && !c.migration);
+}
+function hbRdnRead(){
+  const L = hbRdnBook(), see = typeof canViewValues === 'function' ? canViewValues() : true;
+  const code = typeof fxHomeCode === 'function' ? fxHomeCode() : '';
+  const val = c => { if (!see) return 0; let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; };
+  const money = v => see && v > 0 && typeof fmtMoneyShortIn === 'function' ? fmtMoneyShortIn(v, code || undefined) : '';
+  const signed = c => c.status === 'Signed' || !!(typeof contractSignedAt === 'function' && contractSignedAt(c));
+  const today = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10);
+  const inYear = (() => { const d = new Date(today + 'T00:00:00'); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10); })();
+  const exp = c => { let e = ''; try { e = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ e = ''; } return e; };
+  const total = L.reduce((s, c) => s + val(c), 0), sig = L.filter(signed), sigV = sig.reduce((s, c) => s + val(c), 0);
+  const ending = L.filter(c => { const e = exp(c); return e && e >= today && e <= inYear; }).sort((a, b) => exp(a).localeCompare(exp(b)));
+  const autoEnd = ending.filter(c => !!c.autoRenew);
+  /* streams by value, then the party holding the most of the signed value */
+  const byStream = new Map(); L.forEach(c => { const n = (window.FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || ''; if (!n) return; const e = byStream.get(n) || { n, v: 0, cs: [] }; e.v += val(c); e.cs.push(c); byStream.set(n, e); });
+  const streams = [...byStream.values()].sort((a, b) => b.v - a.v || b.cs.length - a.cs.length);
+  const byParty = new Map(); sig.forEach(c => { const p = String(c.counterparty || '').trim(); if (!p) return; const e = byParty.get(p) || { p, v: 0, cs: [] }; e.v += val(c); e.cs.push(c); byParty.set(p, e); });
+  const top = [...byParty.values()].sort((a, b) => b.v - a.v)[0] || null;
+  const share = top && sigV > 0 ? Math.round(top.v * 100 / sigV) : 0;
+  const nego = L.filter(c => { try { return typeof negoIsLive === 'function' && negoIsLive(c); } catch (_){ return false; } });
+  const ours = nego.filter(c => { let D = null; try { D = typeof dealStands === 'function' ? dealStands(c) : null; } catch (_){ D = null; }
+    const us = D && (D.parties || []).find(p => p.ours); return !!(D && D.move && us && D.move.party === us.name); });
+  let late = 0, week = 0, pay = 0; const wkEnd = (() => { const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10); })();
+  L.forEach(c => (Array.isArray(c.obligations) ? c.obligations : []).forEach(o => { if (!o || o.status === 'done') return;
+    const theirs = typeof obligationIsTheirs === 'function' && obligationIsTheirs(o); if (theirs) return;
+    const due = String((typeof obligationDue === 'function' ? obligationDue(o) : o.due) || '').slice(0, 10); if (!due) return;
+    if (due < today) late++; else if (due <= wkEnd) week++;
+    if (due >= today && due.slice(0, 7) === today.slice(0, 7) && /pay|invoice|fee|betal|faktur/i.test(String(o.text || o.title || o.note || ''))) pay++; }));
+  /* what ends, by quarter: value on paper, the count, dark where it is signed */
+  const qs = new Map(); L.forEach(c => { const e = exp(c); if (!e || e < today) return; const y = e.slice(0, 4), q = Math.floor((Number(e.slice(5, 7)) - 1) / 3);
+    const k = y + '-' + q; const r = qs.get(k) || { k, y, q, v: 0, n: 0, signed: false }; r.v += val(c); r.n++; r.signed = r.signed || signed(c); qs.set(k, r); });
+  const quarters = [...qs.values()].sort((a, b) => a.k.localeCompare(b.k)).slice(0, 6);
+  return { L, see, money, total, sig, sigV, ending, autoEnd, streams, top, share, nego, ours, late, week, pay, quarters, exp };
+}
+function hbRdnSentences(R){
+  const m = R.money, out = [];
+  out.push({ t: R.total ? i18tn('rd_s_paper', R.L.length, { v: m(R.total), n: R.L.length, s: m(R.sigV) || i18t('rd_none_v') }) : i18tn('rd_s_paper_nv', R.L.length, { n: R.L.length, s: R.sig.length }),
+    src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
+  const f = R.ending[0];
+  out.push({ t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), v: m(hbRdnVal(f)) ? i18t('rd_worth', { v: m(hbRdnVal(f)) }) : '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
+    src: i18t('rd_src_term'), door: i18t('rd_door_cal'), go: 'calendar' });
+  const s = R.streams;
+  out.push({ t: (s.length ? s.slice(0, 2).map(x => m(x.v) ? i18tn('rd_s_stream', x.cs.length, { s: x.n, v: m(x.v), n: x.cs.length }) : i18tn('rd_s_stream_nv', x.cs.length, { s: x.n, n: x.cs.length })).join('; ') + '. ' : '')
+      + (R.top && R.share >= 50 ? i18t('rd_s_party_most', { p: R.top.p, pc: R.share }) : R.top ? i18t('rd_s_party', { p: R.top.p, pc: R.share }) : ''),
+    src: i18t('rd_src_streams'), door: R.top ? i18t('rd_door_shelf', { p: R.top.p }) : i18t('rd_door_explorer'), go: 'explorer' });
+  out.push({ t: R.nego.length ? i18tn('rd_s_nego', R.nego.length, { n: R.nego.length, k: R.ours.length }) : i18t('rd_s_nego_none'),
+    src: i18t('rd_src_nego'), door: i18t('rd_door_nego'), go: 'negotiations' });
+  out.push({ t: i18t('rd_s_duty', { late: i18tn('rd_late', R.late, { n: R.late }), week: i18tn('rd_week', R.week, { n: R.week }) }) + ' ' + (R.pay ? i18tn('rd_pay', R.pay, { n: R.pay }) : i18t('rd_pay_none')),
+    src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
+  return out;
+}
+function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
+function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
+function hbRdnHtml(){
+  const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
+  let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
+  const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><p class="rd-t">${E(x.t)}</p><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></div></div>`).join('');
+  const max = Math.max(1, ...R.quarters.map(q => q.v || q.n));
+  const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); return a.toLocaleDateString(langLocale(), { month: 'short' }) + '–' + b.toLocaleDateString(langLocale(), { month: 'short' }) + ' ' + q.y; } catch (_){ return q.k; } };
+  const bars = R.quarters.map(q => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${q.signed ? 'is-signed' : ''}" style="width:${Math.max(2, Math.round(100 * (q.v || q.n) / max))}%"></i></span><span class="rd-q-v">${E([R.money(q.v), String(q.n)].filter(Boolean).join(' · '))}</span></div>`).join('');
+  const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
+  const foot = [['needs', i18t('rd_f_needs', { n: needs })], ['contracts', i18t('rd_f_contracts', { n: R.L.length })], ['calendar', i18t('rd_f_calendar')], ['explorer', i18t('rd_f_explorer')], ['negotiations', i18t('rd_f_nego')], ['activity', i18t('rd_f_history')]]
+    .map(([k, w]) => `<button type="button" class="rd-go" data-rd-go="${E(k)}">${E(w)}</button>`).join('');
+  return `<div class="rd-page apn-card" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span></div>
+    <h1 class="rd-h">${E(i18t('rd_title'))}</h1><div class="rd-rows">${rows}</div>
+    ${bars ? `<div class="rd-cap">${E(i18t(R.see ? 'rd_q_cap' : 'rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
+    <div class="rd-foot"><span class="rd-foot-l">${foot}</span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div></div>`;
+}
+/* the read down's panel: what was read, the next questions (the cost said), Jambo's line on the book */
+function hbRdnPanelHtml(){
+  const R = hbRdnRead(), E = _hbE, m = R.money;
+  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
+  const f = R.ending[0];
+  const rows = row(i18t('rd_p_paper'), [m(R.total), i18tn('rd_p_n', R.L.length, { n: R.L.length }), i18t('rd_p_signed', { n: R.sig.length })].filter(Boolean).join(' · '), i18t('rd_p_src_list'))
+    + row(i18t('rd_p_ending'), f ? [String(R.ending.length), i18t('rd_p_first', { d: hbRdnDay(R.exp(f)) })].join(' · ') : i18t('rd_p_none'), i18t('rd_p_src_term'))
+    + (R.top ? row(i18t('rd_p_conc'), i18t('rd_p_conc_v', { p: R.top.p, pc: R.share }), i18t('rd_p_src_parties')) : '')
+    + row(i18t('rd_p_open'), [i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }), i18tn('rd_late', R.late, { n: R.late })].join(' · '), i18t('rd_p_src_desk'));
+  const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
+  const doors = (R.autoEnd.length ? door(`data-rd-show="${E(R.autoEnd.map(c => c.id).join(','))}" data-rd-label="${E(i18t('rd_label_auto'))}"`, i18tn('rd_p_which_auto', R.ending.length, { n: R.ending.length }), i18t('pd2_ch_free')) : '')
+    + (R.top ? door(`data-rd-show="${E(R.top.cs.map(c => c.id).join(','))}" data-rd-label="${E(R.top.p)}"`, i18t('rd_p_party_open', { p: R.top.p }), i18t('pd2_ch_free')) : '');
+  const say = R.top && R.share >= 50 ? i18t('rd_p_jambo_conc', { p: R.top.p, pc: R.share }) : i18t('rd_p_jambo');
+  const turn = `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(say)}</p></div></div>`;
+  return `<div class="pd2-chosen cun-panel rd-panel"><p class="pd2-ch-head">${E(i18t('rd_p_head'))}</p><div class="pd2-ch-cap">${E(i18t('rd_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div>${doors ? `<div class="pd2-ch-cap">${E(i18t('rd_p_deeper'))}</div>${doors}` : ''}${turn}</div>`;
+}
+function hbRdnBtnHtml(){
+  return `<button type="button" class="hb-btn is-sm hb-pulse-go hb-rdn-go" data-hb-rdn title="${_hbE(i18t('rd_tip'))}">${_hbE(i18t('rd_btn'))}</button>`;
+}
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && !document._hbRdnWired){ document._hbRdnWired = true;
+  window.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
+    const repaint = () => { hbPaintBoard({ force: true }); if (typeof renderIntelDock === 'function') renderIntelDock(); };
+    if ((el = t.closest('[data-hb-rdn]'))){ e.preventDefault(); e.stopPropagation(); _hbRdn = true; _hbDna = false; repaint(); return; }
+    if ((el = t.closest('[data-rd-back]'))){ e.preventDefault(); _hbRdn = false; repaint(); return; }
+    if ((el = t.closest('[data-rd-print]'))){ e.preventDefault(); try { window.print(); } catch (_){} return; }
+    if ((el = t.closest('[data-rd-go]'))){ e.preventDefault(); const k = el.getAttribute('data-rd-go'); _hbRdn = false;
+      if (typeof caGo === 'function') caGo({ kind: 'go', place: k }); return; }
+    if ((el = t.closest('[data-rd-show]'))){ e.preventDefault(); const ids = el.getAttribute('data-rd-show').split(',').filter(Boolean);
+      _hbRdn = false; if (typeof setView === 'function') setView('register'); if (typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-rd-label') || ''); }
+  }, true);
+}
 function hbBoardHtml(){
+  if (hbRdnUp()) return hbRdnHtml();
   if (hbDnaUp()) return hbDnaHtml();
   /* A CONTRACT BROUGHT UP IS A PAGE ON THE DESK (round 7, "Read down"): the
      card alone, none of the Board's own furniture */
@@ -11219,7 +11331,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbDnaUp, hbDnaHtml, hbDnaOf, hbDnaRows, hbDnaPanelHtml, hbDnaBtnHtml });
+Object.assign(window, { hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml, hbDnaUp, hbDnaHtml, hbDnaOf, hbDnaRows, hbDnaPanelHtml, hbDnaBtnHtml });
 Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
