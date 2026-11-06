@@ -2107,7 +2107,7 @@ const CA_GO = {
     return caHomeWall(); },
   /* "wall", "list": the same place, drawn the other way (step 7) */
   wall: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'wall' }); return caHomeWall(); },
-  list: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); return caHomeWall(); },
+  list: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); if (typeof regFoldersShut === 'function') regFoldersShut(); return caHomeWall(); },
   /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
   redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
   sign: c => caRoomSign(c),

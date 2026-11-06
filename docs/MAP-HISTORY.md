@@ -35598,3 +35598,11 @@ Built behind the switch and approved by the owner ("Approve round 6"): Contracts
   - the box under the form folds; the button says "see beside" (`co_send_failed_beside`).
 - Mail health is the figure read at sign-in, said as "before this one" rather than guessed. Jambo's "away" line is not drawn: this failure is the mail's, not the model's.
 - Check: test/chromium/round9-new-look-verify.js (red at the parent).
+
+## READS IN THE NEW LOOK — TWO FAULTS THE OWNER MET (6 Nov 2026)
+- "Read 50 more" did nothing but change the page. `rdOnContracts` asks Contracts for the LIST (`regPlaceSet({show:'list'})`) and waits for `#reg-tbody`, but the new look's Contracts opens on its folders (`_ctFolders`), so the list never came and the read never started.
+  - Fix: one door, `regFoldersShut` (js/views/register.js), called by both doors that ask for the list by name: `rdOnContracts` and Jambo's place word `list` (js/copilotacts.js).
+- Folding Jambo's panel left the page at its old width with a grey gap. The new look's margin rule (`html.lg-new … #content-scroll{margin-right:var(--jl-room…)}`) had no folded case.
+  - Fix: a folded twin, 46px (JL_FOLDED). It is one shared rule, so every list page with the panel is mended.
+- Check: test/chromium/reads-new-look-fixes-verify.js (red at the parent).
+- NOTICED, NOT FIXED: after a read finishes on Contracts, coming back to Reads still shows the old "4 of 12" and "Read 8 more" until a refresh, while the answers already show the new ones. Told to the owner.
