@@ -66,7 +66,9 @@ const CAP_Q = 'Is our liability capped, and at what?';
 async function signIn(page, base){
   await page.goto(base + '/', { waitUntil: 'networkidle' });
   await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-  await until(page, () => typeof window.setView === 'function' && window.state && Array.isArray(state.contracts) && state.contracts.length > 0, null, 15000);
+  /* and the signed-in person (the race adapt-filters had): Ask a column is an editor's, so the form waits on who is signed in */
+  await until(page, () => typeof window.setView === 'function' && window.state && Array.isArray(state.contracts) && state.contracts.length > 0
+    && typeof window.currentUser === 'function' && !!window.currentUser(), null, 15000);
 }
 async function toList(page){
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
