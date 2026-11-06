@@ -2850,7 +2850,8 @@ function buildAlerts(){
       if(o.days==null) return;
       const c=byId.get(o.cid); if(!c) return;
       if(!obligationRemindsMe(o,c)) return;
-      const d=String(o.desc||'');
+      /* an obligation says its duty by desc; older records and seeds by title or what (BUGLOG 31 Oct 2026: "Overdue:" with nothing after it) */
+      const d=String(o.desc||o.title||o.what||'');
       const desc=d.length>70?d.slice(0,69)+'\u2026':d;
       const text=o.days<0 ? i18t('al_ob_overdue',{desc})
         : o.days===0 ? i18t('al_ob_today',{desc})

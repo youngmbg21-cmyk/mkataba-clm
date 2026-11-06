@@ -6066,6 +6066,8 @@ function shareVerdictPaint(c, st){
 function shareGoesPaint(c, st, who){
   const box=document.getElementById('sh-lt-goes'); if(!box || !c) return;
   const p=(st && st.purpose) || 'negotiate';
+  /* no wording travels on a history or status send, so what "stays here" has nothing to stay from (BUGLOG 28 Oct 2026) */
+  document.querySelectorAll('[data-sh-lt-stays]').forEach(el=>{ el.hidden=(p==='history'||p==='status'); });
   const items=[];
   if(p==='history') items.push(i18t('sh_goes_hist'));
   else if(p==='status') items.push(i18t('sh_goes_status'));

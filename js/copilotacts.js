@@ -2063,6 +2063,12 @@ function caBackRowHtml(){
    stages bring the work into the panel, docs/PLAN-one-page-home.md §7) ---- */
 function caHomeFace(f){
   if (typeof hbS !== 'function') return false;
+  /* THE SHEET ASKS FIRST (BUGLOG 1 Nov 2026, fixed 6 Nov): with words typed in the New agreement sheet, Board (the same
+     view) put it away unasked — every page change asks through its own guarded close (app.js); so does a face change */
+  if (typeof window !== 'undefined' && typeof window.naSheetUp === 'function' && window.naSheetUp() && typeof window.closeModalGuarded === 'function' && !window._caFaceLeaving){
+    Promise.resolve(window.closeModalGuarded()).then(ok => { if (ok === false || window.naSheetUp()) return; window._caFaceLeaving = true; try { caHomeFace(f); } finally { window._caFaceLeaving = false; } }).catch(() => {});
+    return true;
+  }
   /* THE BOARD ASKED FOR IS THE BOARD (the glitch audit, 24 Oct 2026: "board"
      typed on Home after a contract's History showed that History again): a
      contract brought up on the Board face is let go first, as the Recent

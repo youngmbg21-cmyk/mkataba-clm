@@ -191,7 +191,10 @@ function hbkCss(){
   #hbk-page .hbk-num{ font-variant-numeric:tabular-nums; color:var(--color-neutral-600); }
   #hbk-page .hbk-pick{ background:var(--color-surface); border:1px solid var(--hbk-rule); border-radius:var(--radius-lg); padding:16px 20px 8px; }
   #hbk-page .hbk-pick h2{ font-family:var(--font-doc); font-size:20px; font-weight:600; margin:0 0 8px; }
-  #hbk-page .hbk-tbl{ overflow-x:auto; }
+  /* the table scrolls inside its own box, never the page (BUGLOG 31 Oct 2026: its last columns ran under Jambo's panel; a
+     grid item's min-width is its content, so the box is let shrink) */
+  #hbk-page .hbk-pick{ min-width:0; }
+  #hbk-page .hbk-tbl{ overflow-x:auto; min-width:0; }
   #hbk-page .hbk-tbl table{ border-collapse:collapse; width:100%; min-width:560px; font-size:13px; }
   #hbk-page .hbk-tbl th{ text-align:left; font-weight:var(--w-label); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--color-quiet); padding:8px 10px; border-bottom:1px solid var(--hbk-rule); }
   #hbk-page .hbk-tbl td{ padding:9px 10px; border-bottom:1px solid var(--hbk-rule); vertical-align:top; }
@@ -229,7 +232,9 @@ function hbkCss(){
   #hbk-page .hbk-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; background:var(--color-neutral-400); }
   #hbk-page .hbk-dot.is-ok{ background:var(--st-green-dot, #2E8B57); } #hbk-page .hbk-dot.is-warn{ background:var(--st-amber-dot, #B7791F); } #hbk-page .hbk-dot.is-risk{ background:var(--st-red-dot, #C0392B); } #hbk-page .hbk-dot.is-none{ background:transparent; box-shadow:inset 0 0 0 1.8px var(--st-steel-dot, #6F86BF); } #hbk-page .hbk-dot.is-no{ background:var(--st-steel-dot, #6F86BF); } #hbk-page .hbk-dot.is-fact{ background:var(--st-violet-dot, #7A44B8); }
   #hbk-page .hbk-tip{ background:var(--color-accent-50); border-radius:var(--radius); padding:12px 14px; font-size:13px; line-height:1.5; }
-  #hbk-page .hbk-foot{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--color-neutral-600); }
+  /* the foot's row wraps rather than widening the page (BUGLOG 31 Oct 2026: the page scrolled sideways under Jambo's panel) */
+  #hbk-page .hbk-foot{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; color:var(--color-neutral-600); min-width:0; }
+  #hbk-page .hbk-foot > *{ min-width:0; overflow-wrap:anywhere; }
   #hbk-page .hbk-cost{ display:inline-block; font-size:12px; font-weight:var(--w-label); padding:1px 8px; border-radius:999px; background:var(--color-neutral-100); color:var(--color-neutral-700); border:1px solid var(--hbk-rule); white-space:nowrap; }
   #hbk-page .hbk-cost.is-free{ background:var(--color-accent-50); color:var(--accent-ink); border-color:transparent; }
   #hbk-page .hbk-pics{ display:flex; flex-direction:column; gap:18px; min-width:0; }

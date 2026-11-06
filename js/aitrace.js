@@ -361,7 +361,8 @@ function aiTraceShares(d){
    creates a negotiation record and stamps clause ids into the document, so a
    sweep over the whole book would start a negotiation on every contract
    merely by counting it. */
-const AI_TRACE_NOTE_RE = /^\s*copilot\b/i;
+/* Jambo since 11 Oct 2026; notes saved before say Copilot (NEGO_PROVENANCE_RE reads both; BUGLOG 29 Oct 2026) */
+const AI_TRACE_NOTE_RE = /^\s*(?:copilot|jambo)\b/i;
 const aiTraceFromCopilot = ch => !!(ch && AI_TRACE_NOTE_RE.test(String(ch.note || '')));
 function aiTraceHistory(list){
   let taken = 0, contracts = 0;

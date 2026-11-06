@@ -467,6 +467,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - The side panel beside the page (22 Oct 2026): test/chromium/jambo-slides-in-verify.js 1d–1l (nothing dimmed, the page's room ends where the panel starts, the edge tab steps away and comes back with the panel's minimise, THE SLIDER widens it and is kept, a double-click puts it back, the three screens); 1d/1e/1f/1h red at ff908e4b.
 
 ## OTHER PAGES AND SERVICES
+- THE BUG LOG'S TOP FIXES (owner's overnight order, 6 Nov 2026): buglog-fixes-nov6-verify 1–6 (new, red at the parent on all six): the bell's obligation words fall back to title/what; the New agreement sheet asks before Board replaces it; Parties' long draft button inside its panel (old look); the Handbook table scrolls in its own box, the page never sideways (old look); a history/status send hides the "stays here" cards; the AI involvement record counts "Jambo — …" notes.
 - The Mailroom gives every document a person (22 Oct 2026): f859 (red at the parent 1–6); Settings box photographed at the three screens. Their bell says it once: test/chromium/mailroom-bell-verify.js (red at the parent 1, 1b, 2, 5).
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
