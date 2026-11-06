@@ -39,7 +39,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     look: [...document.querySelectorAll('#cn2-list .cn2-look')].map(x => x.getAttribute('data-hb-ag-item')).join(','),
     page: (document.querySelector('#dk-page') || {}).textContent || '' }));
   /* press the first visible element matching sel whose words match re; say whether anything moved */
-  const press = async (sel, re, rowRe) => {
+  const press = async (sel, re, rowRe, wantCid) => {
     if (!(await home())) return { found: false };
     const found = await page.evaluate(([s, src, rsrc]) => { document.querySelectorAll('[data-pp]').forEach(e => e.removeAttribute('data-pp'));
       const rx = new RegExp(src); const el = [...document.querySelectorAll(s)].find(e => e.getClientRects().length && rx.test((e.textContent || '').trim()) && (!rsrc || new RegExp(rsrc).test(((e.closest('.cn2-row') || {}).textContent || ''))));
@@ -50,6 +50,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await until(page, b => { const a = { view: state.view, modal: (document.getElementById('modal-root') || {}).childElementCount || 0,
       look: [...document.querySelectorAll('#cn2-list .cn2-look')].length, page: (document.querySelector('#dk-page') || {}).textContent || '' };
       return a.view !== b.view || a.modal !== b.modal || a.look !== (b.look ? b.look.split(',').length : 0) || a.page !== b.page; }, before, 5000);
+    /* a door to a contract lands its paper after a server read (igAnalyze awaits ensureFull): asked for, bounded */
+    if (wantCid) await until(page, () => typeof pdContract === 'function' && !!pdContract(), null, 10000);
     const after = await snap();
     return { found: true, before, after, moved: Object.keys(after).filter(k => after[k] !== before[k]) };
   };
@@ -59,9 +61,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   check('1 · a row\'s Look opens Jambo\'s piece in its row', r1.found && !!r1.after.look && r1.after.look !== r1.before.look, r1);
   const r2 = await press(row, /^Open$/, /needs you/);
   check('2 · a row\'s Open (Company needs you) goes to its place', r2.found && r2.moved.length > 0, r2);
-  const r3 = await press(row, /^Approve|^Decide/);
+  const r3 = await press(row, /^Approve|^Decide/, null, true);
   check('3 · a row\'s Approve…/Decide goes to its contract', r3.found && !!r3.after.cid && r3.after.view !== 'counter', r3);
-  const r4 = await press(row, /^Fill in/);
+  const r4 = await press(row, /^Fill in/, null, true);
   check('4 · a row\'s Fill in goes to its contract', r4.found && !!r4.after.cid && r4.after.view !== 'counter', r4);
 
   const dead = [];
