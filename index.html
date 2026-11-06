@@ -18489,6 +18489,20 @@
   html.lg-new #pd2-notes .pd2-mn.is-risk .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-risk::after,html.lg-new #pd2-notes .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
   html.lg-new #pd2-notes .pd2-mn.is-ask .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-ask::after,html.lg-new #pd2-notes .pd2-mn.is-ask::before{background:var(--color-text)}
   html.lg-new ::highlight(pd2-fact){background-color:var(--surface-2)}
+  /* ONE GROUP PER CLAUSE (owner picked "The Legora Way", 6 Nov 2026): the clause's name, a line per point with its dot and word,
+     the words it rests on quoted once, one Open in Clauses; a group that drifted folds to its first line and "+ N more here" */
+  html.lg-new #pd2-notes .pd2-mg-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 3px}
+  html.lg-new #pd2-notes .pd2-mg > .pd2-mn-dot{display:none}
+  html.lg-new #pd2-notes .pd2-mg-i{margin:0 0 4px}
+  html.lg-new #pd2-notes .pd2-mg-i .pd2-mn-dot{position:static;display:inline-block;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot)}
+  html.lg-new #pd2-notes .pd2-mg-i.is-owe .pd2-mn-dot{background:var(--st-amber-dot)}
+  html.lg-new #pd2-notes .pd2-mg-i.is-risk .pd2-mn-dot{background:var(--st-brown-dot,var(--st-amber-fg))}
+  html.lg-new #pd2-notes .pd2-mg-i.is-ask .pd2-mn-dot{background:var(--color-text)}
+  html.lg-new #pd2-notes .pd2-mg-l b{font-weight:var(--w-label);color:var(--st-amber-fg)}
+  html.lg-new #pd2-notes .pd2-mg-q{margin:1px 0 2px 13px;font-family:var(--font-doc);font-style:italic;font-size:12px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new #pd2-notes .pd2-mg .pd2-mg-more{display:none;font-size:12px}
+  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
+  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-more{display:inline}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}

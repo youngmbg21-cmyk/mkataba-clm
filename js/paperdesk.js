@@ -7506,6 +7506,24 @@ function pd2Html(c){
    overlap. PAINTED, NEVER STORED: nothing is written to the paper's words or the record; the facts are marked with
    the browser's own highlight (CSS.highlights), so the paper's markup is never touched. Plain paper only: the
    redlined and the signing copies keep their own marks. */
+/* ---- THE NOTES AGREE WITH CLAUSES (owner picked "The Legora Way", 6 Nov 2026; amber kept) ----
+   Every clause the Clauses tab marks (a point that needs you or is worth a look, still open) has its note beside that clause
+   on the paper, read from the SAME reading the tab draws (stkReview over the paper's own rows, docXrayRows), never a second
+   count: the same clauses, the same tone, the same number. A point the paper has no place for (no clause, nothing after) is
+   left out, as every note is. Each point: its word (Needs you · Worth a look · Not in the contract) and its one line. */
+function pd2ClausePoints(c, cv){
+  /* the paper's own rows always (the notes find their clause by them); the points only where Clauses has its reading */
+  let rows = []; try { rows = (typeof docXrayRows === 'function') ? (docXrayRows(c, cv) || []) : []; } catch (_){ rows = []; }
+  const b = (typeof stkOf === 'function') ? stkOf(c) : null; if (!b || typeof stkReview !== 'function') return { rows, pts: [] };
+  const nums = (typeof stkNumsOf === 'function') ? stkNumsOf(rows) : [];
+  let all = []; try { all = stkReview(c, b, { rows, nums }) || []; } catch (_){ all = []; }
+  const pts = all.filter(p => p && !p.done && (p.status === 'need' || p.status === 'look')).map(p => ({ p, at: p.at >= 0 ? p.at : (p.missing && p.afterAt >= 0 ? p.afterAt : -1) }))
+    .filter(x => x.at >= 0 && rows[x.at] && rows[x.at].el);
+  return { rows, pts };
+}
+const PD2_FOLD_DRIFT = 60;
+/* the groups the reader opened, per contract, for this sitting: a repaint keeps them open */
+const _pd2Unfolded = new Set();
 const PD2_NOTE_GAP = 12, PD2_SHEET_LEFT = 40, PD2_NOTES_MIN = 220, PD2_NOTES_MAX = 320, PD2_NOTES_GUTTER = 32, PD2_SHEET_MIN = 480;
 function pd2Notes(c){
   const E = _pdE, out = [];
@@ -7725,7 +7743,8 @@ function pd2NotesPaint(c){
   if (red) try { pd2DialsPaint(c, cv); } catch (_){}
   const notes = (red ? pd2RedNotes(c, cv) : pd2Notes(c)).map(n => Object.assign(n, { hit: n.hit || pd2Find(cv, n.at) })).filter(n => n.hit)
     .map(n => Object.assign(n, { y: (n.hit.el || n.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
-  if (!notes.length){ pd2NotesOff(); return; }
+  const groups = red ? [] : pd2Groups(c, cv, notes);
+  if (red ? !notes.length : !groups.length){ pd2NotesOff(); return; }
   /* THE PAPER MOVES TO THE LEFT AND NARROWS ONLY AS FAR AS THE NOTES NEED (the drawing's iPad note: "the paper narrows") */
   const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
   /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
@@ -7742,8 +7761,13 @@ function pd2NotesPaint(c){
   host.setAttribute('data-pd2-for', String(c.id));
   host.style.left = (left + sheetW + PD2_NOTES_GUTTER) + 'px'; host.style.width = notesW + 'px';
   const E = _pdE;
-  host.innerHTML = notes.map((n, i) => `<div class="pd2-mn is-${n.tone}" data-pd2-note="${i}"><i class="pd2-mn-dot" aria-hidden="true"></i><div class="pd2-mn-k">${n.n ? `<span class="pd2-mn-n">${E(n.n)}</span>` : ''}${E(n.k)}</div>${n.w ? `<div class="pd2-mn-w">${E(n.w)}</div>` : ''}${n.acts ? `<div class="pd2-mn-a">${n.acts}</div>` : ''}</div>`).join('');
-  pd2NotesPlace(notes, zoom, host, f);
+  if (red){
+    host.innerHTML = notes.map((n, i) => `<div class="pd2-mn is-${n.tone}" data-pd2-note="${i}"><i class="pd2-mn-dot" aria-hidden="true"></i><div class="pd2-mn-k">${n.n ? `<span class="pd2-mn-n">${E(n.n)}</span>` : ''}${E(n.k)}</div>${n.w ? `<div class="pd2-mn-w">${E(n.w)}</div>` : ''}${n.acts ? `<div class="pd2-mn-a">${n.acts}</div>` : ''}</div>`).join('');
+    pd2NotesPlace(notes, zoom, host, f);
+  } else {
+    host.innerHTML = groups.map((g, i) => pd2GroupHtml(g, i)).join('');
+    pd2GroupsPlace(groups, zoom, host, f);
+  }
   try {
     if (typeof CSS !== 'undefined' && CSS.highlights && typeof globalThis.Highlight === 'function'){
       const rs = notes.filter(n => n.mark && n.hit.range).map(n => n.hit.range);
@@ -7751,7 +7775,7 @@ function pd2NotesPaint(c){
     }
   } catch (_){}
   /* again once the fonts are in (the line a note stands by moves when they land), and when the paper's width moves */
-  if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { const z = document.querySelector('#ig-paper .ig-zoom'); const h = document.getElementById('pd2-notes'); if (z && h && h.getAttribute('data-pd2-for') === String(c.id)) pd2NotesPlace(notes, z, h, parseFloat(z.style.zoom) || 1); });
+  if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { const z = document.querySelector('#ig-paper .ig-zoom'); const h = document.getElementById('pd2-notes'); if (z && h && h.getAttribute('data-pd2-for') === String(c.id)){ if (red) pd2NotesPlace(notes, z, h, parseFloat(z.style.zoom) || 1); else pd2GroupsPlace(groups, z, h, parseFloat(z.style.zoom) || 1); } });
   if (!zoom._pd2RO && typeof ResizeObserver === 'function'){ let w0 = zoom.clientWidth; zoom._pd2RO = new ResizeObserver(() => { if (zoom.clientWidth === w0) return; w0 = zoom.clientWidth; const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); }); zoom._pd2RO.observe(zoom); }
 }
 /* "Show their reason": their own words, opened in the note (a reading; nothing pressed) */
@@ -7760,6 +7784,65 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   e.preventDefault(); const w = b.closest('.pd2-mn') && b.closest('.pd2-mn').querySelector('.pd2-mn-why'); if (!w) return;
   w.hidden = !w.hidden; b.setAttribute('aria-expanded', w.hidden ? 'false' : 'true');
 });
+/* ONE GROUP PER CLAUSE: the clause's points (as Clauses reads them) and the notes whose words stand in it (a blank, the
+   value, the end date, a risk), together beside that clause, in the paper's order; what stands before the first clause
+   is the opening's group */
+function pd2Groups(c, cv, notes){
+  const { rows, pts } = pd2ClausePoints(c, cv);
+  const rowOf = node => { let k = -1; rows.forEach((r, i) => { if (!r.el) return; if (r.el === node || r.el.contains(node) || (r.el.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) k = i; }); return k; };
+  const by = new Map(), get = at => { if (!by.has(at)) by.set(at, { at, el: at >= 0 && rows[at] ? rows[at].el : null, label: at >= 0 && rows[at] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[at]) : _pdT('pd2_g_opening'), items: [], marks: [] }); return by.get(at); };
+  pts.forEach(({ p, at }) => get(at).items.push({ tone: 'owe', clause: true, word: _pdT(p.missing ? 'pd2_g_missing' : p.status === 'need' ? 'pd2_g_need' : 'pd2_g_look'), k: String(p.title || ''), quote: String(p.quote || '').trim(), status: p.status }));
+  notes.forEach(n => { const node = n.hit.el || (n.hit.range && n.hit.range.startContainer); const g = get(node ? rowOf(node) : -1);
+    if (g.at < 0 && !g.el) g.el = n.hit.el || null, g.hit = g.hit || n.hit;
+    g.items.push({ tone: n.tone, k: n.k, w: n.w, acts: n.acts, note: n }); });
+  return [...by.values()].map(g => Object.assign(g, { cid: c.id, hit: g.el ? { el: g.el } : (g.hit || (g.items[0].note && g.items[0].note.hit)) })).filter(g => g.hit && g.items.length)
+    .map(g => Object.assign(g, { y: (g.hit.el || g.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
+}
+function pd2GroupHtml(g, i){
+  const E = _pdE;
+  const tone = g.items.some(x => x.tone === 'owe') ? 'owe' : g.items.some(x => x.tone === 'risk') ? 'risk' : g.items.some(x => x.tone === 'ask') ? 'ask' : 'fact';
+  let quoted = false;
+  const line = (x, k) => { const q = x.clause && x.quote && !quoted ? (quoted = true, `<div class="pd2-mg-q">“${E(x.quote)}”</div>`) : '';
+    return `<div class="pd2-mg-i is-${x.tone}${k ? ' is-more' : ''}"><div class="pd2-mg-l"><i class="pd2-mn-dot" aria-hidden="true"></i>${x.word ? `<b>${E(x.word)}</b> · ` : ''}${E(x.k)}</div>${q}${!x.clause && x.w ? `<div class="pd2-mn-w">${E(x.w)}</div>` : ''}${x.acts ? `<div class="pd2-mn-a">${x.acts}</div>` : ''}</div>`; };
+  const open = g.items.some(x => x.clause) && g.at >= 0 ? `<div class="pd2-mn-a"><button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${g.at}">${E(_pdT('pd2_g_open'))}</button></div>` : '';
+  const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
+  const kept = _pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '';
+  return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${g.at}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${open}</div>`;
+}
+/* each group at its clause's height, pushed down past the one above; one that would drift more than a few lines from its
+   clause folds to its first line and "+ N more here" (opened in place, then laid out again) */
+function pd2GroupsPlace(groups, zoom, host, f){
+  const top0 = zoom.getBoundingClientRect().top;
+  let floor = 0;
+  groups.forEach((g, i) => {
+    const el = host.querySelector(`[data-pd2-note="${i}"]`); if (!el) return;
+    const r = g.hit.el ? g.hit.el.getBoundingClientRect() : g.hit.range.getBoundingClientRect();
+    const want = Math.max(0, (r.top - top0) / f - 2);
+    const at = Math.max(want, floor);
+    el.classList.toggle('is-folded', !el.hasAttribute('data-pd2-open') && g.items.length > 1 && at - want > PD2_FOLD_DRIFT);
+    el.style.top = at + 'px';
+    floor = at + el.offsetHeight + PD2_NOTE_GAP;
+  });
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-unfold]') : null; if (!b) return;
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.classList.remove('is-folded');
+  if (h) _pd2Unfolded.add(String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'));
+  const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
+});
+/* OPEN IN CLAUSES: the clause's own row on the Clauses tab, opened, and the paper glides there (the paper track's door:
+   docThreadLandOn, else docThreadWantClause and the tab's own switch); nothing is pressed or written */
+function pd2OpenInClauses(c, at){
+  const cv = document.getElementById('ig-canvas'); let rows = []; try { rows = docXrayRows(c, cv) || []; } catch (_){ rows = []; }
+  const row = rows[at]; if (!row) return false;
+  const label = typeof docXrayLabel === 'function' ? docXrayLabel(row) : String(row.name || '');
+  if (typeof pdTab === 'function' && pdTab() === 'doc' && typeof docThreadLandOn === 'function' && docThreadLandOn(c, row.el, label)) return true;
+  if (typeof docThreadWantClause === 'function') docThreadWantClause(c, row.el, label);
+  if (typeof pdSetTab === 'function') pdSetTab('doc');
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  if (typeof igPaintPaper === 'function') try { igPaintPaper(); } catch (_){}
+  return true;
+}
 /* each note at its line's height, pushed down past the one above so none overlap */
 function pd2NotesPlace(notes, zoom, host, f){
   const top0 = zoom.getBoundingClientRect().top;
@@ -7784,6 +7867,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   else if (go === 'redline' && typeof riskEditStart === 'function') riskEditStart(c, key);
   else if (go === 'ask' && typeof openShareModal === 'function') openShareModal(c, { purpose: 'colleague', note: _pdT('pd2_n_ask_note', { rule: key }) });
   else if (go === 'dive') pd2DiveOn(c, key);
+  else if (go === 'clause') pd2OpenInClauses(c, Number(key));
   else if (go === 'press'){ const own = document.querySelector('#ig-dock ' + key); if (own && !own.disabled) own.click(); }
 });
 /* DEEP DIVE FROM A NOTE: the clause the risk's words stand in, opened on Clauses, and its own Deep dive pressed there (the one
@@ -8314,7 +8398,7 @@ Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormReg
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });
-Object.assign(window, { pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

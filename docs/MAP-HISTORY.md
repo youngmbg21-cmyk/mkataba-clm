@@ -35614,3 +35614,18 @@ Cause: the new look draws Home as `#cn2-page` with the same rows and the same do
 The owner, with two screenshots: "Hati is giving me two types of brief. The old version in image one and the new version in image 2. What is going on?" Then: "fix the brief and show me options for 2, 3 and 4 along with the current version" (2 Our standards, 3 the negotiation memo, 4 Jambo's work off the paper — all still the old side panel, no new-look design drawn).
 Cause: the new look's brief page (`pd2BriefOpen`) was reached only from the Dossier's brief line; every other door (Write the brief, the Board strip's Brief, Jambo's "brief" `caBriefOpen`, the arrival card, the Scan panel, a brief piece of Jambo's work, the old Home card) presses `openCheckPanel(c,'brief')`, which drew the old side panel; and `pd2BriefOpen` itself fell back to it when no brief was kept.
 Fix: `openCheckPanel(c,'brief')` asks `pd2BriefGo(c)` first (new look, desk shell): on the paper the page opens (`stay`: a door that opens never shuts it, it repaints `pd2BriefRepaint`); off the paper the paper comes first (`roomHomeLand`) then the page. No brief kept: the same sheet says so (`pd2BriefNoneHtml`, `br_none_write` / `br_kt_none_viewer`) with Write the brief, which writes and draws it in place; the head says no "written by" until there is one. `briefPanelToggle` shuts the middle page on the same press. Look off: unchanged.
+
+
+## THE NOTES BESIDE THE PAPER AGREE WITH CLAUSES (6 Nov 2026; owner picked "The Legora Way", amber kept)
+- The owner: "Today a clause can be amber or red in Clauses and have no note beside the paper. That's confusing." The options were shown on the notes world (test/notes-world.js) at three screens: The Legora Way, The SAP Way, Pins.
+- Built (js/paperdesk.js):
+  - `pd2ClausePoints` reads the SAME reading the Clauses tab draws: `stkReview` over the paper's own rows (`docXrayRows`, `stkNumsOf`, now published), open points that need you or are worth a look.
+  - `pd2Groups` makes one group per clause: those points plus the four notes HaTi already drew (blank, value, end date, risk), each placed in the clause whose words hold it, with the opening's group above clause 1.
+  - `pd2GroupHtml` draws the clause's name, a line per point (dot, word, line), the words quoted once, and Open in Clauses.
+  - `pd2GroupsPlace` stacks groups, never overlapping. A group that would drift more than `PD2_FOLD_DRIFT` (60px) folds to its first line and "+ N more here"; opened, it stays open for the sitting (`_pd2Unfolded`).
+  - `pd2OpenInClauses` is the paper track's own door (docThreadLandOn, else docThreadWantClause and the tab's switch).
+- Amber kept: the new look's Clauses list draws both kinds amber (red only on the paper's edge strip), so the notes do too. The word tells them apart.
+- Nothing guessed: a point with no place on the paper is left out. The Redlines notes are unchanged.
+- Checks:
+  - test/chromium/notes-match-clauses-verify.js: red at the parent.
+  - contract-new-look-verify, re-pointed to the grouped shape: a note is a line of its clause's group; a Clauses point joins its group.

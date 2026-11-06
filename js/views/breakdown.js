@@ -880,7 +880,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
   });
 }
 
-Object.assign(window, { stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, stkReview, stkNeedCount, stkMarkReviewed, stkPointKey });
+Object.assign(window, { stkNumsOf, stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, stkReview, stkNeedCount, stkMarkReviewed, stkPointKey });
 /* the Preamble row's Fill it in: the paper's blanks filled where they stand (the new look's one door for them) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-stk-pre-fill]') : null; if (!b) return;
