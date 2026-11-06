@@ -123,7 +123,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     console.log('\n4 · the stand-in');
     const own = page;
     page = await open('novalues@example.co.ke', 'their-own-pass-9');
-    const mine = await readCard();
+    /* the cover row is asked for, bounded (CI under load read the card before it stood); the card as it is otherwise */
+    let mine = await until(() => { if (!document.getElementById('set-page') || settingsTab() !== 'you'){ setView('team'); settingsGoTab('you'); return null; }
+      const c = document.querySelector('[data-st-you-card="away"]'); const t = c && c.textContent.replace(/\s+/g, ' ').trim(); return t && /You answer for/.test(t) ? { text: t } : null; });
+    if (!mine) mine = await readCard();
     check('4a their own You says "You answer for Unrestricted Legal until …"', !!mine && /You answer for Unrestricted Legal until /.test(mine.text), mine && mine.text);
     const may = await page.evaluate(async () => { const c = getContract('MK-W1'); if (typeof ensureFull === 'function') await ensureFull(c);
       const d = approvalDecidableNow(c); return d ? d.kind : null; });
