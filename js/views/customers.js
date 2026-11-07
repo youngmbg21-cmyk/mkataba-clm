@@ -831,6 +831,8 @@ const CU_CSS = `
   .cu-ag-st{flex:none;font-size:var(--t-meta);}
   .cu-pp-av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);background:transparent;color:var(--color-quiet);border:1px solid var(--rule-strong);}
   .cu-draft-with{padding:4px 16px 16px;}
+  /* NOTHING SPILLS (BUGLOG 28 Oct 2026, fixed 6 Nov): a long party name ends in … inside the panel, never past its edge */
+  .cu-draft-with .ui-btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;}
   .cu-sub-act{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);font-weight:var(--w-label);cursor:pointer;}
   .cu-sub-act:hover{text-decoration:underline;}
   .cu-sub-act.is-quiet{color:inherit;font-weight:inherit;text-decoration:underline dotted;text-underline-offset:3px;}
