@@ -2639,6 +2639,8 @@ function renderObligationsList(){
   if(!host) return;
   /* one contract asked for: its own table (obOpenOnPage) */
   { const fo = obwOnly(obwFilters()); const one = fo && fo.cid && window.getContract ? getContract(fo.cid) : null;
+    /* the new look has no narrowed page: one contract asked for lands on its paper's Obligations face, the scope let go */
+    if(one && typeof window.pd2ObGo === 'function' && typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits()){ obwFilters().only = null; if(pd2ObGo(one.id)) return; }
     if(one){ obwPaintContract(host, one, obwFilters()); return; } }
   /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (26 Sep 2026). Below INS_MIN_W the
      table below is drawn exactly as before, because a panel squeezed beside a
@@ -3434,6 +3436,8 @@ function obOpenContract(cid, key){
      filtered"): the Obligations page narrowed to the contract, its own table,
      the row chosen there the same way */
   const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
+  /* THE NEW LOOK: the contract's paper with its Obligations face, the row open (pd2ObGo; the platform review, 6 Nov 2026) */
+  if(!phone && typeof window.pd2ObGo === 'function' && pd2ObGo(cid, key)) return;
   if(!phone && typeof window.obOpenOnPage === 'function' && obOpenOnPage(cid, key)) return;
   if(typeof window.roomOpenAt === 'function'){ roomOpenAt(cid, 'oblig'); return; }
   if(!window.openWorkspace) return;

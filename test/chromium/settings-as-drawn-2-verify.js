@@ -189,7 +189,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       const t = [...document.querySelectorAll('#set-page [data-st-toc]')]; return t.length ? t.map(b => b.textContent.trim()) : null; }, null, 15000);
     check('5a eight headings, as drawn', !!toc && toc.length === 8 && !toc.includes('Company design'), toc && toc.join(' | '));
     const lit = await mk.until(async () => { const sc = document.getElementById('content-scroll'); sc.scrollTop = Math.round(sc.scrollHeight / 2);
-      await new Promise(r => setTimeout(r, 250)); const a = document.querySelector('#set-page [data-st-toc][aria-current="true"]'); return a ? a.textContent.trim() : null; });
+      await new Promise(r => setTimeout(r, 250)); const a = document.querySelector('#set-page [data-st-toc][aria-current="true"]');
+      /* the lit heading is asked for once the scroll has registered (CI under load read the first heading still lit) */
+      const first = document.querySelector('#set-page [data-st-toc]'); return a && a !== first ? a.textContent.trim() : null; });
     check('5b the contents list follows the scrolling', !!lit && lit !== (toc || [])[0], lit);
 
     console.log('\n6 · the owner\'s three screens');

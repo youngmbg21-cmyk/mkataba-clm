@@ -331,6 +331,9 @@ async function keepsPlace(page, scr, name, view){
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 100, null, { timeout: 30000 });
       await pause(1500);
+      /* HATI_GA_NEWLOOK=1 measures the new look (the owner's, 6 Nov 2026) */
+      if (process.env.HATI_GA_NEWLOOK) await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
+      await pause(800);
       for (const [name, setup, press, opts] of doors(scr)){
         let r; try { r = await measure(page, scr, name, setup, press, opts); } catch (e){ r = { name, screen: scr.name, error: e.message.split('\n')[0] }; }
         if (r){ all.push(r); process.stdout.write(line(r) + '\n'); }
