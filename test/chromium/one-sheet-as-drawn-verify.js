@@ -98,8 +98,11 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     await until(() => window.state && state.contracts && state.contracts.length > 0, null, 20000);
     await page.keyboard.press('Escape').catch(() => {});
     const ask = async () => {
-      await page.evaluate(() => { if (window.deskGoCounter) deskGoCounter(); });
-      await until(() => !!document.getElementById('cn-q'), null, 8000);
+      /* Home and its box asked for, bounded, before the words go in (CI under load fired them while the first paint
+         was still settling on Contracts) */
+      const up = await until(() => { if (!document.getElementById('cn-q') && window.deskGoCounter) deskGoCounter();
+        return !!document.getElementById('cn-q') && typeof counterAsk === 'function'; }, null, 20000);
+      if (!up) return null;
       /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip
          asks (counterAsk) with the box focused as typing leaves it (unfocused, the panel stayed on Overview) */
       await page.focus('#cn-q'); await page.evaluate(s => counterAsk(s), SAY);
