@@ -46,11 +46,11 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     const b0 = await box(); const board0 = await page.evaluate(() => JSON.stringify(hbS()));
     check('1 the line\'s room is there before a word is typed', !!b0.pre && b0.pre[1] === 16, JSON.stringify(b0));
     await page.click('#igd-input'); await page.keyboard.type('contracts by stage', { delay: 20 });
-    const s2 = await until(() => { const t = document.getElementById('igd-pre').textContent; return / · Free$/.test(t) ? t : null; });
+    const s2 = await until(() => { const t = document.getElementById('igd-pre').textContent; return /^All contracts: Ring · by stage · count$/.test(t) ? t : null; }); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     const board2 = await page.evaluate(() => JSON.stringify(hbS()));
     const b2 = await box();
     await page.screenshot({ path: path.join(OUT, '2-free.png') });
-    check('2 the line says what will be drawn, free — and the board is untouched', s2 === 'All contracts: Ring · by stage · count · Free' && board2 === board0, JSON.stringify({ s2, same: board2 === board0 }));
+    check('2 the line says what will be drawn, no cost — and the board is untouched', s2 === 'All contracts: Ring · by stage · count' && board2 === board0, JSON.stringify({ s2, same: board2 === board0 }));
     await page.fill('#igd-input', ''); /* a question that fits on ONE line: since the two-row card (20 Oct 2026) words that wrap grow the box on purpose, which is not what this check is about */
     await page.keyboard.type('how fast do we close deals', { delay: 10 });
     const s3 = await until(() => { const t = document.getElementById('igd-pre').textContent; return /Jambo/.test(t) ? t : null; });

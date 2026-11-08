@@ -58,8 +58,9 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     const k6 = await page.evaluate(() => (hbS().path || []).slice(-1)[0]);
     await page.evaluate(() => { const r = [...document.querySelectorAll('.hb-rd')].pop(); r.querySelector('[data-hb-next]').click(); });
     const s6b = await until(k0 => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const a = (intel.history || []).filter(m => m.role === 'assistant').pop();
-      return a && /Free/.test(String(a.text)) && k === k0 && (intel.history || []).filter(m => m.role === 'user').length >= 3 ? { k, said: String(a.text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 160) } : null; }, k6);
-    check('6b pressing one asks it as typed: the open card changes, free', !!s6b, JSON.stringify(s6b));
+      return a && !/\bfree\b|\bcalls?\b/i.test(String(a.text)) && k === k0 && (intel.history || []).filter(m => m.role === 'user').length >= 3 ? { k, said: String(a.text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 160) } : null; }, k6);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    check('6b pressing one asks it as typed: the open card changes, no cost said', !!s6b, JSON.stringify(s6b));
     /* RIGHT OR WRONG (Part 6): once, one quiet line, one row for the admins */
     await page.evaluate(() => { const rows = [...document.querySelectorAll('[data-hb-fb$=":wrong"]')]; rows.pop().click(); });
     const s7 = await until(() => { const f = [...document.querySelectorAll('.hb-fb')].pop(); return f && /Sent to your admins/.test(f.textContent) ? { said: f.textContent.trim(), off: [...f.querySelectorAll('button')].every(b => b.disabled) } : null; });
