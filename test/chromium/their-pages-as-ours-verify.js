@@ -13,7 +13,9 @@
      7 · the emails: the invitation is the drawn letter without the sender's new look; the reminder is a letter; the
          code says it opens the link; the code screen and the status page wear the black bar
      8 · the phone: nothing moves sideways
-   At the parent 1–7 fail; 8 held already (their page never scrolled sideways — the tabs were cut instead) and guards it.
+     9 · (owner, 8 Nov 2026: "fix both") a: their clause page shows the clause's name, never a box they may not use, and
+         what they type lands in the wording — no "Formatting only"; b: Send back's lines each on one line, panel-wide
+   At the parent 1–7 and 9 fail; 8 held already (their page never scrolled sideways — the tabs were cut instead) and guards it.
    Run: node test/chromium/their-pages-as-ours-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -90,8 +92,11 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await p.evaluate(() => { const b = [...document.querySelectorAll('.pol-note [data-pol-act="counter"]')][1]; if (b) b.click(); });
     const up = await until(p, () => !!document.querySelector('#ce-rowhead:not([hidden])'), null, 10000);
     const trail = up ? await p.evaluate(() => document.querySelector('#ce-rowhead').textContent.replace(/\s+/g, ' ').trim()) : '';
+    /* 9a · the clause's name is shown, not typed, on their seat (they may not rename our clause); the words go in the wording */
+    const headTyped = await p.evaluate(() => { const h = document.getElementById('ce-clausehead'); return !!(h && h.isContentEditable); });
     const box = await p.$('[contenteditable="true"]');
-    if (box){ await box.click(); await p.keyboard.press('End'); await p.keyboard.type(' Seven months is our limit.'); }
+    const boxId = box ? await box.evaluate(e => e.id) : null;
+    if (box){ await box.click(); await p.keyboard.press('Control+End'); await p.keyboard.type(' Seven months is our limit.'); }
     await p.click('#ce-railfoot button.p').catch(() => {});
     const open = await until(p, () => { const d = document.getElementById('pt-notes'); return d && d.classList.contains('open') && !!d.querySelector('.rl-np-pin'); }, null, 10000);
     const D = await p.evaluate(() => ({ tabs: [...document.querySelectorAll('#pt-notes .rl-np-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
@@ -109,6 +114,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       mine.some(x => /^their-team:Sofia/.test(x)) && !ours.some(x => /Sofia/.test(x)) && waiting === 0, { mine, ours, waiting });
     await p.evaluate(() => { try { portalNotesClose(); } catch (_){} const b = document.querySelector('#ce-rowhead .ce-rowback'); if (b) b.click(); });
     await until(p, () => !document.querySelector('#ce-rowhead:not([hidden])'), null, 8000);
+    await until(p, () => /Seven months is our limit/.test(document.body.innerText), null, 8000);
+    const paper = await p.evaluate(() => ({ fmt: [...document.querySelectorAll('.nego-note.fmt')].filter(e => e.offsetParent).length, words: /Seven months is our limit/.test(document.body.innerText) }));
+    check('9a · their clause page: the name is shown, not a box; what they type lands in the wording, never "Formatting only"',
+      !headTyped && boxId === 'ce-clausebody' && paper.words && paper.fmt === 0, { headTyped, boxId, paper });
   } catch (e) { check('3/4', false, String(e).slice(0, 200)); }
 
   /* 5 */
@@ -118,6 +127,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await p.click('#pol-send');
     const face = await until(p, () => !!document.getElementById('pol-send-msg'), null, 6000);
     const lines = await p.evaluate(() => [...document.querySelectorAll('.pol-send-list li')].map(l => l.textContent.trim()));
+    /* 9b · each line of what goes stays on ONE line across the panel, never squeezed into a narrow column */
+    const fit = await p.evaluate(() => [...document.querySelectorAll('.pol-send-list li')].map(li => { const v = li.querySelector('.pol-o-v') || li;
+      const lh = parseFloat(getComputedStyle(v).lineHeight) || 18; return { w: Math.round(v.getBoundingClientRect().width), li: Math.round(li.getBoundingClientRect().width), lines: Math.round(v.getBoundingClientRect().height / lh) }; }));
+    check('9b · Send back: each line of what goes on one line, as wide as the panel', fit.length >= 1 && fit.every(x => x.lines === 1 && x.w >= x.li - 2), fit);
     await p.fill('#pol-send-msg', 'Amina, we take your payment terms.');
     await p.click('#pol-send-go');
     const sent = await until(p, () => /sent to/i.test((document.getElementById('toast-root') || {}).innerText || ''), null, 8000);

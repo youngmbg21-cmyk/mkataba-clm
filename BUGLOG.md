@@ -21904,3 +21904,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed (8 Nov 2026, showing the other side's emails)
 - The invitation letter (shareMailOf, drawn) still uses the older letter shape (14px, #1f2933, the bare address as the link, the sender's name with no company under it), while the other letters (smDrawnLetter / smTextLetterHtml) use 15px #1d1d1f, a named green link with the address under it, and name · company. Same look intended; two shapes.
+
+## Noticed, not fixed (8 Nov 2026, photographing the other side's pages on main)
+- Their Send back face: the "What goes" lines wrap into a narrow half-width column ("Counter: 26." / "Limitation of" / "Liability") although the panel has room — the label and the clause should share one line.
+- Their page after a Counter on 26. Limitation of liability, then Accept on 5: clause 26 shows a "Formatting only" tag on the paper although the counter changed words (seen in the photo script after typing " Seven months is our limit." at the box's end; needs a look whether the typed words reached the filed counter).
