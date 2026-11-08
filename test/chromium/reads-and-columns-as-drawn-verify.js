@@ -80,10 +80,10 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       const done = await until(page, () => !!document.querySelector('.ac-nl-done') && !(window.AC && AC.busy), null, 60000);
       const D = done ? await page.evaluate(() => { const c = document.querySelector('.ac-nl-done'), th = document.querySelector('th.ac-th.is-nl');
         const line = th ? [...th.querySelectorAll('.ac-th-w, .reg-th-sub, .ac-th-more')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; }) : [];
-        return { text: c.innerText, bar: !!c.querySelector('.ac-gbar'), th: th ? th.innerText.replace(/\s+/g, ' ').trim() : '', oneLine: line.length === 3 && Math.max(...line) - Math.min(...line) <= 4 }; }) : null;
+        return { text: c.innerText, bar: !!c.querySelector('.ac-gbar'), th: th ? th.innerText.replace(/\s+/g, ' ').trim() : '', more: !!(th && th.querySelector('[data-ac-thmore] svg')), oneLine: line.length === 3 && Math.max(...line) - Math.min(...line) <= 4 }; }) : null;
       check(`${nm} 4 read: the column's card (the question, how far and when, Answers with Show, This column) and its head on one line`,
         !!D && /What are the governing laws\?/.test(D.text) && /50 of 60 read · finished/.test(D.text) && D.bar && /ANSWERS[\s\S]*Show/i.test(D.text)
-        && /Not read yet[\s\S]*10 contracts[\s\S]*Read the rest/.test(D.text) && /Remove column/.test(D.text) && /^Governing law · 50 of 60 read ⋯/.test(D.th) && D.oneLine && !COST.test(D.text), D);
+        && /Not read yet[\s\S]*10 contracts[\s\S]*Read the rest/.test(D.text) && /Remove column/.test(D.text) && /^Governing law · 50 of 60 read$/.test(D.th) && D.more && D.oneLine && !COST.test(D.text), D);
       await shot('4-done');
 
       /* 5 · the head's menu, Remove and Undo */
