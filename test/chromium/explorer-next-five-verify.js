@@ -241,6 +241,29 @@ const check = (name, pass, detail) => {
       await page.screenshot({ path: path.join(OUT, '8-risk-dates.png') });
     } else check('8 the risk check dates exist', false, 'igRiskAsOf missing');
 
+    /* ================= 9. THE GUIDE AND THE LEGEND (owner: "Did you update the guide? … the legend should stay the same width") ================= */
+    if (await has('igGuideRows')){
+      const g = await page.evaluate(() => { const at = v => { igSetView(v); const R = igGuideRows(); return R.mine.concat(R.every).map(r => r.q); };
+        return { tl: at(4), wiring: at(1), brain: at(0) }; });
+      check('9a the Guide tab offers the briefing and then-and-now on the Risk lens on every view',
+        ['brain', 'tl', 'wiring'].every(k => g[k].includes('Brief me') && g[k].includes('risk lens as of 3 months ago')), JSON.stringify(g));
+      check('9b the Timeline\'s Guide offers the renewal cliff, the Wiring\'s a what-if on the biggest party', g.tl.includes('timeline by renewal decision') && g.wiring.some(q => /^What if .+ left\?$/.test(q)), JSON.stringify({ tl: g.tl, wiring: g.wiring }));
+      await page.evaluate(() => { intel.asOf = null; intel.lenses = []; igLensSet(null, { noPush: true }); rebuildIntelGraph(); });
+      await page.evaluate(() => intelAsk('risk lens as of 6 months ago', { guide: true })); await page.waitForTimeout(900);
+      const gw = await page.evaluate(() => ({ lens: intel.lens, asOf: intel.asOf }));
+      const six = await page.evaluate(() => igLensThenISO(6));
+      check('9c "risk lens as of 6 months ago" turns the Risk lens on and the day six months back', gw.lens === 'risk' && gw.asOf === six, JSON.stringify({ gw, six }));
+      const widths = [];
+      for (const st of ['folded', 'open', 'risk', 'money', 'then']){
+        await page.evaluate(st => { intel.legendFolded = st === 'folded'; if (st === 'open' || st === 'folded'){ intel.asOf = null; igLensSet(null, { noPush: true }); }
+          if (st === 'risk'){ intel.asOf = null; igLensSet('risk', { noPush: true }); } if (st === 'money') igLensSet('money', { noPush: true });
+          if (st === 'then'){ igLensSet('risk', { noPush: true }); } rebuildIntelGraph(); if (st === 'then') document.querySelector('#ig-legend [data-ig-lens-then="3"]')?.click(); }, st);
+        await page.waitForTimeout(500);
+        widths.push(await page.evaluate(() => Math.round(document.getElementById('ig-legend').getBoundingClientRect().width)));
+      }
+      check('9d the legend keeps one width: folded, open, with a lens, and with then-and-now', widths.every(w => w === widths[0]) && widths[0] > 200, JSON.stringify(widths));
+    } else check('9 the Guide exists', false, 'igGuideRows missing');
+
     /* ================= 6. THE OWNER'S THREE SCREENS ================= */
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(500);
