@@ -21901,3 +21901,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - CLAUDE.md is about 88.8 KB, over the "about 80 KB" its own first lines ask for (it was over before this round, which added about 0.9 KB); a trim needs the owner's yes.
 - The drawn status page (dealPageDrawnHtml, behind NEW_LOOK_PUBLIC=1) still draws the six stops Arrive · Read · Fill · Negotiate · Sign · Live, which name our own steps; the other side's pages now read four (Shared · Negotiating · Agreed · Signed). Left as it is; the outside look serves the four-stop page.
 - Their team's notes (the new room on their side) are read on their page only; nothing emails their colleagues when one is written.
+
+## Noticed, not fixed (8 Nov 2026, showing the other side's emails)
+- The invitation letter (shareMailOf, drawn) still uses the older letter shape (14px, #1f2933, the bare address as the link, the sender's name with no company under it), while the other letters (smDrawnLetter / smTextLetterHtml) use 15px #1d1d1f, a named green link with the address under it, and name · company. Same look intended; two shapes.
