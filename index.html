@@ -11029,6 +11029,22 @@
   .ig-brain .igl .igl-note{font-size:11px;color:var(--hb-mute,#8FB5AD);max-width:190px}
   .ig-brain .igl .igl-more{color:var(--hb-mute,#8FB5AD)}
   .ig-brain .ig-viewbar{position:absolute;right:12px;bottom:12px;z-index:2;display:flex;align-items:center;gap:6px}
+  /* LENSES (the Lenses round, 8 Nov 2026): the Lens group stands on its own line above the views, in the bar's
+     own clothes; a lens on wears the needs-attention amber. The legend's lens part: a ring for each mark, its
+     count at the row's end, one bar of the counts. Colours are the stage's own (--hb-*), never typed here. */
+  .ig-brain .ig-viewbar{flex-wrap:wrap;justify-content:flex-end;max-width:calc(100% - 24px)}
+  .ig-brain .ig-viewbar .ig-lensrow{flex:0 0 100%;display:flex;justify-content:flex-end}
+  .ig-brain .ig-seg .ig-seg-k{height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-mute);display:inline-flex;align-items:center;border-right:1px solid rgba(var(--hb-ln),.14)}
+  .ig-brain .ig-seg.ig-lens button[aria-pressed="true"]{background:rgba(242,178,76,.26);color:var(--hb-ink)}
+  .ig-brain .igl .igl-sw.igl-ring{background:transparent;border:2px solid;box-sizing:border-box}
+  .ig-brain .igl .igl-sw.igl-ring.is-dashed{border-style:dashed}
+  .ig-brain .igl .igl-lt{flex:1 1 auto;min-width:0}
+  .ig-brain .igl .igl-n{margin-left:auto;padding-left:10px;font-variant-numeric:tabular-nums;color:var(--hb-ink)}
+  .ig-brain .igl .igl-lensbar{display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden;margin:6px 0 4px}
+  .ig-brain .igl .igl-lensbar i{display:block;height:100%}
+  #ig-dock .ig-lens-why{align-items:baseline;margin-top:6px;gap:6px}
+  #ig-dock .ig-lens-why .ig-lens-q{flex:1 1 100%;min-width:0}
+  #ig-dock .igd-cost{display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:11.5px;font-weight:var(--w-label)}
   /* the empty floor's door (Explorer stage 2): the view bar's own clothes, placed under its floor each frame */
   .ig-brain .ig-floor-door{all:unset;position:absolute;left:0;top:0;z-index:2;cursor:pointer;height:20px;padding:0 8px;font-size:11px;font-weight:500;line-height:20px;white-space:nowrap;color:var(--hb-ink,#E6F2EF);background:var(--hb-fig,rgba(4,25,26,.88));border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius);box-sizing:border-box}
   .ig-brain .ig-floor-door[hidden]{display:none}
