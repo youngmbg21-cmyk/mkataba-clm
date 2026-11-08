@@ -21919,3 +21919,9 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Noticed, not fixed: f515-three-next-questions and f520-see-it-while-you-type run out of memory in this container even on unchanged code.
 - Noticed, not fixed: the Brain's descriptions (brn_pd_*) still describe Jambo calls; kept on purpose as the admin's map of the machine.
 - 8 Nov 2026, later: "Rename column" is now built (owner: "Add rename") — the asker, the keeper or an admin.
+## Noticed, not fixed (8 Nov 2026, the platform-wide visual review, on main plus #584 and #585, new look on)
+- After visiting the Explorer, New agreement's Jambo panel keeps the Explorer's "Findings" and "Guide" tabs; opened fresh it shows only "Overview".
+- Negotiations' Open asks column reads "2 · “” § 3 · “” § 7": empty quote marks where the clause names should be, in a slanted serif unlike the row.
+- Home's week strip on a Sunday shows the week just ended and says "nothing dated this week" while a deposit is due Friday; the Calendar opens the week ahead at the weekend.
+- Counts disagree: Home's greeting "7 wait on you", Jambo's panel beside it and the foot "11 things", the Board "15 things"; Obligations' head "2 open" over the tab "Outstanding 4".
+- Jambo's panel tab reads "Overview 15" (the Needs-you count) on Contracts, People, Requests and My notes, but "Overview 2" (live deals) on Negotiations: one number, two meanings.
