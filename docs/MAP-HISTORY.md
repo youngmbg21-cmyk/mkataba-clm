@@ -36057,3 +36057,11 @@ The owner asked "What's next?" after the lenses, was shown five ideas drawn over
 ### CLAUDE.MD TRIM, 8 Nov 2026 — THE NEXT FIVE: one line added for the five, the Lenses line condensed so the file stays where it stood (80,131 bytes before; about the same after). The Lenses line stood verbatim:
 
 - LENSES (owner, 8 Nov 2026): Risk · Obligations · Money (`igLensMay`) · Promises · People; `intel.lens` in the recipe, ONE door `igLensSet`; readings the map already makes (`igLensBucketOf`, `igLensObOf`, `igLensMoneyOf`, `igLensOwnerOf`), drawn by `igLensDraw`; the legend a key, its ONE press the free check (`igLensScanAll` → `runScanFor(c,{quiet})`); doors `igLensDoorGo`; walk `igLensTourSteps`; words `igLensRead`, model `look.lens`.
+
+## INSIGHTS — THE RISK CHECK DATES (owner, 8 Nov 2026)
+
+The Next Five's drawing showed "three risks were found on contracts we already had" and "+1 since" tags; it could not be built honestly because a check kept only a display string (`at`) and the check's day (`on`), not when each finding arrived. Asked; the owner: "Yes, add the risk check dates But only after 583 is merged to main". Built after #583 merged.
+
+- runScan (js/ai.js) stamps `scan.first` (the day the contract was first checked) and `f.seen` on each finding (kept from the last check by the rule's stable id, else today). A check stored before has no `seen`: its findings take its `on`; with neither, the contract reads as today and the legend says how many ("checked before HaTi kept the days").
+- `igRiskAsOf(c, D)`: not checked by D = Not scanned; else the score of the open findings seen by D. A dismissal keeps no day, so a finding dismissed since is left out then too (said in the code, not on the page).
+- The risk sentence splits "N contracts we already had gained a risk since" from "N contracts added since"; `igRiskSinceBadges` puts "+N since" on the as-of lens's own badges when the Risk lens is on as the day is chosen.
