@@ -85,7 +85,8 @@ const check = (name, pass, detail) => {
     const c1 = await card();
     check('1a "make it monthly" changes the open card, not a new one', !!c0 && !!c1 && c1.k === c0.k && c1.depth === 1, JSON.stringify({ c0: c0 && c0.k, c1: c1 && c1.k }));
     check('1b monthly, still by the signing date', !!c1 && c1.split && c1.split.by === 'date' && c1.split.unit === 'm' && c1.split.date === 'signed', JSON.stringify(c1 && c1.split));
-    check('1c the panel says what changed, free', /^Changed the open chart, “.+”: now .+ · by month · signed · count\./.test(said1 || '') && /Free/.test(said1 || ''), said1);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    check('1c the panel says what changed, from your own numbers', /^Changed the open chart, “.+”: now .+ · by month · signed · count\./.test(said1 || '') && /Read from your own numbers/.test(said1 || ''), said1);
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '1-made-monthly.png') });
 

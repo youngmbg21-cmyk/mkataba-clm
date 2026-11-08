@@ -67,7 +67,8 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     const s4 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; if (!k) return null; const P = hbPlan(hbDigData(k, s.lens));
       const a = (intel.history || []).filter(m => m.role === 'assistant').pop(); return { k, by: P.split && P.split.by, said: a ? String(a.text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') : '' }; });
     await page.screenshot({ path: path.join(OUT, '4-deals-by-stage.png') });
-    check('4 "deals by stage" draws contracts by stage, free', !!s4 && s4.by === 'status' && /Free/.test(s4.said) && sent.length === 0, JSON.stringify(s4));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    check('4 "deals by stage" draws contracts by stage, from your own numbers', !!s4 && s4.by === 'status' && /Read from your own numbers/.test(s4.said) && !/\bfree\b|\bcalls?\b|nothing spent/i.test(s4.said) && sent.length === 0, JSON.stringify(s4));
     check('5 no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) { check('stage ran', false, e.message); }
   finally {

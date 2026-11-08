@@ -185,8 +185,8 @@ async function SEED(){
        named under the Overview tab, his greeting the Jambo tab's; still no name tab and no back button */
     check('5a two tabs: the template under Overview, no greeting there, no name tab, no back button', !E0.solo && !E0.word && E0.home && !E.back
       && !E0.landHello, JSON.stringify({ ...E0, b: E.back }));
-    check('5b his words, from the record — nothing spent, with where it came back changed and what it meets',
-      /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
+    check('5b his words, from the record, with where it came back changed and what it meets',
+      /Master services agreement v1, from the record\./.test(E.said) /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
       && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */

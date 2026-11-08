@@ -52,10 +52,11 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.evaluate(async () => { intel.history = []; await intelAsk('Where do deals stand?'); });
     /* RE-POINTED 24 Oct 2026 (one Jambo): a question the Board drew is then explained by the brain, so the VERIFIED line is one of the last two turns */
     const s3 = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant').slice(-2).find(m => /VERIFIED/.test(String(m.text))); const s = hbS(); const k = (s.path || []).slice(-1)[0]; const p = s.panels.find(x => x.key === k);
-      return a && /VERIFIED/.test(String(a.text)) && p && p.verified ? { free: /Free/.test(String(a.text)), by: /set by Amina Otieno/.test(String(a.text)), cards: s.panels.filter(x => x.verified).length } : null; });
+      return a && /VERIFIED/.test(String(a.text)) && p && p.verified ? { free: !/\bfree\b|\bcalls?\b|nothing spent/i.test(String(a.text)), by:  /set by Amina Otieno/.test(String(a.text)), cards: s.panels.filter(x => x.verified).length } : null; });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(OUT, '3-answer.png') });
-    check('3 asking a named question draws the card, free, VERIFIED with who', !!s3 && s3.free && s3.by && s3.cards === 1, JSON.stringify(s3));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    check('3 asking a named question draws the card, no cost said, VERIFIED with who', !!s3 && s3.free && s3.by && s3.cards === 1, JSON.stringify(s3));
     const s4 = await page.evaluate(() => {
       const seen = el => { if (!el) return false; const r = el.getClientRects()[0] || el.getBoundingClientRect(); if (!r.width || !r.height) return false; const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!hit && (hit === el || el.contains(hit)); };
       const vb = [...document.querySelectorAll('.hb-vb')]; const by = [...document.querySelectorAll('.hb-ver-by')].pop();
