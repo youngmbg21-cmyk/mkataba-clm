@@ -1423,6 +1423,88 @@ function hbFigDoor(key){
   if (typeof landOn === 'function') landOn('#reg-only-chip', { block: 'nearest', focus: false });
   return true;
 }
+/* PRESS A FIGURE, CHOOSE WHERE IT GOES (owner, 8 Nov 2026: "when you press,
+   you get a choice for two options. Current landing when you press or open in
+   explorer"; drawn and "Build it"): a figure of Your book whose contracts the
+   map can draw opens a small menu under it — Open the list (where the press
+   always landed, lit first, Enter takes it) · Show on the map (Explorer on
+   exactly those contracts, the view and lens that fit the figure, through the
+   one door hbShowOnMap). Esc, a press outside, or the figure again close it;
+   nothing moves until a choice. Free: no Jambo call. */
+const HB_FIG_MAP_FIT = { value: { lens: 'money' }, ending: { view: 4, time: 'decision', lens: 'obligations' },
+  past: { view: 4, time: 'expiry' }, overdue: { lens: 'promises' }, us: { lens: 'obligations' } };
+let _hbFigMenu = null;
+function hbFigContractIds(k){
+  let F = null; try { F = hbBookData(hbS().lens || 'all').figs[k]; } catch (_){ F = null; }
+  if (!F) return [];
+  const raw = k === 'overdue' ? (F.rows || []).map(o => o && o.cid) : (F.ids || []);
+  const seen = new Set(); return raw.filter(id => id && !seen.has(id) && seen.add(id) && hbContract(id));
+}
+function hbFigMenuOn(){ return !!(_hbFigMenu && document.getElementById('hb-figmenu')); }
+function hbFigMenuClose(){ const m = document.getElementById('hb-figmenu'); if (m) m.remove(); const was = _hbFigMenu; _hbFigMenu = null; return !!was; }
+function hbFigMenuOpen(btn){
+  const key = btn && btn.getAttribute('data-hb-dig'), m = /^f:(\w+)$/.exec(String(key || '')); if (!m) return false;
+  if (typeof window.intel === 'undefined' && typeof hbShowOnMap !== 'function') return false;
+  const ids = hbFigContractIds(m[1]); if (!ids.length) return false;
+  if (_hbFigMenu && _hbFigMenu.key === key){ hbFigMenuClose(); return true; }
+  hbFigMenuClose();
+  const f = HB_FIGS.find(x => x.k === m[1]), word = f ? i18t(f.word) : '';
+  const fit = HB_FIG_MAP_FIT[m[1]] || {};
+  const where = fit.view === 4 ? (fit.lens ? i18t('hb_fm_map_tl_lens', { x: i18t('int_lens_' + fit.lens) }) : i18t('hb_fm_map_tl'))
+    : fit.lens ? i18t('hb_fm_map_lens', { x: i18t('int_lens_' + fit.lens) }) : i18t('hb_fm_map_plain');
+  const list = m[1] === 'overdue' ? i18t('hb_fm_list_ob') : i18tn('hb_fm_list_ct', ids.length, { n: _hbN(ids.length) });
+  const el = document.createElement('div');
+  el.id = 'hb-figmenu'; el.className = 'hb-figmenu'; el.setAttribute('role', 'menu'); el.setAttribute('aria-label', word);
+  el.innerHTML = `<div class="hb-fm-h">${_hbE(word)} · ${_hbE(i18tn('hb_n_contracts', ids.length, { n: _hbN(ids.length) }))}</div>
+    <button type="button" class="hb-fm-o" role="menuitem" data-hb-fm="list">${typeof icon === 'function' ? icon('list', 'w-4 h-4') : ''}<span class="hb-fm-w"><b>${_hbE(i18t('hb_fm_list'))}</b><span>${_hbE(list)}</span></span><kbd aria-hidden="true">↵</kbd></button>
+    <button type="button" class="hb-fm-o" role="menuitem" data-hb-fm="map">${typeof icon === 'function' ? icon('network', 'w-4 h-4') : ''}<span class="hb-fm-w"><b>${_hbE(i18t('hb_fm_map'))}</b><span>${_hbE(where)}</span></span></button>`;
+  document.body.appendChild(el);
+  _hbFigMenu = { key, k: m[1], ids, word, fit };
+  hbFigMenuPlace();
+  const first = el.querySelector('[data-hb-fm="list"]');
+  if (first){ if (typeof fieldFocus === 'function') fieldFocus(first); else first.focus({ preventScroll: true }); }
+  return true;
+}
+/* the list: what a press on the figure always did — its own page, else the side list, else the dig */
+function hbFigListGo(key){
+  if (hbFigDoor(key)) return;
+  const el = document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="${key}"]`);
+  const sk = el ? hbSheetKeyOf(el) : null;
+  if (sk){ hbSheetOpen(sk, false, key); return; }
+  hbDig(key, false, true);
+}
+function hbFigMenuPick(which){
+  const M = _hbFigMenu; hbFigMenuClose(); if (!M) return;
+  if (which === 'map') hbShowOnMap(M.ids.join(','), i18t('hb_fm_from_board', { x: M.word }), Object.assign({ board: true }, M.fit));
+  else hbFigListGo(M.key);
+}
+/* the menu's presses and keys, read first by the board's own one listener and key reader (hbOnClick, hbOnKey) */
+function hbFigMenuClick(e){
+  if (!_hbFigMenu) return false;
+  const o = e.target && e.target.closest && e.target.closest('[data-hb-fm]');
+  if (o){ e.preventDefault(); e.stopPropagation(); hbFigMenuPick(o.getAttribute('data-hb-fm')); return true; }
+  if (e.target && e.target.closest && (e.target.closest('#hb-figmenu') || e.target.closest('#hb-book .hb-fig-main'))) return e.target.closest('#hb-figmenu') ? true : false;
+  hbFigMenuClose(); return false;
+}
+function hbFigMenuKey(e){
+  if (!hbFigMenuOn()) return false;
+  if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); const k = _hbFigMenu && _hbFigMenu.key; hbFigMenuClose();
+    const b = k && document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="${k}"]`); if (b && typeof fieldFocus === 'function') fieldFocus(b); return true; }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ const os = [...document.querySelectorAll('#hb-figmenu [data-hb-fm]')]; if (!os.length) return false;
+    e.preventDefault(); const i = os.indexOf(document.activeElement); const j = e.key === 'ArrowDown' ? (i + 1) % os.length : (i <= 0 ? os.length - 1 : i - 1); os[j].focus({ preventScroll: true }); return true; }
+  return false;
+}
+/* a scroll carries the menu with its figure; a figure gone from the page takes the menu with it */
+function hbFigMenuPlace(){
+  const M = _hbFigMenu, el = document.getElementById('hb-figmenu'); if (!M || !el) return;
+  const btn = document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="${M.key}"]`); if (!btn){ hbFigMenuClose(); return; }
+  const r = btn.getBoundingClientRect(), w = el.offsetWidth || 330, h = el.offsetHeight || 140;
+  const below = r.bottom + 6 + h <= window.innerHeight - 8;
+  el.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w))) + 'px';
+  el.style.top = Math.round(below ? r.bottom + 6 : Math.max(8, r.top - 6 - h)) + 'px';
+}
+window.addEventListener('scroll', () => { if (_hbFigMenu) hbFigMenuPlace(); }, true);
+window.addEventListener('resize', () => { if (_hbFigMenu) hbFigMenuPlace(); });
 function hbThenWord(month){
   try { return new Date(hbThenDay() + 'T00:00:00').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined,
     month ? { month: 'long' } : { day: 'numeric', month: 'long' }); } catch (_){ return hbThenDay(); }
@@ -7728,7 +7810,7 @@ function hbLensOnMap(){
 }
 /* SHOW THESE ON THE MAP: Explorer's own lens, lighting the set and dimming
    the rest, then the flip. A lens is added once (addLens' own rule). */
-function hbShowOnMap(ids, label){
+function hbShowOnMap(ids, label, fit){
   const list = String(ids || '').split(',').filter(Boolean);
   if (!list.length || !window.intel) return;
   /* NARROWED, not lit (the owner, 3 Oct 2026: "I asked for Juno contracts and
@@ -7738,7 +7820,12 @@ function hbShowOnMap(ids, label){
   hbLensOnMap();
   /* the count already narrows the map to this very set: no second chip */
   const same = intel.lenses.find(l => l.hb && l.id === 'hbcount' && l.ids.length === list.length && l.ids.every(id => list.includes(id)));
-  if (!same && typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), action: 'filter' }); }
+  if (!same && typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), kind: fit && fit.board ? 'board' : null, action: 'filter' }); }
+  /* a Board figure's own view and lens (HB_FIG_MAP_FIT): the map's own writers */
+  if (fit){ if (typeof igRecipePush === 'function') igRecipePush();
+    if (fit.time) intel.timeBy = fit.time;
+    if (fit.view != null && typeof igSetView === 'function') igSetView(fit.view);
+    if (typeof igLensSet === 'function') igLensSet(fit.lens || null, { noPush: true }); }
   hbMount();
 }
 /* A BOOK DOOR PRESSED WHILE COUNTING OPENS WITHIN THE COUNT (Young, 4 Oct
@@ -10593,6 +10680,7 @@ function hbReviewOnPaper(k, cid){
 function hbOnClick(e){
   if (!window.state || state.view !== 'dashboard') return;
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  if (hbFigMenuClick(e)) return;
   /* a press anywhere but the figure picker puts it away */
   if (_hbFigPick && !t.closest('.hb-figpick-w')){ _hbFigPick = false; hbPaintBoard(); }
   /* a door out of the side list (Open these, Show on the map) leaves it closed behind */
@@ -10757,7 +10845,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ag-more]'))){ const k = el.getAttribute('data-hb-ag-more'); _hbAgMore.set(k, (_hbAgMore.get(k) || 0) + HB_AG_WORK_MAX); hbPaintBoard(); return; }
   if ((el = on('[data-hb-sheet-c]'))){ hbSheetGo(el.getAttribute('data-hb-sheet-c')); return; }
   /* a figure of Your book: the list behind it, on its own page (round 17 as drawn, hbFigDoor) */
-  if ((el = on('#hb-book .hb-fig-main[data-hb-dig]')) && !el.disabled && hbFigDoor(el.getAttribute('data-hb-dig'))) return;
+  if ((el = on('#hb-book .hb-fig-main[data-hb-dig]')) && !el.disabled && (hbFigMenuOpen(el) || hbFigDoor(el.getAttribute('data-hb-dig')))) return;
   /* a piece of a chart, a table row or a figure: its contracts in the side list (as drawn) */
   if ((el = on('.hb-sheet [data-hb-dig^="c:"]')) && _hbSheet){ hbSheetGo(el.getAttribute('data-hb-dig').slice(2)); return; }
   if ((el = on('[data-hb-dig]')) && !el.disabled){ const sk = hbSheetKeyOf(el); if (sk){
@@ -10835,6 +10923,7 @@ function hbOnPenDown(e){
 function hbOnPenUp(){ if (!_hbStroke) return; if (_hbStroke.length > 1) _hbInk.push(_hbStroke); _hbStroke = null; hbInkDraw(); }
 function hbOnKey(e){
   if (!window.state || state.view !== 'dashboard') return;
+  if (hbFigMenuKey(e)) return;
   if (hbSlashKey(e)) return;
   /* Ctrl/⌘+Z on the board undoes the last board change (never inside a box being typed in) */
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z') && hbBoardInFront()){
@@ -11338,7 +11427,7 @@ Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLan
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
   hbOblRowsHtml, hbDigBodyHtml, hbFocusHtml, hbCrumbOf, hbCardHtml, hbSheetGo, hbBarsHtml, hbPanelBodyHtml, hbPanelHtml,
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
-  hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
+  hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, HB_FIG_MAP_FIT, hbFigContractIds, hbFigMenuPlace, hbFigMenuOpen, hbFigMenuClose, hbFigMenuOn, hbFigMenuPick, hbFigMenuClick, hbFigMenuKey, hbFigListGo, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,
   hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbShowFound, HB_KEY_SEP, HB_CHART_BARS, HB_CHART_MONTHS, HB_GROUP_FIELDS, hbNextGroup, hbGroupOf, hbGroupLabel, hbGroupWord, hbMonthOf, hbMonthLabel, hbValueBands, hbChartHtml, hbChartBarsHtml, hbChartColsHtml, hbListFootHtml,
   HB_ATTENTION_RE, HB_HUES, HB_HUES_LIGHT, HB_HUES_DARK, hbHues, hbHueOf, hbFitMeasure, hbStepH, hbChartTableHtml, hbFocusBodyHtml, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily,

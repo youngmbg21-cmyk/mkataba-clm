@@ -84,7 +84,7 @@ const FLOW_MAP = [
     a: [], d: ['document', 'share'], p: [] },
   /* ---- THE BOOK ---- */
   { k: 'board', st: 'book', s: _w('your book, counted', 'din avtalsbok, räknad'),
-    a: [], d: ['contracts', 'explorer', 'calendar', 'work'], p: [['contracts', _w('the list behind a figure', 'listan bakom en siffra')]] },
+    a: [['explorer', _w('a figure → its contracts on the map', 'en siffra → dess avtal på kartan')]], d: ['contracts', 'explorer', 'calendar', 'work'], p: [['contracts', _w('the list behind a figure', 'listan bakom en siffra')]] },
   { k: 'work', st: 'book', s: _w('what Jambo prepared, on the Board', 'det Jambo har förberett, på tavlan'),
     a: [['document', _w('a piece → where it lands', 'en del → där den landar')]], d: ['board', 'house'], p: [] },
   { k: 'explorer', st: 'book', s: _w('the map of the book', 'kartan över avtalsboken'),

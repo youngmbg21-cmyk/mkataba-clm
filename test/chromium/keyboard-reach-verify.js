@@ -361,6 +361,8 @@ async function tabAround(page, sel, n = 25) {
     const fig = await page.$('#hb-book .hb-fig-main[data-hb-dig="f:live"]');
     if (fig) {
       await fig.focus();
+      await page.keyboard.press('Enter'); await pause(300);
+      /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land; the menu readies it, so a second Enter takes it */
       await page.keyboard.press('Enter'); await pause(600);
       /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"): a
          contract figure opens the Contracts place narrowed to the contracts

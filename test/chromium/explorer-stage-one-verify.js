@@ -147,9 +147,10 @@ const check = (name, pass, detail) => {
     /* ================= 5. THE STRIP UNDER THE DATES =========================== */
     const p5 = await paint();
     const s5 = await page.evaluate(() => ({ strip: (IG.tl.strip || []).reduce((a, s) => a + s.n, 0), dated: IG.nodes.filter(n => n.kind === 'contract').length - IG.tl.undated, step: IG.tl.step,
-      per: i18t('int_tl_per_' + IG.tl.step), word: i18t('int_tl_strip_decision') }));
+      /* RE-POINTED 8 Nov 2026 (the renewal cliff, "Build it"): the decision strip counts by month whatever the ticks' stretch */
+      per: i18t('int_tl_per_' + (IG.tl.stripStep || IG.tl.step)), word: i18t('int_tl_strip_decision') }));
     check('5a the strip counts every dated contract once, in the timeline\'s own stretches', s5.strip === s5.dated && s5.dated > 0, JSON.stringify(s5));
-    check('5b the strip is painted with its name and its stretch ("Decisions" · "per quarter")', p5.texts.includes(s5.word) && p5.texts.includes(s5.per), JSON.stringify({ word: s5.word, per: s5.per }));
+    check('5b the strip is painted with its name and its stretch ("Decisions" · "per month")', p5.texts.includes(s5.word) && p5.texts.includes(s5.per), JSON.stringify({ word: s5.word, per: s5.per }));
     await page.screenshot({ path: path.join(OUT, '5-timeline-tails-and-strip.png') });
     await ask('timeline by expiry');
     await settle(4);

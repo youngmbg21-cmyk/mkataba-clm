@@ -72,6 +72,8 @@ const check = (name, pass, detail) => {
     const live = R.find(r => r.k === 'live') || {};
     check('2b today is the figure\'s door', live.door === 'f:live', JSON.stringify(live));
     await page.click('#hb-book [data-hb-fig="live"] .hb-fig-main');
+    /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+    await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
     /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the list behind a contract
        figure is the Contracts place, narrowed to what it counts */
     const opened = await until(() => (typeof regState === 'function' && regState().only && regState().only.ids && !!document.getElementById('ct-place')) ? regState().only.ids.length : null, null, 8000);
