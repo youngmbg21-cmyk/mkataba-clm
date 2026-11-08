@@ -5019,7 +5019,7 @@ function portalCodeScreen(token, d){
          that a second pair was written for this and reverted; the code a guest
          proves their inbox with is the same code the signature asks for. */
       const r=await fetch('api/shares/'+encodeURIComponent(token)+'/otp',{ method:'POST',
-        headers:{ 'Content-Type':'application/json' }, body:'{}' });
+        headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ for:'open' }) });
       const j=await r.json().catch(()=>null);
       if(!r.ok) return say((j&&j.error)||i18t('po_code_send_failed'));
       markSent();

@@ -21,6 +21,7 @@ const { shareMailOf, shareMailNameOf, signerTurnMailOf, shareRoundOf, shareAnswe
 /* THE CHASE (round 23's gaps, 18 Oct 2026): the reminder the Counter's Look draws, written once */
 const { chaseMailOf, chaseDayWords } = require('../js/sharemail.js');
 const { linkAskMailOf } = require('../js/sharemail.js');
+const { smTextLetterHtml, reminderMailOf, codeMailOf } = require('../js/sharemail.js');
 const { passMailOf, PASS_NOTE_MAX } = require('../js/sharemail.js');
 /* WHERE THE DEAL STANDS, AS DRAWN: the page's one reading, shared with the owner's tab (js/dealstands.js) */
 const { dpPage } = require('../js/dealstands.js');
@@ -2450,7 +2451,8 @@ async function hoMailFile(req, c, ho, to, note) {
     `\n${tFor(L, 'mail_ho_replies', { who: vars.who })}`,
   ].filter(Boolean).join('\n');
   return sendEmail(to.email, tFor(L, 'mail_ho_subject', vars), body,
-    `handover: ${contractRef(c)}`, { attachments: [{ filename: (ho.file && ho.file.name) || `${contractRef(c)}-agreed.docx`, content: b64 }] });
+    `handover: ${contractRef(c)}`, { attachments: [{ filename: (ho.file && ho.file.name) || `${contractRef(c)}-agreed.docx`, content: b64 }],
+      ...(outsideLookOn() ? { html: smTextLetterHtml(body, { sign: { name: vars.who, org: vars.org } }) } : {}) });
 }
 /* The same mail to our own people, with the one line their part asks of them. */
 async function hoTellPeople(req, c, kind, opts) {
@@ -16604,9 +16606,12 @@ async function srvDistributeTo(c, recipients, appUrl) {
         `No copy of the contract is attached to this message, and none will be sent until every party has signed. ` +
         `This is a progress notice only.\n\n` +
         `This is an automated notice from HaTi CLM.`;
+    /* the other side's copy, the Legora way where the outside look is on: the same words, signed by our company */
+    const ourOrg = String(c.party || ((getSetting('org') || {}).name) || '').trim();
+    const drawnHtml = (external && outsideLookOn()) ? smTextLetterHtml(body, { drop: ['This is an automated notice from HaTi CLM.'], sign: { org: ourOrg } }) : null;
     const sent = await sendEmail(email, subject, body,
       st.fully ? `executed copy: ${c.id}` : `part-signed notice: ${c.id}`,
-      attachment ? { attachments: [attachment] } : undefined);
+      (attachment || drawnHtml) ? { ...(attachment ? { attachments: [attachment] } : {}), ...(drawnHtml ? { html: drawnHtml } : {}) } : undefined);
     /* Say what actually happened to each message. 'sent' used to stand for
        every non-delivered outcome, so a provider refusal and a not-configured
        outbox both wore a green light. Delivered / outbox / failed now, with
@@ -17351,7 +17356,8 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
    gets. It reads; it sends and writes nothing. */
 async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
   const m = srvChaseMail(req, c, o, to, { firm });
-  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`);
+  /* the Legora way where the outside look is on: the same words in the letter's shape (it is already signed) */
+  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`, outsideLookOn() ? { html: smTextLetterHtml(m.body) } : {});
   return r;
 }
 function srvChaseMail(req, c, o, to, { firm = false } = {}) {
@@ -19468,7 +19474,10 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
     org: (payload && payload.org) || 'the sender',
     them: (payload && payload.contract && payload.contract.counterparty) || '',
     link, expiresAt, t: (k, v) => tFor(L, k, v), codeOn: EMAIL_ON(), stepOf: srvSignStep });
-  return { subject: m.subject, body: m.body };
+  /* the Legora way where the outside look is on: the same words, the letter's shape, signed by the sender */
+  const html = outsideLookOn() ? smTextLetterHtml(m.body, { drop: [tFor(L, 'mail_automated_notice')],
+    sign: { name: (payload && payload.sharedBy) || '', org: (payload && payload.org) || '' } }) : null;
+  return { subject: m.subject, body: m.body, html };
 }
 
 /* ============================================================
@@ -19697,7 +19706,7 @@ async function releaseOneSignerLink(req, contractId, rt, next) {
          out in English, including from a Swedish workspace. The internal
          signer's own notification has passed this all along. */
       senderLang: req && req.user && req.user.lang });
-    const r = await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`);
+    const r = await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`, mail.html ? { html: mail.html } : {});
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), ns.token);
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
       .run(String(r.detail || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), ns.token);
@@ -20129,7 +20138,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         const mail = signerTurnEmail({ signer: signerRow, plan: rt.plan, payload,
           link: exLink, expiresAt: existing.expires_at,
           senderLang: req && req.user && req.user.lang });   /* see the note above */
-        const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`);
+        const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`, mail.html ? { html: mail.html } : {});
         exSent = !!r2.sent; exErr = r2.detail || null;
         // sent_at means the provider ACCEPTED it; a failed attempt records why.
         if (exSent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), existing.token);
@@ -20186,7 +20195,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   if (ch === 'email' && signerId && !heldForTurn) {
     const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires,
       senderLang: req && req.user && req.user.lang });   /* see the note above */
-    const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`);
+    const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`, mail.html ? { html: mail.html } : {});
     emailSent = !!r.sent; emailError = r.detail || null;
     // sent_at means the provider ACCEPTED it; a failed attempt records why,
     // so the Signature-progress row can say "send failed — resend" instead of
@@ -20255,7 +20264,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        gate). The inbox that draws HTML gets the same words with a button. */
     const pc = (payload && payload.contract) || {};
     const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
-      drawn: (req.body || {}).drawnLetter === true,
+      drawn: (req.body || {}).drawnLetter === true || outsideLookOn(),
       cName, recName: rec.name, message, subject, link, expires,
       round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status',
       ...srvMailCodeOf(shareId) });
@@ -21801,7 +21810,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     const note = String(letter.message || '').slice(0, 1000);
     if (note) db.prepare('UPDATE shares SET message=? WHERE token=?').run(note, s.token);
     const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
-      drawn: (req.body || {}).drawnLetter === true,
+      drawn: (req.body || {}).drawnLetter === true || outsideLookOn(),
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
       message: note, subject: letter.subject, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
       ...srvMailCodeOf(s.contract_id) });
@@ -21949,7 +21958,9 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
   if ((s.channel || 'link') === 'email' && s.recipient_email) {
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
-    const r = await sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
+    const L = outsideLookOn() ? srvReminderMail(s, p, req.user.name, req.user.title || '', !s.first_opened_at) : null;
+    const r = L ? await sendEmail(s.recipient_email, L.subject, L.body, `share resend: ${link}`, { html: L.html })
+      : await sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
       `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
       `share resend: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
@@ -22036,7 +22047,13 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
      a delivered one and they sat watching an empty inbox with the signature
      blocked behind it. The provider's own words stay in the admin-only outbox
      (mailReportPublic); what crosses is that it did not arrive. */
-  const mailed = await sendEmail(invited, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
+  /* THE CODE SAYS WHAT IT IS FOR (owner, 8 Nov 2026: the opening code said "to sign this contract"): the code
+     screen asks with { for: 'open' } where the link must prove its inbox before it opens; otherwise it signs. */
+  let otpP = {}; try { otpP = JSON.parse(s.payload) || {}; } catch (_) {}
+  const cm = codeMailOf({ code, open: (req.body || {}).for === 'open' && shareNeedsCode(s), minutes: 10,
+    cName: srvMailCodeOf(s.contract_id).code ? shareMailNameOf(srvMailCodeOf(s.contract_id)) : ((otpP.contract && otpP.contract.name) || ''),
+    sender: otpP.sharedBy || '', drawn: outsideLookOn() });
+  const mailed = await sendEmail(invited, cm.subject, cm.body, `OTP for signing: ${code}`, cm.html ? { html: cm.html } : {});
   // The code is NEVER returned to the caller. This endpoint is public and the
   // caller is the party being verified — handing them the code makes the check
   // theatre. With no mail provider the code queues to the admin-only outbox
@@ -22941,6 +22958,17 @@ function emailHealth() {
 // Nudge counterparties on email shares that sat unopened for N days — one
 // reminder per share (reminded_at), never on revoked/expired/responded links.
 const SHARE_NUDGE_DAYS = 3;
+/* THE OTHER SIDE'S LETTERS, THE LEGORA WAY (owner, 8 Nov 2026), behind the company's outside look: the reminder's
+   facts read off the link and the STORED contract — our asks still waiting on them, by clause name. */
+const srvDayWords = v => { const d = new Date(v); return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
+function srvReminderMail(s, p, sender, title, unopened) {
+  const cur = s.contract_id ? srvStoredContract(s.contract_id) : null;
+  const waiting = cur && Array.isArray(cur.changes) ? cur.changes.filter(ch => ch && ch.authorSide === 'owner' && ch.status === 'pending' && !ch.withdrawn && !ch.superseded)
+    .map(ch => String(ch.clauseLabel || '').trim()).filter(Boolean) : [];
+  return reminderMailOf({ sender, title, org: p.org || '', cName: (p.contract && p.contract.name) || '', recName: s.recipient_name || '',
+    link: shareUrl(null, s.token), expires: s.expires_at ? srvDayWords(s.expires_at) : '', since: srvDayWords(s.sent_at || s.created_at),
+    waiting: [...new Set(waiting)], unopened, ...srvMailCodeOf(s.contract_id) });
+}
 function runShareNudges() {
   let queued = 0;
   const stale = db.prepare(`SELECT * FROM shares WHERE channel='email' AND recipient_email IS NOT NULL
@@ -22963,7 +22991,9 @@ function runShareNudges() {
     if (!cur || isExecutedRow(cur) || cur.status === 'Declined' || cur.archived || (cur.hold && cur.hold.at)) continue;
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
-    sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
+    const L = outsideLookOn() ? srvReminderMail(s, p, p.sharedBy || '', '', true) : null;
+    if (L) sendEmail(s.recipient_email, L.subject, L.body, 'share nudge', { html: L.html });
+    else sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
       `${p.sharedBy || 'The sender'} at ${p.org || 'HaTi'} shared "${cName}" with you ${SHARE_NUDGE_DAYS} days ago and it hasn't been opened yet.\n\nReview it here — no account needed:\n${shareUrl(null, s.token)}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
       'share nudge');
     db.prepare('UPDATE shares SET reminded_at=? WHERE token=?').run(now(), s.token);

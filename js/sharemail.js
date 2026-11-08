@@ -445,7 +445,102 @@ function linkAskMailOf(o){
   return { subject: t('mail_la_subject', { who, name: cName }), parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
 }
 
-const SHARE_MAIL_API = { linkAskMailOf, PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, SHARE_SUBJECT_MAX, shareSubjectClean, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
+/* ---- THE OTHER SIDE'S LETTERS, THE LEGORA WAY (owner, 8 Nov 2026: "the legora way makes sense"; the letters
+   they get read as the invitation's drawn letter) ----
+   One shape: the greeting, what happened in plain words, the link as one line under its words, then Kind regards
+   and the sender. Sent so wherever the company's "new look for people outside" is on (the server's outsideLookOn);
+   the hosts decide, these only write. A standalone email carries no :root — literal values only. */
+const SM_QUIET = '#4b4b50';
+function _smE(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function _smDrawnShell(inner){
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1d1d1f;max-width:600px">${inner}</div>`;
+}
+/* o = { hello, paras: [text | { quote: [text] }], link: { label, url }, after: [text], sign: { bye, name, title, org } } */
+function smDrawnLetter(o){
+  const x = o || {};
+  const P = (t, mb) => `<p style="margin:0 0 ${mb == null ? 14 : mb}px;white-space:pre-wrap">${_smE(t)}</p>`;
+  const html = [], text = [];
+  if (x.hello){ html.push(P(x.hello)); text.push(x.hello); }
+  for (const p of (x.paras || [])){
+    if (p && Array.isArray(p.quote)){
+      html.push(`<div style="margin:0 0 16px;border-left:2px solid #d9d9de;padding:2px 0 2px 14px">${p.quote.map(q => P(q, 6)).join('')}</div>`);
+      text.push(p.quote.join('\n'));
+    } else if (p){ html.push(P(p)); text.push(String(p)); }
+  }
+  if (x.link && x.link.url){
+    html.push(`<p style="margin:0 0 14px"><a href="${_smE(x.link.url)}" style="color:${SM_LINK_INK};font-weight:600">${_smE(x.link.label || x.link.url)}</a><br><span style="color:${SM_QUIET};font-size:13px">${_smE(x.link.url)}</span></p>`);
+    text.push(`${x.link.label ? x.link.label + ':\n' : ''}${x.link.url}`);
+  }
+  for (const a of (x.after || [])) if (a){ html.push(P(a)); text.push(String(a)); }
+  const sg = x.sign || null;
+  if (sg && (sg.name || sg.org)){
+    const sub = [sg.title, sg.name ? sg.org : ''].filter(Boolean).join(', ');
+    html.push(`<p style="margin:4px 0 2px">${_smE(sg.bye || 'Kind regards,')}</p><p style="margin:0">${_smE(sg.name || sg.org)}${sub ? `<br><span style="color:${SM_QUIET}">${_smE(sub)}</span>` : ''}</p>`);
+    text.push(`${sg.bye || 'Kind regards,'}\n${sg.name || sg.org}${sub ? '\n' + sub : ''}`);
+  }
+  return { body: text.join('\n\n'), html: _smDrawnShell(html.join('')) };
+}
+/* AN EXISTING LETTER, LAID OUT THE LEGORA WAY: for the letters whose words live in the books in the reader's own
+   language (the signer's turn, the chase, the handover, the signed copy), the words are kept and only the shape
+   changes — paragraphs as written, an address as its link, and the automated notice replaced by the sender's
+   name where one is known. o = { sign: { bye, name, title, org }, drop: [paragraph to leave out] } */
+function smTextLetterHtml(body, o){
+  const x = o || {};
+  const drop = new Set((x.drop || []).map(s => String(s).trim()));
+  const paras = String(body || '').split(/\n{2,}/).map(s => s.trim()).filter(s => s && !drop.has(s));
+  const url = /^(https?:\/\/\S+|\S+#share=\S+)$/;
+  const html = paras.map(p => {
+    const lines = p.split('\n');
+    const last = lines[lines.length - 1].trim();
+    if (url.test(last)){
+      const label = lines.slice(0, -1).join(' ').replace(/:\s*$/, '');
+      return `<p style="margin:0 0 14px"><a href="${_smE(last)}" style="color:${SM_LINK_INK};font-weight:600">${_smE(label || last)}</a><br><span style="color:${SM_QUIET};font-size:13px">${_smE(last)}</span></p>`;
+    }
+    return `<p style="margin:0 0 14px;white-space:pre-wrap">${_smE(p)}</p>`;
+  });
+  const sg = x.sign || null;
+  if (sg && (sg.name || sg.org)){
+    const sub = [sg.title, sg.name ? sg.org : ''].filter(Boolean).join(', ');
+    html.push(`<p style="margin:4px 0 2px">${_smE(sg.bye || 'Kind regards,')}</p><p style="margin:0">${_smE(sg.name || sg.org)}${sub ? `<br><span style="color:${SM_QUIET}">${_smE(sub)}</span>` : ''}</p>`);
+  }
+  return _smDrawnShell(html.join(''));
+}
+/* THE REMINDER (Resend, and the unopened nudge). o = { sender, title, org, cName, code, ref, recName, link, expires,
+   since, waiting: [clause], unopened } — days already in words */
+function reminderMailOf(o){
+  const x = o || {};
+  const cName = shareMailNameOf(x) || x.cName || 'the agreement';
+  const first = _smFirst(x.recName);
+  const the = _smThe(cName, false, !!shareMailNameOf(x));
+  const w = Array.isArray(x.waiting) ? x.waiting.filter(Boolean) : [];
+  const paras = [];
+  if (x.unopened) paras.push(`${x.sender || x.org || 'We'} shared ${the} with you${x.since ? ' on ' + x.since : ''}, and it has not been opened yet.`);
+  else paras.push(`${_smThe(cName, true, !!shareMailNameOf(x))} has been with you${x.since ? ' since ' + x.since : ''}${w.length ? `, and ${w.length === 1 ? 'one answer waits' : w.length + ' answers wait'} on you: ${w.join(' and ')}.` : '.'}`);
+  const L = smDrawnLetter({ hello: first ? `Dear ${first},` : 'Hello,', paras,
+    link: { label: x.unopened ? 'Open it' : 'Open it and answer', url: x.link },
+    after: [x.expires ? `The link works until ${x.expires}. If someone else should answer, reply to this email and say who.` : 'If someone else should answer, reply to this email and say who.'],
+    sign: { name: x.sender, title: x.title, org: x.org } });
+  return { subject: `${_smThe(cName, true, !!shareMailNameOf(x))} is waiting for you`, ...L };
+}
+/* THE ONE-TIME CODE, saying what it is for: opening the link, or confirming a signature (the page that asked
+   knows which). Plain words in both looks; the drawn shape where the host passes `drawn`.
+   o = { code, open, cName, sender, minutes, drawn } */
+function codeMailOf(o){
+  const x = o || {};
+  const code = String(x.code || '');
+  const min = Number(x.minutes) || 10;
+  const what = x.cName ? `the ${String(x.cName)}` : 'the agreement';
+  const lines = [`Your code is ${code}.`,
+    x.open ? `It opens the link${x.sender ? ' ' + x.sender + ' sent you' : ''} about ${what}. It works for ${min} minutes.`
+      : `It confirms it is you before your signature on ${what} is recorded. It works for ${min} minutes.`,
+    'If you did not ask for a code, you can ignore this email. Nothing opens or is signed without it.'];
+  const subject = x.open ? `Your code to open ${what}` : `Your code to sign ${what}`;
+  if (!x.drawn) return { subject, body: lines.join('\n\n') };
+  const html = _smDrawnShell(`<p style="margin:0 0 14px">Your code is <b style="font-size:20px;letter-spacing:.12em">${_smE(code)}</b></p>`
+    + lines.slice(1).map(l => `<p style="margin:0 0 14px">${_smE(l)}</p>`).join(''));
+  return { subject, body: lines.join('\n\n'), html };
+}
+const SHARE_MAIL_API = { smDrawnLetter, smTextLetterHtml, reminderMailOf, codeMailOf, linkAskMailOf, PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, SHARE_SUBJECT_MAX, shareSubjectClean, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
   shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;
