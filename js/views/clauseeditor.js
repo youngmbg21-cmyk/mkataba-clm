@@ -1389,6 +1389,12 @@ function ceHeadingOf(ch){
    refuses it too: clauseReplaceHeading finds nothing to rewrite and answers
    null, so the box is simply not drawn where the act cannot work. */
 const ceHeadEditable = () => !!_ceHeadBase;
+/* ---- AND ONLY ON A SEAT THAT MAY RENAME IT (owner, 8 Nov 2026: "fix both") ----
+   The other side may not rename a clause of ours: the funnel drops the name they type and keeps the rest
+   (negoFileChange, owner-ruled 29 Aug 2026), so on their seat the box stood typable while what was typed in it
+   went nowhere, and the filing landed as "Formatting only". The name is shown, not typed, on their seat — a
+   clause of their own proposing (an insertion) keeps its name box, as the funnel allows. */
+const ceHeadTypable = () => ceHeadEditable() && (ceSide() !== 'counterparty' || ceIsProposed());
 
 /* WHAT A CHANGE STORES, WITH NO FALLBACK. bodyHtml first: it is what the change
    actually holds and what the funnel takes back. newText is its projection and
@@ -3585,7 +3591,7 @@ function ceRenderPaper(){
      redlined reading shows both. Drawn only where the clause HAS a heading —
      see ceHeadEditable for why creating one is refused. */
   const headBox = !ceHeadEditable() ? null
-    : typing
+    : (typing && ceHeadTypable())
       ? `<h4 class="rl-clause-h ce-typing ce-headbox" id="ce-clausehead" contenteditable="true"
           role="textbox" spellcheck="true">${_cee(_ceHead)}</h4>`
       : ceHeadReadHtml();
@@ -6972,7 +6978,7 @@ async function ceFile(why){
        the one the clause already carries is not one, and is stored as '' so a
        reader who types the original back clears the record's own rename rather
        than leaving a stale one standing. */
-    if (ceHeadEditable()) o.headingText = _ceHead;
+    if (ceHeadTypable()) o.headingText = _ceHead;
     /* ---- THE COUNTER IS WRITTEN ON THEIR ASK (Young ruled 13 Sep 2026) ----
        The box was seeded from the lead change; where that is THEIR pending
        proposal, this filing is measured against it, and the funnel stacks the
@@ -6981,7 +6987,7 @@ async function ceFile(why){
        on", asked here and by the layered picture above the box. */
     const on = ceStacksOn();
     if (on) o.onTop = on.id;
-    ch = proposed ? await negoReviseInsert(c, clauseId, { bodyHtml: html, ...(ceHeadEditable() ? { headingText: _ceHead } : {}) }, o)
+    ch = proposed ? await negoReviseInsert(c, clauseId, { bodyHtml: html, ...(ceHeadTypable() ? { headingText: _ceHead } : {}) }, o)
       : await negoEditClause(c, clauseId, html, o);
   }catch(e){ err = e; }
   _ceBusy = false;
