@@ -5485,7 +5485,7 @@ function shareLetterPartsHtml(parts){
       out.push(`<p class="sh-lt-p sh-lt-btnp"><span class="sh-lt-btn" data-sh-lt-btn title="${esc(i18t('sh_lt_link'))}">${esc(p.t)}</span></p>`);
     } else if(p.k==='link'){
       if(!list.some(x=>x.k==='btn')) out.push(`<p class="sh-lt-p"><span class="sh-lt-link" data-sh-lt-link>${esc(i18t('sh_lt_link'))}</span></p>`);
-    } else out.push(`<p class="sh-lt-p sh-lt-${p.k}${p.list?' is-lead':''}">${esc(p.t)}</p>`);
+    } else out.push(`<p class="sh-lt-p sh-lt-${p.k}${p.list?' is-lead':''}">${esc(p.t)}${p.sub?'<br>'+esc(p.sub):''}</p>`);
   }
   return out.join('');
 }

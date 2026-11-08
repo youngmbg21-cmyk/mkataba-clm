@@ -255,11 +255,12 @@ function shareMailOf(o){
     parts.push({ k: 'link', t: link, at: true });
     if (x.codeOn && x.purpose !== 'status') parts.push({ k: 'say', t: SHARE_MAIL_CODE });
     parts.push({ k: 'say', t: 'Kind regards,', list: 'sign' });
-    parts.push({ k: 'sign', t: sender });
+    /* signed like every other letter to the other side: the name, then title and company in the quiet line */
+    parts.push({ k: 'sign', t: sender, sub: [String(x.title || '').trim(), sender ? org : ''].filter(Boolean).join(', ') });
     const subject0 = shareSubjectClean(x.subject) || (coded
       ? (x.purpose === 'negotiate' ? `Round ${round} of ${coded}` : kind.subj({ cName: coded, org, coded: true }, round))
       : kind.subj({ cName, org }, round));
-    return { subject: subject0, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
+    return { subject: subject0, parts, body: _smLetterJoin(parts), html: _smDrawnInviteHtml(parts) };
   }
   parts.push({ k: 'hello', t: first ? `Hello ${first},` : 'Hello,' });
   if (msg) parts.push({ k: 'msg', t: msg });
@@ -291,7 +292,8 @@ function _smLetterJoin(parts){
   const out = [];
   for (const p of parts){
     const t = p.t == null ? '' : p.t;
-    if (p.k === 'ans' || p.k === 'link' || p.k === 'sign') out.push('\n' + t);
+    if (p.k === 'sign') out.push('\n' + t + (p.sub ? '\n' + p.sub : ''));
+    else if (p.k === 'ans' || p.k === 'link') out.push('\n' + t);
     else if (p.k === 'btn') out.push((out.length ? '\n\n' : '') + t + ':');
     else out.push((out.length ? '\n\n' : '') + t);
   }
@@ -481,6 +483,32 @@ function smDrawnLetter(o){
     text.push(`${sg.bye || 'Kind regards,'}\n${sg.name || sg.org}${sub ? '\n' + sub : ''}`);
   }
   return { body: text.join('\n\n'), html: _smDrawnShell(html.join('')) };
+}
+/* THE INVITATION, IN THE SAME SHAPE AS THE OTHER LETTERS (owner, 8 Nov 2026: "make the invitation email match
+   the others"): smDrawnLetter's type and colours, the answers as its quote with the clause in bold, the link
+   named with its address under it, and the sign-off as name over title and company. The words are the parts'. */
+function _smDrawnInviteHtml(parts){
+  const P = (t, mb) => `<p style="margin:0 0 ${mb == null ? 14 : mb}px;white-space:pre-wrap">${_smE(t)}</p>`;
+  const out = [];
+  for (let i = 0; i < parts.length; i++){
+    const p = parts[i], nx = parts[i + 1] || {};
+    if (p.k === 'ans'){
+      const run = [];
+      while (i < parts.length && parts[i].k === 'ans'){ run.push(parts[i]); i++; }
+      i--;
+      out.push(`<div style="margin:0 0 16px;border-left:2px solid ${SM_HAIR};padding:2px 0 2px 14px">${run.map(r =>
+        `<p style="margin:0 0 6px"><b>${_smE(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + _smE(r.rest) : ''}</p>`).join('')}</div>`);
+    } else if (p.k === 'say' && p.list === 'link' && nx.k === 'link'){
+      const url = nx.t == null ? '' : String(nx.t), label = String(p.t).replace(/:\s*$/, '');
+      if (url) out.push(`<p style="margin:0 0 14px"><a href="${_smE(url)}" style="color:${SM_LINK_INK};font-weight:600">${_smE(label)}</a><br><span style="color:${SM_QUIET};font-size:13px">${_smE(url)}</span></p>`);
+      i++;
+    } else if (p.k === 'say' && p.list === 'sign' && nx.k === 'sign'){
+      out.push(`<p style="margin:4px 0 2px">${_smE(p.t)}</p><p style="margin:0">${_smE(nx.t)}${nx.sub ? `<br><span style="color:${SM_QUIET}">${_smE(nx.sub)}</span>` : ''}</p>`);
+      i++;
+    } else if (p.k === 'link' || p.k === 'sign'){ /* drawn with the line before it */ }
+    else out.push(P(p.t, p.list ? 8 : 14));
+  }
+  return _smDrawnShell(out.join(''));
 }
 /* AN EXISTING LETTER, LAID OUT THE LEGORA WAY: for the letters whose words live in the books in the reader's own
    language (the signer's turn, the chase, the handover, the signed copy), the words are kept and only the shape
