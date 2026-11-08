@@ -21908,3 +21908,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## Noticed, not fixed (8 Nov 2026, photographing the other side's pages on main)
 - Their Send back face: the "What goes" lines wrap into a narrow half-width column ("Counter: 26." / "Limitation of" / "Liability") although the panel has room — the label and the clause should share one line.
 - Their page after a Counter on 26. Limitation of liability, then Accept on 5: clause 26 shows a "Formatting only" tag on the paper although the counter changed words (seen in the photo script after typing " Seven months is our limit." at the box's end; needs a look whether the typed words reached the filed counter).
+
+## Noticed, not fixed (8 Nov 2026, GitHub's run on the Explorer lenses PR)
+- reading-desk-verify 1c can go red on a timing race: its regex wants "\d+ Jambo calls" (plural) in the desk's foot, but when the snapshot lands with exactly one answer in, the foot rightly says "1 Jambo call" (seen on GitHub's runner, PR #580; green here with 4 in). The check should accept "call|calls".
