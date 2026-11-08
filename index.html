@@ -19276,8 +19276,8 @@
   html.lg-out body.pw-editing #pw-page .pw-mount > .pol-side{display:none}
   html.lg-out #pw-page #pt-nego #rl-side{flex:0 0 var(--pol-side-w,384px);width:var(--pol-side-w,384px);min-width:0;box-sizing:border-box;margin:0;padding:16px;border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none;background:var(--color-surface);overflow:auto}
   html.lg-out #pw-page #pt-nego #rl-side .pt-write{display:none}
-  html.lg-out #pw-page[data-pt-tab="redlines"][data-pol-face="red"] .pw-mount > .pol-side{grid-row:1;align-self:start;height:57px;overflow:hidden;border-left:1px solid var(--color-divider)}
-  html.lg-out #pw-page[data-pol-face="red"] .pol-side-body,html.lg-out #pw-page[data-pol-face="red"] .pol-side-ft{display:none}
+  html.lg-out #pw-page[data-pt-tab="redlines"][data-pol-shows="red"] .pw-mount > .pol-side{grid-row:1;align-self:start;height:57px;overflow:hidden;border-left:1px solid var(--color-divider)}
+  html.lg-out #pw-page[data-pol-shows="red"] .pol-side-body,html.lg-out #pw-page[data-pol-shows="red"] .pol-side-ft{display:none}
   html.lg-out .pol-side-hd{gap:6px}
   html.lg-out .pol-side-hd .pol-pill{background:none}
   html.lg-out .pol-side-hd .pol-pill.is-on{background:var(--surface-2)}
@@ -19286,6 +19286,11 @@
   html.lg-out .pol-note.is-linked{background:var(--color-neutral-100)}
   html.lg-out .pol-propose{position:absolute;z-index:3;max-width:260px;padding:4px 8px;margin-left:-8px;border-radius:var(--radius);background:var(--color-surface);font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-align:left}
   html.lg-out .pol-propose[hidden]{display:none}
+  html.lg-out .pol-send-lab{display:block;margin-top:8px;border-bottom:0}
+  html.lg-out .pol-send-list li{grid-template-columns:minmax(0,1fr)}
+  html.lg-out .pol-send-msg{width:100%;box-sizing:border-box;min-height:72px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);background:var(--color-surface);resize:vertical}
+  html.lg-out .pol-send-ft{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+  html.lg-out .pol-send-go{width:100%;height:var(--ctl-h)}
   /* THEIR CARDS WEAR OURS (owner, 8 Nov 2026: "mimic what is in the owner side"): the same flattening our
      Redlines face gives its piles, scoped to their page */
   html.lg-out #pw-page #pt-nego .redline-page .rl-idx-title{font-family:var(--font-title);font-size:18px;line-height:24px;font-weight:var(--w-title-serif)}

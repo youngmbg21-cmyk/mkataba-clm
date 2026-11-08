@@ -4610,7 +4610,7 @@ function portalOutRoadHtml(D, mineMove){
    itself (#rl-side, the cards our own Redlines face draws, their seat), Where we are is the shared reading; Notes
    opens their notes, as the Notes chip does on our side. The face is a sitting's choice, never stored. */
 let _polFace = 'red';
-function portalOutFace(){ return _polFace === 'where' ? 'where' : 'red'; }
+function portalOutFace(){ return _polFace === 'where' || _polFace === 'send' ? _polFace : 'red'; }
 function portalOutHeadHtml(c){
   const left = portalOutAsks(c).filter(x => !portalOutDecided(x)).length;
   const f = portalOutFace();
@@ -4618,6 +4618,22 @@ function portalOutHeadHtml(c){
     <button type="button" role="tab" class="pol-pill${f === 'red' ? ' is-on' : ''}" aria-selected="${f === 'red'}" data-pol-face="red">${esc(i18t('po_tab_redlines'))}${left ? ` <span class="pol-hd-n">${left}</span>` : ''}</button>
     <button type="button" role="tab" class="pol-pill${f === 'where' ? ' is-on' : ''}" aria-selected="${f === 'where'}" data-pol-face="where">${esc(i18t('po_tab_where'))}</button>
     ${PORTAL_OPTS && PORTAL_OPTS.token ? `<button type="button" class="pol-pill" data-pt-where-notes>${esc(i18t('po_notes'))}</button>` : ''}</div>`;
+}
+/* SEND BACK, IN THE PANEL (owner, 8 Nov 2026, the drawings' step 7): the check before send stands in the panel
+   instead of a pop-up — who it goes to, what goes (portalSendLines, the one reading the pop-up listed), a message
+   with it, and one button that sends through portalRespond with the check already made. Not yet puts it away. */
+function portalOutSendHtml(c, p){
+  const org = (p && p.org) || i18t('pt_the_sender');
+  const lines = portalSendLines(p);
+  const who = String((p && (p.sharedBy || p.from)) || '').trim();
+  return `<div class="pol-side-in">${portalOutHeadHtml(c)}
+    <div class="pol-side-body"><p class="pol-say">${esc(who ? i18t('pol_send_to_who', { who, org }) : i18t('pol_send_to', { org }))}</p>
+      <h3 class="pol-h">${esc(i18t('pol_send_what'))}</h3>
+      ${lines.length ? `<ul class="pol-open pol-send-list">${lines.map(l => `<li><span class="pol-o-v">${esc(l)}</span></li>`).join('')}</ul>` : `<p class="pol-small">${esc(i18t('pol_send_none'))}</p>`}
+      <label class="pol-h pol-send-lab" for="pol-send-msg">${esc(i18t('pol_send_msg'))}</label>
+      <textarea id="pol-send-msg" class="pol-send-msg" rows="3" placeholder="${esc(i18t('pol_send_msg_ph', { org }))}"></textarea></div>
+    <div class="pol-side-ft pol-send-ft"><button type="button" class="pol-send pol-send-go" id="pol-send-go"${lines.length ? '' : ' disabled'}>${esc(i18t('pol_send_go', { org }))}</button>
+      <span>${esc(i18t('pol_send_after', { org }))} <button type="button" class="ui-link" data-pol-face="red">${esc(i18t('pol_send_not_yet'))}</button></span></div></div>`;
 }
 function portalOutSideHtml(c, p){
   const org = (p && p.org) || i18t('pt_the_sender');
@@ -4732,8 +4748,9 @@ function portalOutPaint(c, p){
   if (!portalOutOn()) return;
   _polCtx = { c, p };
   const side = document.getElementById('pol-side'), foot = document.getElementById('pol-foot');
-  if (side) side.innerHTML = portalOutSideHtml(c, p);
-  const pg = document.getElementById('pw-page'); if (pg) pg.setAttribute('data-pol-face', portalOutFace());
+  if (side && !(portalOutFace() === 'send' && side.querySelector('#pol-send-msg') === document.activeElement))
+    side.innerHTML = portalOutFace() === 'send' ? portalOutSendHtml(c, p) : portalOutSideHtml(c, p);
+  const pg = document.getElementById('pw-page'); if (pg) pg.setAttribute('data-pol-shows', portalOutFace());
   if (foot) foot.innerHTML = portalOutFootHtml(c, p);
   portalOutPaintNotes(c, p);
   requestAnimationFrame(() => { portalOutPaintNotes(c, p); portalOutSyncLink(); });
@@ -4767,7 +4784,14 @@ if (typeof document !== 'undefined' && !document._polWired){
       if (card){ if (portalOutFace() !== 'red'){ _polFace = 'red'; if (_polCtx) portalOutPaint(_polCtx.c, _polCtx.p); }
         card.click(); try { card.scrollIntoView({ block: 'nearest' }); } catch (_){} }
       return; }
-    if (t.closest('#pol-send')){ ev.preventDefault(); portalPressSend(); return; }
+    if (t.closest('#pol-send')){ ev.preventDefault(); _polFace = 'send'; if (_polCtx) portalOutPaint(_polCtx.c, _polCtx.p);
+      setTimeout(() => { const m = document.getElementById('pol-send-msg'); if (m) try { m.focus({ preventScroll: true }); } catch (_){} }, 0); return; }
+    if (t.closest('#pol-send-go')){ ev.preventDefault(); const b = t.closest('#pol-send-go'); if (b.disabled || !_polCtx) return;
+      const msg = String((document.getElementById('pol-send-msg') || {}).value || '').trim();
+      b.disabled = true;
+      Promise.resolve(portalRespond(_polCtx.p, 'decisions', { checked: true, comment: msg })).finally(() => {
+        _polFace = 'where'; if (_polCtx && portalOutOn()) portalOutPaint(_polCtx.c, _polCtx.p); });
+      return; }
     if (t.closest('#pol-later')){ ev.preventDefault(); portalSaveHeld();
       const org = (PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || i18t('pt_the_sender');
       if (typeof toast === 'function') toast(i18t('pol_later_done', { org }), 'ok'); }
@@ -6565,6 +6589,6 @@ function portalGoneNlWire(opts){
       if (typeof toast === 'function') toast(i18t('pnl_asked_toast'), 'ok'); }
     catch(e){ b.disabled = false; if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); } });
 }
-Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalOutSendHtml,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});
