@@ -465,7 +465,8 @@ describe('f745 (10) a figure\'s door lands on the list behind it', () => {
     assert.deepEqual(JSON.parse(JSON.stringify(w.HB_FIG_TO_CONTRACTS)), ['live', 'value', 'ending', 'past']);
   });
   test('10b the press asks it before the side list', () => {
-    const at = HB.indexOf("if ((el = on('#hb-book .hb-fig-main[data-hb-dig]')) && !el.disabled && hbFigDoor(el.getAttribute('data-hb-dig'))) return;");
+    /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): the figure's menu, then its own door, before the side list */
+    const at = HB.indexOf("if ((el = on('#hb-book .hb-fig-main[data-hb-dig]')) && !el.disabled && (hbFigMenuOpen(el) || hbFigDoor(el.getAttribute('data-hb-dig')))) return;");
     assert.ok(at > 0 && at < HB.indexOf('const sk = hbSheetKeyOf(el)'), 'the figure\'s own door first');
   });
 });

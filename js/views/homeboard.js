@@ -1478,20 +1478,22 @@ function hbFigMenuPick(which){
   if (which === 'map') hbShowOnMap(M.ids.join(','), i18t('hb_fm_from_board', { x: M.word }), Object.assign({ board: true }, M.fit));
   else hbFigListGo(M.key);
 }
-document.addEventListener('click', e => {
-  if (!_hbFigMenu) return;
+/* the menu's presses and keys, read first by the board's own one listener and key reader (hbOnClick, hbOnKey) */
+function hbFigMenuClick(e){
+  if (!_hbFigMenu) return false;
   const o = e.target && e.target.closest && e.target.closest('[data-hb-fm]');
-  if (o){ e.preventDefault(); e.stopPropagation(); hbFigMenuPick(o.getAttribute('data-hb-fm')); return; }
-  if (e.target && e.target.closest && (e.target.closest('#hb-figmenu') || e.target.closest('#hb-book .hb-fig-main'))) return;
-  hbFigMenuClose();
-}, true);
-document.addEventListener('keydown', e => {
-  if (!hbFigMenuOn()) return;
+  if (o){ e.preventDefault(); e.stopPropagation(); hbFigMenuPick(o.getAttribute('data-hb-fm')); return true; }
+  if (e.target && e.target.closest && (e.target.closest('#hb-figmenu') || e.target.closest('#hb-book .hb-fig-main'))) return e.target.closest('#hb-figmenu') ? true : false;
+  hbFigMenuClose(); return false;
+}
+function hbFigMenuKey(e){
+  if (!hbFigMenuOn()) return false;
   if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); const k = _hbFigMenu && _hbFigMenu.key; hbFigMenuClose();
-    const b = k && document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="${k}"]`); if (b && typeof fieldFocus === 'function') fieldFocus(b); return; }
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ const os = [...document.querySelectorAll('#hb-figmenu [data-hb-fm]')]; if (!os.length) return;
-    e.preventDefault(); const i = os.indexOf(document.activeElement); const j = e.key === 'ArrowDown' ? (i + 1) % os.length : (i <= 0 ? os.length - 1 : i - 1); os[j].focus({ preventScroll: true }); }
-}, true);
+    const b = k && document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="${k}"]`); if (b && typeof fieldFocus === 'function') fieldFocus(b); return true; }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ const os = [...document.querySelectorAll('#hb-figmenu [data-hb-fm]')]; if (!os.length) return false;
+    e.preventDefault(); const i = os.indexOf(document.activeElement); const j = e.key === 'ArrowDown' ? (i + 1) % os.length : (i <= 0 ? os.length - 1 : i - 1); os[j].focus({ preventScroll: true }); return true; }
+  return false;
+}
 /* a scroll carries the menu with its figure; a figure gone from the page takes the menu with it */
 function hbFigMenuPlace(){
   const M = _hbFigMenu, el = document.getElementById('hb-figmenu'); if (!M || !el) return;
@@ -7818,7 +7820,7 @@ function hbShowOnMap(ids, label, fit){
   hbLensOnMap();
   /* the count already narrows the map to this very set: no second chip */
   const same = intel.lenses.find(l => l.hb && l.id === 'hbcount' && l.ids.length === list.length && l.ids.every(id => list.includes(id)));
-  if (!same && typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), action: 'filter', kind: fit && fit.board ? 'board' : null }); }
+  if (!same && typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), kind: fit && fit.board ? 'board' : null, action: 'filter' }); }
   /* a Board figure's own view and lens (HB_FIG_MAP_FIT): the map's own writers */
   if (fit){ if (typeof igRecipePush === 'function') igRecipePush();
     if (fit.time) intel.timeBy = fit.time;
@@ -10678,6 +10680,7 @@ function hbReviewOnPaper(k, cid){
 function hbOnClick(e){
   if (!window.state || state.view !== 'dashboard') return;
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  if (hbFigMenuClick(e)) return;
   /* a press anywhere but the figure picker puts it away */
   if (_hbFigPick && !t.closest('.hb-figpick-w')){ _hbFigPick = false; hbPaintBoard(); }
   /* a door out of the side list (Open these, Show on the map) leaves it closed behind */
@@ -10920,6 +10923,7 @@ function hbOnPenDown(e){
 function hbOnPenUp(){ if (!_hbStroke) return; if (_hbStroke.length > 1) _hbInk.push(_hbStroke); _hbStroke = null; hbInkDraw(); }
 function hbOnKey(e){
   if (!window.state || state.view !== 'dashboard') return;
+  if (hbFigMenuKey(e)) return;
   if (hbSlashKey(e)) return;
   /* Ctrl/⌘+Z on the board undoes the last board change (never inside a box being typed in) */
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z') && hbBoardInFront()){
@@ -11423,7 +11427,7 @@ Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLan
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
   hbOblRowsHtml, hbDigBodyHtml, hbFocusHtml, hbCrumbOf, hbCardHtml, hbSheetGo, hbBarsHtml, hbPanelBodyHtml, hbPanelHtml,
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
-  hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, HB_FIG_MAP_FIT, hbFigContractIds, hbFigMenuPlace, hbFigMenuOpen, hbFigMenuClose, hbFigMenuOn, hbFigMenuPick, hbFigListGo, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
+  hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, HB_FIG_MAP_FIT, hbFigContractIds, hbFigMenuPlace, hbFigMenuOpen, hbFigMenuClose, hbFigMenuOn, hbFigMenuPick, hbFigMenuClick, hbFigMenuKey, hbFigListGo, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,
   hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbShowFound, HB_KEY_SEP, HB_CHART_BARS, HB_CHART_MONTHS, HB_GROUP_FIELDS, hbNextGroup, hbGroupOf, hbGroupLabel, hbGroupWord, hbMonthOf, hbMonthLabel, hbValueBands, hbChartHtml, hbChartBarsHtml, hbChartColsHtml, hbListFootHtml,
   HB_ATTENTION_RE, HB_HUES, HB_HUES_LIGHT, HB_HUES_DARK, hbHues, hbHueOf, hbFitMeasure, hbStepH, hbChartTableHtml, hbFocusBodyHtml, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily,
