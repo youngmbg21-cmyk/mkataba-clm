@@ -316,6 +316,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
+- test/chromium/the-read-bar-and-notes-verify.js (1–3 red at the parent; three screens): the read's bar the line's twin (13px, one line, every button whole); notes appear as the read reaches their clause and stay; Jambo's panel folded keeps the line's height and the brown ground. negotiate-new-look-verify 2 now expects Clean · Redline · Their view on the Redlines face.
 - one-zoom, one-paper-everywhere verify.
 
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
