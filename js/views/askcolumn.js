@@ -312,7 +312,7 @@ function askColThHtml(askId, style, grip, caret){
     /* THE HEAD AS DRAWN (owner, 8 Nov 2026): the column's name and how far it is read on one line, then ⋯ (its menu) */
     void yes;
     const sub = _acT('ac_nl_th_sub', { k: read, n: shown.length });
-    return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-line"><span class="ac-th-w">${_acE(a.name || a.question || '')}</span><span class="reg-th-sub">${_acE(sub)}</span><button type="button" class="ac-th-more" data-ac-thmore="${_acE(askId)}" aria-haspopup="menu" aria-expanded="false" aria-label="${_acE(_acT('ac_nl_more'))}">⋯</button></span>${caret || ''}${grip || ''}</th>`;
+    return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-line"><span class="ac-th-w">${_acE(a.name || a.question || '')}</span><span class="reg-th-sub">${_acE(sub)}</span><button type="button" class="ac-th-more" data-ac-thmore="${_acE(askId)}" aria-haspopup="menu" aria-expanded="false" aria-label="${_acE(_acT('ac_nl_more'))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button></span>${caret || ''}${grip || ''}</th>`;
   }
   return `<th class="reg-th-sort ac-th${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.name || '')}</span>${spark}${tally}${caret || ''}${grip || ''}</th>`;
 }
@@ -1785,7 +1785,7 @@ function askColThMenuOpen(btn){
   const item = (attr, label, cls) => `<button type="button" role="menuitem" class="ac-thm-i${cls ? ' ' + cls : ''}" ${attr}>${_acE(label)}</button>`;
   const m = document.createElement('div'); m.id = 'ac-th-menu'; m.className = 'ac-th-menu'; m.setAttribute('role', 'menu'); m.setAttribute('data-for', id);
   m.innerHTML = item(`data-ac-thsort="${_acE(id)}"`, _acT('ac_nl_sort'))
-    + (p.unread && may ? item(`data-ac-next="${_acE(id)}" data-ac-n="${Math.min(p.unread, AC_SIZES[AC_SIZES.length - 1])}"`, _acT('ac_nl_read_other', { n: p.unread })) : '')
+    + (p.unread && may ? item(`data-ac-next="${_acE(id)}" data-ac-n="${Math.min(p.unread, AC_SIZES[AC_SIZES.length - 1])}"`, _acT('ac_nl_read_more', { n: p.unread })) : '')
     + (askColMayRename(id) ? item(`data-ac-rename="${_acE(id)}"`, _acT('ac_nl_rename')) : `<button type="button" role="menuitem" class="ac-thm-i" disabled title="${_acE(_acT('ac_nl_rename_who'))}">${_acE(_acT('ac_nl_rename'))}</button>`)
     + '<hr>' + item(`data-ac-remove="${_acE(id)}"`, _acT('ac_nl_remove_list'), 'is-red');
   document.body.appendChild(m);

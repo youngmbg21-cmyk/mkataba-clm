@@ -327,6 +327,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       if (!fig) return null;
       const n = hbBookData('all').figs.ending.n;
       fig.click();
+      /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+      const list = document.querySelector('#hb-figmenu [data-hb-fm="list"]'); if (list) list.click();
       return { n, printed: Number(fig.querySelector('.hb-fig-n').textContent.replace(/\D/g, '')) };
     });
     await page.waitForTimeout(600);

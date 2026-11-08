@@ -8,5 +8,5 @@ const RETIRED_COST_KEYS = new Set(['int_lens_scan_free', 'int_lens_why_cost', 'c
   'mig_rerun_cost_other', 'dl2_free', 'pd2_sg_no_call', 'ac_n_calls_one', 'ac_n_calls_other', 'pd2_ch_free', 'pd2_one_call',
   'pd2_n_calls_one', 'pd2_n_calls_other', 'pd2_wk_free', 'pd2_read_cost', 'kt_lg_cost_ai', 'ag_sendback_cost', 'ac_desk_spent',
   'rd_calls_one', 'rd_calls_other', 'rdn_spent', 'rd_facts_calls', 'bd_cost_call', 'pd_ff_wait_cost', 'hb_bs_cost', 'jb_read_cost',
-  'hb_pre_free', 'cn2_free']);
+  'hb_pre_free', 'cn2_free', 'int_whatif_cost']);
 module.exports = { RETIRED_COST_KEYS };

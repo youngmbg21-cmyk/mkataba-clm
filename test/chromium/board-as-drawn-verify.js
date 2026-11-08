@@ -290,6 +290,8 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         return { ids: F.ids.slice().sort(), off: !b || b.disabled }; }, k);
       if (want.off) { check(`12 ${k}: nothing behind it, so no door (greyed)`, !want.ids.length, JSON.stringify(want)); continue; }
       await page.click(`#hb-book .hb-fig-main[data-hb-dig="f:${k}"]`);
+      /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+      await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
       const got = await until(() => { const o = typeof regState === 'function' ? regState().only : null; return o && document.getElementById('ct-place') ? o.ids.slice().sort() : null; }, null, 8000);
       const landed = await until(() => !!document.querySelector('#reg-only-chip.is-landed'), null, 6000);
       check(`12 ${k}: the Contracts place, narrowed to exactly what it counts, landed on its "N of M shown" (landOn)`, !!got && JSON.stringify(got) === JSON.stringify(want.ids) && !!landed, JSON.stringify({ got: got && got.length, want: want.ids.length, landed }));
@@ -300,6 +302,7 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     const late = await page.evaluate(() => { const b = document.querySelector('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]'); return b && !b.disabled ? hbBookData('all').figs.overdue.n : 0; });
     if (late) {
       await page.click('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]');
+      await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
       const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obw-view="overdue"][aria-selected="true"], [data-obw-view="overdue"].on, [data-obw-view="overdue"].is-on') ? true : null, null, 8000);
       const obl = await until(() => !!document.querySelector('[data-obw-view="overdue"].is-landed'), null, 6000);
       check('12 Obligations overdue: the Obligations page, on its Overdue tab, landed on it (landOn)', !!ob && !!obl, JSON.stringify({ ob, obl }));

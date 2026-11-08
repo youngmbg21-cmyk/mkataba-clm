@@ -93,14 +93,14 @@ describe('f761 (4) Jambo\'s words beside the book', () => {
   const LIB = R('js/views/library.js');
   const lib = () => loadViews(['js/clausemodel.js', 'js/playbook.js', 'js/views/templatebuilder.js', 'js/views/library.js'],
     { state: { settings: {}, contracts: [] }, API_MODE: () => false, canEdit: () => true, TEMPLATES: {}, FOLDERS: {}, tplLibAll: () => ({ list: [] }) });
-  test('4a from the record, nothing spent: used, where it came back changed by clause, what it meets', () => {
+  test('4a from the record: used, where it came back changed by clause, what it meets', () => {
     const win = lib();
     const card = { kind: 'cp', id: 'x', name: 'Master services agreement', version: 'v4' };
     const read = { st: { used: 14, changed: 5, byCat: [{ category: 'Liability cap', n: 3 }, { category: 'Payment terms', n: 2 }] },
       cov: { total: 6, met: 6, rows: [{ category: 'Liability cap', state: 'hit', at: 1 }, { category: 'Payment terms', state: 'hit', at: 2 }] },
       secs: [{ no: '1', head: 'Services' }, { no: '7', head: 'Liability' }, { no: '11', head: 'Payment' }], marks: [] };
     const lines = win.tplPfSaid(card, read);
-    assert.equal(lines[0], '<b>Master services agreement v4</b>, from the record — nothing spent.');
+    assert.equal(lines[0], '<b>Master services agreement v4</b>, from the record.'); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     assert.equal(lines[1], 'Used 14 times in 12 months. 5 came back changed: clause 7 Liability 3 times, clause 11 Payment twice. It meets all 6 of Our standards.');
   });
   test('4b a template nobody drafted from, and one that meets only some, are said as they are', () => {

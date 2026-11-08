@@ -159,6 +159,8 @@ const check = (name, pass, detail) => {
       ren.length > 0 && ren.every(r => r.counted), JSON.stringify(ren.map(r => [r.id, r.days, r.counted])));
     check('3c and that figure is a door', rw.door, 'door ' + rw.door);
     if (rw.door) await page.click('#hb-book .hb-fig-main[data-hb-dig="f:ending"]');
+    /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+    if (rw.door) await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
     await page.waitForTimeout(500);
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in the side list, one row a contract */
     /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure opens the

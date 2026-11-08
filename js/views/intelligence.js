@@ -1073,14 +1073,39 @@ function igLensLegendHtml(){
   const swatch=x=>bare(x)?`<span class="igl-sw" style="background:${T.mute}"></span>`:`<span class="igl-sw igl-ring${dashed(x)?' is-dashed':''}" style="border-color:${T[x.tone]}"></span>`;
   let h=`<div class="igl-k igl-gap" data-ig-legend-lens="${L}">${igEsc(i18t('int_lens_legend',{ x:i18t('int_lens_'+L) }))}</div>`;
   /* a row for a mark no dot wears is furniture (the legend's own rule) */
-  h+=rows.filter(x=>x.n).map(x=>`<div class="igl-row" data-ig-lens-row="${igEsc(x.k)}">${swatch(x)}<span class="igl-lt">${igEsc(x.label)}</span><span class="igl-n">${x.n}</span></div>`).join('');
+  /* THEN AND NOW FOR EVERY LENS (8 Nov 2026): with a past day on, each row says its count on the book that day,
+     with today's beside it, and one sentence says what moved (igLensThen) */
+  const TH=igLensThen(rows);
+  h+=rows.filter(x=>x.n).map(x=>`<div class="igl-row" data-ig-lens-row="${igEsc(x.k)}">${swatch(x)}<span class="igl-lt">${igEsc(x.label)}</span>${TH?`<span class="igl-n" data-ig-lens-then-n>${TH.then[x.k]}<span class="igl-now">${igEsc(i18t('int_lens_now_n',{ n:x.n }))}</span></span>`:`<span class="igl-n">${x.n}</span>`}</div>`).join('');
   if(tot) h+=`<div class="igl-lensbar" aria-hidden="true">${rows.filter(x=>x.n).map(x=>`<i style="flex:${x.n};background:${T[x.tone]}"></i>`).join('')}</div>`;
   if(L==='money'){ const top=igLensTopParties(); if(top) h+=`<div class="igl-row igl-note" data-ig-lens-top>${igEsc(i18t('int_lens_money_top',{ p:top.p, x:top.names.join(', ') }))}</div>`; }
   if(L==='promises') h+=`<div class="igl-row igl-note" data-ig-lens-sides><span class="igl-sw" style="background:${T.ours}"></span>${igEsc(i18t('int_lens_promises_ours'))}<span class="igl-sw" style="background:${T.theirs};margin-left:6px"></span>${igEsc(i18t('int_lens_promises_theirs'))}</div>`;
-  h+=`<div class="igl-row igl-note" data-ig-lens-note>${igEsc(i18t('int_lens_note_'+L))}</div>`;
+  h+=TH?`<div class="igl-row igl-note" data-ig-lens-moved>${igEsc(TH.say)}</div>`:`<div class="igl-row igl-note" data-ig-lens-note>${igEsc(i18t('int_lens_note_'+L))}</div>`;
+  h+=igLensThenPillsHtml();
   if(L==='risk') h+=igLensScanHtml(rows.find(x=>x.k==='unscanned'));
   return h;
 }
+const IG_LENS_THEN_MONTHS=[3,6];
+function igLensThenISO(m){ const d=new Date(); d.setHours(0,0,0,0); d.setMonth(d.getMonth()-m); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+/* each row's count on the book as it stood that day: the contracts already on it (igAsOfData's own reading),
+   each read as it reads today — HaTi keeps no past reading of a risk, a duty or an owner, and says so */
+function igLensThen(rows){
+  if(!intel.asOf||!intel.lens) return null;
+  const D=intel.asOf, kids=igLensKids(), d=igAsOfData(D,kids), added=new Set(d.added);
+  const then={}; rows.forEach(x=>{ then[x.k]=(x.ids||[]).filter(id=>!added.has(id)).length; });
+  const moved=rows.filter(x=>x.n!==then[x.k]).sort((a,b)=>Math.abs(b.n-then[b.k])-Math.abs(a.n-then[a.k]))[0];
+  const day=igDayWord(D);
+  const say=[moved?i18t('int_lens_moved',{ x:moved.label, a:then[moved.k], b:moved.n })+' '+i18tn('int_lens_moved_added',moved.n-then[moved.k],{ n:moved.n-then[moved.k], d:day }):i18t('int_lens_moved_none',{ d:day }), i18t('int_lens_then_rule')].join(' ');
+  return { then, say, day };
+}
+function igLensThenPillsHtml(){
+  const on=intel.asOf, pill=(k,label,cur)=>`<button type="button" class="igl-pill${cur?' is-on':''}" data-ig-lens-then="${k}" aria-pressed="${cur}">${igEsc(label)}</button>`;
+  return `<div class="igl-row igl-pills" role="group" aria-label="${igEsc(i18t('int_lens_then_label'))}">${pill(0,i18t('int_lens_then_today'),!on)}${IG_LENS_THEN_MONTHS.map(m=>pill(m,i18tn('int_lens_then_ago',m,{ n:m }),on===igLensThenISO(m))).join('')}</div>`;
+}
+document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-ig-lens-then]'); if(!b) return;
+  const m=Number(b.getAttribute('data-ig-lens-then'))||0, iso=m?igLensThenISO(m):'none';
+  if((m&&intel.asOf===iso)||(!m&&!intel.asOf)) return;
+  igRecipeRun({ acts:[{ asOf:iso }] }); renderIntelDock(); updateIntelNote(); });
 /* the three parties holding most of the map's home value, and their share (money's legend and walk) */
 function igLensTopParties(){
   const by=new Map(); let all=0;
@@ -2232,6 +2257,8 @@ function igRecipeParse(qRaw){
   /* compare two sets: "compare Sales with Procurement", "Naivas vs Carrefour" */
   const cm=rest.match(/^(?:compare|jämför)\s+(.+?)\s+(?:with|and|to|against|vs\.?|versus|med|och|mot)\s+(.+)$/)||rest.match(/^(.+?)\s+(?:vs\.?|versus)\s+(.+)$/);
   if(cm){ const A=igConditions(cm[1]), B=igConditions(cm[2]); if(A.length&&B.length) return { acts:[{ compare:{ a:A, b:B, aLabel:A.map(x=>x.label).join(' '), bLabel:B.map(x=>x.label).join(' ') } }], rest:'' }; }
+  /* WHAT IF A PARTY LEFT (8 Nov 2026, "Build it"): "what if Juno left" */
+  { const wi=igWhatIfRead(rest); if(wi) return { acts:[{ whatIf:wi }], rest:'' }; }
   /* connections */
   const cn=rest.match(/\b(?:depends? on|connected to|tied to|linked to|related to|family of|amendments? (?:of|to)|hänger ihop med|kopplade till|beror på)\s+([a-z0-9\-]+(?:\s[a-z0-9\-]+)?)/);
   if(cn){ const id=cn[1].toUpperCase(); if(getContract(id)) return { acts:[{ linked:id }], rest:'' };
@@ -2534,6 +2561,11 @@ function igRecipeRun(parsed, opts){
       const ids=[a.linked].concat((d.contracts||[]).map(x=>x.id)).concat(fam); const uniq=[...new Set(ids)];
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_linked_lens',{ x:a.linked }), ids:uniq, action:'filter' });
       lensNote=i18t('int_did_linked',{ n:uniq.length-1, x:a.linked }); list=uniq; listTitle=i18t('int_linked_lens',{ x:a.linked }); changed=true; continue; }
+    if(a.whatIf){ const W=igWhatIfData(a.whatIf);
+      intel.lenses=intel.lenses.filter(l=>l.kind!=='whatif'&&l.action!=='filter');
+      addLens({ label:i18t('int_whatif_lens',{ x:a.whatIf }), ids:W.ids, action:'highlight', kind:'whatif' });
+      const L=intel.lenses.find(l=>l.kind==='whatif'); if(L){ L.stake=W.stake; L.party=a.whatIf; }
+      lensNote=W.say; if(igbCam().view!==1) igSetView(1); list=W.ids; listTitle=i18t('int_whatif_lens',{ x:a.whatIf }); changed=true; continue; }
     if(a.linkedParty){ const ids=(state.contracts||[]).filter(c=>c.counterparty===a.linkedParty).map(c=>c.id), more=new Set(ids);
       buildGraphEdges(state.contracts||[]).filter(e=>e.kind!=='party').forEach(e=>{ if(ids.includes(e.from)) more.add(e.to); if(ids.includes(e.to)) more.add(e.from); });
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_linked_lens',{ x:a.linkedParty }), ids:[...more], action:'filter' });
@@ -2587,6 +2619,7 @@ const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|
    no fact names is answered here, with the nearest things the map can do. */
 async function intelMapLocal(q){
   /* "explain this view" (stage 3) is the view's own walk, before "walk me through" walks contracts */
+  if(IG_BRIEF_RE.test(String(q||'').trim())){ igBriefStart(); return ''; }
   if(IG_TOUR_RE.test(String(q||'').trim())){ igTourStart(); return ''; }
   /* "copy the picture" (stage 5): the view on screen, as a picture */
   if(IG_PIC_RE.test(String(q||'').trim())){ igPicturePress(); return ''; }
@@ -2768,7 +2801,7 @@ async function intelAsk(qRaw, opts){
      the whole of their words, so on Explorer the map answers them where the
      reader stands (Jambo's one rule) before any task card */
   const hereMap=!!(here&&here.screen==='explorer');
-  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_TOUR_RE.test(q)||IG_PIC_RE.test(q)||igAsOfRead(q)||igUntilRead(q)||igSoleRead(q)||igWhoFactRead(q));
+  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_BRIEF_RE.test(q)||IG_TOUR_RE.test(q)||IG_PIC_RE.test(q)||igAsOfRead(q)||igUntilRead(q)||igSoleRead(q)||igWhoFactRead(q));
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
@@ -4129,19 +4162,26 @@ function igbAxes(G, hubs, order){
      second bucketing), drawn as a strip under the dates. On the renewal
      decision timeline a stretch inside a crowded quarter (graphCliffCrowded's
      rule, over the contracts on the map) is marked amber. */
+  /* THE RENEWAL CLIFF (owner, 8 Nov 2026, "Build it"): on the renewal
+     decision timeline the strip counts by MONTH whatever the ticks' stretch,
+     and a crowded month is amber — at least IG_CLIFF_MIN and more than one and
+     a half times the average month with any in the coming year (the quarter's
+     rule, graphCliffCrowded, a month finer) */
+  const sStep=tKey==='decision'?1:tStep, sOf=t=>{ const d=new Date(t); return sStep===12?String(d.getFullYear()):d.getFullYear()+'-'+Math.floor(d.getMonth()/sStep); };
   const strip=[];
-  if(ts.length){ const per={}, perIds={}; dated.forEach(([n,t])=>{ if(t!=null){ const k=stretchOf(t); per[k]=(per[k]||0)+1; (perIds[k]||(perIds[k]=[])).push(n.id); } });
-    const crowd=new Set(tKey==='decision'&&tStep<=3?graphCrowdedQuarters(kids.map(n=>n.c)):[]);
-    const d0=new Date(t0), d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%tStep), 1);
-    for(let i=0;i<120&&d.getTime()<=t1;i++){ const a=d.getTime(), k=stretchOf(a), qk='Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear();
-      d.setMonth(d.getMonth()+tStep); const b=d.getTime();
-      if(per[k]) strip.push({ x0:tx(Math.max(a,t0)), x1:tx(Math.min(b,t1)), n:per[k], crowded:tStep<=3&&crowd.has(qk), a, qk, ids:perIds[k] }); } }
+  if(ts.length){ const per={}, perIds={}; dated.forEach(([n,t])=>{ if(t!=null){ const k=sOf(t); per[k]=(per[k]||0)+1; (perIds[k]||(perIds[k]=[])).push(n.id); } });
+    const crowd=new Set(tKey==='decision'&&sStep>1&&sStep<=3?graphCrowdedQuarters(kids.map(n=>n.c)):[]);
+    const d0=new Date(t0), d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%sStep), 1);
+    for(let i=0;i<120&&d.getTime()<=t1;i++){ const a=d.getTime(), k=sOf(a), qk='Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear();
+      d.setMonth(d.getMonth()+sStep); const b=d.getTime();
+      if(per[k]) strip.push({ x0:tx(Math.max(a,t0)), x1:tx(Math.min(b,t1)), n:per[k], crowded:sStep>1&&sStep<=3&&crowd.has(qk), a, b, qk, ids:perIds[k] }); }
+    if(tKey==='decision'&&sStep===1) igCliffCrowdMonths(strip); }
   /* the line stands at the day asked (the axis was stretched to hold it); its
      count is the lit contracts on the map — the lens's own ids, as drawn */
   let until=null;
   if(!isNaN(uT)&&ts.length){ const on=uLens&&uLens.on?new Set(uLens.ids):new Set(); until={ x:tx(uT), iso:intel.tlUntil, n:kids.filter(n=>on.has(n.id)).length }; }
   G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })).concat(restLanes.length?[{ label:i18t('int_axis_rest',{ n:restLanes.length }), y:ly(lanes.length), col:IGB_OTHER, rest:true }]:[]), undated, nowX, empty:!ts.length, step:tStep,
-    strip, stripMax:strip.reduce((a,x)=>Math.max(a,x.n),0), until };
+    strip, stripMax:strip.reduce((a,x)=>Math.max(a,x.n),0), stripStep:sStep, until };
   /* the cells each group's bubbles stand for, per axis view: where the bubble
      sits (the grid's cell middle; the floors' and timeline's middle of its
      own dots) and the dots it opens into */
@@ -4530,13 +4570,16 @@ function igbDraw(G,t,rest){
        the first lane — under the dates it fell below the view bar on a short
        laptop (1536×730) */
     if(tl.strip&&tl.strip.length&&tl.stripMax){ const zb=(tl.lanes.length?tl.lanes[0].y:-.78)-.32, hMax=.1;
+      G._stripHit=[];
       tl.strip.forEach(s=>{ const h=hMax*s.n/tl.stripMax, gx=Math.min(.004,(s.x1-s.x0)*.15);
         const P=[pj([s.x0+gx,0,zb]),pj([s.x1-gx,0,zb]),pj([s.x1-gx,0,zb-h]),pj([s.x0+gx,0,zb-h])];
+        { const xs=P.map(p=>p[0]), ys=P.map(p=>p[1]), x=Math.min(...xs), y=Math.min(...ys); G._stripHit.push({ x:x-2, y:y-14, w:Math.max(...xs)-x+4, h:Math.max(...ys)-y+16, s }); }
         ctx.beginPath(); P.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
         ctx.fillStyle=s.crowded?'rgba('+IGB_ATTN_RGB+','+(.8*a4).toFixed(3)+')':'rgba('+igbTone().gw+','+(.5*a4).toFixed(3)+')'; ctx.fill();
         if(Math.abs(P[1][0]-P[0][0])>=16){ const q=pj([(s.x0+s.x1)/2,0,zb-h]); txt(String(s.n), q[0], q[1]-3, s.crowded?IGB_FACT_TONE.amber:igbTone().mute, .9*a4, 9, 600, 'center'); } });
       line2(pj([-1.1,0,zb]),pj([1.35,0,zb]),'rgba('+igbTone().ln+','+(.25*a4)+')');
-      const ql=pj([-1.17,0,zb-.03]); txt(i18t('int_tl_strip_'+tl.key), ql[0], ql[1]-2, igbTone().mute, .9*a4, 10, 600, 'right'); txt(i18t('int_tl_per_'+tl.step), ql[0], ql[1]+10, igbTone().mute, .9*a4, 10, 500, 'right'); }
+      const ql=pj([-1.17,0,zb-.03]); txt(i18t('int_tl_strip_'+tl.key), ql[0], ql[1]-2, igbTone().mute, .9*a4, 10, 600, 'right'); txt(i18t('int_tl_per_'+(tl.stripStep||tl.step)), ql[0], ql[1]+10, igbTone().mute, .9*a4, 10, 500, 'right'); }
+    if(tl.key==='decision') igCliffPinsDraw(G, pj, ctx, txt, a4);
     tl.ticks.forEach(k=>{ const q=pj([k.x,0,za]), q2=pj([k.x,0,za+.04]); line2(q,q2,'rgba('+igbTone().ln+','+(.5*a4)+')'); txt(k.label, q[0], q[1]+15, igbTone().mute, .9*a4, 10, 500, 'center'); });
     if(tl.nowX!=null){ const q0=pj([tl.nowX,0,-.92]), q1=pj([tl.nowX,0,za]); line2(q0,q1,'rgba(242,178,76,'+(.55*a4)+')'); txt(i18t('int_tl_today'), q0[0], q0[1]-4, IGB_WALK, .95*a4, 10, 600, 'center'); }
     /* THE TYPED DATE LINE (stage 2): dashed, in the ink, at the day asked — its
@@ -5020,6 +5063,7 @@ function igPaintIds(ids){
   if(!IG) return;
   /* letting go of a hover puts back the part the walk is saying (stage 3) */
   if((!ids||!ids.length)&&intel.tour){ const t=igTourStep(); if(t&&t.ids&&t.ids.length) ids=t.ids; }
+  if((!ids||!ids.length)&&intel.brief){ const t=igBriefStep(); if(t&&t.ids&&t.ids.length) ids=t.ids; }
   if(!ids||!ids.length){ igPaint(null); return; }
   const set=ids instanceof Set?ids:new Set(ids);
   IG.nodes.forEach(n=>{ const on=set.has(n.id)||(n.kind==='hub'&&[...(IG.adj[n.id]||[])].some(id=>set.has(id)));
@@ -5271,6 +5315,7 @@ function updateIntelNote(){
   /* THE RECIPE'S OTHER WORDS LEFT THE LINE (owner, 19 Oct 2026, "Drop the
      extra words": floors by…, labelled by…, bubbles at… are seen on the map
      itself); igRecipeSays still decides Save view and names a kept view. */
+  igNoteMoreBits(on).forEach(b=>bits.push(b));
   const wk=intel.walk;
   if(intel.tour) bits.push(igTourNoteHtml());
   if(wk){ const k=Math.max(0,Math.min(wk.ids.length,Math.floor((wk.clock-IGB_PULSE_S)/IGB_STEP_S)+1));
@@ -5288,6 +5333,132 @@ function updateIntelNote(){
   document.getElementById('ig-cliff')?.addEventListener('input',e=>{ intel.cliffDays=Number(e.target.value)||0; igApplyCliff(intel.cliffDays); });
   igNoteMeasure();
 }
+/* ---- THE RENEWAL CLIFF'S CROWD, PINS AND MONTH CARD (8 Nov 2026) ---- */
+const IG_CLIFF_MIN=3, IG_CLIFF_PIN_DAYS=120, IG_CLIFF_PINS=8;
+function igCliffCrowdMonths(strip){
+  const now=Date.now(), yr=now+365*864e5, ahead=strip.filter(s=>s.b>now&&s.a<yr);
+  if(!ahead.length) return;
+  const avg=ahead.reduce((a,s)=>a+s.n,0)/ahead.length;
+  ahead.forEach(s=>{ if(s.n>=IG_CLIFF_MIN&&s.n>avg*1.5) s.crowded=true; });
+}
+/* the undecided renewals whose last day to give notice is close: a red pin on each, soonest first */
+function igCliffPinned(G){
+  const out=[];
+  (G.nodes||[]).forEach(n=>{ if(n.kind!=='contract'||!n.c||!n.T||(n.cf&&n.cf[4]>.5)) return;
+    const g=graphDecisionOf(n.c); if(!g.date||g.days==null||g.days<0||g.days>IG_CLIFF_PIN_DAYS) return;
+    out.push({ n, date:String(g.date).slice(0,10), days:g.days }); });
+  return out.sort((a,b)=>a.days-b.days).slice(0,IG_CLIFF_PINS);
+}
+function igCliffPinsDraw(G, pj, ctx, txt, a4){
+  const pins=igCliffPinned(G); G._cliffPins=pins.map(p=>p.n.id);
+  const red=IGB_FACT_TONE.ruby;
+  /* a pin's words never sit on another's: a pin whose words would overlap one already drawn stands without them */
+  const said=[];
+  pins.forEach(p=>{ const q=pj([p.n.T[0],0,p.n.T[2]]), top=q[1]-26;
+    ctx.strokeStyle=igbHexA(red,.9*a4); ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(q[0],q[1]-7); ctx.lineTo(q[0],top); ctx.stroke();
+    ctx.fillStyle=igbHexA(red,.95*a4); ctx.beginPath(); ctx.arc(q[0],top,3,0,Math.PI*2); ctx.fill();
+    const t=i18t('int_cliff_pin',{ d:igDayShort(p.date) }); ctx.font='600 10px Geist, system-ui, sans-serif';
+    const box={ x:q[0]-4, y:top-8, w:ctx.measureText(t).width+12, h:14 };
+    if(said.some(b=>box.x<b.x+b.w&&b.x<box.x+box.w&&box.y<b.y+b.h&&b.y<box.y+box.h)) return;
+    said.push(box); txt(t, q[0]+6, top+3, red, .95*a4, 10, 600, 'left');
+    (G.reserve||(G.reserve=[])).push(box); });
+}
+function igDayShort(iso){ try{ return new Date(iso+'T00:00:00').toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ day:'numeric', month:'short' }); }catch(_){ return iso; } }
+function igCliffCardClose(){ const el=document.getElementById('ig-cliff-card'); if(el) el.remove(); intel.cliffCard=null; }
+function igCliffCardOpen(hit, x, y){
+  const s=hit.s, G=IG; if(!G||!G.tl) return;
+  if(intel.cliffCard===s.a){ igCliffCardClose(); return; }
+  igCliffCardClose();
+  const cs=(s.ids||[]).map(id=>getContract(id)).filter(Boolean);
+  let v=0, vk=0; cs.forEach(c=>{ const h=igHomeValue(c); if(h!=null){ v+=h; vk++; } });
+  const first=cs.map(c=>graphDecisionOf(c).date).filter(Boolean).map(d=>String(d).slice(0,10)).sort()[0]||null;
+  const money=(typeof canViewValues!=='function')||canViewValues();
+  const d=new Date(s.a), mw=G.tl.stripStep===12?String(d.getFullYear()):dateFmtOf((typeof langLocale==='function')?langLocale():undefined,{ month:'long', year:'numeric' }).format(d);
+  const word=i18tn(G.tl.key==='decision'?'int_cliff_card_n':'int_n_contracts',cs.length,{ n:cs.length });
+  const host=document.getElementById('ig-gwrap'); if(!host) return;
+  const el=document.createElement('div'); el.id='ig-cliff-card'; el.className='ig-cliff-card'; el.setAttribute('role','dialog'); el.setAttribute('aria-label',mw);
+  el.innerHTML=`<b>${igEsc(mw)} · ${igEsc(word)}</b>`
+    +(money&&vk?`<div class="kv"><span>${igEsc(i18t('int_cliff_card_value'))}</span><em>${igEsc(fmtMoneyShort(v))}</em></div>`:'')
+    +(G.tl.key==='decision'&&first?`<div class="kv"><span>${igEsc(i18t('int_cliff_card_first'))}</span><em class="${first<=todayISO()?'rb':''}">${igEsc(igDayShort(first))}</em></div>`:'')
+    +(s.crowded?`<div class="kv"><span>${igEsc(i18t('int_cliff_crowded'))}</span><em class="am">${igEsc(i18t('int_cliff_card_crowd'))}</em></div>`:'')
+    +`<button type="button" class="ui-link" data-ig-cliff-show>${igEsc(i18tn('int_cliff_card_show',cs.length,{ n:cs.length }))} ›</button>`;
+  host.appendChild(el);
+  const W=host.clientWidth, H=host.clientHeight, w=el.offsetWidth||240, h=el.offsetHeight||120;
+  el.style.left=Math.round(Math.max(8,Math.min(W-w-8,x-w/2)))+'px'; el.style.top=Math.round(Math.max(8,Math.min(H-h-8,y+16)))+'px';
+  intel.cliffCard=s.a; el._ids=cs.map(c=>c.id); el._label=mw;
+}
+document.addEventListener('click',e=>{
+  const t=e.target; if(!t||!t.closest) return;
+  const sh=t.closest('[data-ig-cliff-show]');
+  if(sh){ const el=document.getElementById('ig-cliff-card'), ids=el&&el._ids||[], label=el&&el._label||'';
+    igCliffCardClose(); if(ids.length){ igRecipePush(); intel.lenses=intel.lenses.filter(l=>l.kind!=='cliff'); addLens({ label:i18t('int_cliff_lens',{ x:label }), ids, action:'highlight', kind:'cliff' }); rebuildIntelGraph(); updateIntelNote(); } return; }
+  if(t.closest('#ig-cliff-card')) return;
+  const host=document.getElementById('ig-gwrap');
+  if(!IG||!host||!host.contains(t)||IG.dragMoved||igbCam().view!==4||!IG.tl||t.closest('.ig-node,button,a,input,select,label,#ig-legend,#ig-note')){ if(intel.cliffCard!=null) igCliffCardClose(); return; }
+  const r=host.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+  const hit=(IG._stripHit||[]).find(h=>x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h);
+  if(hit) igCliffCardOpen(hit,x,y); else if(intel.cliffCard!=null) igCliffCardClose(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('ig-cliff-card')){ e.stopPropagation(); igCliffCardClose(); } },true);
+/* ---- WHAT IF A PARTY LEFT (8 Nov 2026) ----
+   The map lights every contract with the party and every one that hangs on
+   theirs through a link (buildGraphEdges, the Wiring's own links — the same
+   reach as "what depends on X"), says the value at stake for a reader who may
+   see money and where most of it sits, all counted here, free. What to do
+   about it is Jambo's: one press, its cost said beside it. */
+const IG_WHATIF_RE=/^(?:so\s+)?(?:what if|what happens if|what would happen if|suppose|imagine|tänk om|vad händer om|vad skulle hända om|anta att)\s+(.+?)\s+(?:left|leaves|leave|walked away|walks away|went away|goes away|went bust|goes bust|went under|stopped working with us|stopped|quit|lämnade|lämnar|försvann|försvinner|gick i konkurs|går i konkurs|slutade)(?:\s+(?:us|oss))?\s*[?.!]?$/i;
+function igWhatIfRead(q0){
+  const m=String(q0||'').trim().match(IG_WHATIF_RE); if(!m) return null;
+  const w=_igNorm(m[1]).replace(/^(?:the|our|de|vår|våra)\s+/,''); if(!w) return null;
+  const names=[...new Set((state.contracts||[]).map(c=>c&&c.counterparty).filter(Boolean))];
+  const hit=names.find(n=>_igNorm(n)===w)||names.find(n=>_igNorm(n).startsWith(w))||names.find(n=>_igNorm(n).split(/\s+/).includes(w));
+  return hit||null;
+}
+function igWhatIfData(party){
+  const book=new Set(igBriefBook().map(c=>c.id));
+  const own=(state.contracts||[]).filter(c=>c.counterparty===party&&book.has(c.id)).map(c=>c.id), more=new Set(own);
+  buildGraphEdges(state.contracts||[]).filter(e=>e.kind!=='party').forEach(e=>{ if(own.includes(e.from)&&book.has(e.to)) more.add(e.to); if(own.includes(e.to)&&book.has(e.from)) more.add(e.from); });
+  const ids=[...more], cs=ids.map(getContract).filter(Boolean), money=(typeof canViewValues!=='function')||canViewValues();
+  let v=0; const by={}; cs.forEach(c=>{ const h=igHomeValue(c); if(h!=null){ v+=h; const g=groupLabelOf(c,intel.groupBy||'folder'); by[g]=(by[g]||0)+h; } });
+  const top=Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
+  const vw=money&&v>0?((typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v))):'';
+  const stake=[i18tn('int_n_contracts',ids.length,{ n:ids.length }), vw?i18t('int_whatif_at_stake',{ v:vw }):''].filter(Boolean).join(' · ');
+  const say=!ids.length?i18t('int_whatif_none',{ x:party })
+    :[i18t('int_whatif_said',{ x:party, k:own.length, l:ids.length-own.length }), vw?i18t('int_whatif_value',{ v:vw }):'', money&&top&&cs.length>1&&v>0?i18t('int_whatif_most',{ g:top[0] }):''].filter(Boolean).join(' ');
+  return { ids, own, through:ids.length-own.length, v:money?v:null, stake, say };
+}
+function igWhatIfStop(){ igRecipePush(); intel.lenses=intel.lenses.filter(l=>l.kind!=='whatif'); rebuildIntelGraph(); renderIntelDock(); updateIntelNote(); }
+/* under the latest answer while the what-if is on: Jambo's advice (one call, said), the list, the pin */
+function igWhatIfLinksHtml(){
+  const L=intel.lenses.find(l=>l.kind==='whatif'&&l.on); if(!L||!L.ids.length) return '';
+  return `<div class="igd-small ig-whatif-links"><button type="button" class="ui-link" data-ig-whatif="ask">${igEsc(i18t('int_whatif_ask'))}</button> <span class="igd-cost">${igEsc(i18t('int_whatif_cost'))}</span> <button type="button" class="ui-link" data-ig-whatif="list">${igEsc(i18tn('int_whatif_list',L.ids.length,{ n:L.ids.length }))}</button></div>`;
+}
+document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-ig-whatif]'); if(!b) return;
+  const L=intel.lenses.find(l=>l.kind==='whatif'); if(!L) return;
+  if(b.getAttribute('data-ig-whatif')==='list'){ if(typeof regShowOnly==='function') regShowOnly(L.ids.filter(id=>getContract(id)), L.label); return; }
+  intelAsk(i18t('int_whatif_ask_q',{ x:L.party||'' })); });
+/* THE HEAD LINE'S OWN DOORS FOR WHAT CAME IN BY ANOTHER WAY (8 Nov 2026):
+   a cut made from a Board figure has its way back to the Board; a briefing
+   says its stop with ‹ › Stop and Pin; a what-if says the value at stake with
+   Stop; a day in the past says Back to now. Each one line, each its own
+   writer; delegated below, so a repaint of the line binds nothing. */
+function igNoteMoreBits(on){
+  const out=[], L=on||intel.lenses.filter(l=>l.on);
+  if(intel.brief) out.push(igBriefNoteHtml());
+  const wi=L.find(l=>l.kind==='whatif');
+  if(wi&&wi.stake) out.push(`<b class="text-ink">${igEsc(wi.stake)}</b> <button type="button" class="ui-link" data-ig-note="whatif-stop">${igEsc(i18t('int_walk_stop'))}</button>`);
+  if(intel.asOf) out.push(`<button type="button" class="ui-link" data-ig-note="asof-off">${igEsc(i18t('int_asof_back'))}</button>`);
+  if(L.some(l=>l.kind==='board')) out.push(`<button type="button" class="ui-link" data-ig-note="board">${igEsc(i18t('int_board_back'))}</button>`);
+  return out;
+}
+document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-ig-note]'); if(!b) return;
+  const k=b.getAttribute('data-ig-note');
+  if(k==='board'){ intel.lenses=intel.lenses.filter(l=>l.kind!=='board'); if(typeof hbSetFace==='function') hbSetFace('board'); return; }
+  if(k==='whatif-stop'){ igWhatIfStop(); return; }
+  if(k==='asof-off'){ igRecipeRun({ acts:[{ asOf:'none' }] }); renderIntelDock(); updateIntelNote(); return; }
+  if(k==='brief-prev') igBriefGo((intel.brief&&intel.brief.at||0)-1);
+  else if(k==='brief-next') igBriefGo((intel.brief&&intel.brief.at||0)+1);
+  else if(k==='brief-stop') igBriefStop();
+  else if(k==='brief-pin') igBriefPinSet(!igBriefPinned()); });
 /* THE EMPTY FLOOR'S DOOR, placed each frame under its floor's lines (stage 2):
    shown only while Floors is the view, kept clear of the contracts' names
    (its rect is the canvas's own room), written to the page only on a change */
@@ -5786,6 +5957,103 @@ document.addEventListener('click',e=>{ const t=e.target&&e.target.closest&&e.tar
   else if(t.id==='ig-tour-prev') igTourGo((intel.tour&&intel.tour.at||0)-1);
   else if(t.id==='ig-tour-next') igTourGo((intel.tour&&intel.tour.at||0)+1);
   else igTourStop(); });
+/* ---- THE MORNING BRIEFING (owner, 8 Nov 2026: picked with the other four,
+   "Build it and all the other 4 all at once") ----
+   Jambo walks the book in six stops; each stop moves the map to its view and
+   lens (the map's own writers), lights what it is about, and says it in one
+   sentence counted from the book in front of the reader — never a model's.
+   Free: nothing is sent. The head line carries the stop, ‹ › Stop, and Pin as
+   my morning view (kept in this browser: the briefing opens with Explorer the
+   first time each day). Stop puts the map back as it was. */
+const IG_BRIEF_RE=/^(?:please\s+)?(?:(?:give me|start|run|show me|open)\s+)?(?:my |the |a )?(?:morning briefing|briefing)\b|^brief me\b|^(?:(?:visa|starta|ge mig)\s+)?(?:min |mina |morgonens )?(?:morgongenomgång|genomgång(?:en)? av boken)\b/i;
+const IG_BRIEF_PIN_KEY='hati.v1.igBriefPin', IG_BRIEF_DAY_KEY='hati.v1.igBriefDay';
+const IG_BRIEF_STOPS=['needs','risk','duties','money','since','back'];
+const IG_BRIEF_ENDING_DAYS=90, IG_BRIEF_DUE_DAYS=30;
+function igBriefPinned(){ try{ return localStorage.getItem(IG_BRIEF_PIN_KEY)==='1'; }catch(_){ return false; } }
+function igBriefPinSet(on){ try{ if(on) localStorage.setItem(IG_BRIEF_PIN_KEY,'1'); else localStorage.removeItem(IG_BRIEF_PIN_KEY); }catch(_){}
+  if(typeof toast==='function') toast(i18t(on?'int_brief_pinned':'int_brief_unpinned'),'ok'); updateIntelNote(); }
+/* the book the briefing reads: every contract the map draws with nothing cut */
+function igBriefBook(){ try{ return (buildGraphModel().nodes||[]).filter(n=>n&&n.kind==='contract').map(n=>n.c||getContract(n.id)).filter(Boolean); }catch(_){ return []; } }
+function igBriefNeeds(book){
+  const out={ n:0, late:0, oldest:null, ids:[] };
+  if(typeof window.ndRead!=='function') return out;
+  let D=null; try{ D=ndRead(); }catch(_){ D=null; } if(!D) return out;
+  const on=new Set(book.map(c=>c.id)), ids=new Set();
+  const cidOf=r=>r.it?(r.it.cid||(r.it.c&&r.it.c.id)):(r.y&&r.y.x&&r.y.x.c)?r.y.x.c.id:null;
+  (D.jambo||[]).concat(D.you||[]).forEach(r=>{ const c=cidOf(r); if(c&&on.has(c)) ids.add(c); (r.bundle||[]).forEach(y=>{ const b=y&&y.x&&y.x.c&&y.x.c.id; if(b&&on.has(b)) ids.add(b); }); });
+  return { n:D.n||0, late:D.late||0, oldest:D.oldest, ids:[...ids] };
+}
+function igBriefSteps(back){
+  const book=igBriefBook(), steps=[];
+  const N=igBriefNeeds(book);
+  steps.push({ k:'needs', ids:N.ids, recipe:{ lens:null },
+    text:N.n?[i18tn('int_brief_needs',N.n,{ n:N.n }), N.late?i18tn('int_brief_late',N.late,{ n:N.late }):'', N.oldest!=null?i18tn('int_brief_oldest',N.oldest,{ n:N.oldest }):''].filter(Boolean).join(' · '):i18t('int_brief_needs_none') });
+  if(igLensMay('risk')){
+    const hi=book.filter(c=>igLensBucketOf(c,'risk')==='high'), un=book.filter(c=>igLensBucketOf(c,'risk')==='unscanned');
+    const by={}; hi.forEach(c=>{ const g=groupLabelOf(c,intel.groupBy||'folder'); by[g]=(by[g]||0)+1; });
+    const top=Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
+    steps.push({ k:'risk', ids:hi.map(c=>c.id), recipe:{ lens:'risk' },
+      text:[hi.length?i18tn('int_brief_risk',hi.length,{ n:hi.length }):i18t('int_brief_risk_none'), top&&hi.length>1?i18t('int_brief_most_in',{ x:top[1]===hi.length?i18t('int_brief_all'):i18t('int_brief_most'), g:top[0] }):'', un.length?i18tn('int_brief_unscanned',un.length,{ n:un.length }):''].filter(Boolean).join(' · ') }); }
+  { const due=[], late=[];
+    book.forEach(c=>{ const o=igLensObOf(c); if(o.late) late.push(c); else if(o.next!=null&&o.next<=IG_BRIEF_DUE_DAYS) due.push(c); });
+    steps.push({ k:'duties', ids:late.concat(due).map(c=>c.id), recipe:{ lens:'obligations' },
+      text:(due.length||late.length)?[i18tn('int_brief_due',due.length,{ n:due.length, d:IG_BRIEF_DUE_DAYS }), late.length?i18tn('int_brief_due_late',late.length,{ n:late.length }):''].filter(Boolean).join(' · '):i18t('int_brief_due_none') }); }
+  { const end=book.filter(c=>{ const g=graphDecisionOf(c); return g.date&&g.days!=null&&g.days>=0&&g.days<=IG_BRIEF_ENDING_DAYS; });
+    let v=0; end.forEach(c=>{ const h=igHomeValue(c); if(h!=null) v+=h; });
+    steps.push({ k:'money', ids:end.map(c=>c.id), recipe:{ view:4, time:'decision', lens:null },
+      text:end.length?i18tn('int_brief_ending',end.length,{ n:end.length, d:IG_BRIEF_ENDING_DAYS, v:igTourMoney(v) }):i18t('int_brief_ending_none',{ d:IG_BRIEF_ENDING_DAYS }) }); }
+  { const y=new Date(); y.setDate(y.getDate()-1); const Y=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+    const add=[], sig=[]; book.forEach(c=>{ const d=igAsOfDays(c); if(d.added&&d.added>=Y) add.push(c); else if(d.signed&&String(d.signed).slice(0,10)>=Y) sig.push(c); });
+    steps.push({ k:'since', ids:add.concat(sig).map(c=>c.id), recipe:{ lens:null },
+      text:(add.length||sig.length)?[add.length?i18tn('int_brief_added',add.length,{ n:add.length }):'', sig.length?i18tn('int_brief_signed',sig.length,{ n:sig.length }):''].filter(Boolean).join(' · '):i18t('int_brief_since_none') }); }
+  { const says=(()=>{ const was=igRecipeNow(); try{ igRecipeSet(back); return [graphGroupingWord(back.groups?'custom':back.groupBy)].concat(igRecipeSays()); }catch(_){ return []; } finally{ igRecipeSet(was); } })();
+    steps.push({ k:'back', ids:null, recipe:null, text:i18t('int_brief_back',{ x:says.filter(Boolean).join(', ') }) }); }
+  return steps;
+}
+function igBriefApply(st){
+  const b=intel.brief; if(!b||!st) return;
+  if(st.recipe==null){ igRecipeSet(b.back); }
+  else { if(st.recipe.time) intel.timeBy=st.recipe.time;
+    igSetView(st.recipe.view!=null?st.recipe.view:b.back.view!=null?b.back.view:igbCam().view);
+    intel.lens=st.recipe.lens&&igLensMay(st.recipe.lens)?st.recipe.lens:null; igLensBarPaint(); }
+  rebuildIntelGraph();
+  if(IG){ if(st.ids&&st.ids.length) igPaintIds(st.ids); else igPaint(null); }
+}
+function igBriefStart(){
+  intel.tour=null; intel.walk=null;
+  const back=igRecipeNow();
+  /* the briefing reads the whole book: what was cut comes off while it runs, and comes back on Stop */
+  intel.lenses=intel.lenses.filter(l=>l.hb); intel.groups=null; intel.asOf=null; intel.tlUntil=null;
+  intel.brief={ back, at:0, steps:[], turn:intel.history.length };
+  intel.brief.steps=igBriefSteps(back);
+  intel.history.push({ role:'assistant', text:igEsc(i18t('int_brief_hello',{ n:intel.brief.steps.length })), brief:true });
+  try{ localStorage.setItem(IG_BRIEF_DAY_KEY,todayISO()); }catch(_){}
+  igBriefApply(intel.brief.steps[0]); renderIntelDock(); updateIntelNote(); return true;
+}
+function igBriefGo(k){ const b=intel.brief; if(!b) return; b.at=Math.max(0,Math.min(b.steps.length-1,k)); igBriefApply(b.steps[b.at]); renderIntelDock(); updateIntelNote(); }
+function igBriefStop(){ const b=intel.brief; if(!b) return; intel.brief=null; igRecipeSet(b.back); rebuildIntelGraph(); if(IG) igPaint(null); renderIntelDock(); updateIntelNote(); }
+function igBriefStep(){ const b=intel.brief; return b&&b.steps[b.at]||null; }
+function igBriefNoteHtml(){
+  const b=intel.brief; if(!b) return '';
+  const pin=igBriefPinned();
+  return `<b class="text-ink">${igEsc(i18t('int_brief_label'))} · ${igEsc(i18t('int_walk_at',{ k:b.at+1, n:b.steps.length }))}</b> <button type="button" class="ui-link" data-ig-note="brief-prev" aria-label="${igEsc(i18t('int_tour_prev'))}"${b.at<=0?' disabled aria-disabled="true"':''}>‹</button> <button type="button" class="ui-link" data-ig-note="brief-next" aria-label="${igEsc(i18t('int_tour_next'))}"${b.at>=b.steps.length-1?' disabled aria-disabled="true"':''}>›</button> <button type="button" class="ui-link" data-ig-note="brief-stop">${igEsc(i18t('int_walk_stop'))}</button> <button type="button" class="ui-link" data-ig-note="brief-pin" aria-pressed="${pin}">${igEsc(i18t(pin?'int_brief_unpin':'int_brief_pin'))}</button>`;
+}
+/* the stops, under Jambo's hello: each its sentence and Show (Go there for the last) */
+function igBriefHtml(i){
+  const b=intel.brief; if(!b||b.turn!==i) return '';
+  return `<ol class="ig-brief" aria-label="${igEsc(i18t('int_brief_label'))}">${b.steps.map((s,j)=>`<li class="ig-brief-s${j===b.at?' is-on':''}"><span class="ig-brief-t"><b>${j+1} · ${igEsc(i18t('int_brief_stop_'+s.k))}</b> — ${igEsc(s.text)}</span><button type="button" class="ui-link" data-ig-brief-go="${j}" aria-current="${j===b.at?'step':'false'}">${igEsc(i18t(s.k==='back'?'int_brief_go_there':'int_brief_show'))}</button></li>`).join('')}</ol><div class="igd-small ig-brief-src">${igEsc(i18t('int_brief_src'))}</div>`;
+}
+function igBriefOffered(){ return !!(IG&&IG.nodes&&!intel.brief&&!igPaperUp()&&!igBoardNow()&&state.view==='dashboard'&&typeof hbFace==='function'&&hbFace()==='explorer'); }
+/* pinned: the first time Explorer is drawn each day, the briefing starts by itself (free) */
+function igBriefAutoStart(){
+  if(intel.brief||!igBriefPinned()||!igBriefOffered()) return false;
+  let day=null; try{ day=localStorage.getItem(IG_BRIEF_DAY_KEY); }catch(_){ day=null; }
+  if(day===todayISO()) return false;
+  return igBriefStart();
+}
+document.addEventListener('click',e=>{ const t=e.target&&e.target.closest&&e.target.closest('[data-ig-brief-go],[data-ig-brief-open]'); if(!t) return;
+  if(t.hasAttribute('data-ig-brief-open')){ intel.history.push({ role:'user', text:i18t('int_brief_ask') }); igBriefStart(); return; }
+  igBriefGo(Number(t.getAttribute('data-ig-brief-go'))||0); });
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
   /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
@@ -6315,6 +6583,8 @@ function renderIntel(){
   igWakeWire();
   setActiveNav(onHome?'dashboard':'intel');
   if(onHome) hbAfterMount();
+  /* the briefing pinned as the morning view starts itself the first time each day (free) */
+  setTimeout(()=>{ if(intelRAF===myRAF) try{ igBriefAutoStart(); }catch(_){} },0);
 }
 
 /* ============================================================
@@ -8566,7 +8836,9 @@ function igMsgHTML(m,i){
       ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
              with ticks, and Undo for an answer that changed the board */}
       ${(Number.isInteger(i)&&m.tour)?igTourHtml(i):''}
-      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}${igTourOffered()||igPinOffered()?`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`:''}</div>`):''}
+      ${(Number.isInteger(i)&&m.brief)?igBriefHtml(i):''}
+      ${(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&m.role==='assistant')?igWhatIfLinksHtml():''}
+      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`:''}${igBriefOffered()?`<button type="button" class="ui-link" data-ig-brief-open="${i}">${igEsc(i18t('int_brief_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}${igTourOffered()||igPinOffered()?`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`:''}</div>`):''}
       ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
       ${(m.wholeBook&&typeof window.aiWorklistHtml==='function')?aiWorklistHtml(null,{ wholeBook:true }):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
@@ -10974,7 +11246,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,igBriefSteps,igBriefApply,igBriefStart,igBriefGo,igBriefStop,igBriefStep,igBriefNoteHtml,igBriefHtml,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

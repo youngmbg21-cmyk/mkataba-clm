@@ -547,7 +547,7 @@ function rdnPanelPaint(rows){
       : row(E(_rdT('rdn2_another')), `<button type="button" class="rfp-a" data-rd-act="bring">${E(_rdT('rdn2_add'))}</button>`);
     card = `<p class="ac-nl-q">${E(r.q || r.name)}</p><p class="ac-nl-hint">${E(sub)}</p>
       ${G.length ? cap(_rdT('ac_nl_answers')) + bar + ans : ''}${cap(_rdT('rdn2_where'))}${where}
-      <div class="rfp-acts">${unread && may ? `<button type="button" class="ui-btn ui-btn-primary rdn-go" data-rd-act="next" data-rd-n="${Math.min(unread, AC_SIZES_OF()[AC_SIZES_OF().length - 1])}">${E(_rdT('rdn2_read_other', { n: unread }))}</button>` : ''}${may ? `<button type="button" class="rfp-pill" data-rd-act="delete">${E(_rdT('rdn2_delete'))}</button>` : ''}</div>`;
+      <div class="rfp-acts">${unread && may ? `<button type="button" class="ui-btn ui-btn-primary rdn-go" data-rd-act="next" data-rd-n="${Math.min(unread, AC_SIZES_OF()[AC_SIZES_OF().length - 1])}">${E(_rdT('rdn2_read_more', { n: unread }))}</button>` : ''}${may ? `<button type="button" class="rfp-pill" data-rd-act="delete">${E(_rdT('rdn2_delete'))}</button>` : ''}</div>`;
   }
   insPaintPanel({ seat: RD_SEAT, item: { id: (r && r.key) || '__reads' }, head: false, body: `<div class="rfp-panel is-drawn rdn-panel">${card}</div>`,
     jlHome: _rdT('nav_reads'), jlPh: _rdT('jl_ph_any'), jlSay: rdJlSay });
