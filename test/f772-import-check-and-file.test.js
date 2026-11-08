@@ -192,7 +192,8 @@ describe('f772 (4) Jambo\'s why and the likely answer', () => {
   });
   test('4c said as read from the file, no call', () => {
     assert.match(fnBody(MIG, 'migCheckSideHtml'), /i18t\('mig_src_file'\)/);
-    assert.match(BOOKS.en.mig_src_file, /no Jambo call/);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.equal(BOOKS.en.mig_src_file, 'Read from the file');
   });
 });
 

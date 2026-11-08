@@ -170,8 +170,9 @@ const MEASURE = () => {
 
     console.log('\n5 · Jambo read');
     /* RE-POINTED 23 Oct 2026 (Marquee): the brief's row says its cost */
-    check('5a Brief and Risks, each "Not read …" and Read', m0.read.length >= 2 && /^Brief\s*Not read yet · about 3 calls\s*Read$/.test(m0.read[0])
-      && /^Risks to look at\s*Not read · free\s*Read$/.test(m0.read[1]), JSON.stringify(m0.read));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('5a Brief and Risks, each "Not read …" and Read, no cost', m0.read.length >= 2 && /^Brief\s*Not read yet\s*Read$/.test(m0.read[0])
+      && /^Risks to look at\s*Not read\s*Read$/.test(m0.read[1]), JSON.stringify(m0.read));
 
     console.log('\n6 · Next acts');
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the first act filled in its whole name, the next in its short

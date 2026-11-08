@@ -230,6 +230,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f399, f412, f561, f564, f720, f738, f739, f796; customers, contracts-page 12, parties-sap-way, parties-nda-column, parties-and-people verify.
 
 ## ASK A COLUMN (js/views/askcolumn.js)
+- READS AND COLUMNS AS DRAWN (8 Nov 2026): reads-and-columns-as-drawn-verify (7 checks × three screens; red at the parent from 1). Re-pointed: round6-new-look 2 and 6; the cost re-points in ask-a-column, discover, jambo-asks, jambos-list-panel, reads, reading-desk (all green).
 - Next 50 → on a Reads row lands on the read, never on the conversation (29 Oct 2026): reads-next-lands-on-read-verify (1b red at the parent: 10 frames of talk).
 - THE QUESTION'S CARD, THE LEGORA WAY, NO GREY, STOP STANDS STILL, NEXT 50 SHOWS THE READ (29 Oct 2026): `node test/chromium/column-card-legora-verify.js` (new; 13 red at the parent 0ec7b90 before it threw at 3a; 7 alone red at the parent: Next 50 after a question on Reads landed on Jambo's conversation). The stand-in reads the COUNTRY where the question says "country" and the paper has "12. Governing law" (test/helpers.js). Re-pointed: f956 2 (Stop heads the card), reading-desk-verify 2a 4 5 5b 5c 6 6a, ask-a-column-verify 2d 5b (More… holds Save as a view, Remove column), reads-verify 2b 3 4, stop-and-reads-verify 2 2c, jambo-asks-verify 4, discover-verify 2g (Draw it: one bar per answer) 3b′ 4a′ 5a 11b 11d (More…, the stop in the question's card).
 - stop-and-reads-verify: counts what was with Jambo once the server heard the Stop (29 Oct 2026); run it in the headless shell too (`CHROMIUM_BIN=/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell`), which is what CI runs.
@@ -317,6 +318,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
+- THE DOSSIER'S ONE CARD (8 Nov 2026): dossier-one-card-verify (3 checks × three screens; red at the parent on 1 and 2); contract-new-look 1 and 13c re-pointed.
 - test/chromium/the-read-bar-and-notes-verify.js (1–3 red at the parent; three screens): the read's bar the line's twin (13px, one line, every button whole); notes appear as the read reaches their clause and stay; Jambo's panel folded keeps the line's height and the brown ground. negotiate-new-look-verify 2 now expects Clean · Redline · Their view on the Redlines face.
 - one-zoom, one-paper-everywhere verify.
 
@@ -434,6 +436,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- NO JAMBO CALLS SAID (owner, 8 Nov 2026): f975 (red at the parent on all three). Re-pointed node: f273, f295, f499, f519, f527, f534, f615, f706, f745, f748, f753, f754, f759, f772, f792, f797, f798, f804, f811, f863, f864, f874, f954, f956, f957; browser contract-new-look-verify. f515 and f520 run out of memory here at the parent too (not this change).
 - THE OWNER'S FOUR DECISIONS (25 Oct 2026: Q1 Legora way, Q2 Short words, Q3 Two lines, Q4 Skip): four-decisions-verify (27 checks at the three screens; red at the parent 5ba3f38 on every Q1–Q3 claim but the panel's ›, which held there because the tabs shrank).
   Re-pointed: jambo-looks-them-up 1c (Who else may take two lines; the web row matches the one-line Signer row).
   "/" lists (25 Oct 2026, item 1 after the picks): four-decisions Q1b, four lists × the three screens (Home, the Board's place rows, Approvals' panel, Settings' box). Steadied: jambo-tab-and-back 1 (waits for the bar's note and the answer), paper-panel-as-drawn 6a2 (says the beats again until a clause is named).

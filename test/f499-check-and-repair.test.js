@@ -106,7 +106,8 @@ describe('F499 (D) — the free reader\'s cards: the same checker, no retry', ()
     const w = world();
     const said = w.hbAsk('contracts by month by start date').replace(/<[^>]+>/g, ' ');
     assert.match(said, /Drawn, but the start date is missing for \d+ of \d+ contracts\./);
-    assert.match(said, /Free/);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.doesNotMatch(said, /\b(Free|free|call)\b/);
   });
   test('a good card says nothing more', () => {
     const w = world();

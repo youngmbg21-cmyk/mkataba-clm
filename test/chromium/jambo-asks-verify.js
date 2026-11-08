@@ -56,7 +56,8 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await ask('How many of my contracts are in Procurement?');
     const r1 = await until(page, () => !!document.querySelector('#ig-dock [data-ac-count="records"]'), null, 6000);
     const C1 = await card();
-    check('1 a records question is answered in Jambo\'s grey card, free: "8 of the 16 shown"', r1 && C1 && C1.grey && /8 of the 16 shown/.test(C1.text) && /no Jambo call/.test(C1.text) && h.ai.calls.length === c0, C1);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1 a records question is answered in Jambo\'s grey card, nothing spent, no cost said: "8 of the 16 shown"', r1 && C1 && C1.grey && /8 of the 16 shown/.test(C1.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(C1.text) && h.ai.calls.length === c0, C1);
     for (const [w, ht] of SCREENS){ await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(250); await page.screenshot({ path: path.join(OUT, `records-${w}x${ht}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
     await page.click('#ig-dock [data-ac-count-show]');
@@ -69,8 +70,9 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await ask('How many contracts mention a rebate?');
     const r2 = await until(page, () => !!document.querySelector('#ig-dock [data-ac-count="ask"]'), null, 6000);
     const C2 = await card();
-    check('2 it is explained, with Turn it into one question · 1 Jambo call and Change my question; nothing spent yet',
-      r2 && C2 && C2.grey && /asks each contract one question/.test(C2.text) && C2.btns.includes('Turn it into one question · 1 Jambo call') && C2.btns.includes('Change my question') && h.ai.calls.length === c0, C2);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('2 it is explained, with Turn it into one question and Change my question; nothing spent yet, no cost said',
+      r2 && C2 && C2.grey && /asks each contract one question/.test(C2.text) && C2.btns.includes('Turn it into one question') && C2.btns.includes('Change my question') && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(C2.text) && h.ai.calls.length === c0, C2);
     for (const [w, ht] of SCREENS){ await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(250); await page.screenshot({ path: path.join(OUT, `ask-${w}x${ht}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
     await page.click('#ig-dock [data-ac-count-change]');
@@ -84,8 +86,9 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await page.click('#ig-dock [data-ac-count-turn]');
     const r3 = await until(page, () => !!document.querySelector('#ig-dock [data-ac-count="turned"]'), null, 10000);
     const C3 = await card();
-    check('3 one call turns it: "Does this contract mention a rebate?" is shown before anything is read, with Ask each contract · 16 Jambo calls',
-      r3 && h.ai.calls.length === c0 + 1 && /Does this contract mention a rebate\?/.test(C3.text) && C3.btns.includes('Ask each contract · 16 Jambo calls'), { calls: h.ai.calls.length - c0, C3 });
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('3 one press turns it: "Does this contract mention a rebate?" is shown before anything is read, with Ask each contract, no cost said',
+      r3 && h.ai.calls.length === c0 + 1 && /Does this contract mention a rebate\?/.test(C3.text) && C3.btns.includes('Ask each contract') && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(C3.text), { calls: h.ai.calls.length - c0, C3 });
     for (const [w, ht] of SCREENS){ await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(250); await page.screenshot({ path: path.join(OUT, `turned-${w}x${ht}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
 

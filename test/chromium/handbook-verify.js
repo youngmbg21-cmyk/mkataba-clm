@@ -174,10 +174,12 @@ async function reset(P, base){
         table: !!document.querySelector('.hbk-pick table'), ths: [...document.querySelectorAll('.hbk-pick th')].map(x => x.textContent.trim()), chips: document.querySelectorAll('.hbk-chips .hbk-chip').length,
         chapters: [...document.querySelectorAll('.hbk-ch')].map(s => s.getAttribute('data-hbk-ch')), panel: !!document.querySelector('#ins-panel.is-jambo'), ask: !!document.getElementById('jl-q'), checked: (document.querySelector('.hbk-checked') || {}).textContent }));
       check('2a the contents list the eight parts, Getting around first, the first part in front', page.parts.join() === book.parts.join() && page.on === 'around', JSON.stringify(page.parts));
-      check('2b the part in front: "Which one do I need?" (You want to… · Use · Where · Cost), chips, every chapter of the part', page.table && page.ths.join('|') === 'You want to…|Use|Where|Cost' && page.chips === page.chapters.length && page.chapters.length === book.chapters.filter(c => c.part === 'around').length, JSON.stringify([page.ths, page.chips, page.chapters]));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost column */
+      check('2b the part in front: "Which one do I need?" (You want to… · Use · Where), chips, every chapter of the part', page.table && page.ths.join('|') === 'You want to…|Use|Where' && page.chips === page.chapters.length && page.chapters.length === book.chapters.filter(c => c.part === 'around').length, JSON.stringify([page.ths, page.chips, page.chapters]));
       check('2c Jambo\'s panel beside it, his box at the foot; the foot says the day it was last checked', page.panel && page.ask && /\d{4}-\d{2}-\d{2}/.test(page.checked || ''), page.checked);
       /* every chapter, in both languages: the format's blocks, no marker left, no bare key printed */
-      const FORMAT = ['.hbk-eyebrow', 'h2', '.hbk-what', '.hbk-blk', '.hbk-path', '.hbk-tip', '.hbk-cost', '.hbk-pics'];
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost line under a chapter */
+      const FORMAT = ['.hbk-eyebrow', 'h2', '.hbk-what', '.hbk-blk', '.hbk-path', '.hbk-tip', '.hbk-pics'];
       for (const lang of ['en', 'sv']){
         await P.evaluate(l => langSet(l), lang); await settle(P);
         const bad = [];

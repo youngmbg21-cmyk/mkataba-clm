@@ -59,12 +59,14 @@ function book(){
     await page.evaluate(q => askColOpen({ question: q, name: 'Notice to end' }), Q);
     await until(page, () => !!document.querySelector('#ac-form .ac-th'));
     let S = await sentence();
-    check('1a one sentence, the choice inside it: "the first 50 | 100 of the 500 shown: contracts 1–50 · 50 Jambo calls"',
-      !!S && /reads the first 50100 of the 500 shown: contracts 1–50 · 50 Jambo calls\./.test(S.text) && JSON.stringify(S.pill) === JSON.stringify(['50*', '100']) && S.btn.trim() === 'Read 50 contracts · 50 Jambo calls', S); /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1a one sentence, the choice inside it: "the first 50 | 100 of the 500 shown: contracts 1–50", no cost',
+      !!S && /reads the first 50100 of the 500 shown: contracts 1–50\./.test(S.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(S.text + ' ' + S.btn) && JSON.stringify(S.pill) === JSON.stringify(['50*', '100']) && S.btn.trim() === 'Read 50 contracts', S); /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
     await page.click('#ac-form [data-ac-size="100"]');
     await until(page, () => /1–100/.test((document.querySelector('#ac-form .ac-th') || {}).textContent || ''));
     S = await sentence();
-    check('1b 100 pressed: "contracts 1–100 · 100 Jambo calls", the button "Read 100 contracts · 100 Jambo calls"', !!S && /contracts 1–100 · 100 Jambo calls/.test(S.text) && S.btn.trim() === 'Read 100 contracts · 100 Jambo calls' && S.pill[1] === '100*', S);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1b 100 pressed: "contracts 1–100", the button "Read 100 contracts", no cost', !!S && /contracts 1–100\./.test(S.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(S.text + ' ' + S.btn) && S.btn.trim() === 'Read 100 contracts' && S.pill[1] === '100*', S);
     await page.click('#ac-form [data-ac-size="50"]');
     await until(page, () => /1–50 /.test((document.querySelector('#ac-form .ac-th') || {}).textContent || ''));
     await page.click('#ac-form [data-ac-ask]');
@@ -77,8 +79,9 @@ function book(){
     await page.evaluate(a => askColOpen({ askId: a.id, question: a.question, name: a.name }), ask);
     await until(page, () => /not yet read/.test((document.querySelector('#ac-form .ac-th') || {}).textContent || ''), null, 15000);
     S = await sentence();
-    check('2a the form on the team\'s question: "the next 50 | 100 of the 450 not yet read: contracts 51–100 · 50 Jambo calls. The 50 already read are kept and cost nothing"',
-      !!S && /reads the next 50100 of the 450 not yet read: contracts 51–100 · 50 Jambo calls\. The 50 already read are kept and cost nothing\./.test(S.text) && S.btn.trim() === 'Read the next 50 · 50 Jambo calls', S);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('2a the form on the team\'s question: "the next 50 | 100 of the 450 not yet read: contracts 51–100. The 50 already read are kept and not read again", no cost',
+      !!S && /reads the next 50100 of the 450 not yet read: contracts 51–100\. The 50 already read are kept and not read again\./.test(S.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(S.text + ' ' + S.btn) && S.btn.trim() === 'Read the next 50', S);
     await page.screenshot({ path: path.join(OUT, 'form-1440x780.png') });
     await page.evaluate(() => askColClose());
     /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
@@ -117,7 +120,8 @@ function book(){
     check('4a Every read › lands on the Reads page, on the question\'s row', landed && R.landed && R.name === 'Notice to end', R);
     check('4b the row: partly read, "100 of 500 read", Next 50 →, the grey line with the question, who and when', R.mark === 'Partly read' && R.read === '100 of 500' && R.next === 'Next 50 →' && /“How much notice/.test(R.sub) && /Amina Otieno · read \d+ \w+, \d\d:\d\d$/.test(R.sub), R);
     /* a tab with no rows stays out unless lit (the list head's rule): Packs and Facts are not drawn here */
-    check('4c the head and tabs: "Reads", the facts, All 1 · Mine 1 (Packs and Facts empty, left out)', R.head === 'Reads' && /1 question/.test(R.facts) && /100 Jambo calls this month/.test(R.facts) && JSON.stringify(R.tabs) === JSON.stringify(['All1', 'Mine1']), { head: R.head, facts: R.facts, tabs: R.tabs });
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('4c the head and tabs: "Reads", the facts with no cost, All 1 · Mine 1 (Packs and Facts empty, left out)', R.head === 'Reads' && /1 question/.test(R.facts) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(R.facts) && JSON.stringify(R.tabs) === JSON.stringify(['All1', 'Mine1']), { head: R.head, facts: R.facts, tabs: R.tabs });
     check('4d the thread, newest first: Next · 101–150, then 51–100, then 1–50, then Asked; the panel\'s doors Read the next 50 · 350 left after, Open the table',
       R.thread.length === 4 && /^Next · contracts 101–150$/.test(R.thread[0]) && /^contracts 51–100 · /.test(R.thread[1]) && /^contracts 1–50 · /.test(R.thread[2]) && /^Asked · /.test(R.thread[3]) && R.acts[0] === 'Read the next 50 · 350 left after' && R.acts[1] === 'Open the table', R);
 

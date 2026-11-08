@@ -21911,3 +21911,10 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed (8 Nov 2026, GitHub's run on the Explorer lenses PR)
 - reading-desk-verify 1c can go red on a timing race: its regex wants "\d+ Jambo calls" (plural) in the desk's foot, but when the snapshot lands with exactly one answer in, the foot rightly says "1 Jambo call" (seen on GitHub's runner, PR #580; green here with 4 in). The check should accept "call|calls".
+
+## 8 Nov 2026 — Reads & Contracts as drawn, the One card
+- Removed (as drawn; the owner asked to build the drawing): the new look's folder panel no longer shows "Unusual for you" or the kept question's bar and quote; the Reads page lost its Spent column and the Kept · Packs tabs (packs stay as rows). The column's own card shows the answers.
+- Not built, asked: "Rename column" in a column's ⋯ menu — a column's name is the team's and there is no rename route.
+- Fixed on the way (same card): "Watch the read" did nothing on a paper with unsent changes (the read refused the clean paper drawn by the redline engine).
+- Noticed, not fixed: f515-three-next-questions and f520-see-it-while-you-type run out of memory in this container even on unchanged code.
+- Noticed, not fixed: the Brain's descriptions (brn_pd_*) still describe Jambo calls; kept on purpose as the admin's map of the machine.

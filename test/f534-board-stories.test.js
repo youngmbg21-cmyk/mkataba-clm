@@ -69,7 +69,7 @@ describe('f534 (1) the ask', () => {
   });
   test('the line over the box says the chapters are free and the words one call', () => {
     const w = world();
-    assert.match(w.hbAskPreviewText(w.hbAskReadingOf('build me a story of our negotiation friction')), /^Story: Negotiation friction · chapters free, the words one Jambo call$/);
+    assert.match(w.hbAskPreviewText(w.hbAskReadingOf('build me a story of our negotiation friction')), /^Story: Negotiation friction$/);
   });
 });
 
@@ -105,7 +105,7 @@ describe('f534 (3) the words', () => {
       return { answer: 'LEAD: Rounds rose this year. Signing took 40 days at the peak.\nC1: The highest month was 3 rounds. It was 777 rounds once.\nC2: The slowest month took 40 days.\nC3: Nothing was redlined.\nC4: Kevian Kenya Ltd took 1.9 rounds on average.' }; };
     const said = w.hbAsk('build me a story of our negotiation friction over the last year');
     assert.match(textOf(said), /a story in 4 chapters, over the last 12 months, is on the board/);
-    assert.match(textOf(said), /the words: one Jambo call/);
+    assert.match(textOf(said), /Chapters counted by HaTi · Jambo writes the words/);
     await tick(); await tick();
     assert.equal(calls, 1, 'one call');
     assert.match(prompt, /CHAPTER 1 \(C1\): Rounds per contract/);

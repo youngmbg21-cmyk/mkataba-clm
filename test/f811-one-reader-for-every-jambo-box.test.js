@@ -112,7 +112,7 @@ describe('f811 (B) a contract named any way, and what is asked of it', () => {
   test('B1 "briefing for contracts mk 345" is MK-345\'s brief; none kept, the line says Write the brief costs one call', () => {
     const a = U(w, 'briefing for contracts mk 345');
     assert.equal(a.place, 'brief'); assert.equal(a.cid, 'MK-345');
-    assert.match(w.caGoSay(w.caUnderstand('briefing for contracts mk 345')), /no brief yet.*one Jambo call/);
+    assert.match(w.caGoSay(w.caUnderstand('briefing for contracts mk 345')), /no brief yet\. Write the brief in the panel that opened\./);
     assert.match(w.caGoSay(w.caUnderstand('brief for MK-1')), /Here is the brief of MK-1/, 'a kept brief is shown free');
   });
   test('B2 the number in any form opens the paper', () => {

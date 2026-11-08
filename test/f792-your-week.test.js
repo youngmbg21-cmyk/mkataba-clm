@@ -77,9 +77,10 @@ const DEC = [{ _dec: true, desc: 'Decide whether to renew Office Lease', due: '2
 describe('f792 (1) one reading, counted from the list', () => {
   test('1a the words, both books', () => {
     for (const k of KEYS) for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
-    assert.equal(BOOKS.en.ob_yw_src, 'Counted from your list · no Jambo call');
-    assert.equal(BOOKS.en.ob_yw_chip_week, 'plan my week · 1 Jambo call');
-    assert.equal(BOOKS.en.ob_yw_chip_due, 'find time for what is due · 1 call');
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.equal(BOOKS.en.ob_yw_src, 'Counted from your list');
+    assert.equal(BOOKS.en.ob_yw_chip_week, 'plan my week');
+    assert.equal(BOOKS.en.ob_yw_chip_due, 'find time for what is due');
   });
   test('1b late (and whose), each side\'s dues this week, the decisions, the finds, and next week', () => {
     const y = stage(BOOK, DEC, [{ n: 3 }]).obYourWeek();
@@ -122,8 +123,8 @@ describe('f792 (3) the offer, the chips, the setting', () => {
     const ctx = stage(BOOK, DEC, [{ n: 3 }]);
     const say = ctx.obYourWeekSay();
     assert.equal(say.lines.length, 2);
-    assert.equal(say.lines[0].src, 'Counted from your list · no Jambo call');
-    assert.deepEqual(JSON.parse(JSON.stringify(say.chips.map(c => c.label))), ['plan my week · 1 Jambo call', 'find time for what is due · 1 call']);
+    assert.equal(say.lines[0].src, 'Counted from your list');
+    assert.deepEqual(JSON.parse(JSON.stringify(say.chips.map(c => c.label))), ['plan my week', 'find time for what is due']);
     say.chips.forEach(c => c.run());
     assert.deepEqual(ctx.handed, ['week', 'due']);
     assert.equal(say.after, '<div data-cal-lvs></div>');

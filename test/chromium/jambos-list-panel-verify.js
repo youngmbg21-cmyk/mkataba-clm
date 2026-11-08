@@ -375,7 +375,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
        Home's Board (the reader left Approvals). Now what the Board's own
        reader finds is SAID IN THE PANEL, free, and the reader stays on
        Approvals; a draft from a sentence is still a door (the one form). */
-    await part('10g the ask reads the way the Counter\'s does: no Jambo call', async () => {
+    await part('10g the ask reads the way the Counter\'s does: nothing spent, no cost said', async () => {
       for (const [q, want] of [['Nandi Dairy', 'panel'], ['contracts ending in 90 days', 'panel'], ['draft an NDA with Kabras Sugar', 'form']]) {
         await page.evaluate(() => setView('approvals'));
         await until(() => document.getElementById('jl-q') && document.querySelector('[data-ap-row]'), null, 8000);
@@ -390,9 +390,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           const T = [...f.querySelectorAll('.jb-turn')], wd = e => e.textContent.replace(/\s+/g, ' ').trim();
           let i = -1; T.forEach((e, k) => { if (wd(e) === said) i = k; });
           const a = i >= 0 ? T[i + 1] : null;
-          return a && /no Jambo call/.test(wd(a)) ? { view: state.view, answer: wd(a).slice(0, 120), box: document.getElementById('jl-q').value } : null; }, [want, q], 10000);
+          /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — the answer turn is waited for, and says no cost */
+          return a && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(wd(a)) ? { view: state.view, answer: wd(a).slice(0, 120), box: document.getElementById('jl-q').value } : null; }, [want, q], 10000);
         await page.waitForTimeout(400);
-        check(`10g "${q}" in the list panel: ${want === 'form' ? 'the one form opens (a door)' : 'answered IN the panel, the reader stays on Approvals'}, no Jambo call`,
+        check(`10g "${q}" in the list panel: ${want === 'form' ? 'the one form opens (a door)' : 'answered IN the panel, the reader stays on Approvals'}, nothing spent, no cost said`,
           !!G && !aiCalls.length && (want === 'form' || G.box === ''), JSON.stringify({ G, aiCalls }));
       }
       /* the draft form is a page over Home: put it away so the next parts can press */

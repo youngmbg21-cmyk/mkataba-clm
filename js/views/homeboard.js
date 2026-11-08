@@ -6588,7 +6588,7 @@ function hbBoardSumHtml(){
   /* THE COST IN ITS HOVER, NOT ON ITS FACE (owner, 29 Oct 2026, off a screenshot of this head: "the jambo count
      next to summarise my board disappears"; reverses round 17's "1 Jambo call" segment): the button says what it
      costs when the pointer rests on it, and nothing is spent until it is pressed */
-  const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE(i18t('hb_bs_cost') + ' · ' + i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) }))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
+  const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE([i18t('hb_bs_cost'), i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) })].filter(Boolean).join(' · '))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
   let box = '';
   if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
   else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p>${_hbE(err)}</p></div>`;
@@ -9817,7 +9817,7 @@ function hbAskReadingOf(qRaw, onFace){
 function hbAskPreviewText(A){
   if (!A || A.road === 'map') return '';
   if (A.road === 'copilot') return i18t('hb_pre_copilot');
-  const s = hbS(), free = ' · ' + i18t('hb_pre_free');
+  const s = hbS(), free = i18t('hb_pre_free') ? ' · ' + i18t('hb_pre_free') : '';
   try {
     if (A.kind === 'verified') return i18t('hb_pre_verified', { what: A.v.title }) + free;
     if (A.kind === 'pack') return i18t('hb_pre_pack', { what: i18t('hb_pk_' + A.pack) }) + free;

@@ -69,7 +69,8 @@ describe('F519 (B, C) — a named question draws the stored card, counted live',
     const t = text(said);
     assert.match(t, /^VERIFIED Suppliers by stage: \d+ contracts/);
     assert.match(t, /Verified view · set by Amina Otieno, \d+ Oct · answers “supplier pipeline”, “Where are our suppliers\?”/);
-    assert.match(t, /Free/);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.doesNotMatch(t, /\b(Free|free|call)\b/);
     const s = w.hbS(), p = s.panels[s.panels.length - 1];
     assert.deepEqual(J(p.verified), { id: 'bv_1', by: 'Amina Otieno', at: '2026-10-02' });
     const { D, P } = openPlan(w);

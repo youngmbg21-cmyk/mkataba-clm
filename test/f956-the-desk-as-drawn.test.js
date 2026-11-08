@@ -36,5 +36,5 @@ test('2 · the form has one box and says the name; the card is Jambo\'s grey car
   const stop = slice(A, 'function askColStoppedHtml', '\n}\n');
   assert.match(stop, /ac-dk-card/, 'the stopped card is the same grey card'); assert.match(stop, /askColDeskHeadHtml\(/);
   const I = read('js/i18n.js');
-  assert.match(I, /ac_read_btn_other: 'Read \{n\} contracts · \{calls\}'/);
+  assert.match(I, /ac_read_btn_other: 'Read \{n\} contracts'/); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
 });

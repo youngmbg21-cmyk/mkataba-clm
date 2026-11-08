@@ -65,7 +65,8 @@ describe('f527 (1) the four questions go to their packs, free', () => {
     const html = w.hbAsk(Q.risks);
     assert.ok(html && /Top risks/.test(html));
     assert.equal(w.hbS().path.slice(-1)[0], 'pk:risks');
-    assert.match(html, /Free|free/);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.doesNotMatch(html, /\b(Free|free|call)\b/);
   });
 });
 

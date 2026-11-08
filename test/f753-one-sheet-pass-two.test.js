@@ -144,8 +144,9 @@ describe('f753 (4) what a press costs: in Jambo calls, never money', () => {
   test('4b the sheet\'s two costs are their count of Jambo calls', () => {
     assert.match(WZ, /const naFillCost=\(\)=>i18t\('na_words_cost'\);/);
     assert.match(WZ, /const naReadCost=\(\)=>i18t\('na_file_read'\);/);
-    assert.equal(BOOKS.en.na_words_cost, '1 Jambo call');
-    assert.match(BOOKS.en.na_file_read, /about three Jambo calls\.$/);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.equal(BOOKS.en.na_words_cost, '');
+    assert.doesNotMatch(BOOKS.en.na_file_read, /calls?/);
     for (const l of ['en', 'sv']) { assert.ok(!('na_file_read_money' in BOOKS[l])); assert.ok(!('ai_cost_about' in BOOKS[l])); }
   });
   test('4c the map carries no money route (rule 9)', () => {

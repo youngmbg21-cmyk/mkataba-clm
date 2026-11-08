@@ -8674,7 +8674,7 @@ function igPrePaint(){
     if(u&&u.here&&typeof window.hbParse==='function'){ const r=hbParse(v); if(r&&['dig','lens','panel','card','openc'].includes(r.act)) u=null; }
     if(u&&u.kind==='ask'){ const c=getContract(u.cid); const P=c&&typeof igPaperCost==='function'?igPaperCost(c):null;
       if(c&&P) t=i18t('int_ask_contract_cost',{ ref:(window.contractRef?contractRef(c):c.id), n:Number(P.words||0).toLocaleString() }); }
-    else if(u&&typeof window.caUnderstandSay==='function'){ const s=caUnderstandSay(u); if(s) t=s+' · '+i18t('hb_pre_free'); }
+    else if(u&&typeof window.caUnderstandSay==='function'){ const s=caUnderstandSay(u); if(s) t=[s,i18t('hb_pre_free')].filter(Boolean).join(' · '); }
   }catch(_){}
   el.textContent=t; el.title=t;
 }

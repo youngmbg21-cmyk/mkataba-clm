@@ -47,9 +47,10 @@ const READ = () => {
   const anchorTop = re => { const w = document.createTreeWalker(document.getElementById('ig-canvas'), NodeFilter.SHOW_TEXT);
     for (let n = w.nextNode(); n; n = w.nextNode()){ const i = n.nodeValue.search(re); if (i >= 0){ const rg = document.createRange(); rg.setStart(n, i); rg.setEnd(n, i + 1); return rg.getBoundingClientRect().top; } } return null; };
   return {
-    spine: d && d.querySelector('.pd2-spine') ? d.querySelector('.pd2-spine').textContent.replace(/\s+/g, ' ').trim() : '',
+    /* the stages are the card's dots now (owner picked "One card", 8 Nov 2026); their words are the dots' label */
+    spine: d && d.querySelector('.pd2-spine') ? (d.querySelector('.pd2-spine').getAttribute('aria-label') || d.querySelector('.pd2-spine').textContent).replace(/\s+/g, ' ').trim() : '',
     next: d && d.querySelector('.pd2-next') ? d.querySelector('.pd2-next').textContent.trim() : '',
-    nextLinks: d ? d.querySelectorAll('.pd2-next .ui-link').length : 0,
+    nextLinks: d ? d.querySelectorAll('.pd2-card .pd2-card-go').length : 0,
     read: d && d.querySelector('.pd2-read') ? d.querySelector('.pd2-read').textContent.trim() : '',
     facts, turn: d && d.querySelector('.pd2-turn') ? d.querySelector('.pd2-turn').textContent.trim() : '',
     rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')),
@@ -89,7 +90,7 @@ const READ = () => {
       check(`${nm} 1 the Dossier: one line of stages, one sentence, what Jambo read, the facts with their sources, his one remark`,
         /Arrived .*·\s*Read\s*·\s*Fill, \d+ to do\s*·\s*Negotiate\s*·\s*Sign, \d+ to do\s*·\s*Live/.test(R.spine) && /before anyone signs/.test(R.next) && R.nextLinks === 1
         && /Jambo/.test(R.read) && F.value && F.value.s === '§ 2' && F.ends && F.ends.s === '§ 4' && /renews by itself/.test(F.ends.v)
-        && F.signer && F.signer.s === 'route' && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === '§ 2' && F.std && /1 call/.test(F.std.v)
+        && F.signer && F.signer.s === 'route' && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === '§ 2' && F.std && /Not checked yet/.test(F.std.v) && !/call/.test(F.std.v)
         && /Rejection window/.test(R.turn) && !R.old, { spine: R.spine, next: R.next, facts: R.facts, turn: R.turn.slice(0, 80) });
       check(`${nm} 2 one row of links above Jambo's box`, R.rows.length === 1 && R.rows[0] === 'fill in · redline · share · history', R.rows);
       /* the four notes HaTi read; a Clauses point (once Clauses is read) joins its clause's group and is checked in 14 */
@@ -209,7 +210,7 @@ const READ = () => {
           document.querySelector('[data-stk-all-stop]').click(); await new Promise(r => setTimeout(r, 700));
           window.docReadRun = real; return { before, going, calls: window.__calls }; });
         check('13c "All N in plain English" reads one clause at a time, in order, says how far, and Stop ends it',
-          /^All \d+ in plain English\s*\d+ calls/.test(Al.before) && /Reading one at a time · 1 of \d+/.test(Al.going) && Al.calls.every(x => x.length === 1) && Al.calls.length >= 1 && Al.calls.length <= 2 && (Al.calls.length < 2 || Al.calls[0][0] < Al.calls[1][0]), Al);
+          /^All \d+ in plain English$/.test(Al.before.trim()) && /Reading one at a time · 1 of \d+/.test(Al.going) && Al.calls.every(x => x.length === 1) && Al.calls.length >= 1 && Al.calls.length <= 2 && (Al.calls.length < 2 || Al.calls[0][0] < Al.calls[1][0]), Al);
         /* 13d the Preamble's Mark reviewed: the record the server keeps, its Undo; the blanks still owed */
         await page.click('#pd-thread [data-stk-pre-review=""]');
         const rv = await until(page, () => /Reviewed ·/.test((document.querySelector('#pd-thread .stk-pre') || {}).textContent || ''), null, 10000);

@@ -204,8 +204,8 @@ describe('f864 (5) his first words offer it', () => {
     let T = win.firstReadTurns(upload());
     assert.deepEqual(plain(T[0].choices.map(c => c.fr)), ['yes', 'other', 'web']);
     const w = T[0].choices[2];
-    assert.equal(w.label, 'Look them up online · 1 Jambo call');
-    assert.match(w.title, /up to 5 web searches.*Not a credit check/);
+    assert.equal(w.label, 'Look them up online'); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.match(w.title, /up to 5 web searches.*Not a credit check/i);
     assert.ok(!w.lead, 'one filled button in the panel stays the road\'s');
     win = stage({ recs: { 'nordvik logistik ab': { web: WEB } } });
     T = win.firstReadTurns(upload());

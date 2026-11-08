@@ -892,9 +892,10 @@ describe('F273 — auto-triage on upload', () => {
         'and the reading starts after it');
       assert.ok(!/await\s+triageRun/.test(w), 'the reading itself is still not awaited');
     });
-    test('the sentence names what it costs, and names THREE', () => {
-      assert.match(I18N, /ct_triage_optin_sub: 'Writes the brief[^']*three Jambo calls/,
-        'the risk scan is deterministic and free — overstating a cost is as dishonest as hiding it');
+    test('the sentence names what it does, and no cost', () => {
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+      assert.match(I18N, /ct_triage_optin_sub: 'Writes the brief[^']*'/);
+      assert.doesNotMatch(I18N.match(/ct_triage_optin_sub: '([^']*)'/)[1], /\bcalls?\b|free/i, 'no cost is said');
     });
   });
 

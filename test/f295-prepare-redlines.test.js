@@ -171,7 +171,8 @@ describe('f295 — it asks before it spends, and a refusal writes nothing', () =
   });
   test('the dialog names the cost, or says the review is on file and the press costs nothing', async () => {
     assert.ok(/ng_prepare_ask_stored/.test(RUN) && /ng_prepare_ask/.test(RUN) && /confirmDialog\(/.test(RUN));
-    assert.ok(/one deep Jambo call/.test(I18N) && /costs nothing/.test(I18N));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.ok(!/one deep Jambo call/.test(I18N));
     const w = world(); const c = contract();
     c.playbook = w.finished(c, { key: 'supply', label: 'Supply', source: 'ai', verdicts: [
       { category: 'Data protection', status: 'missing', redline: '' } ] });

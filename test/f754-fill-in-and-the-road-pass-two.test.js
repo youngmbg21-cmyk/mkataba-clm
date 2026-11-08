@@ -163,7 +163,7 @@ describe('f754 (3) an NDA\'s facts, pay, a private stream', () => {
     assert.equal(box.textContent.trim(), 'Private · Board only the people named on Board see it');
     assert.equal(W.pdFillPrivateHtml({ id: 'x', folder: 'sales' }), '');
     box.innerHTML = W.pdFillWaitHtml({ id: 'MK-0399', folder: 'board' });
-    assert.equal(box.textContent.replace(/\s+/g, ' ').trim(), 'Jambo reads a private stream’s contract only when someone presses. Read it now · about three Jambo calls');
+    assert.equal(box.textContent.replace(/\s+/g, ' ').trim(), 'Jambo reads a private stream’s contract only when someone presses. Read it now'); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     assert.ok(box.querySelector('.pd-ff-wait-face'), 'Jambo\'s small face beside it, as drawn');
     assert.equal(box.querySelector('[data-pd-ff-read]').getAttribute('data-pd-ff-read'), 'MK-0399');
     assert.match(PD, /if \(typeof bsGo === 'function'\)\{ bsGo\('read', rd\.getAttribute\('data-pd-ff-read'\)\);/, 'the strip\'s own press');
@@ -270,7 +270,7 @@ describe('f754 (7) the words, in both books', () => {
   test('7a every new key in English and Svenska', () => {
     for (const k of ['pd_ff_nda', 'pd_ff_nda_n_one', 'pd_ff_nda_n_other', 'pd_ff_pay_owed', 'pd_ff_private', 'pd_ff_private_who', 'pd_ff_wait',
       'det_nda_read_clause', 'det_nda_not_conf', 'det_nda_set_line', 'det_nda_span_end', 'det_nda_span_start', 'det_nda_span_disclosure',
-      'pd_rd_checks_clear_one', 'pd_rd_checks_unclear', 'pd_rd_signed_on', 'pd_sf_waits_on', 'pd_sf_waits_theirs', 'ho_menu_their_way', 'pd_ff_wait_cost'])
+      'pd_rd_checks_clear_one', 'pd_rd_checks_unclear', 'pd_rd_signed_on', 'pd_sf_waits_on', 'pd_sf_waits_theirs', 'ho_menu_their_way'])
       for (const l of ['en', 'sv']) assert.ok(BOOKS[l][k], k + ' ' + l);
   });
 });
@@ -437,7 +437,7 @@ describe('f754 (9) the road, the third pass', () => {
 
 describe('f754 (10) the third pass\'s words, in both books', () => {
   test('10a every new key in English and Svenska; the retired cost and example keys gone', () => {
-    for (const k of ['pd_rd_ck_n', 'pd_rd_rule_sub', 'pd_rd_rule_facts', 'pd_rd_rule_refused', 'pd_rd_rule_refused_why', 'pd_rd_rule_lapsed', 'pd_ff_wait_cost'])
+    for (const k of ['pd_rd_ck_n', 'pd_rd_rule_sub', 'pd_rd_rule_facts', 'pd_rd_rule_refused', 'pd_rd_rule_refused_why', 'pd_rd_rule_lapsed'])
       for (const l of ['en', 'sv']) assert.ok(BOOKS[l][k], k + ' ' + l);
     for (const k of ['na_file_read_money', 'ai_cost_about', 'brn_p_callcost', 'brn_pd_callcost'])
       for (const l of ['en', 'sv']) assert.ok(!(k in BOOKS[l]), k + ' ' + l);

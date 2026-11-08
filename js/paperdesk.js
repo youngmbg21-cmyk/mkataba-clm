@@ -756,7 +756,7 @@ function pdFillWaitHtml(c){
   /* AS DRAWN: Jambo's small face, the line straight under the Pay card (CSS
      order), the cost said in Jambo calls, in lower case mid-line */
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 22, 'pd-ff-wait-face') : '';
-  return `<p class="pd-ff-wait-t">${face}<span>${_pdE(_pdT('pd_ff_wait'))} ${may ? `<button type="button" class="pd-ff-use" data-pd-ff-read="${_pdE(c.id)}">${_pdE(_pdT('jb_read_now'))}</button>` : ''}<span class="pd-ff-cost"> · ${_pdE(cost)}</span></span></p>`;
+  return `<p class="pd-ff-wait-t">${face}<span>${_pdE(_pdT('pd_ff_wait'))} ${may ? `<button type="button" class="pd-ff-use" data-pd-ff-read="${_pdE(c.id)}">${_pdE(_pdT('jb_read_now'))}</button>` : ''}${cost ? `<span class="pd-ff-cost"> · ${_pdE(cost)}</span>` : ''}</span></p>`;
 }
 /* the fold of what is answered: shut by default, kept as the reader left it for the sitting */
 let _pdFillFolded = true;
@@ -7513,19 +7513,45 @@ function pd2Html(c){
   if (pd2FillOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-fill" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2FillFaceHtml(c, D)}</div>`;
   if (pd2StandsUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-stands" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2StandsFaceHtml(c)}</div>`;
   if (pd2BriefUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-brief" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2BriefFaceHtml(c, D)}</div>`;
-  const N = dossierNextOf(c, D, dossierFocusOf(D)), b = N.btns[0];
-  const link = b ? ` <button type="button" class="ui-link" ${b.attr}${b.title ? ` title="${E(b.title)}"` : ''}>${E(b.short || b.word)}</button>${b.title ? ` <span class="pd2-q">${E(b.title)}</span>` : ''}` : '';
-  const R = D.read || {};
-  const may = (typeof canEdit !== 'function') || !!canEdit();
-  /* not read yet: its own press, the cost said before it (unless the sentence above already offers it) */
-  const readGo = (!R.read && may && !(b && /data-pd-ds-read/.test(b.attr))) ? ` · <button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('dos_go_read'))}</button> <span class="pd2-q">${E(_pdT('pd2_read_cost'))}</span>` : '';
-  /* the brief, wherever one is written (it may come before the arrival read): its link opens it in the middle */
-  const hasBrief = !!(R.brief || (c._brief && c._brief.data && c._brief.data.overview));
-  const briefGo = hasBrief ? ` · <button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : '';
-  const walkGo = ` · <button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button>`;
-  const readSay = (R.read ? E(_pdT('pd2_read_once')) : E(_pdT('pd2_read_not')) + readGo) + briefGo + walkGo;
   const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo" ${f.go}>${E(f.s || _pdT('dos_go_open'))}</button>` : E(f.s || '')}</span></div>`).join('');
-  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2SpineHtml(D)}<p class="pd2-next" data-pd2-next>${E(N.head)}${link}</p><p class="pd2-read">${readSay}</p><div class="pd2-facts">${facts}</div>${pd2TurnHtml(c)}</div>`;
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}<div class="pd2-facts">${facts}</div>${pd2TurnHtml(c)}</div>`;
+}
+/* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
+   read and the brief need to be better designed … 'Read it | Watch the read | The brief' in green and underlined") ----
+   Jambo's grey card: where it stands (the stage being worked and what it owes, the six stages as dots, their words on
+   its label), the next step as its heading, one sentence of what it does and what follows, the step's own door as the
+   panel's one black button, and Jambo's read at the foot — one line saying where it stands and what reading costs,
+   then its doors as links. Every word is a reading the Dossier already makes (dossierOf, dossierNextOf); no new door. */
+function pd2CardHtml(c, D){
+  const E = _pdE, focus = dossierFocusOf(D), N = dossierNextOf(c, D, focus), b = N.btns[0];
+  const stName = k => _pdT('dos_st_' + k);
+  const st = D.stages.find(x => x.k === focus) || { k: focus, n: 0 };
+  const at = st.n ? _pdT('pd2_card_at_owed', { name: stName(st.k), n: st.n }) : stName(st.k);
+  /* the stages in words, for the dots' label (what the line used to say) */
+  const words = D.stages.map(x => { let w = stName(x.k);
+    if (x.k === 'arrive'){ const cc = D.c || {}, up = cc.upload || {}, d = up.uploadedAt || cc.createdAt || cc._raisedAt || ''; if (d) w = _pdT('pd2_arrived', { when: dossierDay(d) }); }
+    return x.n ? _pdT('pd2_st_owed', { name: stName(x.k), n: x.n }) : w; }).join(' · ');
+  const dots = D.stages.map(x => `<i class="is-${x.k === focus ? 'focus' : x.state}" title="${E(x.n ? _pdT('pd2_st_owed', { name: stName(x.k), n: x.n }) : stName(x.k))}"></i>`).join('');
+  /* what the step does, and what waits after it: the step's own line, else who a send goes to; then the next stage owing */
+  const share = focus === 'nego' && b && /data-pd-glance="share"/.test(b.attr);
+  const later = D.stages.slice(D.stages.findIndex(x => x.k === focus) + 1).find(x => x.n);
+  const say = [N.sub || (share && c.counterparty ? _pdT('pd2_card_goes', { who: c.counterparty }) : ''),
+    later ? _pdTn('pd2_card_then', later.n, { name: stName(later.k), n: later.n }) : ''].filter(Boolean).join(' ');
+  let shareN = 0; if (share){ const o = D.owed.find(r => r.kind === 'share'); shareN = o ? (o.n || 1) : 0; }
+  const word = share && shareN ? _pdTn('pd2_card_send', shareN, { n: shareN }) : b ? (b.word || '') : '';
+  const btn = b ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go" ${b.attr}${b.title ? ` title="${E(b.title)}"` : ''}>${E(word)}</button>` : '';
+  /* Jambo's read: one line, then its doors as links: Read it | Watch the read | The brief */
+  const R = D.read || {}, may = (typeof canEdit !== 'function') || !!canEdit();
+  const readHere = !R.read && may && !(b && /data-pd-ds-read/.test(b.attr));
+  const hasBrief = !!(R.brief || (c._brief && c._brief.data && c._brief.data.overview));
+  /* nothing is said about Jambo calls (owner, 8 Nov 2026: "remove all information related to jambo calls") */
+  const sayRead = R.read ? _pdT('pd2_read_once') : _pdT('pd2_read_not');
+  const links = [readHere ? `<button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('pd2_card_read_it'))}</button>` : '',
+    `<button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button>`,
+    hasBrief ? `<button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''].filter(Boolean).join('<span class="pd2-card-sep" aria-hidden="true">|</span>');
+  return `<div class="pd2-card" data-pd2-card><div class="pd2-card-top"><span>${E(at)}</span><span class="pd2-spine" data-pd2-spine role="img" aria-label="${E(words)}">${dots}</span></div>
+    <p class="pd2-next" data-pd2-next>${E(String(N.head || '').replace(/\.$/, ''))}</p>${say ? `<p class="pd2-card-say">${E(say)}</p>` : ''}${btn}
+    <div class="pd2-card-foot"><p class="pd2-read">${E(sayRead)}</p><p class="pd2-card-links">${links}</p></div></div>`;
 }
 /* ---- THE NOTES BESIDE THE PAPER (the contract round, part 1; owner: "Only what HaTi has read") ----
    Each note stands beside the line it was read from, in the colour of what it is: amber a blank, brown a risk,
@@ -8402,7 +8428,7 @@ function pd2WalkCtx(){
 }
 function pd2WalkOpen(id){
   const c = getContract(id); if (!c || !pd2On() || !pdOnPaper()) return false;
-  const cv = document.getElementById('ig-canvas'); if (!cv || cv.closest('.ig-redpaper, .ig-signpaper')) return false;
+  const cv = document.getElementById('ig-canvas'); if (!cv || cv.closest('.ig-redpaper:not(.is-clean), .ig-signpaper')) return false;
   if (pd2FillOn(id)) pd2FillStop();
   if (pdMidUp()) pdMidClose();
   _pd2Walk = { id: String(id), i: 0, run: false, speed: (_pd2Walk && _pd2Walk.speed) || 'normal', lit: [], done: false, timer: 0 };

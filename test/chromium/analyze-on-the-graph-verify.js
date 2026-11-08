@@ -253,8 +253,9 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     check('2s4 the hover names the clause, how serious it is, and why it is flagged',
       tip.shown && tip.text.includes(staged.label) && /Could hurt you/.test(tip.text) && /capped far below/.test(tip.text) && /open it in Clauses/.test(tip.text) && !/ask Jambo/.test(tip.text),
       tip.text || 'not shown');
-    check('2s4b and, the contract not read yet, the card says opening Clauses reads it first and what it costs',
-      /Clauses reads this contract first · 1 Jambo call/.test(tip.text), tip.text || 'not shown');
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('2s4b and, the contract not read yet, the card says opening Clauses reads it first, no cost',
+      /Clauses reads this contract first/.test(tip.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(tip.text), tip.text || 'not shown');
     await page.evaluate(() => { const i = document.getElementById('igd-input'); if (i) i.value = ''; });
     const callsBefore = ai.calls.length, turnsBefore = await page.evaluate(() => (intel.history || []).length);
     await page.click(`#ig-spine [data-xr-seg="${blk.i}"]`);

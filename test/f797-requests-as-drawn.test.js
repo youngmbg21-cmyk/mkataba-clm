@@ -236,7 +236,8 @@ describe('f797 (6) the paper that fits, read without AI; Start the draft chooses
        from it") */
     assert.equal(txt(fit.querySelector('b')), 'NDA');
     assert.equal(txt(fit.querySelector('.jl-bub')), 'Our NDA fits: Wanjiru asks for “NDA”, and nothing in the ask departs from it. Start the draft opens the New agreement form with it chosen; you check it before anything is made.');
-    assert.match(fit.getAttribute('title'), /no Jambo call/, 'it says it spends nothing');
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.equal(fit.getAttribute('title'), 'Read from the request and our paper');
   });
   test('6b none fits: said as none, never guessed', () => {
     const x = withRank(world());
@@ -265,7 +266,8 @@ describe('f797 (7) with nothing chosen, Jambo says the list', () => {
     const p = x.d.getElementById('ins-panel');
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): nothing chosen, his words are the Overview's head and quiet lines (.jov-head), its source line .jov-src, his chips the offers under "Ask me" (.jov-lnk.is-ask), each verb first with a capital as drawn */
     assert.equal(txt(p.querySelector('.jov-head')), '3 open requests. 1 nobody holds yet, asked 4 days ago. 1 is with you.');
-    assert.match(txt(p.querySelector('.jov-src')), /no Jambo call/);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.equal(txt(p.querySelector('.jov-src')), 'Counted from the list');
     assert.deepEqual([...p.querySelectorAll('.jov-lnk.is-ask')].map(txt), ['The ones nobody holds', 'Ask for a contract']);
   });
 });

@@ -309,8 +309,10 @@ function askColThHtml(askId, style, grip, caret){
   if (typeof regNl === 'function' && regNl()){
     const shown = askColShown(), got = AC.ans[askId] || {};
     const read = shown.filter(id => got[id]).length, yes = shown.filter(id => got[id] && got[id].yes === true).length;
-    const sub = _acT('ac_th_kept_sub', { k: read, n: shown.length, y: yes });
-    return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.question || a.name || '')}</span>${caret || ''}<span class="reg-th-sub">${_acE(sub)}</span>${grip || ''}</th>`;
+    /* THE HEAD AS DRAWN (owner, 8 Nov 2026): the column's name and how far it is read on one line, then ⋯ (its menu) */
+    void yes;
+    const sub = _acT('ac_nl_th_sub', { k: read, n: shown.length });
+    return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-line"><span class="ac-th-w">${_acE(a.name || a.question || '')}</span><span class="reg-th-sub">${_acE(sub)}</span><button type="button" class="ac-th-more" data-ac-thmore="${_acE(askId)}" aria-haspopup="menu" aria-expanded="false" aria-label="${_acE(_acT('ac_nl_more'))}">⋯</button></span>${caret || ''}${grip || ''}</th>`;
   }
   return `<th class="reg-th-sort ac-th${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.name || '')}</span>${spark}${tally}${caret || ''}${grip || ''}</th>`;
 }
@@ -584,6 +586,8 @@ function askColPanelHtml(){
   /* a stop whose question has no column on the list (a pack's, or one taken off) keeps its own card */
   const stopped = AC.stopped && !(AC.stopped.askId && up.includes(AC.stopped.askId)) ? askColStoppedHtml() : '';
   if (!up.length) return stopped;
+  /* the new look: a column opened (a read just ended, or its name pressed on the folder's panel) is its drawn card */
+  if (typeof regNl === 'function' && regNl() && AC.colOpen && up.includes(AC.colOpen) && !AC.chosen) return stopped + askColDoneDrawnHtml(AC.colOpen);
   const ch = AC.chosen && up.includes(AC.chosen.askId) ? AC.chosen : null;
   return stopped + (ch ? askColWhyHtml(ch) + askColColumnHtml(ch.askId) : askColQuestionsHtml(up) + askColDiscoverHtml());
 }
@@ -802,7 +806,7 @@ function askColDeskRisk(b){
 }
 function askColDeskFootText(b){
   if (b.stop) return _acT('ac_stopping');
-  return _acTn('ac_desk_foot', b.total, { done: b.done, risk: b.done ? _acTn('ac_desk_risk', askColDeskRisk(b)) : '', calls: _acTn('ac_n_calls', b.calls || 0) }).replace(/ · (?= · )/, '').replace(/ ·  · /g, ' · ');
+  return _acTn('ac_desk_foot', b.total, { done: b.done, risk: b.done ? _acTn('ac_desk_risk', askColDeskRisk(b)) : '', calls: _acTn('ac_n_calls', b.calls || 0) }).replace(/ · (?= · )/, '').replace(/ ·  · /g, ' · ').replace(/\s*·\s*$/, '');
 }
 /* a batch is whole: every answer of it that is not yet on the desk joins the queue (the plain answer's way) */
 function askColDeskLanded(b, part, lead){
@@ -838,7 +842,7 @@ function askColDeskPaint(turned){
    "Stopped at 8 of 16 · 8 answers kept · 8 Jambo calls spent · nothing else is being read", the rest offered with its cost */
 function askColStoppedHtml(){
   const s = AC.stopped, calls = s.left.length;
-  const said = [_acTn('ac_stopped_kept', s.done), _acT('ac_desk_spent', { calls: _acTn('ac_n_calls', s.calls || 0) }), _acT('ac_stopped_none')].join(' · ');
+  const said = [_acTn('ac_stopped_kept', s.done), _acT('ac_desk_spent', { calls: _acTn('ac_n_calls', s.calls || 0) }), _acT('ac_stopped_none')].filter(Boolean).join(' · ');
   return `<div class="ac-card ac-dk-card" id="ac-stopped">${askColDeskHeadHtml({ name: s.name, question: s.question, qCount: s.qCount })}
     <div class="ac-dk-said"><b>${_acE(_acT('ac_stopped_head', { done: s.done, total: s.total }))}</b> · ${_acE(said)}</div>
     <div class="ac-acts"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-carry>${_acE(_acTn('ac_carry_on', calls, { calls: _acTn('ac_n_calls', calls) }))}</button><button type="button" class="ui-btn ui-btn-sm" data-ac-stopped-close>${_acE(_acT('ac_stopped_leave'))}</button></div></div>`;
@@ -972,6 +976,7 @@ async function askColBringMany(askIds){
 function askColFormHtml(){
   const f = AC.form;
   if (f.pack) return askColPackFormHtml(f);
+  if (typeof regNl === 'function' && regNl()) return askColFormDrawnHtml(f);
   const shown = askColShown();
   /* THE PLAN, SAID AS ONE SENTENCE (The thread, 28 Oct 2026): the next not yet read, with the choice inside it */
   const plan = askColPlan({ askId: f.force ? null : f.askId, force: !!f.force }); f.plan = plan;
@@ -993,6 +998,47 @@ function askColFormHtml(){
         : `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-ask${why ? ` disabled title="${_acE(why)}"` : ''}>${_acE(askColAskWords(plan))}</button>`}<button type="button" class="ui-btn ui-btn-sm" data-ac-cancel>${_acE(_acT('ac_cancel'))}</button></div>
       ${team.length ? `<div><div class="ac-l">${_acE(_acT('ac_team'))}</div><div class="ac-chips">${team.map(a => `<button type="button" class="ac-chip" data-ac-chip="${_acE(a.id)}" title="${_acE(a.question)}">${_acE(a.name)}</button>`).join('')}</div></div>` : ''}
     </div></div>`;
+}
+/* THE ASK FORM AS DRAWN (owner, 8 Nov 2026, the Reads & Contracts drawing, step 2): ‹ Overview; your question; the
+   column's name, read from the question and yours to change; which contracts (First 50 | All N, in the list's order);
+   Read N contracts · Cancel; the questions asked before in the team, each with Use. No cost is said. */
+function askColFormDrawnHtml(f){
+  const shown = askColShown();
+  const plan = askColPlan({ askId: f.force ? null : f.askId, force: !!f.force }); f.plan = plan;
+  const up = askColIdsUp(), full = up.length >= AC_COLS_MAX && !up.includes(f.askId);
+  const why = !askColMay() ? _acT('ac_btn_viewer') : !shown.length ? _acT('ac_none_shown') : full ? _acT('ac_full') : '';
+  const bring = !plan.unread && !f.force && f.askId;
+  const left = f.force ? plan.shown : plan.unread, sz = plan.size || acSize();
+  const opt = (n, label) => `<button type="button" class="ac-nl-opt${sz === n ? ' on' : ''}" data-ac-size="${n}" aria-pressed="${sz === n ? 'true' : 'false'}">${_acE(label)}</button>`;
+  const which = left > AC_SIZES[0] ? `<div class="ac-nl-seg" role="group">${opt(AC_SIZES[0], _acT('ac_nl_first', { n: AC_SIZES[0] }))}${opt(AC_SIZES[1], left <= AC_SIZES[1] ? _acT('ac_nl_all', { n: left }) : _acT('ac_nl_first', { n: AC_SIZES[1] }))}</div>`
+    : `<div class="ac-nl-seg" role="group"><button type="button" class="ac-nl-opt on" aria-pressed="true">${_acE(_acT('ac_nl_all', { n: left }))}</button></div>`;
+  const team = (AC.team || []).filter(a => !askColIsPortfolio(a.question)).slice(0, 4);
+  const cap = t => `<div class="rfp-cap">${_acE(t)}</div>`;
+  const teamRows = team.map(a => `<div class="rfp-row"><span class="rfp-k">${_acE(a.name || a.question || '')}<small>${_acE(_acT('ac_nl_team_sub', { by: a.by || '', when: a.used || a.at ? askColWhen(a.used || a.at) : '' }).replace(/ · $/, ''))}</small></span><span class="rfp-v"><button type="button" class="rfp-a" data-ac-chip="${_acE(a.id)}">${_acE(_acT('ac_nl_use'))}</button></span></div>`).join('');
+  return `<div class="rfp-panel is-drawn ac-nl-form" id="ac-form"><button type="button" class="rfp-a ac-nl-back" data-ac-cancel>${_acE(_acT('ac_nl_back'))}</button>
+    ${cap(_acT('ac_q_label'))}<textarea id="ac-q" class="ac-in" rows="3" maxlength="300" placeholder="${_acE(_acT('ac_q_ph'))}">${_acE(f.question || '')}</textarea>
+    ${cap(_acT('ac_nl_name_label'))}<input id="ac-name" class="ac-in" maxlength="40" placeholder="${_acE(_acT('ac_name_ph'))}" value="${_acE(f.name || askColNameOf(f.question))}"><p class="ac-nl-hint">${_acE(_acT('ac_nl_name_hint'))}</p>
+    ${bring ? '' : `${cap(_acT('ac_nl_which'))}${which}<p class="ac-nl-hint">${_acE(_acT('ac_nl_which_hint'))}</p>`}
+    ${why ? `<div class="ac-why">${_acE(why)}</div>` : ''}
+    <div class="rfp-acts">${bring ? `<button type="button" class="ui-btn ui-btn-primary" data-ac-bring="${_acE(f.askId)}">${_acE(_acT('ac_th_bring'))}</button>`
+      : `<button type="button" class="ui-btn ui-btn-primary" data-ac-ask${why ? ` disabled title="${_acE(why)}"` : ''}>${_acE(askColAskWords(plan))}</button>`}<button type="button" class="rfp-pill" data-ac-cancel>${_acE(_acT('ac_cancel'))}</button></div>
+    ${teamRows ? cap(_acT('ac_team')) + teamRows : ''}</div>`;
+}
+/* A COLUMN'S CARD AS DRAWN (owner, 8 Nov 2026, the drawing's step 4): ‹ Overview; the question, how far it is read and
+   when; ANSWERS — the coloured bar, then each answer with its count and Show (the list narrows to those contracts);
+   THIS COLUMN — what is not read yet with Read the rest, and Remove column (the answers are kept either way). */
+function askColDoneDrawnHtml(askId){
+  const a = AC.asks[askId] || {}, p = askColPlan({ askId }), s = askColStats(askId), rows = askColGroupRows(askId), may = askColMay();
+  const cap = t => `<div class="rfp-cap">${_acE(t)}</div>`;
+  const row = (k, v, sub) => `<div class="rfp-row"><span class="rfp-k">${k}${sub ? `<small>${_acE(sub)}</small>` : ''}</span><span class="rfp-v">${v}</span></div>`;
+  const sub = s.last ? _acT('ac_nl_done_sub', { k: p.read, n: p.shown, when: askColWhen(s.last) }) : _acT('ac_nl_read_sub', { k: p.read, n: p.shown });
+  const ans = rows.map(r => row(`<span class="ac-ans tone-${r.tone}"><i></i></span>${_acE(r.label)}`, `${r.ids.length} · <button type="button" class="rfp-a" data-ac-show-grp="${_acE(r.key)}" data-ac-grp-ask="${_acE(askId)}">${_acE(_acT('rfp_show'))}</button>`)).join('');
+  const nx = p.unread && may ? row(_acE(_acT('ac_nl_unread')), `<button type="button" class="rfp-a" data-ac-next="${_acE(askId)}" data-ac-n="${Math.min(p.unread, AC_SIZES[AC_SIZES.length - 1])}">${_acE(_acT('ac_nl_read_rest'))}</button>`, _acT('ac_nl_unread_n', { n: p.unread })) : '';
+  const rm = row(_acE(_acT('ac_nl_on_list')), `<button type="button" class="rfp-a" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_nl_remove'))}</button>`, _acT('ac_nl_kept'));
+  return `<div class="rfp-panel is-drawn ac-nl-done" data-ac-col="${_acE(askId)}"><button type="button" class="rfp-a ac-nl-back" data-ac-colback>${_acE(_acT('ac_nl_back'))}</button>
+    <p class="ac-nl-q">${_acE(a.question || a.name || '')}</p><p class="ac-nl-hint">${_acE(sub)}</p>
+    ${rows.length ? cap(_acT('ac_nl_answers')) + askColGroupBarHtml(askId, rows, p.shown, 'ac-nl-bar') + ans : ''}
+    ${cap(_acT('ac_nl_this_col'))}${nx}${rm}</div>`;
 }
 function askColStats(askId){
   const m = AC.ans[askId] || {}, ids = askColShown();
@@ -1339,6 +1385,8 @@ function askColWhyHtml(ch){
    focus and its caret, so a person mid-word loses nothing */
 function askColPaintPanel(){
   askColGroupsForget();
+  /* the head's "+ Ask a column" is lit while its form is open (as drawn) */
+  if (typeof document !== 'undefined') document.querySelectorAll('.ac-btn[data-ac-open]').forEach(x => { x.classList.toggle('is-open', !!AC.form); x.setAttribute('aria-expanded', AC.form ? 'true' : 'false'); });
   if (typeof renderIntelDock !== 'function') return;
   const a = (typeof document !== 'undefined') ? document.activeElement : null;
   const typing = a && (a.id === 'ac-q' || a.id === 'ac-name') ? { id: a.id, v: a.value, s: a.selectionStart, e: a.selectionEnd } : null;
@@ -1467,6 +1515,7 @@ async function askColReadRun(base, ids, opts){
   if (B && !got.stopped && !got.err && B.askId && B.cur){
     AC.lastRun = { askId: B.askId, name: (AC.asks[B.askId] || {}).name || B.name, question: B.question || (AC.asks[B.askId] || {}).question || '', qCount: B.qCount,
       cur: B.cur, seen: B.seen.slice(-AC_DESK_STACK), done: B.done, risk: askColDeskRisk(B), calls: B.calls };
+    AC.colOpen = B.askId;
   }
   if (B){ got.question = B.question || ''; got.qCount = B.qCount; }
   AC.busy = null; askColDeskStop(); askColListSoon(true);
@@ -1694,9 +1743,43 @@ function askColUnchecked(askId){
 }
 async function askColSave(){ if (typeof regSaveViewAsk === 'function') await regSaveViewAsk(); }
 function askColRemove(askId){
+  const R = regState(), was = (Array.isArray(R.ask) ? R.ask : []).slice(), sort = { sort: R.sort, dir: R.dir };
+  const n = Object.keys(AC.ans[askId] || {}).length;
+  if (AC.colOpen === askId) AC.colOpen = null;
   askColDrop(askId);
   if (typeof regRepaint === 'function') regRepaint();
   askColPaintPanel();
+  /* UNDO OVER ASKING (the pop-ups' rule): it is gone at once, the answers stay in Reads, and Undo puts it back where it stood */
+  if (typeof regNl === 'function' && regNl() && typeof toast === 'function') toast(_acT('ac_nl_removed', { n }), 'ok', { action: { label: _acT('ac_nl_undo'), onClick: () => {
+    const R2 = regState(); R2.ask = was.slice(0, AC_COLS_MAX); R2.sort = sort.sort; R2.dir = sort.dir;
+    if (typeof regRepaint === 'function') regRepaint(); askColPaintPanel(); } } });
+}
+/* ⋯ ON A COLUMN'S HEAD: its menu under it — Sort by this column, Read the other N, Remove from this list. A press
+   again, Esc or a press outside closes it (one dropdown per press). */
+function askColThMenuClose(){ const m = document.getElementById('ac-th-menu'); if (m) m.remove(); document.querySelectorAll('[data-ac-thmore][aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false')); }
+function askColThMenuOpen(btn){
+  const id = btn.getAttribute('data-ac-thmore'), open = document.getElementById('ac-th-menu');
+  const same = open && open.getAttribute('data-for') === id; askColThMenuClose(); if (same) return;
+  const p = askColPlan({ askId: id }), may = askColMay();
+  const item = (attr, label, cls) => `<button type="button" role="menuitem" class="ac-thm-i${cls ? ' ' + cls : ''}" ${attr}>${_acE(label)}</button>`;
+  const m = document.createElement('div'); m.id = 'ac-th-menu'; m.className = 'ac-th-menu'; m.setAttribute('role', 'menu'); m.setAttribute('data-for', id);
+  m.innerHTML = item(`data-ac-thsort="${_acE(id)}"`, _acT('ac_nl_sort'))
+    + (p.unread && may ? item(`data-ac-next="${_acE(id)}" data-ac-n="${Math.min(p.unread, AC_SIZES[AC_SIZES.length - 1])}"`, _acT('ac_nl_read_other', { n: p.unread })) : '')
+    + '<hr>' + item(`data-ac-remove="${_acE(id)}"`, _acT('ac_nl_remove_list'), 'is-red');
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect(), w = m.offsetWidth;
+  m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px'; m.style.top = (r.bottom + 6) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+}
+if (typeof document !== 'undefined' && !document._acThWired){ document._acThWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const mb = t.closest('[data-ac-thmore]'); if (mb){ e.preventDefault(); e.stopPropagation(); askColThMenuOpen(mb); return; }
+    const so = t.closest('[data-ac-thsort]'); if (so){ e.preventDefault(); e.stopPropagation(); const id = so.getAttribute('data-ac-thsort'); askColThMenuClose();
+      const th = document.querySelector('th[data-ac-th="' + id + '"]'); if (th) th.click(); return; }
+    if (document.getElementById('ac-th-menu')){ const inMenu = t.closest('#ac-th-menu'); setTimeout(askColThMenuClose, 0); if (!inMenu) return; }
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ac-th-menu')) askColThMenuClose(); });
 }
 
 /* ---- THE PRESSES, DELEGATED ONCE (the list and the panel are redrawn under them) ---- */
@@ -1737,6 +1820,10 @@ if (typeof document !== 'undefined' && !document._acWired){
     { const q = t.closest('[data-ac-qopen]'); if (q){ e.preventDefault(); const id = q.getAttribute('data-ac-qopen');
       const up = askColIdsUp(); AC.openQ = askColOpenQ(up) === id && !AC.busy ? '' : id; AC.chosen = null; AC.moreOpen = null; askColPaintPanel(); return; } }
     /* an answer group pressed: its quote under the list; Show puts just its contracts on the list */
+    if (t.closest('[data-ac-colback]')){ e.preventDefault(); AC.colOpen = null; askColPaintPanel(); return; }
+    { const o = t.closest('[data-ac-colopen]'); if (o){ e.preventDefault(); AC.colOpen = o.getAttribute('data-ac-colopen'); AC.chosen = null; askColPaintPanel(); return; } }
+    { const g = t.closest('[data-ac-show-grp]'); if (g){ e.preventDefault(); const id = g.getAttribute('data-ac-grp-ask'), r = askColGroupRows(id).find(x => x.key === g.getAttribute('data-ac-show-grp'));
+      if (r && typeof regShowOnly === 'function') regShowOnly(r.ids, ((AC.asks[id] || {}).name || '') + ' · ' + r.label); return; } }
     { const g = t.closest('[data-ac-grp]'); if (g){ e.preventDefault(); AC.qWalk = { askId: g.getAttribute('data-ac-grp-ask'), key: g.getAttribute('data-ac-grp'), i: 0 }; askColPaintPanel(); return; } }
     { const g = t.closest('[data-ac-grp-show]'); if (g){ e.preventDefault(); const askId = g.getAttribute('data-ac-grp-ask'), key = g.getAttribute('data-ac-grp-show');
       const r = askColGroupRows(askId).find(x => x.key === key);
@@ -1796,7 +1883,9 @@ if (typeof document !== 'undefined' && !document._acWired){
     const t = e.target; if (!AC.form || !t) return;
     if (t.id === 'ac-q'){ askColSayClear(); AC.form.question = t.value; if (AC.form.askId && !AC.form.force){ AC.form.askId = null; AC.form.kept = 0; }
       /* the name said under the box follows the words as they are typed, unless the reader chose one */
-      const nm = document.getElementById('ac-named'); if (nm && !AC.form.nameEdit && !AC.form.name) nm.innerHTML = askColNamedHtml(AC.form); }
+      const nm = document.getElementById('ac-named'); if (nm && !AC.form.nameEdit && !AC.form.name) nm.innerHTML = askColNamedHtml(AC.form);
+      /* the drawn form's name box follows the words too, until the reader types a name of their own */
+      const ni = document.querySelector('.ac-nl-form #ac-name'); if (ni && !AC.form.name) ni.value = askColNameOf(t.value); }
     if (t.id === 'ac-name') AC.form.name = t.value;
   });
   /* a rule is saved when its box is left with new words (a change event: once, never per key) */
@@ -1829,7 +1918,7 @@ function askColBtnHtml(){
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
 
-Object.assign(window, { askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { askColTeam, askColDrop, askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });

@@ -421,7 +421,7 @@ function renderReads(){
    the answers' own words), Read "5 of 7", Spent, and the row's one press (Read N more, or Open the table); the
    packs under their own line, each "Run on N · N calls"; the foot "A kept answer is never read again" and The
    read table. Every press is an existing door (readsNext, readsTableOpen, askColOpen on Contracts). */
-let _rdn = 'kept';
+let _rdn = 'all';
 const _rdnLoading = new Set();
 function rdnAnswers(askId){
   const A = (typeof AC !== 'undefined') ? AC : null; if (!A) return null;
@@ -466,28 +466,65 @@ function rdnPackRowHtml(x){
     <td class="cun-wait">${_rdE(x.ran ? _rdT('rdn_ran') : _rdT('rdn_not_run'))}</td><td class="cun-wait">${_rdE(_rdT('rdn_of', { k: read, n: x.total }))}</td><td class="cun-wait">${_rdE(x.row && x.row.calls ? _rdTn('rd_calls', x.row.calls) : '—')}</td>
     <td class="cun-go"><button type="button" class="rfp-pill" data-rdn-pack="${_rdE(x.p.id)}">${_rdE(_rdT('rdn_run_on', { n: x.total, calls: _rdTn('rd_calls', x.total) }))}</button></td></tr>`;
 }
+/* READS, AS DRAWN (owner, 8 Nov 2026, the Reads & Contracts drawing, step 7): "Reads · N questions · N answers kept"
+   and + Ask a question on one line; the box and All · On a list · Not finished; one table — Question (its name, its
+   words under), Read "k of n", Answers (the top three and Not found), On the list of, Asked (by · when); the panel reads
+   the chosen question: its answers, where it shows (Open · Remove, Add to a list), Read the other N, Delete question.
+   No cost is said. Every press is an existing door (readsNext, readsBring, askColOpen, askColDelete). */
+function rdnGroups(r){
+  const got = rdnAnswers(r.askIds[0]); if (!got) return [];
+  const xs = Object.values(got).filter(Boolean);
+  const nf = xs.filter(a => !a.found).length, found = xs.filter(a => a.found);
+  const yn = found.filter(a => typeof a.yes === 'boolean');
+  let g = [];
+  if (yn.length && yn.length === found.length) g = [{ l: _rdT('rdn_yes', { n: '' }).trim(), n: yn.filter(a => a.yes).length, t: 'yes' }, { l: _rdT('rdn_no', { n: '' }).trim(), n: yn.filter(a => !a.yes).length, t: 'amb' }].filter(x => x.n);
+  else { const by = new Map(); found.forEach(a => { const k = String(a.answer || '').trim(); if (k) by.set(k, (by.get(k) || 0) + 1); });
+    g = [...by.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3).map(([l, n], i) => ({ l, n, t: i ? 'amb' : 'yes' })); }
+  if (nf) g.push({ l: _rdT('ac_not_found'), n: nf, t: 'none' });
+  return g;
+}
+function rdnOnList(r){
+  const R = (typeof regState === 'function') ? regState() : (state.reg || {});
+  if (!(Array.isArray(R.ask) && R.ask.includes(r.askIds[0]))) return '';
+  return (R.type && R.type !== 'all' && typeof FOLDERS !== 'undefined' && FOLDERS[R.type]) ? FOLDERS[R.type].name : _rdT('nav_contracts');
+}
+function rdnRowHtml2(r){
+  const G = rdnGroups(r), list = rdnOnList(r);
+  const ans = G.map(x => `${_rdE(x.l)} ${x.n}`).join(' · ');
+  const asked = _rdT('rdn2_asked', { by: r.by || (r.asked && r.asked.by) || '', when: r.when ? rdWhen(r.when) : '' }).replace(/^ · | · $/g, '');
+  return `<tr data-rd-row="${_rdE(r.key)}" class="${_rd.sel === r.key ? 'is-sel' : ''}" tabindex="-1"><td><div class="cun-name">${_rdE(r.name || r.q)}</div><div class="cun-sub">${_rdE(r.q || '')}</div></td>
+    <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: r.read, n: r.total }))}</td><td class="rdn-c">${_rdE(ans || '—')}</td>
+    <td class="rdn-c">${list ? _rdE(list) : `<span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span>`}</td><td class="rdn-c">${_rdE(asked)}</td></tr>`;
+}
+function rdnPackRowHtml2(x){
+  const qs = (x.p.questions || []).map(q => String(q.name || q.question || '').toLowerCase()).filter(Boolean).join(' · ');
+  const n = (x.p.questions || []).length, read = x.row ? x.row.read : 0;
+  return `<tr><td><div class="cun-name">${_rdE(_rdT('rdn_pack', { name: x.p.name, n }))}</div><div class="cun-sub">${_rdE(qs)}</div></td>
+    <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: read, n: x.total }))}</td><td class="rdn-c">${_rdE(x.ran ? _rdT('rdn_ran') : _rdT('rdn_not_run'))}</td><td class="rdn-c"><span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span></td>
+    <td class="rdn-c"><button type="button" class="rfp-pill" data-rdn-pack="${_rdE(x.p.id)}">${_rdE(_rdT('rdn_run_on', { n: x.total, calls: '' }).replace(/\s*·\s*$/, ''))}</button></td></tr>`;
+}
 function rdnRender(host){
   const rows = (_rd.rows || []).filter(r => !r.pack);
   const q = rdWords();
-  const kept = rows.filter(r => rdHit(r, q));
-  const packs = rdnPacks().filter(x => !q || String(x.p.name || '').toLowerCase().includes(q));
-  const notRun = rdnPacks().filter(x => !x.ran).length;
-  const month = (typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10)).slice(0, 7);
-  const calls = (((typeof AC !== 'undefined' && AC.reads && AC.reads.reads) || []).filter(r => String(r.at || '').slice(0, 7) === month).reduce((n, r) => n + (r.calls || 0), 0));
-  const facts = [_rdTn('rdn_n_kept', rows.length), notRun ? _rdTn('rdn_n_notrun', notRun) : ''].filter(Boolean).join(' · ');
+  const inTab = r => _rdn === 'list' ? !!rdnOnList(r) : _rdn === 'open' ? r.read < r.total : true;
+  const boxed = rows.filter(r => rdHit(r, q)), shown = boxed.filter(inTab);
+  const answers = rows.reduce((n, r) => n + (r.read || 0), 0);
+  const facts = _rdTn('rdn2_facts', rows.length, { q: rows.length, a: answers });
   const tab = (k, w, n) => `<button type="button" class="apn-tab${_rdn === k ? ' is-on' : ''}" data-rdn-tab="${k}">${_rdE(w)} <span>${n}</span></button>`;
-  const body = (_rdn !== 'packs' ? kept.map(rdnRowHtml).join('') : '')
-    + (packs.length ? `<tr class="rdn-grp"><td colspan="5">${_rdE(_rdT('rd_tab_packs'))}</td></tr>${packs.map(rdnPackRowHtml).join('')}` : '');
-  if (!_rd.sel || !rows.some(r => r.key === _rd.sel)) _rd.sel = kept[0] ? kept[0].key : null;
+  if (!['all', 'list', 'open'].includes(_rdn)) _rdn = 'all';
+  if (!_rd.sel || !shown.some(r => r.key === _rd.sel)) _rd.sel = shown[0] ? shown[0].key : null;
+  const may = typeof askColMay !== 'function' || askColMay();
+  /* the packs stay on their own lines under the questions, on All only (a pack is run from here) */
+  const packs = _rdn === 'all' ? rdnPacks().filter(x => !q || String(x.p.name || '').toLowerCase().includes(q)) : [];
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page rdn-page" id="rd-page" data-ins-page="reads" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="ctf-hf">${_rdE(facts)}</span></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="rdn-q" type="search" autocomplete="off" placeholder="${_rdE(_rdT('lh_filter_ph'))}" value="${_rdE(_rd.q || '')}"></label><span class="apn-sp"></span>
-        ${tab('kept', _rdT('rdn_tab_kept'), rows.length)}${tab('packs', _rdT('rd_tab_packs'), rdnPacks().length)}<span class="rdn-spent">${_rdE(_rdT('rdn_spent', { calls: _rdTn('rd_calls', calls) }))}</span></div>
-      <div class="cu-scroll"><table class="apn-table cun-table rdn-table"><colgroup><col style="width:34%"><col style="width:22%"><col style="width:14%"><col style="width:12%"><col></colgroup>
-        <thead><tr><th>${_rdE(_rdT('rdn_c_q'))}</th><th>${_rdE(_rdT('rdn_c_a'))}</th><th>${_rdE(_rdT('rd_col_read'))}</th><th>${_rdE(_rdT('rdn_c_spent'))}</th><th></th></tr></thead>
-        <tbody>${body || `<tr><td colspan="5" class="apn-none">${_rdE(_rdT('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
-      <div class="apn-foot rdn-foot"><span>${_rdE(_rdT('rdn_foot'))}</span>${_rd.sel ? `<button type="button" class="rfp-a" data-rdn-table="${_rdE(_rd.sel)}">${_rdE(_rdT('rdn_the_table'))}</button>` : ''}</div>
+      <div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="ctf-hf">${_rdE(facts)}</span><span class="apn-sp"></span>${may ? `<button type="button" id="rd-ask" class="ui-btn ui-btn-primary rdn-ask">${_rdE(_rdT('rdn2_add_q'))}</button>` : ''}</div>
+      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="rdn-q" type="search" autocomplete="off" placeholder="${_rdE(_rdT('lh_filter_ph'))}" value="${_rdE(_rd.q || '')}"></label>
+        ${tab('all', _rdT('rdn2_tab_all'), boxed.length)}${tab('list', _rdT('rdn2_tab_list'), boxed.filter(r => !!rdnOnList(r)).length)}${tab('open', _rdT('rdn2_tab_open'), boxed.filter(r => r.read < r.total).length)}<span class="apn-sp"></span></div>
+      <div class="cu-scroll"><table class="apn-table cun-table rdn-table rdn2"><colgroup><col style="width:30%"><col style="width:12%"><col style="width:26%"><col style="width:16%"><col style="width:16%"></colgroup>
+        <thead><tr><th>${_rdE(_rdT('rdn_c_q'))}</th><th>${_rdE(_rdT('rd_col_read'))}</th><th>${_rdE(_rdT('rdn_c_a'))}</th><th>${_rdE(_rdT('rdn2_c_list'))}</th><th>${_rdE(_rdT('rdn2_c_asked'))}</th></tr></thead>
+        <tbody>${shown.map(rdnRowHtml2).join('') || `<tr><td colspan="5" class="apn-none">${_rdE(_rdT('ap_wl_none_match'))}</td></tr>`}${packs.length ? `<tr class="rdn-grp"><td colspan="5">${_rdE(_rdT('rd_tab_packs'))}</td></tr>${packs.map(rdnPackRowHtml2).join('')}` : ''}</tbody></table></div>
+      <div class="apn-foot rdn-foot"><span>${_rdE(_rdT('rdn2_foot'))}</span>${_rd.sel ? `<button type="button" class="rfp-a" data-rdn-table="${_rdE(_rd.sel)}">${_rdE(_rdT('rdn_the_table'))}</button>` : ''}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside></div></div>`;
   rdnPanelPaint(rows);
   readsWire();
@@ -498,27 +535,21 @@ function rdnPanelPaint(rows){
   if (typeof insPaintPanel !== 'function') return;
   const r = rows.find(x => x.key === _rd.sel) || null;
   const E = _rdE;
-  const risk = rows.reduce((n, x) => n + (x.risk || 0), 0);
-  const head = [_rdTn('rdn_p_kept', rows.length), risk ? _rdTn('rdn_p_risk', risk) : ''].filter(Boolean).join(' ');
+  const cap = t => `<div class="rfp-cap">${E(t)}</div>`;
+  const row = (k, v, sub) => `<div class="rfp-row"><span class="rfp-k">${k}${sub ? `<small>${E(sub)}</small>` : ''}</span><span class="rfp-v">${v}</span></div>`;
   let card = '';
   if (r){
-    const got = rdnAnswers(r.askIds[0]) || {};
-    const xs = Object.entries(got).filter(([, a]) => a && a.found);
-    const yes = xs.filter(([, a]) => a.yes === true).length, no = xs.filter(([, a]) => a.yes === false).length, other = xs.length - yes - no;
-    const unread = Math.max(0, r.total - r.read), n = Math.max(1, r.total);
-    const w = k => (k / n * 100).toFixed(2) + '%';
-    const pick = xs.find(([, a]) => a.yes === true && a.quote) || xs.find(([, a]) => a.quote);
-    const pc = pick && typeof getContract === 'function' ? getContract(pick[0]) : null;
-    const m = pick ? /^\s*(\d+)/.exec(String(pick[1].clause || '')) : null;
-    card = `<div class="pd2-ch-cap">${E(r.q || r.name)}</div><div class="rfp-bar"><i class="is-yes" style="width:${w(yes)}"></i><i class="is-no" style="width:${w(no + other)}"></i></div>
-      <div class="rfp-counts">${E([yes || no ? _rdT('rdn_yes', { n: yes }) : '', yes || no ? _rdT('rdn_no', { n: no }) : '', other ? _rdTn('rdn_other', other) : '', unread ? _rdT('rdn_unread', { n: unread }) : ''].filter(Boolean).join(' · '))}</div>
-      ${pick ? `<div class="rfp-q"><b>${E((pc && pc.name) || pick[0])} —</b><p><i>“${E(String(pick[1].quote).slice(0, 140))}${String(pick[1].quote).length > 140 ? '…' : ''}”</i><span>${m ? '§ ' + m[1] : ''}</span></p></div>` : ''}`;
+    const G = rdnGroups(r), n = Math.max(1, r.total), unread = Math.max(0, r.total - r.read), list = rdnOnList(r), may = typeof askColMay !== 'function' || askColMay();
+    const sub = _rdT('rdn2_p_sub', { by: r.by || '', when: r.when ? rdWhen(r.when) : '', k: r.read, n: r.total }).replace(/^ · /, '');
+    const bar = `<div class="rdn-bar" aria-hidden="true">${G.map(x => `<i class="rdn-b-${x.t}" style="width:${(x.n / n * 100).toFixed(2)}%"></i>`).join('')}</div>`;
+    const ans = G.map(x => row(`<i class="rdn-dot rdn-b-${x.t}"></i>${E(x.l)}`, String(x.n))).join('');
+    const where = list ? row(E(list), `<button type="button" class="rfp-a" data-rd-act="bring">${E(_rdT('rdn2_open'))}</button> · <button type="button" class="rfp-a" data-rd-act="unlist">${E(_rdT('rdn2_remove'))}</button>`, _rdT('rdn2_col_on'))
+      : row(E(_rdT('rdn2_another')), `<button type="button" class="rfp-a" data-rd-act="bring">${E(_rdT('rdn2_add'))}</button>`);
+    card = `<p class="ac-nl-q">${E(r.q || r.name)}</p><p class="ac-nl-hint">${E(sub)}</p>
+      ${G.length ? cap(_rdT('ac_nl_answers')) + bar + ans : ''}${cap(_rdT('rdn2_where'))}${where}
+      <div class="rfp-acts">${unread && may ? `<button type="button" class="ui-btn ui-btn-primary rdn-go" data-rd-act="next" data-rd-n="${Math.min(unread, AC_SIZES_OF()[AC_SIZES_OF().length - 1])}">${E(_rdT('rdn2_read_other', { n: unread }))}</button>` : ''}${may ? `<button type="button" class="rfp-pill" data-rd-act="delete">${E(_rdT('rdn2_delete'))}</button>` : ''}</div>`;
   }
-  const others = rows.filter(x => !r || x.key !== r.key).slice(0, 2).map(x => `<div class="rfp-ask"><button type="button" class="rfp-a" data-rd-row="${E(x.key)}">${E(x.q || x.name)}</button><span>${E(_rdTn('rd_calls', Math.max(0, x.total - x.read)))}</span></div>`);
-  const packs = rdnPacks().filter(x => !x.ran).slice(0, 2).map(x => `<div class="rfp-ask"><button type="button" class="rfp-a" data-rdn-pack="${E(x.p.id)}">${E(_rdT('rdn_run_pack', { name: String(x.p.name || '').toLowerCase() }))}</button><span>${E(_rdTn('rd_calls', x.total))}</span></div>`);
-  const ask = others.length || packs.length ? `<div class="pd2-ch-cap">${E(_rdT('reg_fp_ask_h'))}</div>${others.join('')}${packs.join('')}` : '';
-  const turn = `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_rdT('cn2_jambo'))}</b><p>${E(_rdT('rdn_p_jambo'))}</p></div></div>`;
-  insPaintPanel({ seat: RD_SEAT, item: { id: (r && r.key) || '__reads' }, head: false, body: `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${card}${ask}${turn}</div>`,
+  insPaintPanel({ seat: RD_SEAT, item: { id: (r && r.key) || '__reads' }, head: false, body: `<div class="rfp-panel is-drawn rdn-panel">${card}</div>`,
     jlHome: _rdT('nav_reads'), jlPh: _rdT('jl_ph_any'), jlSay: rdJlSay });
 }
 if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired = true;
@@ -604,6 +635,8 @@ function readsWire(){
       else if (act === 'table') readsTable(_rd.sel);
       else if (act === 'bring') readsBring(_rd.sel);
       else if (act === 'risk') readsRisk(_rd.sel);
+      else if (act === 'unlist'){ const r = rdFind(_rd.sel); if (r && typeof askColDrop === 'function'){ askColDrop(r.askIds[0]); renderReads(); } }
+      else if (act === 'delete'){ const r = rdFind(_rd.sel); if (r && typeof askColDelete === 'function') Promise.resolve(askColDelete(r.askIds[0])).then(() => rdLoad(true)).catch(() => {}); }
       return;
     }
     if ((el = t.closest('[data-rd-row]'))){

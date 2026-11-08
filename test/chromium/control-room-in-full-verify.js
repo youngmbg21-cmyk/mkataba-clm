@@ -152,7 +152,8 @@ const signIn = async (page, base, email, pass) => {
     await until(() => !!document.getElementById('st-jb-q'));
     /* RE-PINNED 28 Oct 2026 ("Door above the box"): asked as a chip asks */ await page.evaluate(w => stJbBoxAsk(w), 'Why can\'t Restricted Legal sign the Naivas deal?');
     const cost = await until(() => { const t = [...document.querySelectorAll('.st-jb-turn')].pop(); return t && t.querySelector('[data-st-jb-why]') ? t.textContent : null; });
-    check('5. a "why" offers the AI, its cost said before the press', !!cost && /Jambo call|Jambo-anrop/.test(cost));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('5. a "why" offers the AI before the press, no cost said', !!cost && !/\bcalls?\b|Jambo-anrop|\bfree\b|costs? nothing/i.test(cost), cost);
     const callsBefore = h.ai.calls.length;
     /* RE-POINTED 21 Oct 2026 (one conversation): a turn sits in its host wrapper with its read line after it, so the last turn is the last wrapper's */
     await page.click('#st-jb-feed .jb-turn:last-child .st-jb-turn [data-st-jb-why]');

@@ -121,8 +121,9 @@ const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between
         check(`3a ${at} the filing is one line in the head: reference · stream Move · template · category Change · owner, raised · code name Set`,
           !!S && S.fileInHead && /^MK-A2 · .+ Move · Raw Material Supply Agreement · Category .+ Change · Amina Otieno, raised .+ · No code name Set$/.test(S.file) && S.move && S.set,
           S && S.file);
-        check(`3b ${at} "Read all from the paper" in the head, its cost beside it`,
-          !!S && S.read === 'Read all from the paper' && /Jambo call|Free/.test(S.cost), JSON.stringify(S && { read: S.read, cost: S.cost }));
+        /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+        check(`3b ${at} "Read all from the paper" in the head, no cost beside it`,
+          !!S && S.read === 'Read all from the paper' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(S.cost), JSON.stringify(S && { read: S.read, cost: S.cost }));
         check(`3c ${at} nothing sideways`, !!S && S.side);
         await shot(`kt-legora-${w}.png`);
       });

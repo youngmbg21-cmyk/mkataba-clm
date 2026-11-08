@@ -146,7 +146,7 @@ describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
     /* RE-POINTED (the gaps' third pass, 18 Oct 2026; the owner's answer (4): Jambo's costs stay in
        CALLS, never money) — the cost is its count of Jambo calls */
     /* RE-POINTED 24 Oct 2026 (one door): the button is always drawn — "fill the rest" with words, "fill it" without */
-    assert.match(w, /id="dr-read"[\s\S]*'na_words_fill_rest':'na_words_fill'[\s\S]*id="na-w-cost">· \$\{esc\(naFillCost\(\)\)\}/, 'the form\'s own Find, its cost said');
+    assert.match(w, /id="dr-read"[\s\S]*'na_words_fill_rest':'na_words_fill'[\s\S]*id="na-w-cost">\$\{naFillCost\(\)\?'· '\+esc\(naFillCost\(\)\):''\}/ /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): the dot only beside a cost, so none hangs alone */, 'the form\'s own Find, its cost said');
     assert.match(WZ, /const naFillCost=\(\)=>i18t\('na_words_cost'\);/);
     assert.doesNotMatch(WZ, /aiCostWords/, 'no cost in money');
     assert.match(WZ, /if\(!formOnly && say && String\(say\.value\|\|''\)\.trim\(\) && String\(say\.value\|\|''\)\.trim\(\)!==asked\.trim\(\)\) return true;/, 'the words as asked are not something typed here: leaving asks nothing');
@@ -181,7 +181,7 @@ describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
   });
   test('3f the new words, in English and Svenska', () => {
     for (const k of ['ca_dr_opened', 'ca_dr_opened_with', 'ca_dr_opened_best', 'ca_dr_opened_tail', 'ca_dr_open_again', 'na_words_title', 'na_words_noai', 'na_words_what', 'na_words_with',
-      'na_words_new_party', 'na_words_none', 'na_words_fill', 'na_words_cost', 'na_start', 'na_start_sub', 'na_best', 'na_all_paper', 'na_none_fits', 'na_ask_legal', 'na_asks',
+      'na_words_new_party', 'na_words_none', 'na_words_fill', 'na_start', 'na_start_sub', 'na_best', 'na_all_paper', 'na_none_fits', 'na_ask_legal', 'na_asks',
       'na_q_head', 'na_file', 'na_file_sub', 'na_file_need', 'na_file_read', 'na_file_read_noai', 'na_new_stream'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
     assert.ok(!/ai\/draft/.test(strip(fnBody(CA, 'caDraftRun'))), 'caDraftRun spends nothing');

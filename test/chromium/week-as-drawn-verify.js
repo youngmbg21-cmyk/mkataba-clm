@@ -153,12 +153,14 @@ const weekOf = () => {
         src: (p.querySelector(':is(.jl-src, .jov-src)') || {}).textContent || '', chips: [...p.querySelectorAll('.jl-chip, .jov-lnk.is-ask')].map(c => c.textContent.trim().replace(/\s*·\s*/, ' · ').toLowerCase()),
         lv: [...p.querySelectorAll('[data-cal-lv]')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')),
         ph: (p.querySelector('#jl-q') || {}).placeholder || '', hint: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, sel: document.querySelectorAll('.obw-wk tr.is-sel').length }; });
-    check('2a nothing chosen: Jambo says "Your week", counted from the list, no call',
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('2a nothing chosen: Jambo says "Your week", counted from the list, no cost said',
       !Y.word && Y.sel === 0 && /^This week: 1 late \(yours\), 2 due from the other side, and Jambo’s 3 finds to review\. Next week holds the renewal decision on Office Lease\.$/.test(Y.bubs[0] || '')
-      && Y.src === 'Counted from your list · no Jambo call', Y);
+      && Y.src === 'Counted from your list' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(Y.bubs.join(' ') + ' ' + Y.src), Y);
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
-    check('2b his offer, the planner\'s two asks as chips, the setting as three buttons, the box — and no hint line under it',
-      /Want me to plan the week\?/.test(Y.bubs[1] || '') && JSON.stringify(Y.chips) === JSON.stringify(['plan my week · 1 jambo call', 'find time for what is due · 1 call'])
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('2b his offer, the planner\'s two asks as chips (no cost on them), the setting as three buttons, the box — and no hint line under it',
+      /Want me to plan the week\?/.test(Y.bubs[1] || '') && JSON.stringify(Y.chips) === JSON.stringify(['plan my week', 'find time for what is due'])
       && JSON.stringify(Y.lv) === JSON.stringify(['On his own', 'Ask me first*', 'Never']) && Y.ph === 'Ask Jambo, or type / for a place' && Y.hint === 0, Y);
     await page.click('[data-cal-lv="never"]');
     const nv = await until(async () => { if (minePref().copilotLevel !== 'never') return null;

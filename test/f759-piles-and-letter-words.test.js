@@ -116,7 +116,7 @@ const NEW2 = ['ng_fn_internal', 'ng_fn_back', 'ng_fn_back_title', 'ng_fn_clause'
   'sh_sent_by_email', 'sh_sent_by_email_bare', 'sh_sent_clause', 'sh_sent_note', 'sh_sent_and', 'sh_sent_history', 'sh_sent_status', 'sh_sent_stays_by', 'sh_sent_stays',
   'ce_walk_asks_of', 'ce_walk_asks_none', 'ce_row_back', 'ce_row_back_title', 'ce_row_counter', 'ce_row_edit', 'ce_row_asks_fig', 'ce_row_asks', 'ce_row_yours',
   'ce_row_lands', 'ce_row_ctx', 'ce_row_step_counter', 'ce_row_step_draft', 'ce_row_asked_h', 'ce_row_asked_none', 'ce_row_std_h', 'ce_row_std_fb',
-  'ce_row_jambo_h', 'ce_row_jambo_p', 'ce_row_jambo_go', 'ce_row_jambo_plain', 'ce_row_jambo_cost'];
+  'ce_row_jambo_h', 'ce_row_jambo_p', 'ce_row_jambo_go', 'ce_row_jambo_plain'];
 describe('f759 (4) the second pass\'s words, both books, beside their area', () => {
   test('4a in English and Swedish, the Swedish its own', () => {
     for (const k of NEW2){ assert.ok(STRINGS.en[k], k + ' en'); assert.ok(STRINGS.sv[k], k + ' sv'); }
@@ -154,7 +154,8 @@ describe('f759 (4) the second pass\'s words, both books, beside their area', () 
     assert.equal(en.ce_row_asked_h, 'What they asked');
     assert.equal(en.ce_row_jambo_p, 'For a softer version, or this clause in plain English.');
     assert.equal(en.ce_row_jambo_go, 'Ask for a softer version');
-    assert.equal(en.ce_row_jambo_cost, 'about 1 Jambo call', 'in calls, never money (the owner\'s answer 4)');
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.equal(en.ce_row_jambo_cost, '');
     assert.equal(fill(en.sh_sent_by_email, { who: 'Anna Holm', what: fill(en.sh_sent_and, { a: fill(en.sh_sent_clause, { n: 11 }), b: en.sh_sent_note }) })
       + ' ' + fill(en.sh_sent_stays_by, { n: 7, who: 'Sara' }), 'Sent to Anna Holm by email: clause 11 and your note. Clause 7 stays here until Sara clears it.');
   });

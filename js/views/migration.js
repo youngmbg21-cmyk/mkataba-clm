@@ -357,7 +357,7 @@ async function migConfirmEstimate(files){
   return await confirmDialog({
     get title(){ return i18tn('mig_run_title', n.files, { n:n.files }); },
     message:i18tn('mig_run_calls', n.calls, { n:n.calls, from:aw.said })
-      +(n.upTo>n.calls?' '+i18t('mig_run_upto',{ n:n.upTo }):'')
+      /* "up to N if some are scans" counted calls (owner, 8 Nov 2026: no Jambo calls are said) */
       +(n.thorough?' '+i18t('mig_run_thorough'):''),
     confirmLabel:i18t('mig_run_go') });
 }
@@ -1257,7 +1257,7 @@ function migHeadActsHtml(){
   const k = migKpis();
   const heur = migContracts().filter(c => c.migration.needsReview && c.migration.aiSource !== 'ai' && !c.migration.blocked).length;
   return `<button type="button" id="mig-sheet" class="ui-btn ui-btn-sm" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>${
-    canEdit() && heur && API_MODE() && state.aiConfigured ? `<button type="button" id="mig-rerun" class="ui-btn ui-btn-sm" title="${esc(i18tn('mig_rerun_cost', heur, { n:heur }))}">${esc(i18tn('mig_rerun_n', heur, { n:heur }))}</button>` : ''}${
+    canEdit() && heur && API_MODE() && state.aiConfigured ? `<button type="button" id="mig-rerun" class="ui-btn ui-btn-sm">${esc(i18tn('mig_rerun_n', heur, { n:heur }))}</button>` : ''}${
     canEdit() && k.check ? `<button type="button" id="mig-check-all" class="ui-btn ui-btn-sm">${esc(i18tn('mig_check_all', k.check, { n:k.check }))}</button>` : ''}`;
 }
 /* the head's box keeps the reader's caret across a repaint of the whole page */
