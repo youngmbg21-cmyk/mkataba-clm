@@ -6191,7 +6191,6 @@ function igViewSuggestions(){
     offer(i18t('int_sug_asof'),q=>{ const r=igAsOfRead(q); return !!(r&&r[0]&&r[0].asOf&&r[0].asOf!=='none'&&r[0].asOf!==intel.asOf); });
   }
   const tour=i18t('int_tour_ask'); if(IG_TOUR_RE.test(tour)) out.push(tour);
-  if(!intel.brief){ const br=i18t('int_brief_ask'); if(IG_BRIEF_RE.test(br)) out.push(br); }
   return out;
 }
 /* EXPLORER'S OVERVIEW (owner, 26 Oct 2026: "an overview tab side panel in each page followed by the jambo tab";
