@@ -114,7 +114,7 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
        words are its Overview (the one builder, .jov) under the Overview tab; his greeting is the Jambo tab's */
     assert.ok(p.querySelector('[data-jl-words] .jov .jov-head'), 'he says the page');
     assert.match(p.querySelector('[data-jl-words]').textContent, /3 on this list/);
-    assert.match(p.querySelector('.jov-src').textContent, /no Jambo call/);
+    assert.match(p.querySelector('.jov-src').textContent, /Counted from the list/); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     assert.equal(p.querySelector('[data-jl-back]'), null, 'no back button at all');
     assert.equal(b.$$('#reg-tbody tr.is-sel').length, 0, 'the row is let go');
     assert.ok(p.querySelector('.jl-body[data-jt-land] [data-jl-words]'), 'his words are the Overview, not the conversation');
@@ -176,7 +176,7 @@ describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () =
   test('3b the cost is said before the press, on the box and its button', () => {
     const f = fnOf(INS, 'jlAskHtml');
     assert.match(f, /title="\$\{esc\(cost\)\}"/);
-    assert.match(I18N, /jl_ask_cost: 'A place or a task I know opens at once and costs nothing; anything else is a question for Jambo — one Jambo call\.'/);
+    assert.match(I18N, /jl_ask_cost: 'A place or a task I know opens at once; anything else is a question for Jambo\.'/); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
   });
   test('3c the bar\'s Jambo door beside a list goes to the panel\'s box, not a window over it', () => {
     const AI = read('js/ai.js');
@@ -372,7 +372,7 @@ describe('f804 (8) the ask reads the way the Counter\'s does', () => {
       assert.equal(got[0][2], q, 'the question is the turn before');
       assert.equal(got[1][2], '1 negotiation is waiting for our reply.', 'the answer says what the reading found');
       const turn = b.win.ai.history[1];
-      assert.match(String(turn.read && turn.read.text), /no Jambo call/, 'it says it read the book, free');
+      assert.match(String(turn.read && turn.read.text), /Read from your book/, 'it says it read the book'); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
       assert.ok(!got.some(g => g[0] === 'home' || g[0] === 'model' || g[0] === 'go'), 'never handed to the Board, never a call');
     }
     assert.ok(seen.every(f => f === 'board'), 'read as on the Board\'s face, whatever Home last showed');

@@ -78,7 +78,8 @@ describe('f745 (1) the Board\'s head is one card', () => {
     assert.ok(html.includes(`<span class="hb-bh-s">${BOOKS.en.hb_bh_sub}</span>`), 'your book against six months ago');
     assert.match(html, /<span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/);
     /* RE-POINTED 29 Oct 2026 (owner: "the jambo count next to summarise my board disappears"): the cost is said in its hover, not on its face */
-    assert.match(html, /class="hb-btn is-sm hb-bs-go"[^>]* title="1 Jambo call · /, 'its cost said when the pointer rests on it');
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    assert.doesNotMatch(html, /Jambo call/, 'no cost said, not even on the hover');
     assert.ok(!/hb-bs-cost/.test(html), 'no cost segment on the button');
     assert.ok(!/data-hb-pack-dl/.test(html), 'no Make a pack while no view is kept');
     assert.match(w.hbBoardHeadHtml('08:02', 'Juno', bs, '<button type="button" class="hb-btn is-sm" data-hb-pack-dl>Make a pack</button>'), /· counted 08:02 · Juno<\/span>[\s\S]*data-hb-pack-dl/, 'a set is named; a kept view brings Make a pack');
@@ -236,7 +237,7 @@ describe('f745 (5) "my saved views", asked', () => {
 });
 
 describe('f745 (6) the words, in both books', () => {
-  const KEYS = ['hb_bh_sub', 'hb_bh_counted', 'hb_bh_counted_plain', 'hb_bs_cost', 'hb_jb_hello', 'hb_jb_ending_one', 'hb_jb_ending_other', 'hb_jb_by_stream', 'hb_jb_views',
+  const KEYS = ['hb_bh_sub', 'hb_bh_counted', 'hb_bh_counted_plain', 'hb_jb_hello', 'hb_jb_ending_one', 'hb_jb_ending_other', 'hb_jb_by_stream', 'hb_jb_views',
     'hb_jb_counter_one', 'hb_jb_counter_other', 'hb_jb_counter_work_one', 'hb_jb_counter_work_other', 'hb_jb_counter_none', 'hb_jb_needs_chip',
     'hb_jb_views_say_one', 'hb_jb_views_say_other', 'hb_jb_views_where', 'hb_jb_views_none',
     /* pass 3: each card's headline and its one sentence */

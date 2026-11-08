@@ -138,7 +138,8 @@ const check = (name, pass, detail) => {
       const r4 = await page.evaluate(k => { const g = [...document.querySelectorAll('#hb-focus [data-hb-dig]')].find(x => x.getAttribute('data-hb-dig') === k);
         const t = (g.querySelector('title') || {}).textContent || ''; const n0 = t.slice(t.indexOf(':') + 1).split('·').map(x => x.trim()).find(x => /^\d[\d,\s ]*$/.test(x)); return { said: n0 ? Number(n0.replace(/[^\d]/g, '')) : null, n: hbDigData(k, hbS().lens).n, t }; }, tp.rest);
       check('4b the rest opens exactly the rest', r4.said != null && r4.said === r4.n && r4.n > 0, JSON.stringify(r4)); }
-    check('4c answered free, on the board', /Free/.test(said4 || ''), said4);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    check('4c answered from your own numbers, on the board', /Read from your own numbers/.test(said4 || '') && !/\bfree\b|\bcalls?\b|nothing spent/i.test(said4 || ''), said4);
     await shoot('4-top');
 
     /* ================= 5. PERIOD ================= */

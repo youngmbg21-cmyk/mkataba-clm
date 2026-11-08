@@ -56,10 +56,11 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     await waitCalls(1); await until(() => !intel.busy);
     const A = await page.evaluate(() => ({ key: (hbS().path || []).slice(-1)[0] || null, face: hbS().face, view: state.view }));
     const tA = await turns();
-    const board = tA.find(t => t.role === 'assistant' && /Free/.test(t.text));
     const words = tA.filter(t => t.role === 'assistant').slice(-1)[0];
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — the Board's line is the assistant turn before Jambo's words */
+    const board = tA.find(t => t.role === 'assistant' && t !== words);
     check('A1 the Board drew the subject (a card is open on the Board)', !!A.key && A.face === 'board' && A.view === 'dashboard', JSON.stringify(A));
-    check('A2 the Board said its own line first, free', !!board && board.i < (words ? words.i : -1), board && board.text);
+    check('A2 the Board said its own line first, no cost said', !!board && board.i < (words ? words.i : -1) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(board.text), board && board.text);
     check('A3 and Jambo explained it under that line, in one call', !!words && /Naivas/.test(words.text) && ai.calls.length === 1, JSON.stringify({ words: words && words.text, calls: ai.calls.length }));
     const sent = (() => { const c = ai.calls.slice(-1)[0]; const m = c && c.body && c.body.messages; return m ? JSON.stringify(m[m.length - 1]) : ''; })();
     check('A4 the brain was asked the words as typed, told the Board as it stands', /tell me more about which contracts are waiting on us/.test(sent) && /What the board shows now/.test(sent), sent.slice(0, 200));

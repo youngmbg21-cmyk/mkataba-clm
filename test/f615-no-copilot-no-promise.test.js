@@ -30,7 +30,8 @@ const draw = available => {
 test('f615 with Copilot connected the line names its cost; without it, it promises nothing it cannot keep', () => {
   assert.ok(FN.length > 100, 'the function was found');
   const on = draw(true), off = draw(false);
-  assert.match(on, /About three Jambo calls/);
+  /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+  assert.doesNotMatch(on, /Jambo calls?|anrop/);
   assert.ok(!/three Copilot calls/.test(off), 'no Copilot calls promised without Copilot');
   assert.match(off, /Jambo is not connected/);
   assert.match(off, /local risk scan still does/);

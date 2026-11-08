@@ -110,8 +110,8 @@ function hbkContentsHtml(){
     <p class="hbk-checked">${_hbkE(_hbkT('hbk_checked', { d: HANDBOOK_CHECKED }))}</p></nav>`;
 }
 function hbkPickTableHtml(chs){
-  return `<div class="hbk-pick"><h2>${_hbkE(_hbkT('hbk_pick_h'))}</h2><div class="hbk-tbl"><table><thead><tr><th>${_hbkE(_hbkT('hbk_th_want'))}</th><th>${_hbkE(_hbkT('hbk_th_use'))}</th><th>${_hbkE(_hbkT('hbk_th_where'))}</th><th>${_hbkE(_hbkT('hbk_th_cost'))}</th></tr></thead><tbody>${
-    chs.map(c => `<tr><td>${hbkText(c.when && c.when[0])}</td><td><a href="#" data-hbk-jump="${c.k}">${_hbkE(_hbkW(c.title))}</a></td><td>${_hbkE(_hbkW(c.eyebrow))}</td><td>${hbkCostHtml(c)}</td></tr>`).join('')
+  return `<div class="hbk-pick"><h2>${_hbkE(_hbkT('hbk_pick_h'))}</h2><div class="hbk-tbl"><table><thead><tr><th>${_hbkE(_hbkT('hbk_th_want'))}</th><th>${_hbkE(_hbkT('hbk_th_use'))}</th><th>${_hbkE(_hbkT('hbk_th_where'))}</th></tr></thead><tbody>${
+    chs.map(c => `<tr><td>${hbkText(c.when && c.when[0])}</td><td><a href="#" data-hbk-jump="${c.k}">${_hbkE(_hbkW(c.title))}</a></td><td>${_hbkE(_hbkW(c.eyebrow))}</td></tr>`).join('')
   }</tbody></table></div></div>`;
 }
 /* A CHAPTER'S PICTURES (owner, 26 Oct 2026: "close-ups, 2–3 per chapter where useful, each in the right state, with
@@ -140,7 +140,6 @@ function hbkChapterHtml(c){
       ${blk('hbk_sec_how', `<ol class="hbk-steps">${(c.how || []).map((h, i) => `<li><span class="hbk-step-n" aria-hidden="true">${i + 1}</span><span class="hbk-step-w">${hbkText(h)}</span></li>`).join('')}</ol>`)}
       ${read}
       ${c.tip ? `<div class="hbk-tip">${hbkText(c.tip)}</div>` : ''}
-      <div class="hbk-foot"><span class="hbk-foot-l">${_hbkE(_hbkT('hbk_th_cost'))}</span>${hbkCostHtml(c)}</div>
     </div>
     <div class="hbk-pics">${hbkPicHtml(c)}</div>
   </section>`;
@@ -366,7 +365,7 @@ function hbknChapterHtml(c){
     <p class="hbkn-what">${hbkText(c.what)}</p>
     <ol class="hbkn-steps">${(c.how || []).map(h => `<li>${hbkText(h)}</li>`).join('')}</ol>
     ${pics}
-    <p class="hbkn-tip">${c.tip ? hbkText(c.tip) + ' ' : ''}${_hbkE(_hbkT('hbkn_cost'))} ${hbkCostHtml(c)}</p>
+    ${c.tip ? `<p class="hbkn-tip">${hbkText(c.tip)}</p>` : ''}
     ${(c.when || []).length ? `<div class="hbkn-more"><h3>${_hbkE(_hbkT('hbk_sec_when'))}</h3><ul>${c.when.map(w => `<li>${hbkText(w)}</li>`).join('')}</ul></div>` : ''}
     ${path ? `<div class="hbkn-more"><h3>${_hbkE(_hbkT('hbk_sec_where'))}</h3><div class="hbk-path">${path}</div></div>` : ''}
   </article>`;

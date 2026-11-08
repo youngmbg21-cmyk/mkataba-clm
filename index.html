@@ -18521,6 +18521,23 @@
   html.lg-new #ig-dock .pd2-spine b{font-weight:var(--w-label);color:var(--st-amber-fg)}
   html.lg-new #ig-dock .pd2-next{margin:12px 0 0;font-size:14px;line-height:1.45}
   html.lg-new #ig-dock .pd2-read{margin:4px 0 10px;font-size:11.5px;line-height:1.4;color:var(--color-quiet)}
+  /* NOTHING IS SAID ABOUT JAMBO CALLS (owner, 8 Nov 2026): where a cost used to stand beside a press, its spot is empty and draws nothing */
+  /* THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026): Jambo's grey card, where it stands and its dots,
+     the next step as its heading, the step's door the panel's one black button, the read at its foot, its doors as links */
+  html.lg-new #ig-dock .pd2-card{margin:0 0 14px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;font-size:12px;color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-card-top .pd2-spine{display:inline-flex;gap:5px;flex:none;margin:0}
+  html.lg-new #ig-dock .pd2-card-top .pd2-spine i{width:7px;height:7px;margin:0;border-radius:50%;background:var(--color-divider)}
+  html.lg-new #ig-dock .pd2-card-top .pd2-spine i.is-done{background:var(--color-text)}
+  html.lg-new #ig-dock .pd2-card-top .pd2-spine i.is-now{background:none;box-shadow:inset 0 0 0 1.5px var(--color-text)}
+  html.lg-new #ig-dock .pd2-card-top .pd2-spine i:is(.is-focus, .is-on){background:var(--st-amber-dot)}
+  html.lg-new #ig-dock .pd2-card .pd2-next{margin:0 0 4px;font-size:16px;line-height:1.35;font-weight:var(--w-strong)}
+  html.lg-new #ig-dock .pd2-card-say{margin:0 0 12px;font-size:12.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-card .pd2-card-go{width:100%;height:var(--ctl-h);margin:0;justify-content:center;font-size:13px;white-space:nowrap}
+  html.lg-new #ig-dock .pd2-card-foot{margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd2-card .pd2-read{margin:0 0 4px;font-size:12px;color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-card-links{margin:0;font-size:13px;line-height:1.5}
+  html.lg-new #ig-dock .pd2-card-sep{margin:0 10px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-q{font-size:11.5px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-dossier .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
   html.lg-new #ig-dock .pd2-facts{border-top:1px solid var(--color-divider)}
@@ -19154,7 +19171,11 @@
   html.lg-new .ctf-dot.is-live{background:var(--accent-ink)}
   /* a folder's list, as drawn: the same white page, the folder's name in the serif after "‹ Folders ›"; the shelf is its own card on the folders, so no Archive button */
   html.lg-new #ig-page #ct-place .sap-page.ct-page:not(.ctf-page){background:var(--color-surface);padding:16px 40px 16px}
-  html.lg-new #ct-place .ct-page .ct-h{font-family:var(--font-title);font-size:26px;font-weight:400}
+  /* THE HEAD ON ONE LINE (owner, 8 Nov 2026: "the top of the page so that the fonts are not too big and they are in a straight line"):
+     ‹ Folders / name · facts at 13.5–15px on one line, a hairline under it */
+  html.lg-new #ct-place .ct-page .ct-h{font-family:inherit;font-size:15px;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new #ct-place .ct-page .ctf-back{font-size:13.5px;white-space:nowrap}
+  html.lg-new #ct-place .ct-page .ctf-crumb{font-size:13.5px;color:var(--color-quiet);margin:0 4px}
   html.lg-new #ct-place .ct-page .ct-name{display:flex;align-items:center;gap:6px}
   html.lg-new #ct-place .ct-page .ct-arch{display:none}
   html.lg-new #ig-page #ct-place .ct-page .ph-card.ct-head{box-shadow:none;border:0;border-radius:0;background:transparent;padding-left:0;padding-right:0}
@@ -19162,9 +19183,9 @@
   /* the list's head as drawn: the title row (‹ Folders › name · facts · List · Wall · + New agreement), then ONE line —
      the box, the tabs, + Ask a column, Columns; the stream chip, + Filter, sort, display and the bulk acts are not drawn */
   html.lg-new #ig-page #ct-place .ct-page .ct-head.lh{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 16px}
-  html.lg-new #ct-place .ct-page .ct-head.lh > .ct-top{flex:1 0 100%;display:flex;align-items:center;gap:10px;border-bottom:0;margin-bottom:12px}
+  html.lg-new #ct-place .ct-page .ct-head.lh > .ct-top{flex:1 0 100%;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--color-divider);margin-bottom:4px;padding-bottom:12px}
   html.lg-new #ct-place .ct-page .ct-head .ct-name{flex:1;min-width:0}
-  html.lg-new #ct-place .ct-page .ct-head .ct-facts{font-size:14px;font-weight:var(--w-label);margin-left:10px}
+  html.lg-new #ct-place .ct-page .ct-head .ct-facts{font-size:13.5px;font-weight:var(--w-label);margin-left:10px;white-space:nowrap}
   html.lg-new #ct-place .ct-page .ct-head .ct-seg{display:flex;gap:10px;background:transparent;padding:0;border:0;box-shadow:none}
   html.lg-new #ct-place .ct-page .ct-head .ct-seg button{height:var(--ctl-h-lg);padding:0 16px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-size:13.5px;font-weight:var(--w-label);box-shadow:none}
   html.lg-new #ct-place .ct-page .ct-head .ct-seg button svg{display:none}
@@ -19173,7 +19194,8 @@
   html.lg-new #ct-place .ct-page .ct-head .reg-views{order:2;margin:0;border:0}
   html.lg-new #ct-place .ct-page .ct-head .lh-chips{display:contents}
   html.lg-new #ct-place .ct-page .ct-head :is(.lh-chip,.lh-add,.lh-sp,.reg-filterbar,.ct-cohort,.lh-save){display:none}
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn{order:3;border:0;background:none;box-shadow:none;padding:0;height:auto;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn{order:3;margin-left:auto;border:0;border-radius:999px;background:var(--surface-2);box-shadow:none;padding:0 14px;color:var(--color-text);font-size:13px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn.is-open{background:var(--color-text);color:var(--color-surface)}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn svg{display:none}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn::before{content:"+ "}
   html.lg-new #ct-place .ct-page .ct-head .lc-wrap{order:4}
@@ -19212,6 +19234,62 @@
   html.lg-new .rfp-panel{font-size:13px;line-height:1.45;color:var(--color-text)}
   html.lg-new .rfp-head{margin:0 0 18px;font-size:14px;font-weight:var(--w-strong)}
   html.lg-new .rfp-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0 0 8px}
+  /* the folder's panel as drawn (8 Nov 2026): two captioned tables of name · value rows, hairlines between, then the acts */
+  html.lg-new .rfp-panel.is-drawn .rfp-cap{margin:20px 0 4px}
+  html.lg-new .rfp-panel.is-drawn .rfp-cap:first-child{margin-top:0}
+  html.lg-new .rfp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13.5px}
+  html.lg-new .rfp-k{min-width:0;font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .rfp-k small{display:block;margin-top:2px;font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .rfp-v{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+  html.lg-new .rfp-acts{display:flex;align-items:center;gap:16px;margin-top:20px}
+  html.lg-new .rfp-panel.is-drawn .rfp-pill{height:var(--ctl-h);padding:0 16px;font-size:13px}
+  /* the ask form as drawn: captions over full-width boxes, a two-way choice, a quiet hint under each */
+  html.lg-new .rfp-panel .ac-nl-back{display:block;margin:0 0 16px;font-size:13px}
+  html.lg-new .ac-nl-form .rfp-cap{margin:18px 0 6px}
+  html.lg-new .ac-nl-form .ac-nl-back + .rfp-cap{margin-top:0}
+  html.lg-new .ac-nl-form .ac-in{display:block;width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);font:inherit;font-size:13.5px;color:var(--color-text);resize:vertical}
+  html.lg-new .ac-nl-form input.ac-in{height:var(--ctl-h-lg)}
+  html.lg-new .ac-nl-hint{margin:6px 0 0;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .ac-nl-q{margin:0;font-size:14px;font-weight:var(--w-strong);line-height:1.4}
+  /* READS AS DRAWN (8 Nov 2026): one line at the top; the table fixed, every cell inside its column (the iPad); the panel's bar */
+  html.lg-new .rdn-page .rdn-head{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;min-width:0}
+  html.lg-new .rdn-page .rdn-head .ctf-h{font-family:inherit;font-size:15px;font-weight:var(--w-strong);margin:0;white-space:nowrap}
+  html.lg-new .rdn-page .rdn-head .ctf-hf{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new .rdn-page .rdn-ask{flex:none;height:var(--ctl-h);border-radius:999px;padding:0 16px;white-space:nowrap}
+  html.lg-new .rdn-table.rdn2{table-layout:fixed;width:100%}
+  html.lg-new .rdn-table.rdn2 :is(th,td){overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+  html.lg-new .rdn-table.rdn2 th{white-space:nowrap}
+  html.lg-new .rdn-table.rdn2 .rdn-c{font-size:13px;overflow-wrap:anywhere}
+  html.lg-new .rdn-table.rdn2 .cun-name,html.lg-new .rdn-table.rdn2 .cun-sub{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  html.lg-new .rdn-table.rdn2 .rfp-pill{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .rdn-q{color:var(--color-quiet)}
+  html.lg-new .rfp-panel.rdn-panel{padding:16px}
+  html.lg-new .rdn-bar{display:flex;height:6px;border-radius:999px;overflow:hidden;background:var(--surface-2);margin:8px 0 4px}
+  html.lg-new .rdn-bar i{display:block;height:100%}
+  html.lg-new :is(.rdn-bar,.rdn-dot).rdn-b-yes,html.lg-new .rdn-bar .rdn-b-yes{background:var(--accent-ink)}
+  html.lg-new .rdn-bar .rdn-b-amb,html.lg-new .rdn-dot.rdn-b-amb{background:var(--st-amber-dot)}
+  html.lg-new .rdn-bar .rdn-b-none,html.lg-new .rdn-dot.rdn-b-none{background:var(--color-neutral-300)}
+  html.lg-new .rdn-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
+  html.lg-new .rdn-dot.rdn-b-yes{background:var(--accent-ink)}
+  /* a column's head as drawn: name · k of n read · ⋯ on one line; its menu */
+  html.lg-new #ct-place th.ac-th.is-nl .ac-th-line{display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+  html.lg-new #ct-place th.ac-th.is-nl .ac-th-w{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new #ct-place th.ac-th.is-nl .reg-th-sub{display:inline;margin:0;flex:none;text-transform:none;letter-spacing:0;font-weight:var(--w-label)}
+  html.lg-new .ac-th-more{flex:none;margin-left:auto;width:24px;height:22px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:14px;line-height:1;color:var(--color-text);cursor:pointer}
+  @media (hover:hover){ html.lg-new .ac-th-more:hover{background:var(--surface-2)} }
+  html.lg-new .ac-th-menu{position:fixed;z-index:72;min-width:200px;padding:6px;border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-lg);border:1px solid var(--color-divider)}
+  html.lg-new .ac-th-menu .ac-thm-i{display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer;white-space:nowrap}
+  @media (hover:hover){ html.lg-new .ac-th-menu .ac-thm-i:hover{background:var(--surface-2)} }
+  html.lg-new .ac-th-menu .ac-thm-i.is-red{color:var(--danger)}
+  html.lg-new .ac-th-menu hr{margin:4px 0;border:0;border-top:1px solid var(--color-divider)}
+  html.lg-new .ac-nl-done .ac-nl-bar{margin:8px 0 4px}
+  html.lg-new .ac-nl-done .rfp-k .ac-ans{margin-right:8px;vertical-align:middle}
+  html.lg-new .rfp-a.rfp-qn{color:var(--color-text);text-decoration:none;font-weight:var(--w-label)}
+  @media (hover:hover){ html.lg-new .rfp-a.rfp-qn:hover{text-decoration:underline} }
+  html.lg-new .ac-nl-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new .ac-nl-opt{height:30px;padding:0 14px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new .ac-nl-opt.on{background:var(--color-surface);box-shadow:var(--shadow-sm)}
+  html.lg-new .ac-nl-form .rfp-acts .ui-btn{height:var(--ctl-h);border-radius:999px;padding:0 16px;white-space:nowrap}
   html.lg-new .rfp-p{margin:0 0 18px;font-size:13.5px}
   html.lg-new .rfp-p b{font-weight:var(--w-label)}
   html.lg-new .rfp-a{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left}
@@ -19823,6 +19901,10 @@
   /* a contract's own page brought up on the desk (History, Where we are, the Overview): one white surface, edge to edge, as drawn */
   html.lg-new #ig-page[data-hb-side] #hb-board:has(.bs-strip.bs-on-desk){padding:0;background:var(--color-surface)}
   html.lg-new #ig-page[data-hb-side] #hb-board .bs-strip.bs-on-desk.hb-card{border-radius:0;box-shadow:none;border:0;min-height:100%;margin:0}
+</style>
+<style>
+  /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */
+  :is([class*="cost"], [class*="-free"], .pd2-q, .bs-note, .ag-sub, .pd2-ch-door > span, .rfp-ask > span, .ctfp-door > span, .nsc-more > span, .nsc-p-draft > span, .nsc-p-more > span):empty{display:none}
 </style>
 
 

@@ -64,7 +64,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       rows: [...document.querySelectorAll('.rd-row')].map(r => ({ t: r.querySelector('.rd-t').textContent, src: r.querySelector('.rd-src b').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
       qs: document.querySelectorAll('.rd-q').length, foot: [...document.querySelectorAll('.rd-foot [data-rd-go]')].map(b => b.dataset.rdGo), n: hbRdnBook().length })) : null;
     check('2a Read down sits beside DNA in the Board\'s head', btn);
-    check('2b the page as drawn: no call said, the title, five sentences each with its source and door, the quarters, the doors at the foot', !!S && /no call/i.test(S.eyebrow) && S.h === 'Your book, read down.'
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    check('2b the page as drawn: no cost said, the title, five sentences each with its source and door, the quarters, the doors at the foot', !!S && !/call|free/i.test(S.eyebrow) && S.h === 'Your book, read down.'
       && S.rows.length === 5 && S.rows.every(r => r.src && r.go) && S.qs >= 1 && S.foot.join() === 'needs,contracts,calendar,explorer,negotiations,activity', S && { rows: S.rows.map(r => r.go), qs: S.qs, foot: S.foot });
     check('2c the first sentence counts the book the page reads; Jambo\'s panel reads the records', !!S && S.rows[0].t.includes(`${S.n} agreements`), S && S.rows[0].t);
   } catch (e) { check('2 read down', false, String(e).slice(0, 200)); }

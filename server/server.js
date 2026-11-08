@@ -9752,6 +9752,19 @@ app.post('/api/columns/:askId/keep', auth, editor, (req, res) => {
   res.json({ ask: colAskOut(db.prepare('SELECT * FROM column_asks WHERE id=?').get(ask.id)) });
 });
 
+/* RENAME A COLUMN (owner, 8 Nov 2026: "Add rename"): a column's name is the team's, so the same people who may take
+   it off the list may rename it — the asker, the keeper or an admin. The question and its answers are untouched. */
+app.post('/api/columns/:askId/name', auth, editor, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(req.params.askId));
+  if (!ask) return res.status(404).json({ error: 'That question is not kept any more' });
+  if (!colMayUnkeep(req, ask)) return res.status(403).json({ error: 'Only the person who asked this question, the person who kept it, or an admin may rename it' });
+  const name = String((req.body || {}).name == null ? '' : req.body.name).trim().replace(/\s+/g, ' ');
+  if (!name) return res.status(400).json({ error: 'Give the column a name' });
+  if (name.length > 40) return res.status(400).json({ error: 'Keep the name under 40 characters' });
+  db.prepare('UPDATE column_asks SET name=? WHERE id=?').run(name, ask.id);
+  res.json({ ask: colAskOut(db.prepare('SELECT * FROM column_asks WHERE id=?').get(ask.id)) });
+});
+
 /* FORGET IT ALTOGETHER: the question and every answer kept under it. The
    asker's or an admin's, never a company fact's (switch it off first), and
    never undoable — the page asks before it presses. */

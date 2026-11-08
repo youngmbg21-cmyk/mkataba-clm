@@ -1017,7 +1017,7 @@ function openNewAgreement(o){
   const naAskHtml=()=>`<section class="na-field na-ask" id="na-words">
       <div class="na-ask-top"><div class="na-ptabs" role="tablist" aria-label="${esc(i18t('na_ptabs'))}">${['ours','theirs'].concat(naScratchOk?['scratch']:[]).map(k=>
         `<button type="button" role="tab" class="na-ptab" data-na-paper="${k}" aria-selected="${paper===k}">${esc(i18t('na_tab_'+k))}</button>`).join('')}</div>
-        <span class="na-ask-r"><span class="na-hint">${esc(i18t('na_ask_noai'))}</span><button type="button" id="dr-read" class="ui-link na-fill"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t(asked?'na_words_fill_rest':'na_words_fill'))} <em id="na-w-cost">· ${esc(naFillCost())}</em></button></span></div>
+        <span class="na-ask-r"><span class="na-hint">${esc(i18t('na_ask_noai'))}</span><button type="button" id="dr-read" class="ui-link na-fill"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t(asked?'na_words_fill_rest':'na_words_fill'))} <em id="na-w-cost">${naFillCost()?'· '+esc(naFillCost()):''}</em></button></span></div>
       <div class="na-askbox"><textarea id="dr-say" class="na-say" rows="1" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('na_say_ph'))}" autocomplete="off" aria-label="${esc(i18t('na_say_ph'))}">${esc(asked)}</textarea>
         ${typeof jamboSendHtml==='function'?jamboSendHtml('id="na-reask"', i18t('na_ask_go')):`<button type="button" id="na-reask" class="ui-btn ui-btn-sm">${esc(i18t('na_ask_go'))}</button>`}</div></section>`;
   /* WHAT I READ FROM YOUR WORDS: each fact, what it says and the words it came from

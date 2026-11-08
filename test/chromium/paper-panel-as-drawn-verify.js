@@ -190,9 +190,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       && gl.asks.every(a => /^waits /.test(a.sub) && a.btn === 'Reply'), JSON.stringify(gl.asks));
     /* RE-POINTED 22 Oct 2026 (owner: the signer boxes went): the Signer line is the signing route editor's door */
     check('2d nobody named to sign: the signer is one grid row, no boxes, its line the signing route\'s door', gl.sign.length === 1 && !gl.sign[0].box && gl.sign[0].door, JSON.stringify(gl.sign));
-    check('2e the risks not read yet, in What Jambo read: "free" said before the press, and Read it (the owner\'s answer 6)',
-      /* RE-POINTED 22 Oct 2026 (the Checklist): the name, then "Not read · free" in its own column, then Read */
-      !!gl.scan && gl.scan.say === 'Risks to look at' && gl.scan.val === 'Not read · free' && gl.scan.btn === 'Read' && gl.scan.tip === 'Reading is free: HaTi’s own rules, no Jambo call', JSON.stringify(gl.scan));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('2e the risks not read yet, in What Jambo read: "Not read", no cost said, and Read it (the owner\'s answer 6)',
+      /* RE-POINTED 22 Oct 2026 (the Checklist): the name, then "Not read" in its own column, then Read */
+      !!gl.scan && gl.scan.say === 'Risks to look at' && gl.scan.val === 'Not read' && gl.scan.btn === 'Read' && gl.scan.tip === 'Read by HaTi’s own rules' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(gl.scan.val + ' ' + gl.scan.tip), JSON.stringify(gl.scan));
     check('2f Still owed: the signer, then their asks', gl.order.indexOf('sign') >= 0 && gl.order.indexOf('sign') < gl.order.indexOf('ask'), gl.order.join(','));
     /* 2g WHAT JAMBO READ SAYS WHAT THE BOARD COUNTS (21 Oct 2026): a brief that already names watch-outs is
        counted (never "not read yet" beside them); obligations on the record with none waiting in the reading

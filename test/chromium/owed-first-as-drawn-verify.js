@@ -225,7 +225,8 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     check('9a a private stream: the Dossier says who may open it', P9.priv.length > 0 && /Private|private/.test(P9.priv), P9.priv);
     check('9b base pay owed: its row reads as pay, its door Edit pay', P9.pay && /pay/i.test(P9.payWord), JSON.stringify(P9));
     /* RE-POINTED 22 Oct 2026 (the Checklist): the brief's own row carries the press, "Read" */
-    check('9c What Jambo read waits for the press, its cost said in calls', /^Read$/.test(P9.door) && /Jambo call/.test(P9.cost), JSON.stringify(P9));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('9c What Jambo read waits for the press, no cost said', /^Read$/.test(P9.door) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(P9.cost + ' ' + P9.wait), JSON.stringify(P9));
     /* 10 nothing of Jambo sits over the grid.
        RE-POINTED 21 Oct 2026 (Chambers, the owner picked it by name; it
        reverses "JAMBO, ALIVE", 16 Oct): the perch is gone (jamboPerchMount,

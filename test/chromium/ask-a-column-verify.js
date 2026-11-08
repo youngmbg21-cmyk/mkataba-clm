@@ -75,7 +75,8 @@ async function toList(page) {
     const form = await page.evaluate(() => { const f = document.querySelector('#ac-form'); return f ? f.innerText : ''; });
     /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
     check('1b the question opens in Jambo\'s panel', opened && /Your question/.test(form) && /named from your question/.test(form), form.slice(0, 120));
-    check('1c the cost is said before the press: the contracts and the Jambo calls', /4 shown/.test(form) && /4 Jambo calls/.test(form) && /Read 4 contracts · 4 Jambo calls/.test(form) && /Cancel/.test(form));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1c before the press it says which contracts it reads, no cost', /4 (contracts )?shown/.test(form) && /Read 4 contracts/.test(form) && /Cancel/.test(form) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(form), form.slice(0, 300));
     await page.click('[data-ac-open]');
     check('1d the same press closes it again', await until(page, () => !document.querySelector('#ac-form')));
     await page.screenshot({ path: path.join(OUT, '01-closed.png') });
@@ -161,7 +162,9 @@ async function toList(page) {
        contract is read and kept, and offers Bring the answers onto the list
        (free) instead of asking again */
     const kept = await until(page, () => /Every one of the 4 shown is read and kept/.test((document.querySelector('#ac-form') || {}).innerText || '') && !!document.querySelector('#ac-form [data-ac-bring]'));
-    check('5c the team\'s question is a chip; chosen, the kept answers are said free', kept, await page.evaluate(() => (document.querySelector('#ac-form .ac-cost') || {}).innerText));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    const keptSaid = await page.evaluate(() => (document.querySelector('#ac-form') || {}).innerText || '');
+    check('5c the team\'s question is a chip; chosen, the kept answers are offered, no cost said', kept && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(keptSaid), keptSaid.slice(0, 300));
     const spent2 = h.ai.calls.length;
     await page.click('[data-ac-bring]');
     await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans').length === 4, null, 10000);

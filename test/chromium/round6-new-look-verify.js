@@ -69,12 +69,14 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
     const miss = await txt(page, '#ct-place .reg-std-miss');
-    const panel = await until(page, () => /Unusual for you/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
+    /* RE-POINTED (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; the Reads & Contracts drawing):
+       the folder's panel is This folder · Columns you asked; the kept question stands there, on this list, with Remove from list */
+    const panel = await until(page, () => /Columns you asked/i.test((document.querySelector('.rfp-panel') || {}).innerText || '') && /on this list/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
     const kept = await txt(page, '.rfp-panel');
     await shot('2-folder-list');
-    check('2 a folder\'s list: Standing, the kept question with its count line, what is missing; All · Needs you · Signed; the folder\'s panel',
-      proc && up && heads.includes('standing') && /kept question · 3 of \d+ read · yes 1/i.test(sub) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
-      && panel && /14 days/.test(kept) && /Kept question/i.test(kept), { heads, sub, tabs, miss, kept: kept.slice(0, 160) });
+    check('2 a folder\'s list: Standing, the kept question with how far it is read, what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
+      proc && up && heads.includes('standing') && /^· 3 of \d+ read$/i.test(sub.trim()) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
+      && panel && /This folder/i.test(kept) && /Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }
 
   /* 3 · the Wall */
@@ -89,8 +91,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const said = await txt(page, '.pd2-chosen');
     const hint = await txt(page, '.igw2-hint');
     await shot('3-wall');
-    check('3 the Wall: both parties on each paper; a press chooses, the panel reads it off its paper with free doors, the line under says so',
-      up && both && chosen && /Raw Milk Collection, chosen/.test(said) && /Read off its paper/i.test(said) && /Open it\s*free/i.test(said) && /Raw Milk Collection chosen/.test(hint), { said: said.slice(0, 160), hint });
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('3 the Wall: both parties on each paper; a press chooses, the panel reads it off its paper with its doors, no cost said, the line under says so',
+      up && both && chosen && /Raw Milk Collection, chosen/.test(said) && /Read off its paper/i.test(said) && /Open it/i.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said) && /Raw Milk Collection chosen/.test(hint), { said: said.slice(0, 160), hint });
   } catch (e) { check('3 the Wall', false, String(e).slice(0, 200)); }
 
   /* 4 · Parties: folders and a party's page */
@@ -125,10 +128,11 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => caGo({ kind: 'go', place: 'reads' }));
     const up = await until(page, () => !!document.querySelector('.rdn-table tbody tr[data-rd-row]'), null, 12000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('.rdn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
-    const more = await page.evaluate(() => !!document.querySelector('.rdn-table [data-rd-next]'));
+    /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): the next batch is the panel's Read the other N, not the row's */
+    const more = await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]'), null, 8000);
     const packs = await page.evaluate(() => !!document.querySelector('.rdn-table [data-rdn-pack]'));
     await shot('6-reads');
-    check('6 Reads: questions and packs in one table, Read N more on the row', up && heads.join('|') === 'question|answers|read|spent' && more && packs, heads);
+    check('6 Reads: questions and packs in one table, Read the other N in the panel', up && heads.join('|') === 'question|read|answers|on the list of|asked' && more && packs, heads);
   } catch (e) { check('6 Reads', false, String(e).slice(0, 200)); }
 
   /* 7 · Our paper */

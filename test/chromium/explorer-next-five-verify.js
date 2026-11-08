@@ -193,7 +193,8 @@ const check = (name, pass, detail) => {
       wi.ids && JSON.stringify(wi.ids) === JSON.stringify(JUNO_REACH) && wi.view === 1, JSON.stringify(wi));
     check('4b Jambo says it, counted: two with them, one through a link, the value at stake', /If Juno Logistics left: 2 with them and 1 more hanging on them/.test(wi.said || '') && /at stake/.test(wi.said || ''), wi.said);
     check('4c the head line says the stake with Stop', /3 contracts · KES/.test(await note()) && /at stake/.test(await note()), await note());
-    check('4d the advice is one press with its cost said beside it', wi.ask && /1 Jambo call/.test(wi.cost), wi.cost);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('4d the advice is one press, no cost said beside it', wi.ask && !/call|free/i.test(wi.cost), wi.cost);
     await page.screenshot({ path: path.join(OUT, '4-what-if.png') });
     if (wi.ids){ await page.click('#ig-note [data-ig-note="whatif-stop"]'); await page.waitForTimeout(300); }
     check('4e Stop takes it off', await page.evaluate(() => !intel.lenses.some(l => l.kind === 'whatif')), '');

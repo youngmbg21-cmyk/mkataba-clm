@@ -1218,7 +1218,7 @@ function regHomeHeadHtml(R){
   const nlF=typeof window.newLookOn==='function'&&newLookOn();
   const fName=nlF&&R.type&&R.type!=='all'&&FOLDERS[R.type]?FOLDERS[R.type].name:(nlF&&R.view==='archived'?i18t('ctf_ended'):'');
   const top=`<div class="reg-tabbar ct-top ph-top">
-        <div class="ct-name">${nlF?`<button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button>${fName?'<span class="ctf-crumb">›</span>':''}`:''}<h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>
+        <div class="ct-name">${nlF?`<button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button>${fName?'<span class="ctf-crumb">/</span>':''}`:''}<h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>
         ${regArchiveBtnHtml(R)}
         <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
           `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
@@ -2002,7 +2002,7 @@ const _rfpLoading = new Set();
 function regFolderPanelOn(){
   if(!regNl() || !regPlaceUp()) return false;
   const R=regState(), A=window.AC;
-  return R.show!=='wall' && !!R.type && R.type!=='all' && !R.only && !!A && !A.form && !A.busy && !A.chosen;
+  return R.show!=='wall' && !!R.type && R.type!=='all' && !R.only && !!A && !A.form && !A.busy && !A.chosen && !(A.colOpen && typeof askColKeys==='function' && askColKeys().includes('ask:'+A.colOpen));
 }
 function regFolderAns(askId, cs){
   const A=window.AC; if(!A) return null;
@@ -2039,46 +2039,38 @@ function regFolderOdd(cs){
   }
   return null;
 }
+/* THE FOLDER'S PANEL AS DRAWN (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; built
+   from the Reads & Contracts drawing, step 1): THIS FOLDER — Contracts · Need you (Show) · Signed · On paper, the head's
+   own reading (regFolderRead); COLUMNS YOU ASKED — each question, how far it is read here and whether it stands on this
+   list, Add to list or Remove from list; then + Ask a column and All your reads. No cost is said. */
 function regFolderPanelHtml(){
-  let cs=[]; try{ cs=regFiltered(); }catch(_){ cs=[]; }
-  const A=window.AC||{}, n=cs.length;
-  const checked=cs.filter(c=>c&&c.playbook&&Array.isArray(c.playbook.verdicts)&&c.playbook.verdicts.length).length;
-  const odd=regFolderOdd(cs);
-  const head=(checked===n?i18t('reg_fp_head_all',{ n }):i18t('reg_fp_head',{ k:checked, n, left:n-checked }))+(odd?' '+i18t('reg_fp_odd_single'):'');
+  const R=regState(), A=window.AC||{};
+  const inF=R.type&&R.type!=='all';
+  const book=state.contracts.filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c.parentId&&(!inF||c.folder===R.type)&&!c._codeNamed);
+  const r=regFolderRead(book), n=book.length;
   const cap=t=>`<div class="rfp-cap">${esc(t)}</div>`;
-  const title=c=>typeof regShortTitle==='function'?regShortTitle(c):(c.name||'');
-  const oddHtml=odd?`${cap(i18t('reg_fp_odd_h'))}<p class="rfp-p"><b>${esc(i18t('reg_fp_odd_line',{ name:title(odd.r.c), ans:String(odd.r.a.answer||'').toLowerCase(), n:odd.others, said:odd.said }))}</b> ${esc(i18t('reg_fp_odd_src',{ q:odd.q.name||odd.q.question||'' }))} <button type="button" class="rfp-a" data-rfp-open="${esc(odd.r.c.id)}" data-rfp-quote="${esc(odd.r.a.quote||'')}">${esc(i18t('reg_fp_open_clause'))}</button></p>`:'';
-  /* the kept question on the list (the first up), else none */
+  const row=(k,v,sub)=>`<div class="rfp-row"><span class="rfp-k">${k}${sub?`<small>${esc(sub)}</small>`:''}</span><span class="rfp-v">${v}</span></div>`;
+  const need=r.needN?`${r.needN} · <button type="button" class="rfp-a" data-rfp-view="needs">${esc(i18t('rfp_show'))}</button>`:'0';
+  const folder=cap(i18t('rfp_this_folder'))+row(esc(i18t('rfp_contracts')),String(n))+row(esc(i18t('rfp_need_you')),need)+row(esc(i18t('rfp_signed')),String(r.signed))
+    +(r.val!=null?row(esc(i18t('rfp_on_paper')),esc(fmtMoneyShort(r.val))):'');
   const up=typeof window.askColKeys==='function'?askColKeys().map(k=>String(k).slice(4)):[];
-  const askId=up[0]||null;
-  let kept='';
-  if(askId){
-    const q=(A.asks||{})[askId]||{}, got=(A.ans||{})[askId]||{};
-    const rows=cs.map(c=>({ c, a:got[String(c.id)] }));
-    const yes=rows.filter(r=>r.a&&r.a.found&&r.a.yes===true).length, no=rows.filter(r=>r.a&&(r.a.yes===false||!r.a.found)).length;
-    const other=rows.filter(r=>r.a&&r.a.found&&typeof r.a.yes!=='boolean').length, unread=rows.filter(r=>!r.a).length;
-    const w=x=>(x/Math.max(1,n)*100).toFixed(2)+'%';
-    const bar=`<div class="rfp-bar" aria-hidden="true"><i class="is-yes" style="width:${w(yes)}"></i><i class="is-no" style="width:${w(no+other)}"></i></div>`;
-    const counts=[yes||no?i18t('reg_fp_yes_n',{ n:yes }):'', yes||no?i18t('reg_fp_no_n',{ n:no }):'', other?i18tn('reg_fp_other_n',other,{ n:other }):'', unread?i18t('reg_fp_unread_n',{ n:unread }):''].filter(Boolean).join(' · ');
-    const pick=rows.find(r=>r.a&&r.a.found&&r.a.yes===true&&r.a.quote)||rows.find(r=>r.a&&r.a.found&&r.a.quote);
-    const clauseNo=a=>{ const m=/^\s*(\d+)/.exec(String(a.clause||'')); return m?' § '+m[1]:''; };
-    const quote=pick?`<div class="rfp-q"><b>${esc(title(pick.c))} —</b><p><i>“${esc(String(pick.a.quote).slice(0,140))}${String(pick.a.quote).length>140?'…':''}”</i><span>${esc(clauseNo(pick.a))}</span></p></div>`:'';
-    let next='';
-    try{ const p=askColPlan({ askId }); if(p.unread&&typeof askColNextWords==='function'){ const nw=askColNextWords(p.unread, typeof acSize==='function'?acSize():50);
-      next=`<div class="rfp-next"><button type="button" class="rfp-pill" data-ac-next="${esc(askId)}" data-ac-n="${nw.n}">${esc(i18tn('reg_fp_read_n',nw.n,{ n:nw.n }))}</button><span>${esc(i18tn('reg_fp_calls',nw.n,{ n:nw.n }))}</span></div>`; } }catch(_){ next=''; }
-    kept=`${cap(i18t('reg_fp_kept_h'))}<p class="rfp-qq">${esc(q.question||q.name||'')}</p>${bar}<div class="rfp-counts">${esc(counts)}</div>${quote}${next}`;
-  }
-  /* ASK: the other kept questions, then the packs, each with what it costs over this folder */
-  const unreadOf=id=>{ const got=(A.ans||{})[id]; return got?cs.filter(c=>!got[String(c.id)]).length:n; };
-  const asks=(Array.isArray(A.summary)?A.summary:[]).filter(a=>a&&a.kept&&a.id!==askId).slice(0,3)
-    .map(a=>`<div class="rfp-ask"><button type="button" class="rfp-a" data-ac-bring="${esc(a.id)}">${esc(a.question||a.name||'')}</button><span>${esc(i18tn('reg_fp_calls',unreadOf(a.id),{ n:unreadOf(a.id) }))}</span></div>`);
-  const packs=(Array.isArray(A.packs)?A.packs:[]).slice(0,2)
-    .map(p=>`<div class="rfp-ask"><button type="button" class="rfp-a" data-ac-pack="${esc(p.id)}">${esc(i18t('reg_fp_pack',{ name:p.name, n:(p.questions||[]).length }))}</button><span>${esc(i18tn('reg_fp_calls',n,{ n }))}</span></div>`);
-  const ask=asks.length||packs.length?`${cap(i18t('reg_fp_ask_h'))}${asks.join('')}${packs.join('')}`:'';
-  return `<div class="rfp-panel"><p class="rfp-head">${esc(head)}</p>${oddHtml}${kept}${ask}</div>`;
+  /* the team's questions are fetched once, then the panel is drawn again with them */
+  if(!Array.isArray(A.team)&&!_rfpLoading.has('__team')&&typeof window.askColTeam==='function'){ _rfpLoading.add('__team'); Promise.resolve(askColTeam()).catch(()=>{}).then(()=>{ if(regFolderPanelOn()) ctfDockAgain(); }); }
+  /* the questions on this list first (they may not be in the summary yet), then the team's kept ones */
+  const seen=new Set(), qs=up.map(id=>Object.assign({ id }, (A.asks||{})[id]||{})).concat(Array.isArray(A.summary)?A.summary:[], Array.isArray(A.team)?A.team:[], Object.values(A.asks||{}).filter(a=>a&&A.ans&&A.ans[a.id])).filter(a=>a&&a.id&&!seen.has(a.id)&&seen.add(a.id)&&!(typeof askColIsPortfolio==='function'&&askColIsPortfolio(a.question))).slice(0,6);
+  const cols=qs.map(a=>{ const got=regFolderAns(a.id, book)||{}; const k=book.filter(c=>got[String(c.id)]).length; const on=up.includes(a.id);
+    const act=on?`<button type="button" class="rfp-a" data-ac-remove="${esc(a.id)}">${esc(i18t('rfp_remove'))}</button>`:`<button type="button" class="rfp-a" data-ac-bring="${esc(a.id)}">${esc(i18t('rfp_add'))}</button>`;
+    const nm=on?`<button type="button" class="rfp-a rfp-qn" data-ac-colopen="${esc(a.id)}">${esc(a.name||a.question||'')}</button>`:esc(a.name||a.question||'');
+    return row(nm,act,i18t('rfp_col_sub',{ k, n, where:i18t(on?'rfp_on_list':'rfp_off_list') })); }).join('');
+  const may=typeof window.askColMay!=='function'||askColMay();
+  const acts=`<div class="rfp-acts"><button type="button" class="rfp-pill" data-ac-open-new${may?'':' disabled'}>${esc(i18t('rfp_ask'))}</button><button type="button" class="rfp-a" data-rfp-reads>${esc(i18t('rfp_reads'))}</button></div>`;
+  return `<div class="rfp-panel is-drawn">${folder}${cols?cap(i18t('rfp_cols_h'))+cols:''}${acts}</div>`;
 }
 if(typeof document!=='undefined'&&!document._rfpWired){ document._rfpWired=true;
   document.addEventListener('click',e=>{
+    const v=e.target&&e.target.closest?e.target.closest('[data-rfp-view]'):null;
+    if(v){ e.preventDefault(); const tb=document.querySelector('.reg-views button[data-reg-view="'+v.getAttribute('data-rfp-view')+'"]'); if(tb) tb.click(); return; }
+    if(e.target&&e.target.closest&&e.target.closest('[data-rfp-reads]')){ e.preventDefault(); if(typeof caGo==='function') caGo('reads'); else if(typeof setView==='function') setView('reads'); return; }
     const b=e.target&&e.target.closest?e.target.closest('[data-rfp-open]'):null; if(!b) return;
     e.preventDefault(); const id=b.getAttribute('data-rfp-open'), qt=b.getAttribute('data-rfp-quote')||'';
     if(typeof window.askColLandOn==='function') askColLandOn(id, qt); else regOpenContract(id);
@@ -4613,7 +4605,8 @@ function renderRegister(opts){
                   if(k==='stage') return sortableTh('stage',i18t('reg_col_stage'),'',k);
                   if(k==='standing') return sortableTh('stage',i18t('reg_col_standing'),'',k);
                   if(k==='stream') return sortableTh('stream',i18t('reg_col_stream'),'',k);
-                  if(k==='standards') return regNl()?sortableTh('standards',i18t('reg_col_standards'),'',k).replace(/<\/th>\s*$/,`<span class="reg-th-sub">${esc(i18t('reg_nl_std_sub'))}</span></th>`):sortableTh('standards',i18t('reg_col_standards'),'',k);
+                  /* the head is the name alone (owner, 8 Nov 2026: the column's sentence is the foot's, "Our standards is HaTi's own check") */
+                  if(k==='standards') return sortableTh('standards',i18t('reg_col_standards'),'',k);
                   if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="${INS?'':'text-align:right;'}${colAt('',k)}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
                     : sortableTh('move',i18t('ngl_col_move'),'',k);
                   if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);

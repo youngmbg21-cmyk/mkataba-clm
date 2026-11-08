@@ -194,7 +194,8 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   check(!!open && open.ins && open.del, '2d Jambo\'s wording is drawn as tracked changes against the clause — read first');
   const payClause = await page.evaluate(id => (negoClauseList(getContract(id)).find(x => /Payment/.test(x.headingText || x.title || '')) || {}).clauseId, ID);
   check(!!open && open.clause === payClause, '2e it changes the clause the risk is about', open && open.clause);
-  check(!!open && /1 Jambo call/.test(open.cost), '2f the cost is said', open && open.cost);
+  /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+  check(!!open && /check it, then press Apply/.test(open.cost) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(open.cost), '2f the line says to check it and press Apply, no cost', open && open.cost);
   await page.screenshot({ path: path.join(OUT, '03-read-in-place.png') });
 
   /* ============ 3. SAVE — UNSENT, THROUGH THE FUNNEL ============ */

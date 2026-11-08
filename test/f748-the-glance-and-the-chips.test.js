@@ -170,7 +170,7 @@ describe('f748 (2) who signs, and the risks not read yet', () => {
     /* RE-POINTED 20 Oct 2026 (the Dossier, #386): What Jambo read's risks row, the free read said on its button */
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): name · what stands · Read */
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the name stands under the rings' column (an empty ring's space) */
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds="risks"><i class="pd-ck-ring is-none" aria-hidden="true"><\/i><span class="ds-nm">Risks to look at<\/span><span class="ds-val">Not read · free<\/span><button type="button" class="pd-go ds-go" data-pd-gl-scan title="Reading is free: HaTi’s own rules, no Jambo call">Read</);
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds="risks"><i class="pd-ck-ring is-none" aria-hidden="true"><\/i><span class="ds-nm">Risks to look at<\/span><span class="ds-val">Not read<\/span><button type="button" class="pd-go ds-go" data-pd-gl-scan title="Read by HaTi’s own rules">Read</); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
   });
   test('2b2 no key needed: the free read is offered either way', () => {
     const { ctx, c } = glance({ keyed: false });

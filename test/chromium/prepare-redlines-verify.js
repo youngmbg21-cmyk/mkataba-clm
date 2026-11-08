@@ -206,7 +206,8 @@ const VERDICTS = [
   const ask = await page.evaluate(() => { const ok = document.getElementById('cf-ok'); const msg = ok && ok.closest('[role="dialog"], .modal, div');
     const text = ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : ''; return { there: !!ok, text }; });
   check(ask.there, '2a a real press raises the confirm dialog');
-  check(/one deep Jambo call/i.test(ask.text) && /nothing is sent/i.test(ask.text), '2b and the sentence names the cost and says nothing is sent', ask.text.slice(0, 160));
+  /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+  check(/against Our standards/i.test(ask.text) && /nothing is sent/i.test(ask.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(ask.text), '2b and the sentence names what it does, no cost, and says nothing is sent', ask.text.slice(0, 160));
   await page.screenshot({ path: path.join(OUT, '02-ask.png') });
   /* REFUSING WRITES NOTHING. */
   if (ask.there){ await page.click('#cf-cancel'); await pause(500); }
@@ -266,7 +267,8 @@ const VERDICTS = [
   /* RE-POINTED 14 Oct 2026 (stage 5): the door is the face's foot, no menu */
   await pressRow(page); await pause(700);
   const ask2 = await page.evaluate(() => { const ok = document.getElementById('cf-ok'); return ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : ''; });
-  check(/already on file/i.test(ask2) && /costs nothing/i.test(ask2), '5a the second ask says the review is on file and the press costs nothing', ask2.slice(0, 120));
+  /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+  check(/already on file/i.test(ask2) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(ask2), '5a the second ask says the review is on file, no cost said', ask2.slice(0, 120));
   if (await page.locator('#cf-ok').count()){ await page.click('#cf-ok'); }
   await pause(2000);
   const toast5 = await page.evaluate(() => (document.getElementById('toast-root') || {}).innerText || '');

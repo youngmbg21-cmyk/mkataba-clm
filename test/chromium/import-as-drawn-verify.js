@@ -129,7 +129,8 @@ const FILES = {
     await page.setInputFiles('#mig-files', paths);
     const asked = await until(() => { const o = document.getElementById('confirm-overlay'); return o ? o.innerText.replace(/\s+/g, ' ') : null; }, null, 8000);
     check('1a whenever Jambo reads, the total is asked first — an open allowance too', !!asked, asked);
-    check('1b in Jambo calls and files used, never money', !!asked && /about 12 Jambo calls/.test(asked) && /41 of 200 files used/.test(asked) && !/\$|KES|SEK|money/.test(asked), asked);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1b it names the files Jambo reads, no calls, never money', !!asked && /Read 12 files with Jambo\?/.test(asked) && !/\bcalls?\b|\bfree\b|costs? nothing|\$|KES|SEK|money/i.test(asked), asked);
     await shot(page, 'import-drawn-total-1440x780');
     if (asked) await page.click('#cf-ok');
     await until(() => { const M = migState(); return M.queue.length === paths.length && !M.running; }, null, 60000);
@@ -288,8 +289,9 @@ const FILES = {
         check('7b ‹ All files goes back to the list', !!lst);
       }
       console.log('\n14 · fix pass 2');
-      const cost = await until(() => { const e = document.getElementById('mig-cost'); const t = e && e.textContent; return t && /onboarding allowance \(\d+ of 200 files used\)/.test(t) ? t : null; }, null, 6000);
-      check('14a after a refresh the drop strip says the onboarding allowance open, before any batch', !!cost, String(cost));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+      const cost = await until(() => { const e = document.getElementById('mig-cost'); const t = e && e.textContent; return t && /Jambo reads each one\. You see the total before it starts\./.test(t) ? t : null; }, null, 6000);
+      check('14a after a refresh the drop strip says Jambo reads each one and the total comes first, before any batch, no cost', !!cost && !/\bcalls?\b|\bfree\b|costs? nothing|\$|KES|SEK|money/i.test(cost), String(cost));
       if (await page.evaluate(() => migCheckOpen())){
         await until(() => !!document.querySelector('[data-mig-ck-tab="decide"]'), null, 4000);
         if (await press('[data-mig-ck-tab="decide"]', '14b the Decide tab')){

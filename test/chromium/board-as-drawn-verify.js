@@ -108,11 +108,12 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       const b = el.querySelector('.hb-bs-go');
       return { title: (el.querySelector('h2.hb-bh-t') || {}).textContent || '', sub: (el.querySelector('.hb-bh-s') || {}).textContent || '',
         live: !!el.querySelector('.hb-live'), at: (el.querySelector('.hb-bh-at') || {}).textContent || '',
-        cost: b ? (b.querySelector('.hb-bs-cost') ? 'ON THE FACE' : (/^1 Jambo call · /.test(b.title || '') ? '1 Jambo call' : '')) : null, keyed: typeof copilotAvailable === 'function' && copilotAvailable(),
+        cost: b ? (b.querySelector('.hb-bs-cost') ? 'ON THE FACE' : (/\bcalls?\b|\bfree\b|costs? nothing/i.test((b.title || '') + ' ' + b.textContent) ? 'SAID' : '')) : null, btn: b ? b.textContent.trim() : null, keyed: typeof copilotAvailable === 'function' && copilotAvailable(),
         note: !!el.querySelector('.hb-note'), first: document.getElementById('hb-board').firstElementChild === el }; }, null, 8000);
     check('1a the head says Board, what it is, and that it is live and when it was counted', !!hd && hd.title === 'Board' && hd.sub === 'your book against six months ago' && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
     /* RE-POINTED 29 Oct 2026 (owner: "the jambo count next to summarise my board disappears"): the cost is said in its hover, never on its face */
-    check('1b Summarise my board says its cost when the pointer rests on it, where Jambo can be asked', !!hd && (hd.keyed ? hd.cost === '1 Jambo call' : hd.cost === ''), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost }));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1b Summarise my board stands in the head, no cost on its face or its hover', !!hd && hd.cost === '' && (!hd.keyed || /Summarise my board/.test(hd.btn || '')), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost, btn: hd.btn }));
 
     console.log('\n2 · saved views as chips');
     const sv = await page.evaluate(() => { const L = [...document.querySelectorAll('#hb-bhead .hb-sv-chip')];
@@ -176,7 +177,8 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     console.log('\n6 · "my saved views"');
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'my saved views'); if (b) b.click(); });
     const said = await until(() => { const t = [...document.querySelectorAll('#igd-feed .ai-bub')].map(b => b.textContent.trim()).find(x => /^You have 1 saved view:/.test(x)); return t || null; }, null, 8000);
-    check('6 asked, he lists the saved views with their counts and says where they are, free', !!said && /“Whole book” \d+\./.test(said) && /press one to open it on Explorer/.test(said) && /Free/.test(said), said);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('6 asked, he lists the saved views with their counts and says where they are, no cost', !!said && /“Whole book” \d+\./.test(said) && /press one to open it on Explorer/.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said), said);
 
     console.log('\n5f · "what needs me" lands on Home\'s Needs you');
     /* the Overview tab brings the landing back from the talk (RE-POINTED 26 Oct 2026, the two tabs) */

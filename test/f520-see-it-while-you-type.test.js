@@ -51,7 +51,7 @@ describe('F520 (B) — the preview is the answer', () => {
       const why = [];
       if (!!said !== (A && A.road === 'free')) why.push(`road ${A && A.road} but answered ${!!said}`);
       if (!said && line !== 'Jambo will read this one') why.push('line: ' + line);
-      if (said && !/ · Free$/.test(line)) why.push('line: ' + line);
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ if (said && / · Free$/.test(line)) why.push('line: ' + line);
       if (said && A.r && A.r.act === 'dig' && /^q:/.test(A.r.key)){
         const { key, P } = openPlan(w);
         if (key !== A.r.key) why.push(`opened ${key}, previewed ${A.r.key}`);
@@ -68,11 +68,11 @@ describe('F520 (B) — the preview is the answer', () => {
   });
   test('a few lines as the reader sees them', () => {
     const w = world();
-    assert.equal(w.hbAskPreviewText(w.hbAskReadingOf('contracts by stage')), 'All contracts: Ring · by stage · count · Free');
+    assert.equal(w.hbAskPreviewText(w.hbAskReadingOf('contracts by stage')), 'All contracts: Ring · by stage · count'); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     assert.equal(w.hbAskPreviewText(w.hbAskReadingOf('how quickly do we close deals in each stream')), 'Jambo will read this one');
     assert.equal(w.hbAskReadingOf('   '), null); assert.equal(w.hbAskPreviewText(null), '');
     w.hbAsk('contracts by stage');
-    assert.match(w.hbAskPreviewText(w.hbAskReadingOf('make it bars')), /^Changes the open chart: Bars · by stage · count · Free$/);
+    assert.match(w.hbAskPreviewText(w.hbAskReadingOf('make it bars')), /^Changes the open chart: Bars · by stage · count$/); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
   });
 });
 

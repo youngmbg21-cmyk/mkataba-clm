@@ -112,7 +112,7 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
           likely: [...p.querySelectorAll('.cn2-lk')].map(l => l.textContent.trim()), doors: [...p.querySelectorAll('.jb-ways [data-jb-way]')].map(x => x.getAttribute('data-jb-way')) };
       });
       check(`${nm} 6 Jambo's panel: the late one first, read from the record (no call); Likely next each free; the map's doors`,
-        /^The late one first/.test(P.head) && /no call/.test(P.src) && P.likely.length >= 1 && P.likely.every(l => /free$/.test(l)) && P.doors.join() === 'board,contracts,calendar,explorer,reads', P);
+        /^The late one first/.test(P.head) && /Read from the record/.test(P.src) && !/\bfree\b|\bcalls?\b|nothing spent/i.test(P.src) && P.likely.length >= 1 && P.likely.every(l => !/\bfree\b|\bcalls?\b|nothing spent/i.test(l)) /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  && P.doors.join() === 'board,contracts,calendar,explorer,reads', P);
       const jb = await page.$('#cn2-list [data-cn2-look]');
       if (jb){
         await jb.click();

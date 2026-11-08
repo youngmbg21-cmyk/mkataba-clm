@@ -123,8 +123,9 @@ function book(){
         const J = await page.evaluate(() => ({ head: (document.querySelector('#pu-page .pu-t th.is-r') || {}).textContent, big: (document.querySelector('#pu-tbody tr:first-child .pu-sc b') || {}).textContent,
           say: (document.querySelector('#ins-panel #pu-side .jb-say-b') || {}).textContent || '', free: (document.querySelector('#ins-panel #pu-side .jb-say-f') || {}).textContent || '',
           doors: [...document.querySelectorAll('#ins-panel #pu-side .pu-doors button')].map(b => b.textContent.trim()) }));
-        check('4 Written by Jambo: the column says To check, the lead row has unchecked wording, the panel says why at no cost',
-          J.head === 'To check' && Number(J.big) >= 1 && /Jambo wrote \d+% of the words your side changed/.test(J.say) && /no Jambo call/.test(J.free), J);
+        /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+        check('4 Written by Jambo: the column says To check, the lead row has unchecked wording, the panel says why, no cost said',
+          J.head === 'To check' && Number(J.big) >= 1 && /Jambo wrote \d+% of the words your side changed/.test(J.say) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(J.free + ' ' + J.say), J);
         check('4b its doors are the existing ones: Read Jambo\'s change, Ask for review, Open contract', J.doors.some(d => /^Read Jambo/.test(d)) && J.doors.includes('Ask for review') && J.doors.includes('Open contract'), J.doors);
         await page.screenshot({ path: path.join(OUT, `pulse-jambo-${nm}.png`) });
 

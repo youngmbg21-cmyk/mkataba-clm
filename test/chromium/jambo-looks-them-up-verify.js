@@ -138,8 +138,9 @@ const TEXT = [
     const dlg = await until(P, () => !!document.querySelector('.pw-dlg [data-pw-go]'), null, 5000);
     const say = await drive(() => { const g = document.querySelector('.pw-dlg [data-pw-go]'); const d = document.querySelector('.pw-dlg');
       return g && { go: g.innerText.trim(), title: g.title, hidden: g.hidden, text: d.innerText.replace(/\s+/g, ' ') }; }, null, null);
-    check(dlg && !!(say && !say.hidden && say.go === 'Look them up online · 1 Jambo call' && /up to 5 web searches/.test(say.title) && /Not a credit check/.test(say.title)),
-      '1d its pop-up carries the press, the cost on it', say);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check(dlg && !!(say && !say.hidden && say.go === 'Look them up online' && /up to 5 web searches/i.test(say.title) && /Not a credit check/.test(say.title) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(say.go + ' ' + say.title + ' ' + say.text)),
+      '1d its pop-up carries the press, no cost on it', say);
     check(!!(say && /haven't looked Naivas Supermarkets up yet/.test(say.text)), '1e and says nothing is kept yet', say && say.text);
 
     /* ============ 2 · THE PRESS ============ */
@@ -158,7 +159,8 @@ const TEXT = [
     check(!!(res && res.links.length === 2 && res.links[0][0] === 'naivassupermarkets.example' && res.links[0][2] === '_blank' && /noopener/.test(res.links[0][3])), '2c each with its source, a link that opens apart', res && res.links);
     check(!!(res && /couldn't find: how many people it employs/.test(res.text) && /left out 1 thing/.test(res.text) && !/best company/.test(res.text)),
       '2d what could not be found is said; the unsourced line is left out and counted', res && res.text);
-    check(!!(res && res.go === 'Look up again · 1 Jambo call'), '2e the press now looks again, cost on it', res && res.go);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check(!!(res && res.go === 'Look up again'), '2e the press now looks again, no cost on it', res && res.go);
     check(ai.searches.length === 1 && ai.searches[0].who === 'Naivas Supermarkets' && !/Highland|MK-B2|Retail Supply/.test(ai.searches[0].raw.replace(/"system":"[^"]*"/, '')),
       '2f one search, and only the company\'s name left HaTi', ai.searches.map(s => s.who));
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-found.png') });
@@ -207,7 +209,8 @@ const TEXT = [
     check(spoke, '3b his first words are in his panel');
     const offer = await drive(() => { const b = [...document.querySelectorAll('#ig-dock [data-ig-choice]')].find(x => /Look them up online/.test(x.innerText));
       return b ? { word: b.innerText.trim(), title: b.title, filled: b.classList.contains('ui-btn-primary') } : null; }, null, null);
-    check(!!(offer && offer.word === 'Look them up online · 1 Jambo call' && /up to 5 web searches/.test(offer.title) && !offer.filled), '3c he offers to look them up, cost on the button, not filled', offer);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check(!!(offer && offer.word === 'Look them up online' && /up to 5 web searches/i.test(offer.title) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(offer.title) && !offer.filled), '3c he offers to look them up, no cost on the button, not filled', offer);
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-offer.png') });
     ai.searches.length = 0;
     await drive(() => [...document.querySelectorAll('#ig-dock [data-ig-choice]')].find(x => /Look them up online/.test(x.innerText)).click(), null, null);

@@ -45,7 +45,7 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.waitForTimeout(600);
     await page.evaluate(async () => { intel.history = []; await intelAsk('contracts by open risks'); });
     const s2 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; if (!k) return null; const P = hbPlan(hbDigData(k, s.lens)); const a = (intel.history || []).filter(m => m.role === 'assistant').pop();
-      return P.split && P.split.by === 'risks' && a ? { free: /Free/.test(String(a.text)), g: hbGroupLabel('risks', hbGroupOf(getContract('MK-683'), 'risks')), other: hbGroupLabel('risks', hbGroupOf(getContract('MK-680'), 'risks')) } : null; });
+      return P.split && P.split.by === 'risks' && a ? { free: /Read from your own numbers/.test(String(a.text)) && !/\bfree\b|\bcalls?\b|nothing spent/i.test(String(a.text)), g:  hbGroupLabel('risks', hbGroupOf(getContract('MK-683'), 'risks')), other: hbGroupLabel('risks', hbGroupOf(getContract('MK-680'), 'risks')) } : null; });
     await page.screenshot({ path: path.join(OUT, '2-open-risks.png') });
     check('2 "contracts by open risks" reads free and counts the light list\'s brief', !!s2 && s2.free && s2.g === '1-2 open risks' && s2.other === 'Not read yet', JSON.stringify(s2));
     await page.click('.hb-rd [data-hb-rd="split"]');
@@ -58,7 +58,7 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     /* RE-POINTED 24 Oct 2026 (act first, then explain): the Board's free line is the turn that drew it; a question
        the Board only drew gets Jambo's words under it, so the free line is one of the last two turns */
     const s4 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const D = k && hbDigData(k, s.lens); const as = (intel.history || []).filter(m => m.role === 'assistant').slice(-2);
-      return D && /waiting on us/.test(D.setLabel || '') && as.some(a => /Free/.test(String(a.text))) ? { set: D.setLabel, by: hbPlan(D).split.by } : null; });
+      return D && /waiting on us/.test(D.setLabel || '') && as.some(a => /Read from your own numbers/.test(String(a.text))) /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  ? { set: D.setLabel, by: hbPlan(D).split.by } : null; });
     await page.screenshot({ path: path.join(OUT, '4-stalled.png') });
     check('4 "which stalled deals are waiting on us, by counterparty" reads free', !!s4 && s4.by === 'counterparty', JSON.stringify(s4));
     check('5 no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

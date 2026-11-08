@@ -223,8 +223,9 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     check('6a "What am I looking at?" stands in the panel\'s row', !!chip);
     if (chip) {
       await chip.click();
-      const W = await until(() => { const last = [...document.querySelectorAll('#ai-feed .ai-msg')].pop(); return last && /no Jambo call/i.test(last.textContent) ? last.textContent.replace(/\s+/g, ' ').trim().slice(0, 160) : null; }, null, 3000);
-      check('6b he says the screen in front from its own counts, and spends nothing', !!W && /Brain/.test(W) && !ai.length, JSON.stringify({ W, ai }));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — waits for the answer itself, not for "no Jambo call" */
+      const W = await until(() => { const last = [...document.querySelectorAll('#ai-feed .ai-msg')].pop(); return last && /Brain/.test(last.textContent) && !/What am I looking at\?/.test(last.textContent) ? last.textContent.replace(/\s+/g, ' ').trim().slice(0, 160) : null; }, null, 3000);
+      check('6b he says the screen in front from its own counts, spends nothing, says no cost', !!W && /Brain/.test(W) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(W) && !ai.length, JSON.stringify({ W, ai }));
     }
 
     /* 6c THE SAME QUESTION IN HOME'S OWN BOX (21 Oct 2026): beside a paper, typed into Jambo's panel, it is
@@ -233,8 +234,10 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     const box = await until(() => !!document.getElementById('igd-input') && window.intel && intel.paper && intel.paper.id === 'MK-S1' && !!document.getElementById('ig-canvas'), null, 10000);
     ai.length = 0;
     /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ if (box) { await page.fill('#igd-input', 'What am I looking at?'); await H.chipEnter(page, '#igd-input'); }
-    const HW = await until(() => { const t = (document.getElementById('igd-feed') || {}).textContent || ''; return /no Jambo call/i.test(t) ? t.replace(/\s+/g, ' ').slice(-220) : null; }, null, 4000);
-    check('6c typed into Home\'s box beside a paper: the same free reading of the page, the contract named, nothing spent', !!HW && /MK-S1/.test(HW) && !ai.length, JSON.stringify({ HW, ai }));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — waits for the answer after the question */
+    const HW = await until(() => { const t = ((document.getElementById('igd-feed') || {}).textContent || '').replace(/\s+/g, ' '); const at = t.lastIndexOf('What am I looking at?'); const after = at >= 0 ? t.slice(at + 21) : ''; return /MK-S1/.test(after) ? after.slice(0, 220) : null; }, null, 8000);
+    const HWfeed = HW ? '' : await page.evaluate(() => ((document.getElementById('igd-feed') || {}).textContent || '').replace(/\s+/g, ' ').slice(-300));
+    check('6c typed into Home\'s box beside a paper: the same reading of the page, the contract named, nothing spent, no cost said', !!HW && /MK-S1/.test(HW) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(HW) && !ai.length, JSON.stringify({ HW, ai, HWfeed }));
 
     /* ===== 7 · A PASTED LETTER ===== */
     await page.evaluate(t => { const inp = document.getElementById('ai-input'); inp.focus(); const dt = new window.DataTransfer(); dt.setData('text/plain', t);

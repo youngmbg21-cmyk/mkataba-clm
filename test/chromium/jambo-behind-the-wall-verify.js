@@ -80,7 +80,8 @@ const B3 = { ...fixtureContract('MK-B3', 'Uploaded Listing Terms', 'Carrefour Ke
         risks: cell('risks'), std: cell('std'), counts: (s.querySelector('.bs-counts') || {}).innerText || '' };
     });
     check(up && sec && sec.state === 'Not read · private folder', '1b the section says it is not read, and why', sec && sec.state);
-    check(!!sec && sec.btn === 'Read it now' && /About three Jambo calls/.test(sec.cost), '1c one press, Read it now, its cost beside it', sec && `${sec.btn} / ${sec.cost}`);
+/* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check(!!sec && sec.btn === 'Read it now' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(sec.cost), '1c one press, Read it now, no cost beside it', sec && `${sec.btn} / ${sec.cost}`);
     check(!!sec && /only when one of its people asks/.test(sec.line || ''), '1d one sentence says why it waits', sec && sec.line);
     /* RE-POINTED 21 Oct 2026 (the report simplified): the readings are one counts line, not tiles */
     check(!!sec && /Risks found — Not read yet/.test(sec.counts) && /Our standards — Not read yet/.test(sec.counts), '1e the readings it would fill say "Not read yet", not a count never taken', sec && sec.counts);
@@ -131,7 +132,8 @@ const B3 = { ...fixtureContract('MK-B3', 'Uploaded Listing Terms', 'Carrefour Ke
     /* ============ 5. SVENSKA ============ */
     await W.admin.json('/api/private-streams/sales', { method: 'PUT', body: { on: true, ids: [adminId] } });
     const sv = await P.evaluate(() => { langSet('sv'); const c = getContract('MK-A1'); return { s: i18t('jb_state_private'), b: i18t('jb_read_now'), cost: i18t('jb_read_cost'), c: !!c }; });
-    check(sv.s === 'Inte läst · privat mapp' && sv.b === 'Läs det nu' && /Jambo-anrop/.test(sv.cost), '5b in Swedish: Inte läst · privat mapp, Läs det nu, Jambo-anrop', JSON.stringify(sv));
+/* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check(sv.s === 'Inte läst · privat mapp' && sv.b === 'Läs det nu' && sv.cost === '', '5b in Swedish: Inte läst · privat mapp, Läs det nu, no cost said', JSON.stringify(sv));
     await P.evaluate(() => langSet('en'));
 
     check(!errors.length, '6 no page errors', errors.join(' | ').slice(0, 300));

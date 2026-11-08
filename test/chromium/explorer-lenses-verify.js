@@ -169,7 +169,8 @@ const check = (name, pass, detail) => {
     const procName = await page.evaluate(() => (FOLDERS.proc && FOLDERS.proc.name) || 'Procurement');
     check('5b worst first: the stream carrying the high risk is the first part', (walk.steps[1] || '').startsWith(procName + ': ' + highN + ' high risk'), walk.steps[1]);
     check('5c the head line says "Explaining this lens"', /Explaining this lens/.test(walk.head), walk.head);
-    check('5d the one paid question names the worst part, its press, and its cost', walk.why.includes(procName) && walk.ask === 'Ask Jambo' && /1 Jambo call/.test(walk.cost), JSON.stringify({ why: walk.why, ask: walk.ask, cost: walk.cost }));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('5d the one question to Jambo names the worst part and its press, no cost', walk.why.includes(procName) && walk.ask === 'Ask Jambo' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(walk.cost + ' ' + walk.why), JSON.stringify({ why: walk.why, ask: walk.ask, cost: walk.cost }));
     await page.screenshot({ path: path.join(OUT, '5-explain-this-lens.png') });
 
     /* ================= 6. THE RECIPE AND THE WORDS ================= */
@@ -188,8 +189,10 @@ const check = (name, pass, detail) => {
     await press('.ig-viewbar [data-ig-lens="risk"]');
     const un = WANT_RISK.unscanned || 0;
     const btn = await page.evaluate(() => { const b = document.querySelector('#ig-legend [data-ig-lens-scan]'); const f = document.querySelector('#ig-legend .igl-free');
-      return b ? { text: b.textContent.trim(), disabled: b.disabled, free: f ? f.textContent.trim() : '' } : null; });
-    check('9a the Risk legend offers "Check the N not scanned", said free', !!btn && btn.text === `Check the ${un} not scanned` && btn.free === 'free' && !btn.disabled, JSON.stringify(btn));
+      const lg = document.getElementById('ig-legend');
+      return b ? { text: b.textContent.trim(), disabled: b.disabled, free: f ? f.textContent.trim() : '', legend: lg ? lg.textContent : '' } : null; });
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('9a the Risk legend offers "Check the N not scanned", no cost said', !!btn && btn.text === `Check the ${un} not scanned` && btn.free === '' && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(btn.legend) && !btn.disabled, JSON.stringify({ ...btn, legend: undefined }));
     const grey = await page.evaluate(() => { if (typeof canEdit !== 'function') return null; const keep = window.canEdit; window.canEdit = () => false;
       try { renderIntelLegend(IG._model); const b = document.querySelector('#ig-legend [data-ig-lens-scan]'); return b ? { disabled: b.disabled, title: b.title } : null; }
       finally { window.canEdit = keep; renderIntelLegend(IG._model); } });

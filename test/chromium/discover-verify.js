@@ -238,14 +238,14 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.click('#ig-dock [data-ac-pack]');
       await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
       const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
-      check('3c the pack opens in the same form: five questions, one read each against five apart', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /* RE-POINTED 28 Oct 2026 (THE THREAD): one sentence, one read each */ /reads the 11 shown, once each/.test(pf) && /all 5 questions/.test(pf) && /11 Jambo calls/.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('3c the pack opens in the same form: five questions, one read each, no cost', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /* RE-POINTED 28 Oct 2026 (THE THREAD): one sentence, one read each */ /reads the 11 shown, once each/.test(pf) && /all 5 questions/.test(pf) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
       await page.screenshot({ path: path.join(OUT, '3-pack-form.png') });
       /* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026) */
       const ticks = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ac-pick]').length);
       await page.uncheck('#ig-dock [data-ac-pick="4"]');
       await page.uncheck('#ig-dock [data-ac-pick="3"]');
       const picked = await until(page, () => /3 of 5 chosen/.test((document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || ''));
-      check('3c′ each question has a tick: untick two and the count and the cost follow', ticks === 5 && picked,
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('3c′ each question has a tick: untick two and the count follows', ticks === 5 && picked,
         await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText.replace(/\s+/g, ' ').slice(0, 220)));
       await page.check('#ig-dock [data-ac-pick="3"]');
       await page.check('#ig-dock [data-ac-pick="4"]');
@@ -313,7 +313,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const panel = await until(page, () => /Governing law/.test((document.querySelector('#fa-panel') || {}).innerText || ''));
       const pt = await page.evaluate(() => (document.querySelector('#fa-panel') || {}).innerText || '');
       const sw = await page.evaluate(id => { const b = document.querySelector(`[data-fa-tog="${id}"]`); return b ? b.getAttribute('aria-pressed') : null; }, lk.ask.id);
-      check('4b Settings › Company facts lists the kept questions, rules and switches, and the cost per arrival', panel && /Our rule/.test(pt) && sw === 'true' && /every contract that arrives costs about 1 Jambo call/.test(pt), pt.replace(/\s+/g, ' ').slice(0, 300));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('4b Settings › Company facts lists the kept questions, rules and switches, no cost per arrival', panel && /Our rule/.test(pt) && sw === 'true' && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(pt), pt.replace(/\s+/g, ' ').slice(0, 300));
       /* EVERY KEPT QUESTION STANDS HERE, EACH WITH ITS SWITCH (owner, 26 Oct
          2026: "you are hiding the 5 company facts which were there before …
          They should be there and you can toggle them on or off and also add
@@ -487,7 +487,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.evaluate(() => cuSelectParty('siginon group'));
       const sec = await until(page, () => /Before the call/.test((document.querySelector('#ins-panel') || {}).innerText || '') && !!document.querySelector('#ins-panel [data-cu-brief]'), null, 10000);
       const t = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
-      check('9a the party\'s panel says Before the call and offers the brief for one call', sec && /How they negotiate|No settled rounds/.test(t) && /1 Jambo call/.test(t), t.replace(/\s+/g, ' ').slice(0, 300));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('9a the party\'s panel says Before the call and offers the brief, no cost', sec && /How they negotiate|No settled rounds/.test(t) && /Write the two-minute brief/.test(t) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(t), t.replace(/\s+/g, ' ').slice(0, 300));
       await page.screenshot({ path: path.join(OUT, '9-party.png') });
       const c0 = h.ai.calls.length;
       await page.click('#ins-panel [data-cu-brief]');
@@ -520,7 +520,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const line = await page.evaluate(() => (document.querySelector('#ig-dock .ac-busy') || {}).innerText || '');
       const bar = await page.evaluate(() => { const i = document.querySelector('#ig-dock .ac-prog>i'); return i ? i.style.width : ''; });
       /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
-      check('11a while he reads, the line counts what has landed (no bar: the counts say how far)', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done · (\d+ at risk so far · )?\d+ Jambo calls/.test(line) && bar === '', JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('11a while he reads, the line counts what has landed (no bar: the counts say how far), no cost', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done/.test(line) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(line) && bar === '', JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
       await page.screenshot({ path: path.join(OUT, '11-reading.png') });
       await page.click('#ig-dock [data-ac-stop]');
       /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the stop is said in the question's own card, whose one button carries on */
@@ -528,8 +528,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const st = await page.evaluate(() => (document.querySelector('#ig-dock .ac-col.is-open') || {}).innerText || '');
       const spent = h.ai.calls.length - c0;
       const kept = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
-      check('11b Stop: it says what was read and kept, what was not, and offers the rest with its cost',
-        stopped && /You stopped at \d+ of \d+\. \d+ of \d+ are read, \d+ to go\./.test(st) && /Carry on · \d+ contracts? · \d+ Jambo calls?/.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('11b Stop: it says what was read and kept, what was not, and offers the rest, no cost',
+        stopped && /You stopped at \d+ of \d+\. \d+ of \d+ are read, \d+ to go\./.test(st) && /Carry on · \d+ contracts?/.test(st) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
       /* RE-POINTED 28 Oct 2026 (STOP MEANS STOP): Stop ends the stream at once, so a batch can be cut midway; the
          reads already with Jambo finish on the server and are kept, so what is shown is at most what was spent */
       check('11c nothing already read is lost, and no more was read after the press', kept <= spent && spent < shownN, JSON.stringify({ kept, spent, shownN }));

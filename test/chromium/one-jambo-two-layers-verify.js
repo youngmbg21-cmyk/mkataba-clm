@@ -64,7 +64,8 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     const A = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0];
       return k && m ? { key: k, face: s.face, said: String(m.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() } : null; });
     check('A1 the party\'s card is drawn on the Board', !!A && A.face === 'board' && /^(q:|c:)/.test(A.key), JSON.stringify(A));
-    check('A2 and the window says the Board\'s own line (the set, Free), not a folder\'s', !!A && /Naivas/i.test(A.said) && /Free/.test(A.said) && !/folder/i.test(A.said), A && A.said);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — the Board's own line is known by "Read from your own numbers" */
+    check('A2 and the window says the Board\'s own line (the set, read from your own numbers, no cost), not a folder\'s', !!A && /Naivas/i.test(A.said) && /Read from your own numbers/.test(A.said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(A.said) && !/folder/i.test(A.said), A && A.said);
     check('A3 nothing was spent', ai.calls.length === 0, `${ai.calls.length}×`);
 
     console.log('\nB · "what am i seeing on screen" on Explorer');
@@ -98,7 +99,8 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     check('D1 the chat was asked once, after the Board drew', await waitCalls(1) && ai.calls.length === 1, `${ai.calls.length}×`);
     await settled();
     const D = await lastTurns(2);
-    check('D2 the Board\'s own line stands first (Free), Jambo\'s words under it', D.length === 2 && /Free/.test(D[0]) && /stall at Naivas/.test(D[1]), JSON.stringify(D));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — the Board's own line is known by "Read from your own numbers" */
+    check('D2 the Board\'s own line stands first (read from your own numbers, no cost), Jambo\'s words under it', D.length === 2 && /Read from your own numbers/.test(D[0]) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(D[0]) && /stall at Naivas/.test(D[1]), JSON.stringify(D));
     const dKey = await page.evaluate(() => (hbS().path || []).slice(-1)[0] || '');
     check('D3 and the card is on the Board', /^q:/.test(dKey), dKey);
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `D-board-explain-${w}x${hh}.png`) }); }
@@ -120,8 +122,9 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     ai.reset();
     await winAsk('chart value by stream');
     const F1 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0];
-      return state.view === 'dashboard' && s.face === 'board' && k && m && /Free/.test(String(m.text || '')) ? { key: k } : null; }, null, 10000);
-    check('F1 the Board is turned to and the chart drawn, said in the window, free', !!F1 && /^q:/.test(F1.key) && ai.calls.length === 0, JSON.stringify({ F1, calls: ai.calls.length }));
+      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+      return state.view === 'dashboard' && s.face === 'board' && k && m && /Read from your own numbers/.test(String(m.text || '')) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(String(m.text || '').replace(/<[^>]+>/g, ' ')) ? { key: k } : null; }, null, 10000);
+    check('F1 the Board is turned to and the chart drawn, said in the window, nothing spent, no cost said', !!F1 && /^q:/.test(F1.key) && ai.calls.length === 0, JSON.stringify({ F1, calls: ai.calls.length }));
     await page.evaluate(() => { setView('brain'); ai.history = []; if (!(ai.open && ai.win)) openAI(null, { win: true }); });
     await until(() => state.view === 'brain' && ai.open && !!document.getElementById('ai-input') && document.getElementById('ai-input').getClientRects().length > 0);
     ai.reset(); ai.script(deliver('Two end this quarter.'));
@@ -165,9 +168,9 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     ai.reset();
     await winAsk('show value by stream on the board');
     await settled(); await page.waitForTimeout(600);
-    const I3 = await page.evaluate(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0]; return { key: k || null, free: !!m && /Free/.test(String(m.text || '')), last: m ? String(m.text || '').replace(/<[^>]+>/g, ' ').slice(0, 80) : null }; });
+    const I3 = await page.evaluate(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const m = (ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0]; /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ return { key: k || null, free: !!m && /Read from your own numbers/.test(String(m.text || '')) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(String(m.text || '').replace(/<[^>]+>/g, ' ')), last: m ? String(m.text || '').replace(/<[^>]+>/g, ' ').slice(0, 80) : null }; });
     I3.calls = ai.calls.length;
-    check('I3 and a command still acts at once, free', !!I3.key && /^q:/.test(I3.key) && I3.free && I3.calls === 0, JSON.stringify(I3));
+    check('I3 and a command still acts at once, the Board\'s own line, nothing spent, no cost said', !!I3.key && /^q:/.test(I3.key) && I3.free && I3.calls === 0, JSON.stringify(I3));
 
     console.log('\nJ · the window stands beside Home\'s panel, never over it');
     const J = await page.evaluate(() => { const r = el => el && el.getBoundingClientRect(); const p = r(document.getElementById('ai-panel')), d = r(document.getElementById('ig-dock'));

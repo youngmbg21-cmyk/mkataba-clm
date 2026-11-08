@@ -60,9 +60,9 @@ test('4 · the browser opens Jambo\'s card for a counting question; records are 
   const turn = A.slice(A.indexOf('async function askColCountTurn'), A.indexOf('async function askColCountGo'));
   assert.match(turn, /api\('ai\/column-turn', 'POST'/);
   const card = A.slice(A.indexOf('function askColCountHtml'), A.indexOf('async function askColCountTurn'));
-  assert.match(card, /ac-dk-card/, 'Jambo\'s grey card'); assert.match(card, /ac_ct_turn', \{ calls/, 'the turn says its cost');
-  assert.match(card, /ac_ct_go', m, \{ calls/, 'the read says its cost');
+  assert.match(card, /ac-dk-card/, 'Jambo\'s grey card'); assert.match(card, /ac_ct_turn'/, 'the turn is offered');
+  assert.match(card, /ac_ct_go', m/, 'the read is offered');
   const I = read('js/i18n.js');
-  assert.match(I, /ac_ct_turn: 'Turn it into one question · \{calls\}'/);
+  assert.match(I, /ac_ct_turn: 'Turn it into one question'/); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
   assert.match(I, /ac_ct_of: '\{y\} of \{n\}'/);
 });

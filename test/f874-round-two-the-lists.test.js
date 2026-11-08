@@ -121,12 +121,12 @@ describe('f874 (5) Obligations, Import, the one tab, History, the bar', () => {
   test('5a Obligations: what they are, and two doors (the per-contract finder, and Add)', () => {
     assert.match(OB, /data-obw-find>\$\{_obEsc\(i18t\('ob_none_find'\)\)\}/);
     assert.match(fnRegion(OB, 'obwAddOpen'), /if\(find\)\{ if\(typeof runFindObligations === 'function'\) runFindObligations\(c\); return; \}/);
-    assert.equal(BOOKS.en.ob_none_find, 'Find them in a contract · 1 Jambo call');
+    assert.equal(BOOKS.en.ob_none_find, 'Find them in a contract'); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     assert.match(fnRegion(OB, 'obYourWeekSay'), /if\(!any\) return \{ lines: \[ \{ html: _obEsc\(i18t\('ob_yw_none'\)\), src: '' \} \], src: '', chips: \[\], after: '' \};/);
   });
   test('5b Import: one Choose files door, one short cost line', () => {
     assert.match(fnRegion(MIG, 'migPaintHead'), /canEdit\(\) && _migCheck \?/);
-    assert.equal(BOOKS.en.mig_cost_short, 'About 1 Jambo call per file; you see the total before it starts.');
+    assert.equal(BOOKS.en.mig_cost_short, 'Jambo reads each file; you see what it found before anything is filed.');
   });
   test('5c a tab row that could only hold "All" is not drawn, unless words narrow the list', () => {
     assert.match(fnRegion(R('js/views/listhead.js'), 'lhTabsHtml'), /if \(!after && !typed && views\.filter\(.*\)\.length <= 1\) return '';/);

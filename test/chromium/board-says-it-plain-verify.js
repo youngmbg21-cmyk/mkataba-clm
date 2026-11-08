@@ -131,7 +131,8 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     }
     check(!bad.length, `A0 every phrase lands its card, alike with "can you draw" (${TABLE.length - bad.length}/${TABLE.length})`, bad.slice(0, 4).join(' ;; '));
     const bubble = await ask('bubble chart of value against time left');
-    check(bubble.pic === 'bubbles' && /free/i.test(bubble.said), 'A1 "bubble chart of value against time left" draws bubbles, free', JSON.stringify(bubble));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check(bubble.pic === 'bubbles' && !!bubble.said && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(bubble.said), 'A1 "bubble chart of value against time left" draws bubbles, no cost said', JSON.stringify(bubble));
     await shot('1-bubbles.png');
     check((await mapNow()) === map0, 'A3 the hidden map is untouched by every board question so far', await mapNow());
 

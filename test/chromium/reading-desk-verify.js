@@ -61,7 +61,8 @@ const Q = 'How much notice does each side need to end the contract?';
     await until(page, () => !!document.querySelector('#ac-form [data-ac-ask]:not([disabled])'));
     const btn = await page.evaluate(() => (document.querySelector('#ac-form [data-ac-ask]') || {}).textContent.trim());
     /* RE-POINTED 28 Oct 2026 (round 2 of the review): the button says what it spends; the form has one box */
-    check('1 the form offers 100 at a time: "Read 100 contracts · 100 Jambo calls"', btn === 'Read 100 contracts · 100 Jambo calls', btn);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1 the form offers 100 at a time: "Read 100 contracts", no cost', btn === 'Read 100 contracts', btn);
     const F = await page.evaluate(() => ({ boxes: document.querySelectorAll('#ac-form textarea, #ac-form input:not([type=checkbox])').length, nameBox: !!document.getElementById('ac-name'),
       named: ((document.getElementById('ac-named') || {}).textContent || '').replace(/\s+/g, ' ').trim(), change: !!document.querySelector('#ac-form [data-ac-name-edit]') }));
     check('1′ the form has one box; the column\'s name is said under it with Change', F.boxes === 1 && !F.nameBox && F.named === 'Column: Notice to end Change' && F.change, F);
@@ -105,8 +106,9 @@ const Q = 'How much notice does each side need to end the contract?';
       const t = document.createElement('span'); t.style.color = 'var(--color-text)'; document.body.appendChild(t); const ink = getComputedStyle(t).color; t.remove();
       return { ink, words: a.map(x => getComputedStyle(x).color) }; });
     check('1g as drawn, the light carries the colour and the list\'s short answer is the ink', INK.words.length > 0 && INK.words.every(c => c === INK.ink), INK);
-    check('1c the ten in flight are named at the top, and the foot counts done · at risk so far · calls, with Stop',
-      D && /^Reading\s*HC-1\d\d\d to HC-1\d\d\d$/.test(D.now.replace(/\s+/g, ' ').trim()) && /^Reading 100 contracts · \d+ done · \d+ at risk so far · \d+ Jambo calls$/.test(D.foot.trim()) && D.stop, D && { now: D.now, foot: D.foot });
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1c the ten in flight are named at the top, and the foot counts done · at risk so far, no cost, with Stop',
+      D && /^Reading\s*HC-1\d\d\d to HC-1\d\d\d$/.test(D.now.replace(/\s+/g, ' ').trim()) && /^Reading 100 contracts · \d+ done · \d+ at risk so far$/.test(D.foot.trim()) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(D.foot) && D.stop, D && { now: D.now, foot: D.foot });
     await page.waitForTimeout(450);                /* past the slide, so the picture is still */
     await page.screenshot({ path: path.join(OUT, 'desk-1440x780.png') });
 
@@ -146,7 +148,8 @@ const Q = 'How much notice does each side need to end the contract?';
        card, "You stopped at N of 100. N of 120 are read, M to go.", and its one button carries on with its cost */
     const stopped = await until(page, () => /^You stopped at/.test(((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim()), null, 20000);
     const ST = await page.evaluate(() => ({ said: ((document.querySelector('#ig-dock .ac-col.is-open .ac-col-say') || {}).textContent || '').trim(), q: ((document.querySelector('#ig-dock .ac-col.is-open .ac-col-q') || {}).textContent || ''), second: !!document.querySelector('#ac-stopped'), carry: (document.querySelector('[data-ac-carry]') || {}).textContent, timer: !!AC.deskTimer }));
-    check('4 Stop, in the question\'s own card: "You stopped at N of 100. N of 120 are read, M to go.", Carry on with its cost; no second card; the desk\'s timer is cleared', stopped && !ST.second && /How much notice/.test(ST.q) && (m4 => !!m4 && m4[1] === m4[2])(/^You stopped at (\d+) of 100\. (\d+) of 120 are read, \d+ to go\.$/.exec(ST.said)) && /^Carry on · \d+ contracts · \d+ Jambo calls$/.test(ST.carry) && !ST.timer, ST);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('4 Stop, in the question\'s own card: "You stopped at N of 100. N of 120 are read, M to go.", Carry on with no cost; no second card; the desk\'s timer is cleared', stopped && !ST.second && /How much notice/.test(ST.q) && (m4 => !!m4 && m4[1] === m4[2])(/^You stopped at (\d+) of 100\. (\d+) of 120 are read, \d+ to go\.$/.exec(ST.said)) && /^Carry on · \d+ contracts$/.test(ST.carry) && !ST.timer, ST);
     /* RE-POINTED 28 Oct 2026 (STOP MEANS STOP): a stop can now cut a batch midway, so the counts need not be tens;
        (round 2) the stopped card is the grey card as drawn, its words "Stopped at 8 of 16 · 8 answers kept · …" */
     h.ai.slow(0);
@@ -163,8 +166,9 @@ const Q = 'How much notice does each side need to end the contract?';
         toast: [...document.querySelectorAll('#toast-root *')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).pop() || '', timer: !!AC.deskTimer }; });
     /* who and when come from the reads' record, fetched as the read ends: asked for, bounded */
     let C = await card();
-    check('5 when the read ends: "100 of the 120 shown read · 20 still to read", ONE filled button "Read the remaining 20 · 20 Jambo calls", no pill (the rest fits), Every read ›',
-      ended && !!C && C.rest && C.restDesk && /How much notice/.test(C.restQ) && /100 of 120 are read, 20 to go\.$/.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20 · 20 Jambo calls']) && C.primary && !C.pill && C.every && !C.timer, C);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('5 when the read ends: "100 of the 120 shown read · 20 still to read", ONE filled button "Read the remaining 20", no cost, no pill (the rest fits), Every read ›',
+      ended && !!C && C.rest && C.restDesk && /How much notice/.test(C.restQ) && /100 of 120 are read, 20 to go\.$/.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20']) && C.primary && !C.pill && C.every && !C.timer, C);
     check('5a the message says the same: "Notice to end: 100 of 120 read · 20 still to read"', !!C && /Notice to end: 100 of 120 read · 20 still to read/.test(C.toast), C && C.toast);
     await page.evaluate(() => { const w = window; w._lg = { all: null, gone: null };
       w._lgT = setInterval(() => { const d = !!document.querySelector('#ac-form [data-ac-desk] [data-ac-desk-cid]'), now = performance.now();

@@ -134,8 +134,9 @@ const SEED = t => {
       !!(box && box.w > 6 && box.h > 6), box && { w: box.w, h: box.h });
     check('1c · and it is ticked, so the ordinary case is one press',
       !!(box && box.checked), box && { checked: box.checked });
-    check('1d · the sentence names what it costs',
-      !!(box && /Jambo calls/i.test(box.txt) && /three/i.test(box.txt)),
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('1d · the sentence names what the read does, no cost',
+      !!(box && /brief/i.test(box.txt) && /obligations/i.test(box.txt) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(box.txt)),
       box && box.txt.slice(0, 150));
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await pause(400);
@@ -967,8 +968,9 @@ const SEED = t => {
     }, drew.id, {}));
     check('15a · a reading older than the wording says so on its tile, first',
       !!stale && stale.tile && /wording moved since this was read/i.test(stale.td), stale);
-    check('15b · the tile offers the re-read in words, with the cost on the hover, and spends nothing until pressed',
-      !!stale && /read again/i.test(stale.go) && /spent only then/i.test(stale.title) && stale.before === 0, stale);
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
+    check('15b · the tile offers the re-read in words, the hover says it reads on the press, no cost, and nothing runs until pressed',
+      !!stale && /read again/i.test(stale.go) && /on this press/i.test(stale.title) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(stale.title) && stale.before === 0, stale);
     check('15c · one press reads THAT reading again, rewritten rather than handed back, and the mark clears',
       !!stale && stale.calls === 1 && stale.force === true && stale.after === false, stale);
 

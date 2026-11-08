@@ -34,7 +34,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
-const SAME_IN_BOTH = new Set([ 'int_lens_risk', 'int_fr_lens_risk', 'int_brief_stop_risk' /* 'Risk' is the Swedish word too (Explorer's lenses, 8 Nov 2026) */, 'sh_ns_src_server' /* 'server' is the Swedish word too (round 9, 3 Nov 2026) */, 'jhn_agents_n_one' /* 'agent' is the Swedish word too (round 7, 1 Nov 2026) */, 'pd2_wk_sp_normal' /* 'Normal' is the Swedish word too */, 'ct_hq_jambo' /* his name (History's quick link, 31 Oct 2026) */, 'cn2_jambo' /* his name, the same in both (Home in the new look, 31 Oct 2026) */, 'cal_v_agenda' /* 'Agenda' is the Swedish word too (round 12, 28 Oct 2026) */, 'ac_th_by' /* '{by}, {when}': a name and a time, no words (THE THREAD, 28 Oct 2026) */, 'jov_n_then_one', 'jov_n_then_other', 'fa_kt_where', 'cmp_row_status', 'bs_rd_risks_one', 'wt_mail_subject', 'st_jb_c_need', 'st_cf_trail_last', 'st_tr_as_csv', 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'pd_tab_guide', 'ca_w_guide', 'stk_by_jambo', 'pd_doc_pdf',
+const SAME_IN_BOTH = new Set([ 'nsc_pill_ai' /* his name alone, once its call was taken off (8 Nov 2026) */, 'ac_nl_team_sub', 'rdn2_asked' /* '{by} · {when}': a name and a time, no words (8 Nov 2026) */, 'int_lens_risk', 'int_fr_lens_risk', 'int_brief_stop_risk' /* 'Risk' is the Swedish word too (Explorer's lenses, 8 Nov 2026) */, 'sh_ns_src_server' /* 'server' is the Swedish word too (round 9, 3 Nov 2026) */, 'jhn_agents_n_one' /* 'agent' is the Swedish word too (round 7, 1 Nov 2026) */, 'pd2_wk_sp_normal' /* 'Normal' is the Swedish word too */, 'ct_hq_jambo' /* his name (History's quick link, 31 Oct 2026) */, 'cn2_jambo' /* his name, the same in both (Home in the new look, 31 Oct 2026) */, 'cal_v_agenda' /* 'Agenda' is the Swedish word too (round 12, 28 Oct 2026) */, 'ac_th_by' /* '{by}, {when}': a name and a time, no words (THE THREAD, 28 Oct 2026) */, 'jov_n_then_one', 'jov_n_then_other', 'fa_kt_where', 'cmp_row_status', 'bs_rd_risks_one', 'wt_mail_subject', 'st_jb_c_need', 'st_cf_trail_last', 'st_tr_as_csv', 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'pd_tab_guide', 'ca_w_guide', 'stk_by_jambo', 'pd_doc_pdf',
   /* Jambo's words (stage 1 of the one-page Home plan, 14 Oct 2026): "3×", how often a place was used, is a number */
   'hb_pop_used',
   /* his name on his own card (26 Oct 2026): a name is a name in both books */
@@ -236,6 +236,9 @@ const SAME_IN_BOTH = new Set([ 'int_lens_risk', 'int_fr_lens_risk', 'int_brief_s
   'dirn_foot_one', 'cun_c_nda', 'mign_title', 'pd2_ch_risk', 'dirn_p_head', 'dna_btn', 'dna_w_risk_one', 'dna_w_blanks_one', 'dna_w_blanks_other', 'dna_w_miss_other', 'dna_w_miss_one',
 ]);
 
+/* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): a label that said a cost alone is
+   RETIRED, empty in both books (test/retired-cost-keys.js; f975 holds it so) — the two checks below step past it */
+const { RETIRED_COST_KEYS } = require('./retired-cost-keys.js');
 describe('f148 — the two dictionaries stay level', () => {
   for (const lang of LANGUAGES.map(l => l.id)) {
     test(`${lang} has exactly the keys ${I18N_DEFAULT} has`, () => {
@@ -251,7 +254,7 @@ describe('f148 — the two dictionaries stay level', () => {
   test('no Swedish value is a forgotten copy of the English', () => {
     const en = STRINGS.en, sv = STRINGS.sv;
     const copied = Object.keys(en).filter(k =>
-      !SAME_IN_BOTH.has(k) && typeof en[k] === 'string' && en[k] === sv[k]);
+      !SAME_IN_BOTH.has(k) && !RETIRED_COST_KEYS.has(k) && typeof en[k] === 'string' && en[k] === sv[k]);
     assert.deepEqual(copied, [],
       'these read as English on a Swedish screen — translate them or add them to SAME_IN_BOTH');
   });
@@ -259,7 +262,7 @@ describe('f148 — the two dictionaries stay level', () => {
   test('nothing is blank', () => {
     for (const lang of Object.keys(STRINGS))
       for (const [k, v] of Object.entries(STRINGS[lang]))
-        assert.ok(String(v).trim().length, `${lang}.${k} is empty`);
+        if (!RETIRED_COST_KEYS.has(k)) assert.ok(String(v).trim().length, `${lang}.${k} is empty`);
   });
 
   test('every plural key comes as a complete _one/_other pair', () => {

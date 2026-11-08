@@ -151,7 +151,8 @@ const check = (name, pass, detail) => {
        runs the analyst's steps in the same place */
     const ASK = '#hb-focus .hb-why-ask [data-hb-dd-on]';
     const ask = await page.evaluate(sel => { const b = document.querySelector(sel); return b ? { word: b.textContent.trim(), cost: (b.parentElement.querySelector('.hb-quiet') || {}).textContent } : null; }, ASK);
-    check('4a one press, Dig deeper, its cost said beside it', !!ask && ask.word === 'Dig deeper' && /Nothing is spent until you press/.test(ask.cost || ''), JSON.stringify(ask));
+    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
+    check('4a one press, Dig deeper, what it does said beside it, no cost', !!ask && ask.word === 'Dig deeper' && /Jambo reads this chart/.test(ask.cost || '') && !/spent|\bcalls?\b|\bfree\b/i.test(ask.cost || ''), JSON.stringify(ask));
     if (ask) await page.click(ASK);
     const busy = await until(() => { const w = document.querySelector('#hb-focus .hb-why'); return w && /Jambo is reading this chart/.test(w.textContent) ? true : null; }, null, 3000);
     check('4b while Jambo reads, the box says so', !!busy);
