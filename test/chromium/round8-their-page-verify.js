@@ -68,6 +68,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   try {
     p = await theirs();
     const up = await until(p, () => document.querySelectorAll('.pol-note').length >= 2, null, 15000);
+    /* RE-POINTED 8 Nov 2026 (their pages as ours): the panel opens on our cards; Where we are is its second face,
+       and the road is the four stops every party sees */
+    if (up) { await p.click('[data-pol-face="where"]'); await p.waitForTimeout(400); }
     const S = up ? await p.evaluate(() => ({
       bar: (document.querySelector('.pol-bar') || {}).innerText || '',
       tab: (document.getElementById('pt-tab-redlines') || {}).textContent || '',
@@ -84,8 +87,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       later: !!document.getElementById('pol-later') })) : null;
     check('2a the black bar, the tabs with the count, Download Word and More', !!S && /Parcelway Logistics Ltd · your view of .+ with Highland Corporate Ltd/.test(S.bar) && /Erik Lindqvist/.test(S.bar)
       && /Redlines · 2 answers for you/.test(S.tab) && S.top.join('|') === 'Download Word|More', S && { bar: S.bar, tab: S.tab, top: S.top });
-    check('2b Where we are on the right: what waits, the six-stop road with your move, Still open; the change column steps aside', !!S && /2 answers wait for your decision/.test(S.say)
-      && S.road.length === 6 && S.road[3] === 'is-now' && /your move/i.test(S.move) && S.open === 2 && S.col === 'none', S && { say: S.say, road: S.road, open: S.open, col: S.col });
+    check('2b Where we are, the panel\'s second face: what waits, the four-stop road with your move, Still open; our cards stay under it', !!S && /2 answers wait for your decision/.test(S.say)
+      && S.road.length === 4 && S.road[1] === 'is-now' && /your move/i.test(S.move) && S.open === 2 && S.col !== 'none', S && { say: S.say, road: S.road, open: S.open, col: S.col });
+    if (up) { await p.click('[data-pol-face="red"]'); await p.waitForTimeout(300); }
     check('2c a numbered dot after each of our asks and a note beside it: Accept · Counter · Reject', !!S && S.dots.join(',') === '1,2' && /answers 45 days/.test(S.note) && /45 is where our last agreement landed/.test(S.note)
       && S.acts.join('|') === 'accept|counter|reject', S && { dots: S.dots, note: S.note, acts: S.acts });
     check('2d the foot bar: Save for later, Send back · 0 of 2, grey', !!S && S.later && /Send back · 0 of 2/.test(S.send) && S.sendOff === true, S && { send: S.send, off: S.sendOff });
@@ -110,12 +114,12 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     check('4 More holds today\'s verbs (the bell, Notes, Decline); Esc shuts it', open && shut, { open, shut });
   } catch (e) { check('4 more', false, String(e).slice(0, 200)); }
 
-  /* 5 · Send back is the column's postbox */
+  /* 5 · Send back opens the panel's Send back face (RE-POINTED 8 Nov 2026: the check before send stands in the panel;
+     its own button sends — their-pages-as-ours-verify 5 drives it to the end) */
   try {
-    await p.evaluate(() => { window._polSent = 0; const b = document.getElementById('nego-send-decisions');
-      if (b) b.addEventListener('click', ev => { window._polSent++; ev.stopImmediatePropagation(); ev.preventDefault(); }, { capture: true, once: true }); });
     await p.click('#pol-send');
-    check('5 Send back presses the column\'s own postbox', await until(p, () => window._polSent === 1, null, 5000));
+    const face = await until(p, () => !!document.getElementById('pol-send-go') && document.getElementById('pw-page').getAttribute('data-pol-shows') === 'send', null, 5000);
+    check('5 Send back opens the panel\'s Send back face, with its one button', face);
   } catch (e) { check('5 send back', false, String(e).slice(0, 200)); }
 
   await browser.close(); await h.stop();

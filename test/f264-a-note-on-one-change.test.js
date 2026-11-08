@@ -367,7 +367,9 @@ describe('f264 (4) — the ask is one reading of the record', () => {
      instead, pinned to the change. The drawer carries no "filed" headline, so
      the brief confirmation is always given. */
   test('the confirmation is brief and always, because the drawer says the rest', () => {
-    assert.match(CE, /if \(window\.toast\) toast\(_cet\('ce_filed', \{ id: ch\.id \}\), 'ok'\);/);
+    /* our seat names the change code, theirs the clause (ceFiledName, 8 Nov 2026) */
+    assert.match(CE, /if \(window\.toast\) toast\(_cet\('ce_filed', \{ id: ceFiledName\(ch\) \}\), 'ok'\);/);
+    assert.match(CE, /function ceFiledName\(ch\)\{\s*if \(ceSide\(\) !== 'counterparty'\) return ch\.id;/);
     assert.equal(/if \(!_noteAsk && window\.toast\)/.test(CE), false);
   });
 });

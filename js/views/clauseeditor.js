@@ -184,7 +184,10 @@ const ceRowMode = () => !!(_ceOpts && _ceOpts.fromRow) && ceSide() === 'owner' &
    opened the editor — a Redlines row, a risk card, the paper's Edit — and the
    Exit button stands down. What a ROW adds (its walk, its cards) stays
    ceRowMode's. A risk's last step names the risk's act (ce_risk_edit). */
-const ceTrailOn = () => ceSide() === 'owner';
+/* THE TRAIL ON THEIR SIDE TOO (owner, 8 Nov 2026: "mimic what is in the owner side"): in the outside look their
+   clause page carries our one trail, without Jambo's crumb (no assistant on their side) */
+const ceTheirTrail = () => ceSide() === 'counterparty' && typeof window.portalOutOn === 'function' && !!window.portalOutOn();
+const ceTrailOn = () => ceSide() === 'owner' || ceTheirTrail();
 const ceTrailRisk = () => !ceRowMode() && !!(_ceOpts && (_ceOpts.risk || _ceOpts.tab === 'risks'));
 
 const clauseEditorOpen = () => !!_ceClauseId;
@@ -3350,7 +3353,7 @@ function ceRowHeadPaint(){
      hover) */
   /* ONE TRAIL (owner, 20 Oct 2026: "the way you get back … is not the
      same"): the panel trail's own look — the back, then where you are */
-  const where = [_cet('pd_tab_copilot'), _cet('ce_row_back')].map(_cee).join('<i aria-hidden="true"> / </i>') + `<i aria-hidden="true"> / </i><b>${_cee(ceRowTitle())}</b>`;
+  const where = (ceTheirTrail() ? [_cet('ce_row_back')] : [_cet('pd_tab_copilot'), _cet('ce_row_back')]).map(_cee).join('<i aria-hidden="true"> / </i>') + `<i aria-hidden="true"> / </i><b>${_cee(ceRowTitle())}</b>`;
   const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(_cet('pd_trail_back', { to: _cet('ce_row_back') }))}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_cee(_cet('ce_row_back'))}</button>`
     + `<span class="ce-rowpath" title="${_ceea(ceRowSub())}">${where}</span>`;
   if (host.innerHTML !== html) host.innerHTML = html;
@@ -6888,6 +6891,13 @@ async function ceRiskSave(){
 /* THE FIRST SAVE OF A NEW CLAUSE: the funnel's add-a-clause door (its
    duplicate wall included), unsent, then the page holds the real clause — a
    clause we proposed — and everything after is the ordinary path. */
+/* WHAT THE SAVED LINE NAMES: our change code on our seat; on theirs the clause, since our internal codes
+   (CHG-005) never reach the other side (owner, 8 Nov 2026) */
+function ceFiledName(ch){
+  if (ceSide() !== 'counterparty') return ch.id;
+  let l = ''; try { l = ceClauseLabel(ceClause()) || ''; } catch (_){ l = ''; }
+  return l || String(ch.clauseLabel || '') || i18t('ds_a_clause');
+}
 async function ceFileNew(why){
   const c = _ceC;
   if (!window.negoAddNamedClause){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return null; }
@@ -6912,7 +6922,7 @@ async function ceFileNew(why){
     ? rlNoteAskAfterFile(c, ch, { side: ceSide(), author: (_ceOpts && _ceOpts.by) || undefined, persist: (_ceOpts && _ceOpts.persist) })
     : null;
   _ceLastNoteAsk = _noteAsk;
-  if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
+  if (window.toast) toast(_cet('ce_filed', { id: ceFiledName(ch) }), 'ok');
   ceFiled(c);
   if (_noteAsk) _noteAsk.then(out => { if (!out) return; try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){} });
   return ch;
@@ -6999,7 +7009,7 @@ async function ceFile(why){
      already riding it as the reason — so no note drawer opens, and the page
      closes onto the negotiation, where Send all is how it leaves. */
   if (prepFiling){
-    if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
+    if (window.toast) toast(_cet('ce_filed', { id: ceFiledName(ch) }), 'ok');
     _cePrep = null;
     ceFiled(c);
     rlCloseClauseEditor();
@@ -7025,7 +7035,7 @@ async function ceFile(why){
   /* THE CONFIRMATION IS BRIEF AND ALWAYS (11 Sep 2026): the receipt window
      that carried "filed" as its headline is retired; the drawer that opens
      instead pins the change and asks for the note. */
-  if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
+  if (window.toast) toast(_cet('ce_filed', { id: ceFiledName(ch) }), 'ok');
   /* ---- FILING NEVER CLOSES THE PAGE (owner-ruled 30 Aug 2026) ----
      THIS REVERSES "BACK WHERE YOU STARTED", which closed the editor and put the
      reader back on the negotiation page with the change on it. That was right

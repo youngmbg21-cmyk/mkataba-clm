@@ -372,6 +372,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments, notes-two-rooms verify.
 
 ## THE COUNTERPARTY'S PAGE (js/views/portal.js)
+- test/chromium/their-pages-as-ours-verify.js (8 steps; 1–7 red at the parent): their Redlines with our cards and linked notes, our clause page and Notes pin with two rooms, their team's room walled on the server, Send back in the panel, History as our table, page views, the Legora letters and the code "to open", the phone. Node: f118, f264, f303, f333, f755, f802 re-pointed.
 - 22 Oct 2026: f856 their revision of an ask already sent is held, kept across a rebuild, counted busy, and sent.
 - f180, f181, f189, f191, f237, f422, f423, f910, f439, f440, counterparty-bell, portal-header-verbs, their-side, their-edit-page, where-we-are verify.
 

@@ -442,7 +442,9 @@ describe('f333 (9) two clauses to an outside adviser', () => {
        route the counterparty uses, and GET /api/shares/:token served the whole
        table to every link holder. */
     assert.match(SRV, /const MSG_SIDE_ADVISER = 'adviser';/);
-    assert.match(SRV, /side: adviser \? MSG_SIDE_ADVISER : 'counterparty',/);
+    /* their own team's room is a third kind (8 Nov 2026); an adviser is still never the counterparty */
+    assert.match(SRV, /side: adviser \? MSG_SIDE_ADVISER : team \? MSG_SIDE_THEIR_TEAM : 'counterparty',/);
+    assert.match(SRV, /const team = !adviser && b\.room === 'team';/);
     assert.match(SRV, /function contractMessages\(contractId, opts\) \{/);
     assert.match(SRV, /m\.side !== MSG_SIDE_ADVISER \? true/, 'dropped by default');
     /* EVERY CALL SITE SAYS WHO IS ASKING — a reader that forgets gets the

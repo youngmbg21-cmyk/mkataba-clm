@@ -459,7 +459,9 @@ describe('f303 (5) — three doors and the retired window', () => {
     assert.match(CE, /ng_sel_ask/);
     assert.match(CE, /ng_sel_edit/);
     assert.match(CE, /ng_sel_comment/);
-    assert.match(CE, /if \(window\.toast\) toast\(_cet\('ce_filed', \{ id: ch\.id \}\), 'ok'\);/);
+    /* our seat names the change code, theirs the clause (ceFiledName, 8 Nov 2026) */
+    assert.match(CE, /if \(window\.toast\) toast\(_cet\('ce_filed', \{ id: ceFiledName\(ch\) \}\), 'ok'\);/);
+    assert.match(CE, /function ceFiledName\(ch\)\{\s*if \(ceSide\(\) !== 'counterparty'\) return ch\.id;/);
     /* RE-POINTED 11 Sep 2026 (evening): the paper's Ask and Edit both arrive
        with words AND the verb they were pressed under. */
     /* RE-POINTED 12 Sep 2026: the open STAMPS the pick before the deferred
