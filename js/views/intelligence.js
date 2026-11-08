@@ -1076,7 +1076,7 @@ function igLensLegendHtml(){
   /* THEN AND NOW FOR EVERY LENS (8 Nov 2026): with a past day on, each row says its count on the book that day,
      with today's beside it, and one sentence says what moved (igLensThen) */
   const TH=igLensThen(rows);
-  h+=rows.filter(x=>x.n).map(x=>`<div class="igl-row" data-ig-lens-row="${igEsc(x.k)}">${swatch(x)}<span class="igl-lt">${igEsc(x.label)}</span>${TH?`<span class="igl-n" data-ig-lens-then-n>${TH.then[x.k]}<span class="igl-now">${igEsc(i18t('int_lens_now_n',{ n:x.n }))}</span></span>`:`<span class="igl-n">${x.n}</span>`}</div>`).join('');
+  h+=rows.filter(x=>x.n||(TH&&TH.then[x.k])).map(x=>`<div class="igl-row" data-ig-lens-row="${igEsc(x.k)}">${swatch(x)}<span class="igl-lt">${igEsc(x.label)}</span>${TH?`<span class="igl-n" data-ig-lens-then-n>${TH.then[x.k]}<span class="igl-now">${igEsc(i18t('int_lens_now_n',{ n:x.n }))}</span></span>`:`<span class="igl-n">${x.n}</span>`}</div>`).join('');
   if(tot) h+=`<div class="igl-lensbar" aria-hidden="true">${rows.filter(x=>x.n).map(x=>`<i style="flex:${x.n};background:${T[x.tone]}"></i>`).join('')}</div>`;
   if(L==='money'){ const top=igLensTopParties(); if(top) h+=`<div class="igl-row igl-note" data-ig-lens-top>${igEsc(i18t('int_lens_money_top',{ p:top.p, x:top.names.join(', ') }))}</div>`; }
   if(L==='promises') h+=`<div class="igl-row igl-note" data-ig-lens-sides><span class="igl-sw" style="background:${T.ours}"></span>${igEsc(i18t('int_lens_promises_ours'))}<span class="igl-sw" style="background:${T.theirs};margin-left:6px"></span>${igEsc(i18t('int_lens_promises_theirs'))}</div>`;
@@ -1087,16 +1087,47 @@ function igLensLegendHtml(){
 }
 const IG_LENS_THEN_MONTHS=[3,6];
 function igLensThenISO(m){ const d=new Date(); d.setHours(0,0,0,0); d.setMonth(d.getMonth()-m); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-/* each row's count on the book as it stood that day: the contracts already on it (igAsOfData's own reading),
-   each read as it reads today — HaTi keeps no past reading of a risk, a duty or an owner, and says so */
+/* ---- A RISK AS IT STOOD ON A DAY (owner, 8 Nov 2026: "Yes, add the risk check dates") ----
+   A check now keeps the day each finding was first found (`seen`) and the day the contract was first checked
+   (`first`; js/ai.js runScan). On a past day a contract's risk is read from the findings found by then: not
+   checked by then is "Not scanned"; a check stored before the days were kept has none, and it is read as
+   today (`undated`) and said. A dismissal keeps no day, so a finding dismissed since is left out then too. */
+const _igIsDay=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||''));
+function igRiskAsOf(c, D){
+  const sc=c&&c.scan; if(!sc) return { k:'unscanned', since:0, undated:false };
+  const first=_igIsDay(sc.first)?sc.first:_igIsDay(sc.on)?sc.on:null;
+  const open=openFindings(c), dated=open.every(f=>_igIsDay(f.seen)||_igIsDay(sc.on));
+  if(!first||!dated) return { k:igLensBucketOf(c,'risk'), since:0, undated:true };
+  if(first>D) return { k:'unscanned', since:open.length, undated:false };
+  const then=open.filter(f=>(_igIsDay(f.seen)?f.seen:sc.on)<=D), r=then.reduce((t,f)=>t+(SEV_WEIGHT[f.sev]||0),0);
+  return { k:r>=8?'high':r>=3?'med':r>=1?'low':'clean', since:open.length-then.length, undated:false };
+}
+/* each row's count on the book as it stood that day: the contracts already on it (igAsOfData's own reading); the
+   Risk lens reads each one's risk as it stood that day (igRiskAsOf), every other lens as it reads today, and says so */
 function igLensThen(rows){
   if(!intel.asOf||!intel.lens) return null;
-  const D=intel.asOf, kids=igLensKids(), d=igAsOfData(D,kids), added=new Set(d.added);
-  const then={}; rows.forEach(x=>{ then[x.k]=(x.ids||[]).filter(id=>!added.has(id)).length; });
+  const D=intel.asOf, kids=igLensKids(), d=igAsOfData(D,kids), added=new Set(d.added), day=igDayWord(D);
+  const then={}; rows.forEach(x=>{ then[x.k]=0; });
+  if(intel.lens==='risk'){
+    let undated=0; const thenK={};
+    kids.forEach(n=>{ if(added.has(n.id)) return; const R=igRiskAsOf(n.c,D); if(R.undated) undated++; thenK[n.id]=R.k; if(then[R.k]!=null) then[R.k]++; });
+    const moved=rows.filter(x=>x.n!==then[x.k]).sort((a,b)=>Math.abs(b.n-then[b.k])-Math.abs(a.n-then[a.k]))[0];
+    let say;
+    if(moved){ const ids=moved.ids||[], nAdd=ids.filter(id=>added.has(id)).length, nHad=ids.filter(id=>!added.has(id)&&thenK[id]!==moved.k).length;
+      say=[i18t('int_lens_moved',{ x:moved.label, a:then[moved.k], b:moved.n }), [nHad?i18tn('int_lens_moved_found',nHad,{ n:nHad, d:day }):'', nAdd?i18tn('int_lens_moved_new',nAdd,{ n:nAdd, d:day }):''].filter(Boolean).join(' · ').replace(/(.)$/,'$1.')||i18t('int_lens_moved_left',{ d:day })].join(' '); }
+    else say=i18t('int_lens_moved_none',{ d:day });
+    say+=' '+(undated?i18tn('int_lens_then_undated',undated,{ n:undated }):i18t('int_lens_then_risk_rule'));
+    return { then, say, day };
+  }
+  rows.forEach(x=>{ then[x.k]=(x.ids||[]).filter(id=>!added.has(id)).length; });
   const moved=rows.filter(x=>x.n!==then[x.k]).sort((a,b)=>Math.abs(b.n-then[b.k])-Math.abs(a.n-then[a.k]))[0];
-  const day=igDayWord(D);
   const say=[moved?i18t('int_lens_moved',{ x:moved.label, a:then[moved.k], b:moved.n })+' '+i18tn('int_lens_moved_added',moved.n-then[moved.k],{ n:moved.n-then[moved.k], d:day }):i18t('int_lens_moved_none',{ d:day }), i18t('int_lens_then_rule')].join(' ');
   return { then, say, day };
+}
+/* the dots that gained a risk since the day: "+N since", worn as the as-of lens's own badge (the drawing's tag) */
+function igRiskSinceBadges(D, kids){
+  const out={}; (kids||igLensKids()).forEach(n=>{ const c=n.c||getContract(n.id); if(!c) return; const R=igRiskAsOf(c,D); if(!R.undated&&R.since>0) out[n.id]=i18tn('int_lens_since_n',R.since,{ n:R.since }); });
+  return out;
 }
 function igLensThenPillsHtml(){
   const on=intel.asOf, pill=(k,label,cur)=>`<button type="button" class="igl-pill${cur?' is-on':''}" data-ig-lens-then="${k}" aria-pressed="${cur}">${igEsc(label)}</button>`;
@@ -2463,13 +2494,15 @@ function igRecipeRun(parsed, opts){
       const kids0=(buildGraphModel().nodes||[]).filter(n=>n.kind==='contract').map(n=>({ id:n.id, c:getContract(n.id) })).filter(n=>n.c);
       const d0=igAsOfData(D,kids0);
       const label=i18t('int_asof_lens',{ d:igDayWord(D) });
-      if(d0.added.length+d0.signed.length) addLens({ label, ids:d0.added.concat(d0.signed), action:'highlight', badges:d0.badges, kind:'asof' });
+      /* on the Risk lens, the contracts already there that gained a risk since wear "+N since" too */
+      const rs=intel.lens==='risk'?igRiskSinceBadges(D,kids0):{}, rsIds=Object.keys(rs).filter(id=>!(id in d0.badges));
+      if(d0.added.length+d0.signed.length+rsIds.length) addLens({ label, ids:d0.added.concat(d0.signed,rsIds), action:'highlight', badges:Object.assign({},rs,d0.badges), kind:'asof' });
       said.push(()=>{ const kids=IG&&IG.nodes?IG.nodes.filter(n=>n.kind==='contract'):kids0, d=igAsOfData(D,kids);
         return [i18t('int_did_asof',{ d:igDayWord(D), then:d.then, now:d.now, a:d.added.length, s:d.signed.length }),
           d.grew?i18t('int_asof_grew',{ x:d.grew.label, t:d.grew.then, n:d.grew.now }):'',
           d.unknown.length?i18tn('int_asof_unknown',d.unknown.length,{ n:d.unknown.length }):'',
           d.gone?i18tn('int_asof_gone',d.gone,{ n:d.gone }):'', i18t('int_asof_not')].filter(Boolean).join(' '); });
-      list=d0.added.concat(d0.signed); listTitle=label; changed=true; continue; }
+      list=d0.added.concat(d0.signed,rsIds); listTitle=label; changed=true; continue; }
     /* THE TYPED DATE LINE (stage 2): the Timeline, on the date the words name
        (the one at rest when none), a dashed line at the day, the contracts up
        to it lit; the count is read off the map as drawn (G.tl.until) */
@@ -11246,7 +11279,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,igBriefSteps,igBriefApply,igBriefStart,igBriefGo,igBriefStop,igBriefStep,igBriefNoteHtml,igBriefHtml,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,igBriefSteps,igBriefApply,igBriefStart,igBriefGo,igBriefStop,igBriefStep,igBriefNoteHtml,igBriefHtml,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

@@ -266,6 +266,16 @@ function runScan(c){
      `on`. A scan run before this has no `on`, and the table draws an em-dash
      for it — the honest answer, and never a NaN again (see ktReadingsRowsHtml,
      which now refuses anything that is not an ISO day). */
+  /* ---- EACH FINDING KEEPS THE DAY IT WAS FIRST FOUND (owner, 8 Nov 2026: "Yes, add the risk check dates") ----
+     A rule's id is stable (g-cp, g-val…), so a finding the last check also had keeps its `seen`; a new one is
+     seen today. `first` is the day this contract was first checked at all. A check stored before this kept no
+     such days: its findings take that check's own day (`on`) where it has one, else none — and a reading of
+     the past says so rather than guess (igRiskAsOf). */
+  const today=(typeof todayISO==='function')?todayISO()
+    :(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date());
+  const was=c.scan&&Array.isArray(c.scan.findings)?c.scan:null, wasOn=was&&/^\d{4}-\d{2}-\d{2}$/.test(String(was.on||''))?String(was.on):null;
+  const seenOf={}; if(was) was.findings.forEach(f=>{ if(f&&f.id!=null){ const s=/^\d{4}-\d{2}-\d{2}$/.test(String(f.seen||''))?f.seen:wasOn; if(s) seenOf[f.id]=s; } });
+  const first=(was&&/^\d{4}-\d{2}-\d{2}$/.test(String(was.first||'')))?was.first:(wasOn||today);
   c.scan = { at:new Date().toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'}),
     /* `on` IS AN ISO DAY. It was written with todayStr() — a DISPLAY string —
        so ktDayDot refused it and this row printed an em-dash on every record
@@ -274,7 +284,8 @@ function runScan(c){
     on:(typeof todayISO==='function')?todayISO()
       :(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date()),
     lang:(typeof langId==='function'?langId():'en'),
-    findings:scanRules(c), dismissed:prev };
+    first,
+    findings:scanRules(c).map(f=>Object.assign(f,{ seen:seenOf[f.id]||today })), dismissed:prev };
 }
 /* ---- THE ONE DOOR ONTO A FINDING'S WORDING (13 Sep 2026) ----
    Lifted out of renderScanSection's handler so the readiness card on the
