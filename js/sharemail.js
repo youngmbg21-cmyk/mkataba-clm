@@ -534,7 +534,7 @@ function codeMailOf(o){
     x.open ? `It opens the link${x.sender ? ' ' + x.sender + ' sent you' : ''} about ${what}. It works for ${min} minutes.`
       : `It confirms it is you before your signature on ${what} is recorded. It works for ${min} minutes.`,
     'If you did not ask for a code, you can ignore this email. Nothing opens or is signed without it.'];
-  const subject = x.open ? `Your code to open ${what}` : `Your code to sign ${what}`;
+  const subject = x.open ? `Your code to open ${what}` : `Your signing code for ${what}`;
   if (!x.drawn) return { subject, body: lines.join('\n\n') };
   const html = _smDrawnShell(`<p style="margin:0 0 14px">Your code is <b style="font-size:20px;letter-spacing:.12em">${_smE(code)}</b></p>`
     + lines.slice(1).map(l => `<p style="margin:0 0 14px">${_smE(l)}</p>`).join(''));

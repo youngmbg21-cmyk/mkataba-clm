@@ -17355,8 +17355,8 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
    draws) take it from here, so the screen never shows less than the inbox
    gets. It reads; it sends and writes nothing. */
 async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
-  const m = srvChaseMail(req, c, o, to, { firm });
   /* the Legora way where the outside look is on: the same words in the letter's shape (it is already signed) */
+  const m = srvChaseMail(req, c, o, to, { firm });
   const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`, outsideLookOn() ? { html: smTextLetterHtml(m.body) } : {});
   return r;
 }

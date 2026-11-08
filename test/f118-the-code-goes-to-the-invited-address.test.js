@@ -81,7 +81,8 @@ describe('f118 — W8: the invited address, never a typed one', () => {
     // outbox — which is exactly how the invited signer's mailbox is stood in
     // for under test: only the holder of that mailbox has this code.
     const mail = (await codeMails(INVITED))[0];   // the outbox lists newest first
-    const code = /code to sign this contract is (\d{6})/.exec(mail.body)[1];
+    /* the code's letter says what it is for (8 Nov 2026): "Your code is NNNNNN." */
+    const code = /Your code is (\d{6})/.exec(mail.body)[1];
     const v = await anon.json('/api/shares/' + share.token + '/verify-otp', { method: 'POST',
       body: { code } });
     assert.ok(v.verify, 'possession of the code is the whole proof — no typed email to re-admit');

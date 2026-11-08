@@ -4667,7 +4667,9 @@ function portalOutHeadHtml(c){
    with it, and one button that sends through portalRespond with the check already made. Not yet puts it away. */
 function portalOutSendHtml(c, p){
   const org = (p && p.org) || i18t('pt_the_sender');
-  const lines = portalSendLines(p);
+  /* the reason rides in Notes on this side now (as ours), so "no reason given" is not said here */
+  const none = ' — ' + i18t('po_send_no_reason');
+  const lines = portalSendLines(p).map(l => l.endsWith(none) ? l.slice(0, -none.length) : l);
   const who = String((p && (p.sharedBy || p.from)) || '').trim();
   return `<div class="pol-side-in">${portalOutHeadHtml(c)}
     <div class="pol-side-body"><p class="pol-say">${esc(who ? i18t('pol_send_to_who', { who, org }) : i18t('pol_send_to', { org }))}</p>

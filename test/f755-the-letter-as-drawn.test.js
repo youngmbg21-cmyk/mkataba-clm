@@ -212,7 +212,7 @@ describe('f755 (5) a code-named deal: its code and number only', () => {
   });
   test('5b the server hands the code over on every route that mails the other side a round', () => {
     assert.match(SRV, /function srvMailCodeOf\(id\) \{\s*const cn = id \? cnOf\(id\) : null;/, 'its own reading of the code name');
-    assert.equal((SRV.match(/\.\.\.srvMailCodeOf\((shareId|s\.contract_id)\)/g) || []).length, 3, 'the new link (email and Word) and the link they already hold');
+    assert.equal((SRV.match(/\.\.\.srvMailCodeOf\((shareId|s\.contract_id)\)/g) || []).length, 4, 'the new link (email and Word), the link they already hold, and the reminder (8 Nov 2026)');
     assert.match(SRV, /const cName = shareMailNameOf\(srvMailCodeOf\(s\.contract_id\)\) \|\| \(payload\.contract && payload\.contract\.name\)/, 'and the turn email on a link they hold');
   });
   test('5c the screen asks the same reading, so the screen and the inbox agree', () => {
