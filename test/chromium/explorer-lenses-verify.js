@@ -151,14 +151,14 @@ const check = (name, pass, detail) => {
     await until(() => !intel.busy && !!intel.tour);
     await page.waitForTimeout(400);
     const walk = await page.evaluate(() => ({ steps: (intel.tour && intel.tour.steps || []).map(s => s.text),
-      head: (document.getElementById('ig-note') || {}).textContent || '', why: (document.querySelector('#ig-dock [data-ig-lens-why]') || {}).textContent || '',
+      head: (document.getElementById('ig-note') || {}).textContent || '', why: (document.querySelector('#ig-dock .ig-lens-why') || {}).textContent || '', ask: (document.querySelector('#ig-dock [data-ig-lens-why]') || {}).textContent || '',
       cost: (document.querySelector('#ig-dock .igd-cost') || {}).textContent || '' }));
     const highN = WANT_RISK.high || 0;
     check('5a the walk opens on the whole: N of 18 contracts are high risk', new RegExp('^' + highN + ' of 18 contracts are high risk').test(walk.steps[0] || ''), JSON.stringify(walk.steps));
     const procName = await page.evaluate(() => (FOLDERS.proc && FOLDERS.proc.name) || 'Procurement');
     check('5b worst first: the stream carrying the high risk is the first part', (walk.steps[1] || '').startsWith(procName + ': ' + highN + ' high risk'), walk.steps[1]);
     check('5c the head line says "Explaining this lens"', /Explaining this lens/.test(walk.head), walk.head);
-    check('5d the one paid question names the worst part and its cost', walk.why.includes(procName) && /1 Jambo call/.test(walk.cost), JSON.stringify({ why: walk.why, cost: walk.cost }));
+    check('5d the one paid question names the worst part, its press, and its cost', walk.why.includes(procName) && walk.ask === 'Ask Jambo' && /1 Jambo call/.test(walk.cost), JSON.stringify({ why: walk.why, ask: walk.ask, cost: walk.cost }));
     await page.screenshot({ path: path.join(OUT, '5-explain-this-lens.png') });
 
     /* ================= 6. THE RECIPE AND THE WORDS ================= */

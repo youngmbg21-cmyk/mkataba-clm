@@ -1067,7 +1067,8 @@ function igLensTourSteps(base){
 /* the one paid question under the walk, named with its cost: the worst part, asked of Jambo as typed words are */
 function igLensWhyHtml(){
   if(!intel.lens||!_igLensWorst||!intel.tour) return '';
-  return `<button type="button" class="ui-link" data-ig-lens-why="${igEsc(_igLensWorst)}">${igEsc(i18t('int_lens_why_'+intel.lens,{ x:_igLensWorst }))}</button> <span class="igd-cost">${igEsc(i18t('int_lens_why_cost'))}</span>`;
+  /* the question is words (they may wrap); the press is short, on one line (f386), its cost beside it */
+  return `<span class="ig-lens-q">${igEsc(i18t('int_lens_why_'+intel.lens,{ x:_igLensWorst }))}</span> <button type="button" class="ui-link" data-ig-lens-why="${igEsc(_igLensWorst)}">${igEsc(i18t('int_lens_why_ask'))}</button> <span class="igd-cost">${igEsc(i18t('int_lens_why_cost'))}</span>`;
 }
 /* THE WORDS: "put the risk lens on", "obligations lens", "lens off", "risklinsen", "linsen av" */
 function igLensRead(q){
