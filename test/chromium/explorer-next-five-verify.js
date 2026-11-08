@@ -208,9 +208,37 @@ const check = (name, pass, detail) => {
       moved: (document.querySelector('#ig-legend [data-ig-lens-moved]') || {}).textContent || '' }));
     const high = (tn.rows || []).find(r => r[0] === 'high');
     check('5b three months ago: each row says its count then, with today\'s beside it (high risk 3 then, 5 today)', !!tn.asOf && high && /^3today5$/.test(high[1].replace(/\s+/g, '')) , JSON.stringify(tn.rows));
-    check('5c one sentence says what moved, and that each contract is read as it reads today', /went from/.test(tn.moved) && /read as it reads today/.test(tn.moved), tn.moved);
+    /* RE-POINTED 8 Nov 2026 (the risk check dates): these checks were stored before HaTi kept the days, and it says so */
+    check('5c one sentence says what moved, and that checks kept without their days read as today', /went from/.test(tn.moved) && /checked before HaTi kept the days, and read as today/.test(tn.moved), tn.moved);
     check('5d the head line says Back to now', /Back to now/.test(await note()), await note());
     await page.screenshot({ path: path.join(OUT, '5-then-and-now.png') });
+
+    /* ================= 8. THE RISK CHECK DATES (owner: "Yes, add the risk check dates") ================= */
+    if (await has('igRiskAsOf')){
+      /* a check keeps the day each finding was first found, and keeps it on the next check */
+      const keep = await page.evaluate(() => { const c = getContract('MK-N4'); const was = c.scan; c.scan = null; c.counterparty = '';
+        runScan(c); const a = c.scan.findings.find(f => f.id === 'g-cp'); const first = c.scan.first, s1 = a && a.seen;
+        a.seen = '2026-01-05'; c.scan.first = '2026-01-05'; runScan(c); const b = c.scan.findings.find(f => f.id === 'g-cp');
+        const out = { s1, first, kept: b && b.seen, keptFirst: c.scan.first, today: todayISO() };
+        c.counterparty = 'Juno Logistics'; c.scan = was; return out; });
+      check('8a a check stamps each finding with the day it was first found, and the next check keeps that day',
+        keep.s1 === keep.today && keep.first === keep.today && keep.kept === '2026-01-05' && keep.keptFirst === '2026-01-05', JSON.stringify(keep));
+      /* the book's checks, dated: all first checked 200 days ago; MK-N3's second risk and both of MK-N6's found 20 days ago */
+      await page.evaluate(([old, recent]) => { state.contracts.forEach(c => { if (!c.scan) return; c.scan.on = old; c.scan.first = old;
+          c.scan.findings.forEach(f => { f.seen = (c.id === 'MK-N6' || (c.id === 'MK-N3' && /b$/.test(f.id))) ? recent : old; }); });
+        intel.asOf = null; intel.lenses = []; igLensSet('risk', { noPush: true }); rebuildIntelGraph(); }, [day(-200), day(-20)]);
+      await page.waitForTimeout(400);
+      await page.click('#ig-legend [data-ig-lens-then="3"]'); await page.waitForTimeout(800);
+      const r8 = await page.evaluate(() => ({ rows: [...document.querySelectorAll('#ig-legend [data-ig-lens-row]')].map(r => [r.getAttribute('data-ig-lens-row'), (r.querySelector('.igl-n') || {}).textContent.replace(/\s+/g, '')]),
+        moved: (document.querySelector('#ig-legend [data-ig-lens-moved]') || {}).textContent || '',
+        badges: Object.assign({}, ...(intel.lenses.filter(l => l.kind === 'asof').map(l => l.badges || {}))) }));
+      const hi8 = (r8.rows || []).find(r => r[0] === 'high');
+      check('8b three months ago, High risk counts the risks found by then: 1 then, 5 today', hi8 && hi8[1] === '1today5', JSON.stringify(r8.rows));
+      check('8c the sentence says two we already had gained a risk since, and two were added since, read from the day each was found',
+        /went from 1 to 5/.test(r8.moved) && /2 contracts we already had gained a risk since/.test(r8.moved) && /2 contracts added since/.test(r8.moved) && /Read from the day each risk was found/.test(r8.moved), r8.moved);
+      check('8d the contracts that gained a risk since wear "+N since" on the map', r8.badges['MK-N3'] === '+1 since' && r8.badges['MK-N6'] === '+2 since', JSON.stringify(r8.badges));
+      await page.screenshot({ path: path.join(OUT, '8-risk-dates.png') });
+    } else check('8 the risk check dates exist', false, 'igRiskAsOf missing');
 
     /* ================= 6. THE OWNER'S THREE SCREENS ================= */
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]){
