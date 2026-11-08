@@ -4215,6 +4215,49 @@ function portalPaintHistoryPane(){
   const pane=document.getElementById('pt-hist-pane');
   if(!pane||pane.hidden||!_ptCtx) return;
   portalHistoryScreen(pane, _ptCtx.c);
+  if(portalOutOn()){ const list=pane.querySelector('#ht-list'); if(list) list.insertAdjacentHTML('beforebegin', portalOutHistoryHtml(_ptCtx.c, _ptCtx.p)); }
+}
+/* ---- THEIR HISTORY AS OUR HISTORY'S TABLE (owner, 8 Nov 2026: "the same table as yours") ----
+   Time · Who · Side · What happened · Outcome under day rows with their counts, newest first, read off the one
+   reading the old list reads (negoTimeline) — names and parties in words, never our change codes or "owner side".
+   A search box narrows the rows as typed; Verify integrity and Export history stay, the old list and its system
+   dropdowns step aside (CSS, the outside look only). */
+function portalOutHistoryHtml(c, p){
+  const ev = (typeof window.negoTimeline === 'function' ? negoTimeline(c) : []).slice().reverse();
+  const org = (p && p.org) || i18t('pt_the_sender');
+  const mine = portalMyPartyName(p) || i18t('pol_you');
+  const sideOf = e => e.side === 'owner' ? org : e.side === 'counterparty' ? mine : '—';
+  const clause = e => String(e.clauseLabel || '').trim();
+  const sum = e => { const x = e.ch && String(e.ch.summary || '').trim(); return x && !/^#?CHG-/i.test(x) ? x : ''; };
+  const what = e => {
+    const cl = clause(e), s = sum(e);
+    if (e.kind === 'proposed') return i18t(cl ? 'pol_h_proposed_on' : 'pol_h_proposed', { clause: cl }) + (s ? ': ' + s : '');
+    if (e.kind === 'decided') return i18t(e.outcome === 'accepted' ? 'pol_h_accepted' : 'pol_h_rejected', { clause: cl || i18t('ds_a_clause') }) + (e.reply ? ` — “${e.reply}”` : '');
+    if (e.kind === 'withdrawn') return i18t('pol_h_withdrawn', { clause: cl || i18t('ds_a_clause') });
+    if (e.kind === 'round-closed') return i18t('pol_h_round_closed', { n: e.round });
+    return String(e.text || '').replace(/#?CHG-\d+/g, '').replace(/\s{2,}/g, ' ').trim();
+  };
+  const oc = e => e.outcome === 'pending' ? ['amb', i18t('pol_h_waiting')] : e.outcome === 'accepted' ? ['grn', i18t('pol_h_o_accepted')]
+    : e.outcome === 'rejected' ? ['red', i18t('pol_h_o_rejected')] : e.outcome === 'withdrawn' ? ['gry', i18t('pol_h_o_withdrawn')] : ['', ''];
+  const day = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString(window.langLocale ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (_){ return ''; } };
+  const hm = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleTimeString(window.langLocale ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' }); } catch (_){ return ''; } };
+  const groups = [];
+  for (const e of ev){ const k = day(e.at); const g = groups[groups.length - 1]; if (g && g.k === k) g.rows.push(e); else groups.push({ k, rows: [e] }); }
+  const body = groups.map(g => `<tr class="pol-h-day"><td colspan="5">${esc(g.k || '—')}<span>${esc(i18tn('pol_h_n_events', g.rows.length, { n: g.rows.length }))}</span></td></tr>`
+    + g.rows.map(e => { const [t, w] = oc(e); const words = what(e);
+      return `<tr data-pol-h="${esc((words + ' ' + (e.actor || '') + ' ' + sideOf(e)).toLowerCase())}"><td>${esc(hm(e.at))}</td><td>${esc(e.actor || '—')}</td><td>${esc(sideOf(e))}</td><td>${esc(words)}</td><td>${w ? `<span class="pol-oc is-${t}">${esc(w)}</span>` : ''}</td></tr>`; }).join('')).join('');
+  return `<div class="pol-hist"><div class="pol-hist-hd"><b>${esc(i18t('po_tab_history'))}</b><span>${esc(i18tn('pol_h_sub', ev.length, { n: ev.length }))}</span></div>
+    <label class="pol-hist-q"><span class="sr-only">${esc(i18t('pol_h_search'))}</span><input type="search" id="pol-hist-q" placeholder="${esc(i18t('pol_h_search'))}" autocomplete="off"></label>
+    <table class="pol-hist-t"><thead><tr><th>${esc(i18t('pol_h_c_time'))}</th><th>${esc(i18t('pol_h_c_who'))}</th><th>${esc(i18t('pol_h_c_side'))}</th><th>${esc(i18t('pol_h_c_what'))}</th><th>${esc(i18t('pol_h_c_outcome'))}</th></tr></thead>
+    <tbody>${body || `<tr><td colspan="5" class="pol-small">${esc(i18t('pol_h_none'))}</td></tr>`}</tbody></table></div>`;
+}
+if(typeof document!=='undefined' && !document._polHistWired){
+  document._polHistWired=true;
+  document.addEventListener('input', ev => {
+    const q=ev.target; if(!q || q.id!=='pol-hist-q') return;
+    const v=String(q.value||'').trim().toLowerCase();
+    document.querySelectorAll('.pol-hist-t tbody tr[data-pol-h]').forEach(tr=>{ tr.hidden=!!v && !tr.getAttribute('data-pol-h').includes(v); });
+  });
 }
 /* ---- A REASON AFTER EVERY SAVE, ON THEIR SIDE TOO (Young asked 29 Sep
    2026: "just like in the owner page, for every redline, when you save the
@@ -4927,7 +4970,11 @@ function portalCodeScreen(token, d){
      who to ask rather than claiming it was sent. */
   const noMail=!!(d&&d.emailConfigured===false);
   const asker=(d&&d.sharedBy)||i18t('pt_the_sender');
-  root.innerHTML=`<div class="pt-code-wrap"><div class="pt-code">
+  /* THE OUTSIDE LOOK (owner, 8 Nov 2026: their pages as page views): the expired page's own frame — the black bar
+     saying whose link it is, then a quiet column, nothing boxed. Same ids, same wiring below. */
+  const out=typeof window.outsideLookOn==='function' && window.outsideLookOn();
+  const org=(d&&d.org)||asker;
+  root.innerHTML=`${out?`<div class="pnl-wrap pt-code-out"><header class="pnl-bar"><b>HaTi</b><span>${esc(i18t('pnl_bar_from',{ org }))}</span><span class="pnl-sp"></span><span>${esc(i18t('pnl_not_signed'))}</span></header>`:''}<div class="pt-code-wrap"><div class="pt-code">
     <p class="pt-code-brand">HaTi</p>
     <h1>${esc(i18t('po_code_title'))}</h1>
     <p class="pt-code-sub" id="pt-code-sub">${esc(noMail?i18t('po_code_sub_ask',{who:asker}):to?i18t('po_code_sub',{to}):i18t('po_code_sub_plain'))}</p>
@@ -4939,7 +4986,7 @@ function portalCodeScreen(token, d){
     <p class="pt-code-say" id="pt-code-say" role="status"></p>
     <button type="button" id="pt-code-send" class="ui-link">${esc(i18t('po_code_send'))}</button>
     <p class="pt-code-fine">${esc(i18t('po_code_fine'))}</p>
-  </div></div>
+  </div></div>${out?'</div>':''}
   <style>
     .pt-code-wrap{min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:24px;}
     .pt-code{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
@@ -6589,6 +6636,6 @@ function portalGoneNlWire(opts){
       if (typeof toast === 'function') toast(i18t('pnl_asked_toast'), 'ok'); }
     catch(e){ b.disabled = false; if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); } });
 }
-Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalOutSendHtml,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalOutSendHtml,portalOutHistoryHtml,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

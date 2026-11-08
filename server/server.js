@@ -12091,7 +12091,10 @@ app.get('/track/:token', (req, res) => {
 const DEAL_WORDS = {
   shared: 'Shared', negotiating: 'Negotiating', agreed: 'Agreed', signed: 'Signed',
 };
-function dealPageHtml(D, org) {
+function dealPageHtml(D, org, opts) {
+  /* THE OUTSIDE LOOK (owner, 8 Nov 2026: their pages as page views): the black bar, a white page, nothing boxed —
+     the same four stops and the same reading; only the clothes change */
+  const out = !!(opts && opts.out);
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
   const day = d => { if (!d) return ''; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_) { return String(d).slice(0, 10); } };
   const evText = x => x.kind === 'round' ? `Round ${x.round} closed`
@@ -12123,7 +12126,7 @@ function dealPageHtml(D, org) {
      in literal values — the soft grey ground, white cards with 18px corners on
      the cool hairline, tags as pills, ink #1D1D1F, statuses in their own tones,
      sentence-case labels. */
-  const card = 'background:#fff;border:1px solid #E6E6EA;border-radius:18px';
+  const card = out ? 'background:transparent;border:0;border-radius:0' : 'background:#fff;border:1px solid #E6E6EA;border-radius:18px';
   const ch = (t, r) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #E6E6EA"><b style="font-size:14px;font-weight:600">${t}</b>${r ? `<span style="margin-left:auto;font-size:12.5px;color:#6E6E73">${r}</span>` : ''}</div>`;
   const initials = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
   const av = n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;box-sizing:border-box;border-radius:999px;background:transparent;border:1px solid #D1D1D6;color:#6E6E73;font-size:10.5px;font-weight:500;flex:none">${e(initials(n))}</span>`;
@@ -12150,12 +12153,19 @@ function dealPageHtml(D, org) {
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/fonts/geist.css"><link rel="stylesheet" href="/fonts/source-serif-4.css">
   <title>Where the deal stands</title></head>
-  <body style="margin:0;background:#F5F5F7;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1D1D1F">
-    <div style="background:#fff;color:#1D1D1F;border-bottom:1px solid #E6E6EA;padding:0 26px;height:48px;display:flex;align-items:center;gap:12px;font-size:12.5px">
+  <body style="margin:0;background:${out ? '#fff' : '#F5F5F7'};font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1D1D1F">
+    ${out ? `<div style="background:#111113;color:#fff;padding:0 20px;height:48px;display:flex;align-items:center;gap:14px;font-size:13.5px">
+      <b style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif">HaTi</b>
+      <span>${org ? `A read-only page from ${e(org)}` : 'A read-only page'}</span>
+      <span style="flex:1"></span>
+      <span>Read only</span></div>
+    <div style="padding:14px 32px;border-bottom:1px solid #E6E6EA;display:flex;align-items:baseline;gap:14px">
+      <b style="font:600 21px 'Source Serif 4','Iowan Old Style',Georgia,serif">${e(D.name)}</b><span style="font:12px ui-monospace,Menlo,monospace;color:#4B4B50">${e(D.ref)}</span></div>`
+    : `<div style="background:#fff;color:#1D1D1F;border-bottom:1px solid #E6E6EA;padding:0 26px;height:48px;display:flex;align-items:center;gap:12px;font-size:12.5px">
       <b style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif">HaTi</b>
       <span style="border:1px solid #D1D1D6;border-radius:999px;padding:0 7px;font-size:11.5px;font-weight:500;color:#6E6E73">Read only</span>
       <span style="flex:1"></span>
-      <span style="color:#6E6E73">${e(D.name)} &middot; ${e(D.ref)}</span></div>
+      <span style="color:#6E6E73">${e(D.name)} &middot; ${e(D.ref)}</span></div>`}
     <div style="padding:22px 20px 40px;max-width:1120px;margin:0 auto">
     <div style="${card};padding:12px 16px 0">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -12199,7 +12209,7 @@ app.get('/deal/:token', (req, res) => {
   let D = null; try { D = srvDealStands(c); } catch (_) { D = null; }
   if (!D) return gone('This contract could not be read.');
   let org = ''; try { org = ((getSetting('org') || {}).name) || ''; } catch (_) { org = ''; }
-  res.type('html').send(process.env.NEW_LOOK_PUBLIC === '1' ? dealPageDrawnHtml(c, D, org) : dealPageHtml(D, org));
+  res.type('html').send(process.env.NEW_LOOK_PUBLIC === '1' ? dealPageDrawnHtml(c, D, org) : dealPageHtml(D, org, { out: outsideLookOn() }));
 });
 /* THE STATUS PAGE AS DRAWN (the new look; owner, 31 Oct 2026: "Both pages as drawn"): the same page the owner's tab
    draws (standsDrawnHtml), built from the same reading (dpPage) off the STORED record, in literal values (a standalone

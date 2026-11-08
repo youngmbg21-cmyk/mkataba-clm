@@ -19288,6 +19288,54 @@
   html.lg-out .pol-propose[hidden]{display:none}
   html.lg-out .pol-send-lab{display:block;margin-top:8px;border-bottom:0}
   html.lg-out .pol-send-list li{grid-template-columns:minmax(0,1fr)}
+  /* THEIR PAGES AS PAGE VIEWS (owner, 8 Nov 2026: "move away from the cards views into the page views"): one white
+     page under the head line, lists with hairlines, nothing boxed — Where we are, History, Signing */
+  html.lg-out #pw-page #pt-where-pane,html.lg-out #pw-page #pt-hist-pane,html.lg-out #pw-page #pt-sign-pane{background:var(--color-surface)}
+  html.lg-out #pw-page .pw-where{max-width:none;margin:0;padding:22px 32px}
+  html.lg-out #pw-page .pw-where .ds-sheet{max-width:none;gap:24px}
+  html.lg-out #pw-page .pw-where .ds-card{border:0;border-radius:0;box-shadow:none;background:transparent;padding:0}
+  html.lg-out #pw-page .pw-where .ds-h1{font-family:var(--font-title);font-weight:600;font-size:22px}
+  html.lg-out #pw-page .pw-where .ds-ch{padding:0 0 8px;border-bottom:1px solid var(--color-divider);background:transparent}
+  html.lg-out #pw-page .pw-where .ds-pt-table thead th{background:transparent;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-out #pw-page .pw-where .ds-cols{gap:32px}
+  html.lg-out #pw-page .pw-sign{max-width:none;margin:0;padding:22px 32px}
+  html.lg-out #pw-page .pw-sign .ps-side{max-width:720px;margin:0;border:0;border-radius:0;box-shadow:none;background:transparent;padding:0}
+  html.lg-out #pw-page .pw-sign .ps-h{font-family:var(--font-title);font-weight:600;font-size:22px;padding:0 0 12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-out #pw-page .pw-sign .ps-stage{border-bottom:1px solid var(--color-divider)}
+  html.lg-out #pt-hist-pane .ht{max-width:none;max-height:none;margin:0;padding:22px 32px;border:0;border-radius:0;box-shadow:none;background:transparent}
+  html.lg-out #pt-hist-pane .ht > h3,html.lg-out #pt-hist-pane .ht > .ht-sub,html.lg-out #pt-hist-pane .ht-f,html.lg-out #pt-hist-pane #ht-clear,html.lg-out #pt-hist-pane #ht-list{display:none}
+  html.lg-out #pt-hist-pane .ht-filters{justify-content:flex-end;margin:0 0 -40px;padding:0;border:0}
+  html.lg-out #pt-hist-pane .ht-filters .ui-btn{border:0;border-radius:999px;background:var(--surface-2);height:var(--ctl-h-sm);font-size:13px}
+  html.lg-out .pt-code-out .pt-code-wrap{min-height:0;display:block;background:transparent;padding:0}
+  html.lg-out .pt-code-out .pt-code{max-width:520px;margin:0 auto;padding:150px 0 40px;border:0;border-radius:0;box-shadow:none;background:transparent}
+  html.lg-out .pt-code-out .pt-code-brand{display:none}
+  html.lg-out .pt-code-out .pt-code h1{font-family:var(--font-title);font-weight:400;font-size:24px;margin:0 0 8px}
+  html.lg-out .pt-code-out #pt-code-in{background:var(--color-surface);border-color:var(--color-text);font-family:var(--font-ref)}
+  html.lg-out .pt-code-out #pt-code-go{border-radius:999px;padding:0 18px}
+  html.lg-out .pol-hist{display:grid;gap:14px}
+  html.lg-out .pol-hist-hd{display:flex;align-items:baseline;gap:12px;min-height:30px}
+  html.lg-out .pol-hist-hd b{font-family:var(--font-title);font-weight:600;font-size:22px}
+  html.lg-out .pol-hist-hd span{font-size:13.5px;color:var(--color-quiet)}
+  html.lg-out .pol-hist-q input{width:260px;max-width:100%;height:var(--ctl-h-sm);box-sizing:border-box;padding:0 14px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:13.5px;color:var(--color-text)}
+  html.lg-out .pol-hist-t{width:100%;border-collapse:collapse;font-size:13.5px}
+  html.lg-out .pol-hist-t th{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--color-divider);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-out .pol-hist-t td{padding:11px 12px 11px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
+  html.lg-out .pol-hist-t td:first-child{width:64px;font-variant-numeric:tabular-nums}
+  html.lg-out .pol-h-day td{background:var(--color-bg);font-weight:var(--w-strong);font-size:13px;padding-left:12px}
+  html.lg-out .pol-h-day span{margin-left:8px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-out .pol-oc{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  html.lg-out .pol-oc::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+  html.lg-out .pol-oc.is-amb{color:var(--st-amber-fg)}
+  html.lg-out .pol-oc.is-grn{color:var(--st-green-fg)}
+  html.lg-out .pol-oc.is-red{color:var(--st-ruby-fg)}
+  html.lg-out .pol-oc.is-gry{color:var(--color-quiet)}
+  @media (max-width:767px){
+    html.lg-out #pw-page .pw-id-row2{flex-wrap:wrap;gap:0 12px}
+    html.lg-out #pw-page .pw-tabs{flex:1 1 100%;max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,var(--color-text) 85%,transparent)}
+    html.lg-out .pol-bar{gap:10px}
+    html.lg-out .pol-who{max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    html.lg-out #pw-page .pw-where,html.lg-out #pw-page .pw-sign,html.lg-out #pt-hist-pane .ht{padding:16px}
+  }
   html.lg-out .pol-send-msg{width:100%;box-sizing:border-box;min-height:72px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);background:var(--color-surface);resize:vertical}
   html.lg-out .pol-send-ft{display:flex;flex-direction:column;align-items:stretch;gap:8px}
   html.lg-out .pol-send-go{width:100%;height:var(--ctl-h)}
