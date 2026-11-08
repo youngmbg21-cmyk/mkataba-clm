@@ -3,7 +3,8 @@
    figures: 60 days to pay (the standard is 45 at most) and 6 months' liability (the standard is 12 at least). With the
    switch on, at the owner's three screens:
      1 · their asks beside the redlined paper, numbered, Counter at the limit where it is not ours (else Reject · hold ours); one grey note for what they left alone
-     2 · the Redlines face's four links above Jambo's box: ladder · notes · their view · history
+     2 · the Redlines face's four links above Jambo's box: ladder · notes · their view · history; the line keeps Clean ·
+         Redline · Their view (owner, 8 Nov 2026)
      3 · the close plan: one table (Point · us · them · Stand), a point opens to compare, the two wordings side by side
      4 · Send: the questions a column of lines, the letter beside them; a line pressed opens its list; From among the lines;
          Before you send in labelled rows
@@ -97,8 +98,9 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         const mk = document.querySelector('#ig-canvas ins.rl-them');
         return { send: b ? b.textContent.trim() : '', off: !!(b && b.disabled), sw: !!(sw && sw.getBoundingClientRect().width), ins: mk ? getComputedStyle(mk).color : '',
           chips: [...document.querySelectorAll('#ig-dock :is(.rl-head-review,.rl-head-notes,.rl-head-deal)')].map(x => x.textContent.trim()).join(' · ') }; });
-      check(`${nm} 2 four links above Jambo's box; Send all grey until something is drafted; no Clean · Redline switch; their additions green; Ask for review · Notes · Deal · Ladder`,
-        links === 'ladder · notes · their view · history' && line.send === 'Send all' && line.off && !line.sw && line.chips.split(' · ').sort().join('|') === 'Ask for review|Deal|Ladder|Notes' && line.ins === 'rgb(31, 77, 59)', { links, line });
+      /* Clean · Redline · Their view STAYS on the line on the Redlines face (owner, 8 Nov 2026; reverses 31 Oct's "no switch") */
+      check(`${nm} 2 four links above Jambo's box; Send all grey until something is drafted; the Clean · Redline · Their view switch stays on the line; their additions green; Ask for review · Notes · Deal · Ladder`,
+        links === 'ladder · notes · their view · history' && line.send === 'Send all' && line.off && line.sw && line.chips.split(' · ').sort().join('|') === 'Ask for review|Deal|Ladder|Notes' && line.ins === 'rgb(31, 77, 59)', { links, line });
       await page.screenshot({ path: path.join(OUT, `redlines-${nm}.png`) });
       /* 3 · the close plan */
       await page.evaluate(id => pdDealOpen(id), ID);

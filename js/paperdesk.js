@@ -7788,11 +7788,14 @@ function pd2NotesPaint(c){
   const zoom = document.querySelector('#ig-paper .ig-zoom'), cv = document.getElementById('ig-canvas');
   if (_pd2Fill && (!c || String(_pd2Fill.id) !== String(c.id) || !pd2On())){ _pd2Fill = null; document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill'); }
   if (_pd2Walk && (!c || String(_pd2Walk.id) !== String(c.id) || !pd2On())){ clearTimeout(_pd2Walk.timer); _pd2Walk = null; document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk'); }
-  if (c && pd2WalkOn(c.id)){ pd2NotesOff(); pd2WalkPaint(); return; }
+  /* WHILE JAMBO READS, THE NOTES STAND BESIDE THE PAPER TOO (owner, 8 Nov 2026): painted as ever, each held until the
+     read reaches its clause (pd2WalkNotesHold, asked again on every step), and all of them there once it has read */
+  const walking = !!(c && pd2WalkOn(c.id));
+  if (walking) pd2WalkPaint();
   /* the notes stand beside the paper with the Dossier; Clauses and Redlines mark the paper their own way */
   const red = !!(zoom && zoom.querySelector('.ig-redpaper')) && !(zoom.querySelector('.ig-redpaper.is-clean'));
   if (_pdTab !== 'copilot' && !red){ pd2NotesOff(); pd2ClauseTint(); return; }
-  if (c && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
+  if (c && !walking && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
   /* a negotiated contract's CLEAN paper is the paper: its notes stand beside it like any other (owner-reported 6 Nov 2026,
      MK-469: "There are no side notes even when in the dossier tab"); only the signing copy has none */
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-signpaper') || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
@@ -7828,10 +7831,12 @@ function pd2NotesPaint(c){
   } else {
     host.innerHTML = groups.map((g, i) => pd2GroupHtml(g, i)).join('');
     pd2GroupsPlace(groups, zoom, host, f);
+    if (walking) pd2WalkNotesHold(groups, host);
   }
   try {
     if (typeof CSS !== 'undefined' && CSS.highlights && typeof globalThis.Highlight === 'function'){
-      const rs = notes.filter(n => n.mark && n.hit.range).map(n => n.hit.range);
+      /* while reading, the words light as the read reaches them (the walk's own highlight), not all at once */
+      const rs = walking ? [] : notes.filter(n => n.mark && n.hit.range).map(n => n.hit.range);
       if (rs.length) CSS.highlights.set('pd2-fact', new globalThis.Highlight(...rs)); else CSS.highlights.delete('pd2-fact');
     }
   } catch (_){}
@@ -8401,7 +8406,7 @@ function pd2WalkOpen(id){
   if (pd2FillOn(id)) pd2FillStop();
   if (pdMidUp()) pdMidClose();
   _pd2Walk = { id: String(id), i: 0, run: false, speed: (_pd2Walk && _pd2Walk.speed) || 'normal', lit: [], done: false, timer: 0 };
-  pd2NotesOff(); pd2WalkPaint(); try { pdGlanceRepaint(); } catch (_){}
+  pd2NotesPaint(c); try { pdGlanceRepaint(); } catch (_){}
   return true;
 }
 /* a paper that has just arrived (roomHomeLand's arrival) offers the walk; nothing plays until it is pressed */
@@ -8414,6 +8419,21 @@ function pd2WalkClose(){
   try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete('pd2-walk'); } catch (_){}
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
+}
+/* each note group knows the clause the read must reach (its section on the paper; one standing at the paper's end waits for
+   the end); held unseen until then. A reading: nothing is filed, and once read it stays */
+function pd2WalkNotesHold(groups, host){
+  const W = _pd2Walk, cv = document.getElementById('ig-canvas'); host = host || document.getElementById('pd2-notes');
+  if (!host || !cv) return;
+  if (groups){ const S = pd2WalkSections(cv);
+    groups.forEach((g, i) => { const el = host.querySelector(`[data-pd2-note="${i}"]`); if (!el) return;
+      const node = g.hit && (g.hit.el || (g.hit.range && g.hit.range.startContainer));
+      let si = String(g.at).indexOf('own:') === 0 ? S.length : node ? S.findIndex(x => x.els.some(e => e === node || e.contains(node) || (node.contains && node.contains(e)))) : -1;
+      if (si < 0 && node) si = S.reduce((k, x, j) => (x.els[0].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING) ? j : k, 0);
+      el.setAttribute('data-pd2-si', String(Math.max(0, si))); }); }
+  host.querySelectorAll('[data-pd2-si]').forEach(el => { const si = Number(el.getAttribute('data-pd2-si'));
+    const seen = !W || W.done || si < W.i || (W.run && si === W.i);
+    el.classList.toggle('is-wk-hold', !seen); });
 }
 function pd2WalkReduced(){ try { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (_){ return false; } }
 /* the head over the paper's line, the foot under the paper, the clause marks and the lit words */
@@ -8428,7 +8448,7 @@ function pd2WalkPaint(){
   const meta = [c.counterparty, fresh ? _pdT('pd2_wk_just') : (at ? _pdT('pd2_arrived', { when: dossierDay(at) }) : ''), _pdTn('pd2_wk_clauses', S.length, { n: S.length })].filter(Boolean).join(' · ');
   const play = W.run ? _pdT('pd2_wk_pause') : W.done ? _pdT('pd2_wk_again') : W.i ? _pdT('pd2_wk_go_on') : _pdT('pd2_wk_watch');
   const seg = Object.keys(PD2_WALK_SPEEDS).map(k => `<button type="button" data-pd2-wk-speed="${k}" aria-pressed="${W.speed === k}">${E(_pdT('pd2_wk_sp_' + k))}</button>`).join('');
-  h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m">${E(meta)}</span><button type="button" class="ui-btn ui-btn-primary" data-pd2-wk-play>${E(play)}</button><button type="button" class="ui-btn" data-pd2-wk-reset>${E(_pdT('pd2_wk_reset'))}</button><span class="pd2-wk-sp">${E(_pdT('pd2_wk_speed'))}</span><span class="pd2-seg" role="group" aria-label="${E(_pdT('pd2_wk_speed'))}">${seg}</span><span class="pd2-br-sp"></span><button type="button" class="pd2-wk-x" data-pd2-wk-close aria-label="${E(_pdT('pd_mid_close'))}" title="${E(_pdT('pd_mid_close'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : ''}</button>`;
+  h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" title="${E(meta)}">${E(meta)}</span><span class="pd2-br-sp"></span><button type="button" class="ui-btn ui-btn-primary" data-pd2-wk-play>${E(play)}</button><button type="button" class="ui-btn" data-pd2-wk-reset>${E(_pdT('pd2_wk_reset'))}</button><span class="pd2-wk-sp">${E(_pdT('pd2_wk_speed'))}</span><span class="pd2-seg" role="group" aria-label="${E(_pdT('pd2_wk_speed'))}">${seg}</span><button type="button" class="pd2-wk-x" data-pd2-wk-close aria-label="${E(_pdT('pd_mid_close'))}" title="${E(_pdT('pd_mid_close'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : ''}</button>`;
   let f = document.getElementById('pd2-walk-foot');
   if (!f){ f = document.createElement('div'); f.id = 'pd2-walk-foot'; f.className = 'pd2-fill-foot pd2-walk-foot'; strip.parentElement.appendChild(f); }
   const sec = S[Math.min(W.i, S.length - 1)], nm = sec ? pd2WalkSecName(sec) : { n: '', t: '' };
@@ -8440,6 +8460,7 @@ function pd2WalkPaint(){
     const rs = W.lit.map(k => X.M[k]).filter(m => m && m.hit.range).map(m => m.hit.range);
     if (rs.length) CSS.highlights.set('pd2-walk', new globalThis.Highlight(...rs)); else CSS.highlights.delete('pd2-walk'); } } catch (_){}
   X.M.forEach((m, k) => { if (m.hit.el) m.hit.el.classList.toggle('pd2-wk-lit', W.lit.includes(k)); });
+  pd2WalkNotesHold();
 }
 function pd2WalkStep(){
   const W = _pd2Walk; if (!W || !W.run) return;
