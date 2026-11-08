@@ -2207,7 +2207,7 @@ const portalNegoComment = p => async (_c, ch, msg, how) => {
        the note's own facts — its anchor, what it answers — ride as meta so
        the owner's seat draws it exactly as one of theirs (11 Sep 2026). */
     const res=await api('shares/'+PORTAL_OPTS.token+'/messages','POST',
-      { author, topic:(window.negoTopicFor?negoTopicFor(ch):(ch?'change:'+ch.id:'general')),
+      { author, ...((how&&how.team)?{ room:'team' }:{}), topic:(window.negoTopicFor?negoTopicFor(ch):(ch?'change:'+ch.id:'general')),
         topicLabel: ch ? `Change #${ch.id}${ch.clauseLabel?' · '+ch.clauseLabel:''}` : i18t('di_contract_generally'),
         body:msg.text, meta:(window.negoNoteMeta?negoNoteMeta(msg):undefined) });
     PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
@@ -2246,6 +2246,8 @@ function portalNotesOpts(){
   const x=_ptNotes||{};
   return { side:'counterparty', readonly:false,
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
+    /* their own team's room, as ours (owner, 8 Nov 2026), where the link can keep it and the outside look is on */
+    theirTeam:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && portalOutOn(),
     seenScope:PORTAL_OPTS.token||'', messages:PORTAL_OPTS.messages||[],
     persist:false, by:x.who, author:x.who,
     onComment:portalNegoComment(x.p), onDone:portalNoteDone(x.p),
@@ -4595,13 +4597,27 @@ function portalOutTopHtml(){
   return `<span class="pol-top"><button type="button" class="pol-pill" data-pt-copy="word">${esc(i18t('pol_download_word'))}</button>
     <button type="button" class="pol-pill" id="pol-more" aria-haspopup="true" aria-expanded="false" aria-controls="pol-pop">${esc(i18t('pol_more'))}</button></span>`;
 }
-/* the road the drawing draws, read off the shared reading: before anything was agreed the first three are behind
-   us and Negotiate is now; agreed, Sign is now; executed, all six are done */
-const POL_ROAD = ['arrive', 'read', 'fill', 'nego', 'sign', 'live'];
+/* ONE ROAD ON THEIR SIDE (the owner, 8 Nov 2026: their pages as page views): the four stops every party may see,
+   in the words of their Where we are tab (po_step_*): Shared · Negotiating · Agreed · Signed. Round 8's six stops
+   (Arrive · Read · Fill …) named our own steps and are retired here (pol_rd_* stay inert in both books). */
+const POL_ROAD = ['shared', 'negotiating', 'agreed', 'signed'];
 function portalOutRoadHtml(D, mineMove){
-  const at = D && D.executed ? 6 : D && D.agreed ? 4 : 3;
+  const at = D && D.executed ? 4 : D && D.agreed ? 2 : 1;
   return `<ol class="pol-road">${POL_ROAD.map((k, i) => `<li class="${i < at ? 'is-done' : i === at ? 'is-now' : ''}"><span class="pol-rd-dot" aria-hidden="true"></span>
-    <span class="pol-rd-k">${esc(i18t('pol_rd_' + k))}</span>${i === at && mineMove != null ? `<span class="pol-rd-mv">${esc(mineMove ? i18t('pol_your_move') : i18t('pol_their_move'))}</span>` : ''}</li>`).join('')}</ol>`;
+    <span class="pol-rd-k">${esc(i18t('po_step_' + k))}</span>${i === at && mineMove != null ? `<span class="pol-rd-mv">${esc(mineMove ? i18t('pol_your_move') : i18t('pol_their_move'))}</span>` : ''}</li>`).join('')}</ol>`;
+}
+/* THE PANEL'S FACES (owner, 8 Nov 2026: "the redline cards just like in hati"): Redlines is the change column
+   itself (#rl-side, the cards our own Redlines face draws, their seat), Where we are is the shared reading; Notes
+   opens their notes, as the Notes chip does on our side. The face is a sitting's choice, never stored. */
+let _polFace = 'red';
+function portalOutFace(){ return _polFace === 'where' ? 'where' : 'red'; }
+function portalOutHeadHtml(c){
+  const left = portalOutAsks(c).filter(x => !portalOutDecided(x)).length;
+  const f = portalOutFace();
+  return `<div class="pol-side-hd" role="tablist" aria-label="${esc(i18t('po_tab_redlines'))}">
+    <button type="button" role="tab" class="pol-pill${f === 'red' ? ' is-on' : ''}" aria-selected="${f === 'red'}" data-pol-face="red">${esc(i18t('po_tab_redlines'))}${left ? ` <span class="pol-hd-n">${left}</span>` : ''}</button>
+    <button type="button" role="tab" class="pol-pill${f === 'where' ? ' is-on' : ''}" aria-selected="${f === 'where'}" data-pol-face="where">${esc(i18t('po_tab_where'))}</button>
+    ${PORTAL_OPTS && PORTAL_OPTS.token ? `<button type="button" class="pol-pill" data-pt-where-notes>${esc(i18t('po_notes'))}</button>` : ''}</div>`;
 }
 function portalOutSideHtml(c, p){
   const org = (p && p.org) || i18t('pt_the_sender');
@@ -4628,7 +4644,7 @@ function portalOutSideHtml(c, p){
   const last = agreed.map(x => x.at).filter(Boolean).sort().pop();
   const agreedRow = agreed.length ? `<li><span class="pol-o-k">${esc(agreed.map(x => portalOutClause({ clauseLabel: x.clause }).replace(/^§ (\S+).*$/, '§ $1')).join(' · '))}</span>
     <span class="pol-o-v">${esc(last ? i18t('pol_agreed_on', { when: portalDayWords(last) }) : i18t('pol_agreed'))}</span></li>` : '';
-  return `<div class="pol-side-in"><div class="pol-side-hd"><span class="pol-pill is-on">${esc(i18t('po_tab_where'))}</span></div>
+  return `<div class="pol-side-in">${portalOutHeadHtml(c)}
     <div class="pol-side-body"><p class="pol-say">${esc(say)}</p>${portalOutRoadHtml(D, mineMove)}
       ${openRows ? `<h3 class="pol-h">${esc(i18t('pol_still_open'))}</h3><ul class="pol-open">${openRows}</ul>` : ''}
       ${agreedRow ? `<h3 class="pol-h">${esc(i18t('pol_agreed_h'))}</h3><ul class="pol-open">${agreedRow}</ul>` : ''}
@@ -4688,15 +4704,39 @@ function portalOutPaintNotes(c, p){
   }
   return n;
 }
+/* PROPOSE A CHANGE (owner, 8 Nov 2026): pointing at a clause shows one quiet door beside it, in the notes' column; it
+   opens the same clause page Counter opens (the workbench's own _rlOpenEditor), typing ready. One element, moved. */
+function portalOutPropose(sec){
+  const host = document.getElementById('pt-nego'); if (!host || portalReadOnly() || !PORTAL_OPTS || !PORTAL_OPTS.token) return;
+  const zoom = host.querySelector('.rl-zoom'), paper = zoom && zoom.querySelector('.rl-paper'); if (!zoom || !paper) return;
+  let b = zoom.querySelector('.pol-propose');
+  if (!sec){ if (b) b.hidden = true; return; }
+  const id = sec.getAttribute('data-clause'); if (!id || id === 'front') return;
+  if (!b){ b = document.createElement('button'); b.type = 'button'; b.className = 'pol-propose ui-link'; b.setAttribute('contenteditable', 'false'); zoom.appendChild(b); }
+  let name = ''; try { const h = sec.querySelector('h1, h2, h3, h4, .nego-head, .clause-head'); name = h ? h.textContent.replace(/\s+/g, ' ').trim() : ''; } catch (_){}
+  b.textContent = i18t(name ? 'pol_propose_on' : 'pol_propose', { clause: name });
+  b.setAttribute('data-pol-propose', id);
+  const zr = zoom.getBoundingClientRect(), sr = sec.getBoundingClientRect();
+  b.style.left = (paper.offsetLeft + paper.offsetWidth + 24) + 'px';
+  b.style.top = Math.max(0, Math.round(sr.top - zr.top)) + 'px';
+  b.hidden = false;
+}
+/* the lit card's note wears its shade: read off the card our own code lit (.is-linked), never a second choice */
+function portalOutSyncLink(){
+  const lit = document.querySelector('#pt-nego #rl-side .rl-card.is-linked');
+  const id = lit && lit.getAttribute('data-nego-card');
+  document.querySelectorAll('#pt-nego .pol-note').forEach(n => n.classList.toggle('is-linked', !!id && n.getAttribute('data-pol-note') === id));
+}
 let _polCtx = null;
 function portalOutPaint(c, p){
   if (!portalOutOn()) return;
   _polCtx = { c, p };
   const side = document.getElementById('pol-side'), foot = document.getElementById('pol-foot');
   if (side) side.innerHTML = portalOutSideHtml(c, p);
+  const pg = document.getElementById('pw-page'); if (pg) pg.setAttribute('data-pol-face', portalOutFace());
   if (foot) foot.innerHTML = portalOutFootHtml(c, p);
   portalOutPaintNotes(c, p);
-  requestAnimationFrame(() => portalOutPaintNotes(c, p));
+  requestAnimationFrame(() => { portalOutPaintNotes(c, p); portalOutSyncLink(); });
   const red = document.getElementById('pt-tab-redlines');
   if (red){ const left = portalOutAsks(c).filter(x => !portalOutDecided(x)).length;
     red.textContent = left ? i18tn('pol_tab_redlines', left, { n: left }) : i18t('po_tab_redlines'); }
@@ -4706,6 +4746,7 @@ if (typeof document !== 'undefined' && !document._polWired){
   document._polWired = true;
   document.addEventListener('click', ev => {
     const t = ev.target; if (!t || !t.closest || !portalOutOn()) return;
+    if (t.closest('#pt-nego')) setTimeout(portalOutSyncLink, 0);
     const pop = document.getElementById('pol-pop'), more = document.getElementById('pol-more');
     if (t.closest('#pol-more')){ ev.preventDefault(); const open = pop && pop.hidden; if (pop) pop.hidden = !open; more.setAttribute('aria-expanded', open ? 'true' : 'false'); return; }
     if (pop && !pop.hidden && !t.closest('#pol-pop') && !t.closest('#pt-alerts') && !t.closest('.pt-more-menu')){ pop.hidden = true; if (more) more.setAttribute('aria-expanded', 'false'); }
@@ -4714,10 +4755,28 @@ if (typeof document !== 'undefined' && !document._polWired){
       const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
       const b = document.querySelector('#pt-nego ' + POL_VERB[k](css(id)));
       if (b && !b.disabled) b.click(); return; }
+    const pr = t.closest('[data-pol-propose]');
+    if (pr){ ev.preventDefault(); const host = document.getElementById('pt-nego'); const id = pr.getAttribute('data-pol-propose'); pr.hidden = true;
+      if (host && typeof host._rlOpenEditor === 'function' && id) host._rlOpenEditor(id, { typing: true }); return; }
+    const fc = t.closest('[data-pol-face]');
+    if (fc){ ev.preventDefault(); _polFace = fc.dataset.polFace === 'where' ? 'where' : 'red'; if (_polCtx) portalOutPaint(_polCtx.c, _polCtx.p); return; }
+    const nt = t.closest('.pol-note');
+    if (nt && !t.closest('button, a')){ const id = nt.getAttribute('data-pol-note');
+      const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
+      const card = id && document.querySelector(`#pt-nego #rl-side [data-nego-card="${css(id)}"]`);
+      if (card){ if (portalOutFace() !== 'red'){ _polFace = 'red'; if (_polCtx) portalOutPaint(_polCtx.c, _polCtx.p); }
+        card.click(); try { card.scrollIntoView({ block: 'nearest' }); } catch (_){} }
+      return; }
     if (t.closest('#pol-send')){ ev.preventDefault(); portalPressSend(); return; }
     if (t.closest('#pol-later')){ ev.preventDefault(); portalSaveHeld();
       const org = (PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || i18t('pt_the_sender');
       if (typeof toast === 'function') toast(i18t('pol_later_done', { org }), 'ok'); }
+  });
+  document.addEventListener('mouseover', ev => {
+    const t = ev.target; if (!t || !t.closest || !portalOutOn()) return;
+    if (t.closest('.pol-propose')) return;
+    const sec = t.closest('#pt-nego .rl-zoom > .rl-paper section[data-clause]');
+    if (sec || t.closest('#pt-nego .rl-zoom')) portalOutPropose(sec || null);
   });
   /* the notes stand beside the paper as laid out NOW: redrawn when Redlines comes into view and when the window changes */
   let _polRz = 0;
@@ -6506,6 +6565,6 @@ function portalGoneNlWire(opts){
       if (typeof toast === 'function') toast(i18t('pnl_asked_toast'), 'ok'); }
     catch(e){ b.disabled = false; if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); } });
 }
-Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

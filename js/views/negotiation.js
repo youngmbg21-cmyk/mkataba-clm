@@ -14960,12 +14960,12 @@ function rlCardBodyHtml(c, ch, opts, side, st){
    between MODULES, on window; within one file nothing does. */
 function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
   if (!c || !ch) return '';
-  const tabbed = side === 'owner';
+  const tabbed = rlNpTabbed(side, opts);
   /* THE ROOM, RESOLVED AGAINST THIS CONTRACT: a stored 'external' or a party
      that has left the record becomes the first outside party's room, by the
      one reading all three surfaces ask. Their seat has no tabs and is handed
      its own single room. */
-  const room = rlNpRoomNow(c, opts, tabbed ? 'owner' : side);
+  const room = rlNpRoomNow(c, opts, side);
   const them = c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   const other = side === 'counterparty' ? us : them;
@@ -17166,6 +17166,8 @@ const negoRoomPartyId = key => String(key || '').slice(0, 2) === 'p:' ? String(k
    It never invents a room: a contract with no outside party on the record
    still answers with the internal room, so a stage without js/parties.js
    degrades to exactly what shipped before. */
+/* Whether a seat draws the room tabs: ours always; theirs where their team has a room (negoNoteRoomList). */
+const rlNpTabbed = (side, opts) => side === 'owner' || !!(opts && opts.theirTeam);
 function negoNoteRoomList(c, opts = {}, side = 'owner'){
   const theirs = (window.partiesTheirs ? partiesTheirs(c) : []) || [];
   /* ---- THE SEAT IS THE CALLER'S, AND PORTAL_MODE IS NOT CONSULTED ----
@@ -17178,8 +17180,16 @@ function negoNoteRoomList(c, opts = {}, side = 'owner'){
      the row cannot disagree about whose seat this is, which they just did. */
   if (side !== 'owner'){
     const mine = theirs.length ? theirs[0] : null;
-    return [{ key: mine ? ('p:' + mine.id) : 'external', name: mine ? mine.name : '',
-      external: true, partyId: mine ? String(mine.id) : '' }];
+    const toUs = { key: mine ? ('p:' + mine.id) : 'external', name: mine ? mine.name : '',
+      external: true, partyId: mine ? String(mine.id) : '' };
+    /* THEIR OWN TEAM'S ROOM (owner, 8 Nov 2026: "mimic what is in the owner side"): where their page has a
+       channel that keeps it (opts.theirTeam — the link, the outside look), their seat gets our two rooms the other
+       way round: their team first, then us, named for us. The server is the wall (MSG_SIDE_THEIR_TEAM). */
+    if (opts && opts.theirTeam){
+      const us = (window.contractParty ? contractParty(c) : '') || ((window.PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || '');
+      return [{ key: 'internal', name: mine ? mine.name : '', external: false, partyId: '' }, { ...toUs, name: us }];
+    }
+    return [toUs];
   }
   const us = (window.contractParty ? contractParty(c) : '') || '';
   const rooms = [{ key: 'internal', name: us, external: false, partyId: '' }];
@@ -17363,7 +17373,7 @@ function rlNpSetRoom(r){
 function rlNpRoomNow(c, opts = {}, side = 'owner'){
   const rooms = negoNoteRoomList(c, opts, side);
   /* The seat is the caller's here too — see negoNoteRoomList. */
-  if (side !== 'owner') return rooms[0] ? rooms[0].key : 'external';
+  if (side !== 'owner' && !(opts && opts.theirTeam)) return rooms[0] ? rooms[0].key : 'external';
   const want = rlNpRoom();
   if (rooms.some(r => r.key === want)) return want;
   if (want === 'internal') return 'internal';
@@ -17841,8 +17851,9 @@ function rlNpPinHtml(c, ch, opts, side){
   const p = rlNpPinFor(c, ch);
   if (!p) return '';
   const chOf = (p.changeId && window.negoChangeById) ? negoChangeById(c, p.changeId) : null;
+  /* their seat reads the clause, never our change code (owner, 8 Nov 2026) */
   const ref = chOf
-    ? `${chOf.id}${chOf.clauseLabel ? ' · ' + _neClause(chOf.clauseLabel) : ''}`
+    ? (side === 'counterparty' && chOf.clauseLabel ? _neClause(chOf.clauseLabel) : `${chOf.id}${chOf.clauseLabel ? ' · ' + _neClause(chOf.clauseLabel) : ''}`)
     : (rlNpClauseLabel(c, p.clauseId) || '');
   /* ---- ROUND THREE (Young, 11 Sep 2026, late: "Image 3 is how the note
      card should look like ... Currently I am getting image 4 which is just an
@@ -17854,7 +17865,7 @@ function rlNpPinHtml(c, ch, opts, side){
      STALE). Skip stays the way out of a filed pin. */
   const quote = p.quote || (p.filed && chOf ? rlNpChangeQuote(chOf) : '');
   const ext = negoRoomIsExternal(p.room);
-  const tabbed = side === 'owner';
+  const tabbed = rlNpTabbed(side, opts);
   const off = i18t(p.filed ? 'ng_note_skip' : 'ng_np_unpin');
   return `<div class="rl-np-pin${ext ? ' out' : ''}" data-rl-np-pin="${_nea(p.changeId || p.clauseId || '')}">
     <div class="l"><span class="ref">${_ne(ref)}</span>
@@ -17881,12 +17892,12 @@ function rlNotesPanelHtml(c, ch, opts = {}){
      nowhere to keep a private note. Their page is assembled from the share
      payload and thrown away on the next paint, so an internal room there would
      be a box that accepts typing and loses it. One room, theirs. */
-  const tabbed = side === 'owner';
+  const tabbed = rlNpTabbed(side, opts);
   /* THE ROOM, RESOLVED AGAINST THIS CONTRACT: a stored 'external' or a party
      that has left the record becomes the first outside party's room, by the
      one reading all three surfaces ask. Their seat has no tabs and is handed
      its own single room. */
-  const room = rlNpRoomNow(c, opts, tabbed ? 'owner' : side);
+  const room = rlNpRoomNow(c, opts, side);
   const them = c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   /* From their chair the other side is US. */
@@ -18096,12 +18107,12 @@ function rlChatPanelHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   /* THEIR SEAT HAS ONE ROOM AND NO TABS (11 Sep 2026, the same reading the
      per-change panel makes): their page keeps nothing private. */
-  const tabbed = side === 'owner';
+  const tabbed = rlNpTabbed(side, opts);
   /* THE ROOM, RESOLVED AGAINST THIS CONTRACT: a stored 'external' or a party
      that has left the record becomes the first outside party's room, by the
      one reading all three surfaces ask. Their seat has no tabs and is handed
      its own single room. */
-  const room = rlNpRoomNow(c, opts, tabbed ? 'owner' : side);
+  const room = rlNpRoomNow(c, opts, side);
   const them = c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   const other = side === 'counterparty' ? us : them;
@@ -18493,6 +18504,13 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
       if (window.toast) toast(i18t('ng_np_send_failed',
         { who: other, why: (e && e.message) || '' }), 'err');
     }
+  } else if (side === 'counterparty' && opts.theirTeam && typeof opts.onComment === 'function'){
+    /* their page cannot keep a note on the record, so their team's note travels on their link, walled */
+    const mineOrg = (negoNoteRoomList(c, opts, side).find(r => !r.external) || {}).name || '';
+    try {
+      const sent = await opts.onComment(c, home, msg, { confirms: true, team: true }).then(r => (r && r.ok === false) ? r : { ok: true });
+      if (sent && sent.ok && window.toast) toast(i18t('ng_chat_filed', { org: mineOrg }) + atLine, 'ok');
+    } catch (e){ if (window.toast) toast(i18t('ng_np_send_failed', { who: mineOrg, why: (e && e.message) || '' }), 'err'); }
   } else if (window.toast){
     toast((home ? i18t('ng_np_filed', { org: us, id: home.id })
       : i18t('ng_chat_filed', { org: us })) + atLine, 'ok');
@@ -18872,9 +18890,21 @@ function rlNoteAskAfterFile(c, ch, opts = {}){
   if (!c || !ch) return Promise.resolve(null);
   /* THEIR SEAT ASKS TOO (Young, 29 Sep 2026): on their page the question is
      the change's own reason, held with it until Send — see portalAskReason. */
-  if (opts.side === 'counterparty')
+  if (opts.side === 'counterparty'){
+    /* THE OUTSIDE LOOK ASKS AS WE DO (owner, 8 Nov 2026: "mimic what is in the owner side"): the Notes drawer with
+       the change pinned and the room switch on Internal, their team's room; the old "Why this change?" pop-up
+       stays for the old look. */
+    if (rlOnTheirPage() && typeof window.portalOutOn === 'function' && window.portalOutOn()
+      && typeof window.portalOpenNotes === 'function' && window.PORTAL_OPTS && PORTAL_OPTS.token)
+      return new Promise(resolve => {
+        rlNotesPin({ contractId: c.id, changeId: ch.id, clauseId: ch.clauseId || '', quote: '',
+          room: 'internal', filed: true, revised: (ch.revisions || []).length > 0, resolve });
+        if (typeof window.portalNotesClose === 'function') window.portalNotesClose();
+        window.portalOpenNotes({ pin: true });
+      });
     return (rlOnTheirPage() && typeof window.portalAskReason === 'function')
       ? window.portalAskReason(c, ch) : Promise.resolve(null);
+  }
   if ((opts.side || 'owner') !== 'owner') return Promise.resolve(null);
   if (!notesMayWrite(c, opts)) return Promise.resolve(null);
   if (typeof openChangeNoteDialog !== 'function') return Promise.resolve(null);

@@ -4266,8 +4266,11 @@ function negoMergedThread(c, ch, extra){
        travelled. Stamping it here means the badge on a merged thread is right
        for both stores rather than only for the half written locally. */
     const meta = (m.meta && typeof m.meta === 'object') ? m.meta : null;
-    const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null,
-      visibility: 'shared', channelId: m.id };
+    /* THEIR TEAM'S ROOM rides the channel but never crosses it: the server serves such a row only to links of
+       that party (MSG_SIDE_THEIR_TEAM), and here it is their seat's own internal note */
+    const team = m.side === 'their-team';
+    const one = { who: m.author, side: team ? 'counterparty' : m.side, at: m.at, text: m.body, atHash: null,
+      visibility: team ? 'internal' : 'shared', channelId: m.id };
     if (meta){
       if (meta.id) one.id = String(meta.id).slice(0, 80);
       const a = negoNoteAnchor(meta.anchor); if (a) one.anchor = a;

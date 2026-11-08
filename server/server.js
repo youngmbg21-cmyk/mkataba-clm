@@ -21402,6 +21402,11 @@ const msgMetaRead = s => { if (!s) return null; try { return msgMeta(JSON.parse(
    'counterparty', because every query that counts what the OTHER SIDE said
    (`WHERE m.side = 'counterparty'`) must not count an adviser as them. */
 const MSG_SIDE_ADVISER = 'adviser';
+/* THEIR TEAM'S ROOM (owner, 8 Nov 2026: their notes "the same as HaTi. Internal and external"). A note a link's
+   holder keeps for their own colleagues on the deal. It is served ONLY to links of the same outside party
+   (contractMessages, `want` set and the room matching), never to a signed-in colleague, an adviser, the waiting
+   count, the search index or a mark-done from our seat. THE SERVER IS THE WALL. */
+const MSG_SIDE_THEIR_TEAM = 'their-team';
 /* ---- WHICH ROOM A LINK READS (Young ruled 3 Oct 2026, with the rooms) ----
    A note belongs to ONE outside party now, and this is the server's reading of
    which party a given link is. It resolves the null case the same way
@@ -21463,6 +21468,7 @@ function contractMessages(contractId, opts) {
     /* An adviser's own rows are theirs by token and are not a party's room, so
        they are past this wall already — narrowing them by party as well would
        hide an adviser's notes from the adviser who wrote them. */
+    .filter(m => m.side !== MSG_SIDE_THEIR_TEAM || (want != null && !o.adviser && !o.adviserToken && roomOf(m.party_id) === want))
     .filter(m => want == null || m.side === MSG_SIDE_ADVISER || roomOf(m.party_id) === want)
     .map(m => { const { token, party_id, ...rest } = m;
       return { ...rest, partyId: party_id || null, meta: msgMetaRead(m.meta) }; });
@@ -21482,9 +21488,11 @@ function addMessage({ contractId, token, side, author, topic, topicLabel, body, 
 /* ---- DONE IS A FACT ON THE ROW, AND EITHER SIDE MAY SET IT ----
    Marking a thread done (or open again) writes onto the channel copy so both
    seats read the same answer. Only `done` moves; the words never do. */
-function setMessageDone(contractId, mid, on, by) {
+function setMessageDone(contractId, mid, on, by, scope) {
   const row = db.prepare('SELECT * FROM share_messages WHERE id=? AND contract_id=?').get(Number(mid), contractId);
   if (!row) return null;
+  /* a team note is answered only by a link of its own party (scope), never from our seat (no scope) */
+  if (row.side === MSG_SIDE_THEIR_TEAM && !(scope && String(row.party_id || scope.firstPartyId || '') === String(scope.partyId || ''))) return null;
   const meta = msgMetaRead(row.meta) || {};
   if (on) meta.done = { at: now(), by: String(by || '').slice(0, 120) };
   else delete meta.done;
@@ -21520,11 +21528,12 @@ app.post('/api/shares/:token/messages', rlShare, (req, res) => {
      row takes none — their wall is the token, and a party on it would hide
      their own notes from them. */
   const scope = adviser ? null : srvMsgScope(s.contract_id, s);
+  const team = !adviser && b.room === 'team';
   const m = addMessage({ contractId: s.contract_id, token: s.token,
-    side: adviser ? MSG_SIDE_ADVISER : 'counterparty',
+    side: adviser ? MSG_SIDE_ADVISER : team ? MSG_SIDE_THEIR_TEAM : 'counterparty',
     partyId: scope ? scope.partyId : null,
     author, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
-  notifyMessage(s, m);
+  if (!team) notifyMessage(s, m);
   res.json({ ok: true, message: m,
     messages: contractMessages(s.contract_id, adviser ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) });
 });
@@ -21542,7 +21551,7 @@ app.get('/api/messages/waiting', auth, (req, res) => {
     `SELECT m.contract_id AS contractId, m.author, m.topic, m.topic_label AS topicLabel,
             m.body, m.at, c.name AS contractName, c.counterparty
        FROM share_messages m
-       JOIN (SELECT contract_id, topic, MAX(id) AS id FROM share_messages GROUP BY contract_id, topic) last
+       JOIN (SELECT contract_id, topic, MAX(id) AS id FROM share_messages WHERE side <> 'their-team' GROUP BY contract_id, topic) last
          ON last.id = m.id
        LEFT JOIN contracts c ON c.id = m.contract_id
       WHERE m.side = 'counterparty'
@@ -21607,7 +21616,7 @@ app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
   if (!s.contract_id) return res.status(409).json({ error: 'This link cannot carry a discussion' });
   const b = req.body || {};
   const by = String(b.author || s.recipient_name || 'Counterparty').trim();
-  const m = setMessageDone(s.contract_id, req.params.mid, b.done !== false, by);
+  const m = setMessageDone(s.contract_id, req.params.mid, b.done !== false, by, shareIsAdvice(s) ? null : srvMsgScope(s.contract_id, s));
   if (!m) return res.status(404).json({ error: 'Message not found' });
   res.json({ ok: true, message: m, messages: contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) });
 });
@@ -26908,7 +26917,7 @@ function hsIndexContract(id) {
   const notes = [].concat(Array.isArray(c.thread) ? c.thread : [],
     ...(Array.isArray(c.changes) ? c.changes : []).map(ch => (ch && Array.isArray(ch.thread) ? ch.thread : [])));
   for (const m of notes) if (m && m.text) hsPut('note', String(m.id || ''), c.id, null, m.who || '', m.text, { at: m.at || null });
-  for (const m of db.prepare('SELECT id, author, body, at FROM share_messages WHERE contract_id=?').all(c.id))
+  for (const m of db.prepare("SELECT id, author, body, at FROM share_messages WHERE contract_id=? AND side <> 'their-team'").all(c.id))
     hsPut('note', 'msg:' + m.id, c.id, null, m.author || '', m.body, { at: m.at || null });
   const trail = (Array.isArray(c.audit) ? c.audit : []).map(a => [a.at ? String(a.at).slice(0, 10) : '', a.user, a.action, a.detail].filter(Boolean).join(' · '));
   if (trail.length) hsPut('history', c.id, c.id, null, c.name || ref, trail.join('\n'));

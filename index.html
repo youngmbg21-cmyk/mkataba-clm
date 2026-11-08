@@ -19267,7 +19267,35 @@
   @media (max-width:1499px){ html.lg-out #pw-page{--pol-side-w:340px} }
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-id{padding-right:calc(var(--pol-side-w,384px) + 24px)}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{position:relative;z-index:2;margin-top:-57px}
-  html.lg-out #pw-page #pt-nego #rl-side,html.lg-out #pw-page #pt-nego #rl-cp,html.lg-out #pw-page #pt-nego #rl-resizer{display:none}
+  html.lg-out #pw-page #pt-nego #rl-cp,html.lg-out #pw-page #pt-nego #rl-resizer{display:none}
+  /* THE CARDS ARE BACK (owner, 8 Nov 2026: "the redline cards just like in hati"): the change column stands in the
+     panel's room under its head (Redlines · Where we are · Notes); Where we are lies over it when chosen */
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > #pt-nego{grid-column:1 / -1}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-foot{grid-column:1 / -1}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{grid-row:1}
+  html.lg-out body.pw-editing #pw-page .pw-mount > .pol-side{display:none}
+  html.lg-out #pw-page #pt-nego #rl-side{flex:0 0 var(--pol-side-w,384px);width:var(--pol-side-w,384px);min-width:0;box-sizing:border-box;margin:0;padding:16px;border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none;background:var(--color-surface);overflow:auto}
+  html.lg-out #pw-page #pt-nego #rl-side .pt-write{display:none}
+  html.lg-out #pw-page[data-pt-tab="redlines"][data-pol-face="red"] .pw-mount > .pol-side{grid-row:1;align-self:start;height:57px;overflow:hidden;border-left:1px solid var(--color-divider)}
+  html.lg-out #pw-page[data-pol-face="red"] .pol-side-body,html.lg-out #pw-page[data-pol-face="red"] .pol-side-ft{display:none}
+  html.lg-out .pol-side-hd{gap:6px}
+  html.lg-out .pol-side-hd .pol-pill{background:none}
+  html.lg-out .pol-side-hd .pol-pill.is-on{background:var(--surface-2)}
+  html.lg-out .pol-hd-n{color:var(--accent-ink)}
+  html.lg-out .pol-note{cursor:pointer;border-radius:var(--radius)}
+  html.lg-out .pol-note.is-linked{background:var(--color-neutral-100)}
+  html.lg-out .pol-propose{position:absolute;z-index:3;max-width:260px;padding:4px 8px;margin-left:-8px;border-radius:var(--radius);background:var(--color-surface);font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-align:left}
+  html.lg-out .pol-propose[hidden]{display:none}
+  /* THEIR CARDS WEAR OURS (owner, 8 Nov 2026: "mimic what is in the owner side"): the same flattening our
+     Redlines face gives its piles, scoped to their page */
+  html.lg-out #pw-page #pt-nego .redline-page .rl-idx-title{font-family:var(--font-title);font-size:18px;line-height:24px;font-weight:var(--w-title-serif)}
+  html.lg-out #pw-page #pt-nego .redline-page #rl-changes:has(> .rl-pile){padding:0 var(--jb-g) 16px}
+  html.lg-out #pw-page #pt-nego .redline-page .rl-pile{border:0;border-radius:0;background:transparent;margin:0;overflow:visible}
+  html.lg-out #pw-page #pt-nego .redline-page .rl-pile > .rl-band, html.lg-out #pw-page #pt-nego .redline-page .rl-pile > .rl-band:first-child{padding:0;margin:24px 0 8px;background:transparent;border:0;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  html.lg-out #pw-page #pt-nego .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"]{color:var(--st-amber-fg)}
+  html.lg-out #pw-page #pt-nego .redline-page .rl-pile.rl-pile-quiet > .rl-band{background:transparent}
+  html.lg-out #pw-page #pt-nego .redline-page .rl-pile .rl-card-d, html.lg-out #pw-page #pt-nego .redline-page .rl-pile .rl-band + .rl-card-d{padding:8px 0 12px;border-bottom:0}
+  html.lg-out .pol-hd-n{margin-left:4px}
   html.lg-out #pw-page #pt-nego #rl-grid{display:flex;padding:0;margin:0;gap:0;height:100%}
   html.lg-out #pw-page #pt-nego #rl-doc{flex:1;min-width:0;margin:0;padding:0;border:0;border-radius:0;box-shadow:none}
   html.lg-out #pw-page #pt-nego #nego-scroll-work{margin:0;inset:0;border-radius:0}
@@ -19289,7 +19317,7 @@
   html.lg-out .pol-pill.is-on{display:inline-flex;align-items:center;cursor:default}
   html.lg-out .pol-side-body{flex:1;min-height:0;overflow:auto;padding:16px}
   html.lg-out .pol-say{margin:0 0 16px;font-size:14px;font-weight:var(--w-label);line-height:1.45}
-  html.lg-out .pol-road{list-style:none;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 20px;padding:0;position:relative}
+  html.lg-out .pol-road{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 20px;padding:0;position:relative}
   html.lg-out .pol-road::before{content:"";position:absolute;left:8%;right:8%;top:7px;height:1px;background:var(--color-divider)}
   html.lg-out .pol-road li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:var(--w-label);text-align:center}
   html.lg-out .pol-rd-dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--color-divider);background:var(--color-surface)}
