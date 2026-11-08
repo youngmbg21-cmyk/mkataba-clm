@@ -21918,3 +21918,4 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Fixed on the way (same card): "Watch the read" did nothing on a paper with unsent changes (the read refused the clean paper drawn by the redline engine).
 - Noticed, not fixed: f515-three-next-questions and f520-see-it-while-you-type run out of memory in this container even on unchanged code.
 - Noticed, not fixed: the Brain's descriptions (brn_pd_*) still describe Jambo calls; kept on purpose as the admin's map of the machine.
+- 8 Nov 2026, later: "Rename column" is now built (owner: "Add rename") — the asker, the keeper or an admin.

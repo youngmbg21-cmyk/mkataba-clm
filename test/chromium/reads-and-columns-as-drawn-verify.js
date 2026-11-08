@@ -9,7 +9,7 @@
      3 · while it reads, the reading card with Stop stands at the top of the panel
      4 · read: the column's card — the question, how far and when, Answers (bar and rows with Show), This column (Read the
          rest, Remove column); the column's head "Governing law · 50 of 60 read ⋯" on one line
-     5 · ⋯: Sort by this column · Read the other 10 · Remove from this list; Remove → "Column removed · its 50 answers are
+     5 · ⋯: Sort by this column · Read the other 10 · Rename column · Remove from this list (5b: Rename keeps the new name); Remove → "Column removed · its 50 answers are
          kept in Reads" with Undo; Undo puts it back; the folder's panel lists it under Columns you asked
      6 · Reads: "Reads · 1 question · 50 answers kept" and + Ask a question on one line; All · On a list · Not finished;
          Question · Read · Answers · On the list of · Asked; every cell inside its column; the panel: Where it shows, Read
@@ -96,8 +96,17 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       await shot('6-removed');
       await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) b.click(); });
       const back = await until(page, () => !!document.querySelector('th.ac-th'), null, 8000);
-      check(`${nm} 5 ⋯: Sort · Read the other 10 · Remove from this list; Remove says the answers are kept, with Undo; the panel lists it; Undo puts it back`,
-        JSON.stringify(M) === '["Sort by this column","Read the other 10","Remove from this list"]' && gone && listed && back, { M, gone, listed, back });
+      check(`${nm} 5 ⋯: Sort · Read the other 10 · Rename column · Remove from this list; Remove says the answers are kept, with Undo; the panel lists it; Undo puts it back`,
+        JSON.stringify(M) === '["Sort by this column","Read the other 10","Rename column","Remove from this list"]' && gone && listed && back, { M, gone, listed, back });
+
+      /* 5b · Rename (owner, 8 Nov 2026: "Add rename"): the box holds the name; the new name stands on the head and in the panel */
+      await page.click('[data-ac-thmore]'); await page.click('#ac-th-menu [data-ac-rename]');
+      const box = await until(page, () => (document.getElementById('pd-input') || {}).value === 'Governing law', null, 8000);
+      if (box){ await page.fill('#pd-input', 'Which law'); await page.click('#pd-ok'); }
+      const renamed = box && await until(page, () => /^Which law/.test(((document.querySelector('th.ac-th.is-nl .ac-th-w') || {}).textContent || '').trim()), null, 8000);
+      const kept = await page.evaluate(async () => { const r = await api('columns'); return ((r && r.asks) || []).some(a => a.name === 'Which law'); });
+      check(`${nm} 5b Rename: the box holds the name; "Which law" stands on the column's head and is kept on the server`, box && renamed && kept, { box, renamed, kept });
+      await page.evaluate(async () => { const id = Object.keys(AC.asks).find(k => AC.asks[k].name === 'Which law'); if (id) await api('columns/' + id + '/name', 'POST', { name: 'Governing law' }); if (id) AC.asks[id].name = 'Governing law'; });
 
       /* 6 · Reads */
       await page.evaluate(() => setView('reads'));

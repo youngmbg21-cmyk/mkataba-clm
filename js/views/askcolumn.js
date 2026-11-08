@@ -1756,6 +1756,27 @@ function askColRemove(askId){
 }
 /* ⋯ ON A COLUMN'S HEAD: its menu under it — Sort by this column, Read the other N, Remove from this list. A press
    again, Esc or a press outside closes it (one dropdown per press). */
+/* RENAME (owner, 8 Nov 2026: "Add rename"): the name is the team's; the asker, the keeper or an admin may change it
+   (the server's wall, colMayUnkeep, says the same); the question and its answers stay */
+function askColMayRename(id){
+  if (!askColMay()) return false;
+  const a = AC.asks[id] || (AC.summary || []).find(x => x.id === id) || (AC.team || []).find(x => x.id === id) || {};
+  const me = typeof currentUser === 'function' ? currentUser() : null; if (!me) return false;
+  return me.role === 'admin' || String(a.askedBy || '') === String(me.id) || String(a.keptBy || '') === String(me.id);
+}
+async function askColRename(id){
+  const a = AC.asks[id] || {};
+  const name = typeof promptDialog === 'function' ? await promptDialog({ title: _acT('ac_nl_rename'), label: _acT('ac_nl_rename_label'), value: a.name || '', confirmLabel: _acT('ac_nl_rename'), required: true }) : null;
+  if (name == null || !String(name).trim() || String(name).trim() === a.name) return;
+  try {
+    const r = await api('columns/' + encodeURIComponent(id) + '/name', 'POST', { name: String(name).trim() });
+    const nm = (r && r.ask && r.ask.name) || String(name).trim();
+    if (AC.asks[id]) AC.asks[id].name = nm;
+    [AC.summary, AC.team].forEach(L => (L || []).forEach(x => { if (x && x.id === id) x.name = nm; }));
+    if (typeof regRepaint === 'function') regRepaint(); askColPaintPanel();
+    if (typeof toast === 'function') toast(_acT('ac_nl_renamed', { name: nm }), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
+}
 function askColThMenuClose(){ const m = document.getElementById('ac-th-menu'); if (m) m.remove(); document.querySelectorAll('[data-ac-thmore][aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false')); }
 function askColThMenuOpen(btn){
   const id = btn.getAttribute('data-ac-thmore'), open = document.getElementById('ac-th-menu');
@@ -1765,6 +1786,7 @@ function askColThMenuOpen(btn){
   const m = document.createElement('div'); m.id = 'ac-th-menu'; m.className = 'ac-th-menu'; m.setAttribute('role', 'menu'); m.setAttribute('data-for', id);
   m.innerHTML = item(`data-ac-thsort="${_acE(id)}"`, _acT('ac_nl_sort'))
     + (p.unread && may ? item(`data-ac-next="${_acE(id)}" data-ac-n="${Math.min(p.unread, AC_SIZES[AC_SIZES.length - 1])}"`, _acT('ac_nl_read_other', { n: p.unread })) : '')
+    + (askColMayRename(id) ? item(`data-ac-rename="${_acE(id)}"`, _acT('ac_nl_rename')) : `<button type="button" role="menuitem" class="ac-thm-i" disabled title="${_acE(_acT('ac_nl_rename_who'))}">${_acE(_acT('ac_nl_rename'))}</button>`)
     + '<hr>' + item(`data-ac-remove="${_acE(id)}"`, _acT('ac_nl_remove_list'), 'is-red');
   document.body.appendChild(m);
   const r = btn.getBoundingClientRect(), w = m.offsetWidth;
@@ -1775,6 +1797,7 @@ if (typeof document !== 'undefined' && !document._acThWired){ document._acThWire
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const mb = t.closest('[data-ac-thmore]'); if (mb){ e.preventDefault(); e.stopPropagation(); askColThMenuOpen(mb); return; }
+    const rn = t.closest('[data-ac-rename]'); if (rn){ e.preventDefault(); e.stopPropagation(); const id = rn.getAttribute('data-ac-rename'); askColThMenuClose(); askColRename(id); return; }
     const so = t.closest('[data-ac-thsort]'); if (so){ e.preventDefault(); e.stopPropagation(); const id = so.getAttribute('data-ac-thsort'); askColThMenuClose();
       const th = document.querySelector('th[data-ac-th="' + id + '"]'); if (th) th.click(); return; }
     if (document.getElementById('ac-th-menu')){ const inMenu = t.closest('#ac-th-menu'); setTimeout(askColThMenuClose, 0); if (!inMenu) return; }
