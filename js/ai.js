@@ -367,14 +367,18 @@ const savedResultLang = r => (r && r.lang) || 'en';
    mutates the record — on its own it looks like nothing happened, and on a list
    row it would scan a light copy whose document text has been stripped. Load
    the full record first, then save the result and say what was found. */
-async function runScanFor(c){
-  if(!canEdit()){ toast(i18t('ai_viewers_no_scan'),'err'); return; }
-  toast(i18t('ai_scanning'),'ok',{busy:true});   /* progress: the scan takes seconds and nothing else moves */
-  try{ await ensureFull(c); }catch(e){ toast(i18t('ai_could_not_load')+e.message,'err'); return; }
+async function runScanFor(c, opts){
+  /* QUIET (Explorer's lens, 8 Nov 2026): a batch run from the Risk lens's legend asks this SAME act per contract,
+     says nothing per contract and repaints nothing — its caller says the whole once. One scan, one audit line. */
+  const quiet=!!(opts&&opts.quiet);
+  if(!canEdit()){ if(!quiet) toast(i18t('ai_viewers_no_scan'),'err'); return false; }
+  if(!quiet) toast(i18t('ai_scanning'),'ok',{busy:true});   /* progress: the scan takes seconds and nothing else moves */
+  try{ await ensureFull(c); }catch(e){ if(!quiet) toast(i18t('ai_could_not_load')+e.message,'err'); return false; }
   runScan(c);
   const n=openFindings(c).length;
   logAudit(c,'Scanned',`Jambo contract scan run — ${n} open finding${n===1?'':'s'}`);
   c.lastAction=todayStr(); persist(c);
+  if(quiet) return n;
   /* 'ok' rather than a bare call, and the clean case says so. A bare toast
      prints NOTHING — so on a clean contract, which is the commonest outcome,
      the scan ran, cost money, wrote an audit line and answered with silence. */
@@ -384,6 +388,7 @@ async function runScanFor(c){
   else if(state.view==='register'&&window.renderRegister) renderRegister();
   else if(state.view==='folder'&&window.renderFolder) renderFolder();
   if(window.updateSidebarCounts) updateSidebarCounts();
+  return n;
 }
 
 window.scanUI = { running:false, filter:'all', expanded:new Set() };

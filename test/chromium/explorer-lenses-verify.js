@@ -47,6 +47,10 @@ const BOOK = Array.from({ length: 18 }, (_, i) => {
   }
   const late = i % 5 === 0, soon = i % 5 === 1;
   c.obligations = [{ id: 'ob' + i, desc: (late ? 'Quarterly price review ' : 'Monthly service report ') + i, due: late ? day(-6 - i) : soon ? day(10 + i) : day(60 + i * 5), status: 'open', party: i % 2 ? 'ours' : 'theirs' }];
+  /* stage 2's facts: an owner on three in four, liability uncapped on every third, a price open on a few */
+  if (i % 4 !== 3) c.owner = { id: 'u' + (i % 3), name: ['Amani Otieno', 'Joseph Kamau', 'Mary Wanjiru'][i % 3] };
+  if (i % 3 === 0) c.metadata = Object.assign({}, c.metadata, { liabilityCapped: 'uncapped' });
+  if (i % 7 === 2) c.metadata = Object.assign({}, c.metadata, { priceReview: 'open' });
   return c;
 });
 /* what the record says, counted here, never by the page */
@@ -83,6 +87,13 @@ const check = (name, pass, detail) => {
     const v = igbCam().view; igSetView((v + 1) % 5); setTimeout(() => igSetView(v), 250);
     setTimeout(() => { P.stroke = st; res(n); }, 900);
   }));
+  /* every lens-width stroke (1.35–5.1, the selection ring's 1.3 and the dashed 1 left out), counted over painted frames */
+  const wideStrokes = () => page.evaluate(() => new Promise(res => {
+    const P = window.CanvasRenderingContext2D.prototype, st = P.stroke; let n = 0;
+    P.stroke = function (...a) { if (this.canvas && this.canvas.id === 'ig-cv' && this.lineWidth > 1.35 && this.lineWidth < 5.1) n++; return st.apply(this, a); };
+    const v = igbCam().view; igSetView((v + 1) % 5); setTimeout(() => igSetView(v), 250);
+    setTimeout(() => { P.stroke = st; res(n); }, 900);
+  }));
   const press = async sel => { const ok = await page.evaluate(s => { const b = document.querySelector(s); if (!b) return false; b.click(); return true; }, sel); await page.waitForTimeout(400); return ok; };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -95,8 +106,8 @@ const check = (name, pass, detail) => {
 
     /* ================= 1. THE LENS GROUP ================= */
     const bar = await page.evaluate(() => [...document.querySelectorAll('.ig-viewbar [data-ig-lens]')].map(b => [b.getAttribute('data-ig-lens'), b.textContent.trim(), b.getAttribute('aria-pressed')]));
-    check('1a the view bar carries the Lens group: Off · Risk · Obligations, Off pressed at rest',
-      JSON.stringify(bar) === JSON.stringify([['off', 'Off', 'true'], ['risk', 'Risk', 'false'], ['obligations', 'Obligations', 'false']]), JSON.stringify(bar));
+    check('1a the view bar carries the Lens group: Off · Risk · Obligations · Money · Promises · People, Off pressed at rest',
+      JSON.stringify(bar) === JSON.stringify([['off', 'Off', 'true'], ['risk', 'Risk', 'false'], ['obligations', 'Obligations', 'false'], ['money', 'Money', 'false'], ['promises', 'Promises', 'false'], ['people', 'People', 'false']]), JSON.stringify(bar));
     const quiet = await lensStrokes();
     check('1b with no lens, no dot wears a lens mark', quiet === 0, String(quiet));
 
@@ -171,6 +182,67 @@ const check = (name, pass, detail) => {
       JSON.stringify(words) === JSON.stringify([{ lens: 'risk' }, { lens: 'obligations' }, { lens: 'off' }, { lens: 'risk' }, { lens: 'off' }, null, null]), JSON.stringify(words));
     const run = await page.evaluate(() => { const p = igRecipeParse('lens off'); return p && p.acts || null; });
     check('6c the map\'s own reader hands "lens off" on as a lens act', JSON.stringify(run) === JSON.stringify([{ lens: 'off' }]), JSON.stringify(run));
+
+
+    /* ================= 9. THE CHECK PRESS ON THE RISK LEGEND (owner's yes, 8 Nov 2026) ================= */
+    await press('.ig-viewbar [data-ig-lens="risk"]');
+    const un = WANT_RISK.unscanned || 0;
+    const btn = await page.evaluate(() => { const b = document.querySelector('#ig-legend [data-ig-lens-scan]'); const f = document.querySelector('#ig-legend .igl-free');
+      return b ? { text: b.textContent.trim(), disabled: b.disabled, free: f ? f.textContent.trim() : '' } : null; });
+    check('9a the Risk legend offers "Check the N not scanned", said free', !!btn && btn.text === `Check the ${un} not scanned` && btn.free === 'free' && !btn.disabled, JSON.stringify(btn));
+    const grey = await page.evaluate(() => { if (typeof canEdit !== 'function') return null; const keep = window.canEdit; window.canEdit = () => false;
+      try { renderIntelLegend(IG._model); const b = document.querySelector('#ig-legend [data-ig-lens-scan]'); return b ? { disabled: b.disabled, title: b.title } : null; }
+      finally { window.canEdit = keep; renderIntelLegend(IG._model); } });
+    const live = await page.evaluate(() => { const b = document.querySelector('#ig-legend [data-ig-lens-scan]'); return b ? !b.disabled : null; });
+    check('9b greyed both ways: a reader who may not edit sees it greyed with why; an editor sees it live', !!grey && grey.disabled && /scan/i.test(grey.title) && live === true, JSON.stringify({ grey, live }));
+    const unIds = BOOK.filter(c => riskOf(c) === 'unscanned').map(c => c.id);
+    await press('#ig-legend [data-ig-lens-scan]');
+    const ran = await until(ids => !document.querySelector('#ig-legend [data-ig-lens-scanning]') && ids.every(id => { const c = getContract(id); return c && c.scan; }) ? { left: Number((document.querySelector('#ig-legend [data-ig-lens-row="unscanned"] .igl-n') || {}).textContent || 0), btn: !!document.querySelector('#ig-legend [data-ig-lens-scan]') } : null, unIds, 20000);
+    check('9c pressed, every unscanned contract on the map is checked, and the press and the row leave the legend', !!ran && ran.left === 0 && !ran.btn, JSON.stringify(ran));
+    const audits = await page.evaluate(ids => ids.map(id => ((getContract(id) || {}).audit || []).filter(a => a.action === 'Scanned').length), unIds);
+    check('9d each one leaves the scan\'s own record, once', audits.every(n => n === 1), JSON.stringify(audits));
+
+    /* ================= 10. MONEY ================= */
+    await page.evaluate(() => igLensSet('off')); await page.waitForTimeout(300);
+    const wideBase = await wideStrokes();
+    await press('.ig-viewbar [data-ig-lens="money"]');
+    const exposed = BOOK.filter(c => c.metadata.liabilityCapped === 'uncapped' || c.metadata.priceReview === 'open').length;
+    const m10 = await page.evaluate(() => ({ lens: intel.lens, rows: Object.fromEntries([...document.querySelectorAll('#ig-legend [data-ig-lens-row]')].map(r => [r.getAttribute('data-ig-lens-row'), Number(r.querySelector('.igl-n')?.textContent)])),
+      top: (document.querySelector('#ig-legend [data-ig-lens-top]') || {}).textContent || '' }));
+    check('10a Money: the legend counts the contracts with no cap or an open price, as the record says', m10.lens === 'money' && m10.rows.exposed === exposed && (m10.rows.held || 0) === 18 - exposed, JSON.stringify({ m10, exposed }));
+    check('10b the legend says what share the top three parties hold', /^The top three parties hold \d+% of the value: \w+/.test(m10.top), m10.top);
+    const wideMoney = await wideStrokes();
+    check('10c every dot wears its money ring', wideMoney >= wideBase + 18, JSON.stringify({ wideBase, wideMoney }));
+    const ex = BOOK.find(c => c.metadata.liabilityCapped === 'uncapped');
+    await page.evaluate(id => { igExplain(id); renderIntelDock(); }, ex.id); await page.waitForTimeout(400);
+    const card10 = await page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ig-hoverid]'); return c ? { exp: (c.querySelector('[data-ig-fact="lens_exposure"]') || {}).textContent || '', door: (c.querySelector('[data-ig-lens-door]') || {}).textContent || '' } : null; });
+    check('10d the card says the exposure and carries Key terms', !!card10 && /No liability cap/.test(card10.exp) && /Key terms/.test(card10.door), JSON.stringify(card10));
+    await page.screenshot({ path: path.join(OUT, '10-money.png') });
+
+    /* ================= 11. PROMISES ================= */
+    await press('.ig-viewbar [data-ig-lens="promises"]');
+    const ourLate = BOOK.filter(c => lateOf(c) && c.obligations[0].party === 'ours').length, theirLate = BOOK.filter(c => lateOf(c) && c.obligations[0].party === 'theirs').length;
+    const p11 = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#ig-legend [data-ig-lens-row]')].map(r => [r.getAttribute('data-ig-lens-row'), Number(r.querySelector('.igl-n')?.textContent)])));
+    check('11a Promises: we-are-late and they-are-late counted as the record says', (p11.ourlate || 0) === ourLate && (p11.theirlate || 0) === theirLate, JSON.stringify({ p11, ourLate, theirLate }));
+    const wideProm = await wideStrokes();
+    check('11b every dot with an open duty wears its two-sided ring', wideProm >= wideBase + 18, JSON.stringify({ wideBase, wideProm }));
+    await page.evaluate(() => { intel.history = []; if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkBack === 'function') pdTalkBack(); renderIntelDock(); });
+    await page.evaluate(() => intelAsk(i18t('int_lens_tour_ask'))); await until(() => !intel.busy && !!intel.tour);
+    const w11 = await page.evaluate(() => (intel.tour && intel.tour.steps || []).map(s => s.text));
+    check('11c the walk opens on who is late: "We are late on N duties and they are late on M"', new RegExp('^We are late on ' + ourLate + ' duties and they are late on ' + theirLate).test(w11[0] || ''), JSON.stringify(w11.slice(0, 2)));
+    await page.screenshot({ path: path.join(OUT, '11-promises.png') });
+
+    /* ================= 12. PEOPLE ================= */
+    await press('.ig-viewbar [data-ig-lens="people"]');
+    const nobodyWant = await page.evaluate(() => (state.contracts || []).filter(c => /^MK-L/.test(c.id) && !(c.owner && c.owner.name) && !c._raisedBy).length);
+    const p12 = await page.evaluate(() => ({ rows: [...document.querySelectorAll('#ig-legend [data-ig-lens-row]')].map(r => [r.getAttribute('data-ig-lens-row'), Number(r.querySelector('.igl-n')?.textContent)]) }));
+    const total12 = p12.rows.reduce((s, r) => s + r[1], 0), nob = (p12.rows.find(r => r[0] === 'nobody') || [0, 0])[1];
+    check('12a People: one row per owner and "Nobody owns it", the rows adding up to the map', total12 === 18 && nob === nobodyWant && p12.rows.some(r => r[0] === 'Amani Otieno'), JSON.stringify({ p12, nobodyWant }));
+    const owned = BOOK.find(c => c.owner);
+    await page.evaluate(id => { igExplain(id); renderIntelDock(); }, owned.id); await page.waitForTimeout(400);
+    const card12 = await page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ig-hoverid]'); return c ? { who: (c.querySelector('[data-ig-fact="lens_owner"]') || {}).textContent || '', door: (c.querySelector('[data-ig-lens-door]') || {}).textContent || '' } : null; });
+    check('12b the card names the owner and carries "Their contracts"', !!card12 && card12.who.includes(owned.owner.name) && /Their contracts/.test(card12.door), JSON.stringify(card12));
+    await page.screenshot({ path: path.join(OUT, '12-people.png') });
 
     /* ================= 7. THE THREE SCREENS ================= */
     await press('.ig-viewbar [data-ig-lens="risk"]');

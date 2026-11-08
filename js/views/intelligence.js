@@ -883,58 +883,96 @@ const igAttn=(key,label)=>!!(key&&IG_ATTN[key]&&IG_ATTN[key].includes(label));
 /* the open obligations on a contract — the obligations grouping's own count, one reading */
 const igObOpenOf=c=>((c&&c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done&&o.status!=='done').length;
 /* ==== LENSES — THE MAP WEARS ONE READING AT A TIME (owner picked "Lenses" by
-   name, 8 Nov 2026, from the Explorer design round; stage 1 is Risk and
-   Obligations, stage 2 adds Money, Promises and People) ====
+   name, 8 Nov 2026, from the Explorer design round; stage 1 Risk and
+   Obligations, stage 2 Money, Promises and People) ====
    A lens redraws every contract's dot by ONE reading the map already makes,
    in all five views, and rides the recipe (undo, saved views, findings, a
    refresh). Nothing here reads anew or spends:
    - RISK is the risk grouping's own reading (groupLabelOf 'risk' → riskScore
      over openFindings): the legend counts by it, the ring has one segment per
      open finding in that finding's own severity, a dashed ring where the
-     contract was never scanned.
+     contract was never scanned. The legend's one press runs the SAME scan
+     (runScanFor, quiet) over the unscanned on the map: HaTi's own rule
+     checker, no Jambo call, said "free" (owner's yes, 8 Nov 2026).
    - OBLIGATIONS is graphNodeFacts' own "late" (obState overdue, not held by
-     an earlier step, obligationBlocked) and obligationDue for the next one:
-     a full red ring and a dashed one round it when something is late, else
-     a clock arc that fills as the next duty comes closer.
+     an earlier step, obligationBlocked) and obligationDue for the next one.
+   - MONEY is igHomeValue (the home currency, pay and a missing rate add
+     nothing) and the liability / price-review facts the exposure counting
+     reads; only for a reader who may see money (canViewValues), else the
+     switch is not drawn.
+   - PROMISES is the same open duties, split by obligationIsTheirs.
+   - PEOPLE is the owner grouping's own reading (contractOwnerName).
    The legend says what the marks mean and counts them; it is a key, not a
-   door (28 Sep 2026). The doors are the card's, onto the pages that already
-   do the work (the Redlines face's Risks to look at; the Obligations tab). */
-const IG_LENSES=['risk','obligations'];
+   door (28 Sep 2026) — the scan press is the owner's one exception. The
+   doors are the card's, onto the pages that already do the work. */
+const IG_LENSES=['risk','obligations','money','promises','people'];
 const IG_LENS_BUCKETS={
   risk:[['high','ruby'],['med','amber'],['low','green'],['clean','green'],['unscanned','mute']],
-  obligations:[['late','ruby'],['soon','amber'],['later','green'],['far','glow'],['none','mute']]
+  obligations:[['late','ruby'],['soon','amber'],['later','green'],['far','glow'],['none','mute']],
+  money:[['exposed','amber'],['held','glow'],['none','mute']],
+  promises:[['ourlate','ruby'],['theirlate','amber'],['ontime','green'],['none','mute']],
+  people:null /* one row per owner, read off the map (igLensCounts) */
 };
 const IG_LENS_RISK_OF={ 'High risk':'high', 'Medium risk':'med', 'Low risk':'low', 'No open findings':'clean', 'Not scanned':'unscanned' };
-const IG_LENS_SOON=30, IG_LENS_LATER=90, IG_LENS_CLOCK=120;
-let _igLensWorst=null;
-/* duties: what is late (held steps left out, as the node's own facts) and when the next one falls */
+const IG_LENS_SOON=30, IG_LENS_LATER=90, IG_LENS_CLOCK=120, IG_LENS_PEOPLE_ROWS=6;
+let _igLensWorst=null, _igLensScan=null;
+/* money is seen only by a reader who may see it; an unusable switch is not drawn */
+function igLensMay(k){ return k!=='money'||(typeof canViewValues!=='function')||canViewValues(); }
+function igLensOn(){ return IG_LENSES.filter(igLensMay); }
+/* duties: what is late (held steps left out, as the node's own facts), whose, and when the next one falls */
 function igLensObOf(c){
-  const out={ late:0, lateOne:null, next:null, nextOne:null, open:0 };
+  const out={ late:0, lateOne:null, next:null, nextOne:null, open:0, ours:0, theirs:0, oursLate:0, theirsLate:0 };
   ((c&&c.obligations)||[]).forEach(o=>{
     if(!o) return;
     const st=(typeof obState==='function')?obState(o):(o.status==='done'?'done':'open'); if(st==='done') return;
     if(typeof obligationBlocked==='function'&&obligationBlocked(o,c)) return;
-    out.open++;
-    if(st==='overdue'){ out.late++; if(!out.lateOne) out.lateOne=o; return; }
+    const theirs=(typeof obligationIsTheirs==='function')&&!!obligationIsTheirs(o);
+    out.open++; if(theirs) out.theirs++; else out.ours++;
+    if(st==='overdue'){ out.late++; if(theirs) out.theirsLate++; else out.oursLate++; if(!out.lateOne) out.lateOne=o; return; }
     const due=(typeof obligationDue==='function')?obligationDue(o):(o.due||null); if(!due) return;
     const d=daysUntil(due); if(isNaN(d)) return;
     if(out.next==null||d<out.next){ out.next=d; out.nextOne=o; }
   });
   return out;
 }
+/* money: the home value (null where nothing is counted) and what is left open */
+function igLensMoneyOf(c){
+  const m=(c&&c.metadata)||{};
+  const uncapped=String(m.liabilityCapped||'').toLowerCase()==='uncapped', open=m.priceReview==='open';
+  return { v:igHomeValue(c), uncapped, open, exposed:uncapped||open };
+}
+function igLensOwnerOf(c){ let o=null; try{ o=(typeof contractOwnerName==='function')?contractOwnerName(c):null; }catch(_){} return o||null; }
+function igLensInitials(name){ const p=String(name||'').trim().split(/\s+/).filter(Boolean); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase(); }
 function igLensBucketOf(c, lens){
   lens=lens||intel.lens;
   if(lens==='risk') return IG_LENS_RISK_OF[groupLabelOf(c,'risk')]||'clean';
   if(lens==='obligations'){ const o=igLensObOf(c);
     return o.late?'late':o.next==null?'none':o.next<=IG_LENS_SOON?'soon':o.next<=IG_LENS_LATER?'later':'far'; }
+  if(lens==='money'){ const m=igLensMoneyOf(c); return m.v==null?'none':m.exposed?'exposed':'held'; }
+  if(lens==='promises'){ const o=igLensObOf(c); return o.oursLate?'ourlate':o.theirsLate?'theirlate':o.open?'ontime':'none'; }
+  if(lens==='people') return igLensOwnerOf(c)||'';
   return null;
+}
+/* is this contract the lens's worry (the walk's "worst first", the glow of a part) */
+function igLensHot(c, lens){
+  lens=lens||intel.lens; const b=igLensBucketOf(c,lens);
+  return lens==='risk'?b==='high':lens==='obligations'?b==='late':lens==='money'?b==='exposed'
+    :lens==='promises'?(b==='ourlate'||b==='theirlate'):lens==='people'?igLensObOf(c).late>0:false;
 }
 /* the contracts the map DREW — the legend, the walk and the counts read the same set */
 function igLensKids(){ return (IG&&IG.nodes?IG.nodes:[]).filter(n=>n&&n.kind==='contract'&&n.c); }
 function igLensCounts(lens){
-  lens=lens||intel.lens; if(!IG_LENS_BUCKETS[lens]) return [];
-  const kids=igLensKids();
-  return IG_LENS_BUCKETS[lens].map(([k,tone])=>{ const ids=kids.filter(n=>igLensBucketOf(n.c,lens)===k).map(n=>n.id); return { k, tone, n:ids.length, ids }; });
+  lens=lens||intel.lens; const kids=igLensKids();
+  if(lens==='people'){
+    const by=new Map(); kids.forEach(n=>{ const k=igLensBucketOf(n.c,'people'); if(!by.has(k)) by.set(k,[]); by.get(k).push(n.id); });
+    const named=[...by.entries()].filter(([k])=>k).sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]));
+    const rows=named.slice(0,IG_LENS_PEOPLE_ROWS).map(([k,ids])=>({ k, label:k, tone:'glow', n:ids.length, ids }));
+    const rest=named.slice(IG_LENS_PEOPLE_ROWS); if(rest.length){ const ids=[].concat(...rest.map(x=>x[1])); rows.push({ k:'other', label:i18t('int_lens_people_rest',{ n:rest.length }), tone:'glow', n:ids.length, ids }); }
+    const nob=by.get('')||[]; rows.push({ k:'nobody', label:i18t('int_lens_b_people_nobody'), tone:'amber', n:nob.length, ids:nob });
+    return rows;
+  }
+  if(!IG_LENS_BUCKETS[lens]) return [];
+  return IG_LENS_BUCKETS[lens].map(([k,tone])=>{ const ids=kids.filter(n=>igLensBucketOf(n.c,lens)===k).map(n=>n.id); return { k, tone, n:ids.length, ids, label:i18t('int_lens_b_'+lens+'_'+k) }; });
 }
 /* the stage's own colours, read off the page (the tokens are the law: no colour is typed here) */
 let _igLensTone=null, _igLensToneAt=0;
@@ -943,8 +981,16 @@ function igLensTone(){
   const pg=document.getElementById('ig-page'); let cs=null; try{ cs=pg?getComputedStyle(pg):null; }catch(_){}
   const v=(k,d)=>{ const x=cs&&cs.getPropertyValue(k).trim(); return x||d; };
   _igLensTone={ ruby:v('--hb-ruby',IGB_FACT_TONE.ruby), amber:v('--hb-amber',IGB_FACT_TONE.amber), green:v('--hb-green','rgb(98,210,145)'),
-    glow:v('--hb-glow','rgb(111,155,234)'), mute:v('--hb-mute','rgb(143,165,204)') };
+    glow:v('--hb-glow','rgb(111,155,234)'), mute:v('--hb-mute','rgb(143,165,204)'), ink:v('--hb-ink','rgb(230,237,248)'),
+    ours:v('--bs-ours','rgb(127,166,240)'), theirs:v('--bs-theirs','rgb(179,162,240)') };
   _igLensToneAt=now; return _igLensTone;
+}
+/* the largest home value on the map, so a money ring's weight is its share (read again each half second) */
+let _igLensMax=0, _igLensMaxAt=0;
+function igLensMaxValue(){
+  const now=Date.now(); if(now-_igLensMaxAt<500) return _igLensMax;
+  let mx=0; igLensKids().forEach(n=>{ const v=igHomeValue(n.c); if(v!=null&&v>mx) mx=v; });
+  _igLensMax=mx; _igLensMaxAt=now; return mx;
 }
 const IG_LENS_SEV_TONE={ high:'ruby', med:'amber', low:'green' };
 /* the mark round one dot, painted after the dot itself (igbDraw), in every view */
@@ -953,7 +999,8 @@ function igLensDraw(ctx, c, x, y, r, a){
   const T=igLensTone(), R=r+3.6, TOP=-Math.PI/2, FULL=Math.PI*2;
   ctx.save(); ctx.lineCap='round'; ctx.globalAlpha=Math.min(1,a+.08);
   const ring=(col,w,dash,from,to,rr)=>{ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash||[]); ctx.beginPath(); ctx.arc(x,y,rr||R,from==null?0:from,to==null?FULL:to); ctx.stroke(); };
-  if(intel.lens==='risk'){
+  const L=intel.lens;
+  if(L==='risk'){
     if(!c.scan) ring(T.mute,1.4,[2,3]);
     else {
       const f=((typeof openFindings==='function')?openFindings(c):[]).slice().sort((p,q)=>(SEV_WEIGHT[q.sev]||0)-(SEV_WEIGHT[p.sev]||0));
@@ -961,7 +1008,7 @@ function igLensDraw(ctx, c, x, y, r, a){
       else { const n=f.length, gap=n>1?Math.min(.5,1.6/n):0;
         f.forEach((x0,i)=>ring(T[IG_LENS_SEV_TONE[x0.sev]||'green'],2.4,null,TOP+i*FULL/n+gap/2,TOP+(i+1)*FULL/n-gap/2)); }
     }
-  } else if(intel.lens==='obligations'){
+  } else if(L==='obligations'){
     const o=igLensObOf(c);
     if(o.late){ ring(T.ruby,2.4); ctx.globalAlpha*=.85; ring(T.ruby,1,[2,3],null,null,R+3.6); }
     else if(o.next!=null){
@@ -970,12 +1017,31 @@ function igLensDraw(ctx, c, x, y, r, a){
       const ga=ctx.globalAlpha; ctx.globalAlpha=ga*.22; ring(tone,2.4); ctx.globalAlpha=ga;
       ring(tone,2.4,null,TOP,TOP+fr*FULL);
     }
+  } else if(L==='money'){
+    const m=igLensMoneyOf(c);
+    if(m.v==null) ring(T.mute,1.4,[2,3]);
+    else { const mx=igLensMaxValue(), w=1.4+3.6*Math.sqrt(mx>0?Math.min(1,m.v/mx):0);
+      ring(m.exposed?T.amber:T.glow,w,null,null,null,R+w/2-1);
+      if(m.exposed){ ctx.globalAlpha*=.8; ring(T.amber,1,[2,3],null,null,R+w+3); } }
+  } else if(L==='promises'){
+    const o=igLensObOf(c);
+    if(o.open){ const fr=o.ours/o.open;
+      if(fr>0) ring(T.ours,2.4,null,TOP,TOP+fr*FULL-(fr<1?.12:0));
+      if(fr<1) ring(T.theirs,2.4,null,TOP+fr*FULL+(fr>0?.12:0),TOP+FULL);
+      if(o.late){ ctx.globalAlpha*=.9; ring(o.oursLate?T.ruby:T.amber,1,[2,3],null,null,R+3.6); } }
+  } else if(L==='people'){
+    const who=igLensOwnerOf(c);
+    if(!who) ring(T.amber,1.4,[2,3]);
+    else { ring(T.glow,1.5);
+      /* the initials stand at the dot's top LEFT: its name label runs to the right */
+      ctx.setLineDash([]); ctx.fillStyle=T.ink; ctx.font='600 9px Geist, system-ui, sans-serif'; ctx.textBaseline='middle'; ctx.textAlign='right';
+      ctx.fillText(igLensInitials(who),x-R-2,y-R+1); }
   }
   ctx.restore();
 }
 /* ONE WAY TO TURN A LENS: the view bar, the words and Jambo's look all end here */
 function igLensSet(k, opts){
-  const v=IG_LENSES.includes(k)?k:null;
+  const v=IG_LENSES.includes(k)&&igLensMay(k)?k:null;
   if(v===(intel.lens||null)) return false;
   if(!(opts&&opts.noPush)) igRecipePush();
   intel.lens=v; if(v) intel.legendFolded=false;
@@ -991,7 +1057,7 @@ function igLensPaint(){
 }
 function igLensBarHtml(){
   const on=intel.lens||'off';
-  return `<div class="ig-lensrow"><div class="ig-seg ig-lens" role="group" aria-label="${igEsc(i18t('int_lens'))}"><span class="ig-seg-k" aria-hidden="true">${igEsc(i18t('int_lens'))}</span>${['off'].concat(IG_LENSES).map(k=>`<button type="button" data-ig-lens="${k}" aria-pressed="${on===k}">${igEsc(i18t('int_lens_'+k))}</button>`).join('')}</div></div>`;
+  return `<div class="ig-lensrow"><div class="ig-seg ig-lens" role="group" aria-label="${igEsc(i18t('int_lens'))}"><span class="ig-seg-k" aria-hidden="true">${igEsc(i18t('int_lens'))}</span>${['off'].concat(igLensOn()).map(k=>`<button type="button" data-ig-lens="${k}" aria-pressed="${on===k}">${igEsc(i18t('int_lens_'+k))}</button>`).join('')}</div></div>`;
 }
 function igLensBarPaint(){
   const on=intel.lens||'off';
@@ -999,17 +1065,64 @@ function igLensBarPaint(){
 }
 /* THE LEGEND'S LENS PART: what each mark means and how many wear it — a key, not a door */
 function igLensLegendHtml(){
-  const L=intel.lens; if(!L||!IG_LENS_BUCKETS[L]) return '';
+  const L=intel.lens; if(!L||!IG_LENSES.includes(L)) return '';
   const T=igLensTone(), rows=igLensCounts(L), tot=rows.reduce((s,x)=>s+x.n,0);
-  /* the swatch is the mark itself: a ring, dashed where the map draws it dashed; a dot with no duty wears no ring */
-  const swatch=x=>(L==='obligations'&&x.k==='none')?`<span class="igl-sw" style="background:${T.mute}"></span>`:`<span class="igl-sw igl-ring${(L==='risk'&&x.k==='unscanned')?' is-dashed':''}" style="border-color:${T[x.tone]}"></span>`;
+  /* the swatch is the mark itself: a ring, dashed where the map draws it dashed; a dot that wears nothing has no ring */
+  const dashed=x=>(L==='risk'&&x.k==='unscanned')||(L==='money'&&x.k==='none')||(L==='people'&&x.k==='nobody');
+  const bare=x=>(L==='obligations'||L==='promises')&&x.k==='none';
+  const swatch=x=>bare(x)?`<span class="igl-sw" style="background:${T.mute}"></span>`:`<span class="igl-sw igl-ring${dashed(x)?' is-dashed':''}" style="border-color:${T[x.tone]}"></span>`;
   let h=`<div class="igl-k igl-gap" data-ig-legend-lens="${L}">${igEsc(i18t('int_lens_legend',{ x:i18t('int_lens_'+L) }))}</div>`;
   /* a row for a mark no dot wears is furniture (the legend's own rule) */
-  h+=rows.filter(x=>x.n).map(x=>`<div class="igl-row" data-ig-lens-row="${x.k}">${swatch(x)}<span class="igl-lt">${igEsc(i18t('int_lens_b_'+L+'_'+x.k))}</span><span class="igl-n">${x.n}</span></div>`).join('');
+  h+=rows.filter(x=>x.n).map(x=>`<div class="igl-row" data-ig-lens-row="${igEsc(x.k)}">${swatch(x)}<span class="igl-lt">${igEsc(x.label)}</span><span class="igl-n">${x.n}</span></div>`).join('');
   if(tot) h+=`<div class="igl-lensbar" aria-hidden="true">${rows.filter(x=>x.n).map(x=>`<i style="flex:${x.n};background:${T[x.tone]}"></i>`).join('')}</div>`;
+  if(L==='money'){ const top=igLensTopParties(); if(top) h+=`<div class="igl-row igl-note" data-ig-lens-top>${igEsc(i18t('int_lens_money_top',{ p:top.p, x:top.names.join(', ') }))}</div>`; }
+  if(L==='promises') h+=`<div class="igl-row igl-note" data-ig-lens-sides><span class="igl-sw" style="background:${T.ours}"></span>${igEsc(i18t('int_lens_promises_ours'))}<span class="igl-sw" style="background:${T.theirs};margin-left:6px"></span>${igEsc(i18t('int_lens_promises_theirs'))}</div>`;
   h+=`<div class="igl-row igl-note" data-ig-lens-note>${igEsc(i18t('int_lens_note_'+L))}</div>`;
+  if(L==='risk') h+=igLensScanHtml(rows.find(x=>x.k==='unscanned'));
   return h;
 }
+/* the three parties holding most of the map's home value, and their share (money's legend and walk) */
+function igLensTopParties(){
+  const by=new Map(); let all=0;
+  igLensKids().forEach(n=>{ const v=igHomeValue(n.c); if(v==null) return; all+=v; const k=String(n.c.counterparty||'').trim(); if(!k) return; by.set(k,(by.get(k)||0)+v); });
+  if(!(all>0)||by.size<2) return null;
+  const top=[...by.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3);
+  return { p:Math.round(100*top.reduce((s,x)=>s+x[1],0)/all), names:top.map(x=>x[0]), ids:igLensKids().filter(n=>top.some(t=>t[0]===String(n.c.counterparty||'').trim())).map(n=>n.id) };
+}
+/* THE ONE PRESS ON THE LEGEND (owner's yes, 8 Nov 2026): check the unscanned contracts on the map with the risk
+   scan each contract's own page runs (runScanFor, quiet) — HaTi's rule checker, no Jambo call; an editor's act */
+function igLensScanHtml(un){
+  if(_igLensScan){ const s=_igLensScan;
+    return `<div class="igl-row igl-scan" data-ig-lens-scanning>${(typeof busyHtml==='function')?busyHtml(i18t('int_lens_scan_running',{ k:s.k, n:s.ids.length })):igEsc(i18t('int_lens_scan_running',{ k:s.k, n:s.ids.length }))}<button type="button" class="igl-act" data-ig-lens-scan-stop>${igEsc(i18t('int_lens_scan_stop'))}</button></div>`; }
+  if(!un||!un.n) return '';
+  const may=(typeof canEdit!=='function')||canEdit();
+  return `<div class="igl-row igl-scan"><button type="button" class="igl-act" data-ig-lens-scan${may?'':` disabled title="${igEsc(i18t('ai_viewers_no_scan'))}"`}>${igEsc(i18tn('int_lens_scan_go',un.n,{ n:un.n }))}</button><span class="igl-free">${igEsc(i18t('int_lens_scan_free'))}</span></div>`;
+}
+async function igLensScanAll(){
+  if(_igLensScan||intel.lens!=='risk') return false;
+  if(typeof canEdit==='function'&&!canEdit()){ if(typeof toast==='function') toast(i18t('ai_viewers_no_scan'),'err'); return false; }
+  const ids=igLensKids().filter(n=>igLensBucketOf(n.c,'risk')==='unscanned').map(n=>n.id);
+  if(!ids.length||typeof runScanFor!=='function') return false;
+  const run=_igLensScan={ ids, k:0, stop:false, failed:0, high:0 };
+  igLensScanPaint();
+  for(const id of ids){
+    if(run.stop) break;
+    const c=(typeof getContract==='function')?getContract(id):null; let n=false;
+    try{ n=c?await runScanFor(c,{ quiet:true }):false; }catch(_){ n=false; }
+    if(n===false) run.failed++; else if(igLensBucketOf(c,'risk')==='high') run.high++;
+    run.k++; igLensScanPaint();
+  }
+  _igLensScan=null;
+  const did=run.k-run.failed;
+  let say=run.stop&&run.k<ids.length?i18t('int_lens_scan_stopped',{ k:run.k, n:ids.length }):i18tn('int_lens_scan_done',did,{ n:did, h:run.high });
+  if(run.failed) say+=' '+i18tn('int_lens_scan_failed',run.failed,{ n:run.failed });
+  if(typeof toast==='function') toast(say, run.failed?'warn':'ok');
+  try{ rebuildIntelGraph(); }catch(_){}
+  igLensScanPaint();
+  return true;
+}
+function igLensScanStop(){ if(_igLensScan) _igLensScan.stop=true; }
+function igLensScanPaint(){ try{ igWake(); }catch(_){} try{ if(IG&&IG._model) renderIntelLegend(IG._model); }catch(_){} }
 /* the card's and the hover's rows for the lens on (igFactRowsHtml, one builder for both) */
 function igLensFactRows(c, row){
   const L=intel.lens; if(!L||!c) return '';
@@ -1027,14 +1140,37 @@ function igLensFactRows(c, row){
     if(o.next!=null) return row('lens_next', igEsc(i18t('int_lens_ob_next',{ d:o.next }))+(o.nextOne&&o.nextOne.desc?' · '+igEsc(o.nextOne.desc):''), o.next<=IG_LENS_SOON?'amber':null);
     return row('lens_next', igEsc(i18t('int_lens_ob_none')), null);
   }
+  if(L==='money'){
+    const m=igLensMoneyOf(c);
+    let out=row('lens_value', m.v==null?igEsc(i18t('int_lens_money_none')):igEsc((typeof fmtMoneyShortOf==='function')?fmtMoneyShortOf(c):String(m.v)), null);
+    out+=row('lens_exposure', igEsc(i18t(m.uncapped&&m.open?'int_lens_money_both':m.uncapped?'int_lens_money_uncapped':m.open?'int_lens_money_open':'int_lens_money_held')), m.exposed?'amber':null);
+    return out;
+  }
+  if(L==='promises'){
+    const o=igLensObOf(c);
+    if(!o.open) return row('lens_ours', igEsc(i18t('int_lens_ob_none')), null);
+    return row('lens_ours', igEsc(i18t('int_lens_promises_n',{ n:o.ours, l:o.oursLate })), o.oursLate?'ruby':null)
+      +row('lens_theirs', igEsc(i18t('int_lens_promises_n',{ n:o.theirs, l:o.theirsLate })), o.theirsLate?'amber':null);
+  }
+  if(L==='people'){
+    const who=igLensOwnerOf(c), o=igLensObOf(c);
+    return row('lens_owner', igEsc(who||i18t('int_lens_b_people_nobody')), who?null:'amber')
+      +(o.late?row('lens_next', igEsc(i18tn('int_lens_ob_late',o.late,{ n:o.late })), 'ruby'):'');
+  }
   return '';
 }
 /* THE DOOR ON THE CARD: where the lens's fact is worked, on the page that already works it */
+function igLensDoorOf(c){
+  const L=intel.lens; if(!L||!c) return null;
+  if(L==='risk') return (c.scan&&typeof openFindings==='function'&&openFindings(c).length)?'risk':null;
+  if(L==='obligations'||L==='promises') return igLensObOf(c).open?'obligations':null;
+  if(L==='money') return 'terms';
+  if(L==='people') return igLensOwnerOf(c)?'owner':'terms';
+  return null;
+}
 function igLensDoorHtml(c){
-  const L=intel.lens; if(!L||!c) return '';
-  if(L==='risk'&&!(c.scan&&typeof openFindings==='function'&&openFindings(c).length)) return '';
-  if(L==='obligations'&&!igLensObOf(c).open) return '';
-  return `<div class="mt-1.5"><button type="button" class="ui-link" data-ig-lens-door="${L}" data-ig-lens-id="${igEsc(c.id)}">${igEsc(i18t('int_lens_door_'+L))} ›</button></div>`;
+  const d=igLensDoorOf(c); if(!d) return '';
+  return `<div class="mt-1.5"><button type="button" class="ui-link" data-ig-lens-door="${d}" data-ig-lens-id="${igEsc(c.id)}">${igEsc(i18t('int_lens_door_'+d))} ›</button></div>`;
 }
 function igLensDoorGo(kind, id){
   if(kind==='risk'&&typeof pdRedOpen==='function'&&pdRedOpen(id)){
@@ -1042,26 +1178,45 @@ function igLensDoorGo(kind, id){
     return true;
   }
   if(kind==='obligations'&&typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'oblig')) return true;
+  if(kind==='terms'&&typeof pdKtOpen==='function'&&pdKtOpen(id)) return true;
+  if(kind==='owner'&&typeof regShowOnly==='function'){
+    const c=(typeof getContract==='function')?getContract(id):null, who=c&&igLensOwnerOf(c);
+    if(who){ const ids=(state.contracts||[]).filter(x=>igLensOwnerOf(x)===who).map(x=>x.id); regShowOnly(ids, who); return true; }
+  }
   if(window.roomHomeLand&&roomHomeLand(id)) return true;
   if(typeof openWorkspace==='function') openWorkspace(id);
   return true;
 }
-/* THE WALK, WORST FIRST (igTourSteps): the parts the view drew, each counted for the lens */
+/* THE WALK, WORST FIRST (igTourSteps): the parts the view drew, each counted for the lens; People walks its owners */
 function igLensTourSteps(base){
   const L=intel.lens; _igLensWorst=null;
   const kids=igLensKids(); if(!L||!kids.length) return base;
-  const hot=n=>L==='risk'?igLensBucketOf(n.c,'risk')==='high':igLensBucketOf(n.c,'obligations')==='late';
+  const hot=n=>igLensHot(n.c,L);
   const val=list=>{ let t=0; list.forEach(n=>{ const h=igHomeValue(n.c); if(h!=null) t+=h; }); return t; };
+  const money=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v));
   const H=kids.filter(hot), steps=[];
-  steps.push({ text:i18t('int_lens_tour_whole_'+L,{ a:H.length, n:kids.length, v:igTourMoney(val(H)) }), ids:H.map(n=>n.id), attn:H.length>0 });
-  const parts=base.slice(1).filter(s=>s&&Array.isArray(s.ids)&&s.ids.length&&s.label).map(s=>{
-    const set=new Set(s.ids), inn=kids.filter(n=>set.has(n.id)); return { s, h:inn.filter(hot).length, n:inn.length }; }).filter(p=>p.n);
+  let parts;
+  if(L==='people'){
+    const by=new Map(); kids.forEach(n=>{ const k=igLensOwnerOf(n.c); if(!k) return; if(!by.has(k)) by.set(k,[]); by.get(k).push(n); });
+    parts=[...by.entries()].map(([k,ns])=>({ label:k, ids:ns.map(n=>n.id), inn:ns }));
+    steps.push({ text:i18t('int_lens_tour_whole_people',{ n:kids.length, k:by.size, a:kids.filter(n=>!igLensOwnerOf(n.c)).length }), ids:kids.filter(n=>!igLensOwnerOf(n.c)).map(n=>n.id), attn:false });
+  } else {
+    parts=base.slice(1).filter(s=>s&&Array.isArray(s.ids)&&s.ids.length&&s.label).map(s=>{ const set=new Set(s.ids); return { label:s.label, ids:s.ids.slice(), inn:kids.filter(n=>set.has(n.id)) }; });
+    const o=kids.reduce((a,n)=>{ const x=igLensObOf(n.c); a.o+=x.oursLate; a.t+=x.theirsLate; return a; },{ o:0, t:0 });
+    steps.push({ text:i18t('int_lens_tour_whole_'+L,{ a:H.length, n:kids.length, v:igTourMoney(val(H)), all:igTourMoney(val(kids)), o:o.o, t:o.t }), ids:H.map(n=>n.id), attn:H.length>0 });
+  }
+  parts=parts.filter(p=>p.inn.length).map(p=>Object.assign(p,{ h:p.inn.filter(hot).length, n:p.inn.length }));
   parts.sort((p,q)=>q.h-p.h||q.n-p.n);
-  const room=IG_TOUR_MAX-2;
-  parts.slice(0,room).forEach(p=>steps.push({ text:i18t('int_lens_tour_part_'+L,{ x:p.s.label, a:p.h, n:p.n }), ids:p.s.ids.slice(), attn:p.h>0, label:p.s.label }));
-  if(parts[0]&&parts[0].h) _igLensWorst=parts[0].s.label;
-  const last=kids.filter(n=>L==='risk'?igLensBucketOf(n.c,'risk')==='unscanned':igLensBucketOf(n.c,'obligations')==='soon');
-  if(last.length) steps.push({ text:i18t('int_lens_tour_last_'+L,{ a:last.length, d:IG_LENS_SOON }), ids:last.map(n=>n.id), attn:false });
+  parts.slice(0,IG_TOUR_MAX-2).forEach(p=>{
+    const x=p.inn.reduce((a,n)=>{ const s=igLensObOf(n.c); a.o+=s.oursLate; a.t+=s.theirsLate; a.l+=s.late?1:0; return a; },{ o:0, t:0, l:0 });
+    steps.push({ text:i18t('int_lens_tour_part_'+L,{ x:p.label, a:p.h, n:p.n, o:x.o, t:x.t, l:x.l, v:igTourMoney(val(p.inn)) }), ids:p.ids, attn:p.h>0, label:p.label }); });
+  if(parts[0]&&parts[0].h) _igLensWorst=parts[0].label;
+  if(L==='money'){ const top=igLensTopParties(); if(top) steps.push({ text:i18t('int_lens_tour_last_money',{ p:top.p, x:top.names.join(', ') }), ids:top.ids, attn:false }); }
+  else if(L!=='people'){
+    const last=kids.filter(n=>L==='risk'?igLensBucketOf(n.c,'risk')==='unscanned':(L==='obligations'||L==='promises')?igLensBucketOf(n.c,'obligations')==='soon':false);
+    if(last.length) steps.push({ text:i18t('int_lens_tour_last_'+(L==='promises'?'obligations':L),{ a:last.length, d:IG_LENS_SOON }), ids:last.map(n=>n.id), attn:false });
+  }
+  void money;
   return steps.map(x=>Object.assign(x,{ text:x.text.charAt(0).toUpperCase()+x.text.slice(1) }));
 }
 /* the one paid question under the walk, named with its cost: the worst part, asked of Jambo as typed words are */
@@ -1070,18 +1225,26 @@ function igLensWhyHtml(){
   /* the question is words (they may wrap); the press is short, on one line (f386), its cost beside it */
   return `<span class="ig-lens-q">${igEsc(i18t('int_lens_why_'+intel.lens,{ x:_igLensWorst }))}</span> <button type="button" class="ui-link" data-ig-lens-why="${igEsc(_igLensWorst)}">${igEsc(i18t('int_lens_why_ask'))}</button> <span class="igd-cost">${igEsc(i18t('int_lens_why_cost'))}</span>`;
 }
-/* THE WORDS: "put the risk lens on", "obligations lens", "lens off", "risklinsen", "linsen av" */
+/* THE WORDS: "put the risk lens on", "money lens", "people lens", "lens off", "risklinsen", "linsen av" */
+/* each lens: the English word that stands next to "lens", and the Swedish compound that IS the lens word */
+const IG_LENS_WORDS=[['risk',/risks?/,/(?:^|[\s-])risk-?lins/],['obligations',/obligations?|duties|duty/,/(?:^|[\s-])(?:åtagande(?:n|s)?|förpliktelse)-?lins/],
+  ['money',/money|value|exposure/,/(?:^|[\s-])(?:penga|pengar|värde)-?lins/],['promises',/promises?/,/(?:^|[\s-])löftes?-?lins/],['people',/people|owners?|workload/,/(?:^|[\s-])(?:person|personal|ägar)-?lins/]];
 function igLensRead(q){
   const s=String(q||'').toLowerCase().trim(); if(!/\blens(?:es)?\b|lins(?:en)?\b/.test(s)) return null;
   if(/^(?:please\s+)?(?:(?:turn|switch|take|put)\s+(?:the\s+)?(?:\w+\s+)?lens(?:es)?\s+off|(?:no|remove|clear|stop|turn off|switch off|take off|take away)\s+(?:the\s+)?(?:\w+\s+)?lens(?:es)?|(?:the\s+)?lens(?:es)?\s+off|(?:ta bort|stäng av)\s+(?:\w+)?linsen|linsen av)$/.test(s)) return { lens:'off' };
-  if(/\brisk(?:s)?\s+lens\b|\blens\b.*\brisks?\b|\brisk-?linsen\b|\brisklins\b/.test(s)) return { lens:'risk' };
-  if(/\b(?:obligations?|duties|duty)\s+lens\b|\blens\b.*\b(?:obligations?|duties)\b|\båtagande(?:n|s)?-?lins(?:en)?\b|\bförpliktelse-?lins(?:en)?\b/.test(s)) return { lens:'obligations' };
+  /* the word must sit next to "lens" (just before it, or after "lens on"), so "risk of the lens maker" is no lens */
+  for(const [k,en,sv] of IG_LENS_WORDS){
+    const near=new RegExp('\\b(?:'+en.source+')\\s+lens(?:es)?\\b|\\blens(?:es)?\\s+(?:on\\s+|for\\s+|to\\s+)?(?:the\\s+)?(?:'+en.source+')\\b');
+    if(near.test(s)||sv.test(s)) return igLensMay(k)?{ lens:k }:null;
+  }
   return null;
 }
 document.addEventListener('click',e=>{
-  const t=e.target&&e.target.closest&&e.target.closest('[data-ig-lens],[data-ig-lens-door],[data-ig-lens-why]'); if(!t) return;
+  const t=e.target&&e.target.closest&&e.target.closest('[data-ig-lens],[data-ig-lens-door],[data-ig-lens-why],[data-ig-lens-scan],[data-ig-lens-scan-stop]'); if(!t) return;
   if(t.hasAttribute('data-ig-lens')){ e.preventDefault(); igLensSet(t.getAttribute('data-ig-lens')); return; }
   if(t.hasAttribute('data-ig-lens-door')){ e.preventDefault(); e.stopPropagation(); igLensDoorGo(t.getAttribute('data-ig-lens-door'), t.getAttribute('data-ig-lens-id')); return; }
+  if(t.hasAttribute('data-ig-lens-scan')){ e.preventDefault(); if(!t.disabled) igLensScanAll(); return; }
+  if(t.hasAttribute('data-ig-lens-scan-stop')){ e.preventDefault(); igLensScanStop(); return; }
   if(t.hasAttribute('data-ig-lens-why')){ e.preventDefault(); const L=intel.lens, x=t.getAttribute('data-ig-lens-why');
     if(L) intelAsk(i18t('int_lens_why_'+L,{ x }), { typed:true }); }
 });
@@ -1461,7 +1624,7 @@ function igRecipeSet(r){
   intel.cellOpen=(r.cellOpen&&typeof r.cellOpen==='object')?{ ...r.cellOpen }:{};
   intel.bundles=Array.isArray(r.bundles)&&r.bundles.length?r.bundles.filter(x=>x&&x.q).slice(0,IG_BUNDLES_MAX).map(x=>({ q:String(x.q), label:String(x.label||x.q) })):null;
   intel.edgeNames=r.edgeNames===true?true:null;
-  intel.lens=IG_LENSES.includes(r.lens)?r.lens:null; igLensBarPaint();
+  intel.lens=IG_LENSES.includes(r.lens)&&igLensMay(r.lens)?r.lens:null; igLensBarPaint();
   intel.walk=null;
   igSetView(r.view==null?igbCam().view:r.view);
 }
@@ -2253,7 +2416,7 @@ function igRecipeRun(parsed, opts){
     if(a.shadeBy){ intel.shadeBy=a.shadeBy==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':null;
       said.push(i18t(intel.shadeBy==='value'?'int_did_shade_value':'int_did_shade_count')); if(igbCam().view!==3) igSetView(3); continue; }
     /* A LENS: every dot wears its reading, in the view on screen (igLensSet's own state, said in HaTi's words) */
-    if(a.lens){ intel.lens=IG_LENSES.includes(a.lens)?a.lens:null; if(intel.lens) intel.legendFolded=false; igLensBarPaint();
+    if(a.lens){ intel.lens=IG_LENSES.includes(a.lens)&&igLensMay(a.lens)?a.lens:null; if(intel.lens) intel.legendFolded=false; igLensBarPaint();
       said.push(intel.lens?i18t('int_did_lens',{ x:i18t('int_lens_'+intel.lens).toLowerCase() }):i18t('int_did_lens_off')); changed=true; continue; }
     /* THE BRAIN'S GLOW: the cards carry the count, so the map is rebuilt; the glow is the Brain's own */
     if(a.lobeShade){ intel.lobeShade=a.lobeShade==='none'?null:a.lobeShade;
@@ -4518,7 +4681,7 @@ function igbPlace(G){
      these two rects forced a full layout on every frame; they are read when
      the stage changed size or the reader touched the page (igWake). */
   if(G.svg&&!G._furn){ const sr=G.svg.getBoundingClientRect(); G._furn=[];
-    [document.querySelector('#ig-gwrap .ig-viewbar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) G._furn.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
+    [document.querySelector('#ig-gwrap .ig-viewbar'),document.querySelector('#ig-gwrap .ig-viewbar .ig-lensrow'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) G._furn.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
   (G._furn||[]).forEach(r=>placed.push(r));
   G.hubs.forEach(h=>{ if(h._bubR>2&&h._bq) placed.push({ x:h._bq[0]-h._bubR, y:h._bq[1]-h._bubR, w:2*h._bubR, h:2*h._bubR }); });
   (G._bundles||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
@@ -10811,7 +10974,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{IG_LENSES,IG_LENS_BUCKETS,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
