@@ -129,6 +129,8 @@ const at = (page, xy) => page.evaluate(([x, y]) => {
       const S2 = await spotsOf(page);
       if (face === 'board' && S2.fig){
         await page.mouse.click(S2.fig[0], S2.fig[1]);
+        /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+        await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
         /* RE-POINTED 11 Oct 2026 (the Board as drawn): a figure opens its list in the side list */
         /* RE-POINTED 18 Oct 2026 (round 17 as drawn): a contract figure opens
            the Contracts place narrowed to what it counts */

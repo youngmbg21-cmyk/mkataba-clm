@@ -107,6 +107,8 @@ const CONTRACTS = [
 
     /* ===== 2. A FIGURE IS A DOOR WITH A TRAIL ===== */
     if (landed) await page.click('.hb-fig-main[data-hb-dig="f:live"]');
+    /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+    if (landed) await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): a figure opens its contracts
        in the side list on the right — the same list the number was counted from */
     /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now" — its
@@ -424,6 +426,8 @@ const CONTRACTS = [
        return to the whole list") — a card pressed while counting opens within it */
     const liveBtn = await page.$('#hb-book [data-hb-dig="f:live"]');
     if (liveBtn) await liveBtn.click();
+    /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+    if (liveBtn) await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in
        the side list — still within Juno: the count stays, the six stay, the list is Juno's */
     /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure opens the

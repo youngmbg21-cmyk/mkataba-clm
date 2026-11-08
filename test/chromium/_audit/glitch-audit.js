@@ -253,7 +253,8 @@ function doors(scr){
   /* the Board and its contract */
   const BOARD = async p => { await home(p); await typeIn(p, '#cn-q', 'board'); await p.press('#cn-q', 'Enter'); await settle(p); await pause(400); };
   D.push(['Board: a stage number (Executed)', BOARD, p => press(p, '[data-hb-dig="st:Signed"] >> visible=true')]);
-  D.push(['Board: a figure (live contracts)', BOARD, p => press(p, '[data-hb-dig="f:live"] >> visible=true')]);
+  /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): a figure opens its small menu first; Open the list is where the press used to land */
+  D.push(['Board: a figure (live contracts)', BOARD, async p => { await press(p, '[data-hb-dig="f:live"] >> visible=true'); await press(p, '#hb-figmenu [data-hb-fm="list"]'); }]);
   D.push(['Board: Needs you second tab', BOARD, p => press(p, '[data-nd-tab] >> visible=true >> nth=1')]);
   D.push(['Board: Needs you a row button', BOARD, p => press(p, '#hb-board [data-cn-need] >> visible=true')]);
   D.push(['Board: Jambo box focused empty', BOARD, p => press(p, '#igd-input')]);

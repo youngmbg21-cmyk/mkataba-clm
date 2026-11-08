@@ -11054,6 +11054,42 @@
   .ig-brain .ig-floor-door[hidden]{display:none}
   /* Jambo explains this view (Explorer stage 3): the walk's sentences, each a press; the one being said is lit */
   .ig-tour{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+  /* PRESS A FIGURE, CHOOSE WHERE IT GOES (8 Nov 2026): the Board figure's small menu, in the page's own pop-up clothes */
+  .hb-figmenu{position:fixed;z-index:80;width:330px;max-width:calc(100vw - 16px);box-sizing:border-box;padding:6px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-lg);color:var(--color-text);font-size:13px;line-height:1.35}
+  .hb-figmenu .hb-fm-h{padding:6px 10px 4px;font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-figmenu .hb-fm-o{all:unset;box-sizing:border-box;display:flex;align-items:flex-start;gap:10px;width:100%;padding:9px 10px;border-radius:var(--radius);cursor:pointer}
+  .hb-figmenu .hb-fm-o svg{flex:none;margin-top:1px}
+  .hb-figmenu .hb-fm-o[data-hb-fm="map"] svg{color:var(--accent-ink)}
+  .hb-figmenu .hb-fm-o:hover,.hb-figmenu .hb-fm-o:focus{background:var(--color-neutral-100)}
+  .hb-figmenu .hb-fm-o:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px}
+  .hb-figmenu .hb-fm-w{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+  .hb-figmenu .hb-fm-w b{font-weight:var(--w-strong);font-size:13.5px;white-space:nowrap}
+  .hb-figmenu .hb-fm-w span{font-size:12px;color:var(--color-quiet)}
+  .hb-figmenu kbd{align-self:center;font:500 11px var(--font-mono);color:var(--color-quiet);border:1px solid var(--color-divider);border-radius:4px;padding:0 5px}
+  /* THE MORNING BRIEFING (8 Nov 2026): the stops under Jambo's hello, each its sentence and its Show */
+  .ig-brief{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .ig-brief-s{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);font-size:13px;line-height:1.45;background:var(--color-surface)}
+  .ig-brief-s.is-on{border-color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text)}
+  .ig-brief-s .ig-brief-t{flex:1 1 auto;min-width:0}
+  .ig-brief-s .ig-brief-t b{font-weight:var(--w-strong)}
+  .ig-brief-s .ui-link{flex:none;white-space:nowrap}
+  #ig-dock .ig-brief-src{margin-top:6px}
+  /* THE RENEWAL CLIFF'S MONTH CARD (8 Nov 2026): on the stage, in the stage's own clothes */
+  .ig-brain .ig-cliff-card{position:absolute;z-index:3;min-width:220px;max-width:280px;box-sizing:border-box;padding:10px 12px;background:var(--hb-menu);border:1px solid rgba(var(--hb-ln),.25);border-radius:var(--radius);box-shadow:var(--hb-shadow);color:var(--hb-ink);font-size:12px}
+  .ig-brain .ig-cliff-card b{display:block;font-size:13px;font-weight:var(--w-strong);margin-bottom:4px;white-space:nowrap}
+  .ig-brain .ig-cliff-card .kv{display:flex;justify-content:space-between;gap:14px;color:var(--hb-ink-2);line-height:1.65;white-space:nowrap}
+  .ig-brain .ig-cliff-card .kv em{font-style:normal;color:var(--hb-ink)}
+  .ig-brain .ig-cliff-card .kv em.am{color:var(--hb-amber)}
+  .ig-brain .ig-cliff-card .kv em.rb{color:var(--hb-ruby)}
+  .ig-brain .ig-cliff-card .ui-link{margin-top:4px;color:var(--hb-glow)}
+  /* WHAT IF A PARTY LEFT: the answer's doors, the cost beside the one that spends */
+  #ig-dock .ig-whatif-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+  /* THEN AND NOW FOR EVERY LENS: today's count beside the count then; the three days as pills */
+  .ig-brain .igl .igl-now{margin-left:6px;font-size:11px;color:var(--hb-mute)}
+  .ig-brain .igl .igl-pills{flex-wrap:wrap;gap:4px;margin-top:6px}
+  .ig-brain .igl .igl-pill{all:unset;cursor:pointer;padding:1px 8px;border:1px solid rgba(var(--hb-ln),.3);border-radius:999px;font-size:11px;color:var(--hb-ink-2);white-space:nowrap}
+  .ig-brain .igl .igl-pill.is-on{background:var(--hb-ink);color:var(--hb-on-glow);border-color:var(--hb-ink)}
+  .ig-brain .igl .igl-pill:focus-visible{outline:2px solid var(--hb-amber);outline-offset:2px}
   .ig-tour-s{all:unset;box-sizing:border-box;display:block;width:100%;cursor:pointer;padding:5px 9px;border-radius:var(--radius);border:1px solid var(--color-divider);font-size:13px;line-height:1.45;color:var(--color-text)}
   .ig-tour-s:hover{border-color:var(--accent-solid)}
   .ig-tour-s.is-on{border-color:var(--accent-solid);box-shadow:inset 3px 0 0 var(--accent-solid)}
