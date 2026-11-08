@@ -27,7 +27,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 2 first (on Reads): fold the panel */
   try {
-    const up = await until(page, () => !!document.querySelector('#rd-page [data-rd-next]') && !!document.querySelector('#ins-panel [data-jl-fold]'), null, 20000);
+    const up = await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]') && !!document.querySelector('#ins-panel [data-jl-fold]'), null, 20000);
     const before = up ? await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('content-scroll')).marginRight)) : null;
     if (up) await page.click('#ins-panel [data-jl-fold]');
     const folded = await until(page, () => !!document.querySelector('#ins-panel.is-folded'), null, 8000);
@@ -40,8 +40,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   /* 1 · Read N more */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'reads' }));
-    await until(page, () => !!document.querySelector('#rd-page [data-rd-next]'), null, 15000);
-    await page.click('#rd-page [data-rd-next]');
+    /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): Read the other N is the chosen question's, in the panel */
+    await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]'), null, 15000);
+    await page.click('#ins-panel [data-rd-act="next"]');
     const list = await until(page, () => !!document.querySelector('#reg-tbody') && !(typeof regFoldersUp === 'function' && regFoldersUp()), null, 15000);
     const read = await until(page, () => !!document.querySelector('.ac-dk-card'), null, 15000);
     check('1 Read N more lands on the Contracts list (not the folders) and the read starts there', list && read, { list, read });
