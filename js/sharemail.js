@@ -301,6 +301,8 @@ function _smLetterJoin(parts){
    button. A standalone document carries no :root — literal values only. */
 /* the letter's one green (a standalone email carries no :root — a literal, written once) */
 const SM_LINK_INK = '#0b7a5f';
+/* THE LETTERS' OTHER COLOURS, ONE SET (an email carries no :root): ink, the quiet line, the hairline */
+const SM_INK = '#1f2933', SM_MUTE = '#667085', SM_HAIR = '#d0d5dd';
 function _smLetterHtml(parts){
   const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const link = (parts.find(p => p.k === 'link') || {}).t;
@@ -314,7 +316,7 @@ function _smLetterHtml(parts){
       const run = [];
       while (i < parts.length && parts[i].k === 'ans'){ run.push(parts[i]); i++; }
       i--;
-      out.push(`<div style="margin:0 0 14px;padding:2px 0 2px 12px;border-left:3px solid #d0d5dd">${run.map(r =>
+      out.push(`<div style="margin:0 0 14px;padding:2px 0 2px 12px;border-left:3px solid ${SM_HAIR}">${run.map(r =>
         `<p style="margin:0 0 4px"><b>${e(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + e(r.rest) : ''}</p>`).join('')}</div>`);
     } else if (p.k === 'btn'){
       out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="display:inline-block;background:${SM_LINK_INK};color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">${e(p.t)}</a></p>`
@@ -322,10 +324,10 @@ function _smLetterHtml(parts){
     } else if (p.k === 'msg'){
       out.push(`<p style="margin:0 0 14px;white-space:pre-wrap">${e(p.t)}</p>`);
     } else if (p.k === 'foot'){
-      out.push(`<p style="margin:18px 0 0;color:#667085">${e(p.t)}</p>`);
+      out.push(`<p style="margin:18px 0 0;color:${SM_MUTE}">${e(p.t)}</p>`);
     } else out.push(`<p style="margin:0 0 ${p.list ? 6 : 14}px">${e(p.t)}</p>`);
   }
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1f2933;max-width:600px">${out.join('')}</div>`;
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:${SM_INK};max-width:600px">${out.join('')}</div>`;
 }
 
 /* The text a WhatsApp send opens with (the browser composes it; the server
@@ -450,10 +452,10 @@ function linkAskMailOf(o){
    One shape: the greeting, what happened in plain words, the link as one line under its words, then Kind regards
    and the sender. Sent so wherever the company's "new look for people outside" is on (the server's outsideLookOn);
    the hosts decide, these only write. A standalone email carries no :root — literal values only. */
-const SM_QUIET = '#4b4b50';
+const SM_QUIET = SM_MUTE;
 function _smE(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function _smDrawnShell(inner){
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1d1d1f;max-width:600px">${inner}</div>`;
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${SM_INK};max-width:600px">${inner}</div>`;
 }
 /* o = { hello, paras: [text | { quote: [text] }], link: { label, url }, after: [text], sign: { bye, name, title, org } } */
 function smDrawnLetter(o){
@@ -463,7 +465,7 @@ function smDrawnLetter(o){
   if (x.hello){ html.push(P(x.hello)); text.push(x.hello); }
   for (const p of (x.paras || [])){
     if (p && Array.isArray(p.quote)){
-      html.push(`<div style="margin:0 0 16px;border-left:2px solid #d9d9de;padding:2px 0 2px 14px">${p.quote.map(q => P(q, 6)).join('')}</div>`);
+      html.push(`<div style="margin:0 0 16px;border-left:2px solid ${SM_HAIR};padding:2px 0 2px 14px">${p.quote.map(q => P(q, 6)).join('')}</div>`);
       text.push(p.quote.join('\n'));
     } else if (p){ html.push(P(p)); text.push(String(p)); }
   }
