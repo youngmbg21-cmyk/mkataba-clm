@@ -1758,6 +1758,15 @@ function iknStands(r){
   const fit = ikFitOf(r);
   return { t: fit && fit.strong ? i18t('ikn_fits', { name: fit.name }) : i18t('ikn_open'), sub: r.assignee ? '' : i18t('ikn_needs_editor'), fit };
 }
+/* AGE COLOUR (owner's pick by name, 9 Nov 2026; the colour round): an open request asked today or yesterday reads in green,
+   one waiting a week or more in amber, so a stuck ask stands out; a request already drafted keeps the grey */
+const IKN_OLD_DAYS = 7;
+function iknAgeTone(r){
+  if (r.contractId || r._adv) return '';
+  const t = Date.parse(String((r && r.createdAt) || '')); if (!isFinite(t)) return '';
+  const days = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  return days <= 1 ? ' is-fresh' : days >= IKN_OLD_DAYS ? ' is-old' : '';
+}
 function iknRowHtml(r, may){
   const st = iknStands(r);
   const lane = [r.folder && window.FOLDERS && FOLDERS[r.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[r.folder]) || FOLDERS[r.folder].name) : '', r.assignee ? String(r.assignee.name || '').split(/\s+/)[0] : (r.holder || '')].filter(Boolean).join(' \u00b7 ');
@@ -1766,7 +1775,7 @@ function iknRowHtml(r, may){
   const sel = String(r.id) === String(_iknSel);
   return `<tr data-ikn-row="${esc(r.id)}" class="${sel ? 'is-sel' : ''}${r.contractId ? ' is-done' : ''}" tabindex="-1"><td><div class="cun-name">${esc(r.title || '')}</div>${r._adv ? `<div class="cun-sub">${esc(i18t('ikn_advice_w'))}</div>` : ''}${r.need ? `<div class="ikn-q">\u201c${esc(String(r.need).slice(0, 120))}${String(r.need).length > 120 ? '\u2026' : ''}\u201d</div>` : ''}</td>
     <td class="cun-wait">${esc(st.t)}${st.sub ? `<div class="cun-sub">${esc(st.sub)}</div>` : ''}</td>
-    <td class="cun-wait">${esc([ikFirstLast(r.by && r.by.name), typeof ikAgeWords === 'function' ? ikAgeWords(r) : ''].filter(Boolean).join(' \u00b7 '))}</td><td class="cun-wait">${esc(lane || '\u2014')}</td><td class="cun-go">${act}</td></tr>`;
+    <td class="cun-wait ikn-age${iknAgeTone(r)}">${esc([ikFirstLast(r.by && r.by.name), typeof ikAgeWords === 'function' ? ikAgeWords(r) : ''].filter(Boolean).join(' \u00b7 '))}</td><td class="cun-wait">${esc(lane || '\u2014')}</td><td class="cun-go">${act}</td></tr>`;
 }
 let _iknSel = null;
 function iknRender(host){
