@@ -2364,7 +2364,10 @@
      so only what is drawn there keeps the old ink; light only — dark never
      moved. Measured by ink-wash-verify (paper and buttons equal before/after). */
   :root:not(.dark) .pg-sheet{ --color-text:#141F1D; }
-  :where(:root:not(.dark)) .pg-sheet{ color:var(--color-text); }  /* the sheet INHERITED the app's ink; the gap between pages is desk and follows it */
+  :where(:root:not(.dark)) .pg-sheet:where(:not(.nego-doc)){ color:var(--color-text); }  /* the sheet INHERITED the app's ink; the gap between pages is desk and follows it */
+  /* Home's negotiated paper, cut into pages (9 Nov 2026): it keeps its own ink, the Negotiate page's (one-paper-everywhere):
+     the sheet's colour rule above passes the negotiation paper by, and its ink token stays what it inherits */
+  :root:not(.dark) #ig-paper .ig-redpaper .rl-paper.pg-sheet{ --color-text:inherit; }
   :root:not(.dark) :is(.rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send){
     --color-text:#141F1D; --color-divider:#E2E7E5; --surface-2:#EEF2F0;
     --color-neutral-100:#EEF2F0; --color-neutral-200:#E2E7E5; --color-neutral-300:#CBD3D0;

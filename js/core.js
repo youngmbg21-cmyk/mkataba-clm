@@ -8233,9 +8233,10 @@ async function openShareModal(c, opts={}){
   _shNoteTyped=false;
   /* THE LETTER ALWAYS STANDS BESIDE JAMBO (owner, 9 Nov 2026: "sometimes i get pages that are missing a jambo panel";
      the Send screen opened from Our paper stood alone): on a computer, a Send pressed on any page but Home lands on
-     the contract's paper with its Dossier first (roomHomeLand), then the letter opens beside his panel, as from Home */
-  if(c && !shareBesideJambo() && typeof window!=='undefined' && window.state && state.view!=='dashboard' && !window.PORTAL_MODE
-    && (window.innerWidth||0)>=1024 && typeof window.roomHomeLand==='function'){
+     the contract's paper with its Dossier first (roomHomeLand), then the letter opens beside his panel, as from Home;
+     the old room, opened only by name, keeps its own letter */
+  if(c && !shareBesideJambo() && typeof window!=='undefined' && window.state && state.view!=='dashboard' && state.view!=='workspace' && !window.PORTAL_MODE
+    && (window.innerWidth||0)>=1024 && typeof window.deskShellOn==='function' && window.deskShellOn() && typeof window.roomHomeLand==='function'){
     let landed=false; try{ landed=!!window.roomHomeLand(c.id); }catch(_){ landed=false; }
     if(landed){ for(let i=0;i<40 && !shareBesideJambo();i++) await new Promise(r=>setTimeout(r,50)); }
   }
