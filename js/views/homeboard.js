@@ -10568,7 +10568,9 @@ function hbPlace(){
     /* and the face of Jambo's tab that was open beside it — Fill in,
        Redlines, Before you sign (stage 5: the pages a refresh used to land
        back on are these faces now) */
-    const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face; } } catch (_){} }
+    const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face;
+    /* and History standing in the middle (the strip that kept it is gone, 9 Nov 2026): a refresh lands back on it */
+    if (typeof window.pd2HistUp === 'function' && pd2HistUp(c.id)) p.paper.mid = 'hist'; } } catch (_){} }
   /* the Board keeps Needs you's tab, kind and find words (Round A) */
   if (s.face === 'board' && typeof window.ndPlace === 'function'){ try { p.nd = ndPlace(); } catch (_){} }
   /* the Board keeps a contract's view and its contract (stage 4, 14 Oct 2026) */
@@ -10615,8 +10617,9 @@ function hbPlacePut(p){
       if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){
         /* the face through its own door (pdOpenOnHome), which puts the
            contract on the paper the same way */
-        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); return; }
-        igWalk([want.id], 0, { tab: want.tab || undefined }); return; }
+        const midBack = () => { if (want.mid === 'hist' && typeof window.hbStripBring === 'function') setTimeout(() => { try { hbStripBring(want.id, 'hist'); } catch (_){} }, 300); };
+        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); return; }
+        igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); return; }
       if (++n < 60) setTimeout(go, 150);
     };
     setTimeout(go, 0);

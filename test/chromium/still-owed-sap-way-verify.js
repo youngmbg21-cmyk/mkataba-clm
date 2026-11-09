@@ -168,16 +168,17 @@ const MEASURE = () => {
         await page.screenshot({ path: path.join(OUT, `paper-${at}.png`) });
       }
     }
-    /* ===== 5. BESIDE THE BOARD'S CARD ===== */
+    /* ===== 5. BRING IT UP: THE SAME GRID BESIDE ITS PAPER (RE-POINTED 9 Nov 2026: the Board's card, and the
+       Dossier it held beside the Board, are gone; "bring up" lands on the paper, whose grid is drawn as in 4) ===== */
     await page.setViewportSize({ width: 1440, height: 780 });
     await page.evaluate(() => { setView('dashboard'); if (typeof hbSetFace === 'function') hbSetFace('board'); });
     await waitFor(page, () => !!document.getElementById('hb-board'), 8000);
     await page.evaluate(id => hbStripBring(id), ID);
     /* RE-POINTED 22 Oct 2026 (the Checklist): beside the Board a row is its one line, what stands on it */
-    const held = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og-held tr[data-pd-og-row="value"] .pd-ck-v'), 12000);
+    const held = await waitFor(page, () => !!document.querySelector('#ig-dock tr[data-pd-og-row="value"] .pd-ck-v') && !!document.getElementById('ig-paper'), 12000);
     await pause(300);
     const mh = held ? await page.evaluate(MEASURE) : { up: false };
-    check('5 beside the Board the held grid is drawn', held && mh.up && mh.held, JSON.stringify({ held, up: mh.up }));
+    check('5 brought up, the grid is drawn beside its paper', held && mh.up, JSON.stringify({ held, up: mh.up }));
     if (mh.up) {
       check('5a its reading stands whole on the row\'s line', !!(mh.read && mh.read.line && mh.read.whole), JSON.stringify(mh.read));
       check('5b its "Fill in ›" sits inside the panel; nothing past the edge', mh.actsIn && mh.past.length === 0, JSON.stringify({ acts: mh.acts, past: mh.past }));

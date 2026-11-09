@@ -7992,8 +7992,10 @@ function pd2HistOpen(id){
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
   const wait = (typeof busyHtml === 'function') ? busyHtml(_pdT('hb_cv_reading')) : _pdE(_pdT('hb_cv_reading'));
   openModal(`<div class="pd2-hist" id="pd2-hist" data-pd2-hist="${_pdE(c.id)}"><p class="hb-cv-wait">${wait}</p></div>`,
-    { maxWidth: 'none', label: _pdT('pd_hg_head', { ref }), page: pdMidPage(_pdT('tab_history')), onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} } });
+    { maxWidth: 'none', label: _pdT('pd_hg_head', { ref }), page: pdMidPage(_pdT('tab_history')), onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} try { if (typeof placeSave === 'function') placeSave(); } catch (_){} } });
   pdMidOn(mk);
+  /* a refresh lands back on it (hbPlace keeps p.paper.mid) */
+  try { if (typeof placeSave === 'function') placeSave(); } catch (_){}
   const paint = () => { const host = document.getElementById('pd2-hist'); if (!host) return;
     const live = (typeof getContract === 'function' && getContract(c.id)) || c;
     try { roomPaintHistory(live, {}, host); } catch (e){ try { console.error('[hati] the history did not paint', e); } catch (_){} } };
@@ -8007,7 +8009,8 @@ function pd2HistOpen(id){
 function pd2PayUp(id){ return pdMidUp('pay:' + String(id)); }
 function pd2PayOpen(id){
   const mk = 'pay:' + String(id);
-  if (pdMidUp(mk)) return true;
+  /* already up: drawn again, so Edit pay pressed on it turns the table into boxes in place */
+  if (pdMidUp(mk)){ const h0 = document.querySelector('.pd2-pay[data-bs-host="pay"]'), c0 = pdContract(); if (h0 && c0 && typeof bsPaintPay === 'function') bsPaintPay(h0, c0, true); return true; }
   const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper() || !pdMidMay() || typeof bsPaintPay !== 'function') return false;
   try { if (typeof pdRedShows === 'function' && pdRedShows() && typeof pdRedClose === 'function') pdRedClose(); } catch (_){}
   openModal(`<div class="pd2-pay" data-bs-host="pay" data-bs-cid="${_pdE(c.id)}"></div>`,

@@ -66,13 +66,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const r2 = await page.evaluate(x => hbStripBring(x, 'hist'), id);
     check('2a hbStripBring(id, "hist") answers true', r2 === true, String(r2));
     check('2b …and History stands in the middle', await waitFor(page, () => !!document.querySelector('#pd2-hist .hist-trail, #pd2-hist table, #pd2-hist .hist-tools'), 12000));
-    await page.evaluate(x => hbStripBring(x, 'hist'), id);
-    check('2c pressed again, it closes', await waitFor(page, () => !document.getElementById('pd2-hist')));
+    await page.evaluate(x => hbStripBring(x, 'hist'), id); await pause(300);
+    check('2c a door asked again lands on it, never shuts it', await page.evaluate(() => !!document.getElementById('pd2-hist')));
+    const back2 = await page.$('#modal-root [data-pd-mid-back]'); if (back2) await back2.click();
+    check('2d "‹ Paper" shuts it', await waitFor(page, () => !document.getElementById('pd2-hist')));
 
     /* 3 — pay */
-    const may = await page.evaluate(x => { const c = getContract(x); return typeof bsPayMay === 'function' && bsPayMay(c); }, id);
-    if (may) {
-      const r3 = await page.evaluate(x => payEditOpen(x), id);
+    /* pay belongs to a contract that carries pay (a deal's value is not pay); pay-section-verify drives it whole */
+    const payId = await page.evaluate(() => { const c = state.contracts.find(c => typeof fxIsPay === 'function' && fxIsPay(c) && typeof bsPayMay === 'function' && bsPayMay(c)); return c ? c.id : null; });
+    const dealRefused = await page.evaluate(x => payEditOpen(x) === false, id);
+    check('3 (deal) Edit pay does not open for a deal', dealRefused);
+    const may = !!payId;
+    if (may) { await page.evaluate(x => pdOpenOnHome(x, 'copilot'), payId); await waitFor(page, x => !!pdContract() && pdContract().id === x && !!document.getElementById('ig-paper'), payId);
+      const r3 = await page.evaluate(x => payEditOpen(x), payId);
       check('3a payEditOpen answers true', r3 === true, String(r3));
       check('3b the pay editor stands in the middle with its boxes', await waitFor(page, () => !!document.querySelector('.pd2-pay .bs-pay-ed [data-bs-pay-f="amount"]'), 12000));
       check('3c its amount box takes the focus', await waitFor(page, () => !!document.activeElement && document.activeElement.getAttribute('data-bs-pay-f') === 'amount', null, 3000));
@@ -82,7 +88,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       check('3d Cancel leaves the table at rest, the page still up', await waitFor(page, () => !!document.querySelector('.pd2-pay') && !document.querySelector('.pd2-pay .bs-pay-ed') && !!document.querySelector('.pd2-pay [data-bs-pay-edit], .pd2-pay .bs-pay-say, .pd2-pay .bs-pay-t')));
       const back3 = await page.$('#modal-root [data-pd-mid-back]'); if (back3) await back3.click();
       check('3e "‹ Paper" closes it', await waitFor(page, () => !document.querySelector('.pd2-pay')));
-    } else check('3 (skipped) this contract\'s pay may not be edited', true);
+    } else check('3 (skipped) the sample book carries no pay contract; pay-section-verify drives it', true);
 
     /* 4 — the Board */
     await page.evaluate(() => { setView('dashboard'); if (typeof hbSetFace === 'function') hbSetFace('board'); });
@@ -100,7 +106,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         if (!pg || !dock) return null; const a = pg.getBoundingClientRect(), b = dock.getBoundingClientRect(); return { top: Math.round(a.top - b.top), right: Math.round(b.left - a.right), h: Math.round(a.height) }; });
       check(`5 ${w}×${hh}: History in the middle, level with the panel, nothing sideways`, ok && m && Math.abs(m.top) <= 2 && m.right >= -1 && m.right <= 24 && !(await sideways()), JSON.stringify(m));
       await page.screenshot({ path: path.join(OUT, `history-${w}x${hh}.png`) });
-      await page.evaluate(x => hbStripBring(x, 'hist'), id); await pause(200);
+      const bk = await page.$('#modal-root [data-pd-mid-back]'); if (bk) await bk.click(); await pause(200);
     }
     check('no page errors', errors.length === 0, errors.join(' | ') || undefined);
   } finally { await browser.close(); await h.stop(); }

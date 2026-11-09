@@ -36249,3 +36249,9 @@ f739 7g, f743 5c, f741, f874 5e, f925 3d re-pointed); history-and-pay-in-the-mid
 10/10 and glitch-fixes 43/43 re-pointed and green; the tidy sweep over the touched pages, both looks, green but for the
 Round 0 fault A2 (the Dossier card's 16/20) which waits for its fix round. The sweep's Board places now turn to the Board
 themselves (hbSetFace) — Home remembers its last face, and after a paper place setView('dashboard') showed the paper.
+GETTING PR #599 GREEN (same day): the browser checks that named the card were re-pointed or, where their subject is
+gone, removed (MAP-TESTS). Two were real faults the pay check found: Edit pay pressed on the pay page already open did
+nothing (pd2PayOpen returned early; it now draws the page again), and the pay editor opened for a deal with no pay
+(payEditOpen now asks bsIsPay). A door asking for History while it is up lands on it, never shuts it ("‹ Paper" is the
+way back), and a refresh reopens it (hbPlace keeps p.paper.mid). Main had moved five merges; brought in, the history
+notes kept both ways.

@@ -55,6 +55,8 @@ function hbStripBring(id, page){
   const mid = page === 'where' ? 'pd2StandsOpen' : page === 'hist' ? 'pd2HistOpen' : null;
   const onIt = () => { try { const pc = (typeof pdContract === 'function') ? pdContract() : null;
     return !!(pc && String(pc.id) === String(c.id) && typeof pdOnPaper === 'function' && pdOnPaper()); } catch (_){ return false; } };
+  /* A DOOR LANDS, IT NEVER SHUTS: History already up for this contract stays up ("‹ Paper" is its way back) */
+  if (page === 'hist' && onIt() && typeof window.pd2HistUp === 'function' && window.pd2HistUp(c.id)) return true;
   if (mid && typeof window[mid] === 'function' && onIt() && window[mid](c.id)) return true;
   if (roomHomeLand(c.id) === false) return false;
   if (mid && typeof window[mid] === 'function') setTimeout(() => { try { window[mid](c.id); } catch (_){} }, 400);
@@ -187,7 +189,8 @@ function bsPayDraft(c){
 /* THE ONE DOOR ONTO PAY: the pay editor in the middle beside the paper (pd2PayOpen); the Overview's Pay cell,
    the Fill-in face's "Edit pay" and the Dossier's owed row all come here. The paper comes up first where it is not. */
 function payEditOpen(id){
-  const c = bsContract(id); if (!c || !bsPayMay(c)) return false;
+  /* only a contract that carries pay has a pay editor (a deal's value is not pay, fxIsPay) */
+  const c = bsContract(id); if (!c || !bsIsPay(c) || !bsPayMay(c)) return false;
   if (bsPhone() || typeof window.pd2PayOpen !== 'function') return false;
   _bsPay = bsPayDraft(c);
   const onIt = (() => { try { const pc = (typeof pdContract === 'function') ? pdContract() : null;

@@ -180,9 +180,10 @@ const LAND = () => {
     ceRisks: !!document.getElementById('ce-tab-risks') && !!document.querySelector('#clause-editor'),
     /* RE-POINTED (owner, 23 Oct 2026): the risks row lands ON the Redlines face's "Risks to look at" list */
     rkLanded: (() => { const r = document.querySelector('#ig-dock #rl-risks'); return !!(r && r.classList.contains('is-landed')); })(),
-    /* the contract's Lifeline strip on top of the Board (step 8), and its page */
-    strip: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-id') : null; })(),
-    stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
+    /* RE-POINTED 9 Nov 2026 (the Lifeline strip is gone): a contract brought up is its paper on Home, and its page is
+       what stands in the middle beside it — Where we are (.pd2-stands), History (#pd2-hist), or the paper itself */
+    strip: (() => { try { const c = (window.intel && intel.paper) ? intel.paper : null; return c ? String(c.id) : null; } catch (_){ return null; } })(),
+    stripPage: document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.pd2-stands') ? 'where' : 'ov',
     /* Key terms standing in the middle (since the Details page retired, 22 Oct 2026), and its Move open */
     kt: !!document.querySelector('[data-pd-mid-kt]'),
     ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
@@ -241,14 +242,14 @@ const E = {
   /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): a door that opened the room lands on
      the paper with its Dossier (roomRetiredLand → roomHomeLand); Where we are, History and "bring up" keep the strip */
   dossier: id => L => E.copilot(id)(L),
-  strip: (id, page) => L => L.view === 'dashboard' && L.face === 'board' && (!L.cv || /^book:/.test(L.cv)) && L.strip === id && L.stripPage === (page || 'ov'),
+  strip: (id, page) => L => L.view === 'dashboard' && L.face === 'paper' && L.strip === id && L.stripPage === (page || 'ov'),
   page: v => L => L.view === v && !L.room,
   ngList: L => L.view === 'redline' && L.rlList,
 };
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the form beside the paper (Fill in the contract), its first owed box in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
-  strip: 'its strip on the Board', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)', kt: 'its paper on Home, Key terms in the middle' };
+  strip: 'its paper on Home (History or Where we are in the middle where named)', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its paper on Home, Where we are in the middle', stripDetails: 'its paper on Home', kt: 'its paper on Home, Key terms in the middle' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -572,9 +573,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const wsSays = async id => ((await owedFor(id)) ? SAYS.fill : SAYS.copilot);
     /* RE-POINTED (step 8): the Board's contract card is the Lifeline strip
        now, and its Open is the Workspace doors' one landing (roomHomeLand) */
-    await door(WS, 'the Board\'s contract strip, Open (MK-A1)', {
-      start: async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); hbDig('c:MK-A1'); }); await waitFor(page, () => !!document.querySelector('#bs-strip-MK-A1 [data-bs-open="MK-A1"]'), 8000); },
-      press: () => domClick('#bs-strip-MK-A1 [data-bs-open="MK-A1"]'), expect: await wsExpect('MK-A1'), says: await wsSays('MK-A1') });
+    /* the Board's contract strip and its Open RETIRED 9 Nov 2026 with the strip */
     await door(WS, 'Explorer\'s card (MK-A1)', {
       start: async () => { await page.evaluate(() => { setView('dashboard'); hbOpenExplorer(); }); await waitFor(page, () => window.hbFace && hbFace() === 'explorer', 8000);
         await page.evaluate(() => igExplain('MK-A1')); await waitFor(page, () => !!document.querySelector('[data-ig-ws="MK-A1"]'), 8000); },

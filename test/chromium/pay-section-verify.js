@@ -3,9 +3,10 @@
    Owner picked "Pay section — the SAP way", 17 Oct 2026 (piece 1 of the
    sensitive-contracts plan). f696 asks the arithmetic and the server. This
    file asks the reader's questions in a real browser:
-     1 · an employment contract's panel on Home: the job's five tiles (Role,
-         Starts, Probation ends, Notice, Whose move), no Value tile, and a Pay
-         table in the life line's place — base pay first, then each part
+     1 · an employment contract's pay page, in the middle beside its paper
+         (RE-POINTED 9 Nov 2026: the Board's contract card that held the job's
+         tiles and the pay table is gone; the table moved here): base pay
+         first, then each part
      2 · no figure adds it: the Board's total, the Contracts place's head and
          the List's value cell (a dash); a deal's panel is unchanged
      3 · Edit pay: the table as boxes, a refusal with its way forward, a part
@@ -60,12 +61,16 @@ async function login(browser, email, pass, vp) {
   await until(page, () => !!(window.currentUser && window.currentUser() && Array.isArray(window.state.contracts) && window.state.contracts.length > 4), null, 15000);
   return { ctx, page, errors };
 }
+/* RE-POINTED 9 Nov 2026 (the strip is gone): the pay page stands in the middle beside the contract's paper (pd2PayOpen) */
+
 const bring = async (page, id) => {
-  await page.evaluate(x => hbStripBring(x, 'ov'), id);
-  /* RE-POINTED 21 Oct 2026 (the report simplified): the facts row of The deal */
-  return until(page, x => !!document.querySelector(`#bs-strip-${x} .bs-facts`), id);
+  await page.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} });
+  await page.evaluate(x => pdOpenOnHome(x, 'copilot'), id);
+  await until(page, x => typeof pdContract === 'function' && !!pdContract() && pdContract().id === x && !!document.getElementById('ig-paper'), id, 10000);
+  await page.evaluate(x => pd2PayOpen(x), id);
+  return until(page, x => !!document.querySelector(`.pd2-pay[data-bs-cid="${x}"] .bs-sec-h`), id);
 };
-const stripText = (page, id, sel) => page.evaluate(([x, s]) => { const el = document.querySelector(`#bs-strip-${x} ${s}`); return el ? el.innerText : null; }, [id, sel]);
+const stripText = (page, id, sel) => page.evaluate(([x, s]) => { const el = document.querySelector(`.pd2-pay[data-bs-cid="${x}"] ${s}`.replace(/ \.bs-pay(?= |$)/, '')); return el ? el.innerText : null; }, [id, sel]);
 const serverPay = page => page.evaluate(async () => { const r = await fetch('/api/contracts/MK-E1'); const j = await r.json(); return { value: j.value, pay: j.pay || null }; });
 /* the save leaves after a short gather (persist's timer): ask the server until it says so, bounded */
 const untilServer = async (page, ok, ms = 8000) => {
@@ -84,49 +89,39 @@ const untilServer = async (page, ok, ms = 8000) => {
     /* a missing feature reports at once rather than waiting out the default */
     P.setDefaultTimeout(6000);
 
-    /* ============ 1. THE JOB'S TILES AND THE PAY TABLE ============ */
+    /* ============ 1. THE PAY TABLE ============ */
+    /* 1b–1f (the job's tiles) and 1j (pay in the life line's place) RETIRED 9 Nov 2026 with the card that drew them */
     const up = await bring(P, 'MK-E1');
-    check(up, '1a the employment contract comes up on the Board');
-    const tiles = await P.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-E1 .bs-f[data-bs-kpi]')].map(x => [x.getAttribute('data-bs-kpi'), x.querySelector('b').innerText, (x.querySelector('span') || {}).innerText || '']));
-    check(JSON.stringify(tiles.map(t => t[0])) === JSON.stringify(['role', 'starts', 'probation', 'noticeLen']), '1b four facts: Role · Starts · Probation ends · Notice (whose move is a Needs you row since 21 Oct 2026)', tiles.map(t => t[0]).join(','));
-    const t = Object.fromEntries(tiles.map(x => [x[0], x]));
-    check(t.role && t.role[1] === 'Senior Accountant', '1c Role reads the job title, whole', t.role && t.role[1]);
-    check(t.starts && t.starts[1] === '1 Oct 2026' && /No end date/.test(t.starts[2]), '1d Starts: the start day, and no end date said', t.starts && t.starts.join(' / '));
-    check(t.probation && t.probation[1] === '31 Dec 2026' && /3 months/.test(t.probation[2]), '1e Probation ends on its last day, three months on', t.probation && t.probation.join(' / '));
-    check(t.noticeLen && t.noticeLen[1] === '3 months', '1f Notice is a length, in months', t.noticeLen && t.noticeLen[1]);
-    const rows = await P.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-E1 .bs-pay-t tbody tr')].map(r => [...r.cells].map(c => c.innerText.trim())));
+    check(up, '1a the employment contract\'s pay page stands in the middle beside its paper');
+    const rows = await P.evaluate(() => [...document.querySelectorAll('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-t tbody tr')].map(r => [...r.cells].map(c => c.innerText.trim())));
     check(rows.length === 4, '1g the Pay table: base pay and three parts', rows.length + ' rows');
     check(rows[0] && rows[0][0] === 'Base pay' && rows[0][1] === 'Monthly' && rows[0][2] === 'KES 420,000' && rows[0][3] === '1 Oct 2026', '1h base pay first: Monthly · KES 420,000 · from 1 Oct 2026', rows[0] && rows[0].join(' | '));
     check(rows[3] && rows[3][0] === 'Performance bonus' && rows[3][2] === 'Up to 15% of base', '1i a part in words stays words', rows[3] && rows[3].join(' | '));
-    const lifeGone = await P.evaluate(() => !document.querySelector('#bs-strip-MK-E1 .bs-life') && !!document.querySelector('#bs-strip-MK-E1 .bs-pay'));
-    check(lifeGone, '1j pay sits where a deal\'s life line does (the drawing picked)');
     const head = await stripText(P, 'MK-E1', '.bs-pay .bs-sec-h');
     check(/kept apart from deal value/.test(head || '') && /Edit pay/.test(head || ''), '1k the section says it is kept apart, and carries Edit pay', head);
 
     /* ============ 2. NOTHING ADDS IT ============ */
     const total = await P.evaluate(() => hbBookData('all', { whole: true }).figs.value.v);
     check(total === 48000000 + 36000000 + 85000000 + 78000000, '2a the Board\'s total is the deals alone', String(total));
-    await bring(P, 'MK-A2');
-    const deal = await P.evaluate(() => ({ kpis: [...document.querySelectorAll('#bs-strip-MK-A2 .bs-f[data-bs-kpi]')].map(x => x.getAttribute('data-bs-kpi')).join(','),
-      life: !!document.querySelector('#bs-strip-MK-A2 .bs-line'), pay: !!document.querySelector('#bs-strip-MK-A2 .bs-pay') }));
-    check(deal.kpis === 'value,notice' && deal.life && !deal.pay, '2b a deal\'s panel: Value first, its line, no Pay (the report simplified, 21 Oct 2026)', JSON.stringify(deal));
+    /* RE-POINTED 9 Nov 2026 (the card is gone): a deal has no pay, so Edit pay does not open for it */
+    const dealPay = await P.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} return payEditOpen('MK-A2'); });
+    check(dealPay === false && !(await P.$('.pd2-pay[data-bs-cid="MK-A2"]')), '2b a deal has no pay: Edit pay does not open for it', String(dealPay));
     await P.evaluate(() => { setView('register'); regPlaceSet({ show: 'list' }); regRepaint(); });
     const listed = await until(P, () => [...document.querySelectorAll('tr')].some(r => /MK-E1/.test(r.innerText)), null, 10000);
     const row = await P.evaluate(() => { const r = [...document.querySelectorAll('tr')].find(x => /MK-E1/.test(x.innerText)); return r ? r.innerText : ''; });
     check(listed && !/420/.test(row) && /—/.test(row), '2c the Contracts list\'s value cell is a dash', row.replace(/\s+/g, ' ').slice(0, 160));
     const placeHead = await P.evaluate(() => (document.querySelector('[data-reg-home]') || document.body).innerText.match(/KES [\d.,]+[KMB]? on paper/));
     check(!!placeHead && /247M/.test(placeHead[0]), '2d the place\'s head adds the deals alone', placeHead && placeHead[0]);
-    await P.evaluate(() => { regPlaceSet({ show: 'wall' }); setView('dashboard'); });
-    await until(P, () => !!document.getElementById('hb-board'));
+    await P.evaluate(() => { regPlaceSet({ show: 'wall' }); });
 
     /* ============ 3. EDIT PAY ============ */
     await bring(P, 'MK-E1');
     await P.click('[data-bs-pay-edit="MK-E1"]');
-    const ed = await until(P, () => !!document.querySelector('#bs-strip-MK-E1 .bs-pay-ed [data-bs-pay-f="amount"]'));
+    const ed = await until(P, () => !!document.querySelector('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-ed [data-bs-pay-f="amount"]'));
     check(ed, '3a Edit pay turns the table into boxes, in place');
-    const boxes = await P.evaluate(() => ({ rows: document.querySelectorAll('#bs-strip-MK-E1 .bs-pay-ed tbody tr').length,
-      base: document.querySelector('#bs-strip-MK-E1 [data-bs-pay-f="amount"][data-bs-pay-i="0"]').value,
-      acts: [...document.querySelectorAll('#bs-strip-MK-E1 .bs-pay-acts button')].map(b => b.innerText.trim()).join(' · ') }));
+    const boxes = await P.evaluate(() => ({ rows: document.querySelectorAll('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-ed tbody tr').length,
+      base: document.querySelector('.pd2-pay[data-bs-cid="MK-E1"] [data-bs-pay-f="amount"][data-bs-pay-i="0"]').value,
+      acts: [...document.querySelectorAll('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-acts button')].map(b => b.innerText.trim()).join(' · ') }));
     check(boxes.rows === 4 && boxes.base === '420000', '3b every row as boxes, base pay first', JSON.stringify(boxes));
     check(/Add a part · Save · Cancel$/.test(boxes.acts), '3c Add a part, then Save, Cancel last', boxes.acts);
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {
@@ -135,41 +130,41 @@ const untilServer = async (page, ok, ms = 8000) => {
       const fit = await P.evaluate(() => {
         const b = document.querySelector('[data-bs-pay-save="MK-E1"]'); const r = b.getBoundingClientRect();
         const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        const s = document.querySelector('#bs-strip-MK-E1');
+        const s = document.querySelector('.pd2-pay[data-bs-cid="MK-E1"]');
         return { save: !!at && (at === b || b.contains(at)), side: s.scrollWidth - s.clientWidth, page: document.documentElement.scrollWidth - innerWidth };
       });
       check(fit.save && fit.side <= 1 && fit.page <= 1, `3d at ${vp.width}×${vp.height}: Save on screen, nothing scrolls sideways`, JSON.stringify(fit));
-      const s = await P.$('#bs-strip-MK-E1'); if (s) await s.screenshot({ path: path.join(OUT, `edit-${vp.width}x${vp.height}.png`) });
+      const s = await P.$('.pd2-pay[data-bs-cid="MK-E1"]'); if (s) await s.screenshot({ path: path.join(OUT, `edit-${vp.width}x${vp.height}.png`) });
     }
     await P.setViewportSize({ width: 1440, height: 780 });
-    await P.fill('#bs-strip-MK-E1 [data-bs-pay-f="amount"][data-bs-pay-i="0"]', 'a lot');
+    await P.fill('.pd2-pay[data-bs-cid="MK-E1"] [data-bs-pay-f="amount"][data-bs-pay-i="0"]', 'a lot');
     await P.click('[data-bs-pay-save="MK-E1"]');
     const refused = await until(P, () => [...document.querySelectorAll('.toast, [role="status"], #toast-host *')].some(x => /as a number/.test(x.textContent || '')), null, 4000);
     check(refused, '3e base pay in words is refused, with the way forward said');
     check((await serverPay(P)).value === 420000, '3f and nothing reached the record');
-    await P.fill('#bs-strip-MK-E1 [data-bs-pay-f="amount"][data-bs-pay-i="0"]', '450,000');
+    await P.fill('.pd2-pay[data-bs-cid="MK-E1"] [data-bs-pay-f="amount"][data-bs-pay-i="0"]', '450,000');
     await P.click('[data-bs-pay-add="MK-E1"]');
-    const added = await until(P, () => document.querySelectorAll('#bs-strip-MK-E1 .bs-pay-ed tbody tr').length === 5);
+    const added = await until(P, () => document.querySelectorAll('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-ed tbody tr').length === 5);
     const focused = await P.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-bs-pay-f'));
     check(added && focused === 'label', '3g Add a part draws a fifth row and puts the cursor in its name', String(focused));
-    await P.fill('#bs-strip-MK-E1 [data-bs-pay-f="label"][data-bs-pay-i="4"]', 'Phone allowance');
-    await P.fill('#bs-strip-MK-E1 [data-bs-pay-f="amount"][data-bs-pay-i="4"]', '5000');
+    await P.fill('.pd2-pay[data-bs-cid="MK-E1"] [data-bs-pay-f="label"][data-bs-pay-i="4"]', 'Phone allowance');
+    await P.fill('.pd2-pay[data-bs-cid="MK-E1"] [data-bs-pay-f="amount"][data-bs-pay-i="4"]', '5000');
     await P.click('[data-bs-pay-save="MK-E1"]');
-    const back = await until(P, () => !document.querySelector('#bs-strip-MK-E1 .bs-pay-ed') && document.querySelectorAll('#bs-strip-MK-E1 .bs-pay-t tbody tr').length === 5);
+    const back = await until(P, () => !document.querySelector('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-ed') && document.querySelectorAll('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-t tbody tr').length === 5);
     check(back, '3h Save closes the boxes and the table shows five rows');
     const reached = await untilServer(P, j => j.value === 450000 && !!j.pay && (j.pay.parts || []).some(p => p.label === 'Phone allowance' && p.amount === 5000));
     check(reached, '3i the server holds base pay 450,000 and the new part');
     const total2 = await P.evaluate(() => hbBookData('all', { whole: true }).figs.value.v);
     check(total2 === total, '3j a raise moves no total', String(total2));
     await P.click('[data-bs-pay-edit="MK-E1"]');
-    await until(P, () => !!document.querySelector('#bs-strip-MK-E1 .bs-pay-ed'));
-    await P.fill('#bs-strip-MK-E1 [data-bs-pay-f="amount"][data-bs-pay-i="0"]', '999999');
+    await until(P, () => !!document.querySelector('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-ed'));
+    await P.fill('.pd2-pay[data-bs-cid="MK-E1"] [data-bs-pay-f="amount"][data-bs-pay-i="0"]', '999999');
     await P.click('[data-bs-pay-cancel="MK-E1"]');
-    const cancelled = await until(P, () => !document.querySelector('#bs-strip-MK-E1 .bs-pay-ed'));
+    const cancelled = await until(P, () => !document.querySelector('.pd2-pay[data-bs-cid="MK-E1"] .bs-pay-ed'));
     const kept = await serverPay(P);
     check(cancelled && kept.value === 450000, '3k Cancel leaves the record alone', JSON.stringify({ cancelled, value: kept.value }));
     await P.setViewportSize({ width: 1440, height: 780 });
-    { const s = await P.$('#bs-strip-MK-E1'); if (s) await s.screenshot({ path: path.join(OUT, 'panel-1440x780.png') }); }
+    { const s = await P.$('.pd2-pay[data-bs-cid="MK-E1"]'); if (s) await s.screenshot({ path: path.join(OUT, 'panel-1440x780.png') }); }
 
     /* ============ 4. KEY TERMS: THE PAY ROW, AND ITS ONE DOOR ============ */
     /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the terms are Key terms' rows
@@ -185,8 +180,8 @@ const untilServer = async (page, ok, ms = 8000) => {
     const noBox = await P.evaluate(() => !document.querySelector('[data-pd-mid-kt] #pd-kt input[data-kt="value"], [data-pd-mid-kt] #pd-kt [data-ktm="value"]'));
     check(door && noBox, '4c in Key terms, Change on Pay is not a box: its door is Edit pay');
     if (door) await P.click('[data-pd-mid-kt] #pd-kt [data-ov-pay-edit="MK-E1"]');
-    const landed = await until(P, () => !!document.querySelector('.bs-pay-ed'), null, 6000);
-    check(landed, '4d the door lands on the panel with the Pay boxes open');
+    const landed = await until(P, () => !!document.querySelector('.pd2-pay .bs-pay-ed'), null, 6000);
+    check(landed, '4d the door lands on the pay page in the middle with the Pay boxes open');
     await P.evaluate(() => { const b = document.querySelector('[data-bs-pay-cancel="MK-E1"]'); if (b) b.click(); });
 
     /* ============ 5. SIGNED; AND A READER WHO MAY NOT SEE MONEY ============ */
@@ -196,7 +191,7 @@ const untilServer = async (page, ok, ms = 8000) => {
     check(!signedBtn && /a change of pay is an amendment/.test(signed || ''), '5a a signed contract says why pay does not open, where the button would be', signed);
     const N = await login(browser, 'novalues@example.co.ke', 'their-own-pass-9');
     await bring(N.page, 'MK-E1');
-    const hidden = await N.page.evaluate(() => { const s = document.querySelector('#bs-strip-MK-E1'); return s ? s.innerText : ''; });
+    const hidden = await N.page.evaluate(() => { const s = document.querySelector('.pd2-pay[data-bs-cid="MK-E1"]'); return s ? s.innerText : ''; });
     check(!/420,000|450,000|60,000/.test(hidden) && /you are not shown money/.test(hidden), '5b no pay figure reaches them; the section says why');
     check(!(await N.page.$('[data-bs-pay-edit="MK-E1"]')), '5c and no Edit pay');
     await N.ctx.close();
@@ -204,9 +199,8 @@ const untilServer = async (page, ok, ms = 8000) => {
     /* ============ 6. SVENSKA; THE PHONE ============ */
     await P.evaluate(() => { if (window.langSet) langSet('sv'); });
     await bring(P, 'MK-E1');
-    const sv = await stripText(P, 'MK-E1', '.bs-pay');
-    const svTiles = await stripText(P, 'MK-E1', '.bs-facts');
-    check(/Lön/.test(sv || '') && /Grundlön/.test(sv || '') && /Roll/.test(svTiles || '') && /Uppsägningstid/.test(svTiles || ''), '6a in Swedish: Lön, Grundlön, Roll, Uppsägningstid');
+    const sv = await stripText(P, 'MK-E1', '');
+    check(/Lön/.test(sv || '') && /Grundlön/.test(sv || ''), '6a in Swedish: Lön, Grundlön (the job\'s tiles, Roll and Uppsägningstid, left with the card, 9 Nov 2026)', (sv || '').slice(0, 120));
     await P.evaluate(() => { if (window.langSet) langSet('en'); });
     const phone = await P.evaluate(() => (typeof mTermsHtml === 'function') ? mTermsHtml(getContract('MK-E1')).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ') : '');
     check(/Pay KES 450,000 · Monthly/.test(phone) && !/Contract value/.test(phone), '6b the phone\'s terms say Pay, with how often', phone.slice(0, 200));
