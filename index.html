@@ -11034,7 +11034,23 @@
   /* LENSES (the Lenses round, 8 Nov 2026): the Lens group stands on its own line above the views, in the bar's
      own clothes; a lens on wears the needs-attention amber. The legend's lens part: a ring for each mark, its
      count at the row's end, one bar of the counts. Colours are the stage's own (--hb-*), never typed here. */
-  .ig-brain .ig-viewbar .ig-lensrow{position:absolute;right:0;bottom:calc(100% + 6px);display:flex;justify-content:flex-end;white-space:nowrap}
+  .ig-brain .ig-viewbar .ig-lensrow{display:flex;white-space:nowrap}
+  /* ONE LINE (owner, 9 Nov 2026: "the legend and the other buttons should all be in one line and the same font"): the
+     legend's head, the Lens group, the views and Fold all share the stage's foot line, the legend's head the bar's height
+     and type; the camera (Still, zoom) stands in the top-right corner. Past the room, the bar wraps upward, never over the legend. */
+  .ig-brain .ig-viewbar{left:276px;justify-content:flex-end;flex-wrap:wrap-reverse;row-gap:6px}
+  .ig-brain .ig-viewbar .ig-seg button,.ig-brain .ig-viewbar .ig-seg .ig-seg-k{padding:0 7px}
+  .ig-brain .ig-camerabar{position:absolute;right:12px;top:10px;z-index:2;display:flex;align-items:center;gap:6px}
+  .ig-brain .ig-note{max-width:calc(100% - 210px)}
+  /* a legend row is a press (owner, 9 Nov 2026): it lights on hover, and the picked one wears the bar's pressed look */
+  .ig-brain .igl [data-ig-pick]{cursor:pointer;border-radius:4px;margin:0 -4px;padding-left:4px;padding-right:4px}
+  @media (hover:hover){ .ig-brain .igl [data-ig-pick]:hover{background:rgba(var(--hb-gw),.14)} }
+  .ig-brain .igl [data-ig-pick][aria-pressed="true"]{background:rgba(var(--hb-gw),.24);color:var(--hb-ink)}
+  .ig-brain .igl [data-ig-pick]:focus-visible{outline:2px solid var(--hb-amber);outline-offset:1px}
+  .ig-brain .igl .igl-head .igl-k{font-size:12px;font-weight:500;margin:0;color:var(--hb-mute)}
+  .ig-brain .igl.is-folded{padding:0 4px 0 10px}
+  .ig-brain .igl.is-folded .igl-head{height:var(--ctl-h-sm);margin:0}
+  .ig-brain .igl.is-folded .igl-head .ui-btn{height:var(--ctl-h-sm);width:var(--ctl-h-sm)}
   .ig-brain .ig-seg .ig-seg-k{height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-mute);display:inline-flex;align-items:center;border-right:1px solid rgba(var(--hb-ln),.14)}
   .ig-brain .ig-seg.ig-lens button[aria-pressed="true"]{background:rgba(242,178,76,.26);color:var(--hb-ink)}
   .ig-brain .igl .igl-sw.igl-ring{background:transparent;border:2px solid;box-sizing:border-box}
