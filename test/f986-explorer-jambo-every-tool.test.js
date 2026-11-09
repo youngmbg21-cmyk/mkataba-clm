@@ -1,4 +1,4 @@
-/* f982 — EXPLORER'S JAMBO GETS EVERY MAP TOOL, AND HaTi CHECKS HIS READING (the owner's audit, 9 Nov 2026:
+/* f986 — EXPLORER'S JAMBO GETS EVERY MAP TOOL, AND HaTi CHECKS HIS READING (the owner's audit, 9 Nov 2026:
    "explorers jambo does not take instructions well"; then "go ahead and build it").
 
    Typed on Explorer, the words go to the AI (igTalkFirst). An audit of 32 everyday requests typed against the real
@@ -59,7 +59,7 @@ function world() {
 const last = win => win.eval('intel.history[intel.history.length-1]') || {};
 
 /* ---------- (1) ONE STEP LIST, TWO HOSTS; THE ROUTE KEEPS THE LENS ---------- */
-test('f982 (1) the server\'s step list is the browser\'s, the tool offers it off the Board, and the local twin names it', () => {
+test('f986 (1) the server\'s step list is the browser\'s, the tool offers it off the Board, and the local twin names it', () => {
   const win = world();
   const m = /const GRAPH_STEP_DOS = (\[[^\]]*\]);/.exec(SERVER);
   assert.ok(m, 'the server declares GRAPH_STEP_DOS');
@@ -70,7 +70,7 @@ test('f982 (1) the server\'s step list is the browser\'s, the tool offers it off
   assert.match(AI, /steps, within:s\.within===true/, 'and hands them on');
 });
 
-test('f982 (1b) POST /api/ai/graph keeps a lens, cleans the steps, says the whole map and the rules — red at the parent: the lens was dropped', async () => {
+test('f986 (1b) POST /api/ai/graph keeps a lens, cleans the steps, says the whole map and the rules — red at the parent: the lens was dropped', async () => {
   const h = await startHati();
   try {
     const { admin: c } = await seedWorkspace(h, { contracts: [fixtureContract('MK-G1', 'Office Lease', 'Twiga', 'sales', 5e6, 'Signed')], approvalRules: [] });
@@ -101,7 +101,7 @@ test('f982 (1b) POST /api/ai/graph keeps a lens, cleans the steps, says the whol
 });
 
 /* ---------- (2) THE WHOLE MAP ON SCREEN ---------- */
-test('f982 (2) graphAskScreen carries the view and every role, the lens, the date line, as of and names', () => {
+test('f986 (2) graphAskScreen carries the view and every role, the lens, the date line, as of and names', () => {
   const win = world();
   win.eval("intel.colourBy='risk'; intel.lens='people'; intel.tlUntil='2027-03-31'; intel.names={ mode:'none' };");
   const r = win.graphAskScreen().recipe;
@@ -110,7 +110,7 @@ test('f982 (2) graphAskScreen carries the view and every role, the lens, the dat
 });
 
 /* ---------- (3) A STEP IS READ BY THE MAP'S OWN READERS ---------- */
-test('f982 (3) igStepActs reads each step into the free reader\'s acts; what it cannot place is listed', () => {
+test('f986 (3) igStepActs reads each step into the free reader\'s acts; what it cannot place is listed', () => {
   const win = world();
   const r = win.igStepActs([
     { do: 'lens', lens: 'risk' }, { do: 'dateLine', date: '2027-03-31', time: 'expiry' }, { do: 'whatIf', party: 'naivas' },
@@ -135,7 +135,7 @@ test('f982 (3) igStepActs reads each step into the free reader\'s acts; what it 
 });
 
 /* ---------- (4) THE STEPS ARE CARRIED OUT, SAID IN HaTi'S WORDS ---------- */
-test('f982 (4) intelGraphApply carries out a lens and a date line from steps, and says them in HaTi\'s words', () => {
+test('f986 (4) intelGraphApply carries out a lens and a date line from steps, and says them in HaTi\'s words', () => {
   const win = world();
   win.intelGraphApply('risk lens and a line at 31 March', { steps: [{ do: 'lens', lens: 'risk' }, { do: 'dateLine', date: day(100), time: 'expiry' }],
     answer: 'I have marked 31 March with a dashed line.', note: 'x' });
@@ -154,7 +154,7 @@ test('f982 (4) intelGraphApply carries out a lens and a date line from steps, an
   assert.match(last(w3).text, /Not placed on the map: Nobody Ltd/);
 });
 
-test('f982 (4b) undo as a step takes back the last change', () => {
+test('f986 (4b) undo as a step takes back the last change', () => {
   const win = world();
   win.igRecipePush(); win.eval("intel.colourBy='risk'");
   win.intelGraphApply('undo that', { steps: [{ do: 'undo' }], note: 'x' });
@@ -162,7 +162,7 @@ test('f982 (4b) undo as a step takes back the last change', () => {
 });
 
 /* ---------- (5) HaTi NAMES THE SET ---------- */
-test('f982 (5) the tag is read off the where the map applied — the audit\'s "Naivas excluded" over Naivas\'s own', () => {
+test('f986 (5) the tag is read off the where the map applied — the audit\'s "Naivas excluded" over Naivas\'s own', () => {
   const win = world();
   win.intelGraphApply('what if Naivas left', { where: { counterparty: ['Naivas'] }, note: 'Naivas excluded', answer: '' });
   const lens = win.eval('intel.lenses').find(l => l.action === 'filter');
@@ -178,7 +178,7 @@ test('f982 (5) the tag is read off the where the map applied — the audit\'s "N
 });
 
 /* ---------- (6) A COUNT IN WORDS; NO DESCRIPTION OF THE MAP ---------- */
-test('f982 (6) "Eight contracts" over two shown is not printed; a sentence that names something is kept', () => {
+test('f986 (6) "Eight contracts" over two shown is not printed; a sentence that names something is kept', () => {
   assert.equal(world().igCountSaid('Eight contracts expire by March.'), 8);
   assert.equal(world().igCountSaid('12 agreements'), 12);
   const win = world();
@@ -195,7 +195,7 @@ test('f982 (6) "Eight contracts" over two shown is not printed; a sentence that 
 });
 
 /* ---------- (7) THE CHECK ---------- */
-test('f982 (7) the free reading against the AI\'s: the gap, and only arrangements nobody asked for are trimmed', () => {
+test('f986 (7) the free reading against the AI\'s: the gap, and only arrangements nobody asked for are trimmed', () => {
   const win = world();
   const free = win.igFreeReading('show me the risk lens');
   assert.ok(free && free.kinds.has('lens:risk'));
@@ -227,7 +227,7 @@ test('f982 (7) the free reading against the AI\'s: the gap, and only arrangement
   assert.ok(m.choices[1].graph, 'the second carries Jambo\'s reading as it came');
 });
 
-test('f982 (7b) intelGraphAsk sends the gap back ONCE, named, before the map changes', () => {
+test('f986 (7b) intelGraphAsk sends the gap back ONCE, named, before the map changes', () => {
   const src = IG.slice(IG.indexOf('async function intelGraphAsk('), IG.indexOf('function igGapNote('));
   assert.match(src, /const free=igFreeReading\(q\);/);
   assert.match(src, /igGapNote\(free,gap\)/);
@@ -237,7 +237,7 @@ test('f982 (7b) intelGraphAsk sends the gap back ONCE, named, before the map cha
 });
 
 /* ---------- (8) THE NUMBER STAYS ON THE MAP ---------- */
-test('f982 (8) on Explorer a contract number inside a sentence is not a move; alone it still opens', () => {
+test('f986 (8) on Explorer a contract number inside a sentence is not a move; alone it still opens', () => {
   const src = CA.slice(CA.indexOf('function jamboRefGo('), CA.indexOf('function jamboRefGo(') + 1600);
   assert.match(src, /if \(R\.question && jamboOnExplorer\(\)\) return false;/);
   assert.ok(src.indexOf('jamboOnExplorer()') > src.indexOf('if (!R.c){'), 'a number nobody can open is still said');

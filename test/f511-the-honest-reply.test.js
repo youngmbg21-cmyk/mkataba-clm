@@ -90,7 +90,7 @@ describe('F511 (C) — a set Copilot chose', () => {
   test('the panel names the set and rewrites the reply on the board (source)', () => {
     const src = strip(read('js/views/intelligence.js'));
     /* RE-POINTED 9 Nov 2026 (Explorer's Jambo audit): on the Board the set is still named as before; off it, on the map,
-       HaTi names it off the rule it applied (setLabel, f982 (5)) */
+       HaTi names it off the rule it applied (setLabel, f986 (5)) */
     assert.match(src, /addLens\(\{ label:onMap\?setLabel:\(igBoardTitle\(q,res\)\|\|res\.note/);
     assert.match(src, /listTitle:onMap\?\(\(ids&&ids\.length\)\?setLabel:stepTitle\):\(igBoardTitle\(q,res\)\|\|/);
     /* the question rides along (stage 3d): "how much is in drafts" is answered with the set's value */

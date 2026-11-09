@@ -2705,7 +2705,7 @@ function igLookActs(look){
    families, links, undo, reset, saved views, Your day, explain, a walk, outliers and the renewal cliff were answered
    with the nearest regroup. Now:
    - THE STEPS: the AI names any of the map's own acts as a step (`steps`, GRAPH_STEP_DOS on the server = IG_STEP_DOS
-     here, f982); each is read here by the map's own readers into the free reader's acts (igStepActs) and carried out
+     here, f986); each is read here by the map's own readers into the free reader's acts (igStepActs) and carried out
      by igRecipeRun, which says in HaTi's words what it did. A step whose words the map cannot place is SAID, never
      guessed (`int_step_unread`).
    - THE CHECK: the free reader reads the same words (igFreeReading). Where it understood the WHOLE sentence, the AI's
