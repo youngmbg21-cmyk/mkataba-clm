@@ -604,6 +604,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Round 2: round5-new-look-verify 5 (the agenda folds quiet weeks), round6-new-look-verify 3 (no how-to line under the wall).
 - Round 3: contract-new-look-verify 1 (Signer ends in Change), negotiate-new-look-verify 5 (History reachable from the links above the box), round8-phone-verify 2b (the whole leads).
 - The new-look browser set: round5/6/7/7b/9-new-look-verify, new-look-frame-verify, reads-*-verify, doors-verify, obligation-opens-on-the-paper-verify.
+- A press stays where it was (9 Nov): `node --test test/f979-a-press-stays-where-it-was.test.js`; reads-*-verify, my-notes-verify.
 - The way back (9 Nov): `node --test test/f978-the-way-back-is-where-you-were.test.js`; jambo-words-verify 7c.
 - Fix round 2 (9 Nov): f977 fix 9 (the negotiated paper and a template's page in pages); negotiate-new-look-verify, home-paper-clauses-verify, the-read-bar-and-notes-verify.
 - Fix round 1 (9 Nov): f977 'fix' tests; f955 3 (every page name, one word or several); f925 (the Board's helper `ndRowsN`); reads-and-columns-as-drawn-verify 4 (the head is the name and ⋯ alone).

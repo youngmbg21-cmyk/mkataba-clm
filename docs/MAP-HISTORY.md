@@ -36148,3 +36148,10 @@ redrawn under the caret moves the words being typed); said to the owner.
   stale place on top. Now every page drawn notes where the reader stood (`caTrailSeen` from `renderPageHeader` and at the
   top of `caTrailTop`), and a step back by the trail is not noted again (`_caBackStep`). jambo-words-verify 7c re-pointed:
   the way back is the Calendar the reader last stood on, not MK-W2's paper two moves earlier. f978.
+- A PRESS STAYS WHERE IT WAS PRESSED, AND AN ITALIC WORD IS NEVER CUT (same day, on Reads): "The column as highlighted is
+  cutting off some of the words. Also, when i press on one of the lines, the page kicks me to the top of the page... I
+  should remain on where I pressed". Measured at the parent: a read's table 900 → 0 on a row press (`rdTablePaint` wrote
+  the scroller anew), the list of reads 354 → 0 and My notes 300 → 0 (`renderReads`/`renderMyNotes` draw the page again);
+  "Not found" (italic, `.ac-ans.tone-none`) lost its last letter's lean inside an ellipsis box (`.rdt-w`, `.reg-table .ac-a`).
+  Now each keeps its scroll while the same list is in view, and the italic word keeps .2em at its right. Swept: Approvals,
+  Parties, Obligations, Pulse, Import, Requests, People and Our paper only mark the chosen row — they never jumped. f979.

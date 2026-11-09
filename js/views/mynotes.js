@@ -318,7 +318,19 @@ function mnRowsPaint(){
   }
   if (_mn.mode === 'view' && String(_mn.sel) !== was) mnSidePaint(wide);
 }
+/* A PRESS STAYS WHERE IT WAS PRESSED (owner, 9 Nov 2026: "when i press on one of the lines, the page kicks me to the
+   top"): a row press draws the page again, so the list's scroll is put back where it stood while the ledger is still
+   the one in view (a new filter or tab starts at its top) */
+let _mnScrollKey = '';
 function renderMyNotes(){
+  const key = [state.view, _mn.filter, _mn.ct, _mn.q].join('|');
+  const sc0 = document.querySelector('#content .cu-scroll, #content .mn-scroll, #content .ins-scroll');
+  const top0 = sc0 && _mnScrollKey === key ? sc0.scrollTop : 0;
+  renderMyNotesDraw();
+  _mnScrollKey = key;
+  if (top0){ const sc = document.querySelector('#content .cu-scroll, #content .mn-scroll, #content .ins-scroll'); if (sc) sc.scrollTop = top0; }
+}
+function renderMyNotesDraw(){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof mineLoaded === 'function' && !mineLoaded() && typeof mineLoad === 'function')
     mineLoad().then(() => { if (state.view === 'mynotes') renderMyNotes(); });

@@ -271,7 +271,11 @@ function rdTablePaint(){
   if (!card){ renderReads(); return; }
   const P = rdTableHtml(now);
   const keep = document.activeElement && document.activeElement.id === 'rdt-q' ? document.activeElement.selectionStart : null;
+  /* A PRESS STAYS WHERE IT WAS PRESSED (owner, 9 Nov 2026: "when i press on one of the lines, the page kicks me to the top
+     of the page... I should remain on where I pressed"): the table is drawn again, its scroll put back where it stood */
+  const was = document.getElementById('rd-scroll'); const top = was ? was.scrollTop : 0;
   card.innerHTML = `${P.head}<div class="ins-scroll rd-wrap scroll-thin" id="rd-scroll">${P.body}</div>${P.foot}`;
+  if (top){ const sc = document.getElementById('rd-scroll'); if (sc) sc.scrollTop = top; }
   if (keep != null){ const q = document.getElementById('rdt-q'); if (q){ q.focus(); try { q.setSelectionRange(keep, keep); } catch (_){ /* not a text box */ } } }
   const page = document.getElementById('rd-page');
   if (page && page.getAttribute('data-ins') === '1') rdTableSidePaint(now);
@@ -379,7 +383,19 @@ async function rdLoad(force){
   _rd.rows = rdRows();
   if (state.view === 'reads') renderReads();
 }
+/* A PRESS STAYS WHERE IT WAS PRESSED (owner, 9 Nov 2026), on the list of reads too: a row press draws the page again
+   (renderReads), so the list's scroll is put back where it stood — unless the page now shows something else (the list
+   became a read's table, or the other way round), which starts at its top */
+let _rdScrollMode = '';
 function renderReads(){
+  const mode = _rd.table ? 't:' + _rd.table.key : 'list';
+  const sc0 = document.querySelector('#rd-page #rd-scroll, #rd-page .cu-scroll');
+  const top0 = sc0 && _rdScrollMode === mode && state.view === 'reads' ? sc0.scrollTop : 0;
+  renderReadsDraw();
+  _rdScrollMode = mode;
+  if (top0){ const sc = document.querySelector('#rd-page #rd-scroll, #rd-page .cu-scroll'); if (sc) sc.scrollTop = top0; }
+}
+function renderReadsDraw(){
   const host = document.getElementById('content'); if (!host) return;
   if (!_rd.rows){ _rd.rows = rdRows(); rdLoad(true); }
   else if (Date.now() - _rd.at > 60000) rdLoad();
@@ -725,7 +741,7 @@ function readsCss(){ return `
   .rdt-t td{vertical-align:middle}
   .rdt-ans{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%}
   .rdt-ans .ac-ans{min-width:0;display:inline-flex;align-items:center;gap:6px}
-  .rdt-w{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .rdt-w{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding-right:.2em}
   .rdt-sec{flex:none;font-size:11.5px;color:var(--color-quiet);background:var(--color-neutral-100);border-radius:6px;padding:1px 6px;white-space:nowrap}
   .rdt-ck{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-size:12.5px}
   .rdt-empty{padding:24px 16px;margin:0;color:var(--color-quiet)}
