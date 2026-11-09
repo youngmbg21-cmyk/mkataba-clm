@@ -36186,3 +36186,31 @@ in CTRL), a folder tile is a button-card of four lines, not a one-liner (`.ctf-c
 tab back afterwards (TAB_RESTORE): a page remembers its tab, and Jambo's house opened on Agents for the next screen.
 Today's look: 399 + 68 + 19 passed, 0 faults left; the new look: the Round 0 faults (A2 the Dossier card, A3 the preview
 blank, A4 the Filed-in label) stand red there, as they should until their fix rounds.
+
+## THE STRIP IS GONE — THE ONE DOOR LANDS ON THE PAPER (owner, 9 Nov 2026)
+The owner, over a picture of a contract's card on the Board (MK-311 · In Review · round 2: Needs you, The deal, Key
+terms, What Jambo read; the foot Keep · Ask why · Let it go · Brought up by you · 13:58): "delete this page attached
+from hati". It was THE LIFELINE STRIP (the overnight work order's step 8, 14–15 Oct 2026; later "a contract brought up
+is a page on the desk", round 7, and "the report, simplified", 21 Oct). Removed whole: js/views/boardstrip.js keeps
+only what the rest of HaTi reads (bsObRows, bsFamRows, bsPrivateOf and its pill, bsShortName, bsDay, the pay readers
+and paySet, the NDA readers and ndaSet, bsReadWait, bsGo); its 1625 lines are 536; its 260 bs_* words per book are
+the pay, family, obligation and private-pill words only; its styles (two blocks, three strays) are the lane colours,
+the family rows and the lock pill; the Board's stored strips and card, the desk bar's 'card' row view, Jambo's
+"held card" face (pdCardNow, the glance, the chips, pdHeldFollow), the brain parts stripfamily · cardpage · pageglance
+and the report's HUNT are gone. THE DOORS KEPT THEIR NAME AND MOVED THEIR LANDING: hbStripBring(id, page) is still the
+one door (the Board's rows, "Bring up MK-…", ⌘K, the family line, the Approvals panel's History, the Parties NDA
+column, the old room's tabs through roomRetiredLand) and lands on the paper with its Dossier (roomHomeLand);
+'where' opens Where we are in the middle (pd2StandsOpen, as before); 'hist' opens HISTORY IN THE MIDDLE — new,
+pd2HistOpen, the one builder roomPaintHistory in a middle page like Where we are, "‹ Paper" back — because the strip
+was History's only home on a computer; the pay editor, which lived only on the strip, is PAY IN THE MIDDLE
+(pd2PayOpen, bsPaintPay's table at rest and as boxes); the Parties NDA column opens the NDA's facts beside the paper
+(ndaEditOpen). Tests of the card itself were deleted (f709, f742, f744, board-strip, contract-page,
+home-held-contract), the ones that only touched it re-pointed; the browser checks that drew History, pay or the NDA
+on the strip are listed as owed in MAP-TESTS and are not yet re-pointed. The handbook's Dossier chapter still names
+the History row; its picture is unchanged (the row is, where it lands is not); the flow map's history place routes
+through the same door.
+Measured after the removal: lint 0 errors; the touched node tests 386/386 (f709, f742, f744 deleted; f283 1b, f673 7a,
+f739 7g, f743 5c, f741, f874 5e, f925 3d re-pointed); history-and-pay-in-the-middle-verify 20/20 (new); jambos-work-open
+10/10 and glitch-fixes 43/43 re-pointed and green; the tidy sweep over the touched pages, both looks, green but for the
+Round 0 fault A2 (the Dossier card's 16/20) which waits for its fix round. The sweep's Board places now turn to the Board
+themselves (hbSetFace) — Home remembers its last face, and after a paper place setView('dashboard') showed the paper.

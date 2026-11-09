@@ -373,11 +373,13 @@ describe('f739 (7) check #1\'s differences, built', () => {
     const { sb } = stage();
     const landed = []; const opened = [];
     sb.landOn = t => { landed.push(t); return Promise.resolve(null); };
+    const nda = []; sb.ndaEditOpen = id => { nda.push(id); return true; };
     sb.hbStripBring = () => true;
     sb.dirOpenContract = id => opened.push(id);
     sb.cuOpenNda('MK-KF2');
-    assert.equal(landed.length, 1);
-    assert.match(read('js/views/customers.js'), /\[data-bs-kpi="value"\]/);
+    /* RE-POINTED 9 Nov 2026 (the strip gone): the NDA's facts open beside the paper (ndaEditOpen, the one door) */
+    assert.deepEqual(nda, ['MK-KF2']); assert.equal(landed.length, 0);
+    assert.match(read('js/views/customers.js'), /ndaEditOpen\(id\)\) return;/);
     sb.cuOpenAgreement('MK-KF1');
     assert.deepEqual(opened, ['MK-KF1']);
   });

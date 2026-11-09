@@ -137,9 +137,9 @@ describe('f874 (5) Obligations, Import, the one tab, History, the bar', () => {
     assert.match(f, /return dayKey\(e\)\|\|i18t\('ct_hist_earlier'\)/);
     assert.match(f, /const theirName=lane==='theirs'&&!e\.actor\?/);
     assert.match(f, /<div class="hist-wfull" role="row">/);
-    assert.equal(BOOKS.en.bs_open_ws, 'Open the paper');
   });
   test('5e the bar names the page in front, never a letter left behind', () => {
-    assert.match(fnRegion(CN, 'deskKeyNow'), /if \(sk && !dkSendWaiting\(\) && onPaper && !card\) return sk;/);
+    /* RE-POINTED 9 Nov 2026: the contract's card on the Board is gone, so only the paper's face holds the letter */
+    assert.match(fnRegion(CN, 'deskKeyNow'), /if \(sk && !dkSendWaiting\(\) && onPaper\) return sk;/);
   });
 });

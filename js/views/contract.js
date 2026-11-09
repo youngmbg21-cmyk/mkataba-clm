@@ -5723,8 +5723,8 @@ function roomGoTab(c,k){
     return;
   }
   /* ---- THE ROOM IS RETIRED (the overnight work order, step 8; owner's "Go",
-     14 Oct 2026) ---- its two tabs open the contract's strip on the Board:
-     Overview, or Where we are for 'stands'. Inside the room opened by name
+     14 Oct 2026; the strip gone 9 Nov 2026) ---- its two tabs land on the paper with its
+     Dossier, or Where we are in the middle for 'stands'. Inside the room opened by name
      (state.view 'workspace') a tab is still a pane swap; the phone keeps its
      own screens (roomRetiredLand says false there). */
   if((k==='terms'||k==='stands') && state.view!=='workspace' && window.roomRetiredLand && roomRetiredLand(c.id,k)) return;
@@ -8426,8 +8426,6 @@ function wireKtBriefCard(c,opts){
          two agree. */
       try{ paintKtTriage(c); }catch(_){}
       try{ if(after) after(); }catch(_){}
-      /* …and the strip around it, whose band reads the brief too */
-      try{ if(state.view==='dashboard'&&window.bsRefresh) bsRefresh(); }catch(_){}
       if(r) openCheckPanel(c,'brief');
     }catch(e){ b.disabled=false; b.textContent=word; }
   }); });
@@ -8499,8 +8497,7 @@ function renderKeyTermsSide(c){
      desk's page, where that ⋯ is. The room opened by name has no such ⋯, so
      there the section keeps its own buttons (joined at the integration,
      19 Oct 2026: Create an amendment never loses its door). */
-  try{ if(window.renderFamilySection){ const fs=document.getElementById('family-section');
-    if(fs&&fs.closest('.bs-strip')) renderFamilySection(c,{bare:true,drawn:true}); else renderFamilySection(c,{bare:true}); } }catch(e){}
+  try{ if(window.renderFamilySection&&document.getElementById('family-section')) renderFamilySection(c,{bare:true}); }catch(e){}
   wireKtBriefCard(c);
   /* And the sheet's own Read the brief, which says what the card now says. */
   paintOvBriefBtn(c);
@@ -12735,8 +12732,6 @@ function renderWorkspace(){
   if(state.view==='dashboard'){
     if(window.renderIntelDock) try{ renderIntelDock(); }catch(_){}
     if(window.igPaperRefresh) try{ igPaperRefresh(); }catch(_){}
-    /* and the contracts' strips on the Board (step 8) read the record again */
-    if(window.bsRefresh) try{ bsRefresh(); }catch(_){}
     return;
   }
   const c=getContract(state.activeId);

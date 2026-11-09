@@ -37,10 +37,6 @@ function navWhereSrc(){
   /* A CONTRACT BROUGHT UP ON THE BOARD (its History, its deal) is that contract, beside its own page */
   const cv = (typeof hbCvNow === 'function') ? (hbCvNow() || {}) : {};
   if (phone && (v === 'workspace' || v === 'doc' || mS().screen === 'contract')){ W.page = 'paper'; W.cid = state.activeId || null; }
-  /* a contract's strip brought up on the Board (its History, where it stands): that contract, beside that page */
-  else if ((v === 'dashboard' || v === 'counter') && face === 'board' && typeof bsCardId === 'function' && bsCardId()){
-    const id = bsCardId(), st = (typeof bsStrip === 'function') ? bsStrip(id) : null;
-    W.page = 'paper'; W.cid = id; W.pane = ({ hist: 'hist', where: 'dossier', details: 'fill' })[(st && st.page) || ''] || 'dossier'; }
   else if ((v === 'dashboard' || v === 'counter') && face === 'board' && cv.c && cv.v !== 'book'){
     W.page = 'paper'; W.cid = cv.c.id; W.pane = ({ hist: 'hist', oblig: 'oblig', deal: 'dossier' })[cv.v] || 'dossier'; }
   /* Home's first screen (the counter: the ask box and Needs you) is the Board's page, whatever paper is held behind it */
@@ -117,7 +113,6 @@ function navWhereSrc(){
   W.kt = !!document.querySelector('[data-pd-kt-file]');
   W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold')).join(',') || null;
   { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null; }
-  { const id = (typeof bsCardId === 'function') ? bsCardId() : null, st = id && typeof bsStrip === 'function' ? bsStrip(id) : null; W.strip = st ? (st.page || 'ov') : null; }
   try { W.archived = typeof regState === 'function' && regState().view === 'archived'; } catch (_){ W.archived = false; }
   W.present = !!document.querySelector('.hb-presenting');
   { const r = document.getElementById('dk-recent'); W.recent = !!(r && r.getClientRects().length); }

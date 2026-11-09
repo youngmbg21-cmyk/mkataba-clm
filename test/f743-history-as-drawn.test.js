@@ -196,12 +196,9 @@ describe('f743 (5) pass 3: every round\'s decisions, the newest said, the trail 
     assert.equal(w.histNewestWords({ _k: 'system', text: 'Created — fixture', _audit: { action: 'Created', detail: 'fixture' } }), 'Created', 'a word of detail: the act itself');
     assert.equal(w.histNewestWords({ _k: 'decided', outcome: 'accepted', clauseLabel: '4 Fees', ch: { authorSide: 'counterparty', summary: 'prices may rise once a year' } }), 'Accepted their change to clause 4, Fees');
   });
-  test('5c the page\'s trail runs inside its card on the desk; the History head draws no second ⋯', () => {
-    const INDEX = R('index.html'), BS = R('js/views/boardstrip.js');
-    assert.match(INDEX, /\.bs-on-desk \.bs-hist \.hist-trail\{max-height:none;overflow:visible;border:0;border-radius:0\}/);
-    assert.match(BS, /const dots = page === 'hist' \? '' : `<span class="bs-dwrap">/);
-    /* RE-POINTED 20 Oct 2026 (4b, #386): the stage's act and Open in Workspace stand before the ⋯ */
-    assert.match(BS, /\$\{crumbs\}<span class="hb-grow"><\/span>\n\s+\$\{bsHeadActsHtml\(c\)\}\$\{dots\}/);
+  test('5c the trail runs inside its page in the middle, no box of its own (the strip gone, 9 Nov 2026)', () => {
+    const INDEX = R('index.html');
+    assert.match(INDEX, /\.pd2-hist \.hist-trail\{max-height:none;overflow:visible;border:0;border-radius:0\}/);
   });
 });
 

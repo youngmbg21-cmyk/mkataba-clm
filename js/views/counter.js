@@ -103,13 +103,10 @@ function deskKeyNow(){
      stands in front, on the paper's face; gone to the Calendar, Explorer or a contract's History, the bar
      says that page, never "Send" (the letter still waits, Recent's first row) */
   if (v === 'dashboard'){ const sk = dkSendNow(); const onPaper = (typeof hbFace !== 'function') || hbFace() === 'paper';
-    const card = typeof window.bsCardId === 'function' && !!window.bsCardId();
-    if (sk && !dkSendWaiting() && onPaper && !card) return sk; }
+    if (sk && !dkSendWaiting() && onPaper) return sk; }
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
-    /* a contract brought up is its own page, on its contract's row (round 7) */
-    if (f === 'board' && typeof window.bsCardId === 'function'){ const id = window.bsCardId(); if (id) return 'c:' + id; }
     return DK_HOME_FACE[f] || 'home:board';
   }
   if (v === 'workspace' || v === 'doc') return state.activeId ? 'c:' + state.activeId : null;
@@ -244,9 +241,8 @@ function deskTabsSync(){
     if (k && !k.startsWith(DK_SEND)){
       const L = dkTabs(); let t = L.find(x => x.k === k);
       if (t) t.at = Date.now(); else { t = { k, at: Date.now() }; L.push(t); }
-      /* ONE ROW PER CONTRACT, two ways to read it (round 7): it remembers
-         whether its page or its paper was in front */
-      if (k.startsWith('c:')) t.view = (typeof window.bsCardId === 'function' && window.bsCardId() && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? 'card' : 'paper';
+      /* ONE ROW PER CONTRACT: its paper (the contract's page on the Board is gone, owner, 9 Nov 2026) */
+      if (k.startsWith('c:')) t.view = 'paper';
       dkSave(L);
     }
     if (!(k && k.startsWith(DK_SEND))){
@@ -289,7 +285,7 @@ function dkKindWord(k){
 /* Present this page: Home's faces only, and not a contract's own page (round 7) */
 function dkPresentOn(){
   if (typeof state === 'undefined' || !state || state.view !== 'dashboard' || typeof hbPresent !== 'function') return false;
-  return !(typeof window.bsCardId === 'function' && window.bsCardId() && typeof hbFace === 'function' && hbFace() === 'board');
+  return true;
 }
 function deskRecentHtml(){
   const now = deskKeyNow(), home = !now && typeof state !== 'undefined' && state && state.view === 'counter';
@@ -379,11 +375,8 @@ function deskTabOpen(k){
     if (f === 'calendar' && typeof hbOpenCalendar === 'function'){ hbOpenCalendar(); return true; }
     if (f === 'explorer' && typeof hbOpenExplorer === 'function'){ hbOpenExplorer(); return true; }
     if (typeof hbS !== 'function') return false;
-    /* the Board row is the Board, not a contract's page on it (round 7) */
-    const left = (typeof window.bsCardLeave === 'function') && window.bsCardLeave();
     if (state.view === 'dashboard' && typeof hbSetFace === 'function' && document.getElementById('hb-head')){
-      if (left && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace('board');
-      deskTabsSync(); return true; }
+      hbSetFace('board'); deskTabsSync(); return true; }
     const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave();
     if (typeof setView === 'function') setView('dashboard');
     return true;
@@ -392,7 +385,6 @@ function deskTabOpen(k){
     const c = (typeof getContract === 'function') ? getContract(k.slice(2)) : null;
     if (!c){ deskTabClose(k); return false; }
     const t = dkTabs().find(x => x.k === k);
-    if (t && t.view === 'card' && typeof hbStripBring === 'function' && hbStripBring(c.id)) return true;
     if (typeof pdOpenOnHome === 'function'){ pdOpenOnHome(c.id, 'copilot'); return true; }
     if (typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
     return false;
@@ -411,8 +403,6 @@ function deskTabClose(k){
   const L = dkTabs(); const i = L.findIndex(t => t.k === k);
   const wasNow = deskKeyNow() === k;
   if (i < 0 && !wasNow) return;
-  /* a contract's page taken off is let go, as its own × did (round 7) */
-  if (i >= 0 && L[i].view === 'card' && typeof bsStripClose === 'function') bsStripClose(k.slice(2));
   if (i >= 0){ L.splice(i, 1); dkSave(L); }
   if (wasNow){
     const next = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0))[0];

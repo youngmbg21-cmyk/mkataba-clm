@@ -93,7 +93,6 @@ function loadAi(opts = {}){
       sandbox.pdOnPaper = () => !!opts.home.paper;
       sandbox.pdContract = () => (opts.home.paperId ? contracts.find(c => c.id === opts.home.paperId) || null : null);
       sandbox.hbS = () => ({ face: opts.home.face || 'paper' });
-      sandbox.bsCardId = () => opts.home.card || null;
     }
     if (opts.reads) sandbox.rlRowReadOf = (c, ch) => opts.reads[ch.id] || null;
   }
@@ -154,9 +153,9 @@ describe('f283 (1b) on Home, the contract on the paper is the one on screen', ()
     const w = loadAi({ view: 'dashboard', activeId: 'MK-9', contracts: two, home: { paper: true, paperId: 'MK-398' } });
     assert.equal(w.aiReadFrom().cid, 'MK-398');
   });
-  test('a contract brought up on the Board is on screen too', () => {
-    const w = loadAi({ view: 'dashboard', contracts: two, home: { paper: false, face: 'board', card: 'MK-398' } });
-    assert.equal(w.aiChatContext().activeContractId, 'MK-398');
+  test('the Board with no paper up names no contract (the card on it is gone, 9 Nov 2026)', () => {
+    const w = loadAi({ view: 'dashboard', activeId: 'MK-9', contracts: two, home: { paper: false, face: 'board' } });
+    assert.equal(w.aiScreenContractId(), null);
   });
   test('what the card said on their asks travels with the question (owner picked A, 28 Oct 2026)', () => {
     const withAsks = [{ id: 'MK-398', name: 'Mutual NDA', counterparty: 'Juno LLC', status: 'Under Review',

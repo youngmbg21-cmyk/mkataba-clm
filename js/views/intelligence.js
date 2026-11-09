@@ -2951,9 +2951,6 @@ async function intelAsk(qRaw, opts){
      19 Oct 2026: "it is not moving me around the platform like it previously
      did"): the page is let go and the Board, back in front, answers it */
   if(heldId&&igHeldAsksBook(q,heldId)){
-    const left=(typeof window.bsCardLeave==='function')&&bsCardLeave();
-    if(left&&typeof window.hbPaintBoard==='function') try{ hbPaintBoard(); }catch(_){}
-    if(typeof window.deskTabsSync==='function') try{ deskTabsSync(); }catch(_){}
     heldId=null;
   }
   /* …except "bring up MK-…" (step 8): the contract's strip on the Board, read

@@ -40,7 +40,7 @@ const BOOKS = (() => {
   }
   return { en, sv };
 })();
-const FNS = ['pdCardNow', 'pdCardPage', 'pdHolds', 'pdHeldContract', 'pdHeadWord', 'pdAskPlaceholder', 'pdAskContractId', 'pdDaysSince', 'pdAgoWords',
+const FNS = ['pdHolds', 'pdHeldContract', 'pdHeadWord', 'pdAskPlaceholder', 'pdAskContractId', 'pdDaysSince', 'pdAgoWords',
   'pdStageWords', 'pdLastMove', 'pdClauseSaid', 'pdTheirAsksRow', 'pdTheirAsksRowHtml', 'pdChosenFacts', 'pdChosenHtml', 'pdNeedsRows'];
 const INDEX = R('index.html');
 const J = x => JSON.parse(JSON.stringify(x));

@@ -74,7 +74,8 @@ const COUNT_WRITES = () => {
   const page = await ctx.newPage();
   const errors = []; page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
   const where = () => page.evaluate(() => { let hb = {}; try { hb = hbS(); } catch (_){}
-    return { view: state.view, face: hb.face, card: (typeof bsCardId === 'function' && bsCardId()) || null, trail: (typeof pdTrail === 'function' && pdTrail()) ? pdTrail().back : null }; });
+    /* RE-POINTED 9 Nov 2026: the card is gone; History stands in the middle beside the paper (pd2HistOpen) */
+    return { view: state.view, face: hb.face, card: document.getElementById('pd2-hist') ? 'hist' : null, trail: (typeof pdTrail === 'function' && pdTrail()) ? pdTrail().back : null }; });
   const home = async () => { await page.keyboard.press('Escape').catch(() => {}); await page.evaluate(() => setView('counter'));
     await waitFor(page, () => !!document.getElementById('cn-q') && !!document.getElementById('cn-q').offsetParent); await pause(200); };
   /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
@@ -92,12 +93,12 @@ const COUNT_WRITES = () => {
       /* ---- 1  THE BOARD ASKED FOR IS THE BOARD ---- */
       await home(); await ask('MK-A1'); await waitFor(page, () => hbS().face === 'paper');
       await page.locator(':is(.jb-chip,a,button):text-is("history") >> visible=true').first().click();
-      const up = await waitFor(page, () => !!bsCardId());
-      check('1 (stage) the History link brings the contract up on the Board', up, JSON.stringify(await where()));
+      const up = await waitFor(page, () => !!document.getElementById('pd2-hist'));
+      check('1 (stage) the History link opens History in the middle beside the paper', up, JSON.stringify(await where()));
       await home(); await ask('board'); await settle();
       const w1 = await where();
       check('1a "board" on Home shows the Board, not the contract left on it', w1.view === 'dashboard' && w1.face === 'board' && !w1.card, JSON.stringify(w1));
-      await page.evaluate(() => hbStripBring('MK-A1', 'hist')); await waitFor(page, () => !!bsCardId());
+      await page.evaluate(() => hbStripBring('MK-A1', 'hist')); await waitFor(page, () => !!document.getElementById('pd2-hist'));
       await page.evaluate(() => hbSetFace('board')); await settle();
       const w2 = await where();
       check('1b the Board\'s own tab, pressed with a contract on it, shows the Board', w2.face === 'board' && !w2.card, JSON.stringify(w2));
@@ -156,9 +157,9 @@ const COUNT_WRITES = () => {
       check('4a a contract opened from Home: the Board it passes is not drawn', !(w1['hb-board'] > 0), JSON.stringify(w1));
       check('4b a page move with the right-hand panel shut does not draw it', !(w1['panel-body'] > 0), JSON.stringify(w1));
       await home(); await ask('MK-A1'); await waitFor(page, () => hbS().face === 'paper'); await pause(800); await writes();
-      await page.evaluate(() => hbStripBring('MK-A1', 'hist')); await waitFor(page, () => !!bsCardId()); await settle();
+      await page.evaluate(() => hbStripBring('MK-A1', 'hist')); await waitFor(page, () => !!document.getElementById('pd2-hist')); await settle();
       const w2 = await writes();
-      check('4c a contract brought up on the Board draws the Board once', (w2['hb-board'] || 0) <= 1, JSON.stringify(w2));
+      check('4c History opened in the middle draws the Board at most once', (w2['hb-board'] || 0) <= 1, JSON.stringify(w2));
       await page.click('#cmd-panel'); await waitFor(page, () => state.panelOpen); await pause(500);
       const shown = await page.evaluate(() => (document.getElementById('panel-body') || {}).textContent || '');
       check('4d opened, the right-hand panel is drawn', shown.trim().length > 0, shown.trim().slice(0, 80));

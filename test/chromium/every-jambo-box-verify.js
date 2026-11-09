@@ -202,11 +202,11 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
       const HOME = ARG('#ig-dock .jb-card', '#ig-dock');
       /* the state each reading waits for, named (no code is sent as a string) */
       const homeWhen = (cond, arg, ms = 10000) => until(([sel, k, a2]) => {
-        const W = { card: () => !!(window.bsCardId && bsCardId()),
+        const W = { card: () => false, /* the contract's card on the Board is gone (9 Nov 2026) */
           paper: id => !!(window.pdContract && pdContract() && pdContract().id === id),
           owed: id => !!(window.pdContract && pdContract() && pdContract().id === id && document.getElementById('pd-needs')),
           sign: () => !!(window.pdSignShows && pdSignShows()),
-          board: () => !(window.bsCardId && bsCardId()) && !(window.igPaperUp && igPaperUp()) && !(window.pdOnPaper && pdOnPaper()) };
+          board: () => !(window.igPaperUp && igPaperUp()) && !(window.pdOnPaper && pdOnPaper()) };
         if (!W[k] || !W[k](a2)) return null;
         const b = document.querySelector(sel.box); if (!b || !b.getClientRects().length) return null;
         const h = document.querySelector(sel.host) || document.body, br = b.getBoundingClientRect();
