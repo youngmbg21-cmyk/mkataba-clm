@@ -69,3 +69,40 @@ test('f977 (6, 7) the foot follows, one thing when empty — every HARMONY rule 
   assert.ok(rules.length > 10);
   for (const r of rules) assert.match(r.replace(/^@media[^{]*\{\s*/, ''), /^html\.lg-new\b/, r);
 });
+
+/* Round 2, the lists: EVEN TILES (the folders, the owner's pick by name), EVEN CARDS (the wall), GROUPED ROWS (Home),
+   TWO LINES A ROW (Obligations), FOLD THE QUIET (the agenda), NAME THE CLAUSE (Negotiations), the week ahead at the
+   weekend (Home's strip). */
+test('f977 (8) even tiles: one builder for both folder views, no dots, a key above', () => {
+  const reg = read('js/views/register.js'), cu = read('js/views/customers.js');
+  const f = strip(fnBody(reg, 'regFoldersHtml'));
+  assert.doesNotMatch(f, /ctf-dot|ctf-tab/, 'no unexplained dots, no faint folder tab');
+  assert.match(f, /regTileBig\(r\.needN\)\}\$\{regTileBar\(r\.signed, r\.review, r\.n - r\.signed - r\.review\)\}/);
+  assert.match(f, /\$\{regTileKeyHtml\(\)\}<div class="ctf-grid is-tiles">/);
+  assert.match(strip(fnBody(cu, 'cunFolderCardHtml')), /regTileBig\(waitN\)/, 'Parties draws the same tile');
+  assert.match(reg, /Object\.assign\(window,\{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,/);
+  assert.doesNotMatch(strip(fnBody(reg, 'regFoldersHeadHtml')), /ctf-hint/, 'the hint leaves the tab line');
+  assert.match(block(), /html\.lg-new \.ctf-card\.is-tile\{[^}]*height:150px/);
+});
+test('f977 (9) even cards: the party its own line, one footer', () => {
+  const ig = read('js/views/intelligence.js');
+  assert.match(strip(fnBody(ig, 'igWallCardHtml')), /<span class="igw2-foot is-even"><span class="igw2-who">/);
+  const foot = strip(fnBody(ig, 'igWallNlFootHtml'));
+  assert.doesNotMatch(foot, /igw2-hint/, 'the how-to line is gone');
+  assert.match(foot, /if\(list\.length>shown\.length\) return '';/, 'the paging foot stands alone');
+});
+test('f977 (10) grouped rows and the week ahead at the weekend', () => {
+  const cn = read('js/views/counter.js');
+  assert.match(strip(fnBody(cn, 'cn2Html')), /\$\{L\.length \? cn2GroupedHtml\(L\)/);
+  assert.match(strip(fnBody(cn, 'cnWeekOf')), /wkend = td\.getDay\(\) === 6 \|\| td\.getDay\(\) === 0/);
+  assert.match(block(), /#cn2-list \.cn2-row \.nd-kind\{display:none\}/);
+});
+test('f977 (12, 13, 15) two lines a row, fold the quiet, name the clause', () => {
+  const ob = strip(fnBody(read('js/obligations.js'), 'obnRowHtml'));
+  assert.doesNotMatch(ob, /<td class="obn-q">/, 'no middle column');
+  assert.match(ob, /<div class="obn-q is-line">/);
+  const cal = read('js/views/calendar.js');
+  assert.match(cal, /else if\(gap\)\{ gap\.z=z; gap\.n\+\+; \} else gap=\{ a, z, n:1 \};/);
+  assert.match(cal, /i18tn\('cal_nl_quiet_wks',gap\.n,\{ n:gap\.n \}\)/);
+  assert.match(read('js/views/register.js'), /: `<span class="ngn-nm">\$\{E\(\[q\.s, q\.nm\]\.filter\(Boolean\)\.join\(' '\)\)\}<\/span>`/);
+});

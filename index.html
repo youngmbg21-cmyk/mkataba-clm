@@ -19944,6 +19944,50 @@
   html.lg-new #ig-dock .ca-back{margin-left:16px}
   html.lg-new :is(#ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
   html.lg-new :is(#ig-dock [data-ig-chips] .jb-chip, .jb-ways.is-above-foot .jb-way):nth-of-type(n+4){display:none}
+  /* ==== ROUND 2, THE LISTS ====
+     EVEN TILES (the folders, owner's pick by name): every tile one height, the name one line ending in "…", what needs
+     you the biggest thing, one bar of signed · in review · drafting with its key above the grid, four across a laptop */
+  html.lg-new .ctf-grid.is-tiles{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+  html.lg-new .ctf-card.is-tile{display:grid;grid-template-rows:auto auto 1fr auto;align-items:start;justify-items:stretch;gap:10px;height:150px;min-height:0;margin-top:0;padding:16px;text-align:left}
+  html.lg-new .ctf-card.is-tile .ctf-name{display:block;min-width:0;padding-right:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-card.is-tile.is-new{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  html.lg-new .ctf-card.is-tile.is-new .ctf-name{white-space:normal}
+  html.lg-new .ctf-big{display:flex;align-items:baseline;gap:6px;font-size:26px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--st-amber-fg)}
+  html.lg-new .ctf-big small{font-size:12.5px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .ctf-big.is-quiet{color:var(--color-quiet)}
+  html.lg-new .ctf-mix{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--color-divider);align-self:center}
+  html.lg-new .ctf-mix i{display:block;height:100%}
+  html.lg-new :is(.ctf-mix, .ctf-key) .is-s{background:var(--st-green-dot)}
+  html.lg-new :is(.ctf-mix, .ctf-key) .is-r{background:var(--st-amber-dot)}
+  html.lg-new :is(.ctf-mix, .ctf-key) .is-d{background:var(--st-gray-dot)}
+  html.lg-new .ctf-mix .is-gone{background:var(--color-neutral-300)}
+  html.lg-new .ctf-lo{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;min-width:0}
+  html.lg-new .ctf-lo > span:first-child{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new .ctf-key{display:flex;flex-wrap:wrap;gap:6px 16px;margin:14px 0 12px;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .ctf-key span{display:inline-flex;align-items:center;gap:6px}
+  html.lg-new .ctf-key i{display:inline-block;width:10px;height:6px;border-radius:2px}
+  /* EVEN CARDS (the wall): the party its own whole line, ending in "…"; the stage and the value share the line under it */
+  html.lg-new .igw-card.is-nl .igw2-foot.is-even{flex-direction:column;align-items:stretch;gap:4px}
+  html.lg-new .igw-card.is-nl .igw2-foot.is-even > .igw2-who{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset;font-size:12.5px}
+  html.lg-new .igw-card.is-nl .igw2-foot.is-even > .igw2-st{display:flex;justify-content:space-between;align-items:center;gap:8px;-webkit-line-clamp:unset;white-space:nowrap;overflow:hidden}
+  html.lg-new .igw2-st > span{display:inline-flex;align-items:center;gap:6px;color:var(--color-quiet);min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .igw2-st i{flex:none;width:7px;height:7px;border-radius:50%}
+  html.lg-new .ct-wall .igw-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 18px}
+  /* GROUPED ROWS (Home): a small heading over each kind's run, the kind no longer worn on every row; the middle says one
+     line and ends in "…" (the whole sentence is in the panel) */
+  html.lg-new #cn2-page .cn2-grp{display:flex;align-items:baseline;gap:8px;padding:16px 0 6px;font-size:13px}
+  html.lg-new #cn2-page .cn2-grp b{font-weight:var(--w-strong)}
+  html.lg-new #cn2-page .cn2-grp span{color:var(--color-quiet)}
+  html.lg-new #cn2-page .cn2-grp + .cn2-row{border-top-color:transparent}
+  html.lg-new #cn2-page #cn2-list .cn2-row .nd-kind{display:none}
+  html.lg-new #cn2-page #cn2-list .cn2-row:not(.is-open) .cn2-fx{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  html.lg-new #cn2-page #cn2-list .cn2-row{align-items:center}
+  /* TWO LINES A ROW (Obligations): the duty, then one line of where it comes from; a quote, where the paper gives one,
+     is the row's own small line in the paper's italic, never a middle column most rows leave blank */
+  html.lg-new .obn-table.is-two-line .obn-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obn-table.is-two-line .obn-q.is-line{margin-top:4px;font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obn-table.is-two-line .obn-q.is-line i{font-weight:400}
+  html.lg-new .obn-table.is-two-line td.obn-act{text-align:right}
 </style>
 <style>
   /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */

@@ -10325,7 +10325,7 @@ function igWallCardHtml(c,need){
     const mark=typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'';
     return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>
-    <span class="igw2-foot"><span>${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></button>`;
+    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span><i style="background:${dot}"></i>${igEsc(word)}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></span></button>`;
   }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}
@@ -10483,8 +10483,11 @@ function igWallNlFootHtml(list, shown){
   if(typeof newLookOn!=='function'||!newLookOn()) return '';
   const ch=igWallChosenId(), c=ch?shown.find(x=>String(x.id)===ch):null;
   const left=c?i18t('ctf_wall_chosen',{ name:c.name||'' }):'';
-  return `<div class="igw2-hint"><span>${igEsc(left)}</span><span>${igEsc(i18tn('ctf_wall_rule',shown.length,{ n:shown.length }))}</span></div>
-    <div class="igw2-pfoot"><span>${igEsc(i18tn('ctf_wall_n',list.length,{ n:list.length }))}</span>${typeof window.pdDropDoor==='function'?`<span>${igEsc(i18t('ctf_wall_drop'))}</span>`:''}</div>`;
+  /* EVEN CARDS (the harmony review, owner's yes 9 Nov 2026): the how-to sentence goes, and one footer stands under the
+     cards — the paging foot when there is more to show, else the count */
+  void left;
+  if(list.length>shown.length) return '';
+  return `<div class="igw2-pfoot"><span>${igEsc(i18tn('ctf_wall_n',list.length,{ n:list.length }))}</span>${typeof window.pdDropDoor==='function'?`<span>${igEsc(i18t('ctf_wall_drop'))}</span>`:''}</div>`;
 }
 /* THE PLACE'S FRAME on Home's paper with nothing chosen; the register draws
    the place into it (renderRegister, home) and lights the rail's Contracts */

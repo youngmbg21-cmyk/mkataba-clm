@@ -24,3 +24,15 @@ numbers in the new-look renderers are behind it too, because those renderers onl
 | 5 | Numbers that disagree | ONE COUNT: Home's sentence leads with the whole ("11 wait on you: 7 are your move and I prepared 4"), the number its panel and foot say; Obligations' title count is its first tab's. The Board's "15 things" counts the items behind Home's rows (a bundle of five details is one row on Home, five on the Board); left as it is and said in the morning summary. |
 | 6 | A gap, then a lonely footer | THE FOOT FOLLOWS: a list's count line sits under its last row; the footer sentences that only described the screen are gone (Home, Requests, My notes). |
 | 7 | Empty pages with full furniture | ONE THING WHEN EMPTY: an empty My notes hides its filter, tabs, heads and foot; Import with nothing brought in hides the filter and stands the drop area in the middle. |
+
+## Round 2 — the lists
+
+| # | Issue | What was built |
+|---|---|---|
+| 8 | Contracts › Folders | EVEN TILES (the owner's pick by name): every tile 150 tall, the name one line with "…", what needs you the big number, one bar of signed · in review · drafting with its key above the grid, four across a laptop; the hint left the tab line, which now says "Folders N" (`regTileBig`, `regTileBar`, `regTileKeyHtml`, `regFolderCount`). Parties' Folders tab draws the same tile. |
+| 9 | Contracts › Wall | EVEN CARDS: the party its own line, the stage and the value under it; four across; the how-to line gone; one footer (the paging foot when there is more, else the count). |
+| 10 | Home's list | GROUPED ROWS: one small heading per kind's run ("Your move 7"); the kind tag off each row; the middle one line with "…"; on a Saturday or a Sunday the week strip is the week ahead. The circle stays an icon for the bundled rows (fill in details, the company) — said in the morning summary. |
+| 11 | Approvals on an iPad | Built in round 1: "asked by" leaves the row when the asker is you; a rests column that reads the same everywhere steps out. |
+| 12 | Obligations | TWO LINES A ROW: the middle column is gone; the quote, where the paper gives one, is the row's own small italic line. |
+| 13 | Calendar's quiet weeks | FOLD THE QUIET: a run of empty weeks is one line, "23 Nov – 27 Dec · 5 quiet weeks". |
+| 15 | Negotiations' open asks | NAME THE CLAUSE: an ask with no words to quote says "§ 3 Payment", never empty quote marks. |

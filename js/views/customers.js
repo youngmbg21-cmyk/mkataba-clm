@@ -1439,8 +1439,8 @@ function cunRender(host, INS){
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2><span class="ctf-hf">${esc(i18tn('cun_n', all.length, { n: all.length }))}</span></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
-        ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])}${t[2] == null ? '' : ` <span>${t[2]}</span>`}</button>`).join('')}${_cun === 'folders' ? `<span class="ctf-hint">${esc(i18t('cun_f_hint'))}</span>` : ''}</div>
-      ${_cun === 'folders' ? `<div class="cu-scroll"><div class="ctf-grid cunf-grid">${list.map(v => cunFolderCardHtml(v, nda.get(v.key))).join('')}</div></div>` : ''}
+        ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])}${t[2] == null ? '' : ` <span>${t[2]}</span>`}</button>`).join('')}</div>
+      ${_cun === 'folders' ? `<div class="cu-scroll">${typeof regTileKeyHtml === 'function' ? regTileKeyHtml() : ''}<div class="ctf-grid cunf-grid is-tiles">${list.map(v => cunFolderCardHtml(v, nda.get(v.key))).join('')}</div></div>` : ''}
       <div class="cu-scroll"${_cun === 'folders' ? ' hidden' : ''}><table class="apn-table cun-table"><colgroup><col style="width:26%"><col style="width:70px"><col style="width:110px"><col style="width:130px"><col style="width:130px"><col></colgroup>
         <thead><tr><th>${esc(i18t('cun_c_party'))}</th><th>${esc(i18t('cun_c_deals'))}</th><th>${esc(i18t('cun_c_paper'))}</th><th>${esc(i18t('cun_c_standing'))}</th><th>${esc(i18t('cun_c_nda'))}</th><th>${esc(i18t('cun_c_wait'))}</th></tr></thead>
         <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key))).join('') || `<tr><td colspan="6" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
@@ -1468,17 +1468,18 @@ function cunWaitWords(v){
   return needs.length > 1 ? i18t('cun_f_wait_n', { n: needs.length, what: w.join(', ') }) : (w[0] ? w[0].charAt(0).toUpperCase() + w[0].slice(1) : '');
 }
 function cunFolderCardHtml(v, n){
-  const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
-  const streams = v.streams.map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || cuStreamName(f)).filter(Boolean).join(', ');
+  /* EVEN TILES (the harmony review, the owner's pick by name, 9 Nov 2026), the same builder as Contracts' folders:
+     one height, the name one line, what waits on you the biggest thing, one bar of signed · in review · drafting */
   const val = cunMoney(v);
-  const facts = [i18tn('cun_f_deals', v.items.length, { n: v.items.length }), val ? (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '', cunNdaWords(n)].filter(Boolean).join(' \u00b7 ');
-  const late = (v.needs || []).some(x => x && x.it && x.it.urgent);
-  const wait = cunWaitWords(v);
-  const st = (n || {}).state;
-  const dots = (wait ? '<i class="ctf-dot is-need"></i>' : '') + (v.items.some(c => c.status === 'Signed' && !c.archived) ? '<i class="ctf-dot is-live"></i>' : '') + (st === 'none' || st === 'ended' || !st ? '<i class="ctf-dot is-hollow"></i>' : '');
-  return `<button type="button" class="ctf-card cunf-card" data-cun-open="${esc(v.key)}"><span class="ctf-tab" aria-hidden="true"></span><span class="ctf-dots">${dots}</span>
-    <b class="ctf-name">${esc(v.name)}</b><span class="ctf-facts">${esc([rec.city || '', streams].filter(Boolean).join(' \u00b7 '))}</span><span class="ctf-facts">${esc(facts)}</span>
-    ${wait ? `<span class="ctf-need">${esc(wait)}${late ? ` \u00b7 <span class="cun-late">${esc(i18t('cun_late'))}</span>` : ''}</span>` : `<span class="ctf-quiet">${esc(i18t('cun_f_quiet'))}</span>`}</button>`;
+  const live = v.items.filter(c => !c.archived);
+  const signed = live.filter(c => typeof negoExecuted === 'function' ? negoExecuted(c) : c.status === 'Signed').length, review = live.filter(c => c.status === 'Under Review').length;
+  const waitN = (v.needs || []).filter(x => x && x.it).length;
+  const big = typeof regTileBig === 'function' ? regTileBig(waitN) : '';
+  const bar = typeof regTileBar === 'function' ? regTileBar(signed, review, live.length - signed - review) : '';
+  const nda = cunNdaWords(n);
+  return `<button type="button" class="ctf-card cunf-card is-tile" data-cun-open="${esc(v.key)}" title="${esc(v.name)}">
+    <b class="ctf-name">${esc(v.name)}</b>${big}${bar}
+    <span class="ctf-lo"><span>${esc([i18tn('cun_f_deals', v.items.length, { n: v.items.length }), nda].filter(Boolean).join(' \u00b7 '))}</span><span>${esc(val ? (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '')}</span></span></button>`;
 }
 /* the folders' panel: who holds the most money, which have no NDA, what is late — read across, no call */
 function cunFoldersPanelPaint(all, nda){
