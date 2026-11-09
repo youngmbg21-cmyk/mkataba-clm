@@ -56,8 +56,8 @@ const SHELL_ICONS = [
   /* .cmd-search RETIRED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search left */
   /* #cmd-ai wears Jambo's face, not #i-spark, since 12 Oct 2026 (owner); since 20 Oct 2026
      (Chambers) that face on a computer is the ✦ mark, an inline path; checked below */
-  ['#hdr-notify',                'i-bell'],
-  ['#cmd-panel',                 'i-clock'],   /* DECIDE 2, 20 Sep 2026: Recent activity is behind the clock */
+  /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): ONE panel button wears the panel's mark; the clock left the bar */
+  ['#hdr-notify',                'i-panel'],
   ['#side-logout',               'i-out'],
   ['[data-view="dashboard"]',    'i-home'],
   ['[data-nav-fold-open="register"]', 'i-folder'],   /* the menu's Contracts row opens the fly-out (10 Oct 2026) */
@@ -265,7 +265,8 @@ const SHELL_ICONS = [
     /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left menu's
        seven icons are not painted on a computer; the bar's are what is left to measure */
     /* RE-POINTED 29 Oct 2026 (round 1, owner's yes): the bar's search and its glass left, so one fewer to paint */
-    check('most of the shell was measured, not merely referenced', painted >= 3,
+    /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): the clock left the bar, so one fewer to paint */
+    check('most of the shell was measured, not merely referenced', painted >= 2,
       `${painted} painted`);
     /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers"): on a computer the
        door keeps Jambo's ✦ mark — an inline <svg> path, no picture and no

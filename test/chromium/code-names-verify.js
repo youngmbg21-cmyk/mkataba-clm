@@ -83,7 +83,7 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
         return { text: dlg.textContent.replace(/\s+/g, ' ').trim(), rows, foot: [...dlg.querySelectorAll('[data-dlg-foot] button')].map(b => b.textContent.trim()) }; });
       const me = d && d.rows.find(r => /^Unrestricted Legal/.test(r.t));
       check('2a it asks the code name and who knows, the owner always on it; it says the real name; Save, Cancel last', !!d
-        && /^Code name\s?Everyone outside the list sees the code name — in lists, search, the bell and Jambo — and cannot open the deal\./.test(d.text)
+        && /^Code name\s?Everyone outside the list sees the code name — in lists, search, Alerts and Jambo — and cannot open the deal\./.test(d.text)
         && d.text.includes('Real name: ' + REAL) && !!me && me.on && me.lock && /you$/.test(me.t)
         && d.foot.join('|') === 'Save|Cancel', JSON.stringify(d && { ...d, text: d.text.slice(0, 200) }));
       await shot(page, 'code-name-dialog-1440x780');

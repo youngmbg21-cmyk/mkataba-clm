@@ -159,10 +159,10 @@ const COUNT_WRITES = () => {
       await page.evaluate(() => hbStripBring('MK-A1', 'hist')); await waitFor(page, () => !!bsCardId()); await settle();
       const w2 = await writes();
       check('4c a contract brought up on the Board draws the Board once', (w2['hb-board'] || 0) <= 1, JSON.stringify(w2));
-      await page.click('#cmd-panel'); await waitFor(page, () => state.panelOpen); await pause(500);
+      await page.click('#hdr-notify'); await waitFor(page, () => state.panelOpen); await pause(500);
       const shown = await page.evaluate(() => (document.getElementById('panel-body') || {}).textContent || '');
       check('4d opened, the right-hand panel is drawn', shown.trim().length > 0, shown.trim().slice(0, 80));
-      await page.click('#cmd-panel'); await pause(400);
+      await page.click('#hdr-notify'); await pause(400);
     }
 
     if (part(5)){

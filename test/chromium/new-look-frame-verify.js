@@ -96,13 +96,14 @@ const FRAME = () => {
         await page.screenshot({ path: path.join(OUT, `${nm}-${pg}.png`) });
       }
       const BAR = await page.evaluate(() => {
-        const ids = ['cmd-ai', 'hdr-notify', 'hdr-nav', 'cmd-panel', 'rail-avatar', 'side-logout'];
+        /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): ONE panel button; the Guide's "?" and the clock left the bar */
+        const ids = ['cmd-ai', 'hdr-notify', 'rail-avatar', 'side-logout'];
         const x = ids.map(id => Math.round(document.getElementById(id).getBoundingClientRect().left));
-        const help = document.querySelector('#hdr-nav .lg-only'), old = document.querySelector('#hdr-nav .lg-not');
+        const help = !document.getElementById('hdr-nav') && !document.getElementById('cmd-panel') && document.querySelector('#hdr-notify use')?.getAttribute('href') === '#i-panel';
         const av = getComputedStyle(document.getElementById('side-avatar')).backgroundColor;
-        return { x, inOrder: x.every((v, i) => i === 0 || v > x[i - 1]), help: !!help && getComputedStyle(help).display !== 'none' && help.querySelector('use').getAttribute('href') === '#i-help', oldHidden: !!old && getComputedStyle(old).display === 'none', av };
+        return { x, inOrder: x.every((v, i) => i === 0 || v > x[i - 1]), help, oldHidden: true, av };
       });
-      check(`${nm} 3 the bar: Jambo · bell · Guide "?" · recent · you · sign out; your initials on a light disc`, BAR.inOrder && BAR.help && BAR.oldHidden && BAR.av === 'rgb(230, 230, 234)', BAR);
+      check(`${nm} 3 the bar: Jambo · the one panel button · you · sign out; your initials on a light disc`, BAR.inOrder && BAR.help && BAR.oldHidden && BAR.av === 'rgb(230, 230, 234)', BAR);
       const SL = await page.evaluate(() => { const r = document.querySelector('#st-side > .ig-resizer, #content .ins-panel.is-jambo > .ig-resizer, #ig-resizer');
         if (!r || r.hidden) return null; const s = r.querySelector('span'); const b = s.getBoundingClientRect(); const panel = r.closest('#st-side, .ins-panel') || document.getElementById('ig-dock');
         return { w: Math.round(b.width), h: Math.round(b.height), mid: Math.round(b.left + b.width / 2), panelLeft: Math.round(panel.getBoundingClientRect().left), bg: getComputedStyle(s).backgroundColor, seam: getComputedStyle(panel).borderLeftWidth, rect: [Math.round(r.getBoundingClientRect().left), Math.round(r.getBoundingClientRect().top), Math.round(r.getBoundingClientRect().width), Math.round(r.getBoundingClientRect().height)] }; });

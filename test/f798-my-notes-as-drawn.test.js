@@ -143,7 +143,7 @@ describe('f798 (4) the note in Jambo\'s panel', () => {
     assert.equal(txt(p.querySelector('.mn-body')), 'Check the broker before we accept a higher cap in clause 7.');
     const rows = [...p.querySelectorAll('.jl-rows.mn-rows > div')].map(r => [txt(r.querySelector('dt')), txt(r.querySelector('dd'))]);
     assert.equal(rows[0][0], 'Contract'); assert.equal(rows[0][1], 'MK-A2 · Raw Milk Collection · Nandi Dairy');
-    assert.equal(rows[1][0], 'Review'); assert.match(rows[1][1], /^Today, [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · in your bell$/);
+    assert.equal(rows[1][0], 'Review'); assert.match(rows[1][1], /^Today, [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · in your Alerts$/);
     assert.equal(txt(p.querySelector('.mn-priv')), 'Private: only you can see your notes. Jambo reads them only when you ask.');
     assert.equal(txt(p.querySelector('[data-mn-act="delete"]')), 'Delete note');
   });
