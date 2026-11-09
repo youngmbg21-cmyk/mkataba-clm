@@ -20008,6 +20008,31 @@
   html.lg-new #ig-dock .pd2-sg-card.is-togo{background:transparent;padding:12px 0 0;box-shadow:none;border:0}
   html.lg-new #ig-dock .pd2-sg-card.is-togo .pd2-sg-acts{display:flex;align-items:center;gap:12px;margin:0}
   html.lg-new #ig-dock .pd2-sg-card.is-togo span{font-size:12.5px;color:var(--color-quiet)}
+  /* ==== ROUND 4, OTHER PAGES ====
+     ONE TOOLBAR (Explorer; the owner's note: "Only build the one toolbar but leave the rest as is"): the Lens group
+     joins the views, the zoom, Still and Fold all on ONE bar along the stage's foot, right of the legend, with room
+     kept for the legend opened; it wraps to a second row only where the stage is narrow. The labels are left as they are. */
+  html.lg-new .ig-brain .ig-viewbar{left:276px;flex-wrap:wrap;justify-content:flex-end;gap:6px 4px}
+  html.lg-new .ig-brain .ig-viewbar .ig-lensrow{position:static;display:flex}
+  html.lg-new .ig-brain .ig-viewbar .ig-seg button{padding:0 5px;font-size:11.5px}
+  html.lg-new .ig-brain .ig-viewbar .ig-seg .ig-seg-k{padding:0 6px;font-size:11.5px}
+  /* READABLE PREVIEW (Our paper): the chosen paper's first page at a size that reads, fading out at the foot; the name and
+     its buttons on one line, the facts under the name */
+  html.lg-new .tpln-zoom{zoom:.72}
+  html.lg-new .tpln-zoom .tpl-pf-sheet{width:400px;max-width:none}
+  html.lg-new .tpln-sheet{max-height:min(560px, calc(100vh - 200px));-webkit-mask-image:linear-gradient(var(--color-text) 78%, transparent);mask-image:linear-gradient(var(--color-text) 78%, transparent)}
+  html.lg-new .tpln-top{align-items:center}
+  html.lg-new .tpln-line{display:grid;gap:4px;min-width:0}
+  html.lg-new .tpln-line .tpln-name{font-size:16px;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln-line .tpln-facts{font-size:12.5px;color:var(--color-quiet)}
+  /* TIGHT SHEET (New agreement): the paper cards as tall as their words; "needed" under its own label beside the
+     stream chips; a greyed Create's reason in plain grey, not the warning's amber */
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close{min-height:0}
+  html.lg-new #na-root .na-file-b{display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:12px;row-gap:2px;align-items:start}
+  html.lg-new #na-root .na-file-b > .na-file-l{grid-column:1;grid-row:1}
+  html.lg-new #na-root .na-file-b > .na-need{grid-column:1;grid-row:2;font-size:12px}
+  html.lg-new #na-root .na-file-b > .na-seg{grid-column:2;grid-row:1 / span 2}
+  html.lg-new #modal-root .na-why{color:var(--color-quiet);font-weight:400}
   html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 <style>

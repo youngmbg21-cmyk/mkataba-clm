@@ -45,3 +45,13 @@ numbers in the new-look renderers are behind it too, because those renderers onl
 | 17 | Redline cards | SAME CARD TWICE: every ask of theirs carries Accept · Reject · Counter, with Ask a colleague and the Ladder behind More ▾, whether or not a colleague holds the clause (reverses round 9's Counter-first in the new look, by the owner's pick); the face's own "Ask for review" steps aside for the paper line's. No button is filled on the cards: the paper line's Send all is the one filled button. |
 | 18 | Before you sign | SAID ONCE: the line under the signing copy says only "the working copy is unchanged"; the card under the checklist is the greyed Sign and "N to go before signing", not the list again. |
 | 19 | The Send screen | BOX FITS THE WAY: with Copy link the note box folds to one dashed line that says why there is no note; the warning at the foot steps aside; the panel's back line says "‹ Dossier / Before you send". |
+
+## Round 4 — other pages
+
+| # | Issue | What was built |
+|---|---|---|
+| 20 | Explorer's controls | ONE TOOLBAR only, as the owner's note asked ("Only build the one toolbar but leave the rest as is"): the Lens group joins the views, the zoom, Still and Fold all on one bar along the stage's foot, level with the legend and right of it (room kept for the legend opened); one row on all three laptop screens, a second row only where the stage is narrower. The labels are untouched. |
+| 21 | Jambo's agents | Not now (owner). Not built. |
+| 22 | Our paper | READABLE PREVIEW: the chosen paper's first page at a size that reads (a 400-wide sheet at .72), fading out at its foot; the name and its buttons on one line, the facts under the name; the panel's stray source words ("book", "learned", the blank count) are gone, the blanks row says "and N more". |
+| 23 | New agreement | TIGHT SHEET: the three paper cards as tall as their words; "Needed before Create" under its own label beside the stream chips; the greyed Create's reason in plain grey. |
+| 14 | Pulse board | Not now (owner). Only round 1's title and edge reached it. |
