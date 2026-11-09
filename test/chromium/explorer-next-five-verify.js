@@ -325,10 +325,10 @@ const check = (name, pass, detail) => {
       const home = await at();
       const head = await page.evaluate(() => { const r = document.querySelector('#ig-legend [data-ig-legend-head] .igl-k').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       await page.mouse.move(head.x, head.y); await page.mouse.down();
-      await page.mouse.move(head.x + 300, head.y - 200, { steps: 8 }); await page.mouse.up();
+      await page.mouse.move(head.x + 300, head.y - 100, { steps: 8 }); await page.mouse.up();
       const moved = await at();
-      check('10f open, the legend\'s head drags it across the stage', !home.folded && Math.abs(moved.x - home.x - 300) <= 2 && Math.abs(moved.y - home.y + 200) <= 2, JSON.stringify({ home, moved }));
-      await page.mouse.move(head.x + 300, head.y - 200); await page.mouse.down();
+      check('10f open, the legend\'s head drags it across the stage', !home.folded && Math.abs(moved.x - home.x - 300) <= 2 && Math.abs(moved.y - Math.max(0, home.y - 100)) <= 2, JSON.stringify({ home, moved }));
+      await page.mouse.move(head.x + 300, head.y - 100); await page.mouse.down();
       await page.mouse.move(head.x + 5000, head.y - 5000, { steps: 4 }); await page.mouse.up();
       const edge = await at();
       /* RE-POINTED 9 Nov 2026 (owner: "you should be able to pull it over the jambo panel as well"): the field is the map
