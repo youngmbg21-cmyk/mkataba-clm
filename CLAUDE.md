@@ -267,7 +267,7 @@ Behind the new-look switch, ONE block in index.html ("THE NEW LOOK: HARMONY", ev
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 Every change, picture, drawing, measurement, test and reference is made against THE NEW LOOK (the one white sheet, `newLookOn`/`html.lg-new`, the Harmony block). The old look with separate cards is to be DELETED: nothing new is built, drawn or fixed on it; a photo of HaTi is taken with `prefs.newLook` on; "HaTi today" means the new look. Its removal (the switch, the `lg-new` guards) is its own job, asked for by name.
-HOME IN INTER, FOR REVIEW (owner, 9 Nov 2026: "leave home as it is but only change the font"): Home's screen text reads Inter (`--font-home`, fonts/inter.css, OFL) behind the new look; only `html.lg-new #cn2-page` asks for it; the rest of HaTi stays Geist (f377) until the owner decides. f981.
+THE NEW LOOK READS INTER (owner, 9 Nov 2026): `html.lg-new` points the screen tokens at `--font-new` (fonts/inter.css, OFL); :root and the old look keep Geist (f377). THE NAME AND THE FIGURE ARE INK, THE DETAIL GREY (`--color-neutral-400`; reverses f952 there): Home and Contracts first, the other pages after the owner's review. THE SAP WAY MARK on Contracts only (`regSapMarkHtml`: tick done · ! your move · i theirs · × ended · – draft); Home keeps its initials. f981.
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
 THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026): `pd2CardHtml` — stage + dots, the next step, one sentence, ONE black button, Jambo's read, then "Read it | Watch the read | The brief" green links; the read opens on the clean paper too. dossier-one-card-verify.

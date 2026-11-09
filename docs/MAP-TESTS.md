@@ -619,4 +619,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Fix round 1 (9 Nov): f977 'fix' tests; f955 3 (every page name, one word or several); f925 (the Board's helper `ndRowsN`); reads-and-columns-as-drawn-verify 4 (the head is the name and ⋯ alone).
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
-- Home in Inter, for review: `node --test test/f981-home-in-inter.test.js` (+ f377, f965); browser `home-morning-verify`, `HATI_TIDY_ONLY=home tidy-sweep-verify`.
+- Inter, the grey detail, the Contracts mark: `node --test test/f981-home-in-inter.test.js` (+ f377, f952, f965, f966); browser `home-morning-verify`, `contracts-page-verify`, `legora-lists-verify`, `HATI_TIDY_ONLY=home,contracts tidy-sweep-verify`.
