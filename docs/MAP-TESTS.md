@@ -621,4 +621,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Fix round 1 (9 Nov): f977 'fix' tests; f955 3 (every page name, one word or several); f925 (the Board's helper `ndRowsN`); reads-and-columns-as-drawn-verify 4 (the head is the name and ⋯ alone).
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
-- Inter, the grey detail, the Contracts mark: `node --test test/f981-home-in-inter.test.js` (+ f377, f952, f965, f966); browser `home-morning-verify`, `contracts-page-verify`, `legora-lists-verify`, `HATI_TIDY_ONLY=home,contracts tidy-sweep-verify`.
+- Geist again, the grey detail and the SAP way mark on Home, Contracts, Negotiations, Approvals, Obligations, Needs you, the contract's facts and the Redlines cards: `node --test test/f982-ink-grey-and-the-sap-mark.test.js` (+ f377, f952, f953, f965, f966, f977); browser `home-morning-verify`, `home-new-look-buttons-verify`, `round5-new-look-verify`, `round7-new-look-verify`, `legora-lists-verify`, `legora-look-verify`, `contracts-page-verify`, `sap-lists-verify`, `approve-on-row-verify`, `one-worklist-verify`.

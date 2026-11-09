@@ -3929,6 +3929,9 @@ function obwRowActHtml(r, c){
    the row already reads (obState, the week it sits in) */
 function obwRowMarkHtml(r, W){
   if(typeof listMarkHtml !== 'function') return '';
+  /* the new look: the SAP way mark (listSapMarkHtml); late is never ruby, it is still somebody's move */
+  if(typeof listSapOn === 'function' && listSapOn())
+    return listSapMarkHtml(obState(r) === 'done' ? 'done' : obligationIsTheirs(r) ? 'them' : (W && (W.k === 'overdue' || W.k === 'w0')) ? 'you' : 'none');
   if(obState(r) === 'done') return listMarkHtml('green', 'done');
   if(W && W.k === 'overdue') return listMarkHtml('ruby', 'late');
   if(obligationIsTheirs(r)) return listMarkHtml('steel', 'wait');
@@ -4582,13 +4585,15 @@ function obnRowHtml(r){
   const late = r.st !== 'done' && r.win === 'overdue';
   const when = r.st === 'done' ? (r.completedAt ? dayW(r.completedAt) : '') : due ? (r._dec ? i18t('obn_by', { d: dayW(due) }) : dayW(due)) : i18t('ob_no_date');
   const whenSub = r.st === 'done' ? i18t('obn_done') : late ? i18tn('obn_late_n', -d, { n: -d }) : r._dec ? '' : theirs ? i18t('obn_chase_before') : d != null && d <= 7 ? (d === 0 ? i18t('cal_today').toLowerCase() : i18tn('cal_nl_in_days', d, { n: d })) : '';
+  /* the SAP way mark (the new look): done · theirs · ours owed now (late, this week, a decision) · ours later, nothing yet */
+  const obnSapKey = r.st === 'done' ? 'done' : theirs ? 'them' : (late || r._dec || (d != null && d <= 7)) ? 'you' : 'none';
   const may = (typeof canEdit !== 'function') || canEdit();
   const act = r._dec ? `<button type="button" class="cal-nl-go" data-obn-go="decide" data-cid="${_obEsc(r.cid)}">${_obEsc(i18t('cal_ag_decide'))}</button>`
     : r.st !== 'done' && theirs && may ? `<button type="button" class="cal-nl-go" data-obn-go="chase" data-cid="${_obEsc(r.cid)}" data-ob="${_obEsc(r.id || '')}">${_obEsc(i18t('ob_chase'))}</button>`
     : r.st !== 'done' && !theirs && may && (late || (d != null && d <= 7)) ? `<button type="button" class="cal-nl-go" data-obn-go="done" data-cid="${_obEsc(r.cid)}" data-i="${r._i}">${_obEsc(i18t('cal_nl_done'))}</button>`
     : `<button type="button" class="cal-nl-go" data-obn-go="open" data-cid="${_obEsc(r.cid)}" data-key="${_obEsc(r._key)}">${_obEsc(i18t('cal_ag_open'))}</button>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1">
-    <td><div class="obn-what">${_obEsc(r.desc || '')}</div><div class="obn-sub">${sub}</div>${quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}</div>` : ''}</td>
+    <td>${listSapCellHtml(obnSapKey, `<div class="obn-what">${_obEsc(r.desc || '')}</div><div class="obn-sub">${sub}</div>${quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}</div>` : ''}`, whenSub)}</td>
     <td class="obn-when"><b${late ? ' class="is-late"' : ''}>${_obEsc(when)}</b>${whenSub ? `<small>${_obEsc(whenSub)}</small>` : ''}</td>
     <td class="obn-act">${act}</td></tr>`;
 }

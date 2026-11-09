@@ -864,7 +864,13 @@ function ndHomeRowHtml(r){
 /* the verb as a green link: the button's own words and door, dressed as a link (the row's one press) */
 const _ndLinkHtml = P => `<button type="button" class="ui-link nd-btn nd-link" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
 /* whose it is: the other side's initials in their own washed tone (the list language, regAvatarHtml), Jambo's mark on his */
+/* THE SAP WAY MARK ON HOME AND NEEDS YOU (owner, 9 Nov 2026: "Home (replacing the party initials)"; the new look):
+   the shared mark (listSapMarkHtml) read off the one desk's own row: Jambo's piece a violet star, a good-news row a green
+   tick, news of their move a steel i, everything else on this desk is your move, an amber ! (late too: never ruby) */
+const ndSapKeyOf = (r, P) => r.g === 'jambo' ? 'jambo' : (P && P.good) ? 'done' : (P && P.news) ? 'them' : 'you';
+const ndSapMarkHtml = (r, P) => (typeof listSapMarkHtml === 'function') ? listSapMarkHtml(ndSapKeyOf(r, P), _cnT('nd_kind_' + ndKindOfRow(r))) : '';
 function ndAvHtml(r, P){
+  if (typeof listSapOn === 'function' && listSapOn()) return ndSapMarkHtml(r, P);
   if (r.g === 'jambo') return `<span class="reg-av nd-av is-jambo" aria-hidden="true">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''}</span>`;
   /* the other side, else the agreement, else (a request) whoever asked; a row about no one has a quiet drawn mark, never letters read off its own title */
   const who = String(P.party || P.name || (r.y && r.y.k === 'req' ? P.who : '') || '').trim();
@@ -950,7 +956,7 @@ function ndBoardRowHtml(r, opts){
     ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
     : _ndBtnHtml(P);
   return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
-    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
+    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}>${typeof listSapOn === 'function' && listSapOn() ? ndSapMarkHtml(r, P) : ''}<b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
     /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
     + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span>`
     /* no "Who or what asked" column (owner, 24 Oct 2026): empty on most rows; the search still reads it */
@@ -1569,7 +1575,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnLikely, cnLikelyWords, CN_LIKELY_MAX, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndKindOfRow, ndKindHtml, CN2_SEAT, CN2_RANK, cn2On, cn2Rows, cn2Say, cn2Signed, cn2Greet, cn2Name, cn2CountsHtml, cn2QuoteHtml, cn2RowHtml, cn2Html, cn2FirstDayHtml, cn2JlSay, cn2PanelPaint, renderCounter2, cn2Repaint, cn2LookToggle, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_SEAT, CN2_RANK, cn2On, cn2Rows, cn2Say, cn2Signed, cn2Greet, cn2Name, cn2CountsHtml, cn2QuoteHtml, cn2RowHtml, cn2Html, cn2FirstDayHtml, cn2JlSay, cn2PanelPaint, renderCounter2, cn2Repaint, cn2LookToggle, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });
 
 /* THE FIRST DAY TAKES A DROPPED FILE ANYWHERE ON THE PAGE (round 7, as drawn): the drop area's own reader (pdDropTake) */
