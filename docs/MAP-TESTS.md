@@ -617,3 +617,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - The way back and the page in front (9 Nov): `node --test test/f978-the-way-back-is-where-you-were.test.js`; jambo-words-verify 7c; held-contract-asks-verify, home-held-contract-verify.
 - Fix round 2 (9 Nov): f977 fix 9 (the negotiated paper and a template's page in pages); negotiate-new-look-verify, home-paper-clauses-verify, the-read-bar-and-notes-verify.
 - Fix round 1 (9 Nov): f977 'fix' tests; f955 3 (every page name, one word or several); f925 (the Board's helper `ndRowsN`); reads-and-columns-as-drawn-verify 4 (the head is the name and ⋯ alone).
+
+## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
+- Home in Inter, for review: `node --test test/f981-home-in-inter.test.js` (+ f377, f965); browser `home-morning-verify`, `HATI_TIDY_ONLY=home tidy-sweep-verify`.
