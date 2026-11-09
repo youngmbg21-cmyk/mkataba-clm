@@ -85,6 +85,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- THE ONE PANEL BUTTON (9 Nov 2026, owner picked "The SAP Way"): nav-panel-door-verify rewritten (red at the parent: one button, the panel's mark, no ? and no clock, Alerts with something waiting, again closes, the tabs choose); f187 (1)/(3), alerts-and-activity 3, glitch-fixes 4d, notes-two-rooms (Activity), type-and-symbols, new-look-frame 3, _audit/glitch-audit re-pointed; f798 and requests-and-notes-as-drawn 6b read "in your Alerts".
 - ONE ROW ABOVE JAMBO'S BOX, EVERYWHERE (owner, 6 Nov 2026): one-row-above-the-box-verify 1–3 (new, red at the parent on 1 and 3: Contracts' folders and wall drew a doors row AND a chips row); RE-POINTED doors-verify 3 (on Contracts the chips are the row, no doors row).
 - One box, no rivals (round 1, 29 Oct 2026): keyboard-reach-verify (⌘K → Jambo's box), legora-lists-verify (1c/7f/7g), contracts-page-verify 16b, negotiations-door-verify 11, jambo-map-verify 7, settings-as-drawn-4-verify 1d; f861, f739, f938 (keep handbook words short).
 - The paper's line Send · Ask for review · More (round 13, 29 Oct 2026): paper-actions-verify, paper-line-verify, sign-beside-the-paper-verify, notes-two-rooms-verify, flat-rows-and-alerts-verify; f676, f754; handbook-verify HANDBOOK_ONLY=3.3,5.7.

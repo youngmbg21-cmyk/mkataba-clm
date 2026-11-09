@@ -36263,6 +36263,14 @@ refresh-keeps-your-spot found a real gap: Where we are did not come back after a
 place and hbPlace remembers 'where' as well as 'hist'); jambo-behind-the-wall presses the Dossier's read instead of
 the Fill in face; still-owed-sap-way 5 retired with the strip's tiles; go-aheads 3g3 reads the stage line's
 "Read <time>". All green locally: every-door 111/111, refresh 13/13, history-and-pay 18/18.
+## THE SHELL — THE ONE PANEL BUTTON, THE SAP WAY (owner, 9 Nov 2026)
+
+The owner: "the bell symbol is obsolete because when you press it you get multiple options like guide, alerts, notes and activity. propose a new solution or symbol for it". Three options were photographed on the real bar ("Top Bar Panel Door": The SAP Way — one panel button; The Legora Way — Guide · Alerts 5 · Activity as words (recommended); Inbox — one labelled pill). The owner: "SAP Way".
+
+Built: the question mark (`#hdr-nav`, 29 Oct 2026) and the clock (`#cmd-panel`, 20 Sep 2026) left the bar; the bell button keeps its id `#hdr-notify` and its count `#hdr-notify-dot` but wears the panel's mark `#i-panel`, its hover "Side panel: Guide, Alerts, Notes, Activity" (`sh_panel_title`, both books). ONE handler `panelDoorPress`: open → `closeContextPanel`; shut → `openPanel(alertCount()>0 ? 'alerts' : panelFace())`. `applyPanelLayout` sets its `aria-expanded`. The panel's own tabs reach Guide, Notes and Activity.
+
+THE WORD FOLLOWED THE PICTURE: on-screen sentences that said "the bell" now say Alerts (`cn_dlg_sub`, `mn_when_says`, `mn_rv_*`, `int_fd_ask_ph`, `int_fd_sent`, `int_fd_asked`; `ng_notices_min_title` says the panel button), both books; the handbook's 0.3 ("The count and Needs you: one list") and 0.5 rewritten, and every "on the bell" in its chapters says Alerts. LEFT ALONE, told to the owner: the Brain page's descriptions (`brn_*`) still say "bell" as the name of the alerts; typing "bell" still opens Alerts.
+
 - THE PAGE IN FRONT IS THE ONE ASKED ABOUT (same day, the owner again: "fix the History panel showing the wrong
   contract"). After f978's way back, one wrong contract remained: MK-A2's paper → Approvals → MK-HB4's History left
   Jambo's box saying "Ask Jambo about MK-A2…", and a question went with MK-A2's wording — `intel.paper` stays "up"
@@ -36285,3 +36293,6 @@ f232 caught main's new igCardInFront asking for pdCardNow, which went with the s
 History now opens beside its own contract's paper, the paper up is the page in front; igPaperInFront = igPaperUp,
 f978 re-pinned. map-asked-bubbles 7 pressed the card's Ask why, and jambo-says-what-he-did 1 read the card's head;
 both now read the paper and History in the middle.
+
+## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
+Owner, 9 Nov 2026, after a UI review of HaTi next to Legora's pictures: "Make it a rule that any updates or references moving forward should be related to the new version of Hati with the whole white page and not the cards version. The old version with cards will be deleted." The two versions: the old look draws a page as separate cards (a head card `.ph-card` over a list card, Home's pieces each in their own card); the new look, behind the admin switch `prefs.newLook` (`newLookOn` → `html.lg-new`), draws ONE WHITE SHEET (head and list one surface, the Harmony block). From this day every change, drawing, photo and test is made on the new look; the review's own photos were taken with the switch on. Deleting the old look (the switch, the server's admin-only guard on `newLook`, every `lg-new` scope in index.html and `newLookOn()` branch in js/) is a job of its own and waits to be asked for by name.

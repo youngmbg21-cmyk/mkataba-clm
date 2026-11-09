@@ -126,7 +126,8 @@ const check = (name, pass, detail) => {
     check('3a the bar is the near-black, no hairline border, no filter', bar.bg === 'rgb(17, 17, 19)' && (bar.edgeW === '0px' || /rgba\(0, 0, 0, 0\)|transparent/.test(bar.edge)) && (!barSh.blur || barSh.blur === 'none'), JSON.stringify({ ...bar, ...barSh }));
     check('3b the mark is the word "HaTi" in the title serif, no tile', bar.markShown && bar.mark === 'HaTi' && /^"?Source Serif 4/.test(bar.markFace) && /rgba\(0, 0, 0, 0\)|transparent/.test(bar.markBg), JSON.stringify(bar));
     check('3c no theme button, no Blue/Green swatches and no language switch in the bar', !bar.theme && bar.swatches === 0 && !bar.lang, JSON.stringify(bar));
-    check('3d the bell\'s count is the ink, not amber', bar.bell === 'rgb(29, 29, 31)', String(bar.bell));
+    /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way", drawn with a red count): the one panel button's count is --st-ruby-dot */
+    check('3d the panel button\'s count is the red count drawn, not amber', bar.bell === 'rgb(194, 69, 59)', String(bar.bell));
 
     /* ================= 4. HOME'S QUESTION =================================== */
     const home = await page.evaluate(() => {

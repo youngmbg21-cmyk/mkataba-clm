@@ -32,8 +32,11 @@ describe('f187 (1) — two buttons, two jobs', () => {
     const app = read('js/app.js');
     assert.ok(!/hdr-notify'\)\?\.addEventListener\('click',\(\)=>document\.getElementById\('cmd-panel'\)/.test(app),
       'the handler that made them one button is gone');
-    assert.match(app, /getElementById\('cmd-panel'\)\?\.addEventListener\('click',\(\)=>openPanel\('activity'\)\)/);
-    assert.match(app, /getElementById\('hdr-notify'\)\?\.addEventListener\('click',\(\)=>openPanel\('alerts'\)\)/);
+    /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): ONE panel button on the bar; the clock is gone, and
+       the one button opens the panel (Alerts when something waits, else the tab last used), pressed again closes */
+    assert.ok(!/getElementById\('cmd-panel'\)\?\.addEventListener/.test(app), 'the clock button is gone from the bar');
+    assert.match(app, /getElementById\('hdr-notify'\)\?\.addEventListener\('click',panelDoorPress\)/);
+    assert.match(app, /function panelDoorPress\(\)\{[\s\S]*?if\(state\.panelOpen\)\{ closeContextPanel\(\); return; \}[\s\S]*?openPanel\(n>0\?'alerts':panelFace\(\)\)/);
   });
 
   test('ONE PANEL, THREE CONTENTS — still not two panels', () => {
@@ -96,7 +99,7 @@ describe('f187 (1) — two buttons, two jobs', () => {
 
   test('THE HARD-CODED DOT IS GONE, and its replacement is hidden at zero', () => {
     const html = read('index.html');
-    const bell = html.slice(html.indexOf('id="hdr-notify"'), html.indexOf('id="cmd-panel"'));
+    const bell = html.slice(html.indexOf('id="hdr-notify"'), html.indexOf('id="rail-avatar"'));  /* RE-POINTED 9 Nov 2026: the clock left the bar */
     assert.match(bell, /id="hdr-notify-dot" hidden/, 'it starts hidden, not lit');
     assert.ok(!/background:var\(--accent-solid\);border:2px solid var\(--color-surface\);"><\/span>/.test(bell),
       'the always-on dot is not still there');
@@ -279,7 +282,7 @@ describe('f187 (3) — the suppression is a shape, and nothing wears it', () => 
     const badge = app.slice(app.indexOf('function updateAlertBadge'));
     const body = badge.slice(0, badge.indexOf('\n}'));
     assert.match(body, /btn\.disabled=off/, 'a disabled control, not a live one that does nothing');
-    assert.match(body, /pan\.disabled=off/);
+    /* RE-POINTED 9 Nov 2026: the clock (pan) left the bar; the one panel button carries the rule */
     assert.match(body, /ap_alerts_not_here/, 'and it says which page took the space');
   });
 
