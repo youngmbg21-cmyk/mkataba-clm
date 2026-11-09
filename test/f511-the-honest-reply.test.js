@@ -89,8 +89,10 @@ describe('F511 (C) — a set Copilot chose', () => {
   });
   test('the panel names the set and rewrites the reply on the board (source)', () => {
     const src = strip(read('js/views/intelligence.js'));
-    assert.match(src, /addLens\(\{ label:igBoardTitle\(q,res\)\|\|res\.note/);
-    assert.match(src, /listTitle:igBoardTitle\(q,res\)\|\|/);
+    /* RE-POINTED 9 Nov 2026 (Explorer's Jambo audit): on the Board the set is still named as before; off it, on the map,
+       HaTi names it off the rule it applied (setLabel, f995 (5)) */
+    assert.match(src, /addLens\(\{ label:onMap\?setLabel:\(igBoardTitle\(q,res\)\|\|res\.note/);
+    assert.match(src, /listTitle:onMap\?\(\(ids&&ids\.length\)\?setLabel:stepTitle\):\(igBoardTitle\(q,res\)\|\|/);
     /* the question rides along (stage 3d): "how much is in drafts" is answered with the set's value */
     assert.match(src, /if\(igBoardNow\(\)&&typeof window\.hbFoundSay==='function'\)\{ const say=hbFoundSay\(q\); if\(say\)\{ m\.text=say;/);
     assert.match(src, /if\(igBoardNow\(\)\) intel\.lenses=\(intel\.lenses\|\|\[\]\)\.filter\(l=>l\.hb\|\|l\.action!=='filter'\);/, 'a typed question on the board starts afresh');

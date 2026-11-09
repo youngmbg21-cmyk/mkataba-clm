@@ -1940,6 +1940,13 @@ function jamboRefOf(q){
   rest = rest.replace(/^[\s:,.!?–—-]+|[\s:,.!?–—-]+$/g, '').replace(/^(?:the\s+)?(?:contract|avtal(?:et)?)$/i, '').trim();
   return { c: r.c || null, miss: r.miss || null, question: rest ? raw : '' };
 }
+/* the map is the page in front: Home's Explorer face with no paper over it */
+function jamboOnExplorer(){
+  try {
+    return state.view === 'dashboard' && typeof window.hbFace === 'function' && hbFace() === 'explorer'
+      && !(typeof window.igPaperUp === 'function' && igPaperUp());
+  } catch (_){ return false; }
+}
 function jamboRefGo(q){
   const R = jamboRefOf(q); if (!R) return false;
   if (!R.c){
@@ -1947,6 +1954,10 @@ function jamboRefGo(q){
     if (typeof toast === 'function') toast(i18t('jb_ref_none', { ref: R.miss }), 'warn');
     return true;
   }
+  /* ON EXPLORER A NUMBER INSIDE A QUESTION STAYS ON THE MAP (Explorer's Jambo audit, 9 Nov 2026, the owner's yes;
+     narrows round 17 there): "what depends on MK-12" opened MK-12's paper and every later map command went to a chat
+     that could not change the map. The number alone still opens it, as everywhere. */
+  if (R.question && jamboOnExplorer()) return false;
   /* already in front of the reader: a question about it is the brain's, here */
   let here = false; try { here = !!(typeof aiOnScreenContract === 'function' && aiOnScreenContract() && aiOnScreenContract().id === R.c.id); } catch (_){ here = false; }
   if (R.question && here) return false;
@@ -3328,7 +3339,7 @@ function caHomeRun(q, a){
 Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_AND_WORDS, CA_AND_NARROWS, CA_AND_SAY_MAX, caAndPlaceAt, caNarrowOf, caSayCut, caReadPlaceAnd, caReadGoPlace,
   caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
-Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, JB_REF_OPEN_RE, jamboRefOf, jamboRefGo, jamboRefAskThere, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
+Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, JB_REF_OPEN_RE, jamboRefOf, jamboRefGo, jamboOnExplorer, jamboRefAskThere, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
   caEchoHtml, caPlaceGo, CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailSeen, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */

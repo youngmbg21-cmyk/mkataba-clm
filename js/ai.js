@@ -3296,7 +3296,8 @@ async function aiLocalGraph(qRaw){
   const sys=`You convert a user's command about a contract-portfolio map into a filter over the cards below. Respond with ONLY a JSON object — no prose, no code fence.
 Value streams: ${folders}.
 Shape (all keys optional; omit any that isn't implied):
-{"where":{<any of: ${keys}>},"groupBy":"${(typeof GRAPH_GROUP_KEYS!=='undefined'&&Array.isArray(GRAPH_GROUP_KEYS))?GRAPH_GROUP_KEYS.join('|'):'folder|counterparty|status|valueBand|kind'}","action":"filter|highlight","note":"<short human label>"}
+{"where":{<any of: ${keys}>},"groupBy":"${(typeof GRAPH_GROUP_KEYS!=='undefined'&&Array.isArray(GRAPH_GROUP_KEYS))?GRAPH_GROUP_KEYS.join('|'):'folder|counterparty|status|valueBand|kind'}","action":"filter|highlight","note":"<short human label>","within":<true only when narrowing what is shown now>,"steps":[{"do":"<one of: ${(Array.isArray(window.IG_STEP_DOS)?window.IG_STEP_DOS:[]).join('|')}>","lens":"risk|obligations|money|promises|people|off","date":"YYYY-MM-DD","time":"decision|expiry|signed|created","which":"<plain words>","a":"<plain words>","b":"<plain words>","party":"<name>","id":"<contract id>","name":"<view name>","by":"value|payterms|obligations|renewal"}]}
+steps are the map's own tools — lens, dateLine (a line on the timeline at a day), dateLineOff, asOf (the book on a past day), asOfOff, compare (a vs b), whatIf (a party left), single (single-sourced), families, linked, undo, reset, showAll, save, open, sort, cliff (the renewal cliff), yourDay, explain (this view), walk, outliers: use a step whenever the command asks for one of these, never a filter in its place. Change only what the command asks.
 where: status/folder/kind/counterparty are a string or a list of strings (folder by name); valueAbove/valueBelow numbers in the contract's currency; expiringWithinDays an integer; signedFrom/signedTo YYYY-MM-DD; overdueObligations/offStandard/notRead/archived/imported booleans (imported = brought in through the Import page); move "you" or "them".
 "highlight" → action highlight; "only/just/filter" → action filter.
 Today is ${typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10)}.
@@ -3304,7 +3305,7 @@ CARDS (${cards.length}${(state.contracts||[]).length>cards.length?' of '+(state.
   const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:400,system:sys,messages:[{role:'user',content:q}]}),
+    body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:900,system:sys,messages:[{role:'user',content:q}]}),
   });
   if(r.status===401) throw new Error('The saved Jambo key was rejected (401) — re-check it in Team & Settings.');
   if(r.status===429) throw new Error('Rate limited by Jambo provider — wait a moment and try again.');
@@ -3328,7 +3329,9 @@ CARDS (${cards.length}${(state.contracts||[]).length>cards.length?' of '+(state.
     ? (s.groupBy?'Regrouped the graph.':"I couldn't turn that into a map filter — try naming a value stream, status, type, party or expiry window.")
     : (vis.length ? `${vis.length} contract${vis.length===1?'':'s'} match (${note}).`
                   : `No contracts match (${note}).`);
-  return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy:s.groupBy||null, groups:null, note, action:(s.action==='highlight'?'highlight':'filter'), badges:null, answer };
+  /* the map's own steps, read in the browser by the map's own readers (igStepActs), as the server's route does (GRAPH_STEP_DOS) */
+  const steps=Array.isArray(s.steps)?s.steps.filter(x=>x&&typeof x==='object').slice(0,8):null;
+  return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy:s.groupBy||null, groups:null, note, action:(s.action==='highlight'?'highlight':'filter'), badges:null, answer, steps, within:s.within===true };
 }
 
 /* One front door for both surfaces (main panel + Intel dock): server-mediated

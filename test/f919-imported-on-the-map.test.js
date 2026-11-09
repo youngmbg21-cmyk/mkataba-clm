@@ -67,7 +67,8 @@ test('f919 (1) the card says imported, off the contract\'s own import record, on
   const i = SERVER.indexOf('function copilotCardOf(');
   assert.match(SERVER.slice(i, SERVER.indexOf('\n}\n', i)), /imported: !!c\.migration/);
   /* and the graph prompt names the field to the model */
-  assert.match(SERVER, /archived, source, imported = brought in through the Import page\):/);
+  /* RE-POINTED 9 Nov 2026 (Explorer's Jambo audit): the party's recorded city follows it on the card (f995) */
+  assert.match(SERVER, /archived, source, imported = brought in through the Import page, city = the party's city where its record holds one\):/);
 });
 
 test('f919 (2) "imported" is a filter on both hosts, through the one predicate', () => {
