@@ -30,6 +30,22 @@ function listMarkHtml(tone, kind, title){
   const t = _listTone(tone), d = LIST_MARK_PATHS[kind] || LIST_MARK_PATHS.todo;
   return `<span class="ls-mark" style="color:var(--st-${t}-dot)"${title ? ` title="${_lsE(title)}"` : ''} aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`;
 }
+/* THE SAP WAY MARK (owner, 9 Nov 2026: "at the head of every row"; the new look only): a 20px filled circle in the
+   house's status colour with a white DRAWN glyph (js/components.js ICONS, never a typed character). ONE map of what a
+   row's state means, so every list says it alike: done a green tick · your move an amber ! · theirs a steel i · a real
+   risk a ruby cross (never merely late) · nothing yet a grey dash · Jambo's piece a violet star. */
+const LIST_SAP_MARK = { done: ['green', 'mkTick'], you: ['amber', 'mkBang'], them: ['steel', 'mkInfo'],
+  risk: ['ruby', 'mkCross'], none: ['gray', 'mkDash'], jambo: ['violet', 'mkStar'] };
+function listSapMarkHtml(key, title){
+  const k = LIST_SAP_MARK[key] ? key : 'none', m = LIST_SAP_MARK[k];
+  const g = (typeof icon === 'function') ? icon(m[1], 'ls-mk-g', 2.4) : '';
+  return `<span class="ls-mk is-${m[0]}" data-ls-mk="${k}"${title ? ` title="${_lsE(title)}"` : ''} aria-hidden="true">${g}</span>`;
+}
+/* the new look wears the SAP mark, today's look its outlined one: the one switch every list asks */
+const listSapOn = () => (typeof newLookOn === 'function') && !!newLookOn();
+/* a first cell that had no mark (the new look's own rows: Negotiations, Approvals) takes it beside its two lines; with
+   the switch off the cell is exactly what it was */
+const listSapCellHtml = (key, inner, title) => listSapOn() ? `<div class="ls-mkrow">${listSapMarkHtml(key, title)}<div class="ls-mkrow-t">${inner}</div></div>` : inner;
 function listWordHtml(tone, text, sub){
   const t = _listTone(tone);
   return `<span class="ls-word"><span class="ls-word-v" style="color:var(--st-${t}-fg)"><i style="background:var(--st-${t}-dot)"></i>${_lsE(text)}</span>${sub ? `<span class="ls-word-m">${_lsE(sub)}</span>` : ''}</span>`;
@@ -70,4 +86,4 @@ function stdRowWordsHtml(c){
     : '<span class="ls-lamp is-off"><i></i>0</span>';
   return `<span class="ls-lights" role="img" aria-label="${_lsE(said)}" title="${_lsE(said)}">${lamp('ruby', r.miss)}${lamp('amber', r.off)}${lamp('green', r.met)}</span>`;
 }
-Object.assign(window, { stdRowWordsHtml, LIST_MARK_PATHS, LIST_STREAM_FIXED, listMarkHtml, listWordHtml, listChipHtml, listStreamTone, listAvatarTone });
+Object.assign(window, { stdRowWordsHtml, LIST_MARK_PATHS, LIST_STREAM_FIXED, listMarkHtml, listWordHtml, listChipHtml, listStreamTone, listAvatarTone, LIST_SAP_MARK, listSapMarkHtml, listSapOn, listSapCellHtml });

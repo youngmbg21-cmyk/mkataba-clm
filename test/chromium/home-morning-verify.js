@@ -75,7 +75,8 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
         const tab = document.querySelector('#ins-panel [data-jl-home] .pd-tab-w');
         const h1 = document.querySelector('#cn2-page .cn2-hello'), cs = h1 && getComputedStyle(h1);
         const rows = [...document.querySelectorAll('#cn2-list .cn2-row')].map(r => {
-          const av = r.querySelector('.nd-av'), k = r.querySelector('.nd-kind'), v = r.querySelector('.cn2-ac .nd-btn');
+          /* RE-POINTED 9 Nov 2026 (owner: the SAP way mark replaces the party initials on Home, f982): the round lead is the mark */
+          const av = r.querySelector('.ls-mk, .nd-av'), k = r.querySelector('.nd-kind'), v = r.querySelector('.cn2-ac .nd-btn');
           return { k: k ? k.className.replace(/.*is-/, '') : '', round: !!av && getComputedStyle(av).borderTopLeftRadius === '50%', pill: !!v && !/underline/.test(getComputedStyle(v).textDecorationLine) && getComputedStyle(v).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(v).borderTopLeftRadius !== '0px', name: (r.querySelector('.cn2-nm') || {}).textContent || '' }; });
         const cts = [...document.querySelectorAll('#cn2-counts .cn-ct')].map(b => ({ tone: [...b.classList].find(c => c.startsWith('is-')), word: b.textContent.trim() }));
         const accent = (() => { const x = document.createElement('i'); x.style.color = 'var(--accent-ink)'; document.body.appendChild(x); const c = getComputedStyle(x).color; x.remove(); return c; })();
@@ -92,7 +93,7 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
       const order = M.rows.map(r => ({ late: 0, you: 1, jambo: 2, week: 3 }[r.k] ?? 9));
       /* RE-POINTED (the harmony review, owner's yes 9 Nov 2026, PILL TO ACT): a row's act is a grey pill, no longer a green link */
       /* RE-POINTED again (GROUPED ROWS): one small heading over each kind's run, in the list's order, instead of the kind on every row */
-      check(`${nm} 5 ONE list, late first, then your move, then Jambo's work; round initials, a kind on every row, a grey pill; one heading per kind's run, no Show all`,
+      check(`${nm} 5 ONE list, late first, then your move, then Jambo's work; a round mark, a kind on every row, a grey pill; one heading per kind's run, no Show all`,
         M.rows.length >= 3 && order.every((v, i) => i === 0 || v >= order[i - 1]) && M.rows[0].k === 'late' && M.rows.every(r => r.round && r.k && r.pill) && M.groups === 0
         && M.heads.length >= 2 && M.heads[0] === 'late' && new Set(M.heads).size === M.heads.length, { rows: M.rows, heads: M.heads });
       /* RE-POINTED (the harmony review, ONE COUNT): the foot says the whole in the sentence's own words, no description of the screen */
