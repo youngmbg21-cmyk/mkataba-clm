@@ -11040,6 +11040,8 @@
      and type; the camera (Still, zoom) stands in the top-right corner. Past the room, the bar wraps upward, never over the legend. */
   .ig-brain .ig-viewbar{left:276px;justify-content:flex-end;flex-wrap:wrap-reverse;row-gap:6px}
   .ig-brain .ig-viewbar .ig-seg button,.ig-brain .ig-viewbar .ig-seg .ig-seg-k{padding:0 7px}
+  /* a narrow map (800 wide, Swedish words): a group too long for the room beside the legend folds onto a second row inside its own box, never cut */
+  .ig-brain .ig-viewbar .ig-seg{max-width:100%;flex-wrap:wrap}
   .ig-brain .ig-camerabar{position:absolute;right:12px;top:10px;z-index:2;display:flex;align-items:center;gap:6px}
   .ig-brain .ig-note{max-width:calc(100% - 210px)}
   /* a legend row is a press (owner, 9 Nov 2026): it lights on hover, and the picked one wears the bar's pressed look */
