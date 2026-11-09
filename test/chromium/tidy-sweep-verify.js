@@ -167,7 +167,8 @@ const MEASURE = `(() => {
     /* …and the Dossier's door rows (owner picked "Two lines", 25 Oct 2026; CLAUDE.md: a long name takes two lines, then "…"):
        with the last column's one grey pill (29 Oct 2026) a value like "Warehousing & Distribution" reads whole on two lines */
     /* …and a folder tile (the new look's Contracts › Folders, 9 Nov 2026): a button-card of four lines, name · count · bar · money */
-    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card')) continue;
+    /* …and a folder row (the folders, the Legora way, owner's pick 9 Nov 2026, f983): the name over its grey line */
+    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
     /* THE LINES THE WORDS TOOK, not the box's height: a tag with a fixed height folds its words inside it and the box never grows */
