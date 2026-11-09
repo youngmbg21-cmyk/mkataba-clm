@@ -12615,6 +12615,7 @@ const STRINGS = {
     ct_term_open: 'Not filled in yet — answer it in Fill in the details, beside the paper',
     // ---- two copies of one contract: the pages (25 Sep 2026) ----
     pg_page_of: 'Page {n} of {m}',
+    pg_line_page: 'Page {n}',
     pg_sign_here: 'Sign here',
     pg_signature_of: 'Signature of {who}',
     pg_not_yet_signed: 'not yet signed',
@@ -35749,6 +35750,7 @@ const STRINGS = {
     ct_term_open: 'Inte ifyllt ännu — svara i Fyll i uppgifterna, bredvid papperet',
     // ---- två exemplar av samma avtal: sidorna (25 sep 2026) ----
     pg_page_of: 'Sida {n} av {m}',
+    pg_line_page: 'Sida {n}',
     pg_sign_here: 'Signera här',
     pg_signature_of: 'Underskrift av {who}',
     pg_not_yet_signed: 'inte signerat ännu',

@@ -214,6 +214,42 @@ function pagesNumberLabel(n, m){
   return (t && t !== 'pg_page_of') ? t : `Page ${n} of ${m}`;
 }
 
+/* ---- THIN PAGE LINES WHERE A PERSON TYPES (owner picked option 2, 9 Nov 2026: "go with option 2, thin page lines") ----
+   The clause editor and the template builder keep ONE sheet, because a page break drawn by pushing wording down would
+   move the words under the caret (rlPaginate's rule). Instead a faint dashed line marks where each A4 page would end,
+   with "Page N" in the sheet's empty left margin — drawn OVER the sheet in its own layer, pointer-free, carrying no text node (the label
+   is the line's data-l, painted by CSS), so nothing is pushed, nothing is read as wording, and typing never moves.
+   Drawn again only when the sheet's width or page count changes. */
+const PG_LINES_MS = 120;
+/* "Page 2" — short, so it sits in the sheet's empty left margin and never over a word */
+function _pgLineLabel(n){
+  const t = window.i18t ? window.i18t('pg_line_page', { n }) : '';
+  return (t && t !== 'pg_line_page') ? t : `Page ${n}`;
+}
+function pagesLines(sheet){
+  if(!sheet || typeof window === 'undefined') return;
+  const draw = () => {
+    if(!sheet.isConnected){ if(sheet._pgLinesRO){ try{ sheet._pgLinesRO.disconnect(); }catch(_){} sheet._pgLinesRO = null; } return; }
+    const W = sheet.offsetWidth, T = sheet.offsetHeight; if(!W || !T) return;
+    const H = W * PG_A4, n = Math.max(1, Math.ceil((T - 1) / H));
+    let layer = sheet.querySelector(':scope > [data-pg-lines]');
+    const key = W + ':' + n;
+    if(layer && layer._pgKey === key) return;
+    try{ if(getComputedStyle(sheet).position === 'static') sheet.style.position = 'relative'; }catch(_){ /* no layout */ }
+    if(!layer){ layer = document.createElement('div'); layer.className = 'pg-lines'; layer.setAttribute('data-pg-lines', ''); layer.setAttribute('data-pg-layer', ''); layer.setAttribute('aria-hidden', 'true'); sheet.appendChild(layer); }
+    layer._pgKey = key;
+    let h = '';
+    for(let k = 1; k < n; k++) h += `<div class="pg-line" style="top:${Math.round(k * H)}px" data-l="${_pgAttr(_pgLineLabel(k + 1))}"></div>`;
+    layer.innerHTML = h;
+  };
+  draw();
+  if(!sheet._pgLinesRO && typeof ResizeObserver === 'function'){
+    let t = 0;
+    const ro = new ResizeObserver(() => { if(t) clearTimeout(t); t = setTimeout(draw, PG_LINES_MS); });
+    ro.observe(sheet); sheet._pgLinesRO = ro;
+  }
+}
+
 /* ONE PAGE'S FURNITURE — its frame, its corner marks, its head and its foot —
    placed against `top`, the page's top edge in the coordinates of whatever
    holds it: the long sheet's layer on screen, or the page's own box when it
@@ -554,7 +590,7 @@ if(typeof module !== 'undefined' && module.exports){
 if(typeof window !== 'undefined'){
   Object.assign(window, { PG_A4, PG_GAP, PG_SIGN_W, PG_SIGN_H, PG_SIGN_PAD, PG_HEAD_KEEP, PG_KEEP_SEL, PG_HEAD_SEL,
     pagesPlan, pagesAtoms, pagesClear, pagesLayout, pagesWatch, pagesUnwatch, pagesRefresh, pagesAtView, pagesGoTo,
-    pagesNumberLabel, pagesPrintPages, pagesPrintPageRule });
+    pagesNumberLabel, pagesPrintPages, pagesPrintPageRule, pagesLines });
 }
 
 /* ============================================================

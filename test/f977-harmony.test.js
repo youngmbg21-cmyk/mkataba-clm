@@ -220,3 +220,13 @@ test('f977 fix 10 · the empty preview line above the box takes no room, so ever
   assert.match(read('index.html'), /html\.lg-new #ig-dock \.igd-foot > \.hb-pre:empty\{display:none\}/);
   assert.match(read('js/views/intelligence.js'), /<div id="igd-pre" class="hb-pre" aria-live="polite"><\/div>/, 'the line is drawn empty until there are words');
 });
+
+/* THE HEAD THAT STAYS PUT IS NEVER SEE-THROUGH (owner, 9 Nov 2026, Calendar › Horizon: the rows showed through
+   "AGREEMENT … DECISION" as the list scrolled). At the parent the new look painted the sticky ruler transparent */
+test('f977 fix 11 · the Horizon head stands on the page\'s white while the rows scroll under it', () => {
+  const css = read('index.html');
+  const rule = css.match(/html\.lg-new #app-shell \.cal-page\.is-nl \.cal-hz-card \.cal-hz-ruler\{[^}]*\}/)[0];
+  assert.match(rule, /background:var\(--color-surface\)/);
+  assert.doesNotMatch(rule, /background:transparent/);
+  assert.match(read('js/views/calendar.js'), /\.cal-hz-ruler\{display:grid;[^}]*position:sticky;top:0;z-index:2;/, 'the head is the one that stays put');
+});

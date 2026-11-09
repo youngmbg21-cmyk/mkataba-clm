@@ -2687,7 +2687,9 @@ function tbWireSplit() {
     try { grid._tbObs = new ResizeObserver(() => tbFitSplit()); grid._tbObs.observe(grid); } catch (_) {}
   }
 }
-function tbPaintPaper() { const s = document.getElementById('tb-paperslot'); if (s) s.innerHTML = tbPaperHtml(); }
+function tbPaintPaper() { const s = document.getElementById('tb-paperslot'); if (s) s.innerHTML = tbPaperHtml();
+  /* THIN PAGE LINES (owner picked option 2, 9 Nov 2026): where each page would end, over the one sheet (pagesLines) */
+  try { const p = document.getElementById('tb-paper'); if (p && typeof window.pagesLines === 'function') pagesLines(p); } catch (_) {} }
 /* `keep` holds the lane's own place: a tick, a Keep or a Leave out changes one
    row of the list the reader is looking at, and must not throw them to its
    top (keepScroll's rule, for this page's own scroller). */
