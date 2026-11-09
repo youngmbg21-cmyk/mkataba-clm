@@ -40,7 +40,7 @@ const WHERE = () => {
   const t = document.getElementById('hm-agents'); const r = t && t.getBoundingClientRect();
   const hit = r ? document.elementFromPoint(Math.round(r.left + 40), Math.round(Math.max(r.top, 0) + 16)) : null;
   const toasts = [...document.querySelectorAll('.toast')].map(x => x.textContent.trim()).join(' | ');
-  return { view: state.view, face: typeof hbFace === 'function' ? hbFace() : '', card: typeof bsCardId === 'function' ? bsCardId() : null,
+  return { view: state.view, face: typeof hbFace === 'function' ? hbFace() : '', card: null, /* the Board's contract card is gone (9 Nov 2026) */
     agents: !!t, seen: !!(hit && t && t.contains(hit)), landed: !!(t && t.classList.contains('is-landed')),
     nothing: /nothing prepared/i.test(toasts), sideways: document.documentElement.scrollWidth > window.innerWidth + 1 };
 };
@@ -85,8 +85,8 @@ const WHERE = () => {
 
     console.log('\n2 · after a contract\'s report was on the Board');
     await page.evaluate(() => hbStripBring('MK-JWO3'));
-    const held = await waitFor(page, () => typeof bsCardId === 'function' && bsCardId() === 'MK-JWO3', 8000);
-    check('2- a contract\'s report is held on the Board (the case being measured)', !!held);
+    const held = await waitFor(page, () => typeof hbFace === 'function' && hbFace() === 'paper' && typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'MK-JWO3', 8000);
+    check('2- a contract\'s paper is in front (the case being measured; the Board card is gone, 9 Nov 2026)', !!held);
     const l2 = await openFromHome(); const w2 = await page.evaluate(WHERE);
     check('2a Open lands on the Jambo\'s work card, not the old report', !!l2 && w2.face === 'board' && !w2.card && w2.agents && w2.seen, JSON.stringify(w2));
     check('2b and never says "nothing prepared" over waiting work', !w2.nothing, JSON.stringify(w2));
@@ -94,7 +94,7 @@ const WHERE = () => {
 
     console.log('\n3 · with a contract\'s report on screen');
     await page.evaluate(() => hbStripBring('MK-JWO5'));
-    const held3 = await waitFor(page, () => state.view === 'dashboard' && typeof bsCardId === 'function' && bsCardId() === 'MK-JWO5', 8000);
+    const held3 = await waitFor(page, () => state.view === 'dashboard' && typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'MK-JWO5', 8000);
     await page.evaluate(() => hbOpenAgent());
     const l3 = await waitFor(page, () => { const t = document.getElementById('hm-agents'); return t && t.classList.contains('is-landed') ? true : null; }, 6000);
     const w3 = await page.evaluate(WHERE);
@@ -104,7 +104,7 @@ const WHERE = () => {
     for (const [w, hh] of SCREENS) {
       await page.setViewportSize({ width: w, height: hh });
       await page.evaluate(() => hbStripBring('MK-JWO2'));
-      await waitFor(page, () => typeof bsCardId === 'function' && bsCardId() === 'MK-JWO2', 8000);
+      await waitFor(page, () => typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'MK-JWO2', 8000);
       const l = await openFromHome(); await pause(300); const m = await page.evaluate(WHERE);
       check(`4 ${w}x${hh}: the card in view, nothing sideways`, !!l && m.agents && m.seen && !m.card && !m.sideways, JSON.stringify(m));
       await page.screenshot({ path: path.join(OUT, `open-${w}x${hh}.png`) });

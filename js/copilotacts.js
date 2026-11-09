@@ -2086,14 +2086,9 @@ function caHomeFace(f){
     Promise.resolve(window.closeModalGuarded()).then(ok => { if (ok === false || window.naSheetUp()) return; window._caFaceLeaving = true; try { caHomeFace(f); } finally { window._caFaceLeaving = false; } }).catch(() => {});
     return true;
   }
-  /* THE BOARD ASKED FOR IS THE BOARD (the glitch audit, 24 Oct 2026: "board"
-     typed on Home after a contract's History showed that History again): a
-     contract brought up on the Board face is let go first, as the Recent
-     row's Board does (deskTabOpen 'home:board') */
-  const left = f === 'board' && typeof window !== 'undefined' && typeof window.bsCardLeave === 'function' && window.bsCardLeave();
+  /* THE BOARD ASKED FOR IS THE BOARD (the glitch audit, 24 Oct 2026); the contract's card on it is gone (9 Nov 2026) */
   if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbSetFace === 'function'){
-    if (left && typeof hbFace === 'function' && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace(f);
-    if (left && typeof deskTabsSync === 'function') try { deskTabsSync(); } catch (_){}
+    hbSetFace(f);
     return true; }
   const s = hbS(); s.face = f; if (typeof hbSave === 'function') hbSave();
   if (typeof setView === 'function') setView('dashboard');
@@ -2698,8 +2693,8 @@ const CA_CONTRACT_ACTS = [
   ['share', /(?<!\p{L})(?:share|send|dela|skicka)(?!\p{L})/iu],
   ['amend', /(?<!\p{L})(?:amend|amendment|ändra avtalet|tillägg)(?!\p{L})/iu],
   /* "take me to the board and show me the overview of MK-382" (owner, 23 Oct 2026, from Settings' box):
-     a contract on the Board is its strip, on its Overview (hbStripBring's 'ov'); read last, so a named
-     page ("its history on the board") keeps its own */
+     a contract named with the board lands on its paper with its Dossier (hbStripBring, the one door; the strip
+     is gone, 9 Nov 2026); read last, so a named page ("its history on the board") keeps its own */
   ['board', /(?<!\p{L})(?:overview|översikt(?:en)?|board|tavlan?|lifeline)(?!\p{L})/iu],
 ];
 function caContractActOf(s){ const hit = CA_CONTRACT_ACTS.find(([, re]) => re.test(String(s || ''))); return hit ? hit[0] : null; }
@@ -2707,7 +2702,7 @@ function caContractActOf(s){ const hit = CA_CONTRACT_ACTS.find(([, re]) => re.te
 const CA_CONTRACT_FRAME = /(?<!\p{L})(?:please|can|could|would|will|you|i|we|me|my|our|us|the|a|an|and|this|that|its|it|of|for|on|in|about|to|from|with|show|see|view|open|bring|take|go|get|give|read|let|want|need|like|just|look|at|up|contract|contracts|agreement|agreements|deal|no|number|nr|för|på|i|om|till|av|med|och|visa|öppna|se|läs|ta|mig|gå|avtal|avtalet|avtalen|kontrakt|kontraktet|den|det|dess|vill|jag|kan|du|tack|snälla|now|thanks)(?!\p{L})/giu;
 /* a question about what a contract SAYS: asked of that contract, never dropped */
 const CA_CONTRACT_ASKS = /^\s*(?:what|which|who|whom|whose|why|when|where|how|is|are|was|were|does|do|did|has|have|can|could|should|would|will|tell me|explain|vad|vilken|vilka|vem|varför|när|var|hur|är|finns|har|kan|ska|förklara)(?!\p{L})/iu;
-/* "bring up MK-…" is the Board's strip (hbBringOf), its own door */
+/* "bring up MK-…" brings the contract up on its paper (hbBringOf → hbStripBring), its own door */
 const CA_CONTRACT_BRING = /^\s*(?:(?:can|could|would)\s+you\s+|please\s+)*(?:bring\s+up|pull\s+up|ta\s+fram)(?!\p{L})/iu;
 /* A FOLLOW-UP CARRIES THE LAST ACT (owner, 22 Oct 2026: after "show me the brief
    for MK-382", "what about for mk 380" was written as a brief by the chat

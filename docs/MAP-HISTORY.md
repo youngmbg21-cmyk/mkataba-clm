@@ -36190,6 +36190,79 @@ The owner, with a picture of Your day and the four figures circled (Need you, Hi
 NOTED FOR THE OWNER: Need you counts THINGS waiting (the bell's number); the map shows the CONTRACTS they sit on, so 9 things on 5 contracts reads "Showing 5 of 16".
 Then the owner: "Include New since yesterday as well". New since yesterday narrows the map too (go `onmap`, no lens); every figure on Your day now shows on the map. `int_day_go_open` and `int_day_go_them` retired (left inert in both books).
 
+
+## ROUND 1 — THE INSTRUMENTS LEARN WHAT THE OWNER SAW (9 Nov 2026)
+The owner, over two pictures: the Calendar's Horizon tab with its first row painted twice and a small scrollbar on
+it, and Settings looking "built on cards as opposed to the new visuals with all white pages". Round 0 ran the
+existing instruments (the tidy sweep, the detail audit, the style audit) and found that neither picture could have
+been caught: the ghost was clean at first paint in every sweep (the instruments photograph the first paint only, and
+Horizon was a tab no sweep visited); Settings' grey strips were two scrollbars — the middle column scrolling inside a
+page that also scrolls — which the Linux test browser hides and the owner's Windows draws as grey tracks. The owner's
+ruling: "the white pages should be considered as the future state and bugs are only to be identified on the new
+visuals"; then, over the now-and-on-white pictures: Settings, a template's page and the builder → Build it; the Board
+and Jambo's agents → Not now; Home's cream head and the paper's desk left out on purpose.
+ROUND 1 changes only the instruments. The tidy sweep measures every place again AFTER MOTION (its biggest own
+scroller moved, its first unchosen tab pressed), visits the Calendar's Month, Week and Horizon tabs and Contracts'
+Wall, and carries the new look's waiting marks (Negotiations `.ngn-*`, Obligations `.obn-*`, Reads `.rdn-page`,
+Settings `#stn-main`; the Board's landed row falls back to the first row of the side list). The detail audit gains
+HATI_DETAIL_NEW_LOOK=1 and the HAND kind (a press whose cursor stays the arrow; the owner's second picture — in the
+new look Parties, People and Reads rows had no hand, one rule naming `cunp-table` for `cun-table`); the report's
+hand-written "Found in the hunt" list of 24 Oct, never re-measured, came off. NEW: test/chromium/white-sheet-verify.js
+— in the new look, at the three screens, no grey ground painted left of Jambo's panel by one element over 300×48 (the
+paper's canvas and the designed grey parts excepted) and no scroller inside an active scroller; WHITE_KNOWN carries
+the eight allowances with the owner's word and only shrinks (an allowance that no longer fires fails the run). Both
+kinds are planted and caught before any page is measured. Nothing in the product changed in this round.
+WHAT THE NEW INSTRUMENTS FOUND ON THEIR FIRST RUN (new look, 9 Nov 2026), none in the owner's pictures: Contracts › Wall is
+16px wider than its room (`#ig-wall`, a sideways scrollbar, all three screens, also after a scroll); the Pulse board has a
+grey strip under its head where the legend sits (`#app-shell` shows through, 48px at 1440, 64px on the iPad; carried in
+WHITE_KNOWN awaiting the owner's ruling); on the iPad Jambo's house's "Pieces of work" tile keeps 7–9px of room. The
+sweep's own misreadings came off: a Calendar day cell and today's-look ladder tile are not cards (`.cal-day`, `.cal-lad`
+in CTRL), a folder tile is a button-card of four lines, not a one-liner (`.ctf-card`). After-motion presses a page's
+tab back afterwards (TAB_RESTORE): a page remembers its tab, and Jambo's house opened on Agents for the next screen.
+Today's look: 399 + 68 + 19 passed, 0 faults left; the new look: the Round 0 faults (A2 the Dossier card, A3 the preview
+blank, A4 the Filed-in label) stand red there, as they should until their fix rounds.
+
+## THE STRIP IS GONE — THE ONE DOOR LANDS ON THE PAPER (owner, 9 Nov 2026)
+The owner, over a picture of a contract's card on the Board (MK-311 · In Review · round 2: Needs you, The deal, Key
+terms, What Jambo read; the foot Keep · Ask why · Let it go · Brought up by you · 13:58): "delete this page attached
+from hati". It was THE LIFELINE STRIP (the overnight work order's step 8, 14–15 Oct 2026; later "a contract brought up
+is a page on the desk", round 7, and "the report, simplified", 21 Oct). Removed whole: js/views/boardstrip.js keeps
+only what the rest of HaTi reads (bsObRows, bsFamRows, bsPrivateOf and its pill, bsShortName, bsDay, the pay readers
+and paySet, the NDA readers and ndaSet, bsReadWait, bsGo); its 1625 lines are 536; its 260 bs_* words per book are
+the pay, family, obligation and private-pill words only; its styles (two blocks, three strays) are the lane colours,
+the family rows and the lock pill; the Board's stored strips and card, the desk bar's 'card' row view, Jambo's
+"held card" face (pdCardNow, the glance, the chips, pdHeldFollow), the brain parts stripfamily · cardpage · pageglance
+and the report's HUNT are gone. THE DOORS KEPT THEIR NAME AND MOVED THEIR LANDING: hbStripBring(id, page) is still the
+one door (the Board's rows, "Bring up MK-…", ⌘K, the family line, the Approvals panel's History, the Parties NDA
+column, the old room's tabs through roomRetiredLand) and lands on the paper with its Dossier (roomHomeLand);
+'where' opens Where we are in the middle (pd2StandsOpen, as before); 'hist' opens HISTORY IN THE MIDDLE — new,
+pd2HistOpen, the one builder roomPaintHistory in a middle page like Where we are, "‹ Paper" back — because the strip
+was History's only home on a computer; the pay editor, which lived only on the strip, is PAY IN THE MIDDLE
+(pd2PayOpen, bsPaintPay's table at rest and as boxes); the Parties NDA column opens the NDA's facts beside the paper
+(ndaEditOpen). Tests of the card itself were deleted (f709, f742, f744, board-strip, contract-page,
+home-held-contract), the ones that only touched it re-pointed; the browser checks that drew History, pay or the NDA
+on the strip are listed as owed in MAP-TESTS and are not yet re-pointed. The handbook's Dossier chapter still names
+the History row; its picture is unchanged (the row is, where it lands is not); the flow map's history place routes
+through the same door.
+Measured after the removal: lint 0 errors; the touched node tests 386/386 (f709, f742, f744 deleted; f283 1b, f673 7a,
+f739 7g, f743 5c, f741, f874 5e, f925 3d re-pointed); history-and-pay-in-the-middle-verify 20/20 (new); jambos-work-open
+10/10 and glitch-fixes 43/43 re-pointed and green; the tidy sweep over the touched pages, both looks, green but for the
+Round 0 fault A2 (the Dossier card's 16/20) which waits for its fix round. The sweep's Board places now turn to the Board
+themselves (hbSetFace) — Home remembers its last face, and after a paper place setView('dashboard') showed the paper.
+GETTING PR #599 GREEN (same day): the browser checks that named the card were re-pointed or, where their subject is
+gone, removed (MAP-TESTS). Two were real faults the pay check found: Edit pay pressed on the pay page already open did
+nothing (pd2PayOpen returned early; it now draws the page again), and the pay editor opened for a deal with no pay
+(payEditOpen now asks bsIsPay). A door asking for History while it is up lands on it, never shuts it ("‹ Paper" is the
+way back), and a refresh reopens it (hbPlace keeps p.paper.mid). Main had moved five merges; brought in, the history
+notes kept both ways.
+
+## THE STRIP IS GONE — THE ONE DOOR LANDS ON THE PAPER (9 Nov 2026, last batch before the merge)
+Five more browser checks still drove the strip or the retired Fill in face. Re-pointed: every-door-lands-on-home opens
+"All acts" from the Board (after a typed "bring up" Jambo's answer stays in the panel, so the menu had nothing to list);
+refresh-keeps-your-spot found a real gap: Where we are did not come back after a refresh (pd2StandsOpen now saves the
+place and hbPlace remembers 'where' as well as 'hist'); jambo-behind-the-wall presses the Dossier's read instead of
+the Fill in face; still-owed-sap-way 5 retired with the strip's tiles; go-aheads 3g3 reads the stage line's
+"Read <time>". All green locally: every-door 111/111, refresh 13/13, history-and-pay 18/18.
 ## THE SHELL — THE ONE PANEL BUTTON, THE SAP WAY (owner, 9 Nov 2026)
 
 The owner: "the bell symbol is obsolete because when you press it you get multiple options like guide, alerts, notes and activity. propose a new solution or symbol for it". Three options were photographed on the real bar ("Top Bar Panel Door": The SAP Way — one panel button; The Legora Way — Guide · Alerts 5 · Activity as words (recommended); Inbox — one labelled pill). The owner: "SAP Way".
@@ -36205,6 +36278,21 @@ THE WORD FOLLOWED THE PICTURE: on-screen sentences that said "the bell" now say 
   paper first. Now the page in front wins (`igCardInFront`, `igPaperInFront` in `igAskPlaceholder`, `igAskCost`,
   `igHeldAskId`, `igPageTalkAsk`): "Ask Jambo about MK-HB4…", the question with MK-HB4. Back on MK-A2's paper it says
   MK-A2 again. held-contract-asks-verify, home-held-contract-verify, point-buttons-and-brief-verify, stakes-verify green.
+Merged with main's "the page in front is the one Jambo's box asks about" (igPaperInFront): it asks pdCardNow, which
+went with the strip, so igCardInFront now always answers no. Kept as main wrote it (f978 pins it): History now opens
+in the middle beside its own contract's paper, so the wrong-contract case it fixed cannot arise. f744 stays removed
+(it pinned the held card and its asks).
+GitHub's run on the PR found four more. Two were real: Jambo still said a contract brought up "is on your Board as a
+strip" (hb_card_said; the Brain's strip part said the same, brn_pd_strip; both rewritten in both books), and History or
+Where we are asked from the Board, a list or Settings never opened, because the door waited a fixed 400 ms for the
+paper and the paper arrives later from there. hbStripBring now asks again every BS_MID_STEP_MS until the paper stands
+(BS_MID_TRIES, bounded; another contract's paper ends the wait), and Where we are asked again lands like History. The
+other two were checks: board-says-it-plain and the door exam still read the strip; f219 wanted the family line as it was.
+GitHub's second run (on the merge) found three more, all from this change; each passed on unmodified main 400f5d2.
+f232 caught main's new igCardInFront asking for pdCardNow, which went with the strip: a guard always false. Since
+History now opens beside its own contract's paper, the paper up is the page in front; igPaperInFront = igPaperUp,
+f978 re-pinned. map-asked-bubbles 7 pressed the card's Ask why, and jambo-says-what-he-did 1 read the card's head;
+both now read the paper and History in the middle.
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 Owner, 9 Nov 2026, after a UI review of HaTi next to Legora's pictures: "Make it a rule that any updates or references moving forward should be related to the new version of Hati with the whole white page and not the cards version. The old version with cards will be deleted." The two versions: the old look draws a page as separate cards (a head card `.ph-card` over a list card, Home's pieces each in their own card); the new look, behind the admin switch `prefs.newLook` (`newLookOn` → `html.lg-new`), draws ONE WHITE SHEET (head and list one surface, the Harmony block). From this day every change, drawing, photo and test is made on the new look; the review's own photos were taken with the switch on. Deleting the old look (the switch, the server's admin-only guard on `newLook`, every `lg-new` scope in index.html and `newLookOn()` branch in js/) is a job of its own and waits to be asked for by name.

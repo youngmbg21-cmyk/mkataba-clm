@@ -164,10 +164,13 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     ok('3c Kabras\'s panel says None, in the drawing\'s sentence, with no door', !!ks && /^NDA ?None — no NDA with Kabras Sugar, signed or in draft$/.test(ks.text) && !ks.door, JSON.stringify(ks));
     await panelOf('givaudan east africa');
     if (await press('#ins-panel [data-cu-nda]', '3d the door to the NDA')) {
-      await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#bs-strip-ND-GV'), null, { timeout: 8000 }).catch(() => {});
-      const st = await page.evaluate(() => ({ view: state.view, strip: !!document.querySelector('#bs-strip-ND-GV'),
-        tile: ((document.querySelector('#bs-strip-ND-GV') || {}).textContent || '').includes('Secret until') }));
-      ok('3d Open the NDA brings up its life line on the Board, the Secret until tile on it', st.view === 'dashboard' && st.strip && st.tile, JSON.stringify(st));
+      /* RE-POINTED 9 Nov 2026 (the Board's contract card and its life line are gone): the NDA's facts open beside its
+         paper (ndaEditOpen → Fill in's owed row, else Key terms in the middle) */
+      await page.waitForFunction(() => state.view === 'dashboard' && typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'ND-GV'
+        && !!document.querySelector('[data-pd-mid-kt], #pd-fillface, [data-pd-tab="form"].on, #pd-form'), null, { timeout: 8000 }).catch(() => {});
+      const st = await page.evaluate(() => ({ view: state.view, paper: !!(typeof pdContract === 'function' && pdContract() && pdContract().id === 'ND-GV'),
+        facts: !!document.querySelector('[data-pd-mid-kt], #pd-fillface, #pd-form') }));
+      ok('3d Open the NDA opens its facts beside its paper', st.view === 'dashboard' && st.paper && st.facts, JSON.stringify(st));
     }
 
     console.log('\n4 · the column costs the list nothing, at the owner\'s three screens');

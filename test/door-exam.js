@@ -41,7 +41,7 @@ const ACT = [
   ['people', 'who else is on MK-A2', { dialog: 'people' }],
   ['family', 'amendments to MK-A2', { page: 'paper', cid: 'MK-A2', fold: 'family' }],
   ['renewal', 'renewal of MK-A1', { page: 'paper', cid: 'MK-A1', pane: 'oblig' }],
-  ['where', 'where we are on MK-A2', { page: 'paper', cid: 'MK-A2', strip: 'where' }],
+  ['where', 'where we are on MK-A2', { page: 'paper', cid: 'MK-A2', mid: 'where' }],
   ['notes', 'notes on MK-A2', { page: 'paper', cid: 'MK-A2', panel: 'notes' }],
   ['risks', 'risks in MK-A2', { page: 'paper', cid: 'MK-A2', landedDs: 'risks' }],
   ['ladder', 'ladder for MK-A2', { page: 'paper', cid: 'MK-A2', pane: 'redlines' }],

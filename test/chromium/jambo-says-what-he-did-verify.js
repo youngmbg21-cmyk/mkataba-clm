@@ -41,8 +41,12 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
     const card = await until(P, () => !!document.querySelector('#ig-dock [data-ca-echo]'), null, 8000);
     const C = await P.evaluate(() => { const c = document.querySelector('#ig-dock [data-ca-echo]'); if (!c) return null;
       const r = c.getBoundingClientRect(), at = document.elementFromPoint(r.left + 20, r.top + 12);
-      return { text: c.innerText.replace(/\s+/g, ' '), painted: !!(at && c.contains(at)), head: (window.pdHeadWord && pdHeadWord()) || '' }; });
-    check(card && C && C.painted && C.text.includes('You said “' + said + '”') && /history of MK-C1/i.test(C.text) && /MK-C1/.test(C.head), '1 his card at the top of the face he landed on, quoting the words', C);
+      return { text: c.innerText.replace(/\s+/g, ' '), painted: !!(at && c.contains(at)) }; });
+    /* RE-POINTED 9 Nov 2026 (the strip is gone): the face he landed on is MK-C1's History in the middle beside its
+       paper (pd2HistOpen), no longer the held card's head; its own data attribute names the contract */
+    const histUp = await until(P, () => !!document.querySelector('#pd2-hist[data-pd2-hist="MK-C1"]') && !!(window.pdContract && pdContract() && pdContract().id === 'MK-C1'), null, 8000);
+    if (C) C.hist = histUp;
+    check(card && C && C.painted && C.text.includes('You said “' + said + '”') && /history of MK-C1/i.test(C.text) && histUp, '1 his card at the top of the face he landed on, quoting the words', C);
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780.png') });
 
     const b0 = brain;

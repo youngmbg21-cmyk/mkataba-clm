@@ -168,22 +168,8 @@ const MEASURE = () => {
         await page.screenshot({ path: path.join(OUT, `paper-${at}.png`) });
       }
     }
-    /* ===== 5. BESIDE THE BOARD'S CARD ===== */
-    await page.setViewportSize({ width: 1440, height: 780 });
-    await page.evaluate(() => { setView('dashboard'); if (typeof hbSetFace === 'function') hbSetFace('board'); });
-    await waitFor(page, () => !!document.getElementById('hb-board'), 8000);
-    await page.evaluate(id => hbStripBring(id), ID);
-    /* RE-POINTED 22 Oct 2026 (the Checklist): beside the Board a row is its one line, what stands on it */
-    const held = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og-held tr[data-pd-og-row="value"] .pd-ck-v'), 12000);
-    await pause(300);
-    const mh = held ? await page.evaluate(MEASURE) : { up: false };
-    check('5 beside the Board the held grid is drawn', held && mh.up && mh.held, JSON.stringify({ held, up: mh.up }));
-    if (mh.up) {
-      check('5a its reading stands whole on the row\'s line', !!(mh.read && mh.read.line && mh.read.whole), JSON.stringify(mh.read));
-      check('5b its "Fill in ›" sits inside the panel; nothing past the edge', mh.actsIn && mh.past.length === 0, JSON.stringify({ acts: mh.acts, past: mh.past }));
-      check('5c the stream\'s chip is whole there too', !!(mh.chip && mh.chip.whole), JSON.stringify(mh.chip));
-      await page.screenshot({ path: path.join(OUT, 'held-1440x780.png') });
-    }
+    /* 5 RETIRED 9 Nov 2026: it measured the same grid beside the Board's contract card, which is gone; section 4
+       measures it beside the paper, where it is drawn */
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
     check('the run finished', false, e && e.stack);

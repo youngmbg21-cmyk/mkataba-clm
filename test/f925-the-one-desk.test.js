@@ -181,7 +181,7 @@ describe('f925 (3) the Board', () => {
   test('3d it stands under Your book, never closes, and keeps its place', () => {
     const board = HB.slice(HB.indexOf('function hbBoardHtml('), HB.indexOf('function hbBoardHtml(') + 6000);
     const lay = board.slice(board.indexOf('${hbBookHtml('));
-    assert.ok(lay.indexOf('${hbPrepHtml(') > 0 && lay.indexOf('${hbPrepHtml(') < lay.indexOf('bsStripsHtml'), 'right under Your book, the strips after it');
+    assert.ok(lay.indexOf('${hbPrepHtml(') > 0, 'right under Your book'); assert.ok(!/bsStripsHtml/.test(lay), 'no strips under it (gone 9 Nov 2026)');
     assert.ok(!/data-hb-prep/.test(fnBody(HB, 'hbPrepHtml') + fnBody(CN, 'ndBoardHtml')));
     assert.match(fnBody(HB, 'hbPlace'), /p\.nd = ndPlace\(\)/);
     assert.match(fnBody(HB, 'hbPlacePut'), /ndPlacePut\(p\.nd\)/);

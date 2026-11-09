@@ -382,17 +382,13 @@ function cuNdaFactHtml(x, party){
   }
   return `<span${x.state === 'unconfirmed' ? ' class="sub is-amber"' : ''}>${_cuE(cuNdaLong(x))}</span>${more}${go}`;
 }
-/* the door: the NDA's own life line on the Board, where its Secret until
-   tile is confirmed (hbStripBring, the strip's one door); where the strip
-   cannot come up, the contract opens as every list opens one */
+/* the door: the NDA's facts beside its paper (ndaEditOpen, the one door onto them: the owed row of Fill in, else
+   its line under Key terms); where that cannot open, the paper with its Dossier; on the phone the contract opens
+   as every list opens one. The strip the NDA was brought up on is gone (owner, 9 Nov 2026). */
 function cuOpenNda(id){
   if (!id) return;
-  /* LAND ON IT: the NDA brought up on the desk, its "Secret until" figure lit */
-  if (typeof hbStripBring === 'function' && hbStripBring(id)){
-    const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : String(id);
-    if (typeof landOn === 'function') landOn(() => document.querySelector(`#bs-strip-${q} [data-bs-kpi="value"]`) || document.getElementById('bs-strip-' + id), { block: 'nearest', focus: false });
-    return;
-  }
+  if (typeof ndaEditOpen === 'function' && ndaEditOpen(id)) return;
+  if (typeof hbStripBring === 'function' && hbStripBring(id)) return;
   cuOpenAgreement(id);
 }
 /* an agreement in the panel: Home's paper on it, its line lit (the People

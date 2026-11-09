@@ -231,17 +231,9 @@ const BRAIN_PARTS = [
   /* the contract's views on the Board (the one-page Home plan, stage 4, 14 Oct
      2026): the deal board, obligations and history of the contract on the paper */
   ['boardviews', 'hbOpenView', 'see', 0],
-  /* the Lifeline strip (the overnight work order, step 8, 15 Oct 2026): a
-     contract brought up on the Board, Where we are and History behind its ⋯;
-     every door that opened the contract room lands here */
+  /* bring a contract up (the one door, hbStripBring; the Lifeline strip it landed on is gone, owner, 9 Nov 2026):
+     it lands on the paper with its Dossier; Where we are and History open in the middle beside it */
   ['strip', 'hbStripBring', 'see', 0],
-  /* the agreement family on the strip (15 Oct 2026, the owner picked "Family line"):
-     the original and every amendment, the one in front lit; a press brings the other up */
-  ['stripfamily', 'bsFamHtml', 'see', 0],
-  /* a contract brought up is a page on the desk (round 7, "Read down", 17 Oct 2026): its contract's tab, the card alone */
-  ['cardpage', 'bsCardId', 'see', 0],
-  /* Jambo beside a page (the redesign's gaps, round 7, 18 Oct 2026): "<ref> at a glance" — what is late, whose move, the signed amendment, the notice day */
-  ['pageglance', 'pdCardGlanceHtml', 'see', 1],
   /* Before you sign, beside the paper (the one-page Home plan, stage 5, 14 Oct
      2026): Jambo's panel draws the Signing column's own four slots; the paper
      turns to the signing copy; every door into signing lands here */
@@ -617,7 +609,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'paperline', 'bell', 'strip', 'cardpage', 'pageglance', 'glanceasks', 'notehere'], ['firstread', 'partyhist', 'partyweb', 'partylookup']] },
+  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'paperline', 'bell', 'strip', 'glanceasks', 'notehere'], ['firstread', 'partyhist', 'partyweb', 'partylookup']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -633,7 +625,7 @@ const BRAIN_FLOWS = [
   { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
-  { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview', 'stripfamily']] },
+  { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'streamside', 'youform', 'myemail', 'mycopy', 'acctrec']] },
   { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'linkask', 'whosemove']] }
 ];
@@ -652,7 +644,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'cardpage', 'pageglance', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
+  own: ['lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'youform', 'streamside', 'navread', 'handbook', 'hbkask', 'flowmap', 'flowtable', 'hswords', 'navdoor', 'aifirst', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcol', 'askcolcells', 'askcoldisc', 'askcolnext', 'reads', 'pulse', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',

@@ -33,7 +33,7 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
   if (!pass) failures++;
 };
-const HP = '#bs-strips [data-bs-host="hist"]';
+const HP = '#pd2-hist';
 
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });

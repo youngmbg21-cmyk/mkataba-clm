@@ -174,7 +174,8 @@ const FACE = () => {
     await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); });
     await waitFor(page, () => state.view === 'workspace', 6000);
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'history'));
-    check('6c its old History door opens the History page of the Board\'s contract card', await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#bs-strip-MK-A2 [data-bs-host="hist"]'), 8000));
+    /* RE-POINTED 9 Nov 2026 (the card is gone): History stands in the middle beside the paper */
+    check('6c its old History door opens History in the middle beside the paper', await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#pd2-hist'), 8000));
     /* a real load, as a link from the mail is (a goto that only changes the hash is not one) */
     await page.evaluate(() => { location.hash = '#contract=MK-A2&tab=sign'; });
     await page.reload({ waitUntil: 'networkidle' });

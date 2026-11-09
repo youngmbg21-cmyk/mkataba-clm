@@ -2323,8 +2323,7 @@ function aiScreenContractId(){
        behind when the Board, Calendar or Explorer is in front */
     if (v === 'dashboard'){
       if (typeof window.pdOnPaper === 'function' && pdOnPaper() && typeof window.pdContract === 'function'){ const c = pdContract(); return c ? c.id : null; }
-      const s = (typeof window.hbS === 'function') ? hbS() : null;
-      return (s && s.face === 'board' && typeof window.bsCardId === 'function') ? (bsCardId() || null) : null;
+      return null; /* the Board holds no contract's card since 9 Nov 2026 */
     }
     return null;
   }catch(_){ return null; }

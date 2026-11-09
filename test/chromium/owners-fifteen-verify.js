@@ -231,10 +231,8 @@ const check = (name, pass, detail) => {
        Board card): "Analyze contract" left the strip's ⋯ — the card's head
        carries "Open in Workspace ›", the same door onto the paper, one press
        and in plain view; Jambo's box stands beside the paper for the question */
-    const cardBtn = await until(() => !!document.querySelector('#bs-strip-MK-A2 .bs-head [data-bs-open="MK-A2"]'));
-    check('13a the Board\'s contract strip carries "Open in Workspace ›" in its head', !!cardBtn,
-      await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-A2 .bs-head button')].map(b => b.textContent.trim()).join(' | ')));
-    if (cardBtn) await page.click('#bs-strip-MK-A2 .bs-head [data-bs-open="MK-A2"]');
+    /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): "bring up" lands on the paper itself, no card between */
+    check('13a "bring up" puts no card on the Board', await page.evaluate(() => !document.querySelector('.bs-strip, [data-bs-open]')));
     const up = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'paper' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden && !!p.querySelector('.pg-sheet'); }, null, 10000);
     check('13b pressed, Home\'s Paper side opens with that contract\'s paper up', !!up);
     check('13c and the question box is there, beside the paper', await until(() => { const b = document.getElementById('igd-input'); return !!b && b.getBoundingClientRect().height > 0; }, null, 3000));

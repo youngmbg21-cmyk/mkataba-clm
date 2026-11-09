@@ -1225,8 +1225,7 @@ function contractOnScreen(c){
    room's other parts keep asking contractOnScreen. */
 function contractOverviewShown(c){
   if(contractOnScreen(c)) return true;
-  if(!c||!window.state||state.view!=='dashboard'||typeof document==='undefined') return false;
-  return !!document.querySelector(`[data-bs-host="details"][data-bs-cid="${CSS.escape(String(c.id))}"] #kt-ov-terms`);
+  return false; /* the Board's contract card, which hosted the Overview's boxes, is gone (9 Nov 2026) */
 }
 /* ON HOME'S PAPER (the one-page Home plan, stage 5): signing, its seal and
    the duties it starts are worked beside Home's paper now, so a server's
