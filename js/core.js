@@ -8191,7 +8191,10 @@ function shareLetterPage(c){
   if(scrim) scrim.style.display='none';
   panel.setAttribute('data-dlg-page',''); panel.setAttribute('data-sh-page','');
   Object.assign(panel.style,{ width:'100%', maxWidth:'none', height:'100%', maxHeight:'none', borderRadius:'0',
-    boxShadow:'none', border:'0', background:'var(--desk-ground, var(--color-bg))', overflowY:'auto' });
+    boxShadow:'none', border:'0', overflowY:'auto',
+    /* THE WHOLE PAGE IS WHITE (owner, 9 Nov 2026: "The whole page should be white not a card on top of a shaded
+       backdrop"): in the new look the Send page is the white page itself, edge to edge beside Jambo */
+    background:(typeof newLookOn==='function'&&newLookOn())?'var(--color-surface)':'var(--desk-ground, var(--color-bg))' });
   const sap=panel.querySelector('[data-share-sap]'); if(sap) sap.style.padding='0';
   /* Send, then Cancel (Cancel last), in the page's head */
   const acts=panel.querySelector('.sh-hd-acts');

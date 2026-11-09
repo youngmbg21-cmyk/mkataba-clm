@@ -202,3 +202,21 @@ test('f977 fix 9 · every paper in pages: the negotiated paper on Home and a tem
   /* the clause editor keeps one sheet on purpose: a break re-drawn under the caret would move the words being typed */
   assert.match(read('js/views/negotiation.js'), /if \(sheet\.closest\('\.ce-paperwrap'\)\) return;/);
 });
+
+/* THE SEND PAGE IS THE WHITE PAGE (owner, 9 Nov 2026: "The whole page should be white not a card on top of a shaded
+   backdrop"). At the parent the page stood on the desk's grey with its head and body inset 12px as a card */
+test('f977 fix 6b · the Send page is white edge to edge in the new look: no inset, corner or lift', () => {
+  const core = read('js/core.js');
+  assert.match(core, /background:\(typeof newLookOn==='function'&&newLookOn\(\)\)\?'var\(--color-surface\)':'var\(--desk-ground, var\(--color-bg\)\)'/);
+  const css = read('index.html');
+  assert.match(css, /html\.lg-new #modal-root \.modal-in\[data-sh-page\] \.sh-hd\{top:0;margin:0;border:0;border-bottom:1px solid var\(--color-divider\);border-radius:0;box-shadow:none\}/);
+  assert.match(css, /html\.lg-new #modal-root \.modal-in\[data-sh-page\] \.sh-lt-grid\{margin:0;border:0;border-radius:0;box-shadow:none;clip-path:none\}/);
+});
+
+/* ONE GAP ABOVE EVERY JAMBO BOX (owner, 9 Nov 2026: "why is there a massive gap between the links and the jambo button?").
+   At the parent Home's panel kept an empty 16px line (+6) for the typed words' preview under the links, so its gap was
+   ~43px where the list panels' was 13 */
+test('f977 fix 10 · the empty preview line above the box takes no room, so every panel keeps one gap', () => {
+  assert.match(read('index.html'), /html\.lg-new #ig-dock \.igd-foot > \.hb-pre:empty\{display:none\}/);
+  assert.match(read('js/views/intelligence.js'), /<div id="igd-pre" class="hb-pre" aria-live="polite"><\/div>/, 'the line is drawn empty until there are words');
+});

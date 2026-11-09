@@ -36148,3 +36148,13 @@ Also this round, on #591: the Swedish check at 800 wide found the views group cu
 
 
 THE TAB ORDER, ASKED (9 Nov 2026): the drawing put Your day before the Overview, which reverses the 26 Oct ruling "an overview tab side panel in each page followed by the jambo tab" (overview-tab-verify 1 and one-window-bar-cards-verify A3 caught it). Asked; the owner: "Your day first". Explorer is the one exception: Your day · Overview · Findings · Guide; every other page keeps the Overview first.
+
+- THE SEND PAGE, AGAIN (same day): the owner on the pictures: "this is incorrect. The whole page should be white not a card
+  on top of a shaded backdrop". Fix round 1 had only taken the card off the letter; the page itself still stood on the
+  desk's grey, its head and body inset 12px with corners and a lift (the ONE SHEET block). In the new look the page is now
+  white edge to edge (the inline ground in `shareLetterPage`, and two html.lg-new rules), one hairline under its head.
+- ONE GAP ABOVE EVERY JAMBO BOX (same day): "why is there a massive gap between the links and the jambo button? this is a
+  waste of space. Make sure there is always a consistent management of the gaps". Home's panel (#ig-dock, also beside a
+  contract's History) kept `#igd-pre` — the typed words' preview line, 16px + 6 — even when empty; with "Jambo ›" above
+  the box the gap under the links was ~75px. In the new look an empty line takes no room; measured links → next thing
+  13px and "Jambo ›" → box 6px on Approvals, Our paper, Import, Settings, Calendar, the Board, Home and History.

@@ -65,7 +65,7 @@ numbers in the new-look renderers are behind it too, because those renderers onl
 | 3 | The missing Jambo panel | A Send pressed on any page but Home lands on the contract's paper first, so the letter always stands beside Jambo's panel. |
 | 4 | Typing a page's name | Every name of every page moves you there, one word or several ("our paper", "my notes", "flow map"). |
 | 5 | Your redline cards | Only the pile with the other side folds; your drafts, reviews, held and suggested cards stand open. |
-| 6 | The Send letter | The white page itself: no card border or corner, one hairline beside the form. |
+| 6 | The Send letter | The white page itself: no card border or corner, one hairline beside the form. The whole Send page is white edge to edge too, no grey backdrop (owner, same day). |
 | 7 | The Board's count | Counts rows, the number Home says. |
 | 8 | One column per question | The head is the name and ⋯ only; the read count is in Jambo's panel; the foot says only "N contracts". |
 | – | Our paper's "Invalid Date" | The month is read from any stored time, or left out. |
