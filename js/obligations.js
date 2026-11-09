@@ -4618,14 +4618,17 @@ function obnRender(host){
     const mw = money && k === 'week' ? obMoneyWords(list) : null;
     return `<tr class="obn-g${k === 'late' ? ' is-late' : ''}"><td colspan="3"><b>${_obEsc(w)} · ${list.length}</b>${s ? `<span>${_obEsc(s)}</span>` : ''}</td><td class="obn-g-r">${k === 'week' ? _obEsc(mw && mw.text ? _obCap(mw.text) : i18t('obn_nothing_pay')) : ''}</td></tr>` + list.map(obnRowHtml).join('');
   }).join('') || `<tr><td colspan="4" class="obn-none">${_obEsc(i18t(q ? 'ob_none_match_short' : 'ob_none_here'))}</td></tr>`;
-  const late = book.filter(r => r.st !== 'done' && r.win === 'overdue').length, open = book.filter(r => r.st !== 'done' && !r._dec).length;
+  /* ONE COUNT (the harmony review, owner's yes 9 Nov 2026): the title's "N open" is the first tab's own count, decisions included */
+  const late = book.filter(r => r.st !== 'done' && r.win === 'overdue').length, open = book.filter(r => obnTabOf(r, 'open')).length;
   _obwHeadFacts = `<span class="obw-hf">${_obEsc(i18t('obn_head_open', { n: open }))}${late ? ` · <span class="obw-hf-late">${_obEsc(i18t('obn_head_late', { n: late }))}</span>` : ''}${proposedN ? ` · ${_obEsc(i18t('obn_head_prop', { n: proposedN }))}` : ''}</span>`;
   _obwHeadActs = ((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn obw-add-btn" data-obw-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_obEsc(i18t('ob_add_btn'))}</button>` : '';
   const bar = `<div class="apn-bar obn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="obn-q" type="search" autocomplete="off" placeholder="${_obEsc(i18t('lh_filter_ph'))}" value="${_obEsc(_obnQ)}"></label><span class="apn-sp"></span>
     ${tabs.map(t => `<button type="button" class="apn-tab${_obnTab === t[0] ? ' is-on' : ''}${t[0] === 'proposed' ? ' is-prop' : ''}" data-obn-tab="${t[0]}">${_obEsc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>`;
   const table = `<table class="apn-table obn-table"><colgroup><col style="width:24%"><col><col style="width:150px"><col style="width:96px"></colgroup><tbody id="obn-body">${body}</tbody></table>`;
-  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page" data-ins-page="obligations" data-ins="1">
-    <div class="ap-body is-ins"><section class="ap-card apn-card" id="obn-scroll">${bar}<div class="obn-list" id="obn-list"${_obnTab === 'proposed' ? ' hidden' : ''}>${table}</div></section><aside id="ins-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside></div></div>`;
+  /* ONE HEAD (the harmony review): the page draws its own title as every new-look list does; obwPaintHead fills it */
+  const title = `<div class="cun-head"><h2 class="ctf-h">${_obEsc(i18t('nav_obligations'))}</h2><span class="ctf-hf" id="page-head-facts"></span><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div>`;
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page cun-page" data-ins-page="obligations" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card" id="obn-scroll">${title}${bar}<div class="obn-list" id="obn-list"${_obnTab === 'proposed' ? ' hidden' : ''}>${table}</div></section><aside id="ins-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside></div></div>`;
   obwPaintHead();
   const byKey = new Map(book.map(r => [r._key, r]));
   const paint = k => { const r = byKey.get(k); _obwPanelKey = k;

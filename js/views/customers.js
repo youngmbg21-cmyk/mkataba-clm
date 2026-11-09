@@ -1399,7 +1399,8 @@ if (typeof document !== 'undefined' && !document._cunPanelWired){ document._cunP
 }
 function cunRowHtml(v, nda){
   const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
-  const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : i18t('cun_org_none');
+  /* SAY IT ONCE (the harmony review, owner's yes 9 Nov 2026): a row names its org. no. only where one is filed; the foot says when none is */
+  const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : '';
   const sub = [rec.city || '', org, v.streams.map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f)).filter(Boolean).join(', ')].filter(Boolean).join(' · ');
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = v.items.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
@@ -1419,8 +1420,7 @@ function cunRowHtml(v, nda){
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
     <td><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${esc(sub)}</div></td>
     <td class="cun-num">${v.items.length}</td><td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>
-    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait">${words || '—'}</td>
-    <td class="cun-go"><button type="button" class="pd2-link" data-cun-open="${esc(v.key)}">${esc(i18t('cun_open'))}</button></td></tr>`;
+    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait">${words || '—'}</td></tr>`;
 }
 let _cunParty = null;
 function cunRender(host, INS){
@@ -1441,10 +1441,10 @@ function cunRender(host, INS){
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
         ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])}${t[2] == null ? '' : ` <span>${t[2]}</span>`}</button>`).join('')}${_cun === 'folders' ? `<span class="ctf-hint">${esc(i18t('cun_f_hint'))}</span>` : ''}</div>
       ${_cun === 'folders' ? `<div class="cu-scroll"><div class="ctf-grid cunf-grid">${list.map(v => cunFolderCardHtml(v, nda.get(v.key))).join('')}</div></div>` : ''}
-      <div class="cu-scroll"${_cun === 'folders' ? ' hidden' : ''}><table class="apn-table cun-table"><colgroup><col style="width:26%"><col style="width:70px"><col style="width:110px"><col style="width:130px"><col style="width:130px"><col><col style="width:96px"></colgroup>
-        <thead><tr><th>${esc(i18t('cun_c_party'))}</th><th>${esc(i18t('cun_c_deals'))}</th><th>${esc(i18t('cun_c_paper'))}</th><th>${esc(i18t('cun_c_standing'))}</th><th>${esc(i18t('cun_c_nda'))}</th><th>${esc(i18t('cun_c_wait'))}</th><th></th></tr></thead>
-        <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key))).join('') || `<tr><td colspan="7" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
-      <div class="apn-foot">${esc(i18t('cun_foot', { n: all.length, m: agreements }))}</div>
+      <div class="cu-scroll"${_cun === 'folders' ? ' hidden' : ''}><table class="apn-table cun-table"><colgroup><col style="width:26%"><col style="width:70px"><col style="width:110px"><col style="width:130px"><col style="width:130px"><col></colgroup>
+        <thead><tr><th>${esc(i18t('cun_c_party'))}</th><th>${esc(i18t('cun_c_deals'))}</th><th>${esc(i18t('cun_c_paper'))}</th><th>${esc(i18t('cun_c_standing'))}</th><th>${esc(i18t('cun_c_nda'))}</th><th>${esc(i18t('cun_c_wait'))}</th></tr></thead>
+        <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key))).join('') || `<tr><td colspan="6" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
+      <div class="apn-foot">${esc(i18t(all.some(v => ((typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {}).orgNo) ? 'cun_foot' : 'cun_foot_noorg', { n: all.length, m: agreements }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   cuWireList(host, INS);
   if (_cun === 'folders' && INS) cunFoldersPanelPaint(all, nda);

@@ -1785,7 +1785,7 @@ function iknRender(host){
       <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:32%"><col style="width:26%"><col style="width:15%"><col style="width:14%"><col></colgroup>
         <thead><tr><th>${esc(i18t('ikn_c_req'))}</th><th>${esc(i18t('ikn_c_stands'))}</th><th>${esc(i18t('ikn_c_by'))}</th><th>${esc(i18t('ikn_c_lane'))}</th><th></th></tr></thead>
         <tbody>${R.list.map(r => iknRowHtml(r, may)).join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
-      <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span><span>${esc(i18t('ikn_foot_adv'))}</span></div>
+      <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const r = R.list.find(x => String(x.id) === String(_iknSel)) || null;
   if (typeof insPaintPanel === 'function'){

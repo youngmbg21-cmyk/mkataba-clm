@@ -1138,7 +1138,10 @@ function apnRowHtml(r){
     waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
     acts=r._mine?`<button type="button" class="ui-btn ui-btn-sm" data-ap-open="${esc(c.id)}">${esc(i18t('apn_sign'))}</button>`:'';
   } else {
-    sub=[esc(c.counterparty||''), ref, val, r.who?esc(i18t('apn_asked_by',{ who:r.who })):esc(i18t('apn_by_rule'))].filter(Boolean).join(' · ');
+    /* ROOM FOR THE NAME (the harmony review, owner's yes 9 Nov 2026): "asked by" is said when somebody else asked; when
+       the asker is the reader, the panel says it */
+    const byMe=r.who&&me.name&&String(r.who).trim()===String(me.name).trim();
+    sub=[esc(c.counterparty||''), ref, val, byMe?'':(r.who?esc(i18t('apn_asked_by',{ who:r.who })):esc(i18t('apn_by_rule')))].filter(Boolean).join(' · ');
     const q=apnQuote(c);
     const std=typeof stdRowWordsHtml==='function'?stdRowWordsHtml(c):'';
     rests=`${q?`<i class="apn-q">“${esc(q.quote)}”</i> <span class="apn-sec">${esc(q.sec)}</span>`:''}<div class="apn-read">${q&&q.why?esc(q.why):std}</div>`;
@@ -1160,15 +1163,28 @@ function apnRender(W){
   void nDecide; void nSign;
   const head=`<div class="apn-bar"><label class="apn-box">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_apnQ)}"></label><span class="apn-sp"></span>
     ${tabs.map(t=>`<button type="button" class="apn-tab${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>`;
-  const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}</th><th>${esc(i18t('apn_col_rests'))}</th><th>${esc(i18t('apn_col_rule'))}</th><th>${esc(i18t('apn_col_waited'))}</th><th></th></tr></thead>`;
-  const group=sg.length&&ap.length&&_apnTab!=='done'?`<tr class="apn-group"><td colspan="5">${esc(i18t('apn_group_sign'))}</td></tr>`:'';
-  const body=all.length?`<tbody>${ap.map(apnRowHtml).join('')}${group}${sg.map(apnRowHtml).join('')}</tbody>`:`<tbody><tr><td colspan="5" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr></tbody>`;
+  /* SAY IT ONCE (the harmony review): a "What it rests on" that reads the same on every row steps out of the table, and
+     the foot says it once */
+  let rowsA=ap.map(apnRowHtml), rowsS=sg.map(apnRowHtml);
+  const restsOf=h=>{ const m=/<td class="apn-rests">([\s\S]*?)<\/td><td class="apn-rule">/.exec(h); return m?m[1]:null; };
+  const rs=rowsA.concat(rowsS).map(restsOf);
+  const same=rs.length>1&&rs.every(x=>x!=null&&x===rs[0]);
+  const sameWords=same?String(rs[0]).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim():'';
+  if(same){ const cut=h=>h.replace(/<td class="apn-rests">[\s\S]*?<\/td><td class="apn-rule">/,'<td class="apn-rule">'); rowsA=rowsA.map(cut); rowsS=rowsS.map(cut); }
+  const cols=same?4:5;
+  const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}</th>${same?'':`<th>${esc(i18t('apn_col_rests'))}</th>`}<th>${esc(i18t('apn_col_rule'))}</th><th>${esc(i18t('apn_col_waited'))}</th><th></th></tr></thead>`;
+  const group=sg.length&&ap.length&&_apnTab!=='done'?`<tr class="apn-group"><td colspan="${cols}">${esc(i18t('apn_group_sign'))}</td></tr>`:'';
+  const body=all.length?`<tbody>${rowsA.join('')}${group}${rowsS.join('')}</tbody>`:`<tbody><tr><td colspan="${cols}" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr></tbody>`;
   const shown=ap.concat(sg);
-  const table=`<table class="ap-table ap-ins apn-table" data-list-seat="approvals"><colgroup><col><col style="width:36%"><col style="width:120px"><col style="width:96px"><col style="width:150px"></colgroup>${th}${body}</table>`;
-  const foot=`<div class="apn-foot">${esc(i18tn('apn_for_you',W.all.yours.filter(r=>!r.done).length,{ n:W.all.yours.filter(r=>!r.done).length }))}</div>`;
+  const table=`<table class="ap-table ap-ins apn-table" data-list-seat="approvals"><colgroup><col>${same?'':'<col style="width:36%">'}<col style="width:140px"><col style="width:96px"><col style="width:170px"></colgroup>${th}${body}</table>`;
+  const nYours=W.all.yours.filter(r=>!r.done).length;
+  const foot=`<div class="apn-foot">${esc([i18tn('apn_for_you',nYours,{ n:nYours }), sameWords?i18t('apn_foot_same',{ w:sameWords.charAt(0).toLowerCase()+sameWords.slice(1) }):''].filter(Boolean).join(' · '))}</div>`;
+  /* ONE HEAD (the harmony review, owner's yes 9 Nov 2026): the page draws its own title as every new-look list does —
+     the serif title, its facts beside it, Approval rules at its end; apPaintHead fills the facts and the button */
+  const title=`<div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_approvals'))}</h2><span class="ctf-hf" id="page-head-facts"></span><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div>`;
   document.getElementById('content').innerHTML=`
-  <div class="view-enter sap-page ap-page is-ins apn-page" data-ins-page="approvals" data-ins="1">
-    <div class="ap-body is-ins"><section class="ap-card apn-card" id="ap-scroll">${head}${table}${foot}</section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>
+  <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="approvals" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card" id="ap-scroll">${title}${head}${table}${foot}</section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>
   </div>`;
   apPaintHead();
   apInsPaint(shown);

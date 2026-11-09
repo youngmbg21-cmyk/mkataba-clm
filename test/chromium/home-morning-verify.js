@@ -9,9 +9,9 @@
          amber on its day, an empty day not a button
      5 · ONE list: late first, then your move, then Jambo's work; each row led by round initials (or a drawn mark), its
          kind a tinted word, its verb a green link; no groups, no "Show all"
-     6 · Jambo's panel: the late one first, read from the record (no call); Likely next, each "free"; the map's doors
+     6 · Jambo's panel: the late one first, read from the record (no call); one label over his notes, no Likely next; the map's doors
      7 · his work opens IN PLACE under its row, and the same press closes it
-     8 · nothing sideways; the foot says how many things
+     8 · nothing sideways; the foot says how many wait on you
      9 · a count opens the Board on its list; a day on the week line opens the Calendar's agenda on that day
     10 · the switch off: today's Home, unchanged
     11 · THE FIRST DAY (no contract yet): three doors, Upload filled; Jambo's "What I never do" and "Set up once"
@@ -76,7 +76,7 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
         const h1 = document.querySelector('#cn2-page .cn2-hello'), cs = h1 && getComputedStyle(h1);
         const rows = [...document.querySelectorAll('#cn2-list .cn2-row')].map(r => {
           const av = r.querySelector('.nd-av'), k = r.querySelector('.nd-kind'), v = r.querySelector('.cn2-ac .nd-btn');
-          return { k: k ? k.className.replace(/.*is-/, '') : '', round: !!av && getComputedStyle(av).borderTopLeftRadius === '50%', link: !!v && v.classList.contains('nd-link') && /underline/.test(getComputedStyle(v).textDecorationLine), name: (r.querySelector('.cn2-nm') || {}).textContent || '' }; });
+          return { k: k ? k.className.replace(/.*is-/, '') : '', round: !!av && getComputedStyle(av).borderTopLeftRadius === '50%', pill: !!v && !/underline/.test(getComputedStyle(v).textDecorationLine) && getComputedStyle(v).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(v).borderTopLeftRadius !== '0px', name: (r.querySelector('.cn2-nm') || {}).textContent || '' }; });
         const cts = [...document.querySelectorAll('#cn2-counts .cn-ct')].map(b => ({ tone: [...b.classList].find(c => c.startsWith('is-')), word: b.textContent.trim() }));
         const accent = (() => { const x = document.createElement('i'); x.style.color = 'var(--accent-ink)'; document.body.appendChild(x); const c = getComputedStyle(x).color; x.remove(); return c; })();
         const v = document.querySelector('#cn2-list .cn2-row .nd-btn');
@@ -90,9 +90,11 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
       check(`${nm} 2 the greeting in the title serif, one sentence counted from the list`, M.serif && /^Good (morning|afternoon|evening), Amina\.$/.test(M.hello) && /late/.test(M.say) && /\.$/.test(M.say), { hello: M.hello, say: M.say });
       check(`${nm} 3 the counts as coloured words: late ruby, your move amber, prepared by Jambo violet`, M.cts.length >= 2 && M.cts[0].tone === 'is-ruby' && /late/.test(M.cts[0].word) && M.cts.every(c => /\d/.test(c.word)), M.cts);
       const order = M.rows.map(r => ({ late: 0, you: 1, jambo: 2, week: 3 }[r.k] ?? 9));
-      check(`${nm} 5 ONE list, late first, then your move, then Jambo's work; round initials, a kind on every row, a green link; no groups, no Show all`,
-        M.rows.length >= 3 && order.every((v, i) => i === 0 || v >= order[i - 1]) && M.rows[0].k === 'late' && M.rows.every(r => r.round && r.k && r.link) && M.linkInk === M.accent && M.groups === 0, M.rows);
-      check(`${nm} 8 nothing sideways; the foot in sight says how many things`, M.sideways <= 0 && M.footIn && /\d+ things?/.test(M.foot), { sideways: M.sideways, foot: M.foot, footIn: M.footIn });
+      /* RE-POINTED (the harmony review, owner's yes 9 Nov 2026, PILL TO ACT): a row's act is a grey pill, no longer a green link */
+      check(`${nm} 5 ONE list, late first, then your move, then Jambo's work; round initials, a kind on every row, a grey pill; no groups, no Show all`,
+        M.rows.length >= 3 && order.every((v, i) => i === 0 || v >= order[i - 1]) && M.rows[0].k === 'late' && M.rows.every(r => r.round && r.k && r.pill) && M.groups === 0, M.rows);
+      /* RE-POINTED (the harmony review, ONE COUNT): the foot says the whole in the sentence's own words, no description of the screen */
+      check(`${nm} 8 nothing sideways; the foot in sight says how many wait on you`, M.sideways <= 0 && M.footIn && /^\d+ waits? on you$/.test(M.foot.trim()) && !/doors/.test(M.foot), { sideways: M.sideways, foot: M.foot, footIn: M.footIn });
       const WK = await page.evaluate(() => {
         const w = document.querySelector('#cn2-page #cn-week'); if (!w) return null;
         const days = [...w.querySelectorAll('.cn-wk-d')].map(d => ({ btn: d.tagName === 'BUTTON', today: d.classList.contains('is-today'), tone: ((d.querySelector('i') || {}).className || ''), go: d.getAttribute('data-cn-wk') || '' }));
@@ -109,10 +111,12 @@ const newLook = (page, on) => page.evaluate(async on => { await stPrefSet('newLo
       const P = await page.evaluate(() => {
         const p = document.getElementById('ins-panel');
         return { head: (p.querySelector('.jov-head') || {}).textContent || '', src: (p.querySelector('.jov-src') || {}).textContent || '',
-          likely: [...p.querySelectorAll('.cn2-lk')].map(l => l.textContent.trim()), doors: [...p.querySelectorAll('.jb-ways [data-jb-way]')].map(x => x.getAttribute('data-jb-way')) };
+          likely: [...p.querySelectorAll('.cn2-lk')].map(l => l.textContent.trim()), ready: (p.querySelector('.jov-after .cn2-eye') || {}).textContent || '', jl: p.querySelectorAll('.jov-after .cn2-who-j').length, doors: [...p.querySelectorAll('.jb-ways [data-jb-way]')].map(x => x.getAttribute('data-jb-way')) };
       });
-      check(`${nm} 6 Jambo's panel: the late one first, read from the record (no call); Likely next each free; the map's doors`,
-        /^The late one first/.test(P.head) && /Read from the record/.test(P.src) && !/\bfree\b|\bcalls?\b|nothing spent/i.test(P.src) && P.likely.length >= 1 && P.likely.every(l => !/\bfree\b|\bcalls?\b|nothing spent/i.test(l)) /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  && P.doors.join() === 'board,contracts,calendar,explorer,reads', P);
+      /* RE-POINTED (the harmony review, ONE VOICE, owner's yes 9 Nov 2026): one "Ready for you · N" over his notes, none
+         named on each, and no Likely next in the panel (Home's list beside it shows those rows) */
+      check(`${nm} 6 Jambo's panel: the late one first, read from the record (no call); one label over his notes, no Likely next; the map's doors`,
+        /^The late one first/.test(P.head) && /Read from the record/.test(P.src) && !/\bfree\b|\bcalls?\b|nothing spent/i.test(P.src) && P.likely.length === 0 && (P.ready === '' || /^Ready for you · \d+$/.test(P.ready)) && P.jl === 0 /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  && P.doors.join() === 'board,contracts,calendar,explorer,reads', P);
       const jb = await page.$('#cn2-list [data-cn2-look]');
       if (jb){
         await jb.click();

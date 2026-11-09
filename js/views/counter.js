@@ -1316,10 +1316,14 @@ function cn2Greet(){ const h = new Date().getHours(); return _cnT(h < 12 ? 'cn2_
 /* the sentence under the greeting, counted from the list: "1 thing is late, 4 wait on you and I prepared 2 for you." */
 function cn2Say(L){
   const n = k => L.filter(x => x.k === k).length;
-  const parts = [n('late') ? _cnTn('cn2_s_late', n('late'), { n: n('late') }) : '', n('you') + n('week') ? _cnTn('cn2_s_you', n('you') + n('week'), { n: n('you') + n('week') }) : '',
+  /* ONE COUNT (the harmony review, owner's yes 9 Nov 2026): with more than one kind, the sentence leads with the whole
+     ("11 wait on you: 7 are your move and I prepared 4"), the same number Jambo's panel and the foot say */
+  const many = [n('late'), n('you') + n('week'), n('jambo')].filter(Boolean).length > 1;
+  const parts = [n('late') ? _cnTn('cn2_s_late', n('late'), { n: n('late') }) : '', n('you') + n('week') ? _cnTn(many ? 'cn2_s_yours' : 'cn2_s_you', n('you') + n('week'), { n: n('you') + n('week') }) : '',
     n('jambo') ? _cnTn('cn2_s_jambo', n('jambo'), { n: n('jambo') }) : ''].filter(Boolean);
   if (!parts.length) return _cnT('cn2_s_none');
-  const s = parts.length > 1 ? parts.slice(0, -1).join(', ') + _cnT('cn2_s_and') + parts[parts.length - 1] : parts[0];
+  const all = parts.length > 1 ? parts.slice(0, -1).join(', ') + _cnT('cn2_s_and') + parts[parts.length - 1] : parts[0];
+  const s = many ? _cnTn('cn2_s_you', L.length, { n: L.length }) + ': ' + all : all;
   return s.charAt(0).toUpperCase() + s.slice(1) + '.';
 }
 /* signed this calendar month, and their value where it may be seen and added (fxCounted; a missing rate adds nothing) */
@@ -1376,7 +1380,7 @@ function cn2Html(){
   return `<div class="view-enter sap-page ins-page cn2-page" id="cn2-page" data-ins-page="${CN2_SEAT}" data-ins="1"><div class="ins-body">`
     + `<section class="ins-card cn2-sheet" aria-label="${_cnE(_cnT('nav_home'))}"><header class="cn2-top"><h1 class="cn2-hello">${_cnE(cn2Greet())}</h1><p class="cn2-say">${_cnE(cn2Say(L))}</p>${cn2CountsHtml(L)}${cnWeekHtml(D)}</header>`
     + `<div class="cn2-list scroll-thin" id="cn2-list">${L.length ? L.map(cn2RowHtml).join('') : `<p class="cn2-none">${_cnE(_cnT('cn_nothing'))}</p>`}</div>`
-    + `<footer class="cn2-foot"><span>${_cnE(_cnTn('cn2_foot', L.length, { n: L.length }))}</span></footer></section>`
+    + `<footer class="cn2-foot"><span>${_cnE(_cnTn('cn2_foot_n', L.length, { n: L.length }))}</span></footer></section>`
     + `<aside id="ins-panel" class="ins-panel" aria-label="${_cnE(_cnT('cn2_jambo'))}"></aside></div></div>`;
 }
 /* THE FIRST DAY (as drawn): nothing filed yet — three doors, each saying what it does, and the company's line */
@@ -1418,11 +1422,12 @@ function cn2JlSay(){
   else if (L.length){ const P = ndParts(L[0].r); head = _cnTn('cn2_jb_first', L.length, { n: L.length, what: P.name || P.title }); }
   else head = _cnT('cn2_jb_none');
   const turns = D.jambo.slice(0, 3).map(r => { const P = ndParts(r); const k = r.it && r.it.key;
-    return `<div class="cn2-turn"><span class="cn2-dot" aria-hidden="true"></span><div><b class="cn2-who-j">Jambo</b><span>${_cnE(_ndText(P.line || P.read || P.title))}</span>${k ? ` <button type="button" class="ui-link" data-cn2-look="${_cnE(k)}">${_cnE(_cnT('cn2_open_here'))}</button>` : ''}</div></div>`; }).join('');
-  let lk = []; try { lk = cnLikely(D); } catch (_){ lk = []; }
-  const likely = lk.length ? `<p class="cn2-eye">${_cnE(_cnT('cn_lk_head').replace(/:\s*$/, ''))}</p>` + lk.map(t => `<div class="cn2-lk"><button type="button" class="ui-link" ${t.attrs}>${_cnE(t.words.charAt(0).toUpperCase() + t.words.slice(1))}</button><span class="cn2-q">${_cnE(_cnT('cn2_free'))}</span></div>`).join('') : '';
+    return `<div class="cn2-turn"><span class="cn2-dot" aria-hidden="true"></span><div><span>${_cnE(_ndText(P.line || P.read || P.title))}</span>${k ? ` <button type="button" class="ui-link" data-cn2-look="${_cnE(k)}">${_cnE(_cnT('cn2_open_here'))}</button>` : ''}</div></div>`; }).join('');
+  /* ONE VOICE (the harmony review, owner's yes 9 Nov 2026): one label over Jambo's ready pieces, none on each; "Likely
+     next" leaves the panel, because Home's list beside it already shows those rows */
+  const ready = turns ? `<p class="cn2-eye">${_cnE(_cnT('cn2_ready', { n: Math.min(3, D.jambo.length) }))}</p>` : '';
   /* `lines` too: the panel reads a page's words through them (jlWordsHtml), and keeps the source line only with them */
-  return { lines: [_cnE(head)], head: { html: _cnE(head) }, src: _cnT('cn2_jb_src'), after: turns + likely };
+  return { lines: [_cnE(head)], head: { html: _cnE(head) }, src: _cnT('cn2_jb_src'), after: ready + turns };
 }
 function cn2PanelPaint(){
   if (typeof insPaintPanel !== 'function' || !document.getElementById('ins-panel')) return;

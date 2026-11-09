@@ -19901,6 +19901,47 @@
   /* a contract's own page brought up on the desk (History, Where we are, the Overview): one white surface, edge to edge, as drawn */
   html.lg-new #ig-page[data-hb-side] #hb-board:has(.bs-strip.bs-on-desk){padding:0;background:var(--color-surface)}
   html.lg-new #ig-page[data-hb-side] #hb-board .bs-strip.bs-on-desk.hb-card{border-radius:0;box-shadow:none;border:0;min-height:100%;margin:0}
+  /* ==== THE NEW LOOK: HARMONY (the visual review, owner's picks saved 9 Nov 2026; the overnight run) ====
+     docs/PLAN-harmony.md. Every rule waits on html.lg-new. ONE HEAD: every page title is the serif 26 the lists already
+     wear (.ctf-h), 40 from the window's edge, its facts beside it; the pages still drawn on their own ph-card head
+     (Pulse board, the Flow map, Our paper, a page under #page-head) take the same title and edge, and what sits under
+     them takes the same edge. */
+  html.lg-new :is(#pu-page .pu-t1, #fm-page .fm-t1, .tpl-page .tpl-hd-row h1, #page-head .ph-card h1, .rdn-page .rdn-head .ctf-h){font-family:var(--font-title);font-size:26px;font-weight:400;line-height:1.1;letter-spacing:0;margin:0;color:var(--color-text)}
+  html.lg-new :is(#pu-page .pu-head, #fm-page .fm-head, .tpl-page .tpl-band, #page-head .ph-card).ph-card{padding-left:40px;padding-right:40px;padding-top:26px}
+  html.lg-new #fm-page .fm-body{padding-left:40px;padding-right:40px}
+  html.lg-new #pu-page .pu-key{padding:0 40px}
+  html.lg-new #pu-page .pu-t :is(th, td):first-child{padding-left:40px}
+  html.lg-new #pu-page .pu-t :is(th, td):last-child{padding-right:40px}
+  html.lg-new #pu-page .pu-c-rk{width:80px}
+  html.lg-new .cun-page .cun-head .apn-acts:empty{display:none}
+  html.lg-new{--ph-title-size:26px;--ph-title-w:400}
+  /* THE FOOT FOLLOWS (owner's yes): a list's count line sits right under its last row; under it the sheet simply ends.
+     A long list scrolls inside its own box, the foot under it */
+  html.lg-new .apn-card > .apn-foot, html.lg-new .ctf-foot{margin-top:0}
+  html.lg-new :is(.cun-page, .dirn-page) .cu-scroll{flex:0 1 auto}
+  /* ONE THING WHEN EMPTY (owner's yes): an empty list hides its filter, tabs, column heads and foot; its one sentence
+     stands in the middle of the sheet. Import with nothing brought in: no filter over nothing, the drop area is the page */
+  html.lg-new .cun-page.is-empty :is(.apn-bar, thead, .apn-foot){display:none}
+  html.lg-new .cun-page.is-empty .apn-table td.apn-none{border:0;padding:96px 0 0;text-align:center;font-size:15px}
+  html.lg-new .mig-page:not(:has(table)) #mig-band{display:none}
+  html.lg-new .mig-page:not(:has(table)) .mig-drop-card{padding:56px 40px 24px;display:flex;flex-direction:column;align-items:center;gap:20px}
+  html.lg-new .mig-page:not(:has(table)) #mig-drop{width:min(100%, 680px);flex-direction:column;text-align:center;padding:48px 32px;gap:12px}
+  html.lg-new .mig-page:not(:has(table)) #mig-drop .mig-drop-w{flex:none;width:auto}
+  html.lg-new .mig-page:not(:has(table)) .mig-opts{justify-content:center}
+  /* PILL TO ACT, LINK TO GO (owner's yes): a row's act is one grey pill at the row's right end; only the chosen row's act is
+     black, so a page has one black button at a time; a green link only goes somewhere */
+  html.lg-new :is(#cn2-page .nd-btn.nd-link, .cal-nl-go){display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);text-decoration:none;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap}
+  @media (hover:hover){ html.lg-new :is(#cn2-page .nd-btn.nd-link, .cal-nl-go):hover{background:var(--color-neutral-200);color:var(--color-text)} }
+  html.lg-new .apn-table tr:not(.is-sel) .apn-acts .apn-ok, html.lg-new .ikn-table tr:not(.is-sel) .ikn-go{background:var(--color-neutral-100);color:var(--color-text);border-color:transparent}
+  /* ONE VOICE (owner's yes): Jambo's panel says what is his under one label, not on every note; the notes sit 8 apart;
+     what the panel holds starts on the same edge as the back link over it; the doors above the box stay on one line,
+     three at most (the rest are one "/" away) */
+  html.lg-new #jl-body .jov-after .cn2-turn{padding:8px 0;margin:0;border-top:1px solid var(--color-divider)}
+  html.lg-new #jl-body .jov-after .cn2-eye + .cn2-turn{border-top:0}
+  html.lg-new #igd-feed > .apn-panel{padding-left:0;padding-right:0}
+  html.lg-new #ig-dock .ca-back{margin-left:16px}
+  html.lg-new :is(#ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
+  html.lg-new :is(#ig-dock [data-ig-chips] .jb-chip, .jb-ways.is-above-foot .jb-way):nth-of-type(n+4){display:none}
 </style>
 <style>
   /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */

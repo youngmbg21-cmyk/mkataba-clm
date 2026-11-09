@@ -163,7 +163,9 @@ function pdTabCount(t, c){
        and the wall at rest — as beside a paper): the Counter's own "Needs you"
        (counterNeedsCount), the list "All N" opens. The Board at rest carries the
        same Counter number (round 17: the card left the Board). */
-    const wall = !onBoard && typeof igHomePaperFace === 'function' && igHomePaperFace() === true && !pdContract();
+    /* ONE VOICE (the harmony review, owner's yes 9 Nov 2026): in the new look the Contracts place's panel is its folders'
+       overview, not the needs-you list, so its tab carries no stranger's number */
+    const wall = !onBoard && typeof igHomePaperFace === 'function' && igHomePaperFace() === true && !pdContract() && !(typeof window.newLookOn === 'function' && newLookOn());
     if (pdHolds() || wall){
       let k = 0; try { k = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ k = 0; }
       return k ? { n: k, tone: 'warn' } : null;
