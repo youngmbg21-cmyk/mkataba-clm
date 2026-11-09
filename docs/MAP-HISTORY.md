@@ -36142,3 +36142,9 @@ redrawn under the caret moves the words being typed); said to the owner.
   contract's History) kept `#igd-pre` — the typed words' preview line, 16px + 6 — even when empty; with "Jambo ›" above
   the box the gap under the links was ~75px. In the new look an empty line takes no room; measured links → next thing
   13px and "Jambo ›" → box 6px on Approvals, Our paper, Import, Settings, Calendar, the Board, Home and History.
+- THE WAY BACK IS WHERE YOU WERE (same day): the owner, "fix the History panel showing the wrong contract". Measured: MK-A2's
+  paper → Approvals → MK-HB4's History from Approvals' panel (`apnGo('hist')` → `hbStripBring`) left Home's panel saying
+  "‹ Back to MK-A2 on the paper": only `caGo` (Jambo's words) pushed the trail (`caTrailPush`), so a move by a button left a
+  stale place on top. Now every page drawn notes where the reader stood (`caTrailSeen` from `renderPageHeader` and at the
+  top of `caTrailTop`), and a step back by the trail is not noted again (`_caBackStep`). jambo-words-verify 7c re-pointed:
+  the way back is the Calendar the reader last stood on, not MK-W2's paper two moves earlier. f978.
