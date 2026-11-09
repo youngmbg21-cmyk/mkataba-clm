@@ -79,7 +79,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
 
       /* ================= 1. THE TAB, AFTER FINDINGS ================= */
       const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')));
-      check(`1-${lang} the tabs read Jambo · Findings · Guide (Guide last)`, tabs[0] === 'copilot' && tabs[tabs.length - 1] === 'guide' && (!tabs.includes('findings') || tabs.indexOf('findings') === tabs.length - 2), JSON.stringify(tabs));
+      /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): Your day stands first, before Jambo's Overview */
+      check(`1-${lang} the tabs read Your day · Jambo · Findings · Guide (Guide last)`, tabs[0] === 'day' && tabs[1] === 'copilot' && tabs[tabs.length - 1] === 'guide' && (!tabs.includes('findings') || tabs.indexOf('findings') === tabs.length - 2), JSON.stringify(tabs));
 
       /* ================= 2. PRESSED, AND PRESSED AGAIN ================= */
       const pressed = await pressTab('guide');
@@ -102,6 +103,14 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
           JSON.stringify(g && { view: g.view, here: g.here, mine: g.mine }));
         for (const q of (g ? g.rows : [])) {
           if (/^(undo|ångra)$/i.test(q)) continue;
+          /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way" for the briefing): its row turns the panel to Your day, as typing it does */
+          if (await page.evaluate(w => IG_BRIEF_RE.test(w), q)){
+            await fresh(v, true); await page.waitForTimeout(150);
+            await page.evaluate(w => { const b = [...document.querySelectorAll('#ig-gd [data-ig-gd]')].find(x => x.getAttribute('data-ig-gd') === w); if (b) b.click(); }, q);
+            const day = await until(() => !!document.getElementById('ig-day') && document.querySelector('#ig-dock [data-pd-tab="day"]')?.getAttribute('aria-selected') === 'true');
+            check(`3c-${lang} ${VIEW[v]} "${q}": the row turns the panel to Your day`, !!day);
+            await page.evaluate(() => { intel.dayTab = false; });
+            continue; }
           await fresh(v, true); await page.waitForTimeout(150);
           const before = await pic();
           const n = await page.evaluate(() => intel.history.length);
