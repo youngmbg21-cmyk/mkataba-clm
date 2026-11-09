@@ -59,6 +59,8 @@ function navWhereSrc(){
     if (one) W.pane = 'compare-one';   // the screen's own "only one version so far"
     else if (ca && cb) W.pane = (ca.value === '0' && /current|aktuell/i.test((cb.options[cb.selectedIndex] || {}).textContent || '')) ? 'compare' : 'compare-other';
     else if (document.querySelector('#brief-section')) W.pane = 'brief';
+    /* HISTORY IN THE MIDDLE (the strip is gone, owner, 9 Nov 2026): pd2HistOpen stands it where the paper was */
+    else if (document.getElementById('pd2-hist')) W.pane = 'hist';
     else if (typeof pdSendShows === 'function' && pdSendShows() && String(pdSendFor()) === String(pc.id)) W.pane = 'send';
     else if (f) W.pane = ({ fill: 'fill', red: 'redlines', signing: 'sign', amend: 'amend' })[f] || f;
     /* FILL IN IS THE CHECKLIST (owner picked "1 · Checklist", 22 Oct 2026): what is owed, landed on the Dossier */
@@ -113,6 +115,8 @@ function navWhereSrc(){
   W.kt = !!document.querySelector('[data-pd-kt-file]');
   W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold')).join(',') || null;
   { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null; }
+  /* what stands in the middle beside the paper (the strip is gone, owner, 9 Nov 2026): History or Where we are */
+  W.mid = document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.pd2-stands') ? 'where' : null;
   try { W.archived = typeof regState === 'function' && regState().view === 'archived'; } catch (_){ W.archived = false; }
   W.present = !!document.querySelector('.hb-presenting');
   { const r = document.getElementById('dk-recent'); W.recent = !!(r && r.getClientRects().length); }
@@ -146,7 +150,7 @@ function judge(spot, W, before){
   }
   if (spot.page && W.page !== spot.page) why.push(`page ${W.page} ≠ ${spot.page}`);
   /* the door exam's own parts of a spot (each true only where the app itself draws it) */
-  for (const k of ['dialog', 'panel', 'strip', 'landedDs']) if (spot[k] && W[k] !== spot[k]) why.push(`${k} ${W[k] || '—'} ≠ ${spot[k]}`);
+  for (const k of ['dialog', 'panel', 'mid', 'landedDs']) if (spot[k] && W[k] !== spot[k]) why.push(`${k} ${W[k] || '—'} ≠ ${spot[k]}`);
   for (const k of ['kt', 'archived', 'present', 'recent', 'fdTab', 'watchList']) if (spot[k] && !W[k]) why.push(`${k} not shown`);
   if (spot.fold && !String(W.fold || '').split(',').includes(spot.fold)) why.push(`fold ${W.fold || '—'} ≠ ${spot.fold}`);
   if (spot.popup && !(W.popups > (before.popups || 0))) why.push('no new tab opened');

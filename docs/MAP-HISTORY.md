@@ -36274,3 +36274,9 @@ Merged with main's "the page in front is the one Jambo's box asks about" (igPape
 went with the strip, so igCardInFront now always answers no. Kept as main wrote it (f978 pins it): History now opens
 in the middle beside its own contract's paper, so the wrong-contract case it fixed cannot arise. f744 stays removed
 (it pinned the held card and its asks).
+GitHub's run on the PR found four more. Two were real: Jambo still said a contract brought up "is on your Board as a
+strip" (hb_card_said; the Brain's strip part said the same, brn_pd_strip; both rewritten in both books), and History or
+Where we are asked from the Board, a list or Settings never opened, because the door waited a fixed 400 ms for the
+paper and the paper arrives later from there. hbStripBring now asks again every BS_MID_STEP_MS until the paper stands
+(BS_MID_TRIES, bounded; another contract's paper ends the wait), and Where we are asked again lands like History. The
+other two were checks: board-says-it-plain and the door exam still read the strip; f219 wanted the family line as it was.

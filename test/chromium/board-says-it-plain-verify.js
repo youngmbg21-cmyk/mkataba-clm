@@ -94,9 +94,9 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
       const panelsNow = (s.panels || []).length, panels0 = Number(String(p0).split('|')[1]);
       let P = null; try { const D = key ? hbDigData(key, s.lens) : null; if (D && D.kind === 'list') P = hbPlan(D); } catch (_){ P = null; }
       const said = intel.history.slice(n0).filter(m => m.role === 'assistant').map(m => String(m.text || '').replace(/<[^>]+>/g, ' ')).join(' ').replace(/\s+/g, ' ');
-      /* the contract a question brought up: its Lifeline strip, first on the Board (step 8) */
-      const strip = ((s.strips || [])[0] || {}).id || null;
-      return { moved: JSON.stringify(path) !== String(p0).split('|')[0] || panelsNow > panels0, added: panelsNow > panels0, key, strip, face: s.face, pic: P && P.pic, measure: P && P.measure, split: P && P.split && P.split.by, said };
+      /* the contract a question brought up: its paper on Home (the strip is gone, owner, 9 Nov 2026) */
+      const paper = (window.intel && intel.paper && intel.paper.id) || null;
+      return { moved: JSON.stringify(path) !== String(p0).split('|')[0] || panelsNow > panels0, added: panelsNow > panels0, key, paper, face: s.face, pic: P && P.pic, measure: P && P.measure, split: P && P.split && P.split.by, said };
     }, [p0, n0]);
   };
   try {
@@ -138,11 +138,13 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
 
     /* ---- not a chart ---- */
     /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): a contract
-       comes up as its Lifeline strip, first on the Board, not as a 'c:' card */
+       comes up as its Lifeline strip, first on the Board, not as a 'c:' card.
+       RE-POINTED 9 Nov 2026 (the strip is gone): it opens on its paper, and
+       Jambo says so in words that name no strip. */
     const one = await ask('show me MK-BP2');
-    check(one.strip === 'MK-BP2' && !/^c:/.test(one.key || ''), '2a "show me MK-BP2" opens the contract (its strip)', JSON.stringify(one));
+    check(one.paper === 'MK-BP2' && one.face === 'paper' && !/^c:/.test(one.key || '') && !/strip/i.test(one.said || ''), '2a "show me MK-BP2" opens the contract (its paper), named no strip', JSON.stringify(one));
     const two = await ask('bring up Tundra Cold Chain Ltd');
-    check(two.strip === 'MK-BP1' && !/^c:/.test(two.key || ''), '2b "bring up <one name>" opens the contract (its strip)', JSON.stringify(two));
+    check(two.paper === 'MK-BP1' && two.face === 'paper' && !/^c:/.test(two.key || ''), '2b "bring up <one name>" opens the contract (its paper)', JSON.stringify(two));
     /* RE-POINTED 19 Oct 2026 (rounds 7 and 12 as drawn: a contract brought
        up is a page on the desk, and while it is up the box asks about THAT
        contract — "Ask about MK-0377…" — so the Board's own reader steps
@@ -152,7 +154,7 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     await page.evaluate(() => deskTabOpen('home:board'));
     await until(page, () => !hbS().card && hbS().face === 'board' && !!document.getElementById('igd-input'));
     const three = await ask('show me Tundra Cold Chain Ltd by month');
-    check(!/^c:/.test(three.key || '') && three.moved && three.strip === 'MK-BP1', '2c the same name WITH chart words draws a chart, not another contract', JSON.stringify(three));
+    check(!/^c:/.test(three.key || '') && three.moved && three.face === 'board', '2c the same name WITH chart words draws a chart, not another contract', JSON.stringify(three));
     await page.evaluate(() => { hbS().face = 'board'; });
     const mapped = await ask('the map');
     check(mapped.face === 'explorer', '2d "the map" still turns to Explorer', JSON.stringify(mapped));

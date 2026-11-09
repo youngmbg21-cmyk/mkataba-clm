@@ -55,13 +55,29 @@ function hbStripBring(id, page){
   const mid = page === 'where' ? 'pd2StandsOpen' : page === 'hist' ? 'pd2HistOpen' : null;
   const onIt = () => { try { const pc = (typeof pdContract === 'function') ? pdContract() : null;
     return !!(pc && String(pc.id) === String(c.id) && typeof pdOnPaper === 'function' && pdOnPaper()); } catch (_){ return false; } };
-  /* A DOOR LANDS, IT NEVER SHUTS: History already up for this contract stays up ("‹ Paper" is its way back) */
-  if (page === 'hist' && onIt() && typeof window.pd2HistUp === 'function' && window.pd2HistUp(c.id)) return true;
+  /* A DOOR LANDS, IT NEVER SHUTS: History or Where we are already up for this contract stays up ("‹ Paper" is its
+     way back; the Dossier's own line, pressed again, still closes it) */
+  const upFn = page === 'hist' ? window.pd2HistUp : page === 'where' ? window.pd2StandsUp : null;
+  const isUp = () => { try { return !!(typeof upFn === 'function' && upFn(c.id)); } catch (_){ return false; } };
+  if (mid && onIt() && isUp()) return true;
   if (mid && typeof window[mid] === 'function' && onIt() && window[mid](c.id)) return true;
   if (roomHomeLand(c.id) === false) return false;
-  if (mid && typeof window[mid] === 'function') setTimeout(() => { try { window[mid](c.id); } catch (_){} }, 400);
+  /* the paper takes its own time to arrive from the Board, a list or Settings: the middle page opens once it stands,
+     asked again every BS_MID_STEP_MS, bounded (BS_MID_TRIES); another contract's paper in front ends the wait */
+  if (mid && typeof window[mid] === 'function'){
+    let n = 0;
+    const tryOpen = () => {
+      if (isUp()) return;
+      const pc = (typeof pdContract === 'function') ? pdContract() : null;
+      if (pc && String(pc.id) !== String(c.id)) return;
+      if (onIt()){ try { if (window[mid](c.id)) return; } catch (_){} }
+      if (++n < BS_MID_TRIES) setTimeout(tryOpen, BS_MID_STEP_MS);
+    };
+    setTimeout(tryOpen, BS_MID_STEP_MS);
+  }
   return true;
 }
+const BS_MID_STEP_MS = 150, BS_MID_TRIES = 40;
 /* ---- THE ROOM RETIRES (step 8) ----
    Every door that opened the contract room lands on the paper with its
    Dossier; Where we are when the door named 'stands', History when it named

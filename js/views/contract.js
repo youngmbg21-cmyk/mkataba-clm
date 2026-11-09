@@ -8497,7 +8497,7 @@ function renderKeyTermsSide(c){
      desk's page, where that ⋯ is. The room opened by name has no such ⋯, so
      there the section keeps its own buttons (joined at the integration,
      19 Oct 2026: Create an amendment never loses its door). */
-  try{ if(window.renderFamilySection&&document.getElementById('family-section')) renderFamilySection(c,{bare:true}); }catch(e){}
+  try{ if(window.renderFamilySection) renderFamilySection(c,{bare:true}); }catch(e){}
   wireKtBriefCard(c);
   /* And the sheet's own Read the brief, which says what the card now says. */
   paintOvBriefBtn(c);
