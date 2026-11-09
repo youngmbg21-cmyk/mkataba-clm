@@ -36189,6 +36189,15 @@ The owner, with a picture of Your day and the four figures circled (Need you, Hi
 
 NOTED FOR THE OWNER: Need you counts THINGS waiting (the bell's number); the map shows the CONTRACTS they sit on, so 9 things on 5 contracts reads "Showing 5 of 16".
 Then the owner: "Include New since yesterday as well". New since yesterday narrows the map too (go `onmap`, no lens); every figure on Your day now shows on the map. `int_day_go_open` and `int_day_go_them` retired (left inert in both books).
+
+## THE SHELL — THE ONE PANEL BUTTON, THE SAP WAY (owner, 9 Nov 2026)
+
+The owner: "the bell symbol is obsolete because when you press it you get multiple options like guide, alerts, notes and activity. propose a new solution or symbol for it". Three options were photographed on the real bar ("Top Bar Panel Door": The SAP Way — one panel button; The Legora Way — Guide · Alerts 5 · Activity as words (recommended); Inbox — one labelled pill). The owner: "SAP Way".
+
+Built: the question mark (`#hdr-nav`, 29 Oct 2026) and the clock (`#cmd-panel`, 20 Sep 2026) left the bar; the bell button keeps its id `#hdr-notify` and its count `#hdr-notify-dot` but wears the panel's mark `#i-panel`, its hover "Side panel: Guide, Alerts, Notes, Activity" (`sh_panel_title`, both books). ONE handler `panelDoorPress`: open → `closeContextPanel`; shut → `openPanel(alertCount()>0 ? 'alerts' : panelFace())`. `applyPanelLayout` sets its `aria-expanded`. The panel's own tabs reach Guide, Notes and Activity.
+
+THE WORD FOLLOWED THE PICTURE: on-screen sentences that said "the bell" now say Alerts (`cn_dlg_sub`, `mn_when_says`, `mn_rv_*`, `int_fd_ask_ph`, `int_fd_sent`, `int_fd_asked`; `ng_notices_min_title` says the panel button), both books; the handbook's 0.3 ("The count and Needs you: one list") and 0.5 rewritten, and every "on the bell" in its chapters says Alerts. LEFT ALONE, told to the owner: the Brain page's descriptions (`brn_*`) still say "bell" as the name of the alerts; typing "bell" still opens Alerts.
+
 - THE PAGE IN FRONT IS THE ONE ASKED ABOUT (same day, the owner again: "fix the History panel showing the wrong
   contract"). After f978's way back, one wrong contract remained: MK-A2's paper → Approvals → MK-HB4's History left
   Jambo's box saying "Ask Jambo about MK-A2…", and a question went with MK-A2's wording — `intel.paper` stays "up"

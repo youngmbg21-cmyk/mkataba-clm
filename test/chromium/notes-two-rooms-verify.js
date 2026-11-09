@@ -514,20 +514,17 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('and Chat opens it again',
       (await page.evaluate(() =>
         document.querySelector('#context-panel').classList.contains('open'))) === true);
-    /* THE SWAP MUST NOT BE READ AS A SECOND PRESS. Pressing the BELL while
-       Chat is up has to show alerts rather than close the drawer, or moving
-       between two faces costs two presses. */
+    /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): the bar has ONE panel button, so it is the panel's own
+       door: pressed while Chat is up it CLOSES the drawer (PRESS IT AGAIN AND IT CLOSES); the panel's tabs move
+       between faces. Pressed again it opens on Alerts, where something waits. */
     await page.click('#hdr-notify');
     await page.waitForTimeout(500);
-    check('pressing the bell over Chat SWAPS the face rather than closing',
-      (await page.evaluate(() => ({
-        open: document.querySelector('#context-panel').classList.contains('open'),
-        title: (document.getElementById('panel-title') || {}).textContent })))
-        .open === true);
-    check('the bell still toggles too — the control for this pair',
+    check('pressing the panel button over Chat closes the drawer: one door, the tabs swap faces',
+      (await page.evaluate(() => !document.querySelector('#context-panel').classList.contains('open'))) === true);
+    check('pressed again it opens the panel on Alerts, where something waits',
       (await (async () => { await page.click('#hdr-notify'); await page.waitForTimeout(500);
-        return page.evaluate(() =>
-          !document.querySelector('#context-panel').classList.contains('open')); })()) === true);
+        return page.evaluate(() => document.querySelector('#context-panel').classList.contains('open') && panelFace() === 'alerts'); })()) === true);
+    await page.evaluate(() => closeContextPanel()); await page.waitForTimeout(300);
     /* Back to Chat for the rest of the section. */
     await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));
     await page.waitForTimeout(600);
@@ -652,7 +649,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         const p = g('context-panel'), dot = g('hdr-notify-dot');
         r({ page: !!g('clause-editor'),
           bell: { dead: g('hdr-notify').disabled, title: g('hdr-notify').title },
-          act:  { dead: g('cmd-panel').disabled, title: g('cmd-panel').title },
+          act:  { dead: g('hdr-notify').disabled, title: g('hdr-notify').title },
           panelOpen: p.classList.contains('open'),
           /* THE PRESS HAS TO WORK, NOT MERELY BE ALLOWED. A live button that
              opens a panel BEHIND the page passes every disabled check and is
@@ -675,7 +672,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('THE BELL IS LIVE TOO',
       covered.bell.dead === false && !/covers this panel|t\u00e4cker/i.test(covered.bell.title || ''),
       (covered.bell.title || '').slice(0, 60));
-    check('AND ACTIVITY',
+    check('AND ACTIVITY (RE-POINTED 9 Nov 2026: the one panel button carries it)',
       covered.act.dead === false && !/covers this panel|t\u00e4cker/i.test(covered.act.title || ''),
       (covered.act.title || '').slice(0, 60));
     check('the drawer that was open STAYS open — nothing is hidden here',
@@ -695,7 +692,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       return new Promise(r => setTimeout(() => {
         const g = id => document.getElementById(id);
         r({ bell: g('hdr-notify').disabled,
-          act: g('cmd-panel').disabled,
+          act: g('hdr-notify').disabled,
           panelOpen: g('context-panel').classList.contains('open') });
       }, 600));
     });

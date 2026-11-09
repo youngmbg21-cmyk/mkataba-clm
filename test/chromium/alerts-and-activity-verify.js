@@ -99,19 +99,23 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       }, cid));
 
     /* ---- 3. TWO ICONS, TWO CONTENTS, ONE SHELL ---- */
-    await page.click('#cmd-panel');
+    /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): the clock left the bar; ONE panel button opens the panel and
+       its Activity tab turns it to Activity */
+    await page.click('#hdr-notify'); await page.waitForTimeout(500);
+    await page.click('#context-panel [data-pt-face="activity"]');
     await page.waitForTimeout(700);
     const act = await page.evaluate(box => ({
       panel: eval(box)('#context-panel'), title: eval(box)('#panel-title'),
       body: (document.getElementById('panel-body') || {}).textContent,
       face: panelFace(),
     }), BOX);
-    check('the panel icon opens Activity', act.face === 'activity' && /Activity/i.test(act.title.text || ''),
+    check('the panel button, then its Activity tab, opens Activity', act.face === 'activity' && /Activity/i.test(act.title.text || ''),
       act.title && act.title.text);
     check('and it says its scope is the whole workspace',
       /whole workspace/i.test(act.body || ''), (act.body || '').slice(0, 60));
     await page.screenshot({ path: path.join(OUT, '01-activity.png') });
 
+    await page.evaluate(() => closeContextPanel()); await page.waitForTimeout(300);
     await page.click('#hdr-notify');
     await page.waitForTimeout(700);
     const al = await page.evaluate(box => ({
@@ -212,7 +216,7 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       return { view: state.view, panel: eval(box)('#context-panel'),
         off, why, dot: eval(box)('#hdr-notify-dot'),
         title: (document.getElementById('panel-title') || {}).textContent || '',
-        panIcon: (document.getElementById('cmd-panel') || {}).disabled };
+        panIcon: (document.getElementById('hdr-notify') || {}).disabled };
     }, BOX);
     check('on Home\'s Explorer both header buttons are live',
       !onIntel.off && !onIntel.panIcon,
