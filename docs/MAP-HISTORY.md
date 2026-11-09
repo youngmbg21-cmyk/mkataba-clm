@@ -36133,3 +36133,12 @@ handbook world: 0 gaps before, 2 after). The outer article has no padding (its m
 the inner sheet is the one cut, or page 2's first line sat on the page's top edge. A template's own page (`#tpl-dt`) was one
 sheet too; it is cut the same way. The clause editor and the template builder keep one sheet (rlPaginate's rule: a break
 redrawn under the caret moves the words being typed); said to the owner.
+- THE SEND PAGE, AGAIN (same day): the owner on the pictures: "this is incorrect. The whole page should be white not a card
+  on top of a shaded backdrop". Fix round 1 had only taken the card off the letter; the page itself still stood on the
+  desk's grey, its head and body inset 12px with corners and a lift (the ONE SHEET block). In the new look the page is now
+  white edge to edge (the inline ground in `shareLetterPage`, and two html.lg-new rules), one hairline under its head.
+- ONE GAP ABOVE EVERY JAMBO BOX (same day): "why is there a massive gap between the links and the jambo button? this is a
+  waste of space. Make sure there is always a consistent management of the gaps". Home's panel (#ig-dock, also beside a
+  contract's History) kept `#igd-pre` — the typed words' preview line, 16px + 6 — even when empty; with "Jambo ›" above
+  the box the gap under the links was ~75px. In the new look an empty line takes no room; measured links → next thing
+  13px and "Jambo ›" → box 6px on Approvals, Our paper, Import, Settings, Calendar, the Board, Home and History.
