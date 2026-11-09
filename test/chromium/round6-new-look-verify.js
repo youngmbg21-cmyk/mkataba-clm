@@ -92,8 +92,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const hint = await txt(page, '.igw2-hint');
     await shot('3-wall');
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('3 the Wall: both parties on each paper; a press chooses, the panel reads it off its paper with its doors, no cost said, the line under says so',
-      up && both && chosen && /Raw Milk Collection, chosen/.test(said) && /Read off its paper/i.test(said) && /Open it/i.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said) && /Raw Milk Collection chosen/.test(hint), { said: said.slice(0, 160), hint });
+    check('3 the Wall: both parties on each paper; a press chooses, the panel reads it off its paper with its doors, no cost said, no how-to line under the papers',
+      up && both && chosen && /Raw Milk Collection, chosen/.test(said) && /Read off its paper/i.test(said) && /Open it/i.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said) && !hint /* RE-POINTED (the harmony review, EVEN CARDS, owner's yes 9 Nov 2026): the how-to line under the papers is gone; the panel says what is chosen */, { said: said.slice(0, 160), hint });
   } catch (e) { check('3 the Wall', false, String(e).slice(0, 200)); }
 
   /* 4 · Parties: folders and a party's page */

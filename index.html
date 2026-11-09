@@ -19903,6 +19903,112 @@
   /* a contract's own page brought up on the desk (History, Where we are, the Overview): one white surface, edge to edge, as drawn */
   html.lg-new #ig-page[data-hb-side] #hb-board:has(.bs-strip.bs-on-desk){padding:0;background:var(--color-surface)}
   html.lg-new #ig-page[data-hb-side] #hb-board .bs-strip.bs-on-desk.hb-card{border-radius:0;box-shadow:none;border:0;min-height:100%;margin:0}
+  /* ==== THE NEW LOOK: HARMONY (the visual review, owner's picks saved 9 Nov 2026; the overnight run) ====
+     docs/PLAN-harmony.md. Every rule waits on html.lg-new. ONE HEAD: every page title is the serif 26 the lists already
+     wear (.ctf-h), 40 from the window's edge, its facts beside it; the pages still drawn on their own ph-card head
+     (Pulse board, the Flow map, Our paper, a page under #page-head) take the same title and edge, and what sits under
+     them takes the same edge. */
+  html.lg-new :is(#pu-page .pu-t1, #fm-page .fm-t1, .tpl-page .tpl-hd-row h1, #page-head .ph-card h1, .rdn-page .rdn-head .ctf-h){font-family:var(--font-title);font-size:26px;font-weight:400;line-height:1.1;letter-spacing:0;margin:0;color:var(--color-text)}
+  html.lg-new :is(#pu-page .pu-head, #fm-page .fm-head, .tpl-page .tpl-band, #page-head .ph-card).ph-card{padding-left:40px;padding-right:40px;padding-top:26px}
+  html.lg-new #fm-page .fm-body{padding-left:40px;padding-right:40px}
+  html.lg-new #pu-page .pu-key{padding:0 40px}
+  html.lg-new #pu-page .pu-t :is(th, td):first-child{padding-left:40px}
+  html.lg-new #pu-page .pu-t :is(th, td):last-child{padding-right:40px}
+  html.lg-new #pu-page .pu-c-rk{width:80px}
+  html.lg-new .cun-page .cun-head .apn-acts:empty{display:none}
+  html.lg-new{--ph-title-size:26px;--ph-title-w:400}
+  /* THE FOOT FOLLOWS (owner's yes): a list's count line sits right under its last row; under it the sheet simply ends.
+     A long list scrolls inside its own box, the foot under it */
+  html.lg-new .apn-card > .apn-foot, html.lg-new .ctf-foot{margin-top:0}
+  html.lg-new :is(.cun-page, .dirn-page) .cu-scroll{flex:0 1 auto}
+  /* ONE THING WHEN EMPTY (owner's yes): an empty list hides its filter, tabs, column heads and foot; its one sentence
+     stands in the middle of the sheet. Import with nothing brought in: no filter over nothing, the drop area is the page */
+  html.lg-new .cun-page.is-empty :is(.apn-bar, thead, .apn-foot){display:none}
+  html.lg-new .cun-page.is-empty .apn-table td.apn-none{border:0;padding:96px 0 0;text-align:center;font-size:15px}
+  html.lg-new .mig-page:not(:has(table)) #mig-band{display:none}
+  html.lg-new .mig-page:not(:has(table)) .mig-drop-card{padding:56px 40px 24px;display:flex;flex-direction:column;align-items:center;gap:20px}
+  html.lg-new .mig-page:not(:has(table)) #mig-drop{width:min(100%, 680px);flex-direction:column;text-align:center;padding:48px 32px;gap:12px}
+  html.lg-new .mig-page:not(:has(table)) #mig-drop .mig-drop-w{flex:none;width:auto}
+  html.lg-new .mig-page:not(:has(table)) .mig-opts{justify-content:center}
+  /* PILL TO ACT, LINK TO GO (owner's yes): a row's act is one grey pill at the row's right end; only the chosen row's act is
+     black, so a page has one black button at a time; a green link only goes somewhere */
+  html.lg-new :is(#cn2-page .nd-btn.nd-link, .cal-nl-go){display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);text-decoration:none;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap}
+  @media (hover:hover){ html.lg-new :is(#cn2-page .nd-btn.nd-link, .cal-nl-go):hover{background:var(--color-neutral-200);color:var(--color-text)} }
+  html.lg-new .apn-table tr:not(.is-sel) .apn-acts .apn-ok, html.lg-new .ikn-table tr:not(.is-sel) .ikn-go{background:var(--color-neutral-100);color:var(--color-text);border-color:transparent}
+  /* ONE VOICE (owner's yes): Jambo's panel says what is his under one label, not on every note; the notes sit 8 apart;
+     what the panel holds starts on the same edge as the back link over it; the doors above the box stay on one line,
+     three at most (the rest are one "/" away) */
+  html.lg-new #jl-body .jov-after .cn2-turn{padding:8px 0;margin:0;border-top:1px solid var(--color-divider)}
+  html.lg-new #jl-body .jov-after .cn2-eye + .cn2-turn{border-top:0}
+  html.lg-new #igd-feed > .apn-panel{padding-left:0;padding-right:0}
+  html.lg-new #ig-dock .ca-back{margin-left:16px}
+  html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
+  /* three at most where the doors are long words (a page's own); beside a contract its own short links stay whole */
+  html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips] .jb-chip, .jb-ways.is-above-foot .jb-way):nth-of-type(n+4){display:none}
+  /* ==== ROUND 2, THE LISTS ====
+     EVEN TILES (the folders, owner's pick by name): every tile one height, the name one line ending in "…", what needs
+     you the biggest thing, one bar of signed · in review · drafting with its key above the grid, four across a laptop */
+  html.lg-new .ctf-grid.is-tiles{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+  html.lg-new .ctf-card.is-tile{display:grid;grid-template-rows:auto auto 1fr auto;align-items:start;justify-items:stretch;gap:10px;height:150px;min-height:0;margin-top:0;padding:16px;text-align:left}
+  html.lg-new .ctf-card.is-tile .ctf-name{display:block;min-width:0;padding-right:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-card.is-tile.is-new{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  html.lg-new .ctf-card.is-tile.is-new .ctf-name{white-space:normal}
+  html.lg-new .ctf-big{display:flex;align-items:baseline;gap:6px;font-size:26px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--st-amber-fg)}
+  html.lg-new .ctf-big small{font-size:12.5px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .ctf-big.is-quiet{color:var(--color-quiet)}
+  html.lg-new .ctf-mix{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--color-divider);align-self:center}
+  html.lg-new .ctf-mix i{display:block;height:100%}
+  html.lg-new :is(.ctf-mix, .ctf-key) .is-s{background:var(--st-green-dot)}
+  html.lg-new :is(.ctf-mix, .ctf-key) .is-r{background:var(--st-amber-dot)}
+  html.lg-new :is(.ctf-mix, .ctf-key) .is-d{background:var(--st-gray-dot)}
+  html.lg-new .ctf-mix .is-gone{background:var(--color-neutral-300)}
+  html.lg-new .ctf-lo{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;min-width:0}
+  html.lg-new .ctf-lo > span:first-child{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new .ctf-key{display:flex;flex-wrap:wrap;gap:6px 16px;margin:14px 0 12px;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .ctf-key span{display:inline-flex;align-items:center;gap:6px}
+  html.lg-new .ctf-key i{display:inline-block;width:10px;height:6px;border-radius:2px}
+  /* EVEN CARDS (the wall): the party its own whole line, ending in "…"; the stage and the value share the line under it */
+  html.lg-new .igw-card.is-nl .igw2-foot.is-even{flex-direction:column;align-items:stretch;gap:4px}
+  html.lg-new .igw-card.is-nl .igw2-foot.is-even > .igw2-who{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset;font-size:12.5px}
+  html.lg-new .igw-card.is-nl .igw2-foot.is-even > .igw2-st{display:flex;justify-content:space-between;align-items:center;gap:8px;-webkit-line-clamp:unset;white-space:nowrap;overflow:hidden}
+  html.lg-new .igw2-st > span{display:inline-flex;align-items:center;gap:6px;color:var(--color-quiet);min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .igw2-st i{flex:none;width:7px;height:7px;border-radius:50%}
+  html.lg-new .ct-wall .igw-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 18px}
+  /* GROUPED ROWS (Home): a small heading over each kind's run, the kind no longer worn on every row; the middle says one
+     line and ends in "…" (the whole sentence is in the panel) */
+  html.lg-new #cn2-page .cn2-grp{display:flex;align-items:baseline;gap:8px;padding:16px 0 6px;font-size:13px}
+  html.lg-new #cn2-page .cn2-grp b{font-weight:var(--w-strong)}
+  html.lg-new #cn2-page .cn2-grp span{color:var(--color-quiet)}
+  html.lg-new #cn2-page .cn2-grp + .cn2-row{border-top-color:transparent}
+  html.lg-new #cn2-page #cn2-list .cn2-row .nd-kind{display:none}
+  html.lg-new #cn2-page #cn2-list .cn2-row:not(.is-open) .cn2-fx{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  html.lg-new #cn2-page #cn2-list .cn2-row{align-items:center}
+  /* TWO LINES A ROW (Obligations): the duty, then one line of where it comes from; a quote, where the paper gives one,
+     is the row's own small line in the paper's italic, never a middle column most rows leave blank */
+  html.lg-new .obn-table.is-two-line .obn-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obn-table.is-two-line .obn-q.is-line{margin-top:4px;font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obn-table.is-two-line .obn-q.is-line i{font-weight:400}
+  html.lg-new .obn-table.is-two-line td.obn-act{text-align:right}
+  /* ==== ROUND 3, A CONTRACT ====
+     PAPER LINE HOLDS ALL (owner's yes): on a wide desk the zoom stands in the empty desk beside the sheet, so the sheet
+     starts where the paper line ends, not a band lower; the opening paragraph's text starts on the headings' edge (its
+     -mx-2 was never in the sheet); a fact that can be changed ends in a green "Change" link */
+  @media (min-width:1300px){ html.lg-new #ig-paper-scroll > .paper-zc-row{--zc-room:0px} }
+  html.lg-new #ig-paper .pg-sheet .doc-surface#ig-canvas p.px-2.-mx-2{margin-left:-8px;margin-right:-8px}
+  /* SAME CARD TWICE: the Redlines face's own "Ask for review" chip steps aside; the paper line above carries the one */
+  html.lg-new #ig-dock :is(.rl-head-review, [data-rl-head-review]){display:none}
+  /* BOX FITS THE WAY (Send): with a way that carries no message the note box folds to its one line, dashed where the box
+     was, and the warning at the screen's foot steps aside */
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter .sh-lt-note.is-nowhere > label{--sh-note-d:none;display:none}
+  html.lg-new .sh-lt-note.is-nowhere > [data-nl-jb], html.lg-new .sh-lt-note.is-nowhere > .sh-nl-jb{display:none}
+  html.lg-new .sh-lt-note .sh-lt-nowhere:empty{display:none}
+  html.lg-new .sh-lt-note.is-nowhere .sh-lt-nowhere{margin:8px 0 0;padding:16px;border:1px dashed var(--color-divider);border-radius:var(--radius);font-size:13px;line-height:1.5;color:var(--color-quiet)}
+  html.lg-new #modal-root:has(.sh-lt-note.is-nowhere) #sh-msg-where{display:none}
+  /* SAID ONCE (Before you sign): the card under the list is the greyed Sign and how many are left, quiet */
+  html.lg-new #ig-dock .pd2-sg-card.is-togo{background:transparent;padding:12px 0 0;box-shadow:none;border:0}
+  html.lg-new #ig-dock .pd2-sg-card.is-togo .pd2-sg-acts{display:flex;align-items:center;gap:12px;margin:0}
+  html.lg-new #ig-dock .pd2-sg-card.is-togo span{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 <style>
   /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */

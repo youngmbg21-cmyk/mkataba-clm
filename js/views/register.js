@@ -3616,20 +3616,36 @@ function regFoldersHtml(){
     const cs = live.filter(c => c.folder === fid && !endIds.has(c.id)); if (!cs.length) return '';
     const r = regFolderRead(cs);
     const facts = [i18tn('ctf_n_contracts', r.n, { n: r.n }), r.val ? money(r.val) : '', [r.signed ? i18t('ctf_signed', { n: r.signed }) : '', r.review ? i18t('ctf_review', { n: r.review }) : ''].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
-    const need = r.needN ? `<span class="ctf-need">${esc(i18tn('ctf_need_n', r.needN, { n: r.needN }))}${regFolderNeedWords(r) ? ' · ' + esc(regFolderNeedWords(r)) : ''}</span>` : `<span class="ctf-quiet">${esc(i18t('ctf_nothing'))}</span>`;
-    const dots = (r.needN ? '<i class="ctf-dot is-need"></i>' : '') + ((cs.length - r.signed) > 0 || r.signed ? '<i class="ctf-dot is-live"></i>' : '');
-    return `<button type="button" class="ctf-card" data-ctf-folder="${esc(fid)}"><span class="ctf-tab" aria-hidden="true"></span><span class="ctf-dots">${dots}</span>
-      <b class="ctf-name">${esc(FOLDERS[fid].name || fid)}</b><span class="ctf-facts">${esc(facts)}</span>${need}</button>`;
+    /* EVEN TILES (the harmony review, the owner's pick by name, 9 Nov 2026): every tile one height; the name one line;
+       what needs you the biggest thing on it; the two dots become one bar of signed · in review · drafting, keyed above */
+    void facts;
+    const name = FOLDERS[fid].name || fid;
+    return `<button type="button" class="ctf-card is-tile" data-ctf-folder="${esc(fid)}" title="${esc(name)}">
+      <b class="ctf-name">${esc(name)}</b>${regTileBig(r.needN)}${regTileBar(r.signed, r.review, r.n - r.signed - r.review)}
+      <span class="ctf-lo"><span>${esc(i18tn('ctf_n_contracts', r.n, { n: r.n }))}</span><span>${esc(r.val ? money(r.val) : '')}</span></span></button>`;
   }).join('');
   const yrs = ended.map(c => String(c.signedAt || c.expiry || '').slice(0, 4)).filter(Boolean).sort();
   const endR = regFolderRead(ended);
-  const endCard = ended.length ? `<button type="button" class="ctf-card" data-ctf-ended><span class="ctf-tab" aria-hidden="true"></span>
-      <b class="ctf-name">${esc(i18t('ctf_ended'))}</b><span class="ctf-facts">${esc([i18tn('ctf_n_contracts', ended.length, { n: ended.length }), endR.val ? money(endR.val) : '', yrs.length ? (yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : ''].filter(Boolean).join(' · '))}</span>
-      <span class="ctf-quiet">${esc(i18t('ctf_ended_s'))}</span></button>` : '';
+  const endCard = ended.length ? `<button type="button" class="ctf-card is-tile is-ended" data-ctf-ended title="${esc(i18t('ctf_ended'))}">
+      <b class="ctf-name">${esc(i18t('ctf_ended'))}</b>${regTileBig(0)}<span class="ctf-mix" aria-hidden="true"><i class="is-gone" style="width:100%"></i></span>
+      <span class="ctf-lo"><span>${esc(i18tn('ctf_n_contracts', ended.length, { n: ended.length }))}${yrs.length ? ' · ' + esc(yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : ''}</span><span>${esc(endR.val ? money(endR.val) : '')}</span></span></button>` : '';
   const isAdmin = (typeof currentUser === 'function' && (currentUser() || {}).role === 'admin');
-  const newCard = isAdmin ? `<button type="button" class="ctf-card is-new" data-ctf-new><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-facts">${esc(i18t('ctf_new_s'))}</span></button>` : '';
+  const newCard = isAdmin ? `<button type="button" class="ctf-card is-new is-tile" data-ctf-new><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-facts">${esc(i18t('ctf_new_s'))}</span></button>` : '';
   const n = (cards.match(/data-ctf-folder/g) || []).length + (endCard ? 1 : 0);
-  return `<div class="ctf-grid">${cards}${endCard}${newCard}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
+  return `${regTileKeyHtml()}<div class="ctf-grid is-tiles">${cards}${endCard}${newCard}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
+}
+/* EVEN TILES' parts, one builder for Contracts' folders and Parties' folders */
+function regTileBig(n){
+  return n ? `<span class="ctf-big">${n}<small>${esc(i18tn('ctf_t_need', n, { n }))}</small></span>`
+    : `<span class="ctf-big is-quiet">0<small>${esc(i18t('ctf_t_nothing'))}</small></span>`;
+}
+function regTileBar(signed, review, draft){
+  const all = Math.max(1, signed + review + Math.max(0, draft));
+  const pc = x => (Math.round(Math.max(0, x) / all * 1000) / 10) + '%';
+  return `<span class="ctf-mix" aria-hidden="true"><i class="is-s" style="width:${pc(signed)}"></i><i class="is-r" style="width:${pc(review)}"></i><i class="is-d" style="width:${pc(draft)}"></i></span>`;
+}
+function regTileKeyHtml(){
+  return `<div class="ctf-key"><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))}</span><span><i class="is-r"></i>${esc(i18t('ctf_k_review'))}</span><span><i class="is-d"></i>${esc(i18t('ctf_k_draft'))}</span><span>${esc(i18t('ctf_k_big'))}</span></div>`;
 }
 if (typeof document !== 'undefined' && !document._ctfWired){ document._ctfWired = true;
   document.addEventListener('click', e => {
@@ -3646,6 +3662,14 @@ if (typeof document !== 'undefined' && !document._ctfWired){ document._ctfWired 
     if (t.closest('[data-ctf-back]')){ e.preventDefault(); const R = regState(); _ctFolders = true; R.type = 'all'; if (R.view === 'archived') R.view = null; regRepaint(); ctfDockAgain(); return; }
   });
 }
+/* the folders the grid draws, counted cheaply for the tab ("Folders 11"): a stream with a live contract, and the shelf */
+function regFolderCount(){
+  const T = typeof todayISO === 'function' ? todayISO() : '';
+  const gone = c => c.archived || c.status === 'Declined' || (c.status === 'Signed' && c.expiry && T && String(c.expiry).slice(0, 10) < T);
+  const all = (state.contracts || []).filter(c => c && !c._codeNamed);
+  const f = new Set(all.filter(c => !gone(c) && (typeof canAccessFolder !== 'function' || canAccessFolder(c.folder)) && FOLDERS && FOLDERS[c.folder]).map(c => c.folder));
+  return f.size + (all.some(gone) ? 1 : 0);
+}
 function regFoldersHeadHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed && !c.archived);
   const r = regFolderRead(live);
@@ -3655,8 +3679,8 @@ function regFoldersHeadHtml(){
       <button type="button" class="ctf-pill" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
       ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('ctf_new_agreement'))}</button>` : ''}</div>
     <div class="apn-bar ctf-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}"></label><span class="apn-sp"></span>
-      <button type="button" class="apn-tab is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))}</button><button type="button" class="apn-tab" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab" data-ctf-tab="needs">${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}
-      <span class="ctf-hint">${esc(i18t('ctf_hint'))}</span></div>`;
+      <button type="button" class="apn-tab is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab" data-ctf-tab="needs">${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}
+</div>`;
 }
 if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired2 = true;
   document.addEventListener('click', e => {
@@ -4895,7 +4919,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
@@ -4941,6 +4965,7 @@ function ngnAskWords(ch){
   let words = n.slice(from, to); if (words.length > 6) words = words.slice(0, 6);
   return words.join(' ').replace(/[.,;:]+$/, '');
 }
+function ngnClauseNameOf(ch){ return String((ch && (ch.clauseLabel || ch.headingText)) || '').replace(/^\s*\d+(?:\.\d+)*[.)]?\s*/, '').trim(); }
 function ngnSecOf(ch){ const m = String((ch && (ch.clauseLabel || ch.headingText)) || '').match(/(\d+(?:\.\d+)*)/); return m ? '§ ' + m[1] : ''; }
 function ngnTheirAsks(c){ return (Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending' && !x.withdrawn); }
 function ngnPrepared(c, asks){ return typeof roundPrepOf === 'function' ? asks.filter(ch => roundPrepOf(c, ch)).length : 0; }
@@ -4965,7 +4990,7 @@ function ngnRead(x){
   const round = b === 'you' ? i18t('ngn_round_theirs', { n }) : b === 'them' ? i18t('ngn_round_ours', { n }) : String(n);
   const move = b === 'you' ? i18t('ngn_move_you', { wait: cols.waiting }) : b === 'them' ? i18t('ngn_move_them', { wait: cols.waiting }) : '—';
   let open, sub = '';
-  if (b === 'you' && asks.length){ open = { n: asks.length, quotes: asks.slice(0, 3).map(ch => ({ q: ngnAskWords(ch), s: ngnSecOf(ch) })) };
+  if (b === 'you' && asks.length){ open = { n: asks.length, quotes: asks.slice(0, 3).map(ch => ({ q: ngnAskWords(ch), s: ngnSecOf(ch), nm: ngnClauseNameOf(ch) })) };
     sub = prep && prep >= asks.length ? i18t('ngn_sub_prep') : unsent ? i18tn('ngn_sub_decided', unsent, { n: unsent }) : i18t('ngn_sub_answer'); }
   else if (b === 'you'){ open = { n: 0, say: i18tn('ngn_open_decided', unsent || 0, { n: unsent || 0 }) }; }
   else if (b === 'them'){ open = { n: 0, say: i18t('ngn_open_none_theirs') }; const d = ngnDayName((c.negotiation && c.negotiation.turnAt) || c.lastAction); sub = d ? i18t('ngn_sub_shared', { day: d }) : ''; }
@@ -4983,7 +5008,9 @@ function ngnRowHtml(r, sel){
   const c = r.c, E = esc, ref = window.contractRef ? contractRef(c) : c.id;
   let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
   const line = [E(c.counterparty || ''), `<b class="ngn-ref">${E(ref)}</b>`, money && money !== '—' ? E(money) : '', r.b === 'settled' ? E(i18t('ngn_settled_w')) : ''].filter(Boolean).join(' · ');
-  const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}`).join(' · ')}` : `0 · ${E(r.open.say)}`;
+  /* NAME THE CLAUSE (the harmony review, owner's yes 9 Nov 2026): an ask with no words of its own to quote says its
+     clause's number and name in the row's own font, never an empty pair of quote marks */
+  const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => q.q ? `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}` : `<span class="ngn-nm">${E([q.s, q.nm].filter(Boolean).join(' '))}</span>`).join(' · ')}` : `0 · ${E(r.open.say)}`;
   const nm = r.lead.name ? (r.lead.mine ? ngnShortName(r.lead.name) : ngnShortName(r.lead.name)) : '—';
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
     + `<td><div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div></td>`

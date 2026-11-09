@@ -949,13 +949,21 @@ function calAgendaNlHtml(evs){
   let wk=calAddDays(T,7-((T.getDay()+6)%7)), cur=T;
   const days=[...byDay.keys()].sort();
   days.filter(d=>d<_isoLocal(wk)).forEach(d=>dayRow(d,byDay.get(d)));
+  /* FOLD THE QUIET (the harmony review, owner's yes 9 Nov 2026): a run of empty weeks is ONE quiet line with the days it
+     covers ("23 Nov – 27 Dec · 5 quiet weeks"); one empty week keeps its own line */
+  let gap=null;
+  const shut=()=>{ if(!gap) return;
+    if(gap.n===1) row(_esc(i18t('cal_nl_week_of',{ d:f(gap.a,{day:'numeric',month:'short'}) })),'', i18t('cal_nl_none'),'','','is-none');
+    else row(_esc(i18t('cal_nl_span',{ a:f(gap.a,{day:'numeric',month:'short'}), b:f(gap.z,{day:'numeric',month:'short'}) })),'', i18tn('cal_nl_quiet_wks',gap.n,{ n:gap.n }),'','','is-none');
+    gap=null; };
   while(wk<=end){
     const a=_isoLocal(wk), z=_isoLocal(calAddDays(wk,6));
     const inWk=days.filter(d=>d>=a&&d<=z);
-    if(inWk.length) inWk.forEach(d=>dayRow(d,byDay.get(d)));
-    else row(_esc(i18t('cal_nl_week_of',{ d:f(a,{day:'numeric',month:'short'}) })),'', i18t('cal_nl_none'),'','','is-none');
+    if(inWk.length){ shut(); inWk.forEach(d=>dayRow(d,byDay.get(d))); }
+    else if(gap){ gap.z=z; gap.n++; } else gap={ a, z, n:1 };
     wk=calAddDays(wk,7); void cur;
   }
+  shut();
   return `<div class="cal-nl">${rows.join('')}</div>`;
 }
 const CAL_AGENDA_NL_SOON = 7;

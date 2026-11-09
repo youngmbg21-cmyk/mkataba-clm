@@ -3,7 +3,8 @@
    (1) ONE LIST, MOST URGENT FIRST: cn2Rows puts late, then your move, then Jambo's prepared work, then this week, and
        keeps the desk's own order inside each; the "Finish setting up" row is not on it.
    (2) ONE SENTENCE COUNTED FROM THE LIST: "2 things are late, 1 waits on you and I prepared 1 for you."; nothing waiting
-       says so.
+       says so. ONE COUNT (the harmony review, owner's yes 9 Nov 2026): with more than one kind the sentence leads with
+       the whole, the number Jambo's panel and the foot say — "4 wait on you: 2 things are late, 1 is your move and …".
    (3) THE PAPER'S WORDS ONLY WHERE KNOWN: their pending change quotes the words it proposes under its clause's number;
        a row of another kind quotes nothing.
    (4) BEHIND THE SWITCH: renderCounter draws the new Home only when newLookOn and the panel fits (cn2On); today's Home
@@ -18,7 +19,8 @@ const CN = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'counter.js
 const fnBody = (src, name) => { const i = src.search(new RegExp('(async )?function ' + name + '\\(')); if (i < 0) return ''; return src.slice(i, src.indexOf('\n}', i) + 2); };
 const constLine = (src, name) => { const i = src.indexOf('const ' + name + ' '); return i < 0 ? '' : src.slice(i, src.indexOf('\n', i)); };
 const WORDS = { cn2_s_late_one: '{n} thing is late', cn2_s_late_other: '{n} things are late', cn2_s_you_one: '{n} waits on you', cn2_s_you_other: '{n} wait on you',
-  cn2_s_jambo_one: 'I prepared {n} for you', cn2_s_jambo_other: 'I prepared {n} for you', cn2_s_and: ' and ', cn2_s_none: 'Nothing waits on you.' };
+  cn2_s_jambo_one: 'I prepared {n} for you', cn2_s_jambo_other: 'I prepared {n} for you', cn2_s_and: ' and ', cn2_s_none: 'Nothing waits on you.',
+  cn2_s_yours_one: '{n} is your move', cn2_s_yours_other: '{n} are your move' };
 const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (_, k) => (v && k in v) ? v[k] : '{' + k + '}');
 function world(kinds){
   const ctx = { i18t: (k, v) => fill(WORDS[k] || k, v), i18tn: (k, n, v) => fill(WORDS[k + (n === 1 ? '_one' : '_other')] || k, { n, ...(v || {}) }),
@@ -36,7 +38,7 @@ test('f968 (1) one list, most urgent first, the desk\'s own order inside each ki
 test('f968 (2) one sentence counted from the list', () => {
   const w = world({});
   const L = ks => ks.map(k => ({ k }));
-  assert.equal(w.cn2Say(L(['late', 'late', 'you', 'jambo'])), '2 things are late, 1 waits on you and I prepared 1 for you.');
+  assert.equal(w.cn2Say(L(['late', 'late', 'you', 'jambo'])), '4 wait on you: 2 things are late, 1 is your move and I prepared 1 for you.');
   assert.equal(w.cn2Say(L(['you', 'week'])), '2 wait on you.');
   assert.equal(w.cn2Say([]), 'Nothing waits on you.');
 });

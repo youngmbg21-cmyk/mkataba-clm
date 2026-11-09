@@ -8970,6 +8970,16 @@ async function openShareModal(c, opts={}){
       where.style.color='var(--st-amber-fg)';
       where.style.fontWeight='600';
     }
+    /* BOX FITS THE WAY (the harmony review, owner's yes 9 Nov 2026; the new look): with a way that carries no message the
+       note box folds to the one line that says so, where the box was; the words typed are kept for a way that carries
+       them */
+    const nb=document.querySelector('.sh-lt-note');
+    if(nb&&typeof window.newLookOn==='function'&&newLookOn()){
+      const none=k!=='email'&&k!=='whatsapp'&&!word;
+      nb.classList.toggle('is-nowhere',none);
+      let p=nb.querySelector('.sh-lt-nowhere'); if(!p){ p=document.createElement('p'); p.className='sh-lt-nowhere'; nb.appendChild(p); }
+      p.textContent=none?i18t('co_note_goes_nowhere'):'';
+    }
     letterPaint();
   };
   document.querySelectorAll('[data-share-ch]').forEach(b=>b.addEventListener('click',()=>setCh(b.getAttribute('data-share-ch'))));

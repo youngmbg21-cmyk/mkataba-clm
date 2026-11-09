@@ -877,7 +877,9 @@ function dirnRowHtml(p){
   const roles = [...(p.roles || [])];
   const role = ours ? [p.title || hati, roles.includes('approver') ? i18t('dirn_approver') : ''].filter(Boolean).join(', ')
     : (roles.includes('negotiate') ? i18t('dirn_their_lead') : roles.includes('cpsign') ? i18t('dirn_their_signer') : i18t('dirn_their_side'));
-  const sub = [p.title && ours ? '' : p.title, ours ? (window.FIRST_PARTY || '') : (p.partyName || ''), ours && p.hati ? String(p.hati).toLowerCase() : '', p.you ? i18t('dirn_you') : ''].filter(Boolean).join(' · ');
+  /* SAY IT ONCE (the harmony review): one of ours is ours by the list's own grouping and their role has its own column,
+     so the sub line carries only what differs: a title, or that it is you */
+  const sub = [p.title && ours ? '' : p.title, ours ? '' : (p.partyName || ''), p.you ? i18t('dirn_you') : ''].filter(Boolean).join(' · ');
   const ids = [...(p.on ? p.on.keys() : [])];
   let does = '';
   if (ours) does = ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : '—';
@@ -885,7 +887,8 @@ function dirnRowHtml(p){
   let w = []; try { w = dirWaitingOn(p) || []; } catch (_){ w = []; }
   const wait = w.length ? i18tn('dirn_things', w.length, { n: w.length }) : i18t('dirn_nothing');
   let ph = null; try { ph = dirPhoneOf(p); } catch (_){ ph = null; }
-  const reach = [p.email ? `<button type="button" class="pd2-link" data-dirn-mail="${_dE(p.key)}">${_dE(i18t('dirn_email'))}</button>` : '', ph ? _dE(String(ph.phone || ph)) : ''].filter(Boolean).join(' · ') || '—';
+  /* PILL TO ACT, LINK TO GO (the harmony review): Email is the panel's door, not every row's; the row keeps a phone */
+  const reach = ph ? _dE(String(ph.phone || ph)) : '—';
   return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who">${typeof regAvatarHtml === 'function' ? regAvatarHtml(p.name || p.email || '?') : ''}<div><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
     <td class="cun-wait">${_dE(role || '—')}</td><td class="cun-wait">${_dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '')}</td><td class="cun-wait">${_dE(wait)}</td><td class="cun-wait">${reach}</td></tr>`;
 }
@@ -899,15 +902,18 @@ function dirnRender(host, INS, book){
   const ours = list.filter(p => p.side === 'ours').sort((a, b) => (b.you ? 1 : 0) - (a.you ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
   const theirs = list.filter(p => p.side === 'theirs').sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const tabs = [['all', i18t('ctf_tab_all'), all.length], ['yours', i18t('dirn_tab_yours'), yours.length], ['outside', i18t('dirn_tab_outside'), outside.length], ['wait', i18t('dirn_tab_wait'), waiting.length]].filter(t => t[2] || t[0] === 'all' || t[0] === _dirn);
-  const body = ours.map(dirnRowHtml).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="5">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(dirnRowHtml).join('');
+  /* SAY IT ONCE (the harmony review): a Reach column with no phone on any row steps out */
+  const reachAny = list.some(p => { try { return !!dirPhoneOf(p); } catch (_){ return false; } });
+  const cutReach = h => reachAny ? h : h.replace(/<td class="cun-wait">[^<]*<\/td><\/tr>$/, '</tr>');
+  const body = ours.map(p => cutReach(dirnRowHtml(p))).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="${reachAny ? 5 : 4}">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(p => cutReach(dirnRowHtml(p))).join('');
   host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     <div class="ap-body is-ins dir-body"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2><span class="ctf-hf">${_dE(i18t('dirn_head', { n: all.length, y: yours.length, o: outside.length }))}</span></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(i18t('lh_filter_ph'))}" value="${_dE(_dir.q || '')}"></label><span class="apn-sp"></span>
         ${tabs.map(t => `<button type="button" class="apn-tab${_dirn === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${_dE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table"><colgroup><col style="width:28%"><col style="width:15%"><col><col style="width:17%"><col style="width:17%"></colgroup>
-        <thead><tr><th>${_dE(i18t('dirn_c_name'))}</th><th>${_dE(i18t('dirn_c_role'))}</th><th>${_dE(i18t('dirn_c_does'))}</th><th>${_dE(i18t('dirn_c_wait'))}</th><th>${_dE(i18t('dirn_c_reach'))}</th></tr></thead>
+      <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table"><colgroup><col style="width:28%"><col style="width:15%"><col><col style="width:17%">${reachAny ? '<col style="width:17%">' : ''}</colgroup>
+        <thead><tr><th>${_dE(i18t('dirn_c_name'))}</th><th>${_dE(i18t('dirn_c_role'))}</th><th>${_dE(i18t('dirn_c_does'))}</th><th>${_dE(i18t('dirn_c_wait'))}</th>${reachAny ? `<th>${_dE(i18t('dirn_c_reach'))}</th>` : ''}</tr></thead>
         <tbody id="dir-tbody">${body || `<tr><td colspan="5" class="apn-none">${_dE(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot">${_dE(i18tn('dirn_foot', all.length, { n: all.length }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div></div>`;

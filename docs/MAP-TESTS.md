@@ -595,3 +595,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE NEW LOOK, ROUND 5 — APPROVE, SIGN, LIVE (1 Nov 2026)
 - `node test/chromium/round5-new-look-verify.js` (world: test/round5-world.js): Approvals' one worklist and Before you decide, Before you sign's six lines and card, Obligations and Proposed, the Calendar's Agenda and Horizon, History with the wording, Amend's two papers; the switch off as before. Red at origin/main on 1–7.
 - test/f972-the-drawn-letter-and-page.test.js 1b: the invitation wears the other letters' shape (red at the parent).
+
+## THE HARMONY REVIEW (owner's picks 9 Nov 2026, docs/PLAN-harmony.md; behind the new-look switch)
+- `node --test test/f977-harmony.test.js` — one head, pill to act, one voice, say it once, one count, the foot follows, one thing when empty; every HARMONY rule under html.lg-new.
+- `node test/chromium/home-morning-verify.js` — Home's rows wear grey pills, one label over Jambo's notes, no Likely next, the foot says "N wait on you".
+- Round 2: round5-new-look-verify 5 (the agenda folds quiet weeks), round6-new-look-verify 3 (no how-to line under the wall).
+- Round 3: contract-new-look-verify 1 (Signer ends in Change), negotiate-new-look-verify 5 (History reachable from the links above the box), round8-phone-verify 2b (the whole leads).
+- The new-look browser set: round5/6/7/7b/9-new-look-verify, new-look-frame-verify, reads-*-verify, doors-verify, obligation-opens-on-the-paper-verify.

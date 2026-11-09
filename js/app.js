@@ -757,7 +757,8 @@ function renderPageHeader(view){
   /* the new look draws Requests' own head (round 6, as drawn) */
   const ownsHead=PAGE_OWNS_HEADER.includes(view)||(view==='intake'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof canEdit==='function'&&canEdit()&&typeof insFits==='function'&&insFits())
     ||(view==='team'&&typeof window.stnOn==='function'&&stnOn()&&typeof isAdmin==='function'&&isAdmin())
-    ||(view==='migration'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof insFits==='function'&&insFits()&&typeof migRows==='function'&&migRows().length>0);
+    ||(view==='migration'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof insFits==='function'&&insFits()&&typeof migRows==='function'&&migRows().length>0)
+    ||((view==='approvals'||view==='obligations')&&typeof window.newLookOn==='function'&&newLookOn()&&typeof insFits==='function'&&insFits());
   if(ownsHead){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
   /* ---- NO SENTENCE UNDER ANY HEADER (owner-asked 25 Aug 2026, off a
      screenshot of Import contracts with its line ringed: "remove these
@@ -847,7 +848,7 @@ function renderPageHeader(view){
              drawing of rounds 14–26 sets them beside the page's name — "Negotiations
              7 live · 3 waiting on our side"); they wrap under it where the line is full */}
       <div class="page-title-row" style="min-width:0;display:flex;align-items:baseline;column-gap:12px;row-gap:2px;flex-wrap:wrap">
-        <h1 style="margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        <h1 style="margin:0;font-family:var(--font-title);font-size:var(--ph-title-size,20px);font-weight:var(--ph-title-w,var(--w-title-serif));letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${''/* A FACTS LINE, NOT A SUBTITLE (second pass, 21 Sep 2026): the
                Contracts page prints its count and its money here — the
                Calendar's counts and Home's date line are the precedent, a

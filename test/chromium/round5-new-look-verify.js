@@ -120,7 +120,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const foot = await txt(page, '.cal-hz-foot');
     await shot('5-horizon');
     check('5 Calendar: the views as words; the agenda leads with the late duty, then today\'s approval, an empty week one line; Horizon rows carry their own months',
-      up && tabs.join('|') === 'Agenda|Month|Week|Horizon' && /^late/i.test(rows[0] || '') && /approve/i.test(rows[1] || '') && rows.some(r => /^week of .* nothing due/i.test(r)) && hz && /soonest first/i.test(foot),
+      up && tabs.join('|') === 'Agenda|Month|Week|Horizon' && /^late/i.test(rows[0] || '') && /approve/i.test(rows[1] || '') && rows.some(r => /^week of .* nothing due/i.test(r) || /quiet weeks?$/i.test(r)) /* RE-POINTED (the harmony review, FOLD THE QUIET, 9 Nov 2026): a run of empty weeks is one line, "16 Nov – 3 Jan 7 quiet weeks" */ && hz && /soonest first/i.test(foot),
       { tabs, rows: rows.map(r => r.slice(0, 50)), hz, foot });
   } catch (e) { check('5 Calendar', false, String(e).slice(0, 200)); }
 

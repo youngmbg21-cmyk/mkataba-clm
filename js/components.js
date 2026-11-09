@@ -1257,8 +1257,12 @@ function jamboTrailHtml(t, o){
   const tr = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
   const inHead = !!(o && o.inHead);
   const attr = t.attr || 'data-jt-back';
-  const last = t.path.length - 1;
-  const where = t.path.map((w, i) => i === last ? `<b>${e(w)}</b>` : e(w)).join('<i aria-hidden="true"> / </i>');
+  /* BOX FITS THE WAY's back line (the harmony review, owner's yes 9 Nov 2026; the new look): the back button already
+     names where it goes, so the path does not say that place a second time ("‹ Dossier / Before you send") */
+  const nl = typeof window !== 'undefined' && typeof window.newLookOn === 'function' && window.newLookOn();
+  const path = nl && t.path.length > 1 && String(t.path[0]) === String(t.up) ? t.path.slice(1) : t.path;
+  const last = path.length - 1;
+  const where = path.map((w, i) => i === last ? `<b>${e(w)}</b>` : e(w)).join('<i aria-hidden="true"> / </i>');
   const tip = tr('pd_trail_back', { to: t.up });
   const tag = inHead ? 'span' : 'div';
   return `<${tag} class="pd-trail${inHead ? ' is-in-head' : ''}${t.attr ? '' : ' jt-trail'}" data-pd-trail="${e(t.back)}"><button type="button" class="pd-back" ${attr}="${e(t.back)}" title="${e(tip)}" aria-label="${e(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${e(t.up)}</button><span class="pd-trail-w">${where}</span></${tag}>`;

@@ -1311,7 +1311,9 @@ function jlHeadPaint(host, opt, holds){
   if (w){ w.textContent = word; w.setAttribute('title', word); }
   const b = host.querySelector('[data-jl-back]'); if (b) b.hidden = !holds;
   /* a page may count its own tab, as drawn (Negotiations: its live ones; round 7) */
-  const n = opt.jlTabWord ? 0 : (opt.tabCount != null ? Number(opt.tabCount) || 0 : jlCount());
+  /* ONE VOICE (the harmony review, owner's yes 9 Nov 2026): in the new look the tab carries a number only when the page
+     counts its own list (tabCount); the needs-you total is the bell's and Home's, never a stranger on every page */
+  const n = opt.jlTabWord ? 0 : (opt.tabCount != null ? Number(opt.tabCount) || 0 : ((typeof window.newLookOn === 'function' && newLookOn()) ? 0 : jlCount()));
   host.querySelectorAll('[data-jl-n]').forEach(el => { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); });
 }
 /* A CHOSEN ROW'S OWN TAB AND LINKS (the new look's Approvals, round 5, as drawn): the landing tab may carry the

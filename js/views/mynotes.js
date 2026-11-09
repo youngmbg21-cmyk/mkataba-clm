@@ -386,7 +386,7 @@ function mnnRender(host, list, n){
   const tabs = [['all', i18t('mn_tab_all'), all.length], ['today', i18t('mnn_tab_due'), due], ['done', i18t('mn_tab_done'), done]];
   const tab = mnTabNow();
   const facts = [i18t('mnn_private'), i18tn('mnn_n', all.length, { n: all.length }), due ? i18t('mnn_n_due', { n: due }) : ''].filter(Boolean).join(' · ');
-  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page" id="mn-page" data-ins-page="mynotes" data-ins="1">
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page${all.length ? '' : ' is-empty'}" id="mn-page" data-ins-page="mynotes" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="ctf-hf">${_mnE(facts)}</span><span class="ctf-sp"></span>
         <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
@@ -395,7 +395,7 @@ function mnnRender(host, list, n){
       <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col style="width:42%"><col style="width:30%"><col style="width:12%"><col></colgroup>
         <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('mnn_c_due'))}</th><th></th></tr></thead>
         <tbody>${list.map(mnnRowHtml).join('') || `<tr><td colspan="4" class="apn-none">${_mnE(all.length ? i18t('mn_none_here') : i18t('mn_empty'))}</td></tr>`}</tbody></table></div>
-      <div class="apn-foot">${_mnE(i18t('mnn_foot'))}</div>
+      ${list.length ? `<div class="apn-foot">${_mnE(i18tn('mnn_n', list.length, { n: list.length }))}</div>` : ''}
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_mnE(i18t('mn_panel_label'))}"></aside></div></div>`;
   if (typeof insPaintPanel === 'function'){
     const base = { seat: MN_SEAT, jlSay: mnJlSay, jlWord: i18t('jl_w_note') };
