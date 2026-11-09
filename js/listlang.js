@@ -86,4 +86,4 @@ function stdRowWordsHtml(c){
     : '<span class="ls-lamp is-off"><i></i>0</span>';
   return `<span class="ls-lights" role="img" aria-label="${_lsE(said)}" title="${_lsE(said)}">${lamp('ruby', r.miss)}${lamp('amber', r.off)}${lamp('green', r.met)}</span>`;
 }
-Object.assign(window, { LIST_SAP_MARK, listSapMarkHtml, listSapOn, listSapCellHtml, stdRowWordsHtml, LIST_MARK_PATHS, LIST_STREAM_FIXED, listMarkHtml, listWordHtml, listChipHtml, listStreamTone, listAvatarTone });
+Object.assign(window, { stdRowWordsHtml, LIST_MARK_PATHS, LIST_STREAM_FIXED, listMarkHtml, listWordHtml, listChipHtml, listStreamTone, listAvatarTone, LIST_SAP_MARK, listSapMarkHtml, listSapOn, listSapCellHtml });
