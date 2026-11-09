@@ -19732,6 +19732,35 @@
   html.lg-new #nd-rows :is(.nd-c-deal,.nd-c-deal .hati-ref,.nd-dot,.nd-deal-t,.nd-c-when:not(.cn-late)){color:var(--color-neutral-400)}
   html.lg-new .nd-r :is(.cn-w>span,.cn-w>span .hati-ref,.nd-when:not(.cn-late)){color:var(--color-neutral-400)}
   html.lg-new .ndb-r .ndb-w>span{color:var(--color-neutral-400)}
+  /* THE BOARD'S NEEDS YOU, THE SAP WAY (owner's pick by name, 9 Nov 2026): a quiet worklist; the ask 13px regular, the
+     agreement column wider than the ask (2 to 1.25), rows 40px, the column heads 32px */
+  @container ndcard (min-width:641px){ html.lg-new :is(.nd-cols,.nd-br){grid-template-columns:minmax(0,1.25fr) minmax(0,2fr) 96px 76px;gap:12px} }
+  html.lg-new .nd-br{min-height:40px;padding-top:6px;padding-bottom:6px}
+  html.lg-new .nd-cols{min-height:32px}
+  html.lg-new .nd-c-what b{font-size:13px;font-weight:400}
+  /* THE FOLDERS, THE LEGORA WAY (regFolderRowsHtml): one quiet list, nothing boxed */
+  html.lg-new .ctf-list{display:flex;flex-direction:column;border-top:1px solid var(--color-divider)}
+  html.lg-new .ctf-row{display:grid;grid-template-columns:20px minmax(0,1fr) 200px 132px;gap:14px;align-items:center;width:100%;padding:12px 8px;border:0;border-bottom:1px solid var(--color-divider);background:transparent;text-align:left;font:inherit;color:var(--color-text);cursor:pointer}
+  @media (hover:hover){ html.lg-new .ctf-row:hover{background:var(--surface-2)} }
+  html.lg-new .ctf-row.is-new{grid-template-columns:minmax(0,1fr);padding-left:42px}
+  html.lg-new .ctf-rw{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-new .ctf-row .ctf-name{font-size:14px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-rl{font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-row .ctf-mix{width:100%}
+  html.lg-new .ctf-rn{text-align:right;white-space:nowrap;font-size:13px;color:var(--st-amber-fg)}
+  html.lg-new .ctf-rn b{font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  html.lg-new .ctf-rn .is-quiet{color:var(--color-neutral-400)}
+  @media (max-width:1100px){ html.lg-new .ctf-row{grid-template-columns:20px minmax(0,1fr) 120px} html.lg-new .ctf-row .ctf-mix{display:none} }
+  /* the folders' panel: where the work is, where the money is (regFolderRanksHtml) */
+  html.lg-new .ctfp-rks{display:flex;flex-direction:column;margin:0 0 16px}
+  html.lg-new .ctfp-rk{display:grid;grid-template-columns:112px minmax(0,1fr) 72px;gap:10px;align-items:center;width:100%;padding:7px 0;border:0;background:transparent;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .ctfp-rk-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctfp-rk-b{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+  html.lg-new .ctfp-rk-b i{display:block;height:100%;border-radius:4px}
+  html.lg-new .ctfp-rk-b i.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .ctfp-rk-b i.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .ctfp-rk b{text-align:right;font-weight:var(--w-label);font-variant-numeric:tabular-nums;white-space:nowrap}
+  @media (hover:hover){ html.lg-new .ctfp-rk:hover .ctfp-rk-n{text-decoration:underline} }
   html.lg-new #pd-glance :is(.pd2-l,.pd2-read,.pd2-card-say){color:var(--color-neutral-400)}
   html.lg-new .rl-card :is(.rl-card-sum,.rl-card-by,.rl-card-read-w,.rl-card-read-m,.rl-card-lock-say){color:var(--color-neutral-400)}
   /* a panel's labels are grey, its figures ink (the Overview face, every page; Approvals' and Negotiations' own panels) */
