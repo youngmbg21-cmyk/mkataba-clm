@@ -36110,3 +36110,14 @@ on the foot "Why do you need 2 columns?". The fix list was drawn (Artifact "HaTi
   head as drawn) — the panel's Columns you asked already says it (`rfp_col_sub`). The foot's right half ("The question
   column was read once and is kept · Our standards is HaTi's own check…") is gone; the keys stay inert in both books.
 - OUR PAPER'S "Invalid Date": a stored time that is not an ISO day (`tplnDayOf`) is read, or left out.
+
+## THE HARMONY REVIEW — FIX ROUND 2, EVERY PAPER IN PAGES (9 Nov 2026)
+The owner: "I have asked you to fix this multiple times which is the paper should be in pages with page breaks and not one
+full long paper. This needs to be fixed across the platform on all papers"; on the drawing "the notes should also continue
+to be part of the page". Measured: Home's paper of a draft or signed contract was already cut (pagesWatch via
+`igPaperPaginate`), but once a contract has changes Home draws `.ig-redpaper > article.rl-paper` (Clean, Redline, Their
+view), and `igPaperPaginate` asked only for `.pg-sheet` — so every negotiated contract stood as one long sheet (MK-A2 in the
+handbook world: 0 gaps before, 2 after). The outer article has no padding (its margins are on `.rl-zoom > .rl-paper`), so
+the inner sheet is the one cut, or page 2's first line sat on the page's top edge. A template's own page (`#tpl-dt`) was one
+sheet too; it is cut the same way. The clause editor and the template builder keep one sheet (rlPaginate's rule: a break
+redrawn under the caret moves the words being typed); said to the owner.

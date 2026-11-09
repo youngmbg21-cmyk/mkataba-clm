@@ -190,3 +190,15 @@ test('f977 fix · Our paper never prints "Invalid Date"', () => {
   assert.equal(tplnDayOf(Date.UTC(2026, 4, 5, 12)).getUTCMonth(), 4);
   assert.match(lib, /if \(\/invalid\/i\.test\(mon\)\) mon = '';/);
 });
+
+/* FIX ROUND 2 (9 Nov 2026): every paper in pages. At the parent a negotiated contract's paper on Home (Clean, Redline,
+   their view) and a template's own page stood as one long sheet: igPaperPaginate asked only for a .pg-sheet */
+test('f977 fix 9 · every paper in pages: the negotiated paper on Home and a template\'s page are cut into pages', () => {
+  const ig = read('js/views/intelligence.js');
+  const fn = ig.match(/function igPaperPaginate\(c\)\{[\s\S]*?\n\}/)[0];
+  assert.match(fn, /host\.querySelector\('\.ig-redpaper \.rl-zoom > \.rl-paper'\)/, 'the inner sheet, which carries the page margins');
+  const tl = read('js/views/templatelib.js');
+  assert.match(tl, /const sh = document\.querySelector\('#tpl-dt \.tpl-dt-sheet > \.blueprint'\); if \(sh && typeof window\.pagesWatch === 'function'\) pagesWatch\(sh, \{ mode: 'work'/);
+  /* the clause editor keeps one sheet on purpose: a break re-drawn under the caret would move the words being typed */
+  assert.match(read('js/views/negotiation.js'), /if \(sheet\.closest\('\.ce-paperwrap'\)\) return;/);
+});
