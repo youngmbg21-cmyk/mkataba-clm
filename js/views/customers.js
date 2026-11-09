@@ -1397,7 +1397,15 @@ function cunRowHtml(v, nda){
   const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
   /* SAY IT ONCE (the harmony review, owner's yes 9 Nov 2026): a row names its org. no. only where one is filed; the foot says when none is */
   const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : '';
-  const sub = [rec.city || '', org, v.streams.map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f)).filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  /* KIND CHIPS (owner's pick by name, 9 Nov 2026; the colour round): each stream a soft chip in its own fixed tone
+     (listStreamTone, so a stream wears one colour on every page), the party's initials in its first stream's tone, and what
+     waits on you in amber. The facts line keeps its city and org. no. in grey. */
+  const shortOf = f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f);
+  const toneOf = f => (typeof listStreamTone === 'function') ? listStreamTone(f) : 'gray';
+  const facts = [rec.city || '', org].filter(Boolean).join(' · ');
+  const chips = v.streams.filter(f => shortOf(f)).map(f => (typeof listChipHtml === 'function') ? listChipHtml(toneOf(f), shortOf(f)) : esc(shortOf(f))).join(' ');
+  const ini = String(v.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+  const avTone = v.streams.length ? toneOf(v.streams[0]) : 'gray';
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = v.items.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
   const lead = v.items.filter(c => !c.archived).sort((a, b) => String(b.updatedAt || b.lastAction || '').localeCompare(String(a.updatedAt || a.lastAction || '')))[0] || v.items[0];
@@ -1414,9 +1422,9 @@ function cunRowHtml(v, nda){
       : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : ''); };
   const words = needs.slice(0, 2).map(x => { const w = verb(x); return w ? (x.it.urgent ? `${esc(w)} · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : esc(w)) : ''; }).filter(Boolean).join(' · ');
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
-    <td><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${esc(sub)}</div></td>
+    <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${facts ? `${esc(facts)} ` : ''}${chips}</div></div></div></td>
     <td class="cun-num">${v.items.length}</td><td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>
-    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait">${words || '—'}</td></tr>`;
+    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait${words ? ' is-owed' : ''}">${words || '—'}</td></tr>`;
 }
 let _cunParty = null;
 function cunRender(host, INS){
