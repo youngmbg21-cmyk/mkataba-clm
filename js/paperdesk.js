@@ -8034,8 +8034,10 @@ function pd2StandsOpen(id){
   /* as drawn, its panel is the Dossier's face (pd2Html): a Redlines face up is put away first; Redlines pressed later comes back */
   try { if (typeof pdRedShows === 'function' && pdRedShows() && typeof pdRedClose === 'function') pdRedClose(); } catch (_){}
   openModal(`<div class="pd2-stands" data-ds-cid="${_pdE(c.id)}">${standsDrawnHtml(c, {})}</div>`, { maxWidth: 'none', label: _pdT('pd2_st_title'),
-    page: { crumbHtml: pd2StandsHeadHtml(c), beside: '#ig-dock' }, onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} try { if (typeof pdRedShows === 'function' && pdRedShows() && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} } });
+    page: { crumbHtml: pd2StandsHeadHtml(c), beside: '#ig-dock' }, onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} try { if (typeof placeSave === 'function') placeSave(); } catch (_){} try { if (typeof pdRedShows === 'function' && pdRedShows() && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} } });
   pdMidOn(mk);
+  /* a refresh lands back on it (hbPlace keeps p.paper.mid; the strip that remembered it is gone, 9 Nov 2026) */
+  try { if (typeof placeSave === 'function') placeSave(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
   try { if (typeof pdRedShows === 'function' && pdRedShows() && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){}
   return true;

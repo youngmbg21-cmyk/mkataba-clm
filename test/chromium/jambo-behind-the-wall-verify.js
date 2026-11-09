@@ -4,10 +4,10 @@
    sensitive-contracts plan; decision 2: Jambo reads a private folder's
    contracts only when one of its people asks). f697 asks the server's night
    helpers. This file asks the reader's questions in a real browser:
-     1 · a private contract brought up: its Fill in face beside the paper
-         says why Jambo waits and carries one press, Read it now, no cost
-         said; and bringing it up spent nothing (RE-POINTED 9 Nov 2026: the
-         Board's contract card that carried this section is gone)
+     1 · a private contract brought up: its Dossier beside the paper says
+         Jambo has not read it and carries the one press that reads it, no
+         cost said; and bringing it up spent nothing (RE-POINTED 9 Nov 2026:
+         the Board's contract card that carried this section is gone)
      2 · no door reads it unasked — arrival, the send-for-review moment, the
          one launcher — while a contract outside a private folder still reads
          on arrival (the rule both ways)
@@ -70,17 +70,17 @@ const B3 = { ...fixtureContract('MK-B3', 'Uploaded Listing Terms', 'Carrefour Ke
 
     /* ============ 1. THE PANEL: THE STATE AND THE ONE PRESS ============ */
     check(await P.evaluate(() => jamboOnPress(getContract('MK-B3')) && !jamboOnPress(getContract('MK-A2'))), '1a a contract in the private folder waits for a press; one outside it does not');
-    /* the press stands on the Fill in face beside the paper (pdFillWaitHtml) */
-    await P.evaluate(() => { setView('dashboard'); pdFillOpen('MK-B3'); });
-    const READ = '#pd-fillface [data-pd-ff-read="MK-B3"], [data-pd-ff-read="MK-B3"]';
+    /* the press stands in the Dossier beside the paper (data-pd-ds-read → triageAndPaint, asked) */
+    await P.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-B3', 'copilot'); });
+    const READ = '#ig-dock [data-pd-ds-read]';
     const up = await until(P, sel => !!document.querySelector(sel) && !!(getContract('MK-B3') || {})._loaded, READ, 10000);
     const sec = await P.evaluate(sel => {
-      const b = document.querySelector(sel); if (!b) return null; const line = b.closest('.pd-ff-wait-t');
+      const b = document.querySelector(sel); if (!b) return null; const line = b.closest('.pd2-card, .pd-gl-row, .pd-glance');
       return { btn: b.innerText.trim(), line: line ? line.innerText.replace(/\s+/g, ' ') : '' };
     }, READ);
-    check(up && sec && /only when someone presses/.test(sec.line), '1b the face says Jambo waits, and why', sec && sec.line);
+    check(up && sec && /not read|not yet/i.test(sec.line), '1b the Dossier says Jambo has not read it', sec && sec.line);
 /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check(!!sec && sec.btn === 'Read it now' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(sec.line), '1c one press, Read it now, no cost beside it', sec && `${sec.btn} / ${sec.line}`);
+    check(!!sec && /^Read/.test(sec.btn) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(sec.line), '1c one press that reads it, no cost beside it', sec && `${sec.btn} / ${sec.line}`);
     /* 1d and 1e (the card's own sentence and its counts line) RETIRED 9 Nov 2026 with the card */
     check((await aiCalls()).length === 0, '1f bringing it up asked Jambo nothing', (await aiCalls()).join(','));
 
@@ -98,7 +98,7 @@ const B3 = { ...fixtureContract('MK-B3', 'Uploaded Listing Terms', 'Carrefour Ke
     const head = await P.evaluate(() => { const hd = document.querySelector('#pd-thread .stk-head'); return hd ? { state: (hd.querySelector('.jb-state') || {}).innerText, btn: (hd.querySelector('[data-stk-run]') || {}).innerText, text: hd.innerText.replace(/\s+/g, ' ') } : null; });
     check(rows && !!head && head.state === 'Not read · private folder' && head.btn === 'Read it now', '3a Clauses says it is not read, with the same press', head && head.text);
     check(!(await aiCalls()).some(p => /breakdown/.test(p)), '3b opening Clauses read nothing', (await aiCalls()).join(','));
-    await P.evaluate(() => { setView('dashboard'); pdFillOpen('MK-B3'); });
+    await P.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-B3', 'copilot'); });
     await until(P, sel => !!document.querySelector(sel), READ);
 
     /* ============ 5 (first). THE OWNER'S THREE SCREENS, BEFORE THE PRESS ============ */
@@ -118,11 +118,11 @@ const B3 = { ...fixtureContract('MK-B3', 'Uploaded Listing Terms', 'Carrefour Ke
 
     /* ============ 4. READ IT NOW READS IT ============ */
     await P.click(READ);
-    const ring = await until(P, () => !!document.querySelector('.pd-ff-wait-t .ob-spin') || window.__ai.length > 0, null, 4000);
+    const ring = await until(P, () => !!document.querySelector('#ig-dock [data-pd-ds-read][disabled], #ig-dock .ob-spin') || window.__ai.length > 0, null, 4000);
     check(ring, '4a the press turns the ring');
     const asked = await until(P, () => window.__ai.length > 0, null, 10000);
     check(asked, '4b and Jambo is asked', (await aiCalls()).join(','));
-    const done = await until(P, sel => !document.querySelector(sel) && !document.querySelector('.pd-ff-wait-t .ob-spin'), READ, 20000);
+    const done = await until(P, () => !!(getContract('MK-B3') || {}).triage && !document.querySelector('#ig-dock [data-pd-ds-read][disabled]'), null, 20000);
     const tri = await P.evaluate(() => !!(getContract('MK-B3') || {}).triage);
     check(done && tri, '4c read, the state and the press are gone and the reading is on the record');
 

@@ -870,7 +870,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is retired into the dossier's All acts fold */
     const EM = 'E the dossier\'s All acts';
     const MN = '#ig-dock .ds-fold .pd-mn-rows';
-    const menuOpen = id => async () => { await onPaper(id)();
+    /* from the Board, as every part here starts (since 9 Nov 2026 "bring up" lands on the paper with Jambo's answer in
+       his panel; opening the same paper again keeps that answer, so the Dossier is opened fresh from the Board) */
+    const menuOpen = id => async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); }); await settle(300); await onPaper(id)();
       await page.evaluate(x => { ['pdFillClose', 'pdSignClose', 'pdRedClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); pdOpenOnHome(x, 'copilot'); }, id);
       await waitFor(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired, 4000);
       await page.evaluate(() => document.querySelectorAll('#ig-dock .ds-fold').forEach(d => { d.open = true; })); };

@@ -276,8 +276,10 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
        says what Jambo read */
     await own.waitForFunction(() => typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'MK-R9' && !!document.getElementById('pd-glance'), null, { timeout: 8000 }).catch(() => {});
     const face = await own.evaluate(() => ({ facts: ((document.getElementById('pd-glance') || { innerText: '' }).innerText || '').replace(/\s+/g, ' ') }));
-    ok('3g3 and the Dossier follows the reading — it no longer says Jambo has not read it',
-      !!face.facts && !/not read (the paper )?yet|has not read/i.test(face.facts), face.facts.slice(0, 200));
+    /* the Dossier's own sign of Jambo's read is its stage line, "Read <time>" ("Brief · Not read yet" is the PERSON's
+       reading of the brief, a different fact) */
+    ok('3g3 and the Dossier follows the reading — its stage line says when Jambo read it, never that he has not',
+      !!face.facts && /\bRead \d/.test(face.facts) && !/Jambo has not read/i.test(face.facts), face.facts.slice(0, 120));
     await own.screenshot({ path: path.join(OUT, '3-overview-after-decide.png') });
 
     /* [control] THE ORDINARY DOOR READS NOTHING. The same Overview, opened from

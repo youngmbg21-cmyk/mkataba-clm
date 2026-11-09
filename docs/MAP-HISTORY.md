@@ -36255,3 +36255,11 @@ nothing (pd2PayOpen returned early; it now draws the page again), and the pay ed
 (payEditOpen now asks bsIsPay). A door asking for History while it is up lands on it, never shuts it ("‹ Paper" is the
 way back), and a refresh reopens it (hbPlace keeps p.paper.mid). Main had moved five merges; brought in, the history
 notes kept both ways.
+
+## THE STRIP IS GONE — THE ONE DOOR LANDS ON THE PAPER (9 Nov 2026, last batch before the merge)
+Five more browser checks still drove the strip or the retired Fill in face. Re-pointed: every-door-lands-on-home opens
+"All acts" from the Board (after a typed "bring up" Jambo's answer stays in the panel, so the menu had nothing to list);
+refresh-keeps-your-spot found a real gap: Where we are did not come back after a refresh (pd2StandsOpen now saves the
+place and hbPlace remembers 'where' as well as 'hist'); jambo-behind-the-wall presses the Dossier's read instead of
+the Fill in face; still-owed-sap-way 5 retired with the strip's tiles; go-aheads 3g3 reads the stage line's
+"Read <time>". All green locally: every-door 111/111, refresh 13/13, history-and-pay 18/18.
