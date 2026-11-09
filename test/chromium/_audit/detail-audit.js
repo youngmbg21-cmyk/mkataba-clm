@@ -99,7 +99,9 @@ const MEASURE = `(() => {
     if (h >= 18 && !SCALE.some(s => Math.abs(s - h) <= 1.5)) out.pill.push({ why: 'height ' + Math.round(h) + 'px — the theme\\'s pills are 22 · 28 · 30 · 32 · 44', who: who(el), in: where(el), text: words(el).slice(0, 40), r: rr(R(el)) });
   }
   /* side by side: a pill taller, or rounder, than the controls in its own row */
-  const rowMates = el => [...(el.parentElement ? el.parentElement.children : [])].filter(s => s !== el && !hidden(s) && s.matches('button,a,[role=tab],select,input,.ui-btn,[class*="chip"],[class*="pill"]'));
+  /* a mate is DRAWN as a control: a class named "pill" on a bare count (the Board's "Today's insights 2") is words, not a control */
+  const rowMates = el => [...(el.parentElement ? el.parentElement.children : [])].filter(s => s !== el && !hidden(s) && s.matches('button,a,[role=tab],select,input,.ui-btn,[class*="chip"],[class*="pill"]')
+    && (s.matches('button,[role=tab],select,input,.ui-btn') || alpha(cs(s).backgroundColor) > 0.05 || edged(cs(s))));
   for (const el of pills) {
     const r = R(el), mates = rowMates(el).filter(s => { const q = R(s); return q.height >= 16 && q.height <= 64 && Math.min(q.bottom, r.bottom) - Math.max(q.top, r.top) > 6; });
     if (mates.length < 1) continue;
@@ -140,7 +142,10 @@ const MEASURE = `(() => {
       /* a scroller between the words and the card keeps them */
       let kept = false; for (let p = el; p && p !== box; p = p.parentElement) { const c = cs(p); if (/(auto|scroll)/.test(c.overflowX + c.overflowY) || c.textOverflow === 'ellipsis') { kept = true; break; } } if (kept) continue;
       const rg = document.createRange(); rg.selectNodeContents(n);
-      const L = br.left + px(bc.borderLeftWidth), Rt = br.right - px(bc.borderRightWidth), T = br.top + px(bc.borderTopWidth), B = br.bottom - px(bc.borderBottomWidth);
+      /* A WASH PAINTED AS A GLOW (a box-shadow spread in its own colour, 0 0 0 Npx — the open clause on the paper, which may
+         not grow by a pixel) reaches N past its box: the words' room is measured to the wash's painted edge (9 Nov 2026) */
+      const spread = (() => { const m = /0px\\s+0px\\s+0px\\s+(\\d+(?:\\.\\d+)?)px/.exec(bc.boxShadow); return m ? +m[1] : 0; })();
+      const L = br.left + px(bc.borderLeftWidth) - spread, Rt = br.right - px(bc.borderRightWidth) + spread, T = br.top + px(bc.borderTopWidth) - spread, B = br.bottom - px(bc.borderBottomWidth) + spread;
       for (const q of rg.getClientRects()) {
         if (q.width < 3 || q.height < 3) continue;
         const gx = Math.min(q.left - L, Rt - q.right), gy = Math.min(q.top - T, B - q.bottom);
@@ -209,7 +214,8 @@ const MEASURE = `(() => {
 
   /* HAND (Round 1, 9 Nov 2026; the owner: "a list of items which you can press but the cursor does not turn
      into a small hand") — something built to be pressed whose cursor is still the arrow. A resize grip, a text
-     box and the Week view's "copy" slots (a deliberate cursor, awaiting the owner's ruling) are not counted. */
+     box and the Week view's empty slots (the owner's ruling, 9 Nov 2026: "Plain arrow" — a slot is where you add an
+     event, its hover says "+ Add", the arrow stays) are not counted. */
   const PRESS = 'button, [role=button], a[href], summary, tr[data-ins-row], tr[data-hb-sheet-c], [data-sel], [onclick], [tabindex="0"]:is(div, span, li, tr, article, section)';
   /* every body row of a list that has a chosen or focusable row opens on a press (the new look's Parties, People and Reads
      rows carry no attribute of their own; the table's chosen row says the list is pressable); a group line or an empty line is not a row */
@@ -217,7 +223,7 @@ const MEASURE = `(() => {
     const t = el.closest('table'); return !!t && !!t.querySelector('tbody tr.is-sel, tbody tr[aria-current], tbody tr[tabindex], tbody tr[data-ins-row], tbody tr[data-sel], tbody tr[data-hb-sheet-c]'); };
   for (const el of seen) {
     if (!el.matches(PRESS) && !rowPress(el)) continue;
-    if (el.closest('[contenteditable="true"], input, textarea, select')) continue;
+    if (el.closest('[contenteditable="true"], input, textarea, select') || el.matches('.cal-wk-slot')) continue;
     if (el.disabled || el.getAttribute('aria-disabled') === 'true' || el.classList.contains('is-disabled')) continue;
     const c = cs(el); if (c.cursor === 'pointer' || /resize|grab|text|copy|not-allowed|default-only/.test(c.cursor)) continue;
     const r = R(el); if (r.width < 24 || r.height < 16) continue;

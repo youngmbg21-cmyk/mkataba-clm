@@ -8924,7 +8924,7 @@
   .na-closest .na-pick .na-best{ flex:none; }
   .na-closest .na-pick .na-pick-m{ flex-basis:100%; }
   .na-closest .na-pick.on{ border-color:var(--accent-solid); }
-  .na-best{ display:inline-flex; align-items:center; white-space:nowrap; flex:none; height:18px; padding:0 7px; border-radius:999px; background:var(--st-green-bg); color:var(--st-green-fg); font-size:11px; font-weight:var(--w-label); vertical-align:1px; }
+  .na-best{ display:inline-flex; align-items:center; white-space:nowrap; flex:none; height:var(--ctl-h-sm); padding:0 8px; border-radius:999px; background:var(--st-green-bg); color:var(--st-green-fg); font-size:11px; font-weight:var(--w-label); vertical-align:1px; }
   .na-one-more{ border-top:0; padding-top:0; margin-top:0; }
   .na-file-b{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .na-seg{ display:inline-flex; flex-wrap:wrap; border:1px solid var(--rule-strong); border-radius:var(--radius); overflow:hidden; }
@@ -18351,7 +18351,10 @@
   html.lg-new #ig-dock .pd2-card .pd2-card-go{width:100%;height:var(--ctl-h);margin:0;justify-content:center;font-size:13px;white-space:nowrap}
   html.lg-new #ig-dock .pd2-card-foot{margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)}
   html.lg-new #ig-dock .pd2-card .pd2-read{margin:0 0 4px;font-size:12px;color:var(--color-text)}
+  /* ABOVE = BELOW (owner's Round 0: "Fill · 3 to do" stood 16 from the top, its last line's letters 20 from the foot):
+     the links are the small control height, not tap-tall (a 24px button centred its words 4px up), so they stand the card's 16 from the foot */
   html.lg-new #ig-dock .pd2-card-links{margin:0;font-size:13px;line-height:1.5}
+  html.lg-new #ig-dock .pd2-card-links .ui-link{height:var(--ctl-h-sm);min-height:0}
   html.lg-new #ig-dock .pd2-card-sep{margin:0 10px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-q{font-size:11.5px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-dossier .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
@@ -18514,7 +18517,8 @@
   html.lg-new #ig-dock .pd2-wk-q{font-family:var(--font-doc);font-style:italic;font-size:12px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-wk-nx{display:flex;align-items:baseline;gap:8px;padding:5px 0}
   @media (prefers-reduced-motion: reduce){ html.lg-new #ig-canvas .pd2-wk-on, html.lg-new .pd2-wk-bar > i{transition:none} }
-  html.lg-new #ig-canvas .pd2-cl-on{background:var(--st-amber-bg);box-shadow:0 0 0 6px var(--st-amber-bg)}
+  /* the wash reaches 10 past the clause's words (Round 0: "0px from the side"): painted as a glow, so the paper's words never move */
+  html.lg-new #ig-canvas .pd2-cl-on{background:var(--st-amber-bg);box-shadow:0 0 0 10px var(--st-amber-bg)}
   /* Clauses, as drawn: the head says what the list is; each row's own reading on its right; a fine clause's dot green; the Preamble first */
   html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view{display:flex;align-items:baseline;gap:8px}
   html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view b{font-family:var(--font-title);font-size:17px;font-weight:var(--w-title-serif)}
@@ -18833,7 +18837,9 @@
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-col-dec{text-align:right}
   html.lg-new #app-shell .cal-hz-row.is-nl{grid-template-columns:280px minmax(0,1fr) 200px;align-items:start;border-bottom:1px solid var(--color-divider);padding:14px 0}
   html.lg-new #app-shell .cal-hz-row.is-nl:hover{background:transparent}
-  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab{padding:14px 0 0}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab{padding:14px 16px 0 0}
+  /* a long name takes two lines, then "…", and never runs up to the month letters; who · ref · money wraps whole (Round 0, 9 Nov 2026) */
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab :is(.n, .m){white-space:normal;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
   html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab .n{font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab .m{font-size:12px;font-weight:var(--w-label);color:var(--color-text);margin-top:3px}
   html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-track{height:52px;margin:0 20px 0 0;background:none}
@@ -19120,7 +19126,7 @@
   html.lg-new .rfp-q p span{font-family:var(--font-ui, inherit);font-size:12px;margin-left:6px}
   html.lg-new .rfp-next{display:flex;align-items:center;gap:10px;margin:12px 0 22px}
   html.lg-new .rfp-next span,html.lg-new .rfp-ask span{font-size:12px;font-weight:var(--w-label)}
-  html.lg-new .rfp-pill{height:26px;padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
+  html.lg-new .rfp-pill{height:var(--ctl-h);padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
   html.lg-new .rfp-ask{display:flex;align-items:baseline;gap:8px;margin:0 0 12px}
   html.lg-new .rfp-ask .rfp-a{font-size:13.5px;font-weight:var(--w-label)}
   /* the list's heads as drawn: small capitals on the white page, two lines where the head names both */
@@ -19154,8 +19160,10 @@
   html.lg-new .tpln-list{border-top:1px solid var(--color-divider);margin-bottom:20px}
   html.lg-new .tpln-r{display:grid;grid-template-columns:minmax(0,1fr) 90px 130px;gap:12px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
   html.lg-new .tpln-r.is-shelf{cursor:default}
-  html.lg-new .tpln-r.is-on{background:var(--surface-2)}
-  html.lg-new .tpln-n{font-size:13.5px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* the chosen row's grey reaches 12 past its words on both sides; the words stay where every other row's stand (Round 0, 9 Nov 2026) */
+  html.lg-new .tpln-r.is-on{background:var(--surface-2);padding-left:12px;padding-right:12px;margin:0 -12px;width:calc(100% + 24px)}
+  /* a long name takes two lines, then "…" — never cut on one (Round 0, 9 Nov 2026: the iPad cut the chosen row) */
+  html.lg-new .tpln-n{font-size:13.5px;font-weight:var(--w-label);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:break-word}
   html.lg-new .tpln-u,html.lg-new .tpln-l{font-size:12.5px;font-weight:var(--w-label);white-space:nowrap}
   html.lg-new #content [data-tpl-head="book"]{display:none}
   html.lg-new .pd2-chosen .pd2-turn + .pd2-ch-cap{margin-top:20px}
@@ -19511,7 +19519,10 @@
   html.lg-new .stn-page .ap-card.apn-card{padding-left:40px;padding-right:40px;display:flex;flex-direction:column;min-height:0}
   html.lg-new .stn-title{margin:0 0 20px}
   html.lg-new .stn-cols{display:grid;grid-template-columns:216px minmax(0,1fr);gap:40px;min-height:0;flex:1}
-  html.lg-new .stn-menu{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+  /* THE MENU STANDS STILL (owner, 9 Nov 2026: "when I press the page moves me down"): the page is the one scroller, so the
+     menu keeps its place beside it; the item last pressed is marked (stnMenuMark) */
+  html.lg-new .stn-menu{display:flex;flex-direction:column;align-items:flex-start;gap:2px;position:sticky;top:16px;align-self:start}
+  html.lg-new .stn-mi.is-on{font-weight:var(--w-strong)}
   html.lg-new .stn-mh{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:12px 0 6px}
   html.lg-new .stn-mh:first-child{margin-top:0}
   html.lg-new .stn-mi{border:0;background:none;padding:5px 0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;text-align:left}
@@ -19529,6 +19540,9 @@
   html.lg-new .stn-row .stn-seg{align-self:center}
   html.lg-new .stn-pp{margin:0 0 8px;font-size:13.5px;line-height:1.45}
   html.lg-new .stn-panel .stn-pr{cursor:pointer}
+  /* a row that opens something says so: the › at its end (owner's Round 0, "nothing on it says so") */
+  html.lg-new .stn-panel .stn-pr .stn-go{display:flex;align-items:center;justify-content:flex-end;font-style:normal;color:var(--color-neutral-400)}
+  html.lg-new .stn-panel .stn-pr:hover .stn-go{color:var(--accent-ink)}
   html.lg-new .stn-page .st-yseg{display:inline-flex;border:0;border-radius:999px;background:var(--surface-2);padding:3px;gap:2px}
   html.lg-new .stn-page .st-yseg > button{appearance:none;border:0;border-radius:999px;background:transparent;font:inherit;font-size:13px;font-weight:var(--w-label);padding:0 12px;height:var(--ctl-h-sm);color:var(--color-text);cursor:pointer}
   html.lg-new .stn-page .st-yseg > button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
@@ -19915,7 +19929,8 @@
      stream chips; a greyed Create's reason in plain grey, not the warning's amber */
   html.lg-new #na-root.na-one .na-closest .na-pick.na-close{min-height:0}
   html.lg-new #na-root .na-file-b{display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:12px;row-gap:2px;align-items:start}
-  html.lg-new #na-root .na-file-b > .na-file-l{grid-column:1;grid-row:1}
+  /* the label fits its 120 column (Round 0: the older 160 width ran 28px under the first stream chip) */
+  html.lg-new #na-root .na-file-b > .na-file-l{grid-column:1;grid-row:1;width:auto;min-width:0}
   html.lg-new #na-root .na-file-b > .na-need{grid-column:1;grid-row:2;font-size:12px}
   html.lg-new #na-root .na-file-b > .na-seg{grid-column:2;grid-row:1 / span 2}
   html.lg-new #modal-root .na-why{color:var(--color-quiet);font-weight:400}
@@ -19965,12 +19980,34 @@
      Jambo's panel square and flush like every panel (the seam above): to the bar, the window's side and its foot, one
      hairline on its left */
   html.lg-new #content-scroll:has(#tb-page){background:var(--color-surface)}
+  /* a template's page: the back pill stands as tall as Edit and New contract beside it (Round 0, 9 Nov 2026: 22 beside 28) */
+  html.lg-new #tpl-dt .tpl-dt-line .tpl-dt-back{min-height:var(--ctl-h);height:var(--ctl-h);font-size:var(--t-body)}
   html.lg-new #tb-page #tb-paper{box-shadow:none}
+  /* THE BUILDER'S HEAD CUTS NO BUTTON'S WORDS (Round 0, 9 Nov 2026): Category and Stream stand whole (their keys still step
+     out when the strip is tight); the name gives, and a long one takes TWO lines in the strip's own height (13/15 = 30,
+     the back square's), then "…" — the strip never grows */
+  html.lg-new #tb-page .tb-head .tb-fchip{flex:none}
+  html.lg-new #tb-page .tb-head .tb-fchip .v{overflow:visible}
+  /* an empty chip keeps its key at every width: "choose" alone names nothing */
+  html.lg-new #tb-page .tb-head .tb-fchip.empty .k{display:inline}
+  html.lg-new #tb-page .tb-head .tb-tname{flex:1 1 auto}
+  html.lg-new #tb-page .tb-head .tb-tname .v{white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:13px;line-height:15px;text-align:left}
   html.lg-new #tb-page #tb-branding.tb-brand{border-radius:0;box-shadow:none;border-left-color:transparent;border-right-color:transparent}
   html.lg-new #tb-page .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none}
   html.lg-new #tb-page.tb-page #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
   html.lg-new #tb-page.tb-page:not(.no-rail) > .tb-left{margin-bottom:0}
   html.lg-new #tb-page.tb-page:not(.no-rail):not(.is-railfold){grid-template-columns:minmax(0,1fr) calc(380px - var(--page-pad-x))}
+  /* SETTINGS' OTHER PAGES (owner, 9 Nov 2026, the Settings menu's fix: People & roles, Contract streams, Data & backup
+     and every page in the older Settings frame, .st-cr): one white sheet like Settings itself — no well, no corner, no
+     lift; its parts are rows, a hairline under each */
+  html.lg-new #content-scroll:has(#set-page.st-cr){background:var(--color-surface)}
+  @media (min-width:981px){
+    html.lg-new #set-page.st-cr.st-page{padding:0;--page-pad-t:0px}
+    html.lg-new #set-page.st-cr .st-side{margin:0}
+  }
+  html.lg-new #set-page.st-cr :is(.st-people-card, .st-pg-card, .st-card){border-radius:0;box-shadow:none;margin:0;border-color:transparent;border-bottom-color:var(--color-divider)}
+  /* a page head standing outside a card (People & roles' "‹ Settings") keeps the sheet's 16 in */
+  html.lg-new #set-page.st-cr .st-pg-head:not(.st-pg-card .st-pg-head){padding:12px 16px 0}
   html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 <style>

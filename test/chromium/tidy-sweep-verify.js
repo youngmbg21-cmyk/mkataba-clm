@@ -214,6 +214,13 @@ const MEASURE = `(() => {
     if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
     const ox = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left), oy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
     if (ox < 4 || oy < 6) continue;
+    /* A WRAPPED INLINE IS ITS LINES, NOT THEIR UNION (9 Nov 2026, Round 0's "Our paper's preview paints a blank over a
+       name"): "Highland Corporate Ltd" ending one line and starting the next has a box from the first line's end to the
+       second line's start, and the "Counterparty" blank on the second line sat inside that box, not under any word. Two
+       pieces overlap only where a line of one meets a line of the other. */
+    const lineRects = el => [...el.getClientRects()].filter(q => q.width > 2 && q.height > 2);
+    const la = lineRects(a.el), lb = lineRects(b.el);
+    if ((la.length > 1 || lb.length > 1) && !la.some(p => lb.some(q => Math.min(p.right, q.right) - Math.max(p.left, q.left) >= 4 && Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top) >= 6))) continue;
     /* one on top of the other by design (a pop-up, a panel, a dialog, a tip, a fixed bar): different stacking roots */
     const stackOf = el => { let p = el; while (p && p !== document.body) { const cs = getComputedStyle(p); if (cs.position === 'fixed' || (cs.position !== 'static' && cs.zIndex !== 'auto')) return p; p = p.parentElement; } return document.body; };
     if (stackOf(a.el) !== stackOf(b.el)) continue;
