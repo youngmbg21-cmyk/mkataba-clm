@@ -182,7 +182,10 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     /* the redlines are on the paper now (stage 3): the way back is to it, and the face is there */
     /* RE-WORDED 14 Oct 2026 (the one-page Home plan, stage 6): the plan's Swedish
        spells the paper as the book mostly does, "papperet" */
-    ok('7c the way back names the page it returns to', back7 === '‹ Tillbaka till MK-W2 på papperet', back7);
+    /* RE-POINTED (owner, 9 Nov 2026: "fix the History panel showing the wrong contract"; f978): every move is on the trail,
+       not only a typed one, so the way back is where the reader stood last — Home's Calendar (Settings, then Home, which
+       opened on the Calendar, then MK-W1's paper), not MK-W2's paper two moves earlier */
+    ok('7c the way back names the page it returns to', back7 === '‹ Tillbaka till kalendern', back7);
     await page.screenshot({ path: path.join(OUT, '7-svenska.png') });
     await type('kalender', true);
     const svCal = await page.waitForFunction(() => hbFace() === 'calendar', null, { timeout: 5000 }).then(() => true, () => false);

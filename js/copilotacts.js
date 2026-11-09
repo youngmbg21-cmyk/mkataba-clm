@@ -2017,7 +2017,22 @@ function caTrailPush(){
   const n = caPlaceNow(); if (caSamePlace(_caTrail[_caTrail.length - 1], n)) return;
   _caTrail.push(n); if (_caTrail.length > CA_TRAIL_MAX) _caTrail.shift();
 }
+/* EVERY MOVE IS ON THE TRAIL, NOT ONLY A TYPED ONE (owner, 9 Nov 2026: "fix the History panel showing the wrong
+   contract" — after MK-A2's paper, Approvals, then MK-HB4's History from Approvals' panel, the way back said "Back to
+   MK-A2 on the paper"): only Jambo's words pushed the trail, so a move by a button left a stale place on top. The place
+   last seen is noted whenever a page is drawn (renderPageHeader) and whenever the way back is asked; when it differs
+   from where the reader stands now, it goes on the trail. A step back by the trail itself is not noted again */
+let _caLastSeen = null, _caBackStep = false;
+function caTrailSeen(){
+  let now = null; try { now = caPlaceNow(); } catch (_){ return; }
+  if (_caLastSeen && !caSamePlace(_caLastSeen, now)){
+    if (!_caBackStep && !caSamePlace(_caTrail[_caTrail.length - 1], _caLastSeen)){ _caTrail.push(_caLastSeen); if (_caTrail.length > CA_TRAIL_MAX) _caTrail.shift(); }
+    _caBackStep = false;
+  }
+  _caLastSeen = now;
+}
 function caTrailTop(){
+  caTrailSeen();
   const now = caPlaceNow();
   while (_caTrail.length && caSamePlace(_caTrail[_caTrail.length - 1], now)) _caTrail.pop();
   return _caTrail[_caTrail.length - 1] || null;
@@ -2036,7 +2051,7 @@ function caTrailLabel(p){
 }
 function caTrailBack(){
   const p = caTrailTop(); if (!p) return false;
-  _caTrail.pop();
+  _caTrail.pop(); _caBackStep = true;
   return caPlaceGo(p);
 }
 /* a remembered place, opened again (the trail's step back; round 4's "Not this, go back") */
@@ -3319,7 +3334,7 @@ Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_
   caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
 Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, JB_REF_OPEN_RE, jamboRefOf, jamboRefGo, jamboRefAskThere, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
-  caEchoHtml, caPlaceGo, CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
+  caEchoHtml, caPlaceGo, CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailSeen, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
 Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, CA_HERE_ALL_RE, CA_HERE_EXTRA_RE, CA_HERE_GROUP_PLACES, CA_HERE_OTHER_RE, CA_HERE_CONTRACT_RE, CA_HERE_MAX, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });
