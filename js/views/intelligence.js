@@ -6086,7 +6086,7 @@ function igDayShows(){ return !!(intel.dayTab&&igDayTabOn()); }
 function igDayData(){
   const book=igBriefBook(), out=[], ref=c=>(typeof contractRef==='function'?contractRef(c):c.id);
   const N=igBriefNeeds(book);
-  out.push({ k:'needs', n:N.n, tone:N.late?'ruby':N.n?'amber':'', ids:N.ids, go:'list',
+  out.push({ k:'needs', n:N.n, tone:N.late?'ruby':N.n?'amber':'', ids:N.ids, go:'onmap', fit:{ lens:null },
     sub:[N.late?i18tn('int_brief_late',N.late,{ n:N.late }):'', N.oldest!=null?i18tn('int_day_oldest',N.oldest,{ n:N.oldest }):''].filter(Boolean).join(' · ') });
   if(igLensMay('risk')){
     const hi=book.filter(c=>igLensBucketOf(c,'risk')==='high'), un=book.filter(c=>igLensBucketOf(c,'risk')==='unscanned');
@@ -6096,20 +6096,21 @@ function igDayData(){
       sub:[top&&hi.length>1?i18t('int_brief_most_in',{ x:top[1]===hi.length?i18t('int_brief_all'):i18t('int_brief_most'), g:top[0] }):'', un.length?i18tn('int_brief_unscanned',un.length,{ n:un.length }):''].filter(Boolean).join(' · ') }); }
   { const due=[], late=[];
     book.forEach(c=>{ const o=igLensObOf(c); if(o.late) late.push(c); else if(o.next!=null&&o.next<=IG_BRIEF_DUE_DAYS) due.push(c); });
-    out.push({ k:'duties', n:due.length+late.length, tone:late.length?'ruby':due.length?'amber':'', ids:late.concat(due).map(c=>c.id), go:'oblig',
+    out.push({ k:'duties', n:due.length+late.length, tone:late.length?'ruby':due.length?'amber':'', ids:late.concat(due).map(c=>c.id), go:'onmap', fit:{ lens:'obligations' },
       sub:late.length?i18tn('int_brief_due_late',late.length,{ n:late.length }):'' }); }
   { const end=book.filter(c=>{ const g=graphDecisionOf(c); return g.date&&g.days!=null&&g.days>=0&&g.days<=IG_BRIEF_ENDING_DAYS; });
     let v=0; end.forEach(c=>{ const h=igHomeValue(c); if(h!=null) v+=h; });
-    out.push({ k:'renew', n:end.length, tone:end.length?'amber':'', ids:end.map(c=>c.id), go:'cal',
+    out.push({ k:'renew', n:end.length, tone:end.length?'amber':'', ids:end.map(c=>c.id), go:'onmap', fit:{ view:4, time:'decision', lens:null },
       sub:end.length?i18t('int_day_in',{ d:IG_BRIEF_ENDING_DAYS, v:igTourMoney(v).replace(/^, /,' · ') }):'' }); }
   { const y=new Date(); y.setDate(y.getDate()-1); const Y=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
     const add=[], sig=[]; book.forEach(c=>{ const d=igAsOfDays(c); if(d.added&&d.added>=Y) add.push(c); else if(d.signed&&String(d.signed).slice(0,10)>=Y) sig.push(c); });
     const all=add.concat(sig);
-    out.push({ k:'since', n:all.length, tone:'', ids:all.map(c=>c.id), go:all.length===1?'one':'them',
+    out.push({ k:'since', n:all.length, tone:'', ids:all.map(c=>c.id), go:'onmap', fit:{ lens:null },
       sub:all.length===1?i18t(add.length?'int_day_added_ref':'int_day_signed_ref',{ r:ref(all[0]) }):[add.length?i18tn('int_brief_added',add.length,{ n:add.length }):'', sig.length?i18tn('int_brief_signed',sig.length,{ n:sig.length }):''].filter(Boolean).join(' · ') }); }
   return out;
 }
-const IG_DAY_GO={ list:'int_day_go_list', map:'int_day_go_map', oblig:'int_day_go_oblig', cal:'int_day_go_cal', one:'int_day_go_open', them:'int_day_go_them' };
+/* ON THE MAP, NOT A LIST (owner, 9 Nov 2026, the four figures circled: "these should only show on the map not on the list") */
+const IG_DAY_GO={ onmap:'int_day_go_map', map:'int_day_go_map' };
 function igDayHtml(){
   const T=igDayData(), pin=igBriefPinned(), now=new Date();
   let day=''; try{ day=now.toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{ weekday:'long', day:'numeric', month:'long' }); }catch(_){ day=now.toDateString(); }
@@ -6117,7 +6118,7 @@ function igDayHtml(){
   const tile=t=>{ const label=t.k==='duties'?i18t('int_day_duties',{ d:IG_BRIEF_DUE_DAYS }):i18t('int_day_'+t.k);
     const inner=`<span class="ig-day-n${t.tone?' is-'+t.tone:''}">${t.n}</span><span class="ig-day-l">${igEsc(label)}</span><span class="ig-day-s">${igEsc(t.sub||(t.n?'':i18t('int_day_none')))}</span>`;
     /* a figure at nought is drawn, never pressable (A DEAD BUTTON NEVER WEARS A LIVE ONE'S CLOTHES) */
-    return t.n?`<button type="button" class="ig-day-t" data-ig-day="${t.k}" aria-label="${igEsc(t.n+' '+label)}">${inner}<span class="ig-day-go">${igEsc(i18t(IG_DAY_GO[t.go]))}</span></button>`
+    return (t.n&&(t.go!=='onmap'||t.ids.length))?`<button type="button" class="ig-day-t" data-ig-day="${t.k}" aria-label="${igEsc(t.n+' '+label)}">${inner}<span class="ig-day-go">${igEsc(i18t(IG_DAY_GO[t.go]))}</span></button>`
       :`<div class="ig-day-t is-none" data-ig-day-none="${t.k}">${inner}</div>`; };
   return `<div class="ig-day">
     <div class="ig-day-hd"><b>${igEsc(day.replace(/^./,c=>c.toUpperCase()))}</b><span class="ig-day-at">${igEsc(i18t('int_day_counted',{ t:at }))}</span></div>
@@ -6129,15 +6130,20 @@ function igDayRepaint(){ const host=document.getElementById('ig-day'); if(!host|
 /* a figure's own door: each the page that does the work, the map's own for risk */
 function igDayGo(k){
   const t=igDayData().find(x=>x.k===k); if(!t||!t.n) return false;
-  if(t.go==='list') return typeof ndOpenBoard==='function'&&(ndOpenBoard(),true);
-  if(t.go==='map'){ intel.dayTab=false;
+  /* the figure's contracts and nothing else on the map, in the figure's own view and lens; "Show everything" lets go */
+  if(t.go==='onmap'){ if(!t.ids.length) return false; intel.dayTab=false; igRecipePush();
+    intel.lenses=intel.lenses.filter(l=>l.kind!=='day'&&l.kind!=='legend'); _igLegendAll=null;
+    const label=t.k==='duties'?i18t('int_day_duties',{ d:IG_BRIEF_DUE_DAYS }):i18t('int_day_'+t.k);
+    if(t.fit.time) intel.timeBy=t.fit.time;
+    if(t.fit.view!=null) igSetView(t.fit.view);
+    igLensSet(t.fit.lens||null,{ noPush:true });
+    addLens({ ids:t.ids, label, action:'filter', kind:'day' });
+    rebuildIntelGraph(); renderIntelDock(); updateIntelNote(); return true; }
+  if(t.go==='map'){ intel.dayTab=false; intel.lenses=intel.lenses.filter(l=>l.kind!=='day');
     if(intel.lens!=='risk') igLensSet('risk');
     const on=igLegendPickOn(); if(!(on&&on.pick==='lens:risk:high')) igLegendPick('lens:risk:high',i18t('int_day_risk'));
     renderIntelDock(); updateIntelNote(); return true; }
-  if(t.go==='oblig') return typeof setView==='function'&&(setView('obligations'),true);
-  if(t.go==='cal') return typeof hbOpenCalendar==='function'&&(hbOpenCalendar(),true);
-  if(t.go==='one') return typeof roomHomeLand==='function'&&(roomHomeLand(t.ids[0]),true);
-  return typeof regShowOnly==='function'&&(regShowOnly(t.ids,i18t('int_day_since')),true);
+  return false;
 }
 /* "Brief me", the Guide's row, and the morning pin: the panel turns to Your day */
 function igBriefStart(){
