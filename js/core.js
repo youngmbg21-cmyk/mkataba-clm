@@ -8231,6 +8231,14 @@ if(typeof document!=='undefined') document.addEventListener('input',e=>{ if(e.is
 async function openShareModal(c, opts={}){
   shareNotSentSet(null);
   _shNoteTyped=false;
+  /* THE LETTER ALWAYS STANDS BESIDE JAMBO (owner, 9 Nov 2026: "sometimes i get pages that are missing a jambo panel";
+     the Send screen opened from Our paper stood alone): on a computer, a Send pressed on any page but Home lands on
+     the contract's paper with its Dossier first (roomHomeLand), then the letter opens beside his panel, as from Home */
+  if(c && !shareBesideJambo() && typeof window!=='undefined' && window.state && state.view!=='dashboard' && !window.PORTAL_MODE
+    && (window.innerWidth||0)>=1024 && typeof window.roomHomeLand==='function'){
+    let landed=false; try{ landed=!!window.roomHomeLand(c.id); }catch(_){ landed=false; }
+    if(landed){ for(let i=0;i<40 && !shareBesideJambo();i++) await new Promise(r=>setTimeout(r,50)); }
+  }
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
   if(isUpload(c) && !API_MODE()){

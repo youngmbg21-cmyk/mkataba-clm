@@ -140,3 +140,53 @@ test('f977 (20, 22, 23) one toolbar, a readable preview, a tight sheet', () => {
   assert.match(b, /html\.lg-new #na-root\.na-one \.na-closest \.na-pick\.na-close\{min-height:0\}/);
   assert.match(b, /html\.lg-new #modal-root \.na-why\{color:var\(--color-quiet\);font-weight:400\}/);
 });
+
+/* FIX ROUND 1 (the owner's drawn fix list, 9 Nov 2026): each pin fails at the parent */
+test('f977 fix 1 · it scrolls where you are: the Contracts wall takes the room left and scrolls inside the sheet', () => {
+  const css = read('index.html');
+  assert.match(css, /html\.lg-new #ct-place \.ct-page \.ct-wall\{flex:1 1 0%;min-height:0;overflow-y:auto\}/);
+  assert.match(css, /html\.lg-new \.tpln \.tpln-sheet\{position:sticky;top:8px;align-self:start\}/, 'Our paper\'s preview stays while the list scrolls');
+});
+test('f977 fix 3 · the Send letter always stands beside Jambo: from any page it lands on Home\'s paper first', () => {
+  const core = read('js/core.js');
+  const open = core.match(/async function openShareModal\(c, opts=\{\}\)\{[\s\S]{0,1400}/)[0];
+  assert.match(open, /if\(c && !shareBesideJambo\(\) && [\s\S]*?state\.view!=='dashboard'[\s\S]*?window\.roomHomeLand\(c\.id\)/);
+  assert.match(open, /for\(let i=0;i<40 && !shareBesideJambo\(\);i\+\+\)/, 'the wait is bounded');
+});
+test('f977 fix 5 · only the pile with the other side folds; your own piles stand open', () => {
+  const ng = read('js/views/negotiation.js');
+  assert.match(ng, /const RL_NL_FOLDS = \['with'\];/);
+  assert.match(ng, /function rlPileFoldsNl\(b\)\{\s*return [^\n]*RL_NL_FOLDS\.includes\(b\);/);
+});
+test('f977 fix 6 · the Send letter is the white page: no border, no corner, one hairline at its left', () => {
+  const css = read('index.html');
+  const rules = [...css.matchAll(/html\.lg-new[^{\n]*#sh-letter\.sh-lt\.is-sap > \.sh-lt-mail\{([^}]*)\}/g)].map(m => m[1]);
+  assert.ok(rules.length >= 2);
+  for (const r of rules) { assert.doesNotMatch(r, /border:1px solid/); assert.doesNotMatch(r, /border-radius:var\(--radius\)/); }
+  assert.ok(rules.some(r => /border-left:1px solid var\(--color-divider\)/.test(r)));
+});
+test('f977 fix 7 · the Board counts rows in the new look, the number Home says', () => {
+  const cn = read('js/views/counter.js');
+  assert.match(cn, /const ndRowsN = L => \(typeof newLookOn === 'function' && newLookOn\(\)\) \? \(L \|\| \[\]\)\.length : ndThings\(L\);/);
+  assert.match(cn, /function ndOnBoard\(D\)\{[^\n]*n: ndRowsN\(D\.jambo\) \+ ndRowsN\(you\)/);
+  assert.match(cn, /\$\{tab\('you', ndRowsN\(B\.you\)\)\}\$\{tab\('jambo', ndRowsN\(B\.jambo\)\)\}/);
+});
+test('f977 fix 8 · one column per question, its name and ⋯; the foot says only the count', () => {
+  const ac = read('js/views/askcolumn.js');
+  assert.doesNotMatch(strip(ac), /ac_nl_th_sub/, 'no "k of n read" in the head');
+  assert.match(ac, /<span class="ac-th-w">\$\{_acE\(a\.name \|\| a\.question \|\| ''\)\}<\/span><button type="button" class="ac-th-more"/);
+  const reg = read('js/views/register.js');
+  const foot = reg.match(/function regNlFootHtml\(cs\)\{[\s\S]*?\n\}/)[0];
+  assert.doesNotMatch(strip(foot), /reg_nl_foot_ask|reg_nl_foot_std|reg-nl-foot-r/);
+  assert.match(reg, /i18t\('rfp_col_sub',\{ k, n, where:/, 'how far it is read is the panel\'s');
+});
+test('f977 fix · Our paper never prints "Invalid Date"', () => {
+  const lib = read('js/views/library.js');
+  const src = lib.match(/function tplnDayOf\(v\)\{[\s\S]*?\n\}/)[0];
+  const tplnDayOf = Function(src + '; return tplnDayOf;')();
+  assert.equal(tplnDayOf('not a day'), null);
+  assert.equal(tplnDayOf(''), null);
+  assert.equal(tplnDayOf('2026-03-04').getMonth(), 2);
+  assert.equal(tplnDayOf(Date.UTC(2026, 4, 5, 12)).getUTCMonth(), 4);
+  assert.match(lib, /if \(\/invalid\/i\.test\(mon\)\) mon = '';/);
+});

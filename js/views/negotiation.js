@@ -22482,10 +22482,13 @@ function redlinePanesHtml(c, opts = {}){
    in their words (negoReasonOf, the one reading of it). The settled piles
    fold behind their heading, shut until pressed, for the sitting. */
 let _rlSettledOpen = false;
-/* the new look's folded piles (Drawing 1): every pile but what waits on you, and the refused, is one line until pressed */
+/* the new look's folded piles (Drawing 1): ONLY what is with the other side is one line until pressed; your own
+   piles (drafts, for review, held, suggested, answered) stand open on arrival (owner, 9 Nov 2026: "Your redline cards
+   should always be visible … The cards that are with the counterparty can stay minimized"); settled folds on its own */
 const _rlNlOpen = new Set();
+const RL_NL_FOLDS = ['with'];
 function rlPileFoldsNl(b){
-  return typeof window.newLookOn === 'function' && newLookOn() && !PORTAL_MODE && !!b && b !== 'awaiting' && b !== 'refused' && !RL_QUIET_BANDS.includes(b);
+  return typeof window.newLookOn === 'function' && newLookOn() && !PORTAL_MODE && RL_NL_FOLDS.includes(b);
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const t = e.target && e.target.closest ? e.target.closest('[data-rl-nlfold]') : null; if (!t) return;

@@ -602,3 +602,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Round 2: round5-new-look-verify 5 (the agenda folds quiet weeks), round6-new-look-verify 3 (no how-to line under the wall).
 - Round 3: contract-new-look-verify 1 (Signer ends in Change), negotiate-new-look-verify 5 (History reachable from the links above the box), round8-phone-verify 2b (the whole leads).
 - The new-look browser set: round5/6/7/7b/9-new-look-verify, new-look-frame-verify, reads-*-verify, doors-verify, obligation-opens-on-the-paper-verify.
+- Fix round 1 (9 Nov): f977 'fix' tests; f955 3 (every page name, one word or several); f925 (the Board's helper `ndRowsN`); reads-and-columns-as-drawn-verify 4 (the head is the name and ⋯ alone).
