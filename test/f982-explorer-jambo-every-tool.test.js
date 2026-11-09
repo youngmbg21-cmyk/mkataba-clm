@@ -188,6 +188,10 @@ test('f982 (6) "Eight contracts" over two shown is not printed; a sentence that 
   w2.intelGraphApply('Naivas', { where: { counterparty: ['Naivas'] }, note: 'x', answer: 'Both are leases signed with Naivas in the Procurement stream, the larger at 200.' });
   assert.match(last(w2).text, /Both are leases signed with Naivas/);
   assert.equal(w2.igMapSentenceKept('The timeline now shows a marker at 31 March. Bidco leads.'), 'Bidco leads.');
+  /* a list stays a list (analyze-on-the-graph 0b): the cut works line by line */
+  assert.equal(w2.igMapSentenceKept('**Two renew soon.** Kabras on 30 Sep.\n\n- Kabras: give notice by 1 Sep\n- Nandi: no notice clause'),
+    '**Two renew soon.** Kabras on 30 Sep.\n\n- Kabras: give notice by 1 Sep\n- Nandi: no notice clause');
+  assert.equal(w2.igMapSentenceKept('Here\'s the grid view.\n- Bidco leads'), '- Bidco leads');
 });
 
 /* ---------- (7) THE CHECK ---------- */

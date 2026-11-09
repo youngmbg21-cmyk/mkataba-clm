@@ -2930,8 +2930,13 @@ function igCountSaid(s){
    line, "Here's the grid view", "Back to the previous view"); advice and names stay ("Try grouping by customer") */
 const IG_MAP_CLAIM_RE=/\b(?:marked|drawn|drew|placed|switched|showing|shown|displays?|displayed|highlighted|filtered|grouped|regrouped|colou?red|sized|opening|opened|back to|here(?:'s| is)|(?:is|are) (?:now )?(?:on|lit)|now (?:shows?|showing|displays?|wears?|grouped|colou?red|sized|lit|on|in)|markerad\w*|visar|tillbaka till|nu (?:visas|syns))\b/i;
 function igMapSentenceKept(s){
-  const parts=String(s||'').split(/(?<=[.!?])\s+/).filter(x=>x.trim());
-  return parts.filter(x=>!IG_MAP_CLAIM_RE.test(x)).join(' ').trim();
+  /* line by line, so a list stays a list and a paragraph break stays one (analyze-on-the-graph 0b); a line left
+     empty by the cut goes, the rest keep their own line */
+  const kept=String(s||'').split('\n').map(line=>{ if(!line.trim()) return line;
+    const lead=(line.match(/^\s*(?:[-*•]|\d+[.)])\s+/)||[''])[0], body=line.slice(lead.length);
+    const parts=body.split(/(?<=[.!?])\s+/).filter(x=>x.trim()).filter(x=>!IG_MAP_CLAIM_RE.test(x));
+    return parts.length?lead+parts.join(' '):null; }).filter(x=>x!==null);
+  return kept.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 /* A sentence that says the map did something. Printed only where the map did. */
 const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|i(?:'ve| have)? (?:updated|changed|set|turned|made|grouped|folded|hidden|removed)|regrouped|grouped|folded|unfolded|opened (?:up|out)|collapsed|bundled|resized|turned (?:off|on)|switched (?:off|on)|labell?ed|colou?red|sized|dold|gömd|ändrat|grupperat|ihopfälld|ihopfällda|fällt ihop|fällde ihop|utfälld)\b/i;
