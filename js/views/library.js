@@ -2944,7 +2944,9 @@ function tplnHtml(d, groups, card){
   if (card){
     const st = statOf(card), last = tplnLastOf(card);
     let blanks = 0; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).length : 0; } catch (_){ blanks = 0; }
-    line = [card.name, tplOvBucketLabel({ key: card.kind, sec: 'library' }), last.cs.length ? i18tn('tpln_used', last.cs.length, { n: last.cs.length, who: last.who || '', mon: last.mon || '' }) : i18t('tpln_unused'),
+    /* READABLE PREVIEW (the harmony review, owner's yes 9 Nov 2026): the name and its buttons share one line; the facts
+       stand under the name, never wrapping beside the buttons */
+    line = [tplOvBucketLabel({ key: card.kind, sec: 'library' }), last.cs.length ? i18tn('tpln_used', last.cs.length, { n: last.cs.length, who: last.who || '', mon: last.mon || '' }) : i18t('tpln_unused'),
       st.changed ? i18tn('lib_pf_came_back', st.changed, { n: st.changed }) : '', blanks ? i18tn('tpln_blanks', blanks, { n: blanks }) : ''].filter(Boolean).join(' \u00b7 ');
     paper = tplPfPaperHtml(card);
     const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
@@ -2953,7 +2955,7 @@ function tplnHtml(d, groups, card){
   const newGo = tplCanManage() && !(typeof newPaperBlocked === 'function' && newPaperBlocked()) ? `<button type="button" class="rfp-a" data-tpln-new>${_tplEsc(i18t('tpln_new'))}</button>` : '';
   return `<div class="tpl-book tpl-pf tpln">
     <aside class="tpln-sheet"><div class="tpln-zoom">${paper}</div></aside>
-    <section class="tpln-side"><div class="tpln-top"><p class="tpln-line">${_tplEsc(line)}</p><div class="tpln-acts">${acts}</div></div>
+    <section class="tpln-side"><div class="tpln-top"><div class="tpln-line">${card ? `<b class="tpln-name">${_tplEsc(card.name)}</b>` : ''}<span class="tpln-facts">${_tplEsc(line)}</span></div><div class="tpln-acts">${acts}</div></div>
       <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_std_h'))}</div><div class="tpln-list">${stdRows}</div>
       <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_shelves_h'))}</div><div class="tpln-list">${shelves}</div>
       <div class="tpln-foot">${newGo}</div></section></div>`;
@@ -3139,9 +3141,9 @@ function tplnPanelHtml(card){
   let blanks = []; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).map(f => f.label || f.key).filter(Boolean) : []; } catch (_){ blanks = []; }
   const head = cs.length ? i18tn('tpln_p_head', cs.length, { name: card.name, n: cs.length, c: st.changed }) : i18t('tpln_p_unused', { name: card.name });
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
-  const rows = (cs.length ? row(i18tn('tpln_p_ags', cs.length, { n: cs.length }), [signed ? i18t('tpln_p_signed', { n: signed }) : '', live ? i18t('tpln_p_live', { n: live }) : '', declined ? i18t('tpln_p_declined', { n: declined }) : ''].filter(Boolean).join(' \u00b7 '), i18t('tpln_p_src_book')) : '')
-    + (st.byCat.length ? row(i18t('tpln_p_dep'), st.byCat.slice(0, 2).map(x => i18tn('tpln_p_dep_v', x.n, { n: x.n, what: String(x.category).toLowerCase() })).join('; '), i18t('tpln_p_src_learned')) : '')
-    + (blanks.length ? row(i18t('tpln_p_blanks'), blanks.slice(0, 4).join(' \u00b7 '), String(blanks.length)) : '');
+  const rows = (cs.length ? row(i18tn('tpln_p_ags', cs.length, { n: cs.length }), [signed ? i18t('tpln_p_signed', { n: signed }) : '', live ? i18t('tpln_p_live', { n: live }) : '', declined ? i18t('tpln_p_declined', { n: declined }) : ''].filter(Boolean).join(' \u00b7 '), '') : '')
+    + (st.byCat.length ? row(i18t('tpln_p_dep'), st.byCat.slice(0, 2).map(x => i18tn('tpln_p_dep_v', x.n, { n: x.n, what: String(x.category).toLowerCase() })).join('; '), '') : '')
+    + (blanks.length ? row(i18t('tpln_p_blanks'), blanks.slice(0, 4).join(' \u00b7 ') + (blanks.length > 4 ? ' ' + i18t('tpln_p_more', { n: blanks.length - 4 }) : ''), '') : '');
   const top = st.byCat[0];
   const turn = top && top.n >= 2 ? `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(i18t('tpln_p_jambo', { n: top.n, of: st.used, what: String(top.category).toLowerCase() }))}</p></div></div>` : '';
   const verbs = _tplPf.acts || [];

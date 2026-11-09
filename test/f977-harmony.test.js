@@ -127,3 +127,16 @@ test('f977 (18, 19) said once; the box fits the way; the back line names its pla
   assert.match(read('js/core.js'), /nb\.classList\.toggle\('is-nowhere',none\);/);
   assert.match(read('js/components.js'), /const path = nl && t\.path\.length > 1 && String\(t\.path\[0\]\) === String\(t\.up\) \? t\.path\.slice\(1\) : t\.path;/);
 });
+
+/* Round 4, other pages: ONE TOOLBAR (Explorer, the owner's note: only the toolbar), READABLE PREVIEW (Our paper),
+   TIGHT SHEET (New agreement). Pulse board and Jambo's agents were "Not now". */
+test('f977 (20, 22, 23) one toolbar, a readable preview, a tight sheet', () => {
+  const b = block();
+  assert.match(b, /html\.lg-new \.ig-brain \.ig-viewbar \.ig-lensrow\{position:static;display:flex\}/, 'the lenses join the one bar');
+  assert.match(b, /html\.lg-new \.tpln-zoom\{zoom:\.72\}/);
+  const lib = read('js/views/library.js');
+  assert.match(lib, /<b class="tpln-name">\$\{_tplEsc\(card\.name\)\}<\/b>/);
+  assert.doesNotMatch(lib, /i18t\('tpln_p_src_(book|learned)'\)/, 'no stray source words in the panel');
+  assert.match(b, /html\.lg-new #na-root\.na-one \.na-closest \.na-pick\.na-close\{min-height:0\}/);
+  assert.match(b, /html\.lg-new #modal-root \.na-why\{color:var\(--color-quiet\);font-weight:400\}/);
+});
