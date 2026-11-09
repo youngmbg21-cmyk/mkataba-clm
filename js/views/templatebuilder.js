@@ -1379,6 +1379,8 @@ function tbStyleHtml() {
      it is the first thing dropped when the row runs out of width, so it can
      never wrap and push the wording down — refusal 3, and the reason the
      breakpoint is here rather than a nudge on the paper. */
+  /* the Branding row's card: a class, not an inline look, so the new look can lay it flat (one white sheet, 9 Nov 2026) */
+  .tb-brand{background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)}
   .tb-paper{background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;
     max-width:var(--doc-sheet-max,780px);margin:0 auto;padding:34px 48px 36px 62px;font-size:14px;line-height:1.7;color:var(--color-text)}
   @media (max-width:700px){ .tb-paper{padding:22px 18px 24px 46px} }
@@ -2525,7 +2527,6 @@ function tbGutter(on) { const sc = document.getElementById('content-scroll'); if
    markup: a comment inside the emitted page would put those names back on it,
    which is what the net reads. */
 function tbPaint(opts = {}) {
-  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const held = opts.fresh ? null : tbHoldScroll();
   document.getElementById('content').innerHTML = `${tbStyleHtml()}
   <div class="view-enter tb-page${tbRailFits() ? '' : ' no-rail'}${tbRailFits() && tbRailFolded() ? ' is-railfold' : ''}" id="tb-page" style="padding:var(--page-pad)">
@@ -2547,7 +2548,7 @@ function tbPaint(opts = {}) {
            beside it never move. -->
       <div class="tb-scroll scroll-thin" id="tb-scroll">
         <div id="tb-paperslot"></div>
-        <section style="${CARD};padding:14px var(--s-4);margin-top:14px" id="tb-branding"></section>
+        <section class="tb-brand" style="padding:14px var(--s-4);margin-top:14px" id="tb-branding"></section>
       </div>
     </div>
     <div id="tb-railslot"></div>

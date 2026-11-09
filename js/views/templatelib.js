@@ -828,7 +828,6 @@ async function openTemplateLibDetail(id) {
       })), values: v.values || {} });
     } catch (_) { wording = null; }
   }
-  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const fmtAt = iso => iso ? fmtDT(iso) : '—';
   const srcC = t.sourceContractId ? (state.contracts || []).find(x => x.id === t.sourceContractId) : null;
   const openDraft = versions.find(v => v.status === 'draft');
@@ -884,7 +883,7 @@ async function openTemplateLibDetail(id) {
         : `<div style="padding:22px var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${
              showVer ? i18t('tl_wording_unreadable') : i18t('tl_wording_none')}</div>`}
     </section>
-    <section style="${CARD}">
+    <section class="tpl-dt-card">
       <div style="padding:16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tl_version_history')}</h4>
       </div>
@@ -994,6 +993,8 @@ function tplDtStyle() {
   .tpl-dt-more{display:inline-flex}
   .tpl-dt-arch{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-neutral-100);border-radius:var(--radius);padding:var(--s-2) var(--s-3)}
   .tpl-dt-paper{background:var(--color-bg);--pg-ground:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
+  /* the version list's card: a class, not an inline look, so the new look can lay it flat (one white sheet, 9 Nov 2026) */
+  .tpl-dt-card{background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)}
   .tpl-dt-sheet{padding:var(--s-4)}
   `;
   document.head.appendChild(st);

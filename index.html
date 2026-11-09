@@ -19512,7 +19512,7 @@
   html.lg-new .stn-mh:first-child{margin-top:0}
   html.lg-new .stn-mi{border:0;background:none;padding:5px 0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;text-align:left}
   html.lg-new .stn-mi:hover{color:var(--accent-ink)}
-  html.lg-new .stn-main{overflow-y:auto;overflow-x:hidden;min-height:0;padding:0 6px 24px 0}
+  html.lg-new .stn-main{overflow:visible;min-height:0;padding:0 0 24px 0}
   html.lg-new .stn-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0;padding:0 0 8px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .stn-h + .stn-row{border-top:0}
   html.lg-new .stn-row ~ .stn-h{margin-top:24px}
@@ -19861,6 +19861,39 @@
   html.lg-new #ct-place .ct-page .ct-wall > *{flex:none}
   html.lg-new .tpln{height:auto;min-height:100%}
   html.lg-new .tpln .tpln-sheet{position:sticky;top:8px;align-self:start}
+  /* ==== ONE WHITE SHEET, THE FIX ROUND (owner, 9 Nov 2026: Settings, a template's page and the builder "build", drawn
+     on the Round 0 page; "still with a grey divider" over the Settings drawing) ====
+     BEHIND THE PAGE'S OWN SCROLL CHANNEL, WHITE: the shell keeps a scroll channel beside Jambo's panel (scrollbar-gutter:
+     stable) and its track is see-through, so the window's grey ground showed as a strip down the page's right edge on
+     every page that scrolls in the shell (Settings, a template's page, Our paper, Our standards, Jambo's agents, the
+     Pulse board's legend line); the page head above it keeps the same channel (.ph-card's --sc-gutter), so it too */
+  html.lg-new #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) :is(#content-scroll, #page-head){background:var(--color-surface)}
+  /* THE HANDLE SHOWS WHILE YOU SCROLL (as drawn): at rest the three pages show no handle at all; scrolling paints it
+     (.is-scrolling, js/app.js scrollShowHandle) and it goes a moment after */
+  html.lg-new :is(#content-scroll:has(#set-page), #content-scroll:has(> #content > #tpl-dt), #tb-scroll){scrollbar-color:transparent transparent}
+  html.lg-new :is(#content-scroll:has(#set-page), #content-scroll:has(> #content > #tpl-dt), #tb-scroll).is-scrolling{scrollbar-color:var(--color-neutral-300) transparent}
+  /* SETTINGS: ONE SCROLLER, THE PAGE — the sheet grows with its rows and the page scrolls; the middle column never
+     scrolls by itself (it was a second scroller at a zoomed wide window, the owner's picture). The column rule above,
+     .stn-main, is edited in place. */
+  html.lg-new #content .stn-page .ap-body.is-ins{grid-template-rows:auto;height:auto;min-height:100%}
+  html.lg-new #content .stn-page .ap-body.is-ins > .ap-card.stn-card{overflow:visible;min-height:100%}
+  /* A TEMPLATE'S PAGE: no margin, no corner, no lift; its parts are rows of the one sheet, a hairline between them. Its
+     wording keeps its pages on the paper's desk, as every paper does; with no wording the box is white. */
+  html.lg-new #content #tpl-dt.tpl-dt{--page-pad:0px;--tpl-dt-pb:0px}
+  html.lg-new #content #tpl-dt > .tpl-dt-line{border-radius:0;box-shadow:none;border-color:transparent;border-bottom-color:var(--color-divider)}
+  html.lg-new #content #tpl-dt > .tpl-dt-line ~ section{border-radius:0;box-shadow:none;clip-path:none;border-left-color:transparent;border-right-color:transparent}
+  html.lg-new #content #tpl-dt > .tpl-dt-line ~ section:last-of-type{border-bottom-color:transparent}
+  html.lg-new #content #tpl-dt > .tpl-dt-paper:not(:has(.tpl-dt-sheet)){background:var(--color-surface)}
+  /* THE BUILDER: white under the paper and the Branding row, the paper without lift, Branding a row of the sheet, and
+     Jambo's panel square and flush like every panel (the seam above): to the bar, the window's side and its foot, one
+     hairline on its left */
+  html.lg-new #content-scroll:has(#tb-page){background:var(--color-surface)}
+  html.lg-new #tb-page #tb-paper{box-shadow:none}
+  html.lg-new #tb-page #tb-branding.tb-brand{border-radius:0;box-shadow:none;border-left-color:transparent;border-right-color:transparent}
+  html.lg-new #tb-page .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none}
+  html.lg-new #tb-page.tb-page #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
+  html.lg-new #tb-page.tb-page:not(.no-rail) > .tb-left{margin-bottom:0}
+  html.lg-new #tb-page.tb-page:not(.no-rail):not(.is-railfold){grid-template-columns:minmax(0,1fr) calc(380px - var(--page-pad-x))}
   html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 <style>

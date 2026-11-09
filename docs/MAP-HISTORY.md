@@ -36296,3 +36296,19 @@ both now read the paper and History in the middle.
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 Owner, 9 Nov 2026, after a UI review of HaTi next to Legora's pictures: "Make it a rule that any updates or references moving forward should be related to the new version of Hati with the whole white page and not the cards version. The old version with cards will be deleted." The two versions: the old look draws a page as separate cards (a head card `.ph-card` over a list card, Home's pieces each in their own card); the new look, behind the admin switch `prefs.newLook` (`newLookOn` → `html.lg-new`), draws ONE WHITE SHEET (head and list one surface, the Harmony block). From this day every change, drawing, photo and test is made on the new look; the review's own photos were taken with the switch on. Deleting the old look (the switch, the server's admin-only guard on `newLook`, every `lg-new` scope in index.html and `newLookOn()` branch in js/) is a job of its own and waits to be asked for by name.
+
+## ONE SHEET AND THREE BUTTONS — ONE WHITE SHEET, THE FIX ROUND (owner, 9 Nov 2026)
+The owner's saved directives on the Round 0 page: Settings, a template's page and the builder "build"; the Board and
+Jambo's agents later (asked again this round: "The three marked build"). Over the Settings drawing the owner twice said
+"still with a grey divider": first the drawing's Windows-style grey track, then a 10px strip of the window's ground. The
+strip was real in HaTi: the shell keeps a scroll channel (#content-scroll, scrollbar-gutter:stable) whose track is
+see-through, and the page head keeps the same 10px (--sc-gutter), so the ground showed beside Jambo's panel on every page
+that scrolls in the shell (Settings, a template's page, Our paper, Our standards, Jambo's agents) and as the Pulse board's
+"grey legend strip" (awaiting the owner's ruling; it is white now, its allowance off). white-sheet-verify could not see it
+(GROUND needs 300px): EDGE added, planted and caught. Built: white behind #content-scroll and #page-head where Jambo's list
+panel stands; Settings' sheet grows and the page scrolls (the column's own scroller, the owner's two-scrollers picture,
+is gone; PINS); a template's page and the builder flat as drawn (the version list and the Branding row got classes,
+tpl-dt-card and tb-brand, so the look is no longer inline); the builder's panel square and flush like every panel; the
+handle shows only while scrolling (scrollShowHandle). A template's wording keeps its pages on the paper's desk. The
+handbook's pictures are taken in the old look and do not change. Tidy faults seen on the way are red on main too:
+Our paper's sheet ("Counterparty" x "Highland Corporate Ltd" overlap) and Jambo's house's "Pieces of work" ROOM at ipad.

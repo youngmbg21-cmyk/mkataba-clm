@@ -497,6 +497,19 @@ const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'reads'
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
+/* THE HANDLE SHOWS WHILE YOU SCROLL (owner, 9 Nov 2026, over the Settings drawing: "still with a grey divider" — a
+   tall handle at rest reads as a line): a box that scrolls wears .is-scrolling while it moves and a moment after;
+   the new look's white sheet (index.html, ONE WHITE SHEET) paints its handle only then. One listener, on the
+   document, at load; reading only, it changes nothing but the class. */
+const SCROLL_HANDLE_MS = 900;
+const _scrollHandleTimers = new WeakMap();
+function scrollShowHandle(e){
+  const el = e && e.target; if (!el || !el.classList) return;
+  el.classList.add('is-scrolling');
+  clearTimeout(_scrollHandleTimers.get(el));
+  _scrollHandleTimers.set(el, setTimeout(() => el.classList.remove('is-scrolling'), SCROLL_HANDLE_MS));
+}
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('scroll', scrollShowHandle, { capture: true, passive: true });
 function paintScrollGutter(view){
   const sc = typeof document !== 'undefined' && document.getElementById('content-scroll');
   if(!sc || !sc.classList) return;

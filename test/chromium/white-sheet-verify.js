@@ -13,6 +13,13 @@
               paper's own canvas (a sheet on its desk) and the designed grey
               parts (a chosen row, a day cell, the drop area, a legend strip)
               excepted
+     EDGE     a grey strip of ANY width running down the page's right edge,
+              beside Jambo's panel (owner, 9 Nov 2026, over the Settings
+              drawing: "still with a grey divider" — the page's scroll gutter
+              left the ground showing 10px wide, under GROUND's 300px floor)
+     PIN      a place's own column that must never scroll by itself (Settings'
+              middle column: its second scroller shows only at a zoomed wide
+              window, so it is pinned directly)
      NESTED   a box that scrolls on its own INSIDE another box that is also
               scrolling (Settings' middle column inside the page): on Windows
               each draws a grey track, and the inner box reads as a card.
@@ -59,19 +66,34 @@ const PLACES = (() => {
 
 /* THE ALLOWANCES — each with the owner's word, 9 Nov 2026. Only shrinks. */
 const WHITE_KNOWN = [
-  /* Settings' middle column (the owner's picture) scrolls inside a page that also scrolls only at the owner's zoomed
-     wide window; at the three screens the page itself does not scroll, so NESTED does not fire there — the fix round
-     pins the column directly (no scroller of its own) rather than through this list */
-  { place: 'template', kind: 'ground', why: 'a rounded card on grey with 16px margins — owner: Build it (9 Nov 2026)' },
-  { place: 'builder', kind: 'ground', why: 'a grey desk under the paper card and the Branding card — owner: Build it (9 Nov 2026)' },
+  /* Settings, a template's page and the builder came off on 9 Nov 2026 (the fix round: built as drawn, one white sheet);
+     Settings' middle column is pinned (PINS), never a scroller of its own */
   { place: 'board', kind: 'ground', why: 'Your book, Needs you and Today\'s insights are cards on grey — owner: Not now (9 Nov 2026)' },
   { place: 'board-sheet', kind: 'ground', why: 'the Board under its side list — owner: Not now (9 Nov 2026)' },
   { place: 'agents', kind: 'ground', why: 'Jambo\'s work is the Board\'s Needs you card on grey — owner: Not now (9 Nov 2026)' },
   { place: 'brief', kind: 'ground', why: 'the Board under Jambo\'s side panel — owner: Not now (9 Nov 2026)' },
-  /* found by this check on its first run (9 Nov 2026), not in the owner's pictures: a 48px grey strip between the
-     Pulse board's head and its list, where the legend sits — awaiting the owner's ruling */
-  { place: 'pulse', kind: 'ground', why: 'a grey strip under the head where the legend sits — found 9 Nov 2026, awaiting the owner\'s ruling' },
+  /* the Pulse board's grey legend strip came off on 9 Nov 2026: it was the window's ground behind the shell's scroll
+     channel, white since the fix round (index.html, ONE WHITE SHEET) */
 ];
+
+/* THE PINS: a place's own column that must never scroll by itself. Each answers null, or why it fails. */
+const PINS = {
+  settings: async () => {
+    const m = document.querySelector('.stn-main'); if (!m) return 'Settings\' middle column was not found';
+    const o = getComputedStyle(m).overflowY;
+    if (/(auto|scroll)/.test(o)) return `Settings' middle column scrolls by itself (overflow-y ${o}): at a zoomed wide window it is a second scroller inside the page`;
+    /* THE HANDLE SHOWS WHILE YOU SCROLL, and only then (as drawn, 9 Nov 2026): at rest none; scrolled, the shell's thin
+       handle; a moment after, none again */
+    const sc = document.getElementById('content-scroll'); if (!sc) return 'the page scroller was not found';
+    const tone = () => getComputedStyle(sc).scrollbarColor;
+    const rest = tone(); if (!/^transparent transparent$|rgba\(0, 0, 0, 0\) rgba\(0, 0, 0, 0\)/.test(rest)) return `the handle shows at rest (${rest})`;
+    if (sc.scrollHeight <= sc.clientHeight + 2) return null; /* nothing to scroll at this screen */
+    const top0 = sc.scrollTop; sc.scrollTop = top0 + 120; await new Promise(r => setTimeout(r, 120));
+    const moving = tone(); if (/^transparent transparent$|rgba\(0, 0, 0, 0\) rgba\(0, 0, 0, 0\)/.test(moving)) { sc.scrollTop = top0; return 'scrolled, the handle does not show'; }
+    await new Promise(r => setTimeout(r, 1300)); const after = tone(); sc.scrollTop = top0; await new Promise(r => setTimeout(r, 1300));
+    return /^transparent transparent$|rgba\(0, 0, 0, 0\) rgba\(0, 0, 0, 0\)/.test(after) ? null : `the handle stays after scrolling (${after})`;
+  },
+};
 
 let pass = 0, fail = 0;
 const check = (name, ok, detail) => { ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`); };
@@ -98,7 +120,7 @@ const MEASURE = `(() => {
   const inPanel = el => !!(panel && panel.contains(el));
   const skipTree = el => !!el.closest('#modal-root, .toast, [data-white-plant]') && !el.closest('[data-white-plant]');
   /* the paper's own canvas and the designed grey parts */
-  const PAPER = '#ig-paper-scroll, .ig-paper-scroll, #ig-paper, .paper-zc, .rl-paper, .pd2-br-sheet, .pd2-am-sheet, .doc-surface, .sign-copy, .hb-dark, #ig-canvas, .igx-stage';
+  const PAPER = '#ig-paper-scroll, .ig-paper-scroll, #ig-paper, .paper-zc, .rl-paper, .pd2-br-sheet, .pd2-am-sheet, .doc-surface, .sign-copy, .hb-dark, #ig-canvas, .igx-stage, .tpl-dt-paper:has(.tpl-dt-sheet)';
   const DESIGNED = 'tr.is-sel, .is-sel, .cal-day, .cal-cell, .cal-wk-slot, .cal-month td, .cal-hz-rm, #mig-drop, .mig-drop-card, .pu-key, .lh-box, .lh-q, .ac-nl-form, .jl-bub, .cn2-jcard, .dl2-cmp, .hist-redline, .jh-office, .jh-floor, .hbk-pic-wrap, .fm-lane, .na-askbox, .ctf-bar, .hb-stagebar';
 
   /* GROUND — sampled on a grid, each grey point attributed to the element that paints it */
@@ -116,6 +138,23 @@ const MEASURE = `(() => {
     let rec = painters.get(p); if (!rec) { rec = { el: p, tone, n: 0, x0: x, x1: x, y0: y, y1: y }; painters.set(p, rec); }
     rec.n++; rec.x0 = Math.min(rec.x0, x); rec.x1 = Math.max(rec.x1, x); rec.y0 = Math.min(rec.y0, y); rec.y1 = Math.max(rec.y1, y);
   }
+  /* EDGE — the 24px left of the panel, every 16px down: a grey strip there reads as a divider, however narrow and
+     however short (four rows, 64px: Our standards' strip beside its head was 70px tall) */
+  const edgeRows = new Map(); let rows = 0;
+  for (let y = TOP + STEP / 2; y < vh - 8; y += STEP) {
+    rows++;
+    for (let x = Math.max(0, right - 24); x < right; x += 2) {
+      const stack = document.elementsFromPoint(x, y); if (!stack.length) continue;
+      const el = stack[0]; if (!el || el === document.documentElement || inPanel(el) || skipTree(el)) continue;
+      let p = null, tone = null;
+      for (const q of stack) { if (q === document.documentElement) break; const bg = cs(q).backgroundColor; if (alpha(bg) > 0.05) { p = q; tone = GREY[bg] || null; break; } }
+      if (!tone || !p || p.matches(PAPER) || p.closest(PAPER) || p.matches(DESIGNED) || p.closest(DESIGNED)) continue;
+      let rec = edgeRows.get(p); if (!rec) { rec = { el: p, tone, ys: new Set(), x0: x, x1: x }; edgeRows.set(p, rec); }
+      rec.ys.add(y); rec.x0 = Math.min(rec.x0, x); rec.x1 = Math.max(rec.x1, x);
+    }
+  }
+  const edge = [];
+  for (const rec of edgeRows.values()) if (rec.ys.size >= 4) edge.push({ who: who(rec.el), tone: rec.tone, w: rec.x1 - rec.x0 + 2, rows: rec.ys.size + '/' + rows, at: rec.x0 });
   const ground = [];
   for (const rec of painters.values()) {
     const w = rec.x1 - rec.x0 + STEP, h = rec.y1 - rec.y0 + STEP;
@@ -134,7 +173,7 @@ const MEASURE = `(() => {
     if (inner.closest(PAPER)) continue; /* the paper scrolls inside its desk by design */
     nested.push({ outer: who(outer), inner: who(inner), innerAt: Math.round(R(inner).left) + ',' + Math.round(R(inner).top) + ' ' + Math.round(R(inner).width) + '×' + Math.round(R(inner).height), over: inner.scrollHeight - inner.clientHeight });
   }
-  return { ground, nested, panel: panel ? who(panel) : null, right: Math.round(right) };
+  return { ground, edge, nested, panel: panel ? who(panel) : null, right: Math.round(right) };
 })()`;
 
 /* THE SELF-CHECK: one of each fault planted, so a kind that reports nothing is known to be looking. */
@@ -144,6 +183,11 @@ const PLANT = `(() => {
   d.innerHTML = '<div style="background:#F5F5F7;width:400px;height:120px;padding:12px">PLANT ground</div>'
     + '<div data-plant-outer style="overflow-y:auto;width:400px;height:160px;margin-top:12px;background:#fff;border:1px solid #ccc"><div data-plant-inner style="overflow-y:auto;width:360px;height:120px;border:1px solid #ddd"><div style="height:600px">PLANT nested inner</div></div><div style="height:400px">PLANT nested outer</div></div>';
   document.body.appendChild(d);
+  const pn = [...document.querySelectorAll('#ig-dock, #ins-panel, #st-side, #tb-rail, #cal-plan')].find(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none'; });
+  const at = pn ? pn.getBoundingClientRect().left : innerWidth;
+  const e = document.createElement('div'); e.setAttribute('data-white-plant', 'edge');
+  e.style.cssText = 'position:fixed;top:56px;bottom:0;width:10px;z-index:99999;background:#F5F5F7;left:' + (at - 10) + 'px';
+  d.appendChild(e);
 })()`;
 
 const only = (process.env.HATI_WHITE_ONLY || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -177,9 +221,11 @@ const only = (process.env.HATI_WHITE_ONLY || '').split(',').map(s => s.trim()).f
       await drive(page, () => { const d = document.getElementById('white-sheet-plant'); if (d) d.remove(); }, undefined, null);
       const sawGround = !!(m && m.ground.some(g => g.tone === 'ground' && g.w >= 380 && g.w <= 420 && g.h >= 100 && g.h <= 140));
       const sawNested = !!(m && m.nested.some(n => /data-plant|div/.test(n.inner) && n.over >= 400));
+      const sawEdge = !!(m && m.edge.some(e => e.tone === 'ground' && e.w >= 8 && e.w <= 26));
       check('0 — the planted grey block is seen', sawGround, sawGround ? undefined : JSON.stringify(m && m.ground));
       check('0 — the planted nested scroller is seen', sawNested, sawNested ? undefined : JSON.stringify(m && m.nested));
-      if (!(sawGround && sawNested) && !process.env.HATI_WHITE_ANYWAY) throw new Error('the instrument is blind — nothing else was measured');
+      check('0 — the planted 10px strip beside the panel is seen', sawEdge, sawEdge ? undefined : JSON.stringify(m && m.edge));
+      if (!(sawGround && sawNested && sawEdge) && !process.env.HATI_WHITE_ANYWAY) throw new Error('the instrument is blind — nothing else was measured');
     }
     for (const S of SCREENS) {
       await page.setViewportSize({ width: S.w, height: S.h });
@@ -201,6 +247,9 @@ const only = (process.env.HATI_WHITE_ONLY || '').split(',').map(s => s.trim()).f
         const allowed = kind => known.find(k => k.kind === kind);
         const faults = [];
         for (const g of m.ground) { const a = allowed('ground'); if (a) { fired.add(a); console.log(`      KNOWN     GROUND ${g.who} ${g.w}×${g.h} (${g.tone}) · ${a.why}`); } else faults.push(`GROUND ${g.who} ${g.w}×${g.h} at ${g.at} (${g.tone})`); }
+        /* a grey strip beside the panel is grey ground too: a place allowed its ground is allowed its edge */
+        for (const e of m.edge) { const a = allowed('edge') || allowed('ground'); if (a) { fired.add(a); console.log(`      KNOWN     EDGE ${e.who} ${e.w}px wide, ${e.rows} rows · ${a.why}`); } else faults.push(`EDGE ${e.who} ${e.w}px wide beside the panel, ${e.rows} rows, from x=${e.at} (${e.tone})`); }
+        const pin = PINS[P.k]; if (pin) { const why = await drive(page, pin, undefined, 'the pin threw'); if (why) faults.push('PIN ' + why); }
         for (const n of m.nested) { const a = allowed('nested'); if (a) { fired.add(a); console.log(`      KNOWN     NESTED ${n.inner} inside ${n.outer} · ${n.over}px more than fits · ${a.why}`); } else faults.push(`NESTED ${n.inner} (${n.innerAt}, ${n.over}px more than fits) inside ${n.outer}`); }
         if (faults.length) await page.screenshot({ path: path.join(OUT, `${S.k}-${P.k}.png`) }).catch(() => {});
         check(`${S.k} · ${P.name} — one white sheet`, faults.length === 0, faults.length ? faults.join(' · ') : `panel ${m.panel || 'none'} · ${m.ground.length} grey, ${m.nested.length} nested, all allowed`);
