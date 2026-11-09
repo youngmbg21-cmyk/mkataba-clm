@@ -20048,6 +20048,10 @@
      backdrop"): no inset, no corner, no lift on its head or its body; one hairline under the head */
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-hd{top:0;margin:0;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;box-shadow:none}
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid{margin:0;border:0;border-radius:0;box-shadow:none;clip-path:none}
+  /* ONE GAP ABOVE EVERY JAMBO BOX (owner, 9 Nov 2026: "why is there a massive gap between the links and the jambo button?
+     … Make sure there is always a consistent management of the gaps"): the line that says what typed words would do takes
+     no room until it has words, so links → "Jambo ›" → the box stand at the same 12px on every panel */
+  html.lg-new #ig-dock .igd-foot > .hb-pre:empty{display:none}
   html.lg-new #ct-place .ct-page .ct-wall{flex:1 1 0%;min-height:0;overflow-y:auto}
   html.lg-new #ct-place .ct-page .ct-wall > *{flex:none}
   html.lg-new .tpln{height:auto;min-height:100%}
