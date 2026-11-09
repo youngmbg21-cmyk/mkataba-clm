@@ -9765,9 +9765,11 @@ function igPaperCost(c){
 /* A CONTRACT'S PAGE IN FRONT WINS OVER THE PAPER BEHIND IT (owner, 9 Nov 2026: "fix the History panel showing the wrong
    contract" — after MK-A2's paper, MK-HB4's History brought up from Approvals; the box said "Ask Jambo about MK-A2…" and
    a question went with MK-A2's wording): the paper stays "up" behind the Board while a strip's page stands in front of
-   it, so the page in front (pdCardNow) is asked first, its own contract the one the box names and asks with */
-function igCardInFront(){ try{ return !!(typeof window.pdCardNow==='function'&&window.pdCardNow()); }catch(_){ return false; } }
-function igPaperInFront(){ return igPaperUp()&&!igCardInFront(); }
+   it, so the page in front (the held card) was asked first, its own contract the one the box names and asks with.
+   THE STRIP IS GONE (owner, 9 Nov 2026): a contract's History and Where we are now open in the middle beside ITS OWN
+   paper (hbStripBring lands on that paper first), so no page stands in front of another contract's paper; the paper
+   up is the page in front */
+function igPaperInFront(){ return igPaperUp(); }
 function igHeldAskId(){
   if(!(window.state&&state.view==='dashboard')||igPaperInFront()) return null;
   return (typeof window.pdAskContractId==='function')?pdAskContractId():null;

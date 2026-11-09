@@ -36280,3 +36280,8 @@ Where we are asked from the Board, a list or Settings never opened, because the 
 paper and the paper arrives later from there. hbStripBring now asks again every BS_MID_STEP_MS until the paper stands
 (BS_MID_TRIES, bounded; another contract's paper ends the wait), and Where we are asked again lands like History. The
 other two were checks: board-says-it-plain and the door exam still read the strip; f219 wanted the family line as it was.
+GitHub's second run (on the merge) found three more, all from this change; each passed on unmodified main 400f5d2.
+f232 caught main's new igCardInFront asking for pdCardNow, which went with the strip: a guard always false. Since
+History now opens beside its own contract's paper, the paper up is the page in front; igPaperInFront = igPaperUp,
+f978 re-pinned. map-asked-bubbles 7 pressed the card's Ask why, and jambo-says-what-he-did 1 read the card's head;
+both now read the paper and History in the middle.

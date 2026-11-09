@@ -52,7 +52,9 @@ test('3 · the trail itself never notes its own step back as a new place', () =>
    Now a strip's page in front wins (igPaperInFront): "Ask Jambo about MK-HB4…", the question goes with MK-HB4. */
 test('4 · the contract page in front is the one the box names and asks with, not the paper behind it', () => {
   const IG = fs.readFileSync(path.join(__dirname, '..', 'js/views/intelligence.js'), 'utf8');
-  assert.match(IG, /function igPaperInFront\(\)\{ return igPaperUp\(\)&&!igCardInFront\(\); \}/);
+  /* the strip is gone (9 Nov 2026): History opens beside its own contract's paper, so the paper up IS the page in front */
+  assert.match(IG, /function igPaperInFront\(\)\{ return igPaperUp\(\); \}/);
+  assert.doesNotMatch(IG, /pdCardNow/, 'no reading of the card that went');
   assert.match(IG, /function igHeldAskId\(\)\{\s*if\(!\(window\.state&&state\.view==='dashboard'\)\|\|igPaperInFront\(\)\) return null;/);
   assert.match(IG, /const held=igHeldAskId\(\), paperId=igPaperInFront\(\)\?intel\.paper\.id:null;/, 'the question goes with the page in front');
   const ph = IG.match(/function igAskPlaceholder\(\)\{[\s\S]*?\n\}/)[0];
