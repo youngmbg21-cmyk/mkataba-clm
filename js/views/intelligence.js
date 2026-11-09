@@ -960,9 +960,12 @@ function igLensHot(c, lens){
     :lens==='promises'?(b==='ourlate'||b==='theirlate'):lens==='people'?igLensObOf(c).late>0:false;
 }
 /* the contracts the map DREW — the legend, the walk and the counts read the same set */
-function igLensKids(){ return (IG&&IG.nodes?IG.nodes:[]).filter(n=>n&&n.kind==='contract'&&n.c); }
+function igLensKids(all){
+  /* while a legend row narrows the map, the legend still counts the whole map, so every row stays to be pressed */
+  if(all){ const k=(typeof igLegendKept==='function')?igLegendKept():null; if(k&&k.allKids) return k.allKids; }
+  return (IG&&IG.nodes?IG.nodes:[]).filter(n=>n&&n.kind==='contract'&&n.c); }
 function igLensCounts(lens){
-  lens=lens||intel.lens; const kids=igLensKids();
+  lens=lens||intel.lens; const kids=igLensKids(true);
   if(lens==='people'){
     const by=new Map(); kids.forEach(n=>{ const k=igLensBucketOf(n.c,'people'); if(!by.has(k)) by.set(k,[]); by.get(k).push(n.id); });
     const named=[...by.entries()].filter(([k])=>k).sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]));
@@ -1076,7 +1079,7 @@ function igLensLegendHtml(){
   /* THEN AND NOW FOR EVERY LENS (8 Nov 2026): with a past day on, each row says its count on the book that day,
      with today's beside it, and one sentence says what moved (igLensThen) */
   const TH=igLensThen(rows);
-  h+=rows.filter(x=>x.n||(TH&&TH.then[x.k])).map(x=>`<div class="igl-row" data-ig-lens-row="${igEsc(x.k)}">${swatch(x)}<span class="igl-lt">${igEsc(x.label)}</span>${TH?`<span class="igl-n" data-ig-lens-then-n>${TH.then[x.k]}<span class="igl-now">${igEsc(i18t('int_lens_now_n',{ n:x.n }))}</span></span>`:`<span class="igl-n">${x.n}</span>`}</div>`).join('');
+  h+=rows.filter(x=>x.n||(TH&&TH.then[x.k])).map(x=>`<div class="igl-row" data-ig-lens-row="${igEsc(x.k)}"${igLegendPickAttrs('lens:'+L+':'+x.k,x.label)}>${swatch(x)}<span class="igl-lt">${igEsc(x.label)}</span>${TH?`<span class="igl-n" data-ig-lens-then-n>${TH.then[x.k]}<span class="igl-now">${igEsc(i18t('int_lens_now_n',{ n:x.n }))}</span></span>`:`<span class="igl-n">${x.n}</span>`}</div>`).join('');
   if(tot) h+=`<div class="igl-lensbar" aria-hidden="true">${rows.filter(x=>x.n).map(x=>`<i style="flex:${x.n};background:${T[x.tone]}"></i>`).join('')}</div>`;
   if(L==='money'){ const top=igLensTopParties(); if(top) h+=`<div class="igl-row igl-note" data-ig-lens-top>${igEsc(i18t('int_lens_money_top',{ p:top.p, x:top.names.join(', ') }))}</div>`; }
   if(L==='promises') h+=`<div class="igl-row igl-note" data-ig-lens-sides><span class="igl-sw" style="background:${T.ours}"></span>${igEsc(i18t('int_lens_promises_ours'))}<span class="igl-sw" style="background:${T.theirs};margin-left:6px"></span>${igEsc(i18t('int_lens_promises_theirs'))}</div>`;
@@ -1137,6 +1140,46 @@ document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.tar
   const m=Number(b.getAttribute('data-ig-lens-then'))||0, iso=m?igLensThenISO(m):'none';
   if((m&&intel.asOf===iso)||(!m&&!intel.asOf)) return;
   igRecipeRun({ acts:[{ asOf:iso }] }); renderIntelDock(); updateIntelNote(); });
+/* ---- PRESS A LEGEND ROW TO SEE ONLY THOSE (owner, 9 Nov 2026: "you should be able to press on the items on the legend
+   so to isolate … press once more and goes back to normal"; reverses "a key, not a door", 28 Sep 2026) ----
+   A lens row, a status row or a colour row narrows the map to the contracts it counts (one filter, kind 'legend', its
+   label the row's own words, the head line says "Showing N of T"); the same row again, or Show everything, puts the
+   map back; another row takes its place. The rows are counted over the whole map, never over the map the pick narrowed. */
+let _igLegendAll=null;
+function igLegendPickOn(){ return (intel.lenses||[]).find(l=>l.kind==='legend'&&l.on)||null; }
+/* what the legend counts while a row narrows the map: the whole map as it stood at the press (never saved with the recipe) */
+function igLegendKept(){ const pk=igLegendPickOn(); return pk&&_igLegendAll&&_igLegendAll.key===pk.pick?_igLegendAll:null; }
+function igLegendPickAttrs(key,label){ const on=igLegendPickOn(); const p=!!(on&&on.pick===key);
+  return ` data-ig-pick="${igEsc(key)}" role="button" tabindex="0" aria-pressed="${p}" title="${igEsc(i18t(p?'int_legend_pick_off':'int_legend_pick_on',{ x:label }))}"${p?' data-ig-picked':''}`; }
+function igLegendPickIds(key){
+  const [kind,a,b]=String(key).split(':');
+  const was=intel.lenses; intel.lenses=(intel.lenses||[]).filter(l=>l.kind!=='legend');
+  let cs=[]; try{ cs=(buildGraphModel().nodes||[]).filter(n=>n&&n.kind==='contract').map(n=>n.c||getContract(n.id)).filter(Boolean); }catch(_){ cs=[]; } finally{ intel.lenses=was; }
+  let hit=()=>false;
+  if(kind==='status') hit=c=>c.status===a;
+  else if(kind==='colour'){ const key2=GRAPH_GROUP_KEYS.includes(intel.colourBy)?intel.colourBy:'status'; hit=c=>groupLabelOf(c,key2,key2===intel.groupBy?intel.groups:null)===a; }
+  else if(kind==='lens'){
+    if(a==='people'){ const named=new Set(igLensCounts('people').map(r=>r.k).filter(k=>k!=='other'&&k!=='nobody'));
+      hit=c=>{ const o=igLensBucketOf(c,'people'); return b==='nobody'?!o:b==='other'?(!!o&&!named.has(o)):o===b; }; }
+    else hit=c=>igLensBucketOf(c,a)===b;
+  }
+  return cs.filter(hit).map(c=>c.id);
+}
+function igLegendPick(key,label){
+  const on=igLegendPickOn();
+  igRecipePush();
+  intel.lenses=(intel.lenses||[]).filter(l=>l.kind!=='legend');
+  if(!(on&&on.pick===key)){
+    const kept=on&&_igLegendAll?_igLegendAll:null, allKids=kept?kept.allKids:igLensKids(), colourRows=kept?kept.colourRows:(IG&&IG.colourRows?IG.colourRows.slice():null);
+    const ids=igLegendPickIds(key); addLens({ label, ids, action:'filter', kind:'legend' });
+    const L=igLegendPickOn(); if(L) L.pick=key; _igLegendAll={ key, allKids, colourRows }; }
+  else _igLegendAll=null;
+  rebuildIntelGraph(); renderIntelDock(); updateIntelNote();
+}
+document.addEventListener('click',e=>{ const r=e.target&&e.target.closest&&e.target.closest('#ig-legend [data-ig-pick]'); if(!r||e.target.closest('button,a')) return;
+  igLegendPick(r.getAttribute('data-ig-pick'), (r.querySelector('.igl-lt')||r).textContent.trim()); });
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter'&&e.key!==' ') return; const r=e.target&&e.target.closest&&e.target.closest('#ig-legend [data-ig-pick]'); if(!r) return;
+  e.preventDefault(); igLegendPick(r.getAttribute('data-ig-pick'), (r.querySelector('.igl-lt')||r).textContent.trim()); });
 /* the three parties holding most of the map's home value, and their share (money's legend and walk) */
 function igLensTopParties(){
   const by=new Map(); let all=0;
@@ -4766,7 +4809,7 @@ function igbPlace(G){
      these two rects forced a full layout on every frame; they are read when
      the stage changed size or the reader touched the page (igWake). */
   if(G.svg&&!G._furn){ const sr=G.svg.getBoundingClientRect(); G._furn=[];
-    [document.querySelector('#ig-gwrap .ig-viewbar'),document.querySelector('#ig-gwrap .ig-viewbar .ig-lensrow'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) G._furn.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
+    [document.querySelector('#ig-gwrap .ig-viewbar'),document.querySelector('#ig-gwrap .ig-viewbar .ig-lensrow'),document.querySelector('#ig-gwrap .ig-camerabar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) G._furn.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
   (G._furn||[]).forEach(r=>placed.push(r));
   G.hubs.forEach(h=>{ if(h._bubR>2&&h._bq) placed.push({ x:h._bq[0]-h._bubR, y:h._bq[1]-h._bubR, w:2*h._bubR, h:2*h._bubR }); });
   (G._bundles||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
@@ -5689,11 +5732,14 @@ function igGuideHtml(){
   const rowHtml=r=>{ const dead=r.q===i18t('int_gd_q_undo')&&R.undoNone;
     return r.on?`<div class="ig-gd-row is-on"><span class="ig-gd-rt"><span class="ig-gd-t">${igEsc(r.t)}</span><span class="ig-gd-q">“${said(r.q)}”</span></span><span class="ig-gd-go">${igEsc(i18t('int_gd_showing'))}</span></div>`
       :`<button type="button" class="ig-gd-row" data-ig-gd="${igEsc(r.q)}"${dead?` disabled title="${igEsc(i18t('int_undo_none'))}"`:''}><span class="ig-gd-rt"><span class="ig-gd-t">${igEsc(r.t)}</span><span class="ig-gd-q">“${said(r.q)}”</span></span><span class="ig-gd-go">${igEsc(i18t('int_gd_do'))}</span></button>`; };
+  /* THE VIEWS AT THE TOP (owner, 9 Nov 2026: "Move these buttons to the top of the panel so when you select one, the
+     options for navigation appear below them"): all five in one row, the map's own pressed; a press turns the map and
+     the guide repaints under the row. The four cards that stood at the foot are gone. */
   return `<div class="ig-gd" data-ig-gd-view="${R.vw}">
-    <div class="ig-gd-here"><span class="ig-gd-hn">${igEsc(i18t('int_gd_here',{ x:name }))}</span><span class="ig-gd-hw">${igEsc(i18t('int_gd_what_'+R.vw))}</span></div>
+    <div class="ig-gd-views" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-gd-view-go="${i}" aria-pressed="${i===R.vw}" title="${igEsc(i18t(IG_GD_OTHER[i]))}">${igEsc(i18t('int_view_'+v))}</button>`).join('')}</div>
+    <div class="ig-gd-here"><span class="ig-gd-hn">${igEsc(name)}</span><span class="ig-gd-hw">${igEsc(i18t('int_gd_what_'+R.vw))}</span></div>
     ${R.mine.length?`<h4 class="ig-gd-h">${igEsc(i18t('int_gd_on',{ x:name }))}</h4><div class="ig-gd-rows">${R.mine.map(rowHtml).join('')}</div>`:''}
     <h4 class="ig-gd-h">${igEsc(i18t('int_gd_every'))}</h4><div class="ig-gd-rows">${R.every.map(rowHtml).join('')}</div>
-    <h4 class="ig-gd-h">${igEsc(i18t('int_gd_others'))}</h4><div class="ig-gd-others">${IGB_VIEWS.map((v,i)=>i===R.vw?'':`<button type="button" data-ig-gd-view-go="${i}"><b>${igEsc(i18t('int_view_'+v))}</b><span>${igEsc(i18t(IG_GD_OTHER[i]))}</span></button>`).join('')}</div>
   </div>`;
 }
 /* the guide follows the view and the map: repainted in place, its scroll kept */
@@ -6117,7 +6163,7 @@ function renderIntelLegend(model){
      pressed; they now only say what each colour means, and they follow the
      colour Copilot was asked for. Narrowing the map is Copilot's alone. */
   el.classList.toggle('is-folded', !!intel.legendFolded);
-  const row=(attrs,col,label)=>`<div ${attrs} class="igl-row"><span class="igl-sw" style="background:${col}"></span>${igEsc(label)}</div>`;
+  const row=(attrs,col,label,pick)=>`<div ${attrs} class="igl-row"${pick?igLegendPickAttrs(pick,label):''}><span class="igl-sw" style="background:${col}"></span>${igEsc(label)}</div>`;
   const G=IG&&IG.colourRows?IG:null;
   const colourKey=G?G.colourKey:'status';
   let html=`<div data-ig-legend-head class="igl-head"><span class="igl-k">${i18t('int_legend')}</span><button type="button" data-ig-legend-fold aria-expanded="${intel.legendFolded?'false':'true'}" title="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" aria-label="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon(intel.legendFolded?'chevR':'chevD','w-3.5 h-3.5')}</button></div>`;
@@ -6125,11 +6171,11 @@ function renderIntelLegend(model){
   if(intel.lens) html+=igLensLegendHtml();
   if(colourKey==='status'){
     html+=`<div class="igl-k${intel.lens?' igl-gap':''}">${i18t('int_status_click')}</div>`+
-      IGB_FLOOR_STATUS.map(k=>row(`data-igstatus="${k}"`,IGB_STATUS_COL[k],igbStatusWord(k))).join('');
+      IGB_FLOOR_STATUS.map(k=>row(`data-igstatus="${k}"`,IGB_STATUS_COL[k],igbStatusWord(k),'status:'+k)).join('');
   } else {
-    const rows=G.colourRows, max=10;
+    const pk=igLegendKept(), rows=(pk&&pk.colourRows)||G.colourRows, max=10;
     html+=`<div class="igl-k">${igEsc(i18t('int_colour_legend',{ x:graphGroupingWord(colourKey) }))}</div>`+
-      rows.slice(0,max).map(r=>row(`data-ig-colour="${igEsc(r.k)}"`,r.col,r.label)).join('')+
+      rows.slice(0,max).map(r=>row(`data-ig-colour="${igEsc(r.k)}"`,r.col,r.label,'colour:'+r.k)).join('')+
       (rows.length>max?`<div class="igl-row igl-more">+${rows.length-max}</div>`:'');
   }
   /* A-5: the money legend — teal in, amber out — and one sentence naming what
@@ -6530,9 +6576,13 @@ function renderIntel(){
         <div class="ig-viewbar" title="${igEsc(i18t('int_drag_nodes'))}">
           ${igLensBarHtml()}
           <div class="ig-seg" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-view="${i}" aria-pressed="${igbCam().view===i}">${i18t(IGB_VIEW_WORD[v])}</button>`).join('')}</div>
-          <div class="ig-seg"><button type="button" data-ig-zoom="out" aria-label="${igEsc(i18t('int_zoom_out'))}">${icon('minus','w-3.5 h-3.5')}</button><span id="ig-zv" class="ig-zv">${Math.round(igbCam().zoom*100)}%</span><button type="button" data-ig-zoom="in" aria-label="${igEsc(i18t('int_zoom_in'))}">${icon('plus','w-3.5 h-3.5')}</button></div>
-          <div class="ig-seg"><button type="button" id="ig-spin" aria-pressed="${igbSpinning()}"${igbCam().view===IGB_STILL_VIEW?` disabled title="${igEsc(i18t('int_grid_still'))}"`:''}>${igSpinLabel()}</button></div>
           <div class="ig-seg"><button type="button" id="ig-foldall">${i18t('int_fold_all')}</button></div>
+        </div>
+        ${''/* THE CAMERA'S OWN CORNER (owner, 9 Nov 2026: "move the screen size adjuster to the top right of the screen"):
+               the zoom, and Still beside it (both move only the camera), so the legend and the view bar stand on ONE line */}
+        <div class="ig-camerabar">
+          <div class="ig-seg"><button type="button" id="ig-spin" aria-pressed="${igbSpinning()}"${igbCam().view===IGB_STILL_VIEW?` disabled title="${igEsc(i18t('int_grid_still'))}"`:''}>${igSpinLabel()}</button></div>
+          <div class="ig-seg"><button type="button" data-ig-zoom="out" aria-label="${igEsc(i18t('int_zoom_out'))}">${icon('minus','w-3.5 h-3.5')}</button><span id="ig-zv" class="ig-zv">${Math.round(igbCam().zoom*100)}%</span><button type="button" data-ig-zoom="in" aria-label="${igEsc(i18t('int_zoom_in'))}">${icon('plus','w-3.5 h-3.5')}</button></div>
         </div>
         <div id="ig-paper" class="ig-paper" hidden></div>
         </div>
@@ -11302,7 +11352,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,igBriefSteps,igBriefApply,igBriefStart,igBriefGo,igBriefStop,igBriefStep,igBriefNoteHtml,igBriefHtml,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,igBriefSteps,igBriefApply,igBriefStart,igBriefGo,igBriefStop,igBriefStep,igBriefNoteHtml,igBriefHtml,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

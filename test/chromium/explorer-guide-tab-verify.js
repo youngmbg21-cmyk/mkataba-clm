@@ -127,6 +127,14 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       await page.evaluate(() => document.querySelector('#ig-gd [data-ig-gd-view-go="3"]')?.click());
       const moved = await until(() => igbCam().view === 3 && Number(document.querySelector('#ig-gd [data-ig-gd-view]')?.getAttribute('data-ig-gd-view')) === 3);
       check(`4-${lang} Floors → the Grid door moves the map and the guide follows`, !!moved);
+      /* THE VIEWS AT THE TOP (owner, 9 Nov 2026): all five in one row heading the guide, the map's own pressed, no cards at the foot */
+      const top = await page.evaluate(() => { const g = document.getElementById('ig-gd'); const row = g && g.querySelector('.ig-gd-views'); if (!row) return null;
+        const first = g.querySelector('.ig-gd').firstElementChild; const bs = [...row.querySelectorAll('[data-ig-gd-view-go]')];
+        const tops = bs.map(b => Math.round(b.getBoundingClientRect().top));
+        return { first: first === row, n: bs.length, pressed: bs.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-ig-gd-view-go')), oneLine: new Set(tops).size === 1,
+          below: row.getBoundingClientRect().bottom <= g.querySelector('.ig-gd-here').getBoundingClientRect().top, cards: g.querySelectorAll('.ig-gd-others').length }; });
+      check(`4b-${lang} the five views head the guide in one row, the map's own pressed, its things to do right under, no cards at the foot`,
+        !!top && top.first && top.n === 5 && JSON.stringify(top.pressed) === '["3"]' && top.oneLine && top.below && top.cards === 0, JSON.stringify(top));
 
       /* ================= 5. GO BACK ONE STEP ================= */
       await fresh(2, true); await page.waitForTimeout(200);

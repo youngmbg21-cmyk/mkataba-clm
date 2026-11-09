@@ -11,7 +11,7 @@
    fold by a real click on the card and the dots gathering, a key by pressing
    it and nothing narrowing. Waits ask for the state, bounded.
    Red at the parent (b2166ade): there is no canvas, no view bar, no fold, and
-   a legend press narrows the map.
+   a legend press narrows the map (and, since 9 Nov 2026, a legend row does on purpose: the owner's isolate).
 
    Screenshots go to test/chromium/shots/explorer-brain/ (or HATI_SHOT_DIR).
    Run: node test/chromium/explorer-brain-verify.js */
@@ -152,10 +152,15 @@ const check = (name, pass, detail) => {
     check('4d Fold all folds every card, and the button then offers to open them all', !!allFolded && /Open all/.test(allFolded), allFolded);
     await page.click('#ig-foldall'); await until(() => IG.hubs.every(h => !h.folded));
     await page.evaluate(() => { const b = document.querySelector('#ig-legend [data-ig-legend-fold]'); if (b && b.getAttribute('aria-expanded') === 'false') b.click(); });
+    /* RE-POINTED 9 Nov 2026 (owner: "you should be able to press on the items on the legend so to isolate … press once
+       more and goes back to normal"; reverses "a key, not a door"): a status row narrows to that status, again lets go */
     const legendRow = await page.$('#ig-legend [data-igstatus="Draft"]');
-    if (legendRow) { await legendRow.click(); await legendRow.click(); }
-    const afterLegend = await page.evaluate(() => ({ lenses: intel.lenses.length, tag: (document.querySelector('#ig-legend [data-igstatus="Draft"]') || {}).tagName }));
-    check('4e the legend is a key: pressing a status row twice narrows nothing, and the row is not a button', !!legendRow && afterLegend.lenses === 0 && afterLegend.tag === 'DIV', JSON.stringify(afterLegend));
+    if (legendRow) await legendRow.click();
+    await page.waitForTimeout(400);
+    const narrowed = await page.evaluate(() => ({ picks: intel.lenses.filter(l => l.kind === 'legend').length, all: IG.nodes.filter(n => n.kind === 'contract').every(n => n.c.status === 'Draft') }));
+    await page.evaluate(() => document.querySelector('#ig-legend [data-igstatus="Draft"]')?.click()); await page.waitForTimeout(400);
+    const afterLegend = await page.evaluate(() => ({ lenses: intel.lenses.length, pressed: (document.querySelector('#ig-legend [data-igstatus="Draft"]') || {}).getAttribute?.('aria-pressed') }));
+    check('4e a legend row narrows the map to its status, and pressing it again lets go', !!legendRow && narrowed.picks === 1 && narrowed.all && afterLegend.lenses === 0 && afterLegend.pressed === 'false', JSON.stringify({ narrowed, afterLegend }));
 
     /* ================= 5. COPILOT STEERS THE MAP ============================ */
     await page.click('[data-ig-view="0"]');

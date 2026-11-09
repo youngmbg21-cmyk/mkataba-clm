@@ -535,8 +535,10 @@ const check = (name, pass, detail) => {
     /* REVERSED 28 Sep 2026: the legend is a KEY now, not a door — the owner
        ruled the map's filters come from asking Copilot. Three real presses on
        a status row leave NO chip at all. */
-    check('17a three presses on a legend row add no lens — the legend is a key, not a filter',
-      chips.length === 0, JSON.stringify(chips));
+    /* RE-POINTED 9 Nov 2026 (owner: "press on the high risk and only high risk show … press once more and goes back
+       to normal"; reverses the 28 Sep "key, not a door"): a row press toggles ONE pick, so three presses leave ONE chip */
+    check('17a three presses on a legend row leave one pick — on, off, on — never a stack of chips',
+      chips.length === 1, JSON.stringify(chips));
     check('17b and the legend no longer prints the paper sentence',
       !(await page.evaluate(() => /what the paper says/i.test(document.getElementById('ig-legend').textContent))));
     /* GUARDED: a build without the fold control has nothing to press, and a
@@ -554,7 +556,7 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '17-legend-folded.png') });
     if (hasFold) { await page.click('#ig-legend [data-ig-legend-fold]'); await page.waitForTimeout(250); }
     const back = !hasFold ? { h: -1, expanded: null, chips: -1 } : await page.evaluate(() => ({ h: document.getElementById('ig-legend').getBoundingClientRect().height, expanded: document.getElementById('ig-legend').querySelector('[data-ig-legend-fold]').getAttribute('aria-expanded'), chips: document.querySelectorAll('#ig-dock [data-lens-toggle]').length }));
-    check('17d and a second press brings it back whole, with the lens untouched', Math.abs(back.h - lgBefore) < 2 && back.expanded === 'true' && back.chips === 0, JSON.stringify({ before: lgBefore, ...back }));
+    check('17d and a second press brings it back whole, with the pick untouched', Math.abs(back.h - lgBefore) < 2 && back.expanded === 'true' && back.chips === 1, JSON.stringify({ before: lgBefore, ...back }));
     await page.evaluate(() => { intel.lenses = []; rebuildIntelGraph(); renderIntelDock(); });
 
     /* ================= 18. THE MAP COPILOT KNOWS THE MAP (C-1, 11 Sep 2026) == */

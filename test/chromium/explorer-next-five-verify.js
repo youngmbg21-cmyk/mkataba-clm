@@ -264,6 +264,36 @@ const check = (name, pass, detail) => {
       check('9d the legend keeps one width: folded, open, with a lens, and with then-and-now', widths.every(w => w === widths[0]) && widths[0] > 200, JSON.stringify(widths));
     } else check('9 the Guide exists', false, 'igGuideRows missing');
 
+    /* ================= 10. ONE LINE, AND THE LEGEND TO PRESS (owner, 9 Nov 2026) ================= */
+    if (await has('igLegendPick')){
+      await page.evaluate(() => { intel.asOf = null; intel.lenses = []; intel.legendFolded = true; igLensSet('risk', { noPush: true }); rebuildIntelGraph(); });
+      await page.waitForTimeout(500);
+      const line = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const x = e.getBoundingClientRect(); return { t: Math.round(x.top), h: Math.round(x.height), l: Math.round(x.left), r: Math.round(x.right) }; };
+        const st = document.getElementById('ig-gwrap').getBoundingClientRect();
+        return { legend: r('#ig-legend'), lens: r('.ig-viewbar .ig-lensrow'), views: r('.ig-viewbar .ig-seg:not(.ig-lens)'), fold: (() => { const e = document.getElementById('ig-foldall'); const x = e && e.closest('.ig-seg').getBoundingClientRect(); return x && { t: Math.round(x.top), h: Math.round(x.height) }; })(), cam: r('.ig-camerabar'), stageTop: Math.round(st.top), stageRight: Math.round(st.right),
+          fonts: [...new Set(['#ig-legend .igl-head .igl-k', '.ig-viewbar [data-ig-lens="risk"]', '.ig-viewbar [data-ig-view="0"]', '#ig-foldall'].map(q => getComputedStyle(document.querySelector(q)).fontSize))] }; });
+      check('10a the legend, the Lens group, the views and Fold all stand on ONE line, one height, one type size',
+        line.legend && [line.lens, line.views, line.fold].every(x => x && x.t === line.legend.t && x.h === line.legend.h) && line.fonts.length === 1, JSON.stringify(line));
+      check('10b the zoom and Still stand in the map\'s top-right corner', line.cam && line.cam.t - line.stageTop < 20 && line.stageRight - line.cam.r < 20, JSON.stringify(line.cam));
+      await page.evaluate(() => { intel.legendFolded = false; rebuildIntelGraph(); }); await page.waitForTimeout(400);
+      const all = await page.evaluate(() => IG.nodes.filter(n => n.kind === 'contract').length);
+      await page.click('#ig-legend [data-ig-pick="lens:risk:high"]'); await page.waitForTimeout(600);
+      const p1 = await page.evaluate(() => ({ shown: IG.nodes.filter(n => n.kind === 'contract').map(n => igLensBucketOf(n.c, 'risk')), pressed: document.querySelector('#ig-legend [data-ig-pick="lens:risk:high"]')?.getAttribute('aria-pressed'),
+        rows: document.querySelectorAll('#ig-legend [data-ig-lens-row]').length, note: (document.getElementById('ig-note') || {}).textContent || '' }));
+      check('10c pressing "High risk" in the legend shows only the high-risk contracts, the row pressed, every other row still there to press',
+        p1.shown.length === 5 && p1.shown.every(k => k === 'high') && p1.pressed === 'true' && p1.rows >= 4 && /Showing 5 of 16/.test(p1.note), JSON.stringify(p1));
+      await page.click('#ig-legend [data-ig-pick="lens:risk:high"]'); await page.waitForTimeout(600);
+      const p2 = await page.evaluate(() => ({ n: IG.nodes.filter(n => n.kind === 'contract').length, pick: !!igLegendPickOn() }));
+      check('10d pressing it again puts the whole map back', p2.n === all && !p2.pick, JSON.stringify({ p2, all }));
+      await page.click('#ig-legend [data-ig-pick="status:Signed"]'); await page.waitForTimeout(600);
+      const p3 = await page.evaluate(() => IG.nodes.filter(n => n.kind === 'contract').every(n => n.c.status === 'Signed'));
+      await page.click('#ig-legend [data-ig-pick="lens:risk:unscanned"]'); await page.waitForTimeout(600);
+      const p4 = await page.evaluate(() => ({ ks: IG.nodes.filter(n => n.kind === 'contract').map(n => igLensBucketOf(n.c, 'risk')), picks: intel.lenses.filter(l => l.kind === 'legend').length }));
+      check('10e a status row narrows too, and another row takes its place', p3 && p4.picks === 1 && p4.ks.length === 3 && p4.ks.every(k => k === 'unscanned'), JSON.stringify({ p3, p4 }));
+      await page.screenshot({ path: path.join(OUT, '10-legend-pick.png') });
+      await page.evaluate(() => { intel.lenses = []; rebuildIntelGraph(); });
+    } else check('10 the legend can be pressed', false, 'igLegendPick missing');
+
     /* ================= 6. THE OWNER'S THREE SCREENS ================= */
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(500);
