@@ -77,4 +77,4 @@ numbers in the new-look renderers are behind it too, because those renderers onl
 | Home's paper of a contract under negotiation (Clean, Redline, Their view) | Cut into A4 pages with the gap and "Page N of M", like every other paper; the notes stay beside it. This was the one long sheet in the owner's picture. |
 | A template's own page | Cut into pages too. |
 | Already in pages, checked | Home's paper of a draft or signed contract (uploaded or ours), the signing copy, the Negotiate page, Our paper's preview (its first page). |
-| Left as one sheet, on purpose | The clause editor and the template builder: a page break redrawn under the cursor would move the words being typed (the owner's earlier rule). |
+| Thin page lines (owner's pick, option 2) | The clause editor and the template builder keep one sheet so nothing moves under the cursor; a faint dashed line and "Page N" mark where each page would end. |

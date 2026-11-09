@@ -51,12 +51,12 @@ const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot', menu: 'co
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
-const PD_TAB_GLYPH = { red: '\u21C4', copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630', findings: '\u25C7', guide: '\u25A4' };
+const PD_TAB_GLYPH = { red: '\u21C4', copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630', findings: '\u25C7', guide: '\u25A4', day: '\u25D4' };
 const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
 /* THE DOCUMENT TAB IS CALLED CLAUSES (owner, 11 Oct 2026): Home's face is
    "Document" now, and this tab holds the clause list. */
-const PD_TAB_NAME = { red: 'pd_face_w_red', copilot: 'pd_tab_overview', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings', guide: 'pd_tab_guide' };
+const PD_TAB_NAME = { red: 'pd_face_w_red', copilot: 'pd_tab_overview', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings', guide: 'pd_tab_guide', day: 'pd_tab_day' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -1681,7 +1681,7 @@ function pdTalkKey(){
     const c = pdOnPaper() ? pdContract() : null;
     if (c) return 'dock:p:' + c.id + ':' + ((pdSendShows() ? 'send' : pdFaceNow()) || _pdTab);
     const held = pdHeldContract();
-    const tab = (typeof igFindingsShows === 'function' && igFindingsShows()) ? 'findings' : (typeof igGuideShows === 'function' && igGuideShows()) ? 'guide' : 'copilot';
+    const tab = (typeof igDayShows === 'function' && igDayShows()) ? 'day' : (typeof igFindingsShows === 'function' && igFindingsShows()) ? 'findings' : (typeof igGuideShows === 'function' && igGuideShows()) ? 'guide' : 'copilot';
     return 'dock:' + face + ':' + pdHolds() + ':' + (held ? held.id : '') + ':' + tab;
   } catch (_){ return null; }
 }
@@ -3486,15 +3486,20 @@ function pdHeadHtml(brain){
   const fd = !face && !pdOnPaper() && typeof igFindingsTabOn === 'function' && igFindingsTabOn();
   /* THE GUIDE (owner picked "On this view", 19 Oct 2026): beside Findings, what the view in front can do */
   const gd = !face && !pdOnPaper() && typeof igGuideTabOn === 'function' && igGuideTabOn();
+  /* YOUR DAY (owner picked "The SAP Way", 9 Nov 2026): the first tab on Explorer's map, before the Overview */
+  const dy = !face && !pdOnPaper() && typeof igDayTabOn === 'function' && igDayTabOn();
+  const dayOn = dy && typeof igDayShows === 'function' && igDayShows();
+  const dayTab = dy ? (() => { const name = _pdT(PD_TAB_NAME.day);
+    return `<button type="button" role="tab" class="pd-tab${dayOn ? ' on' : ''}" data-pd-tab="day" aria-selected="${dayOn}" title="${_pdE(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml('day')}</span></span><span class="pd-tab-w">${_pdE(name)}</span></button>`; })() : '';
   /* THE TABS STAY WHILE A FACE IS UP (ONE TRAIL, owner 19 Oct 2026): the
      face lives under Jambo's tab; Clauses and back to Jambo brings it back */
   const tabs = (pdOnPaper() && !pdSheetOwns()) ? PD_TABS_SHOWN : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
   /* ONE WINDOW (pdSolo): his conversation is the panel, under its one tab "Jambo" — his sign and his name (owner,
      24 Oct 2026: "bring them back") — beside the map's own Findings and Guide where they stand */
   if (pdSolo()){
-    const onT = (fd && typeof igFindingsShows === 'function' && igFindingsShows()) ? 'findings' : (gd && typeof igGuideShows === 'function' && igGuideShows()) ? 'guide' : 'copilot';
+    const onT = dayOn ? 'day' : (fd && typeof igFindingsShows === 'function' && igFindingsShows()) ? 'findings' : (gd && typeof igGuideShows === 'function' && igGuideShows()) ? 'guide' : 'copilot';
     const jb = _pdT('pd_tab_copilot');
-    return `<button type="button" role="tab" class="pd-tab pd-tab-talk${onT === 'copilot' ? ' on' : ''}" data-pd-tab="copilot" aria-selected="${onT === 'copilot'}" title="${_pdE(jb)}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : _pdE(jb)}</button>`
+    return dayTab + `<button type="button" role="tab" class="pd-tab pd-tab-talk${onT === 'copilot' ? ' on' : ''}" data-pd-tab="copilot" aria-selected="${onT === 'copilot'}" title="${_pdE(jb)}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : _pdE(jb)}</button>`
       + tabs.filter(t => t !== 'copilot').map(t => { const name = _pdT(PD_TAB_NAME[t]), on = t === onT;
         return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" title="${_pdE(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span></span><span class="pd-tab-w">${_pdE(name)}</span></button>`; }).join('');
   }
@@ -3511,7 +3516,7 @@ function pdHeadHtml(brain){
       + (fNow === 'signing' ? PD_TABS_SHOWN.filter(t => t === 'doc').map(t => { const name = _pdT(PD_TAB_NAME[t]), cnt = pdTabCount(t, cc);
         return `<button type="button" role="tab" class="pd-tab" data-pd-tab="${t}" aria-selected="false" title="${_pdE(name)}"><span class="pd-tab-w">${_pdE(name)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n}</span>` : ''}</button>`; }).join('') : '');
   }
-  const lit = face === 'red' ? 'red' : face ? 'copilot' : (pdOnPaper() && (_pdTab === 'oblig' || _pdTab === 'form')) ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings'
+  const lit = dayOn ? 'day' : face === 'red' ? 'red' : face ? 'copilot' : (pdOnPaper() && (_pdTab === 'oblig' || _pdTab === 'form')) ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings'
     : gd && typeof igGuideShows === 'function' && igGuideShows() ? 'guide' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
   /* A WORD FOR WHAT THE PANEL HOLDS (the gaps, round 4 "One sheet", 18 Oct
@@ -3526,7 +3531,7 @@ function pdHeadHtml(brain){
      contract's History, the panel's tabs are that page's, never squeezed by a face left behind */
   /* SHORT WORDS (owner's pick, 25 Oct 2026: "Before y…" on the iPad): the tab says "Send", its hover and the trail line the whole name */
   const sendBack = (pdSendHeld() && !pdSendShows() && pdOnPaper()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT('pd_face_w_send_tab'))}</span></button>` : '';
-  return tabs.map(t => {
+  return dayTab + tabs.map(t => {
     const name = t === 'copilot' ? pdLandName() : _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit, cnt = pdTabCount(t, c);
