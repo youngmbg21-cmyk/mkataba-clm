@@ -77,7 +77,8 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await until(() => !!document.getElementById('igd-input') && document.querySelector('#ig-dock [data-pd-tab="findings"]'));
     const A3 = await panelHead('#ig-dock');
     /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"; REVERSES the one window here): Overview first, then Jambo, then the page's own tabs; still no word */
-    check('A3 Explorer: Overview, then its own Findings · Guide, no Jambo tab, no word', !!A3 && /Overview/.test(A3.tabs[0]) && noJb(A3) && A3.tabs.some(t => /Findings/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
+    /* RE-POINTED 9 Nov 2026 (owner: "Your day first"): Your day, then the Overview */
+    check('A3 Explorer: Your day, Overview, then its own Findings · Guide, no Jambo tab, no word', !!A3 && /Your day/.test(A3.tabs[0]) && /Overview/.test(A3.tabs[1]) && noJb(A3) && A3.tabs.some(t => /Findings/.test(t)) && A3.word.length === 0, JSON.stringify(A3));
 
     await page.evaluate(() => setView('register'));
     await until(() => !window.pdSolo() && !!document.getElementById('igd-input'));

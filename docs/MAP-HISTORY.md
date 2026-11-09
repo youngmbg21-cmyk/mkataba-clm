@@ -36146,3 +36146,5 @@ THE HANDBOOK'S RECIPES LEANED ON EACH OTHER: 6.2-6 (then and now) clicked the Ri
 
 Also this round, on #591: the Swedish check at 800 wide found the views group cut by 172px once the bar began beside the legend; a group too long for the room now folds inside its own box (`.ig-viewbar .ig-seg{flex-wrap:wrap}`).
 
+
+THE TAB ORDER, ASKED (9 Nov 2026): the drawing put Your day before the Overview, which reverses the 26 Oct ruling "an overview tab side panel in each page followed by the jambo tab" (overview-tab-verify 1 and one-window-bar-cards-verify A3 caught it). Asked; the owner: "Your day first". Explorer is the one exception: Your day · Overview · Findings · Guide; every other page keeps the Overview first.

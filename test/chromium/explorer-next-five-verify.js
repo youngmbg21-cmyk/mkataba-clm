@@ -311,6 +311,16 @@ const check = (name, pass, detail) => {
         const a = g.getBoundingClientRect(), b = st.getBoundingClientRect(); return a.top >= b.top - 1 && a.bottom <= b.bottom + 1; });
       check(`6 ${w}×${hh}: the legend with its then-and-now stays inside the stage`, fit === true, String(fit));
       await page.screenshot({ path: path.join(OUT, `6-${w}x${hh}.png`) });
+      /* YOUR DAY at each screen (9 Nov 2026): every figure and the pin in sight without scrolling, each line inside its tile */
+      const dfit = await page.evaluate(() => { intel.dayTab = true; renderIntelDock(); const d = document.getElementById('ig-day'); if (!d) return null;
+        const box = d.getBoundingClientRect(), T = [...d.querySelectorAll('.ig-day-t')];
+        const inView = T.every(t => { const r = t.getBoundingClientRect(); return r.bottom <= box.bottom + 1 && r.right <= box.right + 1; });
+        const inside = T.every(t => { const r = t.getBoundingClientRect(); return [...t.children].every(c => { const q = c.getBoundingClientRect(); return q.left >= r.left - 1 && q.right <= r.right + 1; }); });
+        return { tiles: T.length, inView, inside }; });
+      check(`6b ${w}×${hh}: Your day's five figures and the pin are in sight, every line inside its tile`, !!dfit && dfit.tiles === 6 && dfit.inView && dfit.inside, JSON.stringify(dfit));
+      await page.waitForTimeout(700);  /* the panel's crossfade finished before the picture */
+      await page.screenshot({ path: path.join(OUT, `6-day-${w}x${hh}.png`) });
+      await page.evaluate(() => { intel.dayTab = false; renderIntelDock(); });
     }
     check('7 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
