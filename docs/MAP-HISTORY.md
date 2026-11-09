@@ -36084,5 +36084,118 @@ Round 2 (the lists): EVEN TILES — the folder cards had different heights becau
 Round 3 (a contract): the opening paragraph's 8px came from `px-2 -mx-2` where the Tailwind blob carries no `-mx-2` and a 1-4-1 rule resets the paper's margins, so the fix is scoped to beat it. Round 1's "three doors at most" hid History, the fourth link beside a contract (negotiate-new-look-verify 5, red on GitHub's run of round 1); beside a contract the four short links fit, so the cap now applies only off a contract. round8-phone-verify 2b summed every number in the sentence; with ONE COUNT the sentence leads with the whole, so the check reads the whole and that the parts add up to it. The Send screen's note label is shown by an inline `display:var(--sh-note-d,block)` that a 1-3-x rule sets to flex, so the fold sets the variable at that rule's own scope.
 Round 4 (other pages): the Explorer's two bars are one by making the lens row static inside the view bar; to keep one row on the owner's laptops the bar's buttons are 5px at the sides and 11.5px (measured: 764px of groups in 768). The New agreement cards' 118px came from a 1-5-1 new-look rule, overridden at its own scope; the Create hint is in the page head, not the foot, so its grey is set under #modal-root. one-sheet-as-drawn-verify went red once when five checks ran side by side and green alone — a load flake, not this change.
 
+## INSIGHTS — ONE LINE AT THE FOOT, AND A LEGEND ROW ISOLATES (owner, 9 Nov 2026)
+
+The owner, with two pictures: "the legend and the other buttons should all be in one line and the same font" and "you should be able to press on the items on the legend so to isolate the press and see them on the screen. So i should be able to press on the high risk and only high risk show on the screen and press once more and goes back to normal." Measured first: legend 252 + Lens 391 + views 263 + zoom 106 + Still 60 + Fold all 61 ≈ 1,190px against a stage of 972–1,142px with Jambo's panel open. Asked how to fit; the owner: "move the screen size adjuster to the top right of the screen". The zoom alone left the 1366 screen ~105px short, so Still (the other camera control) went with it, and the bar's buttons went from 9px to 7px a side (type unchanged, 12px).
+
+- `.ig-camerabar` (Still, − 100% +) top right of the stage; the head line keeps clear of it (`.ig-note` max-width).
+- The view bar: `left:276px`, flush right, the Lens group inline (no longer a row above), wraps upward only if ever too narrow; the legend's folded head is the bar's height and its title the bar's 12px.
+- `igLegendPick(key,label)`: one filter lens `kind:'legend'` (its label the row's words; the head line says "Showing N of T"); same row again or Show everything lets go; another row replaces it. Rows: lens rows (`lens:<lens>:<bucket>`, people incl. "N more people" and "Nobody"), status rows, colour rows. The money-on-paper rows stay a key (they describe streams, not contracts). While a pick narrows the map the legend keeps counting the whole map (`_igLegendAll`, held in memory, never in the saved recipe), so every row stays pressable. REVERSES "A KEY, NOT A DOOR" (28 Sep 2026); f425 (2) and explorer-brain 4e re-pointed.
+
+## INSIGHTS — THE GUIDE'S VIEWS AT THE TOP (owner, 9 Nov 2026)
+
+The owner, with a picture of the Guide tab's "The other views" cards: "Move these buttons to the top of the panel so when you select one, the options for navigation appear below them. Does this make sense? draw a proposal first". Drawn today against proposed ("Explorer Guide Views"); the owner: "Build it". `igGuideHtml` now opens with `.ig-gd-views` (all five, the map's own `aria-pressed`, each titled with its one-line words), then the view's name and what it is, its own rows, every view's rows; the cards at the foot are gone. The press is the cards' own (`data-ig-gd-view-go` → `igSetView` + `igGuideRepaint`).
+
+## THE HARMONY REVIEW — FIX ROUND 1 (9 Nov 2026)
+The owner, the morning after the overnight run: "count rows … when I type our paper or templates in the jambo, it does not
+take me to the page … Image 1, you have build the email to be in a card when it should be a whole white paper … Image 2,
+sometimes i get pages that are missing a jambo panel … Image 3 … the lower part of the page is not white but rather grey";
+then "Your redline cards should always be visible and not minimized … The cards that are with the counterparty can stay
+minimized"; "I am also unable to scroll on the paper page … and the contracts page"; on the asked column "the column should
+only reflect the name of the column and the ability to change the name of it. The count should maybe go to the side panel";
+on the foot "Why do you need 2 columns?". The fix list was drawn (Artifact "HaTi Fix List") and the owner said "go".
+- SCROLL: the round-2 rule `#ct-place .ct-page .ct-wall{flex:1 0 auto}` let the wall grow past the window while
+  `#ct-place` clips, so nothing scrolled; now `flex:1 1 0%;min-height:0;overflow-y:auto`. Measured with a real wheel on
+  every page: wall 1299, list 1192, paper 411, parties 764, approvals 1023, board 781; the rest had nothing to scroll.
+- GREY: Our paper's list scrolls inside the white sheet to its foot, the preview sticky beside it.
+- THE MISSING PANEL: `shareBesideJambo()` is true only on Home (state.view 'dashboard'); a Send pressed on another page
+  (Our paper, Approvals …) opened the letter alone. Measured at the parent: from ourpaper and approvals, no #ig-dock. Now
+  `openShareModal` lands on the contract's paper first (`roomHomeLand`) and waits, bounded, for the panel. Every page in
+  JB_PAGE_PLACES was opened and has its panel.
+- PAGE NAMES: `jamboPageWordOf` refused any name with a space ("our paper", "my notes", "flow map", "pulse board"); every
+  name of a page now moves, with a closing "page"/"tab" let go. f955 3 walks every name of every page.
+- REDLINE PILES: round 1's fold covered every pile but "awaiting" and "refused"; now only "with" (`RL_NL_FOLDS`), settled
+  folding on its own as before.
+- THE LETTER: the mail column lost its border and corner; one hairline at its left.
+- THE BOARD COUNTS ROWS (`ndRowsN`, new look only): a bundle of details is one row, one count, Home's number.
+- THE ASKED COLUMN: the head is the name and ⋯ on one line ("…" when long); "k of n read" left the head (reverses 8 Nov's
+  head as drawn) — the panel's Columns you asked already says it (`rfp_col_sub`). The foot's right half ("The question
+  column was read once and is kept · Our standards is HaTi's own check…") is gone; the keys stay inert in both books.
+- OUR PAPER'S "Invalid Date": a stored time that is not an ISO day (`tplnDayOf`) is read, or left out.
+
+## THE HARMONY REVIEW — FIX ROUND 2, EVERY PAPER IN PAGES (9 Nov 2026)
+The owner: "I have asked you to fix this multiple times which is the paper should be in pages with page breaks and not one
+full long paper. This needs to be fixed across the platform on all papers"; on the drawing "the notes should also continue
+to be part of the page". Measured: Home's paper of a draft or signed contract was already cut (pagesWatch via
+`igPaperPaginate`), but once a contract has changes Home draws `.ig-redpaper > article.rl-paper` (Clean, Redline, Their
+view), and `igPaperPaginate` asked only for `.pg-sheet` — so every negotiated contract stood as one long sheet (MK-A2 in the
+handbook world: 0 gaps before, 2 after). The outer article has no padding (its margins are on `.rl-zoom > .rl-paper`), so
+the inner sheet is the one cut, or page 2's first line sat on the page's top edge. A template's own page (`#tpl-dt`) was one
+sheet too; it is cut the same way. The clause editor and the template builder keep one sheet (rlPaginate's rule: a break
+redrawn under the caret moves the words being typed); said to the owner.
+
+## INSIGHTS — YOUR DAY, THE SAP WAY (owner, 9 Nov 2026)
+
+The owner: "the morning brief seems to be useless or at least it is not clear what it does or has no been designed correctly." Three options were drawn on today's Explorer ("Morning Briefing Options": The SAP Way, The Legora Way (recommended), Walk the map). The owner: "SAP way".
+
+Built as drawn: a tab "Your day" before Overview on Explorer's panel (`igDayTabOn`, `igDayShows`, `intel.dayTab`; pressed again, back to the Overview). Under the day and "Counted HH:MM", five figures two to a row (`igDayData`, `igDayHtml`): Need you (the one desk's count, `ndRead().n`, late and oldest; Open the list → `ndOpenBoard`), High risk (the Risk lens's high bucket, which stream holds them, not checked yet; Show on the map → the Risk lens with the legend's own pick `lens:risk:high`), Duties due in 30 days (late + due; Open Obligations), Renewals to decide (in 90 days, the value; Open the Calendar, which opens on its 90-day agenda), New since yesterday (one → its ref and Open it → `roomHomeLand`; many → `regShowOnly`). Pointing at a figure lights its contracts (`igPaintIds`), letting go puts the map back. A figure at nought is drawn, never pressable. The sixth tile is Pin as my morning view (`igBriefPinned`, kept in this browser): Explorer opens on Your day the first time each day (`igBriefAutoStart`). The foot: "Counted from the contracts you can see. Nothing is sent to Jambo." (as drawn; the brief's own hello already said it).
+
+RETIRED: the six-stop walk (`igBriefSteps`, `igBriefApply`, `igBriefGo`, `igBriefStop`, `igBriefStep`, `igBriefNoteHtml`, `igBriefHtml`, `.ig-brief*`, the head line's ‹ › Stop Pin, and "Your briefing" under Jambo's answers). "Brief me" typed and the Guide's row ("Your day, five figures") now turn the panel to the tab (`igBriefStart`).
+
+THE HANDBOOK'S RECIPES LEANED ON EACH OTHER: 6.2-6 (then and now) clicked the Risk lens expecting it off; the old walk had turned it off on its way. It now starts with `igLensSet(null)`.
+
+Also this round, on #591: the Swedish check at 800 wide found the views group cut by 172px once the bar began beside the legend; a group too long for the room now folds inside its own box (`.ig-viewbar .ig-seg{flex-wrap:wrap}`).
+
+
+THE TAB ORDER, ASKED (9 Nov 2026): the drawing put Your day before the Overview, which reverses the 26 Oct ruling "an overview tab side panel in each page followed by the jambo tab" (overview-tab-verify 1 and one-window-bar-cards-verify A3 caught it). Asked; the owner: "Your day first". Explorer is the one exception: Your day · Overview · Findings · Guide; every other page keeps the Overview first.
+
+- THE SEND PAGE, AGAIN (same day): the owner on the pictures: "this is incorrect. The whole page should be white not a card
+  on top of a shaded backdrop". Fix round 1 had only taken the card off the letter; the page itself still stood on the
+  desk's grey, its head and body inset 12px with corners and a lift (the ONE SHEET block). In the new look the page is now
+  white edge to edge (the inline ground in `shareLetterPage`, and two html.lg-new rules), one hairline under its head.
+- ONE GAP ABOVE EVERY JAMBO BOX (same day): "why is there a massive gap between the links and the jambo button? this is a
+  waste of space. Make sure there is always a consistent management of the gaps". Home's panel (#ig-dock, also beside a
+  contract's History) kept `#igd-pre` — the typed words' preview line, 16px + 6 — even when empty; with "Jambo ›" above
+  the box the gap under the links was ~75px. In the new look an empty line takes no room; measured links → next thing
+  13px and "Jambo ›" → box 6px on Approvals, Our paper, Import, Settings, Calendar, the Board, Home and History.
+- THE WAY BACK IS WHERE YOU WERE (same day): the owner, "fix the History panel showing the wrong contract". Measured: MK-A2's
+  paper → Approvals → MK-HB4's History from Approvals' panel (`apnGo('hist')` → `hbStripBring`) left Home's panel saying
+  "‹ Back to MK-A2 on the paper": only `caGo` (Jambo's words) pushed the trail (`caTrailPush`), so a move by a button left a
+  stale place on top. Now every page drawn notes where the reader stood (`caTrailSeen` from `renderPageHeader` and at the
+  top of `caTrailTop`), and a step back by the trail is not noted again (`_caBackStep`). jambo-words-verify 7c re-pointed:
+  the way back is the Calendar the reader last stood on, not MK-W2's paper two moves earlier. f978.
+- A PRESS STAYS WHERE IT WAS PRESSED, AND AN ITALIC WORD IS NEVER CUT (same day, on Reads): "The column as highlighted is
+  cutting off some of the words. Also, when i press on one of the lines, the page kicks me to the top of the page... I
+  should remain on where I pressed". Measured at the parent: a read's table 900 → 0 on a row press (`rdTablePaint` wrote
+  the scroller anew), the list of reads 354 → 0 and My notes 300 → 0 (`renderReads`/`renderMyNotes` draw the page again);
+  "Not found" (italic, `.ac-ans.tone-none`) lost its last letter's lean inside an ellipsis box (`.rdt-w`, `.reg-table .ac-a`).
+  Now each keeps its scroll while the same list is in view, and the italic word keeps .2em at its right. Swept: Approvals,
+  Parties, Obligations, Pulse, Import, Requests, People and Our paper only mark the chosen row — they never jumped. f979.
+- THIN PAGE LINES WHERE A PERSON TYPES (same day): asked "what is going on in the clause editor that needs to build
+  pages?", the owner was given three options (one sheet · thin page lines · real pages after a pause) and said "go with
+  option 2, thin page lines". `pagesLines(sheet)` (js/pages.js) draws a faint dashed line where each A4 page of the
+  sheet's own width would end, "Page N" (`pg_line_page`, both books) in the sheet's empty left margin — a pointer-free,
+  aria-hidden layer whose label is an attribute, so nothing is pushed and nothing is read as wording. Called after
+  every paint of the clause editor's sheet (`ceRenderPaper`) and the builder's (`tbPaintPaper`). The first try put
+  "Page 2 of 3" at the right and it covered the end of a line of wording; moved to the left margin, shortened. f980.
+- THE HORIZON HEAD IS NEVER SEE-THROUGH (same day): "review why we have this bug": Calendar › Horizon's head
+  ("AGREEMENT … DECISION", `.cal-hz-ruler`, sticky at the top of its scroller) was painted transparent by the new look's
+  harmony rule, so the rows scrolled visibly through it. Now the page's white. Swept every page and Calendar view for
+  another sticky head with no ground of its own: none (the probe found only `.cal-hz-ruler` at the parent). f977 fix 11.
+
+## INSIGHTS — YOUR DAY ON THE MAP, NOT A LIST (owner, 9 Nov 2026)
+
+The owner, with a picture of Your day and the four figures circled (Need you, High risk, Duties due in 30 days, Renewals to decide): "these should only show on the map not on the list". Built: Need you, Duties and Renewals now narrow the map to their own contracts with a filter lens of `kind:'day'` (`igDayGo`, go `onmap`, each figure's `fit`): Need you as the map stands, Duties with the Obligations lens, Renewals on the Timeline by decision; High risk keeps the Risk lens and the legend's own pick. The head line says "Showing N of T · <figure> · Show everything"; Your day steps aside to the Overview. New since yesterday (not circled) still opens the contract. A figure whose contracts the map does not draw is not pressable. The links say "Show on the map ›"; `int_day_go_list`, `int_day_go_oblig`, `int_day_go_cal` are retired (left inert in both books).
+
+NOTED FOR THE OWNER: Need you counts THINGS waiting (the bell's number); the map shows the CONTRACTS they sit on, so 9 things on 5 contracts reads "Showing 5 of 16".
+Then the owner: "Include New since yesterday as well". New since yesterday narrows the map too (go `onmap`, no lens); every figure on Your day now shows on the map. `int_day_go_open` and `int_day_go_them` retired (left inert in both books).
+- THE PAGE IN FRONT IS THE ONE ASKED ABOUT (same day, the owner again: "fix the History panel showing the wrong
+  contract"). After f978's way back, one wrong contract remained: MK-A2's paper → Approvals → MK-HB4's History left
+  Jambo's box saying "Ask Jambo about MK-A2…", and a question went with MK-A2's wording — `intel.paper` stays "up"
+  (`igPaperUp`) behind the Board while a strip's page (`pdCardNow`) stands in front, and the box and the ask read the
+  paper first. Now the page in front wins (`igCardInFront`, `igPaperInFront` in `igAskPlaceholder`, `igAskCost`,
+  `igHeldAskId`, `igPageTalkAsk`): "Ask Jambo about MK-HB4…", the question with MK-HB4. Back on MK-A2's paper it says
+  MK-A2 again. held-contract-asks-verify, home-held-contract-verify, point-buttons-and-brief-verify, stakes-verify green.
+
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 Owner, 9 Nov 2026, after a UI review of HaTi next to Legora's pictures: "Make it a rule that any updates or references moving forward should be related to the new version of Hati with the whole white page and not the cards version. The old version with cards will be deleted." The two versions: the old look draws a page as separate cards (a head card `.ph-card` over a list card, Home's pieces each in their own card); the new look, behind the admin switch `prefs.newLook` (`newLookOn` → `html.lg-new`), draws ONE WHITE SHEET (head and list one surface, the Harmony block). From this day every change, drawing, photo and test is made on the new look; the review's own photos were taken with the switch on. Deleting the old look (the switch, the server's admin-only guard on `newLook`, every `lg-new` scope in index.html and `newLookOn()` branch in js/) is a job of its own and waits to be asked for by name.

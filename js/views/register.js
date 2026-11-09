@@ -2076,17 +2076,17 @@ if(typeof document!=='undefined'&&!document._rfpWired){ document._rfpWired=true;
     if(typeof window.askColLandOn==='function') askColLandOn(id, qt); else regOpenContract(id);
   });
 }
-/* THE NEW LOOK'S FOOT, AS DRAWN: how many in this folder · Show all N, and on the right what the columns are */
+/* THE NEW LOOK'S FOOT, AS DRAWN: how many in this folder · Show all N, and nothing else */
 function regNlFootHtml(cs){
   const R=regState(), n=(cs||[]).length, inF=R.type&&R.type!=='all';
   let all=0; try{ all=regRestBase().length; }catch(_){ all=0; }
   const left=inF?i18tn('reg_nl_foot_folder',n,{ n }):i18tn('reg_foot_n',n,{ n:n.toLocaleString(jxLocale()) });
   const more=inF&&all>n?` · <button type="button" class="reg-nl-all" data-ctf-tab="all">${esc(i18t('reg_nl_show_all',{ n:all }))}</button>`:'';
-  const ask=typeof window.askColKeys==='function'&&askColKeys().length;
-  const right=[ask?i18t('reg_nl_foot_ask'):'', i18t('reg_nl_foot_std')].filter(Boolean).join(' \u00b7 ');
-  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span><span class="reg-nl-foot-r">${esc(right)}</span>`;
+  /* THE FOOT SAYS ONLY THE COUNT (owner, 9 Nov 2026: "Why do you need 2 columns?"): the sentence about the question
+     column and Our standards is gone; how far a column is read is said in Jambo's panel (Columns you asked) */
+  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span>`;
 }
-/* the new look's foot is two halves in its own row: as the list narrows, the row is written again whole */
+/* the new look's foot is the count in its own row: as the list narrows, the row is written again whole */
 function regNlFootPut(cs){ const f=regNl()&&document.getElementById('reg-nl-showing'); if(f&&f.parentElement) f.parentElement.innerHTML=regNlFootHtml(cs); }
 function regCtFootHtml(cs){
   if(regNl()) return regNlFootHtml(cs);

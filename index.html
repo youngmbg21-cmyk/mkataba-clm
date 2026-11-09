@@ -2364,7 +2364,10 @@
      so only what is drawn there keeps the old ink; light only — dark never
      moved. Measured by ink-wash-verify (paper and buttons equal before/after). */
   :root:not(.dark) .pg-sheet{ --color-text:#141F1D; }
-  :where(:root:not(.dark)) .pg-sheet{ color:var(--color-text); }  /* the sheet INHERITED the app's ink; the gap between pages is desk and follows it */
+  :where(:root:not(.dark)) .pg-sheet:where(:not(.nego-doc)){ color:var(--color-text); }  /* the sheet INHERITED the app's ink; the gap between pages is desk and follows it */
+  /* Home's negotiated paper, cut into pages (9 Nov 2026): it keeps its own ink, the Negotiate page's (one-paper-everywhere):
+     the sheet's colour rule above passes the negotiation paper by, and its ink token stays what it inherits */
+  :root:not(.dark) #ig-paper .ig-redpaper .rl-paper.pg-sheet{ --color-text:inherit; }
   :root:not(.dark) :is(.rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send){
     --color-text:#141F1D; --color-divider:#E2E7E5; --surface-2:#EEF2F0;
     --color-neutral-100:#EEF2F0; --color-neutral-200:#E2E7E5; --color-neutral-300:#CBD3D0;
@@ -10014,6 +10017,9 @@
   :is(#ig-dock, html) .ac-ans.tone-more>i, :is(#ig-dock, html) i.ac-lg-more{background:var(--ac-more);box-shadow:none}
   :is(#ig-dock, html) .ac-ans.tone-none>i, :is(#ig-dock, html) i.ac-lg-none{background:transparent;box-shadow:inset 0 0 0 1.8px var(--ac-no)}
   :is(#ig-dock, html) .ac-ans.tone-none{color:var(--st-steel-fg);font-style:italic}
+  /* AN ITALIC WORD IS NEVER CUT (owner, 9 Nov 2026: "The column … is cutting off some of the words"): a leaning last
+     letter reaches past its box; where the box clips (an ellipsis cell), it keeps that much room at its right */
+  :is(#ig-dock, html) .ac-ans.tone-none > :is(span, b){padding-right:.2em}
   :is(#ig-dock, html) .ac-gbar i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
   :is(#ig-dock, html) .ac-bar-t i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
   /* THE QUESTION'S CARD, THE LEGORA WAY (as drawn, 29 Oct 2026): nothing boxed; the question, one sentence,
@@ -11034,7 +11040,25 @@
   /* LENSES (the Lenses round, 8 Nov 2026): the Lens group stands on its own line above the views, in the bar's
      own clothes; a lens on wears the needs-attention amber. The legend's lens part: a ring for each mark, its
      count at the row's end, one bar of the counts. Colours are the stage's own (--hb-*), never typed here. */
-  .ig-brain .ig-viewbar .ig-lensrow{position:absolute;right:0;bottom:calc(100% + 6px);display:flex;justify-content:flex-end;white-space:nowrap}
+  .ig-brain .ig-viewbar .ig-lensrow{display:flex;white-space:nowrap}
+  /* ONE LINE (owner, 9 Nov 2026: "the legend and the other buttons should all be in one line and the same font"): the
+     legend's head, the Lens group, the views and Fold all share the stage's foot line, the legend's head the bar's height
+     and type; the camera (Still, zoom) stands in the top-right corner. Past the room, the bar wraps upward, never over the legend. */
+  .ig-brain .ig-viewbar{left:276px;justify-content:flex-end;flex-wrap:wrap-reverse;row-gap:6px}
+  .ig-brain .ig-viewbar .ig-seg button,.ig-brain .ig-viewbar .ig-seg .ig-seg-k{padding:0 7px}
+  /* a narrow map (800 wide, Swedish words): a group too long for the room beside the legend folds onto a second row inside its own box, never cut */
+  .ig-brain .ig-viewbar .ig-seg{max-width:100%;flex-wrap:wrap}
+  .ig-brain .ig-camerabar{position:absolute;right:12px;top:10px;z-index:2;display:flex;align-items:center;gap:6px}
+  .ig-brain .ig-note{max-width:calc(100% - 210px)}
+  /* a legend row is a press (owner, 9 Nov 2026): it lights on hover, and the picked one wears the bar's pressed look */
+  .ig-brain .igl [data-ig-pick]{cursor:pointer;border-radius:4px;margin:0 -4px;padding-left:4px;padding-right:4px}
+  @media (hover:hover){ .ig-brain .igl [data-ig-pick]:hover{background:rgba(var(--hb-gw),.14)} }
+  .ig-brain .igl [data-ig-pick][aria-pressed="true"]{background:rgba(var(--hb-gw),.24);color:var(--hb-ink)}
+  .ig-brain .igl [data-ig-pick]:focus-visible{outline:2px solid var(--hb-amber);outline-offset:1px}
+  .ig-brain .igl .igl-head .igl-k{font-size:12px;font-weight:500;margin:0;color:var(--hb-mute)}
+  .ig-brain .igl.is-folded{padding:0 4px 0 10px}
+  .ig-brain .igl.is-folded .igl-head{height:var(--ctl-h-sm);margin:0}
+  .ig-brain .igl.is-folded .igl-head .ui-btn{height:var(--ctl-h-sm);width:var(--ctl-h-sm)}
   .ig-brain .ig-seg .ig-seg-k{height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-mute);display:inline-flex;align-items:center;border-right:1px solid rgba(var(--hb-ln),.14)}
   .ig-brain .ig-seg.ig-lens button[aria-pressed="true"]{background:rgba(242,178,76,.26);color:var(--hb-ink)}
   .ig-brain .igl .igl-sw.igl-ring{background:transparent;border:2px solid;box-sizing:border-box}
@@ -11069,13 +11093,6 @@
   .hb-figmenu .hb-fm-w span{font-size:12px;color:var(--color-quiet)}
   .hb-figmenu kbd{align-self:center;font:500 11px var(--font-mono);color:var(--color-quiet);border:1px solid var(--color-divider);border-radius:4px;padding:0 5px}
   /* THE MORNING BRIEFING (8 Nov 2026): the stops under Jambo's hello, each its sentence and its Show */
-  .ig-brief{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
-  .ig-brief-s{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);font-size:13px;line-height:1.45;background:var(--color-surface)}
-  .ig-brief-s.is-on{border-color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text)}
-  .ig-brief-s .ig-brief-t{flex:1 1 auto;min-width:0}
-  .ig-brief-s .ig-brief-t b{font-weight:var(--w-strong)}
-  .ig-brief-s .ui-link{flex:none;white-space:nowrap}
-  #ig-dock .ig-brief-src{margin-top:6px}
   /* THE RENEWAL CLIFF'S MONTH CARD (8 Nov 2026): on the stage, in the stage's own clothes */
   .ig-brain .ig-cliff-card{position:absolute;z-index:3;min-width:220px;max-width:280px;box-sizing:border-box;padding:10px 12px;background:var(--hb-menu);border:1px solid rgba(var(--hb-ln),.25);border-radius:var(--radius);box-shadow:var(--hb-shadow);color:var(--hb-ink);font-size:12px}
   .ig-brain .ig-cliff-card b{display:block;font-size:13px;font-weight:var(--w-strong);margin-bottom:4px;white-space:nowrap}
@@ -11141,6 +11158,31 @@
   .ig-gd-rt{display:flex;flex-direction:column;gap:1px;min-width:0}
   .ig-gd-go{font-size:12px;font-weight:var(--w-label,500);color:var(--accent-ink);white-space:nowrap}
   .ig-gd-row.is-on .ig-gd-go{color:var(--st-green-fg,var(--accent-ink))}
+  /* YOUR DAY (owner picked "The SAP Way", 9 Nov 2026): the day's five figures, two to a row, each opening its list */
+  .ig-day{display:flex;flex-direction:column;gap:10px;padding:16px;font-size:13px;line-height:1.35;color:var(--color-text)}
+  .ig-day-hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .ig-day-hd b{font-size:15px;font-weight:var(--w-strong,600)}
+  .ig-day-at,.ig-day-src{font-size:11.5px;color:var(--color-quiet)}
+  .ig-day-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .ig-day-t{all:unset;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);cursor:pointer}
+  .ig-day-t.is-none{cursor:default}
+  .ig-day-t.is-pin{border-style:dashed}
+  .ig-day-t.is-pin[aria-pressed="true"]{border-style:solid;border-color:var(--color-text)}
+  @media (hover:hover){ button.ig-day-t:hover{border-color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text)} }
+  .ig-day-t:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .ig-day-n{font-size:24px;line-height:1.1;font-weight:var(--w-strong,600);font-variant-numeric:tabular-nums}
+  .ig-day-n.is-ruby{color:var(--tile-ruby-fg)}
+  .ig-day-n.is-amber{color:var(--tile-amber-fg)}
+  .ig-day-l{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ig-day-l b{font-weight:var(--w-strong,600)}
+  .ig-day-s{font-size:11.5px;color:var(--color-quiet);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .ig-day-go{font-size:12.5px;font-weight:var(--w-label,500);color:var(--accent-ink);white-space:nowrap;margin-top:2px}
+  /* THE VIEWS AT THE TOP of the Guide (owner, 9 Nov 2026): one row of five, the map's own a filled pill */
+  .ig-gd-views{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;background:var(--color-neutral-100);border-radius:999px;padding:3px}
+  .ig-gd-views button{all:unset;box-sizing:border-box;text-align:center;padding:6px 0;border-radius:999px;font-size:12.5px;font-weight:var(--w-label,500);color:var(--color-text);white-space:nowrap;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .ig-gd-views button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  @media (hover:hover){ .ig-gd-views button:not([aria-pressed="true"]):hover{background:var(--color-surface)} }
+  .ig-gd-views button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   .ig-gd-others{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .ig-gd-others button{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;cursor:pointer;min-width:0}
   .ig-gd-others button:hover{border-color:var(--accent-solid)}
@@ -14008,6 +14050,11 @@
   .pg-sheet{position:relative}
   /* the air that runs the paper down to the last page's bottom edge */
   .pg-sheet::after{content:'';display:block;height:var(--pg-extra,0px)}
+  /* THIN PAGE LINES WHERE A PERSON TYPES (owner picked option 2, 9 Nov 2026; pagesLines): a faint dashed line where each
+     page would end and "Page N" in the left margin, over the sheet, never pushing a word */
+  .pg-lines{position:absolute;left:0;top:0;right:0;height:0;z-index:2;pointer-events:none}
+  .pg-line{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--color-neutral-400);opacity:.55}
+  .pg-line::after{content:attr(data-l);position:absolute;left:6px;top:4px;white-space:nowrap;font-family:var(--font-body);font-size:10.5px;line-height:1;color:var(--color-quiet)}
   .pg-layer{position:absolute;left:0;top:0;right:0;height:0;z-index:3;pointer-events:none;
     user-select:none;-webkit-user-select:none}
   .pg-layer>*{position:absolute;box-sizing:border-box}
@@ -18802,7 +18849,7 @@
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as{margin-top:4px}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as .sh-as-go{font-weight:400;font-size:12.5px}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2{margin:3px 0 0;font-size:12.5px}
-  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail{padding:16px 32px 24px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail{padding:16px 0 24px 36px;background:var(--color-surface);border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row{margin:0;padding:8px 0 12px;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;border-bottom:1px solid var(--color-divider)}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row .sh-lt-k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail #sh-lt-subject{border:0;background:none;padding:0;height:auto;font-weight:var(--w-label);font-size:13.5px;box-shadow:none}
@@ -18810,7 +18857,7 @@
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap .sh-lt-b textarea{font-family:var(--font-doc);font-size:15px;line-height:1.55;border-color:var(--color-divider);background:var(--color-surface)}
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid > #share-step-2:not(.hidden){max-width:none;width:100%;align-self:stretch}
   html.lg-new #modal-root .modal-in[data-sh-page] #share-step-2 > #sh-letter.sh-lt.is-sap{display:grid;padding-top:16px}
-  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap > .sh-lt-mail{border:1px solid var(--color-divider);border-radius:var(--radius);min-height:100%}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap > .sh-lt-mail{border:0;border-left:1px solid var(--color-divider);border-radius:0;min-height:100%}
   /* Before you send, as drawn: the verdict, then rows — a short label, what it says */
   html.lg-new #ig-dock .sh-lt-card,html.lg-new .sh-lt-side .sh-lt-card{border:0;border-radius:0;box-shadow:none;background:none;padding:12px 0;border-bottom:1px solid var(--color-divider);display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 12px;align-items:start}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card > h4{margin:0;font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
@@ -19013,7 +19060,9 @@
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad-k{font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad-n{font-size:22px;font-weight:400;color:var(--color-text)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad-v{font-size:12px;color:var(--color-text)}
-  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-ruler{grid-template-columns:280px minmax(0,1fr) 200px;background:transparent;border:0;border-bottom:1px solid var(--color-divider)}
+  /* the head stays put as the rows scroll under it, so it is the page's own white, never see-through (owner, 9 Nov 2026:
+     on Horizon the rows showed through "AGREEMENT … DECISION") */
+  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-ruler{grid-template-columns:280px minmax(0,1fr) 200px;background:var(--color-surface);border:0;border-bottom:1px solid var(--color-divider)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-col{padding:8px 0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-col-dec{text-align:right}
   html.lg-new #app-shell .cal-hz-row.is-nl{grid-template-columns:280px minmax(0,1fr) 200px;align-items:start;border-bottom:1px solid var(--color-divider);padding:14px 0}
@@ -19310,8 +19359,9 @@
   html.lg-new .rfp-ask .rfp-a{font-size:13.5px;font-weight:var(--w-label)}
   /* the list's heads as drawn: small capitals on the white page, two lines where the head names both */
   html.lg-new #ct-place .ct-page .reg-table thead th .reg-th-sub{display:block;text-transform:none;letter-spacing:0;font-size:11px;font-weight:var(--w-label);margin-top:2px;white-space:normal}
-  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl{text-transform:none;letter-spacing:0;font-size:12.5px;white-space:normal}
-  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl .ac-th-w{white-space:normal;overflow:visible}
+  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl{text-transform:none;letter-spacing:0;font-size:12.5px;white-space:nowrap}
+  /* ONE COLUMN, ONE LINE (fix round 1, item 8): the name takes the column's width and gives way with "…"; ⋯ at its end */
+  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl .ac-th-w{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-panel{padding:4px 0 16px}
   html.lg-new #ct-place .ct-page .reg-table thead th{background:var(--color-surface);text-transform:uppercase;font-size:11px;letter-spacing:.06em;font-weight:var(--w-label);vertical-align:bottom}
   /* THE WALL AS DRAWN: papers on the page itself (no box around them), each a sheet with its mark at the corner and the party and value at its foot */
@@ -20033,6 +20083,25 @@
   html.lg-new #na-root .na-file-b > .na-need{grid-column:1;grid-row:2;font-size:12px}
   html.lg-new #na-root .na-file-b > .na-seg{grid-column:2;grid-row:1 / span 2}
   html.lg-new #modal-root .na-why{color:var(--color-quiet);font-weight:400}
+  /* ==== FIX ROUND 1 (the owner's drawn fix list, 9 Nov 2026) ====
+     THE LETTER IS THE WHITE PAGE (item 6): the Send letter's column has no card round it (no border, no corner), one
+     hairline at its left divides it from the form, as drawn (the rules above, edited in place).
+     IT SCROLLS WHERE YOU ARE (item 1): on the Contracts place the head and tabs stay; the wall (and the list) scroll
+     inside the white sheet, taking the room left under the head, never growing past the window where the place clips
+     them. Our paper (item 2): the white sheet grows with its list, so no grey shows under it; the paper's preview stays
+     in view while the list scrolls. */
+  /* THE SEND PAGE IS THE WHITE PAGE (fix, 9 Nov 2026: "The whole page should be white not a card on top of a shaded
+     backdrop"): no inset, no corner, no lift on its head or its body; one hairline under the head */
+  html.lg-new #modal-root .modal-in[data-sh-page] .sh-hd{top:0;margin:0;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;box-shadow:none}
+  html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid{margin:0;border:0;border-radius:0;box-shadow:none;clip-path:none}
+  /* ONE GAP ABOVE EVERY JAMBO BOX (owner, 9 Nov 2026: "why is there a massive gap between the links and the jambo button?
+     … Make sure there is always a consistent management of the gaps"): the line that says what typed words would do takes
+     no room until it has words, so links → "Jambo ›" → the box stand at the same 12px on every panel */
+  html.lg-new #ig-dock .igd-foot > .hb-pre:empty{display:none}
+  html.lg-new #ct-place .ct-page .ct-wall{flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ct-page .ct-wall > *{flex:none}
+  html.lg-new .tpln{height:auto;min-height:100%}
+  html.lg-new .tpln .tpln-sheet{position:sticky;top:8px;align-self:start}
   html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 <style>

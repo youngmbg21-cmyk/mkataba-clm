@@ -48,7 +48,7 @@ const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String
 const NAMES = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnNeedDoorAttrs', 'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts',
   'ndHomeRowHtml', 'ndAvHtml', 'ndKindOfRow', 'ndHomeHtml', 'ndKindsOf', 'ndOnBoard', 'ndInTab', 'ndBoardList', 'ndBoardRowHtml', 'ndBoardRowsHtml', 'ndBoardHtml', 'ndShow', 'ndPlace', 'ndPlacePut', 'ndFolded', 'ndFoldSet', 'ndFoldBtnHtml'];
 const CONSTS = ['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', 'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey',
-  '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml', '_ndLinkHtml', 'ndKindHtml', 'CN_WEEK_DAYS'];
+  '_ndAge', 'ndThings', 'ndRowsN', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml', '_ndLinkHtml', 'ndKindHtml', 'CN_WEEK_DAYS'];
 function world(rows, pieces, extra){
   const ctx = {
     i18t: (k, v) => fill(BOOKS.en[k] || k, v), i18tn: (k, n, v) => fill(BOOKS.en[k + (n === 1 ? '_one' : '_other')] || BOOKS.en[k] || k, { n, ...(v || {}) }),

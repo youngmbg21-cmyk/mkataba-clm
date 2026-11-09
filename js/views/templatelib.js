@@ -893,6 +893,8 @@ async function openTemplateLibDetail(id) {
     ${INS ? `<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('lib_panel_label'))}"></aside>` : ''}
   </div>`;
   tplDtStyle();
+  /* EVERY PAPER IN PAGES (owner, 9 Nov 2026): a template's wording is cut into the working copy's pages, as a contract's */
+  try { const sh = document.querySelector('#tpl-dt .tpl-dt-sheet > .blueprint'); if (sh && typeof window.pagesWatch === 'function') pagesWatch(sh, { mode: 'work', gap: window.PG_GAP, name: '', ref: '' }); } catch (_) {}
   if (INS && typeof tplDtPanelPaint === 'function') tplDtPanelPaint(t, showVer);
 
   document.getElementById('tpllib-back')?.addEventListener('click', () => setView('templates'));
@@ -991,7 +993,7 @@ function tplDtStyle() {
   .tpl-dt-sp{flex:1 1 0;min-width:0}
   .tpl-dt-more{display:inline-flex}
   .tpl-dt-arch{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-neutral-100);border-radius:var(--radius);padding:var(--s-2) var(--s-3)}
-  .tpl-dt-paper{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
+  .tpl-dt-paper{background:var(--color-bg);--pg-ground:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
   .tpl-dt-sheet{padding:var(--s-4)}
   `;
   document.head.appendChild(st);

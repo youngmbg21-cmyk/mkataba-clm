@@ -64,7 +64,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const proc = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ctf-folder]')].find(x => /Procurement/.test(x.innerText)); if (b) b.click(); return !!b; });
     await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'), null, 10000);
     await page.evaluate('(' + R6_BRING.toString() + ')()');
-    const up = await until(page, () => /3 of \d+ read/.test((document.querySelector('#ct-place th.ac-th.is-nl .reg-th-sub') || {}).textContent || ''), null, 15000);
+    /* RE-POINTED (owner, 9 Nov 2026: "the column should only reflect the name of the column … The count should maybe go to
+       the side panel"): the head is the question's name alone; how far it is read stands in the panel, "3 of 6 read" */
+    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && /3 of \d+ read/.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 15000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-table thead th')].map(x => x.innerText.trim().toLowerCase().split('\n')[0].trim()).filter(Boolean));
     const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
@@ -74,8 +76,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const panel = await until(page, () => /Columns you asked/i.test((document.querySelector('.rfp-panel') || {}).innerText || '') && /on this list/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
     const kept = await txt(page, '.rfp-panel');
     await shot('2-folder-list');
-    check('2 a folder\'s list: Standing, the kept question with how far it is read, what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
-      proc && up && heads.includes('standing') && /^· 3 of \d+ read$/i.test(sub.trim()) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
+    check('2 a folder\'s list: Standing, the kept question (its name alone; how far it is read in the panel), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
+      proc && up && heads.includes('standing') && !sub.trim() && /3 of \d+ read · on this list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
       && panel && /This folder/i.test(kept) && /Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }
 

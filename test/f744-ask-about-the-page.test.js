@@ -149,13 +149,16 @@ describe('f744 (3) the box asks about what is held', () => {
   });
   test('3b the box reads them before its own words; its cost is counted for the page\'s contract', () => {
     const ctx = { state: { view: 'dashboard' }, intel: { paper: null }, i18t: say, getContract: () => null, igPaperUp: () => false,
-      pdAskPlaceholder: () => 'Ask about MK-0377…', pdAskContractId: () => 'MK-0377' };
+      pdAskPlaceholder: () => 'Ask about MK-0377…', pdAskContractId: () => 'MK-0377', pdCardNow: () => null };
     ctx.window = ctx; vm.createContext(ctx);
-    vm.runInContext(fnBody(IG, 'igHeldAskId') + fnBody(IG, 'igAskPlaceholder'), ctx);
+    vm.runInContext(lineOf(IG, 'function igCardInFront(') + lineOf(IG, 'function igPaperInFront(') + fnBody(IG, 'igHeldAskId') + fnBody(IG, 'igAskPlaceholder'), ctx);
     assert.equal(ctx.igAskPlaceholder(), 'Ask about MK-0377…');
     assert.equal(ctx.igHeldAskId(), 'MK-0377');
-    ctx.igPaperUp = () => true; assert.equal(ctx.igHeldAskId(), null, 'a paper up is asked about itself');
-    assert.match(fnBody(IG, 'igAskCost'), /const P=igPaperUp\(\)\?intel\.paper:igPaperCost\(c\);/);
+    ctx.igPaperUp = () => true; assert.equal(ctx.igHeldAskId(), null, 'a paper up, and in front, is asked about itself');
+    /* RE-POINTED (owner, 9 Nov 2026: "fix the History panel showing the wrong contract"; f978 4): a contract's page in
+       front of a paper left behind it is the one asked about */
+    ctx.pdCardNow = () => ({ id: 'MK-0377' }); assert.equal(ctx.igHeldAskId(), 'MK-0377', 'the page in front wins over the paper behind it');
+    assert.match(fnBody(IG, 'igAskCost'), /const P=igPaperInFront\(\)\?intel\.paper:igPaperCost\(c\);/);
   });
   test('3c a question beside a page goes with that contract\'s wording; the Board\'s reader and the map are stepped past', () => {
     const A = fnBody(IG, 'intelAsk');

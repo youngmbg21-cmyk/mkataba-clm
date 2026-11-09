@@ -140,3 +140,93 @@ test('f977 (20, 22, 23) one toolbar, a readable preview, a tight sheet', () => {
   assert.match(b, /html\.lg-new #na-root\.na-one \.na-closest \.na-pick\.na-close\{min-height:0\}/);
   assert.match(b, /html\.lg-new #modal-root \.na-why\{color:var\(--color-quiet\);font-weight:400\}/);
 });
+
+/* FIX ROUND 1 (the owner's drawn fix list, 9 Nov 2026): each pin fails at the parent */
+test('f977 fix 1 · it scrolls where you are: the Contracts wall takes the room left and scrolls inside the sheet', () => {
+  const css = read('index.html');
+  assert.match(css, /html\.lg-new #ct-place \.ct-page \.ct-wall\{flex:1 1 0%;min-height:0;overflow-y:auto\}/);
+  assert.match(css, /html\.lg-new \.tpln \.tpln-sheet\{position:sticky;top:8px;align-self:start\}/, 'Our paper\'s preview stays while the list scrolls');
+});
+test('f977 fix 3 · the Send letter always stands beside Jambo: from any page it lands on Home\'s paper first', () => {
+  const core = read('js/core.js');
+  const open = core.match(/async function openShareModal\(c, opts=\{\}\)\{[\s\S]{0,1400}/)[0];
+  assert.match(open, /if\(c && !shareBesideJambo\(\) && [\s\S]*?state\.view!=='dashboard'[\s\S]*?window\.roomHomeLand\(c\.id\)/);
+  assert.match(open, /for\(let i=0;i<40 && !shareBesideJambo\(\);i\+\+\)/, 'the wait is bounded');
+});
+test('f977 fix 5 · only the pile with the other side folds; your own piles stand open', () => {
+  const ng = read('js/views/negotiation.js');
+  assert.match(ng, /const RL_NL_FOLDS = \['with'\];/);
+  assert.match(ng, /function rlPileFoldsNl\(b\)\{\s*return [^\n]*RL_NL_FOLDS\.includes\(b\);/);
+});
+test('f977 fix 6 · the Send letter is the white page: no border, no corner, one hairline at its left', () => {
+  const css = read('index.html');
+  const rules = [...css.matchAll(/html\.lg-new[^{\n]*#sh-letter\.sh-lt\.is-sap > \.sh-lt-mail\{([^}]*)\}/g)].map(m => m[1]);
+  assert.ok(rules.length >= 2);
+  for (const r of rules) { assert.doesNotMatch(r, /border:1px solid/); assert.doesNotMatch(r, /border-radius:var\(--radius\)/); }
+  assert.ok(rules.some(r => /border-left:1px solid var\(--color-divider\)/.test(r)));
+});
+test('f977 fix 7 · the Board counts rows in the new look, the number Home says', () => {
+  const cn = read('js/views/counter.js');
+  assert.match(cn, /const ndRowsN = L => \(typeof newLookOn === 'function' && newLookOn\(\)\) \? \(L \|\| \[\]\)\.length : ndThings\(L\);/);
+  assert.match(cn, /function ndOnBoard\(D\)\{[^\n]*n: ndRowsN\(D\.jambo\) \+ ndRowsN\(you\)/);
+  assert.match(cn, /\$\{tab\('you', ndRowsN\(B\.you\)\)\}\$\{tab\('jambo', ndRowsN\(B\.jambo\)\)\}/);
+});
+test('f977 fix 8 · one column per question, its name and ⋯; the foot says only the count', () => {
+  const ac = read('js/views/askcolumn.js');
+  assert.doesNotMatch(strip(ac), /ac_nl_th_sub/, 'no "k of n read" in the head');
+  assert.match(ac, /<span class="ac-th-w">\$\{_acE\(a\.name \|\| a\.question \|\| ''\)\}<\/span><button type="button" class="ac-th-more"/);
+  const reg = read('js/views/register.js');
+  const foot = reg.match(/function regNlFootHtml\(cs\)\{[\s\S]*?\n\}/)[0];
+  assert.doesNotMatch(strip(foot), /reg_nl_foot_ask|reg_nl_foot_std|reg-nl-foot-r/);
+  assert.match(reg, /i18t\('rfp_col_sub',\{ k, n, where:/, 'how far it is read is the panel\'s');
+});
+test('f977 fix · Our paper never prints "Invalid Date"', () => {
+  const lib = read('js/views/library.js');
+  const src = lib.match(/function tplnDayOf\(v\)\{[\s\S]*?\n\}/)[0];
+  const tplnDayOf = Function(src + '; return tplnDayOf;')();
+  assert.equal(tplnDayOf('not a day'), null);
+  assert.equal(tplnDayOf(''), null);
+  assert.equal(tplnDayOf('2026-03-04').getMonth(), 2);
+  assert.equal(tplnDayOf(Date.UTC(2026, 4, 5, 12)).getUTCMonth(), 4);
+  assert.match(lib, /if \(\/invalid\/i\.test\(mon\)\) mon = '';/);
+});
+
+/* FIX ROUND 2 (9 Nov 2026): every paper in pages. At the parent a negotiated contract's paper on Home (Clean, Redline,
+   their view) and a template's own page stood as one long sheet: igPaperPaginate asked only for a .pg-sheet */
+test('f977 fix 9 · every paper in pages: the negotiated paper on Home and a template\'s page are cut into pages', () => {
+  const ig = read('js/views/intelligence.js');
+  const fn = ig.match(/function igPaperPaginate\(c\)\{[\s\S]*?\n\}/)[0];
+  assert.match(fn, /host\.querySelector\('\.ig-redpaper \.rl-zoom > \.rl-paper'\)/, 'the inner sheet, which carries the page margins');
+  const tl = read('js/views/templatelib.js');
+  assert.match(tl, /const sh = document\.querySelector\('#tpl-dt \.tpl-dt-sheet > \.blueprint'\); if \(sh && typeof window\.pagesWatch === 'function'\) pagesWatch\(sh, \{ mode: 'work'/);
+  /* the clause editor keeps one sheet on purpose: a break re-drawn under the caret would move the words being typed */
+  assert.match(read('js/views/negotiation.js'), /if \(sheet\.closest\('\.ce-paperwrap'\)\) return;/);
+});
+
+/* THE SEND PAGE IS THE WHITE PAGE (owner, 9 Nov 2026: "The whole page should be white not a card on top of a shaded
+   backdrop"). At the parent the page stood on the desk's grey with its head and body inset 12px as a card */
+test('f977 fix 6b · the Send page is white edge to edge in the new look: no inset, corner or lift', () => {
+  const core = read('js/core.js');
+  assert.match(core, /background:\(typeof newLookOn==='function'&&newLookOn\(\)\)\?'var\(--color-surface\)':'var\(--desk-ground, var\(--color-bg\)\)'/);
+  const css = read('index.html');
+  assert.match(css, /html\.lg-new #modal-root \.modal-in\[data-sh-page\] \.sh-hd\{top:0;margin:0;border:0;border-bottom:1px solid var\(--color-divider\);border-radius:0;box-shadow:none\}/);
+  assert.match(css, /html\.lg-new #modal-root \.modal-in\[data-sh-page\] \.sh-lt-grid\{margin:0;border:0;border-radius:0;box-shadow:none;clip-path:none\}/);
+});
+
+/* ONE GAP ABOVE EVERY JAMBO BOX (owner, 9 Nov 2026: "why is there a massive gap between the links and the jambo button?").
+   At the parent Home's panel kept an empty 16px line (+6) for the typed words' preview under the links, so its gap was
+   ~43px where the list panels' was 13 */
+test('f977 fix 10 · the empty preview line above the box takes no room, so every panel keeps one gap', () => {
+  assert.match(read('index.html'), /html\.lg-new #ig-dock \.igd-foot > \.hb-pre:empty\{display:none\}/);
+  assert.match(read('js/views/intelligence.js'), /<div id="igd-pre" class="hb-pre" aria-live="polite"><\/div>/, 'the line is drawn empty until there are words');
+});
+
+/* THE HEAD THAT STAYS PUT IS NEVER SEE-THROUGH (owner, 9 Nov 2026, Calendar › Horizon: the rows showed through
+   "AGREEMENT … DECISION" as the list scrolled). At the parent the new look painted the sticky ruler transparent */
+test('f977 fix 11 · the Horizon head stands on the page\'s white while the rows scroll under it', () => {
+  const css = read('index.html');
+  const rule = css.match(/html\.lg-new #app-shell \.cal-page\.is-nl \.cal-hz-card \.cal-hz-ruler\{[^}]*\}/)[0];
+  assert.match(rule, /background:var\(--color-surface\)/);
+  assert.doesNotMatch(rule, /background:transparent/);
+  assert.match(read('js/views/calendar.js'), /\.cal-hz-ruler\{display:grid;[^}]*position:sticky;top:0;z-index:2;/, 'the head is the one that stays put');
+});

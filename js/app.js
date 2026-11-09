@@ -744,6 +744,8 @@ function renderPageHeader(view){
   paintShellTitle(view);
   /* words Jambo could not place: the person's next page is their own move (round 8, jamboUnplacedNext) */
   try{ if(window.jamboUnplacedNext) jamboUnplacedNext(view); }catch(_){ }
+  /* every page drawn notes where the reader stood, so the panel's way back names the page they came from (caTrailSeen) */
+  try{ if(window.caTrailSeen) caTrailSeen(); }catch(_){ }
   /* THE RAIL SAYS WHOSE WORKSPACE THIS IS (the redesign, 20 Sep 2026): the
      brand mark at the top of the column carries the company's name in the
      quiet ink beside it. FIRST_PARTY is the WORKSPACE (js/core.js), read

@@ -705,6 +705,9 @@ function ndRead(){
   return D;
 }
 const ndThings = L => (L || []).reduce((s, r) => s + r.n, 0);
+/* THE BOARD COUNTS ROWS (owner, 9 Nov 2026: "count rows"): in the new look the Board's head, tabs and chips say how
+   many ROWS it draws, the number Home says; a bundle of five details is one row, one count */
+const ndRowsN = L => (typeof newLookOn === 'function' && newLookOn()) ? (L || []).length : ndThings(L);
 /* THE ONE DESK'S JAMBO ROWS FOR ONE CONTRACT (the Dossier, beside its paper): the same pieces and the
    same merge as ndRead (ND_MERGE: a piece carries the wait and the red of the rows it stands for), read
    off that contract's own checklist (L, needsYouOf) — never the whole book on a paper's paint */
@@ -932,12 +935,13 @@ function ndBellNlHtml(D){
    a time. Jambo's rows open his piece IN PLACE under the row (Look, the
    piece's own body and acts: opts.look); every other row presses its door. */
 function ndKindsOf(L){
-  const by = {}; L.forEach(r => { by[r.kind] = (by[r.kind] || 0) + r.n; });
+  const one = typeof newLookOn === 'function' && newLookOn();
+  const by = {}; L.forEach(r => { by[r.kind] = (by[r.kind] || 0) + (one ? 1 : r.n); });
   return ND_KINDS.filter(k => by[k]).map(k => ({ k, n: by[k] }));
 }
 /* the Board's own share of the reading: a brand-new workspace's "Finish setting up" row stays Home's — the empty
    Board stands its own setup door (hbSetupDoorHtml), never a second one */
-function ndOnBoard(D){ const you = D.you.filter(r => !r.setup); return { jambo: D.jambo, you, n: ndThings(D.jambo) + ndThings(you) }; }
+function ndOnBoard(D){ const you = D.you.filter(r => !r.setup); return { jambo: D.jambo, you, n: ndRowsN(D.jambo) + ndRowsN(you) }; }
 function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'you' ? B.you : B.jambo.concat(B.you); }
 function ndBoardList(D){
   let L = ndInTab(D);
@@ -990,7 +994,7 @@ function ndBoardHtml(opts){
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
   const folded = ndFolded();
   return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${B.n && !folded ? `<span class="hb-cs nd-home-shows">${_cnE(_cnT('nd_home_shows', { n: home }))}</span>` : ''}${ndFoldBtnHtml(folded)}</header>`
-    + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndThings(B.you))}${tab('jambo', ndThings(B.jambo))}</div>`
+    + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndRowsN(B.you))}${tab('jambo', ndRowsN(B.jambo))}</div>`
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
     + (jamboOn && o.chase ? o.chase : '')

@@ -33,3 +33,18 @@ test('2 · each page word is a CA_PLACES word of its own place', () => {
   const places = CA.match(/const CA_PLACES\s*=\s*\[([\s\S]*?)\n\];/)[1];
   assert.match(places, /\{\s*k:\s*'reads',\s*w:\s*\[[^\]]*'reads'/, '"reads" is a word of the Reads place');
 });
+
+/* A PAGE'S NAME IN SEVERAL WORDS (owner, 9 Nov 2026: "when I type our paper or templates in the jambo, it does not
+   take me to the page"). At the parent "our paper" went to the brain: only one word moved. */
+test('3 · every name of every page, one word or several, moves there free', () => {
+  const CA = read('js/copilotacts.js');
+  const places = Function('return ' + CA.match(/const CA_PLACES\s*=\s*(\[[\s\S]*?\n\]);/)[1])();
+  const jb = Function('return ' + CA.match(/const JB_PAGE_PLACES = (\[[\s\S]*?\]);/)[1])();
+  const src = CA.match(/function jamboPageWordOf\(q\)\{[\s\S]*?\n\}/)[0];
+  const fn = Function('CA_PLACES', 'JB_PAGE_PLACES', src + '; return jamboPageWordOf;')(places, jb);
+  const bad = [];
+  for (const p of places.filter(x => jb.includes(x.k))) for (const w of p.w){ const first = places.find(x => jb.includes(x.k) && x.w.includes(w)); const a = fn(w); if (!a || a.place !== first.k) bad.push(p.k + ':' + w); }
+  assert.deepEqual(bad, [], 'typed, these names go to the brain: ' + bad.join(', '));
+  for (const [w, k] of [['our paper', 'ourpaper'], ['templates', 'ourpaper'], ['Our Paper', 'ourpaper'], ['the people page', 'people'], ['my notes', 'mynotes']]) assert.equal((fn(w) || {}).place, k, w);
+  for (const w of ['take me to our paper please', 'sign', 'history', 'what is due this week']) assert.equal(fn(w), null, w);
+});

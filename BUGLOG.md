@@ -21925,3 +21925,7 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Home's week strip on a Sunday shows the week just ended and says "nothing dated this week" while a deposit is due Friday; the Calendar opens the week ahead at the weekend.
 - Counts disagree: Home's greeting "7 wait on you", Jambo's panel beside it and the foot "11 things", the Board "15 things"; Obligations' head "2 open" over the tab "Outstanding 4".
 - Jambo's panel tab reads "Overview 15" (the Needs-you count) on Contracts, People, Requests and My notes, but "Overview 2" (live deals) on Negotiations: one number, two meanings.
+
+## 9 Nov 2026 — harmony fix round 1 (owner's drawn fix list)
+- Removed (owner-asked): the Contracts list foot's right half ("The question column was read once and is kept · Our standards is HaTi's own check…"); the foot says only the count. Keys `reg_nl_foot_ask`/`reg_nl_foot_std`/`ac_nl_th_sub` left inert in both books.
+- Noticed, not fixed (9 Nov 2026): opening a contract's History in the old room right after another contract's paper, Home's panel kept the earlier contract ("‹ Back to MK-A2 on the paper", "Ask Jambo about MK-A2…" beside MK-HB4's History). Seen in a scratch walk; not reproduced from the owner's own steps.

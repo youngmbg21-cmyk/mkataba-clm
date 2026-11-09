@@ -73,7 +73,7 @@ test('f425 (1) the drawing: a canvas under the nodes, the views and Fold all on 
   assert.match(HTML, /\.ig-brain #ig-cv\{[^}]*pointer-events:none/, 'the canvas takes no press');
 });
 
-test('f425 (2) no filter doors on the map: a card folds, the legend is a key, the hub filter is gone', () => {
+test('f425 (2) no filter doors on the map: a card folds, a legend row narrows and lets go, the hub filter is gone', () => {
   const mk = code(region(IG, 'makeIntelGraph'));
   assert.match(mk, /if\(n\.kind==='contract'\) igExplain\(n\.id\); else \{ igFoldHub\(n\); updateIntelNote\(\); \}/);
   assert.doesNotMatch(mk, /addLens\(/, 'a press on the map adds no lens');
@@ -83,9 +83,14 @@ test('f425 (2) no filter doors on the map: a card folds, the legend is a key, th
   const host = win.document.createElement('div'); host.id = 'ig-legend'; win.document.body.appendChild(host);
   win.eval('intel.legendFolded=false'); win.renderIntelLegend({ flow: null, edgeKinds: [] });
   const row = host.querySelector('[data-igstatus="Draft"]');
-  assert.ok(row && row.tagName === 'DIV', 'a status row is a key, not a button');
+  /* RE-POINTED 9 Nov 2026 (owner: "you should be able to press on the items on the legend so to isolate … press once
+     more and goes back to normal"; reverses "a key, not a door"): a status row narrows the map through ONE legend
+     filter, and the same row again takes it off */
+  assert.ok(row && row.tagName === 'DIV' && row.getAttribute('data-ig-pick') === 'status:Draft' && row.getAttribute('role') === 'button', 'a status row is a row to press');
   row.click();
-  assert.equal(win.eval('intel.lenses.length'), 0, 'and pressing it narrows nothing');
+  assert.equal(win.eval("intel.lenses.filter(l=>l.kind==='legend'&&l.action==='filter'&&l.pick==='status:Draft').length"), 1, 'pressing it narrows the map to that status');
+  host.querySelector('[data-igstatus="Draft"]').click();
+  assert.equal(win.eval("intel.lenses.filter(l=>l.kind==='legend').length"), 0, 'and pressing it again puts the map back');
 });
 
 test('f425 (3) small groups start folded where the map has many; a Copilot grouping starts open; a fold is per sitting', () => {

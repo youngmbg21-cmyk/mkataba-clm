@@ -2922,13 +2922,25 @@ function tplPfVerbs(card){
    was used, how many came back changed), STANDARDS — every paper by its use, its last party and month, a press
    chooses — and SHELVES (the list of templates, Our standards), each Open; the foot's New standard is the one
    door to a new standard (#tpl-new's own act). The panel reads the chosen paper's use. */
+/* A DAY READ, NEVER "Invalid Date" (owner's picture, 9 Nov 2026): a stored time may be an ISO day, a full stamp, a
+   number of milliseconds or words a person typed; what cannot be read as a day is left out, never printed */
+function tplnDayOf(v){
+  if (v == null || v === '') return null;
+  let d = null;
+  if (typeof v === 'number' || /^\d{10,}$/.test(String(v))) d = new Date(Number(v));
+  else if (/^\d{4}-\d{2}-\d{2}/.test(String(v))) d = new Date(String(v).slice(0, 10) + 'T12:00:00');
+  else d = new Date(String(v));
+  return d && !isNaN(d.getTime()) ? d : null;
+}
 function tplnLastOf(card){
   let cs = []; try { cs = tplRowContracts({ kind: card.kind, id: card.id }) || []; } catch (_){ cs = []; }
-  const last = cs.slice().sort((a, b) => String(b.signedAt || b.createdAt || b.updatedAt || '').localeCompare(String(a.signedAt || a.createdAt || a.updatedAt || '')))[0];
+  const dayOf = c => tplnDayOf(c.signedAt) || tplnDayOf(c.createdAt) || tplnDayOf(c.updatedAt);
+  const last = cs.map(c => ({ c, d: dayOf(c) })).sort((a, b) => ((b.d ? b.d.getTime() : 0) - (a.d ? a.d.getTime() : 0)))[0];
   if (!last) return { cs, word: '' };
-  const at = String(last.signedAt || last.createdAt || last.updatedAt || '').slice(0, 10);
-  let mon = ''; try { mon = at ? new Date(at + 'T12:00:00').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: 'short', year: at.slice(0, 4) === new Date().toISOString().slice(0, 4) ? undefined : 'numeric' }) : ''; } catch (_){ mon = ''; }
-  const who = String(last.counterparty || '').trim().split(/\s+/)[0] || '';
+  const d = last.d;
+  let mon = ''; try { mon = d ? d.toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }) : ''; } catch (_){ mon = ''; }
+  if (/invalid/i.test(mon)) mon = '';
+  const who = String(last.c.counterparty || '').trim().split(/\s+/)[0] || '';
   return { cs, word: [who, mon].filter(Boolean).join(' \u00b7 '), who, mon };
 }
 function tplnHtml(d, groups, card){

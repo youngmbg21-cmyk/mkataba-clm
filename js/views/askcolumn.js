@@ -309,10 +309,11 @@ function askColThHtml(askId, style, grip, caret){
   if (typeof regNl === 'function' && regNl()){
     const shown = askColShown(), got = AC.ans[askId] || {};
     const read = shown.filter(id => got[id]).length, yes = shown.filter(id => got[id] && got[id].yes === true).length;
-    /* THE HEAD AS DRAWN (owner, 8 Nov 2026): the column's name and how far it is read on one line, then ⋯ (its menu) */
-    void yes;
-    const sub = _acT('ac_nl_th_sub', { k: read, n: shown.length });
-    return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-line"><span class="ac-th-w">${_acE(a.name || a.question || '')}</span><span class="reg-th-sub">${_acE(sub)}</span><button type="button" class="ac-th-more" data-ac-thmore="${_acE(askId)}" aria-haspopup="menu" aria-expanded="false" aria-label="${_acE(_acT('ac_nl_more'))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button></span>${caret || ''}${grip || ''}</th>`;
+    /* THE HEAD IS THE COLUMN'S NAME AND ⋯, ONE LINE (owner, 9 Nov 2026: "the column should only reflect the name of the
+       column and the ability to change the name of it"; reverses 8 Nov's "k of n read" in the head): how far it is read
+       is said in Jambo's panel, Columns you asked (rfp_col_sub) and the ⋯ menu's Read the other N */
+    void yes; void read;
+    return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-line"><span class="ac-th-w">${_acE(a.name || a.question || '')}</span><button type="button" class="ac-th-more" data-ac-thmore="${_acE(askId)}" aria-haspopup="menu" aria-expanded="false" aria-label="${_acE(_acT('ac_nl_more'))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button></span>${caret || ''}${grip || ''}</th>`;
   }
   return `<th class="reg-th-sort ac-th${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-w">${_acE(a.name || '')}</span>${spark}${tally}${caret || ''}${grip || ''}</th>`;
 }

@@ -117,7 +117,8 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       }, host);
       if (!read){ check(`${key}: the panel is drawn`, false, host); continue; }
       if (WRITE){ inv[key] = read.press; console.log(`INVENTORY ${key}: ${read.press.length} — ${JSON.stringify(read.press)}`); continue; }
-      const ov = read.tabWords[0] || '', jb = read.tabWords[1] || '';
+      /* RE-POINTED 9 Nov 2026 (owner: "Your day first"): on Explorer Your day stands before the Overview, the one exception */
+      const ov = (key === 'explorer' && /Your day/.test(read.tabWords[0] || '') ? read.tabWords[1] : read.tabWords[0]) || '', jb = read.tabWords[1] || '';
       check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
       check(`2 ${key}: no greeting on the Overview`, !read.helloIn, String(read.helloIn));
       check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1, String(read.jov));
