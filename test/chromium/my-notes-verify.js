@@ -62,7 +62,7 @@ const check = (name, pass, detail) => {
     check('3. the contract box finds a contract by part of its reference', !!hit, hit);
     await page.click('[data-mn-ct="MK-A1"]');
     await page.click('[data-mn-when="week"]');
-    const says = await until(() => { const p = [...document.querySelectorAll('.mn-form .mn-hint')].map(x => x.textContent).find(t => /bell and on your calendar/.test(t)); return p || null; });
+    const says = await until(() => { const p = [...document.querySelectorAll('.mn-form .mn-hint')].map(x => x.textContent).find(t => /Alerts and on your calendar/.test(t)); return p || null; });
     await page.screenshot({ path: path.join(OUT, '1-form.png') });
     await page.click('#mn-save');
     /* RE-POINTED 19 Oct 2026 (round 20 as drawn, scene "My notes"): where the
