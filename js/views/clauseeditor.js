@@ -3662,6 +3662,9 @@ function ceRenderPaper(){
     ceRestoreScroll(host, keep);
   } finally { _ceRendering = false; }
   ceApplyZoom();
+  /* THIN PAGE LINES (owner picked option 2, 9 Nov 2026): where each page would end, drawn over the one sheet, never
+     pushing a word under the caret (pagesLines) */
+  try { const sh = host.querySelector('.rl-paper'); if (sh && typeof window.pagesLines === 'function') pagesLines(sh); } catch (_){}
 }
 
 /* The three readings, the band that says a reading refuses editing, and the

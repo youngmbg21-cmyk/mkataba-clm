@@ -36155,3 +36155,14 @@ redrawn under the caret moves the words being typed); said to the owner.
   "Not found" (italic, `.ac-ans.tone-none`) lost its last letter's lean inside an ellipsis box (`.rdt-w`, `.reg-table .ac-a`).
   Now each keeps its scroll while the same list is in view, and the italic word keeps .2em at its right. Swept: Approvals,
   Parties, Obligations, Pulse, Import, Requests, People and Our paper only mark the chosen row — they never jumped. f979.
+- THIN PAGE LINES WHERE A PERSON TYPES (same day): asked "what is going on in the clause editor that needs to build
+  pages?", the owner was given three options (one sheet · thin page lines · real pages after a pause) and said "go with
+  option 2, thin page lines". `pagesLines(sheet)` (js/pages.js) draws a faint dashed line where each A4 page of the
+  sheet's own width would end, "Page N" (`pg_line_page`, both books) in the sheet's empty left margin — a pointer-free,
+  aria-hidden layer whose label is an attribute, so nothing is pushed and nothing is read as wording. Called after
+  every paint of the clause editor's sheet (`ceRenderPaper`) and the builder's (`tbPaintPaper`). The first try put
+  "Page 2 of 3" at the right and it covered the end of a line of wording; moved to the left margin, shortened. f980.
+- THE HORIZON HEAD IS NEVER SEE-THROUGH (same day): "review why we have this bug": Calendar › Horizon's head
+  ("AGREEMENT … DECISION", `.cal-hz-ruler`, sticky at the top of its scroller) was painted transparent by the new look's
+  harmony rule, so the rows scrolled visibly through it. Now the page's white. Swept every page and Calendar view for
+  another sticky head with no ground of its own: none (the probe found only `.cal-hz-ruler` at the parent). f977 fix 11.

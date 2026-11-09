@@ -14038,6 +14038,11 @@
   .pg-sheet{position:relative}
   /* the air that runs the paper down to the last page's bottom edge */
   .pg-sheet::after{content:'';display:block;height:var(--pg-extra,0px)}
+  /* THIN PAGE LINES WHERE A PERSON TYPES (owner picked option 2, 9 Nov 2026; pagesLines): a faint dashed line where each
+     page would end and "Page N" in the left margin, over the sheet, never pushing a word */
+  .pg-lines{position:absolute;left:0;top:0;right:0;height:0;z-index:2;pointer-events:none}
+  .pg-line{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--color-neutral-400);opacity:.55}
+  .pg-line::after{content:attr(data-l);position:absolute;left:6px;top:4px;white-space:nowrap;font-family:var(--font-body);font-size:10.5px;line-height:1;color:var(--color-quiet)}
   .pg-layer{position:absolute;left:0;top:0;right:0;height:0;z-index:3;pointer-events:none;
     user-select:none;-webkit-user-select:none}
   .pg-layer>*{position:absolute;box-sizing:border-box}
@@ -19043,7 +19048,9 @@
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad-k{font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad-n{font-size:22px;font-weight:400;color:var(--color-text)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad-v{font-size:12px;color:var(--color-text)}
-  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-ruler{grid-template-columns:280px minmax(0,1fr) 200px;background:transparent;border:0;border-bottom:1px solid var(--color-divider)}
+  /* the head stays put as the rows scroll under it, so it is the page's own white, never see-through (owner, 9 Nov 2026:
+     on Horizon the rows showed through "AGREEMENT … DECISION") */
+  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-ruler{grid-template-columns:280px minmax(0,1fr) 200px;background:var(--color-surface);border:0;border-bottom:1px solid var(--color-divider)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-col{padding:8px 0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-hz-col-dec{text-align:right}
   html.lg-new #app-shell .cal-hz-row.is-nl{grid-template-columns:280px minmax(0,1fr) 200px;align-items:start;border-bottom:1px solid var(--color-divider);padding:14px 0}
