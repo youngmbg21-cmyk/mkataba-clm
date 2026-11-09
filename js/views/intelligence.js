@@ -6174,32 +6174,39 @@ document.addEventListener('mouseout',e=>{ const f=e.target&&e.target.closest?e.t
    Open, its head is a handle: a drag moves it anywhere on the stage, kept inside it (igLegendClamp). The spot is the
    sitting's (intel.legendPos, never stored), so a change of view repaints it where it was left. Folded, the spot is
    forgotten and the CSS corner (bottom left) holds again. */
+/* THE FIELD IS THE MAP AND JAMBO'S PANEL (owner, 9 Nov 2026: "you should be able to pull it over the jambo panel as
+   well"): a moved legend stands FIXED over #ig-row (the stage and the panel beside it), above both; its spot is kept
+   relative to that row, so a resize or a view change keeps it in the same place */
+function igLegendField(){ const r=document.getElementById('ig-row'); return r?r.getBoundingClientRect():null; }
 function igLegendClamp(el,x,y){
-  const p=el&&el.offsetParent; if(!p) return { x, y };
-  const W=p.clientWidth, H=p.clientHeight, w=el.offsetWidth, h=el.offsetHeight;
-  return { x:Math.max(0,Math.min(x,W-w)), y:Math.max(0,Math.min(y,H-h)) };
+  const F=igLegendField(); if(!F||!el) return { x, y };
+  const w=el.offsetWidth, h=el.offsetHeight;
+  return { x:Math.round(Math.max(0,Math.min(x,F.width-w))), y:Math.round(Math.max(0,Math.min(y,F.height-h))) };
+}
+function igLegendPut(el,c){
+  const F=igLegendField(); if(!F) return;
+  el.classList.add('is-moved'); el.style.position='fixed'; el.style.left=(F.left+c.x)+'px'; el.style.top=(F.top+c.y)+'px'; el.style.bottom='auto';
 }
 function igLegendPlace(el){
   if(!el) return;
   if(intel.legendFolded) intel.legendPos=null;
   const P=intel.legendPos;
-  el.classList.toggle('is-moved',!!P);
-  if(!P){ el.style.left=''; el.style.top=''; el.style.bottom=''; return; }
-  const c=igLegendClamp(el,P.x,P.y);
-  el.style.left=c.x+'px'; el.style.top=c.y+'px'; el.style.bottom='auto';
+  if(!P){ el.classList.remove('is-moved'); el.style.position=''; el.style.left=''; el.style.top=''; el.style.bottom=''; return; }
+  igLegendPut(el,igLegendClamp(el,P.x,P.y));
 }
 document.addEventListener('pointerdown',e=>{
   const head=e.target&&e.target.closest?e.target.closest('#ig-legend [data-ig-legend-head]'):null;
   if(!head||e.button>0||intel.legendFolded||e.target.closest('button')) return;
-  const el=document.getElementById('ig-legend'), p=el&&el.offsetParent; if(!p) return;
-  const r=el.getBoundingClientRect(), pr=p.getBoundingClientRect();
+  const el=document.getElementById('ig-legend'), F=igLegendField(); if(!el||!F) return;
+  const r=el.getBoundingClientRect();
   const dx=e.clientX-r.left, dy=e.clientY-r.top;
   e.preventDefault(); el.classList.add('is-dragging');
-  const move=ev=>{ const c=igLegendClamp(el,ev.clientX-pr.left-dx,ev.clientY-pr.top-dy);
-    intel.legendPos=c; el.classList.add('is-moved'); el.style.left=c.x+'px'; el.style.top=c.y+'px'; el.style.bottom='auto'; };
+  const move=ev=>{ const G=igLegendField()||F; const c=igLegendClamp(el,ev.clientX-G.left-dx,ev.clientY-G.top-dy); intel.legendPos=c; igLegendPut(el,c); };
   const up=()=>{ el.classList.remove('is-dragging'); document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
 });
+/* a resize keeps a moved legend at its spot in the row, and inside it */
+window.addEventListener('resize',()=>{ if(intel.legendPos) igLegendPlace(document.getElementById('ig-legend')); });
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
   /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
@@ -11412,7 +11419,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{igLegendClamp,igLegendPlace,igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igLegendField,igLegendClamp,igLegendPut,igLegendPlace,igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

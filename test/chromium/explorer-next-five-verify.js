@@ -320,7 +320,7 @@ const check = (name, pass, detail) => {
          folded, it goes back to its corner */
       await page.evaluate(() => { intel.legendFolded = false; intel.legendPos = null; igSetView(0); rebuildIntelGraph(); });
       await page.waitForTimeout(500);
-      const at = () => page.evaluate(() => { const el = document.getElementById('ig-legend'), p = el.offsetParent.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const at = () => page.evaluate(() => { const el = document.getElementById('ig-legend'), p = document.getElementById('ig-row').getBoundingClientRect(), r = el.getBoundingClientRect();
         return { x: Math.round(r.left - p.left), y: Math.round(r.top - p.top), bottomGap: Math.round(p.bottom - r.bottom), folded: el.classList.contains('is-folded'), w: Math.round(p.width), h: Math.round(p.height), lw: Math.round(r.width), lh: Math.round(r.height) }; });
       const home = await at();
       const head = await page.evaluate(() => { const r = document.querySelector('#ig-legend [data-ig-legend-head] .igl-k').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
@@ -331,7 +331,12 @@ const check = (name, pass, detail) => {
       await page.mouse.move(head.x + 300, head.y - 200); await page.mouse.down();
       await page.mouse.move(head.x + 5000, head.y - 5000, { steps: 4 }); await page.mouse.up();
       const edge = await at();
-      check('10g it never leaves the stage: dragged past the corner it stops at the edge', edge.x === edge.w - edge.lw && edge.y === 0, JSON.stringify(edge));
+      /* RE-POINTED 9 Nov 2026 (owner: "you should be able to pull it over the jambo panel as well"): the field is the map
+         AND Jambo's panel, so past the corner it stops at the panel's far edge, on top of the panel */
+      const over = await page.evaluate(() => { const el = document.getElementById('ig-legend'), d = document.getElementById('ig-dock').getBoundingClientRect(), r = el.getBoundingClientRect();
+        const x = Math.max(r.left, d.left) + 10, y = r.top + 40, hit = document.elementFromPoint(x, y);
+        return { onDock: r.right > d.left + 100, onTop: !!(hit && el.contains(hit)) }; });
+      check('10g it goes over Jambo\'s panel too, on top of it, and stops at the far edge', edge.x === edge.w - edge.lw && edge.y === 0 && over.onDock && over.onTop, JSON.stringify({ edge, over }));
       await page.mouse.move(head.x + 5000, head.y - 5000); await page.mouse.down();
       await page.mouse.move(head.x + 200, head.y - 150, { steps: 4 }); await page.mouse.up();
       const kept = await at();
