@@ -3095,7 +3095,7 @@ async function igBoardTalkAsk(q){ return igTalkRun(q, ()=>intelChatAsk(q, { draw
    it regroups and narrows the map, and hands wording to the chat itself); the Contracts place and the sheet the chat,
    with the page's controls (the list head's search, tabs, filters, saved views) */
 async function igPageTalkAsk(q){
-  const held=igHeldAskId(), paperId=igPaperUp()?intel.paper.id:null;
+  const held=igHeldAskId(), paperId=igPaperInFront()?intel.paper.id:null;
   const face=(typeof window.hbFace==='function')?hbFace():'';
   return igTalkRun(q, ()=>{
     if(paperId) return igAsksThisPaper(q,paperId)?igPaperAsk(q):intelChatAsk(q, { controls:true });
@@ -9762,8 +9762,14 @@ function igPaperCost(c){
 }
 /* the contract a question goes with where no paper is up: the page brought
    up on the desk (rounds 7 and 12; pdAskContractId) */
+/* A CONTRACT'S PAGE IN FRONT WINS OVER THE PAPER BEHIND IT (owner, 9 Nov 2026: "fix the History panel showing the wrong
+   contract" — after MK-A2's paper, MK-HB4's History brought up from Approvals; the box said "Ask Jambo about MK-A2…" and
+   a question went with MK-A2's wording): the paper stays "up" behind the Board while a strip's page stands in front of
+   it, so the page in front (pdCardNow) is asked first, its own contract the one the box names and asks with */
+function igCardInFront(){ try{ return !!(typeof window.pdCardNow==='function'&&window.pdCardNow()); }catch(_){ return false; } }
+function igPaperInFront(){ return igPaperUp()&&!igCardInFront(); }
 function igHeldAskId(){
-  if(!(window.state&&state.view==='dashboard')||igPaperUp()) return null;
+  if(!(window.state&&state.view==='dashboard')||igPaperInFront()) return null;
   return (typeof window.pdAskContractId==='function')?pdAskContractId():null;
 }
 /* WITH A CONTRACT'S PAGE UP, WHICH QUESTIONS ARE THE BOOK'S: a contract named
@@ -9852,23 +9858,23 @@ function igAskPlaceholder(){
   /* beside the one sheet the box asks as drawn (the gaps, round 4) */
   if(window.naSheetUp&&naSheetUp()) return i18t('na_ask_ph');
   /* what the panel holds says what the box asks (rounds 13, 7 and 12) */
-  if(window.state&&state.view==='dashboard'&&!igPaperUp()&&typeof window.pdAskPlaceholder==='function'){ const h=pdAskPlaceholder(); if(h) return h; }
+  if(window.state&&state.view==='dashboard'&&!igPaperInFront()&&typeof window.pdAskPlaceholder==='function'){ const h=pdAskPlaceholder(); if(h) return h; }
   /* BESIDE THE REDLINES FACE THE BOX ASKS AS DRAWN (round 9's gaps, 18 Oct
      2026): "Ask for a number, a list or a contract…" — the Board's own words;
      the letter's Before you send and every other face keep "Ask about MK-…" */
   if(window.pdRedShows&&pdRedShows()&&!(window.pdSendShows&&pdSendShows())) return i18t('hb_ask_ph');
   /* amend, as drawn: the box takes the change in words (one call) */
   if(window.newLookOn&&newLookOn()&&window.pdAmendShows&&pdAmendShows()) return i18t('pd2_am_ph');
-  const c=igPaperUp()?getContract(intel.paper.id):null;
+  const c=igPaperInFront()?getContract(intel.paper.id):null;
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
 }
 function igAskCost(){
   const hid=igHeldAskId();
-  const c=igPaperUp()?getContract(intel.paper.id):(hid?getContract(hid):null);
+  const c=igPaperInFront()?getContract(intel.paper.id):(hid?getContract(hid):null);
   if(!c) return '';
   /* a page's contract counts what its question would carry, as the paper does */
-  const P=igPaperUp()?intel.paper:igPaperCost(c);
+  const P=igPaperInFront()?intel.paper:igPaperCost(c);
   const k=Number(P.changes||0);
   return k>0
     ? i18t('int_ask_contract_cost_changes',{ref:(window.contractRef?contractRef(c):c.id), k:k.toLocaleString(), n:Number(P.words||0).toLocaleString()})

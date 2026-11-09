@@ -45,3 +45,16 @@ test('3 · the trail itself never notes its own step back as a new place', () =>
   assert.match(CA, /if \(!_caBackStep && !caSamePlace\(_caTrail\[_caTrail\.length - 1\], _caLastSeen\)\)/);
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'js/app.js'), 'utf8'), /function renderPageHeader\(view\)\{[\s\S]{0,400}caTrailSeen\(\)/);
 });
+
+/* THE PAGE IN FRONT IS THE ONE ASKED ABOUT (owner, 9 Nov 2026, again: "fix the History panel showing the wrong
+   contract"). Measured in a browser at the parent: MK-A2's paper, then Approvals, then MK-HB4's History — the box said
+   "Ask Jambo about MK-A2…" and a question went with MK-A2's wording, because the paper stayed "up" behind the Board.
+   Now a strip's page in front wins (igPaperInFront): "Ask Jambo about MK-HB4…", the question goes with MK-HB4. */
+test('4 · the contract page in front is the one the box names and asks with, not the paper behind it', () => {
+  const IG = fs.readFileSync(path.join(__dirname, '..', 'js/views/intelligence.js'), 'utf8');
+  assert.match(IG, /function igPaperInFront\(\)\{ return igPaperUp\(\)&&!igCardInFront\(\); \}/);
+  assert.match(IG, /function igHeldAskId\(\)\{\s*if\(!\(window\.state&&state\.view==='dashboard'\)\|\|igPaperInFront\(\)\) return null;/);
+  assert.match(IG, /const held=igHeldAskId\(\), paperId=igPaperInFront\(\)\?intel\.paper\.id:null;/, 'the question goes with the page in front');
+  const ph = IG.match(/function igAskPlaceholder\(\)\{[\s\S]*?\n\}/)[0];
+  assert.doesNotMatch(ph, /igPaperUp\(\)/, 'the box names the page in front, never the paper behind it');
+});

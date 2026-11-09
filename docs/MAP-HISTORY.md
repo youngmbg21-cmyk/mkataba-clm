@@ -36263,3 +36263,14 @@ refresh-keeps-your-spot found a real gap: Where we are did not come back after a
 place and hbPlace remembers 'where' as well as 'hist'); jambo-behind-the-wall presses the Dossier's read instead of
 the Fill in face; still-owed-sap-way 5 retired with the strip's tiles; go-aheads 3g3 reads the stage line's
 "Read <time>". All green locally: every-door 111/111, refresh 13/13, history-and-pay 18/18.
+- THE PAGE IN FRONT IS THE ONE ASKED ABOUT (same day, the owner again: "fix the History panel showing the wrong
+  contract"). After f978's way back, one wrong contract remained: MK-A2's paper → Approvals → MK-HB4's History left
+  Jambo's box saying "Ask Jambo about MK-A2…", and a question went with MK-A2's wording — `intel.paper` stays "up"
+  (`igPaperUp`) behind the Board while a strip's page (`pdCardNow`) stands in front, and the box and the ask read the
+  paper first. Now the page in front wins (`igCardInFront`, `igPaperInFront` in `igAskPlaceholder`, `igAskCost`,
+  `igHeldAskId`, `igPageTalkAsk`): "Ask Jambo about MK-HB4…", the question with MK-HB4. Back on MK-A2's paper it says
+  MK-A2 again. held-contract-asks-verify, home-held-contract-verify, point-buttons-and-brief-verify, stakes-verify green.
+Merged with main's "the page in front is the one Jambo's box asks about" (igPaperInFront): it asks pdCardNow, which
+went with the strip, so igCardInFront now always answers no. Kept as main wrote it (f978 pins it): History now opens
+in the middle beside its own contract's paper, so the wrong-contract case it fixed cannot arise. f744 stays removed
+(it pinned the held card and its asks).
