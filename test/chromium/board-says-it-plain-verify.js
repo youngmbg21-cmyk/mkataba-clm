@@ -80,7 +80,7 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
   const shot = n => page.screenshot({ path: path.join(OUT, n) }).catch(() => {});
   const mapNow = () => page.evaluate(() => JSON.stringify({ r: typeof igRecipeNow === 'function' ? igRecipeNow() : null, g: window.intel ? intel.groupBy : null, v: window.intel ? intel.view : null }));
   /* one question typed into the board's box; what landed */
-  const ask = async q => {
+  const ask = async (q, opts) => {
     const n0 = await page.evaluate(() => (window.intel && intel.history ? intel.history.length : 0));
     const p0 = await page.evaluate(() => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length);
     /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
@@ -88,6 +88,9 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     /* RE-PINNED 28 Oct 2026 ("Door above the box": every word typed is the brain's but a page's one name): asked as a chip asks */
     await page.evaluate(w => intelAsk(w), q);
     await until(page, n0 => !intel.busy && intel.history.length > n0, n0, 15000);
+    /* A PICTURE THAT MUST LAND IS WAITED FOR, BOUNDED (9 Nov 2026: on GitHub's headless shell the first question's
+       card landed after the answer was said, and was read before it did) */
+    if (opts && opts.moves) await until(page, p0 => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length !== p0, p0, 4000);
     await page.waitForTimeout(150);
     return page.evaluate(([p0, n0]) => {
       const s = hbS(); const path = s.path || []; const key = path.slice(-1)[0];
@@ -123,7 +126,7 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     /* ---- A0 (typed): the bare phrase and "can you draw" draw the same card ---- */
     const bad = [];
     for (const [p, pics, measure] of TABLE){
-      const a = await ask(p);
+      const a = await ask(p, { moves: true });
       const b = await ask('can you draw ' + p);
       const ok = a.moved && pics.includes(a.pic) && (!measure || a.measure === measure)
         && b.pic === a.pic && b.measure === a.measure && b.split === a.split;
