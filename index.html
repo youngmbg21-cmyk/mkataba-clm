@@ -19777,6 +19777,33 @@
   html.lg-new :is(.pd2-ch-cap,.pd2-ch-r>i,.pd2-ch-door>span,.rfp-k,.rfp-cap){color:var(--color-neutral-400)}
   html.lg-new :is(.hb-cs,.hb-bh-s,.hb-bh-at,.hb-sk-note,.hb-sk-then,.hb-ag-lv-w){color:var(--color-neutral-400)}
   html.lg-new :is(.mig-drop-s,.mig-opt-l){color:var(--color-neutral-400)}
+  /* THE COLOUR ROUND (owner's picks by name, 9 Nov 2026; the colour picker): one quiet touch of colour per page, each read
+     off a fact the page already has. Parties: kind chips, initials in the stream's tone, what waits in amber. People: a
+     workload bar. Reads: answers as tinted chips, a progress bar. Requests: age colour. Our paper: use bars. Calendar:
+     kind labels. Settings: on / off pills. */
+  html.lg-new .cun-who{display:flex;align-items:flex-start;gap:10px;min-width:0}
+  html.lg-new .cun-who-t{min-width:0;flex:1}
+  html.lg-new .cun-av{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font-size:10.5px;font-weight:var(--w-strong);background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .cun-av.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .cun-av.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .cun-av.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .cun-av.is-pink{background:var(--st-pink-bg);color:var(--st-pink-fg)}
+  html.lg-new .cun-sub .ls-chip{margin-top:3px}
+  html.lg-new td.cun-wait.is-owed{color:var(--st-amber-fg)}
+  html.lg-new .dirn-load{display:inline-block;height:6px;border-radius:3px;margin-left:8px;vertical-align:middle;background:var(--st-pink-dot);opacity:.75}
+  html.lg-new .rdn-prog{display:block;width:90px;height:5px;border-radius:3px;margin-top:6px;background:var(--surface-2);overflow:hidden}
+  html.lg-new .rdn-prog i{display:block;height:100%;background:var(--st-green-dot)}
+  html.lg-new .rdn-c .ls-chip{margin:0 4px 4px 0}
+  html.lg-new td.cun-wait.ikn-age.is-fresh{color:var(--st-green-fg)}
+  html.lg-new td.cun-wait.ikn-age.is-old{color:var(--st-amber-fg)}
+  html.lg-new .tpln-r{grid-template-columns:minmax(0,1fr) 160px 130px}
+  html.lg-new .tpln-u{white-space:nowrap}
+  html.lg-new .tpln-bar{display:inline-block;height:6px;border-radius:3px;margin-left:8px;vertical-align:middle;background:var(--st-green-dot)}
+  html.lg-new .cal-kind{display:inline-block;border-radius:6px;padding:1px 7px;margin-right:8px;font-size:11.5px;font-weight:var(--w-strong);vertical-align:1px}
+  html.lg-new .stn-pill{display:inline-block;border-radius:999px;padding:2px 10px;font-weight:var(--w-label);background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .stn-pill.is-on{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .stn-said{margin-top:4px}
+  html.lg-new .stn-pill.is-need{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   /* Settings reads like the contract's facts: a setting's label grey, what it is set to ink; its small heads grey */
   html.lg-new #set-page :is(.stn-l,.stn-h,.stn-mh),html.lg-new .stn-pp{color:var(--color-neutral-400)}
   html.lg-new :is(#ig-dock,#ins-panel) :is(.jov-k,.jov-head,.ac-meta,.ac-disc-m){color:var(--color-neutral-400)}

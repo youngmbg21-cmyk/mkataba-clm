@@ -871,6 +871,11 @@ if (typeof document !== 'undefined' && !document._dirnPanelWired){ document._dir
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-dirn-contracts]') : null; if (!b) return; e.preventDefault();
     const p = dirBook().find(x => x.key === b.getAttribute('data-dirn-contracts')); if (p) dirShowContracts(p); });
 }
+/* WORKLOAD BARS (owner's pick by name, 9 Nov 2026; the colour round): "Does for you" carries a thin bar to scale, the
+   most-named person in the list the full width, so who carries the work shows at a glance. The list sets the scale. */
+let _dirnMost = 0;
+const DIRN_BAR_W = 90;
+function dirnLoadBarHtml(n){ return n && _dirnMost ? `<span class="dirn-load" aria-hidden="true" style="width:${Math.max(4, Math.round(n / _dirnMost * DIRN_BAR_W))}px"></span>` : ''; }
 function dirnRowHtml(p){
   const ours = p.side === 'ours';
   const hati = p.hati ? String(p.hati).charAt(0).toUpperCase() + String(p.hati).slice(1) : '';
@@ -890,7 +895,7 @@ function dirnRowHtml(p){
   /* PILL TO ACT, LINK TO GO (the harmony review): Email is the panel's door, not every row's; the row keeps a phone */
   const reach = ph ? _dE(String(ph.phone || ph)) : '—';
   return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who">${typeof regAvatarHtml === 'function' ? regAvatarHtml(p.name || p.email || '?') : ''}<div><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
-    <td class="cun-wait">${_dE(role || '—')}</td><td class="cun-wait">${_dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '')}</td><td class="cun-wait">${_dE(wait)}</td><td class="cun-wait">${reach}</td></tr>`;
+    <td class="cun-wait">${_dE(role || '—')}</td><td class="cun-wait">${_dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '')}${dirnLoadBarHtml(ids.length)}</td><td class="cun-wait">${_dE(wait)}</td><td class="cun-wait">${reach}</td></tr>`;
 }
 function dirnRender(host, INS, book){
   const q = String(_dir.q || '').trim().toLowerCase();
@@ -905,6 +910,7 @@ function dirnRender(host, INS, book){
   /* SAY IT ONCE (the harmony review): a Reach column with no phone on any row steps out */
   const reachAny = list.some(p => { try { return !!dirPhoneOf(p); } catch (_){ return false; } });
   const cutReach = h => reachAny ? h : h.replace(/<td class="cun-wait">[^<]*<\/td><\/tr>$/, '</tr>');
+  _dirnMost = Math.max(0, ...ours.concat(theirs).map(p => (p.on ? p.on.size : 0)));
   const body = ours.map(p => cutReach(dirnRowHtml(p))).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="${reachAny ? 5 : 4}">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(p => cutReach(dirnRowHtml(p))).join('');
   host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">

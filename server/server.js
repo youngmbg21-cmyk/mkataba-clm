@@ -7999,7 +7999,7 @@ function graphLookClean(l) {
    or links, undo, reset, save or open a view, open Your day, explain the view, walk, find outliers or show the renewal
    cliff — so it reached for the nearest regroup. Each step names one of the map's own acts; the browser reads each
    with the map's own readers (igStepActs, js/views/intelligence.js) and says in HaTi's words what it did. The kinds
-   are ONE list on both hosts (GRAPH_STEP_DOS = the browser's IG_STEP_DOS, f986). */
+   are ONE list on both hosts (GRAPH_STEP_DOS = the browser's IG_STEP_DOS, f995). */
 const GRAPH_LENSES = ['risk', 'obligations', 'money', 'promises', 'people'];
 const GRAPH_STEP_DOS = ['lens', 'dateLine', 'dateLineOff', 'asOf', 'asOfOff', 'compare', 'whatIf', 'single', 'families', 'linked',
   'undo', 'reset', 'showAll', 'save', 'open', 'sort', 'cliff', 'yourDay', 'explain', 'walk', 'outliers'];
