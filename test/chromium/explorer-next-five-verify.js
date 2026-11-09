@@ -149,11 +149,11 @@ const check = (name, pass, detail) => {
       const T = k => d.tiles.find(t => t.k === k) || { text: '' };
       check('2b five labelled figures and the pin, under the day and the time counted',
         JSON.stringify(d.tiles.map(t => t.k)) === JSON.stringify(['needs', 'risk', 'duties', 'renew', 'since', 'pin']) && /Counted \d\d:\d\d/.test(d.head) && /Nothing is sent to Jambo/.test(d.src), JSON.stringify(d));
-      check('2c each figure says what it counts, and the four counts show on the map (owner, 9 Nov 2026)', T('needs').text.startsWith(String(d.needs)) && /Need you/.test(T('needs').text) && /Show on the map ›/.test(T('needs').text)
+      check('2c each figure says what it counts, and every one shows on the map (owner, 9 Nov 2026)', T('needs').text.startsWith(String(d.needs)) && /Need you/.test(T('needs').text) && /Show on the map ›/.test(T('needs').text)
         && /^5High risk/.test(T('risk').text) && /all in/.test(T('risk').text) && /Show on the map ›/.test(T('risk').text)
         && /Duties due in 30 days/.test(T('duties').text) && /already late/.test(T('duties').text) && /Show on the map ›/.test(T('duties').text)
         && /Renewals to decide/.test(T('renew').text) && /in 90 days/.test(T('renew').text) && /Show on the map ›/.test(T('renew').text)
-        && /^1New since yesterdayMK-N15 addedOpen it ›/.test(T('since').text), JSON.stringify(d.tiles));
+        && /^1New since yesterdayMK-N15 addedShow on the map ›/.test(T('since').text), JSON.stringify(d.tiles));
       await page.hover('#ig-day [data-ig-day="risk"]'); await page.waitForTimeout(300);
       const lit = await page.evaluate(() => IG.nodes.filter(n => n.g && n.g.classList.contains('hi')).length);
       await page.mouse.move(5, 5); await page.waitForTimeout(300);
@@ -170,7 +170,7 @@ const check = (name, pass, detail) => {
       /* ON THE MAP, NOT A LIST (owner, 9 Nov 2026: "these should only show on the map not on the list"): Need you, Duties and Renewals
          narrow the map to their contracts in their own view and lens; the page stays Explorer */
       const onMap = {};
-      for (const [k, want] of [['needs', { lens: null }], ['duties', { lens: 'obligations' }], ['renew', { lens: null, view: 4, time: 'decision' }]]){
+      for (const [k, want] of [['needs', { lens: null }], ['duties', { lens: 'obligations' }], ['renew', { lens: null, view: 4, time: 'decision' }], ['since', { lens: null }]]){
         await page.evaluate(() => { intel.lenses = []; igLensSet(null, { noPush: true }); igSetView(0); intel.dayTab = true; rebuildIntelGraph(); renderIntelDock(); });
         await until(() => !!document.querySelector('#ig-day [data-ig-day]'));
         await page.click(`#ig-day [data-ig-day="${k}"]`); await page.waitForTimeout(600);
@@ -178,7 +178,7 @@ const check = (name, pass, detail) => {
           return { face: hbFace(), view: state.view, same: JSON.stringify(shown) === JSON.stringify(t.ids.slice().sort()), n: shown.length, lens: intel.lens || null,
             vw: igbCam().view, time: intel.timeBy, day: !!document.getElementById('ig-day'), ok: (want.lens || null) === (intel.lens || null) && (want.view == null || igbCam().view === want.view) && (!want.time || intel.timeBy === want.time) }; }, [k, want]);
       }
-      check('2f2 Need you, Duties due and Renewals narrow the map to their own contracts in their own view and lens, never leaving Explorer',
+      check('2f2 Need you, Duties due, Renewals and New since yesterday narrow the map to their own contracts in their own view and lens, never leaving Explorer',
         Object.values(onMap).every(r => r.face === 'explorer' && r.view === 'dashboard' && r.same && r.n > 0 && r.ok && !r.day), JSON.stringify(onMap));
       await page.screenshot({ path: path.join(OUT, '2-on-the-map.png') });
       await page.evaluate(() => { intel.lenses = []; igLensSet(null, { noPush: true }); rebuildIntelGraph(); });

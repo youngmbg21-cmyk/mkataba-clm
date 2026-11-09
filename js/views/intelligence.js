@@ -6105,12 +6105,12 @@ function igDayData(){
   { const y=new Date(); y.setDate(y.getDate()-1); const Y=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
     const add=[], sig=[]; book.forEach(c=>{ const d=igAsOfDays(c); if(d.added&&d.added>=Y) add.push(c); else if(d.signed&&String(d.signed).slice(0,10)>=Y) sig.push(c); });
     const all=add.concat(sig);
-    out.push({ k:'since', n:all.length, tone:'', ids:all.map(c=>c.id), go:all.length===1?'one':'them',
+    out.push({ k:'since', n:all.length, tone:'', ids:all.map(c=>c.id), go:'onmap', fit:{ lens:null },
       sub:all.length===1?i18t(add.length?'int_day_added_ref':'int_day_signed_ref',{ r:ref(all[0]) }):[add.length?i18tn('int_brief_added',add.length,{ n:add.length }):'', sig.length?i18tn('int_brief_signed',sig.length,{ n:sig.length }):''].filter(Boolean).join(' · ') }); }
   return out;
 }
 /* ON THE MAP, NOT A LIST (owner, 9 Nov 2026, the four figures circled: "these should only show on the map not on the list") */
-const IG_DAY_GO={ onmap:'int_day_go_map', map:'int_day_go_map', one:'int_day_go_open', them:'int_day_go_them' };
+const IG_DAY_GO={ onmap:'int_day_go_map', map:'int_day_go_map' };
 function igDayHtml(){
   const T=igDayData(), pin=igBriefPinned(), now=new Date();
   let day=''; try{ day=now.toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{ weekday:'long', day:'numeric', month:'long' }); }catch(_){ day=now.toDateString(); }
@@ -6143,8 +6143,7 @@ function igDayGo(k){
     if(intel.lens!=='risk') igLensSet('risk');
     const on=igLegendPickOn(); if(!(on&&on.pick==='lens:risk:high')) igLegendPick('lens:risk:high',i18t('int_day_risk'));
     renderIntelDock(); updateIntelNote(); return true; }
-  if(t.go==='one') return typeof roomHomeLand==='function'&&(roomHomeLand(t.ids[0]),true);
-  return typeof regShowOnly==='function'&&(regShowOnly(t.ids,i18t('int_day_since')),true);
+  return false;
 }
 /* "Brief me", the Guide's row, and the morning pin: the panel turns to Your day */
 function igBriefStart(){
