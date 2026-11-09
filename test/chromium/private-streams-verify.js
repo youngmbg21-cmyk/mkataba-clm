@@ -196,8 +196,10 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
     await R.page.selectOption('[data-ht-filter="opens"]', 'hide');
     check(await until(R.page, () => document.querySelectorAll('.hist-ev').length && !document.querySelector('.hist-ev.is-open')), '7f "Hide them" takes them away');
     await R.page.evaluate(() => hbStripBring('MK-A1', 'hist'));
-    await until(R.page, () => { const h = document.querySelector('.hist-head'); return h && /Refined Sugar|MK-A1/.test((h.closest('[data-bs-id]') || document.body).textContent); });
-    const notListed = await R.page.evaluate(() => { const b = [...document.querySelectorAll('.hist-filters')].pop(); return !!b && !b.querySelector('[data-ht-filter="opens"]'); });
+    /* RE-POINTED 9 Nov 2026 (the strip is gone): MK-A1's own History in the middle, its filters drawn, is waited for
+       (bounded) and read; the private contract's History before it no longer answers the wait */
+    await until(R.page, () => !!document.querySelector('#pd2-hist[data-pd2-hist="MK-A1"] .hist-filters'));
+    const notListed = await R.page.evaluate(() => { const b = document.querySelector('#pd2-hist[data-pd2-hist="MK-A1"] .hist-filters'); return !!b && !b.querySelector('[data-ht-filter="opens"]'); });
     check(notListed, '7g a contract in an ordinary folder lists no Opens choice — a choice with nothing behind it is not offered');
     check(R.errors.length === 0, '6c no page errors for the named person', R.errors.join(' | ') || 'clean');
     await R.ctx.close();
