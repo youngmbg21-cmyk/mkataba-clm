@@ -36133,6 +36133,22 @@ handbook world: 0 gaps before, 2 after). The outer article has no padding (its m
 the inner sheet is the one cut, or page 2's first line sat on the page's top edge. A template's own page (`#tpl-dt`) was one
 sheet too; it is cut the same way. The clause editor and the template builder keep one sheet (rlPaginate's rule: a break
 redrawn under the caret moves the words being typed); said to the owner.
+
+## INSIGHTS — YOUR DAY, THE SAP WAY (owner, 9 Nov 2026)
+
+The owner: "the morning brief seems to be useless or at least it is not clear what it does or has no been designed correctly." Three options were drawn on today's Explorer ("Morning Briefing Options": The SAP Way, The Legora Way (recommended), Walk the map). The owner: "SAP way".
+
+Built as drawn: a tab "Your day" before Overview on Explorer's panel (`igDayTabOn`, `igDayShows`, `intel.dayTab`; pressed again, back to the Overview). Under the day and "Counted HH:MM", five figures two to a row (`igDayData`, `igDayHtml`): Need you (the one desk's count, `ndRead().n`, late and oldest; Open the list → `ndOpenBoard`), High risk (the Risk lens's high bucket, which stream holds them, not checked yet; Show on the map → the Risk lens with the legend's own pick `lens:risk:high`), Duties due in 30 days (late + due; Open Obligations), Renewals to decide (in 90 days, the value; Open the Calendar, which opens on its 90-day agenda), New since yesterday (one → its ref and Open it → `roomHomeLand`; many → `regShowOnly`). Pointing at a figure lights its contracts (`igPaintIds`), letting go puts the map back. A figure at nought is drawn, never pressable. The sixth tile is Pin as my morning view (`igBriefPinned`, kept in this browser): Explorer opens on Your day the first time each day (`igBriefAutoStart`). The foot: "Counted from the contracts you can see. Nothing is sent to Jambo." (as drawn; the brief's own hello already said it).
+
+RETIRED: the six-stop walk (`igBriefSteps`, `igBriefApply`, `igBriefGo`, `igBriefStop`, `igBriefStep`, `igBriefNoteHtml`, `igBriefHtml`, `.ig-brief*`, the head line's ‹ › Stop Pin, and "Your briefing" under Jambo's answers). "Brief me" typed and the Guide's row ("Your day, five figures") now turn the panel to the tab (`igBriefStart`).
+
+THE HANDBOOK'S RECIPES LEANED ON EACH OTHER: 6.2-6 (then and now) clicked the Risk lens expecting it off; the old walk had turned it off on its way. It now starts with `igLensSet(null)`.
+
+Also this round, on #591: the Swedish check at 800 wide found the views group cut by 172px once the bar began beside the legend; a group too long for the room now folds inside its own box (`.ig-viewbar .ig-seg{flex-wrap:wrap}`).
+
+
+THE TAB ORDER, ASKED (9 Nov 2026): the drawing put Your day before the Overview, which reverses the 26 Oct ruling "an overview tab side panel in each page followed by the jambo tab" (overview-tab-verify 1 and one-window-bar-cards-verify A3 caught it). Asked; the owner: "Your day first". Explorer is the one exception: Your day · Overview · Findings · Guide; every other page keeps the Overview first.
+
 - THE SEND PAGE, AGAIN (same day): the owner on the pictures: "this is incorrect. The whole page should be white not a card
   on top of a shaded backdrop". Fix round 1 had only taken the card off the letter; the page itself still stood on the
   desk's grey, its head and body inset 12px with corners and a lift (the ONE SHEET block). In the new look the page is now
@@ -36166,3 +36182,10 @@ redrawn under the caret moves the words being typed); said to the owner.
   ("AGREEMENT … DECISION", `.cal-hz-ruler`, sticky at the top of its scroller) was painted transparent by the new look's
   harmony rule, so the rows scrolled visibly through it. Now the page's white. Swept every page and Calendar view for
   another sticky head with no ground of its own: none (the probe found only `.cal-hz-ruler` at the parent). f977 fix 11.
+
+## INSIGHTS — YOUR DAY ON THE MAP, NOT A LIST (owner, 9 Nov 2026)
+
+The owner, with a picture of Your day and the four figures circled (Need you, High risk, Duties due in 30 days, Renewals to decide): "these should only show on the map not on the list". Built: Need you, Duties and Renewals now narrow the map to their own contracts with a filter lens of `kind:'day'` (`igDayGo`, go `onmap`, each figure's `fit`): Need you as the map stands, Duties with the Obligations lens, Renewals on the Timeline by decision; High risk keeps the Risk lens and the legend's own pick. The head line says "Showing N of T · <figure> · Show everything"; Your day steps aside to the Overview. New since yesterday (not circled) still opens the contract. A figure whose contracts the map does not draw is not pressable. The links say "Show on the map ›"; `int_day_go_list`, `int_day_go_oblig`, `int_day_go_cal` are retired (left inert in both books).
+
+NOTED FOR THE OWNER: Need you counts THINGS waiting (the bell's number); the map shows the CONTRACTS they sit on, so 9 things on 5 contracts reads "Showing 5 of 16".
+Then the owner: "Include New since yesterday as well". New since yesterday narrows the map too (go `onmap`, no lens); every figure on Your day now shows on the map. `int_day_go_open` and `int_day_go_them` retired (left inert in both books).

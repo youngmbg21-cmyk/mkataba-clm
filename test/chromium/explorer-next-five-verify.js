@@ -8,9 +8,9 @@
       Open the list (lit, Enter takes it: where the press always landed) · Show
       on the map (Explorer on those contracts, the figure's view and lens, the
       head line's ‹ Board). Esc and the figure again close it.
-   2. THE MORNING BRIEFING — six stops, each a view and a lens and a sentence
-      counted from the book, ‹ › Stop on the head line, Pin as my morning view;
-      Stop puts the map back.
+   2. YOUR DAY (owner picked "The SAP Way", 9 Nov 2026; was a six-stop walk) —
+      a tab before Overview: five labelled figures, each opening its page,
+      lighting its contracts while pointed at; Pin as my morning view.
    3. THE RENEWAL CLIFF — the decision timeline counts by month, a crowded
       month amber, a red pin on each renewal soon to decide, a month's card.
    4. WHAT IF A PARTY LEFT — the party's contracts and the ones hanging on them
@@ -136,34 +136,58 @@ const check = (name, pass, detail) => {
       check('1h ‹ Board goes back to the Board', await page.evaluate(() => hbFace() === 'board'), await page.evaluate(() => hbFace()));
     }
 
-    /* ================= 2. THE MORNING BRIEFING ================= */
-    await page.evaluate(() => { intel.lenses = []; intel.lens = null; intel.timeBy = null; });
+    /* ================= 2. YOUR DAY (owner picked "The SAP Way", 9 Nov 2026; RE-POINTED from the six-stop walk) ================= */
+    await page.evaluate(() => { intel.lenses = []; intel.lens = null; intel.timeBy = null; try { localStorage.removeItem('hati.v1.igBriefPin'); } catch (_){} });
     await toExplorer();
-    if (await has('igBriefStart')){
-      await page.evaluate(() => { igSetView(0); rebuildIntelGraph(); });
-      const before = await page.evaluate(() => JSON.stringify({ v: igbCam().view, lens: intel.lens, g: intel.groupBy }));
-      await page.evaluate(() => intelAsk('Brief me')); await until(() => !!intel.brief);
-      const b = await page.evaluate(() => ({ stops: intel.brief.steps.map(s => s.k), rows: document.querySelectorAll('#ig-dock .ig-brief-s').length,
-        say: [...document.querySelectorAll('#ig-dock .ig-brief-s')].map(r => r.textContent.trim()) }));
-      check('2a "Brief me" starts the briefing: six stops, each a row under Jambo\'s hello',
-        JSON.stringify(b.stops) === JSON.stringify(['needs', 'risk', 'duties', 'money', 'since', 'back']) && b.rows === 6, JSON.stringify(b));
-      check('2b the head line says where it is: Your briefing · 1 of 6, with Stop and Pin', /Your briefing · 1 of 6/.test(await note()) && /Stop/.test(await note()) && /Pin as my morning view/.test(await note()), await note());
-      await page.click('#ig-note [data-ig-note="brief-next"]'); await page.waitForTimeout(500);
-      const s2 = await page.evaluate(() => ({ lens: intel.lens, at: intel.brief.at, lit: IG.nodes.filter(n => n.g && n.g.classList.contains('hi')).length, hi: intel.brief.steps[1].ids.length }));
-      check('2c the next stop turns the Risk lens on and lights the high risk', s2.lens === 'risk' && s2.at === 1 && s2.hi === 5 && s2.lit === s2.hi, JSON.stringify(s2));
-      const riskSay = b.say[1] || '';
-      check('2d the risk stop is counted from the book: 5 high, all in one stream, 3 not checked', /5 high risk/.test(riskSay) && /all in/.test(riskSay) && /3 not checked yet/.test(riskSay), riskSay);
-      await page.click('#ig-dock [data-ig-brief-go="3"]'); await page.waitForTimeout(500);
-      const s4 = await page.evaluate(() => ({ view: igbCam().view, time: intel.timeBy, lens: intel.lens, n: intel.brief.steps[3].ids.length }));
-      check('2e "Money ending" moves to the renewal decision timeline, no lens', s4.view === 4 && s4.time === 'decision' && !s4.lens && s4.n >= 4, JSON.stringify(s4));
-      await page.screenshot({ path: path.join(OUT, '2-briefing.png') });
-      await page.click('#ig-note [data-ig-note="brief-pin"]'); await page.waitForTimeout(200);
-      const pin = await page.evaluate(() => igBriefPinned());
-      await page.click('#ig-note [data-ig-note="brief-stop"]'); await page.waitForTimeout(500);
-      const after = await page.evaluate(() => JSON.stringify({ v: igbCam().view, lens: intel.lens, g: intel.groupBy }));
-      check('2f Pin keeps it as the morning view; Stop ends it and puts the map back as it was', pin && after === before && !(await page.evaluate(() => !!intel.brief)), JSON.stringify({ pin, before, after }));
-      await page.evaluate(() => { try { localStorage.removeItem('hati.v1.igBriefPin'); } catch (_){} });
-    } else check('2 the morning briefing exists', false, 'igBriefStart missing');
+    if (await has('igDayHtml')){
+      await page.evaluate(() => { igSetView(0); rebuildIntelGraph(); renderIntelDock(); });
+      const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')));
+      check('2a "Your day" is the first tab on Explorer\'s panel, before the Overview', tabs[0] === 'day' && tabs[1] === 'copilot', JSON.stringify(tabs));
+      await page.click('#ig-dock [data-pd-tab="day"]'); await until(() => !!document.getElementById('ig-day'));
+      const d = await page.evaluate(() => ({ tiles: [...document.querySelectorAll('#ig-day .ig-day-t')].map(t => ({ k: t.getAttribute('data-ig-day') || t.getAttribute('data-ig-day-none') || (t.hasAttribute('data-ig-day-pin') ? 'pin' : ''), btn: t.tagName === 'BUTTON', text: t.textContent.replace(/\s+/g, ' ').trim() })),
+        needs: ndRead().n, head: document.querySelector('#ig-day .ig-day-hd')?.textContent || '', src: document.querySelector('#ig-day .ig-day-src')?.textContent || '' }));
+      const T = k => d.tiles.find(t => t.k === k) || { text: '' };
+      check('2b five labelled figures and the pin, under the day and the time counted',
+        JSON.stringify(d.tiles.map(t => t.k)) === JSON.stringify(['needs', 'risk', 'duties', 'renew', 'since', 'pin']) && /Counted \d\d:\d\d/.test(d.head) && /Nothing is sent to Jambo/.test(d.src), JSON.stringify(d));
+      check('2c each figure says what it counts, and every one shows on the map (owner, 9 Nov 2026)', T('needs').text.startsWith(String(d.needs)) && /Need you/.test(T('needs').text) && /Show on the map ›/.test(T('needs').text)
+        && /^5High risk/.test(T('risk').text) && /all in/.test(T('risk').text) && /Show on the map ›/.test(T('risk').text)
+        && /Duties due in 30 days/.test(T('duties').text) && /already late/.test(T('duties').text) && /Show on the map ›/.test(T('duties').text)
+        && /Renewals to decide/.test(T('renew').text) && /in 90 days/.test(T('renew').text) && /Show on the map ›/.test(T('renew').text)
+        && /^1New since yesterdayMK-N15 addedShow on the map ›/.test(T('since').text), JSON.stringify(d.tiles));
+      await page.hover('#ig-day [data-ig-day="risk"]'); await page.waitForTimeout(300);
+      const lit = await page.evaluate(() => IG.nodes.filter(n => n.g && n.g.classList.contains('hi')).length);
+      await page.mouse.move(5, 5); await page.waitForTimeout(300);
+      const off = await page.evaluate(() => IG.nodes.filter(n => n.g && n.g.classList.contains('hi')).length);
+      check('2d pointing at a figure lights its contracts on the map; letting go puts the map back', lit === 5 && off === 0, JSON.stringify({ lit, off }));
+      await page.screenshot({ path: path.join(OUT, '2-your-day.png') });
+      await page.click('#ig-day [data-ig-day-pin]'); await page.waitForTimeout(200);
+      const pin = await page.evaluate(() => ({ on: igBriefPinned(), pressed: document.querySelector('#ig-day [data-ig-day-pin]')?.getAttribute('aria-pressed') }));
+      await page.click('#ig-day [data-ig-day-pin]'); await page.waitForTimeout(200);
+      check('2e Pin as my morning view keeps it, pressed again lets go', pin.on && pin.pressed === 'true' && !(await page.evaluate(() => igBriefPinned())), JSON.stringify(pin));
+      await page.click('#ig-day [data-ig-day="risk"]'); await page.waitForTimeout(700);
+      const r = await page.evaluate(() => ({ lens: intel.lens, pick: (igLegendPickOn() || {}).pick, shown: IG.nodes.filter(n => n.kind === 'contract').length, day: !!document.getElementById('ig-day') }));
+      check('2f High risk → Show on the map: the Risk lens with only the high risk drawn, the panel back to the Overview', r.lens === 'risk' && r.pick === 'lens:risk:high' && r.shown === 5 && !r.day, JSON.stringify(r));
+      /* ON THE MAP, NOT A LIST (owner, 9 Nov 2026: "these should only show on the map not on the list"): Need you, Duties and Renewals
+         narrow the map to their contracts in their own view and lens; the page stays Explorer */
+      const onMap = {};
+      for (const [k, want] of [['needs', { lens: null }], ['duties', { lens: 'obligations' }], ['renew', { lens: null, view: 4, time: 'decision' }], ['since', { lens: null }]]){
+        await page.evaluate(() => { intel.lenses = []; igLensSet(null, { noPush: true }); igSetView(0); intel.dayTab = true; rebuildIntelGraph(); renderIntelDock(); });
+        await until(() => !!document.querySelector('#ig-day [data-ig-day]'));
+        await page.click(`#ig-day [data-ig-day="${k}"]`); await page.waitForTimeout(600);
+        onMap[k] = await page.evaluate(([k, want]) => { const t = igDayData().find(x => x.k === k), shown = IG.nodes.filter(n => n.kind === 'contract').map(n => n.id).sort();
+          return { face: hbFace(), view: state.view, same: JSON.stringify(shown) === JSON.stringify(t.ids.slice().sort()), n: shown.length, lens: intel.lens || null,
+            vw: igbCam().view, time: intel.timeBy, day: !!document.getElementById('ig-day'), ok: (want.lens || null) === (intel.lens || null) && (want.view == null || igbCam().view === want.view) && (!want.time || intel.timeBy === want.time) }; }, [k, want]);
+      }
+      check('2f2 Need you, Duties due, Renewals and New since yesterday narrow the map to their own contracts in their own view and lens, never leaving Explorer',
+        Object.values(onMap).every(r => r.face === 'explorer' && r.view === 'dashboard' && r.same && r.n > 0 && r.ok && !r.day), JSON.stringify(onMap));
+      await page.screenshot({ path: path.join(OUT, '2-on-the-map.png') });
+      await page.evaluate(() => { intel.lenses = []; igLensSet(null, { noPush: true }); rebuildIntelGraph(); });
+      await page.evaluate(() => intelAsk('Brief me')); await until(() => !!document.getElementById('ig-day'));
+      const typed = await page.evaluate(() => ({ day: !!document.getElementById('ig-day'), lit: document.querySelector('#ig-dock [data-pd-tab="day"]')?.getAttribute('aria-selected') }));
+      check('2g "Brief me" typed turns the panel to Your day', typed.day && typed.lit === 'true', JSON.stringify(typed));
+      await page.click('#ig-dock [data-pd-tab="day"]'); await page.waitForTimeout(300);
+      check('2h the tab pressed again goes back to the Overview', !(await page.evaluate(() => !!document.getElementById('ig-day'))));
+    } else check('2 Your day exists', false, 'igDayHtml missing');
 
     /* ================= 3. THE RENEWAL CLIFF ================= */
     await page.evaluate(() => { intel.lenses = []; intel.lens = null; intel.timeBy = 'decision'; igSetView(4); rebuildIntelGraph(); });
@@ -301,6 +325,16 @@ const check = (name, pass, detail) => {
         const a = g.getBoundingClientRect(), b = st.getBoundingClientRect(); return a.top >= b.top - 1 && a.bottom <= b.bottom + 1; });
       check(`6 ${w}×${hh}: the legend with its then-and-now stays inside the stage`, fit === true, String(fit));
       await page.screenshot({ path: path.join(OUT, `6-${w}x${hh}.png`) });
+      /* YOUR DAY at each screen (9 Nov 2026): every figure and the pin in sight without scrolling, each line inside its tile */
+      const dfit = await page.evaluate(() => { intel.dayTab = true; renderIntelDock(); const d = document.getElementById('ig-day'); if (!d) return null;
+        const box = d.getBoundingClientRect(), T = [...d.querySelectorAll('.ig-day-t')];
+        const inView = T.every(t => { const r = t.getBoundingClientRect(); return r.bottom <= box.bottom + 1 && r.right <= box.right + 1; });
+        const inside = T.every(t => { const r = t.getBoundingClientRect(); return [...t.children].every(c => { const q = c.getBoundingClientRect(); return q.left >= r.left - 1 && q.right <= r.right + 1; }); });
+        return { tiles: T.length, inView, inside }; });
+      check(`6b ${w}×${hh}: Your day's five figures and the pin are in sight, every line inside its tile`, !!dfit && dfit.tiles === 6 && dfit.inView && dfit.inside, JSON.stringify(dfit));
+      await page.waitForTimeout(700);  /* the panel's crossfade finished before the picture */
+      await page.screenshot({ path: path.join(OUT, `6-day-${w}x${hh}.png`) });
+      await page.evaluate(() => { intel.dayTab = false; renderIntelDock(); });
     }
     check('7 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
