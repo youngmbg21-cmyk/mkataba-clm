@@ -19665,6 +19665,9 @@
   html.lg-new .cunp-amb{color:var(--st-amber-fg)}
   html.lg-new .cunp-mk{width:36px}
   html.lg-new .cunp-table tbody tr{cursor:pointer}
+  /* A ROW YOU CAN PRESS SHOWS THE HAND (owner, 9 Nov 2026: "when you hover of the reads rows the cursor does not turn into a
+     small hand"): Reads, Parties and People select a row on a press, like every other list */
+  html.lg-new :is(tr[data-rd-row],tr[data-cu-cust],tr[data-dir-row]){cursor:pointer}
   html.lg-new :is(.cun-page,.dirn-page) .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .cun-head{display:flex;align-items:baseline;gap:16px;margin:4px 0 10px}
   html.lg-new .cun-name{font-size:14px;font-weight:var(--w-label)}
