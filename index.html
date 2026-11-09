@@ -19763,8 +19763,19 @@
   @media (hover:hover){ html.lg-new .ctfp-rk:hover .ctfp-rk-n{text-decoration:underline} }
   html.lg-new #pd-glance :is(.pd2-l,.pd2-read,.pd2-card-say){color:var(--color-neutral-400)}
   html.lg-new .rl-card :is(.rl-card-sum,.rl-card-by,.rl-card-read-w,.rl-card-read-m,.rl-card-lock-say){color:var(--color-neutral-400)}
-  /* a panel's labels are grey, its figures ink (the Overview face, every page; Approvals' and Negotiations' own panels) */
-  html.lg-new .apn-panel .apn-pr>b,html.lg-new .ngn-panel .pd2-ch-r>span{color:var(--color-neutral-400)}
+  /* a panel's labels are grey, its figures ink (the Overview face, and every list's own panel: the label of a row is grey) */
+  html.lg-new .apn-panel .apn-pr>b,html.lg-new .pd2-ch-r>span{color:var(--color-neutral-400)}
+  /* THE REST OF THE PAGES (owner, 9 Nov 2026: "apply it to the rest of the pages"): the same ink and grey on Parties, People,
+     Reads, Requests, Import, Our paper, My notes, Calendar and the Board — the line under a name, what waits, a role, a
+     quote, who and when, a card's small note and a list's foot are grey; names, figures, money, titles and buttons stay ink */
+  html.lg-new :is(.cun-sub,.cun-sub .hati-ref,td.cun-wait,.cun-st.is-none,.ikn-q,.apn-foot){color:var(--color-neutral-400)}
+  html.lg-new :is(.tpln-l,.tpl-hd-sub){color:var(--color-neutral-400)}
+  html.lg-new #cal-ag small{color:var(--color-neutral-400)}
+  html.lg-new :is(.pd2-ch-cap,.pd2-ch-r>i,.pd2-ch-door>span,.rfp-k,.rfp-cap){color:var(--color-neutral-400)}
+  html.lg-new :is(.hb-cs,.hb-bh-s,.hb-bh-at,.hb-sk-note,.hb-sk-then,.hb-ag-lv-w){color:var(--color-neutral-400)}
+  html.lg-new :is(.mig-drop-s,.mig-opt-l){color:var(--color-neutral-400)}
+  /* Settings reads like the contract's facts: a setting's label grey, what it is set to ink; its small heads grey */
+  html.lg-new #set-page :is(.stn-l,.stn-h,.stn-mh),html.lg-new .stn-pp{color:var(--color-neutral-400)}
   html.lg-new :is(#ig-dock,#ins-panel) :is(.jov-k,.jov-head,.ac-meta,.ac-disc-m){color:var(--color-neutral-400)}
   html.lg-new :is(#ig-dock,#ins-panel) .jov-head b{color:var(--color-text)}
   /* THE SAP WAY MARK (listSapMarkHtml, owner 9 Nov 2026: at the head of every row): a 20px filled circle in the house's
