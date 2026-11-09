@@ -36197,3 +36197,11 @@ The owner: "the bell symbol is obsolete because when you press it you get multip
 Built: the question mark (`#hdr-nav`, 29 Oct 2026) and the clock (`#cmd-panel`, 20 Sep 2026) left the bar; the bell button keeps its id `#hdr-notify` and its count `#hdr-notify-dot` but wears the panel's mark `#i-panel`, its hover "Side panel: Guide, Alerts, Notes, Activity" (`sh_panel_title`, both books). ONE handler `panelDoorPress`: open → `closeContextPanel`; shut → `openPanel(alertCount()>0 ? 'alerts' : panelFace())`. `applyPanelLayout` sets its `aria-expanded`. The panel's own tabs reach Guide, Notes and Activity.
 
 THE WORD FOLLOWED THE PICTURE: on-screen sentences that said "the bell" now say Alerts (`cn_dlg_sub`, `mn_when_says`, `mn_rv_*`, `int_fd_ask_ph`, `int_fd_sent`, `int_fd_asked`; `ng_notices_min_title` says the panel button), both books; the handbook's 0.3 ("The count and Needs you: one list") and 0.5 rewritten, and every "on the bell" in its chapters says Alerts. LEFT ALONE, told to the owner: the Brain page's descriptions (`brn_*`) still say "bell" as the name of the alerts; typing "bell" still opens Alerts.
+
+- THE PAGE IN FRONT IS THE ONE ASKED ABOUT (same day, the owner again: "fix the History panel showing the wrong
+  contract"). After f978's way back, one wrong contract remained: MK-A2's paper → Approvals → MK-HB4's History left
+  Jambo's box saying "Ask Jambo about MK-A2…", and a question went with MK-A2's wording — `intel.paper` stays "up"
+  (`igPaperUp`) behind the Board while a strip's page (`pdCardNow`) stands in front, and the box and the ask read the
+  paper first. Now the page in front wins (`igCardInFront`, `igPaperInFront` in `igAskPlaceholder`, `igAskCost`,
+  `igHeldAskId`, `igPageTalkAsk`): "Ask Jambo about MK-HB4…", the question with MK-HB4. Back on MK-A2's paper it says
+  MK-A2 again. held-contract-asks-verify, home-held-contract-verify, point-buttons-and-brief-verify, stakes-verify green.

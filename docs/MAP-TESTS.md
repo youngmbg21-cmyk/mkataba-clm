@@ -609,6 +609,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - The new-look browser set: round5/6/7/7b/9-new-look-verify, new-look-frame-verify, reads-*-verify, doors-verify, obligation-opens-on-the-paper-verify.
 - Thin page lines (9 Nov): `node --test test/f980-thin-page-lines.test.js`; clause-editor-verify, typing-survives-redraw-verify, prompt-and-build-verify. The Horizon head: f977 fix 11.
 - A press stays where it was (9 Nov): `node --test test/f979-a-press-stays-where-it-was.test.js`; reads-*-verify, my-notes-verify.
-- The way back (9 Nov): `node --test test/f978-the-way-back-is-where-you-were.test.js`; jambo-words-verify 7c.
+- The way back and the page in front (9 Nov): `node --test test/f978-the-way-back-is-where-you-were.test.js`; jambo-words-verify 7c; held-contract-asks-verify, home-held-contract-verify.
 - Fix round 2 (9 Nov): f977 fix 9 (the negotiated paper and a template's page in pages); negotiate-new-look-verify, home-paper-clauses-verify, the-read-bar-and-notes-verify.
 - Fix round 1 (9 Nov): f977 'fix' tests; f955 3 (every page name, one word or several); f925 (the Board's helper `ndRowsN`); reads-and-columns-as-drawn-verify 4 (the head is the name and ⋯ alone).
