@@ -2865,7 +2865,7 @@ function regRowsHtml(cs){
     const ends=eff?regEndsSay(eff):null;
     const renDate=ends?ends.day:(eff?regDotDate(eff):'—');
     const renIn=ends?ends.sub:'';
-    const renDateColor=ends&&ends.tone==='ruby'?'var(--st-ruby-fg)':ends&&ends.tone==='amber'?'var(--st-amber-fg)':'var(--color-neutral-700)';
+    const renDateColor=ends&&ends.tone==='ruby'?'var(--st-ruby-fg)':ends&&ends.tone==='amber'?'var(--st-amber-fg)':regNl()?'var(--color-neutral-400)':'var(--color-neutral-700)';  /* the new look: a date is detail, grey (owner, 9 Nov 2026) */
     const renColor=renDateColor;
     /* "NON-MONETARY", NOT "n/m" (26 Sep 2026, the list options' floor):
        shorthand a reader had to decode, on the one cell whose whole job is to
@@ -2953,7 +2953,7 @@ function regRowsHtml(cs){
     const spreadOn=placeRows&&regHomeWide();
     CELL.party=`<td class="reg-party" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(coded?i18t('igw_kept_list'):(pyAll||cpName))}">${coded?esc(i18t('igw_kept_list')):esc(cpName)}</td>`;
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
-        <span class="reg-id">${placeRows?regStageMarkHtml(c):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
+        <span class="reg-id">${placeRows?(regNl()?regSapMarkHtml(c):regStageMarkHtml(c)):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
         </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
@@ -3071,6 +3071,25 @@ function regStageMarkHtml(c){
   const { tone, m }=regStageTone(c);
   const kind=tone==='green'?'done':tone==='ruby'?'late':(c&&c.status==='Draft')?'todo':tone==='gray'?'todo':'part';
   return window.listMarkHtml?listMarkHtml(tone,kind,m&&m.label):'';
+}
+/* THE SAP WAY MARK ON CONTRACTS (owner's pick by name, 9 Nov 2026; Contracts only, the new look only): a filled
+   circle in HaTi's status colour with a white drawn glyph. The stage reading decides it (regStageTone), and for the
+   rows in between, whose move it is (the Needs you tab's own reading, regNeedsIds): signed a green tick · ended or
+   declined a ruby cross · a draft a grey dash · waiting on you an amber exclamation · with someone else a steel i.
+   The title keeps the stage's own words for a reader. */
+let _regSapNeeds={at:0,ids:null};
+function regSapNeedsIds(){ const now=Date.now(); if(!_regSapNeeds.ids||now-_regSapNeeds.at>400) _regSapNeeds={at:now,ids:regNeedsIds()}; return _regSapNeeds.ids; }
+const REG_SAP_MARK={ done:['green','mkTick'], ended:['ruby','mkCross'], draft:['gray','mkDash'], you:['amber','mkBang'], them:['steel','mkInfo'] };
+function regSapMarkOf(c){
+  const { tone }=regStageTone(c);
+  if(tone==='green') return 'done';
+  if(tone==='ruby') return 'ended';
+  if((c&&c.status==='Draft')||tone==='gray') return 'draft';
+  return regSapNeedsIds().has(String(c&&c.id))?'you':'them';
+}
+function regSapMarkHtml(c){
+  const k=regSapMarkOf(c), m=REG_SAP_MARK[k], { m:meta }=regStageTone(c);
+  return `<span class="reg-mk is-${m[0]}" data-reg-mk="${k}"${meta&&meta.label?` title="${esc(meta.label)}"`:''} aria-hidden="true">${typeof icon==='function'?icon(m[1],'reg-mk-g',2.4):''}</span>`;
 }
 /* THE NEGOTIATIONS ROW (the list language): whose move as the mark — ours a half circle in amber, theirs
    a clock in steel, settled a ticked circle — and the grey line "ref · Round 2 · Lead: You" */

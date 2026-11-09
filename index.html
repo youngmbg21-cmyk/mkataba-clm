@@ -106,6 +106,8 @@
 <link rel="stylesheet" href="fonts/source-serif-4.css">
 <!-- 7 Oct 2026: Geist Mono, the reference face ("MK-441"), Young off the mockup. -->
 <link rel="stylesheet" href="fonts/geist-mono.css">
+<!-- 9 Nov 2026: Inter, the new look's screen face (--font-new); the old look keeps Geist. -->
+<link rel="stylesheet" href="fonts/inter.css">
 </head>
 <body>
 <!-- Inter throughout — the product's own chrome and the contract paper alike.
@@ -458,6 +460,7 @@
        character one width. ONLY the reference — dates, money and counts stay
        on --font-mono, the 24 Sep ruling. */
     --font-ref:'Geist Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --font-new:'Inter','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;  /* the new look's screen face (owner, 9 Nov 2026: "make sure the font applies across the platform"); the old look keeps Geist */
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
        read a contract in, the counterparty portal, the template preview and
@@ -18264,7 +18267,7 @@
   html.lg-new #cn2-page .cn2-top{flex:none;padding:24px 40px 12px;background:linear-gradient(180deg,var(--morning-warm) 0%,var(--color-surface) 100%);border-bottom:1px solid var(--color-divider)}
   html.lg-new #cn2-page .cn2-top.is-plain{background:var(--color-surface);border-bottom:0;padding-top:32px}
   html.lg-new #cn2-page .cn2-hello{margin:0;font-family:var(--font-title);font-size:27px;font-weight:var(--w-title-serif);line-height:1.2;color:var(--color-text)}
-  html.lg-new #cn2-page .cn2-say{margin:6px 0 0;font-size:15px;line-height:1.45;max-width:72ch;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-say{margin:6px 0 0;font-size:15px;line-height:1.45;max-width:72ch;color:var(--color-neutral-400)}
   html.lg-new #cn2-page .cn2-say.is-strong{font-weight:var(--w-label)}
   html.lg-new #cn2-page .cn-counts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}
   html.lg-new #cn2-page .cn-ct{display:inline-flex;align-items:center;gap:7px;height:var(--ctl-h);padding:0 12px;border:0;border-radius:999px;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
@@ -18297,8 +18300,8 @@
   html.lg-new #cn2-page .cn2-who .nd-av.is-jambo{background:var(--jb-card-fill);color:var(--st-violet-fg);border:1px solid transparent}
   html.lg-new #cn2-page .cn2-w{min-width:0}
   html.lg-new #cn2-page .cn2-nm{font-size:14.5px;font-weight:var(--w-label);line-height:1.3;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
-  html.lg-new #cn2-page .cn2-ln{font-size:12px;line-height:1.4;color:var(--color-text);margin-top:2px}
-  html.lg-new #cn2-page .cn2-fx{font-size:13.5px;line-height:1.45;min-width:0;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-ln{font-size:12.5px;line-height:1.4;color:var(--color-neutral-400);margin-top:2px}
+  html.lg-new #cn2-page .cn2-fx{font-size:13.5px;line-height:1.45;min-width:0;color:var(--color-neutral-400)}
   html.lg-new #cn2-page .cn2-late{color:var(--st-ruby-fg)}
   html.lg-new #cn2-page .cn2-sec{font-weight:var(--w-label)}
   html.lg-new #cn2-page .cn2-src{font-family:var(--font-doc);font-style:italic}
@@ -18311,7 +18314,7 @@
   html.lg-new #cn2-page .nd-kind.is-week{background:var(--st-green-bg);color:var(--st-green-fg)}
   html.lg-new #cn2-page .cn2-look{margin:0 0 12px 316px;padding:8px 0 8px 18px;border-left:2px solid var(--color-text)}
   html.lg-new #cn2-page .cn2-none{padding:24px 0;color:var(--color-text)}
-  html.lg-new #cn2-page .cn2-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 40px 14px;border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text)}
+  html.lg-new #cn2-page .cn2-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 40px 14px;border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-400)}
   html.lg-new #cn2-page .cn2-fds{margin-top:8px;border-top:1px solid var(--color-divider)}
   html.lg-new #cn2-page .cn2-fd{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--color-divider)}
   html.lg-new #cn2-page .cn2-fd-i{width:40px;height:40px;border-radius:var(--radius);background:var(--surface-2);display:grid;place-items:center;color:var(--color-text)}
@@ -19721,6 +19724,24 @@
      wear (.ctf-h), 40 from the window's edge, its facts beside it; the pages still drawn on their own ph-card head
      (Pulse board, the Flow map, Our paper, a page under #page-head) take the same title and edge, and what sits under
      them takes the same edge. */
+  /* THE NEW LOOK READS INTER (owner, 9 Nov 2026: picked by number from six unnamed faces; "make sure the font applies
+     across the platform"): the screen tokens point at --font-new; titles and the paper keep the serif, references
+     their mono, the code block its true monospace. The old look keeps Geist. */
+  html.lg-new{--font-body:var(--font-new);--font-heading:var(--font-new);--font-mono:var(--font-new)}
+  html.lg-new body{font-family:var(--font-new)}
+  /* THE NAME AND THE FIGURE ARE INK; THE DETAIL IS GREY (owner, 9 Nov 2026: "the black and grey font dynamic which is
+     simply common sense"; Home and Contracts first, the other pages after the owner's review; reverses f952 there):
+     the line under a name, the date, what waits, the sentence under a greeting and a list's foot wear the detail grey */
+  html.lg-new #ct-place .reg-sub,html.lg-new #ct-place .reg-sub .hati-ref{color:var(--color-neutral-400)}
+  html.lg-new #ig-page:has(#ct-place) #ig-dock :is(.jov-head,.jov-v:not(.is-need),.ac-meta,.ac-disc-m),html.lg-new #ct-place .ls-quiet{color:var(--color-neutral-400)}
+  html.lg-new #ig-page:has(#ct-place) #ig-dock .jov-head b{color:var(--color-text)}
+  /* THE SAP WAY MARK ON CONTRACTS (regSapMarkHtml): a filled circle in the status colour, a white drawn glyph */
+  html.lg-new #ct-place .reg-mk{width:20px;height:20px;border-radius:50%;flex:none;display:inline-grid;place-items:center;color:var(--color-surface);background:var(--st-gray-dot)}
+  html.lg-new #ct-place .reg-mk .reg-mk-g{width:14px;height:14px}
+  html.lg-new #ct-place .reg-mk.is-green{background:var(--st-green-dot)}
+  html.lg-new #ct-place .reg-mk.is-amber{background:var(--st-amber-dot)}
+  html.lg-new #ct-place .reg-mk.is-steel{background:var(--st-steel-dot)}
+  html.lg-new #ct-place .reg-mk.is-ruby{background:var(--st-ruby-dot)}
   html.lg-new :is(#pu-page .pu-t1, #fm-page .fm-t1, .tpl-page .tpl-hd-row h1, #page-head .ph-card h1, .rdn-page .rdn-head .ctf-h){font-family:var(--font-title);font-size:26px;font-weight:400;line-height:1.1;letter-spacing:0;margin:0;color:var(--color-text)}
   html.lg-new :is(#pu-page .pu-head, #fm-page .fm-head, .tpl-page .tpl-band, #page-head .ph-card).ph-card{padding-left:40px;padding-right:40px;padding-top:26px}
   html.lg-new #fm-page .fm-body{padding-left:40px;padding-right:40px}
