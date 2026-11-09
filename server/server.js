@@ -7830,6 +7830,20 @@ function graphScreenSays(sc, sent, total) {
   const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 40);
   const parts = [];
   const gb = cut(sc.groupBy); if (gb) parts.push(`The map is currently grouped by "${gb}"${sc.custom ? ' (a Jambo grouping)' : ''}.`);
+  /* THE WHOLE MAP ON SCREEN (Explorer's Jambo audit, 9 Nov 2026): the view and every role in force, so "same but on
+     the timeline" changes the view and keeps the rest; each value clamped, a word the map does not know never read */
+  const r = (sc.recipe && typeof sc.recipe === 'object') ? sc.recipe : null;
+  if (r) {
+    const said = [];
+    const view = cut(r.view, 12); if (['brain', 'wiring', 'floors', 'grid', 'timeline'].includes(view)) said.push(`view ${view}`);
+    [['floorsBy', 'floors by'], ['columnsBy', 'columns by'], ['colourBy', 'coloured by'], ['sizeBy', 'sized by'], ['labelBy', 'labelled by'], ['timeBy', 'timeline by'], ['sortBy', 'sorted by']]
+      .forEach(([k, w]) => { const v = cut(r[k], 30); if (v && /^[A-Za-z]+$/.test(v)) said.push(`${w} ${v}`); });
+    if (GRAPH_LENSES.includes(r.lens)) said.push(`the ${r.lens} lens on`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(r.dateLine || ''))) said.push(`a date line at ${r.dateLine}`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(r.asOf || ''))) said.push(`compared with the book as of ${r.asOf}`);
+    if (r.names === 'none') said.push('names hidden');
+    if (said.length) parts.push(`The map now: ${said.join('; ')}.`);
+  }
   if (Array.isArray(sc.lenses) && sc.lenses.length)
     parts.push(`Lenses in force: ${sc.lenses.slice(0, 6).map(l => `"${cut(l && l.label, 40)}" (${cut(l && l.action, 10)}, ${Number(l && l.count) || 0} contracts)`).join(', ')}.`);
   if (Array.isArray(sc.crowded) && sc.crowded.length) parts.push(`Crowded renewal quarters: ${sc.crowded.slice(0, 6).map(x => cut(x, 20)).join(', ')}.`);
@@ -7975,7 +7989,57 @@ function graphLookClean(l) {
   if (['none', 'all'].includes(l.bubbles)) out.bubbles = l.bubbles;
   if (typeof l.bundle === 'string' && l.bundle.trim()) out.bundle = l.bundle.trim().slice(0, 80);
   if (l.grouping === 'reset') out.grouping = 'reset';
+  /* THE LENS TRAVELS (Explorer's Jambo audit, 9 Nov 2026): the schema offered it and the browser takes it
+     (igLookActs), but this cleaner dropped it, so "show me the risk lens" changed nothing */
+  if (GRAPH_LENSES.includes(l.lens) || l.lens === 'off') out.lens = l.lens;
   return Object.keys(out).length ? out : null;
+}
+/* EVERY MAP TOOL, IN THE MAP'S OWN STEPS (Explorer's Jambo audit, 9 Nov 2026): the AI could group, filter, colour and
+   pick a view, but not draw a date line, look back, compare, play what-if, find single-sourced parties, show families
+   or links, undo, reset, save or open a view, open Your day, explain the view, walk, find outliers or show the renewal
+   cliff — so it reached for the nearest regroup. Each step names one of the map's own acts; the browser reads each
+   with the map's own readers (igStepActs, js/views/intelligence.js) and says in HaTi's words what it did. The kinds
+   are ONE list on both hosts (GRAPH_STEP_DOS = the browser's IG_STEP_DOS, f982). */
+const GRAPH_LENSES = ['risk', 'obligations', 'money', 'promises', 'people'];
+const GRAPH_STEP_DOS = ['lens', 'dateLine', 'dateLineOff', 'asOf', 'asOfOff', 'compare', 'whatIf', 'single', 'families', 'linked',
+  'undo', 'reset', 'showAll', 'save', 'open', 'sort', 'cliff', 'yourDay', 'explain', 'walk', 'outliers'];
+const GRAPH_STEPS_MAX = 8;
+const GRAPH_STEPS_SCHEMA = { type: 'array', description: 'The map\'s own tools beyond grouping and filtering, each one step, in the order to do them. Use a step WHENEVER the request asks for one of these: '
+  + 'lens {lens: risk|obligations|money|promises|people|off} — the lens every dot wears ("show the risk lens", "people lens", "lens off"); '
+  + 'dateLine {date YYYY-MM-DD, time decision|expiry|signed|created, which} — a dashed line on the timeline at that day, the contracts dated up to it lit ("renewals before 31 March", "put a line at the end of the quarter"); which = plain words narrowing it ("Sales"); dateLineOff — remove it; '
+  + 'asOf {date YYYY-MM-DD} — the book as it stood on a past day against today ("as of 1 July", "the map 3 months ago", "what changed since June"); asOfOff — back to now; '
+  + 'compare {a, b} — two sets side by side, each in plain words ("compare Sales with Procurement", "Naivas vs Bidco"); '
+  + 'whatIf {party} — what hangs on one party if it left ("what if Naivas left"); '
+  + 'single {which} — parties that are the only one in their role in their value stream ("single-sourced", "no second supplier"); '
+  + 'families — amendments with their parents; linked {id or party} — a contract or party and everything tied to it ("what depends on MK-12"); '
+  + 'undo — take back the last change; reset — the starting view; showAll — every contract again, keeping the arrangement; '
+  + 'save {name} — save the view on screen; open {name} — open a saved view; sort {by value|payterms|obligations|renewal}; '
+  + 'cliff — the renewal cliff (renewal decisions by quarter, with the cut-off slider); yourDay — open Your day, the briefing; '
+  + 'explain — explain the view on screen ("explain this view", "what am I looking at"); walk — walk through the contracts shown one by one; outliers — the contracts that stand out.',
+items: { type: 'object', properties: {
+  do: { type: 'string', enum: GRAPH_STEP_DOS },
+  lens: { type: 'string', enum: [...GRAPH_LENSES, 'off'] },
+  date: { type: 'string', description: 'YYYY-MM-DD, worked out from today\'s date.' },
+  time: { type: 'string', enum: ['decision', 'expiry', 'signed', 'created'] },
+  which: { type: 'string' }, a: { type: 'string' }, b: { type: 'string' }, party: { type: 'string' },
+  id: { type: 'string' }, name: { type: 'string' },
+  by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] } }, required: ['do'] } };
+function graphStepsClean(steps) {
+  if (!Array.isArray(steps)) return null;
+  const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+  const out = [];
+  for (const s of steps.slice(0, GRAPH_STEPS_MAX)) {
+    if (!s || typeof s !== 'object' || !GRAPH_STEP_DOS.includes(s.do)) continue;
+    const o = { do: s.do };
+    if (GRAPH_LENSES.includes(s.lens) || s.lens === 'off') o.lens = s.lens;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(s.date || ''))) o.date = String(s.date);
+    if (['decision', 'expiry', 'signed', 'created'].includes(s.time)) o.time = s.time;
+    if (['value', 'payterms', 'obligations', 'renewal'].includes(s.by)) o.by = s.by;
+    for (const k of ['which', 'a', 'b', 'party', 'name']) { const v = cut(s[k], 80); if (v) o[k] = v; }
+    const id = cut(s.id, 40); if (id) o.id = id;
+    out.push(o);
+  }
+  return out.length ? out : null;
 }
 /* the map's and the board's Copilot, as a named handler: the route calls it,
    and so does the board's weekly accuracy run (runBoardAccuracy) */
@@ -8024,6 +8088,8 @@ const graphAskHandler = async (req, res) => {
         columnsBy: { type: 'string', enum: GRAPH_GROUP_KEYS, description: 'The fact laid ACROSS as columns (for "X against Y" set columnsBy X and floorsBy Y, view grid).' },
         colourBy: { type: 'string', enum: ['status', ...GRAPH_GROUP_KEYS], description: 'The fact that colours the dots.' },
         sizeBy: { type: 'string', enum: ['value', 'obligations', 'same'], description: 'What sizes the dots.' },
+        ...(onBoard ? {} : { steps: GRAPH_STEPS_SCHEMA,
+          within: { type: 'boolean', description: 'true ONLY when the request narrows what is shown now ("of those", "among them", "now only the ones over 50M"): HaTi keeps the set on screen and narrows inside it. Otherwise a new where or visibleIds replaces the set on screen.' } }),
         labelBy: { type: 'string', enum: GRAPH_GROUP_KEYS, description: 'The fact printed beside each dot.' },
         timeBy: { type: 'string', enum: ['decision', 'expiry', 'signed', 'created'], description: 'The date the timeline view lays contracts along.' },
         view: { type: 'string', enum: ['brain', 'wiring', 'floors', 'grid', 'timeline'], description: 'The view to show, only when asked or implied (floors → floors, two facts against each other → grid, "over time" → timeline).' },
@@ -8050,16 +8116,18 @@ const graphAskHandler = async (req, res) => {
   const onScreen = graphScreenSays(screen, list.length, total);
   const figures = portfolioSays(portfolioFigures(copilotCtx(req)));
   const boardJob = onBoard ? `You are answering a question asked on HaTi's Home BOARD, a page of charts over a contract portfolio (the board is described under "On screen now", with each card's ref). Act through the board's own buttons in actions, a list HaTi presses in order:\n- add_card {which, recipe, title}: a new card. which = {all:true} for the whole book, or {q:"plain words naming the contracts"}.\n- change_card {card, recipe}: change a card; card "open" is the chart open on the board ("make it monthly", "as a pie", "by stream", "show value", "remove the trend", "this", "it"); fill ONLY the parts asked for.\n- remove_card {card}; name_card {card, title}; arrange {order: refs top first, sizes: {ref: big|small}}; filter_board {which}: what the whole board counts ({all:true} counts everything again).\nFor a whole dashboard ("build me a renewals dashboard") add four or five cards in one answer, each a different view. A question that names a picture is a card: "bubble chart of value against time left" → add_card {which:{all:true}, recipe:{pic:"bubbles", measure:"value"}}. A recipe uses the board's own words: pic ${GRAPH_CHART_PICS.join('/')} (stack/grouped/heat/multi need split2; waterfall, funnel and forecast take no split; spread is days to sign by a group); split ${GRAPH_CHART_SPLITS.join('/')} (with date ${GRAPH_CHART_DATES.join('/')} for month/quarter/year); split2 (a second split, same words); measure ${GRAPH_CHART_MEASURES.join('/')}; trend true/false; sort {by ${GRAPH_CHART_SORTS.join('/')}, dir ${GRAPH_CHART_DIRS.join('/')}}; top N; window {last|next N, unit ${GRAPH_CHART_UNITS.join('/')}, date} or {from, to}; compare ${GRAPH_CHART_COMPARES.join('/')} (range = against any other period, named in window.vs {from, to}: "Q1 2025 vs Q3 2026" is window {from:"2026-07-01", to:"2026-09-30", vs:{from:"2025-01-01", to:"2025-03-31"}}, compare range); title. HaTi counts every number: never put numbers in a recipe, and set no where, visibleIds or groupBy for a board action.\nWhen the request could mean two or three different charts and the board cannot tell which, give choices (each a label and its actions) instead of actions, and HaTi asks the reader. A QUESTION ABOUT WHAT THE BOARD SHOWS (why a number says what it says, what a line means): answer only, from the board's numbers, with no actions.\nThe map's own fields (groupBy, floorsBy, columnsBy, colourBy, view, look) are for the map: leave them empty unless the reader asks for the map.\n\n` : '';
-  const prompt = `${boardJob}You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Jambo has read it, archived, source, imported = brought in through the Import page):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it ("imported" → where.imported true); use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards. NEVER state how many contracts match the request — HaTi counts the matches itself and prints that number; a sentence that states a different count is not shown.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- If the request is about what a contract SAYS (a clause, its obligations, a summary, an explanation, a quote) and does not ask to arrange or narrow the map, set kind="wording" and nothing else.
+  const prompt = `${boardJob}You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Jambo has read it, archived, source, imported = brought in through the Import page, city = the party's city where its record holds one):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it ("imported" → where.imported true); use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards. NEVER state how many contracts match the request — HaTi counts the matches itself and prints that number; a sentence that states a different count is not shown.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups ONLY from what the cards carry (city is on a card where the party's record holds one) — never infer a city, region or sector from a name: a contract whose card does not carry it goes under "Not recorded". With fewer than two labels that way, leave groupBy empty and say in answer that the contracts do not record it.\n- If the request is about what a contract SAYS (a clause, its obligations, a summary, an explanation, a quote) and does not ask to arrange or narrow the map, set kind="wording" and nothing else.
 - The map has five views: brain, wiring, floors, grid and timeline. "Floors by X" sets floorsBy; "columns by X" sets columnsBy; "X against Y" sets columnsBy X, floorsBy Y and view grid; "over time" or "timeline" sets view timeline (timeBy names the date). Colour, size and labels each name a fact. Every fact is one of: ${GRAPH_GROUP_DESC}
 - When the request could mean more than one of these and you cannot tell which, fill ask with up to three {role, fact} options and change nothing else.
 - The map's LOOK — names shown or hidden, names on the edges, the size of the dots ("bubbles"), big bubbles, contracts gathered into one bubble, removing the grouping — goes in look and nowhere else. Never answer a look request with labelBy, sizeBy, groupBy, where or visibleIds.
 - A LENS (risk, obligations, money, promises or people, or off) is the map's look too: set look.lens and nothing else for it.
 - Never write that the map did something (hid, showed, grouped, resized…) unless a field you set does it: HaTi prints what the map did in its own words.
 - ${aiNavigateOn() ? AI_GOTO_RULE.replace("deliver_answer's goto", 'goto') : AI_GOTO_OFF_RULE}
-- Always return via the render_graph tool.`;
+${onBoard ? '' : `- CHANGE ONLY WHAT THE REQUEST ASKS. Everything under "The map now" stays as it is unless the request names it: never add a grouping, floors, columns, colour, size, view or filter nobody asked for, and never restate the grouping already on screen.\n- The map's own tools (a lens, a date line, as of a past day, compare, what if, single-sourced, families, links, undo, reset, show everything, save or open a view, sort, the renewal cliff, Your day, explain this view, a walk, outliers) are STEPS: whenever the request asks for one, use its step, never a regroup or a filter in its place.\n- A follow-up that narrows what is shown ("of those", "now only…") sets within true; a new set replaces the one on screen.\n- On the map the answer never describes the map or what it did (HaTi says that in its own words); it says only what the numbers cannot — a standout name, a reason — or is left empty.\n`}- Always return via the render_graph tool.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
+    /* ON THE MAP THE STRONGER MODEL READS (Explorer's Jambo audit, 9 Nov 2026, owner: "forget about the cost"): a map
+       command carries mixed and vague wording; the Board keeps its tier */
+    const resp = await anthropicMessages(key, onBoard ? 'fast' : 'deep', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
     /* the kind rides with the error so the browser's stand-in names the cause, as the chat route's does (aiFailWhy) */
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const data = resp.data;
@@ -8087,6 +8155,8 @@ const graphAskHandler = async (req, res) => {
       choices: onBoard ? graphBoardChoicesClean(out.choices) : null,
       ask: Array.isArray(out.ask) ? out.ask.slice(0, 3).map(o => ({ role: String((o && o.role) || '').slice(0, 20), fact: String((o && o.fact) || '').slice(0, 40) })) : null,
       look: graphLookClean(out.look),
+      steps: onBoard ? null : graphStepsClean(out.steps),
+      within: !onBoard && out.within === true,
       /* the map's answer keeps the chat's rule: a plain question answered in words is no trip to a page to look at */
       goto: (() => { const f = { goto: aiGotoOf(out.goto, copilotCtx(req)), answer: typeof out.answer === 'string' ? out.answer : '' }; copilotQuestionStays(query, f); return f.goto || null; })(),
       ...aiNotice(req, resp) }, onBoard && !graphMapAsked(query)));
