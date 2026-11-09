@@ -36296,3 +36296,12 @@ both now read the paper and History in the middle.
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 Owner, 9 Nov 2026, after a UI review of HaTi next to Legora's pictures: "Make it a rule that any updates or references moving forward should be related to the new version of Hati with the whole white page and not the cards version. The old version with cards will be deleted." The two versions: the old look draws a page as separate cards (a head card `.ph-card` over a list card, Home's pieces each in their own card); the new look, behind the admin switch `prefs.newLook` (`newLookOn` → `html.lg-new`), draws ONE WHITE SHEET (head and list one surface, the Harmony block). From this day every change, drawing, photo and test is made on the new look; the review's own photos were taken with the switch on. Deleting the old look (the switch, the server's admin-only guard on `newLook`, every `lg-new` scope in index.html and `newLookOn()` branch in js/) is a job of its own and waits to be asked for by name.
+
+## INSIGHTS — THE LEGEND MOVES (owner, 9 Nov 2026)
+
+The owner: "make the legend in explorer something you can drag across the page when opened so that you can have a full view of the screen without the legend blocking the screen. When you change views it stays where you have dragged and still open and when you minimize it, it goes back to its original bottom left corner."
+
+Built: open, the legend's head is a handle (pointer events, so a finger drags it too; the fold button inside it stays a button). The spot is the sitting's (`intel.legendPos`, never stored), clamped inside the stage (`igLegendClamp`), re-applied on every repaint (`igLegendPlace` in `renderIntelLegend`), so a view change keeps it where it was and open. Folded, the spot is forgotten and the CSS corner holds (bottom left); any fold (the chevron, arriving on Explorer from the Board) does the same. While moved it sits above the bar and the zoom (`.igl.is-moved` z 4), where the reader put it.
+
+NOT A GUIDE ROW: the Guide's rows are words a person can type; a drag has no words, so the handbook (6.2, step 5) carries it and the owner was told.
+Then the owner: "you should be able to pull it over the jambo panel as well". The stage clips (`.ig-brain{overflow:hidden}`), so a MOVED legend stands `position:fixed` over `#ig-row` (the stage and Jambo's panel), its spot kept relative to that row (`igLegendField`, `igLegendPut`), z 60 (under the page layers 70+), `--shadow-lg`; a window resize re-places it. Unmoved it is the stage's again.
