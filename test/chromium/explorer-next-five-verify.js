@@ -316,6 +316,40 @@ const check = (name, pass, detail) => {
       check('10e a status row narrows too, and another row takes its place', p3 && p4.picks === 1 && p4.ks.length === 3 && p4.ks.every(k => k === 'unscanned'), JSON.stringify({ p3, p4 }));
       await page.screenshot({ path: path.join(OUT, '10-legend-pick.png') });
       await page.evaluate(() => { intel.lenses = []; rebuildIntelGraph(); });
+      /* THE LEGEND MOVES (owner, 9 Nov 2026): open, a drag on its head moves it; a change of view keeps it there and open;
+         folded, it goes back to its corner */
+      await page.evaluate(() => { intel.legendFolded = false; intel.legendPos = null; igSetView(0); rebuildIntelGraph(); });
+      await page.waitForTimeout(500);
+      const at = () => page.evaluate(() => { const el = document.getElementById('ig-legend'), p = document.getElementById('ig-row').getBoundingClientRect(), r = el.getBoundingClientRect();
+        return { x: Math.round(r.left - p.left), y: Math.round(r.top - p.top), bottomGap: Math.round(p.bottom - r.bottom), folded: el.classList.contains('is-folded'), w: Math.round(p.width), h: Math.round(p.height), lw: Math.round(r.width), lh: Math.round(r.height) }; });
+      const home = await at();
+      const head = await page.evaluate(() => { const r = document.querySelector('#ig-legend [data-ig-legend-head] .igl-k').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      await page.mouse.move(head.x, head.y); await page.mouse.down();
+      await page.mouse.move(head.x + 300, head.y - 100, { steps: 8 }); await page.mouse.up();
+      const moved = await at();
+      check('10f open, the legend\'s head drags it across the stage', !home.folded && Math.abs(moved.x - home.x - 300) <= 2 && Math.abs(moved.y - Math.max(0, home.y - 100)) <= 2, JSON.stringify({ home, moved }));
+      await page.mouse.move(head.x + 300, head.y - 100); await page.mouse.down();
+      await page.mouse.move(head.x + 5000, head.y - 5000, { steps: 4 }); await page.mouse.up();
+      const edge = await at();
+      /* RE-POINTED 9 Nov 2026 (owner: "you should be able to pull it over the jambo panel as well"): the field is the map
+         AND Jambo's panel, so past the corner it stops at the panel's far edge, on top of the panel */
+      const over = await page.evaluate(() => { const el = document.getElementById('ig-legend'), d = document.getElementById('ig-dock').getBoundingClientRect(), r = el.getBoundingClientRect();
+        const x = Math.max(r.left, d.left) + 10, y = r.top + 40, hit = document.elementFromPoint(x, y);
+        return { onDock: r.right > d.left + 100, onTop: !!(hit && el.contains(hit)) }; });
+      check('10g it goes over Jambo\'s panel too, on top of it, and stops at the far edge', edge.x === edge.w - edge.lw && edge.y === 0 && over.onDock && over.onTop, JSON.stringify({ edge, over }));
+      await page.mouse.move(head.x + 5000, head.y - 5000); await page.mouse.down();
+      await page.mouse.move(head.x + 200, head.y - 150, { steps: 4 }); await page.mouse.up();
+      const kept = await at();
+      await page.evaluate(() => { igSetView(3); rebuildIntelGraph(); }); await page.waitForTimeout(700);
+      const afterView = await at();
+      check('10h a change of view keeps it where it was dragged, and open', !afterView.folded && afterView.x === kept.x && afterView.y === kept.y, JSON.stringify({ kept, afterView }));
+      await page.screenshot({ path: path.join(OUT, '10-legend-moved.png') });
+      await page.click('#ig-legend [data-ig-legend-fold]'); await page.waitForTimeout(300);
+      const folded = await at();
+      await page.click('#ig-legend [data-ig-legend-fold]'); await page.waitForTimeout(300);
+      const reopened = await at();
+      check('10i folded, it goes back to its bottom-left corner, and opens there again', folded.folded && folded.x === home.x && folded.bottomGap === home.bottomGap && !reopened.folded && reopened.x === home.x && reopened.bottomGap === home.bottomGap, JSON.stringify({ home, folded, reopened }));
+      await page.evaluate(() => { igSetView(0); rebuildIntelGraph(); });
     } else check('10 the legend can be pressed', false, 'igLegendPick missing');
 
     /* ================= 6. THE OWNER'S THREE SCREENS ================= */

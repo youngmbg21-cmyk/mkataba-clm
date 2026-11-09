@@ -11057,6 +11057,10 @@
   .ig-brain .igl [data-ig-pick]:focus-visible{outline:2px solid var(--hb-amber);outline-offset:1px}
   .ig-brain .igl .igl-head .igl-k{font-size:12px;font-weight:500;margin:0;color:var(--hb-mute)}
   .ig-brain .igl.is-folded{padding:0 4px 0 10px}
+  /* THE LEGEND MOVES (owner, 9 Nov 2026): open, its head is the handle; folded, it sits in its corner again */
+  .ig-brain .igl:not(.is-folded) .igl-head{cursor:grab;touch-action:none;user-select:none}
+  .ig-brain .igl.is-dragging,.ig-brain .igl.is-dragging .igl-head{cursor:grabbing}
+  .ig-brain .igl.is-moved{z-index:60;box-shadow:var(--shadow-lg)}
   .ig-brain .igl.is-folded .igl-head{height:var(--ctl-h-sm);margin:0}
   .ig-brain .igl.is-folded .igl-head .ui-btn{height:var(--ctl-h-sm);width:var(--ctl-h-sm)}
   .ig-brain .ig-seg .ig-seg-k{height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-mute);display:inline-flex;align-items:center;border-right:1px solid rgba(var(--hb-ln),.14)}

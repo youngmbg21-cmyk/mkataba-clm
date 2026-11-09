@@ -36312,3 +36312,11 @@ tpl-dt-card and tb-brand, so the look is no longer inline); the builder's panel 
 handle shows only while scrolling (scrollShowHandle). A template's wording keeps its pages on the paper's desk. The
 handbook's pictures are taken in the old look and do not change. Tidy faults seen on the way are red on main too:
 Our paper's sheet ("Counterparty" x "Highland Corporate Ltd" overlap) and Jambo's house's "Pieces of work" ROOM at ipad.
+## INSIGHTS — THE LEGEND MOVES (owner, 9 Nov 2026)
+
+The owner: "make the legend in explorer something you can drag across the page when opened so that you can have a full view of the screen without the legend blocking the screen. When you change views it stays where you have dragged and still open and when you minimize it, it goes back to its original bottom left corner."
+
+Built: open, the legend's head is a handle (pointer events, so a finger drags it too; the fold button inside it stays a button). The spot is the sitting's (`intel.legendPos`, never stored), clamped inside the stage (`igLegendClamp`), re-applied on every repaint (`igLegendPlace` in `renderIntelLegend`), so a view change keeps it where it was and open. Folded, the spot is forgotten and the CSS corner holds (bottom left); any fold (the chevron, arriving on Explorer from the Board) does the same. While moved it sits above the bar and the zoom (`.igl.is-moved` z 4), where the reader put it.
+
+NOT A GUIDE ROW: the Guide's rows are words a person can type; a drag has no words, so the handbook (6.2, step 5) carries it and the owner was told.
+Then the owner: "you should be able to pull it over the jambo panel as well". The stage clips (`.ig-brain{overflow:hidden}`), so a MOVED legend stands `position:fixed` over `#ig-row` (the stage and Jambo's panel), its spot kept relative to that row (`igLegendField`, `igLegendPut`), z 60 (under the page layers 70+), `--shadow-lg`; a window resize re-places it. Unmoved it is the stage's again.
