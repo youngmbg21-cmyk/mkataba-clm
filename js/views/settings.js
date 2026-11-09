@@ -10151,8 +10151,14 @@ function stnCompanyHtml(){
     +stnRow('mail', i18t('stn_mail'), stnStateText('mail'), '', stnDoor('data-st-panel="mail"', i18t('stn_health')))
     +stnRow('outsidelook', i18t('stn_out'), stnPill(esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), (state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'on':'off'), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')));
 }
+/* THE ITEM LAST PRESSED STAYS MARKED (kept through a repaint, so a panel's Save that redraws the page keeps it) */
+let _stnMenuOn='';
+function stnMenuMark(btn){
+  _stnMenuOn=btn?(btn.getAttribute('data-stn-to')||''):'';
+  document.querySelectorAll('.stn-page .stn-mi').forEach(b=>{ const on=!!_stnMenuOn&&b.getAttribute('data-stn-to')===_stnMenuOn; b.classList.toggle('is-on',on); if(on) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current'); });
+}
 function stnMenuHtml(admin){
-  const go=(attr,w)=>`<button type="button" class="stn-mi" ${attr}>${esc(w)}</button>`;
+  const go=(attr,w)=>{ const on=!!_stnMenuOn&&attr==='data-stn-to="'+_stnMenuOn+'"'; return `<button type="button" class="stn-mi${on?' is-on':''}" ${attr}${on?' aria-current="true"':''}>${esc(w)}</button>`; };
   const api=(typeof API_MODE==='function')&&API_MODE();
   let h=`<div class="stn-mh">${esc(i18t('stn_m_you'))}</div>`+go('data-stn-to="name"',i18t('stn_about_you_m'))
     +(api?go('data-stn-to="twostep"',i18t('stn_m_signin'))+go('data-stn-to="push"',i18t('stn_push')):'')+go('data-stn-to="agents"',i18t('stn_agents'));
@@ -10172,7 +10178,7 @@ function stnPanelHtml(admin){
     +needs.slice(0,4).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
       const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):'');
       const what=k==='panel'?(sub?stShortState(sub):r.text):r.text, more=k==='panel'?'':sub;
-      return `<div class="pd2-ch-r stn-nd stn-pr" ${r.btn||''} role="button" tabindex="0"><span>${E(lab)}</span><b>${E(what)}${more?`<small>${E(more)}</small>`:''}</b><i></i></div>`; }).join('')+`</div>`; }
+      return `<div class="pd2-ch-r stn-nd stn-pr" ${r.btn||''} role="button" tabindex="0"><span>${E(lab)}</span><b>${E(what)}${more?`<small>${E(more)}</small>`:''}</b><i class="stn-go" aria-hidden="true">${typeof icon==='function'?icon('chevR','w-3.5 h-3.5'):'›'}</i></div>`; }).join('')+`</div>`; }
   h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_ask'))}</div><p class="stn-pp">${E(i18t('stn_p_ask_s'))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-ask-head="">${E(i18t('st_ask_go'))}</button><span>${E(i18t('stn_p_ask_cost'))}</span></div>`;
   if(admin){
     const L=_stLessons; const rows=(L&&L.rows)||[];
@@ -10205,6 +10211,13 @@ if(typeof document!=='undefined' && !document._stnWired){ document._stnWired=tru
     const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('.stn-page')) return;
     const to=t.closest('[data-stn-to]'); if(!to) return;
     const el=document.getElementById('stn-'+to.getAttribute('data-stn-to')); if(!el) return;
+    /* THE MENU OPENS WHAT ITS ROW OPENS (owner, 9 Nov 2026: "a lot of the buttons … are not functioning or opening the
+       respecting links. Also when I press the page moves me down"): the item presses its row's own door (Change, Open,
+       Add rule, Update, Health; the one door, never a second); a row with no door (a switch) is only landed on, so a
+       menu press never flips it. The item pressed stays marked; the menu stands still (index.html, .stn-menu sticky). */
+    stnMenuMark(to);
+    const door=el.querySelector('.stn-a [data-st-panel], .stn-a [data-st-view], .stn-a [data-st-page]');
+    if(door){ door.click(); return; }
     if(typeof landOn==='function') landOn(el,{ block:'start', focus:false }); else try{ el.scrollIntoView({ block:'start' }); }catch(_){ /* nothing to scroll */ }
   });
 }

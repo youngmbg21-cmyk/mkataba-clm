@@ -80,7 +80,7 @@ For a DESIGN QUESTION (an exact instruction is just built): ONE part of a page p
 
 3. Fix every place it appears. If you deliberately leave one alone, that decision must reach me in plain English — never silently.
 
-4. Testing rule: test where the USER looks, not where you edited. Verify the result is visible in the actual browser view for every affected place, not just the file you changed.
+4. Testing rule: test where the USER looks, not where you edited. GitHub's browser checks verify every affected place after the push; here, photos at the three screens show it (owner, 9 Nov 2026).
 
 5. At the end, write a short plain-English summary for a non-developer: what you fixed, whether it is fixed everywhere it appears, anything you deliberately left alone and why, and anything you were unsure about. No file paths, no line numbers, no location lists — just plain sentences about what happened.
 
@@ -88,7 +88,7 @@ For a DESIGN QUESTION (an exact instruction is just built): ONE part of a page p
 ## HOW TO TEST ECONOMICALLY (owner-asked 16 and 24 Aug 2026)
 **"Do not run the full test suite during incremental edits. Only run the specific test file directly related to the changed code."** Run the affected files together in ONE command (`node --test --test-reporter=dot test/<a>.test.js test/<b>.test.js`). **NEVER RUN THE FULL SUITE IN A CHAT SESSION UNLESS THE OWNER ASKS IN THE CHAT** (a work order's line does not count): run `npm run lint` and the changed area's tests, push, and let GitHub's check (.github/workflows/tests.yml) run everything.
 - `npm run lint` FIRST, whole repo — zero errors; the only check that asks "does every called name exist".
-- Browser files start a real Chrome: only the ones for the screen you changed. CI runs Playwright's HEADLESS SHELL: green here and red there, rerun with `CHROMIUM_BIN=/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell`. `node test/chromium/run-all.js` is CI's set; KNOWN_RED lists expected failures with reasons — off the day it goes green.
+- **BROWSER CHECKS RUN ONLY ON GITHUB** (owner, 9 Nov 2026; a STANDING rule, not one round's): never run a test/chromium file, `run-all.js` or a measuring tool (tidy sweep, detail audit) in a chat — write or change the check, push with the owner's yes, read GitHub's result. The ONE browser use here is PHOTOS for the owner (THE OWNER'S THREE SCREENS). `run-all.js` is CI's set; KNOWN_RED lists expected failures with reasons — off the day it goes green.
 - **A TEST WHOSE ANSWER DEPENDS ON THE DAY IT RUNS IS WORSE THAN NO TEST.** Build dates with `monthSpan(off)` or quarter boundaries. Faking node's clock does not move jsdom's.
 - **SAVE TOKENS**: never read a >300 KB file whole (negotiation.js, i18n.js, server.js, contract.js, index.html, core.js) — grep, then a slice. Prefer doing work yourself over helper agents.
 
@@ -104,7 +104,7 @@ For a DESIGN QUESTION (an exact instruction is just built): ONE part of a page p
 - **"SENT" MUST MEAN SENT** (`mailReport(r)`). **A CAP IS A FACT, NEVER A SILENT TRIM**; cut-short is not empty nor cached whole; an absence is stated (null), never guessed.
 - **A BARE `toast(msg)` PRINTS NOTHING** — kinds ok / warn / err (TOAST_KINDS). **WHEN SOMETHING LOADS, SOMETHING MOVES** (`busyHtml`/`busySet`; a toast passes `{busy:true}`).
 - **PIN THE RELATION, NOT THE NUMBER** (`test/tokens.js`); source-slicing tests pin **THE REGION**, strip comments first.
-- **A CHECK THAT PASSES AGAINST THE PARENT IS A DESCRIPTION**: run a new check against unmodified main; guard every driven half so a missing feature reports, not times out. "Already broken" is proved the same way; CHECK THE REMOTE BEFORE MEASURING.
+- **A CHECK THAT PASSES AGAINST THE PARENT IS A DESCRIPTION**: a new check must fail on unmodified main (a browser check: GitHub's run of it on main); guard every driven half so a missing feature reports, not times out. "Already broken" is proved the same way; CHECK THE REMOTE BEFORE MEASURING.
 - **PHOTOGRAPH WHAT YOU BUILT** — a rect is not a painted pixel (`elementFromPoint`); re-query after a repaint.
 - **THE CLOTHES FOLLOW THE BUILDER**: a shared builder's control is dressed everywhere; surfaces may DRAW differently, the READING is one function.
 - **A STANDALONE DOCUMENT CARRIES NO `:root`** (exports, emails, clipboard HTML, canvas charts): literal values only.
