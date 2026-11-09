@@ -63,7 +63,7 @@ const check = (name, pass, detail) => {
    yellow" became "then it goes back to the ink" — a reversal listed for the
    owner's yes on the side-by-side. Still resolved off the page, never a hex. */
 let GREEN_BG = null;    /* --st-green-fg */
-let REST_BG = null;    /* the resting count: --color-text */
+let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 2026: the one panel button's count is red, as drawn) */
 
 /* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
    place; this check reads its List (regPlaceSet({ show: 'list' }) before
@@ -183,7 +183,7 @@ let REST_BG = null;    /* the resting count: --color-text */
        an icon with a count badge, so the badge is what carries the tone, while
        the blink plays on the button around it. */
     ({ GREEN_BG, REST_BG } = await page.evaluate(() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
-      return { GREEN_BG: res('var(--st-green-fg)'), REST_BG: res('var(--color-text)') }; }));
+      return { GREEN_BG: res('var(--st-green-fg)'), REST_BG: res('var(--st-ruby-dot)') }; }));
     let bell = await page.evaluate(() => {
       const b = document.getElementById('hdr-notify');
       if (!b) return null;
@@ -267,7 +267,7 @@ let REST_BG = null;    /* the resting count: --color-text */
         bg: dot ? getComputedStyle(dot).backgroundColor : null,
         anim: cs.animationName } : null;
     });
-    check('"then it goes back to" the ink (was yellow; Chambers, for the owner\'s yes)',
+    check('"then it goes back to" the panel button\'s red count (was yellow, then ink; the SAP Way, 9 Nov 2026)',
       !!bell && !bell.news && bell.bg === REST_BG && bell.anim === 'none', JSON.stringify(bell));
 
     /* AND THE ROW IS CALM THE SECOND TIME. Opening the panel is what counts as
@@ -294,8 +294,8 @@ let REST_BG = null;    /* the resting count: --color-text */
     /* ---- AND THE HEADER'S BELL IS THE SAME DOOR ONTO THE SAME PANEL ----
        Two doors, one room. Asked last because by now the news is spent, so
        nothing here can be confused with the flash measured above.
-       #cmd-panel and #hdr-notify are the two BUTTONS; #context-panel is the one
-       shell they both fill. Reaching for the button's id is a mistake this file
+       #hdr-notify is the ONE panel button (9 Nov 2026); #context-panel is the one
+       shell it fills. Reaching for the button's id is a mistake this file
        made once and is worth not repeating. */
     await page.click('#hdr-notify');
     await page.waitForTimeout(900);

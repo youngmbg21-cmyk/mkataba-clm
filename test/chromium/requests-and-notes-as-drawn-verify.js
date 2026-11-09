@@ -231,7 +231,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       && JSON.stringify(N.tabs) === '["All 5","Due today 1","Later 2","Reviewed 1"]' && JSON.stringify(N.boxes) === '["box","Contract"]'
       && N.pills[0] === 'Review today' && /^Review \S+ \d/.test(N.pills[1]) && N.pills[3] === 'No review day' && /^Reviewed/.test(N.pills[4]), N && JSON.stringify({ tabs: N.tabs, boxes: N.boxes, pills: N.pills }));
     check('6b the note in Jambo\'s panel (no word beside the tabs): three verbs on one line, Review "Today, … · in your bell", Delete note', !!N && !N.word
-      && /^Mark reviewed,Snooze a week,Open MK-A2$/.test(N.verbs.join(',')) && N.oneLine && /^Today, .* · in your bell$/.test(N.review) && N.del, N && JSON.stringify({ verbs: N.verbs, review: N.review }));
+      && /^Mark reviewed,Snooze a week,Open MK-A2$/.test(N.verbs.join(',')) && N.oneLine && /^Today, .* · in your Alerts$/.test(N.review) && N.del, N && JSON.stringify({ verbs: N.verbs, review: N.review }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-mynotes-1440x780.png') });
     await press('#ins-panel [data-jl-home]');
     const J = await until(() => { const b = document.querySelector('#ins-panel :is(.jl-bub, .jov-head, .jov-v)'); return b ? { say: b.textContent.trim(), chips: [...document.querySelectorAll('#ins-panel :is(.jl-chip, .jov-lnk.is-ask)')].map(c => c.textContent.trim()) } : null; });

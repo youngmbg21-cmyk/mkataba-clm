@@ -3146,13 +3146,8 @@ function updateAlertBadge(){
   try{ paintChatDoor(); }catch(_){}
   const dot=document.getElementById('hdr-notify-dot');
   const btn=document.getElementById('hdr-notify');
-  const pan=document.getElementById('cmd-panel');
-  const nav=document.getElementById('hdr-nav');
   const off=panelSuppressed();
   if(btn){ btn.disabled=off; btn.style.opacity=off?'.45':''; }
-  if(nav){ nav.disabled=off; nav.style.opacity=off?'.45':''; }
-  if(pan){ pan.disabled=off; pan.style.opacity=off?'.45':'';
-    pan.title=off?i18t('ap_activity_not_here'):i18t('sh_toggle_panel'); }
   /* THE COUNT WAITS FOR A QUIET MOMENT (the rest of Round A, 23 Oct 2026): the bell counts the one
      desk now (alertCount → counterNeedsCount), which walks the book, so it is worked out when the page
      is idle — never inside a page switch (home-speed: Board ⇄ Paper). One count per quiet moment, however
@@ -3177,8 +3172,9 @@ function updateAlertBadge(){
          is true and is what the tooltip explains. The dot is INSIDE the button,
          so the opacity below dims it along with the icon: one object, greyed. */
       dot.hidden=!n;
+      /* the one panel button says what it opens, then the count (owner picked "The SAP Way", 9 Nov 2026) */
       if(btn) btn.title=off?i18t('ap_alerts_not_here')
-        :(n?i18tn('sh_alerts_n',n,{n}):i18t('sh_alerts_none'));
+        :i18t('sh_panel_title')+' · '+(n?i18tn('sh_alerts_n',n,{n}):i18t('sh_alerts_none'));
     }
     /* ---- GREEN IS NEWS, AND THE HEADER BELL CARRIES IT NOW ----
        The owner asked for a bell that turns green and blinks when the counterparty
@@ -3532,11 +3528,9 @@ function applyPanelLayout(){
     scrim.classList.toggle('open',show);
     scrim.classList.remove('is-blur');
   }
-  const btn=document.getElementById('cmd-panel');
+  /* the bar's one panel button says whether the panel is showing */
+  const btn=document.getElementById('hdr-notify');
   if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
-  /* the nav panel's door says whether the Guide is the face showing */
-  const nb=document.getElementById('hdr-nav');
-  if(nb) nb.setAttribute('aria-expanded',show&&panelFace()==='guide'?'true':'false');
   /* ---- THE KEYBOARD STAYS IN THE PANEL WHILE IT IS UP ---- (25 Aug 2026)
      Every row in here is a DOOR — that is this panel's whole design — and Tab
      used to walk out of it into the page behind, where the rows the reader
@@ -3619,6 +3613,14 @@ if(typeof document!=='undefined'&&!document._panelSwipe){
    wireShell, which is exactly the shape that makes another module build its own
    half-copy — and two ways of opening one panel is how they come to disagree
    about what "open" means. */
+/* THE BAR'S ONE PANEL BUTTON (owner picked "The SAP Way", 9 Nov 2026): open, it closes (PRESS IT AGAIN AND IT
+   CLOSES); shut, it opens on Alerts when something waits on you, else on the tab last used */
+function panelDoorPress(){
+  if(panelSuppressed()) return;
+  if(state.panelOpen){ closeContextPanel(); return; }
+  let n=0; try{ n=alertCount(); }catch(_){ n=0; }
+  openPanel(n>0?'alerts':panelFace());
+}
 function openPanel(face){
   /* A PAGE MAY REFUSE TO HOST THE LAYER, and if one ever does, this is where
      the press stops — with both buttons disabled and a tooltip saying which
@@ -4440,10 +4442,8 @@ function wireShell(){
     if(w&&w.classList.contains('open')) footSet(false);
   });
 
-  document.getElementById('cmd-panel')?.addEventListener('click',()=>openPanel('activity'));
-  document.getElementById('hdr-notify')?.addEventListener('click',()=>openPanel('alerts'));
-  /* the nav panel's door beside the bell (owner, 29 Oct 2026): the same panel, landing on its Guide face */
-  document.getElementById('hdr-nav')?.addEventListener('click',()=>openPanel('guide'));
+  /* ONE DOOR TO THE SIDE PANEL (owner picked "The SAP Way", 9 Nov 2026): the clock and the Guide's door left the bar */
+  document.getElementById('hdr-notify')?.addEventListener('click',panelDoorPress);
   /* CHAT IS THE CONTRACT'S CONVERSATION, so it opens the notes face with no
      change named — openNotesPanel is the one door onto that face and this is
      the press arriving there, never a second way of putting the panel up.
@@ -4667,6 +4667,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{GUIDE_NL,guidePanelNlHtml,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{GUIDE_NL,guidePanelNlHtml,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,panelDoorPress,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});
