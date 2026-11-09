@@ -36171,3 +36171,9 @@ THE TAB ORDER, ASKED (9 Nov 2026): the drawing put Your day before the Overview,
   "Not found" (italic, `.ac-ans.tone-none`) lost its last letter's lean inside an ellipsis box (`.rdt-w`, `.reg-table .ac-a`).
   Now each keeps its scroll while the same list is in view, and the italic word keeps .2em at its right. Swept: Approvals,
   Parties, Obligations, Pulse, Import, Requests, People and Our paper only mark the chosen row — they never jumped. f979.
+
+## INSIGHTS — YOUR DAY ON THE MAP, NOT A LIST (owner, 9 Nov 2026)
+
+The owner, with a picture of Your day and the four figures circled (Need you, High risk, Duties due in 30 days, Renewals to decide): "these should only show on the map not on the list". Built: Need you, Duties and Renewals now narrow the map to their own contracts with a filter lens of `kind:'day'` (`igDayGo`, go `onmap`, each figure's `fit`): Need you as the map stands, Duties with the Obligations lens, Renewals on the Timeline by decision; High risk keeps the Risk lens and the legend's own pick. The head line says "Showing N of T · <figure> · Show everything"; Your day steps aside to the Overview. New since yesterday (not circled) still opens the contract. A figure whose contracts the map does not draw is not pressable. The links say "Show on the map ›"; `int_day_go_list`, `int_day_go_oblig`, `int_day_go_cal` are retired (left inert in both books).
+
+NOTED FOR THE OWNER: Need you counts THINGS waiting (the bell's number); the map shows the CONTRACTS they sit on, so 9 things on 5 contracts reads "Showing 5 of 16".

@@ -149,10 +149,10 @@ const check = (name, pass, detail) => {
       const T = k => d.tiles.find(t => t.k === k) || { text: '' };
       check('2b five labelled figures and the pin, under the day and the time counted',
         JSON.stringify(d.tiles.map(t => t.k)) === JSON.stringify(['needs', 'risk', 'duties', 'renew', 'since', 'pin']) && /Counted \d\d:\d\d/.test(d.head) && /Nothing is sent to Jambo/.test(d.src), JSON.stringify(d));
-      check('2c each figure says what it counts and opens its own page', T('needs').text.startsWith(String(d.needs)) && /Need you/.test(T('needs').text) && /Open the list ›/.test(T('needs').text)
+      check('2c each figure says what it counts, and the four counts show on the map (owner, 9 Nov 2026)', T('needs').text.startsWith(String(d.needs)) && /Need you/.test(T('needs').text) && /Show on the map ›/.test(T('needs').text)
         && /^5High risk/.test(T('risk').text) && /all in/.test(T('risk').text) && /Show on the map ›/.test(T('risk').text)
-        && /Duties due in 30 days/.test(T('duties').text) && /already late/.test(T('duties').text) && /Open Obligations ›/.test(T('duties').text)
-        && /Renewals to decide/.test(T('renew').text) && /in 90 days/.test(T('renew').text) && /Open the Calendar ›/.test(T('renew').text)
+        && /Duties due in 30 days/.test(T('duties').text) && /already late/.test(T('duties').text) && /Show on the map ›/.test(T('duties').text)
+        && /Renewals to decide/.test(T('renew').text) && /in 90 days/.test(T('renew').text) && /Show on the map ›/.test(T('renew').text)
         && /^1New since yesterdayMK-N15 addedOpen it ›/.test(T('since').text), JSON.stringify(d.tiles));
       await page.hover('#ig-day [data-ig-day="risk"]'); await page.waitForTimeout(300);
       const lit = await page.evaluate(() => IG.nodes.filter(n => n.g && n.g.classList.contains('hi')).length);
@@ -167,6 +167,20 @@ const check = (name, pass, detail) => {
       await page.click('#ig-day [data-ig-day="risk"]'); await page.waitForTimeout(700);
       const r = await page.evaluate(() => ({ lens: intel.lens, pick: (igLegendPickOn() || {}).pick, shown: IG.nodes.filter(n => n.kind === 'contract').length, day: !!document.getElementById('ig-day') }));
       check('2f High risk → Show on the map: the Risk lens with only the high risk drawn, the panel back to the Overview', r.lens === 'risk' && r.pick === 'lens:risk:high' && r.shown === 5 && !r.day, JSON.stringify(r));
+      /* ON THE MAP, NOT A LIST (owner, 9 Nov 2026: "these should only show on the map not on the list"): Need you, Duties and Renewals
+         narrow the map to their contracts in their own view and lens; the page stays Explorer */
+      const onMap = {};
+      for (const [k, want] of [['needs', { lens: null }], ['duties', { lens: 'obligations' }], ['renew', { lens: null, view: 4, time: 'decision' }]]){
+        await page.evaluate(() => { intel.lenses = []; igLensSet(null, { noPush: true }); igSetView(0); intel.dayTab = true; rebuildIntelGraph(); renderIntelDock(); });
+        await until(() => !!document.querySelector('#ig-day [data-ig-day]'));
+        await page.click(`#ig-day [data-ig-day="${k}"]`); await page.waitForTimeout(600);
+        onMap[k] = await page.evaluate(([k, want]) => { const t = igDayData().find(x => x.k === k), shown = IG.nodes.filter(n => n.kind === 'contract').map(n => n.id).sort();
+          return { face: hbFace(), view: state.view, same: JSON.stringify(shown) === JSON.stringify(t.ids.slice().sort()), n: shown.length, lens: intel.lens || null,
+            vw: igbCam().view, time: intel.timeBy, day: !!document.getElementById('ig-day'), ok: (want.lens || null) === (intel.lens || null) && (want.view == null || igbCam().view === want.view) && (!want.time || intel.timeBy === want.time) }; }, [k, want]);
+      }
+      check('2f2 Need you, Duties due and Renewals narrow the map to their own contracts in their own view and lens, never leaving Explorer',
+        Object.values(onMap).every(r => r.face === 'explorer' && r.view === 'dashboard' && r.same && r.n > 0 && r.ok && !r.day), JSON.stringify(onMap));
+      await page.screenshot({ path: path.join(OUT, '2-on-the-map.png') });
       await page.evaluate(() => { intel.lenses = []; igLensSet(null, { noPush: true }); rebuildIntelGraph(); });
       await page.evaluate(() => intelAsk('Brief me')); await until(() => !!document.getElementById('ig-day'));
       const typed = await page.evaluate(() => ({ day: !!document.getElementById('ig-day'), lit: document.querySelector('#ig-dock [data-pd-tab="day"]')?.getAttribute('aria-selected') }));
