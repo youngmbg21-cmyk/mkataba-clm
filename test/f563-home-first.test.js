@@ -59,7 +59,8 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     /* Findings, beside Jambo on Explorer's map only (Explorer stage 4, 18 Oct 2026) */
     /* RE-POINTED 19 Oct 2026: the Guide stands after Findings (owner picked "On this view"), a typed mark like its neighbours */
     /* RE-POINTED 23 Oct 2026 (Spine): Redlines' tab wears the Deal's old mark, first in the map */
-    assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u21C4', '\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4', '\u2630', '\u25C7', '\u25A4']);
+    /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): Your day, first on Explorer's map, a typed mark like its neighbours */
+    assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u21C4', '\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4', '\u2630', '\u25C7', '\u25A4', '\u25D4']);
   });
   test('2b an approval opens the Approvals page with its row chosen', () => {
     const seen = [];
