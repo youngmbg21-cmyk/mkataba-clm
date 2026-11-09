@@ -202,3 +202,13 @@ test('f977 fix 9 · every paper in pages: the negotiated paper on Home and a tem
   /* the clause editor keeps one sheet on purpose: a break re-drawn under the caret would move the words being typed */
   assert.match(read('js/views/negotiation.js'), /if \(sheet\.closest\('\.ce-paperwrap'\)\) return;/);
 });
+
+/* THE SEND PAGE IS THE WHITE PAGE (owner, 9 Nov 2026: "The whole page should be white not a card on top of a shaded
+   backdrop"). At the parent the page stood on the desk's grey with its head and body inset 12px as a card */
+test('f977 fix 6b · the Send page is white edge to edge in the new look: no inset, corner or lift', () => {
+  const core = read('js/core.js');
+  assert.match(core, /background:\(typeof newLookOn==='function'&&newLookOn\(\)\)\?'var\(--color-surface\)':'var\(--desk-ground, var\(--color-bg\)\)'/);
+  const css = read('index.html');
+  assert.match(css, /html\.lg-new #modal-root \.modal-in\[data-sh-page\] \.sh-hd\{top:0;margin:0;border:0;border-bottom:1px solid var\(--color-divider\);border-radius:0;box-shadow:none\}/);
+  assert.match(css, /html\.lg-new #modal-root \.modal-in\[data-sh-page\] \.sh-lt-grid\{margin:0;border:0;border-radius:0;box-shadow:none;clip-path:none\}/);
+});
