@@ -504,19 +504,24 @@ function rdnOnList(r){
   if (!(Array.isArray(R.ask) && R.ask.includes(r.askIds[0]))) return '';
   return (R.type && R.type !== 'all' && typeof FOLDERS !== 'undefined' && FOLDERS[R.type]) ? FOLDERS[R.type].name : _rdT('nav_contracts');
 }
+/* ANSWER COLOURS (owner's pick by name, 9 Nov 2026; the colour round): each answer wears its own tone as a soft chip (the
+   same tone its bar has in the panel: the first answer green, the next amber, Not found grey), and "k of n" gets a thin
+   progress bar under it */
+const RDN_TONE = { yes: 'green', amb: 'amber', none: 'gray' };
+const rdnProgHtml = (k, n) => `<span class="rdn-prog" aria-hidden="true"><i style="width:${n ? Math.round(Math.min(1, k / n) * 100) : 0}%"></i></span>`;
 function rdnRowHtml2(r){
   const G = rdnGroups(r), list = rdnOnList(r);
-  const ans = G.map(x => `${_rdE(x.l)} ${x.n}`).join(' · ');
+  const ans = G.map(x => (typeof listChipHtml === 'function') ? listChipHtml(RDN_TONE[x.t] || 'gray', `${x.l} · ${x.n}`) : `${_rdE(x.l)} ${x.n}`).join(' ');
   const asked = _rdT('rdn2_asked', { by: r.by || (r.asked && r.asked.by) || '', when: r.when ? rdWhen(r.when) : '' }).replace(/^ · | · $/g, '');
   return `<tr data-rd-row="${_rdE(r.key)}" class="${_rd.sel === r.key ? 'is-sel' : ''}" tabindex="-1"><td><div class="cun-name">${_rdE(r.name || r.q)}</div><div class="cun-sub">${_rdE(r.q || '')}</div></td>
-    <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: r.read, n: r.total }))}</td><td class="rdn-c">${_rdE(ans || '—')}</td>
+    <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: r.read, n: r.total }))}${rdnProgHtml(r.read, r.total)}</td><td class="rdn-c">${ans || '—'}</td>
     <td class="rdn-c">${list ? _rdE(list) : `<span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span>`}</td><td class="rdn-c">${_rdE(asked)}</td></tr>`;
 }
 function rdnPackRowHtml2(x){
   const qs = (x.p.questions || []).map(q => String(q.name || q.question || '').toLowerCase()).filter(Boolean).join(' · ');
   const n = (x.p.questions || []).length, read = x.row ? x.row.read : 0;
   return `<tr><td><div class="cun-name">${_rdE(_rdT('rdn_pack', { name: x.p.name, n }))}</div><div class="cun-sub">${_rdE(qs)}</div></td>
-    <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: read, n: x.total }))}</td><td class="rdn-c">${_rdE(x.ran ? _rdT('rdn_ran') : _rdT('rdn_not_run'))}</td><td class="rdn-c"><span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span></td>
+    <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: read, n: x.total }))}${rdnProgHtml(read, x.total)}</td><td class="rdn-c">${_rdE(x.ran ? _rdT('rdn_ran') : _rdT('rdn_not_run'))}</td><td class="rdn-c"><span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span></td>
     <td class="rdn-c"><button type="button" class="rfp-pill" data-rdn-pack="${_rdE(x.p.id)}">${_rdE(_rdT('rdn_run_on', { n: x.total, calls: '' }).replace(/\s*·\s*$/, ''))}</button></td></tr>`;
 }
 function rdnRender(host){

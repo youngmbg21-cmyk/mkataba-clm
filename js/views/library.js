@@ -2948,7 +2948,11 @@ function tplnHtml(d, groups, card){
   const statOf = c => tplPfStats(c);
   const rows = all.map(c => ({ c, st: statOf(c), last: tplnLastOf(c) })).sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name)));
   const on = c => card && tplPfKey(c) === tplPfKey(card);
-  const stdRows = rows.map(x => `<button type="button" class="tpln-r${on(x.c) ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(x.c))}" aria-pressed="${on(x.c) ? 'true' : 'false'}"><span class="tpln-n">${_tplEsc(x.c.name)}</span><span class="tpln-u">${_tplEsc(i18tn('tpln_uses', x.last.cs.length, { n: x.last.cs.length }))}</span><span class="tpln-l">${_tplEsc(x.last.word || '\u2014')}</span></button>`).join('');
+  /* USE BARS (owner's pick by name, 9 Nov 2026; the colour round): beside "N uses" a thin green bar to scale, the most
+     used standard the full width, so the paper the team relies on stands out; a paper never used has no bar */
+  const most = Math.max(0, ...rows.map(x => x.last.cs.length));
+  const useBar = n => n && most ? `<i class="tpln-bar" aria-hidden="true" style="width:${Math.max(4, Math.round(n / most * 64))}px"></i>` : '';
+  const stdRows = rows.map(x => `<button type="button" class="tpln-r${on(x.c) ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(x.c))}" aria-pressed="${on(x.c) ? 'true' : 'false'}"><span class="tpln-n">${_tplEsc(x.c.name)}</span><span class="tpln-u">${_tplEsc(i18tn('tpln_uses', x.last.cs.length, { n: x.last.cs.length }))}${useBar(x.last.cs.length)}</span><span class="tpln-l">${_tplEsc(x.last.word || '\u2014')}</span></button>`).join('');
   const stdN = (typeof paperStandardsCount === 'function') ? paperStandardsCount() : null;
   const shelves = `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_list', all.length, { n: all.length }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="list">${_tplEsc(i18t('tpln_open'))}</button></div>`
     + (stdN != null ? `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_std', stdN, { n: stdN }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="standards">${_tplEsc(i18t('tpln_open'))}</button></div>` : '');
