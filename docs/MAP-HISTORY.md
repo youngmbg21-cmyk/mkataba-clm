@@ -36065,3 +36065,15 @@ The Next Five's drawing showed "three risks were found on contracts we already h
 - runScan (js/ai.js) stamps `scan.first` (the day the contract was first checked) and `f.seen` on each finding (kept from the last check by the rule's stable id, else today). A check stored before has no `seen`: its findings take its `on`; with neither, the contract reads as today and the legend says how many ("checked before HaTi kept the days").
 - `igRiskAsOf(c, D)`: not checked by D = Not scanned; else the score of the open findings seen by D. A dismissal keeps no day, so a finding dismissed since is left out then too (said in the code, not on the page).
 - The risk sentence splits "N contracts we already had gained a risk since" from "N contracts added since"; `igRiskSinceBadges` puts "+N since" on the as-of lens's own badges when the Risk lens is on as the day is chosen.
+
+## INSIGHTS — THE GUIDE TAB KEEPS UP, AND THE LEGEND KEEPS ITS WIDTH (owner, 8 Nov 2026)
+
+The owner: "Did you update the guide? As a rule it should be updated when new features are added. Also, the legend should stay the same width." The handbook had been updated for the Next Five and the risk dates, Explorer's own Guide tab (`igGuideRows`) had not. Measured: the legend was 150 wide folded, 212 open, 251 with a lens.
+
+- New Guide rows: "Your morning briefing, six stops" (Brief me) and "Then and now on the Risk lens" (risk lens as of 3 months ago) on every view; "The renewal cliff, month by month" (timeline by renewal decision) on the Timeline; "What if a party left" (What if <the biggest party> left?) on the Wiring.
+- To make the then-and-now row's words do what they say: `igDateRead` reads "N days/weeks/months/years ago" (sv "för N … sedan"); a lens named with a past day in the same words returns both acts (igRecipeParse); on Explorer a lens's words are the map's own (`caUnderstand`'s answer set aside, mapOwn).
+- The legend: `.igl` width 252px, border-box, in every state; its notes wrap inside it (the 190px cap on notes went).
+
+### CLAUDE.MD TRIM, 8 Nov 2026 — THE GUIDE TAB RULE: one rule line added (the owner's "it should be updated when new features are added"); the Next Five line shortened to make room (80,338 → 80,242 bytes). It stood verbatim:
+
+- NEXT FIVE (8 Nov): a Board figure's menu, the list first (`hbFigMenuOpen` → `hbShowOnMap`); briefing `igBriefStart` (Stop restores); cliff by month `igCliffCardOpen`; what if X left `igWhatIfData`.

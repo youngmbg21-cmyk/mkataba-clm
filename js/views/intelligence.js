@@ -2122,6 +2122,11 @@ function igDateRead(s0, before, past){
   /* "as of" asks for a day that has come: the start of this month, quarter or year (stage 5) */
   m=s.match(/^(?:the )?(?:start|beginning) of (?:the |this )?(month|quarter|year)$|^(?:början av|starten av) (månaden|kvartalet|året)$/);
   if(m){ const u=unit(m[1]||m[2]); return u==='month'?igDayISO(Y,M,1):u==='quarter'?igDayISO(Y,Math.floor(M/3)*3,1):igDayISO(Y,0,1); }
+  /* "3 months ago" — the day that many days, weeks, months or years back (the Guide's then-and-now row, the legend's pills: igLensThenISO) */
+  m=s.match(/^(\d{1,3}|a|an|one) (day|week|month|year)s? ago$|^för (\d{1,3}|en|ett) (dag|dagar|vecka|veckor|månad|månader|år) sedan$/);
+  if(m){ const n=/^\d/.test(m[1]||m[3])?+(m[1]||m[3]):1, u=String(m[2]||m[4]), d=new Date(T);
+    if(/^(?:day|dag)/.test(u)) d.setDate(d.getDate()-n); else if(/^(?:week|veck)/.test(u)) d.setDate(d.getDate()-7*n); else if(/^(?:month|månad)/.test(u)) d.setMonth(d.getMonth()-n); else d.setFullYear(d.getFullYear()-n);
+    return igDayISO(d.getFullYear(),d.getMonth(),d.getDate()); }
   const dm=(d,mo,y)=>{ if(!(mo>=0)) return null; let yy=y?+y:Y; if(!real(yy,mo,d)&&!y&&real(yy+1,mo,d)) yy++; if(!real(yy,mo,d)) return null;
     if(!y&&!past&&new Date(yy,mo,d)<T) yy++; if(!y&&past&&new Date(yy,mo,d)>T) yy--; return real(yy,mo,d)?igDayISO(yy,mo,d):null; };
   m=s.match(/^(\d{1,2})(?:st|nd|rd|th)?(?:\s+[ae])?(?:\s+of)?\s+([a-zåäö]+)(?:\s+(\d{4}))?$/); if(m&&m[2] in IG_MONTH_IX) return dm(+m[1],IG_MONTH_IX[m[2]],m[3]);
@@ -2244,7 +2249,9 @@ function igRecipeParse(qRaw){
   if(/^(?:please\s+)?(?:summari[sz]e|explain|describe|quote|tell me about|draft|write|translate|sammanfatta|förklara|beskriv|citera|skriv|översätt)\b/.test(q)) return null;
   if(/^(?:undo|go back|back|previous view|revert|undo that|take that back|ångra|tillbaka|gå tillbaka|backa)$/.test(q)) return { acts:[{ undo:true }], rest:'' };
   /* a lens, named (the Lenses round, 8 Nov 2026) */
-  { const ln=igLensRead(q); if(ln) return { acts:[ln], rest:'' }; }
+  /* a lens with a past day in the same words ("risk lens as of 3 months ago"): the lens, then the day (the Guide's then-and-now row) */
+  { const ln=igLensRead(q); if(ln){ const m=ln.lens!=='off'&&/\b(?:as of|as it (?:stood|was)|then and now|what(?:'s| has)? changed since|changed since|since|compared (?:with|to)|som (?:den|det) (?:var|stod)|vad har ändrats sedan|sedan)\b/.exec(q);
+      const at=m?igAsOfRead(q.slice(m.index)):null; return { acts:at&&at.length?[ln].concat(at):[ln], rest:'' }; } }
   if(/^(?:please\s+)?(?:reset(?: the map| everything| it)?|start (?:again|over)|back to (?:the )?start|återställ(?: kartan| allt)?|börja om)$/.test(q)) return { acts:[{ everything:true }, { landing:true }], rest:'' };
   /* every contract, in the words Jambo's one rule reads it (CA_HERE_ALL_RE: "all contracts", "every contract", "alla avtal") */
   if(IG_EVERYTHING_RE.test(q)||/^(?:visa allt|visa alla(?: avtal)?|rensa(?: allt| kartan)?)$/.test(q)||(window.CA_HERE_ALL_RE instanceof RegExp&&CA_HERE_ALL_RE.test(q))) return { acts:[{ everything:true }], rest:'' };
@@ -2813,6 +2820,8 @@ async function intelAsk(qRaw, opts){
   /* a question asked OF a named contract on Explorer is the map's own (its
      Copilot answers with the passages cited, insights-panels 16a) */
   try{ if(und&&und.kind==='ask'&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer') und=null; }catch(_){}
+  /* a lens named on Explorer is the map's own, with a past day too ("risk lens as of 3 months ago", the Guide's then-and-now row) */
+  try{ if(und&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&igLensRead(q)) und=null; }catch(_){}
   if(und&&typeof window.caHomeRun==='function'&&caHomeRun(q,und)) return;
   const tplAsk=IG_TEMPLATE_RE.test(q);
   /* ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026): a
@@ -2834,7 +2843,7 @@ async function intelAsk(qRaw, opts){
      the whole of their words, so on Explorer the map answers them where the
      reader stands (Jambo's one rule) before any task card */
   const hereMap=!!(here&&here.screen==='explorer');
-  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_BRIEF_RE.test(q)||IG_TOUR_RE.test(q)||IG_PIC_RE.test(q)||igAsOfRead(q)||igUntilRead(q)||igSoleRead(q)||igWhoFactRead(q));
+  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(igLensRead(q)||IG_BRIEF_RE.test(q)||IG_TOUR_RE.test(q)||IG_PIC_RE.test(q)||igAsOfRead(q)||igUntilRead(q)||igSoleRead(q)||igWhoFactRead(q));
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
@@ -5664,6 +5673,12 @@ function igGuideRows(){
   row(every,'int_gd_t_group',i18t('int_gd_q_group'),q=>acts(q).some(a=>a.role==='group'&&a.fact==='owner'),intel.groupBy==='owner');
   { const q=i18t('int_gd_q_only'), nar=acts(q).find(a=>a.narrow), lab=nar?nar.narrow.conds.map(x=>x.label).join(' · '):null;
     row(every,'int_gd_t_only',q,()=>!!nar,!!lab&&lensOn(l=>l.action==='filter'&&l.label===lab)); }
+  /* THE NEXT FIVE ON THE GUIDE (owner, 8 Nov 2026: "As a rule it should be updated when new features are added") */
+  if(vw===1){ const x=(()=>{ const n=new Map(); (state.contracts||[]).forEach(c=>{ if(c&&!c.archived&&c.status!=='Declined'&&c.counterparty) n.set(c.counterparty,(n.get(c.counterparty)||0)+1); }); return [...n.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0])[0]; })();
+    if(x) row(mine,'int_gd_t_whatif',i18t('int_gd_q_whatif',{ x }),q=>igWhatIfRead(q)===x,lensOn(l=>l.kind==='whatif'&&l.party===x)); }
+  if(vw===4) row(mine,'int_gd_t_cliff',i18t('int_gd_q_cliff'),q=>acts(q).some(a=>a.role==='time'&&a.fact==='decision'),(intel.timeBy||'decision')==='decision');
+  if(igLensMay('risk')) row(every,'int_gd_t_lensthen',i18t('int_gd_q_lensthen'),q=>{ const A=acts(q); return A.some(a=>a.lens==='risk')&&A.some(a=>a.asOf&&a.asOf!=='none'); },intel.lens==='risk'&&!!intel.asOf);
+  row(every,'int_gd_t_brief',i18t('int_brief_ask'),q=>IG_BRIEF_RE.test(q),!!intel.brief);
   row(every,'int_gd_t_tour',i18t('int_tour_ask'),q=>IG_TOUR_RE.test(q),!!intel.tour);
   row(every,'int_gd_t_undo',i18t('int_gd_q_undo'),q=>acts(q).some(a=>a.undo),false);
   return { vw, mine, every, undoNone:!(intel.recipeStack&&intel.recipeStack.length) };
