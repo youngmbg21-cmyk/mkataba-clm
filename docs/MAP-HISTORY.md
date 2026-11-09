@@ -36189,3 +36189,10 @@ The owner, with a picture of Your day and the four figures circled (Need you, Hi
 
 NOTED FOR THE OWNER: Need you counts THINGS waiting (the bell's number); the map shows the CONTRACTS they sit on, so 9 things on 5 contracts reads "Showing 5 of 16".
 Then the owner: "Include New since yesterday as well". New since yesterday narrows the map too (go `onmap`, no lens); every figure on Your day now shows on the map. `int_day_go_open` and `int_day_go_them` retired (left inert in both books).
+- THE PAGE IN FRONT IS THE ONE ASKED ABOUT (same day, the owner again: "fix the History panel showing the wrong
+  contract"). After f978's way back, one wrong contract remained: MK-A2's paper → Approvals → MK-HB4's History left
+  Jambo's box saying "Ask Jambo about MK-A2…", and a question went with MK-A2's wording — `intel.paper` stays "up"
+  (`igPaperUp`) behind the Board while a strip's page (`pdCardNow`) stands in front, and the box and the ask read the
+  paper first. Now the page in front wins (`igCardInFront`, `igPaperInFront` in `igAskPlaceholder`, `igAskCost`,
+  `igHeldAskId`, `igPageTalkAsk`): "Ask Jambo about MK-HB4…", the question with MK-HB4. Back on MK-A2's paper it says
+  MK-A2 again. held-contract-asks-verify, home-held-contract-verify, point-buttons-and-brief-verify, stakes-verify green.
