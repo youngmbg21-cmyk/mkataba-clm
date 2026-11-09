@@ -90,7 +90,7 @@ const READ = () => {
       check(`${nm} 1 the Dossier: one line of stages, one sentence, what Jambo read, the facts with their sources, his one remark`,
         /Arrived .*·\s*Read\s*·\s*Fill, \d+ to do\s*·\s*Negotiate\s*·\s*Sign, \d+ to do\s*·\s*Live/.test(R.spine) && /before anyone signs/.test(R.next) && R.nextLinks === 1
         && /Jambo/.test(R.read) && F.value && F.value.s === '§ 2' && F.ends && F.ends.s === '§ 4' && /renews by itself/.test(F.ends.v)
-        && F.signer && F.signer.s === 'route' && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === '§ 2' && F.std && /Not checked yet/.test(F.std.v) && !/call/.test(F.std.v)
+        && F.signer && F.signer.s === 'Change' /* RE-POINTED (the harmony review, PAPER LINE HOLDS ALL, owner's yes 9 Nov 2026): a fact that can be changed ends in a green Change link */ && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === '§ 2' && F.std && /Not checked yet/.test(F.std.v) && !/call/.test(F.std.v)
         && /Rejection window/.test(R.turn) && !R.old, { spine: R.spine, next: R.next, facts: R.facts, turn: R.turn.slice(0, 80) });
       check(`${nm} 2 one row of links above Jambo's box`, R.rows.length === 1 && R.rows[0] === 'fill in · redline · share · history', R.rows);
       /* the four notes HaTi read; a Clauses point (once Clauses is read) joins its clause's group and is checked in 14 */

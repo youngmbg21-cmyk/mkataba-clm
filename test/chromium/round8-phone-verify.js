@@ -44,7 +44,12 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
         say: (document.querySelector('.m-nl-say') || {}).textContent || '', rows: document.querySelectorAll('.m-nl-row').length,
         acts: [...document.querySelectorAll('.m-nl-row .m-nl-act')].length, askAfter: kids.findIndex(k => /m-nl-ask/.test(k)) > kids.findIndex(k => /m-nl-list/.test(k)) };
     }) : null;
-    const counted = S ? (S.say.match(/\d+/g) || []).reduce((a, n) => a + Number(n), 0) : -1;
+    /* RE-POINTED (the harmony review, ONE COUNT, owner's yes 9 Nov 2026): with more than one kind the sentence leads with
+       the whole ("7 wait on you: 1 thing is late, 5 are your move and I prepared 1"); the whole is the rows drawn and the
+       parts after the colon add up to it */
+    const sum = t => (String(t).match(/\d+/g) || []).reduce((a, n) => a + Number(n), 0);
+    const lead = S ? /^(\d+)[^:]*:\s*(.*)$/.exec(S.say) : null;
+    const counted = !S ? -1 : lead ? (Number(lead[1]) === sum(lead[2]) ? Number(lead[1]) : -2) : sum(S.say);
     check('2a the black bar: HaTi and your initials', !!S && /HaTi/.test(S.bar) && /AO/.test(S.bar), S && S.bar);
     check('2b the greeting and one sentence that counts the rows drawn; each row one act word; Jambo\'s box under the list', !!S && /^Good (morning|afternoon|evening), Amina\.$/.test(S.hello)
       && counted === S.rows && S.acts === S.rows && S.askAfter, S && Object.assign({ counted }, S));

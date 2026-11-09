@@ -36,3 +36,12 @@ numbers in the new-look renderers are behind it too, because those renderers onl
 | 12 | Obligations | TWO LINES A ROW: the middle column is gone; the quote, where the paper gives one, is the row's own small italic line. |
 | 13 | Calendar's quiet weeks | FOLD THE QUIET: a run of empty weeks is one line, "23 Nov – 27 Dec · 5 quiet weeks". |
 | 15 | Negotiations' open asks | NAME THE CLAUSE: an ask with no words to quote says "§ 3 Payment", never empty quote marks. |
+
+## Round 3 — a contract
+
+| # | Issue | What was built |
+|---|---|---|
+| 16 | The paper and its Dossier | PAPER LINE HOLDS ALL: on a desk 1300 wide or more the zoom stands in the empty desk beside the sheet, so the sheet starts where the paper line ends (narrower, it keeps its room so it never covers the sheet); the opening paragraph starts on the headings' edge (its `-mx-2` was never in the stylesheet); Signer and Stream end in a green "Change" link. The margin notes keep their place — moving them was not needed once the sheet rose. |
+| 17 | Redline cards | SAME CARD TWICE: every ask of theirs carries Accept · Reject · Counter, with Ask a colleague and the Ladder behind More ▾, whether or not a colleague holds the clause (reverses round 9's Counter-first in the new look, by the owner's pick); the face's own "Ask for review" steps aside for the paper line's. No button is filled on the cards: the paper line's Send all is the one filled button. |
+| 18 | Before you sign | SAID ONCE: the line under the signing copy says only "the working copy is unchanged"; the card under the checklist is the greyed Sign and "N to go before signing", not the list again. |
+| 19 | The Send screen | BOX FITS THE WAY: with Copy link the note box folds to one dashed line that says why there is no note; the warning at the foot steps aside; the panel's back line says "‹ Dossier / Before you send". |

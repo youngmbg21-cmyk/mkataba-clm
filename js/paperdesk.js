@@ -2520,7 +2520,10 @@ function pd2SignRowsHtml(c){
   const mineNow = steps.some(st => st.n === now && st.rows.some(r => r && r.party === 'internal' && String(r.memberId || '') === String(me.id || '') && !r.signed));
   const card = closed ? '' : !holds.length && mineNow
     ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_clear'))}</b><p>${E(T('pd2_sg_clear_s'))}</p><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd2-sign>${E(T('apn_sign'))}</button><button type="button" class="ui-btn" data-pd2-sign-read>${E(T('pd2_sg_read'))}</button><span>${E(T('pd2_sg_no_call'))}</span></div></div>`
-    : `<div class="pd2-sg-card is-held"><b>${E(holds.length ? _pdTn('pd2_sg_holds', holds.length, { n: holds.length }) : T('pd2_sg_not_yours'))}</b>${holds.length ? `<ul>${holds.map(h => `<li>${E(String(h.short || h.label || ''))}</li>`).join('')}</ul>` : ''}</div>`;
+    /* SAID ONCE (the harmony review, owner's yes 9 Nov 2026): the list above already names what holds the signature, so
+       the card under it is the greyed Sign with how many are left, never the same list again */
+    : holds.length ? `<div class="pd2-sg-card is-held is-togo"><div class="pd2-sg-acts"><button type="button" class="ui-btn" disabled aria-disabled="true">${E(T('apn_sign'))}</button><span>${E(_pdTn('pd2_sg_togo', holds.length, { n: holds.length }))}</span></div></div>`
+    : `<div class="pd2-sg-card is-held"><b>${E(T('pd2_sg_not_yours'))}</b></div>`;
   return `<div class="pd2-sg">${rows.join('')}${card}</div>`;
 }
 function pdSignFaceHtml(c){
@@ -7515,7 +7518,10 @@ function pd2Html(c){
   if (pd2FillOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-fill" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2FillFaceHtml(c, D)}</div>`;
   if (pd2StandsUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-stands" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2StandsFaceHtml(c)}</div>`;
   if (pd2BriefUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-brief" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2BriefFaceHtml(c, D)}</div>`;
-  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo" ${f.go}>${E(f.s || _pdT('dos_go_open'))}</button>` : E(f.s || '')}</span></div>`).join('');
+  /* PAPER LINE HOLDS ALL (the harmony review, owner's yes 9 Nov 2026): a fact that can be changed ends in a green
+     "Change" link, never a small grey word that is secretly a button */
+  const nl = typeof window.newLookOn === 'function' && newLookOn();
+  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
   return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}<div class="pd2-facts">${facts}</div>${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the

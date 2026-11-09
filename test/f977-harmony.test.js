@@ -106,3 +106,24 @@ test('f977 (12, 13, 15) two lines a row, fold the quiet, name the clause', () =>
   assert.match(cal, /i18tn\('cal_nl_quiet_wks',gap\.n,\{ n:gap\.n \}\)/);
   assert.match(read('js/views/register.js'), /: `<span class="ngn-nm">\$\{E\(\[q\.s, q\.nm\]\.filter\(Boolean\)\.join\(' '\)\)\}<\/span>`/);
 });
+
+/* Round 3, a contract: PAPER LINE HOLDS ALL, SAME CARD TWICE, SAID ONCE, BOX FITS THE WAY. */
+test('f977 (16) the paper: the sheet not a band lower on a wide desk, the opening on the headings\' edge, Change links', () => {
+  const b = block();
+  assert.match(b, /@media \(min-width:1300px\)\{ html\.lg-new #ig-paper-scroll > \.paper-zc-row\{--zc-room:0px\} \}/);
+  assert.match(b, /html\.lg-new #ig-paper \.pg-sheet \.doc-surface#ig-canvas p\.px-2\.-mx-2\{margin-left:-8px;margin-right:-8px\}/);
+  assert.match(read('js/paperdesk.js'), /\(f\.k === 'signer' \|\| f\.k === 'stream'\) \? _pdT\('pd2_go_change'\)/);
+});
+test('f977 (17) same card twice: Accept · Reject · Counter on every ask, the rest behind More', () => {
+  const ng = read('js/views/negotiation.js');
+  assert.match(ng, /if \(nlSame\)\{[\s\S]{0,600}out\.push\(acc, rej\);\s*if \(door\) out\.push\(relabel\(door, i18t\('ng_counter'\)\)\);/);
+  assert.match(block(), /html\.lg-new #ig-dock :is\(\.rl-head-review, \[data-rl-head-review\]\)\{display:none\}/);
+});
+test('f977 (18, 19) said once; the box fits the way; the back line names its place once', () => {
+  const pd = read('js/paperdesk.js');
+  assert.match(pd, /holds\.length \? `<div class="pd2-sg-card is-held is-togo">/);
+  assert.doesNotMatch(pd, /pd2_sg_holds', holds\.length/, 'the list is not said twice');
+  assert.doesNotMatch(read('js/views/intelligence.js'), /i18t\('sg2_cap'\)\)\} · <span data-sg-cap-page>/, 'the page count is said once');
+  assert.match(read('js/core.js'), /nb\.classList\.toggle\('is-nowhere',none\);/);
+  assert.match(read('js/components.js'), /const path = nl && t\.path\.length > 1 && String\(t\.path\[0\]\) === String\(t\.up\) \? t\.path\.slice\(1\) : t\.path;/);
+});

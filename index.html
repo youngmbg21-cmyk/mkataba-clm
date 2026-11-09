@@ -19942,8 +19942,9 @@
   html.lg-new #jl-body .jov-after .cn2-eye + .cn2-turn{border-top:0}
   html.lg-new #igd-feed > .apn-panel{padding-left:0;padding-right:0}
   html.lg-new #ig-dock .ca-back{margin-left:16px}
-  html.lg-new :is(#ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
-  html.lg-new :is(#ig-dock [data-ig-chips] .jb-chip, .jb-ways.is-above-foot .jb-way):nth-of-type(n+4){display:none}
+  html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
+  /* three at most where the doors are long words (a page's own); beside a contract its own short links stay whole */
+  html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips] .jb-chip, .jb-ways.is-above-foot .jb-way):nth-of-type(n+4){display:none}
   /* ==== ROUND 2, THE LISTS ====
      EVEN TILES (the folders, owner's pick by name): every tile one height, the name one line ending in "…", what needs
      you the biggest thing, one bar of signed · in review · drafting with its key above the grid, four across a laptop */
@@ -19988,6 +19989,26 @@
   html.lg-new .obn-table.is-two-line .obn-q.is-line{margin-top:4px;font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .obn-table.is-two-line .obn-q.is-line i{font-weight:400}
   html.lg-new .obn-table.is-two-line td.obn-act{text-align:right}
+  /* ==== ROUND 3, A CONTRACT ====
+     PAPER LINE HOLDS ALL (owner's yes): on a wide desk the zoom stands in the empty desk beside the sheet, so the sheet
+     starts where the paper line ends, not a band lower; the opening paragraph's text starts on the headings' edge (its
+     -mx-2 was never in the sheet); a fact that can be changed ends in a green "Change" link */
+  @media (min-width:1300px){ html.lg-new #ig-paper-scroll > .paper-zc-row{--zc-room:0px} }
+  html.lg-new #ig-paper .pg-sheet .doc-surface#ig-canvas p.px-2.-mx-2{margin-left:-8px;margin-right:-8px}
+  /* SAME CARD TWICE: the Redlines face's own "Ask for review" chip steps aside; the paper line above carries the one */
+  html.lg-new #ig-dock :is(.rl-head-review, [data-rl-head-review]){display:none}
+  /* BOX FITS THE WAY (Send): with a way that carries no message the note box folds to its one line, dashed where the box
+     was, and the warning at the screen's foot steps aside */
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter .sh-lt-note.is-nowhere > label{--sh-note-d:none;display:none}
+  html.lg-new .sh-lt-note.is-nowhere > [data-nl-jb], html.lg-new .sh-lt-note.is-nowhere > .sh-nl-jb{display:none}
+  html.lg-new .sh-lt-note .sh-lt-nowhere:empty{display:none}
+  html.lg-new .sh-lt-note.is-nowhere .sh-lt-nowhere{margin:8px 0 0;padding:16px;border:1px dashed var(--color-divider);border-radius:var(--radius);font-size:13px;line-height:1.5;color:var(--color-quiet)}
+  html.lg-new #modal-root:has(.sh-lt-note.is-nowhere) #sh-msg-where{display:none}
+  /* SAID ONCE (Before you sign): the card under the list is the greyed Sign and how many are left, quiet */
+  html.lg-new #ig-dock .pd2-sg-card.is-togo{background:transparent;padding:12px 0 0;box-shadow:none;border:0}
+  html.lg-new #ig-dock .pd2-sg-card.is-togo .pd2-sg-acts{display:flex;align-items:center;gap:12px;margin:0}
+  html.lg-new #ig-dock .pd2-sg-card.is-togo span{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 <style>
   /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */

@@ -20127,7 +20127,16 @@ function redlineChangeCardsHtml(c, opts = {}){
       /* ASK A COLLEAGUE (round 5 of the first-timer rounds): the one send screen, set to
          a colleague, the change named in the note — the pass route, tracked until they answer */
       const askCol = ourSeat ? `<button type="button" class="rl-edit rl-ask-col" data-rl-ask-colleague="${_nea(ch.id)}" title="${_nea(i18t('rl_ask_col_title'))}">${_ne(i18t('rl_ask_col'))}</button>` : '';
-      if (ourSeat && acc && door && !/is-locked/.test(door)){
+      const nlSame = ourSeat && acc && typeof window.newLookOn === 'function' && window.newLookOn();
+      if (nlSame){
+        /* SAME CARD TWICE (the harmony review, owner's yes 9 Nov 2026; reverses round 9's Counter-first in the new
+           look): every ask of theirs carries the same buttons in the same order — Accept · Reject · Counter — and
+           Ask a colleague and the Ladder behind More ▾, whether or not a colleague holds the clause */
+        out.push(acc, rej);
+        if (door) out.push(relabel(door, i18t('ng_counter')));
+        if (askCol) out.push(askCol);
+        foldFrom = out.filter(Boolean).length - (askCol ? 1 : 0);
+      } else if (ourSeat && acc && door && !/is-locked/.test(door)){
         out.push(relabel(door, i18t('ng_counter')).replace('class="', 'class="rl-verb-lead '), acc, rej);
         if (askCol) out.push(askCol);
         /* the new look, as drawn: Counter · Accept · Reject on the face, the rest behind More */

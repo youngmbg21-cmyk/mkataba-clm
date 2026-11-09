@@ -600,4 +600,5 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - `node --test test/f977-harmony.test.js` — one head, pill to act, one voice, say it once, one count, the foot follows, one thing when empty; every HARMONY rule under html.lg-new.
 - `node test/chromium/home-morning-verify.js` — Home's rows wear grey pills, one label over Jambo's notes, no Likely next, the foot says "N wait on you".
 - Round 2: round5-new-look-verify 5 (the agenda folds quiet weeks), round6-new-look-verify 3 (no how-to line under the wall).
+- Round 3: contract-new-look-verify 1 (Signer ends in Change), negotiate-new-look-verify 5 (History reachable from the links above the box), round8-phone-verify 2b (the whole leads).
 - The new-look browser set: round5/6/7/7b/9-new-look-verify, new-look-frame-verify, reads-*-verify, doors-verify, obligation-opens-on-the-paper-verify.
