@@ -11157,6 +11157,12 @@
   .ig-gd-rt{display:flex;flex-direction:column;gap:1px;min-width:0}
   .ig-gd-go{font-size:12px;font-weight:var(--w-label,500);color:var(--accent-ink);white-space:nowrap}
   .ig-gd-row.is-on .ig-gd-go{color:var(--st-green-fg,var(--accent-ink))}
+  /* THE VIEWS AT THE TOP of the Guide (owner, 9 Nov 2026): one row of five, the map's own a filled pill */
+  .ig-gd-views{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;background:var(--color-neutral-100);border-radius:999px;padding:3px}
+  .ig-gd-views button{all:unset;box-sizing:border-box;text-align:center;padding:6px 0;border-radius:999px;font-size:12.5px;font-weight:var(--w-label,500);color:var(--color-text);white-space:nowrap;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .ig-gd-views button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  @media (hover:hover){ .ig-gd-views button:not([aria-pressed="true"]):hover{background:var(--color-surface)} }
+  .ig-gd-views button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   .ig-gd-others{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .ig-gd-others button{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;cursor:pointer;min-width:0}
   .ig-gd-others button:hover{border-color:var(--accent-solid)}

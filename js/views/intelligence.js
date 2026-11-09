@@ -5732,11 +5732,14 @@ function igGuideHtml(){
   const rowHtml=r=>{ const dead=r.q===i18t('int_gd_q_undo')&&R.undoNone;
     return r.on?`<div class="ig-gd-row is-on"><span class="ig-gd-rt"><span class="ig-gd-t">${igEsc(r.t)}</span><span class="ig-gd-q">“${said(r.q)}”</span></span><span class="ig-gd-go">${igEsc(i18t('int_gd_showing'))}</span></div>`
       :`<button type="button" class="ig-gd-row" data-ig-gd="${igEsc(r.q)}"${dead?` disabled title="${igEsc(i18t('int_undo_none'))}"`:''}><span class="ig-gd-rt"><span class="ig-gd-t">${igEsc(r.t)}</span><span class="ig-gd-q">“${said(r.q)}”</span></span><span class="ig-gd-go">${igEsc(i18t('int_gd_do'))}</span></button>`; };
+  /* THE VIEWS AT THE TOP (owner, 9 Nov 2026: "Move these buttons to the top of the panel so when you select one, the
+     options for navigation appear below them"): all five in one row, the map's own pressed; a press turns the map and
+     the guide repaints under the row. The four cards that stood at the foot are gone. */
   return `<div class="ig-gd" data-ig-gd-view="${R.vw}">
-    <div class="ig-gd-here"><span class="ig-gd-hn">${igEsc(i18t('int_gd_here',{ x:name }))}</span><span class="ig-gd-hw">${igEsc(i18t('int_gd_what_'+R.vw))}</span></div>
+    <div class="ig-gd-views" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-gd-view-go="${i}" aria-pressed="${i===R.vw}" title="${igEsc(i18t(IG_GD_OTHER[i]))}">${igEsc(i18t('int_view_'+v))}</button>`).join('')}</div>
+    <div class="ig-gd-here"><span class="ig-gd-hn">${igEsc(name)}</span><span class="ig-gd-hw">${igEsc(i18t('int_gd_what_'+R.vw))}</span></div>
     ${R.mine.length?`<h4 class="ig-gd-h">${igEsc(i18t('int_gd_on',{ x:name }))}</h4><div class="ig-gd-rows">${R.mine.map(rowHtml).join('')}</div>`:''}
     <h4 class="ig-gd-h">${igEsc(i18t('int_gd_every'))}</h4><div class="ig-gd-rows">${R.every.map(rowHtml).join('')}</div>
-    <h4 class="ig-gd-h">${igEsc(i18t('int_gd_others'))}</h4><div class="ig-gd-others">${IGB_VIEWS.map((v,i)=>i===R.vw?'':`<button type="button" data-ig-gd-view-go="${i}"><b>${igEsc(i18t('int_view_'+v))}</b><span>${igEsc(i18t(IG_GD_OTHER[i]))}</span></button>`).join('')}</div>
   </div>`;
 }
 /* the guide follows the view and the map: repainted in place, its scroll kept */
