@@ -36155,3 +36155,34 @@ redrawn under the caret moves the words being typed); said to the owner.
   "Not found" (italic, `.ac-ans.tone-none`) lost its last letter's lean inside an ellipsis box (`.rdt-w`, `.reg-table .ac-a`).
   Now each keeps its scroll while the same list is in view, and the italic word keeps .2em at its right. Swept: Approvals,
   Parties, Obligations, Pulse, Import, Requests, People and Our paper only mark the chosen row — they never jumped. f979.
+
+## ROUND 1 — THE INSTRUMENTS LEARN WHAT THE OWNER SAW (9 Nov 2026)
+The owner, over two pictures: the Calendar's Horizon tab with its first row painted twice and a small scrollbar on
+it, and Settings looking "built on cards as opposed to the new visuals with all white pages". Round 0 ran the
+existing instruments (the tidy sweep, the detail audit, the style audit) and found that neither picture could have
+been caught: the ghost was clean at first paint in every sweep (the instruments photograph the first paint only, and
+Horizon was a tab no sweep visited); Settings' grey strips were two scrollbars — the middle column scrolling inside a
+page that also scrolls — which the Linux test browser hides and the owner's Windows draws as grey tracks. The owner's
+ruling: "the white pages should be considered as the future state and bugs are only to be identified on the new
+visuals"; then, over the now-and-on-white pictures: Settings, a template's page and the builder → Build it; the Board
+and Jambo's agents → Not now; Home's cream head and the paper's desk left out on purpose.
+ROUND 1 changes only the instruments. The tidy sweep measures every place again AFTER MOTION (its biggest own
+scroller moved, its first unchosen tab pressed), visits the Calendar's Month, Week and Horizon tabs and Contracts'
+Wall, and carries the new look's waiting marks (Negotiations `.ngn-*`, Obligations `.obn-*`, Reads `.rdn-page`,
+Settings `#stn-main`; the Board's landed row falls back to the first row of the side list). The detail audit gains
+HATI_DETAIL_NEW_LOOK=1 and the HAND kind (a press whose cursor stays the arrow; the owner's second picture — in the
+new look Parties, People and Reads rows had no hand, one rule naming `cunp-table` for `cun-table`); the report's
+hand-written "Found in the hunt" list of 24 Oct, never re-measured, came off. NEW: test/chromium/white-sheet-verify.js
+— in the new look, at the three screens, no grey ground painted left of Jambo's panel by one element over 300×48 (the
+paper's canvas and the designed grey parts excepted) and no scroller inside an active scroller; WHITE_KNOWN carries
+the eight allowances with the owner's word and only shrinks (an allowance that no longer fires fails the run). Both
+kinds are planted and caught before any page is measured. Nothing in the product changed in this round.
+WHAT THE NEW INSTRUMENTS FOUND ON THEIR FIRST RUN (new look, 9 Nov 2026), none in the owner's pictures: Contracts › Wall is
+16px wider than its room (`#ig-wall`, a sideways scrollbar, all three screens, also after a scroll); the Pulse board has a
+grey strip under its head where the legend sits (`#app-shell` shows through, 48px at 1440, 64px on the iPad; carried in
+WHITE_KNOWN awaiting the owner's ruling); on the iPad Jambo's house's "Pieces of work" tile keeps 7–9px of room. The
+sweep's own misreadings came off: a Calendar day cell and today's-look ladder tile are not cards (`.cal-day`, `.cal-lad`
+in CTRL), a folder tile is a button-card of four lines, not a one-liner (`.ctf-card`). After-motion presses a page's
+tab back afterwards (TAB_RESTORE): a page remembers its tab, and Jambo's house opened on Agents for the next screen.
+Today's look: 399 + 68 + 19 passed, 0 faults left; the new look: the Round 0 faults (A2 the Dossier card, A3 the preview
+blank, A4 the Filed-in label) stand red there, as they should until their fix rounds.
