@@ -56,7 +56,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
   const fresh = (v, guide) => page.evaluate(([k, R, g]) => { intel.history = []; intel.tour = null; intel.busy = false; igRecipeSet(R); intel.lenses = []; intel.recipeStack = [];
     intel.fdTab = false; intel.gdTab = !!g; rebuildIntelGraph(); igSetView(k); renderIntelDock(); }, [v, R0, guide]);
   /* what the map draws now, as a comparable picture (a lens by what it holds, never its running id) */
-  const pic = () => page.evaluate(() => JSON.stringify({ r: Object.assign(igRecipeNow(), { lenses: null }), v: igbCam().view, lenses: (intel.lenses || []).filter(l => l.on).map(l => l.label + ':' + l.action + ':' + (l.ids || []).slice().sort().join(',')).sort(), tour: !!intel.tour }));
+  const pic = () => page.evaluate(() => JSON.stringify({ r: Object.assign(igRecipeNow(), { lenses: null }), v: igbCam().view, lenses: (intel.lenses || []).filter(l => l.on).map(l => l.label + ':' + l.action + ':' + (l.ids || []).slice().sort().join(',')).sort(), tour: !!intel.tour, brief: !!intel.brief }));
+  /* RE-POINTED 8 Nov 2026 (the Guide's briefing row): a briefing is a walk like the tour, so the picture counts it */
   const pressTab = t => page.evaluate(k => { const b = document.querySelector(`#ig-dock [data-pd-tab="${k}"]`); if (b) b.click(); return !!b; }, t);
   let R0 = null;
   try {
