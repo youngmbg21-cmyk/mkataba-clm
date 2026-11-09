@@ -1889,8 +1889,8 @@ function caReadPlace(q){
 /* ---- ONE WORD THAT NAMES A PAGE MOVES YOU, FREE (owner, 28 Oct 2026, "Door above the box": "if you type one word
    describing a page let's say settings, you are moved to settings immediately"; "Only real page names move you";
    "I can also use long form to move me but that goes to the brain") ----
-   Asked FIRST by every Jambo box for words TYPED in it: exactly one word (a leading "/" and a closing ?.! let go),
-   and that word one of a PAGE's own names in CA_PLACES — never an act, a card or a contract's part ("sign", "draft",
+   Asked FIRST by every Jambo box for words TYPED in it: a PAGE's own name in CA_PLACES, one word or several (a
+   leading "/", a closing ?.! and a closing "page" let go; 9 Nov 2026: "our paper" moves) — never an act, a card or a contract's part ("sign", "draft",
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
@@ -1903,9 +1903,11 @@ function jamboPageWordOf(q){
   if (String(q || '').trim() === '?') return { kind: 'go', place: 'guide', cid: null, slash: false, state: 'ready', page: true };
   const t = String(q || '').trim().toLowerCase().replace(/[’‘]/g, "'").replace(/^\//, '').replace(/[?.!]+$/, '').trim();
   if (!t) return null;
-  const p = CA_PLACES.find(x => JB_PAGE_PLACES.includes(x.k) && x.w.includes(t)); if (!p) return null;
-  /* a page is ONE word; upload's own phrases too ("ladda upp", "upload a document") */
-  if (/\s/.test(t) && p.k !== 'upload') return null;
+  /* A PAGE'S NAME, IN ONE WORD OR SEVERAL (owner, 9 Nov 2026: "when I type our paper or templates in the jambo, it
+     does not take me to the page"): any of a page's own names in CA_PLACES ("our paper", "my notes", "flow map"),
+     with a closing "page" or "tab" let go ("the people page"); every other phrase stays the brain's */
+  const hit = w => CA_PLACES.find(x => JB_PAGE_PLACES.includes(x.k) && x.w.includes(w));
+  const p = hit(t) || hit(t.replace(/^the\s+/, '').replace(/\s+(?:page|tab|sidan|fliken)$/, '')); if (!p) return null;
   const a = { kind: 'go', place: p.k, cid: null, slash: false, state: 'ready', page: true };
   return (typeof caPlaceStd === 'function') ? caPlaceStd(a, t) : a;
 }

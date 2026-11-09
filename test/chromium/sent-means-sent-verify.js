@@ -89,8 +89,12 @@ async function run(mode) {
         const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true;
         document.getElementById('share-send').click();
       });
+      /* RE-POINTED (owner, 9 Nov 2026: the letter always stands beside Jambo): beside him, an email the provider took puts
+         the letter away and the confirmation says it ("Sent to …", an ok toast); every other outcome stays on the button */
       const lbl = await waitFor(page, () => {
-        const t = (document.getElementById('sh-send-lbl') || {}).textContent || '';
+        const b = document.getElementById('sh-send-lbl');
+        if (!b){ const ts = [...document.querySelectorAll('#toast-root *')].map(x => x.textContent || '').find(x => /^Sent\b/.test(x.trim())); return ts ? ts.trim() : null; }
+        const t = b.textContent || '';
         return /Sending/.test(t) ? null : (t && t !== 'Send by email' && !/^Send the file/i.test(t) ? t : null);
       });
       const f = await facts(id);

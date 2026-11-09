@@ -2364,7 +2364,10 @@
      so only what is drawn there keeps the old ink; light only — dark never
      moved. Measured by ink-wash-verify (paper and buttons equal before/after). */
   :root:not(.dark) .pg-sheet{ --color-text:#141F1D; }
-  :where(:root:not(.dark)) .pg-sheet{ color:var(--color-text); }  /* the sheet INHERITED the app's ink; the gap between pages is desk and follows it */
+  :where(:root:not(.dark)) .pg-sheet:where(:not(.nego-doc)){ color:var(--color-text); }  /* the sheet INHERITED the app's ink; the gap between pages is desk and follows it */
+  /* Home's negotiated paper, cut into pages (9 Nov 2026): it keeps its own ink, the Negotiate page's (one-paper-everywhere):
+     the sheet's colour rule above passes the negotiation paper by, and its ink token stays what it inherits */
+  :root:not(.dark) #ig-paper .ig-redpaper .rl-paper.pg-sheet{ --color-text:inherit; }
   :root:not(.dark) :is(.rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send){
     --color-text:#141F1D; --color-divider:#E2E7E5; --surface-2:#EEF2F0;
     --color-neutral-100:#EEF2F0; --color-neutral-200:#E2E7E5; --color-neutral-300:#CBD3D0;
@@ -18802,7 +18805,7 @@
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as{margin-top:4px}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as .sh-as-go{font-weight:400;font-size:12.5px}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2{margin:3px 0 0;font-size:12.5px}
-  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail{padding:16px 32px 24px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail{padding:16px 0 24px 36px;background:var(--color-surface);border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row{margin:0;padding:8px 0 12px;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;border-bottom:1px solid var(--color-divider)}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row .sh-lt-k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap > .sh-lt-mail #sh-lt-subject{border:0;background:none;padding:0;height:auto;font-weight:var(--w-label);font-size:13.5px;box-shadow:none}
@@ -18810,7 +18813,7 @@
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-sap .sh-lt-b textarea{font-family:var(--font-doc);font-size:15px;line-height:1.55;border-color:var(--color-divider);background:var(--color-surface)}
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid > #share-step-2:not(.hidden){max-width:none;width:100%;align-self:stretch}
   html.lg-new #modal-root .modal-in[data-sh-page] #share-step-2 > #sh-letter.sh-lt.is-sap{display:grid;padding-top:16px}
-  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap > .sh-lt-mail{border:1px solid var(--color-divider);border-radius:var(--radius);min-height:100%}
+  html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap > .sh-lt-mail{border:0;border-left:1px solid var(--color-divider);border-radius:0;min-height:100%}
   /* Before you send, as drawn: the verdict, then rows — a short label, what it says */
   html.lg-new #ig-dock .sh-lt-card,html.lg-new .sh-lt-side .sh-lt-card{border:0;border-radius:0;box-shadow:none;background:none;padding:12px 0;border-bottom:1px solid var(--color-divider);display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 12px;align-items:start}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-card > h4{margin:0;font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
@@ -19310,8 +19313,9 @@
   html.lg-new .rfp-ask .rfp-a{font-size:13.5px;font-weight:var(--w-label)}
   /* the list's heads as drawn: small capitals on the white page, two lines where the head names both */
   html.lg-new #ct-place .ct-page .reg-table thead th .reg-th-sub{display:block;text-transform:none;letter-spacing:0;font-size:11px;font-weight:var(--w-label);margin-top:2px;white-space:normal}
-  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl{text-transform:none;letter-spacing:0;font-size:12.5px;white-space:normal}
-  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl .ac-th-w{white-space:normal;overflow:visible}
+  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl{text-transform:none;letter-spacing:0;font-size:12.5px;white-space:nowrap}
+  /* ONE COLUMN, ONE LINE (fix round 1, item 8): the name takes the column's width and gives way with "…"; ⋯ at its end */
+  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl .ac-th-w{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-panel{padding:4px 0 16px}
   html.lg-new #ct-place .ct-page .reg-table thead th{background:var(--color-surface);text-transform:uppercase;font-size:11px;letter-spacing:.06em;font-weight:var(--w-label);vertical-align:bottom}
   /* THE WALL AS DRAWN: papers on the page itself (no box around them), each a sheet with its mark at the corner and the party and value at its foot */
@@ -20033,6 +20037,17 @@
   html.lg-new #na-root .na-file-b > .na-need{grid-column:1;grid-row:2;font-size:12px}
   html.lg-new #na-root .na-file-b > .na-seg{grid-column:2;grid-row:1 / span 2}
   html.lg-new #modal-root .na-why{color:var(--color-quiet);font-weight:400}
+  /* ==== FIX ROUND 1 (the owner's drawn fix list, 9 Nov 2026) ====
+     THE LETTER IS THE WHITE PAGE (item 6): the Send letter's column has no card round it (no border, no corner), one
+     hairline at its left divides it from the form, as drawn (the rules above, edited in place).
+     IT SCROLLS WHERE YOU ARE (item 1): on the Contracts place the head and tabs stay; the wall (and the list) scroll
+     inside the white sheet, taking the room left under the head, never growing past the window where the place clips
+     them. Our paper (item 2): the white sheet grows with its list, so no grey shows under it; the paper's preview stays
+     in view while the list scrolls. */
+  html.lg-new #ct-place .ct-page .ct-wall{flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ct-page .ct-wall > *{flex:none}
+  html.lg-new .tpln{height:auto;min-height:100%}
+  html.lg-new .tpln .tpln-sheet{position:sticky;top:8px;align-self:start}
   html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 <style>

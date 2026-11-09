@@ -36083,3 +36083,41 @@ Round 1 (every page): ONE HEAD — Approvals and Obligations draw their own titl
 Round 2 (the lists): EVEN TILES — the folder cards had different heights because long names and figures wrapped and the last row was short; each tile is now one height with the name on one line, the needs-you number large, and the two dots (never explained) a keyed bar. A first attempt named the bar `.ctf-bar` and squashed the folders' own filter bar, which already wore that class; renamed `.ctf-mix`. The tile parts are published on window so Parties' folders (customers.js) draw the same tile. EVEN CARDS, GROUPED ROWS (the kind tag stays in each row, hidden, so home-morning-verify still reads a kind on every row), TWO LINES A ROW, FOLD THE QUIET, NAME THE CLAUSE (the fixture's asks carry before/after, not oldText/newText, so ngnAskWords had nothing to quote). The weekend week strip made home-morning-verify 4 depend on the day; it now reads the week ahead on a Saturday or Sunday.
 Round 3 (a contract): the opening paragraph's 8px came from `px-2 -mx-2` where the Tailwind blob carries no `-mx-2` and a 1-4-1 rule resets the paper's margins, so the fix is scoped to beat it. Round 1's "three doors at most" hid History, the fourth link beside a contract (negotiate-new-look-verify 5, red on GitHub's run of round 1); beside a contract the four short links fit, so the cap now applies only off a contract. round8-phone-verify 2b summed every number in the sentence; with ONE COUNT the sentence leads with the whole, so the check reads the whole and that the parts add up to it. The Send screen's note label is shown by an inline `display:var(--sh-note-d,block)` that a 1-3-x rule sets to flex, so the fold sets the variable at that rule's own scope.
 Round 4 (other pages): the Explorer's two bars are one by making the lens row static inside the view bar; to keep one row on the owner's laptops the bar's buttons are 5px at the sides and 11.5px (measured: 764px of groups in 768). The New agreement cards' 118px came from a 1-5-1 new-look rule, overridden at its own scope; the Create hint is in the page head, not the foot, so its grey is set under #modal-root. one-sheet-as-drawn-verify went red once when five checks ran side by side and green alone — a load flake, not this change.
+
+## THE HARMONY REVIEW — FIX ROUND 1 (9 Nov 2026)
+The owner, the morning after the overnight run: "count rows … when I type our paper or templates in the jambo, it does not
+take me to the page … Image 1, you have build the email to be in a card when it should be a whole white paper … Image 2,
+sometimes i get pages that are missing a jambo panel … Image 3 … the lower part of the page is not white but rather grey";
+then "Your redline cards should always be visible and not minimized … The cards that are with the counterparty can stay
+minimized"; "I am also unable to scroll on the paper page … and the contracts page"; on the asked column "the column should
+only reflect the name of the column and the ability to change the name of it. The count should maybe go to the side panel";
+on the foot "Why do you need 2 columns?". The fix list was drawn (Artifact "HaTi Fix List") and the owner said "go".
+- SCROLL: the round-2 rule `#ct-place .ct-page .ct-wall{flex:1 0 auto}` let the wall grow past the window while
+  `#ct-place` clips, so nothing scrolled; now `flex:1 1 0%;min-height:0;overflow-y:auto`. Measured with a real wheel on
+  every page: wall 1299, list 1192, paper 411, parties 764, approvals 1023, board 781; the rest had nothing to scroll.
+- GREY: Our paper's list scrolls inside the white sheet to its foot, the preview sticky beside it.
+- THE MISSING PANEL: `shareBesideJambo()` is true only on Home (state.view 'dashboard'); a Send pressed on another page
+  (Our paper, Approvals …) opened the letter alone. Measured at the parent: from ourpaper and approvals, no #ig-dock. Now
+  `openShareModal` lands on the contract's paper first (`roomHomeLand`) and waits, bounded, for the panel. Every page in
+  JB_PAGE_PLACES was opened and has its panel.
+- PAGE NAMES: `jamboPageWordOf` refused any name with a space ("our paper", "my notes", "flow map", "pulse board"); every
+  name of a page now moves, with a closing "page"/"tab" let go. f955 3 walks every name of every page.
+- REDLINE PILES: round 1's fold covered every pile but "awaiting" and "refused"; now only "with" (`RL_NL_FOLDS`), settled
+  folding on its own as before.
+- THE LETTER: the mail column lost its border and corner; one hairline at its left.
+- THE BOARD COUNTS ROWS (`ndRowsN`, new look only): a bundle of details is one row, one count, Home's number.
+- THE ASKED COLUMN: the head is the name and ⋯ on one line ("…" when long); "k of n read" left the head (reverses 8 Nov's
+  head as drawn) — the panel's Columns you asked already says it (`rfp_col_sub`). The foot's right half ("The question
+  column was read once and is kept · Our standards is HaTi's own check…") is gone; the keys stay inert in both books.
+- OUR PAPER'S "Invalid Date": a stored time that is not an ISO day (`tplnDayOf`) is read, or left out.
+
+## THE HARMONY REVIEW — FIX ROUND 2, EVERY PAPER IN PAGES (9 Nov 2026)
+The owner: "I have asked you to fix this multiple times which is the paper should be in pages with page breaks and not one
+full long paper. This needs to be fixed across the platform on all papers"; on the drawing "the notes should also continue
+to be part of the page". Measured: Home's paper of a draft or signed contract was already cut (pagesWatch via
+`igPaperPaginate`), but once a contract has changes Home draws `.ig-redpaper > article.rl-paper` (Clean, Redline, Their
+view), and `igPaperPaginate` asked only for `.pg-sheet` — so every negotiated contract stood as one long sheet (MK-A2 in the
+handbook world: 0 gaps before, 2 after). The outer article has no padding (its margins are on `.rl-zoom > .rl-paper`), so
+the inner sheet is the one cut, or page 2's first line sat on the page's top edge. A template's own page (`#tpl-dt`) was one
+sheet too; it is cut the same way. The clause editor and the template builder keep one sheet (rlPaginate's rule: a break
+redrawn under the caret moves the words being typed); said to the owner.
