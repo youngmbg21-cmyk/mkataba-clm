@@ -2953,7 +2953,7 @@ function regRowsHtml(cs){
     const spreadOn=placeRows&&regHomeWide();
     CELL.party=`<td class="reg-party" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(coded?i18t('igw_kept_list'):(pyAll||cpName))}">${coded?esc(i18t('igw_kept_list')):esc(cpName)}</td>`;
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
-        <span class="reg-id">${placeRows?(regNl()?regSapMarkHtml(c):regStageMarkHtml(c)):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
+        <span class="reg-id">${placeRows?(regNl()?regSapMarkHtml(c):regStageMarkHtml(c)):(neg&&(insOn||regNl()))?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
         </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
@@ -3072,30 +3072,30 @@ function regStageMarkHtml(c){
   const kind=tone==='green'?'done':tone==='ruby'?'late':(c&&c.status==='Draft')?'todo':tone==='gray'?'todo':'part';
   return window.listMarkHtml?listMarkHtml(tone,kind,m&&m.label):'';
 }
-/* THE SAP WAY MARK ON CONTRACTS (owner's pick by name, 9 Nov 2026; Contracts only, the new look only): a filled
-   circle in HaTi's status colour with a white drawn glyph. The stage reading decides it (regStageTone), and for the
-   rows in between, whose move it is (the Needs you tab's own reading, regNeedsIds): signed a green tick · ended or
-   declined a ruby cross · a draft a grey dash · waiting on you an amber exclamation · with someone else a steel i.
+/* THE SAP WAY MARK ON CONTRACTS (owner, 9 Nov 2026; the new look only): the shared mark (listSapMarkHtml). The stage
+   reading decides it (contractStatusMeta via regStageTone), and for the rows in between, whose move it is (the Needs you
+   tab's own reading, regNeedsIds): on legal hold a ruby cross (the one real risk the stage says) · signed a green tick ·
+   a draft, an expired or a closed one a grey dash (nothing owed) · waiting on you an amber ! · with someone else a steel i.
    The title keeps the stage's own words for a reader. */
 let _regSapNeeds={at:0,ids:null};
 function regSapNeedsIds(){ const now=Date.now(); if(!_regSapNeeds.ids||now-_regSapNeeds.at>400) _regSapNeeds={at:now,ids:regNeedsIds()}; return _regSapNeeds.ids; }
-const REG_SAP_MARK={ done:['green','mkTick'], ended:['ruby','mkCross'], draft:['gray','mkDash'], you:['amber','mkBang'], them:['steel','mkInfo'] };
 function regSapMarkOf(c){
-  const { tone }=regStageTone(c);
-  if(tone==='green') return 'done';
-  if(tone==='ruby') return 'ended';
-  if((c&&c.status==='Draft')||tone==='gray') return 'draft';
+  if(typeof contractOnHold==='function'&&contractOnHold(c)) return 'risk';
+  const { tone }=regStageTone(c), st=c&&c.status;
+  if(st==='Signed'&&tone==='green') return 'done';
+  if(st==='Draft'||st==='Declined'||tone==='gray') return 'none';
   return regSapNeedsIds().has(String(c&&c.id))?'you':'them';
 }
 function regSapMarkHtml(c){
-  const k=regSapMarkOf(c), m=REG_SAP_MARK[k], { m:meta }=regStageTone(c);
-  return `<span class="reg-mk is-${m[0]}" data-reg-mk="${k}"${meta&&meta.label?` title="${esc(meta.label)}"`:''} aria-hidden="true">${typeof icon==='function'?icon(m[1],'reg-mk-g',2.4):''}</span>`;
+  const { m:meta }=regStageTone(c);
+  return window.listSapMarkHtml?listSapMarkHtml(regSapMarkOf(c), meta&&meta.label):'';
 }
 /* THE NEGOTIATIONS ROW (the list language): whose move as the mark — ours a half circle in amber, theirs
    a clock in steel, settled a ticked circle — and the grey line "ref · Round 2 · Lead: You" */
 function regNegoMarkHtml(c){
   if(!window.listMarkHtml) return '';
   const b=c&&c._ngBand;
+  if(window.listSapOn&&listSapOn()) return listSapMarkHtml(b==='you'?'you':b==='them'?'them':'done', b==='you'?i18t('reg_pill_your_move'):b==='them'?i18t('reg_pill_their_move'):'');
   return b==='you'?listMarkHtml('amber','part',i18t('reg_pill_your_move')):b==='them'?listMarkHtml('steel','wait',i18t('reg_pill_their_move')):listMarkHtml('green','done');
 }
 function regNegoLineHtml(c,refLine){
@@ -5032,7 +5032,7 @@ function ngnRowHtml(r, sel){
   const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => q.q ? `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}` : `<span class="ngn-nm">${E([q.s, q.nm].filter(Boolean).join(' '))}</span>`).join(' · ')}` : `0 · ${E(r.open.say)}`;
   const nm = r.lead.name ? (r.lead.mine ? ngnShortName(r.lead.name) : ngnShortName(r.lead.name)) : '—';
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
-    + `<td><div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div></td>`
+    + `<td>${listSapCellHtml(r.b === 'you' ? 'you' : r.b === 'them' ? 'them' : 'done', `<div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>`, r.move)}</td>`
     + `<td class="ngn-rd">${E(r.round)}</td>`
     + `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
     + `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
@@ -5083,7 +5083,7 @@ function ngnRender(host){
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:23%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:27%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
+      <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:26%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:24%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
         <thead><tr><th>${esc(i18t('ngn_c_agreement'))}</th><th>${esc(i18t('ngn_c_round'))}</th><th>${esc(i18t('ngn_c_move'))}</th><th>${esc(i18t('ngn_c_asks'))}</th><th>${esc(i18t('ngn_c_lead'))}</th><th>${esc(i18t('ngn_c_last'))}</th></tr></thead>
         <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel))).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ngn_foot', all.length, { n: all.length, live }))}</span><span></span></div>

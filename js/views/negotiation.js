@@ -15152,6 +15152,16 @@ const RL_QUIET_BANDS = ['accepted', 'withdrawn'];
    without it they simply never fire and an ask with a colleague stays under
    YOUR DRAFTS — which is exactly where it sat before this split. So a caller
    that has no contract to hand gets the old answer rather than a wrong one. */
+/* THE SAP WAY MARK ON A REDLINES CARD (owner, 9 Nov 2026: "the Redlines cards, which today have no mark at all"; the new
+   look only): the shared mark (listSapMarkHtml) read off the card's own pile (rlCardBand): waiting on you, their answers
+   not sent, a colleague's suggestion and our drafts are your move · sent or in review is with someone else · accepted is
+   done · refused, the thing that can still stop the deal, is the real risk · withdrawn and held are nothing owed */
+const RL_SAP_KEY = { awaiting: 'you', answered: 'you', suggest: 'you', drafts: 'you', review: 'them', with: 'them',
+  accepted: 'done', refused: 'risk', withdrawn: 'none', held: 'none' };
+function rlSapMarkHtml(band){
+  if (!(typeof listSapOn === 'function' && listSapOn() && typeof listSapMarkHtml === 'function')) return '';
+  return listSapMarkHtml(RL_SAP_KEY[band] || 'you');
+}
 function rlCardBand(ch, side, unsent, held, c){
   /* A CHANGE THAT IS NOT THERE IS SHOWN AS WORK, never filed as finished —
      the same direction the fallthrough below takes, and for the same reason. */
@@ -21123,7 +21133,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                  the row carries the card's own badge for exactly that case —
                  the answer and the fact it has not left their page. Only their
                  seat holds answers, so our rows are unchanged. */}
-          <div class="rl-card-metarow"><div class="rl-card-meta"${dTip ? ` title="${_nea(dTip)}"` : ''}>${meta}</div>${
+          <div class="rl-card-metarow">${rlSapMarkHtml(band)}<div class="rl-card-meta"${dTip ? ` title="${_nea(dTip)}"` : ''}>${meta}</div>${
             heldHere ? `<span class="rl-badge rl-badge-${badge[0]}"${badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>` : ''}${
             ''/* THE REFERENCE AT THE RIGHT (the artifact's row, Young 21 Sep 2026):
                   quiet, in the data face; the clause still leads. */}${
@@ -23720,7 +23730,7 @@ function redlineSyncProxies(host){
 
 if (typeof window !== 'undefined') Object.assign(window, { rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
 if (typeof window !== 'undefined') Object.assign(window, { RL_PLAIN_FIG, rlPlainFigs, rlPlainFigureOf, rlPlainReasonOf, rlAskColleague });
-if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { RL_SAP_KEY, rlSapMarkHtml, negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

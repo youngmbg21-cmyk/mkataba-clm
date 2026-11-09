@@ -106,8 +106,6 @@
 <link rel="stylesheet" href="fonts/source-serif-4.css">
 <!-- 7 Oct 2026: Geist Mono, the reference face ("MK-441"), Young off the mockup. -->
 <link rel="stylesheet" href="fonts/geist-mono.css">
-<!-- 9 Nov 2026: Inter, the new look's screen face (--font-new); the old look keeps Geist. -->
-<link rel="stylesheet" href="fonts/inter.css">
 </head>
 <body>
 <!-- Inter throughout — the product's own chrome and the contract paper alike.
@@ -460,7 +458,6 @@
        character one width. ONLY the reference — dates, money and counts stay
        on --font-mono, the 24 Sep ruling. */
     --font-ref:'Geist Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --font-new:'Inter','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;  /* the new look's screen face (owner, 9 Nov 2026: "make sure the font applies across the platform"); the old look keeps Geist */
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
        read a contract in, the counterparty portal, the template preview and
@@ -19724,24 +19721,36 @@
      wear (.ctf-h), 40 from the window's edge, its facts beside it; the pages still drawn on their own ph-card head
      (Pulse board, the Flow map, Our paper, a page under #page-head) take the same title and edge, and what sits under
      them takes the same edge. */
-  /* THE NEW LOOK READS INTER (owner, 9 Nov 2026: picked by number from six unnamed faces; "make sure the font applies
-     across the platform"): the screen tokens point at --font-new; titles and the paper keep the serif, references
-     their mono, the code block its true monospace. The old look keeps Geist. */
-  html.lg-new{--font-body:var(--font-new);--font-heading:var(--font-new);--font-mono:var(--font-new)}
-  html.lg-new body{font-family:var(--font-new)}
-  /* THE NAME AND THE FIGURE ARE INK; THE DETAIL IS GREY (owner, 9 Nov 2026: "the black and grey font dynamic which is
-     simply common sense"; Home and Contracts first, the other pages after the owner's review; reverses f952 there):
-     the line under a name, the date, what waits, the sentence under a greeting and a list's foot wear the detail grey */
-  html.lg-new #ct-place .reg-sub,html.lg-new #ct-place .reg-sub .hati-ref{color:var(--color-neutral-400)}
-  html.lg-new #ig-page:has(#ct-place) #ig-dock :is(.jov-head,.jov-v:not(.is-need),.ac-meta,.ac-disc-m),html.lg-new #ct-place .ls-quiet{color:var(--color-neutral-400)}
-  html.lg-new #ig-page:has(#ct-place) #ig-dock .jov-head b{color:var(--color-text)}
-  /* THE SAP WAY MARK ON CONTRACTS (regSapMarkHtml): a filled circle in the status colour, a white drawn glyph */
-  html.lg-new #ct-place .reg-mk{width:20px;height:20px;border-radius:50%;flex:none;display:inline-grid;place-items:center;color:var(--color-surface);background:var(--st-gray-dot)}
-  html.lg-new #ct-place .reg-mk .reg-mk-g{width:14px;height:14px}
-  html.lg-new #ct-place .reg-mk.is-green{background:var(--st-green-dot)}
-  html.lg-new #ct-place .reg-mk.is-amber{background:var(--st-amber-dot)}
-  html.lg-new #ct-place .reg-mk.is-steel{background:var(--st-steel-dot)}
-  html.lg-new #ct-place .reg-mk.is-ruby{background:var(--st-ruby-dot)}
+  /* THE NAME AND THE FIGURE ARE INK; THE DETAIL IS GREY (owner, 9 Nov 2026: "the name and the figure are ink; the detail
+     line is grey"; reverses f952's "every word 12px and up is ink" on these lists): Home, Contracts, Negotiations, Approvals,
+     Obligations, Needs you, the contract's facts and the Redlines cards. The second line (party, reference, money), the
+     dates, the kind, a panel's labels and the "not checked yet" words wear the detail grey; nothing moves, only the ink. */
+  html.lg-new #ct-place .reg-sub,html.lg-new #ct-place .reg-sub .hati-ref,html.lg-new #ct-place .ls-quiet{color:var(--color-neutral-400)}
+  html.lg-new tr[data-ngn-row] :is(.cun-sub,.cun-sub .ngn-ref,.ngn-nm,.ngn-s,.ngn-lead,.ngn-last),html.lg-new tr[data-ngn-row] :is(.ngn-rd,.ngn-mv:not(.is-you)){color:var(--color-neutral-400)}
+  html.lg-new tr[data-ap-row] :is(.apn-sub,.apn-sub .hati-ref,.apn-rule,.apn-wait),html.lg-new #ap-scroll .apn-foot{color:var(--color-neutral-400)}
+  html.lg-new #obn-body :is(.obn-sub,.obn-sub .hati-ref,.obn-when small,.obn-g td>span,.obn-g-r){color:var(--color-neutral-400)}
+  html.lg-new #nd-rows :is(.nd-c-deal,.nd-c-deal .hati-ref,.nd-dot,.nd-deal-t,.nd-c-when:not(.cn-late)){color:var(--color-neutral-400)}
+  html.lg-new .nd-r :is(.cn-w>span,.cn-w>span .hati-ref,.nd-when:not(.cn-late)){color:var(--color-neutral-400)}
+  html.lg-new .ndb-r .ndb-w>span{color:var(--color-neutral-400)}
+  html.lg-new #pd-glance :is(.pd2-l,.pd2-read,.pd2-card-say){color:var(--color-neutral-400)}
+  html.lg-new .rl-card :is(.rl-card-sum,.rl-card-by,.rl-card-read-w,.rl-card-read-m,.rl-card-lock-say){color:var(--color-neutral-400)}
+  /* a panel's labels are grey, its figures ink (the Overview face, every page; Approvals' and Negotiations' own panels) */
+  html.lg-new .apn-panel .apn-pr>b,html.lg-new .ngn-panel .pd2-ch-r>span{color:var(--color-neutral-400)}
+  html.lg-new :is(#ig-dock,#ins-panel) :is(.jov-k,.jov-head,.ac-meta,.ac-disc-m){color:var(--color-neutral-400)}
+  html.lg-new :is(#ig-dock,#ins-panel) .jov-head b{color:var(--color-text)}
+  /* THE SAP WAY MARK (listSapMarkHtml, owner 9 Nov 2026: at the head of every row): a 20px filled circle in the house's
+     status colour, a white drawn glyph; Jambo's star filled */
+  html.lg-new .ls-mk{width:20px;height:20px;border-radius:50%;flex:none;display:inline-grid;place-items:center;color:var(--color-surface);background:var(--st-gray-dot);vertical-align:middle}
+  html.lg-new .ls-mk .ls-mk-g{width:14px;height:14px}
+  html.lg-new .ls-mk[data-ls-mk="jambo"] .ls-mk-g{fill:currentColor;width:13px;height:13px}
+  html.lg-new .ls-mk.is-green{background:var(--st-green-dot)}
+  html.lg-new .ls-mk.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .ls-mk.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .ls-mk.is-ruby{background:var(--st-ruby-dot)}
+  html.lg-new .ls-mk.is-violet{background:var(--st-violet-dot)}
+  html.lg-new .ls-mkrow{display:flex;align-items:flex-start;gap:10px;min-width:0}
+  html.lg-new .ls-mkrow>.ls-mk{margin-top:1px}
+  html.lg-new .ls-mkrow-t{min-width:0;flex:1}
   html.lg-new :is(#pu-page .pu-t1, #fm-page .fm-t1, .tpl-page .tpl-hd-row h1, #page-head .ph-card h1, .rdn-page .rdn-head .ctf-h){font-family:var(--font-title);font-size:26px;font-weight:400;line-height:1.1;letter-spacing:0;margin:0;color:var(--color-text)}
   html.lg-new :is(#pu-page .pu-head, #fm-page .fm-head, .tpl-page .tpl-band, #page-head .ph-card).ph-card{padding-left:40px;padding-right:40px;padding-top:26px}
   html.lg-new #fm-page .fm-body{padding-left:40px;padding-right:40px}
