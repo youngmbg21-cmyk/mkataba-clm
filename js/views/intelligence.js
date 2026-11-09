@@ -10797,8 +10797,13 @@ function igApplyZoom(){
   document.querySelectorAll('#ig-paper .ig-zoom').forEach(z=>{ z.style.zoom=z.querySelector('.ig-signpaper')?1:f; });
   try{ if(typeof igTrackPlace==='function') igTrackPlace(); }catch(_){ }
 }
+/* EVERY PAPER IN PAGES (owner, 9 Nov 2026: "the paper should be in pages with page breaks and not one full long paper.
+   This needs to be fixed across the platform on all papers"): a negotiated contract's paper on Home — its Redline, its
+   Clean, their view — is the redline's article, never a .pg-sheet, so it stood as one long sheet; it is cut into the
+   same pages as the Negotiate page's (rlPaginate), on the inner sheet that carries the page's margins, the notes beside
+   it as ever */
 function igPaperPaginate(c){
-  const host=document.getElementById('ig-paper'); const sheet=host&&host.querySelector('.pg-sheet:not(.pg-sign)');
+  const host=document.getElementById('ig-paper'); const sheet=host&&(host.querySelector('.pg-sheet:not(.pg-sign)')||host.querySelector('.ig-redpaper .rl-zoom > .rl-paper')||host.querySelector('.ig-redpaper > article.rl-paper'));
   if(!sheet||!window.pagesWatch||sheet._pgRO) return;
   try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
     name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }

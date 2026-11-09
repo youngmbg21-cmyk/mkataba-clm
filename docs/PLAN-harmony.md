@@ -55,3 +55,26 @@ numbers in the new-look renderers are behind it too, because those renderers onl
 | 22 | Our paper | READABLE PREVIEW: the chosen paper's first page at a size that reads (a 400-wide sheet at .72), fading out at its foot; the name and its buttons on one line, the facts under the name; the panel's stray source words ("book", "learned", the blank count) are gone, the blanks row says "and N more". |
 | 23 | New agreement | TIGHT SHEET: the three paper cards as tall as their words; "Needed before Create" under its own label beside the stream chips; the greyed Create's reason in plain grey. |
 | 14 | Pulse board | Not now (owner). Only round 1's title and edge reached it. |
+
+## Fix round 1 — the owner's drawn fix list (9 Nov 2026, "go")
+
+| # | Fix | What was built |
+|---|---|---|
+| 1 | Scrolling | The Contracts wall and list scroll inside the white sheet under their head; every page checked with a real mouse wheel. |
+| 2 | The grey lower half | Our paper's list scrolls inside the white sheet to the bottom; its preview stays beside it. |
+| 3 | The missing Jambo panel | A Send pressed on any page but Home lands on the contract's paper first, so the letter always stands beside Jambo's panel. |
+| 4 | Typing a page's name | Every name of every page moves you there, one word or several ("our paper", "my notes", "flow map"). |
+| 5 | Your redline cards | Only the pile with the other side folds; your drafts, reviews, held and suggested cards stand open. |
+| 6 | The Send letter | The white page itself: no card border or corner, one hairline beside the form. |
+| 7 | The Board's count | Counts rows, the number Home says. |
+| 8 | One column per question | The head is the name and ⋯ only; the read count is in Jambo's panel; the foot says only "N contracts". |
+| – | Our paper's "Invalid Date" | The month is read from any stored time, or left out. |
+
+## Fix round 2 — every paper in pages (9 Nov 2026)
+
+| Where | What was built |
+|---|---|
+| Home's paper of a contract under negotiation (Clean, Redline, Their view) | Cut into A4 pages with the gap and "Page N of M", like every other paper; the notes stay beside it. This was the one long sheet in the owner's picture. |
+| A template's own page | Cut into pages too. |
+| Already in pages, checked | Home's paper of a draft or signed contract (uploaded or ours), the signing copy, the Negotiate page, Our paper's preview (its first page). |
+| Left as one sheet, on purpose | The clause editor and the template builder: a page break redrawn under the cursor would move the words being typed (the owner's earlier rule). |

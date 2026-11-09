@@ -36095,3 +36095,41 @@ The owner, with two pictures: "the legend and the other buttons should all be in
 ## INSIGHTS — THE GUIDE'S VIEWS AT THE TOP (owner, 9 Nov 2026)
 
 The owner, with a picture of the Guide tab's "The other views" cards: "Move these buttons to the top of the panel so when you select one, the options for navigation appear below them. Does this make sense? draw a proposal first". Drawn today against proposed ("Explorer Guide Views"); the owner: "Build it". `igGuideHtml` now opens with `.ig-gd-views` (all five, the map's own `aria-pressed`, each titled with its one-line words), then the view's name and what it is, its own rows, every view's rows; the cards at the foot are gone. The press is the cards' own (`data-ig-gd-view-go` → `igSetView` + `igGuideRepaint`).
+
+## THE HARMONY REVIEW — FIX ROUND 1 (9 Nov 2026)
+The owner, the morning after the overnight run: "count rows … when I type our paper or templates in the jambo, it does not
+take me to the page … Image 1, you have build the email to be in a card when it should be a whole white paper … Image 2,
+sometimes i get pages that are missing a jambo panel … Image 3 … the lower part of the page is not white but rather grey";
+then "Your redline cards should always be visible and not minimized … The cards that are with the counterparty can stay
+minimized"; "I am also unable to scroll on the paper page … and the contracts page"; on the asked column "the column should
+only reflect the name of the column and the ability to change the name of it. The count should maybe go to the side panel";
+on the foot "Why do you need 2 columns?". The fix list was drawn (Artifact "HaTi Fix List") and the owner said "go".
+- SCROLL: the round-2 rule `#ct-place .ct-page .ct-wall{flex:1 0 auto}` let the wall grow past the window while
+  `#ct-place` clips, so nothing scrolled; now `flex:1 1 0%;min-height:0;overflow-y:auto`. Measured with a real wheel on
+  every page: wall 1299, list 1192, paper 411, parties 764, approvals 1023, board 781; the rest had nothing to scroll.
+- GREY: Our paper's list scrolls inside the white sheet to its foot, the preview sticky beside it.
+- THE MISSING PANEL: `shareBesideJambo()` is true only on Home (state.view 'dashboard'); a Send pressed on another page
+  (Our paper, Approvals …) opened the letter alone. Measured at the parent: from ourpaper and approvals, no #ig-dock. Now
+  `openShareModal` lands on the contract's paper first (`roomHomeLand`) and waits, bounded, for the panel. Every page in
+  JB_PAGE_PLACES was opened and has its panel.
+- PAGE NAMES: `jamboPageWordOf` refused any name with a space ("our paper", "my notes", "flow map", "pulse board"); every
+  name of a page now moves, with a closing "page"/"tab" let go. f955 3 walks every name of every page.
+- REDLINE PILES: round 1's fold covered every pile but "awaiting" and "refused"; now only "with" (`RL_NL_FOLDS`), settled
+  folding on its own as before.
+- THE LETTER: the mail column lost its border and corner; one hairline at its left.
+- THE BOARD COUNTS ROWS (`ndRowsN`, new look only): a bundle of details is one row, one count, Home's number.
+- THE ASKED COLUMN: the head is the name and ⋯ on one line ("…" when long); "k of n read" left the head (reverses 8 Nov's
+  head as drawn) — the panel's Columns you asked already says it (`rfp_col_sub`). The foot's right half ("The question
+  column was read once and is kept · Our standards is HaTi's own check…") is gone; the keys stay inert in both books.
+- OUR PAPER'S "Invalid Date": a stored time that is not an ISO day (`tplnDayOf`) is read, or left out.
+
+## THE HARMONY REVIEW — FIX ROUND 2, EVERY PAPER IN PAGES (9 Nov 2026)
+The owner: "I have asked you to fix this multiple times which is the paper should be in pages with page breaks and not one
+full long paper. This needs to be fixed across the platform on all papers"; on the drawing "the notes should also continue
+to be part of the page". Measured: Home's paper of a draft or signed contract was already cut (pagesWatch via
+`igPaperPaginate`), but once a contract has changes Home draws `.ig-redpaper > article.rl-paper` (Clean, Redline, Their
+view), and `igPaperPaginate` asked only for `.pg-sheet` — so every negotiated contract stood as one long sheet (MK-A2 in the
+handbook world: 0 gaps before, 2 after). The outer article has no padding (its margins are on `.rl-zoom > .rl-paper`), so
+the inner sheet is the one cut, or page 2's first line sat on the page's top edge. A template's own page (`#tpl-dt`) was one
+sheet too; it is cut the same way. The clause editor and the template builder keep one sheet (rlPaginate's rule: a break
+redrawn under the caret moves the words being typed); said to the owner.

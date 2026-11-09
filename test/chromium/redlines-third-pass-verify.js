@@ -319,22 +319,21 @@ const openFace = async page => {
     check('5b the pile with the other side is named for the party', !!after && after.with === 'With Nordvik Logistik AB', JSON.stringify(after));
     await shot(page, '11-after-send-1440x780');
 
-    /* 6 fitted to main (LAND ON IT, 19 Oct 2026): the letter as a plain dialog
-       (opened away from Home, so not beside Jambo) — its "Go to clause 7" puts
-       the dialog away and lands ON the clause on Home's paper, the one lander's
-       way; at the parent this way only scrolled after a fixed pause */
-    await page.evaluate(() => { setView('approvals'); });
+    /* 6 RE-POINTED (owner, 9 Nov 2026: "sometimes i get pages that are missing a jambo panel"): a Send pressed away
+       from Home (Approvals) no longer opens the letter as a plain dialog; it lands on the contract's paper first and the
+       letter stands beside Jambo, the stays card's "Go to clause 7" in his panel, and that lands ON the clause on Home's
+       paper, the one lander's way. At the parent 6a reads the dialog alone, no panel */
+    await page.evaluate(() => { if (window.closeModal) closeModal(); setView('approvals'); });
     await waitFor(page, () => state.view === 'approvals', 4000);
     await page.evaluate(() => { openShareModal(getContract('MK-0382')); });
-    const dlgGo = await waitFor(page, () => { const g = document.querySelector('#modal-root [data-sh-lt-goto]');
-      return g && !(window.pdSendFor && pdSendFor()) ? g.getAttribute('data-sh-lt-goto') : null; }, 15000);
-    check('6a the letter as a dialog still carries the stays card\'s Go to clause 7', !!dlgGo, String(dlgGo));
+    const dlgGo = await waitFor(page, () => { const g = document.querySelector('[data-sh-lt-goto]'); const d = document.getElementById('ig-dock');
+      return g && state.view === 'dashboard' && d && d.getClientRects().length && window.pdSendFor && pdSendFor() ? g.getAttribute('data-sh-lt-goto') : null; }, 15000);
+    check('6a a Send pressed on Approvals stands beside Jambo, the stays card\'s Go to clause 7 there', !!dlgGo, String(dlgGo));
     if (dlgGo){
-      await page.click('#modal-root [data-sh-lt-goto]', { timeout: 5000 }).catch(() => {});
+      await page.click('[data-sh-lt-goto]', { timeout: 5000 }).catch(() => {});
       const dl = await waitFor(page, (want) => { const l = document.querySelector('.is-landed');
-        return l && l.getAttribute('data-clause') === want ? { onPaper: !!l.closest('#ig-paper'), face: !!document.querySelector('#pd-redface'),
-          dialog: !!document.querySelector('#modal-root .modal-in'), text: l.innerText.slice(0, 40) } : null; }, 8000, dlgGo);
-      check('6b Go to clause 7 from the dialog lands on the clause on Home\'s paper, the dialog put away, Redlines beside it', !!dl && dl.onPaper && dl.face && !dl.dialog && /Liability cap/.test(dl.text), JSON.stringify(dl));
+        return l && l.getAttribute('data-clause') === want ? { onPaper: !!l.closest('#ig-paper'), text: l.innerText.slice(0, 40) } : null; }, 8000, dlgGo);
+      check('6b Go to clause 7 lands on the clause on Home\'s paper', !!dl && dl.onPaper && /Liability cap/.test(dl.text), JSON.stringify(dl));
       await shot(page, '11-goto-from-dialog-1440x780');
     }
     check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
