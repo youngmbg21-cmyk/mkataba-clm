@@ -6206,7 +6206,7 @@ document.addEventListener('pointerdown',e=>{
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
 });
 /* a resize keeps a moved legend at its spot in the row, and inside it */
-window.addEventListener('resize',()=>{ if(intel.legendPos) igLegendPlace(document.getElementById('ig-legend')); });
+if(typeof window!=='undefined'&&typeof window.addEventListener==='function') window.addEventListener('resize',()=>{ if(intel.legendPos) igLegendPlace(document.getElementById('ig-legend')); });
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
   /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
