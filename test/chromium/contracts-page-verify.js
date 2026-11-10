@@ -988,7 +988,11 @@ const check = (name, ok, detail) => {
        the term and the match are both read off that hover */
     const term = await page.evaluate(() => {
       const t = document.querySelector('tr[data-row] td.reg-cell-title');
-      return t ? (String(t.title || '').trim().split(/\s+/)[0] || '') : '';
+      /* RE-POINTED 10 Nov 2026 (owner: the company leads the row, and its hover names the company first): the term is
+         the first word of the AGREEMENT, the hover's second part — a company with many rows narrows nothing a cut list
+         can show */
+      const parts = t ? String(t.title || '').trim().split(' · ') : [];
+      return (String(parts[1] || parts[0] || '').trim().split(/\s+/)[0] || '');
     });
     /* RE-POINTED 29 Oct 2026 (round 1): typed into the list's own box (the bar's search left) */
     const searched = await page.evaluate(async (q) => {
