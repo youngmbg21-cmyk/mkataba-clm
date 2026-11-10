@@ -22012,6 +22012,8 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) Opening the Send screen on MK-HB4 (handed over for signature, handbook world) shows a red toast "Not saved: MK-HB4 has been handed over for signature, so its wording is locked…" — opening Send appears to try a save on a frozen contract (reading must not write), seen while photographing; not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) The other side's page (portal) was not part of the sweep: it carries its own look switch (`outsideLook`) and needs a share link to open; its detail lines were not measured.
 
+## Noticed, not fixed (10 Nov 2026, Jambo's instruction / notes on Clauses round)
+- Clauses tab, an open clause row: the "Plain English" pill and "one short reading" are cut off at the top (clipped by the row above), seen at 1440×780.
 ## 10 Nov 2026 — Explorer: top N groups and "what Jambo understood" (Board Twin)
 - Fixed: "top 5 folders by value" on Explorer kept the 5 biggest contracts in each value stream; the map had no way to keep the N biggest groups. Now `top.groups` (free reader, AI tool, route), the hidden groups said, chips under the answer show and change the reading, the doubtful part amber.
 - Fixed while there: a top N pressed again added a second filter lens on top of the first (the old filter kept every filter lens), so a re-read narrowed inside the last one. One top N at a time now.

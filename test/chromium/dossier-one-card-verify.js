@@ -36,7 +36,9 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
       page.on('pageerror', e => console.log('PAGE ERROR', String(e).slice(0, 300)));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-      await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser(), null, 40000);
+      /* A WAIT ASKS FOR THE STATE (10 Nov 2026): signed in is not loaded — the contract must be in the book before it is read */
+      await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser()
+        && typeof getContract === 'function' && !!getContract('MK-408'), null, 40000);
       /* three changes of ours, filed through the one funnel, not sent (the first page files them; the rest read them) */
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply();
         const c = getContract('MK-408'); if (window.ensureFull) await ensureFull(c);
