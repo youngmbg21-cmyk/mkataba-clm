@@ -21930,3 +21930,11 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Removed (owner-asked): the Contracts list foot's right half ("The question column was read once and is kept · Our standards is HaTi's own check…"); the foot says only the count. Keys `reg_nl_foot_ask`/`reg_nl_foot_std`/`ac_nl_th_sub` left inert in both books.
 - Noticed, not fixed (9 Nov 2026): opening a contract's History in the old room right after another contract's paper, Home's panel kept the earlier contract ("‹ Back to MK-A2 on the paper", "Ask Jambo about MK-A2…" beside MK-HB4's History). Seen in a scratch walk; not reproduced from the owner's own steps.
 - Noticed, not fixed (9 Nov 2026): jambo-everywhere-verify 1a ("a page's name in the Calendar's box moves there") failed once on GitHub for #597 (view stayed "dashboard") after passing on the previous run of the same app code; it passes every time here, with both Chrome builds. Its first step types right after sign-in and the language switch; looks like a start-up race in the check, not the app.
+
+## Noticed, not fixed — 10 Nov 2026 (the Obligations project list)
+- The Handbook's pictures are still taken with the OLD look on (test/handbook-world.js sets no newLook), while
+  "THE NEW LOOK IS THE ONLY LOOK" (owner, 9 Nov 2026) says every picture of HaTi is taken in the new look.
+  Chapter 5.1's words now describe the new page while its two pictures still show the old one. Moving the
+  handbook world to the new look is its own job.
+- obn_tab_proposed, obn_tab_ours, obn_tab_theirs and obn_tab_done are left inert in both books: the page's pills
+  and its whose/state selects say it in their own words now.
