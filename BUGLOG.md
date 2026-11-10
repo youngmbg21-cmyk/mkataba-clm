@@ -21982,3 +21982,8 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ### Noticed, not fixed
 - Import takes the same swap but could not be exercised here: its page is only drawn once files have been brought in, and seeding an import queue is its own job. It is not in the browser check either, deliberately, rather than appearing covered.
 - The template library and the contract room's History still rebuild their own pane, search box included, on every keystroke. Smaller than the page rebuild, and History sits inside the contract room, so it is its own job.
+
+## 10 Nov 2026 — GitHub's run named a second test that slices updateSidebarCounts
+- FIXED: f495 (4c) asserted the intake door's sum was inside updateSidebarCounts. The nine door numbers moved into doorCounts, so the slice no longer held it. Re-pointed the same way f357's 1f was: the rail asks the one reading, and the sum is read inside doorCounts. The rule it pins is unchanged.
+- I had found f357 by grepping and stopped there. Lint cannot see a test that slices a function body by name, so the second one only showed up when the whole suite ran on GitHub. 15,409 of 15,410 passed; this was the one.
+- NOT MINE: contract-new-look-verify failed on the same run with "createTreeWalker: parameter 1 is not of type Node" — its own wait is for the Dossier panel, not the paper, so it reads the paper before it exists. It passed on the very next run with the same code. Left alone as a flaky check with an unguarded wait.
