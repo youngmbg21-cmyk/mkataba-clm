@@ -199,7 +199,7 @@ const KEYS = `(() => {
     ok('3-stage a negotiation really is live', !!cid, cid || 'none');
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(700);
-    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); caAskAnywhere(w, { all: true }); }, 'negotiations');
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '03-negotiations.png') });
     const n = await page.evaluate(FOOT);

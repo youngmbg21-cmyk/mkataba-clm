@@ -33,9 +33,9 @@ const book = n => Array.from({ length: n }, (_, i) => fixtureContract(`HC-${3001
 
     /* ---- 1 "reads" typed ---- */
     await page.evaluate(() => setView('counter'));
-    const box = await until(page, () => !!document.querySelector('#cn-q'), null, 10000);
+    const box = await until(page, () => !!document.querySelector('#igd-input'), null, 10000);
     const c0 = h.ai.calls.length;
-    if (box){ await page.fill('#cn-q', 'reads'); await page.press('#cn-q', 'Enter'); }
+    if (box){ await page.fill('#igd-input', 'reads'); await page.press('#igd-input', 'Enter'); }
     const onReads = await until(page, () => state.view === 'reads' && !!document.querySelector('.rd-page'), null, 8000);
     check('1 "reads" typed in Home\'s box opens the Reads page, and no Jambo call is made', box && onReads && h.ai.calls.length === c0,
       await page.evaluate(() => ({ view: state.view })));

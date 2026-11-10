@@ -121,7 +121,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       return v; };
     const press = async (sel, what, pg) => { const p = pg || page; if (!(await p.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await p.locator(sel).first().click(); return true; };
     const toCounter = async pg => { const p = pg || page; await p.evaluate(() => setView('counter'));
-      const t0 = Date.now(); while (Date.now() - t0 < 8000) { if (await p.evaluate(() => !!document.querySelector('#cn-needs .cn-jw'))) return true; await p.waitForTimeout(120); } return false; };
+      const t0 = Date.now(); while (Date.now() - t0 < 8000) { if (await p.evaluate(() => !!document.querySelector('#hm-agents .cn-jw'))) return true; await p.waitForTimeout(120); } return false; };
 
     /* the stage: their round on the master services agreement, read through the product's own funnel */
     const staged = await page.evaluate(async () => {
@@ -156,16 +156,16 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     await toCounter();
 
     console.log('\n1 · the head as drawn');
-    const head = await page.evaluate(() => ({ h1: (document.querySelector('.cn-ask h1') || {}).textContent || '', ph: (document.getElementById('cn-q') || {}).placeholder || '',
+    const head = await page.evaluate(() => ({ h1: (document.querySelector('.cn-ask h1') || {}).textContent || '', ph: (document.getElementById('igd-input') || {}).placeholder || '',
       chips: [...document.querySelectorAll('.cn-chips .cn-chip')].map(b => { const cs = getComputedStyle(b); return { t: b.textContent.trim(), lead: b.hasAttribute('data-cn-lead'), door: b.getAttribute('data-cn-need') || b.getAttribute('data-cn-note') || b.getAttribute('data-cn-req') || '',
         dress: [cs.borderTopColor, cs.fontWeight, cs.backgroundColor, cs.color].join('|') }; }),
-      first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#cn-needs .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
+      first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#hm-agents .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
     check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'Ask Jambo, or type / for a place', JSON.stringify([head.h1, head.ph]));
     /* RE-POINTED 29 Oct 2026 (round 5, "the box predicts"; owner: "bring them to home page"): the Board first, then the
        next three things that wait said as tasks, each pressing its own row's door; the places only on a quiet day */
     const lk = await page.evaluate(() => ({ head: ((document.querySelector('.cn-chips .cn-lk-h') || {}).textContent || '').trim(),
       tasks: [...document.querySelectorAll('.cn-chips .cn-lk')].map(b => ({ t: b.textContent.trim(), key: b.getAttribute('data-cn-lk') })),
-      rows: [...document.querySelectorAll('#cn-needs [data-nd-row]')].map(r => r.getAttribute('data-nd-row')) }));
+      rows: [...document.querySelectorAll('#hm-agents [data-nd-row]')].map(r => r.getAttribute('data-nd-row')) }));
     check('1b the chips: "Likely next:", board, then up to three tasks in Needs you\'s own order — no places while work waits',
       lk.head === 'Likely next:' && head.chips[0] && head.chips[0].t === 'board' && lk.tasks.length >= 1 && lk.tasks.length <= 3
       && head.chips.length === 1 + lk.tasks.length && lk.tasks.every((t, i) => t.key === lk.rows[i])
@@ -183,10 +183,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       await page.evaluate(() => { if (typeof hbAgLookSet === 'function') hbAgLookSet(null); });
       await toCounter();
     }
-    const type = await page.evaluate(() => { const h = document.querySelector('.cn-ask h1'), b = document.querySelector('#cn-needs .nd-r .cn-w b');
+    const type = await page.evaluate(() => { const h = document.querySelector('.cn-ask h1'), b = document.querySelector('#hm-agents .nd-r .cn-w b');
       const root = getComputedStyle(document.documentElement);
       const cs = e => e ? getComputedStyle(e) : null; return { h1: cs(h) && [cs(h).fontSize, cs(h).fontWeight].join(' '), fam: cs(h) && cs(h).fontFamily, title: root.getPropertyValue('--font-title').trim(), wSerif: root.getPropertyValue('--w-title-serif').trim(),
-        name: cs(b) && cs(b).fontSize, btns: [...new Set([...document.querySelectorAll('#cn-needs .nd-btn')].map(x => Math.round(x.getBoundingClientRect().width)))] }; });
+        name: cs(b) && cs(b).fontSize, btns: [...new Set([...document.querySelectorAll('#hm-agents .nd-btn')].map(x => Math.round(x.getBoundingClientRect().width)))] }; });
     /* RE-POINTED 20 Oct 2026 (Chambers): Home's question is in the title serif (--font-title), 28px, --w-title-serif (was 26px semibold);
        RE-POINTED 22 Oct 2026 (Round A, the owner: "make all of the buttons the same size"): every button of Needs you one width */
     check('11g the greeting large as drawn (28px, the title serif at its own weight); a row\'s name 14px; every Needs you button one width',
@@ -198,9 +198,9 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
        prepared pieces as rows of their own, three of each group, and "Show all N" lands on the Board's card,
        where every piece is a row whose Look opens it in place (its body, its act, Put away last) */
     console.log('\n2 · Home\'s Needs you: Jambo\'s group first, three rows each, Show all onto the Board');
-    const homeNd = await page.evaluate(() => ({ groups: [...document.querySelectorAll('#cn-needs .nd-g')].map(g => g.getAttribute('data-nd-g')),
-      jambo: [...document.querySelectorAll('#cn-needs .nd-r [data-nd-look]')].length, step: [...document.querySelectorAll('#cn-needs .nd-r .nd-step')].length,
-      read: [...document.querySelectorAll('#cn-needs .nd-r .nd-read')].map(e => e.textContent), words: [...new Set([...document.querySelectorAll('#cn-needs .nd-btn')].map(b => b.textContent))],
+    const homeNd = await page.evaluate(() => ({ groups: [...document.querySelectorAll('#hm-agents .nd-g')].map(g => g.getAttribute('data-nd-g')),
+      jambo: [...document.querySelectorAll('#hm-agents .nd-r [data-nd-look]')].length, step: [...document.querySelectorAll('#hm-agents .nd-r .nd-step')].length,
+      read: [...document.querySelectorAll('#hm-agents .nd-r .nd-read')].map(e => e.textContent), words: [...new Set([...document.querySelectorAll('#hm-agents .nd-btn')].map(b => b.textContent))],
       inPlace: !!document.querySelector('#cn-jw-list, [data-cn-ag-item], [data-cn-look], [data-cn-house], .cn-jw'), n: ndRead().jambo.length }));
 /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads the row; the number, the other side and the ask in grey; the button says what happens */
     check('2a Jambo\'s group first, three of his pieces in sight, each leading with its agreement',
@@ -388,7 +388,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     /* RE-POINTED 22 Oct 2026 (Round A): your move is its own group — three rows, "Show all N" onto the Board;
        a request Jambo found the paper for is HIS row now (the one desk merges them), its door "Open the request" */
     await toCounter();
-    const needs = await page.evaluate(() => [...document.querySelectorAll('#cn-needs .nd-r')].filter(r => !r.querySelector('[data-nd-look]')).map(r => ({
+    const needs = await page.evaluate(() => [...document.querySelectorAll('#hm-agents .nd-r')].filter(r => !r.querySelector('[data-nd-look]')).map(r => ({
       title: (r.querySelector('.cn-w b') || {}).innerText || '', sub: (r.querySelector('.cn-w > span') || {}).innerText || '', when: (r.querySelector('.nd-when') || {}).textContent || '',
       btn: (r.querySelector('button') || {}).textContent || '' })));
 /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads the row; the number, the other side and the ask in grey; the button says what happens */
@@ -402,7 +402,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     check('7b details still to fill in are on the list (one row once more than three contracts owe them)', D7.you.some(k => /^bundle:|:details$/.test(k)), JSON.stringify(D7.you));
     check('7c a note of yours due is your row; the request Jambo found the paper for is his', D7.you.some(k => k === 'note:mynote') && D7.jambo.includes('request'), JSON.stringify(D7));
     check('7d "Show all N" on your move', new RegExp('^Show all \\d+$').test(D7.all), D7.all);
-    const days = await page.evaluate(() => [...document.querySelectorAll('#cn-needs .nd-when')].map(e => e.textContent).filter(Boolean));
+    const days = await page.evaluate(() => [...document.querySelectorAll('#hm-agents .nd-when')].map(e => e.textContent).filter(Boolean));
     check('7f how long a row has waited is said in words, never a bare number', days.length > 0 && days.every(t => /^(\d+ days?( late)?|today|in \d+ days?|due \S+( \S+)?)$/.test(t)), JSON.stringify(days));
     const coLast = await page.evaluate(() => { const D = ndRead(); return D.you.length ? D.you[D.you.length - 1].key : ''; });
     check('7g the admin\'s own row is the last of your move', coLast === 'company' || coLast === 'setup', coLast);
@@ -443,7 +443,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     } else check('7j the request is Jambo\'s row', false, 'no request piece');
     await toCounter();
     /* RE-POINTED 27 Oct 2026: no lead chip — the same door is the approval row's own button in Needs you */
-    if (await press('#cn-needs [data-cn-need="approval"]', '11k the approval row\'s button')) {
+    if (await press('#hm-agents [data-cn-need="approval"]', '11k the approval row\'s button')) {
       const lit = await until(() => { const l = document.querySelector('#pd-signface .is-landed'); return l ? { gate: !!l.querySelector('#ap-approve'), stop: l.matches('[data-pd-road-stop]'), sa: l.id === 'sa-card', html: l.outerHTML.slice(0, 120) } : null; }, null, 10000);
       check('11k the approval row\'s button LANDS ON the approval it opens: Before you sign, the Approval gate lit with its Approve', !!lit && (lit.gate || lit.sa || lit.stop), JSON.stringify(lit));
       await shot(page, 'main-23-approval-landed-1440x780');

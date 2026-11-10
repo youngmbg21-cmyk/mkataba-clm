@@ -85,7 +85,7 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     /* ============ 1 · A "NO" THAT HELPS ============ */
     for (const [w, hgt] of SCREENS){
       const V = await login('amina@example.co.ke', 'their-own-pass-9', [w, hgt]);
-      await drive(V, () => counterAsk('draft'));
+      await drive(V, () => caAskAnywhere('draft', { all: true }));
       const card = await until(V, () => !!document.querySelector('.ca-card.ca-dr [data-ca-wall-act]'), null, 12000);
       const seen = await drive(V, () => { const c = [...document.querySelectorAll('.ca-card.ca-dr')].pop(); if (!c) return null;
         const why = c.querySelector('.ca-why.ca-wall'), ask = c.querySelector('[data-ca-wall-ask]');
@@ -116,7 +116,7 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
 
     /* ============ 2 · THE RIGHT TEMPLATE ============ */
     const P = await login('admin@example.co.ke', 'adminpassword1');
-    await drive(P, () => counterAsk('draft a warehouse partnership agreement with Kilifi Haulage'));
+    await drive(P, () => caAskAnywhere('draft a warehouse partnership agreement with Kilifi Haulage', { all: true }));
     await until(P, () => !!(document.querySelector('[data-ca-act="form"]') || document.getElementById('na-words')), null, 10000);
     await drive(P, () => { const x = [...document.querySelectorAll('[data-ca-act="form"]')].pop(); if (x) x.click(); });
     await until(P, () => !!document.getElementById('na-dq'), null, 8000);

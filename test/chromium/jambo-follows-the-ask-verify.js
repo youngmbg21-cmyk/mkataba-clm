@@ -133,9 +133,9 @@ const check = (name, pass, detail) => {
 
     console.log('\n4 · the same from the Counter');
     await page.evaluate(() => { window.__asked.length = 0; setView('counter'); });
-    await until(() => !!document.getElementById('cn-q'));
-    await page.fill('#cn-q', 'set up a 30 min catch-up with legal on Friday');
-    await page.press('#cn-q', 'Enter');
+    await until(() => !!document.getElementById('igd-input'));
+    await page.fill('#igd-input', 'set up a 30 min catch-up with legal on Friday');
+    await page.press('#igd-input', 'Enter');
     const cn = await until(() => calOnScreen() && window.__asked.some(a => a.p === 'ai/plan') ? window.__asked.slice() : null, null, 10000);
     check('4a the Counter hands it to the Calendar\'s Jambo', !!cn && cn.some(a => a.ask === 'set up a 30 min catch-up with legal on Friday'), JSON.stringify(cn || await asked()));
 

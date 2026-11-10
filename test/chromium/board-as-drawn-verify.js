@@ -193,7 +193,7 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     await page.evaluate(() => { if (typeof intel !== 'undefined') intel.history = []; if (typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){} renderIntelDock(); });
     await until(() => !!document.querySelector('#ig-dock .hb-jb-hello'), null, 6000);
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'what needs me'); if (b) b.click(); });
-    const cn = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed'), null, 8000);
+    const cn = await until(() => state.view === 'dashboard' && !!document.querySelector('#hm-agents.is-landed'), null, 8000);
     check('5f "what needs me" opens Home and lands on Needs you, lit (landOn)', !!cn);
 
     console.log('\n7 · the owner\'s three screens');

@@ -1690,13 +1690,12 @@ function hbNyDockFollow(){
     renderIntelDock();
   } catch (_){}
 }
-/* "needs me" (CA_GO.needs): Home (once the Counter), where Needs you lives
-   since round 17 (the owner's yes, 18 Oct 2026), its list in view and lit */
+/* "needs me" (CA_GO.needs): the Board's Needs you card, in view (Home, where it lived since round 17, was deleted on
+   10 Nov 2026; the Board is where you land) */
 function hbNeedsOpen(){
-  if (typeof deskGoCounter === 'function') deskGoCounter(); else if (typeof setView === 'function') setView('counter');
-  /* LAND ON IT (owner, 18 Oct 2026): Home's Needs you card, in view and lit,
-     pressing nothing — through the one lander */
-  if (typeof landOn === 'function') landOn('#cn-needs', { block: 'nearest' });
+  if (typeof deskGoCounter === 'function') deskGoCounter(); else if (typeof setView === 'function') setView('dashboard');
+  /* LAND ON IT (owner, 18 Oct 2026): the Needs you card, in view, pressing nothing — through the one lander */
+  if (typeof landOn === 'function') landOn('#hm-agents', { block: 'nearest' });
   return true;
 }
 /* a press on the card: the checklist's own door; a look opens its contract */
@@ -6432,7 +6431,7 @@ function hbSetupLeft(){
       window.stLoadAiCfgOnce().then(() => {
         const el = document.querySelector('[data-hb-setup-slot]');
         if (el) el.outerHTML = hbSetupDoorHtml() || '<span data-hb-setup-slot hidden></span>';
-        if (state.view === 'counter' && typeof window.renderCounter === 'function') window.renderCounter();
+        if (state.view === 'dashboard' && hbS().face === 'board') hbPaintBoard();
       }).catch(() => {}); }
     return window.stGoLive().filter(r => !r.ok).length;
   } catch (_){ return null; }

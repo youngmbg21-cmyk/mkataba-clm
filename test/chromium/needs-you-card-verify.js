@@ -92,10 +92,10 @@ const CONTRACTS = [
     /* ===== 1. THE COUNTER LISTS IT, COUNTING THE CHECKLIST'S OWN ===== */
     const book = await page.evaluate(() => (state.contracts || []).filter(c => c && !c.archived).reduce((a, c) => a + ((typeof needsYouOf === 'function') ? needsYouOf(c).length : 0), 0));
     await page.evaluate(() => setView('counter'));
-    const drawn = await until(page, () => !!document.querySelector('#cn-needs [data-cn-need]'));
-    const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#cn-needs [data-cn-need]').length, list: hbNeedsList().length, n: counterNeedsCount(),
+    const drawn = await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
+    const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#hm-agents [data-cn-need]').length, list: hbNeedsList().length, n: counterNeedsCount(),
       mine: ndRead().you.filter(r => r.y && r.y.k === 'c').length, all: ndRead().n,
-      shown: window.CN_ROWS, cnt: Number((document.querySelector('#cn-needs .cn-cnt') || {}).textContent || 0) }));
+      shown: window.CN_ROWS, cnt: Number((document.querySelector('#hm-agents .cn-cnt') || {}).textContent || 0) }));
     ok('1a the Counter lists what is owed', drawn && one.rows > 0, JSON.stringify(one));
     /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): Home draws CN_ROWS rows
        (3, round 23 as drawn by lane G — "Show 3 more · …" holds the rest),
@@ -132,9 +132,9 @@ const CONTRACTS = [
       persist(c); return 'ok';
     });
     await page.evaluate(() => setView('counter'));
-    const looked = asked === 'ok' && await until(page, () => !!document.querySelector('#cn-needs [data-cn-need="look"]'));
+    const looked = asked === 'ok' && await until(page, () => !!document.querySelector('#hm-agents [data-cn-need="look"]'));
     const four = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#cn-needs [data-cn-need]')].map(b => ({ kind: b.getAttribute('data-cn-need'), id: b.getAttribute('data-cn-id') }));
+      const rows = [...document.querySelectorAll('#hm-agents [data-cn-need]')].map(b => ({ kind: b.getAttribute('data-cn-need'), id: b.getAttribute('data-cn-id') }));
       const D = ndRead();
       return { rows: rows.slice(0, 3), n: counterNeedsCount(), jambo0: D.jambo[0] ? { kind: D.jambo[0].it.kind, id: D.jambo[0].it.cid || (D.jambo[0].it.c && D.jambo[0].it.c.id), late: D.jambo[0].late } : null }; });
     ok('4a the look is on the Counter', looked, asked);
@@ -155,8 +155,8 @@ const CONTRACTS = [
 
     /* ===== 5. A BUTTON IS THE CHECKLIST'S OWN DOOR ===== */
     await page.evaluate(() => setView('counter'));
-    await until(page, () => !!document.querySelector('#cn-needs [data-cn-need]'));
-    const det = await page.$('#cn-needs [data-cn-need="details"]');
+    await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
+    const det = await page.$('#hm-agents [data-cn-need="details"]');
     if (det) await det.click();
     /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the paper's Still owed grid, a row in the hand */
     const filled = det && await until(page, () => { const a = document.activeElement; return !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#pd-og')); });
@@ -165,7 +165,7 @@ const CONTRACTS = [
 
     /* ===== 6. "needs me" OPENS THE COUNTER ===== */
     await page.evaluate(() => { if (typeof intelAsk === 'function') intelAsk('needs me'); });
-    const back = await until(page, () => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed [data-cn-need]'));
+    const back = await until(page, () => state.view === 'dashboard' && !!document.querySelector('#hm-agents.is-landed [data-cn-need]'));
     ok('6a the word opens Home and LANDS on Needs you — in view, lit (landOn)', back, await page.evaluate(() => state.view + ' ' + ((document.getElementById('cn-needs') || {}).className || '')));
 
     /* ===== 7. NOTHING WAITING IS SAID, AND THE TAB IS QUIET ===== */

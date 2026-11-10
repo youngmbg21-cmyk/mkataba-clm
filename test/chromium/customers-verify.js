@@ -87,7 +87,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
 
     console.log('\n2 · the Customers page');
     /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ 
-    const opened = await page.evaluate(() => { setView('counter'); return counterAsk('parties'); }).then(() => true, () => false);
+    const opened = await page.evaluate(() => { setView('counter'); return caAskAnywhere('parties', { all: true }); }).then(() => true, () => false);
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 }).catch(() => {});
     /* (Part 8) one press on the list head's own control: a Status tab, or a
        filter added through "+ Filter" / re-chosen on its chip / × to rest */
@@ -183,7 +183,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
 
     console.log('\n4 · Open on Explorer: that customer, Active | Expired');
     const toExplorer = async key => {
-      await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'parties');
+      await page.evaluate(w => { setView('counter'); caAskAnywhere(w, { all: true }); }, 'parties');
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
       await setF('owner', 'all');
       await page.waitForFunction(k => !!document.querySelector(`tr[data-cu-cust="${k}"]`), key, { timeout: 4000 });
@@ -209,7 +209,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     ok('4e an all-active customer shows one group', ck.groupBy === 'custom' && Object.keys(ck.counts).join() === 'Active' && ck.counts.Active === 2, JSON.stringify(ck.counts));
 
     console.log('\n5 · a refresh keeps the Customers page\'s filters');
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'parties');
+    await page.evaluate(w => { setView('counter'); caAskAnywhere(w, { all: true }); }, 'parties');
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
     await setF('stream', H.FOLDER_A);
     await page.waitForFunction(id => (document.querySelector('[data-lh-seat="customers"] select[data-lh-f="stream"]') || {}).value === id, H.FOLDER_A, { timeout: 4000 }).catch(() => {});

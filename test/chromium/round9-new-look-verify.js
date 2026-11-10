@@ -55,7 +55,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   /* 2 · read down */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
-    await until(page, () => state.view === 'counter', null, 15000);
+    await until(page, () => state.view === 'dashboard', null, 15000);
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
     const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !!document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
     if (btn) await page.click('#hb-bhead [data-hb-rdn]');

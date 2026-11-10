@@ -72,7 +72,7 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.evaluate(() => setView('counter'));
     await page.waitForTimeout(900);
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): on Home a row leads with its agreement; no step mark */
-    const mark = await page.evaluate(() => { const r = document.querySelector('#cn-needs .nd-r [data-nd-look]'); const row = r && r.closest('.nd-r'); if (!row) return null;
+    const mark = await page.evaluate(() => { const r = document.querySelector('#hm-agents .nd-r [data-nd-look]'); const row = r && r.closest('.nd-r'); if (!row) return null;
       return { step: !!row.querySelector('.nd-step'), named: row.classList.contains('nd-named'), t: (row.querySelector('.nd-t') || {}).textContent || '' }; });
     ok('1c on Home Jambo\'s row leads with its agreement, no step mark', !!mark && !mark.step && mark.named && !!mark.t, JSON.stringify(mark));
     await page.evaluate(() => setView('dashboard'));

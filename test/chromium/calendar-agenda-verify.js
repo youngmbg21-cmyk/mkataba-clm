@@ -37,7 +37,7 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
     await until(P, () => !!(window.state && Array.isArray(state.contracts) && state.contracts.length), null, 20000);
     /* Home's first paint finishes before the calendar is asked for, or it paints over it */
-    await until(P, () => !!document.getElementById('cn-q'), null, 10000); await settled(P);
+    await until(P, () => !!document.getElementById('igd-input'), null, 10000); await settled(P);
     await P.evaluate(() => setView('calendar'));
     const seg = await until(P, () => document.querySelectorAll('[data-cal-view]').length >= 4, null, 10000);
     const s1 = await P.evaluate(() => ({ view: calView(), tabs: [...document.querySelectorAll('[data-cal-view]')].map(x => x.getAttribute('data-cal-view')) }));

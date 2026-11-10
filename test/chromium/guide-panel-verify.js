@@ -61,7 +61,7 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.click('#li-go');
     await until(page, () => !!(window.state && state.view && Array.isArray(state.contracts) && state.contracts.length && typeof openPanel === 'function'), null, 15000);
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.guideSeen'); } catch (_){} setView('counter'); });
-    await until(page, () => state.view === 'counter');
+    await until(page, () => state.view === 'dashboard');
 
     /* 1 the panel's tabs, from the existing door */
     await page.evaluate(() => openPanel('activity'));

@@ -147,16 +147,16 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
     console.log('\n· H: Home\'s box');
     if (!ONLY || ONLY.includes('home')){
       await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
-      const box = await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
+      const box = await until(P, () => { const i = document.getElementById('igd-input'); return i && i.offsetParent ? true : null; }, null, 6000);
       ai.reset(); ai.script(deliver('ANS-home'));
-      await type('#cn-q', 'approvals waiting');
+      await type('#igd-input', 'approvals waiting');
       await until(P, () => state.view === 'dashboard' ? true : null, null, 6000);
       await settled(); await P.waitForTimeout(700);
       const H = await P.evaluate(() => ({ view: state.view, face: (typeof hbFace === 'function') ? hbFace() : '', talk: !!(window.pdTalkShows && pdTalkShows()), said: /ANS-home/.test((document.getElementById('ig-dock') || {}).innerText || '') }));
       const chat = ai.calls.find(c => toolsOf(c).includes('deliver_answer'));
       check('H1 typed in Home\'s box, "approvals waiting" is one question to the brain; the Board opens on his tab with the answer', !!box && ai.calls.length === 1 && !!chat && H.view === 'dashboard' && H.face === 'board' && H.talk && H.said, `${ai.calls.length} call(s) · ${JSON.stringify(H)}`);
       await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
-      await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
+      await until(P, () => { const i = document.getElementById('igd-input'); return i && i.offsetParent ? true : null; }, null, 6000);
       ai.reset();
       /* RE-POINTED 29 Oct 2026 (round 5: while work waits the chips are the Board and the tasks; the Board is always there) */
       await P.click('#cn-page [data-cn-ask="board"]');

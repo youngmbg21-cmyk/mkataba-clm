@@ -76,7 +76,7 @@ async function runStep(P, st, h){
     if (ref){ const c = state.contracts.find(x => String((typeof contractRef === 'function') ? contractRef(x) : x.id) === ref || x.id === ref); if (!c) throw new Error('no contract ' + ref); a = [arg === 'id' ? c.id : c].concat(a); }
     return f(...a); }, [st.fn, st.args || null, st.ref || null, st.arg || null]);
   else if (st.click){ const el = await P.$(st.click); if (!el) throw new Error('nothing to press at ' + st.click); await el.click(); }
-  else if (st.type){ await P.fill(st.into || '#cn-q', st.type); await P.dispatchEvent(st.into || '#cn-q', 'input'); await P.waitForTimeout(300); }
+  else if (st.type){ await P.fill(st.into || '#igd-input', st.type); await P.dispatchEvent(st.into || '#igd-input', 'input'); await P.waitForTimeout(300); }
   /* a state that needs a beat, a thing to wait for, or a reading the page itself does (Discover's kept answers) */
   else if (st.wait) await P.waitForTimeout(st.wait);
   else if (st.waitFor){ if (!(await until(P, s => !!document.querySelector(s), st.waitFor, st.ms || 10000))) throw new Error('never came: ' + st.waitFor); }

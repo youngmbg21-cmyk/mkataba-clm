@@ -235,7 +235,6 @@ async function watchDelete(id){
 /* what changed is drawn again where it shows: the bell, Home's Needs you, the conversations */
 function watchChanged(){
   try { if (typeof updateAlertBadge === 'function') updateAlertBadge(); } catch (_){}
-  try { if (typeof counterRepaint === 'function') counterRepaint(); } catch (_){}
   try {
     const H = (typeof ai === 'object' && ai && ai.history) || [];
     if (H.some(m => m && (m.watchAsk || m.watchList)) && typeof renderAIFeed === 'function') renderAIFeed();

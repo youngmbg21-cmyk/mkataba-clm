@@ -58,7 +58,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 20, null, { timeout: 20000 });
-    await until(() => state.view === 'counter' || state.view === 'dashboard', null, 10000);
+    await until(() => state.view === 'dashboard', null, 10000);
     await page.waitForTimeout(1500);
 
     /* 1 and 2 RETIRED 9 Nov 2026: they asked what a question does while a contract's page is HELD on the Board

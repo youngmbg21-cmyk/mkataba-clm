@@ -2576,7 +2576,7 @@ function startApp(){
   window._cnSignedIn=false;
   /* landing on the Board is a fresh arrival: the last sitting's tab or scroll is not put back over it */
   const _place=(!_landBoard&&window.placeResume)?placeResume():null;
-  setView(['brain','dashboard','counter','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reads','handbook','pulse','flowmap','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
+  setView(['brain','dashboard','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reads','handbook','pulse','flowmap','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
   if(_place&&window.placeScrollBack) placeScrollBack(_place);
   /* MY OWN EVENTS AND NOTES (10 Oct 2026): loaded once, so the rail's count
      and the bell know what is due before either page is opened. */

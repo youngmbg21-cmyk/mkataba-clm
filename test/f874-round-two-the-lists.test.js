@@ -50,8 +50,10 @@ describe('f874 (1) Home', () => {
     assert.match(f, /\[P\.ref, _cnE\(party\), _cnE\(P\.title\), _cnE\(P\.note \|\| ''\), _cnE\(P\.money \|\| ''\)\]/);
     assert.match(fnRegion(CN, 'ndParts'), /if \(it\.kind === 'approval'\) P\.btn = 'approve';/);
   });
+  /* RE-POINTED (owner, 10 Nov 2026: Home deleted): Home's group rows went with it; the Board's card says the count once */
   test('1b the count is said once: a group row carries no number', () => {
-    assert.doesNotMatch(fnRegion(CN, 'ndHomeHtml'), /cn-n/);
+    assert.ok(!/function ndHomeHtml\(/.test(CN), 'Home\'s groups are gone');
+    assert.doesNotMatch(fnRegion(CN, 'ndBoardHtml'), /class="cn-n"/);
   });
   test('1c the words, in both books', () => {
     assert.equal(BOOKS.en.nd_g_jambo, 'Prepared by Jambo');

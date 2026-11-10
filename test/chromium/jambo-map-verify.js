@@ -47,9 +47,9 @@ const check = (name, pass, detail) => {
     const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
-    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q')); };
+    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('igd-input')); };
     /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
-    const counterAsk = async q => { await page.evaluate(x => window.counterAsk(x), q); };
+    const counterAsk = async q => { await page.evaluate(x => window.caAskAnywhere(x, { all: true }), q); };
     const onPaper = async id => { await page.evaluate(i => { setView('dashboard'); igAnalyze(i); }, id);
       return until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('igd-input') && !intel.busy, id, 10000); };
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
@@ -74,13 +74,13 @@ const check = (name, pass, detail) => {
 
     console.log('\n1 · the Counter\'s box');
     check('1 · on the Counter', !!(await toCounter()));
-    await counterAsk('which contracts are expiring soon?');
+    await caAskAnywhere('which contracts are expiring soon?', { all: true });
     const exp = await until(() => state.view === 'dashboard' && !!document.getElementById('ct-place') && regState().view === 'expiring90');
     check('1a "which contracts are expiring soon?" opens the Contracts place, the next 90 days', !!exp,
       await page.evaluate(() => JSON.stringify({ view: state.view, reg: (window.regState ? regState().view : null) })));
     await page.screenshot({ path: path.join(OUT, '1a-expiring-1440x780.png') });
     await toCounter();
-    await counterAsk('where do I change my language?');
+    await caAskAnywhere('where do I change my language?', { all: true });
     /* Language has no drawer: Settings lights its card on You, where the switch is (stYouGo) */
     const lang = await until(() => { const k = document.querySelector('[data-st-you-card="lang"]');
       /* re-pointed 19 Oct 2026 (lane F's third pass, LAND ON IT): the card is lit by the one lander */
@@ -90,7 +90,7 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '1b-language-1440x780.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(200);
     await toCounter();
-    await counterAsk('how do I set signing limits?');
+    await caAskAnywhere('how do I set signing limits?', { all: true });
     const cap = await until(() => state.view === 'team' && [...document.querySelectorAll('.rvd-title')].some(t => t.getBoundingClientRect().width > 0 && /signing limits/i.test(t.textContent)));
     check('1c "how do I set signing limits?" opens the Signing limits drawer (an admin)', !!cap, await drawerTitle());
     await page.keyboard.press('Escape'); await page.waitForTimeout(200);
@@ -194,7 +194,7 @@ const check = (name, pass, detail) => {
     const onExplorer = () => until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'explorer' && !!document.getElementById('ig-cv'));
     const whereNow = () => page.evaluate(() => JSON.stringify({ view: state.view, face: typeof hbFace === 'function' ? hbFace() : null, canvas: !!document.getElementById('ig-cv') }));
     await toCounter();
-    await counterAsk('how are our contracts connected?');
+    await caAskAnywhere('how are our contracts connected?', { all: true });
     check('9a the Counter: "how are our contracts connected?" opens Explorer', !!(await onExplorer()), await whereNow());
     await page.screenshot({ path: path.join(OUT, '9a-explorer-1440x780.png') });
     await toCounter();
@@ -208,7 +208,7 @@ const check = (name, pass, detail) => {
     }
     await page.evaluate(() => window.langSet('sv')); await page.waitForTimeout(300);
     await toCounter();
-    await counterAsk('visa avtalen på en karta');
+    await caAskAnywhere('visa avtalen på en karta', { all: true });
     check('9d in Svenska: "visa avtalen på en karta" opens Utforskaren', !!(await onExplorer()), await whereNow());
     await page.evaluate(() => window.langSet('en')); await page.waitForTimeout(300);
 

@@ -179,7 +179,7 @@ const openSettings = async (page, tab) => {
     check('a short password is refused with a red toast (the setup for D13)', await p2.evaluate(() => !!document.querySelector('#toast-root [data-toast-kind="err"]')));
     await p2.fill('#su-pass', 'a-good-password-1');
     await p2.click('#su-go');
-    await until(p2, () => !document.getElementById('su-org') && typeof window.state === 'object' && state.view === 'counter', null, 15000);
+    await until(p2, () => !document.getElementById('su-org') && typeof window.state === 'object' && state.view === 'dashboard', null, 15000);
     await p2.waitForTimeout(800);
     check('D13 Home after a good try carries no red toast from the failed one',
       await p2.evaluate(() => !document.querySelector('#toast-root [data-toast-kind="err"]')));
@@ -197,7 +197,7 @@ const openSettings = async (page, tab) => {
     const doorText = door ? await p2.evaluate(() => document.querySelector('[data-cn-setup]').closest('.cn-r').querySelector('.cn-w').textContent.trim()) : '';
     check('D12 a brand-new workspace lands on the Counter, whose admin row is "Finish setting up — N left"', !!door, doorText);
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the admin's row is a row of your move, its door data-cn-setup */
-    const inSlot = await p2.evaluate(() => !!document.querySelector('#cn-needs [data-cn-setup]') && document.querySelectorAll('#cn-needs [data-cn-setup], #cn-needs [data-cn-co]').length === 1);
+    const inSlot = await p2.evaluate(() => !!document.querySelector('#hm-agents [data-cn-setup]') && document.querySelectorAll('#hm-agents [data-cn-setup], #hm-agents [data-cn-co]').length === 1);
     check('D12 and it is the one admin row inside Needs you (no band)', inSlot);
     const n = Number((/(\d+)/.exec(doorText) || [])[1] || -1);
     await p2.click('[data-cn-setup]');

@@ -73,7 +73,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 20, null, { timeout: 15000 });
-    await until(() => state.view === 'counter' || state.view === 'dashboard');
+    await until(() => state.view === 'dashboard');
     await page.waitForTimeout(1500);
     await page.evaluate(() => { intel.cam = null; intel.tab = 'map'; setView('dashboard'); hbSetFace('explorer'); });
     await until(() => hbFace() === 'explorer' && window.IG && IG.nodes && IG.nodes.length > 5 && !!document.querySelector('#ig-note #ig-group'));

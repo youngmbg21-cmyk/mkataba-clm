@@ -182,12 +182,13 @@ describe('f745 (3) the Board\'s card is all of Needs you (Round A, 22 Oct 2026)'
     assert.match(f, /document\.getElementById\('hm-agents'\)/);
     assert.match(f, /\[data-nd-agent="\$\{CSS\.escape\(k\)\}"\]/, 'an agent named: its first row');
   });
-  test('3d "needs me" lands on Home\'s Needs you', () => {
+  /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the Board's own card, through the bar's home door (now the Board) */
+  test('3d "needs me" lands on the Board\'s Needs you', () => {
     const { w, pressed } = world();
     const landed = []; w.landOn = (t, o) => { landed.push(t); return Promise.resolve(null); };
     w.hbNeedsOpen();
     assert.deepEqual(pressed, ['counter']);
-    assert.deepEqual(landed, ['#cn-needs']);
+    assert.deepEqual(landed, ['#hm-agents']);
   });
 });
 

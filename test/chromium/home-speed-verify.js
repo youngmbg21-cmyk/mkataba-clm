@@ -53,7 +53,7 @@ const check = (name, pass, detail) => {
        then copied the sample, the sign-in swapped in the workspace's four and
        opened Home itself, and "opening Home" measured a repaint (0 ms). */
     await page.waitForFunction(ids => window.state && state.contracts && state.contracts.length === ids.length
-      && ids.every(id => state.contracts.some(c => c && c.id === id)) && state.view === 'counter' && typeof hbS === 'function',
+      && ids.every(id => state.contracts.some(c => c && c.id === id)) && state.view === 'dashboard' && typeof hbS === 'function',
     FIXTURES.map(c => c.id), { timeout: 20000 });
     const hasKept = await page.evaluate(() => typeof igFramesDrawn === 'function' && typeof igTurnFace === 'function');
     check('0. this build keeps the map and counts its frames', hasKept);

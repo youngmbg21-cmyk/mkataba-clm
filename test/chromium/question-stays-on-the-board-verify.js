@@ -67,7 +67,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     ai.reset();
     /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free trip is a reader's, asked as a chip asks (typed, the long form is the brain's) */
     await page.evaluate(w => intelAsk(w), 'take me to what needs me');
-    const B = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs') ? state.view : null, null, 10000);
+    const B = await until(() => state.view === 'dashboard' && !!document.querySelector('#hm-agents') ? state.view : null, null, 10000);
     check('B "take me to what needs me" opens Home\'s Needs you, nothing spent', B === 'counter' && ai.calls.length === 0, `${B} · ${ai.calls.length}×`);
 
     console.log('\nF–G · the same question on other pages stays where it was asked (the server drops the trip, f928)');

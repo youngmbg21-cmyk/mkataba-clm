@@ -47,23 +47,25 @@ const _hbkCall = (n, what) => ({ en: `${n} Jambo call${n === 1 ? '' : 's'} ${wha
 const HANDBOOK_CHAPTERS = [
   /* ======================= PART 0 — GETTING AROUND ======================= */
   { k: '0.1', part: 'around', round: 1,
-    title: { en: 'Home: what needs you, your book, the Board', sv: 'Hem: vad som behöver dig, din bok, Tavlan' },
+    /* REWRITTEN (owner, 10 Nov 2026: "Home page should be removed / deleted"; "I want board to be the home page where you
+       land once you log in"): the first screen is the Board */
+    title: { en: 'The Board: where you land, what needs you, your book', sv: 'Tavlan: där du landar, vad som behöver dig, din bok' },
     eyebrow: { en: 'The first screen', sv: 'Första skärmen' },
-    what: { en: 'On a computer HaTi opens on Home. Jambo\'s box is at the top, Needs you under it (everything waiting on you, the contract\'s number first on every row), then your book: the Board, your contracts, the Calendar and the Explorer.',
-      sv: 'På en dator öppnar HaTi på Hem. Jambos ruta överst, Behöver dig under den (allt som väntar på dig, avtalets nummer först på varje rad), sedan din bok: Tavlan, dina avtal, Kalendern och Utforskaren.' },
+    what: { en: 'On a computer HaTi opens on the Board. Its top greets you and says the latest in one sentence; under it Your book (the figures against six months ago), then Needs you (everything waiting on you, the contract\'s number first on every row). Jambo\'s panel is beside it.',
+      sv: 'På en dator öppnar HaTi på Tavlan. Överst hälsar den dig och säger det senaste i en mening; under det Din bok (siffrorna mot för sex månader sedan), sedan Behöver dig (allt som väntar på dig, avtalets nummer först på varje rad). Jambos panel står bredvid.' },
     when: [{ en: 'Every morning: what is waiting, and whose move it is. You sign in with your {ui:co_work_email} and password; the sign-in page says in one sentence what HaTi is, and under the form what stays inside your company.', sv: 'Varje morgon: vad som väntar, och vems drag det är. Du loggar in med din {ui:co_work_email} och ditt lösenord; inloggningssidan säger i en mening vad HaTi är, och under formuläret vad som stannar inom ert företag.' },
       { en: 'When you are lost: the bar\'s HaTi mark always brings you back here.', sv: 'När du tappat bort dig: HaTi-märket i listen tar dig alltid hit.' }],
-    path: ['door:counter', { en: 'or press HaTi in the bar', sv: 'eller tryck HaTi i listen' }],
-    how: [{ en: 'Read Needs you. Each row has one button with one word ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): press it and you land on that act.', sv: 'Läs Behöver dig. Varje rad har en knapp med ett ord ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): tryck och du landar på den handlingen.' },
-      { en: 'Jambo\'s ready pieces come first; "Show all N" opens the whole desk on the Board.', sv: 'Jambos färdiga stycken kommer först; "Visa alla N" öppnar hela disken på Tavlan.' },
-      { en: 'Right under the box, "Likely next:" says the next three things that wait as whole tasks ("answer Nordvik Logistik\'s 2 changes"), after the Board; a press does what that row\'s button does. With nothing waiting, the links are the Board, contracts, the calendar and a new agreement.', sv: 'Direkt under rutan säger "Troligen härnäst:" de tre nästa sakerna som väntar som hela uppgifter ("svara på Nordvik Logistiks 2 ändringar"), efter Tavlan; ett tryck gör det radens knapp gör. När inget väntar är länkarna Tavlan, avtal, kalendern och ett nytt avtal.' },
-      { en: 'Under it, your book: {door:board} for the figures, {door:contracts} for every contract, {door:calendar} and {door:explorer}.', sv: 'Under det, din bok: {door:board} för siffrorna, {door:contracts} för alla avtal, {door:calendar} och {door:explorer}.' }],
-    tip: { en: 'There is no menu on the left. Every page is a word: type it in Jambo\'s box, or type / and pick from the list.', sv: 'Det finns ingen meny till vänster. Varje sida är ett ord: skriv det i Jambos ruta, eller skriv / och välj i listan.' },
-    cost: _hbkFree, doors: ['counter', 'needs', 'board', 'work'], acts: [],
-    words: { en: ['home', 'start page', 'first screen', 'needs you', 'needs me', 'what is waiting'], sv: ['hem', 'startsidan', 'behöver mig', 'vad väntar'] },
+    path: ['door:board', { en: 'or press HaTi in the bar', sv: 'eller tryck HaTi i listen' }],
+    how: [{ en: 'Read the sentence at the top: each fact in it is a link to its list ("2 things are late" opens Needs you).', sv: 'Läs meningen överst: varje faktum i den är en länk till sin lista ("2 saker är försenade" öppnar Behöver dig).' },
+      { en: 'Read Needs you. Each row has one button with one word ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): press it and you land on that act.', sv: 'Läs Behöver dig. Varje rad har en knapp med ett ord ({ui:nd_btn_sign}, {ui:nd_btn_review}, {ui:nd_btn_fill} …): tryck och du landar på den handlingen.' },
+      { en: 'Its tabs split it: All, Your move, and what Jambo prepared.', sv: 'Dess flikar delar upp den: Alla, Ditt drag och det Jambo har förberett.' },
+      { en: 'From here: {door:contracts} for every contract, {door:calendar} and {door:explorer}.', sv: 'Härifrån: {door:contracts} för alla avtal, {door:calendar} och {door:explorer}.' }],
+    tip: { en: 'There is no menu on the left. Every page is a word: type it in Jambo\'s box, or type / and pick from the list. "home" typed brings you here too.', sv: 'Det finns ingen meny till vänster. Varje sida är ett ord: skriv det i Jambos ruta, eller skriv / och välj i listan. "hem" tar dig också hit.' },
+    cost: _hbkFree, doors: ['board', 'needs', 'work'], acts: [],
+    words: { en: ['home', 'start page', 'first screen', 'board', 'needs you', 'needs me', 'what is waiting'], sv: ['hem', 'startsidan', 'tavlan', 'behöver mig', 'vad väntar'] },
     shots: [
-      { go: [{ place: 'counter' }], boxes: [{ sel: '#cn-needs .nd-btn', step: 1 }, { sel: '[data-nd-all="jambo"]', step: 2 }], cap: { en: 'Each row of Needs you has one button with one word (1); Jambo\'s ready pieces come first, with Show all (2).', sv: 'Varje rad i Behöver dig har en knapp med ett ord (1); Jambos färdiga stycken kommer först, med Visa alla (2).' } },
-      { go: [{ place: 'counter' }], boxes: [{ sel: '#cn-chips', step: 3 }], cap: { en: 'Under the box, the Board and the next three things that wait, said as tasks (3).', sv: 'Under rutan, Tavlan och de tre nästa sakerna som väntar, sagda som uppgifter (3).' } }] },
+      { go: [{ place: 'board' }, { waitFor: '#hb-bhead' }], boxes: [{ sel: '#hb-bhead', step: 1 }], cap: { en: 'The top greets you and says the latest; each fact is a link (1).', sv: 'Överst hälsar Tavlan dig och säger det senaste; varje faktum är en länk (1).' } },
+      { go: [{ place: 'needs' }, { waitFor: '#hm-agents .nd-btn' }], boxes: [{ sel: '#hm-agents .nd-btn', step: 2 }, { sel: '#hm-agents .nd-tabs', step: 3 }], cap: { en: 'Each row of Needs you has one button with one word (2); the tabs split it (3).', sv: 'Varje rad i Behöver dig har en knapp med ett ord (2); flikarna delar upp den (3).' } }] },
 
   { k: '0.2', part: 'around', round: 1,
     title: { en: 'Ask Jambo, or type "/"', sv: 'Fråga Jambo, eller skriv "/"' },
@@ -89,7 +91,7 @@ const HANDBOOK_CHAPTERS = [
     cost: { en: 'Free to move by a page\'s one name, a contract\'s number, "/" or a chip; anything else typed is one call to the brain', sv: 'Gratis att flytta med en sidas namn, ett avtals nummer, "/" eller en knapp; allt annat du skriver är ett anrop till hjärnan' }, doors: ['help', 'back', 'next'], acts: [],
     words: { en: ['ask jambo', 'jambo box', 'slash', 'type a place', 'talk to jambo', 'chat'], sv: ['fråga jambo', 'jambos ruta', 'snedstreck', 'chatta'] },
     shots: [
-      { go: [{ place: 'counter' }, { type: '/' }], boxes: [{ sel: '#cn-q', step: 1 }, { sel: '#cn-pop', step: 1 }], cap: { en: 'Type / and the places you use most are listed (1).', sv: 'Skriv / så listas platserna du använder mest (1).' } },
+      { go: [{ place: 'board' }, { waitFor: '#igd-input' }, { type: '/', into: '#igd-input' }], boxes: [{ sel: '#igd-input', step: 1 }, { sel: '#hb-askpop', step: 1 }], cap: { en: 'Type / and the places you use most are listed (1).', sv: 'Skriv / så listas platserna du använder mest (1).' } },
       { go: [{ place: 'oblig' }], boxes: [{ sel: '#ins-panel [data-jl-home]', step: 4 }, { sel: '#jl-q', step: 7 }], cap: { en: 'Every panel opens on Overview, with no Jambo tab (4); a page\'s one name typed in the box moves you there (7).', sv: 'Varje panel öppnar på Översikt, utan Jambo-flik (4); en sidas namn i rutan flyttar dig dit (7).' } },
       { go: [{ place: 'oblig' }, { eval: "ai.history.push({ role: 'user', text: 'What is due this week?' }, { role: 'assistant', text: 'Two duties are due this week: a payment to Kabras Sugar on Thursday and a report to Naivas on Friday.' }); jlTalkPress();" }], boxes: [{ sel: '#ins-panel [data-jl-talk]', step: 5 }, { sel: '#ins-panel .jl-foot [data-jb-door] .jb-door-back', step: 5 }, { sel: '#ins-panel .jl-foot [data-jb-door] [data-jb-bin]', step: 6 }], cap: { en: 'Asked something, the panel is his conversation (5); "‹ Overview" right above the box goes back, the bin at its end empties the talk (6).', sv: 'När du frågat är panelen hans samtal (5); "‹ Översikt" precis ovanför rutan går tillbaka, papperskorgen i slutet tömmer samtalet (6).' } }] },
 
@@ -107,8 +109,8 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['alerts', 'news'], acts: [],
     words: { en: ['bell', 'alerts', 'notifications', 'news', 'panel button', 'count'], sv: ['klockan', 'aviseringar', 'notiser', 'nyheter', 'panelknappen', 'siffran'] },
     shots: [
-      { go: [{ place: 'counter' }], boxes: [{ sel: '#hdr-notify', step: 1 }], cap: { en: 'The panel button, top right: its number counts what Needs you lists (1).', sv: 'Panelknappen, uppe till höger: dess siffra räknar det Behöver dig listar (1).' } },
-      { go: [{ place: 'counter' }, { panel: 'alerts' }], boxes: [{ sel: '[data-pt-face="alerts"]', step: 1 }, { sel: '#panel-body .nd-btn', step: 2 }], cap: { en: 'The Alerts list (1); each row\'s button lands on what it asks (2).', sv: 'Aviseringslistan (1); varje rads knapp landar på det den ber om (2).' } }] },
+      { go: [{ place: 'board' }], boxes: [{ sel: '#hdr-notify', step: 1 }], cap: { en: 'The panel button, top right: its number counts what Needs you lists (1).', sv: 'Panelknappen, uppe till höger: dess siffra räknar det Behöver dig listar (1).' } },
+      { go: [{ place: 'board' }, { panel: 'alerts' }], boxes: [{ sel: '[data-pt-face="alerts"]', step: 1 }, { sel: '#panel-body .nd-btn', step: 2 }], cap: { en: 'The Alerts list (1); each row\'s button lands on what it asks (2).', sv: 'Aviseringslistan (1); varje rads knapp landar på det den ber om (2).' } }] },
 
   { k: '0.4', part: 'around', round: 1,
     title: { en: 'A contract\'s Dossier', sv: 'Ett avtals Dossier' },
@@ -144,9 +146,9 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['guide', 'activity', 'handbook', 'recent'], acts: [],
     words: { en: ['guide', 'right panel', 'side panel', 'activity', 'handbook', 'instructions', 'manual'], sv: ['guide', 'högerpanel', 'sidopanel', 'aktivitet', 'handbok', 'instruktioner'] },
     shots: [
-      { go: [{ place: 'counter' }, { panel: 'guide' }], boxes: [{ sel: '#hdr-notify', step: 1 }, { sel: '#panel-tabs', step: 1 }], cap: { en: 'The panel button, top right, and the panel\'s tabs (1).', sv: 'Panelknappen, uppe till höger, och panelens flikar (1).' } },
-      { go: [{ place: 'counter' }, { panel: 'guide' }], boxes: [{ sel: '[data-gd-go="requests"]', step: 2 }], cap: { en: 'A page\'s row on the Guide, with its own count (2).', sv: 'En sidas rad i Guiden, med sin egen räkning (2).' } },
-      { go: [{ place: 'counter' }, { panel: 'guide' }], boxes: [{ sel: '[data-gd-go="handbook"]', step: 2 }, { sel: '#panel-ask', step: 3 }], cap: { en: 'The Handbook\'s own row (2); Jambo\'s box at the foot of every face (3).', sv: 'Handbokens egen rad (2); Jambos ruta längst ned i varje ansikte (3).' } }] },
+      { go: [{ place: 'board' }, { panel: 'guide' }], boxes: [{ sel: '#hdr-notify', step: 1 }, { sel: '#panel-tabs', step: 1 }], cap: { en: 'The panel button, top right, and the panel\'s tabs (1).', sv: 'Panelknappen, uppe till höger, och panelens flikar (1).' } },
+      { go: [{ place: 'board' }, { panel: 'guide' }], boxes: [{ sel: '[data-gd-go="requests"]', step: 2 }], cap: { en: 'A page\'s row on the Guide, with its own count (2).', sv: 'En sidas rad i Guiden, med sin egen räkning (2).' } },
+      { go: [{ place: 'board' }, { panel: 'guide' }], boxes: [{ sel: '[data-gd-go="handbook"]', step: 2 }, { sel: '#panel-ask', step: 3 }], cap: { en: 'The Handbook\'s own row (2); Jambo\'s box at the foot of every face (3).', sv: 'Handbokens egen rad (2); Jambos ruta längst ned i varje ansikte (3).' } }] },
 
   { k: '0.6', part: 'around', round: 1,
     title: { en: 'Finding a contract', sv: 'Hitta ett avtal' },
@@ -242,9 +244,9 @@ const HANDBOOK_CHAPTERS = [
     cost: { en: 'Free; Jambo\'s read of their file says its cost', sv: 'Gratis; Jambos läsning av deras fil säger sin kostnad' }, doors: ['draft'], acts: [],
     words: { en: ['new agreement', 'new contract', 'draft a contract', 'start a contract', 'create a contract', 'draft from a sentence'], sv: ['nytt avtal', 'skapa avtal', 'skriv ett avtal', 'börja ett avtal'] },
     shots: [
-      { go: [{ place: 'counter' }, { fn: 'openNewAgreement' }], boxes: [{ sel: '#dr-say', step: 1 }, { sel: '#na-closest', step: 1 }], cap: { en: 'Say it in a sentence; the three closest papers are offered (1).', sv: 'Säg det i en mening; de tre närmaste papperen erbjuds (1).' } },
-      { go: [{ place: 'counter' }, { fn: 'openNewAgreement' }, { click: '[data-wz-tid="ND"]' }], boxes: [{ sel: '#na-card-name', step: 2 }, { sel: '#na-form .na-kt-h', step: 2 }], cap: { en: 'A paper chosen: its rows, Term · What it says · Where it came from (2).', sv: 'Ett papper valt: dess rader, Villkor · Vad det säger · Var det kom ifrån (2).' } },
-      { go: [{ place: 'counter' }, { fn: 'openNewAgreement' }], boxes: [{ sel: '#na-file-seg', step: 3 }, { sel: '#na-file-need', step: 3 }], cap: { en: 'Pick a stream; Create waits until there is one (3).', sv: 'Välj en ström; Skapa väntar tills det finns en (3).' } }] },
+      { go: [{ place: 'board' }, { fn: 'openNewAgreement' }], boxes: [{ sel: '#dr-say', step: 1 }, { sel: '#na-closest', step: 1 }], cap: { en: 'Say it in a sentence; the three closest papers are offered (1).', sv: 'Säg det i en mening; de tre närmaste papperen erbjuds (1).' } },
+      { go: [{ place: 'board' }, { fn: 'openNewAgreement' }, { click: '[data-wz-tid="ND"]' }], boxes: [{ sel: '#na-card-name', step: 2 }, { sel: '#na-form .na-kt-h', step: 2 }], cap: { en: 'A paper chosen: its rows, Term · What it says · Where it came from (2).', sv: 'Ett papper valt: dess rader, Villkor · Vad det säger · Var det kom ifrån (2).' } },
+      { go: [{ place: 'board' }, { fn: 'openNewAgreement' }], boxes: [{ sel: '#na-file-seg', step: 3 }, { sel: '#na-file-need', step: 3 }], cap: { en: 'Pick a stream; Create waits until there is one (3).', sv: 'Välj en ström; Skapa väntar tills det finns en (3).' } }] },
 
   { k: '2.2', part: 'draft', round: 1,
     title: { en: 'Upload a document', sv: 'Ladda upp ett dokument' },
@@ -1240,7 +1242,7 @@ function hbkPlainFor(k, lang, word){
    I do here?" is answered from them. A view is the app's state.view; Home's faces have their own. A page with no
    chapter is a GAP the Handbook owes (test/f938's gap list), never a guess. */
 const HBK_VIEW_DOORS = {
-  dashboard: ['counter', 'needs'], register: ['contracts', 'list', 'wall'], folder: ['contracts', 'list'], workspace: ['document'],
+  dashboard: ['board', 'needs'], register: ['contracts', 'list', 'wall'], folder: ['contracts', 'list'], workspace: ['document'],
   redline: ['negotiations', 'redline'], reports: ['board'], obligations: ['oblig', 'week'],
   approvals: ['approvals'], pipeline: ['approvals'], customers: ['parties'], agents: ['house'], jambo: ['house'], brain: ['brain'],
   calendar: ['calendar'], mynotes: ['mynotes'], reads: ['reads'], handbook: ['handbook'], flowmap: ['flowmap'], pulse: ['pulse'], templates: ['ourpaper'], playbook: ['ourpaper'],

@@ -77,9 +77,9 @@ const COUNT_WRITES = () => {
     /* RE-POINTED 9 Nov 2026: the card is gone; History stands in the middle beside the paper (pd2HistOpen) */
     return { view: state.view, face: hb.face, card: document.getElementById('pd2-hist') ? 'hist' : null, trail: (typeof pdTrail === 'function' && pdTrail()) ? pdTrail().back : null }; });
   const home = async () => { await page.keyboard.press('Escape').catch(() => {}); await page.evaluate(() => setView('counter'));
-    await waitFor(page, () => !!document.getElementById('cn-q') && !!document.getElementById('cn-q').offsetParent); await pause(200); };
+    await waitFor(page, () => !!document.getElementById('igd-input') && !!document.getElementById('igd-input').offsetParent); await pause(200); };
   /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
-  const ask = async w => { await page.evaluate(x => counterAsk(x), w); };
+  const ask = async w => { await page.evaluate(x => caAskAnywhere(x, { all: true }), w); };
   const writes = () => page.evaluate(() => { const w = window.__gfW; window.__gfW = {}; return w; });
   const settle = async () => { await pause(900); };
   try {
@@ -251,7 +251,7 @@ const COUNT_WRITES = () => {
       const openSheet = async () => { await home(); await ask('board'); await waitFor(page, () => hbS().face === 'board' && !!document.querySelector('[data-hb-dig^="st:"]'));
         /* a stage's number opens its contracts in the side list (Your book's figures open their page) */
         await page.locator('[data-hb-dig^="st:"]:not([disabled]) >> visible=true').first().click(); return waitFor(page, () => !!document.querySelector('.hb-sheet'), 4000); };
-      for (const [name, move] of [['Home asked again, then "board"', async () => { /* no Esc first: Esc closes the list by itself */ await page.evaluate(() => setView('counter')); await waitFor(page, () => !!document.getElementById('cn-q') && !!document.getElementById('cn-q').offsetParent); await ask('board'); await settle(); }],
+      for (const [name, move] of [['Home asked again, then "board"', async () => { /* no Esc first: Esc closes the list by itself */ await page.evaluate(() => setView('counter')); await waitFor(page, () => !!document.getElementById('igd-input') && !!document.getElementById('igd-input').offsetParent); await ask('board'); await settle(); }],
         ['the Board\'s own tab pressed', async () => { await page.evaluate(() => hbSetFace('board')); await settle(); }],
         ['another page, then back to Home', async () => { await page.evaluate(() => setView('approvals')); await settle(); await home(); await ask('board'); await settle(); }]]){
         const up = await openSheet();

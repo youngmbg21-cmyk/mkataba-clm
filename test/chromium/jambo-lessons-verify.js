@@ -27,11 +27,11 @@ const WORDS = 'renewals coming up';
     const until = async (fn, arg, ms = 10000) => { try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-    await until(() => !!document.getElementById('cn-q') && window.state && state.contracts && state.contracts.length > 0, null, 30000);
+    await until(() => !!document.getElementById('igd-input') && window.state && state.contracts && state.contracts.length > 0, null, 30000);
     const rows = () => page.evaluate(async () => { const r = await api('jambo/unplaced'); return (r && r.rows) || []; });
 
     /* ---- 1 typed, not placed, then the person's own move ---- */
-    await page.fill('#cn-q', WORDS); await page.press('#cn-q', 'Enter');
+    await page.fill('#igd-input', WORDS); await page.press('#igd-input', 'Enter');
     await page.waitForTimeout(1200);
     await page.evaluate(() => setView('obligations'));
     await until(() => state.view === 'obligations');
@@ -41,7 +41,7 @@ const WORDS = 'renewals coming up';
       !!kept && /^(counter|dashboard)$/.test(kept.page) && kept.next === 'obligations' && !('by' in kept) && !('user' in kept), kept);
 
     /* ---- 2 Jambo's own move keeps nothing ---- */
-    await page.evaluate(() => setView('counter')); await until(() => !!document.getElementById('cn-q'));
+    await page.evaluate(() => setView('counter')); await until(() => !!document.getElementById('igd-input'));
     await page.evaluate(() => { jamboUnplacedNote('words he then answered by moving'); caGo({ kind: 'go', place: 'calendar' }); });
     await page.waitForTimeout(1500);
     check('2 words followed by Jambo\'s own move are not kept', !(await rows()).some(r => r.text === 'words he then answered by moving'));
@@ -67,9 +67,9 @@ const WORDS = 'renewals coming up';
 
     /* ---- 4 the taught words move free ---- */
     await page.evaluate(() => { try { stDrawerClose(); } catch (_) {} setView('counter'); });
-    await until(() => !!document.getElementById('cn-q'));
+    await until(() => !!document.getElementById('igd-input'));
     const c0 = h.ai.calls.length;
-    await page.fill('#cn-q', WORDS); await page.press('#cn-q', 'Enter');
+    await page.fill('#igd-input', WORDS); await page.press('#igd-input', 'Enter');
     const moved = await until(() => state.view === 'obligations', null, 6000);
     await page.waitForTimeout(500);
     check('4 the taught words typed again move to Obligations at once, with no Jambo call', moved && h.ai.calls.length === c0, { view: await page.evaluate(() => state.view), calls: h.ai.calls.length - c0 });

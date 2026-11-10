@@ -147,9 +147,9 @@ const deliver = answer => ({ content: [{ type: 'tool_use', id: 'tu_d', name: 'de
     if (!ONLY || ONLY.includes('home')){
       console.log('\n· 8: Home\'s box and the ✦ window');
       await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
-      await until(P, () => { const i = document.getElementById('cn-q'); return i && i.offsetParent ? true : null; }, null, 6000);
+      await until(P, () => { const i = document.getElementById('igd-input'); return i && i.offsetParent ? true : null; }, null, 6000);
       ai.reset();
-      await type('#cn-q', 'settings');
+      await type('#igd-input', 'settings');
       const s1 = await until(P, () => state.view === 'team' ? true : null, null, 6000);
       check('8a "settings" typed in Home\'s box moves to Settings, nothing spent', !!s1 && ai.calls.length === 0, `${ai.calls.length}×`);
       await open("setView('obligations')", '#ins-panel');
