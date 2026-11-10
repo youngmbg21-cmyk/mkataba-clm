@@ -20083,6 +20083,19 @@
   html.lg-new #ig-dock .igd-foot > .hb-pre:empty{display:none}
   html.lg-new #ct-place .ct-page .ct-wall{flex:1 1 0%;min-height:0;overflow-y:auto}
   html.lg-new #ct-place .ct-page .ct-wall > *{flex:none}
+  /* THE FOLDERS SCROLL TOO (owner, 10 Nov 2026: "the page does not scroll"): the place clips what it holds, and the
+     folders page had no part that scrolls inside it, so every folder past the window's foot was cut off and out of
+     reach. Its list (and the tiles) take the room left under the head and scroll there, as the wall and the list do;
+     the count line stays at the foot. THE LESSON: a frame that clips needs a scroller inside it (white-sheet-verify, CUT). */
+  html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid){flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ctf-page > .ctf-list > *{flex:none}
+  html.lg-new #ct-place .ctf-page > .ctf-grid{align-content:start}
+  /* A SEARCH BOX WEARS NO RING (owner, 10 Nov 2026: "the search areas should never have outlines. They should be like
+     the jambo entry fields where you simply type in an empty field"): the box you type a search or a filter into shows
+     the caret and nothing else, pressed or keyed to; neither the field nor the line that holds it draws an outline or
+     a glow. The house ring is an outline AND a shadow, so both go (the folders' box had only the outline taken off). */
+  html.lg-new :is(input[type="search"], .apn-box input, .lh-ask input, .jl-box input, .st-search input, .hist-q input, .ik-search input, .cmd-search input):is(:focus, :focus-visible){outline:none;box-shadow:none}
+  html.lg-new :is(.apn-box, .lh-ask, .st-search, .hist-q, .ik-search, .cmd-search):focus-within{outline:none;box-shadow:none}
   html.lg-new .tpln{height:auto;min-height:100%}
   html.lg-new .tpln .tpln-sheet{position:sticky;top:8px;align-self:start}
   /* ==== ONE WHITE SHEET, THE FIX ROUND (owner, 9 Nov 2026: Settings, a template's page and the builder "build", drawn

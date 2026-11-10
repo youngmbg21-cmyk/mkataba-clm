@@ -21957,3 +21957,10 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - 10 Nov 2026 — f982 test 3 still looked for `listSapCellHtml(obnSapKey` after #618 rewrote `obnRowHtml` (mark key now `mk`), red on main at cf35ae9; re-pointed in #619 with the owner's yes ("fix it in yours"). Nothing a person sees changed.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) Opening the Send screen on MK-HB4 (handed over for signature, handbook world) shows a red toast "Not saved: MK-HB4 has been handed over for signature, so its wording is locked…" — opening Send appears to try a save on a frozen contract (reading must not write), seen while photographing; not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) The other side's page (portal) was not part of the sweep: it carries its own look switch (`outsideLook`) and needs a share link to open; its detail lines were not measured.
+
+## 10 Nov 2026 — Contracts' folders: the page did not scroll; the search box drew a ring
+- FIXED · THE PAGE DID NOT SCROLL (owner-reported, a picture: eleven folders, the eighth cut off). Cause: Contracts is a place that clips what it holds; the folders page, new on 9 Nov, was put inside it with no part that scrolls (the list and the wall got theirs the same day, the folders page was missed). Fix: its list scrolls in the room under the head. LEARNING: a frame that clips needs a scroller inside it; every new page drawn into a clipping place is checked at the shortest screen with more rows than fit. Check: white-sheet-verify CUT, f996.
+- FIXED · THE SEARCH BOX DREW A GREEN RING (owner-reported). Cause: the focus ring is an outline and a shadow; only the outline was taken off. Fix and rule: a search box wears no ring, anywhere in the new look. f996.
+### Noticed, not fixed
+- white-sheet-verify's new CUT measure prints NOTED lines for any other place where something is cut off out of reach; read GitHub's run and rule on each.
+- A search box inside a form pop-up (the SAP frame) keeps the pop-up's own field ring and grey box; not changed.

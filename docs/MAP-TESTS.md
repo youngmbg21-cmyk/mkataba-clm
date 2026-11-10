@@ -4,6 +4,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 
 ## STANDING LESSONS
+- A FRAME THAT CLIPS NEEDS A SCROLLER INSIDE IT (10 Nov 2026): f996 (2)(3) (red at the parent) and `test/chromium/white-sheet-verify.js` CUT — a frame with overflow hidden whose content runs on below it with something to read or press out of reach; a fault on `CUT_HELD` (Contracts), printed as NOTED on every other place; its own planted fault proves it looks. Runs on GitHub only.
 - LAND ON IT: land-on-it, open-in-place verify; f445, f707, f724.
 - A REFRESH LANDS AT THE SAME SPOT: refresh-keeps-your-spot-verify.
 
@@ -460,6 +461,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- A SEARCH BOX WEARS NO RING (10 Nov 2026): `test/f996-search-boxes-no-ring-folders-scroll.test.js` (1) — one rule for the field, one for the line that holds it, every search box named, after the house ring (red at the parent).
 - NO JAMBO CALLS SAID (owner, 8 Nov 2026): f975 (red at the parent on all three). Re-pointed node: f273, f295, f499, f519, f527, f534, f615, f706, f745, f748, f753, f754, f759, f772, f792, f797, f798, f804, f811, f863, f864, f874, f954, f956, f957; browser contract-new-look-verify. f515 and f520 run out of memory here at the parent too (not this change).
 - THE OWNER'S FOUR DECISIONS (25 Oct 2026: Q1 Legora way, Q2 Short words, Q3 Two lines, Q4 Skip): four-decisions-verify (27 checks at the three screens; red at the parent 5ba3f38 on every Q1–Q3 claim but the panel's ›, which held there because the tabs shrank).
   Re-pointed: jambo-looks-them-up 1c (Who else may take two lines; the web row matches the one-line Signer row).
