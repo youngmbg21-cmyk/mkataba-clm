@@ -1072,6 +1072,9 @@ function calAgendaViewHtml(evs){
    ({keepPanel:true}); the panel painted a moment ago by Home's own opening is not painted again (_calPanelFresh);
    your own events and notes repaint the page only when loading them brought something; the dates are counted once
    per draw (calEventsOnce) and each date's words are written by a kept formatter (calDateWords). */
+/* A QUIET REPAINT THAT CHANGES NOTHING DRAWS NOTHING (owner, 10 Nov 2026: "the agenda page seems to be slow"): the book
+   moving underneath the page (a save landing, a background refresh) asks renderCalendar({ifMoved:true}); when the page it
+   would draw is the one already on screen, the DOM, its wiring and anything typed into it are left alone */
 function renderCalendar(opts){
   const keepPanel=!!(opts&&opts.keepPanel===true);
   /* only Home's opening (hbApplyFace) may lean on a panel painted a moment ago: a repaint for Jambo's own work (his
@@ -1153,7 +1156,7 @@ function renderCalendar(opts){
      parts are still the layers' switches (calKeyHtml). */
   const cardTitle=view==='week'?calWeekCardTitle():title;
   calStyleEnsure();
-  host.innerHTML=`
+  const html=`
   <div class="view-enter cal-page${onHome?' is-home':''}${nl?' is-nl':''}">
     ${nl?`<div class="cal-head is-nl">
       <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
@@ -1194,6 +1197,9 @@ function renderCalendar(opts){
       </section>
     </div>
   </div>`;
+  const same=!!(opts&&opts.ifMoved)&&host._calHtml===html&&!!host.querySelector('.cal-page');
+  if(same){ if(onHome&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } return; }
+  host.innerHTML=html; host._calHtml=html;
 
   wireCalendar(evs, byDay, p);
   /* on Home its Copilot is Home's one panel, painted (and wired) there */

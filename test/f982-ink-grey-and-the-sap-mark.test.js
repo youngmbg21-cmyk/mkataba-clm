@@ -49,7 +49,7 @@ test('3 · every named list leads its rows with the mark, behind the switch; lat
   assert.match(AP, /listSapOn\(\)\)\?listSapMarkHtml\(r\.done\?'done':r\.mine\?'you':'them'/, 'Approvals (the list language row)');
   assert.match(AP, /listSapCellHtml\(r\.done\|\|r\.type==='receipt'\?'done'/, 'Approvals (the new look row)');
   assert.match(fnBody(OB, 'obwRowMarkHtml'), /listSapMarkHtml\(obState\(r\) === 'done' \? 'done'/, 'Obligations (the week)');
-  assert.match(fnBody(OB, 'obnRowHtml'), /listSapCellHtml\(obnSapKey/, 'Obligations (the new look row)');
+  assert.match(fnBody(OB, 'obnRowHtml'), /const mk = r\.st === 'done' \? 'done'[\s\S]*?r\.win === 'overdue'[\s\S]*?\? 'you'[\s\S]*listSapCellHtml\(mk,/, 'Obligations (the new look row)');
   assert.match(fnBody(CN, 'ndAvHtml'), /listSapOn\(\)\) return ndSapMarkHtml\(r, P\)/, 'Home: the mark replaces the initials');
   assert.match(fnBody(CN, 'ndBoardRowHtml'), /listSapOn\(\) \? ndSapMarkHtml\(r, P\)/, 'Needs you');
   assert.match(NG, /<div class="rl-card-metarow">\$\{rlSapMarkHtml\(band\)\}/, 'the Redlines cards');

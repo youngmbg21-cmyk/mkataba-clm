@@ -192,7 +192,10 @@ describe('f791 (6) the page', () => {
     assert.match(fnBody(OB, 'obListHtml'), /W\.rows\.map\(r => r\._find \? obwKeepTds\(obwFindsRowHtml\(r\)\) : W\.k === 'overdue' \? obwWeekRowHtml\(r, W\) : obwKeepTds\(obwWeekRowHtml\(r, W\)\)\)/);
     assert.match(fnBody(OB, 'obwDecisions'), /renewalDecided\(c\)/);
     assert.match(fnBody(OB, 'obwDecisions'), /d > RENEWAL_WINDOW_DAYS/);
-    assert.match(fnBody(OB, 'obwFinds'), /obReviewWaiting\(c\)\.length/);
+    /* RE-POINTED 10 Nov 2026 (f988, the Agenda is quicker): each contract's count is kept by obwFindN, which still
+       counts through obReviewWaiting, the one count */
+    assert.match(fnBody(OB, 'obwFinds'), /obwFindN\(c\)/);
+    assert.match(fnBody(OB, 'obwFindN'), /obReviewWaiting\(c\)\.length/);
   });
   test('6c the head: "N outstanding · N overdue", the tabs\' own counts, and its acts', () => {
     assert.match(page, /i18tn\('ob_head_out', out, \{ n: out \}\)/);
