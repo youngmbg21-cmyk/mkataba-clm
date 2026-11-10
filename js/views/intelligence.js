@@ -10981,7 +10981,7 @@ function igWallCardHtml(c,need){
   /* THE WALL AS DRAWN (the new look, round 6): each paper a sheet, its stage's mark at its corner, the party and the
      value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel) */
   if(window.newLookOn&&newLookOn()){
-    const mark=typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'';
+    const mark=typeof window.regSapMarkHtml==='function'?regSapMarkHtml(c):(typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'');
     return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>
     <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span><i style="background:${dot}"></i>${igEsc(word)}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></span></button>`;
