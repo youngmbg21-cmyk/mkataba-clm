@@ -21957,3 +21957,27 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - 10 Nov 2026 — f982 test 3 still looked for `listSapCellHtml(obnSapKey` after #618 rewrote `obnRowHtml` (mark key now `mk`), red on main at cf35ae9; re-pointed in #619 with the owner's yes ("fix it in yours"). Nothing a person sees changed.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) Opening the Send screen on MK-HB4 (handed over for signature, handbook world) shows a red toast "Not saved: MK-HB4 has been handed over for signature, so its wording is locked…" — opening Send appears to try a save on a frozen contract (reading must not write), seen while photographing; not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) The other side's page (portal) was not part of the sweep: it carries its own look switch (`outsideLook`) and needs a share link to open; its detail lines were not measured.
+
+## 10 Nov 2026 — Contracts' folders: the page did not scroll; the search box drew a ring
+- FIXED · THE PAGE DID NOT SCROLL (owner-reported, a picture: eleven folders, the eighth cut off). Cause: Contracts is a place that clips what it holds; the folders page, new on 9 Nov, was put inside it with no part that scrolls (the list and the wall got theirs the same day, the folders page was missed). Fix: its list scrolls in the room under the head. LEARNING: a frame that clips needs a scroller inside it; every new page drawn into a clipping place is checked at the shortest screen with more rows than fit. Check: white-sheet-verify CUT, f996.
+- FIXED · THE SEARCH BOX DREW A GREEN RING (owner-reported). Cause: the focus ring is an outline and a shadow; only the outline was taken off. Fix and rule: a search box wears no ring, anywhere in the new look. f996.
+### Noticed, not fixed
+- white-sheet-verify's new CUT measure prints NOTED lines for any other place where something is cut off out of reach; read GitHub's run and rule on each.
+- A search box inside a form pop-up (the SAP frame) keeps the pop-up's own field ring and grey box; not changed.
+
+## 10 Nov 2026 — The wall's circles did not match the rest of the platform
+- FIXED · THE WALL DREW AN OLDER RING (owner-reported, a picture). The wall's papers, and a party's own list of agreements, drew a dotted or half-filled outline while the list draws the filled SAP way mark. Both now draw the list's mark from the list's own reading. f997.
+### Noticed, not fixed
+- The wall's fourth paper in a row is cut at the right edge and the wall scrolls sideways at 1536 wide with Jambo's panel open (also in the owner's picture); "no panel scrolls sideways" says it should not.
+
+## 10 Nov 2026 — Contracts' folders rebuilt: Views first (the owner's pick by name)
+- BUILT · Views across every folder on top (my approval, out for signature, ending in 90 days, above 10M), the folders as two compact columns under them; a view opens the list on exactly its contracts. Reverses the Legora-way folder rows of 9 Nov. f998.
+- A BAND REMOVED, said to the owner: the folders' key line (Signed · In review · Drafting) went with the bars it explained.
+### Noticed, not fixed
+- The Handbook's Contracts chapter still describes the row's mark in the older words (a ticked circle, a half circle, a dashed circle); the list and the wall now wear the SAP way mark.
+- The Handbook's pictures for Contracts were not re-taken here (the picture tool is a browser check; it runs on GitHub).
+- With a view open, the page head still counts the whole book ("29 · … on paper") while the list shows the view's 15.
+
+## 10 Nov 2026 — GitHub's run on Views first
+- FIXED · round6-new-look-verify step 1 failed: it pinned the folders' old card wording ("N contracts"). The owner's picked design (Views first) makes the row say "5 · KES 86.30M · 3 need you", so the check was re-pointed to the new shape and now also reads the view tiles. The design was not changed to suit the check.
+- NOT A FAULT: owed-first-verify and read-table-verify, which failed on the previous push, both passed on this run with no change. Timing, not a break.

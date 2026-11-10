@@ -19869,6 +19869,8 @@
   html.lg-new .ctfp-rk-b i{display:block;height:100%;border-radius:4px}
   html.lg-new .ctfp-rk-b i.is-amber{background:var(--st-amber-dot)}
   html.lg-new .ctfp-rk-b i.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .ctfp-rk-b i.is-ink{background:var(--color-text)}
+  html.lg-new .ctfp-rk-b i.is-grey{background:var(--color-neutral-300)}
   html.lg-new .ctfp-rk b{text-align:right;font-weight:var(--w-label);font-variant-numeric:tabular-nums;white-space:nowrap}
   @media (hover:hover){ html.lg-new .ctfp-rk:hover .ctfp-rk-n{text-decoration:underline} }
   html.lg-new #pd-glance :is(.pd2-l,.pd2-read,.pd2-card-say){color:var(--color-neutral-400)}
@@ -20083,6 +20085,45 @@
   html.lg-new #ig-dock .igd-foot > .hb-pre:empty{display:none}
   html.lg-new #ct-place .ct-page .ct-wall{flex:1 1 0%;min-height:0;overflow-y:auto}
   html.lg-new #ct-place .ct-page .ct-wall > *{flex:none}
+  /* THE FOLDERS SCROLL TOO (owner, 10 Nov 2026: "the page does not scroll"): the place clips what it holds, and the
+     folders page had no part that scrolls inside it, so every folder past the window's foot was cut off and out of
+     reach. Its list (and the tiles) take the room left under the head and scroll there, as the wall and the list do;
+     the count line stays at the foot. THE LESSON: a frame that clips needs a scroller inside it (white-sheet-verify, CUT). */
+  html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid){flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ctf-page > .ctf-list > *{flex:none}
+  html.lg-new #ct-place .ctf-page > .ctf-grid{align-content:start}
+  /* VIEWS FIRST (owner's pick by name, 10 Nov 2026; regFolderRowsHtml, regFolderViewsHtml): up to four view tiles in one
+     row, each one quiet tone read off what the view is about (your move amber, with someone else steel, time running out
+     ruby, money green), the number in the tone's ink, the words ink and grey; under them the folders, two compact columns.
+     The panel beside them keeps plain bars (ink, grey), so its colours are never read as the tiles'. */
+  html.lg-new .ctf-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-quiet);margin:0 0 8px}
+  html.lg-new .ctf-views{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px}
+  html.lg-new .ctf-view{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:16px;border:0;border-radius:var(--radius);background:var(--surface-2);font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .ctf-view b{font-size:24px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;margin-bottom:4px}
+  html.lg-new .ctf-view :is(span,small){max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-view span{font-size:13px}
+  html.lg-new .ctf-view small{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .ctf-view.is-amber{background:color-mix(in srgb,var(--st-amber-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-steel{background:color-mix(in srgb,var(--st-steel-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-ruby{background:color-mix(in srgb,var(--st-ruby-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-green{background:color-mix(in srgb,var(--st-green-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-amber b{color:var(--st-amber-fg)}
+  html.lg-new .ctf-view.is-steel b{color:var(--st-steel-fg)}
+  html.lg-new .ctf-view.is-ruby b{color:var(--st-ruby-fg)}
+  html.lg-new .ctf-view.is-green b{color:var(--st-green-fg)}
+  @media (hover:hover){ html.lg-new .ctf-view:hover{box-shadow:inset 0 0 0 1px var(--color-text)} }
+  html.lg-new .ctf-list.is-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:32px;align-content:start;border-top:0}
+  html.lg-new .ctf-row.is-compact{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 4px}
+  html.lg-new .ctf-row.is-compact .ctf-name{flex:1 1 auto;min-width:0;padding-right:0}
+  html.lg-new .ctf-row.is-compact .ctf-rl{flex:none}
+  html.lg-new .ctf-row.is-compact .ctf-rn{font-size:inherit}
+  @media (max-width:1100px){ html.lg-new .ctf-list.is-two{grid-template-columns:minmax(0,1fr)} }
+  /* A SEARCH BOX WEARS NO RING (owner, 10 Nov 2026: "the search areas should never have outlines. They should be like
+     the jambo entry fields where you simply type in an empty field"): the box you type a search or a filter into shows
+     the caret and nothing else, pressed or keyed to; neither the field nor the line that holds it draws an outline or
+     a glow. The house ring is an outline AND a shadow, so both go (the folders' box had only the outline taken off). */
+  html.lg-new :is(input[type="search"], .apn-box input, .lh-ask input, .jl-box input, .st-search input, .hist-q input, .ik-search input, .cmd-search input):is(:focus, :focus-visible){outline:none;box-shadow:none}
+  html.lg-new :is(.apn-box, .lh-ask, .st-search, .hist-q, .ik-search, .cmd-search):focus-within{outline:none;box-shadow:none}
   html.lg-new .tpln{height:auto;min-height:100%}
   html.lg-new .tpln .tpln-sheet{position:sticky;top:8px;align-self:start}
   /* ==== ONE WHITE SHEET, THE FIX ROUND (owner, 9 Nov 2026: Settings, a template's page and the builder "build", drawn

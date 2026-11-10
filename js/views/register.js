@@ -3662,32 +3662,73 @@ function regFoldersHtml(){
   const n = (cards.match(/data-ctf-folder/g) || []).length + (endCard ? 1 : 0);
   return `${regTileKeyHtml()}<div class="ctf-grid is-tiles">${cards}${endCard}${newCard}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
 }
-/* THE FOLDERS, THE LEGORA WAY (owner's pick by name, 9 Nov 2026; the new look; reverses EVEN TILES on Contracts, Parties
-   keeps its tiles): one quiet list, nothing boxed, the folders with the most work first. A row: the SAP way mark, the name
-   in ink, a grey line saying what the folder holds and what waits in words (contracts · value · 41 details · 7 signatures),
-   the signed · in review · drafting bar, and "52 need you" on the right. The press is the tile's own (data-ctf-folder). */
+/* VIEWS FIRST (owner's pick by name, 10 Nov 2026, from ten drawn options; the new look; reverses THE FOLDERS, THE LEGORA
+   WAY on Contracts, Parties keeps its tiles). The folders page is the step before the list of contracts, so it opens on
+   the questions that cut across folders: up to four ready views (waiting for my approval · out for signature · ending in
+   90 days · above 10M of the home currency), each one quiet tone, each a press that opens the list on exactly those
+   contracts through the one door a set already has (regShowOnly), where List | Wall switch as they always do. Under
+   them the folders, a compact two-column list, the most work first: the name, then "73 · SEK 80.3M · 56 need you".
+   A VIEW WITH NOTHING IN IT IS NOT DRAWN; the money view is not drawn for a reader who may not see values.
+   regFolderViewsData is the ONE reading: the tile's number and the list behind it are the same ids. */
+const CTF_VIEW_DAYS = 90, CTF_VIEW_BIG = 10000000;
+function regFolderViewsData(cs){
+  const T = typeof todayISO === 'function' ? String(todayISO() || '') : '';
+  let lim = '';
+  if (T){ const d = new Date(T + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + CTF_VIEW_DAYS); lim = d.toISOString().slice(0, 10); }
+  const safe = (fn, no) => { try { return fn(); } catch (_){ return no; } };
+  const kinds = c => safe(() => (typeof needsYouOf === 'function' ? needsYouOf(c) : []).map(x => x.kind), []);
+  const done = c => safe(() => typeof negoExecuted === 'function' ? !!negoExecuted(c) : c.status === 'Signed', false);
+  /* out for signature: signing has opened (a signer named on each side, or a signature already in) and is not finished */
+  const out = c => !done(c) && safe(() => !!((typeof negoAnySignature === 'function' && negoAnySignature(c)) || (typeof signingRouteOpen === 'function' && signingRouteOpen(c))), false);
+  const endOf = c => safe(() => String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10), '');
+  const val = c => safe(() => typeof fxRankValue === 'function' ? fxRankValue(c) : null, null);
+  const seeMoney = !(typeof canViewValues === 'function' && !canViewValues());
+  const fmt = v => typeof fmtMoneyShort === 'function' ? fmtMoneyShort(v) : String(v);
+  const inFolders = L => { const n = new Set(L.map(c => c.folder)).size; return i18tn('ctfv_in_folders', n, { n }); };
+  const ap = cs.filter(c => kinds(c).includes('approval'));
+  const sg = cs.filter(out);
+  const ends = T ? cs.filter(c => { const e = endOf(c); return !!e && e >= T && e <= lim; }) : [];
+  /* the day notice must be given is the renewal's own reading (ovMapRenewal), never worked out here */
+  const notice = ends.filter(c => safe(() => { const r = typeof ovMapRenewal === 'function' ? ovMapRenewal(c) : null; return !!(r && r.by && String(r.by).slice(0, 7) === T.slice(0, 7)); }, false)).length;
+  const big = seeMoney ? cs.filter(c => (val(c) || 0) >= CTF_VIEW_BIG) : [];
+  const sum = big.reduce((a, c) => a + (val(c) || 0), 0);
+  return [
+    { k: 'ap', tone: 'amber', list: ap, label: i18t('ctfv_ap'), sub: inFolders(ap) },
+    { k: 'sg', tone: 'steel', list: sg, label: i18t('ctfv_sg'), sub: inFolders(sg) },
+    { k: 'end', tone: 'ruby', list: ends, label: i18t('ctfv_end', { n: CTF_VIEW_DAYS }), sub: notice ? i18tn('ctfv_notice', notice, { n: notice }) : i18t('ctfv_notice_none') },
+    { k: 'big', tone: 'green', list: big, label: i18t('ctfv_big', { v: fmt(CTF_VIEW_BIG) }), sub: i18t('ctfv_together', { v: fmt(sum) }) }
+  ].filter(v => v.list.length);
+}
+function regFolderViewsHtml(cs){
+  const V = regFolderViewsData(cs); if (!V.length) return '';
+  return `<div class="ctf-cap">${esc(i18t('ctfv_cap'))}</div><div class="ctf-views">${V.map(v => `<button type="button" class="ctf-view is-${v.tone}" data-ctf-view="${v.k}" title="${esc(v.label)}"><b>${v.list.length}</b><span>${esc(v.label)}</span><small>${esc(v.sub)}</small></button>`).join('')}</div>`;
+}
+/* the contracts the folders page counts: live, in a folder the reader may open, not on the Ended shelf */
+function regFolderLive(){
+  const live = (state.contracts || []).filter(c => c && !c._codeNamed);
+  const T = typeof todayISO === 'function' ? todayISO() : '';
+  const gone = c => c.archived || c.status === 'Declined' || (c.status === 'Signed' && c.expiry && T && String(c.expiry).slice(0, 10) < T);
+  return live.filter(c => !gone(c) && FOLDERS && FOLDERS[c.folder] && (typeof canAccessFolder !== 'function' || canAccessFolder(c.folder)));
+}
 function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
   const money = v => v == null ? '' : (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(v) : String(v));
-  const mark = k => window.listSapMarkHtml ? listSapMarkHtml(k) : '';
-  const kinds = r => Object.entries(r.needs).sort((a, b) => b[1] - a[1]).map(([k, n]) => CTF_WORDS[k] ? i18tn(CTF_WORDS[k], n, { n }) : '').filter(Boolean).slice(0, 3);
-  const row = (attr, k, name, line, bar, need) => `<button type="button" class="ctf-row" ${attr} title="${esc(name)}">${mark(k)}<span class="ctf-rw"><b class="ctf-name">${esc(name)}</b><span class="ctf-rl">${esc(line)}</span></span>${bar}<span class="ctf-rn">${need}</span></button>`;
+  const row = (attr, name, line, cls) => `<button type="button" class="ctf-row is-compact${cls || ''}" ${attr} title="${esc(name)}"><b class="ctf-name">${esc(name)}</b><span class="ctf-rl">${line}</span></button>`;
+  const dot = ' · ';
   const rows = fids.map(fid => {
     const cs = live.filter(c => c.folder === fid && !endIds.has(c.id)); if (!cs.length) return null;
-    return { fid, name: FOLDERS[fid].name || fid, r: regFolderRead(cs) };
+    return { fid, name: FOLDERS[fid].name || fid, cs, r: regFolderRead(cs) };
   }).filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
   const body = rows.map(x => { const r = x.r;
-    const line = [i18tn('ctf_n_contracts', r.n, { n: r.n }), r.val ? money(r.val) : '', ...kinds(r)].filter(Boolean).join(' · ');
-    const need = r.needN ? `<b>${r.needN}</b> ${esc(i18tn('ctf_t_need', r.needN, { n: r.needN }))}` : `<span class="is-quiet">${esc(i18t('ctf_t_nothing'))}</span>`;
-    return row(`data-ctf-folder="${esc(x.fid)}"`, r.needN ? 'you' : r.signed === r.n ? 'done' : 'none', x.name, line, regTileBar(r.signed, r.review, r.n - r.signed - r.review), need);
+    const need = r.needN ? `<span class="ctf-rn"><b>${r.needN}</b> ${esc(i18tn('ctf_t_need', r.needN, { n: r.needN }))}</span>` : esc(i18t('ctf_t_nothing'));
+    return row(`data-ctf-folder="${esc(x.fid)}"`, x.name, [String(r.n), r.val ? esc(money(r.val)) : '', need].filter(Boolean).join(dot));
   }).join('');
   const yrs = ended.map(c => String(c.signedAt || c.expiry || '').slice(0, 4)).filter(Boolean).sort();
   const endR = regFolderRead(ended);
-  const endRow = ended.length ? row('data-ctf-ended', 'none', i18t('ctf_ended'),
-    [i18tn('ctf_n_contracts', ended.length, { n: ended.length }), yrs.length ? (yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : '', endR.val ? money(endR.val) : ''].filter(Boolean).join(' · '),
-    '<span class="ctf-mix" aria-hidden="true"><i class="is-gone" style="width:100%"></i></span>', '') : '';
-  const newRow = isAdmin ? `<button type="button" class="ctf-row is-new" data-ctf-new><span class="ctf-rw"><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-rl">${esc(i18t('ctf_new_s'))}</span></span></button>` : '';
+  const endRow = ended.length ? row('data-ctf-ended', i18t('ctf_ended'),
+    [String(ended.length), endR.val ? esc(money(endR.val)) : '', yrs.length ? esc(yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : ''].filter(Boolean).join(dot)) : '';
+  const newRow = isAdmin ? row('data-ctf-new', '+ ' + i18t('ctf_new'), esc(i18t('ctf_new_s')), ' is-new') : '';
   const n = rows.length + (endRow ? 1 : 0);
-  return `${regTileKeyHtml({ rows: true })}<div class="ctf-list">${body}${endRow}${newRow}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
+  return `${regFolderViewsHtml(rows.flatMap(x => x.cs))}<div class="ctf-cap">${esc(i18t('ctfv_folders'))}</div><div class="ctf-list is-two">${body}${endRow}${newRow}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
 }
 /* EVEN TILES' parts, one builder for Contracts' folders and Parties' folders */
 function regTileBig(n){
@@ -3709,13 +3750,17 @@ if (typeof document !== 'undefined' && !document._ctfWired){ document._ctfWired 
     const f = t.closest('[data-ctf-folder]');
     if (f){ e.preventDefault(); const R = regState(); R.type = f.getAttribute('data-ctf-folder'); _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
     if (t.closest('[data-ctf-ended]')){ e.preventDefault(); const R = regState(); R.view = 'archived'; _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
+    const vw = t.closest('[data-ctf-view]');
+    if (vw){ e.preventDefault(); const v = regFolderViewsData(regFolderLive()).find(x => x.k === vw.getAttribute('data-ctf-view'));
+      /* the one door a set of contracts has; the folders step aside, so the chip's x leaves every contract in the list */
+      if (v && v.list.length){ _ctFolders = false; regShowOnly(v.list.map(c => c.id), v.label); ctfDockAgain(); } return; }
     if (t.closest('[data-ctf-new]')){ e.preventDefault(); if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
     const tab = t.closest('[data-ctf-tab]');
     if (tab){ e.preventDefault(); const k = tab.getAttribute('data-ctf-tab'), R = regState();
       if (k === 'folders'){ _ctFolders = true; R.type = 'all'; if (R.view === 'archived') R.view = null; }
       else { _ctFolders = false; R.type = 'all'; R.view = k === 'needs' ? 'needs' : null; }
       regRepaint(); ctfDockAgain(); return; }
-    if (t.closest('[data-ctf-back]')){ e.preventDefault(); const R = regState(); _ctFolders = true; R.type = 'all'; if (R.view === 'archived') R.view = null; regRepaint(); ctfDockAgain(); return; }
+    if (t.closest('[data-ctf-back]')){ e.preventDefault(); const R = regState(); _ctFolders = true; R.type = 'all'; R.only = null; if (R.view === 'archived') R.view = null; regRepaint(); ctfDockAgain(); return; }
   });
 }
 /* the folders the grid draws, counted cheaply for the tab ("Folders 11"): a stream with a live contract, and the shelf */
@@ -3768,7 +3813,7 @@ function regFolderRanksHtml(rows, short, money){
     return `<div class="apn-pcap">${esc(i18t(cap))}</div><div class="ctfp-rks">${L.map(x => `<button type="button" class="ctfp-rk" data-ctf-folder="${esc(x.fid)}" title="${esc(x.name)}"><span class="ctfp-rk-n">${esc(short(x.name))}</span><span class="ctfp-rk-b" aria-hidden="true"><i class="is-${tone}" style="width:${Math.max(2, Math.round(val(x) / top * 100))}%"></i></span><b>${esc(show(x))}</b></button>`).join('')}</div>`; };
   const work = rows.filter(x => x.r.needN).sort((a, b) => b.r.needN - a.r.needN).slice(0, 6);
   const rich = rows.filter(x => x.r.val).sort((a, b) => b.r.val - a.r.val).slice(0, 4);
-  return list('ctfp_work', work, x => x.r.needN, x => String(x.r.needN), 'amber') + list('ctfp_money', rich, x => x.r.val, x => money(x.r.val), 'steel');
+  return list('ctfp_work', work, x => x.r.needN, x => String(x.r.needN), 'ink') + list('ctfp_money', rich, x => x.r.val, x => money(x.r.val), 'grey');
 }
 function regFoldersPanelHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed && !c.archived);
@@ -4985,7 +5030,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFolderRowsHtml,regFolderRanksHtml,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFolderViewsData,regFolderViewsHtml,regFolderLive,CTF_VIEW_DAYS,CTF_VIEW_BIG,regFolderRowsHtml,regFolderRanksHtml,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
@@ -5001,7 +5046,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that
