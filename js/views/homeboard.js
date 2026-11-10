@@ -8629,6 +8629,8 @@ function hbResMend(res, q){
   const words = String(q || '');
   const count = /\b(?:number of|count|how many|most contracts)\b/i.test(words) && !/\b(?:value|worth|money|spend)\b/i.test(words);
   let actions = Array.isArray(res.actions) && res.actions.length ? res.actions : null;
+  /* the model's own chart for the card on screen is its answer (this-is-the-open-chart): nothing to mend */
+  if (!actions && res.chart && typeof res.chart === 'object') return res;
   let last = null; try { last = hbCardRef('open'); } catch (_){ last = null; }
   const edit = !!(last && last.key) && HB_CARD_EDIT_RE.test(words) && !/^\s*(?:show|draw)\b/i.test(words);
   /* a top N of GROUPS, said in the map's language: one card, split by the group — or, for a change to the chart on

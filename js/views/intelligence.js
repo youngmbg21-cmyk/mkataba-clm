@@ -2432,13 +2432,9 @@ function igRecipeParse(qRaw){
   if(cn){ const id=cn[1].toUpperCase(); if(getContract(id)) return { acts:[{ linked:id }], rest:'' };
     const cp=(state.contracts||[]).find(c=>_igNorm(c.counterparty).startsWith(cn[1])); if(cp) return { acts:[{ linkedParty:cp.counterparty }], rest:'' }; }
   if(/(?:^|\s)(?:amendments? with their (?:parents?|masters?)|families|the family tree|contract families|avtalsfamiljer|ändringar med sina huvudavtal)(?:\s|$)/.test(rest)) acts.push({ families:true });
-  /* ONE group asked for: "which counterparty has the most contracts", "which value stream has the most money" */
-  const oneG=!/\b\d+\b/.test(rest)?igTopOneGroup(rest):null;
-  if(oneG){ const cnt=/\b(?:most|fewest)\s+(?:contracts|agreements|deals|avtal)\b|\bnumber of\b/.test(rest), up=/\b(?:fewest|smallest|lowest)\b/.test(rest);
-    acts.push({ top:Object.assign({ n:1, by:cnt?'count':'value', per:oneG.key, groups:true }, up?{ dir:'up' }:{}) }); }
   /* top N / biggest N, optionally per group */
-  const tp=oneG?null:(rest.match(/\b(?:top|biggest|largest|highest|smallest|lowest|slowest|de\s+)?\s*(\d+)?\s*(?:biggest|largest|highest|top|smallest|lowest|least valuable|bottom|slowest[- ]paying|slowest payers|slowest|most obligations|största|högsta|minsta|lägsta|långsammaste|topp)\b/)
-    ||rest.match(/\b(?:top|topp|bottom)\s*(\d+)\b/));
+  const tp=rest.match(/\b(?:top|biggest|largest|highest|smallest|lowest|slowest|de\s+)?\s*(\d+)?\s*(?:biggest|largest|highest|top|smallest|lowest|least valuable|bottom|slowest[- ]paying|slowest payers|slowest|most obligations|största|högsta|minsta|lägsta|långsammaste|topp)\b/)
+    ||rest.match(/\b(?:top|topp|bottom)\s*(\d+)\b/);
   const tpEnd=/\b(?:smallest|lowest|least valuable|bottom|minsta|lägsta)\b/.test(rest)&&!/slow|pay|betal|långsam|obligation|åtagand|renew|förny|soonest/.test(rest);
   if(tp&&(/\b(top|topp|biggest|largest|highest|slowest|största|högsta|långsammaste)\b/.test(rest)||tpEnd)){
     /* the other end: "the 5 smallest contracts", "lowest value", "bottom 10" */
@@ -3606,7 +3602,11 @@ async function igBoardTalkAsk(q){
     const snap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():{ key:null, sig:'' };
     const drew=!!snap.key&&(snap.key!==key0||snap.sig!==sig0);
     /* nothing drawn and nothing said worth reading: the brain answers after all, never a dead end */
-    if(!drew&&(!last||last.err)){ await intelChatAsk(q, { draw:true }); return; }
+    /* A QUESTION ASKED IN WORDS THE MAP'S READER KNOWS IS NOT NARROWED FOR ("which stream carries the most weight"
+       is answered by Jambo's sentence over the whole map, explorer-stage-three 4): only the explicit "the biggest
+       value stream" keeps one group (igTopOneGroup, in the top-N branch). */
+    /* nothing drawn and nothing to choose or confirm: the brain answers after all (it may draw too), never a dead end */
+    if(!drew&&!(last&&(last.preview||(last.choices&&last.choices.length)||(last.listIds&&last.listIds.length)))){ intel.history.length=h0; await intelChatAsk(q, { draw:true }); return; }
     if(drew&&typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q)){ try{ await intelChatAsk(q, { explain:true }); }catch(_){} }
   }, { stay:true });
   return igTalkRun(q, ()=>intelChatAsk(q, { draw:true }));
