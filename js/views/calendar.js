@@ -1052,7 +1052,7 @@ function renderCalendar(){
     main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section></div>`;
     legendEvs=evs.filter(e=>calInPeriod(e,p));
   } else if(view==='agenda'){
-    main=`<div class="cal-month"><section class="cal-card cal-ag-card" id="cal-ag">${nl?calAgendaNlHtml(grid):calAgendaViewHtml(grid)}</section></div>`;
+    main=`<div class="cal-month is-ag"><section class="cal-card cal-ag-card" id="cal-ag">${nl?calAgendaNlHtml(grid):calAgendaViewHtml(grid)}</section></div>`;
     legendEvs=grid.filter(e=>calInPeriod(e,p));
   } else if(view==='week'){
     main=`<div class="cal-month cal-weekwrap"><section class="cal-card cal-wk-card">${calWeekHtml(grid)}</section></div>`;
@@ -1759,6 +1759,11 @@ function calStyleCss(){ return `
   .cal-view .cal-grid{border:0;box-shadow:none;background:none;padding:0}
   .cal-view .cal-wk-card{border:0;box-shadow:none;padding:0}
   .cal-view .cal-ag-card{border:0;box-shadow:none;background:none;padding:0}
+  /* THE AGENDA SCROLLS (owner, 10 Nov 2026: "I am unable to scroll in the calendar page"): the month and the week are
+     sized to fit the window (calFitDays), so their holder may shrink; the agenda is a list of 90 days, so its holder
+     keeps its whole height and the view (.cal-view, overflow:auto) scrolls it — never cut off by the card's clip */
+  .cal-view .cal-month.is-ag{flex:1 0 auto;min-height:auto}
+  .cal-view .cal-month.is-ag > .cal-card{flex:none;overflow:visible}
   .cal-ag{display:flex;flex-direction:column}
   .cal-ag-day{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;padding:10px 0;border-top:1px solid var(--color-divider)}
   .cal-ag-day:first-child{border-top:0}
