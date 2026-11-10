@@ -209,4 +209,42 @@ describe('f651 (C) a seal already waiting is sealed by the next reminder round',
     assert.match(x.execution.html, /Invoices are payable/);
   });
   const sealPlainTextOf = html => require('../js/sealtext.js').sealPlainText(html);
+
+  /* Owner, 10 Nov 2026: a contract signed in July was sealed and mailed only
+     in November — signed before "Seal waiting" was ever written, so the round
+     never looked at it. A finished route is looked for too, note or not; and
+     the email says the day it was signed, not "now". */
+  const july = () => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - 4); return d.toISOString(); };
+  const dayOf = a => new Date(a).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const oldSigned = (id, cpSigned) => {
+    const at = july();
+    return { ...fixtureContract(id, 'Supply Agreement', 'Juno Limited', FOLDER_A, 480000, 'Under Review', DOC),
+      signerPlan: [
+        { id: 'sg-us', party: 'internal', order: 1, name: 'Amina Otieno', role: 'Director', email: 'admin@example.co.ke', signed: true, at },
+        { id: 'sg-cp', party: 'counterparty', order: 2, name: 'Grace Njeri', email: 'grace@client.co.ke', signed: cpSigned, ...(cpSigned ? { at } : {}) }],
+      signatures: [
+        { party: 'internal-planned', name: 'Amina Otieno', email: 'admin@example.co.ke', at, method: 'session-authenticated', form: 'typed' },
+        ...(cpSigned ? [{ party: 'counterparty', name: 'Grace Njeri', email: 'grace@client.co.ke', at, method: 'share-link', form: 'typed' }] : [])],
+      audit: [] };
+  };
+  test('C4 signed months ago with no "Seal waiting" note: the round seals it, and the email says both days', async () => {
+    const c = oldSigned('MK-651O', true);
+    await W.admin.json('/api/contracts/MK-651O', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+    assert.notEqual((await W.admin.json('/api/contracts/MK-651O')).status, 'Signed', '[control] stored unsealed');
+    await W.admin.json('/api/reminders/run', { method: 'POST', body: {} });
+    await new Promise(r => setTimeout(r, 300));
+    const x = await W.admin.json('/api/contracts/MK-651O');
+    assert.equal(x.status, 'Signed');
+    assert.equal(x.execution.by, 'HaTi');
+    const mail = ((await W.admin.json('/api/outbox')).items || []).find(m => /Fully executed/.test(m.subject || '') && /Supply Agreement/.test(m.body || '') && m.body.includes(dayOf(c.signatures[0].at)));
+    assert.ok(mail, 'the executed copy went out');
+    assert.ok(mail.body.includes(`signed by all parties on ${dayOf(c.signatures[0].at)} and sealed on ${dayOf(x.execution.at)}`), mail.body);
+    assert.doesNotMatch(mail.body, /is now fully signed/);
+  });
+  test('C5 [control] a route with a signer still to sign is left alone', async () => {
+    await W.admin.json('/api/contracts/MK-651P', { method: 'PUT', body: { contract: oldSigned('MK-651P', false), baseVersion: 0 } });
+    await W.admin.json('/api/reminders/run', { method: 'POST', body: {} });
+    await new Promise(r => setTimeout(r, 300));
+    assert.notEqual((await W.admin.json('/api/contracts/MK-651P')).status, 'Signed');
+  });
 });
