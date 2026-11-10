@@ -350,7 +350,7 @@ const LEVEL = `(() => {
    Each is guarded: a door that is not there reports, never throws.
    ============================================================ */
 const PLACES = [
-  { k: 'home', name: 'Home', go: `setView('counter')`, wait: `document.querySelector('#hm-agents, #cn-q, #cn2-page #cn2-list')` },
+  /* (Home left this list with Home, 10 Nov 2026: the Board below is where you land) */
   /* Home remembers its face (placeResume): a Board place turns to the Board itself, whatever face the last place left */
   { k: 'board', name: 'Board', go: `setView('dashboard'); setTimeout(() => { try { hbSetFace('board'); } catch (_) {} }, 300)`, wait: `document.querySelector('#hb-board .hb-card')` },
   { k: 'board-sheet', name: 'Board · side list', go: `setView('dashboard'); try { hbSetFace('board'); } catch (_) {} setTimeout(() => { const el = [...document.querySelectorAll('svg.hb-svg [data-hb-dig], .hb-chart [data-hb-dig], .hb-chart-bars [data-hb-dig], .hb-ctab [data-hb-dig], .hb-small [data-hb-dig], .hb-stagebar [data-hb-dig], .hb-stagekey [data-hb-dig]')].find(e => !e.disabled); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, 600)`, wait: `document.querySelector('.hb-sheet tr[data-hb-sheet-c]')` },

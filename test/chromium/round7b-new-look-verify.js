@@ -93,21 +93,9 @@ const signIn = async (page, base) => {
   } catch (e) { check('5 the switch off', false, String(e).slice(0, 200)); }
   await page.close(); await h.stop();
 
-  /* 4 · the first day (an empty workspace) */
-  const h2 = await startHati();
-  await seedWorkspace(h2, { contracts: [], approvalRules: [] });
-  const p2 = await browser.newPage({ viewport: { width: 1440, height: 780 } });
-  try {
-    await signIn(p2, h2.base);
-    await p2.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
-    const up = await until(p2, () => !!document.querySelector('#cn2-page.is-first') && !!document.querySelector('#ins-panel .cn2-jcard'), null, 15000);
-    await p2.waitForTimeout(400);
-    const F = up ? await p2.evaluate(() => ({ drop: (document.querySelector('.cn2-fd-drop') || {}).textContent || '',
-      once: [...document.querySelectorAll('#ins-panel [data-cn2-go]')].map(b => b.getAttribute('data-cn2-go')),
-      ways: document.querySelectorAll('#ins-panel .jb-ways:not([hidden]) [data-jb-way]').length })) : null;
-    check('4 the first day: his first words in his card, the setup in the drawing\'s order, the drop line, no doors above the box', !!F && /drop a file anywhere/i.test(F.drop)
-      && F.once.join('|') === 'settings|people|standards' && F.ways === 0, F);
-  } catch (e) { check('4 the first day', false, String(e).slice(0, 200)); }
+  /* 4 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's first-day sheet went with Home; an empty
+     workspace lands on the Board's own empty state */
+  const h2 = { stop: async () => {} };
   await browser.close(); await h2.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nall passed');
   process.exit(fails ? 1 : 0);

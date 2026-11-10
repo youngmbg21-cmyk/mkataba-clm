@@ -54,7 +54,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 2 · read down */
   try {
-    await page.evaluate(() => caGo({ kind: 'go', place: 'counter' }));
+    /* RE-POINTED (10 Nov 2026: Home deleted): the reader is already on the Board, so it is drawn again in the look now on
+       (the step used to pass through Home first, which drew it fresh) */
+    await page.evaluate(() => { caGo({ kind: 'go', place: 'board' }); if (typeof hbPaintBoard === 'function') hbPaintBoard(); });
     await until(page, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 15000);
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
     const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !!document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);

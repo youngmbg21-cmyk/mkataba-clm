@@ -102,6 +102,8 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left
        menu is not drawn on a computer; Negotiations is a place Jambo opens, in
        his "/" list, read in both books */
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): read from a list page; the Board where you land keeps the words it draws */
+    await page.evaluate(() => setView('approvals')); await page.waitForTimeout(400);
     const door = await page.evaluate(() => ({ menu: getComputedStyle(document.getElementById('side-nav')).display,
       slash: caSlashRows('negotiations', { max: 5 }).map(r => r.word), place: (caReadPlace('negotiations') || {}).place,
       sv: (caReadPlace('förhandlingar') || {}).place }));

@@ -21958,3 +21958,5 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Noticed, not fixed (10 Nov 2026, the Home and saved views proposals)
 - Seen on the owner's two screenshots, not checked in code: Explorer's Your day tile says "183 Need you" while the Board's Needs you card says "98 things" (and the Board's own Jambo panel says "183 things" beside it). One list should give one count (ndRead / alertCount); to be measured.
+- 10 Nov 2026 (deleting Home): opening a contract from the Board (its number typed or a row) draws Jambo's panel twice every time, not once after the first (glitch-fixes-verify's "once the next time" measure). Measured the same on main 6906fd5 with the Board as the starting page, so it predates this change; it only matters more now that the Board is where you land.
+- 10 Nov 2026 (deleting Home): one-sheet-as-drawn-verify 7b — opening the new-agreement sheet from a contract's paper and leaving by the bar's ‹ with "Discard my answers" may land on the Board instead of that contract. Seen once; the check now opens the sheet from the Board, as it did from Home. Not traced.

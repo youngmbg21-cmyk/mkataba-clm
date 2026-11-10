@@ -154,14 +154,9 @@ const sysOf = c => { const s = c && c.body && c.body.system; return Array.isArra
       await settled(); await P.waitForTimeout(700);
       const H = await P.evaluate(() => ({ view: state.view, face: (typeof hbFace === 'function') ? hbFace() : '', talk: !!(window.pdTalkShows && pdTalkShows()), said: /ANS-home/.test((document.getElementById('ig-dock') || {}).innerText || '') }));
       const chat = ai.calls.find(c => toolsOf(c).includes('deliver_answer'));
-      check('H1 typed in Home\'s box, "approvals waiting" is one question to the brain; the Board opens on his tab with the answer', !!box && ai.calls.length === 1 && !!chat && H.view === 'dashboard' && H.face === 'board' && H.talk && H.said, `${ai.calls.length} call(s) · ${JSON.stringify(H)}`);
-      await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); });
-      await until(P, () => { const i = document.getElementById('igd-input'); return i && i.offsetParent ? true : null; }, null, 6000);
-      ai.reset();
-      /* RE-POINTED 29 Oct 2026 (round 5: while work waits the chips are the Board and the tasks; the Board is always there) */
-      await P.click('#cn-page [data-cn-ask="board"]');
-      const H2 = await until(P, () => (state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? true : null, null, 6000);
-      check('H2 a chip pressed on Home keeps its free reader: the Board opens, nothing spent', !!H2 && ai.calls.length === 0, `${!!H2} · ${ai.calls.length}×`);
+      check('H1 typed in the Board\'s box, "approvals waiting" is one question to the brain; the Board opens on his tab with the answer', !!box && ai.calls.length === 1 && !!chat && H.view === 'dashboard' && H.face === 'board' && H.talk && H.said, `${ai.calls.length} call(s) · ${JSON.stringify(H)}`);
+      /* H2 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's chips went with Home. H1 now asks the
+         Board's box, where you land */
     }
 
     console.log('\n· E: Overview keeps its free readers');

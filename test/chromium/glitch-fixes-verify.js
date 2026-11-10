@@ -145,7 +145,8 @@ const COUNT_WRITES = () => {
       };
       await once('a contract opened from Approvals', async () => { await home(); await page.evaluate(() => setView('approvals')); await waitFor(page, () => !!document.querySelector('#content tbody tr[data-ap-row]')); },
         () => page.locator('#content tbody tr[data-ap-row] >> visible=true').first().dblclick());
-      await once('a contract opened from Home\'s box', home, () => ask('MK-A1'));
+      /* RETIRED (owner, 10 Nov 2026: Home deleted): 'a contract opened from Home's box'. Opened from the Board instead, the
+         panel is drawn twice the second time too — measured the same on the code before Home went; a BUGLOG line, not fixed here */
       await once('the Dossier\'s Clauses tab', async () => { await home(); await ask('MK-A1'); await waitFor(page, () => hbS().face === 'paper'); }, () => page.click('[data-pd-tab="doc"]'));
       await once('Redlines on a contract under review', async () => { await home(); await ask('MK-B2'); await waitFor(page, () => hbS().face === 'paper'); }, () => page.click('[data-pd-tab="red"]'));
     }
@@ -154,7 +155,7 @@ const COUNT_WRITES = () => {
       await home(); await pause(500); await writes();
       await ask('MK-A2'); await waitFor(page, () => hbS().face === 'paper'); await settle();
       const w1 = await writes();
-      check('4a a contract opened from Home: the Board it passes is not drawn', !(w1['hb-board'] > 0), JSON.stringify(w1));
+      check('4a a contract opened from the Board: the Board it leaves is not drawn again', !(w1['hb-board'] > 0), JSON.stringify(w1));
       check('4b a page move with the right-hand panel shut does not draw it', !(w1['panel-body'] > 0), JSON.stringify(w1));
       await home(); await ask('MK-A1'); await waitFor(page, () => hbS().face === 'paper'); await pause(800); await writes();
       await page.evaluate(() => hbStripBring('MK-A1', 'hist')); await waitFor(page, () => !!document.getElementById('pd2-hist')); await settle();

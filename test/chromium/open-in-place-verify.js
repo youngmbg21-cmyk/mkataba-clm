@@ -73,38 +73,8 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
     await signIn();
     await toCounter();
 
-    console.log('\n1 · Look lands on the piece, on the Board\'s card');
-    const ready = await page.evaluate(() => hbAgentsData(null).ready);
-    check('1 (setup) Jambo has the lease\'s renewal prepared', ready >= 1, String(ready));
-    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): Home's button says what it opens, "Review" */
-    check('1a the piece is a row of its own with Review, nothing drawn in place', await page.evaluate(() => !document.getElementById('cn-jw-list')
-      && ((document.querySelector('#hm-agents [data-nd-look]') || {}).textContent || '').trim() === 'Review'));
-    if (await press('#hm-agents [data-nd-look]', '1b Look')) {
-      const L = await until(isLit, null, 6000);
-      const s = await landed();
-      check('1b Look lands on the piece on the Board\'s card, opened', L === true && s.view === 'dashboard' && s.face === 'board' && s.card && s.open, JSON.stringify(s));
-      /* RE-POINTED 21 Oct 2026 (owner: no light on arrival): in sight and marked, no ring drawn */
-      check('1c the card is in sight, no ring drawn', s.inView && s.lit && /^none/.test(s.ring), JSON.stringify(s));
-      check('1d a button on it is ready for Enter', s.focus, JSON.stringify(s));
-      await shot(page, 'land-on-work-1440x780');
-      await page.mouse.click(5, 300);
-      const out = await until(() => { const c = document.getElementById('hm-agents'); return c && !c.classList.contains('is-landed') && !c.querySelector('.is-landed') ? true : null; }, null, 3000);
-      check('1e the light goes out at the reader\'s next press', !!out);
-    }
-
-    console.log('\n5 · the landing holds at the owner\'s three screens');
-    for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
-      await page.setViewportSize({ width: w, height: hh });
-      await toCounter();
-      await press('#hm-agents [data-nd-look]', '5 Look');
-      await until(isLit, null, 6000);
-      const s = await landed();
-      check(`5 at ${w}×${hh}: the card is in sight and lit, no sideways scroll`, s.inView && s.lit
-        && !(await page.evaluate(() => document.scrollingElement.scrollWidth > innerWidth)), JSON.stringify(s));
-      await shot(page, `land-on-work-${w}x${hh}`);
-    }
-    await page.setViewportSize({ width: 1440, height: 780 });
-
+    /* 1 and 5 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): they pressed a piece's row on Home and
+       measured the landing on the Board's card; with Home gone the piece is a row ON that card (counter-as-drawn-verify 3, 11) */
     console.log('\n2 · the house is one link away');
     if (await press('#hm-agents [data-hb-agents-page]', '2 the house link')) {
       const v = await until(() => state.view === 'jambo' ? 'jambo' : null, null, 5000);

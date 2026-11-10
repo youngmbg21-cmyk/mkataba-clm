@@ -100,8 +100,9 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     const ask = async () => {
       /* Home and its box asked for, bounded, before the words go in (CI under load fired them while the first paint
          was still settling on Contracts) */
-      const up = await until(() => { if (!document.getElementById('igd-input') && window.deskGoCounter) deskGoCounter();
-        return !!document.getElementById('igd-input') && typeof counterAsk === 'function'; }, null, 20000);
+      /* RE-POINTED (10 Nov 2026: Home deleted): the Board first, as Home was asked first */
+      const up = await until(() => { if ((!document.getElementById('igd-input') || (typeof hbFace === 'function' && hbFace() !== 'board')) && window.deskGoCounter) deskGoCounter();
+        return !!document.getElementById('igd-input') && typeof caAskAnywhere === 'function'; }, null, 20000);
       if (!up) return null;
       /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip
          asks (counterAsk) with the box focused as typing leaves it (unfocused, the panel stayed on Overview) */
@@ -130,7 +131,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
           return row && cost ? { cost: t(cost), inRow: cost.getBoundingClientRect().top < row.getBoundingClientRect().bottom && cost.getBoundingClientRect().top >= row.getBoundingClientRect().top - 1 } : null; })() }; };
 
     /* 1 + 2 the head, the sheet beside Jambo */
-    check('0 Home\'s box brings the sheet and Jambo\'s line', !!(await ask()));
+    check('0 the Board\'s box brings the sheet and Jambo\'s line', !!(await ask()));
     await page.waitForTimeout(400);
     const S1 = await page.evaluate(SHEET);
     check('1a "New agreement · not created yet"', S1.title === 'New agreement not created yet', S1.title);
@@ -291,9 +292,12 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     await page.click('#dk-back');
     await until(() => !!document.getElementById('confirm-overlay'), null, 4000);
     await pressIn('Discard my answers');
-    const back = await until(() => !document.getElementById('na-root') ? { page: ((document.getElementById('dk-page') || {}).innerText || '').trim(), key: window.deskKeyNow ? deskKeyNow() : null, view: state.view } : null, null, 6000);
+    /* the page asked from can take a beat to come back (a contract's paper lands after the sheet goes): wait for it, bounded */
+    const back = await until(w => { if (document.getElementById('na-root')) return null; const b = { page: ((document.getElementById('dk-page') || {}).innerText || '').trim(), key: window.deskKeyNow ? deskKeyNow() : null, view: state.view };
+      return (w === 'home' ? b.key === 'home:board' : b.key === w) ? b : null; }, was, 6000)
+      || await page.evaluate(() => ({ page: ((document.getElementById('dk-page') || {}).innerText || '').trim(), key: window.deskKeyNow ? deskKeyNow() : null, view: state.view }));
     check('7b leaving by the bar\'s ‹ puts the sheet away and lands on the page asked from, named in the bar',
-      !!back && back.page !== 'New agreement' && (was === 'home' ? back.view === 'counter' : back.key === was), JSON.stringify({ was, back }));
+      !!back && back.page !== 'New agreement' && (was === 'home' ? back.key === 'home:board' : back.key === was), JSON.stringify({ was, back }));
     /* 16 THE FOURTH PASS (main's LAND ON IT): "Change the ask" puts the sentence back in Jambo's
        box and lands on it through the one lander — lit, the caret in it, the sheet put away */
     /* RE-POINTED 24 Oct 2026 (the Legora way): "Change the ask" is the ask box itself — new words, read

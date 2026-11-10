@@ -187,20 +187,17 @@ const openSettings = async (page, tab) => {
       await p2.evaluate(() => langId() === 'en' && jxId() === 'sweden'), await p2.evaluate(() => langId() + ' · ' + jxId()));
     check('D14 still no 401 on the market anywhere in the setup', early401.length === 0);
 
-    const door = await until(p2, () => { const b = document.querySelector('[data-cn-setup]'); const r = b && b.closest('.cn-r');
-      return !!(r && /Finish setting up — \d+ left/.test(r.textContent)); }, null, 10000);
-    /* SETTLED FIRST (27 Oct 2026, main's run #4395 read "door 5 · list 4"): a new workspace's setup items finish loading
-       a beat after the row is first drawn, and the row redraws with them — so the door is read once its number agrees with
-       the reading behind it (stGoLive), bounded; a row that never agrees still fails below */
-    if (door) await until(p2, () => { const w = document.querySelector('[data-cn-setup]')?.closest('.cn-r')?.querySelector('.cn-w');
-      const m = w && /(\d+)/.exec(w.textContent); return m && typeof stGoLive === 'function' && Number(m[1]) === stGoLive().filter(r => !r.ok).length ? true : null; }, null, 6000);
-    const doorText = door ? await p2.evaluate(() => document.querySelector('[data-cn-setup]').closest('.cn-r').querySelector('.cn-w').textContent.trim()) : '';
-    check('D12 a brand-new workspace lands on the Counter, whose admin row is "Finish setting up — N left"', !!door, doorText);
-    /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the admin's row is a row of your move, its door data-cn-setup */
-    const inSlot = await p2.evaluate(() => !!document.querySelector('#hm-agents [data-cn-setup]') && document.querySelectorAll('#hm-agents [data-cn-setup], #hm-agents [data-cn-co]').length === 1);
-    check('D12 and it is the one admin row inside Needs you (no band)', inSlot);
+    /* RE-POINTED (owner, 10 Nov 2026: "Home page should be removed / deleted"): a brand-new workspace lands on the Board,
+       whose one door in its empty slot is "Finish setting up — N left" (hbSetupDoorHtml) */
+    const door = await until(p2, () => { const b = document.querySelector('[data-hb-setup]'); return !!(b && /Finish setting up — \d+ left/.test(b.textContent)); }, null, 10000);
+    if (door) await until(p2, () => { const b = document.querySelector('[data-hb-setup]');
+      const m = b && /(\d+)/.exec(b.textContent); return m && typeof stGoLive === 'function' && Number(m[1]) === stGoLive().filter(r => !r.ok).length ? true : null; }, null, 6000);
+    const doorText = door ? await p2.evaluate(() => document.querySelector('[data-hb-setup]').textContent.trim()) : '';
+    check('D12 a brand-new workspace lands on the Board, whose one door is "Finish setting up — N left"', !!door, doorText);
+    const inSlot = await p2.evaluate(() => document.querySelectorAll('[data-hb-setup]').length === 1 && !!document.querySelector('.hb-empty.is-setup [data-hb-setup]'));
+    check('D12 and it is the one door, in the Board\'s own empty slot (no band)', inSlot);
     const n = Number((/(\d+)/.exec(doorText) || [])[1] || -1);
-    await p2.click('[data-cn-setup]');
+    await p2.click('[data-hb-setup]');
     const landed = await until(p2, () => document.getElementById('st-drawer')?.classList.contains('open') && !!document.getElementById('st-golive'), null, 8000);
     const left = await p2.evaluate(() => stGoLive().filter(r => !r.ok).length);
     check('D12 the door lands on the go-live checklist', landed);
