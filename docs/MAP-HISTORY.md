@@ -36570,3 +36570,32 @@ into the sheet's 40px margin, and a hovered row's fill reaches the same 12px. Lo
 screens before and after. Check: approvals-head-and-chosen-row-verify (not run in the chat: browser checks run on GitHub).
 Noticed, not fixed (BUGLOG): on a hovered or chosen row the grey Approve / Decline pills are the row's own grey and lose
 their outline. The design round that followed (three options, a touch of colour) was shown, not built.
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE (the delivery and the doors, 10 Nov 2026)
+The owner asked, in the chat, why the app feels slow — "especially where there are lists when I try to press and
+navigate within the pages", naming Obligations. A read of the whole front end, the page-drawing code, the stylesheet
+and the server found four causes stacked: (1) every press rebuilds the WHOLE page and re-attaches its listeners, and
+keepScroll reads scrollTop off every element with an id first; (2) the stylesheet is 1.75 MB and 11,837 rules, 164 of
+them using `:has()` anchored at `#app-shell` or `body` while looking inside `#content` — the most expensive kind, and
+a full rebuild is what triggers the re-check; (3) every page move recounts nine door numbers, each a full walk of the
+book, from forty-seven call sites; (4) 18.8 MB of JavaScript in 136 modules plus a 1.82 MB index.html, all
+uncompressed, then up to 5,000 contracts pulled 200 at a time. Reported in the chat; the owner picked the two that
+lift every page and cannot change what is on screen.
+BUILT. (a) One gzip middleware before the routes, node's own zlib, no dependency, the house rule the ZIP writer
+already follows. Measured: js 18.8 MB -> 6.0 MB (68%), index.html 1,818,854 -> 448,920 bytes (75%). The first draft
+HUNG — ten bytes of gzip header and then nothing: a file is PIPED to the response, pipe pauses its source when write()
+answers false and then waits for the RESPONSE to say 'drain', and once write goes to the compressor it is the
+compressor that drains. Forwarding `gz.on('drain')` to `res.emit('drain')` is the whole fix, and f996's test 1 caught
+it. text/event-stream is refused BY NAME before the allow-list (`text/` would match it), and f996 drives a real AI
+chat stream to prove the live feeds still arrive frame by frame. (b) `doorCounts(nc)`: the nine figures counted once a
+turn, cleared on a microtask exactly as navCounts is, so it can never outlive the state it counted — a door whose
+number disagrees with its list is the fault this codebase refuses hardest, and a cache surviving the turn would need
+to know when the book moved, which nothing here knows reliably. f357's 1f re-pointed: the three navCounts figures
+moved into doorCounts with the rest, and the rule it pins (nobody recounts them) is unchanged.
+NOT BUILT, AND THE OWNER WAS TOLD WHY. "Stop sending the contract wording in list rows" was the other half of the
+first fix and is NOT safe as a speed change: the wording is `c.redlineText`, read in 126 places across 24 files, and
+two of them — the approval-lapse hashes in js/approvals.js and js/signapproval.js — hash the wording to decide whether
+a yes has lapsed. On a row with no wording those hash an empty string, so an approval that gates SIGNING would lapse,
+or fail to lapse, wrongly. The honest route is to send a hash of the wording on the row instead and teach those two
+readers to use it — a change to a signing gate, which is its own job with its own checks, never a line slipped into a
+speed fix.

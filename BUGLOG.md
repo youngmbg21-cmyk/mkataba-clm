@@ -21954,3 +21954,14 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ### Noticed, not fixed
 - Approvals (new look): on a hovered or chosen row the grey Approve / Decline pills are the same grey as the row, so the pill shape disappears (Decline on the chosen row reads as bare words).
 - Approvals (new look): a chosen row's cells carry the old look's green-tinted fill rule (`.ap-table tbody tr.is-sel td`) under the new one; now overridden for this page, the old rule itself left alone.
+
+## 10 Nov 2026 — the speed review's first two fixes (owner asked for both in the chat)
+- FIXED: nothing on the server had ever set Content-Encoding. One gzip middleware (built-in zlib, no new dependency) before the routes. Measured: js 18.8 MB to 6.0 MB, index.html 1.82 MB to 449 KB. The live feeds (text/event-stream) are excluded by name and proved still streaming.
+- FOUND WHILE BUILDING IT: the first draft stalled after ten bytes. A piped file waits for the RESPONSE to emit 'drain', and once write goes to the compressor it is the compressor that drains. Forwarding drain to the response is the fix. Pinned by f996 test 1.
+- FIXED: the nine door numbers beside the page names each walked the whole book, from 47 call sites. Now doorCounts(nc), counted once a turn, cleared on a microtask so it can never be stale. f357's 1f re-pointed to the moved region.
+### Noticed, not fixed
+- Stripping the contract wording from list rows would be the bigger half of the payload win, but it is NOT a safe speed change: the approval-lapse hashes (js/approvals.js, js/signapproval.js) hash c.redlineText, so a row without it would hash an empty string and an approval gating SIGNING would lapse, or not lapse, wrongly. Route: send a hash on the row and teach those two readers to use it - its own job, it touches a signing gate.
+- Every press still rebuilds the whole page and re-attaches its listeners; keepScroll reads scrollTop off every element with an id first. This is the dominant cause of press lag on long lists and is per-page work.
+- The stylesheet is 1.75 MB / 11,837 rules, 164 of them :has() anchored at #app-shell or body while looking inside #content. A full rebuild re-triggers all of it.
+- The browser pulls up to 5,000 contracts at sign-in, 200 at a time - up to 25 sequential round trips before the app is usable.
+- index.html and every js file are served Cache-Control: no-cache (a deliberate 03 Aug 2026 decision so a deploy is never missed), so all 137 are revalidated on every load. Left alone; the owner's deploy-visibility reason still holds.

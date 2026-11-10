@@ -365,6 +365,8 @@ PAST THE MARK THE PANEL SLIDES OVER (reverses "the page keeps restMin"): the pag
 ## THE OVERNIGHT RUN (9 Oct)
 SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`); the rest in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)"; f570, f580–f626, f651.
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+EVERY TEXT ANSWER GOES OUT COMPRESSED (10 Nov 2026): one gzip middleware before the routes (built-in zlib, no dependency); `ZIP_NEVER` names text/event-stream FIRST so the live feeds still stream a line at a time; the compressor's `drain` is forwarded to the response or a PIPED file stalls after its gzip header. f996.
+THE DOORS' NUMBERS ARE COUNTED ONCE A TURN: `doorCounts(nc)` (js/app.js), cleared on a microtask exactly as `navCounts` is, `_doorBusy` against re-entrancy; updateSidebarCounts' forty-seven callers no longer walk the book nine times each. f997.
 `familyChildren` built once (`familyIndexDirty()`); `navCounts` once per paint; lists decorate from their own ids; test/chromium/_audit/perf*.js at 3,000. A still map moves only its dots (`igRender({rest})`, `IG_JIG_FPS`). Board → paper lays out once (`_regNarrowPaint`, `regAfterPaint`). A long contract is read once (`richReadMemo`; `clauseSegment` once; `clauseSegmentFind`).
 A PAGE MOVE DRAWS ONLY WHAT SHOWS (`test/chromium/_audit/glitch-audit.js`): `_blankReadMemo`; a shut panel drawn on opening; `rlBenchCatchUp`, `pdRedLoadsMoved`; `igPaperDown`; `igWallAppend`; `insListWire` (`e.detail`); `hbSheetLetGo`; `brPaintSteps`; a quiet `api()` caller gets no 429 toast.
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
