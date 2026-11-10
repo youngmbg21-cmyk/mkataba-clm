@@ -3771,7 +3771,26 @@ function obwDecisions(){
 function obwFinds(){
   return (state.contracts || []).filter(c => c && c.status !== 'Declined' && !c.archived && !c._codeNamed
     && (!window.canAccessFolder || canAccessFolder(c.folder)))
-    .map(c => ({ c, n: obReviewWaiting(c).length })).filter(x => x.n > 0);
+    .map(c => ({ c, n: obwFindN(c) })).filter(x => x.n > 0);
+}
+/* JAMBO'S FINDS ARE COUNTED ONCE PER CONTRACT, NOT ON EVERY PAINT (owner, 10 Nov 2026: "the agenda page seems to be
+   slow" — 592 finds were matched against every duty on each repaint of the Calendar's and Obligations' panels): a
+   contract's count is kept while its reading, its duties and its review answers are the same arrays at the same
+   lengths and the record's version has not moved; any of those changing counts it again (obReviewWaiting, the one
+   count) */
+const _obwFindMemo = new Map();
+function obwFindN(c){
+  const t = (typeof window !== 'undefined' && typeof window.triageOf === 'function') ? window.triageOf(c) : null;
+  const o = t && t.steps && t.steps.oblig, found = (o && o.ok && Array.isArray(o.found)) ? o.found : null;
+  if(!found || !found.length){ _obwFindMemo.delete(c && c.id); return 0; }
+  /* the review's answers read RAW (c.obReview, its two lists' lengths): obReviewOf hashes the whole wording */
+  const rv = c.obReview || null, obs = c.obligations || null;
+  const key = [c._v, obs ? obs.map(x => x && x.desc).join('\u0001') : '', found.length, rv && rv.hash, rv && rv.added ? rv.added.length : 0, rv && rv.skipped ? rv.skipped.length : 0].join('|');
+  const m = _obwFindMemo.get(c.id);
+  if(m && m.key === key && m.found === found && m.obs === obs && m.rv === rv) return m.n;
+  const n = obReviewWaiting(c).length;
+  _obwFindMemo.set(c.id, { key, found, obs, rv, n });
+  return n;
 }
 /* the finds as rows of their week: dated today, so they stand on this week's
    first line ("Mon 19 · today") */
@@ -4713,4 +4732,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,obtRowsOf,obtPass,obReportHtml,roomObligationsInspector,
-  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obOpenOnPage,obwPaintContract,obwOneEnd,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,obligationsText,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obOpenOnPage,obwPaintContract,obwOneEnd,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,obligationsText,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord,obwFindN});
