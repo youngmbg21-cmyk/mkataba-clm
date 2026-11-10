@@ -21987,3 +21987,11 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - FIXED: f495 (4c) asserted the intake door's sum was inside updateSidebarCounts. The nine door numbers moved into doorCounts, so the slice no longer held it. Re-pointed the same way f357's 1f was: the rail asks the one reading, and the sum is read inside doorCounts. The rule it pins is unchanged.
 - I had found f357 by grepping and stopped there. Lint cannot see a test that slices a function body by name, so the second one only showed up when the whole suite ran on GitHub. 15,409 of 15,410 passed; this was the one.
 - NOT MINE: contract-new-look-verify failed on the same run with "createTreeWalker: parameter 1 is not of type Node" — its own wait is for the Dossier panel, not the paper, so it reads the paper before it exists. It passed on the very next run with the same code. Left alone as a flaky check with an unguarded wait.
+
+## 10 Nov 2026 — the six-page rows-only change is REVERTED (GitHub's run found it)
+- REVERTED: the rows-only redraw on Requests, People, Parties, Reads, Import and My notes, and the shared swap in js/listlang.js with it. Approvals and Obligations keep theirs; those two are proved green on GitHub.
+- WHY: a rows paint is safe only where EVERY tab of a page draws the same shape. Parties' Folders tab draws cards where its other tabs draw a table, so swapping the table alone left the cards stale and the Folders tab drew nothing. round6-new-look-verify 4 caught it. I assumed the shape was the same on all six without reading each page's tabs.
+- ALSO BROKEN BY IT: f979 pins renderReads by its exact signature, and the change added an argument.
+- MY LOCAL CHECK DID NOT COVER IT: I drove each page and pressed one tab, but never the tab that draws a different shape. A page's OWN existing browser check would have; six pages at once is what made that too slow to do, which is the argument for one page at a time.
+### Noticed, not fixed
+- buglog-fixes-nov6-verify 5 failed on the same run ("a history or status send hides the stays-here cards"). Not looked into: it is outside this work and may be the same flakiness as contract-new-look-verify. Left for its own job.

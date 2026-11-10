@@ -897,7 +897,7 @@ function dirnRowHtml(p){
   return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who">${typeof regAvatarHtml === 'function' ? regAvatarHtml(p.name || p.email || '?') : ''}<div><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
     <td class="cun-wait">${_dE(role || '—')}</td><td class="cun-wait">${_dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '')}${dirnLoadBarHtml(ids.length)}</td><td class="cun-wait">${_dE(wait)}</td><td class="cun-wait">${reach}</td></tr>`;
 }
-function dirnRender(host, INS, book, o){
+function dirnRender(host, INS, book){
   const q = String(_dir.q || '').trim().toLowerCase();
   const all = book.filter(p => p && (p.side === 'ours' || p.side === 'theirs'));
   const waitOf = p => { try { return (dirWaitingOn(p) || []).length; } catch (_){ return 0; } };
@@ -912,7 +912,7 @@ function dirnRender(host, INS, book, o){
   const cutReach = h => reachAny ? h : h.replace(/<td class="cun-wait">[^<]*<\/td><\/tr>$/, '</tr>');
   _dirnMost = Math.max(0, ...ours.concat(theirs).map(p => (p.on ? p.on.size : 0)));
   const body = ours.map(p => cutReach(dirnRowHtml(p))).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="${reachAny ? 5 : 4}">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(p => cutReach(dirnRowHtml(p))).join('');
-  const PAGE = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
+  host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     <div class="ap-body is-ins dir-body"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2><span class="ctf-hf">${_dE(i18t('dirn_head', { n: all.length, y: yours.length, o: outside.length }))}</span></div>
@@ -923,15 +923,6 @@ function dirnRender(host, INS, book, o){
         <tbody id="dir-tbody">${body || `<tr><td colspan="5" class="apn-none">${_dE(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot">${_dE(i18tn('dirn_foot', all.length, { n: all.length }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div></div>`;
-  /* A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS (10 Nov 2026):
-     the one swap every new-look list uses, read back out of the page just built.
-     False means the bar it would leave standing is not this bar — a tab has come or
-     gone — and then the whole page is drawn, with the caret put back. */
-  if(o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '#dir-page', html: PAGE, table: '.apn-table.cun-table', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab', footSel: '.apn-foot' })) return;
-  const _at = typeof listCaretAt === 'function' ? listCaretAt('#dirn-q') : null;
-  host.innerHTML = PAGE;
-  if(typeof listCaretPut === 'function') listCaretPut('#dirn-q', _at);
   dirWire(host, INS, book);
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
   if (typeof setActiveNav === 'function') setActiveNav('directory');
@@ -939,12 +930,13 @@ function dirnRender(host, INS, book, o){
 if (typeof document !== 'undefined' && !document._dirnWired){ document._dirnWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    const tab = t.closest('[data-dirn-tab]'); if (tab){ e.preventDefault(); _dirn = tab.getAttribute('data-dirn-tab'); renderDirectory({ rows: true }); return; }
+    const tab = t.closest('[data-dirn-tab]'); if (tab){ e.preventDefault(); _dirn = tab.getAttribute('data-dirn-tab'); renderDirectory(); return; }
     const m = t.closest('[data-dirn-mail]'); if (m){ e.preventDefault(); e.stopPropagation(); const p = dirBook().find(x => x.key === m.getAttribute('data-dirn-mail')); if (p && p.email){ try { window.location.href = 'mailto:' + p.email; } catch (_){} } }
   }, true);
-  document.addEventListener('input', e => { if (e.target && e.target.id === 'dirn-q'){ _dir.q = e.target.value; renderDirectory({ rows: true }); } });
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'dirn-q'){ _dir.q = e.target.value; renderDirectory();
+    const q = document.getElementById('dirn-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_){} } } });
 }
-function renderDirectory(o){
+function renderDirectory(){
   const host = document.getElementById('content'); if (!host) return;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
   const keep = (() => { const sc = document.getElementById('dir-scroll'); return sc ? sc.scrollTop : 0; })();
@@ -954,7 +946,7 @@ function renderDirectory(o){
   const rows = dirRows(book, _dir.tab);
   dirLcReg();
   /* the new look draws People as drawn (round 6); the old look is unchanged */
-  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ void rows; dirnRender(host, INS, book, o); return; }
+  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ void rows; dirnRender(host, INS, book); return; }
   const card = dirCardHtml(rows, book);
   host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page dir-page${INS ? ' is-ins' : ''}" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">

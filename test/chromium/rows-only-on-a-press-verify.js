@@ -64,16 +64,6 @@ const PAGES = [
     box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th' },
   { k: 'obligations', view: 'obligations', rowSel: '#obn-body [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
     box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '#obn-body tr.obn-g' },
-  { k: 'people', view: 'directory', rowSel: '#dir-page .cun-table tbody tr', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
-    box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .cun-table thead th' },
-  { k: 'parties', view: 'customers', rowSel: '[data-ins-page="customers"] .cun-table tbody tr', tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab',
-    box: '#cun-q', home: 'all', word: 'naivas', wholeSel: '[data-ins-page="customers"] .cun-table thead th' },
-  { k: 'reads', view: 'reads', rowSel: '#rd-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
-    box: '#rdn-q', home: 'all', word: 'pay', wholeSel: '#rd-page .rdn-table thead th' },
-  { k: 'requests', view: 'intake', rowSel: '.ikn-page .ikn-table tbody tr', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab',
-    box: '#ikn-q', home: 'open', word: 'sup', wholeSel: '.ikn-page .ikn-table thead th' },
-  { k: 'mynotes', view: 'mynotes', rowSel: '#mn-page .mnn-table tbody tr', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab',
-    box: '#mnn-q', home: 'all', word: 'pallets', wholeSel: '#mn-page .mnn-table thead th' },
 ];
 
 (async () => {
@@ -97,19 +87,11 @@ const PAGES = [
         && typeof getContract === 'function' && !!getContract('MK-110'), null, 40000);
       if (!up) { check(`${at} signed in`, false); await page.close(); continue; }
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
-      /* two private notes, so My notes has rows to filter (its bar is not drawn over an empty list) */
-      await page.evaluate(async () => {
-        if (typeof mineSave !== 'function') return;
-        try {
-          await mineSave('note', { title: 'Return the pallets to Kabras', body: 'Fourteen days from each delivery' });
-          await mineSave('note', { title: 'Ask Nandi about the notice window', body: 'Ninety days before expiry' });
-        } catch (_) {}
-      });
 
       for (const P of PAGES) {
         await page.evaluate(v => setView(v), P.view);
         const drawn = await until(page, s => !!document.querySelector(s), P.rowSel, 15000);
-        if (!drawn) { check(`${at} ${P.k}: the list is drawn`, false, 'no rows — the world has nothing for this page'); continue; }
+        if (!drawn) { check(`${at} ${P.k}: the list is drawn`, false); continue; }
         await page.waitForTimeout(400);
         await page.screenshot({ path: path.join(OUT, `${w}-${P.k}-1-arrive.png`) });
 

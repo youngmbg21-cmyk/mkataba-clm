@@ -387,15 +387,15 @@ async function rdLoad(force){
    (renderReads), so the list's scroll is put back where it stood — unless the page now shows something else (the list
    became a read's table, or the other way round), which starts at its top */
 let _rdScrollMode = '';
-function renderReads(o){
+function renderReads(){
   const mode = _rd.table ? 't:' + _rd.table.key : 'list';
   const sc0 = document.querySelector('#rd-page #rd-scroll, #rd-page .cu-scroll');
   const top0 = sc0 && _rdScrollMode === mode && state.view === 'reads' ? sc0.scrollTop : 0;
-  renderReadsDraw(o);
+  renderReadsDraw();
   _rdScrollMode = mode;
   if (top0){ const sc = document.querySelector('#rd-page #rd-scroll, #rd-page .cu-scroll'); if (sc) sc.scrollTop = top0; }
 }
-function renderReadsDraw(o){
+function renderReadsDraw(){
   const host = document.getElementById('content'); if (!host) return;
   if (!_rd.rows){ _rd.rows = rdRows(); rdLoad(true); }
   else if (Date.now() - _rd.at > 60000) rdLoad();
@@ -415,7 +415,7 @@ function renderReadsDraw(o){
       ${rdFootHtml(list)}
     </section>`;
   /* the new look (round 6, as drawn): its own page — kept questions and packs as one table, the panel reads the chosen one */
-  if (!tr && wide && typeof window.newLookOn === 'function' && newLookOn()){ rdnRender(host, o); return; }
+  if (!tr && wide && typeof window.newLookOn === 'function' && newLookOn()){ rdnRender(host); return; }
   host.innerHTML = `<div class="view-enter sap-page ins-page rd-page rd-ins${wide ? '' : ' is-narrow'}" id="rd-page" data-ins-page="reads" data-ins="${wide ? 1 : 0}"><style>${readsCss()}</style>
     ${readsBandHtml()}
     <div class="ins-body">${card}${wide ? `<aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside>` : ''}</div></div>`;
@@ -524,7 +524,7 @@ function rdnPackRowHtml2(x){
     <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: read, n: x.total }))}${rdnProgHtml(read, x.total)}</td><td class="rdn-c">${_rdE(x.ran ? _rdT('rdn_ran') : _rdT('rdn_not_run'))}</td><td class="rdn-c"><span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span></td>
     <td class="rdn-c"><button type="button" class="rfp-pill" data-rdn-pack="${_rdE(x.p.id)}">${_rdE(_rdT('rdn_run_on', { n: x.total, calls: '' }).replace(/\s*·\s*$/, ''))}</button></td></tr>`;
 }
-function rdnRender(host, o){
+function rdnRender(host){
   const rows = (_rd.rows || []).filter(r => !r.pack);
   const q = rdWords();
   const inTab = r => _rdn === 'list' ? !!rdnOnList(r) : _rdn === 'open' ? r.read < r.total : true;
@@ -537,7 +537,7 @@ function rdnRender(host, o){
   const may = typeof askColMay !== 'function' || askColMay();
   /* the packs stay on their own lines under the questions, on All only (a pack is run from here) */
   const packs = _rdn === 'all' ? rdnPacks().filter(x => !q || String(x.p.name || '').toLowerCase().includes(q)) : [];
-  const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page rdn-page" id="rd-page" data-ins-page="reads" data-ins="1">
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page rdn-page" id="rd-page" data-ins-page="reads" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="ctf-hf">${_rdE(facts)}</span><span class="apn-sp"></span>${may ? `<button type="button" id="rd-ask" class="ui-btn ui-btn-primary rdn-ask">${_rdE(_rdT('rdn2_add_q'))}</button>` : ''}</div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="rdn-q" type="search" autocomplete="off" placeholder="${_rdE(_rdT('lh_filter_ph'))}" value="${_rdE(_rd.q || '')}"></label>
@@ -547,15 +547,6 @@ function rdnRender(host, o){
         <tbody>${shown.map(rdnRowHtml2).join('') || `<tr><td colspan="5" class="apn-none">${_rdE(_rdT('ap_wl_none_match'))}</td></tr>`}${packs.length ? `<tr class="rdn-grp"><td colspan="5">${_rdE(_rdT('rd_tab_packs'))}</td></tr>${packs.map(rdnPackRowHtml2).join('')}` : ''}</tbody></table></div>
       <div class="apn-foot rdn-foot"><span>${_rdE(_rdT('rdn2_foot'))}</span>${_rd.sel ? `<button type="button" class="rfp-a" data-rdn-table="${_rdE(_rd.sel)}">${_rdE(_rdT('rdn_the_table'))}</button>` : ''}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside></div></div>`;
-  /* A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS (10 Nov 2026):
-     the one swap every new-look list uses, read back out of the page just built.
-     False means the bar it would leave standing is not this bar — a tab has come or
-     gone — and then the whole page is drawn, with the caret put back. */
-  if(o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '#rd-page', html: PAGE, table: '.rdn-table', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab', footSel: '.apn-foot' })) return;
-  const _at = typeof listCaretAt === 'function' ? listCaretAt('#rdn-q') : null;
-  host.innerHTML = PAGE;
-  if(typeof listCaretPut === 'function') listCaretPut('#rdn-q', _at);
   rdnPanelPaint(rows);
   readsWire();
   if (typeof setActiveNav === 'function') setActiveNav('reads');
@@ -587,12 +578,13 @@ if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired 
     if (typeof state === 'undefined' || state.view !== 'reads') return;
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     let el;
-    if ((el = t.closest('[data-rdn-tab]'))){ e.preventDefault(); _rdn = el.getAttribute('data-rdn-tab'); renderReads({ rows: true }); return; }
+    if ((el = t.closest('[data-rdn-tab]'))){ e.preventDefault(); _rdn = el.getAttribute('data-rdn-tab'); renderReads(); return; }
     if ((el = t.closest('[data-rdn-table]'))){ e.preventDefault(); e.stopPropagation(); readsTableOpen(el.getAttribute('data-rdn-table')); return; }
     if ((el = t.closest('[data-rdn-pack]'))){ e.preventDefault(); e.stopPropagation(); const p = ((typeof AC !== 'undefined' && AC.packs) || []).find(x => x.id === el.getAttribute('data-rdn-pack'));
       if (p) rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen({ pack: p }); }); }
   }, true);
-  document.addEventListener('input', e => { if (e.target && e.target.id === 'rdn-q' && typeof state !== 'undefined' && state.view === 'reads'){ _rd.q = e.target.value; renderReads({ rows: true }); } });
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'rdn-q' && typeof state !== 'undefined' && state.view === 'reads'){ _rd.q = e.target.value; renderReads();
+    const q = document.getElementById('rdn-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_){} } } });
 }
 /* THE DOORS, EVERY ONE AN EXISTING ONE */
 function readsOpen(askId){
