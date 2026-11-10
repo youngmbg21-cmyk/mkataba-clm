@@ -367,7 +367,7 @@ PAST THE MARK THE PANEL SLIDES OVER (reverses "the page keeps restMin"): the pag
 ## OTHER PAGES AND SERVICES
 - `ov2Model` (the strip) and `runDatedWindows` (`c.datedWindows`, `triageRun`) stay. APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read; every document has a person (`mailroomOwnerFor`, `intakeLaneOwner`, `stMailroomOwnerSel`; bell `mailroom`); MEMO `negoMemo` (no model).
 - COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
-- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint` (GET /api/brain `stack`).
+- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint` (GET /api/brain `stack`). Reading the code blocks the server: each file indexed ONCE (`brainDefIndex`, `brainNewlines`), never a search per name (f1000).
 ## THE OVERNIGHT RUN (9 Oct)
 SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`); the rest in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)"; f570, f580–f626, f651.
 ## PERFORMANCE — THE BOOK IS WALKED ONCE

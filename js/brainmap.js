@@ -769,6 +769,32 @@ function brainBody(text, at, isRoute){
   return text.slice(at, end);
 }
 
+/* Every spelling brainDefs can ask for, found in ONE pass over a file, each
+   at its FIRST position, exactly as indexOf would find it: 'function n(' and
+   'async function n(' (six characters earlier), 'const n =' / 'const n=',
+   'let n =' / 'let n=', and a route's "app.get('/path'". No word boundary is
+   asked before the keyword, because indexOf asks none either. */
+function brainDefIndex(t){
+  const m = new Map();
+  const put = (k, at) => { if (!m.has(k)) m.set(k, at); };
+  let r;
+  const fn = /function ([A-Za-z_$][\w$]*)\(/g;
+  while ((r = fn.exec(t))){
+    put('function ' + r[1] + '(', r.index);
+    if (r.index >= 6 && t.slice(r.index - 6, r.index) === 'async ') put('async function ' + r[1] + '(', r.index - 6);
+  }
+  const vr = /(const|let) ([A-Za-z_$][\w$]*)( ?)=/g;
+  while ((r = vr.exec(t))) put(r[1] + ' ' + r[2] + r[3] + '=', r.index);
+  const rt = /app\.(get|post|put|patch|delete)\('([^'\n]*)'/g;
+  while ((r = rt.exec(t))) put("app." + r[1] + "('" + r[2] + "'", r.index);
+  return m;
+}
+function brainNewlines(t){
+  const out = [];
+  for (let i = t.indexOf('\n'); i >= 0; i = t.indexOf('\n', i + 1)) out.push(i);
+  return out;
+}
+
 /* ONE READING OF THE CODE. `files` is { 'js/core.js': text, … } — the host
    decides which files; this decides nothing about the disk. Returns plain
    data: where each named part is, the links between named parts, every name
@@ -777,18 +803,38 @@ function brainRead(files){
   const names = Object.keys(files || {}).sort();
   const parts = {};
   const bodies = {};
+  /* ONE WALK PER FILE, NOT ONE PER NAME (owner-reported 10 Nov 2026: "if I
+     am in the brain page, hati freezes"). Searching every file six times for
+     each of the named parts took ~8.5 s of one server thread on the first
+     visit after a deploy, and nothing else in HaTi was answered meanwhile.
+     Each file is now indexed once (`brainDefIndex`): the same spellings
+     brainDefs asks for, at the same first positions, so the reading is
+     unchanged; a hand-written `def` is still searched for as written. */
+  const idx = {};
+  const posOf = (f, d, plain) => {
+    if (!plain) return files[f].indexOf(d);
+    const m = idx[f] || (idx[f] = brainDefIndex(files[f]));
+    const at = m.get(d);
+    return at == null ? -1 : at;
+  };
+  const lines = {};
+  const lineOf = (f, k) => {
+    const nl = lines[f] || (lines[f] = brainNewlines(files[f]));
+    let lo = 0, hi = nl.length;
+    while (lo < hi){ const mid = (lo + hi) >> 1; if (nl[mid] < k) lo = mid + 1; else hi = mid; }
+    return lo + 1;
+  };
   for (const p of BRAIN_PARTS){
-    const defs = brainDefs(p);
+    const defs = brainDefs(p), plain = !p.def;
     let hit = null;
     for (const f of names){
-      const t = files[f];
       let k = -1;
-      for (const d of defs){ const at = t.indexOf(d); if (at >= 0 && (k < 0 || at < k)) k = at; }
+      for (const d of defs){ const at = posOf(f, d, plain); if (at >= 0 && (k < 0 || at < k)) k = at; }
       if (k >= 0){ hit = { f, k }; break; }
     }
     if (!hit){ parts[p.id] = { found: false }; continue; }
     const t = files[hit.f];
-    parts[p.id] = { found: true, file: hit.f, line: t.slice(0, hit.k).split('\n').length };
+    parts[p.id] = { found: true, file: hit.f, line: lineOf(hit.f, hit.k) };
     /* A link is what the CODE does, never what a note beside it says: this
        codebase explains itself at length, so comments come off first. */
     bodies[p.id] = brainBody(t, hit.k, _BR_ROUTE.test(p.code)).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
@@ -873,6 +919,6 @@ function brainDiff(prev, next){
 }
 
 const BRAIN_API = { BRAIN_REGIONS, BRAIN_FLOORS, BRAIN_PARTS, BRAIN_FLOWS, BRAIN_LANES, BRAIN_STAGES, BRAIN_LANE_OF, BRAIN_FLOW_STAGES, BRAIN_PROBLEMS, brainLaneOf, BRAIN_FILE_REGION, BRAIN_BODY_MAX, BRAIN_DIFF_MAX,
-  brainRegionOfFile, brainFloorOfFile, brainDefs, brainMention, brainBody, brainRead, brainKey, brainDiff };
+  brainRegionOfFile, brainFloorOfFile, brainDefs, brainDefIndex, brainMention, brainBody, brainRead, brainKey, brainDiff };
 if (typeof window !== 'undefined') Object.assign(window, BRAIN_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = BRAIN_API;

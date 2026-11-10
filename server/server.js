@@ -16725,6 +16725,28 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
 /* THE SEND ITSELF, shared by the route above (the owner's "Send again") and by
    the server's own seal (srvSealAndSend), which sends the copies the moment the
    last signature lands — whether or not anybody on our side is online. */
+/* WHEN IT WAS SIGNED, AND WHEN IT WAS SEALED (owner, 10 Nov 2026: "I
+   received the email today but it was executed a while back"). The executed
+   copy's sentence says the day the last signature landed; where the seal came
+   on a later day it says that too, so a late seal never reads as a signing
+   today. Days only, in English like the rest of this message. */
+function srvLastSignedAt(c) {
+  const ats = [].concat(
+    (Array.isArray(c.signatures) ? c.signatures : []).map(s => s && s.at),
+    (Array.isArray(c.signerPlan) ? c.signerPlan : []).map(s => s && s.signed && s.at))
+    .filter(Boolean).map(a => new Date(a)).filter(d => !isNaN(d));
+  return ats.length ? new Date(Math.max(...ats)) : null;
+}
+function srvExecutedSentence(c) {
+  const what = `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''}`;
+  const day = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const signed = srvLastSignedAt(c);
+  const sealedAt = c.execution && c.execution.at ? new Date(c.execution.at) : null;
+  if (!signed) return `${what} is now fully signed by all parties and sealed. `;
+  if (sealedAt && !isNaN(sealedAt) && day(sealedAt) !== day(signed))
+    return `${what} was signed by all parties on ${day(signed)} and sealed on ${day(sealedAt)}. `;
+  return `${what} was signed by all parties on ${day(signed)} and is now sealed. `;
+}
 async function srvDistributeTo(c, recipients, appUrl) {
   const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
   const st = signedParties(c);
@@ -16767,7 +16789,7 @@ async function srvDistributeTo(c, recipients, appUrl) {
       : '';
     const body = st.fully
       ? `Hello${r.name ? ' ' + r.name : ''},\n\n` +
-        `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
+        srvExecutedSentence(c) +
         `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
         (attachment ? `Your copy of the fully executed contract is attached to this email (${attachment.filename}).\n\n` : '') +
         `Document seal (SHA-256):\n${seal}\n\n` +
@@ -17063,14 +17085,24 @@ function srvFileSignature(c, r) {
 /* THE SEALS ALREADY WAITING (9 Oct 2026): a contract every signature reached
    before this server could draw its own copy said "Seal waiting" and sat until
    somebody opened it. The reminder round seals each one it can now draw —
-   as HaTi, the copies sent — and leaves the rest as they were. */
+   as HaTi, the copies sent — and leaves the rest as they were.
+   ALSO THE ONES SIGNED BEFORE THE NOTE EXISTED (owner, 10 Nov 2026: a
+   contract signed in July was sealed and mailed only in November): a signing
+   route on which every named signer has signed is looked for too, note or
+   not. A record with no route still needs the note, as before. */
+const srvSealRouteDone = c => {
+  const plan = (Array.isArray(c && c.signerPlan) ? c.signerPlan : []).filter(Boolean);
+  return plan.length > 0 && plan.every(s => s.signed);
+};
 function runSealCatchUp(appUrl) {
   let rows = [];
-  try { rows = db.prepare(`SELECT id, json, version, seq FROM contracts WHERE status!='Signed' AND status!='Declined' AND json LIKE '%Seal waiting%'`).all(); } catch (_) { rows = []; }
+  try { rows = db.prepare(`SELECT id, json, version, seq FROM contracts WHERE status!='Signed' AND status!='Declined' AND (json LIKE '%Seal waiting%' OR json LIKE '%"signerPlan"%')`).all(); } catch (_) { rows = []; }
   let sealed = 0;
   for (const row of rows) {
     let c; try { c = JSON.parse(row.json); } catch (_) { continue; }
     if (!c || isExecutedRow(c) || (c.hold && c.hold.at) || !srvSealWanted(c)) continue;
+    const noted = (Array.isArray(c.audit) ? c.audit : []).some(a => a && a.action === 'Seal waiting');
+    if (!noted && !srvSealRouteDone(c)) continue;
     if (!srvSealPrepReady(c)) continue;
     srvSealNow(c, now());
     c._seq = row.seq;
