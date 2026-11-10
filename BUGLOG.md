@@ -22040,3 +22040,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## 10 Nov 2026 — GitHub's run on Views first
 - FIXED · round6-new-look-verify step 1 failed: it pinned the folders' old card wording ("N contracts"). The owner's picked design (Views first) makes the row say "5 · KES 86.30M · 3 need you", so the check was re-pointed to the new shape and now also reads the view tiles. The design was not changed to suit the check.
 - NOT A FAULT: owed-first-verify and read-table-verify, which failed on the previous push, both passed on this run with no change. Timing, not a break.
+
+## Fixed (10 Nov 2026, overnight run job 3)
+- Needs you's two counts (Explorer "183" vs the Board "98"): every door now says the Board's row count (counterNeedsCount → ndOnBoard). f999.
