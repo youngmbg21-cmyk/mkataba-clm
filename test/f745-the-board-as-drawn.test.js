@@ -95,19 +95,27 @@ describe('f745 (1) the Board\'s head is one card', () => {
     assert.match(body, /const time = hbCountedAt\(true\);/);
     assert.match(body, /const pack = s\.panels\.some\(p => p\.kind === 'view'\) \? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>/);
     /* (deskScr, the Board's Light | Dark, left with dark mode: Chambers, 20 Oct 2026) */
-    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits\)\}\s*\$\{bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
+    /* RE-POINTED (owner, 10 Nov 2026: the head greets you and says the latest): what moved and since when ride along */
+    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits, \{ moved, since: base && base\.at \}\)\}\s*\$\{bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
   });
 });
 
-describe('f745 (2) saved views are chips with their counts', () => {
+/* RE-POINTED (owner, 10 Nov 2026, off a screenshot: "the saved views to appear on the highlighted area in the jambo
+   panel and not on the board"; "like the green underlined links but in blue"; "you should be able to edit the name
+   when saving"): the chips left the Board's head; the views are links under Your day in Jambo's panel on Explorer
+   (igSavedViewsHtml), and saving opens a name box there. AT THE PARENT 2a, 2c, 2d and section (7) fail. */
+describe('f745 (2) saved views are links in Jambo\'s panel on Explorer, never on the Board', () => {
   const V = (name, lenses) => ({ name, recipe: { lenses, groupBy: 'folder', rv: 2 }, at: '2026-10-01' });
-  test('2a newest first, each with the map\'s own count; none saved, no row', () => {
+  test('2a newest first, each with the map\'s own count; none saved says so; the Board\'s head draws none', () => {
     const { w } = world({ views: [V('Old', []), V('Two of them', [{ id: 'l1', on: true, action: 'filter', label: 'x', ids: ['A', 'B'] }])] });
-    const html = w.hbSavedViewChipsHtml();
-    const chips = [...html.matchAll(/data-hb-sview="([^"]+)"[^>]*><span class="hb-sv-n">[^<]+<\/span><b>(\d+)<\/b>/g)].map(m => [m[1], Number(m[2])]);
-    assert.deepEqual(chips, [['Two of them', 2], ['Old', 3]]);
-    assert.match(html, /^<div class="hb-bh-views" role="group" aria-label="Saved views"><span class="hb-bh-l">Saved views<\/span>/);
-    assert.equal(world().w.hbSavedViewChipsHtml(), '');
+    const html = w.igSavedViewsHtml();
+    const links = [...html.matchAll(/class="ig-sv-a" data-ig-sv="([^"]+)"[^>]*><span class="ig-sv-n">[^<]+<\/span><b>(\d+)<\/b>/g)].map(m => [m[1], Number(m[2])]);
+    assert.deepEqual(links, [['Two of them', 2], ['Old', 3]]);
+    assert.match(html, /^<div class="ig-sv" id="ig-sv"><div class="ig-sv-hd"><span class="ig-sv-l">Saved views<\/span><button type="button" class="ig-sv-new" data-ig-sv-new>\+ Save this view<\/button>/);
+    const none = world().w.igSavedViewsHtml();
+    assert.ok(none.includes(BOOKS.en.int_sv_none) && !/ig-sv-a/.test(none), 'an absence is said');
+    assert.ok(!/sview|hb-sv-chip|hb-bh-views/.test(w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '')), 'no chip in the Board\'s head');
+    assert.ok(!/hbSavedViewChipsHtml|hb-sv-chip|data-hb-sview/.test(code(HB)), 'the chips\' builder and press are gone');
   });
   test('2b igRecipeShown is the head line\'s own reading: filter lenses intersect, a highlight or an off lens shows the book', () => {
     const { w } = world();
@@ -119,9 +127,23 @@ describe('f745 (2) saved views are chips with their counts', () => {
     const IG = code(read('js/views/intelligence.js'));
     assert.match(IG, /const shown=igShownOf\(act\);/, 'the map\'s head line reads the same number');
   });
-  test('2c the old menu of views is gone; a chip presses the one door', () => {
-    assert.ok(!/function hbSavedViewsHtml\(|views\|board/.test(code(HB)));
-    assert.match(code(HB), /if \(\(el = on\('\[data-hb-sview\]'\)\)\)\{ hbOpenSavedView\(el\.getAttribute\('data-hb-sview'\)\); return; \}/);
+  test('2c the name is yours when saving: a box filled with the view\'s own name; Save keeps what was typed', () => {
+    const IG = code(read('js/views/intelligence.js'));
+    const body = IG.slice(IG.indexOf('function igSavedViewsHtml('), IG.indexOf('function igSaveViewDoor('));
+    assert.match(body, /<input type="text" id="ig-sv-name" class="ig-sv-in"[^`]*value="\$\{igEsc\(nm\)\}"/, 'the box opens holding igViewName()');
+    assert.match(body, /let nm=''; try\{ nm=igViewName\(\); \}/);
+    assert.match(body, /const n=igViewSave\(typed\);/, 'the one writer, with the typed name');
+    assert.match(body, /igRecipePush\(\); igRecipeSet\(v\.recipe\);/, 'a link lays the view over the map, one step back on Undo');
+    assert.match(IG, /<span class="ig-day-src">\$\{igEsc\(i18t\('int_day_src'\)\)\}<\/span>\s*\$\{igSavedViewsHtml\(\)\}/, 'drawn under Your day');
+    assert.match(IG, /getElementById\('ig-save'\)\?\.addEventListener\('click',\(\)=>\{ igSaveViewDoor\(\); \}\)/, 'the map\'s Save view is the same door');
+  });
+  test('2d the links are blue (the steel token) and underlined; "saved views" typed lands on them', () => {
+    const CSS = read('index.html');
+    assert.match(CSS, /\.ig-sv-a\{[^}]*color:var\(--st-steel-fg\)/);
+    assert.match(CSS, /\.ig-sv-n\{[^}]*text-decoration:underline[^}]*text-decoration-color:var\(--st-steel-line\)/);
+    const NAV = code(read('js/navmap.js'));
+    const door = NAV.slice(NAV.indexOf("if (k === 'savedviews'){"), NAV.indexOf("if (k === 'archived'){"));
+    assert.match(door, /caHomeFace\('explorer'\)/); assert.match(door, /querySelector\('#ig-sv'\)/); assert.match(door, /igBriefStart\(\)/);
   });
 });
 
@@ -160,12 +182,13 @@ describe('f745 (3) the Board\'s card is all of Needs you (Round A, 22 Oct 2026)'
     assert.match(f, /document\.getElementById\('hm-agents'\)/);
     assert.match(f, /\[data-nd-agent="\$\{CSS\.escape\(k\)\}"\]/, 'an agent named: its first row');
   });
-  test('3d "needs me" lands on Home\'s Needs you', () => {
+  /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the Board's own card, through the bar's home door (now the Board) */
+  test('3d "needs me" lands on the Board\'s Needs you', () => {
     const { w, pressed } = world();
     const landed = []; w.landOn = (t, o) => { landed.push(t); return Promise.resolve(null); };
     w.hbNeedsOpen();
     assert.deepEqual(pressed, ['counter']);
-    assert.deepEqual(landed, ['#cn-needs']);
+    assert.deepEqual(landed, ['#hm-agents']);
   });
 });
 
@@ -189,7 +212,7 @@ describe('f745 (4) Jambo on the Board', () => {
   test('4b the number is the Counter\'s; nothing owed, no chip; no view saved, no views chip', () => {
     const { w } = world({ need: 0 });
     const html = w.hbBoardHelloHtml();
-    assert.match(html, /Nothing needs you on Home\./);
+    assert.match(html, /Nothing needs you right now\./);
     assert.ok(!/what needs me/.test(html) && !/my saved views/.test(html));
     const one = world({ need: 1 }).w.hbBoardHelloHtml();
     assert.match(one, /1 thing · 0 prepared by Jambo/);
@@ -226,7 +249,7 @@ describe('f745 (5) "my saved views", asked', () => {
   test('5a he lists them with their counts and says where they are, free', () => {
     const { w } = world({ views: [{ name: 'Ending this quarter', recipe: { lenses: [{ id: 'l', on: true, action: 'filter', label: 'x', ids: ['A'] }] } }] });
     const said = w.hbAsk('my saved views');
-    assert.match(said, /^You have 1 saved view: “Ending this quarter” 1\. Each is a chip in the Board’s head; press one to open it on Explorer\.<div class="hb-cost">/);
+    assert.match(said, /^You have 1 saved view: “Ending this quarter” 1\. They are links in my panel on Explorer, under Your day; press one to open it on the map\.<div class="hb-cost">/);
     assert.match(world().w.hbAsk('Saved views?'), /^No view is saved yet\./);
   });
   test('5b the words it reads, and the ones it leaves to the map', () => {
@@ -469,5 +492,41 @@ describe('f745 (10) a figure\'s door lands on the list behind it', () => {
     /* RE-POINTED 8 Nov 2026 (the owner: "when you press, you get a choice for two options"): the figure's menu, then its own door, before the side list */
     const at = HB.indexOf("if ((el = on('#hb-book .hb-fig-main[data-hb-dig]')) && !el.disabled && (hbFigMenuOpen(el) || hbFigDoor(el.getAttribute('data-hb-dig')))) return;");
     assert.ok(at > 0 && at < HB.indexOf('const sk = hbSheetKeyOf(el)'), 'the figure\'s own door first');
+  });
+});
+
+
+/* ═══ (7) THE BOARD IS WHERE YOU LAND, AND ITS HEAD GREETS YOU (owner picked "The Legora Way", 10 Nov 2026) ═══ */
+describe('f745 (7) the Board greets you and says the latest', () => {
+  const greetWorld = (nd) => { const x = world(); x.w.newLookOn = () => true; x.w.cn2Greet = () => 'Good morning, Maria.';
+    x.w.ndRead = () => nd; x.w.ndOnBoard = D => ({ jambo: D.jambo, you: D.you, n: D.jambo.length + D.you.length }); return x.w; };
+  const M = (d) => ({ d, added: [], gone: [] });
+  test('7a the greeting, the sentence with each fact a link onto its own door, then the pills and Live', () => {
+    const w = greetWorld({ late: 2, oldest: 36, jambo: [{}, {}, {}], you: [{}] });
+    const html = w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '', '', { moved: { past: M(5), value: M(1000000) }, since: ago(1) });
+    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><p class="hb-gr-say" id="hb-gr-say">/);
+    const say = html.slice(html.indexOf('<p class="hb-gr-say"'), html.indexOf('</p>'));
+    assert.match(say, /Since [^:<]+: <button type="button" class="hb-gr-a" data-hb-dig="mv:past">5 more contracts passed their end date<\/button> and <button type="button" class="hb-gr-a" data-hb-dig="mv:value">[^<]+ came under contract<\/button>\./);
+    assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
+    assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer[\s\S]*<span class="hb-grow"><\/span><span class="hb-bh-day">[^<]+<\/span><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the pills, then the day, Live and when it was counted; .hb-note stays');
+    assert.ok(!/hb-bh-s"/.test(html), 'no "your book against six months ago" in the greeting');
+  });
+  test('7b a fact at nought is not said; things waiting are never "nothing"; nothing waiting says so', () => {
+    const say = (nd, latest) => { const w = greetWorld(nd); return w.hbGreetSayHtml(latest && latest.moved, latest && latest.since).replace(/<[^>]+>/g, ''); };
+    assert.equal(say({ late: 0, oldest: 0, jambo: [], you: [{}, {}, {}] }, { moved: { past: M(0), value: M(0) }, since: ago(1) }), '3 wait on you.');
+    assert.equal(say({ late: 0, oldest: 0, jambo: [], you: [] }), BOOKS.en.cn2_s_none);
+    assert.equal(say({ late: 0, oldest: 0, jambo: [{}], you: [] }), 'I prepared 1 for you.');
+    assert.match(say({ late: 1, oldest: 4, jambo: [], you: [] }, { moved: { past: M(1), value: M(-5) }, since: ago(1) }), /^Since [^:]+: 1 more contract passed its end date\. 1 thing is late, the oldest has waited 4 days\.$/);
+  });
+  test('7c a link in the sentence opens Needs you on its tab; signing in lands on the Board', () => {
+    assert.match(code(HB), /if \(\(el = on\('\[data-hb-gr\]'\)\)\)\{ if \(typeof window\.ndOpenBoard === 'function'\) ndOpenBoard\(el\.getAttribute\('data-hb-gr'\)\); return; \}/);
+    const CORE = code(read('js/core.js'));
+    assert.match(CORE, /const _landBoard=!!\(window\._cnSignedIn && window\.deskShellOn && deskShellOn\(\)\);\s*if\(_landBoard\)\{ state\.view='dashboard'; try\{ if\(typeof window\.hbS==='function'\)\{ hbS\(\)\.face='board';/);
+    assert.ok(!/_cnSignedIn && window\.deskShellOn && deskShellOn\(\)\) state\.view='counter'/.test(CORE), 'no longer the Counter');
+    assert.match(CORE, /const _place=\(!_landBoard&&window\.placeResume\)\?placeResume\(\):null;/);
+  });
+  test('7d the words, in both books', () => {
+    for (const k of ['hb_gr_since', 'hb_gr_past_one', 'hb_gr_past_other', 'hb_gr_value', 'int_sv_new', 'int_sv_name', 'int_sv_save', 'int_sv_cancel', 'int_sv_none'])
+      assert.ok(BOOKS.en[k] && BOOKS.sv[k], k + ' in both books');
   });
 });

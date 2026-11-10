@@ -26,8 +26,6 @@ const BRAIN_PARTS = [
   ['home', 'hmDecisionItems', 'see', 0],
   /* Needs you, Jambo's note (15 Oct 2026): what is owed by name — the one reading the Counter, Needs you here and the bell draw (it left the Board with round 17, 18 Oct 2026) */
   ['needsme', 'hbNeedsList', 'see', 0],
-  /* The counter (17 Oct 2026): the first screen after signing in on a computer; the desk tabs take the left menu's place */
-  ['counter', 'renderCounter', 'see', 0],
   ['desktabs', 'deskRecentHtml', 'see', 0],
   /* End or pause (15 Oct 2026): one question, three answers — decline, archive, hold */
   ['endpause', 'endOrPauseOpen', 'time', 1],
@@ -615,9 +613,9 @@ const BRAIN_FLOWS = [
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
   { id: 'redline', steps: [['redface', 'negpage', 'startnego', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload', 'letter'], ['shares', 'linkcheck'], ['email', 'sharemail', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
-  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder', 'rowread'], ['whosemove', 'decidedsend'], ['bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
+  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder', 'rowread'], ['whosemove', 'decidedsend'], ['bell', 'home', 'needsme', 'desktabs', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
   { id: 'sign', steps: [['signface', 'signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen', 'awaycard', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'keeptab', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'cnrow', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog'], ['email', 'copies', 'signedturn', 'pushalerts', 'pushsw', 'pushsub', 'pushunsub', 'pushkey', 'pushswroute', 'manifest']] },
-  { id: 'night', steps: [['reminders', 'watchsweep', 'watchrun', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell', 'invite'], ['desknight', 'home', 'needsme', 'counter', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse', 'putaway', 'chaseletter', 'pieceline', 'chasepreview']] },
+  { id: 'night', steps: [['reminders', 'watchsweep', 'watchrun', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell', 'invite'], ['desknight', 'home', 'needsme', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse', 'putaway', 'chaseletter', 'pieceline', 'chasepreview']] },
   { id: 'ask', steps: [['copilotask', 'jambomap', 'listask', 'unplacednote', 'lessonspanel', 'handbook', 'hbkbook', 'hbkask', 'flowmap', 'flowtable', 'navread', 'hswords', 'navdoor', 'aifirst', 'onesearch', 'menuask', 'nextsteps', 'reflink', 'menutab', 'strip', 'homepaper', 'breakdown', 'ptmark', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview', 'mapwalk', 'pointsay', 'thennow', 'mappicture', 'lenses', 'figmenu', 'briefing', 'cliffcard', 'whatif', 'lensthen', 'riskdays', 'findings', 'followhome', 'boardhead', 'onereader', 'contractfind', 'briefword', 'askbar', 'jambopop', 'jambohere', 'jbpresses', 'watchread', 'watchlist'], ['db', 'unplacedpost', 'unplacedlist', 'unplacedfine', 'lessonsget', 'lessonteach', 'hatisearch', 'hsroute', 'aidoor', 'wayon', 'watchget', 'watchadd', 'watchset', 'watchdel', 'askcolkept', 'askcolteam', 'askcolcheck', 'askcolrule', 'askcolkeep', 'askcoldel', 'askcolname', 'askcolsum', 'askcolfacts', 'askcolodd', 'partyfacts', 'ptreview', 'dealfacts', 'brainread', 'privwall', 'privopens', 'privmoney', 'privtrail', 'histlanes', 'payread', 'fdlist', 'fdpin', 'fddel', 'fdseen', 'histsays'], ['model', 'askcolread', 'askcolturn', 'partybrief', 'settingswhy', 'govrule', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'askcol', 'askcolcells', 'askcoldisc', 'askcolnext', 'askcolruns', 'askcolstop', 'reads', 'pulse', 'contractsplace', 'customers', 'directory', 'partyrec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'passroute', 'lookask', 'copilotdoors', 'ruledoor', 'aigoto', 'fdsend', 'fdreply', 'chosenpaper', 'listhead', 'listfoot', 'listlang'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
@@ -644,7 +642,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
+  own: ['lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'youform', 'streamside', 'navread', 'handbook', 'hbkask', 'flowmap', 'flowtable', 'hswords', 'navdoor', 'aifirst', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcol', 'askcolcells', 'askcoldisc', 'askcolnext', 'reads', 'pulse', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',
@@ -771,6 +769,32 @@ function brainBody(text, at, isRoute){
   return text.slice(at, end);
 }
 
+/* Every spelling brainDefs can ask for, found in ONE pass over a file, each
+   at its FIRST position, exactly as indexOf would find it: 'function n(' and
+   'async function n(' (six characters earlier), 'const n =' / 'const n=',
+   'let n =' / 'let n=', and a route's "app.get('/path'". No word boundary is
+   asked before the keyword, because indexOf asks none either. */
+function brainDefIndex(t){
+  const m = new Map();
+  const put = (k, at) => { if (!m.has(k)) m.set(k, at); };
+  let r;
+  const fn = /function ([A-Za-z_$][\w$]*)\(/g;
+  while ((r = fn.exec(t))){
+    put('function ' + r[1] + '(', r.index);
+    if (r.index >= 6 && t.slice(r.index - 6, r.index) === 'async ') put('async function ' + r[1] + '(', r.index - 6);
+  }
+  const vr = /(const|let) ([A-Za-z_$][\w$]*)( ?)=/g;
+  while ((r = vr.exec(t))) put(r[1] + ' ' + r[2] + r[3] + '=', r.index);
+  const rt = /app\.(get|post|put|patch|delete)\('([^'\n]*)'/g;
+  while ((r = rt.exec(t))) put("app." + r[1] + "('" + r[2] + "'", r.index);
+  return m;
+}
+function brainNewlines(t){
+  const out = [];
+  for (let i = t.indexOf('\n'); i >= 0; i = t.indexOf('\n', i + 1)) out.push(i);
+  return out;
+}
+
 /* ONE READING OF THE CODE. `files` is { 'js/core.js': text, … } — the host
    decides which files; this decides nothing about the disk. Returns plain
    data: where each named part is, the links between named parts, every name
@@ -779,18 +803,38 @@ function brainRead(files){
   const names = Object.keys(files || {}).sort();
   const parts = {};
   const bodies = {};
+  /* ONE WALK PER FILE, NOT ONE PER NAME (owner-reported 10 Nov 2026: "if I
+     am in the brain page, hati freezes"). Searching every file six times for
+     each of the named parts took ~8.5 s of one server thread on the first
+     visit after a deploy, and nothing else in HaTi was answered meanwhile.
+     Each file is now indexed once (`brainDefIndex`): the same spellings
+     brainDefs asks for, at the same first positions, so the reading is
+     unchanged; a hand-written `def` is still searched for as written. */
+  const idx = {};
+  const posOf = (f, d, plain) => {
+    if (!plain) return files[f].indexOf(d);
+    const m = idx[f] || (idx[f] = brainDefIndex(files[f]));
+    const at = m.get(d);
+    return at == null ? -1 : at;
+  };
+  const lines = {};
+  const lineOf = (f, k) => {
+    const nl = lines[f] || (lines[f] = brainNewlines(files[f]));
+    let lo = 0, hi = nl.length;
+    while (lo < hi){ const mid = (lo + hi) >> 1; if (nl[mid] < k) lo = mid + 1; else hi = mid; }
+    return lo + 1;
+  };
   for (const p of BRAIN_PARTS){
-    const defs = brainDefs(p);
+    const defs = brainDefs(p), plain = !p.def;
     let hit = null;
     for (const f of names){
-      const t = files[f];
       let k = -1;
-      for (const d of defs){ const at = t.indexOf(d); if (at >= 0 && (k < 0 || at < k)) k = at; }
+      for (const d of defs){ const at = posOf(f, d, plain); if (at >= 0 && (k < 0 || at < k)) k = at; }
       if (k >= 0){ hit = { f, k }; break; }
     }
     if (!hit){ parts[p.id] = { found: false }; continue; }
     const t = files[hit.f];
-    parts[p.id] = { found: true, file: hit.f, line: t.slice(0, hit.k).split('\n').length };
+    parts[p.id] = { found: true, file: hit.f, line: lineOf(hit.f, hit.k) };
     /* A link is what the CODE does, never what a note beside it says: this
        codebase explains itself at length, so comments come off first. */
     bodies[p.id] = brainBody(t, hit.k, _BR_ROUTE.test(p.code)).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
@@ -875,6 +919,6 @@ function brainDiff(prev, next){
 }
 
 const BRAIN_API = { BRAIN_REGIONS, BRAIN_FLOORS, BRAIN_PARTS, BRAIN_FLOWS, BRAIN_LANES, BRAIN_STAGES, BRAIN_LANE_OF, BRAIN_FLOW_STAGES, BRAIN_PROBLEMS, brainLaneOf, BRAIN_FILE_REGION, BRAIN_BODY_MAX, BRAIN_DIFF_MAX,
-  brainRegionOfFile, brainFloorOfFile, brainDefs, brainMention, brainBody, brainRead, brainKey, brainDiff };
+  brainRegionOfFile, brainFloorOfFile, brainDefs, brainDefIndex, brainMention, brainBody, brainRead, brainKey, brainDiff };
 if (typeof window !== 'undefined') Object.assign(window, BRAIN_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = BRAIN_API;

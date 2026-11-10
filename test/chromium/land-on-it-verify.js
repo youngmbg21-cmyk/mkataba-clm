@@ -69,7 +69,7 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const shot = n => page.screenshot({ path: path.join(OUT, n + '.png') }).catch(() => {});
-    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q')); };
+    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('igd-input')); };
     /* RE-POINTED 18 Oct 2026 (round 23's gaps, rebuilt on LAND ON IT): Home's
        chips are the picked drawing's — the first owed row, contracts,
        calendar, draft a new agreement — so a word with no chip of its own
@@ -77,8 +77,8 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
        door every chip presses (counterAsk); the landing it pins is the same */
     const chip = async word => {
       const how = await page.evaluate(w => { const b = [...document.querySelectorAll('#cn-page [data-cn-ask]')].find(x => x.getAttribute('data-cn-ask') === w);
-        if (b){ b.click(); return 'chip'; } return document.getElementById('cn-q') ? 'box' : ''; }, word);
-      if (how === 'box'){ /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */ await page.evaluate(w => counterAsk(w), word); }
+        if (b){ b.click(); return 'chip'; } return document.getElementById('igd-input') ? 'box' : ''; }, word);
+      if (how === 'box'){ /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */ await page.evaluate(w => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w), word); }
       if (!how) check(`(Home has no "${word}" chip and no box to ask it in)`, false);
       return !!how;
     };

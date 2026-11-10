@@ -105,32 +105,7 @@ const note = { k: 'note', kind: 'mynote', urgent: false, n: { id: 'nt_1', body: 
 const req = { k: 'req', kind: 'request', urgent: false, r: { id: 'REQ-1', title: 'NDA with Kettle & Co', by: { name: 'Sara Lind' }, counterparty: 'Kettle & Co', createdAt: new Date().toISOString() } };
 const details = n => ({ k: 'c', kind: 'details', urgent: false, x: { c: C('MK-9' + n, 'Freight terms', 'Baltic Freight'), it: { kind: 'details', n: 3 }, age: null } });
 
-describe('f803 (1) the chips', () => {
-  /* RE-POINTED 29 Oct 2026 (round 5, "the box predicts", owner: "bring them to home page"; reverses 27 Oct's "no lead
-     chip"): the Board first, then the next three things that wait said as tasks, each pressing its row's own door */
-  test('1a what waits leads as tasks: "Likely next:", the Board, then each task pressing its own row\'s door', () => {
-    const w = counter([approval, redlines]);
-    const html = w.cnChipsHtml(w.ndRead());
-    assert.match(html, /^<span class="cn-lk-h">Likely next:<\/span><button type="button" class="cn-chip" data-cn-ask="board">board<\/button>/);
-    const tasks = [...html.matchAll(/<button type="button" class="cn-chip cn-lk" data-cn-lk="([^"]*)" ([^>]*)>([^<]*)<\/button>/g)].map(m => ({ key: m[1], attrs: m[2], t: m[3] }));
-    /* in Needs you's own order, right under it */
-    assert.deepEqual(tasks.map(t => t.t), ['answer Jonas’s approval', 'answer Nordvik Logistik’s 2 changes']);
-    assert.match(tasks[0].attrs, /data-cn-need="approval" data-cn-id="MK-1"/);
-    assert.match(tasks[1].attrs, /data-cn-need="quiet" data-cn-id="MK-2"/);
-    assert.doesNotMatch(html, /contracts<|calendar<|draft a new agreement</, 'the places step aside while work waits');
-  });
-  test('1a2 never more than three tasks; a name keeps its capital, a plain first word does not', () => {
-    const w = counter([redlines, approval, details(1), note, req]);
-    const html = w.cnChipsHtml(w.ndRead());
-    assert.equal([...html.matchAll(/class="cn-chip cn-lk"/g)].length, 3);
-    assert.equal(vm.runInContext('_cnLow("A chase to Kettle & Co")', w), 'a chase to Kettle & Co');
-    assert.equal(vm.runInContext('_cnLow("Nordvik Logistik’s answer")', w), 'Nordvik Logistik’s answer');
-  });
-  test('1b nothing owed: the same four', () => {
-    assert.equal([...counter([]).cnChipsHtml([]).matchAll(/>([^<]+)<\/button>/g)].map(m => m[1]).join('|'), 'board|contracts|calendar|draft a new agreement');
-  });
-});
-
+/* f803 (1) THE CHIPS under Home's box: RETIRED with Home (owner, 10 Nov 2026: "Home page should be removed / deleted") */
 describe('f803 (2) the rows', () => {
   /* RE-POINTED 22 Oct 2026 (Round A, "The Legora Way"): a row is the one desk's (ndParts → ndHomeRowHtml).
      RE-POINTED 24 Oct 2026 (Round 2, owner's yes): THE AGREEMENT LEADS — its name in black, then the number,
@@ -183,15 +158,10 @@ describe('f803 (3) Needs you whole', () => {
     assert.match(rows, /mineNotesDue\(\)/);
     assert.match(rows, /intakeAlertRows\(\)/);
     assert.match(rows, /approvalAnswersFor\(x\.c\)/);
-    assert.match(fnBody(CN, 'counterNeedsCount'), /ndRead\(\)\.n/);
+    assert.match(fnBody(CN, 'counterNeedsCount'), /ndOnBoard\(ndRead\(\)\)\.n/);   /* RE-POINTED 10 Nov 2026: one count, the Board's rows (f999) */
     assert.match(fnBody(CN, 'ndRead'), /const rows = cnRows\(\);/, 'the one desk reads Home\'s rows');
   });
-  test('3d what arrives after the first paint is drawn when it comes', () => {
-    assert.match(fnBody(APP, 'updateSidebarCounts'), /if\(typeof counterFollow==='function'\) counterFollow\(\);/);
-    assert.match(fnBody(CN, 'renderCounter'), /mineLoad\(\)\.then\(counterFollow/);
-    assert.match(fnBody(CN, 'counterFollow'), /sig = ndSig\(ndRead\(\)\)/);
-    assert.match(fnBody(CN, 'counterFollow'), /if \(sig !== _cnSig\) counterRepaint\(\);/);
-  });
+  /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): this pinned Home's own drawing */
 });
 
 describe('f803 (3b) a note\'s and a request\'s door LANDS ON its row (LAND ON IT, 18 Oct 2026)', () => {
@@ -216,13 +186,7 @@ describe('f803 (4) the foot', () => {
   /* RE-POINTED 22 Oct 2026 (Round A, "The Legora Way"; the owner: "Why don't you just move them to board?"):
      THREE rows of each group in sight; a group holding more says "Show all N", which lands on the Board's
      card on that group's tab — no "Show N more" on Home, nothing grows past the screen */
-  test('4a "Show all N" on the group, three rows in sight', () => {
-    const rows = [approval, redlines, pay, note, details(1), req];
-    const html = counter(rows).counterHtml();
-    assert.match(html, /<div class="nd-g" data-nd-g="you"><span class="nd-g-t">Waiting on you<\/span><button type="button" class="ui-link nd-all" data-nd-all="you">Show all 6<\/button><\/div>/);
-    assert.equal((html.match(/<div class="cn-r nd-r[ "]/g) || []).length, 3, 'three rows in sight');
-    assert.doesNotMatch(html, /data-cn-all|cn-foot-said/, 'the old foot is gone');
-  });
+  /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): this pinned Home's own drawing */
   test('4b more than three contracts owing details read as ONE row, counted', () => {
     const w = counter([details(1), details(2), details(3), details(4), approval]);
     const D = w.ndRead();
@@ -258,9 +222,8 @@ describe('f803 (5) Jambo\'s rows, and the words', () => {
     assert.equal(D.jambo.length, 1);
     assert.equal(D.jambo[0].late + '|' + D.jambo[0].age, '1|4', 'the redlines\' 4 days, late');
     assert.equal(D.n, 2);
-    const html = w.counterHtml();
-    assert.ok(html.indexOf('data-nd-g="jambo"') < html.indexOf('data-nd-g="you"'), 'Jambo\'s work first');
-    assert.match(html, /<span class="cn-cnt">2<\/span><span class="nd-sum">1 late · the oldest has waited 4 days<\/span>/);
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the line under the Board's card says it */
+    assert.equal(w.ndSumWords(D), '1 late · the oldest has waited 4 days');
   });
   test('5b the words, in both books', () => {
     for (const k of ['cn_need_approval', 'cn_need_approval_for', 'cn_need_details_one', 'cn_need_details_other', 'cn_need_away', 'cn_need_for',
@@ -360,9 +323,7 @@ describe('f803 (8) third pass: Home as drawn', () => {
     vm.runInContext(constLine(CN, '_cnToday') + '\n' + fnBody(CN, 'cnRows'), ctx);
     const rows = ctx.cnRows();
     assert.deepEqual(rows.map(r => r.x.c.id), ['MK-1', 'MK-2'], 'Jonas\'s approval above their late redlines, as drawn');
-    const w = counter(rows.map(r => r.x.c.id === 'MK-1' ? approval : redlines));
-    /* RE-POINTED 29 Oct 2026 (round 5): it leads the tasks under the box too, after the Board (f803 (1)) */
-    assert.match(w.cnChipsHtml(w.ndRead()), /data-cn-ask="board">board<\/button><button type="button" class="cn-chip cn-lk" data-cn-lk="c:MK-1:approval"/);
+    /* (the chips under Home's box that it led went with Home, 10 Nov 2026) */
   });
   test('8c time in words: "in 40 days", never "in 40d"; a day the way a person says it', () => {
     const w = counter([]);

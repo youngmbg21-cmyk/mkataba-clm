@@ -54,7 +54,8 @@ const PLACE = [
   ['health', 'health report', { popup: true }],
   ['weekly', 'weekly report', { popup: true }],
   ['findings', 'findings', { page: 'explorer', fdTab: true }],
-  ['savedviews', 'saved views', { page: 'board' }],
+  /* RE-POINTED (owner, 10 Nov 2026): saved views are under Your day in Jambo's panel on Explorer */
+  ['savedviews', 'saved views', { page: 'explorer', boardSays: true }],
   ['archived', 'archived contracts', { page: 'contracts', archived: true }],
   ['week', 'my week', { page: 'calendar' }],
   ['profile', 'my profile', { page: 'settings', settings: { tab: 'you' } }],

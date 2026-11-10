@@ -127,7 +127,10 @@ const answer = () => ([{ type: 'tool_use', id: 'tu_' + Math.random().toString(36
     ai.script(answer());
     const chat = await drive(page, async () => {
       if (typeof openAI !== 'function') return { err: 'no chat panel on this build' };
-      openAI('what is slowing my negotiations down?');
+      /* RE-POINTED 10 Nov 2026: Home was deleted, so a reader signs in onto the Board, where Jambo's own panel
+         stands and takes a bare openAI (aiEmbeddedHere → 'home'). The chat this check reads is the ✦'s window
+         (aiWinToggle), so it is asked there — the same door, the feed this check has always read. */
+      openAI('what is slowing my negotiations down?', { win: true });
       return { ok: true };
     }, undefined, { err: 'blocked' });
     await pause(3200);

@@ -26,9 +26,9 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
   try {
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
-    await until(P, () => !!document.getElementById('cn-q'), null, 20000);
+    await until(P, () => !!document.getElementById('igd-input'), null, 20000);
     await P.evaluate(() => { state.aiConfigured = true; });
-    await P.fill('#cn-q', '?'); await P.press('#cn-q', 'Enter');
+    await P.fill('#igd-input', '?'); await P.press('#igd-input', 'Enter');
     const open = await until(P, () => typeof panelFace === 'function' && panelFace() === 'guide' && !!document.querySelector('.gd-row'), null, 8000);
     check(open && brain === 0, '1 "?" opens the Guide, free', { open, calls: brain });
     const rows = await P.evaluate(() => [...document.querySelectorAll('.gd-row')].map(r => ({ k: r.getAttribute('data-gd-go'), w: ((r.querySelector('.gd-word') || {}).textContent || '').trim() })));
@@ -40,9 +40,9 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
     const neg = rows.find(r => r.k === 'negotiations');
     if (neg){
       await P.evaluate(() => { if (typeof closeContextPanel === 'function') closeContextPanel(); setView('counter'); });
-      await until(P, () => !!document.getElementById('cn-q'), null, 8000);
+      await until(P, () => !!document.getElementById('igd-input'), null, 8000);
       const w = /“(.+)”/.exec(neg.w)[1];
-      await P.fill('#cn-q', w); await P.press('#cn-q', 'Enter');
+      await P.fill('#igd-input', w); await P.press('#igd-input', 'Enter');
       check(await until(P, () => typeof guideHereKey === 'function' && guideHereKey() === 'negotiations', null, 8000), '2b the word typed opens that page', { w });
     }
     for (const [ww, hh] of [[1536, 730], [1366, 950]]){

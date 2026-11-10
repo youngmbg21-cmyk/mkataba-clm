@@ -92,7 +92,7 @@ const ok = (name, good, detail) => {
     });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(600);
-    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'negotiations');
     await page.waitForTimeout(1500);
     const n1 = await heads();
     ok('1c the Negotiations table draws no value stream column either',
@@ -214,7 +214,7 @@ const ok = (name, good, detail) => {
     ok('6a CONTROL focus mode is on, with its chip', on.chip && on.headHidden, JSON.stringify(on));
     /* Contracts is the fly-out's opener since step 7 of the overnight work
        order (its item went): a press opens Home's Contracts place */
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'contracts');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'contracts');
     await page.waitForTimeout(1200);
     const away = await page.evaluate(() => ({
       view: state.view,

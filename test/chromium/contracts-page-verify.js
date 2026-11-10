@@ -256,7 +256,7 @@ const check = (name, ok, detail) => {
        which still holds the contract step 6 just opened, so it would land on
        THAT contract's bench rather than the list. The nav press is the door
        this page documents, and it is what a reader actually does. */
-    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the page's own door, as its name typed in any box moves (caGo) */ await page.evaluate(w => { caGo({ kind: 'go', place: w }); }, 'negotiations');
     await page.waitForTimeout(1800);
     await page.screenshot({ path: path.join(OUT, '02-negotiations.png') });
     const neg = await page.evaluate(() => {

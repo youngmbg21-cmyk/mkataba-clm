@@ -47,7 +47,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       page.on('pageerror', e => errors.push(e.message));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', email); await page.fill('#li-pass', pass); await page.click('#li-go');
-      await page.waitForFunction(() => !!document.getElementById('cn-q'), null, { timeout: 20000 });
+      await page.waitForFunction(() => !!document.getElementById('igd-input'), null, { timeout: 20000 });
       return page;
     };
     const until = async (page, fn, arg, ms = 8000) => { let v; const t0 = Date.now();

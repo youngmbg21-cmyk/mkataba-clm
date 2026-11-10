@@ -64,11 +64,8 @@ test('4 · the name and the figure ink, the detail grey, on each named list', ()
     '#nd-rows :is\\(\\.nd-c-deal', '#pd-glance :is\\(\\.pd2-l', '\\.rl-card :is\\(\\.rl-card-sum', ':is\\(#ig-dock,#ins-panel\\) :is\\(\\.jov-k',
     '\\.apn-panel \\.apn-pr>b', '\\.ndb-r \\.ndb-w>span'])
     assert.match(CSS, new RegExp('html\\.lg-new ' + sel + '[^{]*\\{' + G), sel);
-  for (const sel of ['.cn2-ln', '.cn2-fx', '.cn2-say', '.cn2-foot']) {
-    const i = CSS.indexOf('html.lg-new #cn2-page ' + sel + '{'); assert.ok(i >= 0, sel);
-    assert.match(CSS.slice(i, CSS.indexOf('}', i)), new RegExp(G), 'Home ' + sel);
-  }
-  assert.match(CSS, /html\.lg-new #cn2-page \.cn2-nm\{[^}]*color:var\(--color-text\)/, 'Home\'s name stays the ink');
+  /* (Home's own lines went with Home, 10 Nov 2026: "Home page should be removed / deleted") */
+  assert.ok(!/#cn2-page/.test(CSS), 'no rule dresses a page that is gone');
   assert.match(REG, /regNl\(\)\?'var\(--color-neutral-400\)':'var\(--color-neutral-700\)'/, 'a contract\'s date is grey');
   assert.match(HTML, /--color-neutral-400:#6A6A6F/, 'the detail grey (5.3 to 1 on white)');
 });

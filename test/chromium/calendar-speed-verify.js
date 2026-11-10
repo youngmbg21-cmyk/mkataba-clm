@@ -33,7 +33,7 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
     await until(P, () => !!(window.state && Array.isArray(state.contracts) && state.contracts.length), null, 20000);
-    await until(P, () => !!document.getElementById('cn-q'), null, 10000); await settled(P);
+    await until(P, () => !!document.getElementById('igd-input'), null, 10000); await settled(P);
     await P.evaluate(async () => { const u = currentUser(); u.prefs = u.prefs || {}; u.prefs.newLook = true; newLookApply();
       if (typeof stPrefSet === 'function') try { await stPrefSet('newLook', true); } catch (_) {} });
     /* the Board first, so opening the calendar is a real arrival */

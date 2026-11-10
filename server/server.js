@@ -2696,6 +2696,92 @@ app.use((req, res, next) => {
   if (HTTPS_ON()) res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
   next();
 });
+/* ---------- EVERY TEXT ANSWER GOES OUT COMPRESSED (10 Nov 2026) ----------
+   COUNTED FROM THE SOURCE, not guessed: the browser loads 136 ES modules —
+   about 20 MB of JavaScript — plus index.html, whose stylesheet alone is
+   1.75 MB. Every byte of it went out as written, because nothing on this
+   server has ever set Content-Encoding. Text of that kind is the most
+   compressible thing there is: gzip takes it down by roughly four fifths, and
+   the browser un-zips it before the page sees a character, so NOTHING about
+   how the app behaves changes — only how many bytes cross the wire. On a slow
+   line it is the cheapest thing that can be done for the reader.
+
+   NO NEW DEPENDENCY, like the ZIP writer further up: node's own zlib, and the
+   same interception the usual middleware does — res.write and res.end are
+   pointed at a gzip stream and the real ones write its output.
+
+   WHAT IS DELIBERATELY NOT COMPRESSED, each one a fault if it were:
+   - text/event-stream. The live feeds (an answer streaming in, agent runs)
+     push a line at a time and the reader must see each as it lands; a
+     compressor holds bytes back to find patterns, which is exactly wrong.
+     `text/` would match it, so it is refused by name BEFORE the allow-list.
+   - fonts, images, PDFs, Word files, zips: already compressed, so gzip would
+     spend processor time making them very slightly bigger.
+   - anything already carrying Content-Encoding, a 204 or a 304 (no body), and
+     a HEAD, whose body is never sent.
+   - a body under a kilobyte whose length is known: below that the gzip header
+     and trailer cost more than the saving.
+
+   THE HEADER ORDER IS THE WHOLE TRICK. Content-Length is the stored length,
+   which is a lie once the bytes are zipped, so it has to go BEFORE the headers
+   are flushed. Headers flush on the first write, so the decision is taken
+   INSIDE the intercepted write/end — and writeHead, which flushes by hand, is
+   intercepted too so a route using it cannot get ahead of us. Vary is set the
+   same way, so a shared cache can never hand a zipped answer to a browser that
+   did not ask for one. */
+const ZIP_NEVER = /^(?:text\/event-stream|image\/(?!svg\+xml)|audio\/|video\/|font\/|application\/(?:zip|pdf|octet-stream|vnd\.|x-font))/i;
+const ZIP_OK = /^(?:text\/|application\/(?:javascript|json|manifest\+json|xml|xhtml\+xml)|image\/svg\+xml)/i;
+const ZIP_MIN = 1024;
+app.use((req, res, next) => {
+  if (req.method === 'HEAD' || !/\bgzip\b/i.test(String(req.headers['accept-encoding'] || ''))) return next();
+  const _writeHead = res.writeHead.bind(res);
+  const _write = res.write.bind(res);
+  const _end = res.end.bind(res);
+  let gz = null, decided = false;
+  const decide = () => {
+    if (decided) return gz;
+    decided = true;
+    try {
+      const type = String(res.getHeader('Content-Type') || '');
+      const len = Number(res.getHeader('Content-Length'));
+      if (res.getHeader('Content-Encoding') || res.statusCode === 204 || res.statusCode === 304
+        || ZIP_NEVER.test(type) || !ZIP_OK.test(type) || (Number.isFinite(len) && len < ZIP_MIN)) { res.vary('Accept-Encoding'); return gz; }
+      res.vary('Accept-Encoding');
+      res.removeHeader('Content-Length');
+      res.setHeader('Content-Encoding', 'gzip');
+      gz = zlib.createGzip();
+      gz.on('data', chunk => { try { _write(chunk); } catch (_) {} });
+      gz.on('end', () => { try { _end(); } catch (_) {} });
+      /* THE ONE THAT HANGS IF IT IS MISSING, and it hung here first: a file is
+         PIPED to the response, and pipe pauses its source whenever write()
+         answers false, then waits for the RESPONSE to say 'drain'. Once write
+         goes to the compressor it is the compressor that drains, so without
+         this line the source is paused for ever, the compressor is never
+         ended, and the reader gets ten bytes of gzip header and waits. */
+      gz.on('drain', () => { try { res.emit('drain'); } catch (_) {} });
+      /* a compressor that fails mid-answer must still close the response, or the
+         reader's browser waits for bytes that are never coming */
+      gz.on('error', () => { try { _end(); } catch (_) {} });
+    } catch (_) { gz = null; }
+    return gz;
+  };
+  res.writeHead = function (status, a, b) {
+    const hdrs = (a && typeof a === 'object') ? a : (b && typeof b === 'object') ? b : null;
+    if (hdrs) for (const k of Object.keys(hdrs)) { try { res.setHeader(k, hdrs[k]); } catch (_) {} }
+    decide();
+    return (typeof a === 'string') ? _writeHead(status, a) : _writeHead(status);
+  };
+  res.write = function (chunk, enc, cb) { const g = decide(); return g ? g.write(chunk, enc, cb) : _write(chunk, enc, cb); };
+  res.end = function (chunk, enc, cb) {
+    const g = decide();
+    if (!g) return _end(chunk, enc, cb);
+    if (typeof chunk === 'function') { cb = chunk; chunk = null; enc = null; }
+    else if (typeof enc === 'function') { cb = enc; enc = null; }
+    if (chunk) g.end(chunk, enc, cb); else g.end(cb);
+    return res;
+  };
+  next();
+});
 app.use(express.json({ limit: '15mb' }));
 /* C-1: use req.ip, which Express derives from the TRUSTED hop count above — the
    client cannot forge it. We no longer read the left-most X-Forwarded-For value
@@ -7856,6 +7942,9 @@ function graphScreenSays(sc, sent, total) {
   if (board) parts.push(`\nThe reader asked this on the Home BOARD, not on the map. What the board shows now:\n${board}\nWhen the request asks about something on the board (why a number says what it says, what a chart or line means, where the rest of the money is), answer it in the answer field from these numbers, quoting them, and change nothing on the map (no groupBy, no where, no visibleIds).`);
   /* THE DATA GUIDE (work order Part 3): what each field holds, so a card is
      built on fields that are filled. Clamped like the board; a cut is said. */
+  /* THE COMPANY'S OWN WORDS ON THE MAP TOO (the Board's word book, an admin's): "folders" = value streams */
+  const words = !board ? String(sc.words == null ? '' : sc.words).replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1200) : '';
+  if (words) parts.push(words);
   const guideRaw = board ? String(sc.guide == null ? '' : sc.guide).replace(/[\u0000-\u0008\u000b-\u001f]/g, ' ').trim() : '';
   if (guideRaw) parts.push(`\n${guideRaw.slice(0, GRAPH_GUIDE_MAX)}${guideRaw.length > GRAPH_GUIDE_MAX ? '\n(The guide was cut here to keep it short.)' : ''}\nBuild cards on fields the guide shows as filled; a date most contracts lack makes an empty chart.`);
   return parts.join(' ');
@@ -8093,7 +8182,7 @@ const graphAskHandler = async (req, res) => {
         labelBy: { type: 'string', enum: GRAPH_GROUP_KEYS, description: 'The fact printed beside each dot.' },
         timeBy: { type: 'string', enum: ['decision', 'expiry', 'signed', 'created'], description: 'The date the timeline view lays contracts along.' },
         view: { type: 'string', enum: ['brain', 'wiring', 'floors', 'grid', 'timeline'], description: 'The view to show, only when asked or implied (floors → floors, two facts against each other → grid, "over time" → timeline).' },
-        top: { type: 'object', description: 'Keep only the top N, e.g. "top 10 by value", "3 biggest in each stream"; dir up = the other end, the N smallest ("the 5 smallest contracts").', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] }, per: { type: 'string', enum: GRAPH_GROUP_KEYS }, dir: { type: 'string', enum: ['down', 'up'] } } },
+        top: { type: 'object', description: 'Keep only the top N, e.g. "top 10 by value", "3 biggest in each stream"; dir up = the other end, the N smallest ("the 5 smallest contracts"). groups true = keep the N biggest GROUPS whole, ranked by their total, the rest hidden ("top 5 value streams by value", "the 3 biggest customers", "top 5 folders"): per names the grouping; without groups, per means the N biggest contracts IN EACH group.', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] }, per: { type: 'string', enum: GRAPH_GROUP_KEYS }, groups: { type: 'boolean' }, dir: { type: 'string', enum: ['down', 'up'] } } },
         /* THE BOARD'S RECIPE (4 Oct 2026): on Home's board an answer is drawn
            as a chart; the model may say which picture the words asked for,
            and HaTi still counts every figure. */
@@ -8148,7 +8237,7 @@ ${onBoard ? '' : `- CHANGE ONLY WHAT THE REQUEST ASKS. Everything under "The map
       note: out.note || '', sent: list.length, total,
       kind: out.kind === 'wording' ? 'wording' : 'map',
       ...['floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'view'].reduce((o, k) => { if (typeof out[k] === 'string' && out[k]) o[k] = out[k].slice(0, 40); return o; }, {}),
-      top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null, dir: out.top.dir === 'up' ? 'up' : 'down' } : null,
+      top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null, groups: out.top.groups === true, dir: out.top.dir === 'up' ? 'up' : 'down' } : null,
       chart: onBoard ? null : graphChartClean(out.chart),
       actions: onBoard ? graphBoardActionsClean(out.actions) : null,
       actionsTotal: onBoard && Array.isArray(out.actions) ? out.actions.length : 0,
@@ -16636,6 +16725,28 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
 /* THE SEND ITSELF, shared by the route above (the owner's "Send again") and by
    the server's own seal (srvSealAndSend), which sends the copies the moment the
    last signature lands — whether or not anybody on our side is online. */
+/* WHEN IT WAS SIGNED, AND WHEN IT WAS SEALED (owner, 10 Nov 2026: "I
+   received the email today but it was executed a while back"). The executed
+   copy's sentence says the day the last signature landed; where the seal came
+   on a later day it says that too, so a late seal never reads as a signing
+   today. Days only, in English like the rest of this message. */
+function srvLastSignedAt(c) {
+  const ats = [].concat(
+    (Array.isArray(c.signatures) ? c.signatures : []).map(s => s && s.at),
+    (Array.isArray(c.signerPlan) ? c.signerPlan : []).map(s => s && s.signed && s.at))
+    .filter(Boolean).map(a => new Date(a)).filter(d => !isNaN(d));
+  return ats.length ? new Date(Math.max(...ats)) : null;
+}
+function srvExecutedSentence(c) {
+  const what = `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''}`;
+  const day = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const signed = srvLastSignedAt(c);
+  const sealedAt = c.execution && c.execution.at ? new Date(c.execution.at) : null;
+  if (!signed) return `${what} is now fully signed by all parties and sealed. `;
+  if (sealedAt && !isNaN(sealedAt) && day(sealedAt) !== day(signed))
+    return `${what} was signed by all parties on ${day(signed)} and sealed on ${day(sealedAt)}. `;
+  return `${what} was signed by all parties on ${day(signed)} and is now sealed. `;
+}
 async function srvDistributeTo(c, recipients, appUrl) {
   const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
   const st = signedParties(c);
@@ -16678,7 +16789,7 @@ async function srvDistributeTo(c, recipients, appUrl) {
       : '';
     const body = st.fully
       ? `Hello${r.name ? ' ' + r.name : ''},\n\n` +
-        `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
+        srvExecutedSentence(c) +
         `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
         (attachment ? `Your copy of the fully executed contract is attached to this email (${attachment.filename}).\n\n` : '') +
         `Document seal (SHA-256):\n${seal}\n\n` +
@@ -16974,14 +17085,24 @@ function srvFileSignature(c, r) {
 /* THE SEALS ALREADY WAITING (9 Oct 2026): a contract every signature reached
    before this server could draw its own copy said "Seal waiting" and sat until
    somebody opened it. The reminder round seals each one it can now draw —
-   as HaTi, the copies sent — and leaves the rest as they were. */
+   as HaTi, the copies sent — and leaves the rest as they were.
+   ALSO THE ONES SIGNED BEFORE THE NOTE EXISTED (owner, 10 Nov 2026: a
+   contract signed in July was sealed and mailed only in November): a signing
+   route on which every named signer has signed is looked for too, note or
+   not. A record with no route still needs the note, as before. */
+const srvSealRouteDone = c => {
+  const plan = (Array.isArray(c && c.signerPlan) ? c.signerPlan : []).filter(Boolean);
+  return plan.length > 0 && plan.every(s => s.signed);
+};
 function runSealCatchUp(appUrl) {
   let rows = [];
-  try { rows = db.prepare(`SELECT id, json, version, seq FROM contracts WHERE status!='Signed' AND status!='Declined' AND json LIKE '%Seal waiting%'`).all(); } catch (_) { rows = []; }
+  try { rows = db.prepare(`SELECT id, json, version, seq FROM contracts WHERE status!='Signed' AND status!='Declined' AND (json LIKE '%Seal waiting%' OR json LIKE '%"signerPlan"%')`).all(); } catch (_) { rows = []; }
   let sealed = 0;
   for (const row of rows) {
     let c; try { c = JSON.parse(row.json); } catch (_) { continue; }
     if (!c || isExecutedRow(c) || (c.hold && c.hold.at) || !srvSealWanted(c)) continue;
+    const noted = (Array.isArray(c.audit) ? c.audit : []).some(a => a && a.action === 'Seal waiting');
+    if (!noted && !srvSealRouteDone(c)) continue;
     if (!srvSealPrepReady(c)) continue;
     srvSealNow(c, now());
     c._seq = row.seq;

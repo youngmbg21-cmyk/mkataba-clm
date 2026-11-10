@@ -461,7 +461,7 @@ function pageActionHtml(kind){
    view, so the page title was the one row between the brain and the screen. */
 /* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026);
    'directory' the same since it became the wall of faces (13 Oct 2026). */
-const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'reads', 'pulse', 'brain', 'customers', 'jambo', 'directory', 'handbook', 'flowmap'];
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'reads', 'pulse', 'brain', 'customers', 'jambo', 'directory', 'handbook', 'flowmap'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -559,8 +559,6 @@ function paintScrollGutter(view){
    languages. Every other view falls through to its own title. */
 function shellTitleFor(view){
   if(view==='dashboard') return i18t('home_clm_title');
-  /* the Counter names whose workspace this is (Round 1, 17 Oct 2026) */
-  if(view==='counter') return String(window.FIRST_PARTY||'');
   /* A CONTRACT'S PAGE IS UNDER CONTRACTS on every tab (SAP benchmark, batch 3,
      9 Oct 2026): the bar read "Contract Workspace" on some tabs and the adopted
      crumb's "Contracts" on others. */
@@ -982,15 +980,38 @@ function navCounts(){
   return _navCounts;
 }
 
-function updateSidebarCounts(){
-  const cs=state.contracts;
-  const nc=navCounts();
-  /* the book's size, still read by the earned doors below */
-  const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
-  /* THE CONTRACTS COUNT WENT WITH ITS ITEM (the overnight work order, step 7):
-     the fold keeps Negotiations and Parties; the place's own head says how
-     many are live (regHeadFactsHtml) */
-  const counts={
+/* ---------- THE DOORS' NUMBERS ARE COUNTED ONCE A TURN ----------
+   (10 Nov 2026, off the owner's "why is the app slow" review.)
+
+   WHAT IT COST. Each number beside a page name is its own reading of the WHOLE
+   book, and updateSidebarCounts asks for all of them. That function is called
+   from forty-seven places — every page move and after most acts — so one turn
+   that repaints twice walked the book eighteen times. navCounts above already
+   learnt this lesson for three of the figures (its note records 1,132 walks for
+   one paint of Home, brought down to 3); these are the rest of them.
+
+   WHY THIS MEMO CAN NEVER BE STALE, which is the only interesting question,
+   because a door whose number disagrees with the list behind it is the fault
+   this codebase refuses hardest. It is cleared on a MICROTASK, exactly as
+   navCounts is: nothing a person presses and no answer from the server can be
+   processed before the clear runs, so the cache cannot outlive the state it was
+   counted from. It removes repeated counting WITHIN one turn and nothing else.
+   A cache that survived the turn would have to know when the book moved, and
+   nothing here knows that reliably — so it is not attempted.
+
+   RE-ENTRANCY, the trap navCounts fell into and recorded: approvalsDoorCount
+   draws its rows through readings that can ask for these counts again. The flag
+   answers zeros to the inner caller rather than recomputing, and the outer one
+   still finishes and stores its own count. */
+let _doorCounts = null, _doorBusy = false;
+function doorCountsClear(){ _doorCounts = null; }
+function doorCounts(nc){
+  if(_doorCounts) return _doorCounts;
+  if(_doorBusy) return { customers:0, pipeline:0, intake:0, obligations:0, approvals:0, agents:0,
+    mynotes:0, calendar:0, migration:0, negotiations:0, templates:0 };
+  _doorBusy = true;
+  try{
+    _doorCounts = {
     /* HOW MANY CUSTOMERS — the list the Customers page draws (cuDoorCount), so the door and the page cannot disagree. A size, never amber. */
     customers: (typeof cuDoorCount==='function')?cuDoorCount():0,
     pipeline: nc.pipeline,
@@ -1027,7 +1048,21 @@ function updateSidebarCounts(){
     negotiations: nc.negotiations,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
       + (window.tplLibCount?tplLibCount():0),
-  };
+    };
+  } finally { _doorBusy = false; }
+  try{ Promise.resolve().then(doorCountsClear); }catch(_){ doorCountsClear(); }
+  return _doorCounts;
+}
+
+function updateSidebarCounts(){
+  const cs=state.contracts;
+  const nc=navCounts();
+  /* the book's size, still read by the earned doors below */
+  const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
+  /* THE CONTRACTS COUNT WENT WITH ITS ITEM (the overnight work order, step 7):
+     the fold keeps Negotiations and Parties; the place's own head says how
+     many are live (regHeadFactsHtml) */
+  const counts = doorCounts(nc);
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
@@ -1068,9 +1103,6 @@ function updateSidebarCounts(){
      is exactly when the number can have moved. Nothing marks an alert as seen,
      so it goes down when the work does and never because somebody looked. */
   try{ updateAlertBadge(); }catch(e){}
-  /* …and the Counter's Needs you, where what it lists has moved since it was
-     drawn — a request or a note that arrived after the first paint (round 23's gaps) */
-  try{ if(typeof counterFollow==='function') counterFollow(); }catch(_){}
   /* The "AI Active" and "N Open" nav tags left with the sidebar doors they
      sat on (WO N1): a negotiation waiting on the reader is announced
      on the contract itself — the Negotiate tab's count — and on Home's
@@ -1283,8 +1315,9 @@ function setView(view){
   if(typeof window!=='undefined' && typeof window.hbSheetLetGo==='function') try{ window.hbSheetLetGo(); }catch(_){ }
   /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */
   if(typeof window!=='undefined' && window._cnSignedIn && view!=='counter') window._cnSignedIn=false;
-  /* THE COUNTER IS THE COMPUTER'S (Round 1, 17 Oct 2026): the phone draws its own Home */
-  if(view==='counter' && typeof window!=='undefined' && window.deskShellOn && !window.deskShellOn()) view='dashboard';
+  /* THE HOME PAGE IS GONE (owner, 10 Nov 2026: "Home page should be removed / deleted"; it was the Counter, 17 Oct
+     2026): an old link, a kept place or a door still asking for it lands on the Board, the page you sign in to */
+  if(view==='counter'){ view='dashboard'; if(typeof window!=='undefined' && typeof window.hbS==='function'){ try{ window.hbS().face='board'; if(typeof window.hbSave==='function') window.hbSave(); }catch(_){ } } }
   /* ONE CONTRACT'S OBLIGATIONS LAST THE VISIT (15 Oct 2026): only a contract's
      own door (obOpenOnPage) narrows the Obligations page; arriving any other
      way, or leaving, ends that narrowing (a repaint of the page, a language
@@ -1435,7 +1468,6 @@ function setView(view){
        nobody could see them. Widening the window repaints this view (mSync →
        setView), so the page is built the moment it can be seen. */
     else if(view==='team'){ if(!(window.mPhone && window.mAppActive && mPhone() && mAppActive())) renderTeam(); }
-    else if(view==='counter') renderCounter();
     else if(view==='directory') renderDirectory();
     else if(view==='redline') renderRedline();
     else if(view==='workspace'||view==='doc') renderWorkspace();
@@ -3894,13 +3926,13 @@ const GUIDE_STAGES = [
   { k: 'agree', rows: ['document', 'negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
   { k: 'keep', rows: ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'] },
-  { k: 'see', rows: ['board', 'pulse', 'explorer', 'house'] },
+  { k: 'see', rows: ['pulse', 'explorer', 'house'] },
 ];
 /* each page's count and its words, off the door's own reading (null = none) */
 function guideCountOf(k){
   const n=(f)=>{ try{ const v=f(); return Number(v)||0; }catch(_){ return 0; } };
   const W={
-    counter:()=>typeof counterNeedsCount==='function'?counterNeedsCount():0,
+    board:()=>typeof counterNeedsCount==='function'?counterNeedsCount():0,
     requests:()=>typeof requestsDoorCount==='function'?requestsDoorCount():0,
     import:()=>navCounts().migration,
     negotiations:()=>typeof negoNeedsYouTotal==='function'?negoNeedsYouTotal():0,
@@ -3914,7 +3946,7 @@ function guideCountOf(k){
 /* the page in front, as a row's key */
 function guideHereKey(){
   try{
-    const v=state&&state.view; if(!v||v==='counter') return 'counter';
+    const v=state&&state.view; if(!v) return 'board';
     if(v==='dashboard'){ const f=(typeof hbFace==='function')?hbFace():'board';
       if(f==='paper'){ const c=(typeof pdOnPaper==='function'&&pdOnPaper()&&typeof pdContract==='function')?pdContract():null; return c?'document':'contracts'; }
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
@@ -3971,9 +4003,9 @@ function guideNlRowHtml(keys, here){
     +`${words.length?`<span class="gdn-say">${esc(i18t('gdn_say',{ words:words.join(' \u00b7 ') }))}</span>`:''}<span class="gdn-n${cnt&&cnt.owed?' is-owed':''}">${cnt?cnt.n:''}</span></div>`;
 }
 function guidePanelNlHtml(){
-  const here=guideHereKey()||'counter';
+  const here=guideHereKey()||'board';
   const inStages=new Set(GUIDE_NL.flatMap(s=>s.rows.flat()));
-  const hereRow=inStages.has(here)||here==='counter'?[here]:['counter'];
+  const hereRow=inStages.has(here)?[here]:['board'];
   return `<div class="gdn"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${guideNlRowHtml(hereRow,here)}`
     +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${rows}`:''; }).join('')+`</div>`;
 }
@@ -3982,7 +4014,7 @@ function guidePanelHtml(){
   const here=guideHereKey();
   return `<div class="gd">
     <p class="gd-say"><b>${esc(i18t('gd_say_b'))}</b> ${esc(i18t('gd_say'))}</p>
-    ${guideRowHtml('counter',here,'is-home')}
+    ${guideRowHtml('board',here,'is-home')}
     <ol class="gd-stages">${GUIDE_STAGES.map((st,i)=>{ const rows=st.rows.filter(guideRowShown); if(!rows.length) return '';
       return `<li class="gd-st"><span class="gd-n">${i+1}</span><div class="gd-sh">${esc(i18t('gd_s_'+st.k))}<small>${esc(i18t('gd_s_'+st.k+'_w'))}</small></div>
         <span class="gd-rail" aria-hidden="true"></span><div class="gd-rows">${rows.map(k=>guideRowHtml(k,here)).join('')}</div></li>`; }).join('')}</ol>

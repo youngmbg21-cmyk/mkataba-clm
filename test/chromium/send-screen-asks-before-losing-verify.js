@@ -79,7 +79,7 @@ const NOTE = 'Please look at clause 2 before Friday.';
     await click('#dk-mark');
     await asked();
     await pressIn('^Discard the note$');
-    const home = await waitFor(page, () => !document.querySelector('#sh-letter') && state.view === 'counter' ? true : null, 5000);
+    const home = await waitFor(page, () => !document.querySelector('#sh-letter') && (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) ? true : null, 5000);
     check('3 Discard the note puts the screen away and Home comes up', !!home);
 
     console.log('\n4 · Cancel with a note typed');

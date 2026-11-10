@@ -102,6 +102,8 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left
        menu is not drawn on a computer; Negotiations is a place Jambo opens, in
        his "/" list, read in both books */
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): read from a list page; the Board where you land keeps the words it draws */
+    await page.evaluate(() => setView('approvals')); await page.waitForTimeout(400);
     const door = await page.evaluate(() => ({ menu: getComputedStyle(document.getElementById('side-nav')).display,
       slash: caSlashRows('negotiations', { max: 5 }).map(r => r.word), place: (caReadPlace('negotiations') || {}).place,
       sv: (caReadPlace('förhandlingar') || {}).place }));
@@ -275,7 +277,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        negoLastOpened still answers, so this is one argument to put back. */
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(900);
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'negotiations');
     await page.waitForTimeout(1600);
     const back = await page.evaluate(() => ({ view: state.view, held: redlineHeldId(),
       /* The list is the CONTRACTS TABLE under its own head — `.ngl-wrap` is
@@ -298,7 +300,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       'hati.v1.lastNegotiation.' + (currentUser().id || currentUser().email)); }catch(e){} });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(800);
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'negotiations');
     await page.waitForTimeout(1400);
     const list = await page.evaluate(seen => ({
       head: eval(seen)('.ngl-head-table'),
@@ -497,7 +499,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       backDoor.last, `last=${backDoor.last}, ${backDoor.flush}px from the row's left`)
 
     /* Press it: the LIST, not the negotiation it was pressed from. */
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'negotiations');
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(seen => ({
       table: eval(seen)('.reg-table'),
@@ -531,7 +533,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     await page.evaluate(id => openRedlineWorkbench(id), cid);
     await pause(400); await passBlanks(page);
     await page.waitForTimeout(1600);
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'negotiations');
     await page.waitForTimeout(1500);
     const both = await page.evaluate(() => ({
       live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim(),
@@ -551,7 +553,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     await page.waitForFunction(ON_FACE, cid2, { timeout: 8000 }).catch(() => {});
     check('a row opens the other negotiation',
       await page.evaluate(`(${ON_FACE})(${JSON.stringify(cid2)})`) === true);
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'negotiations');
     await page.waitForTimeout(1500);
     check('and the door works from that one as well',
       await page.evaluate(() => !!document.querySelector('.reg-table')));

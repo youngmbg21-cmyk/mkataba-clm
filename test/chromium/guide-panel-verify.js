@@ -61,7 +61,7 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.click('#li-go');
     await until(page, () => !!(window.state && state.view && Array.isArray(state.contracts) && state.contracts.length && typeof openPanel === 'function'), null, 15000);
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.guideSeen'); } catch (_){} setView('counter'); });
-    await until(page, () => state.view === 'counter');
+    await until(page, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')));
 
     /* 1 the panel's tabs, from the existing door */
     await page.evaluate(() => openPanel('activity'));
@@ -82,13 +82,13 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await until(page, () => document.getElementById('context-panel').dataset.face === 'guide' && !!document.querySelector('.gd-st'));
     const R2 = await page.evaluate(READ);
     check('2a it is a face of the same panel, headed "Guide"', R2.open && R2.face === 'guide' && R2.title === 'Guide', JSON.stringify({ face: R2.face, title: R2.title }));
-    check('2b Home first, Settings & rules at the foot', R2.first === 'counter' && R2.last === 'settings', JSON.stringify([R2.first, R2.last]));
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the Board heads the Guide */ check('2b the Board first, Settings & rules at the foot', R2.first === 'board' && R2.last === 'settings', JSON.stringify([R2.first, R2.last]));
     check('2c six numbered stages, in the order a contract lives', R2.stages.map(s => s.n + ' ' + s.h).join(' | ') === '1 Someone asks | 2 Draft it | 3 Agree the words | 4 Sign | 5 Keep it alive | 6 See the whole book',
       R2.stages.map(s => s.n + ' ' + s.h).join(' | '));
     /* RE-POINTED 28 Oct 2026 (THE THREAD): Reads joins Keep it alive (rule 9c) */
-    check('2d each stage holds its pages as drawn', JSON.stringify(R2.stages.map(s => s.rows)) === JSON.stringify([['requests', 'import'], ['ourpaper', 'draft'], ['document', 'negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'], ['board', 'pulse', 'explorer', 'house']]),   /* RE-POINTED 29 Oct 2026 (THE PULSE BOARD): the Pulse board joins See it whole, beside the Board (rule 9c) */
+    check('2d each stage holds its pages as drawn', JSON.stringify(R2.stages.map(s => s.rows)) === JSON.stringify([['requests', 'import'], ['ourpaper', 'draft'], ['document', 'negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'], ['pulse', 'explorer', 'house']]),   /* RE-POINTED 29 Oct 2026 (THE PULSE BOARD): the Pulse board joins See it whole, beside the Board (rule 9c) */
       JSON.stringify(R2.stages.map(s => s.rows)));
-    check('2e Home is the page in front: "You are here"', R2.here.join() === 'counter', JSON.stringify(R2.here));
+    check('2e the Board is the page in front: "You are here"', R2.here.join() === 'board', JSON.stringify(R2.here));
     const tabNew = await page.evaluate(() => (document.querySelector('#panel-tabs [data-pt-face="guide"]') || {}).textContent.trim());
     check('2f opened once, the tab no longer says "new"', tabNew === 'Guide', tabNew);
     const nums = await page.evaluate(() => ({ approvals: approvalsDoorCount(), oblig: obligationsDoorCount(), requests: requestsDoorCount() }));

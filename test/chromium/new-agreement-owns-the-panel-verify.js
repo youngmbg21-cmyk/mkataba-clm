@@ -32,7 +32,7 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
   try {
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
-    await until(P, () => !!document.getElementById('cn-q'), null, 20000);
+    await until(P, () => !!document.getElementById('igd-input'), null, 20000);
     await P.evaluate(() => pdOpenOnHome('MK-A2', 'copilot'));
     await until(P, () => !!(window.pdContract && pdContract() && pdContract().id === 'MK-A2'), null, 8000);
     await P.evaluate(() => pdRedOpen('MK-A2'));

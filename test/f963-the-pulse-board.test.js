@@ -37,7 +37,11 @@ test('1 · the Board\'s head: Summarise my board, then the Pulse board, the last
   const HB = read('js/views/homeboard.js');
   const head = HB.slice(HB.indexOf('function hbBoardHeadHtml('), HB.indexOf('function hbBoardHeadHtml(') + 900);
   /* RE-POINTED 29 Oct 2026 (owner: "the explorer page has a button next to the pulse"): Explorer ends the row */
-  assert.match(head, /\$\{bs\.btn\}\$\{hbPulseBtnHtml\(\)\}\$\{hbExplorerBtnHtml\(\)\}<\/div>/, 'Summarise, the Pulse board, Explorer, then the row ends');
+  /* RE-POINTED (owner, 10 Nov 2026: the head greets you): the three are one run (acts), ending the old look's row and
+     leading the greeting's, where the day and Live follow */
+  assert.match(head, /const acts = `\$\{pack \|\| ''\}\$\{bs\.btn\}\$\{hbPulseBtnHtml\(\)\}\$\{hbExplorerBtnHtml\(\)\}`;/, 'Summarise, the Pulse board, Explorer, in that order');
+  const whole = HB.slice(HB.indexOf('function hbBoardHeadHtml('), HB.indexOf("/* THE PULSE BOARD'S DOOR"));
+  assert.match(whole, /\+ `\$\{acts\}<\/div><\/section>`;/, 'in the old look they end the row');
   assert.match(HB, /if \(on\('\[data-hb-explorer\]'\)\)\{ if \(typeof caGo === 'function'\) caGo\(\{ kind: 'go', place: 'explorer' \}\)/, 'Explorer\'s button moves through the one mover');
   const btn = HB.slice(HB.indexOf('function hbPulseBtnHtml('), HB.indexOf('function hbPulseBtnHtml(') + 500);
   assert.match(btn, /class="hb-btn is-sm hb-pulse-go" data-hb-pulse/, 'outlined like Summarise, one door');
@@ -96,7 +100,10 @@ test('5 · every page list names it (rule 9c)', () => {
   assert.match(APP, /import '\.\/views\/pulse\.js';/);
   assert.match(APP, /else if\(view==='pulse'\) renderPulse\(\);/);
   assert.match(APP, /pulse:\['puPlace','puPlacePut'\]/, 'a refresh lands at the same spot');
-  assert.match(APP, /\{ k: 'see', rows: \['board', 'pulse', 'explorer', 'house'\] \}/, 'the Guide row, beside the Board');
+  /* RE-POINTED 10 Nov 2026: Home was deleted and the Board heads the Guide (its top row), so the
+     see stage holds the Pulse Board, Explorer and the house — the rule (a Guide row) is unchanged */
+  assert.match(APP, /\{ k: 'see', rows: \['pulse', 'explorer', 'house'\] \}/, 'the Guide row, in the see stage');
+  assert.match(APP, /guideRowHtml\('board',/, 'and the Board heads the Guide');
   assert.match(CORE, /'handbook','pulse'/, 'setView knows it at start');
   assert.match(CA, /\{ k: 'pulse', w: \['pulse', 'pulse board'/, 'the "/" word');
   assert.match(CA, /'reads', 'pulse', 'handbook'/, 'its name typed moves there free');   /* RE-POINTED 29 Oct 2026: Insights left the list on main */

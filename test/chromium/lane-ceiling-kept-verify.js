@@ -36,7 +36,7 @@ const ok = (name, good, detail) => {
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && typeof openSettingsAt === 'function', null, { timeout: 20000 });
     await page.keyboard.press('Escape').catch(() => {});
-    await page.waitForFunction(() => state.view === 'counter' && isAdmin(), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) && isAdmin(), null, { timeout: 15000 }).catch(() => {});
     const how = await page.evaluate(() => { try { openSettingsAt('platform', 'lanes'); return { admin: isAdmin(), dock: typeof stDockable === 'function' && stDockable('lanes') }; } catch (e) { return String(e); } });
     const drawn = await page.waitForFunction(() => document.querySelectorAll('#st-lanes .st-lane').length >= 2 && !!document.getElementById('st-lane-save'), null, { timeout: 10000 }).then(() => true, () => false);
     ok('0 (setup) the lanes panel is drawn with both lanes', drawn, drawn ? null : await page.evaluate(() => ({ lanes: document.querySelectorAll('#st-lanes .st-lane').length, host: !!document.getElementById('st-lanes'), set: ((state.settings||{}).intakeLanes||[]).length, view: state.view })).then(x => ({ ...x, how })));

@@ -42,7 +42,8 @@ test('f977 (3) one voice', () => {
   assert.match(strip(fnBody(read('js/views/inspector.js'), 'jlHeadPaint')), /opt\.tabCount != null \? Number\(opt\.tabCount\) \|\| 0 : \(\(typeof window\.newLookOn === 'function' && newLookOn\(\)\) \? 0 : jlCount\(\)\)/);
   const cn = read('js/views/counter.js');
   assert.doesNotMatch(cn, /cn2-who-j/, 'no Jambo on each note');
-  assert.match(cn, /after: ready \+ turns \};/, 'no Likely next in the panel');
+  /* (Home's panel and its "no Likely next" went with Home, 10 Nov 2026) */
+  assert.ok(!/function cn2JlSay\(/.test(cn));
   assert.match(read('js/paperdesk.js'), /igHomePaperFace\(\) === true && !pdContract\(\) && !\(typeof window\.newLookOn === 'function' && newLookOn\(\)\);/);
 });
 
@@ -92,10 +93,10 @@ test('f977 (9) even cards: the party its own line, one footer', () => {
   assert.match(foot, /if\(list\.length>shown\.length\) return '';/, 'the paging foot stands alone');
 });
 test('f977 (10) grouped rows and the week ahead at the weekend', () => {
+  /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's grouped rows and its week line went
+     with Home */
   const cn = read('js/views/counter.js');
-  assert.match(strip(fnBody(cn, 'cn2Html')), /\$\{L\.length \? cn2GroupedHtml\(L\)/);
-  assert.match(strip(fnBody(cn, 'cnWeekOf')), /wkend = td\.getDay\(\) === 6 \|\| td\.getDay\(\) === 0/);
-  assert.match(block(), /#cn2-list \.cn2-row \.nd-kind\{display:none\}/);
+  assert.ok(!/function (cn2Html|cn2GroupedHtml|cnWeekOf)\(/.test(cn));
 });
 test('f977 (12, 13, 15) two lines a row, fold the quiet, name the clause', () => {
   const ob = strip(fnBody(read('js/obligations.js'), 'obnRowHtml'));

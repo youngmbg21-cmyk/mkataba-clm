@@ -1,7 +1,7 @@
 {
   "note": "Hand-typed colours outside :root, per file, on 31 Oct 2026 (round 0 of the Legora way). ONLY SHRINKS: a file may go down, never up; a file not listed may have none. Lower a count when you replace one with a token.",
   "colours": {
-    "index.html": 472,
+    "index.html": 466,
     "js/advice.js": 1,
     "js/ai.js": 5,
     "js/aichart.js": 20,

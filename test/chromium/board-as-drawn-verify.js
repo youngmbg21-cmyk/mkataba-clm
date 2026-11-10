@@ -1,6 +1,6 @@
 /* THE BOARD AS DRAWN (round 17 of the redesign, "Then and now", the owner's
    "build all the gaps", 18 Oct 2026; js/views/homeboard.js hbBoardHeadHtml,
-   hbSavedViewChipsHtml, hbBookHtml, hbValueSay, hbBoardHelloHtml)
+   igSavedViewsHtml, hbBookHtml, hbValueSay, hbBoardHelloHtml)
 
    WHAT THIS PINS, driven in a real browser on a seeded workspace
      1 the Board's head is one card: "Board", "your book against six months
@@ -115,16 +115,24 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('1b Summarise my board stands in the head, no cost on its face or its hover', !!hd && hd.cost === '' && (!hd.keyed || /Summarise my board/.test(hd.btn || '')), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost, btn: hd.btn }));
 
-    console.log('\n2 · saved views as chips');
-    const sv = await page.evaluate(() => { const L = [...document.querySelectorAll('#hb-bhead .hb-sv-chip')];
-      return { label: (document.querySelector('#hb-bhead .hb-bh-l') || {}).textContent || '', chips: L.map(b => ({ name: (b.querySelector('.hb-sv-n') || {}).textContent || '', n: (b.querySelector('b') || {}).textContent || '' })),
-        want: (typeof igRecipeShown === 'function' && igViewsRead().length) ? igRecipeShown(igViewsRead()[0].recipe) : null, menu: !!document.querySelector('[data-hb-tools-more="views|board"]') }; });
-    check('2a "Saved views" and one chip per view, its count the map\'s own', sv.label === 'Saved views' && sv.chips.length === 1 && sv.chips[0].name === 'Whole book' && Number(sv.chips[0].n) === sv.want && !sv.menu, JSON.stringify(sv));
-    if (await press('#hb-bhead .hb-sv-chip', '2b the chip')) {
-      const ex = await until(() => typeof hbFace === 'function' && hbFace() === 'explorer', null, 8000);
-      check('2b a press opens the view on Explorer', !!ex);
-      await toBoard();
+    /* RE-POINTED (owner, 10 Nov 2026): the saved views left the Board's head; they are blue links under Your day in
+       Jambo's panel on Explorer (igSavedViewsHtml), where "+ Save this view" opens a name box */
+    console.log('\n2 · saved views are links in Jambo\'s panel on Explorer');
+    const onBoard = await page.evaluate(() => document.querySelectorAll('#hb-bhead .hb-sv-chip, #hb-bhead [data-hb-sview], #hb-bhead .hb-bh-views').length);
+    await page.evaluate(() => { hbSetFace('explorer'); });
+    await until(() => typeof igDayTabOn === 'function' && window.IG && IG.nodes && igDayTabOn() ? (igDayShows() || igBriefStart(), !!document.getElementById('ig-sv')) : null, null, 12000);
+    const sv = await page.evaluate(() => { const L = [...document.querySelectorAll('#ig-sv .ig-sv-a')];
+      return { label: (document.querySelector('#ig-sv .ig-sv-l') || {}).textContent || '', links: L.map(b => ({ name: (b.querySelector('.ig-sv-n') || {}).textContent || '', n: (b.querySelector('b') || {}).textContent || '' })),
+        want: (typeof igRecipeShown === 'function' && igViewsRead().length) ? igRecipeShown(igViewsRead()[0].recipe) : null, add: !!document.querySelector('#ig-sv [data-ig-sv-new]') }; });
+    check('2a none on the Board; under Your day "Saved views", one link per view with the map\'s own count, and + Save this view', onBoard === 0 && sv.label === 'Saved views' && sv.links.length === 1 && sv.links[0].name === 'Whole book' && Number(sv.links[0].n) === sv.want && sv.add, JSON.stringify({ onBoard, sv }));
+    if (await press('#ig-sv [data-ig-sv-new]', '2b + Save this view')) {
+      const box = await until(() => { const i = document.getElementById('ig-sv-name'); return i ? { v: i.value, focus: document.activeElement === i } : null; });
+      await page.fill('#ig-sv-name', 'Named by hand'); await page.keyboard.press('Enter');
+      const kept = await until(() => igViewsRead().some(v => v.name === 'Named by hand') && !document.getElementById('ig-sv-name') && !!document.querySelector('#ig-sv .ig-sv-a[data-ig-sv="Named by hand"]'));
+      check('2b the name box opens filled and focused; the name typed is the name kept', !!box && !!box.v && box.focus && !!kept, JSON.stringify({ box, kept }));
+      await page.evaluate(() => { igViewsWrite(igViewsRead().filter(v => v.name !== 'Named by hand')); });
     }
+    await toBoard();
 
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk; reverses the owner's answer 14): the card under Your book
        is ALL of Needs you — Jambo's prepared pieces and your move — and the old Needs you card stays gone */
@@ -178,15 +186,15 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'my saved views'); if (b) b.click(); });
     const said = await until(() => { const t = [...document.querySelectorAll('#igd-feed .ai-bub')].map(b => b.textContent.trim()).find(x => /^You have 1 saved view:/.test(x)); return t || null; }, null, 8000);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('6 asked, he lists the saved views with their counts and says where they are, no cost', !!said && /“Whole book” \d+\./.test(said) && /press one to open it on Explorer/.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said), said);
+    check('6 asked, he lists the saved views with their counts and says where they are, no cost', !!said && /“Whole book” \d+\./.test(said) && /in my panel on Explorer, under Your day/.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said), said);
 
-    console.log('\n5f · "what needs me" lands on Home\'s Needs you');
+    console.log('\n5f · "what needs me" lands on the Board\'s Needs you');
     /* the Overview tab brings the landing back from the talk (RE-POINTED 26 Oct 2026, the two tabs) */
     await page.evaluate(() => { if (typeof intel !== 'undefined') intel.history = []; if (typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){} renderIntelDock(); });
     await until(() => !!document.querySelector('#ig-dock .hb-jb-hello'), null, 6000);
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'what needs me'); if (b) b.click(); });
-    const cn = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed'), null, 8000);
-    check('5f "what needs me" opens Home and lands on Needs you, lit (landOn)', !!cn);
+    const cn = await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) && !!document.querySelector('#hm-agents.is-landed'), null, 8000);
+    check('5f "what needs me" lands on the Board\'s Needs you (landOn; Home was deleted 10 Nov 2026)', !!cn);
 
     console.log('\n7 · the owner\'s three screens');
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

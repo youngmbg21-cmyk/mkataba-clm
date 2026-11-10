@@ -131,14 +131,7 @@ const check = (name, pass, detail) => {
     check('3c the Calendar\'s panel shows the words it was given', you.trim() === 'book a meeting with Naivas on Tuesday at 2pm', you);
     await page.screenshot({ path: path.join(OUT, '3-handed-over-1440x780.png') });
 
-    console.log('\n4 · the same from the Counter');
-    await page.evaluate(() => { window.__asked.length = 0; setView('counter'); });
-    await until(() => !!document.getElementById('cn-q'));
-    await page.fill('#cn-q', 'set up a 30 min catch-up with legal on Friday');
-    await page.press('#cn-q', 'Enter');
-    const cn = await until(() => calOnScreen() && window.__asked.some(a => a.p === 'ai/plan') ? window.__asked.slice() : null, null, 10000);
-    check('4a the Counter hands it to the Calendar\'s Jambo', !!cn && cn.some(a => a.ask === 'set up a 30 min catch-up with legal on Friday'), JSON.stringify(cn || await asked()));
-
+    /* 4 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): the Counter's box went with Home */
     console.log('\n5 · "template" alone no longer steers');
     await page.evaluate(() => { window.__asked.length = 0; const s = hbS(); s.face = 'board'; if (window.hbSave) hbSave(); setView('dashboard'); });
     await until(() => state.view === 'dashboard' && !calOnScreen() && !!document.getElementById('igd-input') && !intel.busy);

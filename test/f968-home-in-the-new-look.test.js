@@ -52,7 +52,9 @@ test('f968 (3) the paper\'s words only where known', () => {
   assert.equal(w.cn2QuoteHtml({ y: { x: { c, it: { kind: 'approval' } } } }), '', 'an approval quotes nothing');
   assert.equal(w.cn2QuoteHtml({ g: 'jambo' }), '');
 });
-test('f968 (4) behind the switch: the new Home only with newLookOn and room for the panel', () => {
-  assert.match(fnBody(CN, 'cn2On'), /newLookOn\(\) && typeof insFits === 'function' && insFits\(\)/);
-  assert.match(fnBody(CN, 'renderCounter'), /if \(cn2On\(\)\)\{ renderCounter2\(host\);/);
+/* RE-POINTED (owner, 10 Nov 2026: "Home page should be removed / deleted"): the new Home's page went; its readings stay
+   (the bell, the phone and the Board's greeting read them: (1)–(3) above) */
+test('f968 (4) the page is gone; its readings stay', () => {
+  assert.ok(!/function (cn2On|renderCounter2|renderCounter|cn2Html)\(/.test(CN), 'no Home page is drawn');
+  for (const f of ['cn2Rows', 'cn2Say', 'cn2Greet', 'cn2QuoteHtml']) assert.match(CN, new RegExp('function ' + f + '\\('), f + ' stays');
 });

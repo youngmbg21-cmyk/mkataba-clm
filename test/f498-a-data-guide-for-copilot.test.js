@@ -97,7 +97,8 @@ describe('F498 (C) — a cap is a fact', () => {
 describe('F498 (D) — it rides with every board question', () => {
   test('the question carries the guide beside the board', () => {
     const src = read('js/views/intelligence.js');
-    assert.match(src, /board:igBoardNow\(\), guide:igBoardGuide\(\) \};/);
+    /* the guide rides beside the board; off the Board the company's own words ride too (f996) */
+    assert.match(src, /board:igBoardNow\(\), guide:igBoardGuide\(\)(?:, words:[^}]*?)? \};/);
     assert.match(src, /function igBoardGuide\(\)\{\s*try\{ return \(igBoardNow\(\) && typeof window\.hbDataGuide==='function'\)/);
   });
 });

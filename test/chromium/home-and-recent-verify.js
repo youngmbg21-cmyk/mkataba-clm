@@ -65,8 +65,8 @@ const CONTRACTS = [
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
     /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
-    const ask = async word => { await page.evaluate(w => counterAsk(w), word); };
-    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q')); };
+    const ask = async word => { await page.evaluate(w => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w), word); };
+    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('igd-input')); };
     const menuOpen = () => page.evaluate(() => { const m = document.getElementById('dk-recent'); return !!m && !m.hidden && m.getBoundingClientRect().height > 0; });
     const openRecent = async () => { if (await menuOpen()) return true; if (!(await press('#dk-page', 'the page\'s name'))) return false; return !!await until(() => { const m = document.getElementById('dk-recent'); return m && !m.hidden && m.querySelector('.dk-r'); }); };
     const noRow = () => page.evaluate(() => !document.getElementById('dk-row') && !document.getElementById('dk-home') && !document.querySelector('.dk-tab, .dk-tabs'));
@@ -76,8 +76,10 @@ const CONTRACTS = [
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length === 4, null, { timeout: 20000 });
 
-    console.log('\n1 · signing in lands on Home');
-    const land = await until(() => state.view === 'counter' && document.getElementById('cn-q') && ({
+    /* RE-POINTED (owner, 10 Nov 2026: "Home page should be removed / deleted"; "I want board to be the home page where you
+       land"): signing in lands on the Board; the bar names it; the HaTi mark's tip says Board */
+    console.log('\n1 · signing in lands on the Board');
+    const land = await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) && document.getElementById('igd-input') && ({
       menu: getComputedStyle(document.getElementById('side-nav')).display,
       mark: !document.getElementById('dk-mark').hidden && document.getElementById('dk-mark').getBoundingClientRect().width > 0,
       markText: document.getElementById('dk-mark').textContent.trim(),
@@ -85,42 +87,16 @@ const CONTRACTS = [
       order: ['dk-back', 'dk-mark', 'dk-page'].map(id => { const e = document.getElementById(id); return e ? Math.round(e.getBoundingClientRect().left) : -1; }),
       name: (document.getElementById('dk-page') || {}).textContent, titleShown: document.getElementById('shell-title').getBoundingClientRect().width > 0,
       greet: (document.querySelector('.cn-ask h1') || {}).textContent || '' }), null, 15000);
-    check('1a the first screen is Home, with Jambo\'s box', !!land, JSON.stringify(land));
+    check('1a the first screen is the Board, with Jambo\'s box', !!land, JSON.stringify(land));
     check('1b the left menu is not drawn', !!land && land.menu === 'none', land && land.menu);
-    check('1c the bar reads ‹ · HaTi · the page\'s name, and the page is Home', !!land && land.mark && land.markText === 'HaTi' && land.markTip === 'Home' && land.order.every((x, i, a) => x >= 0 && (i === 0 || x > a[i - 1]))
-      && String(land.name).trim() === 'Home' && !land.titleShown, land && JSON.stringify({ order: land.order, mark: land.markText, name: land.name, tip: land.markTip, title: land.titleShown }));
+    check('1c the bar reads ‹ · HaTi · the page\'s name, and the page is the Board', !!land && land.mark && land.markText === 'HaTi' && land.markTip === 'Board' && land.order.every((x, i, a) => x >= 0 && (i === 0 || x > a[i - 1]))
+      && String(land.name).trim() === 'Board' && !land.titleShown, land && JSON.stringify({ order: land.order, mark: land.markText, name: land.name, tip: land.markTip, title: land.titleShown }));
     check('1d no row of tabs anywhere', await noRow());
-    check('1e the box greets the person by name', !!land && /^What do you need, \S+\?$/.test(land.greet), land && land.greet);
+    /* 1e (Home's box greeting) RETIRED with Home; the Board's greeting is board-as-drawn-verify's */
     await shot(page, 'home-1440x780');
 
-    console.log('\n2 · Needs you');
-    const needs = await page.evaluate(() => {
-      const L = hbNeedsList();
-      /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Jambo's group comes first while he has prepared anything */
-      const groups = [...document.querySelectorAll('#cn-needs .nd-g')].map(g => g.getAttribute('data-nd-g'));
-      return { first: ndRead().jambo.length ? groups[0] === 'jambo' : groups[0] === 'you', jwText: JSON.stringify({ groups, jambo: ndRead().jambo.length }),
-        cnt: Number((document.querySelector('#cn-needs .cn-cnt') || {}).textContent), needRows: document.querySelectorAll('#cn-needs [data-cn-need]').length,
-        book: L.length, ready: hbAgentsData(null).ready, co: document.querySelectorAll('#cn-needs [data-cn-co]').length, company: stNeedsAll().length, rowsMax: CN_ROWS,
-        owed: L.map(x => x.c.id + ':' + x.it.kind) };
-    });
-    check('2a Jambo\'s prepared work is the first group, while he has any', needs.first, needs.jwText);
-    check('2b every owed item of the book is a row', needs.book > 0 && needs.needRows === Math.min(needs.book, needs.rowsMax), JSON.stringify(needs.owed));
-    check('2c the admin has one row onto Settings', needs.company > 0 ? needs.co === 1 : needs.co === 0, `${needs.company} things in Settings`);
-    check('2d the number is the rows that owe something', needs.cnt === (needs.ready ? 1 : 0) + needs.book + (needs.company ? 1 : 0), JSON.stringify(needs));
-    if (await press('#cn-needs [data-cn-need="details"]', '2e a details row')) {
-      /* RE-POINTED 21 Oct 2026 — THE LEGORA WAY (20 Oct 2026): no Fill in face; the row lands on its paper's
-         Dossier with Still owed's first owed row in the hand */
-      const fill = await until(() => { const a = document.activeElement;
-        return state.view === 'dashboard' && !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#ig-dock #pd-og')) && pdContract() && pdContract().id; });
-      check('2e a details row opens its paper, Still owed\'s row in the hand', !!fill, String(fill));
-      await toCounter();
-    }
-    if (await press('#cn-needs [data-cn-co]', '2f the company row')) {
-      const st = await until(() => state.view === 'team' && typeof settingsTab === 'function' && settingsTab() === 'company');
-      check('2f the company row opens Settings on the company\'s list', !!st);
-      await toCounter();
-    }
-
+    /* 2 RETIRED (owner, 10 Nov 2026): Needs you on Home went with Home; the Board's card is board-as-drawn-verify's and
+       counter-as-drawn-verify's */
     console.log('\n3 · the box');
     await ask('contracts');
     const place = await until(() => state.view === 'dashboard' && hbFace() === 'paper' && !pdContract() && !!document.getElementById('ct-place'));
@@ -133,14 +109,7 @@ const CONTRACTS = [
       return b.textContent.trim() === 'Approvals & signing' && first ? { name: b.textContent.trim(), gap: Math.round(first.getBoundingClientRect().top - bar.bottom) } : null; });
     check('3c "approvals" opens its page, named in the bar, nothing between the bar and the page', !!ap && ap.gap <= 1 && await noRow(), JSON.stringify(ap));
     await toCounter();
-    await page.locator('#cn-q').click(); await page.keyboard.press('/');
-    const slash = await until(() => { const w = [...document.querySelectorAll('#cn-pop [data-cn-pop] b')].map(b => b.textContent); return w.length ? w : null; });
-    /* RE-POINTED 29 Oct 2026: '/insights' left with the Insights page (owner deleted it) */
-    const want = ['/approvals', '/parties', '/people', '/requests', '/our-paper', '/settings', '/negotiations', '/my-notes', '/import'];
-    check('3d "/" lists every page the menu held', !!slash && want.every(w => slash.includes(w)), slash && slash.join(' '));
-    check('3e and leaves out the words that need an open contract', !!slash && !['/redline', '/sign', '/share', '/fill-in'].some(w => slash.includes(w)));
-    await page.keyboard.press('Escape');
-    check('3f Esc closes the list', await page.evaluate(() => document.getElementById('cn-pop').hidden));
+    /* 3d–3f (Home's "/" list) RETIRED with Home; the Board's "/" is four-decisions-verify's Q1b */
     await ask('which contracts end this year');
     const q = await until(() => state.view === 'dashboard' && hbFace() === 'board' && /which contracts end this year/.test((document.getElementById('ig-dock') || {}).innerText || ''));
     check('3g a question is asked of Jambo beside the Board', !!q);
@@ -154,14 +123,15 @@ const CONTRACTS = [
     check('4a Recent keeps the last six pages: the seventh dropped the oldest', all.length === 6 && all.includes('home:board') && all.includes('v:templates')
       && !all.includes('home:contracts') && !all.includes('v:approvals') && !all.includes('v:obligations'), all.join(' '));
     const open = await openRecent();
-    const m = open && await page.evaluate(() => { const r = [...document.querySelectorAll('#dk-recent .dk-r')];
+    const m = open && await page.evaluate(() => { const r = [...document.querySelectorAll('#dk-recent .dk-r')]; const homeOn = !!document.querySelector('#dk-recent .dk-r-home.is-on');
       return { home: r[0] && r[0].querySelector('[data-dk-counter]') ? r[0].textContent.replace(/\s+/g, ' ').trim() : null,
         keys: [...document.querySelectorAll('#dk-recent [data-dk-go]')].map(x => x.getAttribute('data-dk-go')),
-        on: (document.querySelector('#dk-recent .dk-r.is-on [data-dk-go]') || { getAttribute: () => '' }).getAttribute('data-dk-go'),
+        on: homeOn ? 'home:board' : (document.querySelector('#dk-recent .dk-r.is-on [data-dk-go]') || { getAttribute: () => '' }).getAttribute('data-dk-go'),
         tick: !!document.querySelector('#dk-recent .dk-r.is-on .dk-r-tick svg'), xs: document.querySelectorAll('#dk-recent [data-dk-x]').length,
         head: (document.querySelector('#dk-recent .dk-r-h') || {}).textContent, present: !!document.querySelector('#dk-recent [data-dk-present]') }; });
-    check('4b the page\'s name opens Recent: Home first, then the pages, newest first', !!m && /^Home/.test(m.home || '') && m.keys[0] === 'home:board'
-      && JSON.stringify(m.keys.slice(1)) === JSON.stringify(['v:templates', 'v:mynotes', 'v:intake', 'v:directory', 'v:customers']) && m.head === 'Recent · your last 6 pages', JSON.stringify(m));
+    /* RE-POINTED (10 Nov 2026): the Board is Recent's first row (where the HaTi mark goes), so it is not listed twice */
+    check('4b the page\'s name opens Recent: the Board first, then the pages, newest first', !!m && /^Board/.test(m.home || '') && !m.keys.includes('home:board')
+      && JSON.stringify(m.keys) === JSON.stringify(['v:templates', 'v:mynotes', 'v:intake', 'v:directory', 'v:customers']) && m.head === 'Recent · your last 6 pages', JSON.stringify(m));
     check('4c the page in front is ticked, and every page has its ×', !!m && m.on === 'home:board' && m.tick && m.xs === m.keys.length, m && `${m.on} · ${m.xs} ×`);
     await press('#dk-page', '4d the name again');
     check('4d pressed again, it closes', !await menuOpen());
@@ -204,8 +174,10 @@ const CONTRACTS = [
     check('4k a refresh keeps the page and Recent', back === viewBefore && JSON.stringify((await kept()).slice().sort()) === JSON.stringify(before.slice().sort()), `${back} · ${(await kept()).length} pages`);
     const grey = await page.evaluate(() => { const b = document.getElementById('dk-back'); return b ? { off: b.disabled, tip: b.title } : { off: false, tip: 'no ‹ in the bar' }; });
     check('4l with nothing to go back to in this sitting, ‹ is grey and says why', grey.off && grey.tip === 'Nothing to go back to yet', JSON.stringify(grey));
-    if (await press('#dk-mark', '4m the HaTi mark')) check('4m the HaTi mark goes Home', !!await until(() => state.view === 'counter' && !!document.getElementById('cn-q')));
-    check('4n and ‹ is there to come back', await page.evaluate(() => { const b = document.getElementById('dk-back'); return !!b && !b.disabled; }));
+    /* RE-POINTED (10 Nov 2026): the mark goes to the Board, so it is pressed from another page */
+    await ask('approvals'); await until(() => state.view === 'approvals'); await page.waitForTimeout(600);   /* the trail notes a page once it has settled (DK_SETTLE_MS) */
+    if (await press('#dk-mark', '4m the HaTi mark')) check('4m the HaTi mark goes to the Board', !!await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) && !!document.getElementById('igd-input')));
+    check('4n and ‹ is there to come back', !!await until(() => { const b = document.getElementById('dk-back'); return !!b && !b.disabled; }) || await page.evaluate(() => { const b = document.getElementById('dk-back'); return !!b && !b.disabled; }));
 
     console.log('\n5 · the paper starts under the bar');
     await page.evaluate(() => pdOpenOnHome('MK-CN2', 'copilot'));
@@ -267,15 +239,15 @@ const CONTRACTS = [
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {
       await page.setViewportSize(vp);
       await toCounter(); await page.waitForTimeout(200);
+      /* RE-POINTED (10 Nov 2026): the Board, where you land — Jambo's box and the Board's head in view, nothing sideways */
       const fit = await page.evaluate(() => {
-        const box = document.querySelector('#cn-page .jb-card') /* RE-POINTED 20 Oct 2026: Home's box is the two-row card */.getBoundingClientRect(), card = document.getElementById('cn-needs').getBoundingClientRect();
-        const btns = [...document.querySelectorAll('#cn-needs .cn-r .ui-btn')];
-        const cut = btns.filter(b => { const r = document.createRange(); r.selectNodeContents(b); return r.getBoundingClientRect().width > b.getBoundingClientRect().width + 1; }).length;
-        return { boxIn: box.top >= 0 && box.bottom <= innerHeight, needsTop: Math.round(card.top), needsIn: card.top < innerHeight, cut, side: document.documentElement.scrollWidth - innerWidth };
+        const box = document.querySelector('#ig-dock .jb-card'), head = document.getElementById('hb-bhead');
+        const b = box ? box.getBoundingClientRect() : null, h = head ? head.getBoundingClientRect() : null;
+        return { boxIn: !!b && b.top >= 0 && b.bottom <= innerHeight, headIn: !!h && h.top >= 0 && h.top < innerHeight, side: document.documentElement.scrollWidth - innerWidth };
       });
-      await shot(page, `home-${vp.width}x${vp.height}`);
-      check(`7 ${vp.width}×${vp.height}: the box and Needs you are in view, nothing cut, no sideways scroll`, fit.boxIn && fit.needsIn && fit.cut === 0 && fit.side <= 0, JSON.stringify(fit));
-      await page.evaluate(() => pdOpenOnHome('MK-CN2', 'copilot')); await until(() => { const b = document.getElementById('dk-page'); return pdContract() && (!b || b.textContent.trim() !== 'Home'); });
+      await shot(page, `board-${vp.width}x${vp.height}`);
+      check(`7 ${vp.width}×${vp.height}: Jambo's box and the Board's head are in view, no sideways scroll`, fit.boxIn && fit.headIn && fit.side <= 0, JSON.stringify(fit));
+      await page.evaluate(() => pdOpenOnHome('MK-CN2', 'copilot')); await until(() => { const b = document.getElementById('dk-page'); return pdContract() && (!b || b.textContent.trim() !== 'Board'); });
       await openRecent();
       const rf = await page.evaluate(() => { const mm = document.getElementById('dk-recent'), b = document.getElementById('dk-page'), w = b && b.querySelector('.dk-page-w');
         if (!mm || mm.hidden || !w) return { inView: false, nameWhole: false, side: 0, missing: 'no Recent under a page name in the bar' };
@@ -287,8 +259,8 @@ const CONTRACTS = [
     }
     await page.evaluate(() => langSet('sv'));
     await toCounter();
-    const sv = await until(() => { const b = document.getElementById('dk-page'), mk = document.getElementById('dk-mark'); return b && mk && b.textContent.trim() === 'Hem' && mk.title === 'Hem' && 'Hem'; });
-    check('7 in Svenska, Home is Hem', sv === 'Hem', String(sv));
+    const sv = await until(() => { const b = document.getElementById('dk-page'), mk = document.getElementById('dk-mark'); return b && mk && b.textContent.trim() === 'Tavla' && mk.title === 'Tavla' && 'Tavla'; });
+    check('7 in Svenska, the Board is Tavla', sv === 'Tavla', String(sv));
     await page.evaluate(() => langSet('en'));
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

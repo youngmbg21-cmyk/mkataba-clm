@@ -102,9 +102,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 3 · The bell */
   try {
-    await page.evaluate(() => { caGo({ kind: 'go', place: 'counter' }); });
-    const home = await until(page, () => !!document.getElementById('cn2-page'), null, 15000);
-    if (!home) check('3 Home is in front', false);
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the bell asked over the Board, where you land */
+    await page.evaluate(() => { caGo({ kind: 'go', place: 'board' }); });
+    const home = await until(page, () => !!document.getElementById('hb-bhead'), null, 15000);
+    if (!home) check('3 the Board is in front', false);
     await page.evaluate(() => openPanel('alerts'));
     const up = await until(page, () => !!document.querySelector('#context-panel .ndb .ndb-r'), null, 8000);
     const A = up ? await page.evaluate(() => ({ head: (document.querySelector('.ndb .ndb-h') || {}).textContent || '', bell: Number(counterNeedsCount()),
@@ -131,14 +132,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await page.evaluate(() => closeContextPanel());
   } catch (e) { check('4 The Guide', false, String(e).slice(0, 200)); }
 
-  /* 5 · Your week ahead */
-  try {
-    await page.evaluate(() => { const b = [...document.querySelectorAll('[data-cn2-look]')].find(x => /week/i.test((x.closest('.cn2-row') || {}).textContent || '')); if (b) b.click(); });
-    const up = await until(page, () => /What each press does/i.test((document.getElementById('ins-panel') || {}).innerText || ''), null, 8000);
-    const W = up ? await page.evaluate(() => (document.getElementById('ins-panel') || {}).innerText.replace(/\s+/g, ' ')) : '';
-    await shot('5-weekahead');
-    check('5 Your week ahead open: Jambo says what he read and what each press does', up && /I read your next seven days/.test(W) && /Open the calendar/.test(W) && /Put away/.test(W) && /plan my week/.test(W), W.slice(0, 300));
-  } catch (e) { check('5 Week ahead', false, String(e).slice(0, 200)); }
+  /* 5 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): "Your week ahead" opened from Home's list into
+     Home's panel; with Home gone it is a piece on the Board's card, opened in its row (counter-as-drawn-verify 11d) */
 
   /* 6 · the switch off */
   try {

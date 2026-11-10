@@ -1767,7 +1767,8 @@ const CA_PLACES = [
     'summary of this contract', 'summary of this agreement', 'brief of this contract', 'the brief of this contract',
     'what is it about', "what's it about", 'what is this about', "what's this about", 'what is this contract about', "what's this contract about", 'what is this agreement about', "what's this agreement about",
     'sammanfatta det', 'sammanfatta avtalet', 'sammanfatta detta avtal', 'vad handlar det om', 'vad handlar avtalet om', 'vad handlar detta avtal om'] },
-  { k: 'board', w: ['board', 'tavla', 'tavlan'] },
+  /* the Board is where you land, so "home" and "start" are its words too (owner, 10 Nov 2026: Home was deleted) */
+  { k: 'board', w: ['board', 'tavla', 'tavlan', 'home', 'start', 'start page', 'hem', 'startsidan'] },
   /* "needs me" (Jambo's note, 15 Oct 2026): the Board's Needs you card, every item */
   { k: 'needs', w: ['needs me', 'what needs me', 'needs you', 'what needs you', 'waiting on me', 'what is waiting on me', "what's waiting on me", 'väntar på mig', 'vad väntar på mig', 'behöver mig', 'vad behöver mig'] },
   /* the tab is called Workspace since 15 Oct 2026 (owner): its name opens it, and the old words still do */
@@ -1788,8 +1789,6 @@ const CA_PLACES = [
   /* THE LEFT MENU'S PAGES (the owner picked "Desk tabs", 17 Oct 2026): on a
      computer the menu is gone, so every page it held is a place Jambo opens,
      and "/" lists them; the page lands on the desk as a tab (js/views/counter.js) */
-  /* not "counter": that word is a counter-offer to him (CA_DOORS) */
-  { k: 'counter', w: ['home', 'start', 'start page', 'hem', 'startsidan'] },
   { k: 'work', w: ["jambo's work", 'his work', 'prepared', 'prepared work', 'jambos arbete', 'förberett'] },
   { k: 'negotiations', w: ['negotiations', 'all negotiations', 'förhandlingar', 'alla förhandlingar'] },
   { k: 'approvals', w: ['approvals', 'approvals and signing', 'approvals & signing', 'godkännanden', 'godkännanden och signering', 'godkännanden & signering'] },
@@ -1893,7 +1892,7 @@ function caReadPlace(q){
    leading "/", a closing ?.! and a closing "page" let go; 9 Nov 2026: "our paper" moves) — never an act, a card or a contract's part ("sign", "draft",
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
-const JB_PAGE_PLACES = ['counter', 'board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
+const JB_PAGE_PLACES = ['board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
   'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
   /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
@@ -1997,7 +1996,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'counter', 'guide', 'handbook', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2156,7 +2155,6 @@ const CA_GO = {
      Draft card (caGoCardHtml); this is for a caller that moves straight on */
   draft: () => caDraftForm(null),
   /* the left menu's pages, each through the door the menu pressed (Round 2) */
-  counter: () => typeof setView === 'function' && setView('counter'),
   work: () => typeof hbOpenAgent === 'function' && hbOpenAgent(),
   /* THE NUMBER ON THE DOOR IS THE LIST BEHIND IT (Part 8: Negotiations'
      typed words narrow its list on a computer now): the Guide's row, "/" and

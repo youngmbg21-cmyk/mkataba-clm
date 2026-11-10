@@ -2575,7 +2575,6 @@ async function agPutAway(it, said){
     if (desk) deskDismiss(c, it.deskKey, { undo: true });
     else if (typeof agentAwaySet === 'function') try { await agentAwaySet(it.key, null); } catch (_){}
     agRepaint();
-    if (typeof counterRepaint === 'function') try { counterRepaint(); } catch (_){}
   };
   if (typeof toast === 'function') toast(_agT(desk ? 'ag_put_away' : 'ag_put_away_mine'), 'ok', { action: { label: _agT('act_undo'), onClick: undo } });
   agRepaint();

@@ -43,7 +43,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   check('1 · the bell says "Overdue: Return the pallets" for an obligation named by title', a1.some(t => /Overdue: Return the pallets/.test(t)) && !a1.some(t => /Overdue:\s*$/.test(t)), a1);
 
   /* 2 */
-  await page.evaluate(() => { caGo({ kind: 'go', place: 'counter', cid: null }); }); await page.waitForTimeout(800);
+  await page.evaluate(() => { caGo({ kind: 'go', place: 'board', cid: null }); }); await page.waitForTimeout(800);
   await page.evaluate(() => caGo({ kind: 'go', place: 'draft', cid: null }));
   const up = await until(page, () => typeof naSheetUp === 'function' && naSheetUp() && !!document.querySelector('#na-words textarea, #na-words input, #na-q, #dr-say'), null, 10000);
   const a2 = await page.evaluate(async () => { const q = document.querySelector('#na-words textarea, #na-words input, #na-q, #dr-say'); q.value = 'A supply agreement with Kabras'; q.dispatchEvent(new Event('input', { bubbles: true }));
