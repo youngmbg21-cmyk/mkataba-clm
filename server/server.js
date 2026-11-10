@@ -7856,6 +7856,9 @@ function graphScreenSays(sc, sent, total) {
   if (board) parts.push(`\nThe reader asked this on the Home BOARD, not on the map. What the board shows now:\n${board}\nWhen the request asks about something on the board (why a number says what it says, what a chart or line means, where the rest of the money is), answer it in the answer field from these numbers, quoting them, and change nothing on the map (no groupBy, no where, no visibleIds).`);
   /* THE DATA GUIDE (work order Part 3): what each field holds, so a card is
      built on fields that are filled. Clamped like the board; a cut is said. */
+  /* THE COMPANY'S OWN WORDS ON THE MAP TOO (the Board's word book, an admin's): "folders" = value streams */
+  const words = !board ? String(sc.words == null ? '' : sc.words).replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1200) : '';
+  if (words) parts.push(words);
   const guideRaw = board ? String(sc.guide == null ? '' : sc.guide).replace(/[\u0000-\u0008\u000b-\u001f]/g, ' ').trim() : '';
   if (guideRaw) parts.push(`\n${guideRaw.slice(0, GRAPH_GUIDE_MAX)}${guideRaw.length > GRAPH_GUIDE_MAX ? '\n(The guide was cut here to keep it short.)' : ''}\nBuild cards on fields the guide shows as filled; a date most contracts lack makes an empty chart.`);
   return parts.join(' ');
@@ -8093,7 +8096,7 @@ const graphAskHandler = async (req, res) => {
         labelBy: { type: 'string', enum: GRAPH_GROUP_KEYS, description: 'The fact printed beside each dot.' },
         timeBy: { type: 'string', enum: ['decision', 'expiry', 'signed', 'created'], description: 'The date the timeline view lays contracts along.' },
         view: { type: 'string', enum: ['brain', 'wiring', 'floors', 'grid', 'timeline'], description: 'The view to show, only when asked or implied (floors → floors, two facts against each other → grid, "over time" → timeline).' },
-        top: { type: 'object', description: 'Keep only the top N, e.g. "top 10 by value", "3 biggest in each stream"; dir up = the other end, the N smallest ("the 5 smallest contracts").', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] }, per: { type: 'string', enum: GRAPH_GROUP_KEYS }, dir: { type: 'string', enum: ['down', 'up'] } } },
+        top: { type: 'object', description: 'Keep only the top N, e.g. "top 10 by value", "3 biggest in each stream"; dir up = the other end, the N smallest ("the 5 smallest contracts"). groups true = keep the N biggest GROUPS whole, ranked by their total, the rest hidden ("top 5 value streams by value", "the 3 biggest customers", "top 5 folders"): per names the grouping; without groups, per means the N biggest contracts IN EACH group.', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] }, per: { type: 'string', enum: GRAPH_GROUP_KEYS }, groups: { type: 'boolean' }, dir: { type: 'string', enum: ['down', 'up'] } } },
         /* THE BOARD'S RECIPE (4 Oct 2026): on Home's board an answer is drawn
            as a chart; the model may say which picture the words asked for,
            and HaTi still counts every figure. */
@@ -8148,7 +8151,7 @@ ${onBoard ? '' : `- CHANGE ONLY WHAT THE REQUEST ASKS. Everything under "The map
       note: out.note || '', sent: list.length, total,
       kind: out.kind === 'wording' ? 'wording' : 'map',
       ...['floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'view'].reduce((o, k) => { if (typeof out[k] === 'string' && out[k]) o[k] = out[k].slice(0, 40); return o; }, {}),
-      top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null, dir: out.top.dir === 'up' ? 'up' : 'down' } : null,
+      top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null, groups: out.top.groups === true, dir: out.top.dir === 'up' ? 'up' : 'down' } : null,
       chart: onBoard ? null : graphChartClean(out.chart),
       actions: onBoard ? graphBoardActionsClean(out.actions) : null,
       actionsTotal: onBoard && Array.isArray(out.actions) ? out.actions.length : 0,
