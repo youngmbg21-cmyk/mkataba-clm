@@ -142,7 +142,10 @@ async function login(b, base, email, pass, errs){
     /* 1 */
     const card = await page.$('#pd-redface [data-nego-card] .rl-card-meta');
     /* A WAIT ASKS FOR THE STATE, BOUNDED (25 Oct 2026: on GitHub the fixed 500ms read the column mid-repaint, []) */
-    if (card){ await page.click('#pd-redface [data-nego-card] .rl-card-meta'); await waitFor(page, () => !!document.querySelector('#pd-redface [data-nego-card].is-linked, #pd-redface .rl-card-d.is-linked'), 5000); await page.mouse.move(5, 5); await pause(300); }
+    /* …and the column may still be redrawing after the risk run, so a press can land on a row about to be replaced
+       (10 Nov 2026: [] once on code it does not touch): press again, bounded, until the row takes the shade */
+    if (card){ for (let i = 0; i < 3; i++){ await page.click('#pd-redface [data-nego-card] .rl-card-meta');
+        if (await waitFor(page, () => !!document.querySelector('#pd-redface [data-nego-card].is-linked, #pd-redface .rl-card-d.is-linked'), 2500)) break; } await page.mouse.move(5, 5); await pause(300); }
     const L1 = card ? await lit() : null;
     check('1  a pressed redline row is shaded, with no ring, and stays shaded with the pointer gone', !!L1 && L1.length === 1 && L1[0].on && !L1[0].ring && /^CHG-/.test(L1[0].k), JSON.stringify(L1));
     /* 2 */
