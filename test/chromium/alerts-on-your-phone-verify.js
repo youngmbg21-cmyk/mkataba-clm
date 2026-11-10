@@ -108,7 +108,12 @@ function openAlert(body){
       if (await until(P, s => !!document.querySelector(s), ROW, 1500)) break;
     }
     const said = await until(P, s => { const r = document.querySelector(s); return !!(r && r.querySelector('[data-st-sw="push"]')); }, ROW, 8000);
-    const row = await drive(s => { const r = document.querySelector(s); if (!r) return null; r.scrollIntoView({ block: 'center' });
+    /* A WAIT ASKS FOR THE STATE (10 Nov 2026): the row is brought into view, then the check waits, bounded, until the
+       row is the thing painted at its own point — read in the same instant as the scroll it failed once on unchanged code */
+    await drive(s => { const r = document.querySelector(s); if (r) r.scrollIntoView({ block: 'center' }); }, ROW, null);
+    await until(P, s => { const r = document.querySelector(s); if (!r) return false; const b = r.getBoundingClientRect();
+      const at = document.elementFromPoint(b.left + 20, b.top + b.height / 2); return !!(at && r.contains(at)); }, ROW, 3000);
+    const row = await drive(s => { const r = document.querySelector(s); if (!r) return null;
       const b = r.getBoundingClientRect(); const at = document.elementFromPoint(b.left + 20, b.top + b.height / 2);
       const labels = [...r.closest('[data-st-you-card="told"]').querySelectorAll('.st-sl')].map(x => x.textContent);
       return { text: r.innerText.replace(/\s+/g, ' ').trim(), painted: !!(at && r.contains(at)), labels,
