@@ -4995,7 +4995,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that

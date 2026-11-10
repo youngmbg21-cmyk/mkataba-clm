@@ -21964,3 +21964,8 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ### Noticed, not fixed
 - white-sheet-verify's new CUT measure prints NOTED lines for any other place where something is cut off out of reach; read GitHub's run and rule on each.
 - A search box inside a form pop-up (the SAP frame) keeps the pop-up's own field ring and grey box; not changed.
+
+## 10 Nov 2026 — The wall's circles did not match the rest of the platform
+- FIXED · THE WALL DREW AN OLDER RING (owner-reported, a picture). The wall's papers, and a party's own list of agreements, drew a dotted or half-filled outline while the list draws the filled SAP way mark. Both now draw the list's mark from the list's own reading. f997.
+### Noticed, not fixed
+- The wall's fourth paper in a row is cut at the right edge and the wall scrolls sideways at 1536 wide with Jambo's panel open (also in the owner's picture); "no panel scrolls sideways" says it should not.
