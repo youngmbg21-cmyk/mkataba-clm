@@ -67,6 +67,9 @@ const PAGES = [
   /* the overnight run, job 6 (10 Nov 2026): People. Every tab draws the one table (they only pick which people) */
   { k: 'people', view: 'directory', rowSel: '#dir-tbody [data-dir-row]', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
     box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .ctf-hf' },
+  /* job 7: Reads. Its three tabs draw the one table; All's pack lines are rows inside the same body */
+  { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
+    box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
 ];
 
 (async () => {
