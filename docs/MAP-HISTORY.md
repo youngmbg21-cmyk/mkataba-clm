@@ -36909,3 +36909,7 @@ DEAL = THE CLOSE PLAN: `rlHeadDealHtml` opens `dealViewHtml` (`pdDealOpen`): the
 - COUNTING IS NOT DRAWING: `*Data` + renderer per panel; `pfPanelData` the one door; `.igx-fig` the ONE tile; doors → `regShowOnly`; `exposureGridData` (no score).
 ```
 Size after: CLAUDE.md 79996 bytes (was 81,469 right after the merge).
+
+
+## HOME — THE BOARD AND THE MAP: THE DNA PAGE IS DELETED (10 Nov 2026, the overnight run, job 15)
+The owner, 10 Nov 2026: "delete the DNA page and button from HaTi". Removed: the DNA button beside Read down in the Board's head (`hbDnaBtnHtml`), its page on the Board (`hbDnaHtml`, `hbDnaRows`, `hbDnaOf`, `HB_DNA_MAX`, `_hbDna`, `hbDnaUp`), its face in Jambo's panel (`hbDnaPanelHtml` in `pdJamboTopHtml`), its presses (`data-hb-dna`, `data-dna-back`, `data-dna-show`, `data-dna-open`) and its styles (index.html "DNA BY CONTRACT, AS DRAWN"). All are STALE names now. The `dna_*` sentences stay inert in both books for the tidy-up job. KEPT, being other features: the DNA strand in a contract's margin (js/views/contract.js) and the Pulse board's strands (`.pu-dna`). round6-new-look-verify 11 and round9-new-look-verify 2a re-pointed to its absence.

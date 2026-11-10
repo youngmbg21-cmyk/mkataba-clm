@@ -6550,10 +6550,8 @@ function pdJamboTopHtml(){
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
   /* EXPLORER HAS ITS OVERVIEW TOO (owner, 26 Oct 2026: "Yes, every page"): what the map in front holds */
   if (typeof hbFace === 'function' && hbFace() === 'explorer' && typeof igOverviewHtml === 'function') return igOverviewHtml();
-  /* DNA by contract (round 6, as drawn): the strands read across the book */
   /* your book, read down (round 9): what was read, the next questions, his line on the book */
   if (typeof hbRdnUp === 'function' && hbRdnUp() && typeof hbRdnPanelHtml === 'function') return hbRdnPanelHtml();
-  if (typeof hbDnaUp === 'function' && hbDnaUp() && typeof hbDnaPanelHtml === 'function') return hbDnaPanelHtml();
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
   /* the new look's Contracts on its folders (round 6, as drawn): the panel reads across the folders */
