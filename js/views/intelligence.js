@@ -3596,17 +3596,22 @@ async function igBoardTalkAsk(q){
      drawn by the Board's drawing model with HaTi's own counts and the reader stays on the Board; a question among
      them is then explained under the chart, from the drawn numbers. Anything else is the brain's whole answer. */
   if(typeof window.hbAnalyticAsk==='function'&&hbAnalyticAsk(q)) return igTalkRun(q, async ()=>{
-    const h0=intel.history.length, key0=(typeof window.hbOpenListKey==='function')?hbOpenListKey():null, sig0=(typeof window.hbReadingSnap==='function')?hbReadingSnap().sig:'';
+    /* WHAT THE BOARD LOOKS LIKE NOW: the cards on it AND the chart that is open — a card ADDED opens no list, so a
+       reading's key alone would read as "nothing drawn" and ask the brain the same question a second time (f999). */
+    const board=()=>{ try{ return (typeof window.hbS==='function')?JSON.stringify((hbS().panels||[]).map(p=>[p&&p.key,p&&p.title,p&&p.recipe])):''; }catch(_){ return ''; } };
+    const h0=intel.history.length, key0=(typeof window.hbOpenListKey==='function')?hbOpenListKey():null, sig0=(typeof window.hbReadingSnap==='function')?hbReadingSnap().sig:'', b0=board(), c0=intel.chatAsks||0;
     await intelGraphAsk(q);
     const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant');
     const snap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():{ key:null, sig:'' };
-    const drew=!!snap.key&&(snap.key!==key0||snap.sig!==sig0);
-    /* nothing drawn and nothing said worth reading: the brain answers after all, never a dead end */
+    const drew=(!!snap.key&&(snap.key!==key0||snap.sig!==sig0))||board()!==b0;
     /* A QUESTION ASKED IN WORDS THE MAP'S READER KNOWS IS NOT NARROWED FOR ("which stream carries the most weight"
        is answered by Jambo's sentence over the whole map, explorer-stage-three 4): only the explicit "the biggest
        value stream" keeps one group (igTopOneGroup, in the top-N branch). */
-    /* nothing drawn and nothing to choose or confirm: the brain answers after all (it may draw too), never a dead end */
-    if(!drew&&!(last&&(last.preview||(last.choices&&last.choices.length)||(last.listIds&&last.listIds.length)))){ intel.history.length=h0; await intelChatAsk(q, { draw:true }); return; }
+    /* NOTHING DRAWN, NOTHING TO CHOOSE: the brain answers after all (it may draw too), never a dead end — but ONE
+       QUESTION IS ASKED ONCE: where the map's own route already handed it to the brain (intel.chatAsks moved), that
+       answer stands; asking again would spend twice and overwrite it (board-talk-first I). */
+    const said=!!(last&&(last.preview||(last.choices&&last.choices.length)||(last.listIds&&last.listIds.length)));
+    if(!drew&&!said&&intel.chatAsks===c0){ intel.history.length=h0; await intelChatAsk(q, { draw:true }); return; }
     if(drew&&typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q)){ try{ await intelChatAsk(q, { explain:true }); }catch(_){} }
   }, { stay:true });
   return igTalkRun(q, ()=>intelChatAsk(q, { draw:true }));
@@ -4203,6 +4208,9 @@ function intelPushChatResult(res, q){
 // With no Copilot key, comparisons still work via the deterministic local table;
 // other free-form questions get a clear nudge instead of silence.
 async function intelChatAsk(q, opts){
+  /* THE BRAIN WAS ASKED (f999): counted so the Board-draws-first route never asks the same question a second time
+     when the map's own route handed it to the brain itself (board-talk-first I). */
+  intel.chatAsks=(intel.chatAsks||0)+1;
   const ids=(String(q).match(/(?:MK|RL)-\d+/gi)||[]).map(s=>s.toUpperCase())
     .map(r=>{ const x=(state.contracts||[]).find(y=>y.id===r||y.contractNo===r); return x?x.id:r; }).filter((v,i,a)=>a.indexOf(v)===i);
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){

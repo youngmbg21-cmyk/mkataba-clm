@@ -22049,3 +22049,10 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - Noticed, not fixed: fast typing on the Board can reach HaTi's per-minute Jambo limit (a draw-first question spends up to three calls: draw, one repair, explain).
 - Noticed, not fixed: CLAUDE.md is 83 KB, over its 80 KB mark; a trim needs the owner's yes.
 - 10 Nov 2026, the analyst exam's PR, GitHub's browser checks: three reds were this change's. (1) the new mend took a chart-only answer for the open card ("league table of our partners") as a new card: a model's own `chart` is now left alone. (2) "which stream carries the most weight?" was read as "keep one group" and asked "which did you mean?": a question is no longer narrowed by the free reader. (3) board-talk-first H expected the chat to draw; re-pointed to the drawing model (the Board draws first). Also: nothing drawn and nothing to confirm now falls back to the chat.
+
+## The Board draws first: one question, one answer (10 Nov 2026, f999)
+Fixed. On the Board, a request that drew a CARD was read as "nothing drawn" (the check only looked at the chart
+that is open, and a new card opens no chart), so HaTi threw its own line away and asked the brain the same
+question a second time — the reader saw the model's words instead of "Added ...", and the turn cost twice.
+The Board's cards are now part of the check, and a question the map's own route already handed to the brain is
+never asked again (intel.chatAsks). board-talk-first-verify H1, H3 and I1 were red on this.
