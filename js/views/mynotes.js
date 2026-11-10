@@ -322,15 +322,15 @@ function mnRowsPaint(){
    top"): a row press draws the page again, so the list's scroll is put back where it stood while the ledger is still
    the one in view (a new filter or tab starts at its top) */
 let _mnScrollKey = '';
-function renderMyNotes(){
+function renderMyNotes(o){
   const key = [state.view, _mn.filter, _mn.ct, _mn.q].join('|');
   const sc0 = document.querySelector('#content .cu-scroll, #content .mn-scroll, #content .ins-scroll');
   const top0 = sc0 && _mnScrollKey === key ? sc0.scrollTop : 0;
-  renderMyNotesDraw();
+  renderMyNotesDraw(o);
   _mnScrollKey = key;
   if (top0){ const sc = document.querySelector('#content .cu-scroll, #content .mn-scroll, #content .ins-scroll'); if (sc) sc.scrollTop = top0; }
 }
-function renderMyNotesDraw(){
+function renderMyNotesDraw(o){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof mineLoaded === 'function' && !mineLoaded() && typeof mineLoad === 'function')
     mineLoad().then(() => { if (state.view === 'mynotes') renderMyNotes(); });
@@ -345,7 +345,7 @@ function renderMyNotesDraw(){
   const keep = document.activeElement && document.activeElement.id && document.activeElement.closest && document.activeElement.closest('#mn-page') ? document.activeElement.id : '';
   const caret = keep ? document.activeElement.selectionStart : null;
   /* the new look (round 6, as drawn): its own page and the note's panel */
-  if (wide && _mn.mode !== 'new' && typeof window.newLookOn === 'function' && newLookOn()){ mnnRender(host, list, n); return; }
+  if (wide && _mn.mode !== 'new' && typeof window.newLookOn === 'function' && newLookOn()){ mnnRender(host, list, n, o); return; }
   /* the head says, at this render, what it draws (before it is drawn) */
   mnHeadReg();
   const card = `<section class="ins-card mn-card2" aria-label="${_mnE(i18t('nav_mynotes'))}">
@@ -391,14 +391,18 @@ function mnnRowHtml(n){
     <td class="cun-wait"><b class="mnn-ct">${c ? _mnE(c.name || '') + ' · ' + (typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))) : '—'}</b></td><td class="cun-wait">${due}</td>
     <td class="cun-go"><span class="rfp-a">${_mnE(i18t(word))}</span></td></tr>`;
 }
-function mnnRender(host, list, n){
+/* MY NOTES' TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: All · Due · Done only pick which notes), so a tab press and
+   a typed letter redraw only the rows (listRowsSwapHtml). Its foot is drawn only while the list has rows, so a foot
+   that comes or goes — like a tab at 0 — draws the whole page, with the caret put back. */
+let _mnnPanelSel;
+function mnnRender(host, list, n, o){
   const all = typeof mineList === 'function' ? mineList('note') : [];
   const due = all.filter(x => ['today', 'late'].includes(myNoteState(x).k)).length;
   const done = all.filter(x => myNoteState(x).k === 'done').length;
   const tabs = [['all', i18t('mn_tab_all'), all.length], ['today', i18t('mnn_tab_due'), due], ['done', i18t('mn_tab_done'), done]];
   const tab = mnTabNow();
   const facts = [i18t('mnn_private'), i18tn('mnn_n', all.length, { n: all.length }), due ? i18t('mnn_n_due', { n: due }) : ''].filter(Boolean).join(' · ');
-  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page${all.length ? '' : ' is-empty'}" id="mn-page" data-ins-page="mynotes" data-ins="1">
+  const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page${all.length ? '' : ' is-empty'}" id="mn-page" data-ins-page="mynotes" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="ctf-hf">${_mnE(facts)}</span><span class="ctf-sp"></span>
         <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
@@ -409,6 +413,17 @@ function mnnRender(host, list, n){
         <tbody>${list.map(mnnRowHtml).join('') || `<tr><td colspan="4" class="apn-none">${_mnE(all.length ? i18t('mn_none_here') : i18t('mn_empty'))}</td></tr>`}</tbody></table></div>
       ${list.length ? `<div class="apn-foot">${_mnE(i18tn('mnn_n', list.length, { n: list.length }))}</div>` : ''}
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_mnE(i18t('mn_panel_label'))}"></aside></div></div>`;
+  const sel = n ? String(n.id) : '';
+  if (o && o.rows && typeof listRowsSwapHtml === 'function'
+    && listRowsSwapHtml({ page: '#mn-page.mnn-page', html: PAGE, table: '.mnn-table', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab', footSel: '#mn-page .apn-foot', also: '#mn-page .cun-head .ctf-hf' })){
+    /* the panel stays as it stands while the rows move, unless the note it reads has gone */
+    if (sel === _mnnPanelSel) return;
+  } else {
+    const at = typeof listCaretAt === 'function' ? listCaretAt('#mnn-q') : null;
+    host.innerHTML = PAGE;
+    if (typeof listCaretPut === 'function') listCaretPut('#mnn-q', at);
+  }
+  _mnnPanelSel = sel;
   if (typeof insPaintPanel === 'function'){
     const base = { seat: MN_SEAT, jlSay: mnJlSay, jlWord: i18t('jl_w_note') };
     if (n) insPaintPanel(Object.assign(base, { item: { id: n.id }, head: false, body: mnnPanelHtml(n) }));
@@ -445,10 +460,11 @@ if (typeof document !== 'undefined' && !document._mnnWired){ document._mnnWired 
     if (ap){ e.preventDefault(); e.stopPropagation(); const id = ap.getAttribute('data-mnn-ap');
       if (typeof apShowRow === 'function') apShowRow(id); if (typeof insSelect === 'function') insSelect('approvals', id); if (typeof setView === 'function') setView('approvals'); return; }
     const t = e.target && e.target.closest ? e.target.closest('[data-mnn-tab]') : null; if (!t) return;
-    e.preventDefault(); _mn.filter = t.getAttribute('data-mnn-tab'); renderMyNotes();
+    e.preventDefault(); _mn.filter = t.getAttribute('data-mnn-tab'); renderMyNotes({ rows: true });
   });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mnn-q' || typeof state === 'undefined' || state.view !== 'mynotes') return;
-    _mn.q = e.target.value; renderMyNotes(); const q = document.getElementById('mnn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
+    /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
+    _mn.q = e.target.value; renderMyNotes({ rows: true }); });
 }
 /* A NEW NOTE, from + New note, a contract's ⋯ menu or a highlight on the
    paper (the contract and the words already filled in). */

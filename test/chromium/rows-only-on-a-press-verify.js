@@ -74,6 +74,9 @@ const PAGES = [
   /* job 9: Import. Its three tabs draw the one table */
   { k: 'import', view: 'migration', rowSel: '.mign-page .mign-table tbody tr', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab',
     box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .cun-head .ctf-hf' },
+  /* job 10: My notes. Its tabs draw the one table; the foot comes and goes with the rows */
+  { k: 'mynotes', view: 'mynotes', rowSel: '#mn-page .mnn-table tbody tr', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab',
+    box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .cun-head .ctf-hf' },
   { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
     box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
 ];
