@@ -103,8 +103,11 @@ const check = (name, pass, detail) => {
     }
     const mid = a => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];
     const bookNow = await page.evaluate(() => state.contracts.length);
-    check('1. Board ⇄ Paper: a switch (the middle of five) freezes under half of opening Home',
-      leftHome && Math.max(mid(toPaper), mid(toBoard)) < Math.max(60, home1.max / 2),
+    /* THE RULE MADE EASIER (owner, 10 Nov 2026: "make the rule easier"): once Home was deleted the Board opened faster, and
+       "under half of opening" failed though the switch was no slower (about 85 ms against 125–150). A switch now has to be
+       quicker than opening the Board (or under 60 ms on a fast machine) */
+    check('1. Board ⇄ Paper: a switch (the middle of five) is quicker than opening the Board',
+      leftHome && Math.max(mid(toPaper), mid(toBoard)) < Math.max(60, home1.max),
       `${leftHome ? '' : 'Home was never left · '}paper ${mid(toPaper)} (${toPaper.join(' ')}) · board ${mid(toBoard)} (${toBoard.join(' ')}) · opening the Board ${home1.max} (${home1.all.join(' ')}) ms, ${bookNow} contracts`);
     const ex1 = await act(() => hbSetFace('explorer'), onFace('explorer'));
     /* settle: the layout finishes off the press, then the loop rests */
