@@ -22065,3 +22065,9 @@ Show on the Board, Open list, Export, Explain this view, Pin this finding and Co
 Nothing lost: every press kept its own words. The menu opens upward, because dropped downward it fell off the
 window at 1536x730. Noticed, not fixed: the page links above the box and the "Read from Explorer and your book"
 line are drawn by builders shared with every other Jambo panel, so they were left for a round of their own.
+
+## Noticed, not fixed (10 Nov 2026)
+- the-read-bar-and-notes-verify failed on the middle screen only in run 42911527959 (the read never opened there;
+  the same steps passed on the other two screens in the same run, and it was green before and after). Flaky.
+- negotiate-new-look-verify stopped in run 42914860955 at negoClauseList on a contract that was not loaded yet
+  (step 8). Green in the run before. Flaky.

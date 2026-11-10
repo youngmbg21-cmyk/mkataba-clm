@@ -9671,10 +9671,14 @@ function igSapHtml(m,i){
   const und=[];
   if(m.reading&&typeof window.hbReadingHtml==='function') und.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
   if(m.mapRead) und.push(igMapReadHtml(m,i,{ part:'chips' }));
-  /* NEXT: the steps he checked would change what is on screen */
+  /* NEXT: the steps he checked would change what is on screen. The reading's OWN next questions come here too —
+     hbReadingHtml would draw them inside the chips, which is the Understood row's job, so it is told noNext and
+     they are asked for by the same key (f514, f935 (4)); a turn whose questions moved under Jambo's words
+     (nextMoved) carries them as m.nextKey instead. */
   const nxt=[];
   if(m.mapRead) nxt.push(igMapReadHtml(m,i,{ part:'next' }));
-  if(m.nextKey&&igNextLive(i)&&!m.nextMoved&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.nextKey));
+  if(m.reading&&m.reading.key&&!m.nextMoved&&hbReadingLive(i)&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.reading.key));
+  if(m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.nextKey));
   /* OPEN: the one filled button, the rest under More */
   const lead=igDoorsHtml(m,i,{ part:'lead' }), rest=igDoorsHtml(m,i,{ part:'rest' });
   const more=[];
