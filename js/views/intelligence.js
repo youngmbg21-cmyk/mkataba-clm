@@ -2513,7 +2513,19 @@ function igChoiceButtons(fact){
 /* ONE VIEW PER NAME (owner, 15 Oct 2026: "ensure the functionality is
    sound" — two views both called "Value" stood side by side): the newest of
    a name is the one kept, so a store written before the fix reads as one. */
-function igViewsRead(){ try{ const v=JSON.parse(localStorage.getItem(IG_VIEWS_KEY)||'[]'); if(!Array.isArray(v)) return [];
+/* SAVED VIEWS FOLLOW THE PERSON (owner, 10 Nov 2026: "Should saved views follow you to other computers?" — Yes).
+   With a server they are one of this person's own preferences (PUT /api/me/prefs igViews; server igViewsClean), so
+   every computer they sign in on reads the same list. Until the first save on the server this browser's own list is
+   read as before, and the first save carries it up once (IG_VIEWS_CARRIED_KEY), so nothing saved here is lost.
+   Without a server (static mode) they stay in this browser. Reading never writes. */
+const IG_VIEWS_CARRIED_KEY='hati.v1.igViewsCarried';
+function igViewsOnServer(){ return typeof window.API_MODE==='function'&&API_MODE()&&typeof window.currentUser==='function'&&!!currentUser(); }
+function igViewsLocal(){ try{ const v=JSON.parse(localStorage.getItem(IG_VIEWS_KEY)||'[]'); return Array.isArray(v)?v:[]; }catch(_){ return []; } }
+function igViewsRaw(){
+  if(igViewsOnServer()){ const p=(currentUser().prefs)||{}; if(Array.isArray(p.igViews)) return p.igViews; }
+  return igViewsLocal();
+}
+function igViewsRead(){ try{ const v=igViewsRaw(); if(!Array.isArray(v)) return [];
   const seen=new Set(); return v.slice().reverse().filter(x=>{ if(!x||!x.name) return false; const k=_igNorm(x.name); if(seen.has(k)) return false; seen.add(k); return true; }).reverse(); }catch(_){ return []; } }
 /* HOW MANY THE MAP SHOWS: the head line's own number ("Showing k of n") —
    the filter lenses' intersection, else the whole book. */
@@ -2523,7 +2535,25 @@ function igShownOf(act){ return (act&&act.ids&&act.action==='filter')?act.ids.si
    counts). The same two readings the head line uses; reads only. */
 function igRecipeShown(r){ return igShownOf(intelActive((r&&Array.isArray(r.lenses))?r.lenses:[])); }
 /* Jambo's panel on Explorer lists them under Your day (igSavedViewsHtml; owner, 10 Nov 2026): told when they change */
-function igViewsWrite(list){ try{ localStorage.setItem(IG_VIEWS_KEY, JSON.stringify(list.slice(-IG_VIEWS_MAX)));
+function igViewsWrite(list){
+  let L=(list||[]).slice();
+  if(igViewsOnServer()){
+    const u=currentUser(), p=u.prefs||{};
+    /* the first save on the server carries this browser's own views up with it, once (a namesake: the newer wins) */
+    let carried=false; try{ carried=localStorage.getItem(IG_VIEWS_CARRIED_KEY)==='1'; }catch(_){ carried=true; }
+    if(!carried){ const have=new Set(L.map(v=>_igNorm(v&&v.name))); L=igViewsLocal().filter(v=>v&&v.name&&!have.has(_igNorm(v.name))).concat(L); }
+    L=L.slice(-IG_VIEWS_MAX);
+    const was=p.igViews;
+    u.prefs=Object.assign({},p,{ igViews:L });
+    if(typeof window.stPrefSet==='function') Promise.resolve(stPrefSet('igViews',L)).then(ok=>{
+      if(ok){ try{ localStorage.setItem(IG_VIEWS_CARRIED_KEY,'1'); }catch(_){} }
+      else { const cu=currentUser(); if(cu) cu.prefs=Object.assign({},cu.prefs||{},{ igViews:was }); }
+      setTimeout(()=>{ try{ igDayRepaint(); }catch(_){} },0);
+    }).catch(()=>{});
+    setTimeout(()=>{ try{ igDayRepaint(); }catch(_){} },0);
+    return true;
+  }
+  try{ localStorage.setItem(IG_VIEWS_KEY, JSON.stringify(L.slice(-IG_VIEWS_MAX)));
   setTimeout(()=>{ try{ igDayRepaint(); }catch(_){} },0); return true; }catch(_){ return false; } }
 function igViewName(){ const bits=[graphGroupingWord(intel.groupBy)].concat(igRecipeSays()).concat(intel.lenses.filter(l=>l.on).map(l=>l.label)); const s=bits.join(' · '); return s.charAt(0).toUpperCase()+s.slice(1); }
 /* Recipes are saved without their ids' badges' prose, and a lens keeps its
@@ -12013,7 +12043,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{igSavedViewsHtml,igSavedViewForm,igSavedViewKeep,igSavedViewOpen,igSaveViewDoor,IG_SV_NAME_MAX,igLegendField,igLegendClamp,igLegendPut,igLegendPlace,igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{IG_VIEWS_CARRIED_KEY,igViewsOnServer,igViewsLocal,igViewsRaw,igSavedViewsHtml,igSavedViewForm,igSavedViewKeep,igSavedViewOpen,igSaveViewDoor,IG_SV_NAME_MAX,igLegendField,igLegendClamp,igLegendPut,igLegendPlace,igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
