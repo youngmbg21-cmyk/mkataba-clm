@@ -21946,3 +21946,11 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - (noticed 9 Nov 2026, Board-as-Home drawing, not fixed) On the Board (new look, handbook world, admin), Jambo's Overview panel says "Needs you 15 things · 4 prepared by Jambo" while the Board's own Needs you card and Home both say 11; the panel's count (`hbBoardHelloHtml` → `counterNeedsCount`) and the list behind its "Show all" disagree — rule 6, the number on a door matches the list behind it.
 - (noticed 10 Nov 2026, Explorer exam re-run, not fixed) On Explorer, a few of Jambo's own sentences end with a stray closing quote (`&quot;`) — "put a line on the timeline at 31 March", "show only signed contracts with Bidco", "show me the renewal cliff"; and in the first, the claim cut (`igMapSentenceKept`) left a broken fragment ("Cold Chain Logistics with Bidco) cluster right around that date."): the sentence splitter cuts at a full stop inside a bracket, keeping the tail of a sentence whose head it dropped.
 - (fixed 10 Nov 2026, owner's "Fix it") The Explorer stray quote and the cut sentence's tail noted just above: `igSentencesOf` and `igStrayQuoteOff` inside `igMapSentenceKept`; f995 (6).
+
+## 10 Nov 2026 — Approvals & signing: the head and the chosen row (owner's screenshots)
+- FIXED: scrolled, the column head stopped 20px below the sheet's top and rows showed through above it; it lost its line. The sheet is the scroller and has 20px top padding; the head now sticks at -20px, its hairline a shadow.
+- FIXED: the chosen row's bar touched the row's mark, the fill starting flush at it. Bar and fill now reach 12px into the sheet's margin (first cell's ::before); a hovered row's fill the same.
+- Only Approvals has a stuck head among the new-look lists (looked at Requests, People, Parties, Reads, Import).
+### Noticed, not fixed
+- Approvals (new look): on a hovered or chosen row the grey Approve / Decline pills are the same grey as the row, so the pill shape disappears (Decline on the chosen row reads as bare words).
+- Approvals (new look): a chosen row's cells carry the old look's green-tinted fill rule (`.ap-table tbody tr.is-sel td`) under the new one; now overridden for this page, the old rule itself left alone.

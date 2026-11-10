@@ -227,6 +227,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE LIST LANGUAGE (27 Oct 2026): `node --test test/f953-the-list-language.test.js`, with f687, f739, f795, f716, f387, f721, f797, f807, f874 and the Obligations files; in a browser legora-look-verify, legora-lists-verify, sap-lists-verify, the tidy sweep.
 - Our standards as a traffic light (28 Oct 2026): f953 2 re-pointed (three lamps in order, zero grey, the sentence in aria-label/title; red at the parent d866f89); handbook 0.6 pictures re-taken; tidy sweep contracts, approvals, negotiations at the three screens; Approvals keeps 124 (jambos-list-panel-verify 8 at 1366).
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct)
+- APPROVALS: THE HEAD AT THE TOP, THE CHOSEN ROW'S ROOM (10 Nov 2026): `test/chromium/approvals-head-and-chosen-row-verify.js` (new; three screens; written to be red at the parent on 1 and 3, proved by GitHub's run) — scrolled, the column head sits at the sheet's top with no row above it and keeps its hairline; the chosen row's bar stands 12px left of the mark inside the sheet's margin. Beside it: f965, round5-new-look-verify 1, approve-on-row-verify, one-worklist-verify.
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)

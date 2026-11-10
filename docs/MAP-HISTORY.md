@@ -36555,3 +36555,18 @@ The owner ran the Explorer exam against the real model ("Run the Explorer exam a
 
 ## INSIGHTS — EXPLORER'S JAMBO: REAL SENTENCES, NO STRAY QUOTE (owner, 10 Nov 2026)
 The owner re-ran the Explorer exam ("Run the Explorer exam again"): 32 of 32, single-sourced lit at once. Two cosmetic faults showed in Jambo's own sentences: a stray closing quote on three answers ("put a line on the timeline at 31 March", "show only signed contracts with Bidco", "show me the renewal cliff"), and a broken tail ("Cold Chain Logistics with Bidco) cluster right around that date.") — `igMapSentenceKept` split at every ". " so it cut at "e.g." inside brackets, dropped the head as a claim ("Marked…") and kept the tail. Logged in BUGLOG, then the owner: "Fix it, push and merge to main when green". BUILT: `igSentencesOf` (a sentence ends at . ! ? before a space, never inside brackets, never after a short abbreviation `IG_ABBREV_RE`) and `igStrayQuoteOff` (an unpaired quote at the end or start goes; paired quotes stay), both inside `igMapSentenceKept`, map path only. f995 (6).
+
+## THE SAP BENCHMARK, BATCH 1 — THE LISTS (Approvals: the head and the chosen row, 10 Nov 2026)
+The owner sent two screenshots of Approvals & signing in the new look. (1) The chosen row's black bar sat right on the
+row's amber mark, the grey fill starting flush at the mark with no room. (2) Scrolled, the column head stopped about
+20px below the top of the sheet and the rows travelled visibly through the strip above it (and the head lost its line).
+Cause of (2): the sheet (`#ap-scroll`) is the scroller and carries 20px of padding above its first line; a head stuck
+at `top:0` sticks at the padding's inner edge, not the sheet's. It now sticks at -20px; its hairline is an inset shadow
+because a collapsed table's border does not travel with a stuck cell. Cause of (1): the old look's inset bar on a first
+cell that has no left padding in the new look. A first try with an outer box-shadow painted nothing (a collapsed
+table's cell paints no outer shadow in Chromium); the fill and bar are now the first cell's `::before`, reaching 12px
+into the sheet's 40px margin, and a hovered row's fill reaches the same 12px. Looked for on the sibling new-look lists
+(Requests, People, Parties, Reads, Import): none has a stuck head, so only Approvals was changed. Photos at the three
+screens before and after. Check: approvals-head-and-chosen-row-verify (not run in the chat: browser checks run on GitHub).
+Noticed, not fixed (BUGLOG): on a hovered or chosen row the grey Approve / Decline pills are the row's own grey and lose
+their outline. The design round that followed (three options, a touch of colour) was shown, not built.

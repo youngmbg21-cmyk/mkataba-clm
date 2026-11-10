@@ -18790,6 +18790,17 @@
   html.lg-new .apn-table tr.apn-group td{padding:16px 0 8px;font-size:13px;font-weight:var(--w-label);border-bottom:1px solid var(--color-divider)}
   html.lg-new .apn-table tr.is-done td{color:var(--color-quiet)}
   html.lg-new .apn-table tr.is-sel{background:var(--color-bg)}
+  /* THE HEAD STAYS AT THE TOP, AND THE CHOSEN ROW KEEPS ITS ROOM (owner's screenshots, 10 Nov 2026). The sheet is the
+     scroller and carries 20px above its first line: a head stuck at 0 stops 20px short, and rows showed through the gap
+     above it, so it sticks at minus that room. Its hairline is a shadow, since a collapsed table's border does not
+     travel with a stuck cell. The chosen row's fill and bar (and a hovered row's fill) reach 12px left of the mark,
+     into the sheet's margin, so the bar never touches the mark; one grey, the row's own (drawn by the first cell, since a
+     collapsed table's cell paints no outer shadow) */
+  html.lg-new #ap-scroll .apn-table th{top:-20px;border-bottom:0;box-shadow:inset 0 -1px 0 var(--color-divider)}
+  html.lg-new #ap-scroll .apn-table tbody tr.is-sel td{background:var(--color-bg)}
+  html.lg-new #ap-scroll .apn-table tbody tr[data-ap-row] td:first-child{position:relative;overflow:visible;box-shadow:none}
+  html.lg-new #ap-scroll .apn-table tbody tr.is-sel td:first-child::before{content:"";position:absolute;top:0;bottom:0;left:-14px;width:12px;background:var(--color-bg);border-left:2px solid var(--color-text)}
+  @media (hover:hover){ html.lg-new #ap-scroll .apn-table tbody tr[data-ap-row]:not(.is-sel):hover td:first-child::before{content:"";position:absolute;top:0;bottom:0;left:-12px;width:12px;background:var(--surface-2)} }
   html.lg-new .apn-none{color:var(--color-quiet)}
   html.lg-new .apn-foot{margin-top:auto;padding:14px 0;border-top:1px solid var(--color-divider);font-size:12.5px;font-weight:var(--w-label)}
   /* THE CALENDAR, AS DRAWN (round 5): one white page, the name in the serif with its four views as words beside it,
