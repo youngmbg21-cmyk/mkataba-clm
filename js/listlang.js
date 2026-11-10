@@ -98,4 +98,75 @@ function stdRowWordsHtml(c){
     : '<span class="ls-lamp is-off"><i></i>0</span>';
   return `<span class="ls-lights" role="img" aria-label="${_lsE(said)}" title="${_lsE(said)}">${lamp('ruby', r.miss)}${lamp('amber', r.off)}${lamp('green', r.met)}</span>`;
 }
-Object.assign(window, { stdRowWordsHtml, LIST_MARK_PATHS, LIST_STREAM_FIXED, listMarkHtml, listWordHtml, listChipHtml, listStreamTone, listAvatarTone, LIST_SAP_MARK, listSapMarkHtml, listSapOn, listSapCellHtml });
+/* ============================================================
+   THE ONE ROWS-ONLY REDRAW, FOR EVERY NEW-LOOK LIST
+   (10 Nov 2026, off the owner's "why is the app slow" review; the overnight run's
+   jobs 6–11, one page at a time.)
+
+   Every new-look list is one frame: a title, a search box, tab pills, one table
+   and a side panel. Each drew the WHOLE of #content on every tab press and every
+   letter typed in its box, then put the focus and the caret back by hand — the
+   box was being thrown away under the reader's fingers. A caller now builds
+   exactly the page it always built and hands the HTML here; this reads the
+   pieces back out of it (a detached <template> costs a parse, no styles, no
+   layout) and changes only what moved.
+
+   WHAT MOVES: the table's column widths and heads (a column may step out between
+   two letters), the INSIDE of its body — the body node itself stays, so the
+   presses the list wired on it (insListWire) keep working — each tab pill's
+   words and which is lit, the foot, and any line the caller names in `also`.
+
+   THE CONTRACT IS THE RETURN VALUE: FALSE ALWAYS MEANS "DRAW THE WHOLE PAGE".
+   It is false when the page is not on screen, when a piece is missing on either
+   side, when the pills would not be the same pills in the same order (a tab has
+   come or gone), when a foot or an `also` line comes or goes, and when the
+   caller names a `shape` selector whose presence differs (a tab that draws
+   something other than the table — Parties' Folders draws cards). So a page is
+   never left half redrawn.
+   ============================================================ */
+function listRowsSwapHtml(o){
+  if(!o || typeof document === 'undefined' || !o.html || !o.page || !o.table) return false;
+  const live = document.querySelector(o.page);
+  if(!live) return false;
+  let fresh;
+  try{ const t = document.createElement('template'); t.innerHTML = String(o.html); fresh = t.content; }catch(_){ return false; }
+  const T1 = live.querySelector(o.table), T2 = fresh.querySelector(o.table);
+  if(!T1 || !T2) return false;
+  const B1 = T1.querySelector('tbody'), B2 = T2.querySelector('tbody');
+  if(!B1 || !B2 || T1.querySelectorAll('tbody').length !== 1 || T2.querySelectorAll('tbody').length !== 1) return false;
+  for(const sel of [].concat(o.shape || [])) if(!!live.querySelector(sel) !== !!fresh.querySelector(sel)) return false;
+  let P1 = [], P2 = [];
+  if(o.tabSel){
+    P1 = [...live.querySelectorAll(o.tabSel)]; P2 = [...fresh.querySelectorAll(o.tabSel)];
+    if(P1.length !== P2.length) return false;
+    for(let i = 0; i < P1.length; i++) if(P1[i].getAttribute(o.tabKey) !== P2[i].getAttribute(o.tabKey)) return false;
+  }
+  const pairs = [];
+  for(const sel of [].concat(o.footSel || [], o.also || [])){
+    const a = live.querySelector(sel), b = fresh.querySelector(sel);
+    if(!!a !== !!b) return false;
+    if(a) pairs.push([a, b]);
+  }
+  /* nothing has been touched yet: from here the swap always completes */
+  const swapKid = tag => { const a = T1.querySelector(':scope > ' + tag), b = T2.querySelector(':scope > ' + tag);
+    if(a && b) a.replaceWith(document.importNode(b, true)); else if(a && !b) a.remove(); else if(!a && b) T1.insertBefore(document.importNode(b, true), B1); };
+  swapKid('colgroup'); swapKid('thead');
+  B1.innerHTML = B2.innerHTML;
+  P1.forEach((b, i) => { b.className = P2[i].className; b.innerHTML = P2[i].innerHTML; });
+  pairs.forEach(([a, b]) => { a.className = b.className; a.innerHTML = b.innerHTML; });
+  return true;
+}
+/* THE CARET, FOR THE TIMES A PAGE DOES FALL BACK: typing must never lose a letter
+   because a paint took the other road. null = the box was not being typed in. */
+function listCaretAt(sel){
+  if(typeof document === 'undefined') return null;
+  const el = document.querySelector(sel);
+  return (el && document.activeElement === el) ? el.selectionStart : null;
+}
+function listCaretPut(sel, at){
+  if(at == null || typeof document === 'undefined') return;
+  const el = document.querySelector(sel); if(!el) return;
+  try{ el.focus({ preventScroll: true }); }catch(_){ el.focus(); }
+  try{ el.setSelectionRange(at, at); }catch(_){ }
+}
+Object.assign(window, { listRowsSwapHtml, listCaretAt, listCaretPut, stdRowWordsHtml, LIST_MARK_PATHS, LIST_STREAM_FIXED, listMarkHtml, listWordHtml, listChipHtml, listStreamTone, listAvatarTone, LIST_SAP_MARK, listSapMarkHtml, listSapOn, listSapCellHtml });
