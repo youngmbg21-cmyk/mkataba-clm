@@ -4597,7 +4597,30 @@ function obnRowHtml(r){
     <td class="obn-when"><b${late ? ' class="is-late"' : ''}>${_obEsc(when)}</b>${whenSub ? `<small>${_obEsc(whenSub)}</small>` : ''}</td>
     <td class="obn-act">${act}</td></tr>`;
 }
-function obnRender(host){
+/* ---- A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS ----
+   (10 Nov 2026, off the owner's "why is the app slow" review, which named this
+   page.)
+
+   WHAT IT COST. This drew the WHOLE page on every call: the frame, the title,
+   the search box, the tabs, the table and the panel, then wired them again. The
+   typed box called it ON EVERY LETTER — and because the box itself was thrown
+   away with everything else, the next lines had to put the focus and the caret
+   back by hand, which is the tell that the wrong thing was being replaced. A
+   tab did the same. Swapping #content also makes the browser read 11,837 style
+   rules against the new tree, 164 of them `:has()` anchored at the shell while
+   looking inside #content, so the cost does not fall with the number of rows.
+
+   WHAT HAPPENS NOW. `{ rows: true }` replaces the table's body, sets each tab's
+   own count and which one is lit, and repaints the head's facts — and touches
+   nothing else. The box is never replaced, so there is no focus to restore and
+   no caret to put back: a letter typed now costs the rows and nothing more.
+
+   WHAT STILL DRAWS THE WHOLE PAGE, deliberately: arriving; the Proposed tab,
+   which stands a different thing where the list stands and brings its own
+   panel; and a tab appearing or leaving the bar (Proposed shows only when
+   Jambo has found something), because then the bar itself is different. Each
+   of those is checked for below rather than assumed. */
+function obnRender(host, o){
   const book = obnRows();
   const finds = obwFinds();
   const proposedN = finds.reduce((s, x) => s + x.n, 0);
@@ -4631,8 +4654,27 @@ function obnRender(host){
   const table = `<table class="apn-table obn-table is-two-line"><colgroup><col><col style="width:150px"><col style="width:130px"></colgroup><tbody id="obn-body">${body}</tbody></table>`;
   /* ONE HEAD (the harmony review): the page draws its own title as every new-look list does; obwPaintHead fills it */
   const title = `<div class="cun-head"><h2 class="ctf-h">${_obEsc(i18t('nav_obligations'))}</h2><span class="ctf-hf" id="page-head-facts"></span><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div>`;
-  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page cun-page" data-ins-page="obligations" data-ins="1">
+  /* the rows-only paint is taken ONLY where the bar it leaves standing is still the right bar */
+  const pills = host.querySelectorAll('[data-obn-tab]');
+  const rowsOnly = !!(o && o.rows) && _obnTab !== 'proposed' && !!host.querySelector('#obn-body')
+    && pills.length === tabs.length && [...pills].every((b, i) => b.getAttribute('data-obn-tab') === tabs[i][0]);
+  /* THE SAFETY NET: where it does fall back to the whole page — the Proposed
+     tab arriving or leaving the bar — the box goes with it, so the caret is put
+     back. Typing must never lose a letter because a paint took a different road. */
+  const qEl = (typeof document !== 'undefined') ? document.getElementById('obn-q') : null;
+  const qAt = (qEl && document.activeElement === qEl) ? qEl.selectionStart : null;
+  if(rowsOnly){
+    const tb0 = host.querySelector('#obn-body');
+    if(tb0) tb0.innerHTML = body;
+    pills.forEach((b, i) => {
+      b.classList.toggle('is-on', tabs[i][0] === _obnTab);
+      const n = b.querySelector('span'); if(n) n.textContent = String(tabs[i][2]);
+    });
+  } else {
+    host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page cun-page" data-ins-page="obligations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card" id="obn-scroll">${title}${bar}<div class="obn-list" id="obn-list"${_obnTab === 'proposed' ? ' hidden' : ''}>${table}</div></section><aside id="ins-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside></div></div>`;
+    if(qAt != null){ const n = document.getElementById('obn-q'); if(n){ n.focus(); try{ n.setSelectionRange(qAt, qAt); }catch(_){} } }
+  }
   obwPaintHead();
   const byKey = new Map(book.map(r => [r._key, r]));
   const paint = k => { const r = byKey.get(k); _obwPanelKey = k;
@@ -4644,12 +4686,17 @@ function obnRender(host){
   const keys = rows.map(r => r._key);
   const id = typeof insPick === 'function' ? insPick('obligations', keys, { none: true }) : null;
   if(tb && typeof insMarkRow === 'function') insMarkRow(tb, '[data-ins-row]', idOf, id);
-  if(_obnTab !== 'proposed') paint(id);
+  /* the panel stays as it stands while the rows move, unless the row it is
+     about has gone — the same rule the week list already follows */
+  if(_obnTab !== 'proposed' && (!rowsOnly || id !== _obwPanelKey)) paint(id);
   if(tb && typeof insListWire === 'function') insListWire(tb, { rowSel: '[data-ins-row]', idOf,
     onSelect: k => { insSelect('obligations', k); insMarkRow(tb, '[data-ins-row]', idOf, k); paint(k); },
     onOpen: k => { const r = byKey.get(k); if(r && r._dec){ if(typeof window.needsYouGo === 'function') needsYouGo('renewal', r.cid); return; } if(r) obOpenContract(r.cid, k); } });
+  if(rowsOnly) return;
   const qi = host.querySelector('#obn-q');
-  if(qi) qi.addEventListener('input', () => { _obnQ = qi.value; const at = qi.selectionStart; obnRender(host); const n = document.getElementById('obn-q'); if(n){ n.focus(); try{ n.setSelectionRange(at, at); }catch(_){} } });
+  /* THE BOX IS NOT REDRAWN UNDER THE READER'S CARET, so nothing has to be put
+     back afterwards: every letter moves the rows and leaves the box alone. */
+  if(qi) qi.addEventListener('input', () => { _obnQ = qi.value; obnRender(host, { rows: true }); });
   if(_obnTab === 'proposed'){ obnProposedPanel(finds); obnProposedOpen(finds); }
   if(typeof insWatchWidth === 'function') insWatchWidth();
   if(window.setActiveNav) setActiveNav('obligations');
@@ -4689,7 +4736,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     const t = e.target && e.target.closest ? e.target : null; if(!t) return;
     const tab = t.closest('[data-obn-tab]');
     if(tab){ e.preventDefault(); const k = tab.getAttribute('data-obn-tab'); if(_obnTab === 'proposed' && k !== 'proposed' && typeof closeModal === 'function' && document.querySelector('#modal-root #obd')) closeModal();
-      _obnTab = k; const host = document.getElementById('content'); if(host) obnRender(host); return; }
+      _obnTab = k; const host = document.getElementById('content'); if(host) obnRender(host, { rows: true }); return; }
     const pp = t.closest('[data-obn-paper]'); if(pp){ e.preventDefault(); if(typeof closeModal === 'function' && document.querySelector('#modal-root #obd')) closeModal(); if(typeof roomHomeLand === 'function') roomHomeLand(pp.getAttribute('data-obn-paper')); return; }
     const go = t.closest('[data-obn-go]'); if(!go) return;
     e.preventDefault(); e.stopPropagation();

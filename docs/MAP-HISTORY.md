@@ -36599,3 +36599,30 @@ a yes has lapsed. On a row with no wording those hash an empty string, so an app
 or fail to lapse, wrongly. The honest route is to send a hash of the wording on the row instead and teach those two
 readers to use it — a change to a signing gate, which is its own job with its own checks, never a line slipped into a
 speed fix.
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE (a press redraws only the rows, 10 Nov 2026)
+The owner, on the speed review: "do the per-press redraw work". Obligations first, as they named it, then Approvals &
+signing, which their original screenshots came from.
+THE FIRST TRY WAS ON THE WRONG RENDERER, and the photographs are what said so. js/obligations.js holds TWO obligations
+pages: the week list (obw*, `.obw-ins`, `#obw-scroll`) and, behind the new-look switch, obnRender (`.obn-page`,
+`#obn-body`). renderObligationsList hands straight to obnRender when newLookOn(), so the old one is never drawn — and
+"THE NEW LOOK IS THE ONLY LOOK" says nothing is fixed on the old. Ten presses had already been routed through a new
+obwRepaintCut before a photograph of the real page showed `obn-page` in the markup. Reverted whole; the work moved to
+obnRender. The duplication warning in the Bug Fix Rules is exactly this, and reading the code was not enough to catch
+it: drawing the page was.
+WHAT BOTH PAGES DID. Each drew the WHOLE of #content on every call, and the typed box called it on EVERY LETTER —
+which is why each had lines putting the focus and the caret back afterwards. That is the tell: the box was being
+thrown away under the reader's fingers. Swapping #content also re-reads 11,837 style rules against the new tree, 164
+of them `:has()` anchored at the shell while looking inside #content, so the cost does not fall with the row count.
+WHAT THEY DO NOW. `{ rows: true }` rewrites the table inside its own node, sets each tab's count and which is lit, and
+rewrites the foot's line; the frame, the box and the panel stand. The panel is left as it is unless the row it is about
+has gone — the rule the week list already followed. Measured in a browser at the three screens: a tab press and a typed
+word both keep the frame, the box and the panel, with no page errors.
+THE FAULT THE CHECK CAUGHT, and it was a real regression. On Approvals "What it rests on" steps out of the table the
+moment it reads the same on every row — which happens WHILE SOMEBODY IS TYPING, because the first letter can narrow the
+list to rows that agree. The first draft refused the rows paint whenever the column count moved and fell back to the
+whole page, which replaced the box mid-word: "carton" arrived as "ca" and the focus was gone. Two changes: the table's
+whole inside (colgroup, heads, body) is rewritten inside its own node so the heads can change without the frame going,
+and every fallback restores the caret. Both pages carry the safety net.
+STILL TO DO, page by page, the same shape on each: Requests, People, Parties, Reads, Import, My notes, the template
+library and the contract room's History all rebuild their whole page on every keystroke.

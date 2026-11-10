@@ -21965,3 +21965,11 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - The stylesheet is 1.75 MB / 11,837 rules, 164 of them :has() anchored at #app-shell or body while looking inside #content. A full rebuild re-triggers all of it.
 - The browser pulls up to 5,000 contracts at sign-in, 200 at a time - up to 25 sequential round trips before the app is usable.
 - index.html and every js file are served Cache-Control: no-cache (a deliberate 03 Aug 2026 decision so a deploy is never missed), so all 137 are revalidated on every load. Left alone; the owner's deploy-visibility reason still holds.
+
+## 10 Nov 2026 — a press that only changes which rows show redraws only the rows (owner asked for the per-press redraw work)
+- FIXED on Obligations and Approvals & signing (the new look): both drew the whole of #content on every tab press and on EVERY LETTER typed in the search box. Now the table is rewritten inside its own node, with each tab's count and the foot; the frame, the box and the panel stand. No caret is put back because the box is never replaced.
+- WRONG RENDERER FIRST: js/obligations.js holds two obligations pages, and the new look draws the other one (obnRender). Ten presses were routed through a new funnel on the old week list before a photograph of the real page showed it. Reverted whole and redone on obnRender. Reading the code did not catch it; drawing the page did.
+- REGRESSION CAUGHT BY THE NEW CHECK: on Approvals the "What it rests on" column steps out of the table while somebody is typing, and the first draft fell back to the whole page when it did — replacing the box mid-word, so "carton" arrived as "ca" with the focus lost. The table's whole inside is now rewritten in place, and every fallback restores the caret.
+### Noticed, not fixed
+- The same whole-page-on-every-keystroke pattern is still on Requests, People, Parties, Reads, Import, My notes, the template library and the contract room's History. Same shape of fix, page by page.
+- _obwPaintBook is set on every obligations paint and never cleared, so obwBookNow() always reuses the last paint's book. It is refreshed by each paint so nothing stale has been seen, but it is a cache with no way to say it has gone off.
