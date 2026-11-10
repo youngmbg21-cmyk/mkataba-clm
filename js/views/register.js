@@ -1509,7 +1509,10 @@ const REG_CMP={
   party:(a,b)=>{
     /* ON THE CONTRACTS PLACE THE COLUMN LEADS WITH THE AGREEMENT (Round 2), so its sort reads what it says */
     const byName=typeof regHome==='function'&&regHome()&&!(typeof regScope==='function'&&regScope()==='negotiations');
-    const A=String(byName?regShortTitle(a):(a.counterparty||'')).trim(), B=String(byName?regShortTitle(b):(b.counterparty||'')).trim();
+    /* the column sorts by the word it leads with: the company (owner, 10 Nov 2026), the title only where the party has a
+       column of its own (regHomeWide) or a row has no company yet */
+    const lead=x=>byName&&(regHomeWide()||!x.counterparty)?regShortTitle(x):(x.counterparty||'');
+    const A=String(lead(a)).trim(), B=String(lead(b)).trim();
     const e=regBlanksLast(A,B); if(e!==null) return e;
     return A.localeCompare(B); },
   stream:(a,b)=>{
@@ -2945,6 +2948,9 @@ function regRowsHtml(cs){
        its one dress (refHtml) — and the title on the hover, first. The Ref
        column of its own is not drawn on this seat, so the ref is printed
        once; every other seat keeps the title under the party and its mk. */
+    /* THE COMPANY LEADS (owner, 10 Nov 2026: "the company or counterparty name" on top, "agreement type · number" the
+       smaller line; reverses Part 8's title-over-party on this place): the other side's name over "kind · ref"; with no
+       company yet the title keeps the top line; where the party is a column of its own (regHomeWide) the title leads */
     const refLine=typeof window.refHtml==='function'?refHtml(c):esc(window.contractRef?contractRef(c):c.id);
     /* A DEAL KEPT TO ITS LIST (a code name): no party reaches this reader, so
        the line a party leads is the code name it is known by, and under it the
@@ -2953,11 +2959,11 @@ function regRowsHtml(cs){
     /* ROOM TO SPREAD (regHomeWide): the party, the reference and the stage are columns of their own */
     const spreadOn=placeRows&&regHomeWide();
     CELL.party=`<td class="reg-party" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(coded?i18t('igw_kept_list'):(pyAll||cpName))}">${coded?esc(i18t('igw_kept_list')):esc(cpName)}</td>`;
-    CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
+    CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${esc(pyAll||cpName)} · ${regTitleOf(c)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
         <span class="reg-id">${placeRows?(regNl()?regSapMarkHtml(c):regStageMarkHtml(c)):(neg&&(insOn||regNl()))?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
-        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
+        <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(spreadOn||!cpName?regShortTitle(c):cpName):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
+        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list'))+' · ':cpName?esc(regShortTitle(c))+' · ':''}${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
         </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
