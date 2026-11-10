@@ -279,6 +279,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## CALENDAR
 - QUICK (10 Nov 2026): calendar-speed-verify (new) — the stylesheet once and kept; a tab or All dates | Mine keeps Jambo's panel (no paint); opening paints the panel at most once; the Ask box bound once; the agenda still drawn and styled. f56 and f64 re-pointed (their "cal-day" was found in the stylesheet text), f792 4d re-pointed (the Ask button bound once).
+- HORIZON, THE SAP WAY (10 Nov 2026): f987 (new; red at the parent, 3 of 3) — calHzTone's bands, the bar/pill/box tones, the detail grey on Horizon, Week and Month.
 - THE AGENDA SCROLLS (10 Nov 2026): calendar-agenda-verify 6a/6b (new; 6b red at unmodified main 60d5200) — eighteen more dated duties in the page, new look, 1536×730: a wheel over the list brings its last row into sight, the tabs stay put.
 - Opens on the Agenda (29 Oct 2026): calendar-agenda-verify, week-by-week-verify (presses Week), f261, f718; handbook-verify HANDBOOK_ONLY=5.2.
 - 21 Oct 2026 (overnight): calendar-on-home-verify 11b (this week's hours whole at the three screens).

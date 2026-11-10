@@ -18858,6 +18858,26 @@
   html.lg-new #app-shell .cal-hz-row.is-nl.is-far .cal-hz-rm{opacity:.7}
   html.lg-new #app-shell .cal-hz-row.is-nl.is-far{padding:10px 0}
   html.lg-new #app-shell .cal-hz-foot{display:flex;justify-content:space-between;padding:14px 0 6px;font-size:13px;font-weight:var(--w-label)}
+  /* HORIZON, THE SAP WAY (owner's pick by name, 10 Nov 2026): the colour comes from time left (calHzTone): the bar red
+     inside 30 days, amber to 90, green beyond; the five boxes above wear the soft fill of their band; the decision is a
+     pill, amber while a decision is near or its window is open, green once decided, grey otherwise. The detail lines grey. */
+  html.lg-new #app-shell .cal-hz-row.is-nl.t-ruby .cal-hz-bar{background:var(--st-ruby-dot)}
+  html.lg-new #app-shell .cal-hz-row.is-nl.t-amber .cal-hz-bar{background:var(--st-amber-dot)}
+  html.lg-new #app-shell .cal-hz-row.is-nl.t-green .cal-hz-bar{background:var(--st-green-dot)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-bar{height:8px;border-radius:4px}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-nip{color:var(--st-amber-dot)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec b{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec b::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+  html.lg-new #app-shell .cal-hz-row.is-nl.t-ruby .cal-hz-dec:not(.is-done) b,html.lg-new #app-shell .cal-hz-row.is-nl.t-amber .cal-hz-dec:not(.is-done) b,html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec.is-open b{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec.is-done b{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec small{margin-top:5px}
+  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad{border-top:0;border-radius:var(--radius);padding:12px 14px}
+  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad.cal-lad-d30{background:var(--st-ruby-bg)}
+  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card :is(.cal-lad.cal-lad-d60,.cal-lad.cal-lad-d90){background:var(--st-amber-bg)}
+  html.lg-new #app-shell .cal-page.is-nl .cal-hz-card :is(.cal-lad.cal-lad-d180,.cal-lad.cal-lad-d365){background:var(--st-green-bg)}
+  html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-lab .m,html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-note,html.lg-new #app-shell .cal-hz-row.is-nl .cal-hz-dec small,html.lg-new #app-shell .cal-page.is-nl .cal-hz-card .cal-lad-v{color:var(--color-neutral-400)}
+  /* THE NAME AND THE FIGURE INK, THE DETAIL GREY on Week and Month too: what a week holds, a day's label, the hours */
+  html.lg-new :is(.cal-wkm-lab span,.cal-wkm-dn,.cal-wk-t,.cal-wk-lab.is-this){color:var(--color-neutral-400)}
   html.lg-new #app-shell .cal-hz-key{margin-left:auto;font-size:12px;color:var(--color-text)}
   /* OBLIGATIONS, AS DRAWN (round 5): the duty, the words it rests on in the paper's type with its §, the day, one link */
   html.lg-new .apn-tab.is-prop{color:var(--st-amber-fg)}
