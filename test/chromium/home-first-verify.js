@@ -183,7 +183,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.waitForSelector('#hm-agents .nd-br.is-look [data-ag-act="oblig"]', { timeout: 8000 }).catch(() => {});
     const late = await page.$('#hm-agents .nd-br.is-look [data-ag-act="oblig"]');
     ok('5a the late promise, opened, carries its door onto the obligations', !!late);
-    if (late) await late.click();
+    /* press it by its selector, not a handle held across a repaint (10 Nov 2026: "not attached to the DOM" once on code
+       it does not touch): the Board may draw the card again between finding the act and pressing it */
+    if (late) await page.click('#hm-agents .nd-br.is-look [data-ag-act="oblig"]', { timeout: 8000 }).catch(() => {});
     /* the act's own door (agRunAct 'oblig' → agGo): the Obligations worklist, where the late promise is a row with its chase */
     await page.waitForFunction(() => state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
     const l = await page.evaluate(() => ({ view: state.view, named: /MK-HF4/.test((document.getElementById('content') || {}).innerText || '') }));
