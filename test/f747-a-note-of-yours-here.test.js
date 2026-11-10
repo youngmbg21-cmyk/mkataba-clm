@@ -145,7 +145,7 @@ describe('f747 (3) "all N", the Counter\'s own number', () => {
     const { ctx, c } = stage({ notes: [{ id: 'n1', contractId: 'MK-1', body: 'x', reviewBy: TODAY }] });
     assert.match(ctx.pdNeedsHtml(c), /data-pd-nd-all title="[^"]*">all 7/);
     assert.equal(BOOKS.en.pd_nd_all, 'all {n}'); assert.equal(BOOKS.sv.pd_nd_all, 'alla {n}');
-    assert.equal(BOOKS.en.pd_nd_all_tip, 'Everything that needs you, on Home');
+    assert.equal(BOOKS.en.pd_nd_all_tip, 'Everything that needs you, on the Board');
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
     assert.match(wiring, /if \(t\.closest\('\[data-pd-nd-all\]'\)\)\{ e\.preventDefault\(\); if \(typeof hbNeedsOpen === 'function'\) hbNeedsOpen\(\);/, 'hbNeedsOpen: Home, then landOn(\'#cn-needs\')');
   });

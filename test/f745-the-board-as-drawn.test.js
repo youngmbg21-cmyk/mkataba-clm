@@ -212,7 +212,7 @@ describe('f745 (4) Jambo on the Board', () => {
   test('4b the number is the Counter\'s; nothing owed, no chip; no view saved, no views chip', () => {
     const { w } = world({ need: 0 });
     const html = w.hbBoardHelloHtml();
-    assert.match(html, /Nothing needs you on Home\./);
+    assert.match(html, /Nothing needs you right now\./);
     assert.ok(!/what needs me/.test(html) && !/my saved views/.test(html));
     const one = world({ need: 1 }).w.hbBoardHelloHtml();
     assert.match(one, /1 thing · 0 prepared by Jambo/);

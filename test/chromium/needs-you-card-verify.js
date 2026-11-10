@@ -176,7 +176,7 @@ const CONTRACTS = [
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
     const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && [...o.querySelectorAll('.jov-fact')].find(x => (x.querySelector('.jov-k') || {}).textContent === 'Needs you');
       return { where: f ? f.querySelector('.jov-v').textContent.trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')), n: counterNeedsCount() }; });
-    ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you on Home.' && !seven.chip, JSON.stringify(seven));
+    ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you right now.' && !seven.chip, JSON.stringify(seven));
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });
     await page.evaluate(() => { window.needsYouOf = window.__ny; window.hbAgentsData = window.__ag; window.counterNeedsCount = window.__cn; });
 

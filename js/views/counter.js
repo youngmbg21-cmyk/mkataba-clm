@@ -122,7 +122,8 @@ const DK_VIEW_WORD = { redline: 'nav_negotiations', customers: 'nav_customers', 
   intake: 'nav_intake', directory: 'nav_directory', team: 'nav_settings_rules', brain: 'nav_brain', register: 'nav_contracts', handbook: 'nav_handbook' };
 function deskTabLabel(k){
   k = String(k || '');
-  if (k === 'home') return _cnT('dk_counter');
+  /* 'home' is the Board since Home was deleted (10 Nov 2026) */
+  if (k === 'home') return _cnT('hb_face_board');
   if (k.startsWith(DK_SEND)){
     const c = (typeof getContract === 'function') ? getContract(k.slice(DK_SEND.length)) : null; if (!c) return '';
     return _cnT('dk_send_tab', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id });
@@ -980,12 +981,12 @@ function ndBoardHtml(opts){
   const kinds = ndKindsOf(inTab);
   if (_nd.kind !== 'any' && !kinds.some(x => x.k === _nd.kind)) _nd.kind = 'any';
   const sum = [_cnTn('nd_things', B.n, { n: B.n }), ndSumWords(D)].filter(Boolean).join(' · ');
-  const home = Math.min(CN_ROWS, B.jambo.length) + Math.min(CN_ROWS, B.you.length);
+  /* ("Home shows the top N · this is all of it" went with Home, 10 Nov 2026: the card is the whole list, said once) */
   const tab = (k, n) => `<button type="button" class="nd-tab${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${_cnE(_cnT('nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
   const folded = ndFolded();
-  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${B.n && !folded ? `<span class="hb-cs nd-home-shows">${_cnE(_cnT('nd_home_shows', { n: home }))}</span>` : ''}${ndFoldBtnHtml(folded)}</header>`
+  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${ndFoldBtnHtml(folded)}</header>`
     + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndRowsN(B.you))}${tab('jambo', ndRowsN(B.jambo))}</div>`
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')

@@ -15849,7 +15849,7 @@ const STRINGS = {
     /* NEEDS YOU HERE, AND THE WAY BACK TO JAMBO (owner picked "Tabs and faces" by name, round 3 of the redesign, 17 Oct 2026) */
     pd_nd_title: 'Needs you here',
     pd_nd_all: 'all {n}',
-    pd_nd_all_tip: 'Everything that needs you, on Home',
+    pd_nd_all_tip: 'Everything that needs you, on the Board',
     pd_nd_see: 'See it',
     pd_nd_waiting: 'waiting {days}',
     /* THE STAGE (owner, 21 Oct 2026): what a Dossier row opens comes to the middle, the Dossier stays */
@@ -21317,7 +21317,7 @@ const STRINGS = {
     hb_jb_counter_other: "What needs you is on Home: {n} things.",
     hb_jb_counter_work_one: "What needs you is on Home: 1 thing, Jambo’s work first.",
     hb_jb_counter_work_other: "What needs you is on Home: {n} things, Jambo’s work first.",
-    hb_jb_counter_none: "Nothing needs you on Home.",
+    hb_jb_counter_none: "Nothing needs you right now.",
     hb_jb_needs_chip: "what needs me",
     hb_spark_tip: "{from} → {to} over the {n} days you opened Home, since {when}",
     hb_d_since: "since {day}",
@@ -38817,7 +38817,7 @@ const STRINGS = {
     /* BEHÖVER DIG HÄR, OCH VÄGEN TILLBAKA TILL JAMBO (ägaren valde "Flikar och ansikten", omgång 3, 17 okt 2026) */
     pd_nd_title: 'Behöver dig här',
     pd_nd_all: 'alla {n}',
-    pd_nd_all_tip: 'Allt som behöver dig, på Hem',
+    pd_nd_all_tip: 'Allt som behöver dig, på tavlan',
     pd_nd_see: 'Visa',
     pd_nd_waiting: 'har väntat {days}',
     pd_mid_back: 'Tillbaka till papperet',
@@ -44125,7 +44125,7 @@ const STRINGS = {
     hb_jb_counter_other: "Det som behöver dig finns på Hem: {n} saker.",
     hb_jb_counter_work_one: "Det som behöver dig finns på Hem: 1 sak, Jambos arbete först.",
     hb_jb_counter_work_other: "Det som behöver dig finns på Hem: {n} saker, Jambos arbete först.",
-    hb_jb_counter_none: "Inget behöver dig på Hem.",
+    hb_jb_counter_none: "Inget behöver dig just nu.",
     hb_jb_needs_chip: "vad väntar på mig",
     hb_spark_tip: "{from} → {to} under de {n} dagar du öppnade Hem, sedan {when}",
     hb_d_since: "sedan {day}",
