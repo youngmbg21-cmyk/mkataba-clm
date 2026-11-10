@@ -563,13 +563,14 @@ function pbOwnRefs(cl,quote){
    quoted (else the clause's last block), after its last character, and every
    word and mark already there stays byte for byte. Same answer shape as
    pbFitInto; null where there is nothing to add or it is already there. */
-function pbFitAdd(bodyHtml,quote,words){
+function pbFitAdd(bodyHtml,quote,words,at0){
   const w=String(words==null?'':words).trim();
   if(!w||typeof document==='undefined'||!document.createElement||!document.createTreeWalker) return null;
   if(typeof window==='undefined'||!window.richToText) return null;
   const blocks=pbClauseBlocks(bodyHtml);
   if(!blocks||!blocks.length) return null;
-  let at=pbQuoteBlock(bodyHtml,quote); if(at<0) at=blocks.length-1;
+  /* `at0`: a block named by its number ("Open 8.3"), where there is no quote */
+  let at=(typeof at0==='number'&&at0>=0&&at0<blocks.length)?at0:pbQuoteBlock(bodyHtml,quote); if(at<0) at=blocks.length-1;
   if(_pbFitNorm(blocks[at]).includes(_pbFitNorm(w))) return null;
   let root;
   try{ root=document.createElement('div'); root.innerHTML=String(bodyHtml==null?'':bodyHtml); }catch(_){ return null; }
