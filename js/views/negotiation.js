@@ -15480,6 +15480,18 @@ function rlPlaybookProposals(c, rev){
     if (draft && cl && window.pbDropRepeatedHeading){
       try{ draft = String(pbDropRepeatedHeading(draft, cl) || '').trim(); }catch(_){}
     }
+    /* ---- AN INSTRUCTION IS READ, NEVER FILED AS WORDING (owner, 10 Nov
+       2026) ---- "Amend Section 3.3 to add: '…' Also amend Section 8.3 to add:
+       '…'" reached the paper whole. pbDraftRead keeps only THIS clause's quoted
+       wording, says whether it ADDS, and hands the other clauses' asks back as
+       `draftAlso` — shown as their own suggestion, written nowhere. */
+    let draftAdd = false, draftAlso = [];
+    if (draft && window.pbDraftRead){
+      try{
+        const read = pbDraftRead(draft, (cl && window.pbOwnRefs) ? pbOwnRefs(cl, v && v.quote) : []);
+        if (read){ draft = String(read.words || '').trim(); draftAdd = !!read.add; draftAlso = read.also || []; }
+      }catch(_){}
+    }
     if (draft && (draft === preferred || draft === fallback)) draft = '';
     if (!preferred && !fallback && !draft) continue;   // review-only verdict — nothing proposable
     /* ---- WHERE THIS PROPOSAL MAY LAND, and there are THREE answers ----
@@ -15508,14 +15520,19 @@ function rlPlaybookProposals(c, rev){
        Aug ruling stands; what moves is which one LEADS, and only on an edit. */
     const asked = !!window.pbFitWording;
     const fit = (landing === 'edit' && asked)
-      ? pbFitWording(cl, v, preferred, draft) : null;
+      ? pbFitWording(cl, v, preferred, draft, { add: draftAdd }) : null;
+    /* THE DRAFT'S OWN PLACING, kept apart from `fit` (which may be the
+       figure): every "Use Jambo's draft" press files this where it exists, so
+       an added sentence is never filed as the whole clause. */
+    const draftFit = (landing === 'edit' && draft && cl && window.pbFitAdd && window.pbFitInto)
+      ? (draftAdd ? pbFitAdd(cl.bodyHtml, v && v.quote, draft) : pbFitInto(cl.bodyHtml, v && v.quote, draft)) : null;
     out.push({ v, clauseId: cl ? cl.clauseId : null,
       clauseLabel: cl && window.negoClauseLabel ? negoClauseLabel(cl) : '',
       oldText: cl ? cl.text : '',
       /* The clause's own markup, carried so the wall and the filing door can
          both ask about its BLOCKS without re-reading the contract. */
       oldHtml: cl ? String(cl.bodyHtml || '') : '',
-      preferred, fallback, draft, landing, fit,
+      preferred, fallback, draft, landing, fit, draftFit, draftAdd, draftAlso,
       /* `lead` is the whole clause as it would read, never the one block that
          moved: the preview is a redline AGAINST oldText, so handing it a
          fragment would draw the very wholesale replacement this prevents. */
@@ -15915,7 +15932,7 @@ async function rlPrepareRedlinesRun(c, again, onYes){
        press, so the acceptance metrics count what became of these. The draft
        is what Copilot proposed; where the library's own wording is filed
        instead, the draft is recorded as not taken. */
-    const tookDraft = !!it.draft && _rlSameWords(words, it.draft);
+    const tookDraft = !!it.draft && (_rlSameWords(words, it.draft) || !!(it.draftFit && _rlSameWords(words, it.draftFit.text)));
     if (it.draft && window.aiTraceNote){
       try{
         const tr = aiTraceNote(c, { feature: 'playbook', kind: 'wording',
@@ -16031,7 +16048,8 @@ async function rlFilePlaybookProposal(c, item, wording, opts){
        -clause picture for a rewrite somebody chose — so opts.wholesale lifts
        it. Nothing that files unattended passes that flag, which is the whole
        point: the refusal is on the machine, never on the reader. */
-    const fitted = !!(item.fit && _rlSameWords(words, item.fit.text));
+    const fitOf = [item.fit, item.draftFit].find(f => f && f.html && _rlSameWords(words, f.text)) || null;
+    const fitted = !!(item.fit && _rlSameWords(words, item.fit.text)) || !!fitOf;
     if (!fitted && !(opts && opts.wholesale) && window.pbUnquotedLoss){
       const gone = pbUnquotedLoss(item.oldHtml, item.v && item.v.quote, words);
       if (gone > 0){
@@ -16049,7 +16067,7 @@ async function rlFilePlaybookProposal(c, item, wording, opts){
        touched — the opposite of what this whole change is for. */
     /* a labelled point on its own line is its own block, never a wrap of the
        line above (11 Oct 2026): docLineWraps would join "…;" to "(b) …" */
-    const body = (fitted && item.fit.html) ? item.fit.html
+    const body = (fitted && fitOf) ? fitOf.html
       : negoRichFromLines(words.replace(/\n(?=[ \t]*\((?:[a-z]{1,5}|\d{1,2})\)\s)/gi, '\n\n'));
     return await negoEditClause(c, item.clauseId, body, { side: 'owner', author, note });
   }
@@ -16295,7 +16313,7 @@ async function rlOpenPlaybookReview(c, again){
   root.querySelectorAll('[data-pbr-go]').forEach(b => askThenFile(b, 'data-pbr-go', it => it.preferred));
   root.querySelectorAll('[data-pbr-fb]').forEach(b => askThenFile(b, 'data-pbr-fb', it => it.fallback));
   root.querySelectorAll('[data-pbr-draft]').forEach(b =>
-    b.addEventListener('click', () => fileFrom(b, 'data-pbr-draft', it => it.draft)));
+    b.addEventListener('click', () => fileFrom(b, 'data-pbr-draft', it => (it.draftFit && it.draftFit.text) || it.draft)));
   root.querySelectorAll('[data-pbr-skip]').forEach(b => b.addEventListener('click', () =>
     settle(Number(b.getAttribute('data-pbr-skip')), 'Skipped', 'var(--color-neutral-500)')));
   root.querySelector('#pbr-close')?.addEventListener('click', () => { if (window.closeModal) closeModal(); });
