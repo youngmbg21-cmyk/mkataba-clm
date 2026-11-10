@@ -168,6 +168,9 @@ describe('f792 (4) both pages say it alike', () => {
     /* RE-POINTED 28 Oct 2026: the box's reader is its own function (calBoxAsk), Enter and Ask pass {typed:true} */
     assert.match(w, /calBoxAsk\(v,\{ typed:true \}\)/);
     assert.match(fnBody(CAL, 'calBoxAsk'), /caAskAnywhere\(v,\{cal:true\}\)/);
-    assert.match(w, /document\.getElementById\('cal-plan-go'\)\?\.addEventListener\('click',ask\)/);
+    /* RE-POINTED 10 Nov 2026 (the calendar's speed): a press that keeps the panel wires it again, so the Ask button is
+       bound ONCE per painted button — still the same ask */
+    assert.match(w, /getElementById\('cal-plan-go'\)/);
+    assert.match(w, /go\._calWired=true; go\.addEventListener\('click',ask\)/);
   });
 });

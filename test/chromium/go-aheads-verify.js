@@ -272,16 +272,14 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     /* the open-fields tile stands on the strip's Details page (read first);
        the strip's own band is drawn on its Overview page: turn the strip back to it */
     await own.evaluate(() => { if (window.hbStripBring) hbStripBring('MK-R9'); });
-    await own.waitForFunction(() => !!document.querySelector('#bs-strips .bs-strip[data-bs-id="MK-R9"] .bs-jb .bs-note'), null, { timeout: 8000 }).catch(() => {});
-    const face = await own.evaluate(() => {
-
-      /* RE-POINTED 15 Oct 2026 (step 8): the room's head is gone; what Jambo
-         read is said on the contract strip's own band ("Read <day>") */
-      const facts = (document.querySelector('#bs-strips .bs-strip[data-bs-id="MK-R9"] .bs-jb .bs-note') || { innerText: '' }).innerText.replace(/\s+/g, ' ');
-      return { facts };
-    });
-    ok('3g3 and the head\'s Copilot fact follows the reading below it — it no longer says "Not read yet"',
-      /^read /i.test(face.facts) && !/not read/i.test(face.facts), face.facts);
+    /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): "bring up" lands on the paper, and its Dossier
+       says what Jambo read */
+    await own.waitForFunction(() => typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'MK-R9' && !!document.getElementById('pd-glance'), null, { timeout: 8000 }).catch(() => {});
+    const face = await own.evaluate(() => ({ facts: ((document.getElementById('pd-glance') || { innerText: '' }).innerText || '').replace(/\s+/g, ' ') }));
+    /* the Dossier's own sign of Jambo's read is its stage line, "Read <time>" ("Brief · Not read yet" is the PERSON's
+       reading of the brief, a different fact) */
+    ok('3g3 and the Dossier follows the reading — its stage line says when Jambo read it, never that he has not',
+      !!face.facts && /\bRead \d/.test(face.facts) && !/Jambo has not read/i.test(face.facts), face.facts.slice(0, 120));
     await own.screenshot({ path: path.join(OUT, '3-overview-after-decide.png') });
 
     /* [control] THE ORDINARY DOOR READS NOTHING. The same Overview, opened from

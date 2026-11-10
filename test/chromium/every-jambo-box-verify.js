@@ -202,11 +202,11 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
       const HOME = ARG('#ig-dock .jb-card', '#ig-dock');
       /* the state each reading waits for, named (no code is sent as a string) */
       const homeWhen = (cond, arg, ms = 10000) => until(([sel, k, a2]) => {
-        const W = { card: () => !!(window.bsCardId && bsCardId()),
+        const W = { card: () => false, /* the contract's card on the Board is gone (9 Nov 2026) */
           paper: id => !!(window.pdContract && pdContract() && pdContract().id === id),
           owed: id => !!(window.pdContract && pdContract() && pdContract().id === id && document.getElementById('pd-needs')),
           sign: () => !!(window.pdSignShows && pdSignShows()),
-          board: () => !(window.bsCardId && bsCardId()) && !(window.igPaperUp && igPaperUp()) && !(window.pdOnPaper && pdOnPaper()) };
+          board: () => !(window.igPaperUp && igPaperUp()) && !(window.pdOnPaper && pdOnPaper()) };
         if (!W[k] || !W[k](a2)) return null;
         const b = document.querySelector(sel.box); if (!b || !b.getClientRects().length) return null;
         const h = document.querySelector(sel.host) || document.body, br = b.getBoundingClientRect();
@@ -216,15 +216,19 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
           /* the rows Still owed draws (a ticked-off row is not owed), so "with rows" is measured, not assumed */
           owed: document.querySelectorAll('#ig-dock #pd-needs .pd-gl-row:not(.is-done)').length };
       }, [HOME, cond, arg], ms);
-      await part('2a a contract brought up as a page, and its History', async () => {
+      /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): bringing a contract up lands on its paper, and its
+         History stands in the middle beside it */
+      await part('2a a contract brought up, and its History', async () => {
         await page.evaluate(() => setView('dashboard'));
         await page.evaluate(() => hbStripBring('MK-A2'));
-        const L = await homeWhen('card');
-        check(`2a ${at} a contract up as a page (round 7): no line and no keys under Home's box`, ok(L), JSON.stringify(L));
+        const L = await homeWhen('paper', 'MK-A2');
+        check(`2a ${at} a contract brought up (on its paper): no line and no keys under Home's box`, ok(L), JSON.stringify(L));
         await shot(`no-hint-home-page-${tag}.png`);
         await page.evaluate(() => hbStripBring('MK-A2', 'hist'));
-        const L2 = await homeWhen('card');
-        check(`2b ${at} its History (round 12): no line and no keys`, ok(L2), JSON.stringify(L2));
+        await until(() => document.getElementById('pd2-hist') ? true : null, null, 6000);
+        const L2 = await homeWhen('paper', 'MK-A2');
+        check(`2b ${at} its History in the middle: no line and no keys`, ok(L2), JSON.stringify(L2));
+        await page.evaluate(() => { const b = document.querySelector('#modal-root [data-pd-mid-back]'); if (b) b.click(); });
         await shot(`no-hint-home-history-${tag}.png`);
       });
       await part('2c a paper beside Jambo\'s tab', async () => {

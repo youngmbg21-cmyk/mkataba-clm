@@ -16,6 +16,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 
 const SCREEN_NAME = { 'laptop-a': 'Laptop 1440', 'laptop-b': 'Laptop 1536', ipad: 'iPad' };
 const KIND = {
+  hand: { name: 'No hand on a press', say: 'Something built to be pressed (a button, a link, a row that opens) whose cursor stays the arrow, so nothing says it can be pressed.' },
   overlap: { name: 'Cards overlapping', say: 'A card lies on top of another card, or pokes out past the side of the card that holds it.' },
   scroll: { name: 'Scroll bars too thick', say: 'A scroll bar drawn at the browser\'s full width (with arrows) instead of the theme\'s thin bar.' },
   pill: { name: 'Pills off the theme', say: 'A rounded button, tab or chip that is taller or rounder than the theme\'s pills, or than the ones beside it.' },
@@ -24,7 +25,7 @@ const KIND = {
   trunc: { name: 'Button words cut short', say: 'A button, tab or chip whose own words are cut off with "…" because it is too narrow for them.' },
   door: { name: 'Hidden doors', say: 'Something you can press to open, with nothing on it (no "Open ›", no arrow) saying so. These are possible cases: worth a look, not all are faults.' },
 };
-const ORDER = ['overlap', 'scroll', 'pill', 'trunc', 'level', 'edge', 'door'];
+const ORDER = ['hand', 'overlap', 'scroll', 'pill', 'trunc', 'level', 'edge', 'door'];
 
 /* ONE LINE PER FAULT: the same thing, same words, on many screens and pages */
 const groups = {};
@@ -55,23 +56,8 @@ const notLanded = rows.filter(r => !r.there).map(r => (SCREEN_NAME[r.screen] || 
 const total = Object.values(groups).length;
 const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-/* FOUND IN THE HUNT (owner, 24 Oct 2026): seen by eye on the pages, reported,
-   not fixed. Kept here so every rerun of the report still carries them; a
-   line leaves this list the day its fault is fixed. */
-const HUNT = [
-  { t: 'Jambo\'s greeting touches the panel edges', d: '“Hi! I’m Jambo…” has no margin on My notes, Import, Obligations, Requests and the Calendar. On Contracts and the Board it is spaced correctly.' },
-  { t: 'Cards not level', d: 'On most pages, the main card and Jambo’s panel start 2 to 8 pixels apart in height. On Contracts, Approvals and Customers, the list also ends a few pixels above the panel’s bottom.' },
-  { t: 'Calendar: a label runs over the day beside it', d: '“30 Nov – 4 Dec” runs over “Mon 30” next to it. Its page header is also a flat strip, not a card like every other page.' },
-  { t: 'Jambo’s tabs squashed to one letter', d: 'On Our paper (“J…”) and New agreement (“Jam…”, “Boa…”). On New agreement, Jambo’s panel is also empty.' },
-  { t: 'Key terms in the middle: square sheet narrower than its header', d: 'The same kind of fault as the Deal page.' },
-  { t: 'Send screen: a line against its neighbours', d: '“Email is not set up yet…” sits against the red box above it and the panel’s edge. Its header is also a flat strip.' },
-  { t: 'Thick dark rings on buttons you land on', d: '“‹ Paper”, “‹ Back to the paper”, “All 34”. Your rule says landing should not draw a ring.' },
-  { t: 'Three browser checks still expect a white top bar', d: 'The Home page check, the “blue landing” check and the “brand survives a refresh” check each expect the bar to be white but measure dark green. You picked the deep green bar today (“The SAP way”), so the bar is right and these three checks are out of date: they need updating to expect green. (From GitHub’s test logs, not yet seen in a browser.)' },
-  { t: 'The “⌘K” hint on the top bar is too faint', d: 'The small “⌘K” at the right end of the search box measures a contrast of 3.97 on the green bar; the accessibility rule HaTi follows asks for at least 4.5, so it is hard to read in bright light. It needs to be a little brighter. Both this and the line above started with the change to the green bar. (From GitHub’s test logs.)' },
-  { t: 'My notes: “No notes yet.” touches the top of its card', small: true },
-  { t: 'Import: the header card is wider than the search strip under it', small: true },
-  { t: 'iPad, a redline card: Accept · Reject · Counter do not line up with the words above them', small: true },
-];
+/* FOUND IN THE HUNT came off 9 Nov 2026 (Round 1): a hand-written list from 24 Oct that no run re-measured; what
+   stands in the report is measured on the day it runs. */
 
 const card = g => `
   <li class="f">
@@ -92,7 +78,7 @@ const html = `<title>HaTi Detail Report</title>
 /* HaTi's own look (index.html :root, "THE LEGORA LOOK"): grey ground, white cards that float, deep-green bar, ink fill. */
 :root{
   --ground:#F5F5F7; --card:#FFFFFF; --ink:#1D1D1F; --sub:#4B4B50; --rule:#E3E3E8; --accent:#087363; --bar:#0F3D33; --bar-ink:#FFFFFF;
-  --k-overlap:#C92A2A; --k-scroll:#6741D9; --k-pill:#C2255C; --k-level:#1971C2; --k-edge:#D9480F; --k-door:#2B8A3E; --k-trunc:#5F3DC4;
+  --k-overlap:#C92A2A; --k-scroll:#6741D9; --k-pill:#C2255C; --k-level:#1971C2; --k-edge:#D9480F; --k-door:#2B8A3E; --k-trunc:#5F3DC4; --k-hand:#0B7285;
   --serif:"Source Serif 4", Georgia, serif; --sans:Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --ground:#141416; --card:#1E1E21; --ink:#F2F2F4; --sub:#B4B4BA; --rule:#34343A; --accent:#4FC3AE; --bar:#0B2A24; color-scheme:dark } }
@@ -145,11 +131,10 @@ ol{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }
 <header class="bar"><div class="bar-in"><b>HaTi</b><span>Detail report · ${esc(today)}</span></div></header>
 <main class="wrap">
   <section class="cardx">
-    <h1>${total + HUNT.length} things that need attention to detail</h1>
+    <h1>${total} things that need attention to detail</h1>
     <p class="lede">I opened ${placesSeen} pages of HaTi in a real browser at your three screens (two laptops and the iPad) and measured what is painted, then read the style code with Stylelint against HaTi's own sizes. One fault seen on several pages or screens is listed once. Each picture has the fault outlined and numbered. Nothing has been fixed yet: pick what you want fixed.</p>
     <div class="sum">
       ${ORDER.map(k => `<a href="#${k}"><b>${(byKind[k] || []).length}</b><i><span class="dot" style="background:var(--k-${k})"></span> ${esc(KIND[k].name)}</i></a>`).join('')}
-      <a href="#hunt"><b>${HUNT.length}</b><i>Found in the hunt</i></a>
       <a href="#style"><b>${style.found.length}</b><i>Style code departures</i></a>
     </div>
     ${cut ? `<p class="muted">Each picture outlines at most 30 of a kind; ${cut} more were counted but not outlined.</p>` : ''}
@@ -161,13 +146,6 @@ ol{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }
     <p class="sec-say">${esc(KIND[k].say)}</p>
     <ol>${byKind[k].map(card).join('')}</ol>
   </section>`).join('')}
-  <section class="cardx" id="hunt">
-    <h2>Found in the hunt · ${HUNT.length}</h2>
-    <p class="sec-say">Seen by eye on the pages, reported, not fixed. Several are kinds the measuring above does not yet catch (a greeting against its panel, a label over a label, a ring after landing), so they are listed by hand.</p>
-    <ol>${HUNT.filter(h => !h.small).map(h => `<li class="f"><div class="f-main"><p class="f-why">${esc(h.t)}</p><p class="f-text">${esc(h.d)}</p></div></li>`).join('')}</ol>
-    <h3 class="hunt-small">Small ones</h3>
-    <ol>${HUNT.filter(h => h.small).map(h => `<li class="f"><div class="f-main"><p class="f-why">${esc(h.t)}</p></div></li>`).join('')}</ol>
-  </section>
   <section class="cardx" id="style">
     <h2>In the style code · ${style.found.length}</h2>
     <p class="sec-say">Stylelint read ${style.blocks} style blocks (the generated Tailwind block is left alone). These are causes rather than things you see: fixing one can tidy several screens at once.</p>

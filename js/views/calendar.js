@@ -93,7 +93,7 @@ function calAgendaDays(){
 function calSetAgendaDays(n){
   const v = Number(n);
   if(!CAL_AGENDA_WINDOWS.includes(v) || v === calAgendaDays()) return;
-  calState.days = v; renderCalendar();
+  calState.days = v; renderCalendar({ keepPanel:true });
 }
 /* The panel draws at most this many rows. At a fortnight that ceiling is
    almost never reached; at ninety days it will be reached constantly, and a
@@ -149,6 +149,48 @@ CAL_EVENT.plan = { dot:'var(--cal-cp)', fg:'var(--cal-cp)', bg:'var(--cal-cp-bg)
 const CAL_PRIORITY = ['expiry','renewal','obligation','round','mine','note','plan'];
 
 /* Gather every lifecycle event as {date, type, cid, cname, note}. */
+/* THE DATES ARE COUNTED ONCE PER DRAW: every reader in the same moment (the page, its agenda, the ask chips) shares
+   one list; the next press, or anything that changed the book, counts again (the memo lasts until the moment ends, so it
+   can never show a stale date) */
+let _calEvMemo=null;
+function calEventsOnce(){
+  if(_calEvMemo) return _calEvMemo;
+  _calEvMemo=calendarEvents();
+  const drop=()=>{ _calEvMemo=null; };
+  if(typeof queueMicrotask==='function') queueMicrotask(drop); else Promise.resolve().then(drop);
+  return _calEvMemo;
+}
+/* THE STYLESHEET IS PUT IN THE PAGE ONCE (it was 58 KB re-sent and re-read on every press). It stands right before
+   #content, where the old copy inside the page stood in the cascade, so every rule wins and loses exactly as before. */
+function calStyleEnsure(){
+  if(typeof document==='undefined'||document.getElementById('cal-css')) return;
+  const st=document.createElement('style'); st.id='cal-css'; st.textContent=calStyleCss();
+  const content=document.getElementById('content');
+  if(content&&content.parentNode) content.parentNode.insertBefore(st,content);
+  else (document.head||document.body).appendChild(st);
+}
+/* Home's opening paints the panel (renderIntel) and then the calendar under it (hbApplyFace): the panel painted in this
+   same moment is not painted again */
+let _calPanelFresh=false;
+function calPanelPainted(){
+  _calPanelFresh=true;
+  const drop=()=>{ _calPanelFresh=false; };
+  if(typeof queueMicrotask==='function') queueMicrotask(drop); else Promise.resolve().then(drop);
+}
+/* your own events, notes and day hours: a repaint only when loading them brought something */
+function calMineBrought(m){
+  return !!(m&&((Array.isArray(m.event)&&m.event.length)||(Array.isArray(m.note)&&m.note.length)||m.pref));
+}
+/* A DATE'S WORDS, BY A KEPT FORMATTER: toLocaleDateString builds a new one for every call, three per agenda row */
+const _calFmts=new Map();
+function calDateWords(iso,o){
+  const loc=typeof langLocale==='function'?langLocale():undefined;
+  const k=String(loc)+'|'+JSON.stringify(o||{});
+  let f=_calFmts.get(k);
+  if(!f){ try{ f=new Intl.DateTimeFormat(loc,o); }catch(_){ f=null; } _calFmts.set(k,f); }
+  const d=iso instanceof Date?iso:new Date(iso+'T00:00:00');
+  return f?f.format(d):d.toLocaleDateString(loc,o);
+}
 function calendarEvents(){
   const out=[];
   state.contracts.forEach(c=>{
@@ -508,7 +550,7 @@ function calMonthGridHtml(y, m, byDay, opts){
     const iso=isoOf(dnum);
     const list=(inMonth?(byDay[iso]||[]):[]).concat(weekend);
     const today=iso===todayIso;
-    const dayName=new Date(y,m,dnum).toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
+    const dayName=calDateWords(new Date(y,m,dnum),{day:'numeric',month:'long',year:'numeric'});
     /* ---- THE WHOLE BOX OPENS ITS WEEK, A CONTRACT OPENS ITS CONTRACT (Young,
        11 Oct 2026: "Press a day in Month to open its week ... Pressing a
        contract anywhere opens that contract") ----
@@ -677,6 +719,8 @@ function calHorizonDecision(r){
   if(r.notice) return { k:'is-open', text:i18t('cal_hz_dec_open',{date:window.regDotDate?regDotDate(r.notice):r.notice}) };
   return { k:'is-none', text:i18t('cal_hz_dec_none') };
 }
+/* the time-left tone of a Horizon row: the ladder's first band red, the next two amber, the rest green */
+function calHzTone(days){ return days<=30?'t-ruby':days<=90?'t-amber':'t-green'; }
 function calHorizonHtml(){
   const rows=calHorizonRows();
   const nl=typeof window.newLookOn==='function'&&newLookOn();
@@ -692,7 +736,7 @@ function calHorizonHtml(){
     const lo=i?CAL_LADDER[i-1].max:-1;
     const inBand=rows.filter(r=>r.days>lo && r.days<=b.max);
     const val=inBand.reduce((s,r)=>s+(r.value||0),0);
-    return `<div class="cal-lad" style="border-top-color:${b.tone}">
+    return `<div class="cal-lad cal-lad-${b.k}" style="border-top-color:${b.tone}">
       <div class="cal-lad-k">${_esc(b.label)}</div>
       <div class="cal-lad-n" style="color:${b.tone}">${inBand.length}</div>
       <div class="cal-lad-v">${val?_esc(window.fmtMoneyShort?fmtMoneyShort(val):String(val)):'&mdash;'}</div>
@@ -728,7 +772,9 @@ function calHorizonHtml(){
         ((typeof canViewValues!=='function'||canViewValues())&&Number(r.c.value)>0)?_esc(window.fmtMoneyShortOf?fmtMoneyShortOf(r.c):fmtMoneyShort(r.c.value)):''].filter(Boolean).join(' · ');
       const noteTxt=_esc(window.regDotDate?regDotDate(r.exp):r.exp)+' · '+(beyond?_esc(i18t('cal_hz_beyond')):_esc(i18t('cal_nl_hz_d',{ n:r.days })));
       const decHtml=beyond?_esc(i18t('cal_hz_beyond')):('<b>'+_esc(decWord)+'</b>'+(decSub?'<small>'+_esc(decSub)+'</small>':''));
-      return '<div class="cal-hz-row is-nl'+(beyond?' is-far':'')+'" data-sel="'+_esc(r.c.id)+'" role="button" tabindex="0">'
+      /* THE SAP WAY (owner's pick by name, 10 Nov 2026): the row wears the tone of its time left — red inside 30 days,
+         amber to 90, green beyond (calHzTone, the ladder's own bands) — on its bar and, while undecided, on its pill */
+      return '<div class="cal-hz-row is-nl '+calHzTone(r.days)+(beyond?' is-far':'')+'" data-sel="'+_esc(r.c.id)+'" role="button" tabindex="0">'
         +'<div class="cal-hz-lab"><span class="n">'+_esc(r.c.name)+'</span><span class="m">'+meta+'</span></div>'
         +'<div class="cal-hz-track"><div class="cal-hz-rm">'+heads.join('')+'</div>'
         +(beyond?'':'<span class="cal-hz-bar" style="width:'+(end*100).toFixed(2)+'%"></span>'+nip)
@@ -904,14 +950,31 @@ if(typeof document!=='undefined'&&!document._calNlWired){ document._calNlWired=t
     if(t.closest('[data-cal-print]')){ e.preventDefault(); window.print(); return; }
   });
 }
+const CAL_AG_KIND_TONE = { approve:'amber', due:'green', theirs:'steel', decide:'amber', ends:'violet', round:'steel', mine:'gray', note:'gray' };
+function calAgKindOf(e){
+  if(!e) return '';
+  if(e.type==='obligation') return e.theirs?'theirs':'due';
+  if(e.type==='renewal') return 'decide';
+  if(e.type==='expiry') return 'ends';
+  if(e.type==='round') return 'round';
+  if(e.type==='mine') return 'mine';
+  if(e.type==='note') return 'note';
+  return '';
+}
+function calAgKindHtml(k){
+  const t=CAL_AG_KIND_TONE[k]; if(!t) return '';
+  return `<span class="cal-kind" style="background:var(--st-${t}-bg);color:var(--st-${t}-fg)">${_esc(i18t('cal_kind_'+k))}</span>`;
+}
 function calAgendaNlHtml(evs){
   const today=calToday(), T=new Date(today+'T00:00:00');
-  const f=(iso,o)=>new Date(iso+'T00:00:00').toLocaleDateString(langLocale(),o);
+  const f=calDateWords;
   /* "Sun 1 Nov", "Fri 1 Jan 2027": the parts in the language's own words, joined without the locale's comma */
   const dayW=iso=>[f(iso,{weekday:'short'}), f(iso,{day:'numeric',month:'short'}), iso.slice(0,4)!==today.slice(0,4)?iso.slice(0,4):''].filter(Boolean).join(' ');
   const rows=[];
   /* a row that stands for a day carries that day (data-cal-ag-day), the hook Home's week line lands on (cnWeekGo) */
-  const row=(when,sub,title,under,act,cls,day)=>rows.push(`<div class="cal-nl-r${cls?' '+cls:''}"${day?` data-cal-ag-day="${_esc(day)}"`:''}><div class="cal-nl-w">${when}${sub?`<small>${_esc(sub)}</small>`:''}</div><div class="cal-nl-t"><b>${_esc(title)}</b>${under?`<small>${_esc(under)}</small>`:''}</div><div class="cal-nl-a">${act||''}</div></div>`);
+  /* KIND LABELS (owner's pick by name, 9 Nov 2026; the colour round): each item starts with a small label of its kind in
+     its own tone, read off what the record says the item is (calAgKindOf), never guessed from its words */
+  const row=(when,sub,title,under,act,cls,day,kind)=>rows.push(`<div class="cal-nl-r${cls?' '+cls:''}"${day?` data-cal-ag-day="${_esc(day)}"`:''}><div class="cal-nl-w">${when}${sub?`<small>${_esc(sub)}</small>`:''}</div><div class="cal-nl-t"><b>${kind?calAgKindHtml(kind):''}${_esc(title)}</b>${under?`<small>${_esc(under)}</small>`:''}</div><div class="cal-nl-a">${act||''}</div></div>`);
   const underOf=e=>{
     if(e.type!=='obligation') return [e.cname, e.cparty].filter(Boolean).join(' · ');
     const who=e.theirs?i18t('cal_nl_theirs'):(e.assignee?String(e.owner||e.assignee):i18t('cal_nl_nobody'));
@@ -935,12 +998,12 @@ function calAgendaNlHtml(evs){
   const byDay=new Map(); upAll.forEach(e=>{ if(!byDay.has(e.date)) byDay.set(e.date,[]); byDay.get(e.date).push(e); });
   const dayRow=(d,list,pre)=>{ const first=list[0];
     row(_esc((pre?pre+', ':'')+dayW(d)), d!==today&&daysUntil(d)>CAL_AGENDA_NL_SOON?'':(d===today?'':i18tn('cal_nl_in_days',daysUntil(d),{ n:daysUntil(d) })),
-      list.map(textOf).join(' · '), underOf(first), actOf(first), '', d); };
+      list.map(textOf).join(' · '), underOf(first), actOf(first), '', d, calAgKindOf(first)); };
   if(ap.length){
     const r0=ap[0], who=String(r0.who||'').trim();
     row(_esc(i18t('cal_nl_today',{ d:dayW(today) })),'', i18t(ap.length>1?'cal_nl_approve_more':'cal_nl_approve',{ a:ap[0].c.name||'', b:(ap[1]&&ap[1].c.name)||'', n:ap.length-1 }),
       [who?i18t('cal_nl_asked_by',{ who }):'', r0.rule?i18t('cal_nl_rule',{ rule:r0.rule }):''].filter(Boolean).join(' · '),
-      `<button type="button" class="cal-nl-go" data-cal-approvals>${_esc(i18t('ap_pg_approve'))}</button>`, '', byDay.has(today)?'':today);
+      `<button type="button" class="cal-nl-go" data-cal-approvals>${_esc(i18t('ap_pg_approve'))}</button>`, '', byDay.has(today)?'':today, 'approve');
     if(byDay.has(today)){ dayRow(today, byDay.get(today)); byDay.delete(today); }
   } else if(byDay.has(today)){ dayRow(today, byDay.get(today), i18t('cal_nl_today_w')); byDay.delete(today); }
   else row(_esc(i18t('cal_nl_today',{ d:dayW(today) })),'', i18t('cal_nl_nothing'),'','','is-none',today);
@@ -1002,18 +1065,29 @@ function calAgendaViewHtml(evs){
   const foot=up.length>shown.length?i18t('cal_showing_of',{shown:shown.length,total:up.length}):i18tn('cal_ag_foot',up.length,{n:up.length,d:CAL_AGENDA_VIEW_DAYS});
   return `<div class="cal-ag">${rows.join('')}</div><div class="cal-ag-ft">${_esc(foot)}</div>`;
 }
-function renderCalendar(){
+/* ---- THE CALENDAR IS QUICK (owner, 10 Nov 2026: "review why the calendar page is slow"; "go ahead with all four") ----
+   Every press used to rebuild the page AND re-send its 58 KB stylesheet AND repaint Jambo's panel, three or four
+   times on opening. Now: the stylesheet is put in the page ONCE (calStyleEnsure); a press that only changes what the
+   calendar SHOWS (a tab, All dates | Mine, ‹ Today ›, the days, a layer) keeps the panel as it stands
+   ({keepPanel:true}); the panel painted a moment ago by Home's own opening is not painted again (_calPanelFresh);
+   your own events and notes repaint the page only when loading them brought something; the dates are counted once
+   per draw (calEventsOnce) and each date's words are written by a kept formatter (calDateWords). */
+function renderCalendar(opts){
+  const keepPanel=!!(opts&&opts.keepPanel===true);
+  /* only Home's opening (hbApplyFace) may lean on a panel painted a moment ago: a repaint for Jambo's own work (his
+     thinking dots, his answer — calPlanRepaint) always paints the panel, however recently it was painted */
+  const fromFace=!!(opts&&opts.fromFace===true);
   const onHome=window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&!!document.getElementById('hb-cal');
   const host=onHome?document.getElementById('hb-cal'):document.getElementById('content');
   if(!host) return;
   const {y,m}=calMonth(), view=calView(), p=calPeriod();
-  const all=calendarEvents();
+  const all=calEventsOnce();
   const evs=calVisible(all);
   /* THE LAYERS (10 Oct 2026): contract dates, my calendar (my events and my
      notes' review days), Copilot's plan — each on or off in Month and Week.
      js/mine.js is loaded once; the page repaints when it lands. */
   if(typeof mineLoaded==='function'&&!mineLoaded()&&typeof mineLoad==='function')
-    mineLoad().then(()=>{ if(calOnScreen()) renderCalendar(); });
+    mineLoad().then(m=>{ if(calOnScreen()&&calMineBrought(m)) renderCalendar({ keepPanel:true }); });
   const lay=calLayers();
   const grid=lay.ct?evs:[];
   const byDay={}; grid.concat(calOwnEvents(p.from,p.to)).forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
@@ -1035,7 +1109,7 @@ function renderCalendar(){
     main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section></div>`;
     legendEvs=evs.filter(e=>calInPeriod(e,p));
   } else if(view==='agenda'){
-    main=`<div class="cal-month"><section class="cal-card cal-ag-card" id="cal-ag">${nl?calAgendaNlHtml(grid):calAgendaViewHtml(grid)}</section></div>`;
+    main=`<div class="cal-month is-ag"><section class="cal-card cal-ag-card" id="cal-ag">${nl?calAgendaNlHtml(grid):calAgendaViewHtml(grid)}</section></div>`;
     legendEvs=grid.filter(e=>calInPeriod(e,p));
   } else if(view==='week'){
     main=`<div class="cal-month cal-weekwrap"><section class="cal-card cal-wk-card">${calWeekHtml(grid)}</section></div>`;
@@ -1078,9 +1152,9 @@ function renderCalendar(){
      key — Ours · Theirs · Contract date · Mine · Jambo's plan — whose three
      parts are still the layers' switches (calKeyHtml). */
   const cardTitle=view==='week'?calWeekCardTitle():title;
+  calStyleEnsure();
   host.innerHTML=`
   <div class="view-enter cal-page${onHome?' is-home':''}${nl?' is-nl':''}">
-    <style>${calStyleCss()}</style>
     ${nl?`<div class="cal-head is-nl">
       <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
       <nav class="cal-nl-tabs" aria-label="${_esc(i18t('cal_v_group'))}">${['agenda','month','week','horizon'].map(k=>`<a class="${view===k?'on':''}" data-cal-view="${k}" role="button" tabindex="0">${_esc(i18t('cal_v_'+k))}</a>`).join('')}</nav>
@@ -1123,7 +1197,12 @@ function renderCalendar(){
 
   wireCalendar(evs, byDay, p);
   /* on Home its Copilot is Home's one panel, painted (and wired) there */
-  if(onHome){ if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } else calWireOwn(); }
+  if(onHome){
+    /* the panel stands as it is when only the view changed, or when Home's opening painted it a moment ago */
+    if((keepPanel||(fromFace&&_calPanelFresh))&&document.getElementById('cal-plan')) calWireOwn();
+    else if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
+    else calWireOwn();
+  }
   else calWireOwn();
   setActiveNav(onHome?'dashboard':'calendar');
 }
@@ -1592,9 +1671,10 @@ function calStyleCss(){ return `
            does scroll, and a channel that is not reserved means the content
            shifts sideways the moment the bar appears.
            IT IS WRITTEN HERE, in the calendar's own injected sheet, because
-           this is the rule that causes it — and the sheet goes with the page,
-           so no other view can inherit the exception. */}
-    #content-scroll.view-fixed{scrollbar-gutter:stable}
+           this is the rule that causes it. The sheet now STAYS in the page
+           (calStyleEnsure, 10 Nov 2026), so the rule names the calendar itself
+           (:has) and no other view can inherit the exception. */}
+    #content-scroll.view-fixed:has(.cal-page){scrollbar-gutter:stable}
     .cal-body{padding:var(--s-3) var(--s-4) 18px}
     .cal-head{padding-left:var(--s-4);padding-right:var(--s-4)}
     .cal-stack > .cal-grid{min-height:340px}
@@ -1655,7 +1735,7 @@ function calStyleCss(){ return `
   .cal-wk-t{height:var(--cal-wk-row);font-size:var(--t-micro);color:var(--color-quiet);text-align:right;padding:0 6px 0 0;border-top:1px solid var(--color-divider);font-variant-numeric:tabular-nums}
   .cal-wk-col{position:relative;border-left:1px solid var(--color-divider);display:flex;flex-direction:column}
   .cal-wk-col.is-today{background:color-mix(in srgb,var(--color-accent-50) 45%,transparent)}
-  .cal-wk-slot{height:var(--cal-wk-row);flex:none;border:0;border-top:1px solid var(--color-divider);background:none;cursor:copy;padding:0}
+  .cal-wk-slot{height:var(--cal-wk-row);flex:none;border:0;border-top:1px solid var(--color-divider);background:none;cursor:default;padding:0}
   .cal-wk-slot:hover{background:var(--color-accent-50)}
   .cal-wk-blk{position:absolute;left:3px;right:3px;border:0;border-left:3px solid var(--color-accent-600);border-radius:4px;background:var(--color-accent-50);color:var(--accent-ink);text-align:left;padding:2px 5px;font:inherit;font-size:var(--t-micro);line-height:1.3;overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
   .cal-wk-blk b{font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1742,6 +1822,11 @@ function calStyleCss(){ return `
   .cal-view .cal-grid{border:0;box-shadow:none;background:none;padding:0}
   .cal-view .cal-wk-card{border:0;box-shadow:none;padding:0}
   .cal-view .cal-ag-card{border:0;box-shadow:none;background:none;padding:0}
+  /* THE AGENDA SCROLLS (owner, 10 Nov 2026: "I am unable to scroll in the calendar page"): the month and the week are
+     sized to fit the window (calFitDays), so their holder may shrink; the agenda is a list of 90 days, so its holder
+     keeps its whole height and the view (.cal-view, overflow:auto) scrolls it — never cut off by the card's clip */
+  .cal-view .cal-month.is-ag{flex:1 0 auto;min-height:auto}
+  .cal-view .cal-month.is-ag > .cal-card{flex:none;overflow:visible}
   .cal-ag{display:flex;flex-direction:column}
   .cal-ag-day{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;padding:10px 0;border-top:1px solid var(--color-divider)}
   .cal-ag-day:first-child{border-top:0}
@@ -1865,14 +1950,14 @@ function calStyleCss(){ return `
    WIRING
    ------------------------------------------------------------------------- */
 function calStep(n){
-  if(calView()==='week'){ calState.wk=_isoLocal(calAddDays(calWeekStart(),7*n)); renderCalendar(); return; }
+  if(calView()==='week'){ calState.wk=_isoLocal(calAddDays(calWeekStart(),7*n)); renderCalendar({ keepPanel:true }); return; }
   let {y,m}=calMonth();
   m+=n*(calView()==='month'?1:3);
   while(m<0){ m+=12; y--; } while(m>11){ m-=12; y++; }
-  calState.ym={y,m}; renderCalendar();
+  calState.ym={y,m}; renderCalendar({ keepPanel:true });
 }
-function calSetView(v){ if(!CAL_VIEWS.includes(v)||v===calView()) return; calState.view=v; renderCalendar(); }
-function calSetScope(s){ const v=s==='mine'?'mine':'all'; if(v===calScope()) return; calState.scope=v; renderCalendar(); }
+function calSetView(v){ if(!CAL_VIEWS.includes(v)||v===calView()) return; calState.view=v; renderCalendar({ keepPanel:true }); }
+function calSetScope(s){ const v=s==='mine'?'mine':'all'; if(v===calScope()) return; calState.scope=v; renderCalendar({ keepPanel:true }); }
 
 /* ---- THE SIX WEEKS FIT THE WINDOW (owner picked it, 13 Oct 2026, after the
    laptop report: "the key sits on the last week") ----
@@ -1902,7 +1987,7 @@ function wireCalendar(evs, byDay, p){
   const $=id=>document.getElementById(id);
   $('cal-prev')?.addEventListener('click',()=>calStep(-1));
   $('cal-next')?.addEventListener('click',()=>calStep(1));
-  $('cal-today')?.addEventListener('click',()=>{ calState.ym=null; calState.wk=null; renderCalendar(); });
+  $('cal-today')?.addEventListener('click',()=>{ calState.ym=null; calState.wk=null; renderCalendar({ keepPanel:true }); });
   const press=(el,fn)=>{ el.addEventListener('click',fn);
     el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }); };
   document.querySelectorAll('[data-cal-view]').forEach(el=>press(el,()=>calSetView(el.getAttribute('data-cal-view'))));
@@ -2157,7 +2242,7 @@ function calWeekHtml(contractEvs){
     return `<div class="cal-wk-all">${c.concat(o).join('')}</div>`; }).join('');
   const hours=Array.from({length:H1-H0},(_,i)=>`<div class="cal-wk-t">${String(H0+i).padStart(2,'0')}</div>`).join('');
   const cols=days.map(d=>{ const iso=_isoLocal(d);
-    const slots=Array.from({length:H1-H0},(_,i)=>`<button type="button" tabindex="-1" class="cal-wk-slot" data-cal-slot="${iso}|${String(H0+i).padStart(2,'0')}:00" data-cal-hint="${_esc(i18t('cal_add_own'))}" aria-label="${_esc(i18t('cal_new_at',{day:d.toLocaleDateString(langLocale(),{weekday:'long',day:'numeric',month:'long'}),h:String(H0+i).padStart(2,'0')+':00'}))}"></button>`).join('');
+    const slots=Array.from({length:H1-H0},(_,i)=>`<button type="button" tabindex="-1" class="cal-wk-slot" data-cal-slot="${iso}|${String(H0+i).padStart(2,'0')}:00" data-cal-hint="${_esc(i18t('cal_add_own'))}" aria-label="${_esc(i18t('cal_new_at',{day:calDateWords(d,{weekday:'long',day:'numeric',month:'long'}),h:String(H0+i).padStart(2,'0')+':00'}))}"></button>`).join('');
     const blocks=own.filter(e=>e.date===iso&&e.start).map(e=>{
       const top=Math.max(0,(calMins(e.start)-H0*60)/60*ROW), h=Math.max(18,(calMins(e.end)-calMins(e.start))/60*ROW-2);
       return `<button type="button" class="cal-wk-blk is-${e.type}" ${e.own} style="top:${top}px;height:${h}px" title="${_esc(e.title+' · '+e.start+'–'+e.end)}">${h<34?`<b>${_esc((e.type==='plan'?'✦ ':'')+e.title)} · ${_esc(e.start)}</b>`
@@ -2208,7 +2293,7 @@ function calMoreWeeksHtml(a,onDay){
       return chip; });
       const chip=chips.map((h,k)=>k?h.replace(/^<(\w+) class="cal-chip/,'<$1 data-cal-wkm-x class="cal-chip'):h).join('');
       const more=list.length>1?`<span class="cal-more" data-cal-wkm-more="${list.length}">${_esc(i18t('cal_n_more',{n:list.length-1}))}</span>`:'';
-      const dayName=d.toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
+      const dayName=calDateWords(d,{day:'numeric',month:'long',year:'numeric'});
       return `<div class="cal-wkm-d${iso===calToday()?' is-today':''}" role="button" tabindex="0" data-cal-week="${iso}" title="${_esc(i18t('cal_open_week_of',{day:dayName}))}"><span class="cal-wkm-dn">${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))} ${d.getDate()}</span>${chip}${more}</div>`;
     }).join('');
     const f=(d,o)=>d.toLocaleDateString(langLocale(),o);
@@ -2537,8 +2622,12 @@ function calWireOwn(){
   /* JAMBO'S TAB READS WITH THE BRAIN FIRST (owner, 27 Oct 2026, the Board's rolled out): typed while his tab shows,
      the planner reads it whole — words that are not about time it hands to the chat ('elsewhere') */
   const ask=()=>{ if(!inp) return; const v=inp.value; if(!String(v||'').trim()) return; inp.value=''; calBoxAsk(v,{ typed:true }); };
-  if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ask(); } });
-  document.getElementById('cal-plan-go')?.addEventListener('click',ask);
+  /* bound ONCE per painted box: a press that keeps the panel calls this again over the same box */
+  if(inp&&!inp._calWired){ inp._calWired=true; inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ask(); } }); }
+  const go=document.getElementById('cal-plan-go');
+  if(go&&!go._calWired){ go._calWired=true; go.addEventListener('click',ask); }
+  const dock=document.getElementById('ig-dock');
+  if(inp&&dock&&typeof dock.contains==='function'&&dock.contains(inp)) calPanelPainted();
   const body=document.getElementById('cal-wk-body');
   if(body&&body.dataset&&!body.dataset.scrolled&&typeof getComputedStyle==='function'){ body.dataset.scrolled='1';
     const first=body.querySelector('.cal-wk-blk'); const pref=typeof minePref==='function'?minePref():{dayStart:8};
@@ -2563,7 +2652,7 @@ function calWireOwn(){
     if((el=hit('[data-cal-week]'))){ e.preventDefault(); e.stopPropagation(); calState.wk=el.getAttribute('data-cal-week'); calState.view='week'; renderCalendar(); return; }
     if((el=hit('[data-cal-slot]'))){ const [date,start]=el.getAttribute('data-cal-slot').split('|'); calEventDialog(null,{date,start}); return; }
     if((el=hit('#cal-new'))){ calEventDialog(null,{ date:calView()==='week'?_isoLocal(calWeekStart())<=calToday()&&calToday()<=_isoLocal(calAddDays(calWeekStart(),CAL_WEEK_DAYS-1))?calToday():_isoLocal(calWeekStart()):calToday() }); return; }
-    if((el=hit('[data-cal-lay]'))){ const k=el.getAttribute('data-cal-lay'); calState.lay={ ...calLayers(), [k]:!calLayers()[k] }; renderCalendar(); return; }
+    if((el=hit('[data-cal-lay]'))){ const k=el.getAttribute('data-cal-lay'); calState.lay={ ...calLayers(), [k]:!calLayers()[k] }; renderCalendar({ keepPanel:true }); return; }
     if((el=hit('[data-cal-plan-q]'))){ calPlanAsk(el.getAttribute('data-cal-plan-q'), el.getAttribute('data-cal-plan-ref')); return; }
     if((el=hit('[data-cal-plan-add]'))){ calPlanAdd(el.getAttribute('data-cal-plan-add')); return; }
     if((el=hit('[data-cal-plan-discard]'))){ const b=_calPlan.blocks.find(x=>x.k===el.getAttribute('data-cal-plan-discard')); if(b){ b.st='gone'; calPlanRepaint(); } return; }
@@ -2586,9 +2675,9 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
   },true);
 }
 
-Object.assign(window,{CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+Object.assign(window,{calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,CAL_AGENDA_VIEW_DAYS,CAL_AGENDA_VIEW_ROWS,calAgendaViewHtml,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
-  calLayers,calChipAct,calChipGo,calWkmFit,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});
+  calLayers,calChipAct,calChipGo,calWkmFit,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff,calHzTone});

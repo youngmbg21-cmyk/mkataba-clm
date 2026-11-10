@@ -107,6 +107,8 @@ const NOT_TESTS = new Set([
   /* THE JAMBO EXAM (22 Oct 2026): a measurement that spends real Jambo calls when a key is set;
      run by hand, its scores reported to the owner (docs/PLAN-jambo-copilot.md). */
   'jambo-exam-measure.js',
+  /* THE EXPLORER EXAM (9 Nov 2026): 32 map requests typed against the real model, the same rule */
+  'explorer-jambo-exam-measure.js',
 ]);
 
 const argv = process.argv.slice(2);

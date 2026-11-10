@@ -103,13 +103,10 @@ function deskKeyNow(){
      stands in front, on the paper's face; gone to the Calendar, Explorer or a contract's History, the bar
      says that page, never "Send" (the letter still waits, Recent's first row) */
   if (v === 'dashboard'){ const sk = dkSendNow(); const onPaper = (typeof hbFace !== 'function') || hbFace() === 'paper';
-    const card = typeof window.bsCardId === 'function' && !!window.bsCardId();
-    if (sk && !dkSendWaiting() && onPaper && !card) return sk; }
+    if (sk && !dkSendWaiting() && onPaper) return sk; }
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
-    /* a contract brought up is its own page, on its contract's row (round 7) */
-    if (f === 'board' && typeof window.bsCardId === 'function'){ const id = window.bsCardId(); if (id) return 'c:' + id; }
     return DK_HOME_FACE[f] || 'home:board';
   }
   if (v === 'workspace' || v === 'doc') return state.activeId ? 'c:' + state.activeId : null;
@@ -244,9 +241,8 @@ function deskTabsSync(){
     if (k && !k.startsWith(DK_SEND)){
       const L = dkTabs(); let t = L.find(x => x.k === k);
       if (t) t.at = Date.now(); else { t = { k, at: Date.now() }; L.push(t); }
-      /* ONE ROW PER CONTRACT, two ways to read it (round 7): it remembers
-         whether its page or its paper was in front */
-      if (k.startsWith('c:')) t.view = (typeof window.bsCardId === 'function' && window.bsCardId() && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? 'card' : 'paper';
+      /* ONE ROW PER CONTRACT: its paper (the contract's page on the Board is gone, owner, 9 Nov 2026) */
+      if (k.startsWith('c:')) t.view = 'paper';
       dkSave(L);
     }
     if (!(k && k.startsWith(DK_SEND))){
@@ -289,7 +285,7 @@ function dkKindWord(k){
 /* Present this page: Home's faces only, and not a contract's own page (round 7) */
 function dkPresentOn(){
   if (typeof state === 'undefined' || !state || state.view !== 'dashboard' || typeof hbPresent !== 'function') return false;
-  return !(typeof window.bsCardId === 'function' && window.bsCardId() && typeof hbFace === 'function' && hbFace() === 'board');
+  return true;
 }
 function deskRecentHtml(){
   const now = deskKeyNow(), home = !now && typeof state !== 'undefined' && state && state.view === 'counter';
@@ -379,11 +375,8 @@ function deskTabOpen(k){
     if (f === 'calendar' && typeof hbOpenCalendar === 'function'){ hbOpenCalendar(); return true; }
     if (f === 'explorer' && typeof hbOpenExplorer === 'function'){ hbOpenExplorer(); return true; }
     if (typeof hbS !== 'function') return false;
-    /* the Board row is the Board, not a contract's page on it (round 7) */
-    const left = (typeof window.bsCardLeave === 'function') && window.bsCardLeave();
     if (state.view === 'dashboard' && typeof hbSetFace === 'function' && document.getElementById('hb-head')){
-      if (left && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace('board');
-      deskTabsSync(); return true; }
+      hbSetFace('board'); deskTabsSync(); return true; }
     const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave();
     if (typeof setView === 'function') setView('dashboard');
     return true;
@@ -392,7 +385,6 @@ function deskTabOpen(k){
     const c = (typeof getContract === 'function') ? getContract(k.slice(2)) : null;
     if (!c){ deskTabClose(k); return false; }
     const t = dkTabs().find(x => x.k === k);
-    if (t && t.view === 'card' && typeof hbStripBring === 'function' && hbStripBring(c.id)) return true;
     if (typeof pdOpenOnHome === 'function'){ pdOpenOnHome(c.id, 'copilot'); return true; }
     if (typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
     return false;
@@ -411,8 +403,6 @@ function deskTabClose(k){
   const L = dkTabs(); const i = L.findIndex(t => t.k === k);
   const wasNow = deskKeyNow() === k;
   if (i < 0 && !wasNow) return;
-  /* a contract's page taken off is let go, as its own × did (round 7) */
-  if (i >= 0 && L[i].view === 'card' && typeof bsStripClose === 'function') bsStripClose(k.slice(2));
   if (i >= 0){ L.splice(i, 1); dkSave(L); }
   if (wasNow){
     const next = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0))[0];
@@ -874,7 +864,13 @@ function ndHomeRowHtml(r){
 /* the verb as a green link: the button's own words and door, dressed as a link (the row's one press) */
 const _ndLinkHtml = P => `<button type="button" class="ui-link nd-btn nd-link" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
 /* whose it is: the other side's initials in their own washed tone (the list language, regAvatarHtml), Jambo's mark on his */
+/* THE SAP WAY MARK ON HOME AND NEEDS YOU (owner, 9 Nov 2026: "Home (replacing the party initials)"; the new look):
+   the shared mark (listSapMarkHtml) read off the one desk's own row: Jambo's piece a violet star, a good-news row a green
+   tick, news of their move a steel i, everything else on this desk is your move, an amber ! (late too: never ruby) */
+const ndSapKeyOf = (r, P) => r.g === 'jambo' ? 'jambo' : (P && P.good) ? 'done' : (P && P.news) ? 'them' : 'you';
+const ndSapMarkHtml = (r, P) => (typeof listSapMarkHtml === 'function') ? listSapMarkHtml(ndSapKeyOf(r, P), _cnT('nd_kind_' + ndKindOfRow(r))) : '';
 function ndAvHtml(r, P){
+  if (typeof listSapOn === 'function' && listSapOn()) return ndSapMarkHtml(r, P);
   if (r.g === 'jambo') return `<span class="reg-av nd-av is-jambo" aria-hidden="true">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''}</span>`;
   /* the other side, else the agreement, else (a request) whoever asked; a row about no one has a quiet drawn mark, never letters read off its own title */
   const who = String(P.party || P.name || (r.y && r.y.k === 'req' ? P.who : '') || '').trim();
@@ -960,7 +956,7 @@ function ndBoardRowHtml(r, opts){
     ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
     : _ndBtnHtml(P);
   return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
-    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
+    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}>${typeof listSapOn === 'function' && listSapOn() ? ndSapMarkHtml(r, P) : ''}<b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
     /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
     + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span>`
     /* no "Who or what asked" column (owner, 24 Oct 2026): empty on most rows; the search still reads it */
@@ -1579,7 +1575,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnLikely, cnLikelyWords, CN_LIKELY_MAX, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndKindOfRow, ndKindHtml, CN2_SEAT, CN2_RANK, cn2On, cn2Rows, cn2Say, cn2Signed, cn2Greet, cn2Name, cn2CountsHtml, cn2QuoteHtml, cn2RowHtml, cn2Html, cn2FirstDayHtml, cn2JlSay, cn2PanelPaint, renderCounter2, cn2Repaint, cn2LookToggle, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, cnCountsHtml, CN_WEEK_DAYS, cnWeekOf, cnWeekHtml, cnWeekGo, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_SEAT, CN2_RANK, cn2On, cn2Rows, cn2Say, cn2Signed, cn2Greet, cn2Name, cn2CountsHtml, cn2QuoteHtml, cn2RowHtml, cn2Html, cn2FirstDayHtml, cn2JlSay, cn2PanelPaint, renderCounter2, cn2Repaint, cn2LookToggle, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterTalkFirst, counterTalkAsk, counterNeedsCount, counterPopRead, counterPopClose });
 
 /* THE FIRST DAY TAKES A DROPPED FILE ANYWHERE ON THE PAGE (round 7, as drawn): the drop area's own reader (pdDropTake) */

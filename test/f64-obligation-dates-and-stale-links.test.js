@@ -105,7 +105,10 @@ describe('F64 — an obligation due date a person typed still reaches the calend
     assert.equal(evs.length, 0,
       'an undated obligation must not be built as an event that lands on no day');
     sb.renderCalendar();
-    assert.match(sb.document.getElementById('content').innerHTML, /cal-day/,
+        /* RE-POINTED 10 Nov 2026 (the calendar's speed): "cal-day" was found in the calendar's own stylesheet, which
+       rode inside the page's HTML on every paint; the sheet is now put in the page once (calStyleEnsure), so the
+       calendar's drawing is asked for by its own frame */
+    assert.match(sb.document.getElementById('content').innerHTML, /id="cal-stage"/,
       'and the calendar still draws');
   });
 

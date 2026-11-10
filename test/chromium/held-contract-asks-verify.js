@@ -10,10 +10,7 @@
    contracts", "negotiations", "open MK-105" all answered "I wasn't able to
    finish that" instead of the Board's own free answer. And from a list's
    Jambo box, "show me drafts" opened "What should we draft?".
-     1  with a contract open, a question about the book or a contract named is
-        the Board's: the page is let go, the Board answers, free
-     2  with a contract open, a question about that one ("what are the risks",
-        "when does it end", "who are the parties") still goes with that contract
+     1, 2  RETIRED 9 Nov 2026 with the Board's contract card (nothing is held on the Board any more)
      3  from the Approvals list's box, "show me drafts" never opens the draft
         form; "new contract" still does
    Typed into the real boxes; what reaches Jambo's AI routes is watched (the
@@ -55,25 +52,6 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     return v; };
   /* Home's Board with MK-105's page brought up on the desk; the contract's
      own reader is watched (it would spend) */
-  const holdOnHome = async () => {
-    await page.evaluate(() => { intel.history = []; intel.busy = false; setView('dashboard'); });
-    await until(() => state.view === 'dashboard' && !!document.getElementById('igd-input'));
-    await page.evaluate(() => { hbSetFace('board'); });
-    await page.waitForTimeout(300);
-    await page.evaluate(() => { hbStripBring('MK-105'); });
-    aiAsks.length = 0;
-    return until(() => (typeof igHeldAskId === 'function' && igHeldAskId() === 'MK-105') ? 'held' : null, null, 6000);
-  };
-  const typeHome = async q => {
-    /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => intelAsk(w), q);
-    await until(() => !intel.busy && intel.history.some(m => m.role === 'user'), null, 6000);
-    await page.waitForTimeout(500);
-    return page.evaluate(() => {
-      const said = intel.history.filter(m => m.role === 'assistant').map(m => String(typeof m.text === 'function' ? m.text() : (m.text || '')).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
-      return { held: typeof igHeldAskId === 'function' ? igHeldAskId() : null, page: (document.querySelector('#dk-page') || {}).textContent || '',
-        said: said.join(' | ').slice(0, 160) };
-    }).then(r => Object.assign(r, { asked: aiAsks.slice() }));
-  };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
@@ -83,24 +61,9 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await until(() => state.view === 'counter' || state.view === 'dashboard', null, 10000);
     await page.waitForTimeout(1500);
 
-    /* ================= 1. THE BOOK IS STILL THE BOARD'S ================= */
-    for (const q of ['show me drafts', 'contracts expiring in the next 90 days', 'show me the Carrefour contracts', 'negotiations', 'top 5 by value', 'open MK-105']) {
-      const ok = await holdOnHome();
-      if (!ok) { check(`1 "${q}": a contract is open on Home first`, false, 'MK-105 could not be brought up'); continue; }
-      const r = await typeHome(q);
-      const answered = !!r.said && !/wasn.?t able to finish|could not draw/i.test(r.said);
-      check(`1 with MK-105 open, "${q}" is answered by the Board, free, not sent to the contract`, answered && !r.asked.length,
-        JSON.stringify({ said: r.said, page: r.page.trim(), asked: r.asked }));
-    }
-
-    /* ================= 2. A QUESTION ABOUT THIS ONE STAYS WITH IT ================= */
-    for (const q of ['what are the risks', 'when does it end', 'who are the parties']) {
-      const ok = await holdOnHome();
-      if (!ok) { check(`2 "${q}": a contract is open on Home first`, false, 'MK-105 could not be brought up'); continue; }
-      const r = await typeHome(q);
-      check(`2 with MK-105 open, "${q}" still goes with MK-105, its page still up`, r.asked.some(a => /:MK-105$/.test(a)) && r.held === 'MK-105',
-        JSON.stringify({ asked: r.asked, held: r.held, page: r.page.trim() }));
-    }
+    /* 1 and 2 RETIRED 9 Nov 2026: they asked what a question does while a contract's page is HELD on the Board
+       (igHeldAskId). The Board's contract card is gone, so nothing is held there any more; a contract brought up is
+       its paper, whose questions are the paper's (igPaperAsk), measured where the paper's own box is. */
 
     /* ================= 3. A LIST'S BOX: "SHOW ME DRAFTS" IS A LIST ================= */
     for (const [q, wantForm] of [['show me drafts', false], ['new contract', true]]) {

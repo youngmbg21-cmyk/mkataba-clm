@@ -2865,7 +2865,7 @@ function regRowsHtml(cs){
     const ends=eff?regEndsSay(eff):null;
     const renDate=ends?ends.day:(eff?regDotDate(eff):'—');
     const renIn=ends?ends.sub:'';
-    const renDateColor=ends&&ends.tone==='ruby'?'var(--st-ruby-fg)':ends&&ends.tone==='amber'?'var(--st-amber-fg)':'var(--color-neutral-700)';
+    const renDateColor=ends&&ends.tone==='ruby'?'var(--st-ruby-fg)':ends&&ends.tone==='amber'?'var(--st-amber-fg)':regNl()?'var(--color-neutral-400)':'var(--color-neutral-700)';  /* the new look: a date is detail, grey (owner, 9 Nov 2026) */
     const renColor=renDateColor;
     /* "NON-MONETARY", NOT "n/m" (26 Sep 2026, the list options' floor):
        shorthand a reader had to decode, on the one cell whose whole job is to
@@ -2953,7 +2953,7 @@ function regRowsHtml(cs){
     const spreadOn=placeRows&&regHomeWide();
     CELL.party=`<td class="reg-party" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(coded?i18t('igw_kept_list'):(pyAll||cpName))}">${coded?esc(i18t('igw_kept_list')):esc(cpName)}</td>`;
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${regTitleOf(c)} · ${esc(pyAll||cpName)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
-        <span class="reg-id">${placeRows?regStageMarkHtml(c):(neg&&insOn)?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
+        <span class="reg-id">${placeRows?(regNl()?regSapMarkHtml(c):regStageMarkHtml(c)):(neg&&(insOn||regNl()))?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(regShortTitle(c)):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
         </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list')):esc(cpName)} · ${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
@@ -3072,11 +3072,30 @@ function regStageMarkHtml(c){
   const kind=tone==='green'?'done':tone==='ruby'?'late':(c&&c.status==='Draft')?'todo':tone==='gray'?'todo':'part';
   return window.listMarkHtml?listMarkHtml(tone,kind,m&&m.label):'';
 }
+/* THE SAP WAY MARK ON CONTRACTS (owner, 9 Nov 2026; the new look only): the shared mark (listSapMarkHtml). The stage
+   reading decides it (contractStatusMeta via regStageTone), and for the rows in between, whose move it is (the Needs you
+   tab's own reading, regNeedsIds): on legal hold a ruby cross (the one real risk the stage says) · signed a green tick ·
+   a draft, an expired or a closed one a grey dash (nothing owed) · waiting on you an amber ! · with someone else a steel i.
+   The title keeps the stage's own words for a reader. */
+let _regSapNeeds={at:0,ids:null};
+function regSapNeedsIds(){ const now=Date.now(); if(!_regSapNeeds.ids||now-_regSapNeeds.at>400) _regSapNeeds={at:now,ids:regNeedsIds()}; return _regSapNeeds.ids; }
+function regSapMarkOf(c){
+  if(typeof contractOnHold==='function'&&contractOnHold(c)) return 'risk';
+  const { tone }=regStageTone(c), st=c&&c.status;
+  if(st==='Signed'&&tone==='green') return 'done';
+  if(st==='Draft'||st==='Declined'||tone==='gray') return 'none';
+  return regSapNeedsIds().has(String(c&&c.id))?'you':'them';
+}
+function regSapMarkHtml(c){
+  const { m:meta }=regStageTone(c);
+  return window.listSapMarkHtml?listSapMarkHtml(regSapMarkOf(c), meta&&meta.label):'';
+}
 /* THE NEGOTIATIONS ROW (the list language): whose move as the mark — ours a half circle in amber, theirs
    a clock in steel, settled a ticked circle — and the grey line "ref · Round 2 · Lead: You" */
 function regNegoMarkHtml(c){
   if(!window.listMarkHtml) return '';
   const b=c&&c._ngBand;
+  if(window.listSapOn&&listSapOn()) return listSapMarkHtml(b==='you'?'you':b==='them'?'them':'done', b==='you'?i18t('reg_pill_your_move'):b==='them'?i18t('reg_pill_their_move'):'');
   return b==='you'?listMarkHtml('amber','part',i18t('reg_pill_your_move')):b==='them'?listMarkHtml('steel','wait',i18t('reg_pill_their_move')):listMarkHtml('green','done');
 }
 function regNegoLineHtml(c,refLine){
@@ -3630,9 +3649,37 @@ function regFoldersHtml(){
       <b class="ctf-name">${esc(i18t('ctf_ended'))}</b>${regTileBig(0)}<span class="ctf-mix" aria-hidden="true"><i class="is-gone" style="width:100%"></i></span>
       <span class="ctf-lo"><span>${esc(i18tn('ctf_n_contracts', ended.length, { n: ended.length }))}${yrs.length ? ' · ' + esc(yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : ''}</span><span>${esc(endR.val ? money(endR.val) : '')}</span></span></button>` : '';
   const isAdmin = (typeof currentUser === 'function' && (currentUser() || {}).role === 'admin');
+  if (regNl()) return regFolderRowsHtml(live, fids, ended, endIds, isAdmin);
   const newCard = isAdmin ? `<button type="button" class="ctf-card is-new is-tile" data-ctf-new><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-facts">${esc(i18t('ctf_new_s'))}</span></button>` : '';
   const n = (cards.match(/data-ctf-folder/g) || []).length + (endCard ? 1 : 0);
   return `${regTileKeyHtml()}<div class="ctf-grid is-tiles">${cards}${endCard}${newCard}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
+}
+/* THE FOLDERS, THE LEGORA WAY (owner's pick by name, 9 Nov 2026; the new look; reverses EVEN TILES on Contracts, Parties
+   keeps its tiles): one quiet list, nothing boxed, the folders with the most work first. A row: the SAP way mark, the name
+   in ink, a grey line saying what the folder holds and what waits in words (contracts · value · 41 details · 7 signatures),
+   the signed · in review · drafting bar, and "52 need you" on the right. The press is the tile's own (data-ctf-folder). */
+function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
+  const money = v => v == null ? '' : (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(v) : String(v));
+  const mark = k => window.listSapMarkHtml ? listSapMarkHtml(k) : '';
+  const kinds = r => Object.entries(r.needs).sort((a, b) => b[1] - a[1]).map(([k, n]) => CTF_WORDS[k] ? i18tn(CTF_WORDS[k], n, { n }) : '').filter(Boolean).slice(0, 3);
+  const row = (attr, k, name, line, bar, need) => `<button type="button" class="ctf-row" ${attr} title="${esc(name)}">${mark(k)}<span class="ctf-rw"><b class="ctf-name">${esc(name)}</b><span class="ctf-rl">${esc(line)}</span></span>${bar}<span class="ctf-rn">${need}</span></button>`;
+  const rows = fids.map(fid => {
+    const cs = live.filter(c => c.folder === fid && !endIds.has(c.id)); if (!cs.length) return null;
+    return { fid, name: FOLDERS[fid].name || fid, r: regFolderRead(cs) };
+  }).filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
+  const body = rows.map(x => { const r = x.r;
+    const line = [i18tn('ctf_n_contracts', r.n, { n: r.n }), r.val ? money(r.val) : '', ...kinds(r)].filter(Boolean).join(' · ');
+    const need = r.needN ? `<b>${r.needN}</b> ${esc(i18tn('ctf_t_need', r.needN, { n: r.needN }))}` : `<span class="is-quiet">${esc(i18t('ctf_t_nothing'))}</span>`;
+    return row(`data-ctf-folder="${esc(x.fid)}"`, r.needN ? 'you' : r.signed === r.n ? 'done' : 'none', x.name, line, regTileBar(r.signed, r.review, r.n - r.signed - r.review), need);
+  }).join('');
+  const yrs = ended.map(c => String(c.signedAt || c.expiry || '').slice(0, 4)).filter(Boolean).sort();
+  const endR = regFolderRead(ended);
+  const endRow = ended.length ? row('data-ctf-ended', 'none', i18t('ctf_ended'),
+    [i18tn('ctf_n_contracts', ended.length, { n: ended.length }), yrs.length ? (yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : '', endR.val ? money(endR.val) : ''].filter(Boolean).join(' · '),
+    '<span class="ctf-mix" aria-hidden="true"><i class="is-gone" style="width:100%"></i></span>', '') : '';
+  const newRow = isAdmin ? `<button type="button" class="ctf-row is-new" data-ctf-new><span class="ctf-rw"><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-rl">${esc(i18t('ctf_new_s'))}</span></span></button>` : '';
+  const n = rows.length + (endRow ? 1 : 0);
+  return `${regTileKeyHtml({ rows: true })}<div class="ctf-list">${body}${endRow}${newRow}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
 }
 /* EVEN TILES' parts, one builder for Contracts' folders and Parties' folders */
 function regTileBig(n){
@@ -3644,8 +3691,9 @@ function regTileBar(signed, review, draft){
   const pc = x => (Math.round(Math.max(0, x) / all * 1000) / 10) + '%';
   return `<span class="ctf-mix" aria-hidden="true"><i class="is-s" style="width:${pc(signed)}"></i><i class="is-r" style="width:${pc(review)}"></i><i class="is-d" style="width:${pc(draft)}"></i></span>`;
 }
-function regTileKeyHtml(){
-  return `<div class="ctf-key"><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))}</span><span><i class="is-r"></i>${esc(i18t('ctf_k_review'))}</span><span><i class="is-d"></i>${esc(i18t('ctf_k_draft'))}</span><span>${esc(i18t('ctf_k_big'))}</span></div>`;
+function regTileKeyHtml(o){
+  /* the rows say "N need you" in words, so their key drops the line about the big number */
+  return `<div class="ctf-key"><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))}</span><span><i class="is-r"></i>${esc(i18t('ctf_k_review'))}</span><span><i class="is-d"></i>${esc(i18t('ctf_k_draft'))}</span>${o && o.rows ? '' : `<span>${esc(i18t('ctf_k_big'))}</span>`}</div>`;
 }
 if (typeof document !== 'undefined' && !document._ctfWired){ document._ctfWired = true;
   document.addEventListener('click', e => {
@@ -3704,6 +3752,16 @@ function regFoldersUp(){ return typeof regFoldersOn === 'function' && regPlaceUp
 /* A DOOR THAT ASKS FOR THE LIST GETS THE LIST (owner-reported 6 Nov 2026: Reads' "Read 50 more" landed on the new
    look's folders, where the read it waits for never starts): the folders step aside, as the All tab does */
 function regFoldersShut(){ _ctFolders = false; }
+/* THE FOLDERS' PANEL, THE LEGORA WAY (owner's pick by name, 9 Nov 2026): two short ranked lists instead of every folder
+   in one crowded line — where the work is (what needs you) and where the money is — each bar to scale, each row the
+   folder's own door (data-ctf-folder) */
+function regFolderRanksHtml(rows, short, money){
+  const list = (cap, L, val, show, tone) => { if (!L.length) return ''; const top = Math.max(1, ...L.map(val));
+    return `<div class="apn-pcap">${esc(i18t(cap))}</div><div class="ctfp-rks">${L.map(x => `<button type="button" class="ctfp-rk" data-ctf-folder="${esc(x.fid)}" title="${esc(x.name)}"><span class="ctfp-rk-n">${esc(short(x.name))}</span><span class="ctfp-rk-b" aria-hidden="true"><i class="is-${tone}" style="width:${Math.max(2, Math.round(val(x) / top * 100))}%"></i></span><b>${esc(show(x))}</b></button>`).join('')}</div>`; };
+  const work = rows.filter(x => x.r.needN).sort((a, b) => b.r.needN - a.r.needN).slice(0, 6);
+  const rich = rows.filter(x => x.r.val).sort((a, b) => b.r.val - a.r.val).slice(0, 4);
+  return list('ctfp_work', work, x => x.r.needN, x => String(x.r.needN), 'amber') + list('ctfp_money', rich, x => x.r.val, x => money(x.r.val), 'steel');
+}
 function regFoldersPanelHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed && !c.archived);
   const rows = Object.keys(FOLDERS || {}).filter(f => (typeof canAccessFolder !== 'function' || canAccessFolder(f)))
@@ -3723,7 +3781,7 @@ function regFoldersPanelHtml(){
   } catch (_){ gaps = []; }
   const remark = gaps.length ? `<div class="apn-pj"><span class="apn-pdot" aria-hidden="true"></span><div><div class="apn-pcap">Jambo</div><p>${esc(i18tn('ctfp_nda', gaps.length, { n: gaps.length, list: gaps.slice(0, 2).join(' and '), first: String(gaps[0]).split(/\s+/)[0] }))}</p></div></div>` : '';
   return `<div class="apn-panel ctfp"><p class="apn-pl">${esc(head)}</p>
-    <div class="apn-pcap">${esc(i18t('ctfp_across'))}</div>${rows.map(x => `<div class="apn-pr"><b>${esc(short(x.name))}</b><span>${esc(line(x))}</span><i></i></div>`).join('')}
+    ${regNl() ? regFolderRanksHtml(rows, short, money) : `<div class="apn-pcap">${esc(i18t('ctfp_across'))}</div>${rows.map(x => `<div class="apn-pr"><b>${esc(short(x.name))}</b><span>${esc(line(x))}</span><i></i></div>`).join('')}`}
     <div class="apn-pcap" style="margin-top:16px">${esc(i18t('ctfp_doors'))}</div>
     ${work ? `<p class="ctfp-door"><button type="button" class="pd2-link" data-ctf-folder="${esc(work.fid)}">${esc(i18t('ctfp_open', { name: short(work.name) }))}</button> <span>${esc(i18t('ctfp_free'))}</span></p>` : ''}
     <p class="ctfp-door"><button type="button" class="pd2-link" data-ctf-tab="all">${esc(i18t('ctfp_all'))}</button> <span>${esc(i18t('ctfp_free'))}</span></p>
@@ -4919,7 +4977,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFolderRowsHtml,regFolderRanksHtml,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
@@ -5013,7 +5071,7 @@ function ngnRowHtml(r, sel){
   const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => q.q ? `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}` : `<span class="ngn-nm">${E([q.s, q.nm].filter(Boolean).join(' '))}</span>`).join(' · ')}` : `0 · ${E(r.open.say)}`;
   const nm = r.lead.name ? (r.lead.mine ? ngnShortName(r.lead.name) : ngnShortName(r.lead.name)) : '—';
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
-    + `<td><div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div></td>`
+    + `<td>${listSapCellHtml(r.b === 'you' ? 'you' : r.b === 'them' ? 'them' : 'done', `<div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>`, r.move)}</td>`
     + `<td class="ngn-rd">${E(r.round)}</td>`
     + `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
     + `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
@@ -5064,7 +5122,7 @@ function ngnRender(host){
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:23%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:27%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
+      <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:26%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:24%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
         <thead><tr><th>${esc(i18t('ngn_c_agreement'))}</th><th>${esc(i18t('ngn_c_round'))}</th><th>${esc(i18t('ngn_c_move'))}</th><th>${esc(i18t('ngn_c_asks'))}</th><th>${esc(i18t('ngn_c_lead'))}</th><th>${esc(i18t('ngn_c_last'))}</th></tr></thead>
         <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel))).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ngn_foot', all.length, { n: all.length, live }))}</span><span></span></div>

@@ -235,9 +235,11 @@ const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between
       await page.evaluate(() => needsYouGo('renewal', 'MK-B1'));
       S = await until(() => (typeof pdTab === 'function' && pdTab() === 'oblig' && window.intel && intel.paper && intel.paper.id === 'MK-B1') ? true : null) && await state0();
       check('8e a renewal in Needs you opens the Obligations tab beside the paper', !!S && S.tab === 'oblig', JSON.stringify(S));
-      const pages = await page.evaluate(() => { hbS().strips = [{ id: 'MK-A2', page: 'details' }]; return (typeof hbStripBring === 'function' && hbStripBring('MK-A2', 'details')) ? 'brought' : 'refused'; });
-      const kept = await page.evaluate(() => (hbS().strips || []).map(x => x.page));
-      check('8f no strip page called Details: one kept there opens on its Overview, and it cannot be asked for', !kept.includes('details') && !(await page.evaluate(() => !!document.querySelector('[data-bs-host="details"]'))), JSON.stringify({ pages, kept }));
+      /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): a door asking for the old Details page lands on the
+         paper with its Dossier, and nothing hosts a Details page */
+      const pages = await page.evaluate(() => (typeof hbStripBring === 'function' && hbStripBring('MK-A2', 'details')) ? 'brought' : 'refused');
+      const up = await until(() => (typeof pdContract === 'function' && pdContract() && pdContract().id === 'MK-A2' && document.getElementById('ig-paper')) ? true : null);
+      check('8f no Details page: a door asking for one lands on the paper with its Dossier', pages === 'brought' && !!up && !(await page.evaluate(() => !!document.querySelector('[data-bs-host="details"]'))), JSON.stringify({ pages, up }));
     });
 
     await part('5 a reader', async () => {

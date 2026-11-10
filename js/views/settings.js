@@ -10090,7 +10090,17 @@ function stnRow(id, label, value, sub, act){
   return `<div class="stn-row" id="stn-${id}" data-stn-row="${id}"><div class="stn-l">${esc(label)}</div><div class="stn-v"><div class="stn-val">${value}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-a">${act||''}</div></div>`;
 }
 const stnDoor=(attr,w)=>`<button type="button" class="ui-link stn-go" ${attr}>${esc(w)}</button>`;
-function stnStateText(k){ const st=stStateOf(k); return st&&st.text?esc(stShortState(st.text)):''; }
+/* ON / OFF PILLS (owner's pick by name, 9 Nov 2026; the colour round): what a setting is set to reads as a soft pill in
+   its state's tone, read off the panel's own reading (st.dot): working green, off grey, wanting a decision amber. The
+   words stay the panel's own. */
+const STN_PILL_TONE = { ok:'on', on:'on', off:'off', warn:'need', need:'need' };
+function stnPill(html, dot){ const t=STN_PILL_TONE[dot]||''; return html&&t?`<span class="stn-pill is-${t}">${html}</span>`:html; }
+/* the alerts row: a short word in the pill (On · Off · Blocked), the browser's own sentence under it */
+function stnPushSaid(ps, said){
+  const short=ps==='on'?i18t('stn_pill_on'):ps==='blocked'?i18t('stn_pill_blocked'):i18t('stn_pill_off');
+  return `${stnPill(esc(short), ps==='on'?'on':ps==='blocked'?'need':'off')}${ps==='on'?'':`<div class="stn-said">${said}</div>`}`;
+}
+function stnStateText(k){ const st=stStateOf(k); return st&&st.text?stnPill(esc(stShortState(st.text)), st.dot):''; }
 function stnAgentsSaid(){
   const keys=(typeof AG_KEYS!=='undefined'&&Array.isArray(AG_KEYS))?AG_KEYS:[];
   if(!keys.length||typeof agLevelOf!=='function') return '';
@@ -10124,8 +10134,8 @@ function stnYouHtml(){
   let out=`<h3 class="stn-h" id="stn-sec-you">${esc(i18t('stn_about_you'))}</h3>`
     +stnRow('name', i18t('st_you_name_row'), esc(name), '', stnDoor('data-st-panel="me:name"', i18t('st_you_change')))
     +stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg);
-  if(api) out+=stnRow('twostep', i18t('ts_title'), esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change')));
-  if(api) out+=stnRow('push', i18t('stn_push'), push||esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):'');
+  if(api) out+=stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change')));
+  if(api) out+=stnRow('push', i18t('stn_push'), push?stnPushSaid(ps, push):esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):'');
   const ag=stnAgentsSaid();
   if(ag) out+=stnRow('agents', i18t('stn_agents'), esc(ag), i18t('stn_agents_sub'), stnDoor('data-st-view="jambo"', i18t('stn_open')));
   return out;
@@ -10139,10 +10149,16 @@ function stnCompanyHtml(){
     +stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change')))
     +stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update')))
     +stnRow('mail', i18t('stn_mail'), stnStateText('mail'), '', stnDoor('data-st-panel="mail"', i18t('stn_health')))
-    +stnRow('outsidelook', i18t('stn_out'), esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')));
+    +stnRow('outsidelook', i18t('stn_out'), stnPill(esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), (state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'on':'off'), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')));
+}
+/* THE ITEM LAST PRESSED STAYS MARKED (kept through a repaint, so a panel's Save that redraws the page keeps it) */
+let _stnMenuOn='';
+function stnMenuMark(btn){
+  _stnMenuOn=btn?(btn.getAttribute('data-stn-to')||''):'';
+  document.querySelectorAll('.stn-page .stn-mi').forEach(b=>{ const on=!!_stnMenuOn&&b.getAttribute('data-stn-to')===_stnMenuOn; b.classList.toggle('is-on',on); if(on) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current'); });
 }
 function stnMenuHtml(admin){
-  const go=(attr,w)=>`<button type="button" class="stn-mi" ${attr}>${esc(w)}</button>`;
+  const go=(attr,w)=>{ const on=!!_stnMenuOn&&attr==='data-stn-to="'+_stnMenuOn+'"'; return `<button type="button" class="stn-mi${on?' is-on':''}" ${attr}${on?' aria-current="true"':''}>${esc(w)}</button>`; };
   const api=(typeof API_MODE==='function')&&API_MODE();
   let h=`<div class="stn-mh">${esc(i18t('stn_m_you'))}</div>`+go('data-stn-to="name"',i18t('stn_about_you_m'))
     +(api?go('data-stn-to="twostep"',i18t('stn_m_signin'))+go('data-stn-to="push"',i18t('stn_push')):'')+go('data-stn-to="agents"',i18t('stn_agents'));
@@ -10162,7 +10178,7 @@ function stnPanelHtml(admin){
     +needs.slice(0,4).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
       const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):'');
       const what=k==='panel'?(sub?stShortState(sub):r.text):r.text, more=k==='panel'?'':sub;
-      return `<div class="pd2-ch-r stn-nd stn-pr" ${r.btn||''} role="button" tabindex="0"><span>${E(lab)}</span><b>${E(what)}${more?`<small>${E(more)}</small>`:''}</b><i></i></div>`; }).join('')+`</div>`; }
+      return `<div class="pd2-ch-r stn-nd stn-pr" ${r.btn||''} role="button" tabindex="0"><span>${E(lab)}</span><b>${E(what)}${more?`<small>${E(more)}</small>`:''}</b><i class="stn-go" aria-hidden="true">${typeof icon==='function'?icon('chevR','w-3.5 h-3.5'):'›'}</i></div>`; }).join('')+`</div>`; }
   h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_ask'))}</div><p class="stn-pp">${E(i18t('stn_p_ask_s'))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-ask-head="">${E(i18t('st_ask_go'))}</button><span>${E(i18t('stn_p_ask_cost'))}</span></div>`;
   if(admin){
     const L=_stLessons; const rows=(L&&L.rows)||[];
@@ -10195,6 +10211,13 @@ if(typeof document!=='undefined' && !document._stnWired){ document._stnWired=tru
     const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('.stn-page')) return;
     const to=t.closest('[data-stn-to]'); if(!to) return;
     const el=document.getElementById('stn-'+to.getAttribute('data-stn-to')); if(!el) return;
+    /* THE MENU OPENS WHAT ITS ROW OPENS (owner, 9 Nov 2026: "a lot of the buttons … are not functioning or opening the
+       respecting links. Also when I press the page moves me down"): the item presses its row's own door (Change, Open,
+       Add rule, Update, Health; the one door, never a second); a row with no door (a switch) is only landed on, so a
+       menu press never flips it. The item pressed stays marked; the menu stands still (index.html, .stn-menu sticky). */
+    stnMenuMark(to);
+    const door=el.querySelector('.stn-a [data-st-panel], .stn-a [data-st-view], .stn-a [data-st-page]');
+    if(door){ door.click(); return; }
     if(typeof landOn==='function') landOn(el,{ block:'start', focus:false }); else try{ el.scrollIntoView({ block:'start' }); }catch(_){ /* nothing to scroll */ }
   });
 }

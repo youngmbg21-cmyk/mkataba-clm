@@ -209,16 +209,17 @@ describe('f673 (5)(6) the preview, and Fill from document on Home', () => {
 /* 20 Oct 2026 (owner: "it brings the card from board"): the drafting form
    standing over the Board names no card in Jambo's panel head; the card's
    name is back once the form goes */
-describe('f673 (7) a new agreement in front is not the Board card behind it', () => {
-  test('7a pdHeadWord says nothing while #na-root stands; the card again once it is gone', () => {
+describe('f673 (7) a new agreement in front is not the paper chosen behind it', () => {
+  /* RE-POINTED 9 Nov 2026: the contract's card on the Board is gone; the head names only a paper chosen on the wall */
+  test('7a pdHeadWord says nothing while #na-root stands; the chosen paper again once it is gone', () => {
     let formUp = true;
     const ctx = { String,
       document: { getElementById: id => (id === 'na-root' && formUp ? {} : null) },
-      pdHolds: () => 'card', pdCardNow: () => ({ id: 'MK-B2' }), contractRef: c => c.id,
+      pdHolds: () => 'chosen', contractRef: c => c.id,
       _pdT: (k, v) => k + ':' + (v && v.ref) };
     vm.createContext(ctx); vm.runInContext(fnBody(PD, 'pdHeadWord') + '\nthis.pdHeadWord=pdHeadWord;', ctx);
     assert.equal(ctx.pdHeadWord(), '', 'the form is up');
     formUp = false;
-    assert.equal(ctx.pdHeadWord(), 'dos_held_head:MK-B2', 'the form put away: the card again');
+    assert.equal(ctx.pdHeadWord(), 'pd_ch_head:undefined', 'the form put away: the chosen paper again');
   });
 });

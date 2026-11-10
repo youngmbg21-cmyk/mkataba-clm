@@ -31,6 +31,12 @@
    One alarm was the check's own: the Dossier's rows below the feed's bottom
    are carried by a scroller and never painted (now `clipped`).
 
+   AFTER MOTION (Round 1, 9 Nov 2026): every place is measured again after
+   its biggest own scroller moves and after its first unchosen tab is pressed
+   (SCROLL_ONE, TAB_SWITCH below). The Calendar's Month, Week and Horizon tabs
+   and Contracts' Wall are places of their own; the new look's pages carry
+   their own waiting marks.
+
    Run: node test/chromium/tidy-sweep-verify.js
         HATI_TIDY_ONLY=board,draft node test/chromium/tidy-sweep-verify.js
    The new look's frame:  HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js */
@@ -64,6 +70,42 @@ const waitFor = async (page, fn, arg, ms = 10000) => {
   try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; }
 };
 const settle = async page => { await page.evaluate(() => document.fonts.ready).catch(() => {}); await page.waitForTimeout(700); };
+
+/* ============================================================
+   AFTER MOTION (Round 1, 9 Nov 2026). The owner's Calendar ghost — the top of
+   the Horizon list painted twice, a small scrollbar on its first row — was
+   clean at first paint in every sweep; it appears after something moves. So
+   each place is measured a second and third time: after its biggest own
+   scroller is moved down (the panel's scroller is not the page's), and after
+   its first unchosen tab is pressed (a page tab before a panel tab). A place
+   with no scroller or no tab simply reports none.
+   ============================================================ */
+const SCROLL_ONE = `(() => {
+  const panel = document.querySelector('#ig-dock, #ins-panel, #st-side, #tb-rail, #cal-plan');
+  const list = [...document.querySelectorAll('*')].filter(el => { const c = getComputedStyle(el); if (!/(auto|scroll)/.test(c.overflowY)) return false;
+    const r = el.getBoundingClientRect(); return r.height > 200 && r.width > 300 && el.scrollHeight > el.clientHeight + 40 && !(panel && panel.contains(el)) && !el.closest('#modal-root'); });
+  const sc = list.sort((a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth)[0]; if (!sc) return null;
+  sc.scrollTop = Math.round(sc.clientHeight * 0.6);
+  return sc.id ? '#' + sc.id : (String(sc.className).split(/\\s+/)[0] ? '.' + String(sc.className).split(/\\s+/)[0] : sc.tagName.toLowerCase());
+})()`;
+const TAB_SWITCH = `(() => {
+  const panel = document.querySelector('#ig-dock, #ins-panel, #st-side, #tb-rail, #cal-plan');
+  const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; };
+  const sel = '[role="tab"][aria-selected="false"], [data-cal-view]:not(.on):not([aria-pressed="true"]), [data-lh-view]:not(.on):not([aria-pressed="true"]), [data-lh-tab]:not(.on):not([aria-pressed="true"]), .ph-tabs a:not(.on), [data-reg-home] [data-ct-show][aria-pressed="false"], [data-pd-tab]:not(.on):not([aria-selected="true"])';
+  const all = [...document.querySelectorAll(sel)].filter(vis).filter(el => !el.closest('#modal-root') && !el.disabled);
+  const onPage = all.filter(el => !(panel && panel.contains(el)));
+  const el = onPage[0] || all[0]; if (!el) return null;
+  const txt = e => ((e.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 30)) || e.getAttribute('aria-label') || '';
+  /* the tab that was chosen, to press again afterwards: a page remembers its tab (placeSave), and the next screen must open where this one did */
+  const was = el.parentElement ? [...el.parentElement.children].find(s => s !== el && (s.classList.contains('on') || s.getAttribute('aria-selected') === 'true' || s.getAttribute('aria-pressed') === 'true')) : null;
+  el.click(); return { word: txt(el) || 'a tab', back: was ? txt(was) : '' };
+})()`;
+const TAB_RESTORE = `(back => {
+  const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const sel = '[role="tab"], [data-cal-view], [data-lh-view], [data-lh-tab], .ph-tabs a, [data-reg-home] [data-ct-show], [data-ctf-show], [data-pd-tab]';
+  const txt = e => ((e.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 30)) || e.getAttribute('aria-label') || '';
+  const el = [...document.querySelectorAll(sel)].filter(vis).find(e => txt(e) === back); if (el) el.click(); return !!el;
+})`;
 
 /* ============================================================
    THE MEASURE, run inside the page. One reading of everything painted in the
@@ -124,7 +166,9 @@ const MEASURE = `(() => {
     /* …and the Dossier's stage line (Round 4, owner's "mix", 24 Oct 2026): a stage's name over its date or "N to do" */
     /* …and the Dossier's door rows (owner picked "Two lines", 25 Oct 2026; CLAUDE.md: a long name takes two lines, then "…"):
        with the last column's one grey pill (29 Oct 2026) a value like "Warehousing & Distribution" reads whole on two lines */
-    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd')) continue;
+    /* …and a folder tile (the new look's Contracts › Folders, 9 Nov 2026): a button-card of four lines, name · count · bar · money */
+    /* …and a folder row (the folders, the Legora way, owner's pick 9 Nov 2026, f983): the name over its grey line */
+    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
     /* THE LINES THE WORDS TOOK, not the box's height: a tag with a fixed height folds its words inside it and the box never grows */
@@ -170,6 +214,13 @@ const MEASURE = `(() => {
     if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
     const ox = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left), oy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
     if (ox < 4 || oy < 6) continue;
+    /* A WRAPPED INLINE IS ITS LINES, NOT THEIR UNION (9 Nov 2026, Round 0's "Our paper's preview paints a blank over a
+       name"): "Highland Corporate Ltd" ending one line and starting the next has a box from the first line's end to the
+       second line's start, and the "Counterparty" blank on the second line sat inside that box, not under any word. Two
+       pieces overlap only where a line of one meets a line of the other. */
+    const lineRects = el => [...el.getClientRects()].filter(q => q.width > 2 && q.height > 2);
+    const la = lineRects(a.el), lb = lineRects(b.el);
+    if ((la.length > 1 || lb.length > 1) && !la.some(p => lb.some(q => Math.min(p.right, q.right) - Math.max(p.left, q.left) >= 4 && Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top) >= 6))) continue;
     /* one on top of the other by design (a pop-up, a panel, a dialog, a tip, a fixed bar): different stacking roots */
     const stackOf = el => { let p = el; while (p && p !== document.body) { const cs = getComputedStyle(p); if (cs.position === 'fixed' || (cs.position !== 'static' && cs.zIndex !== 'auto')) return p; p = p.parentElement; } return document.body; };
     if (stackOf(a.el) !== stackOf(b.el)) continue;
@@ -193,7 +244,7 @@ const MEASURE = `(() => {
   const paintOf = el => { const cs = getComputedStyle(el); const bg = cs.backgroundColor;
     return (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') || cs.boxShadow !== 'none' || (parseFloat(cs.borderTopWidth) > 0 && parseFloat(cs.borderLeftWidth) > 0); };
   const groundOf = el => { for (let p = el.parentElement; p; p = p.parentElement) { const bg = getComputedStyle(p).backgroundColor; if (bg && bg !== 'rgba(0, 0, 0, 0)') return bg; } return 'rgb(255, 255, 255)'; };
-  const CTRL = 'button, a, input, select, textarea, label, svg, img, canvas, table, thead, tbody, tr, td, th, ul, ol, li, nav, [contenteditable], .pill, .chip, [class*="-chip"], [class*="-pill"], [class*="-tag"], [class*="-badge"], [role="tab"], [role="tablist"], [role="menuitem"], [role="option"], [role="menu"]';
+  const CTRL = 'button, a, input, select, textarea, label, svg, img, canvas, table, thead, tbody, tr, td, th, ul, ol, li, nav, [contenteditable], .cal-day, .cal-wk-slot, .cal-lad, .pill, .chip, [class*="-chip"], [class*="-pill"], [class*="-tag"], [class*="-badge"], [role="tab"], [role="tablist"], [role="menuitem"], [role="option"], [role="menu"]';
   const isCard = el => { if (el.matches(CTRL)) return false; const c = getComputedStyle(el); if (parseFloat(c.borderTopLeftRadius) < 8 || !paintOf(el)) return false; const e = c.boxShadow !== 'none' || parseFloat(c.borderTopWidth) > 0; return e || c.backgroundColor !== groundOf(el); };
   const cardsIn = el => [...el.querySelectorAll('*')].some(d => d.getBoundingClientRect().width >= 120 && d.getBoundingClientRect().height >= 36 && !hidden(d) && isCard(d));
   out.room = [];
@@ -300,18 +351,25 @@ const LEVEL = `(() => {
    ============================================================ */
 const PLACES = [
   { k: 'home', name: 'Home', go: `setView('counter')`, wait: `document.querySelector('#cn-needs, #cn-q, #cn2-page #cn2-list')` },
-  { k: 'board', name: 'Board', go: `setView('dashboard')`, wait: `document.querySelector('#hb-board .hb-card')` },
-  { k: 'board-sheet', name: 'Board · side list', go: `setView('dashboard'); setTimeout(() => { const el = [...document.querySelectorAll('svg.hb-svg [data-hb-dig], .hb-chart [data-hb-dig], .hb-chart-bars [data-hb-dig], .hb-ctab [data-hb-dig], .hb-small [data-hb-dig], .hb-stagebar [data-hb-dig], .hb-stagekey [data-hb-dig]')].find(e => !e.disabled); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, 600)`, wait: `document.querySelector('.hb-sheet tr[data-hb-sheet-c]')` },
-  { k: 'board-card', name: 'Board · a row of the side list, landed on its Dossier', go: `setView('dashboard'); let t1 = 0; const w1 = setInterval(() => { const el = document.querySelector('.hb-stagekey [data-hb-dig="st:Under Review"]'); if (!el && ++t1 < 25) return; clearInterval(w1); if (!el) return; el.dispatchEvent(new MouseEvent('click', { bubbles: true })); let t2 = 0; const w2 = setInterval(() => { const tr = document.querySelector('.hb-sheet tr[data-hb-sheet-c="MK-400"]'); if (!tr && ++t2 < 25) return; clearInterval(w2); if (tr) tr.click(); }, 200); }, 200)`, wait: `document.querySelector('#pd-glance') && /MK-400/.test((document.querySelector('#dk-page') || document.body).textContent) && !document.querySelector('.hb-sheet')` },
+  /* Home remembers its face (placeResume): a Board place turns to the Board itself, whatever face the last place left */
+  { k: 'board', name: 'Board', go: `setView('dashboard'); setTimeout(() => { try { hbSetFace('board'); } catch (_) {} }, 300)`, wait: `document.querySelector('#hb-board .hb-card')` },
+  { k: 'board-sheet', name: 'Board · side list', go: `setView('dashboard'); try { hbSetFace('board'); } catch (_) {} setTimeout(() => { const el = [...document.querySelectorAll('svg.hb-svg [data-hb-dig], .hb-chart [data-hb-dig], .hb-chart-bars [data-hb-dig], .hb-ctab [data-hb-dig], .hb-small [data-hb-dig], .hb-stagebar [data-hb-dig], .hb-stagekey [data-hb-dig]')].find(e => !e.disabled); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, 600)`, wait: `document.querySelector('.hb-sheet tr[data-hb-sheet-c]')` },
+  { k: 'board-card', name: 'Board · a row of the side list, landed on its Dossier', go: `setView('dashboard'); try { hbSetFace('board'); } catch (_) {} let t1 = 0; const w1 = setInterval(() => { const el = document.querySelector('.hb-stagekey [data-hb-dig="st:Under Review"], [data-hb-dig="st:Under Review"]'); if (!el && ++t1 < 40) return; clearInterval(w1); if (!el) { if (typeof pdOpenOnHome === 'function') pdOpenOnHome('MK-400', 'copilot'); return; } el.dispatchEvent(new MouseEvent('click', { bubbles: true })); let t2 = 0; const w2 = setInterval(() => { const tr = document.querySelector('.hb-sheet tr[data-hb-sheet-c="MK-400"]') || (t2 > 12 ? document.querySelector('.hb-sheet tr[data-hb-sheet-c]') : null); if (!tr && ++t2 < 40) return; clearInterval(w2); if (tr) tr.click(); else if (typeof pdOpenOnHome === 'function') pdOpenOnHome('MK-400', 'copilot'); }, 200); }, 200)`, wait: `document.querySelector('#pd-glance') && !document.querySelector('.hb-sheet')` },
   { k: 'contracts', name: 'Contracts', go: `setView('register')`, wait: `document.querySelector('#ct-place table, .reg-table, #ct-place')` },
+  /* THE WALL (Round 1, 9 Nov 2026): Contracts as cards, chosen the way a person does, by its own button */
+  { k: 'wall', name: 'Contracts · Wall', go: `setView('register'); let tw = 0; const ww = setInterval(() => { const b = document.querySelector('button[data-ct-show="wall"], button[data-ctf-show="wall"]'); if (!b && ++tw < 25) return; clearInterval(ww); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); }, 200)`, wait: `document.querySelector('#ct-place .ig-wall, #ct-place .ct-wall, [data-reg-home][data-ct-show="wall"], button[data-ctf-show="wall"][aria-pressed="true"]')` },
   { k: 'paper', name: 'Workspace · a paper with its Dossier', go: `(() => { const c = state.contracts.find(c => c.status === 'Under Review') || state.contracts[0]; pdOpenOnHome(c.id, 'copilot'); })()`, wait: `document.querySelector('#ig-paper') && document.querySelector('#pd-glance')` },
   { k: 'checklist', name: 'Workspace · the Checklist', go: `(() => { const c = state.contracts.find(c => c.status === 'Under Review') || state.contracts[0]; pdOpenOnHome(c.id, 'doc'); })()`, wait: `document.querySelector('#pd-thread, #ig-dock [data-pd-tab]')` },
   { k: 'redlines', name: 'Workspace · Redlines', go: `(() => { const c = state.contracts.find(c => c.status === 'Under Review' && (c.changes || []).length) || state.contracts.find(c => c.status === 'Under Review') || state.contracts[0]; openRedlineWorkbench(c.id); })()`, wait: `document.querySelector('.rl-column, .rl-idx, #nego-send, .rl-card')` },
-  { k: 'negotiations', name: 'Negotiations', go: `openNegotiations()`, wait: `document.querySelector('.ngl-page, #ngl-root, .ngl-head')` },
+  { k: 'negotiations', name: 'Negotiations', go: `openNegotiations()`, wait: `document.querySelector('.ngl-page, #ngl-root, .ngl-head, .ngn-table, .ngn-ref, .ngn-nm')` },
   { k: 'calendar', name: 'Calendar', go: `setView('calendar')`, wait: `document.querySelector('#hb-cal .cal-week, #hb-cal')` },
+  /* THE CALENDAR'S OTHER TABS (Round 1, 9 Nov 2026): the ghost in the owner's picture lived on Horizon, a tab no sweep visited */
+  { k: 'calendar-month', name: 'Calendar · Month', go: `setView('calendar'); setTimeout(() => { calState.view = 'month'; renderCalendar(); }, 400)`, wait: `document.querySelector('.cal-stage') && typeof calView === 'function' && calView() === 'month'` },
+  { k: 'calendar-week', name: 'Calendar · Week', go: `setView('calendar'); setTimeout(() => { calState.view = 'week'; renderCalendar(); }, 400)`, wait: `document.querySelector('.cal-stage') && typeof calView === 'function' && calView() === 'week'` },
+  { k: 'calendar-horizon', name: 'Calendar · Horizon', go: `setView('calendar'); setTimeout(() => { calState.view = 'horizon'; renderCalendar(); }, 400)`, wait: `document.querySelector('.cal-hz-row') && typeof calView === 'function' && calView() === 'horizon'` },
   /* Explorer's door (hbSetFace('explorer')) lands on the Insights view in this build; measured as it lands */
   { k: 'explorer', name: 'Explorer · where its door lands', go: `setView('dashboard'); setTimeout(() => { try { hbSetFace('explorer'); } catch (e) { hbOpenExplorer(); } }, 500)`, wait: `document.querySelector('#ig-page[data-hb-side="explorer"] svg, #ig-page[data-hb-side="explorer"] canvas, .igx-card, #ig-gwrap svg')` },
-  { k: 'obligations', name: 'Obligations', go: `setView('obligations')`, wait: `document.querySelector('.obw-wk, #obw-root, .ob-list')` },
+  { k: 'obligations', name: 'Obligations', go: `setView('obligations')`, wait: `document.querySelector('.obw-wk, #obw-root, .ob-list, .obn-list, .obn-g, .obn-none')` },
   { k: 'approvals', name: 'Approvals', go: `setView('approvals')`, wait: `document.querySelector('.ap-page, #ap-root, .sap-page')` },
   { k: 'requests', name: 'Requests', go: `setView('intake')`, wait: `document.querySelector('.ik-page, #ik-root, .sap-page')` },
   { k: 'import', name: 'Import', go: `setView('migration')`, wait: `document.querySelector('#mig-drop, #mig-side')` },
@@ -324,14 +382,14 @@ const PLACES = [
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },
   /* READS (The thread, 28 Oct 2026) */
-  { k: 'reads', name: 'Reads', go: `setView('reads')`, wait: `document.querySelector('.rd-page')` },
+  { k: 'reads', name: 'Reads', go: `setView('reads')`, wait: `document.querySelector('.rd-page, .rdn-page')` },
   /* THE PULSE BOARD (29 Oct 2026) */
   { k: 'pulse', name: 'Pulse board', go: `setView('pulse')`, wait: `document.querySelector('#pu-tbody tr')` },
-  { k: 'jambo', name: "Jambo's house", go: `setView('jambo')`, wait: `document.querySelector('#jh-log, #jh-office')` },
+  { k: 'jambo', name: "Jambo's house", go: `setView('jambo'); setTimeout(() => { const t = document.querySelector('[data-jh-tab="house"]'); if (t && t.getAttribute('aria-selected') !== 'true') t.click(); }, 400)`, wait: `document.querySelector('#jh-log, #jh-office, .jhn-card .jh-housecard, .jh-panel')` },
   /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Jambo's work is the Board's Needs you card, its rows .nd-br */
   { k: 'agents', name: "Jambo's work", go: `hbOpenAgent()`, wait: `document.querySelector('#hm-agents .nd-br')` },
-  { k: 'settings', name: 'Settings · You', go: `openSettingsAt('you')`, wait: `document.querySelector('#st-side')` },
-  { k: 'company', name: 'Settings · Company', go: `openSettingsAt('company')`, wait: `document.querySelector('#st-side')` },
+  { k: 'settings', name: 'Settings · You', go: `openSettingsAt('you')`, wait: `document.querySelector('#st-side, #stn-main, .stn-card')` },
+  { k: 'company', name: 'Settings · Company', go: `openSettingsAt('company')`, wait: `document.querySelector('#st-side, #stn-main, .stn-card')` },
   { k: 'draft', name: 'New agreement · from a sentence', go: `setView('dashboard'); setTimeout(() => caDraftRun(caReadDraft("draft a warehousing contract with Lisa's Baby Care")), 600)`, wait: `document.querySelector('#na-root.na-one .na-closest .na-pick')` },
   { k: 'new', name: 'New agreement · the form', go: `openNewAgreement({ streamAsk: true })`, wait: `document.querySelector('#na-root')` },
   { k: 'brief', name: "Jambo's side panel", go: `setView('dashboard'); setTimeout(() => { try { aiSideToggle(true); } catch (e) { try { aiSideToggle(); } catch (_) {} } }, 400)`, wait: `document.querySelector('#ai-panel.is-in, #ai-panel[data-side], #ai-panel .jb-card')` },
@@ -414,6 +472,26 @@ const only = (process.env.HATI_TIDY_ONLY || '').split(',').map(s => s.trim()).fi
         for (const x of (m.room || [])) console.log(`      ROOM      "${x.text}" ${x.who} in ${x.in} · top ${x.room.top} bottom ${x.room.bottom} left ${x.room.left} right ${x.room.right}`);
         const L = await drive(page, LEVEL, undefined, null);
         if (L) check(`${S.k} · ${P.name} — level with Jambo's panel`, Math.abs(L.dTop) <= 1 && !(L.dBot > 1 && L.dBot <= 24), `top ${L.dTop >= 0 ? '+' : ''}${L.dTop}px · foot ${L.dBot}px above the panel's`);
+        /* AFTER MOTION: the same tidiness once the page has moved — a scroll, then a tab */
+        row.motion = {};
+        for (const [mk, MOVE, said] of [['scroll', SCROLL_ONE, 'after a scroll of'], ['tab', TAB_SWITCH, 'after pressing']]) {
+          const res = await drive(page, MOVE, undefined, null);
+          if (!res) continue;
+          const what = typeof res === 'object' ? res.word : res, back = typeof res === 'object' ? res.back : '';
+          await settle(page);
+          const m2 = await drive(page, MEASURE, undefined, null);
+          if (back) { await drive(page, TAB_RESTORE, back, null); await page.waitForTimeout(300); }
+          if (!m2) { check(`${S.k} · ${P.name} — measured ${said} ${what}`, false, 'the probe threw'); continue; }
+          const n2 = m2.spill.length + m2.cut.length + m2.squeeze.length + m2.overlap.length + m2.scrollX.length;
+          row.motion[mk] = { what, m: m2 };
+          if (n2 || process.env.HATI_TIDY_DEBUG) await page.screenshot({ path: path.join(OUT, `${S.k}-${P.k}-${mk}.png`) }).catch(() => {});
+          check(`${S.k} · ${P.name} — tidy ${said} ${what}`, n2 === 0, n2 ? `${m2.scrollX.length} sideways · ${m2.cut.length} cut · ${m2.squeeze.length} squeezed · ${m2.spill.length} spilt · ${m2.overlap.length} overlapping` : `${m2.counted} things looked at`);
+          for (const x of m2.scrollX) console.log(`      SIDEWAYS  ${x.who}${x.in ? ' in ' + x.in : ''} · ${x.by}px wider than its room`);
+          for (const x of m2.cut) console.log(`      CUT       "${x.text}" ${x.who} in ${x.in} · ${x.by}px lost`);
+          for (const x of m2.squeeze) console.log(`      SQUEEZED  "${x.text}" ${x.who} in ${x.in} · on ${x.lines} lines in a ${x.h}px box`);
+          for (const x of m2.spill) console.log(`      SPILT     "${x.text}" ${x.who} past ${x.in} by ${x.by}px`);
+          for (const x of m2.overlap) console.log(`      OVERLAP   "${x.a}" × "${x.b}" (${x.who}) in ${x.in}`);
+        }
       }
     }
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));

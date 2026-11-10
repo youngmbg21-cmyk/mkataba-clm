@@ -2490,12 +2490,14 @@ function igLandingSet(){
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
 function igRecipeRun(parsed, opts){
-  const said=[]; let choices=null, list=null, listTitle=null, changed=false, lensNote=null;
+  const said=[]; let choices=null, list=null, listTitle=null, changed=false, lensNote=null, doorRan=false;
   const acts=parsed.acts||[];
   const quiet=acts.every(a=>a.undo||a.ask||a.unknownFact||a.save!=null||a.namesUnknown||a.asOfNo);
   if(!quiet&&!(opts&&opts.noPush)) igRecipePush();
   for(const a of acts){
     if(a.undo){ said.push(igRecipeUndo()?i18t('int_did_undo'):i18t('int_undo_none')); changed=true; continue; }
+    /* THE MAP'S DOORS (Your day, explain this view, a walk, the outliers): each says its own words */
+    if(a.door){ if(igMapDoor(a.door)) changed=true; doorRan=true; continue; }
     if(a.everything){ intel.lenses=[]; intel.groups=null; intel.walk=null; intel.tlUntil=null; intel.asOf=null; const t=igBookTotal(); said.push(i18t('int_did_showing',{ n:t, t })+'.'); changed=true; continue; }
     if(a.landing){ igLandingSet(); said.push(i18t('int_did_landing')); changed=true; continue; }
     if(a.save!=null){ const n=igViewSave(a.save); said.push(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed')); continue; }
@@ -2670,9 +2672,11 @@ function igRecipeRun(parsed, opts){
   for(let i=0;i<said.length;i++) if(typeof said[i]==='function'){ try{ said[i]=said[i](); }catch(_){ said[i]=''; } }
   /* quiet: the words were said already, in one line, by the reader that moved
      here (caMapNarrow, 19 Oct 2026: "go to explorer and show me the drafts") */
-  if(!(opts&&opts.quiet)) intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
+  /* a door says its own words: nothing more is said for it alone */
+  const doorOnly=doorRan&&!said.filter(Boolean).length&&!choices;
+  if(!(opts&&opts.quiet)&&!doorOnly) intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
     listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, cardIds:list?list.slice(0,5):[] });
-  return opts&&opts.report?{ changed, said }:true;
+  return opts&&opts.report?{ changed, said, choices, list, listTitle, doorRan }:true;
 }
 /* COPILOT'S MAP TOOL KNOWS THE LOOK (Young, 4 Oct 2026: "Remove customer
    names" came back as a label setting and a "Customers only" lens, with a
@@ -2693,6 +2697,268 @@ function igLookActs(look){
     acts.push(c.length?{ bundle:{ q, label:c.map(x=>x.label).join(' · ') } }:{ namesUnknown:look.bundle.trim().slice(0,80) }); }
   return acts;
 }
+/* ============================================================
+   EVERY MAP TOOL, AND HaTi CHECKS JAMBO'S READING (Explorer's Jambo audit, 9 Nov 2026; owner: "go ahead and build it")
+   ============================================================
+   Typed on Explorer, the AI reads the words (igTalkFirst, the owner's 27 Oct ruling stands). It was given only half
+   the map — grouping, filters, roles, a view — so a lens, a date line, as of, compare, what-if, single-sourced,
+   families, links, undo, reset, saved views, Your day, explain, a walk, outliers and the renewal cliff were answered
+   with the nearest regroup. Now:
+   - THE STEPS: the AI names any of the map's own acts as a step (`steps`, GRAPH_STEP_DOS on the server = IG_STEP_DOS
+     here, f995); each is read here by the map's own readers into the free reader's acts (igStepActs) and carried out
+     by igRecipeRun, which says in HaTi's words what it did. A step whose words the map cannot place is SAID, never
+     guessed (`int_step_unread`).
+   - THE CHECK: the free reader reads the same words (igFreeReading). Where it understood the WHOLE sentence, the AI's
+     answer is held against it (igResKinds): what the AI added that was not asked is left undone (igTrimToAsked, "change
+     only what was asked"); what it left out goes back to the AI ONCE, named; still missing, the reader is asked with
+     two buttons, the free reading first (igChoicesTwoWays) — never a guess. */
+const IG_STEP_DOS=['lens','dateLine','dateLineOff','asOf','asOfOff','compare','whatIf','single','families','linked',
+  'undo','reset','showAll','save','open','sort','cliff','yourDay','explain','walk','outliers'];
+const IG_STEP_FIRST=['undo','reset','showAll'];
+const IG_SORT_KEYS=['value','payterms','obligations','renewal'];
+/* a party named in words, the way the what-if reader finds one */
+function igPartyFind(w0){
+  const w=_igNorm(String(w0||'')).replace(/^(?:the|our|de|vår|våra)\s+/,''); if(!w) return null;
+  const names=[...new Set((state.contracts||[]).map(c=>c&&c.counterparty).filter(Boolean))];
+  return names.find(n=>_igNorm(n)===w)||names.find(n=>_igNorm(n).startsWith(w))||names.find(n=>_igNorm(n).split(/\s+/).includes(w))||null;
+}
+/* the AI's steps as the free reader's acts; what cannot be placed is listed, in the words it came in */
+function igStepActs(steps){
+  const acts=[], unread=[];
+  const list=(Array.isArray(steps)?steps:[]).filter(s=>s&&IG_STEP_DOS.includes(s.do)).slice(0,8);
+  list.sort((x,y)=>(IG_STEP_FIRST.includes(y.do)?1:0)-(IG_STEP_FIRST.includes(x.do)?1:0));
+  /* words that narrow: null = none given, false = given and not read */
+  const conds=w=>{ const q=_igNorm(String(w||'')).trim(); if(!q) return null; let c=[]; try{ c=igConditions(q); }catch(_){ c=[]; } return c.length?c:false; };
+  list.forEach(s=>{
+    const k=s.do;
+    if(k==='lens'){ if(s.lens==='off'||IG_LENSES.includes(s.lens)) acts.push({ lens:s.lens }); else unread.push(String(s.lens||k)); return; }
+    if(k==='dateLine'){ const iso=s.date?igDateRead(s.date):null, c=conds(s.which);
+      if(!iso||c===false){ unread.push(String(c===false?s.which:(s.date||k))); return; }
+      acts.push({ until:iso, time:IG_TIME_KEYS.includes(s.time)?s.time:null, conds:c||null }); return; }
+    if(k==='dateLineOff'){ acts.push({ until:'none' }); return; }
+    if(k==='asOf'){ const iso=s.date?igDateRead(s.date,false,true):null; if(!iso){ unread.push(String(s.date||k)); return; }
+      const today=(typeof todayISO==='function')?todayISO():igDayISO(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+      acts.push(iso>today?{ asOfNo:iso }:{ asOf:iso }); return; }
+    if(k==='asOfOff'){ acts.push({ asOf:'none' }); return; }
+    if(k==='compare'){ const A=conds(s.a), B=conds(s.b); if(!A||!B){ unread.push([s.a,s.b].filter(Boolean).join(' / ')||k); return; }
+      acts.push({ compare:{ a:A, b:B, aLabel:A.map(x=>x.label).join(' '), bLabel:B.map(x=>x.label).join(' ') } }); return; }
+    if(k==='whatIf'){ const p=igPartyFind(s.party); if(!p){ unread.push(String(s.party||k)); return; } acts.push({ whatIf:p }); return; }
+    if(k==='single'){ const c=conds(s.which); if(c===false){ unread.push(String(s.which)); return; } acts.push({ sole:true, conds:c||null }); return; }
+    if(k==='families'){ acts.push({ families:true }); return; }
+    if(k==='linked'){ const id=String(s.id||'').trim().toUpperCase(); if(id&&getContract(id)){ acts.push({ linked:id }); return; }
+      const p=igPartyFind(s.party||s.id); if(p){ acts.push({ linkedParty:p }); return; } unread.push(String(s.id||s.party||k)); return; }
+    if(k==='undo'){ acts.push({ undo:true }); return; }
+    if(k==='reset'){ acts.push({ everything:true }, { landing:true }); return; }
+    if(k==='showAll'){ acts.push({ everything:true }); return; }
+    if(k==='save'){ acts.push({ save:String(s.name||'').trim() }); return; }
+    if(k==='open'){ if(!s.name){ unread.push(k); return; } acts.push({ open:String(s.name).trim() }); return; }
+    if(k==='sort'){ if(!IG_SORT_KEYS.includes(s.by)){ unread.push(String(s.by||k)); return; } acts.push({ sort:s.by }); return; }
+    if(k==='cliff'){ acts.push({ role:'group', fact:'decision' }); return; }
+    acts.push({ door:k });
+  });
+  return { acts, unread };
+}
+/* THE MAP'S DOORS a step or the free reader may open: Your day, the view explained, a walk, the outliers */
+function igOutliersDo(pushed){
+  const act=intelActive(), cs=(state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id));
+  const hits=graphOutliers(cs);
+  if(!hits.length){ intel.history.push({ role:'assistant', text:igEsc(i18t('int_outliers_none')) }); return false; }
+  const badges={}; hits.forEach(h=>{ badges[h.id]=h.why[0]; });
+  if(!pushed) igRecipePush();
+  addLens({ label:i18t('int_outliers_lens'), ids:hits.map(h=>h.id), action:'highlight', badges });
+  intel.history.push({ role:'assistant', text:igEsc(i18t('int_outliers_found',{ n:hits.length })), cardIds:hits.slice(0,5).map(h=>h.id), listIds:hits.map(h=>h.id), listTitle:i18t('int_outliers_lens') });
+  return true;
+}
+function igWalkDo(){
+  rebuildIntelGraph(); const w=graphWalkIds();
+  if(!w.ids.length){ intel.walk=null; intel.history.push({ role:'assistant', text:igEsc(i18t('int_walk_none')) }); return false; }
+  intel.walk={ ids:w.ids, clock:0, playing:true };
+  intel.history.push({ role:'assistant', text:igEsc(i18t('int_walk_start',{ n:w.ids.length })+(w.total>w.ids.length?' · '+i18t('int_walk_capped',{ n:w.ids.length, t:w.total }):'')), listIds:w.ids, listTitle:i18t(IG_TAB_LABEL.map) });
+  return true;
+}
+function igMapDoor(k){
+  if(k==='yourDay') return igBriefStart();
+  if(k==='explain'){ igTourStart(); return true; }
+  if(k==='walk') return igWalkDo();
+  if(k==='outliers') return igOutliersDo(true);
+  return false;
+}
+/* ONE KIND PER ACT, the measure both readings are held to */
+function igActKind(a){
+  if(!a||typeof a!=='object') return null;
+  if(a.undo) return 'undo'; if(a.landing) return 'reset'; if(a.everything) return 'showAll';
+  if(a.save!=null) return 'save'; if(a.open) return 'open'; if(a.door) return a.door;
+  if(a.lens) return 'lens:'+a.lens;
+  if(a.until) return a.until==='none'?'dateLineOff':'dateLine';
+  if(a.asOf) return a.asOf==='none'?'asOfOff':'asOf'; if(a.asOfNo) return 'asOf';
+  if(a.compare) return 'compare'; if(a.whatIf) return 'whatIf'; if(a.sole) return 'single'; if(a.families) return 'families';
+  if(a.linked||a.linkedParty) return 'linked'; if(a.top) return 'top'; if(a.sort) return 'sort'; if(a.narrow) return 'narrow';
+  if(a.role) return 'role:'+a.role; if(a.view!=null) return 'view:'+IGB_VIEWS[a.view];
+  if('names' in a||a.dots||a.small||a.fold||a.bundle||a.unbundle||'edgeNames' in a||a.ungroup||a.bubbleBy||a.shadeBy||a.lobeShade||a.lobeSize) return 'look';
+  return null;
+}
+/* THE FREE READING of the same words — only where it read the WHOLE sentence (null otherwise) */
+function igFreeReading(q0){
+  const t=String(q0||'').trim(); if(!t) return null;
+  const acts=[];
+  if(IG_BRIEF_RE.test(t)) acts.push({ door:'yourDay' });
+  else if(IG_TOUR_RE.test(t)) acts.push({ door:'explain' });
+  else {
+    const all=re=>new RegExp(re.source,'gi'); let rest=t;
+    if(IG_WALK_RE.test(rest)){ acts.push({ door:'walk' }); rest=rest.replace(all(IG_WALK_RE),' '); }
+    if(IG_OUTLIER_RE.test(rest)){ acts.push({ door:'outliers' }); rest=rest.replace(all(IG_OUTLIER_RE),' '); }
+    rest=rest.replace(/\s+/g,' ').trim();
+    let p=null; try{ p=rest?igRecipeParse(rest):null; }catch(_){ p=null; }
+    if(p&&p.acts&&p.acts.length&&!p.rest&&!p.unknown&&!p.acts.some(a=>a.ask||a.unknownFact||a.namesUnknown||a.foldUnknown||a.lobeShadeNo)) acts.push(...p.acts);
+    else if(rest){ const left=rest.replace(/\b(?:and|then|please|me|the|them|these|those|which|what|are|is|show|find|contracts?|och|dem|dessa|vilka|visa|avtal(?:en)?)\b/gi,' ').replace(/[?.!,;]/g,' ').trim();
+      if(left||!acts.length) return null; }
+  }
+  if(!acts.length) return null;
+  return { acts, kinds:new Set(acts.map(igActKind).filter(Boolean)) };
+}
+/* what the AI's answer does, as kinds */
+function igResKinds(res){
+  const k=new Set(); if(!res) return k;
+  const viewName=v=>typeof v==='string'?v:(Number.isInteger(v)?IGB_VIEWS[v]:null);
+  if(res.groupBy) k.add('role:group');
+  if(res.floorsBy){ k.add('role:floors'); k.add('view:floors'); }
+  if(res.columnsBy){ k.add('role:columns'); k.add('view:grid'); }
+  if(res.colourBy) k.add('role:colour'); if(res.sizeBy) k.add('role:size'); if(res.labelBy) k.add('role:label');
+  if(res.timeBy){ k.add('role:time'); k.add('view:timeline'); }
+  const vn=viewName(res.view); if(vn&&IGB_VIEWS.includes(vn)) k.add('view:'+vn);
+  if(res.top&&Number(res.top.n)>0) k.add('top');
+  if((res.where&&typeof res.where==='object'&&Object.keys(res.where).length)||(Array.isArray(res.visibleIds)&&res.visibleIds.length)) k.add('narrow');
+  igLookActs(res.look).forEach(a=>{ const x=igActKind(a); if(x) k.add(x); });
+  /* a tool carries what it sets: a date line is the Timeline by a date, a what-if or a link is the Wiring, a
+     comparison is a grouping (igRecipeRun does each) */
+  igStepActs(res.steps).acts.forEach(a=>{ const x=igActKind(a); if(!x) return; k.add(x);
+    if(x==='dateLine'){ k.add('role:time'); k.add('view:timeline'); }
+    if(x==='whatIf'||x==='linked') k.add('view:wiring');
+    if(x==='compare') k.add('role:group'); });
+  return k;
+}
+/* the free reading's kinds the AI's answer leaves out */
+function igReadingGap(free, res){
+  if(!free) return [];
+  const got=igResKinds(res);
+  return [...free.kinds].filter(x=>!got.has(x)&&!(x==='showAll'&&got.has('reset')));
+}
+/* CHANGE ONLY WHAT WAS ASKED: where the free reader read the whole sentence, an ARRANGEMENT the AI added that neither
+   reading nor the words name is left undone (the audit: "switch to the grid view" also set floors by status, columns
+   by stream and size by value). The map's own tools (steps) and the look are never trimmed: the free reader may have
+   read only part of the words ("put a line on the timeline at 31 March" read as the Timeline alone), and a tool the
+   AI named was asked for by name. */
+const IG_ROLE_WORD_RE={ group:/\b(?:group\w*|cluster\w*|by|per|segment\w*|split|bucket\w*|grupp\w*|efter)\b/,
+  floors:/\b(?:floors?|levels?|layers?|stack\w*|våning\w*|nivå\w*)\b/, columns:/\b(?:columns?|against|versus|vs|kolumn\w*|mot)\b/,
+  colour:/\b(?:colou?r\w*|shade\w*|tint\w*|färg\w*)\b/, size:/\b(?:size\w*|sized|big\w*|small\w*|bubbles?|storlek\w*)\b/,
+  label:/\b(?:label\w*|names?|etikett\w*)\b/, time:/\b(?:time\w*|dates?|dated|when|signed|expir\w*|renew\w*|tidslinje\w*|datum)\b/ };
+function igTrimToAsked(res, free, q0){
+  if(!free||!res) return res;
+  const K=free.kinds, out=Object.assign({}, res), q=_igNorm(String(q0||''));
+  [['group','groupBy','groups'],['floors','floorsBy'],['columns','columnsBy'],['colour','colourBy'],['size','sizeBy'],['label','labelBy'],['time','timeBy']]
+    .forEach(([role,...keys])=>{ if(out[keys[0]]&&!K.has('role:'+role)&&!IG_ROLE_WORD_RE[role].test(q)) keys.forEach(x=>{ delete out[x]; }); });
+  { const viewName=typeof out.view==='string'?out.view:(Number.isInteger(out.view)?IGB_VIEWS[out.view]:null);
+    if(viewName&&!K.has('view:'+viewName)&&!IG_VIEW_WORDS.some(([,re])=>re.test(q))) delete out.view; }
+  if(out.top&&!K.has('top')&&!/\b(?:top|biggest|largest|smallest|highest|lowest|bottom|most|least|\d+)\b/.test(q)) delete out.top;
+  /* a set is never trimmed: "the obligations lens, but only for Sales" is read by the free reader as the lens alone */
+  return out;
+}
+/* each kind of act in a few words, for a button (both books) */
+function igActWord(a){
+  const k=igActKind(a); if(!k) return '';
+  if(k.startsWith('lens:')) return a.lens==='off'?i18t('int_step_lens_off'):i18t('int_step_lens',{ x:i18t('int_lens_'+a.lens) });
+  if(k==='dateLine') return i18t('int_step_dateline',{ d:igDayWord(a.until) });
+  if(k==='asOf') return i18t('int_step_asof',{ d:igDayWord(a.asOf||a.asOfNo) });
+  if(k==='compare') return i18t('int_step_compare',{ a:a.compare.aLabel, b:a.compare.bLabel });
+  if(k==='whatIf') return i18t('int_step_whatif',{ x:a.whatIf });
+  if(k==='linked') return i18t('int_step_linked',{ x:a.linked||a.linkedParty });
+  if(k==='save') return i18t('int_step_save',{ x:a.save||'' }).trim();
+  if(k==='open') return i18t('int_step_open',{ x:a.open });
+  if(k==='sort') return i18t('int_says_sort',{ x:igSortWord(a.sort) }).replace(/^./,c=>c.toUpperCase());
+  if(k==='top') return i18t(a.top.dir==='up'?'int_bottom_label':'int_top_label',{ n:a.top.n, x:igSortWord(a.top.by) });
+  if(k==='narrow') return a.narrow.conds.map(x=>x.label).join(' · ');
+  if(k.startsWith('role:')) return igRoleSays(a.role,a.fact).replace(/\.$/,'');
+  if(k.startsWith('view:')) return i18t('int_view_'+IGB_VIEWS[a.view]);
+  return i18t('int_step_'+k.toLowerCase());
+}
+function igResWords(res){
+  const w=[];
+  [['group','groupBy'],['floors','floorsBy'],['columns','columnsBy'],['colour','colourBy'],['size','sizeBy'],['label','labelBy'],['time','timeBy']]
+    .forEach(([r,f])=>{ if(res[f]&&res[f]!=='custom') w.push(igRoleSays(r,res[f]).replace(/\.$/,'')); });
+  if(res.top&&Number(res.top.n)>0) w.push(i18t(res.top.dir==='up'?'int_bottom_label':'int_top_label',{ n:res.top.n, x:igSortWord(IG_TOP_BY[res.top.by]?res.top.by:'value') }));
+  const wl=graphWhereLabel(res.where); if(wl) w.push(wl);
+  igLookActs(res.look).concat(igStepActs(res.steps).acts).forEach(a=>{ const x=igActWord(a); if(x) w.push(x); });
+  return w.filter(Boolean);
+}
+/* asked two ways and still two ways: the reader picks, the free reading first */
+function igChoicesTwoWays(q, free, res){
+  const fw=free.acts.map(igActWord).filter(Boolean), aw=igResWords(res);
+  const choices=[{ label:fw.join(' · '), acts:free.acts, lead:true }];
+  if(res&&res.kind==='wording') choices.push({ label:i18t('int_choice_words'), chat:q });
+  else if(aw.length) choices.push({ label:aw.join(' · '), graph:{ q, res } });
+  intel.history.push({ role:'assistant', text:igEsc(i18t('int_choice_ask')), choices });
+}
+/* HaTi NAMES THE SET (Explorer's Jambo audit: "Naivas excluded" stood over Naivas's own twelve): the tag is read off
+   the `where` the map applied, in the map's own words; a set picked by id alone keeps the model's short label */
+function graphWhereLabel(where){
+  if(!where||typeof where!=='object') return '';
+  const L=v=>(Array.isArray(v)?v:[v]).filter(x=>x!=null&&x!=='').map(String);
+  const money=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(Number(v)):String(v);
+  const out=[];
+  ['counterparty','folder','status','kind'].forEach(k=>{ const v=L(where[k]); if(v.length) out.push(v.join(', ')); });
+  if(Number(where.valueAbove)>0) out.push(i18t('int_wl_above',{ x:money(where.valueAbove) }));
+  if(Number(where.valueBelow)>0) out.push(i18t('int_wl_below',{ x:money(where.valueBelow) }));
+  if(Number(where.expiringWithinDays)>0) out.push(i18t('int_wl_ends',{ n:Number(where.expiringWithinDays) }));
+  if(where.signedFrom) out.push(i18t('int_wl_signed_from',{ d:igDayWord(String(where.signedFrom).slice(0,10)) }));
+  if(where.signedTo) out.push(i18t('int_wl_signed_to',{ d:igDayWord(String(where.signedTo).slice(0,10)) }));
+  if(where.overdueObligations===true) out.push(i18t('int_wl_overdue'));
+  if(where.offStandard===true) out.push(i18t('int_wl_offstd'));
+  if(where.notRead===true) out.push(i18t('int_wl_unread'));
+  if(where.move==='you') out.push(i18t('int_wl_move_you')); else if(where.move==='them') out.push(i18t('int_wl_move_them'));
+  if(where.archived===true) out.push(i18t('int_wl_archived'));
+  if(where.imported===true) out.push(i18t('int_wl_imported'));
+  const t=out.join(' · '); return t?t.charAt(0).toUpperCase()+t.slice(1):'';
+}
+/* A NUMBER OF CONTRACTS IN WORDS IS A NUMBER TOO ("Eight contracts expire…" over twenty lit) */
+const IG_COUNT_SAID_RE=new RegExp('\\b(\\d[\\d,.\\s]*|'+Object.keys(IG_NUM_WORDS).join('|')+')\\s+(?:matching\\s+|live\\s+|such\\s+|signed\\s+|of (?:your|the|these)\\s+)?(?:contracts?|agreements?|deals?|avtal)\\b','i');
+function igCountSaid(s){
+  const m=String(s||'').match(IG_COUNT_SAID_RE); if(!m) return null;
+  const w=m[1].toLowerCase().trim(); return (w in IG_NUM_WORDS)?IG_NUM_WORDS[w]:Number(w.replace(/[^\d]/g,''));
+}
+/* ON THE MAP, JAMBO'S SENTENCE NEVER CLAIMS WHAT THE MAP DID (HaTi's line says it): a sentence saying a mark was
+   made, a view switched, a lens is on, the map is now showing… is left out ("Marked 31 March on the timeline" over no
+   line, "Here's the grid view", "Back to the previous view"); advice and names stay ("Try grouping by customer") */
+const IG_MAP_CLAIM_RE=/\b(?:marked|drawn|drew|placed|switched|showing|shown|displays?|displayed|highlighted|filtered|grouped|regrouped|colou?red|sized|opening|opened|back to|here(?:'s| is)|(?:is|are) (?:now )?(?:on|lit)|now (?:shows?|showing|displays?|wears?|grouped|colou?red|sized|lit|on|in)|markerad\w*|visar|tillbaka till|nu (?:visas|syns))\b/i;
+function igMapSentenceKept(s){
+  /* line by line, so a list stays a list and a paragraph break stays one (analyze-on-the-graph 0b); a line left
+     empty by the cut goes, the rest keep their own line */
+  const kept=String(s||'').split('\n').map(line=>{ if(!line.trim()) return line;
+    const lead=(line.match(/^\s*(?:[-*•]|\d+[.)])\s+/)||[''])[0], body=line.slice(lead.length);
+    const parts=igSentencesOf(body).filter(x=>x.trim()).filter(x=>!IG_MAP_CLAIM_RE.test(x));
+    return parts.length?lead+parts.join(' '):null; }).filter(x=>x!==null);
+  return igStrayQuoteOff(kept.join('\n').replace(/\n{3,}/g,'\n\n').trim());
+}
+/* SENTENCES, NOT FULL STOPS (the owner's exam re-run, 10 Nov 2026: "…(e.g. Cold Chain Logistics with Bidco) cluster…"
+   was cut at "e.g." and its tail kept after its head was dropped): a sentence ends at . ! ? before a space, but never
+   inside brackets and never after a short abbreviation (e.g., i.e., etc., vs., Ltd., a single letter) */
+const IG_ABBREV_RE=/(?:^|[\s(])(?:e\.g|i\.e|etc|vs|incl|approx|ltd|co|inc|no|nr|cf|al|[a-z])\.$/i;
+function igSentencesOf(text){
+  const t=String(text||''), out=[]; let depth=0, from=0;
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(ch==='('||ch==='[') depth++; else if((ch===')'||ch===']')&&depth>0) depth--;
+    else if(/[.!?]/.test(ch)&&depth===0&&/\s/.test(t[i+1]||'')&&!(ch==='.'&&IG_ABBREV_RE.test(t.slice(from,i+1)))){
+      out.push(t.slice(from,i+1).trim()); from=i+1; } }
+  if(t.slice(from).trim()) out.push(t.slice(from).trim());
+  return out;
+}
+/* A STRAY QUOTE MARK at the end (or start) of Jambo's sentence — one with no partner — is not his words */
+function igStrayQuoteOff(text){
+  let t=String(text||'');
+  const odd=x=>((x.match(/"/g)||[]).length%2)===1;
+  if(odd(t)&&/"\s*$/.test(t)) t=t.replace(/"\s*$/,'');
+  else if(odd(t)&&/^\s*"/.test(t)) t=t.replace(/^\s*"/,'');
+  return t.trim();
+}
 /* A sentence that says the map did something. Printed only where the map did. */
 const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|i(?:'ve| have)? (?:updated|changed|set|turned|made|grouped|folded|hidden|removed)|regrouped|grouped|folded|unfolded|opened (?:up|out)|collapsed|bundled|resized|turned (?:off|on)|switched (?:off|on)|labell?ed|colou?red|sized|dold|gömd|ändrat|grupperat|ihopfälld|ihopfällda|fällt ihop|fällde ihop|utfälld)\b/i;
 /* Returns the part of the sentence still to be asked of Copilot ('' when the
@@ -2706,7 +2972,6 @@ async function intelMapLocal(q){
   if(IG_TOUR_RE.test(String(q||'').trim())){ igTourStart(); return ''; }
   /* "copy the picture" (stage 5): the view on screen, as a picture */
   if(IG_PIC_RE.test(String(q||'').trim())){ igPicturePress(); return ''; }
-  const say=text=>intel.history.push({ role:'assistant', text:igEsc(text) });
   const walk=IG_WALK_RE.test(q), outl=IG_OUTLIER_RE.test(q);
   const all=re=>new RegExp(re.source,'gi');
   let rest=q; if(walk) rest=rest.replace(all(IG_WALK_RE),' '); if(outl) rest=rest.replace(all(IG_OUTLIER_RE),' ');
@@ -2717,17 +2982,9 @@ async function intelMapLocal(q){
   if(parsed) igRecipeRun(parsed);
   else { const left=rest.replace(/\b(?:and|then|please|me|the|them|these|those|which|what|are|is|show|find|contracts?|och|dem|dessa|vilka|visa|avtal(?:en)?)\b/gi,' ').replace(/[?.!,;]/g,' ').replace(/\s+/g,' ').trim();
     if(left.split(' ').filter(Boolean).length>=2){ igRecipePush(); await intelGraphAsk(rest); rebuildIntelGraph(); } }
-  if(outl){ const act=intelActive(), cs=(state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id));
-    const hits=graphOutliers(cs);
-    if(!hits.length) say(i18t('int_outliers_none'));
-    else { const badges={}; hits.forEach(h=>{ badges[h.id]=h.why[0]; });
-      if(!parsed) igRecipePush();
-      addLens({ label:i18t('int_outliers_lens'), ids:hits.map(h=>h.id), action:'highlight', badges });
-      intel.history.push({ role:'assistant', text:igEsc(i18t('int_outliers_found',{ n:hits.length })), cardIds:hits.slice(0,5).map(h=>h.id), listIds:hits.map(h=>h.id), listTitle:i18t('int_outliers_lens') }); } }
-  if(walk){ rebuildIntelGraph(); const w=graphWalkIds();
-    if(!w.ids.length){ intel.walk=null; say(i18t('int_walk_none')); }
-    else { intel.walk={ ids:w.ids, clock:0, playing:true };
-      intel.history.push({ role:'assistant', text:igEsc(i18t('int_walk_start',{ n:w.ids.length })+(w.total>w.ids.length?' · '+i18t('int_walk_capped',{ n:w.ids.length, t:w.total }):'')), listIds:w.ids, listTitle:i18t(IG_TAB_LABEL.map) }); } }
+  /* the outliers and the walk are the map's doors, one each (igOutliersDo, igWalkDo), whoever asks */
+  if(outl) igOutliersDo(!!parsed);
+  if(walk) igWalkDo();
   return '';
 }
 /* A QUESTION PUT READY IN THE PANEL (Young, 4 Oct 2026): "When you have the
@@ -2951,9 +3208,6 @@ async function intelAsk(qRaw, opts){
      19 Oct 2026: "it is not moving me around the platform like it previously
      did"): the page is let go and the Board, back in front, answers it */
   if(heldId&&igHeldAsksBook(q,heldId)){
-    const left=(typeof window.bsCardLeave==='function')&&bsCardLeave();
-    if(left&&typeof window.hbPaintBoard==='function') try{ hbPaintBoard(); }catch(_){}
-    if(typeof window.deskTabsSync==='function') try{ deskTabsSync(); }catch(_){}
     heldId=null;
   }
   /* …except "bring up MK-…" (step 8): the contract's strip on the Board, read
@@ -3110,7 +3364,10 @@ async function igPageTalkAsk(q){
 async function igTalkRun(q, run){
   const h0=intel.history.length, goSince=Date.now();
   const rdSnap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
-  intel.lenses=(intel.lenses||[]).filter(l=>l.hb||l.action!=='filter');
+  /* ON EXPLORER THE SET ON SCREEN STAYS until the answer replaces it (Explorer's Jambo audit, 9 Nov 2026): it was
+     cleared before the question was sent, so "of those" asked of nothing; a new set now replaces it in
+     intelGraphApply unless the words narrowed it (within) */
+  if(!((typeof window.hbFace==='function')&&hbFace()==='explorer'&&!igPaperInFront()&&!igHeldAskId())) intel.lenses=(intel.lenses||[]).filter(l=>l.hb||l.action!=='filter');
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{ await run(); }
@@ -3178,6 +3435,9 @@ function graphCopilotCard(c){
        from a single file; its import record (c.migration, the Import page's
        own list) can; the one fact list (CA_HERE_FACTS) reads it too */
     imported:!!(c&&c.migration) };
+  /* A CITY ONLY WHERE THE PARTY'S RECORD HOLDS ONE (Explorer's Jambo audit, 9 Nov 2026): "group them by city" is
+     grouped off what is recorded, never a city guessed from a name (partyCityOf, js/views/customers.js) */
+  try{ const city=(typeof partyCityOf==='function'&&typeof cuKeyOf==='function'&&c.counterparty)?partyCityOf(cuKeyOf(c.counterparty)):''; if(city) card.city=city; }catch(_){}
   /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
   if(money&&!(typeof fxIsPay==='function'&&fxIsPay(c))) card.value=Number(c.value||0);
   return card;
@@ -3243,8 +3503,16 @@ function igTalkFirst(){
     return !!(window.caAiFirst&&caAiFirst());
   }catch(_){ return false; }
 }
+/* THE WHOLE MAP ON SCREEN travels too (Explorer's Jambo audit, 9 Nov 2026): the view and every role, the lens, the
+   date line, as of, names — so a follow-up changes what it names and keeps the rest (graphScreenSays clamps each) */
+function graphRecipeOnScreen(){
+  let view=null; try{ view=IGB_VIEWS[igbCam().view]||null; }catch(_){ view=null; }
+  return { view, floorsBy:intel.floorsBy||null, columnsBy:intel.columnsBy||null, colourBy:intel.colourBy||null, sizeBy:intel.sizeBy||null,
+    labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, lens:intel.lens||null,
+    dateLine:intel.tlUntil||null, asOf:intel.asOf||null, names:intel.names&&intel.names.mode==='none'?'none':null };
+}
 function graphAskScreen(){
-  return { groupBy:intel.groupBy, custom:!!intel.groups, lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
+  return { groupBy:intel.groupBy, custom:!!intel.groups, recipe:graphRecipeOnScreen(), lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
     lang:(typeof langPromptName==='function')?langPromptName():'', currency:(typeof jxCurrency==='function')?jxCurrency():'',
     board:igBoardNow(), guide:igBoardGuide() };
 }
@@ -3281,6 +3549,27 @@ async function intelGraphAsk(q){
         text:igEsc(typeof window.aiFailWhy==='function'?aiFailWhy(e, true):String(e.message||e))+' — using the built-in interpreter instead.'});
     }
   }
+  /* HaTi CHECKS JAMBO'S READING BEFORE THE MAP CHANGES (Explorer's Jambo audit, 9 Nov 2026): where the free reader
+     read the whole sentence, what the AI left out goes back to it ONCE, named; still left out, the reader picks
+     between the two readings (igChoicesTwoWays); what the AI added beyond the words is left undone (igTrimToAsked) */
+  if(res&&!igBoardNow()){
+    const free=igFreeReading(q);
+    if(free){
+      const off=r=>(r&&r.kind==='wording')?[...free.kinds]:igReadingGap(free,r);
+      let gap=off(res);
+      if(gap.length&&payload){
+        try{ const again=await api('ai/graph','POST',Object.assign({}, payload, { query:q+'\n\n'+igGapNote(free,gap), screen:graphAskScreen() }));
+          if(again){ if(typeof window.aiGotoNote==='function') aiGotoNote(again); res=again; gap=off(res); } }catch(_){}
+      }
+      /* NOTHING TO CHOOSE BETWEEN (the owner's exam, 10 Nov 2026: "which contracts are single-sourced" asked
+         "which did you mean?" with ONE button): where the AI's answer does nothing on the map and the free reader read
+         the whole sentence, there is one reading, not two — it is carried out, no question. A real disagreement (the
+         AI did something else) still asks, with two buttons. */
+      if(gap.length&&!(res&&res.kind==='wording')&&!igResKinds(res).size){ igRecipeRun({ acts:free.acts }); return; }
+      if(gap.length){ igChoicesTwoWays(q, free, res); return; }
+      res=igTrimToAsked(res, free, q);
+    }
+  }
   /* COPILOT DECIDED IT IS ABOUT WORDING: the reading chat answers it, and
      the map is left exactly as it was. */
   if(res&&res.kind==='wording'){ await intelChatAsk(q); return; }
@@ -3311,8 +3600,16 @@ async function intelGraphAsk(q){
     if(said&&said.chat){ await intelChatAsk(q); return; }
     if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
   }
-  igRecipePush();
+  /* an undo takes back the last change, so no new undo point is put before it; a save alone changes nothing */
+  const stepActs=(!igBoardNow()&&res)?igStepActs(res.steps).acts:[];
+  if(!(stepActs.some(a=>a.undo)||(stepActs.length&&stepActs.every(a=>a.save!=null)&&igResKinds(res).size===1))) igRecipePush();
   intelGraphApply(q, res, { capped });
+}
+/* the parts the free reader read that the AI left out, named for the one second ask */
+function igGapNote(free, gap){
+  const words=free.acts.filter(a=>gap.includes(igActKind(a))).map(igActWord).filter(Boolean);
+  return 'HaTi\'s own reader read these parts of the request, which your answer leaves out: '+(words.join('; ')||gap.join('; '))
+    +'. Add each with its field or step (lens, dateLine, asOf, compare, whatIf, single, families, linked, undo, reset, showAll, save, open, sort, cliff, yourDay, explain, walk, outliers), unless the request clearly does not ask for it. Change nothing else.';
 }
 /* ============================================================
    C-1 · THE ANSWER IS WRITTEN FROM WHAT THE MAP DID (ruling 5)
@@ -3381,6 +3678,16 @@ function intelGraphApply(q, res, opts){
       choices:['folder','counterparty','status'].map(k=>({ label:igRoleSays('group',k).replace(/\.$/,''), acts:[{ role:'group', fact:k }] })) });
     return { refused:true, groupBy:null, ids:null };
   }
+  /* THE MAP'S OWN STEPS (igStepActs): undo, reset and show-everything first, so what else was asked lands on them;
+     the rest after the set below. On the Board the map is not the screen: no steps there. */
+  const onMap=!igBoardNow();
+  const stepRead=onMap?igStepActs(res.steps):{ acts:[], unread:[] };
+  const stepFirst=stepRead.acts.filter(a=>a.undo||a.landing||a.everything), stepLater=stepRead.acts.filter(a=>!stepFirst.includes(a));
+  const stepSaid=[]; let stepList=null, stepTitle=null, stepChoices=null, stepChanged=false, stepDoor=false, doorSpoke=false;
+  const stepRun=acts=>{ if(!acts.length) return; const h0=intel.history.length; const r=igRecipeRun({ acts },{ noPush:true, quiet:true, report:true });
+    if(!r||typeof r!=='object') return; if(r.doorRan){ stepDoor=true; if(intel.history.length>h0) doorSpoke=true; } stepSaid.push(...(r.said||[]).filter(Boolean)); if(r.changed) stepChanged=true;
+    if(r.list&&r.list.length){ stepList=r.list.slice(); stepTitle=r.listTitle||null; } if(r.choices&&r.choices.length) stepChoices=r.choices; };
+  stepRun(stepFirst);
   if(groupBy){ intel.groupBy=groupBy; intel.groups=groups; igPaintGroupSelect(); }
   /* the LOOK first, in HaTi's words; a look that names the names or the dots
      is not also a label or a size setting */
@@ -3403,15 +3710,22 @@ function intelGraphApply(q, res, opts){
     const tIds=igTopIds(n,by,per,null,dir); ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
     res._top=i18t(dir==='up'?'int_bottom_label':'int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'');
     res.note=res.note||res._top; intel.sortBy=by; }
-  const choices=Array.isArray(res.ask)?res.ask.slice(0,3).filter(o=>o&&IG_RECIPE_ROLES.includes(o.role)&&(o.role==='size'?IGB_SIZE_KEYS.includes(o.fact):o.role==='time'?IG_TIME_KEYS.includes(o.fact):GRAPH_GROUP_KEYS.includes(o.fact)))
+  let choices=Array.isArray(res.ask)?res.ask.slice(0,3).filter(o=>o&&IG_RECIPE_ROLES.includes(o.role)&&(o.role==='size'?IGB_SIZE_KEYS.includes(o.fact):o.role==='time'?IG_TIME_KEYS.includes(o.fact):GRAPH_GROUP_KEYS.includes(o.fact)))
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
   const action=res.action==='highlight'?'highlight':'filter';
   /* a request about the look narrows nothing unless its words narrow */
   /* the opening words never decide it (the one-build work order A2): "show
      me" is read away like any other opening, so it narrows nothing itself */
   if(lookActs.length&&ids&&!/\b(?:only|just|which|what|among|bara|endast|vilka|vilket)\b/i.test(q)) ids=null;
+  /* ON THE MAP HaTi NAMES THE SET off the where it applied (graphWhereLabel), never the model's note; a new set replaces
+     Jambo's last one unless the words narrowed what was shown (res.within: "of those", "now only…") */
+  /* a set picked by id alone has no rule to read: the model's own short label names it, else "Jambo's pick" */
+  const setLabel=onMap?([res._top, graphWhereLabel(res.where)].filter(Boolean).join(' · ')||String(res.note||'').trim().slice(0,60)||i18t('int_jambo_set')):null;
+  if(ids&&ids.length&&onMap&&!res.within) intel.lenses=intel.lenses.filter(l=>l.hb||l.kind);
   if(ids&&ids.length)
-    addLens({ label:igBoardTitle(q,res)||res.note||ids.length+' matches', ids, action, badges:res.badges||null });
+    addLens({ label:onMap?setLabel:(igBoardTitle(q,res)||res.note||ids.length+' matches'), ids, action, badges:res.badges||null });
+  stepRun(stepLater);
+  if(stepChoices&&!(choices&&choices.length)) choices=stepChoices;
   /* Composed off the built model — counts, never a sentence the model wrote. */
   const parts=[];
   if(groupBy){
@@ -3421,11 +3735,15 @@ function intelGraphApply(q, res, opts){
     const g=graphGroupingOf(groupBy);
     if(g&&g.none){ const k=model.nodes.filter(n=>n.kind==='contract'&&n.group===g.none).length; if(k) parts.push(i18t('int_did_in',{ n:k, label:g.none })); }
   }
-  if(ids&&ids.length) parts.push(i18t(action==='highlight'?'int_did_highlighted':'int_did_showing',{ n:ids.length, t:total })+(res.note?' · '+String(res.note):''));
+  if(ids&&ids.length) parts.push(i18t(action==='highlight'?'int_did_highlighted':'int_did_showing',{ n:ids.length, t:total })+(onMap?' · '+setLabel:(res.note?' · '+String(res.note):'')));
   else if(ids&&!ids.length&&!groupBy) parts.push(i18t('int_did_nomatch'));
   const capSaid=(opts.capped&&opts.capped.total>opts.capped.sent)?i18t('int_did_capped',{ n:opts.capped.sent, t:opts.capped.total }):'';
   if(capSaid) parts.push(capSaid);
   roleSaid.forEach(x=>parts.push(x.replace(/\.$/,'')));
+  /* a view asked for is said in HaTi's words too: Jambo's own sentence never describes the map (igMapSentenceKept) */
+  if(onMap&&vw>=0&&vw<IGB_VIEWS.length&&!((vw===4&&res.timeBy)||(vw===2&&res.floorsBy)||(vw===3&&res.columnsBy))) parts.push(i18t('int_did_view',{ x:i18t('int_view_'+IGB_VIEWS[vw]) }));
+  stepSaid.forEach(x=>parts.push(String(x).replace(/\.$/,'')));
+  if(stepRead.unread.length) parts.push(i18t('int_step_unread',{ x:stepRead.unread.join(', ') }).replace(/\.$/,''));
   let line=parts.map(igEsc).join(' · ');
   /* THE COUNT IS HATI'S, NEVER THE MODEL'S (the owner's screenshot, 3 Oct
      2026: the board showed 35 and the sentence said "16 contracts"): a
@@ -3438,13 +3756,15 @@ function intelGraphApply(q, res, opts){
      (the disconnect check, hbProseChecked) */
   if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbProseChecked==='function') own0=hbProseChecked(own0).text;
   const saidN=own0.match(/\b(\d[\d,.\s]*)\s+(?:matching\s+|live\s+|such\s+)?(?:contracts?|agreements?|avtal)\b/i);
-  const saidNum=saidN?Number(String(saidN[1]).replace(/[^\d]/g,'')):null;
-  let ownN=(saidN&&ids&&saidNum!==ids.length)?'':own0;
+  const saidNum0=saidN?Number(String(saidN[1]).replace(/[^\d]/g,'')):null;
+  /* on the map a number written as a word counts too ("Eight contracts…"), and a step's set is what was drawn */
+  const saidNum=onMap?igCountSaid(own0):saidNum0, saidAny=onMap?saidNum!=null:!!saidN, drawn=ids||stepList;
+  let ownN=(saidAny&&drawn&&saidNum!==drawn.length)?'':own0;
   /* NOTHING NARROWED, SO NOTHING THE MODEL COUNTED (owner, 18 Oct 2026: the
      map regrouped and the sentence said "these 24 contracts were imported",
      then "29"): with no set on the map, a count is printed only where it is
      one HaTi drew — the book, what is shown, or one group's size. */
-  if(saidN&&!ids&&!onBoard&&!igCountsDrawn(total).has(saidNum)) ownN='';
+  if(saidAny&&!drawn&&!onBoard&&!igCountsDrawn(total).has(saidNum)) ownN='';
   /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
      2026: Explorer's answers showed "**" round bold words and ran a list into
      one line, where the side panel drew the same answer properly) ----
@@ -3456,8 +3776,12 @@ function intelGraphApply(q, res, opts){
   /* THE MAP SAYS WHAT IT DID, AND NOTHING IT DID NOT (Young, 4 Oct 2026):
      where nothing here changed the map, a sentence claiming it did is not
      printed — the reader is told the map is as it was. */
-  const didHere=!!(groupBy||(ids&&ids.length)||roleSaid.length||vw>=0||(choices&&choices.length)||(lookDid&&lookDid.changed));
-  const own=(!didHere||lookDid)&&IG_CLAIM_RE.test(ownN)?'':ownN;
+  const didHere=!!(groupBy||(ids&&ids.length)||roleSaid.length||vw>=0||(choices&&choices.length)||(lookDid&&lookDid.changed)||stepChanged||stepSaid.length||stepDoor);
+  /* on the map the sentence never describes the map: HaTi's line says what it did (igMapSentenceKept); a door
+     (Your day, explain this view, a walk, the outliers) says its own words, so the sentence is not put beside it */
+  const own=(!didHere||lookDid)&&IG_CLAIM_RE.test(ownN)?'':(onMap?(stepDoor?'':igMapSentenceKept(ownN)):ownN);
+  if(stepDoor&&!parts.length){ if(!doorSpoke){ const d=stepRead.acts.find(a=>a.door); if(d) intel.history.push({ role:'assistant', text:igEsc(igActWord(d)) }); }
+    return { refused:false, groupBy, ids }; }
   const ownHtml=own?(rich?aiRichText(own):igEsc(own)):'';
   if(!line&&lookDid){ if(!ownHtml||!graphSaysMore(own,res.note,'')) return { refused:false, groupBy, ids, look:true }; line=ownHtml; }
   /* asked on the Board, the map is not the screen: "Nothing changed on the
@@ -3485,7 +3809,7 @@ function intelGraphApply(q, res, opts){
   }
   /* on the map Jambo's own words ride apart from HaTi's line, so they — and only
      they — have their figures checked; the names of the map's parts point (stage 3) */
-  intel.history.push({ role:'assistant', text:line, how, point:!!own&&!onBoard, own:own&&!onBoard?own:null, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
+  intel.history.push({ role:'assistant', text:line, how, point:!!own&&!onBoard, own:own&&!onBoard?own:null, cardIds:(ids||stepList||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():(stepList&&stepList.length?stepList.slice():null), listTitle:onMap?((ids&&ids.length)?setLabel:stepTitle):(igBoardTitle(q,res)||(res.note?String(res.note):null)), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
@@ -5492,10 +5816,8 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElemen
 const IG_WHATIF_RE=/^(?:so\s+)?(?:what if|what happens if|what would happen if|suppose|imagine|tänk om|vad händer om|vad skulle hända om|anta att)\s+(.+?)\s+(?:left|leaves|leave|walked away|walks away|went away|goes away|went bust|goes bust|went under|stopped working with us|stopped|quit|lämnade|lämnar|försvann|försvinner|gick i konkurs|går i konkurs|slutade)(?:\s+(?:us|oss))?\s*[?.!]?$/i;
 function igWhatIfRead(q0){
   const m=String(q0||'').trim().match(IG_WHATIF_RE); if(!m) return null;
-  const w=_igNorm(m[1]).replace(/^(?:the|our|de|vår|våra)\s+/,''); if(!w) return null;
-  const names=[...new Set((state.contracts||[]).map(c=>c&&c.counterparty).filter(Boolean))];
-  const hit=names.find(n=>_igNorm(n)===w)||names.find(n=>_igNorm(n).startsWith(w))||names.find(n=>_igNorm(n).split(/\s+/).includes(w));
-  return hit||null;
+  /* one way to find a party by name, for the free reader and Jambo's whatIf step alike (igPartyFind) */
+  return igPartyFind(m[1]);
 }
 function igWhatIfData(party){
   const book=new Set(igBriefBook().map(c=>c.id));
@@ -6167,6 +6489,46 @@ document.addEventListener('mouseover',e=>{ const f=e.target&&e.target.closest?e.
   if(f._igLit) return; f._igLit=true; const t=igDayData().find(x=>x.k===f.getAttribute('data-ig-day')); if(t) igPaintIds(t.ids); });
 document.addEventListener('mouseout',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-day [data-ig-day]'):null; if(!f||!f._igLit) return;
   if(e.relatedTarget&&f.contains(e.relatedTarget)) return; f._igLit=false; if(IG) igPaintIds(null); });
+/* ---- THE LEGEND MOVES (owner, 9 Nov 2026: "make the legend in explorer something you can drag across the page when
+   opened so that you can have a full view of the screen without the legend blocking the screen. When you change views
+   it stays where you have dragged and still open and when you minimize it, it goes back to its original bottom left
+   corner") ----
+   Open, its head is a handle: a drag moves it anywhere on the stage, kept inside it (igLegendClamp). The spot is the
+   sitting's (intel.legendPos, never stored), so a change of view repaints it where it was left. Folded, the spot is
+   forgotten and the CSS corner (bottom left) holds again. */
+/* THE FIELD IS THE MAP AND JAMBO'S PANEL (owner, 9 Nov 2026: "you should be able to pull it over the jambo panel as
+   well"): a moved legend stands FIXED over #ig-row (the stage and the panel beside it), above both; its spot is kept
+   relative to that row, so a resize or a view change keeps it in the same place */
+function igLegendField(){ const r=document.getElementById('ig-row'); return r?r.getBoundingClientRect():null; }
+function igLegendClamp(el,x,y){
+  const F=igLegendField(); if(!F||!el) return { x, y };
+  const w=el.offsetWidth, h=el.offsetHeight;
+  return { x:Math.round(Math.max(0,Math.min(x,F.width-w))), y:Math.round(Math.max(0,Math.min(y,F.height-h))) };
+}
+function igLegendPut(el,c){
+  const F=igLegendField(); if(!F) return;
+  el.classList.add('is-moved'); el.style.position='fixed'; el.style.left=(F.left+c.x)+'px'; el.style.top=(F.top+c.y)+'px'; el.style.bottom='auto';
+}
+function igLegendPlace(el){
+  if(!el) return;
+  if(intel.legendFolded) intel.legendPos=null;
+  const P=intel.legendPos;
+  if(!P){ el.classList.remove('is-moved'); el.style.position=''; el.style.left=''; el.style.top=''; el.style.bottom=''; return; }
+  igLegendPut(el,igLegendClamp(el,P.x,P.y));
+}
+document.addEventListener('pointerdown',e=>{
+  const head=e.target&&e.target.closest?e.target.closest('#ig-legend [data-ig-legend-head]'):null;
+  if(!head||e.button>0||intel.legendFolded||e.target.closest('button')) return;
+  const el=document.getElementById('ig-legend'), F=igLegendField(); if(!el||!F) return;
+  const r=el.getBoundingClientRect();
+  const dx=e.clientX-r.left, dy=e.clientY-r.top;
+  e.preventDefault(); el.classList.add('is-dragging');
+  const move=ev=>{ const G=igLegendField()||F; const c=igLegendClamp(el,ev.clientX-G.left-dx,ev.clientY-G.top-dy); intel.legendPos=c; igLegendPut(el,c); };
+  const up=()=>{ el.classList.remove('is-dragging'); document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
+});
+/* a resize keeps a moved legend at its spot in the row, and inside it */
+if(typeof window!=='undefined'&&typeof window.addEventListener==='function') window.addEventListener('resize',()=>{ if(intel.legendPos) igLegendPlace(document.getElementById('ig-legend')); });
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
   /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
@@ -6182,6 +6544,7 @@ function renderIntelLegend(model){
      pressed; they now only say what each colour means, and they follow the
      colour Copilot was asked for. Narrowing the map is Copilot's alone. */
   el.classList.toggle('is-folded', !!intel.legendFolded);
+  igLegendPlace(el);
   const row=(attrs,col,label,pick)=>`<div ${attrs} class="igl-row"${pick?igLegendPickAttrs(pick,label):''}><span class="igl-sw" style="background:${col}"></span>${igEsc(label)}</div>`;
   const G=IG&&IG.colourRows?IG:null;
   const colourKey=G?G.colourKey:'status';
@@ -9470,6 +9833,9 @@ function renderIntelDock(){
     if(c.fr&&typeof window.firstReadPress==='function'){ firstReadPress(c,m); renderIntelDock(); return; }
     /* "WHICH DID YOU MEAN?" (js/navmap.js): the choice is pressed through the one mover, and the question is spent */
     if(c.nav&&typeof window.navChoicePress==='function'){ m.choices=null; navChoicePress(c); renderIntelDock(); return; }
+    /* THE TWO READINGS (igChoicesTwoWays): Jambo's reading is carried out as it came, or the words go to his chat */
+    if(c.graph){ m.choices=null; igRecipePush(); intelGraphApply(c.graph.q, c.graph.res, {}); rebuildIntelGraph(); renderIntelDock(); updateIntelNote(); return; }
+    if(c.chat){ m.choices=null; intel.busy=true; renderIntelDock(); Promise.resolve(intelChatAsk(c.chat)).catch(()=>{}).then(()=>{ intel.busy=false; renderIntelDock(); }); return; }
     /* Ask again (never a dead end): the same words, asked through this box once more */
     if(c.retry){ m.choices=null; intel.history.pop(); intelAsk(c.retry); return; }
     /* a choice on Home's board is that card's recipe, pressed through the board's one applier (work order Part 6) */
@@ -9768,9 +10134,11 @@ function igPaperCost(c){
 /* A CONTRACT'S PAGE IN FRONT WINS OVER THE PAPER BEHIND IT (owner, 9 Nov 2026: "fix the History panel showing the wrong
    contract" — after MK-A2's paper, MK-HB4's History brought up from Approvals; the box said "Ask Jambo about MK-A2…" and
    a question went with MK-A2's wording): the paper stays "up" behind the Board while a strip's page stands in front of
-   it, so the page in front (pdCardNow) is asked first, its own contract the one the box names and asks with */
-function igCardInFront(){ try{ return !!(typeof window.pdCardNow==='function'&&window.pdCardNow()); }catch(_){ return false; } }
-function igPaperInFront(){ return igPaperUp()&&!igCardInFront(); }
+   it, so the page in front (the held card) was asked first, its own contract the one the box names and asks with.
+   THE STRIP IS GONE (owner, 9 Nov 2026): a contract's History and Where we are now open in the middle beside ITS OWN
+   paper (hbStripBring lands on that paper first), so no page stands in front of another contract's paper; the paper
+   up is the page in front */
+function igPaperInFront(){ return igPaperUp(); }
 function igHeldAskId(){
   if(!(window.state&&state.view==='dashboard')||igPaperInFront()) return null;
   return (typeof window.pdAskContractId==='function')?pdAskContractId():null;
@@ -11378,7 +11746,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igLegendField,igLegendClamp,igLegendPut,igLegendPlace,igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
@@ -11390,3 +11758,5 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 /* what the map shows, one reading (24 Oct 2026) */
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
 Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
+/* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
+Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igGapNote, graphRecipeOnScreen });

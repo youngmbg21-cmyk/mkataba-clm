@@ -56,8 +56,8 @@ const ok = (name, good, detail) => {
    with the same inner markup; the room's #ws-history-pane is gone. */
 /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "History is in
    the board contract card"): the same painter draws the trail on the strip's
-   History page (#bs-strips [data-bs-host="hist"]) */
-const HP = '#bs-strips [data-bs-host="hist"]';
+   History page (#pd2-hist) */
+const HP = '#pd2-hist';
 const PROBE = `(() => {
   const pane = document.querySelector(${JSON.stringify(HP)}) || document.getElementById('ws-history-pane');
   if (!pane) return { mounted: false };
@@ -192,7 +192,7 @@ const PROBE = `(() => {
         { at: at(today), user: 'Amina Otieno', action: 'Staged', detail: 'today' },
       ]);
       /* RE-POINTED 14 Oct 2026 (stage 5): the painter, into the Board's host */
-      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
+      const host = document.querySelector('#pd2-hist');
       if (host) roomPaintHistory(c, host._histF || {}, host); else roomPaintHistory(c);
     }, id);
     await page.waitForTimeout(400);

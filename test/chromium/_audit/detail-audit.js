@@ -14,6 +14,13 @@
      OVERLAP   a card painted over another card, or poking out of its holder
      DOOR      a row you can press with nothing on it saying so (no ›, no Open)
      TRUNC     a button's, tab's or chip's own words cut short with "…"
+     HAND      something built to be pressed whose cursor is still the arrow
+               (Round 1, 9 Nov 2026; a grip, a text box and a deliberate "copy"
+               cursor are not counted)
+
+   THE NEW LOOK: HATI_DETAIL_NEW_LOOK=1 audits the same places with the
+   admin's switch on (Round 1, 9 Nov 2026) — the white pages are the future
+   state, so that is the look the faults are counted in.
 
    Every place the tidy sweep visits, at the owner's three screens, the first
    screenful and then down the page's main scroller. Each screenful with
@@ -21,6 +28,7 @@
 
    Run: npm run audit:detail
         HATI_DETAIL_ONLY=board,paper npm run audit:detail
+        HATI_DETAIL_NEW_LOOK=1 npm run audit:detail
    Then: node test/chromium/_audit/detail-report.js  (builds the HTML page) */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -63,7 +71,7 @@ const MEASURE = `(() => {
   const all = [...document.body.querySelectorAll('*')].filter(el => !el.closest('script,style,svg,canvas,template,noscript,.sr-only,[aria-hidden="true"],.doc-sheet,.hb-dark'));
   const shown = all.filter(el => !hidden(el));
   const seen = shown.filter(el => !covered(el));
-  const out = { pill: [], scroll: [], edge: [], level: [], overlap: [], door: [], trunc: [], pills: {}, seen: seen.length };
+  const out = { pill: [], scroll: [], edge: [], level: [], overlap: [], door: [], trunc: [], hand: [], pills: {}, seen: seen.length };
 
   /* A BOX: something drawn as a card — its own fill, an edge, or a lift */
   const alpha = c => { const m = /rgba?\\(([^)]+)\\)/.exec(c); if (!m) return 0; const p = m[1].split(',').map(s => s.trim()); return p.length > 3 ? +p[3] : 1; };
@@ -91,7 +99,9 @@ const MEASURE = `(() => {
     if (h >= 18 && !SCALE.some(s => Math.abs(s - h) <= 1.5)) out.pill.push({ why: 'height ' + Math.round(h) + 'px — the theme\\'s pills are 22 · 28 · 30 · 32 · 44', who: who(el), in: where(el), text: words(el).slice(0, 40), r: rr(R(el)) });
   }
   /* side by side: a pill taller, or rounder, than the controls in its own row */
-  const rowMates = el => [...(el.parentElement ? el.parentElement.children : [])].filter(s => s !== el && !hidden(s) && s.matches('button,a,[role=tab],select,input,.ui-btn,[class*="chip"],[class*="pill"]'));
+  /* a mate is DRAWN as a control: a class named "pill" on a bare count (the Board's "Today's insights 2") is words, not a control */
+  const rowMates = el => [...(el.parentElement ? el.parentElement.children : [])].filter(s => s !== el && !hidden(s) && s.matches('button,a,[role=tab],select,input,.ui-btn,[class*="chip"],[class*="pill"]')
+    && (s.matches('button,[role=tab],select,input,.ui-btn') || alpha(cs(s).backgroundColor) > 0.05 || edged(cs(s))));
   for (const el of pills) {
     const r = R(el), mates = rowMates(el).filter(s => { const q = R(s); return q.height >= 16 && q.height <= 64 && Math.min(q.bottom, r.bottom) - Math.max(q.top, r.top) > 6; });
     if (mates.length < 1) continue;
@@ -132,7 +142,10 @@ const MEASURE = `(() => {
       /* a scroller between the words and the card keeps them */
       let kept = false; for (let p = el; p && p !== box; p = p.parentElement) { const c = cs(p); if (/(auto|scroll)/.test(c.overflowX + c.overflowY) || c.textOverflow === 'ellipsis') { kept = true; break; } } if (kept) continue;
       const rg = document.createRange(); rg.selectNodeContents(n);
-      const L = br.left + px(bc.borderLeftWidth), Rt = br.right - px(bc.borderRightWidth), T = br.top + px(bc.borderTopWidth), B = br.bottom - px(bc.borderBottomWidth);
+      /* A WASH PAINTED AS A GLOW (a box-shadow spread in its own colour, 0 0 0 Npx — the open clause on the paper, which may
+         not grow by a pixel) reaches N past its box: the words' room is measured to the wash's painted edge (9 Nov 2026) */
+      const spread = (() => { const m = /0px\\s+0px\\s+0px\\s+(\\d+(?:\\.\\d+)?)px/.exec(bc.boxShadow); return m ? +m[1] : 0; })();
+      const L = br.left + px(bc.borderLeftWidth) - spread, Rt = br.right - px(bc.borderRightWidth) + spread, T = br.top + px(bc.borderTopWidth) - spread, B = br.bottom - px(bc.borderBottomWidth) + spread;
       for (const q of rg.getClientRects()) {
         if (q.width < 3 || q.height < 3) continue;
         const gx = Math.min(q.left - L, Rt - q.right), gy = Math.min(q.top - T, B - q.bottom);
@@ -199,15 +212,33 @@ const MEASURE = `(() => {
     out.door.push({ why: 'opens on a press, but nothing on it says so', who: who(el), in: where(el), text: w.slice(0, 50), r: rr(r) });
   }
 
+  /* HAND (Round 1, 9 Nov 2026; the owner: "a list of items which you can press but the cursor does not turn
+     into a small hand") — something built to be pressed whose cursor is still the arrow. A resize grip, a text
+     box and the Week view's empty slots (the owner's ruling, 9 Nov 2026: "Plain arrow" — a slot is where you add an
+     event, its hover says "+ Add", the arrow stays) are not counted. */
+  const PRESS = 'button, [role=button], a[href], summary, tr[data-ins-row], tr[data-hb-sheet-c], [data-sel], [onclick], [tabindex="0"]:is(div, span, li, tr, article, section)';
+  /* every body row of a list that has a chosen or focusable row opens on a press (the new look's Parties, People and Reads
+     rows carry no attribute of their own; the table's chosen row says the list is pressable); a group line or an empty line is not a row */
+  const rowPress = el => { if (!el.matches('tbody tr') || el.querySelector('th') || el.matches('.is-empty, .ins-empty, .apn-none, .obn-g, .rdn-grp, .lh-grp, [data-group]')) return false;
+    const t = el.closest('table'); return !!t && !!t.querySelector('tbody tr.is-sel, tbody tr[aria-current], tbody tr[tabindex], tbody tr[data-ins-row], tbody tr[data-sel], tbody tr[data-hb-sheet-c]'); };
+  for (const el of seen) {
+    if (!el.matches(PRESS) && !rowPress(el)) continue;
+    if (el.closest('[contenteditable="true"], input, textarea, select') || el.matches('.cal-wk-slot')) continue;
+    if (el.disabled || el.getAttribute('aria-disabled') === 'true' || el.classList.contains('is-disabled')) continue;
+    const c = cs(el); if (c.cursor === 'pointer' || /resize|grab|text|copy|not-allowed|default-only/.test(c.cursor)) continue;
+    const r = R(el); if (r.width < 24 || r.height < 16) continue;
+    out.hand.push({ why: 'opens on a press, but the cursor stays the arrow (' + c.cursor + ')', who: who(el), in: where(el), text: words(el).slice(0, 50), r: rr(r) });
+  }
+
   /* one reading per thing: the same element is told once per kind */
-  for (const k of ['pill', 'scroll', 'edge', 'level', 'overlap', 'door', 'trunc']) { const s = new Set(); out[k] = out[k].filter(f => { const key = f.who + '|' + f.text; if (s.has(key)) return false; s.add(key); return true; }); }
+  for (const k of ['pill', 'scroll', 'edge', 'level', 'overlap', 'door', 'trunc', 'hand']) { const s = new Set(); out[k] = out[k].filter(f => { const key = f.who + '|' + f.text; if (s.has(key)) return false; s.add(key); return true; }); }
   return out;
 })()`;
 
 const OUTLINE = `(list => {
   const layer = document.createElement('div'); layer.id = 'detail-audit-layer';
   layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483647';
-  const TONE = { pill: '#d6336c', scroll: '#7048e8', edge: '#e8590c', level: '#1c7ed6', overlap: '#e03131', door: '#2b8a3e', trunc: '#5f3dc4' };
+  const TONE = { pill: '#d6336c', scroll: '#7048e8', edge: '#e8590c', level: '#1c7ed6', overlap: '#e03131', door: '#2b8a3e', trunc: '#5f3dc4', hand: '#0b7285' };
   for (const f of list) { const d = document.createElement('div'); const t = TONE[f.kind] || '#e03131';
     d.style.cssText = 'position:absolute;left:' + (f.r.x - 2) + 'px;top:' + (f.r.y - 2) + 'px;width:' + (f.r.w + 4) + 'px;height:' + (f.r.h + 4) + 'px;border:2px solid ' + t + ';border-radius:4px;box-sizing:border-box';
     const n = document.createElement('div'); n.textContent = f.n;
@@ -229,12 +260,13 @@ const PLANT = `(() => {
     + '<div style="background:#eee;width:300px;height:60px;padding:12px;margin-top:10px">OVERLAP under</div><div style="background:#ddd;width:300px;height:60px;padding:12px;margin-top:-30px;margin-left:40px">OVERLAP over</div>'
     + '<div style="cursor:pointer;width:300px;height:40px;margin-top:10px;padding:10px">DOOR a row with no sign</div>'
     + '<button style="width:90px;height:28px;border-radius:14px;border:1px solid #999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:10px">TRUNC words that do not fit</button>'
+    + '<button style="cursor:default;height:28px;border:1px solid #999;margin:10px 0 0 10px;padding:0 10px">HAND a button with the arrow</button>'
     + '<div style="overflow-y:auto;scrollbar-width:auto;width:300px;height:50px;margin-top:10px;background:#f6f6f6;padding:10px">SCROLL<br>1<br>2<br>3<br>4<br>5</div>';
   document.body.appendChild(d);
 })()`;
 
 const only = (process.env.HATI_DETAIL_ONLY || '').split(',').map(s => s.trim()).filter(Boolean);
-const KINDS = ['pill', 'scroll', 'edge', 'level', 'overlap', 'door', 'trunc'];
+const KINDS = ['pill', 'scroll', 'edge', 'level', 'overlap', 'door', 'trunc', 'hand'];
 const STEPS = 4; /* screens down the page's main scroller */
 /* one screen down the biggest scroller left of the side panel; false at its foot */
 const SCROLL_ON = `(() => {
@@ -267,11 +299,14 @@ const drive = async (page, fn, fallback) => { try { return await page.evaluate(f
     await page.click('#su-go');
     await page.waitForTimeout(3500);
     await page.keyboard.press('Escape').catch(() => {});
+    /* THE NEW LOOK (Round 1, 9 Nov 2026): HATI_DETAIL_NEW_LOOK=1 audits the same places with the admin's switch on,
+       the way the tidy sweep's HATI_TIDY_NEW_LOOK does — the white pages are the future state */
+    if (process.env.HATI_DETAIL_NEW_LOOK) { await page.evaluate(async () => { if (typeof stPrefSet === 'function') await stPrefSet('newLook', true); if (typeof newLookApply === 'function') newLookApply(); }); await page.waitForTimeout(800); }
     {
       await drive(page, PLANT, null);
       const m = await drive(page, MEASURE, null);
       await drive(page, `document.getElementById('detail-audit-plant')?.remove()`, null);
-      const hit = k => !!(m && m[k].some(f => /EDGE|LEVEL|PILL|OVERLAP|DOOR|SCROLL|TRUNC/.test(f.text)));
+      const hit = k => !!(m && m[k].some(f => /EDGE|LEVEL|PILL|OVERLAP|DOOR|SCROLL|TRUNC|HAND/.test(f.text)));
       const miss = KINDS.filter(k => !hit(k));
       console.log(miss.length ? 'SELF-CHECK: these kinds did not see their planted fault: ' + miss.join(', ') : 'SELF-CHECK: every kind saw its planted fault');
       if (miss.length && !process.env.HATI_DETAIL_ANYWAY) throw new Error('the instrument is blind to: ' + miss.join(', '));

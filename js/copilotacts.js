@@ -1940,6 +1940,13 @@ function jamboRefOf(q){
   rest = rest.replace(/^[\s:,.!?–—-]+|[\s:,.!?–—-]+$/g, '').replace(/^(?:the\s+)?(?:contract|avtal(?:et)?)$/i, '').trim();
   return { c: r.c || null, miss: r.miss || null, question: rest ? raw : '' };
 }
+/* the map is the page in front: Home's Explorer face with no paper over it */
+function jamboOnExplorer(){
+  try {
+    return state.view === 'dashboard' && typeof window.hbFace === 'function' && hbFace() === 'explorer'
+      && !(typeof window.igPaperUp === 'function' && igPaperUp());
+  } catch (_){ return false; }
+}
 function jamboRefGo(q){
   const R = jamboRefOf(q); if (!R) return false;
   if (!R.c){
@@ -1947,6 +1954,10 @@ function jamboRefGo(q){
     if (typeof toast === 'function') toast(i18t('jb_ref_none', { ref: R.miss }), 'warn');
     return true;
   }
+  /* ON EXPLORER A NUMBER INSIDE A QUESTION STAYS ON THE MAP (Explorer's Jambo audit, 9 Nov 2026, the owner's yes;
+     narrows round 17 there): "what depends on MK-12" opened MK-12's paper and every later map command went to a chat
+     that could not change the map. The number alone still opens it, as everywhere. */
+  if (R.question && jamboOnExplorer()) return false;
   /* already in front of the reader: a question about it is the brain's, here */
   let here = false; try { here = !!(typeof aiOnScreenContract === 'function' && aiOnScreenContract() && aiOnScreenContract().id === R.c.id); } catch (_){ here = false; }
   if (R.question && here) return false;
@@ -2086,14 +2097,9 @@ function caHomeFace(f){
     Promise.resolve(window.closeModalGuarded()).then(ok => { if (ok === false || window.naSheetUp()) return; window._caFaceLeaving = true; try { caHomeFace(f); } finally { window._caFaceLeaving = false; } }).catch(() => {});
     return true;
   }
-  /* THE BOARD ASKED FOR IS THE BOARD (the glitch audit, 24 Oct 2026: "board"
-     typed on Home after a contract's History showed that History again): a
-     contract brought up on the Board face is let go first, as the Recent
-     row's Board does (deskTabOpen 'home:board') */
-  const left = f === 'board' && typeof window !== 'undefined' && typeof window.bsCardLeave === 'function' && window.bsCardLeave();
+  /* THE BOARD ASKED FOR IS THE BOARD (the glitch audit, 24 Oct 2026); the contract's card on it is gone (9 Nov 2026) */
   if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbSetFace === 'function'){
-    if (left && typeof hbFace === 'function' && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace(f);
-    if (left && typeof deskTabsSync === 'function') try { deskTabsSync(); } catch (_){}
+    hbSetFace(f);
     return true; }
   const s = hbS(); s.face = f; if (typeof hbSave === 'function') hbSave();
   if (typeof setView === 'function') setView('dashboard');
@@ -2698,8 +2704,8 @@ const CA_CONTRACT_ACTS = [
   ['share', /(?<!\p{L})(?:share|send|dela|skicka)(?!\p{L})/iu],
   ['amend', /(?<!\p{L})(?:amend|amendment|ändra avtalet|tillägg)(?!\p{L})/iu],
   /* "take me to the board and show me the overview of MK-382" (owner, 23 Oct 2026, from Settings' box):
-     a contract on the Board is its strip, on its Overview (hbStripBring's 'ov'); read last, so a named
-     page ("its history on the board") keeps its own */
+     a contract named with the board lands on its paper with its Dossier (hbStripBring, the one door; the strip
+     is gone, 9 Nov 2026); read last, so a named page ("its history on the board") keeps its own */
   ['board', /(?<!\p{L})(?:overview|översikt(?:en)?|board|tavlan?|lifeline)(?!\p{L})/iu],
 ];
 function caContractActOf(s){ const hit = CA_CONTRACT_ACTS.find(([, re]) => re.test(String(s || ''))); return hit ? hit[0] : null; }
@@ -2707,7 +2713,7 @@ function caContractActOf(s){ const hit = CA_CONTRACT_ACTS.find(([, re]) => re.te
 const CA_CONTRACT_FRAME = /(?<!\p{L})(?:please|can|could|would|will|you|i|we|me|my|our|us|the|a|an|and|this|that|its|it|of|for|on|in|about|to|from|with|show|see|view|open|bring|take|go|get|give|read|let|want|need|like|just|look|at|up|contract|contracts|agreement|agreements|deal|no|number|nr|för|på|i|om|till|av|med|och|visa|öppna|se|läs|ta|mig|gå|avtal|avtalet|avtalen|kontrakt|kontraktet|den|det|dess|vill|jag|kan|du|tack|snälla|now|thanks)(?!\p{L})/giu;
 /* a question about what a contract SAYS: asked of that contract, never dropped */
 const CA_CONTRACT_ASKS = /^\s*(?:what|which|who|whom|whose|why|when|where|how|is|are|was|were|does|do|did|has|have|can|could|should|would|will|tell me|explain|vad|vilken|vilka|vem|varför|när|var|hur|är|finns|har|kan|ska|förklara)(?!\p{L})/iu;
-/* "bring up MK-…" is the Board's strip (hbBringOf), its own door */
+/* "bring up MK-…" brings the contract up on its paper (hbBringOf → hbStripBring), its own door */
 const CA_CONTRACT_BRING = /^\s*(?:(?:can|could|would)\s+you\s+|please\s+)*(?:bring\s+up|pull\s+up|ta\s+fram)(?!\p{L})/iu;
 /* A FOLLOW-UP CARRIES THE LAST ACT (owner, 22 Oct 2026: after "show me the brief
    for MK-382", "what about for mk 380" was written as a brief by the chat
@@ -3333,7 +3339,7 @@ function caHomeRun(q, a){
 Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_AND_WORDS, CA_AND_NARROWS, CA_AND_SAY_MAX, caAndPlaceAt, caNarrowOf, caSayCut, caReadPlaceAnd, caReadGoPlace,
   caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
   caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
-Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, JB_REF_OPEN_RE, jamboRefOf, jamboRefGo, jamboRefAskThere, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
+Object.assign(window, { JB_PAGE_PLACES, jamboPageWordOf, jamboPageGo, JB_REF_OPEN_RE, jamboRefOf, jamboRefGo, jamboOnExplorer, jamboRefAskThere, CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows, caSlashGoHtml,
   caEchoHtml, caPlaceGo, CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailSeen, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caIsCardWord, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */

@@ -3929,6 +3929,9 @@ function obwRowActHtml(r, c){
    the row already reads (obState, the week it sits in) */
 function obwRowMarkHtml(r, W){
   if(typeof listMarkHtml !== 'function') return '';
+  /* the new look: the SAP way mark (listSapMarkHtml); late is never ruby, it is still somebody's move */
+  if(typeof listSapOn === 'function' && listSapOn())
+    return listSapMarkHtml(obState(r) === 'done' ? 'done' : obligationIsTheirs(r) ? 'them' : (W && (W.k === 'overdue' || W.k === 'w0')) ? 'you' : 'none');
   if(obState(r) === 'done') return listMarkHtml('green', 'done');
   if(W && W.k === 'overdue') return listMarkHtml('ruby', 'late');
   if(obligationIsTheirs(r)) return listMarkHtml('steel', 'wait');
@@ -4609,13 +4612,17 @@ function obnRowHtml(r){
   if(r._dec && c){ try{ const q = typeof pd2QuoteOf === 'function' ? pd2QuoteOf(c, ['renew', 'notice']) : null; if(q) quote = q.quote; }catch(_){} }
   const sec = r.clause ? '§ ' + String(r.clause) : '';
   const ch = obnWhenChip(r);
+  /* THE SAP WAY MARK (owner, 9 Nov 2026, every named list): done · your move · theirs · nothing yet,
+     the one map js/listlang.js keeps. The stream's band stands at the row's edge; the mark leads its words. */
+  const mk = r.st === 'done' ? 'done' : (!r._dec && obligationIsTheirs(r)) ? 'them'
+    : (r.win === 'overdue' || r._dec || (obligationDue(r) && daysUntil(obligationDue(r)) <= 7)) ? 'you' : 'none';
   const may = (typeof canEdit !== 'function') || canEdit();
   const act = r._dec ? `<button type="button" class="obn-pill" data-obn-go="decide" data-cid="${_obEsc(r.cid)}">${_obEsc(i18t('cal_ag_decide'))}</button>`
     : r.st !== 'done' && theirs && may ? `<button type="button" class="obn-pill" data-obn-go="chase" data-cid="${_obEsc(r.cid)}" data-ob="${_obEsc(r.id || '')}">${_obEsc(i18t('ob_chase'))}</button>`
     : r.st !== 'done' && !theirs && may ? `<button type="button" class="obn-pill" data-obn-go="done" data-cid="${_obEsc(r.cid)}" data-i="${r._i}">${_obEsc(i18t('cal_nl_done'))}</button>` : '';
   const open = `<button type="button" class="cal-nl-go obn-open" data-obn-go="open" data-cid="${_obEsc(r.cid)}" data-key="${_obEsc(r._key)}">${_obEsc(i18t('cal_ag_open'))}</button>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1" class="obn-r">
-    <td class="obn-c1" style="border-left:3px solid var(--st-${obnStreamTone(c)}-dot)"><div class="obn-what">${_obEsc(r.desc || '')}</div><div class="obn-sub">${sub}</div>${quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}</div>` : ''}</td>
+    <td class="obn-c1" style="border-left:3px solid var(--st-${obnStreamTone(c)}-dot)">${typeof listSapCellHtml === 'function' ? listSapCellHtml(mk, `<div class="obn-what">${_obEsc(r.desc || '')}</div><div class="obn-sub">${sub}</div>${quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}</div>` : ''}`, ch.word) : ''}</td>
     <td class="obn-who">${_obEsc(obnWhoWord(r))}</td>
     <td class="obn-when"><span class="obn-ch is-${ch.tone}">${_obEsc(ch.word)}</span></td>
     <td class="obn-act">${act}${open}</td></tr>`;

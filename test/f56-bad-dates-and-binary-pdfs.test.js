@@ -80,7 +80,10 @@ describe('F56 — an expiry that is not a date does not take the screen down', (
   test('Calendar renders, and the malformed expiry lands on a real day', () => {
     const sb = screens([badContract()]);
     sb.renderCalendar();
-    assert.match(sb.document.getElementById('content').innerHTML, /cal-day/,
+        /* RE-POINTED 10 Nov 2026 (the calendar's speed): "cal-day" was found in the calendar's own stylesheet, which
+       rode inside the page's HTML on every paint; the sheet is now put in the page once (calStyleEnsure), so the
+       calendar's drawing is asked for by its own frame */
+    assert.match(sb.document.getElementById('content').innerHTML, /id="cal-stage"/,
       'the calendar grid must have rendered');
     /* Not only "does not crash": the grid is keyed by YYYY-MM-DD, so an event
        carrying "30 September 2026" was built, counted, and then drawn on no day

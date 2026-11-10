@@ -98,17 +98,17 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        History tab went home — the door that named it (roomOpenAt 'history')
        opens the Board's History view for this contract, drawn by the room's own
-       painter (roomPaintHistory) into #bs-strips [data-bs-host="hist"] with the
+       painter (roomPaintHistory) into #pd2-hist with the
        same inner markup; #ws-history-pane is gone, so every claim below reads
        the Board's host. The wait asks for the trail itself. */
     await page.evaluate(id => window.roomOpenAt(id, 'history'), built.id);
-    await page.waitForFunction(() => !!document.querySelector('#bs-strips [data-bs-host="hist"] .hist-ev'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#pd2-hist .hist-ev'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, '01-history-tab.png') });
 
     const head = await page.evaluate(`(() => {
       const seen = ${SEEN};
-      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
+      const host = document.querySelector('#pd2-hist');
       if (!host) return { mounted: false };
       return {
         mounted: true,
@@ -179,7 +179,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     check('it starts closed and says so', head.more && head.more.expanded === 'false',
       head.more ? head.more.expanded : 'absent');
 
-    await page.click('#bs-strips [data-bs-host="hist"] #hist-more');
+    await page.click('#pd2-hist #hist-more');
     await page.waitForTimeout(350);
     await page.screenshot({ path: path.join(OUT, '02-more-open.png') });
     const opened = await page.evaluate(`(() => {
@@ -214,7 +214,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        under it, about 290px tall, so it may cover the last rows of a short or
        narrowed trail): the press is on the "Ours" lane head, at the left,
        never under a menu that opens at the toolbar's right end. */
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-th');   /* a press outside: the table's head row (21 Oct 2026, the SAP way) */
+    await page.click('#pd2-hist .hist-th');   /* a press outside: the table's head row (21 Oct 2026, the SAP way) */
     await page.waitForTimeout(300);
     const closed = await page.evaluate(`(() => {
       const seen = ${SEEN};
@@ -228,13 +228,13 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     const before = head.rows;
     /* RE-POINTED 17 Oct 2026 (round 12): with the side switch gone, the
        narrowing is asked of the Person filter in the fold (still open). */
-    const person = await page.evaluate(() => { const s = document.querySelector('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]');
+    const person = await page.evaluate(() => { const s = document.querySelector('#pd2-hist [data-ht-filter="actor"]');
       const o = s && [...s.options].find(x => x.value); return o ? o.value : ''; });
-    await page.selectOption('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]', person);
+    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', person);
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, '03-filtered-ours.png') });
     const narrowed = await page.evaluate(`(() => {
-      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
+      const host = document.querySelector('#pd2-hist');
       return { rows: host.querySelectorAll('.hist-ev').length,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
         side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
@@ -253,11 +253,11 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        filter change, and it used to add a document listener per paint. Proved
        from the reader's chair — after several repaints the menu must still take
        exactly one press to open and one to shut. */
-    await page.selectOption('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]', '');
+    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', '');
     await page.waitForTimeout(450);
-    await page.selectOption('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]', person);
+    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', person);
     await page.waitForTimeout(450);
-    await page.click('#bs-strips [data-bs-host="hist"] #hist-more');
+    await page.click('#pd2-hist #hist-more');
     await page.waitForTimeout(300);
     const stillOpens = await page.evaluate(`!!(${SEEN}(document.getElementById('hist-more-menu')) || {}).on`);
     /* RE-POINTED 24 Aug 2026 — .hist-rail went with the two-column
@@ -265,16 +265,16 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        press means is unchanged: somewhere outside the menu (the last row: the
        three-row menu covers the first, 15 Oct 2026). RE-POINTED (B1 pass 4):
        the "Ours" lane head, as above — the drawn menu covers a narrowed trail. */
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-th');   /* a press outside: the table's head row (21 Oct 2026, the SAP way) */
+    await page.click('#pd2-hist .hist-th');   /* a press outside: the table's head row (21 Oct 2026, the SAP way) */
     await page.waitForTimeout(300);
     const stillCloses = await page.evaluate(`!!(${SEEN}(document.getElementById('hist-more-menu')) || {}).on`);
     check('after three repaints the menu still opens and shuts on one press each',
       stillOpens && !stillCloses, `opened=${stillOpens} closedAfter=${!stillCloses}`);
 
-    await page.click('#bs-strips [data-bs-host="hist"] #ht-clear');
+    await page.click('#pd2-hist #ht-clear');
     await page.waitForTimeout(700);
     const cleared = await page.evaluate(`(() => {
-      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
+      const host = document.querySelector('#pd2-hist');
       return { rows: host.querySelectorAll('.hist-ev').length,
         side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim() };
@@ -365,7 +365,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     await page.waitForTimeout(2200);
     /* RE-POINTED 14 Oct 2026 (stage 5): the Board's History view, as above. */
     await page.evaluate(id => window.roomOpenAt(id, 'history'), built.id);
-    await page.waitForFunction(() => !!document.querySelector('#bs-strips [data-bs-host="hist"] .hist-ev'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#pd2-hist .hist-ev'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(800);
 
     /* PRINT LIVES BEHIND THE "..." MENU, which starts shut — the button is in
@@ -376,8 +376,8 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        ([data-hb-cv-act="print"]), which runs the same negoHistoryPrintRun —
        the latched call this fix lives in — so the press below is the same
        act; the "..." menu is not opened for it. */
-    const PRINT = '#bs-strips [data-bs-host="hist"] #ht-print';
-    await page.click('#bs-strips [data-bs-host="hist"] #hist-more').catch(() => {});
+    const PRINT = '#pd2-hist #ht-print';
+    await page.click('#pd2-hist #hist-more').catch(() => {});
     await page.waitForTimeout(350);
     const hasPrint = await page.evaluate(sel => {
       const b = document.querySelector(sel); if (!b) return false;

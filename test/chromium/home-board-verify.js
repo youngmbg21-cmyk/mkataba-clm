@@ -138,21 +138,18 @@ const CONTRACTS = [
     ok('3c the two columns do not run into each other', !!cols && cols.aRight + 8 <= cols.bLeft, JSON.stringify(cols));
     await page.screenshot({ path: path.join(OUT, '3-side-by-side.png') });
 
-    /* ===== 4. THE CONTRACT CARD, AND SHOW ON THE MAP ===== */
-    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the contract
-       card is the Lifeline strip now, below Today's insights; Show on the map
-       is one press away in its ⋯ */
+    /* ===== 4. BRING IT UP, AND SHOW ON THE MAP ===== */
+    /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): "bring up" lands on the contract's paper; showing
+       it on the map is the Board's own door (hbShowOnMap, the one every "Show on the map" button presses) */
     await ask(page, 'bring up MK-S1');
-    ok('4a "bring up MK-S1" draws the contract\'s strip', await until(page, () =>
-      !!document.querySelector('#bs-strip-MK-S1 .bs-ref') && /MK-S1/.test(document.querySelector('#bs-strip-MK-S1 .bs-ref').textContent)));
-    await page.click('#bs-strip-MK-S1 [data-bs-dots]').catch(() => {});
-    await page.click('#bs-strip-MK-S1 .bs-menu [data-hb-map]').catch(() => {});
+    ok('4a "bring up MK-S1" lands on the contract\'s paper', await until(page, () =>
+      typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'MK-S1' && !!document.getElementById('ig-paper')));
+    await page.evaluate(() => hbShowOnMap(['MK-S1'], 'MK-S1')).catch(() => {});
     ok('4b "show on the map" flips to Explorer and builds the map', await until(page, () =>
       hbS().face === 'explorer' && igMapUp() && document.getElementById('hb-board').hidden, null, 10000));
     ok('4c the contract is lit on the map', await until(page, () => (intel.lenses || []).some(l => (l.ids || []).includes('MK-S1'))));
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board').catch(() => {});
     await until(page, () => hbS().face === 'board' && !document.getElementById('hb-board').hidden);
-    await page.click('[data-bs-x="MK-S1"]').catch(() => {});
 
     /* ===== 5. WHAT MOVED ===== */
     await page.evaluate(() => { const s = hbS(); const base = JSON.parse(JSON.stringify(hbSeenNow(hbBookData('all'))));

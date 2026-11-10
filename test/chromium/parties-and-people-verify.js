@@ -340,8 +340,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
       await until(() => document.querySelector('#ins-panel [data-cu-nda]'));
       await page.click('#ins-panel [data-cu-nda]');
-      const N = await until(() => document.querySelector('[data-bs-kpi="value"].is-landed, [data-bs-kpi="value"].is-landed-held') ? 'lit' : null, null, 8000);
-      check('8b "Open the NDA ›" lands on the NDA\'s "Secret until" figure, lit', N === 'lit', String(N));
+      /* RE-POINTED 9 Nov 2026 (the card and its "Secret until" figure are gone): the NDA's facts open beside its paper */
+      const N = await until(() => (typeof pdContract === 'function' && pdContract() && document.querySelector('[data-pd-mid-kt], #pd-fillface, #pd-form')) ? 'open' : null, null, 8000);
+      check('8b "Open the NDA ›" opens the NDA\'s facts beside its paper', N === 'open', String(N));
       await page.evaluate(() => setView('customers'));
       await until(() => document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"]'));
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');

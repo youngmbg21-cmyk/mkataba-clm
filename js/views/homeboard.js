@@ -130,7 +130,7 @@ let _hbCv = { v: 'book', id: null };
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open',
     watches: [], chartWatches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
-    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [], strips: [] };
+    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [] };
 }
 /* The board as this person left it. Read once per sitting and per person; a
    value that does not parse, or a word this version does not know, falls
@@ -167,20 +167,9 @@ function hbS(){
     /* the Needs you card folded to its head (ndFoldSet, js/views/counter.js) */
     if (typeof v.ndFold === 'boolean') s.ndFold = v.ndFold;
     if (Array.isArray(v.path)) s.path = v.path.filter(k => typeof k === 'string').slice(-HB_PATH_MAX);
-    /* THE CONTRACTS BROUGHT UP, AS STRIPS (the overnight work order, step 8;
-       js/views/boardstrip.js): one not kept belongs to the day it was brought
-       up, a kept one stays until it is closed. A trail that ended on a
-       contract's old card (a 'c:' key) comes back as that contract's strip. */
-    if (Array.isArray(v.strips)) s.strips = v.strips.filter(x => x && typeof x.id === 'string' && x.id).slice(0, 12)
-      .map(x => ({ id: x.id.slice(0, 80), page: ['ov', 'where', 'hist', 'details'].includes(x.page) ? x.page : 'ov', kept: !!x.kept,
-        day: /^\d{4}-\d{2}-\d{2}$/.test(String(x.day || '')) ? x.day : '', at: String(x.at || '').slice(0, 8) }))
-      .filter(x => x.kept || x.day === hbToday());
-    /* the contract's page on the desk comes back with its strip (round 7) */
-    if (typeof v.card === 'string' && s.strips.some(x => x.id === v.card)) s.card = v.card;
-    { const ck = s.path.filter(k => /^c:/.test(k));
-      if (ck.length){ const id = ck[ck.length - 1].slice(2);
-        if (id && !s.strips.some(x => x.id === id)) s.strips.unshift({ id, page: 'ov', kept: false, day: hbToday(), at: '' });
-        s.path = s.path.filter(k => !/^c:/.test(k)); } }
+    /* THE LIFELINE STRIP IS GONE (owner, 9 Nov 2026): a stored strip list or card is not read; a trail that ended on a
+       contract's old card ('c:' keys) is simply dropped from the path */
+    s.path = s.path.filter(k => !/^c:/.test(k));
     if (Array.isArray(v.figs)) s.figs = v.figs.filter(k => HB_FIG_KEYS.includes(k)).filter((k, i, a) => a.indexOf(k) === i).slice(0, HB_FIGS_MAX);
     if (Array.isArray(v.watches)) s.watches = v.watches.filter(w => w && HB_FIG_KEYS.includes(w.k)
       && (w.dir === 'above' || w.dir === 'below') && isFinite(Number(w.n))).slice(0, HB_WATCH_MAX)
@@ -1639,14 +1628,14 @@ function hbNyOldestSay(L){
 function hbHeadWord(){ return hbBoardHelloOn() && !(typeof naSheetUp === 'function' && naSheetUp()) ? i18t('hb_face_board') : ''; }
 /* THE BOARD ITSELF IS IN FRONT (owner's work order, 23 Oct 2026: "the
    Board's own helpers stay on the Board"): the Board face is up AND no
-   contract stands on it. A contract brought up from the Board (bsCardId) is
+   contract stands on it. (The contract's card brought up on the Board is gone, 9 Nov 2026.) It is
    drawn ON the Board face, so face === 'board' alone also says yes while the
    reader looks at a contract's Overview, Where we are or History. Every
    helper that is about "the charts are in front" — the gallery under the
    empty box, the Board's moves in "/", the "by" and "in" lists, Ctrl/⌘+Z and
    Esc's step out of an open chart — asks THIS, never the face alone. */
 function hbBoardInFront(){
-  try { return hbS().face === 'board' && !(typeof window.bsCardId === 'function' && window.bsCardId()); } catch (_){ return false; }
+  try { return hbS().face === 'board'; } catch (_){ return false; }
 }
 function hbBoardHelloOn(){
   return typeof state !== 'undefined' && !!state && state.view === 'dashboard' && hbBoardInFront()
@@ -5652,13 +5641,6 @@ function hbAgentWorkPress(el){
 function hbOpenAgent(k, itemKey){
   const s = hbS();
   s.face = 'board';
-  /* THE BOARD, NOT A CONTRACT'S PAGE ON IT (owner, 21 Oct 2026: "Open" landed
-     on a stale contract card and said "nothing prepared" over 47 pieces): a
-     card brought up earlier is put away first, as every other door onto the
-     Board's own page puts it away (bsCardLeave) — else the card stays the
-     page on top, the Needs you card is never drawn and landOn's missing
-     line is untrue. One door: Home's rows, the house and "work" asked. */
-  if (typeof window.bsCardLeave === 'function') try { window.bsCardLeave(); } catch (_){}
   s.path = [];
   /* THE ONE DESK (Round A): an agent named (the house's rooms) opens the
      card on Jambo's tab; Home's "Show all" and Look have set the tab already */
@@ -6345,9 +6327,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && !documen
 function hbBoardHtml(){
   if (hbRdnUp()) return hbRdnHtml();
   if (hbDnaUp()) return hbDnaHtml();
-  /* A CONTRACT BROUGHT UP IS A PAGE ON THE DESK (round 7, "Read down"): the
-     card alone, none of the Board's own furniture */
-  if (typeof window.bsCardId === 'function' && window.bsCardId() && typeof window.bsStripsHtml === 'function') return window.bsStripsHtml();
   /* THE CONTRACT'S VIEWS ARE GONE (owner, 15 Oct 2026: "the whole page needs
      to go as they are redundant": History is on the contract's strip,
      Obligations has its own tab in Jambo's panel, Your book was useless).
@@ -6394,7 +6373,6 @@ function hbBoardHtml(){
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
-    ${typeof window.bsStripsHtml === 'function' ? window.bsStripsHtml() : ''}
     ${hbFocusHtml()}
     ${(received || panels) ? `<div class="hb-grid">${hbGridBalanced(received + panels)}</div>` : hbEmptyHtml()}`;
 }
@@ -7496,8 +7474,6 @@ function hbPaintBoard(opts){
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
   hbCvPaint();
   hbSheetPaint();
-  /* the contracts' strips (step 8): Where we are, History and Details are filled by their own painters */
-  if (typeof window.bsPaintHosts === 'function') try { window.bsPaintHosts(); } catch (_){}
   hbGiftsSeenSay();
   hbPaintHead();
   hbNyDockFollow();
@@ -7580,10 +7556,7 @@ function hbPaintHead(){
   /* the pill slides: the track carries the chosen face's place */
   const track = document.querySelector('#hb-head .hb-faces'); if (track) track.style.setProperty('--hb-fi', String(Math.max(0, HB_FACES.indexOf(s.face))));
   const gb = document.getElementById('hb-groupby'); if (gb) gb.hidden = s.face !== 'explorer';
-  /* a contract's page on the desk (round 7) is not the Board: its screen and Present are the Board's */
-  const card = s.face === 'board' && typeof window.bsCardId === 'function' && !!window.bsCardId();
-  const pres = document.getElementById('hb-present'); if (pres) pres.hidden = card;
-  const pg0 = hbPage(); if (pg0) pg0.classList.toggle('hb-on-card', card);
+  const pres = document.getElementById('hb-present'); if (pres) pres.hidden = false;
   const chip = document.querySelector('.hb-counting');
   if (chip){ const h = hbCountChipHtml(); if (chip.innerHTML !== h) chip.innerHTML = h; }
   /* the face turned: it is the tab in front now (Round 2) */
@@ -7612,7 +7585,7 @@ function hbApplyFace(){
   /* the Calendar tab draws the calendar into its own cover over the stage */
   const cal = document.getElementById('hb-cal');
   if (cal){ cal.hidden = s.face !== 'calendar';
-    if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar(); } catch (_){}
+    if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar({ fromFace: true }); } catch (_){}  /* the panel Home's opening painted a moment ago is not painted again (the calendar's speed, 10 Nov 2026) */
     else if (s.face !== 'calendar') cal.innerHTML = ''; }
 }
 /* Home on the desktop. The page is Explorer's (renderIntel draws it with
@@ -7738,15 +7711,9 @@ function hbSetFace(f){
   const s = hbS();
   /* the Board pressed while a contract stands on it is the Board (the glitch audit, 24 Oct 2026) */
   if (f === 'board') hbSheetLetGo();
-  if (s.face === f){
-    if (f === 'board' && s.card && typeof window.bsCardLeave === 'function' && window.bsCardLeave()){
-      hbPaintBoard(); if (typeof window.deskTabsSync === 'function') try { window.deskTabsSync(); } catch (_){} }
-    return; }
+  if (s.face === f) return;
   const kb = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-hb-face') != null;
   s.face = f;
-  /* TURNING TO THE BOARD IS THE BOARD (round 7): a contract's page shown on
-     the Board's side is let go; hbStripBring sets it again after the turn */
-  if (f === 'board') s.card = null;
   hbSave();
   /* the Notes door and the panel's Notes tab follow the face: the Board has no
      contract in front (paintChatDoor, js/app.js) */
@@ -7835,11 +7802,9 @@ function hbShowOnMap(ids, label, fit){
    of starting a fresh trail that drops Juno. A typed question still starts
    afresh (`keep` is the press's, never the asker's). */
 function hbDig(key, deeper, keep){
-  /* ---- A CONTRACT LANDS AS ITS STRIP (the overnight work order, step 8;
-     owner's "Go", 14 Oct 2026) ---- "Bring up MK-…", its chip, ⌘K and a
-     contract row pressed on the Board all ask for 'c:<id>'; the old card
-     (hbCardHtml) is redrawn as the Lifeline strip below Today's insights
-     (js/views/boardstrip.js). The side list's sheet keeps its own card. */
+  /* ---- A CONTRACT LANDS ON ITS PAPER (the strip is gone, owner, 9 Nov 2026) ---- "Bring up MK-…", its chip, ⌘K and
+     a contract row pressed on the Board all ask for 'c:<id>'; the one door (hbStripBring, js/views/boardstrip.js)
+     lands on the paper with its Dossier. The side list's sheet keeps its own card. */
   if (/^c:/.test(String(key || '')) && typeof window.hbStripBring === 'function' && window.hbStripBring(String(key).slice(2))) return;
   const s = hbS();
   const path = s.path || [];
@@ -10484,7 +10449,7 @@ function hbOpenView(id, v){
   }
   /* EVERY OLD DOOR LANDS ON ITS BETTER HOME (owner, 15 Oct 2026): the
      obligations on Jambo's own Obligations tab beside the paper; the history
-     and where the deal stands on the contract's strip on the Board */
+     and where the deal stands in the middle beside the paper (pd2HistOpen, pd2StandsOpen, through the one door) */
   /* Obligations: the Obligations page narrowed to this contract (owner, 15 Oct 2026, "Obligations page, filtered") */
   if (v === 'oblig' && typeof window.obOpenOnPage === 'function') return obOpenOnPage(c.id);
   if (v === 'oblig' && typeof window.pdOpenOnHome === 'function') return pdOpenOnHome(c.id, 'oblig');
@@ -10603,7 +10568,10 @@ function hbPlace(){
     /* and the face of Jambo's tab that was open beside it — Fill in,
        Redlines, Before you sign (stage 5: the pages a refresh used to land
        back on are these faces now) */
-    const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face; } } catch (_){} }
+    const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face;
+    /* and History standing in the middle (the strip that kept it is gone, 9 Nov 2026): a refresh lands back on it */
+    if (typeof window.pd2HistUp === 'function' && pd2HistUp(c.id)) p.paper.mid = 'hist';
+    else if (typeof window.pd2StandsUp === 'function' && pd2StandsUp(c.id)) p.paper.mid = 'where'; } } catch (_){} }
   /* the Board keeps Needs you's tab, kind and find words (Round A) */
   if (s.face === 'board' && typeof window.ndPlace === 'function'){ try { p.nd = ndPlace(); } catch (_){} }
   /* the Board keeps a contract's view and its contract (stage 4, 14 Oct 2026) */
@@ -10650,8 +10618,9 @@ function hbPlacePut(p){
       if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){
         /* the face through its own door (pdOpenOnHome), which puts the
            contract on the paper the same way */
-        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); return; }
-        igWalk([want.id], 0, { tab: want.tab || undefined }); return; }
+        const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try { hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
+        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); return; }
+        igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); return; }
       if (++n < 60) setTimeout(go, 150);
     };
     setTimeout(go, 0);

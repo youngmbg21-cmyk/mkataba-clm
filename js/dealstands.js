@@ -675,10 +675,7 @@ function dsWireOwner(){
       e.preventDefault();
       const c = dsPressContract(go);
       if (!c) return;
-      /* on a strip, See history turns the strip itself to its History */
-      const strip = go.closest('[data-bs-id]');
       if (go.getAttribute('data-ds-go') === 'negotiate'){ if (window.openRedlineWorkbench) openRedlineWorkbench(c.id); }
-      else if (strip && window.bsStripPage) bsStripPage(c.id, 'hist');
       else if (window.roomGoTab) roomGoTab(c, 'history');
       return;
     }

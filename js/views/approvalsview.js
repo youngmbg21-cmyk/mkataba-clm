@@ -983,6 +983,8 @@ function renderApprovalsPage(o){
   /* the row as the list language draws it: whose turn as the mark, "party · agreement", and the grey line —
      the reference, the kind where its column stepped out, who asked and how long ago */
   const apMark=r=>(typeof listMarkHtml!=='function')?apAvHtml(r.c.counterparty)
+    /* the new look: the SAP way mark (listSapMarkHtml); late is never ruby, it says whose move it still is */
+    : (typeof listSapOn==='function'&&listSapOn())?listSapMarkHtml(r.done?'done':r.mine?'you':'them', r.done?'':apTurnText(r))
     : r.done?listMarkHtml('green','done'):apLate(r)?listMarkHtml('ruby','late',i18t('jl_late')):r.mine?listMarkHtml('amber','part',apTurnText(r)):listMarkHtml('steel','wait',apTurnText(r));
   /* ROOM TO SPREAD (owner, 28 Oct 2026): where the list has the room, the reference and who asked are
      columns of their own (SP, listSpread below) and the days stay with Waiting, which already says them */
@@ -1150,7 +1152,7 @@ function apnRowHtml(r){
     acts=apMayDecide(r)?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-ap-approve="${esc(c.id)}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-ap-refuse="${esc(c.id)}">${esc(i18t('apn_decline'))}</button>`:'';
   }
   return `<tr data-ap-row="${esc(c.id)}" data-ap-kind="${r.type}" class="${r.type==='receipt'?'is-done':''}" tabindex="-1">
-    <td><div class="apn-name">${esc(c.name||'')}</div><div class="apn-sub">${sub}</div></td>
+    <td>${listSapCellHtml(r.done||r.type==='receipt'?'done':(r._mine||r.mine)?'you':'them', `<div class="apn-name">${esc(c.name||'')}</div><div class="apn-sub">${sub}</div>`, r.type==='receipt'?'':apTurnText(r))}</td>
     <td class="apn-rests">${rests}</td><td class="apn-rule">${rule}</td><td class="apn-wait">${waited}</td><td class="apn-acts">${acts}</td></tr>`;
 }
 function apnRender(W){

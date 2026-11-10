@@ -382,17 +382,13 @@ function cuNdaFactHtml(x, party){
   }
   return `<span${x.state === 'unconfirmed' ? ' class="sub is-amber"' : ''}>${_cuE(cuNdaLong(x))}</span>${more}${go}`;
 }
-/* the door: the NDA's own life line on the Board, where its Secret until
-   tile is confirmed (hbStripBring, the strip's one door); where the strip
-   cannot come up, the contract opens as every list opens one */
+/* the door: the NDA's facts beside its paper (ndaEditOpen, the one door onto them: the owed row of Fill in, else
+   its line under Key terms); where that cannot open, the paper with its Dossier; on the phone the contract opens
+   as every list opens one. The strip the NDA was brought up on is gone (owner, 9 Nov 2026). */
 function cuOpenNda(id){
   if (!id) return;
-  /* LAND ON IT: the NDA brought up on the desk, its "Secret until" figure lit */
-  if (typeof hbStripBring === 'function' && hbStripBring(id)){
-    const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : String(id);
-    if (typeof landOn === 'function') landOn(() => document.querySelector(`#bs-strip-${q} [data-bs-kpi="value"]`) || document.getElementById('bs-strip-' + id), { block: 'nearest', focus: false });
-    return;
-  }
+  if (typeof ndaEditOpen === 'function' && ndaEditOpen(id)) return;
+  if (typeof hbStripBring === 'function' && hbStripBring(id)) return;
   cuOpenAgreement(id);
 }
 /* an agreement in the panel: Home's paper on it, its line lit (the People
@@ -1401,7 +1397,15 @@ function cunRowHtml(v, nda){
   const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
   /* SAY IT ONCE (the harmony review, owner's yes 9 Nov 2026): a row names its org. no. only where one is filed; the foot says when none is */
   const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : '';
-  const sub = [rec.city || '', org, v.streams.map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f)).filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  /* KIND CHIPS (owner's pick by name, 9 Nov 2026; the colour round): each stream a soft chip in its own fixed tone
+     (listStreamTone, so a stream wears one colour on every page), the party's initials in its first stream's tone, and what
+     waits on you in amber. The facts line keeps its city and org. no. in grey. */
+  const shortOf = f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f);
+  const toneOf = f => (typeof listStreamTone === 'function') ? listStreamTone(f) : 'gray';
+  const facts = [rec.city || '', org].filter(Boolean).join(' · ');
+  const chips = v.streams.filter(f => shortOf(f)).map(f => (typeof listChipHtml === 'function') ? listChipHtml(toneOf(f), shortOf(f)) : esc(shortOf(f))).join(' ');
+  const ini = String(v.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+  const avTone = v.streams.length ? toneOf(v.streams[0]) : 'gray';
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = v.items.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
   const lead = v.items.filter(c => !c.archived).sort((a, b) => String(b.updatedAt || b.lastAction || '').localeCompare(String(a.updatedAt || a.lastAction || '')))[0] || v.items[0];
@@ -1418,9 +1422,9 @@ function cunRowHtml(v, nda){
       : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : ''); };
   const words = needs.slice(0, 2).map(x => { const w = verb(x); return w ? (x.it.urgent ? `${esc(w)} · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : esc(w)) : ''; }).filter(Boolean).join(' · ');
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
-    <td><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${esc(sub)}</div></td>
+    <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${facts ? `${esc(facts)} ` : ''}${chips}</div></div></div></td>
     <td class="cun-num">${v.items.length}</td><td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>
-    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait">${words || '—'}</td></tr>`;
+    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait${words ? ' is-owed' : ''}">${words || '—'}</td></tr>`;
 }
 let _cunParty = null;
 function cunRender(host, INS){

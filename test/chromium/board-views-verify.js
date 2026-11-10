@@ -68,13 +68,14 @@ const waitFor = (page, fn, ms = 8000, arg) => page.waitForFunction(fn, arg, { ti
 
     /* 3 History → the card's History page */
     await page.evaluate(id => hbOpenView(id, 'hist'), ID);
-    check('3 the old History door opens the History page of the Board\'s contract card',
-      await waitFor(page, id => state.view === 'dashboard' && !!document.querySelector(`#bs-strip-${id} [data-bs-host="hist"]`), 8000, ID));
+    /* RE-POINTED 9 Nov 2026 (the card is gone): History and Where we are stand in the middle beside the paper */
+    check('3 the old History door opens History in the middle beside the paper',
+      await waitFor(page, id => state.view === 'dashboard' && !!document.querySelector(`#pd2-hist`), 8000, ID));
 
     /* 4 anything else → Where we are */
     await page.evaluate(id => hbOpenView(id, 'deal'), ID);
-    check('4 the old Deal board door opens the card\'s Where we are',
-      await waitFor(page, id => { const s = document.querySelector('#bs-strips > .bs-strip'); return state.view === 'dashboard' && !!s && s.getAttribute('data-bs-id') === id && s.getAttribute('data-bs-on') === 'where'; }, 8000, ID));
+    check('4 the old Deal board door opens Where we are in the middle beside the paper',
+      await waitFor(page, id => state.view === 'dashboard' && !!document.querySelector(`.pd2-stands[data-ds-cid="${id}"]`), 8000, ID));
 
     /* 5 Jambo's words */
     const words = await page.evaluate(() => ({ deal: ((typeof caActOf === 'function' && caActOf('deal board')) || {}).place || null }));

@@ -113,12 +113,12 @@ const check = (name, pass, detail) => {
        the board contract card"): the door opens the strip's History page, and
        that is what must come back */
     await page.evaluate(() => roomGoTab(getContract('MK-R3'), 'history'));
-    await until(() => state.view === 'dashboard' && !!document.querySelector('#bs-strip-MK-R3 [data-bs-host="hist"]'));
+    await until(() => state.view === 'dashboard' && !!document.querySelector('#pd2-hist'));
     await page.waitForTimeout(400);
     await reload();
-    const ht = await until(() => { const p = document.querySelector('#bs-strip-MK-R3 [data-bs-host="hist"]');
+    const ht = await until(() => { const p = document.querySelector('#pd2-hist');
       return state.view === 'dashboard' && p && p.getClientRects().length && getComputedStyle(p).display !== 'none' ? 'history' : null; });
-    check('2c the History page comes back as History, on that contract\'s strip', ht === 'history', JSON.stringify({ ht, now: await page.evaluate(() => [state.view, window.hbFace && hbFace(), (document.querySelector('#bs-strips > .bs-strip') || { getAttribute: () => null }).getAttribute('data-bs-on')]) }));
+    check('2c History in the middle comes back as History after a refresh', ht === 'history', JSON.stringify({ ht, now: await page.evaluate(() => [state.view, window.hbFace && hbFace(), (document.querySelector('#bs-strips > .bs-strip') || { getAttribute: () => null }).getAttribute('data-bs-on')]) }));
 
     /* ================= 3. THE EXPLORER'S PICTURE ============================ */
     /* 3a RETIRED 29 Oct 2026: measured the Insights page, which the owner had

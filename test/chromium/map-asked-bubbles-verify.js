@@ -156,16 +156,15 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { window._outsideChat = 0; window.openAI = () => { window._outsideChat++; }; intel.dockOpen = true;
       const s = hbS(); s.face = 'board'; hbSave(); setView('dashboard'); });
     await until(() => document.getElementById('hb-board'));
+    /* RE-POINTED 9 Nov 2026 (the strip is gone, owner: "delete this page"): the board card and its Ask why went with
+       it; a contract brought up lands on its paper and Jambo's box beside it asks about THAT contract */
     await page.evaluate(() => hbDig('c:MK-J1'));
-    const btn = await until(() => !!document.querySelector('[data-hb-ai]'));
-    if (!btn) check('7a the board card carries Ask Copilot', false, 'no [data-hb-ai] button');
-    else {
-      await page.evaluate(() => { const b = document.getElementById('igd-input'); if (b) b.value = ''; document.querySelector('[data-hb-ai]').click(); });
-      const r7 = await until(() => { const b = document.getElementById('igd-input'); return b && b.value ? { v: b.value, focus: document.activeElement === b, out: window._outsideChat } : null; }, null, 3000);
-      check('7a the question lands in the Copilot panel on the page, with the contract\'s reference', r7 && /MK-J1/.test(r7.v) && r7.out === 0, JSON.stringify(r7));
-      check('7b the chat window outside the page is not opened', r7 && r7.out === 0, r7 ? String(r7.out) : 'no question');
-      await page.screenshot({ path: path.join(OUT, '7-ask-in-panel.png') });
-    }
+    const r7 = await until(() => { const b = document.getElementById('igd-input');
+      return !!(window.pdContract && pdContract() && pdContract().id === 'MK-J1' && b && /MK-J1/.test(b.getAttribute('placeholder') || '')); })
+      ? await page.evaluate(() => ({ id: pdContract().id, ph: document.getElementById('igd-input').getAttribute('placeholder'), out: window._outsideChat })) : null;
+    check('7a the contract lands on its paper, and the box beside it asks about it', !!r7, JSON.stringify(r7));
+    check('7b the chat window outside the page is not opened', !!r7 && r7.out === 0, r7 ? String(r7.out) : 'not landed');
+    await page.screenshot({ path: path.join(OUT, '7-ask-in-panel.png') });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('stage ran', false, e.message);

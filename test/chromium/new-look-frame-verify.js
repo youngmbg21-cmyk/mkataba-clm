@@ -86,7 +86,10 @@ const FRAME = () => {
         /* RE-POINTED 1 Nov 2026 (round 5, the owner's "approve round 5"): the Calendar is one white page as drawn, no cards on the well */
         /* RE-POINTED 2 Nov 2026 (round 7, the owner's "Approve 7b"): Settings & rules is one white page as drawn (no cards on
            the well), and like Import it scrolls as a whole, its scrollbar keeping its strip by the seam */
-        const cards = false, scrolls = false, strip = (pg === 'import' || pg === 'settings') ? 10 : 0;
+        /* RE-POINTED 9 Nov 2026 (one white sheet, the owner over the Settings drawing: "still with a grey divider"): the
+           strip by the seam was the window's grey showing behind the scroll channel; it is white now, so every page's white
+           reaches the seam (white-sheet-verify's EDGE) */
+        const cards = false, scrolls = false, strip = 0;
         check(`${nm} 1 ${pg}: the panel square at the bar, the side and the foot behind one hairline; ` + (cards ? 'its cards on the well, 12 under the bar and 16 in' : 'the page one surface from the bar and the left edge to the seam'),
           !!F && F.top === 0 && F.bottom === 0 && F.right === (scrolls ? 10 : 0) && F.seam === '1px'
           && (cards ? F.sheetTop === 12 && F.sheetLeft === 16 && F.gap >= 16 && F.gap <= 17 : F.sheetTop === 0 && F.sheetLeft === 0 && F.gap === strip), F);
