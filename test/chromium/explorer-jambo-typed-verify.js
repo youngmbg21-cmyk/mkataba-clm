@@ -5,7 +5,7 @@
    Explorer checks never took (they ask as a chip asks, which goes to the free reader). The AI is the test stand-in,
    scripted per request (h.ai.answerWith), so what is measured is HaTi: the route, the check and the map.
 
-   Red at the parent (65bd18c): 1 (the route dropped the lens), 2 (no date-line step), 3 (the number opened the
+   Red at the parent (65bd18c): 1 (the route dropped the lens), 5c (red at 60d5200: one button, "which did you mean?"), 2 (no date-line step), 3 (the number opened the
    paper), 4 (no second ask), 5 (no two-ways buttons), 6 (the grid came with floors and size nobody asked for),
    7 (the tag read "Naivas excluded" and "Eight contracts" was printed), 8 (the set was cleared before the follow-up),
    9 (no undo step). Waits ask for the state, bounded.
@@ -25,6 +25,7 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
   const c = fixtureContract('MK-RC' + i, ['Packaging Film Supply', 'Cold Chain Logistics', 'Distributor Agreement', 'Office Lease'][i % 4], ['Naivas', 'Bidco', 'Kenafric', 'Twiga'][i % 4],
     ST[i % 5], ((i * 37) % 90 + 5) * 1e6, SG[i % 5]);
   c.expiry = ['2026-12-31', '2027-03-31', '2027-09-30', '2028-06-30'][i % 4];
+  c.metadata = Object.assign({}, c.metadata || {}, { category: ['supplier', 'customer', 'supplier', 'lease'][i % 4] });
   return c;
 }));
 const ahead = days => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days);
@@ -45,6 +46,7 @@ const SCRIPT = (q, again) => {
   if (q === 'what depends on MK-RC3') return { note: 'x', answer: '', steps: [{ do: 'linked', id: 'MK-RC3' }] };
   if (q === 'show the people lens') return again ? { note: 'x', answer: '', look: { lens: 'people' } } : { note: 'People', answer: '' };
   if (q === 'show me the money lens') return { note: 'x', answer: '', groupBy: 'status' };
+  if (q === 'which contracts are single-sourced') return { note: 'Single-sourced', answer: 'These are the parties with no second supplier.' };
   if (q === 'switch to the grid view') return { note: 'x', answer: '', view: 'grid', floorsBy: 'status', columnsBy: 'folder', sizeBy: 'value', groupBy: 'folder' };
   if (q === 'show Naivas only') return { note: 'Naivas excluded', answer: 'Eight contracts sit with Naivas.', where: { counterparty: ['Naivas'] } };
   if (q === 'now only the signed ones') return { note: 'x', answer: '', within: true, where: { status: ['Signed'] } };
@@ -128,6 +130,12 @@ const SCRIPT = (q, again) => {
     if (b5) await b5.click();
     const l5 = await until(() => intel.lens === 'money' ? 'money' : null);
     check('5b pressing the first does what the words said', l5 === 'money', l5);
+
+    /* ================= 5c. NOTHING TO CHOOSE BETWEEN (the owner's exam, 10 Nov 2026) =================
+       the AI's answer does nothing on the map, twice; the free reader read the whole sentence: it is carried out, no question */
+    await fresh(); await type('which contracts are single-sourced');
+    const l5c = await until(() => { const m = intel.history[intel.history.length - 1]; return m && !intel.busy ? { sole: intel.lenses.some(l => l.kind === 'sole'), choices: !!(m.choices && m.choices.length), said: String(m.text || '').replace(/<[^>]+>/g, ' ').trim() } : null; });
+    check('5c "which contracts are single-sourced" with an AI answer that does nothing: lit at once, no "which did you mean?"', !!l5c && l5c.sole && !l5c.choices && !/two ways/.test(l5c.said), JSON.stringify(l5c));
 
     /* ================= 6. CHANGE ONLY WHAT WAS ASKED ================= */
     await fresh(); await type('switch to the grid view');
