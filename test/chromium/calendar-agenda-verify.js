@@ -6,6 +6,7 @@
      3 · a row's Open lands on that contract
      4 · the tab is kept across a refresh
      5 · the owner's three screens: every row on one line inside the card, nothing sideways
+     6 · a long agenda scrolls (new look, 1536×730): its foot comes into sight, the tabs stay put
    Run: node test/chromium/calendar-agenda-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -86,6 +87,30 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
       check(!fit.side && fit.bad === 0, `5 ${w}×${hh}: each row on one line inside the card, nothing sideways`, fit);
       await P.screenshot({ path: path.join(OUT, `${w}x${hh}.png`) });
     }
+    /* 6 · THE AGENDA SCROLLS (owner, 10 Nov 2026: "I am unable to scroll in the calendar page"): with more dates than
+       the window holds, in the new look at the shortest screen, a wheel over the list moves it and its foot comes into
+       sight under the pointer, while the head with its tabs stays where it was */
+    await P.setViewportSize({ width: 1536, height: 730 });
+    await P.evaluate(async () => { const u = currentUser(); u.prefs = u.prefs || {}; u.prefs.newLook = true; newLookApply();
+      /* eighteen more dated duties on a signed contract, in this page only (nothing saved): more than the window holds */
+      const t0 = new Date(todayISO() + 'T00:00:00'), c = state.contracts.find(x => x.status === 'Signed') || state.contracts[0];
+      c.obligations = (c.obligations || []).slice();
+      for (let i = 0; i < 18; i++){ const d = new Date(t0); d.setDate(d.getDate() + 2 + i * 4);
+        c.obligations.push({ id: 'agscroll' + i, desc: 'Agenda scroll check ' + (i + 1), due: d.toISOString().slice(0, 10) }); }
+      calState.view = 'agenda'; renderCalendar(); });
+    await until(P, () => document.querySelectorAll('#cal-ag .cal-nl-r').length >= 18, null, 8000); await settled(P); await still(P);
+    const before = await P.evaluate(() => { const R = document.querySelectorAll('#cal-ag .cal-nl-r'), ft = R[R.length - 1], tab = document.querySelector('[data-cal-view="agenda"]');
+      return { ftTop: ft ? Math.round(ft.getBoundingClientRect().top) : null, tabTop: tab ? Math.round(tab.getBoundingClientRect().top) : null, h: innerHeight }; });
+    const box = await P.evaluate(() => { const r = document.querySelector('#cal-ag').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(Math.min(r.top + 200, innerHeight - 100)) }; });
+    await P.mouse.move(box.x, box.y);
+    for (let i = 0; i < 12; i++){ await P.mouse.wheel(0, 400); await P.waitForTimeout(60); }
+    await P.waitForTimeout(400);
+    const after = await P.evaluate(() => { const R = document.querySelectorAll('#cal-ag .cal-nl-r'), ft = R[R.length - 1], tab = document.querySelector('[data-cal-view="agenda"]');
+      const r = ft && ft.getBoundingClientRect(); const hit = r ? document.elementFromPoint(Math.round(r.left + 8), Math.round(r.top + r.height / 2)) : null;
+      return { ftTop: r ? Math.round(r.top) : null, ftSeen: !!(r && r.bottom <= innerHeight && hit && ft.contains(hit)), tabTop: tab ? Math.round(tab.getBoundingClientRect().top) : null }; });
+    check(before.ftTop != null && before.ftTop > before.h, '6a the long agenda runs past the window (the case being checked)', before);
+    check(after.ftSeen && after.tabTop === before.tabTop, '6b a wheel over the list scrolls it to its foot; the tabs stay put', { before, after });
+    await P.screenshot({ path: path.join(OUT, 'scrolled-1536x730.png') });
     check(errors.length === 0, 'no page errors', errors.join(' | '));
   } finally { await browser.close(); await h.stop(); }
   console.log(`\n${passes} passed, ${failures} failed`);
