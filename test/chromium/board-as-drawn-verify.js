@@ -1,6 +1,6 @@
 /* THE BOARD AS DRAWN (round 17 of the redesign, "Then and now", the owner's
    "build all the gaps", 18 Oct 2026; js/views/homeboard.js hbBoardHeadHtml,
-   hbSavedViewChipsHtml, hbBookHtml, hbValueSay, hbBoardHelloHtml)
+   igSavedViewsHtml, hbBookHtml, hbValueSay, hbBoardHelloHtml)
 
    WHAT THIS PINS, driven in a real browser on a seeded workspace
      1 the Board's head is one card: "Board", "your book against six months
@@ -115,16 +115,24 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('1b Summarise my board stands in the head, no cost on its face or its hover', !!hd && hd.cost === '' && (!hd.keyed || /Summarise my board/.test(hd.btn || '')), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost, btn: hd.btn }));
 
-    console.log('\n2 · saved views as chips');
-    const sv = await page.evaluate(() => { const L = [...document.querySelectorAll('#hb-bhead .hb-sv-chip')];
-      return { label: (document.querySelector('#hb-bhead .hb-bh-l') || {}).textContent || '', chips: L.map(b => ({ name: (b.querySelector('.hb-sv-n') || {}).textContent || '', n: (b.querySelector('b') || {}).textContent || '' })),
-        want: (typeof igRecipeShown === 'function' && igViewsRead().length) ? igRecipeShown(igViewsRead()[0].recipe) : null, menu: !!document.querySelector('[data-hb-tools-more="views|board"]') }; });
-    check('2a "Saved views" and one chip per view, its count the map\'s own', sv.label === 'Saved views' && sv.chips.length === 1 && sv.chips[0].name === 'Whole book' && Number(sv.chips[0].n) === sv.want && !sv.menu, JSON.stringify(sv));
-    if (await press('#hb-bhead .hb-sv-chip', '2b the chip')) {
-      const ex = await until(() => typeof hbFace === 'function' && hbFace() === 'explorer', null, 8000);
-      check('2b a press opens the view on Explorer', !!ex);
-      await toBoard();
+    /* RE-POINTED (owner, 10 Nov 2026): the saved views left the Board's head; they are blue links under Your day in
+       Jambo's panel on Explorer (igSavedViewsHtml), where "+ Save this view" opens a name box */
+    console.log('\n2 · saved views are links in Jambo\'s panel on Explorer');
+    const onBoard = await page.evaluate(() => document.querySelectorAll('#hb-bhead .hb-sv-chip, #hb-bhead [data-hb-sview], #hb-bhead .hb-bh-views').length);
+    await page.evaluate(() => { hbSetFace('explorer'); });
+    await until(() => typeof igDayTabOn === 'function' && window.IG && IG.nodes && igDayTabOn() ? (igDayShows() || igBriefStart(), !!document.getElementById('ig-sv')) : null, null, 12000);
+    const sv = await page.evaluate(() => { const L = [...document.querySelectorAll('#ig-sv .ig-sv-a')];
+      return { label: (document.querySelector('#ig-sv .ig-sv-l') || {}).textContent || '', links: L.map(b => ({ name: (b.querySelector('.ig-sv-n') || {}).textContent || '', n: (b.querySelector('b') || {}).textContent || '' })),
+        want: (typeof igRecipeShown === 'function' && igViewsRead().length) ? igRecipeShown(igViewsRead()[0].recipe) : null, add: !!document.querySelector('#ig-sv [data-ig-sv-new]') }; });
+    check('2a none on the Board; under Your day "Saved views", one link per view with the map\'s own count, and + Save this view', onBoard === 0 && sv.label === 'Saved views' && sv.links.length === 1 && sv.links[0].name === 'Whole book' && Number(sv.links[0].n) === sv.want && sv.add, JSON.stringify({ onBoard, sv }));
+    if (await press('#ig-sv [data-ig-sv-new]', '2b + Save this view')) {
+      const box = await until(() => { const i = document.getElementById('ig-sv-name'); return i ? { v: i.value, focus: document.activeElement === i } : null; });
+      await page.fill('#ig-sv-name', 'Named by hand'); await page.keyboard.press('Enter');
+      const kept = await until(() => igViewsRead().some(v => v.name === 'Named by hand') && !document.getElementById('ig-sv-name') && !!document.querySelector('#ig-sv .ig-sv-a[data-ig-sv="Named by hand"]'));
+      check('2b the name box opens filled and focused; the name typed is the name kept', !!box && !!box.v && box.focus && !!kept, JSON.stringify({ box, kept }));
+      await page.evaluate(() => { igViewsWrite(igViewsRead().filter(v => v.name !== 'Named by hand')); });
     }
+    await toBoard();
 
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk; reverses the owner's answer 14): the card under Your book
        is ALL of Needs you — Jambo's prepared pieces and your move — and the old Needs you card stays gone */

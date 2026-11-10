@@ -2568,9 +2568,14 @@ function startApp(){
   /* ---- THE COUNTER AFTER SIGNING IN (the owner picked "Front desk", 17 Oct
      2026) ---- a person who has just signed in on a computer lands on the
      Counter (js/views/counter.js); a refresh keeps the page it was on. */
-  if(window._cnSignedIn && window.deskShellOn && deskShellOn()) state.view='counter';
+  /* THE BOARD IS WHERE YOU LAND (owner, 10 Nov 2026: "I want board to be the home page where you land once you log
+     in"; REVERSES the Counter of 17 Oct): signed in just now, the page is Home's Board face, whose head greets you
+     (hbBoardHeadHtml). A refresh still keeps the page it was on. The Counter stays a place you can name. */
+  const _landBoard=!!(window._cnSignedIn && window.deskShellOn && deskShellOn());
+  if(_landBoard){ state.view='dashboard'; try{ if(typeof window.hbS==='function'){ hbS().face='board'; if(typeof window.hbSave==='function') hbSave(); } }catch(_){} }
   window._cnSignedIn=false;
-  const _place=window.placeResume?placeResume():null;
+  /* landing on the Board is a fresh arrival: the last sitting's tab or scroll is not put back over it */
+  const _place=(!_landBoard&&window.placeResume)?placeResume():null;
   setView(['brain','dashboard','counter','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reads','handbook','pulse','flowmap','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
   if(_place&&window.placeScrollBack) placeScrollBack(_place);
   /* MY OWN EVENTS AND NOTES (10 Oct 2026): loaded once, so the rail's count
