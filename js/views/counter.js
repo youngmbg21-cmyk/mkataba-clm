@@ -484,7 +484,11 @@ function cnLand(sel, gone){ if (typeof landOn === 'function') try { landOn(sel, 
 /* the number on "Needs you" is the things in the one reading (ndRead): Jambo's
    prepared pieces, each owed thing (a bundle counts its contracts) and the
    admin's one row */
-function counterNeedsCount(){ try { return ndRead().n; } catch (_){ return 0; } }
+/* ONE LIST, ONE COUNT (owner, 10 Nov 2026: Explorer said "183 Need you" where the Board's Needs you card said "98
+   things"). The Board counts the ROWS it draws (ndOnBoard; "count rows", 9 Nov 2026) — a bundle of five details is one
+   row — and every other reader (the panel button, the Guide, Explorer's Your day, Jambo's panels) asks this one number,
+   so no door says a figure its list does not show. The setup row is the Board's own door (hbSetupDoorHtml), not a row. */
+function counterNeedsCount(){ try { return ndOnBoard(ndRead()).n; } catch (_){ return 0; } }
 
 /* A ROW'S TITLE SAYS THE ACT ("Answer an approval for Jonas"); the rest of
    the row is the one desk's (ndParts) */

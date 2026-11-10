@@ -18439,6 +18439,10 @@
   @media (prefers-reduced-motion: reduce){ html.lg-new #ig-canvas .pd2-wk-on, html.lg-new .pd2-wk-bar > i{transition:none} }
   /* the wash reaches 10 past the clause's words (Round 0: "0px from the side"): painted as a glow, so the paper's words never move */
   html.lg-new #ig-canvas .pd2-cl-on{background:var(--st-amber-bg);box-shadow:0 0 0 10px var(--st-amber-bg)}
+  /* the note beside the open clause, and its row, wear the clause's amber (10 Nov 2026); an outline moves nothing */
+  html.lg-new #pd2-notes .pd2-mg.is-on{outline:1.5px solid var(--st-amber-line);outline-offset:6px;border-radius:var(--radius-sm);background:var(--st-amber-bg)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open.pd2-lit{box-shadow:inset 0 0 0 1.5px var(--st-amber-line);border-radius:var(--radius-sm)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open.pd2-lit::after{background:var(--st-amber-dot)}
   /* Clauses, as drawn: the head says what the list is; each row's own reading on its right; a fine clause's dot green; the Preamble first */
   html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view{display:flex;align-items:baseline;gap:8px}
   html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view b{font-family:var(--font-title);font-size:17px;font-weight:var(--w-title-serif)}

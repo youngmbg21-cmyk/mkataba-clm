@@ -505,6 +505,91 @@ function pbSpliceQuote(bodyHtml,idx,quote,words){
   return root.innerHTML;
 }
 
+/* ---- JAMBO'S INSTRUCTION IS NOT WORDING (owner, 10 Nov 2026) ----
+   The owner's screen: a playbook draft for 3.3 came back as an INSTRUCTION —
+   *Amend Section 3.3 to add: "The liquidated damages cap …" Also amend Section
+   8.3 to add: "A failure by Supplier …"* — and the whole sentence, instruction,
+   quote marks and 8.3's wording included, was written over the quoted sentence
+   of 3.3 as if it were contract text.
+   THE PROMPT IS NOT THE WALL; this reading is. A draft that OPENS with "amend /
+   revise / replace / add to … Section N" is read as instructions: each one's
+   quoted wording, its clause number, and whether it ADDS (to add, by adding,
+   insert) or REPLACES (to read, replace). The instructions for THIS clause
+   (`own` numbers: its heading's and its quoted block's; "3.3" is under "3")
+   give the wording; the rest are handed back as `also`, never written here.
+   Null where the draft is plain wording, which is every ordinary draft. */
+const PB_DRAFT_ASK_RE=/(?:^|[\s.;,])(?:also\s+|and\s+)?(amend|revise|modify|update|change|replace|insert\s+(?:into|in)|add\s+to|add)\s+(?:the\s+)?(?:sub-?)?(?:section|clause|article|paragraph|§)\s*(\d+(?:\.\d+)*)\b/gi;
+function pbDraftRead(draft,own){
+  const src=String(draft==null?'':draft).trim();
+  if(!src) return null;
+  const hits=[]; PB_DRAFT_ASK_RE.lastIndex=0;
+  for(let m=PB_DRAFT_ASK_RE.exec(src);m;m=PB_DRAFT_ASK_RE.exec(src)) hits.push({ at:m.index, end:PB_DRAFT_ASK_RE.lastIndex, verb:m[1].toLowerCase(), ref:m[2] });
+  /* only a draft that OPENS with an instruction is one: wording that happens
+     to mention "amend Section 5" further in is wording */
+  if(!hits.length||src.slice(0,hits[0].at).replace(/[\s.;,]/g,'').length>0) return null;
+  const asks=[];
+  hits.forEach((h,k)=>{
+    const seg=src.slice(h.end,k+1<hits.length?hits[k+1].at:src.length);
+    const open=/["“]/.exec(seg); if(!open) return;
+    const tail=seg.slice(open.index+1);
+    let close=-1; for(let i=tail.length-1;i>=0;i--){ if(tail[i]==='"'||tail[i]==='”'){ close=i; break; } }
+    if(close<0) return;
+    const words=tail.slice(0,close).replace(/\s+/g,' ').trim();
+    if(!/\p{L}/u.test(words)) return;
+    const how=seg.slice(0,open.index).toLowerCase();
+    const add=/^(add|insert)/.test(h.verb)?!/\bread\b|\breplac/.test(how):/\badd|\binsert|\bappend/.test(how);
+    asks.push({ ref:h.ref, add, words });
+  });
+  if(!asks.length) return null;
+  const mine=(own||[]).map(x=>String(x||'').replace(/\.$/,'')).filter(Boolean);
+  const isMine=r=>mine.length?mine.some(o=>r===o||r.startsWith(o+'.')):asks.length===1;
+  const here=asks.filter(a=>isMine(a.ref));
+  return { words:here.map(a=>a.words).join(' '), add:here.length>0&&here.every(a=>a.add),
+    also:asks.filter(a=>!isMine(a.ref)).map(a=>({ ref:a.ref, add:a.add, words:a.words })) };
+}
+/* THE CLAUSE'S OWN NUMBERS for pbDraftRead: its heading's and the number that
+   opens the block the finding quoted. */
+function pbOwnRefs(cl,quote){
+  const out=[];
+  const h=/^\s*\(?(\d+(?:\.\d+)*)/.exec(String((cl&&(cl.headingText||cl.num))||''));
+  if(h) out.push(h[1]);
+  const blocks=pbClauseBlocks(cl&&cl.bodyHtml);
+  const at=blocks?pbQuoteBlock(cl.bodyHtml,quote):-1;
+  const b=at>=0?/^\s*(\d+(?:\.\d+)+)/.exec(blocks[at]):null;
+  if(b) out.push(b[1]);
+  return out;
+}
+/* ADDED, NOT SWAPPED: the wording goes at the END of the block the finding
+   quoted (else the clause's last block), after its last character, and every
+   word and mark already there stays byte for byte. Same answer shape as
+   pbFitInto; null where there is nothing to add or it is already there. */
+function pbFitAdd(bodyHtml,quote,words,at0){
+  const w=String(words==null?'':words).trim();
+  if(!w||typeof document==='undefined'||!document.createElement||!document.createTreeWalker) return null;
+  if(typeof window==='undefined'||!window.richToText) return null;
+  const blocks=pbClauseBlocks(bodyHtml);
+  if(!blocks||!blocks.length) return null;
+  /* `at0`: a block named by its number ("Open 8.3"), where there is no quote */
+  let at=(typeof at0==='number'&&at0>=0&&at0<blocks.length)?at0:pbQuoteBlock(bodyHtml,quote); if(at<0) at=blocks.length-1;
+  if(_pbFitNorm(blocks[at]).includes(_pbFitNorm(w))) return null;
+  let root;
+  try{ root=document.createElement('div'); root.innerHTML=String(bodyHtml==null?'':bodyHtml); }catch(_){ return null; }
+  const el=root.children&&root.children[at]; if(!el) return null;
+  const tw=document.createTreeWalker(el,4); let last=null;
+  for(let n=tw.nextNode();n;n=tw.nextNode()) if(/\S/.test(n.nodeValue||'')) last=n;
+  if(last){
+    const t=last.nodeValue.replace(/\s+$/,'');
+    last.nodeValue=t+' '+w;
+    /* a bold run (a title) does not dress the added sentence */
+    const p=last.parentNode;
+    if(p&&p!==el&&/^(B|STRONG|I|EM|U)$/.test(p.nodeName)){ last.nodeValue=t; p.parentNode.insertBefore(document.createTextNode(' '+w),p.nextSibling); }
+  } else el.appendChild(document.createTextNode(w));
+  const html=root.innerHTML;
+  let text=''; try{ text=richToText(html); }catch(_){ return null; }
+  if(!text) return null;
+  return { text, html, block:at, blocks:blocks.length, add:true };
+}
+
 /* THE NUMBER OUR POSITION ASKS FOR, read by the topic's OWN reader — the one
    precedent and the ladder already use — out of wording the workspace
    approved. Null where the position is not argued in a number at all
@@ -650,7 +735,7 @@ function pbDropRepeatedHeading(text, cl){
      answer for it rather than this reading inventing a refusal. */
   return /\p{L}/u.test(rest) ? rest : src;
 }
-function pbFitWording(cl,v,preferred,draft){
+function pbFitWording(cl,v,preferred,draft,how){
   /* THE WALL, AT THE TOP, so both branches and both callers inherit it. */
   if(draft) draft = pbDropRepeatedHeading(draft, cl);
   const body=cl&&cl.bodyHtml;
@@ -677,6 +762,12 @@ function pbFitWording(cl,v,preferred,draft){
        goes and every other block comes through byte for byte. Where no address
        reads, it is the fragment it always was and the caller's seatbelt
        answers for it. */
+    /* an instruction that ADDS a sentence is added, never swapped over the
+       quote (pbDraftRead, 10 Nov 2026); already there, nothing to change */
+    if(how&&how.add&&body){
+      const added=pbFitAdd(body,v&&v.quote,draft);
+      return added?{ kind:'draft', text:added.text, preview:String(draft), html:added.html, block:added.block, blocks:n }:null;
+    }
     const into=body?pbFitInto(body,v&&v.quote,draft):null;
     if(into) return { kind:'draft', text:into.text, preview:String(draft),
       html:into.html, block:into.block, blocks:n };
@@ -1563,4 +1654,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear,pbSpliceQuote});
+Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbFitAdd,pbDraftRead,PB_DRAFT_ASK_RE,pbOwnRefs,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear,pbSpliceQuote});

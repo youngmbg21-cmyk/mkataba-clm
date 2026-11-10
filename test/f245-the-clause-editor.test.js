@@ -605,7 +605,7 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
        applied as a rewrite of the whole clause. */
     assert.match(CODE, /const scope = _ceSel;/, 'the ask captures its scope at the press');
     assert.match(CODE, /text: wording, passage: scope \|\| null/, 'and hands it to the card');
-    assert.match(CODE, /card\.passage \? card\.passage\.text : _ceText/,
+    assert.match(CODE, /card\.passage \? card\.passage\.text : (?:\(applied \? _ceBase : )?_ceText/,  /* once applied, against what stands (10 Nov 2026) */
       'the preview is marked against what it really replaces');
     assert.match(CODE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);\n\s+else ceApply\(/,
       'and Apply routes by what the card is about — and ends typing (round three, item 3)');
