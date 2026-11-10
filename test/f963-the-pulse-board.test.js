@@ -100,7 +100,10 @@ test('5 · every page list names it (rule 9c)', () => {
   assert.match(APP, /import '\.\/views\/pulse\.js';/);
   assert.match(APP, /else if\(view==='pulse'\) renderPulse\(\);/);
   assert.match(APP, /pulse:\['puPlace','puPlacePut'\]/, 'a refresh lands at the same spot');
-  assert.match(APP, /\{ k: 'see', rows: \['board', 'pulse', 'explorer', 'house'\] \}/, 'the Guide row, beside the Board');
+  /* RE-POINTED 10 Nov 2026: Home was deleted and the Board heads the Guide (its top row), so the
+     see stage holds the Pulse Board, Explorer and the house — the rule (a Guide row) is unchanged */
+  assert.match(APP, /\{ k: 'see', rows: \['pulse', 'explorer', 'house'\] \}/, 'the Guide row, in the see stage');
+  assert.match(APP, /guideRowHtml\('board',/, 'and the Board heads the Guide');
   assert.match(CORE, /'handbook','pulse'/, 'setView knows it at start');
   assert.match(CA, /\{ k: 'pulse', w: \['pulse', 'pulse board'/, 'the "/" word');
   assert.match(CA, /'reads', 'pulse', 'handbook'/, 'its name typed moves there free');   /* RE-POINTED 29 Oct 2026: Insights left the list on main */
