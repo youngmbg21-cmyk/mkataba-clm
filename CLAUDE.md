@@ -369,7 +369,7 @@ PAST THE MARK THE PANEL SLIDES OVER (reverses "the page keeps restMin"): the pag
 - COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
 - OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint` (GET /api/brain `stack`).
 ## THE OVERNIGHT RUN (9 Oct)
-SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`); the rest in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)"; f570, f580–f626, f651.
+SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`); the round seals a finished route note or not (`runSealCatchUp`), a template's copy is drawn by the first editor's page (`sealCatchUpPage`); the mail says the day signed (`srvExecutedSentence`); the rest in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)"; f570, f580–f626, f651.
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
 EVERY TEXT ANSWER GOES OUT COMPRESSED (10 Nov 2026): one gzip middleware before the routes (built-in zlib, no dependency); `ZIP_NEVER` names text/event-stream FIRST so the live feeds still stream a line at a time; the compressor's `drain` is forwarded to the response or a PIPED file stalls after its gzip header. f996.
 THE DOORS' NUMBERS ARE COUNTED ONCE A TURN: `doorCounts(nc)` (js/app.js), cleared on a microtask exactly as `navCounts` is, `_doorBusy` against re-entrancy; updateSidebarCounts' forty-seven callers no longer walk the book nine times each. f997.

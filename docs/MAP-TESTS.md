@@ -652,3 +652,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE ONE DESK — ONE COUNT (10 Nov 2026)
 - test/f999-one-needs-you-count.test.js — every door's Needs you number is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`); Explorer's Your day asks it.
+
+## THE OVERNIGHT RUN (9 Oct)
+- test/f580-the-seal-is-the-servers.test.js — the server seals, as HaTi.
+- test/f651-their-link-renewal-term-and-the-copy-the-server-draws.test.js — C3–C5: the reminder round seals "Seal waiting" AND a finished route with no note; the executed email says the day signed (and sealed).
+- test/f1000-the-seals-only-a-page-can-draw.test.js — the first page an editor opens draws the copies the server cannot (`sealCatchUpPage`).
