@@ -80,9 +80,13 @@ const READ = () => {
       page.on('pageerror', e => console.log('PAGE ERROR', String(e).slice(0, 300)));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-      await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser(), null, 40000);
+      /* A WAIT ASKS FOR THE STATE (10 Nov 2026): signed in is not loaded — the contract must be in the book before it is
+         opened, and the paper drawn before it is read (it failed twice on the same code when either came late) */
+      await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser()
+        && typeof getContract === 'function' && !!getContract('MK-A2'), null, 40000);
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-A2'); });
-      const drawn = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mg-i').length >= 5 && !!document.querySelector('#ig-dock .pd2-turn'), null, 20000);
+      const drawn = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mg-i').length >= 5 && !!document.querySelector('#ig-dock .pd2-turn')
+        && !!document.getElementById('ig-canvas'), null, 20000);
       check(`${nm} 0 the contract's new look is drawn`, drawn);
       await page.evaluate(() => document.fonts && document.fonts.ready);
       const R = await page.evaluate(READ);
