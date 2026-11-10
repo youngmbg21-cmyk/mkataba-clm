@@ -2686,7 +2686,7 @@ function igRecipeRun(parsed, opts){
     if(a.top){ const t=igTopClean(a.top); if(!t) continue;
       /* a top N of what is shown narrows the set on screen; a press on the reading chips re-reads the same set (a.top.again) */
       const prev=a.top.again?(intel.lenses||[]).find(l=>l.on&&l.top):null;
-      const base=prev?(state.contracts||[]).filter(c=>!prev.topBase||prev.topBase.has(c.id)):(()=>{ const act=intelActive(); return (state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id)); })();
+      const base=prev?(state.contracts||[]).filter(c=>!(prev.topBase instanceof Set)||prev.topBase.has(c.id)):(()=>{ const act=intelActive(); return (state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id)); })();
       const run=igTopRun(t,base), ids=run.ids, label=igTopLabel(t);
       /* one top N at a time: a new one (or a chip's re-read) replaces the last, never narrows inside it */
       intel.lenses=intel.lenses.filter(l=>!l.top).filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter', top:t });
