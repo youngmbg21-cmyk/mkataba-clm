@@ -232,6 +232,10 @@ test('f995 (7b) intelGraphAsk sends the gap back ONCE, named, before the map cha
   assert.match(src, /const free=igFreeReading\(q\);/);
   assert.match(src, /igGapNote\(free,gap\)/);
   assert.match(src, /if\(gap\.length\)\{ igChoicesTwoWays\(q, free, res\); return; \}/);
+  /* NOTHING TO CHOOSE BETWEEN (the owner's exam, 10 Nov 2026): an AI answer that does nothing on the map yields to the
+     whole free reading, no question; it is decided BEFORE the two-ways question */
+  const yields = src.indexOf("if(gap.length&&!(res&&res.kind==='wording')&&!igResKinds(res).size){ igRecipeRun({ acts:free.acts }); return; }");
+  assert.ok(yields > 0 && yields < src.indexOf('igChoicesTwoWays(q, free, res)'), 'an empty AI answer is not a second reading');
   assert.match(src, /res=igTrimToAsked\(res, free, q\);/);
   assert.ok(src.indexOf('igFreeReading') < src.indexOf("if(res&&res.kind==='wording')"), 'the check comes before a wording hand-off');
 });

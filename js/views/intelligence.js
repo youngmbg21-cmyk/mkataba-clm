@@ -3540,6 +3540,11 @@ async function intelGraphAsk(q){
         try{ const again=await api('ai/graph','POST',Object.assign({}, payload, { query:q+'\n\n'+igGapNote(free,gap), screen:graphAskScreen() }));
           if(again){ if(typeof window.aiGotoNote==='function') aiGotoNote(again); res=again; gap=off(res); } }catch(_){}
       }
+      /* NOTHING TO CHOOSE BETWEEN (the owner's exam, 10 Nov 2026: "which contracts are single-sourced" asked
+         "which did you mean?" with ONE button): where the AI's answer does nothing on the map and the free reader read
+         the whole sentence, there is one reading, not two — it is carried out, no question. A real disagreement (the
+         AI did something else) still asks, with two buttons. */
+      if(gap.length&&!(res&&res.kind==='wording')&&!igResKinds(res).size){ igRecipeRun({ acts:free.acts }); return; }
       if(gap.length){ igChoicesTwoWays(q, free, res); return; }
       res=igTrimToAsked(res, free, q);
     }
