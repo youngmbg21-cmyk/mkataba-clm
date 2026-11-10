@@ -21957,3 +21957,6 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - 10 Nov 2026 — f982 test 3 still looked for `listSapCellHtml(obnSapKey` after #618 rewrote `obnRowHtml` (mark key now `mk`), red on main at cf35ae9; re-pointed in #619 with the owner's yes ("fix it in yours"). Nothing a person sees changed.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) Opening the Send screen on MK-HB4 (handed over for signature, handbook world) shows a red toast "Not saved: MK-HB4 has been handed over for signature, so its wording is locked…" — opening Send appears to try a save on a frozen contract (reading must not write), seen while photographing; not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) The other side's page (portal) was not part of the sweep: it carries its own look switch (`outsideLook`) and needs a share link to open; its detail lines were not measured.
+
+## Noticed, not fixed (10 Nov 2026, Jambo's instruction / notes on Clauses round)
+- Clauses tab, an open clause row: the "Plain English" pill and "one short reading" are cut off at the top (clipped by the row above), seen at 1440×780.

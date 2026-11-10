@@ -182,7 +182,7 @@ const READ = () => {
         await page.click('[data-pd2-wk-close]');
         const gone = await until(page, () => !document.getElementById('pd2-walk-head') && !document.querySelector('#ig-canvas .pd2-wk-on, #ig-canvas .pd2-wk-done') && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-walk)'), null, 10000);
         check('12 × puts the walk away: the paper as it was and its Dossier back', gone);
-        /* 13 CLAUSES (part 5): the notes step aside, the same one row of links stands, and the clause open in the list is
+        /* 13 CLAUSES (part 5): the notes stay beside the paper (owner, 10 Nov 2026), the same one row of links stands, and the clause open in the list is
            tinted on the paper (its read stubbed: no key in a test) */
         await page.evaluate(() => { state.aiConfigured = true; const o = window.api; window.__apiWas = o;
           window.api = async function (p, ...a){ if (p !== 'ai/breakdown') return o.call(this, p, ...a);
@@ -194,8 +194,14 @@ const READ = () => {
         const firstOpen = await until(page, () => /Quality/.test(((document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-name') || {}).textContent || '')), null, 10000);
         check('13a Clauses opens on the clause that needs you', firstOpen);
         const tinted = await until(page, () => [...document.querySelectorAll('#ig-canvas .pd2-cl-on')].some(e => /rejected within 3 days/.test(e.textContent)), null, 10000);
-        const Cl = await page.evaluate(() => ({ notes: !!document.getElementById('pd2-notes'), rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')) }));
-        check('13 Clauses: no notes beside the paper, the one row of links, the open clause tinted', tinted && !Cl.notes && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);
+        /* THE NOTES STAY ON CLAUSES (owner, 10 Nov 2026; reverses "no notes beside the paper" here): the open clause's note
+           lights with its row, and its link says it is shown here */
+        await until(page, () => !!document.querySelector('#pd2-notes .pd2-mg.is-on'), null, 8000);
+        const Cl = await page.evaluate(() => ({ notes: !!document.querySelector('#pd2-notes .pd2-mg'), lit: !!document.querySelector('#pd2-notes .pd2-mg.is-on') && !!document.querySelector('#pd-thread .doc-th-row.is-open.pd2-lit'),
+          shown: [...document.querySelectorAll('#pd2-notes [data-pd2-go="clause"]')].map(b => b.textContent.trim()),
+          rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')) }));
+        check('13 Clauses: the notes stay beside the paper, the open clause\'s note and row lit, "Shown in Clauses", the one row of links, the open clause tinted',
+          tinted && Cl.notes && Cl.lit && Cl.shown.every(t => t === 'Shown in Clauses ›') && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);
         const Cd = await page.evaluate(() => ({ head: ((document.querySelector('#pd-thread .stk-view') || {}).textContent || '').trim(), tabs: !!document.querySelector('#pd-thread .stk-tabs'),
           say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n.is-say') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));
         check('13b Clauses as drawn (your answer): "Clause review · one view for the whole company", no filter tabs, the row says its reading, the Preamble first with its blanks',

@@ -952,6 +952,13 @@ function clauseEditorCss(){
      as ONE. Its buttons stick to the lane's bottom edge while any of the
      suggestion is on screen (sticky inside the card, so they leave with it). */
   .ce-card.ce-sug{margin-bottom:var(--s-3)}
+  /* APPLIED: the card wears the paper's own mark colour round it (10 Nov 2026) */
+  .ce-card.ce-sug:has(> .av[data-st="applied"], > .av[data-st="undoable"]){box-shadow:inset 0 0 0 2px var(--accent-ink); border-radius:var(--radius); padding:var(--s-3) var(--s-4)}
+  .ce-card.ce-sug .av .ce-show{margin-left:auto; background:none; border:0; padding:0; color:var(--accent-ink); font-weight:var(--w-label); text-decoration:underline; text-underline-offset:2px; cursor:pointer; white-space:nowrap}
+  .ce-card.ce-also{margin-bottom:var(--s-3); border:1px solid var(--color-divider); border-radius:var(--radius); padding:var(--s-3) var(--s-4)}
+  .ce-card.ce-also .h{margin:0 0 4px; font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-text)}
+  .ce-card.ce-also .q{margin:0; font-family:var(--font-doc); color:var(--color-text)}
+  .ce-card.ce-also .av{margin-top:var(--s-2)}
   .ce-rail .ce-card.ce-sug .pv{max-height:none; overflow:visible; border:0; padding:0;
     background:none; margin-top:var(--s-2)}
   .ce-card.ce-sug .pv .ce-sug-left{display:block; margin-top:6px; font-size:var(--t-label); color:var(--color-neutral-500); font-style:italic}
@@ -5286,7 +5293,12 @@ function ceCardHtml(card, i, j){
      against the whole clause would strike out every sentence around it and read
      as a proposal to delete the clause. Marked against the passage it names, it
      reads as the change it is. */
-  const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '', { changedOnly: true });
+  /* ---- APPLIED, IT STILL SHOWS ITS REDLINE (owner, 10 Nov 2026: "the
+     jambo panel should also highlight the redline") ----
+     Marked against the box, a card the box already holds marks NOTHING and
+     read as plain wording beside a paper full of marks. Once applied it is
+     marked against what STANDS, the same marks the paper draws (ceCardPv). */
+  const marked = ceRedlineHtml(ceCardPvBase(card), card.text || '', { changedOnly: true });
   /* ---- ON A CLAUSE UNDER DELETION A CARD IS A READING ---- (10 Sep 2026)
      Copilot may still advise — that is the whole of what this page owes the
      reader there — but its answer cannot be moved into the wording, because
@@ -5310,8 +5322,43 @@ function ceCardHtml(card, i, j){
     ${card.cost ? `<span class="cost">${_cee(card.cost)}</span>` : ''}
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
-    ${card.prepared && _cePrep && _cePrep.inBox ? cePrepInBoxHtml() : docked ? '' : `<div class="av" data-ce-card="${i}:${j}">${offerWording ? ceCardActsInner(card, `${i}:${j}`) : ''}</div>`}
-  </div>`;
+    ${card.prepared && _cePrep && _cePrep.inBox ? cePrepInBoxHtml() : docked ? '' : `<div class="av" data-ce-card="${i}:${j}"${offerWording ? ` data-st="${ceCardState(card)}"` : ''}>${offerWording ? ceCardActsInner(card, `${i}:${j}`) : ''}</div>`}
+  </div>${ceCardAlsoHtml(card)}`;
+}
+/* WHAT THE CARD'S WORDING PANE DRAWS: the change against the box while it is
+   on offer, against what stands once the box holds it. */
+function ceCardPvBase(card){
+  const applied = !!card && !card.passage && ceCardApplied(card);
+  return card.passage ? card.passage.text : (applied ? _ceBase : _ceText);
+}
+/* ---- JAMBO'S ASK FOR ANOTHER CLAUSE STAYS OUT OF THIS ONE (owner, 10 Nov
+   2026) ---- A draft that read "Amend 3.3 to add … Also amend 8.3 to add …"
+   gave this clause only its own wording (pbDraftRead); 8.3's is shown here as
+   its own suggestion with ONE door, Open 8.3 (ceGoClause). Nothing is written
+   into 8.3 from here. */
+function ceCardAlso(card){
+  const it = card && card.std && card.std.kind === 'draft' ? card.std.item : null;
+  return (it && Array.isArray(it.draftAlso)) ? it.draftAlso.filter(a => a && a.ref && a.words) : [];
+}
+function ceCardAlsoHtml(card){
+  return ceCardAlso(card).map(a => {
+    const id = ceClauseIdByRef(a.ref);
+    return `<div class="ce-card ce-also"><p class="h">${_cee(_cet('ce_also_h', { ref: a.ref }))}</p>
+      <p class="q">“${_cee(a.words)}”</p>${id ? `<div class="av"><button type="button" class="ui-btn ui-btn-sm" data-ce-also-go="${_ceea(id)}">${_cee(_cet('ce_also_open', { ref: a.ref }))}</button></div>` : ''}</div>`;
+  }).join('');
+}
+/* A CLAUSE BY ITS NUMBER: the clause whose heading carries it ("8.3"), else
+   the clause it sits under ("8"). Null where none does. */
+function ceClauseIdByRef(ref){
+  const r = String(ref || '').replace(/\.$/, ''); if (!r || !_ceC) return null;
+  let list = [];
+  try{ list = window.negoClauseList ? negoClauseList(_ceC) : []; }catch(_){ list = []; }
+  const numOf = cl => { const m = /^\s*\(?(\d+(?:\.\d+)*)/.exec(String((cl && (cl.headingText || cl.num)) || '')); return m ? m[1] : ''; };
+  const exact = list.find(cl => numOf(cl) === r);
+  if (exact) return String(exact.clauseId);
+  const under = list.filter(cl => numOf(cl) && r.startsWith(numOf(cl) + '.'))
+    .sort((a, b) => numOf(b).length - numOf(a).length)[0];
+  return under ? String(under.clauseId) : null;
 }
 /* ---- APPLY · DISCARD, THEN APPLIED · UNDO (Young, 10 Oct 2026, "one
    Copilot panel" — the same card on Playbook and Risks) ----
@@ -5332,7 +5379,7 @@ function ceCardActsInner(card, key){
   const st = ceCardState(card);
   if (st === 'gone') return `<span class="ce-sug-gone">${_cee(_cet('ce_sug_discarded'))}</span><button type="button" class="u" data-ce-card-undo="${_ceea(key)}">${_cee(_cet('ce_sug_undo'))}</button>`;
   if (st === 'undoable' || st === 'applied') return `<button type="button" class="is-applied" disabled aria-disabled="true">${_cee(_cet('ce_sug_applied'))}</button>${
-    st === 'undoable' ? `<button type="button" class="u" data-ce-card-undo="${_ceea(key)}">${_cee(_cet('ce_sug_undo'))}</button>` : ''}`;
+    st === 'undoable' ? `<button type="button" class="u" data-ce-card-undo="${_ceea(key)}">${_cee(_cet('ce_sug_undo'))}</button>` : ''}<button type="button" class="ce-show" data-ce-card-show="${_ceea(key)}">${_cee(_cet('ce_sug_show'))}</button>`;
   return `<button type="button" class="p" data-ce-apply="${_ceea(key)}">${_cee(_cet('ce_apply'))}</button><button type="button" class="d" data-ce-card-discard="${_ceea(key)}">${_cee(_cet('ce_sug_discard'))}</button>`;
 }
 function ceCardActsPaint(){
@@ -5345,6 +5392,11 @@ function ceCardActsPaint(){
     if (av.getAttribute('data-st') === want) return;
     av.setAttribute('data-st', want);
     av.innerHTML = ceCardActsInner(card, key);
+    /* the wording pane follows the same state (the outline reads data-st) */
+    const sug = av.closest('.ce-sug');
+    if (sug && card.text && !card.passage){
+      const pv = sug.querySelector(':scope > .pv'); if (pv) pv.innerHTML = ceRedlineHtml(ceCardPvBase(card), card.text || '', { changedOnly: true });
+    }
   });
 }
 /* COPILOT'S COUNTER IS IN THE BOX: no Apply to press — the state, the one
@@ -5455,6 +5507,10 @@ function ceStdItem(){
    that wording does not exist. */
 function ceStdWording(it, kind){
   if (!it) return null;
+  /* JAMBO'S DRAFT IS PLACED WHERE THE PRODUCER PLACED IT (pbDraftRead → an
+     added sentence is ADDED, never swapped over the quote; 10 Nov 2026) */
+  if (kind === 'draft' && it.draftFit && it.draftFit.html && String(it.draft || '').trim())
+    return { text: it.draftFit.html, fitted: true };
   const fig = (kind === 'preferred' && it.fit && it.fit.kind === 'figure') ? it.fit : null;
   const words = String((fig ? fig.text : it[kind]) || '').trim();
   if (!words) return null;
@@ -7367,6 +7423,15 @@ function ceWirePage(page){
         ceSay(_cet('ce_sug_out'), 'ok');
       }
       return; }
+
+    /* SHOW ON THE PAPER: lands on the first mark in the box; presses nothing */
+    const show = hit('[data-ce-card-show]');
+    if (show){ ev.preventDefault();
+      if (window.landOn) landOn('#ce-clausebody [' + CE_MARK_ATTR + ']', { block: 'center', tries: 1 });
+      return; }
+    /* OPEN 8.3: the other clause Jambo's draft named, through the one walk door */
+    const also = hit('[data-ce-also-go]');
+    if (also){ ev.preventDefault(); ceGoClause(also.getAttribute('data-ce-also-go')); return; }
 
     const apply = hit('[data-ce-apply]');
     if (apply){ ev.preventDefault();
