@@ -158,7 +158,7 @@ describe('f803 (3) Needs you whole', () => {
     assert.match(rows, /mineNotesDue\(\)/);
     assert.match(rows, /intakeAlertRows\(\)/);
     assert.match(rows, /approvalAnswersFor\(x\.c\)/);
-    assert.match(fnBody(CN, 'counterNeedsCount'), /ndRead\(\)\.n/);
+    assert.match(fnBody(CN, 'counterNeedsCount'), /ndOnBoard\(ndRead\(\)\)\.n/);   /* RE-POINTED 10 Nov 2026: one count, the Board's rows (f999) */
     assert.match(fnBody(CN, 'ndRead'), /const rows = cnRows\(\);/, 'the one desk reads Home\'s rows');
   });
   /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): this pinned Home's own drawing */

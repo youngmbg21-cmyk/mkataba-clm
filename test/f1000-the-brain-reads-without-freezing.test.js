@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f999 — THE BRAIN READS THE CODE WITHOUT FREEZING HaTi (owner-reported
+   f1000 — THE BRAIN READS THE CODE WITHOUT FREEZING HaTi (owner-reported
    10 Nov 2026: "if I am in the brain page, hati freezes")
 
    GET /api/brain reads HaTi's own code on the first visit after a deploy.
@@ -50,7 +50,7 @@ function oldFind(files, p){
   return { found: false };
 }
 
-describe('f999 the Brain reads the code without freezing HaTi', () => {
+describe('f1000 the Brain reads the code without freezing HaTi', () => {
   const files = codeFiles();
   let map, ms;
   test('(2) the real code is read quickly', () => {
