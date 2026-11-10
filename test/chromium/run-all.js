@@ -99,6 +99,7 @@ const KNOWN_RED = {
 const NOT_TESTS = new Set([
   'run-all.js',
   'lang-coverage.js',      // a MEASURE: over-reports on purpose, a human reads it
+  'analyst-exam-measure.js', // a MEASURE: real Jambo calls, run by hand, read by a person (f999)
   'lang-shots.js', 'lang-shots-phone.js', 'shots-feature.js', 'shots-room.js',
   /* A one-off glyph-edge measurement written during the font work, pinned to
      that session's own scratchpad. Kept because the measurement is worth

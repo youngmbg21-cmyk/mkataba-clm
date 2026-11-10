@@ -21986,3 +21986,11 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ## 10 Nov 2026 — GitHub's run on Views first
 - FIXED · round6-new-look-verify step 1 failed: it pinned the folders' old card wording ("N contracts"). The owner's picked design (Views first) makes the row say "5 · KES 86.30M · 3 need you", so the check was re-pointed to the new shape and now also reads the view tiles. The design was not changed to suit the check.
 - NOT A FAULT: owed-first-verify and read-table-verify, which failed on the previous push, both passed on this run with no change. Timing, not a break.
+
+## 10 Nov 2026 — The analyst exam: Board and Explorer take rankings as asked
+- Fixed (Explorer): "rank them left to right" forced "Top 10 by value" (HaTi's own check read "highest" as a top N); no ranking by number of contracts; no "top N groups and top N in each"; no supplier/customer filter; Jambo's sentence named groups the map had hidden.
+- Fixed (Board): ranking / breakdown / comparison requests were answered in prose with the model's own counts; they now draw a chart with HaTi's counts and stay on the Board. Cards with no split, groups ranked in the map's language, follow-ups to the chart just drawn, time across, filters in the words are mended from the words.
+- Noticed, not fixed: on the Board "remove that chart" and any two-card answer still ask to confirm first (the big-build rule, hbIsBig), though Undo exists.
+- Noticed, not fixed: a change_card that changes the split keeps the old card's top N.
+- Noticed, not fixed: fast typing on the Board can reach HaTi's per-minute Jambo limit (a draw-first question spends up to three calls: draw, one repair, explain).
+- Noticed, not fixed: CLAUDE.md is 83 KB, over its 80 KB mark; a trim needs the owner's yes.
