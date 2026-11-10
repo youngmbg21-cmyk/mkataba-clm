@@ -6591,7 +6591,9 @@ function igBriefNeeds(book){
   const on=new Set(book.map(c=>c.id)), ids=new Set();
   const cidOf=r=>r.it?(r.it.cid||(r.it.c&&r.it.c.id)):(r.y&&r.y.x&&r.y.x.c)?r.y.x.c.id:null;
   (D.jambo||[]).concat(D.you||[]).forEach(r=>{ const c=cidOf(r); if(c&&on.has(c)) ids.add(c); (r.bundle||[]).forEach(y=>{ const b=y&&y.x&&y.x.c&&y.x.c.id; if(b&&on.has(b)) ids.add(b); }); });
-  return { n:D.n||0, late:D.late||0, oldest:D.oldest, ids:[...ids] };
+  /* the figure is the Board's own count (counterNeedsCount: the rows Needs you draws), never a second sum */
+  let n=0; try{ n=(typeof window.counterNeedsCount==='function')?(Number(counterNeedsCount())||0):0; }catch(_){ n=0; }
+  return { n, late:D.late||0, oldest:D.oldest, ids:[...ids] };
 }
 /* ---- YOUR DAY (owner picked "The SAP Way", 9 Nov 2026; replaces the six-stop walk) ----
    A tab before Overview on Explorer: the day's five figures, each labelled, saying what is

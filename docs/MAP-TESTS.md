@@ -649,3 +649,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - The Board's Needs you the SAP way; the folders and their panel the Legora way: `node --test test/f983-needs-you-the-sap-way-folders-the-legora-way.test.js` (+ f977); browser `contracts-page-verify`, `legora-lists-verify`, `round7-new-look-verify`, tidy sweep `HATI_TIDY_NEW_LOOK=1 HATI_TIDY_ONLY=board,contracts`.
 - The ink and the grey on the rest of the pages (Parties, People, Reads, Requests, Import, Our paper, My notes, Calendar, the Board, Settings): `node --test test/f984-ink-and-grey-on-every-page.test.js` (+ f982, f952, f965).
 - The colour round (Parties, People, Reads, Requests, Our paper, Calendar, Settings): `node --test test/f986-the-colour-round.test.js` (+ f965, f984); browser `customers-verify`, `parties-and-people-verify`, `reads-*-verify`, `requests-*-verify`, `our-paper-as-drawn-verify`, `calendar-on-home-verify`, `settings-as-drawn-*-verify`, tidy sweep new look.
+
+## THE ONE DESK — ONE COUNT (10 Nov 2026)
+- test/f999-one-needs-you-count.test.js — every door's Needs you number is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`); Explorer's Your day asks it.
