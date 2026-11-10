@@ -84,7 +84,15 @@ const check = (name, pass, detail) => {
     };
     const quiet = ms => () => page.waitForTimeout(ms);
     const onFace = f => () => until(f => document.getElementById('ig-page') && document.getElementById('ig-page').getAttribute('data-hb-side') === f, f).then(() => page.waitForTimeout(600));
-    const home1 = await act(() => setView('dashboard'), () => until(() => !!document.querySelector('#hb-board .hb-note')).then(() => page.waitForTimeout(600)));
+    /* OPENING THE BOARD, THE MIDDLE OF FIVE (owner, 10 Nov 2026: "measure opening five times"): once Home was deleted the
+       Board opened faster (about 160 ms, from 200+), and one sample of it made the relation below a coin toss. It is
+       opened five times from a list page, as the switches are timed five times, and the middle result is the yardstick */
+    const opens = [];
+    for (let r = 0; r < 5; r++){
+      if (r){ await page.evaluate(() => setView('obligations')); await until(() => state.view === 'obligations' && !document.getElementById('hb-board')); await page.waitForTimeout(600); }
+      opens.push((await act(() => setView('dashboard'), () => until(() => !!document.querySelector('#hb-board .hb-note')).then(() => page.waitForTimeout(600)))).max);
+    }
+    const home1 = { max: opens.slice().sort((x, y) => x - y)[2], all: opens };
     /* THE MIDDLE OF FIVE SWITCHES (owner picked "make the stopwatch fairer", 25 Oct 2026): one switch measured
        70–150 ms against a limit near 90 at this book, at #458 as at main, so one sample passed or failed by
        luck. Each way is timed five times and the middle result is held to the relation; every sample is printed */
@@ -97,7 +105,7 @@ const check = (name, pass, detail) => {
     const bookNow = await page.evaluate(() => state.contracts.length);
     check('1. Board ⇄ Paper: a switch (the middle of five) freezes under half of opening Home',
       leftHome && Math.max(mid(toPaper), mid(toBoard)) < Math.max(60, home1.max / 2),
-      `${leftHome ? '' : 'Home was never left · '}paper ${mid(toPaper)} (${toPaper.join(' ')}) · board ${mid(toBoard)} (${toBoard.join(' ')}) · Home ${home1.max} ms, ${bookNow} contracts`);
+      `${leftHome ? '' : 'Home was never left · '}paper ${mid(toPaper)} (${toPaper.join(' ')}) · board ${mid(toBoard)} (${toBoard.join(' ')}) · opening the Board ${home1.max} (${home1.all.join(' ')}) ms, ${bookNow} contracts`);
     const ex1 = await act(() => hbSetFace('explorer'), onFace('explorer'));
     /* settle: the layout finishes off the press, then the loop rests */
     await page.waitForTimeout(4000);
