@@ -77,6 +77,11 @@ const PAGES = [
   /* job 10: My notes. Its tabs draw the one table; the foot comes and goes with the rows */
   { k: 'mynotes', view: 'mynotes', rowSel: '#mn-page .mnn-table tbody tr', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab',
     box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .cun-head .ctf-hf' },
+  /* job 11: Parties. Folders draws CARDS and hides the table, so it is a whole-page press by name: the generic tab
+     step leaves it out, and step 4 below presses it and asks for the cards */
+  { k: 'parties', view: 'customers', rowSel: '[data-cu-screen="list"] #cu-tbody tr', tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab', skip: ['folders'],
+    box: '#cun-q', home: 'all', word: 'kabras', wholeSel: '[data-cu-screen="list"] .apn-table.cun-table thead th', pageSel: '.cun-page[data-cu-screen="list"]',
+    facts: '[data-cu-screen="list"] .cun-head .ctf-hf', folders: true },
   { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
     box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
 ];
@@ -133,19 +138,19 @@ const PAGES = [
         const rows0 = await page.evaluate(s => document.querySelectorAll(s).length, P.rowSel);
 
         /* 1 · a tab */
-        const pressed = await page.evaluate(([sel, key]) => {
+        const pressed = await page.evaluate(([sel, key, skip]) => {
           /* Proposed is left out on purpose: it stands a different thing where the
              list stands and brings its own panel, so it is a whole-page press by
              design, not a rows one. */
           /* a page whose other tabs are at 0 shows only its lit one (a 0 tab steps out): pressing that is still a
              rows-only press, and the frame, box and panel must still stand */
-          const all = [...document.querySelectorAll(sel)].filter(x => !['proposed', 'prop'].includes(x.getAttribute(key)));
+          const all = [...document.querySelectorAll(sel)].filter(x => !['proposed', 'prop'].concat(skip || []).includes(x.getAttribute(key)));
           const b = all.find(x => !/is-on/.test(x.className)) || all.find(x => /is-on/.test(x.className));
           if (!b) return null;
           const k = b.getAttribute(key);
           b.click();
           return k;
-        }, [P.tabSel, P.tabKey]);
+        }, [P.tabSel, P.tabKey, P.skip]);
         await page.waitForTimeout(500);
         const tab = await page.evaluate(([sel, key, rs, pg, bx]) => ({
           rows: document.querySelectorAll(rs).length,
@@ -191,6 +196,23 @@ const PAGES = [
           facts: ((document.querySelector(fs) || {}).textContent || '').trim() }), [P.wholeSel, P.facts || '#page-head-facts']);
         check(`${at} ${P.k} 3 · the page is still whole after both presses — its column heads or group lines, and the head's facts`,
           whole.marks > 0 && whole.facts.length > 0, whole);
+
+        /* 4 · THE TAB THAT DRAWS ANOTHER SHAPE (Parties' Folders): pressed, the cards are drawn and the table hides;
+           pressed back to the list, the table returns and the cards go. The first attempt left the cards stale. */
+        if (P.folders){
+          await page.evaluate(bx => { const el = document.querySelector(bx); if (el){ el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } }, P.box);
+          await page.waitForTimeout(250);
+          await page.evaluate(() => { const b = document.querySelector('[data-cun-tab="folders"]'); if (b) b.click(); });
+          const drew = await until(page, () => document.querySelectorAll('.cunf-grid > *').length > 0, null, 5000);
+          const F = await page.evaluate(() => { const sc = document.querySelector('#cu-tbody') && document.querySelector('#cu-tbody').closest('.cu-scroll');
+            return { cards: document.querySelectorAll('.cunf-grid > *').length, tableHidden: !!(sc && sc.hidden),
+              lit: [...document.querySelectorAll('[data-cun-tab].is-on')].map(b => b.getAttribute('data-cun-tab')) }; });
+          await page.screenshot({ path: path.join(OUT, `${w}-${P.k}-4-folders.png`) });
+          check(`${at} ${P.k} 4a · Folders draws its cards and hides the table`, drew && F.cards > 0 && F.tableHidden && F.lit.join() === 'folders', F);
+          await page.evaluate(() => { const b = document.querySelector('[data-cun-tab="all"]'); if (b) b.click(); });
+          const back = await until(page, () => !document.querySelector('.cunf-grid') && document.querySelectorAll('#cu-tbody [data-cu-cust]').length > 0, null, 5000);
+          check(`${at} ${P.k} 4b · back on the list, the table is drawn and the cards are gone`, back);
+        }
 
         /* put the box back for the next page */
         await page.evaluate(bx => { const el = document.querySelector(bx); if (el){ el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } }, P.box);

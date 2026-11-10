@@ -653,3 +653,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE ONE DESK — ONE COUNT (10 Nov 2026)
 - test/f999-one-needs-you-count.test.js — every door's Needs you number is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`); Explorer's Your day asks it.
+
+## PERFORMANCE — ROWS ONLY ON A PRESS (10 Nov 2026)
+- test/chromium/rows-only-on-a-press-verify.js — Approvals, Obligations, People, Requests, Import, My notes, Parties, Reads: a tab press and a typed word keep the frame, the box and the panel; Parties' Folders draws its cards (4a) and the list comes back (4b).
