@@ -121,7 +121,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       return v; };
     const press = async (sel, what, pg) => { const p = pg || page; if (!(await p.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await p.locator(sel).first().click(); return true; };
     const toCounter = async pg => { const p = pg || page; await p.evaluate(() => setView('counter'));
-      const t0 = Date.now(); while (Date.now() - t0 < 8000) { if (await p.evaluate(() => !!document.querySelector('#cn-needs .cn-jw'))) return true; await p.waitForTimeout(120); } return false; };
+      const t0 = Date.now(); while (Date.now() - t0 < 8000) { if (await p.evaluate(() => !!document.querySelector('#hm-agents .cn-jw'))) return true; await p.waitForTimeout(120); } return false; };
 
     /* the stage: their round on the master services agreement, read through the product's own funnel */
     const staged = await page.evaluate(async () => {
@@ -155,69 +155,8 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       !!staged.kinds && ['answer', 'renewal', 'read', 'chase', 'import', 'request'].every(k => staged.kinds.includes(k)), JSON.stringify(staged));
     await toCounter();
 
-    console.log('\n1 · the head as drawn');
-    const head = await page.evaluate(() => ({ h1: (document.querySelector('.cn-ask h1') || {}).textContent || '', ph: (document.getElementById('cn-q') || {}).placeholder || '',
-      chips: [...document.querySelectorAll('.cn-chips .cn-chip')].map(b => { const cs = getComputedStyle(b); return { t: b.textContent.trim(), lead: b.hasAttribute('data-cn-lead'), door: b.getAttribute('data-cn-need') || b.getAttribute('data-cn-note') || b.getAttribute('data-cn-req') || '',
-        dress: [cs.borderTopColor, cs.fontWeight, cs.backgroundColor, cs.color].join('|') }; }),
-      first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#cn-needs .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
-    check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'Ask Jambo, or type / for a place', JSON.stringify([head.h1, head.ph]));
-    /* RE-POINTED 29 Oct 2026 (round 5, "the box predicts"; owner: "bring them to home page"): the Board first, then the
-       next three things that wait said as tasks, each pressing its own row's door; the places only on a quiet day */
-    const lk = await page.evaluate(() => ({ head: ((document.querySelector('.cn-chips .cn-lk-h') || {}).textContent || '').trim(),
-      tasks: [...document.querySelectorAll('.cn-chips .cn-lk')].map(b => ({ t: b.textContent.trim(), key: b.getAttribute('data-cn-lk') })),
-      rows: [...document.querySelectorAll('#cn-needs [data-nd-row]')].map(r => r.getAttribute('data-nd-row')) }));
-    check('1b the chips: "Likely next:", board, then up to three tasks in Needs you\'s own order — no places while work waits',
-      lk.head === 'Likely next:' && head.chips[0] && head.chips[0].t === 'board' && lk.tasks.length >= 1 && lk.tasks.length <= 3
-      && head.chips.length === 1 + lk.tasks.length && lk.tasks.every((t, i) => t.key === lk.rows[i])
-      && !head.chips.some(c => ['contracts', 'calendar', 'draft a new agreement'].includes(c.t)), JSON.stringify(lk));
-    /* RE-POINTED 20 Oct 2026 (Chambers): the hint line is not drawn — no .cn-hint under Needs you, no hint under the box */
-    check('1c no hint line: no "each row\'s button opens its page" under Needs you, no hint under the box', head.hint.el === 0 && !head.hint.said, JSON.stringify(head.hint));
-    check('1d every chip wears one dress, as drawn (a task is not louder)', head.chips.length >= 2 && new Set(head.chips.map(c => c.dress)).size === 1, JSON.stringify(head.chips.map(c => c.dress)));
-    /* 1e a task presses its row's own door: the first is Jambo's prepared piece, which lands on the Board's card, on it */
-    if (lk.tasks[0] && await press('.cn-chips .cn-lk', '1e press the first task')){
-      const k = String(lk.tasks[0].key || '').replace(/^p:/, '');
-      const landed = await until(k0 => { const el = document.querySelector(`[data-hb-ag-item="${CSS.escape(k0)}"]`);
-        if (!el) return null; const r = el.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.top < innerHeight ? { view: state.view, top: Math.round(r.top) } : null; }, k);
-      check('1e the first task ("' + lk.tasks[0].t + '") lands on its own row\'s door: the Board\'s card, its piece in view', !!landed, JSON.stringify(landed));
-      /* the piece it opened is folded again, so the card reads as the later stages expect */
-      await page.evaluate(() => { if (typeof hbAgLookSet === 'function') hbAgLookSet(null); });
-      await toCounter();
-    }
-    const type = await page.evaluate(() => { const h = document.querySelector('.cn-ask h1'), b = document.querySelector('#cn-needs .nd-r .cn-w b');
-      const root = getComputedStyle(document.documentElement);
-      const cs = e => e ? getComputedStyle(e) : null; return { h1: cs(h) && [cs(h).fontSize, cs(h).fontWeight].join(' '), fam: cs(h) && cs(h).fontFamily, title: root.getPropertyValue('--font-title').trim(), wSerif: root.getPropertyValue('--w-title-serif').trim(),
-        name: cs(b) && cs(b).fontSize, btns: [...new Set([...document.querySelectorAll('#cn-needs .nd-btn')].map(x => Math.round(x.getBoundingClientRect().width)))] }; });
-    /* RE-POINTED 20 Oct 2026 (Chambers): Home's question is in the title serif (--font-title), 28px, --w-title-serif (was 26px semibold);
-       RE-POINTED 22 Oct 2026 (Round A, the owner: "make all of the buttons the same size"): every button of Needs you one width */
-    check('11g the greeting large as drawn (28px, the title serif at its own weight); a row\'s name 14px; every Needs you button one width',
-      !!type.h1 && type.h1 === '28px ' + type.wSerif && !!type.title && /Source Serif 4/.test(type.fam || '') && type.name === '14px' && type.btns.length === 1, JSON.stringify(type));
-    /* RE-POINTED 27 Oct 2026 (no lead chip): the order is still read — the first owed row is that approval */
-    check('11h the approval answered for an away colleague leads the owed rows: "Unrestricted\'s approval"', head.first === 'Unrestricted’s approval', JSON.stringify(head.first) || JSON.stringify(head.chips[0]));
-
-    /* RE-POINTED 22 Oct 2026 (Round A, the one desk — the owner picked "The Legora Way"): Home draws Jambo's
-       prepared pieces as rows of their own, three of each group, and "Show all N" lands on the Board's card,
-       where every piece is a row whose Look opens it in place (its body, its act, Put away last) */
-    console.log('\n2 · Home\'s Needs you: Jambo\'s group first, three rows each, Show all onto the Board');
-    const homeNd = await page.evaluate(() => ({ groups: [...document.querySelectorAll('#cn-needs .nd-g')].map(g => g.getAttribute('data-nd-g')),
-      jambo: [...document.querySelectorAll('#cn-needs .nd-r [data-nd-look]')].length, step: [...document.querySelectorAll('#cn-needs .nd-r .nd-step')].length,
-      read: [...document.querySelectorAll('#cn-needs .nd-r .nd-read')].map(e => e.textContent), words: [...new Set([...document.querySelectorAll('#cn-needs .nd-btn')].map(b => b.textContent))],
-      inPlace: !!document.querySelector('#cn-jw-list, [data-cn-ag-item], [data-cn-look], [data-cn-house], .cn-jw'), n: ndRead().jambo.length }));
-/* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads the row; the number, the other side and the ask in grey; the button says what happens */
-    check('2a Jambo\'s group first, three of his pieces in sight, each leading with its agreement',
-      homeNd.groups[0] === 'jambo' && homeNd.jambo === Math.min(3, homeNd.n), JSON.stringify(homeNd));
-    check('2b no list of pieces in place on Home, and every button says what happens', !homeNd.inPlace && homeNd.words.every(w => /^(Review|Approve…|Decide|Sign|Fill in|Answer|Open)$/.test(w)), JSON.stringify(homeNd.words));
-    await shot(page, 'main-23-home-1440x780');
-    const card = () => page.evaluate(() => { const c = document.getElementById('hm-agents'); const r = c ? c.getBoundingClientRect() : null;
-      return { view: state.view, face: window.hbFace ? hbFace() : null, card: !!c, nd: !!(c && c.classList.contains('nd-card')), lit: !!(c && c.classList.contains('is-landed')),
-        tab: ((c && c.querySelector('.nd-tab.on')) || {}).getAttribute ? c.querySelector('.nd-tab.on').getAttribute('data-nd-tab') : null,
-        inView: !!(r && r.top >= 0 && r.top < innerHeight && r.height > 0) }; });
-    if (await press('[data-nd-all="jambo"]', '2c Show all on Jambo\'s group')) {
-      const L = await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
-      const s1 = await card();
-      check('2c Show all lands on the Board\'s Needs you card, on Jambo\'s tab, in view, lit', !!L && s1.view === 'dashboard' && s1.face === 'board' && s1.card && s1.nd && s1.tab === 'jambo' && s1.inView, JSON.stringify(s1));
-      await shot(page, 'main-23-board-card-landed-1440x780');
-    }
-
+    /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): sections 1 and 2 drew Home's own page; the Board's
+       card (sections 3–6, 10) and its readings (f803, f925, f745) carry what stays */
     console.log('\n3 · on the Board\'s card, where every piece is a row');
     const openAgent = async k => { await page.evaluate(k => hbOpenAgent(k), k);
       return until(k => { const r = document.querySelector('#hm-agents [data-nd-agent="' + k + '"]'); return r && state.view === 'dashboard' ? true : null; }, k, 6000); };
@@ -384,71 +323,8 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     }
     await member.close();
 
-    console.log('\n7 · Home\'s Needs you as drawn');
-    /* RE-POINTED 22 Oct 2026 (Round A): your move is its own group — three rows, "Show all N" onto the Board;
-       a request Jambo found the paper for is HIS row now (the one desk merges them), its door "Open the request" */
-    await toCounter();
-    const needs = await page.evaluate(() => [...document.querySelectorAll('#cn-needs .nd-r')].filter(r => !r.querySelector('[data-nd-look]')).map(r => ({
-      title: (r.querySelector('.cn-w b') || {}).innerText || '', sub: (r.querySelector('.cn-w > span') || {}).innerText || '', when: (r.querySelector('.nd-when') || {}).textContent || '',
-      btn: (r.querySelector('button') || {}).textContent || '' })));
-/* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads the row; the number, the other side and the ask in grey; the button says what happens */
-    check('11i three of your own rows in sight, the approval answered for an away colleague first, as drawn', needs.length === 3 && /Answer an approval for /.test(needs[0].sub), JSON.stringify(needs.map(n => n.title)));
-    const ap = needs.find(n => /Answer an approval for /.test(n.sub));
-    check('7a the agreement · "for Unrestricted · away until <day>" · number · party · the ask · value · Approve…',
-      !!ap && /^Power purchase agreement\s*for Unrestricted · away until \S+/.test(ap.title.replace(/\n/g, ' ')) && /^MK-\S+ · Helio Energy AB · Answer an approval for Unrestricted · KES/.test(ap.sub) && ap.btn === 'Approve…',
-      JSON.stringify(ap));
-    const D7 = await page.evaluate(() => { const D = ndRead(); return { you: D.you.map(r => r.bundle ? 'bundle:' + r.n : r.y ? r.y.k + ':' + r.y.kind : r.key), jambo: D.jambo.map(r => r.it.kind), n: D.n,
-      all: (document.querySelector('[data-nd-all="you"]') || {}).textContent || '' }; });
-    check('7b details still to fill in are on the list (one row once more than three contracts owe them)', D7.you.some(k => /^bundle:|:details$/.test(k)), JSON.stringify(D7.you));
-    check('7c a note of yours due is your row; the request Jambo found the paper for is his', D7.you.some(k => k === 'note:mynote') && D7.jambo.includes('request'), JSON.stringify(D7));
-    check('7d "Show all N" on your move', new RegExp('^Show all \\d+$').test(D7.all), D7.all);
-    const days = await page.evaluate(() => [...document.querySelectorAll('#cn-needs .nd-when')].map(e => e.textContent).filter(Boolean));
-    check('7f how long a row has waited is said in words, never a bare number', days.length > 0 && days.every(t => /^(\d+ days?( late)?|today|in \d+ days?|due \S+( \S+)?)$/.test(t)), JSON.stringify(days));
-    const coLast = await page.evaluate(() => { const D = ndRead(); return D.you.length ? D.you[D.you.length - 1].key : ''; });
-    check('7g the admin\'s own row is the last of your move', coLast === 'company' || coLast === 'setup', coLast);
-    for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
-      await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(200);
-      const fit = await page.evaluate(() => { const card = document.getElementById('cn-needs'); const r = card ? card.getBoundingClientRect() : null;
-        return { sx: document.scrollingElement.scrollWidth > innerWidth, fits: !!r && r.bottom <= innerHeight + 1,
-          past: card ? [...card.querySelectorAll('button, .cn-w b, .cn-w span, .nd-when')].filter(e => { const q = e.getBoundingClientRect(); return q.width && (q.right > innerWidth + 1 || q.right > r.right + 1); }).length : -1 }; });
-      check(`8b at ${w}×${hh}: Home — no sideways scroll, nothing past the card, the card within the screen`, !fit.sx && fit.past === 0 && fit.fits, JSON.stringify(fit));
-      await page.evaluate(() => window.scrollTo(0, 0));
-      await shot(page, `main-23-home-${w}x${hh}`);
-    }
-    await page.setViewportSize({ width: 1440, height: 780 });
-    const reqShort = await page.evaluate(() => { const r = cnRows().find(y => y.k === 'req'); return r ? cnNeedShort(r) : ''; });
-    check('7h a request\'s short name says whose and what it is for: "<name>’s NDA request"', /^\S+’s NDA request$/.test(reqShort), reqShort);
-    if (await press('[data-nd-all="you"]', '7e Show all of your move')) {
-      const all = await until(() => { const c = document.getElementById('hm-agents'); const on = c && c.querySelector('.nd-tab.on');
-        return on && on.getAttribute('data-nd-tab') === 'you' ? [...c.querySelectorAll('.nd-br .nd-btn')].map(x => x.textContent) : null; }, null, 6000);
-      check('7e the Board\'s card on your move: the note\'s Open and the details\' Fill in among them', !!all && all.includes('Open') && all.includes('Fill in'), JSON.stringify(all));
-      /* the renewal is Jambo's row while his renewals agent prepares, yours where you set it to "Leave it to me" (6b above) */
-      const ren = await page.evaluate(() => { const D = ndRead(); const r = D.jambo.find(x => x.it.kind === 'renewal') || D.you.find(x => x.y && x.y.kind === 'renewal'); return r ? ndParts(r).when : null; });
-      check('11j the renewal\'s time in words: "in N days", never "in 40d"', !!ren && /^in \d+ days$/.test(ren), JSON.stringify(ren));
-    }
-    if (await press('#hm-agents [data-cn-note]', '7i Open the note')) {
-      const lit = await until(() => { const r = document.querySelector('.is-landed'); return state.view === 'mynotes' && r && r.matches('[data-mn-row]') ? { row: r.getAttribute('data-mn-row') } : null; }, null, 6000);
-      check('7i a note\'s door lands ON its row on My notes, lit', !!lit, JSON.stringify(lit || await page.evaluate(() => ({ view: state.view, lit: [...document.querySelectorAll('.is-landed')].map(e => e.outerHTML.slice(0, 80)) }))));
-      await shot(page, 'main-23-note-landed-1440x780');
-    }
-    const rq = await page.evaluate(() => { const r = ndRead().jambo.find(x => x.it.kind === 'request'); return r ? r.it.key : null; });
-    if (rq){
-      await page.evaluate(k => ndOpenBoard('jambo', k), rq);
-      const L = await lookAt(rq);
-      if (L && await press('#hm-agents [data-hb-ag-item="' + rq + '"] [data-ag-act="ikopen"]', '7j Open the request')) {
-        const lit = await until(() => { const r = document.querySelector('.is-landed'); return state.view === 'intake' && r && r.matches('[data-ik-row]') ? { row: r.getAttribute('data-ik-row') } : null; }, null, 8000);
-        check('7j a request\'s door lands ON its row on Requests, lit', !!lit, JSON.stringify(lit || await page.evaluate(() => ({ view: state.view, lit: [...document.querySelectorAll('.is-landed')].map(e => e.outerHTML.slice(0, 80)) }))));
-        await shot(page, 'main-23-request-landed-1440x780');
-      }
-    } else check('7j the request is Jambo\'s row', false, 'no request piece');
-    await toCounter();
-    /* RE-POINTED 27 Oct 2026: no lead chip — the same door is the approval row's own button in Needs you */
-    if (await press('#cn-needs [data-cn-need="approval"]', '11k the approval row\'s button')) {
-      const lit = await until(() => { const l = document.querySelector('#pd-signface .is-landed'); return l ? { gate: !!l.querySelector('#ap-approve'), stop: l.matches('[data-pd-road-stop]'), sa: l.id === 'sa-card', html: l.outerHTML.slice(0, 120) } : null; }, null, 10000);
-      check('11k the approval row\'s button LANDS ON the approval it opens: Before you sign, the Approval gate lit with its Approve', !!lit && (lit.gate || lit.sa || lit.stop), JSON.stringify(lit));
-      await shot(page, 'main-23-approval-landed-1440x780');
-    }
-
+    /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): section 7 drew Home's own page; the Board's
+       card (sections 3–6, 10) and its readings (f803, f925, f745) carry what stays */
     console.log('\n10 · Jambo\'s house says the card\'s count');
     /* their answer back on the card (taken out of this person's put-away list
        through its one writer), so the Negotiation room carries its long drawn

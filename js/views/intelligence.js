@@ -2522,9 +2522,9 @@ function igShownOf(act){ return (act&&act.ids&&act.action==='filter')?act.ids.si
    it (round 17 as drawn: the Board's saved views are chips with their
    counts). The same two readings the head line uses; reads only. */
 function igRecipeShown(r){ return igShownOf(intelActive((r&&Array.isArray(r.lenses))?r.lenses:[])); }
-/* the Board's head draws them as chips (round 17 as drawn): told when they change */
+/* Jambo's panel on Explorer lists them under Your day (igSavedViewsHtml; owner, 10 Nov 2026): told when they change */
 function igViewsWrite(list){ try{ localStorage.setItem(IG_VIEWS_KEY, JSON.stringify(list.slice(-IG_VIEWS_MAX)));
-  if(typeof window.hbViewsChanged==='function') setTimeout(window.hbViewsChanged,0); return true; }catch(_){ return false; } }
+  setTimeout(()=>{ try{ igDayRepaint(); }catch(_){} },0); return true; }catch(_){ return false; } }
 function igViewName(){ const bits=[graphGroupingWord(intel.groupBy)].concat(igRecipeSays()).concat(intel.lenses.filter(l=>l.on).map(l=>l.label)); const s=bits.join(' · '); return s.charAt(0).toUpperCase()+s.slice(1); }
 /* Recipes are saved without their ids' badges' prose, and a lens keeps its
    ids: a saved view opened next week shows the same contracts it named. */
@@ -5932,7 +5932,7 @@ function updateIntelNote(){
   document.getElementById('ig-clear')?.addEventListener('click',()=>{ igShowEverything(); });
   document.getElementById('ig-walk-stop')?.addEventListener('click',()=>{ intel.walk=null; updateIntelNote(); });
   document.getElementById('ig-undo')?.addEventListener('click',()=>{ igRecipeRun({ acts:[{ undo:true }] }); renderIntelDock(); updateIntelNote(); });
-  document.getElementById('ig-save')?.addEventListener('click',()=>{ igRecipeRun({ acts:[{ save:'' }] }); renderIntelDock(); });
+  document.getElementById('ig-save')?.addEventListener('click',()=>{ igSaveViewDoor(); });
   document.getElementById('ig-cliff')?.addEventListener('input',e=>{ intel.cliffDays=Number(e.target.value)||0; igApplyCliff(intel.cliffDays); });
   igNoteMeasure();
 }
@@ -6643,7 +6643,53 @@ function igDayHtml(){
     <div class="ig-day-hd"><b>${igEsc(day.replace(/^./,c=>c.toUpperCase()))}</b><span class="ig-day-at">${igEsc(i18t('int_day_counted',{ t:at }))}</span></div>
     <div class="ig-day-tiles">${T.map(tile).join('')}<button type="button" class="ig-day-t is-pin" data-ig-day-pin aria-pressed="${pin}"><span class="ig-day-l"><b>${igEsc(i18t(pin?'int_brief_unpin':'int_brief_pin'))}</b></span><span class="ig-day-s">${igEsc(i18t('int_day_pin_s'))}</span></button></div>
     <span class="ig-day-src">${igEsc(i18t('int_day_src'))}</span>
+    ${igSavedViewsHtml()}
   </div>`;
+}
+/* ---- SAVED VIEWS STAND IN JAMBO'S PANEL, UNDER YOUR DAY (owner, 10 Nov 2026, off a screenshot: "the saved views to
+   appear on the highlighted area in the jambo panel and not on the board"; "like the green underlined links but in
+   blue"; "you should be able to edit the name when saving") ----
+   One quiet line of links, newest first, each with how many contracts it shows (igRecipeShown, the map's own count).
+   "+ Save this view" opens a name box right there, filled with the name the view would give itself (igViewName), so
+   Enter keeps it and typing changes it; Cancel and Esc put the link back. A press on a link lays that view over the
+   map beside it (igSavedViewOpen: one step back on the map's Undo); the panel stays on Your day. Kept in this
+   browser, as before (igViewSave, the one writer). REVERSES the chips in the Board's head (15 and 18 Oct 2026). */
+let _igSvForm=false;
+function igSavedViewsHtml(){
+  let v=[]; try{ v=igViewsRead().slice().reverse(); }catch(_){ v=[]; }
+  const links=v.map(x=>{ let n=null; try{ n=igRecipeShown(x.recipe); }catch(_){ n=null; }
+    return `<button type="button" class="ig-sv-a" data-ig-sv="${igEsc(x.name)}" title="${igEsc(i18t('hb_views_tip'))}"><span class="ig-sv-n">${igEsc(x.name)}</span>${n!=null?`<b>${n}</b>`:''}</button>`; }).join('');
+  let nm=''; try{ nm=igViewName(); }catch(_){ nm=''; }
+  const form=_igSvForm?`<form class="ig-sv-form" data-ig-sv-form><input type="text" id="ig-sv-name" class="ig-sv-in" maxlength="${IG_SV_NAME_MAX}" autocomplete="off" value="${igEsc(nm)}" aria-label="${igEsc(i18t('int_sv_name'))}"><button type="submit" class="ig-sv-ok">${igEsc(i18t('int_sv_save'))}</button><button type="button" class="ig-sv-no" data-ig-sv-cancel>${igEsc(i18t('int_sv_cancel'))}</button></form>`:'';
+  return `<div class="ig-sv" id="ig-sv"><div class="ig-sv-hd"><span class="ig-sv-l">${igEsc(i18t('int_saved_views'))}</span>${_igSvForm?'':`<button type="button" class="ig-sv-new" data-ig-sv-new>${igEsc(i18t('int_sv_new'))}</button>`}</div>${form}`
+    +(links?`<div class="ig-sv-list">${links}</div>`:`<span class="ig-day-src">${igEsc(i18t('int_sv_none'))}</span>`)+`</div>`;
+}
+const IG_SV_NAME_MAX=60;
+function igSavedViewForm(on){ _igSvForm=!!on; igDayRepaint();
+  if(_igSvForm){ const i=document.getElementById('ig-sv-name'); if(i){ try{ i.focus({ preventScroll:true }); i.select(); }catch(_){} } } return true; }
+/* the name typed is the name kept; an empty box keeps the view's own name; a namesake is replaced (igViewSave) */
+function igSavedViewKeep(){
+  const i=document.getElementById('ig-sv-name'); const typed=String((i&&i.value)||'').replace(/\s+/g,' ').trim().slice(0,IG_SV_NAME_MAX);
+  const n=igViewSave(typed); _igSvForm=false; igDayRepaint();
+  if(typeof toast==='function') toast(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed'),n?'ok':'err');
+  return !!n;
+}
+function igSavedViewOpen(name){
+  const v=igViewFind(name);
+  if(!v){ if(typeof toast==='function') toast(i18t('hb_views_gone'),'warn'); igDayRepaint(); return false; }
+  igRecipePush(); igRecipeSet(v.recipe);
+  try{ rebuildIntelGraph(); }catch(_){}
+  try{ updateIntelNote(); }catch(_){}
+  return true;
+}
+/* THE MAP'S OWN "Save view" IS THE SAME DOOR: it turns the panel to Your day with the name box open (where the panel
+   has no Your day tab, it saves under the view's own name as it always did) */
+function igSaveViewDoor(){
+  if(!igDayTabOn()){ igRecipeRun({ acts:[{ save:'' }] }); renderIntelDock(); return true; }
+  intel.tour=null; intel.walk=null; intel.fdTab=false; intel.gdTab=false; intel.dayTab=true; _igSvForm=true;
+  renderIntelDock(); updateIntelNote();
+  const i=document.getElementById('ig-sv-name'); if(i){ try{ i.focus({ preventScroll:true }); i.select(); }catch(_){} }
+  return true;
 }
 function igDayRepaint(){ const host=document.getElementById('ig-day'); if(!host||!igDayShows()) return; host.innerHTML=igDayHtml(); }
 /* a figure's own door: each the page that does the work, the map's own for risk */
@@ -6680,7 +6726,12 @@ function igBriefAutoStart(){
 }
 document.addEventListener('click',e=>{ const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('#ig-day')) return;
   if(t.closest('[data-ig-day-pin]')){ igBriefPinSet(!igBriefPinned()); igDayRepaint(); return; }
+  if(t.closest('[data-ig-sv-new]')){ igSavedViewForm(true); return; }
+  if(t.closest('[data-ig-sv-cancel]')){ igSavedViewForm(false); return; }
+  const sv=t.closest('[data-ig-sv]'); if(sv){ igSavedViewOpen(sv.getAttribute('data-ig-sv')); return; }
   const f=t.closest('[data-ig-day]'); if(f){ if(IG) igPaintIds(null); igDayGo(f.getAttribute('data-ig-day')); } });
+document.addEventListener('submit',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-day [data-ig-sv-form]'):null; if(!f) return; e.preventDefault(); igSavedViewKeep(); });
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!_igSvForm) return; const i=e.target&&e.target.closest?e.target.closest('#ig-sv-name'):null; if(!i) return; e.stopPropagation(); igSavedViewForm(false); },true);
 /* pointing at a figure lights its contracts on the map; letting go puts the map back */
 document.addEventListener('mouseover',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-day [data-ig-day]'):null; if(!f||!IG) return;
   if(f._igLit) return; f._igLit=true; const t=igDayData().find(x=>x.k===f.getAttribute('data-ig-day')); if(t) igPaintIds(t.ids); });
@@ -9868,9 +9919,8 @@ function renderIntelDock(){
         const lead=solo;
         return (lead&&top&&typeof window.jamboHelloHtml==='function'?jamboHelloHtml():'')+(top||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`); })()}${solo?msgs+typing:''}
     </div>`}
-    ${''/* SAVED VIEWS LEFT THE PANEL (owner, 15 Oct 2026): they stand on the
-           Board's head as chips (hbSavedViewChipsHtml, round 17), and a press
-           opens the view on Explorer, where the map is. ON THE BOARD HIS
+    ${''/* SAVED VIEWS STAND UNDER YOUR DAY (owner, 10 Nov 2026; igSavedViewsHtml),
+           no longer on the Board's head, and no row of them here. ON THE BOARD HIS
            CHIPS RIDE HIS WORDS (round 17 as drawn): under each of his two
            bubbles (hbBoardHelloHtml), so no row stands above the box. */}
     ${(()=>{
@@ -11961,7 +12011,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRe
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{igLegendField,igLegendClamp,igLegendPut,igLegendPlace,igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igSavedViewsHtml,igSavedViewForm,igSavedViewKeep,igSavedViewOpen,igSaveViewDoor,IG_SV_NAME_MAX,igLegendField,igLegendClamp,igLegendPut,igLegendPlace,igLegendPickOn,igLegendKept,igLegendPickAttrs,igLegendPickIds,igLegendPick,igRiskAsOf,igRiskSinceBadges,igNoteMoreBits,IG_BRIEF_RE,IG_BRIEF_STOPS,IG_BRIEF_PIN_KEY,igBriefPinned,igBriefPinSet,igBriefBook,igBriefNeeds,IG_DAY_TILES,igDayTabOn,igDayShows,igDayData,IG_DAY_GO,igDayHtml,igDayRepaint,igDayGo,igBriefStart,igBriefOffered,igBriefAutoStart,IG_CLIFF_MIN,IG_CLIFF_PIN_DAYS,IG_CLIFF_PINS,igCliffCrowdMonths,igCliffPinned,igCliffPinsDraw,igDayShort,igCliffCardOpen,igCliffCardClose,IG_WHATIF_RE,igWhatIfRead,igWhatIfData,igWhatIfStop,igWhatIfLinksHtml,IG_LENS_THEN_MONTHS,igLensThenISO,igLensThen,igLensThenPillsHtml,IG_LENSES,IG_LENS_BUCKETS,igLensMay,igLensOn,igLensMoneyOf,igLensOwnerOf,igLensHot,igLensTopParties,igLensScanAll,igLensScanStop,igLensDoorOf,igLensObOf,igLensBucketOf,igLensKids,igLensCounts,igLensTone,igLensDraw,igLensSet,igLensPaint,igLensBarHtml,igLensBarPaint,igLensLegendHtml,igLensFactRows,igLensDoorHtml,igLensDoorGo,igLensTourSteps,igLensWhyHtml,igLensRead,igTourStepsOf,igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

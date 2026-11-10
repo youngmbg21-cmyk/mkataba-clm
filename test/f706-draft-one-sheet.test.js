@@ -79,11 +79,12 @@ describe('f706 (1) which sentences start a draft', () => {
       'NDA', 'NDA for a pilot', 'NDA with a two-year term', 'vilka avtal med Volvo', 'Volvo'])
       assert.equal(ctx.caIsDraftAsk(q), false, q);
   });
-  test('1c Jambo reads it, and the Counter sends it to the same place', () => {
+  /* RE-POINTED (owner, 10 Nov 2026): the Counter's box went with Home; every box reads through caAskAnywhere */
+  test('1c Jambo reads it, and the one reader sends it to the same place', () => {
     assert.ok(ctx.caReadDraft('NDA with Volvo Cars for a pilot'), 'a draft act');
     assert.match(fnBody(CA, 'caReadDraft'), /if \(!caIsDraftAsk\(q\)\) return null;/);
     /* RE-POINTED 18 Oct 2026: every Jambo box reads through caAskAnywhere, whose hand-off to Home asks it */
-    assert.match(fnBody(CN, 'counterAsk'), /caAskAnywhere\(text, \{ all: true \}\)/, 'the Counter\'s box: one reading');
+    assert.ok(!/function counterAsk\(/.test(CN), 'the Counter\'s box is gone with Home');
     assert.match(fnBody(CA, 'caHandHome'), /caIsDraftAsk\(t\)/, 'the draft sentence goes to the wall');
   });
 });

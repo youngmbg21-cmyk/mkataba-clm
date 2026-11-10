@@ -31,7 +31,7 @@ const panelNow = () => ({ open: !!(window.state && state.panelOpen), face: typeo
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 4 && typeof openPanel === 'function', null, 40000);
-      await until(page, () => state.view === 'counter' || state.view === 'dashboard', null, 15000);
+      await until(page, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 15000);
       /* the bar is drawn once the shell stands: wait for the bell to have its size */
       await until(page, () => { const b = document.getElementById('hdr-notify'); return !!b && b.getBoundingClientRect().width > 0; }, null, 15000);
 

@@ -47,9 +47,11 @@ const check = (name, pass, detail) => {
     const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
-    const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q')); };
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): Home's box read every word through the map, drawing nothing of its own;
+       the Board keeps the words it draws (jmBoardKeeps), so the map is asked from a list page's box, which does the same */
+    const toCounter = async () => { await page.evaluate(() => setView('approvals')); return until(() => state.view === 'approvals' && !!document.getElementById('jl-q')); };
     /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
-    const counterAsk = async q => { await page.evaluate(x => window.counterAsk(x), q); };
+    const counterAsk = async q => { await page.evaluate(x => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(x), q); };
     const onPaper = async id => { await page.evaluate(i => { setView('dashboard'); igAnalyze(i); }, id);
       return until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('igd-input') && !intel.busy, id, 10000); };
     /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): everything typed on a Jambo tab goes to the AI (igTalkFirst); this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
@@ -64,11 +66,12 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 20000 });
 
     console.log('\n0 · the library');
-    const parts = await page.evaluate(() => ['jmRead', 'jmMatch', 'jmCardHtml', 'caActOf', 'counterAsk'].filter(n => typeof window[n] !== 'function'));
+    const parts = await page.evaluate(() => ['jmRead', 'jmMatch', 'jmCardHtml', 'caActOf', 'caAskAnywhere'].filter(n => typeof window[n] !== 'function'));
     check('0a the map is loaded', parts.length === 0, parts.length ? 'missing ' + parts.join(', ') : null);
     if (parts.length) throw new Error('nothing to drive');
     const lib = await until(() => typeof window.MiniSearch === 'function' && [...document.scripts].some(s => /vendor\/minisearch-7\.2\.0\.umd\.js$/.test(s.src)), null, 10000);
     check('0b MiniSearch arrives on its own, served by HaTi from vendor/', !!lib);
+    await toCounter();
     const ready = await page.evaluate(() => !!jmRead('which contracts are expiring soon?'));
     check('0c the map answers once it has arrived', ready);
 

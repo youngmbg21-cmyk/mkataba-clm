@@ -97,7 +97,7 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     ok('1a the left menu is gone; Jambo\'s agents is a place in his "/" list', fly.menu === 'none' && fly.slash.includes('house'), JSON.stringify(fly));
 
     console.log('\n2 · the page');
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, "jambo's agents");
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, "jambo's agents");
     await page.waitForFunction(() => !!document.querySelector('#jh-cv') && document.querySelectorAll('[data-jh-agent]').length > 0, null, { timeout: 8000 }).catch(() => {});
     const pg = await page.evaluate(() => ({ view: state.view, cards: [...document.querySelectorAll('[data-jh-agent]')].map(x => x.getAttribute('data-jh-agent')),
       keys: AG_KEYS.slice(), h: document.getElementById('jh-cv').height, tabs: [...document.querySelectorAll('[data-jh-tab]')].map(x => x.getAttribute('data-jh-tab')),

@@ -97,10 +97,11 @@ describe('f450 (1) — one list in one place: the Board\'s card is all of Needs 
     assert.ok(!BOARD.includes('data-hb-prep="open"'), 'Your book\'s head draws no way back to a closed card');
   });
 
-  test('"needs me" lands on Home\'s Needs you, and Jambo on the Board says so', () => {
+  /* RE-POINTED (owner, 10 Nov 2026: "Home page should be removed / deleted"): "needs me" lands on the Board's card */
+  test('"needs me" lands on the Board\'s Needs you, and Jambo on the Board says so', () => {
     const open = code(BOARD.slice(BOARD.indexOf('function hbNeedsOpen('), BOARD.indexOf('function hbNeedsPress(')));
     assert.match(open, /deskGoCounter\(\)/);
-    assert.match(open, /landOn\('#cn-needs'/, 'LAND ON IT: the one lander, on the card');
+    assert.match(open, /landOn\('#hm-agents'/, 'LAND ON IT: the one lander, on the card');
     assert.match(code(BOARD.slice(BOARD.indexOf('function hbBoardHelloHtml('), BOARD.indexOf('function hbBoardHelloHtml(') + 2400)), /counterNeedsCount\(\)/,
       'his number is Home\'s own');
   });

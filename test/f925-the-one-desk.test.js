@@ -107,16 +107,8 @@ describe('f925 (1) one reading', () => {
 });
 
 describe('f925 (2) Home', () => {
-  test('2a Jambo\'s group first, three rows of each, "Show all N" onto the Board', () => {
-    const pieces = [answer, chase, { ...chase, key: 'late:MK-4', c: C('MK-4', 'Atlas') }, { ...chase, key: 'late:MK-8', c: C('MK-8', 'Rania') }];
-    const w = world([row('MK-1', 'approval'), row('MK-11', 'sign')], pieces);
-    const html = w.ndHomeHtml(w.ndRead());
-    assert.ok(html.indexOf('data-nd-g="jambo"') < html.indexOf('data-nd-g="you"'));
-    /* RE-POINTED 24 Oct 2026 (Round 2): "Prepared by Jambo", the count said once (in the card's head) */
-    assert.match(html, /<span class="nd-g-t">Prepared by Jambo<\/span><button type="button" class="ui-link nd-all" data-nd-all="jambo">Show all 4<\/button>/);
-    assert.ok(!/data-nd-all="you"/.test(html), 'two rows: nothing hidden, no Show all');
-    assert.equal((html.match(/class="cn-r nd-r[ "]/g) || []).length, 5, 'three of Jambo\'s, two of yours');
-  });
+  /* 2a RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's top three of each group and its
+     "Show all N" went with Home; the Board's card draws the whole list (f745 (3)) */
   /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): the agreement leads; the number, the other side and the piece in grey; Review */
   test('2b a piece leads with its agreement, says what Jambo prepared, and its button says Review', () => {
     const w = world([], [chase]);

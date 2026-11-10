@@ -49,20 +49,22 @@ const BODY = 'SUPPLY AGREEMENT\n\n3. Payment\nPayment is due within thirty days 
         cols: [...document.querySelectorAll('#fm-grid .fm-col')].map(c => c.getAttribute('data-fm-st')), hub: [...document.querySelectorAll('#fm-grid .fm-node.is-hub')].map(n => n.getAttribute('data-fm')) }));
       check(`${nm} 2 every place stands under its stage; the paper is the hub`, G.nodes === G.map && G.cols.join() === 'arrive,read,nego,sign,live,book,house' && G.hub.join() === 'document', G);
 
-      /* 3 a press lights its lines and Jambo says them */
-      await page.click('#fm-grid [data-fm="counter"]');
-      const S = await page.evaluate(() => ({ pressed: document.querySelector('#fm-grid [data-fm="counter"]').getAttribute('aria-pressed'),
+      /* 3 a press lights its lines and Jambo says them. RE-POINTED 10 Nov 2026: Home was deleted and the
+         Board took its stage, so the Board is pressed; its doors are read off FLOW_MAP (the relation, not a list) */
+      await page.click('#fm-grid [data-fm="board"]');
+      const S = await page.evaluate(() => ({ pressed: document.querySelector('#fm-grid [data-fm="board"]').getAttribute('aria-pressed'),
         doors: [...document.querySelectorAll('#fm-grid .fm-node.is-to-d')].map(n => n.getAttribute('data-fm')).sort(),
+        want: (FLOW_MAP.find(x => x.k === 'board') || { d: [] }).d.slice().sort(),
         lines: document.querySelectorAll('#fm-svg path[stroke-dasharray], #fm-svg path').length,
-        open: !!document.querySelector('#ins-panel [data-fm-go="counter"]'), panelSays: (document.querySelector('#ins-panel') || {}).textContent || '' }));
-      check(`${nm} 3 Home pressed: its five doors light, lines drawn, Jambo's panel says it with Open`, S.pressed === 'true' && S.doors.join() === ['board', 'calendar', 'contracts', 'explorer', 'reads'].sort().join() && S.lines >= 8 && S.open, { ...S, panelSays: S.panelSays.slice(0, 80) });
+        open: !!document.querySelector('#ins-panel [data-fm-go="board"]'), panelSays: (document.querySelector('#ins-panel') || {}).textContent || '' }));
+      check(`${nm} 3 the Board pressed: its doors light, lines drawn, Jambo's panel says it with Open`, S.pressed === 'true' && S.want.length >= 3 && S.doors.join() === S.want.join() && S.lines >= 8 && S.open, { ...S, panelSays: S.panelSays.slice(0, 80) });
       await page.screenshot({ path: path.join(OUT, `map-${nm}.png`) });
       const fit = await page.evaluate(() => ({ sideways: document.documentElement.scrollWidth - innerWidth, panel: !!document.querySelector('#ins-panel'),
         grid: (() => { const g = document.getElementById('fm-grid').getBoundingClientRect(), p = document.getElementById('ins-panel'); return p ? g.right <= p.getBoundingClientRect().left + 1 : true; })() }));
       check(`${nm} 6 nothing sideways; the map sits beside Jambo's panel`, fit.sideways <= 0 && fit.grid, fit);
 
       if (nm === 'laptop-a'){
-        await page.click('#fm-grid [data-fm="counter"]');
+        await page.click('#fm-grid [data-fm="board"]');
         const off = await page.evaluate(() => !document.querySelector('#fm-grid .fm-node[aria-pressed="true"]') && !document.querySelector('#fm-grid.is-dim'));
         check('3b a second press lets it go', off);
         /* 5 a refresh lands on the place chosen */

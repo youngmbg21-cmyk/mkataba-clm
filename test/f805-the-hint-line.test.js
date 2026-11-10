@@ -121,7 +121,8 @@ describe('f805 (3) both books keep the words, inert', () => {
    and its painter are gone with the line. */
 describe('f805 (4) the last three boxes: the Counter, the Jambo window, the clause editor — none', () => {
   test('4a the Counter\'s box: the chips straight under it, no line, no Needs-you note', () => {
-    assert.match(fnOf(CN, 'counterHtml'), /<div class="ca-pop cn-pop" id="cn-pop" hidden><\/div><\/div>\s*<div class="cn-chips"[ >]/, 'box, then the chips');
+    /* RE-POINTED (owner, 10 Nov 2026: Home and its box deleted): what is left draws no line either */
+    assert.ok(!/function counterHtml\(/.test(CN), 'the Counter\'s box went with Home');
     assert.doesNotMatch(code(CN), HINT_CLASSES);
     assert.doesNotMatch(code(CN), HINT_NAMES);
     assert.doesNotMatch(code(HTML), /\.cn-ask > \.jb-hint|\.cn-hint/, 'no rule dresses either');
@@ -182,7 +183,8 @@ describe('f805 (7) the Calendar\'s box and the template builder\'s — none', ()
       assert.doesNotMatch(code(src), /jamboHintHtml\(/, f);
     }
     /* and every one of them still draws its box through the one card builder */
-    for (const f of askers.filter(f => f !== 'js/ai.js')) assert.match(read(f), /_[a-z]+JbCard\(/, f + ' draws the two-row card');
+    /* the Counter's box went with Home (10 Nov 2026): it draws no card now */
+    for (const f of askers.filter(f => f !== 'js/ai.js' && f !== 'js/views/counter.js')) assert.match(read(f), /_[a-z]+JbCard\(/, f + ' draws the two-row card');
     assert.match(HTML, /<div class="jb-card">\s*<textarea id="ai-input"/, 'the window\'s card is in the page');
   });
 });

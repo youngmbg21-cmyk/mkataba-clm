@@ -281,8 +281,10 @@ describe('f800 (10) the card\'s head says Home\'s words', () => {
      drawn from ONE reading — the same title, the same count, the same "N late · the oldest has waited" */
   test('10a one reading, one wording, one press apart', () => {
     const CN = R('js/views/counter.js');
-    const board = fnBody(CN, 'ndBoardHtml'), home = fnBody(CN, 'counterHtml');
-    for (const f of [board, home]){
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the Board's card is the one Needs you left */
+    assert.ok(!/function counterHtml\(/.test(CN), 'Home\'s card went with Home');
+    const board = fnBody(CN, 'ndBoardHtml');
+    for (const f of [board]){
       assert.match(f, /_cnT\('hb_ny_title'\)/, 'the title is Needs you');
       assert.match(f, /ndSumWords\(D\)/, 'the same line under it');
       assert.match(f, /const D = ndRead\(\);/, 'the one reading');

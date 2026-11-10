@@ -213,7 +213,9 @@ describe('f753 (8) the sheet\'s way back is the bar\'s', () => {
     vm.createContext(ctx);
     vm.runInContext(strip(CN.slice(CN.indexOf('function deskSheetUp('), CN.indexOf('/* Asked after every page is drawn'))) + `
       var _dkTrail = ['home', 'home:contracts'];
-      function deskKeyNow(){ return state.view === 'counter' ? null : 'home:contracts'; }
+      function deskKeyNow(){ return 'home:contracts'; }
+      /* RE-POINTED (owner, 10 Nov 2026: Home deleted): 'home' is the Board's face, asked through dkHomeHere */
+      function dkHomeHere(){ return deskKeyNow() === 'home:board'; }
       function deskGoCounter(){ calls.push('home'); } function deskTabOpen(k){ calls.push(k); } function deskBarPaint(){ calls.push('paint'); }`, ctx);
     assert.equal(ctx.deskSheetFrom(), 'home:contracts');
     ctx.deskSheetBackTo('home:contracts'); assert.deepEqual(ctx.calls, ['paint'], 'already there: only the bar is named again');

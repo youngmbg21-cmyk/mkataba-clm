@@ -2321,7 +2321,6 @@ async function stNewLookSet(on){
     try{ globalThis.dispatchEvent(new Event('resize')); }catch(_){}
     /* the doors above Jambo's box and Home's new parts follow at once */
     if(typeof jamboWaysSync==='function') try{ jamboWaysSync(); }catch(_){}
-    if(typeof counterRepaint==='function') try{ counterRepaint(); }catch(_){}
     toast(i18t(on?'st_you_newlook_on':'st_you_newlook_off'),'ok'); stYouCardRepaint('work'); return true; }
   stYouCardRepaint('work'); return false;
 }

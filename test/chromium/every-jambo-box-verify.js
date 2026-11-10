@@ -127,12 +127,7 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
       const at = `${w}×${ht}`, tag = `${w}x${ht}`;
 
       /* ---- 1 the nine boxes, no line under any ---- */
-      await part('1a the Counter', async () => {
-        await page.evaluate(() => setView('counter'));
-        const L = await until(NO_LINE_OF, ARG('#cn-page .jb-card', '#cn-page'));
-        check(`1a ${at} the Counter's box: drawn, and no line under it`, ok(L), JSON.stringify(L));
-        await shot(`no-hint-counter-${tag}.png`);
-      });
+      /* 1a RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): the Counter's box went with Home */
       /* RE-POINTED 21 Oct 2026 (owner): the edge tab's side panel, and the bar's ✦ opens the
          floating chat window ("The old chat window"; the one-line ask bar is gone) — one box, the
          same #ai-panel, drawn two ways, both asked */
