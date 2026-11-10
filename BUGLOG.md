@@ -21957,3 +21957,9 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - 10 Nov 2026 — f982 test 3 still looked for `listSapCellHtml(obnSapKey` after #618 rewrote `obnRowHtml` (mark key now `mk`), red on main at cf35ae9; re-pointed in #619 with the owner's yes ("fix it in yours"). Nothing a person sees changed.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) Opening the Send screen on MK-HB4 (handed over for signature, handbook world) shows a red toast "Not saved: MK-HB4 has been handed over for signature, so its wording is locked…" — opening Send appears to try a save on a frozen contract (reading must not write), seen while photographing; not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) The other side's page (portal) was not part of the sweep: it carries its own look switch (`outsideLook`) and needs a share link to open; its detail lines were not measured.
+
+## 10 Nov 2026 — Explorer: top N groups and "what Jambo understood" (Board Twin)
+- Fixed: "top 5 folders by value" on Explorer kept the 5 biggest contracts in each value stream; the map had no way to keep the N biggest groups. Now `top.groups` (free reader, AI tool, route), the hidden groups said, chips under the answer show and change the reading, the doubtful part amber.
+- Fixed while there: a top N pressed again added a second filter lens on top of the first (the old filter kept every filter lens), so a re-read narrowed inside the last one. One top N at a time now.
+- Noticed, not fixed: at 1366 px wide the map head's "Save view" wraps to a second line when the set's label is long ("Top 3 by value · in each value stream"); seen before this change too.
+- Noticed, not fixed: the local (browser-key) map interpreter's schema (aiLocalGraph) has no `top` at all, so a top N typed in local mode is read only by the free reader.
